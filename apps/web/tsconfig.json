@@ -1,0 +1,4 @@
+{
+  "extends": "@work-archive/tsconfig/web.json",
+  "include": ["src"]
+}
