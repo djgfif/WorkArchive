@@ -42,6 +42,7 @@ const workSyncStatusLabels: Record<WorkSyncStatus, string> = {
   'local-only': 'Local only',
   pending: 'Pending sync',
   synced: 'Synced',
+  conflict: 'Conflict',
 };
 
 export const workTypeOptions = WORK_TYPES.map((value) => ({

@@ -35,7 +35,12 @@ export const WORK_TIERS = ['S', 'A', 'B', 'C', 'D'] as const;
 
 export type WorkTier = (typeof WORK_TIERS)[number];
 
-export const WORK_SYNC_STATUSES = ['local-only', 'pending', 'synced'] as const;
+export const WORK_SYNC_STATUSES = [
+  'local-only',
+  'pending',
+  'synced',
+  'conflict',
+] as const;
 
 export type WorkSyncStatus = (typeof WORK_SYNC_STATUSES)[number];
 

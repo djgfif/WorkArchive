@@ -15,7 +15,7 @@ import { WorksToolbar } from '../components/WorksToolbar';
 export function WorksListPage() {
   const [query, setQuery] = useState<WorksListQuery>(DEFAULT_WORKS_LIST_QUERY);
   const [actionError, setActionError] = useState<string | null>(null);
-  const { error, isLoading, works } = useWorksList(query);
+  const { error, isLoading, totalActiveCount, works } = useWorksList(query);
 
   async function handleDelete(work: WorkRecord) {
     const shouldDelete = window.confirm(
@@ -40,7 +40,13 @@ export function WorksListPage() {
 
   return (
     <div className="stack">
-      <WorksToolbar onQueryChange={setQuery} query={query} totalCount={works.length} />
+      <WorksToolbar
+        filteredCount={works.length}
+        isLoading={isLoading}
+        onQueryChange={setQuery}
+        query={query}
+        totalActiveCount={totalActiveCount}
+      />
 
       {actionError && (
         <div aria-live="polite" className="error-banner" role="alert">
