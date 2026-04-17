@@ -9,13 +9,21 @@ function getNextSyncStatus(serverVersion: number): WorkSyncStatus {
   return serverVersion > 0 ? 'pending' : 'local-only';
 }
 
+interface WorksListResult {
+  totalActiveCount: number;
+  works: WorkRecord[];
+}
+
 export class WorksService {
   constructor(private readonly repository: WorksRepository = worksRepository) {}
 
   async listWorks(query: WorksListQuery) {
-    const works = await this.repository.listActive();
+    const activeWorks = await this.repository.listActive();
 
-    return queryWorks(works, query);
+    return {
+      works: queryWorks(activeWorks, query),
+      totalActiveCount: activeWorks.length,
+    } satisfies WorksListResult;
   }
 
   async getWorkById(id: string) {

@@ -6,26 +6,43 @@ import {
 } from '../utils/work-options';
 
 interface WorksToolbarProps {
+  filteredCount: number;
+  isLoading: boolean;
   onQueryChange: (query: WorksListQuery) => void;
   query: WorksListQuery;
-  totalCount: number;
+  totalActiveCount: number;
 }
 
 export function WorksToolbar({
+  filteredCount,
+  isLoading,
   onQueryChange,
   query,
-  totalCount,
+  totalActiveCount,
 }: WorksToolbarProps) {
+  let countSummary = 'Loading local archive...';
+
+  if (!isLoading) {
+    if (totalActiveCount === 0) {
+      countSummary = 'No active works stored in IndexedDB yet.';
+    } else if (filteredCount === totalActiveCount) {
+      countSummary = `Showing all ${totalActiveCount} active ${
+        totalActiveCount === 1 ? 'work' : 'works'
+      } stored in IndexedDB.`;
+    } else {
+      countSummary = `Showing ${filteredCount} of ${totalActiveCount} active ${
+        totalActiveCount === 1 ? 'work' : 'works'
+      } stored in IndexedDB.`;
+    }
+  }
+
   return (
     <section className="panel stack">
       <div className="page-header">
         <div>
           <p className="eyebrow">Library</p>
           <h2 className="section-title">Browse your local archive</h2>
-          <p className="muted-copy">
-            {totalCount} active {totalCount === 1 ? 'work' : 'works'} stored in
-            IndexedDB.
-          </p>
+          <p className="muted-copy">{countSummary}</p>
         </div>
       </div>
 

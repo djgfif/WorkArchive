@@ -34,10 +34,6 @@ function compareUpdatedAtDescending(a: WorkRecord, b: WorkRecord) {
 
 export function queryWorks(works: WorkRecord[], query: WorksListQuery) {
   const filtered = works.filter((work) => {
-    if (work.deletedAt !== null) {
-      return false;
-    }
-
     if (query.type !== 'all' && work.type !== query.type) {
       return false;
     }

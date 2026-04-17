@@ -76,9 +76,11 @@ describe('WorksRepository', () => {
     });
 
     const activeWorks = await repository.listActive();
+    const allWorks = await repository.listAll();
     const storedWork = await repository.getById(work.id);
 
     expect(activeWorks).toHaveLength(0);
+    expect(allWorks).toHaveLength(1);
     expect(storedWork?.deletedAt).toBe('2026-01-03T00:00:00.000Z');
   });
 });
