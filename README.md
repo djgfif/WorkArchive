@@ -24,6 +24,15 @@ docker compose up -d
 npm run dev
 ```
 
+Docker Compose uses the root [`compose.yml`](/mnt/c/CodeStorage/WorkArchive/compose.yml) file.
+
+## Environment Files
+
+- Root template: [`.env.example`](/mnt/c/CodeStorage/WorkArchive/.env.example)
+- API local defaults: [`apps/api/.env.example`](/mnt/c/CodeStorage/WorkArchive/apps/api/.env.example)
+
+Milestone 0 keeps a local `apps/api/.env` so `npm install` can generate the Prisma client without extra setup. Replace those defaults before any real deployment workflow.
+
 The default PostgreSQL database runs on `localhost:5432` with:
 
 - database: `work_archive`
@@ -47,3 +56,9 @@ npm run dev --workspace @work-archive/web
 npm run dev --workspace @work-archive/api
 npm run prisma:generate --workspace @work-archive/api
 ```
+
+## Local Endpoints
+
+- API health check: `GET /health`
+- Swagger UI: `/docs`
+- Future API routes: `/api/*`
