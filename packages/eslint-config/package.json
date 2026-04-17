@@ -1,0 +1,18 @@
+{
+  "name": "@work-archive/eslint-config",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./api": "./api.mjs",
+    "./library": "./library.mjs",
+    "./web": "./web.mjs"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.25.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "typescript-eslint": "^8.30.1"
+  }
+}
