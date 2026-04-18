@@ -85,9 +85,13 @@ export function getWorkSyncStatusLabel(value: WorkSyncStatus) {
   return workSyncStatusLabels[value];
 }
 
-export function formatWorkUpdatedAt(value: string) {
+export function formatWorkDateTime(value: string) {
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+export function formatWorkUpdatedAt(value: string) {
+  return formatWorkDateTime(value);
 }

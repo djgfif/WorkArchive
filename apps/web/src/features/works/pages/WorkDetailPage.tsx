@@ -74,25 +74,32 @@ export function WorkDetailPage() {
 
   return (
     <div className="stack">
-      <div className="button-row">
-        <Link className="secondary-link" to="/works">
-          Back to library
-        </Link>
-        <Link className="secondary-link" to={`/works/${work.id}/edit`}>
-          Edit work
-        </Link>
-        <button className="danger-button" onClick={() => void handleDelete()} type="button">
-          Delete
-        </button>
-      </div>
-
       {actionError && (
         <div aria-live="polite" className="error-banner" role="alert">
           {actionError}
         </div>
       )}
 
-      <WorkDetailPanel work={work} />
+      <WorkDetailPanel
+        actions={
+          <>
+            <Link className="secondary-link" to="/works">
+              Back to library
+            </Link>
+            <Link className="secondary-link" to={`/works/${work.id}/edit`}>
+              Edit work
+            </Link>
+            <button
+              className="danger-button"
+              onClick={() => void handleDelete()}
+              type="button"
+            >
+              Delete
+            </button>
+          </>
+        }
+        work={work}
+      />
     </div>
   );
 }

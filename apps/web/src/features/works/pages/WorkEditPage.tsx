@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
+import { PageHero } from '../../../shared/components/PageHero';
 import { WorkForm } from '../components/WorkForm';
 import { useWorkDetail } from '../hooks/useWorkDetail';
 import { worksService } from '../services/works.service';
@@ -71,14 +72,28 @@ export function WorkEditPage() {
 
   return (
     <section className="stack">
-      <header className="panel stack">
-        <p className="eyebrow">Edit Work</p>
-        <h2 className="page-title">Update your local record</h2>
-        <p className="muted-copy">
-          Changes are written immediately to IndexedDB and reflected in the list
-          and detail routes.
-        </p>
-      </header>
+      <PageHero
+        actions={
+          <Link className="secondary-link" to={`/works/${work.id}`}>
+            Back to detail
+          </Link>
+        }
+        description="Refine the details, notes, and personal status without losing the original flow."
+        eyebrow="Edit Entry"
+        meta={
+          <>
+            <div className="stat-pill">
+              <span className="stat-pill-value">{work.title}</span>
+              <span className="stat-pill-label">Current title</span>
+            </div>
+            <div className="stat-pill">
+              <span className="stat-pill-value">Live</span>
+              <span className="stat-pill-label">Updates save to the archive</span>
+            </div>
+          </>
+        }
+        title={`Edit ${work.title}`}
+      />
 
       <WorkForm
         cancelTo={`/works/${work.id}`}

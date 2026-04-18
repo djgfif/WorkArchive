@@ -43,6 +43,7 @@ export function WorksListPage() {
       <WorksToolbar
         filteredCount={works.length}
         isLoading={isLoading}
+        onClearFilters={() => setQuery(DEFAULT_WORKS_LIST_QUERY)}
         onQueryChange={setQuery}
         query={query}
         totalActiveCount={totalActiveCount}
@@ -63,23 +64,27 @@ export function WorksListPage() {
 
       {!error && isLoading && (
         <section className="panel stack">
-          <h2 className="section-title">Loading works...</h2>
-          <p className="muted-copy">Opening the local IndexedDB archive.</p>
+          <h2 className="section-title">Loading your library...</h2>
+          <p className="muted-copy">Opening the saved works on this device.</p>
         </section>
       )}
 
       {!error && !isLoading && works.length === 0 && (
-        <section className="panel stack">
-          <p className="eyebrow">Empty Library</p>
-          <h2 className="section-title">No works match the current view.</h2>
+        <section className="panel empty-state">
+          <div aria-hidden="true" className="empty-state-art">
+            <span>WA</span>
+          </div>
+          <div className="stack">
+            <p className="eyebrow">Empty Library</p>
+            <h2 className="section-title">No works match this view.</h2>
           <p className="muted-copy">
             {query.searchTerm || query.type !== 'all' || query.status !== 'all'
-              ? 'Clear the current search or filters, or add a new work.'
-              : 'Start the archive by saving your first work locally.'}
+              ? 'Try widening the filters or start a new entry.'
+              : 'Start the archive with the first title you want to keep track of.'}
           </p>
           <div className="button-row">
             <Link className="primary-link" to="/works/new">
-              Add your first work
+              Add a work
             </Link>
             {(query.searchTerm ||
               query.type !== 'all' ||
@@ -88,9 +93,10 @@ export function WorksListPage() {
                 onClick={() => setQuery(DEFAULT_WORKS_LIST_QUERY)}
                 type="button"
               >
-                Clear filters
+                Reset view
               </button>
             )}
+          </div>
           </div>
         </section>
       )}

@@ -1,6 +1,7 @@
 import type { WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
+import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   formatWorkUpdatedAt,
   getWorkStatusLabel,
@@ -14,57 +15,95 @@ interface WorkCardProps {
 }
 
 export function WorkCard({ onDelete, work }: WorkCardProps) {
+  const typeLabel = getWorkTypeLabel(work.type);
+  const statusLabel = getWorkStatusLabel(work.status);
+  const tierLabel = getWorkTierLabel(work.tier);
+  const visibleGenres = work.genres.slice(0, 3);
+
   return (
     <article className="panel work-card">
-      <div className="card-header">
-        <div>
-          <div className="badge-row">
-            <span className="badge">{getWorkTypeLabel(work.type)}</span>
-            <span className="badge">{getWorkStatusLabel(work.status)}</span>
-            <span className="badge">{getWorkTierLabel(work.tier)}</span>
-            {work.favorite && <span className="badge badge-accent">Favorite</span>}
+      <Link
+        aria-label={`Open ${work.title}`}
+        className="work-card-media"
+        to={`/works/${work.id}`}
+      >
+        <ArtworkPoster
+          thumbnailUrl={work.thumbnailUrl}
+          title={work.title}
+          typeLabel={typeLabel}
+          variant="card"
+        />
+        <div className="work-card-media-overlay">
+          <span className="badge">{typeLabel}</span>
+          {work.favorite && <span className="badge badge-accent">Favorite</span>}
+        </div>
+      </Link>
+
+      <div className="work-card-body">
+        <div className="work-card-heading">
+          <div className="stack work-card-title-block">
+            <div className="badge-row">
+              <span className="badge">{statusLabel}</span>
+              <span className="badge">{tierLabel}</span>
+            </div>
+            <h3 className="card-title">
+              <Link className="text-link" to={`/works/${work.id}`}>
+                {work.title}
+              </Link>
+            </h3>
+            <p className="muted-copy">
+              {work.author || 'Unknown creator'} · Updated{' '}
+              {formatWorkUpdatedAt(work.updatedAt)}
+            </p>
           </div>
-          <h3 className="card-title">
-            <Link className="text-link" to={`/works/${work.id}`}>
-              {work.title}
+
+          <div className="work-card-score">
+            <span className="work-card-score-value">
+              {work.rating === null ? '—' : work.rating}
+            </span>
+            <span className="work-card-score-label">Rating</span>
+          </div>
+        </div>
+
+        <p className="card-summary">
+          {work.shortReview || work.description || 'No notes yet.'}
+        </p>
+
+        <div className="work-card-footer">
+          <div className="tag-list" aria-label="Genres">
+            {visibleGenres.length > 0 ? (
+              <>
+                {visibleGenres.map((genre) => (
+                  <span className="tag" key={genre}>
+                    {genre}
+                  </span>
+                ))}
+                {work.genres.length > visibleGenres.length && (
+                  <span className="tag">+{work.genres.length - visibleGenres.length}</span>
+                )}
+              </>
+            ) : (
+              <span className="tag tag--muted">No genres</span>
+            )}
+          </div>
+
+          <div className="button-row">
+            <Link className="secondary-link" to={`/works/${work.id}`}>
+              View
             </Link>
-          </h3>
-          <p className="muted-copy">
-            {work.author || 'Unknown creator'} · Updated{' '}
-            {formatWorkUpdatedAt(work.updatedAt)}
-          </p>
+            <Link className="secondary-link" to={`/works/${work.id}/edit`}>
+              Edit
+            </Link>
+            <button
+              aria-label={`Delete ${work.title}`}
+              className="danger-button"
+              onClick={() => void onDelete(work)}
+              type="button"
+            >
+              Delete
+            </button>
+          </div>
         </div>
-      </div>
-
-      <p className="card-summary">
-        {work.shortReview || work.description || 'No summary yet.'}
-      </p>
-
-      <dl className="card-meta">
-        <div>
-          <dt>Rating</dt>
-          <dd>{work.rating ?? 'Not rated'}</dd>
-        </div>
-        <div>
-          <dt>Genres</dt>
-          <dd>{work.genres.length > 0 ? work.genres.join(', ') : 'None'}</dd>
-        </div>
-      </dl>
-
-      <div className="button-row">
-        <Link className="secondary-link" to={`/works/${work.id}`}>
-          View
-        </Link>
-        <Link className="secondary-link" to={`/works/${work.id}/edit`}>
-          Edit
-        </Link>
-        <button
-          className="danger-button"
-          onClick={() => void onDelete(work)}
-          type="button"
-        >
-          Delete
-        </button>
       </div>
     </article>
   );

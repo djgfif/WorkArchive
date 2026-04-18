@@ -62,7 +62,7 @@ describe('Auth flow', () => {
 
     expect(await screen.findByText('Guest mode')).toBeInTheDocument();
     expect(
-      screen.getByText(/Local-only archive on this device/i),
+      screen.getByText(/Everything stays on this device until you choose to sign in/i),
     ).toBeInTheDocument();
   });
 

@@ -29,29 +29,49 @@ const initialState: SyncDashboardState = {
   error: null,
 };
 
+function isDatabaseClosedError(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.name === 'DatabaseClosedError' ||
+      error.message.includes('Database has been closed'))
+  );
+}
+
 export function useSyncDashboard() {
   const { archiveScopeKey } = useAuthSession();
   const [state, setState] = useState<SyncDashboardState>(initialState);
 
   useEffect(() => {
     const subscription = liveQuery(async () => {
-      const db = getWorkArchiveDb();
-      const [queueItems, conflictWorks, lastSuccessfulPullAt] =
-        await Promise.all([
-          syncQueueRepository.listAll(),
-          db.works
-            .filter((work) => work.syncStatus === 'conflict')
-            .toArray(),
-          appMetaRepository.getValue(LAST_SUCCESSFUL_PULL_AT_KEY),
-        ]);
+      try {
+        const db = getWorkArchiveDb();
+        const [queueItems, conflictWorks, lastSuccessfulPullAt] =
+          await Promise.all([
+            syncQueueRepository.listAll(),
+            db.works
+              .filter((work) => work.syncStatus === 'conflict')
+              .toArray(),
+            appMetaRepository.getValue(LAST_SUCCESSFUL_PULL_AT_KEY),
+          ]);
 
-      return {
-        queueItems,
-        conflictWorks: [...conflictWorks].sort((left, right) =>
-          right.updatedAt.localeCompare(left.updatedAt),
-        ),
-        lastSuccessfulPullAt,
-      };
+        return {
+          queueItems,
+          conflictWorks: [...conflictWorks].sort((left, right) =>
+            right.updatedAt.localeCompare(left.updatedAt),
+          ),
+          lastSuccessfulPullAt,
+        };
+      } catch (error) {
+        if (isDatabaseClosedError(error)) {
+          return {
+            queueItems: [],
+            conflictWorks: [],
+            lastSuccessfulPullAt: null,
+          };
+        }
+
+        throw error;
+      }
     }).subscribe({
       next: ({ queueItems, conflictWorks, lastSuccessfulPullAt }) => {
         setState({

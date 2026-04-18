@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
+import { PageHero } from '../../../shared/components/PageHero';
 import { AuthForm } from '../components/AuthForm';
 import { useAuthSession } from '../hooks/useAuthSession';
 import type { AuthCredentialsInput } from '../services/auth.api';
@@ -34,17 +35,15 @@ export function LoginPage() {
 
   return (
     <div className="stack">
-      <header className="panel stack">
-        <p className="eyebrow">Account Mode</p>
-        <h1 className="page-title">Sign in to your account-local archive</h1>
-        <p className="muted-copy">
-          Guest mode stays available. Signing in opens a separate local archive
-          for this account on this device and enables authenticated sync.
-        </p>
-      </header>
+      <PageHero
+        description="Open your personal archive on this device and keep sync within reach."
+        eyebrow="Account"
+        title="Sign in"
+        titleAs="h1"
+      />
 
       <AuthForm
-        description="Use your email and password to open your account-scoped local archive."
+        description="Use your email and password to open your account archive."
         footer={
           <div className="stack">
             <p className="muted-copy">
@@ -54,9 +53,9 @@ export function LoginPage() {
               </Link>
             </p>
             <p className="muted-copy">
-              Prefer local-only?{' '}
+              Prefer guest mode?{' '}
               <Link className="inline-link" to="/works">
-                Continue in guest mode
+                Continue without signing in
               </Link>
             </p>
           </div>

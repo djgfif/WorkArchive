@@ -134,7 +134,7 @@ describe('SyncPage', () => {
       await screen.findByText('Sync is available after sign-in'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Remote sync is unavailable until you sign in/i),
+      screen.getByText(/Remote sync starts only after you sign in/i),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /sign in to sync/i }),
