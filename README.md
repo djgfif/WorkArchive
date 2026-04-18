@@ -1,6 +1,6 @@
 # Work Archive
 
-Milestone 0 sets up the monorepo and shared tooling for a local-first React/NestJS application.
+Milestone 2 provides the backend CRUD foundation for works on top of the existing local-first monorepo.
 
 ## Workspace Layout
 
@@ -55,10 +55,13 @@ npm run build
 npm run dev --workspace @work-archive/web
 npm run dev --workspace @work-archive/api
 npm run prisma:generate --workspace @work-archive/api
+npm run prisma:migrate:dev --workspace @work-archive/api
+npm run test:e2e --workspace @work-archive/api
 ```
 
 ## Local Endpoints
 
 - API health check: `GET /health`
 - Swagger UI: `/docs`
-- Future API routes: `/api/*`
+- Works collection: `GET/POST /api/works`
+- Work detail: `GET/PATCH/DELETE /api/works/:id`

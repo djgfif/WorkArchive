@@ -1,0 +1,187 @@
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { WorkStatus, WorkType } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+
+import { PrismaService } from '../../prisma/prisma.service';
+import { type WorkSyncStatusValue } from './works.constants';
+import type { CreateWorkDto } from './dto/create-work.dto';
+import type { UpdateWorkDto } from './dto/update-work.dto';
+
+const DEFAULT_SYNC_STATUS: WorkSyncStatusValue = 'synced';
+
+@Injectable()
+export class WorksService {
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  findAll() {
+    return this.prisma.work.findMany({
+      where: {
+        deletedAt: null,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+  }
+
+  async findOne(id: string) {
+    return this.getActiveWorkOrThrow(id);
+  }
+
+  create(createWorkDto: CreateWorkDto) {
+    return this.prisma.work.create({
+      data: this.buildCreateData(createWorkDto),
+    });
+  }
+
+  async update(id: string, updateWorkDto: UpdateWorkDto) {
+    const existingWork = await this.getActiveWorkOrThrow(id);
+    const updateData = this.buildUpdateData(updateWorkDto);
+
+    if (Object.keys(updateData).length === 0) {
+      return existingWork;
+    }
+
+    return this.prisma.work.update({
+      where: { id },
+      data: {
+        ...updateData,
+        syncStatus: DEFAULT_SYNC_STATUS,
+        serverVersion: {
+          increment: 1,
+        },
+      },
+    });
+  }
+
+  async remove(id: string) {
+    await this.getActiveWorkOrThrow(id);
+
+    await this.prisma.work.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        syncStatus: DEFAULT_SYNC_STATUS,
+        serverVersion: {
+          increment: 1,
+        },
+      },
+    });
+  }
+
+  private async getActiveWorkOrThrow(id: string) {
+    const work = await this.prisma.work.findUnique({
+      where: { id },
+    });
+
+    if (!work || work.deletedAt !== null) {
+      throw new NotFoundException(`Work with id "${id}" was not found.`);
+    }
+
+    return work;
+  }
+
+  private buildCreateData(createWorkDto: CreateWorkDto): Prisma.WorkCreateInput {
+    const title = createWorkDto.title.trim();
+
+    if (!title) {
+      throw new BadRequestException('title must not be empty');
+    }
+
+    return {
+      type: createWorkDto.type ?? WorkType.novel,
+      title,
+      author: this.normalizeString(createWorkDto.author),
+      genres: this.normalizeGenres(createWorkDto.genres),
+      description: this.normalizeString(createWorkDto.description),
+      thumbnailUrl: this.normalizeString(createWorkDto.thumbnailUrl),
+      status: createWorkDto.status ?? WorkStatus.planned,
+      rating: createWorkDto.rating ?? null,
+      shortReview: this.normalizeString(createWorkDto.shortReview),
+      review: this.normalizeString(createWorkDto.review),
+      tier: createWorkDto.tier ?? null,
+      favorite: createWorkDto.favorite ?? false,
+      syncStatus: DEFAULT_SYNC_STATUS,
+      serverVersion: 1,
+    };
+  }
+
+  private buildUpdateData(updateWorkDto: UpdateWorkDto): Prisma.WorkUpdateInput {
+    const data: Prisma.WorkUpdateInput = {};
+
+    if (updateWorkDto.type !== undefined) {
+      data.type = updateWorkDto.type;
+    }
+
+    if (updateWorkDto.title !== undefined) {
+      const title = updateWorkDto.title.trim();
+
+      if (!title) {
+        throw new BadRequestException('title must not be empty');
+      }
+
+      data.title = title;
+    }
+
+    if (updateWorkDto.author !== undefined) {
+      data.author = this.normalizeString(updateWorkDto.author);
+    }
+
+    if (updateWorkDto.genres !== undefined) {
+      data.genres = this.normalizeGenres(updateWorkDto.genres);
+    }
+
+    if (updateWorkDto.description !== undefined) {
+      data.description = this.normalizeString(updateWorkDto.description);
+    }
+
+    if (updateWorkDto.thumbnailUrl !== undefined) {
+      data.thumbnailUrl = this.normalizeString(updateWorkDto.thumbnailUrl);
+    }
+
+    if (updateWorkDto.status !== undefined) {
+      data.status = updateWorkDto.status;
+    }
+
+    if (updateWorkDto.rating !== undefined) {
+      data.rating = updateWorkDto.rating;
+    }
+
+    if (updateWorkDto.shortReview !== undefined) {
+      data.shortReview = this.normalizeString(updateWorkDto.shortReview);
+    }
+
+    if (updateWorkDto.review !== undefined) {
+      data.review = this.normalizeString(updateWorkDto.review);
+    }
+
+    if (updateWorkDto.tier !== undefined) {
+      data.tier = updateWorkDto.tier;
+    }
+
+    if (updateWorkDto.favorite !== undefined) {
+      data.favorite = updateWorkDto.favorite;
+    }
+
+    return data;
+  }
+
+  private normalizeString(value?: string) {
+    return value?.trim() ?? '';
+  }
+
+  private normalizeGenres(genres?: string[]) {
+    if (!genres) {
+      return [];
+    }
+
+    return Array.from(
+      new Set(genres.map((genre) => genre.trim()).filter(Boolean)),
+    );
+  }
+}
