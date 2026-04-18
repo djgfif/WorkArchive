@@ -65,7 +65,7 @@ export class WorksService {
     const existing = await this.repository.getById(id);
 
     if (!existing || existing.deletedAt !== null) {
-      throw new Error('Work not found.');
+      throw new Error('작품을 찾을 수 없습니다.');
     }
 
     const updated: WorkRecord = {
@@ -85,7 +85,7 @@ export class WorksService {
     const existing = await this.repository.getById(id);
 
     if (!existing || existing.deletedAt !== null) {
-      throw new Error('Work not found.');
+      throw new Error('작품을 찾을 수 없습니다.');
     }
 
     const deletedAt = new Date().toISOString();
@@ -96,7 +96,7 @@ export class WorksService {
     });
 
     if (!deleted) {
-      throw new Error('Work not found.');
+      throw new Error('작품을 찾을 수 없습니다.');
     }
 
     await this.queueRepository.enqueueWorkChange(deleted, 'delete');

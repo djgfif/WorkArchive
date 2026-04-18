@@ -42,7 +42,7 @@ export function AuthForm({
 
       <form className="stack" onSubmit={(event) => void handleSubmit(event)}>
         <label className="field">
-          <span>Email</span>
+          <span>이메일</span>
           <input
             autoComplete="email"
             name="email"
@@ -54,7 +54,7 @@ export function AuthForm({
         </label>
 
         <label className="field">
-          <span>Password</span>
+          <span>비밀번호</span>
           <input
             autoComplete="current-password"
             minLength={8}
@@ -74,7 +74,7 @@ export function AuthForm({
 
         <div className="button-row">
           <button disabled={isSubmitting} type="submit">
-            {isSubmitting ? 'Working...' : submitLabel}
+            {isSubmitting ? '처리 중...' : submitLabel}
           </button>
         </div>
       </form>

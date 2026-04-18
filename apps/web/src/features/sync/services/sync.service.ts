@@ -17,6 +17,7 @@ import {
   syncQueueRepository,
   type SyncQueueRepository,
 } from './sync-queue.repository';
+import { localizeServerMessage } from '../../../shared/utils/localize-message';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
 
@@ -89,7 +90,7 @@ async function postJson<TResponse>(
       body: JSON.stringify(body),
     },
     {
-      missingTokenMessage: 'Sign in to sync an account-local archive.',
+      missingTokenMessage: '계정 아카이브를 동기화하려면 로그인해주세요.',
     },
   );
 }
@@ -115,7 +116,7 @@ export class SyncService {
           skippedCount: 0,
           pulledAt: null,
           nextSince: null,
-          messages: ['Pull skipped because the push request failed.'],
+          messages: ['업로드에 실패해 가져오기를 건너뛰었습니다.'],
           requestFailed: true,
         },
       };
@@ -146,7 +147,7 @@ export class SyncService {
         conflictCount: 0,
         failedCount: 0,
         processedAt: null,
-        messages: ['No queued local changes to push.'],
+        messages: ['동기화할 변경 사항이 없습니다.'],
         requestFailed: false,
       };
     }
@@ -179,7 +180,9 @@ export class SyncService {
           continue;
         }
 
-        messages.push(result.message);
+        messages.push(
+          localizeServerMessage(result.message, '동기화 결과를 확인하지 못했습니다.'),
+        );
 
         if (result.status === 'applied') {
           const appliedLocally = await this.applySuccessfulPushResult(
@@ -197,7 +200,10 @@ export class SyncService {
           continue;
         }
 
-        await this.queueRepo.markFailed(result.queueId, result.message);
+        await this.queueRepo.markFailed(
+          result.queueId,
+          localizeServerMessage(result.message, '동기화에 실패했습니다.'),
+        );
 
         if (result.status === 'conflict') {
           conflictCount += 1;
@@ -217,10 +223,10 @@ export class SyncService {
         }
 
         failedCount += 1;
-        messages.push(`Push result missing for queue item ${queueId}.`);
+        messages.push(`대기 항목 ${queueId}에 대한 서버 응답이 없습니다.`);
         await this.queueRepo.markFailed(
           queueId,
-          'Push result was missing from the server response.',
+          '서버 응답에 처리 결과가 포함되어 있지 않습니다.',
         );
       }
 
@@ -237,7 +243,9 @@ export class SyncService {
       };
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Push request failed.';
+        error instanceof Error
+          ? localizeServerMessage(error.message, '업로드 요청에 실패했습니다.')
+          : '업로드 요청에 실패했습니다.';
 
       await this.queueRepo.markManyFailed(queueItemIds, message);
 
@@ -281,7 +289,7 @@ export class SyncService {
         if (queuedWorkIds.has(change.entityId)) {
           skippedCount += 1;
           messages.push(
-            `Skipped pulling ${change.entityId} because a queued local change still exists.`,
+            `${change.entityId} 항목은 로컬 변경이 남아 있어 가져오지 않았습니다.`,
           );
           await this.markWorkSyncStatus(change.entityId, 'conflict');
 
@@ -291,7 +299,7 @@ export class SyncService {
           for (const queueItem of relatedQueueItems) {
             await this.queueRepo.setLastError(
               queueItem.id,
-              `Pull skipped because the server also changed this work (server version ${change.work.serverVersion}, updated at ${change.work.updatedAt}).`,
+              `서버에도 변경 사항이 있어 가져오기를 건너뛰었습니다. (동기화 버전 ${change.work.serverVersion}, 수정 시각 ${change.work.updatedAt})`,
             );
           }
 
@@ -309,10 +317,10 @@ export class SyncService {
       }
 
       if (response.changes.length === 0) {
-        messages.push('No remote changes were available to pull.');
+        messages.push('가져올 변경 사항이 없습니다.');
       } else if (skippedCount > 0) {
         messages.push(
-          'Pull cursor was not advanced because conflicted remote changes were skipped.',
+          '충돌된 변경 사항이 있어 동기화 기준 시점을 유지했습니다.',
         );
       }
 
@@ -333,7 +341,12 @@ export class SyncService {
         pulledAt: null,
         nextSince: since,
         messages: [
-          error instanceof Error ? error.message : 'Pull request failed.',
+          error instanceof Error
+            ? localizeServerMessage(
+                error.message,
+                '가져오기 요청에 실패했습니다.',
+              )
+            : '가져오기 요청에 실패했습니다.',
         ],
         requestFailed: true,
       };
@@ -367,8 +380,11 @@ export class SyncService {
       await this.queueRepo.markFailed(
         queueItem.id,
         error instanceof Error
-          ? `Local merge failed after a successful push: ${error.message}`
-          : 'Local merge failed after a successful push.',
+          ? `업로드 후 로컬 데이터를 반영하지 못했습니다: ${localizeServerMessage(
+              error.message,
+              '로컬 데이터를 업데이트하는 중 문제가 발생했습니다.',
+            )}`
+          : '업로드 후 로컬 데이터를 반영하지 못했습니다.',
       );
 
       return false;

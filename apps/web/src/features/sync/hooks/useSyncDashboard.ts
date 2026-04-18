@@ -91,7 +91,7 @@ export function useSyncDashboard() {
           error:
             error instanceof Error
               ? error.message
-              : 'Failed to load sync dashboard data.',
+              : '동기화 정보를 불러오지 못했습니다.',
         });
       },
     });

@@ -23,8 +23,8 @@ export function AppLayout() {
                 WA
               </span>
               <div className="brand-copy">
-                <span className="brand-kicker">Personal archive</span>
-                <h1>Work Archive</h1>
+                <span className="brand-kicker">개인 아카이브</span>
+                <h1>워크 아카이브</h1>
               </div>
             </Link>
 
@@ -32,40 +32,38 @@ export function AppLayout() {
               {!isAuthenticated && (
                 <>
                   <Link className="secondary-link" to="/auth/login">
-                    Sign in
+                    로그인
                   </Link>
                   <Link className="secondary-link" to="/auth/register">
-                    Sign up
+                    회원가입
                   </Link>
                 </>
               )}
               <Link className="primary-link" to="/works/new">
-                Quick add
+                작품 추가
               </Link>
             </div>
           </div>
 
           <div className="shell-overview">
             <div className="shell-summary">
-              <p className="eyebrow">Premium Dark Archive</p>
+              <p className="eyebrow">프리미엄 다크 아카이브</p>
               <p className="shell-title">
-                Keep the titles you read, watch, and revisit in one polished
-                personal library.
+                읽고 보고 좋아한 작품을 한곳에 차분하게 정리해보세요.
               </p>
               <p className="body-copy">
-                Fast enough for quick capture, clean enough to browse like a
-                finished product.
+                빠르게 기록하고, 나중에는 보기 좋게 다시 찾을 수 있습니다.
               </p>
             </div>
 
-            <nav aria-label="Primary" className="app-nav">
+            <nav aria-label="주요 메뉴" className="app-nav">
               <NavLink
                 className={({ isActive }) =>
                   isActive ? 'app-nav-link active' : 'app-nav-link'
                 }
                 to="/works"
               >
-                Library
+                라이브러리
               </NavLink>
               <NavLink
                 className={({ isActive }) =>
@@ -73,37 +71,39 @@ export function AppLayout() {
                 }
                 to="/sync"
               >
-                Sync
+                동기화
               </NavLink>
             </nav>
 
             <div className="session-card">
               <div className="session-copy">
                 <span className="mode-badge">
-                  {isAuthenticated ? 'Signed in' : 'Guest mode'}
+                  {isAuthenticated ? '로그인됨' : '게스트 모드'}
                 </span>
                 <h2 className="session-title">
-                  {isAuthenticated ? 'Account archive ready' : 'Local archive ready'}
+                  {isAuthenticated
+                    ? '계정 아카이브 사용 중'
+                    : '기기 아카이브 사용 중'}
                 </h2>
                 <p className="muted-copy">
                   {isAuthenticated
                     ? user?.email
-                    : 'Everything stays on this device until you choose to sign in.'}
+                    : '로그인하지 않아도 이 기기에 기록을 저장할 수 있습니다.'}
                 </p>
               </div>
 
               <div className="button-row session-actions">
                 {isAuthenticated ? (
                   <button onClick={() => void handleSignOut()} type="button">
-                    Sign out
+                    로그아웃
                   </button>
                 ) : (
                   <Link className="secondary-link" to="/auth/login">
-                    Open account mode
+                    계정으로 사용하기
                   </Link>
                 )}
                 <Link className="secondary-link" to="/sync">
-                  Sync status
+                  동기화 상태
                 </Link>
               </div>
             </div>
@@ -112,11 +112,10 @@ export function AppLayout() {
 
         {isLoading ? (
           <section className="panel stack loading-panel">
-            <p className="eyebrow">Loading Session</p>
-            <h2 className="section-title">Opening your archive</h2>
+            <p className="eyebrow">세션 확인 중</p>
+            <h2 className="section-title">아카이브를 준비하는 중입니다</h2>
             <p className="muted-copy">
-              Checking the active session and loading the matching workspace for
-              this device.
+              현재 세션을 확인하고 데이터를 불러오고 있습니다.
             </p>
           </section>
         ) : (

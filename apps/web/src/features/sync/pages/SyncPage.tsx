@@ -7,23 +7,39 @@ import type { SyncRunState } from '../services/sync.service';
 
 import { useSyncDashboard } from '../hooks/useSyncDashboard';
 import { type ManualSyncResult, syncService } from '../services/sync.service';
-import { formatWorkDateTime } from '../../works/utils/work-options';
+import {
+  formatWorkDateTime,
+  getWorkSyncStatusLabel,
+} from '../../works/utils/work-options';
 
 function formatOptionalDate(value: string | null) {
-  return value ? formatWorkDateTime(value) : 'Not synced yet.';
+  return value ? formatWorkDateTime(value) : '기록 없음';
 }
 
 function renderStateLabel(state: SyncRunState) {
   switch (state) {
     case 'syncing':
-      return 'Syncing';
+      return '동기화 중';
     case 'success':
-      return 'Success';
+      return '완료';
     case 'failed':
-      return 'Failed';
+      return '실패';
     case 'idle':
     default:
-      return 'Idle';
+      return '대기 중';
+  }
+}
+
+function getSyncOperationLabel(operation: string) {
+  switch (operation) {
+    case 'create':
+      return '생성';
+    case 'update':
+      return '수정';
+    case 'delete':
+      return '삭제';
+    default:
+      return operation;
   }
 }
 
@@ -60,10 +76,10 @@ export function SyncPage() {
             type="button"
           >
             {isGuestMode
-              ? 'Sign in to sync'
+              ? '로그인 후 동기화'
               : syncState === 'syncing'
-                ? 'Syncing...'
-                : 'Run manual sync'}
+                ? '동기화 중...'
+                : '수동 동기화'}
           </button>
         }
         aside={
@@ -75,48 +91,47 @@ export function SyncPage() {
         }
         description={
           isGuestMode
-            ? 'Guest mode keeps this archive on the current device. Sign in when you want remote sync.'
-            : `Signed in as ${user?.email}. Manual sync sends local changes and brings remote updates back into this archive.`
+            ? '게스트 모드에서는 이 기기에만 데이터가 저장됩니다. 원격 동기화를 사용하려면 로그인하세요.'
+            : `${user?.email} 계정으로 사용 중입니다. 수동 동기화로 변경 내용을 보내고 최신 데이터를 가져올 수 있습니다.`
         }
-        eyebrow="Sync"
+        eyebrow="동기화"
         meta={
           <>
             <div className="stat-pill">
               <span className="stat-pill-value">{queueItems.length}</span>
-              <span className="stat-pill-label">Queued items</span>
+              <span className="stat-pill-label">대기 항목</span>
             </div>
             <div className="stat-pill">
               <span className="stat-pill-value">{conflictWorks.length}</span>
-              <span className="stat-pill-label">Conflicts</span>
+              <span className="stat-pill-label">충돌</span>
             </div>
             <div className="stat-pill">
               <span className="stat-pill-value">
                 {formatOptionalDate(lastSuccessfulPullAt)}
               </span>
-              <span className="stat-pill-label">Last successful pull</span>
+              <span className="stat-pill-label">최근 가져온 시점</span>
             </div>
           </>
         }
-        title="Sync status"
+        title="동기화 상태"
       />
 
       {isGuestMode && (
         <section className="panel stack">
           <div>
-            <p className="eyebrow">Guest Mode</p>
-            <h2 className="section-title">Sync is available after sign-in</h2>
+            <p className="eyebrow">게스트 모드</p>
+            <h2 className="section-title">로그인 후 동기화할 수 있습니다</h2>
             <p className="muted-copy">
-              Guest/local data stays in the guest archive on this device.
-              Remote sync starts only after you sign in or create an account
-              for a protected, user-scoped archive.
+              게스트 모드에서 저장한 데이터는 이 기기에만 보관됩니다.
+              계정으로 로그인하면 동기화를 사용할 수 있습니다.
             </p>
           </div>
           <div className="button-row">
             <Link className="secondary-link" to="/auth/login">
-              Sign in
+              로그인
             </Link>
             <Link className="secondary-link" to="/auth/register">
-              Sign up
+              회원가입
             </Link>
           </div>
         </section>
@@ -131,35 +146,34 @@ export function SyncPage() {
       {lastRun && (
         <section className="panel stack">
           <div>
-            <p className="eyebrow">Last Run</p>
-            <h2 className="section-title">Most recent manual sync result</h2>
+            <p className="eyebrow">최근 실행</p>
+            <h2 className="section-title">가장 최근 동기화 결과</h2>
             <p className="muted-copy">
-              Completed at {formatWorkDateTime(lastRun.completedAt)}
+              완료 시각 {formatWorkDateTime(lastRun.completedAt)}
             </p>
           </div>
 
           <div className="sync-result-grid">
             <article className="sync-result-card">
-              <h3>Push</h3>
+              <h3>업로드</h3>
               <p className="muted-copy">
-                Attempted {lastRun.push.attemptedCount}, applied{' '}
-                {lastRun.push.appliedCount}, conflicts{' '}
-                {lastRun.push.conflictCount}, failed {lastRun.push.failedCount}.
+                시도 {lastRun.push.attemptedCount}건, 반영{' '}
+                {lastRun.push.appliedCount}건, 충돌{' '}
+                {lastRun.push.conflictCount}건, 실패 {lastRun.push.failedCount}건.
               </p>
               <p className="muted-copy">
-                Processed at {formatOptionalDate(lastRun.push.processedAt)}
+                처리 시각 {formatOptionalDate(lastRun.push.processedAt)}
               </p>
             </article>
 
             <article className="sync-result-card">
-              <h3>Pull</h3>
+              <h3>가져오기</h3>
               <p className="muted-copy">
-                Pulled {lastRun.pull.pulledCount}, applied{' '}
-                {lastRun.pull.appliedCount}, skipped {lastRun.pull.skippedCount}
-                .
+                가져온 {lastRun.pull.pulledCount}건 중 반영{' '}
+                {lastRun.pull.appliedCount}건, 보류 {lastRun.pull.skippedCount}건.
               </p>
               <p className="muted-copy">
-                Pulled at {formatOptionalDate(lastRun.pull.pulledAt)}
+                가져온 시각 {formatOptionalDate(lastRun.pull.pulledAt)}
               </p>
             </article>
           </div>
@@ -167,12 +181,12 @@ export function SyncPage() {
           <div className="stack">
             {lastRun.push.messages.map((message, index) => (
               <p className="muted-copy" key={`push-${index}-${message}`}>
-                Push: {message}
+                업로드: {message}
               </p>
             ))}
             {lastRun.pull.messages.map((message, index) => (
               <p className="muted-copy" key={`pull-${index}-${message}`}>
-                Pull: {message}
+                가져오기: {message}
               </p>
             ))}
           </div>
@@ -181,15 +195,15 @@ export function SyncPage() {
 
       <section className="panel stack">
         <div>
-          <p className="eyebrow">Queue</p>
-          <h2 className="section-title">Queued local changes</h2>
+          <p className="eyebrow">대기열</p>
+          <h2 className="section-title">동기화 대기 중인 변경 사항</h2>
         </div>
 
-        {isLoading && <p className="muted-copy">Loading queued sync work...</p>}
+        {isLoading && <p className="muted-copy">동기화 대기 항목을 불러오는 중입니다.</p>}
 
         {!isLoading && queueItems.length === 0 && (
           <p className="muted-copy">
-            No queued items. Local data is waiting on nothing.
+            현재 동기화 대기 중인 항목이 없습니다.
           </p>
         )}
 
@@ -201,25 +215,25 @@ export function SyncPage() {
                   <div>
                     <h3 className="card-title">{item.payload.title}</h3>
                     <p className="muted-copy">
-                      {item.operation} work {item.entityId}
+                      {getSyncOperationLabel(item.operation)} · {item.entityId}
                     </p>
                   </div>
                   <span className="sync-queue-meta">
-                    retries {item.retryCount}
+                    재시도 {item.retryCount}회
                   </span>
                 </div>
 
                 <dl className="detail-list">
                   <div>
-                    <dt>Local updatedAt</dt>
+                    <dt>로컬 수정 시각</dt>
                     <dd>{formatWorkDateTime(item.payload.updatedAt)}</dd>
                   </div>
                   <div>
-                    <dt>Sync status</dt>
-                    <dd>{item.payload.syncStatus}</dd>
+                    <dt>동기화 상태</dt>
+                    <dd>{getWorkSyncStatusLabel(item.payload.syncStatus)}</dd>
                   </div>
                   <div>
-                    <dt>Server version</dt>
+                    <dt>동기화 버전</dt>
                     <dd>{item.payload.serverVersion}</dd>
                   </div>
                 </dl>
@@ -237,13 +251,13 @@ export function SyncPage() {
 
       <section className="panel stack">
         <div>
-          <p className="eyebrow">Conflicts</p>
-          <h2 className="section-title">Works that need inspection</h2>
+          <p className="eyebrow">충돌</p>
+          <h2 className="section-title">확인이 필요한 작품</h2>
         </div>
 
         {!isLoading && conflictWorks.length === 0 && (
           <p className="muted-copy">
-            No conflicted works are currently marked locally.
+            현재 충돌 상태인 작품이 없습니다.
           </p>
         )}
 
@@ -256,20 +270,20 @@ export function SyncPage() {
                     <h3 className="card-title">{work.title}</h3>
                     <p className="muted-copy">{work.id}</p>
                   </div>
-                  <span className="sync-queue-meta">conflict</span>
+                  <span className="sync-queue-meta">충돌</span>
                 </div>
 
                 <dl className="detail-list">
                   <div>
-                    <dt>updatedAt</dt>
+                    <dt>수정일</dt>
                     <dd>{formatWorkDateTime(work.updatedAt)}</dd>
                   </div>
                   <div>
-                    <dt>deletedAt</dt>
+                    <dt>삭제일</dt>
                     <dd>{formatOptionalDate(work.deletedAt)}</dd>
                   </div>
                   <div>
-                    <dt>serverVersion</dt>
+                    <dt>동기화 버전</dt>
                     <dd>{work.serverVersion}</dd>
                   </div>
                 </dl>

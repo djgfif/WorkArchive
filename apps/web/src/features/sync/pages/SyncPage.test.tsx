@@ -100,17 +100,19 @@ describe('SyncPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('Queued items')).toBeInTheDocument();
-    expect(screen.getByText('Idle')).toBeInTheDocument();
+    expect(await screen.findByText('동기화 대기 중인 변경 사항')).toBeInTheDocument();
+    expect(screen.getByText('대기 중')).toBeInTheDocument();
     expect(await screen.findByText('Dune')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /run manual sync/i }));
+    await user.click(screen.getByRole('button', { name: '수동 동기화' }));
 
-    expect(await screen.findByText('Success')).toBeInTheDocument();
+    expect(await screen.findByText('완료')).toBeInTheDocument();
     expect(
-      await screen.findByText(/Attempted 1, applied 1/),
+      await screen.findByText('시도 1건, 반영 1건, 충돌 0건, 실패 0건.'),
     ).toBeInTheDocument();
-    expect(await screen.findByText(/No queued items/)).toBeInTheDocument();
+    expect(
+      await screen.findByText('현재 동기화 대기 중인 항목이 없습니다.'),
+    ).toBeInTheDocument();
 
     const pushHeaders = fetchMock.mock.calls[1]?.[1]?.headers as Headers;
     const pullHeaders = fetchMock.mock.calls[2]?.[1]?.headers as Headers;
@@ -131,13 +133,13 @@ describe('SyncPage', () => {
     );
 
     expect(
-      await screen.findByText('Sync is available after sign-in'),
+      await screen.findByText('로그인 후 동기화할 수 있습니다'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Remote sync starts only after you sign in/i),
+      screen.getByText(/게스트 모드에서 저장한 데이터는 이 기기에만 보관됩니다/),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /sign in to sync/i }),
+      screen.getByRole('button', { name: '로그인 후 동기화' }),
     ).toBeDisabled();
   });
 
@@ -207,12 +209,12 @@ describe('SyncPage', () => {
     );
 
     await screen.findByText('frieren@example.com');
-    await user.click(screen.getByRole('button', { name: /run manual sync/i }));
+    await user.click(screen.getByRole('button', { name: '수동 동기화' }));
 
     expect(
-      await screen.findByText('Sync is available after sign-in'),
+      await screen.findByText('로그인 후 동기화할 수 있습니다'),
     ).toBeInTheDocument();
-    expect(await screen.findByText('Guest mode')).toBeInTheDocument();
+    expect(await screen.findAllByText('게스트 모드')).not.toHaveLength(0);
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });
 });

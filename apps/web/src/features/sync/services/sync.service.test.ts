@@ -156,7 +156,7 @@ describe('SyncService', () => {
       expect.objectContaining({
         entityId: localWork.id,
         retryCount: 1,
-        lastError: 'Sync server is unavailable.',
+        lastError: '동기화 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
       }),
     ]);
   });
@@ -210,7 +210,7 @@ describe('SyncService', () => {
       expect.objectContaining({
         entityId: localWork.id,
         retryCount: 1,
-        lastError: expect.stringContaining('Conflict: server version 3'),
+        lastError: expect.stringContaining('서버 버전 3'),
       }),
     ]);
     expect(await worksRepository.getById(localWork.id)).toEqual(
@@ -343,7 +343,7 @@ describe('SyncService', () => {
     expect(queueAfterPull).toEqual(
       expect.objectContaining({
         retryCount: 1,
-        lastError: expect.stringContaining('server version 2'),
+        lastError: expect.stringContaining('동기화 버전 2'),
       }),
     );
     expect(await worksRepository.getById(existing.id)).toEqual(

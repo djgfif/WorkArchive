@@ -32,7 +32,7 @@ export function ArtworkPoster({
   if (thumbnailUrl && !imageFailed) {
     return (
       <img
-        alt={`${title} cover`}
+        alt={`${title} 표지 이미지`}
         className={posterClassName}
         onError={() => setImageFailed(true)}
         src={thumbnailUrl}

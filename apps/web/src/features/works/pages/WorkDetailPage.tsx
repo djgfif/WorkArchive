@@ -17,7 +17,7 @@ export function WorkDetailPage() {
     }
 
     const shouldDelete = window.confirm(
-      `Soft delete "${work.title}" from the active works list?`,
+      `"${work.title}" 작품을 삭제할까요?`,
     );
 
     if (!shouldDelete) {
@@ -32,7 +32,7 @@ export function WorkDetailPage() {
       setActionError(
         deleteError instanceof Error
           ? deleteError.message
-          : 'Could not delete this work.',
+          : '작품을 삭제하지 못했습니다.',
       );
     }
   }
@@ -40,7 +40,7 @@ export function WorkDetailPage() {
   if (error) {
     return (
       <section className="panel stack">
-        <h2 className="section-title">Could not load this work.</h2>
+        <h2 className="section-title">작품 정보를 불러오지 못했습니다.</h2>
         <p className="muted-copy">{error}</p>
       </section>
     );
@@ -49,8 +49,8 @@ export function WorkDetailPage() {
   if (isLoading) {
     return (
       <section className="panel stack">
-        <h2 className="section-title">Loading work...</h2>
-        <p className="muted-copy">Reading the current record from IndexedDB.</p>
+        <h2 className="section-title">작품 정보를 불러오는 중입니다.</h2>
+        <p className="muted-copy">데이터를 불러오고 있습니다.</p>
       </section>
     );
   }
@@ -58,14 +58,14 @@ export function WorkDetailPage() {
   if (!work) {
     return (
       <section className="panel stack">
-        <p className="eyebrow">Not Found</p>
-        <h2 className="section-title">This work is not available.</h2>
+        <p className="eyebrow">찾을 수 없음</p>
+        <h2 className="section-title">해당 작품을 찾을 수 없습니다.</h2>
         <p className="muted-copy">
-          It may have been deleted or the link is no longer valid.
+          삭제되었거나 주소가 올바르지 않을 수 있습니다.
         </p>
         <div className="button-row">
           <Link className="primary-link" to="/works">
-            Back to library
+            라이브러리로 돌아가기
           </Link>
         </div>
       </section>
@@ -84,17 +84,17 @@ export function WorkDetailPage() {
         actions={
           <>
             <Link className="secondary-link" to="/works">
-              Back to library
+              라이브러리로 돌아가기
             </Link>
             <Link className="secondary-link" to={`/works/${work.id}/edit`}>
-              Edit work
+              작품 수정
             </Link>
             <button
               className="danger-button"
               onClick={() => void handleDelete()}
               type="button"
             >
-              Delete
+              삭제
             </button>
           </>
         }

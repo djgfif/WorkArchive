@@ -19,37 +19,37 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.type(screen.getByLabelText(/^Title$/i), 'Dune');
+    await user.type(screen.getByLabelText(/^제목$/), 'Dune');
     await user.type(
-      screen.getByLabelText(/Author \/ Creator/i),
+      screen.getByLabelText(/작가 \/ 제작자/),
       'Frank Herbert',
     );
     await user.type(
-      screen.getByLabelText(/^Genres$/i),
+      screen.getByLabelText(/^장르$/),
       'Science Fiction, Politics',
     );
 
-    await user.click(screen.getByRole('button', { name: /save work/i }));
+    await user.click(screen.getByRole('button', { name: '저장' }));
 
     expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(screen.getByText(/Frank Herbert/i)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('link', { name: /edit work/i }));
+    await user.click(screen.getByRole('link', { name: '작품 수정' }));
 
-    const titleInput = await screen.findByLabelText(/^Title$/i);
+    const titleInput = await screen.findByLabelText(/^제목$/);
 
     await user.clear(titleInput);
     await user.type(titleInput, 'Dune Messiah');
-    await user.click(screen.getByRole('button', { name: /save changes/i }));
+    await user.click(screen.getByRole('button', { name: '저장' }));
 
     expect(
       await screen.findByRole('heading', { name: 'Dune Messiah' }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('link', { name: /back to library/i }));
+    await user.click(screen.getByRole('link', { name: '라이브러리로 돌아가기' }));
 
     expect(
-      await screen.findByRole('heading', { name: /your library/i }),
+      await screen.findByRole('heading', { name: '내 라이브러리' }),
     ).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'Dune Messiah' })).toBeInTheDocument();
   });
