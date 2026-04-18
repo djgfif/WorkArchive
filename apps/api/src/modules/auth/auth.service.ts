@@ -183,6 +183,7 @@ export class AuthService {
       this.getJwtSecret(type),
       {
         expiresIn,
+        jwtid: randomBytes(16).toString('hex'),
       },
     );
   }

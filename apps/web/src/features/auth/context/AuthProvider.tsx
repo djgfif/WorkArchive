@@ -14,6 +14,7 @@ import {
 import {
   clearStoredAuthTokens,
   readStoredAuthTokens,
+  subscribeToStoredAuthTokens,
   writeStoredAuthTokens,
 } from '../services/auth-storage';
 import { workArchiveDbManager } from '../../works/db/work-archive.db';
@@ -26,8 +27,29 @@ export function AuthProvider({ children }: PropsWithChildren) {
     workArchiveDbManager.getCurrentScopeKey(),
   );
 
+  function activateGuestSession() {
+    workArchiveDbManager.switchToGuest();
+    setUser(null);
+    setArchiveScopeKey(workArchiveDbManager.getCurrentScopeKey());
+    setIsLoading(false);
+  }
+
+  function activateAuthenticatedArchive(user: AuthUser) {
+    workArchiveDbManager.switchToUser(user.id);
+    setUser(user);
+    setArchiveScopeKey(workArchiveDbManager.getCurrentScopeKey());
+    setIsLoading(false);
+  }
+
   useEffect(() => {
     let isCancelled = false;
+    const unsubscribe = subscribeToStoredAuthTokens((tokens) => {
+      if (isCancelled || tokens !== null) {
+        return;
+      }
+
+      activateGuestSession();
+    });
 
     async function initializeSession() {
       const restoredSession = await restoreStoredSession();
@@ -37,24 +59,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
 
       if (restoredSession) {
-        workArchiveDbManager.switchToUser(restoredSession.user.id);
-        setUser(restoredSession.user);
-        setArchiveScopeKey(workArchiveDbManager.getCurrentScopeKey());
-        setIsLoading(false);
+        activateAuthenticatedArchive(restoredSession.user);
 
         return;
       }
 
-      workArchiveDbManager.switchToGuest();
-      setUser(null);
-      setArchiveScopeKey(workArchiveDbManager.getCurrentScopeKey());
-      setIsLoading(false);
+      activateGuestSession();
     }
 
     void initializeSession();
 
     return () => {
       isCancelled = true;
+      unsubscribe();
     };
   }, []);
 
@@ -63,9 +80,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     refreshToken: string;
   }) {
     writeStoredAuthTokens(tokens);
-    workArchiveDbManager.switchToUser(user.id);
-    setUser(user);
-    setArchiveScopeKey(workArchiveDbManager.getCurrentScopeKey());
+    activateAuthenticatedArchive(user);
   }
 
   async function signIn(input: AuthCredentialsInput) {
@@ -88,9 +103,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   async function signOut() {
     clearStoredAuthTokens();
-    workArchiveDbManager.switchToGuest();
-    setUser(null);
-    setArchiveScopeKey(workArchiveDbManager.getCurrentScopeKey());
+    activateGuestSession();
   }
 
   const value: AuthContextValue = {
