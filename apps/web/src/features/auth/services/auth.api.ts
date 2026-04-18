@@ -33,6 +33,10 @@ interface RestoredSession {
   user: AuthUser;
 }
 
+interface AuthenticatedRequestOptions {
+  missingTokenMessage?: string;
+}
+
 export class ApiRequestError extends Error {
   readonly status: number;
 
@@ -142,6 +146,58 @@ export async function fetchCurrentUser(accessToken: string) {
   );
 }
 
+async function refreshStoredTokens(refreshToken: string) {
+  try {
+    const refreshedSession = await refreshSession(refreshToken);
+    const nextTokens = {
+      accessToken: refreshedSession.accessToken,
+      refreshToken: refreshedSession.refreshToken,
+    };
+
+    writeStoredAuthTokens(nextTokens);
+
+    return nextTokens;
+  } catch (error) {
+    clearStoredAuthTokens();
+    throw error;
+  }
+}
+
+export async function requestAuthenticatedApiJson<TResponse>(
+  path: string,
+  init: RequestInit,
+  options: AuthenticatedRequestOptions = {},
+): Promise<TResponse> {
+  const storedTokens = readStoredAuthTokens();
+
+  if (!storedTokens) {
+    throw new ApiRequestError(
+      401,
+      options.missingTokenMessage ?? 'Sign in to continue.',
+    );
+  }
+
+  try {
+    return await requestApiJson<TResponse>(path, init, storedTokens.accessToken);
+  } catch (error) {
+    if (!(error instanceof ApiRequestError) || error.status !== 401) {
+      throw error;
+    }
+  }
+
+  const refreshedTokens = await refreshStoredTokens(storedTokens.refreshToken);
+
+  try {
+    return await requestApiJson<TResponse>(path, init, refreshedTokens.accessToken);
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 401) {
+      clearStoredAuthTokens();
+    }
+
+    throw error;
+  }
+}
+
 export async function restoreStoredSession(): Promise<RestoredSession | null> {
   const storedTokens = readStoredAuthTokens();
 
@@ -150,10 +206,13 @@ export async function restoreStoredSession(): Promise<RestoredSession | null> {
   }
 
   try {
-    const user = await fetchCurrentUser(storedTokens.accessToken);
+    const user = await requestAuthenticatedApiJson<AuthUser>('/auth/me', {
+      method: 'GET',
+    });
+    const nextTokens = readStoredAuthTokens() ?? storedTokens;
 
     return {
-      tokens: storedTokens,
+      tokens: nextTokens,
       user,
     };
   } catch (error) {
@@ -164,22 +223,5 @@ export async function restoreStoredSession(): Promise<RestoredSession | null> {
     }
   }
 
-  try {
-    const refreshedSession = await refreshSession(storedTokens.refreshToken);
-    const nextTokens = {
-      accessToken: refreshedSession.accessToken,
-      refreshToken: refreshedSession.refreshToken,
-    };
-
-    writeStoredAuthTokens(nextTokens);
-
-    return {
-      tokens: nextTokens,
-      user: refreshedSession.user,
-    };
-  } catch {
-    clearStoredAuthTokens();
-
-    return null;
-  }
+  return null;
 }

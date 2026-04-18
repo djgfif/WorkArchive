@@ -4,15 +4,7 @@ import type {
   WorkSyncStatus,
 } from '@work-archive/shared-types';
 
-import {
-  ApiRequestError,
-  refreshSession,
-  requestApiJson,
-} from '../../auth/services/auth.api';
-import {
-  readStoredAuthTokens,
-  writeStoredAuthTokens,
-} from '../../auth/services/auth-storage';
+import { requestAuthenticatedApiJson } from '../../auth/services/auth.api';
 import {
   worksRepository,
   type WorksRepository,
@@ -90,43 +82,16 @@ async function postJson<TResponse>(
   path: string,
   body: unknown,
 ): Promise<TResponse> {
-  const storedTokens = readStoredAuthTokens();
-
-  if (!storedTokens) {
-    throw new Error('Sign in to sync an account-local archive.');
-  }
-
-  try {
-    return await requestApiJson<TResponse>(
-      path,
-      {
-        method: 'POST',
-        body: JSON.stringify(body),
-      },
-      storedTokens.accessToken,
-    );
-  } catch (error) {
-    if (!(error instanceof ApiRequestError) || error.status !== 401) {
-      throw error;
-    }
-
-    const refreshedSession = await refreshSession(storedTokens.refreshToken);
-    const nextTokens = {
-      accessToken: refreshedSession.accessToken,
-      refreshToken: refreshedSession.refreshToken,
-    };
-
-    writeStoredAuthTokens(nextTokens);
-
-    return requestApiJson<TResponse>(
-      path,
-      {
-        method: 'POST',
-        body: JSON.stringify(body),
-      },
-      nextTokens.accessToken,
-    );
-  }
+  return requestAuthenticatedApiJson<TResponse>(
+    path,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+    {
+      missingTokenMessage: 'Sign in to sync an account-local archive.',
+    },
+  );
 }
 
 export class SyncService {

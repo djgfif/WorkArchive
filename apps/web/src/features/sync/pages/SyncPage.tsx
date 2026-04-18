@@ -57,7 +57,7 @@ export function SyncPage() {
             </h2>
             <p className="muted-copy">
               {isGuestMode
-                ? 'Guest mode keeps queue data on this device only. Sign in to open an account-local archive and sync it with the API.'
+                ? 'Guest mode keeps queue data on this device only. Remote sync is unavailable until you sign in to an account-local archive.'
                 : `Signed in as ${user?.email}. Manual sync pushes this account-local archive to the API and pulls remote changes back into this device.`}
             </p>
           </div>
@@ -104,9 +104,9 @@ export function SyncPage() {
             <p className="eyebrow">Guest Mode</p>
             <h2 className="section-title">Sync is available after sign-in</h2>
             <p className="muted-copy">
-              Guest/local data stays in the guest archive on this device. Sign
-              in or create an account when you want a protected, user-scoped
-              remote archive.
+              Guest/local data stays in the guest archive on this device.
+              Remote sync starts only after you sign in or create an account
+              for a protected, user-scoped archive.
             </p>
           </div>
           <div className="button-row">

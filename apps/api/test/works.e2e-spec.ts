@@ -369,6 +369,15 @@ describe('Auth, works, and sync API (e2e)', () => {
         }),
       }),
     );
+
+    const staleRefreshResponse = await requestJson('/api/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({
+        refreshToken: session.refreshToken,
+      }),
+    });
+
+    expect(staleRefreshResponse.status).toBe(401);
   });
 
   it('protects works and sync routes when no access token is provided', async () => {
