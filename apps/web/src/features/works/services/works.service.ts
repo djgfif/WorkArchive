@@ -1,6 +1,10 @@
 import type { WorkRecord, WorkSyncStatus } from '@work-archive/shared-types';
 import type { WorksRepository } from './works.repository';
 
+import {
+  syncQueueRepository,
+  type SyncQueueRepository,
+} from '../../sync/services/sync-queue.repository';
 import { queryWorks, type WorksListQuery } from '../utils/query-works';
 import type { UpsertWorkInput } from '../utils/work-form';
 import { worksRepository } from './works.repository';
@@ -15,7 +19,10 @@ interface WorksListResult {
 }
 
 export class WorksService {
-  constructor(private readonly repository: WorksRepository = worksRepository) {}
+  constructor(
+    private readonly repository: WorksRepository = worksRepository,
+    private readonly queueRepository: SyncQueueRepository = syncQueueRepository,
+  ) {}
 
   async listWorks(query: WorksListQuery) {
     const activeWorks = await this.repository.listActive();
@@ -49,6 +56,7 @@ export class WorksService {
     };
 
     await this.repository.create(work);
+    await this.queueRepository.enqueueWorkChange(work, 'create');
 
     return work;
   }
@@ -68,6 +76,7 @@ export class WorksService {
     };
 
     await this.repository.update(updated);
+    await this.queueRepository.enqueueWorkChange(updated, 'update');
 
     return updated;
   }
@@ -89,6 +98,8 @@ export class WorksService {
     if (!deleted) {
       throw new Error('Work not found.');
     }
+
+    await this.queueRepository.enqueueWorkChange(deleted, 'delete');
 
     return deleted;
   }

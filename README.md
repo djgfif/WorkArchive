@@ -1,6 +1,6 @@
 # Work Archive
 
-Milestone 2 provides the backend CRUD foundation for works on top of the existing local-first monorepo.
+Milestone 3 connects the local-first web app and the NestJS API with a manual queue-based sync flow.
 
 ## Workspace Layout
 
@@ -32,6 +32,8 @@ Docker Compose uses the root [`compose.yml`](/mnt/c/CodeStorage/WorkArchive/comp
 - API local defaults: [`apps/api/.env.example`](/mnt/c/CodeStorage/WorkArchive/apps/api/.env.example)
 
 Milestone 0 keeps a local `apps/api/.env` so `npm install` can generate the Prisma client without extra setup. Replace those defaults before any real deployment workflow.
+
+The web app reads `VITE_API_BASE_URL` for manual sync requests and falls back to `http://localhost:3000/api`.
 
 The default PostgreSQL database runs on `localhost:5432` with:
 
@@ -65,3 +67,11 @@ npm run test:e2e --workspace @work-archive/api
 - Swagger UI: `/docs`
 - Works collection: `GET/POST /api/works`
 - Work detail: `GET/PATCH/DELETE /api/works/:id`
+- Sync push: `POST /api/sync/push`
+- Sync pull: `POST /api/sync/pull`
+
+## Manual Sync
+
+- The web app remains local-first. Creates, updates, and deletes write to IndexedDB first.
+- Local work changes enqueue sync records in Dexie and stay visible immediately in the UI.
+- Open `/sync` in the web app to inspect queued items, conflict-marked works, the last pull cursor, and to run a manual push + pull cycle.

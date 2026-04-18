@@ -12,7 +12,8 @@ export function AppLayout() {
             </Link>
             <p className="body-copy">
               Track works locally in IndexedDB. Changes persist immediately and
-              the UI reads straight from the local database.
+              the UI reads straight from the local database before any manual
+              sync push or pull happens.
             </p>
           </div>
 
@@ -25,6 +26,14 @@ export function AppLayout() {
                 to="/works"
               >
                 Library
+              </NavLink>
+              <NavLink
+                className={({ isActive }) =>
+                  isActive ? 'app-nav-link active' : 'app-nav-link'
+                }
+                to="/sync"
+              >
+                Sync
               </NavLink>
             </nav>
 

@@ -14,14 +14,43 @@ function createPrismaServiceMock() {
 
   return {
     work: {
-      findMany: async () =>
+      findMany: async ({
+        where,
+        orderBy,
+      }: {
+        where?: {
+          deletedAt?: null;
+          updatedAt?: {
+            gt: Date;
+          };
+        };
+        orderBy?: {
+          updatedAt: 'asc' | 'desc';
+        };
+      } = {}) =>
         [...works]
-          .filter((work) => work.deletedAt === null)
-          .sort(
-            (left, right) =>
+          .filter((work) => {
+            if (where?.deletedAt === null && work.deletedAt !== null) {
+              return false;
+            }
+
+            if (
+              where?.updatedAt?.gt &&
+              new Date(work.updatedAt as Date).getTime() <=
+                where.updatedAt.gt.getTime()
+            ) {
+              return false;
+            }
+
+            return true;
+          })
+          .sort((left, right) => {
+            const delta =
               new Date(right.updatedAt as Date).getTime() -
-              new Date(left.updatedAt as Date).getTime(),
-          ),
+              new Date(left.updatedAt as Date).getTime();
+
+            return orderBy?.updatedAt === 'asc' ? -delta : delta;
+          }),
       findUnique: async ({
         where,
       }: {
@@ -29,14 +58,10 @@ function createPrismaServiceMock() {
           id: string;
         };
       }) => works.find((work) => work.id === where.id) ?? null,
-      create: async ({
-        data,
-      }: {
-        data: Record<string, unknown>;
-      }) => {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
         const now = new Date();
         const work = {
-          id: crypto.randomUUID(),
+          id: data.id ?? crypto.randomUUID(),
           type: data.type,
           title: data.title,
           author: data.author,
@@ -49,9 +74,9 @@ function createPrismaServiceMock() {
           review: data.review,
           tier: data.tier ?? null,
           favorite: data.favorite ?? false,
-          createdAt: now,
+          createdAt: data.createdAt ?? now,
           updatedAt: now,
-          deletedAt: null,
+          deletedAt: data.deletedAt ?? null,
           syncStatus: data.syncStatus ?? WorkSyncStatus.synced,
           serverVersion: data.serverVersion,
         };
@@ -168,7 +193,7 @@ describe('Works API (e2e)', () => {
       method: 'POST',
       body: JSON.stringify({
         type: WorkType.anime,
-        title: '  Frieren: Beyond Journey\'s End  ',
+        title: "  Frieren: Beyond Journey's End  ",
         author: ' Kanehito Yamada ',
         genres: [' Fantasy ', 'Drama', 'Fantasy'],
         status: WorkStatus.completed,
@@ -186,7 +211,7 @@ describe('Works API (e2e)', () => {
       expect.objectContaining({
         id: expect.any(String),
         type: WorkType.anime,
-        title: 'Frieren: Beyond Journey\'s End',
+        title: "Frieren: Beyond Journey's End",
         author: 'Kanehito Yamada',
         genres: ['Fantasy', 'Drama'],
         status: WorkStatus.completed,
@@ -252,6 +277,146 @@ describe('Works API (e2e)', () => {
     expect(deletedDetailResponse.status).toBe(404);
   });
 
+  it('supports manual push and pull sync endpoints with visible conflicts', async () => {
+    const pushCreateResponse = await requestJson('/api/sync/push', {
+      method: 'POST',
+      body: JSON.stringify({
+        changes: [
+          {
+            queueId: '6a8f8eb6-8317-4e8a-b8e7-530c5cc1db4d',
+            entityType: 'work',
+            entityId: '3f831224-abf9-44c3-b3f9-9ff4da2f7de8',
+            operation: 'create',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            payload: {
+              id: '3f831224-abf9-44c3-b3f9-9ff4da2f7de8',
+              type: WorkType.novel,
+              title: 'Dune',
+              author: 'Frank Herbert',
+              genres: ['Science Fiction'],
+              description: '',
+              thumbnailUrl: '',
+              status: WorkStatus.completed,
+              rating: 5,
+              shortReview: '',
+              review: '',
+              tier: null,
+              favorite: false,
+              createdAt: '2026-04-18T00:00:00.000Z',
+              updatedAt: '2026-04-18T00:00:00.000Z',
+              deletedAt: null,
+              syncStatus: 'local-only',
+              serverVersion: 0,
+            },
+          },
+        ],
+      }),
+    });
+
+    expect(pushCreateResponse.status).toBe(200);
+    expect(pushCreateResponse.body).toEqual(
+      expect.objectContaining({
+        results: [
+          expect.objectContaining({
+            status: 'applied',
+            entityId: '3f831224-abf9-44c3-b3f9-9ff4da2f7de8',
+            work: expect.objectContaining({
+              title: 'Dune',
+              syncStatus: 'synced',
+              serverVersion: 1,
+            }),
+          }),
+        ],
+      }),
+    );
+
+    const serverUpdateResponse = await requestJson(
+      '/api/works/3f831224-abf9-44c3-b3f9-9ff4da2f7de8',
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: 'Dune Messiah',
+        }),
+      },
+    );
+
+    expect(serverUpdateResponse.status).toBe(200);
+
+    const pullResponse = await requestJson('/api/sync/pull', {
+      method: 'POST',
+      body: JSON.stringify({
+        since: '2026-04-17T00:00:00.000Z',
+      }),
+    });
+
+    expect(pullResponse.status).toBe(200);
+    expect(pullResponse.body).toEqual(
+      expect.objectContaining({
+        changes: expect.arrayContaining([
+          expect.objectContaining({
+            entityId: '3f831224-abf9-44c3-b3f9-9ff4da2f7de8',
+            operation: 'upsert',
+            work: expect.objectContaining({
+              title: 'Dune Messiah',
+              serverVersion: 2,
+            }),
+          }),
+        ]),
+      }),
+    );
+
+    const conflictResponse = await requestJson('/api/sync/push', {
+      method: 'POST',
+      body: JSON.stringify({
+        changes: [
+          {
+            queueId: 'd125b784-6d75-429f-bfa1-04f0f491de14',
+            entityType: 'work',
+            entityId: '3f831224-abf9-44c3-b3f9-9ff4da2f7de8',
+            operation: 'update',
+            createdAt: '2026-04-18T00:05:00.000Z',
+            payload: {
+              id: '3f831224-abf9-44c3-b3f9-9ff4da2f7de8',
+              type: WorkType.novel,
+              title: 'Children of Dune',
+              author: 'Frank Herbert',
+              genres: ['Science Fiction'],
+              description: '',
+              thumbnailUrl: '',
+              status: WorkStatus.completed,
+              rating: 5,
+              shortReview: '',
+              review: '',
+              tier: null,
+              favorite: false,
+              createdAt: '2026-04-18T00:00:00.000Z',
+              updatedAt: '2026-04-18T00:05:00.000Z',
+              deletedAt: null,
+              syncStatus: 'pending',
+              serverVersion: 1,
+            },
+          },
+        ],
+      }),
+    });
+
+    expect(conflictResponse.status).toBe(200);
+    expect(conflictResponse.body).toEqual(
+      expect.objectContaining({
+        results: [
+          expect.objectContaining({
+            status: 'conflict',
+            message: expect.stringContaining('server version 2'),
+            work: expect.objectContaining({
+              title: 'Dune Messiah',
+              serverVersion: 2,
+            }),
+          }),
+        ],
+      }),
+    );
+  });
+
   it('returns 404 for missing works across detail, update, and delete', async () => {
     const missingId = crypto.randomUUID();
 
@@ -308,7 +473,8 @@ describe('Works API (e2e)', () => {
       }),
     );
 
-    const workId = (minimalCreateResponse.body as Record<string, unknown>).id as string;
+    const workId = (minimalCreateResponse.body as Record<string, unknown>)
+      .id as string;
 
     const invalidCreateResponse = await requestJson('/api/works', {
       method: 'POST',

@@ -7,6 +7,7 @@ import { WorkCreatePage } from '../../features/works/pages/WorkCreatePage';
 import { WorkDetailPage } from '../../features/works/pages/WorkDetailPage';
 import { WorkEditPage } from '../../features/works/pages/WorkEditPage';
 import { WorksListPage } from '../../features/works/pages/WorksListPage';
+import { SyncPage } from '../../features/sync/pages/SyncPage';
 
 export const appRoutes: RouteObject[] = [
   {
@@ -32,6 +33,10 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'works/:id/edit',
         element: <WorkEditPage />,
+      },
+      {
+        path: 'sync',
+        element: <SyncPage />,
       },
       {
         path: '*',
