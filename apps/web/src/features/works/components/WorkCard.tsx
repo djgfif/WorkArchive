@@ -23,7 +23,7 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
   return (
     <article className="panel work-card">
       <Link
-        aria-label={`Open ${work.title}`}
+        aria-label={`${work.title} 보기`}
         className="work-card-media"
         to={`/works/${work.id}`}
       >
@@ -35,7 +35,7 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
         />
         <div className="work-card-media-overlay">
           <span className="badge">{typeLabel}</span>
-          {work.favorite && <span className="badge badge-accent">Favorite</span>}
+          {work.favorite && <span className="badge badge-accent">즐겨찾기</span>}
         </div>
       </Link>
 
@@ -52,7 +52,7 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
               </Link>
             </h3>
             <p className="muted-copy">
-              {work.author || 'Unknown creator'} · Updated{' '}
+              {work.author || '작가/제작자 정보 없음'} · 최근 수정{' '}
               {formatWorkUpdatedAt(work.updatedAt)}
             </p>
           </div>
@@ -61,16 +61,16 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
             <span className="work-card-score-value">
               {work.rating === null ? '—' : work.rating}
             </span>
-            <span className="work-card-score-label">Rating</span>
+            <span className="work-card-score-label">별점</span>
           </div>
         </div>
 
         <p className="card-summary">
-          {work.shortReview || work.description || 'No notes yet.'}
+          {work.shortReview || work.description || '아직 남긴 감상이 없습니다.'}
         </p>
 
         <div className="work-card-footer">
-          <div className="tag-list" aria-label="Genres">
+          <div className="tag-list" aria-label="장르">
             {visibleGenres.length > 0 ? (
               <>
                 {visibleGenres.map((genre) => (
@@ -83,24 +83,24 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
                 )}
               </>
             ) : (
-              <span className="tag tag--muted">No genres</span>
+              <span className="tag tag--muted">장르 없음</span>
             )}
           </div>
 
           <div className="button-row">
             <Link className="secondary-link" to={`/works/${work.id}`}>
-              View
+              보기
             </Link>
             <Link className="secondary-link" to={`/works/${work.id}/edit`}>
-              Edit
+              수정
             </Link>
             <button
-              aria-label={`Delete ${work.title}`}
+              aria-label={`${work.title} 삭제`}
               className="danger-button"
               onClick={() => void onDelete(work)}
               type="button"
             >
-              Delete
+              삭제
             </button>
           </div>
         </div>

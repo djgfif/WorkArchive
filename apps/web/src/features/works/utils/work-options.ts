@@ -11,23 +11,23 @@ import {
 import type { WorksSortOption } from './query-works';
 
 const workTypeLabels: Record<WorkType, string> = {
-  novel: 'Novel',
-  anime: 'Anime',
-  manga: 'Manga',
-  light_novel: 'Light novel',
-  web_novel: 'Web novel',
-  webtoon: 'Webtoon',
-  movie: 'Movie',
-  drama: 'Drama',
-  other: 'Other',
+  novel: '소설',
+  anime: '애니',
+  manga: '만화',
+  light_novel: '라이트노벨',
+  web_novel: '웹소설',
+  webtoon: '웹툰',
+  movie: '영화',
+  drama: '드라마',
+  other: '기타',
 };
 
 const workStatusLabels: Record<WorkStatus, string> = {
-  planned: 'Planned',
-  in_progress: 'In progress',
-  completed: 'Completed',
-  paused: 'Paused',
-  dropped: 'Dropped',
+  planned: '예정',
+  in_progress: '진행 중',
+  completed: '완료',
+  paused: '보류',
+  dropped: '중단',
 };
 
 const workTierLabels: Record<WorkTier, string> = {
@@ -39,10 +39,10 @@ const workTierLabels: Record<WorkTier, string> = {
 };
 
 const workSyncStatusLabels: Record<WorkSyncStatus, string> = {
-  'local-only': 'Local only',
-  pending: 'Pending sync',
-  synced: 'Synced',
-  conflict: 'Conflict',
+  'local-only': '기기 저장',
+  pending: '동기화 대기',
+  synced: '동기화됨',
+  conflict: '충돌',
 };
 
 export const workTypeOptions = WORK_TYPES.map((value) => ({
@@ -64,9 +64,9 @@ export const workSortOptions: Array<{
   value: WorksSortOption;
   label: string;
 }> = [
-  { value: 'updatedAt', label: 'Recently updated' },
-  { value: 'title', label: 'Title' },
-  { value: 'rating', label: 'Rating' },
+  { value: 'updatedAt', label: '최근 수정순' },
+  { value: 'title', label: '제목순' },
+  { value: 'rating', label: '별점순' },
 ];
 
 export function getWorkTypeLabel(value: WorkType) {
@@ -78,7 +78,7 @@ export function getWorkStatusLabel(value: WorkStatus) {
 }
 
 export function getWorkTierLabel(value: WorkTier | null) {
-  return value ? workTierLabels[value] : 'Unranked';
+  return value ? workTierLabels[value] : '미지정';
 }
 
 export function getWorkSyncStatusLabel(value: WorkSyncStatus) {
@@ -86,7 +86,7 @@ export function getWorkSyncStatusLabel(value: WorkSyncStatus) {
 }
 
 export function formatWorkDateTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));

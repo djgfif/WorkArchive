@@ -40,38 +40,38 @@ export function WorkDetailPanel({ actions, work }: WorkDetailPanelProps) {
             <span className="badge">{statusLabel}</span>
             <span className="badge">{tierLabel}</span>
             <span className="badge">{syncLabel}</span>
-            {work.favorite && <span className="badge badge-accent">Favorite</span>}
+            {work.favorite && <span className="badge badge-accent">즐겨찾기</span>}
           </div>
 
           <div className="stack work-detail-title-block">
             <h2 className="page-title">{work.title}</h2>
             <p className="work-detail-author">
-              {work.author || 'Unknown creator'} · Updated{' '}
+              {work.author || '작가/제작자 정보 없음'} · 최근 수정{' '}
               {formatWorkUpdatedAt(work.updatedAt)}
             </p>
           </div>
 
           <div className="detail-spotlight">
-            <p className="detail-spotlight-label">Personal note</p>
+            <p className="detail-spotlight-label">한줄 감상</p>
             <p className="detail-spotlight-copy">
               {work.shortReview ||
-                'No quick impression yet. Add a short note to make this entry easier to scan later.'}
+                '아직 한줄 감상이 없습니다. 짧게 메모해두면 나중에 다시 보기 편합니다.'}
             </p>
           </div>
 
           <div className="detail-stats-grid">
             <div className="stat-tile">
-              <span className="stat-tile-label">Rating</span>
-              <strong>{work.rating === null ? 'Not rated' : `${work.rating}/5`}</strong>
+              <span className="stat-tile-label">별점</span>
+              <strong>{work.rating === null ? '미평가' : `${work.rating}점`}</strong>
             </div>
             <div className="stat-tile">
-              <span className="stat-tile-label">Genres</span>
+              <span className="stat-tile-label">장르</span>
               <strong>
-                {work.genres.length > 0 ? `${work.genres.length} tagged` : 'None yet'}
+                {work.genres.length > 0 ? `${work.genres.length}개 등록` : '없음'}
               </strong>
             </div>
             <div className="stat-tile">
-              <span className="stat-tile-label">Tier</span>
+              <span className="stat-tile-label">티어</span>
               <strong>{tierLabel}</strong>
             </div>
           </div>
@@ -83,61 +83,61 @@ export function WorkDetailPanel({ actions, work }: WorkDetailPanelProps) {
       <div className="detail-grid detail-grid--work">
         <div className="detail-section">
           <div className="section-heading">
-            <p className="section-kicker">Overview</p>
-            <h3 className="section-title">About this work</h3>
+            <p className="section-kicker">개요</p>
+            <h3 className="section-title">작품 소개</h3>
           </div>
-          <p>{work.description || 'No description saved yet.'}</p>
+          <p>{work.description || '등록된 설명이 없습니다.'}</p>
         </div>
 
         <div className="detail-section">
           <div className="section-heading">
-            <p className="section-kicker">Your archive</p>
-            <h3 className="section-title">Personal details</h3>
+            <p className="section-kicker">내 기록</p>
+            <h3 className="section-title">개인 기록</h3>
           </div>
           <dl className="detail-list detail-list--columns">
             <div>
-              <dt>Status</dt>
+              <dt>상태</dt>
               <dd>{statusLabel}</dd>
             </div>
             <div>
-              <dt>Genres</dt>
-              <dd>{work.genres.length > 0 ? work.genres.join(', ') : 'None yet'}</dd>
+              <dt>장르</dt>
+              <dd>{work.genres.length > 0 ? work.genres.join(', ') : '없음'}</dd>
             </div>
             <div>
-              <dt>Favorite</dt>
-              <dd>{work.favorite ? 'Marked favorite' : 'Not marked'}</dd>
+              <dt>즐겨찾기</dt>
+              <dd>{work.favorite ? '등록됨' : '미등록'}</dd>
             </div>
           </dl>
         </div>
 
         <div className="detail-section">
           <div className="section-heading">
-            <p className="section-kicker">Review</p>
-            <h3 className="section-title">Long-form notes</h3>
+            <p className="section-kicker">감상</p>
+            <h3 className="section-title">상세 감상</h3>
           </div>
-          <p>{work.review || 'No detailed review yet.'}</p>
+          <p>{work.review || '아직 상세 감상이 없습니다.'}</p>
         </div>
 
         <div className="detail-section">
           <div className="section-heading">
-            <p className="section-kicker">Archive status</p>
-            <h3 className="section-title">Sync and record metadata</h3>
+            <p className="section-kicker">동기화 정보</p>
+            <h3 className="section-title">기록 및 동기화 정보</h3>
           </div>
           <dl className="detail-list detail-list--columns">
             <div>
-              <dt>Sync state</dt>
+              <dt>동기화 상태</dt>
               <dd>{syncLabel}</dd>
             </div>
             <div>
-              <dt>Created</dt>
+              <dt>등록일</dt>
               <dd>{formatWorkDateTime(work.createdAt)}</dd>
             </div>
             <div>
-              <dt>Last updated</dt>
+              <dt>수정일</dt>
               <dd>{formatWorkDateTime(work.updatedAt)}</dd>
             </div>
             <div>
-              <dt>Server version</dt>
+              <dt>동기화 버전</dt>
               <dd>{work.serverVersion}</dd>
             </div>
           </dl>

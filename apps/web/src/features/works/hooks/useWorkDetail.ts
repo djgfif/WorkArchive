@@ -27,7 +27,7 @@ export function useWorkDetail(id: string | undefined) {
       setState({
         work: null,
         isLoading: false,
-        error: 'Work id is missing.',
+        error: '작품 정보를 찾을 수 없습니다.',
       });
 
       return undefined;
@@ -52,7 +52,9 @@ export function useWorkDetail(id: string | undefined) {
           work: null,
           isLoading: false,
           error:
-            error instanceof Error ? error.message : 'Failed to load this work.',
+            error instanceof Error
+              ? error.message
+              : '작품 정보를 불러오지 못했습니다.',
         });
       },
     });

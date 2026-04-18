@@ -25,19 +25,15 @@ export function WorksToolbar({
   query,
   totalActiveCount,
 }: WorksToolbarProps) {
-  let countSummary = 'Loading your archive...';
+  let countSummary = '라이브러리를 불러오는 중입니다.';
 
   if (!isLoading) {
     if (totalActiveCount === 0) {
-      countSummary = 'No works yet. Start building your library with the first entry.';
+      countSummary = '아직 등록된 작품이 없습니다. 첫 작품부터 추가해보세요.';
     } else if (filteredCount === totalActiveCount) {
-      countSummary = `Showing all ${totalActiveCount} saved ${
-        totalActiveCount === 1 ? 'work' : 'works'
-      } in your archive.`;
+      countSummary = `라이브러리의 작품 ${totalActiveCount}개를 모두 보고 있습니다.`;
     } else {
-      countSummary = `Showing ${filteredCount} of ${totalActiveCount} saved ${
-        totalActiveCount === 1 ? 'work' : 'works'
-      } in your archive.`;
+      countSummary = `전체 ${totalActiveCount}개 중 ${filteredCount}개 작품을 보고 있습니다.`;
     }
   }
 
@@ -54,61 +50,61 @@ export function WorksToolbar({
           <>
             {hasActiveFilters && (
               <button onClick={onClearFilters} type="button">
-                Reset view
+                초기화
               </button>
             )}
             <Link className="primary-link" to="/works/new">
-              Add work
+              작품 추가
             </Link>
           </>
         }
-        description="Browse, filter, and revisit your archive without losing focus on the work itself."
-        eyebrow="Library"
+        description="기록한 작품을 빠르게 찾아보고, 상태별로 정리해보세요."
+        eyebrow="라이브러리"
         meta={
           <>
             <div className="stat-pill">
               <span className="stat-pill-value">{totalActiveCount}</span>
-              <span className="stat-pill-label">Saved works</span>
+              <span className="stat-pill-label">전체 작품</span>
             </div>
             <div className="stat-pill">
               <span className="stat-pill-value">{filteredCount}</span>
-              <span className="stat-pill-label">In view</span>
+              <span className="stat-pill-label">현재 보기</span>
             </div>
             <div className="stat-pill">
               <span className="stat-pill-value">
                 {workSortOptions.find((option) => option.value === query.sortBy)?.label}
               </span>
-              <span className="stat-pill-label">Sorting</span>
+              <span className="stat-pill-label">정렬 기준</span>
             </div>
           </>
         }
-        title="Your library"
+        title="내 라이브러리"
       />
 
       <section className="panel stack toolbar-panel">
         <div className="toolbar-header">
           <div>
-            <h3 className="section-title">Refine the view</h3>
+            <h3 className="section-title">필터와 정렬</h3>
             <p className="muted-copy">{countSummary}</p>
           </div>
         </div>
 
         <label className="field search-field" htmlFor="searchTerm">
-          <span>Search library</span>
+          <span>작품 검색</span>
           <input
             id="searchTerm"
             name="searchTerm"
             onChange={(event) =>
               onQueryChange({ ...query, searchTerm: event.target.value })
             }
-            placeholder="Search by title or creator"
+            placeholder="제목이나 작가로 검색"
             value={query.searchTerm}
           />
         </label>
 
         <div className="toolbar-grid">
           <label className="field" htmlFor="typeFilter">
-            <span>Type</span>
+            <span>유형</span>
             <select
               id="typeFilter"
               onChange={(event) =>
@@ -119,7 +115,7 @@ export function WorksToolbar({
               }
               value={query.type}
             >
-              <option value="all">All types</option>
+              <option value="all">전체 유형</option>
               {workTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -129,7 +125,7 @@ export function WorksToolbar({
           </label>
 
           <label className="field" htmlFor="statusFilter">
-            <span>Status</span>
+            <span>상태</span>
             <select
               id="statusFilter"
               onChange={(event) =>
@@ -140,7 +136,7 @@ export function WorksToolbar({
               }
               value={query.status}
             >
-              <option value="all">All statuses</option>
+              <option value="all">전체 상태</option>
               {workStatusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -150,7 +146,7 @@ export function WorksToolbar({
           </label>
 
           <label className="field" htmlFor="sortBy">
-            <span>Sort</span>
+            <span>정렬</span>
             <select
               id="sortBy"
               onChange={(event) =>

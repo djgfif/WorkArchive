@@ -86,7 +86,7 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
   const title = values.title.trim();
 
   if (!title) {
-    throw new Error('Title is required.');
+    throw new Error('제목을 입력해주세요.');
   }
 
   const parsedRating =
@@ -96,7 +96,7 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
     parsedRating !== null &&
     (Number.isNaN(parsedRating) || parsedRating < 0 || parsedRating > 5)
   ) {
-    throw new Error('Rating must be between 0 and 5.');
+    throw new Error('별점은 0점부터 5점 사이로 입력해주세요.');
   }
 
   return {

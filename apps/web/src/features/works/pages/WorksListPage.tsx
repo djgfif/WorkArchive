@@ -19,7 +19,7 @@ export function WorksListPage() {
 
   async function handleDelete(work: WorkRecord) {
     const shouldDelete = window.confirm(
-      `Soft delete "${work.title}" from the active works list?`,
+      `"${work.title}" 작품을 삭제할까요?`,
     );
 
     if (!shouldDelete) {
@@ -33,7 +33,7 @@ export function WorksListPage() {
       setActionError(
         deleteError instanceof Error
           ? deleteError.message
-          : 'Could not delete this work.',
+          : '작품을 삭제하지 못했습니다.',
       );
     }
   }
@@ -57,15 +57,15 @@ export function WorksListPage() {
 
       {error && (
         <section className="panel stack">
-          <h2 className="section-title">Could not load the library.</h2>
+          <h2 className="section-title">라이브러리를 불러오지 못했습니다.</h2>
           <p className="muted-copy">{error}</p>
         </section>
       )}
 
       {!error && isLoading && (
         <section className="panel stack">
-          <h2 className="section-title">Loading your library...</h2>
-          <p className="muted-copy">Opening the saved works on this device.</p>
+          <h2 className="section-title">라이브러리를 불러오는 중입니다.</h2>
+          <p className="muted-copy">데이터를 불러오고 있습니다.</p>
         </section>
       )}
 
@@ -75,28 +75,28 @@ export function WorksListPage() {
             <span>WA</span>
           </div>
           <div className="stack">
-            <p className="eyebrow">Empty Library</p>
-            <h2 className="section-title">No works match this view.</h2>
-          <p className="muted-copy">
-            {query.searchTerm || query.type !== 'all' || query.status !== 'all'
-              ? 'Try widening the filters or start a new entry.'
-              : 'Start the archive with the first title you want to keep track of.'}
-          </p>
-          <div className="button-row">
-            <Link className="primary-link" to="/works/new">
-              Add a work
-            </Link>
-            {(query.searchTerm ||
-              query.type !== 'all' ||
-              query.status !== 'all') && (
-              <button
-                onClick={() => setQuery(DEFAULT_WORKS_LIST_QUERY)}
-                type="button"
-              >
-                Reset view
-              </button>
-            )}
-          </div>
+            <p className="eyebrow">비어 있는 라이브러리</p>
+            <h2 className="section-title">현재 조건에 맞는 작품이 없습니다.</h2>
+            <p className="muted-copy">
+              {query.searchTerm || query.type !== 'all' || query.status !== 'all'
+                ? '검색어나 필터를 조정하거나 새 작품을 추가해보세요.'
+                : '아직 등록된 작품이 없습니다. 첫 작품을 추가해보세요.'}
+            </p>
+            <div className="button-row">
+              <Link className="primary-link" to="/works/new">
+                작품 추가
+              </Link>
+              {(query.searchTerm ||
+                query.type !== 'all' ||
+                query.status !== 'all') && (
+                <button
+                  onClick={() => setQuery(DEFAULT_WORKS_LIST_QUERY)}
+                  type="button"
+                >
+                  초기화
+                </button>
+              )}
+            </div>
           </div>
         </section>
       )}

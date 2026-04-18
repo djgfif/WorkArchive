@@ -50,7 +50,9 @@ export function useWorksList(query: WorksListQuery = DEFAULT_WORKS_LIST_QUERY) {
             totalActiveCount: 0,
             isLoading: false,
             error:
-              error instanceof Error ? error.message : 'Failed to load works.',
+              error instanceof Error
+                ? error.message
+                : '작품 목록을 불러오지 못했습니다.',
           });
         },
       },

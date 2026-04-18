@@ -4,6 +4,7 @@ import {
   writeStoredAuthTokens,
   type StoredAuthTokens,
 } from './auth-storage';
+import { localizeApiErrorMessage } from '../../../shared/utils/localize-message';
 
 const DEFAULT_API_BASE_URL = 'http://localhost:3000/api';
 
@@ -55,14 +56,14 @@ export function getApiBaseUrl() {
 
 function getApiErrorMessage(status: number, body: ApiErrorBody | null) {
   if (Array.isArray(body?.message)) {
-    return body.message.join(' ');
+    return localizeApiErrorMessage(status);
   }
 
   if (typeof body?.message === 'string') {
-    return body.message;
+    return localizeApiErrorMessage(status, body.message);
   }
 
-  return `Request failed with status ${status}.`;
+  return localizeApiErrorMessage(status);
 }
 
 async function readJsonBody<T>(response: Response): Promise<T | null> {
@@ -104,7 +105,7 @@ export async function requestApiJson<TResponse>(
   if (responseBody === null) {
     throw new ApiRequestError(
       response.status,
-      'The server returned an empty JSON response.',
+      '서버 응답을 확인할 수 없습니다.',
     );
   }
 
@@ -173,7 +174,7 @@ export async function requestAuthenticatedApiJson<TResponse>(
   if (!storedTokens) {
     throw new ApiRequestError(
       401,
-      options.missingTokenMessage ?? 'Sign in to continue.',
+      options.missingTokenMessage ?? '로그인 후 이용해주세요.',
     );
   }
 

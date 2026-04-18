@@ -21,7 +21,7 @@ export function WorkCreatePage() {
       navigate(`/works/${work.id}`);
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : 'Could not create this work.',
+        error instanceof Error ? error.message : '작품을 추가하지 못했습니다.',
       );
     } finally {
       setIsSubmitting(false);
@@ -33,24 +33,24 @@ export function WorkCreatePage() {
       <PageHero
         actions={
           <Link className="secondary-link" to="/works">
-            Back to library
+            라이브러리로 돌아가기
           </Link>
         }
-        description="Capture the essentials quickly, then come back for richer notes whenever you want."
-        eyebrow="Quick Add"
+        description="먼저 기본 정보만 간단히 저장하고, 감상은 나중에 이어서 정리할 수 있습니다."
+        eyebrow="빠른 추가"
         meta={
           <>
             <div className="stat-pill">
-              <span className="stat-pill-value">Fast</span>
-              <span className="stat-pill-label">Minimal friction</span>
+              <span className="stat-pill-value">빠르게</span>
+              <span className="stat-pill-label">가볍게 기록</span>
             </div>
             <div className="stat-pill">
-              <span className="stat-pill-value">Local first</span>
-              <span className="stat-pill-label">Saved on this device</span>
+              <span className="stat-pill-value">이 기기에 저장</span>
+              <span className="stat-pill-label">바로 보관</span>
             </div>
           </>
         }
-        title="Add a new work"
+        title="작품 추가"
       />
 
       <WorkForm
@@ -58,7 +58,7 @@ export function WorkCreatePage() {
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}
         submitError={submitError}
-        submitLabel="Save work"
+        submitLabel="저장"
       />
     </section>
   );

@@ -7,8 +7,6 @@ describe('App', () => {
   it('renders the project heading', () => {
     render(<App />);
 
-    expect(
-      screen.getByRole('heading', { name: /work archive/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '워크 아카이브' })).toBeInTheDocument();
   });
 });

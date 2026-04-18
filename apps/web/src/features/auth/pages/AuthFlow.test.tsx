@@ -48,21 +48,21 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    await user.type(screen.getByLabelText(/^Email$/i), 'frieren@example.com');
+    await user.type(screen.getByLabelText(/^이메일$/), 'frieren@example.com');
     await user.type(
-      screen.getByLabelText(/^Password$/i),
+      screen.getByLabelText(/^비밀번호$/),
       'strong-password-123',
     );
-    await user.click(screen.getByRole('button', { name: /create account/i }));
+    await user.click(screen.getByRole('button', { name: '회원가입' }));
 
     expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
-    expect(await screen.findByText('Signed in')).toBeInTheDocument();
+    expect(await screen.findByText('로그인됨')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /sign out/i }));
+    await user.click(screen.getByRole('button', { name: '로그아웃' }));
 
-    expect(await screen.findByText('Guest mode')).toBeInTheDocument();
+    expect(await screen.findByText('게스트 모드')).toBeInTheDocument();
     expect(
-      screen.getByText(/Everything stays on this device until you choose to sign in/i),
+      screen.getByText('로그인하지 않아도 이 기기에 기록을 저장할 수 있습니다.'),
     ).toBeInTheDocument();
   });
 
