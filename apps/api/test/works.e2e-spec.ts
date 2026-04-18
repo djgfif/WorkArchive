@@ -417,6 +417,56 @@ describe('Works API (e2e)', () => {
     );
   });
 
+  it('surfaces a conflict when deleting a previously synced record that is already missing remotely', async () => {
+    const conflictResponse = await requestJson('/api/sync/push', {
+      method: 'POST',
+      body: JSON.stringify({
+        changes: [
+          {
+            queueId: 'd125b784-6d75-429f-bfa1-04f0f491de14',
+            entityType: 'work',
+            entityId: '3f831224-abf9-44c3-b3f9-9ff4da2f7de8',
+            operation: 'delete',
+            createdAt: '2026-04-18T00:05:00.000Z',
+            payload: {
+              id: '3f831224-abf9-44c3-b3f9-9ff4da2f7de8',
+              type: WorkType.novel,
+              title: 'Children of Dune',
+              author: 'Frank Herbert',
+              genres: ['Science Fiction'],
+              description: '',
+              thumbnailUrl: '',
+              status: WorkStatus.completed,
+              rating: 5,
+              shortReview: '',
+              review: '',
+              tier: null,
+              favorite: false,
+              createdAt: '2026-04-18T00:00:00.000Z',
+              updatedAt: '2026-04-18T00:05:00.000Z',
+              deletedAt: '2026-04-18T00:05:00.000Z',
+              syncStatus: 'pending',
+              serverVersion: 2,
+            },
+          },
+        ],
+      }),
+    });
+
+    expect(conflictResponse.status).toBe(200);
+    expect(conflictResponse.body).toEqual(
+      expect.objectContaining({
+        results: [
+          expect.objectContaining({
+            status: 'conflict',
+            message: expect.stringContaining('already missing remotely'),
+            work: null,
+          }),
+        ],
+      }),
+    );
+  });
+
   it('returns 404 for missing works across detail, update, and delete', async () => {
     const missingId = crypto.randomUUID();
 
@@ -527,6 +577,32 @@ describe('Works API (e2e)', () => {
         expect.stringContaining('tier'),
         expect.stringContaining('genres'),
       ]),
+    );
+  });
+
+  it('validates sync payloads for push and pull', async () => {
+    const invalidPushResponse = await requestJson('/api/sync/push', {
+      method: 'POST',
+      body: JSON.stringify({
+        changes: [],
+      }),
+    });
+
+    expect(invalidPushResponse.status).toBe(400);
+    expect((invalidPushResponse.body as { message: string[] }).message).toEqual(
+      expect.arrayContaining([expect.stringContaining('changes')]),
+    );
+
+    const invalidPullResponse = await requestJson('/api/sync/pull', {
+      method: 'POST',
+      body: JSON.stringify({
+        since: 'not-a-date',
+      }),
+    });
+
+    expect(invalidPullResponse.status).toBe(400);
+    expect((invalidPullResponse.body as { message: string[] }).message).toEqual(
+      expect.arrayContaining([expect.stringContaining('since')]),
     );
   });
 });

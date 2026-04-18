@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import {
   WorkSyncStatus,
   type Prisma,
@@ -48,7 +48,7 @@ export class SyncService {
         : {
             where: {
               updatedAt: {
-                gt: new Date(since),
+                gt: this.parseIsoDate(since, 'since'),
               },
             },
           }),
@@ -136,9 +136,21 @@ export class SyncService {
     const isDelete =
       change.operation === 'delete' || change.payload.deletedAt !== null;
     const canCreate =
-      change.operation === 'create' || change.payload.serverVersion === 0;
+      change.operation === 'create' && change.payload.serverVersion === 0;
 
     if (isDelete) {
+      if (change.payload.serverVersion > 0) {
+        return {
+          queueId: change.queueId,
+          entityId: change.entityId,
+          entityType: 'work',
+          status: 'conflict',
+          message:
+            'Server mismatch: the record was already missing remotely when a previously synced delete was pushed.',
+          work: null,
+        };
+      }
+
       return {
         queueId: change.queueId,
         entityId: change.entityId,
@@ -198,8 +210,11 @@ export class SyncService {
       review: this.normalizeString(payload.review),
       tier: (payload.tier ?? null) as WorkTier | null,
       favorite: payload.favorite,
-      createdAt: new Date(payload.createdAt),
-      deletedAt: payload.deletedAt ? new Date(payload.deletedAt) : null,
+      createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
       syncStatus: SERVER_SYNC_STATUS,
       serverVersion: 1,
     };
@@ -219,7 +234,10 @@ export class SyncService {
       review: this.normalizeString(payload.review),
       tier: (payload.tier ?? null) as WorkTier | null,
       favorite: payload.favorite,
-      deletedAt: payload.deletedAt ? new Date(payload.deletedAt) : null,
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
       syncStatus: SERVER_SYNC_STATUS,
       serverVersion: {
         increment: 1,
@@ -266,6 +284,26 @@ export class SyncService {
     return Array.from(
       new Set(genres.map((genre) => genre.trim()).filter(Boolean)),
     );
+  }
+
+  private parseIsoDate(value: string, fieldName: string) {
+    const parsed = new Date(value);
+
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException(
+        `${fieldName} must be a valid ISO 8601 date string.`,
+      );
+    }
+
+    return parsed;
+  }
+
+  private parseOptionalIsoDate(value: string | null, fieldName: string) {
+    if (value === null) {
+      return null;
+    }
+
+    return this.parseIsoDate(value, fieldName);
   }
 
   private toResponse(work: Work): WorkResponseDto {

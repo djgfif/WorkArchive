@@ -95,6 +95,23 @@ export class SyncQueueRepository {
     return updated;
   }
 
+  async setLastError(id: string, lastError: string) {
+    const existing = await this.db.syncQueue.get(id);
+
+    if (!existing) {
+      return null;
+    }
+
+    const updated: SyncQueueItemRecord<WorkRecord> = {
+      ...existing,
+      lastError,
+    };
+
+    await this.db.syncQueue.put(updated);
+
+    return updated;
+  }
+
   async markManyFailed(ids: string[], lastError: string) {
     if (ids.length === 0) {
       return [];

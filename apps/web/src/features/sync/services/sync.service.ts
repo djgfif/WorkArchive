@@ -314,7 +314,7 @@ export class SyncService {
             queueItemsByEntityId.get(change.entityId) ?? [];
 
           for (const queueItem of relatedQueueItems) {
-            await this.queueRepo.markFailed(
+            await this.queueRepo.setLastError(
               queueItem.id,
               `Pull skipped because the server also changed this work (server version ${change.work.serverVersion}, updated at ${change.work.updatedAt}).`,
             );
@@ -327,13 +327,18 @@ export class SyncService {
       }
 
       await this.worksRepo.bulkPut(worksToMerge);
-      await this.metaRepo.setValue(
-        LAST_SUCCESSFUL_PULL_AT_KEY,
-        response.nextSince,
-      );
+      const nextSince = skippedCount > 0 ? since : response.nextSince;
+
+      if (nextSince !== null) {
+        await this.metaRepo.setValue(LAST_SUCCESSFUL_PULL_AT_KEY, nextSince);
+      }
 
       if (response.changes.length === 0) {
         messages.push('No remote changes were available to pull.');
+      } else if (skippedCount > 0) {
+        messages.push(
+          'Pull cursor was not advanced because conflicted remote changes were skipped.',
+        );
       }
 
       return {
@@ -341,7 +346,7 @@ export class SyncService {
         appliedCount: worksToMerge.length,
         skippedCount,
         pulledAt: response.pulledAt,
-        nextSince: response.nextSince,
+        nextSince,
         messages,
         requestFailed: false,
       };

@@ -1,8 +1,10 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayNotEmpty,
   IsArray,
   IsDateString,
+  IsDefined,
   IsIn,
   IsUUID,
   ValidateNested,
@@ -48,6 +50,7 @@ export class PushSyncChangeDto {
   @ApiProperty({
     type: () => SyncWorkPayloadDto,
   })
+  @IsDefined()
   @ValidateNested()
   @Type(() => SyncWorkPayloadDto)
   payload!: SyncWorkPayloadDto;
@@ -58,6 +61,7 @@ export class PushSyncDto {
     type: [PushSyncChangeDto],
   })
   @IsArray()
+  @ArrayNotEmpty()
   @ArrayMaxSize(200)
   @ValidateNested({ each: true })
   @Type(() => PushSyncChangeDto)
