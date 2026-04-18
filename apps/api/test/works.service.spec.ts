@@ -1,5 +1,9 @@
 import { NotFoundException } from '@nestjs/common';
-import { WorkStatus, WorkType } from '@prisma/client';
+import {
+  WorkStatus,
+  WorkSyncStatus,
+  WorkType,
+} from '@prisma/client';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { type PrismaService } from '../src/prisma/prisma.service';
@@ -23,7 +27,7 @@ function createWorkFixture(overrides: Record<string, unknown> = {}) {
     createdAt: new Date('2026-04-18T00:00:00.000Z'),
     updatedAt: new Date('2026-04-18T00:00:00.000Z'),
     deletedAt: null,
-    syncStatus: 'synced',
+    syncStatus: WorkSyncStatus.synced,
     serverVersion: 1,
     ...overrides,
   };
@@ -88,6 +92,30 @@ describe('WorksService', () => {
     });
   });
 
+  it('maps prisma sync status values back to the shared API domain', async () => {
+    prisma.work.findUnique.mockResolvedValue(
+      createWorkFixture({
+        syncStatus: WorkSyncStatus.local_only,
+      }),
+    );
+
+    await expect(
+      service.findOne('9fcbf92f-6347-4d79-bdf8-9d0d18439c28'),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        syncStatus: 'local-only',
+      }),
+    );
+  });
+
+  it('throws not found for missing works', async () => {
+    prisma.work.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.findOne('9fcbf92f-6347-4d79-bdf8-9d0d18439c28'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it('throws not found for deleted works', async () => {
     prisma.work.findUnique.mockResolvedValue(
       createWorkFixture({
@@ -123,5 +151,22 @@ describe('WorksService', () => {
         },
       },
     });
+  });
+
+  it('returns the current record when update payload is empty', async () => {
+    prisma.work.findUnique.mockResolvedValue(createWorkFixture());
+
+    const result = await service.update(
+      '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      {},
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+        syncStatus: 'synced',
+      }),
+    );
+    expect(prisma.work.update).not.toHaveBeenCalled();
   });
 });

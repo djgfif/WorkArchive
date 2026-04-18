@@ -35,6 +35,13 @@ enum WorkTier {
   D
 }
 
+enum WorkSyncStatus {
+  local_only @map("local-only")
+  pending
+  synced
+  conflict
+}
+
 model Work {
   id           String      @id @default(uuid())
   type         WorkType    @default(novel)
@@ -52,7 +59,7 @@ model Work {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   deletedAt    DateTime?
-  syncStatus    String     @default("synced")
+  syncStatus    WorkSyncStatus @default(synced)
   serverVersion Int        @default(1)
 
   @@index([deletedAt])

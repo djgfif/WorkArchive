@@ -4,22 +4,25 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { WorkStatus, WorkType } from '@prisma/client';
-import type { Prisma } from '@prisma/client';
+import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
+import type { Prisma, Work } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { type WorkSyncStatusValue } from './works.constants';
+import {
+  toWorkSyncStatusValue,
+} from './works.constants';
 import type { CreateWorkDto } from './dto/create-work.dto';
 import type { UpdateWorkDto } from './dto/update-work.dto';
+import type { WorkResponseDto } from './dto/work-response.dto';
 
-const DEFAULT_SYNC_STATUS: WorkSyncStatusValue = 'synced';
+const DEFAULT_SYNC_STATUS = WorkSyncStatus.synced;
 
 @Injectable()
 export class WorksService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.work.findMany({
+  async findAll() {
+    const works = await this.prisma.work.findMany({
       where: {
         deletedAt: null,
       },
@@ -27,16 +30,22 @@ export class WorksService {
         updatedAt: 'desc',
       },
     });
+
+    return works.map((work) => this.toResponse(work));
   }
 
   async findOne(id: string) {
-    return this.getActiveWorkOrThrow(id);
+    const work = await this.getActiveWorkOrThrow(id);
+
+    return this.toResponse(work);
   }
 
-  create(createWorkDto: CreateWorkDto) {
-    return this.prisma.work.create({
+  async create(createWorkDto: CreateWorkDto) {
+    const work = await this.prisma.work.create({
       data: this.buildCreateData(createWorkDto),
     });
+
+    return this.toResponse(work);
   }
 
   async update(id: string, updateWorkDto: UpdateWorkDto) {
@@ -44,10 +53,10 @@ export class WorksService {
     const updateData = this.buildUpdateData(updateWorkDto);
 
     if (Object.keys(updateData).length === 0) {
-      return existingWork;
+      return this.toResponse(existingWork);
     }
 
-    return this.prisma.work.update({
+    const work = await this.prisma.work.update({
       where: { id },
       data: {
         ...updateData,
@@ -57,6 +66,8 @@ export class WorksService {
         },
       },
     });
+
+    return this.toResponse(work);
   }
 
   async remove(id: string) {
@@ -183,5 +194,12 @@ export class WorksService {
     return Array.from(
       new Set(genres.map((genre) => genre.trim()).filter(Boolean)),
     );
+  }
+
+  private toResponse(work: Work): WorkResponseDto {
+    return {
+      ...work,
+      syncStatus: toWorkSyncStatusValue(work.syncStatus),
+    };
   }
 }
