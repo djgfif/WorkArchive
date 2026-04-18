@@ -6,3 +6,58 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum WorkType {
+  novel
+  anime
+  manga
+  light_novel
+  web_novel
+  webtoon
+  movie
+  drama
+  other
+}
+
+enum WorkStatus {
+  planned
+  in_progress
+  completed
+  paused
+  dropped
+}
+
+enum WorkTier {
+  S
+  A
+  B
+  C
+  D
+}
+
+model Work {
+  id           String      @id @default(uuid())
+  type         WorkType    @default(novel)
+  title        String
+  author       String      @default("")
+  genres       String[]    @default([])
+  description  String      @default("") @db.Text
+  thumbnailUrl String      @default("")
+  status       WorkStatus  @default(planned)
+  rating       Float?
+  shortReview  String      @default("")
+  review       String      @default("") @db.Text
+  tier         WorkTier?
+  favorite     Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+  syncStatus    String     @default("synced")
+  serverVersion Int        @default(1)
+
+  @@index([deletedAt])
+  @@index([type, updatedAt])
+  @@index([status, updatedAt])
+  @@index([updatedAt])
+  @@map("works")
+}
