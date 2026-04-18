@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "WorkArchive: Start DB",
+      "type": "shell",
+      "command": "npm run dev:db",
+      "problemMatcher": []
+    },
+    {
+      "label": "WorkArchive: Start App",
+      "type": "shell",
+      "command": "npm run dev",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "WorkArchive: Migrate DB",
+      "type": "shell",
+      "command": "npm run db:migrate:deploy",
+      "problemMatcher": []
+    },
+    {
+      "label": "WorkArchive: Stop DB",
+      "type": "shell",
+      "command": "npm run dev:db:down",
+      "problemMatcher": []
+    },
+    {
+      "label": "WorkArchive: Full Start",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "WorkArchive: Start DB",
+        "WorkArchive: Migrate DB",
+        "WorkArchive: Start App"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
