@@ -1,47 +1,166 @@
 # Work Archive
 
-Milestone 4 adds email/password authentication and user-owned remote data while preserving the local-first guest workflow.
+Work Archive is a local-first record app for novels, anime, manga, and related media. The frontend writes to IndexedDB first, guest mode works without an account, and authenticated mode unlocks protected backend storage plus manual sync.
 
 ## Workspace Layout
 
-- `apps/web`: React + TypeScript + Vite frontend scaffold
-- `apps/api`: NestJS + Prisma API scaffold targeting PostgreSQL
-- `packages/shared-types`: shared TypeScript package for cross-app contracts
-- `packages/eslint-config`: reusable ESLint flat configs
-- `packages/tsconfig`: reusable TypeScript base configs
+- `apps/web`: React + TypeScript + Vite frontend
+- `apps/api`: NestJS + Prisma + PostgreSQL API
+- `packages/shared-types`: shared cross-app types
+- `packages/eslint-config`: shared ESLint config
+- `packages/tsconfig`: shared TypeScript config
 
 ## Prerequisites
 
 - Node.js 22+
 - npm 10+
-- Docker Desktop with WSL integration enabled
+- Docker Desktop or Docker Engine with Compose
 
-## Getting Started
+## Configuration Files
+
+There are three configuration paths. Use the one that matches how you run the app.
+
+- Root [`.env.example`](/mnt/c/CodeStorage/WorkArchive/.env.example): Docker Compose and containerized full-stack startup
+- API [`.env.example`](/mnt/c/CodeStorage/WorkArchive/apps/api/.env.example): host-based API development
+- Web [`.env.example`](/mnt/c/CodeStorage/WorkArchive/apps/web/.env.example): host-based web development
+
+Recommended setup:
+
+```bash
+cp .env.example .env
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+```
+
+Notes:
+
+- `apps/api/.env` is used for local `npm run dev --workspace @work-archive/api`.
+- `apps/web/.env` is optional. The web app already falls back to `http://localhost:3000/api`.
+- Root `.env` is used by `docker compose`.
+- The repository currently includes a development-safe `apps/api/.env` so Prisma client generation works after install. Review it before sharing or deploying.
+
+## Local Development
+
+1. Install dependencies.
 
 ```bash
 npm install
-docker compose up -d
+```
+
+2. Start PostgreSQL.
+
+```bash
+npm run dev:db
+```
+
+3. Apply existing migrations.
+
+```bash
+npm run db:migrate:deploy
+```
+
+4. Optionally seed a demo account and sample works.
+
+```bash
+npm run db:seed
+```
+
+Default demo credentials:
+
+- email: `demo@workarchive.local`
+- password: `demo-password-123`
+
+5. Start the web app and API together.
+
+```bash
 npm run dev
 ```
 
-Docker Compose uses the root [`compose.yml`](/mnt/c/CodeStorage/WorkArchive/compose.yml) file.
+Or run them separately:
 
-## Environment Files
+```bash
+npm run dev:web
+npm run dev:api
+```
 
-- Root template: [`.env.example`](/mnt/c/CodeStorage/WorkArchive/.env.example)
-- API local defaults: [`apps/api/.env.example`](/mnt/c/CodeStorage/WorkArchive/apps/api/.env.example)
+Local endpoints:
 
-Milestone 0 keeps a local `apps/api/.env` so `npm install` can generate the Prisma client without extra setup. Replace those defaults before any real deployment workflow.
+- Web app: [http://localhost:5173](http://localhost:5173)
+- API health: [http://localhost:3000/health](http://localhost:3000/health)
+- Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
+- OpenAPI JSON: [http://localhost:3000/docs/openapi.json](http://localhost:3000/docs/openapi.json)
 
-The web app reads `VITE_API_BASE_URL` for manual sync requests and falls back to `http://localhost:3000/api`.
+## Docker Compose Full Stack
 
-The default PostgreSQL database runs on `localhost:5432` with:
+The repository also supports a full containerized startup for local deployment-style testing.
 
-- database: `work_archive`
-- user: `postgres`
-- password: `postgres`
+```bash
+docker compose up --build
+```
 
-## Root Commands
+Or use the root script:
+
+```bash
+npm run compose:up
+```
+
+Default containerized endpoints:
+
+- Web app: [http://localhost:8080](http://localhost:8080)
+- API health: [http://localhost:3000/health](http://localhost:3000/health)
+- Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
+
+Notes:
+
+- Docker Compose has safe local defaults even without a root `.env`.
+- Copy root `.env.example` to `.env` when you want to customize ports, CORS, API URL, or JWT secrets.
+- The API container runs `prisma migrate deploy` on startup so a fresh local stack comes up with the existing schema.
+
+## Guest And Authenticated Mode
+
+- Guest mode is always available and stays local to the current browser/device.
+- Authenticated mode uses email/password auth and switches the browser into a separate account-local IndexedDB archive.
+- Signing out returns the app to the guest-local archive.
+- Guest data and authenticated local data are intentionally separate in the current milestone.
+
+## Manual Sync Basics
+
+- Local writes happen first in IndexedDB.
+- Create, update, and delete operations enqueue sync work locally.
+- Manual sync is available only in authenticated mode.
+- Protected backend routes require a Bearer access token.
+- Expired frontend access tokens are refreshed automatically before retrying protected requests.
+
+## Database And Prisma Workflow
+
+Use the checked-in migrations for normal setup:
+
+```bash
+npm run db:migrate:deploy
+```
+
+Create a new migration during development only when the schema changes:
+
+```bash
+npm run db:migrate:dev
+```
+
+Seed demo data:
+
+```bash
+npm run db:seed
+```
+
+Useful API workspace commands:
+
+```bash
+npm run prisma:generate --workspace @work-archive/api
+npm run prisma:migrate:deploy --workspace @work-archive/api
+npm run prisma:migrate:dev --workspace @work-archive/api
+npm run prisma:seed --workspace @work-archive/api
+```
+
+## Common Commands
 
 ```bash
 npm run dev
@@ -51,39 +170,17 @@ npm run test
 npm run build
 ```
 
-## Workspace Commands
+## Production Notes
 
-```bash
-npm run dev --workspace @work-archive/web
-npm run dev --workspace @work-archive/api
-npm run prisma:generate --workspace @work-archive/api
-npm run prisma:migrate:dev --workspace @work-archive/api
-npm run test:e2e --workspace @work-archive/api
-```
+- The web build reads `VITE_API_BASE_URL` at build time. Set it correctly before building static assets or the web image.
+- Set real `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` values outside local development.
+- Set `CORS_ORIGIN` to the deployed frontend origin instead of leaving broad local defaults.
+- The API health endpoint stays public at `/health`.
+- Swagger stays enabled at `/docs`.
 
-## Local Endpoints
+## Known Limitations
 
-- API health check: `GET /health`
-- Swagger UI: `/docs`
-- Register: `POST /api/auth/register`
-- Login: `POST /api/auth/login`
-- Refresh: `POST /api/auth/refresh`
-- Current user: `GET /api/auth/me`
-- Works collection: `GET/POST /api/works` (protected)
-- Work detail: `GET/PATCH/DELETE /api/works/:id` (protected)
-- Sync push: `POST /api/sync/push` (protected)
-- Sync pull: `POST /api/sync/pull` (protected)
-
-## Guest And Account Mode
-
-- Guest mode remains available with no login required.
-- Guest data lives in its own local IndexedDB archive and never requires the backend.
-- Signing in opens a separate local IndexedDB archive for that authenticated user on the same device.
-- Signing out returns the app to the guest-local archive.
-
-## Manual Sync
-
-- The web app remains local-first. Creates, updates, and deletes write to IndexedDB first.
-- Local work changes enqueue sync records in Dexie and stay visible immediately in the UI.
-- Manual sync is available only while signed in because remote works and sync routes are user-scoped.
-- Guest data is not automatically imported into an account yet. Guest and authenticated local archives stay separate in Milestone 4.
+- Manual sync is still manual, not automatic.
+- Guest data is not migrated into an authenticated archive yet.
+- The API container applies migrations on startup for convenience; a larger production deployment would usually separate migration execution from steady-state runtime.
+- No OAuth, social auth, or multi-user collaboration features are included.
