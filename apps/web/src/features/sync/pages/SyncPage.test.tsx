@@ -4,6 +4,8 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
+import { AuthProvider } from '../../auth/context/AuthProvider';
+import { workArchiveDbManager } from '../../works/db/work-archive.db';
 import { worksService } from '../../works/services/works.service';
 import { syncQueueRepository } from '../services/sync-queue.repository';
 
@@ -23,6 +25,15 @@ describe('SyncPage', () => {
   });
 
   it('runs a manual sync and shows the success state', async () => {
+    workArchiveDbManager.switchToUser('user-1');
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
+
     const localWork = await worksService.createWork({
       type: 'novel',
       title: 'Dune',
@@ -43,6 +54,13 @@ describe('SyncPage', () => {
       'fetch',
       vi
         .fn()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            id: 'user-1',
+            email: 'frieren@example.com',
+            nickname: '',
+          }),
+        )
         .mockResolvedValueOnce(
           jsonResponse({
             processedAt: '2026-04-18T01:00:00.000Z',
@@ -77,7 +95,11 @@ describe('SyncPage', () => {
       initialEntries: ['/sync'],
     });
 
-    render(<RouterProvider router={router} />);
+    render(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
 
     expect(await screen.findByText('Queued items')).toBeInTheDocument();
     expect(screen.getByText('Idle')).toBeInTheDocument();

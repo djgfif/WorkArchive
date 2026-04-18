@@ -49,8 +49,8 @@ describe('WorksService', () => {
 
   beforeEach(() => {
     db = createWorkArchiveDb(`work-archive-test-${crypto.randomUUID()}`);
-    repository = new WorksRepository(db);
-    queueRepository = new SyncQueueRepository(db);
+    repository = new WorksRepository(() => db);
+    queueRepository = new SyncQueueRepository(() => db);
     service = new WorksService(repository, queueRepository);
   });
 

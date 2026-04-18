@@ -4,6 +4,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
+import { AuthProvider } from '../../auth/context/AuthProvider';
 import { worksService } from '../services/works.service';
 
 describe('WorksListPage', () => {
@@ -43,7 +44,11 @@ describe('WorksListPage', () => {
       initialEntries: ['/works'],
     });
 
-    render(<RouterProvider router={router} />);
+    render(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
 
     expect(
       await screen.findByText('Showing all 2 active works stored in IndexedDB.'),

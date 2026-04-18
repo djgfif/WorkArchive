@@ -26,13 +26,13 @@ const SERVER_SYNC_STATUS = WorkSyncStatus.synced;
 export class SyncService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async push({ changes }: PushSyncDto): Promise<PushSyncResponseDto> {
+  async push(userId: string, { changes }: PushSyncDto): Promise<PushSyncResponseDto> {
     const results: PushSyncResultDto[] = [];
 
     for (const change of [...changes].sort((left, right) =>
       left.createdAt.localeCompare(right.createdAt),
     )) {
-      results.push(await this.applyChange(change));
+      results.push(await this.applyChange(userId, change));
     }
 
     return {
@@ -41,17 +41,18 @@ export class SyncService {
     };
   }
 
-  async pull({ since }: PullSyncDto): Promise<PullSyncResponseDto> {
+  async pull(userId: string, { since }: PullSyncDto): Promise<PullSyncResponseDto> {
     const works = await this.prisma.work.findMany({
-      ...(since === undefined || since === null
-        ? {}
-        : {
-            where: {
+      where: {
+        userId,
+        ...(since === undefined || since === null
+          ? {}
+          : {
               updatedAt: {
                 gt: this.parseIsoDate(since, 'since'),
               },
-            },
-          }),
+            }),
+      },
       orderBy: {
         updatedAt: 'asc',
       },
@@ -76,6 +77,7 @@ export class SyncService {
   }
 
   private async applyChange(
+    userId: string,
     change: PushSyncChangeDto,
   ): Promise<PushSyncResultDto> {
     const existing = await this.prisma.work.findUnique({
@@ -85,7 +87,18 @@ export class SyncService {
     });
 
     if (!existing) {
-      return this.applyMissingRemoteChange(change);
+      return this.applyMissingRemoteChange(userId, change);
+    }
+
+    if (existing.userId !== userId) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'work',
+        status: 'conflict',
+        message: 'Server mismatch: the record cannot be modified remotely.',
+        work: null,
+      };
     }
 
     if (this.areEquivalent(existing, change.payload)) {
@@ -131,6 +144,7 @@ export class SyncService {
   }
 
   private async applyMissingRemoteChange(
+    userId: string,
     change: PushSyncChangeDto,
   ): Promise<PushSyncResultDto> {
     const isDelete =
@@ -174,7 +188,7 @@ export class SyncService {
     }
 
     const created = await this.prisma.work.create({
-      data: this.buildCreateData(change.payload),
+      data: this.buildCreateData(userId, change.payload),
     });
 
     return {
@@ -195,9 +209,13 @@ export class SyncService {
     return new Date(payload.updatedAt).getTime() > existing.updatedAt.getTime();
   }
 
-  private buildCreateData(payload: SyncWorkPayloadDto): Prisma.WorkCreateInput {
+  private buildCreateData(
+    userId: string,
+    payload: SyncWorkPayloadDto,
+  ): Prisma.WorkUncheckedCreateInput {
     return {
       id: payload.id,
+      userId,
       type: payload.type as WorkType,
       title: payload.title.trim(),
       author: this.normalizeString(payload.author),

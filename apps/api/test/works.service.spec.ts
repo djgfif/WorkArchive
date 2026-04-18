@@ -1,17 +1,16 @@
 import { NotFoundException } from '@nestjs/common';
-import {
-  WorkStatus,
-  WorkSyncStatus,
-  WorkType,
-} from '@prisma/client';
+import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-import { type PrismaService } from '../src/prisma/prisma.service';
 import { WorksService } from '../src/modules/works/works.service';
+import { type PrismaService } from '../src/prisma/prisma.service';
+
+const USER_ID = '2c92b57e-e529-4344-bd62-0cff4de5dfe2';
 
 function createWorkFixture(overrides: Record<string, unknown> = {}) {
   return {
     id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+    userId: USER_ID,
     type: WorkType.novel,
     title: 'The Three-Body Problem',
     author: 'Liu Cixin',
@@ -35,15 +34,13 @@ function createWorkFixture(overrides: Record<string, unknown> = {}) {
 
 describe('WorksService', () => {
   let service: WorksService;
-  let prisma: jest.Mocked<
-    Pick<PrismaService, 'work'>
-  >;
+  let prisma: jest.Mocked<Pick<PrismaService, 'work'>>;
 
   beforeEach(() => {
     prisma = {
       work: {
         findMany: jest.fn(),
-        findUnique: jest.fn(),
+        findFirst: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
       },
@@ -52,13 +49,14 @@ describe('WorksService', () => {
     service = new WorksService(prisma as unknown as PrismaService);
   });
 
-  it('lists only active works ordered by updatedAt desc', async () => {
+  it('lists only active works for the current user ordered by updatedAt desc', async () => {
     prisma.work.findMany.mockResolvedValue([createWorkFixture()]);
 
-    await service.findAll();
+    await service.findAll(USER_ID);
 
     expect(prisma.work.findMany).toHaveBeenCalledWith({
       where: {
+        userId: USER_ID,
         deletedAt: null,
       },
       orderBy: {
@@ -67,10 +65,10 @@ describe('WorksService', () => {
     });
   });
 
-  it('creates a work with normalized fields and defaults', async () => {
+  it('creates a work with normalized fields, defaults, and ownership', async () => {
     prisma.work.create.mockResolvedValue(createWorkFixture());
 
-    await service.create({
+    await service.create(USER_ID, {
       title: '  Dune  ',
       author: '  Frank Herbert ',
       genres: [' Sci-Fi ', 'Classic', 'Sci-Fi'],
@@ -78,6 +76,7 @@ describe('WorksService', () => {
 
     expect(prisma.work.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
+        userId: USER_ID,
         type: WorkType.novel,
         title: 'Dune',
         author: 'Frank Herbert',
@@ -93,14 +92,14 @@ describe('WorksService', () => {
   });
 
   it('maps prisma sync status values back to the shared API domain', async () => {
-    prisma.work.findUnique.mockResolvedValue(
+    prisma.work.findFirst.mockResolvedValue(
       createWorkFixture({
         syncStatus: WorkSyncStatus.local_only,
       }),
     );
 
     await expect(
-      service.findOne('9fcbf92f-6347-4d79-bdf8-9d0d18439c28'),
+      service.findOne(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28'),
     ).resolves.toEqual(
       expect.objectContaining({
         syncStatus: 'local-only',
@@ -108,28 +107,16 @@ describe('WorksService', () => {
     );
   });
 
-  it('throws not found for missing works', async () => {
-    prisma.work.findUnique.mockResolvedValue(null);
+  it('throws not found for missing or foreign works', async () => {
+    prisma.work.findFirst.mockResolvedValue(null);
 
     await expect(
-      service.findOne('9fcbf92f-6347-4d79-bdf8-9d0d18439c28'),
-    ).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('throws not found for deleted works', async () => {
-    prisma.work.findUnique.mockResolvedValue(
-      createWorkFixture({
-        deletedAt: new Date('2026-04-18T01:00:00.000Z'),
-      }),
-    );
-
-    await expect(
-      service.findOne('9fcbf92f-6347-4d79-bdf8-9d0d18439c28'),
+      service.findOne(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28'),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('soft deletes a work by setting deletedAt and incrementing serverVersion', async () => {
-    prisma.work.findUnique.mockResolvedValue(createWorkFixture());
+    prisma.work.findFirst.mockResolvedValue(createWorkFixture());
     prisma.work.update.mockResolvedValue(
       createWorkFixture({
         deletedAt: new Date('2026-04-18T01:00:00.000Z'),
@@ -137,7 +124,7 @@ describe('WorksService', () => {
       }),
     );
 
-    await service.remove('9fcbf92f-6347-4d79-bdf8-9d0d18439c28');
+    await service.remove(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28');
 
     expect(prisma.work.update).toHaveBeenCalledWith({
       where: {
@@ -154,9 +141,10 @@ describe('WorksService', () => {
   });
 
   it('returns the current record when update payload is empty', async () => {
-    prisma.work.findUnique.mockResolvedValue(createWorkFixture());
+    prisma.work.findFirst.mockResolvedValue(createWorkFixture());
 
     const result = await service.update(
+      USER_ID,
       '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
       {},
     );

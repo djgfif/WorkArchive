@@ -5,6 +5,7 @@ import {
   DEFAULT_WORKS_LIST_QUERY,
   type WorksListQuery,
 } from '../utils/query-works';
+import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { worksService } from '../services/works.service';
 import type { WorkRecord } from '@work-archive/shared-types';
 
@@ -23,6 +24,7 @@ const initialState: WorksListState = {
 };
 
 export function useWorksList(query: WorksListQuery = DEFAULT_WORKS_LIST_QUERY) {
+  const { archiveScopeKey } = useAuthSession();
   const [state, setState] = useState<WorksListState>(initialState);
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export function useWorksList(query: WorksListQuery = DEFAULT_WORKS_LIST_QUERY) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [query]);
+  }, [archiveScopeKey, query]);
 
   return state;
 }

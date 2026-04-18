@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { worksService } from '../services/works.service';
 
 interface WorkDetailState {
@@ -18,6 +19,7 @@ const initialState: WorkDetailState = {
 };
 
 export function useWorkDetail(id: string | undefined) {
+  const { archiveScopeKey } = useAuthSession();
   const [state, setState] = useState<WorkDetailState>(initialState);
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export function useWorkDetail(id: string | undefined) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [id]);
+  }, [archiveScopeKey, id]);
 
   return state;
 }

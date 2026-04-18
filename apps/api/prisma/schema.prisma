@@ -44,6 +44,7 @@ enum WorkSyncStatus {
 
 model Work {
   id           String      @id @default(uuid())
+  userId       String?
   type         WorkType    @default(novel)
   title        String
   author       String      @default("")
@@ -61,10 +62,24 @@ model Work {
   deletedAt    DateTime?
   syncStatus    WorkSyncStatus @default(synced)
   serverVersion Int        @default(1)
+  user          User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([deletedAt])
-  @@index([type, updatedAt])
-  @@index([status, updatedAt])
-  @@index([updatedAt])
+  @@index([userId, deletedAt])
+  @@index([userId, type, updatedAt])
+  @@index([userId, status, updatedAt])
+  @@index([userId, updatedAt])
   @@map("works")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String   @db.Text
+  refreshTokenHash String?  @db.Text
+  nickname         String   @default("")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  works            Work[]
+
+  @@map("users")
 }

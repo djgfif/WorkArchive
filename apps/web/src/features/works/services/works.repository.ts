@@ -1,18 +1,23 @@
 import type { WorkRecord } from '@work-archive/shared-types';
 
-import { type WorkArchiveDatabase, workArchiveDb } from '../db/work-archive.db';
+import {
+  getWorkArchiveDb,
+  type WorkArchiveDatabase,
+} from '../db/work-archive.db';
+
+type DatabaseResolver = () => WorkArchiveDatabase;
 
 export class WorksRepository {
-  constructor(readonly db: WorkArchiveDatabase = workArchiveDb) {}
+  constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
 
   async create(work: WorkRecord) {
-    await this.db.works.add(work);
+    await this.getDb().works.add(work);
 
     return work;
   }
 
   async update(work: WorkRecord) {
-    await this.db.works.put(work);
+    await this.getDb().works.put(work);
 
     return work;
   }
@@ -22,29 +27,33 @@ export class WorksRepository {
       return works;
     }
 
-    await this.db.works.bulkPut(works);
+    await this.getDb().works.bulkPut(works);
 
     return works;
   }
 
   async getById(id: string) {
-    return (await this.db.works.get(id)) ?? null;
+    return (await this.getDb().works.get(id)) ?? null;
   }
 
   async listAll() {
-    return this.db.works.toArray();
+    return this.getDb().works.toArray();
   }
 
   async listActive() {
-    return this.db.works.filter((work) => work.deletedAt === null).toArray();
+    return this.getDb()
+      .works.filter((work) => work.deletedAt === null)
+      .toArray();
   }
 
   async softDelete(
     id: string,
     updates: Pick<WorkRecord, 'deletedAt' | 'syncStatus' | 'updatedAt'>,
   ) {
-    return this.db.transaction('rw', this.db.works, async () => {
-      const existing = await this.db.works.get(id);
+    const db = this.getDb();
+
+    return db.transaction('rw', db.works, async () => {
+      const existing = await db.works.get(id);
 
       if (!existing) {
         return null;
@@ -55,7 +64,7 @@ export class WorksRepository {
         ...updates,
       };
 
-      await this.db.works.put(deleted);
+      await db.works.put(deleted);
 
       return deleted;
     });
