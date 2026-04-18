@@ -3,6 +3,8 @@ import { Navigate } from 'react-router-dom';
 
 import { AppLayout } from '../layouts/AppLayout';
 import { NotFoundPage } from './NotFoundPage';
+import { LoginPage } from '../../features/auth/pages/LoginPage';
+import { RegisterPage } from '../../features/auth/pages/RegisterPage';
 import { WorkCreatePage } from '../../features/works/pages/WorkCreatePage';
 import { WorkDetailPage } from '../../features/works/pages/WorkDetailPage';
 import { WorkEditPage } from '../../features/works/pages/WorkEditPage';
@@ -37,6 +39,14 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'sync',
         element: <SyncPage />,
+      },
+      {
+        path: 'auth/login',
+        element: <LoginPage />,
+      },
+      {
+        path: 'auth/register',
+        element: <RegisterPage />,
       },
       {
         path: '*',

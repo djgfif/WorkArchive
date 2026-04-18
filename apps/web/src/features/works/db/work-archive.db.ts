@@ -6,6 +6,20 @@ import type {
   WorkRecord,
 } from '@work-archive/shared-types';
 
+const DEFAULT_DB_NAME = 'work-archive-db-guest';
+
+export type ArchiveScope =
+  | {
+      kind: 'guest';
+    }
+  | {
+      kind: 'user';
+      userId: string;
+    };
+
+const knownDatabaseNames = new Set<string>();
+const knownDatabaseInstances = new Set<WorkArchiveDatabase>();
+
 export class WorkArchiveDatabase extends Dexie {
   works!: Table<WorkRecord, string>;
   syncQueue!: Table<SyncQueueItemRecord<WorkRecord>, string>;
@@ -29,22 +43,112 @@ export class WorkArchiveDatabase extends Dexie {
   }
 }
 
-export function createWorkArchiveDb(name?: string) {
-  return new WorkArchiveDatabase(name);
+function registerDatabaseName(name: string) {
+  knownDatabaseNames.add(name);
+
+  return name;
 }
 
-export const workArchiveDb = createWorkArchiveDb();
+export function getWorkArchiveDbName(scope: ArchiveScope) {
+  return scope.kind === 'guest'
+    ? DEFAULT_DB_NAME
+    : `work-archive-db-user-${scope.userId}`;
+}
 
-export async function clearWorkArchiveDb() {
-  await workArchiveDb.transaction(
+export function createWorkArchiveDb(name = DEFAULT_DB_NAME) {
+  const database = new WorkArchiveDatabase(registerDatabaseName(name));
+
+  knownDatabaseInstances.add(database);
+
+  return database;
+}
+
+class WorkArchiveDbManager {
+  private currentScope: ArchiveScope = {
+    kind: 'guest',
+  };
+
+  private currentDb = createWorkArchiveDb();
+
+  getCurrentDb() {
+    return this.currentDb;
+  }
+
+  getCurrentScopeKey() {
+    return getWorkArchiveDbName(this.currentScope);
+  }
+
+  switchToGuest() {
+    this.switchScope({
+      kind: 'guest',
+    });
+  }
+
+  switchToUser(userId: string) {
+    this.switchScope({
+      kind: 'user',
+      userId,
+    });
+  }
+
+  reset() {
+    this.currentDb.close();
+    this.currentScope = {
+      kind: 'guest',
+    };
+    this.currentDb = createWorkArchiveDb();
+  }
+
+  private switchScope(nextScope: ArchiveScope) {
+    const nextDatabaseName = getWorkArchiveDbName(nextScope);
+
+    if (this.currentDb.name === nextDatabaseName) {
+      this.currentScope = nextScope;
+
+      return;
+    }
+
+    this.currentDb.close();
+    this.currentScope = nextScope;
+    this.currentDb = createWorkArchiveDb(nextDatabaseName);
+  }
+}
+
+export const workArchiveDbManager = new WorkArchiveDbManager();
+
+export function getWorkArchiveDb() {
+  return workArchiveDbManager.getCurrentDb();
+}
+
+export async function clearWorkArchiveDb(db = getWorkArchiveDb()) {
+  await db.transaction(
     'rw',
-    workArchiveDb.works,
-    workArchiveDb.syncQueue,
-    workArchiveDb.appMeta,
+    db.works,
+    db.syncQueue,
+    db.appMeta,
     async () => {
-      await workArchiveDb.works.clear();
-      await workArchiveDb.syncQueue.clear();
-      await workArchiveDb.appMeta.clear();
+      await db.works.clear();
+      await db.syncQueue.clear();
+      await db.appMeta.clear();
     },
   );
+}
+
+export async function resetWorkArchiveStorage() {
+  const databaseNames = [...knownDatabaseNames];
+
+  for (const database of knownDatabaseInstances) {
+    database.close();
+  }
+
+  for (const databaseName of databaseNames) {
+    const database = new WorkArchiveDatabase(databaseName);
+
+    database.close();
+    await database.delete();
+  }
+
+  knownDatabaseNames.clear();
+  knownDatabaseInstances.clear();
+  workArchiveDbManager.reset();
 }

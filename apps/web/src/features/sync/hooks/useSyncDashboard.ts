@@ -6,7 +6,8 @@ import type {
   WorkRecord,
 } from '@work-archive/shared-types';
 
-import { workArchiveDb } from '../../works/db/work-archive.db';
+import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { getWorkArchiveDb } from '../../works/db/work-archive.db';
 import { appMetaRepository } from '../services/app-meta.repository';
 import { syncQueueRepository } from '../services/sync-queue.repository';
 
@@ -29,14 +30,16 @@ const initialState: SyncDashboardState = {
 };
 
 export function useSyncDashboard() {
+  const { archiveScopeKey } = useAuthSession();
   const [state, setState] = useState<SyncDashboardState>(initialState);
 
   useEffect(() => {
     const subscription = liveQuery(async () => {
+      const db = getWorkArchiveDb();
       const [queueItems, conflictWorks, lastSuccessfulPullAt] =
         await Promise.all([
           syncQueueRepository.listAll(),
-          workArchiveDb.works
+          db.works
             .filter((work) => work.syncStatus === 'conflict')
             .toArray(),
           appMetaRepository.getValue(LAST_SUCCESSFUL_PULL_AT_KEY),
@@ -76,7 +79,7 @@ export function useSyncDashboard() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [archiveScopeKey]);
 
   return state;
 }

@@ -5,6 +5,15 @@ import type {
 } from '@work-archive/shared-types';
 
 import {
+  ApiRequestError,
+  refreshSession,
+  requestApiJson,
+} from '../../auth/services/auth.api';
+import {
+  readStoredAuthTokens,
+  writeStoredAuthTokens,
+} from '../../auth/services/auth-storage';
+import {
   worksRepository,
   type WorksRepository,
 } from '../../works/services/works.repository';
@@ -18,7 +27,6 @@ import {
 } from './sync-queue.repository';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
-const DEFAULT_API_BASE_URL = 'http://localhost:3000/api';
 
 type PushResultStatus = 'applied' | 'conflict' | 'failed';
 type PullOperation = 'upsert' | 'delete';
@@ -78,45 +86,47 @@ export interface ManualSyncResult {
   pull: PullCycleResult;
 }
 
-function getApiBaseUrl() {
-  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
-
-  return (configuredBaseUrl || DEFAULT_API_BASE_URL).replace(/\/$/, '');
-}
-
 async function postJson<TResponse>(
   path: string,
   body: unknown,
 ): Promise<TResponse> {
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  const storedTokens = readStoredAuthTokens();
 
-  if (!response.ok) {
-    let errorMessage = `Request failed with status ${response.status}.`;
-
-    try {
-      const responseBody = (await response.json()) as {
-        message?: string | string[];
-      };
-
-      if (Array.isArray(responseBody.message)) {
-        errorMessage = responseBody.message.join(' ');
-      } else if (typeof responseBody.message === 'string') {
-        errorMessage = responseBody.message;
-      }
-    } catch {
-      // Ignore JSON parse errors and keep the HTTP fallback message.
-    }
-
-    throw new Error(errorMessage);
+  if (!storedTokens) {
+    throw new Error('Sign in to sync an account-local archive.');
   }
 
-  return (await response.json()) as TResponse;
+  try {
+    return await requestApiJson<TResponse>(
+      path,
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+      storedTokens.accessToken,
+    );
+  } catch (error) {
+    if (!(error instanceof ApiRequestError) || error.status !== 401) {
+      throw error;
+    }
+
+    const refreshedSession = await refreshSession(storedTokens.refreshToken);
+    const nextTokens = {
+      accessToken: refreshedSession.accessToken,
+      refreshToken: refreshedSession.refreshToken,
+    };
+
+    writeStoredAuthTokens(nextTokens);
+
+    return requestApiJson<TResponse>(
+      path,
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+      nextTokens.accessToken,
+    );
+  }
 }
 
 export class SyncService {

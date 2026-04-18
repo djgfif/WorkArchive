@@ -1,5 +1,7 @@
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
+import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import type { SyncRunState } from '../services/sync.service';
 
 import { useSyncDashboard } from '../hooks/useSyncDashboard';
@@ -24,12 +26,18 @@ function renderStateLabel(state: SyncRunState) {
 }
 
 export function SyncPage() {
+  const { mode, user } = useAuthSession();
   const { queueItems, conflictWorks, error, isLoading, lastSuccessfulPullAt } =
     useSyncDashboard();
   const [syncState, setSyncState] = useState<SyncRunState>('idle');
   const [lastRun, setLastRun] = useState<ManualSyncResult | null>(null);
+  const isGuestMode = mode !== 'authenticated';
 
   async function handleRunSync() {
+    if (isGuestMode) {
+      return;
+    }
+
     setSyncState('syncing');
 
     const result = await syncService.runManualSync();
@@ -48,9 +56,9 @@ export function SyncPage() {
               Push local changes and pull remote ones
             </h2>
             <p className="muted-copy">
-              Local IndexedDB remains the immediate source of truth. Manual sync
-              only moves queued changes to the API and merges remote updates
-              back.
+              {isGuestMode
+                ? 'Guest mode keeps queue data on this device only. Sign in to open an account-local archive and sync it with the API.'
+                : `Signed in as ${user?.email}. Manual sync pushes this account-local archive to the API and pulls remote changes back into this device.`}
             </p>
           </div>
 
@@ -59,13 +67,17 @@ export function SyncPage() {
               {renderStateLabel(syncState)}
             </span>
             <button
-              disabled={syncState === 'syncing'}
+              disabled={isGuestMode || syncState === 'syncing'}
               onClick={() => {
                 void handleRunSync();
               }}
               type="button"
             >
-              {syncState === 'syncing' ? 'Syncing...' : 'Run manual sync'}
+              {isGuestMode
+                ? 'Sign in to sync'
+                : syncState === 'syncing'
+                  ? 'Syncing...'
+                  : 'Run manual sync'}
             </button>
           </div>
         </div>
@@ -85,6 +97,28 @@ export function SyncPage() {
           </div>
         </dl>
       </section>
+
+      {isGuestMode && (
+        <section className="panel stack">
+          <div>
+            <p className="eyebrow">Guest Mode</p>
+            <h2 className="section-title">Sync is available after sign-in</h2>
+            <p className="muted-copy">
+              Guest/local data stays in the guest archive on this device. Sign
+              in or create an account when you want a protected, user-scoped
+              remote archive.
+            </p>
+          </div>
+          <div className="button-row">
+            <Link className="secondary-link" to="/auth/login">
+              Sign in
+            </Link>
+            <Link className="secondary-link" to="/auth/register">
+              Sign up
+            </Link>
+          </div>
+        </section>
+      )}
 
       {error && (
         <div aria-live="polite" className="error-banner" role="alert">

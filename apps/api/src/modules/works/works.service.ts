@@ -21,9 +21,10 @@ const DEFAULT_SYNC_STATUS = WorkSyncStatus.synced;
 export class WorksService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(userId: string) {
     const works = await this.prisma.work.findMany({
       where: {
+        userId,
         deletedAt: null,
       },
       orderBy: {
@@ -34,22 +35,22 @@ export class WorksService {
     return works.map((work) => this.toResponse(work));
   }
 
-  async findOne(id: string) {
-    const work = await this.getActiveWorkOrThrow(id);
+  async findOne(userId: string, id: string) {
+    const work = await this.getActiveWorkOrThrow(userId, id);
 
     return this.toResponse(work);
   }
 
-  async create(createWorkDto: CreateWorkDto) {
+  async create(userId: string, createWorkDto: CreateWorkDto) {
     const work = await this.prisma.work.create({
-      data: this.buildCreateData(createWorkDto),
+      data: this.buildCreateData(userId, createWorkDto),
     });
 
     return this.toResponse(work);
   }
 
-  async update(id: string, updateWorkDto: UpdateWorkDto) {
-    const existingWork = await this.getActiveWorkOrThrow(id);
+  async update(userId: string, id: string, updateWorkDto: UpdateWorkDto) {
+    const existingWork = await this.getActiveWorkOrThrow(userId, id);
     const updateData = this.buildUpdateData(updateWorkDto);
 
     if (Object.keys(updateData).length === 0) {
@@ -70,8 +71,8 @@ export class WorksService {
     return this.toResponse(work);
   }
 
-  async remove(id: string) {
-    await this.getActiveWorkOrThrow(id);
+  async remove(userId: string, id: string) {
+    await this.getActiveWorkOrThrow(userId, id);
 
     await this.prisma.work.update({
       where: { id },
@@ -85,19 +86,26 @@ export class WorksService {
     });
   }
 
-  private async getActiveWorkOrThrow(id: string) {
-    const work = await this.prisma.work.findUnique({
-      where: { id },
+  private async getActiveWorkOrThrow(userId: string, id: string) {
+    const work = await this.prisma.work.findFirst({
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+      },
     });
 
-    if (!work || work.deletedAt !== null) {
+    if (!work) {
       throw new NotFoundException(`Work with id "${id}" was not found.`);
     }
 
     return work;
   }
 
-  private buildCreateData(createWorkDto: CreateWorkDto): Prisma.WorkCreateInput {
+  private buildCreateData(
+    userId: string,
+    createWorkDto: CreateWorkDto,
+  ): Prisma.WorkUncheckedCreateInput {
     const title = createWorkDto.title.trim();
 
     if (!title) {
@@ -105,6 +113,7 @@ export class WorksService {
     }
 
     return {
+      userId,
       type: createWorkDto.type ?? WorkType.novel,
       title,
       author: this.normalizeString(createWorkDto.author),

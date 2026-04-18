@@ -1,15 +1,17 @@
 import { type AppMetaRecord } from '@work-archive/shared-types';
 
 import {
+  getWorkArchiveDb,
   type WorkArchiveDatabase,
-  workArchiveDb,
 } from '../../works/db/work-archive.db';
 
+type DatabaseResolver = () => WorkArchiveDatabase;
+
 export class AppMetaRepository {
-  constructor(private readonly db: WorkArchiveDatabase = workArchiveDb) {}
+  constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
 
   async getValue(key: string) {
-    const entry = await this.db.appMeta.get(key);
+    const entry = await this.getDb().appMeta.get(key);
 
     return entry?.value ?? null;
   }
@@ -20,7 +22,7 @@ export class AppMetaRepository {
       value,
     };
 
-    await this.db.appMeta.put(entry);
+    await this.getDb().appMeta.put(entry);
 
     return entry;
   }

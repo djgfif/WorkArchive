@@ -5,24 +5,28 @@ import type {
 } from '@work-archive/shared-types';
 
 import {
+  getWorkArchiveDb,
   type WorkArchiveDatabase,
-  workArchiveDb,
 } from '../../works/db/work-archive.db';
 
 const WORK_ENTITY_TYPE = 'work';
 
+type DatabaseResolver = () => WorkArchiveDatabase;
+
 export class SyncQueueRepository {
-  constructor(private readonly db: WorkArchiveDatabase = workArchiveDb) {}
+  constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
 
   async enqueueWorkChange(work: WorkRecord, operation: SyncOperation) {
-    return this.db.transaction('rw', this.db.syncQueue, async () => {
-      const existingItems = await this.db.syncQueue
+    const db = this.getDb();
+
+    return db.transaction('rw', db.syncQueue, async () => {
+      const existingItems = await db.syncQueue
         .where('[entityType+entityId]')
         .equals([WORK_ENTITY_TYPE, work.id])
         .toArray();
 
       if (existingItems.length > 0) {
-        await this.db.syncQueue.bulkDelete(
+        await db.syncQueue.bulkDelete(
           existingItems.map((item) => item.id),
         );
       }
@@ -55,18 +59,18 @@ export class SyncQueueRepository {
         lastError: null,
       };
 
-      await this.db.syncQueue.add(queueItem);
+      await db.syncQueue.add(queueItem);
 
       return queueItem;
     });
   }
 
   async listAll() {
-    return this.db.syncQueue.orderBy('createdAt').toArray();
+    return this.getDb().syncQueue.orderBy('createdAt').toArray();
   }
 
   async getById(id: string) {
-    return (await this.db.syncQueue.get(id)) ?? null;
+    return (await this.getDb().syncQueue.get(id)) ?? null;
   }
 
   async removeMany(ids: string[]) {
@@ -74,11 +78,11 @@ export class SyncQueueRepository {
       return;
     }
 
-    await this.db.syncQueue.bulkDelete(ids);
+    await this.getDb().syncQueue.bulkDelete(ids);
   }
 
   async markFailed(id: string, lastError: string) {
-    const existing = await this.db.syncQueue.get(id);
+    const existing = await this.getDb().syncQueue.get(id);
 
     if (!existing) {
       return null;
@@ -90,13 +94,13 @@ export class SyncQueueRepository {
       lastError,
     };
 
-    await this.db.syncQueue.put(updated);
+    await this.getDb().syncQueue.put(updated);
 
     return updated;
   }
 
   async setLastError(id: string, lastError: string) {
-    const existing = await this.db.syncQueue.get(id);
+    const existing = await this.getDb().syncQueue.get(id);
 
     if (!existing) {
       return null;
@@ -107,7 +111,7 @@ export class SyncQueueRepository {
       lastError,
     };
 
-    await this.db.syncQueue.put(updated);
+    await this.getDb().syncQueue.put(updated);
 
     return updated;
   }
@@ -117,11 +121,13 @@ export class SyncQueueRepository {
       return [];
     }
 
-    return this.db.transaction('rw', this.db.syncQueue, async () => {
+    const db = this.getDb();
+
+    return db.transaction('rw', db.syncQueue, async () => {
       const updatedItems: SyncQueueItemRecord<WorkRecord>[] = [];
 
       for (const id of ids) {
-        const item = await this.db.syncQueue.get(id);
+        const item = await db.syncQueue.get(id);
 
         if (!item) {
           continue;
@@ -133,7 +139,7 @@ export class SyncQueueRepository {
           lastError,
         };
 
-        await this.db.syncQueue.put(updated);
+        await db.syncQueue.put(updated);
         updatedItems.push(updated);
       }
 
@@ -142,8 +148,10 @@ export class SyncQueueRepository {
   }
 
   async hasQueuedWork(entityId: string) {
+    const db = this.getDb();
+
     return (
-      (await this.db.syncQueue
+      (await db.syncQueue
         .where('[entityType+entityId]')
         .equals([WORK_ENTITY_TYPE, entityId])
         .count()) > 0
@@ -151,7 +159,7 @@ export class SyncQueueRepository {
   }
 
   async getQueuedWorkIds() {
-    const queueItems = await this.db.syncQueue.toArray();
+    const queueItems = await this.getDb().syncQueue.toArray();
 
     return Array.from(
       new Set(

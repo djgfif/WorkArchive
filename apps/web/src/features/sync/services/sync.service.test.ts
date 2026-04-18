@@ -49,9 +49,9 @@ describe('SyncService', () => {
 
   beforeEach(() => {
     db = createWorkArchiveDb(`work-archive-test-${crypto.randomUUID()}`);
-    worksRepository = new WorksRepository(db);
-    queueRepository = new SyncQueueRepository(db);
-    appMetaRepository = new AppMetaRepository(db);
+    worksRepository = new WorksRepository(() => db);
+    queueRepository = new SyncQueueRepository(() => db);
+    appMetaRepository = new AppMetaRepository(() => db);
     worksService = new WorksService(worksRepository, queueRepository);
     syncService = new SyncService(
       worksRepository,
@@ -69,6 +69,13 @@ describe('SyncService', () => {
   it('removes successful queue items and updates the local work from push results', async () => {
     const localWork = await worksService.createWork(buildInput());
     const queueItems = await queueRepository.listAll();
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
 
     vi.stubGlobal(
       'fetch',
@@ -116,6 +123,13 @@ describe('SyncService', () => {
 
   it('keeps failed queue items with retry metadata when push fails', async () => {
     const localWork = await worksService.createWork(buildInput());
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
 
     vi.stubGlobal(
       'fetch',
@@ -150,6 +164,13 @@ describe('SyncService', () => {
   it('marks the local work as conflict when push returns a conflict result', async () => {
     const localWork = await worksService.createWork(buildInput());
     const queueItems = await queueRepository.listAll();
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
 
     vi.stubGlobal(
       'fetch',
@@ -200,6 +221,14 @@ describe('SyncService', () => {
   });
 
   it('pulls remote changes into the local database and advances the pull cursor', async () => {
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
+
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -261,6 +290,13 @@ describe('SyncService', () => {
       }),
     );
     const [queueItem] = await queueRepository.listAll();
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
 
     await appMetaRepository.setValue(
       'sync.lastSuccessfulPullAt',

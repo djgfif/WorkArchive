@@ -16,9 +16,10 @@ export function configureApp(app: INestApplication) {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Work Archive API')
     .setDescription(
-      'Milestone 3 manual sync API for a local-first work archive with NestJS, Prisma, and PostgreSQL.',
+      'Milestone 4 auth and ownership API for a local-first work archive with NestJS, Prisma, and PostgreSQL.',
     )
-    .setVersion('0.3.0')
+    .setVersion('0.4.0')
+    .addBearerAuth()
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 

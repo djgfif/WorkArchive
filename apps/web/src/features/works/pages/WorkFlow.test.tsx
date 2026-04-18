@@ -4,6 +4,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
+import { AuthProvider } from '../../auth/context/AuthProvider';
 
 describe('Works routed flow', () => {
   it('creates and edits a work through the UI', async () => {
@@ -12,7 +13,11 @@ describe('Works routed flow', () => {
       initialEntries: ['/works/new'],
     });
 
-    render(<RouterProvider router={router} />);
+    render(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
 
     await user.type(screen.getByLabelText(/^Title$/i), 'Dune');
     await user.type(

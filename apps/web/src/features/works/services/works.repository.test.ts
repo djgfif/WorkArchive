@@ -38,7 +38,7 @@ describe('WorksRepository', () => {
 
   beforeEach(() => {
     db = createWorkArchiveDb(`work-archive-test-${crypto.randomUUID()}`);
-    repository = new WorksRepository(db);
+    repository = new WorksRepository(() => db);
   });
 
   afterEach(async () => {

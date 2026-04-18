@@ -129,6 +129,13 @@ textarea {
   justify-items: end;
 }
 
+.session-block,
+.session-summary {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+}
+
 .app-nav {
   display: flex;
   gap: 12px;
@@ -150,6 +157,20 @@ textarea {
   width: fit-content;
 }
 
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  color: #bfdbfe;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
 .app-panel {
   width: min(100%, 720px);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -167,6 +188,10 @@ textarea {
   padding: 28px;
   backdrop-filter: blur(14px);
   box-shadow: 0 24px 64px rgba(2, 6, 23, 0.26);
+}
+
+.auth-panel {
+  width: min(100%, 560px);
 }
 
 .stack {
@@ -317,6 +342,14 @@ h1 {
 
 .secondary-link {
   background: rgba(15, 23, 42, 0.55);
+}
+
+.inline-link {
+  color: #bfdbfe;
+}
+
+.inline-link:hover {
+  color: #dbeafe;
 }
 
 .danger-button {
