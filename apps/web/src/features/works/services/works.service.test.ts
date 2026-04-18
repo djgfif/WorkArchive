@@ -124,4 +124,37 @@ describe('WorksService', () => {
       }),
     ]);
   });
+
+  it('coalesces a synced work update into a single delete queue item', async () => {
+    const existing = buildWork({
+      syncStatus: 'synced',
+      serverVersion: 4,
+    });
+
+    await repository.create(existing);
+
+    await service.updateWork(
+      existing.id,
+      buildInput({
+        title: 'Children of Dune',
+      }),
+    );
+    await service.deleteWork(existing.id);
+
+    const queueItems = await queueRepository.listAll();
+
+    expect(queueItems).toHaveLength(1);
+    expect(queueItems[0]).toEqual(
+      expect.objectContaining({
+        entityId: existing.id,
+        operation: 'delete',
+        payload: expect.objectContaining({
+          title: 'Children of Dune',
+          deletedAt: expect.any(String),
+          syncStatus: 'pending',
+          serverVersion: 4,
+        }),
+      }),
+    );
+  });
 });

@@ -253,4 +253,72 @@ describe('SyncService', () => {
       appMetaRepository.getValue('sync.lastSuccessfulPullAt'),
     ).resolves.toBe('2026-04-18T01:30:00.000Z');
   });
+
+  it('keeps the pull cursor in place when remote changes are skipped due to queued local work', async () => {
+    const existing = await worksService.createWork(
+      buildInput({
+        title: 'Dune',
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await appMetaRepository.setValue(
+      'sync.lastSuccessfulPullAt',
+      '2026-04-18T00:00:00.000Z',
+    );
+    await queueRepository.markFailed(queueItem!.id, 'Previous push failed.');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          pulledAt: '2026-04-18T02:00:00.000Z',
+          nextSince: '2026-04-18T01:30:00.000Z',
+          changes: [
+            {
+              entityType: 'work',
+              entityId: existing.id,
+              operation: 'upsert',
+              work: {
+                ...existing,
+                title: 'Dune Messiah',
+                updatedAt: '2026-04-18T01:30:00.000Z',
+                syncStatus: 'synced',
+                serverVersion: 2,
+              },
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pullRemoteChanges();
+    const queueAfterPull = await queueRepository.getById(queueItem!.id);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        pulledCount: 1,
+        appliedCount: 0,
+        skippedCount: 1,
+        nextSince: '2026-04-18T00:00:00.000Z',
+        requestFailed: false,
+      }),
+    );
+    expect(queueAfterPull).toEqual(
+      expect.objectContaining({
+        retryCount: 1,
+        lastError: expect.stringContaining('server version 2'),
+      }),
+    );
+    expect(await worksRepository.getById(existing.id)).toEqual(
+      expect.objectContaining({
+        title: 'Dune',
+        syncStatus: 'conflict',
+        serverVersion: 0,
+      }),
+    );
+    await expect(
+      appMetaRepository.getValue('sync.lastSuccessfulPullAt'),
+    ).resolves.toBe('2026-04-18T00:00:00.000Z');
+  });
 });
