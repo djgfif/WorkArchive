@@ -20,9 +20,9 @@ Work Archive is a local-first record app for novels, anime, manga, and related m
 
 There are three configuration paths. Use the one that matches how you run the app.
 
-- Root [`.env.example`](/mnt/c/CodeStorage/WorkArchive/.env.example): Docker Compose and containerized full-stack startup
-- API [`.env.example`](/mnt/c/CodeStorage/WorkArchive/apps/api/.env.example): host-based API development
-- Web [`.env.example`](/mnt/c/CodeStorage/WorkArchive/apps/web/.env.example): host-based web development
+- Root [`.env.example`](./.env.example): Docker Compose and containerized full-stack startup
+- API [`apps/api/.env.example`](./apps/api/.env.example): host-based API development
+- Web [`apps/web/.env.example`](./apps/web/.env.example): host-based web development
 
 Recommended setup:
 
@@ -37,6 +37,7 @@ Notes:
 - `apps/api/.env` is used for local `npm run dev --workspace @work-archive/api`.
 - `apps/web/.env` is optional. The web app already falls back to `http://localhost:3000/api`.
 - Root `.env` is used by `docker compose`.
+- Local API development uses `localhost` in `apps/api/.env`, while Docker Compose uses the `postgres` service hostname from root `.env`.
 - The repository currently includes a development-safe `apps/api/.env` so Prisma client generation works after install. Review it before sharing or deploying.
 
 ## Local Development
@@ -114,6 +115,9 @@ Notes:
 
 - Docker Compose has safe local defaults even without a root `.env`.
 - Copy root `.env.example` to `.env` when you want to customize ports, CORS, API URL, or JWT secrets.
+- The documented container defaults assume `API_PORT=3000` and `WEB_PORT=8080`.
+- If you change `API_PORT`, also update root `VITE_API_BASE_URL`.
+- If you change `WEB_PORT`, keep root `CORS_ORIGIN` aligned with the exposed web origin.
 - The API container runs `prisma migrate deploy` on startup so a fresh local stack comes up with the existing schema.
 
 ## Guest And Authenticated Mode
@@ -173,6 +177,7 @@ npm run build
 ## Production Notes
 
 - The web build reads `VITE_API_BASE_URL` at build time. Set it correctly before building static assets or the web image.
+- Docker Compose passes `VITE_API_BASE_URL` into the web image at build time, but API `PORT`, `HOST`, and secrets remain runtime env values for the API container.
 - Set real `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` values outside local development.
 - Set `CORS_ORIGIN` to the deployed frontend origin instead of leaving broad local defaults.
 - The API health endpoint stays public at `/health`.
