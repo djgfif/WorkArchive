@@ -10,7 +10,7 @@ export class AuthSessionResponseDto {
   refreshToken!: string;
 
   @ApiProperty({
-    type: AuthUserResponseDto,
+  type: () => AuthUserResponseDto,
   })
   user!: AuthUserResponseDto;
 }
