@@ -16,11 +16,13 @@ export function WorksListPage() {
   const [query, setQuery] = useState<WorksListQuery>(DEFAULT_WORKS_LIST_QUERY);
   const [actionError, setActionError] = useState<string | null>(null);
   const { error, isLoading, totalActiveCount, works } = useWorksList(query);
+  const hasActiveFilters =
+    query.searchTerm.trim() !== '' ||
+    query.type !== 'all' ||
+    query.status !== 'all';
 
   async function handleDelete(work: WorkRecord) {
-    const shouldDelete = window.confirm(
-      `"${work.title}" 작품을 삭제할까요?`,
-    );
+    const shouldDelete = window.confirm(`"${work.title}"을 삭제할까요?`);
 
     if (!shouldDelete) {
       return;
@@ -65,7 +67,7 @@ export function WorksListPage() {
       {!error && isLoading && (
         <section className="panel stack">
           <h2 className="section-title">라이브러리를 불러오는 중입니다.</h2>
-          <p className="muted-copy">데이터를 불러오고 있습니다.</p>
+          <p className="muted-copy">잠시만 기다려주세요.</p>
         </section>
       )}
 
@@ -75,20 +77,22 @@ export function WorksListPage() {
             <span>WA</span>
           </div>
           <div className="stack">
-            <p className="eyebrow">비어 있는 라이브러리</p>
-            <h2 className="section-title">현재 조건에 맞는 작품이 없습니다.</h2>
+            <p className="eyebrow">{hasActiveFilters ? '검색 결과 없음' : '아직 없음'}</p>
+            <h2 className="section-title">
+              {hasActiveFilters
+                ? '조건에 맞는 작품이 없습니다.'
+                : '아직 등록된 작품이 없습니다.'}
+            </h2>
             <p className="muted-copy">
-              {query.searchTerm || query.type !== 'all' || query.status !== 'all'
-                ? '검색어나 필터를 조정하거나 새 작품을 추가해보세요.'
-                : '아직 등록된 작품이 없습니다. 첫 작품을 추가해보세요.'}
+              {hasActiveFilters
+                ? '검색어나 필터를 조금만 바꿔보세요.'
+                : '첫 작품을 추가해 내 라이브러리를 채워보세요.'}
             </p>
             <div className="button-row">
               <Link className="primary-link" to="/works/new">
                 작품 추가
               </Link>
-              {(query.searchTerm ||
-                query.type !== 'all' ||
-                query.status !== 'all') && (
+              {hasActiveFilters && (
                 <button
                   onClick={() => setQuery(DEFAULT_WORKS_LIST_QUERY)}
                   type="button"

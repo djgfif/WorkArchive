@@ -74,7 +74,7 @@ export function AuthForm({
 
         <div className="button-row">
           <button disabled={isSubmitting} type="submit">
-            {isSubmitting ? '처리 중...' : submitLabel}
+            {isSubmitting ? `${submitLabel} 중...` : submitLabel}
           </button>
         </div>
       </form>

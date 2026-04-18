@@ -12,8 +12,8 @@ import {
   getWorkSyncStatusLabel,
 } from '../../works/utils/work-options';
 
-function formatOptionalDate(value: string | null) {
-  return value ? formatWorkDateTime(value) : '기록 없음';
+function formatOptionalDate(value: string | null, fallback = '아직 없음') {
+  return value ? formatWorkDateTime(value) : fallback;
 }
 
 function renderStateLabel(state: SyncRunState) {
@@ -26,14 +26,14 @@ function renderStateLabel(state: SyncRunState) {
       return '실패';
     case 'idle':
     default:
-      return '대기 중';
+      return '대기';
   }
 }
 
 function getSyncOperationLabel(operation: string) {
   switch (operation) {
     case 'create':
-      return '생성';
+      return '추가';
     case 'update':
       return '수정';
     case 'delete':
@@ -91,15 +91,15 @@ export function SyncPage() {
         }
         description={
           isGuestMode
-            ? '게스트 모드에서는 이 기기에만 데이터가 저장됩니다. 원격 동기화를 사용하려면 로그인하세요.'
-            : `${user?.email} 계정으로 사용 중입니다. 수동 동기화로 변경 내용을 보내고 최신 데이터를 가져올 수 있습니다.`
+            ? '게스트 모드에서는 이 기기에만 저장됩니다. 로그인하면 기록을 동기화할 수 있습니다.'
+            : `${user?.email}로 로그인되어 있습니다. 지금 기록을 동기화해 최신 상태로 맞출 수 있습니다.`
         }
         eyebrow="동기화"
         meta={
           <>
             <div className="stat-pill">
               <span className="stat-pill-value">{queueItems.length}</span>
-              <span className="stat-pill-label">대기 항목</span>
+              <span className="stat-pill-label">대기 중</span>
             </div>
             <div className="stat-pill">
               <span className="stat-pill-value">{conflictWorks.length}</span>
@@ -109,7 +109,7 @@ export function SyncPage() {
               <span className="stat-pill-value">
                 {formatOptionalDate(lastSuccessfulPullAt)}
               </span>
-              <span className="stat-pill-label">최근 가져온 시점</span>
+              <span className="stat-pill-label">최근 동기화</span>
             </div>
           </>
         }
@@ -120,10 +120,10 @@ export function SyncPage() {
         <section className="panel stack">
           <div>
             <p className="eyebrow">게스트 모드</p>
-            <h2 className="section-title">로그인 후 동기화할 수 있습니다</h2>
+            <h2 className="section-title">로그인하면 동기화할 수 있습니다</h2>
             <p className="muted-copy">
-              게스트 모드에서 저장한 데이터는 이 기기에만 보관됩니다.
-              계정으로 로그인하면 동기화를 사용할 수 있습니다.
+              게스트 모드에서는 기록이 이 기기에만 저장됩니다.
+              계정으로 로그인하면 기록을 동기화할 수 있습니다.
             </p>
           </div>
           <div className="button-row">
@@ -147,17 +147,17 @@ export function SyncPage() {
         <section className="panel stack">
           <div>
             <p className="eyebrow">최근 실행</p>
-            <h2 className="section-title">가장 최근 동기화 결과</h2>
+            <h2 className="section-title">최근 동기화 결과</h2>
             <p className="muted-copy">
-              완료 시각 {formatWorkDateTime(lastRun.completedAt)}
+              실행 시각 {formatWorkDateTime(lastRun.completedAt)}
             </p>
           </div>
 
           <div className="sync-result-grid">
             <article className="sync-result-card">
-              <h3>업로드</h3>
+              <h3>보내기</h3>
               <p className="muted-copy">
-                시도 {lastRun.push.attemptedCount}건, 반영{' '}
+                보내기 {lastRun.push.attemptedCount}건, 반영{' '}
                 {lastRun.push.appliedCount}건, 충돌{' '}
                 {lastRun.push.conflictCount}건, 실패 {lastRun.push.failedCount}건.
               </p>
@@ -181,7 +181,7 @@ export function SyncPage() {
           <div className="stack">
             {lastRun.push.messages.map((message, index) => (
               <p className="muted-copy" key={`push-${index}-${message}`}>
-                업로드: {message}
+                보내기: {message}
               </p>
             ))}
             {lastRun.pull.messages.map((message, index) => (
@@ -196,15 +196,13 @@ export function SyncPage() {
       <section className="panel stack">
         <div>
           <p className="eyebrow">대기열</p>
-          <h2 className="section-title">동기화 대기 중인 변경 사항</h2>
+          <h2 className="section-title">동기화 대기 중</h2>
         </div>
 
-        {isLoading && <p className="muted-copy">동기화 대기 항목을 불러오는 중입니다.</p>}
+        {isLoading && <p className="muted-copy">동기화 상태를 불러오는 중입니다.</p>}
 
         {!isLoading && queueItems.length === 0 && (
-          <p className="muted-copy">
-            현재 동기화 대기 중인 항목이 없습니다.
-          </p>
+          <p className="muted-copy">지금은 동기화할 내용이 없습니다.</p>
         )}
 
         {!isLoading && queueItems.length > 0 && (
@@ -214,9 +212,7 @@ export function SyncPage() {
                 <div className="page-header">
                   <div>
                     <h3 className="card-title">{item.payload.title}</h3>
-                    <p className="muted-copy">
-                      {getSyncOperationLabel(item.operation)} · {item.entityId}
-                    </p>
+                    <p className="muted-copy">{getSyncOperationLabel(item.operation)} 요청</p>
                   </div>
                   <span className="sync-queue-meta">
                     재시도 {item.retryCount}회
@@ -225,7 +221,7 @@ export function SyncPage() {
 
                 <dl className="detail-list">
                   <div>
-                    <dt>로컬 수정 시각</dt>
+                    <dt>최근 수정</dt>
                     <dd>{formatWorkDateTime(item.payload.updatedAt)}</dd>
                   </div>
                   <div>
@@ -233,7 +229,7 @@ export function SyncPage() {
                     <dd>{getWorkSyncStatusLabel(item.payload.syncStatus)}</dd>
                   </div>
                   <div>
-                    <dt>동기화 버전</dt>
+                    <dt>서버 버전</dt>
                     <dd>{item.payload.serverVersion}</dd>
                   </div>
                 </dl>
@@ -256,9 +252,7 @@ export function SyncPage() {
         </div>
 
         {!isLoading && conflictWorks.length === 0 && (
-          <p className="muted-copy">
-            현재 충돌 상태인 작품이 없습니다.
-          </p>
+          <p className="muted-copy">지금은 확인이 필요한 충돌이 없습니다.</p>
         )}
 
         {!isLoading && conflictWorks.length > 0 && (
@@ -268,22 +262,22 @@ export function SyncPage() {
                 <div className="page-header">
                   <div>
                     <h3 className="card-title">{work.title}</h3>
-                    <p className="muted-copy">{work.id}</p>
+                    <p className="muted-copy">동기화 상태를 확인해주세요.</p>
                   </div>
                   <span className="sync-queue-meta">충돌</span>
                 </div>
 
                 <dl className="detail-list">
                   <div>
-                    <dt>수정일</dt>
+                    <dt>최근 수정</dt>
                     <dd>{formatWorkDateTime(work.updatedAt)}</dd>
                   </div>
                   <div>
-                    <dt>삭제일</dt>
-                    <dd>{formatOptionalDate(work.deletedAt)}</dd>
+                    <dt>삭제됨</dt>
+                    <dd>{formatOptionalDate(work.deletedAt, '없음')}</dd>
                   </div>
                   <div>
-                    <dt>동기화 버전</dt>
+                    <dt>서버 버전</dt>
                     <dd>{work.serverVersion}</dd>
                   </div>
                 </dl>

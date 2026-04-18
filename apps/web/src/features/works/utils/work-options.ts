@@ -39,7 +39,7 @@ const workTierLabels: Record<WorkTier, string> = {
 };
 
 const workSyncStatusLabels: Record<WorkSyncStatus, string> = {
-  'local-only': '기기 저장',
+  'local-only': '이 기기에만 저장',
   pending: '동기화 대기',
   synced: '동기화됨',
   conflict: '충돌',

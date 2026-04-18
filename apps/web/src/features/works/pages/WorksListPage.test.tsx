@@ -51,13 +51,13 @@ describe('WorksListPage', () => {
     );
 
     expect(
-      await screen.findByText('라이브러리의 작품 2개를 모두 보고 있습니다.'),
+      await screen.findByText('작품 2개가 등록되어 있습니다.'),
     ).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/^유형$/), 'novel');
 
     expect(
-      await screen.findByText('전체 2개 중 1개 작품을 보고 있습니다.'),
+      await screen.findByText('전체 2개 중 1개를 보고 있습니다.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dune' })).toBeInTheDocument();
     expect(

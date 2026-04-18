@@ -210,7 +210,7 @@ describe('SyncService', () => {
       expect.objectContaining({
         entityId: localWork.id,
         retryCount: 1,
-        lastError: expect.stringContaining('서버 버전 3'),
+        lastError: '다른 곳에서 더 최근 변경이 반영되어 충돌이 발생했습니다. 내용을 확인한 뒤 다시 시도해주세요.',
       }),
     ]);
     expect(await worksRepository.getById(localWork.id)).toEqual(
@@ -343,7 +343,8 @@ describe('SyncService', () => {
     expect(queueAfterPull).toEqual(
       expect.objectContaining({
         retryCount: 1,
-        lastError: expect.stringContaining('동기화 버전 2'),
+        lastError:
+          '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다. 내용을 확인한 뒤 다시 동기화해주세요.',
       }),
     );
     expect(await worksRepository.getById(existing.id)).toEqual(

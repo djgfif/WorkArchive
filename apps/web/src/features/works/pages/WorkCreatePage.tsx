@@ -36,17 +36,17 @@ export function WorkCreatePage() {
             라이브러리로 돌아가기
           </Link>
         }
-        description="먼저 기본 정보만 간단히 저장하고, 감상은 나중에 이어서 정리할 수 있습니다."
-        eyebrow="빠른 추가"
+        description="기본 정보만 먼저 저장하고, 감상은 나중에 이어서 남겨도 됩니다."
+        eyebrow="작품 추가"
         meta={
           <>
             <div className="stat-pill">
-              <span className="stat-pill-value">빠르게</span>
-              <span className="stat-pill-label">가볍게 기록</span>
+              <span className="stat-pill-value">지금 바로</span>
+              <span className="stat-pill-label">간단하게 기록</span>
             </div>
             <div className="stat-pill">
               <span className="stat-pill-value">이 기기에 저장</span>
-              <span className="stat-pill-label">바로 보관</span>
+              <span className="stat-pill-label">안전하게 보관</span>
             </div>
           </>
         }

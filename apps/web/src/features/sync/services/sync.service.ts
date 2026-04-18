@@ -90,7 +90,7 @@ async function postJson<TResponse>(
       body: JSON.stringify(body),
     },
     {
-      missingTokenMessage: '계정 아카이브를 동기화하려면 로그인해주세요.',
+      missingTokenMessage: '동기화하려면 로그인해주세요.',
     },
   );
 }
@@ -116,7 +116,7 @@ export class SyncService {
           skippedCount: 0,
           pulledAt: null,
           nextSince: null,
-          messages: ['업로드에 실패해 가져오기를 건너뛰었습니다.'],
+          messages: ['보내기에 실패해 가져오기를 건너뛰었습니다.'],
           requestFailed: true,
         },
       };
@@ -223,10 +223,10 @@ export class SyncService {
         }
 
         failedCount += 1;
-        messages.push(`대기 항목 ${queueId}에 대한 서버 응답이 없습니다.`);
+        messages.push('일부 변경 사항의 처리 결과를 확인하지 못했습니다.');
         await this.queueRepo.markFailed(
           queueId,
-          '서버 응답에 처리 결과가 포함되어 있지 않습니다.',
+          '처리 결과를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.',
         );
       }
 
@@ -288,9 +288,7 @@ export class SyncService {
       for (const change of response.changes) {
         if (queuedWorkIds.has(change.entityId)) {
           skippedCount += 1;
-          messages.push(
-            `${change.entityId} 항목은 로컬 변경이 남아 있어 가져오지 않았습니다.`,
-          );
+          messages.push('다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다.');
           await this.markWorkSyncStatus(change.entityId, 'conflict');
 
           const relatedQueueItems =
@@ -299,7 +297,7 @@ export class SyncService {
           for (const queueItem of relatedQueueItems) {
             await this.queueRepo.setLastError(
               queueItem.id,
-              `서버에도 변경 사항이 있어 가져오기를 건너뛰었습니다. (동기화 버전 ${change.work.serverVersion}, 수정 시각 ${change.work.updatedAt})`,
+              '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다. 내용을 확인한 뒤 다시 동기화해주세요.',
             );
           }
 
@@ -319,9 +317,7 @@ export class SyncService {
       if (response.changes.length === 0) {
         messages.push('가져올 변경 사항이 없습니다.');
       } else if (skippedCount > 0) {
-        messages.push(
-          '충돌된 변경 사항이 있어 동기화 기준 시점을 유지했습니다.',
-        );
+        messages.push('확인이 필요한 충돌이 있어 일부 내용은 가져오지 않았습니다.');
       }
 
       return {
@@ -380,11 +376,11 @@ export class SyncService {
       await this.queueRepo.markFailed(
         queueItem.id,
         error instanceof Error
-          ? `업로드 후 로컬 데이터를 반영하지 못했습니다: ${localizeServerMessage(
+          ? `동기화 후 화면에 반영하지 못했습니다: ${localizeServerMessage(
               error.message,
-              '로컬 데이터를 업데이트하는 중 문제가 발생했습니다.',
+              '화면을 업데이트하는 중 문제가 발생했습니다.',
             )}`
-          : '업로드 후 로컬 데이터를 반영하지 못했습니다.',
+          : '동기화 후 화면에 반영하지 못했습니다.',
       );
 
       return false;

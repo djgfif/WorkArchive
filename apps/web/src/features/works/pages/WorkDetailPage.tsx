@@ -16,9 +16,7 @@ export function WorkDetailPage() {
       return;
     }
 
-    const shouldDelete = window.confirm(
-      `"${work.title}" 작품을 삭제할까요?`,
-    );
+    const shouldDelete = window.confirm(`"${work.title}"을 삭제할까요?`);
 
     if (!shouldDelete) {
       return;
@@ -50,7 +48,7 @@ export function WorkDetailPage() {
     return (
       <section className="panel stack">
         <h2 className="section-title">작품 정보를 불러오는 중입니다.</h2>
-        <p className="muted-copy">데이터를 불러오고 있습니다.</p>
+        <p className="muted-copy">잠시만 기다려주세요.</p>
       </section>
     );
   }
@@ -87,7 +85,7 @@ export function WorkDetailPage() {
               라이브러리로 돌아가기
             </Link>
             <Link className="secondary-link" to={`/works/${work.id}/edit`}>
-              작품 수정
+              수정
             </Link>
             <button
               className="danger-button"

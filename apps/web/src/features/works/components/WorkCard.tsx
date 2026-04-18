@@ -52,7 +52,7 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
               </Link>
             </h3>
             <p className="muted-copy">
-              {work.author || '작가/제작자 정보 없음'} · 최근 수정{' '}
+              {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
               {formatWorkUpdatedAt(work.updatedAt)}
             </p>
           </div>
@@ -66,7 +66,7 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
         </div>
 
         <p className="card-summary">
-          {work.shortReview || work.description || '아직 남긴 감상이 없습니다.'}
+          {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
         </p>
 
         <div className="work-card-footer">
@@ -89,7 +89,7 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
 
           <div className="button-row">
             <Link className="secondary-link" to={`/works/${work.id}`}>
-              보기
+              상세
             </Link>
             <Link className="secondary-link" to={`/works/${work.id}/edit`}>
               수정
