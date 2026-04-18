@@ -5,6 +5,7 @@ import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 export function AppLayout() {
   const navigate = useNavigate();
   const { isLoading, mode, signOut, user } = useAuthSession();
+  const isAuthenticated = mode === 'authenticated';
 
   async function handleSignOut() {
     await signOut();
@@ -13,23 +14,50 @@ export function AppLayout() {
 
   return (
     <main className="app-shell">
+      <div aria-hidden="true" className="app-shell-glow" />
       <div className="app-frame">
-        <header className="panel app-header">
-          <div className="app-header-main">
-            <p className="eyebrow">
-              {mode === 'authenticated' ? 'Account Archive' : 'Guest Local Mode'}
-            </p>
+        <header className="panel shell-header">
+          <div className="shell-topbar">
             <Link className="brand-link" to="/works">
-              <h1>Work Archive</h1>
+              <span aria-hidden="true" className="brand-mark">
+                WA
+              </span>
+              <div className="brand-copy">
+                <span className="brand-kicker">Personal archive</span>
+                <h1>Work Archive</h1>
+              </div>
             </Link>
-            <p className="body-copy">
-              {mode === 'authenticated'
-                ? 'You are signed in, but this device still writes to IndexedDB first. Manual sync moves your current account-local archive between this browser and the API.'
-                : 'Track works locally in IndexedDB with no account required. Guest mode stays device-local until you explicitly sign in.'}
-            </p>
+
+            <div className="button-row shell-topbar-actions">
+              {!isAuthenticated && (
+                <>
+                  <Link className="secondary-link" to="/auth/login">
+                    Sign in
+                  </Link>
+                  <Link className="secondary-link" to="/auth/register">
+                    Sign up
+                  </Link>
+                </>
+              )}
+              <Link className="primary-link" to="/works/new">
+                Quick add
+              </Link>
+            </div>
           </div>
 
-          <div className="app-header-actions">
+          <div className="shell-overview">
+            <div className="shell-summary">
+              <p className="eyebrow">Premium Dark Archive</p>
+              <p className="shell-title">
+                Keep the titles you read, watch, and revisit in one polished
+                personal library.
+              </p>
+              <p className="body-copy">
+                Fast enough for quick capture, clean enough to browse like a
+                finished product.
+              </p>
+            </div>
+
             <nav aria-label="Primary" className="app-nav">
               <NavLink
                 className={({ isActive }) =>
@@ -49,35 +77,33 @@ export function AppLayout() {
               </NavLink>
             </nav>
 
-            <div className="session-block">
-              <div className="session-summary">
+            <div className="session-card">
+              <div className="session-copy">
                 <span className="mode-badge">
-                  {mode === 'authenticated' ? 'Signed in' : 'Guest mode'}
+                  {isAuthenticated ? 'Signed in' : 'Guest mode'}
                 </span>
+                <h2 className="session-title">
+                  {isAuthenticated ? 'Account archive ready' : 'Local archive ready'}
+                </h2>
                 <p className="muted-copy">
-                  {mode === 'authenticated'
+                  {isAuthenticated
                     ? user?.email
-                    : 'Local-only archive on this device'}
+                    : 'Everything stays on this device until you choose to sign in.'}
                 </p>
               </div>
 
-              <div className="button-row">
-                {mode === 'authenticated' ? (
+              <div className="button-row session-actions">
+                {isAuthenticated ? (
                   <button onClick={() => void handleSignOut()} type="button">
                     Sign out
                   </button>
                 ) : (
-                  <>
-                    <Link className="secondary-link" to="/auth/login">
-                      Sign in
-                    </Link>
-                    <Link className="secondary-link" to="/auth/register">
-                      Sign up
-                    </Link>
-                  </>
+                  <Link className="secondary-link" to="/auth/login">
+                    Open account mode
+                  </Link>
                 )}
-                <Link className="primary-link" to="/works/new">
-                  Add work
+                <Link className="secondary-link" to="/sync">
+                  Sync status
                 </Link>
               </div>
             </div>
@@ -85,16 +111,18 @@ export function AppLayout() {
         </header>
 
         {isLoading ? (
-          <section className="panel stack">
+          <section className="panel stack loading-panel">
             <p className="eyebrow">Loading Session</p>
-            <h2 className="section-title">Opening the correct local archive</h2>
+            <h2 className="section-title">Opening your archive</h2>
             <p className="muted-copy">
-              Checking the current session and selecting the matching IndexedDB
-              workspace for this device.
+              Checking the active session and loading the matching workspace for
+              this device.
             </p>
           </section>
         ) : (
-          <Outlet />
+          <div className="app-content">
+            <Outlet />
+          </div>
         )}
       </div>
     </main>

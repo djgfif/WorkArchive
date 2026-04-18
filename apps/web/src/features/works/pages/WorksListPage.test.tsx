@@ -51,13 +51,13 @@ describe('WorksListPage', () => {
     );
 
     expect(
-      await screen.findByText('Showing all 2 active works stored in IndexedDB.'),
+      await screen.findByText('Showing all 2 saved works in your archive.'),
     ).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/^Type$/i), 'novel');
 
     expect(
-      await screen.findByText('Showing 1 of 2 active works stored in IndexedDB.'),
+      await screen.findByText('Showing 1 of 2 saved works in your archive.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dune' })).toBeInTheDocument();
     expect(

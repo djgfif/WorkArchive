@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
+import { PageHero } from '../../../shared/components/PageHero';
 import { WorkForm } from '../components/WorkForm';
 import { worksService } from '../services/works.service';
 import type { UpsertWorkInput } from '../utils/work-form';
@@ -29,14 +30,28 @@ export function WorkCreatePage() {
 
   return (
     <section className="stack">
-      <header className="panel stack">
-        <p className="eyebrow">New Work</p>
-        <h2 className="page-title">Add a work to your local archive</h2>
-        <p className="muted-copy">
-          Saving writes directly to IndexedDB, so the record remains available
-          after a refresh even without the backend.
-        </p>
-      </header>
+      <PageHero
+        actions={
+          <Link className="secondary-link" to="/works">
+            Back to library
+          </Link>
+        }
+        description="Capture the essentials quickly, then come back for richer notes whenever you want."
+        eyebrow="Quick Add"
+        meta={
+          <>
+            <div className="stat-pill">
+              <span className="stat-pill-value">Fast</span>
+              <span className="stat-pill-label">Minimal friction</span>
+            </div>
+            <div className="stat-pill">
+              <span className="stat-pill-value">Local first</span>
+              <span className="stat-pill-label">Saved on this device</span>
+            </div>
+          </>
+        }
+        title="Add a new work"
+      />
 
       <WorkForm
         cancelTo="/works"

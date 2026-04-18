@@ -1,14 +1,16 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
+import { PageHero } from '../../../shared/components/PageHero';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import type { SyncRunState } from '../services/sync.service';
 
 import { useSyncDashboard } from '../hooks/useSyncDashboard';
 import { type ManualSyncResult, syncService } from '../services/sync.service';
+import { formatWorkDateTime } from '../../works/utils/work-options';
 
 function formatOptionalDate(value: string | null) {
-  return value ?? 'Not synced yet.';
+  return value ? formatWorkDateTime(value) : 'Not synced yet.';
 }
 
 function renderStateLabel(state: SyncRunState) {
@@ -48,55 +50,55 @@ export function SyncPage() {
 
   return (
     <div className="stack">
-      <section className="panel stack">
-        <div className="page-header">
-          <div>
-            <p className="eyebrow">Manual Sync</p>
-            <h2 className="section-title">
-              Push local changes and pull remote ones
-            </h2>
-            <p className="muted-copy">
-              {isGuestMode
-                ? 'Guest mode keeps queue data on this device only. Remote sync is unavailable until you sign in to an account-local archive.'
-                : `Signed in as ${user?.email}. Manual sync pushes this account-local archive to the API and pulls remote changes back into this device.`}
-            </p>
-          </div>
-
+      <PageHero
+        actions={
+          <button
+            disabled={isGuestMode || syncState === 'syncing'}
+            onClick={() => {
+              void handleRunSync();
+            }}
+            type="button"
+          >
+            {isGuestMode
+              ? 'Sign in to sync'
+              : syncState === 'syncing'
+                ? 'Syncing...'
+                : 'Run manual sync'}
+          </button>
+        }
+        aside={
           <div className="sync-status-block">
             <span className={`sync-state-badge sync-state-${syncState}`}>
               {renderStateLabel(syncState)}
             </span>
-            <button
-              disabled={isGuestMode || syncState === 'syncing'}
-              onClick={() => {
-                void handleRunSync();
-              }}
-              type="button"
-            >
-              {isGuestMode
-                ? 'Sign in to sync'
-                : syncState === 'syncing'
-                  ? 'Syncing...'
-                  : 'Run manual sync'}
-            </button>
           </div>
-        </div>
-
-        <dl className="detail-list">
-          <div>
-            <dt>Queued items</dt>
-            <dd>{queueItems.length}</dd>
-          </div>
-          <div>
-            <dt>Conflict works</dt>
-            <dd>{conflictWorks.length}</dd>
-          </div>
-          <div>
-            <dt>Last successful pull cursor</dt>
-            <dd>{formatOptionalDate(lastSuccessfulPullAt)}</dd>
-          </div>
-        </dl>
-      </section>
+        }
+        description={
+          isGuestMode
+            ? 'Guest mode keeps this archive on the current device. Sign in when you want remote sync.'
+            : `Signed in as ${user?.email}. Manual sync sends local changes and brings remote updates back into this archive.`
+        }
+        eyebrow="Sync"
+        meta={
+          <>
+            <div className="stat-pill">
+              <span className="stat-pill-value">{queueItems.length}</span>
+              <span className="stat-pill-label">Queued items</span>
+            </div>
+            <div className="stat-pill">
+              <span className="stat-pill-value">{conflictWorks.length}</span>
+              <span className="stat-pill-label">Conflicts</span>
+            </div>
+            <div className="stat-pill">
+              <span className="stat-pill-value">
+                {formatOptionalDate(lastSuccessfulPullAt)}
+              </span>
+              <span className="stat-pill-label">Last successful pull</span>
+            </div>
+          </>
+        }
+        title="Sync status"
+      />
 
       {isGuestMode && (
         <section className="panel stack">
@@ -131,7 +133,9 @@ export function SyncPage() {
           <div>
             <p className="eyebrow">Last Run</p>
             <h2 className="section-title">Most recent manual sync result</h2>
-            <p className="muted-copy">Completed at {lastRun.completedAt}</p>
+            <p className="muted-copy">
+              Completed at {formatWorkDateTime(lastRun.completedAt)}
+            </p>
           </div>
 
           <div className="sync-result-grid">
@@ -208,7 +212,7 @@ export function SyncPage() {
                 <dl className="detail-list">
                   <div>
                     <dt>Local updatedAt</dt>
-                    <dd>{item.payload.updatedAt}</dd>
+                    <dd>{formatWorkDateTime(item.payload.updatedAt)}</dd>
                   </div>
                   <div>
                     <dt>Sync status</dt>
@@ -258,7 +262,7 @@ export function SyncPage() {
                 <dl className="detail-list">
                   <div>
                     <dt>updatedAt</dt>
-                    <dd>{work.updatedAt}</dd>
+                    <dd>{formatWorkDateTime(work.updatedAt)}</dd>
                   </div>
                   <div>
                     <dt>deletedAt</dt>

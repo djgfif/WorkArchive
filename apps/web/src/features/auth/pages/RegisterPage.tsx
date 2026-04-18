@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
+import { PageHero } from '../../../shared/components/PageHero';
 import { AuthForm } from '../components/AuthForm';
 import { useAuthSession } from '../hooks/useAuthSession';
 import type { AuthCredentialsInput } from '../services/auth.api';
@@ -34,17 +35,15 @@ export function RegisterPage() {
 
   return (
     <div className="stack">
-      <header className="panel stack">
-        <p className="eyebrow">Create Account</p>
-        <h1 className="page-title">Create a user-scoped archive</h1>
-        <p className="muted-copy">
-          Account mode keeps a separate IndexedDB archive per signed-in user on
-          this device. Guest/local data remains available when you sign out.
-        </p>
-      </header>
+      <PageHero
+        description="Create an account archive for this device while keeping guest mode available whenever you need it."
+        eyebrow="Create Account"
+        title="Start your account archive"
+        titleAs="h1"
+      />
 
       <AuthForm
-        description="Register with an email and password. After sign-up, the app switches into your account-local archive on this device."
+        description="Register with an email and password. After sign-up, the app opens your signed-in archive."
         footer={
           <div className="stack">
             <p className="muted-copy">

@@ -49,7 +49,7 @@ describe('Works routed flow', () => {
     await user.click(screen.getByRole('link', { name: /back to library/i }));
 
     expect(
-      await screen.findByRole('heading', { name: /browse your local archive/i }),
+      await screen.findByRole('heading', { name: /your library/i }),
     ).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'Dune Messiah' })).toBeInTheDocument();
   });
