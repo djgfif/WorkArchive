@@ -7,6 +7,9 @@ CREATE TYPE "WorkStatus" AS ENUM ('planned', 'in_progress', 'completed', 'paused
 -- CreateEnum
 CREATE TYPE "WorkTier" AS ENUM ('S', 'A', 'B', 'C', 'D');
 
+-- CreateEnum
+CREATE TYPE "WorkSyncStatus" AS ENUM ('local-only', 'pending', 'synced', 'conflict');
+
 -- CreateTable
 CREATE TABLE "works" (
     "id" TEXT NOT NULL,
@@ -25,7 +28,7 @@ CREATE TABLE "works" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
-    "syncStatus" TEXT NOT NULL DEFAULT 'synced',
+    "syncStatus" "WorkSyncStatus" NOT NULL DEFAULT 'synced',
     "serverVersion" INTEGER NOT NULL DEFAULT 1,
 
     CONSTRAINT "works_pkey" PRIMARY KEY ("id")

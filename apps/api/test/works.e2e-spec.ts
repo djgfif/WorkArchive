@@ -2,7 +2,7 @@ import { type AddressInfo } from 'node:net';
 
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { WorkStatus, WorkType } from '@prisma/client';
+import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { AppModule } from '../src/app.module';
@@ -52,7 +52,7 @@ function createPrismaServiceMock() {
           createdAt: now,
           updatedAt: now,
           deletedAt: null,
-          syncStatus: data.syncStatus,
+          syncStatus: data.syncStatus ?? WorkSyncStatus.synced,
           serverVersion: data.serverVersion,
         };
 
@@ -130,6 +130,29 @@ describe('Works API (e2e)', () => {
     await app.close();
   });
 
+  async function requestJson(
+    path: string,
+    init?: RequestInit,
+  ): Promise<{
+    body: unknown;
+    status: number;
+  }> {
+    const response = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      headers: {
+        'content-type': 'application/json',
+        ...(init?.headers ?? {}),
+      },
+    });
+
+    const body = response.status === 204 ? null : await response.json();
+
+    return {
+      body,
+      status: response.status,
+    };
+  }
+
   it('keeps health working outside the /api prefix', async () => {
     const response = await fetch(`${baseUrl}/health`);
 
@@ -141,11 +164,8 @@ describe('Works API (e2e)', () => {
   });
 
   it('supports create, read, update, list, and soft delete for works', async () => {
-    const createResponse = await fetch(`${baseUrl}/api/works`, {
+    const createResponse = await requestJson('/api/works', {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
       body: JSON.stringify({
         type: WorkType.anime,
         title: '  Frieren: Beyond Journey\'s End  ',
@@ -160,7 +180,7 @@ describe('Works API (e2e)', () => {
 
     expect(createResponse.status).toBe(201);
 
-    const createdWork = (await createResponse.json()) as Record<string, unknown>;
+    const createdWork = createResponse.body as Record<string, unknown>;
 
     expect(createdWork).toEqual(
       expect.objectContaining({
@@ -181,29 +201,26 @@ describe('Works API (e2e)', () => {
 
     const workId = createdWork.id as string;
 
-    const listResponse = await fetch(`${baseUrl}/api/works`);
+    const listResponse = await requestJson('/api/works');
 
     expect(listResponse.status).toBe(200);
-    await expect(listResponse.json()).resolves.toEqual([
+    expect(listResponse.body).toEqual([
       expect.objectContaining({
         id: workId,
       }),
     ]);
 
-    const detailResponse = await fetch(`${baseUrl}/api/works/${workId}`);
+    const detailResponse = await requestJson(`/api/works/${workId}`);
 
     expect(detailResponse.status).toBe(200);
-    await expect(detailResponse.json()).resolves.toEqual(
+    expect(detailResponse.body).toEqual(
       expect.objectContaining({
         id: workId,
       }),
     );
 
-    const updateResponse = await fetch(`${baseUrl}/api/works/${workId}`, {
+    const updateResponse = await requestJson(`/api/works/${workId}`, {
       method: 'PATCH',
-      headers: {
-        'content-type': 'application/json',
-      },
       body: JSON.stringify({
         status: WorkStatus.paused,
         tier: 'A',
@@ -211,7 +228,7 @@ describe('Works API (e2e)', () => {
     });
 
     expect(updateResponse.status).toBe(200);
-    await expect(updateResponse.json()).resolves.toEqual(
+    expect(updateResponse.body).toEqual(
       expect.objectContaining({
         status: WorkStatus.paused,
         tier: 'A',
@@ -219,19 +236,131 @@ describe('Works API (e2e)', () => {
       }),
     );
 
-    const deleteResponse = await fetch(`${baseUrl}/api/works/${workId}`, {
+    const deleteResponse = await requestJson(`/api/works/${workId}`, {
       method: 'DELETE',
     });
 
     expect(deleteResponse.status).toBe(204);
 
-    const emptyListResponse = await fetch(`${baseUrl}/api/works`);
+    const emptyListResponse = await requestJson('/api/works');
 
     expect(emptyListResponse.status).toBe(200);
-    await expect(emptyListResponse.json()).resolves.toEqual([]);
+    expect(emptyListResponse.body).toEqual([]);
 
-    const deletedDetailResponse = await fetch(`${baseUrl}/api/works/${workId}`);
+    const deletedDetailResponse = await requestJson(`/api/works/${workId}`);
 
     expect(deletedDetailResponse.status).toBe(404);
+  });
+
+  it('returns 404 for missing works across detail, update, and delete', async () => {
+    const missingId = crypto.randomUUID();
+
+    await expect(requestJson(`/api/works/${missingId}`)).resolves.toEqual(
+      expect.objectContaining({
+        status: 404,
+      }),
+    );
+
+    await expect(
+      requestJson(`/api/works/${missingId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: WorkStatus.completed,
+        }),
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        status: 404,
+      }),
+    );
+
+    await expect(
+      requestJson(`/api/works/${missingId}`, {
+        method: 'DELETE',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        status: 404,
+      }),
+    );
+  });
+
+  it('validates create and update payloads while allowing omitted optional fields', async () => {
+    const minimalCreateResponse = await requestJson('/api/works', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '  Only Required Title  ',
+      }),
+    });
+
+    expect(minimalCreateResponse.status).toBe(201);
+    expect(minimalCreateResponse.body).toEqual(
+      expect.objectContaining({
+        title: 'Only Required Title',
+        type: WorkType.novel,
+        author: '',
+        genres: [],
+        status: WorkStatus.planned,
+        rating: null,
+        tier: null,
+        favorite: false,
+        syncStatus: 'synced',
+      }),
+    );
+
+    const workId = (minimalCreateResponse.body as Record<string, unknown>).id as string;
+
+    const invalidCreateResponse = await requestJson('/api/works', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'Invalid work',
+        type: 'bad-type',
+        status: 'bad-status',
+        rating: 7,
+        genres: 'Drama',
+      }),
+    });
+
+    expect(invalidCreateResponse.status).toBe(400);
+    expect(invalidCreateResponse.body).toEqual(
+      expect.objectContaining({
+        statusCode: 400,
+      }),
+    );
+    expect(
+      (invalidCreateResponse.body as { message: string[] }).message,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('type'),
+        expect.stringContaining('status'),
+        expect.stringContaining('rating'),
+        expect.stringContaining('genres'),
+      ]),
+    );
+
+    const invalidUpdateResponse = await requestJson(`/api/works/${workId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        rating: '4',
+        tier: 'Z',
+        genres: 'Drama',
+      }),
+    });
+
+    expect(invalidUpdateResponse.status).toBe(400);
+    expect(invalidUpdateResponse.body).toEqual(
+      expect.objectContaining({
+        statusCode: 400,
+      }),
+    );
+    expect(
+      (invalidUpdateResponse.body as { message: string[] }).message,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('rating'),
+        expect.stringContaining('tier'),
+        expect.stringContaining('genres'),
+      ]),
+    );
   });
 });
