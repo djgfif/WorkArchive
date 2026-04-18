@@ -6,6 +6,7 @@ import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { AppModule } from '../src/app.module';
+import { readApiRuntimeConfig } from '../src/config/api-runtime-config';
 import { configureApp } from '../src/configure-app';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -239,7 +240,7 @@ describe('Auth, works, and sync API (e2e)', () => {
       .compile();
 
     app = moduleRef.createNestApplication();
-    configureApp(app);
+    configureApp(app, readApiRuntimeConfig());
     await app.listen(0);
 
     const address = app.getHttpServer().address() as AddressInfo;

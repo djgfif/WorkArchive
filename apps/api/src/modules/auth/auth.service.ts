@@ -1,4 +1,4 @@
-import { randomBytes, scrypt as nodeScrypt, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 
 import {
   ConflictException,
@@ -9,7 +9,9 @@ import {
 import type { User } from '@prisma/client';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 
+import { readApiRuntimeConfig } from '../../config/api-runtime-config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { hashSecret, verifySecret } from './auth-crypto';
 import type { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import type { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import type { LoginDto } from './dto/login.dto';
@@ -23,22 +25,6 @@ import type {
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
-const HASH_SEPARATOR = ':';
-const SCRYPT_KEY_LENGTH = 64;
-
-function scrypt(secret: string, salt: string) {
-  return new Promise<Buffer>((resolve, reject) => {
-    nodeScrypt(secret, salt, SCRYPT_KEY_LENGTH, (error, derivedKey) => {
-      if (error) {
-        reject(error);
-
-        return;
-      }
-
-      resolve(derivedKey as Buffer);
-    });
-  });
-}
 
 @Injectable()
 export class AuthService {
@@ -59,7 +45,7 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email,
-        passwordHash: await this.hashSecret(registerDto.password),
+        passwordHash: await hashSecret(registerDto.password),
       },
     });
 
@@ -78,7 +64,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
-    const isPasswordValid = await this.verifySecret(
+    const isPasswordValid = await verifySecret(
       loginDto.password,
       user.passwordHash,
     );
@@ -102,7 +88,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
-    const isRefreshTokenValid = await this.verifySecret(
+    const isRefreshTokenValid = await verifySecret(
       refreshDto.refreshToken,
       user.refreshTokenHash,
     );
@@ -158,7 +144,7 @@ export class AuthService {
         id: user.id,
       },
       data: {
-        refreshTokenHash: await this.hashSecret(refreshToken),
+        refreshTokenHash: await hashSecret(refreshToken),
       },
     });
 
@@ -216,42 +202,13 @@ export class AuthService {
   }
 
   private getJwtSecret(type: AuthTokenKind) {
-    const secret =
+    const config = readApiRuntimeConfig();
+
+    return (
       type === 'access'
-        ? process.env.JWT_ACCESS_SECRET
-        : process.env.JWT_REFRESH_SECRET;
-
-    if (!secret?.trim()) {
-      throw new Error(
-        `JWT_${type.toUpperCase()}_SECRET must be configured before the API starts.`,
-      );
-    }
-
-    return secret;
-  }
-
-  private async hashSecret(secret: string) {
-    const salt = randomBytes(16).toString('hex');
-    const derivedKey = await scrypt(secret, salt);
-
-    return `${salt}${HASH_SEPARATOR}${derivedKey.toString('hex')}`;
-  }
-
-  private async verifySecret(secret: string, storedHash: string) {
-    const [salt, expectedHash] = storedHash.split(HASH_SEPARATOR);
-
-    if (!salt || !expectedHash) {
-      return false;
-    }
-
-    const derivedKey = await scrypt(secret, salt);
-    const expectedBuffer = Buffer.from(expectedHash, 'hex');
-
-    if (expectedBuffer.length !== derivedKey.length) {
-      return false;
-    }
-
-    return timingSafeEqual(expectedBuffer, derivedKey);
+        ? config.jwtAccessSecret
+        : config.jwtRefreshSecret
+    );
   }
 
   private normalizeEmail(email: string) {

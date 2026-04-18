@@ -4,18 +4,66 @@ services:
     container_name: work-archive-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: work_archive
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-work_archive}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - '5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d work_archive']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-work_archive}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: work-archive-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/work_archive?schema=public}
+      HOST: ${HOST:-0.0.0.0}
+      PORT: 3000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-access-secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-secret}
+      SEED_DEMO_EMAIL: ${SEED_DEMO_EMAIL:-demo@workarchive.local}
+      SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-demo-password-123}
+    ports:
+      - '${API_PORT:-3000}:3000'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "node -e \"fetch('http://127.0.0.1:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000/api}
+    container_name: work-archive-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '${WEB_PORT:-8080}:80'
 
 volumes:
   postgres-data:
