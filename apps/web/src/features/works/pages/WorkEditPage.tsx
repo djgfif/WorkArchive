@@ -19,7 +19,7 @@ export function WorkEditPage() {
 
   async function handleSubmit(input: UpsertWorkInput) {
     if (!id) {
-      setSubmitError('작품 정보를 찾을 수 없습니다.');
+      setSubmitError('수정할 작품을 찾을 수 없습니다.');
       return;
     }
 
@@ -52,7 +52,7 @@ export function WorkEditPage() {
     return (
       <section className="panel stack">
         <h2 className="section-title">작품 정보를 불러오는 중입니다.</h2>
-        <p className="muted-copy">수정 화면을 준비하고 있습니다.</p>
+        <p className="muted-copy">잠시만 기다려주세요.</p>
       </section>
     );
   }
@@ -78,8 +78,8 @@ export function WorkEditPage() {
             상세로 돌아가기
           </Link>
         }
-        description="기록은 유지한 채 제목, 감상, 상태를 자연스럽게 다듬어보세요."
-        eyebrow="작품 수정"
+        description="제목, 상태, 감상을 필요한 만큼만 다듬어보세요."
+        eyebrow="수정"
         meta={
           <>
             <div className="stat-pill">
@@ -87,8 +87,8 @@ export function WorkEditPage() {
               <span className="stat-pill-label">현재 제목</span>
             </div>
             <div className="stat-pill">
-              <span className="stat-pill-value">즉시 반영</span>
-              <span className="stat-pill-label">저장하면 바로 라이브러리에 반영</span>
+              <span className="stat-pill-value">저장 즉시 반영</span>
+              <span className="stat-pill-label">라이브러리에 바로 반영</span>
             </div>
           </>
         }

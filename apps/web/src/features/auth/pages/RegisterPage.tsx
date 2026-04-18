@@ -36,14 +36,14 @@ export function RegisterPage() {
   return (
     <div className="stack">
       <PageHero
-        description="이 기기에서 사용할 계정 아카이브를 만들고, 필요할 때는 게스트 모드도 계속 사용할 수 있습니다."
+        description="회원가입하면 기록을 안전하게 보관하고 필요할 때 동기화할 수 있습니다."
         eyebrow="회원가입"
-        title="계정 아카이브 시작하기"
+        title="기록 시작하기"
         titleAs="h1"
       />
 
       <AuthForm
-        description="이메일과 비밀번호로 계정을 만들면 바로 내 아카이브를 사용할 수 있습니다."
+        description="이메일과 비밀번호로 계정을 만들면 바로 시작할 수 있습니다."
         footer={
           <div className="stack">
             <p className="muted-copy">
@@ -53,7 +53,7 @@ export function RegisterPage() {
               </Link>
             </p>
             <p className="muted-copy">
-              지금은 게스트 모드로 둘러볼까요?{' '}
+              지금은 게스트로 둘러볼까요?{' '}
               <Link className="inline-link" to="/works">
                 게스트 모드로 계속하기
               </Link>

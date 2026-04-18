@@ -4,7 +4,7 @@ function getGenericRequestErrorMessage(status: number) {
   }
 
   if (status === 401) {
-    return '로그인이 필요하거나 세션이 만료되었습니다.';
+    return '로그인 상태가 만료되었습니다. 다시 로그인해주세요.';
   }
 
   if (status === 404) {
@@ -41,9 +41,7 @@ export function localizeServerMessage(
   );
 
   if (conflictMatch) {
-    const [, version, updatedAt] = conflictMatch;
-
-    return `서버 버전 ${version}(수정 시각 ${updatedAt})이 먼저 반영되어 충돌이 발생했습니다.`;
+    return '다른 곳에서 더 최근 변경이 반영되어 충돌이 발생했습니다. 내용을 확인한 뒤 다시 시도해주세요.';
   }
 
   if (/^Work with id ".+" was not found\.$/.test(normalized)) {

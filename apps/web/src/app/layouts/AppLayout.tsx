@@ -23,7 +23,7 @@ export function AppLayout() {
                 WA
               </span>
               <div className="brand-copy">
-                <span className="brand-kicker">개인 아카이브</span>
+                <span className="brand-kicker">취향 기록 서비스</span>
                 <h1>워크 아카이브</h1>
               </div>
             </Link>
@@ -81,9 +81,7 @@ export function AppLayout() {
                   {isAuthenticated ? '로그인됨' : '게스트 모드'}
                 </span>
                 <h2 className="session-title">
-                  {isAuthenticated
-                    ? '계정 아카이브 사용 중'
-                    : '기기 아카이브 사용 중'}
+                  {isAuthenticated ? '계정으로 사용 중' : '이 기기에 저장 중'}
                 </h2>
                 <p className="muted-copy">
                   {isAuthenticated
@@ -99,7 +97,7 @@ export function AppLayout() {
                   </button>
                 ) : (
                   <Link className="secondary-link" to="/auth/login">
-                    계정으로 사용하기
+                    로그인하고 이어서 사용하기
                   </Link>
                 )}
                 <Link className="secondary-link" to="/sync">
@@ -112,11 +110,9 @@ export function AppLayout() {
 
         {isLoading ? (
           <section className="panel stack loading-panel">
-            <p className="eyebrow">세션 확인 중</p>
-            <h2 className="section-title">아카이브를 준비하는 중입니다</h2>
-            <p className="muted-copy">
-              현재 세션을 확인하고 데이터를 불러오고 있습니다.
-            </p>
+            <p className="eyebrow">불러오는 중</p>
+            <h2 className="section-title">워크 아카이브를 불러오고 있습니다</h2>
+            <p className="muted-copy">잠시만 기다려주세요.</p>
           </section>
         ) : (
           <div className="app-content">

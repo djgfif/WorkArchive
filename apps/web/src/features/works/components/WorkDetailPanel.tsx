@@ -46,16 +46,16 @@ export function WorkDetailPanel({ actions, work }: WorkDetailPanelProps) {
           <div className="stack work-detail-title-block">
             <h2 className="page-title">{work.title}</h2>
             <p className="work-detail-author">
-              {work.author || '작가/제작자 정보 없음'} · 최근 수정{' '}
+              {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
               {formatWorkUpdatedAt(work.updatedAt)}
             </p>
           </div>
 
           <div className="detail-spotlight">
-            <p className="detail-spotlight-label">한줄 감상</p>
+            <p className="detail-spotlight-label">한 줄 감상</p>
             <p className="detail-spotlight-copy">
               {work.shortReview ||
-                '아직 한줄 감상이 없습니다. 짧게 메모해두면 나중에 다시 보기 편합니다.'}
+                '아직 남긴 한 줄 감상이 없습니다. 짧게 메모해두면 나중에 다시 떠올리기 좋습니다.'}
             </p>
           </div>
 
@@ -86,13 +86,13 @@ export function WorkDetailPanel({ actions, work }: WorkDetailPanelProps) {
             <p className="section-kicker">개요</p>
             <h3 className="section-title">작품 소개</h3>
           </div>
-          <p>{work.description || '등록된 설명이 없습니다.'}</p>
+          <p>{work.description || '작품 소개가 아직 없습니다.'}</p>
         </div>
 
         <div className="detail-section">
           <div className="section-heading">
             <p className="section-kicker">내 기록</p>
-            <h3 className="section-title">개인 기록</h3>
+            <h3 className="section-title">내 기록</h3>
           </div>
           <dl className="detail-list detail-list--columns">
             <div>
@@ -105,7 +105,7 @@ export function WorkDetailPanel({ actions, work }: WorkDetailPanelProps) {
             </div>
             <div>
               <dt>즐겨찾기</dt>
-              <dd>{work.favorite ? '등록됨' : '미등록'}</dd>
+              <dd>{work.favorite ? '등록함' : '없음'}</dd>
             </div>
           </dl>
         </div>
@@ -115,13 +115,13 @@ export function WorkDetailPanel({ actions, work }: WorkDetailPanelProps) {
             <p className="section-kicker">감상</p>
             <h3 className="section-title">상세 감상</h3>
           </div>
-          <p>{work.review || '아직 상세 감상이 없습니다.'}</p>
+          <p>{work.review || '아직 남긴 감상이 없습니다.'}</p>
         </div>
 
         <div className="detail-section">
           <div className="section-heading">
             <p className="section-kicker">동기화 정보</p>
-            <h3 className="section-title">기록 및 동기화 정보</h3>
+            <h3 className="section-title">저장 및 동기화 정보</h3>
           </div>
           <dl className="detail-list detail-list--columns">
             <div>
@@ -129,15 +129,15 @@ export function WorkDetailPanel({ actions, work }: WorkDetailPanelProps) {
               <dd>{syncLabel}</dd>
             </div>
             <div>
-              <dt>등록일</dt>
+              <dt>추가한 날</dt>
               <dd>{formatWorkDateTime(work.createdAt)}</dd>
             </div>
             <div>
-              <dt>수정일</dt>
+              <dt>수정한 날</dt>
               <dd>{formatWorkDateTime(work.updatedAt)}</dd>
             </div>
             <div>
-              <dt>동기화 버전</dt>
+              <dt>서버 버전</dt>
               <dd>{work.serverVersion}</dd>
             </div>
           </dl>

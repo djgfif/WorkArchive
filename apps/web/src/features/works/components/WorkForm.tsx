@@ -85,7 +85,7 @@ export function WorkForm({
             <p className="section-kicker">기본 정보</p>
             <h3 className="section-title">어떤 작품인가요?</h3>
             <p className="section-description">
-              먼저 기본 정보만 입력해도 됩니다. 나머지는 나중에 천천히 채워보세요.
+              기본 정보만 먼저 입력해도 충분합니다. 나머지는 나중에 채워도 됩니다.
             </p>
           </div>
 
@@ -119,7 +119,7 @@ export function WorkForm({
             </label>
 
             <label className="field" htmlFor="author">
-              <span>작가 / 제작자</span>
+              <span>작가·제작자</span>
               <input
                 id="author"
                 name="author"
@@ -130,7 +130,7 @@ export function WorkForm({
             </label>
 
             <div className="field field--full">
-              <label htmlFor="thumbnailUrl">표지 이미지 URL</label>
+              <label htmlFor="thumbnailUrl">표지 이미지 주소</label>
               <input
                 aria-describedby="thumbnailUrlHint"
                 id="thumbnailUrl"
@@ -141,7 +141,7 @@ export function WorkForm({
                 value={values.thumbnailUrl}
               />
               <span className="field-hint" id="thumbnailUrlHint">
-                선택 사항입니다. 표지가 있으면 라이브러리에서 더 보기 쉽습니다.
+                선택 사항입니다. 표지를 넣어두면 라이브러리에서 더 쉽게 찾을 수 있습니다.
               </span>
             </div>
 
@@ -250,7 +250,7 @@ export function WorkForm({
 
           <div className="form-grid">
             <label className="field field--full" htmlFor="shortReview">
-              <span>한줄 감상</span>
+              <span>한 줄 감상</span>
               <textarea
                 id="shortReview"
                 name="shortReview"
@@ -294,9 +294,9 @@ export function WorkForm({
       <aside className="panel work-form-aside stack">
         <div className="section-heading">
           <p className="section-kicker">미리보기</p>
-          <h3 className="section-title">라이브러리에서 이렇게 보여요</h3>
+          <h3 className="section-title">라이브러리에서는 이렇게 보여요</h3>
           <p className="section-description">
-            입력 중인 내용을 바로 확인할 수 있습니다.
+            입력한 내용을 바로 확인할 수 있습니다.
           </p>
         </div>
 
@@ -319,14 +319,14 @@ export function WorkForm({
             <div className="stack">
               <p className="card-title">{previewTitle}</p>
               <p className="muted-copy">
-                {values.author.trim() || '작가/제작자 정보 없음'}
+                {values.author.trim() || '작가·제작자 미입력'}
               </p>
             </div>
 
             <p className="card-summary">
               {values.shortReview.trim() ||
                 values.description.trim() ||
-                '짧은 감상이나 설명을 남기면 나중에 다시 보기 좋습니다.'}
+                '짧은 감상이나 설명을 남겨두면 나중에 다시 찾기 쉽습니다.'}
             </p>
 
             <div className="tag-list">
@@ -342,7 +342,7 @@ export function WorkForm({
             </div>
 
             <p className="work-preview-note">
-              지금은 핵심만 저장하고, 나중에 필요할 때 더 채워보세요.
+              지금은 핵심만 저장하고, 나중에 천천히 더 채워도 됩니다.
             </p>
           </div>
         </div>

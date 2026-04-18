@@ -21,7 +21,7 @@ describe('Works routed flow', () => {
 
     await user.type(screen.getByLabelText(/^제목$/), 'Dune');
     await user.type(
-      screen.getByLabelText(/작가 \/ 제작자/),
+      screen.getByLabelText(/작가·제작자/),
       'Frank Herbert',
     );
     await user.type(
@@ -34,7 +34,7 @@ describe('Works routed flow', () => {
     expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(screen.getByText(/Frank Herbert/i)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('link', { name: '작품 수정' }));
+    await user.click(screen.getByRole('link', { name: '수정' }));
 
     const titleInput = await screen.findByLabelText(/^제목$/);
 

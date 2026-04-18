@@ -29,11 +29,11 @@ export function WorksToolbar({
 
   if (!isLoading) {
     if (totalActiveCount === 0) {
-      countSummary = '아직 등록된 작품이 없습니다. 첫 작품부터 추가해보세요.';
+      countSummary = '아직 등록된 작품이 없습니다. 첫 작품을 추가해보세요.';
     } else if (filteredCount === totalActiveCount) {
-      countSummary = `라이브러리의 작품 ${totalActiveCount}개를 모두 보고 있습니다.`;
+      countSummary = `작품 ${totalActiveCount}개가 등록되어 있습니다.`;
     } else {
-      countSummary = `전체 ${totalActiveCount}개 중 ${filteredCount}개 작품을 보고 있습니다.`;
+      countSummary = `전체 ${totalActiveCount}개 중 ${filteredCount}개를 보고 있습니다.`;
     }
   }
 
@@ -58,7 +58,7 @@ export function WorksToolbar({
             </Link>
           </>
         }
-        description="기록한 작품을 빠르게 찾아보고, 상태별로 정리해보세요."
+        description="기록한 작품을 빠르게 찾고, 상태별로 정리해보세요."
         eyebrow="라이브러리"
         meta={
           <>
@@ -68,7 +68,7 @@ export function WorksToolbar({
             </div>
             <div className="stat-pill">
               <span className="stat-pill-value">{filteredCount}</span>
-              <span className="stat-pill-label">현재 보기</span>
+              <span className="stat-pill-label">현재 결과</span>
             </div>
             <div className="stat-pill">
               <span className="stat-pill-value">
@@ -97,7 +97,7 @@ export function WorksToolbar({
             onChange={(event) =>
               onQueryChange({ ...query, searchTerm: event.target.value })
             }
-            placeholder="제목이나 작가로 검색"
+            placeholder="제목 또는 작가로 검색"
             value={query.searchTerm}
           />
         </label>
