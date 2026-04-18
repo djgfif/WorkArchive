@@ -7,6 +7,14 @@ export interface AuditFields {
 
 export type EntityId = string;
 
+export const SYNC_ENTITY_TYPES = ['work'] as const;
+
+export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number];
+
+export const SYNC_OPERATIONS = ['create', 'update', 'delete'] as const;
+
+export type SyncOperation = (typeof SYNC_OPERATIONS)[number];
+
 export const WORK_TYPES = [
   'novel',
   'anime',
@@ -61,4 +69,20 @@ export interface WorkRecord extends AuditFields {
   deletedAt: ISODateString | null;
   syncStatus: WorkSyncStatus;
   serverVersion: number;
+}
+
+export interface SyncQueueItemRecord<TPayload = WorkRecord> {
+  id: EntityId;
+  entityType: SyncEntityType;
+  entityId: EntityId;
+  operation: SyncOperation;
+  payload: TPayload;
+  createdAt: ISODateString;
+  retryCount: number;
+  lastError: string | null;
+}
+
+export interface AppMetaRecord {
+  key: string;
+  value: string;
 }

@@ -5,6 +5,7 @@ export function configureApp(app: INestApplication) {
   app.setGlobalPrefix('api', {
     exclude: ['health'],
   });
+  app.enableCors();
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -15,9 +16,9 @@ export function configureApp(app: INestApplication) {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Work Archive API')
     .setDescription(
-      'Milestone 2 backend CRUD foundation for works with NestJS, Prisma, and PostgreSQL.',
+      'Milestone 3 manual sync API for a local-first work archive with NestJS, Prisma, and PostgreSQL.',
     )
-    .setVersion('0.2.0')
+    .setVersion('0.3.0')
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 

@@ -1,12 +1,9 @@
 import type { WorkRecord } from '@work-archive/shared-types';
 
-import {
-  type WorkArchiveDatabase,
-  workArchiveDb,
-} from '../db/work-archive.db';
+import { type WorkArchiveDatabase, workArchiveDb } from '../db/work-archive.db';
 
 export class WorksRepository {
-  constructor(private readonly db: WorkArchiveDatabase = workArchiveDb) {}
+  constructor(readonly db: WorkArchiveDatabase = workArchiveDb) {}
 
   async create(work: WorkRecord) {
     await this.db.works.add(work);
@@ -18,6 +15,16 @@ export class WorksRepository {
     await this.db.works.put(work);
 
     return work;
+  }
+
+  async bulkPut(works: WorkRecord[]) {
+    if (works.length === 0) {
+      return works;
+    }
+
+    await this.db.works.bulkPut(works);
+
+    return works;
   }
 
   async getById(id: string) {

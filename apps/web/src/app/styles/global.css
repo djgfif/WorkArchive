@@ -4,7 +4,11 @@
     radial-gradient(circle at top, rgba(59, 130, 246, 0.18), transparent 40%),
     linear-gradient(180deg, #111827 0%, #020617 100%);
   font-family:
-    'Segoe UI', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    'Segoe UI',
+    'Noto Sans KR',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -389,6 +393,60 @@ h1 {
   color: #93c5fd;
 }
 
+.sync-status-block {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+}
+
+.sync-state-badge,
+.sync-queue-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: rgba(30, 41, 59, 0.85);
+  color: #e2e8f0;
+  font-size: 0.875rem;
+}
+
+.sync-state-idle {
+  color: #cbd5e1;
+}
+
+.sync-state-syncing {
+  color: #fde68a;
+}
+
+.sync-state-success {
+  color: #86efac;
+}
+
+.sync-state-failed {
+  color: #fca5a5;
+}
+
+.sync-result-grid,
+.sync-list {
+  display: grid;
+  gap: 16px;
+}
+
+.sync-result-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.sync-result-card,
+.sync-list-item {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
 @media (max-width: 640px) {
   .app-shell {
     padding: 16px;
@@ -407,6 +465,10 @@ h1 {
   }
 
   .app-header-actions {
+    justify-items: start;
+  }
+
+  .sync-status-block {
     justify-items: start;
   }
 }
