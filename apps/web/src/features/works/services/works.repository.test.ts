@@ -83,4 +83,32 @@ describe('WorksRepository', () => {
     expect(allWorks).toHaveLength(1);
     expect(storedWork?.deletedAt).toBe('2026-01-03T00:00:00.000Z');
   });
+
+  it('restores a soft-deleted work back into the active list', async () => {
+    const work = buildWork({
+      deletedAt: '2026-01-03T00:00:00.000Z',
+      updatedAt: '2026-01-03T00:00:00.000Z',
+    });
+
+    await repository.create(work);
+    await repository.restore(work.id, {
+      deletedAt: null,
+      syncStatus: 'pending',
+      updatedAt: '2026-01-04T00:00:00.000Z',
+    });
+
+    const activeWorks = await repository.listActive();
+    const deletedWorks = await repository.listDeleted();
+    const restoredWork = await repository.getById(work.id);
+
+    expect(activeWorks).toHaveLength(1);
+    expect(deletedWorks).toHaveLength(0);
+    expect(restoredWork).toEqual(
+      expect.objectContaining({
+        deletedAt: null,
+        syncStatus: 'pending',
+        updatedAt: '2026-01-04T00:00:00.000Z',
+      }),
+    );
+  });
 });

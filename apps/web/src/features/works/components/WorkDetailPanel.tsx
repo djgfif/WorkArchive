@@ -14,6 +14,7 @@ import {
 
 interface WorkDetailPanelProps {
   actions?: ReactNode;
+  quickEdit?: ReactNode;
   work: WorkRecord;
 }
 
@@ -109,7 +110,11 @@ function getPrimaryRecord(work: WorkRecord, statusLabel: string) {
   };
 }
 
-export function WorkDetailPanel({ actions, work }: WorkDetailPanelProps) {
+export function WorkDetailPanel({
+  actions,
+  quickEdit,
+  work,
+}: WorkDetailPanelProps) {
   const typeLabel = getWorkTypeLabel(work.type);
   const statusLabel = getWorkStatusLabel(work.status);
   const tierLabel = getWorkTierLabel(work.tier);
@@ -166,6 +171,8 @@ export function WorkDetailPanel({ actions, work }: WorkDetailPanelProps) {
               <strong>{work.review.trim() ? '있음' : '없음'}</strong>
             </div>
           </div>
+
+          {quickEdit}
 
           {actions && <div className="button-row">{actions}</div>}
         </div>

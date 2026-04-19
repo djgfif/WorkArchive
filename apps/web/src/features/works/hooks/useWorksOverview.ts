@@ -8,7 +8,9 @@ import { worksRepository } from '../services/works.repository';
 interface WorksOverviewState {
   averageRating: number | null;
   completedCount: number;
+  deletedCount: number;
   error: string | null;
+  inProgressCount: number;
   isLoading: boolean;
   pausedOrDroppedCount: number;
   recentWorks: WorkRecord[];
@@ -18,7 +20,9 @@ interface WorksOverviewState {
 const initialState: WorksOverviewState = {
   averageRating: null,
   completedCount: 0,
+  deletedCount: 0,
   error: null,
+  inProgressCount: 0,
   isLoading: true,
   pausedOrDroppedCount: 0,
   recentWorks: [],
@@ -41,7 +45,10 @@ export function useWorksOverview() {
     }));
 
     const subscription = liveQuery(async () => {
-      const works = await worksRepository.listActive();
+      const [works, deletedWorks] = await Promise.all([
+        worksRepository.listActive(),
+        worksRepository.listDeleted(),
+      ]);
       const ratedWorks = works.filter((work) => work.rating !== null);
       const totalRating = ratedWorks.reduce(
         (sum, work) => sum + (work.rating ?? 0),
@@ -52,6 +59,8 @@ export function useWorksOverview() {
         averageRating:
           ratedWorks.length > 0 ? totalRating / ratedWorks.length : null,
         completedCount: works.filter((work) => work.status === 'completed').length,
+        deletedCount: deletedWorks.length,
+        inProgressCount: works.filter((work) => work.status === 'in_progress').length,
         pausedOrDroppedCount: works.filter(
           (work) => work.status === 'paused' || work.status === 'dropped',
         ).length,
@@ -59,11 +68,21 @@ export function useWorksOverview() {
         totalCount: works.length,
       };
     }).subscribe({
-      next: ({ averageRating, completedCount, pausedOrDroppedCount, recentWorks, totalCount }) => {
+      next: ({
+        averageRating,
+        completedCount,
+        deletedCount,
+        inProgressCount,
+        pausedOrDroppedCount,
+        recentWorks,
+        totalCount,
+      }) => {
         setState({
           averageRating,
           completedCount,
+          deletedCount,
           error: null,
+          inProgressCount,
           isLoading: false,
           pausedOrDroppedCount,
           recentWorks,

@@ -65,4 +65,50 @@ describe('WorkDetailPage', () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  it('keeps quick edits on detail and links naturally into review editing', async () => {
+    const work = await worksService.createWork({
+      type: 'novel',
+      title: 'Frieren',
+      author: 'Kanehito Yamada',
+      genres: ['Fantasy'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [`/works/${work.id}`],
+    });
+
+    render(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await screen.findByRole('heading', { name: 'Frieren' });
+
+    await user.selectOptions(screen.getByLabelText('Frieren 상세 상태'), 'completed');
+    await waitFor(() => {
+      expect(
+        (screen.getByLabelText('Frieren 상세 상태') as HTMLSelectElement).value,
+      ).toBe('completed');
+    });
+
+    await user.click(screen.getByRole('link', { name: '리뷰 쓰기' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Frieren 감상 수정' }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: '저장' }),
+    ).toBeInTheDocument();
+  });
 });

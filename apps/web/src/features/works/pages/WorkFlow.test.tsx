@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
 import { AuthProvider } from '../../auth/context/AuthProvider';
+import { worksService } from '../services/works.service';
 
 describe('Works routed flow', () => {
   it('creates and edits a work through the UI', async () => {
@@ -56,5 +57,50 @@ describe('Works routed flow', () => {
 
     expect(await screen.findByRole('heading', { name: '작품' })).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'Dune Messiah' })).toBeInTheDocument();
+  });
+
+  it('warns when a likely duplicate already exists before continuing', async () => {
+    await worksService.createWork({
+      type: 'novel',
+      title: 'Dune',
+      author: 'Frank Herbert',
+      genres: ['Science Fiction'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'completed',
+      rating: 4.5,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works/new'],
+    });
+
+    render(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await user.type(screen.getByLabelText(/^작품 검색$/), 'Dune');
+    await user.click(screen.getByRole('button', { name: '검색' }));
+    await user.click(
+      (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: '비슷한 기록이 이미 있습니다' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: '기존 작품 보기' }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '그래도 계속 추가' }));
+
+    expect(await screen.findByLabelText(/^제목$/)).toBeInTheDocument();
   });
 });

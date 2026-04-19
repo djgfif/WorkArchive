@@ -1,8 +1,16 @@
-import type { WorkType } from '@work-archive/shared-types';
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { liveQuery } from 'dexie';
+import type { WorkRecord, WorkType } from '@work-archive/shared-types';
+import {
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from 'react';
 import { Link } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { worksRepository } from '../services/works.repository';
 import {
   createDefaultWorkFormValues,
   parseWorkFormValues,
@@ -10,6 +18,7 @@ import {
   type WorkFormValues,
 } from '../utils/work-form';
 import {
+  getWorkStatusLabel,
   getWorkTypeLabel,
   workStatusOptions,
   workTypeOptions,
@@ -23,11 +32,14 @@ interface QuickAddWorkFormProps {
 
 interface QuickAddCandidate {
   author: string;
+  confidenceLabel: string;
   countLabel: string;
   description: string;
+  formatLabel: string;
   genresText: string;
   id: string;
   note: string;
+  sourceLabel: string;
   title: string;
   type: WorkType;
 }
@@ -48,40 +60,75 @@ function createQuickAddDefaults(): WorkFormValues {
   };
 }
 
+function normalizeTitle(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\([^)]*\)\s*$/g, '')
+    .replace(/[^0-9a-z가-힣]+/g, '');
+}
+
+function findLikelyMatches(
+  candidate: QuickAddCandidate,
+  existingWorks: WorkRecord[],
+) {
+  const candidateTitleKeys = Array.from(
+    new Set(
+      [candidate.title, candidate.title.replace(/\s*\([^)]*\)\s*$/, '')]
+        .map(normalizeTitle)
+        .filter(Boolean),
+    ),
+  );
+
+  return existingWorks.filter((work) =>
+    candidateTitleKeys.some((key) => normalizeTitle(work.title) === key),
+  );
+}
+
 function buildCandidates(searchTerm: string): QuickAddCandidate[] {
   const normalizedSearchTerm = searchTerm.trim();
 
   return [
     {
       author: '작가 정보 검토 필요',
-      countLabel: '단행본 기준 초안',
+      confidenceLabel: '가장 유력',
+      countLabel: '완결권수 확인 필요',
       description:
-        '검색어 기준으로 가장 기본적인 가져오기 후보입니다. 실제 연동 시에는 표지와 작가, 설명이 함께 채워집니다.',
+        '검색어 기준으로 가장 기본적인 원작 후보입니다. 실제 연동 시에는 표지, 작가, 설명, 권수 정보가 같이 들어옵니다.',
+      formatLabel: '원작 후보',
       genresText: '드라마, 감상 기록',
       id: `${normalizedSearchTerm}-core`,
-      note: '기본 후보',
+      note: '우선 검토',
+      sourceLabel: '기본 메타데이터 초안',
       title: normalizedSearchTerm,
       type: 'novel',
     },
     {
       author: '스튜디오 정보 검토 필요',
-      countLabel: '시즌형 감상 초안',
+      confidenceLabel: '미디어믹스',
+      countLabel: 'TV 시리즈 추정',
       description:
-        '동일 제목의 영상화나 미디어믹스 작품을 가정한 후보입니다. 타입과 설명 검토 흐름을 보여주기 위한 목업입니다.',
+        '동일 제목의 영상화나 미디어믹스 작품을 가정한 후보입니다. 타입과 제작 정보를 비교해서 고르는 흐름을 보여주기 위한 목업입니다.',
+      formatLabel: '영상 후보',
       genresText: '애니, 어댑테이션',
       id: `${normalizedSearchTerm}-screen`,
-      note: '미디어믹스 후보',
+      note: '파생 후보',
+      sourceLabel: '영상화 메타데이터 초안',
       title: `${normalizedSearchTerm} (애니)`,
       type: 'anime',
     },
     {
       author: '연재 정보 검토 필요',
-      countLabel: '연재판 기준 초안',
+      confidenceLabel: '연재형',
+      countLabel: '연재 상태 확인 필요',
       description:
-        '연재형 작품을 상정한 후보입니다. 향후에는 권수나 연재 상태 같은 식별 요소가 함께 들어올 자리를 미리 확보합니다.',
+        '연재형 작품을 상정한 후보입니다. 향후에는 권수, 연재 상태, 플랫폼 같은 식별 요소가 같이 붙는 자리를 미리 확보합니다.',
+      formatLabel: '연재 후보',
       genresText: '웹소설, 연재',
       id: `${normalizedSearchTerm}-serial`,
-      note: '연재형 후보',
+      note: '확장 후보',
+      sourceLabel: '연재 메타데이터 초안',
       title: `${normalizedSearchTerm} (연재판)`,
       type: 'web_novel',
     },
@@ -104,14 +151,34 @@ export function QuickAddWorkForm({
   onSubmit,
   submitError,
 }: QuickAddWorkFormProps) {
+  const { archiveScopeKey } = useAuthSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
   const [candidates, setCandidates] = useState<QuickAddCandidate[]>([]);
+  const [existingWorks, setExistingWorks] = useState<WorkRecord[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<QuickAddCandidate | null>(
     null,
   );
+  const [confirmedDuplicateCandidateId, setConfirmedDuplicateCandidateId] = useState<
+    string | null
+  >(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [values, setValues] = useState<WorkFormValues>(createQuickAddDefaults);
+
+  useEffect(() => {
+    const subscription = liveQuery(() => worksRepository.listAll()).subscribe({
+      next: (works) => {
+        setExistingWorks(works);
+      },
+      error: () => {
+        setExistingWorks([]);
+      },
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [archiveScopeKey]);
 
   function handleInputChange(
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -140,12 +207,16 @@ export function QuickAddWorkForm({
     setValidationError(null);
     setSubmittedSearchTerm(normalizedSearchTerm);
     setSelectedCandidate(null);
+    setConfirmedDuplicateCandidateId(null);
     setCandidates(buildCandidates(normalizedSearchTerm));
     setValues(createQuickAddDefaults());
   }
 
   function handleSelectCandidate(candidate: QuickAddCandidate) {
     setSelectedCandidate(candidate);
+    setConfirmedDuplicateCandidateId((currentValue) =>
+      currentValue === candidate.id ? currentValue : null,
+    );
     setValidationError(null);
     setValues(createValuesFromCandidate(candidate));
   }
@@ -168,7 +239,16 @@ export function QuickAddWorkForm({
     }
   }
 
-  const activeStep = selectedCandidate ? 4 : candidates.length > 0 ? 2 : 1;
+  const duplicateMatches =
+    selectedCandidate === null
+      ? []
+      : findLikelyMatches(selectedCandidate, existingWorks);
+  const shouldConfirmDuplicate =
+    selectedCandidate !== null &&
+    duplicateMatches.length > 0 &&
+    confirmedDuplicateCandidateId !== selectedCandidate.id;
+  const activeStep =
+    selectedCandidate && !shouldConfirmDuplicate ? 4 : candidates.length > 0 ? 2 : 1;
 
   return (
     <div className="stack">
@@ -236,49 +316,146 @@ export function QuickAddWorkForm({
               <h3 className="section-title">검색 결과 선택</h3>
               <p className="section-description">
                 &quot;{submittedSearchTerm}&quot; 기준 후보 {candidates.length}개를
-                준비했습니다. 실제 연동 시에는 표지, 작가, 권수 정보가 여기로
-                들어옵니다.
+                준비했습니다. 표지, 타입, 설명, 형식 정보를 비교해서 가장 가까운
+                후보를 먼저 고르세요.
               </p>
             </div>
           </div>
 
           <div className="quick-add-candidate-grid">
-            {candidates.map((candidate) => (
-              <button
-                aria-label={`${candidate.title} ${getWorkTypeLabel(candidate.type)} 후보 선택`}
-                className={
-                  selectedCandidate?.id === candidate.id
-                    ? 'quick-add-candidate active'
-                    : 'quick-add-candidate'
-                }
-                key={candidate.id}
-                onClick={() => handleSelectCandidate(candidate)}
-                type="button"
-              >
-                <ArtworkPoster
-                  title={candidate.title}
-                  typeLabel={getWorkTypeLabel(candidate.type)}
-                  variant="row"
-                />
-                <div className="quick-add-candidate-copy">
-                  <div className="quick-add-candidate-meta">
-                    <span className="badge">{candidate.note}</span>
-                    <span className="badge">{getWorkTypeLabel(candidate.type)}</span>
-                    <span className="badge">{candidate.countLabel}</span>
+            {candidates.map((candidate) => {
+              const candidateMatches = findLikelyMatches(candidate, existingWorks);
+
+              return (
+                <button
+                  aria-label={`${candidate.title} ${getWorkTypeLabel(candidate.type)} 후보 선택`}
+                  className={
+                    selectedCandidate?.id === candidate.id
+                      ? 'quick-add-candidate active'
+                      : 'quick-add-candidate'
+                  }
+                  key={candidate.id}
+                  onClick={() => handleSelectCandidate(candidate)}
+                  type="button"
+                >
+                  <ArtworkPoster
+                    title={candidate.title}
+                    typeLabel={getWorkTypeLabel(candidate.type)}
+                    variant="row"
+                  />
+                  <div className="quick-add-candidate-copy">
+                    <div className="quick-add-candidate-meta">
+                      <span className="mode-badge">{candidate.confidenceLabel}</span>
+                      <span className="badge">{candidate.note}</span>
+                      <span className="badge">{getWorkTypeLabel(candidate.type)}</span>
+                      {candidateMatches.length > 0 && (
+                        <span className="badge badge-warning">
+                          비슷한 기록 {candidateMatches.length}개
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="stack">
+                      <h4 className="section-title">{candidate.title}</h4>
+                      <p className="muted-copy">{candidate.author}</p>
+                    </div>
+
+                    <div className="quick-add-candidate-facts">
+                      <div className="quick-add-candidate-fact">
+                        <span className="works-list-label">형식</span>
+                        <strong>{candidate.formatLabel}</strong>
+                      </div>
+                      <div className="quick-add-candidate-fact">
+                        <span className="works-list-label">식별 정보</span>
+                        <strong>{candidate.countLabel}</strong>
+                      </div>
+                      <div className="quick-add-candidate-fact">
+                        <span className="works-list-label">초안 출처</span>
+                        <strong>{candidate.sourceLabel}</strong>
+                      </div>
+                    </div>
+
+                    <p className="muted-copy">{candidate.description}</p>
                   </div>
-                  <div className="stack">
-                    <h4 className="section-title">{candidate.title}</h4>
-                    <p className="muted-copy">{candidate.author}</p>
-                  </div>
-                  <p className="muted-copy">{candidate.description}</p>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </section>
       )}
 
-      {selectedCandidate && (
+      {selectedCandidate && shouldConfirmDuplicate && (
+        <section className="panel stack quick-add-duplicate-panel">
+          <div className="section-heading">
+            <p className="section-kicker">중복 확인</p>
+            <h3 className="section-title">비슷한 기록이 이미 있습니다</h3>
+            <p className="section-description">
+              같은 제목의 작품을 이미 기록했을 수 있습니다. 먼저 기존 기록을 열어보고,
+              다른 작품이 맞다면 계속 추가하세요.
+            </p>
+          </div>
+
+          <div className="quick-add-duplicate-list">
+            {duplicateMatches.map((work) => (
+              <article className="quick-add-duplicate-card" key={work.id}>
+                <ArtworkPoster
+                  thumbnailUrl={work.thumbnailUrl}
+                  title={work.title}
+                  typeLabel={getWorkTypeLabel(work.type)}
+                  variant="row"
+                />
+                <div className="stack">
+                  <div className="badge-row">
+                    <span className="badge">
+                      {work.deletedAt === null ? '기존 기록' : '휴지통'}
+                    </span>
+                    <span className="badge">{getWorkTypeLabel(work.type)}</span>
+                    <span className="badge">{getWorkStatusLabel(work.status)}</span>
+                  </div>
+                  <p className="card-title">{work.title}</p>
+                  <p className="muted-copy">
+                    {work.author || '작가·제작자 미입력'}
+                  </p>
+                </div>
+                <div className="button-row">
+                  {work.deletedAt === null ? (
+                    <Link className="secondary-link" to={`/works/${work.id}`}>
+                      기존 작품 보기
+                    </Link>
+                  ) : (
+                    <Link
+                      className="secondary-link"
+                      to={`/works?scope=trash&q=${encodeURIComponent(work.title)}`}
+                    >
+                      휴지통에서 보기
+                    </Link>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="button-row">
+            <button
+              onClick={() => setConfirmedDuplicateCandidateId(selectedCandidate.id)}
+              type="button"
+            >
+              그래도 계속 추가
+            </button>
+            <button
+              onClick={() => {
+                setSelectedCandidate(null);
+                setValues(createQuickAddDefaults());
+              }}
+              type="button"
+            >
+              다른 후보 보기
+            </button>
+          </div>
+        </section>
+      )}
+
+      {selectedCandidate && !shouldConfirmDuplicate && (
         <form className="stack" onSubmit={handleSubmit}>
           <section className="panel stack">
             <div className="section-heading">
@@ -299,7 +476,9 @@ export function QuickAddWorkForm({
               />
               <div className="stack">
                 <div className="badge-row">
+                  <span className="mode-badge">{selectedCandidate.confidenceLabel}</span>
                   <span className="badge">{selectedCandidate.note}</span>
+                  <span className="badge">{selectedCandidate.formatLabel}</span>
                   <span className="badge">{selectedCandidate.countLabel}</span>
                   <span className="badge">자동 채움 초안</span>
                 </div>
@@ -307,6 +486,10 @@ export function QuickAddWorkForm({
                 <p className="muted-copy">{values.author || '작가·제작자 미입력'}</p>
                 <p className="card-summary">
                   {values.description || '설명은 아직 없습니다.'}
+                </p>
+                <p className="muted-copy">
+                  {selectedCandidate.sourceLabel} 기준으로 가져온 초안입니다. 제목, 타입,
+                  작가만 먼저 확인하면 피로를 많이 줄일 수 있습니다.
                 </p>
               </div>
             </div>

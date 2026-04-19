@@ -1,4 +1,10 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from 'react';
 import { Link } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
@@ -19,6 +25,7 @@ import {
 
 interface WorkFormProps {
   cancelTo: string;
+  focusArea?: 'general' | 'review';
   initialValues?: WorkFormValues;
   isSubmitting: boolean;
   onSubmit: (input: UpsertWorkInput) => Promise<void>;
@@ -28,6 +35,7 @@ interface WorkFormProps {
 
 export function WorkForm({
   cancelTo,
+  focusArea = 'general',
   initialValues,
   isSubmitting,
   onSubmit,
@@ -38,10 +46,20 @@ export function WorkForm({
     initialValues ?? createDefaultWorkFormValues(),
   );
   const [validationError, setValidationError] = useState<string | null>(null);
+  const reviewSectionRef = useRef<HTMLElement | null>(null);
+  const shortReviewInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const reviewInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const hasFocusedReviewRef = useRef(false);
 
   useEffect(() => {
     setValues(initialValues ?? createDefaultWorkFormValues());
   }, [initialValues]);
+
+  useEffect(() => {
+    if (focusArea !== 'review') {
+      hasFocusedReviewRef.current = false;
+    }
+  }, [focusArea]);
 
   const previewTitle = values.title.trim() || '제목 없는 작품';
   const previewGenres = values.genresText
@@ -49,6 +67,25 @@ export function WorkForm({
     .map((genre) => genre.trim())
     .filter(Boolean)
     .slice(0, 4);
+  const shortReviewLength = values.shortReview.trim().length;
+  const reviewLength = values.review.trim().length;
+
+  useEffect(() => {
+    if (focusArea !== 'review' || hasFocusedReviewRef.current) {
+      return;
+    }
+
+    reviewSectionRef.current?.scrollIntoView?.({
+      behavior: 'smooth',
+      block: 'start',
+    });
+
+    const focusTarget =
+      shortReviewLength === 0 ? shortReviewInputRef.current : reviewInputRef.current;
+
+    focusTarget?.focus();
+    hasFocusedReviewRef.current = true;
+  }, [focusArea, reviewLength, shortReviewLength]);
 
   function handleInputChange(
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -242,10 +279,38 @@ export function WorkForm({
           </div>
         </section>
 
-        <section className="form-section stack">
+        <section
+          className={
+            focusArea === 'review'
+              ? 'form-section form-section--focus stack'
+              : 'form-section stack'
+          }
+          id="review-writing-section"
+          ref={reviewSectionRef}
+        >
           <div className="section-heading">
             <p className="section-kicker">감상 기록</p>
-            <h3 className="section-title">감상을 남겨보세요</h3>
+            <h3 className="section-title">
+              {focusArea === 'review' ? '이번엔 감상 문장에 집중해보세요' : '감상을 남겨보세요'}
+            </h3>
+            <p className="section-description">
+              {focusArea === 'review'
+                ? '한줄평은 목록과 최근 기록에 먼저 보이고, 상세 감상은 펼쳐보기 카드 안에서 천천히 읽게 됩니다.'
+                : '짧은 감상과 긴 감상을 나눠두면 나중에 다시 읽을 때 더 편합니다.'}
+            </p>
+          </div>
+
+          <div className="review-focus-metrics">
+            <article className="review-focus-card">
+              <span className="works-list-label">한줄평</span>
+              <strong>{shortReviewLength > 0 ? `${shortReviewLength}자` : '아직 없음'}</strong>
+              <p className="muted-copy">목록과 홈 최근 기록에 우선 노출됩니다.</p>
+            </article>
+            <article className="review-focus-card">
+              <span className="works-list-label">상세 감상</span>
+              <strong>{reviewLength > 0 ? `${reviewLength}자` : '아직 없음'}</strong>
+              <p className="muted-copy">상세 화면에서는 펼쳐보기 방식으로 보여집니다.</p>
+            </article>
           </div>
 
           <div className="form-grid">
@@ -256,6 +321,7 @@ export function WorkForm({
                 name="shortReview"
                 onChange={handleInputChange}
                 placeholder="나중에 빠르게 훑어볼 수 있는 짧은 감상을 남겨보세요"
+                ref={shortReviewInputRef}
                 rows={3}
                 value={values.shortReview}
               />
@@ -268,6 +334,7 @@ export function WorkForm({
                 name="review"
                 onChange={handleInputChange}
                 placeholder="조금 더 길게 남기고 싶은 생각이나 감상을 적어보세요"
+                ref={reviewInputRef}
                 rows={8}
                 value={values.review}
               />
@@ -342,7 +409,9 @@ export function WorkForm({
             </div>
 
             <p className="work-preview-note">
-              지금은 핵심만 저장하고, 나중에 천천히 더 채워도 됩니다.
+              {focusArea === 'review'
+                ? '지금 쓰는 감상은 저장 후 상세 화면의 리뷰 영역으로 바로 이어집니다.'
+                : '지금은 핵심만 저장하고, 나중에 천천히 더 채워도 됩니다.'}
             </p>
           </div>
         </div>

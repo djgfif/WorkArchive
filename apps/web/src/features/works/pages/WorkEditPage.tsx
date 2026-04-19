@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { PageHero } from '../../../shared/components/PageHero';
 import { WorkForm } from '../components/WorkForm';
@@ -13,9 +13,11 @@ import {
 export function WorkEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { error, isLoading, work } = useWorkDetail(id);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const focusArea = searchParams.get('focus') === 'review' ? 'review' : 'general';
 
   async function handleSubmit(input: UpsertWorkInput) {
     if (!id) {
@@ -74,11 +76,22 @@ export function WorkEditPage() {
     <section className="stack">
       <PageHero
         actions={
-          <Link className="secondary-link" to={`/works/${work.id}`}>
-            상세로 돌아가기
-          </Link>
+          <>
+            <Link className="secondary-link" to={`/works/${work.id}`}>
+              상세로 돌아가기
+            </Link>
+            {focusArea === 'review' && (
+              <Link className="secondary-link" to={`/works/${work.id}/edit`}>
+                전체 수정 모드
+              </Link>
+            )}
+          </>
         }
-        description="제목, 상태, 감상을 필요한 만큼만 다듬어보세요."
+        description={
+          focusArea === 'review'
+            ? '이번에는 감상 기록에만 집중합니다. 한줄평과 상세 감상만 정리해도 충분합니다.'
+            : '제목, 상태, 감상을 필요한 만큼만 다듬어보세요.'
+        }
         eyebrow="수정"
         meta={
           <>
@@ -87,16 +100,23 @@ export function WorkEditPage() {
               <span className="stat-pill-label">현재 제목</span>
             </div>
             <div className="stat-pill">
-              <span className="stat-pill-value">저장 즉시 반영</span>
-              <span className="stat-pill-label">작품 목록에 바로 반영</span>
+              <span className="stat-pill-value">
+                {focusArea === 'review' ? '리뷰 집중 모드' : '저장 즉시 반영'}
+              </span>
+              <span className="stat-pill-label">
+                {focusArea === 'review'
+                  ? '감상 문장을 먼저 정리'
+                  : '작품 목록에 바로 반영'}
+              </span>
             </div>
           </>
         }
-        title={`${work.title} 수정`}
+        title={focusArea === 'review' ? `${work.title} 감상 수정` : `${work.title} 수정`}
       />
 
       <WorkForm
         cancelTo={`/works/${work.id}`}
+        focusArea={focusArea}
         initialValues={createWorkFormValuesFromRecord(work)}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}

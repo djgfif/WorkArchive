@@ -469,6 +469,12 @@ h1 {
   color: var(--accent-warm);
 }
 
+.badge-warning {
+  color: #fde68a;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  background: rgba(120, 53, 15, 0.28);
+}
+
 .tag {
   min-height: 30px;
   padding: 5px 11px;
@@ -541,6 +547,13 @@ h1 {
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
+}
+
+.toolbar-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .search-field {
@@ -810,6 +823,45 @@ h1 {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
+.detail-quick-edit {
+  display: grid;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.44);
+}
+
+.detail-quick-edit--busy {
+  border-color: rgba(125, 211, 252, 0.24);
+  background:
+    linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(15, 23, 42, 0.44)),
+    rgba(15, 23, 42, 0.44);
+}
+
+.detail-quick-edit-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.detail-quick-edit-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.detail-review-shortcut {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 16px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.52);
+}
+
 .detail-review-grid {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
@@ -915,6 +967,15 @@ h1 {
   border-top: 1px solid rgba(148, 163, 184, 0.12);
 }
 
+.form-section--focus {
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  background:
+    linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(15, 23, 42, 0.24)),
+    rgba(15, 23, 42, 0.4);
+}
+
 .form-actions {
   padding-top: 8px;
 }
@@ -932,6 +993,25 @@ h1 {
 
 .work-preview-note {
   font-size: 0.92rem;
+}
+
+.review-focus-metrics {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.review-focus-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.review-focus-card strong {
+  font-size: 1.1rem;
 }
 
 .thumbnail-preview,
@@ -1200,6 +1280,11 @@ h1 {
   background: rgba(15, 23, 42, 0.46);
 }
 
+.home-stat-card:hover {
+  border-color: rgba(125, 211, 252, 0.24);
+  background: rgba(15, 23, 42, 0.58);
+}
+
 .home-stat-card strong {
   font-size: 1.28rem;
   line-height: 1.1;
@@ -1327,6 +1412,25 @@ h1 {
   color: var(--text-secondary);
 }
 
+.filter-chip-count {
+  min-width: 28px;
+  padding-inline: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #dbeafe;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.works-trash-explainer {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.42);
+}
+
 .workspace-hint-card {
   display: grid;
   gap: 12px;
@@ -1345,9 +1449,23 @@ h1 {
 }
 
 .works-list-shell,
-.works-list-stack {
+.works-list-stack,
+.works-trash-stack {
   display: grid;
   gap: 12px;
+}
+
+.works-trash-surface {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+}
+
+.works-trash-surface-copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
 }
 
 .works-list-head,
@@ -1423,6 +1541,43 @@ h1 {
 
 .works-list-row-action-buttons {
   gap: 8px;
+}
+
+.works-trash-row {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 84px minmax(0, 1fr);
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.works-trash-row--busy {
+  border-color: rgba(125, 211, 252, 0.24);
+  background:
+    linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(15, 23, 42, 0.46)),
+    rgba(15, 23, 42, 0.46);
+}
+
+.works-trash-row-copy {
+  display: grid;
+  gap: 12px;
+}
+
+.works-trash-row-header,
+.works-trash-row-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.works-trash-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  max-width: 52ch;
 }
 
 .quick-add-steps {
@@ -1511,6 +1666,25 @@ h1 {
   gap: 8px;
 }
 
+.quick-add-candidate-facts {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.quick-add-candidate-fact {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.quick-add-candidate-fact strong {
+  font-size: 0.94rem;
+}
+
 .quick-add-review-grid,
 .quick-add-personal-grid {
   display: grid;
@@ -1557,6 +1731,22 @@ h1 {
 
 .quick-add-required-card--wide {
   grid-column: 1 / -1;
+}
+
+.quick-add-duplicate-panel,
+.quick-add-duplicate-list {
+  display: grid;
+  gap: 14px;
+}
+
+.quick-add-duplicate-card {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(251, 191, 36, 0.16);
+  background: rgba(15, 23, 42, 0.42);
 }
 
 .quick-add-complete-actions {
@@ -1614,7 +1804,11 @@ h1 {
   .page-hero,
   .shell-topbar,
   .shell-nav-row,
-  .work-card-heading {
+  .work-card-heading,
+  .works-trash-surface,
+  .works-trash-row-header,
+  .works-trash-row-footer,
+  .detail-quick-edit-header {
     flex-direction: column;
   }
 
@@ -1629,7 +1823,8 @@ h1 {
   }
 
   .work-form-layout,
-  .work-detail-hero {
+  .work-detail-hero,
+  .detail-quick-edit-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1707,6 +1902,11 @@ h1 {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .review-focus-metrics,
+  .quick-add-candidate-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .quick-add-personal-header {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1718,7 +1918,9 @@ h1 {
   .quick-add-complete-preview,
   .quick-add-selection-summary,
   .quick-add-preview-card,
-  .quick-add-candidate {
+  .quick-add-candidate,
+  .works-trash-row,
+  .quick-add-duplicate-card {
     grid-template-columns: minmax(0, 1fr);
   }
 }

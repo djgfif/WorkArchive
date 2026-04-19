@@ -1,4 +1,8 @@
-import type { WorkRecord, WorkSyncStatus } from '@work-archive/shared-types';
+import type {
+  WorkRecord,
+  WorkStatus,
+  WorkSyncStatus,
+} from '@work-archive/shared-types';
 import type { WorksRepository } from './works.repository';
 
 import {
@@ -14,8 +18,30 @@ function getNextSyncStatus(serverVersion: number): WorkSyncStatus {
 }
 
 interface WorksListResult {
+  statusCounts: Record<WorkStatus, number>;
   totalActiveCount: number;
+  totalDeletedCount: number;
   works: WorkRecord[];
+}
+
+export type WorksCollectionScope = 'active' | 'trash';
+
+function buildEmptyStatusCounts(): Record<WorkStatus, number> {
+  return {
+    completed: 0,
+    dropped: 0,
+    in_progress: 0,
+    paused: 0,
+    planned: 0,
+  };
+}
+
+function countStatuses(works: WorkRecord[]) {
+  return works.reduce((counts, work) => {
+    counts[work.status] += 1;
+
+    return counts;
+  }, buildEmptyStatusCounts());
 }
 
 export class WorksService {
@@ -24,12 +50,20 @@ export class WorksService {
     private readonly queueRepository: SyncQueueRepository = syncQueueRepository,
   ) {}
 
-  async listWorks(query: WorksListQuery) {
-    const activeWorks = await this.repository.listActive();
+  async listWorks(
+    query: WorksListQuery,
+    scope: WorksCollectionScope = 'active',
+  ) {
+    const allWorks = await this.repository.listAll();
+    const activeWorks = allWorks.filter((work) => work.deletedAt === null);
+    const deletedWorks = allWorks.filter((work) => work.deletedAt !== null);
+    const worksInScope = scope === 'trash' ? deletedWorks : activeWorks;
 
     return {
-      works: queryWorks(activeWorks, query),
+      statusCounts: countStatuses(activeWorks),
       totalActiveCount: activeWorks.length,
+      totalDeletedCount: deletedWorks.length,
+      works: queryWorks(worksInScope, query),
     } satisfies WorksListResult;
   }
 
@@ -102,6 +136,29 @@ export class WorksService {
     await this.queueRepository.enqueueWorkChange(deleted, 'delete');
 
     return deleted;
+  }
+
+  async restoreWork(id: string) {
+    const existing = await this.repository.getById(id);
+
+    if (!existing || existing.deletedAt === null) {
+      throw new Error('복원할 작품을 찾을 수 없습니다.');
+    }
+
+    const restoredAt = new Date().toISOString();
+    const restored = await this.repository.restore(id, {
+      deletedAt: null,
+      syncStatus: getNextSyncStatus(existing.serverVersion),
+      updatedAt: restoredAt,
+    });
+
+    if (!restored) {
+      throw new Error('복원할 작품을 찾을 수 없습니다.');
+    }
+
+    await this.queueRepository.enqueueWorkChange(restored, 'update');
+
+    return restored;
   }
 }
 
