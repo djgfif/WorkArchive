@@ -17,6 +17,7 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
   const statusLabel = getWorkStatusLabel(work.status);
   const visibleGenres = work.genres.slice(0, 3);
+  const ratingLabel = work.rating === null ? '미평가' : `${work.rating.toFixed(1)}점`;
 
   return (
     <article className="panel work-card">
@@ -38,15 +39,16 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
       </Link>
 
       <div className="work-card-body">
-          <div className="work-card-heading">
-            <div className="stack work-card-title-block">
-              <div className="badge-row">
-                <span className="badge">{statusLabel}</span>
-                {work.rating !== null && <span className="badge">{work.rating}점</span>}
-              </div>
-              <h3 className="card-title">
-                <Link className="text-link" to={`/works/${work.id}`}>
-                  {work.title}
+        <div className="badge-row">
+          <span className="badge">{statusLabel}</span>
+          <span className="badge">{ratingLabel}</span>
+        </div>
+
+        <div className="work-card-heading">
+          <div className="stack work-card-title-block">
+            <h3 className="card-title">
+              <Link className="text-link" to={`/works/${work.id}`}>
+                {work.title}
               </Link>
             </h3>
             <p className="muted-copy">
@@ -66,6 +68,23 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
         <p className="card-summary">
           {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
         </p>
+
+        <div className="work-card-meta-grid">
+          <div className="work-card-meta-item">
+            <span className="works-list-label">타입</span>
+            <strong>{typeLabel}</strong>
+          </div>
+          <div className="work-card-meta-item">
+            <span className="works-list-label">상태</span>
+            <strong>{statusLabel}</strong>
+          </div>
+          <div className="work-card-meta-item">
+            <span className="works-list-label">장르</span>
+            <strong>
+              {visibleGenres.length > 0 ? visibleGenres.join(', ') : '장르 없음'}
+            </strong>
+          </div>
+        </div>
 
         <div className="work-card-footer">
           <div className="tag-list" aria-label="장르">
@@ -101,6 +120,10 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
               삭제
             </button>
           </div>
+
+          <p className="work-card-action-note">
+            삭제하면 현재 목록에서 숨겨집니다.
+          </p>
         </div>
       </div>
     </article>

@@ -97,7 +97,9 @@ export function WorksToolbar({
         <div className="toolbar-header">
           <div>
             <h3 className="section-title">찾기와 정리</h3>
-            <p className="muted-copy">{countSummary}</p>
+            <p className="muted-copy">
+              {countSummary} {viewMode === 'list' ? '기본은 관리 중심 리스트입니다.' : '그리드는 표지 중심 탐색용입니다.'}
+            </p>
           </div>
 
           <div aria-label="보기 방식" className="segmented-control" role="group">
@@ -196,9 +198,16 @@ export function WorksToolbar({
           </label>
 
           <div className="workspace-hint-card">
-            <span className="mode-badge">관리 우선</span>
+            <span className="mode-badge">
+              {viewMode === 'list' ? '기본 보기' : '보조 보기'}
+            </span>
             <p className="muted-copy">
-              리스트 뷰에서는 상태와 별점을 바로 바꿀 수 있습니다.
+              {viewMode === 'list'
+                ? '리스트 뷰에서는 상태와 별점을 바로 바꿀 수 있습니다.'
+                : '그리드 뷰는 표지 중심으로 둘러볼 때 더 편합니다.'}
+            </p>
+            <p className="workspace-note">
+              삭제한 작품은 현재 목록에서 숨겨집니다. 휴지통 흐름은 다음 단계에서 이어집니다.
             </p>
           </div>
         </div>

@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   formatWorkUpdatedAt,
-  getWorkStatusLabel,
   getWorkTypeLabel,
   workStatusOptions,
 } from '../utils/work-options';
@@ -30,6 +29,10 @@ const ratingOptions = Array.from({ length: 10 }, (_, index) => {
   };
 });
 
+function formatRatingLabel(value: number | null) {
+  return value === null ? '미평가' : `${value.toFixed(1)}점`;
+}
+
 export function WorkListRow({
   isUpdating,
   onDelete,
@@ -37,9 +40,12 @@ export function WorkListRow({
   work,
 }: WorkListRowProps) {
   const typeLabel = getWorkTypeLabel(work.type);
+  const rowClassName = isUpdating
+    ? 'works-list-row works-list-row--updating'
+    : 'works-list-row';
 
   return (
-    <article className="works-list-row">
+    <article className={rowClassName}>
       <Link
         aria-label={`${work.title} 상세 보기`}
         className="works-list-row-cover"
@@ -54,9 +60,9 @@ export function WorkListRow({
       </Link>
 
       <div className="works-list-row-main">
-        <div className="badge-row">
-          <span className="badge">{typeLabel}</span>
+        <div className="works-list-row-topline">
           {work.favorite && <span className="badge badge-accent">즐겨찾기</span>}
+          {isUpdating && <span className="mode-badge">반영 중</span>}
         </div>
 
         <div className="stack works-list-row-copy">
@@ -80,7 +86,7 @@ export function WorkListRow({
         <strong>{typeLabel}</strong>
       </div>
 
-      <label className="works-list-inline-field" htmlFor={`rating-${work.id}`}>
+      <label className="works-list-control-card" htmlFor={`rating-${work.id}`}>
         <span className="works-list-label">별점</span>
         <select
           aria-label={`${work.title} 별점`}
@@ -103,9 +109,10 @@ export function WorkListRow({
             </option>
           ))}
         </select>
+        <span className="works-list-helper">{formatRatingLabel(work.rating)}</span>
       </label>
 
-      <label className="works-list-inline-field" htmlFor={`status-${work.id}`}>
+      <label className="works-list-control-card" htmlFor={`status-${work.id}`}>
         <span className="works-list-label">상태</span>
         <select
           aria-label={`${work.title} 상태`}
@@ -124,10 +131,10 @@ export function WorkListRow({
             </option>
           ))}
         </select>
+        <span className="works-list-helper">빠르게 변경 가능</span>
       </label>
 
       <div className="works-list-row-actions">
-        <span className="badge">{getWorkStatusLabel(work.status)}</span>
         <div className="button-row works-list-row-action-buttons">
           <Link className="secondary-link" to={`/works/${work.id}`}>
             보기
@@ -145,6 +152,9 @@ export function WorkListRow({
             삭제
           </button>
         </div>
+        <p className="works-trash-hint">
+          삭제하면 지금은 목록에서 숨겨집니다.
+        </p>
       </div>
     </article>
   );

@@ -1,3 +1,4 @@
+import type { WorkType } from '@work-archive/shared-types';
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -21,9 +22,14 @@ interface QuickAddWorkFormProps {
 }
 
 interface QuickAddCandidate {
+  author: string;
+  countLabel: string;
   description: string;
+  genresText: string;
+  id: string;
   note: string;
   title: string;
+  type: WorkType;
 }
 
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
@@ -42,11 +48,54 @@ function createQuickAddDefaults(): WorkFormValues {
   };
 }
 
-function buildCandidate(searchTerm: string): QuickAddCandidate {
+function buildCandidates(searchTerm: string): QuickAddCandidate[] {
+  const normalizedSearchTerm = searchTerm.trim();
+
+  return [
+    {
+      author: '작가 정보 검토 필요',
+      countLabel: '단행본 기준 초안',
+      description:
+        '검색어 기준으로 가장 기본적인 가져오기 후보입니다. 실제 연동 시에는 표지와 작가, 설명이 함께 채워집니다.',
+      genresText: '드라마, 감상 기록',
+      id: `${normalizedSearchTerm}-core`,
+      note: '기본 후보',
+      title: normalizedSearchTerm,
+      type: 'novel',
+    },
+    {
+      author: '스튜디오 정보 검토 필요',
+      countLabel: '시즌형 감상 초안',
+      description:
+        '동일 제목의 영상화나 미디어믹스 작품을 가정한 후보입니다. 타입과 설명 검토 흐름을 보여주기 위한 목업입니다.',
+      genresText: '애니, 어댑테이션',
+      id: `${normalizedSearchTerm}-screen`,
+      note: '미디어믹스 후보',
+      title: `${normalizedSearchTerm} (애니)`,
+      type: 'anime',
+    },
+    {
+      author: '연재 정보 검토 필요',
+      countLabel: '연재판 기준 초안',
+      description:
+        '연재형 작품을 상정한 후보입니다. 향후에는 권수나 연재 상태 같은 식별 요소가 함께 들어올 자리를 미리 확보합니다.',
+      genresText: '웹소설, 연재',
+      id: `${normalizedSearchTerm}-serial`,
+      note: '연재형 후보',
+      title: `${normalizedSearchTerm} (연재판)`,
+      type: 'web_novel',
+    },
+  ];
+}
+
+function createValuesFromCandidate(candidate: QuickAddCandidate): WorkFormValues {
   return {
-    description: '현재 단계에서는 제목 기반 초안을 먼저 만들고, 메타데이터 연동은 다음 단계에서 확장합니다.',
-    note: '외부 메타데이터 연동 전 단계',
-    title: searchTerm,
+    ...createQuickAddDefaults(),
+    author: candidate.author,
+    description: candidate.description,
+    genresText: candidate.genresText,
+    title: candidate.title,
+    type: candidate.type,
   };
 }
 
@@ -57,6 +106,7 @@ export function QuickAddWorkForm({
 }: QuickAddWorkFormProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
+  const [candidates, setCandidates] = useState<QuickAddCandidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<QuickAddCandidate | null>(
     null,
   );
@@ -90,15 +140,14 @@ export function QuickAddWorkForm({
     setValidationError(null);
     setSubmittedSearchTerm(normalizedSearchTerm);
     setSelectedCandidate(null);
+    setCandidates(buildCandidates(normalizedSearchTerm));
+    setValues(createQuickAddDefaults());
   }
 
   function handleSelectCandidate(candidate: QuickAddCandidate) {
     setSelectedCandidate(candidate);
     setValidationError(null);
-    setValues((currentValues) => ({
-      ...currentValues,
-      title: candidate.title,
-    }));
+    setValues(createValuesFromCandidate(candidate));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -119,26 +168,25 @@ export function QuickAddWorkForm({
     }
   }
 
-  const candidate = submittedSearchTerm ? buildCandidate(submittedSearchTerm) : null;
-  const activeStep = selectedCandidate ? 4 : candidate ? 2 : 1;
+  const activeStep = selectedCandidate ? 4 : candidates.length > 0 ? 2 : 1;
 
   return (
     <div className="stack">
       <div className="quick-add-steps" aria-label="작품 추가 단계">
-        {[
-          '검색',
-          '선택',
-          '자동 채움',
-          '개인 기록 입력',
-          '저장',
-        ].map((label, index) => {
+        {['검색', '선택', '자동 채움', '개인 기록 입력', '저장'].map((label, index) => {
           const stepNumber = index + 1;
           const isActive = activeStep === stepNumber;
           const isComplete = activeStep > stepNumber;
 
           return (
             <div
-              className={isActive ? 'quick-add-step active' : isComplete ? 'quick-add-step complete' : 'quick-add-step'}
+              className={
+                isActive
+                  ? 'quick-add-step active'
+                  : isComplete
+                    ? 'quick-add-step complete'
+                    : 'quick-add-step'
+              }
               key={label}
             >
               <span className="quick-add-step-number">{stepNumber}</span>
@@ -153,8 +201,8 @@ export function QuickAddWorkForm({
           <p className="section-kicker">1단계</p>
           <h3 className="section-title">작품 검색</h3>
           <p className="section-description">
-            최종 흐름은 검색에서 시작합니다. 지금은 제목 기반 초안을 만들어 같은
-            구조로 이어지게 합니다.
+            검색에서 시작하고 후보를 고르는 흐름을 먼저 고정합니다. 실제 메타데이터
+            연동은 다음 단계에서 붙입니다.
           </p>
         </div>
 
@@ -171,47 +219,61 @@ export function QuickAddWorkForm({
           <button type="submit">검색</button>
         </form>
 
-        <p className="muted-copy">
-          외부 메타데이터 연동이 들어오면 이 단계에서 표지, 작가, 설명을 자동으로
-          가져오게 됩니다.
-        </p>
+        <div className="quick-add-search-meta">
+          <span className="badge">외부 API 연동 전</span>
+          <p className="muted-copy">
+            지금은 검색어 기반 목업 후보를 보여주지만, 선택 이후의 구조는 실제
+            가져오기 플로우와 동일하게 유지합니다.
+          </p>
+        </div>
       </section>
 
-      {candidate && (
+      {candidates.length > 0 && (
         <section className="panel stack">
-          <div className="section-heading">
-            <p className="section-kicker">2단계</p>
-            <h3 className="section-title">검색 결과 선택</h3>
-            <p className="section-description">
-              검색 결과에서 작품을 고르면 다음 단계에서 자동 채움된 초안을 검토할
-              수 있습니다.
-            </p>
+          <div className="quick-add-results-header">
+            <div className="section-heading">
+              <p className="section-kicker">2단계</p>
+              <h3 className="section-title">검색 결과 선택</h3>
+              <p className="section-description">
+                &quot;{submittedSearchTerm}&quot; 기준 후보 {candidates.length}개를
+                준비했습니다. 실제 연동 시에는 표지, 작가, 권수 정보가 여기로
+                들어옵니다.
+              </p>
+            </div>
           </div>
 
           <div className="quick-add-candidate-grid">
-            <button
-              className={
-                selectedCandidate?.title === candidate.title
-                  ? 'quick-add-candidate active'
-                  : 'quick-add-candidate'
-              }
-              onClick={() => handleSelectCandidate(candidate)}
-              type="button"
-            >
-              <ArtworkPoster
-                title={candidate.title}
-                typeLabel="Draft"
-                variant="row"
-              />
-              <div className="quick-add-candidate-copy">
-                <div className="badge-row">
-                  <span className="badge">{candidate.note}</span>
-                  <span className="badge">제목 초안</span>
+            {candidates.map((candidate) => (
+              <button
+                aria-label={`${candidate.title} ${getWorkTypeLabel(candidate.type)} 후보 선택`}
+                className={
+                  selectedCandidate?.id === candidate.id
+                    ? 'quick-add-candidate active'
+                    : 'quick-add-candidate'
+                }
+                key={candidate.id}
+                onClick={() => handleSelectCandidate(candidate)}
+                type="button"
+              >
+                <ArtworkPoster
+                  title={candidate.title}
+                  typeLabel={getWorkTypeLabel(candidate.type)}
+                  variant="row"
+                />
+                <div className="quick-add-candidate-copy">
+                  <div className="quick-add-candidate-meta">
+                    <span className="badge">{candidate.note}</span>
+                    <span className="badge">{getWorkTypeLabel(candidate.type)}</span>
+                    <span className="badge">{candidate.countLabel}</span>
+                  </div>
+                  <div className="stack">
+                    <h4 className="section-title">{candidate.title}</h4>
+                    <p className="muted-copy">{candidate.author}</p>
+                  </div>
+                  <p className="muted-copy">{candidate.description}</p>
                 </div>
-                <h4 className="section-title">{candidate.title}</h4>
-                <p className="muted-copy">{candidate.description}</p>
-              </div>
-            </button>
+              </button>
+            ))}
           </div>
         </section>
       )}
@@ -221,10 +283,32 @@ export function QuickAddWorkForm({
           <section className="panel stack">
             <div className="section-heading">
               <p className="section-kicker">3단계</p>
-              <h3 className="section-title">자동 채움 확인</h3>
+              <h3 className="section-title">자동 채움 검토</h3>
               <p className="section-description">
-                자동 채움된 정보를 빠르게 검토하고 필요한 부분만 다듬어 주세요.
+                가져온 초안을 전부 손으로 입력하지 않고, 필요한 필드만 검토하는
+                흐름을 먼저 만듭니다.
               </p>
+            </div>
+
+            <div className="quick-add-selection-summary">
+              <ArtworkPoster
+                thumbnailUrl={values.thumbnailUrl}
+                title={values.title || selectedCandidate.title}
+                typeLabel={getWorkTypeLabel(values.type)}
+                variant="row"
+              />
+              <div className="stack">
+                <div className="badge-row">
+                  <span className="badge">{selectedCandidate.note}</span>
+                  <span className="badge">{selectedCandidate.countLabel}</span>
+                  <span className="badge">자동 채움 초안</span>
+                </div>
+                <p className="card-title">{values.title || selectedCandidate.title}</p>
+                <p className="muted-copy">{values.author || '작가·제작자 미입력'}</p>
+                <p className="card-summary">
+                  {values.description || '설명은 아직 없습니다.'}
+                </p>
+              </div>
             </div>
 
             <div className="quick-add-review-grid">
@@ -267,41 +351,26 @@ export function QuickAddWorkForm({
                 />
               </label>
             </div>
-
-            <div className="quick-add-preview-card">
-              <ArtworkPoster
-                thumbnailUrl={values.thumbnailUrl}
-                title={values.title || selectedCandidate.title}
-                typeLabel={getWorkTypeLabel(values.type)}
-                variant="row"
-              />
-              <div className="stack">
-                <div className="badge-row">
-                  <span className="badge">{getWorkTypeLabel(values.type)}</span>
-                  <span className="badge">자동 채움 검토</span>
-                </div>
-                <p className="card-title">{values.title || selectedCandidate.title}</p>
-                <p className="muted-copy">
-                  {values.author || '작가·제작자 미입력'}
-                </p>
-              </div>
-            </div>
           </section>
 
           <section className="panel stack">
-            <div className="section-heading">
-              <p className="section-kicker">4단계</p>
-              <h3 className="section-title">개인 기록 입력</h3>
-              <p className="section-description">
-                최소 입력은 상태, 별점, 한줄평입니다. 긴 리뷰와 추가 정보는 아래에서
-                더 적을 수 있습니다.
-              </p>
+            <div className="quick-add-personal-header">
+              <div className="section-heading">
+                <p className="section-kicker">4단계</p>
+                <h3 className="section-title">개인 기록 입력</h3>
+                <p className="section-description">
+                  저장 전에 직접 입력해야 하는 핵심 정보만 여기서 마무리합니다.
+                </p>
+              </div>
+              <span className="mode-badge">필수 입력 3개</span>
             </div>
 
-            <div className="quick-add-personal-grid">
-              <label className="field" htmlFor="status">
-                <span>상태</span>
+            <div className="quick-add-required-grid">
+              <label className="quick-add-required-card" htmlFor="status">
+                <span className="works-list-label">상태</span>
+                <strong>어디까지 봤는지</strong>
                 <select
+                  aria-label="상태"
                   id="status"
                   name="status"
                   onChange={handleInputChange}
@@ -315,9 +384,11 @@ export function QuickAddWorkForm({
                 </select>
               </label>
 
-              <label className="field" htmlFor="rating">
-                <span>별점</span>
+              <label className="quick-add-required-card" htmlFor="rating">
+                <span className="works-list-label">별점</span>
+                <strong>지금 남길 평가</strong>
                 <select
+                  aria-label="별점"
                   id="rating"
                   name="rating"
                   onChange={handleInputChange}
@@ -332,9 +403,11 @@ export function QuickAddWorkForm({
                 </select>
               </label>
 
-              <label className="field field--full" htmlFor="shortReview">
-                <span>한줄평</span>
+              <label className="quick-add-required-card quick-add-required-card--wide" htmlFor="shortReview">
+                <span className="works-list-label">한줄평</span>
+                <strong>짧게 남기는 감상</strong>
                 <textarea
+                  aria-label="한줄평"
                   id="shortReview"
                   name="shortReview"
                   onChange={handleInputChange}

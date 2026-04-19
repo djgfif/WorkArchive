@@ -21,14 +21,15 @@ describe('Works routed flow', () => {
 
     await user.type(screen.getByLabelText(/^작품 검색$/), 'Dune');
     await user.click(screen.getByRole('button', { name: '검색' }));
-    await user.click(screen.getByRole('button', { name: /Dune/i }));
+    await user.click(
+      (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
+    );
 
     await user.clear(screen.getByLabelText(/^제목$/));
     await user.type(screen.getByLabelText(/^제목$/), 'Dune');
-    await user.type(
-      screen.getByLabelText(/작가·제작자/),
-      'Frank Herbert',
-    );
+    const authorInput = screen.getByLabelText(/작가·제작자/);
+    await user.clear(authorInput);
+    await user.type(authorInput, 'Frank Herbert');
     await user.selectOptions(screen.getByLabelText(/^상태$/), 'completed');
 
     await user.click(screen.getByRole('button', { name: '저장' }));
@@ -37,7 +38,7 @@ describe('Works routed flow', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
-    expect(screen.getByText(/Frank Herbert/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Frank Herbert/i).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('link', { name: '수정' }));
 
