@@ -5,7 +5,6 @@ import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   formatWorkUpdatedAt,
   getWorkStatusLabel,
-  getWorkTierLabel,
   getWorkTypeLabel,
 } from '../utils/work-options';
 
@@ -17,7 +16,6 @@ interface WorkCardProps {
 export function WorkCard({ onDelete, work }: WorkCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
   const statusLabel = getWorkStatusLabel(work.status);
-  const tierLabel = getWorkTierLabel(work.tier);
   const visibleGenres = work.genres.slice(0, 3);
 
   return (
@@ -40,15 +38,15 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
       </Link>
 
       <div className="work-card-body">
-        <div className="work-card-heading">
-          <div className="stack work-card-title-block">
-            <div className="badge-row">
-              <span className="badge">{statusLabel}</span>
-              <span className="badge">{tierLabel}</span>
-            </div>
-            <h3 className="card-title">
-              <Link className="text-link" to={`/works/${work.id}`}>
-                {work.title}
+          <div className="work-card-heading">
+            <div className="stack work-card-title-block">
+              <div className="badge-row">
+                <span className="badge">{statusLabel}</span>
+                {work.rating !== null && <span className="badge">{work.rating}점</span>}
+              </div>
+              <h3 className="card-title">
+                <Link className="text-link" to={`/works/${work.id}`}>
+                  {work.title}
               </Link>
             </h3>
             <p className="muted-copy">

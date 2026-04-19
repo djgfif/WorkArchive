@@ -3,18 +3,22 @@ import { Link } from 'react-router-dom';
 import { PageHero } from '../../../shared/components/PageHero';
 import type { WorksListQuery } from '../utils/query-works';
 import {
+  getWorkStatusLabel,
   workSortOptions,
   workStatusOptions,
   workTypeOptions,
 } from '../utils/work-options';
+import type { WorksViewMode } from './WorksList';
 
 interface WorksToolbarProps {
   filteredCount: number;
   isLoading: boolean;
   onClearFilters: () => void;
   onQueryChange: (query: WorksListQuery) => void;
+  onViewModeChange: (viewMode: WorksViewMode) => void;
   query: WorksListQuery;
   totalActiveCount: number;
+  viewMode: WorksViewMode;
 }
 
 export function WorksToolbar({
@@ -22,10 +26,12 @@ export function WorksToolbar({
   isLoading,
   onClearFilters,
   onQueryChange,
+  onViewModeChange,
   query,
   totalActiveCount,
+  viewMode,
 }: WorksToolbarProps) {
-  let countSummary = '라이브러리를 불러오는 중입니다.';
+  let countSummary = '작품을 불러오는 중입니다.';
 
   if (!isLoading) {
     if (totalActiveCount === 0) {
@@ -43,6 +49,14 @@ export function WorksToolbar({
     query.type !== 'all' ||
     query.sortBy !== 'updatedAt';
 
+  const statusFilterOptions = [
+    { label: '전체', value: 'all' as const },
+    ...workStatusOptions.map((option) => ({
+      label: getWorkStatusLabel(option.value),
+      value: option.value,
+    })),
+  ];
+
   return (
     <section className="stack">
       <PageHero
@@ -58,8 +72,8 @@ export function WorksToolbar({
             </Link>
           </>
         }
-        description="기록한 작품을 빠르게 찾고, 상태별로 정리해보세요."
-        eyebrow="라이브러리"
+        description="기록과 수정을 빠르게 이어갈 수 있도록 리스트 중심으로 정리한 아카이브 작업 공간입니다."
+        eyebrow="작품"
         meta={
           <>
             <div className="stat-pill">
@@ -71,22 +85,59 @@ export function WorksToolbar({
               <span className="stat-pill-label">현재 결과</span>
             </div>
             <div className="stat-pill">
-              <span className="stat-pill-value">
-                {workSortOptions.find((option) => option.value === query.sortBy)?.label}
-              </span>
-              <span className="stat-pill-label">정렬 기준</span>
+              <span className="stat-pill-value">{viewMode === 'list' ? '리스트' : '그리드'}</span>
+              <span className="stat-pill-label">보기 방식</span>
             </div>
           </>
         }
-        title="내 라이브러리"
+        title="작품"
       />
 
       <section className="panel stack toolbar-panel">
         <div className="toolbar-header">
           <div>
-            <h3 className="section-title">필터와 정렬</h3>
+            <h3 className="section-title">찾기와 정리</h3>
             <p className="muted-copy">{countSummary}</p>
           </div>
+
+          <div aria-label="보기 방식" className="segmented-control" role="group">
+            <button
+              className={viewMode === 'list' ? 'segment-button active' : 'segment-button'}
+              onClick={() => onViewModeChange('list')}
+              type="button"
+            >
+              리스트
+            </button>
+            <button
+              className={viewMode === 'grid' ? 'segment-button active' : 'segment-button'}
+              onClick={() => onViewModeChange('grid')}
+              type="button"
+            >
+              그리드
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-chip-row" role="group" aria-label="상태 빠른 필터">
+          {statusFilterOptions.map((option) => {
+            const isActive = query.status === option.value;
+
+            return (
+              <button
+                className={isActive ? 'filter-chip active' : 'filter-chip'}
+                key={option.value}
+                onClick={() =>
+                  onQueryChange({
+                    ...query,
+                    status: option.value,
+                  })
+                }
+                type="button"
+              >
+                {option.label}
+              </button>
+            );
+          })}
         </div>
 
         <label className="field search-field" htmlFor="searchTerm">
@@ -124,27 +175,6 @@ export function WorksToolbar({
             </select>
           </label>
 
-          <label className="field" htmlFor="statusFilter">
-            <span>상태</span>
-            <select
-              id="statusFilter"
-              onChange={(event) =>
-                onQueryChange({
-                  ...query,
-                  status: event.target.value as WorksListQuery['status'],
-                })
-              }
-              value={query.status}
-            >
-              <option value="all">전체 상태</option>
-              {workStatusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
           <label className="field" htmlFor="sortBy">
             <span>정렬</span>
             <select
@@ -164,6 +194,13 @@ export function WorksToolbar({
               ))}
             </select>
           </label>
+
+          <div className="workspace-hint-card">
+            <span className="mode-badge">관리 우선</span>
+            <p className="muted-copy">
+              리스트 뷰에서는 상태와 별점을 바로 바꿀 수 있습니다.
+            </p>
+          </div>
         </div>
       </section>
     </section>

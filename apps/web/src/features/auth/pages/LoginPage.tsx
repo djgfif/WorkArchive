@@ -13,7 +13,7 @@ export function LoginPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (!isLoading && mode === 'authenticated') {
-    return <Navigate replace to="/works" />;
+    return <Navigate replace to="/" />;
   }
 
   async function handleSubmit(input: AuthCredentialsInput) {
@@ -21,7 +21,7 @@ export function LoginPage() {
       setIsSubmitting(true);
       setSubmitError(null);
       await signIn(input);
-      navigate('/works');
+      navigate('/');
     } catch (error) {
       setSubmitError(
         error instanceof Error
@@ -54,7 +54,7 @@ export function LoginPage() {
             </p>
             <p className="muted-copy">
               게스트로 먼저 둘러볼까요?{' '}
-              <Link className="inline-link" to="/works">
+              <Link className="inline-link" to="/">
                 로그인 없이 계속하기
               </Link>
             </p>

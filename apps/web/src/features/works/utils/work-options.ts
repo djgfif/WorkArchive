@@ -23,11 +23,11 @@ const workTypeLabels: Record<WorkType, string> = {
 };
 
 const workStatusLabels: Record<WorkStatus, string> = {
-  planned: '예정',
-  in_progress: '진행 중',
+  planned: '볼 예정',
+  in_progress: '보는 중',
   completed: '완료',
   paused: '보류',
-  dropped: '중단',
+  dropped: '하차',
 };
 
 const workTierLabels: Record<WorkTier, string> = {

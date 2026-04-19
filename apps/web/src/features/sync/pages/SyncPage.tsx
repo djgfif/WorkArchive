@@ -68,19 +68,24 @@ export function SyncPage() {
     <div className="stack">
       <PageHero
         actions={
-          <button
-            disabled={isGuestMode || syncState === 'syncing'}
-            onClick={() => {
-              void handleRunSync();
-            }}
-            type="button"
-          >
-            {isGuestMode
-              ? '로그인 후 동기화'
-              : syncState === 'syncing'
-                ? '동기화 중...'
-                : '수동 동기화'}
-          </button>
+          <>
+            <Link className="secondary-link" to="/profile">
+              프로필로 돌아가기
+            </Link>
+            <button
+              disabled={isGuestMode || syncState === 'syncing'}
+              onClick={() => {
+                void handleRunSync();
+              }}
+              type="button"
+            >
+              {isGuestMode
+                ? '로그인 후 동기화'
+                : syncState === 'syncing'
+                  ? '동기화 중...'
+                  : '수동 동기화'}
+            </button>
+          </>
         }
         aside={
           <div className="sync-status-block">
