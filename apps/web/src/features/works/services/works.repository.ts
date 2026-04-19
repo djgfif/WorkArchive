@@ -46,6 +46,12 @@ export class WorksRepository {
       .toArray();
   }
 
+  async listDeleted() {
+    return this.getDb()
+      .works.filter((work) => work.deletedAt !== null)
+      .toArray();
+  }
+
   async softDelete(
     id: string,
     updates: Pick<WorkRecord, 'deletedAt' | 'syncStatus' | 'updatedAt'>,
@@ -67,6 +73,30 @@ export class WorksRepository {
       await db.works.put(deleted);
 
       return deleted;
+    });
+  }
+
+  async restore(
+    id: string,
+    updates: Pick<WorkRecord, 'deletedAt' | 'syncStatus' | 'updatedAt'>,
+  ) {
+    const db = this.getDb();
+
+    return db.transaction('rw', db.works, async () => {
+      const existing = await db.works.get(id);
+
+      if (!existing) {
+        return null;
+      }
+
+      const restored = {
+        ...existing,
+        ...updates,
+      };
+
+      await db.works.put(restored);
+
+      return restored;
     });
   }
 }

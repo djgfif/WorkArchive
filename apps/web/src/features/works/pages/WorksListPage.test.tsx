@@ -100,6 +100,9 @@ describe('WorksListPage', () => {
         (screen.getByLabelText('Frieren 상태') as HTMLSelectElement).value,
       ).toBe('completed');
     });
+    await waitFor(() => {
+      expect(screen.getByLabelText('Frieren 별점')).toBeEnabled();
+    });
 
     await user.selectOptions(screen.getByLabelText('Frieren 별점'), '4.5');
     await waitFor(() => {
@@ -107,5 +110,49 @@ describe('WorksListPage', () => {
         (screen.getByLabelText('Frieren 별점') as HTMLSelectElement).value,
       ).toBe('4.5');
     });
+  });
+
+  it('shows deleted works in trash scope and restores them', async () => {
+    const deleted = await worksService.createWork({
+      type: 'novel',
+      title: 'Spice & Wolf',
+      author: 'Isuna Hasekura',
+      genres: ['Fantasy'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'paused',
+      rating: 4,
+      shortReview: '다시 읽을 예정',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    await worksService.deleteWork(deleted.id);
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works?scope=trash'],
+    });
+
+    render(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByText(/숨겨둔 작품 1개를 보고 있습니다\./),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Spice & Wolf')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '복원' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Spice & Wolf')).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: '작품 목록' }));
+    expect(await screen.findByRole('link', { name: 'Spice & Wolf' })).toBeInTheDocument();
   });
 });

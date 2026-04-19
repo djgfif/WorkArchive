@@ -23,9 +23,13 @@ function matchesSearch(work: WorkRecord, searchTerm: string) {
     return true;
   }
 
-  return [work.title, work.author].some((value) =>
-    value.toLowerCase().includes(normalizedSearch),
-  );
+  return [
+    work.title,
+    work.author,
+    work.shortReview,
+    work.description,
+    work.genres.join(' '),
+  ].some((value) => value.toLowerCase().includes(normalizedSearch));
 }
 
 function compareUpdatedAtDescending(a: WorkRecord, b: WorkRecord) {

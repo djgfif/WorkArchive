@@ -1,29 +1,99 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
+import { WORK_STATUSES, WORK_TYPES } from '@work-archive/shared-types';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import { WorksList, type WorksViewMode } from '../components/WorksList';
+import { WorksTrashList } from '../components/WorksTrashList';
 import { WorksToolbar } from '../components/WorksToolbar';
 import { useWorksList } from '../hooks/useWorksList';
-import { worksService } from '../services/works.service';
+import {
+  worksService,
+  type WorksCollectionScope,
+} from '../services/works.service';
 import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 import {
   DEFAULT_WORKS_LIST_QUERY,
   type WorksListQuery,
 } from '../utils/query-works';
 
+function getCollectionScopeFromSearchParams(searchParams: URLSearchParams): WorksCollectionScope {
+  return searchParams.get('scope') === 'trash' ? 'trash' : 'active';
+}
+
+function getQueryFromSearchParams(searchParams: URLSearchParams): WorksListQuery {
+  const statusFromUrl = searchParams.get('status');
+  const typeFromUrl = searchParams.get('type');
+  const sortByFromUrl = searchParams.get('sort');
+
+  return {
+    ...DEFAULT_WORKS_LIST_QUERY,
+    searchTerm: searchParams.get('q') ?? '',
+    sortBy:
+      sortByFromUrl === 'title' || sortByFromUrl === 'rating'
+        ? sortByFromUrl
+        : DEFAULT_WORKS_LIST_QUERY.sortBy,
+    status:
+      statusFromUrl && WORK_STATUSES.includes(statusFromUrl as (typeof WORK_STATUSES)[number])
+        ? (statusFromUrl as WorksListQuery['status'])
+        : DEFAULT_WORKS_LIST_QUERY.status,
+    type:
+      typeFromUrl && WORK_TYPES.includes(typeFromUrl as (typeof WORK_TYPES)[number])
+        ? (typeFromUrl as WorksListQuery['type'])
+        : DEFAULT_WORKS_LIST_QUERY.type,
+  };
+}
+
+function buildSearchParams(
+  query: WorksListQuery,
+  scope: WorksCollectionScope,
+) {
+  const nextSearchParams = new URLSearchParams();
+
+  if (query.searchTerm.trim()) {
+    nextSearchParams.set('q', query.searchTerm.trim());
+  }
+
+  if (query.status !== 'all') {
+    nextSearchParams.set('status', query.status);
+  }
+
+  if (query.type !== 'all') {
+    nextSearchParams.set('type', query.type);
+  }
+
+  if (query.sortBy !== DEFAULT_WORKS_LIST_QUERY.sortBy) {
+    nextSearchParams.set('sort', query.sortBy);
+  }
+
+  if (scope === 'trash') {
+    nextSearchParams.set('scope', 'trash');
+  }
+
+  return nextSearchParams;
+}
+
 export function WorksListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const searchTermFromUrl = searchParams.get('q') ?? '';
-  const [query, setQuery] = useState<WorksListQuery>(() => ({
-    ...DEFAULT_WORKS_LIST_QUERY,
-    searchTerm: searchTermFromUrl,
-  }));
+  const [collectionScope, setCollectionScope] = useState<WorksCollectionScope>(() =>
+    getCollectionScopeFromSearchParams(searchParams),
+  );
+  const [query, setQuery] = useState<WorksListQuery>(() =>
+    getQueryFromSearchParams(searchParams),
+  );
   const [viewMode, setViewMode] = useState<WorksViewMode>('list');
   const [actionError, setActionError] = useState<string | null>(null);
   const [updatingWorkId, setUpdatingWorkId] = useState<string | null>(null);
-  const { error, isLoading, totalActiveCount, works } = useWorksList(query);
+  const [restoringWorkId, setRestoringWorkId] = useState<string | null>(null);
+  const {
+    error,
+    isLoading,
+    statusCounts,
+    totalActiveCount,
+    totalDeletedCount,
+    works,
+  } = useWorksList(query, collectionScope);
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
     query.type !== 'all' ||
@@ -31,24 +101,31 @@ export function WorksListPage() {
     query.sortBy !== 'updatedAt';
 
   useEffect(() => {
-    setQuery((currentQuery) =>
-      currentQuery.searchTerm === searchTermFromUrl
-        ? currentQuery
-        : {
-            ...currentQuery,
-            searchTerm: searchTermFromUrl,
-          },
+    const nextQuery = getQueryFromSearchParams(searchParams);
+    const nextScope = getCollectionScopeFromSearchParams(searchParams);
+
+    setCollectionScope((currentScope) =>
+      currentScope === nextScope ? currentScope : nextScope,
     );
-  }, [searchTermFromUrl]);
+    setQuery((currentQuery) =>
+      JSON.stringify(currentQuery) === JSON.stringify(nextQuery)
+        ? currentQuery
+        : nextQuery,
+    );
+  }, [searchParams]);
 
   function handleQueryChange(nextQuery: WorksListQuery) {
     setQuery(nextQuery);
-    setSearchParams(
-      nextQuery.searchTerm.trim() ? { q: nextQuery.searchTerm.trim() } : {},
-      {
-        replace: true,
-      },
-    );
+    setSearchParams(buildSearchParams(nextQuery, collectionScope), {
+      replace: true,
+    });
+  }
+
+  function handleCollectionScopeChange(nextScope: WorksCollectionScope) {
+    setCollectionScope(nextScope);
+    setSearchParams(buildSearchParams(query, nextScope), {
+      replace: true,
+    });
   }
 
   async function handleDelete(work: WorkRecord) {
@@ -72,6 +149,23 @@ export function WorksListPage() {
     }
   }
 
+  async function handleRestore(work: WorkRecord) {
+    try {
+      setActionError(null);
+      setRestoringWorkId(work.id);
+
+      await worksService.restoreWork(work.id);
+    } catch (restoreError) {
+      setActionError(
+        restoreError instanceof Error
+          ? restoreError.message
+          : '작품을 복원하지 못했습니다.',
+      );
+    } finally {
+      setRestoringWorkId(null);
+    }
+  }
+
   async function handleQuickUpdate(
     work: WorkRecord,
     nextValues: {
@@ -83,8 +177,14 @@ export function WorksListPage() {
       setActionError(null);
       setUpdatingWorkId(work.id);
 
+      const latestWork = await worksService.getWorkById(work.id);
+
+      if (!latestWork) {
+        throw new Error('작품을 찾을 수 없습니다.');
+      }
+
       await worksService.updateWork(work.id, {
-        ...createUpsertWorkInputFromRecord(work),
+        ...createUpsertWorkInputFromRecord(latestWork),
         ...nextValues,
       });
     } catch (updateError) {
@@ -101,16 +201,22 @@ export function WorksListPage() {
   return (
     <div className="stack">
       <WorksToolbar
+        collectionScope={collectionScope}
         filteredCount={works.length}
         isLoading={isLoading}
         onClearFilters={() => {
           setQuery(DEFAULT_WORKS_LIST_QUERY);
-          setSearchParams({}, { replace: true });
+          setSearchParams(buildSearchParams(DEFAULT_WORKS_LIST_QUERY, collectionScope), {
+            replace: true,
+          });
         }}
+        onCollectionScopeChange={handleCollectionScopeChange}
         onQueryChange={handleQueryChange}
         onViewModeChange={setViewMode}
         query={query}
+        statusCounts={statusCounts}
         totalActiveCount={totalActiveCount}
+        totalDeletedCount={totalDeletedCount}
         viewMode={viewMode}
       />
 
@@ -140,26 +246,50 @@ export function WorksListPage() {
             <span>WA</span>
           </div>
           <div className="stack">
-            <p className="eyebrow">{hasActiveFilters ? '검색 결과 없음' : '아직 없음'}</p>
+            <p className="eyebrow">
+              {collectionScope === 'trash'
+                ? '휴지통 비어 있음'
+                : hasActiveFilters
+                  ? '검색 결과 없음'
+                  : '아직 없음'}
+            </p>
             <h2 className="section-title">
-              {hasActiveFilters
+              {collectionScope === 'trash'
+                ? '숨겨둔 작품이 없습니다.'
+                : hasActiveFilters
                 ? '조건에 맞는 작품이 없습니다.'
                 : '아직 등록된 작품이 없습니다.'}
             </h2>
             <p className="muted-copy">
-              {hasActiveFilters
+              {collectionScope === 'trash'
+                ? '작품을 삭제하면 여기에서 복원하거나 다시 확인할 수 있습니다.'
+                : hasActiveFilters
                 ? '검색어나 필터를 조금만 바꿔보세요.'
                 : '첫 작품을 추가해 내 아카이브를 채워보세요.'}
             </p>
             <div className="button-row">
-              <Link className="primary-link" to="/works/new">
-                작품 추가
-              </Link>
-              {hasActiveFilters && (
+              {collectionScope === 'trash' ? (
+                <button
+                  onClick={() => {
+                    handleCollectionScopeChange('active');
+                  }}
+                  type="button"
+                >
+                  작품 목록 보기
+                </button>
+              ) : (
+                <Link className="primary-link" to="/works/new">
+                  작품 추가
+                </Link>
+              )}
+              {hasActiveFilters && collectionScope === 'active' && (
                 <button
                   onClick={() => {
                     setQuery(DEFAULT_WORKS_LIST_QUERY);
-                    setSearchParams({}, { replace: true });
+                    setSearchParams(
+                      buildSearchParams(DEFAULT_WORKS_LIST_QUERY, collectionScope),
+                      { replace: true },
+                    );
                   }}
                   type="button"
                 >
@@ -171,14 +301,47 @@ export function WorksListPage() {
         </section>
       )}
 
+      {!error &&
+        !isLoading &&
+        collectionScope === 'active' &&
+        totalDeletedCount > 0 && (
+          <section className="panel works-trash-surface">
+            <div className="works-trash-surface-copy">
+              <p className="section-kicker">휴지통</p>
+              <h2 className="section-title">숨겨둔 작품 {totalDeletedCount}개</h2>
+              <p className="muted-copy">
+                삭제한 작품은 바로 사라지지 않고 이 작품 영역 안의 휴지통에
+                남습니다. 필요하면 복원해서 다시 관리할 수 있습니다.
+              </p>
+            </div>
+
+            <div className="button-row">
+              <button
+                onClick={() => handleCollectionScopeChange('trash')}
+                type="button"
+              >
+                휴지통 보기
+              </button>
+            </div>
+          </section>
+        )}
+
       {!error && !isLoading && works.length > 0 && (
-        <WorksList
-          onDelete={handleDelete}
-          onQuickUpdate={handleQuickUpdate}
-          updatingWorkId={updatingWorkId}
-          viewMode={viewMode}
-          works={works}
-        />
+        collectionScope === 'trash' ? (
+          <WorksTrashList
+            onRestore={handleRestore}
+            restoringWorkId={restoringWorkId}
+            works={works}
+          />
+        ) : (
+          <WorksList
+            onDelete={handleDelete}
+            onQuickUpdate={handleQuickUpdate}
+            updatingWorkId={updatingWorkId}
+            viewMode={viewMode}
+            works={works}
+          />
+        )
       )}
     </div>
   );

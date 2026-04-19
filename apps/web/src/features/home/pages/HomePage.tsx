@@ -20,7 +20,9 @@ export function HomePage() {
   const {
     averageRating,
     completedCount,
+    deletedCount,
     error,
+    inProgressCount,
     isLoading,
     pausedOrDroppedCount,
     recentWorks,
@@ -48,6 +50,24 @@ export function HomePage() {
             label: '작품 정리하기',
             to: '/works',
           };
+  const managementAction =
+    deletedCount > 0
+      ? {
+          description: `숨겨둔 작품 ${deletedCount}개를 확인하고 필요하면 복원할 수 있습니다.`,
+          label: '휴지통 확인',
+          to: '/works?scope=trash',
+        }
+      : inProgressCount > 0
+        ? {
+            description: `보는 중인 작품 ${inProgressCount}개를 이어서 정리합니다.`,
+            label: '보는 중 작품 정리',
+            to: '/works?status=in_progress',
+          }
+        : {
+            description: '상태와 별점을 빠르게 바꾸면서 전체 기록을 정리합니다.',
+            label: '작품 목록 관리',
+            to: '/works',
+          };
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,8 +86,7 @@ export function HomePage() {
           <p className="eyebrow">홈</p>
           <h2 className="page-title">오늘 기록할 작품을 바로 시작해보세요</h2>
           <p className="body-copy">
-            검색에서 시작하고, 빠르게 추가하고, 최근 기록으로 돌아오는 흐름을 한
-            화면에서 정리했습니다.
+            검색, 빠른 추가, 최근 기록 복귀까지 한 화면에서 바로 이어집니다.
           </p>
         </div>
 
@@ -103,8 +122,8 @@ export function HomePage() {
             </h2>
             <p className="section-description">
               {isAuthenticated
-                ? `${user?.email ?? '계정'}으로 기록을 이어서 보고 있습니다. 지금 필요한 행동만 바로 고를 수 있도록 홈을 정리했습니다.`
-                : '게스트 모드에서도 이 기기에 바로 저장됩니다. 기록을 쌓은 뒤 계정으로 이어가도 됩니다.'}
+                ? `${user?.email ?? '계정'}으로 기록 중입니다. 지금 필요한 관리 작업만 바로 고를 수 있도록 정리했습니다.`
+                : '게스트 모드에서도 바로 저장됩니다. 기록이 쌓이면 계정으로 이어가도 됩니다.'}
             </p>
           </div>
 
@@ -115,19 +134,19 @@ export function HomePage() {
               <p className="muted-copy">{primaryAction.description}</p>
             </Link>
 
+            <Link className="home-next-card" to={managementAction.to}>
+              <span className="badge">관리 흐름</span>
+              <h3 className="section-title">{managementAction.label}</h3>
+              <p className="muted-copy">
+                {managementAction.description}
+              </p>
+            </Link>
+
             <Link className="home-next-card" to="/works/new">
               <span className="badge">빠른 추가</span>
               <h3 className="section-title">작품을 바로 등록</h3>
               <p className="muted-copy">
                 검색에서 후보를 고르고 개인 기록만 입력해 저장할 수 있습니다.
-              </p>
-            </Link>
-
-            <Link className="home-next-card" to="/works">
-              <span className="badge">작품</span>
-              <h3 className="section-title">목록 정리하기</h3>
-              <p className="muted-copy">
-                상태와 별점을 빠르게 수정하면서 최근 기록을 정리할 수 있습니다.
               </p>
             </Link>
           </div>
@@ -150,7 +169,7 @@ export function HomePage() {
 
           {!error && (
             <div className="home-stat-grid">
-              <article className="home-stat-card home-stat-card--accent">
+              <Link className="home-stat-card home-stat-card--accent" to="/works">
                 <span className="home-stat-label">총 기록 수</span>
                 <strong>{isLoading ? '...' : `${totalCount}개`}</strong>
                 <p className="muted-copy">
@@ -158,24 +177,24 @@ export function HomePage() {
                     ? '불러오는 중'
                     : totalCount === 0
                       ? '아직 비어 있습니다'
-                      : '현재 아카이브 기준'}
+                      : '전체 아카이브 열기'}
                 </p>
-              </article>
-              <article className="home-stat-card">
+              </Link>
+              <Link className="home-stat-card" to="/works?sort=rating">
                 <span className="home-stat-label">평균 별점</span>
                 <strong>{isLoading ? '...' : formatAverageRating(averageRating)}</strong>
-                <p className="muted-copy">남긴 평가 기준 평균입니다.</p>
-              </article>
-              <article className="home-stat-card">
+                <p className="muted-copy">별점순으로 다시 보기</p>
+              </Link>
+              <Link className="home-stat-card" to="/works?status=completed">
                 <span className="home-stat-label">완주 작품 수</span>
                 <strong>{isLoading ? '...' : `${completedCount}개`}</strong>
-                <p className="muted-copy">완료 상태로 정리한 작품입니다.</p>
-              </article>
-              <article className="home-stat-card">
+                <p className="muted-copy">완료한 기록만 보기</p>
+              </Link>
+              <Link className="home-stat-card" to="/works">
                 <span className="home-stat-label">하차·보류 수</span>
                 <strong>{isLoading ? '...' : `${pausedOrDroppedCount}개`}</strong>
-                <p className="muted-copy">다시 볼지 고민 중인 기록입니다.</p>
-              </article>
+                <p className="muted-copy">멈춘 기록 다시 정리</p>
+              </Link>
             </div>
           )}
         </section>

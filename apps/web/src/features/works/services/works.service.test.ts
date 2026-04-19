@@ -157,4 +157,34 @@ describe('WorksService', () => {
       }),
     );
   });
+
+  it('restores a deleted work and queues it back for sync', async () => {
+    const existing = buildWork({
+      deletedAt: '2026-04-18T01:00:00.000Z',
+      syncStatus: 'synced',
+      updatedAt: '2026-04-18T01:00:00.000Z',
+    });
+
+    await repository.create(existing);
+
+    const restored = await service.restoreWork(existing.id);
+    const queueItems = await queueRepository.listAll();
+
+    expect(restored).toEqual(
+      expect.objectContaining({
+        deletedAt: null,
+        syncStatus: 'pending',
+      }),
+    );
+    expect(queueItems).toEqual([
+      expect.objectContaining({
+        entityId: existing.id,
+        operation: 'update',
+        payload: expect.objectContaining({
+          deletedAt: null,
+          syncStatus: 'pending',
+        }),
+      }),
+    ]);
+  });
 });
