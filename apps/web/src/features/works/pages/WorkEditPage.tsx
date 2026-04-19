@@ -63,7 +63,7 @@ export function WorkEditPage() {
         <h2 className="section-title">수정할 작품을 찾을 수 없습니다.</h2>
         <div className="button-row">
           <Link className="primary-link" to="/works">
-            라이브러리로 돌아가기
+            작품으로 돌아가기
           </Link>
         </div>
       </section>
@@ -88,7 +88,7 @@ export function WorkEditPage() {
             </div>
             <div className="stat-pill">
               <span className="stat-pill-value">저장 즉시 반영</span>
-              <span className="stat-pill-label">라이브러리에 바로 반영</span>
+              <span className="stat-pill-label">작품 목록에 바로 반영</span>
             </div>
           </>
         }

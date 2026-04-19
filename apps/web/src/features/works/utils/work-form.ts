@@ -71,6 +71,23 @@ export function createWorkFormValuesFromRecord(
   };
 }
 
+export function createUpsertWorkInputFromRecord(work: WorkRecord): UpsertWorkInput {
+  return {
+    type: work.type,
+    title: work.title,
+    author: work.author,
+    genres: work.genres,
+    description: work.description,
+    thumbnailUrl: work.thumbnailUrl,
+    status: work.status,
+    rating: work.rating,
+    shortReview: work.shortReview,
+    review: work.review,
+    tier: work.tier,
+    favorite: work.favorite,
+  };
+}
+
 function parseGenres(genresText: string) {
   return Array.from(
     new Set(

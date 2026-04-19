@@ -19,17 +19,22 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
+    await user.type(screen.getByLabelText(/^작품 검색$/), 'Dune');
+    await user.click(screen.getByRole('button', { name: '검색' }));
+    await user.click(screen.getByRole('button', { name: /Dune/i }));
+
+    await user.clear(screen.getByLabelText(/^제목$/));
     await user.type(screen.getByLabelText(/^제목$/), 'Dune');
     await user.type(
       screen.getByLabelText(/작가·제작자/),
       'Frank Herbert',
     );
-    await user.type(
-      screen.getByLabelText(/^장르$/),
-      'Science Fiction, Politics',
-    );
+    await user.selectOptions(screen.getByLabelText(/^상태$/), 'completed');
 
     await user.click(screen.getByRole('button', { name: '저장' }));
+    await user.click(
+      await screen.findByRole('button', { name: '방금 등록한 작품 보기' }),
+    );
 
     expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(screen.getByText(/Frank Herbert/i)).toBeInTheDocument();
@@ -46,11 +51,9 @@ describe('Works routed flow', () => {
       await screen.findByRole('heading', { name: 'Dune Messiah' }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('link', { name: '라이브러리로 돌아가기' }));
+    await user.click(screen.getByRole('link', { name: '작품으로 돌아가기' }));
 
-    expect(
-      await screen.findByRole('heading', { name: '내 라이브러리' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '작품' })).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'Dune Messiah' })).toBeInTheDocument();
   });
 });

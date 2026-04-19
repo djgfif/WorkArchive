@@ -13,7 +13,7 @@ export function RegisterPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (!isLoading && mode === 'authenticated') {
-    return <Navigate replace to="/works" />;
+    return <Navigate replace to="/" />;
   }
 
   async function handleSubmit(input: AuthCredentialsInput) {
@@ -21,7 +21,7 @@ export function RegisterPage() {
       setIsSubmitting(true);
       setSubmitError(null);
       await signUp(input);
-      navigate('/works');
+      navigate('/');
     } catch (error) {
       setSubmitError(
         error instanceof Error
@@ -54,7 +54,7 @@ export function RegisterPage() {
             </p>
             <p className="muted-copy">
               지금은 게스트로 둘러볼까요?{' '}
-              <Link className="inline-link" to="/works">
+              <Link className="inline-link" to="/">
                 게스트 모드로 계속하기
               </Link>
             </p>

@@ -209,7 +209,9 @@ describe('SyncPage', () => {
     );
 
     await screen.findByText('frieren@example.com');
-    await user.click(screen.getByRole('button', { name: '수동 동기화' }));
+    await user.click(
+      await screen.findByRole('button', { name: '수동 동기화' }),
+    );
 
     expect(
       await screen.findByText('로그인하면 동기화할 수 있습니다'),

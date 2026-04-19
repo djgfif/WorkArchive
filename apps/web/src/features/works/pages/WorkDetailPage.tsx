@@ -63,7 +63,7 @@ export function WorkDetailPage() {
         </p>
         <div className="button-row">
           <Link className="primary-link" to="/works">
-            라이브러리로 돌아가기
+            작품으로 돌아가기
           </Link>
         </div>
       </section>
@@ -82,7 +82,7 @@ export function WorkDetailPage() {
         actions={
           <>
             <Link className="secondary-link" to="/works">
-              라이브러리로 돌아가기
+              작품으로 돌아가기
             </Link>
             <Link className="secondary-link" to={`/works/${work.id}/edit`}>
               수정
