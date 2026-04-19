@@ -58,10 +58,14 @@ export function SyncPage() {
 
     setSyncState('syncing');
 
-    const result = await syncService.runManualSync();
+    try {
+      const result = await syncService.runManualSync();
 
-    setLastRun(result);
-    setSyncState(result.state);
+      setLastRun(result);
+      setSyncState(result.state);
+    } catch {
+      setSyncState('failed');
+    }
   }
 
   return (

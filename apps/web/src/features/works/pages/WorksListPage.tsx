@@ -52,7 +52,9 @@ export function WorksListPage() {
   }
 
   async function handleDelete(work: WorkRecord) {
-    const shouldDelete = window.confirm(`"${work.title}"을 삭제할까요?`);
+    const shouldDelete = window.confirm(
+      `"${work.title}"을 삭제할까요?\n현재는 목록에서 숨겨집니다.`,
+    );
 
     if (!shouldDelete) {
       return;

@@ -4,9 +4,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import { PageHero } from '../../../shared/components/PageHero';
+import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import { QuickAddWorkForm } from '../components/QuickAddWorkForm';
 import { worksService } from '../services/works.service';
 import type { UpsertWorkInput } from '../utils/work-form';
+import {
+  getWorkStatusLabel,
+  getWorkTypeLabel,
+} from '../utils/work-options';
 
 export function WorkCreatePage() {
   const navigate = useNavigate();
@@ -67,8 +72,32 @@ export function WorkCreatePage() {
             </p>
           </div>
 
-          <div className="button-row">
+          <div className="quick-add-complete-preview">
+            <ArtworkPoster
+              thumbnailUrl={savedWork.thumbnailUrl}
+              title={savedWork.title}
+              typeLabel={getWorkTypeLabel(savedWork.type)}
+              variant="row"
+            />
+            <div className="stack">
+              <div className="badge-row">
+                <span className="badge">{getWorkTypeLabel(savedWork.type)}</span>
+                <span className="badge">{getWorkStatusLabel(savedWork.status)}</span>
+                <span className="badge">
+                  {savedWork.rating === null ? '미평가' : `${savedWork.rating.toFixed(1)}점`}
+                </span>
+              </div>
+              <p className="card-title">{savedWork.title}</p>
+              <p className="muted-copy">
+                {savedWork.author || '작가·제작자 미입력'}
+              </p>
+            </div>
+          </div>
+
+          <div className="quick-add-complete-actions">
             <button
+              aria-label="계속 추가"
+              className="quick-add-complete-action quick-add-complete-action--primary"
               onClick={() => {
                 setSavedWork(null);
                 setSubmitError(null);
@@ -76,11 +105,26 @@ export function WorkCreatePage() {
               }}
               type="button"
             >
-              계속 추가
+              <span className="mode-badge">연속 기록</span>
+              <span className="section-title">계속 추가</span>
+              <span className="muted-copy">다음 작품을 바로 이어서 등록합니다.</span>
             </button>
-            <button onClick={() => navigate(`/works/${savedWork.id}`)} type="button">
-              방금 등록한 작품 보기
+
+            <button
+              aria-label="방금 등록한 작품 보기"
+              className="quick-add-complete-action"
+              onClick={() => navigate(`/works/${savedWork.id}`)}
+              type="button"
+            >
+              <span className="badge">상세 보기</span>
+              <span className="section-title">방금 등록한 작품 보기</span>
+              <span className="muted-copy">
+                저장한 기록을 상세 화면에서 바로 확인합니다.
+              </span>
             </button>
+          </div>
+
+          <div className="button-row">
             <Link className="secondary-link" to="/works">
               작품 목록 보기
             </Link>

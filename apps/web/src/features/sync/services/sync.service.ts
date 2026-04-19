@@ -79,6 +79,14 @@ export interface ManualSyncResult {
   pull: PullCycleResult;
 }
 
+function isDatabaseClosedError(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.name === 'DatabaseClosedError' ||
+      error.message.includes('Database has been closed'))
+  );
+}
+
 async function postJson<TResponse>(
   path: string,
   body: unknown,
@@ -247,7 +255,13 @@ export class SyncService {
           ? localizeServerMessage(error.message, '업로드 요청에 실패했습니다.')
           : '업로드 요청에 실패했습니다.';
 
-      await this.queueRepo.markManyFailed(queueItemIds, message);
+      try {
+        await this.queueRepo.markManyFailed(queueItemIds, message);
+      } catch (markError) {
+        if (!isDatabaseClosedError(markError)) {
+          throw markError;
+        }
+      }
 
       return {
         attemptedCount: queueItems.length,

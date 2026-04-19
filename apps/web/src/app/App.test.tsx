@@ -9,7 +9,7 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: '워크 아카이브' })).toBeInTheDocument();
     expect(
-      await screen.findByRole('heading', { name: '오늘 기록할 작품을 바로 찾아보세요' }),
+      await screen.findByRole('heading', { name: '오늘 기록할 작품을 바로 시작해보세요' }),
     ).toBeInTheDocument();
   });
 });
