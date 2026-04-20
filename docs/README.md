@@ -4,7 +4,7 @@ Work Archive 문서의 공식 허브입니다. 저장소 루트의 실행 안내
 
 ## 폴더 구조
 - [`project/`](./project/README.md): 현재 상태, 프로젝트 맥락, 과거 구현 계획
-- [`product/`](./product/README.md): 제품 방향, 웹 UX 비전, 상용화 디자인 로드맵
+- [`product/`](./product/README.md): 제품 방향, 웹 UX 비전, 상용화 디자인 로드맵, 차세대 제품 아키텍처
 - [`frontend/`](./frontend/README.md): 현재 프론트 기준 설계와 목표 구조
 - [`backend/`](./backend/README.md): 백엔드 재설계 방향과 도메인 분리 기준
 - [`management/`](./management/README.md): 인덱스, 거버넌스, 상태표, 코드-문서 정합성
@@ -22,6 +22,7 @@ Work Archive 문서의 공식 허브입니다. 저장소 루트의 실행 안내
 - 현재 프론트 목표 구조: [`docs/frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](./frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
 - 현재 백엔드 목표 구조: [`docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](./backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
 - 제품 비전과 상용화 방향: [`docs/product/FINAL_WEB_DESIGN.md`](./product/FINAL_WEB_DESIGN.md), [`docs/product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
+- 차세대 제품 아키텍처: [`docs/product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](./product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
 - 역사적 참고 문서: [`docs/project/PROJECT_SPEC.md`](./project/PROJECT_SPEC.md), [`docs/project/IMPLEMENTATION_PLAN.md`](./project/IMPLEMENTATION_PLAN.md), [`docs/project/PLAN.md`](./project/PLAN.md), [`docs/project/IMPLEMENT.md`](./project/IMPLEMENT.md)
 
 ## 운영 메모
