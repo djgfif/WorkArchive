@@ -26,6 +26,7 @@
 8. UI 시스템 기준까지 보려면 [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
 9. 인증/게스트 전략까지 보려면 [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
 10. 티어 보드 전략까지 보려면 [`../product/README.md#tier-board-mvp-strategy`](../product/README.md#tier-board-mvp-strategy)
+11. 티어 보드 도메인 모델까지 보려면 [`../product/README.md#tier-board-domain-model-draft`](../product/README.md#tier-board-domain-model-draft)
 
 ### 백엔드 기준을 알고 싶을 때
 1. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
@@ -59,6 +60,7 @@
 - UI 시스템 기준: [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
 - 인증/게스트 전략: [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
 - 티어 보드 전략: [`../product/README.md#tier-board-mvp-strategy`](../product/README.md#tier-board-mvp-strategy)
+- 티어 보드 도메인 모델: [`../product/README.md#tier-board-domain-model-draft`](../product/README.md#tier-board-domain-model-draft)
 
 ### Frontend
 - 안내: [`../frontend/README.md`](../frontend/README.md)
@@ -101,6 +103,7 @@
 | product | [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md) | active | target UI system | Mantine 중심의 깔끔하고 전문적인 웹 UI 시스템 기준 확인 |
 | product | [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md) | active | auth strategy | 게스트 유지 + 구글 로그인 메인 전략의 인증/계정 경험 방향 확인 |
 | product | [`../product/README.md#tier-board-mvp-strategy`](../product/README.md#tier-board-mvp-strategy) | active | tier board strategy | 가볍고 공유 가능한 티어 보드 MVP 방향 확인 |
+| product | [`../product/README.md#tier-board-domain-model-draft`](../product/README.md#tier-board-domain-model-draft) | active | domain model draft | 티어 보드 MVP를 구현 가능한 도메인 모델 초안으로 해석할 때 |
 | frontend | [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md) | canonical | current canonical decisions | 현재 프론트 설계 기준 확인 |
 | frontend | [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md) | canonical | target canonical structure | 프론트 목표 구조 확인 |
 | frontend | [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md) | active | execution plan | Mantine 중심 UI 리팩터링의 실제 구현 순서와 범위 확인 |
@@ -143,6 +146,7 @@
 - [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
 - [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
 - [`../product/README.md#tier-board-mvp-strategy`](../product/README.md#tier-board-mvp-strategy)
+- [`../product/README.md#tier-board-domain-model-draft`](../product/README.md#tier-board-domain-model-draft)
 
 ### 역사적 참고
 - [`../project/PROJECT_SPEC.md`](../project/PROJECT_SPEC.md)
@@ -170,6 +174,7 @@
 7. UI 시스템 기준까지 보면 [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
 8. 인증 전략까지 보면 [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
 9. 티어 보드 전략까지 보면 [`../product/README.md#tier-board-mvp-strategy`](../product/README.md#tier-board-mvp-strategy)
+10. 구현 직전 도메인 모델까지 보면 [`../product/README.md#tier-board-domain-model-draft`](../product/README.md#tier-board-domain-model-draft)
 
 ### Case 3. 백엔드 구조를 만지려 한다
 1. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
