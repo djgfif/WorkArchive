@@ -21,12 +21,14 @@
 3. [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
 4. 필요 시 [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
 5. 필요 시 [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md)
+6. 제품 아키텍처까지 보려면 [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
 
 ### 백엔드 기준을 알고 싶을 때
 1. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 2. [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
-3. 필요 시 [`../project/PROJECT_SPEC.md`](../project/PROJECT_SPEC.md)
-4. 필요 시 [`../project/IMPLEMENTATION_PLAN.md`](../project/IMPLEMENTATION_PLAN.md)
+3. 제품-도메인 연결 구조까지 보려면 [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
+4. 필요 시 [`../project/PROJECT_SPEC.md`](../project/PROJECT_SPEC.md)
+5. 필요 시 [`../project/IMPLEMENTATION_PLAN.md`](../project/IMPLEMENTATION_PLAN.md)
 
 ### 문서 체계 자체를 이해하고 싶을 때
 1. [`../README.md`](../README.md)
@@ -48,6 +50,7 @@
 - 안내: [`../product/README.md`](../product/README.md)
 - 핵심 문서: [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md)
 - 실행 로드맵: [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
+- 차세대 제품 아키텍처: [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
 
 ### Frontend
 - 안내: [`../frontend/README.md`](../frontend/README.md)
@@ -84,6 +87,7 @@
 | project | [`../project/IMPLEMENT.md`](../project/IMPLEMENT.md) | reference | historical reference | 초기 구현 지시 맥락 확인 |
 | product | [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md) | active | target vision | 최종 제품/웹 UX 비전 확인 |
 | product | [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md) | active | target roadmap | 상용화 구현 로드맵 확인 |
+| product | [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md) | active | target product architecture | 개인 기록과 공용 카탈로그를 분리하는 차세대 제품 구조 확인 |
 | frontend | [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md) | canonical | current canonical decisions | 현재 프론트 설계 기준 확인 |
 | frontend | [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md) | canonical | target canonical structure | 프론트 목표 구조 확인 |
 | backend | [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md) | canonical | target canonical structure | 백엔드 재설계 기준 확인 |
@@ -114,6 +118,7 @@
 ### 미래 제품 비전
 - [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md)
 - [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
+- [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
 
 ### 역사적 참고
 - [`../project/PROJECT_SPEC.md`](../project/PROJECT_SPEC.md)
@@ -136,11 +141,13 @@
 2. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 3. [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
 4. 필요 시 [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
+5. 제품-도메인 연결 구조까지 보면 [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
 
 ### Case 3. 백엔드 구조를 만지려 한다
 1. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 2. [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
-3. 필요 시 [`../project/IMPLEMENTATION_PLAN.md`](../project/IMPLEMENTATION_PLAN.md)
+3. [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
+4. 필요 시 [`../project/IMPLEMENTATION_PLAN.md`](../project/IMPLEMENTATION_PLAN.md)
 
 ### Case 4. 문서를 새로 만들지 고민 중이다
 1. [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md)
