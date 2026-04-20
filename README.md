@@ -10,6 +10,16 @@ Work Archive is a local-first record app for novels, anime, manga, and related m
 - `packages/eslint-config`: shared ESLint config
 - `packages/tsconfig`: shared TypeScript config
 
+## Documentation
+
+Repository documentation now lives under [`docs/`](./docs/README.md).
+
+- Start with the [documentation hub](./docs/README.md).
+- Use the [documentation index](./docs/management/DOCUMENTATION_INDEX.md) for reading order and document roles.
+- Use the [current status report](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) for current code reality.
+- Use the [frontend blueprint](./docs/frontend/FRONTEND_BLUEPRINT_V1.md) for current frontend decisions.
+- Use the [backend redesign masterplan](./docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md) for backend target structure.
+
 ## Prerequisites
 
 - Node.js 22+
