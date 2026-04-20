@@ -25,8 +25,9 @@
 4. [`CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](./CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
 5. [`AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](./AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
 6. 아래의 **Tier Board MVP Strategy** 섹션
-7. 현재 구현과 비교가 필요하면 [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
-8. 백엔드 목표 구조와 연결해서 보려면 [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
+7. 아래의 **Tier Board Domain Model Draft** 섹션
+8. 현재 구현과 비교가 필요하면 [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
+9. 백엔드 목표 구조와 연결해서 보려면 [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
 
 ## Source Of Truth 메모
 - 현재 구현된 제품 현실의 기준은 이 폴더가 아니라 [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)입니다.
@@ -177,3 +178,253 @@ Work Archive의 티어 보드는 아래처럼 이해하면 됩니다.
 한 줄로 정리하면,
 
 > **Work Archive의 티어 보드는 작품과 커스텀 이미지 카드를 자유롭게 배치해 바로 공유할 수 있는 가벼운 랭킹 캔버스다.**
+
+---
+
+## Tier Board Domain Model Draft
+
+### 목적
+이 섹션은 위 MVP 전략을 실제 구현 가능한 수준의 도메인 모델 초안으로 내리는 것을 목표로 한다.
+
+핵심 원칙은 아래와 같다.
+- 복잡한 캐릭터/전투력 전용 도메인을 먼저 만들지 않는다.
+- 보드는 가볍고 범용적인 `Board / Lane / Card` 구조로 시작한다.
+- 작품 보드는 라이브러리 연동으로 처리하고, 나머지는 커스텀 카드로 수용한다.
+- 확장 가능성은 열어두되, MVP의 단순함을 해치지 않는다.
+
+---
+
+### 1. 핵심 엔티티
+
+#### A. TierBoard
+보드 자체를 나타낸다.
+
+권장 필드:
+- `id`
+- `ownerId`
+- `slug`
+- `title`
+- `description`
+- `boardType`
+- `visibility`
+- `coverImageUrl` nullable
+- `createdAt`
+- `updatedAt`
+- `publishedAt` nullable
+
+설명:
+- `slug`는 공유 URL용이다.
+- `boardType`은 `classic_tier` 또는 `ranking` 두 가지로 시작한다.
+- `visibility`는 `private`, `link_only`, `public` 세 가지로 시작한다.
+- `coverImageUrl`은 공유 썸네일이나 대표 이미지용이다.
+
+---
+
+#### B. TierLane
+보드 안의 줄이다.
+
+권장 필드:
+- `id`
+- `boardId`
+- `title`
+- `description` nullable
+- `colorToken` nullable
+- `orderIndex`
+- `createdAt`
+- `updatedAt`
+
+설명:
+- `title`은 `S`, `A`, `B`, `C`일 수도 있고, `최상위`, `상위`, `중위`, `하위`처럼 자유 이름일 수도 있다.
+- `description`은 MVP에서 선택 사항이지만, 나중에 줄 의미를 조금 더 분명히 할 때 유용하다.
+- `colorToken`은 실제 색상값보다 theme token 또는 preset key를 저장하는 쪽이 유지보수에 유리하다.
+
+---
+
+#### C. TierBoardCard
+보드 위에 놓이는 실제 카드다.
+
+권장 필드:
+- `id`
+- `boardId`
+- `laneId` nullable
+- `orderIndex`
+- `cardSourceType`
+- `workId` nullable
+- `titleOverride` nullable
+- `subtitle` nullable
+- `imageUrl` nullable
+- `note` nullable
+- `createdAt`
+- `updatedAt`
+
+설명:
+- `laneId`가 nullable인 이유는, 편집 중 아직 아무 줄에도 배치되지 않은 카드 풀(pool)을 지원하기 위해서다.
+- `cardSourceType`은 최소 아래 두 가지로 시작한다.
+  - `library_work`
+  - `custom`
+- `workId`는 라이브러리 작품 카드일 때만 사용한다.
+- `titleOverride`는 라이브러리 카드도 표시 이름을 다르게 쓰고 싶을 때를 대비한 선택 필드다.
+- `imageUrl`은 라이브러리 카드면 기본 썸네일을 복사/캐시하거나, 커스텀 카드면 업로드한 이미지 URL을 저장한다.
+- `note`는 MVP에서는 꼭 필요하지 않지만, 카드에 한 줄 메모를 붙이고 싶을 때를 대비한 아주 가벼운 확장 필드다.
+
+---
+
+### 2. 최소 Enum 초안
+
+#### BoardType
+- `classic_tier`
+- `ranking`
+
+#### Visibility
+- `private`
+- `link_only`
+- `public`
+
+#### CardSourceType
+- `library_work`
+- `custom`
+
+MVP에서는 여기서 멈추는 것이 좋다.
+
+---
+
+### 3. 관계 구조
+
+#### TierBoard 1:N TierLane
+- 하나의 보드에는 여러 줄이 있다.
+
+#### TierBoard 1:N TierBoardCard
+- 하나의 보드에는 여러 카드가 있다.
+
+#### TierLane 1:N TierBoardCard
+- 하나의 줄에는 여러 카드가 있다.
+- 단, 카드가 아직 풀 상태라면 `laneId`는 비어 있을 수 있다.
+
+#### Work 1:N TierBoardCard(optional)
+- 하나의 작품이 여러 보드에서 재사용될 수 있다.
+- 단, 모든 카드가 작품을 참조할 필요는 없다.
+
+즉 핵심은:
+- 보드는 줄과 카드를 가진다.
+- 카드는 작품을 참조할 수도 있고, 완전히 커스텀일 수도 있다.
+
+---
+
+### 4. MVP 저장 원칙
+
+#### 1) 카드 위치 저장
+카드 위치는 우선 단순하게 저장한다.
+- `laneId`
+- `orderIndex`
+
+이 두 값이면 대부분의 정렬/드래그 요구를 커버할 수 있다.
+
+#### 2) 라이브러리 카드 표시 데이터
+라이브러리 카드는 기본적으로 `workId`를 참조하되, 화면에서는 아래를 사용한다.
+- 기본 제목: Work.title
+- 기본 이미지: Work.thumbnailUrl
+
+단, 필요하면 아래 override를 허용한다.
+- `titleOverride`
+- `imageUrl`
+
+즉 “참조 + 선택적 덮어쓰기” 구조가 유연하다.
+
+#### 3) 커스텀 카드 저장 데이터
+커스텀 카드는 최소 아래만 있으면 된다.
+- `titleOverride` 또는 `title` 역할 필드
+- `imageUrl`
+
+즉 별도 커스텀 엔티티를 두지 않고, `TierBoardCard` 안에서 바로 처리하는 것이 MVP에는 가장 단순하다.
+
+---
+
+### 5. UI 관점 도메인 해석
+
+#### Board List
+필요 데이터:
+- 보드 제목
+- 설명
+- 대표 이미지
+- visibility
+- updatedAt
+- 카드 수
+
+즉 `TierBoard` 단독 정보 + 카드 수 집계면 충분하다.
+
+#### Board Editor
+필요 데이터:
+- `TierBoard`
+- `TierLane[]`
+- `TierBoardCard[]`
+- 라이브러리 작품 검색 결과(optional)
+
+핵심은 중앙 보드 상태를 단순하게 유지하는 것이다.
+
+#### Public View
+필요 데이터:
+- 제목
+- 설명
+- 줄 순서
+- 카드 순서
+- 각 카드의 표시 제목/이미지
+- 작성자 최소 정보
+
+공개 보기 화면은 편집용 메타데이터보다 **보여주는 결과물**에 집중한다.
+
+---
+
+### 6. MVP에서 의도적으로 제외하는 것
+이 초안은 아래를 의도적으로 제외한다.
+- 캐릭터 전용 엔티티
+- 전투력 수치/스탯 테이블
+- 복잡한 태그/배지 도메인
+- 카드 간 관계 그래프
+- 자동 추천/자동 정렬 엔진
+- 세분화된 permission 모델
+
+이유는 분명하다.
+- 티어 보드는 가벼워야 한다.
+- 초기 성공 조건은 복잡한 정확성이 아니라 빠른 제작과 공유다.
+
+---
+
+### 7. 추후 확장 포인트
+MVP 이후 확장이 필요하면 아래 순서가 자연스럽다.
+
+#### Phase A
+- `note` 활성화
+- 대표 이미지 자동 생성
+- 보드 복제
+
+#### Phase B
+- `cardSourceType = character` 같은 새 source type 확장
+- 카드별 링크/원작 연결
+- 공개 프로필 탭 연동
+
+#### Phase C
+- 커뮤니티 피드/인기 보드
+- 포크/리믹스
+- 댓글/반응
+
+즉 현재 구조는 단순하지만, 확장 여지는 충분하다.
+
+---
+
+### 8. 구현팀을 위한 최종 정리
+도메인 모델을 아주 짧게 줄이면 이렇다.
+
+- `TierBoard`: 보드 메타
+- `TierLane`: 줄
+- `TierBoardCard`: 카드
+- 카드 소스는 두 가지만 시작
+  - `library_work`
+  - `custom`
+- 위치는 `laneId + orderIndex`로 처리
+- 공유는 `slug + visibility`로 처리
+
+즉,
+
+> **티어 보드 MVP는 Board / Lane / Card 3개 엔티티와, library_work / custom 2개 카드 소스만으로 시작하는 것이 가장 적절하다.**
+
+이 구조면 지금 정한 제품 방향인 **가벼움 / 자유도 / 공유성**을 유지하면서도, 실제 구현에 들어갈 수 있다.
