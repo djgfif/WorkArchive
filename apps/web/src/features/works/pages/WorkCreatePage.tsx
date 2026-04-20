@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import { PageHero } from '../../../shared/components/PageHero';
+import { FlowPageTemplate } from '../../../shared/components/PageTemplates';
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import { QuickAddWorkForm } from '../components/QuickAddWorkForm';
 import { worksService } from '../services/works.service';
@@ -38,7 +39,7 @@ export function WorkCreatePage() {
   }
 
   return (
-    <section className="stack">
+    <FlowPageTemplate>
       <PageHero
         actions={
           <Link className="secondary-link" to="/works">
@@ -138,6 +139,6 @@ export function WorkCreatePage() {
           submitError={submitError}
         />
       )}
-    </section>
+    </FlowPageTemplate>
   );
 }

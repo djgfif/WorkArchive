@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { PageHero } from './PageHero';
+import { WorkspacePageTemplate } from './PageTemplates';
 
 interface FutureFeatureCard {
   description: string;
@@ -13,6 +14,7 @@ interface FutureFeaturePageProps {
   eyebrow: string;
   footer?: ReactNode;
   highlights: FutureFeatureCard[];
+  template?: 'bare' | 'workspace';
   title: string;
 }
 
@@ -22,10 +24,11 @@ export function FutureFeaturePage({
   eyebrow,
   footer,
   highlights,
+  template = 'workspace',
   title,
 }: FutureFeaturePageProps) {
-  return (
-    <div className="stack">
+  const content = (
+    <>
       <PageHero
         actions={actions}
         description={description}
@@ -44,6 +47,12 @@ export function FutureFeaturePage({
       </section>
 
       {footer && <section className="panel stack">{footer}</section>}
-    </div>
+    </>
   );
+
+  if (template === 'bare') {
+    return <>{content}</>;
+  }
+
+  return <WorkspacePageTemplate>{content}</WorkspacePageTemplate>;
 }

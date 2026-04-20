@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
 import {
@@ -80,7 +81,7 @@ export function HomePage() {
   }
 
   return (
-    <div className="stack">
+    <HomeHubPageTemplate>
       <section className="panel home-hero">
         <div className="home-hero-copy">
           <p className="eyebrow">홈</p>
@@ -293,6 +294,6 @@ export function HomePage() {
           </div>
         )}
       </section>
-    </div>
+    </HomeHubPageTemplate>
   );
 }

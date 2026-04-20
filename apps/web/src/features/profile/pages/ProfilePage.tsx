@@ -1,6 +1,7 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { PageHero } from '../../../shared/components/PageHero';
+import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { useSyncDashboard } from '../../sync/hooks/useSyncDashboard';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
@@ -15,24 +16,28 @@ function formatAverageRating(value: number | null) {
 }
 
 export function ProfilePage() {
-  const navigate = useNavigate();
-  const { mode, signOut, user } = useAuthSession();
+  const { mode, user } = useAuthSession();
   const { averageRating, completedCount, totalCount } = useWorksOverview();
   const { conflictWorks, lastSuccessfulPullAt, queueItems } = useSyncDashboard();
   const isAuthenticated = mode === 'authenticated';
 
-  async function handleSignOut() {
-    await signOut();
-    navigate('/');
-  }
-
   return (
-    <div className="stack">
+    <DetailPageTemplate>
       <PageHero
+        actions={
+          <>
+            <Link className="secondary-link" to="/account">
+              계정 센터
+            </Link>
+            <Link className="secondary-link" to="/works">
+              작품 보기
+            </Link>
+          </>
+        }
         description={
           isAuthenticated
-            ? '계정, 동기화, 설정과 앞으로 공개 프로필로 이어질 구조를 여기서 관리합니다.'
-            : '프로필 탭은 계정과 동기화, 설정을 모으는 공간입니다. 지금은 게스트 모드로 이 기기에만 저장됩니다.'
+            ? '개인 취향 아카이브의 얼굴이 되는 프로필 화면입니다. 계정 관리와 동기화는 별도 계정 센터로 분리했습니다.'
+            : '지금은 게스트 모드이지만, 프로필은 앞으로 공개 취향 아카이브로 확장될 메인 목적지입니다.'
         }
         eyebrow="프로필"
         meta={
@@ -51,48 +56,36 @@ export function ProfilePage() {
             </div>
           </>
         }
-        title={isAuthenticated ? '내 프로필' : '프로필과 계정'}
+        title={isAuthenticated ? '내 프로필' : '내 아카이브 프로필'}
       />
 
       <section className="profile-grid">
         <article className="panel stack">
           <div className="section-heading">
-            <p className="section-kicker">계정</p>
+            <p className="section-kicker">프로필 소개</p>
             <h2 className="section-title">
-              {isAuthenticated ? '로그인된 계정' : '게스트 모드'}
+              {isAuthenticated ? '내 취향 아카이브' : '게스트 프로필 미리보기'}
             </h2>
             <p className="section-description">
               {isAuthenticated
-                ? `${user?.email ?? '계정'}으로 사용 중입니다.`
-                : '로그인하지 않아도 이 기기에 기록할 수 있지만, 동기화는 계정 모드에서만 사용할 수 있습니다.'}
+                ? `${user?.email ?? '계정'} 기준으로 기록을 모으고 있습니다. 대표 작품, 공개 소개, 티어 보드가 앞으로 이 구조에 연결됩니다.`
+                : '로그인하지 않아도 기록은 시작할 수 있습니다. 계정을 만들면 이 흐름을 계정 프로필로 자연스럽게 이어갈 수 있습니다.'}
             </p>
           </div>
 
-          <div className="button-row">
-            {isAuthenticated ? (
-              <button onClick={() => void handleSignOut()} type="button">
-                로그아웃
-              </button>
-            ) : (
-              <>
-                <Link className="secondary-link" to="/auth/login">
-                  로그인
-                </Link>
-                <Link className="secondary-link" to="/auth/register">
-                  회원가입
-                </Link>
-              </>
-            )}
+          <div className="badge-row">
+            <span className="badge">대표 작품</span>
+            <span className="badge">공개 소개</span>
+            <span className="badge">취향 요약</span>
           </div>
         </article>
 
         <article className="panel stack">
           <div className="section-heading">
-            <p className="section-kicker">동기화</p>
-            <h2 className="section-title">계정 보조 기능</h2>
+            <p className="section-kicker">기록 요약</p>
+            <h2 className="section-title">지금 보이는 아카이브 상태</h2>
             <p className="section-description">
-              대기 중인 변경과 충돌 여부를 프로필 안에서 확인하고 수동 동기화를
-              실행합니다.
+              프로필은 기록량과 감상 흐름을 보여주는 목적지입니다. 관리 동작은 계정 센터에서 이어집니다.
             </p>
           </div>
 
@@ -110,27 +103,23 @@ export function ProfilePage() {
               <dd>{formatOptionalDate(lastSuccessfulPullAt)}</dd>
             </div>
           </dl>
-
-          <div className="button-row">
-            <Link className="secondary-link" to="/profile/sync">
-              동기화 열기
-            </Link>
-          </div>
         </article>
 
         <article className="panel stack">
           <div className="section-heading">
-            <p className="section-kicker">설정</p>
-            <h2 className="section-title">계정·테마·환경 설정</h2>
+            <p className="section-kicker">계정 센터</p>
+            <h2 className="section-title">관리 기능은 따로 분리했습니다</h2>
             <p className="section-description">
-              설정은 프로필 하위에서 관리합니다. 이번 단계에서는 구조와 진입만
-              먼저 정리합니다.
+              동기화, 설정, 공개 범위는 메인 프로필 흐름과 분리된 관리 영역에서 차분하게 다룹니다.
             </p>
           </div>
 
           <div className="button-row">
-            <Link className="secondary-link" to="/profile/settings">
-              설정 열기
+            <Link className="secondary-link" to="/account">
+              계정 센터 열기
+            </Link>
+            <Link className="secondary-link" to="/account/sync">
+              동기화 바로가기
             </Link>
           </div>
         </article>
@@ -152,6 +141,6 @@ export function ProfilePage() {
           </div>
         </article>
       </section>
-    </div>
+    </DetailPageTemplate>
   );
 }
