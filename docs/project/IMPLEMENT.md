@@ -1,9 +1,9 @@
 # IMPLEMENT.md
 
-You are implementing the repository according to PLAN.md and IMPLEMENTATION_PLAN.md.
+You are implementing the repository according to [PLAN.md](./PLAN.md) and [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md).
 
 ## Core Rules
-1. PLAN.md is the source of truth.
+1. [PLAN.md](./PLAN.md) is the source of truth.
 2. Work on exactly one milestone at a time.
 3. Do not expand scope beyond the current milestone.
 4. Keep diffs minimal and well-structured.
@@ -74,7 +74,7 @@ Every work record should support:
 
 ## Documentation Rules
 Whenever a command, environment variable, or setup step changes:
-- update README.md
+- update [README.md](../../README.md)
 - update relevant examples
 - keep setup reproducible
 
