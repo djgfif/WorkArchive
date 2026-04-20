@@ -28,9 +28,10 @@
 ### 백엔드 기준을 알고 싶을 때
 1. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 2. [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
-3. 제품-도메인 연결 구조까지 보려면 [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
-4. 필요 시 [`../project/PROJECT_SPEC.md`](../project/PROJECT_SPEC.md)
-5. 필요 시 [`../project/IMPLEMENTATION_PLAN.md`](../project/IMPLEMENTATION_PLAN.md)
+3. 보안 우선순위까지 보려면 [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md)
+4. 제품-도메인 연결 구조까지 보려면 [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
+5. 필요 시 [`../project/PROJECT_SPEC.md`](../project/PROJECT_SPEC.md)
+6. 필요 시 [`../project/IMPLEMENTATION_PLAN.md`](../project/IMPLEMENTATION_PLAN.md)
 
 ### 문서 체계 자체를 이해하고 싶을 때
 1. [`../README.md`](../README.md)
@@ -64,6 +65,7 @@
 ### Backend
 - 안내: [`../backend/README.md`](../backend/README.md)
 - 핵심 문서: [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
+- 보안 로드맵: [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md)
 
 ### Management
 - 안내: [`README.md`](./README.md)
@@ -97,6 +99,7 @@
 | frontend | [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md) | canonical | target canonical structure | 프론트 목표 구조 확인 |
 | frontend | [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md) | active | execution plan | Mantine 중심 UI 리팩터링의 실제 구현 순서와 범위 확인 |
 | backend | [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md) | canonical | target canonical structure | 백엔드 재설계 기준 확인 |
+| backend | [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md) | active | security roadmap | 공개 전/후/확장 전 보안 강화 우선순위와 체크리스트 확인 |
 | management | [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md) | canonical | governance | 문서 운영 규칙 확인 |
 | management | [`DOCUMENTATION_INDEX.md`](./DOCUMENTATION_INDEX.md) | canonical | navigation | 읽는 순서와 위치 확인 |
 | management | [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md) | canonical | status map | canonical / active / reference 판단 |
@@ -120,6 +123,9 @@
 
 ### 현재 백엔드 목표 구조 canonical
 - [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
+
+### 백엔드 보안 강화 로드맵
+- [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md)
 
 ### 현재 제품 현실
 - [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
@@ -158,8 +164,9 @@
 ### Case 3. 백엔드 구조를 만지려 한다
 1. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 2. [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
-3. [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
-4. 필요 시 [`../project/IMPLEMENTATION_PLAN.md`](../project/IMPLEMENTATION_PLAN.md)
+3. [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md)
+4. [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
+5. 필요 시 [`../project/IMPLEMENTATION_PLAN.md`](../project/IMPLEMENTATION_PLAN.md)
 
 ### Case 4. 문서를 새로 만들지 고민 중이다
 1. [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md)
