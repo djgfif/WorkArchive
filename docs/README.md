@@ -27,7 +27,8 @@ Work Archive 문서의 공식 허브입니다. 저장소 루트의 실행 안내
 - 차세대 제품 아키텍처: [`docs/product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](./product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
 - 깔끔하고 전문적인 웹 UI 시스템 기준: [`docs/product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](./product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
 - 인증/게스트 경험 전략: [`docs/product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](./product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
-- 티어 보드 MVP 전략: [`docs/product/README.md`](./product/README.md#tier-board-mvp-strategy)
+- 티어 보드 MVP 전략: [`docs/product/README.md#tier-board-mvp-strategy`](./product/README.md#tier-board-mvp-strategy)
+- 티어 보드 도메인 모델 초안: [`docs/product/README.md#tier-board-domain-model-draft`](./product/README.md#tier-board-domain-model-draft)
 - 역사적 참고 문서: [`docs/project/PROJECT_SPEC.md`](./project/PROJECT_SPEC.md), [`docs/project/IMPLEMENTATION_PLAN.md`](./project/IMPLEMENTATION_PLAN.md), [`docs/project/PLAN.md`](./project/PLAN.md), [`docs/project/IMPLEMENT.md`](./project/IMPLEMENT.md)
 
 ## 운영 메모
