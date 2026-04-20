@@ -19,10 +19,11 @@
 1. [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md)
 2. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 3. [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
-4. 필요 시 [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
-5. 필요 시 [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md)
-6. 제품 아키텍처까지 보려면 [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
-7. UI 시스템 기준까지 보려면 [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
+4. 실제 실행 순서까지 보려면 [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
+5. 필요 시 [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
+6. 필요 시 [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md)
+7. 제품 아키텍처까지 보려면 [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
+8. UI 시스템 기준까지 보려면 [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
 
 ### 백엔드 기준을 알고 싶을 때
 1. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
@@ -58,6 +59,7 @@
 - 안내: [`../frontend/README.md`](../frontend/README.md)
 - 현재 기준: [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md)
 - 목표 구조: [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
+- 실행 계획: [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
 
 ### Backend
 - 안내: [`../backend/README.md`](../backend/README.md)
@@ -93,6 +95,7 @@
 | product | [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md) | active | target UI system | Mantine 중심의 깔끔하고 전문적인 웹 UI 시스템 기준 확인 |
 | frontend | [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md) | canonical | current canonical decisions | 현재 프론트 설계 기준 확인 |
 | frontend | [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md) | canonical | target canonical structure | 프론트 목표 구조 확인 |
+| frontend | [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md) | active | execution plan | Mantine 중심 UI 리팩터링의 실제 구현 순서와 범위 확인 |
 | backend | [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md) | canonical | target canonical structure | 백엔드 재설계 기준 확인 |
 | management | [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md) | canonical | governance | 문서 운영 규칙 확인 |
 | management | [`DOCUMENTATION_INDEX.md`](./DOCUMENTATION_INDEX.md) | canonical | navigation | 읽는 순서와 위치 확인 |
@@ -111,6 +114,9 @@
 
 ### 현재 프론트 목표 구조 canonical
 - [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
+
+### 프론트 UI 리팩터링 실행 계획
+- [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
 
 ### 현재 백엔드 목표 구조 canonical
 - [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
@@ -144,9 +150,10 @@
 1. [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md)
 2. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 3. [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
-4. 필요 시 [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
-5. 제품-도메인 연결 구조까지 보면 [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
-6. UI 시스템 기준까지 보면 [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
+4. [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
+5. 필요 시 [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
+6. 제품-도메인 연결 구조까지 보면 [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
+7. UI 시스템 기준까지 보면 [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
 
 ### Case 3. 백엔드 구조를 만지려 한다
 1. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
