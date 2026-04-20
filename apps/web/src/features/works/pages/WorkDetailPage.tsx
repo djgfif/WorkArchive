@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
 
+import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
 import { WorkDetailPanel } from '../components/WorkDetailPanel';
 import { useWorkDetail } from '../hooks/useWorkDetail';
 import { worksService } from '../services/works.service';
@@ -118,7 +119,7 @@ export function WorkDetailPage() {
   }
 
   return (
-    <div className="stack">
+    <DetailPageTemplate>
       {actionError && (
         <div aria-live="polite" className="error-banner" role="alert">
           {actionError}
@@ -242,6 +243,6 @@ export function WorkDetailPage() {
         }
         work={work}
       />
-    </div>
+    </DetailPageTemplate>
   );
 }

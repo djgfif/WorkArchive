@@ -143,6 +143,289 @@ textarea {
   min-height: 100vh;
 }
 
+.layout-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.layout-shell--auth {
+  background:
+    radial-gradient(circle at 16% 12%, rgba(59, 130, 246, 0.22), transparent 26%),
+    radial-gradient(circle at 85% 18%, rgba(251, 191, 36, 0.12), transparent 22%),
+    linear-gradient(180deg, #08101f 0%, #050914 100%);
+}
+
+.layout-shell--account {
+  background:
+    radial-gradient(circle at 85% 14%, rgba(14, 165, 233, 0.16), transparent 22%),
+    linear-gradient(180deg, #07111f 0%, #040811 100%);
+}
+
+.layout-shell--minimal {
+  display: grid;
+  place-items: center;
+}
+
+.layout-backdrop {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(18px);
+}
+
+.layout-backdrop--north {
+  inset: -180px auto auto -80px;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.22), transparent 70%);
+}
+
+.layout-backdrop--east {
+  inset: 120px -160px auto auto;
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.18), transparent 72%);
+}
+
+.layout-backdrop--west {
+  inset: auto auto -160px -140px;
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.16), transparent 74%);
+}
+
+.layout-frame {
+  position: relative;
+  width: min(1360px, 100%);
+  margin: 0 auto;
+}
+
+.layout-frame--auth {
+  width: min(1260px, 100%);
+}
+
+.layout-frame--minimal {
+  width: min(760px, 100%);
+}
+
+.layout-outlet {
+  display: grid;
+  align-content: start;
+}
+
+.layout-outlet--product {
+  gap: 26px;
+}
+
+.layout-outlet--account {
+  gap: 24px;
+}
+
+.layout-outlet--minimal {
+  width: 100%;
+}
+
+.product-layout {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.product-layout-shell {
+  display: grid;
+  gap: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 32%),
+    rgba(7, 14, 28, 0.8);
+}
+
+.product-layout-topbar,
+.product-layout-nav-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.product-layout-nav-row {
+  align-items: stretch;
+}
+
+.product-layout-actions {
+  justify-content: flex-end;
+}
+
+.brand-heading {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: 'Aptos Display', 'Aptos', 'Segoe UI', 'Noto Sans KR', sans-serif;
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.session-card--compact {
+  width: min(100%, 320px);
+  gap: 14px;
+  padding: 18px;
+}
+
+.account-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.account-layout-sidebar {
+  display: grid;
+  gap: 24px;
+  position: sticky;
+  top: 24px;
+  align-content: start;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 35%),
+    rgba(6, 12, 24, 0.86);
+}
+
+.account-layout-sidebar-footer {
+  gap: 12px;
+}
+
+.account-nav {
+  display: grid;
+  gap: 10px;
+}
+
+.account-nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.44);
+  color: var(--text-secondary);
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.account-nav-link:hover {
+  color: var(--text-primary);
+  border-color: rgba(125, 211, 252, 0.24);
+  transform: translateY(-1px);
+}
+
+.account-nav-link.active {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(96, 165, 250, 0.32);
+  color: var(--text-primary);
+}
+
+.auth-layout-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
+  gap: 28px;
+  align-items: stretch;
+}
+
+.auth-layout-spotlight,
+.auth-layout-content {
+  min-height: calc(100vh - 48px);
+}
+
+.auth-layout-spotlight {
+  display: grid;
+  align-content: center;
+  gap: 26px;
+  padding: clamp(28px, 4vw, 48px);
+}
+
+.auth-layout-copy {
+  gap: 18px;
+  max-width: 58ch;
+}
+
+.auth-layout-feature-list {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-layout-feature-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(8, 15, 28, 0.72);
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.18);
+}
+
+.auth-layout-content {
+  display: grid;
+  align-content: center;
+}
+
+.auth-page-template {
+  display: grid;
+  gap: 18px;
+}
+
+.auth-page-template-card,
+.auth-page-template-footer {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 34%),
+    rgba(8, 15, 28, 0.88);
+}
+
+.auth-page-template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.auth-page-template-feature {
+  min-height: 100%;
+}
+
+.auth-form {
+  gap: 16px;
+}
+
+.page-template {
+  display: grid;
+  align-content: start;
+  gap: 24px;
+}
+
+.page-template--home,
+.page-template--workspace,
+.page-template--detail,
+.page-template--account {
+  width: min(1240px, 100%);
+}
+
+.page-template--flow {
+  width: min(1120px, 100%);
+}
+
+.page-template--minimal {
+  width: 100%;
+  padding: 36px;
+  justify-items: start;
+}
+
+.account-page-hero {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 38%),
+    rgba(8, 15, 28, 0.8);
+}
+
 .app-shell {
   position: relative;
   min-height: 100vh;
@@ -1801,6 +2084,17 @@ h1 {
 }
 
 @media (max-width: 1040px) {
+  .auth-layout-shell,
+  .account-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-layout-sidebar {
+    position: static;
+  }
+
+  .product-layout-topbar,
+  .product-layout-nav-row,
   .page-hero,
   .shell-topbar,
   .shell-nav-row,
@@ -1813,10 +2107,17 @@ h1 {
   }
 
   .page-hero-side,
-  .shell-topbar-actions {
+  .shell-topbar-actions,
+  .product-layout-actions {
     justify-items: start;
   }
 
+  .auth-layout-spotlight,
+  .auth-layout-content {
+    min-height: auto;
+  }
+
+  .auth-page-template-grid,
   .home-overview-grid,
   .home-recent-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -1860,6 +2161,10 @@ h1 {
 }
 
 @media (max-width: 720px) {
+  .layout-shell {
+    padding: 16px;
+  }
+
   .app-shell {
     padding: 16px;
   }
@@ -1883,6 +2188,14 @@ h1 {
   .session-card,
   .auth-panel {
     width: 100%;
+  }
+
+  .auth-layout-spotlight {
+    padding: 0;
+  }
+
+  .auth-page-template-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .home-search-form,
@@ -1928,6 +2241,10 @@ h1 {
 @media (max-width: 560px) {
   .brand-link {
     align-items: flex-start;
+  }
+
+  .page-template--minimal {
+    padding: 26px;
   }
 
   .page-title {

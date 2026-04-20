@@ -1,13 +1,17 @@
 import type { RouteObject } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 
-import { AppLayout } from '../layouts/AppLayout';
+import { AccountLayout } from '../layouts/AccountLayout';
+import { AuthLayout } from '../layouts/AuthLayout';
+import { MainProductLayout } from '../layouts/MainProductLayout';
+import { MinimalLayout } from '../layouts/MinimalLayout';
 import { NotFoundPage } from './NotFoundPage';
 import { LoginPage } from '../../features/auth/pages/LoginPage';
 import { RegisterPage } from '../../features/auth/pages/RegisterPage';
 import { CommunityPage } from '../../features/community/pages/CommunityPage';
 import { HomePage } from '../../features/home/pages/HomePage';
 import { InsightsPage } from '../../features/insights/pages/InsightsPage';
+import { AccountOverviewPage } from '../../features/profile/pages/AccountOverviewPage';
 import { ProfilePage } from '../../features/profile/pages/ProfilePage';
 import { SettingsPage } from '../../features/profile/pages/SettingsPage';
 import { TierBoardsPage } from '../../features/tier-boards/pages/TierBoardsPage';
@@ -19,8 +23,7 @@ import { WorksListPage } from '../../features/works/pages/WorksListPage';
 
 export const appRoutes: RouteObject[] = [
   {
-    path: '/',
-    element: <AppLayout />,
+    element: <MainProductLayout />,
     children: [
       {
         index: true,
@@ -62,30 +65,59 @@ export const appRoutes: RouteObject[] = [
         path: 'profile',
         element: <ProfilePage />,
       },
+    ],
+  },
+  {
+    path: '/auth',
+    element: <AuthLayout />,
+    children: [
       {
-        path: 'profile/sync',
-        element: <SyncPage />,
-      },
-      {
-        path: 'sync',
-        element: <Navigate replace to="/profile/sync" />,
-      },
-      {
-        path: 'profile/settings',
-        element: <SettingsPage />,
-      },
-      {
-        path: 'settings',
-        element: <Navigate replace to="/profile/settings" />,
-      },
-      {
-        path: 'auth/login',
+        path: 'login',
         element: <LoginPage />,
       },
       {
-        path: 'auth/register',
+        path: 'register',
         element: <RegisterPage />,
       },
+    ],
+  },
+  {
+    path: '/account',
+    element: <AccountLayout />,
+    children: [
+      {
+        index: true,
+        element: <AccountOverviewPage />,
+      },
+      {
+        path: 'sync',
+        element: <SyncPage />,
+      },
+      {
+        path: 'settings',
+        element: <SettingsPage />,
+      },
+    ],
+  },
+  {
+    path: '/sync',
+    element: <Navigate replace to="/account/sync" />,
+  },
+  {
+    path: '/settings',
+    element: <Navigate replace to="/account/settings" />,
+  },
+  {
+    path: '/profile/sync',
+    element: <Navigate replace to="/account/sync" />,
+  },
+  {
+    path: '/profile/settings',
+    element: <Navigate replace to="/account/settings" />,
+  },
+  {
+    element: <MinimalLayout />,
+    children: [
       {
         path: '*',
         element: <NotFoundPage />,

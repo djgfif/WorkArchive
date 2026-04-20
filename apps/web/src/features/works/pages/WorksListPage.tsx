@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { WORK_STATUSES, WORK_TYPES } from '@work-archive/shared-types';
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { WorkspacePageTemplate } from '../../../shared/components/PageTemplates';
 import { WorksList, type WorksViewMode } from '../components/WorksList';
 import { WorksTrashList } from '../components/WorksTrashList';
 import { WorksToolbar } from '../components/WorksToolbar';
@@ -199,7 +200,7 @@ export function WorksListPage() {
   }
 
   return (
-    <div className="stack">
+    <WorkspacePageTemplate>
       <WorksToolbar
         collectionScope={collectionScope}
         filteredCount={works.length}
@@ -343,6 +344,6 @@ export function WorksListPage() {
           />
         )
       )}
-    </div>
+    </WorkspacePageTemplate>
   );
 }

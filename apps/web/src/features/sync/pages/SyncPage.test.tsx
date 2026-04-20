@@ -208,7 +208,7 @@ describe('SyncPage', () => {
       </AuthProvider>,
     );
 
-    await screen.findByText('frieren@example.com');
+    expect(await screen.findAllByText(/frieren@example\.com/)).not.toHaveLength(0);
     await user.click(
       await screen.findByRole('button', { name: '수동 동기화' }),
     );

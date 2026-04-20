@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
-import { PageHero } from '../../../shared/components/PageHero';
+import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import type { SyncRunState } from '../services/sync.service';
 
@@ -69,61 +69,59 @@ export function SyncPage() {
   }
 
   return (
-    <div className="stack">
-      <PageHero
-        actions={
-          <>
-            <Link className="secondary-link" to="/profile">
-              프로필로 돌아가기
-            </Link>
-            <button
-              disabled={isGuestMode || syncState === 'syncing'}
-              onClick={() => {
-                void handleRunSync();
-              }}
-              type="button"
-            >
-              {isGuestMode
-                ? '로그인 후 동기화'
-                : syncState === 'syncing'
-                  ? '동기화 중...'
-                  : '수동 동기화'}
-            </button>
-          </>
-        }
-        aside={
-          <div className="sync-status-block">
+    <AccountPageTemplate
+      actions={
+        <>
+          <Link className="secondary-link" to="/account">
+            계정 홈으로 돌아가기
+          </Link>
+          <button
+            disabled={isGuestMode || syncState === 'syncing'}
+            onClick={() => {
+              void handleRunSync();
+            }}
+            type="button"
+          >
+            {isGuestMode
+              ? '로그인 후 동기화'
+              : syncState === 'syncing'
+                ? '동기화 중...'
+                : '수동 동기화'}
+          </button>
+        </>
+      }
+      description={
+        isGuestMode
+          ? '게스트 모드에서는 이 기기에만 저장됩니다. 로그인하면 계정 관리 맥락에서 동기화를 사용할 수 있습니다.'
+          : `${user?.email}로 로그인되어 있습니다. 지금 기록을 동기화해 최신 상태로 맞출 수 있습니다.`
+      }
+      eyebrow="동기화"
+      meta={
+        <>
+          <div className="stat-pill">
+            <span className="stat-pill-value">{queueItems.length}</span>
+            <span className="stat-pill-label">대기 중</span>
+          </div>
+          <div className="stat-pill">
+            <span className="stat-pill-value">{conflictWorks.length}</span>
+            <span className="stat-pill-label">충돌</span>
+          </div>
+          <div className="stat-pill">
+            <span className="stat-pill-value">
+              {formatOptionalDate(lastSuccessfulPullAt)}
+            </span>
+            <span className="stat-pill-label">최근 동기화</span>
+          </div>
+          <div className="stat-pill">
             <span className={`sync-state-badge sync-state-${syncState}`}>
               {renderStateLabel(syncState)}
             </span>
+            <span className="stat-pill-label">현재 상태</span>
           </div>
-        }
-        description={
-          isGuestMode
-            ? '게스트 모드에서는 이 기기에만 저장됩니다. 로그인하면 기록을 동기화할 수 있습니다.'
-            : `${user?.email}로 로그인되어 있습니다. 지금 기록을 동기화해 최신 상태로 맞출 수 있습니다.`
-        }
-        eyebrow="동기화"
-        meta={
-          <>
-            <div className="stat-pill">
-              <span className="stat-pill-value">{queueItems.length}</span>
-              <span className="stat-pill-label">대기 중</span>
-            </div>
-            <div className="stat-pill">
-              <span className="stat-pill-value">{conflictWorks.length}</span>
-              <span className="stat-pill-label">충돌</span>
-            </div>
-            <div className="stat-pill">
-              <span className="stat-pill-value">
-                {formatOptionalDate(lastSuccessfulPullAt)}
-              </span>
-              <span className="stat-pill-label">최근 동기화</span>
-            </div>
-          </>
-        }
-        title="동기화 상태"
-      />
+        </>
+      }
+      title="동기화 상태"
+    >
 
       {isGuestMode && (
         <section className="panel stack">
@@ -295,6 +293,6 @@ export function SyncPage() {
           </div>
         )}
       </section>
-    </div>
+    </AccountPageTemplate>
   );
 }

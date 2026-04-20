@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { PageHero } from '../../../shared/components/PageHero';
+import { FlowPageTemplate } from '../../../shared/components/PageTemplates';
 import { WorkForm } from '../components/WorkForm';
 import { useWorkDetail } from '../hooks/useWorkDetail';
 import { worksService } from '../services/works.service';
@@ -73,7 +74,7 @@ export function WorkEditPage() {
   }
 
   return (
-    <section className="stack">
+    <FlowPageTemplate>
       <PageHero
         actions={
           <>
@@ -123,6 +124,6 @@ export function WorkEditPage() {
         submitError={submitError}
         submitLabel="저장"
       />
-    </section>
+    </FlowPageTemplate>
   );
 }
