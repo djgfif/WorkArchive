@@ -6,7 +6,7 @@ Work Archive 문서의 공식 허브입니다. 저장소 루트의 실행 안내
 - [`project/`](./project/README.md): 현재 상태, 프로젝트 맥락, 과거 구현 계획
 - [`product/`](./product/README.md): 제품 방향, 웹 UX 비전, 상용화 디자인 로드맵, 차세대 제품 아키텍처, UI 시스템 기준
 - [`frontend/`](./frontend/README.md): 현재 프론트 기준 설계, 목표 구조, UI 리팩터링 실행 계획
-- [`backend/`](./backend/README.md): 백엔드 재설계 방향과 도메인 분리 기준
+- [`backend/`](./backend/README.md): 백엔드 재설계 방향, 도메인 분리 기준, 보안 강화 로드맵
 - [`management/`](./management/README.md): 인덱스, 거버넌스, 상태표, 코드-문서 정합성
 - [`archive/`](./archive/README.md): 추후 보관할 문서의 목적과 운영 기준
 
@@ -22,6 +22,7 @@ Work Archive 문서의 공식 허브입니다. 저장소 루트의 실행 안내
 - 현재 프론트 목표 구조: [`docs/frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](./frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
 - 프론트 UI 리팩터링 실행 계획: [`docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](./frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
 - 현재 백엔드 목표 구조: [`docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](./backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
+- 백엔드 보안 강화 로드맵: [`docs/backend/SECURITY_HARDENING_ROADMAP.md`](./backend/SECURITY_HARDENING_ROADMAP.md)
 - 제품 비전과 상용화 방향: [`docs/product/FINAL_WEB_DESIGN.md`](./product/FINAL_WEB_DESIGN.md), [`docs/product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
 - 차세대 제품 아키텍처: [`docs/product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](./product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
 - 깔끔하고 전문적인 웹 UI 시스템 기준: [`docs/product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](./product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
