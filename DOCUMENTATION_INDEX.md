@@ -1,7 +1,7 @@
 # DOCUMENTATION_INDEX.md
 
 ## 목적
-이 문서는 Work Archive 저장소 안의 문서를 **한눈에 찾고**, **무엇을 먼저 읽어야 하는지**, **어떤 문서가 현재 기준인지** 빠르게 판단하기 위한 인덱스다.
+이 문서는 Work Archive 저장소 안의 문서를 **한눈에 찾고**, **무엇을 먼저 읽어야 하는지**, **어떤 문서가 현재 코드 기준인지**, **어떤 문서가 목표/재설계 문서인지** 빠르게 판단하기 위한 인덱스다.
 
 문서가 많아질수록 중요한 것은 문서 수를 줄이는 것보다,
 **기준 문서와 참고 문서를 분명히 나누는 것**이다.
@@ -9,6 +9,7 @@
 이 인덱스는 그 역할을 담당한다.
 
 관련 운영 규칙은 `DOCUMENTATION_GOVERNANCE.md`를 따른다.
+문서와 코드의 정합성 판단은 `CODE_DOCUMENT_ALIGNMENT_REPORT.md`를 따른다.
 
 ---
 
@@ -18,18 +19,25 @@
 1. `README.md`
 2. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
 3. `DOCUMENTATION_GOVERNANCE.md`
+4. `DOCUMENTATION_INDEX.md`
 
 ### 프론트엔드 기준을 알고 싶을 때
 1. `FRONTEND_BLUEPRINT_V1.md`
-2. `FRONTEND_FOUNDATION_MASTERPLAN.md`
-3. `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`
-4. `FINAL_WEB_DESIGN.md`
+2. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
+3. `FRONTEND_FOUNDATION_MASTERPLAN.md`
+4. `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`
+5. `FINAL_WEB_DESIGN.md`
 
 ### 백엔드 기준을 알고 싶을 때
-1. `BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`
-2. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
+1. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
+2. `BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`
 3. `PROJECT_SPEC.md`
 4. `IMPLEMENTATION_PLAN.md`
+
+### 문서와 실제 코드의 차이를 알고 싶을 때
+1. `CODE_DOCUMENT_ALIGNMENT_REPORT.md`
+2. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
+3. `DOCUMENT_STATUS_MATRIX.md`
 
 ---
 
@@ -64,12 +72,17 @@
 
 ---
 
-## B. 현재 상태 / 보고 문서
+## B. 현재 상태 / 코드 기준 문서
 
 ### CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md
 - Status: canonical
 - 역할: 현재 구현 상태 + 미래 계획을 함께 설명하는 기준 보고서
-- 언제 보는가: “지금 어디까지 왔고, 앞으로 무엇을 할지” 빠르게 파악할 때
+- 언제 보는가: “지금 코드가 어디까지 와 있고, 앞으로 무엇을 할지” 빠르게 파악할 때
+
+### CODE_DOCUMENT_ALIGNMENT_REPORT.md
+- Status: active
+- 역할: 문서와 실제 코드의 정합성 비교 보고서
+- 언제 보는가: 어떤 문서가 현실을 설명하고 어떤 문서가 목표를 설명하는지 구분할 때
 
 ---
 
@@ -79,11 +92,13 @@
 - Status: active
 - 역할: 최종 웹디자인 방향과 UX 비전 문서
 - 언제 보는가: 제품이 궁극적으로 어떤 화면과 UX를 지향하는지 확인할 때
+- 주의: 현재 코드보다 앞서 있는 비전 문서로 읽는다
 
 ### COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md
 - Status: active
 - 역할: 상용 수준 웹디자인 구현 계획서
 - 언제 보는가: 웹을 실제 서비스 수준으로 끌어올리는 단계별 계획이 필요할 때
+- 주의: 현재 상태 설명보다 개선 로드맵 문서에 가깝다
 
 ---
 
@@ -98,6 +113,7 @@
 - Status: canonical
 - 역할: 프로젝트형 화면 구조를 실제 웹서비스형 구조로 바꾸기 위한 프론트 기반 구조 문서
 - 언제 보는가: 왜 레이아웃 분리와 페이지 경험 분리가 필요한지 판단할 때
+- 주의: 현재 코드 설명 문서라기보다 목표 구조 문서다
 
 ---
 
@@ -107,6 +123,7 @@
 - Status: canonical
 - 역할: 기능형 CRUD 백엔드에서 플랫폼형 백엔드로 옮겨가기 위한 재설계 마스터플랜
 - 언제 보는가: 백엔드 도메인 구조와 장기 방향을 잡을 때
+- 주의: 현재 API 구현 설명 문서라기보다 장기 재설계 문서다
 
 ---
 
@@ -121,6 +138,11 @@
 - Status: canonical
 - 역할: 전체 문서를 찾고 우선순위를 판단하는 인덱스
 - 언제 보는가: 어떤 문서를 먼저 읽어야 할지 헷갈릴 때
+
+### DOCUMENT_STATUS_MATRIX.md
+- Status: canonical
+- 역할: 전체 문서의 상태 분류표
+- 언제 보는가: 어떤 문서가 canonical / active / reference 인지 확인할 때
 
 ---
 
@@ -138,13 +160,13 @@
 ### 백엔드 기준
 - `BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`
 
-### 제품/디자인 기준
-- `FINAL_WEB_DESIGN.md`
-- `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`
-
 ### 문서 운영 기준
 - `DOCUMENTATION_GOVERNANCE.md`
 - `DOCUMENTATION_INDEX.md`
+- `DOCUMENT_STATUS_MATRIX.md`
+
+### 코드-문서 정합성 확인 기준
+- `CODE_DOCUMENT_ALIGNMENT_REPORT.md`
 
 ---
 
@@ -157,19 +179,21 @@
 
 ### Case 2. 프론트 구조를 수정하려 한다
 1. `FRONTEND_BLUEPRINT_V1.md`
-2. `FRONTEND_FOUNDATION_MASTERPLAN.md`
-3. `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`
-4. 필요 시 `FINAL_WEB_DESIGN.md`
+2. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
+3. `FRONTEND_FOUNDATION_MASTERPLAN.md`
+4. 필요 시 `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`
+5. 필요 시 `FINAL_WEB_DESIGN.md`
 
 ### Case 3. 백엔드 구조를 수정하려 한다
-1. `BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`
-2. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
+1. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
+2. `BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`
 3. 필요 시 `PROJECT_SPEC.md`, `IMPLEMENTATION_PLAN.md`
 
 ### Case 4. 문서를 새로 만들지 고민 중이다
 1. `DOCUMENTATION_GOVERNANCE.md`
 2. `DOCUMENTATION_INDEX.md`
-3. 기존 관련 문서 확인 후 새 문서 생성 여부 결정
+3. `DOCUMENT_STATUS_MATRIX.md`
+4. 필요 시 `CODE_DOCUMENT_ALIGNMENT_REPORT.md`
 
 ---
 
@@ -191,6 +215,7 @@
 - 기준 문서 확정
 - 역할/상태 정의
 - 인덱스 정리
+- 코드 기준 문서와 목표 문서 구분
 - 중복 방지
 
 ---
@@ -198,7 +223,7 @@
 ## 6. 최종 정리
 
 문서가 많을수록 중요한 것은
-"삭제"보다 **기준 문서와 참고 문서를 분명히 하는 것**이다.
+"삭제"보다 **기준 문서와 참고 문서를 분명히 하고, 현실 설명 문서와 목표 문서를 구분하는 것**이다.
 
 이 인덱스는 Work Archive의 현재 문서 구조를 이해하고,
 무엇을 먼저 읽고 무엇을 기준으로 개발할지 빠르게 판단하기 위한 출발점으로 사용한다.
