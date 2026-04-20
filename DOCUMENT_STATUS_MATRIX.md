@@ -15,9 +15,11 @@
 - 어떤 문서가 참고용인지 구분한다.
 - 과거 문서와 현재 문서를 섞어 읽는 일을 줄인다.
 - Codex/협업자/미래의 나 자신이 같은 문서를 두 번 해석하는 비용을 줄인다.
+- 현재 코드 기준 문서와 목표/재설계 문서를 구분한다.
 
 상태 정의와 운영 규칙은 `DOCUMENTATION_GOVERNANCE.md`를 따른다.
 전체 문서 인덱스는 `DOCUMENTATION_INDEX.md`를 따른다.
+정합성 판단은 `CODE_DOCUMENT_ALIGNMENT_REPORT.md`를 참고한다.
 
 ---
 
@@ -43,22 +45,23 @@
 
 ## 2. 현재 문서 상태 분류표
 
-| 문서명 | 상태 | 영역 | 역할 요약 | 비고 |
+| 문서명 | 상태 | 영역 | 역할 요약 | 실제 코드와의 관계 |
 |---|---|---|---|---|
-| `README.md` | active | project | 프로젝트 개요, 실행 방법, 시작점 | 저장소 첫 진입 시 가장 먼저 보는 문서 |
-| `PROJECT_SPEC.md` | reference | project | 초기 프로젝트 요구사항 / 기본 스펙 참고 | 현재 기준 문서는 아님 |
-| `IMPLEMENTATION_PLAN.md` | reference | project | 초기 구현 계획 참고 | 과거 milestone 문맥 이해용 |
-| `PLAN.md` | reference | project | 초기 단계별 검증/진행 계획 참고 | 현재 기준보다 역사 추적용 |
-| `IMPLEMENT.md` | reference | project | 초기 구현 지시/흐름 참고 | 현재 기준 문서는 아님 |
-| `FINAL_WEB_DESIGN.md` | active | product | 최종 제품/웹디자인 방향 문서 | 이상적 최종 방향 참고 |
-| `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md` | active | product/frontend | 상용 수준 웹디자인 구현 계획 | 프론트 개선 로드맵에서 중요 |
-| `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md` | canonical | project/product | 현재 상태 + 미래 계획 기준 보고서 | 프로젝트 상황 파악의 핵심 기준 |
-| `FRONTEND_BLUEPRINT_V1.md` | canonical | frontend | 현재 프론트 설계 고정값 / source of truth | 프론트 구현 기준 문서 |
-| `FRONTEND_FOUNDATION_MASTERPLAN.md` | canonical | frontend | 프론트 기반 구조 / 레이아웃 / 페이지 경험 분리 마스터플랜 | 실제 웹사이트형 전환 기준 |
-| `BACKEND_SERVICE_REDESIGN_MASTERPLAN.md` | canonical | backend | 기능형 CRUD 서버에서 플랫폼형 백엔드로 가기 위한 재설계 기준 | 백엔드 도메인 재설계 핵심 |
-| `DOCUMENTATION_GOVERNANCE.md` | canonical | docs | 문서 운영 규칙 / 상태 정의 / 중복 방지 기준 | 문서 관리의 기준 문서 |
-| `DOCUMENTATION_INDEX.md` | canonical | docs | 문서 인덱스 / 우선순위 / 읽는 순서 | 문서 탐색의 출발점 |
-| `DOCUMENT_STATUS_MATRIX.md` | canonical | docs | 문서 상태 분류표 | 현재 문서 상태를 한눈에 보는 기준 |
+| `README.md` | active | project | 프로젝트 개요, 실행 방법, 시작점 | 현재 코드와 비교적 밀접함 |
+| `PROJECT_SPEC.md` | reference | project | 초기 프로젝트 요구사항 / 기본 스펙 참고 | 현재 코드보다 과거 문맥에 가까움 |
+| `IMPLEMENTATION_PLAN.md` | reference | project | 초기 구현 계획 참고 | 현재 코드보다 과거 milestone 문맥에 가까움 |
+| `PLAN.md` | reference | project | 초기 단계별 검증/진행 계획 참고 | 현재 코드보다 과거 계획 문서 |
+| `IMPLEMENT.md` | reference | project | 초기 구현 지시/흐름 참고 | 현재 코드보다 과거 구현 문맥 |
+| `FINAL_WEB_DESIGN.md` | active | product | 최종 제품/웹디자인 방향 문서 | 현재 코드보다 앞선 비전 문서 |
+| `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md` | active | product/frontend | 상용 수준 웹디자인 구현 계획 | 현재 코드보다 앞선 개선 로드맵 문서 |
+| `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md` | canonical | project/product | 현재 상태 + 미래 계획 기준 보고서 | 현재 코드와 가장 밀접한 상태 문서 |
+| `FRONTEND_BLUEPRINT_V1.md` | canonical | frontend | 현재 프론트 설계 고정값 / source of truth | 현재 코드와 비교적 잘 맞는 기준 문서 |
+| `FRONTEND_FOUNDATION_MASTERPLAN.md` | canonical | frontend | 프론트 기반 구조 / 레이아웃 / 페이지 경험 분리 마스터플랜 | 현재 코드보다 앞선 목표 구조 문서 |
+| `BACKEND_SERVICE_REDESIGN_MASTERPLAN.md` | canonical | backend | 기능형 CRUD 서버에서 플랫폼형 백엔드로 가기 위한 재설계 기준 | 현재 코드의 한계를 설명하는 장기 목표 문서 |
+| `DOCUMENTATION_GOVERNANCE.md` | canonical | docs | 문서 운영 규칙 / 상태 정의 / 중복 방지 기준 | 코드 직접 설명 문서는 아님 |
+| `DOCUMENTATION_INDEX.md` | canonical | docs | 문서 인덱스 / 우선순위 / 읽는 순서 | 코드 직접 설명 문서는 아님 |
+| `DOCUMENT_STATUS_MATRIX.md` | canonical | docs | 문서 상태 분류표 | 코드 직접 설명 문서는 아님 |
+| `CODE_DOCUMENT_ALIGNMENT_REPORT.md` | active | docs | 코드와 문서의 정합성 비교 보고서 | 문서-코드 관계를 직접 설명 |
 
 ---
 
@@ -90,9 +93,14 @@
 - `README.md`
 - `FINAL_WEB_DESIGN.md`
 - `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`
+- `CODE_DOCUMENT_ALIGNMENT_REPORT.md`
 
-이 문서들은 제품 방향과 시작점 파악에는 중요하지만,
-실제 구현 기준은 canonical 문서가 우선한다.
+이 문서들은 중요하지만, 성격이 서로 다르다.
+
+- `README.md`: 시작점 / 실행 안내
+- `FINAL_WEB_DESIGN.md`: 최종 비전
+- `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`: 상용화 로드맵
+- `CODE_DOCUMENT_ALIGNMENT_REPORT.md`: 현재 코드와 문서의 차이 정리
 
 ---
 
@@ -140,14 +148,15 @@
 ### 프론트 작업 전
 반드시 우선 확인:
 1. `FRONTEND_BLUEPRINT_V1.md`
-2. `FRONTEND_FOUNDATION_MASTERPLAN.md`
-3. 필요 시 `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`
-4. 필요 시 `FINAL_WEB_DESIGN.md`
+2. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
+3. `FRONTEND_FOUNDATION_MASTERPLAN.md`
+4. 필요 시 `COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`
+5. 필요 시 `FINAL_WEB_DESIGN.md`
 
 ### 백엔드 작업 전
 반드시 우선 확인:
-1. `BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`
-2. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
+1. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
+2. `BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`
 3. 필요 시 `PROJECT_SPEC.md`, `IMPLEMENTATION_PLAN.md`
 
 ### 프로젝트 전체 방향 확인 전
@@ -155,12 +164,14 @@
 1. `README.md`
 2. `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`
 3. `DOCUMENTATION_INDEX.md`
+4. 필요 시 `CODE_DOCUMENT_ALIGNMENT_REPORT.md`
 
 ### 새 문서 만들기 전
 반드시 우선 확인:
 1. `DOCUMENTATION_GOVERNANCE.md`
 2. `DOCUMENTATION_INDEX.md`
 3. `DOCUMENT_STATUS_MATRIX.md`
+4. 필요 시 `CODE_DOCUMENT_ALIGNMENT_REPORT.md`
 
 ---
 
@@ -178,7 +189,11 @@ reference 문서 중 오래된 문서를 `docs/archive/` 후보로 분류한다.
 ### Step 3
 루트 문서를 `docs/project`, `docs/frontend`, `docs/backend`, `docs/archive` 구조로 점진 이동한다.
 
-단, 지금 당장은 구조 이동보다 **기준 문서를 확실히 구분하는 것**이 우선이다.
+단, 지금 당장은 구조 이동보다 아래가 우선이다.
+- 기준 문서를 확실히 구분
+- 코드 기준 문서와 목표 문서를 구분
+- 인덱스 정리
+- 중복 방지
 
 ---
 
@@ -192,6 +207,6 @@ reference 문서 중 오래된 문서를 `docs/archive/` 후보로 분류한다.
 - `archived`: 아직 본격 적용하지 않았지만, 장기적으로 과거 문서를 내릴 상태
 
 가장 중요한 점은,
-문서를 줄이는 것이 아니라 **무엇이 기준인지 분명하게 만드는 것**이다.
+문서를 줄이는 것이 아니라 **무엇이 기준인지, 무엇이 현실 설명 문서인지, 무엇이 목표 문서인지 분명하게 만드는 것**이다.
 
 이 문서는 현재 저장소 문서 상태를 관리하기 위한 기준표로 사용한다.
