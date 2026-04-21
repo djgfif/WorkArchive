@@ -1,641 +1,222 @@
 # CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md
 
-## 문서 목적
-이 문서는 Work Archive 프로젝트의 **현재 코드 기준 상태**와 **미래 계획**을 함께 정리한 보고서다.
+| Field | Value |
+| --- | --- |
+| Status | `canonical` |
+| Role | `current reality` |
+| Source of truth | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, package manifests |
+| Last verified against | `2026-04-21` working tree |
+| When to update | 실제 라우트, 저장 구조, API 모듈, 검증 표면, 현재 한계가 바뀔 때 |
 
-이 문서는 다음 용도로 사용한다.
-- 현재 구현 상태를 빠르게 파악하기 위한 기준 보고서
-- 향후 개발 우선순위를 정리하기 위한 계획 문서
-- 포트폴리오/프로젝트 소개용 개요 자료
-- Codex 또는 협업자에게 현재 수준과 방향성을 설명하는 기준 문서
+이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
 
-중요한 원칙은 다음과 같다.
-- 이 문서는 **현재 저장소 코드와 최대한 맞는 상태 보고서**여야 한다.
-- 이상적 방향이나 비전은 포함하되, 실제 구현 수준과 혼동되지 않게 구분해야 한다.
-- 특히 프론트엔드 구조 설명은 현재 라우트/레이아웃/페이지 코드 기준으로 해석한다.
+## 1. Snapshot
 
----
+- Work Archive는 작품 감상 기록을 관리하는 local-first 웹 서비스다.
+- 프론트는 IndexedDB를 1차 저장소로 쓰고, 로그인 시 계정별 로컬 아카이브로 전환한다.
+- 백엔드는 NestJS + Prisma + PostgreSQL 기반 API이며 `Auth`, `Works`, `Sync`, `Health` 모듈을 제공한다.
+- 현재 sync는 수동 실행만 지원한다.
+- `Tier Boards`, `Insights`, `Community`는 라우트는 존재하지만 아직 placeholder 성격이 강하다.
 
-## 1. 프로젝트 개요
+## 2. Verified Stack
 
-### 프로젝트명
-Work Archive
+### Frontend
 
-### 프로젝트 정의
-Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 사용자가 감상한 작품을 기록하고 정리하기 위한 **개인 미디어 아카이브 웹 서비스**다.
+- React `19.1`
+- Vite `6.3`
+- TypeScript `5.8`
+- Dexie
+- React Router `7`
+- Vitest + Testing Library
 
-현재는 **로컬 우선(Local-first)** 구조를 중심으로 구현되어 있으며, 사용자는 계정이 없어도 게스트 모드로 기록을 시작할 수 있고, 로그인하면 계정 기반 로컬 아카이브와 수동 동기화를 사용할 수 있다.
+### Backend
 
-### 현재 핵심 방향
-- 감상 기록 및 관리
-- 개인 취향 아카이브
-- 로컬 우선 사용 경험
-- 향후 작품 가져오기, 공개 레이어, 티어 보드, 커뮤니티 확장 가능성 확보
-
----
-
-## 2. 현재 기술 스택
-
-### 프론트엔드
-- React
-- TypeScript
-- Vite
-- Dexie (IndexedDB)
-- React Router
-- Vitest
-- Testing Library
-
-### 백엔드
-- NestJS
-- Prisma
+- NestJS `11`
+- Prisma `6.6`
 - PostgreSQL
-- JWT 기반 인증
 - Swagger
+- Jest
 
-### 공통 구조
-- npm workspaces 기반 모노레포
-- shared-types 패키지를 통한 프론트/백 타입 공유
-- Docker Compose 기반 로컬 DB 및 전체 스택 실행 지원
-
-### 현재 특징
-- 프론트는 IndexedDB 우선 저장
-- 백엔드는 인증 기반 API 제공
-- 수동 동기화 구조 지원
-- 프론트는 서비스형 사이트 구조로 재편되었지만, 스타일 시스템은 아직 global.css 의존이 크다
-- 백엔드는 기능형 서버에서 플랫폼형 구조로 넘어가기 전 단계다
-- 보안은 기본 인증 구조는 있으나, 운영 보안 강화는 공개 전 단계에서 별도 roadmap으로 관리한다
-
----
-
-## 3. 현재 구현 상태 요약
-
-현재 프로젝트는 단순한 초기 프로토타입 단계를 넘어, **동작 가능한 로컬 우선 기록 서비스 + 인증 + 수동 동기화 + 분리된 프론트 레이아웃 구조**까지 갖춘 상태다.
-
-### 현재까지 실제로 구현된 큰 축
-- 모노레포 구조 정리
-- 프론트 로컬 우선 작품 기록 기능
-- 백엔드 Works CRUD API
-- 이메일/비밀번호 기반 인증
-- 사용자별 works ownership 적용
-- 수동 동기화(sync) 구조
-- Home 시작 페이지 도입
-- Works 관리 영역 정리 (목록/휴지통/상세/추가 흐름 강화)
-- 프론트 라우트/레이아웃 분리
-- 문서 체계 및 프론트/백엔드 마스터플랜 정리
-- 보안 강화 로드맵 문서화
-- 인증/게스트 경험 전략 문서화
-
----
-
-## 4. 현재 실제 구현 기능 정리
-
-## 4-1. 작품 기록 기능
-사용자는 현재 다음 정보를 기록할 수 있다.
-- 작품 제목
-- 타입
-- 작가/창작자
-- 상태
-- 별점
-- 한줄평
-- 리뷰
-- 썸네일 URL
-- 즐겨찾기
-- 티어(현재는 필드 수준의 임시값)
-
-### 현재 상태
-- 생성 가능
-- 수정 가능
-- 상세 보기 가능
-- soft delete 가능
-- 복원 가능
-- 목록 필터링/정렬 가능
-- 리스트/그리드 보기 지원
-- 상태/별점 빠른 수정 가능
-
----
-
-## 4-2. 게스트 모드
-계정 없이도 기록을 시작할 수 있다.
-
-### 특징
-- 브라우저 IndexedDB에만 저장
-- 계정 생성 전에도 사용 가능
-- 개인 디바이스 기준 기록 보관
-
-### 장점
-- 진입 장벽이 낮음
-- 즉시 사용 가능
-- 로컬 우선 UX 유지
-
-### 한계
-- 다른 기기와 자동 공유되지 않음
-- 게스트 데이터의 계정 이관 기능은 아직 없음
-
----
-
-## 4-3. 계정 모드
-이메일/비밀번호 기반 계정 기능이 구현되어 있다.
-
-### 제공 기능
-- 회원가입
-- 로그인
-- 로그아웃
-- 현재 사용자 조회
-- 사용자별 Works 데이터 보호
-
-### 현재 특징
-- 로그인 시 계정 전용 로컬 아카이브 사용
-- 게스트 아카이브와 계정 아카이브는 분리됨
-- 계정 모드에서만 동기화 사용 가능
-- 계정 관련 관리 화면은 `/account` 계열 라우트로 분리되어 있음
-
-### 장기 방향
-- 현재 구현은 이메일/비밀번호 기반이지만, 제품 전략상 장기적으로는 **게스트 모드 유지 + 구글 로그인 메인 + 게스트 기록 이관 UX 강화** 방향을 우선 검토한다.
-- 관련 전략 문서는 [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)에서 관리한다.
-
----
-
-## 4-4. 수동 동기화 기능
-현재 프로젝트는 자동 동기화가 아니라 **수동 동기화**를 지원한다.
-
-### 동작 방식
-- 로컬 변경사항은 먼저 IndexedDB에 반영
-- create/update/delete 작업은 sync queue에 적재
-- 로그인 상태에서만 수동 동기화 가능
-- push / pull 구조로 서버와 데이터 동기화
-
-### 현재 구현 상태
-- sync queue 존재
-- push / pull API 존재
-- conflict 상태 표시 구조 존재
-- 동기화 상태 UI 존재
-- 인증 만료 시 게스트 모드로의 전환까지 테스트로 커버되는 상태
-
-### 현재 한계
-- 자동 동기화 미구현
-- 충돌 해결 UX 고도화 미흡
-- 게스트 → 계정 데이터 이관 없음
-
----
-
-## 4-5. 현재 프론트엔드 UI/UX 상태
-현재 프론트는 과거의 단일 셸 중심 구조에서 벗어나, **메인 제품 / 인증 / 계정 관리 / 최소 유틸리티** 맥락으로 라우팅과 레이아웃을 분리한 상태다.
-
-### 현재 실제 반영된 것
-- `MainProductLayout`, `AuthLayout`, `AccountLayout`, `MinimalLayout` 분리
-- Home이 실제 시작점(`/`) 역할 수행
-- 메인 제품 라우트와 계정 관리 라우트가 서로 다른 레이아웃으로 분리됨
-- `/sync`, `/settings`, `/profile/sync`, `/profile/settings`는 `/account/*`로 리다이렉트
-- 작품 흐름은 목록 / 추가 / 상세 / 수정이 각각 다른 페이지 성격을 갖도록 분리됨
-- 작품 추가는 `검색 → 선택 → 자동 채움 검토 → 개인 기록 입력 → 저장` Quick Add 흐름을 따름
-- 프로필과 계정 센터가 목적지와 관리 맥락으로 분리됨
-- 404는 MinimalLayout 아래에서 별도로 처리됨
-
-### 현재 한계
-- 스타일 시스템은 아직 Mantine 같은 UI 라이브러리 기반이 아니라 `global.css` 의존이 매우 큼
-- 페이지 성격은 분리됐지만 설명문과 카드가 많아 여전히 프로토타입형 인상이 남아 있음
-- 인증, 프로필, 계정 화면 모두 구조는 좋아졌지만 카피와 시각 밀도는 더 정리할 필요가 있음
-- 티어 보드 / 인사이트 / 커뮤니티 / 일부 설정은 여전히 placeholder 성격이 강함
-- Quick Add의 검색/후보/자동 채움 구조는 존재하지만 실제 외부 API 연동은 아직 없음
-
----
-
-## 4-6. 현재 백엔드 상태
-현재 백엔드는 **기능형 앱 백엔드**로는 충분히 동작한다.
-
-### 현재 실제 반영된 것
-- AuthModule
-- WorksModule
-- SyncModule
-- HealthModule
-- PrismaModule
-- ValidationPipe
-- Swagger 문서
-- health check endpoint
-- Prisma migration / seed / Docker 기반 실행
-
-### 현재 한계
-- 핵심 도메인이 `User + Work` 중심에 많이 몰려 있음
-- 작품 공용 메타데이터와 개인 기록 데이터가 분리되어 있지 않음
-- 작품 가져오기(import) 중심 UX를 지원할 검색/후보/매칭 백엔드 구조가 없음
-- 공개 프로필 / 작품 집계 / 티어 보드 / 커뮤니티를 위한 별도 레이어가 아직 없음
-
----
-
-## 4-7. 현재 보안 상태
-현재 보안은 **기본 인증 보호는 존재하지만, 운영 보안은 아직 강화 전 단계**로 본다.
-
-### 현재 실제 반영된 것
-- 비밀번호 해시 저장
-- refresh token 해시 저장
-- access token / refresh token 분리
-- 인증 가드 기반 Works / Sync 보호
-- ValidationPipe 기반 기본 입력 방어
-
-### 현재 한계
-- 토큰 저장 구조와 운영 보안은 아직 공개 서비스 수준으로 강화되지 않음
-- 인증 abuse 방지, 기본 보안 헤더, 운영 CORS 강제 등은 아직 후속 작업 대상
-
-### 현재 해석
-지금은 보안을 전면 선행 투자할 단계는 아니지만, 공개 베타 전에는 반드시 마무리해야 할 작업이다. 관련 계획은 [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md)에서 관리한다.
-
----
-
-## 4-8. 현재 프론트 검증 표면
-저장소 기준으로 현재 `apps/web` 패키지는 아래 검증 스크립트를 가진다.
-- `dev`
-- `build`
-- `preview`
-- `lint`
-- `typecheck`
-- `test`
-
-### 현재 코드에서 확인되는 테스트 표면
-- `App.test.tsx`: 홈이 메인 제품 레이아웃 안에서 렌더링되는지 확인
-- `SyncPage.test.tsx`: 수동 동기화 성공, 게스트 모드 메시지, 인증 만료 시 게스트 전환 흐름 확인
-
-### 해석
-테스트 기반은 존재하지만, 아직 프론트 전체 페이지에 대한 넓은 회귀 테스트 체계까지 갖춘 상태는 아니다.
-
----
-
-## 5. 현재 웹사이트의 형태(구조) 정리
-
-현재 프론트 구조는 **서비스형 웹사이트로 가기 위한 과도기**를 넘어서, 실제로 페이지 맥락이 분리된 상태다.
-
-### 현재 주요 레이아웃
-- Main Product Layout
-- Auth Layout
-- Account Layout
-- Minimal Layout
-
-### 현재 주요 화면
-- Home (`/`)
-- Works (`/works`)
-- Work Create (`/works/new`)
-- Work Detail (`/works/:id`)
-- Work Edit (`/works/:id/edit`)
-- Tier Boards (`/tier-boards`) - placeholder 성격 큼
-- Insights (`/insights`) - placeholder 성격 큼
-- Community (`/community`) - placeholder 성격 큼
-- Profile (`/profile`)
-- Account Home (`/account`)
-- Sync (`/account/sync`)
-- Settings (`/account/settings`)
-- Login / Register (`/auth/login`, `/auth/register`)
-- Minimal 404 (`*`)
-
-### 현재 구조의 성격
-- 동작 가능한 로컬 우선 기록/관리 서비스
-- 홈/작품/추가/상세/프로필/계정 센터의 페이지 맥락이 실제로 갈려 있음
-- 동기화와 설정이 더 이상 메인 제품 목적지처럼 보이지 않도록 계정 맥락으로 분리됨
-- 그러나 시각 시스템이 아직 CSS 중심이라 완성된 상용 웹사이트 느낌은 더 끌어올릴 여지가 큼
-
-### 현재 구조적 문제
-- 레이아웃 분리는 완료됐지만, 스타일 책임 분리는 아직 미완료
-- 페이지마다 설명문과 안내형 카드가 많아 스캔성이 떨어짐
-- 프로필과 향후 공개 프로필의 경계는 구조적으로만 잡혀 있고 기능적으로는 아직 얕음
-- placeholder 화면들이 FutureFeaturePage 기반으로 남아 있어 기능 성숙도 차이가 크게 보임
-
----
-
-## 6. 현재 구현도의 평가
-
-### 기능 구현도
-높음
-- 기록 CRUD, 인증, 수동 sync, Home, Quick Add, Trash, Detail, Account layout까지 구현됨
-- 로컬 우선 아키텍처가 실제로 동작함
-
-### 구조 설계도
-중상
-- 모노레포, shared types, Prisma, auth, sync 등 구조는 탄탄함
-- 프론트 라우팅/레이아웃 분리는 실제로 완료됨
-- 다만 UI 시스템은 아직 CSS 중심이고, 백엔드는 장기적으로 도메인 재설계가 필요함
-
-### 디자인 완성도
-중상
-- 페이지 맥락 분리로 과거보다 서비스형 인상이 강해짐
-- 그러나 global.css 중심 스타일과 설명형 카피 때문에 완성된 상용 웹사이트 느낌은 아직 약함
-
-### 보안 완성도
-중하
-- 기본 인증 구조는 무난하지만, 공개 서비스 기준 운영 보안은 아직 강화 전 단계다
-- 보안은 후순위로 관리하되, 공개 베타 전에 별도 roadmap 기준 작업이 필요하다
-
-### 확장 준비도
-중상
-- 문서화와 아키텍처 기반은 좋음
-- 프론트는 UI 시스템 재정비가, 백엔드는 도메인 분리와 운영 보안 강화가 필요함
-
----
-
-## 7. 현재 프로젝트의 강점
-
-### 7-1. 로컬 우선 구조
-이 프로젝트의 가장 큰 강점은 로컬 우선 경험이다.
-- 즉시 반응하는 UX
-- 계정 없이도 사용 가능
-- 기록 도구로서 진입 장벽이 낮음
-
-### 7-2. 기술적 설계 경험
-- 프론트/백엔드 분리
-- IndexedDB + Sync queue
-- NestJS + Prisma + PostgreSQL
-- JWT auth
-- Docker 기반 실행
-- 테스트 / 문서화 / API 문서 기반 운영
-
-### 7-3. 프론트 페이지 구조의 실제 분리
-현재 프론트는 라우팅과 레이아웃 차원에서 아래를 실제로 분리했다.
-- 메인 제품 목적지
-- 인증 전용 흐름
-- 계정/동기화/설정 관리 맥락
-- 최소 유틸리티 화면(404)
-
-이것은 과거의 “하나의 큰 셸 안 내용 교체” 단계보다 진전된 상태다.
-
-### 7-4. 향후 확장성
-- 작품 가져오기 기반 등록
-- 공개 프로필
-- 공개 공유
-- 티어 보드
-- 커뮤니티
-- 작품 단위 집계
-
-등으로 확장 가능한 기반이 이미 존재한다.
-
----
-
-## 8. 현재 프로젝트의 한계
-
-### 8-1. 프론트는 레이아웃 분리 이후의 2차 정리가 필요하다
-현재 가장 큰 이슈는 “분리 자체”가 아니라,
-- 스타일 시스템 부재
-- global.css 비대화
-- 설명문 과다
-- 카드와 배지 남용
-
-같은 UI 체계 문제다.
-
-### 8-2. 작품 추가 UX는 구조는 맞지만 데이터 신뢰도는 아직 약하다
-Quick Add는 import-first 구조를 따르지만, 실제 메타데이터는 아직 목업 기반이며 외부 API 연동이 없다.
-
-### 8-3. 티어 기능은 아직 초기 단계다
-현재는 제품 구조상 별도 `Tier Boards` 목적지가 있고, 장기적으로는 별도 도메인으로 가야 한다. 다만 실제 기능 완성도는 아직 낮고 placeholder 성격이 강하다.
-
-장기적으로는 작품 필드 하나의 `tier`보다, **이미지 카드와 커스텀 카드를 자유롭게 배치하고 공유할 수 있는 가벼운 커스텀 보드** 방향으로 가는 것이 맞다.
-
-### 8-4. 커뮤니티/공개 구조가 아직 없음
-현재는 개인 기록 중심이고, 공개 프로필/공개 리스트/작품 집계/반응/댓글 구조는 아직 본격 구현되지 않았다.
-
-### 8-5. 백엔드는 플랫폼형 구조로 가기 위한 도메인 분리가 필요하다
-현재 `Work` 중심 구조는 기능형 앱 백엔드로는 충분하지만, 장기적으로 Catalog / UserRecord / Import / PublicLayer / TierBoard 구조로의 전환이 필요하다.
-
-### 8-6. 운영 보안은 공개 전 별도 단계가 필요하다
-보안은 현재 후순위로 관리하고 있지만, 공개 베타 전에는 아래 축을 반드시 완료해야 한다.
-- 세션 탈취 방지
-- 인증 abuse 방지
-- 운영 노출 최소화
-
-관련 계획은 [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md)에서 관리한다.
-
----
-
-## 9. 미래 계획 요약
-
-미래 계획은 단순히 기능 추가가 아니라, **서비스 수준의 제품 구조와 플랫폼 수준의 백엔드 구조로 재정렬**하는 방향이어야 한다.
-
-### 핵심 방향
-1. 프론트 UI 시스템 재정비
-2. 작품 도메인 페이지 polish
-3. 작품 가져오기 기반 Quick Add 실전화
-4. 백엔드 도메인 분리
-5. 공개 레이어 도입
-6. Tier Boards 독립 기능화
-7. Community 확장 가능성 확보
-8. 공개 전 운영 보안 강화
-9. 게스트 유지 + 구글 로그인 메인 전략 검토
-
----
-
-## 10. 미래 기능 및 구조 계획 상세
-
-## 10-1. 프론트 UI 시스템 재정비
-도입 필요
-
-### 목표
-- Mantine 중심 UI 시스템 도입
-- global.css 축소
-- theme 기반 스타일 기준 확립
-- 공용 UI 컴포넌트(AppPage, PageHeader, SectionCard, EmptyState 등) 구축
-
-### 기대 효과
-- 페이지 경험은 유지하면서 시각 품질을 크게 끌어올릴 수 있음
-- 설명문 중심 프로토타입 인상을 줄일 수 있음
-- 이후 기능 추가 시 재사용성과 일관성이 높아짐
-
----
-
-## 10-2. 작품 가져오기 기반 Quick Add 실전화
-도입 필요
-
-### 최종 목표
-- 수동 입력보다 검색/선택/자동 채움 중심
-- 외부 API 기반 후보 비교와 유저 검증
-
-### 이상적 흐름
-1. 작품 검색
-2. 후보 선택
-3. 메타데이터 자동 채움
-4. 유저 검증
-5. 개인 기록만 입력
-6. 저장
-
-### 기대 효과
-- 입력 피로 감소
-- 기록 장벽 감소
-- 사용자 이탈률 감소
-
----
-
-## 10-3. 작품 관리 고도화
-도입 필요
-
-### 목표
-- 많은 기록을 가진 사용자도 쉽게 관리할 수 있는 Works workspace
-
-### 개선 방향
-- 상태/정렬/필터 강화
-- 휴지통 수명주기 UX 강화
-- 상세/수정/리뷰 흐름 강화
-- 대량 관리 UX 준비
-
----
-
-## 10-4. Work Detail 고도화
-도입 필요
-
-### 목표
-- 작품 자체와 개인 감상이 주인공인 상세 화면
-
-### 개선 방향
-- 상단 hero 강화
-- 감상 기록 우선 위계 강화
-- 공개/공유/커뮤니티/티어 확장 슬롯 정리
-
----
-
-## 10-5. 백엔드 도메인 재설계
-중장기 핵심 과제
-
-### 목표
-- `Work` 중심 구조에서 `Catalog / UserRecord / Import / PublicLayer / TierBoard` 중심 구조로 이동
-
-### 기대 효과
-- 같은 작품을 여러 유저가 기록할 수 있는 플랫폼형 구조 확보
-- 작품 집계, 공개 프로필, 작품 공개 페이지, 커뮤니티 확장 가능
-
----
-
-## 10-6. 공개 전 운영 보안 강화
-공개 전 필수 과제
-
-### 목표
-- 공개 서비스 가능한 최소 운영 보안 확보
-
-### 우선순위
-- refresh token cookie 전환
-- 운영 CORS 화이트리스트 강제
-- auth/sync rate limiting
-- 기본 보안 헤더 도입
-- Swagger 운영 제한
-
-### 관련 문서
-- [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md)
-
----
-
-## 10-7. 인증/게스트 경험 재정비
-제품 전략 과제
-
-### 목표
-- 게스트 모드는 유지하면서, 구글 로그인을 메인 계정 진입 방식으로 두는 구조 검토
-- 게스트 기록을 계정으로 자연스럽게 가져오는 전환 UX 설계
-
-### 핵심 방향
-- 기록은 로그인 없이 시작
-- 저장/동기화/확장은 계정으로 연결
-- 로그인/회원가입은 `Google로 계속하기` 중심의 단순한 경험으로 재구성
-
-### 관련 문서
-- [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
-
----
-
-## 10-8. 공개 레이어 / Profile / 공유
-추후 핵심 기능
-
-### 목표
-- 개인 취향 표현
-- 링크 공유
-- 공개 프로필
-- 공개 작품 리스트
-- 공개 티어 보드
-
----
-
-## 10-9. Tier Boards
-중장기 핵심 기능
-
-### 정의
-작품 필드의 tier가 아니라, **가볍고 공유 가능한 커스텀 보드형 기능**으로 간다.
-
-### MVP 방향
-- 보드 목록 먼저
-- 줄 생성/수정/삭제
-- 라이브러리 작품 카드 + 커스텀 카드
-- 드래그 앤 드롭
-- 공개 링크
-- 이미지 export
-
-### 핵심 원칙
-- 복잡한 분석 툴보다 가벼운 랭킹 캔버스로 간다
-- 작품 티어는 라이브러리와 연결한다
-- 전투력/히로인/캐릭터 순위는 커스텀 카드 중심으로 수용한다
-- 핵심 가치는 가벼움 / 자유도 / 공유성이다
-
-### 관련 문서
-- [`../product/README.md#tier-board-mvp-strategy`](../product/README.md#tier-board-mvp-strategy)
-
----
-
-## 10-10. Community
-장기 확장 가능성
-
-### 예상 기능
-- 작품 집계 페이지
-- 인기 작품
-- 좋아요 많은 한줄평
-- 대표 리뷰
-- 공개 프로필 연결
-- 이후 반응/댓글/팔로우 확장
-
-### 현재 단계에서 필요한 것
-- 지금 당장 구현보다, 나중에 붙여도 구조가 안 무너지게 설계하는 것
-
----
-
-## 11. 문서 기준 우선 로드맵
-
-### Frontend Phase 1
-- Mantine 기반 스타일 인프라 도입
-- 공용 UI 컴포넌트 구축
-- global.css 축소 시작
-
-### Frontend Phase 2
-- Home / Works / Work Detail / Auth / Account 화면 polish
-- 설명문 축소
-- placeholder 화면 구조 개선
-
-### Backend Phase 1
-- 도메인 재설계 문서화 고정
-- Catalog / UserRecord / Import / PublicLayer / TierBoard 구조 정의
-- 보안 roadmap 문서화 고정
-
-### Backend Phase 2
-- Import / Catalog 최소 구현
-- Public aggregate 최소 구현
-- 공개 전 필수 운영 보안 적용
-
-### Product Expansion Phase
-- Profile / 공개 레이어
-- Tier Boards
-- Community
-- Insights 강화
-- 인증/게스트 경험 전략 반영
-
----
-
-## 12. 결론
-
-Work Archive는 현재 다음 수준에 도달해 있다.
-
-- 로컬 우선 구조가 실제로 동작하는 기록 서비스
-- 계정/동기화/백엔드까지 갖춘 기능형 웹앱
-- Home / Works / Quick Add / Trash / Detail / Profile / Account 흐름이 실제로 분리되어 작동하는 상태
-- 상용 서비스로 성장할 수 있는 기반이 있는 프로젝트
-
-그러나 동시에 다음이 필요하다.
-
-- CSS 중심 프론트 구조의 재정비
-- Mantine 기반 UI 시스템 도입
-- 작품 가져오기 중심 UX의 실전화
-- 가볍고 공유 가능한 티어 보드 도메인 설계
-- 향후 공개/공유/커뮤니티를 고려한 정보 구조 재설계
-- 백엔드의 플랫폼형 도메인 분리
-- 공개 전 운영 보안 강화
-- 게스트 유지 + 구글 로그인 메인 전략 검토 및 계정 전환 UX 강화
-
-즉, 현재 Work Archive는 **“잘 작동하는 기능형 웹앱” 단계를 지나, “페이지 맥락이 분리된 서비스형 프론트 + 플랫폼형 백엔드 + 공개 전 운영 보안 강화 + 인증/게스트 경험 재정비”로 넘어가기 위한 2차 구조 정리 단계**에 들어온 상태라고 정리할 수 있다.
-
-이 문서는 그 현재 상태와 미래 방향을 함께 설명하는 기준 보고서로 사용한다.
+### Workspace
+
+- npm workspaces 모노레포
+- `apps/web`, `apps/api`, `packages/shared-types`, `packages/eslint-config`, `packages/tsconfig`
+
+## 3. Current Frontend Surface
+
+### 3-1. Layout Boundaries
+
+현재 프론트는 아래 4개 레이아웃 맥락으로 분리되어 있다.
+
+- `MainProductLayout`
+- `AuthLayout`
+- `AccountLayout`
+- `MinimalLayout`
+
+### 3-2. Current Routes
+
+| Area | Routes | Current state |
+| --- | --- | --- |
+| Main product | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/tier-boards`, `/insights`, `/community`, `/profile` | 홈/작품 흐름은 실제 구현, 확장 목적지는 placeholder 성격 혼재 |
+| Auth | `/auth/login`, `/auth/register` | 이메일/비밀번호 인증 구현 |
+| Account | `/account`, `/account/sync`, `/account/settings` | 계정 개요, sync, 설정 흐름 구현 |
+| Compatibility redirects | `/sync`, `/settings`, `/profile/sync`, `/profile/settings` | `/account/*`로 리다이렉트 |
+| Minimal | `*` | 404 처리 |
+
+### 3-3. Current User Flows
+
+- Home: 검색 진입, 빠른 추가, 통계 요약, 최근 기록 허브
+- Works: 목록/필터/정렬/리스트-그리드 전환/휴지통 관리
+- Work Create: `검색 -> 선택 -> 자동 채움 검토 -> 개인 기록 입력 -> 저장` 형태의 Quick Add 중심 흐름
+- Work Detail / Edit: 감상 기록 확인과 수정
+- Auth: 회원가입 / 로그인
+- Account: sync와 설정
+
+### 3-4. Local Storage Model
+
+Dexie DB는 현재 아래 테이블을 사용한다.
+
+- `works`
+- `syncQueue`
+- `appMeta`
+
+아카이브 스코프는 다음 두 종류다.
+
+- guest: `work-archive-db-guest`
+- user: `work-archive-db-user-{userId}`
+
+즉, 게스트 기록과 로그인 사용자 기록은 현재 **의도적으로 분리된 로컬 아카이브**다.
+
+## 4. Current Backend Surface
+
+### 4-1. API Modules
+
+- `PrismaModule`
+- `AuthModule`
+- `HealthModule`
+- `WorksModule`
+- `SyncModule`
+
+### 4-2. Current Domain Model
+
+Prisma 기준 핵심 모델은 아직 아래 두 개다.
+
+- `User`
+- `Work`
+
+현재 `Work` 모델은 다음을 함께 담고 있다.
+
+- 작품 메타데이터
+- 개인 기록 데이터
+- soft delete 상태
+- sync 상태와 서버 버전
+
+즉, 장기적으로 분리되어야 할 공용 metadata와 개인 record가 아직 한 모델에 공존한다.
+
+### 4-3. Runtime Behavior
+
+- 전역 prefix: `/api` (`/health`는 예외)
+- Swagger: `/docs`
+- Health check: `/health`
+- ValidationPipe: `transform + whitelist`
+- CORS: `CORS_ORIGIN` 기반, 빈 값 또는 `*`에서는 wildcard fallback 허용
+
+## 5. Current Product Capabilities
+
+### Implemented
+
+- 작품 생성 / 수정 / 상세 / soft delete / 복원
+- 검색 / 필터 / 정렬
+- 상태 / 별점 빠른 수정
+- 게스트 모드
+- 이메일/비밀번호 인증
+- 사용자별 로컬 아카이브 분리
+- 수동 sync queue와 push / pull
+- 홈 허브 화면
+- 계정 센터 라우트 분리
+
+### Not Yet Implemented
+
+- 외부 메타데이터 API 기반 실제 Quick Add
+- 게스트 기록 -> 계정 이관 UX
+- 자동 동기화
+- 공개 프로필 / 공개 기록 / 작품 집계
+- 실제 티어 보드 기능
+- 커뮤니티 기능
+
+## 6. Validation Surface
+
+### Root Scripts
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+
+### Frontend Scripts
+
+- `npm run dev --workspace @work-archive/web`
+- `npm run build --workspace @work-archive/web`
+- `npm run typecheck --workspace @work-archive/web`
+- `npm run test --workspace @work-archive/web`
+
+대표 테스트 표면:
+
+- `src/app/App.test.tsx`
+- `src/features/auth/pages/AuthFlow.test.tsx`
+- `src/features/sync/pages/SyncPage.test.tsx`
+- `src/features/works/pages/WorkDetailPage.test.tsx`
+- `src/features/works/pages/WorkFlow.test.tsx`
+- `src/features/works/pages/WorksListPage.test.tsx`
+
+### Backend Scripts
+
+- `npm run dev --workspace @work-archive/api`
+- `npm run build --workspace @work-archive/api`
+- `npm run typecheck --workspace @work-archive/api`
+- `npm run test --workspace @work-archive/api`
+- `npm run test:e2e --workspace @work-archive/api`
+
+대표 테스트 표면:
+
+- `test/app.module.spec.ts`
+- `test/sync.service.spec.ts`
+- `test/works.service.spec.ts`
+- `test/works.e2e-spec.ts`
+
+### Current Verification Status
+
+- `npm run typecheck`: `2026-04-21` 기준 통과 확인
+- `npm run test`: 스크립트 존재, 이번 패스에서는 30초 타임박스 내 완료 여부 미재확인
+- workspace별 `test`: 동일
+
+## 7. Immediate Limitations
+
+### 7-1. Frontend
+
+- 스타일 시스템은 아직 Mantine가 아니라 `global.css` 중심이다.
+- placeholder 화면과 실제 구현 화면의 성숙도 차이가 크다.
+- Quick Add는 구조는 있지만 데이터 신뢰를 뒷받침할 외부 import가 없다.
+
+### 7-2. Product UX
+
+- 게스트와 계정 아카이브는 분리되어 있으나, 둘을 연결하는 이관 경험은 없다.
+- sync는 수동이다.
+- Profile / Tier Boards / Community / Insights는 장기 방향에 비해 현재 구현이 얕다.
+
+### 7-3. Backend / Security
+
+- `Work` 모델이 과도하게 많은 책임을 갖는다.
+- refresh/access token은 현재 브라우저 `localStorage`에 저장된다.
+- 운영 보안 항목인 strict CORS, rate limiting, Swagger 제한은 아직 미적용이다.
+
+## 8. Where To Read Next
+
+- 프론트 현재 기준: [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md)
+- 프론트 목표 구조: [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
+- 프론트 Mantine 실행 계획: [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
+- 제품 near-term 로드맵: [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
+- 제품 비전: [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md)
+- 인증/게스트 전략: [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
+- 백엔드 목표 구조: [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
+- 보안 로드맵: [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md)

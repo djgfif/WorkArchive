@@ -1,5 +1,15 @@
 # IMPLEMENT.md
 
+| Field | Value |
+| --- | --- |
+| Status | `reference` |
+| Role | `historical reference` |
+| Source of truth | 초기 구현 지시 문맥 |
+| Last verified against | legacy planning document preserved on `2026-04-21` |
+| When to update | 기본적으로 갱신하지 않음. 역사 문맥 설명이 필요할 때만 상단 metadata 조정 |
+
+> 이 문서는 historical reference다. 현재 코드 기준으로 읽지 말고, 초기 구현 지시와 제약을 추적할 때만 사용한다.
+
 You are implementing the repository according to [PLAN.md](./PLAN.md) and [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md).
 
 ## Core Rules

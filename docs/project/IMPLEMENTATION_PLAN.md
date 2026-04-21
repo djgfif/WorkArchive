@@ -1,5 +1,15 @@
 # IMPLEMENTATION_PLAN.md
 
+| Field | Value |
+| --- | --- |
+| Status | `reference` |
+| Role | `historical reference` |
+| Source of truth | 초기 구현 구조와 단계 계획 |
+| Last verified against | legacy planning document preserved on `2026-04-21` |
+| When to update | 기본적으로 갱신하지 않음. 역사 문맥 설명이 필요할 때만 상단 metadata 조정 |
+
+> 이 문서는 historical reference다. 현재 코드 구조를 설명하는 기준 문서가 아니며, 초기 구현 방향과 단계 계획을 추적할 때만 사용한다.
+
 ## 1. 전체 아키텍처
 
 이 프로젝트는 모노레포로 구성한다.
