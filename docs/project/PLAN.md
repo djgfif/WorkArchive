@@ -1,5 +1,15 @@
 # PLAN.md
 
+| Field | Value |
+| --- | --- |
+| Status | `reference` |
+| Role | `historical reference` |
+| Source of truth | milestone 기반 초기 실행 계획 |
+| Last verified against | legacy planning document preserved on `2026-04-21` |
+| When to update | 기본적으로 갱신하지 않음. 역사 문맥 설명이 필요할 때만 상단 metadata 조정 |
+
+> 이 문서는 historical reference다. 현재 roadmap으로 읽지 말고, 초기 milestone 흐름을 확인할 때만 사용한다.
+
 ## 운영 원칙
 - 이 문서가 구현 범위의 단일 기준이다.
 - 각 마일스톤 완료 후 반드시 validation 명령을 실행한다.

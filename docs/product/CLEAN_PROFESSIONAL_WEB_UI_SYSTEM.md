@@ -1,485 +1,70 @@
 # CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md
 
-## 문서 목적
-이 문서는 Work Archive 프론트엔드를 **깔끔하고 전문적인 웹서비스 UI**로 정리하기 위한 기준 문서다.
+| Field | Value |
+| --- | --- |
+| Status | `active` |
+| Role | `target UI system` |
+| Source of truth | Mantine 기반 target design system rules |
+| Last verified against | target UI system document refreshed on `2026-04-21` |
+| When to update | Mantine 기준, 토큰 원칙, 공통 컴포넌트 규칙이 바뀔 때 |
 
-이 문서는 다음을 고정한다.
-- 어떤 시각적 인상을 목표로 하는가
-- 어떤 UI 라이브러리를 기준으로 갈 것인가
-- 직접 CSS를 어디까지 허용할 것인가
-- 홈 / 작품 목록 / 작품 상세 / 인증 / 계정 화면을 어떤 성격으로 재정의할 것인가
-- 설명문과 카드 남용을 어떻게 줄일 것인가
-- 실제 프로젝트에 어떤 순서로 적용할 것인가
+이 문서는 Work Archive의 **Mantine 기반 target UI system** 기준이다. 현재 구현 설명이 아니라, 프론트 리팩터링에서 따라야 할 시각/구성 규칙을 정의한다.
 
-이 문서는 현재 코드 현실을 직접 설명하는 문서가 아니라, **앞으로 적용할 프론트 UI 시스템의 기준**이다.
+## Goal
 
----
+페이지마다 제각각 클래스를 조합하는 대신, theme와 shared components로 일관된 제품 경험을 만든다.
 
-## 1. 목표 인상
+## Current Baseline
 
-Work Archive가 사용자에게 주어야 하는 인상은 다음과 같다.
+- 현재 구현은 `global.css` 의존이 크다.
+- 레이아웃과 페이지 분리는 되어 있지만 시각 시스템은 아직 분산돼 있다.
+- 따라서 이 문서는 “지금 이렇게 구현돼 있다”가 아니라 “앞으로 이렇게 맞춘다”는 기준이다.
 
-### 1-1. 핵심 인상
-- 깔끔하다
-- 차분하다
-- 신뢰감이 있다
-- 기록과 관리가 편하다
-- 서브컬처 서비스지만 과하게 장식적이지 않다
+## Committed Now
 
-### 1-2. 피해야 하는 인상
-- 기획 시안처럼 설명이 많다
-- 카드와 배지가 지나치게 많다
-- 스타일은 화려한데 정보 구조가 흐리다
-- 관리툴처럼 투박하다
-- AI/초보가 만든 티가 난다
+### Mantine Is The Primary UI Library
 
-### 1-3. 최종 정의
-Work Archive의 프론트엔드는 다음 한 줄로 정리한다.
-
-> **조용하고 정돈된 다크 톤 기반의 기록 서비스 UI**
-
-즉, 디자인은 존재감을 가지되, 기록과 관리 행동을 방해하면 안 된다.
-
----
-
-## 2. 참고 기준
-
-이 문서는 아래 참고 방향을 따른다.
-- Mantine 공식 문서의 AppShell / Theme / Component 기반 구조
-- 정보 스캔성, 시각적 위계, 과도한 장식 억제에 대한 일반적인 UX 원칙
-- 모바일/반응형에서 단순하고 읽기 쉬운 레이아웃 우선 원칙
-
-참고 링크는 문서 하단에 정리한다.
-
----
-
-## 3. 라이브러리 기준
-
-### 3-1. 기본 UI 라이브러리
-Work Archive 프론트엔드의 기본 UI 라이브러리는 **Mantine**으로 고정한다.
-
-### 3-2. Mantine를 선택하는 이유
-- React + Vite 구조와 잘 맞는다
-- AppShell, Button, Card, Paper, Badge, Tabs, TextInput, Select, Modal 등 기본 부품이 안정적이다
-- theme 기반으로 색/간격/반경/폰트 기준을 통일할 수 있다
-- 직접 CSS를 크게 줄일 수 있다
-- 기존 global.css가 떠안고 있던 디자인 시스템 책임을 theme와 component로 이전하기 쉽다
-
-### 3-3. 원칙
-- 공통 UI는 Mantine로 구현한다
-- 직접 CSS는 최소화한다
-- 스타일 설계는 `theme.ts` 중심으로 관리한다
-
----
-
-## 4. CSS 정책
-
-### 4-1. 허용 원칙
-직접 CSS는 아래 경우에만 허용한다.
-- 앱 전체 배경 / body / root 수준 스타일
-- 포스터 / 썸네일의 비율과 object-fit 제어
-- 서드파티 라이브러리 보정
-- Mantine만으로 표현하기 과한 예외적인 시각 효과
-
-### 4-2. 금지 원칙
-아래는 직접 CSS로 새로 만들지 않는다.
-- 버튼 스타일 시스템
-- 카드 스타일 시스템
-- 배지 / pill 스타일 시스템
-- 폼 인풋 기본 스타일
-- 페이지 전체 레이아웃 grid/flex 규칙 대부분
-- 페이지 전용 헤더 / 섹션 헤더 패턴
-
-### 4-3. 목표 구조
-최종 구조는 아래를 지향한다.
-
-- `theme.ts`: 색상, radius, spacing, font, component default props
-- Mantine components: 대부분의 UI 표현
-- `app-shell.css`: body, app root, 최소 배경
-- `media.css`: 포스터 / 이미지 보정
-- 필요 시 극소수의 CSS Module
-
-### 4-4. 현재 global.css 처리 원칙
-현재 `global.css`는 일괄 유지하지 않는다.
-
-정리 방향:
-1. 토큰 → `theme.ts`
-2. 버튼/폼/카드/배지 → Mantine
-3. 페이지별 스타일 → 각 페이지 컴포넌트 구조 리팩터링 후 제거
-4. 마지막에 `global.css`는 최소 전역 스타일만 남기고 축소한다
-
----
-
-## 5. 시각 시스템 원칙
-
-### 5-1. 컬러
-기본 색 구조는 다음을 따른다.
-- 베이스: 어두운 네이비/슬레이트 계열
-- primary: 차가운 블루 계열
-- 보조 강조: warm 포인트는 제한적으로만 사용
-- danger: 삭제/위험 액션에만 사용
-
-원칙:
-- 한 화면에서 강조색은 1개만 주도적으로 사용한다
-- warm 포인트 색은 배경 전체가 아니라 작은 상태/통계 강조에만 제한한다
-- 색으로만 상태를 구분하지 말고 텍스트/아이콘/위계도 함께 사용한다
-
-### 5-2. 타이포그래피
-원칙:
-- 제목 계층은 분명해야 한다
-- 설명문은 짧아야 한다
-- 본문과 보조문 색 대비가 충분해야 한다
-- 한 페이지에 제목 스타일 종류를 과도하게 늘리지 않는다
-
-권장 계층:
-- Page title: 화면의 1차 제목
-- Section title: 주요 섹션 제목
-- Card title: 카드 제목
-- Body: 핵심 설명 / 상태 / 요약
-- Muted text: 보조 정보
-
-### 5-3. 여백
-원칙:
-- 정보량을 늘리는 것보다 여백으로 구조를 만든다
-- 카드 안에 또 작은 카드가 들어가는 중첩을 줄인다
-- 수평 여백, 수직 간격, 카드 패딩을 theme 기준으로 통일한다
-
-### 5-4. 형태
-원칙:
-- 둥근 반경은 유지하되 과하지 않게 통일한다
-- 글로우/블러/그라디언트는 레이아웃 레벨에만 제한한다
-- 주요 작업 영역은 더 평평하고 차분하게 표현한다
-
----
-
-## 6. 카피 / 설명문 정책
-
-현재 Work Archive 프론트엔드는 설명문이 UI를 대신하는 문제가 있다. 앞으로는 아래 규칙을 따른다.
-
-### 6-1. 기본 규칙
-- 설명은 행동을 보조해야지 대체하면 안 된다
-- 같은 뜻을 title + description + badge로 반복하지 않는다
-- 긴 문장보다 명확한 제목과 버튼을 우선한다
-
-### 6-2. 페이지 헤더 규칙
-- 헤더는 **제목 1개 + 보조문 1줄 이내 + 행동 버튼**으로 끝낸다
-- eyebrow는 꼭 필요한 경우만 사용한다
-- meta는 숫자/상태 중심으로만 노출한다
-
-### 6-3. 카드 규칙
-카드는 아래 중 1가지 역할만 수행한다.
-- 정보 카드
-- 행동 카드
-- 상태 카드
-
-한 카드 안에
-- 긴 설명문
-- 여러 단계 안내
-- 서브카드 중첩
-을 동시에 넣지 않는다.
-
-### 6-4. 빈 상태 규칙
-빈 상태는 아래만 포함한다.
-- 무엇이 비었는가
-- 왜 그런가 (1문장)
-- 다음 행동 버튼 1~2개
-
-### 6-5. 금지 패턴
-- “지금 하면 좋은 일” 같은 장문 설명 카드 남발
-- “이곳에서 이런 것도 하고 저런 것도 할 수 있습니다” 식 안내형 문장
-- 한 화면에 비슷한 뜻의 안내 블록 여러 개 반복
-
----
-
-## 7. 레이아웃 원칙
-
-### 7-1. App Shell
-전체 앱은 Mantine `AppShell` 기준으로 정리한다.
-
-원칙:
-- Header는 브랜드 + 주 네비 + 핵심 액션만 둔다
-- 전역 설명문은 Header에서 제거한다
-- 메인 컨텐츠는 `Container` 기반 폭 제한을 둔다
-- 페이지마다 다른 목적은 컨텐츠 내부에서 해결한다
-
-### 7-2. 화면 폭
-원칙:
-- 텍스트가 너무 길게 늘어지지 않도록 최대 폭을 제한한다
-- 홈/상세/인증은 더 좁게
-- 작업 공간(작품 목록/폼)은 상대적으로 더 넓게
-
-### 7-3. 반응형
-원칙:
-- 모바일에서 먼저 읽히는 구조를 유지한다
-- 다단 구조는 작은 화면에서 빠르게 단일 열로 정리된다
-- 장식적 요소보다 내용 스캔성과 버튼 접근성을 우선한다
-
----
-
-## 8. 페이지별 UI 기준
-
-## 8-1. 홈
-### 역할
-홈은 서비스 허브다.
-
-### 반드시 있어야 하는 것
-- 검색 또는 빠른 추가 진입
-- 핵심 통계 4개
-- 최근 기록
-
-### 제거 / 축소할 것
-- 장문의 환영 메시지
-- 여러 장의 설명 카드
-- 행동을 말로 길게 설명하는 블록
-- “검색에서 시작 / 최근 기록 바로 이어보기” 같은 힌트 배지 남발
-
-### 최종 원칙
-홈은 “무엇을 할 수 있는가”를 설명하는 곳이 아니라, **지금 바로 무엇을 할지 선택하는 곳**이어야 한다.
-
----
-
-## 8-2. 작품 목록
-### 역할
-작품 목록은 관리 워크스페이스다.
-
-### 강조할 것
-- 검색
-- 상태 필터
-- 타입 필터
-- 정렬
-- 빠른 상태/별점 수정
-- 휴지통 접근
-
-### 줄일 것
-- 감성적인 설명문
-- 리스트 위의 장문 안내
-- 관리 화면 안의 과한 카드 장식
-
-### 최종 원칙
-작품 목록은 보기 좋은 갤러리보다 **관리 효율**이 먼저다.
-
----
-
-## 8-3. 작품 상세
-### 역할
-작품 상세는 감상 기록 화면이다.
-
-### 상단 우선순위
-- 표지
-- 제목
-- 상태 / 별점
-- 즐겨찾기 / 수정 / 삭제
-
-### 본문 우선순위
-- 한줄평
-- 리뷰
-- 작품 메타데이터
-- 빠른 수정
-
-### 줄일 것
-- 빠른 수정 영역의 설명문 과다
-- 리뷰 편집으로 넘어가는 긴 안내
-- 세부 섹션의 카드 과중첩
-
-### 최종 원칙
-상세는 “설명형 편집 화면”이 아니라, **작품과 내 감상 기록이 주인공인 화면**이어야 한다.
-
----
-
-## 8-4. 작품 추가 / Quick Add
-### 역할
-작품 추가는 검색 중심 flow다.
-
-### 강조할 것
-- 검색창
-- 후보 선택
-- 자동 채움 검토
-- 개인 기록 입력
-- 저장
-
-### 줄일 것
-- 단계마다 긴 설명문
-- 후보 카드 안의 과도한 안내
-- 중복 경고를 장문으로 푸는 구조
-
-### 최종 원칙
-입력보다 **선택과 검토**가 중심이 되어야 한다.
-
----
-
-## 8-5. 인증 화면
-### 역할
-회원가입/로그인 화면은 신뢰감 있는 최소 흐름이다.
-
-### 강조할 것
-- 입력 집중
-- 명확한 제목
-- 필요한 보조 설명 1~2줄
-- 오류/성공 메시지 분명하게
-
-### 줄일 것
-- 마케팅 문구형 feature card 과다
-- 가입 화면에서 제품을 장황하게 설명하는 구조
-
-### 최종 원칙
-인증 화면은 제품 소개 페이지가 아니라 **작업 완료 화면**이어야 한다.
-
----
-
-## 8-6. 계정 / 동기화
-### 역할
-계정과 동기화는 관리형 UI다.
-
-### 강조할 것
-- 현재 상태
-- 최근 성공/실패
-- 대기열 수
-- conflict 수
-- 다음 행동 버튼
-
-### 줄일 것
-- 장문 안내 문장
-- 같은 의미의 상태 정보를 여러 블록에 중복 표시
-
----
-
-## 9. 공용 컴포넌트 기준
-
-아래 공용 컴포넌트를 먼저 정리한다.
-
-### 9-1. AppPage
-페이지 컨테이너 역할.
-- 폭 제한
-- 수직 간격 통일
-- 페이지별 variant 허용
-
-### 9-2. PageHeader
-- title
-- optional description
-- optional actions
-- optional meta
-
-원칙:
-- description은 기본값이 아님
-- 행동이 먼저 보이게 정렬
-
-### 9-3. SectionCard
-- `Paper`/`Card` 기반 공통 섹션 래퍼
-- 패딩, radius, border, background 통일
-
-### 9-4. StatCard
-- 숫자 + 레이블 + 짧은 보조 텍스트만 허용
-- 설명문 과다 금지
-
-### 9-5. EmptyState
-- 제목
-- 짧은 이유
-- CTA
-
-### 9-6. Poster
-- 표지 비율 / fallback만 담당
-- 포스터 스타일은 CSS 최소화
-
----
-
-## 10. Mantine theme 기준
-
-### 10-1. theme.ts에서 관리할 것
-- colors
-- primaryColor
-- defaultRadius
-- spacing
-- fontFamily
-- headings
-- shadows
-- component default props
-
-### 10-2. component default props로 통일할 것
-- Button radius / variant / size
-- Paper / Card border / padding
-- TextInput / Textarea / Select size
-- Badge variant
-- Tabs / NavLink / AppShell spacing
-
-### 10-3. 원칙
-시각적 통일은 개별 페이지 CSS가 아니라, **theme와 공용 컴포넌트**에서 먼저 해결한다.
-
----
-
-## 11. 실제 적용 순서
-
-### Phase 1. 스타일 인프라 교체
+- 공통 UI는 Mantine 우선
+- theme로 해결 가능한 문제는 직접 CSS로 다시 만들지 않음
+- page shell, card, empty state, action bar 등은 shared primitives로 수렴
+
+### Visual Direction
+
+- 차분한 다크 아카이브 톤
+- 콘텐츠 우선 위계
+- 절제된 강조색
+- 장식보다 구조와 읽기 흐름 우선
+
+### Component Priorities
+
+- app shell
+- page header
+- section card
+- stat card
+- form controls
+- empty/loading/error states
+
+## Next
+
+- theme tokens 정리
+- shared UI primitives 정리
+- layout migration
+- 핵심 페이지 재구성
+
+## Later / Exploratory
+
+- tier board, community, public profile 전용 visual language
+- richer media surfaces
+- domain-specific editor patterns
+
+## Dependencies
+
 - Mantine 도입
-- `MantineProvider` 연결
-- `theme.ts` 생성
-- notifications 연결
-- `global.css` 축소 준비
+- frontend blueprint의 route/layout 경계 유지
+- final product vision과 충돌하지 않는 visual hierarchy
 
-### Phase 2. 공용 UI 컴포넌트 정리
-- PageHeader
-- AppPage
-- SectionCard
-- StatCard
-- EmptyState
-- Poster
+## Exit Criteria
 
-### Phase 3. App Shell 교체
-- MainProductLayout → Mantine AppShell 기반으로 전환
-- Header / Nav / Account action 정리
-- 전역 설명성 UI 제거
-
-### Phase 4. 홈 리디자인
-- 검색 + 통계 + 최근 기록만 남기고 정리
-- 설명 카드 대폭 축소
-
-### Phase 5. 작품 목록 / 상세 정리
-- 목록은 관리형 UI
-- 상세는 감상형 UI
-
-### Phase 6. Quick Add / 인증 / 계정 정리
-- 설명문 최소화
-- 컴포넌트 재사용률 높이기
-
----
-
-## 12. 완료 기준
-
-아래를 만족하면 1차 완료로 본다.
-
-### 구조 기준
-- 전역 스타일 파일이 최소화되었다
-- theme와 공용 컴포넌트가 스타일 책임의 대부분을 가진다
-- 페이지별 CSS가 거의 없다
-
-### 시각 기준
-- 홈이 허브처럼 보인다
-- 작품 목록이 관리 화면처럼 보인다
-- 작품 상세가 감상 화면처럼 보인다
-- 인증 화면이 입력 중심으로 보인다
-
-### 카피 기준
-- 장문 설명이 현저히 줄었다
-- 카드마다 역할이 명확하다
-- 빈 상태가 짧고 분명하다
-
-### 인상 기준
-- 전체적으로 깔끔하다
-- 과하게 장식적이지 않다
-- 전문적인 웹서비스처럼 보인다
-
----
-
-## 13. 참고 링크
-
-### Mantine
-- Vite guide: https://mantine.dev/guides/vite/
-- AppShell: https://mantine.dev/core/app-shell/
-- Theme object: https://mantine.dev/theming/theme-object
-- Mantine overview: https://mantine.dev/overview/
-
-### UX / Web readability 참고
-- Nielsen Norman Group – scanning and concise web text 관련 리포트/가이드
-- Nielsen Norman Group – visual hierarchy / readability / contrast 관련 가이드
-- Material Design – typography / layout / information hierarchy 참고
-
-이 문서는 위 참고 방향을 그대로 복제하는 것이 아니라, Work Archive에 맞게 해석해 고정한 기준 문서다.
+- theme가 색/spacing/radius/typography의 기준이 된다.
+- shared UI 없이 새 화면을 만드는 관성이 줄어든다.
+- 현재 구현과 target UI system의 차이가 문서에서 혼동되지 않는다.

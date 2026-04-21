@@ -1,5 +1,15 @@
 # PROJECT_SPEC.md
 
+| Field | Value |
+| --- | --- |
+| Status | `reference` |
+| Role | `historical reference` |
+| Source of truth | 초기 요구사항과 범위 정의 |
+| Last verified against | legacy planning document preserved on `2026-04-21` |
+| When to update | 기본적으로 갱신하지 않음. 역사 문맥 설명이 필요할 때만 상단 metadata 조정 |
+
+> 이 문서는 historical reference다. 현재 코드 기준 상태나 현재 우선순위를 판단할 때는 사용하지 말고, 초기 요구사항과 범위 맥락을 추적할 때만 읽는다.
+
 ## 1. 프로젝트 개요
 
 ### 프로젝트명

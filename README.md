@@ -1,40 +1,51 @@
 # Work Archive
 
-Work Archive is a local-first record app for novels, anime, manga, and related media. The frontend writes to IndexedDB first, guest mode works without an account, and authenticated mode unlocks protected backend storage plus manual sync.
+| Field | Value |
+| --- | --- |
+| Status | `active` |
+| Role | `operational entrypoint` |
+| Source of truth | `package.json`, `compose.yml`, `apps/web/package.json`, `apps/api/package.json` |
+| Last verified against | `2026-04-21` working tree |
+| When to update | 실행 스크립트, 환경 변수, 포트, Compose 흐름, 현재 검증 상태가 바뀔 때 |
+
+Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 작품 감상 기록을 관리하는 local-first 웹 서비스다. 프론트는 IndexedDB를 1차 저장소로 사용하고, 로그인 시 계정별 로컬 아카이브와 수동 동기화를 사용할 수 있다.
+
+## Current Stack
+
+- Frontend: React `19.1`, Vite `6.3`, TypeScript `5.8`, Dexie, React Router `7`
+- API: NestJS `11`, Prisma `6.6`, PostgreSQL
+- Monorepo: npm workspaces
+- Shared packages: `packages/shared-types`, `packages/eslint-config`, `packages/tsconfig`
 
 ## Workspace Layout
 
-- `apps/web`: React + TypeScript + Vite frontend
+- `apps/web`: React + TypeScript + Vite 프론트엔드
 - `apps/api`: NestJS + Prisma + PostgreSQL API
-- `packages/shared-types`: shared cross-app types
-- `packages/eslint-config`: shared ESLint config
-- `packages/tsconfig`: shared TypeScript config
+- `packages/shared-types`: 프론트/백엔드 공유 타입
+- `packages/eslint-config`: 공용 ESLint 설정
+- `packages/tsconfig`: 공용 TypeScript 설정
 
-## Documentation
+## Read This Next
 
-Repository documentation now lives under [`docs/`](./docs/README.md).
-
-- Start with the [documentation hub](./docs/README.md).
-- Use the [documentation index](./docs/management/DOCUMENTATION_INDEX.md) for reading order and document roles.
-- Use the [current status report](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) for current code reality.
-- Use the [frontend blueprint](./docs/frontend/FRONTEND_BLUEPRINT_V1.md) for current frontend decisions.
-- Use the [backend redesign masterplan](./docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md) for backend target structure.
+1. [`docs/README.md`](./docs/README.md)
+2. [`docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
+3. 작업 영역에 따라 [`docs/frontend/README.md`](./docs/frontend/README.md), [`docs/backend/README.md`](./docs/backend/README.md), [`docs/product/README.md`](./docs/product/README.md)
 
 ## Prerequisites
 
-- Node.js 22+
-- npm 10+
-- Docker Desktop or Docker Engine with Compose
+- Node.js `22+`
+- npm `10+`
+- Docker Desktop 또는 Docker Engine with Compose
 
-## Configuration Files
+## Environment Files
 
-There are three configuration paths. Use the one that matches how you run the app.
+| Path | Use |
+| --- | --- |
+| [`.env.example`](/mnt/c/work/WorkArchive/.env.example) | `docker compose up --build`용 루트 설정 |
+| [`apps/api/.env.example`](/mnt/c/work/WorkArchive/apps/api/.env.example) | 호스트 기반 API 개발용 설정 |
+| [`apps/web/.env.example`](/mnt/c/work/WorkArchive/apps/web/.env.example) | 호스트 기반 웹 개발용 설정 |
 
-- Root [`.env.example`](./.env.example): Docker Compose and containerized full-stack startup
-- API [`apps/api/.env.example`](./apps/api/.env.example): host-based API development
-- Web [`apps/web/.env.example`](./apps/web/.env.example): host-based web development
-
-Recommended setup:
+권장 초기화:
 
 ```bash
 cp .env.example .env
@@ -42,160 +53,131 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 ```
 
-Notes:
+메모:
 
-- `apps/api/.env` is used for local `npm run dev --workspace @work-archive/api`.
-- `apps/web/.env` is optional. The web app already falls back to `http://localhost:3000/api`.
-- Root `.env` is used by `docker compose`.
-- Local API development uses `localhost` in `apps/api/.env`, while Docker Compose uses the `postgres` service hostname from root `.env`.
-- The repository currently includes a development-safe `apps/api/.env` so Prisma client generation works after install. Review it before sharing or deploying.
+- 로컬 API 개발은 `apps/api/.env`의 `localhost` 기준 설정을 사용한다.
+- Compose는 루트 `.env`의 `postgres` 서비스 호스트명을 사용한다.
+- 웹은 `apps/web/.env`가 없어도 `http://localhost:3000/api`를 기본 API URL로 사용한다.
 
-## Local Development
+## Host-Based Development
 
-1. Install dependencies.
+1. 의존성 설치
 
 ```bash
 npm install
 ```
 
-2. Start PostgreSQL.
+2. PostgreSQL 시작
 
 ```bash
 npm run dev:db
 ```
 
-3. Apply existing migrations.
+3. 기존 마이그레이션 적용
 
 ```bash
 npm run db:migrate:deploy
 ```
 
-4. Optionally seed a demo account and sample works.
+4. 선택: 데모 계정과 샘플 데이터 시드
 
 ```bash
 npm run db:seed
 ```
 
-Default demo credentials:
+기본 데모 계정:
 
 - email: `demo@workarchive.local`
 - password: `demo-password-123`
 
-5. Start the web app and API together.
+5. 웹과 API 실행
 
 ```bash
 npm run dev
 ```
 
-Or run them separately:
+개별 실행:
 
 ```bash
 npm run dev:web
 npm run dev:api
 ```
 
-Local endpoints:
+기본 엔드포인트:
 
-- Web app: [http://localhost:5173](http://localhost:5173)
-- API health: [http://localhost:3000/health](http://localhost:3000/health)
+- Web: [http://localhost:5173](http://localhost:5173)
+- Health: [http://localhost:3000/health](http://localhost:3000/health)
 - Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
 - OpenAPI JSON: [http://localhost:3000/docs/openapi.json](http://localhost:3000/docs/openapi.json)
 
-## Docker Compose Full Stack
+## Docker Compose
 
-The repository also supports a full containerized startup for local deployment-style testing.
+전체 스택을 컨테이너로 올릴 수 있다.
 
 ```bash
 docker compose up --build
 ```
 
-Or use the root script:
+또는:
 
 ```bash
 npm run compose:up
 ```
 
-Default containerized endpoints:
+기본 엔드포인트:
 
-- Web app: [http://localhost:8080](http://localhost:8080)
-- API health: [http://localhost:3000/health](http://localhost:3000/health)
+- Web: [http://localhost:8080](http://localhost:8080)
+- Health: [http://localhost:3000/health](http://localhost:3000/health)
 - Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
 
-Notes:
+메모:
 
-- Docker Compose has safe local defaults even without a root `.env`.
-- Copy root `.env.example` to `.env` when you want to customize ports, CORS, API URL, or JWT secrets.
-- The documented container defaults assume `API_PORT=3000` and `WEB_PORT=8080`.
-- If you change `API_PORT`, also update root `VITE_API_BASE_URL`.
-- If you change `WEB_PORT`, keep root `CORS_ORIGIN` aligned with the exposed web origin.
-- The API container runs `prisma migrate deploy` on startup so a fresh local stack comes up with the existing schema.
-
-## Guest And Authenticated Mode
-
-- Guest mode is always available and stays local to the current browser/device.
-- Authenticated mode uses email/password auth and switches the browser into a separate account-local IndexedDB archive.
-- Signing out returns the app to the guest-local archive.
-- Guest data and authenticated local data are intentionally separate in the current milestone.
-
-## Manual Sync Basics
-
-- Local writes happen first in IndexedDB.
-- Create, update, and delete operations enqueue sync work locally.
-- Manual sync is available only in authenticated mode.
-- Protected backend routes require a Bearer access token.
-- Expired frontend access tokens are refreshed automatically before retrying protected requests.
-
-## Database And Prisma Workflow
-
-Use the checked-in migrations for normal setup:
-
-```bash
-npm run db:migrate:deploy
-```
-
-Create a new migration during development only when the schema changes:
-
-```bash
-npm run db:migrate:dev
-```
-
-Seed demo data:
-
-```bash
-npm run db:seed
-```
-
-Useful API workspace commands:
-
-```bash
-npm run prisma:generate --workspace @work-archive/api
-npm run prisma:migrate:deploy --workspace @work-archive/api
-npm run prisma:migrate:dev --workspace @work-archive/api
-npm run prisma:seed --workspace @work-archive/api
-```
+- Compose 파일은 [`compose.yml`](/mnt/c/work/WorkArchive/compose.yml)이다.
+- 기본 `API_PORT`는 `3000`, `WEB_PORT`는 `8080`이다.
+- `API_PORT`를 바꾸면 루트 `VITE_API_BASE_URL`도 맞춰야 한다.
+- `WEB_PORT`를 바꾸면 `CORS_ORIGIN`도 맞춰야 한다.
 
 ## Common Commands
 
 ```bash
 npm run dev
+npm run dev:web
+npm run dev:api
+npm run dev:db
+npm run db:migrate:deploy
+npm run db:seed
 npm run lint
 npm run typecheck
 npm run test
 npm run build
 ```
 
-## Production Notes
+## Current Verification Status
 
-- The web build reads `VITE_API_BASE_URL` at build time. Set it correctly before building static assets or the web image.
-- Docker Compose passes `VITE_API_BASE_URL` into the web image at build time, but API `PORT`, `HOST`, and secrets remain runtime env values for the API container.
-- Set real `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` values outside local development.
-- Set `CORS_ORIGIN` to the deployed frontend origin instead of leaving broad local defaults.
-- The API health endpoint stays public at `/health`.
-- Swagger stays enabled at `/docs`.
+- `npm run typecheck`: `2026-04-21` 기준 통과 확인
+- `npm run test`: 스크립트는 존재하지만 이번 문서 정리 패스에서는 30초 타임박스 내 완료 여부를 재확정하지 못함
+- `npm run test --workspace @work-archive/web`: 동일
+- `npm run test --workspace @work-archive/api`: 동일
+
+## Current Product Reality
+
+- 게스트 모드는 항상 사용 가능하며 IndexedDB에만 저장된다.
+- 로그인 시 계정별 로컬 아카이브로 전환되고 수동 sync를 사용할 수 있다.
+- Quick Add 흐름은 존재하지만 외부 메타데이터 API 연동은 아직 없다.
+- `Tier Boards`, `Insights`, `Community`는 현재 placeholder 성격이 강하다.
+- 인증은 현재 이메일/비밀번호 + access/refresh token 구조다.
 
 ## Known Limitations
 
-- Manual sync is still manual, not automatic.
-- Guest data is not migrated into an authenticated archive yet.
-- The API container applies migrations on startup for convenience; a larger production deployment would usually separate migration execution from steady-state runtime.
-- No OAuth, social auth, or multi-user collaboration features are included.
+- 자동 동기화는 아직 없다.
+- 게스트 데이터를 계정 아카이브로 이관하는 UX는 아직 없다.
+- 보안 로드맵의 운영 강화 항목은 아직 미적용이다.
+- API의 CORS 정책은 현재 빈 값 또는 `*`에서 wildcard fallback을 허용한다.
+
+## Documentation
+
+- 문서 허브: [`docs/README.md`](./docs/README.md)
+- 현재 코드 현실: [`docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
+- 프론트 기준: [`docs/frontend/FRONTEND_BLUEPRINT_V1.md`](./docs/frontend/FRONTEND_BLUEPRINT_V1.md)
+- 백엔드 목표 구조: [`docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](./docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
+- 문서 운영 기준: [`docs/management/DOCUMENTATION_GOVERNANCE.md`](./docs/management/DOCUMENTATION_GOVERNANCE.md)
