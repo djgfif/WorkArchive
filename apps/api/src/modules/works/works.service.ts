@@ -5,95 +5,110 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
-import type { Prisma, Work } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
+import { CatalogService } from '../catalog/catalog.service';
+import { UserRecordsService } from '../user-records/user-records.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  toWorkSyncStatusValue,
-} from './works.constants';
 import type { CreateWorkDto } from './dto/create-work.dto';
 import type { UpdateWorkDto } from './dto/update-work.dto';
-import type { WorkResponseDto } from './dto/work-response.dto';
+import {
+  hasChanges,
+  normalizeGenres,
+  normalizeString,
+  toFlatWorkResponse,
+} from './work-aggregate';
 
 const DEFAULT_SYNC_STATUS = WorkSyncStatus.synced;
 
 @Injectable()
 export class WorksService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(CatalogService) private readonly catalogService: CatalogService,
+    @Inject(UserRecordsService)
+    private readonly userRecordsService: UserRecordsService,
+  ) {}
 
   async findAll(userId: string) {
-    const works = await this.prisma.work.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-    });
+    const works = await this.userRecordsService.findActiveByUser(userId);
 
-    return works.map((work) => this.toResponse(work));
+    return works.map((work) => toFlatWorkResponse(work));
   }
 
   async findOne(userId: string, id: string) {
     const work = await this.getActiveWorkOrThrow(userId, id);
 
-    return this.toResponse(work);
+    return toFlatWorkResponse(work);
   }
 
   async create(userId: string, createWorkDto: CreateWorkDto) {
-    const work = await this.prisma.work.create({
-      data: this.buildCreateData(userId, createWorkDto),
+    const workId = crypto.randomUUID();
+    const work = await this.prisma.$transaction(async (tx) => {
+      await this.catalogService.create(
+        {
+          id: workId,
+          ...this.buildCatalogCreateData(createWorkDto),
+        },
+        tx,
+      );
+
+      return this.userRecordsService.create(
+        {
+          id: workId,
+          ...this.buildUserRecordCreateData(userId, workId, createWorkDto),
+        },
+        tx,
+      );
     });
 
-    return this.toResponse(work);
+    return toFlatWorkResponse(work);
   }
 
   async update(userId: string, id: string, updateWorkDto: UpdateWorkDto) {
     const existingWork = await this.getActiveWorkOrThrow(userId, id);
-    const updateData = this.buildUpdateData(updateWorkDto);
+    const catalogUpdateData = this.buildCatalogUpdateData(updateWorkDto);
+    const recordUpdateData = this.buildUserRecordUpdateData(updateWorkDto);
 
-    if (Object.keys(updateData).length === 0) {
-      return this.toResponse(existingWork);
+    if (!hasChanges(catalogUpdateData) && !hasChanges(recordUpdateData)) {
+      return toFlatWorkResponse(existingWork);
     }
 
-    const work = await this.prisma.work.update({
-      where: { id },
-      data: {
-        ...updateData,
-        syncStatus: DEFAULT_SYNC_STATUS,
-        serverVersion: {
-          increment: 1,
+    const work = await this.prisma.$transaction(async (tx) => {
+      if (hasChanges(catalogUpdateData)) {
+        await this.catalogService.update(existingWork.catalogWorkId, catalogUpdateData, tx);
+      }
+
+      return this.userRecordsService.update(
+        id,
+        {
+          ...recordUpdateData,
+          syncStatus: DEFAULT_SYNC_STATUS,
+          serverVersion: {
+            increment: 1,
+          },
         },
-      },
+        tx,
+      );
     });
 
-    return this.toResponse(work);
+    return toFlatWorkResponse(work);
   }
 
   async remove(userId: string, id: string) {
     await this.getActiveWorkOrThrow(userId, id);
 
-    await this.prisma.work.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        syncStatus: DEFAULT_SYNC_STATUS,
-        serverVersion: {
-          increment: 1,
-        },
+    await this.userRecordsService.update(id, {
+      deletedAt: new Date(),
+      syncStatus: DEFAULT_SYNC_STATUS,
+      serverVersion: {
+        increment: 1,
       },
     });
   }
 
   private async getActiveWorkOrThrow(userId: string, id: string) {
-    const work = await this.prisma.work.findFirst({
-      where: {
-        id,
-        userId,
-        deletedAt: null,
-      },
-    });
+    const work = await this.userRecordsService.findActiveByUserAndId(userId, id);
 
     if (!work) {
       throw new NotFoundException(`Work with id "${id}" was not found.`);
@@ -102,10 +117,9 @@ export class WorksService {
     return work;
   }
 
-  private buildCreateData(
-    userId: string,
+  private buildCatalogCreateData(
     createWorkDto: CreateWorkDto,
-  ): Prisma.WorkUncheckedCreateInput {
+  ): Prisma.CatalogWorkUncheckedCreateInput {
     const title = createWorkDto.title.trim();
 
     if (!title) {
@@ -113,17 +127,27 @@ export class WorksService {
     }
 
     return {
-      userId,
       type: createWorkDto.type ?? WorkType.novel,
       title,
-      author: this.normalizeString(createWorkDto.author),
-      genres: this.normalizeGenres(createWorkDto.genres),
-      description: this.normalizeString(createWorkDto.description),
-      thumbnailUrl: this.normalizeString(createWorkDto.thumbnailUrl),
+      author: normalizeString(createWorkDto.author),
+      genres: normalizeGenres(createWorkDto.genres),
+      description: normalizeString(createWorkDto.description),
+      thumbnailUrl: normalizeString(createWorkDto.thumbnailUrl),
+    };
+  }
+
+  private buildUserRecordCreateData(
+    userId: string,
+    catalogWorkId: string,
+    createWorkDto: CreateWorkDto,
+  ): Prisma.UserWorkRecordUncheckedCreateInput {
+    return {
+      userId,
+      catalogWorkId,
       status: createWorkDto.status ?? WorkStatus.planned,
       rating: createWorkDto.rating ?? null,
-      shortReview: this.normalizeString(createWorkDto.shortReview),
-      review: this.normalizeString(createWorkDto.review),
+      shortReview: normalizeString(createWorkDto.shortReview),
+      review: normalizeString(createWorkDto.review),
       tier: createWorkDto.tier ?? null,
       favorite: createWorkDto.favorite ?? false,
       syncStatus: DEFAULT_SYNC_STATUS,
@@ -131,8 +155,10 @@ export class WorksService {
     };
   }
 
-  private buildUpdateData(updateWorkDto: UpdateWorkDto): Prisma.WorkUpdateInput {
-    const data: Prisma.WorkUpdateInput = {};
+  private buildCatalogUpdateData(
+    updateWorkDto: UpdateWorkDto,
+  ): Prisma.CatalogWorkUpdateInput {
+    const data: Prisma.CatalogWorkUpdateInput = {};
 
     if (updateWorkDto.type !== undefined) {
       data.type = updateWorkDto.type;
@@ -149,20 +175,28 @@ export class WorksService {
     }
 
     if (updateWorkDto.author !== undefined) {
-      data.author = this.normalizeString(updateWorkDto.author);
+      data.author = normalizeString(updateWorkDto.author);
     }
 
     if (updateWorkDto.genres !== undefined) {
-      data.genres = this.normalizeGenres(updateWorkDto.genres);
+      data.genres = normalizeGenres(updateWorkDto.genres);
     }
 
     if (updateWorkDto.description !== undefined) {
-      data.description = this.normalizeString(updateWorkDto.description);
+      data.description = normalizeString(updateWorkDto.description);
     }
 
     if (updateWorkDto.thumbnailUrl !== undefined) {
-      data.thumbnailUrl = this.normalizeString(updateWorkDto.thumbnailUrl);
+      data.thumbnailUrl = normalizeString(updateWorkDto.thumbnailUrl);
     }
+
+    return data;
+  }
+
+  private buildUserRecordUpdateData(
+    updateWorkDto: UpdateWorkDto,
+  ): Prisma.UserWorkRecordUpdateInput {
+    const data: Prisma.UserWorkRecordUpdateInput = {};
 
     if (updateWorkDto.status !== undefined) {
       data.status = updateWorkDto.status;
@@ -173,11 +207,11 @@ export class WorksService {
     }
 
     if (updateWorkDto.shortReview !== undefined) {
-      data.shortReview = this.normalizeString(updateWorkDto.shortReview);
+      data.shortReview = normalizeString(updateWorkDto.shortReview);
     }
 
     if (updateWorkDto.review !== undefined) {
-      data.review = this.normalizeString(updateWorkDto.review);
+      data.review = normalizeString(updateWorkDto.review);
     }
 
     if (updateWorkDto.tier !== undefined) {
@@ -189,26 +223,5 @@ export class WorksService {
     }
 
     return data;
-  }
-
-  private normalizeString(value?: string) {
-    return value?.trim() ?? '';
-  }
-
-  private normalizeGenres(genres?: string[]) {
-    if (!genres) {
-      return [];
-    }
-
-    return Array.from(
-      new Set(genres.map((genre) => genre.trim()).filter(Boolean)),
-    );
-  }
-
-  private toResponse(work: Work): WorkResponseDto {
-    return {
-      ...work,
-      syncStatus: toWorkSyncStatusValue(work.syncStatus),
-    };
   }
 }

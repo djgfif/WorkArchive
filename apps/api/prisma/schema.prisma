@@ -42,35 +42,6 @@ enum WorkSyncStatus {
   conflict
 }
 
-model Work {
-  id           String      @id @default(uuid())
-  userId       String?
-  type         WorkType    @default(novel)
-  title        String
-  author       String      @default("")
-  genres       String[]    @default([])
-  description  String      @default("") @db.Text
-  thumbnailUrl String      @default("")
-  status       WorkStatus  @default(planned)
-  rating       Float?
-  shortReview  String      @default("")
-  review       String      @default("") @db.Text
-  tier         WorkTier?
-  favorite     Boolean     @default(false)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  deletedAt    DateTime?
-  syncStatus    WorkSyncStatus @default(synced)
-  serverVersion Int        @default(1)
-  user          User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, deletedAt])
-  @@index([userId, type, updatedAt])
-  @@index([userId, status, updatedAt])
-  @@index([userId, updatedAt])
-  @@map("works")
-}
-
 model User {
   id               String   @id @default(uuid())
   email            String   @unique
@@ -79,7 +50,49 @@ model User {
   nickname         String   @default("")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-  works            Work[]
+  workRecords      UserWorkRecord[]
 
   @@map("users")
+}
+
+model CatalogWork {
+  id           String           @id @default(uuid())
+  type         WorkType         @default(novel)
+  title        String
+  author       String           @default("")
+  genres       String[]         @default([])
+  description  String           @default("") @db.Text
+  thumbnailUrl String           @default("")
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  userRecords  UserWorkRecord[]
+
+  @@index([type, updatedAt])
+  @@index([updatedAt])
+  @@map("catalog_works")
+}
+
+model UserWorkRecord {
+  id            String         @id @default(uuid())
+  userId        String?
+  catalogWorkId String
+  status        WorkStatus     @default(planned)
+  rating        Float?
+  shortReview   String         @default("")
+  review        String         @default("") @db.Text
+  tier          WorkTier?
+  favorite      Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+  syncStatus    WorkSyncStatus @default(synced)
+  serverVersion Int            @default(1)
+  catalogWork   CatalogWork    @relation(fields: [catalogWorkId], references: [id], onDelete: Cascade)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deletedAt])
+  @@index([userId, status, updatedAt])
+  @@index([userId, updatedAt])
+  @@index([catalogWorkId])
+  @@map("user_work_records")
 }

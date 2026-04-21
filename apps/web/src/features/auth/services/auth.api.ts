@@ -21,7 +21,6 @@ export interface AuthCredentialsInput {
 
 export interface AuthSessionResponse {
   accessToken: string;
-  refreshToken: string;
   user: AuthUser;
 }
 
@@ -74,11 +73,11 @@ async function readJsonBody<T>(response: Response): Promise<T | null> {
   }
 }
 
-export async function requestApiJson<TResponse>(
+async function requestApi<TResponse>(
   path: string,
   init: RequestInit,
   accessToken?: string,
-): Promise<TResponse> {
+) {
   const headers = new Headers(init.headers);
 
   if (init.body && !headers.has('content-type')) {
@@ -91,6 +90,7 @@ export async function requestApiJson<TResponse>(
 
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
+    credentials: 'include',
     headers,
   });
   const responseBody = await readJsonBody<TResponse & ApiErrorBody>(response);
@@ -101,6 +101,23 @@ export async function requestApiJson<TResponse>(
       getApiErrorMessage(response.status, responseBody),
     );
   }
+
+  return {
+    response,
+    responseBody,
+  };
+}
+
+export async function requestApiJson<TResponse>(
+  path: string,
+  init: RequestInit,
+  accessToken?: string,
+): Promise<TResponse> {
+  const { response, responseBody } = await requestApi<TResponse>(
+    path,
+    init,
+    accessToken,
+  );
 
   if (responseBody === null) {
     throw new ApiRequestError(
@@ -128,12 +145,9 @@ export async function loginWithEmailPassword(input: AuthCredentialsInput) {
   });
 }
 
-export async function refreshSession(refreshToken: string) {
+export async function refreshSession() {
   return requestApiJson<AuthSessionResponse>('/auth/refresh', {
     method: 'POST',
-    body: JSON.stringify({
-      refreshToken,
-    }),
   });
 }
 
@@ -147,12 +161,17 @@ export async function fetchCurrentUser(accessToken: string) {
   );
 }
 
-async function refreshStoredTokens(refreshToken: string) {
+export async function logoutSession() {
+  await requestApi('/auth/logout', {
+    method: 'POST',
+  });
+}
+
+async function refreshStoredTokens() {
   try {
-    const refreshedSession = await refreshSession(refreshToken);
+    const refreshedSession = await refreshSession();
     const nextTokens = {
       accessToken: refreshedSession.accessToken,
-      refreshToken: refreshedSession.refreshToken,
     };
 
     writeStoredAuthTokens(nextTokens);
@@ -186,7 +205,7 @@ export async function requestAuthenticatedApiJson<TResponse>(
     }
   }
 
-  const refreshedTokens = await refreshStoredTokens(storedTokens.refreshToken);
+  const refreshedTokens = await refreshStoredTokens();
 
   try {
     return await requestApiJson<TResponse>(path, init, refreshedTokens.accessToken);

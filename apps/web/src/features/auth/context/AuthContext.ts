@@ -9,8 +9,8 @@ export interface AuthContextValue {
   isLoading: boolean;
   mode: AuthMode;
   user: AuthUser | null;
-  signIn(input: AuthCredentialsInput): Promise<void>;
-  signUp(input: AuthCredentialsInput): Promise<void>;
+  signIn(input: AuthCredentialsInput): Promise<string>;
+  signUp(input: AuthCredentialsInput): Promise<string>;
   signOut(): Promise<void>;
 }
 

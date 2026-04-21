@@ -25,7 +25,10 @@ async function bootstrap() {
 
     logger.log(`API listening on ${baseUrl}`);
     logger.log(`Health check available at ${baseUrl}/health`);
-    logger.log(`Swagger UI available at ${baseUrl}/docs`);
+
+    if (config.swaggerEnabled) {
+      logger.log(`Swagger UI available at ${baseUrl}/docs`);
+    }
   } catch (error) {
     logger.error(
       'API failed to start. Check PORT, HOST, DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, and PostgreSQL availability.',

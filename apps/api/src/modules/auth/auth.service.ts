@@ -15,7 +15,6 @@ import { hashSecret, verifySecret } from './auth-crypto';
 import type { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import type { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import type { LoginDto } from './dto/login.dto';
-import type { RefreshDto } from './dto/refresh.dto';
 import type { RegisterDto } from './dto/register.dto';
 import type {
   AuthTokenKind,
@@ -26,11 +25,17 @@ import type {
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 
+export interface IssuedAuthSession {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthUserResponseDto;
+}
+
 @Injectable()
 export class AuthService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async register(registerDto: RegisterDto): Promise<AuthSessionResponseDto> {
+  async register(registerDto: RegisterDto): Promise<IssuedAuthSession> {
     const email = this.normalizeEmail(registerDto.email);
     const existingUser = await this.prisma.user.findUnique({
       where: {
@@ -52,7 +57,7 @@ export class AuthService {
     return this.createSessionForUser(user);
   }
 
-  async login(loginDto: LoginDto): Promise<AuthSessionResponseDto> {
+  async login(loginDto: LoginDto): Promise<IssuedAuthSession> {
     const email = this.normalizeEmail(loginDto.email);
     const user = await this.prisma.user.findUnique({
       where: {
@@ -76,8 +81,8 @@ export class AuthService {
     return this.createSessionForUser(user);
   }
 
-  async refresh(refreshDto: RefreshDto): Promise<AuthSessionResponseDto> {
-    const tokenPayload = this.verifyToken(refreshDto.refreshToken, 'refresh');
+  async refresh(refreshToken: string): Promise<IssuedAuthSession> {
+    const tokenPayload = this.verifyToken(refreshToken, 'refresh');
     const user = await this.prisma.user.findUnique({
       where: {
         id: tokenPayload.sub,
@@ -89,7 +94,7 @@ export class AuthService {
     }
 
     const isRefreshTokenValid = await verifySecret(
-      refreshDto.refreshToken,
+      refreshToken,
       user.refreshTokenHash,
     );
 
@@ -98,6 +103,45 @@ export class AuthService {
     }
 
     return this.createSessionForUser(user);
+  }
+
+  async logout(refreshToken: string | null) {
+    if (!refreshToken) {
+      return;
+    }
+
+    try {
+      const tokenPayload = this.verifyToken(refreshToken, 'refresh');
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id: tokenPayload.sub,
+        },
+      });
+
+      if (!user?.refreshTokenHash) {
+        return;
+      }
+
+      const isRefreshTokenValid = await verifySecret(
+        refreshToken,
+        user.refreshTokenHash,
+      );
+
+      if (!isRefreshTokenValid) {
+        return;
+      }
+
+      await this.prisma.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          refreshTokenHash: null,
+        },
+      });
+    } catch {
+      return;
+    }
   }
 
   async getCurrentUser(userId: string): Promise<AuthUserResponseDto> {
@@ -132,7 +176,14 @@ export class AuthService {
     };
   }
 
-  private async createSessionForUser(user: User): Promise<AuthSessionResponseDto> {
+  toSessionResponse(session: IssuedAuthSession): AuthSessionResponseDto {
+    return {
+      accessToken: session.accessToken,
+      user: session.user,
+    };
+  }
+
+  private async createSessionForUser(user: User): Promise<IssuedAuthSession> {
     const accessToken = this.signToken(user, 'access', ACCESS_TOKEN_TTL_SECONDS);
     const refreshToken = this.signToken(
       user,

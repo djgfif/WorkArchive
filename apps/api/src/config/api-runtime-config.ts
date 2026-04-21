@@ -1,10 +1,13 @@
 export interface ApiRuntimeConfig {
-  corsOrigin: true | string[];
+  cookieSecure: boolean;
+  corsOrigin: string[];
   databaseUrl: string;
   host: string;
+  isProduction: boolean;
   jwtAccessSecret: string;
   jwtRefreshSecret: string;
   port: number;
+  swaggerEnabled: boolean;
 }
 
 function readRequiredEnvString(name: string) {
@@ -33,11 +36,33 @@ function readPort(value: string | undefined, fallback: number) {
   return parsedValue;
 }
 
+function readBoolean(value: string | undefined, fallback: boolean) {
+  const normalizedValue = value?.trim().toLowerCase();
+
+  if (!normalizedValue) {
+    return fallback;
+  }
+
+  if (normalizedValue === 'true') {
+    return true;
+  }
+
+  if (normalizedValue === 'false') {
+    return false;
+  }
+
+  throw new Error('Boolean environment values must be either "true" or "false".');
+}
+
 function readCorsOrigin(value: string | undefined) {
   const normalizedValue = value?.trim();
 
-  if (!normalizedValue || normalizedValue === '*') {
-    return true;
+  if (!normalizedValue) {
+    return ['http://localhost:8080', 'http://localhost:5173'];
+  }
+
+  if (normalizedValue === '*') {
+    throw new Error('CORS_ORIGIN must be an explicit whitelist, not "*".');
   }
 
   const origins = normalizedValue
@@ -45,17 +70,26 @@ function readCorsOrigin(value: string | undefined) {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  return origins.length === 0 ? true : origins;
+  if (origins.length === 0) {
+    throw new Error('CORS_ORIGIN must include at least one allowed origin.');
+  }
+
+  return origins;
 }
 
 export function readApiRuntimeConfig(): ApiRuntimeConfig {
+  const isProduction = process.env.NODE_ENV?.trim() === 'production';
+
   return {
+    cookieSecure: readBoolean(process.env.COOKIE_SECURE, isProduction),
     corsOrigin: readCorsOrigin(process.env.CORS_ORIGIN),
     databaseUrl: readRequiredEnvString('DATABASE_URL'),
     host: process.env.HOST?.trim() || '0.0.0.0',
+    isProduction,
     jwtAccessSecret: readRequiredEnvString('JWT_ACCESS_SECRET'),
     jwtRefreshSecret: readRequiredEnvString('JWT_REFRESH_SECRET'),
     port: readPort(process.env.PORT, 3000),
+    swaggerEnabled: readBoolean(process.env.SWAGGER_ENABLED, !isProduction),
   };
 }
 

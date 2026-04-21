@@ -1,5 +1,5 @@
 import { liveQuery } from 'dexie';
-import type { WorkRecord, WorkType } from '@work-archive/shared-types';
+import type { WorkRecord } from '@work-archive/shared-types';
 import {
   useEffect,
   useState,
@@ -9,6 +9,10 @@ import {
 import { Link } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import {
+  importsService,
+  type ImportCandidate,
+} from '../../imports/services/imports.service';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { worksRepository } from '../services/works.repository';
 import {
@@ -28,20 +32,6 @@ interface QuickAddWorkFormProps {
   isSubmitting: boolean;
   onSubmit: (input: UpsertWorkInput) => Promise<void>;
   submitError: string | null;
-}
-
-interface QuickAddCandidate {
-  author: string;
-  confidenceLabel: string;
-  countLabel: string;
-  description: string;
-  formatLabel: string;
-  genresText: string;
-  id: string;
-  note: string;
-  sourceLabel: string;
-  title: string;
-  type: WorkType;
 }
 
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
@@ -70,7 +60,7 @@ function normalizeTitle(value: string) {
 }
 
 function findLikelyMatches(
-  candidate: QuickAddCandidate,
+  candidate: ImportCandidate,
   existingWorks: WorkRecord[],
 ) {
   const candidateTitleKeys = Array.from(
@@ -86,56 +76,7 @@ function findLikelyMatches(
   );
 }
 
-function buildCandidates(searchTerm: string): QuickAddCandidate[] {
-  const normalizedSearchTerm = searchTerm.trim();
-
-  return [
-    {
-      author: '작가 정보 검토 필요',
-      confidenceLabel: '가장 유력',
-      countLabel: '완결권수 확인 필요',
-      description:
-        '검색어 기준으로 가장 기본적인 원작 후보입니다. 실제 연동 시에는 표지, 작가, 설명, 권수 정보가 같이 들어옵니다.',
-      formatLabel: '원작 후보',
-      genresText: '드라마, 감상 기록',
-      id: `${normalizedSearchTerm}-core`,
-      note: '우선 검토',
-      sourceLabel: '기본 메타데이터 초안',
-      title: normalizedSearchTerm,
-      type: 'novel',
-    },
-    {
-      author: '스튜디오 정보 검토 필요',
-      confidenceLabel: '미디어믹스',
-      countLabel: 'TV 시리즈 추정',
-      description:
-        '동일 제목의 영상화나 미디어믹스 작품을 가정한 후보입니다. 타입과 제작 정보를 비교해서 고르는 흐름을 보여주기 위한 목업입니다.',
-      formatLabel: '영상 후보',
-      genresText: '애니, 어댑테이션',
-      id: `${normalizedSearchTerm}-screen`,
-      note: '파생 후보',
-      sourceLabel: '영상화 메타데이터 초안',
-      title: `${normalizedSearchTerm} (애니)`,
-      type: 'anime',
-    },
-    {
-      author: '연재 정보 검토 필요',
-      confidenceLabel: '연재형',
-      countLabel: '연재 상태 확인 필요',
-      description:
-        '연재형 작품을 상정한 후보입니다. 향후에는 권수, 연재 상태, 플랫폼 같은 식별 요소가 같이 붙는 자리를 미리 확보합니다.',
-      formatLabel: '연재 후보',
-      genresText: '웹소설, 연재',
-      id: `${normalizedSearchTerm}-serial`,
-      note: '확장 후보',
-      sourceLabel: '연재 메타데이터 초안',
-      title: `${normalizedSearchTerm} (연재판)`,
-      type: 'web_novel',
-    },
-  ];
-}
-
-function createValuesFromCandidate(candidate: QuickAddCandidate): WorkFormValues {
+function createValuesFromCandidate(candidate: ImportCandidate): WorkFormValues {
   return {
     ...createQuickAddDefaults(),
     author: candidate.author,
@@ -154,9 +95,9 @@ export function QuickAddWorkForm({
   const { archiveScopeKey } = useAuthSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
-  const [candidates, setCandidates] = useState<QuickAddCandidate[]>([]);
+  const [candidates, setCandidates] = useState<ImportCandidate[]>([]);
   const [existingWorks, setExistingWorks] = useState<WorkRecord[]>([]);
-  const [selectedCandidate, setSelectedCandidate] = useState<QuickAddCandidate | null>(
+  const [selectedCandidate, setSelectedCandidate] = useState<ImportCandidate | null>(
     null,
   );
   const [confirmedDuplicateCandidateId, setConfirmedDuplicateCandidateId] = useState<
@@ -208,11 +149,11 @@ export function QuickAddWorkForm({
     setSubmittedSearchTerm(normalizedSearchTerm);
     setSelectedCandidate(null);
     setConfirmedDuplicateCandidateId(null);
-    setCandidates(buildCandidates(normalizedSearchTerm));
+    setCandidates(importsService.searchCandidates(normalizedSearchTerm));
     setValues(createQuickAddDefaults());
   }
 
-  function handleSelectCandidate(candidate: QuickAddCandidate) {
+  function handleSelectCandidate(candidate: ImportCandidate) {
     setSelectedCandidate(candidate);
     setConfirmedDuplicateCandidateId((currentValue) =>
       currentValue === candidate.id ? currentValue : null,

@@ -12,10 +12,48 @@ import { PrismaService } from '../src/prisma/prisma.service';
 
 function createPrismaServiceMock() {
   const users: Array<Record<string, unknown>> = [];
-  const works: Array<Record<string, unknown>> = [];
+  const catalogWorks: Array<Record<string, unknown>> = [];
+  const userWorkRecords: Array<Record<string, unknown>> = [];
 
-  return {
-    user: {
+  function buildServerVersion(
+    currentVersion: number,
+    nextVersionInput: unknown,
+  ) {
+    if (
+      typeof nextVersionInput === 'object' &&
+      nextVersionInput !== null &&
+      'increment' in nextVersionInput
+    ) {
+      return currentVersion + Number((nextVersionInput as { increment: number }).increment);
+    }
+
+    return typeof nextVersionInput === 'number' ? nextVersionInput : currentVersion;
+  }
+
+  function getCatalogWorkById(id: string) {
+    return catalogWorks.find((catalogWork) => catalogWork.id === id) ?? null;
+  }
+
+  function joinRecord(record: Record<string, unknown>) {
+    return {
+      ...record,
+      catalogWork: getCatalogWorkById(record.catalogWorkId as string),
+    };
+  }
+
+  const prismaMock: Record<string, unknown> = {};
+
+  prismaMock.$transaction = async <T>(
+    input: Promise<T>[] | ((client: typeof prismaMock) => Promise<T>),
+  ) => {
+    if (typeof input === 'function') {
+      return input(prismaMock);
+    }
+
+    return Promise.all(input);
+  };
+
+  prismaMock.user = {
       findUnique: async ({
         where,
       }: {
@@ -76,8 +114,55 @@ function createPrismaServiceMock() {
 
         return updatedUser;
       },
-    },
-    work: {
+    };
+  prismaMock.catalogWork = {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const now = new Date();
+        const catalogWork = {
+          id: data.id ?? crypto.randomUUID(),
+          type: data.type ?? WorkType.novel,
+          title: data.title,
+          author: data.author ?? '',
+          genres: data.genres ?? [],
+          description: data.description ?? '',
+          thumbnailUrl: data.thumbnailUrl ?? '',
+          createdAt: data.createdAt ?? now,
+          updatedAt: data.updatedAt ?? now,
+        };
+
+        catalogWorks.push(catalogWork);
+
+        return catalogWork;
+      },
+      update: async ({
+        where,
+        data,
+      }: {
+        where: {
+          id: string;
+        };
+        data: Record<string, unknown>;
+      }) => {
+        const index = catalogWorks.findIndex(
+          (catalogWork) => catalogWork.id === where.id,
+        );
+
+        if (index === -1) {
+          throw new Error('catalog work not found');
+        }
+
+        const updatedCatalogWork = {
+          ...catalogWorks[index],
+          ...data,
+          updatedAt: data.updatedAt ?? new Date(),
+        };
+
+        catalogWorks[index] = updatedCatalogWork;
+
+        return updatedCatalogWork;
+      },
+    };
+  prismaMock.userWorkRecord = {
       findMany: async ({
         where,
         orderBy,
@@ -93,19 +178,19 @@ function createPrismaServiceMock() {
           updatedAt: 'asc' | 'desc';
         };
       } = {}) =>
-        [...works]
-          .filter((work) => {
-            if (where?.userId && work.userId !== where.userId) {
+        [...userWorkRecords]
+          .filter((record) => {
+            if (where?.userId && record.userId !== where.userId) {
               return false;
             }
 
-            if (where?.deletedAt === null && work.deletedAt !== null) {
+            if (where?.deletedAt === null && record.deletedAt !== null) {
               return false;
             }
 
             if (
               where?.updatedAt?.gt &&
-              new Date(work.updatedAt as Date).getTime() <=
+              new Date(record.updatedAt as Date).getTime() <=
                 where.updatedAt.gt.getTime()
             ) {
               return false;
@@ -119,14 +204,19 @@ function createPrismaServiceMock() {
               new Date(left.updatedAt as Date).getTime();
 
             return orderBy?.updatedAt === 'asc' ? -delta : delta;
-          }),
+          })
+          .map((record) => joinRecord(record)),
       findUnique: async ({
         where,
       }: {
         where: {
           id: string;
         };
-      }) => works.find((work) => work.id === where.id) ?? null,
+      }) => {
+        const record = userWorkRecords.find((work) => work.id === where.id) ?? null;
+
+        return record ? joinRecord(record) : null;
+      },
       findFirst: async ({
         where,
       }: {
@@ -135,49 +225,52 @@ function createPrismaServiceMock() {
           id?: string;
           userId?: string;
         };
-      }) =>
-        works.find((work) => {
-          if (where.id && work.id !== where.id) {
-            return false;
-          }
+      }) => {
+        const record =
+          userWorkRecords.find((work) => {
+            if (where.id && work.id !== where.id) {
+              return false;
+            }
 
-          if (where.userId && work.userId !== where.userId) {
-            return false;
-          }
+            if (where.userId && work.userId !== where.userId) {
+              return false;
+            }
 
-          if (where.deletedAt === null && work.deletedAt !== null) {
-            return false;
-          }
+            if (where.deletedAt === null && work.deletedAt !== null) {
+              return false;
+            }
 
-          return true;
-        }) ?? null,
-      create: async ({ data }: { data: Record<string, unknown> }) => {
+            return true;
+          }) ?? null;
+
+        return record ? joinRecord(record) : null;
+      },
+      create: async ({
+        data,
+      }: {
+        data: Record<string, unknown>;
+      }) => {
         const now = new Date();
-        const work = {
+        const record = {
           id: data.id ?? crypto.randomUUID(),
-          userId: data.userId,
-          type: data.type,
-          title: data.title,
-          author: data.author,
-          genres: data.genres,
-          description: data.description,
-          thumbnailUrl: data.thumbnailUrl,
-          status: data.status,
+          userId: data.userId ?? null,
+          catalogWorkId: data.catalogWorkId,
+          status: data.status ?? WorkStatus.planned,
           rating: data.rating ?? null,
-          shortReview: data.shortReview,
-          review: data.review,
+          shortReview: data.shortReview ?? '',
+          review: data.review ?? '',
           tier: data.tier ?? null,
           favorite: data.favorite ?? false,
           createdAt: data.createdAt ?? now,
-          updatedAt: now,
+          updatedAt: data.updatedAt ?? now,
           deletedAt: data.deletedAt ?? null,
           syncStatus: data.syncStatus ?? WorkSyncStatus.synced,
-          serverVersion: data.serverVersion,
+          serverVersion: data.serverVersion ?? 1,
         };
 
-        works.push(work);
+        userWorkRecords.push(record);
 
-        return work;
+        return joinRecord(record);
       },
       update: async ({
         where,
@@ -188,45 +281,36 @@ function createPrismaServiceMock() {
         };
         data: Record<string, unknown>;
       }) => {
-        const index = works.findIndex((work) => work.id === where.id);
+        const index = userWorkRecords.findIndex((record) => record.id === where.id);
 
         if (index === -1) {
-          throw new Error('work not found');
+          throw new Error('user work record not found');
         }
 
-        const current = works[index]!;
-        const nextVersion =
-          typeof data.serverVersion === 'object' &&
-          data.serverVersion !== null &&
-          'increment' in data.serverVersion
-            ? Number(current.serverVersion) +
-              Number(
-                (
-                  data.serverVersion as {
-                    increment: number;
-                  }
-                ).increment,
-              )
-            : Number(current.serverVersion);
-
-        const updatedWork = {
+        const current = userWorkRecords[index]!;
+        const updatedRecord = {
           ...current,
           ...data,
-          serverVersion: nextVersion,
-          updatedAt: new Date(),
+          serverVersion: buildServerVersion(
+            Number(current.serverVersion),
+            data.serverVersion,
+          ),
+          updatedAt: data.updatedAt ?? new Date(),
         };
 
-        works[index] = updatedWork;
+        userWorkRecords[index] = updatedRecord;
 
-        return updatedWork;
+        return joinRecord(updatedRecord);
       },
-    },
-  };
+    };
+
+  return prismaMock;
 }
 
 describe('Auth, works, and sync API (e2e)', () => {
   let app: INestApplication;
   let baseUrl: string;
+  let cookieJar: string | null;
 
   beforeEach(async () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
@@ -242,6 +326,7 @@ describe('Auth, works, and sync API (e2e)', () => {
     app = moduleRef.createNestApplication();
     configureApp(app, readApiRuntimeConfig());
     await app.listen(0);
+    cookieJar = null;
 
     const address = app.getHttpServer().address() as AddressInfo;
 
@@ -264,6 +349,10 @@ describe('Auth, works, and sync API (e2e)', () => {
 
     headers.set('content-type', 'application/json');
 
+    if (!headers.has('cookie') && cookieJar) {
+      headers.set('cookie', cookieJar);
+    }
+
     if (accessToken) {
       headers.set('authorization', `Bearer ${accessToken}`);
     }
@@ -272,6 +361,12 @@ describe('Auth, works, and sync API (e2e)', () => {
       ...init,
       headers,
     });
+    const nextCookie = response.headers.get('set-cookie');
+
+    if (nextCookie) {
+      cookieJar = nextCookie.split(';')[0] ?? null;
+    }
+
     const body = response.status === 204 ? null : await response.json();
 
     return {
@@ -293,7 +388,6 @@ describe('Auth, works, and sync API (e2e)', () => {
 
     return response.body as {
       accessToken: string;
-      refreshToken: string;
       user: {
         email: string;
         id: string;
@@ -319,7 +413,6 @@ describe('Auth, works, and sync API (e2e)', () => {
       }),
     );
     expect(registerResponse.accessToken).toEqual(expect.any(String));
-    expect(registerResponse.refreshToken).toEqual(expect.any(String));
 
     const loginResponse = await requestJson('/api/auth/login', {
       method: 'POST',
@@ -333,7 +426,6 @@ describe('Auth, works, and sync API (e2e)', () => {
     expect(loginResponse.body).toEqual(
       expect.objectContaining({
         accessToken: expect.any(String),
-        refreshToken: expect.any(String),
         user: expect.objectContaining({
           email: 'frieren@example.com',
         }),
@@ -342,8 +434,8 @@ describe('Auth, works, and sync API (e2e)', () => {
 
     const session = loginResponse.body as {
       accessToken: string;
-      refreshToken: string;
     };
+    const staleRefreshCookie = cookieJar;
     const meResponse = await requestJson('/api/auth/me', undefined, session.accessToken);
 
     expect(meResponse.status).toBe(200);
@@ -355,16 +447,12 @@ describe('Auth, works, and sync API (e2e)', () => {
 
     const refreshResponse = await requestJson('/api/auth/refresh', {
       method: 'POST',
-      body: JSON.stringify({
-        refreshToken: session.refreshToken,
-      }),
     });
 
     expect(refreshResponse.status).toBe(200);
     expect(refreshResponse.body).toEqual(
       expect.objectContaining({
         accessToken: expect.any(String),
-        refreshToken: expect.any(String),
         user: expect.objectContaining({
           email: 'frieren@example.com',
         }),
@@ -373,9 +461,13 @@ describe('Auth, works, and sync API (e2e)', () => {
 
     const staleRefreshResponse = await requestJson('/api/auth/refresh', {
       method: 'POST',
-      body: JSON.stringify({
-        refreshToken: session.refreshToken,
-      }),
+      ...(staleRefreshCookie
+        ? {
+            headers: {
+              cookie: staleRefreshCookie,
+            },
+          }
+        : {}),
     });
 
     expect(staleRefreshResponse.status).toBe(401);
