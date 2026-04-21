@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
+import { renderWithProviders } from '../../../test/render-with-providers';
 import { AuthProvider } from '../../auth/context/AuthProvider';
 import { worksService } from '../services/works.service';
 
@@ -44,25 +45,19 @@ describe('WorksListPage', () => {
       initialEntries: ['/works'],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
     );
 
-    expect(
-      await screen.findByText(/작품 2개가 등록되어 있습니다\./),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/작품 2개가 등록되어 있습니다\./)).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/^유형$/), 'novel');
 
-    expect(
-      await screen.findByText(/전체 2개 중 1개를 보고 있습니다\./),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/전체 2개 중 1개를 보고 있습니다\./)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dune' })).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Your Name' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Your Name' })).not.toBeInTheDocument();
   });
 
   it('keeps quick edit for status and rating working in list view', async () => {
@@ -86,7 +81,7 @@ describe('WorksListPage', () => {
       initialEntries: ['/works'],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
@@ -135,15 +130,13 @@ describe('WorksListPage', () => {
       initialEntries: ['/works?scope=trash'],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
     );
 
-    expect(
-      await screen.findByText(/숨겨둔 작품 1개를 보고 있습니다\./),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/숨겨둔 작품 1개를 보고 있습니다\./)).toBeInTheDocument();
     expect(await screen.findByText('Spice & Wolf')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '복원' }));

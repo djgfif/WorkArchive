@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
+import { renderWithProviders } from '../../../test/render-with-providers';
 import { AuthProvider } from '../../auth/context/AuthProvider';
 import { worksService } from '../services/works.service';
 
@@ -30,7 +31,7 @@ describe('WorkDetailPage', () => {
       initialEntries: [`/works/${work.id}`],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
@@ -38,9 +39,7 @@ describe('WorkDetailPage', () => {
 
     expect(await screen.findByText('내 평점')).toBeInTheDocument();
     expect(screen.getAllByText('4.5점').length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole('button', { name: '상세 감상 펼치기' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '상세 감상 펼치기' })).toBeInTheDocument();
     expect(
       screen.queryByText(
         '긴 감상입니다. 인물의 선택과 정치 구조가 얽히는 방식이 인상적이었고, 후반부의 긴장감도 좋았습니다.',
@@ -87,7 +86,7 @@ describe('WorkDetailPage', () => {
       initialEntries: [`/works/${work.id}`],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
@@ -104,11 +103,7 @@ describe('WorkDetailPage', () => {
 
     await user.click(screen.getByRole('link', { name: '리뷰 쓰기' }));
 
-    expect(
-      await screen.findByRole('heading', { name: 'Frieren 감상 수정' }),
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByRole('button', { name: '저장' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Frieren 감상 수정' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '저장' })).toBeInTheDocument();
   });
 });

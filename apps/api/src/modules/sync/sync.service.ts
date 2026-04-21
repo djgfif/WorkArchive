@@ -118,6 +118,7 @@ export class SyncService {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      // split-only 단계에서는 catalog 메타데이터도 해당 user record와 함께 동기화합니다.
       await this.catalogService.update(
         existing.catalogWorkId,
         this.buildCatalogUpdateData(change.payload),
@@ -238,6 +239,7 @@ export class SyncService {
     return {
       id: payload.id,
       userId,
+      // split-only 중간 단계: payload.id를 catalogWorkId로 사용해 1:1 매핑을 고정합니다.
       catalogWorkId: payload.id,
       status: payload.status as WorkStatus,
       rating: payload.rating ?? null,

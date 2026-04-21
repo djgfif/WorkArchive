@@ -1,48 +1,32 @@
 import type { ReactNode } from 'react';
+import { SimpleGrid, Text, Title } from '@mantine/core';
 
+import {
+  ActionRow,
+  PageShell,
+  SectionCard,
+  SectionIntro,
+} from './AppPrimitives';
 import { PageHero } from './PageHero';
-
-function joinClassNames(...classNames: Array<string | undefined>) {
-  return classNames.filter(Boolean).join(' ');
-}
 
 interface PageFrameProps {
   children: ReactNode;
-  className?: string;
 }
 
-export function HomeHubPageTemplate({ children, className }: PageFrameProps) {
-  return (
-    <section className={joinClassNames('page-template page-template--home stack', className)}>
-      {children}
-    </section>
-  );
+export function HomeHubPageTemplate({ children }: PageFrameProps) {
+  return <PageShell size={1240}>{children}</PageShell>;
 }
 
-export function WorkspacePageTemplate({ children, className }: PageFrameProps) {
-  return (
-    <section
-      className={joinClassNames('page-template page-template--workspace stack', className)}
-    >
-      {children}
-    </section>
-  );
+export function WorkspacePageTemplate({ children }: PageFrameProps) {
+  return <PageShell size={1240}>{children}</PageShell>;
 }
 
-export function DetailPageTemplate({ children, className }: PageFrameProps) {
-  return (
-    <section className={joinClassNames('page-template page-template--detail stack', className)}>
-      {children}
-    </section>
-  );
+export function DetailPageTemplate({ children }: PageFrameProps) {
+  return <PageShell size={1240}>{children}</PageShell>;
 }
 
-export function FlowPageTemplate({ children, className }: PageFrameProps) {
-  return (
-    <section className={joinClassNames('page-template page-template--flow stack', className)}>
-      {children}
-    </section>
-  );
+export function FlowPageTemplate({ children }: PageFrameProps) {
+  return <PageShell size={1120}>{children}</PageShell>;
 }
 
 interface AuthPageTemplateProps {
@@ -66,32 +50,33 @@ export function AuthPageTemplate({
   title,
 }: AuthPageTemplateProps) {
   return (
-    <section className="auth-page-template">
-      <article className="panel auth-page-template-card stack">
-        <div className="section-heading">
-          <p className="section-kicker">{eyebrow}</p>
-          <h1 className="page-title">{title}</h1>
-          <p className="section-description">{description}</p>
-        </div>
-
+    <>
+      <SectionCard tone="hero">
+        <SectionIntro
+          description={description}
+          eyebrow={eyebrow}
+          title={title}
+          titleOrder={1}
+        />
         {form}
-      </article>
+      </SectionCard>
 
-      <section className="auth-page-template-grid">
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         {highlights.map((highlight) => (
-          <article
-            className="panel auth-page-template-feature stack"
-            key={highlight.title}
-          >
-            <span className="mode-badge">안내</span>
-            <h2 className="section-title">{highlight.title}</h2>
-            <p className="muted-copy">{highlight.description}</p>
-          </article>
+          <SectionCard key={highlight.title} tone="subtle">
+            <Text c="var(--accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+              안내
+            </Text>
+            <Title c="var(--text-primary)" order={2}>
+              {highlight.title}
+            </Title>
+            <Text c="var(--text-muted)">{highlight.description}</Text>
+          </SectionCard>
         ))}
-      </section>
+      </SimpleGrid>
 
-      {footer && <section className="panel stack auth-page-template-footer">{footer}</section>}
-    </section>
+      {footer && <SectionCard tone="subtle">{footer}</SectionCard>}
+    </>
   );
 }
 
@@ -113,10 +98,9 @@ export function AccountPageTemplate({
   title,
 }: AccountPageTemplateProps) {
   return (
-    <section className="page-template page-template--account stack">
+    <PageShell size={1240}>
       <PageHero
         actions={actions}
-        className="account-page-hero"
         description={description}
         eyebrow={eyebrow}
         meta={meta}
@@ -124,7 +108,7 @@ export function AccountPageTemplate({
         titleAs="h1"
       />
       {children}
-    </section>
+    </PageShell>
   );
 }
 
@@ -142,11 +126,19 @@ export function MinimalPageTemplate({
   title,
 }: MinimalPageTemplateProps) {
   return (
-    <section className="panel page-template page-template--minimal stack">
-      <p className="eyebrow">{eyebrow}</p>
-      <h1 className="page-title">{title}</h1>
-      <p className="body-copy">{description}</p>
-      {actions && <div className="button-row">{actions}</div>}
-    </section>
+    <PageShell size={760}>
+      <SectionCard tone="hero">
+        <Text c="var(--accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+          {eyebrow}
+        </Text>
+        <Title c="var(--text-primary)" order={1}>
+          {title}
+        </Title>
+        <Text c="var(--text-secondary)" maw="58ch">
+          {description}
+        </Text>
+        {actions && <ActionRow>{actions}</ActionRow>}
+      </SectionCard>
+    </PageShell>
   );
 }

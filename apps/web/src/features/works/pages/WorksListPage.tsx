@@ -4,7 +4,14 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { WORK_STATUSES, WORK_TYPES } from '@work-archive/shared-types';
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import {
+  ActionRow,
+  FeedbackMessage,
+  SectionCard,
+  StateMessage,
+} from '../../../shared/components/AppPrimitives';
 import { WorkspacePageTemplate } from '../../../shared/components/PageTemplates';
+import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
 import { WorksList, type WorksViewMode } from '../components/WorksList';
 import { WorksTrashList } from '../components/WorksTrashList';
 import { WorksToolbar } from '../components/WorksToolbar';
@@ -130,9 +137,10 @@ export function WorksListPage() {
   }
 
   async function handleDelete(work: WorkRecord) {
-    const shouldDelete = window.confirm(
-      `"${work.title}"을 삭제할까요?\n현재는 목록에서 숨겨집니다.`,
-    );
+    const shouldDelete = await confirmDialogAdapter.confirm({
+      description: '현재는 목록에서 숨겨집니다.',
+      title: `"${work.title}"을 삭제할까요?`,
+    });
 
     if (!shouldDelete) {
       return;
@@ -221,54 +229,28 @@ export function WorksListPage() {
         viewMode={viewMode}
       />
 
-      {actionError && (
-        <div aria-live="polite" className="error-banner" role="alert">
-          {actionError}
-        </div>
-      )}
+      {actionError && <FeedbackMessage tone="error">{actionError}</FeedbackMessage>}
 
       {error && (
-        <section className="panel stack">
-          <h2 className="section-title">작품 목록을 불러오지 못했습니다.</h2>
-          <p className="muted-copy">{error}</p>
-        </section>
+        <StateMessage
+          description={error}
+          title="작품 목록을 불러오지 못했습니다."
+          tone="error"
+        />
       )}
 
       {!error && isLoading && (
-        <section className="panel stack">
-          <h2 className="section-title">작품 목록을 불러오는 중입니다.</h2>
-          <p className="muted-copy">잠시만 기다려주세요.</p>
-        </section>
+        <StateMessage
+          description="잠시만 기다려주세요."
+          title="작품 목록을 불러오는 중입니다."
+          tone="loading"
+        />
       )}
 
       {!error && !isLoading && works.length === 0 && (
-        <section className="panel empty-state">
-          <div aria-hidden="true" className="empty-state-art">
-            <span>WA</span>
-          </div>
-          <div className="stack">
-            <p className="eyebrow">
-              {collectionScope === 'trash'
-                ? '휴지통 비어 있음'
-                : hasActiveFilters
-                  ? '검색 결과 없음'
-                  : '아직 없음'}
-            </p>
-            <h2 className="section-title">
-              {collectionScope === 'trash'
-                ? '숨겨둔 작품이 없습니다.'
-                : hasActiveFilters
-                ? '조건에 맞는 작품이 없습니다.'
-                : '아직 등록된 작품이 없습니다.'}
-            </h2>
-            <p className="muted-copy">
-              {collectionScope === 'trash'
-                ? '작품을 삭제하면 여기에서 복원하거나 다시 확인할 수 있습니다.'
-                : hasActiveFilters
-                ? '검색어나 필터를 조금만 바꿔보세요.'
-                : '첫 작품을 추가해 내 아카이브를 채워보세요.'}
-            </p>
-            <div className="button-row">
+        <StateMessage
+          actions={
+            <>
               {collectionScope === 'trash' ? (
                 <button
                   onClick={() => {
@@ -297,16 +279,38 @@ export function WorksListPage() {
                   초기화
                 </button>
               )}
-            </div>
-          </div>
-        </section>
+            </>
+          }
+          description={
+            collectionScope === 'trash'
+              ? '작품을 삭제하면 여기에서 복원하거나 다시 확인할 수 있습니다.'
+              : hasActiveFilters
+                ? '검색어나 필터를 조금만 바꿔보세요.'
+                : '첫 작품을 추가해 내 아카이브를 채워보세요.'
+          }
+          eyebrow={
+            collectionScope === 'trash'
+              ? '휴지통 비어 있음'
+              : hasActiveFilters
+                ? '검색 결과 없음'
+                : '아직 없음'
+          }
+          title={
+            collectionScope === 'trash'
+              ? '숨겨둔 작품이 없습니다.'
+              : hasActiveFilters
+                ? '조건에 맞는 작품이 없습니다.'
+                : '아직 등록된 작품이 없습니다.'
+          }
+          tone="info"
+        />
       )}
 
       {!error &&
         !isLoading &&
         collectionScope === 'active' &&
         totalDeletedCount > 0 && (
-          <section className="panel works-trash-surface">
+          <SectionCard className="works-trash-surface" tone="subtle">
             <div className="works-trash-surface-copy">
               <p className="section-kicker">휴지통</p>
               <h2 className="section-title">숨겨둔 작품 {totalDeletedCount}개</h2>
@@ -316,15 +320,15 @@ export function WorksListPage() {
               </p>
             </div>
 
-            <div className="button-row">
+            <ActionRow>
               <button
                 onClick={() => handleCollectionScopeChange('trash')}
                 type="button"
               >
                 휴지통 보기
               </button>
-            </div>
-          </section>
+            </ActionRow>
+          </SectionCard>
         )}
 
       {!error && !isLoading && works.length > 0 && (

@@ -18,7 +18,7 @@
 
 - 현재 구현은 이메일/비밀번호 인증이다.
 - access/refresh token은 브라우저 `localStorage`에 저장된다.
-- 게스트와 로그인 아카이브는 분리돼 있으며, 이관 UX는 없다.
+- 게스트와 로그인 아카이브는 분리돼 있으며, 로그인 직후 `/account/transfer`에서 guest 기록 검토/선택 import를 할 수 있다.
 - 로그인해도 기존 게스트 기록이 자동으로 합쳐지지 않는다.
 
 ## Committed Now

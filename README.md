@@ -12,7 +12,7 @@ Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 작품 �
 
 ## Current Stack
 
-- Frontend: React `19.1`, Vite `6.3`, TypeScript `5.8`, Dexie, React Router `7`
+- Frontend: React `19.1`, Vite `6.3`, TypeScript `5.8`, Mantine `7`, Dexie, React Router `7`
 - API: NestJS `11`, Prisma `6.6`, PostgreSQL
 - Monorepo: npm workspaces
 - Shared packages: `packages/shared-types`, `packages/eslint-config`, `packages/tsconfig`
@@ -156,21 +156,23 @@ npm run build
 
 - `npm run typecheck`: `2026-04-21` 기준 통과 확인
 - `npm run test`: 스크립트는 존재하지만 이번 문서 정리 패스에서는 30초 타임박스 내 완료 여부를 재확정하지 못함
-- `npm run test --workspace @work-archive/web`: 동일
+- `npm run test --workspace @work-archive/web`: `2026-04-21` 기준 `13 files`, `39 tests` 통과 확인
 - `npm run test --workspace @work-archive/api`: 동일
 
 ## Current Product Reality
 
 - 게스트 모드는 항상 사용 가능하며 IndexedDB에만 저장된다.
 - 로그인 시 계정별 로컬 아카이브로 전환되고 수동 sync를 사용할 수 있다.
+- 로그인 직후 guest 기록이 감지되면 `/account/transfer`에서 중복 후보를 검토한 뒤 선택 import할 수 있다.
 - Quick Add 흐름은 존재하지만 외부 메타데이터 API 연동은 아직 없다.
 - `Tier Boards`, `Insights`, `Community`는 현재 placeholder 성격이 강하다.
 - 인증은 현재 이메일/비밀번호 + access/refresh token 구조다.
+- 현재 프론트 실행 대상은 `apps/web`이며, Tauri shell은 아직 저장소에 없다.
 
 ## Known Limitations
 
 - 자동 동기화는 아직 없다.
-- 게스트 데이터를 계정 아카이브로 이관하는 UX는 아직 없다.
+- guest -> account 이관은 검토/선택 import 단계까지만 있고, 자동 병합이나 다기기 정책은 아직 없다.
 - 보안 로드맵의 운영 강화 항목은 아직 미적용이다.
 - API의 CORS 정책은 현재 빈 값 또는 `*`에서 wildcard fallback을 허용한다.
 

@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react';
 
+import { Text, Title } from '@mantine/core';
+
+import { SectionCard } from './AppPrimitives';
 import { PageHero } from './PageHero';
 import { WorkspacePageTemplate } from './PageTemplates';
 
@@ -38,15 +41,19 @@ export function FutureFeaturePage({
 
       <section className="feature-placeholder-grid">
         {highlights.map((item) => (
-          <article className="panel feature-placeholder-card stack" key={item.title}>
-            <span className="mode-badge">준비 중</span>
-            <h3 className="section-title">{item.title}</h3>
-            <p className="muted-copy">{item.description}</p>
-          </article>
+          <SectionCard key={item.title} tone="subtle">
+            <Text c="var(--accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+              준비 중
+            </Text>
+            <Title c="var(--text-primary)" order={3}>
+              {item.title}
+            </Title>
+            <Text c="var(--text-muted)">{item.description}</Text>
+          </SectionCard>
         ))}
       </section>
 
-      {footer && <section className="panel stack">{footer}</section>}
+      {footer && <SectionCard>{footer}</SectionCard>}
     </>
   );
 

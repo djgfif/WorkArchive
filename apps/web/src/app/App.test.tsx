@@ -1,11 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { App } from './App';
+import { renderWithProviders } from '../test/render-with-providers';
 
 describe('App', () => {
   it('renders the home entry inside the product layout', async () => {
-    render(<App />);
+    renderWithProviders(<App />);
 
     expect(screen.getByText('워크 아카이브')).toBeInTheDocument();
     expect(

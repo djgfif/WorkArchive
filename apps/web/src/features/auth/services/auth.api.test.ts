@@ -183,4 +183,23 @@ describe('auth.api', () => {
 
     expect(readStoredAuthTokens()).toBeNull();
   });
+
+  it('keeps stored tokens when restore fails due to network error', async () => {
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+      }),
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new TypeError('Network request failed')),
+    );
+
+    await expect(restoreStoredSession()).resolves.toBeNull();
+    expect(readStoredAuthTokens()).toEqual({
+      accessToken: 'access-token',
+    });
+  });
 });

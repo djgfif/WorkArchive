@@ -1,15 +1,26 @@
+import {
+  createBrowserLocalStorageAdapter,
+  createJsonStorageAdapter,
+} from '../../../shared/runtime/storage-adapter';
+
 export interface StoredAuthTokens {
   accessToken: string;
 }
 
 const AUTH_STORAGE_KEY = 'work-archive.auth.tokens';
-const authTokenListeners = new Set<
-  (tokens: StoredAuthTokens | null) => void
->();
-
-function isBrowser() {
-  return typeof window !== 'undefined';
-}
+const authTokenListeners = new Set<(tokens: StoredAuthTokens | null) => void>();
+const authTokenStorage = createJsonStorageAdapter<StoredAuthTokens>({
+  key: AUTH_STORAGE_KEY,
+  storage: createBrowserLocalStorageAdapter(),
+  validate(value): value is StoredAuthTokens {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'accessToken' in value &&
+      typeof value.accessToken === 'string'
+    );
+  },
+});
 
 function notifyAuthTokenListeners(tokens: StoredAuthTokens | null) {
   for (const listener of authTokenListeners) {
@@ -18,46 +29,16 @@ function notifyAuthTokenListeners(tokens: StoredAuthTokens | null) {
 }
 
 export function readStoredAuthTokens(): StoredAuthTokens | null {
-  if (!isBrowser()) {
-    return null;
-  }
-
-  const rawValue = window.localStorage.getItem(AUTH_STORAGE_KEY);
-
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    const parsedValue = JSON.parse(rawValue) as Partial<StoredAuthTokens>;
-
-    if (typeof parsedValue.accessToken !== 'string') {
-      return null;
-    }
-
-    return {
-      accessToken: parsedValue.accessToken,
-    };
-  } catch {
-    return null;
-  }
+  return authTokenStorage.read();
 }
 
 export function writeStoredAuthTokens(tokens: StoredAuthTokens) {
-  if (!isBrowser()) {
-    return;
-  }
-
-  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(tokens));
+  authTokenStorage.write(tokens);
   notifyAuthTokenListeners(tokens);
 }
 
 export function clearStoredAuthTokens() {
-  if (!isBrowser()) {
-    return;
-  }
-
-  window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  authTokenStorage.clear();
   notifyAuthTokenListeners(null);
 }
 

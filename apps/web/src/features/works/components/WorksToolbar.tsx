@@ -1,6 +1,12 @@
 import type { WorkStatus } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
+import {
+  ActionRow,
+  MetricPill,
+  SectionCard,
+  SectionIntro,
+} from '../../../shared/components/AppPrimitives';
 import { PageHero } from '../../../shared/components/PageHero';
 import type { WorksListQuery } from '../utils/query-works';
 import {
@@ -98,48 +104,43 @@ export function WorksToolbar({
         eyebrow="작품"
         meta={
           <>
-            <div className="stat-pill">
-              <span className="stat-pill-value">{totalActiveCount}</span>
-              <span className="stat-pill-label">전체 작품</span>
-            </div>
-            <div className="stat-pill">
-              <span className="stat-pill-value">{totalDeletedCount}</span>
-              <span className="stat-pill-label">휴지통</span>
-            </div>
-            <div className="stat-pill">
-              <span className="stat-pill-value">
-                {collectionScope === 'trash'
+            <MetricPill label="전체 작품" value={totalActiveCount} />
+            <MetricPill label="휴지통" value={totalDeletedCount} />
+            <MetricPill
+              label={collectionScope === 'trash' ? '현재 범위' : '보기 방식'}
+              value={
+                collectionScope === 'trash'
                   ? '휴지통'
                   : viewMode === 'list'
                     ? '리스트'
-                    : '그리드'}
-              </span>
-              <span className="stat-pill-label">
-                {collectionScope === 'trash' ? '현재 범위' : '보기 방식'}
-              </span>
-            </div>
+                    : '그리드'
+              }
+            />
           </>
         }
         title="작품"
       />
 
-      <section className="panel stack toolbar-panel">
+      <SectionCard className="toolbar-panel">
         <div className="toolbar-header">
           <div>
-            <h3 className="section-title">
-              {collectionScope === 'trash' ? '휴지통 관리' : '찾기와 정리'}
-            </h3>
-            <p className="muted-copy">
-              {countSummary}{' '}
-              {collectionScope === 'trash'
-                ? '삭제한 작품은 여기서 다시 복원할 수 있습니다.'
-                : viewMode === 'list'
-                  ? '기본은 관리 중심 리스트입니다.'
-                  : '그리드는 표지 중심 탐색용입니다.'}
-            </p>
+            <SectionIntro
+              description={
+                <>
+                  {countSummary}{' '}
+                  {collectionScope === 'trash'
+                    ? '삭제한 작품은 여기서 다시 복원할 수 있습니다.'
+                    : viewMode === 'list'
+                      ? '기본은 관리 중심 리스트입니다.'
+                      : '그리드는 표지 중심 탐색용입니다.'}
+                </>
+              }
+              title={collectionScope === 'trash' ? '휴지통 관리' : '찾기와 정리'}
+              titleOrder={3}
+            />
           </div>
 
-          <div className="toolbar-header-actions">
+          <ActionRow className="toolbar-header-actions" justify="flex-end">
             <div aria-label="작품 보기 범위" className="segmented-control" role="group">
               <button
                 className={
@@ -183,7 +184,7 @@ export function WorksToolbar({
                 </button>
               </div>
             )}
-          </div>
+          </ActionRow>
         </div>
 
         {collectionScope === 'active' ? (
@@ -300,7 +301,7 @@ export function WorksToolbar({
             </p>
           </div>
         </div>
-      </section>
+      </SectionCard>
     </section>
   );
 }

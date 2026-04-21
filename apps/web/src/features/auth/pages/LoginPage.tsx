@@ -9,15 +9,17 @@ import type { AuthCredentialsInput } from '../services/auth.api';
 export function LoginPage() {
   const navigate = useNavigate();
   const { isLoading, mode, signIn } = useAuthSession();
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  if (!isLoading && mode === 'authenticated') {
+  if (!isLoading && mode === 'authenticated' && !hasAttemptedSubmit) {
     return <Navigate replace to="/" />;
   }
 
   async function handleSubmit(input: AuthCredentialsInput) {
     try {
+      setHasAttemptedSubmit(true);
       setIsSubmitting(true);
       setSubmitError(null);
       const nextLocation = await signIn(input);

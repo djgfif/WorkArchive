@@ -1,5 +1,10 @@
 import { useState, type FormEvent } from 'react';
+import { PasswordInput, TextInput } from '@mantine/core';
 
+import {
+  ActionRow,
+  FeedbackMessage,
+} from '../../../shared/components/AppPrimitives';
 import type { AuthCredentialsInput } from '../services/auth.api';
 
 interface AuthFormProps {
@@ -29,42 +34,37 @@ export function AuthForm({
 
   return (
     <form className="auth-form stack" onSubmit={(event) => void handleSubmit(event)}>
-      <label className="field">
-        <span>이메일</span>
-        <input
-          autoComplete="email"
-          name="email"
-          onChange={(event) => setEmail(event.target.value)}
-          required
-          type="email"
-          value={email}
-        />
-      </label>
+      <TextInput
+        autoComplete="email"
+        label="이메일"
+        name="email"
+        onChange={(event) => setEmail(event.currentTarget.value)}
+        required
+        type="email"
+        value={email}
+      />
 
-      <label className="field">
-        <span>비밀번호</span>
-        <input
-          autoComplete="current-password"
-          minLength={8}
-          name="password"
-          onChange={(event) => setPassword(event.target.value)}
-          required
-          type="password"
-          value={password}
-        />
-      </label>
+      <PasswordInput
+        autoComplete="current-password"
+        label="비밀번호"
+        minLength={8}
+        name="password"
+        onChange={(event) => setPassword(event.currentTarget.value)}
+        required
+        value={password}
+      />
 
       {submitError && (
-        <div aria-live="polite" className="error-banner" role="alert">
+        <FeedbackMessage tone="error">
           {submitError}
-        </div>
+        </FeedbackMessage>
       )}
 
-      <div className="button-row">
+      <ActionRow>
         <button disabled={isSubmitting} type="submit">
           {isSubmitting ? `${submitLabel} 중...` : submitLabel}
         </button>
-      </div>
+      </ActionRow>
     </form>
   );
 }
