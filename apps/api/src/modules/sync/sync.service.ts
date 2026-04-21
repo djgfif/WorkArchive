@@ -2,15 +2,19 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import {
   WorkSyncStatus,
   type Prisma,
-  type Work,
   type WorkStatus,
   type WorkTier,
   type WorkType,
 } from '@prisma/client';
 
+import { CatalogService } from '../catalog/catalog.service';
+import { UserRecordsService, type WorkAggregate } from '../user-records/user-records.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { toWorkSyncStatusValue } from '../works/works.constants';
-import type { WorkResponseDto } from '../works/dto/work-response.dto';
+import {
+  normalizeGenres,
+  normalizeString,
+  toFlatWorkResponse,
+} from '../works/work-aggregate';
 import type { PullSyncDto } from './dto/pull-sync.dto';
 import type { PullSyncResponseDto } from './dto/pull-sync-response.dto';
 import type { PushSyncChangeDto, PushSyncDto } from './dto/push-sync.dto';
@@ -24,7 +28,12 @@ const SERVER_SYNC_STATUS = WorkSyncStatus.synced;
 
 @Injectable()
 export class SyncService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(CatalogService) private readonly catalogService: CatalogService,
+    @Inject(UserRecordsService)
+    private readonly userRecordsService: UserRecordsService,
+  ) {}
 
   async push(userId: string, { changes }: PushSyncDto): Promise<PushSyncResponseDto> {
     const results: PushSyncResultDto[] = [];
@@ -42,21 +51,10 @@ export class SyncService {
   }
 
   async pull(userId: string, { since }: PullSyncDto): Promise<PullSyncResponseDto> {
-    const works = await this.prisma.work.findMany({
-      where: {
-        userId,
-        ...(since === undefined || since === null
-          ? {}
-          : {
-              updatedAt: {
-                gt: this.parseIsoDate(since, 'since'),
-              },
-            }),
-      },
-      orderBy: {
-        updatedAt: 'asc',
-      },
-    });
+    const works = await this.userRecordsService.findByUserSince(
+      userId,
+      since === undefined || since === null ? null : this.parseIsoDate(since, 'since'),
+    );
 
     const pulledAt = new Date().toISOString();
     const nextSince =
@@ -71,7 +69,7 @@ export class SyncService {
         entityType: 'work',
         entityId: work.id,
         operation: work.deletedAt === null ? 'upsert' : 'delete',
-        work: this.toResponse(work),
+        work: toFlatWorkResponse(work),
       })),
     };
   }
@@ -80,11 +78,7 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
   ): Promise<PushSyncResultDto> {
-    const existing = await this.prisma.work.findUnique({
-      where: {
-        id: change.entityId,
-      },
-    });
+    const existing = await this.userRecordsService.findById(change.entityId);
 
     if (!existing) {
       return this.applyMissingRemoteChange(userId, change);
@@ -108,7 +102,7 @@ export class SyncService {
         entityType: 'work',
         status: 'applied',
         message: 'Remote record already matches the queued change.',
-        work: this.toResponse(existing),
+        work: toFlatWorkResponse(existing),
       };
     }
 
@@ -119,15 +113,22 @@ export class SyncService {
         entityType: 'work',
         status: 'conflict',
         message: this.buildConflictMessage(existing, change.payload),
-        work: this.toResponse(existing),
+        work: toFlatWorkResponse(existing),
       };
     }
 
-    const updated = await this.prisma.work.update({
-      where: {
-        id: change.entityId,
-      },
-      data: this.buildUpdateData(change.payload),
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await this.catalogService.update(
+        existing.catalogWorkId,
+        this.buildCatalogUpdateData(change.payload),
+        tx,
+      );
+
+      return this.userRecordsService.update(
+        change.entityId,
+        this.buildUserRecordUpdateData(change.payload),
+        tx,
+      );
     });
 
     return {
@@ -139,7 +140,7 @@ export class SyncService {
         change.payload.deletedAt === null
           ? 'Queued change applied on the server.'
           : 'Queued tombstone applied on the server.',
-      work: this.toResponse(updated),
+      work: toFlatWorkResponse(updated),
     };
   }
 
@@ -187,8 +188,13 @@ export class SyncService {
       };
     }
 
-    const created = await this.prisma.work.create({
-      data: this.buildCreateData(userId, change.payload),
+    const created = await this.prisma.$transaction(async (tx) => {
+      await this.catalogService.create(this.buildCatalogCreateData(change.payload), tx);
+
+      return this.userRecordsService.create(
+        this.buildUserRecordCreateData(userId, change.payload),
+        tx,
+      );
     });
 
     return {
@@ -197,11 +203,11 @@ export class SyncService {
       entityType: 'work',
       status: 'applied',
       message: 'Queued record created on the server.',
-      work: this.toResponse(created),
+      work: toFlatWorkResponse(created),
     };
   }
 
-  private shouldApplyLocalChange(existing: Work, payload: SyncWorkPayloadDto) {
+  private shouldApplyLocalChange(existing: WorkAggregate, payload: SyncWorkPayloadDto) {
     if (payload.serverVersion === existing.serverVersion) {
       return true;
     }
@@ -209,26 +215,38 @@ export class SyncService {
     return new Date(payload.updatedAt).getTime() > existing.updatedAt.getTime();
   }
 
-  private buildCreateData(
+  private buildCatalogCreateData(
+    payload: SyncWorkPayloadDto,
+  ): Prisma.CatalogWorkUncheckedCreateInput {
+    return {
+      id: payload.id,
+      type: payload.type as WorkType,
+      title: payload.title.trim(),
+      author: normalizeString(payload.author),
+      genres: normalizeGenres(payload.genres),
+      description: normalizeString(payload.description),
+      thumbnailUrl: normalizeString(payload.thumbnailUrl),
+      createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
+      updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+    };
+  }
+
+  private buildUserRecordCreateData(
     userId: string,
     payload: SyncWorkPayloadDto,
-  ): Prisma.WorkUncheckedCreateInput {
+  ): Prisma.UserWorkRecordUncheckedCreateInput {
     return {
       id: payload.id,
       userId,
-      type: payload.type as WorkType,
-      title: payload.title.trim(),
-      author: this.normalizeString(payload.author),
-      genres: this.normalizeGenres(payload.genres),
-      description: this.normalizeString(payload.description),
-      thumbnailUrl: this.normalizeString(payload.thumbnailUrl),
+      catalogWorkId: payload.id,
       status: payload.status as WorkStatus,
       rating: payload.rating ?? null,
-      shortReview: this.normalizeString(payload.shortReview),
-      review: this.normalizeString(payload.review),
+      shortReview: normalizeString(payload.shortReview),
+      review: normalizeString(payload.review),
       tier: (payload.tier ?? null) as WorkTier | null,
       favorite: payload.favorite,
       createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
+      updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
       deletedAt: this.parseOptionalIsoDate(
         payload.deletedAt,
         'payload.deletedAt',
@@ -238,18 +256,27 @@ export class SyncService {
     };
   }
 
-  private buildUpdateData(payload: SyncWorkPayloadDto): Prisma.WorkUpdateInput {
+  private buildCatalogUpdateData(
+    payload: SyncWorkPayloadDto,
+  ): Prisma.CatalogWorkUpdateInput {
     return {
       type: payload.type as WorkType,
       title: payload.title.trim(),
-      author: this.normalizeString(payload.author),
-      genres: this.normalizeGenres(payload.genres),
-      description: this.normalizeString(payload.description),
-      thumbnailUrl: this.normalizeString(payload.thumbnailUrl),
+      author: normalizeString(payload.author),
+      genres: normalizeGenres(payload.genres),
+      description: normalizeString(payload.description),
+      thumbnailUrl: normalizeString(payload.thumbnailUrl),
+    };
+  }
+
+  private buildUserRecordUpdateData(
+    payload: SyncWorkPayloadDto,
+  ): Prisma.UserWorkRecordUpdateInput {
+    return {
       status: payload.status as WorkStatus,
       rating: payload.rating ?? null,
-      shortReview: this.normalizeString(payload.shortReview),
-      review: this.normalizeString(payload.review),
+      shortReview: normalizeString(payload.shortReview),
+      review: normalizeString(payload.review),
       tier: (payload.tier ?? null) as WorkTier | null,
       favorite: payload.favorite,
       deletedAt: this.parseOptionalIsoDate(
@@ -263,19 +290,19 @@ export class SyncService {
     };
   }
 
-  private areEquivalent(existing: Work, payload: SyncWorkPayloadDto) {
+  private areEquivalent(existing: WorkAggregate, payload: SyncWorkPayloadDto) {
     return (
-      existing.type === payload.type &&
-      existing.title === payload.title.trim() &&
-      existing.author === this.normalizeString(payload.author) &&
-      JSON.stringify(existing.genres) ===
-        JSON.stringify(this.normalizeGenres(payload.genres)) &&
-      existing.description === this.normalizeString(payload.description) &&
-      existing.thumbnailUrl === this.normalizeString(payload.thumbnailUrl) &&
+      existing.catalogWork.type === payload.type &&
+      existing.catalogWork.title === payload.title.trim() &&
+      existing.catalogWork.author === normalizeString(payload.author) &&
+      JSON.stringify(existing.catalogWork.genres) ===
+        JSON.stringify(normalizeGenres(payload.genres)) &&
+      existing.catalogWork.description === normalizeString(payload.description) &&
+      existing.catalogWork.thumbnailUrl === normalizeString(payload.thumbnailUrl) &&
       existing.status === payload.status &&
       existing.rating === (payload.rating ?? null) &&
-      existing.shortReview === this.normalizeString(payload.shortReview) &&
-      existing.review === this.normalizeString(payload.review) &&
+      existing.shortReview === normalizeString(payload.shortReview) &&
+      existing.review === normalizeString(payload.review) &&
       existing.tier === (payload.tier ?? null) &&
       existing.favorite === payload.favorite &&
       existing.deletedAt?.toISOString() ===
@@ -283,25 +310,11 @@ export class SyncService {
     );
   }
 
-  private buildConflictMessage(existing: Work, payload: SyncWorkPayloadDto) {
+  private buildConflictMessage(existing: WorkAggregate, payload: SyncWorkPayloadDto) {
     const remoteDeletedAt = existing.deletedAt?.toISOString() ?? 'active';
     const localDeletedAt = payload.deletedAt ?? 'active';
 
     return `Conflict: server version ${existing.serverVersion} updated at ${existing.updatedAt.toISOString()} (deletedAt: ${remoteDeletedAt}) won over local version ${payload.serverVersion} updated at ${payload.updatedAt} (deletedAt: ${localDeletedAt}).`;
-  }
-
-  private normalizeString(value: string | null | undefined) {
-    return value?.trim() ?? '';
-  }
-
-  private normalizeGenres(genres: string[] | null | undefined) {
-    if (!genres) {
-      return [];
-    }
-
-    return Array.from(
-      new Set(genres.map((genre) => genre.trim()).filter(Boolean)),
-    );
   }
 
   private parseIsoDate(value: string, fieldName: string) {
@@ -322,12 +335,5 @@ export class SyncService {
     }
 
     return this.parseIsoDate(value, fieldName);
-  }
-
-  private toResponse(work: Work): WorkResponseDto {
-    return {
-      ...work,
-      syncStatus: toWorkSyncStatusValue(work.syncStatus),
-    };
   }
 }

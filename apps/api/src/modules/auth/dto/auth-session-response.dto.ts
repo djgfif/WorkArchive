@@ -6,9 +6,6 @@ export class AuthSessionResponseDto {
   @ApiProperty()
   accessToken!: string;
 
-  @ApiProperty()
-  refreshToken!: string;
-
   @ApiProperty({
   type: () => AuthUserResponseDto,
   })

@@ -1,5 +1,8 @@
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 import type { ApiRuntimeConfig } from './config/api-runtime-config';
 
@@ -7,8 +10,29 @@ export function configureApp(app: INestApplication, config: ApiRuntimeConfig) {
   app.setGlobalPrefix('api', {
     exclude: ['health'],
   });
+  app.use(cookieParser());
+  app.use(helmet());
+  app.use(
+    ['/api/auth/login', '/api/auth/register', '/api/auth/refresh'],
+    rateLimit({
+      legacyHeaders: false,
+      max: 10,
+      standardHeaders: true,
+      windowMs: 60_000,
+    }),
+  );
+  app.use(
+    ['/api/sync/push', '/api/sync/pull'],
+    rateLimit({
+      legacyHeaders: false,
+      max: 30,
+      standardHeaders: true,
+      windowMs: 60_000,
+    }),
+  );
   app.enableCors({
     origin: config.corsOrigin,
+    credentials: true,
   });
   app.useGlobalPipes(
     new ValidationPipe({
@@ -16,6 +40,10 @@ export function configureApp(app: INestApplication, config: ApiRuntimeConfig) {
       whitelist: true,
     }),
   );
+
+  if (!config.swaggerEnabled) {
+    return;
+  }
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Work Archive API')

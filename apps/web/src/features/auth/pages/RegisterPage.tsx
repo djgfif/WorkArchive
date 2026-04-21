@@ -20,8 +20,8 @@ export function RegisterPage() {
     try {
       setIsSubmitting(true);
       setSubmitError(null);
-      await signUp(input);
-      navigate('/');
+      const nextLocation = await signUp(input);
+      navigate(nextLocation);
     } catch (error) {
       setSubmitError(
         error instanceof Error

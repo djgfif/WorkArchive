@@ -1,6 +1,5 @@
 export interface StoredAuthTokens {
   accessToken: string;
-  refreshToken: string;
 }
 
 const AUTH_STORAGE_KEY = 'work-archive.auth.tokens';
@@ -32,16 +31,12 @@ export function readStoredAuthTokens(): StoredAuthTokens | null {
   try {
     const parsedValue = JSON.parse(rawValue) as Partial<StoredAuthTokens>;
 
-    if (
-      typeof parsedValue.accessToken !== 'string' ||
-      typeof parsedValue.refreshToken !== 'string'
-    ) {
+    if (typeof parsedValue.accessToken !== 'string') {
       return null;
     }
 
     return {
       accessToken: parsedValue.accessToken,
-      refreshToken: parsedValue.refreshToken,
     };
   } catch {
     return null;

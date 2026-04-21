@@ -27,7 +27,6 @@ describe('Auth flow', () => {
       vi.fn().mockResolvedValue(
         jsonResponse({
           accessToken: 'access-token',
-          refreshToken: 'refresh-token',
           user: {
             id: 'user-1',
             email: 'frieren@example.com',
@@ -71,7 +70,6 @@ describe('Auth flow', () => {
       'work-archive.auth.tokens',
       JSON.stringify({
         accessToken: 'access-token',
-        refreshToken: 'refresh-token',
       }),
     );
 
@@ -112,7 +110,6 @@ describe('Auth flow', () => {
       'work-archive.auth.tokens',
       JSON.stringify({
         accessToken: 'expired-access-token',
-        refreshToken: 'refresh-token',
       }),
     );
 
@@ -129,7 +126,6 @@ describe('Auth flow', () => {
       .mockResolvedValueOnce(
         jsonResponse({
           accessToken: 'rotated-access-token',
-          refreshToken: 'rotated-refresh-token',
           user: {
             id: 'user-1',
             email: 'frieren@example.com',
@@ -162,7 +158,6 @@ describe('Auth flow', () => {
       JSON.parse(window.localStorage.getItem('work-archive.auth.tokens') ?? 'null'),
     ).toEqual({
       accessToken: 'rotated-access-token',
-      refreshToken: 'rotated-refresh-token',
     });
 
     const firstAttemptHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;

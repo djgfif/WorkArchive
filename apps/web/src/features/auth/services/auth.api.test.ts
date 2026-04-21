@@ -28,7 +28,6 @@ describe('auth.api', () => {
       'work-archive.auth.tokens',
       JSON.stringify({
         accessToken: 'expired-access-token',
-        refreshToken: 'refresh-token',
       }),
     );
 
@@ -45,7 +44,6 @@ describe('auth.api', () => {
       .mockResolvedValueOnce(
         jsonResponse({
           accessToken: 'rotated-access-token',
-          refreshToken: 'rotated-refresh-token',
           user: {
             id: 'user-1',
             email: 'frieren@example.com',
@@ -77,7 +75,6 @@ describe('auth.api', () => {
     });
     expect(readStoredAuthTokens()).toEqual({
       accessToken: 'rotated-access-token',
-      refreshToken: 'rotated-refresh-token',
     });
 
     const firstAttemptHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
@@ -99,7 +96,6 @@ describe('auth.api', () => {
       'work-archive.auth.tokens',
       JSON.stringify({
         accessToken: 'expired-access-token',
-        refreshToken: 'refresh-token',
       }),
     );
 
@@ -118,7 +114,6 @@ describe('auth.api', () => {
         .mockResolvedValueOnce(
           jsonResponse({
             accessToken: 'rotated-access-token',
-            refreshToken: 'rotated-refresh-token',
             user: {
               id: 'user-1',
               email: 'frieren@example.com',
@@ -138,7 +133,6 @@ describe('auth.api', () => {
     await expect(restoreStoredSession()).resolves.toEqual({
       tokens: {
         accessToken: 'rotated-access-token',
-        refreshToken: 'rotated-refresh-token',
       },
       user: {
         id: 'user-1',
@@ -153,7 +147,6 @@ describe('auth.api', () => {
       'work-archive.auth.tokens',
       JSON.stringify({
         accessToken: 'expired-access-token',
-        refreshToken: 'refresh-token',
       }),
     );
 

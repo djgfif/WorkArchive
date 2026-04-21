@@ -2,14 +2,18 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 
-const mainNavigationItems = [
+const mainNavigationItems: Array<{
+  label: string;
+  statusLabel?: string;
+  to: string;
+}> = [
   { label: '홈', to: '/' },
   { label: '작품', to: '/works' },
-  { label: '티어 보드', to: '/tier-boards' },
-  { label: '인사이트', to: '/insights' },
-  { label: '커뮤니티', to: '/community' },
+  { label: '티어 보드', to: '/tier-boards', statusLabel: '준비 중' },
+  { label: '인사이트', to: '/insights', statusLabel: '준비 중' },
+  { label: '커뮤니티', to: '/community', statusLabel: '준비 중' },
   { label: '프로필', to: '/profile' },
-] as const;
+];
 
 export function MainProductLayout() {
   const navigate = useNavigate();
@@ -73,7 +77,10 @@ export function MainProductLayout() {
                     key={item.to}
                     to={item.to}
                   >
-                    {item.label}
+                    <span>{item.label}</span>
+                    {item.statusLabel && (
+                      <span className="badge badge--nav">{item.statusLabel}</span>
+                    )}
                   </NavLink>
                 ))}
               </nav>

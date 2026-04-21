@@ -20,8 +20,8 @@ export function LoginPage() {
     try {
       setIsSubmitting(true);
       setSubmitError(null);
-      await signIn(input);
-      navigate('/');
+      const nextLocation = await signIn(input);
+      navigate(nextLocation);
     } catch (error) {
       setSubmitError(
         error instanceof Error

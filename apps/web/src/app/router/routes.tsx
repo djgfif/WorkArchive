@@ -6,6 +6,7 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { MainProductLayout } from '../layouts/MainProductLayout';
 import { MinimalLayout } from '../layouts/MinimalLayout';
 import { NotFoundPage } from './NotFoundPage';
+import { GuestTransferReviewPage } from '../../features/auth/pages/GuestTransferReviewPage';
 import { LoginPage } from '../../features/auth/pages/LoginPage';
 import { RegisterPage } from '../../features/auth/pages/RegisterPage';
 import { CommunityPage } from '../../features/community/pages/CommunityPage';
@@ -92,6 +93,10 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'sync',
         element: <SyncPage />,
+      },
+      {
+        path: 'transfer',
+        element: <GuestTransferReviewPage />,
       },
       {
         path: 'settings',

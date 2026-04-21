@@ -6,11 +6,13 @@ import {
 
 import {
   loginWithEmailPassword,
+  logoutSession,
   registerWithEmailPassword,
   restoreStoredSession,
   type AuthCredentialsInput,
   type AuthUser,
 } from '../services/auth.api';
+import { guestTransferService } from '../services/guest-transfer.service';
 import {
   clearStoredAuthTokens,
   readStoredAuthTokens,
@@ -75,33 +77,43 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  async function activateAuthenticatedSession(user: AuthUser, tokens: {
-    accessToken: string;
-    refreshToken: string;
-  }) {
+  async function activateAuthenticatedSession(
+    user: AuthUser,
+    tokens: {
+      accessToken: string;
+    },
+  ) {
     writeStoredAuthTokens(tokens);
     activateAuthenticatedArchive(user);
+
+    const pendingGuestTransfer = await guestTransferService.getPendingReview(user.id);
+
+    return pendingGuestTransfer ? '/account/transfer' : '/';
   }
 
   async function signIn(input: AuthCredentialsInput) {
     const session = await loginWithEmailPassword(input);
 
-    await activateAuthenticatedSession(session.user, {
+    return activateAuthenticatedSession(session.user, {
       accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
     });
   }
 
   async function signUp(input: AuthCredentialsInput) {
     const session = await registerWithEmailPassword(input);
 
-    await activateAuthenticatedSession(session.user, {
+    return activateAuthenticatedSession(session.user, {
       accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
     });
   }
 
   async function signOut() {
+    try {
+      await logoutSession();
+    } catch {
+      // 세션 정리는 로컬 전환이 우선이므로 서버 logout 실패는 무시합니다.
+    }
+
     clearStoredAuthTokens();
     activateGuestSession();
   }
