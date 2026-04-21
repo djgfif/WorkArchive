@@ -43,6 +43,7 @@ export class WorksService {
   }
 
   async create(userId: string, createWorkDto: CreateWorkDto) {
+    // 릴리스 1단계에서는 catalog와 user record를 1:1로 생성해 기존 flat 계약을 유지합니다.
     const workId = crypto.randomUUID();
     const work = await this.prisma.$transaction(async (tx) => {
       await this.catalogService.create(
@@ -76,6 +77,7 @@ export class WorksService {
 
     const work = await this.prisma.$transaction(async (tx) => {
       if (hasChanges(catalogUpdateData)) {
+        // 현재는 shared catalog가 아니라 user record와 결합된 1:1 catalog 항목을 함께 갱신합니다.
         await this.catalogService.update(existingWork.catalogWorkId, catalogUpdateData, tx);
       }
 
@@ -143,6 +145,7 @@ export class WorksService {
   ): Prisma.UserWorkRecordUncheckedCreateInput {
     return {
       userId,
+      // split-only 중간 단계: catalogWorkId는 user record id와 동일하게 유지합니다.
       catalogWorkId,
       status: createWorkDto.status ?? WorkStatus.planned,
       rating: createWorkDto.rating ?? null,

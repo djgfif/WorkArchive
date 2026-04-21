@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
 
+import { PageHeader } from './AppPrimitives';
+
 interface PageHeroProps {
   actions?: ReactNode;
   aside?: ReactNode;
-  className?: string;
+  className?: string | undefined;
   description?: string;
   eyebrow?: string;
   meta?: ReactNode;
@@ -21,26 +23,16 @@ export function PageHero({
   title,
   titleAs = 'h2',
 }: PageHeroProps) {
-  const TitleTag = titleAs;
-  const heroClassName = ['panel', 'page-hero', className]
-    .filter(Boolean)
-    .join(' ');
-
   return (
-    <header className={heroClassName}>
-      <div className="page-hero-copy">
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <TitleTag className="page-title">{title}</TitleTag>
-        {description && <p className="body-copy">{description}</p>}
-        {meta && <div className="page-hero-meta">{meta}</div>}
-      </div>
-
-      {(aside || actions) && (
-        <div className="page-hero-side">
-          {aside}
-          {actions && <div className="button-row page-hero-actions">{actions}</div>}
-        </div>
-      )}
-    </header>
+    <PageHeader
+      actions={actions}
+      aside={aside}
+      className={className}
+      description={description}
+      eyebrow={eyebrow}
+      meta={meta}
+      title={title}
+      titleOrder={titleAs === 'h1' ? 1 : 2}
+    />
   );
 }

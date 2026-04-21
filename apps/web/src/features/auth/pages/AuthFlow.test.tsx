@@ -1,10 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
+import { renderWithProviders } from '../../../test/render-with-providers';
 import { AuthProvider } from '../context/AuthProvider';
+import { guestTransferService } from '../services/guest-transfer.service';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -41,17 +43,14 @@ describe('Auth flow', () => {
       initialEntries: ['/auth/register'],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
     );
 
-    await user.type(screen.getByLabelText(/^이메일$/), 'frieren@example.com');
-    await user.type(
-      screen.getByLabelText(/^비밀번호$/),
-      'strong-password-123',
-    );
+    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
+    await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
     await user.click(screen.getByRole('button', { name: '회원가입' }));
 
     expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
@@ -65,6 +64,46 @@ describe('Auth flow', () => {
     ).toBeInTheDocument();
   });
 
+  it('navigates to guest transfer review after login when pending guest data exists', async () => {
+    vi.spyOn(guestTransferService, 'getPendingReview').mockResolvedValue({
+      duplicateCount: 0,
+      fingerprint: 'pending-review',
+      items: [],
+      totalActiveCount: 1,
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          accessToken: 'access-token',
+          user: {
+            id: 'user-1',
+            email: 'frieren@example.com',
+            nickname: '',
+          },
+        }),
+      ),
+    );
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/login'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
+    await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
+    await user.click(screen.getByRole('button', { name: '로그인' }));
+
+    expect(await screen.findByText('게스트 기록 검토')).toBeInTheDocument();
+  });
+
   it('restores a stored session by calling /auth/me on startup', async () => {
     window.localStorage.setItem(
       'work-archive.auth.tokens',
@@ -73,15 +112,13 @@ describe('Auth flow', () => {
       }),
     );
 
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse({
-          id: 'user-1',
-          email: 'frieren@example.com',
-          nickname: '',
-        }),
-      );
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        id: 'user-1',
+        email: 'frieren@example.com',
+        nickname: '',
+      }),
+    );
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -89,7 +126,7 @@ describe('Auth flow', () => {
       initialEntries: ['/works'],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
@@ -147,7 +184,7 @@ describe('Auth flow', () => {
       initialEntries: ['/works'],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,

@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
+import { renderWithProviders } from '../../../test/render-with-providers';
 import { AuthProvider } from '../../auth/context/AuthProvider';
 import { workArchiveDbManager } from '../../works/db/work-archive.db';
 import { worksService } from '../../works/services/works.service';
@@ -94,7 +95,7 @@ describe('SyncPage', () => {
       initialEntries: ['/sync'],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
@@ -110,9 +111,7 @@ describe('SyncPage', () => {
     expect(
       await screen.findByText('보내기 1건, 반영 1건, 충돌 0건, 실패 0건.'),
     ).toBeInTheDocument();
-    expect(
-      await screen.findByText('지금은 동기화할 내용이 없습니다.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('지금은 동기화할 내용이 없습니다.')).toBeInTheDocument();
 
     const pushHeaders = fetchMock.mock.calls[1]?.[1]?.headers as Headers;
     const pullHeaders = fetchMock.mock.calls[2]?.[1]?.headers as Headers;
@@ -126,21 +125,17 @@ describe('SyncPage', () => {
       initialEntries: ['/sync'],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
     );
 
-    expect(
-      await screen.findByText('로그인하면 동기화할 수 있습니다'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('로그인하면 동기화할 수 있습니다')).toBeInTheDocument();
     expect(
       screen.getByText(/게스트 모드에서는 기록이 이 기기에만 저장됩니다/),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: '로그인 후 동기화' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: '로그인 후 동기화' })).toBeDisabled();
   });
 
   it('returns to guest mode when a protected sync request cannot refresh the session', async () => {
@@ -202,20 +197,16 @@ describe('SyncPage', () => {
       initialEntries: ['/sync'],
     });
 
-    render(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
     );
 
     expect(await screen.findAllByText(/frieren@example\.com/)).not.toHaveLength(0);
-    await user.click(
-      await screen.findByRole('button', { name: '수동 동기화' }),
-    );
+    await user.click(await screen.findByRole('button', { name: '수동 동기화' }));
 
-    expect(
-      await screen.findByText('로그인하면 동기화할 수 있습니다'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('로그인하면 동기화할 수 있습니다')).toBeInTheDocument();
     expect(await screen.findAllByText('게스트 모드')).not.toHaveLength(0);
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });

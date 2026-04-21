@@ -236,11 +236,11 @@ export async function restoreStoredSession(): Promise<RestoredSession | null> {
       user,
     };
   } catch (error) {
-    if (!(error instanceof ApiRequestError) || error.status !== 401) {
+    if (error instanceof ApiRequestError && error.status === 401) {
       clearStoredAuthTokens();
-
-      return null;
     }
+
+    return null;
   }
 
   return null;

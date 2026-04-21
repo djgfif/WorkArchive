@@ -18,9 +18,10 @@
 
 - Home / Works / Work Detail / Auth / Account 흐름은 실제로 작동한다.
 - local-first, guest/auth archive 분리, manual sync가 현재 제품의 핵심 현실이다.
+- 로그인 직후 guest 기록 검토/선택 import 흐름이 이미 존재한다.
 - Quick Add는 구조는 있으나 외부 metadata 연동은 없다.
 - `Tier Boards`, `Insights`, `Community`는 확장 목적지이지만 구현 성숙도는 낮다.
-- 스타일 인프라는 아직 Mantine가 아니라 `global.css` 중심이다.
+- Mantine foundation은 도입됐지만 스타일 인프라는 여전히 `global.css` 중심이다.
 
 ## Committed Now
 
@@ -37,7 +38,7 @@
 ### 2. Mantine-Based UI System
 
 - Mantine를 명시적 목표로 유지한다.
-- 다만 “현재 구현”이 아니라 “이번 프론트 리팩터링에서 커밋된 방향”으로만 다룬다.
+- 다만 현재 구현도 이미 Mantine foundation 일부를 포함하므로, 남은 migration 범위를 기준으로 읽는다.
 - 공통 layout / card / state / action 패턴을 Mantine 중심으로 정리한다.
 
 ### 3. Quick Add Positioning

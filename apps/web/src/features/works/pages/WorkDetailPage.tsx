@@ -1,7 +1,12 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
 
+import {
+  FeedbackMessage,
+  StateMessage,
+} from '../../../shared/components/AppPrimitives';
 import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
+import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
 import { WorkDetailPanel } from '../components/WorkDetailPanel';
 import { useWorkDetail } from '../hooks/useWorkDetail';
 import { worksService } from '../services/works.service';
@@ -29,9 +34,10 @@ export function WorkDetailPage() {
       return;
     }
 
-    const shouldDelete = window.confirm(
-      `"${work.title}"을 삭제할까요?\n현재는 목록에서 숨겨집니다.`,
-    );
+    const shouldDelete = await confirmDialogAdapter.confirm({
+      description: '현재는 목록에서 숨겨집니다.',
+      title: `"${work.title}"을 삭제할까요?`,
+    });
 
     if (!shouldDelete) {
       return;
@@ -85,46 +91,43 @@ export function WorkDetailPage() {
 
   if (error) {
     return (
-      <section className="panel stack">
-        <h2 className="section-title">작품 정보를 불러오지 못했습니다.</h2>
-        <p className="muted-copy">{error}</p>
-      </section>
+      <StateMessage
+        description={error}
+        title="작품 정보를 불러오지 못했습니다."
+        tone="error"
+      />
     );
   }
 
   if (isLoading) {
     return (
-      <section className="panel stack">
-        <h2 className="section-title">작품 정보를 불러오는 중입니다.</h2>
-        <p className="muted-copy">잠시만 기다려주세요.</p>
-      </section>
+      <StateMessage
+        description="잠시만 기다려주세요."
+        title="작품 정보를 불러오는 중입니다."
+        tone="loading"
+      />
     );
   }
 
   if (!work) {
     return (
-      <section className="panel stack">
-        <p className="eyebrow">찾을 수 없음</p>
-        <h2 className="section-title">해당 작품을 찾을 수 없습니다.</h2>
-        <p className="muted-copy">
-          삭제되었거나 주소가 올바르지 않을 수 있습니다.
-        </p>
-        <div className="button-row">
+      <StateMessage
+        actions={
           <Link className="primary-link" to="/works">
             작품으로 돌아가기
           </Link>
-        </div>
-      </section>
+        }
+        description="삭제되었거나 주소가 올바르지 않을 수 있습니다."
+        eyebrow="찾을 수 없음"
+        title="해당 작품을 찾을 수 없습니다."
+        tone="info"
+      />
     );
   }
 
   return (
     <DetailPageTemplate>
-      {actionError && (
-        <div aria-live="polite" className="error-banner" role="alert">
-          {actionError}
-        </div>
-      )}
+      {actionError && <FeedbackMessage tone="error">{actionError}</FeedbackMessage>}
 
       <WorkDetailPanel
         actions={

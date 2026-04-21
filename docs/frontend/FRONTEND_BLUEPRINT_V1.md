@@ -15,7 +15,9 @@
 - 현재 프론트는 local-first 기록 앱으로 동작한다.
 - 메인 제품, 인증, 계정 관리, 최소 유틸리티가 서로 다른 레이아웃으로 분리돼 있다.
 - 홈/작품/상세/추가/계정 흐름은 실제 사용 가능한 상태다.
-- 스타일 시스템은 아직 Mantine가 아니라 `global.css` 중심이다.
+- Mantine provider, theme, shared page wrapper는 이미 도입돼 있다.
+- 다만 시각 책임은 아직 `global.css`와 페이지별 클래스 조합에 크게 남아 있다.
+- 현재 저장소에서 실제 실행 가능한 프론트 런타임은 `apps/web`이며, Tauri는 future runtime 제약으로만 고려한다.
 
 ## 2. Canonical Layout Decisions
 
@@ -57,11 +59,13 @@
 
 - `/account`
 - `/account/sync`
+- `/account/transfer`
 - `/account/settings`
 
 역할:
 
 - 계정 개요, 동기화, 설정의 관리 맥락
+- 로그인 직후 guest 기록 검토/가져오기 흐름 수용
 - 메인 제품 목적지와 계정 관리 기능 분리
 
 ### Minimal Layout
@@ -108,7 +112,7 @@
 | Work Detail | 개인 감상 기록 확인 중심의 디테일 페이지 |
 | Work Edit | 기록 수정 플로우 |
 | Auth | 입력 집중형 인증 페이지 |
-| Account | sync/설정 중심 관리 페이지 |
+| Account | overview / sync / settings / guest transfer review 중심 관리 페이지 |
 | Tier Boards / Insights / Community | 현재는 확장 목적지이며 placeholder 성격이 강함 |
 
 ## 5. Current Data And Session Rules
@@ -118,10 +122,11 @@
 - 게스트와 로그인 사용자는 서로 다른 로컬 아카이브를 사용한다.
 - sync는 계정 모드에서만 수동 실행한다.
 - 인증은 현재 이메일/비밀번호 + localStorage token 저장 구조다.
+- 로그인 직후 guest 기록이 감지되면 `/account/transfer`에서 중복 후보를 먼저 검토한다.
 
 ## 6. Current UI Constraints
 
-- Mantine는 아직 도입되지 않았다.
+- Mantine provider/theme와 shared primitives는 이미 도입됐다.
 - 공용 UI 계층보다 페이지별 CSS 조합 의존이 크다.
 - placeholder 화면과 실제 구현 화면의 완성도 차이가 있다.
 - 따라서 프론트 roadmap 문서는 이 기준을 깨지 않으면서 구조를 정리하는 방향으로 읽어야 한다.

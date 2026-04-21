@@ -12,6 +12,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {
+  ApiBody,
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -31,8 +32,8 @@ import { CurrentUser } from './current-user.decorator';
 import type { AuthenticatedUser } from './auth.types';
 import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import { AuthUserResponseDto } from './dto/auth-user-response.dto';
-import type { LoginDto } from './dto/login.dto';
-import type { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @ApiTags('auth')
@@ -41,6 +42,9 @@ export class AuthController {
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
   @Post('register')
+  @ApiBody({
+    type: RegisterDto,
+  })
   @ApiCreatedResponse({
     description: 'Create a user account and return a fresh session.',
     type: AuthSessionResponseDto,
@@ -65,6 +69,9 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiBody({
+    type: LoginDto,
+  })
   @ApiOkResponse({
     description: 'Authenticate with email and password.',
     type: AuthSessionResponseDto,

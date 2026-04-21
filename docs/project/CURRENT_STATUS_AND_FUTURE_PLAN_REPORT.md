@@ -25,6 +25,7 @@
 - React `19.1`
 - Vite `6.3`
 - TypeScript `5.8`
+- Mantine `7`
 - Dexie
 - React Router `7`
 - Vitest + Testing Library
@@ -59,7 +60,7 @@
 | --- | --- | --- |
 | Main product | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/tier-boards`, `/insights`, `/community`, `/profile` | 홈/작품 흐름은 실제 구현, 확장 목적지는 placeholder 성격 혼재 |
 | Auth | `/auth/login`, `/auth/register` | 이메일/비밀번호 인증 구현 |
-| Account | `/account`, `/account/sync`, `/account/settings` | 계정 개요, sync, 설정 흐름 구현 |
+| Account | `/account`, `/account/sync`, `/account/transfer`, `/account/settings` | 계정 개요, sync, guest review, 설정 흐름 구현 |
 | Compatibility redirects | `/sync`, `/settings`, `/profile/sync`, `/profile/settings` | `/account/*`로 리다이렉트 |
 | Minimal | `*` | 404 처리 |
 
@@ -70,7 +71,7 @@
 - Work Create: `검색 -> 선택 -> 자동 채움 검토 -> 개인 기록 입력 -> 저장` 형태의 Quick Add 중심 흐름
 - Work Detail / Edit: 감상 기록 확인과 수정
 - Auth: 회원가입 / 로그인
-- Account: sync와 설정
+- Account: sync, 설정, guest 기록 검토/선택 import
 
 ### 3-4. Local Storage Model
 
@@ -131,6 +132,7 @@ Prisma 기준 핵심 모델은 아직 아래 두 개다.
 - 게스트 모드
 - 이메일/비밀번호 인증
 - 사용자별 로컬 아카이브 분리
+- 로그인 직후 guest 기록 검토 후 선택 import
 - 수동 sync queue와 push / pull
 - 홈 허브 화면
 - 계정 센터 라우트 분리
@@ -138,7 +140,7 @@ Prisma 기준 핵심 모델은 아직 아래 두 개다.
 ### Not Yet Implemented
 
 - 외부 메타데이터 API 기반 실제 Quick Add
-- 게스트 기록 -> 계정 이관 UX
+- guest 기록 자동 병합 정책과 다기기 이관 UX
 - 자동 동기화
 - 공개 프로필 / 공개 기록 / 작품 집계
 - 실제 티어 보드 기능
@@ -187,20 +189,22 @@ Prisma 기준 핵심 모델은 아직 아래 두 개다.
 ### Current Verification Status
 
 - `npm run typecheck`: `2026-04-21` 기준 통과 확인
-- `npm run test`: 스크립트 존재, 이번 패스에서는 30초 타임박스 내 완료 여부 미재확인
-- workspace별 `test`: 동일
+- `npm run test`: 스크립트 존재, 이번 패스에서는 전체 워크스페이스 완료 여부 미재확인
+- `npm run test --workspace @work-archive/web`: `2026-04-21` 기준 `13` files, `39` tests 통과 확인
+- `npm run test --workspace @work-archive/api`: 이번 패스에서는 완료 여부 미재확인
 
 ## 7. Immediate Limitations
 
 ### 7-1. Frontend
 
-- 스타일 시스템은 아직 Mantine가 아니라 `global.css` 중심이다.
+- Mantine foundation은 도입됐지만 스타일 책임은 아직 `global.css`에 크게 남아 있다.
 - placeholder 화면과 실제 구현 화면의 성숙도 차이가 크다.
 - Quick Add는 구조는 있지만 데이터 신뢰를 뒷받침할 외부 import가 없다.
+- 현재 저장소에는 Tauri shell이 없고, 프론트 런타임은 웹 기준이다.
 
 ### 7-2. Product UX
 
-- 게스트와 계정 아카이브는 분리되어 있으나, 둘을 연결하는 이관 경험은 없다.
+- 게스트와 계정 아카이브는 분리되어 있고, 현재는 로그인 직후 review/import 단계까지만 제공된다.
 - sync는 수동이다.
 - Profile / Tier Boards / Community / Insights는 장기 방향에 비해 현재 구현이 얕다.
 

@@ -1,6 +1,14 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
+import {
+  ActionRow,
+  FeedbackMessage,
+  MetricPill,
+  SectionCard,
+  SectionIntro,
+  StateMessage,
+} from '../../../shared/components/AppPrimitives';
 import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import type { SyncRunState } from '../services/sync.service';
@@ -98,75 +106,50 @@ export function SyncPage() {
       eyebrow="동기화"
       meta={
         <>
-          <div className="stat-pill">
-            <span className="stat-pill-value">{queueItems.length}</span>
-            <span className="stat-pill-label">대기 중</span>
-          </div>
-          <div className="stat-pill">
-            <span className="stat-pill-value">{conflictWorks.length}</span>
-            <span className="stat-pill-label">충돌</span>
-          </div>
-          <div className="stat-pill">
-            <span className="stat-pill-value">
-              {formatOptionalDate(lastSuccessfulPullAt)}
-            </span>
-            <span className="stat-pill-label">최근 동기화</span>
-          </div>
-          <div className="stat-pill">
-            <span className={`sync-state-badge sync-state-${syncState}`}>
-              {renderStateLabel(syncState)}
-            </span>
-            <span className="stat-pill-label">현재 상태</span>
-          </div>
+          <MetricPill label="대기 중" value={queueItems.length} />
+          <MetricPill label="충돌" value={conflictWorks.length} />
+          <MetricPill label="최근 동기화" value={formatOptionalDate(lastSuccessfulPullAt)} />
+          <MetricPill label="현재 상태" value={renderStateLabel(syncState)} />
         </>
       }
       title="동기화 상태"
     >
 
       {isGuestMode && (
-        <section className="panel stack">
-          <div>
-            <p className="eyebrow">게스트 모드</p>
-            <h2 className="section-title">로그인하면 동기화할 수 있습니다</h2>
-            <p className="muted-copy">
-              게스트 모드에서는 기록이 이 기기에만 저장됩니다.
-              계정으로 로그인하면 기록을 동기화할 수 있습니다.
-            </p>
-          </div>
-          <div className="button-row">
-            <Link className="secondary-link" to="/auth/login">
-              로그인
-            </Link>
-            <Link className="secondary-link" to="/auth/register">
-              회원가입
-            </Link>
-          </div>
-        </section>
+        <StateMessage
+          actions={
+            <>
+              <Link className="secondary-link" to="/auth/login">
+                로그인
+              </Link>
+              <Link className="secondary-link" to="/auth/register">
+                회원가입
+              </Link>
+            </>
+          }
+          description="게스트 모드에서는 기록이 이 기기에만 저장됩니다. 계정으로 로그인하면 기록을 동기화할 수 있습니다."
+          eyebrow="게스트 모드"
+          title="로그인하면 동기화할 수 있습니다"
+          tone="info"
+        />
       )}
 
-      {error && (
-        <div aria-live="polite" className="error-banner" role="alert">
-          {error}
-        </div>
-      )}
+      {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
 
       {lastRun && (
-        <section className="panel stack">
-          <div>
-            <p className="eyebrow">최근 실행</p>
-            <h2 className="section-title">최근 동기화 결과</h2>
-            <p className="muted-copy">
-              실행 시각 {formatWorkDateTime(lastRun.completedAt)}
-            </p>
-          </div>
+        <SectionCard>
+          <SectionIntro
+            description={`실행 시각 ${formatWorkDateTime(lastRun.completedAt)}`}
+            eyebrow="최근 실행"
+            title="최근 동기화 결과"
+          />
 
           <div className="sync-result-grid">
             <article className="sync-result-card">
               <h3>보내기</h3>
               <p className="muted-copy">
-                보내기 {lastRun.push.attemptedCount}건, 반영{' '}
-                {lastRun.push.appliedCount}건, 충돌{' '}
-                {lastRun.push.conflictCount}건, 실패 {lastRun.push.failedCount}건.
+                보내기 {lastRun.push.attemptedCount}건, 반영 {lastRun.push.appliedCount}건,
+                충돌 {lastRun.push.conflictCount}건, 실패 {lastRun.push.failedCount}건.
               </p>
               <p className="muted-copy">
                 처리 시각 {formatOptionalDate(lastRun.push.processedAt)}
@@ -176,8 +159,8 @@ export function SyncPage() {
             <article className="sync-result-card">
               <h3>가져오기</h3>
               <p className="muted-copy">
-                가져온 {lastRun.pull.pulledCount}건 중 반영{' '}
-                {lastRun.pull.appliedCount}건, 보류 {lastRun.pull.skippedCount}건.
+                가져온 {lastRun.pull.pulledCount}건 중 반영 {lastRun.pull.appliedCount}건,
+                보류 {lastRun.pull.skippedCount}건.
               </p>
               <p className="muted-copy">
                 가져온 시각 {formatOptionalDate(lastRun.pull.pulledAt)}
@@ -197,14 +180,11 @@ export function SyncPage() {
               </p>
             ))}
           </div>
-        </section>
+        </SectionCard>
       )}
 
-      <section className="panel stack">
-        <div>
-          <p className="eyebrow">대기열</p>
-          <h2 className="section-title">동기화 대기 중</h2>
-        </div>
+      <SectionCard>
+        <SectionIntro eyebrow="대기열" title="동기화 대기 중" />
 
         {isLoading && <p className="muted-copy">동기화 상태를 불러오는 중입니다.</p>}
 
@@ -221,9 +201,7 @@ export function SyncPage() {
                     <h3 className="card-title">{item.payload.title}</h3>
                     <p className="muted-copy">{getSyncOperationLabel(item.operation)} 요청</p>
                   </div>
-                  <span className="sync-queue-meta">
-                    재시도 {item.retryCount}회
-                  </span>
+                  <span className="sync-queue-meta">재시도 {item.retryCount}회</span>
                 </div>
 
                 <dl className="detail-list">
@@ -242,21 +220,16 @@ export function SyncPage() {
                 </dl>
 
                 {item.lastError && (
-                  <div aria-live="polite" className="error-banner" role="alert">
-                    {item.lastError}
-                  </div>
+                  <FeedbackMessage tone="error">{item.lastError}</FeedbackMessage>
                 )}
               </article>
             ))}
           </div>
         )}
-      </section>
+      </SectionCard>
 
-      <section className="panel stack">
-        <div>
-          <p className="eyebrow">충돌</p>
-          <h2 className="section-title">확인이 필요한 작품</h2>
-        </div>
+      <SectionCard>
+        <SectionIntro eyebrow="충돌" title="확인이 필요한 작품" />
 
         {!isLoading && conflictWorks.length === 0 && (
           <p className="muted-copy">지금은 확인이 필요한 충돌이 없습니다.</p>
@@ -292,7 +265,7 @@ export function SyncPage() {
             ))}
           </div>
         )}
-      </section>
+      </SectionCard>
     </AccountPageTemplate>
   );
 }

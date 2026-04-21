@@ -34,6 +34,7 @@ CREATE TABLE "user_work_records" (
 );
 
 -- Backfill current flat works into separated catalog and user record tables.
+-- release split-only 단계에서는 id를 그대로 재사용해 catalog/user_record 1:1 매핑을 유지한다.
 INSERT INTO "catalog_works" (
     "id",
     "type",

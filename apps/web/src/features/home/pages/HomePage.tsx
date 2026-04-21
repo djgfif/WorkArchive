@@ -2,6 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import {
+  ActionRow,
+  FeedbackMessage,
+  SectionCard,
+  SectionIntro,
+  StateMessage,
+} from '../../../shared/components/AppPrimitives';
 import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
@@ -82,14 +89,13 @@ export function HomePage() {
 
   return (
     <HomeHubPageTemplate>
-      <section className="panel home-hero">
-        <div className="home-hero-copy">
-          <p className="eyebrow">홈</p>
-          <h2 className="page-title">오늘 기록할 작품을 바로 시작해보세요</h2>
-          <p className="body-copy">
-            검색, 빠른 추가, 최근 기록 복귀까지 한 화면에서 바로 이어집니다.
-          </p>
-        </div>
+      <SectionCard className="home-hero" tone="hero">
+        <SectionIntro
+          description="검색, 빠른 추가, 최근 기록 복귀까지 한 화면에서 바로 이어집니다."
+          eyebrow="홈"
+          title="오늘 기록할 작품을 바로 시작해보세요"
+          titleOrder={1}
+        />
 
         <form className="home-search-form" onSubmit={handleSearchSubmit}>
           <label className="home-search-input" htmlFor="homeSearch">
@@ -107,26 +113,26 @@ export function HomePage() {
           </Link>
         </form>
 
-        <div className="home-hero-hint">
+        <ActionRow className="home-hero-hint">
           <span className="badge">검색에서 시작</span>
           <span className="badge">작품 추가 상시 노출</span>
           <span className="badge">최근 기록 바로 이어보기</span>
-        </div>
-      </section>
+        </ActionRow>
+      </SectionCard>
 
       <section className="home-overview-grid">
-        <article className="panel stack home-welcome-panel">
-          <div className="section-heading">
-            <p className="section-kicker">환영</p>
-            <h2 className="section-title">
-              {isAuthenticated ? '다시 이어서 기록해볼까요?' : '바로 내 아카이브를 시작해보세요'}
-            </h2>
-            <p className="section-description">
-              {isAuthenticated
+        <SectionCard className="home-welcome-panel">
+          <SectionIntro
+            description={
+              isAuthenticated
                 ? `${user?.email ?? '계정'}으로 기록 중입니다. 지금 필요한 관리 작업만 바로 고를 수 있도록 정리했습니다.`
-                : '게스트 모드에서도 바로 저장됩니다. 기록이 쌓이면 계정으로 이어가도 됩니다.'}
-            </p>
-          </div>
+                : '게스트 모드에서도 바로 저장됩니다. 기록이 쌓이면 계정으로 이어가도 됩니다.'
+            }
+            eyebrow="환영"
+            title={
+              isAuthenticated ? '다시 이어서 기록해볼까요?' : '바로 내 아카이브를 시작해보세요'
+            }
+          />
 
           <div className="home-next-actions">
             <Link className="home-next-card home-next-card--primary" to={primaryAction.to}>
@@ -138,9 +144,7 @@ export function HomePage() {
             <Link className="home-next-card" to={managementAction.to}>
               <span className="badge">관리 흐름</span>
               <h3 className="section-title">{managementAction.label}</h3>
-              <p className="muted-copy">
-                {managementAction.description}
-              </p>
+              <p className="muted-copy">{managementAction.description}</p>
             </Link>
 
             <Link className="home-next-card" to="/works/new">
@@ -151,22 +155,16 @@ export function HomePage() {
               </p>
             </Link>
           </div>
-        </article>
+        </SectionCard>
 
-        <section className="panel stack home-stats-panel">
-          <div className="section-heading">
-            <p className="section-kicker">통계 요약</p>
-            <h2 className="section-title">내 기록 한눈에 보기</h2>
-            <p className="section-description">
-              기록의 양과 감상 흐름을 가장 먼저 확인할 수 있는 4개 지표만 남겼습니다.
-            </p>
-          </div>
+        <SectionCard className="home-stats-panel">
+          <SectionIntro
+            description="기록의 양과 감상 흐름을 가장 먼저 확인할 수 있는 4개 지표만 남겼습니다."
+            eyebrow="통계 요약"
+            title="내 기록 한눈에 보기"
+          />
 
-          {error && (
-            <div aria-live="polite" className="error-banner" role="alert">
-              {error}
-            </div>
-          )}
+          {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
 
           {!error && (
             <div className="home-stat-grid">
@@ -198,20 +196,21 @@ export function HomePage() {
               </Link>
             </div>
           )}
-        </section>
+        </SectionCard>
       </section>
 
-      <section className="panel stack">
+      <SectionCard>
         <div className="home-section-header">
           <div>
             <p className="eyebrow">최근 기록</p>
             <h2 className="section-title">최근 남긴 작품 6개</h2>
           </div>
-          <div className="button-row">
+
+          <ActionRow>
             <Link className="secondary-link" to="/works">
               작품 전체 보기
             </Link>
-          </div>
+          </ActionRow>
         </div>
 
         {error && (
@@ -225,23 +224,16 @@ export function HomePage() {
         )}
 
         {!error && !isLoading && recentWorks.length === 0 && (
-          <div className="empty-state">
-            <div aria-hidden="true" className="empty-state-art">
-              <span>WA</span>
-            </div>
-            <div className="stack">
-              <h3 className="section-title">아직 최근 기록이 없습니다.</h3>
-              <p className="muted-copy">
-                첫 작품을 추가하면 홈에서 최근 기록과 요약 통계를 바로 볼 수
-                있습니다.
-              </p>
-              <div className="button-row">
-                <Link className="primary-link" to="/works/new">
-                  작품 추가
-                </Link>
-              </div>
-            </div>
-          </div>
+          <StateMessage
+            actions={
+              <Link className="primary-link" to="/works/new">
+                작품 추가
+              </Link>
+            }
+            description="첫 작품을 추가하면 홈에서 최근 기록과 요약 통계를 바로 볼 수 있습니다."
+            title="아직 최근 기록이 없습니다."
+            tone="info"
+          />
         )}
 
         {!error && !isLoading && recentWorks.length > 0 && (
@@ -293,7 +285,7 @@ export function HomePage() {
             ))}
           </div>
         )}
-      </section>
+      </SectionCard>
     </HomeHubPageTemplate>
   );
 }

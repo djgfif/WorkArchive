@@ -1,5 +1,11 @@
+import { Box, Container, Group, Stack, Text } from '@mantine/core';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 
+import {
+  ActionRow,
+  SectionCard,
+  StateMessage,
+} from '../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 
 const mainNavigationItems: Array<{
@@ -27,13 +33,14 @@ export function MainProductLayout() {
 
   return (
     <main className="layout-shell layout-shell--product">
-      <div aria-hidden="true" className="layout-backdrop layout-backdrop--north" />
-      <div aria-hidden="true" className="layout-backdrop layout-backdrop--east" />
+      <Box aria-hidden="true" className="layout-backdrop layout-backdrop--north" />
+      <Box aria-hidden="true" className="layout-backdrop layout-backdrop--east" />
 
-      <div className="layout-frame layout-frame--product">
-        <header className="product-layout">
-          <section className="panel product-layout-shell">
-            <div className="product-layout-topbar">
+      <Container px={0} size={1360}>
+        <Stack gap="xl">
+          <SectionCard tone="hero">
+            <Stack gap="xl">
+              <Group align="flex-start" justify="space-between" wrap="wrap">
               <Link className="brand-link" to="/">
                 <span aria-hidden="true" className="brand-mark">
                   WA
@@ -44,7 +51,7 @@ export function MainProductLayout() {
                 </div>
               </Link>
 
-              <div className="button-row product-layout-actions">
+                <ActionRow justify="flex-end">
                 {!isAuthenticated && (
                   <>
                     <Link className="secondary-link" to="/auth/login">
@@ -63,10 +70,10 @@ export function MainProductLayout() {
                 <Link className="primary-link" to="/works/new">
                   작품 추가
                 </Link>
-              </div>
-            </div>
+                </ActionRow>
+              </Group>
 
-            <div className="product-layout-nav-row">
+              <Group align="flex-start" justify="space-between" wrap="wrap">
               <nav aria-label="주요 메뉴" className="app-nav app-nav--primary">
                 {mainNavigationItems.map((item) => (
                   <NavLink
@@ -85,45 +92,45 @@ export function MainProductLayout() {
                 ))}
               </nav>
 
-              <section className="session-card session-card--compact">
-                <span className="mode-badge">
-                  {isAuthenticated ? '로그인됨' : '게스트 모드'}
-                </span>
-                <div className="session-copy">
-                  <h2 className="session-title">
+                <SectionCard className="session-card session-card--compact" tone="subtle">
+                  <Text c="var(--accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+                    {isAuthenticated ? '로그인됨' : '게스트 모드'}
+                  </Text>
+                  <div className="session-copy">
+                    <h2 className="session-title">
                     {isAuthenticated ? '계정 아카이브 사용 중' : '로컬 아카이브 사용 중'}
-                  </h2>
-                  <p className="muted-copy">
+                    </h2>
+                    <p className="muted-copy">
                     {isAuthenticated
                       ? user?.email
                       : '로그인하지 않아도 이 기기에 기록을 저장할 수 있습니다.'}
-                  </p>
-                </div>
-                <div className="button-row">
-                  <Link className="secondary-link" to="/profile">
-                    프로필
-                  </Link>
-                  <Link className="secondary-link" to="/account">
-                    계정 센터
-                  </Link>
-                </div>
-              </section>
-            </div>
-          </section>
-        </header>
+                    </p>
+                  </div>
+                  <ActionRow>
+                    <Link className="secondary-link" to="/profile">
+                      프로필
+                    </Link>
+                    <Link className="secondary-link" to="/account">
+                      계정 센터
+                    </Link>
+                  </ActionRow>
+                </SectionCard>
+              </Group>
+            </Stack>
+          </SectionCard>
 
         {isLoading ? (
-          <section className="panel stack loading-panel">
-            <p className="eyebrow">불러오는 중</p>
-            <h1 className="section-title">워크 아카이브를 불러오고 있습니다</h1>
-            <p className="muted-copy">잠시만 기다려주세요.</p>
-          </section>
+            <StateMessage
+              description="잠시만 기다려주세요."
+              eyebrow="불러오는 중"
+              title="워크 아카이브를 불러오고 있습니다"
+              tone="loading"
+            />
         ) : (
-          <div className="layout-outlet layout-outlet--product">
             <Outlet />
-          </div>
         )}
-      </div>
+        </Stack>
+      </Container>
     </main>
   );
 }

@@ -22,13 +22,15 @@
 ### Mantine
 
 - 여러 제품/프론트 문서는 Mantine 전환을 목표로 둔다.
-- 현재 구현은 여전히 `global.css` 중심이다.
-- 따라서 Mantine 관련 문서는 `current reality`가 아니라 `committed roadmap`으로 읽어야 한다.
+- 현재 코드는 이미 `MantineProvider`, theme, shared page primitives 일부를 포함한다.
+- 다만 화면 대부분은 여전히 `global.css`와 수동 클래스 조합 의존이 크다.
+- 따라서 Mantine 관련 문서는 “미도입”이 아니라 “foundation은 도입됐고 migration은 진행 중”으로 읽어야 한다.
 
 ### Authentication Strategy
 
 - 제품 전략 문서는 `게스트 유지 + 구글 로그인 메인` 방향을 제안한다.
 - 현재 코드는 이메일/비밀번호 인증과 `localStorage` 기반 token 저장을 사용한다.
+- 현재 프론트에는 `/account/transfer` guest review/import 흐름이 이미 구현돼 있다.
 - 따라서 인증 전략 문서는 future product strategy이며 현재 구현 설명이 아니다.
 
 ### Product Expansion
@@ -46,7 +48,8 @@
 ### Validation Surface
 
 - `npm run typecheck`는 이번 문서 정리 패스에서 통과를 확인했다.
-- `npm run test`와 workspace별 test 스크립트는 존재하지만, 30초 타임박스 안 완료 여부는 재확정하지 못했다.
+- `npm run test --workspace @work-archive/web`는 이번 패스에서 `13` files, `39` tests 통과를 확인했다.
+- root `npm run test`와 API workspace test는 이번 패스에서 완료 여부를 재확정하지 못했다.
 - 따라서 문서에는 “테스트 스크립트 존재”와 “빠른 회귀 확인 완료”를 구분해 적는다.
 
 ## 3. Reading Rule
