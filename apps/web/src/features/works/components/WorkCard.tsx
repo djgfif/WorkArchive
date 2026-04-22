@@ -1,7 +1,15 @@
+import { Badge, Group, Stack, Text, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import {
+  ActionRow,
+  AppButton,
+  AppLinkButton,
+  KeyValueGrid,
+  SectionCard,
+} from '../../../shared/components/AppPrimitives';
 import {
   formatWorkUpdatedAt,
   getWorkStatusLabel,
@@ -20,112 +28,81 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
   const ratingLabel = work.rating === null ? '미평가' : `${work.rating.toFixed(1)}점`;
 
   return (
-    <article className="panel work-card">
-      <Link
-        aria-label={`${work.title} 보기`}
-        className="work-card-media"
-        to={`/works/${work.id}`}
-      >
+    <SectionCard>
+      <Group align="flex-start" wrap="nowrap">
         <ArtworkPoster
           thumbnailUrl={work.thumbnailUrl}
           title={work.title}
           typeLabel={typeLabel}
           variant="card"
         />
-        <div className="work-card-media-overlay">
-          <span className="badge">{typeLabel}</span>
-          {work.favorite && <span className="badge badge-accent">즐겨찾기</span>}
-        </div>
-      </Link>
 
-      <div className="work-card-body">
-        <div className="badge-row">
-          <span className="badge">{statusLabel}</span>
-          <span className="badge">{ratingLabel}</span>
-        </div>
+        <Stack flex={1} gap="md" miw={0}>
+          <Group gap="xs" wrap="wrap">
+            <Badge>{statusLabel}</Badge>
+            <Badge>{ratingLabel}</Badge>
+            <Badge>{typeLabel}</Badge>
+            {work.favorite && <Badge color="archive">즐겨찾기</Badge>}
+          </Group>
 
-        <div className="work-card-heading">
-          <div className="stack work-card-title-block">
-            <h3 className="card-title">
-              <Link className="text-link" to={`/works/${work.id}`}>
+          <Stack gap={4}>
+            <Title order={3}>
+              <Link style={{ color: 'inherit', textDecoration: 'none' }} to={`/works/${work.id}`}>
                 {work.title}
               </Link>
-            </h3>
-            <p className="muted-copy">
-              {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
-              {formatWorkUpdatedAt(work.updatedAt)}
-            </p>
-          </div>
+            </Title>
+            <Text c="var(--app-text-muted)">
+              {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
+            </Text>
+          </Stack>
 
-          <div className="work-card-score">
-            <span className="work-card-score-value">
-              {work.rating === null ? '—' : work.rating}
-            </span>
-            <span className="work-card-score-label">별점</span>
-          </div>
-        </div>
+          <Text c="var(--app-text-secondary)">
+            {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
+          </Text>
 
-        <p className="card-summary">
-          {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
-        </p>
+          <KeyValueGrid
+            columns={3}
+            items={[
+              { label: '타입', value: typeLabel },
+              { label: '상태', value: statusLabel },
+              {
+                label: '장르',
+                value: visibleGenres.length > 0 ? visibleGenres.join(', ') : '장르 없음',
+              },
+            ]}
+          />
 
-        <div className="work-card-meta-grid">
-          <div className="work-card-meta-item">
-            <span className="works-list-label">타입</span>
-            <strong>{typeLabel}</strong>
-          </div>
-          <div className="work-card-meta-item">
-            <span className="works-list-label">상태</span>
-            <strong>{statusLabel}</strong>
-          </div>
-          <div className="work-card-meta-item">
-            <span className="works-list-label">장르</span>
-            <strong>
-              {visibleGenres.length > 0 ? visibleGenres.join(', ') : '장르 없음'}
-            </strong>
-          </div>
-        </div>
+          <ActionRow justify="space-between">
+            <Group gap="xs" wrap="wrap">
+              {visibleGenres.length > 0 ? (
+                visibleGenres.map((genre) => <Badge key={genre}>{genre}</Badge>)
+              ) : (
+                <Badge variant="outline">장르 없음</Badge>
+              )}
+              {work.genres.length > visibleGenres.length && (
+                <Badge>+{work.genres.length - visibleGenres.length}</Badge>
+              )}
+            </Group>
 
-        <div className="work-card-footer">
-          <div className="tag-list" aria-label="장르">
-            {visibleGenres.length > 0 ? (
-              <>
-                {visibleGenres.map((genre) => (
-                  <span className="tag" key={genre}>
-                    {genre}
-                  </span>
-                ))}
-                {work.genres.length > visibleGenres.length && (
-                  <span className="tag">+{work.genres.length - visibleGenres.length}</span>
-                )}
-              </>
-            ) : (
-              <span className="tag tag--muted">장르 없음</span>
-            )}
-          </div>
+            <ActionRow justify="flex-end">
+              <AppLinkButton to={`/works/${work.id}`}>상세</AppLinkButton>
+              <AppLinkButton to={`/works/${work.id}/edit`}>수정</AppLinkButton>
+              <AppButton
+                aria-label={`${work.title} 삭제`}
+                onClick={() => void onDelete(work)}
+                tone="danger"
+                type="button"
+              >
+                삭제
+              </AppButton>
+            </ActionRow>
+          </ActionRow>
 
-          <div className="button-row">
-            <Link className="secondary-link" to={`/works/${work.id}`}>
-              상세
-            </Link>
-            <Link className="secondary-link" to={`/works/${work.id}/edit`}>
-              수정
-            </Link>
-            <button
-              aria-label={`${work.title} 삭제`}
-              className="danger-button"
-              onClick={() => void onDelete(work)}
-              type="button"
-            >
-              삭제
-            </button>
-          </div>
-
-          <p className="work-card-action-note">
+          <Text c="var(--app-text-muted)" fz="sm">
             삭제하면 현재 목록에서 숨겨집니다.
-          </p>
-        </div>
-      </div>
-    </article>
+          </Text>
+        </Stack>
+      </Group>
+    </SectionCard>
   );
 }

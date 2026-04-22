@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
-import { PasswordInput, TextInput } from '@mantine/core';
+import { PasswordInput, Stack, TextInput } from '@mantine/core';
 
 import {
   ActionRow,
+  AppButton,
   FeedbackMessage,
 } from '../../../shared/components/AppPrimitives';
 import type { AuthCredentialsInput } from '../services/auth.api';
@@ -33,38 +34,36 @@ export function AuthForm({
   }
 
   return (
-    <form className="auth-form stack" onSubmit={(event) => void handleSubmit(event)}>
-      <TextInput
-        autoComplete="email"
-        label="이메일"
-        name="email"
-        onChange={(event) => setEmail(event.currentTarget.value)}
-        required
-        type="email"
-        value={email}
-      />
+    <form onSubmit={(event) => void handleSubmit(event)}>
+      <Stack gap="md">
+        <TextInput
+          autoComplete="email"
+          label="이메일"
+          name="email"
+          onChange={(event) => setEmail(event.currentTarget.value)}
+          required
+          type="email"
+          value={email}
+        />
 
-      <PasswordInput
-        autoComplete="current-password"
-        label="비밀번호"
-        minLength={8}
-        name="password"
-        onChange={(event) => setPassword(event.currentTarget.value)}
-        required
-        value={password}
-      />
+        <PasswordInput
+          autoComplete="current-password"
+          label="비밀번호"
+          minLength={8}
+          name="password"
+          onChange={(event) => setPassword(event.currentTarget.value)}
+          required
+          value={password}
+        />
 
-      {submitError && (
-        <FeedbackMessage tone="error">
-          {submitError}
-        </FeedbackMessage>
-      )}
+        {submitError && <FeedbackMessage tone="error">{submitError}</FeedbackMessage>}
 
-      <ActionRow>
-        <button disabled={isSubmitting} type="submit">
-          {isSubmitting ? `${submitLabel} 중...` : submitLabel}
-        </button>
-      </ActionRow>
+        <ActionRow>
+          <AppButton disabled={isSubmitting} tone="primary" type="submit">
+            {isSubmitting ? `${submitLabel} 중...` : submitLabel}
+          </AppButton>
+        </ActionRow>
+      </Stack>
     </form>
   );
 }

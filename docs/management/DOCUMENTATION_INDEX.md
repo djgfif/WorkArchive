@@ -65,7 +65,13 @@
 | [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md) | `exploratory strategy` | 게스트 유지와 구글 로그인 전략을 검토할 때 |
 | [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md) | `exploratory architecture` | catalog/public/community 확장 구조를 검토할 때 |
 
-## 4. Historical Reference
+## 4. Operational Prompt
+
+| Document | Role | Use it when |
+| --- | --- | --- |
+| [`CODEX_FRONTEND_FOUNDATION_PROMPT.md`](./CODEX_FRONTEND_FOUNDATION_PROMPT.md) | `execution prompt` | 프론트 foundation refactor를 Codex에 바로 위임할 실행 프롬프트가 필요할 때 |
+
+## 5. Historical Reference
 
 다음 문서는 현재 코드 기준이 아니라 reference 문서다.
 
@@ -76,7 +82,7 @@
 
 이 문서들은 초기 의사결정과 milestone 맥락을 추적할 때만 사용한다.
 
-## 5. Maintenance Rule
+## 6. Maintenance Rule
 
 문서를 만들거나 이동하거나 이름을 바꾸면 최소 다음을 함께 갱신한다.
 

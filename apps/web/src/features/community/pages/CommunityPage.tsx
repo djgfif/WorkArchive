@@ -1,14 +1,13 @@
-import { Link } from 'react-router-dom';
-
+import { AppLinkButton } from '../../../shared/components/AppPrimitives';
 import { FutureFeaturePage } from '../../../shared/components/FutureFeaturePage';
 
 export function CommunityPage() {
   return (
     <FutureFeaturePage
       actions={
-        <Link className="secondary-link" to="/profile">
+        <AppLinkButton to="/profile">
           프로필 구조 보기
-        </Link>
+        </AppLinkButton>
       }
       description="커뮤니티는 메인 탭에 포함되지만, 현재 단계에서는 개인 기록이 중심이라는 원칙을 유지합니다."
       eyebrow="커뮤니티"

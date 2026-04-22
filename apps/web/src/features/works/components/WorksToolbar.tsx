@@ -1,11 +1,14 @@
+import { Badge, Group, NativeSelect, SimpleGrid, Text, TextInput } from '@mantine/core';
+
 import type { WorkStatus } from '@work-archive/shared-types';
-import { Link } from 'react-router-dom';
 
 import {
+  ActionBar,
   ActionRow,
+  AppButton,
+  AppLinkButton,
   MetricPill,
   SectionCard,
-  SectionIntro,
 } from '../../../shared/components/AppPrimitives';
 import { PageHero } from '../../../shared/components/PageHero';
 import type { WorksListQuery } from '../utils/query-works';
@@ -87,13 +90,13 @@ export function WorksToolbar({
         actions={
           <>
             {hasActiveFilters && (
-              <button onClick={onClearFilters} type="button">
+              <AppButton onClick={onClearFilters} type="button">
                 초기화
-              </button>
+              </AppButton>
             )}
-            <Link className="primary-link" to="/works/new">
+            <AppLinkButton to="/works/new" tone="primary">
               작품 추가
-            </Link>
+            </AppLinkButton>
           </>
         }
         description={
@@ -121,84 +124,65 @@ export function WorksToolbar({
         title="작품"
       />
 
-      <SectionCard className="toolbar-panel">
-        <div className="toolbar-header">
-          <div>
-            <SectionIntro
-              description={
-                <>
-                  {countSummary}{' '}
-                  {collectionScope === 'trash'
-                    ? '삭제한 작품은 여기서 다시 복원할 수 있습니다.'
-                    : viewMode === 'list'
-                      ? '기본은 관리 중심 리스트입니다.'
-                      : '그리드는 표지 중심 탐색용입니다.'}
-                </>
-              }
-              title={collectionScope === 'trash' ? '휴지통 관리' : '찾기와 정리'}
-              titleOrder={3}
-            />
-          </div>
-
-          <ActionRow className="toolbar-header-actions" justify="flex-end">
-            <div aria-label="작품 보기 범위" className="segmented-control" role="group">
-              <button
-                className={
-                  collectionScope === 'active'
-                    ? 'segment-button active'
-                    : 'segment-button'
-                }
-                onClick={() => onCollectionScopeChange('active')}
-                type="button"
-              >
-                작품 목록
-              </button>
-              <button
-                className={
-                  collectionScope === 'trash'
-                    ? 'segment-button active'
-                    : 'segment-button'
-                }
-                onClick={() => onCollectionScopeChange('trash')}
-                type="button"
-              >
-                {totalDeletedCount > 0 ? `휴지통 ${totalDeletedCount}` : '휴지통'}
-              </button>
-            </div>
-
+      <ActionBar
+        actions={
+          <ActionRow justify="flex-end">
+            <AppButton
+              onClick={() => onCollectionScopeChange('active')}
+              tone={collectionScope === 'active' ? 'primary' : 'secondary'}
+              type="button"
+            >
+              작품 목록
+            </AppButton>
+            <AppButton
+              onClick={() => onCollectionScopeChange('trash')}
+              tone={collectionScope === 'trash' ? 'primary' : 'secondary'}
+              type="button"
+            >
+              {totalDeletedCount > 0 ? `휴지통 ${totalDeletedCount}` : '휴지통'}
+            </AppButton>
             {collectionScope === 'active' && (
-              <div aria-label="보기 방식" className="segmented-control" role="group">
-                <button
-                  className={viewMode === 'list' ? 'segment-button active' : 'segment-button'}
+              <>
+                <AppButton
                   onClick={() => onViewModeChange('list')}
+                  tone={viewMode === 'list' ? 'ghost' : 'secondary'}
                   type="button"
                 >
                   리스트
-                </button>
-                <button
-                  className={viewMode === 'grid' ? 'segment-button active' : 'segment-button'}
+                </AppButton>
+                <AppButton
                   onClick={() => onViewModeChange('grid')}
+                  tone={viewMode === 'grid' ? 'ghost' : 'secondary'}
                   type="button"
                 >
                   그리드
-                </button>
-              </div>
+                </AppButton>
+              </>
             )}
           </ActionRow>
-        </div>
-
+        }
+        description={
+          <>
+            {countSummary}{' '}
+            {collectionScope === 'trash'
+              ? '삭제한 작품은 여기서 다시 복원할 수 있습니다.'
+              : viewMode === 'list'
+                ? '기본은 관리 중심 리스트입니다.'
+                : '그리드는 표지 중심 탐색용입니다.'}
+          </>
+        }
+        eyebrow={collectionScope === 'trash' ? '휴지통' : '작업 공간'}
+        title={collectionScope === 'trash' ? '휴지통 관리' : '찾기와 정리'}
+      >
         {collectionScope === 'active' ? (
-          <div className="toolbar-chip-row" role="group" aria-label="상태 빠른 필터">
+          <Group gap="sm" wrap="wrap">
             {statusFilterOptions.map((option) => {
               const isActive = query.status === option.value;
               const count =
-                option.value === 'all'
-                  ? totalActiveCount
-                  : statusCounts[option.value];
+                option.value === 'all' ? totalActiveCount : statusCounts[option.value];
 
               return (
-                <button
-                  className={isActive ? 'filter-chip active' : 'filter-chip'}
+                <AppButton
                   key={option.value}
                   onClick={() =>
                     onQueryChange({
@@ -206,102 +190,100 @@ export function WorksToolbar({
                       status: option.value,
                     })
                   }
+                  tone={isActive ? 'primary' : 'ghost'}
                   type="button"
                 >
-                  <span>{option.label}</span>
-                  <span className="filter-chip-count">{count}</span>
-                </button>
+                  {option.label}
+                  <Badge color={isActive ? 'gray' : 'archive'} variant="white">
+                    {count}
+                  </Badge>
+                </AppButton>
               );
             })}
-          </div>
+          </Group>
         ) : (
-          <div className="works-trash-explainer">
-            <span className="mode-badge">현재는 소프트 삭제</span>
-            <p className="muted-copy">
-              작품을 삭제해도 바로 사라지지 않고 휴지통에 보관됩니다. 복원하면
-              상태, 별점, 리뷰를 그대로 되돌릴 수 있습니다.
-            </p>
-          </div>
+          <SectionCard gap="sm" padding="lg">
+            <Badge color="archive" w="fit-content">
+              현재는 소프트 삭제
+            </Badge>
+            <Text c="var(--app-text-muted)">
+              작품을 삭제해도 바로 사라지지 않고 휴지통에 보관됩니다. 복원하면 상태,
+              별점, 리뷰를 그대로 되돌릴 수 있습니다.
+            </Text>
+          </SectionCard>
         )}
 
-        <label className="field search-field" htmlFor="searchTerm">
-          <span>작품 검색</span>
-          <input
-            id="searchTerm"
+        <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md">
+          <TextInput
+            label="작품 검색"
             name="searchTerm"
             onChange={(event) =>
-              onQueryChange({ ...query, searchTerm: event.target.value })
+              onQueryChange({ ...query, searchTerm: event.currentTarget.value })
             }
             placeholder="제목 또는 작가로 검색"
             value={query.searchTerm}
           />
-        </label>
 
-        <div className="toolbar-grid">
-          <label className="field" htmlFor="typeFilter">
-            <span>유형</span>
-            <select
-              id="typeFilter"
-              onChange={(event) =>
-                onQueryChange({
-                  ...query,
-                  type: event.target.value as WorksListQuery['type'],
-                })
-              }
-              value={query.type}
-            >
-              <option value="all">전체 유형</option>
-              {workTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <NativeSelect
+            id="typeFilter"
+            label="유형"
+            onChange={(event) =>
+              onQueryChange({
+                ...query,
+                type: event.currentTarget.value as WorksListQuery['type'],
+              })
+            }
+            value={query.type}
+          >
+            <option value="all">전체 유형</option>
+            {workTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
 
-          <label className="field" htmlFor="sortBy">
-            <span>정렬</span>
-            <select
-              id="sortBy"
-              onChange={(event) =>
-                onQueryChange({
-                  ...query,
-                  sortBy: event.target.value as WorksListQuery['sortBy'],
-                })
-              }
-              value={query.sortBy}
-            >
-              {workSortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <NativeSelect
+            id="sortBy"
+            label="정렬"
+            onChange={(event) =>
+              onQueryChange({
+                ...query,
+                sortBy: event.currentTarget.value as WorksListQuery['sortBy'],
+              })
+            }
+            value={query.sortBy}
+          >
+            {workSortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </SimpleGrid>
 
-          <div className="workspace-hint-card">
-            <span className="mode-badge">
-              {collectionScope === 'trash'
-                ? '휴지통'
-                : viewMode === 'list'
-                  ? '기본 보기'
-                  : '보조 보기'}
-            </span>
-            <p className="muted-copy">
-              {collectionScope === 'trash'
-                ? '숨겨둔 작품을 확인하고, 필요하면 복원하는 용도로만 정리했습니다.'
-                : viewMode === 'list'
-                  ? '리스트 뷰에서는 상태와 별점을 바로 바꿀 수 있습니다.'
-                  : '그리드 뷰는 표지 중심으로 둘러볼 때 더 편합니다.'}
-            </p>
-            <p className="workspace-note">
-              {collectionScope === 'trash'
-                ? '영구 삭제 규칙은 아직 확정되지 않았습니다. 지금은 복원 가능한 보관함으로 사용합니다.'
-                : '삭제한 작품은 먼저 휴지통으로 이동합니다. 목록 관리와 복원은 같은 작품 영역 안에서 처리합니다.'}
-            </p>
-          </div>
-        </div>
-      </SectionCard>
+        <SectionCard gap="sm" padding="lg">
+          <Badge color="archive" w="fit-content">
+            {collectionScope === 'trash'
+              ? '휴지통'
+              : viewMode === 'list'
+                ? '기본 보기'
+                : '보조 보기'}
+          </Badge>
+          <Text c="var(--app-text-muted)">
+            {collectionScope === 'trash'
+              ? '숨겨둔 작품을 확인하고, 필요하면 복원하는 용도로만 정리했습니다.'
+              : viewMode === 'list'
+                ? '리스트 뷰에서는 상태와 별점을 바로 바꿀 수 있습니다.'
+                : '그리드 뷰는 표지 중심으로 둘러볼 때 더 편합니다.'}
+          </Text>
+          <Text c="var(--app-text-secondary)" fw={600}>
+            {collectionScope === 'trash'
+              ? '영구 삭제 규칙은 아직 확정되지 않았습니다. 지금은 복원 가능한 보관함으로 사용합니다.'
+              : '삭제한 작품은 먼저 휴지통으로 이동합니다. 목록 관리와 복원은 같은 작품 영역 안에서 처리합니다.'}
+          </Text>
+        </SectionCard>
+      </ActionBar>
     </section>
   );
 }

@@ -1,7 +1,14 @@
+import { Badge, Group, NativeSelect, Stack, Text, Title } from '@mantine/core';
 import type { WorkStatus, WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import {
+  ActionRow,
+  AppButton,
+  AppLinkButton,
+  SectionCard,
+} from '../../../shared/components/AppPrimitives';
 import {
   formatWorkUpdatedAt,
   getWorkTypeLabel,
@@ -40,122 +47,118 @@ export function WorkListRow({
   work,
 }: WorkListRowProps) {
   const typeLabel = getWorkTypeLabel(work.type);
-  const rowClassName = isUpdating
-    ? 'works-list-row works-list-row--updating'
-    : 'works-list-row';
 
   return (
-    <article className={rowClassName}>
-      <Link
-        aria-label={`${work.title} 상세 보기`}
-        className="works-list-row-cover"
-        to={`/works/${work.id}`}
-      >
-        <ArtworkPoster
-          thumbnailUrl={work.thumbnailUrl}
-          title={work.title}
-          typeLabel={typeLabel}
-          variant="row"
-        />
-      </Link>
+    <SectionCard tone={isUpdating ? 'hero' : 'default'}>
+      <Stack gap="lg">
+        <Group align="flex-start" justify="space-between" wrap="wrap">
+          <Group align="flex-start" wrap="nowrap">
+            <ArtworkPoster
+              thumbnailUrl={work.thumbnailUrl}
+              title={work.title}
+              typeLabel={typeLabel}
+              variant="row"
+            />
 
-      <div className="works-list-row-main">
-        <div className="works-list-row-topline">
-          {work.favorite && <span className="badge badge-accent">즐겨찾기</span>}
-          {isUpdating && <span className="mode-badge">반영 중</span>}
-        </div>
+            <Stack gap="sm" miw={0}>
+              <Group gap="xs" wrap="wrap">
+                {work.favorite && <Badge color="archive">즐겨찾기</Badge>}
+                {isUpdating && <Badge color="blue">반영 중</Badge>}
+                <Badge>{typeLabel}</Badge>
+              </Group>
 
-        <div className="stack works-list-row-copy">
-          <h3 className="card-title">
-            <Link className="text-link" to={`/works/${work.id}`}>
-              {work.title}
-            </Link>
-          </h3>
-          <p className="muted-copy">
-            {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
-            {formatWorkUpdatedAt(work.updatedAt)}
-          </p>
-          <p className="card-summary">
-            {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
-          </p>
-        </div>
-      </div>
+              <Stack gap={4}>
+                <Title order={3}>
+                  <Link style={{ color: 'inherit', textDecoration: 'none' }} to={`/works/${work.id}`}>
+                    {work.title}
+                  </Link>
+                </Title>
+                <Text c="var(--app-text-muted)">
+                  {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
+                  {formatWorkUpdatedAt(work.updatedAt)}
+                </Text>
+              </Stack>
 
-      <div className="works-list-row-type">
-        <span className="works-list-label">타입</span>
-        <strong>{typeLabel}</strong>
-      </div>
+              <Text c="var(--app-text-secondary)">
+                {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
+              </Text>
+            </Stack>
+          </Group>
 
-      <label className="works-list-control-card" htmlFor={`rating-${work.id}`}>
-        <span className="works-list-label">별점</span>
-        <select
-          aria-label={`${work.title} 별점`}
-          disabled={isUpdating}
-          id={`rating-${work.id}`}
-          onChange={(event) => {
-            const nextValue =
-              event.target.value === '' ? null : Number.parseFloat(event.target.value);
+          <ActionRow justify="flex-end">
+            <AppLinkButton to={`/works/${work.id}`}>보기</AppLinkButton>
+            <AppLinkButton to={`/works/${work.id}/edit`}>수정</AppLinkButton>
+            <AppButton
+              aria-label={`${work.title} 삭제`}
+              disabled={isUpdating}
+              onClick={() => void onDelete(work)}
+              tone="danger"
+              type="button"
+            >
+              삭제
+            </AppButton>
+          </ActionRow>
+        </Group>
 
-            void onQuickUpdate(work, {
-              rating: Number.isNaN(nextValue) ? null : nextValue,
-            });
-          }}
-          value={work.rating?.toString() ?? ''}
-        >
-          <option value="">미평가</option>
-          {ratingOptions.map((option) => (
-            <option key={option.value} value={option.value.toString()}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <span className="works-list-helper">{formatRatingLabel(work.rating)}</span>
-      </label>
+        <Group align="stretch" grow>
+          <SectionCard gap={6} padding="lg" tone="subtle">
+            <Text c="var(--app-text-muted)" fw={600} fz="sm">
+              타입
+            </Text>
+            <Text c="var(--app-text-strong)" fw={700}>
+              {typeLabel}
+            </Text>
+          </SectionCard>
 
-      <label className="works-list-control-card" htmlFor={`status-${work.id}`}>
-        <span className="works-list-label">상태</span>
-        <select
-          aria-label={`${work.title} 상태`}
-          disabled={isUpdating}
-          id={`status-${work.id}`}
-          onChange={(event) =>
-            void onQuickUpdate(work, {
-              status: event.target.value as WorkStatus,
-            })
-          }
-          value={work.status}
-        >
-          {workStatusOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <span className="works-list-helper">빠르게 변경 가능</span>
-      </label>
-
-      <div className="works-list-row-actions">
-        <div className="button-row works-list-row-action-buttons">
-          <Link className="secondary-link" to={`/works/${work.id}`}>
-            보기
-          </Link>
-          <Link className="secondary-link" to={`/works/${work.id}/edit`}>
-            수정
-          </Link>
-          <button
-            aria-label={`${work.title} 삭제`}
-            className="danger-button"
+          <NativeSelect
+            aria-label={`${work.title} 별점`}
             disabled={isUpdating}
-            onClick={() => void onDelete(work)}
-            type="button"
+            id={`rating-${work.id}`}
+            label="별점"
+            onChange={(event) => {
+              const nextValue =
+                event.currentTarget.value === ''
+                  ? null
+                  : Number.parseFloat(event.currentTarget.value);
+
+              void onQuickUpdate(work, {
+                rating: Number.isNaN(nextValue) ? null : nextValue,
+              });
+            }}
+            value={work.rating?.toString() ?? ''}
           >
-            삭제
-          </button>
-        </div>
-        <p className="works-trash-hint">
-          삭제하면 지금은 목록에서 숨겨집니다.
-        </p>
-      </div>
-    </article>
+            <option value="">미평가</option>
+            {ratingOptions.map((option) => (
+              <option key={option.value} value={option.value.toString()}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+
+          <NativeSelect
+            aria-label={`${work.title} 상태`}
+            disabled={isUpdating}
+            id={`status-${work.id}`}
+            label="상태"
+            onChange={(event) =>
+              void onQuickUpdate(work, {
+                status: event.currentTarget.value as WorkStatus,
+              })
+            }
+            value={work.status}
+          >
+            {workStatusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </Group>
+
+        <Text c="var(--app-text-muted)" fz="sm">
+          별점 {formatRatingLabel(work.rating)} · 삭제하면 지금은 목록에서 숨겨집니다.
+        </Text>
+      </Stack>
+    </SectionCard>
   );
 }

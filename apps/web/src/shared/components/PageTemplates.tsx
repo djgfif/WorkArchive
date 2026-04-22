@@ -64,13 +64,13 @@ export function AuthPageTemplate({
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         {highlights.map((highlight) => (
           <SectionCard key={highlight.title} tone="subtle">
-            <Text c="var(--accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+            <Text c="var(--app-accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
               안내
             </Text>
-            <Title c="var(--text-primary)" order={2}>
+            <Title order={2}>
               {highlight.title}
             </Title>
-            <Text c="var(--text-muted)">{highlight.description}</Text>
+            <Text c="var(--app-text-muted)">{highlight.description}</Text>
           </SectionCard>
         ))}
       </SimpleGrid>
@@ -128,13 +128,13 @@ export function MinimalPageTemplate({
   return (
     <PageShell size={760}>
       <SectionCard tone="hero">
-        <Text c="var(--accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+        <Text c="var(--app-accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
           {eyebrow}
         </Text>
-        <Title c="var(--text-primary)" order={1}>
+        <Title order={1}>
           {title}
         </Title>
-        <Text c="var(--text-secondary)" maw="58ch">
+        <Text c="var(--app-text-secondary)" maw="58ch">
           {description}
         </Text>
         {actions && <ActionRow>{actions}</ActionRow>}

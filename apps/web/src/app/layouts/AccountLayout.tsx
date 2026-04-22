@@ -1,10 +1,15 @@
-import { Box, Container, Grid, Stack, Text, Title } from '@mantine/core';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Container, Grid, Stack } from '@mantine/core';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import {
   ActionRow,
+  AppButton,
+  AppLinkButton,
+  BrandLink,
   SectionCard,
+  SectionIntro,
   StateMessage,
+  ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 
@@ -26,35 +31,22 @@ export function AccountLayout() {
 
   return (
     <main className="layout-shell layout-shell--account">
-      <Box aria-hidden="true" className="layout-backdrop layout-backdrop--east" />
-      <Container px={0} size={1360}>
+      <Container px="md" size={1360}>
         <Grid align="start" gutter="xl">
           <Grid.Col span={{ base: 12, lg: 3 }}>
-            <Box style={{ position: 'sticky', top: 24 }}>
+            <div style={{ position: 'sticky', top: 24 }}>
               <SectionCard tone="subtle">
-              <Link className="brand-link" to="/">
-                <span aria-hidden="true" className="brand-mark">
-                  WA
-                </span>
-                <div className="brand-copy">
-                  <span className="brand-kicker">계정 센터</span>
-                  <span className="brand-heading">관리 맥락</span>
-                </div>
-              </Link>
+                <BrandLink heading="관리 맥락" kicker="계정 센터" />
 
-                <Stack gap="md">
-                  <Text c="var(--accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
-                  {isAuthenticated ? '로그인됨' : '게스트 모드'}
-                  </Text>
-                  <Title c="var(--text-primary)" order={2}>
-                  {isAuthenticated ? '계정과 동기화 설정' : '계정 기능 안내'}
-                  </Title>
-                  <Text c="var(--text-muted)">
-                  {isAuthenticated
-                    ? `${user?.email ?? '계정'}으로 사용하는 관리 화면입니다.`
-                    : '로그인하면 동기화와 계정 설정을 이 영역에서 관리할 수 있습니다.'}
-                  </Text>
-                </Stack>
+                <SectionIntro
+                  description={
+                    isAuthenticated
+                      ? `${user?.email ?? '계정'}으로 사용하는 관리 화면입니다.`
+                      : '로그인하면 동기화와 계정 설정을 이 영역에서 관리할 수 있습니다.'
+                  }
+                  eyebrow={isAuthenticated ? '로그인됨' : '게스트 모드'}
+                  title={isAuthenticated ? '계정과 동기화 설정' : '계정 기능 안내'}
+                />
 
                 <nav aria-label="계정 메뉴" className="account-nav">
                   {accountNavigationItems.map((item) => (
@@ -72,21 +64,20 @@ export function AccountLayout() {
                 </nav>
 
                 <ActionRow>
-                  <Link className="secondary-link" to="/profile">
-                    프로필로 돌아가기
-                  </Link>
+                  <ThemeToggleControl />
+                  <AppLinkButton to="/profile">프로필로 돌아가기</AppLinkButton>
                   {isAuthenticated ? (
-                    <button onClick={() => void handleSignOut()} type="button">
+                    <AppButton onClick={() => void handleSignOut()} type="button">
                       로그아웃
-                    </button>
+                    </AppButton>
                   ) : (
-                    <Link className="secondary-link" to="/auth/login">
+                    <AppLinkButton to="/auth/login">
                       로그인
-                    </Link>
+                    </AppLinkButton>
                   )}
                 </ActionRow>
               </SectionCard>
-            </Box>
+            </div>
           </Grid.Col>
 
           <Grid.Col span={{ base: 12, lg: 9 }}>

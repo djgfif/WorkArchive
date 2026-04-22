@@ -1,14 +1,13 @@
-import { Link } from 'react-router-dom';
-
+import { AppLinkButton } from '../../../shared/components/AppPrimitives';
 import { FutureFeaturePage } from '../../../shared/components/FutureFeaturePage';
 
 export function InsightsPage() {
   return (
     <FutureFeaturePage
       actions={
-        <Link className="secondary-link" to="/works">
+        <AppLinkButton to="/works">
           작품 기록 보러가기
-        </Link>
+        </AppLinkButton>
       }
       description="인사이트는 저장된 기록을 의미 있는 취향 정보로 바꾸는 메인 탭입니다. 이번 단계에서는 자리를 먼저 고정합니다."
       eyebrow="인사이트"

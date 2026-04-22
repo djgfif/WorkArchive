@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import { WORK_STATUSES, WORK_TYPES } from '@work-archive/shared-types';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
   ActionRow,
+  AppButton,
+  AppLinkButton,
   FeedbackMessage,
   SectionCard,
   StateMessage,
@@ -252,21 +254,21 @@ export function WorksListPage() {
           actions={
             <>
               {collectionScope === 'trash' ? (
-                <button
+                <AppButton
                   onClick={() => {
                     handleCollectionScopeChange('active');
                   }}
                   type="button"
                 >
                   작품 목록 보기
-                </button>
+                </AppButton>
               ) : (
-                <Link className="primary-link" to="/works/new">
+                <AppLinkButton to="/works/new" tone="primary">
                   작품 추가
-                </Link>
+                </AppLinkButton>
               )}
               {hasActiveFilters && collectionScope === 'active' && (
-                <button
+                <AppButton
                   onClick={() => {
                     setQuery(DEFAULT_WORKS_LIST_QUERY);
                     setSearchParams(
@@ -277,7 +279,7 @@ export function WorksListPage() {
                   type="button"
                 >
                   초기화
-                </button>
+                </AppButton>
               )}
             </>
           }
@@ -310,23 +312,23 @@ export function WorksListPage() {
         !isLoading &&
         collectionScope === 'active' &&
         totalDeletedCount > 0 && (
-          <SectionCard className="works-trash-surface" tone="subtle">
-            <div className="works-trash-surface-copy">
+          <SectionCard tone="subtle">
+            <div>
               <p className="section-kicker">휴지통</p>
               <h2 className="section-title">숨겨둔 작품 {totalDeletedCount}개</h2>
-              <p className="muted-copy">
+              <p className="section-description">
                 삭제한 작품은 바로 사라지지 않고 이 작품 영역 안의 휴지통에
                 남습니다. 필요하면 복원해서 다시 관리할 수 있습니다.
               </p>
             </div>
 
             <ActionRow>
-              <button
+              <AppButton
                 onClick={() => handleCollectionScopeChange('trash')}
                 type="button"
               >
                 휴지통 보기
-              </button>
+              </AppButton>
             </ActionRow>
           </SectionCard>
         )}

@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom';
+import { Badge, Group, SimpleGrid, Text } from '@mantine/core';
 
 import {
-  ActionRow,
+  AppLinkButton,
+  KeyValueGrid,
   MetricPill,
   SectionCard,
   SectionIntro,
@@ -28,11 +29,7 @@ export function AccountOverviewPage() {
 
   return (
     <AccountPageTemplate
-      actions={
-        <Link className="secondary-link" to="/profile">
-          프로필 보기
-        </Link>
-      }
+      actions={<AppLinkButton to="/profile">프로필 보기</AppLinkButton>}
       description={
         isAuthenticated
           ? '동기화, 계정 상태, 설정 진입을 한 곳에 모아 관리하는 계정 전용 영역입니다.'
@@ -48,7 +45,7 @@ export function AccountOverviewPage() {
       }
       title={isAuthenticated ? '계정 센터' : '계정 안내'}
     >
-      <section className="profile-grid">
+      <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
         <SectionCard>
           <SectionIntro
             description={
@@ -60,22 +57,14 @@ export function AccountOverviewPage() {
             title={isAuthenticated ? '로그인된 계정' : '게스트 모드'}
           />
 
-          <ActionRow>
-            {isAuthenticated ? (
-              <Link className="secondary-link" to="/account/settings">
-                계정 설정 보기
-              </Link>
-            ) : (
-              <>
-                <Link className="secondary-link" to="/auth/login">
-                  로그인
-                </Link>
-                <Link className="secondary-link" to="/auth/register">
-                  회원가입
-                </Link>
-              </>
-            )}
-          </ActionRow>
+          {isAuthenticated ? (
+            <AppLinkButton to="/account/settings">계정 설정 보기</AppLinkButton>
+          ) : (
+            <Group gap="sm">
+              <AppLinkButton to="/auth/login">로그인</AppLinkButton>
+              <AppLinkButton to="/auth/register">회원가입</AppLinkButton>
+            </Group>
+          )}
         </SectionCard>
 
         <SectionCard>
@@ -85,26 +74,15 @@ export function AccountOverviewPage() {
             title="계정 보조 기능"
           />
 
-          <dl className="detail-list detail-list--columns">
-            <div>
-              <dt>대기 중</dt>
-              <dd>{queueItems.length}건</dd>
-            </div>
-            <div>
-              <dt>충돌</dt>
-              <dd>{conflictWorks.length}건</dd>
-            </div>
-            <div>
-              <dt>최근 동기화</dt>
-              <dd>{formatOptionalDate(lastSuccessfulPullAt)}</dd>
-            </div>
-          </dl>
+          <KeyValueGrid
+            items={[
+              { label: '대기 중', value: `${queueItems.length}건` },
+              { label: '충돌', value: `${conflictWorks.length}건` },
+              { label: '최근 동기화', value: formatOptionalDate(lastSuccessfulPullAt) },
+            ]}
+          />
 
-          <ActionRow>
-            <Link className="secondary-link" to="/account/sync">
-              동기화 열기
-            </Link>
-          </ActionRow>
+          <AppLinkButton to="/account/sync">동기화 열기</AppLinkButton>
         </SectionCard>
 
         <SectionCard>
@@ -114,17 +92,13 @@ export function AccountOverviewPage() {
             title="계정·테마·공개 범위"
           />
 
-          <div className="badge-row">
-            <span className="badge">테마</span>
-            <span className="badge">공개 범위</span>
-            <span className="badge">계정 정보</span>
-          </div>
+          <Group gap="xs" wrap="wrap">
+            <Badge>테마</Badge>
+            <Badge>공개 범위</Badge>
+            <Badge>계정 정보</Badge>
+          </Group>
 
-          <ActionRow>
-            <Link className="secondary-link" to="/account/settings">
-              설정 열기
-            </Link>
-          </ActionRow>
+          <AppLinkButton to="/account/settings">설정 열기</AppLinkButton>
         </SectionCard>
 
         <SectionCard>
@@ -134,13 +108,13 @@ export function AccountOverviewPage() {
             title="공개 프로필과 연결 준비"
           />
 
-          <ActionRow>
-            <Link className="secondary-link" to="/profile">
-              프로필 보기
-            </Link>
-          </ActionRow>
+          <Text c="var(--app-text-muted)">
+            계정 설정과 프로필 목적지는 분리해 유지보수성과 확장성을 높입니다.
+          </Text>
+
+          <AppLinkButton to="/profile">프로필 보기</AppLinkButton>
         </SectionCard>
-      </section>
+      </SimpleGrid>
     </AccountPageTemplate>
   );
 }

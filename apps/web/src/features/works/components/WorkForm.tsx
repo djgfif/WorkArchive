@@ -8,6 +8,7 @@ import {
 import { Link } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import { AppButton } from '../../../shared/components/AppPrimitives';
 import {
   createDefaultWorkFormValues,
   parseWorkFormValues,
@@ -349,9 +350,9 @@ export function WorkForm({
         )}
 
         <div className="button-row form-actions">
-          <button disabled={isSubmitting} type="submit">
+          <AppButton disabled={isSubmitting} tone="primary" type="submit">
             {isSubmitting ? '저장 중...' : submitLabel}
-          </button>
+          </AppButton>
           <Link className="secondary-link" to={cancelTo}>
             취소
           </Link>

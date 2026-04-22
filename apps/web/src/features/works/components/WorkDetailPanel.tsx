@@ -1,8 +1,17 @@
 import { useState, type ReactNode } from 'react';
+import { Badge, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import {
+  ActionRow,
+  AppButton,
+  KeyValueGrid,
+  SectionCard,
+  SectionIntro,
+  StatCard,
+} from '../../../shared/components/AppPrimitives';
 import {
   formatWorkDateTime,
   formatWorkUpdatedAt,
@@ -54,37 +63,34 @@ function ReviewSection({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <section className={isExpanded ? 'detail-review-card detail-review-card--open' : 'detail-review-card'}>
-      <div className="detail-review-card-header">
-        <div className="section-heading">
-          <p className="section-kicker">{eyebrow}</p>
-          <h3 className="section-title">{title}</h3>
-          <p className="detail-review-preview">
-            {hasContent
-              ? summarizeText(trimmedBody, previewMaxLength)
-              : previewFallback}
-          </p>
-        </div>
+    <SectionCard tone="subtle">
+      <Group align="flex-start" justify="space-between" wrap="wrap">
+        <SectionIntro
+          description={hasContent ? summarizeText(trimmedBody, previewMaxLength) : previewFallback}
+          eyebrow={eyebrow}
+          title={title}
+          titleOrder={3}
+        />
 
         {hasContent ? (
-          <button
-            className="secondary-link detail-review-toggle"
+          <AppButton
             onClick={() => setIsExpanded((currentValue) => !currentValue)}
+            tone="ghost"
             type="button"
           >
             {isExpanded ? expandedLabel : collapsedLabel}
-          </button>
+          </AppButton>
         ) : null}
-      </div>
+      </Group>
 
-      <div className="detail-review-body">
-        {hasContent ? (
-          isExpanded ? <p>{trimmedBody}</p> : null
-        ) : (
-          <p>{emptyCopy}</p>
-        )}
-      </div>
-    </section>
+      {hasContent ? (
+        isExpanded ? (
+          <Text c="var(--app-text-secondary)">{trimmedBody}</Text>
+        ) : null
+      ) : (
+        <Text c="var(--app-text-muted)">{emptyCopy}</Text>
+      )}
+    </SectionCard>
   );
 }
 
@@ -122,63 +128,54 @@ export function WorkDetailPanel({
   const primaryRecord = getPrimaryRecord(work, statusLabel);
 
   return (
-    <section className="panel detail-shell">
-      <div className="work-detail-hero">
-        <ArtworkPoster
-          className="work-detail-poster"
-          thumbnailUrl={work.thumbnailUrl}
-          title={work.title}
-          typeLabel={typeLabel}
-          variant="detail"
-        />
+    <Stack gap="xl">
+      <SectionCard tone="hero">
+        <Group align="flex-start" wrap="nowrap">
+          <ArtworkPoster
+            thumbnailUrl={work.thumbnailUrl}
+            title={work.title}
+            typeLabel={typeLabel}
+            variant="detail"
+          />
 
-        <div className="work-detail-copy">
-          <div className="badge-row">
-            <span className="badge">{typeLabel}</span>
-            <span className="badge">{syncLabel}</span>
-            {work.favorite && <span className="badge badge-accent">즐겨찾기</span>}
-          </div>
+          <Stack flex={1} gap="lg" miw={0}>
+            <Group gap="xs" wrap="wrap">
+              <Badge>{typeLabel}</Badge>
+              <Badge>{syncLabel}</Badge>
+              {work.favorite && <Badge color="archive">즐겨찾기</Badge>}
+            </Group>
 
-          <div className="stack work-detail-title-block">
-            <h2 className="page-title">{work.title}</h2>
-            <p className="work-detail-author">
-              {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
-              {formatWorkUpdatedAt(work.updatedAt)}
-            </p>
-          </div>
+            <Stack gap={6}>
+              <Title order={1}>{work.title}</Title>
+              <Text c="var(--app-text-muted)">
+                {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
+                {formatWorkUpdatedAt(work.updatedAt)}
+              </Text>
+            </Stack>
 
-          <div className="detail-primary-record">
-            <p className="detail-primary-record-label">{primaryRecord.label}</p>
-            <p className="detail-primary-record-value">{primaryRecord.value}</p>
-            <p className="muted-copy">{primaryRecord.description}</p>
-          </div>
+            <SectionCard gap={6} padding="lg" tone="subtle">
+              <Text c="var(--app-accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+                {primaryRecord.label}
+              </Text>
+              <Title order={2}>{primaryRecord.value}</Title>
+              <Text c="var(--app-text-muted)">{primaryRecord.description}</Text>
+            </SectionCard>
 
-          <div className="detail-summary-grid">
-            <div className="stat-tile">
-              <span className="stat-tile-label">상태</span>
-              <strong>{statusLabel}</strong>
-            </div>
-            <div className="stat-tile">
-              <span className="stat-tile-label">타입</span>
-              <strong>{typeLabel}</strong>
-            </div>
-            <div className="stat-tile">
-              <span className="stat-tile-label">한줄평</span>
-              <strong>{work.shortReview.trim() ? '있음' : '없음'}</strong>
-            </div>
-            <div className="stat-tile">
-              <span className="stat-tile-label">상세 감상</span>
-              <strong>{work.review.trim() ? '있음' : '없음'}</strong>
-            </div>
-          </div>
+            <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
+              <StatCard label="상태" value={statusLabel} />
+              <StatCard label="타입" value={typeLabel} />
+              <StatCard label="한줄평" value={work.shortReview.trim() ? '있음' : '없음'} />
+              <StatCard label="상세 감상" value={work.review.trim() ? '있음' : '없음'} />
+            </SimpleGrid>
 
-          {quickEdit}
+            {quickEdit}
 
-          {actions && <div className="button-row">{actions}</div>}
-        </div>
-      </div>
+            {actions && <ActionRow>{actions}</ActionRow>}
+          </Stack>
+        </Group>
+      </SectionCard>
 
-      <section className="detail-review-grid">
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         <ReviewSection
           body={work.shortReview}
           collapsedLabel="한줄평 펼치기"
@@ -199,90 +196,58 @@ export function WorkDetailPanel({
           previewFallback="상세 감상은 접어두고 필요할 때 펼쳐보는 구조로 준비했습니다."
           title="상세 감상"
         />
-      </section>
+      </SimpleGrid>
 
-      <div className="detail-grid detail-grid--work">
-        <div className="detail-section">
-          <div className="section-heading">
-            <p className="section-kicker">기록 요약</p>
-            <h3 className="section-title">내 기록 정보</h3>
-          </div>
-          <dl className="detail-list detail-list--columns">
-            <div>
-              <dt>현재 상태</dt>
-              <dd>{statusLabel}</dd>
-            </div>
-            <div>
-              <dt>별점</dt>
-              <dd>{work.rating === null ? '아직 안 매김' : `${work.rating.toFixed(1)}점`}</dd>
-            </div>
-            <div>
-              <dt>티어</dt>
-              <dd>{tierLabel}</dd>
-            </div>
-            <div>
-              <dt>즐겨찾기</dt>
-              <dd>{work.favorite ? '등록함' : '없음'}</dd>
-            </div>
-          </dl>
-        </div>
+      <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
+        <SectionCard>
+          <SectionIntro eyebrow="기록 요약" title="내 기록 정보" />
+          <KeyValueGrid
+            items={[
+              { label: '현재 상태', value: statusLabel },
+              {
+                label: '별점',
+                value: work.rating === null ? '아직 안 매김' : `${work.rating.toFixed(1)}점`,
+              },
+              { label: '티어', value: tierLabel },
+              { label: '즐겨찾기', value: work.favorite ? '등록함' : '없음' },
+            ]}
+          />
+        </SectionCard>
 
-        <div className="detail-section">
-          <div className="section-heading">
-            <p className="section-kicker">작품 소개</p>
-            <h3 className="section-title">간단한 소개</h3>
-          </div>
-          <p className="detail-body-copy">
-            {work.description || '작품 소개가 아직 없습니다.'}
-          </p>
-        </div>
+        <SectionCard>
+          <SectionIntro
+            description={work.description || '작품 소개가 아직 없습니다.'}
+            eyebrow="작품 소개"
+            title="간단한 소개"
+          />
+        </SectionCard>
 
-        <div className="detail-section">
-          <div className="section-heading">
-            <p className="section-kicker">작품 정보</p>
-            <h3 className="section-title">기본 메타데이터</h3>
-          </div>
-          <dl className="detail-list detail-list--columns">
-            <div>
-              <dt>작가·제작자</dt>
-              <dd>{work.author || '미입력'}</dd>
-            </div>
-            <div>
-              <dt>장르</dt>
-              <dd>{work.genres.length > 0 ? work.genres.join(', ') : '없음'}</dd>
-            </div>
-            <div>
-              <dt>유형</dt>
-              <dd>{typeLabel}</dd>
-            </div>
-          </dl>
-        </div>
+        <SectionCard>
+          <SectionIntro eyebrow="작품 정보" title="기본 메타데이터" />
+          <KeyValueGrid
+            items={[
+              { label: '작가·제작자', value: work.author || '미입력' },
+              {
+                label: '장르',
+                value: work.genres.length > 0 ? work.genres.join(', ') : '없음',
+              },
+              { label: '유형', value: typeLabel },
+            ]}
+          />
+        </SectionCard>
 
-        <div className="detail-section">
-          <div className="section-heading">
-            <p className="section-kicker">저장 정보</p>
-            <h3 className="section-title">저장 및 동기화</h3>
-          </div>
-          <dl className="detail-list detail-list--columns">
-            <div>
-              <dt>동기화 상태</dt>
-              <dd>{syncLabel}</dd>
-            </div>
-            <div>
-              <dt>추가한 날</dt>
-              <dd>{formatWorkDateTime(work.createdAt)}</dd>
-            </div>
-            <div>
-              <dt>수정한 날</dt>
-              <dd>{formatWorkDateTime(work.updatedAt)}</dd>
-            </div>
-            <div>
-              <dt>서버 버전</dt>
-              <dd>{work.serverVersion}</dd>
-            </div>
-          </dl>
-        </div>
-      </div>
-    </section>
+        <SectionCard>
+          <SectionIntro eyebrow="저장 정보" title="저장 및 동기화" />
+          <KeyValueGrid
+            items={[
+              { label: '동기화 상태', value: syncLabel },
+              { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
+              { label: '수정한 날', value: formatWorkDateTime(work.updatedAt) },
+              { label: '서버 버전', value: work.serverVersion },
+            ]}
+          />
+        </SectionCard>
+      </SimpleGrid>
+    </Stack>
   );
 }

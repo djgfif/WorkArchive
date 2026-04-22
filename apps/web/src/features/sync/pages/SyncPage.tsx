@@ -1,9 +1,11 @@
-import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { Badge, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 
 import {
-  ActionRow,
+  AppButton,
+  AppLinkButton,
   FeedbackMessage,
+  KeyValueGrid,
   MetricPill,
   SectionCard,
   SectionIntro,
@@ -80,14 +82,13 @@ export function SyncPage() {
     <AccountPageTemplate
       actions={
         <>
-          <Link className="secondary-link" to="/account">
-            계정 홈으로 돌아가기
-          </Link>
-          <button
+          <AppLinkButton to="/account">계정 홈으로 돌아가기</AppLinkButton>
+          <AppButton
             disabled={isGuestMode || syncState === 'syncing'}
             onClick={() => {
               void handleRunSync();
             }}
+            tone="primary"
             type="button"
           >
             {isGuestMode
@@ -95,7 +96,7 @@ export function SyncPage() {
               : syncState === 'syncing'
                 ? '동기화 중...'
                 : '수동 동기화'}
-          </button>
+          </AppButton>
         </>
       }
       description={
@@ -114,158 +115,151 @@ export function SyncPage() {
       }
       title="동기화 상태"
     >
-
-      {isGuestMode && (
-        <StateMessage
-          actions={
-            <>
-              <Link className="secondary-link" to="/auth/login">
-                로그인
-              </Link>
-              <Link className="secondary-link" to="/auth/register">
-                회원가입
-              </Link>
-            </>
-          }
-          description="게스트 모드에서는 기록이 이 기기에만 저장됩니다. 계정으로 로그인하면 기록을 동기화할 수 있습니다."
-          eyebrow="게스트 모드"
-          title="로그인하면 동기화할 수 있습니다"
-          tone="info"
-        />
-      )}
-
-      {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
-
-      {lastRun && (
-        <SectionCard>
-          <SectionIntro
-            description={`실행 시각 ${formatWorkDateTime(lastRun.completedAt)}`}
-            eyebrow="최근 실행"
-            title="최근 동기화 결과"
+      <Stack gap="md">
+        {isGuestMode && (
+          <StateMessage
+            actions={
+              <>
+                <AppLinkButton to="/auth/login">로그인</AppLinkButton>
+                <AppLinkButton to="/auth/register">회원가입</AppLinkButton>
+              </>
+            }
+            description="게스트 모드에서는 기록이 이 기기에만 저장됩니다. 계정으로 로그인하면 기록을 동기화할 수 있습니다."
+            eyebrow="게스트 모드"
+            title="로그인하면 동기화할 수 있습니다"
+            tone="info"
           />
+        )}
 
-          <div className="sync-result-grid">
-            <article className="sync-result-card">
-              <h3>보내기</h3>
-              <p className="muted-copy">
-                보내기 {lastRun.push.attemptedCount}건, 반영 {lastRun.push.appliedCount}건,
-                충돌 {lastRun.push.conflictCount}건, 실패 {lastRun.push.failedCount}건.
-              </p>
-              <p className="muted-copy">
-                처리 시각 {formatOptionalDate(lastRun.push.processedAt)}
-              </p>
-            </article>
+        {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
 
-            <article className="sync-result-card">
-              <h3>가져오기</h3>
-              <p className="muted-copy">
-                가져온 {lastRun.pull.pulledCount}건 중 반영 {lastRun.pull.appliedCount}건,
-                보류 {lastRun.pull.skippedCount}건.
-              </p>
-              <p className="muted-copy">
-                가져온 시각 {formatOptionalDate(lastRun.pull.pulledAt)}
-              </p>
-            </article>
-          </div>
+        {lastRun && (
+          <SectionCard>
+            <SectionIntro
+              description={`실행 시각 ${formatWorkDateTime(lastRun.completedAt)}`}
+              eyebrow="최근 실행"
+              title="최근 동기화 결과"
+            />
 
-          <div className="stack">
-            {lastRun.push.messages.map((message, index) => (
-              <p className="muted-copy" key={`push-${index}-${message}`}>
-                보내기: {message}
-              </p>
-            ))}
-            {lastRun.pull.messages.map((message, index) => (
-              <p className="muted-copy" key={`pull-${index}-${message}`}>
-                가져오기: {message}
-              </p>
-            ))}
-          </div>
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+              <SectionCard padding="lg" tone="subtle">
+                <Title order={4}>보내기</Title>
+                <Text c="var(--app-text-muted)">
+                  보내기 {lastRun.push.attemptedCount}건, 반영 {lastRun.push.appliedCount}건,
+                  충돌 {lastRun.push.conflictCount}건, 실패 {lastRun.push.failedCount}건.
+                </Text>
+                <Text c="var(--app-text-muted)">
+                  처리 시각 {formatOptionalDate(lastRun.push.processedAt)}
+                </Text>
+              </SectionCard>
+
+              <SectionCard padding="lg" tone="subtle">
+                <Title order={4}>가져오기</Title>
+                <Text c="var(--app-text-muted)">
+                  가져온 {lastRun.pull.pulledCount}건 중 반영 {lastRun.pull.appliedCount}건,
+                  보류 {lastRun.pull.skippedCount}건.
+                </Text>
+                <Text c="var(--app-text-muted)">
+                  가져온 시각 {formatOptionalDate(lastRun.pull.pulledAt)}
+                </Text>
+              </SectionCard>
+            </SimpleGrid>
+
+            <Stack gap="xs">
+              {lastRun.push.messages.map((message, index) => (
+                <Text c="var(--app-text-muted)" key={`push-${index}-${message}`}>
+                  보내기: {message}
+                </Text>
+              ))}
+              {lastRun.pull.messages.map((message, index) => (
+                <Text c="var(--app-text-muted)" key={`pull-${index}-${message}`}>
+                  가져오기: {message}
+                </Text>
+              ))}
+            </Stack>
+          </SectionCard>
+        )}
+
+        <SectionCard>
+          <SectionIntro eyebrow="대기열" title="동기화 대기 중" />
+
+          {isLoading && <Text c="var(--app-text-muted)">동기화 상태를 불러오는 중입니다.</Text>}
+
+          {!isLoading && queueItems.length === 0 && (
+            <Text c="var(--app-text-muted)">지금은 동기화할 내용이 없습니다.</Text>
+          )}
+
+          {!isLoading && queueItems.length > 0 && (
+            <Stack gap="md">
+              {queueItems.map((item) => (
+                <SectionCard key={item.id} padding="lg" tone="subtle">
+                  <Group align="flex-start" justify="space-between" wrap="wrap">
+                    <Stack gap={4}>
+                      <Title order={4}>{item.payload.title}</Title>
+                      <Text c="var(--app-text-muted)">
+                        {getSyncOperationLabel(item.operation)} 요청
+                      </Text>
+                    </Stack>
+                    <Badge>재시도 {item.retryCount}회</Badge>
+                  </Group>
+
+                  <KeyValueGrid
+                    items={[
+                      {
+                        label: '최근 수정',
+                        value: formatWorkDateTime(item.payload.updatedAt),
+                      },
+                      {
+                        label: '동기화 상태',
+                        value: getWorkSyncStatusLabel(item.payload.syncStatus),
+                      },
+                      { label: '서버 버전', value: item.payload.serverVersion },
+                    ]}
+                  />
+
+                  {item.lastError && (
+                    <FeedbackMessage tone="error">{item.lastError}</FeedbackMessage>
+                  )}
+                </SectionCard>
+              ))}
+            </Stack>
+          )}
         </SectionCard>
-      )}
 
-      <SectionCard>
-        <SectionIntro eyebrow="대기열" title="동기화 대기 중" />
+        <SectionCard>
+          <SectionIntro eyebrow="충돌" title="확인이 필요한 작품" />
 
-        {isLoading && <p className="muted-copy">동기화 상태를 불러오는 중입니다.</p>}
+          {!isLoading && conflictWorks.length === 0 && (
+            <Text c="var(--app-text-muted)">지금은 확인이 필요한 충돌이 없습니다.</Text>
+          )}
 
-        {!isLoading && queueItems.length === 0 && (
-          <p className="muted-copy">지금은 동기화할 내용이 없습니다.</p>
-        )}
+          {!isLoading && conflictWorks.length > 0 && (
+            <Stack gap="md">
+              {conflictWorks.map((work) => (
+                <SectionCard key={work.id} padding="lg" tone="subtle">
+                  <Group align="flex-start" justify="space-between" wrap="wrap">
+                    <Stack gap={4}>
+                      <Title order={4}>{work.title}</Title>
+                      <Text c="var(--app-text-muted)">
+                        동기화 상태를 확인해주세요.
+                      </Text>
+                    </Stack>
+                    <Badge color="red">충돌</Badge>
+                  </Group>
 
-        {!isLoading && queueItems.length > 0 && (
-          <div className="sync-list">
-            {queueItems.map((item) => (
-              <article className="sync-list-item" key={item.id}>
-                <div className="page-header">
-                  <div>
-                    <h3 className="card-title">{item.payload.title}</h3>
-                    <p className="muted-copy">{getSyncOperationLabel(item.operation)} 요청</p>
-                  </div>
-                  <span className="sync-queue-meta">재시도 {item.retryCount}회</span>
-                </div>
-
-                <dl className="detail-list">
-                  <div>
-                    <dt>최근 수정</dt>
-                    <dd>{formatWorkDateTime(item.payload.updatedAt)}</dd>
-                  </div>
-                  <div>
-                    <dt>동기화 상태</dt>
-                    <dd>{getWorkSyncStatusLabel(item.payload.syncStatus)}</dd>
-                  </div>
-                  <div>
-                    <dt>서버 버전</dt>
-                    <dd>{item.payload.serverVersion}</dd>
-                  </div>
-                </dl>
-
-                {item.lastError && (
-                  <FeedbackMessage tone="error">{item.lastError}</FeedbackMessage>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-      </SectionCard>
-
-      <SectionCard>
-        <SectionIntro eyebrow="충돌" title="확인이 필요한 작품" />
-
-        {!isLoading && conflictWorks.length === 0 && (
-          <p className="muted-copy">지금은 확인이 필요한 충돌이 없습니다.</p>
-        )}
-
-        {!isLoading && conflictWorks.length > 0 && (
-          <div className="sync-list">
-            {conflictWorks.map((work) => (
-              <article className="sync-list-item" key={work.id}>
-                <div className="page-header">
-                  <div>
-                    <h3 className="card-title">{work.title}</h3>
-                    <p className="muted-copy">동기화 상태를 확인해주세요.</p>
-                  </div>
-                  <span className="sync-queue-meta">충돌</span>
-                </div>
-
-                <dl className="detail-list">
-                  <div>
-                    <dt>최근 수정</dt>
-                    <dd>{formatWorkDateTime(work.updatedAt)}</dd>
-                  </div>
-                  <div>
-                    <dt>삭제됨</dt>
-                    <dd>{formatOptionalDate(work.deletedAt, '없음')}</dd>
-                  </div>
-                  <div>
-                    <dt>서버 버전</dt>
-                    <dd>{work.serverVersion}</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
-          </div>
-        )}
-      </SectionCard>
+                  <KeyValueGrid
+                    items={[
+                      { label: '최근 수정', value: formatWorkDateTime(work.updatedAt) },
+                      { label: '삭제됨', value: formatOptionalDate(work.deletedAt, '없음') },
+                      { label: '서버 버전', value: work.serverVersion },
+                    ]}
+                  />
+                </SectionCard>
+              ))}
+            </Stack>
+          )}
+        </SectionCard>
+      </Stack>
     </AccountPageTemplate>
   );
 }
