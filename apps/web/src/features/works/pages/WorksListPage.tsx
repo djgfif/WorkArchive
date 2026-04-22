@@ -5,11 +5,9 @@ import { WORK_STATUSES, WORK_TYPES } from '@work-archive/shared-types';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
-  ActionRow,
   AppButton,
   AppLinkButton,
   FeedbackMessage,
-  SectionCard,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
 import { WorkspacePageTemplate } from '../../../shared/components/PageTemplates';
@@ -307,31 +305,6 @@ export function WorksListPage() {
           tone="info"
         />
       )}
-
-      {!error &&
-        !isLoading &&
-        collectionScope === 'active' &&
-        totalDeletedCount > 0 && (
-          <SectionCard tone="subtle">
-            <div>
-              <p className="section-kicker">휴지통</p>
-              <h2 className="section-title">숨겨둔 작품 {totalDeletedCount}개</h2>
-              <p className="section-description">
-                삭제한 작품은 바로 사라지지 않고 이 작품 영역 안의 휴지통에
-                남습니다. 필요하면 복원해서 다시 관리할 수 있습니다.
-              </p>
-            </div>
-
-            <ActionRow>
-              <AppButton
-                onClick={() => handleCollectionScopeChange('trash')}
-                type="button"
-              >
-                휴지통 보기
-              </AppButton>
-            </ActionRow>
-          </SectionCard>
-        )}
 
       {!error && !isLoading && works.length > 0 && (
         collectionScope === 'trash' ? (

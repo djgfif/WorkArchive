@@ -1,19 +1,21 @@
 import { useState, type FormEvent } from 'react';
-import { Badge, Group, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Group, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
+  AppBadge,
   AppButton,
   AppLinkButton,
   FeedbackMessage,
+  MetricPill,
   SectionCard,
   SectionIntro,
   StateMessage,
-  StatCard,
   SurfaceLinkCard,
 } from '../../../shared/components/AppPrimitives';
+import { PageHero } from '../../../shared/components/PageHero';
 import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
@@ -33,54 +35,15 @@ export function HomePage() {
   const {
     averageRating,
     completedCount,
-    deletedCount,
     error,
     inProgressCount,
     isLoading,
-    pausedOrDroppedCount,
     recentWorks,
     totalCount,
   } = useWorksOverview();
   const [searchTerm, setSearchTerm] = useState('');
   const isAuthenticated = mode === 'authenticated';
   const leadRecentWork = recentWorks[0] ?? null;
-
-  const primaryAction =
-    totalCount === 0
-      ? {
-          description: '아직 비어 있으니 첫 작품부터 가볍게 등록해보세요.',
-          label: '첫 작품 추가',
-          to: '/works/new',
-        }
-      : leadRecentWork
-        ? {
-            description: `${leadRecentWork.title} 기록을 이어서 확인합니다.`,
-            label: '최근 기록 이어보기',
-            to: `/works/${leadRecentWork.id}`,
-          }
-        : {
-            description: '작품 탭에서 최근 기록과 상태를 다시 정리할 수 있습니다.',
-            label: '작품 정리하기',
-            to: '/works',
-          };
-  const managementAction =
-    deletedCount > 0
-      ? {
-          description: `숨겨둔 작품 ${deletedCount}개를 확인하고 필요하면 복원할 수 있습니다.`,
-          label: '휴지통 확인',
-          to: '/works?scope=trash',
-        }
-      : inProgressCount > 0
-        ? {
-            description: `보는 중인 작품 ${inProgressCount}개를 이어서 정리합니다.`,
-            label: '보는 중 작품 정리',
-            to: '/works?status=in_progress',
-          }
-        : {
-            description: '상태와 별점을 빠르게 바꾸면서 전체 기록을 정리합니다.',
-            label: '작품 목록 관리',
-            to: '/works',
-          };
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -94,117 +57,126 @@ export function HomePage() {
 
   return (
     <HomeHubPageTemplate>
-      <SectionCard tone="hero">
-        <SectionIntro
-          description="검색, 빠른 추가, 최근 기록 복귀까지 한 화면에서 바로 이어집니다."
-          eyebrow="홈"
-          title="오늘 기록할 작품을 바로 시작해보세요"
-          titleOrder={1}
-        />
+      <PageHero
+        actions={
+          <ActionRow justify="flex-end">
+            <AppLinkButton to="/works/new" tone="primary">
+              작품 추가
+            </AppLinkButton>
+            <AppLinkButton to="/works">작품 열기</AppLinkButton>
+          </ActionRow>
+        }
+        description={
+          isAuthenticated
+            ? `${user?.email ?? '계정'}으로 이어서 기록 중입니다. 검색과 최근 기록에서 바로 다음 행동으로 넘어갈 수 있습니다.`
+            : '설명보다 기록 시작이 먼저 보이도록 검색, 추가, 최근 기록을 앞에 두었습니다.'
+        }
+        eyebrow="홈"
+        meta={
+          <>
+            <MetricPill label="기록한 작품" value={`${totalCount}개`} />
+            <MetricPill label="보는 중" value={`${inProgressCount}개`} />
+            <MetricPill label="완료" value={`${completedCount}개`} />
+          </>
+        }
+        title="다음 기록을 바로 이어가세요"
+      />
 
-        <form onSubmit={handleSearchSubmit}>
-          <Group align="flex-end" wrap="wrap">
-            <TextInput
-              aria-label="홈 검색"
-              flex={1}
-              miw={240}
-              onChange={(event) => setSearchTerm(event.currentTarget.value)}
-              placeholder="제목이나 작가로 작품 찾기"
-              value={searchTerm}
-            />
-            <AppButton tone="primary" type="submit">
-              작품 찾기
-            </AppButton>
-            <AppLinkButton to="/works/new">빠른 추가</AppLinkButton>
-          </Group>
-        </form>
-
-        <Group gap="sm" wrap="wrap">
-          <Badge>검색에서 시작</Badge>
-          <Badge>작품 추가 상시 노출</Badge>
-          <Badge>최근 기록 바로 이어보기</Badge>
-        </Group>
-      </SectionCard>
-
-      <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
-        <SectionCard>
+      <SimpleGrid cols={{ base: 1, xl: 3 }} spacing="md">
+        <SectionCard gap="lg" tone="hero">
           <SectionIntro
-            description={
-              isAuthenticated
-                ? `${user?.email ?? '계정'}으로 기록 중입니다. 지금 필요한 관리 작업만 바로 고를 수 있도록 정리했습니다.`
-                : '게스트 모드에서도 바로 저장됩니다. 기록이 쌓이면 계정으로 이어가도 됩니다.'
-            }
-            eyebrow="환영"
-            title={
-              isAuthenticated ? '다시 이어서 기록해볼까요?' : '바로 내 아카이브를 시작해보세요'
-            }
+            description="제목이나 작가로 바로 찾은 뒤, 작품 목록이나 추가 흐름으로 이어집니다."
+            eyebrow="빠른 시작"
+            title="검색에서 바로 시작"
+            titleOrder={2}
           />
 
-          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
-            <SurfaceLinkCard to={primaryAction.to} tone="hero">
-              <Badge>지금 하면 좋은 일</Badge>
-              <Title order={4}>{primaryAction.label}</Title>
-              <Text c="var(--app-text-muted)">{primaryAction.description}</Text>
-            </SurfaceLinkCard>
+          <form onSubmit={handleSearchSubmit}>
+            <Group align="flex-end" wrap="wrap">
+              <TextInput
+                aria-label="작품 검색"
+                flex={1}
+                miw={240}
+                onChange={(event) => setSearchTerm(event.currentTarget.value)}
+                placeholder="제목이나 작가로 작품 찾기"
+                value={searchTerm}
+              />
+              <AppButton tone="primary" type="submit">
+                작품 찾기
+              </AppButton>
+            </Group>
+          </form>
 
-            <SurfaceLinkCard to={managementAction.to}>
-              <Badge>관리 흐름</Badge>
-              <Title order={4}>{managementAction.label}</Title>
-              <Text c="var(--app-text-muted)">{managementAction.description}</Text>
-            </SurfaceLinkCard>
-
-            <SurfaceLinkCard to="/works/new">
-              <Badge>빠른 추가</Badge>
-              <Title order={4}>작품을 바로 등록</Title>
-              <Text c="var(--app-text-muted)">
-                검색에서 후보를 고르고 개인 기록만 입력해 저장할 수 있습니다.
-              </Text>
-            </SurfaceLinkCard>
-          </SimpleGrid>
+          <ActionRow>
+            <AppBadge tone="accent">검색 우선</AppBadge>
+            <AppBadge tone="default">최근 기록 복귀</AppBadge>
+            <AppBadge tone="default">빠른 추가 상시 노출</AppBadge>
+          </ActionRow>
         </SectionCard>
 
-        <SectionCard>
+        <SectionCard gap="lg" tone={leadRecentWork ? 'default' : 'subtle'}>
           <SectionIntro
-            description="기록의 양과 감상 흐름을 가장 먼저 확인할 수 있는 4개 지표만 남겼습니다."
-            eyebrow="통계 요약"
-            title="내 기록 한눈에 보기"
+            description={
+              leadRecentWork
+                ? `${leadRecentWork.title} 기록을 바로 이어볼 수 있습니다.`
+                : '최근 기록이 생기면 이 영역에서 바로 복귀할 수 있습니다.'
+            }
+            eyebrow="이어보기"
+            title={leadRecentWork ? '가장 최근 기록' : '복귀할 기록이 아직 없습니다'}
+            titleOrder={2}
           />
 
-          {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
+          {leadRecentWork ? (
+            <SurfaceLinkCard to={`/works/${leadRecentWork.id}`} tone="subtle">
+              <Group align="flex-start" wrap="nowrap">
+                <ArtworkPoster
+                  thumbnailUrl={leadRecentWork.thumbnailUrl}
+                  title={leadRecentWork.title}
+                  typeLabel={getWorkTypeLabel(leadRecentWork.type)}
+                  variant="row"
+                />
+                <Stack flex={1} gap="sm" miw={0}>
+                  <ActionRow>
+                    <AppBadge tone="accent">최근 기록</AppBadge>
+                    <AppBadge>{getWorkStatusLabel(leadRecentWork.status)}</AppBadge>
+                  </ActionRow>
+                  <div>
+                    <Title order={3}>{leadRecentWork.title}</Title>
+                    <Text c="var(--app-text-muted)">
+                      최근 수정 {formatWorkUpdatedAt(leadRecentWork.updatedAt)}
+                    </Text>
+                  </div>
+                  <Text c="var(--app-text-secondary)">
+                    {leadRecentWork.shortReview ||
+                      leadRecentWork.description ||
+                      '아직 남긴 메모가 없습니다.'}
+                  </Text>
+                </Stack>
+              </Group>
+            </SurfaceLinkCard>
+          ) : (
+            <AppLinkButton to="/works/new" tone="primary">
+              첫 작품 추가
+            </AppLinkButton>
+          )}
+        </SectionCard>
 
-          {!error && (
-            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-              <StatCard
-                accent
-                description={
-                  isLoading
-                    ? '불러오는 중'
-                    : totalCount === 0
-                      ? '아직 비어 있습니다'
-                      : '전체 아카이브 열기'
-                }
-                label="총 기록 수"
-                to="/works"
-                value={isLoading ? '...' : `${totalCount}개`}
-              />
-              <StatCard
-                description="별점순으로 다시 보기"
-                label="평균 별점"
-                to="/works?sort=rating"
-                value={isLoading ? '...' : formatAverageRating(averageRating)}
-              />
-              <StatCard
-                description="완료한 기록만 보기"
-                label="완주 작품 수"
-                to="/works?status=completed"
-                value={isLoading ? '...' : `${completedCount}개`}
-              />
-              <StatCard
-                description="멈춘 기록 다시 정리"
-                label="하차·보류 수"
-                to="/works"
-                value={isLoading ? '...' : `${pausedOrDroppedCount}개`}
-              />
+        <SectionCard gap="lg" tone="subtle">
+          <SectionIntro
+            description="통계는 빠르게만 읽고, 본문에서는 실제 작품 기록을 먼저 보게 정리했습니다."
+            eyebrow="요약"
+            title="기록 상태"
+            titleOrder={2}
+          />
+
+          {error ? (
+            <FeedbackMessage tone="error">{error}</FeedbackMessage>
+          ) : (
+            <SimpleGrid cols={{ base: 2, sm: 2 }} spacing="sm">
+              <MetricPill label="평균 별점" value={isLoading ? '...' : formatAverageRating(averageRating)} />
+              <MetricPill label="완료" value={isLoading ? '...' : `${completedCount}개`} />
+              <MetricPill label="보는 중" value={isLoading ? '...' : `${inProgressCount}개`} />
+              <MetricPill label="전체" value={isLoading ? '...' : `${totalCount}개`} />
             </SimpleGrid>
           )}
         </SectionCard>
@@ -212,7 +184,11 @@ export function HomePage() {
 
       <SectionCard>
         <Group align="flex-end" justify="space-between" wrap="wrap">
-          <SectionIntro eyebrow="최근 기록" title="최근 남긴 작품 6개" />
+          <SectionIntro
+            description="최근 수정한 작품부터 바로 다시 들어갈 수 있도록 정리했습니다."
+            eyebrow="최근 기록"
+            title="최근 남긴 작품"
+          />
           <ActionRow justify="flex-end">
             <AppLinkButton to="/works">작품 전체 보기</AppLinkButton>
           </ActionRow>
@@ -235,7 +211,7 @@ export function HomePage() {
                 작품 추가
               </AppLinkButton>
             }
-            description="첫 작품을 추가하면 홈에서 최근 기록과 요약 통계를 바로 볼 수 있습니다."
+            description="첫 작품을 추가하면 홈에서 최근 기록과 핵심 통계를 바로 볼 수 있습니다."
             title="아직 최근 기록이 없습니다."
             tone="info"
           />
@@ -244,11 +220,7 @@ export function HomePage() {
         {!error && !isLoading && recentWorks.length > 0 && (
           <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
             {recentWorks.map((work, index) => (
-              <SurfaceLinkCard
-                key={work.id}
-                to={`/works/${work.id}`}
-                tone={index === 0 ? 'hero' : 'default'}
-              >
+              <SurfaceLinkCard key={work.id} to={`/works/${work.id}`} tone={index === 0 ? 'hero' : 'default'}>
                 <Group align="flex-start" wrap="nowrap">
                   <ArtworkPoster
                     thumbnailUrl={work.thumbnailUrl}
@@ -258,28 +230,22 @@ export function HomePage() {
                   />
 
                   <Stack flex={1} gap="sm" miw={0}>
-                    <Group gap="xs" wrap="wrap">
-                      {index === 0 && <Badge color="archive">최근 작업</Badge>}
-                      <Badge>{getWorkTypeLabel(work.type)}</Badge>
-                      <Badge>{getWorkStatusLabel(work.status)}</Badge>
-                      <Badge>
-                        {work.rating === null ? '미평가' : `${work.rating}점`}
-                      </Badge>
-                    </Group>
+                    <ActionRow>
+                      {index === 0 && <AppBadge tone="accent">가장 최근</AppBadge>}
+                      <AppBadge>{getWorkTypeLabel(work.type)}</AppBadge>
+                      <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
+                      <AppBadge>{work.rating === null ? '미평가' : `${work.rating}점`}</AppBadge>
+                    </ActionRow>
 
-                    <Stack gap={4}>
+                    <div>
                       <Title order={index === 0 ? 3 : 4}>{work.title}</Title>
                       <Text c="var(--app-text-muted)">
-                        {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
-                        {formatWorkUpdatedAt(work.updatedAt)}
+                        {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
                       </Text>
-                    </Stack>
+                    </div>
 
                     <Text c="var(--app-text-secondary)">
                       {work.shortReview || work.description || '아직 남긴 메모가 없습니다.'}
-                    </Text>
-                    <Text c="var(--app-text-muted)" fw={600}>
-                      상세 보기
                     </Text>
                   </Stack>
                 </Group>

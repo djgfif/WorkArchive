@@ -9,8 +9,11 @@ describe('App', () => {
     renderWithProviders(<App />);
 
     expect(screen.getByText('워크 아카이브')).toBeInTheDocument();
-    expect(
-      await screen.findByRole('heading', { name: '오늘 기록할 작품을 바로 시작해보세요' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '다음 기록을 바로 이어가세요' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '홈' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '작품' })).toBeInTheDocument();
+    expect(screen.queryByText('티어 보드')).not.toBeInTheDocument();
+    expect(screen.queryByText('인사이트')).not.toBeInTheDocument();
+    expect(screen.queryByText('커뮤니티')).not.toBeInTheDocument();
   });
 });

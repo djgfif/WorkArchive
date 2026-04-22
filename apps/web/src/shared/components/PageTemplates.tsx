@@ -14,19 +14,19 @@ interface PageFrameProps {
 }
 
 export function HomeHubPageTemplate({ children }: PageFrameProps) {
-  return <PageShell size={1240}>{children}</PageShell>;
+  return <PageShell gap="xl" size={1180}>{children}</PageShell>;
 }
 
 export function WorkspacePageTemplate({ children }: PageFrameProps) {
-  return <PageShell size={1240}>{children}</PageShell>;
+  return <PageShell gap="lg" size={1260}>{children}</PageShell>;
 }
 
 export function DetailPageTemplate({ children }: PageFrameProps) {
-  return <PageShell size={1240}>{children}</PageShell>;
+  return <PageShell gap="xl" size={1120}>{children}</PageShell>;
 }
 
 export function FlowPageTemplate({ children }: PageFrameProps) {
-  return <PageShell size={1120}>{children}</PageShell>;
+  return <PageShell gap="xl" size={1080}>{children}</PageShell>;
 }
 
 interface AuthPageTemplateProps {
@@ -50,8 +50,8 @@ export function AuthPageTemplate({
   title,
 }: AuthPageTemplateProps) {
   return (
-    <>
-      <SectionCard tone="hero">
+    <PageShell gap="lg" size={720}>
+      <SectionCard gap="lg" tone="hero">
         <SectionIntro
           description={description}
           eyebrow={eyebrow}
@@ -63,20 +63,18 @@ export function AuthPageTemplate({
 
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         {highlights.map((highlight) => (
-          <SectionCard key={highlight.title} tone="subtle">
-            <Text c="var(--app-accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+          <SectionCard key={highlight.title} gap="sm" padding="lg" tone="subtle">
+            <Text c="var(--app-accent)" fw={700} fz="0.76rem" lts="0.12em" tt="uppercase">
               안내
             </Text>
-            <Title order={2}>
-              {highlight.title}
-            </Title>
+            <Title order={3}>{highlight.title}</Title>
             <Text c="var(--app-text-muted)">{highlight.description}</Text>
           </SectionCard>
         ))}
       </SimpleGrid>
 
-      {footer && <SectionCard tone="subtle">{footer}</SectionCard>}
-    </>
+      {footer && <SectionCard padding="lg" tone="subtle">{footer}</SectionCard>}
+    </PageShell>
   );
 }
 
@@ -98,7 +96,7 @@ export function AccountPageTemplate({
   title,
 }: AccountPageTemplateProps) {
   return (
-    <PageShell size={1240}>
+    <PageShell gap="lg" size={1120}>
       <PageHero
         actions={actions}
         description={description}
@@ -126,14 +124,12 @@ export function MinimalPageTemplate({
   title,
 }: MinimalPageTemplateProps) {
   return (
-    <PageShell size={760}>
+    <PageShell gap="lg" size={760}>
       <SectionCard tone="hero">
-        <Text c="var(--app-accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+        <Text c="var(--app-accent)" fw={700} fz="0.76rem" lts="0.12em" tt="uppercase">
           {eyebrow}
         </Text>
-        <Title order={1}>
-          {title}
-        </Title>
+        <Title order={1}>{title}</Title>
         <Text c="var(--app-text-secondary)" maw="58ch">
           {description}
         </Text>

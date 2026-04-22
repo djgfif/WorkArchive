@@ -14,14 +14,16 @@ import {
   ThemeIcon,
   useMantineColorScheme,
 } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 
 type SurfaceTone = 'default' | 'hero' | 'subtle';
 type MessageTone = 'error' | 'info' | 'loading' | 'success';
-type AppActionTone = 'danger' | 'ghost' | 'primary' | 'secondary';
+type AppActionTone = 'danger' | 'ghost' | 'primary' | 'quiet' | 'secondary';
+type AppBadgeTone = 'accent' | 'danger' | 'default' | 'muted' | 'success' | 'warning';
 
 interface PageShellProps {
   children: ReactNode;
+  gap?: string | number;
   size?: number;
 }
 
@@ -53,6 +55,11 @@ interface SectionIntroProps {
   eyebrow?: ReactNode;
   title: ReactNode;
   titleOrder?: 1 | 2 | 3 | 4 | 5 | 6;
+}
+
+interface AppBadgeProps {
+  children: ReactNode;
+  tone?: AppBadgeTone;
 }
 
 interface MetricPillProps {
@@ -145,6 +152,14 @@ interface ThemeToggleControlProps {
   fullWidth?: boolean;
 }
 
+interface AppNavLinkProps {
+  badge?: ReactNode;
+  children: ReactNode;
+  end?: boolean;
+  fullWidth?: boolean;
+  to: string;
+}
+
 function getSurfaceBackground(tone: SurfaceTone) {
   switch (tone) {
     case 'hero':
@@ -161,11 +176,14 @@ function getActionToneProps(tone: AppActionTone) {
   switch (tone) {
     case 'primary':
       return {
+        color: 'archive',
         variant: 'filled',
       } as const;
+    case 'quiet':
     case 'ghost':
       return {
-        variant: 'light',
+        color: 'gray',
+        variant: 'subtle',
       } as const;
     case 'danger':
       return {
@@ -177,6 +195,24 @@ function getActionToneProps(tone: AppActionTone) {
       return {
         variant: 'default',
       } as const;
+  }
+}
+
+function getBadgeToneProps(tone: AppBadgeTone) {
+  switch (tone) {
+    case 'accent':
+      return { color: 'archive' } as const;
+    case 'danger':
+      return { color: 'red' } as const;
+    case 'warning':
+      return { color: 'yellow' } as const;
+    case 'success':
+      return { color: 'teal' } as const;
+    case 'muted':
+      return { color: 'gray', variant: 'outline' } as const;
+    case 'default':
+    default:
+      return { color: 'gray' } as const;
   }
 }
 
@@ -220,10 +256,14 @@ function getResponsiveColumns(columns: 1 | 2 | 3) {
   return { base: 1, sm: 2 };
 }
 
-export function PageShell({ children, size = 1240 }: PageShellProps) {
+export function PageShell({
+  children,
+  gap = 'xl',
+  size = 1240,
+}: PageShellProps) {
   return (
     <Container px="md" size={size} w="100%">
-      <Stack gap="xl">{children}</Stack>
+      <Stack gap={gap}>{children}</Stack>
     </Container>
   );
 }
@@ -276,7 +316,7 @@ export function SurfaceLinkCard({
           display: 'block',
           textDecoration: 'none',
           transition:
-            'transform var(--app-transition-fast), border-color var(--app-transition-fast)',
+            'transform var(--app-transition-fast), border-color var(--app-transition-fast), background-color var(--app-transition-fast)',
         },
       }}
       to={to}
@@ -359,6 +399,17 @@ export function AppLinkButton({
   );
 }
 
+export function AppBadge({
+  children,
+  tone = 'default',
+}: AppBadgeProps) {
+  return (
+    <Badge {...getBadgeToneProps(tone)} w="fit-content">
+      {children}
+    </Badge>
+  );
+}
+
 export function BrandLink({
   heading,
   kicker,
@@ -373,16 +424,16 @@ export function BrandLink({
       }}
     >
       <Group gap="sm" wrap="nowrap">
-        <ThemeIcon radius="xl" size={44} variant="light">
+        <ThemeIcon radius="lg" size={42} variant="light">
           <Text fw={700} size="sm">
             WA
           </Text>
         </ThemeIcon>
-        <Stack gap={2}>
+        <Stack gap={1}>
           <Text c="var(--app-accent)" fw={700} fz="0.74rem" lts="0.12em" tt="uppercase">
             {kicker}
           </Text>
-          <Text c="var(--app-text-strong)" fw={700} fz="1.05rem">
+          <Text c="var(--app-text-strong)" fw={700} fz="1.02rem">
             {heading}
           </Text>
         </Stack>
@@ -401,11 +452,49 @@ export function ThemeToggleControl({
     <AppButton
       fullWidth={fullWidth}
       onClick={() => setColorScheme(nextColorScheme)}
-      tone="ghost"
+      tone="quiet"
       type="button"
     >
-      {colorScheme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+      {colorScheme === 'dark' ? '라이트 모드' : '다크 모드'}
     </AppButton>
+  );
+}
+
+export function AppNavLink({
+  badge,
+  children,
+  end = false,
+  fullWidth = false,
+  to,
+}: AppNavLinkProps) {
+  return (
+    <NavLink
+      end={end}
+      style={({ isActive }) => ({
+        alignItems: 'center',
+        background: isActive ? 'var(--app-accent-soft)' : 'var(--app-surface-1)',
+        border: `1px solid ${isActive ? 'var(--app-border-strong)' : 'var(--app-border-color)'}`,
+        borderRadius: '1rem',
+        color: isActive ? 'var(--app-text-strong)' : 'var(--app-text-secondary)',
+        display: fullWidth ? 'flex' : 'inline-flex',
+        gap: '0.625rem',
+        justifyContent: 'space-between',
+        minHeight: '42px',
+        padding: '0.75rem 1rem',
+        textDecoration: 'none',
+        transition:
+          'transform var(--app-transition-fast), border-color var(--app-transition-fast), background-color var(--app-transition-fast), color var(--app-transition-fast)',
+        width: fullWidth ? '100%' : undefined,
+      })}
+      to={to}
+    >
+      <Group gap="xs" justify="space-between" wrap="nowrap" w="100%">
+        <Text component="span" fw={600}>
+          {children}
+        </Text>
+        {badge}
+      </Group>
+    </NavLink>
   );
 }
 
@@ -418,13 +507,13 @@ export function SectionIntro({
   return (
     <Stack gap={8}>
       {eyebrow && (
-        <Text c="var(--app-accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+        <Text c="var(--app-accent)" fw={700} fz="0.76rem" lts="0.12em" tt="uppercase">
           {eyebrow}
         </Text>
       )}
       <Title order={titleOrder}>{title}</Title>
       {description && (
-        <Text c="var(--app-text-muted)" maw="56ch">
+        <Text c="var(--app-text-muted)" maw="60ch">
           {description}
         </Text>
       )}
@@ -432,11 +521,14 @@ export function SectionIntro({
   );
 }
 
-export function MetricPill({ label, value }: MetricPillProps) {
+export function MetricPill({
+  label,
+  value,
+}: MetricPillProps) {
   return (
     <Paper
-      p="sm"
-      radius="xl"
+      p="md"
+      radius="lg"
       styles={{
         root: {
           backgroundColor: 'var(--app-surface-2)',
@@ -446,10 +538,10 @@ export function MetricPill({ label, value }: MetricPillProps) {
       withBorder
     >
       <Stack gap={2}>
-        <Text c="var(--app-text-strong)" fw={700} fz="0.95rem">
+        <Text c="var(--app-text-strong)" fw={700} fz="0.96rem">
           {value}
         </Text>
-        <Text c="var(--app-text-muted)" fz="0.82rem">
+        <Text c="var(--app-text-muted)" fz="0.8rem">
           {label}
         </Text>
       </Stack>
@@ -466,7 +558,7 @@ export function StatCard({
 }: StatCardProps) {
   const content = (
     <Stack gap={6}>
-      <Text c={accent ? 'var(--app-accent)' : 'var(--app-text-muted)'} fw={700} fz="0.8rem">
+      <Text c={accent ? 'var(--app-accent)' : 'var(--app-text-muted)'} fw={700} fz="0.78rem">
         {label}
       </Text>
       <Title order={3}>{value}</Title>
@@ -476,14 +568,14 @@ export function StatCard({
 
   if (to) {
     return (
-      <SurfaceLinkCard padding="lg" to={to} tone={accent ? 'hero' : 'default'}>
+      <SurfaceLinkCard padding="lg" to={to} tone={accent ? 'hero' : 'subtle'}>
         {content}
       </SurfaceLinkCard>
     );
   }
 
   return (
-    <SectionCard gap={6} padding="lg" tone={accent ? 'hero' : 'default'}>
+    <SectionCard gap={6} padding="lg" tone={accent ? 'hero' : 'subtle'}>
       {content}
     </SectionCard>
   );
@@ -504,8 +596,19 @@ export function KeyValueGrid({
     >
       <SimpleGrid cols={getResponsiveColumns(columns)} spacing="md">
         {items.map((item, index) => (
-          <Paper key={index} p="md" radius="lg">
-            <Text c="var(--app-text-muted)" component="dt" fw={600} fz="0.82rem">
+          <Paper
+            key={index}
+            p="md"
+            radius="lg"
+            styles={{
+              root: {
+                backgroundColor: 'var(--app-surface-1)',
+                borderColor: 'var(--app-border-color)',
+              },
+            }}
+            withBorder
+          >
+            <Text c="var(--app-text-muted)" component="dt" fw={600} fz="0.8rem">
               {item.label}
             </Text>
             <Text c="var(--app-text-strong)" component="dd" fw={600} m={0} mt={6}>
@@ -527,7 +630,7 @@ export function ActionBar({
 }: ActionBarProps) {
   return (
     <SectionCard tone="subtle">
-      <Stack gap="lg">
+      <Stack gap="md">
         <Flex
           align={{ base: 'stretch', md: 'flex-start' }}
           direction={{ base: 'column', md: 'row' }}
@@ -554,7 +657,7 @@ export function FeedbackMessage({
   tone = 'error',
 }: FeedbackMessageProps) {
   return (
-    <Alert color={getMessageColor(tone)} radius="xl" title={title} variant="light">
+    <Alert color={getMessageColor(tone)} radius="lg" title={title} variant="light">
       <Text c="inherit">{children}</Text>
     </Alert>
   );
@@ -570,9 +673,9 @@ export function StateMessage({
   return (
     <SectionCard tone="subtle">
       <Stack gap="md">
-        <Badge color={getMessageColor(tone)} w="fit-content">
+        <AppBadge tone={tone === 'error' ? 'danger' : tone === 'success' ? 'success' : 'accent'}>
           {eyebrow ?? getMessageLabel(tone)}
-        </Badge>
+        </AppBadge>
         <Title order={2}>{title}</Title>
         <Text c="var(--app-text-muted)" maw="56ch">
           {description}
@@ -601,7 +704,7 @@ export function PageHeader({
         gap="xl"
         justify="space-between"
       >
-        <Stack gap="md" maw={720} miw={0}>
+        <Stack gap="md" maw={760} miw={0}>
           <SectionIntro
             description={description}
             eyebrow={eyebrow}
@@ -616,7 +719,7 @@ export function PageHeader({
         </Stack>
 
         {(aside || actions) && (
-          <Stack gap="md">
+          <Stack gap="md" maw={360} miw={0}>
             {aside}
             {actions && <ActionRow justify="flex-end">{actions}</ActionRow>}
           </Stack>

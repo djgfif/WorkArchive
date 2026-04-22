@@ -1,6 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
+import {
+  AppLinkButton,
+  MetricPill,
+  StateMessage,
+} from '../../../shared/components/AppPrimitives';
 import { PageHero } from '../../../shared/components/PageHero';
 import { FlowPageTemplate } from '../../../shared/components/PageTemplates';
 import { WorkForm } from '../components/WorkForm';
@@ -44,32 +49,36 @@ export function WorkEditPage() {
 
   if (error) {
     return (
-      <section className="panel stack">
-        <h2 className="section-title">작품 정보를 불러오지 못했습니다.</h2>
-        <p className="muted-copy">{error}</p>
-      </section>
+      <StateMessage
+        description={error}
+        title="작품 정보를 불러오지 못했습니다."
+        tone="error"
+      />
     );
   }
 
   if (isLoading) {
     return (
-      <section className="panel stack">
-        <h2 className="section-title">작품 정보를 불러오는 중입니다.</h2>
-        <p className="muted-copy">잠시만 기다려주세요.</p>
-      </section>
+      <StateMessage
+        description="잠시만 기다려주세요."
+        title="작품 정보를 불러오는 중입니다."
+        tone="loading"
+      />
     );
   }
 
   if (!work) {
     return (
-      <section className="panel stack">
-        <h2 className="section-title">수정할 작품을 찾을 수 없습니다.</h2>
-        <div className="button-row">
-          <Link className="primary-link" to="/works">
+      <StateMessage
+        actions={
+          <AppLinkButton to="/works" tone="primary">
             작품으로 돌아가기
-          </Link>
-        </div>
-      </section>
+          </AppLinkButton>
+        }
+        description="삭제되었거나 주소가 올바르지 않을 수 있습니다."
+        title="수정할 작품을 찾을 수 없습니다."
+        tone="info"
+      />
     );
   }
 
@@ -78,13 +87,11 @@ export function WorkEditPage() {
       <PageHero
         actions={
           <>
-            <Link className="secondary-link" to={`/works/${work.id}`}>
-              상세로 돌아가기
-            </Link>
+            <AppLinkButton to={`/works/${work.id}`}>상세로 돌아가기</AppLinkButton>
             {focusArea === 'review' && (
-              <Link className="secondary-link" to={`/works/${work.id}/edit`}>
+              <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
                 전체 수정 모드
-              </Link>
+              </AppLinkButton>
             )}
           </>
         }
@@ -96,20 +103,11 @@ export function WorkEditPage() {
         eyebrow="수정"
         meta={
           <>
-            <div className="stat-pill">
-              <span className="stat-pill-value">{work.title}</span>
-              <span className="stat-pill-label">현재 제목</span>
-            </div>
-            <div className="stat-pill">
-              <span className="stat-pill-value">
-                {focusArea === 'review' ? '리뷰 집중 모드' : '저장 즉시 반영'}
-              </span>
-              <span className="stat-pill-label">
-                {focusArea === 'review'
-                  ? '감상 문장을 먼저 정리'
-                  : '작품 목록에 바로 반영'}
-              </span>
-            </div>
+            <MetricPill label="현재 제목" value={work.title} />
+            <MetricPill
+              label="작업 방식"
+              value={focusArea === 'review' ? '리뷰 집중 모드' : '전체 수정'}
+            />
           </>
         }
         title={focusArea === 'review' ? `${work.title} 감상 수정` : `${work.title} 수정`}

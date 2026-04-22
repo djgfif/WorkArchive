@@ -52,6 +52,8 @@ describe('WorksListPage', () => {
     );
 
     expect(await screen.findByText(/작품 2개가 등록되어 있습니다\./)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '리스트' })).toBeInTheDocument();
+    expect(screen.queryByText(/리스트 뷰에서는 상태와 별점을 바로 바꿀 수 있습니다\./)).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/^유형$/), 'novel');
 
