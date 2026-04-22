@@ -4,9 +4,9 @@
 | --- | --- |
 | Status | `canonical` |
 | Role | `current frontend decisions` |
-| Source of truth | `apps/web/src/app/router/routes.tsx`, current layout/page implementation |
-| Last verified against | `2026-04-21` working tree |
-| When to update | 현재 라우트, 레이아웃 책임, 페이지 역할, 저장 흐름이 바뀔 때 |
+| Source of truth | `apps/web/src/app/router/routes.tsx`, current layout/page implementation, current auth/session data flow |
+| Last verified against | `2026-04-22` working tree |
+| When to update | 현재 라우트, 레이아웃 책임, 페이지 역할, 세션 저장 방식, placeholder 경계가 바뀔 때 |
 
 이 문서는 Work Archive 프론트엔드의 **현재 canonical 기준**이다. 목표 비전이나 향후 리팩터링 계획이 아니라, 지금 코드에서 이미 고정된 UI/라우트/레이아웃 결정을 정리한다.
 
@@ -121,12 +121,16 @@
 - DB는 `works`, `syncQueue`, `appMeta` 테이블을 사용한다.
 - 게스트와 로그인 사용자는 서로 다른 로컬 아카이브를 사용한다.
 - sync는 계정 모드에서만 수동 실행한다.
-- 인증은 현재 이메일/비밀번호 + localStorage token 저장 구조다.
+- 인증은 현재 이메일/비밀번호 기반이다.
+- access token은 `localStorage`에 저장한다.
+- refresh token은 JS가 직접 읽지 않고 cookie로만 사용한다.
+- 인증 API 호출은 `credentials: 'include'`를 사용한다.
 - 로그인 직후 guest 기록이 감지되면 `/account/transfer`에서 중복 후보를 먼저 검토한다.
 
 ## 6. Current UI Constraints
 
 - Mantine provider/theme와 shared primitives는 이미 도입됐다.
 - 공용 UI 계층보다 페이지별 CSS 조합 의존이 크다.
+- `var(--accent)`와 같은 전역 CSS 변수 직접 참조가 여전히 넓게 남아 있다.
 - placeholder 화면과 실제 구현 화면의 완성도 차이가 있다.
 - 따라서 프론트 roadmap 문서는 이 기준을 깨지 않으면서 구조를 정리하는 방향으로 읽어야 한다.

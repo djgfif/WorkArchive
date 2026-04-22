@@ -5,7 +5,7 @@
 | Status | `active` |
 | Role | `target product vision` |
 | Source of truth | 최종 사용자 경험과 디자인 원칙 |
-| Last verified against | vision document refreshed on `2026-04-21` |
+| Last verified against | vision document refreshed on `2026-04-22` |
 | When to update | 최종 사용자 경험, 브랜드 톤, 화면 원칙이 달라질 때 |
 
 이 문서는 Work Archive가 장기적으로 지향하는 **최종 사용자 경험과 디자인 원칙**을 정의한다. 현재 구현 상태나 near-term 실행 순서는 다루지 않는다.
@@ -55,6 +55,7 @@ Work Archive는 단순한 기록 폼 모음이 아니라, **내 취향을 빠르
 
 - 작품 정보보다 **내 감상 기록**이 먼저 읽혀야 한다.
 - 상태, 별점, 한줄평, 리뷰, 수정 행동이 상단에서 분명해야 한다.
+- 텍스트 위계는 메타데이터보다 감상 문장을 먼저 밀어줘야 한다.
 
 ### Auth / Account
 
@@ -64,8 +65,10 @@ Work Archive는 단순한 기록 폼 모음이 아니라, **내 취향을 빠르
 ## 5. Visual Direction
 
 - 기본 톤은 차분한 다크 아카이브
-- 콘텐츠 카드와 포스터가 중심
+- 순수 블랙보다 dark gray / deep navy 계열 surface 우선
+- 카드와 포스터보다 텍스트 위계가 먼저 읽히는 구조
 - 여백과 위계를 통해 고급스러운 인상 유지
+- accent는 절제해서 사용
 - 장식보다 구조 완성도 우선
 - 과한 네온, 과한 글래스 효과, 사이버펑크식 과장은 피함
 
@@ -81,9 +84,11 @@ Work Archive는 단순한 기록 폼 모음이 아니라, **내 취향을 빠르
 - 모바일에서도 핵심 기록 흐름이 끊기지 않아야 한다.
 - 키보드 중심 입력과 탐색을 방해하지 않아야 한다.
 - 대비, 포커스 표시, 읽기 순서를 기본 품질로 본다.
+- 다크 모드에서도 명도 대비와 장시간 읽기 피로를 함께 고려한다.
 
 ## 8. Relationship To Other Docs
 
 - 현재 구현 상태는 [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)에서 본다.
-- 근거리 실행 계획은 [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)에서 본다.
+- 근거리 제품 우선순위는 [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)에서 본다.
+- 프론트 상세 실행 계획은 [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)에서 본다.
 - UI 시스템 규칙은 [`CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](./CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)에서 본다.

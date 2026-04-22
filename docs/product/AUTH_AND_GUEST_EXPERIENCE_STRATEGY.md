@@ -5,7 +5,7 @@
 | Status | `active` |
 | Role | `exploratory strategy` |
 | Source of truth | future auth/guest product strategy |
-| Last verified against | strategy document refreshed on `2026-04-21` |
+| Last verified against | strategy document refreshed on `2026-04-22` |
 | When to update | 인증 전략의 우선순위나 선행 조건이 바뀔 때 |
 
 이 문서는 Work Archive의 **향후 인증/게스트 전략**을 다룬다. 현재 구현 설명이 아니라, 공개 전후 제품 전략 검토 문서다.
@@ -17,7 +17,8 @@
 ## Current Baseline
 
 - 현재 구현은 이메일/비밀번호 인증이다.
-- access/refresh token은 브라우저 `localStorage`에 저장된다.
+- access token은 브라우저 `localStorage`에 저장된다.
+- refresh token은 브라우저 cookie로 관리된다.
 - 게스트와 로그인 아카이브는 분리돼 있으며, 로그인 직후 `/account/transfer`에서 guest 기록 검토/선택 import를 할 수 있다.
 - 로그인해도 기존 게스트 기록이 자동으로 합쳐지지 않는다.
 

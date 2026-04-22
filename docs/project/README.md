@@ -5,7 +5,7 @@
 | Status | `active` |
 | Role | `navigation` |
 | Source of truth | [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) |
-| Last verified against | `2026-04-21` working tree |
+| Last verified against | `2026-04-22` working tree |
 | When to update | project 폴더의 주요 문서 구성과 읽기 순서가 바뀔 때 |
 
 이 폴더는 현재 구현 상태 보고서와 historical reference 문서를 함께 둔다.
