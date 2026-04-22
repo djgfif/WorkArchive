@@ -9,6 +9,7 @@ import {
 import { Link } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import { AppButton } from '../../../shared/components/AppPrimitives';
 import {
   importsService,
   type ImportCandidate,
@@ -237,7 +238,9 @@ export function QuickAddWorkForm({
               value={searchTerm}
             />
           </label>
-          <button type="submit">검색</button>
+          <AppButton tone="primary" type="submit">
+            검색
+          </AppButton>
         </form>
 
         <div className="quick-add-search-meta">
@@ -377,13 +380,14 @@ export function QuickAddWorkForm({
           </div>
 
           <div className="button-row">
-            <button
+            <AppButton
               onClick={() => setConfirmedDuplicateCandidateId(selectedCandidate.id)}
+              tone="primary"
               type="button"
             >
               그래도 계속 추가
-            </button>
-            <button
+            </AppButton>
+            <AppButton
               onClick={() => {
                 setSelectedCandidate(null);
                 setValues(createQuickAddDefaults());
@@ -391,7 +395,7 @@ export function QuickAddWorkForm({
               type="button"
             >
               다른 후보 보기
-            </button>
+            </AppButton>
           </div>
         </section>
       )}
@@ -615,9 +619,9 @@ export function QuickAddWorkForm({
           )}
 
           <div className="button-row form-actions">
-            <button disabled={isSubmitting} type="submit">
+            <AppButton disabled={isSubmitting} tone="primary" type="submit">
               {isSubmitting ? '저장 중...' : '저장'}
-            </button>
+            </AppButton>
             <Link className="secondary-link" to="/works">
               작품으로 돌아가기
             </Link>

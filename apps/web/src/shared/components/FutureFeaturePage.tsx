@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { Text, Title } from '@mantine/core';
+import { SimpleGrid, Text, Title } from '@mantine/core';
 
 import { SectionCard } from './AppPrimitives';
 import { PageHero } from './PageHero';
@@ -39,19 +39,19 @@ export function FutureFeaturePage({
         title={title}
       />
 
-      <section className="feature-placeholder-grid">
+      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
         {highlights.map((item) => (
           <SectionCard key={item.title} tone="subtle">
-            <Text c="var(--accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+            <Text c="var(--app-accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
               준비 중
             </Text>
-            <Title c="var(--text-primary)" order={3}>
+            <Title order={3}>
               {item.title}
             </Title>
-            <Text c="var(--text-muted)">{item.description}</Text>
+            <Text c="var(--app-text-muted)">{item.description}</Text>
           </SectionCard>
         ))}
-      </section>
+      </SimpleGrid>
 
       {footer && <SectionCard>{footer}</SectionCard>}
     </>

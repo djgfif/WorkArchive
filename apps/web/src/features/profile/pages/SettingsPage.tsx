@@ -1,20 +1,35 @@
-import { Link } from 'react-router-dom';
-
+import { Text } from '@mantine/core';
 import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
 import { FutureFeaturePage } from '../../../shared/components/FutureFeaturePage';
+import {
+  AppLinkButton,
+  SectionCard,
+  SectionIntro,
+  ThemeToggleControl,
+} from '../../../shared/components/AppPrimitives';
 
 export function SettingsPage() {
   return (
     <AccountPageTemplate
-      actions={
-        <Link className="secondary-link" to="/account">
-          계정 홈으로 돌아가기
-        </Link>
-      }
+      actions={<AppLinkButton to="/account">계정 홈으로 돌아가기</AppLinkButton>}
       description="설정은 메인 제품 경험과 분리된 계정 관리 맥락에서 확장합니다."
       eyebrow="설정"
       title="설정"
     >
+      <SectionCard>
+        <SectionIntro
+          description="이번 foundation 패스에서는 표시 모드만 먼저 안정적으로 분리해 유지보수 비용을 낮춥니다."
+          eyebrow="표시 모드"
+          title="라이트·다크 모드"
+        />
+
+        <Text c="var(--app-text-muted)">
+          선택한 모드는 로컬 저장소에 보존되고, 메인 레이아웃과 계정 화면에 동일하게 적용됩니다.
+        </Text>
+
+        <ThemeToggleControl />
+      </SectionCard>
+
       <FutureFeaturePage
         description="설정은 계정, 동기화 정책, 테마와 공개 범위를 관리하는 전용 화면으로 준비합니다."
         eyebrow="계정 설정"

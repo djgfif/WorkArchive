@@ -46,5 +46,6 @@
 | [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md) | `canonical` | `governance` | 문서 운영 규칙 | 현재 코드 현실 |
 | [`DOCUMENTATION_INDEX.md`](./DOCUMENTATION_INDEX.md) | `canonical` | `navigation` | 읽는 순서와 대표 문서 | status 표의 세부 근거 |
 | [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md) | `canonical` | `status map` | 문서 status와 authoritative scope | 세부 설계 내용 |
+| [`CODEX_FRONTEND_FOUNDATION_PROMPT.md`](./CODEX_FRONTEND_FOUNDATION_PROMPT.md) | `active` | `execution prompt` | 프론트 foundation refactor를 Codex에 위임할 실행 프롬프트 | 현재 코드 현실의 canonical 설명, 장기 구조 기준 |
 | [`CODE_DOCUMENT_ALIGNMENT_REPORT.md`](./CODE_DOCUMENT_ALIGNMENT_REPORT.md) | `active` | `alignment report` | intentional gap 설명 | 기준 문서 자체 |
 | [`../archive/README.md`](../archive/README.md) | `active` | `archive policy` | archive 운영 기준 | 현재 문서 기준 |

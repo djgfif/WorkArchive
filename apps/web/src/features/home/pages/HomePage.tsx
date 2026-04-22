@@ -1,13 +1,18 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Badge, Group, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
+import { useNavigate } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
+  AppButton,
+  AppLinkButton,
   FeedbackMessage,
   SectionCard,
   SectionIntro,
   StateMessage,
+  StatCard,
+  SurfaceLinkCard,
 } from '../../../shared/components/AppPrimitives';
 import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
@@ -89,7 +94,7 @@ export function HomePage() {
 
   return (
     <HomeHubPageTemplate>
-      <SectionCard className="home-hero" tone="hero">
+      <SectionCard tone="hero">
         <SectionIntro
           description="검색, 빠른 추가, 최근 기록 복귀까지 한 화면에서 바로 이어집니다."
           eyebrow="홈"
@@ -97,31 +102,32 @@ export function HomePage() {
           titleOrder={1}
         />
 
-        <form className="home-search-form" onSubmit={handleSearchSubmit}>
-          <label className="home-search-input" htmlFor="homeSearch">
-            <span className="sr-only">홈 검색</span>
-            <input
-              id="homeSearch"
-              onChange={(event) => setSearchTerm(event.target.value)}
+        <form onSubmit={handleSearchSubmit}>
+          <Group align="flex-end" wrap="wrap">
+            <TextInput
+              aria-label="홈 검색"
+              flex={1}
+              miw={240}
+              onChange={(event) => setSearchTerm(event.currentTarget.value)}
               placeholder="제목이나 작가로 작품 찾기"
               value={searchTerm}
             />
-          </label>
-          <button type="submit">작품 찾기</button>
-          <Link className="secondary-link" to="/works/new">
-            빠른 추가
-          </Link>
+            <AppButton tone="primary" type="submit">
+              작품 찾기
+            </AppButton>
+            <AppLinkButton to="/works/new">빠른 추가</AppLinkButton>
+          </Group>
         </form>
 
-        <ActionRow className="home-hero-hint">
-          <span className="badge">검색에서 시작</span>
-          <span className="badge">작품 추가 상시 노출</span>
-          <span className="badge">최근 기록 바로 이어보기</span>
-        </ActionRow>
+        <Group gap="sm" wrap="wrap">
+          <Badge>검색에서 시작</Badge>
+          <Badge>작품 추가 상시 노출</Badge>
+          <Badge>최근 기록 바로 이어보기</Badge>
+        </Group>
       </SectionCard>
 
-      <section className="home-overview-grid">
-        <SectionCard className="home-welcome-panel">
+      <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
+        <SectionCard>
           <SectionIntro
             description={
               isAuthenticated
@@ -134,30 +140,30 @@ export function HomePage() {
             }
           />
 
-          <div className="home-next-actions">
-            <Link className="home-next-card home-next-card--primary" to={primaryAction.to}>
-              <span className="mode-badge">지금 하면 좋은 일</span>
-              <h3 className="section-title">{primaryAction.label}</h3>
-              <p className="muted-copy">{primaryAction.description}</p>
-            </Link>
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+            <SurfaceLinkCard to={primaryAction.to} tone="hero">
+              <Badge>지금 하면 좋은 일</Badge>
+              <Title order={4}>{primaryAction.label}</Title>
+              <Text c="var(--app-text-muted)">{primaryAction.description}</Text>
+            </SurfaceLinkCard>
 
-            <Link className="home-next-card" to={managementAction.to}>
-              <span className="badge">관리 흐름</span>
-              <h3 className="section-title">{managementAction.label}</h3>
-              <p className="muted-copy">{managementAction.description}</p>
-            </Link>
+            <SurfaceLinkCard to={managementAction.to}>
+              <Badge>관리 흐름</Badge>
+              <Title order={4}>{managementAction.label}</Title>
+              <Text c="var(--app-text-muted)">{managementAction.description}</Text>
+            </SurfaceLinkCard>
 
-            <Link className="home-next-card" to="/works/new">
-              <span className="badge">빠른 추가</span>
-              <h3 className="section-title">작품을 바로 등록</h3>
-              <p className="muted-copy">
+            <SurfaceLinkCard to="/works/new">
+              <Badge>빠른 추가</Badge>
+              <Title order={4}>작품을 바로 등록</Title>
+              <Text c="var(--app-text-muted)">
                 검색에서 후보를 고르고 개인 기록만 입력해 저장할 수 있습니다.
-              </p>
-            </Link>
-          </div>
+              </Text>
+            </SurfaceLinkCard>
+          </SimpleGrid>
         </SectionCard>
 
-        <SectionCard className="home-stats-panel">
+        <SectionCard>
           <SectionIntro
             description="기록의 양과 감상 흐름을 가장 먼저 확인할 수 있는 4개 지표만 남겼습니다."
             eyebrow="통계 요약"
@@ -167,68 +173,67 @@ export function HomePage() {
           {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
 
           {!error && (
-            <div className="home-stat-grid">
-              <Link className="home-stat-card home-stat-card--accent" to="/works">
-                <span className="home-stat-label">총 기록 수</span>
-                <strong>{isLoading ? '...' : `${totalCount}개`}</strong>
-                <p className="muted-copy">
-                  {isLoading
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+              <StatCard
+                accent
+                description={
+                  isLoading
                     ? '불러오는 중'
                     : totalCount === 0
                       ? '아직 비어 있습니다'
-                      : '전체 아카이브 열기'}
-                </p>
-              </Link>
-              <Link className="home-stat-card" to="/works?sort=rating">
-                <span className="home-stat-label">평균 별점</span>
-                <strong>{isLoading ? '...' : formatAverageRating(averageRating)}</strong>
-                <p className="muted-copy">별점순으로 다시 보기</p>
-              </Link>
-              <Link className="home-stat-card" to="/works?status=completed">
-                <span className="home-stat-label">완주 작품 수</span>
-                <strong>{isLoading ? '...' : `${completedCount}개`}</strong>
-                <p className="muted-copy">완료한 기록만 보기</p>
-              </Link>
-              <Link className="home-stat-card" to="/works">
-                <span className="home-stat-label">하차·보류 수</span>
-                <strong>{isLoading ? '...' : `${pausedOrDroppedCount}개`}</strong>
-                <p className="muted-copy">멈춘 기록 다시 정리</p>
-              </Link>
-            </div>
+                      : '전체 아카이브 열기'
+                }
+                label="총 기록 수"
+                to="/works"
+                value={isLoading ? '...' : `${totalCount}개`}
+              />
+              <StatCard
+                description="별점순으로 다시 보기"
+                label="평균 별점"
+                to="/works?sort=rating"
+                value={isLoading ? '...' : formatAverageRating(averageRating)}
+              />
+              <StatCard
+                description="완료한 기록만 보기"
+                label="완주 작품 수"
+                to="/works?status=completed"
+                value={isLoading ? '...' : `${completedCount}개`}
+              />
+              <StatCard
+                description="멈춘 기록 다시 정리"
+                label="하차·보류 수"
+                to="/works"
+                value={isLoading ? '...' : `${pausedOrDroppedCount}개`}
+              />
+            </SimpleGrid>
           )}
         </SectionCard>
-      </section>
+      </SimpleGrid>
 
       <SectionCard>
-        <div className="home-section-header">
-          <div>
-            <p className="eyebrow">최근 기록</p>
-            <h2 className="section-title">최근 남긴 작품 6개</h2>
-          </div>
-
-          <ActionRow>
-            <Link className="secondary-link" to="/works">
-              작품 전체 보기
-            </Link>
+        <Group align="flex-end" justify="space-between" wrap="wrap">
+          <SectionIntro eyebrow="최근 기록" title="최근 남긴 작품 6개" />
+          <ActionRow justify="flex-end">
+            <AppLinkButton to="/works">작품 전체 보기</AppLinkButton>
           </ActionRow>
-        </div>
+        </Group>
 
         {error && (
-          <p className="muted-copy">
+          <Text c="var(--app-text-muted)">
             최근 기록을 불러오지 못했습니다. 작품 탭에서 다시 확인해주세요.
-          </p>
+          </Text>
         )}
 
         {!error && isLoading && (
-          <p className="muted-copy">최근 기록을 불러오는 중입니다.</p>
+          <Text c="var(--app-text-muted)">최근 기록을 불러오는 중입니다.</Text>
         )}
 
         {!error && !isLoading && recentWorks.length === 0 && (
           <StateMessage
             actions={
-              <Link className="primary-link" to="/works/new">
+              <AppLinkButton to="/works/new" tone="primary">
                 작품 추가
-              </Link>
+              </AppLinkButton>
             }
             description="첫 작품을 추가하면 홈에서 최근 기록과 요약 통계를 바로 볼 수 있습니다."
             title="아직 최근 기록이 없습니다."
@@ -237,53 +242,50 @@ export function HomePage() {
         )}
 
         {!error && !isLoading && recentWorks.length > 0 && (
-          <div className="home-recent-grid">
+          <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
             {recentWorks.map((work, index) => (
-              <Link
-                className={
-                  index === 0
-                    ? 'home-recent-card home-recent-card--featured'
-                    : 'home-recent-card'
-                }
+              <SurfaceLinkCard
                 key={work.id}
                 to={`/works/${work.id}`}
+                tone={index === 0 ? 'hero' : 'default'}
               >
-                <ArtworkPoster
-                  thumbnailUrl={work.thumbnailUrl}
-                  title={work.title}
-                  typeLabel={getWorkTypeLabel(work.type)}
-                  variant="row"
-                />
+                <Group align="flex-start" wrap="nowrap">
+                  <ArtworkPoster
+                    thumbnailUrl={work.thumbnailUrl}
+                    title={work.title}
+                    typeLabel={getWorkTypeLabel(work.type)}
+                    variant="row"
+                  />
 
-                <div className="home-recent-copy">
-                  <div className="home-recent-meta">
-                    {index === 0 && <span className="mode-badge">최근 작업</span>}
-                    <span className="badge">{getWorkTypeLabel(work.type)}</span>
-                    <span className="badge">{getWorkStatusLabel(work.status)}</span>
-                    <span className="badge">
-                      {work.rating === null ? '미평가' : `${work.rating}점`}
-                    </span>
-                  </div>
+                  <Stack flex={1} gap="sm" miw={0}>
+                    <Group gap="xs" wrap="wrap">
+                      {index === 0 && <Badge color="archive">최근 작업</Badge>}
+                      <Badge>{getWorkTypeLabel(work.type)}</Badge>
+                      <Badge>{getWorkStatusLabel(work.status)}</Badge>
+                      <Badge>
+                        {work.rating === null ? '미평가' : `${work.rating}점`}
+                      </Badge>
+                    </Group>
 
-                  <div className="stack">
-                    <h3 className="card-title">{work.title}</h3>
-                    <p className="muted-copy">
-                      {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
-                      {formatWorkUpdatedAt(work.updatedAt)}
-                    </p>
-                  </div>
+                    <Stack gap={4}>
+                      <Title order={index === 0 ? 3 : 4}>{work.title}</Title>
+                      <Text c="var(--app-text-muted)">
+                        {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
+                        {formatWorkUpdatedAt(work.updatedAt)}
+                      </Text>
+                    </Stack>
 
-                  <p className="card-summary">
-                    {work.shortReview || work.description || '아직 남긴 메모가 없습니다.'}
-                  </p>
-
-                  <div className="home-recent-footer">
-                    <span className="muted-copy">상세 보기</span>
-                  </div>
-                </div>
-              </Link>
+                    <Text c="var(--app-text-secondary)">
+                      {work.shortReview || work.description || '아직 남긴 메모가 없습니다.'}
+                    </Text>
+                    <Text c="var(--app-text-muted)" fw={600}>
+                      상세 보기
+                    </Text>
+                  </Stack>
+                </Group>
+              </SurfaceLinkCard>
             ))}
-          </div>
+          </SimpleGrid>
         )}
       </SectionCard>
     </HomeHubPageTemplate>

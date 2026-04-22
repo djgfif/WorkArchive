@@ -1,14 +1,13 @@
-import { Link } from 'react-router-dom';
-
+import { AppLinkButton } from '../../../shared/components/AppPrimitives';
 import { FutureFeaturePage } from '../../../shared/components/FutureFeaturePage';
 
 export function TierBoardsPage() {
   return (
     <FutureFeaturePage
       actions={
-        <Link className="secondary-link" to="/works">
+        <AppLinkButton to="/works">
           작품에서 먼저 정리하기
-        </Link>
+        </AppLinkButton>
       }
       description="티어 보드는 작품 목록과 연결되지만, 작품 필드와 섞이지 않는 별도 경험으로 준비합니다."
       eyebrow="티어 보드"

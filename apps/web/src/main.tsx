@@ -3,7 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { MantineProvider } from '@mantine/core';
 
 import { App } from './app/App';
-import { appTheme } from './app/mantine-theme';
+import {
+  appColorSchemeManager,
+  appCssVariablesResolver,
+  appTheme,
+} from './app/mantine-theme';
 import '@mantine/core/styles.css';
 import './app/styles/global.css';
 
@@ -15,7 +19,12 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <MantineProvider defaultColorScheme="light" theme={appTheme}>
+    <MantineProvider
+      colorSchemeManager={appColorSchemeManager}
+      cssVariablesResolver={appCssVariablesResolver}
+      defaultColorScheme="dark"
+      theme={appTheme}
+    >
       <App />
     </MantineProvider>
   </StrictMode>,

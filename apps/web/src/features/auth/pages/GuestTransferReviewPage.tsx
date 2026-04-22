@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 
+import {
+  AppButton,
+  AppLinkButton,
+} from '../../../shared/components/AppPrimitives';
 import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../hooks/useAuthSession';
 import {
@@ -154,12 +158,8 @@ export function GuestTransferReviewPage() {
     <AccountPageTemplate
       actions={
         <>
-          <Link className="secondary-link" to="/works">
-            Works로 이동
-          </Link>
-          <Link className="secondary-link" to="/account">
-            계정 홈
-          </Link>
+          <AppLinkButton to="/works">Works로 이동</AppLinkButton>
+          <AppLinkButton to="/account">계정 홈</AppLinkButton>
         </>
       }
       description="로그인 직후 guest 기록이 감지되면, 바로 계정 아카이브에 섞지 않고 먼저 중복 후보를 검토합니다."
@@ -203,9 +203,9 @@ export function GuestTransferReviewPage() {
           <span className="mode-badge">반영 완료</span>
           <p className="muted-copy">{resultMessage}</p>
           <div className="button-row">
-            <Link className="primary-link" to="/works">
+            <AppLinkButton to="/works" tone="primary">
               Works 열기
-            </Link>
+            </AppLinkButton>
           </div>
         </section>
       )}
@@ -234,11 +234,15 @@ export function GuestTransferReviewPage() {
             {duplicateSummary && <p className="muted-copy">{duplicateSummary}</p>}
 
             <div className="button-row">
-              <button disabled={!canSubmit} onClick={() => void handleImport()} type="button">
+              <AppButton
+                disabled={!canSubmit}
+                onClick={() => void handleImport()}
+                tone="primary"
+                type="button"
+              >
                 {isSubmitting ? '가져오는 중...' : `선택한 ${selectedCount}개 가져오기`}
-              </button>
-              <button
-                className="secondary-button"
+              </AppButton>
+              <AppButton
                 disabled={isSubmitting}
                 onClick={() => {
                   void handleSkip();
@@ -246,7 +250,7 @@ export function GuestTransferReviewPage() {
                 type="button"
               >
                 이번 guest 기록은 건너뛰기
-              </button>
+              </AppButton>
             </div>
           </section>
 

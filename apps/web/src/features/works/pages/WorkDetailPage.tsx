@@ -1,8 +1,13 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
+import { Badge, NativeSelect, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import {
+  ActionBar,
+  AppButton,
+  AppLinkButton,
   FeedbackMessage,
+  SectionCard,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
 import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
@@ -113,9 +118,9 @@ export function WorkDetailPage() {
     return (
       <StateMessage
         actions={
-          <Link className="primary-link" to="/works">
+          <AppLinkButton to="/works" tone="primary">
             작품으로 돌아가기
-          </Link>
+          </AppLinkButton>
         }
         description="삭제되었거나 주소가 올바르지 않을 수 있습니다."
         eyebrow="찾을 수 없음"
@@ -132,117 +137,89 @@ export function WorkDetailPage() {
       <WorkDetailPanel
         actions={
           <>
-            <Link className="secondary-link" to="/works">
-              작품으로 돌아가기
-            </Link>
-            <Link className="secondary-link" to={`/works/${work.id}/edit`}>
-              수정
-            </Link>
-            <button
-              className="danger-button"
-              onClick={() => void handleDelete()}
-              type="button"
-            >
+            <AppLinkButton to="/works">작품으로 돌아가기</AppLinkButton>
+            <AppLinkButton to={`/works/${work.id}/edit`}>수정</AppLinkButton>
+            <AppButton onClick={() => void handleDelete()} tone="danger" type="button">
               삭제
-            </button>
+            </AppButton>
           </>
         }
         quickEdit={
-          <section
-            className={
-              isQuickUpdating
-                ? 'detail-quick-edit detail-quick-edit--busy'
-                : 'detail-quick-edit'
-            }
+          <ActionBar
+            actions={isQuickUpdating ? <Badge color="blue">반영 중</Badge> : undefined}
+            description="짧은 정리는 상세에서 끝내고, 감상 문장은 리뷰 편집으로 이어갈 수 있습니다."
+            eyebrow="빠른 수정"
+            title="상태와 별점은 여기서 바로 바꿉니다"
           >
-            <div className="detail-quick-edit-header">
-              <div className="section-heading">
-                <p className="section-kicker">빠른 수정</p>
-                <h3 className="section-title">상태와 별점은 여기서 바로 바꿉니다</h3>
-                <p className="muted-copy">
-                  짧은 정리는 상세에서 끝내고, 감상 문장은 리뷰 편집으로 이어갈 수 있습니다.
-                </p>
-              </div>
-              {isQuickUpdating && <span className="mode-badge">반영 중</span>}
-            </div>
+            <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md">
+              <NativeSelect
+                aria-label={`${work.title} 상세 상태`}
+                disabled={isQuickUpdating}
+                id={`detail-status-${work.id}`}
+                label="상태"
+                onChange={(event) =>
+                  void handleQuickUpdate({
+                    status: event.currentTarget
+                      .value as (typeof workStatusOptions)[number]['value'],
+                  })
+                }
+                value={work.status}
+              >
+                {workStatusOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
 
-            <div className="detail-quick-edit-grid">
-              <label className="works-list-control-card" htmlFor={`detail-status-${work.id}`}>
-                <span className="works-list-label">상태</span>
-                <select
-                  aria-label={`${work.title} 상세 상태`}
-                  disabled={isQuickUpdating}
-                  id={`detail-status-${work.id}`}
-                  onChange={(event) =>
-                    void handleQuickUpdate({
-                      status: event.target.value as (typeof workStatusOptions)[number]['value'],
-                    })
-                  }
-                  value={work.status}
-                >
-                  {workStatusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="works-list-helper">목록에 돌아가지 않고 수정</span>
-              </label>
+              <NativeSelect
+                aria-label={`${work.title} 상세 별점`}
+                disabled={isQuickUpdating}
+                id={`detail-rating-${work.id}`}
+                label="별점"
+                onChange={(event) => {
+                  const nextValue =
+                    event.currentTarget.value === ''
+                      ? null
+                      : Number.parseFloat(event.currentTarget.value);
 
-              <label className="works-list-control-card" htmlFor={`detail-rating-${work.id}`}>
-                <span className="works-list-label">별점</span>
-                <select
-                  aria-label={`${work.title} 상세 별점`}
-                  disabled={isQuickUpdating}
-                  id={`detail-rating-${work.id}`}
-                  onChange={(event) => {
-                    const nextValue =
-                      event.target.value === ''
-                        ? null
-                        : Number.parseFloat(event.target.value);
+                  void handleQuickUpdate({
+                    rating: Number.isNaN(nextValue) ? null : nextValue,
+                  });
+                }}
+                value={work.rating?.toString() ?? ''}
+              >
+                <option value="">미평가</option>
+                {ratingOptions.map((option) => (
+                  <option key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
 
-                    void handleQuickUpdate({
-                      rating: Number.isNaN(nextValue) ? null : nextValue,
-                    });
-                  }}
-                  value={work.rating?.toString() ?? ''}
-                >
-                  <option value="">미평가</option>
-                  {ratingOptions.map((option) => (
-                    <option key={option.value} value={option.value.toString()}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="works-list-helper">감상 우선순위가 바로 갱신됩니다</span>
-              </label>
-
-              <div className="detail-review-shortcut">
-                <span className="mode-badge">리뷰</span>
-                <h3 className="section-title">
+              <SectionCard gap="sm" padding="lg" tone="default">
+                <Badge color="archive" w="fit-content">
+                  리뷰
+                </Badge>
+                <Text c="var(--app-text-strong)" fw={700}>
                   {work.shortReview.trim() || work.review.trim()
                     ? '감상 문장 다듬기'
                     : '리뷰 쓰기 시작'}
-                </h3>
-                <p className="muted-copy">
+                </Text>
+                <Text c="var(--app-text-muted)">
                   한줄평과 상세 감상은 리뷰 편집 모드에서 더 집중해서 정리할 수 있습니다.
-                </p>
-                <div className="button-row">
-                  <Link
-                    className="secondary-link"
-                    to={`/works/${work.id}/edit?focus=review`}
-                  >
+                </Text>
+                <Stack align="flex-start" gap="sm">
+                  <AppLinkButton to={`/works/${work.id}/edit?focus=review`}>
                     {work.shortReview.trim() || work.review.trim()
                       ? '리뷰 수정'
                       : '리뷰 쓰기'}
-                  </Link>
-                  <Link className="secondary-link" to={`/works/${work.id}/edit`}>
-                    전체 정보 수정
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </section>
+                  </AppLinkButton>
+                  <AppLinkButton to={`/works/${work.id}/edit`}>전체 정보 수정</AppLinkButton>
+                </Stack>
+              </SectionCard>
+            </SimpleGrid>
+          </ActionBar>
         }
         work={work}
       />

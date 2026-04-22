@@ -1,10 +1,14 @@
-import { Box, Container, Group, Stack, Text } from '@mantine/core';
+import { Badge, Container, Group, Stack, Text, Title } from '@mantine/core';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import {
   ActionRow,
+  AppButton,
+  AppLinkButton,
+  BrandLink,
   SectionCard,
   StateMessage,
+  ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 
@@ -33,86 +37,66 @@ export function MainProductLayout() {
 
   return (
     <main className="layout-shell layout-shell--product">
-      <Box aria-hidden="true" className="layout-backdrop layout-backdrop--north" />
-      <Box aria-hidden="true" className="layout-backdrop layout-backdrop--east" />
-
-      <Container px={0} size={1360}>
+      <Container px="md" size={1360}>
         <Stack gap="xl">
           <SectionCard tone="hero">
             <Stack gap="xl">
               <Group align="flex-start" justify="space-between" wrap="wrap">
-              <Link className="brand-link" to="/">
-                <span aria-hidden="true" className="brand-mark">
-                  WA
-                </span>
-                <div className="brand-copy">
-                  <span className="brand-kicker">개인 취향 아카이브</span>
-                  <span className="brand-heading">워크 아카이브</span>
-                </div>
-              </Link>
+                <BrandLink heading="워크 아카이브" kicker="개인 취향 아카이브" />
 
                 <ActionRow justify="flex-end">
-                {!isAuthenticated && (
-                  <>
-                    <Link className="secondary-link" to="/auth/login">
-                      로그인
-                    </Link>
-                    <Link className="secondary-link" to="/auth/register">
-                      회원가입
-                    </Link>
-                  </>
-                )}
-                {isAuthenticated && (
-                  <button onClick={() => void handleSignOut()} type="button">
-                    로그아웃
-                  </button>
-                )}
-                <Link className="primary-link" to="/works/new">
-                  작품 추가
-                </Link>
+                  <ThemeToggleControl />
+                  {!isAuthenticated && (
+                    <>
+                      <AppLinkButton to="/auth/login">로그인</AppLinkButton>
+                      <AppLinkButton to="/auth/register">회원가입</AppLinkButton>
+                    </>
+                  )}
+                  {isAuthenticated && (
+                    <AppButton onClick={() => void handleSignOut()} type="button">
+                      로그아웃
+                    </AppButton>
+                  )}
+                  <AppLinkButton to="/works/new" tone="primary">
+                    작품 추가
+                  </AppLinkButton>
                 </ActionRow>
               </Group>
 
               <Group align="flex-start" justify="space-between" wrap="wrap">
-              <nav aria-label="주요 메뉴" className="app-nav app-nav--primary">
-                {mainNavigationItems.map((item) => (
-                  <NavLink
-                    className={({ isActive }) =>
-                      isActive ? 'app-nav-link active' : 'app-nav-link'
-                    }
-                    end={item.to === '/'}
-                    key={item.to}
-                    to={item.to}
-                  >
-                    <span>{item.label}</span>
-                    {item.statusLabel && (
-                      <span className="badge badge--nav">{item.statusLabel}</span>
-                    )}
-                  </NavLink>
-                ))}
-              </nav>
+                <nav aria-label="주요 메뉴" className="app-nav app-nav--primary">
+                  {mainNavigationItems.map((item) => (
+                    <NavLink
+                      className={({ isActive }) =>
+                        isActive ? 'app-nav-link active' : 'app-nav-link'
+                      }
+                      end={item.to === '/'}
+                      key={item.to}
+                      to={item.to}
+                    >
+                      <span>{item.label}</span>
+                      {item.statusLabel && <Badge size="sm">{item.statusLabel}</Badge>}
+                    </NavLink>
+                  ))}
+                </nav>
 
                 <SectionCard className="session-card session-card--compact" tone="subtle">
-                  <Text c="var(--accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
+                  <Text c="var(--app-accent)" fw={700} fz="0.78rem" lts="0.12em" tt="uppercase">
                     {isAuthenticated ? '로그인됨' : '게스트 모드'}
                   </Text>
-                  <div className="session-copy">
-                    <h2 className="session-title">
-                    {isAuthenticated ? '계정 아카이브 사용 중' : '로컬 아카이브 사용 중'}
-                    </h2>
-                    <p className="muted-copy">
-                    {isAuthenticated
-                      ? user?.email
-                      : '로그인하지 않아도 이 기기에 기록을 저장할 수 있습니다.'}
-                    </p>
-                  </div>
+                  <Stack gap={4}>
+                    <Title order={3}>
+                      {isAuthenticated ? '계정 아카이브 사용 중' : '로컬 아카이브 사용 중'}
+                    </Title>
+                    <Text c="var(--app-text-muted)">
+                      {isAuthenticated
+                        ? user?.email
+                        : '로그인하지 않아도 이 기기에 기록을 저장할 수 있습니다.'}
+                    </Text>
+                  </Stack>
                   <ActionRow>
-                    <Link className="secondary-link" to="/profile">
-                      프로필
-                    </Link>
-                    <Link className="secondary-link" to="/account">
-                      계정 센터
-                    </Link>
+                    <AppLinkButton to="/profile">프로필</AppLinkButton>
+                    <AppLinkButton to="/account">계정 센터</AppLinkButton>
                   </ActionRow>
                 </SectionCard>
               </Group>
