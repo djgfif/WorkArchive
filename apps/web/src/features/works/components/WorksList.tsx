@@ -1,5 +1,5 @@
 import type { WorkRecord } from '@work-archive/shared-types';
-import { SimpleGrid, Stack } from '@mantine/core';
+import { Paper, SimpleGrid, Stack } from '@mantine/core';
 
 import { WorkCard } from './WorkCard';
 import { WorkListRow, type WorkQuickUpdate } from './WorkListRow';
@@ -24,7 +24,7 @@ export function WorksList({
   if (viewMode === 'grid') {
     return (
       <section>
-        <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
+        <SimpleGrid cols={{ base: 1, xl: 3 }} spacing="md">
           {works.map((work) => (
             <WorkCard key={work.id} onDelete={onDelete} work={work} />
           ))}
@@ -35,17 +35,31 @@ export function WorksList({
 
   return (
     <section>
-      <Stack gap="md">
-        {works.map((work) => (
-          <WorkListRow
-            isUpdating={updatingWorkId === work.id}
-            key={work.id}
-            onDelete={onDelete}
-            onQuickUpdate={onQuickUpdate}
-            work={work}
-          />
-        ))}
-      </Stack>
+      <Paper
+        p={0}
+        radius="lg"
+        styles={{
+          root: {
+            backgroundColor: 'var(--app-surface-0)',
+            borderColor: 'var(--app-border-color)',
+            overflow: 'hidden',
+          },
+        }}
+        withBorder
+      >
+        <Stack gap={0}>
+          {works.map((work, index) => (
+            <WorkListRow
+              isLast={index === works.length - 1}
+              isUpdating={updatingWorkId === work.id}
+              key={work.id}
+              onDelete={onDelete}
+              onQuickUpdate={onQuickUpdate}
+              work={work}
+            />
+          ))}
+        </Stack>
+      </Paper>
     </section>
   );
 }

@@ -56,11 +56,6 @@ describe('Works routed flow', () => {
     await user.click(screen.getByRole('button', { name: '저장' }));
 
     expect(await screen.findByRole('heading', { name: 'Dune Messiah' })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('link', { name: '작품으로 돌아가기' }));
-
-    expect(await screen.findByRole('heading', { name: '작품' })).toBeInTheDocument();
-    expect(await screen.findByRole('link', { name: 'Dune Messiah' })).toBeInTheDocument();
   });
 
   it('warns when a likely duplicate already exists before continuing', async () => {

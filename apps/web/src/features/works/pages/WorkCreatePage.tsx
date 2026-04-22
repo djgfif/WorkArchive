@@ -52,32 +52,33 @@ export function WorkCreatePage() {
     <FlowPageTemplate>
       <PageHero
         actions={<AppLinkButton to="/works">작품으로 돌아가기</AppLinkButton>}
-        description="검색에서 후보를 고른 뒤, 자동 채움 초안을 확인하고 개인 기록만 남기는 흐름입니다."
+        description="검색에서 후보를 고르고, 선택한 메타데이터를 확인한 뒤 개인 기록만 남기는 조용한 추가 흐름입니다."
         eyebrow="작품 추가"
         meta={
           <>
-            <MetricPill label="흐름" value="검색 우선" />
-            <MetricPill label="최소 입력" value="상태 · 별점 · 한줄평" />
+            <MetricPill label="흐름" value="검색 -> 선택 -> 기록" />
+            <MetricPill label="핵심 입력" value="상태 · 별점 · 한줄평" />
           </>
         }
         title="새 작품 기록"
       />
 
       {savedWork ? (
-        <SectionCard gap="lg" tone="hero">
+        <SectionCard gap="lg" padding="xl" tone="default">
           <SectionIntro
-            description="계속 추가하거나, 방금 등록한 작품 상세로 바로 이동할 수 있습니다."
+            description="방금 저장한 기록을 바로 확인하거나, 같은 흐름에서 다음 작품을 계속 추가할 수 있습니다."
             eyebrow="저장 완료"
             title={`${savedWork.title}을(를) 등록했습니다`}
           />
 
-          <Group align="flex-start" wrap="nowrap">
+          <Group align="flex-start" gap="md" wrap="nowrap">
             <ArtworkPoster
               thumbnailUrl={savedWork.thumbnailUrl}
               title={savedWork.title}
               typeLabel={getWorkTypeLabel(savedWork.type)}
               variant="row"
             />
+
             <Stack gap="sm" miw={0}>
               <ActionRow>
                 <AppBadge>{getWorkTypeLabel(savedWork.type)}</AppBadge>
@@ -86,9 +87,12 @@ export function WorkCreatePage() {
                   {savedWork.rating === null ? '미평가' : `${savedWork.rating.toFixed(1)}점`}
                 </AppBadge>
               </ActionRow>
+
               <div>
                 <Title order={3}>{savedWork.title}</Title>
-                <Text c="var(--app-text-muted)">{savedWork.author || '작가·제작자 미입력'}</Text>
+                <Text c="var(--app-text-muted)">
+                  {savedWork.author || '작가·제작자 미입력'}
+                </Text>
               </div>
             </Stack>
           </Group>

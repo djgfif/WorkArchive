@@ -1,4 +1,4 @@
-import { Group, NativeSelect, Stack, Text, Title } from '@mantine/core';
+import { Box, Group, NativeSelect, Stack, Text, Title } from '@mantine/core';
 import type { WorkStatus, WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
@@ -8,7 +8,6 @@ import {
   AppBadge,
   AppButton,
   AppLinkButton,
-  SectionCard,
 } from '../../../shared/components/AppPrimitives';
 import {
   formatWorkUpdatedAt,
@@ -23,6 +22,7 @@ export interface WorkQuickUpdate {
 }
 
 interface WorkListRowProps {
+  isLast?: boolean;
   isUpdating: boolean;
   onDelete: (work: WorkRecord) => Promise<void>;
   onQuickUpdate: (work: WorkRecord, update: WorkQuickUpdate) => Promise<void>;
@@ -43,6 +43,7 @@ function formatRatingLabel(value: number | null) {
 }
 
 export function WorkListRow({
+  isLast = false,
   isUpdating,
   onDelete,
   onQuickUpdate,
@@ -51,9 +52,13 @@ export function WorkListRow({
   const typeLabel = getWorkTypeLabel(work.type);
 
   return (
-    <SectionCard gap="md" padding="lg" tone={isUpdating ? 'hero' : 'default'}>
-      <Group align="flex-start" justify="space-between" wrap="wrap">
-        <Group align="flex-start" wrap="nowrap">
+    <Box
+      px="lg"
+      py="lg"
+      style={{ borderBottom: isLast ? 'none' : '1px solid var(--app-border-color)' }}
+    >
+      <Group align="flex-start" gap="lg" justify="space-between" wrap="wrap">
+        <Group align="flex-start" gap="md" miw={0} wrap="nowrap">
           <ArtworkPoster
             thumbnailUrl={work.thumbnailUrl}
             title={work.title}
@@ -61,13 +66,13 @@ export function WorkListRow({
             variant="row"
           />
 
-          <Stack gap="sm" miw={0}>
+          <Stack flex={1} gap="sm" miw={0}>
             <ActionRow>
-              {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
-              {isUpdating && <AppBadge tone="accent">반영 중</AppBadge>}
               <AppBadge>{typeLabel}</AppBadge>
               <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
               <AppBadge>{formatRatingLabel(work.rating)}</AppBadge>
+              {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
+              {isUpdating && <AppBadge tone="accent">반영 중</AppBadge>}
             </ActionRow>
 
             <div>
@@ -87,66 +92,72 @@ export function WorkListRow({
           </Stack>
         </Group>
 
-        <ActionRow justify="flex-end">
-          <AppLinkButton to={`/works/${work.id}`}>보기</AppLinkButton>
-          <AppLinkButton to={`/works/${work.id}/edit`}>수정</AppLinkButton>
-          <AppButton
-            aria-label={`${work.title} 삭제`}
-            disabled={isUpdating}
-            onClick={() => void onDelete(work)}
-            tone="danger"
-            type="button"
-          >
-            삭제
-          </AppButton>
-        </ActionRow>
+        <Stack gap="sm" maw={360} style={{ flex: '1 1 18rem', minWidth: 'min(100%, 18rem)' }}>
+          <ActionRow justify="flex-end">
+            <AppLinkButton to={`/works/${work.id}`} tone="quiet">
+              보기
+            </AppLinkButton>
+            <AppLinkButton to={`/works/${work.id}/edit`} tone="ghost">
+              수정
+            </AppLinkButton>
+            <AppButton
+              aria-label={`${work.title} 삭제`}
+              disabled={isUpdating}
+              onClick={() => void onDelete(work)}
+              tone="danger"
+              type="button"
+            >
+              삭제
+            </AppButton>
+          </ActionRow>
+
+          <Group align="flex-end" grow>
+            <NativeSelect
+              aria-label={`${work.title} 별점`}
+              disabled={isUpdating}
+              id={`rating-${work.id}`}
+              label="별점"
+              onChange={(event) => {
+                const nextValue =
+                  event.currentTarget.value === ''
+                    ? null
+                    : Number.parseFloat(event.currentTarget.value);
+
+                void onQuickUpdate(work, {
+                  rating: Number.isNaN(nextValue) ? null : nextValue,
+                });
+              }}
+              value={work.rating?.toString() ?? ''}
+            >
+              <option value="">미평가</option>
+              {ratingOptions.map((option) => (
+                <option key={option.value} value={option.value.toString()}>
+                  {option.label}
+                </option>
+              ))}
+            </NativeSelect>
+
+            <NativeSelect
+              aria-label={`${work.title} 상태`}
+              disabled={isUpdating}
+              id={`status-${work.id}`}
+              label="상태"
+              onChange={(event) =>
+                void onQuickUpdate(work, {
+                  status: event.currentTarget.value as WorkStatus,
+                })
+              }
+              value={work.status}
+            >
+              {workStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </NativeSelect>
+          </Group>
+        </Stack>
       </Group>
-
-      <Group align="flex-end" grow>
-        <NativeSelect
-          aria-label={`${work.title} 별점`}
-          disabled={isUpdating}
-          id={`rating-${work.id}`}
-          label="별점"
-          onChange={(event) => {
-            const nextValue =
-              event.currentTarget.value === ''
-                ? null
-                : Number.parseFloat(event.currentTarget.value);
-
-            void onQuickUpdate(work, {
-              rating: Number.isNaN(nextValue) ? null : nextValue,
-            });
-          }}
-          value={work.rating?.toString() ?? ''}
-        >
-          <option value="">미평가</option>
-          {ratingOptions.map((option) => (
-            <option key={option.value} value={option.value.toString()}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-
-        <NativeSelect
-          aria-label={`${work.title} 상태`}
-          disabled={isUpdating}
-          id={`status-${work.id}`}
-          label="상태"
-          onChange={(event) =>
-            void onQuickUpdate(work, {
-              status: event.currentTarget.value as WorkStatus,
-            })
-          }
-          value={work.status}
-        >
-          {workStatusOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-      </Group>
-    </SectionCard>
+    </Box>
   );
 }

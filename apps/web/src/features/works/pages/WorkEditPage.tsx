@@ -87,7 +87,7 @@ export function WorkEditPage() {
       <PageHero
         actions={
           <>
-            <AppLinkButton to={`/works/${work.id}`}>상세로 돌아가기</AppLinkButton>
+            <AppLinkButton to={`/works/${work.id}`}>작품으로 돌아가기</AppLinkButton>
             {focusArea === 'review' && (
               <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
                 전체 수정 모드
