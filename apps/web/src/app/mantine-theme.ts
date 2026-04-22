@@ -31,36 +31,36 @@ export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
     '--app-shell-width': '85rem',
     '--app-content-width': '77.5rem',
     '--app-content-width-narrow': '47.5rem',
-    '--app-surface-radius': theme.radius.xl,
+    '--app-surface-radius': theme.radius.lg,
     '--app-surface-radius-sm': theme.radius.md,
     '--app-transition-fast': '160ms ease',
   },
   light: {
-    '--app-shell-bg': '#f3f5f8',
-    '--app-shell-muted-bg': '#eef2f6',
+    '--app-shell-bg': '#f2f4f8',
+    '--app-shell-muted-bg': '#e9edf3',
     '--app-surface-0': '#ffffff',
-    '--app-surface-1': '#f8fafc',
-    '--app-surface-2': '#eef3f7',
-    '--app-border-color': '#d8e1ea',
-    '--app-border-strong': '#c2cdda',
-    '--app-text-strong': '#132033',
-    '--app-text-secondary': '#42546a',
-    '--app-text-muted': '#67768c',
+    '--app-surface-1': '#f7f9fc',
+    '--app-surface-2': '#eef2f7',
+    '--app-border-color': '#d6dde7',
+    '--app-border-strong': '#bcc8d7',
+    '--app-text-strong': '#152033',
+    '--app-text-secondary': '#475569',
+    '--app-text-muted': '#66778d',
     '--app-accent': '#1874b6',
     '--app-accent-soft': 'rgba(24, 116, 182, 0.12)',
     '--app-danger-soft': 'rgba(220, 38, 38, 0.12)',
   },
   dark: {
-    '--app-shell-bg': '#121212',
-    '--app-shell-muted-bg': '#18191d',
-    '--app-surface-0': '#1c1c1e',
-    '--app-surface-1': '#232427',
-    '--app-surface-2': '#2a2c31',
+    '--app-shell-bg': '#101317',
+    '--app-shell-muted-bg': '#161b20',
+    '--app-surface-0': '#1b2026',
+    '--app-surface-1': '#222831',
+    '--app-surface-2': '#2a313b',
     '--app-border-color': 'rgba(255, 255, 255, 0.08)',
-    '--app-border-strong': 'rgba(255, 255, 255, 0.14)',
-    '--app-text-strong': '#f5f7fa',
-    '--app-text-secondary': '#d0d5dd',
-    '--app-text-muted': '#98a2b3',
+    '--app-border-strong': 'rgba(255, 255, 255, 0.16)',
+    '--app-text-strong': '#f4f7fb',
+    '--app-text-secondary': '#d2dae5',
+    '--app-text-muted': '#9aa7b8',
     '--app-accent': '#7cc7ff',
     '--app-accent-soft': 'rgba(124, 199, 255, 0.16)',
     '--app-danger-soft': 'rgba(248, 113, 113, 0.18)',
@@ -78,35 +78,35 @@ export const appTheme = createTheme({
     from: 'archive.5',
     to: 'archive.7',
   },
-  defaultRadius: 'xl',
+  defaultRadius: 'lg',
   focusRing: 'auto',
   fontFamily: appFontFamily,
   fontFamilyMonospace: '"JetBrains Mono", "Fira Code", monospace',
   fontSizes: {
-    xs: '0.78rem',
-    sm: '0.92rem',
+    xs: '0.8rem',
+    sm: '0.93rem',
     md: '1rem',
-    lg: '1.12rem',
-    xl: '1.3rem',
+    lg: '1.08rem',
+    xl: '1.24rem',
   },
   headings: {
     fontFamily: appFontFamily,
     fontWeight: '700',
     sizes: {
       h1: {
-        fontSize: 'clamp(2rem, 4vw, 2.75rem)',
+        fontSize: 'clamp(2rem, 4vw, 2.6rem)',
         lineHeight: '1.08',
       },
       h2: {
-        fontSize: 'clamp(1.45rem, 3vw, 2rem)',
+        fontSize: 'clamp(1.42rem, 3vw, 1.9rem)',
         lineHeight: '1.12',
       },
       h3: {
-        fontSize: '1.22rem',
+        fontSize: '1.18rem',
         lineHeight: '1.22',
       },
       h4: {
-        fontSize: '1.05rem',
+        fontSize: '1.02rem',
         lineHeight: '1.28',
       },
       h5: {
@@ -138,11 +138,11 @@ export const appTheme = createTheme({
     light: 6,
   },
   radius: {
-    xs: '0.75rem',
-    sm: '0.95rem',
-    md: '1.12rem',
-    lg: '1.35rem',
-    xl: '1.75rem',
+    xs: '0.625rem',
+    sm: '0.8rem',
+    md: '0.95rem',
+    lg: '1.15rem',
+    xl: '1.45rem',
   },
   respectReducedMotion: true,
   shadows: {
@@ -162,7 +162,7 @@ export const appTheme = createTheme({
   components: {
     ActionIcon: {
       defaultProps: {
-        radius: 'xl',
+        radius: 'lg',
         variant: 'default',
       },
       styles: {
@@ -175,7 +175,7 @@ export const appTheme = createTheme({
     },
     Alert: {
       defaultProps: {
-        radius: 'xl',
+        radius: 'lg',
         variant: 'light',
       },
     },
@@ -186,6 +186,7 @@ export const appTheme = createTheme({
       },
       styles: {
         root: {
+          border: '1px solid transparent',
           fontWeight: 600,
           letterSpacing: '-0.01em',
         },
@@ -193,19 +194,32 @@ export const appTheme = createTheme({
     },
     Button: {
       defaultProps: {
-        radius: 'xl',
+        radius: 'md',
         size: 'md',
       },
       styles: {
         root: {
+          borderColor: 'var(--app-border-color)',
           fontWeight: 600,
           letterSpacing: '-0.01em',
+          paddingInline: '1rem',
+        },
+      },
+    },
+    Checkbox: {
+      styles: {
+        body: {
+          alignItems: 'center',
+        },
+        label: {
+          color: 'var(--app-text-secondary)',
+          fontWeight: 500,
         },
       },
     },
     NativeSelect: {
       defaultProps: {
-        radius: 'xl',
+        radius: 'md',
         size: 'md',
       },
       styles: {
@@ -223,7 +237,7 @@ export const appTheme = createTheme({
     },
     Paper: {
       defaultProps: {
-        radius: 'xl',
+        radius: 'lg',
         withBorder: true,
       },
       styles: {
@@ -236,7 +250,7 @@ export const appTheme = createTheme({
     },
     PasswordInput: {
       defaultProps: {
-        radius: 'xl',
+        radius: 'md',
         size: 'md',
       },
       styles: {
@@ -257,7 +271,7 @@ export const appTheme = createTheme({
     },
     TextInput: {
       defaultProps: {
-        radius: 'xl',
+        radius: 'md',
         size: 'md',
       },
       styles: {
@@ -277,7 +291,7 @@ export const appTheme = createTheme({
       defaultProps: {
         autosize: true,
         minRows: 3,
-        radius: 'xl',
+        radius: 'md',
         size: 'md',
       },
       styles: {

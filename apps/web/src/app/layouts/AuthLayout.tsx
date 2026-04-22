@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 
 import {
   ActionRow,
+  AppBadge,
   AppLinkButton,
   BrandLink,
   SectionCard,
@@ -19,34 +20,38 @@ export function AuthLayout() {
             <BrandLink heading="워크 아카이브" kicker="취향 아카이브 서비스" />
 
             <SectionIntro
-              description="게스트로 가볍게 시작해도 되고, 로그인하면 기록을 이어서 보고 동기화까지 연결할 수 있습니다."
+              description="먼저 기록을 시작하고, 계정은 필요할 때 연결하는 구조를 유지합니다."
               eyebrow="계정"
-              title="기록은 바로 시작하고, 계정은 필요할 때 연결합니다"
+              title="입력은 가볍게, 기록은 바로 이어집니다"
               titleOrder={1}
             />
 
-            <Stack gap="md">
-              <SectionCard tone="subtle">
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+              <SectionCard gap="sm" padding="lg" tone="subtle">
+                <AppBadge tone="accent">로컬 우선</AppBadge>
                 <SectionIntro
-                  description="계정이 없어도 이 기기에서 바로 내 아카이브를 시작할 수 있습니다."
-                  eyebrow="로컬 우선"
-                  title="지금 바로 기록 가능"
+                  description="로그인 전에도 이 기기에서 바로 아카이브를 시작할 수 있습니다."
+                  title="지금 바로 기록"
+                  titleOrder={3}
                 />
               </SectionCard>
 
-              <SectionCard tone="subtle">
+              <SectionCard gap="sm" padding="lg" tone="subtle">
+                <AppBadge tone="accent">계정 확장</AppBadge>
                 <SectionIntro
-                  description="동기화와 계정 기반 관리 흐름은 인증 이후에 자연스럽게 이어집니다."
-                  eyebrow="계정 확장"
-                  title="로그인하면 이어서 관리"
+                  description="로그인 후에는 동기화와 설정을 계정 센터에서 차분하게 관리합니다."
+                  title="나중에 자연스럽게 연결"
+                  titleOrder={3}
                 />
               </SectionCard>
-            </Stack>
+            </SimpleGrid>
 
             <ActionRow>
               <ThemeToggleControl />
               <AppLinkButton to="/">홈으로 돌아가기</AppLinkButton>
-              <AppLinkButton to="/works">작품 둘러보기</AppLinkButton>
+              <AppLinkButton to="/works" tone="quiet">
+                작품 보기
+              </AppLinkButton>
             </ActionRow>
           </Stack>
 

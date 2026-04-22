@@ -54,14 +54,12 @@ describe('Auth flow', () => {
     await user.click(screen.getByRole('button', { name: '회원가입' }));
 
     expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
-    expect(await screen.findByText('로그인됨')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '로그아웃' }));
+    await user.click(screen.getByRole('button', { name: 'frieren@example.com' }));
+    await user.click(await screen.findByRole('menuitem', { name: '로그아웃' }));
 
-    expect(await screen.findByText('게스트 모드')).toBeInTheDocument();
-    expect(
-      screen.getByText('로그인하지 않아도 이 기기에 기록을 저장할 수 있습니다.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: '로그인' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '회원가입' })).toBeInTheDocument();
   });
 
   it('navigates to guest transfer review after login when pending guest data exists', async () => {

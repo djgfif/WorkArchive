@@ -1,16 +1,18 @@
-import { Badge, Group, NativeSelect, Stack, Text, Title } from '@mantine/core';
+import { Group, NativeSelect, Stack, Text, Title } from '@mantine/core';
 import type { WorkStatus, WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
+  AppBadge,
   AppButton,
   AppLinkButton,
   SectionCard,
 } from '../../../shared/components/AppPrimitives';
 import {
   formatWorkUpdatedAt,
+  getWorkStatusLabel,
   getWorkTypeLabel,
   workStatusOptions,
 } from '../utils/work-options';
@@ -49,116 +51,102 @@ export function WorkListRow({
   const typeLabel = getWorkTypeLabel(work.type);
 
   return (
-    <SectionCard tone={isUpdating ? 'hero' : 'default'}>
-      <Stack gap="lg">
-        <Group align="flex-start" justify="space-between" wrap="wrap">
-          <Group align="flex-start" wrap="nowrap">
-            <ArtworkPoster
-              thumbnailUrl={work.thumbnailUrl}
-              title={work.title}
-              typeLabel={typeLabel}
-              variant="row"
-            />
+    <SectionCard gap="md" padding="lg" tone={isUpdating ? 'hero' : 'default'}>
+      <Group align="flex-start" justify="space-between" wrap="wrap">
+        <Group align="flex-start" wrap="nowrap">
+          <ArtworkPoster
+            thumbnailUrl={work.thumbnailUrl}
+            title={work.title}
+            typeLabel={typeLabel}
+            variant="row"
+          />
 
-            <Stack gap="sm" miw={0}>
-              <Group gap="xs" wrap="wrap">
-                {work.favorite && <Badge color="archive">즐겨찾기</Badge>}
-                {isUpdating && <Badge color="blue">반영 중</Badge>}
-                <Badge>{typeLabel}</Badge>
-              </Group>
+          <Stack gap="sm" miw={0}>
+            <ActionRow>
+              {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
+              {isUpdating && <AppBadge tone="accent">반영 중</AppBadge>}
+              <AppBadge>{typeLabel}</AppBadge>
+              <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
+              <AppBadge>{formatRatingLabel(work.rating)}</AppBadge>
+            </ActionRow>
 
-              <Stack gap={4}>
-                <Title order={3}>
-                  <Link style={{ color: 'inherit', textDecoration: 'none' }} to={`/works/${work.id}`}>
-                    {work.title}
-                  </Link>
-                </Title>
-                <Text c="var(--app-text-muted)">
-                  {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
-                  {formatWorkUpdatedAt(work.updatedAt)}
-                </Text>
-              </Stack>
-
-              <Text c="var(--app-text-secondary)">
-                {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
+            <div>
+              <Title order={3}>
+                <Link style={{ color: 'inherit', textDecoration: 'none' }} to={`/works/${work.id}`}>
+                  {work.title}
+                </Link>
+              </Title>
+              <Text c="var(--app-text-muted)">
+                {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
               </Text>
-            </Stack>
-          </Group>
+            </div>
 
-          <ActionRow justify="flex-end">
-            <AppLinkButton to={`/works/${work.id}`}>보기</AppLinkButton>
-            <AppLinkButton to={`/works/${work.id}/edit`}>수정</AppLinkButton>
-            <AppButton
-              aria-label={`${work.title} 삭제`}
-              disabled={isUpdating}
-              onClick={() => void onDelete(work)}
-              tone="danger"
-              type="button"
-            >
-              삭제
-            </AppButton>
-          </ActionRow>
+            <Text c="var(--app-text-secondary)">
+              {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
+            </Text>
+          </Stack>
         </Group>
 
-        <Group align="stretch" grow>
-          <SectionCard gap={6} padding="lg" tone="subtle">
-            <Text c="var(--app-text-muted)" fw={600} fz="sm">
-              타입
-            </Text>
-            <Text c="var(--app-text-strong)" fw={700}>
-              {typeLabel}
-            </Text>
-          </SectionCard>
-
-          <NativeSelect
-            aria-label={`${work.title} 별점`}
+        <ActionRow justify="flex-end">
+          <AppLinkButton to={`/works/${work.id}`}>보기</AppLinkButton>
+          <AppLinkButton to={`/works/${work.id}/edit`}>수정</AppLinkButton>
+          <AppButton
+            aria-label={`${work.title} 삭제`}
             disabled={isUpdating}
-            id={`rating-${work.id}`}
-            label="별점"
-            onChange={(event) => {
-              const nextValue =
-                event.currentTarget.value === ''
-                  ? null
-                  : Number.parseFloat(event.currentTarget.value);
-
-              void onQuickUpdate(work, {
-                rating: Number.isNaN(nextValue) ? null : nextValue,
-              });
-            }}
-            value={work.rating?.toString() ?? ''}
+            onClick={() => void onDelete(work)}
+            tone="danger"
+            type="button"
           >
-            <option value="">미평가</option>
-            {ratingOptions.map((option) => (
-              <option key={option.value} value={option.value.toString()}>
-                {option.label}
-              </option>
-            ))}
-          </NativeSelect>
+            삭제
+          </AppButton>
+        </ActionRow>
+      </Group>
 
-          <NativeSelect
-            aria-label={`${work.title} 상태`}
-            disabled={isUpdating}
-            id={`status-${work.id}`}
-            label="상태"
-            onChange={(event) =>
-              void onQuickUpdate(work, {
-                status: event.currentTarget.value as WorkStatus,
-              })
-            }
-            value={work.status}
-          >
-            {workStatusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </NativeSelect>
-        </Group>
+      <Group align="flex-end" grow>
+        <NativeSelect
+          aria-label={`${work.title} 별점`}
+          disabled={isUpdating}
+          id={`rating-${work.id}`}
+          label="별점"
+          onChange={(event) => {
+            const nextValue =
+              event.currentTarget.value === ''
+                ? null
+                : Number.parseFloat(event.currentTarget.value);
 
-        <Text c="var(--app-text-muted)" fz="sm">
-          별점 {formatRatingLabel(work.rating)} · 삭제하면 지금은 목록에서 숨겨집니다.
-        </Text>
-      </Stack>
+            void onQuickUpdate(work, {
+              rating: Number.isNaN(nextValue) ? null : nextValue,
+            });
+          }}
+          value={work.rating?.toString() ?? ''}
+        >
+          <option value="">미평가</option>
+          {ratingOptions.map((option) => (
+            <option key={option.value} value={option.value.toString()}>
+              {option.label}
+            </option>
+          ))}
+        </NativeSelect>
+
+        <NativeSelect
+          aria-label={`${work.title} 상태`}
+          disabled={isUpdating}
+          id={`status-${work.id}`}
+          label="상태"
+          onChange={(event) =>
+            void onQuickUpdate(work, {
+              status: event.currentTarget.value as WorkStatus,
+            })
+          }
+          value={work.status}
+        >
+          {workStatusOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </NativeSelect>
+      </Group>
     </SectionCard>
   );
 }

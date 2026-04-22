@@ -1,4 +1,4 @@
-import { Badge, Group, Stack, Text, Title } from '@mantine/core';
+import { Group, Stack, Text, Title } from '@mantine/core';
 import { Link } from 'react-router-dom';
 
 import type { WorkRecord } from '@work-archive/shared-types';
@@ -6,6 +6,7 @@ import type { WorkRecord } from '@work-archive/shared-types';
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
+  AppBadge,
   AppButton,
   AppLinkButton,
   SectionCard,
@@ -29,7 +30,7 @@ export function WorksTrashList({
   works,
 }: WorksTrashListProps) {
   return (
-    <section className="works-section">
+    <section>
       <Stack gap="md">
         {works.map((work) => {
           const isRestoring = restoringWorkId === work.id;
@@ -47,12 +48,12 @@ export function WorksTrashList({
                   />
 
                   <Stack gap="sm" miw={0}>
-                    <Group gap="xs" wrap="wrap">
-                      <Badge>{typeLabel}</Badge>
-                      <Badge>{getWorkStatusLabel(work.status)}</Badge>
-                      <Badge>{getWorkSyncStatusLabel(work.syncStatus)}</Badge>
-                      {isRestoring && <Badge color="blue">복원 중</Badge>}
-                    </Group>
+                    <ActionRow>
+                      <AppBadge>{typeLabel}</AppBadge>
+                      <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
+                      <AppBadge>{getWorkSyncStatusLabel(work.syncStatus)}</AppBadge>
+                      {isRestoring && <AppBadge tone="accent">복원 중</AppBadge>}
+                    </ActionRow>
 
                     <Stack gap={4}>
                       <Title order={3}>{work.title}</Title>

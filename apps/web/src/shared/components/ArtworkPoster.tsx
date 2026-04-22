@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Center, Paper, Stack, Text } from '@mantine/core';
 
 interface ArtworkPosterProps {
   className?: string;
@@ -6,6 +7,20 @@ interface ArtworkPosterProps {
   title: string;
   typeLabel?: string;
   variant?: 'card' | 'detail' | 'form' | 'row';
+}
+
+function getPosterSize(variant: ArtworkPosterProps['variant']) {
+  switch (variant) {
+    case 'detail':
+      return 'clamp(8.5rem, 18vw, 11rem)';
+    case 'form':
+      return '8.75rem';
+    case 'row':
+      return '5.5rem';
+    case 'card':
+    default:
+      return '7rem';
+  }
 }
 
 export function ArtworkPoster({
@@ -16,36 +31,63 @@ export function ArtworkPoster({
   variant = 'card',
 }: ArtworkPosterProps) {
   const [imageFailed, setImageFailed] = useState(false);
+  const width = getPosterSize(variant);
 
   useEffect(() => {
     setImageFailed(false);
   }, [thumbnailUrl]);
 
-  const posterClassName = [
-    'artwork-poster',
-    `artwork-poster--${variant}`,
-    className,
-  ]
-    .filter(Boolean)
-    .join(' ');
-
   if (thumbnailUrl && !imageFailed) {
     return (
-      <img
-        alt={`${title} 표지 이미지`}
-        className={posterClassName}
-        onError={() => setImageFailed(true)}
-        src={thumbnailUrl}
-      />
+      <Paper
+        radius="lg"
+        style={{
+          flexShrink: 0,
+          overflow: 'hidden',
+          width,
+        }}
+        {...(className ? { className } : {})}
+        withBorder
+      >
+        <img
+          alt={`${title} 표지 이미지`}
+          onError={() => setImageFailed(true)}
+          src={thumbnailUrl}
+          style={{
+            aspectRatio: '3 / 4',
+            display: 'block',
+            objectFit: 'cover',
+            width: '100%',
+          }}
+        />
+      </Paper>
     );
   }
 
   return (
-    <div aria-hidden="true" className={`${posterClassName} artwork-poster--fallback`}>
-      <span className="artwork-poster-initial">
-        {(title.trim()[0] ?? 'W').toUpperCase()}
-      </span>
-      {typeLabel && <span className="artwork-poster-caption">{typeLabel}</span>}
-    </div>
+    <Paper
+      radius="lg"
+      style={{
+        aspectRatio: '3 / 4',
+        flexShrink: 0,
+        overflow: 'hidden',
+        width,
+      }}
+      {...(className ? { className } : {})}
+      withBorder
+    >
+      <Center h="100%">
+        <Stack align="center" gap={6} px="sm">
+          <Text c="var(--app-text-secondary)" fw={700} fz="1.9rem">
+            {(title.trim()[0] ?? 'W').toUpperCase()}
+          </Text>
+          {typeLabel && (
+            <Text c="var(--app-text-muted)" fw={600} fz="0.72rem" lts="0.1em" ta="center" tt="uppercase">
+              {typeLabel}
+            </Text>
+          )}
+        </Stack>
+      </Center>
+    </Paper>
   );
 }

@@ -25,8 +25,17 @@ describe('Works routed flow', () => {
     await user.click(screen.getByRole('button', { name: '검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
 
-    await user.clear(screen.getByLabelText(/^제목$/));
-    await user.type(screen.getByLabelText(/^제목$/), 'Dune');
+    await screen.findByRole('heading', {
+      name: /비슷한 기록이 이미 있습니다|선택한 작품 확인/,
+    });
+
+    if (screen.queryByRole('heading', { name: '비슷한 기록이 이미 있습니다' })) {
+      await user.click(screen.getByRole('button', { name: '그래도 계속 추가' }));
+    }
+
+    const createTitleInput = await screen.findByLabelText(/^제목$/);
+    await user.clear(createTitleInput);
+    await user.type(createTitleInput, 'Dune');
     const authorInput = screen.getByLabelText(/작가·제작자/);
     await user.clear(authorInput);
     await user.type(authorInput, 'Frank Herbert');

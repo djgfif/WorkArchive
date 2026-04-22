@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Badge, NativeSelect, SimpleGrid, Stack, Text } from '@mantine/core';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { NativeSelect, SimpleGrid, Stack, Text } from '@mantine/core';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import {
-  ActionBar,
+  AppBadge,
   AppButton,
   AppLinkButton,
   FeedbackMessage,
@@ -145,12 +145,19 @@ export function WorkDetailPage() {
           </>
         }
         quickEdit={
-          <ActionBar
-            actions={isQuickUpdating ? <Badge color="blue">반영 중</Badge> : undefined}
-            description="짧은 정리는 상세에서 끝내고, 감상 문장은 리뷰 편집으로 이어갈 수 있습니다."
-            eyebrow="빠른 수정"
-            title="상태와 별점은 여기서 바로 바꿉니다"
-          >
+          <SectionCard gap="md" padding="lg" tone="subtle">
+            <Stack gap="xs">
+              <Text c="var(--app-accent)" fw={700} fz="0.76rem" lts="0.12em" tt="uppercase">
+                빠른 수정
+              </Text>
+              <Text c="var(--app-text-strong)" fw={700}>
+                상태와 별점은 여기서 바로 바꿉니다
+              </Text>
+              <Text c="var(--app-text-muted)">
+                짧은 정리는 상세에서 끝내고, 감상 문장은 리뷰 편집으로 이어갈 수 있습니다.
+              </Text>
+            </Stack>
+
             <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md">
               <NativeSelect
                 aria-label={`${work.title} 상세 상태`}
@@ -198,9 +205,9 @@ export function WorkDetailPage() {
               </NativeSelect>
 
               <SectionCard gap="sm" padding="lg" tone="default">
-                <Badge color="archive" w="fit-content">
-                  리뷰
-                </Badge>
+                <AppBadge tone={isQuickUpdating ? 'accent' : 'default'}>
+                  {isQuickUpdating ? '반영 중' : '리뷰'}
+                </AppBadge>
                 <Text c="var(--app-text-strong)" fw={700}>
                   {work.shortReview.trim() || work.review.trim()
                     ? '감상 문장 다듬기'
@@ -219,7 +226,7 @@ export function WorkDetailPage() {
                 </Stack>
               </SectionCard>
             </SimpleGrid>
-          </ActionBar>
+          </SectionCard>
         }
         work={work}
       />

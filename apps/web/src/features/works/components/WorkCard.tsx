@@ -1,10 +1,11 @@
-import { Badge, Group, Stack, Text, Title } from '@mantine/core';
+import { Group, Stack, Text, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
+  AppBadge,
   AppButton,
   AppLinkButton,
   KeyValueGrid,
@@ -28,7 +29,7 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
   const ratingLabel = work.rating === null ? '미평가' : `${work.rating.toFixed(1)}점`;
 
   return (
-    <SectionCard>
+    <SectionCard gap="md" padding="lg">
       <Group align="flex-start" wrap="nowrap">
         <ArtworkPoster
           thumbnailUrl={work.thumbnailUrl}
@@ -38,14 +39,14 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
         />
 
         <Stack flex={1} gap="md" miw={0}>
-          <Group gap="xs" wrap="wrap">
-            <Badge>{statusLabel}</Badge>
-            <Badge>{ratingLabel}</Badge>
-            <Badge>{typeLabel}</Badge>
-            {work.favorite && <Badge color="archive">즐겨찾기</Badge>}
-          </Group>
+          <ActionRow>
+            <AppBadge>{statusLabel}</AppBadge>
+            <AppBadge>{ratingLabel}</AppBadge>
+            <AppBadge>{typeLabel}</AppBadge>
+            {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
+          </ActionRow>
 
-          <Stack gap={4}>
+          <div>
             <Title order={3}>
               <Link style={{ color: 'inherit', textDecoration: 'none' }} to={`/works/${work.id}`}>
                 {work.title}
@@ -54,7 +55,7 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
             <Text c="var(--app-text-muted)">
               {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
             </Text>
-          </Stack>
+          </div>
 
           <Text c="var(--app-text-secondary)">
             {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
@@ -73,16 +74,16 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
           />
 
           <ActionRow justify="space-between">
-            <Group gap="xs" wrap="wrap">
+            <ActionRow>
               {visibleGenres.length > 0 ? (
-                visibleGenres.map((genre) => <Badge key={genre}>{genre}</Badge>)
+                visibleGenres.map((genre) => <AppBadge key={genre}>{genre}</AppBadge>)
               ) : (
-                <Badge variant="outline">장르 없음</Badge>
+                <AppBadge tone="muted">장르 없음</AppBadge>
               )}
               {work.genres.length > visibleGenres.length && (
-                <Badge>+{work.genres.length - visibleGenres.length}</Badge>
+                <AppBadge>+{work.genres.length - visibleGenres.length}</AppBadge>
               )}
-            </Group>
+            </ActionRow>
 
             <ActionRow justify="flex-end">
               <AppLinkButton to={`/works/${work.id}`}>상세</AppLinkButton>
@@ -97,10 +98,6 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
               </AppButton>
             </ActionRow>
           </ActionRow>
-
-          <Text c="var(--app-text-muted)" fz="sm">
-            삭제하면 현재 목록에서 숨겨집니다.
-          </Text>
         </Stack>
       </Group>
     </SectionCard>

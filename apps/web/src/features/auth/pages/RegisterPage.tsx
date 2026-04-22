@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Stack, Text } from '@mantine/core';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AuthPageTemplate } from '../../../shared/components/PageTemplates';
@@ -40,20 +41,20 @@ export function RegisterPage() {
       description="계정을 만들면 기록을 이어서 관리하고, 필요할 때 동기화와 설정으로 자연스럽게 확장할 수 있습니다."
       eyebrow="회원가입"
       footer={
-        <div className="stack">
-          <p className="muted-copy">
+        <Stack gap="xs">
+          <Text c="var(--app-text-muted)">
             이미 계정이 있나요?{' '}
-            <Link className="inline-link" to="/auth/login">
+            <Link style={{ color: 'var(--app-accent)', fontWeight: 600 }} to="/auth/login">
               로그인
             </Link>
-          </p>
-          <p className="muted-copy">
+          </Text>
+          <Text c="var(--app-text-muted)">
             아직은 가볍게 시작하고 싶다면{' '}
-            <Link className="inline-link" to="/">
+            <Link style={{ color: 'var(--app-accent)', fontWeight: 600 }} to="/">
               게스트 모드로 계속하기
             </Link>
-          </p>
-        </div>
+          </Text>
+        </Stack>
       }
       form={
         <AuthForm

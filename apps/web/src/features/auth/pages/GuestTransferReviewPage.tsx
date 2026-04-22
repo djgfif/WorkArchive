@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Checkbox, Stack, Text, Title } from '@mantine/core';
+import { Navigate } from 'react-router-dom';
 
 import {
+  ActionRow,
+  AppBadge,
   AppButton,
   AppLinkButton,
+  FeedbackMessage,
+  MetricPill,
+  SectionCard,
+  SectionIntro,
+  StateMessage,
 } from '../../../shared/components/AppPrimitives';
 import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../hooks/useAuthSession';
@@ -167,73 +175,61 @@ export function GuestTransferReviewPage() {
       meta={
         review && (
           <>
-            <div className="stat-pill">
-              <span className="stat-pill-value">{review.totalActiveCount}</span>
-              <span className="stat-pill-label">guest 기록</span>
-            </div>
-            <div className="stat-pill">
-              <span className="stat-pill-value">{review.duplicateCount}</span>
-              <span className="stat-pill-label">중복 후보</span>
-            </div>
-            <div className="stat-pill">
-              <span className="stat-pill-value">{selectedCount}</span>
-              <span className="stat-pill-label">선택됨</span>
-            </div>
+            <MetricPill label="guest 기록" value={review.totalActiveCount} />
+            <MetricPill label="중복 후보" value={review.duplicateCount} />
+            <MetricPill label="선택됨" value={selectedCount} />
           </>
         )
       }
       title="게스트 기록 검토"
     >
       {isLoading && (
-        <section className="panel stack">
-          <p className="eyebrow">불러오는 중</p>
-          <h2 className="section-title">guest 기록을 확인하고 있습니다</h2>
-          <p className="muted-copy">잠시만 기다려주세요.</p>
-        </section>
+        <StateMessage
+          description="잠시만 기다려주세요."
+          eyebrow="불러오는 중"
+          title="guest 기록을 확인하고 있습니다"
+          tone="loading"
+        />
       )}
 
-      {submitError && (
-        <div aria-live="polite" className="error-banner" role="alert">
-          {submitError}
-        </div>
-      )}
+      {submitError && <FeedbackMessage tone="error">{submitError}</FeedbackMessage>}
 
       {resultMessage && (
-        <section className="panel stack">
-          <span className="mode-badge">반영 완료</span>
-          <p className="muted-copy">{resultMessage}</p>
-          <div className="button-row">
+        <SectionCard tone="subtle">
+          <AppBadge tone="accent">반영 완료</AppBadge>
+          <Text c="var(--app-text-muted)">{resultMessage}</Text>
+          <ActionRow>
             <AppLinkButton to="/works" tone="primary">
               Works 열기
             </AppLinkButton>
-          </div>
-        </section>
+          </ActionRow>
+        </SectionCard>
       )}
 
       {!isLoading && review === null && !resultMessage && (
-        <section className="panel stack">
-          <span className="mode-badge">정리됨</span>
-          <h2 className="section-title">지금 검토할 guest 기록이 없습니다</h2>
-          <p className="muted-copy">
+        <SectionCard tone="subtle">
+          <AppBadge tone="accent">정리됨</AppBadge>
+          <Title order={2}>지금 검토할 guest 기록이 없습니다</Title>
+          <Text c="var(--app-text-muted)">
             새 guest 기록이 생기면 다시 검토 화면을 열 수 있습니다. 지금은 계정 아카이브를 바로 사용하면 됩니다.
-          </p>
-        </section>
+          </Text>
+        </SectionCard>
       )}
 
       {!isLoading && review && (
-        <>
-          <section className="panel stack">
-            <div className="section-heading">
-              <p className="section-kicker">검토 원칙</p>
-              <h2 className="section-title">중복 후보를 먼저 확인한 뒤 선택적으로 가져옵니다</h2>
-              <p className="section-description">
-                제목과 타입이 같은 항목은 기본 선택에서 제외했습니다. 가져올 항목만 체크하면 계정 로컬 아카이브로 복사됩니다.
-              </p>
-            </div>
+        <Stack gap="md">
+          <SectionCard>
+            <SectionIntro
+              description="제목과 타입이 같은 항목은 기본 선택에서 제외했습니다. 가져올 항목만 체크하면 계정 로컬 아카이브로 복사됩니다."
+              eyebrow="검토 원칙"
+              title="중복 후보를 먼저 확인한 뒤 선택적으로 가져옵니다"
+            />
 
-            {duplicateSummary && <p className="muted-copy">{duplicateSummary}</p>}
+            {duplicateSummary && (
+              <Text c="var(--app-text-muted)">{duplicateSummary}</Text>
+            )}
 
-            <div className="button-row">
+            <ActionRow>
               <AppButton
                 disabled={!canSubmit}
                 onClick={() => void handleImport()}
@@ -247,60 +243,72 @@ export function GuestTransferReviewPage() {
                 onClick={() => {
                   void handleSkip();
                 }}
+                tone="quiet"
                 type="button"
               >
                 이번 guest 기록은 건너뛰기
               </AppButton>
-            </div>
-          </section>
+            </ActionRow>
+          </SectionCard>
 
-          <section className="stack">
+          <Stack gap="md">
             {review.items.map((item) => (
-              <article className="panel stack" key={item.guestWork.id}>
-                <div className="page-header">
-                  <div>
-                    <p className="section-kicker">
-                      {item.guestWork.type} / {item.guestWork.status}
-                    </p>
-                    <h3 className="section-title">{item.guestWork.title}</h3>
-                    <p className="muted-copy">
-                      {item.guestWork.author || '작가 미입력'} · 별점{' '}
-                      {item.guestWork.rating === null
-                        ? '미평가'
-                        : `${item.guestWork.rating.toFixed(1)}점`}
-                    </p>
-                  </div>
-                  <label className="field field--checkbox">
-                    <input
-                      checked={selectedIds.includes(item.guestWork.id)}
-                      onChange={() => toggleSelection(item.guestWork.id)}
-                      type="checkbox"
-                    />
-                    <span>이 항목 가져오기</span>
-                  </label>
+              <SectionCard key={item.guestWork.id} padding="lg">
+                <div
+                  style={{
+                    alignItems: 'flex-start',
+                    display: 'flex',
+                    gap: '1rem',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Stack gap="sm" style={{ flex: '1 1 20rem' }}>
+                    <ActionRow>
+                      <AppBadge>{item.guestWork.type}</AppBadge>
+                      <AppBadge>{item.guestWork.status}</AppBadge>
+                      {item.hasDuplicates ? (
+                        <AppBadge tone="warning">중복 후보 있음</AppBadge>
+                      ) : (
+                        <AppBadge tone="muted">중복 후보 없음</AppBadge>
+                      )}
+                    </ActionRow>
+
+                    <div>
+                      <Title order={3}>{item.guestWork.title}</Title>
+                      <Text c="var(--app-text-muted)">
+                        {item.guestWork.author || '작가 미입력'} · 별점{' '}
+                        {item.guestWork.rating === null
+                          ? '미평가'
+                          : `${item.guestWork.rating.toFixed(1)}점`}
+                      </Text>
+                    </div>
+                  </Stack>
+
+                  <Checkbox
+                    checked={selectedIds.includes(item.guestWork.id)}
+                    label="이 항목 가져오기"
+                    onChange={() => toggleSelection(item.guestWork.id)}
+                  />
                 </div>
 
-                {item.hasDuplicates ? (
-                  <div className="stack">
-                    <span className="mode-badge">중복 후보 있음</span>
+                {item.hasDuplicates && (
+                  <Stack gap="xs">
                     {item.duplicateCandidates.map((candidate) => (
-                      <p className="muted-copy" key={candidate.id}>
-                        기존 계정 기록 후보: {candidate.title} / {candidate.type} /{' '}
-                        {candidate.status}
-                      </p>
+                      <Text c="var(--app-text-muted)" key={candidate.id}>
+                        기존 계정 기록 후보: {candidate.title} / {candidate.type} / {candidate.status}
+                      </Text>
                     ))}
-                  </div>
-                ) : (
-                  <span className="badge">중복 후보 없음</span>
+                  </Stack>
                 )}
 
                 {item.guestWork.shortReview && (
-                  <p className="muted-copy">{item.guestWork.shortReview}</p>
+                  <Text c="var(--app-text-secondary)">{item.guestWork.shortReview}</Text>
                 )}
-              </article>
+              </SectionCard>
             ))}
-          </section>
-        </>
+          </Stack>
+        </Stack>
       )}
     </AccountPageTemplate>
   );
