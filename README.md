@@ -5,7 +5,7 @@
 | Status | `active` |
 | Role | `operational entrypoint` |
 | Source of truth | `package.json`, `compose.yml`, `apps/web/package.json`, `apps/api/package.json` |
-| Last verified against | `2026-04-21` working tree |
+| Last verified against | `2026-04-22` working tree |
 | When to update | 실행 스크립트, 환경 변수, 포트, Compose 흐름, 현재 검증 상태가 바뀔 때 |
 
 Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 작품 감상 기록을 관리하는 local-first 웹 서비스다. 프론트는 IndexedDB를 1차 저장소로 사용하고, 로그인 시 계정별 로컬 아카이브와 수동 동기화를 사용할 수 있다.
@@ -166,20 +166,22 @@ npm run build
 - 로그인 직후 guest 기록이 감지되면 `/account/transfer`에서 중복 후보를 검토한 뒤 선택 import할 수 있다.
 - Quick Add 흐름은 존재하지만 외부 메타데이터 API 연동은 아직 없다.
 - `Tier Boards`, `Insights`, `Community`는 현재 placeholder 성격이 강하다.
-- 인증은 현재 이메일/비밀번호 + access/refresh token 구조다.
+- 인증은 현재 이메일/비밀번호 + access token local storage + refresh cookie 구조다.
+- 백엔드는 이미 `CatalogWork` + `UserWorkRecord` split model을 도입했고, 현재 `Works` API는 flat compatibility 계층으로 유지된다.
 - 현재 프론트 실행 대상은 `apps/web`이며, Tauri shell은 아직 저장소에 없다.
 
 ## Known Limitations
 
 - 자동 동기화는 아직 없다.
 - guest -> account 이관은 검토/선택 import 단계까지만 있고, 자동 병합이나 다기기 정책은 아직 없다.
-- 보안 로드맵의 운영 강화 항목은 아직 미적용이다.
-- API의 CORS 정책은 현재 빈 값 또는 `*`에서 wildcard fallback을 허용한다.
+- Quick Add는 preview seam만 존재하고 외부 metadata truth source는 아직 없다.
+- `Works` compatibility layer, access token 저장 구조, 공개 레이어 권한 분리 같은 후속 과제는 아직 남아 있다.
 
 ## Documentation
 
 - 문서 허브: [`docs/README.md`](./docs/README.md)
 - 현재 코드 현실: [`docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 - 프론트 기준: [`docs/frontend/FRONTEND_BLUEPRINT_V1.md`](./docs/frontend/FRONTEND_BLUEPRINT_V1.md)
+- 프론트 상세 실행 계획: [`docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](./docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
 - 백엔드 목표 구조: [`docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](./docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
 - 문서 운영 기준: [`docs/management/DOCUMENTATION_GOVERNANCE.md`](./docs/management/DOCUMENTATION_GOVERNANCE.md)

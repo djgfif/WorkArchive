@@ -5,7 +5,7 @@
 | Status | `canonical` |
 | Role | `navigation` |
 | Source of truth | 현재 문서 트리와 [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md) |
-| Last verified against | `2026-04-21` working tree |
+| Last verified against | `2026-04-22` working tree |
 | When to update | 문서 경로, 읽는 순서, 주요 문서 역할이 바뀔 때 |
 
 이 문서는 Work Archive 문서의 공식 탐색 진입점이다. 무엇을 먼저 읽어야 하는지와 각 문서가 어떤 역할을 가지는지 여기서 판단한다.
@@ -35,15 +35,17 @@
 ### 제품 방향과 로드맵을 볼 때
 
 1. [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
-2. [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md)
-3. [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
-4. [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
+2. [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
+3. [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md)
+4. [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
+5. [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
+6. [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
 
 ## 2. Canonical Documents
 
 | Document | Status | Role | Use it when |
 | --- | --- | --- | --- |
-| [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | `canonical` | `current reality` | 현재 구현 상태, 실제 라우트, 모듈, 검증 표면을 알고 싶을 때 |
+| [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | `canonical` | `current reality` | 현재 구현 상태, 실제 라우트, 모듈, 세션 저장 방식, 검증 표면을 알고 싶을 때 |
 | [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md) | `canonical` | `current frontend decisions` | 현재 UI/라우트/레이아웃 기준을 잡을 때 |
 | [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md) | `canonical` | `target frontend structure` | 프론트의 다음 구조 작업 범위를 정할 때 |
 | [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md) | `canonical` | `target backend structure` | 백엔드 도메인 경계와 장기 구조를 판단할 때 |
@@ -55,11 +57,11 @@
 
 | Document | Role | Use it when |
 | --- | --- | --- |
-| [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md) | `frontend roadmap` | Mantine 전환과 화면 재작성 순서를 정할 때 |
-| [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md) | `security roadmap` | 공개 전/후 보안 우선순위를 정할 때 |
-| [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md) | `product/frontend roadmap` | 근거리 제품/프론트 우선순위를 볼 때 |
+| [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md) | `frontend roadmap` | 프론트 5단계 상세 실행 순서를 정할 때 |
+| [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md) | `security roadmap` | 남은 공개 전/후 보안 backlog를 정할 때 |
+| [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md) | `product priority summary` | 근거리 제품 우선순위와 사용자 가치 설명을 볼 때 |
 | [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md) | `target product vision` | 최종 사용자 경험과 디자인 원칙을 볼 때 |
-| [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md) | `target UI system` | Mantine 기반 UI 시스템 규칙을 볼 때 |
+| [`../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](../product/CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md) | `target UI system` | Mantine 기반 UI 시스템 원칙을 볼 때 |
 | [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md) | `exploratory strategy` | 게스트 유지와 구글 로그인 전략을 검토할 때 |
 | [`../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](../product/VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md) | `exploratory architecture` | catalog/public/community 확장 구조를 검토할 때 |
 
