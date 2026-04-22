@@ -1,4 +1,4 @@
-import { Group, Stack, Text, Title } from '@mantine/core';
+import { Stack, Text, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
@@ -8,7 +8,6 @@ import {
   AppBadge,
   AppButton,
   AppLinkButton,
-  KeyValueGrid,
   SectionCard,
 } from '../../../shared/components/AppPrimitives';
 import {
@@ -30,76 +29,64 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
 
   return (
     <SectionCard gap="md" padding="lg">
-      <Group align="flex-start" wrap="nowrap">
-        <ArtworkPoster
-          thumbnailUrl={work.thumbnailUrl}
-          title={work.title}
-          typeLabel={typeLabel}
-          variant="card"
-        />
+      <ArtworkPoster
+        thumbnailUrl={work.thumbnailUrl}
+        title={work.title}
+        typeLabel={typeLabel}
+        variant="card"
+      />
 
-        <Stack flex={1} gap="md" miw={0}>
-          <ActionRow>
-            <AppBadge>{statusLabel}</AppBadge>
-            <AppBadge>{ratingLabel}</AppBadge>
-            <AppBadge>{typeLabel}</AppBadge>
-            {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
-          </ActionRow>
+      <Stack gap="sm">
+        <ActionRow>
+          <AppBadge>{statusLabel}</AppBadge>
+          <AppBadge>{ratingLabel}</AppBadge>
+          <AppBadge>{typeLabel}</AppBadge>
+          {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
+        </ActionRow>
 
-          <div>
-            <Title order={3}>
-              <Link style={{ color: 'inherit', textDecoration: 'none' }} to={`/works/${work.id}`}>
-                {work.title}
-              </Link>
-            </Title>
-            <Text c="var(--app-text-muted)">
-              {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
-            </Text>
-          </div>
-
-          <Text c="var(--app-text-secondary)">
-            {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
+        <div>
+          <Title order={3}>
+            <Link style={{ color: 'inherit', textDecoration: 'none' }} to={`/works/${work.id}`}>
+              {work.title}
+            </Link>
+          </Title>
+          <Text c="var(--app-text-muted)">
+            {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
           </Text>
+        </div>
 
-          <KeyValueGrid
-            columns={3}
-            items={[
-              { label: '타입', value: typeLabel },
-              { label: '상태', value: statusLabel },
-              {
-                label: '장르',
-                value: visibleGenres.length > 0 ? visibleGenres.join(', ') : '장르 없음',
-              },
-            ]}
-          />
+        <Text c="var(--app-text-secondary)">
+          {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
+        </Text>
 
-          <ActionRow justify="space-between">
-            <ActionRow>
-              {visibleGenres.length > 0 ? (
-                visibleGenres.map((genre) => <AppBadge key={genre}>{genre}</AppBadge>)
-              ) : (
-                <AppBadge tone="muted">장르 없음</AppBadge>
-              )}
-              {work.genres.length > visibleGenres.length && (
-                <AppBadge>+{work.genres.length - visibleGenres.length}</AppBadge>
-              )}
-            </ActionRow>
+        <ActionRow>
+          {visibleGenres.length > 0 ? (
+            visibleGenres.map((genre) => <AppBadge key={genre}>{genre}</AppBadge>)
+          ) : (
+            <AppBadge tone="muted">장르 없음</AppBadge>
+          )}
+          {work.genres.length > visibleGenres.length && (
+            <AppBadge>+{work.genres.length - visibleGenres.length}</AppBadge>
+          )}
+        </ActionRow>
 
-            <ActionRow justify="flex-end">
-              <AppLinkButton to={`/works/${work.id}`}>상세</AppLinkButton>
-              <AppLinkButton to={`/works/${work.id}/edit`}>수정</AppLinkButton>
-              <AppButton
-                aria-label={`${work.title} 삭제`}
-                onClick={() => void onDelete(work)}
-                tone="danger"
-                type="button"
-              >
-                삭제
-              </AppButton>
-            </ActionRow>
-          </ActionRow>
-        </Stack>
-      </Group>
+        <ActionRow justify="space-between">
+          <AppLinkButton to={`/works/${work.id}`} tone="quiet">
+            상세
+          </AppLinkButton>
+          <AppLinkButton to={`/works/${work.id}/edit`} tone="ghost">
+            수정
+          </AppLinkButton>
+          <AppButton
+            aria-label={`${work.title} 삭제`}
+            onClick={() => void onDelete(work)}
+            tone="danger"
+            type="button"
+          >
+            삭제
+          </AppButton>
+        </ActionRow>
+      </Stack>
     </SectionCard>
   );
 }

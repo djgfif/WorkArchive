@@ -4,7 +4,6 @@ import type { WorkStatus } from '@work-archive/shared-types';
 
 import {
   ActionRow,
-  AppBadge,
   AppButton,
   AppLinkButton,
   MetricPill,
@@ -55,14 +54,14 @@ export function WorksToolbar({
   if (!isLoading) {
     if (collectionScope === 'trash') {
       if (totalDeletedCount === 0) {
-        countSummary = '지금은 휴지통이 비어 있습니다.';
+        countSummary = '휴지통은 비어 있습니다.';
       } else if (filteredCount === totalDeletedCount) {
         countSummary = `숨겨둔 작품 ${totalDeletedCount}개를 보고 있습니다.`;
       } else {
         countSummary = `휴지통 ${totalDeletedCount}개 중 ${filteredCount}개를 보고 있습니다.`;
       }
     } else if (totalActiveCount === 0) {
-      countSummary = '아직 등록된 작품이 없습니다. 첫 작품을 추가해보세요.';
+      countSummary = '아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.';
     } else if (filteredCount === totalActiveCount) {
       countSummary = `작품 ${totalActiveCount}개가 등록되어 있습니다.`;
     } else {
@@ -90,8 +89,8 @@ export function WorksToolbar({
         actions={
           <ActionRow justify="flex-end">
             {hasActiveFilters && (
-              <AppButton onClick={onClearFilters} tone="quiet" type="button">
-                초기화
+              <AppButton onClick={onClearFilters} tone="ghost" type="button">
+                필터 초기화
               </AppButton>
             )}
             <AppLinkButton to="/works/new" tone="primary">
@@ -99,15 +98,11 @@ export function WorksToolbar({
             </AppLinkButton>
           </ActionRow>
         }
-        description={
-          collectionScope === 'trash'
-            ? '삭제한 작품을 잠시 보관하고 복원하는 공간입니다.'
-            : '검색과 상태 변경을 빠르게 이어가는 작품 아카이브 작업 공간입니다.'
-        }
+        description={countSummary}
         eyebrow="작품"
         meta={
           <>
-            <MetricPill label="전체 작품" value={totalActiveCount} />
+            <MetricPill label="활성 작품" value={totalActiveCount} />
             <MetricPill label="휴지통" value={totalDeletedCount} />
             <MetricPill
               label={collectionScope === 'trash' ? '현재 범위' : '기본 보기'}
@@ -121,21 +116,21 @@ export function WorksToolbar({
             />
           </>
         }
-        title="작품 아카이브"
+        title="작품"
       />
 
       <SectionCard gap="md" padding="lg" tone="subtle">
         <SimpleGrid cols={{ base: 1, lg: 12 }} spacing="md">
           <div style={{ gridColumn: 'span 12 / span 12' }}>
             <Group align="flex-end" gap="sm" wrap="wrap">
-              <div style={{ flex: '1 1 18rem', minWidth: 220 }}>
+              <div style={{ flex: '1 1 18rem', minWidth: 240 }}>
                 <TextInput
-                  label="작품 검색"
+                  label="검색"
                   name="searchTerm"
                   onChange={(event) =>
                     onQueryChange({ ...query, searchTerm: event.currentTarget.value })
                   }
-                  placeholder="제목 또는 작가로 검색"
+                  placeholder="제목 또는 작가로 찾기"
                   value={query.searchTerm}
                 />
               </div>
@@ -182,78 +177,76 @@ export function WorksToolbar({
               </div>
             </Group>
           </div>
-
-          <div style={{ gridColumn: 'span 12 / span 12' }}>
-            <Group gap="sm" justify="space-between" wrap="wrap">
-              <ActionRow>
-                <AppButton
-                  onClick={() => onCollectionScopeChange('active')}
-                  tone={collectionScope === 'active' ? 'primary' : 'secondary'}
-                  type="button"
-                >
-                  작품 목록
-                </AppButton>
-                <AppButton
-                  onClick={() => onCollectionScopeChange('trash')}
-                  tone={collectionScope === 'trash' ? 'primary' : 'secondary'}
-                  type="button"
-                >
-                  {totalDeletedCount > 0 ? `휴지통 ${totalDeletedCount}` : '휴지통'}
-                </AppButton>
-              </ActionRow>
-
-              {collectionScope === 'active' && (
-                <ActionRow justify="flex-end">
-                  <AppButton
-                    onClick={() => onViewModeChange('list')}
-                    tone={viewMode === 'list' ? 'quiet' : 'secondary'}
-                    type="button"
-                  >
-                    리스트
-                  </AppButton>
-                  <AppButton
-                    onClick={() => onViewModeChange('grid')}
-                    tone={viewMode === 'grid' ? 'quiet' : 'secondary'}
-                    type="button"
-                  >
-                    그리드
-                  </AppButton>
-                </ActionRow>
-              )}
-            </Group>
-          </div>
-
-          {collectionScope === 'active' && (
-            <div style={{ gridColumn: 'span 12 / span 12' }}>
-              <ActionRow>
-                {statusFilterOptions.map((option) => {
-                  const isActive = query.status === option.value;
-                  const count =
-                    option.value === 'all' ? totalActiveCount : statusCounts[option.value];
-
-                  return (
-                    <AppButton
-                      key={option.value}
-                      onClick={() =>
-                        onQueryChange({
-                          ...query,
-                          status: option.value,
-                        })
-                      }
-                      tone={isActive ? 'primary' : 'quiet'}
-                      type="button"
-                    >
-                      {option.label}
-                      <AppBadge tone={isActive ? 'default' : 'muted'}>{count}</AppBadge>
-                    </AppButton>
-                  );
-                })}
-              </ActionRow>
-            </div>
-          )}
         </SimpleGrid>
 
-        <Text c="var(--app-text-muted)">{countSummary}</Text>
+        <Group gap="sm" justify="space-between" wrap="wrap">
+          <ActionRow>
+            <AppButton
+              onClick={() => onCollectionScopeChange('active')}
+              tone={collectionScope === 'active' ? 'quiet' : 'ghost'}
+              type="button"
+            >
+              작품 목록
+            </AppButton>
+            <AppButton
+              onClick={() => onCollectionScopeChange('trash')}
+              tone={collectionScope === 'trash' ? 'quiet' : 'ghost'}
+              type="button"
+            >
+              {totalDeletedCount > 0 ? `휴지통 ${totalDeletedCount}` : '휴지통'}
+            </AppButton>
+          </ActionRow>
+
+          {collectionScope === 'active' && (
+            <ActionRow justify="flex-end">
+              <AppButton
+                onClick={() => onViewModeChange('list')}
+                tone={viewMode === 'list' ? 'quiet' : 'ghost'}
+                type="button"
+              >
+                리스트
+              </AppButton>
+              <AppButton
+                onClick={() => onViewModeChange('grid')}
+                tone={viewMode === 'grid' ? 'quiet' : 'ghost'}
+                type="button"
+              >
+                그리드
+              </AppButton>
+            </ActionRow>
+          )}
+        </Group>
+
+        {collectionScope === 'active' && (
+          <ActionRow>
+            {statusFilterOptions.map((option) => {
+              const isActive = query.status === option.value;
+              const count =
+                option.value === 'all' ? totalActiveCount : statusCounts[option.value];
+
+              return (
+                <AppButton
+                  key={option.value}
+                  onClick={() =>
+                    onQueryChange({
+                      ...query,
+                      status: option.value,
+                    })
+                  }
+                  size="compact-sm"
+                  tone={isActive ? 'quiet' : 'ghost'}
+                  type="button"
+                >
+                  {option.label} {count}
+                </AppButton>
+              );
+            })}
+          </ActionRow>
+        )}
+
+        <Text c="var(--app-text-muted)" size="sm">
+          필터는 작업 도구로만 유지하고, 본문은 작품 목록이 먼저 보이도록 정리했습니다.
+        </Text>
       </SectionCard>
     </>
   );

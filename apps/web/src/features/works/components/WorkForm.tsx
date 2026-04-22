@@ -25,8 +25,8 @@ import {
   AppLinkButton,
   FeedbackMessage,
   MetricPill,
+  PageSection,
   SectionCard,
-  SectionIntro,
 } from '../../../shared/components/AppPrimitives';
 import {
   createDefaultWorkFormValues,
@@ -136,16 +136,15 @@ export function WorkForm({
 
   return (
     <form onSubmit={handleSubmit}>
-      <Grid align="start" gutter="md">
+      <Grid align="start" gutter="xl">
         <Grid.Col span={{ base: 12, lg: 8 }}>
-          <Stack gap="md">
-            <SectionCard>
-              <SectionIntro
-                description="기본 정보만 먼저 입력해도 충분합니다. 나머지는 나중에 채워도 됩니다."
-                eyebrow="기본 정보"
-                title="어떤 작품인가요?"
-              />
-
+          <SectionCard gap="xl" padding="xl" tone="default">
+            <PageSection
+              description="필수 정보만 먼저 입력하고, 나머지는 나중에 추가해도 기록 흐름이 깨지지 않도록 정리했습니다."
+              divider={false}
+              eyebrow="기본 정보"
+              title="작품 정보"
+            >
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 <NativeSelect
                   id="type"
@@ -177,7 +176,6 @@ export function WorkForm({
                     name="title"
                     onChange={handleInputChange}
                     placeholder="작품 제목을 입력해주세요"
-                    required
                     value={values.title}
                   />
                 </div>
@@ -225,11 +223,9 @@ export function WorkForm({
                   />
                 </div>
               </SimpleGrid>
-            </SectionCard>
+            </PageSection>
 
-            <SectionCard>
-              <SectionIntro eyebrow="기록 정보" title="현재 상태를 정리해보세요" />
-
+            <PageSection eyebrow="기록 정보" title="상태와 평가">
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 <NativeSelect
                   id="status"
@@ -282,20 +278,18 @@ export function WorkForm({
                   onChange={handleInputChange}
                 />
               </SimpleGrid>
-            </SectionCard>
+            </PageSection>
 
             <div ref={reviewSectionRef}>
-              <SectionCard tone={focusArea === 'review' ? 'hero' : 'default'}>
-                <SectionIntro
-                  description={
-                    focusArea === 'review'
-                      ? '이번에는 감상 문장에만 집중해도 충분합니다.'
-                      : '짧은 감상과 긴 감상을 나눠두면 나중에 다시 읽을 때 더 편합니다.'
-                  }
-                  eyebrow="감상 기록"
-                  title={focusArea === 'review' ? '이번엔 감상 문장에 집중해보세요' : '감상을 남겨보세요'}
-                />
-
+              <PageSection
+                description={
+                  focusArea === 'review'
+                    ? '이번에는 감상 문장을 먼저 정리할 수 있도록 이 영역을 바로 열어둡니다.'
+                    : '짧은 감상과 긴 감상을 나눠두면 나중에 다시 읽을 때 더 편합니다.'
+                }
+                eyebrow="감상 기록"
+                title={focusArea === 'review' ? '이번엔 감상 문장에 집중해보세요' : '감상을 남겨보세요'}
+              >
                 <ActionRow>
                   <MetricPill
                     label="목록과 홈 최근 기록에 우선 노출됩니다."
@@ -328,7 +322,7 @@ export function WorkForm({
                   rows={8}
                   value={values.review}
                 />
-              </SectionCard>
+              </PageSection>
             </div>
 
             {(validationError || submitError) && (
@@ -345,62 +339,54 @@ export function WorkForm({
                 취소
               </AppLinkButton>
             </ActionRow>
-          </Stack>
+          </SectionCard>
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, lg: 4 }}>
-          <Stack gap="md">
-            <SectionCard gap="lg" tone="subtle">
-              <SectionIntro
-                description="입력한 내용이 라이브러리에서 어떤 인상으로 보일지 바로 확인할 수 있습니다."
-                eyebrow="미리보기"
-                title="라이브러리에서는 이렇게 보여요"
-              />
+          <SectionCard gap="lg" padding="lg" tone="subtle">
+            <ArtworkPoster
+              thumbnailUrl={values.thumbnailUrl}
+              title={previewTitle}
+              typeLabel={getWorkTypeLabel(values.type)}
+              variant="form"
+            />
 
-              <ArtworkPoster
-                thumbnailUrl={values.thumbnailUrl}
-                title={previewTitle}
-                typeLabel={getWorkTypeLabel(values.type)}
-                variant="form"
-              />
+            <Stack gap="sm">
+              <ActionRow>
+                <AppBadge>{getWorkTypeLabel(values.type)}</AppBadge>
+                <AppBadge>{getWorkStatusLabel(values.status)}</AppBadge>
+                <AppBadge>{getWorkTierLabel(values.tier || null)}</AppBadge>
+                {values.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
+              </ActionRow>
 
-              <Stack gap="sm">
-                <ActionRow>
-                  <AppBadge>{getWorkTypeLabel(values.type)}</AppBadge>
-                  <AppBadge>{getWorkStatusLabel(values.status)}</AppBadge>
-                  <AppBadge>{getWorkTierLabel(values.tier || null)}</AppBadge>
-                  {values.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
-                </ActionRow>
-
-                <div>
-                  <Title order={3}>{previewTitle}</Title>
-                  <Text c="var(--app-text-muted)">
-                    {values.author.trim() || '작가·제작자 미입력'}
-                  </Text>
-                </div>
-
-                <Text c="var(--app-text-secondary)">
-                  {values.shortReview.trim() ||
-                    values.description.trim() ||
-                    '짧은 감상이나 설명을 남겨두면 나중에 다시 찾기 쉽습니다.'}
-                </Text>
-
-                <ActionRow>
-                  {previewGenres.length > 0 ? (
-                    previewGenres.map((genre) => <AppBadge key={genre}>{genre}</AppBadge>)
-                  ) : (
-                    <AppBadge tone="muted">장르 없음</AppBadge>
-                  )}
-                </ActionRow>
-
+              <div>
+                <Title order={3}>{previewTitle}</Title>
                 <Text c="var(--app-text-muted)">
-                  {focusArea === 'review'
-                    ? '지금 쓰는 감상은 저장 후 상세 화면의 리뷰 영역으로 바로 이어집니다.'
-                    : '지금은 핵심만 저장하고, 나중에 천천히 더 채워도 됩니다.'}
+                  {values.author.trim() || '작가·제작자 미입력'}
                 </Text>
-              </Stack>
-            </SectionCard>
-          </Stack>
+              </div>
+
+              <Text c="var(--app-text-secondary)">
+                {values.shortReview.trim() ||
+                  values.description.trim() ||
+                  '짧은 감상이나 설명을 남겨두면 나중에 다시 찾기 쉽습니다.'}
+              </Text>
+
+              <ActionRow>
+                {previewGenres.length > 0 ? (
+                  previewGenres.map((genre) => <AppBadge key={genre}>{genre}</AppBadge>)
+                ) : (
+                  <AppBadge tone="muted">장르 없음</AppBadge>
+                )}
+              </ActionRow>
+
+              <Text c="var(--app-text-muted)">
+                {focusArea === 'review'
+                  ? '지금 쓰는 감상은 저장 후 상세 화면의 리뷰 영역으로 바로 이어집니다.'
+                  : '핵심 정보부터 저장하고, 나중에 더 채워도 기록 구조는 그대로 유지됩니다.'}
+              </Text>
+            </Stack>
+          </SectionCard>
         </Grid.Col>
       </Grid>
     </form>

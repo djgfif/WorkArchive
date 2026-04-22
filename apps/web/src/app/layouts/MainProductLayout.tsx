@@ -1,11 +1,10 @@
-import { Button, Container, Menu, Stack } from '@mantine/core';
+import { Button, Container, Flex, Group, Menu, Stack, Text } from '@mantine/core';
 import { Outlet, useNavigate } from 'react-router-dom';
 
 import {
   AppLinkButton,
   AppNavLink,
   BrandLink,
-  SectionCard,
   StateMessage,
   ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
@@ -30,26 +29,25 @@ export function MainProductLayout() {
   return (
     <main className="layout-shell layout-shell--product">
       <Container px="md" size={1360}>
-        <Stack gap="xl">
-          <SectionCard gap="lg" tone="hero">
-            <div
+        <Stack gap="lg">
+          <header
+            style={{
+              borderBottom: '1px solid var(--app-border-color)',
+              paddingBottom: '1rem',
+            }}
+          >
+            <Flex
               style={{
-                alignItems: 'center',
-                display: 'flex',
-                flexWrap: 'wrap',
                 gap: '1rem',
-                justifyContent: 'space-between',
               }}
+              align={{ base: 'stretch', md: 'center' }}
+              direction={{ base: 'column', md: 'row' }}
+              justify="space-between"
             >
-              <div
-                style={{
-                  alignItems: 'center',
-                  display: 'flex',
-                  flex: '1 1 28rem',
-                  flexWrap: 'wrap',
-                  gap: '0.875rem',
-                  minWidth: 0,
-                }}
+              <Group
+                gap="lg"
+                miw={0}
+                wrap="wrap"
               >
                 <BrandLink heading="워크 아카이브" kicker="개인 취향 아카이브" />
                 <nav
@@ -57,9 +55,8 @@ export function MainProductLayout() {
                   style={{
                     alignItems: 'center',
                     display: 'flex',
-                    flex: '1 1 18rem',
+                    gap: '1.25rem',
                     flexWrap: 'wrap',
-                    gap: '0.75rem',
                     minWidth: 0,
                   }}
                 >
@@ -69,38 +66,38 @@ export function MainProductLayout() {
                     </AppNavLink>
                   ))}
                 </nav>
-              </div>
+              </Group>
 
-              <div
-                style={{
-                  alignItems: 'center',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '0.75rem',
-                  justifyContent: 'flex-end',
-                }}
-              >
+              <Group gap="sm" justify="flex-end" wrap="wrap">
                 <ThemeToggleControl />
                 <AppLinkButton to="/works/new" tone="primary">
                   작품 추가
                 </AppLinkButton>
 
                 {isAuthenticated ? (
-                  <Menu position="bottom-end" shadow="md" width={220} withinPortal={false}>
-                    <Menu.Target>
-                      <Button variant="default">
-                        {user?.email ?? '내 계정'}
-                      </Button>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      <Menu.Item onClick={() => navigate('/profile')}>프로필</Menu.Item>
-                      <Menu.Item onClick={() => navigate('/account')}>계정 센터</Menu.Item>
-                      <Menu.Divider />
-                      <Menu.Item color="red" onClick={() => void handleSignOut()}>
-                        로그아웃
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
+                  <>
+                    {user?.email && (
+                      <Text c="var(--app-text-muted)" size="sm">
+                        {user.email}
+                      </Text>
+                    )}
+                    <Menu position="bottom-end" shadow="md" width={220} withinPortal={false}>
+                      <Menu.Target>
+                        <Button aria-label={user?.email ?? '계정'} variant="subtle">
+                          계정
+                        </Button>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        {user?.email && <Menu.Label>{user.email}</Menu.Label>}
+                        <Menu.Item onClick={() => navigate('/profile')}>프로필</Menu.Item>
+                        <Menu.Item onClick={() => navigate('/account')}>계정 센터</Menu.Item>
+                        <Menu.Divider />
+                        <Menu.Item color="red" onClick={() => void handleSignOut()}>
+                          로그아웃
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  </>
                 ) : (
                   <>
                     <AppLinkButton to="/auth/login">로그인</AppLinkButton>
@@ -109,9 +106,9 @@ export function MainProductLayout() {
                     </AppLinkButton>
                   </>
                 )}
-              </div>
-            </div>
-          </SectionCard>
+              </Group>
+            </Flex>
+          </header>
 
           {isLoading ? (
             <StateMessage

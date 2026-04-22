@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { SimpleGrid, Text, Title } from '@mantine/core';
+import { SimpleGrid, Stack, Text, Title } from '@mantine/core';
 
 import {
   ActionRow,
+  PageSection,
   PageShell,
   SectionCard,
   SectionIntro,
@@ -14,19 +15,19 @@ interface PageFrameProps {
 }
 
 export function HomeHubPageTemplate({ children }: PageFrameProps) {
-  return <PageShell gap="xl" size={1180}>{children}</PageShell>;
+  return <PageShell gap="xl" size={1240}>{children}</PageShell>;
 }
 
 export function WorkspacePageTemplate({ children }: PageFrameProps) {
-  return <PageShell gap="lg" size={1260}>{children}</PageShell>;
+  return <PageShell gap="lg" size={1280}>{children}</PageShell>;
 }
 
 export function DetailPageTemplate({ children }: PageFrameProps) {
-  return <PageShell gap="xl" size={1120}>{children}</PageShell>;
+  return <PageShell gap="xl" size={1200}>{children}</PageShell>;
 }
 
 export function FlowPageTemplate({ children }: PageFrameProps) {
-  return <PageShell gap="xl" size={1080}>{children}</PageShell>;
+  return <PageShell gap="xl" size={1280}>{children}</PageShell>;
 }
 
 interface AuthPageTemplateProps {
@@ -50,8 +51,8 @@ export function AuthPageTemplate({
   title,
 }: AuthPageTemplateProps) {
   return (
-    <PageShell gap="lg" size={720}>
-      <SectionCard gap="lg" tone="hero">
+    <PageShell gap="xl" size={720}>
+      <SectionCard gap="lg" padding="xl" tone="default">
         <SectionIntro
           description={description}
           eyebrow={eyebrow}
@@ -61,19 +62,28 @@ export function AuthPageTemplate({
         {form}
       </SectionCard>
 
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
         {highlights.map((highlight) => (
-          <SectionCard key={highlight.title} gap="sm" padding="lg" tone="subtle">
-            <Text c="var(--app-accent)" fw={700} fz="0.76rem" lts="0.12em" tt="uppercase">
-              안내
-            </Text>
-            <Title order={3}>{highlight.title}</Title>
+          <PageSection
+            divider={false}
+            eyebrow="안내"
+            key={highlight.title}
+            title={highlight.title}
+            titleOrder={3}
+          >
             <Text c="var(--app-text-muted)">{highlight.description}</Text>
-          </SectionCard>
+          </PageSection>
         ))}
       </SimpleGrid>
 
-      {footer && <SectionCard padding="lg" tone="subtle">{footer}</SectionCard>}
+      {footer && (
+        <Stack gap="xs">
+          <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+            계정 안내
+          </Text>
+          {footer}
+        </Stack>
+      )}
     </PageShell>
   );
 }
@@ -125,7 +135,7 @@ export function MinimalPageTemplate({
 }: MinimalPageTemplateProps) {
   return (
     <PageShell gap="lg" size={760}>
-      <SectionCard tone="hero">
+      <SectionCard padding="xl" tone="default">
         <Text c="var(--app-accent)" fw={700} fz="0.76rem" lts="0.12em" tt="uppercase">
           {eyebrow}
         </Text>
