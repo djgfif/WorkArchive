@@ -88,4 +88,37 @@ describe('WorkDetailPage', () => {
     expect(await screen.findByRole('heading', { name: 'Frieren 감상 수정' })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: '저장' })).toBeInTheDocument();
   });
+
+  it('shows progress-only controls for anime without episode-level rating UI', async () => {
+    const work = await worksService.createWork({
+      type: 'anime',
+      title: 'KonoSuba TV Anime',
+      author: 'Studio Deen',
+      genres: ['Comedy'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'in_progress',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [`/works/${work.id}`],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'KonoSuba TV Anime' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '애니 진행 상황' })).toBeInTheDocument();
+    expect(screen.getByLabelText('현재 회')).toBeInTheDocument();
+    expect(screen.queryByText('권별 기록')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('권별 별점')).not.toBeInTheDocument();
+  });
 });

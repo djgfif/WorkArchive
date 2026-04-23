@@ -1,14 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+import { UserReleaseRecordResponseDto } from '../../user-records/dto/user-release-record.dto';
 import { WorkResponseDto } from '../../works/dto/work-response.dto';
 
 const PULL_SYNC_OPERATIONS = ['upsert', 'delete'] as const;
 
 export class PullSyncChangeDto {
   @ApiProperty({
-    enum: ['work'],
+    enum: ['work', 'release_record'],
   })
-  entityType!: 'work';
+  entityType!: 'work' | 'release_record';
 
   @ApiProperty({
     format: 'uuid',
@@ -22,8 +23,15 @@ export class PullSyncChangeDto {
 
   @ApiProperty({
     type: () => WorkResponseDto,
+    required: false,
   })
-  work!: WorkResponseDto;
+  work?: WorkResponseDto;
+
+  @ApiProperty({
+    type: () => UserReleaseRecordResponseDto,
+    required: false,
+  })
+  releaseRecord?: UserReleaseRecordResponseDto;
 }
 
 export class PullSyncResponseDto {

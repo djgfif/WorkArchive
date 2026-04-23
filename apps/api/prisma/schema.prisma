@@ -42,6 +42,12 @@ enum WorkSyncStatus {
   conflict
 }
 
+enum ProgressUnit {
+  volume
+  episode
+  chapter
+}
+
 enum UserRole {
   user
   moderator
@@ -190,20 +196,21 @@ model CatalogTitle {
 }
 
 model CatalogRelease {
-  id             String               @id @default(uuid())
-  catalogTitleId String
-  releaseType    String               @default("")
-  displayLabel   String               @default("")
-  title          String               @default("")
-  sequence       Float?
-  isbn           String?
-  releaseDate    DateTime?
-  summary        String               @default("") @db.Text
-  thumbnailUrl   String               @default("")
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  catalogTitle   CatalogTitle         @relation(fields: [catalogTitleId], references: [id], onDelete: Cascade)
-  externalRefs   CatalogExternalRef[]
+  id                 String               @id @default(uuid())
+  catalogTitleId     String
+  releaseType        String               @default("")
+  displayLabel       String               @default("")
+  title              String               @default("")
+  sequence           Float?
+  isbn               String?
+  releaseDate        DateTime?
+  summary            String               @default("") @db.Text
+  thumbnailUrl       String               @default("")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  catalogTitle       CatalogTitle         @relation(fields: [catalogTitleId], references: [id], onDelete: Cascade)
+  externalRefs       CatalogExternalRef[]
+  userReleaseRecords UserReleaseRecord[]
 
   @@index([catalogTitleId, sequence])
   @@index([isbn])
@@ -212,7 +219,7 @@ model CatalogRelease {
 
 model Contributor {
   id            String                    @id @default(uuid())
-  entityType    ContributorEntityType      @default(person)
+  entityType    ContributorEntityType     @default(person)
   canonicalName String
   displayName   String
   aliases       String[]                  @default([])
@@ -245,8 +252,8 @@ model CatalogRelation {
   targetTitleId String
   relationType  CatalogRelationType
   createdAt     DateTime            @default(now())
-  sourceTitle   CatalogTitle         @relation("CatalogRelationSource", fields: [sourceTitleId], references: [id], onDelete: Cascade)
-  targetTitle   CatalogTitle         @relation("CatalogRelationTarget", fields: [targetTitleId], references: [id], onDelete: Cascade)
+  sourceTitle   CatalogTitle        @relation("CatalogRelationSource", fields: [sourceTitleId], references: [id], onDelete: Cascade)
+  targetTitle   CatalogTitle        @relation("CatalogRelationTarget", fields: [targetTitleId], references: [id], onDelete: Cascade)
 
   @@unique([sourceTitleId, targetTitleId, relationType])
   @@index([targetTitleId, relationType])
@@ -254,25 +261,25 @@ model CatalogRelation {
 }
 
 model CatalogExternalRef {
-  id               String         @id @default(uuid())
+  id               String          @id @default(uuid())
   catalogTitleId   String?
   catalogReleaseId String?
   franchiseId      String?
   contributorId    String?
   provider         String
   externalId       String
-  url              String         @default("")
-  rawType          String         @default("")
+  url              String          @default("")
+  rawType          String          @default("")
   language         String?
   country          String?
   confidence       Float?
   lastFetchedAt    DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  catalogTitle     CatalogTitle?  @relation(fields: [catalogTitleId], references: [id], onDelete: Cascade)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  catalogTitle     CatalogTitle?   @relation(fields: [catalogTitleId], references: [id], onDelete: Cascade)
   catalogRelease   CatalogRelease? @relation(fields: [catalogReleaseId], references: [id], onDelete: Cascade)
-  franchise        Franchise?     @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
-  contributor      Contributor?   @relation(fields: [contributorId], references: [id], onDelete: Cascade)
+  franchise        Franchise?      @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  contributor      Contributor?    @relation(fields: [contributorId], references: [id], onDelete: Cascade)
 
   @@unique([provider, rawType, externalId])
   @@index([catalogTitleId])
@@ -321,24 +328,29 @@ model CatalogAuditLog {
 }
 
 model UserWorkRecord {
-  id            String         @id @default(uuid())
-  userId        String?
-  catalogWorkId String
-  catalogTitleId String?
-  status        WorkStatus     @default(planned)
-  rating        Float?
-  shortReview   String         @default("")
-  review        String         @default("") @db.Text
-  tier          WorkTier?
-  favorite      Boolean        @default(false)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  deletedAt     DateTime?
-  syncStatus    WorkSyncStatus @default(synced)
-  serverVersion Int            @default(1)
-  catalogWork   CatalogWork    @relation(fields: [catalogWorkId], references: [id], onDelete: Cascade)
-  catalogTitle  CatalogTitle?  @relation(fields: [catalogTitleId], references: [id], onDelete: SetNull)
-  user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String              @id @default(uuid())
+  userId            String?
+  catalogWorkId     String
+  catalogTitleId    String?
+  status            WorkStatus          @default(planned)
+  rating            Float?
+  shortReview       String              @default("")
+  review            String              @default("") @db.Text
+  tier              WorkTier?
+  favorite          Boolean             @default(false)
+  progressCurrent   Int?
+  progressTotal     Int?
+  progressUnit      ProgressUnit?
+  lastConsumedLabel String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  syncStatus        WorkSyncStatus      @default(synced)
+  serverVersion     Int                 @default(1)
+  catalogWork       CatalogWork         @relation(fields: [catalogWorkId], references: [id], onDelete: Cascade)
+  catalogTitle      CatalogTitle?       @relation(fields: [catalogTitleId], references: [id], onDelete: SetNull)
+  user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  releaseRecords    UserReleaseRecord[]
 
   @@index([userId, deletedAt])
   @@index([userId, status, updatedAt])
@@ -346,6 +358,30 @@ model UserWorkRecord {
   @@index([catalogWorkId])
   @@index([catalogTitleId])
   @@map("user_work_records")
+}
+
+model UserReleaseRecord {
+  id               String         @id @default(uuid())
+  userWorkRecordId String
+  catalogReleaseId String
+  status           WorkStatus     @default(planned)
+  rating           Float?
+  shortReview      String         @default("")
+  review           String         @default("") @db.Text
+  favorite         Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
+  syncStatus       WorkSyncStatus @default(synced)
+  serverVersion    Int            @default(1)
+  userWorkRecord   UserWorkRecord @relation(fields: [userWorkRecordId], references: [id], onDelete: Cascade)
+  catalogRelease   CatalogRelease @relation(fields: [catalogReleaseId], references: [id], onDelete: Restrict)
+
+  @@unique([userWorkRecordId, catalogReleaseId])
+  @@index([userWorkRecordId, deletedAt])
+  @@index([catalogReleaseId])
+  @@index([updatedAt])
+  @@map("user_release_records")
 }
 
 model ExternalApiCredential {

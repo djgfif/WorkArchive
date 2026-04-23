@@ -1,5 +1,6 @@
 import type {
   SyncQueueItemRecord,
+  UserReleaseRecord,
   WorkRecord,
   WorkSyncStatus,
 } from '@work-archive/shared-types';
@@ -9,6 +10,10 @@ import {
   worksRepository,
   type WorksRepository,
 } from '../../works/services/works.repository';
+import {
+  releaseRecordsRepository,
+  type ReleaseRecordsRepository,
+} from '../../works/services/release-records.repository';
 import {
   appMetaRepository,
   type AppMetaRepository,
@@ -28,10 +33,11 @@ export type SyncRunState = 'idle' | 'syncing' | 'success' | 'failed';
 interface PushSyncResult {
   queueId: string;
   entityId: string;
-  entityType: 'work';
+  entityType: 'work' | 'release_record';
   status: PushResultStatus;
   message: string;
-  work: WorkRecord | null;
+  work?: WorkRecord | null;
+  releaseRecord?: UserReleaseRecord | null;
 }
 
 interface PushSyncResponse {
@@ -40,10 +46,11 @@ interface PushSyncResponse {
 }
 
 interface PullSyncChange {
-  entityType: 'work';
+  entityType: 'work' | 'release_record';
   entityId: string;
   operation: PullOperation;
-  work: WorkRecord;
+  work?: WorkRecord;
+  releaseRecord?: UserReleaseRecord;
 }
 
 interface PullSyncResponse {
@@ -106,6 +113,7 @@ async function postJson<TResponse>(
 export class SyncService {
   constructor(
     private readonly worksRepo: WorksRepository = worksRepository,
+    private readonly releaseRecordsRepo: ReleaseRecordsRepository = releaseRecordsRepository,
     private readonly queueRepo: SyncQueueRepository = syncQueueRepository,
     private readonly metaRepo: AppMetaRepository = appMetaRepository,
   ) {}
@@ -215,7 +223,11 @@ export class SyncService {
 
         if (result.status === 'conflict') {
           conflictCount += 1;
-          await this.markWorkSyncStatus(result.entityId, 'conflict');
+          await this.markEntitySyncStatus(
+            result.entityType,
+            result.entityId,
+            'conflict',
+          );
         } else {
           failedCount += 1;
         }
@@ -283,30 +295,43 @@ export class SyncService {
         since,
       });
       const queuedWorkIds = new Set(await this.queueRepo.getQueuedWorkIds());
+      const queuedReleaseRecordIds = new Set(
+        await this.queueRepo.getQueuedReleaseRecordIds(),
+      );
       const queueItems = await this.queueRepo.listAll();
-      const queueItemsByEntityId = new Map<
-        string,
-        SyncQueueItemRecord<WorkRecord>[]
-      >();
+      const queueItemsByEntityKey = new Map<string, SyncQueueItemRecord[]>();
       const worksToMerge: WorkRecord[] = [];
+      const releaseRecordsToMerge: UserReleaseRecord[] = [];
       let skippedCount = 0;
       const messages: string[] = [];
 
       for (const item of queueItems) {
-        const itemsForEntity = queueItemsByEntityId.get(item.entityId) ?? [];
+        const entityKey = this.getEntityKey(item.entityType, item.entityId);
+        const itemsForEntity = queueItemsByEntityKey.get(entityKey) ?? [];
 
         itemsForEntity.push(item);
-        queueItemsByEntityId.set(item.entityId, itemsForEntity);
+        queueItemsByEntityKey.set(entityKey, itemsForEntity);
       }
 
       for (const change of response.changes) {
-        if (queuedWorkIds.has(change.entityId)) {
+        const hasLocalQueue =
+          change.entityType === 'work'
+            ? queuedWorkIds.has(change.entityId)
+            : queuedReleaseRecordIds.has(change.entityId);
+
+        if (hasLocalQueue) {
           skippedCount += 1;
           messages.push('다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다.');
-          await this.markWorkSyncStatus(change.entityId, 'conflict');
+          await this.markEntitySyncStatus(
+            change.entityType,
+            change.entityId,
+            'conflict',
+          );
 
           const relatedQueueItems =
-            queueItemsByEntityId.get(change.entityId) ?? [];
+            queueItemsByEntityKey.get(
+              this.getEntityKey(change.entityType, change.entityId),
+            ) ?? [];
 
           for (const queueItem of relatedQueueItems) {
             await this.queueRepo.setLastError(
@@ -318,10 +343,18 @@ export class SyncService {
           continue;
         }
 
-        worksToMerge.push(change.work);
+        if (change.entityType === 'work' && change.work) {
+          worksToMerge.push(change.work);
+          continue;
+        }
+
+        if (change.entityType === 'release_record' && change.releaseRecord) {
+          releaseRecordsToMerge.push(change.releaseRecord);
+        }
       }
 
       await this.worksRepo.bulkPut(worksToMerge);
+      await this.releaseRecordsRepo.bulkPut(releaseRecordsToMerge);
       const nextSince = skippedCount > 0 ? since : response.nextSince;
 
       if (nextSince !== null) {
@@ -336,7 +369,7 @@ export class SyncService {
 
       return {
         pulledCount: response.changes.length,
-        appliedCount: worksToMerge.length,
+        appliedCount: worksToMerge.length + releaseRecordsToMerge.length,
         skippedCount,
         pulledAt: response.pulledAt,
         nextSince,
@@ -364,11 +397,34 @@ export class SyncService {
   }
 
   private async applySuccessfulPushResult(
-    queueItem: SyncQueueItemRecord<WorkRecord>,
+    queueItem: SyncQueueItemRecord,
     result: PushSyncResult,
   ) {
     try {
-      if (result.work !== null) {
+      if (result.entityType === 'release_record') {
+        if (result.releaseRecord !== null && result.releaseRecord !== undefined) {
+          await this.releaseRecordsRepo.update(result.releaseRecord);
+
+          return true;
+        }
+
+        const localReleaseRecord = await this.releaseRecordsRepo.getById(
+          queueItem.entityId,
+        );
+
+        if (!localReleaseRecord) {
+          return true;
+        }
+
+        await this.releaseRecordsRepo.update({
+          ...localReleaseRecord,
+          syncStatus: 'synced',
+        });
+
+        return true;
+      }
+
+      if (result.work !== null && result.work !== undefined) {
         await this.worksRepo.update(result.work);
 
         return true;
@@ -412,6 +468,36 @@ export class SyncService {
       ...work,
       syncStatus,
     });
+  }
+
+  private async markReleaseRecordSyncStatus(
+    id: string,
+    syncStatus: WorkSyncStatus,
+  ) {
+    const releaseRecord = await this.releaseRecordsRepo.getById(id);
+
+    if (!releaseRecord || releaseRecord.syncStatus === syncStatus) {
+      return;
+    }
+
+    await this.releaseRecordsRepo.update({
+      ...releaseRecord,
+      syncStatus,
+    });
+  }
+
+  private markEntitySyncStatus(
+    entityType: 'work' | 'release_record',
+    id: string,
+    syncStatus: WorkSyncStatus,
+  ) {
+    return entityType === 'work'
+      ? this.markWorkSyncStatus(id, syncStatus)
+      : this.markReleaseRecordSyncStatus(id, syncStatus);
+  }
+
+  private getEntityKey(entityType: 'work' | 'release_record', entityId: string) {
+    return `${entityType}:${entityId}`;
   }
 }
 

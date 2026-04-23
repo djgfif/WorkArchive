@@ -16,7 +16,7 @@ import {
   Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { WorkStatus, WorkTier, WorkType } from '@prisma/client';
+import { ProgressUnit, WorkStatus, WorkTier, WorkType } from '@prisma/client';
 
 import {
   WORK_SYNC_STATUS_VALUES,
@@ -135,6 +135,42 @@ export class SyncWorkPayloadDto {
   @ApiProperty()
   @IsBoolean()
   favorite!: boolean;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    minimum: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  progressCurrent?: number | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    minimum: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  progressTotal?: number | null;
+
+  @ApiPropertyOptional({
+    enum: ProgressUnit,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsEnum(ProgressUnit)
+  progressUnit?: ProgressUnit | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    maxLength: 120,
+  })
+  @Trim()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  lastConsumedLabel?: string | null;
 
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',

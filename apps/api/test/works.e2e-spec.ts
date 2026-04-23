@@ -13,7 +13,10 @@ import { PrismaService } from '../src/prisma/prisma.service';
 function createPrismaServiceMock() {
   const users: Array<Record<string, unknown>> = [];
   const catalogWorks: Array<Record<string, unknown>> = [];
+  const catalogTitles: Array<Record<string, unknown>> = [];
+  const catalogExternalRefs: Array<Record<string, unknown>> = [];
   const userWorkRecords: Array<Record<string, unknown>> = [];
+  const userReleaseRecords: Array<Record<string, unknown>> = [];
   const externalApiCredentials: Array<Record<string, unknown>> = [];
 
   function buildServerVersion(
@@ -33,6 +36,14 @@ function createPrismaServiceMock() {
 
   function getCatalogWorkById(id: string) {
     return catalogWorks.find((catalogWork) => catalogWork.id === id) ?? null;
+  }
+
+  function getCatalogTitleById(id: string | null | undefined) {
+    if (!id) {
+      return null;
+    }
+
+    return catalogTitles.find((catalogTitle) => catalogTitle.id === id) ?? null;
   }
 
   function getSortDirections(orderBy: unknown) {
@@ -94,6 +105,7 @@ function createPrismaServiceMock() {
     return {
       ...record,
       catalogWork: getCatalogWorkById(record.catalogWorkId as string),
+      catalogTitle: getCatalogTitleById(record.catalogTitleId as string | null),
     };
   }
 
@@ -218,6 +230,114 @@ function createPrismaServiceMock() {
         return updatedCatalogWork;
       },
     };
+  prismaMock.catalogTitle = {
+      upsert: async ({
+        create,
+        update,
+        where,
+      }: {
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+        where: {
+          id: string;
+        };
+      }) => {
+        const index = catalogTitles.findIndex((title) => title.id === where.id);
+        const now = new Date();
+
+        if (index >= 0) {
+          const updatedTitle = {
+            ...catalogTitles[index],
+            ...update,
+            updatedAt: update.updatedAt ?? now,
+          };
+
+          catalogTitles[index] = updatedTitle;
+
+          return updatedTitle;
+        }
+
+        const title = {
+          id: create.id ?? where.id,
+          franchiseId: create.franchiseId ?? null,
+          mediumType: create.mediumType ?? WorkType.other,
+          subType: create.subType ?? null,
+          canonicalTitle: create.canonicalTitle,
+          displayTitle: create.displayTitle,
+          originalTitle: create.originalTitle ?? null,
+          aliases: create.aliases ?? [],
+          releaseYear: create.releaseYear ?? null,
+          startDate: create.startDate ?? null,
+          endDate: create.endDate ?? null,
+          country: create.country ?? null,
+          status: create.status ?? 'unknown',
+          summary: create.summary ?? '',
+          thumbnailUrl: create.thumbnailUrl ?? '',
+          verificationStatus: create.verificationStatus ?? 'draft',
+          createdAt: create.createdAt ?? now,
+          updatedAt: create.updatedAt ?? now,
+          franchise: null,
+          contributors: [],
+          outgoingRelations: [],
+          externalRefs: [],
+        };
+
+        catalogTitles.push(title);
+
+        return title;
+      },
+      findFirst: async ({
+        where,
+        select,
+      }: {
+        where?: {
+          displayTitle?: {
+            equals: string;
+            mode?: string;
+          };
+          mediumType?: WorkType;
+        };
+        select?: Record<string, boolean>;
+      } = {}) => {
+        const title =
+          catalogTitles.find((catalogTitle) => {
+            if (
+              where?.mediumType &&
+              catalogTitle.mediumType !== where.mediumType
+            ) {
+              return false;
+            }
+
+            if (where?.displayTitle?.equals) {
+              const expected = where.displayTitle.equals.toLowerCase();
+              const actual = String(catalogTitle.displayTitle).toLowerCase();
+
+              if (actual !== expected) {
+                return false;
+              }
+            }
+
+            return true;
+          }) ?? null;
+
+        if (!title || !select) {
+          return title;
+        }
+
+        return Object.fromEntries(
+          Object.entries(select)
+            .filter(([, enabled]) => enabled)
+            .map(([key]) => [key, title[key]]),
+        );
+      },
+      findUnique: async ({
+        where,
+      }: {
+        where: {
+          id: string;
+        };
+      }) => getCatalogTitleById(where.id),
+    };
   prismaMock.userWorkRecord = {
       findMany: async ({
         where,
@@ -324,12 +444,17 @@ function createPrismaServiceMock() {
           id: data.id ?? crypto.randomUUID(),
           userId: data.userId ?? null,
           catalogWorkId: data.catalogWorkId,
+          catalogTitleId: data.catalogTitleId ?? null,
           status: data.status ?? WorkStatus.planned,
           rating: data.rating ?? null,
           shortReview: data.shortReview ?? '',
           review: data.review ?? '',
           tier: data.tier ?? null,
           favorite: data.favorite ?? false,
+          progressCurrent: data.progressCurrent ?? null,
+          progressTotal: data.progressTotal ?? null,
+          progressUnit: data.progressUnit ?? null,
+          lastConsumedLabel: data.lastConsumedLabel ?? null,
           createdAt: data.createdAt ?? now,
           updatedAt: data.updatedAt ?? now,
           deletedAt: data.deletedAt ?? null,
@@ -371,6 +496,136 @@ function createPrismaServiceMock() {
 
         return joinRecord(updatedRecord);
       },
+    };
+  prismaMock.catalogExternalRef = {
+      findUnique: async ({
+        include,
+        where,
+      }: {
+        include?: {
+          catalogTitle?: boolean;
+        };
+        where: {
+          provider_rawType_externalId: {
+            externalId: string;
+            provider: string;
+            rawType: string;
+          };
+        };
+      }) => {
+        const ref =
+          catalogExternalRefs.find(
+            (externalRef) =>
+              externalRef.externalId ===
+                where.provider_rawType_externalId.externalId &&
+              externalRef.provider ===
+                where.provider_rawType_externalId.provider &&
+              externalRef.rawType ===
+                where.provider_rawType_externalId.rawType,
+          ) ?? null;
+
+        if (!ref || !include?.catalogTitle) {
+          return ref;
+        }
+
+        return {
+          ...ref,
+          catalogTitle: getCatalogTitleById(ref.catalogTitleId as string | null),
+        };
+      },
+      upsert: async ({
+        create,
+        update,
+        where,
+      }: {
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+        where: {
+          provider_rawType_externalId: {
+            externalId: string;
+            provider: string;
+            rawType: string;
+          };
+        };
+      }) => {
+        const index = catalogExternalRefs.findIndex(
+          (externalRef) =>
+            externalRef.externalId ===
+              where.provider_rawType_externalId.externalId &&
+            externalRef.provider === where.provider_rawType_externalId.provider &&
+            externalRef.rawType === where.provider_rawType_externalId.rawType,
+        );
+        const now = new Date();
+
+        if (index >= 0) {
+          const updatedRef = {
+            ...catalogExternalRefs[index],
+            ...update,
+            updatedAt: now,
+          };
+
+          catalogExternalRefs[index] = updatedRef;
+
+          return updatedRef;
+        }
+
+        const ref = {
+          id: create.id ?? crypto.randomUUID(),
+          catalogTitleId: create.catalogTitleId ?? null,
+          catalogReleaseId: create.catalogReleaseId ?? null,
+          franchiseId: create.franchiseId ?? null,
+          contributorId: create.contributorId ?? null,
+          provider: create.provider,
+          externalId: create.externalId,
+          url: create.url ?? '',
+          rawType: create.rawType ?? '',
+          language: create.language ?? null,
+          country: create.country ?? null,
+          confidence: create.confidence ?? null,
+          lastFetchedAt: create.lastFetchedAt ?? null,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        catalogExternalRefs.push(ref);
+
+        return ref;
+      },
+    };
+  prismaMock.userReleaseRecord = {
+      findMany: async ({
+        where,
+      }: {
+        where?: {
+          updatedAt?: {
+            gt: Date;
+          };
+          userWorkRecord?: {
+            userId?: string;
+          };
+        };
+      } = {}) =>
+        userReleaseRecords.filter((record) => {
+          if (where?.userWorkRecord?.userId) {
+            const parent = userWorkRecords.find(
+              (workRecord) => workRecord.id === record.userWorkRecordId,
+            );
+
+            if (parent?.userId !== where.userWorkRecord.userId) {
+              return false;
+            }
+          }
+
+          if (
+            where?.updatedAt?.gt &&
+            new Date(record.updatedAt as Date).getTime() <=
+              where.updatedAt.gt.getTime()
+          ) {
+            return false;
+          }
+
+          return true;
+        }),
     };
   prismaMock.externalApiCredential = {
       findUnique: async ({
@@ -857,6 +1112,7 @@ describe('Auth, works, and sync API (e2e)', () => {
     expect(searchResponse.status).toBe(200);
     expect(searchResponse.body).toEqual({
       provider: 'aladin',
+      providers: ['aladin'],
       query: '듄',
       candidates: [
         expect.objectContaining({

@@ -1,5 +1,6 @@
 import type {
   WorkRecord,
+  ProgressUnit,
   WorkStatus,
   WorkSyncStatus,
 } from '@work-archive/shared-types';
@@ -25,6 +26,13 @@ interface WorksListResult {
 }
 
 export type WorksCollectionScope = 'active' | 'trash';
+
+interface UpdateProgressInput {
+  progressCurrent?: number | null;
+  progressTotal?: number | null;
+  progressUnit?: ProgressUnit | null;
+  lastConsumedLabel?: string | null;
+}
 
 function buildEmptyStatusCounts(): Record<WorkStatus, number> {
   return {
@@ -84,6 +92,10 @@ export class WorksService {
       ...input,
       createdAt: now,
       updatedAt: now,
+      progressCurrent: null,
+      progressTotal: null,
+      progressUnit: null,
+      lastConsumedLabel: null,
       deletedAt: null,
       syncStatus: 'local-only',
       serverVersion: 0,
@@ -105,6 +117,41 @@ export class WorksService {
     const updated: WorkRecord = {
       ...existing,
       ...input,
+      updatedAt: new Date().toISOString(),
+      syncStatus: getNextSyncStatus(existing.serverVersion),
+    };
+
+    await this.repository.update(updated);
+    await this.queueRepository.enqueueWorkChange(updated, 'update');
+
+    return updated;
+  }
+
+  async updateProgress(id: string, input: UpdateProgressInput) {
+    const existing = await this.repository.getById(id);
+
+    if (!existing || existing.deletedAt !== null) {
+      throw new Error('작품을 찾을 수 없습니다.');
+    }
+
+    const updated: WorkRecord = {
+      ...existing,
+      lastConsumedLabel:
+        input.lastConsumedLabel === undefined
+          ? existing.lastConsumedLabel ?? null
+          : input.lastConsumedLabel?.trim() ?? null,
+      progressCurrent:
+        input.progressCurrent === undefined
+          ? existing.progressCurrent ?? null
+          : input.progressCurrent,
+      progressTotal:
+        input.progressTotal === undefined
+          ? existing.progressTotal ?? null
+          : input.progressTotal,
+      progressUnit:
+        input.progressUnit === undefined
+          ? existing.progressUnit ?? null
+          : input.progressUnit,
       updatedAt: new Date().toISOString(),
       syncStatus: getNextSyncStatus(existing.serverVersion),
     };
