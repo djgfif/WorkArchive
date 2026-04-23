@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
@@ -23,6 +24,8 @@ const DEFAULT_SYNC_STATUS = WorkSyncStatus.synced;
 
 @Injectable()
 export class WorksService {
+  private readonly logger = new Logger(WorksService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(CatalogService) private readonly catalogService: CatalogService,
@@ -43,70 +46,89 @@ export class WorksService {
   }
 
   async create(userId: string, createWorkDto: CreateWorkDto) {
-    // 릴리스 1단계에서는 catalog와 user record를 1:1로 생성해 기존 flat 계약을 유지합니다.
-    const workId = crypto.randomUUID();
-    const work = await this.prisma.$transaction(async (tx) => {
-      await this.catalogService.create(
-        {
-          id: workId,
-          ...this.buildCatalogCreateData(createWorkDto),
-        },
-        tx,
-      );
+    try {
+      // 릴리스 1단계에서는 catalog와 user record를 1:1로 생성해 기존 flat 계약을 유지합니다.
+      const workId = crypto.randomUUID();
+      const work = await this.prisma.$transaction(async (tx) => {
+        await this.catalogService.create(
+          {
+            id: workId,
+            ...this.buildCatalogCreateData(createWorkDto),
+          },
+          tx,
+        );
 
-      return this.userRecordsService.create(
-        {
-          id: workId,
-          ...this.buildUserRecordCreateData(userId, workId, createWorkDto),
-        },
-        tx,
-      );
-    });
+        return this.userRecordsService.create(
+          {
+            id: workId,
+            ...this.buildUserRecordCreateData(userId, workId, createWorkDto),
+          },
+          tx,
+        );
+      });
 
-    return toFlatWorkResponse(work);
+      return toFlatWorkResponse(work);
+    } catch (error) {
+      this.logMutationFailure('create', userId, null, error);
+      throw error;
+    }
   }
 
   async update(userId: string, id: string, updateWorkDto: UpdateWorkDto) {
-    const existingWork = await this.getActiveWorkOrThrow(userId, id);
-    const catalogUpdateData = this.buildCatalogUpdateData(updateWorkDto);
-    const recordUpdateData = this.buildUserRecordUpdateData(updateWorkDto);
+    try {
+      const existingWork = await this.getActiveWorkOrThrow(userId, id);
+      const catalogUpdateData = this.buildCatalogUpdateData(updateWorkDto);
+      const recordUpdateData = this.buildUserRecordUpdateData(updateWorkDto);
 
-    if (!hasChanges(catalogUpdateData) && !hasChanges(recordUpdateData)) {
-      return toFlatWorkResponse(existingWork);
-    }
-
-    const work = await this.prisma.$transaction(async (tx) => {
-      if (hasChanges(catalogUpdateData)) {
-        // 현재는 shared catalog가 아니라 user record와 결합된 1:1 catalog 항목을 함께 갱신합니다.
-        await this.catalogService.update(existingWork.catalogWorkId, catalogUpdateData, tx);
+      if (!hasChanges(catalogUpdateData) && !hasChanges(recordUpdateData)) {
+        return toFlatWorkResponse(existingWork);
       }
 
-      return this.userRecordsService.update(
-        id,
-        {
-          ...recordUpdateData,
-          syncStatus: DEFAULT_SYNC_STATUS,
-          serverVersion: {
-            increment: 1,
-          },
-        },
-        tx,
-      );
-    });
+      const work = await this.prisma.$transaction(async (tx) => {
+        if (hasChanges(catalogUpdateData)) {
+          // 현재는 shared catalog가 아니라 user record와 결합된 1:1 catalog 항목을 함께 갱신합니다.
+          await this.catalogService.update(
+            existingWork.catalogWorkId,
+            catalogUpdateData,
+            tx,
+          );
+        }
 
-    return toFlatWorkResponse(work);
+        return this.userRecordsService.update(
+          id,
+          {
+            ...recordUpdateData,
+            syncStatus: DEFAULT_SYNC_STATUS,
+            serverVersion: {
+              increment: 1,
+            },
+          },
+          tx,
+        );
+      });
+
+      return toFlatWorkResponse(work);
+    } catch (error) {
+      this.logMutationFailure('update', userId, id, error);
+      throw error;
+    }
   }
 
   async remove(userId: string, id: string) {
-    await this.getActiveWorkOrThrow(userId, id);
+    try {
+      await this.getActiveWorkOrThrow(userId, id);
 
-    await this.userRecordsService.update(id, {
-      deletedAt: new Date(),
-      syncStatus: DEFAULT_SYNC_STATUS,
-      serverVersion: {
-        increment: 1,
-      },
-    });
+      await this.userRecordsService.update(id, {
+        deletedAt: new Date(),
+        syncStatus: DEFAULT_SYNC_STATUS,
+        serverVersion: {
+          increment: 1,
+        },
+      });
+    } catch (error) {
+      this.logMutationFailure('delete', userId, id, error);
+      throw error;
+    }
   }
 
   private async getActiveWorkOrThrow(userId: string, id: string) {
@@ -226,5 +248,19 @@ export class WorksService {
     }
 
     return data;
+  }
+
+  private logMutationFailure(
+    operation: 'create' | 'update' | 'delete',
+    userId: string,
+    workId: string | null,
+    error: unknown,
+  ) {
+    const errorName = error instanceof Error ? error.name : 'UnknownError';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    this.logger.warn(
+      `Work ${operation} failed userId=${userId}${workId ? ` workId=${workId}` : ''} reason=${errorName}: ${errorMessage}`,
+    );
   }
 }

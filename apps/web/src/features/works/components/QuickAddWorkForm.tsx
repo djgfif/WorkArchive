@@ -9,6 +9,7 @@ import {
 import {
   Accordion,
   Alert,
+  Anchor,
   Checkbox,
   Group,
   NativeSelect,
@@ -107,6 +108,7 @@ function createValuesFromCandidate(candidate: ImportCandidate): WorkFormValues {
     author: candidate.author,
     description: candidate.description,
     genresText: candidate.genresText,
+    thumbnailUrl: candidate.thumbnailUrl,
     title: candidate.title,
     type: candidate.type,
   };
@@ -176,6 +178,7 @@ function CandidateRow({
     >
       <Group align="flex-start" gap="md" wrap="nowrap">
         <ArtworkPoster
+          thumbnailUrl={candidate.thumbnailUrl}
           title={candidate.title}
           typeLabel={getWorkTypeLabel(candidate.type)}
           variant="row"
@@ -184,7 +187,7 @@ function CandidateRow({
         <Stack flex={1} gap="xs" miw={0}>
           <ActionRow>
             <AppBadge tone="accent">{candidate.confidenceLabel}</AppBadge>
-            <AppBadge>{candidate.note}</AppBadge>
+            <AppBadge>{candidate.sourceLabel}</AppBadge>
             <AppBadge>{getWorkTypeLabel(candidate.type)}</AppBadge>
             {duplicateCount > 0 && <AppBadge tone="warning">비슷한 기록 {duplicateCount}</AppBadge>}
           </ActionRow>
@@ -195,6 +198,9 @@ function CandidateRow({
           </div>
 
           <Text c="var(--app-text-secondary)">{candidate.description}</Text>
+          <Text c="var(--app-text-muted)" size="xs">
+            {candidate.note}
+          </Text>
         </Stack>
       </Group>
     </button>
@@ -206,11 +212,13 @@ export function QuickAddWorkForm({
   onSubmit,
   submitError,
 }: QuickAddWorkFormProps) {
-  const { archiveScopeKey } = useAuthSession();
+  const { archiveScopeKey, mode } = useAuthSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
   const [candidates, setCandidates] = useState<ImportCandidate[]>([]);
   const [existingWorks, setExistingWorks] = useState<WorkRecord[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<ImportCandidate | null>(
     null,
   );
@@ -249,7 +257,7 @@ export function QuickAddWorkForm({
     }));
   }
 
-  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const normalizedSearchTerm = searchTerm.trim();
@@ -263,8 +271,30 @@ export function QuickAddWorkForm({
     setSubmittedSearchTerm(normalizedSearchTerm);
     setSelectedCandidate(null);
     setConfirmedDuplicateCandidateId(null);
-    setCandidates(importsService.searchCandidates(normalizedSearchTerm));
+    setCandidates([]);
+    setSearchNotice(null);
     setValues(createQuickAddDefaults());
+
+    try {
+      setIsSearching(true);
+
+      const result = await importsService.searchCandidates(normalizedSearchTerm, {
+        limit: 10,
+        type: 'novel',
+        useExternal: mode === 'authenticated',
+      });
+
+      setCandidates(result.candidates);
+      setSearchNotice(result.notice);
+    } catch (error) {
+      setValidationError(
+        error instanceof Error ? error.message : '후보 검색에 실패했습니다.',
+      );
+      setCandidates([]);
+      setSearchNotice(null);
+    } finally {
+      setIsSearching(false);
+    }
   }
 
   function handleSelectCandidate(candidate: ImportCandidate) {
@@ -332,8 +362,13 @@ export function QuickAddWorkForm({
                   placeholder="제목이나 작가를 입력하세요"
                   value={searchTerm}
                 />
-                <AppButton tone="primary" type="submit">
-                  검색
+                <AppButton
+                  disabled={isSearching}
+                  loading={isSearching}
+                  tone="primary"
+                  type="submit"
+                >
+                  {isSearching ? '검색 중...' : '검색'}
                 </AppButton>
               </Group>
             </form>
@@ -351,7 +386,17 @@ export function QuickAddWorkForm({
               titleOrder={3}
             />
 
-            {submittedSearchTerm && candidates.length === 0 ? (
+            {searchNotice && (
+              <FeedbackMessage tone="info">
+                {searchNotice}
+              </FeedbackMessage>
+            )}
+
+            {isSearching ? (
+              <Text c="var(--app-text-muted)">
+                Aladin과 로컬 후보를 확인하고 있습니다.
+              </Text>
+            ) : submittedSearchTerm && candidates.length === 0 ? (
               <Text c="var(--app-text-muted)">
                 현재 검색어로는 후보를 찾지 못했습니다. 제목이나 작가를 조금 바꿔 다시 찾아보세요.
               </Text>
@@ -486,12 +531,27 @@ export function QuickAddWorkForm({
                   <Stack flex={1} gap="sm" miw={0}>
                     <ActionRow>
                       <AppBadge tone="accent">{selectedCandidate.confidenceLabel}</AppBadge>
-                      <AppBadge>{selectedCandidate.note}</AppBadge>
                       <AppBadge>{selectedCandidate.sourceLabel}</AppBadge>
                     </ActionRow>
 
                     <Text c="var(--app-text-secondary)">
                       {values.description || '설명은 아직 없습니다.'}
+                    </Text>
+
+                    <Text c="var(--app-text-muted)" size="sm">
+                      {selectedCandidate.note}
+                      {selectedCandidate.sourceUrl && (
+                        <>
+                          {' · '}
+                          <Anchor
+                            href={selectedCandidate.sourceUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            Aladin에서 보기
+                          </Anchor>
+                        </>
+                      )}
                     </Text>
 
                     <ActionRow>

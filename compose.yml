@@ -37,6 +37,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-access-secret}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-secret}
+      EXTERNAL_API_KEY_ENCRYPTION_SECRET: ${EXTERNAL_API_KEY_ENCRYPTION_SECRET:-change-me-external-api-key-encryption-secret}
       SEED_DEMO_EMAIL: ${SEED_DEMO_EMAIL:-demo@workarchive.local}
       SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-demo-password-123}
     ports:

@@ -24,9 +24,7 @@ export class UserRecordsService {
         deletedAt: null,
       },
       include: WORK_AGGREGATE_INCLUDE,
-      orderBy: {
-        updatedAt: 'desc',
-      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
     });
   }
 
@@ -43,9 +41,7 @@ export class UserRecordsService {
           : {}),
       },
       include: WORK_AGGREGATE_INCLUDE,
-      orderBy: {
-        updatedAt: 'asc',
-      },
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
     });
   }
 

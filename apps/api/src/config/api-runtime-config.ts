@@ -93,6 +93,10 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
   };
 }
 
+export function readExternalApiKeyEncryptionSecret() {
+  return readRequiredEnvString('EXTERNAL_API_KEY_ENCRYPTION_SECRET');
+}
+
 export function getPublicApiHost(host: string) {
   if (host === '0.0.0.0' || host === '::') {
     return 'localhost';

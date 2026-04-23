@@ -43,14 +43,15 @@ enum WorkSyncStatus {
 }
 
 model User {
-  id               String   @id @default(uuid())
-  email            String   @unique
-  passwordHash     String   @db.Text
-  refreshTokenHash String?  @db.Text
-  nickname         String   @default("")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  workRecords      UserWorkRecord[]
+  id                     String                  @id @default(uuid())
+  email                  String                  @unique
+  passwordHash           String                  @db.Text
+  refreshTokenHash       String?                 @db.Text
+  nickname               String                  @default("")
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  workRecords            UserWorkRecord[]
+  externalApiCredentials ExternalApiCredential[]
 
   @@map("users")
 }
@@ -95,4 +96,20 @@ model UserWorkRecord {
   @@index([userId, updatedAt])
   @@index([catalogWorkId])
   @@map("user_work_records")
+}
+
+model ExternalApiCredential {
+  id           String   @id @default(uuid())
+  userId       String
+  provider     String
+  encryptedKey String   @db.Text
+  iv           String   @db.Text
+  authTag      String   @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([provider])
+  @@map("external_api_credentials")
 }

@@ -3,7 +3,7 @@ import { type AddressInfo } from 'node:net';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { AppModule } from '../src/app.module';
 import { readApiRuntimeConfig } from '../src/config/api-runtime-config';
@@ -14,6 +14,7 @@ function createPrismaServiceMock() {
   const users: Array<Record<string, unknown>> = [];
   const catalogWorks: Array<Record<string, unknown>> = [];
   const userWorkRecords: Array<Record<string, unknown>> = [];
+  const externalApiCredentials: Array<Record<string, unknown>> = [];
 
   function buildServerVersion(
     currentVersion: number,
@@ -32,6 +33,61 @@ function createPrismaServiceMock() {
 
   function getCatalogWorkById(id: string) {
     return catalogWorks.find((catalogWork) => catalogWork.id === id) ?? null;
+  }
+
+  function getSortDirections(orderBy: unknown) {
+    let updatedAtDirection: 'asc' | 'desc' = 'desc';
+    let idDirection: 'asc' | 'desc' = 'desc';
+
+    if (Array.isArray(orderBy)) {
+      for (const entry of orderBy) {
+        if (
+          entry &&
+          typeof entry === 'object' &&
+          'updatedAt' in entry &&
+          (entry.updatedAt === 'asc' || entry.updatedAt === 'desc')
+        ) {
+          updatedAtDirection = entry.updatedAt;
+        }
+
+        if (
+          entry &&
+          typeof entry === 'object' &&
+          'id' in entry &&
+          (entry.id === 'asc' || entry.id === 'desc')
+        ) {
+          idDirection = entry.id;
+        }
+      }
+
+      return {
+        idDirection,
+        updatedAtDirection,
+      };
+    }
+
+    if (
+      orderBy &&
+      typeof orderBy === 'object' &&
+      'updatedAt' in orderBy &&
+      (orderBy.updatedAt === 'asc' || orderBy.updatedAt === 'desc')
+    ) {
+      updatedAtDirection = orderBy.updatedAt;
+    }
+
+    if (
+      orderBy &&
+      typeof orderBy === 'object' &&
+      'id' in orderBy &&
+      (orderBy.id === 'asc' || orderBy.id === 'desc')
+    ) {
+      idDirection = orderBy.id;
+    }
+
+    return {
+      idDirection,
+      updatedAtDirection,
+    };
   }
 
   function joinRecord(record: Record<string, unknown>) {
@@ -174,9 +230,15 @@ function createPrismaServiceMock() {
           };
           userId?: string;
         };
-        orderBy?: {
-          updatedAt: 'asc' | 'desc';
-        };
+        orderBy?:
+          | {
+              id?: 'asc' | 'desc';
+              updatedAt?: 'asc' | 'desc';
+            }
+          | Array<{
+              id?: 'asc' | 'desc';
+              updatedAt?: 'asc' | 'desc';
+            }>;
       } = {}) =>
         [...userWorkRecords]
           .filter((record) => {
@@ -199,11 +261,18 @@ function createPrismaServiceMock() {
             return true;
           })
           .sort((left, right) => {
-            const delta =
-              new Date(right.updatedAt as Date).getTime() -
-              new Date(left.updatedAt as Date).getTime();
+            const { idDirection, updatedAtDirection } = getSortDirections(orderBy);
+            const updatedAtDelta =
+              new Date(left.updatedAt as Date).getTime() -
+              new Date(right.updatedAt as Date).getTime();
 
-            return orderBy?.updatedAt === 'asc' ? -delta : delta;
+            if (updatedAtDelta !== 0) {
+              return updatedAtDirection === 'asc' ? updatedAtDelta : -updatedAtDelta;
+            }
+
+            const idDelta = String(left.id).localeCompare(String(right.id));
+
+            return idDirection === 'asc' ? idDelta : -idDelta;
           })
           .map((record) => joinRecord(record)),
       findUnique: async ({
@@ -303,11 +372,102 @@ function createPrismaServiceMock() {
         return joinRecord(updatedRecord);
       },
     };
+  prismaMock.externalApiCredential = {
+      findUnique: async ({
+        where,
+      }: {
+        where: {
+          userId_provider: {
+            provider: string;
+            userId: string;
+          };
+        };
+      }) =>
+        externalApiCredentials.find(
+          (credential) =>
+            credential.userId === where.userId_provider.userId &&
+            credential.provider === where.userId_provider.provider,
+        ) ?? null,
+      upsert: async ({
+        create,
+        update,
+        where,
+      }: {
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+        where: {
+          userId_provider: {
+            provider: string;
+            userId: string;
+          };
+        };
+      }) => {
+        const index = externalApiCredentials.findIndex(
+          (credential) =>
+            credential.userId === where.userId_provider.userId &&
+            credential.provider === where.userId_provider.provider,
+        );
+        const now = new Date();
+
+        if (index >= 0) {
+          const updatedCredential = {
+            ...externalApiCredentials[index],
+            ...update,
+            updatedAt: now,
+          };
+
+          externalApiCredentials[index] = updatedCredential;
+
+          return updatedCredential;
+        }
+
+        const credential = {
+          id: create.id ?? crypto.randomUUID(),
+          userId: create.userId,
+          provider: create.provider,
+          encryptedKey: create.encryptedKey,
+          iv: create.iv,
+          authTag: create.authTag,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        externalApiCredentials.push(credential);
+
+        return credential;
+      },
+      deleteMany: async ({
+        where,
+      }: {
+        where: {
+          provider: string;
+          userId: string;
+        };
+      }) => {
+        const nextCredentials = externalApiCredentials.filter(
+          (credential) =>
+            credential.userId !== where.userId ||
+            credential.provider !== where.provider,
+        );
+        const count = externalApiCredentials.length - nextCredentials.length;
+
+        externalApiCredentials.splice(
+          0,
+          externalApiCredentials.length,
+          ...nextCredentials,
+        );
+
+        return {
+          count,
+        };
+      },
+    };
 
   return prismaMock;
 }
 
 describe('Auth, works, and sync API (e2e)', () => {
+  const REFRESH_TOKEN_COOKIE_NAME = 'work_archive_refresh_token';
   let app: INestApplication;
   let baseUrl: string;
   let cookieJar: string | null;
@@ -315,6 +475,8 @@ describe('Auth, works, and sync API (e2e)', () => {
   beforeEach(async () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
+    process.env.EXTERNAL_API_KEY_ENCRYPTION_SECRET =
+      'test-external-api-key-encryption-secret';
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -334,6 +496,7 @@ describe('Auth, works, and sync API (e2e)', () => {
   });
 
   afterEach(async () => {
+    jest.restoreAllMocks();
     await app.close();
   });
 
@@ -343,6 +506,7 @@ describe('Auth, works, and sync API (e2e)', () => {
     accessToken?: string,
   ): Promise<{
     body: unknown;
+    setCookie: string | null;
     status: number;
   }> {
     const headers = new Headers(init?.headers);
@@ -371,6 +535,7 @@ describe('Auth, works, and sync API (e2e)', () => {
 
     return {
       body,
+      setCookie: nextCookie,
       status: response.status,
     };
   }
@@ -395,7 +560,65 @@ describe('Auth, works, and sync API (e2e)', () => {
     };
   }
 
-  it('keeps health public and supports register, login, refresh, and /auth/me', async () => {
+  function getFetchInputUrl(input: Parameters<typeof fetch>[0]) {
+    if (typeof input === 'string') {
+      return input;
+    }
+
+    if (input instanceof URL) {
+      return input.toString();
+    }
+
+    return input.url;
+  }
+
+  function mockAladinResponse(body: unknown, status = 200) {
+    const realFetch = globalThis.fetch.bind(globalThis);
+
+    jest.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+      if (getFetchInputUrl(input).includes('aladin.co.kr')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(body), {
+            status,
+            headers: {
+              'content-type': 'application/json',
+            },
+          }),
+        );
+      }
+
+      return realFetch(input, init);
+    });
+  }
+
+  function buildSyncPayload(
+    workId: string,
+    overrides: Record<string, unknown> = {},
+  ) {
+    return {
+      id: workId,
+      type: WorkType.novel,
+      title: 'Dune',
+      author: 'Frank Herbert',
+      genres: ['Science Fiction'],
+      description: '',
+      thumbnailUrl: '',
+      status: WorkStatus.completed,
+      rating: 5,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+      createdAt: '2026-04-18T00:00:00.000Z',
+      updatedAt: '2026-04-18T00:00:00.000Z',
+      deletedAt: null,
+      syncStatus: 'pending',
+      serverVersion: 1,
+      ...overrides,
+    };
+  }
+
+  it('keeps health public and supports register, login, refresh, stale refresh rejection, and /auth/me', async () => {
     const healthResponse = await fetch(`${baseUrl}/health`);
 
     expect(healthResponse.status).toBe(200);
@@ -404,15 +627,25 @@ describe('Auth, works, and sync API (e2e)', () => {
       status: 'ok',
     });
 
-    const registerResponse = await registerUser('frieren@example.com');
-
-    expect(registerResponse.user).toEqual(
-      expect.objectContaining({
+    const registerResponse = await requestJson('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
         email: 'frieren@example.com',
-        id: expect.any(String),
+        password: 'strong-password-123',
+      }),
+    });
+
+    expect(registerResponse.status).toBe(201);
+    expect(registerResponse.setCookie).toContain(`${REFRESH_TOKEN_COOKIE_NAME}=`);
+    expect(registerResponse.body).toEqual(
+      expect.objectContaining({
+        accessToken: expect.any(String),
+        user: expect.objectContaining({
+          email: 'frieren@example.com',
+          id: expect.any(String),
+        }),
       }),
     );
-    expect(registerResponse.accessToken).toEqual(expect.any(String));
 
     const loginResponse = await requestJson('/api/auth/login', {
       method: 'POST',
@@ -423,6 +656,7 @@ describe('Auth, works, and sync API (e2e)', () => {
     });
 
     expect(loginResponse.status).toBe(200);
+    expect(loginResponse.setCookie).toContain(`${REFRESH_TOKEN_COOKIE_NAME}=`);
     expect(loginResponse.body).toEqual(
       expect.objectContaining({
         accessToken: expect.any(String),
@@ -436,7 +670,11 @@ describe('Auth, works, and sync API (e2e)', () => {
       accessToken: string;
     };
     const staleRefreshCookie = cookieJar;
-    const meResponse = await requestJson('/api/auth/me', undefined, session.accessToken);
+    const meResponse = await requestJson(
+      '/api/auth/me',
+      undefined,
+      session.accessToken,
+    );
 
     expect(meResponse.status).toBe(200);
     expect(meResponse.body).toEqual(
@@ -450,6 +688,7 @@ describe('Auth, works, and sync API (e2e)', () => {
     });
 
     expect(refreshResponse.status).toBe(200);
+    expect(refreshResponse.setCookie).toContain(`${REFRESH_TOKEN_COOKIE_NAME}=`);
     expect(refreshResponse.body).toEqual(
       expect.objectContaining({
         accessToken: expect.any(String),
@@ -471,9 +710,45 @@ describe('Auth, works, and sync API (e2e)', () => {
     });
 
     expect(staleRefreshResponse.status).toBe(401);
+
+    const missingRefreshResponse = await requestJson('/api/auth/refresh', {
+      method: 'POST',
+      headers: {
+        cookie: '',
+      },
+    });
+
+    expect(missingRefreshResponse.status).toBe(401);
   });
 
-  it('protects works and sync routes when no access token is provided', async () => {
+  it('logs out cleanly and rejects refresh attempts after logout', async () => {
+    const session = await registerUser('logout@example.com');
+
+    const logoutResponse = await requestJson(
+      '/api/auth/logout',
+      {
+        method: 'POST',
+      },
+      session.accessToken,
+    );
+
+    expect(logoutResponse.status).toBe(204);
+    expect(logoutResponse.setCookie).toContain(`${REFRESH_TOKEN_COOKIE_NAME}=;`);
+
+    const refreshAfterLogoutResponse = await requestJson('/api/auth/refresh', {
+      method: 'POST',
+    });
+
+    expect(refreshAfterLogoutResponse.status).toBe(401);
+  });
+
+  it('protects auth, works, and sync routes when authentication is missing', async () => {
+    await expect(requestJson('/api/auth/me')).resolves.toEqual(
+      expect.objectContaining({
+        status: 401,
+      }),
+    );
+
     await expect(requestJson('/api/works')).resolves.toEqual(
       expect.objectContaining({
         status: 401,
@@ -505,9 +780,120 @@ describe('Auth, works, and sync API (e2e)', () => {
         status: 401,
       }),
     );
+
+    await expect(requestJson('/api/imports/providers/aladin/status')).resolves.toEqual(
+      expect.objectContaining({
+        status: 401,
+      }),
+    );
   });
 
-  it('returns only the current user records from works routes', async () => {
+  it('supports authenticated Aladin key settings and import search without creating works', async () => {
+    const session = await registerUser('imports@example.com');
+    const statusBeforeSave = await requestJson(
+      '/api/imports/providers/aladin/status',
+      undefined,
+      session.accessToken,
+    );
+
+    expect(statusBeforeSave.status).toBe(200);
+    expect(statusBeforeSave.body).toEqual({
+      provider: 'aladin',
+      configured: false,
+    });
+
+    const blankKeyResponse = await requestJson(
+      '/api/imports/providers/aladin/key',
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          ttbKey: '   ',
+        }),
+      },
+      session.accessToken,
+    );
+
+    expect(blankKeyResponse.status).toBe(400);
+
+    const saveKeyResponse = await requestJson(
+      '/api/imports/providers/aladin/key',
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          ttbKey: '  test-ttb-key  ',
+        }),
+      },
+      session.accessToken,
+    );
+
+    expect(saveKeyResponse.status).toBe(200);
+    expect(saveKeyResponse.body).toEqual({
+      provider: 'aladin',
+      configured: true,
+    });
+
+    mockAladinResponse({
+      item: [
+        {
+          itemId: 123,
+          title: '듄',
+          author: '프랭크 허버트',
+          description: '사막 행성을 둘러싼 이야기',
+          cover: 'https://image.aladin.co.kr/cover.jpg',
+          categoryName: '국내도서>소설/시/희곡>영미소설',
+          publisher: '황금가지',
+          pubDate: '2026-04-18',
+          link: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=123',
+        },
+      ],
+    });
+
+    const searchResponse = await requestJson(
+      '/api/imports/search?provider=aladin&query=%EB%93%84&type=novel&limit=10',
+      undefined,
+      session.accessToken,
+    );
+
+    expect(searchResponse.status).toBe(200);
+    expect(searchResponse.body).toEqual({
+      provider: 'aladin',
+      query: '듄',
+      candidates: [
+        expect.objectContaining({
+          id: 'aladin:123',
+          externalId: '123',
+          sourceId: 'aladin',
+          sourceLabel: 'Aladin Book',
+          title: '듄',
+          author: '프랭크 허버트',
+          type: 'novel',
+          thumbnailUrl: 'https://image.aladin.co.kr/cover.jpg',
+          note: '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)',
+          sourceUrl: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=123',
+        }),
+      ],
+    });
+
+    const deleteKeyResponse = await requestJson(
+      '/api/imports/providers/aladin/key',
+      {
+        method: 'DELETE',
+      },
+      session.accessToken,
+    );
+
+    expect(deleteKeyResponse.status).toBe(204);
+
+    const searchAfterDeleteResponse = await requestJson(
+      '/api/imports/search?provider=aladin&query=Dune&type=novel',
+      undefined,
+      session.accessToken,
+    );
+
+    expect(searchAfterDeleteResponse.status).toBe(403);
+  });
+
+  it('supports works CRUD with user scoping, soft delete, and ownership protection', async () => {
     const firstUser = await registerUser('frieren@example.com');
     const secondUser = await registerUser('fern@example.com');
 
@@ -543,8 +929,52 @@ describe('Auth, works, and sync API (e2e)', () => {
     );
 
     const workId = (createResponse.body as { id: string }).id;
-    const firstUserList = await requestJson('/api/works', undefined, firstUser.accessToken);
-    const secondUserList = await requestJson('/api/works', undefined, secondUser.accessToken);
+    const ownerDetail = await requestJson(
+      `/api/works/${workId}`,
+      undefined,
+      firstUser.accessToken,
+    );
+
+    expect(ownerDetail.status).toBe(200);
+    expect(ownerDetail.body).toEqual(
+      expect.objectContaining({
+        id: workId,
+        title: "Frieren: Beyond Journey's End",
+      }),
+    );
+
+    const updateResponse = await requestJson(
+      `/api/works/${workId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: 'Frieren',
+          favorite: false,
+        }),
+      },
+      firstUser.accessToken,
+    );
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body).toEqual(
+      expect.objectContaining({
+        id: workId,
+        title: 'Frieren',
+        favorite: false,
+        serverVersion: 2,
+      }),
+    );
+
+    const firstUserList = await requestJson(
+      '/api/works',
+      undefined,
+      firstUser.accessToken,
+    );
+    const secondUserList = await requestJson(
+      '/api/works',
+      undefined,
+      secondUser.accessToken,
+    );
 
     expect(firstUserList.status).toBe(200);
     expect(firstUserList.body).toEqual([
@@ -560,8 +990,27 @@ describe('Auth, works, and sync API (e2e)', () => {
       undefined,
       secondUser.accessToken,
     );
+    const secondUserUpdate = await requestJson(
+      `/api/works/${workId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: 'Fern edition',
+        }),
+      },
+      secondUser.accessToken,
+    );
+    const secondUserDelete = await requestJson(
+      `/api/works/${workId}`,
+      {
+        method: 'DELETE',
+      },
+      secondUser.accessToken,
+    );
 
     expect(secondUserDetail.status).toBe(404);
+    expect(secondUserUpdate.status).toBe(404);
+    expect(secondUserDelete.status).toBe(404);
 
     const deleteResponse = await requestJson(
       `/api/works/${workId}`,
@@ -578,13 +1027,20 @@ describe('Auth, works, and sync API (e2e)', () => {
       undefined,
       firstUser.accessToken,
     );
+    const listAfterDelete = await requestJson(
+      '/api/works',
+      undefined,
+      firstUser.accessToken,
+    );
 
     expect(deletedDetail.status).toBe(404);
+    expect(listAfterDelete.status).toBe(200);
+    expect(listAfterDelete.body).toEqual([]);
   });
 
-  it('supports authenticated push and pull sync with user scoping and conflicts', async () => {
-    const firstUser = await registerUser('frieren@example.com');
-    const secondUser = await registerUser('fern@example.com');
+  it('supports authenticated push and pull sync with create, update, delete, duplicate no-op, and conflict handling', async () => {
+    const firstUser = await registerUser('sync-owner@example.com');
+    const secondUser = await registerUser('sync-other@example.com');
     const workId = '3f831224-abf9-44c3-b3f9-9ff4da2f7de8';
 
     const pushCreateResponse = await requestJson(
@@ -599,26 +1055,10 @@ describe('Auth, works, and sync API (e2e)', () => {
               entityId: workId,
               operation: 'create',
               createdAt: '2026-04-18T00:00:00.000Z',
-              payload: {
-                id: workId,
-                type: WorkType.novel,
-                title: 'Dune',
-                author: 'Frank Herbert',
-                genres: ['Science Fiction'],
-                description: '',
-                thumbnailUrl: '',
-                status: WorkStatus.completed,
-                rating: 5,
-                shortReview: '',
-                review: '',
-                tier: null,
-                favorite: false,
-                createdAt: '2026-04-18T00:00:00.000Z',
-                updatedAt: '2026-04-18T00:00:00.000Z',
-                deletedAt: null,
+              payload: buildSyncPayload(workId, {
                 syncStatus: 'local-only',
                 serverVersion: 0,
-              },
+              }),
             },
           ],
         }),
@@ -643,6 +1083,83 @@ describe('Auth, works, and sync API (e2e)', () => {
       }),
     );
 
+    const duplicateCreateResponse = await requestJson(
+      '/api/sync/push',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          changes: [
+            {
+              queueId: '8bde1974-11bb-4b66-b2f7-273a4e0a3575',
+              entityType: 'work',
+              entityId: workId,
+              operation: 'create',
+              createdAt: '2026-04-18T00:01:00.000Z',
+              payload: buildSyncPayload(workId, {
+                syncStatus: 'local-only',
+                serverVersion: 0,
+              }),
+            },
+          ],
+        }),
+      },
+      firstUser.accessToken,
+    );
+
+    expect(duplicateCreateResponse.status).toBe(200);
+    expect(duplicateCreateResponse.body).toEqual(
+      expect.objectContaining({
+        results: [
+          expect.objectContaining({
+            status: 'applied',
+            message: 'Remote record already matches the queued change.',
+            work: expect.objectContaining({
+              serverVersion: 1,
+            }),
+          }),
+        ],
+      }),
+    );
+
+    const pushUpdateResponse = await requestJson(
+      '/api/sync/push',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          changes: [
+            {
+              queueId: 'ea483856-fafc-4aa9-ac6f-925f9c34d5ea',
+              entityType: 'work',
+              entityId: workId,
+              operation: 'update',
+              createdAt: '2026-04-18T00:02:00.000Z',
+              payload: buildSyncPayload(workId, {
+                title: 'Dune Messiah',
+                updatedAt: '2026-04-18T00:02:00.000Z',
+                serverVersion: 1,
+              }),
+            },
+          ],
+        }),
+      },
+      firstUser.accessToken,
+    );
+
+    expect(pushUpdateResponse.status).toBe(200);
+    expect(pushUpdateResponse.body).toEqual(
+      expect.objectContaining({
+        results: [
+          expect.objectContaining({
+            status: 'applied',
+            work: expect.objectContaining({
+              title: 'Dune Messiah',
+              serverVersion: 2,
+            }),
+          }),
+        ],
+      }),
+    );
+
     const secondUserPull = await requestJson(
       '/api/sync/pull',
       {
@@ -661,46 +1178,6 @@ describe('Auth, works, and sync API (e2e)', () => {
       }),
     );
 
-    const serverUpdateResponse = await requestJson(
-      `/api/works/${workId}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({
-          title: 'Dune Messiah',
-        }),
-      },
-      firstUser.accessToken,
-    );
-
-    expect(serverUpdateResponse.status).toBe(200);
-
-    const pullResponse = await requestJson(
-      '/api/sync/pull',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          since: '2026-04-17T00:00:00.000Z',
-        }),
-      },
-      firstUser.accessToken,
-    );
-
-    expect(pullResponse.status).toBe(200);
-    expect(pullResponse.body).toEqual(
-      expect.objectContaining({
-        changes: expect.arrayContaining([
-          expect.objectContaining({
-            entityId: workId,
-            operation: 'upsert',
-            work: expect.objectContaining({
-              title: 'Dune Messiah',
-              serverVersion: 2,
-            }),
-          }),
-        ]),
-      }),
-    );
-
     const conflictResponse = await requestJson(
       '/api/sync/push',
       {
@@ -712,27 +1189,12 @@ describe('Auth, works, and sync API (e2e)', () => {
               entityType: 'work',
               entityId: workId,
               operation: 'update',
-              createdAt: '2026-04-18T00:05:00.000Z',
-              payload: {
-                id: workId,
-                type: WorkType.novel,
+              createdAt: '2026-04-18T00:03:00.000Z',
+              payload: buildSyncPayload(workId, {
                 title: 'Children of Dune',
-                author: 'Frank Herbert',
-                genres: ['Science Fiction'],
-                description: '',
-                thumbnailUrl: '',
-                status: WorkStatus.completed,
-                rating: 5,
-                shortReview: '',
-                review: '',
-                tier: null,
-                favorite: false,
-                createdAt: '2026-04-18T00:00:00.000Z',
-                updatedAt: '2026-04-18T00:05:00.000Z',
-                deletedAt: null,
-                syncStatus: 'pending',
+                updatedAt: '2026-04-18T00:01:30.000Z',
                 serverVersion: 1,
-              },
+              }),
             },
           ],
         }),
@@ -751,9 +1213,110 @@ describe('Auth, works, and sync API (e2e)', () => {
         ],
       }),
     );
+
+    const pullResponse = await requestJson(
+      '/api/sync/pull',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          since: '2026-04-17T00:00:00.000Z',
+        }),
+      },
+      firstUser.accessToken,
+    );
+
+    expect(pullResponse.status).toBe(200);
+    expect(pullResponse.body).toEqual(
+      expect.objectContaining({
+        nextSince: expect.any(String),
+        changes: expect.arrayContaining([
+          expect.objectContaining({
+            entityId: workId,
+            operation: 'upsert',
+            work: expect.objectContaining({
+              title: 'Dune Messiah',
+              serverVersion: 2,
+            }),
+          }),
+        ]),
+      }),
+    );
+
+    const firstPullNextSince = (
+      pullResponse.body as {
+        nextSince: string;
+      }
+    ).nextSince;
+
+    const pushDeleteResponse = await requestJson(
+      '/api/sync/push',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          changes: [
+            {
+              queueId: '5188f5b1-1c80-49fd-ba6d-6848b8f0f6a3',
+              entityType: 'work',
+              entityId: workId,
+              operation: 'delete',
+              createdAt: '2026-04-18T00:04:00.000Z',
+              payload: buildSyncPayload(workId, {
+                title: 'Dune Messiah',
+                updatedAt: '2026-04-18T00:04:00.000Z',
+                deletedAt: '2026-04-18T00:04:00.000Z',
+                serverVersion: 2,
+              }),
+            },
+          ],
+        }),
+      },
+      firstUser.accessToken,
+    );
+
+    expect(pushDeleteResponse.status).toBe(200);
+    expect(pushDeleteResponse.body).toEqual(
+      expect.objectContaining({
+        results: [
+          expect.objectContaining({
+            status: 'applied',
+            work: expect.objectContaining({
+              deletedAt: '2026-04-18T00:04:00.000Z',
+              serverVersion: 3,
+            }),
+          }),
+        ],
+      }),
+    );
+
+    const pullDeletedResponse = await requestJson(
+      '/api/sync/pull',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          since: firstPullNextSince,
+        }),
+      },
+      firstUser.accessToken,
+    );
+
+    expect(pullDeletedResponse.status).toBe(200);
+    expect(pullDeletedResponse.body).toEqual(
+      expect.objectContaining({
+        changes: [
+          expect.objectContaining({
+            entityId: workId,
+            operation: 'delete',
+            work: expect.objectContaining({
+              deletedAt: '2026-04-18T00:04:00.000Z',
+              serverVersion: 3,
+            }),
+          }),
+        ],
+      }),
+    );
   });
 
-  it('validates auth and works payloads with DTO errors', async () => {
+  it('validates auth and works payloads, including blank titles', async () => {
     const invalidRegisterResponse = await requestJson('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({
@@ -772,7 +1335,27 @@ describe('Auth, works, and sync API (e2e)', () => {
       ]),
     );
 
-    const session = await registerUser('frieren@example.com');
+    const session = await registerUser('validation@example.com');
+    const blankTitleCreateResponse = await requestJson(
+      '/api/works',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          title: '   ',
+        }),
+      },
+      session.accessToken,
+    );
+
+    expect(blankTitleCreateResponse.status).toBe(400);
+    expect(
+      (blankTitleCreateResponse.body as { message: string[] }).message,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('title'),
+      ]),
+    );
+
     const minimalCreateResponse = await requestJson(
       '/api/works',
       {
@@ -800,6 +1383,19 @@ describe('Auth, works, and sync API (e2e)', () => {
     );
 
     const workId = (minimalCreateResponse.body as { id: string }).id;
+    const blankTitleUpdateResponse = await requestJson(
+      `/api/works/${workId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: '   ',
+        }),
+      },
+      session.accessToken,
+    );
+
+    expect(blankTitleUpdateResponse.status).toBe(400);
+
     const invalidUpdateResponse = await requestJson(
       `/api/works/${workId}`,
       {
