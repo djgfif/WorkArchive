@@ -190,6 +190,7 @@ Prisma 기준 핵심 모델은 현재 아래 구조다.
 ### Backend Scripts
 
 - `npm run dev --workspace @work-archive/api`
+- local Nest API 개발 실행은 초기 `tsc` 빌드 후 `tsc --watch` + `node --watch` 루프를 사용한다. `tsx watch`는 `emitDecoratorMetadata`를 만들지 못해 Swagger DTO 메타데이터가 깨질 수 있으므로 표준 개발 실행기로 사용하지 않는다.
 - `npm run build --workspace @work-archive/api`
 - `npm run typecheck --workspace @work-archive/api`
 - `npm run test --workspace @work-archive/api`
