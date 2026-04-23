@@ -2,7 +2,6 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const workspaceDir = fileURLToPath(new URL('../', import.meta.url));
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 let expectedExitCode = 0;
 let isShuttingDown = false;
@@ -36,10 +35,26 @@ function pipeWithPrefix(stream, target, prefix) {
   });
 }
 
+function getNpmSpawnSpec(args) {
+  if (process.platform === 'win32') {
+    return {
+      command: 'cmd.exe',
+      args: ['/d', '/s', '/c', 'npm', ...args],
+    };
+  }
+
+  return {
+    command: 'npm',
+    args,
+  };
+}
+
 function spawnNpmProcess(label, args) {
-  const child = spawn(npmCommand, args, {
+  const spec = getNpmSpawnSpec(args);
+  const child = spawn(spec.command, spec.args, {
     cwd: workspaceDir,
     env: process.env,
+    shell: false,
     stdio: ['inherit', 'pipe', 'pipe'],
   });
 
