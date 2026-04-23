@@ -40,19 +40,37 @@ export interface RelatedCatalogTitle {
   mediumType: WorkType;
   subType: string | null;
   releaseYear: number | null;
+  thumbnailUrl: string;
   franchise: {
     id: string;
     name: string;
   } | null;
+  relationDirection?: 'incoming' | 'outgoing' | null;
+  relationType?: string | null;
 }
 
 export interface RelatedCatalogRelation {
+  relationDirection: 'incoming' | 'outgoing';
   relationType: string;
   targetTitle: RelatedCatalogTitle;
 }
 
 export interface RelatedCatalogTitlesResponse {
   catalogTitleId: string;
+  currentTitle: {
+    id: string;
+    displayTitle: string;
+    mediumType: WorkType;
+    subType: string | null;
+    releaseYear: number | null;
+    thumbnailUrl: string;
+    franchise: {
+      id: string;
+      name: string;
+      canonicalName: string;
+    } | null;
+  };
+  sameFranchiseTitles: RelatedCatalogTitle[];
   relations: RelatedCatalogRelation[];
 }
 

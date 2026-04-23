@@ -460,6 +460,10 @@ export class UserRecordsController {
       titleInput.externalRefs = input.externalRefs;
     }
 
+    if (input.releaseCandidates !== undefined) {
+      titleInput.releaseCandidates = input.releaseCandidates;
+    }
+
     if (input.franchiseName !== undefined) {
       titleInput.franchiseName = input.franchiseName;
     }

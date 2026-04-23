@@ -258,6 +258,58 @@ class ImportExternalRefDto {
   url?: string;
 }
 
+class ImportReleaseCandidateDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  displayLabel?: string;
+
+  @ApiPropertyOptional({
+    type: [ImportExternalRefDto],
+  })
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ImportExternalRefDto)
+  externalRefs?: ImportExternalRefDto[];
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  isbn?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  releaseDate?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  releaseType?: string;
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsNumber()
+  sequence?: number | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  thumbnailUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  title?: string;
+}
+
 export class CreateUserRecordFromImportDto extends CreateUserRecordDto {
   @ApiProperty({
     enum: WorkType,
@@ -304,4 +356,12 @@ export class CreateUserRecordFromImportDto extends CreateUserRecordDto {
   @ValidateNested({ each: true })
   @Type(() => ImportExternalRefDto)
   externalRefs?: ImportExternalRefDto[];
+
+  @ApiPropertyOptional({
+    type: [ImportReleaseCandidateDto],
+  })
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ImportReleaseCandidateDto)
+  releaseCandidates?: ImportReleaseCandidateDto[];
 }

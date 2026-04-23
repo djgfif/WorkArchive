@@ -13,14 +13,12 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo [2/4] Installing dependencies if needed...
-if not exist node_modules (
-  call npm install
-  if errorlevel 1 (
-    echo npm install failed.
-    pause
-    exit /b 1
-  )
+echo [2/4] Installing dependencies...
+call npm install
+if errorlevel 1 (
+  echo npm install failed.
+  pause
+  exit /b 1
 )
 
 echo [3/4] Applying Prisma migrations...

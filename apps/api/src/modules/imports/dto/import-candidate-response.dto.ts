@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { WorkType } from '@prisma/client';
 
+import type { CatalogReleaseCandidateInput } from '../../catalog/catalog-ingestion.service';
+
 export class ImportCandidateResponseDto {
   @ApiProperty()
   id!: string;
@@ -94,6 +96,11 @@ export class ImportCandidateResponseDto {
     rawType: string;
     url: string;
   }>;
+
+  @ApiProperty({
+    type: [Object],
+  })
+  releaseCandidates!: CatalogReleaseCandidateInput[];
 
   @ApiProperty()
   confidence!: number;
