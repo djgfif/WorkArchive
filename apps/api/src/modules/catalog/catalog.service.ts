@@ -13,6 +13,11 @@ import {
   type WorkType,
 } from '@prisma/client';
 
+import {
+  CatalogIngestionService,
+  type CreateCatalogTitleInput,
+  type CatalogReleaseCandidateInput,
+} from './catalog-ingestion.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
@@ -31,6 +36,11 @@ const CATALOG_TITLE_INCLUDE = {
 } satisfies Prisma.CatalogTitleInclude;
 
 const RELATED_TITLE_INCLUDE = {
+  sourceTitle: {
+    include: {
+      franchise: true,
+    },
+  },
   targetTitle: {
     include: {
       franchise: true,
@@ -40,6 +50,10 @@ const RELATED_TITLE_INCLUDE = {
 
 export type CatalogTitleView = Prisma.CatalogTitleGetPayload<{
   include: typeof CATALOG_TITLE_INCLUDE;
+}>;
+
+export type CatalogRelatedRelationView = Prisma.CatalogRelationGetPayload<{
+  include: typeof RELATED_TITLE_INCLUDE;
 }>;
 
 interface SearchCatalogOptions {
@@ -59,28 +73,13 @@ interface CreateTitleFromLegacyWorkInput {
   updatedAt?: Date | string;
 }
 
-interface CreateCatalogTitleInput {
-  canonicalTitle: string;
-  contributorNames?: string[];
-  country?: string | null;
-  displayTitle?: string;
-  externalRefs?: Array<{
-    externalId: string;
-    provider: string;
-    rawType?: string;
-    url?: string;
-  }>;
-  franchiseName?: string | null;
-  mediumType: WorkType;
-  releaseYear?: number | null;
-  subType?: string | null;
-  summary?: string;
-  thumbnailUrl?: string;
-}
-
 @Injectable()
 export class CatalogService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(CatalogIngestionService)
+    private readonly catalogIngestionService: CatalogIngestionService,
+  ) {}
 
   async create(
     data: Prisma.CatalogWorkUncheckedCreateInput,
@@ -173,10 +172,35 @@ export class CatalogService {
     return title;
   }
 
+  async findRelatedTitleReadModel(id: string) {
+    const currentTitle = await this.findTitleOrThrow(id);
+    const [relations, sameFranchiseTitles] = await Promise.all([
+      this.findRelatedTitles(id),
+      currentTitle.franchiseId
+        ? this.findTitlesByFranchise(currentTitle.franchiseId).then((titles) =>
+            titles.filter((title) => title.id !== id),
+          )
+        : Promise.resolve([]),
+    ]);
+
+    return {
+      currentTitle,
+      relations,
+      sameFranchiseTitles,
+    };
+  }
+
   findRelatedTitles(id: string) {
     return this.prisma.catalogRelation.findMany({
       where: {
-        sourceTitleId: id,
+        OR: [
+          {
+            sourceTitleId: id,
+          },
+          {
+            targetTitleId: id,
+          },
+        ],
       },
       include: RELATED_TITLE_INCLUDE,
       orderBy: {
@@ -217,58 +241,22 @@ export class CatalogService {
     input: CreateCatalogTitleInput,
     client: PrismaClientLike = this.prisma,
   ) {
-    const displayTitle = input.displayTitle?.trim() || input.canonicalTitle.trim();
+    return this.catalogIngestionService.createOrReuseTitleFromImportCandidate(
+      input,
+      client,
+    );
+  }
 
-    if (!displayTitle) {
-      throw new BadRequestException('catalog title must not be empty');
-    }
-
-    const franchiseId = input.franchiseName
-      ? await this.findOrCreateFranchise(input.franchiseName, client)
-      : null;
-    const title = await client.catalogTitle.create({
-      data: {
-        canonicalTitle: displayTitle,
-        country: input.country ?? null,
-        displayTitle,
-        franchiseId,
-        mediumType: input.mediumType,
-        releaseYear: input.releaseYear ?? null,
-        subType: input.subType ?? null,
-        summary: input.summary?.trim() ?? '',
-        thumbnailUrl: input.thumbnailUrl?.trim() ?? '',
-        verificationStatus: CatalogVerificationStatus.draft,
-      },
-    });
-
-    for (const [index, name] of (input.contributorNames ?? []).entries()) {
-      await this.attachContributor(title.id, name, index, client);
-    }
-
-    for (const ref of input.externalRefs ?? []) {
-      await client.catalogExternalRef.upsert({
-        where: {
-          provider_rawType_externalId: {
-            externalId: ref.externalId,
-            provider: ref.provider,
-            rawType: ref.rawType ?? '',
-          },
-        },
-        create: {
-          catalogTitleId: title.id,
-          externalId: ref.externalId,
-          provider: ref.provider,
-          rawType: ref.rawType ?? '',
-          url: ref.url ?? '',
-        },
-        update: {
-          catalogTitleId: title.id,
-          url: ref.url ?? '',
-        },
-      });
-    }
-
-    return title;
+  backfillTitleReleases(
+    catalogTitleId: string,
+    releaseCandidates: CatalogReleaseCandidateInput[],
+    client: PrismaClientLike = this.prisma,
+  ) {
+    return this.catalogIngestionService.backfillCatalogTitleReleases(
+      catalogTitleId,
+      releaseCandidates,
+      client,
+    );
   }
 
   async submitCatalogChange(
@@ -524,104 +512,6 @@ export class CatalogService {
     }
 
     return submission;
-  }
-
-  private async findOrCreateFranchise(
-    name: string,
-    client: PrismaClientLike = this.prisma,
-  ) {
-    const displayName = name.trim();
-
-    if (!displayName) {
-      return null;
-    }
-
-    const existing = await client.franchise.findFirst({
-      where: {
-        OR: [
-          {
-            canonicalName: {
-              equals: displayName,
-              mode: 'insensitive',
-            },
-          },
-          {
-            displayName: {
-              equals: displayName,
-              mode: 'insensitive',
-            },
-          },
-        ],
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (existing) {
-      return existing.id;
-    }
-
-    const franchise = await client.franchise.create({
-      data: {
-        canonicalName: displayName,
-        displayName,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    return franchise.id;
-  }
-
-  private async attachContributor(
-    catalogTitleId: string,
-    rawName: string,
-    displayOrder: number,
-    client: PrismaClientLike = this.prisma,
-  ) {
-    const displayName = rawName.trim();
-
-    if (!displayName) {
-      return;
-    }
-
-    const existing = await client.contributor.findFirst({
-      where: {
-        displayName: {
-          equals: displayName,
-          mode: 'insensitive',
-        },
-      },
-    });
-    const contributor =
-      existing ??
-      (await client.contributor.create({
-        data: {
-          canonicalName: displayName,
-          displayName,
-        },
-      }));
-
-    await client.catalogTitleContributor.upsert({
-      where: {
-        catalogTitleId_contributorId_role: {
-          catalogTitleId,
-          contributorId: contributor.id,
-          role: 'author',
-        },
-      },
-      create: {
-        catalogTitleId,
-        contributorId: contributor.id,
-        displayOrder,
-        role: 'author',
-      },
-      update: {
-        displayOrder,
-      },
-    });
   }
 
   private assertCanModerate(role: UserRole) {

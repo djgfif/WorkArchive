@@ -403,7 +403,39 @@ function RelatedTitlesSection({
 }: {
   relatedData: RelatedCatalogTitlesResponse | null;
 }) {
-  if (!relatedData || relatedData.relations.length === 0) {
+  if (!relatedData) {
+    return null;
+  }
+
+  const seenTitleIds = new Set<string>();
+  const relatedEntries = [
+    ...relatedData.sameFranchiseTitles.map((title) => {
+      seenTitleIds.add(title.id);
+
+      return {
+        relationDirection: title.relationDirection ?? null,
+        relationType: title.relationType ?? null,
+        targetTitle: title,
+      };
+    }),
+    ...relatedData.relations
+      .map((relation) => ({
+        relationDirection: relation.relationDirection,
+        relationType: relation.relationType,
+        targetTitle: relation.targetTitle,
+      }))
+      .filter((title) => {
+        if (seenTitleIds.has(title.targetTitle.id)) {
+          return false;
+        }
+
+        seenTitleIds.add(title.targetTitle.id);
+
+        return true;
+      }),
+  ];
+
+  if (relatedEntries.length === 0) {
     return null;
   }
 
@@ -414,19 +446,21 @@ function RelatedTitlesSection({
       title="같은 IP의 다른 타이틀"
     >
       <Stack gap="md">
-        {relatedData.relations.map((relation) => (
+        {relatedEntries.map((relation) => (
           <SectionCard
-            key={`${relation.relationType}-${relation.targetTitle.id}`}
+            key={relation.targetTitle.id}
             gap="xs"
             padding="lg"
             tone="subtle"
           >
             <Group justify="space-between">
               <Text fw={700}>{relation.targetTitle.title}</Text>
-              <Text c="var(--app-text-muted)" size="sm">
-                {relationTypeLabels[relation.relationType] ??
-                  relation.relationType}
-              </Text>
+              {relation.relationType ? (
+                <Text c="var(--app-text-muted)" size="sm">
+                  {relationTypeLabels[relation.relationType] ??
+                    relation.relationType}
+                </Text>
+              ) : null}
             </Group>
             <Text c="var(--app-text-muted)" size="sm">
               {getWorkTypeLabel(relation.targetTitle.mediumType)}

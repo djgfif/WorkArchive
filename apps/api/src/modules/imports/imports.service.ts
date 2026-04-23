@@ -8,6 +8,11 @@ import {
 } from '@nestjs/common';
 import { WorkType } from '@prisma/client';
 
+import {
+  CatalogIngestionService,
+  type CatalogExternalRefInput,
+  type CatalogReleaseCandidateInput,
+} from '../catalog/catalog-ingestion.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
 import type { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
@@ -147,13 +152,14 @@ export class ImportsService {
   constructor(
     @Inject(ImportsCredentialService)
     private readonly credentialService: ImportsCredentialService,
+    @Inject(CatalogIngestionService)
+    private readonly catalogIngestionService: CatalogIngestionService = {
+      findCatalogMatchForImportCandidate: async () => null,
+    } as unknown as CatalogIngestionService,
     @Inject(PrismaService)
     private readonly prisma: PrismaService = {
       catalogExternalRef: {
         findUnique: async () => null,
-      },
-      catalogTitle: {
-        findFirst: async () => null,
       },
       userWorkRecord: {
         findFirst: async () => null,
@@ -794,6 +800,8 @@ export class ImportsService {
     const publisher = this.readString(item.publisher);
     const publishedAt = this.readString(item.pubDate);
     const type = this.mapBookWorkType(categoryName, title);
+    const sourceUrl = this.readString(item.link).trim();
+    const thumbnailUrl = this.readString(item.cover).trim();
 
     return this.buildCandidate({
       author: this.readString(item.author).trim(),
@@ -804,16 +812,26 @@ export class ImportsService {
         `Aladin ID ${externalId}`,
       description: this.normalizeWhitespace(this.readString(item.description)),
       externalId,
+      externalRefs: [],
       formatLabel: this.getFormatLabel(type),
       genresText: this.toGenresText(categoryName),
       id: `${ALADIN_PROVIDER}:${externalId}`,
       note: ALADIN_ATTRIBUTION,
       provider: ALADIN_PROVIDER,
+      releaseCandidates: this.buildBookReleaseCandidates({
+        externalId,
+        isbn: this.readString(item.isbn13) || this.readString(item.isbn),
+        provider: ALADIN_PROVIDER,
+        releaseDate: publishedAt,
+        thumbnailUrl,
+        title,
+        url: sourceUrl,
+      }),
       reason: '제목/도서 카테고리 일치',
       releaseYear: this.parseYear(publishedAt),
       sourceLabel: 'Aladin Book',
-      sourceUrl: this.readString(item.link).trim(),
-      thumbnailUrl: this.readString(item.cover).trim(),
+      sourceUrl,
+      thumbnailUrl,
       title,
       type,
     });
@@ -901,6 +919,10 @@ export class ImportsService {
     const imageLinks = this.isRecord(volumeInfo.imageLinks)
       ? volumeInfo.imageLinks
       : {};
+    const sourceUrl = this.readString(volumeInfo.infoLink);
+    const thumbnailUrl =
+      this.readString(imageLinks.thumbnail) ||
+      this.readString(imageLinks.smallThumbnail);
 
     return this.buildCandidate({
       author: this.readStringArray(volumeInfo.authors).join(', '),
@@ -912,18 +934,26 @@ export class ImportsService {
           .join(' · ') || 'Google Books',
       description: this.normalizeWhitespace(this.readString(volumeInfo.description)),
       externalId: this.readString(item.id),
+      externalRefs: [],
       formatLabel: this.getFormatLabel(type),
       genresText: categories,
       id: `${GOOGLE_BOOKS_PROVIDER}:${this.readString(item.id)}`,
       note: 'Google Books Volumes API',
       provider: GOOGLE_BOOKS_PROVIDER,
+      releaseCandidates: this.buildBookReleaseCandidates({
+        externalId: this.readString(item.id),
+        isbn: this.readGoogleBooksIsbn(volumeInfo.industryIdentifiers),
+        provider: GOOGLE_BOOKS_PROVIDER,
+        releaseDate: this.readString(volumeInfo.publishedDate),
+        thumbnailUrl,
+        title,
+        url: sourceUrl,
+      }),
       reason: 'Google Books 제목 검색 결과',
       releaseYear: this.parseYear(this.readString(volumeInfo.publishedDate)),
       sourceLabel: 'Google Books',
-      sourceUrl: this.readString(volumeInfo.infoLink),
-      thumbnailUrl:
-        this.readString(imageLinks.thumbnail) ||
-        this.readString(imageLinks.smallThumbnail),
+      sourceUrl,
+      thumbnailUrl,
       title,
       type,
     });
@@ -1065,7 +1095,8 @@ export class ImportsService {
     }
 
     const type = this.mapBookWorkType('', title);
-    const externalId = this.readString(item.isbn) || title;
+    const externalId =
+      this.readString(item.isbn) || this.readString(item.link) || title;
 
     return this.buildCandidate({
       author: this.stripHtml(this.readString(item.author)),
@@ -1077,10 +1108,20 @@ export class ImportsService {
           .join(' · ') || 'Naver Book',
       description: this.normalizeWhitespace(this.stripHtml(this.readString(item.description))),
       externalId,
+      externalRefs: [],
       formatLabel: this.getFormatLabel(type),
       id: `${NAVER_BOOK_PROVIDER}:${externalId}`,
       note: 'Naver Search Book API',
       provider: NAVER_BOOK_PROVIDER,
+      releaseCandidates: this.buildBookReleaseCandidates({
+        externalId,
+        isbn: this.readString(item.isbn),
+        provider: NAVER_BOOK_PROVIDER,
+        releaseDate: this.readString(item.pubdate),
+        thumbnailUrl: this.readString(item.image),
+        title,
+        url: this.readString(item.link),
+      }),
       reason: 'Naver 도서 검색 결과',
       releaseYear: this.parseYear(this.readString(item.pubdate)),
       sourceLabel: 'Naver Book',
@@ -1118,10 +1159,20 @@ export class ImportsService {
           .join(' · ') || 'Kakao Book',
       description: this.normalizeWhitespace(this.readString(item.contents)),
       externalId,
+      externalRefs: [],
       formatLabel: this.getFormatLabel(type),
       id: `${KAKAO_BOOK_PROVIDER}:${externalId}`,
       note: 'Kakao Daum Book Search API',
       provider: KAKAO_BOOK_PROVIDER,
+      releaseCandidates: this.buildBookReleaseCandidates({
+        externalId,
+        isbn: this.readString(item.isbn),
+        provider: KAKAO_BOOK_PROVIDER,
+        releaseDate: this.readString(item.datetime),
+        thumbnailUrl: this.readString(item.thumbnail),
+        title,
+        url: this.readString(item.url),
+      }),
       reason: 'Kakao 도서 검색 결과',
       releaseYear: this.parseYear(this.readString(item.datetime)),
       sourceLabel: 'Kakao Book',
@@ -1206,6 +1257,7 @@ export class ImportsService {
       mediumType: input.type,
       note: input.note ?? '',
       reason: input.reason ?? '',
+      releaseCandidates: input.releaseCandidates ?? [],
       relationsHint: input.relationsHint ?? [],
       releaseYear: input.releaseYear ?? null,
       sourceId: input.provider,
@@ -1224,7 +1276,18 @@ export class ImportsService {
   ) {
     return Promise.all(
       candidates.map(async (candidate) => {
-        const catalogMatch = await this.findCatalogMatch(candidate);
+        const catalogMatch =
+          await this.catalogIngestionService.findCatalogMatchForImportCandidate({
+            contributorNames: candidate.contributors.map(
+              (contributor) => contributor.name,
+            ),
+            externalRefs: candidate.externalRefs,
+            franchiseName: candidate.franchiseName,
+            mediumType: candidate.mediumType,
+            releaseCandidates: candidate.releaseCandidates,
+            releaseYear: candidate.releaseYear,
+            title: candidate.title,
+          });
         const existingRecord = catalogMatch
           ? await this.prisma.userWorkRecord.findFirst({
               where: {
@@ -1246,56 +1309,6 @@ export class ImportsService {
         };
       }),
     );
-  }
-
-  private async findCatalogMatch(candidate: ImportCandidateResponseDto) {
-    const externalRef = candidate.externalRefs[0];
-
-    if (externalRef) {
-      const match = await this.prisma.catalogExternalRef.findUnique({
-        where: {
-          provider_rawType_externalId: {
-            externalId: externalRef.externalId,
-            provider: externalRef.provider,
-            rawType: externalRef.rawType,
-          },
-        },
-        include: {
-          catalogTitle: true,
-        },
-      });
-
-      if (match?.catalogTitle) {
-        return {
-          id: match.catalogTitle.id,
-          title: match.catalogTitle.displayTitle,
-          verificationStatus: match.catalogTitle.verificationStatus,
-        };
-      }
-    }
-
-    const titleMatch = await this.prisma.catalogTitle.findFirst({
-      where: {
-        displayTitle: {
-          equals: candidate.title,
-          mode: 'insensitive',
-        },
-        mediumType: candidate.mediumType,
-      },
-      select: {
-        displayTitle: true,
-        id: true,
-        verificationStatus: true,
-      },
-    });
-
-    return titleMatch
-      ? {
-          id: titleMatch.id,
-          title: titleMatch.displayTitle,
-          verificationStatus: titleMatch.verificationStatus,
-        }
-      : null;
   }
 
   private readServerCredential(provider: ImportProvider) {
@@ -1491,6 +1504,108 @@ export class ImportsService {
 
   private stripHtml(value: string) {
     return value.replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+  }
+
+  private buildBookReleaseCandidates(input: {
+    externalId?: string;
+    isbn?: string | null;
+    provider: string;
+    releaseDate?: string | null;
+    sequence?: number | null;
+    thumbnailUrl?: string;
+    title: string;
+    url?: string;
+  }): CatalogReleaseCandidateInput[] {
+    const title = this.normalizeWhitespace(input.title);
+
+    if (!title) {
+      return [];
+    }
+
+    const sequence = input.sequence ?? this.extractVolumeSequence(title);
+    const isbn = this.extractPrimaryIsbn(input.isbn ?? null);
+    const externalId = input.externalId?.trim() ?? '';
+    const externalRefs: CatalogExternalRefInput[] = externalId
+      ? [
+          {
+            externalId,
+            provider: input.provider,
+            rawType: 'volume',
+            url: input.url?.trim() ?? '',
+          },
+        ]
+      : [];
+
+    if (externalRefs.length === 0 && !isbn && sequence === null) {
+      return [];
+    }
+
+    return [
+      {
+        displayLabel: sequence !== null ? `Vol. ${sequence}` : title,
+        externalRefs,
+        isbn,
+        releaseDate: input.releaseDate?.trim() || null,
+        releaseType: 'volume',
+        sequence,
+        thumbnailUrl: input.thumbnailUrl?.trim() ?? '',
+        title,
+      },
+    ];
+  }
+
+  private extractPrimaryIsbn(value: string | null) {
+    const normalized = this.readString(value).replace(/[^0-9Xx]/g, '').toUpperCase();
+
+    return normalized.length >= 10 ? normalized : null;
+  }
+
+  private readGoogleBooksIsbn(value: unknown) {
+    const identifiers = Array.isArray(value) ? value : [];
+    const isbn13 = identifiers.find((entry) => {
+      return this.isRecord(entry) && this.readString(entry.type).toUpperCase() === 'ISBN_13';
+    });
+
+    if (this.isRecord(isbn13)) {
+      return this.extractPrimaryIsbn(this.readString(isbn13.identifier));
+    }
+
+    const isbn10 = identifiers.find((entry) => {
+      return this.isRecord(entry) && this.readString(entry.type).toUpperCase() === 'ISBN_10';
+    });
+
+    if (this.isRecord(isbn10)) {
+      return this.extractPrimaryIsbn(this.readString(isbn10.identifier));
+    }
+
+    const fallback = identifiers.find((entry) => this.isRecord(entry));
+
+    return this.isRecord(fallback)
+      ? this.extractPrimaryIsbn(this.readString(fallback.identifier))
+      : null;
+  }
+
+  private extractVolumeSequence(title: string) {
+    const patterns = [
+      /(?:vol(?:ume)?\.?\s*|#)\s*(\d+(?:\.\d+)?)/i,
+      /(\d+(?:\.\d+)?)\s*(?:권|巻|册|冊)/u,
+    ];
+
+    for (const pattern of patterns) {
+      const match = title.match(pattern);
+
+      if (!match?.[1]) {
+        continue;
+      }
+
+      const sequence = Number.parseFloat(match[1]);
+
+      if (Number.isFinite(sequence)) {
+        return sequence;
+      }
+    }
+
+    return null;
   }
 
   private parseYear(value: string) {

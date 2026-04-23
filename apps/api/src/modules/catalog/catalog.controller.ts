@@ -20,7 +20,11 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { toCatalogRelationView, toCatalogTitleView } from './catalog.presenter';
+import {
+  toCatalogRelatedTitleView,
+  toCatalogRelationView,
+  toCatalogTitleView,
+} from './catalog.presenter';
 import { CatalogService } from './catalog.service';
 import { CatalogSearchQueryDto } from './dto/catalog-search-query.dto';
 import {
@@ -67,12 +71,30 @@ export class CatalogController {
     description: 'Return related catalog titles.',
   })
   async findRelated(@Param('id', new ParseUUIDPipe()) id: string) {
-    await this.catalogService.findTitleOrThrow(id);
-    const relations = await this.catalogService.findRelatedTitles(id);
+    const related = await this.catalogService.findRelatedTitleReadModel(id);
+    const relationByTitleId = new Map(
+      related.relations.map((relation) => {
+        const isOutgoing = relation.sourceTitleId === id;
+
+        return [
+          isOutgoing ? relation.targetTitleId : relation.sourceTitleId,
+          {
+            relationDirection: isOutgoing ? 'outgoing' : 'incoming',
+            relationType: relation.relationType,
+          },
+        ] as const;
+      }),
+    );
 
     return {
       catalogTitleId: id,
-      relations: relations.map(toCatalogRelationView),
+      currentTitle: toCatalogTitleView(related.currentTitle),
+      sameFranchiseTitles: related.sameFranchiseTitles.map((title) =>
+        toCatalogRelatedTitleView(title, relationByTitleId.get(title.id) ?? null),
+      ),
+      relations: related.relations.map((relation) =>
+        toCatalogRelationView(id, relation),
+      ),
     };
   }
 

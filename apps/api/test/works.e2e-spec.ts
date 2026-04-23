@@ -330,6 +330,35 @@ function createPrismaServiceMock() {
             .map(([key]) => [key, title[key]]),
         );
       },
+      findMany: async ({
+        where,
+      }: {
+        where?: {
+          franchiseId?: string;
+          mediumType?: WorkType;
+          verificationStatus?: {
+            not?: string;
+          };
+        };
+      } = {}) =>
+        catalogTitles.filter((catalogTitle) => {
+          if (where?.franchiseId && catalogTitle.franchiseId !== where.franchiseId) {
+            return false;
+          }
+
+          if (where?.mediumType && catalogTitle.mediumType !== where.mediumType) {
+            return false;
+          }
+
+          if (
+            where?.verificationStatus?.not &&
+            catalogTitle.verificationStatus === where.verificationStatus.not
+          ) {
+            return false;
+          }
+
+          return true;
+        }),
       findUnique: async ({
         where,
       }: {

@@ -277,10 +277,16 @@ describe('ImportsService', () => {
             thumbnailUrl: 'https://image.aladin.co.kr/cover.jpg',
             genresText: '소설/시/희곡, 영미소설',
             note: '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)',
-            externalRefs: [
+            externalRefs: [],
+            releaseCandidates: [
               expect.objectContaining({
-                provider: ALADIN_PROVIDER,
-                externalId: '123',
+                externalRefs: [
+                  expect.objectContaining({
+                    provider: ALADIN_PROVIDER,
+                    externalId: '123',
+                    rawType: 'volume',
+                  }),
+                ],
               }),
             ],
           }),
