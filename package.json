@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n web,api -c blue,green \"npm run dev --workspace @work-archive/web\" \"npm run dev --workspace @work-archive/api\"",
+    "dev": "concurrently -k --success=all -n web,api -c blue,green \"npm run dev --workspace @work-archive/web\" \"npm run dev --workspace @work-archive/api\"",
     "dev:web": "npm run dev --workspace @work-archive/web",
     "dev:api": "npm run dev --workspace @work-archive/api",
     "dev:db": "docker compose up -d postgres",
