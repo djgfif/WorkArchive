@@ -25,6 +25,16 @@ export class ImportCandidateResponseDto {
   })
   type!: WorkType;
 
+  @ApiProperty({
+    enum: WorkType,
+  })
+  mediumType!: WorkType;
+
+  @ApiProperty({
+    nullable: true,
+  })
+  subType!: string | null;
+
   @ApiProperty()
   description!: string;
 
@@ -48,4 +58,63 @@ export class ImportCandidateResponseDto {
 
   @ApiProperty()
   sourceUrl!: string;
+
+  @ApiProperty({
+    nullable: true,
+  })
+  franchiseName!: string | null;
+
+  @ApiProperty({
+    nullable: true,
+  })
+  releaseYear!: number | null;
+
+  @ApiProperty({
+    type: [Object],
+  })
+  contributors!: Array<{
+    name: string;
+    role: string;
+  }>;
+
+  @ApiProperty({
+    type: [Object],
+  })
+  relationsHint!: Array<{
+    relationType: string;
+    targetTitle: string;
+  }>;
+
+  @ApiProperty({
+    type: [Object],
+  })
+  externalRefs!: Array<{
+    externalId: string;
+    provider: string;
+    rawType: string;
+    url: string;
+  }>;
+
+  @ApiProperty()
+  confidence!: number;
+
+  @ApiProperty()
+  reason!: string;
+
+  @ApiProperty({
+    nullable: true,
+  })
+  existingRecord!: {
+    id: string;
+    status: string;
+  } | null;
+
+  @ApiProperty({
+    nullable: true,
+  })
+  catalogMatch!: {
+    id: string;
+    title: string;
+    verificationStatus: string;
+  } | null;
 }

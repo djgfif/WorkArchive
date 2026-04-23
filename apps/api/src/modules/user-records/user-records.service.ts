@@ -5,6 +5,24 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 export const WORK_AGGREGATE_INCLUDE = {
   catalogWork: true,
+  catalogTitle: {
+    include: {
+      franchise: true,
+      contributors: {
+        include: {
+          contributor: true,
+        },
+        orderBy: {
+          displayOrder: 'asc',
+        },
+      },
+      outgoingRelations: {
+        include: {
+          targetTitle: true,
+        },
+      },
+    },
+  },
 } satisfies Prisma.UserWorkRecordInclude;
 
 export type WorkAggregate = Prisma.UserWorkRecordGetPayload<{
@@ -51,6 +69,28 @@ export class UserRecordsService {
         id,
         userId,
         deletedAt: null,
+      },
+      include: WORK_AGGREGATE_INCLUDE,
+    });
+  }
+
+  findGroupedSourceByUser(userId: string) {
+    return this.prisma.userWorkRecord.findMany({
+      where: {
+        userId,
+        deletedAt: null,
+      },
+      include: WORK_AGGREGATE_INCLUDE,
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    });
+  }
+
+  findActiveByUserAndCatalogTitle(userId: string, catalogTitleId: string) {
+    return this.prisma.userWorkRecord.findFirst({
+      where: {
+        catalogTitleId,
+        deletedAt: null,
+        userId,
       },
       include: WORK_AGGREGATE_INCLUDE,
     });

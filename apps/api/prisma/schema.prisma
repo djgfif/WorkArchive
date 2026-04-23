@@ -42,16 +42,79 @@ enum WorkSyncStatus {
   conflict
 }
 
+enum UserRole {
+  user
+  moderator
+  admin
+}
+
+enum CatalogVerificationStatus {
+  draft
+  pending
+  verified
+  rejected
+  merged
+}
+
+enum CatalogTitleStatus {
+  unknown
+  upcoming
+  ongoing
+  completed
+  hiatus
+  cancelled
+}
+
+enum ContributorEntityType {
+  person
+  organization
+  group
+}
+
+enum CatalogContributorRole {
+  author
+  illustrator
+  director
+  studio
+  publisher
+  screenwriter
+  original_creator
+  artist
+  translator
+}
+
+enum CatalogRelationType {
+  original
+  adaptation
+  spin_off
+  sequel
+  prequel
+  side_story
+  remake
+  compilation
+  alternate_version
+}
+
+enum CatalogSubmissionStatus {
+  pending
+  approved
+  rejected
+}
+
 model User {
   id                     String                  @id @default(uuid())
   email                  String                  @unique
   passwordHash           String                  @db.Text
   refreshTokenHash       String?                 @db.Text
   nickname               String                  @default("")
+  role                   UserRole                @default(user)
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   workRecords            UserWorkRecord[]
   externalApiCredentials ExternalApiCredential[]
+  catalogSubmissions     CatalogSubmission[]     @relation("CatalogSubmissionSubmitter")
+  reviewedSubmissions    CatalogSubmission[]     @relation("CatalogSubmissionReviewer")
+  catalogAuditLogs       CatalogAuditLog[]
 
   @@map("users")
 }
@@ -73,10 +136,195 @@ model CatalogWork {
   @@map("catalog_works")
 }
 
+model Franchise {
+  id                 String                    @id @default(uuid())
+  canonicalName      String
+  displayName        String
+  originalName       String?
+  aliases            String[]                  @default([])
+  description        String                    @default("") @db.Text
+  thumbnailUrl       String                    @default("")
+  verificationStatus CatalogVerificationStatus @default(draft)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  titles             CatalogTitle[]
+  externalRefs       CatalogExternalRef[]
+
+  @@index([verificationStatus, updatedAt])
+  @@index([canonicalName])
+  @@map("franchises")
+}
+
+model CatalogTitle {
+  id                 String                    @id @default(uuid())
+  franchiseId        String?
+  mediumType         WorkType                  @default(other)
+  subType            String?
+  canonicalTitle     String
+  displayTitle       String
+  originalTitle      String?
+  aliases            String[]                  @default([])
+  releaseYear        Int?
+  startDate          DateTime?
+  endDate            DateTime?
+  country            String?
+  status             CatalogTitleStatus        @default(unknown)
+  summary            String                    @default("") @db.Text
+  thumbnailUrl       String                    @default("")
+  verificationStatus CatalogVerificationStatus @default(draft)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  franchise          Franchise?                @relation(fields: [franchiseId], references: [id], onDelete: SetNull)
+  releases           CatalogRelease[]
+  contributors       CatalogTitleContributor[]
+  outgoingRelations  CatalogRelation[]         @relation("CatalogRelationSource")
+  incomingRelations  CatalogRelation[]         @relation("CatalogRelationTarget")
+  externalRefs       CatalogExternalRef[]
+  userRecords        UserWorkRecord[]
+
+  @@index([franchiseId])
+  @@index([mediumType, updatedAt])
+  @@index([verificationStatus, updatedAt])
+  @@index([canonicalTitle])
+  @@map("catalog_titles")
+}
+
+model CatalogRelease {
+  id             String               @id @default(uuid())
+  catalogTitleId String
+  releaseType    String               @default("")
+  displayLabel   String               @default("")
+  title          String               @default("")
+  sequence       Float?
+  isbn           String?
+  releaseDate    DateTime?
+  summary        String               @default("") @db.Text
+  thumbnailUrl   String               @default("")
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  catalogTitle   CatalogTitle         @relation(fields: [catalogTitleId], references: [id], onDelete: Cascade)
+  externalRefs   CatalogExternalRef[]
+
+  @@index([catalogTitleId, sequence])
+  @@index([isbn])
+  @@map("catalog_releases")
+}
+
+model Contributor {
+  id            String                    @id @default(uuid())
+  entityType    ContributorEntityType      @default(person)
+  canonicalName String
+  displayName   String
+  aliases       String[]                  @default([])
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  titles        CatalogTitleContributor[]
+  externalRefs  CatalogExternalRef[]
+
+  @@index([entityType, canonicalName])
+  @@map("contributors")
+}
+
+model CatalogTitleContributor {
+  id             String                 @id @default(uuid())
+  catalogTitleId String
+  contributorId  String
+  role           CatalogContributorRole
+  displayOrder   Int                    @default(0)
+  catalogTitle   CatalogTitle           @relation(fields: [catalogTitleId], references: [id], onDelete: Cascade)
+  contributor    Contributor            @relation(fields: [contributorId], references: [id], onDelete: Cascade)
+
+  @@unique([catalogTitleId, contributorId, role])
+  @@index([contributorId, role])
+  @@map("catalog_title_contributors")
+}
+
+model CatalogRelation {
+  id            String              @id @default(uuid())
+  sourceTitleId String
+  targetTitleId String
+  relationType  CatalogRelationType
+  createdAt     DateTime            @default(now())
+  sourceTitle   CatalogTitle         @relation("CatalogRelationSource", fields: [sourceTitleId], references: [id], onDelete: Cascade)
+  targetTitle   CatalogTitle         @relation("CatalogRelationTarget", fields: [targetTitleId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceTitleId, targetTitleId, relationType])
+  @@index([targetTitleId, relationType])
+  @@map("catalog_relations")
+}
+
+model CatalogExternalRef {
+  id               String         @id @default(uuid())
+  catalogTitleId   String?
+  catalogReleaseId String?
+  franchiseId      String?
+  contributorId    String?
+  provider         String
+  externalId       String
+  url              String         @default("")
+  rawType          String         @default("")
+  language         String?
+  country          String?
+  confidence       Float?
+  lastFetchedAt    DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  catalogTitle     CatalogTitle?  @relation(fields: [catalogTitleId], references: [id], onDelete: Cascade)
+  catalogRelease   CatalogRelease? @relation(fields: [catalogReleaseId], references: [id], onDelete: Cascade)
+  franchise        Franchise?     @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  contributor      Contributor?   @relation(fields: [contributorId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, rawType, externalId])
+  @@index([catalogTitleId])
+  @@index([catalogReleaseId])
+  @@index([franchiseId])
+  @@index([contributorId])
+  @@map("catalog_external_refs")
+}
+
+model CatalogSubmission {
+  id          String                  @id @default(uuid())
+  submitterId String
+  reviewerId  String?
+  status      CatalogSubmissionStatus @default(pending)
+  entityType  String
+  entityId    String?
+  action      String
+  payload     Json
+  note        String                  @default("") @db.Text
+  reviewNote  String                  @default("") @db.Text
+  reviewedAt  DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  submitter   User                    @relation("CatalogSubmissionSubmitter", fields: [submitterId], references: [id], onDelete: Cascade)
+  reviewer    User?                   @relation("CatalogSubmissionReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([submitterId, createdAt])
+  @@map("catalog_submissions")
+}
+
+model CatalogAuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("catalog_audit_logs")
+}
+
 model UserWorkRecord {
   id            String         @id @default(uuid())
   userId        String?
   catalogWorkId String
+  catalogTitleId String?
   status        WorkStatus     @default(planned)
   rating        Float?
   shortReview   String         @default("")
@@ -89,12 +337,14 @@ model UserWorkRecord {
   syncStatus    WorkSyncStatus @default(synced)
   serverVersion Int            @default(1)
   catalogWork   CatalogWork    @relation(fields: [catalogWorkId], references: [id], onDelete: Cascade)
+  catalogTitle  CatalogTitle?  @relation(fields: [catalogTitleId], references: [id], onDelete: SetNull)
   user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, deletedAt])
   @@index([userId, status, updatedAt])
   @@index([userId, updatedAt])
   @@index([catalogWorkId])
+  @@index([catalogTitleId])
   @@map("user_work_records")
 }
 

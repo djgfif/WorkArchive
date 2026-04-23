@@ -271,6 +271,7 @@ export class SyncService {
       userId,
       // split-only 중간 단계: payload.id를 catalogWorkId로 사용해 1:1 매핑을 고정합니다.
       catalogWorkId: payload.id,
+      catalogTitleId: payload.catalogTitleId ?? payload.id,
       status: payload.status as WorkStatus,
       rating: payload.rating ?? null,
       shortReview: normalizeString(payload.shortReview),

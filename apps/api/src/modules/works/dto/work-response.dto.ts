@@ -13,6 +13,12 @@ export class WorkResponseDto {
   id!: string;
 
   @ApiProperty({
+    format: 'uuid',
+    nullable: true,
+  })
+  catalogTitleId!: string | null;
+
+  @ApiProperty({
     enum: WorkType,
   })
   type!: WorkType;

@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { WorkType } from '@prisma/client';
 
+import { PrismaService } from '../../prisma/prisma.service';
 import type { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
 import type { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
 import type { ImportSearchQueryDto } from './dto/import-search-query.dto';
@@ -15,17 +16,129 @@ import type { ImportSearchResponseDto } from './dto/import-search-response.dto';
 import { ImportsCredentialService } from './imports-credential.service';
 import {
   ALADIN_PROVIDER,
+  ANILIST_PROVIDER,
+  GOOGLE_BOOKS_PROVIDER,
+  IMPORT_PROVIDER_VALUES,
+  KAKAO_BOOK_PROVIDER,
+  KOBIS_PROVIDER,
+  MANUAL_PROVIDER,
+  NAVER_BOOK_PROVIDER,
+  OPEN_LIBRARY_PROVIDER,
+  TMDB_PROVIDER,
+  TVMAZE_PROVIDER,
   type ImportProvider,
 } from './imports.constants';
 
 const ALADIN_ITEM_SEARCH_URL =
   'https://www.aladin.co.kr/ttb/api/ItemSearch.aspx';
+const ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co';
+const GOOGLE_BOOKS_SEARCH_URL = 'https://www.googleapis.com/books/v1/volumes';
+const OPEN_LIBRARY_SEARCH_URL = 'https://openlibrary.org/search.json';
+const TVMAZE_SEARCH_URL = 'https://api.tvmaze.com/search/shows';
+const TMDB_SEARCH_MOVIE_URL = 'https://api.themoviedb.org/3/search/movie';
+const TMDB_SEARCH_TV_URL = 'https://api.themoviedb.org/3/search/tv';
+const NAVER_BOOK_SEARCH_URL = 'https://openapi.naver.com/v1/search/book.json';
+const KAKAO_BOOK_SEARCH_URL = 'https://dapi.kakao.com/v3/search/book';
+const KOBIS_MOVIE_SEARCH_URL =
+  'http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json';
 const ALADIN_ATTRIBUTION =
   '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)';
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 20;
 
 type UnknownRecord = Record<string, unknown>;
+
+interface ProviderMetadata {
+  credentialMode: 'none' | 'server' | 'user';
+  label: string;
+  mediumTypes: WorkType[];
+  provider: ImportProvider;
+}
+
+interface ProviderSearchContext {
+  limit: number;
+  mediumType?: WorkType;
+  query: string;
+  userId: string;
+}
+
+const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
+  [ALADIN_PROVIDER]: {
+    credentialMode: 'user',
+    label: 'Aladin Book',
+    mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
+    provider: ALADIN_PROVIDER,
+  },
+  [MANUAL_PROVIDER]: {
+    credentialMode: 'none',
+    label: 'Manual',
+    mediumTypes: [
+      WorkType.novel,
+      WorkType.light_novel,
+      WorkType.manga,
+      WorkType.anime,
+      WorkType.movie,
+      WorkType.drama,
+      WorkType.web_novel,
+      WorkType.webtoon,
+      WorkType.other,
+    ],
+    provider: MANUAL_PROVIDER,
+  },
+  [ANILIST_PROVIDER]: {
+    credentialMode: 'none',
+    label: 'AniList',
+    mediumTypes: [
+      WorkType.anime,
+      WorkType.manga,
+      WorkType.light_novel,
+      WorkType.web_novel,
+    ],
+    provider: ANILIST_PROVIDER,
+  },
+  [GOOGLE_BOOKS_PROVIDER]: {
+    credentialMode: 'none',
+    label: 'Google Books',
+    mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
+    provider: GOOGLE_BOOKS_PROVIDER,
+  },
+  [OPEN_LIBRARY_PROVIDER]: {
+    credentialMode: 'none',
+    label: 'Open Library',
+    mediumTypes: [WorkType.novel, WorkType.light_novel],
+    provider: OPEN_LIBRARY_PROVIDER,
+  },
+  [TVMAZE_PROVIDER]: {
+    credentialMode: 'none',
+    label: 'TVmaze',
+    mediumTypes: [WorkType.drama, WorkType.anime],
+    provider: TVMAZE_PROVIDER,
+  },
+  [TMDB_PROVIDER]: {
+    credentialMode: 'server',
+    label: 'TMDB',
+    mediumTypes: [WorkType.movie, WorkType.drama],
+    provider: TMDB_PROVIDER,
+  },
+  [NAVER_BOOK_PROVIDER]: {
+    credentialMode: 'server',
+    label: 'Naver Book',
+    mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
+    provider: NAVER_BOOK_PROVIDER,
+  },
+  [KAKAO_BOOK_PROVIDER]: {
+    credentialMode: 'server',
+    label: 'Kakao Book',
+    mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
+    provider: KAKAO_BOOK_PROVIDER,
+  },
+  [KOBIS_PROVIDER]: {
+    credentialMode: 'server',
+    label: 'KOBIS',
+    mediumTypes: [WorkType.movie],
+    provider: KOBIS_PROVIDER,
+  },
+};
 
 @Injectable()
 export class ImportsService {
@@ -34,11 +147,23 @@ export class ImportsService {
   constructor(
     @Inject(ImportsCredentialService)
     private readonly credentialService: ImportsCredentialService,
+    @Inject(PrismaService)
+    private readonly prisma: PrismaService = {
+      catalogExternalRef: {
+        findUnique: async () => null,
+      },
+      catalogTitle: {
+        findFirst: async () => null,
+      },
+      userWorkRecord: {
+        findFirst: async () => null,
+      },
+    } as unknown as PrismaService,
   ) {}
 
   async getAladinProviderStatus(
     userId: string,
-  ): Promise<ImportProviderStatusResponseDto> {
+  ): Promise<Pick<ImportProviderStatusResponseDto, 'configured' | 'provider'>> {
     return {
       provider: ALADIN_PROVIDER,
       configured: await this.credentialService.hasCredential(
@@ -48,10 +173,26 @@ export class ImportsService {
     };
   }
 
+  async listProviders(userId: string): Promise<ImportProviderStatusResponseDto[]> {
+    return Promise.all(
+      IMPORT_PROVIDER_VALUES.map(async (provider) => {
+        const metadata = PROVIDERS[provider];
+
+        return {
+          configured: await this.isProviderConfigured(userId, provider),
+          credentialMode: metadata.credentialMode,
+          label: metadata.label,
+          mediumTypes: metadata.mediumTypes,
+          provider,
+        };
+      }),
+    );
+  }
+
   async saveAladinKey(
     userId: string,
     ttbKey: string,
-  ): Promise<ImportProviderStatusResponseDto> {
+  ): Promise<Pick<ImportProviderStatusResponseDto, 'configured' | 'provider'>> {
     await this.credentialService.saveCredential(userId, ALADIN_PROVIDER, ttbKey);
 
     return {
@@ -68,46 +209,68 @@ export class ImportsService {
     userId: string,
     searchQuery: ImportSearchQueryDto,
   ): Promise<ImportSearchResponseDto> {
-    const provider = searchQuery.provider ?? ALADIN_PROVIDER;
     const query = searchQuery.query.trim();
     const limit = this.normalizeLimit(searchQuery.limit);
+    const mediumType = searchQuery.mediumType ?? searchQuery.type;
+    const providers = this.resolveProviders(searchQuery, mediumType);
+    const explicitSingleProvider =
+      searchQuery.provider !== undefined &&
+      searchQuery.providers === undefined;
 
     if (!query) {
       throw new BadRequestException('query must not be empty');
     }
 
-    if (provider !== ALADIN_PROVIDER) {
-      throw new BadRequestException('Unsupported import provider.');
+    const candidates: ImportCandidateResponseDto[] = [];
+    const failures: string[] = [];
+
+    for (const provider of providers) {
+      if (!this.supportsMedium(provider, mediumType)) {
+        continue;
+      }
+
+      try {
+        const context: ProviderSearchContext = {
+          limit,
+          query,
+          userId,
+        };
+
+        if (mediumType !== undefined) {
+          context.mediumType = mediumType;
+        }
+
+        const providerCandidates = await this.searchProvider(provider, context);
+
+        candidates.push(...providerCandidates);
+      } catch (error) {
+        if (explicitSingleProvider) {
+          throw error;
+        }
+
+        failures.push(`${provider}:${this.describeError(error)}`);
+      }
     }
 
-    const ttbKey = await this.credentialService.getDecryptedCredential(
+    const decoratedCandidates = await this.decorateCandidates(
       userId,
-      provider,
+      candidates.slice(0, limit),
     );
 
-    if (!ttbKey) {
-      this.logSearchSummary(userId, provider, query, 0, 'missing-key');
-      throw new ForbiddenException(
-        'Aladin API key is not configured for this user.',
-      );
-    }
+    this.logSearchSummary(
+      userId,
+      providers.join(','),
+      query,
+      decoratedCandidates.length,
+      failures.length > 0 ? `partial:${failures.join('|')}` : 'ok',
+    );
 
-    try {
-      const candidates = await this.searchAladin(ttbKey, query, limit);
-
-      this.logSearchSummary(userId, provider, query, candidates.length, 'ok');
-
-      return {
-        provider,
-        query,
-        candidates,
-      };
-    } catch (error) {
-      const errorName = error instanceof Error ? error.name : 'UnknownError';
-
-      this.logSearchSummary(userId, provider, query, 0, errorName);
-      throw error;
-    }
+    return {
+      provider: searchQuery.provider ?? providers[0] ?? ALADIN_PROVIDER,
+      providers,
+      query,
+      candidates: decoratedCandidates,
+    };
   }
 
   private normalizeLimit(limit: number | undefined) {
@@ -118,11 +281,124 @@ export class ImportsService {
     return Math.min(Math.max(limit, 1), MAX_LIMIT);
   }
 
-  private async searchAladin(
-    ttbKey: string,
-    query: string,
-    limit: number,
-  ): Promise<ImportCandidateResponseDto[]> {
+  private resolveProviders(
+    searchQuery: ImportSearchQueryDto,
+    mediumType?: WorkType,
+  ): ImportProvider[] {
+    if (searchQuery.providers && searchQuery.providers.length > 0) {
+      return searchQuery.providers;
+    }
+
+    if (searchQuery.provider) {
+      return [searchQuery.provider];
+    }
+
+    if (mediumType === WorkType.web_novel || mediumType === WorkType.webtoon) {
+      return [MANUAL_PROVIDER];
+    }
+
+    if (mediumType === WorkType.anime) {
+      return [ANILIST_PROVIDER, TVMAZE_PROVIDER, MANUAL_PROVIDER];
+    }
+
+    if (mediumType === WorkType.movie) {
+      return [TMDB_PROVIDER, KOBIS_PROVIDER, MANUAL_PROVIDER];
+    }
+
+    if (mediumType === WorkType.drama) {
+      return [TMDB_PROVIDER, TVMAZE_PROVIDER, MANUAL_PROVIDER];
+    }
+
+    if (
+      mediumType === WorkType.novel ||
+      mediumType === WorkType.light_novel ||
+      mediumType === WorkType.manga
+    ) {
+      return [
+        ALADIN_PROVIDER,
+        NAVER_BOOK_PROVIDER,
+        KAKAO_BOOK_PROVIDER,
+        GOOGLE_BOOKS_PROVIDER,
+        OPEN_LIBRARY_PROVIDER,
+        ANILIST_PROVIDER,
+        MANUAL_PROVIDER,
+      ];
+    }
+
+    return [
+      ALADIN_PROVIDER,
+      ANILIST_PROVIDER,
+      GOOGLE_BOOKS_PROVIDER,
+      OPEN_LIBRARY_PROVIDER,
+      TMDB_PROVIDER,
+      TVMAZE_PROVIDER,
+      MANUAL_PROVIDER,
+    ];
+  }
+
+  private supportsMedium(provider: ImportProvider, mediumType?: WorkType) {
+    return !mediumType || PROVIDERS[provider].mediumTypes.includes(mediumType);
+  }
+
+  private async isProviderConfigured(userId: string, provider: ImportProvider) {
+    const metadata = PROVIDERS[provider];
+
+    if (metadata.credentialMode === 'none') {
+      return true;
+    }
+
+    if (provider === ALADIN_PROVIDER) {
+      return this.credentialService.hasCredential(userId, ALADIN_PROVIDER);
+    }
+
+    return this.readServerCredential(provider) !== null;
+  }
+
+  private async searchProvider(
+    provider: ImportProvider,
+    context: ProviderSearchContext,
+  ) {
+    switch (provider) {
+      case ALADIN_PROVIDER:
+        return this.searchAladin(context);
+      case ANILIST_PROVIDER:
+        return this.searchAniList(context);
+      case GOOGLE_BOOKS_PROVIDER:
+        return this.searchGoogleBooks(context);
+      case OPEN_LIBRARY_PROVIDER:
+        return this.searchOpenLibrary(context);
+      case TVMAZE_PROVIDER:
+        return this.searchTvMaze(context);
+      case TMDB_PROVIDER:
+        return this.searchTmdb(context);
+      case NAVER_BOOK_PROVIDER:
+        return this.searchNaverBook(context);
+      case KAKAO_BOOK_PROVIDER:
+        return this.searchKakaoBook(context);
+      case KOBIS_PROVIDER:
+        return this.searchKobis(context);
+      case MANUAL_PROVIDER:
+        return this.searchManual(context);
+    }
+  }
+
+  private async searchAladin({
+    limit,
+    mediumType,
+    query,
+    userId,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const ttbKey = await this.credentialService.getDecryptedCredential(
+      userId,
+      ALADIN_PROVIDER,
+    );
+
+    if (!ttbKey) {
+      throw new ForbiddenException(
+        'Aladin API key is not configured for this user.',
+      );
+    }
+
     const searchUrl = new URL(ALADIN_ITEM_SEARCH_URL);
 
     searchUrl.searchParams.set('ttbkey', ttbKey);
@@ -135,38 +411,10 @@ export class ImportsService {
     searchUrl.searchParams.set('start', '1');
     searchUrl.searchParams.set('Cover', 'Big');
 
-    let response: Response;
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+    });
 
-    try {
-      response = await fetch(searchUrl, {
-        headers: {
-          accept: 'application/json',
-        },
-      });
-    } catch {
-      throw new BadGatewayException('Aladin search is temporarily unavailable.');
-    }
-
-    if (response.status === 401 || response.status === 403) {
-      throw new ForbiddenException('Configured Aladin API key was rejected.');
-    }
-
-    if (!response.ok) {
-      throw new BadGatewayException('Aladin search returned an upstream error.');
-    }
-
-    let responseBody: unknown;
-
-    try {
-      responseBody = await response.json();
-    } catch {
-      throw new BadGatewayException('Aladin search returned an unreadable response.');
-    }
-
-    return this.mapAladinResponse(responseBody);
-  }
-
-  private mapAladinResponse(responseBody: unknown): ImportCandidateResponseDto[] {
     if (!this.isRecord(responseBody)) {
       throw new BadGatewayException('Aladin search returned an invalid response.');
     }
@@ -175,17 +423,352 @@ export class ImportsService {
       throw new ForbiddenException('Configured Aladin API key was rejected.');
     }
 
-    if (responseBody.item === undefined) {
+    const items = responseBody.item;
+
+    if (items === undefined) {
       return [];
     }
 
-    if (!Array.isArray(responseBody.item)) {
+    if (!Array.isArray(items)) {
       throw new BadGatewayException('Aladin search returned an invalid item list.');
     }
 
-    return responseBody.item
+    return items
       .map((item, index) => this.mapAladinItem(item, index))
+      .filter((candidate): candidate is ImportCandidateResponseDto => {
+        return (
+          candidate !== null &&
+          (!mediumType || candidate.mediumType === mediumType)
+        );
+      });
+  }
+
+  private async searchAniList({
+    limit,
+    mediumType,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const requestedTypes =
+      mediumType === WorkType.anime
+        ? ['ANIME']
+        : mediumType === WorkType.manga ||
+            mediumType === WorkType.light_novel ||
+            mediumType === WorkType.web_novel
+          ? ['MANGA']
+          : ['ANIME', 'MANGA'];
+    const results: ImportCandidateResponseDto[] = [];
+
+    for (const mediaType of requestedTypes) {
+      const body = {
+        query: `
+          query ($search: String, $perPage: Int, $type: MediaType) {
+            Page(page: 1, perPage: $perPage) {
+              media(search: $search, type: $type) {
+                id
+                title { romaji english native }
+                format
+                startDate { year }
+                description(asHtml: false)
+                coverImage { large }
+                studios(isMain: true) { nodes { name } }
+                staff(perPage: 3) { nodes { name { full } primaryOccupations } }
+              }
+            }
+          }
+        `,
+        variables: {
+          perPage: Math.min(limit, 10),
+          search: query,
+          type: mediaType,
+        },
+      };
+      const responseBody = await this.fetchJson(ANILIST_GRAPHQL_URL, {
+        accept: 'application/json',
+        body: JSON.stringify(body),
+        contentType: 'application/json',
+        method: 'POST',
+      });
+      const media = this.readPathArray(responseBody, ['data', 'Page', 'media']);
+
+      results.push(
+        ...media
+          .map((item, index) => this.mapAniListItem(item, index, mediaType))
+          .filter((candidate): candidate is ImportCandidateResponseDto => {
+            return (
+              candidate !== null &&
+              (!mediumType || candidate.mediumType === mediumType)
+            );
+          }),
+      );
+    }
+
+    return results;
+  }
+
+  private async searchGoogleBooks({
+    limit,
+    mediumType,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const searchUrl = new URL(GOOGLE_BOOKS_SEARCH_URL);
+
+    searchUrl.searchParams.set('q', query);
+    searchUrl.searchParams.set('maxResults', Math.min(limit, 20).toString());
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+    });
+    const items = this.readPathArray(responseBody, ['items']);
+
+    return items
+      .map((item, index) => this.mapGoogleBookItem(item, index))
+      .filter((candidate): candidate is ImportCandidateResponseDto => {
+        return (
+          candidate !== null &&
+          (!mediumType || candidate.mediumType === mediumType)
+        );
+      });
+  }
+
+  private async searchOpenLibrary({
+    limit,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const searchUrl = new URL(OPEN_LIBRARY_SEARCH_URL);
+
+    searchUrl.searchParams.set('q', query);
+    searchUrl.searchParams.set('limit', Math.min(limit, 20).toString());
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+    });
+    const docs = this.readPathArray(responseBody, ['docs']);
+
+    return docs
+      .map((item, index) => this.mapOpenLibraryItem(item, index))
       .filter((candidate): candidate is ImportCandidateResponseDto => candidate !== null);
+  }
+
+  private async searchTvMaze({
+    limit,
+    mediumType,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const searchUrl = new URL(TVMAZE_SEARCH_URL);
+
+    searchUrl.searchParams.set('q', query);
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+    });
+
+    if (!Array.isArray(responseBody)) {
+      return [];
+    }
+
+    return responseBody
+      .slice(0, limit)
+      .map((item, index) => this.mapTvMazeItem(item, index))
+      .filter((candidate): candidate is ImportCandidateResponseDto => {
+        return (
+          candidate !== null &&
+          (!mediumType || candidate.mediumType === mediumType)
+        );
+      });
+  }
+
+  private async searchTmdb({
+    limit,
+    mediumType,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const credential = this.readServerCredential(TMDB_PROVIDER);
+
+    if (!credential) {
+      return [];
+    }
+
+    const urls: Array<{ rawType: 'movie' | 'tv'; url: URL }> = [];
+
+    if (!mediumType || mediumType === WorkType.movie) {
+      urls.push({
+        rawType: 'movie',
+        url: new URL(TMDB_SEARCH_MOVIE_URL),
+      });
+    }
+
+    if (!mediumType || mediumType === WorkType.drama) {
+      urls.push({
+        rawType: 'tv',
+        url: new URL(TMDB_SEARCH_TV_URL),
+      });
+    }
+
+    const candidates: ImportCandidateResponseDto[] = [];
+
+    for (const { rawType, url } of urls) {
+      url.searchParams.set('query', query);
+      url.searchParams.set('include_adult', 'false');
+      url.searchParams.set('language', 'ko-KR');
+
+      const fetchOptions: Parameters<typeof this.fetchJson>[1] = {
+        accept: 'application/json',
+      };
+
+      if (credential.kind === 'bearer') {
+        fetchOptions.bearerToken = credential.value;
+      }
+
+      if (credential.kind === 'query') {
+        fetchOptions.queryApiKey = credential.value;
+      }
+
+      const responseBody = await this.fetchJson(url, fetchOptions);
+      const results = this.readPathArray(responseBody, ['results']);
+
+      candidates.push(
+        ...results
+          .slice(0, limit)
+          .map((item, index) => this.mapTmdbItem(item, index, rawType))
+          .filter((candidate): candidate is ImportCandidateResponseDto => candidate !== null),
+      );
+    }
+
+    return candidates;
+  }
+
+  private async searchNaverBook({
+    limit,
+    mediumType,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const clientId = process.env.NAVER_CLIENT_ID?.trim();
+    const clientSecret = process.env.NAVER_CLIENT_SECRET?.trim();
+
+    if (!clientId || !clientSecret) {
+      return [];
+    }
+
+    const searchUrl = new URL(NAVER_BOOK_SEARCH_URL);
+
+    searchUrl.searchParams.set('query', query);
+    searchUrl.searchParams.set('display', Math.min(limit, 20).toString());
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      headers: {
+        'X-Naver-Client-Id': clientId,
+        'X-Naver-Client-Secret': clientSecret,
+      },
+    });
+    const items = this.readPathArray(responseBody, ['items']);
+
+    return items
+      .map((item, index) => this.mapNaverBookItem(item, index))
+      .filter((candidate): candidate is ImportCandidateResponseDto => {
+        return (
+          candidate !== null &&
+          (!mediumType || candidate.mediumType === mediumType)
+        );
+      });
+  }
+
+  private async searchKakaoBook({
+    limit,
+    mediumType,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const restApiKey = process.env.KAKAO_REST_API_KEY?.trim();
+
+    if (!restApiKey) {
+      return [];
+    }
+
+    const searchUrl = new URL(KAKAO_BOOK_SEARCH_URL);
+
+    searchUrl.searchParams.set('query', query);
+    searchUrl.searchParams.set('size', Math.min(limit, 20).toString());
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      bearerPrefix: 'KakaoAK',
+      bearerToken: restApiKey,
+    });
+    const documents = this.readPathArray(responseBody, ['documents']);
+
+    return documents
+      .map((item, index) => this.mapKakaoBookItem(item, index))
+      .filter((candidate): candidate is ImportCandidateResponseDto => {
+        return (
+          candidate !== null &&
+          (!mediumType || candidate.mediumType === mediumType)
+        );
+      });
+  }
+
+  private async searchKobis({
+    limit,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const apiKey = process.env.KOBIS_API_KEY?.trim();
+
+    if (!apiKey) {
+      return [];
+    }
+
+    const searchUrl = new URL(KOBIS_MOVIE_SEARCH_URL);
+
+    searchUrl.searchParams.set('key', apiKey);
+    searchUrl.searchParams.set('movieNm', query);
+    searchUrl.searchParams.set('itemPerPage', Math.min(limit, 20).toString());
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+    });
+    const movies = this.readPathArray(responseBody, [
+      'movieListResult',
+      'movieList',
+    ]);
+
+    return movies
+      .map((item, index) => this.mapKobisMovieItem(item, index))
+      .filter((candidate): candidate is ImportCandidateResponseDto => candidate !== null);
+  }
+
+  private searchManual({
+    mediumType,
+    query,
+  }: ProviderSearchContext): ImportCandidateResponseDto[] {
+    const mediumTypes = mediumType
+      ? [mediumType]
+      : [
+          WorkType.light_novel,
+          WorkType.manga,
+          WorkType.anime,
+          WorkType.movie,
+          WorkType.drama,
+          WorkType.web_novel,
+          WorkType.webtoon,
+        ];
+
+    return mediumTypes.map((type, index) =>
+      this.buildCandidate({
+        confidence: index === 0 ? 0.55 : 0.35,
+        confidenceLabel: index === 0 ? '수동 후보' : '매체 후보',
+        countLabel: '사용자 검토 필요',
+        description:
+          '공식 API 후보가 없거나 웹연재처럼 공개 메타데이터 API가 부족한 경우를 위한 수동 후보입니다. 스크래핑 없이 사용자가 직접 확인합니다.',
+        externalId: `${query}:${type}`,
+        formatLabel: this.getFormatLabel(type),
+        id: `${MANUAL_PROVIDER}:${query}:${type}`,
+        note: '공식 API/수동 입력만 사용하며 스크래핑하지 않습니다.',
+        provider: MANUAL_PROVIDER,
+        reason: '수동 입력 fallback',
+        sourceLabel: 'Manual',
+        title: type === mediumType ? query : `${query} (${this.getFormatLabel(type)})`,
+        type,
+      }),
+    );
   }
 
   private mapAladinItem(
@@ -210,39 +793,651 @@ export class ImportsService {
     const categoryName = this.readString(item.categoryName);
     const publisher = this.readString(item.publisher);
     const publishedAt = this.readString(item.pubDate);
-    const type = this.mapWorkType(categoryName);
+    const type = this.mapBookWorkType(categoryName, title);
 
-    return {
-      id: `${ALADIN_PROVIDER}:${externalId}`,
-      externalId,
-      sourceId: ALADIN_PROVIDER,
-      sourceLabel: 'Aladin Book',
-      title,
+    return this.buildCandidate({
       author: this.readString(item.author).trim(),
-      type,
-      description: this.normalizeWhitespace(this.readString(item.description)),
-      thumbnailUrl: this.readString(item.cover).trim(),
-      genresText: this.toGenresText(categoryName),
-      formatLabel: this.getFormatLabel(type),
+      confidence: index === 0 ? 0.86 : 0.68,
+      confidenceLabel: index === 0 ? '가장 유력' : '후보',
       countLabel:
         [publisher, publishedAt].filter(Boolean).join(' · ') ||
         `Aladin ID ${externalId}`,
-      confidenceLabel: index === 0 ? '가장 유력' : '후보',
+      description: this.normalizeWhitespace(this.readString(item.description)),
+      externalId,
+      formatLabel: this.getFormatLabel(type),
+      genresText: this.toGenresText(categoryName),
+      id: `${ALADIN_PROVIDER}:${externalId}`,
       note: ALADIN_ATTRIBUTION,
+      provider: ALADIN_PROVIDER,
+      reason: '제목/도서 카테고리 일치',
+      releaseYear: this.parseYear(publishedAt),
+      sourceLabel: 'Aladin Book',
       sourceUrl: this.readString(item.link).trim(),
+      thumbnailUrl: this.readString(item.cover).trim(),
+      title,
+      type,
+    });
+  }
+
+  private mapAniListItem(
+    item: unknown,
+    index: number,
+    mediaType: string,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    const titleObject = this.isRecord(item.title) ? item.title : {};
+    const title =
+      this.readString(titleObject.english) ||
+      this.readString(titleObject.romaji) ||
+      this.readString(titleObject.native);
+
+    if (!title) {
+      return null;
+    }
+
+    const format = this.readString(item.format);
+    const type =
+      mediaType === 'ANIME'
+        ? WorkType.anime
+        : format === 'NOVEL'
+          ? WorkType.light_novel
+          : WorkType.manga;
+    const studios = this.readPathArray(item, ['studios', 'nodes'])
+      .map((studio) => (this.isRecord(studio) ? this.readString(studio.name) : ''))
+      .filter(Boolean);
+    const staff = this.readPathArray(item, ['staff', 'nodes'])
+      .map((person) =>
+        this.isRecord(person) && this.isRecord(person.name)
+          ? this.readString(person.name.full)
+          : '',
+      )
+      .filter(Boolean);
+    const contributors = [...studios, ...staff].slice(0, 4);
+
+    return this.buildCandidate({
+      author: contributors.join(', '),
+      confidence: index === 0 ? 0.82 : 0.64,
+      confidenceLabel: index === 0 ? 'AniList 상위' : 'AniList 후보',
+      countLabel: format || 'AniList media',
+      description: this.normalizeWhitespace(this.readString(item.description)),
+      externalId: this.readString(item.id),
+      formatLabel: this.getFormatLabel(type),
+      id: `${ANILIST_PROVIDER}:${this.readString(item.id)}`,
+      note: 'AniList GraphQL public API',
+      provider: ANILIST_PROVIDER,
+      reason: 'AniList 제목 검색 결과',
+      releaseYear: this.readPathNumber(item, ['startDate', 'year']),
+      sourceLabel: 'AniList',
+      sourceUrl: `https://anilist.co/${mediaType === 'ANIME' ? 'anime' : 'manga'}/${this.readString(item.id)}`,
+      subType: format ? format.toLowerCase() : null,
+      thumbnailUrl: this.isRecord(item.coverImage)
+        ? this.readString(item.coverImage.large)
+        : '',
+      title,
+      type,
+    });
+  }
+
+  private mapGoogleBookItem(
+    item: unknown,
+    index: number,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    const volumeInfo = this.isRecord(item.volumeInfo) ? item.volumeInfo : {};
+    const title = this.readString(volumeInfo.title);
+
+    if (!title) {
+      return null;
+    }
+
+    const categories = this.readStringArray(volumeInfo.categories).join(', ');
+    const type = this.mapBookWorkType(categories, title);
+    const imageLinks = this.isRecord(volumeInfo.imageLinks)
+      ? volumeInfo.imageLinks
+      : {};
+
+    return this.buildCandidate({
+      author: this.readStringArray(volumeInfo.authors).join(', '),
+      confidence: index === 0 ? 0.74 : 0.58,
+      confidenceLabel: index === 0 ? 'Google 상위' : 'Google 후보',
+      countLabel:
+        [this.readString(volumeInfo.publisher), this.readString(volumeInfo.publishedDate)]
+          .filter(Boolean)
+          .join(' · ') || 'Google Books',
+      description: this.normalizeWhitespace(this.readString(volumeInfo.description)),
+      externalId: this.readString(item.id),
+      formatLabel: this.getFormatLabel(type),
+      genresText: categories,
+      id: `${GOOGLE_BOOKS_PROVIDER}:${this.readString(item.id)}`,
+      note: 'Google Books Volumes API',
+      provider: GOOGLE_BOOKS_PROVIDER,
+      reason: 'Google Books 제목 검색 결과',
+      releaseYear: this.parseYear(this.readString(volumeInfo.publishedDate)),
+      sourceLabel: 'Google Books',
+      sourceUrl: this.readString(volumeInfo.infoLink),
+      thumbnailUrl:
+        this.readString(imageLinks.thumbnail) ||
+        this.readString(imageLinks.smallThumbnail),
+      title,
+      type,
+    });
+  }
+
+  private mapOpenLibraryItem(
+    item: unknown,
+    index: number,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    const title = this.readString(item.title);
+
+    if (!title) {
+      return null;
+    }
+
+    const key = this.readString(item.key);
+
+    return this.buildCandidate({
+      author: this.readStringArray(item.author_name).slice(0, 3).join(', '),
+      confidence: index === 0 ? 0.68 : 0.5,
+      confidenceLabel: index === 0 ? 'Open Library 상위' : 'Open Library 후보',
+      countLabel: this.readNumber(item.first_publish_year)
+        ? `${this.readNumber(item.first_publish_year)}`
+        : 'Open Library',
+      externalId: key || title,
+      formatLabel: '소설/도서',
+      id: `${OPEN_LIBRARY_PROVIDER}:${key || title}`,
+      note: 'Open Library Search API',
+      provider: OPEN_LIBRARY_PROVIDER,
+      reason: 'Open Library 제목 검색 결과',
+      releaseYear: this.readNumber(item.first_publish_year),
+      sourceLabel: 'Open Library',
+      sourceUrl: key ? `https://openlibrary.org${key}` : '',
+      title,
+      type: WorkType.novel,
+    });
+  }
+
+  private mapTvMazeItem(
+    item: unknown,
+    index: number,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item) || !this.isRecord(item.show)) {
+      return null;
+    }
+
+    const show = item.show;
+    const title = this.readString(show.name);
+
+    if (!title) {
+      return null;
+    }
+
+    const image = this.isRecord(show.image) ? show.image : {};
+
+    return this.buildCandidate({
+      confidence: index === 0 ? 0.7 : 0.52,
+      confidenceLabel: index === 0 ? 'TVmaze 상위' : 'TVmaze 후보',
+      countLabel: this.readString(show.premiered) || 'TV series',
+      description: this.normalizeWhitespace(this.stripHtml(this.readString(show.summary))),
+      externalId: this.readString(show.id),
+      formatLabel: '드라마/TV',
+      genresText: this.readStringArray(show.genres).join(', '),
+      id: `${TVMAZE_PROVIDER}:${this.readString(show.id)}`,
+      note: 'TVmaze public API',
+      provider: TVMAZE_PROVIDER,
+      reason: 'TVmaze 쇼 검색 결과',
+      releaseYear: this.parseYear(this.readString(show.premiered)),
+      sourceLabel: 'TVmaze',
+      sourceUrl: this.readString(show.url),
+      thumbnailUrl: this.readString(image.medium) || this.readString(image.original),
+      title,
+      type: WorkType.drama,
+    });
+  }
+
+  private mapTmdbItem(
+    item: unknown,
+    index: number,
+    rawType: 'movie' | 'tv',
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    const title =
+      rawType === 'movie'
+        ? this.readString(item.title)
+        : this.readString(item.name);
+
+    if (!title) {
+      return null;
+    }
+
+    const date =
+      rawType === 'movie'
+        ? this.readString(item.release_date)
+        : this.readString(item.first_air_date);
+    const posterPath = this.readString(item.poster_path);
+    const type = rawType === 'movie' ? WorkType.movie : WorkType.drama;
+
+    return this.buildCandidate({
+      confidence: index === 0 ? 0.78 : 0.58,
+      confidenceLabel: index === 0 ? 'TMDB 상위' : 'TMDB 후보',
+      countLabel: date || 'TMDB',
+      description: this.normalizeWhitespace(this.readString(item.overview)),
+      externalId: this.readString(item.id),
+      formatLabel: this.getFormatLabel(type),
+      id: `${TMDB_PROVIDER}:${rawType}:${this.readString(item.id)}`,
+      note: 'TMDB API',
+      provider: TMDB_PROVIDER,
+      reason: 'TMDB 제목 검색 결과',
+      rawType,
+      releaseYear: this.parseYear(date),
+      sourceLabel: 'TMDB',
+      sourceUrl: `https://www.themoviedb.org/${rawType}/${this.readString(item.id)}`,
+      thumbnailUrl: posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : '',
+      title,
+      type,
+    });
+  }
+
+  private mapNaverBookItem(
+    item: unknown,
+    index: number,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    const title = this.stripHtml(this.readString(item.title));
+
+    if (!title) {
+      return null;
+    }
+
+    const type = this.mapBookWorkType('', title);
+    const externalId = this.readString(item.isbn) || title;
+
+    return this.buildCandidate({
+      author: this.stripHtml(this.readString(item.author)),
+      confidence: index === 0 ? 0.72 : 0.54,
+      confidenceLabel: index === 0 ? 'Naver 상위' : 'Naver 후보',
+      countLabel:
+        [this.stripHtml(this.readString(item.publisher)), this.readString(item.pubdate)]
+          .filter(Boolean)
+          .join(' · ') || 'Naver Book',
+      description: this.normalizeWhitespace(this.stripHtml(this.readString(item.description))),
+      externalId,
+      formatLabel: this.getFormatLabel(type),
+      id: `${NAVER_BOOK_PROVIDER}:${externalId}`,
+      note: 'Naver Search Book API',
+      provider: NAVER_BOOK_PROVIDER,
+      reason: 'Naver 도서 검색 결과',
+      releaseYear: this.parseYear(this.readString(item.pubdate)),
+      sourceLabel: 'Naver Book',
+      sourceUrl: this.readString(item.link),
+      thumbnailUrl: this.readString(item.image),
+      title,
+      type,
+    });
+  }
+
+  private mapKakaoBookItem(
+    item: unknown,
+    index: number,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    const title = this.readString(item.title);
+
+    if (!title) {
+      return null;
+    }
+
+    const type = this.mapBookWorkType('', title);
+    const externalId = this.readString(item.isbn) || this.readString(item.url) || title;
+
+    return this.buildCandidate({
+      author: this.readStringArray(item.authors).join(', '),
+      confidence: index === 0 ? 0.72 : 0.54,
+      confidenceLabel: index === 0 ? 'Kakao 상위' : 'Kakao 후보',
+      countLabel:
+        [this.readString(item.publisher), this.readString(item.datetime).slice(0, 10)]
+          .filter(Boolean)
+          .join(' · ') || 'Kakao Book',
+      description: this.normalizeWhitespace(this.readString(item.contents)),
+      externalId,
+      formatLabel: this.getFormatLabel(type),
+      id: `${KAKAO_BOOK_PROVIDER}:${externalId}`,
+      note: 'Kakao Daum Book Search API',
+      provider: KAKAO_BOOK_PROVIDER,
+      reason: 'Kakao 도서 검색 결과',
+      releaseYear: this.parseYear(this.readString(item.datetime)),
+      sourceLabel: 'Kakao Book',
+      sourceUrl: this.readString(item.url),
+      thumbnailUrl: this.readString(item.thumbnail),
+      title,
+      type,
+    });
+  }
+
+  private mapKobisMovieItem(
+    item: unknown,
+    index: number,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    const title = this.readString(item.movieNm);
+
+    if (!title) {
+      return null;
+    }
+
+    return this.buildCandidate({
+      author: this.readString(item.directors),
+      confidence: index === 0 ? 0.75 : 0.55,
+      confidenceLabel: index === 0 ? 'KOBIS 상위' : 'KOBIS 후보',
+      countLabel:
+        [this.readString(item.openDt), this.readString(item.repNationNm)]
+          .filter(Boolean)
+          .join(' · ') || 'KOBIS movie',
+      externalId: this.readString(item.movieCd) || title,
+      formatLabel: '영화',
+      id: `${KOBIS_PROVIDER}:${this.readString(item.movieCd) || title}`,
+      note: 'KOBIS Open API',
+      provider: KOBIS_PROVIDER,
+      reason: 'KOBIS 영화명 검색 결과',
+      releaseYear: this.parseYear(this.readString(item.prdtYear) || this.readString(item.openDt)),
+      sourceLabel: 'KOBIS',
+      title,
+      type: WorkType.movie,
+    });
+  }
+
+  private buildCandidate(
+    input: Partial<ImportCandidateResponseDto> & {
+      externalId: string;
+      provider: ImportProvider;
+      rawType?: string;
+      title: string;
+      type: WorkType;
+    },
+  ): ImportCandidateResponseDto {
+    const contributors = input.contributors ?? this.toContributorList(input.author);
+    const rawType = input.rawType ?? input.type;
+
+    return {
+      author: input.author ?? contributors.map((entry) => entry.name).join(', '),
+      catalogMatch: null,
+      confidence: input.confidence ?? 0.5,
+      confidenceLabel: input.confidenceLabel ?? '후보',
+      contributors,
+      countLabel: input.countLabel ?? '',
+      description: input.description ?? '',
+      existingRecord: null,
+      externalId: input.externalId,
+      externalRefs:
+        input.externalRefs ??
+        [
+          {
+            externalId: input.externalId,
+            provider: input.provider,
+            rawType,
+            url: input.sourceUrl ?? '',
+          },
+        ],
+      formatLabel: input.formatLabel ?? this.getFormatLabel(input.type),
+      franchiseName: input.franchiseName ?? null,
+      genresText: input.genresText ?? '',
+      id: input.id ?? `${input.provider}:${input.externalId}`,
+      mediumType: input.type,
+      note: input.note ?? '',
+      reason: input.reason ?? '',
+      relationsHint: input.relationsHint ?? [],
+      releaseYear: input.releaseYear ?? null,
+      sourceId: input.provider,
+      sourceLabel: input.sourceLabel ?? PROVIDERS[input.provider].label,
+      sourceUrl: input.sourceUrl ?? '',
+      subType: input.subType ?? null,
+      thumbnailUrl: input.thumbnailUrl ?? '',
+      title: input.title,
+      type: input.type,
     };
   }
 
-  private mapWorkType(categoryName: string) {
-    if (categoryName.includes('라이트노벨') || categoryName.includes('라이트 노벨')) {
+  private async decorateCandidates(
+    userId: string,
+    candidates: ImportCandidateResponseDto[],
+  ) {
+    return Promise.all(
+      candidates.map(async (candidate) => {
+        const catalogMatch = await this.findCatalogMatch(candidate);
+        const existingRecord = catalogMatch
+          ? await this.prisma.userWorkRecord.findFirst({
+              where: {
+                catalogTitleId: catalogMatch.id,
+                deletedAt: null,
+                userId,
+              },
+              select: {
+                id: true,
+                status: true,
+              },
+            })
+          : null;
+
+        return {
+          ...candidate,
+          catalogMatch,
+          existingRecord,
+        };
+      }),
+    );
+  }
+
+  private async findCatalogMatch(candidate: ImportCandidateResponseDto) {
+    const externalRef = candidate.externalRefs[0];
+
+    if (externalRef) {
+      const match = await this.prisma.catalogExternalRef.findUnique({
+        where: {
+          provider_rawType_externalId: {
+            externalId: externalRef.externalId,
+            provider: externalRef.provider,
+            rawType: externalRef.rawType,
+          },
+        },
+        include: {
+          catalogTitle: true,
+        },
+      });
+
+      if (match?.catalogTitle) {
+        return {
+          id: match.catalogTitle.id,
+          title: match.catalogTitle.displayTitle,
+          verificationStatus: match.catalogTitle.verificationStatus,
+        };
+      }
+    }
+
+    const titleMatch = await this.prisma.catalogTitle.findFirst({
+      where: {
+        displayTitle: {
+          equals: candidate.title,
+          mode: 'insensitive',
+        },
+        mediumType: candidate.mediumType,
+      },
+      select: {
+        displayTitle: true,
+        id: true,
+        verificationStatus: true,
+      },
+    });
+
+    return titleMatch
+      ? {
+          id: titleMatch.id,
+          title: titleMatch.displayTitle,
+          verificationStatus: titleMatch.verificationStatus,
+        }
+      : null;
+  }
+
+  private readServerCredential(provider: ImportProvider) {
+    if (provider === TMDB_PROVIDER) {
+      const bearer = process.env.TMDB_API_READ_TOKEN?.trim();
+
+      if (bearer) {
+        return {
+          kind: 'bearer' as const,
+          value: bearer,
+        };
+      }
+
+      const apiKey = process.env.TMDB_API_KEY?.trim();
+
+      return apiKey
+        ? {
+            kind: 'query' as const,
+            value: apiKey,
+          }
+        : null;
+    }
+
+    if (provider === NAVER_BOOK_PROVIDER) {
+      return process.env.NAVER_CLIENT_ID?.trim() &&
+        process.env.NAVER_CLIENT_SECRET?.trim()
+        ? {
+            kind: 'header' as const,
+            value: 'configured',
+          }
+        : null;
+    }
+
+    if (provider === KAKAO_BOOK_PROVIDER) {
+      const apiKey = process.env.KAKAO_REST_API_KEY?.trim();
+
+      return apiKey
+        ? {
+            kind: 'bearer' as const,
+            value: apiKey,
+          }
+        : null;
+    }
+
+    if (provider === KOBIS_PROVIDER) {
+      const apiKey = process.env.KOBIS_API_KEY?.trim();
+
+      return apiKey
+        ? {
+            kind: 'query' as const,
+            value: apiKey,
+          }
+        : null;
+    }
+
+    return null;
+  }
+
+  private async fetchJson(
+    rawUrl: URL | string,
+    options: {
+      accept: string;
+      bearerPrefix?: string;
+      bearerToken?: string;
+      body?: string;
+      contentType?: string;
+      headers?: Record<string, string>;
+      method?: string;
+      queryApiKey?: string;
+    },
+  ) {
+    const url = rawUrl instanceof URL ? rawUrl : new URL(rawUrl);
+
+    if (options.queryApiKey) {
+      url.searchParams.set('api_key', options.queryApiKey);
+    }
+
+    const headers: Record<string, string> = {
+      accept: options.accept,
+      ...options.headers,
+    };
+
+    if (options.contentType) {
+      headers['content-type'] = options.contentType;
+    }
+
+    if (options.bearerToken) {
+      headers.authorization = `${options.bearerPrefix ?? 'Bearer'} ${options.bearerToken}`;
+    }
+
+    let response: Response;
+
+    try {
+      const requestInit: RequestInit = {
+        headers,
+        method: options.method ?? 'GET',
+      };
+
+      if (options.body !== undefined) {
+        requestInit.body = options.body;
+      }
+
+      response = await fetch(url, requestInit);
+    } catch {
+      throw new BadGatewayException('Import provider is temporarily unavailable.');
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      throw new ForbiddenException('Import provider credentials were rejected.');
+    }
+
+    if (!response.ok) {
+      throw new BadGatewayException('Import provider returned an upstream error.');
+    }
+
+    try {
+      return await response.json();
+    } catch {
+      throw new BadGatewayException('Import provider returned an unreadable response.');
+    }
+  }
+
+  private mapBookWorkType(categoryName: string, title = '') {
+    const searchable = `${categoryName} ${title}`;
+
+    if (searchable.includes('라이트노벨') || searchable.includes('라이트 노벨')) {
       return WorkType.light_novel;
     }
 
-    if (categoryName.includes('소설')) {
+    if (
+      searchable.includes('만화') ||
+      searchable.toLowerCase().includes('manga') ||
+      searchable.toLowerCase().includes('comic')
+    ) {
+      return WorkType.manga;
+    }
+
+    if (searchable.includes('소설') || searchable.toLowerCase().includes('novel')) {
       return WorkType.novel;
     }
 
-    return WorkType.other;
+    return WorkType.novel;
   }
 
   private getFormatLabel(type: WorkType) {
@@ -251,8 +1446,20 @@ export class ImportsService {
         return '라이트노벨';
       case WorkType.novel:
         return '소설';
+      case WorkType.manga:
+        return '만화';
+      case WorkType.anime:
+        return '애니';
+      case WorkType.movie:
+        return '영화';
+      case WorkType.drama:
+        return '드라마';
+      case WorkType.web_novel:
+        return '웹소설';
+      case WorkType.webtoon:
+        return '웹툰';
       default:
-        return '도서';
+        return '기타';
     }
   }
 
@@ -263,13 +1470,33 @@ export class ImportsService {
       .filter(Boolean);
     const meaningfulParts = parts.length > 1 ? parts.slice(1) : parts;
 
-    return meaningfulParts
-      .slice(-3)
-      .join(', ');
+    return meaningfulParts.slice(-3).join(', ');
+  }
+
+  private toContributorList(author?: string) {
+    return (author ?? '')
+      .split(/[,;/]/)
+      .map((name) => name.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+      .map((name) => ({
+        name,
+        role: 'author',
+      }));
   }
 
   private normalizeWhitespace(value: string) {
     return value.trim().replace(/\s+/g, ' ');
+  }
+
+  private stripHtml(value: string) {
+    return value.replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+  }
+
+  private parseYear(value: string) {
+    const match = value.match(/\b(18|19|20)\d{2}\b/);
+
+    return match ? Number(match[0]) : null;
   }
 
   private readString(value: unknown) {
@@ -284,13 +1511,43 @@ export class ImportsService {
     return '';
   }
 
+  private readNumber(value: unknown) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  }
+
+  private readStringArray(value: unknown) {
+    return Array.isArray(value)
+      ? value.map((entry) => this.readString(entry)).filter(Boolean)
+      : [];
+  }
+
+  private readPathArray(value: unknown, path: string[]) {
+    const resolved = this.readPath(value, path);
+
+    return Array.isArray(resolved) ? resolved : [];
+  }
+
+  private readPathNumber(value: unknown, path: string[]) {
+    return this.readNumber(this.readPath(value, path));
+  }
+
+  private readPath(value: unknown, path: string[]) {
+    return path.reduce<unknown>((current, key) => {
+      return this.isRecord(current) ? current[key] : undefined;
+    }, value);
+  }
+
   private isRecord(value: unknown): value is UnknownRecord {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
+  private describeError(error: unknown) {
+    return error instanceof Error ? error.name : 'UnknownError';
+  }
+
   private logSearchSummary(
     userId: string,
-    provider: ImportProvider,
+    provider: string,
     query: string,
     resultCount: number,
     status: string,

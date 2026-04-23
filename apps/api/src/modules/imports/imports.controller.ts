@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -47,6 +48,19 @@ export class ImportsController {
   })
   getAladinStatus(@CurrentUser() user: AuthenticatedUser) {
     return this.importsService.getAladinProviderStatus(user.userId);
+  }
+
+  @Get('providers')
+  @ApiOkResponse({
+    description: 'Return import provider capabilities and configuration state.',
+    type: ImportProviderStatusResponseDto,
+    isArray: true,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  listProviders(@CurrentUser() user: AuthenticatedUser) {
+    return this.importsService.listProviders(user.userId);
   }
 
   @Put('providers/aladin/key')
@@ -95,5 +109,19 @@ export class ImportsController {
     @Query() importSearchQueryDto: ImportSearchQueryDto,
   ) {
     return this.importsService.search(user.userId, importSearchQueryDto);
+  }
+
+  @Post('resolve')
+  @ApiOkResponse({
+    description: 'Return a normalized import candidate payload for client review.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  resolve(@Body() candidate: Record<string, unknown>) {
+    return {
+      candidate,
+      resolved: true,
+    };
   }
 }

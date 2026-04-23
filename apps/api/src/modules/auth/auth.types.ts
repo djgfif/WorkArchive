@@ -9,4 +9,5 @@ export interface AuthTokenPayload {
 export interface AuthenticatedUser {
   userId: string;
   email: string;
+  role: 'user' | 'moderator' | 'admin';
 }

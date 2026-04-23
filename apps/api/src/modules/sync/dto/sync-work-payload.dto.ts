@@ -31,6 +31,14 @@ export class SyncWorkPayloadDto {
   @IsUUID()
   id!: string;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsUUID()
+  catalogTitleId?: string | null;
+
   @ApiProperty({
     enum: WorkType,
   })

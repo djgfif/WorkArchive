@@ -1,13 +1,24 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { ALADIN_PROVIDER } from '../imports.constants';
+import { IMPORT_PROVIDER_VALUES, type ImportProvider } from '../imports.constants';
 
 export class ImportProviderStatusResponseDto {
   @ApiProperty({
-    enum: [ALADIN_PROVIDER],
+    enum: IMPORT_PROVIDER_VALUES,
   })
-  provider!: typeof ALADIN_PROVIDER;
+  provider!: ImportProvider;
 
   @ApiProperty()
   configured!: boolean;
+
+  @ApiProperty()
+  label?: string;
+
+  @ApiProperty()
+  credentialMode?: 'none' | 'server' | 'user';
+
+  @ApiProperty({
+    type: [String],
+  })
+  mediumTypes?: string[];
 }

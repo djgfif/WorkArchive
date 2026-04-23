@@ -186,6 +186,7 @@ export class AuthService {
     return {
       userId: user.id,
       email: user.email,
+      role: user.role,
     };
   }
 
@@ -280,12 +281,13 @@ export class AuthService {
   }
 
   private toUserResponse(
-    user: Pick<User, 'id' | 'email' | 'nickname'>,
+    user: Pick<User, 'id' | 'email' | 'nickname' | 'role'>,
   ): AuthUserResponseDto {
     return {
       id: user.id,
       email: user.email,
       nickname: user.nickname,
+      role: user.role,
     };
   }
 

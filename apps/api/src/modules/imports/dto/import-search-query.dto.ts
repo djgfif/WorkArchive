@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  IsArray,
   IsEnum,
   IsIn,
   IsInt,
@@ -35,6 +36,24 @@ export class ImportSearchQueryDto {
   provider?: ImportProvider;
 
   @ApiPropertyOptional({
+    enum: IMPORT_PROVIDER_VALUES,
+    isArray: true,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) {
+      return value.flatMap((entry) =>
+        typeof entry === 'string' ? entry.split(',') : [],
+      );
+    }
+
+    return typeof value === 'string' ? value.split(',') : value;
+  })
+  @IsArray()
+  @IsIn(IMPORT_PROVIDER_VALUES, { each: true })
+  providers?: ImportProvider[];
+
+  @ApiPropertyOptional({
     example: 'Dune',
     maxLength: 200,
   })
@@ -51,6 +70,13 @@ export class ImportSearchQueryDto {
   @IsOptional()
   @IsEnum(WorkType)
   type?: WorkType;
+
+  @ApiPropertyOptional({
+    enum: WorkType,
+  })
+  @IsOptional()
+  @IsEnum(WorkType)
+  mediumType?: WorkType;
 
   @ApiPropertyOptional({
     default: 10,

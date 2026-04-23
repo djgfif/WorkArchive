@@ -62,6 +62,7 @@ describe('QuickAddWorkForm', () => {
       vi.fn().mockResolvedValue(
         jsonResponse({
           provider: 'aladin',
+          providers: ['aladin'],
           query: '듄',
           candidates: [
             {
@@ -71,14 +72,37 @@ describe('QuickAddWorkForm', () => {
               sourceLabel: 'Aladin Book',
               title: '듄',
               author: '프랭크 허버트',
+              catalogMatch: null,
+              confidence: 0.86,
               type: 'novel',
+              mediumType: 'novel',
+              subType: null,
               description: '사막 행성을 둘러싼 이야기',
+              existingRecord: null,
+              externalRefs: [
+                {
+                  externalId: '123',
+                  provider: 'aladin',
+                  rawType: 'novel',
+                  url: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=123',
+                },
+              ],
+              franchiseName: null,
               thumbnailUrl: 'https://image.aladin.co.kr/cover.jpg',
               genresText: '소설/시/희곡, 영미소설',
               formatLabel: '소설',
               countLabel: '황금가지 · 2026-04-18',
               confidenceLabel: '가장 유력',
+              contributors: [
+                {
+                  name: '프랭크 허버트',
+                  role: 'author',
+                },
+              ],
               note: '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)',
+              reason: '제목/도서 카테고리 일치',
+              relationsHint: [],
+              releaseYear: 2026,
               sourceUrl: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=123',
             },
           ],
