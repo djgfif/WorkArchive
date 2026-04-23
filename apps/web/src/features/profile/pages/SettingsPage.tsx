@@ -1,14 +1,142 @@
-import { Text } from '@mantine/core';
+import { PasswordInput, Stack, Text } from '@mantine/core';
+import { useEffect, useState, type FormEvent } from 'react';
+
 import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
 import { FutureFeaturePage } from '../../../shared/components/FutureFeaturePage';
 import {
+  ActionRow,
+  AppBadge,
+  AppButton,
   AppLinkButton,
+  FeedbackMessage,
   SectionCard,
   SectionIntro,
   ThemeToggleControl,
 } from '../../../shared/components/AppPrimitives';
+import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import {
+  importsService,
+  type ImportProviderStatus,
+} from '../../imports/services/imports.service';
 
 export function SettingsPage() {
+  const { mode } = useAuthSession();
+  const [aladinStatus, setAladinStatus] = useState<ImportProviderStatus | null>(
+    null,
+  );
+  const [ttbKey, setTtbKey] = useState('');
+  const [isLoadingAladinStatus, setIsLoadingAladinStatus] = useState(false);
+  const [isSavingAladinKey, setIsSavingAladinKey] = useState(false);
+  const [isDeletingAladinKey, setIsDeletingAladinKey] = useState(false);
+  const [aladinFeedback, setAladinFeedback] = useState<{
+    message: string;
+    tone: 'error' | 'info' | 'success';
+  } | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadAladinStatus() {
+      if (mode !== 'authenticated') {
+        setAladinStatus(null);
+        setAladinFeedback(null);
+
+        return;
+      }
+
+      try {
+        setIsLoadingAladinStatus(true);
+        const status = await importsService.getAladinProviderStatus();
+
+        if (!isCancelled) {
+          setAladinStatus(status);
+          setAladinFeedback(null);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setAladinFeedback({
+            tone: 'error',
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Aladin 설정 상태를 불러오지 못했습니다.',
+          });
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingAladinStatus(false);
+        }
+      }
+    }
+
+    void loadAladinStatus();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [mode]);
+
+  async function handleSaveAladinKey(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!ttbKey.trim()) {
+      setAladinFeedback({
+        tone: 'error',
+        message: 'Aladin TTBKey를 입력해주세요.',
+      });
+
+      return;
+    }
+
+    try {
+      setIsSavingAladinKey(true);
+      const status = await importsService.saveAladinKey(ttbKey);
+
+      setAladinStatus(status);
+      setTtbKey('');
+      setAladinFeedback({
+        tone: 'success',
+        message: 'Aladin TTBKey를 저장했습니다.',
+      });
+    } catch (error) {
+      setAladinFeedback({
+        tone: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Aladin TTBKey를 저장하지 못했습니다.',
+      });
+    } finally {
+      setIsSavingAladinKey(false);
+    }
+  }
+
+  async function handleDeleteAladinKey() {
+    try {
+      setIsDeletingAladinKey(true);
+      await importsService.deleteAladinKey();
+      setAladinStatus({
+        provider: 'aladin',
+        configured: false,
+      });
+      setTtbKey('');
+      setAladinFeedback({
+        tone: 'success',
+        message: 'Aladin TTBKey를 삭제했습니다.',
+      });
+    } catch (error) {
+      setAladinFeedback({
+        tone: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Aladin TTBKey를 삭제하지 못했습니다.',
+      });
+    } finally {
+      setIsDeletingAladinKey(false);
+    }
+  }
+
   return (
     <AccountPageTemplate
       actions={<AppLinkButton to="/account">계정 홈으로 돌아가기</AppLinkButton>}
@@ -28,6 +156,71 @@ export function SettingsPage() {
         </Text>
 
         <ThemeToggleControl />
+      </SectionCard>
+
+      <SectionCard>
+        <SectionIntro
+          description="Quick Add에서 Aladin 도서 검색 후보를 가져올 때 사용할 사용자별 TTBKey를 저장합니다. 저장된 키 값은 다시 표시하지 않습니다."
+          eyebrow="외부 검색"
+          title="Aladin Book 연동"
+        />
+
+        {mode !== 'authenticated' ? (
+          <Text c="var(--app-text-muted)">
+            Aladin 외부 검색은 로그인한 계정에서 TTBKey를 등록한 경우에만 사용할 수 있습니다.
+          </Text>
+        ) : (
+          <Stack gap="md">
+            <ActionRow>
+              <AppBadge tone={aladinStatus?.configured ? 'success' : 'muted'}>
+                {isLoadingAladinStatus
+                  ? '상태 확인 중'
+                  : aladinStatus?.configured
+                    ? '키가 등록되어 있습니다'
+                    : '키가 등록되어 있지 않습니다'}
+              </AppBadge>
+              <Text c="var(--app-text-muted)" size="sm">
+                도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)
+              </Text>
+            </ActionRow>
+
+            <form onSubmit={handleSaveAladinKey}>
+              <Stack gap="sm">
+                <PasswordInput
+                  label="Aladin TTBKey"
+                  onChange={(event) => setTtbKey(event.currentTarget.value)}
+                  placeholder="발급받은 TTBKey를 입력하세요"
+                  value={ttbKey}
+                />
+                <ActionRow>
+                  <AppButton
+                    disabled={isDeletingAladinKey}
+                    loading={isSavingAladinKey}
+                    tone="primary"
+                    type="submit"
+                  >
+                    Aladin 키 저장
+                  </AppButton>
+                  <AppButton
+                    disabled={!aladinStatus?.configured || isSavingAladinKey}
+                    loading={isDeletingAladinKey}
+                    onClick={handleDeleteAladinKey}
+                    tone="danger"
+                    type="button"
+                  >
+                    Aladin 키 삭제
+                  </AppButton>
+                </ActionRow>
+              </Stack>
+            </form>
+
+            {aladinFeedback && (
+              <FeedbackMessage tone={aladinFeedback.tone}>
+                {aladinFeedback.message}
+              </FeedbackMessage>
+            )}
+          </Stack>
+        )}
       </SectionCard>
 
       <FutureFeaturePage

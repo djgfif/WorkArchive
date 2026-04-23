@@ -1,5 +1,11 @@
 import type { WorkType } from '@work-archive/shared-types';
 
+import {
+  ApiRequestError,
+  requestAuthenticatedApi,
+  requestAuthenticatedApiJson,
+} from '../../auth/services/auth.api';
+
 export interface ImportCandidate {
   author: string;
   confidenceLabel: string;
@@ -9,7 +15,10 @@ export interface ImportCandidate {
   genresText: string;
   id: string;
   note: string;
+  sourceId: string;
   sourceLabel: string;
+  sourceUrl: string;
+  thumbnailUrl: string;
   title: string;
   type: WorkType;
 }
@@ -18,6 +27,34 @@ export interface ImportSourceAdapter {
   readonly sourceId: string;
   search(query: string): ImportCandidate[];
 }
+
+export interface ImportProviderStatus {
+  configured: boolean;
+  provider: 'aladin';
+}
+
+interface ImportSearchResponse {
+  candidates: ImportCandidate[];
+  provider: 'aladin';
+  query: string;
+}
+
+interface SearchCandidatesOptions {
+  limit?: number;
+  type?: WorkType;
+  useExternal?: boolean;
+}
+
+export interface SearchCandidatesResult {
+  candidates: ImportCandidate[];
+  notice: string | null;
+  source: 'aladin' | 'preview-manual';
+}
+
+const ALADIN_PROVIDER_STATUS_PATH = '/imports/providers/aladin/status';
+const ALADIN_PROVIDER_KEY_PATH = '/imports/providers/aladin/key';
+const EXTERNAL_SEARCH_UNAVAILABLE_NOTICE =
+  'Aladin 외부 검색을 사용하려면 로그인한 계정의 설정에서 TTBKey를 등록해주세요. 지금은 외부 검색이 아닌 로컬 preview 후보를 표시합니다.';
 
 function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
   const normalizedSearchTerm = searchTerm.trim();
@@ -32,8 +69,11 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
       formatLabel: '원작 후보',
       genresText: '드라마, 감상 기록',
       id: `${normalizedSearchTerm}-core`,
-      note: '우선 검토',
-      sourceLabel: 'Imports preview seam',
+      note: '외부 검색 아님',
+      sourceId: 'preview-manual',
+      sourceLabel: 'Preview/manual',
+      sourceUrl: '',
+      thumbnailUrl: '',
       title: normalizedSearchTerm,
       type: 'novel',
     },
@@ -46,8 +86,11 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
       formatLabel: '영상 후보',
       genresText: '애니, 어댑테이션',
       id: `${normalizedSearchTerm}-screen`,
-      note: '파생 후보',
-      sourceLabel: 'Imports preview seam',
+      note: '외부 검색 아님',
+      sourceId: 'preview-manual',
+      sourceLabel: 'Preview/manual',
+      sourceUrl: '',
+      thumbnailUrl: '',
       title: `${normalizedSearchTerm} (애니)`,
       type: 'anime',
     },
@@ -60,8 +103,11 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
       formatLabel: '연재 후보',
       genresText: '웹소설, 연재',
       id: `${normalizedSearchTerm}-serial`,
-      note: '확장 후보',
-      sourceLabel: 'Imports preview seam',
+      note: '외부 검색 아님',
+      sourceId: 'preview-manual',
+      sourceLabel: 'Preview/manual',
+      sourceUrl: '',
+      thumbnailUrl: '',
       title: `${normalizedSearchTerm} (연재판)`,
       type: 'web_novel',
     },
@@ -81,14 +127,116 @@ export class ImportsService {
     private readonly adapters: ImportSourceAdapter[] = [new PreviewImportsAdapter()],
   ) {}
 
-  searchCandidates(query: string) {
+  async getAladinProviderStatus() {
+    return requestAuthenticatedApiJson<ImportProviderStatus>(
+      ALADIN_PROVIDER_STATUS_PATH,
+      {
+        method: 'GET',
+      },
+      {
+        missingTokenMessage: 'Aladin 검색 설정은 로그인 후 이용해주세요.',
+      },
+    );
+  }
+
+  async saveAladinKey(ttbKey: string) {
+    return requestAuthenticatedApiJson<ImportProviderStatus>(
+      ALADIN_PROVIDER_KEY_PATH,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          ttbKey,
+        }),
+      },
+      {
+        missingTokenMessage: 'Aladin 검색 설정은 로그인 후 이용해주세요.',
+      },
+    );
+  }
+
+  async deleteAladinKey() {
+    await requestAuthenticatedApi(
+      ALADIN_PROVIDER_KEY_PATH,
+      {
+        method: 'DELETE',
+      },
+      {
+        missingTokenMessage: 'Aladin 검색 설정은 로그인 후 이용해주세요.',
+      },
+    );
+  }
+
+  async searchCandidates(
+    query: string,
+    options: SearchCandidatesOptions = {},
+  ): Promise<SearchCandidatesResult> {
     const normalizedQuery = query.trim();
 
     if (!normalizedQuery) {
-      return [];
+      return {
+        candidates: [],
+        notice: null,
+        source: 'preview-manual',
+      };
     }
 
-    return this.adapters.flatMap((adapter) => adapter.search(normalizedQuery));
+    if (options.useExternal) {
+      try {
+        const params = new URLSearchParams({
+          provider: 'aladin',
+          query: normalizedQuery,
+          type: options.type ?? 'novel',
+          limit: (options.limit ?? 10).toString(),
+        });
+        const response = await requestAuthenticatedApiJson<ImportSearchResponse>(
+          `/imports/search?${params.toString()}`,
+          {
+            method: 'GET',
+          },
+          {
+            missingTokenMessage: 'Aladin 외부 검색은 로그인 후 이용해주세요.',
+          },
+        );
+
+        return {
+          candidates: response.candidates,
+          notice: '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)',
+          source: 'aladin',
+        };
+      } catch (error) {
+        if (!this.shouldFallbackToPreview(error)) {
+          throw error;
+        }
+
+        return this.searchPreviewCandidates(
+          normalizedQuery,
+          EXTERNAL_SEARCH_UNAVAILABLE_NOTICE,
+        );
+      }
+    }
+
+    return this.searchPreviewCandidates(
+      normalizedQuery,
+      '로그인하지 않은 상태에서는 외부 검색이 아닌 로컬 preview 후보를 표시합니다.',
+    );
+  }
+
+  private searchPreviewCandidates(
+    normalizedQuery: string,
+    notice: string | null,
+  ): SearchCandidatesResult {
+    return {
+      candidates: this.adapters.flatMap((adapter) => adapter.search(normalizedQuery)),
+      notice,
+      source: 'preview-manual',
+    };
+  }
+
+  private shouldFallbackToPreview(error: unknown) {
+    return (
+      error instanceof ApiRequestError &&
+      (error.status === 401 || error.status === 403 || error.status === 502)
+    );
   }
 }
 

@@ -4,6 +4,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { User } from '@prisma/client';
@@ -33,6 +34,8 @@ export interface IssuedAuthSession {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async register(registerDto: RegisterDto): Promise<IssuedAuthSession> {
@@ -82,7 +85,15 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string): Promise<IssuedAuthSession> {
-    const tokenPayload = this.verifyToken(refreshToken, 'refresh');
+    let tokenPayload: AuthTokenPayload;
+
+    try {
+      tokenPayload = this.verifyToken(refreshToken, 'refresh');
+    } catch (error) {
+      this.logRefreshFailure('invalid_or_expired_token');
+      throw error;
+    }
+
     const user = await this.prisma.user.findUnique({
       where: {
         id: tokenPayload.sub,
@@ -90,6 +101,7 @@ export class AuthService {
     });
 
     if (!user || !user.refreshTokenHash) {
+      this.logRefreshFailure('missing_refresh_session', tokenPayload.sub);
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
@@ -99,6 +111,7 @@ export class AuthService {
     );
 
     if (!isRefreshTokenValid) {
+      this.logRefreshFailure('refresh_token_mismatch', user.id);
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
@@ -274,5 +287,11 @@ export class AuthService {
       email: user.email,
       nickname: user.nickname,
     };
+  }
+
+  private logRefreshFailure(reason: string, userId?: string) {
+    this.logger.warn(
+      `Refresh failed reason=${reason}${userId ? ` userId=${userId}` : ''}`,
+    );
   }
 }

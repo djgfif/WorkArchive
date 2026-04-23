@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import {
   WorkSyncStatus,
   type Prisma,
@@ -16,7 +16,10 @@ import {
   toFlatWorkResponse,
 } from '../works/work-aggregate';
 import type { PullSyncDto } from './dto/pull-sync.dto';
-import type { PullSyncResponseDto } from './dto/pull-sync-response.dto';
+import type {
+  PullSyncChangeDto,
+  PullSyncResponseDto,
+} from './dto/pull-sync-response.dto';
 import type { PushSyncChangeDto, PushSyncDto } from './dto/push-sync.dto';
 import type {
   PushSyncResponseDto,
@@ -25,9 +28,17 @@ import type {
 import type { SyncWorkPayloadDto } from './dto/sync-work-payload.dto';
 
 const SERVER_SYNC_STATUS = WorkSyncStatus.synced;
+const ALREADY_APPLIED_MESSAGE = 'Remote record already matches the queued change.';
+const APPLIED_CHANGE_MESSAGE = 'Queued change applied on the server.';
+const APPLIED_TOMBSTONE_MESSAGE = 'Queued tombstone applied on the server.';
+const CREATED_MESSAGE = 'Queued record created on the server.';
+const MISSING_REMOTE_DELETE_NOOP_MESSAGE =
+  'Remote delete was a no-op because the server record is missing.';
 
 @Injectable()
 export class SyncService {
+  private readonly logger = new Logger(SyncService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(CatalogService) private readonly catalogService: CatalogService,
@@ -36,42 +47,62 @@ export class SyncService {
   ) {}
 
   async push(userId: string, { changes }: PushSyncDto): Promise<PushSyncResponseDto> {
+    const sortedChanges = this.sortChangesByCreatedAt(changes);
     const results: PushSyncResultDto[] = [];
 
-    for (const change of [...changes].sort((left, right) =>
-      left.createdAt.localeCompare(right.createdAt),
-    )) {
-      results.push(await this.applyChange(userId, change));
-    }
+    try {
+      for (const change of sortedChanges) {
+        results.push(await this.applyChange(userId, change));
+      }
 
-    return {
-      processedAt: new Date().toISOString(),
-      results,
-    };
+      const response = {
+        processedAt: new Date().toISOString(),
+        results,
+      };
+
+      this.logPushSummary(userId, changes.length, response);
+
+      return response;
+    } catch (error) {
+      this.logger.warn(
+        `Sync push failed userId=${userId} requested=${changes.length} reason=${this.describeError(error)}`,
+      );
+      throw error;
+    }
   }
 
   async pull(userId: string, { since }: PullSyncDto): Promise<PullSyncResponseDto> {
-    const works = await this.userRecordsService.findByUserSince(
-      userId,
-      since === undefined || since === null ? null : this.parseIsoDate(since, 'since'),
-    );
-
-    const pulledAt = new Date().toISOString();
-    const nextSince =
-      works.length === 0
-        ? (since ?? pulledAt)
-        : works[works.length - 1]!.updatedAt.toISOString();
-
-    return {
-      pulledAt,
-      nextSince,
-      changes: works.map((work) => ({
+    try {
+      const parsedSince =
+        since === undefined || since === null
+          ? null
+          : this.parseIsoDate(since, 'since');
+      const works = await this.userRecordsService.findByUserSince(
+        userId,
+        parsedSince,
+      );
+      const pulledAt = new Date().toISOString();
+      const changes = works.map<PullSyncChangeDto>((work) => ({
         entityType: 'work',
         entityId: work.id,
         operation: work.deletedAt === null ? 'upsert' : 'delete',
         work: toFlatWorkResponse(work),
-      })),
-    };
+      }));
+      const response: PullSyncResponseDto = {
+        pulledAt,
+        nextSince: this.buildNextSince(since ?? null, pulledAt, works),
+        changes,
+      };
+
+      this.logPullSummary(userId, since ?? null, response);
+
+      return response;
+    } catch (error) {
+      this.logger.warn(
+        `Sync pull failed userId=${userId} since=${since ?? 'null'} reason=${this.describeError(error)}`,
+      );
+      throw error;
+    }
   }
 
   private async applyChange(
@@ -101,7 +132,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'work',
         status: 'applied',
-        message: 'Remote record already matches the queued change.',
+        message: ALREADY_APPLIED_MESSAGE,
         work: toFlatWorkResponse(existing),
       };
     }
@@ -139,8 +170,8 @@ export class SyncService {
       status: 'applied',
       message:
         change.payload.deletedAt === null
-          ? 'Queued change applied on the server.'
-          : 'Queued tombstone applied on the server.',
+          ? APPLIED_CHANGE_MESSAGE
+          : APPLIED_TOMBSTONE_MESSAGE,
       work: toFlatWorkResponse(updated),
     };
   }
@@ -172,8 +203,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'work',
         status: 'applied',
-        message:
-          'Remote delete was a no-op because the server record is missing.',
+        message: MISSING_REMOTE_DELETE_NOOP_MESSAGE,
         work: null,
       };
     }
@@ -203,7 +233,7 @@ export class SyncService {
       entityId: change.entityId,
       entityType: 'work',
       status: 'applied',
-      message: 'Queued record created on the server.',
+      message: CREATED_MESSAGE,
       work: toFlatWorkResponse(created),
     };
   }
@@ -337,5 +367,81 @@ export class SyncService {
     }
 
     return this.parseIsoDate(value, fieldName);
+  }
+
+  private sortChangesByCreatedAt(changes: PushSyncChangeDto[]) {
+    return changes
+      .map((change, index) => ({
+        change,
+        index,
+        timestamp: Date.parse(change.createdAt),
+      }))
+      .sort((left, right) => {
+        const timestampDelta = left.timestamp - right.timestamp;
+
+        if (timestampDelta !== 0) {
+          return timestampDelta;
+        }
+
+        return left.index - right.index;
+      })
+      .map(({ change }) => change);
+  }
+
+  private buildNextSince(
+    since: string | null,
+    pulledAt: string,
+    works: WorkAggregate[],
+  ) {
+    if (works.length === 0) {
+      return since ?? pulledAt;
+    }
+
+    return works[works.length - 1]!.updatedAt.toISOString();
+  }
+
+  private logPushSummary(
+    userId: string,
+    requestedCount: number,
+    response: PushSyncResponseDto,
+  ) {
+    const appliedCount = response.results.filter(
+      (result) => result.status === 'applied',
+    ).length;
+    const conflictCount = response.results.filter(
+      (result) => result.status === 'conflict',
+    ).length;
+    const failedCount = response.results.filter(
+      (result) => result.status === 'failed',
+    ).length;
+
+    this.logger.log(
+      `Sync push summary userId=${userId} requested=${requestedCount} applied=${appliedCount} conflict=${conflictCount} failed=${failedCount}`,
+    );
+  }
+
+  private logPullSummary(
+    userId: string,
+    since: string | null,
+    response: PullSyncResponseDto,
+  ) {
+    const upsertCount = response.changes.filter(
+      (change) => change.operation === 'upsert',
+    ).length;
+    const deleteCount = response.changes.filter(
+      (change) => change.operation === 'delete',
+    ).length;
+
+    this.logger.log(
+      `Sync pull summary userId=${userId} since=${since ?? 'null'} changes=${response.changes.length} upsert=${upsertCount} delete=${deleteCount} nextSince=${response.nextSince}`,
+    );
+  }
+
+  private describeError(error: unknown) {
+    if (error instanceof Error) {
+      return `${error.name}: ${error.message}`;
+    }
+
+    return 'UnknownError';
   }
 }

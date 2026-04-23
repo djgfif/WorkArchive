@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Logger,
   Post,
   Req,
   Res,
@@ -39,6 +40,8 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
   @Post('register')
@@ -110,6 +113,7 @@ export class AuthController {
     const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
 
     if (typeof refreshToken !== 'string' || !refreshToken) {
+      this.logger.warn('Refresh rejected: missing refresh cookie.');
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 

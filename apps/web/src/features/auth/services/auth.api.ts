@@ -218,6 +218,43 @@ export async function requestAuthenticatedApiJson<TResponse>(
   }
 }
 
+export async function requestAuthenticatedApi(
+  path: string,
+  init: RequestInit,
+  options: AuthenticatedRequestOptions = {},
+): Promise<void> {
+  const storedTokens = readStoredAuthTokens();
+
+  if (!storedTokens) {
+    throw new ApiRequestError(
+      401,
+      options.missingTokenMessage ?? '로그인 후 이용해주세요.',
+    );
+  }
+
+  try {
+    await requestApi<unknown>(path, init, storedTokens.accessToken);
+
+    return;
+  } catch (error) {
+    if (!(error instanceof ApiRequestError) || error.status !== 401) {
+      throw error;
+    }
+  }
+
+  const refreshedTokens = await refreshStoredTokens();
+
+  try {
+    await requestApi<unknown>(path, init, refreshedTokens.accessToken);
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 401) {
+      clearStoredAuthTokens();
+    }
+
+    throw error;
+  }
+}
+
 export async function restoreStoredSession(): Promise<RestoredSession | null> {
   const storedTokens = readStoredAuthTokens();
 

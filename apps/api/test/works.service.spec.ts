@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
@@ -212,5 +212,88 @@ describe('WorksService', () => {
     );
     expect(catalogService.update).not.toHaveBeenCalled();
     expect(userRecordsService.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects blank titles on create and update', async () => {
+    await expect(
+      service.create(USER_ID, {
+        title: '   ',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    userRecordsService.findActiveByUserAndId.mockResolvedValue(
+      createWorkAggregateFixture(),
+    );
+
+    await expect(
+      service.update(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28', {
+        title: '   ',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('updates an active work and increments serverVersion when changes are present', async () => {
+    const existing = createWorkAggregateFixture();
+    const updated = createWorkAggregateFixture({
+      favorite: true,
+      serverVersion: 2,
+      catalogWork: {
+        ...existing.catalogWork,
+        title: 'The Dark Forest',
+      },
+    });
+
+    userRecordsService.findActiveByUserAndId.mockResolvedValue(existing);
+    userRecordsService.update.mockResolvedValue(updated);
+
+    const result = await service.update(
+      USER_ID,
+      '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      {
+        title: 'The Dark Forest',
+        favorite: true,
+      },
+    );
+
+    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(catalogService.update).toHaveBeenCalledWith(
+      existing.catalogWorkId,
+      expect.objectContaining({
+        title: 'The Dark Forest',
+      }),
+      expect.any(Object),
+    );
+    expect(userRecordsService.update).toHaveBeenCalledWith(
+      '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      expect.objectContaining({
+        favorite: true,
+        syncStatus: WorkSyncStatus.synced,
+        serverVersion: {
+          increment: 1,
+        },
+      }),
+      expect.any(Object),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        title: 'The Dark Forest',
+        favorite: true,
+        serverVersion: 2,
+      }),
+    );
+  });
+
+  it('rejects update and delete attempts for missing or foreign works', async () => {
+    userRecordsService.findActiveByUserAndId.mockResolvedValue(null);
+
+    await expect(
+      service.update(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28', {
+        favorite: true,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    await expect(
+      service.remove(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });
