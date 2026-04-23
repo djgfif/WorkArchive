@@ -75,6 +75,27 @@ async function seed() {
       },
     });
 
+    await prisma.catalogTitle.upsert({
+      where: {
+        id: work.id,
+      },
+      update: {
+        canonicalTitle: work.title,
+        displayTitle: work.title,
+        mediumType: work.type,
+        summary: '',
+        thumbnailUrl: '',
+      },
+      create: {
+        id: work.id,
+        canonicalTitle: work.title,
+        displayTitle: work.title,
+        mediumType: work.type,
+        summary: '',
+        thumbnailUrl: '',
+      },
+    });
+
     await prisma.userWorkRecord.upsert({
       where: {
         id: work.id,
@@ -82,6 +103,7 @@ async function seed() {
       update: {
         userId: demoUser.id,
         catalogWorkId: work.id,
+        catalogTitleId: work.id,
         status: work.status,
         rating: work.rating,
         shortReview: work.shortReview,
@@ -95,6 +117,7 @@ async function seed() {
         id: work.id,
         userId: demoUser.id,
         catalogWorkId: work.id,
+        catalogTitleId: work.id,
         status: work.status,
         rating: work.rating,
         shortReview: work.shortReview,

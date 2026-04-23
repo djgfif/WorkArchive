@@ -12,6 +12,7 @@ export interface AuthUser {
   id: string;
   email: string;
   nickname: string;
+  role?: 'user' | 'moderator' | 'admin';
 }
 
 export interface AuthCredentialsInput {

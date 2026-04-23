@@ -15,4 +15,9 @@ export class AuthUserResponseDto {
     example: '',
   })
   nickname!: string;
+
+  @ApiProperty({
+    enum: ['user', 'moderator', 'admin'],
+  })
+  role!: 'user' | 'moderator' | 'admin';
 }

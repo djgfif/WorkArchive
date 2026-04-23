@@ -29,6 +29,13 @@ export const WORK_TYPES = [
 
 export type WorkType = (typeof WORK_TYPES)[number];
 
+export type CatalogMediumType = WorkType;
+
+export const CATALOG_SEARCH_MEDIUM_TYPES = ['all', ...WORK_TYPES] as const;
+
+export type CatalogSearchMediumType =
+  (typeof CATALOG_SEARCH_MEDIUM_TYPES)[number];
+
 export const WORK_STATUSES = [
   'planned',
   'in_progress',
@@ -52,8 +59,38 @@ export const WORK_SYNC_STATUSES = [
 
 export type WorkSyncStatus = (typeof WORK_SYNC_STATUSES)[number];
 
+export const USER_ROLES = ['user', 'moderator', 'admin'] as const;
+
+export type UserRole = (typeof USER_ROLES)[number];
+
+export const CATALOG_VERIFICATION_STATUSES = [
+  'draft',
+  'pending',
+  'verified',
+  'rejected',
+  'merged',
+] as const;
+
+export type CatalogVerificationStatus =
+  (typeof CATALOG_VERIFICATION_STATUSES)[number];
+
+export const CATALOG_RELATION_TYPES = [
+  'original',
+  'adaptation',
+  'spin_off',
+  'sequel',
+  'prequel',
+  'side_story',
+  'remake',
+  'compilation',
+  'alternate_version',
+] as const;
+
+export type CatalogRelationType = (typeof CATALOG_RELATION_TYPES)[number];
+
 export interface WorkRecord extends AuditFields {
   id: EntityId;
+  catalogTitleId?: EntityId | null;
   type: WorkType;
   title: string;
   author: string;

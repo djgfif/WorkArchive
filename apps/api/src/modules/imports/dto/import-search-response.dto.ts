@@ -1,13 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { ALADIN_PROVIDER } from '../imports.constants';
+import { IMPORT_PROVIDER_VALUES, type ImportProvider } from '../imports.constants';
 import { ImportCandidateResponseDto } from './import-candidate-response.dto';
 
 export class ImportSearchResponseDto {
   @ApiProperty({
-    enum: [ALADIN_PROVIDER],
+    enum: IMPORT_PROVIDER_VALUES,
   })
-  provider!: typeof ALADIN_PROVIDER;
+  provider!: ImportProvider;
+
+  @ApiProperty({
+    enum: IMPORT_PROVIDER_VALUES,
+    isArray: true,
+  })
+  providers!: string[];
 
   @ApiProperty()
   query!: string;

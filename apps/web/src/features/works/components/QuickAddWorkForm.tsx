@@ -1,5 +1,8 @@
 import { liveQuery } from 'dexie';
-import type { WorkRecord } from '@work-archive/shared-types';
+import type {
+  CatalogSearchMediumType,
+  WorkRecord,
+} from '@work-archive/shared-types';
 import {
   useEffect,
   useState,
@@ -69,6 +72,48 @@ const ratingOptions = Array.from({ length: 10 }, (_, index) => {
   };
 });
 
+const quickAddMediumOptions: Array<{
+  label: string;
+  value: CatalogSearchMediumType;
+}> = [
+  {
+    label: '전체',
+    value: 'all',
+  },
+  {
+    label: '라이트노벨',
+    value: 'light_novel',
+  },
+  {
+    label: '소설',
+    value: 'novel',
+  },
+  {
+    label: '만화',
+    value: 'manga',
+  },
+  {
+    label: '애니',
+    value: 'anime',
+  },
+  {
+    label: '영화',
+    value: 'movie',
+  },
+  {
+    label: '드라마',
+    value: 'drama',
+  },
+  {
+    label: '웹소설',
+    value: 'web_novel',
+  },
+  {
+    label: '웹툰',
+    value: 'webtoon',
+  },
+];
+
 function createQuickAddDefaults(): WorkFormValues {
   return {
     ...createDefaultWorkFormValues(),
@@ -110,7 +155,7 @@ function createValuesFromCandidate(candidate: ImportCandidate): WorkFormValues {
     genresText: candidate.genresText,
     thumbnailUrl: candidate.thumbnailUrl,
     title: candidate.title,
-    type: candidate.type,
+    type: candidate.mediumType,
   };
 }
 
@@ -188,19 +233,43 @@ function CandidateRow({
           <ActionRow>
             <AppBadge tone="accent">{candidate.confidenceLabel}</AppBadge>
             <AppBadge>{candidate.sourceLabel}</AppBadge>
-            <AppBadge>{getWorkTypeLabel(candidate.type)}</AppBadge>
+            <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
+            {candidate.subType && <AppBadge>{candidate.subType}</AppBadge>}
+            {candidate.franchiseName && (
+              <AppBadge tone="success">{candidate.franchiseName}</AppBadge>
+            )}
+            {candidate.releaseYear && <AppBadge>{candidate.releaseYear}</AppBadge>}
+            {candidate.existingRecord && (
+              <AppBadge tone="warning">이미 내 기록에 있음</AppBadge>
+            )}
+            {candidate.catalogMatch && !candidate.existingRecord && (
+              <AppBadge tone="success">카탈로그 매칭</AppBadge>
+            )}
             {duplicateCount > 0 && <AppBadge tone="warning">비슷한 기록 {duplicateCount}</AppBadge>}
           </ActionRow>
 
           <div>
             <Title order={4}>{candidate.title}</Title>
-            <Text c="var(--app-text-muted)">{candidate.author}</Text>
+            <Text c="var(--app-text-muted)">
+              {candidate.contributors.length > 0
+                ? candidate.contributors
+                    .map((contributor) => `${contributor.name} · ${contributor.role}`)
+                    .join(', ')
+                : candidate.author}
+            </Text>
           </div>
 
           <Text c="var(--app-text-secondary)">{candidate.description}</Text>
-          <Text c="var(--app-text-muted)" size="xs">
-            {candidate.note}
-          </Text>
+          {candidate.reason && (
+            <Text c="var(--app-text-muted)" size="xs">
+              {candidate.reason}
+            </Text>
+          )}
+          {candidate.note && (
+            <Text c="var(--app-text-muted)" size="xs">
+              {candidate.note}
+            </Text>
+          )}
         </Stack>
       </Group>
     </button>
@@ -214,6 +283,8 @@ export function QuickAddWorkForm({
 }: QuickAddWorkFormProps) {
   const { archiveScopeKey, mode } = useAuthSession();
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchMedium, setSearchMedium] =
+    useState<CatalogSearchMediumType>('all');
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
   const [candidates, setCandidates] = useState<ImportCandidate[]>([]);
   const [existingWorks, setExistingWorks] = useState<WorkRecord[]>([]);
@@ -280,7 +351,7 @@ export function QuickAddWorkForm({
 
       const result = await importsService.searchCandidates(normalizedSearchTerm, {
         limit: 10,
-        type: 'novel',
+        mediumType: searchMedium,
         useExternal: mode === 'authenticated',
       });
 
@@ -355,11 +426,26 @@ export function QuickAddWorkForm({
 
             <form onSubmit={handleSearchSubmit}>
               <Group align="flex-end" gap="sm" wrap="wrap">
+                <NativeSelect
+                  id="quickAddMedium"
+                  label="매체"
+                  onChange={(event) =>
+                    setSearchMedium(event.currentTarget.value as CatalogSearchMediumType)
+                  }
+                  value={searchMedium}
+                >
+                  {quickAddMediumOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+
                 <TextInput
                   id="quickAddSearch"
                   label="작품 검색"
                   onChange={(event) => setSearchTerm(event.currentTarget.value)}
-                  placeholder="제목이나 작가를 입력하세요"
+                  placeholder="제목, IP, 작가, 스튜디오를 입력하세요"
                   value={searchTerm}
                 />
                 <AppButton
@@ -394,7 +480,7 @@ export function QuickAddWorkForm({
 
             {isSearching ? (
               <Text c="var(--app-text-muted)">
-                Aladin과 로컬 후보를 확인하고 있습니다.
+                선택한 매체에 맞는 provider와 수동 후보를 확인하고 있습니다.
               </Text>
             ) : submittedSearchTerm && candidates.length === 0 ? (
               <Text c="var(--app-text-muted)">
@@ -471,7 +557,7 @@ export function QuickAddWorkForm({
                           <Stack gap={2}>
                             <Text fw={700}>{work.title}</Text>
                             <Text c="var(--app-text-muted)" size="sm">
-                              {work.author || '작가·제작자 미입력'} · {getWorkTypeLabel(work.type)} ·{' '}
+                      {work.author || '작가·제작자 미입력'} · {getWorkTypeLabel(work.type)} ·{' '}
                               {getWorkStatusLabel(work.status)}
                             </Text>
                           </Stack>
@@ -532,6 +618,13 @@ export function QuickAddWorkForm({
                     <ActionRow>
                       <AppBadge tone="accent">{selectedCandidate.confidenceLabel}</AppBadge>
                       <AppBadge>{selectedCandidate.sourceLabel}</AppBadge>
+                      <AppBadge>{getWorkTypeLabel(selectedCandidate.mediumType)}</AppBadge>
+                      {selectedCandidate.franchiseName && (
+                        <AppBadge tone="success">{selectedCandidate.franchiseName}</AppBadge>
+                      )}
+                      {selectedCandidate.releaseYear && (
+                        <AppBadge>{selectedCandidate.releaseYear}</AppBadge>
+                      )}
                     </ActionRow>
 
                     <Text c="var(--app-text-secondary)">
@@ -548,7 +641,7 @@ export function QuickAddWorkForm({
                             rel="noreferrer"
                             target="_blank"
                           >
-                            Aladin에서 보기
+                            provider에서 보기
                           </Anchor>
                         </>
                       )}
@@ -557,6 +650,7 @@ export function QuickAddWorkForm({
                     <ActionRow>
                       <MetricPill label="형식" value={selectedCandidate.formatLabel} />
                       <MetricPill label="식별 정보" value={selectedCandidate.countLabel} />
+                      <MetricPill label="추천 이유" value={selectedCandidate.reason} />
                     </ActionRow>
                   </Stack>
                 </Group>

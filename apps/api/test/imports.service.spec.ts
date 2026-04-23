@@ -259,24 +259,34 @@ describe('ImportsService', () => {
       type: WorkType.novel,
     });
 
-    expect(result).toEqual({
-      provider: ALADIN_PROVIDER,
-      query: '듄',
-      candidates: [
-        expect.objectContaining({
-          id: 'aladin:123',
-          externalId: '123',
-          sourceId: 'aladin',
-          sourceLabel: 'Aladin Book',
-          title: '듄',
-          author: '프랭크 허버트',
-          type: WorkType.novel,
-          thumbnailUrl: 'https://image.aladin.co.kr/cover.jpg',
-          genresText: '소설/시/희곡, 영미소설',
-          note: '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)',
-        }),
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        provider: ALADIN_PROVIDER,
+        providers: [ALADIN_PROVIDER],
+        query: '듄',
+        candidates: [
+          expect.objectContaining({
+            id: 'aladin:123',
+            externalId: '123',
+            sourceId: 'aladin',
+            sourceLabel: 'Aladin Book',
+            title: '듄',
+            author: '프랭크 허버트',
+            type: WorkType.novel,
+            mediumType: WorkType.novel,
+            thumbnailUrl: 'https://image.aladin.co.kr/cover.jpg',
+            genresText: '소설/시/희곡, 영미소설',
+            note: '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)',
+            externalRefs: [
+              expect.objectContaining({
+                provider: ALADIN_PROVIDER,
+                externalId: '123',
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.objectContaining({
         search: expect.stringContaining('SearchTarget=Book'),
@@ -296,6 +306,7 @@ describe('ImportsService', () => {
 
     await expect(
       service.search(USER_ID, {
+        provider: ALADIN_PROVIDER,
         query: 'Dune',
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
@@ -307,6 +318,7 @@ describe('ImportsService', () => {
 
     await expect(
       service.search(USER_ID, {
+        provider: ALADIN_PROVIDER,
         query: 'Dune',
       }),
     ).rejects.toBeInstanceOf(BadGatewayException);

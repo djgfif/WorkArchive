@@ -10,6 +10,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -28,6 +29,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateWorkDto } from './dto/create-work.dto';
+import { GroupedWorksQueryDto } from './dto/grouped-works-query.dto';
 import { UpdateWorkDto } from './dto/update-work.dto';
 import { WorkResponseDto } from './dto/work-response.dto';
 import { WorksService } from './works.service';
@@ -50,6 +52,20 @@ export class WorksController {
   })
   findAll(@CurrentUser() user: AuthenticatedUser) {
     return this.worksService.findAll(user.userId);
+  }
+
+  @Get('grouped')
+  @ApiOkResponse({
+    description: 'List active works grouped by franchise, medium, contributor, or status.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  findGrouped(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: GroupedWorksQueryDto,
+  ) {
+    return this.worksService.findGrouped(user.userId, query.by);
   }
 
   @Get(':id')

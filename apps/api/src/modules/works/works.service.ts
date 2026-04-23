@@ -12,6 +12,7 @@ import { CatalogService } from '../catalog/catalog.service';
 import { UserRecordsService } from '../user-records/user-records.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateWorkDto } from './dto/create-work.dto';
+import type { WORK_GROUP_FIELDS } from './dto/grouped-works-query.dto';
 import type { UpdateWorkDto } from './dto/update-work.dto';
 import {
   hasChanges,
@@ -21,6 +22,7 @@ import {
 } from './work-aggregate';
 
 const DEFAULT_SYNC_STATUS = WorkSyncStatus.synced;
+type WorkGroupField = (typeof WORK_GROUP_FIELDS)[number];
 
 @Injectable()
 export class WorksService {
@@ -43,6 +45,38 @@ export class WorksService {
     const work = await this.getActiveWorkOrThrow(userId, id);
 
     return toFlatWorkResponse(work);
+  }
+
+  async findGrouped(userId: string, by: WorkGroupField) {
+    const works = await this.userRecordsService.findGroupedSourceByUser(userId);
+    const groups = new Map<
+      string,
+      {
+        key: string;
+        label: string;
+        works: ReturnType<typeof toFlatWorkResponse>[];
+      }
+    >();
+
+    for (const work of works) {
+      const group = this.getGroupKey(work, by);
+      const existing = groups.get(group.key);
+
+      if (existing) {
+        existing.works.push(toFlatWorkResponse(work));
+        continue;
+      }
+
+      groups.set(group.key, {
+        ...group,
+        works: [toFlatWorkResponse(work)],
+      });
+    }
+
+    return [...groups.values()].map((group) => ({
+      ...group,
+      count: group.works.length,
+    }));
   }
 
   async create(userId: string, createWorkDto: CreateWorkDto) {
@@ -169,6 +203,7 @@ export class WorksService {
       userId,
       // split-only 중간 단계: catalogWorkId는 user record id와 동일하게 유지합니다.
       catalogWorkId,
+      catalogTitleId: catalogWorkId,
       status: createWorkDto.status ?? WorkStatus.planned,
       rating: createWorkDto.rating ?? null,
       shortReview: normalizeString(createWorkDto.shortReview),
@@ -262,5 +297,44 @@ export class WorksService {
     this.logger.warn(
       `Work ${operation} failed userId=${userId}${workId ? ` workId=${workId}` : ''} reason=${errorName}: ${errorMessage}`,
     );
+  }
+
+  private getGroupKey(
+    work: Awaited<ReturnType<UserRecordsService['findGroupedSourceByUser']>>[number],
+    by: WorkGroupField,
+  ) {
+    if (by === 'status') {
+      return {
+        key: work.status,
+        label: work.status,
+      };
+    }
+
+    if (by === 'medium') {
+      const mediumType = work.catalogTitle?.mediumType ?? work.catalogWork.type;
+
+      return {
+        key: mediumType,
+        label: mediumType,
+      };
+    }
+
+    if (by === 'franchise') {
+      const franchise = work.catalogTitle?.franchise;
+
+      return {
+        key: franchise?.id ?? 'unfranchised',
+        label: franchise?.displayName ?? '프랜차이즈 미지정',
+      };
+    }
+
+    const contributor = work.catalogTitle?.contributors[0]?.contributor;
+
+    return {
+      key: contributor?.id ?? 'unknown-contributor',
+      label:
+        contributor?.displayName ??
+        (work.catalogWork.author || '기여자 미지정'),
+    };
   }
 }

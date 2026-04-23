@@ -1,4 +1,4 @@
-import type { WorkType } from '@work-archive/shared-types';
+import type { CatalogSearchMediumType, WorkType } from '@work-archive/shared-types';
 
 import {
   ApiRequestError,
@@ -8,16 +8,45 @@ import {
 
 export interface ImportCandidate {
   author: string;
+  catalogMatch: {
+    id: string;
+    title: string;
+    verificationStatus: string;
+  } | null;
+  confidence: number;
   confidenceLabel: string;
+  contributors: Array<{
+    name: string;
+    role: string;
+  }>;
   countLabel: string;
   description: string;
+  existingRecord: {
+    id: string;
+    status: string;
+  } | null;
+  externalRefs: Array<{
+    externalId: string;
+    provider: string;
+    rawType: string;
+    url: string;
+  }>;
   formatLabel: string;
+  franchiseName: string | null;
   genresText: string;
   id: string;
+  mediumType: WorkType;
   note: string;
+  reason: string;
+  relationsHint: Array<{
+    relationType: string;
+    targetTitle: string;
+  }>;
+  releaseYear: number | null;
   sourceId: string;
   sourceLabel: string;
   sourceUrl: string;
+  subType: string | null;
   thumbnailUrl: string;
   title: string;
   type: WorkType;
@@ -30,17 +59,23 @@ export interface ImportSourceAdapter {
 
 export interface ImportProviderStatus {
   configured: boolean;
-  provider: 'aladin';
+  credentialMode?: 'none' | 'server' | 'user';
+  label?: string;
+  mediumTypes?: WorkType[];
+  provider: string;
 }
 
 interface ImportSearchResponse {
   candidates: ImportCandidate[];
-  provider: 'aladin';
+  provider: string;
+  providers: string[];
   query: string;
 }
 
 interface SearchCandidatesOptions {
   limit?: number;
+  mediumType?: CatalogSearchMediumType;
+  providers?: string[];
   type?: WorkType;
   useExternal?: boolean;
 }
@@ -48,19 +83,60 @@ interface SearchCandidatesOptions {
 export interface SearchCandidatesResult {
   candidates: ImportCandidate[];
   notice: string | null;
-  source: 'aladin' | 'preview-manual';
+  source: 'external' | 'preview-manual';
 }
 
 const ALADIN_PROVIDER_STATUS_PATH = '/imports/providers/aladin/status';
 const ALADIN_PROVIDER_KEY_PATH = '/imports/providers/aladin/key';
+const IMPORT_PROVIDERS_PATH = '/imports/providers';
 const EXTERNAL_SEARCH_UNAVAILABLE_NOTICE =
   'Aladin 외부 검색을 사용하려면 로그인한 계정의 설정에서 TTBKey를 등록해주세요. 지금은 외부 검색이 아닌 로컬 preview 후보를 표시합니다.';
 
 function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
   const normalizedSearchTerm = searchTerm.trim();
+  const buildCandidate = (
+    overrides: Partial<ImportCandidate> & {
+      id: string;
+      title: string;
+      type: WorkType;
+    },
+  ): ImportCandidate => ({
+    author: overrides.author ?? '',
+    catalogMatch: null,
+    confidence: overrides.confidence ?? 0.45,
+    confidenceLabel: overrides.confidenceLabel ?? 'Preview 후보',
+    contributors: overrides.author
+      ? [
+          {
+            name: overrides.author,
+            role: 'author',
+          },
+        ]
+      : [],
+    countLabel: overrides.countLabel ?? '사용자 검토 필요',
+    description: overrides.description ?? '',
+    existingRecord: null,
+    externalRefs: [],
+    formatLabel: overrides.formatLabel ?? '수동 후보',
+    franchiseName: overrides.franchiseName ?? null,
+    genresText: overrides.genresText ?? '',
+    id: overrides.id,
+    mediumType: overrides.type,
+    note: overrides.note ?? '외부 검색 아님',
+    reason: overrides.reason ?? 'preview fallback',
+    relationsHint: overrides.relationsHint ?? [],
+    releaseYear: overrides.releaseYear ?? null,
+    sourceId: overrides.sourceId ?? 'preview-manual',
+    sourceLabel: overrides.sourceLabel ?? 'Preview/manual',
+    sourceUrl: overrides.sourceUrl ?? '',
+    subType: overrides.subType ?? null,
+    thumbnailUrl: overrides.thumbnailUrl ?? '',
+    title: overrides.title,
+    type: overrides.type,
+  });
 
   return [
-    {
+    buildCandidate({
       author: '작가 정보 검토 필요',
       confidenceLabel: '가장 유력',
       countLabel: '완결권수 확인 필요',
@@ -76,8 +152,8 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
       thumbnailUrl: '',
       title: normalizedSearchTerm,
       type: 'novel',
-    },
-    {
+    }),
+    buildCandidate({
       author: '스튜디오 정보 검토 필요',
       confidenceLabel: '미디어믹스',
       countLabel: 'TV 시리즈 추정',
@@ -93,8 +169,8 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
       thumbnailUrl: '',
       title: `${normalizedSearchTerm} (애니)`,
       type: 'anime',
-    },
-    {
+    }),
+    buildCandidate({
       author: '연재 정보 검토 필요',
       confidenceLabel: '연재형',
       countLabel: '연재 상태 확인 필요',
@@ -110,7 +186,7 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
       thumbnailUrl: '',
       title: `${normalizedSearchTerm} (연재판)`,
       type: 'web_novel',
-    },
+    }),
   ];
 }
 
@@ -135,6 +211,18 @@ export class ImportsService {
       },
       {
         missingTokenMessage: 'Aladin 검색 설정은 로그인 후 이용해주세요.',
+      },
+    );
+  }
+
+  async listProviders() {
+    return requestAuthenticatedApiJson<ImportProviderStatus[]>(
+      IMPORT_PROVIDERS_PATH,
+      {
+        method: 'GET',
+      },
+      {
+        missingTokenMessage: '외부 검색 설정은 로그인 후 이용해주세요.',
       },
     );
   }
@@ -183,11 +271,20 @@ export class ImportsService {
     if (options.useExternal) {
       try {
         const params = new URLSearchParams({
-          provider: 'aladin',
           query: normalizedQuery,
-          type: options.type ?? 'novel',
           limit: (options.limit ?? 10).toString(),
         });
+
+        const mediumType = options.mediumType ?? options.type;
+
+        if (mediumType && mediumType !== 'all') {
+          params.set('mediumType', mediumType);
+        }
+
+        if (options.providers && options.providers.length > 0) {
+          params.set('providers', options.providers.join(','));
+        }
+
         const response = await requestAuthenticatedApiJson<ImportSearchResponse>(
           `/imports/search?${params.toString()}`,
           {
@@ -200,8 +297,11 @@ export class ImportsService {
 
         return {
           candidates: response.candidates,
-          notice: '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)',
-          source: 'aladin',
+          notice:
+            response.providers.length > 0
+              ? `검색 provider: ${response.providers.join(', ')}`
+              : null,
+          source: 'external',
         };
       } catch (error) {
         if (!this.shouldFallbackToPreview(error)) {
@@ -211,6 +311,7 @@ export class ImportsService {
         return this.searchPreviewCandidates(
           normalizedQuery,
           EXTERNAL_SEARCH_UNAVAILABLE_NOTICE,
+          options.mediumType,
         );
       }
     }
@@ -218,15 +319,22 @@ export class ImportsService {
     return this.searchPreviewCandidates(
       normalizedQuery,
       '로그인하지 않은 상태에서는 외부 검색이 아닌 로컬 preview 후보를 표시합니다.',
+      options.mediumType,
     );
   }
 
   private searchPreviewCandidates(
     normalizedQuery: string,
     notice: string | null,
+    mediumType: CatalogSearchMediumType = 'all',
   ): SearchCandidatesResult {
+    const candidates = this.adapters.flatMap((adapter) => adapter.search(normalizedQuery));
+
     return {
-      candidates: this.adapters.flatMap((adapter) => adapter.search(normalizedQuery)),
+      candidates:
+        mediumType === 'all'
+          ? candidates
+          : candidates.filter((candidate) => candidate.mediumType === mediumType),
       notice,
       source: 'preview-manual',
     };
