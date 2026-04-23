@@ -1,6 +1,7 @@
 import type {
   SyncOperation,
   SyncQueueItemRecord,
+  UserReleaseRecord,
   WorkRecord,
 } from '@work-archive/shared-types';
 
@@ -10,6 +11,7 @@ import {
 } from '../../works/db/work-archive.db';
 
 const WORK_ENTITY_TYPE = 'work';
+const RELEASE_RECORD_ENTITY_TYPE = 'release_record';
 
 type DatabaseResolver = () => WorkArchiveDatabase;
 
@@ -17,12 +19,38 @@ export class SyncQueueRepository {
   constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
 
   async enqueueWorkChange(work: WorkRecord, operation: SyncOperation) {
+    return this.enqueueChange(WORK_ENTITY_TYPE, work, operation, {
+      ...work,
+      genres: [...work.genres],
+    });
+  }
+
+  async enqueueReleaseRecordChange(
+    releaseRecord: UserReleaseRecord,
+    operation: SyncOperation,
+  ) {
+    return this.enqueueChange(
+      RELEASE_RECORD_ENTITY_TYPE,
+      releaseRecord,
+      operation,
+      {
+        ...releaseRecord,
+      },
+    );
+  }
+
+  private async enqueueChange<TPayload extends WorkRecord | UserReleaseRecord>(
+    entityType: typeof WORK_ENTITY_TYPE | typeof RELEASE_RECORD_ENTITY_TYPE,
+    entity: TPayload,
+    operation: SyncOperation,
+    payload: TPayload,
+  ) {
     const db = this.getDb();
 
     return db.transaction('rw', db.syncQueue, async () => {
       const existingItems = await db.syncQueue
         .where('[entityType+entityId]')
-        .equals([WORK_ENTITY_TYPE, work.id])
+        .equals([entityType, entity.id])
         .toArray();
 
       if (existingItems.length > 0) {
@@ -36,24 +64,21 @@ export class SyncQueueRepository {
       );
 
       if (
-        work.deletedAt !== null &&
-        (hasUnsyncedCreate || work.serverVersion === 0)
+        entity.deletedAt !== null &&
+        (hasUnsyncedCreate || entity.serverVersion === 0)
       ) {
         return null;
       }
 
       const nextOperation =
-        hasUnsyncedCreate || work.serverVersion === 0 ? 'create' : operation;
+        hasUnsyncedCreate || entity.serverVersion === 0 ? 'create' : operation;
 
-      const queueItem: SyncQueueItemRecord<WorkRecord> = {
+      const queueItem: SyncQueueItemRecord<TPayload> = {
         id: crypto.randomUUID(),
-        entityType: WORK_ENTITY_TYPE,
-        entityId: work.id,
+        entityType,
+        entityId: entity.id,
         operation: nextOperation,
-        payload: {
-          ...work,
-          genres: [...work.genres],
-        },
+        payload,
         createdAt: new Date().toISOString(),
         retryCount: 0,
         lastError: null,
@@ -88,7 +113,7 @@ export class SyncQueueRepository {
       return null;
     }
 
-    const updated: SyncQueueItemRecord<WorkRecord> = {
+    const updated: SyncQueueItemRecord = {
       ...existing,
       retryCount: existing.retryCount + 1,
       lastError,
@@ -106,7 +131,7 @@ export class SyncQueueRepository {
       return null;
     }
 
-    const updated: SyncQueueItemRecord<WorkRecord> = {
+    const updated: SyncQueueItemRecord = {
       ...existing,
       lastError,
     };
@@ -124,7 +149,7 @@ export class SyncQueueRepository {
     const db = this.getDb();
 
     return db.transaction('rw', db.syncQueue, async () => {
-      const updatedItems: SyncQueueItemRecord<WorkRecord>[] = [];
+      const updatedItems: SyncQueueItemRecord[] = [];
 
       for (const id of ids) {
         const item = await db.syncQueue.get(id);
@@ -133,7 +158,7 @@ export class SyncQueueRepository {
           continue;
         }
 
-        const updated: SyncQueueItemRecord<WorkRecord> = {
+        const updated: SyncQueueItemRecord = {
           ...item,
           retryCount: item.retryCount + 1,
           lastError,
@@ -165,6 +190,18 @@ export class SyncQueueRepository {
       new Set(
         queueItems
           .filter((item) => item.entityType === WORK_ENTITY_TYPE)
+          .map((item) => item.entityId),
+      ),
+    );
+  }
+
+  async getQueuedReleaseRecordIds() {
+    const queueItems = await this.getDb().syncQueue.toArray();
+
+    return Array.from(
+      new Set(
+        queueItems
+          .filter((item) => item.entityType === RELEASE_RECORD_ENTITY_TYPE)
           .map((item) => item.entityId),
       ),
     );

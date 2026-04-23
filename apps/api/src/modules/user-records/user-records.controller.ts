@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -26,6 +27,12 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CatalogService } from '../catalog/catalog.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  canCreateReleaseRecord,
+  canUseProgressUnit,
+  getDefaultProgressUnit,
+  RECORDING_UNIT,
+} from '../recording/recording-policy';
 import { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
 import {
   normalizeGenres,
@@ -36,7 +43,13 @@ import {
   CreateUserRecordDto,
   CreateUserRecordFromImportDto,
   UpdateUserRecordDto,
+  UpdateProgressDto,
 } from './dto/user-record.dto';
+import { UpsertUserReleaseRecordDto } from './dto/user-release-record.dto';
+import {
+  toUserReleaseRecordResponse,
+  UserReleaseRecordsService,
+} from './user-release-records.service';
 import { UserRecordsService, type WorkAggregate } from './user-records.service';
 
 @ApiTags('user-records')
@@ -49,6 +62,8 @@ export class UserRecordsController {
     @Inject(CatalogService) private readonly catalogService: CatalogService,
     @Inject(UserRecordsService)
     private readonly userRecordsService: UserRecordsService,
+    @Inject(UserReleaseRecordsService)
+    private readonly releaseRecordsService: UserReleaseRecordsService,
   ) {}
 
   @Get()
@@ -103,6 +118,234 @@ export class UserRecordsController {
       ...group,
       count: group.records.length,
     }));
+  }
+
+  @Get(':id/releases')
+  @ApiOkResponse({
+    description:
+      'Return catalog releases for a title and optional volume-level user records.',
+  })
+  async findReleases(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    const record = await this.userRecordsService.findActiveByUserAndId(
+      user.userId,
+      id,
+    );
+
+    if (!record) {
+      throw new NotFoundException(`User record with id "${id}" was not found.`);
+    }
+
+    const mediumType = this.getRecordMedium(record);
+    const policy = this.buildRecordingPolicy(mediumType);
+
+    if (!record.catalogTitleId || !policy.releaseRecordsSupported) {
+      return {
+        policy,
+        releases: [],
+      };
+    }
+
+    const [releases, releaseRecords] = await Promise.all([
+      this.prisma.catalogRelease.findMany({
+        where: {
+          catalogTitleId: record.catalogTitleId,
+        },
+        orderBy: [{ sequence: 'asc' }, { releaseDate: 'asc' }, { id: 'asc' }],
+      }),
+      this.releaseRecordsService.findByUserWorkRecord(record.id),
+    ]);
+    const releaseRecordsByReleaseId = new Map(
+      releaseRecords.map((releaseRecord) => [
+        releaseRecord.catalogReleaseId,
+        releaseRecord,
+      ]),
+    );
+
+    return {
+      policy,
+      releases: releases.map((release) => ({
+        id: release.id,
+        releaseType: release.releaseType,
+        displayLabel: release.displayLabel,
+        title: release.title,
+        sequence: release.sequence,
+        isbn: release.isbn,
+        releaseDate: release.releaseDate,
+        summary: release.summary,
+        thumbnailUrl: release.thumbnailUrl,
+        userReleaseRecord:
+          releaseRecordsByReleaseId.has(release.id)
+            ? toUserReleaseRecordResponse(
+                releaseRecordsByReleaseId.get(release.id)!,
+              )
+            : null,
+      })),
+    };
+  }
+
+  @Put(':id/progress')
+  @ApiOkResponse({
+    description: 'Update title-level progress fields only.',
+  })
+  async updateProgress(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() input: UpdateProgressDto,
+  ) {
+    const existing = await this.userRecordsService.findActiveByUserAndId(
+      user.userId,
+      id,
+    );
+
+    if (!existing) {
+      throw new NotFoundException(`User record with id "${id}" was not found.`);
+    }
+
+    const mediumType = this.getRecordMedium(existing);
+    const progressUnit =
+      input.progressUnit ?? getDefaultProgressUnit(mediumType);
+
+    if (progressUnit === null || !canUseProgressUnit(mediumType, progressUnit)) {
+      throw new BadRequestException(
+        `Progress unit is not supported for medium type "${mediumType}".`,
+      );
+    }
+
+    if (
+      input.progressCurrent !== undefined &&
+      input.progressTotal !== undefined &&
+      input.progressCurrent !== null &&
+      input.progressTotal !== null &&
+      input.progressCurrent > input.progressTotal
+    ) {
+      throw new BadRequestException('progressCurrent cannot exceed progressTotal.');
+    }
+
+    const updated = await this.userRecordsService.update(id, {
+      lastConsumedLabel:
+        input.lastConsumedLabel === undefined
+          ? existing.lastConsumedLabel
+          : input.lastConsumedLabel?.trim() ?? null,
+      progressCurrent:
+        input.progressCurrent === undefined
+          ? existing.progressCurrent
+          : input.progressCurrent,
+      progressTotal:
+        input.progressTotal === undefined
+          ? existing.progressTotal
+          : input.progressTotal,
+      progressUnit,
+      serverVersion: {
+        increment: 1,
+      },
+      syncStatus: WorkSyncStatus.synced,
+    });
+
+    return toUserWorkRecordView(updated);
+  }
+
+  @Post(':id/releases/:catalogReleaseId')
+  @ApiCreatedResponse({
+    description: 'Create or restore an optional volume-level user release record.',
+  })
+  async upsertReleaseRecord(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('catalogReleaseId', new ParseUUIDPipe()) catalogReleaseId: string,
+    @Body() input: UpsertUserReleaseRecordDto,
+  ) {
+    const record = await this.userRecordsService.findActiveByUserAndId(
+      user.userId,
+      id,
+    );
+
+    if (!record) {
+      throw new NotFoundException(`User record with id "${id}" was not found.`);
+    }
+
+    const mediumType = this.getRecordMedium(record);
+
+    if (!canCreateReleaseRecord(mediumType)) {
+      throw new BadRequestException(
+        `Release-level records are not supported for medium type "${mediumType}".`,
+      );
+    }
+
+    if (!record.catalogTitleId) {
+      throw new BadRequestException(
+        'Release-level records require a catalog title bridge.',
+      );
+    }
+
+    const release = await this.prisma.catalogRelease.findFirst({
+      where: {
+        id: catalogReleaseId,
+        catalogTitleId: record.catalogTitleId,
+      },
+    });
+
+    if (!release) {
+      throw new NotFoundException(
+        `Catalog release with id "${catalogReleaseId}" was not found.`,
+      );
+    }
+
+    const existing = await this.prisma.userReleaseRecord.findUnique({
+      where: {
+        userWorkRecordId_catalogReleaseId: {
+          userWorkRecordId: id,
+          catalogReleaseId,
+        },
+      },
+    });
+    const baseData = {
+      favorite: input.favorite ?? false,
+      rating: input.rating ?? null,
+      review: normalizeString(input.review),
+      shortReview: normalizeString(input.shortReview),
+      status: input.status ?? WorkStatus.planned,
+      syncStatus: WorkSyncStatus.synced,
+    };
+    const releaseRecord = existing
+      ? await this.releaseRecordsService.update(existing.id, {
+          ...baseData,
+          deletedAt: null,
+          serverVersion: {
+            increment: 1,
+          },
+        })
+      : await this.prisma.userReleaseRecord.create({
+          data: {
+            ...baseData,
+            catalogReleaseId,
+            userWorkRecordId: id,
+          },
+          include: {
+            catalogRelease: true,
+            userWorkRecord: {
+              select: {
+                id: true,
+                userId: true,
+                catalogTitleId: true,
+                catalogWork: {
+                  select: {
+                    type: true,
+                  },
+                },
+                catalogTitle: {
+                  select: {
+                    mediumType: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+    return toUserReleaseRecordResponse(releaseRecord);
   }
 
   @Get(':id')
@@ -388,6 +631,26 @@ export class UserRecordsController {
     });
 
     return recordId;
+  }
+
+  private getRecordMedium(record: WorkAggregate) {
+    return record.catalogTitle?.mediumType ?? record.catalogWork.type;
+  }
+
+  private buildRecordingPolicy(mediumType: WorkType) {
+    return {
+      recordingUnit: RECORDING_UNIT,
+      mediumType,
+      releaseRecordsSupported: canCreateReleaseRecord(mediumType),
+      progressOnly:
+        mediumType === WorkType.anime ||
+        mediumType === WorkType.drama ||
+        mediumType === WorkType.web_novel ||
+        mediumType === WorkType.webtoon,
+      defaultProgressUnit: getDefaultProgressUnit(mediumType),
+      webPartSplitEnabled:
+        mediumType !== WorkType.web_novel && mediumType !== WorkType.webtoon,
+    };
   }
 
   private getGroupKey(

@@ -6,14 +6,16 @@ import {
   IsDateString,
   IsDefined,
   IsIn,
+  IsObject,
   IsUUID,
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+import { SyncReleaseRecordPayloadDto } from './sync-release-record-payload.dto';
 import { SyncWorkPayloadDto } from './sync-work-payload.dto';
 
-const SYNC_ENTITY_TYPES = ['work'] as const;
+const SYNC_ENTITY_TYPES = ['work', 'release_record'] as const;
 const SYNC_OPERATIONS = ['create', 'update', 'delete'] as const;
 
 export class PushSyncChangeDto {
@@ -27,7 +29,7 @@ export class PushSyncChangeDto {
     enum: SYNC_ENTITY_TYPES,
   })
   @IsIn(SYNC_ENTITY_TYPES)
-  entityType!: 'work';
+  entityType!: (typeof SYNC_ENTITY_TYPES)[number];
 
   @ApiProperty({
     format: 'uuid',
@@ -48,12 +50,14 @@ export class PushSyncChangeDto {
   createdAt!: string;
 
   @ApiProperty({
-    type: () => SyncWorkPayloadDto,
+    oneOf: [
+      { $ref: '#/components/schemas/SyncWorkPayloadDto' },
+      { $ref: '#/components/schemas/SyncReleaseRecordPayloadDto' },
+    ],
   })
   @IsDefined()
-  @ValidateNested()
-  @Type(() => SyncWorkPayloadDto)
-  payload!: SyncWorkPayloadDto;
+  @IsObject()
+  payload!: SyncWorkPayloadDto | SyncReleaseRecordPayloadDto;
 }
 
 export class PushSyncDto {

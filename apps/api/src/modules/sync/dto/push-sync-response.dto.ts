@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+import { UserReleaseRecordResponseDto } from '../../user-records/dto/user-release-record.dto';
 import { WorkResponseDto } from '../../works/dto/work-response.dto';
 
 const PUSH_SYNC_RESULT_STATUSES = ['applied', 'conflict', 'failed'] as const;
@@ -16,9 +17,9 @@ export class PushSyncResultDto {
   entityId!: string;
 
   @ApiProperty({
-    enum: ['work'],
+    enum: ['work', 'release_record'],
   })
-  entityType!: 'work';
+  entityType!: 'work' | 'release_record';
 
   @ApiProperty({
     enum: PUSH_SYNC_RESULT_STATUSES,
@@ -32,7 +33,13 @@ export class PushSyncResultDto {
     type: () => WorkResponseDto,
     nullable: true,
   })
-  work!: WorkResponseDto | null;
+  work?: WorkResponseDto | null;
+
+  @ApiPropertyOptional({
+    type: () => UserReleaseRecordResponseDto,
+    nullable: true,
+  })
+  releaseRecord?: UserReleaseRecordResponseDto | null;
 }
 
 export class PushSyncResponseDto {

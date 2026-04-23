@@ -14,7 +14,7 @@ import { syncQueueRepository } from '../services/sync-queue.repository';
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
 
 interface SyncDashboardState {
-  queueItems: SyncQueueItemRecord<WorkRecord>[];
+  queueItems: SyncQueueItemRecord[];
   conflictWorks: WorkRecord[];
   lastSuccessfulPullAt: string | null;
   isLoading: boolean;

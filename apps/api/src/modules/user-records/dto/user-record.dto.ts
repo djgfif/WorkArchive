@@ -3,6 +3,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -15,7 +16,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { WorkStatus, WorkTier, WorkType } from '@prisma/client';
+import { ProgressUnit, WorkStatus, WorkTier, WorkType } from '@prisma/client';
 
 import { NormalizeStringArray, Trim } from '../../works/dto/transformers';
 
@@ -188,6 +189,44 @@ export class UpdateUserRecordDto {
   @IsOptional()
   @IsBoolean()
   favorite?: boolean;
+}
+
+export class UpdateProgressDto {
+  @ApiPropertyOptional({
+    nullable: true,
+    minimum: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  progressCurrent?: number | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    minimum: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  progressTotal?: number | null;
+
+  @ApiPropertyOptional({
+    enum: ProgressUnit,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsEnum(ProgressUnit)
+  progressUnit?: ProgressUnit | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    maxLength: 120,
+  })
+  @Trim()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  lastConsumedLabel?: string | null;
 }
 
 class ImportContributorDto {

@@ -53,6 +53,19 @@ function getSyncOperationLabel(operation: string) {
   }
 }
 
+function getQueueItemTitle(item: {
+  entityType: string;
+  payload: { catalogReleaseId?: string; title?: string };
+}) {
+  if (item.entityType === 'work') {
+    return item.payload.title ?? '작품 기록';
+  }
+
+  return item.payload.catalogReleaseId
+    ? `권별 기록 ${item.payload.catalogReleaseId.slice(0, 8)}`
+    : '권별 기록';
+}
+
 export function SyncPage() {
   const { mode, user } = useAuthSession();
   const { queueItems, conflictWorks, error, isLoading, lastSuccessfulPullAt } =
@@ -195,7 +208,7 @@ export function SyncPage() {
                 <SectionCard key={item.id} padding="lg" tone="subtle">
                   <Group align="flex-start" justify="space-between" wrap="wrap">
                     <Stack gap={4}>
-                      <Title order={4}>{item.payload.title}</Title>
+                      <Title order={4}>{getQueueItemTitle(item)}</Title>
                       <Text c="var(--app-text-muted)">
                         {getSyncOperationLabel(item.operation)} 요청
                       </Text>

@@ -3,6 +3,7 @@ import Dexie, { type Table } from 'dexie';
 import type {
   AppMetaRecord,
   SyncQueueItemRecord,
+  UserReleaseRecord,
   WorkRecord,
 } from '@work-archive/shared-types';
 
@@ -22,7 +23,8 @@ const knownDatabaseInstances = new Set<WorkArchiveDatabase>();
 
 export class WorkArchiveDatabase extends Dexie {
   works!: Table<WorkRecord, string>;
-  syncQueue!: Table<SyncQueueItemRecord<WorkRecord>, string>;
+  releaseRecords!: Table<UserReleaseRecord, string>;
+  syncQueue!: Table<SyncQueueItemRecord, string>;
   appMeta!: Table<AppMetaRecord, string>;
 
   constructor(name = 'work-archive-db') {
@@ -36,6 +38,16 @@ export class WorkArchiveDatabase extends Dexie {
     this.version(2).stores({
       works:
         'id, type, title, author, status, rating, updatedAt, deletedAt, syncStatus',
+      syncQueue:
+        'id, entityType, entityId, operation, createdAt, retryCount, [entityType+entityId]',
+      appMeta: 'key',
+    });
+
+    this.version(3).stores({
+      works:
+        'id, type, title, author, status, rating, updatedAt, deletedAt, syncStatus',
+      releaseRecords:
+        'id, userWorkRecordId, catalogReleaseId, status, updatedAt, deletedAt, syncStatus, [userWorkRecordId+catalogReleaseId]',
       syncQueue:
         'id, entityType, entityId, operation, createdAt, retryCount, [entityType+entityId]',
       appMeta: 'key',
@@ -124,10 +136,12 @@ export async function clearWorkArchiveDb(db = getWorkArchiveDb()) {
   await db.transaction(
     'rw',
     db.works,
+    db.releaseRecords,
     db.syncQueue,
     db.appMeta,
     async () => {
       await db.works.clear();
+      await db.releaseRecords.clear();
       await db.syncQueue.clear();
       await db.appMeta.clear();
     },

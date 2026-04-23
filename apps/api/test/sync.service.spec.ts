@@ -3,8 +3,13 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import type { CatalogService } from '../src/modules/catalog/catalog.service';
 import { SyncService } from '../src/modules/sync/sync.service';
+import type { SyncReleaseRecordPayloadDto } from '../src/modules/sync/dto/sync-release-record-payload.dto';
 import type { SyncWorkPayloadDto } from '../src/modules/sync/dto/sync-work-payload.dto';
 import { type PrismaService } from '../src/prisma/prisma.service';
+import type {
+  UserReleaseRecordsService,
+  UserReleaseRecordAggregate,
+} from '../src/modules/user-records/user-release-records.service';
 import type {
   UserRecordsService,
   WorkAggregate,
@@ -72,19 +77,103 @@ function createSyncPayload(
   };
 }
 
+function createReleaseRecordAggregateFixture(
+  overrides: Partial<UserReleaseRecordAggregate> = {},
+): UserReleaseRecordAggregate {
+  return {
+    id: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
+    userWorkRecordId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+    catalogReleaseId: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
+    status: WorkStatus.completed,
+    rating: 4.5,
+    shortReview: '1권 감상',
+    review: '',
+    favorite: false,
+    createdAt: new Date('2026-04-18T00:00:00.000Z'),
+    updatedAt: new Date('2026-04-18T01:00:00.000Z'),
+    deletedAt: null,
+    syncStatus: WorkSyncStatus.synced,
+    serverVersion: 1,
+    catalogRelease: {
+      id: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
+      catalogTitleId: 'b6e0804c-4ff1-4382-b409-67d73291ed8a',
+      releaseType: 'volume',
+      displayLabel: '1권',
+      title: '',
+      sequence: 1,
+      isbn: null,
+      releaseDate: null,
+      summary: '',
+      thumbnailUrl: '',
+      createdAt: new Date('2026-04-18T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-18T00:00:00.000Z'),
+    },
+    userWorkRecord: {
+      id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      userId: USER_ID,
+      catalogTitleId: 'b6e0804c-4ff1-4382-b409-67d73291ed8a',
+      catalogWork: {
+        type: WorkType.light_novel,
+      },
+      catalogTitle: {
+        mediumType: WorkType.light_novel,
+      },
+    },
+    ...overrides,
+  } as UserReleaseRecordAggregate;
+}
+
+function createReleaseRecordPayload(
+  overrides: Partial<SyncReleaseRecordPayloadDto> = {},
+): SyncReleaseRecordPayloadDto {
+  return {
+    id: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
+    userWorkRecordId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+    catalogReleaseId: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
+    status: WorkStatus.completed,
+    rating: 4.5,
+    shortReview: '1권 감상',
+    review: '',
+    favorite: false,
+    createdAt: '2026-04-18T00:00:00.000Z',
+    updatedAt: '2026-04-18T01:00:00.000Z',
+    deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
+    ...overrides,
+  };
+}
+
 describe('SyncService', () => {
   let service: SyncService;
   let prisma: {
     $transaction: jest.Mock;
+    catalogRelease: {
+      findFirst: jest.Mock;
+    };
+    userReleaseRecord: {
+      create: jest.Mock;
+    };
   };
   let catalogService: jest.Mocked<Pick<CatalogService, 'create' | 'update'>>;
   let userRecordsService: jest.Mocked<
     Pick<UserRecordsService, 'create' | 'findById' | 'findByUserSince' | 'update'>
   >;
+  let releaseRecordsService: {
+    findById: jest.Mock;
+    findByUserSince: jest.Mock;
+    update: jest.Mock;
+  };
 
   beforeEach(() => {
     prisma = {
       $transaction: jest.fn(),
+      catalogRelease: {
+        findFirst: jest.fn(),
+      },
+      userReleaseRecord: {
+        create: jest.fn(),
+      },
     };
     prisma.$transaction.mockImplementation(async (...args: unknown[]) => {
       const callback = args[0] as (client: never) => Promise<unknown>;
@@ -101,11 +190,17 @@ describe('SyncService', () => {
       findByUserSince: jest.fn(),
       update: jest.fn(),
     };
+    releaseRecordsService = {
+      findById: jest.fn(),
+      findByUserSince: jest.fn(async () => []),
+      update: jest.fn(),
+    };
 
     service = new SyncService(
       prisma as unknown as PrismaService,
       catalogService as unknown as CatalogService,
       userRecordsService as unknown as UserRecordsService,
+      releaseRecordsService as unknown as UserReleaseRecordsService,
     );
   });
 
@@ -489,5 +584,92 @@ describe('SyncService', () => {
     ]);
     expect(catalogService.create).not.toHaveBeenCalled();
     expect(userRecordsService.create).not.toHaveBeenCalled();
+  });
+
+  it('pushes a local release record for volume-recordable titles only', async () => {
+    const parent = createWorkAggregateFixture({
+      catalogTitleId: 'b6e0804c-4ff1-4382-b409-67d73291ed8a',
+      catalogWork: {
+        ...createWorkAggregateFixture().catalogWork,
+        type: WorkType.light_novel,
+      },
+    });
+    userRecordsService.findById.mockResolvedValue(parent);
+    releaseRecordsService.findById
+      .mockImplementationOnce(async () => null)
+      .mockImplementationOnce(async () => createReleaseRecordAggregateFixture());
+    prisma.catalogRelease.findFirst.mockImplementation(async () => ({
+      id: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
+      catalogTitleId: 'b6e0804c-4ff1-4382-b409-67d73291ed8a',
+    }));
+    prisma.userReleaseRecord.create.mockImplementation(async () => ({
+      id: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
+    }));
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'ce8e1f64-3070-4cb9-bdf4-2df15a925826',
+          entityType: 'release_record',
+          entityId: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
+          operation: 'create',
+          createdAt: '2026-04-18T01:00:00.000Z',
+          payload: createReleaseRecordPayload(),
+        },
+      ],
+    });
+
+    expect(prisma.userReleaseRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          catalogReleaseId: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
+          userWorkRecordId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+        }),
+      }),
+    );
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'release_record',
+        status: 'applied',
+        releaseRecord: expect.objectContaining({
+          catalogReleaseId: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
+        }),
+      }),
+    ]);
+  });
+
+  it('rejects release-record sync for progress-only anime titles', async () => {
+    const parent = createWorkAggregateFixture({
+      catalogTitleId: 'b6e0804c-4ff1-4382-b409-67d73291ed8a',
+      catalogWork: {
+        ...createWorkAggregateFixture().catalogWork,
+        type: WorkType.anime,
+      },
+    });
+    userRecordsService.findById.mockResolvedValue(parent);
+    releaseRecordsService.findById.mockImplementation(async () => null);
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'ce8e1f64-3070-4cb9-bdf4-2df15a925826',
+          entityType: 'release_record',
+          entityId: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
+          operation: 'create',
+          createdAt: '2026-04-18T01:00:00.000Z',
+          payload: createReleaseRecordPayload(),
+        },
+      ],
+    });
+
+    expect(prisma.userReleaseRecord.create).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'release_record',
+        status: 'failed',
+        message: expect.stringContaining('not supported'),
+        releaseRecord: null,
+      }),
+    ]);
   });
 });

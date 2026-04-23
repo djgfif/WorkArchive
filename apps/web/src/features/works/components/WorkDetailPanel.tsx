@@ -24,6 +24,7 @@ import {
 
 interface WorkDetailPanelProps {
   actions?: ReactNode;
+  children?: ReactNode;
   quickEdit?: ReactNode;
   work: WorkRecord;
 }
@@ -34,6 +35,7 @@ function renderRatingLabel(work: WorkRecord) {
 
 export function WorkDetailPanel({
   actions,
+  children,
   quickEdit,
   work,
 }: WorkDetailPanelProps) {
@@ -112,6 +114,8 @@ export function WorkDetailPanel({
               {work.description.trim() || '작품 소개가 아직 없습니다.'}
             </Text>
           </PageSection>
+
+          {children}
         </Stack>
       </Grid.Col>
 

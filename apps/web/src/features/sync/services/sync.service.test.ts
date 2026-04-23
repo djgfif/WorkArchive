@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { WorkRecord } from '@work-archive/shared-types';
+import type { UserReleaseRecord, WorkRecord } from '@work-archive/shared-types';
 
 import {
   createWorkArchiveDb,
@@ -8,6 +8,7 @@ import {
 } from '../../works/db/work-archive.db';
 import { WorksRepository } from '../../works/services/works.repository';
 import { WorksService } from '../../works/services/works.service';
+import { ReleaseRecordsRepository } from '../../works/services/release-records.repository';
 import { AppMetaRepository } from './app-meta.repository';
 import { SyncQueueRepository } from './sync-queue.repository';
 import { SyncService } from './sync.service';
@@ -42,6 +43,7 @@ function jsonResponse(body: unknown, status = 200) {
 describe('SyncService', () => {
   let db: WorkArchiveDatabase;
   let worksRepository: WorksRepository;
+  let releaseRecordsRepository: ReleaseRecordsRepository;
   let queueRepository: SyncQueueRepository;
   let appMetaRepository: AppMetaRepository;
   let worksService: WorksService;
@@ -50,11 +52,13 @@ describe('SyncService', () => {
   beforeEach(() => {
     db = createWorkArchiveDb(`work-archive-test-${crypto.randomUUID()}`);
     worksRepository = new WorksRepository(() => db);
+    releaseRecordsRepository = new ReleaseRecordsRepository(() => db);
     queueRepository = new SyncQueueRepository(() => db);
     appMetaRepository = new AppMetaRepository(() => db);
     worksService = new WorksService(worksRepository, queueRepository);
     syncService = new SyncService(
       worksRepository,
+      releaseRecordsRepository,
       queueRepository,
       appMetaRepository,
     );
@@ -117,6 +121,78 @@ describe('SyncService', () => {
         syncStatus: 'synced',
         serverVersion: 1,
         updatedAt: '2026-04-18T01:00:00.000Z',
+      }),
+    );
+  });
+
+  it('removes successful release-record queue items and updates local release records', async () => {
+    const now = '2026-04-18T01:00:00.000Z';
+    const localReleaseRecord: UserReleaseRecord = {
+      id: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
+      userWorkRecordId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      catalogReleaseId: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
+      status: 'completed',
+      rating: 4.5,
+      shortReview: '1권 감상',
+      review: '',
+      favorite: false,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      syncStatus: 'local-only',
+      serverVersion: 0,
+    };
+
+    await releaseRecordsRepository.create(localReleaseRecord);
+    await queueRepository.enqueueReleaseRecordChange(localReleaseRecord, 'create');
+    const queueItems = await queueRepository.listAll();
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          processedAt: '2026-04-18T02:00:00.000Z',
+          results: [
+            {
+              queueId: queueItems[0]!.id,
+              entityId: localReleaseRecord.id,
+              entityType: 'release_record',
+              status: 'applied',
+              message: 'Queued record created on the server.',
+              releaseRecord: {
+                ...localReleaseRecord,
+                syncStatus: 'synced',
+                serverVersion: 1,
+                updatedAt: '2026-04-18T02:00:00.000Z',
+              },
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pushQueuedChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        appliedCount: 1,
+        conflictCount: 0,
+        failedCount: 0,
+        requestFailed: false,
+      }),
+    );
+    expect(await queueRepository.listAll()).toEqual([]);
+    expect(await releaseRecordsRepository.getById(localReleaseRecord.id)).toEqual(
+      expect.objectContaining({
+        syncStatus: 'synced',
+        serverVersion: 1,
       }),
     );
   });

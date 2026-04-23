@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { WorkStatus, WorkTier, WorkType } from '@prisma/client';
+import { ProgressUnit, WorkStatus, WorkTier, WorkType } from '@prisma/client';
 
 import {
   WORK_SYNC_STATUS_VALUES,
@@ -66,6 +66,29 @@ export class WorkResponseDto {
 
   @ApiProperty()
   favorite!: boolean;
+
+  @ApiProperty({
+    nullable: true,
+    minimum: 0,
+  })
+  progressCurrent!: number | null;
+
+  @ApiProperty({
+    nullable: true,
+    minimum: 0,
+  })
+  progressTotal!: number | null;
+
+  @ApiProperty({
+    enum: ProgressUnit,
+    nullable: true,
+  })
+  progressUnit!: ProgressUnit | null;
+
+  @ApiProperty({
+    nullable: true,
+  })
+  lastConsumedLabel!: string | null;
 
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',
