@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html class="dark" lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work Archive - Add Work Stitch Reference</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#121315',
+            'dark-shell': '#14171b',
+            'dark-surface-base': '#1c2128',
+            'dark-surface-raised': '#232932',
+            'surface-container': '#1e2022',
+            'surface-container-high': '#292a2c',
+            'surface-container-highest': '#343537',
+            'outline': '#8d9198',
+            'outline-variant': '#43474d',
+            'on-background': '#e3e2e4',
+            'on-surface': '#e3e2e4',
+            'on-surface-variant': '#c3c6ce',
+            primary: '#b6d1f1',
+            'primary-container': '#9bb5d4',
+            'archive-blue-3': '#9bb5d4',
+            'archive-blue-7': '#3d6390',
+            'archive-blue-9': '#253b55',
+            tertiary: '#f0c792'
+          },
+          spacing: {
+            'shell-padding': 'clamp(1rem, 2vw, 1.5rem)',
+            'container-default': '77.5rem'
+          },
+          fontFamily: {
+            body: ['Inter'],
+            h1: ['Work Sans'],
+            h2: ['Work Sans']
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body">
+  <main class="p-shell-padding mx-auto w-full max-w-[77.5rem] min-h-screen">
+    <header class="mb-6 flex flex-col gap-2 border-b border-outline-variant pb-4">
+      <p class="text-xs tracking-[0.12em] uppercase text-on-surface-variant font-semibold">작품 추가</p>
+      <h1 class="font-h1 text-4xl font-bold tracking-tight text-on-surface">새 작품 기록</h1>
+      <p class="text-on-surface-variant">검색에서 후보를 고르고, 선택한 메타데이터를 확인한 뒤 개인 기록만 남기는 흐름입니다.</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section class="lg:col-span-5 flex flex-col gap-5">
+        <div class="bg-surface-container rounded-xl p-5 border border-outline-variant/60">
+          <label class="block text-xs tracking-[0.12em] uppercase text-on-surface-variant mb-2 font-semibold" for="work-search">작품 검색</label>
+          <div class="flex gap-3">
+            <select class="bg-dark-surface-raised border border-outline-variant rounded-lg px-3 text-on-surface focus:outline-none focus:border-archive-blue-3">
+              <option>전체</option>
+              <option>영화</option>
+              <option>애니</option>
+              <option>소설</option>
+            </select>
+            <input id="work-search" class="flex-1 bg-dark-surface-raised border border-outline-variant rounded-lg py-2 px-3 text-on-surface focus:outline-none focus:border-archive-blue-3" placeholder="제목, 작가, 스튜디오 검색" type="text" value="Nolan" />
+            <button class="rounded-lg bg-archive-blue-3 px-4 font-semibold text-slate-950">검색</button>
+          </div>
+        </div>
+
+        <div class="bg-dark-surface-base border border-outline-variant rounded-xl overflow-hidden">
+          <div class="p-4 border-b border-outline-variant">
+            <p class="text-xs tracking-[0.12em] uppercase text-on-surface-variant font-semibold">후보</p>
+            <h2 class="font-h2 text-xl font-bold text-on-surface mt-1">검색 결과</h2>
+          </div>
+
+          <button class="w-full text-left flex gap-4 p-4 bg-dark-surface-raised border-b border-outline-variant hover:border-archive-blue-3 transition-colors">
+            <div class="w-16 h-24 flex-shrink-0 bg-surface-container overflow-hidden rounded-lg"><img alt="Interstellar" class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=400&q=80" /></div>
+            <div class="flex-1 min-w-0">
+              <div class="flex gap-2 mb-2"><span class="px-2 py-0.5 rounded bg-archive-blue-9 text-primary text-xs font-semibold">높은 일치</span><span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant text-xs font-semibold">TMDB</span></div>
+              <h3 class="font-h2 text-lg font-semibold text-on-surface">Interstellar</h3>
+              <p class="text-sm text-on-surface-variant mt-1">2014 · Christopher Nolan</p>
+              <p class="text-sm text-on-surface-variant mt-2 line-clamp-2">우주 탐사와 시간, 가족의 감정을 함께 다루는 SF 영화.</p>
+            </div>
+          </button>
+
+          <button class="w-full text-left flex gap-4 p-4 bg-surface-container border-2 border-archive-blue-3 relative">
+            <div class="absolute right-4 top-4 px-2 py-0.5 rounded bg-archive-blue-9 text-primary text-xs font-semibold">선택됨</div>
+            <div class="w-16 h-24 flex-shrink-0 bg-surface-container-high overflow-hidden rounded-lg"><img alt="Inception" class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=400&q=80" /></div>
+            <div class="flex-1 min-w-0 pr-16">
+              <div class="flex gap-2 mb-2"><span class="px-2 py-0.5 rounded bg-archive-blue-9 text-primary text-xs font-semibold">높은 일치</span><span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant text-xs font-semibold">TMDB</span></div>
+              <h3 class="font-h2 text-lg font-semibold text-on-surface">Inception</h3>
+              <p class="text-sm text-on-surface-variant mt-1">2010 · Christopher Nolan</p>
+              <p class="text-sm text-on-surface-variant mt-2 line-clamp-2">꿈의 층위를 넘나드는 구조와 감정적 동기를 함께 가진 작품.</p>
+            </div>
+          </button>
+
+          <button class="w-full text-left flex gap-4 p-4 bg-dark-surface-raised hover:border-archive-blue-3 transition-colors">
+            <div class="w-16 h-24 flex-shrink-0 bg-surface-container-high rounded-lg flex items-center justify-center"><span class="text-outline text-xl font-bold">DK</span></div>
+            <div class="flex-1 min-w-0">
+              <div class="flex gap-2 mb-2"><span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant text-xs font-semibold">Movie</span></div>
+              <h3 class="font-h2 text-lg font-semibold text-on-surface">The Dark Knight</h3>
+              <p class="text-sm text-on-surface-variant mt-1">2008 · Christopher Nolan</p>
+            </div>
+          </button>
+        </div>
+
+        <button class="w-full py-3 bg-surface-container border border-outline-variant rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-medium">직접 입력하기</button>
+      </section>
+
+      <section class="lg:col-span-7">
+        <div class="bg-dark-surface-raised rounded-2xl border border-outline-variant p-6 flex flex-col gap-6">
+          <div class="flex gap-5 pb-5 border-b border-outline-variant">
+            <div class="w-28 h-40 flex-shrink-0 bg-surface-container overflow-hidden rounded-xl border border-outline-variant"><img alt="Inception" class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=500&q=80" /></div>
+            <div class="flex-1 min-w-0 pt-1">
+              <div class="flex flex-wrap gap-2 mb-3"><span class="px-2 py-0.5 rounded bg-surface-container-high border border-outline-variant text-xs text-on-surface">영화</span><span class="px-2 py-0.5 rounded bg-surface-container-high border border-outline-variant text-xs text-on-surface">SF</span><span class="px-2 py-0.5 rounded bg-surface-container-high border border-outline-variant text-xs text-on-surface">2010</span></div>
+              <h2 class="font-h1 text-4xl font-bold tracking-tight text-on-surface">Inception</h2>
+              <p class="text-on-surface-variant mt-1">Christopher Nolan</p>
+              <p class="text-sm text-outline mt-3 line-clamp-2">꿈 공유 기술을 이용해 생각을 심는 임무를 수행하는 이야기.</p>
+            </div>
+          </div>
+
+          <form class="flex flex-col gap-5">
+            <div>
+              <label class="block text-xs tracking-[0.12em] uppercase text-on-surface-variant mb-3 font-semibold">상태</label>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button class="py-2 px-3 bg-surface-container border-2 border-archive-blue-3 text-archive-blue-3 rounded-lg text-sm font-medium" type="button">완료</button>
+                <button class="py-2 px-3 bg-surface-container border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface rounded-lg text-sm" type="button">보는 중</button>
+                <button class="py-2 px-3 bg-surface-container border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface rounded-lg text-sm" type="button">볼 예정</button>
+                <button class="py-2 px-3 bg-surface-container border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface rounded-lg text-sm" type="button">중단</button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs tracking-[0.12em] uppercase text-on-surface-variant mb-2 font-semibold" for="rating">별점</label>
+              <select id="rating" class="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-on-surface focus:outline-none focus:border-archive-blue-3">
+                <option>미평가</option>
+                <option>5.0점</option>
+                <option>4.5점</option>
+                <option>4.0점</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs tracking-[0.12em] uppercase text-on-surface-variant mb-2 font-semibold" for="short-review">한줄평</label>
+              <input id="short-review" class="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-on-surface focus:outline-none focus:border-archive-blue-3" placeholder="목록과 최근 기록에 보일 짧은 감상" type="text" />
+            </div>
+
+            <div>
+              <label class="block text-xs tracking-[0.12em] uppercase text-on-surface-variant mb-2 font-semibold" for="review">상세 감상</label>
+              <textarea id="review" class="w-full min-h-[150px] bg-surface-container border border-outline-variant rounded-lg py-3 px-3 text-on-surface focus:outline-none focus:border-archive-blue-3 resize-none" placeholder="필요하면 더 긴 감상을 남겨두세요"></textarea>
+            </div>
+
+            <div class="pt-4 border-t border-outline-variant">
+              <button class="w-full py-3 bg-archive-blue-3 text-slate-950 font-semibold text-lg rounded-lg hover:bg-primary transition-colors" type="button">아카이브에 저장</button>
+              <button class="w-full mt-3 py-2 text-on-surface-variant hover:text-on-surface" type="button">취소하고 작품 목록으로 돌아가기</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
