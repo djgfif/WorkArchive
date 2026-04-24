@@ -25,6 +25,14 @@ Do not copy generated Tailwind HTML directly into `apps/web`. Translate selected
 - `AppButton`
 - existing local-first product language
 
+## Translation Plan
+
+Before implementation, read:
+
+- [`../STITCH_TO_PRODUCT_EVOLUTION_PLAN.md`](../STITCH_TO_PRODUCT_EVOLUTION_PLAN.md)
+
+This plan explains how to extract only the useful parts of Stitch drafts while preserving Work Archive's design system, local-first behavior, and product boundaries.
+
 ## Naming Convention
 
 Use:
@@ -39,6 +47,8 @@ Examples:
 ```text
 home/2026-04-24-home-premium-archive.html
 home/2026-04-24-home-premium-archive.notes.md
+works/2026-04-24-works-list-premium-grid.html
+works/2026-04-24-works-list-premium-grid.notes.md
 ```
 
 ## Notes File Checklist
@@ -55,5 +65,12 @@ Each `.notes.md` file should include:
 
 ## Current References
 
+### Home
+
 - [`home/2026-04-24-home-premium-archive.html`](./home/2026-04-24-home-premium-archive.html)
 - [`home/2026-04-24-home-premium-archive.notes.md`](./home/2026-04-24-home-premium-archive.notes.md)
+
+### Works List
+
+- [`works/2026-04-24-works-list-premium-grid.html`](./works/2026-04-24-works-list-premium-grid.html)
+- [`works/2026-04-24-works-list-premium-grid.notes.md`](./works/2026-04-24-works-list-premium-grid.notes.md)
