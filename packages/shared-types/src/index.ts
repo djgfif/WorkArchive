@@ -59,7 +59,7 @@ export interface WorkImportReleaseCandidate {
 }
 
 export interface WorkImportDraft {
-  catalogTitle: string;
+  catalogTitle?: string;
   mediumType: WorkType;
   franchiseName?: string | null;
   subType?: string | null;
