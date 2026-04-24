@@ -69,7 +69,29 @@ Stitch 시안의 가장 큰 장점은 작품 표지와 카드 밀도를 통해 �
 - 정렬은 select 유지 가능하다.
 - list view는 기능성 중심으로 유지한다.
 
-### 2-4. Progress visibility
+### 2-4. Quick Add split flow
+
+작품 추가 시안은 현재 Quick Add 기능 구조와 가장 잘 맞는다. 현재 구현도 검색, 후보 선택, 중복 확인, 선택 작품 확인, 개인 기록 입력, 고급 정보, local-first 저장으로 구성되어 있으므로, Stitch 시안의 장점은 주로 **시각적 명확성**과 **입력 우선순위**다.
+
+적용 방향:
+
+- 왼쪽은 검색과 후보 선택, 오른쪽은 선택 작품 preview와 개인 기록 입력으로 유지한다.
+- 후보 row를 더 카드형으로 만들고 선택 상태를 border/background로 명확히 표현한다.
+- 선택 작품 preview는 포스터를 더 크게 보이고 제목, type/source/year/contributor를 상단에 정리한다.
+- 상태 입력은 select보다 button group 또는 segmented control을 검토한다.
+- 저장 CTA는 더 강하게, 가능하면 full-width로 표시한다.
+- 한줄평과 상세 감상은 핵심 입력으로 유지한다.
+- 고급 정보는 accordion/disclosure로 유지한다.
+
+절대 변경하지 않을 것:
+
+- `catalogTitleId` / identity-only `importDraft` 계약
+- duplicate detection과 duplicate confirmation
+- manual/preview candidate fallback
+- Dexie, syncQueue, local-first save
+- backend sync behavior
+
+### 2-5. Progress visibility
 
 Stitch의 In Progress row는 현재 기록 앱의 “이어보기” 목적에 잘 맞는다.
 
@@ -79,7 +101,7 @@ Stitch의 In Progress row는 현재 기록 앱의 “이어보기” 목적에 �
 - `progressCurrent / progressTotal`이 있으면 progress bar를 표시한다.
 - 값이 없거나 0이면 깨지지 않게 상태 badge 중심으로 fallback한다.
 
-### 2-5. Quiet premium mood
+### 2-6. Quiet premium mood
 
 Stitch가 준 장점은 어두운 shell, 포스터, 얇은 border, archive-blue accent의 조합이다.
 
@@ -106,6 +128,7 @@ Stitch가 준 장점은 어두운 shell, 포스터, 얇은 border, archive-blue 
 - smaller Tailwind radius scale
 - server-first 저장처럼 보이는 흐름
 - community/public catalog promotion을 기본 저장 흐름처럼 보이게 하는 UI
+- 실제 기능 없는 password recovery, remember-me, markdown 지원 문구
 
 ## 4. Translation Rules
 
@@ -190,16 +213,77 @@ Implementation target:
 - Keep list view quick update behavior.
 - Preserve trash scope and filters.
 
+### QuickAdd / WorkCreatePage
+
+Reference:
+
+- `docs/design/stitch/quick-add/2026-04-24-quick-add-split-flow.html`
+- `docs/design/stitch/quick-add/2026-04-24-quick-add-split-flow.notes.md`
+
+Extract:
+
+- split search/results and selected-record form layout
+- stronger candidate cards
+- active selected candidate state
+- larger selected-work preview header
+- status button group
+- stronger save CTA
+- advanced fields kept behind accordion/disclosure
+
+Do not extract:
+
+- sidebar
+- topbar rewrite
+- Material Symbols dependency
+- mock data
+- English labels
+- markdown-supported claim unless implemented
+- any data behavior change
+
+Implementation target:
+
+- Improve `QuickAddWorkForm` presentation.
+- Preserve search, selection, duplicate, identity, and save behavior.
+- Keep current saved-work success flow in `WorkCreatePage`.
+
+### Auth
+
+Reference:
+
+- `docs/design/stitch/auth/2026-04-24-auth-clean-archive-card.html`
+- `docs/design/stitch/auth/2026-04-24-auth-clean-archive-card.notes.md`
+
+Extract:
+
+- centered auth card
+- compact brand mark
+- focused one-column form
+- full-width submit
+- clear login/register/guest footer links
+
+Do not extract:
+
+- Material Symbols dependency
+- external background image
+- remember-me or password recovery without real behavior
+
+Implementation target:
+
+- Simplify `AuthPageTemplate` without changing auth behavior.
+
 ## 6. Recommended Implementation Order
 
 ```text
 1. Store and document Stitch references.
-2. Improve Works grid card density and poster-first scanning.
-3. Add status badge overlay to grid cards.
-4. Compact WorksToolbar filters and view switcher.
-5. Improve Home recent-record bento section.
-6. Add Home in-progress section.
-7. Review visual consistency against DESIGN.md.
+2. Improve Auth centered card because it is the safest UI uplift.
+3. Improve Quick Add candidate cards and selected-work preview.
+4. Improve Quick Add status input and save CTA.
+5. Improve Works grid card density and poster-first scanning.
+6. Add status badge overlay to grid cards.
+7. Compact WorksToolbar filters and view switcher.
+8. Improve Home recent-record bento section.
+9. Add Home in-progress section.
+10. Review visual consistency against DESIGN.md.
 ```
 
 ## 7. Codex Guardrails
