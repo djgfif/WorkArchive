@@ -222,7 +222,6 @@ function buildImportIdentity(
   }
 
   const importDraft: WorkImportDraft = {
-    catalogTitle: input.title,
     mediumType: input.type,
   };
 

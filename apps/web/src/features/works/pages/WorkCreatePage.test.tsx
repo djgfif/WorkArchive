@@ -1,12 +1,15 @@
-import { screen, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ImportCandidate } from '../../imports/services/imports.service';
 import { AuthContext } from '../../auth/context/AuthContext';
+import { syncQueueRepository } from '../../sync/services/sync-queue.repository';
 import { renderWithProviders } from '../../../test/render-with-providers';
-import { QuickAddWorkForm } from './QuickAddWorkForm';
+import { workArchiveDbManager } from '../db/work-archive.db';
+import { worksRepository } from '../services/works.repository';
+import { WorkCreatePage } from './WorkCreatePage';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -22,16 +25,9 @@ function buildCandidate(
 ): ImportCandidate {
   const author = overrides.author ?? 'Frank Herbert';
   const sourceId = overrides.sourceId ?? 'aladin';
-  const sourceLabel =
-    overrides.sourceLabel ??
-    (sourceId === 'preview-manual' || sourceId === 'manual'
-      ? 'Preview/manual'
-      : 'Aladin Book');
   const externalId = overrides.externalId ?? '123';
   const type = overrides.type ?? 'novel';
   const mediumType = overrides.mediumType ?? type;
-  const hasExternalIdentity =
-    sourceId !== 'preview-manual' && sourceId !== 'manual';
 
   return {
     author,
@@ -51,17 +47,14 @@ function buildCandidate(
     externalId,
     existingRecord: overrides.existingRecord ?? null,
     externalRefs:
-      overrides.externalRefs ??
-      (hasExternalIdentity
-        ? [
-            {
-              externalId,
-              provider: sourceId,
-              rawType: 'novel',
-              url: `https://example.com/${sourceId}/${externalId}`,
-            },
-          ]
-        : []),
+      overrides.externalRefs ?? [
+        {
+          externalId,
+          provider: sourceId,
+          rawType: 'novel',
+          url: `https://example.com/${sourceId}/${externalId}`,
+        },
+      ],
     formatLabel: overrides.formatLabel ?? 'Novel',
     franchiseName: overrides.franchiseName ?? null,
     genresText: overrides.genresText ?? 'Science Fiction, Adventure',
@@ -73,10 +66,9 @@ function buildCandidate(
     relationsHint: overrides.relationsHint ?? [],
     releaseYear: overrides.releaseYear ?? 2026,
     sourceId,
-    sourceLabel,
+    sourceLabel: overrides.sourceLabel ?? 'Aladin Book',
     sourceUrl:
-      overrides.sourceUrl ??
-      (hasExternalIdentity ? `https://example.com/${sourceId}/${externalId}` : ''),
+      overrides.sourceUrl ?? `https://example.com/${sourceId}/${externalId}`,
     subType: overrides.subType ?? null,
     thumbnailUrl: overrides.thumbnailUrl ?? 'https://example.com/cover.jpg',
     title: overrides.title ?? 'Dune',
@@ -84,13 +76,27 @@ function buildCandidate(
   };
 }
 
-function mockAuthenticatedSearchResponse(
-  candidates: ImportCandidate[],
-  responseOptions: {
-    body?: Record<string, unknown>;
-    status?: number;
-  } = {},
-) {
+function getElementById<TElement extends HTMLElement>(id: string) {
+  const element = document.getElementById(id);
+
+  expect(element).not.toBeNull();
+
+  return element as TElement;
+}
+
+function getFetchUrl(input: RequestInfo | URL) {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (input instanceof URL) {
+    return input.toString();
+  }
+
+  return input.url;
+}
+
+function mockAuthenticatedSearch(candidate: ImportCandidate) {
   window.localStorage.setItem(
     'work-archive.auth.tokens',
     JSON.stringify({
@@ -98,16 +104,21 @@ function mockAuthenticatedSearchResponse(
     }),
   );
 
-  const fetchMock = vi.fn().mockResolvedValue(
-    jsonResponse(
-      responseOptions.body ?? {
-        provider: 'aladin',
-        providers: ['aladin'],
-        query: 'Dune',
-        candidates,
-      },
-      responseOptions.status,
-    ),
+  const fetchMock = vi.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = getFetchUrl(input);
+
+      if (url.includes('/imports/search?')) {
+        return jsonResponse({
+          provider: 'aladin',
+          providers: ['aladin'],
+          query: 'Dune',
+          candidates: [candidate],
+        });
+      }
+
+      throw new Error(`Unexpected fetch during create flow: ${init?.method ?? 'GET'} ${url}`);
+    },
   );
 
   vi.stubGlobal('fetch', fetchMock);
@@ -115,12 +126,14 @@ function mockAuthenticatedSearchResponse(
   return fetchMock;
 }
 
-function renderAuthenticatedQuickAdd(onSubmit = vi.fn()) {
+function renderAuthenticatedCreatePage() {
+  workArchiveDbManager.switchToUser('user-1');
+
   return renderWithProviders(
     <MemoryRouter>
       <AuthContext.Provider
         value={{
-          archiveScopeKey: 'user:user-1',
+          archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'authenticated',
           user: {
@@ -133,22 +146,10 @@ function renderAuthenticatedQuickAdd(onSubmit = vi.fn()) {
           signOut: vi.fn(),
         }}
       >
-        <QuickAddWorkForm
-          isSubmitting={false}
-          onSubmit={onSubmit}
-          submitError={null}
-        />
+        <WorkCreatePage />
       </AuthContext.Provider>
     </MemoryRouter>,
   );
-}
-
-function getElementById<TElement extends HTMLElement>(id: string) {
-  const element = document.getElementById(id);
-
-  expect(element).not.toBeNull();
-
-  return element as TElement;
 }
 
 async function searchAndSelectCandidate(
@@ -173,7 +174,7 @@ async function searchAndSelectCandidate(
 
   await user.click(searchButton!);
 
-  const candidateButton = await waitFor(() => {
+  const candidateButton = (await waitFor(() => {
     const match = Array.from(document.querySelectorAll('button')).find((button) =>
       button.textContent?.includes(candidateTitle),
     );
@@ -181,7 +182,7 @@ async function searchAndSelectCandidate(
     expect(match).toBeDefined();
 
     return match as HTMLButtonElement;
-  });
+  }));
 
   await user.click(candidateButton);
 }
@@ -203,30 +204,13 @@ async function submitSelectedCandidate(
   await user.click(submitButton!);
 }
 
-describe('QuickAddWorkForm', () => {
+describe('WorkCreatePage', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it('uses authenticated search candidates to prefill the Quick Add form', async () => {
-    const candidate = buildCandidate();
-
-    mockAuthenticatedSearchResponse([candidate]);
-
-    const user = userEvent.setup();
-
-    renderAuthenticatedQuickAdd();
-    await searchAndSelectCandidate(user, 'Dune', candidate.title);
-
-    expect(await waitFor(() => getElementById<HTMLInputElement>('title'))).toHaveValue(
-      candidate.title,
-    );
-    expect(getElementById<HTMLInputElement>('author')).toHaveValue(candidate.author);
-    expect(screen.getAllByText(candidate.note).length).toBeGreaterThan(0);
-  });
-
-  it('submits catalogTitleId and a null importDraft for matched external candidates', async () => {
+  it('keeps authenticated matched search saves on the Dexie to syncQueue path', async () => {
     const candidate = buildCandidate({
       catalogMatch: {
         id: 'catalog-title-1',
@@ -234,29 +218,49 @@ describe('QuickAddWorkForm', () => {
         verificationStatus: 'draft',
       },
     });
-    const onSubmit = vi.fn().mockResolvedValue(undefined);
-
-    mockAuthenticatedSearchResponse([candidate]);
-
+    const fetchMock = mockAuthenticatedSearch(candidate);
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd(onSubmit);
+    renderAuthenticatedCreatePage();
     await searchAndSelectCandidate(user, 'Dune', candidate.title);
     await submitSelectedCandidate(user);
 
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    await waitFor(async () => {
+      expect(await worksRepository.listAll()).toHaveLength(1);
+      expect(await syncQueueRepository.listAll()).toHaveLength(1);
+    });
 
-    const submittedInput = onSubmit.mock.calls[0]?.[0];
+    const [savedWork] = await worksRepository.listAll();
+    const [queueItem] = await syncQueueRepository.listAll();
 
-    expect(submittedInput).toMatchObject({
-      title: candidate.title,
-      type: candidate.type,
+    expect(savedWork).toMatchObject({
+      title: 'Dune',
       catalogTitleId: 'catalog-title-1',
       importDraft: null,
+      syncStatus: 'local-only',
+      serverVersion: 0,
+    });
+    expect(queueItem).toMatchObject({
+      entityId: savedWork?.id,
+      operation: 'create',
+      payload: expect.objectContaining({
+        id: savedWork?.id,
+        catalogTitleId: 'catalog-title-1',
+        importDraft: null,
+      }),
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [firstFetchInput, firstFetchInit] = fetchMock.mock.calls[0] ?? [];
+
+    expect(firstFetchInput).toBeDefined();
+    expect(firstFetchInit).toBeDefined();
+    expect(getFetchUrl(firstFetchInput as RequestInfo | URL)).toContain('/imports/search?');
+    expect(firstFetchInit).toMatchObject({
+      method: 'GET',
     });
   });
 
-  it('stores only external identity data in importDraft for unmatched external candidates', async () => {
+  it('stores unmatched external identity locally without duplicating display fields in importDraft', async () => {
     const candidate = buildCandidate({
       franchiseName: 'Dune',
       releaseCandidates: [
@@ -280,13 +284,10 @@ describe('QuickAddWorkForm', () => {
       ],
       subType: 'science_fiction',
     });
-    const onSubmit = vi.fn().mockResolvedValue(undefined);
-
-    mockAuthenticatedSearchResponse([candidate]);
-
+    const fetchMock = mockAuthenticatedSearch(candidate);
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd(onSubmit);
+    renderAuthenticatedCreatePage();
     await searchAndSelectCandidate(user, 'Dune', candidate.title);
 
     const titleInput = await waitFor(() => getElementById<HTMLInputElement>('title'));
@@ -294,20 +295,24 @@ describe('QuickAddWorkForm', () => {
     await user.type(titleInput, 'Dune Deluxe');
 
     await submitSelectedCandidate(user);
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
 
-    const submittedInput = onSubmit.mock.calls[0]?.[0];
+    await waitFor(async () => {
+      expect(await worksRepository.listAll()).toHaveLength(1);
+      expect(await syncQueueRepository.listAll()).toHaveLength(1);
+    });
 
-    expect(submittedInput).toMatchObject({
+    const [savedWork] = await worksRepository.listAll();
+    const [queueItem] = await syncQueueRepository.listAll();
+
+    expect(savedWork).toMatchObject({
       title: 'Dune Deluxe',
-      type: 'novel',
       catalogTitleId: null,
       importDraft: {
         mediumType: 'novel',
         franchiseName: 'Dune',
         subType: 'science_fiction',
         releaseYear: 2026,
-        contributors: [{ name: candidate.author }],
+        contributors: [{ name: 'Frank Herbert' }],
         externalRefs: [
           {
             externalId: '123',
@@ -316,79 +321,27 @@ describe('QuickAddWorkForm', () => {
             url: 'https://example.com/aladin/123',
           },
         ],
-        releaseCandidates: [
-          {
-            displayLabel: 'Volume 1',
-            externalRefs: [
-              {
-                externalId: 'isbn-1',
-                provider: 'aladin',
-                rawType: 'volume',
-                url: 'https://example.com/aladin/volume-1',
-              },
-            ],
-            isbn: '9781234567890',
-            releaseDate: '2026-04-18',
-            releaseType: 'volume',
-            sequence: 1,
-            thumbnailUrl: 'https://example.com/volume-1.jpg',
-            title: 'Dune Volume 1',
-          },
-        ],
       },
+      syncStatus: 'local-only',
+      serverVersion: 0,
     });
-    expect(submittedInput.importDraft).not.toHaveProperty('catalogTitle');
-    expect(submittedInput.importDraft).not.toHaveProperty('author');
-    expect(submittedInput.importDraft).not.toHaveProperty('description');
-    expect(submittedInput.importDraft).not.toHaveProperty('thumbnailUrl');
-    expect(submittedInput.importDraft).not.toHaveProperty('genres');
-  });
-
-  it.each(['preview-manual', 'manual'] as const)(
-    'keeps manual draft saves without import identity for %s candidates',
-    async (sourceId) => {
-      const candidate = buildCandidate({
-        sourceId,
-        title: sourceId === 'manual' ? 'Custom Dune' : 'Dune Preview',
-      });
-      const onSubmit = vi.fn().mockResolvedValue(undefined);
-
-      mockAuthenticatedSearchResponse([candidate]);
-
-      const user = userEvent.setup();
-
-      renderAuthenticatedQuickAdd(onSubmit);
-      await searchAndSelectCandidate(user, 'Dune', candidate.title);
-      await submitSelectedCandidate(user);
-
-      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
-
-      const submittedInput = onSubmit.mock.calls[0]?.[0];
-
-      expect(submittedInput).toMatchObject({
-        title: candidate.title,
-        type: candidate.type,
+    expect(savedWork?.importDraft).not.toHaveProperty('catalogTitle');
+    expect(savedWork?.importDraft).not.toHaveProperty('author');
+    expect(savedWork?.importDraft).not.toHaveProperty('description');
+    expect(savedWork?.importDraft).not.toHaveProperty('thumbnailUrl');
+    expect(savedWork?.importDraft).not.toHaveProperty('genres');
+    expect(queueItem).toMatchObject({
+      entityId: savedWork?.id,
+      operation: 'create',
+      payload: expect.objectContaining({
+        id: savedWork?.id,
+        title: 'Dune Deluxe',
         catalogTitleId: null,
-        importDraft: null,
-      });
-    },
-  );
-
-  it('falls back to preview candidates when authenticated external search is unavailable', async () => {
-    mockAuthenticatedSearchResponse([], {
-      body: {
-        message: 'Aladin API key is not configured for this user.',
-      },
-      status: 403,
+        importDraft: expect.objectContaining({
+          mediumType: 'novel',
+        }),
+      }),
     });
-
-    const user = userEvent.setup();
-
-    renderAuthenticatedQuickAdd();
-    await searchAndSelectCandidate(user, 'Dune', 'Dune');
-
-    expect(await waitFor(() => getElementById<HTMLInputElement>('title'))).toHaveValue(
-      'Dune',
-    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
