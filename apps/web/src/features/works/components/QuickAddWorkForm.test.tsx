@@ -3,9 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { WorkRecord } from '@work-archive/shared-types';
+
 import type { ImportCandidate } from '../../imports/services/imports.service';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { renderWithProviders } from '../../../test/render-with-providers';
+import { workArchiveDbManager } from '../db/work-archive.db';
+import { worksRepository } from '../services/works.repository';
 import { QuickAddWorkForm } from './QuickAddWorkForm';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -116,11 +120,13 @@ function mockAuthenticatedSearchResponse(
 }
 
 function renderAuthenticatedQuickAdd(onSubmit = vi.fn()) {
+  workArchiveDbManager.switchToUser('user-1');
+
   return renderWithProviders(
     <MemoryRouter>
       <AuthContext.Provider
         value={{
-          archiveScopeKey: 'user:user-1',
+          archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'authenticated',
           user: {
@@ -141,6 +147,48 @@ function renderAuthenticatedQuickAdd(onSubmit = vi.fn()) {
       </AuthContext.Provider>
     </MemoryRouter>,
   );
+}
+
+function buildExistingWork(
+  overrides: Partial<WorkRecord> = {},
+): WorkRecord {
+  const createdAt = overrides.createdAt ?? '2026-04-18T00:00:00.000Z';
+  const updatedAt = overrides.updatedAt ?? createdAt;
+
+  return {
+    id: overrides.id ?? crypto.randomUUID(),
+    catalogTitleId: overrides.catalogTitleId ?? null,
+    importDraft: overrides.importDraft ?? null,
+    type: overrides.type ?? 'novel',
+    title: overrides.title ?? 'Dune',
+    author: overrides.author ?? 'Frank Herbert',
+    genres: overrides.genres ?? ['Science Fiction'],
+    description: overrides.description ?? '',
+    thumbnailUrl: overrides.thumbnailUrl ?? '',
+    status: overrides.status ?? 'completed',
+    rating: overrides.rating ?? 4.5,
+    shortReview: overrides.shortReview ?? '',
+    review: overrides.review ?? '',
+    tier: overrides.tier ?? null,
+    favorite: overrides.favorite ?? false,
+    progressCurrent: overrides.progressCurrent ?? null,
+    progressTotal: overrides.progressTotal ?? null,
+    progressUnit: overrides.progressUnit ?? null,
+    lastConsumedLabel: overrides.lastConsumedLabel ?? null,
+    createdAt,
+    updatedAt,
+    deletedAt: overrides.deletedAt ?? null,
+    syncStatus: overrides.syncStatus ?? 'synced',
+    serverVersion: overrides.serverVersion ?? 1,
+  };
+}
+
+async function seedAuthenticatedExistingWork(
+  overrides: Partial<WorkRecord> = {},
+) {
+  workArchiveDbManager.switchToUser('user-1');
+
+  return worksRepository.create(buildExistingWork(overrides));
 }
 
 function getElementById<TElement extends HTMLElement>(id: string) {
@@ -373,6 +421,143 @@ describe('QuickAddWorkForm', () => {
       });
     },
   );
+
+  it('shows a duplicate warning when catalog identity matches an existing work', async () => {
+    await seedAuthenticatedExistingWork({
+        id: 'existing-catalog-match',
+        title: 'Dune Local',
+        catalogTitleId: 'catalog-title-1',
+      });
+    const candidate = buildCandidate({
+      title: 'Dune (Catalog Match)',
+      catalogMatch: {
+        id: 'catalog-title-1',
+        title: 'Dune',
+        verificationStatus: 'draft',
+      },
+    });
+
+    mockAuthenticatedSearchResponse([candidate]);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedQuickAdd();
+    await searchAndSelectCandidate(user, 'Dune', candidate.title);
+
+    await waitFor(() => {
+      expect(
+        Array.from(document.querySelectorAll('a')).some(
+          (link) => link.getAttribute('href') === '/works/existing-catalog-match',
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it('shows a duplicate warning when external identity matches an existing importDraft', async () => {
+    await seedAuthenticatedExistingWork({
+        id: 'existing-external-match',
+        title: 'Stored External Match',
+        importDraft: {
+          mediumType: 'novel',
+          externalRefs: [
+            {
+              externalId: '123',
+              provider: 'aladin',
+              rawType: 'novel',
+              url: 'https://example.com/aladin/123',
+            },
+          ],
+        },
+      });
+    const candidate = buildCandidate({
+      title: 'Different Display Title',
+    });
+
+    mockAuthenticatedSearchResponse([candidate]);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedQuickAdd();
+    await searchAndSelectCandidate(user, 'Different', candidate.title);
+
+    await waitFor(() => {
+      expect(
+        Array.from(document.querySelectorAll('a')).some(
+          (link) => link.getAttribute('href') === '/works/existing-external-match',
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it.each(['preview-manual', 'manual'] as const)(
+    'keeps title fallback duplicate detection for %s candidates',
+    async (sourceId) => {
+      await seedAuthenticatedExistingWork({
+          id: `existing-${sourceId}-title-match`,
+          title: 'Dune',
+        });
+      const candidate = buildCandidate({
+        sourceId,
+        title: 'Dune (Special Edition)',
+      });
+
+      mockAuthenticatedSearchResponse([candidate]);
+
+      const user = userEvent.setup();
+
+      renderAuthenticatedQuickAdd();
+      await searchAndSelectCandidate(user, 'Dune', candidate.title);
+
+      await waitFor(() => {
+        expect(
+          Array.from(document.querySelectorAll('a')).some(
+            (link) =>
+              link.getAttribute('href') ===
+              `/works/existing-${sourceId}-title-match`,
+          ),
+        ).toBe(true);
+      });
+    },
+  );
+
+  it('routes duplicate warnings for deleted records to the trash view', async () => {
+    await seedAuthenticatedExistingWork({
+        id: 'existing-deleted-match',
+        title: 'Dune Deleted',
+        deletedAt: '2026-04-18T01:00:00.000Z',
+        importDraft: {
+          mediumType: 'novel',
+          externalRefs: [
+            {
+              externalId: '123',
+              provider: 'aladin',
+              rawType: 'novel',
+              url: 'https://example.com/aladin/123',
+            },
+          ],
+        },
+      });
+    const candidate = buildCandidate({
+      title: 'Dune Deleted Imported',
+    });
+
+    mockAuthenticatedSearchResponse([candidate]);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedQuickAdd();
+    await searchAndSelectCandidate(user, 'Dune', candidate.title);
+
+    await waitFor(() => {
+      expect(
+        Array.from(document.querySelectorAll('a')).some(
+          (link) =>
+            link.getAttribute('href') ===
+            '/works?scope=trash&q=Dune%20Deleted',
+        ),
+      ).toBe(true);
+    });
+  });
 
   it('falls back to preview candidates when authenticated external search is unavailable', async () => {
     mockAuthenticatedSearchResponse([], {

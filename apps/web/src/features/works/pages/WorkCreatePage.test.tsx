@@ -25,9 +25,16 @@ function buildCandidate(
 ): ImportCandidate {
   const author = overrides.author ?? 'Frank Herbert';
   const sourceId = overrides.sourceId ?? 'aladin';
+  const sourceLabel =
+    overrides.sourceLabel ??
+    (sourceId === 'preview-manual' || sourceId === 'manual'
+      ? 'Preview/manual'
+      : 'Aladin Book');
   const externalId = overrides.externalId ?? '123';
   const type = overrides.type ?? 'novel';
   const mediumType = overrides.mediumType ?? type;
+  const hasExternalIdentity =
+    sourceId !== 'preview-manual' && sourceId !== 'manual';
 
   return {
     author,
@@ -47,14 +54,17 @@ function buildCandidate(
     externalId,
     existingRecord: overrides.existingRecord ?? null,
     externalRefs:
-      overrides.externalRefs ?? [
-        {
-          externalId,
-          provider: sourceId,
-          rawType: 'novel',
-          url: `https://example.com/${sourceId}/${externalId}`,
-        },
-      ],
+      overrides.externalRefs ??
+      (hasExternalIdentity
+        ? [
+            {
+              externalId,
+              provider: sourceId,
+              rawType: 'novel',
+              url: `https://example.com/${sourceId}/${externalId}`,
+            },
+          ]
+        : []),
     formatLabel: overrides.formatLabel ?? 'Novel',
     franchiseName: overrides.franchiseName ?? null,
     genresText: overrides.genresText ?? 'Science Fiction, Adventure',
@@ -66,9 +76,10 @@ function buildCandidate(
     relationsHint: overrides.relationsHint ?? [],
     releaseYear: overrides.releaseYear ?? 2026,
     sourceId,
-    sourceLabel: overrides.sourceLabel ?? 'Aladin Book',
+    sourceLabel,
     sourceUrl:
-      overrides.sourceUrl ?? `https://example.com/${sourceId}/${externalId}`,
+      overrides.sourceUrl ??
+      (hasExternalIdentity ? `https://example.com/${sourceId}/${externalId}` : ''),
     subType: overrides.subType ?? null,
     thumbnailUrl: overrides.thumbnailUrl ?? 'https://example.com/cover.jpg',
     title: overrides.title ?? 'Dune',
@@ -344,4 +355,47 @@ describe('WorkCreatePage', () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it.each(['preview-manual', 'manual'] as const)(
+    'keeps %s saves on the local-first path without import identity',
+    async (sourceId) => {
+      const candidate = buildCandidate({
+        sourceId,
+        title: sourceId === 'manual' ? 'Custom Dune' : 'Dune Preview',
+      });
+      const fetchMock = mockAuthenticatedSearch(candidate);
+      const user = userEvent.setup();
+
+      renderAuthenticatedCreatePage();
+      await searchAndSelectCandidate(user, 'Dune', candidate.title);
+      await submitSelectedCandidate(user);
+
+      await waitFor(async () => {
+        expect(await worksRepository.listAll()).toHaveLength(1);
+        expect(await syncQueueRepository.listAll()).toHaveLength(1);
+      });
+
+      const [savedWork] = await worksRepository.listAll();
+      const [queueItem] = await syncQueueRepository.listAll();
+
+      expect(savedWork).toMatchObject({
+        title: candidate.title,
+        catalogTitleId: null,
+        importDraft: null,
+        syncStatus: 'local-only',
+        serverVersion: 0,
+      });
+      expect(queueItem).toMatchObject({
+        entityId: savedWork?.id,
+        operation: 'create',
+        payload: expect.objectContaining({
+          id: savedWork?.id,
+          title: candidate.title,
+          catalogTitleId: null,
+          importDraft: null,
+        }),
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    },
+  );
 });
