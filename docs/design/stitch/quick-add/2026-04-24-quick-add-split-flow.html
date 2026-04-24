@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html class="dark" lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work Archive - Add New Work Stitch Reference</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#121315',
+            'dark-shell': '#14171b',
+            'dark-surface-base': '#1c2128',
+            'dark-surface-raised': '#232932',
+            'surface-container': '#1e2022',
+            'surface-container-high': '#292a2c',
+            'surface-container-highest': '#343537',
+            'outline': '#8d9198',
+            'outline-variant': '#43474d',
+            'on-background': '#e3e2e4',
+            'on-surface': '#e3e2e4',
+            'on-surface-variant': '#c3c6ce',
+            primary: '#b6d1f1',
+            'primary-container': '#9bb5d4',
+            'archive-blue-3': '#9bb5d4',
+            'archive-blue-7': '#3d6390',
+            'archive-blue-9': '#253b55',
+            tertiary: '#f0c792'
+          },
+          spacing: {
+            'shell-padding': 'clamp(1rem, 2vw, 1.5rem)',
+            'container-default': '77.5rem'
+          },
+          fontFamily: {
+            body: ['Inter'],
+            h1: ['Work Sans'],
+            h2: ['Work Sans']
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-background text-on-background min-h-screen flex">
+  <nav class="fixed left-0 top-0 flex flex-col pt-8 pb-4 h-screen w-64 border-r border-zinc-800 bg-zinc-950 z-50">
+    <div class="px-6 mb-10">
+      <h1 class="text-lg font-bold tracking-tight text-zinc-100 uppercase">Work Archive</h1>
+      <p class="text-xs tracking-widest text-zinc-500 mt-1 uppercase">Editorial Collection</p>
+    </div>
+    <div class="flex-1 px-4 space-y-2">
+      <a class="flex items-center px-4 py-3 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/30 rounded" href="#"><span class="material-symbols-outlined mr-3 text-xl">dashboard</span>Dashboard</a>
+      <a class="flex items-center px-4 py-3 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/30 rounded" href="#"><span class="material-symbols-outlined mr-3 text-xl">auto_stories</span>Library</a>
+      <a class="flex items-center px-4 py-3 text-zinc-50 font-semibold border-r-2 border-archive-blue-3 bg-zinc-900/50 rounded" href="#"><span class="material-symbols-outlined mr-3 text-xl">add_box</span>Add Work</a>
+      <a class="flex items-center px-4 py-3 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/30 rounded" href="#"><span class="material-symbols-outlined mr-3 text-xl">settings</span>Settings</a>
+    </div>
+  </nav>
+
+  <main class="flex-1 ml-64 flex flex-col min-h-screen relative">
+    <header class="flex items-center justify-between px-8 sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-md w-full h-16 border-b border-zinc-800">
+      <h2 class="text-xl font-bold text-zinc-100">Add New Record</h2>
+      <div class="flex items-center gap-4 text-zinc-500"><span class="material-symbols-outlined">sync</span><span class="material-symbols-outlined">account_circle</span></div>
+    </header>
+
+    <div class="p-shell-padding mx-auto w-full max-w-[77.5rem] flex-1 flex flex-col lg:flex-row gap-6">
+      <div class="w-full lg:w-1/2 flex flex-col gap-5 border-r border-outline-variant/30 pr-6 pb-6 lg:pb-0">
+        <div class="bg-surface-container rounded-lg p-5 border border-outline-variant/50">
+          <label class="block text-xs tracking-widest text-on-surface-variant mb-2 uppercase" for="work-search">작품 검색</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+            <input class="w-full bg-dark-surface-raised border border-outline-variant rounded py-2 pl-10 pr-4 text-on-surface focus:outline-none focus:border-archive-blue-3 focus:ring-1 focus:ring-archive-blue-3" id="work-search" placeholder="제목, 작가, 스튜디오 검색" type="text" value="Nolan" />
+          </div>
+        </div>
+
+        <div class="flex-1 flex flex-col gap-3 overflow-y-auto pr-2">
+          <div class="flex gap-4 p-4 bg-dark-surface-raised border border-outline-variant/50 rounded-lg hover:border-archive-blue-3/50 group">
+            <div class="w-16 h-24 flex-shrink-0 bg-surface-container overflow-hidden rounded"><img alt="Interstellar" class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=500&q=80" /></div>
+            <div class="flex-1 flex flex-col justify-center">
+              <div class="text-[0.72rem] text-on-surface-variant uppercase tracking-wider mb-1">Movie</div>
+              <h3 class="text-lg font-semibold text-on-surface leading-tight mb-1">Interstellar</h3>
+              <p class="text-sm text-on-surface-variant mb-3">2014 • Christopher Nolan</p>
+              <button class="self-start text-sm font-medium text-archive-blue-3 hover:text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span>선택</button>
+            </div>
+          </div>
+
+          <div class="flex gap-4 p-4 bg-dark-surface-raised border border-archive-blue-3 rounded-lg group relative overflow-hidden">
+            <div class="w-16 h-24 flex-shrink-0 bg-surface-container overflow-hidden rounded"><img alt="Inception" class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=500&q=80" /></div>
+            <div class="flex-1 flex flex-col justify-center">
+              <div class="text-[0.72rem] text-on-surface-variant uppercase tracking-wider mb-1">Movie</div>
+              <h3 class="text-lg font-semibold text-on-surface leading-tight mb-1">Inception</h3>
+              <p class="text-sm text-on-surface-variant mb-3">2010 • Christopher Nolan</p>
+              <button class="self-start text-sm font-medium text-archive-blue-3 flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">check</span>선택됨</button>
+            </div>
+          </div>
+
+          <div class="flex gap-4 p-4 bg-dark-surface-raised border border-outline-variant/50 rounded-lg hover:border-archive-blue-3/50 group">
+            <div class="w-16 h-24 flex-shrink-0 bg-surface-container overflow-hidden rounded flex items-center justify-center"><span class="text-xl text-outline-variant opacity-50">DK</span></div>
+            <div class="flex-1 flex flex-col justify-center">
+              <div class="text-[0.72rem] text-on-surface-variant uppercase tracking-wider mb-1">Movie</div>
+              <h3 class="text-lg font-semibold text-on-surface leading-tight mb-1">The Dark Knight</h3>
+              <p class="text-sm text-on-surface-variant mb-3">2008 • Christopher Nolan</p>
+              <button class="self-start text-sm font-medium text-archive-blue-3 hover:text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span>선택</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="mt-4 w-full py-3 bg-surface-container border border-outline-variant/50 rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-medium">직접 입력하기</button>
+      </div>
+
+      <div class="w-full lg:w-1/2 flex flex-col">
+        <div class="bg-dark-surface-raised rounded-xl border border-outline-variant/30 p-6 flex-1 flex flex-col h-full">
+          <div class="flex gap-5 mb-6 pb-5 border-b border-outline-variant/30">
+            <div class="w-28 h-40 flex-shrink-0 bg-surface-container overflow-hidden rounded border border-outline-variant/20"><img alt="Inception" class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=500&q=80" /></div>
+            <div class="flex flex-col pt-2">
+              <div class="flex gap-2 mb-2"><span class="px-2 py-0.5 rounded-sm bg-surface-container-highest border border-outline-variant/50 text-xs uppercase">Movie</span><span class="px-2 py-0.5 rounded-sm bg-surface-container-highest border border-outline-variant/50 text-xs uppercase">Sci-Fi</span></div>
+              <h2 class="text-4xl font-bold tracking-tight text-on-surface mb-1">Inception</h2>
+              <p class="text-on-surface-variant">2010 • Directed by Christopher Nolan</p>
+              <p class="text-sm text-outline mt-2 line-clamp-2">A thief who steals corporate secrets through dream-sharing technology is given the inverse task of planting an idea.</p>
+            </div>
+          </div>
+
+          <form class="flex-1 flex flex-col gap-5">
+            <div>
+              <label class="block text-xs tracking-widest text-on-surface-variant mb-3 uppercase">상태</label>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button class="py-2 px-3 bg-surface-container border-2 border-archive-blue-3 text-archive-blue-3 rounded text-sm font-medium" type="button">완료</button>
+                <button class="py-2 px-3 bg-surface-container border border-outline-variant/50 text-on-surface-variant hover:border-outline hover:text-on-surface rounded text-sm" type="button">감상 중</button>
+                <button class="py-2 px-3 bg-surface-container border border-outline-variant/50 text-on-surface-variant hover:border-outline hover:text-on-surface rounded text-sm" type="button">관람 예정</button>
+                <button class="py-2 px-3 bg-surface-container border border-outline-variant/50 text-on-surface-variant hover:border-outline hover:text-on-surface rounded text-sm" type="button">중단</button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs tracking-widest text-on-surface-variant mb-2 uppercase" for="short-comment">한줄평</label>
+              <input class="w-full bg-surface-container border border-outline-variant/50 rounded py-2 px-3 text-on-surface focus:outline-none focus:border-archive-blue-3" id="short-comment" placeholder="짧은 감상을 적어보세요" type="text" value="Mind-bending mechanics with emotional core." />
+            </div>
+
+            <div class="flex-1 flex flex-col">
+              <label class="block text-xs tracking-widest text-on-surface-variant mb-2 uppercase" for="detailed-review">상세 감상</label>
+              <textarea class="w-full flex-1 min-h-[150px] bg-surface-container border border-outline-variant/50 rounded py-3 px-3 text-on-surface focus:outline-none focus:border-archive-blue-3 resize-none" id="detailed-review" placeholder="감상을 남겨보세요">The layers of dreams create a fascinating structural narrative.</textarea>
+            </div>
+
+            <div class="pt-4 mt-auto border-t border-outline-variant/30">
+              <button class="w-full py-3 bg-archive-blue-3 text-slate-950 text-lg rounded-md hover:bg-primary flex items-center justify-center gap-2" type="button"><span class="material-symbols-outlined">save</span>아카이브에 저장</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
