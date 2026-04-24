@@ -32,6 +32,10 @@ Current references:
 - [`stitch/home/2026-04-24-home-premium-archive.notes.md`](./stitch/home/2026-04-24-home-premium-archive.notes.md)
 - [`stitch/works/2026-04-24-works-list-premium-grid.html`](./stitch/works/2026-04-24-works-list-premium-grid.html)
 - [`stitch/works/2026-04-24-works-list-premium-grid.notes.md`](./stitch/works/2026-04-24-works-list-premium-grid.notes.md)
+- [`stitch/auth/2026-04-24-auth-clean-archive-card.html`](./stitch/auth/2026-04-24-auth-clean-archive-card.html)
+- [`stitch/auth/2026-04-24-auth-clean-archive-card.notes.md`](./stitch/auth/2026-04-24-auth-clean-archive-card.notes.md)
+- [`stitch/add-work/2026-04-24-add-work-quick-add-flow.html`](./stitch/add-work/2026-04-24-add-work-quick-add-flow.html)
+- [`stitch/add-work/2026-04-24-add-work-quick-add-flow.notes.md`](./stitch/add-work/2026-04-24-add-work-quick-add-flow.notes.md)
 
 Stitch outputs are reference material, not implementation source. Do not paste Tailwind HTML directly into `apps/web`. Rebuild selected ideas with Mantine, shared primitives, and the existing Work Archive design tokens.
 
@@ -58,4 +62,10 @@ docs/design/
     works/
       2026-04-24-works-list-premium-grid.html
       2026-04-24-works-list-premium-grid.notes.md
+    auth/
+      2026-04-24-auth-clean-archive-card.html
+      2026-04-24-auth-clean-archive-card.notes.md
+    add-work/
+      2026-04-24-add-work-quick-add-flow.html
+      2026-04-24-add-work-quick-add-flow.notes.md
 ```
