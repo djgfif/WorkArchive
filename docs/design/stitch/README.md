@@ -49,6 +49,8 @@ home/2026-04-24-home-premium-archive.html
 home/2026-04-24-home-premium-archive.notes.md
 works/2026-04-24-works-list-premium-grid.html
 works/2026-04-24-works-list-premium-grid.notes.md
+auth/2026-04-24-auth-clean-archive-card.html
+auth/2026-04-24-auth-clean-archive-card.notes.md
 ```
 
 ## Notes File Checklist
@@ -74,3 +76,8 @@ Each `.notes.md` file should include:
 
 - [`works/2026-04-24-works-list-premium-grid.html`](./works/2026-04-24-works-list-premium-grid.html)
 - [`works/2026-04-24-works-list-premium-grid.notes.md`](./works/2026-04-24-works-list-premium-grid.notes.md)
+
+### Auth
+
+- [`auth/2026-04-24-auth-clean-archive-card.html`](./auth/2026-04-24-auth-clean-archive-card.html)
+- [`auth/2026-04-24-auth-clean-archive-card.notes.md`](./auth/2026-04-24-auth-clean-archive-card.notes.md)
