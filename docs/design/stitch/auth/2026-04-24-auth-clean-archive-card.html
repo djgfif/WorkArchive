@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html class="dark" lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work Archive - 로그인 Stitch Reference</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#121315',
+            'dark-shell': '#14171b',
+            'dark-surface-base': '#1c2128',
+            'dark-surface-raised': '#232932',
+            'surface-container-highest': '#343537',
+            'outline-variant': '#43474d',
+            'on-background': '#e3e2e4',
+            'on-surface': '#e3e2e4',
+            'on-surface-variant': '#c3c6ce',
+            primary: '#b6d1f1',
+            'archive-blue-3': '#9bb5d4',
+            'archive-blue-7': '#3d6390'
+          },
+          spacing: {
+            'shell-padding': 'clamp(1rem, 2vw, 1.5rem)',
+            xs: '0.5rem',
+            sm: '0.75rem',
+            md: '1rem',
+            lg: '1.25rem',
+            xl: '1.5rem'
+          },
+          fontFamily: {
+            h1: ['Work Sans'],
+            h2: ['Work Sans'],
+            body: ['Inter']
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-dark-shell text-on-background min-h-screen flex items-center justify-center relative overflow-hidden font-body">
+  <div class="absolute inset-0 z-0 pointer-events-none opacity-5 bg-[radial-gradient(circle_at_center,_#9bb5d4,_transparent_55%)]"></div>
+
+  <main class="w-full max-w-[28rem] px-4 z-10 relative">
+    <div class="bg-dark-surface-base border border-outline-variant rounded-lg p-6 flex flex-col">
+      <div class="flex flex-col items-center mb-6">
+        <div class="w-12 h-12 bg-dark-surface-raised rounded-full flex items-center justify-center border border-outline-variant mb-3">
+          <span class="material-symbols-outlined text-archive-blue-3 text-2xl" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+        </div>
+        <h1 class="font-h2 text-2xl font-bold tracking-tight text-on-surface mb-1">Work Archive</h1>
+        <h2 class="text-on-surface-variant">로그인</h2>
+      </div>
+
+      <form class="flex flex-col gap-5" method="POST">
+        <div class="flex flex-col">
+          <label class="text-base font-semibold text-on-surface mb-1" for="email">이메일</label>
+          <input class="bg-dark-surface-raised border border-outline-variant rounded p-3 text-on-surface placeholder-on-surface-variant focus:border-archive-blue-3 focus:ring-1 focus:ring-archive-blue-3 focus:outline-none" id="email" name="email" placeholder="이메일을 입력하세요" required type="email" />
+        </div>
+
+        <div class="flex flex-col">
+          <label class="text-base font-semibold text-on-surface mb-1" for="password">비밀번호</label>
+          <input class="bg-dark-surface-raised border border-outline-variant rounded p-3 text-on-surface placeholder-on-surface-variant focus:border-archive-blue-3 focus:ring-1 focus:ring-archive-blue-3 focus:outline-none" id="password" name="password" placeholder="비밀번호를 입력하세요" required type="password" />
+        </div>
+
+        <button class="mt-1 bg-archive-blue-3 text-slate-950 text-base font-semibold py-3 px-4 rounded hover:bg-primary flex items-center justify-center w-full" type="submit">로그인</button>
+      </form>
+
+      <div class="mt-6 text-center border-t border-outline-variant pt-4">
+        <p class="text-on-surface-variant text-sm">계정이 없으신가요? <a class="text-archive-blue-3 font-semibold hover:text-primary ml-1" href="#">회원가입</a></p>
+        <p class="text-on-surface-variant text-sm mt-2">먼저 둘러보고 싶다면 <a class="text-archive-blue-3 font-semibold hover:text-primary ml-1" href="#">게스트로 계속하기</a></p>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
