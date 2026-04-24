@@ -1,7 +1,8 @@
+import { Group, Stack, Text, Title } from '@mantine/core';
 import { useState } from 'react';
-import { Badge, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 
 import {
+  AppBadge,
   AppButton,
   AppLinkButton,
   FeedbackMessage,
@@ -13,14 +14,12 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
-import type { SyncRunState } from '../services/sync.service';
-
-import { useSyncDashboard } from '../hooks/useSyncDashboard';
-import { type ManualSyncResult, syncService } from '../services/sync.service';
 import {
   formatWorkDateTime,
   getWorkSyncStatusLabel,
 } from '../../works/utils/work-options';
+import { useSyncDashboard, type SyncDashboardItem } from '../hooks/useSyncDashboard';
+import { type ManualSyncResult, type SyncRunState, syncService } from '../services/sync.service';
 
 function formatOptionalDate(value: string | null, fallback = '아직 없음') {
   return value ? formatWorkDateTime(value) : fallback;
@@ -53,23 +52,135 @@ function getSyncOperationLabel(operation: string) {
   }
 }
 
-function getQueueItemTitle(item: {
-  entityType: string;
-  payload: { catalogReleaseId?: string; title?: string };
-}) {
-  if (item.entityType === 'work') {
-    return item.payload.title ?? '작품 기록';
-  }
+function getEntityTypeLabel(entityType: SyncDashboardItem['entityType']) {
+  return entityType === 'work' ? '작품' : '권별 기록';
+}
 
-  return item.payload.catalogReleaseId
-    ? `권별 기록 ${item.payload.catalogReleaseId.slice(0, 8)}`
-    : '권별 기록';
+function getItemStateLabel(state: SyncDashboardItem['state']) {
+  switch (state) {
+    case 'conflict':
+      return '충돌';
+    case 'failed':
+      return '실패';
+    case 'pending':
+    default:
+      return '대기 중';
+  }
+}
+
+function getItemStateTone(state: SyncDashboardItem['state']) {
+  switch (state) {
+    case 'conflict':
+      return 'warning' as const;
+    case 'failed':
+      return 'danger' as const;
+    case 'pending':
+    default:
+      return 'accent' as const;
+  }
+}
+
+interface SyncQueueSectionProps {
+  emptyMessage: string;
+  isGuestMode: boolean;
+  isRetryDisabled: boolean;
+  items: SyncDashboardItem[];
+  onRetry: () => void;
+  testId: string;
+  title: string;
+}
+
+function SyncQueueSection({
+  emptyMessage,
+  isGuestMode,
+  isRetryDisabled,
+  items,
+  onRetry,
+  testId,
+  title,
+}: SyncQueueSectionProps) {
+  return (
+    <SectionCard>
+      <SectionIntro title={title} eyebrow="동기화 상태" />
+
+      {items.length === 0 ? (
+        <Text c="var(--app-text-muted)">{emptyMessage}</Text>
+      ) : (
+        <Stack data-testid={testId} gap="md">
+          {items.map((item) => (
+            <div data-testid={`sync-item-${item.id}`} key={item.id}>
+              <SectionCard padding="lg" tone="subtle">
+                <Group align="flex-start" justify="space-between" wrap="wrap">
+                  <Stack gap={4}>
+                    <Group gap="xs" wrap="wrap">
+                      <AppBadge tone={getItemStateTone(item.state)}>
+                        {getItemStateLabel(item.state)}
+                      </AppBadge>
+                      <AppBadge tone="muted">{getEntityTypeLabel(item.entityType)}</AppBadge>
+                      <AppBadge>{getSyncOperationLabel(item.operation)}</AppBadge>
+                    </Group>
+                    <Title order={4}>{item.title}</Title>
+                  </Stack>
+                  <Text c="var(--app-text-muted)" size="sm">
+                    재시도 {item.retryCount}회
+                  </Text>
+                </Group>
+
+                <KeyValueGrid
+                  items={[
+                    { label: '엔티티 ID', value: item.entityId },
+                    { label: '최근 수정', value: formatWorkDateTime(item.updatedAt) },
+                    {
+                      label: '로컬 동기화 상태',
+                      value: getWorkSyncStatusLabel(item.syncStatus),
+                    },
+                    { label: '서버 버전', value: item.serverVersion },
+                    { label: '삭제됨', value: formatOptionalDate(item.deletedAt, '없음') },
+                  ]}
+                />
+
+                {(item.lastError || item.state === 'conflict') && (
+                  <FeedbackMessage tone="error">
+                    {item.lastError ?? '원격 변경과 충돌했습니다. 내용을 확인한 뒤 다시 동기화를 시도해 주세요.'}
+                  </FeedbackMessage>
+                )}
+
+                <Group gap="sm" wrap="wrap">
+                  {item.linkTo && (
+                    <AppLinkButton to={item.linkTo} tone="quiet">
+                      기록 보기
+                    </AppLinkButton>
+                  )}
+                  {!isGuestMode && (
+                    <AppButton
+                      disabled={isRetryDisabled}
+                      onClick={onRetry}
+                      tone="primary"
+                      type="button"
+                    >
+                      다시 동기화 시도
+                    </AppButton>
+                  )}
+                </Group>
+              </SectionCard>
+            </div>
+          ))}
+        </Stack>
+      )}
+    </SectionCard>
+  );
 }
 
 export function SyncPage() {
   const { mode, user } = useAuthSession();
-  const { queueItems, conflictWorks, error, isLoading, lastSuccessfulPullAt } =
-    useSyncDashboard();
+  const {
+    pendingItems,
+    failedItems,
+    conflictItems,
+    error,
+    isLoading,
+    lastSuccessfulPullAt,
+  } = useSyncDashboard();
   const [syncState, setSyncState] = useState<SyncRunState>('idle');
   const [lastRun, setLastRun] = useState<ManualSyncResult | null>(null);
   const isGuestMode = mode !== 'authenticated';
@@ -95,7 +206,7 @@ export function SyncPage() {
     <AccountPageTemplate
       actions={
         <>
-          <AppLinkButton to="/account">계정 홈으로 돌아가기</AppLinkButton>
+          <AppLinkButton to="/account">계정으로 돌아가기</AppLinkButton>
           <AppButton
             disabled={isGuestMode || syncState === 'syncing'}
             onClick={() => {
@@ -114,14 +225,15 @@ export function SyncPage() {
       }
       description={
         isGuestMode
-          ? '게스트 모드에서는 이 기기에만 저장됩니다. 로그인하면 계정 관리 맥락에서 동기화를 사용할 수 있습니다.'
+          ? '게스트 모드에서는 기록이 이 기기에만 저장됩니다. 로그인하면 계정 관리 화면에서 동기화를 사용할 수 있습니다.'
           : `${user?.email}로 로그인되어 있습니다. 지금 기록을 동기화해 최신 상태로 맞출 수 있습니다.`
       }
       eyebrow="동기화"
       meta={
         <>
-          <MetricPill label="대기 중" value={queueItems.length} />
-          <MetricPill label="충돌" value={conflictWorks.length} />
+          <MetricPill label="대기 중" value={pendingItems.length} />
+          <MetricPill label="실패" value={failedItems.length} />
+          <MetricPill label="충돌" value={conflictItems.length} />
           <MetricPill label="최근 동기화" value={formatOptionalDate(lastSuccessfulPullAt)} />
           <MetricPill label="현재 상태" value={renderStateLabel(syncState)} />
         </>
@@ -154,124 +266,88 @@ export function SyncPage() {
               title="최근 동기화 결과"
             />
 
-            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-              <SectionCard padding="lg" tone="subtle">
-                <Title order={4}>보내기</Title>
-                <Text c="var(--app-text-muted)">
-                  보내기 {lastRun.push.attemptedCount}건, 반영 {lastRun.push.appliedCount}건,
-                  충돌 {lastRun.push.conflictCount}건, 실패 {lastRun.push.failedCount}건.
-                </Text>
-                <Text c="var(--app-text-muted)">
-                  처리 시각 {formatOptionalDate(lastRun.push.processedAt)}
-                </Text>
-              </SectionCard>
+            <SectionCard padding="lg" tone="subtle">
+              <Title order={4}>보내기</Title>
+              <Text c="var(--app-text-muted)">
+                보내기 {lastRun.push.attemptedCount}건 반영 {lastRun.push.appliedCount}건
+                충돌 {lastRun.push.conflictCount}건 실패 {lastRun.push.failedCount}건
+              </Text>
+              <Text c="var(--app-text-muted)">
+                처리 시각 {formatOptionalDate(lastRun.push.processedAt)}
+              </Text>
+            </SectionCard>
 
-              <SectionCard padding="lg" tone="subtle">
-                <Title order={4}>가져오기</Title>
-                <Text c="var(--app-text-muted)">
-                  가져온 {lastRun.pull.pulledCount}건 중 반영 {lastRun.pull.appliedCount}건,
-                  보류 {lastRun.pull.skippedCount}건.
-                </Text>
-                <Text c="var(--app-text-muted)">
-                  가져온 시각 {formatOptionalDate(lastRun.pull.pulledAt)}
-                </Text>
-              </SectionCard>
-            </SimpleGrid>
+            <SectionCard padding="lg" tone="subtle">
+              <Title order={4}>가져오기</Title>
+              <Text c="var(--app-text-muted)">
+                가져온 {lastRun.pull.pulledCount}건 중 반영 {lastRun.pull.appliedCount}건
+                보류 {lastRun.pull.skippedCount}건
+              </Text>
+              <Text c="var(--app-text-muted)">
+                가져온 시각 {formatOptionalDate(lastRun.pull.pulledAt)}
+              </Text>
+            </SectionCard>
 
             <Stack gap="xs">
               {lastRun.push.messages.map((message, index) => (
                 <Text c="var(--app-text-muted)" key={`push-${index}-${message}`}>
-                  보내기: {message}
+                  보내기 {message}
                 </Text>
               ))}
               {lastRun.pull.messages.map((message, index) => (
                 <Text c="var(--app-text-muted)" key={`pull-${index}-${message}`}>
-                  가져오기: {message}
+                  가져오기 {message}
                 </Text>
               ))}
             </Stack>
           </SectionCard>
         )}
 
-        <SectionCard>
-          <SectionIntro eyebrow="대기열" title="동기화 대기 중" />
+        {!isLoading && (
+          <>
+            <SyncQueueSection
+              emptyMessage="현재 대기 중인 변경 사항이 없습니다."
+              isGuestMode={isGuestMode}
+              isRetryDisabled={syncState === 'syncing'}
+              items={pendingItems}
+              onRetry={() => {
+                void handleRunSync();
+              }}
+              testId="sync-section-pending"
+              title="동기화 대기 중"
+            />
 
-          {isLoading && <Text c="var(--app-text-muted)">동기화 상태를 불러오는 중입니다.</Text>}
+            <SyncQueueSection
+              emptyMessage="현재 실패한 변경 사항이 없습니다."
+              isGuestMode={isGuestMode}
+              isRetryDisabled={syncState === 'syncing'}
+              items={failedItems}
+              onRetry={() => {
+                void handleRunSync();
+              }}
+              testId="sync-section-failed"
+              title="실패한 변경"
+            />
 
-          {!isLoading && queueItems.length === 0 && (
-            <Text c="var(--app-text-muted)">지금은 동기화할 내용이 없습니다.</Text>
-          )}
+            <SyncQueueSection
+              emptyMessage="현재 충돌한 변경 사항이 없습니다."
+              isGuestMode={isGuestMode}
+              isRetryDisabled={syncState === 'syncing'}
+              items={conflictItems}
+              onRetry={() => {
+                void handleRunSync();
+              }}
+              testId="sync-section-conflict"
+              title="충돌한 변경"
+            />
+          </>
+        )}
 
-          {!isLoading && queueItems.length > 0 && (
-            <Stack gap="md">
-              {queueItems.map((item) => (
-                <SectionCard key={item.id} padding="lg" tone="subtle">
-                  <Group align="flex-start" justify="space-between" wrap="wrap">
-                    <Stack gap={4}>
-                      <Title order={4}>{getQueueItemTitle(item)}</Title>
-                      <Text c="var(--app-text-muted)">
-                        {getSyncOperationLabel(item.operation)} 요청
-                      </Text>
-                    </Stack>
-                    <Badge>재시도 {item.retryCount}회</Badge>
-                  </Group>
-
-                  <KeyValueGrid
-                    items={[
-                      {
-                        label: '최근 수정',
-                        value: formatWorkDateTime(item.payload.updatedAt),
-                      },
-                      {
-                        label: '동기화 상태',
-                        value: getWorkSyncStatusLabel(item.payload.syncStatus),
-                      },
-                      { label: '서버 버전', value: item.payload.serverVersion },
-                    ]}
-                  />
-
-                  {item.lastError && (
-                    <FeedbackMessage tone="error">{item.lastError}</FeedbackMessage>
-                  )}
-                </SectionCard>
-              ))}
-            </Stack>
-          )}
-        </SectionCard>
-
-        <SectionCard>
-          <SectionIntro eyebrow="충돌" title="확인이 필요한 작품" />
-
-          {!isLoading && conflictWorks.length === 0 && (
-            <Text c="var(--app-text-muted)">지금은 확인이 필요한 충돌이 없습니다.</Text>
-          )}
-
-          {!isLoading && conflictWorks.length > 0 && (
-            <Stack gap="md">
-              {conflictWorks.map((work) => (
-                <SectionCard key={work.id} padding="lg" tone="subtle">
-                  <Group align="flex-start" justify="space-between" wrap="wrap">
-                    <Stack gap={4}>
-                      <Title order={4}>{work.title}</Title>
-                      <Text c="var(--app-text-muted)">
-                        동기화 상태를 확인해주세요.
-                      </Text>
-                    </Stack>
-                    <Badge color="red">충돌</Badge>
-                  </Group>
-
-                  <KeyValueGrid
-                    items={[
-                      { label: '최근 수정', value: formatWorkDateTime(work.updatedAt) },
-                      { label: '삭제됨', value: formatOptionalDate(work.deletedAt, '없음') },
-                      { label: '서버 버전', value: work.serverVersion },
-                    ]}
-                  />
-                </SectionCard>
-              ))}
-            </Stack>
-          )}
-        </SectionCard>
+        {isLoading && (
+          <SectionCard>
+            <Text c="var(--app-text-muted)">동기화 상태를 불러오는 중입니다.</Text>
+          </SectionCard>
+        )}
       </Stack>
     </AccountPageTemplate>
   );

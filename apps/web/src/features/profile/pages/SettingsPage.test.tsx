@@ -46,10 +46,81 @@ function renderAuthenticatedSettings() {
   );
 }
 
+function renderGuestSettings() {
+  return renderWithProviders(
+    <MemoryRouter>
+      <AuthContext.Provider
+        value={{
+          archiveScopeKey: 'guest',
+          isLoading: false,
+          mode: 'guest',
+          user: null,
+          signIn: vi.fn(),
+          signUp: vi.fn(),
+          signOut: vi.fn(),
+        }}
+      >
+        <SettingsPage />
+      </AuthContext.Provider>
+    </MemoryRouter>,
+  );
+}
+
 describe('SettingsPage', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it('renders provider readiness cards for none, user, and server credential modes', async () => {
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+      }),
+    );
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse([
+        {
+          provider: 'manual',
+          label: 'Manual',
+          credentialMode: 'none',
+          configured: true,
+          mediumTypes: ['novel', 'anime'],
+        },
+        {
+          provider: 'aladin',
+          label: 'Aladin Book',
+          credentialMode: 'user',
+          configured: false,
+          mediumTypes: ['novel', 'light_novel', 'manga'],
+        },
+        {
+          provider: 'tmdb',
+          label: 'TMDB',
+          credentialMode: 'server',
+          configured: false,
+          mediumTypes: ['movie', 'drama'],
+        },
+      ]),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderAuthenticatedSettings();
+
+    expect(await screen.findByText('Manual')).toBeInTheDocument();
+    expect(screen.getByText('Aladin Book')).toBeInTheDocument();
+    expect(screen.getByText('TMDB')).toBeInTheDocument();
+    expect(screen.getByText(/바로 사용 가능/)).toBeInTheDocument();
+    expect(screen.getAllByText(/설정 필요/)).toHaveLength(2);
+    expect(screen.getByText(/추가 키 없음/)).toBeInTheDocument();
+    expect(screen.getByText(/사용자 키/)).toBeInTheDocument();
+    expect(screen.getByText(/서버 자격 증명/)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toEqual(
+      expect.stringContaining('/imports/providers'),
+    );
   });
 
   it('saves and deletes the authenticated user Aladin key without showing it again', async () => {
@@ -93,19 +164,19 @@ describe('SettingsPage', () => {
 
     renderAuthenticatedSettings();
 
-    expect(
-      await screen.findByText('키가 등록되어 있지 않습니다'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/키가 등록되어 있지 않습니다/)).toBeInTheDocument();
     expect(screen.getByText('Manual')).toBeInTheDocument();
     expect(screen.getByText('Aladin Book')).toBeInTheDocument();
-    expect(screen.getByText('바로 사용 가능')).toBeInTheDocument();
-    expect(screen.getByText('사용자 키')).toBeInTheDocument();
+    expect(screen.getByText(/바로 사용 가능/)).toBeInTheDocument();
+    expect(screen.getByText(/사용자 키/)).toBeInTheDocument();
+    expect(screen.getByText(/설정 필요/)).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Aladin TTBKey'), 'ttb-test-key');
-    await user.click(screen.getByRole('button', { name: 'Aladin 키 저장' }));
+    await user.click(screen.getByRole('button', { name: /Aladin.*저장/ }));
 
-    expect(await screen.findByText('Aladin TTBKey를 저장했습니다.')).toBeInTheDocument();
+    expect(await screen.findByText(/Aladin TTBKey.*저장/)).toBeInTheDocument();
     expect(screen.getByLabelText('Aladin TTBKey')).toHaveValue('');
+    expect(screen.getByText(/준비됨/)).toBeInTheDocument();
 
     const providerRequest = fetchMock.mock.calls[0];
     const saveRequest = fetchMock.mock.calls[1];
@@ -122,12 +193,26 @@ describe('SettingsPage', () => {
     expect(saveRequestInit.body).toBe(JSON.stringify({ ttbKey: 'ttb-test-key' }));
     expect(saveRequestHeaders.get('authorization')).toBe('Bearer access-token');
 
-    await user.click(screen.getByRole('button', { name: 'Aladin 키 삭제' }));
+    await user.click(screen.getByRole('button', { name: /Aladin.*삭제/ }));
 
-    expect(await screen.findByText('Aladin TTBKey를 삭제했습니다.')).toBeInTheDocument();
+    expect(await screen.findByText(/Aladin TTBKey.*삭제/)).toBeInTheDocument();
+    expect(screen.getByText(/설정 필요/)).toBeInTheDocument();
     expect(fetchMock.mock.calls[2]?.[0]).toEqual(
       expect.stringContaining('/imports/providers/aladin/key'),
     );
     expect((fetchMock.mock.calls[2]?.[1] as RequestInit).method).toBe('DELETE');
+  });
+
+  it('shows login guidance instead of provider readiness for guests', async () => {
+    const fetchMock = vi.fn();
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderGuestSettings();
+
+    expect(await screen.findByText(/로그인하면/)).toBeInTheDocument();
+    expect(screen.getAllByText(/TTBKey/).length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText('Aladin TTBKey')).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -24,6 +24,7 @@ function createWorkAggregateFixture(
   return {
     id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
     userId: USER_ID,
+    catalogTitleId: 'catalog-title-1',
     catalogWorkId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
     status: WorkStatus.completed,
     rating: 5,
@@ -46,6 +47,9 @@ function createWorkAggregateFixture(
       thumbnailUrl: '',
       createdAt: new Date('2026-04-18T00:00:00.000Z'),
       updatedAt: new Date('2026-04-18T01:00:00.000Z'),
+    },
+    catalogTitle: {
+      mediumType: WorkType.novel,
     },
     ...overrides,
   } as WorkAggregate;
@@ -86,7 +90,7 @@ function createReleaseRecordAggregateFixture(
     catalogReleaseId: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
     status: WorkStatus.completed,
     rating: 4.5,
-    shortReview: '1권 감상',
+    shortReview: 'Volume 1 review',
     review: '',
     favorite: false,
     createdAt: new Date('2026-04-18T00:00:00.000Z'),
@@ -96,10 +100,10 @@ function createReleaseRecordAggregateFixture(
     serverVersion: 1,
     catalogRelease: {
       id: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
-      catalogTitleId: 'b6e0804c-4ff1-4382-b409-67d73291ed8a',
+      catalogTitleId: 'catalog-title-1',
       releaseType: 'volume',
-      displayLabel: '1권',
-      title: '',
+      displayLabel: 'Volume 1',
+      title: 'Dune Volume 1',
       sequence: 1,
       isbn: null,
       releaseDate: null,
@@ -111,7 +115,7 @@ function createReleaseRecordAggregateFixture(
     userWorkRecord: {
       id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
       userId: USER_ID,
-      catalogTitleId: 'b6e0804c-4ff1-4382-b409-67d73291ed8a',
+      catalogTitleId: 'catalog-title-1',
       catalogWork: {
         type: WorkType.light_novel,
       },
@@ -132,7 +136,7 @@ function createReleaseRecordPayload(
     catalogReleaseId: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
     status: WorkStatus.completed,
     rating: 4.5,
-    shortReview: '1권 감상',
+    shortReview: 'Volume 1 review',
     review: '',
     favorite: false,
     createdAt: '2026-04-18T00:00:00.000Z',
@@ -146,32 +150,14 @@ function createReleaseRecordPayload(
 
 describe('SyncService', () => {
   let service: SyncService;
-  let prisma: {
-    $transaction: jest.Mock;
-    catalogTitle: {
-      findUnique: jest.Mock;
-    };
-    catalogWork: {
-      create: jest.Mock;
-    };
-    catalogRelease: {
-      findFirst: jest.Mock;
-    };
-    userReleaseRecord: {
-      create: jest.Mock;
-    };
-  };
+  let prisma: any;
   let catalogService: jest.Mocked<
     Pick<CatalogService, 'create' | 'createTitleFromImportCandidate' | 'update'>
   >;
   let userRecordsService: jest.Mocked<
     Pick<UserRecordsService, 'create' | 'findById' | 'findByUserSince' | 'update'>
   >;
-  let releaseRecordsService: {
-    findById: jest.Mock;
-    findByUserSince: jest.Mock;
-    update: jest.Mock;
-  };
+  let releaseRecordsService: any;
 
   beforeEach(() => {
     prisma = {
@@ -189,13 +175,12 @@ describe('SyncService', () => {
         create: jest.fn(),
       },
     };
-    prisma.$transaction.mockImplementation(async (...args: unknown[]) => {
-      const callback = args[0] as (client: never) => Promise<unknown>;
-
-      return callback({
+    prisma.$transaction.mockImplementation(async (callback: (client: any) => Promise<any>) =>
+      callback({
         catalogWork: prisma.catalogWork,
-      } as never);
-    });
+      }),
+    );
+
     catalogService = {
       create: jest.fn(),
       createTitleFromImportCandidate: jest.fn(),
@@ -233,23 +218,9 @@ describe('SyncService', () => {
           operation: 'update',
           createdAt: '2026-04-18T00:30:00.000Z',
           payload: {
-            id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
-            type: 'novel',
+            ...createSyncPayload(),
             title: 'The Dark Forest',
-            author: 'Liu Cixin',
-            genres: ['Sci-Fi'],
-            description: '',
-            thumbnailUrl: '',
-            status: 'completed',
-            rating: 5,
-            shortReview: '',
-            review: '',
-            tier: null,
-            favorite: false,
-            createdAt: '2026-04-18T00:00:00.000Z',
             updatedAt: '2026-04-18T00:30:00.000Z',
-            deletedAt: null,
-            syncStatus: 'pending',
             serverVersion: 2,
           },
         },
@@ -281,23 +252,9 @@ describe('SyncService', () => {
           operation: 'update',
           createdAt: '2026-04-18T00:30:00.000Z',
           payload: {
-            id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
-            type: 'novel',
+            ...createSyncPayload(),
             title: 'The Dark Forest',
-            author: 'Liu Cixin',
-            genres: ['Sci-Fi'],
-            description: '',
-            thumbnailUrl: '',
-            status: 'completed',
-            rating: 5,
-            shortReview: '',
-            review: '',
-            tier: null,
-            favorite: false,
-            createdAt: '2026-04-18T00:00:00.000Z',
             updatedAt: '2026-04-18T00:30:00.000Z',
-            deletedAt: null,
-            syncStatus: 'pending',
             serverVersion: 2,
           },
         },
@@ -431,6 +388,7 @@ describe('SyncService', () => {
     userRecordsService.create.mockResolvedValue(
       createWorkAggregateFixture({
         id: importedId,
+        catalogTitleId: importedId,
         catalogWorkId: importedId,
         serverVersion: 1,
         createdAt: new Date('2026-04-18T00:00:00.000Z'),
@@ -472,6 +430,7 @@ describe('SyncService', () => {
       }),
       expect.any(Object),
     );
+    expect(catalogService.createTitleFromImportCandidate).not.toHaveBeenCalled();
     expect(userRecordsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         id: importedId,
@@ -499,18 +458,18 @@ describe('SyncService', () => {
     userRecordsService.findById.mockResolvedValue(null);
     prisma.catalogTitle.findUnique.mockResolvedValue({
       id: 'catalog-title-1',
-      displayTitle: '듄',
+      displayTitle: 'Dune',
       mediumType: WorkType.novel,
-      summary: '사막 행성을 둘러싼 이야기',
+      summary: 'A desert saga.',
       thumbnailUrl: 'https://image.example/dune.jpg',
       contributors: [
         {
           contributor: {
-            displayName: '프랭크 허버트',
+            displayName: 'Frank Herbert',
           },
         },
       ],
-    } as never);
+    });
     userRecordsService.create.mockResolvedValue(
       createWorkAggregateFixture({
         id: importedId,
@@ -520,8 +479,8 @@ describe('SyncService', () => {
         catalogWork: {
           ...createWorkAggregateFixture().catalogWork,
           id: importedId,
-          title: '듄',
-          author: '프랭크 허버트',
+          title: 'Dune',
+          author: 'Frank Herbert',
         },
       }),
     );
@@ -537,7 +496,7 @@ describe('SyncService', () => {
           payload: createSyncPayload({
             id: importedId,
             catalogTitleId: 'catalog-title-1',
-            title: '듄',
+            title: 'Dune',
             author: '',
             description: '',
             thumbnailUrl: '',
@@ -561,8 +520,8 @@ describe('SyncService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           id: importedId,
-          title: '듄',
-          author: '프랭크 허버트',
+          title: 'Dune',
+          author: 'Frank Herbert',
         }),
       }),
     );
@@ -586,6 +545,44 @@ describe('SyncService', () => {
     ]);
   });
 
+  it('fails a sync create when catalogTitleId points to a missing catalog title', async () => {
+    const importedId = '44444444-4444-4444-8444-444444444445';
+
+    userRecordsService.findById.mockResolvedValue(null);
+    prisma.catalogTitle.findUnique.mockResolvedValue(null);
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'f6a51b9d-0471-49b0-97ab-5fbe58af06d9',
+          entityType: 'work',
+          entityId: importedId,
+          operation: 'create',
+          createdAt: '2026-04-18T00:00:00.000Z',
+          payload: createSyncPayload({
+            id: importedId,
+            catalogTitleId: 'missing-catalog-title',
+            title: 'Missing Catalog Title',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:00:00.000Z',
+            syncStatus: 'local-only',
+            serverVersion: 0,
+          }),
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'failed',
+        message: 'Catalog title with id "missing-catalog-title" was not found.',
+        work: null,
+      }),
+    ]);
+    expect(prisma.catalogWork.create).not.toHaveBeenCalled();
+    expect(userRecordsService.create).not.toHaveBeenCalled();
+  });
+
   it('creates or reuses a catalog title from importDraft before creating the missing remote record', async () => {
     const importedId = '55555555-5555-4555-8555-555555555555';
 
@@ -602,8 +599,8 @@ describe('SyncService', () => {
         catalogWork: {
           ...createWorkAggregateFixture().catalogWork,
           id: importedId,
-          title: '듄',
-          author: '프랭크 허버트',
+          title: 'Dune',
+          author: 'Frank Herbert',
         },
       }),
     );
@@ -618,21 +615,21 @@ describe('SyncService', () => {
           createdAt: '2026-04-18T00:00:00.000Z',
           payload: createSyncPayload({
             id: importedId,
-            title: '듄',
-            author: '프랭크 허버트',
-            description: '사막 행성을 둘러싼 이야기',
+            title: 'Dune',
+            author: 'Frank Herbert',
+            description: 'A desert saga.',
             thumbnailUrl: 'https://image.example/dune.jpg',
             createdAt: '2026-04-18T00:00:00.000Z',
             updatedAt: '2026-04-18T00:00:00.000Z',
             syncStatus: 'local-only',
             serverVersion: 0,
             importDraft: {
-              catalogTitle: '듄',
+              catalogTitle: 'Dune',
               mediumType: WorkType.novel,
               franchiseName: 'Dune',
               subType: 'science_fiction',
               releaseYear: 2026,
-              contributors: [{ name: '프랭크 허버트' }],
+              contributors: [{ name: 'Frank Herbert' }],
               externalRefs: [
                 {
                   provider: 'aladin',
@@ -643,7 +640,7 @@ describe('SyncService', () => {
               ],
               releaseCandidates: [
                 {
-                  displayLabel: '1권',
+                  displayLabel: 'Volume 1',
                   externalRefs: [
                     {
                       provider: 'aladin',
@@ -657,7 +654,7 @@ describe('SyncService', () => {
                   releaseType: 'volume',
                   sequence: 1,
                   thumbnailUrl: 'https://image.example/dune-volume-1.jpg',
-                  title: '듄 1',
+                  title: 'Dune Volume 1',
                 },
               ],
             },
@@ -668,23 +665,54 @@ describe('SyncService', () => {
 
     expect(catalogService.createTitleFromImportCandidate).toHaveBeenCalledWith(
       expect.objectContaining({
-        canonicalTitle: '듄',
-        displayTitle: '듄',
+        canonicalTitle: 'Dune',
+        displayTitle: 'Dune',
         mediumType: WorkType.novel,
         franchiseName: 'Dune',
         subType: 'science_fiction',
         releaseYear: 2026,
-        summary: '사막 행성을 둘러싼 이야기',
+        summary: 'A desert saga.',
         thumbnailUrl: 'https://image.example/dune.jpg',
       }),
       expect.any(Object),
+    );
+    expect(catalogService.createTitleFromImportCandidate.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        externalRefs: [
+          {
+            provider: 'aladin',
+            externalId: '123',
+            rawType: 'novel',
+            url: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=123',
+          },
+        ],
+        releaseCandidates: [
+          expect.objectContaining({
+            displayLabel: expect.any(String),
+            externalRefs: [
+              {
+                provider: 'aladin',
+                externalId: '123-1',
+                rawType: 'volume',
+                url: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=123-1',
+              },
+            ],
+            isbn: '9781234567890',
+            releaseDate: '2026-04-18',
+            releaseType: 'volume',
+            sequence: 1,
+            thumbnailUrl: 'https://image.example/dune-volume-1.jpg',
+            title: expect.any(String),
+          }),
+        ],
+      }),
     );
     expect(prisma.catalogWork.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           id: importedId,
-          title: '듄',
-          author: '프랭크 허버트',
+          title: 'Dune',
+          author: 'Frank Herbert',
         }),
       }),
     );
@@ -706,6 +734,115 @@ describe('SyncService', () => {
         }),
       }),
     ]);
+  });
+
+  it('falls back to payload.title when importDraft.catalogTitle is missing', async () => {
+    const importedId = '55555555-5555-4555-8555-555555555556';
+
+    userRecordsService.findById.mockResolvedValue(null);
+    catalogService.createTitleFromImportCandidate.mockResolvedValue({
+      id: 'catalog-title-from-payload-title',
+    } as Awaited<ReturnType<CatalogService['createTitleFromImportCandidate']>>);
+    userRecordsService.create.mockResolvedValue(
+      createWorkAggregateFixture({
+        id: importedId,
+        catalogTitleId: 'catalog-title-from-payload-title',
+        catalogWorkId: importedId,
+        serverVersion: 1,
+      }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'dab74906-b392-4d52-afb1-349c315af931',
+          entityType: 'work',
+          entityId: importedId,
+          operation: 'create',
+          createdAt: '2026-04-18T00:00:00.000Z',
+          payload: createSyncPayload({
+            id: importedId,
+            title: 'Payload Title Fallback',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:00:00.000Z',
+            syncStatus: 'local-only',
+            serverVersion: 0,
+            importDraft: {
+              mediumType: WorkType.novel,
+              franchiseName: 'Dune',
+              contributors: [{ name: 'Fallback Author' }],
+              externalRefs: [
+                {
+                  provider: 'aladin',
+                  externalId: 'payload-fallback',
+                  rawType: 'novel',
+                  url: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=payload-fallback',
+                },
+              ],
+            },
+          }),
+        },
+      ],
+    });
+
+    expect(catalogService.createTitleFromImportCandidate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalTitle: 'Payload Title Fallback',
+        displayTitle: 'Payload Title Fallback',
+      }),
+      expect.any(Object),
+    );
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'applied',
+        work: expect.objectContaining({
+          id: importedId,
+          catalogTitleId: 'catalog-title-from-payload-title',
+        }),
+      }),
+    ]);
+  });
+
+  it('fails when importDraft.catalogTitle and payload.title are both blank', async () => {
+    const importedId = '55555555-5555-4555-8555-555555555557';
+
+    userRecordsService.findById.mockResolvedValue(null);
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'dab74906-b392-4d52-afb1-349c315af932',
+          entityType: 'work',
+          entityId: importedId,
+          operation: 'create',
+          createdAt: '2026-04-18T00:00:00.000Z',
+          payload: createSyncPayload({
+            id: importedId,
+            title: '   ',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:00:00.000Z',
+            syncStatus: 'local-only',
+            serverVersion: 0,
+            importDraft: {
+              catalogTitle: '   ',
+              mediumType: WorkType.novel,
+            },
+          }),
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'failed',
+        message:
+          'Catalog title could not be resolved from importDraft.catalogTitle or payload.title.',
+        work: null,
+      }),
+    ]);
+    expect(catalogService.createTitleFromImportCandidate).not.toHaveBeenCalled();
+    expect(prisma.catalogWork.create).not.toHaveBeenCalled();
+    expect(userRecordsService.create).not.toHaveBeenCalled();
   });
 
   it('applies tombstone payloads and increments the server version', async () => {
@@ -784,23 +921,9 @@ describe('SyncService', () => {
           operation: 'delete',
           createdAt: '2026-04-18T00:30:00.000Z',
           payload: {
-            id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
-            type: 'novel',
-            title: 'The Three-Body Problem',
-            author: 'Liu Cixin',
-            genres: ['Sci-Fi'],
-            description: '',
-            thumbnailUrl: '',
-            status: 'completed',
-            rating: 5,
-            shortReview: '',
-            review: '',
-            tier: null,
-            favorite: false,
-            createdAt: '2026-04-18T00:00:00.000Z',
+            ...createSyncPayload(),
             updatedAt: '2026-04-18T00:30:00.000Z',
             deletedAt: '2026-04-18T00:30:00.000Z',
-            syncStatus: 'pending',
             serverVersion: 2,
           },
         },
@@ -820,23 +943,26 @@ describe('SyncService', () => {
 
   it('pushes a local release record for volume-recordable titles only', async () => {
     const parent = createWorkAggregateFixture({
-      catalogTitleId: 'b6e0804c-4ff1-4382-b409-67d73291ed8a',
+      catalogTitleId: 'catalog-title-1',
       catalogWork: {
         ...createWorkAggregateFixture().catalogWork,
         type: WorkType.light_novel,
       },
+      catalogTitle: {
+        mediumType: WorkType.light_novel,
+      } as never,
     });
     userRecordsService.findById.mockResolvedValue(parent);
     releaseRecordsService.findById
       .mockImplementationOnce(async () => null)
       .mockImplementationOnce(async () => createReleaseRecordAggregateFixture());
-    prisma.catalogRelease.findFirst.mockImplementation(async () => ({
+    prisma.catalogRelease.findFirst.mockResolvedValue({
       id: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
-      catalogTitleId: 'b6e0804c-4ff1-4382-b409-67d73291ed8a',
-    }));
-    prisma.userReleaseRecord.create.mockImplementation(async () => ({
+      catalogTitleId: 'catalog-title-1',
+    });
+    prisma.userReleaseRecord.create.mockResolvedValue({
       id: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
-    }));
+    });
 
     const result = await service.push(USER_ID, {
       changes: [
@@ -872,11 +998,14 @@ describe('SyncService', () => {
 
   it('rejects release-record sync for progress-only anime titles', async () => {
     const parent = createWorkAggregateFixture({
-      catalogTitleId: 'b6e0804c-4ff1-4382-b409-67d73291ed8a',
+      catalogTitleId: 'catalog-title-1',
       catalogWork: {
         ...createWorkAggregateFixture().catalogWork,
         type: WorkType.anime,
       },
+      catalogTitle: {
+        mediumType: WorkType.anime,
+      } as never,
     });
     userRecordsService.findById.mockResolvedValue(parent);
     releaseRecordsService.findById.mockImplementation(async () => null);

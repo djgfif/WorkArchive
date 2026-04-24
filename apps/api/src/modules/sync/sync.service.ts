@@ -299,6 +299,9 @@ export class SyncService {
     const existingTitle = payload.catalogTitleId
       ? await this.findCatalogTitleForSyncCreate(payload.catalogTitleId)
       : null;
+    const importDraftCatalogTitle = payload.importDraft
+      ? this.resolveImportDraftCatalogTitle(payload)
+      : null;
 
     if (payload.catalogTitleId && !existingTitle) {
       return {
@@ -307,6 +310,18 @@ export class SyncService {
         entityType: 'work',
         status: 'failed',
         message: `Catalog title with id "${payload.catalogTitleId}" was not found.`,
+        work: null,
+      };
+    }
+
+    if (payload.importDraft && !importDraftCatalogTitle) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'work',
+        status: 'failed',
+        message:
+          'Catalog title could not be resolved from importDraft.catalogTitle or payload.title.',
         work: null,
       };
     }
@@ -325,7 +340,7 @@ export class SyncService {
 
       if (payload.importDraft) {
         const title = await this.catalogService.createTitleFromImportCandidate(
-          this.buildImportTitleCreateData(payload),
+          this.buildImportTitleCreateData(payload, importDraftCatalogTitle!),
           tx,
         );
 
@@ -693,11 +708,12 @@ export class SyncService {
 
   private buildImportTitleCreateData(
     payload: SyncWorkPayloadDto,
+    catalogTitle: string,
   ): CreateCatalogTitleInput {
     const importDraft = payload.importDraft!;
 
     return {
-      canonicalTitle: importDraft.catalogTitle.trim(),
+      canonicalTitle: catalogTitle,
       ...(importDraft.contributors && importDraft.contributors.length > 0
         ? {
             contributorNames: importDraft.contributors.map((contributor) =>
@@ -705,7 +721,7 @@ export class SyncService {
             ),
           }
         : {}),
-      displayTitle: importDraft.catalogTitle.trim(),
+      displayTitle: catalogTitle,
       ...(importDraft.externalRefs && importDraft.externalRefs.length > 0
         ? {
             externalRefs: importDraft.externalRefs.map((ref) =>
@@ -749,7 +765,11 @@ export class SyncService {
     return {
       id: payload.id,
       type: (payload.type ?? title?.mediumType ?? WorkType.other) as WorkType,
-      title: payload.title.trim() || title?.displayTitle || payload.importDraft?.catalogTitle.trim() || payload.id,
+      title:
+        payload.title.trim() ||
+        title?.displayTitle ||
+        payload.importDraft?.catalogTitle?.trim() ||
+        payload.id,
       author: normalizeString(payload.author) || fallbackAuthor,
       genres: normalizeGenres(payload.genres),
       description: normalizeString(payload.description) || normalizeString(title?.summary),
@@ -758,6 +778,18 @@ export class SyncService {
       createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
       updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
     };
+  }
+
+  private resolveImportDraftCatalogTitle(payload: SyncWorkPayloadDto) {
+    const catalogTitle = payload.importDraft?.catalogTitle?.trim();
+
+    if (catalogTitle) {
+      return catalogTitle;
+    }
+
+    const fallbackTitle = payload.title.trim();
+
+    return fallbackTitle || null;
   }
 
   private buildCatalogExternalRefInput(ref: {

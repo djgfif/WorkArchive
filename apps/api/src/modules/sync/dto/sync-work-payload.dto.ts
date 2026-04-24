@@ -32,14 +32,15 @@ import {
 } from '../../user-records/dto/user-record.dto';
 
 class SyncWorkImportDraftDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     maxLength: 200,
   })
   @Trim()
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(200)
-  catalogTitle!: string;
+  @IsNotEmpty()
+  catalogTitle?: string;
 
   @ApiProperty({
     enum: WorkType,
