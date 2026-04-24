@@ -5,7 +5,7 @@
 | Status | `active` |
 | Role | `target product vision` |
 | Source of truth | 최종 사용자 경험과 디자인 원칙 |
-| Last verified against | vision document refreshed on `2026-04-22` |
+| Last verified against | vision document refreshed on `2026-04-24` |
 | When to update | 최종 사용자 경험, 브랜드 톤, 화면 원칙이 달라질 때 |
 
 이 문서는 Work Archive가 장기적으로 지향하는 **최종 사용자 경험과 디자인 원칙**을 정의한다. 현재 구현 상태나 near-term 실행 순서는 다루지 않는다.
@@ -86,7 +86,13 @@ Work Archive는 단순한 기록 폼 모음이 아니라, **내 취향을 빠르
 - 대비, 포커스 표시, 읽기 순서를 기본 품질로 본다.
 - 다크 모드에서도 명도 대비와 장시간 읽기 피로를 함께 고려한다.
 
-## 8. Relationship To Other Docs
+## 8. Design Workflow
+
+- 이 문서의 비주얼 원칙을 실제 화면 구조와 디자인 시스템으로 구체화할 때는 **`stich MCP 서버 (Stitch)`를 우선 사용한다.**
+- 화면 시안, 디자인 시스템 정의, 스타일 가이드 정리는 `stich MCP 서버`를 기준으로 진행한다.
+- 기존 화면의 작은 CSS 수정이나 순수 로직 변경은 `stich MCP 서버` 의무 대상이 아니다.
+
+## 9. Relationship To Other Docs
 
 - 현재 구현 상태는 [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)에서 본다.
 - 근거리 제품 우선순위는 [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)에서 본다.

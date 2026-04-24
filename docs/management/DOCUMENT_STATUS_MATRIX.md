@@ -5,7 +5,7 @@
 | Status | `canonical` |
 | Role | `status map` |
 | Source of truth | 현재 문서 트리와 문서 상단 metadata |
-| Last verified against | `2026-04-22` working tree |
+| Last verified against | `2026-04-24` working tree |
 | When to update | 문서 status, 역할, authoritative scope가 바뀔 때 |
 
 이 표는 주요 문서를 `canonical`, `active`, `reference`, `archived`로 구분하는 기준표다.
@@ -25,6 +25,7 @@
 | [`../README.md`](../README.md) | `active` | `documentation hub` | docs 폴더 진입 | 세부 도메인 판단 |
 | [`../project/README.md`](../project/README.md) | `active` | `navigation` | project 폴더 읽기 순서 | 현재 구현 세부 사항 |
 | [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | `canonical` | `current reality` | 현재 구현 상태, 라우트, 모듈, 세션 저장 방식, 검증 표면 | 장기 비전의 상세 설계 |
+| [`../project/EXECUTION_ROADMAP.md`](../project/EXECUTION_ROADMAP.md) | `canonical` | `integrated execution roadmap` | near-term 실행 순서, phase boundaries, frontend design workflow rule | 현재 구현의 세부 사실, 장기 구조 전체 |
 | [`../project/PROJECT_SPEC.md`](../project/PROJECT_SPEC.md) | `reference` | `historical reference` | 초기 요구사항과 범위 맥락 | 현재 코드 상태 |
 | [`../project/IMPLEMENTATION_PLAN.md`](../project/IMPLEMENTATION_PLAN.md) | `reference` | `historical reference` | 초기 구현 구조와 단계 | 현재 구조 기준 |
 | [`../project/PLAN.md`](../project/PLAN.md) | `reference` | `historical reference` | milestone 진행 기록 | 현재 우선순위 |

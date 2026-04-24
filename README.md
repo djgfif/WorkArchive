@@ -5,7 +5,7 @@
 | Status | `active` |
 | Role | `operational entrypoint` |
 | Source of truth | `package.json`, `compose.yml`, `apps/web/package.json`, `apps/api/package.json` |
-| Last verified against | `2026-04-22` working tree |
+| Last verified against | `2026-04-24` working tree |
 | When to update | 실행 스크립트, 환경 변수, 포트, Compose 흐름, 현재 검증 상태가 바뀔 때 |
 
 Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 작품 감상 기록을 관리하는 local-first 웹 서비스다. 프론트는 IndexedDB를 1차 저장소로 사용하고, 로그인 시 계정별 로컬 아카이브와 수동 동기화를 사용할 수 있다.
@@ -58,6 +58,15 @@ cp apps/web/.env.example apps/web/.env
 - 로컬 API 개발은 `apps/api/.env`의 `localhost` 기준 설정을 사용한다.
 - Compose는 루트 `.env`의 `postgres` 서비스 호스트명을 사용한다.
 - 웹은 `apps/web/.env`가 없어도 `http://localhost:3000/api`를 기본 API URL로 사용한다.
+
+## External Search Providers
+
+Quick Add 외부 검색은 현재 아래 두 축으로 동작한다.
+
+- user-scoped: `Aladin`은 로그인한 계정 설정에서 TTBKey를 저장해 사용한다.
+- server-scoped: `TMDB_API_READ_TOKEN` 또는 `TMDB_API_KEY`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `KAKAO_REST_API_KEY`, `KOBIS_API_KEY`
+
+공개 키가 필요 없는 `AniList`, `Google Books`, `Open Library`, `TVmaze`, `manual` provider도 현재 코드에 연결돼 있다.
 
 ## Host-Based Development
 
@@ -154,17 +163,19 @@ npm run build
 
 ## Current Verification Status
 
-- `npm run typecheck`: `2026-04-21` 기준 통과 확인
-- `npm run test`: 스크립트는 존재하지만 이번 문서 정리 패스에서는 30초 타임박스 내 완료 여부를 재확정하지 못함
-- `npm run test --workspace @work-archive/web`: `2026-04-21` 기준 `13 files`, `39 tests` 통과 확인
-- `npm run test --workspace @work-archive/api`: 동일
+- `npm run typecheck`: `2026-04-24` 통과 확인
+- `npm run test --workspace @work-archive/web`: `2026-04-24` 기준 `16 files`, `50 tests` 통과 확인
+- `npm run test --workspace @work-archive/api`: `2026-04-24` 기준 `7 suites`, `38 tests` 통과 확인
+- `npm run build`: `2026-04-24` 통과 확인
+- `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe`도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
 ## Current Product Reality
 
 - 게스트 모드는 항상 사용 가능하며 IndexedDB에만 저장된다.
 - 로그인 시 계정별 로컬 아카이브로 전환되고 수동 sync를 사용할 수 있다.
 - 로그인 직후 guest 기록이 감지되면 `/account/transfer`에서 중복 후보를 검토한 뒤 선택 import할 수 있다.
-- Quick Add 흐름은 존재하지만 외부 메타데이터 API 연동은 아직 없다.
+- Quick Add는 authenticated 상태에서 `/imports/search`를 사용하고, 현재 `Aladin`, `AniList`, `Google Books`, `Open Library`, `TVmaze`, `TMDB`, `Naver Book`, `Kakao Book`, `KOBIS`, `manual` provider 구조가 연결돼 있다.
+- Quick Add 저장은 아직 local-first다. 선택한 후보는 Dexie `works` 레코드와 `syncQueue`에 먼저 반영되고, authenticated 생성도 서버 direct create가 아니라 동기화 경로를 탄다.
 - `Tier Boards`, `Insights`, `Community`는 현재 placeholder 성격이 강하다.
 - 인증은 현재 이메일/비밀번호 + access token local storage + refresh cookie 구조다.
 - 백엔드는 이미 `CatalogWork` + `UserWorkRecord` split model을 도입했고, 현재 `Works` API는 flat compatibility 계층으로 유지된다.
@@ -174,7 +185,7 @@ npm run build
 
 - 자동 동기화는 아직 없다.
 - guest -> account 이관은 검토/선택 import 단계까지만 있고, 자동 병합이나 다기기 정책은 아직 없다.
-- Quick Add는 preview seam만 존재하고 외부 metadata truth source는 아직 없다.
+- Quick Add 검색은 이미 provider 기반이지만, provider readiness UI, ranking, duplicate detection, direct authenticated create path는 아직 정리 중이다.
 - `Works` compatibility layer, access token 저장 구조, 공개 레이어 권한 분리 같은 후속 과제는 아직 남아 있다.
 
 ## Documentation

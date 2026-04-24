@@ -4,10 +4,11 @@ import {
   type Prisma,
   type WorkStatus,
   type WorkTier,
-  type WorkType,
+  WorkType,
 } from '@prisma/client';
 
 import { CatalogService } from '../catalog/catalog.service';
+import type { CreateCatalogTitleInput } from '../catalog/catalog-ingestion.service';
 import {
   canCreateReleaseRecord,
   canUseProgressUnit,
@@ -44,6 +45,21 @@ const APPLIED_TOMBSTONE_MESSAGE = 'Queued tombstone applied on the server.';
 const CREATED_MESSAGE = 'Queued record created on the server.';
 const MISSING_REMOTE_DELETE_NOOP_MESSAGE =
   'Remote delete was a no-op because the server record is missing.';
+
+const SYNC_CREATE_TITLE_INCLUDE = {
+  contributors: {
+    include: {
+      contributor: true,
+    },
+    orderBy: {
+      displayOrder: 'asc',
+    },
+  },
+} satisfies Prisma.CatalogTitleInclude;
+
+type SyncCreateTitleView = Prisma.CatalogTitleGetPayload<{
+  include: typeof SYNC_CREATE_TITLE_INCLUDE;
+}>;
 
 @Injectable()
 export class SyncService {
@@ -280,7 +296,49 @@ export class SyncService {
       };
     }
 
+    const existingTitle = payload.catalogTitleId
+      ? await this.findCatalogTitleForSyncCreate(payload.catalogTitleId)
+      : null;
+
+    if (payload.catalogTitleId && !existingTitle) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'work',
+        status: 'failed',
+        message: `Catalog title with id "${payload.catalogTitleId}" was not found.`,
+        work: null,
+      };
+    }
+
     const created = await this.prisma.$transaction(async (tx) => {
+      if (existingTitle) {
+        await tx.catalogWork.create({
+          data: this.buildCompatibilityCatalogWorkCreateData(payload, existingTitle),
+        });
+
+        return this.userRecordsService.create(
+          this.buildUserRecordCreateData(userId, payload, existingTitle.id),
+          tx,
+        );
+      }
+
+      if (payload.importDraft) {
+        const title = await this.catalogService.createTitleFromImportCandidate(
+          this.buildImportTitleCreateData(payload),
+          tx,
+        );
+
+        await tx.catalogWork.create({
+          data: this.buildCompatibilityCatalogWorkCreateData(payload),
+        });
+
+        return this.userRecordsService.create(
+          this.buildUserRecordCreateData(userId, payload, title.id),
+          tx,
+        );
+      }
+
       await this.catalogService.create(this.buildCatalogCreateData(payload), tx);
 
       return this.userRecordsService.create(
@@ -604,13 +662,14 @@ export class SyncService {
   private buildUserRecordCreateData(
     userId: string,
     payload: SyncWorkPayloadDto,
+    catalogTitleId = payload.catalogTitleId ?? payload.id,
   ): Prisma.UserWorkRecordUncheckedCreateInput {
     return {
       id: payload.id,
       userId,
       // split-only 중간 단계: payload.id를 catalogWorkId로 사용해 1:1 매핑을 고정합니다.
       catalogWorkId: payload.id,
-      catalogTitleId: payload.catalogTitleId ?? payload.id,
+      catalogTitleId,
       status: payload.status as WorkStatus,
       rating: payload.rating ?? null,
       shortReview: normalizeString(payload.shortReview),
@@ -630,6 +689,133 @@ export class SyncService {
       syncStatus: SERVER_SYNC_STATUS,
       serverVersion: 1,
     };
+  }
+
+  private buildImportTitleCreateData(
+    payload: SyncWorkPayloadDto,
+  ): CreateCatalogTitleInput {
+    const importDraft = payload.importDraft!;
+
+    return {
+      canonicalTitle: importDraft.catalogTitle.trim(),
+      ...(importDraft.contributors && importDraft.contributors.length > 0
+        ? {
+            contributorNames: importDraft.contributors.map((contributor) =>
+              contributor.name.trim(),
+            ),
+          }
+        : {}),
+      displayTitle: importDraft.catalogTitle.trim(),
+      ...(importDraft.externalRefs && importDraft.externalRefs.length > 0
+        ? {
+            externalRefs: importDraft.externalRefs.map((ref) =>
+              this.buildCatalogExternalRefInput(ref),
+            ),
+          }
+        : {}),
+      franchiseName: importDraft.franchiseName?.trim() ?? null,
+      mediumType: importDraft.mediumType as WorkType,
+      ...(importDraft.releaseCandidates && importDraft.releaseCandidates.length > 0
+        ? {
+            releaseCandidates: importDraft.releaseCandidates.map((release) =>
+              this.buildCatalogReleaseCandidateInput(release),
+            ),
+          }
+        : {}),
+      releaseYear: importDraft.releaseYear ?? null,
+      subType: importDraft.subType?.trim() ?? null,
+      summary: normalizeString(payload.description),
+      thumbnailUrl: normalizeString(payload.thumbnailUrl),
+    };
+  }
+
+  private buildCompatibilityCatalogWorkCreateData(
+    payload: SyncWorkPayloadDto,
+    title?: SyncCreateTitleView,
+  ): Prisma.CatalogWorkUncheckedCreateInput {
+    const fallbackAuthor =
+      title?.contributors
+        .map((entry) => entry.contributor.displayName)
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(', ') ??
+      payload.importDraft?.contributors
+        ?.map((contributor) => contributor.name.trim())
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(', ') ??
+      '';
+
+    return {
+      id: payload.id,
+      type: (payload.type ?? title?.mediumType ?? WorkType.other) as WorkType,
+      title: payload.title.trim() || title?.displayTitle || payload.importDraft?.catalogTitle.trim() || payload.id,
+      author: normalizeString(payload.author) || fallbackAuthor,
+      genres: normalizeGenres(payload.genres),
+      description: normalizeString(payload.description) || normalizeString(title?.summary),
+      thumbnailUrl:
+        normalizeString(payload.thumbnailUrl) || normalizeString(title?.thumbnailUrl),
+      createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
+      updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+    };
+  }
+
+  private buildCatalogExternalRefInput(ref: {
+    externalId: string;
+    provider: string;
+    rawType?: string | null;
+    url?: string | null;
+  }) {
+    return {
+      externalId: ref.externalId.trim(),
+      provider: ref.provider.trim(),
+      ...(ref.rawType?.trim() ? { rawType: ref.rawType.trim() } : {}),
+      ...(ref.url?.trim() ? { url: ref.url.trim() } : {}),
+    };
+  }
+
+  private buildCatalogReleaseCandidateInput(release: {
+    displayLabel?: string | null;
+    externalRefs?: Array<{
+      externalId: string;
+      provider: string;
+      rawType?: string | null;
+      url?: string | null;
+    }> | null;
+    isbn?: string | null;
+    releaseDate?: string | Date | null;
+    releaseType?: string | null;
+    sequence?: number | null;
+    thumbnailUrl?: string | null;
+    title?: string | null;
+  }) {
+    return {
+      ...(release.displayLabel?.trim() ? { displayLabel: release.displayLabel.trim() } : {}),
+      ...(release.externalRefs && release.externalRefs.length > 0
+        ? {
+            externalRefs: release.externalRefs.map((ref) =>
+              this.buildCatalogExternalRefInput(ref),
+            ),
+          }
+        : {}),
+      isbn: release.isbn?.trim() ?? null,
+      releaseDate: release.releaseDate ?? null,
+      ...(release.releaseType?.trim() ? { releaseType: release.releaseType.trim() } : {}),
+      sequence: release.sequence ?? null,
+      ...(release.thumbnailUrl?.trim()
+        ? { thumbnailUrl: release.thumbnailUrl.trim() }
+        : {}),
+      ...(release.title?.trim() ? { title: release.title.trim() } : {}),
+    };
+  }
+
+  private findCatalogTitleForSyncCreate(id: string) {
+    return this.prisma.catalogTitle.findUnique({
+      where: {
+        id,
+      },
+      include: SYNC_CREATE_TITLE_INCLUDE,
+    });
   }
 
   private buildCatalogUpdateData(
@@ -672,6 +858,8 @@ export class SyncService {
 
   private areEquivalent(existing: WorkAggregate, payload: SyncWorkPayloadDto) {
     return (
+      (payload.catalogTitleId === undefined ||
+        (payload.catalogTitleId ?? null) === (existing.catalogTitleId ?? null)) &&
       existing.catalogWork.type === payload.type &&
       existing.catalogWork.title === payload.title.trim() &&
       existing.catalogWork.author === normalizeString(payload.author) &&

@@ -5,7 +5,7 @@
 | Status | `active` |
 | Role | `alignment report` |
 | Source of truth | 현재 소스 트리, package manifests, 핵심 엔트리 파일, current canonical docs |
-| Last verified against | `2026-04-22` working tree |
+| Last verified against | `2026-04-24` working tree |
 | When to update | 코드 현실과 문서 해석 사이의 intentional gap이 바뀔 때 |
 
 이 문서는 현재 코드와 문서 사이에 **의도적으로 남아 있는 간격**만 설명한다. 이미 정정된 현재 상태를 다시 반복하는 문서가 아니다.
@@ -27,11 +27,12 @@
 - 다만 화면 대부분은 여전히 `global.css`, `var(--accent)` 직접 참조, 페이지별 클래스 조합 의존이 크다.
 - 따라서 frontend roadmap 문서는 “미도입”이 아니라 “foundation은 도입됐고 migration이 남아 있다”는 의미로 읽어야 한다.
 
-### Quick Add Preview Seam
+### Quick Add Search/Save Split
 
 - 제품/백엔드 문서는 import-first Quick Add 방향을 유지한다.
-- 현재 프론트의 `importsService`는 아직 `preview-manual` adapter만 사용한다.
-- 즉, Quick Add는 UX와 경계는 존재하지만 외부 metadata truth source는 아직 연결되지 않았다.
+- 현재 코드의 Quick Add는 authenticated 상태에서 실제 `/imports/search`를 사용한다.
+- 다만 저장은 여전히 `Dexie -> syncQueue` local-first 경로가 기본이고, authenticated direct create는 아직 기본값이 아니다.
+- 따라서 현재 intentional gap은 “외부 검색 미연결”이 아니라 “search는 server-assisted인데 save는 local-first”라는 점이다.
 
 ### Placeholder Surfaces
 
@@ -59,5 +60,5 @@
 
 1. 현재 스택과 package version의 해석이 달라질 때
 2. 현재 라우트/레이아웃/세션 저장 기준 문서가 바뀔 때
-3. Quick Add seam, placeholder surfaces, flat `Works` compatibility layer의 성격이 달라질 때
+3. Quick Add search/save split, placeholder surfaces, flat `Works` compatibility layer의 성격이 달라질 때
 4. roadmap 문서가 다시 current reality처럼 읽히기 쉬워질 때

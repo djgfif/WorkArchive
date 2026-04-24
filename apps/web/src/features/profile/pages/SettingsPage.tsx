@@ -18,14 +18,33 @@ import {
   importsService,
   type ImportProviderStatus,
 } from '../../imports/services/imports.service';
+import { getWorkTypeLabel } from '../../works/utils/work-options';
+
+function getCredentialModeLabel(mode?: ImportProviderStatus['credentialMode']) {
+  switch (mode) {
+    case 'server':
+      return '서버 자격 증명';
+    case 'user':
+      return '사용자 키';
+    case 'none':
+    default:
+      return '추가 키 없음';
+  }
+}
+
+function getProviderStatusLabel(status: ImportProviderStatus) {
+  if (status.credentialMode === 'none') {
+    return '바로 사용 가능';
+  }
+
+  return status.configured ? '준비됨' : '설정 필요';
+}
 
 export function SettingsPage() {
   const { mode } = useAuthSession();
-  const [aladinStatus, setAladinStatus] = useState<ImportProviderStatus | null>(
-    null,
-  );
+  const [providerStatuses, setProviderStatuses] = useState<ImportProviderStatus[]>([]);
   const [ttbKey, setTtbKey] = useState('');
-  const [isLoadingAladinStatus, setIsLoadingAladinStatus] = useState(false);
+  const [isLoadingProviderStatuses, setIsLoadingProviderStatuses] = useState(false);
   const [isSavingAladinKey, setIsSavingAladinKey] = useState(false);
   const [isDeletingAladinKey, setIsDeletingAladinKey] = useState(false);
   const [aladinFeedback, setAladinFeedback] = useState<{
@@ -36,20 +55,20 @@ export function SettingsPage() {
   useEffect(() => {
     let isCancelled = false;
 
-    async function loadAladinStatus() {
+    async function loadProviderStatuses() {
       if (mode !== 'authenticated') {
-        setAladinStatus(null);
+        setProviderStatuses([]);
         setAladinFeedback(null);
 
         return;
       }
 
       try {
-        setIsLoadingAladinStatus(true);
-        const status = await importsService.getAladinProviderStatus();
+        setIsLoadingProviderStatuses(true);
+        const statuses = await importsService.listProviders();
 
         if (!isCancelled) {
-          setAladinStatus(status);
+          setProviderStatuses(statuses);
           setAladinFeedback(null);
         }
       } catch (error) {
@@ -64,12 +83,12 @@ export function SettingsPage() {
         }
       } finally {
         if (!isCancelled) {
-          setIsLoadingAladinStatus(false);
+          setIsLoadingProviderStatuses(false);
         }
       }
     }
 
-    void loadAladinStatus();
+    void loadProviderStatuses();
 
     return () => {
       isCancelled = true;
@@ -92,7 +111,11 @@ export function SettingsPage() {
       setIsSavingAladinKey(true);
       const status = await importsService.saveAladinKey(ttbKey);
 
-      setAladinStatus(status);
+      setProviderStatuses((current) =>
+        current.map((entry) =>
+          entry.provider === status.provider ? { ...entry, configured: true } : entry,
+        ),
+      );
       setTtbKey('');
       setAladinFeedback({
         tone: 'success',
@@ -115,10 +138,11 @@ export function SettingsPage() {
     try {
       setIsDeletingAladinKey(true);
       await importsService.deleteAladinKey();
-      setAladinStatus({
-        provider: 'aladin',
-        configured: false,
-      });
+      setProviderStatuses((current) =>
+        current.map((entry) =>
+          entry.provider === 'aladin' ? { ...entry, configured: false } : entry,
+        ),
+      );
       setTtbKey('');
       setAladinFeedback({
         tone: 'success',
@@ -136,6 +160,9 @@ export function SettingsPage() {
       setIsDeletingAladinKey(false);
     }
   }
+
+  const aladinStatus =
+    providerStatuses.find((status) => status.provider === 'aladin') ?? null;
 
   return (
     <AccountPageTemplate
@@ -160,6 +187,44 @@ export function SettingsPage() {
 
       <SectionCard>
         <SectionIntro
+          description="Quick Add가 어떤 provider를 바로 쓸 수 있는지, 어떤 provider가 별도 키를 요구하는지 먼저 확인합니다."
+          eyebrow="Provider 상태"
+          title="외부 검색 준비 상태"
+        />
+
+        {mode !== 'authenticated' ? (
+          <Text c="var(--app-text-muted)">
+            로그인하면 provider 준비 상태와 개인 Aladin 키 설정을 함께 확인할 수 있습니다.
+          </Text>
+        ) : isLoadingProviderStatuses ? (
+          <Text c="var(--app-text-muted)">provider 상태를 불러오는 중입니다.</Text>
+        ) : (
+          <Stack gap="sm">
+            {providerStatuses.map((status) => (
+              <SectionCard key={status.provider} padding="lg" tone="subtle">
+                <Stack gap="xs">
+                  <ActionRow>
+                    <AppBadge tone={status.configured ? 'success' : 'muted'}>
+                      {getProviderStatusLabel(status)}
+                    </AppBadge>
+                    <AppBadge>{getCredentialModeLabel(status.credentialMode)}</AppBadge>
+                  </ActionRow>
+
+                  <Text fw={700}>{status.label ?? status.provider}</Text>
+                  {status.mediumTypes && status.mediumTypes.length > 0 && (
+                    <Text c="var(--app-text-muted)" size="sm">
+                      지원 매체: {status.mediumTypes.map(getWorkTypeLabel).join(', ')}
+                    </Text>
+                  )}
+                </Stack>
+              </SectionCard>
+            ))}
+          </Stack>
+        )}
+      </SectionCard>
+
+      <SectionCard>
+        <SectionIntro
           description="Quick Add에서 Aladin 도서 검색 후보를 가져올 때 사용할 사용자별 TTBKey를 저장합니다. 저장된 키 값은 다시 표시하지 않습니다."
           eyebrow="외부 검색"
           title="Aladin Book 연동"
@@ -173,7 +238,7 @@ export function SettingsPage() {
           <Stack gap="md">
             <ActionRow>
               <AppBadge tone={aladinStatus?.configured ? 'success' : 'muted'}>
-                {isLoadingAladinStatus
+                {isLoadingProviderStatuses
                   ? '상태 확인 중'
                   : aladinStatus?.configured
                     ? '키가 등록되어 있습니다'

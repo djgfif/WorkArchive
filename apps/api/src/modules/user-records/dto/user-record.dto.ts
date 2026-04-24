@@ -229,14 +229,14 @@ export class UpdateProgressDto {
   lastConsumedLabel?: string | null;
 }
 
-class ImportContributorDto {
+export class ImportContributorDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
   name!: string;
 }
 
-class ImportExternalRefDto {
+export class ImportExternalRefDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
@@ -258,7 +258,7 @@ class ImportExternalRefDto {
   url?: string;
 }
 
-class ImportReleaseCandidateDto {
+export class ImportReleaseCandidateDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

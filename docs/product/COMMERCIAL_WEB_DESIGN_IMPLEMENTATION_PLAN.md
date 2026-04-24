@@ -5,7 +5,7 @@
 | Status | `active` |
 | Role | `product priority summary` |
 | Source of truth | 현재 구현 현실, [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md), [`FINAL_WEB_DESIGN.md`](./FINAL_WEB_DESIGN.md) |
-| Last verified against | `2026-04-22` working tree |
+| Last verified against | `2026-04-24` working tree |
 | When to update | 근거리 제품 우선순위, 사용자 가치 설명, frontend 실행 문서와의 역할 분리가 바뀔 때 |
 
 이 문서는 Work Archive를 **현재 동작하는 기능형 웹앱에서 더 정돈된 서비스형 제품으로 끌어올리기 위한 near-term priority summary**다. 상세 구현 단계는 `FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`에서 관리하고, 여기서는 왜 그 순서가 제품 가치에 맞는지만 설명한다.
@@ -19,7 +19,7 @@
 - Home / Works / Work Detail / Auth / Account 흐름은 실제로 동작한다.
 - local-first, guest/auth archive 분리, manual sync가 현재 제품의 핵심 현실이다.
 - 로그인 직후 guest 기록 검토/선택 import 흐름이 이미 존재한다.
-- Quick Add는 구조는 있으나 외부 metadata 연동은 없다.
+- Quick Add는 이미 external provider 검색을 사용하지만, 저장은 계속 local-first이고 provider readiness UX는 부분 구현 상태다.
 - `Tier Boards`, `Insights`, `Community`는 확장 목적지이지만 구현 성숙도는 낮다.
 - Mantine foundation은 도입됐지만 스타일 인프라는 여전히 `global.css`와 수동 클래스 조합에 크게 의존한다.
 
@@ -78,7 +78,7 @@ Home, Works, Work Detail, Auth, Account의 실제 사용자 가치가 더 빨리
 
 ## Next
 
-- 외부 metadata 후보 연동을 위한 Quick Add 준비
+- provider readiness, ranking, duplicate detection을 포함한 Quick Add 신뢰도 개선
 - 게스트 기록 -> 계정 전환 UX 설계
 - 공개 프로필과 개인 프로필의 경계 정리
 - tier board 기능 착수를 위한 제품 경계 고정

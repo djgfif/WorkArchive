@@ -1,6 +1,7 @@
 import { liveQuery } from 'dexie';
 import type {
   CatalogSearchMediumType,
+  WorkImportDraft,
   WorkRecord,
 } from '@work-archive/shared-types';
 import {
@@ -130,10 +131,40 @@ function normalizeTitle(value: string) {
     .replace(/[^0-9a-z가-힣]+/g, '');
 }
 
+function createExternalRefKey(ref: {
+  externalId: string;
+  provider: string;
+  rawType?: string;
+}) {
+  return [ref.provider, ref.rawType ?? '', ref.externalId].join(':');
+}
+
+function isPreviewOrManualCandidate(candidate: ImportCandidate) {
+  return candidate.sourceId === 'preview-manual' || candidate.sourceId === 'manual';
+}
+
+function buildImportExternalRef(ref: {
+  externalId: string;
+  provider: string;
+  rawType?: string;
+  url?: string;
+}) {
+  return {
+    externalId: ref.externalId,
+    provider: ref.provider,
+    ...(ref.rawType ? { rawType: ref.rawType } : {}),
+    ...(ref.url ? { url: ref.url } : {}),
+  };
+}
+
 function findLikelyMatches(
   candidate: ImportCandidate,
   existingWorks: WorkRecord[],
 ) {
+  const matchedCatalogTitleId = candidate.catalogMatch?.id ?? null;
+  const candidateExternalRefKeys = new Set(
+    candidate.externalRefs.map((ref) => createExternalRefKey(ref)),
+  );
   const candidateTitleKeys = Array.from(
     new Set(
       [candidate.title, candidate.title.replace(/\s*\([^)]*\)\s*$/, '')]
@@ -142,9 +173,22 @@ function findLikelyMatches(
     ),
   );
 
-  return existingWorks.filter((work) =>
-    candidateTitleKeys.some((key) => normalizeTitle(work.title) === key),
-  );
+  return existingWorks.filter((work) => {
+    if (matchedCatalogTitleId && work.catalogTitleId === matchedCatalogTitleId) {
+      return true;
+    }
+
+    if (
+      candidateExternalRefKeys.size > 0 &&
+      work.importDraft?.externalRefs?.some((ref) =>
+        candidateExternalRefKeys.has(createExternalRefKey(ref)),
+      )
+    ) {
+      return true;
+    }
+
+    return candidateTitleKeys.some((key) => normalizeTitle(work.title) === key);
+  });
 }
 
 function createValuesFromCandidate(candidate: ImportCandidate): WorkFormValues {
@@ -156,6 +200,78 @@ function createValuesFromCandidate(candidate: ImportCandidate): WorkFormValues {
     thumbnailUrl: candidate.thumbnailUrl,
     title: candidate.title,
     type: candidate.mediumType,
+  };
+}
+
+function buildImportIdentity(
+  candidate: ImportCandidate,
+  input: UpsertWorkInput,
+): Pick<UpsertWorkInput, 'catalogTitleId' | 'importDraft'> {
+  if (candidate.catalogMatch?.id) {
+    return {
+      catalogTitleId: candidate.catalogMatch.id,
+      importDraft: null,
+    };
+  }
+
+  if (isPreviewOrManualCandidate(candidate)) {
+    return {
+      catalogTitleId: null,
+      importDraft: null,
+    };
+  }
+
+  const importDraft: WorkImportDraft = {
+    catalogTitle: input.title,
+    mediumType: input.type,
+  };
+
+  if (candidate.franchiseName !== null) {
+    importDraft.franchiseName = candidate.franchiseName;
+  }
+
+  if (candidate.subType !== null) {
+    importDraft.subType = candidate.subType;
+  }
+
+  if (candidate.releaseYear !== null) {
+    importDraft.releaseYear = candidate.releaseYear;
+  }
+
+  if (candidate.contributors.length > 0) {
+    importDraft.contributors = candidate.contributors.map((contributor) => ({
+      name: contributor.name,
+    }));
+  }
+
+  if (candidate.externalRefs.length > 0) {
+    importDraft.externalRefs = candidate.externalRefs.map((ref) =>
+      buildImportExternalRef(ref),
+    );
+  }
+
+  if (candidate.releaseCandidates.length > 0) {
+    importDraft.releaseCandidates = candidate.releaseCandidates.map((release) => ({
+      ...(release.displayLabel ? { displayLabel: release.displayLabel } : {}),
+      ...(release.externalRefs && release.externalRefs.length > 0
+        ? {
+            externalRefs: release.externalRefs.map((ref) =>
+              buildImportExternalRef(ref),
+            ),
+          }
+        : {}),
+      isbn: release.isbn ?? null,
+      releaseDate: release.releaseDate ?? null,
+      ...(release.releaseType ? { releaseType: release.releaseType } : {}),
+      sequence: release.sequence ?? null,
+      ...(release.thumbnailUrl ? { thumbnailUrl: release.thumbnailUrl } : {}),
+      ...(release.title ? { title: release.title } : {}),
+    }));
+  }
+
+  return {
+    catalogTitleId: null,
+    importDraft,
   };
 }
 
@@ -392,7 +508,12 @@ export function QuickAddWorkForm({
 
     try {
       setValidationError(null);
-      await onSubmit(parseWorkFormValues(values));
+      const input = parseWorkFormValues(values);
+
+      await onSubmit({
+        ...input,
+        ...buildImportIdentity(selectedCandidate, input),
+      });
     } catch (error) {
       setValidationError(
         error instanceof Error ? error.message : '작품을 저장하지 못했습니다.',

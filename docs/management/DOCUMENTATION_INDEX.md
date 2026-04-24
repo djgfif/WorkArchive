@@ -5,7 +5,7 @@
 | Status | `canonical` |
 | Role | `navigation` |
 | Source of truth | 현재 문서 트리와 [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md) |
-| Last verified against | `2026-04-22` working tree |
+| Last verified against | `2026-04-24` working tree |
 | When to update | 문서 경로, 읽는 순서, 주요 문서 역할이 바뀔 때 |
 
 이 문서는 Work Archive 문서의 공식 탐색 진입점이다. 무엇을 먼저 읽어야 하는지와 각 문서가 어떤 역할을 가지는지 여기서 판단한다.
@@ -17,7 +17,8 @@
 1. [`../../README.md`](../../README.md)
 2. [`../README.md`](../README.md)
 3. [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
-4. [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md)
+4. [`../project/EXECUTION_ROADMAP.md`](../project/EXECUTION_ROADMAP.md)
+5. [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md)
 
 ### 프론트 문서를 볼 때
 
@@ -46,6 +47,7 @@
 | Document | Status | Role | Use it when |
 | --- | --- | --- | --- |
 | [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | `canonical` | `current reality` | 현재 구현 상태, 실제 라우트, 모듈, 세션 저장 방식, 검증 표면을 알고 싶을 때 |
+| [`../project/EXECUTION_ROADMAP.md`](../project/EXECUTION_ROADMAP.md) | `canonical` | `integrated execution roadmap` | 무엇을 어떤 순서로 고정할지, frontend design workflow 규칙이 무엇인지 알고 싶을 때 |
 | [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md) | `canonical` | `current frontend decisions` | 현재 UI/라우트/레이아웃 기준을 잡을 때 |
 | [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md) | `canonical` | `target frontend structure` | 프론트의 다음 구조 작업 범위를 정할 때 |
 | [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md) | `canonical` | `target backend structure` | 백엔드 도메인 경계와 장기 구조를 판단할 때 |

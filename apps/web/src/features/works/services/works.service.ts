@@ -90,6 +90,8 @@ export class WorksService {
     const work: WorkRecord = {
       id: crypto.randomUUID(),
       ...input,
+      catalogTitleId: input.catalogTitleId ?? null,
+      importDraft: input.importDraft ?? null,
       createdAt: now,
       updatedAt: now,
       progressCurrent: null,
@@ -117,6 +119,12 @@ export class WorksService {
     const updated: WorkRecord = {
       ...existing,
       ...input,
+      catalogTitleId:
+        input.catalogTitleId === undefined
+          ? existing.catalogTitleId ?? null
+          : input.catalogTitleId,
+      importDraft:
+        input.importDraft === undefined ? existing.importDraft ?? null : input.importDraft,
       updatedAt: new Date().toISOString(),
       syncStatus: getNextSyncStatus(existing.serverVersion),
     };

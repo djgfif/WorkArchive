@@ -59,12 +59,33 @@ describe('WorksService', () => {
   });
 
   it('keeps a single create queue item while a local-only work changes', async () => {
-    const created = await service.createWork(buildInput());
+    const created = await service.createWork(
+      buildInput({
+        catalogTitleId: 'catalog-title-1',
+        importDraft: {
+          catalogTitle: 'Dune',
+          mediumType: 'novel',
+          externalRefs: [
+            {
+              provider: 'aladin',
+              externalId: '123',
+              rawType: 'novel',
+            },
+          ],
+        },
+      }),
+    );
 
     expect(await queueRepository.listAll()).toEqual([
       expect.objectContaining({
         entityId: created.id,
         operation: 'create',
+        payload: expect.objectContaining({
+          catalogTitleId: 'catalog-title-1',
+          importDraft: expect.objectContaining({
+            catalogTitle: 'Dune',
+          }),
+        }),
         retryCount: 0,
       }),
     ]);

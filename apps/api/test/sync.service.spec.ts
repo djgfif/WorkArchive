@@ -148,6 +148,12 @@ describe('SyncService', () => {
   let service: SyncService;
   let prisma: {
     $transaction: jest.Mock;
+    catalogTitle: {
+      findUnique: jest.Mock;
+    };
+    catalogWork: {
+      create: jest.Mock;
+    };
     catalogRelease: {
       findFirst: jest.Mock;
     };
@@ -155,7 +161,9 @@ describe('SyncService', () => {
       create: jest.Mock;
     };
   };
-  let catalogService: jest.Mocked<Pick<CatalogService, 'create' | 'update'>>;
+  let catalogService: jest.Mocked<
+    Pick<CatalogService, 'create' | 'createTitleFromImportCandidate' | 'update'>
+  >;
   let userRecordsService: jest.Mocked<
     Pick<UserRecordsService, 'create' | 'findById' | 'findByUserSince' | 'update'>
   >;
@@ -168,6 +176,12 @@ describe('SyncService', () => {
   beforeEach(() => {
     prisma = {
       $transaction: jest.fn(),
+      catalogTitle: {
+        findUnique: jest.fn(),
+      },
+      catalogWork: {
+        create: jest.fn(),
+      },
       catalogRelease: {
         findFirst: jest.fn(),
       },
@@ -178,10 +192,13 @@ describe('SyncService', () => {
     prisma.$transaction.mockImplementation(async (...args: unknown[]) => {
       const callback = args[0] as (client: never) => Promise<unknown>;
 
-      return callback({} as never);
+      return callback({
+        catalogWork: prisma.catalogWork,
+      } as never);
     });
     catalogService = {
       create: jest.fn(),
+      createTitleFromImportCandidate: jest.fn(),
       update: jest.fn(),
     };
     userRecordsService = {
@@ -471,6 +488,221 @@ describe('SyncService', () => {
           id: importedId,
           title: 'Imported Dune',
           serverVersion: 1,
+        }),
+      }),
+    ]);
+  });
+
+  it('creates a missing remote record against an existing catalog title when catalogTitleId is present', async () => {
+    const importedId = '44444444-4444-4444-8444-444444444444';
+
+    userRecordsService.findById.mockResolvedValue(null);
+    prisma.catalogTitle.findUnique.mockResolvedValue({
+      id: 'catalog-title-1',
+      displayTitle: '듄',
+      mediumType: WorkType.novel,
+      summary: '사막 행성을 둘러싼 이야기',
+      thumbnailUrl: 'https://image.example/dune.jpg',
+      contributors: [
+        {
+          contributor: {
+            displayName: '프랭크 허버트',
+          },
+        },
+      ],
+    } as never);
+    userRecordsService.create.mockResolvedValue(
+      createWorkAggregateFixture({
+        id: importedId,
+        catalogTitleId: 'catalog-title-1',
+        catalogWorkId: importedId,
+        serverVersion: 1,
+        catalogWork: {
+          ...createWorkAggregateFixture().catalogWork,
+          id: importedId,
+          title: '듄',
+          author: '프랭크 허버트',
+        },
+      }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'f6a51b9d-0471-49b0-97ab-5fbe58af06d8',
+          entityType: 'work',
+          entityId: importedId,
+          operation: 'create',
+          createdAt: '2026-04-18T00:00:00.000Z',
+          payload: createSyncPayload({
+            id: importedId,
+            catalogTitleId: 'catalog-title-1',
+            title: '듄',
+            author: '',
+            description: '',
+            thumbnailUrl: '',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:00:00.000Z',
+            syncStatus: 'local-only',
+            serverVersion: 0,
+          }),
+        },
+      ],
+    });
+
+    expect(prisma.catalogTitle.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'catalog-title-1',
+        },
+      }),
+    );
+    expect(prisma.catalogWork.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          id: importedId,
+          title: '듄',
+          author: '프랭크 허버트',
+        }),
+      }),
+    );
+    expect(userRecordsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: importedId,
+        catalogTitleId: 'catalog-title-1',
+        catalogWorkId: importedId,
+        userId: USER_ID,
+      }),
+      expect.any(Object),
+    );
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'applied',
+        work: expect.objectContaining({
+          id: importedId,
+          catalogTitleId: 'catalog-title-1',
+        }),
+      }),
+    ]);
+  });
+
+  it('creates or reuses a catalog title from importDraft before creating the missing remote record', async () => {
+    const importedId = '55555555-5555-4555-8555-555555555555';
+
+    userRecordsService.findById.mockResolvedValue(null);
+    catalogService.createTitleFromImportCandidate.mockResolvedValue({
+      id: 'catalog-title-imported',
+    } as Awaited<ReturnType<CatalogService['createTitleFromImportCandidate']>>);
+    userRecordsService.create.mockResolvedValue(
+      createWorkAggregateFixture({
+        id: importedId,
+        catalogTitleId: 'catalog-title-imported',
+        catalogWorkId: importedId,
+        serverVersion: 1,
+        catalogWork: {
+          ...createWorkAggregateFixture().catalogWork,
+          id: importedId,
+          title: '듄',
+          author: '프랭크 허버트',
+        },
+      }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'dab74906-b392-4d52-afb1-349c315af930',
+          entityType: 'work',
+          entityId: importedId,
+          operation: 'create',
+          createdAt: '2026-04-18T00:00:00.000Z',
+          payload: createSyncPayload({
+            id: importedId,
+            title: '듄',
+            author: '프랭크 허버트',
+            description: '사막 행성을 둘러싼 이야기',
+            thumbnailUrl: 'https://image.example/dune.jpg',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:00:00.000Z',
+            syncStatus: 'local-only',
+            serverVersion: 0,
+            importDraft: {
+              catalogTitle: '듄',
+              mediumType: WorkType.novel,
+              franchiseName: 'Dune',
+              subType: 'science_fiction',
+              releaseYear: 2026,
+              contributors: [{ name: '프랭크 허버트' }],
+              externalRefs: [
+                {
+                  provider: 'aladin',
+                  externalId: '123',
+                  rawType: 'novel',
+                  url: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=123',
+                },
+              ],
+              releaseCandidates: [
+                {
+                  displayLabel: '1권',
+                  externalRefs: [
+                    {
+                      provider: 'aladin',
+                      externalId: '123-1',
+                      rawType: 'volume',
+                      url: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=123-1',
+                    },
+                  ],
+                  isbn: '9781234567890',
+                  releaseDate: '2026-04-18',
+                  releaseType: 'volume',
+                  sequence: 1,
+                  thumbnailUrl: 'https://image.example/dune-volume-1.jpg',
+                  title: '듄 1',
+                },
+              ],
+            },
+          }),
+        },
+      ],
+    });
+
+    expect(catalogService.createTitleFromImportCandidate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalTitle: '듄',
+        displayTitle: '듄',
+        mediumType: WorkType.novel,
+        franchiseName: 'Dune',
+        subType: 'science_fiction',
+        releaseYear: 2026,
+        summary: '사막 행성을 둘러싼 이야기',
+        thumbnailUrl: 'https://image.example/dune.jpg',
+      }),
+      expect.any(Object),
+    );
+    expect(prisma.catalogWork.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          id: importedId,
+          title: '듄',
+          author: '프랭크 허버트',
+        }),
+      }),
+    );
+    expect(userRecordsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: importedId,
+        catalogTitleId: 'catalog-title-imported',
+        catalogWorkId: importedId,
+        userId: USER_ID,
+      }),
+      expect.any(Object),
+    );
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'applied',
+        work: expect.objectContaining({
+          id: importedId,
+          catalogTitleId: 'catalog-title-imported',
         }),
       }),
     ]);
