@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work Archive - Home Stitch Reference</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Work+Sans:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'dark-shell': '#14171b',
+            'dark-surface-base': '#1c2128',
+            'dark-surface-raised': '#232932',
+            'surface-container-high': '#292a2c',
+            'surface-container-highest': '#343537',
+            'outline': '#8d9198',
+            'outline-variant': '#43474d',
+            'on-surface': '#e3e2e4',
+            'on-surface-variant': '#c3c6ce',
+            'primary': '#b6d1f1',
+            'primary-fixed': '#d0e4ff',
+            'archive-blue-7': '#3d6390',
+            'archive-blue-9': '#253b55'
+          },
+          spacing: {
+            'shell-padding': 'clamp(1rem, 2vw, 1.5rem)',
+            'container-default': '77.5rem'
+          },
+          fontFamily: {
+            eyebrow: ['Inter'],
+            body: ['Inter'],
+            h1: ['Work Sans'],
+            h2: ['Work Sans']
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="flex h-screen overflow-hidden bg-dark-shell text-on-surface font-body">
+  <aside class="fixed left-0 top-0 h-full w-64 border-r border-slate-900 bg-black font-['Work_Sans'] text-sm tracking-tight flex flex-col py-8 z-50">
+    <div class="px-6 mb-8 flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-archive-blue-9 flex items-center justify-center text-primary font-bold">WA</div>
+      <div>
+        <h2 class="text-slate-100 font-bold tracking-tighter uppercase text-lg">Work Archive</h2>
+        <p class="text-slate-500 text-xs">Premium Collection</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 flex flex-col gap-1">
+      <a class="border-l-2 border-blue-300 text-blue-200 font-semibold bg-slate-900/50 py-3 px-6 flex items-center gap-3" href="#"><span class="material-symbols-outlined text-xl">inventory_2</span>Library</a>
+      <a class="text-slate-500 hover:text-slate-300 py-3 px-6 flex items-center gap-3 hover:bg-slate-900/30" href="#"><span class="material-symbols-outlined text-xl">subscriptions</span>Collections</a>
+      <a class="text-slate-500 hover:text-slate-300 py-3 px-6 flex items-center gap-3 hover:bg-slate-900/30" href="#"><span class="material-symbols-outlined text-xl">history</span>Recent</a>
+      <a class="text-slate-500 hover:text-slate-300 py-3 px-6 flex items-center gap-3 hover:bg-slate-900/30" href="#"><span class="material-symbols-outlined text-xl">archive</span>Archive</a>
+      <a class="text-slate-500 hover:text-slate-300 py-3 px-6 flex items-center gap-3 hover:bg-slate-900/30" href="#"><span class="material-symbols-outlined text-xl">settings</span>Settings</a>
+    </nav>
+
+    <div class="px-6 mt-auto flex flex-col gap-4">
+      <button class="w-full bg-archive-blue-9 hover:bg-archive-blue-7 text-primary py-2 px-4 rounded font-semibold flex justify-center items-center gap-2"><span class="material-symbols-outlined text-sm">add</span>Add Record</button>
+      <div class="flex flex-col gap-2 pt-4 border-t border-slate-800">
+        <a class="text-slate-500 hover:text-slate-300 flex items-center gap-3 text-xs" href="#"><span class="material-symbols-outlined text-base">sync</span>Sync Status</a>
+        <a class="text-slate-500 hover:text-slate-300 flex items-center gap-3 text-xs" href="#"><span class="material-symbols-outlined text-base">help_outline</span>Support</a>
+      </div>
+    </div>
+  </aside>
+
+  <div class="flex-1 flex flex-col ml-64 min-w-0 bg-dark-shell">
+    <header class="sticky top-0 z-40 w-full border-b border-slate-800 bg-slate-950 font-['Work_Sans'] flex justify-between items-center h-16 px-12">
+      <div class="flex-1 max-w-md">
+        <div class="relative bg-dark-surface-raised border border-outline-variant rounded flex items-center px-3 py-1.5 focus-within:border-archive-blue-7">
+          <span class="material-symbols-outlined text-slate-400 mr-2 text-xl">search</span>
+          <input class="bg-transparent border-none text-on-surface w-full focus:ring-0 placeholder-slate-500 text-sm p-0" placeholder="Search archive..." type="text" />
+        </div>
+      </div>
+      <div class="flex items-center gap-6">
+        <button class="text-slate-400 hover:text-blue-200"><span class="material-symbols-outlined">notifications</span></button>
+        <button class="text-slate-400 hover:text-blue-200"><span class="material-symbols-outlined">filter_list</span></button>
+        <button class="text-blue-300 font-semibold hover:text-blue-200 flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-base">sync</span>Sync</button>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-shell-padding">
+      <div class="max-w-container-default mx-auto space-y-6">
+        <section>
+          <header class="flex justify-between items-end mb-5 border-b border-outline-variant pb-2">
+            <h1 class="font-h2 text-3xl font-bold tracking-tight text-on-surface">Recent Records</h1>
+            <a class="text-xs tracking-widest font-semibold text-primary hover:text-primary-fixed" href="#">VIEW ALL</a>
+          </header>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <article class="col-span-1 md:col-span-2 lg:col-span-2 bg-dark-surface-base border border-outline-variant rounded overflow-hidden flex flex-col md:flex-row group hover:border-archive-blue-7 transition-colors cursor-pointer">
+              <div class="w-full md:w-1/2 aspect-[3/4] bg-surface-container-high shrink-0 overflow-hidden">
+                <img alt="Book cover" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" src="https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=900&q=80" />
+              </div>
+              <div class="p-5 flex flex-col justify-between flex-1">
+                <div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-[0.72rem] tracking-wide font-semibold text-primary bg-archive-blue-9 px-2 py-0.5 rounded">DOCUMENTARY</span>
+                    <span class="text-[0.72rem] tracking-wide font-semibold text-outline">ARCHIVED 2H AGO</span>
+                  </div>
+                  <h3 class="text-3xl font-bold tracking-tight text-on-surface mb-2 leading-tight">The Architecture of Silence</h3>
+                  <p class="text-on-surface-variant leading-relaxed">A comprehensive study of minimalist architectural spaces and their psychological impact on creative workflows.</p>
+                </div>
+                <div class="mt-4 flex items-center justify-between">
+                  <span class="text-xs tracking-widest font-semibold text-on-surface">ID: ARC-492</span>
+                  <button class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-outline group-hover:text-primary"><span class="material-symbols-outlined text-sm">arrow_forward</span></button>
+                </div>
+              </div>
+            </article>
+
+            <article class="bg-dark-surface-base border border-outline-variant rounded p-3 flex flex-col group hover:border-archive-blue-7 cursor-pointer">
+              <div class="aspect-[3/4] w-full bg-surface-container-high rounded-sm mb-3 overflow-hidden"><img alt="Abstract poster" class="w-full h-full object-cover opacity-80 group-hover:opacity-100" src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=700&q=80" /></div>
+              <div class="text-[0.72rem] tracking-wide font-semibold text-outline mb-1">VISUAL STUDY</div>
+              <h4 class="font-semibold text-on-surface leading-tight">Color Theory Applied</h4>
+              <div class="text-xs tracking-widest text-on-surface-variant mt-3 flex justify-between"><span>V-102</span><span>YESTERDAY</span></div>
+            </article>
+
+            <article class="bg-dark-surface-base border border-outline-variant rounded p-3 flex flex-col group hover:border-archive-blue-7 cursor-pointer">
+              <div class="aspect-[3/4] w-full bg-surface-container-high rounded-sm mb-3 overflow-hidden"><img alt="Typography poster" class="w-full h-full object-cover opacity-80 group-hover:opacity-100" src="https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=700&q=80" /></div>
+              <div class="text-[0.72rem] tracking-wide font-semibold text-outline mb-1">REFERENCE</div>
+              <h4 class="font-semibold text-on-surface leading-tight">Helvetica Origins</h4>
+              <div class="text-xs tracking-widest text-on-surface-variant mt-3 flex justify-between"><span>R-884</span><span>YESTERDAY</span></div>
+            </article>
+          </div>
+        </section>
+
+        <section>
+          <header class="flex justify-between items-end mb-5 border-b border-outline-variant pb-2">
+            <h2 class="text-3xl font-bold tracking-tight text-on-surface">In Progress</h2>
+          </header>
+
+          <div class="bg-dark-surface-base border border-outline-variant rounded overflow-hidden">
+            <div class="flex items-center p-4 border-b border-outline-variant hover:bg-surface-container-high cursor-pointer group">
+              <div class="w-12 h-16 bg-surface-container-highest shrink-0 mr-4 overflow-hidden rounded-sm"><img alt="Notebook" class="w-full h-full object-cover opacity-70 group-hover:opacity-100" src="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=500&q=80" /></div>
+              <div class="flex-1 min-w-0 pr-4">
+                <h4 class="font-semibold text-on-surface truncate">Field Notes: Expedition 4</h4>
+                <div class="flex items-center gap-4 mt-1"><span class="text-xs tracking-widest text-on-surface-variant">TRANSCRIPTION</span><span class="text-xs tracking-widest text-primary">65%</span></div>
+                <div class="w-full h-1 bg-surface-container-highest mt-2 rounded-full overflow-hidden"><div class="h-full bg-archive-blue-7 w-[65%]"></div></div>
+              </div>
+              <button class="w-10 h-10 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container-highest"><span class="material-symbols-outlined text-lg">play_arrow</span></button>
+            </div>
+
+            <div class="flex items-center p-4 hover:bg-surface-container-high cursor-pointer group">
+              <div class="w-12 h-16 bg-surface-container-highest shrink-0 mr-4 overflow-hidden rounded-sm flex items-center justify-center"><span class="text-2xl font-bold text-outline">A</span></div>
+              <div class="flex-1 min-w-0 pr-4">
+                <h4 class="font-semibold text-on-surface truncate">Audio Log: Interview with Dr. Vance</h4>
+                <div class="flex items-center gap-4 mt-1"><span class="text-xs tracking-widest text-on-surface-variant">METADATA SYNC</span><span class="text-xs tracking-widest text-primary">30%</span></div>
+                <div class="w-full h-1 bg-surface-container-highest mt-2 rounded-full overflow-hidden"><div class="h-full bg-archive-blue-7 w-[30%]"></div></div>
+              </div>
+              <button class="w-10 h-10 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container-highest"><span class="material-symbols-outlined text-lg">play_arrow</span></button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
