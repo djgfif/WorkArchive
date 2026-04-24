@@ -36,6 +36,39 @@ export const CATALOG_SEARCH_MEDIUM_TYPES = ['all', ...WORK_TYPES] as const;
 export type CatalogSearchMediumType =
   (typeof CATALOG_SEARCH_MEDIUM_TYPES)[number];
 
+export interface WorkImportContributor {
+  name: string;
+}
+
+export interface WorkImportExternalRef {
+  provider: string;
+  externalId: string;
+  rawType?: string;
+  url?: string;
+}
+
+export interface WorkImportReleaseCandidate {
+  displayLabel?: string;
+  externalRefs?: WorkImportExternalRef[];
+  isbn?: string | null;
+  releaseDate?: ISODateString | null;
+  releaseType?: string;
+  sequence?: number | null;
+  thumbnailUrl?: string;
+  title?: string;
+}
+
+export interface WorkImportDraft {
+  catalogTitle: string;
+  mediumType: WorkType;
+  franchiseName?: string | null;
+  subType?: string | null;
+  releaseYear?: number | null;
+  contributors?: WorkImportContributor[];
+  externalRefs?: WorkImportExternalRef[];
+  releaseCandidates?: WorkImportReleaseCandidate[];
+}
+
 export const WORK_STATUSES = [
   'planned',
   'in_progress',
@@ -185,6 +218,7 @@ export function canUseProgressUnitForWorkType(
 export interface WorkRecord extends AuditFields {
   id: EntityId;
   catalogTitleId?: EntityId | null;
+  importDraft?: WorkImportDraft | null;
   type: WorkType;
   title: string;
   author: string;

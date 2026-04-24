@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -14,6 +15,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProgressUnit, WorkStatus, WorkTier, WorkType } from '@prisma/client';
@@ -23,6 +25,82 @@ import {
   type WorkSyncStatusValue,
 } from '../../works/works.constants';
 import { NormalizeStringArray, Trim } from '../../works/dto/transformers';
+import {
+  ImportContributorDto,
+  ImportExternalRefDto,
+  ImportReleaseCandidateDto,
+} from '../../user-records/dto/user-record.dto';
+
+class SyncWorkImportDraftDto {
+  @ApiProperty({
+    maxLength: 200,
+  })
+  @Trim()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  catalogTitle!: string;
+
+  @ApiProperty({
+    enum: WorkType,
+  })
+  @IsEnum(WorkType)
+  mediumType!: WorkType;
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @Trim()
+  @IsOptional()
+  @IsString()
+  subType?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    maxLength: 120,
+  })
+  @Trim()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  franchiseName?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    minimum: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  releaseYear?: number | null;
+
+  @ApiPropertyOptional({
+    type: [ImportContributorDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ImportContributorDto)
+  contributors?: ImportContributorDto[];
+
+  @ApiPropertyOptional({
+    type: [ImportExternalRefDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ImportExternalRefDto)
+  externalRefs?: ImportExternalRefDto[];
+
+  @ApiPropertyOptional({
+    type: [ImportReleaseCandidateDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ImportReleaseCandidateDto)
+  releaseCandidates?: ImportReleaseCandidateDto[];
+}
 
 export class SyncWorkPayloadDto {
   @ApiProperty({
@@ -38,6 +116,15 @@ export class SyncWorkPayloadDto {
   @IsOptional()
   @IsUUID()
   catalogTitleId?: string | null;
+
+  @ApiPropertyOptional({
+    type: SyncWorkImportDraftDto,
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SyncWorkImportDraftDto)
+  importDraft?: SyncWorkImportDraftDto | null;
 
   @ApiProperty({
     enum: WorkType,

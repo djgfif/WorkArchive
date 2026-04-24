@@ -5,7 +5,7 @@
 | Status | `canonical` |
 | Role | `current reality` |
 | Source of truth | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-04-22` working tree |
+| Last verified against | `2026-04-24` working tree |
 | When to update | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때 |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -16,6 +16,7 @@
 - 프론트는 IndexedDB를 1차 저장소로 쓰고, 로그인 시 계정별 로컬 아카이브로 전환한다.
 - 현재 저장소에서 실제 실행 가능한 프론트 런타임은 `apps/web`이며, Tauri shell은 아직 저장소에 없다.
 - 백엔드는 NestJS + Prisma + PostgreSQL 기반 API다.
+- Quick Add는 현재 `server-assisted search + local-first save` 규칙으로 동작한다.
 - 현재 sync는 수동 실행만 지원한다.
 - `Tier Boards`, `Insights`, `Community`는 라우트는 존재하지만 아직 placeholder 성격이 강하다.
 
@@ -79,6 +80,7 @@
 Dexie DB는 현재 아래 테이블을 사용한다.
 
 - `works`
+- `releaseRecords`
 - `syncQueue`
 - `appMeta`
 
@@ -104,17 +106,25 @@ Dexie DB는 현재 아래 테이블을 사용한다.
 
 ### 4-2. Current Domain Model
 
-Prisma 기준 핵심 모델은 현재 아래 구조다.
+Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 - `User`
 - `CatalogWork`
+- `Franchise`
+- `CatalogTitle`
+- `CatalogRelease`
+- `Contributor`
+- `CatalogExternalRef`
 - `UserWorkRecord`
+- `UserReleaseRecord`
+- `ExternalApiCredential`
 
 현재 백엔드는 이미 작품 메타데이터와 개인 기록을 물리적으로 분리했다. 다만 외부 계약은 아직 과도기적이다.
 
 - `WorksService`는 현재도 flat `Work` 응답 계약을 유지한다.
 - 내부적으로는 `CatalogService`와 `UserRecordsService`를 함께 오케스트레이션한다.
-- 현재 생성/수정 흐름은 `CatalogWork`와 `UserWorkRecord`를 사실상 `1:1`로 다루는 split-only 중간 단계다.
+- `UserRecordsController`와 `CatalogController`는 이미 `CatalogTitle`/`CatalogRelease` 중심 read path를 일부 노출한다.
+- 현재 생성/수정 흐름은 여전히 `CatalogWork`와 `UserWorkRecord`를 강하게 결합한 compatibility 단계를 포함한다.
 
 즉, 현재 상태는 **monolithic `Work` 모델**이 아니라 **split domain + flat compatibility API**다.
 
@@ -150,12 +160,17 @@ Prisma 기준 핵심 모델은 현재 아래 구조다.
 - 사용자별 로컬 아카이브 분리
 - 로그인 직후 guest 기록 검토 후 선택 import
 - 수동 sync queue와 push / pull
+- authenticated Quick Add provider 검색과 preview fallback
+- 계정 설정의 Aladin 키 저장/삭제
+- `/imports/providers` 기반 provider readiness 조회
+- `CatalogTitle` related read model과 `UserReleaseRecord` 흐름
 - 홈 허브 화면
 - 계정 센터 라우트 분리
 
 ### Not Yet Implemented
 
-- 외부 메타데이터 API 기반 실제 Quick Add
+- authenticated direct create path를 쓰는 server-first Quick Add 저장
+- provider readiness UI의 전체 polish와 provider별 ranking/duplicate 전략 정리
 - guest 기록 자동 병합 정책과 다기기 이관 UX
 - 자동 동기화
 - 공개 프로필 / 공개 기록 / 작품 집계
@@ -205,10 +220,11 @@ Prisma 기준 핵심 모델은 현재 아래 구조다.
 
 ### Current Verification Status
 
-- `npm run typecheck`: `2026-04-21` 기준 통과 확인
-- `npm run test`: 스크립트 존재, 이번 문서 정리 패스에서는 전체 워크스페이스 완료 여부 미재확인
-- `npm run test --workspace @work-archive/web`: `2026-04-21` 기준 `13` files, `39` tests 통과 확인
-- `npm run test --workspace @work-archive/api`: 스크립트 존재, 이번 문서 정리 패스에서는 완료 여부 미재확인
+- `npm run typecheck`: `2026-04-24` 통과 확인
+- `npm run test --workspace @work-archive/web`: `2026-04-24` 기준 `16` files, `50` tests 통과 확인
+- `npm run test --workspace @work-archive/api`: `2026-04-24` 기준 `7` suites, `38` tests 통과 확인
+- `npm run build`: `2026-04-24` 통과 확인
+- `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
 ## 7. Immediate Limitations
 
@@ -217,7 +233,8 @@ Prisma 기준 핵심 모델은 현재 아래 구조다.
 - Mantine foundation은 도입됐지만 스타일 책임은 아직 `global.css`와 페이지별 클래스 조합에 크게 남아 있다.
 - shared UI primitives가 생기고 있지만 `var(--accent)`류 직접 참조와 커스텀 클래스 조합 의존이 여전히 크다.
 - placeholder 화면과 실제 구현 화면의 성숙도 차이가 크다.
-- Quick Add는 구조는 있지만 데이터 신뢰를 뒷받침할 외부 import가 없다.
+- Quick Add 검색은 provider 기반이지만, provider readiness UI와 duplicate policy는 아직 완성 전이다.
+- Quick Add 저장은 아직 local-first이며 authenticated direct create path로는 연결되지 않았다.
 
 ### 7-2. Product UX
 
@@ -229,6 +246,7 @@ Prisma 기준 핵심 모델은 현재 아래 구조다.
 
 - `WorksModule`은 현재 호환성 계층이라서, 내부 split domain과 외부 flat 계약이 함께 유지되고 있다.
 - 현재 catalog는 shared public catalog라기보다 user record와 강하게 결합된 `1:1` 과도기 구조다.
+- sync create path는 이제 `catalogTitleId`와 `importDraft`를 받을 수 있지만, 장기적으로는 `Works`에서 더 멀어져야 한다.
 - access token은 아직 브라우저 `localStorage`에 저장된다.
 - 공개 레이어, 세션/디바이스 관리, 공개 데이터 권한 분리 같은 확장 전 과제는 아직 남아 있다.
 

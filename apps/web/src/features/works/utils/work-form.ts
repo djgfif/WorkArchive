@@ -1,4 +1,5 @@
 import type {
+  WorkImportDraft,
   WorkRecord,
   WorkStatus,
   WorkTier,
@@ -21,6 +22,8 @@ export interface WorkFormValues {
 }
 
 export interface UpsertWorkInput {
+  catalogTitleId?: string | null;
+  importDraft?: WorkImportDraft | null;
   type: WorkType;
   title: string;
   author: string;
@@ -73,6 +76,8 @@ export function createWorkFormValuesFromRecord(
 
 export function createUpsertWorkInputFromRecord(work: WorkRecord): UpsertWorkInput {
   return {
+    catalogTitleId: work.catalogTitleId ?? null,
+    importDraft: work.importDraft ?? null,
     type: work.type,
     title: work.title,
     author: work.author,

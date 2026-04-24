@@ -62,10 +62,22 @@ describe('SettingsPage', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
-        jsonResponse({
-          provider: 'aladin',
-          configured: false,
-        }),
+        jsonResponse([
+          {
+            provider: 'manual',
+            label: 'Manual',
+            credentialMode: 'none',
+            configured: true,
+            mediumTypes: ['novel', 'anime'],
+          },
+          {
+            provider: 'aladin',
+            label: 'Aladin Book',
+            credentialMode: 'user',
+            configured: false,
+            mediumTypes: ['novel', 'light_novel', 'manga'],
+          },
+        ]),
       )
       .mockResolvedValueOnce(
         jsonResponse({
@@ -84,6 +96,10 @@ describe('SettingsPage', () => {
     expect(
       await screen.findByText('키가 등록되어 있지 않습니다'),
     ).toBeInTheDocument();
+    expect(screen.getByText('Manual')).toBeInTheDocument();
+    expect(screen.getByText('Aladin Book')).toBeInTheDocument();
+    expect(screen.getByText('바로 사용 가능')).toBeInTheDocument();
+    expect(screen.getByText('사용자 키')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Aladin TTBKey'), 'ttb-test-key');
     await user.click(screen.getByRole('button', { name: 'Aladin 키 저장' }));
@@ -91,10 +107,14 @@ describe('SettingsPage', () => {
     expect(await screen.findByText('Aladin TTBKey를 저장했습니다.')).toBeInTheDocument();
     expect(screen.getByLabelText('Aladin TTBKey')).toHaveValue('');
 
+    const providerRequest = fetchMock.mock.calls[0];
     const saveRequest = fetchMock.mock.calls[1];
     const saveRequestInit = saveRequest?.[1] as RequestInit;
     const saveRequestHeaders = saveRequestInit.headers as Headers;
 
+    expect(providerRequest?.[0]).toEqual(
+      expect.stringContaining('/imports/providers'),
+    );
     expect(saveRequest?.[0]).toEqual(
       expect.stringContaining('/imports/providers/aladin/key'),
     );

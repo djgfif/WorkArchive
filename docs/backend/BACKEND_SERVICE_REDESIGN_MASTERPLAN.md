@@ -5,7 +5,7 @@
 | Status | `canonical` |
 | Role | `target backend structure` |
 | Source of truth | current API modules, Prisma schema, `WorksService` orchestration, product expansion strategy |
-| Last verified against | `2026-04-22` working tree |
+| Last verified against | `2026-04-24` working tree |
 | When to update | 백엔드 도메인 경계, migration slice, target module map이 바뀔 때 |
 
 이 문서는 Work Archive 백엔드의 **목표 구조 기준**이다. 현재 구현 상태 설명은 `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`에서 보고, 여기서는 어디로 더 분리해 가야 하는지를 정의한다.
@@ -17,10 +17,11 @@
 ## Current Baseline
 
 - 현재 모듈: `Auth`, `Health`, `Catalog`, `UserRecords`, `Imports`, `Works`, `Sync`, `Prisma`
-- 현재 모델: `User`, `CatalogWork`, `UserWorkRecord`
-- `CatalogWork`와 `UserWorkRecord`는 이미 분리돼 있다.
+- 현재 모델 축: `CatalogWork` compatibility layer와 `CatalogTitle`/`CatalogRelease`/`CatalogExternalRef` 공용 catalog layer, `UserWorkRecord`/`UserReleaseRecord` 개인 기록 layer가 함께 존재한다.
+- `CatalogWork`와 `UserWorkRecord`는 이미 분리돼 있고, `CatalogTitle`/`CatalogRelease` read path도 일부 노출돼 있다.
 - 다만 현재 `WorksModule`은 flat API 계약을 유지하기 위한 compatibility façade다.
 - 현재 create/update는 `CatalogService`와 `UserRecordsService`를 함께 호출하며 사실상 `1:1` split-only 중간 단계를 유지한다.
+- sync create는 `catalogTitleId`와 `importDraft`를 받아 catalog/user-record 경계로 진입할 수 있지만, 여전히 compatibility catalog work를 함께 만든다.
 
 즉, 현재 구조는 **분리된 데이터 모델 위에 flat compatibility API가 남아 있는 단계**다.
 

@@ -5,7 +5,7 @@
 | Status | `canonical` |
 | Role | `current frontend decisions` |
 | Source of truth | `apps/web/src/app/router/routes.tsx`, current layout/page implementation, current auth/session data flow |
-| Last verified against | `2026-04-22` working tree |
+| Last verified against | `2026-04-24` working tree |
 | When to update | 현재 라우트, 레이아웃 책임, 페이지 역할, 세션 저장 방식, placeholder 경계가 바뀔 때 |
 
 이 문서는 Work Archive 프론트엔드의 **현재 canonical 기준**이다. 목표 비전이나 향후 리팩터링 계획이 아니라, 지금 코드에서 이미 고정된 UI/라우트/레이아웃 결정을 정리한다.
@@ -16,6 +16,7 @@
 - 메인 제품, 인증, 계정 관리, 최소 유틸리티가 서로 다른 레이아웃으로 분리돼 있다.
 - 홈/작품/상세/추가/계정 흐름은 실제 사용 가능한 상태다.
 - Mantine provider, theme, shared page wrapper는 이미 도입돼 있다.
+- Quick Add는 현재 authenticated server search와 local-first save를 함께 사용한다.
 - 다만 시각 책임은 아직 `global.css`와 페이지별 클래스 조합에 크게 남아 있다.
 - 현재 저장소에서 실제 실행 가능한 프론트 런타임은 `apps/web`이며, Tauri는 future runtime 제약으로만 고려한다.
 
@@ -118,13 +119,14 @@
 ## 5. Current Data And Session Rules
 
 - IndexedDB가 프론트의 1차 저장소다.
-- DB는 `works`, `syncQueue`, `appMeta` 테이블을 사용한다.
+- DB는 `works`, `releaseRecords`, `syncQueue`, `appMeta` 테이블을 사용한다.
 - 게스트와 로그인 사용자는 서로 다른 로컬 아카이브를 사용한다.
 - sync는 계정 모드에서만 수동 실행한다.
 - 인증은 현재 이메일/비밀번호 기반이다.
 - access token은 `localStorage`에 저장한다.
 - refresh token은 JS가 직접 읽지 않고 cookie로만 사용한다.
 - 인증 API 호출은 `credentials: 'include'`를 사용한다.
+- Quick Add는 authenticated 상태에서 `/imports/search`를 사용하고, 저장은 계속 Dexie local-first create를 유지한다.
 - 로그인 직후 guest 기록이 감지되면 `/account/transfer`에서 중복 후보를 먼저 검토한다.
 
 ## 6. Current UI Constraints

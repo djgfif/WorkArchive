@@ -1,4 +1,9 @@
-import type { CatalogSearchMediumType, WorkType } from '@work-archive/shared-types';
+import type {
+  CatalogSearchMediumType,
+  WorkImportExternalRef,
+  WorkImportReleaseCandidate,
+  WorkType,
+} from '@work-archive/shared-types';
 
 import {
   ApiRequestError,
@@ -21,16 +26,12 @@ export interface ImportCandidate {
   }>;
   countLabel: string;
   description: string;
+  externalId: string;
   existingRecord: {
     id: string;
     status: string;
   } | null;
-  externalRefs: Array<{
-    externalId: string;
-    provider: string;
-    rawType: string;
-    url: string;
-  }>;
+  externalRefs: WorkImportExternalRef[];
   formatLabel: string;
   franchiseName: string | null;
   genresText: string;
@@ -38,6 +39,7 @@ export interface ImportCandidate {
   mediumType: WorkType;
   note: string;
   reason: string;
+  releaseCandidates: WorkImportReleaseCandidate[];
   relationsHint: Array<{
     relationType: string;
     targetTitle: string;
@@ -115,6 +117,7 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
       : [],
     countLabel: overrides.countLabel ?? '사용자 검토 필요',
     description: overrides.description ?? '',
+    externalId: overrides.externalId ?? overrides.id,
     existingRecord: null,
     externalRefs: [],
     formatLabel: overrides.formatLabel ?? '수동 후보',
@@ -124,6 +127,7 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
     mediumType: overrides.type,
     note: overrides.note ?? '외부 검색 아님',
     reason: overrides.reason ?? 'preview fallback',
+    releaseCandidates: overrides.releaseCandidates ?? [],
     relationsHint: overrides.relationsHint ?? [],
     releaseYear: overrides.releaseYear ?? null,
     sourceId: overrides.sourceId ?? 'preview-manual',
