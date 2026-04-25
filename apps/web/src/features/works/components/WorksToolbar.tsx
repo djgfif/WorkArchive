@@ -1,4 +1,4 @@
-import { Group, NativeSelect, SimpleGrid, Text, TextInput } from '@mantine/core';
+import { Group, NativeSelect, Stack, Text, TextInput, Title } from '@mantine/core';
 
 import type { WorkStatus } from '@work-archive/shared-types';
 
@@ -9,7 +9,6 @@ import {
   MetricPill,
   SectionCard,
 } from '../../../shared/components/AppPrimitives';
-import { PageHero } from '../../../shared/components/PageHero';
 import type { WorksCollectionScope } from '../services/works.service';
 import type { WorksListQuery } from '../utils/query-works';
 import {
@@ -84,172 +83,157 @@ export function WorksToolbar({
   ];
 
   return (
-    <>
-      <PageHero
-        actions={
-          <ActionRow justify="flex-end">
-            {hasActiveFilters && (
-              <AppButton onClick={onClearFilters} tone="ghost" type="button">
-                필터 초기화
-              </AppButton>
-            )}
-            <AppLinkButton to="/works/new" tone="primary">
-              작품 추가
-            </AppLinkButton>
-          </ActionRow>
-        }
-        description={countSummary}
-        eyebrow="작품"
-        meta={
-          <>
-            <MetricPill label="활성 작품" value={totalActiveCount} />
-            <MetricPill label="휴지통" value={totalDeletedCount} />
-            <MetricPill
-              label={collectionScope === 'trash' ? '현재 범위' : '기본 보기'}
-              value={
-                collectionScope === 'trash'
-                  ? '휴지통'
-                  : viewMode === 'list'
-                    ? '리스트'
-                    : '그리드'
-              }
-            />
-          </>
-        }
-        title="작품"
-      />
+    <SectionCard gap="md" padding="lg" tone="subtle">
+      <Group align="flex-start" justify="space-between" wrap="wrap">
+        <Stack gap={4}>
+          <Title order={1}>작품</Title>
+          <Text c="var(--app-text-muted)">{countSummary}</Text>
+        </Stack>
 
-      <SectionCard gap="md" padding="lg" tone="subtle">
-        <SimpleGrid cols={{ base: 1, lg: 12 }} spacing="md">
-          <div style={{ gridColumn: 'span 12 / span 12' }}>
-            <Group align="flex-end" gap="sm" wrap="wrap">
-              <div style={{ flex: '1 1 18rem', minWidth: 240 }}>
-                <TextInput
-                  label="검색"
-                  name="searchTerm"
-                  onChange={(event) =>
-                    onQueryChange({ ...query, searchTerm: event.currentTarget.value })
-                  }
-                  placeholder="제목 또는 작가로 찾기"
-                  value={query.searchTerm}
-                />
-              </div>
-
-              <div style={{ minWidth: 160 }}>
-                <NativeSelect
-                  id="typeFilter"
-                  label="유형"
-                  onChange={(event) =>
-                    onQueryChange({
-                      ...query,
-                      type: event.currentTarget.value as WorksListQuery['type'],
-                    })
-                  }
-                  value={query.type}
-                >
-                  <option value="all">전체 유형</option>
-                  {workTypeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </div>
-
-              <div style={{ minWidth: 160 }}>
-                <NativeSelect
-                  id="sortBy"
-                  label="정렬"
-                  onChange={(event) =>
-                    onQueryChange({
-                      ...query,
-                      sortBy: event.currentTarget.value as WorksListQuery['sortBy'],
-                    })
-                  }
-                  value={query.sortBy}
-                >
-                  {workSortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </div>
-            </Group>
-          </div>
-        </SimpleGrid>
-
-        <Group gap="sm" justify="space-between" wrap="wrap">
-          <ActionRow>
-            <AppButton
-              onClick={() => onCollectionScopeChange('active')}
-              tone={collectionScope === 'active' ? 'quiet' : 'ghost'}
-              type="button"
-            >
-              작품 목록
+        <ActionRow justify="flex-end">
+          {hasActiveFilters && (
+            <AppButton onClick={onClearFilters} size="compact-sm" tone="ghost" type="button">
+              초기화
             </AppButton>
-            <AppButton
-              onClick={() => onCollectionScopeChange('trash')}
-              tone={collectionScope === 'trash' ? 'quiet' : 'ghost'}
-              type="button"
-            >
-              {totalDeletedCount > 0 ? `휴지통 ${totalDeletedCount}` : '휴지통'}
-            </AppButton>
-          </ActionRow>
-
-          {collectionScope === 'active' && (
-            <ActionRow justify="flex-end">
-              <AppButton
-                onClick={() => onViewModeChange('list')}
-                size="compact-sm"
-                tone={viewMode === 'list' ? 'quiet' : 'ghost'}
-                type="button"
-              >
-                리스트
-              </AppButton>
-              <AppButton
-                onClick={() => onViewModeChange('grid')}
-                size="compact-sm"
-                tone={viewMode === 'grid' ? 'quiet' : 'ghost'}
-                type="button"
-              >
-                그리드
-              </AppButton>
-            </ActionRow>
           )}
-        </Group>
+          <AppLinkButton size="compact-sm" to="/works/new" tone="primary">
+            작품 추가
+          </AppLinkButton>
+        </ActionRow>
+      </Group>
+
+      <Group gap="xs" wrap="wrap">
+        <MetricPill label="활성" value={totalActiveCount} />
+        <MetricPill label="휴지통" value={totalDeletedCount} />
+        <MetricPill
+          label="보기"
+          value={collectionScope === 'trash' ? '휴지통' : viewMode === 'list' ? '리스트' : '그리드'}
+        />
+      </Group>
+
+      <Group align="flex-end" gap="sm" wrap="wrap">
+        <div style={{ flex: '1 1 20rem', minWidth: 'min(100%, 20rem)' }}>
+          <TextInput
+            label="검색"
+            name="searchTerm"
+            onChange={(event) =>
+              onQueryChange({ ...query, searchTerm: event.currentTarget.value })
+            }
+            placeholder="제목 또는 작가"
+            value={query.searchTerm}
+          />
+        </div>
+
+        <div style={{ flex: '0 1 10rem', minWidth: 144 }}>
+          <NativeSelect
+            id="typeFilter"
+            label="유형"
+            onChange={(event) =>
+              onQueryChange({
+                ...query,
+                type: event.currentTarget.value as WorksListQuery['type'],
+              })
+            }
+            value={query.type}
+          >
+            <option value="all">전체 유형</option>
+            {workTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+
+        <div style={{ flex: '0 1 10rem', minWidth: 144 }}>
+          <NativeSelect
+            id="sortBy"
+            label="정렬"
+            onChange={(event) =>
+              onQueryChange({
+                ...query,
+                sortBy: event.currentTarget.value as WorksListQuery['sortBy'],
+              })
+            }
+            value={query.sortBy}
+          >
+            {workSortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+      </Group>
+
+      <Group gap="sm" justify="space-between" wrap="wrap">
+        <ActionRow>
+          <AppButton
+            onClick={() => onCollectionScopeChange('active')}
+            size="compact-sm"
+            tone={collectionScope === 'active' ? 'quiet' : 'ghost'}
+            type="button"
+          >
+            작품 목록
+          </AppButton>
+          <AppButton
+            onClick={() => onCollectionScopeChange('trash')}
+            size="compact-sm"
+            tone={collectionScope === 'trash' ? 'quiet' : 'ghost'}
+            type="button"
+          >
+            {totalDeletedCount > 0 ? `휴지통 ${totalDeletedCount}` : '휴지통'}
+          </AppButton>
+        </ActionRow>
 
         {collectionScope === 'active' && (
-          <ActionRow>
-            {statusFilterOptions.map((option) => {
-              const isActive = query.status === option.value;
-              const count =
-                option.value === 'all' ? totalActiveCount : statusCounts[option.value];
-
-              return (
-                <AppButton
-                  key={option.value}
-                  onClick={() =>
-                    onQueryChange({
-                      ...query,
-                      status: option.value,
-                    })
-                  }
-                  size="compact-sm"
-                  tone={isActive ? 'quiet' : 'ghost'}
-                  type="button"
-                >
-                  {option.label} {count}
-                </AppButton>
-              );
-            })}
+          <ActionRow justify="flex-end">
+            <AppButton
+              onClick={() => onViewModeChange('list')}
+              size="compact-sm"
+              tone={viewMode === 'list' ? 'quiet' : 'ghost'}
+              type="button"
+            >
+              리스트
+            </AppButton>
+            <AppButton
+              onClick={() => onViewModeChange('grid')}
+              size="compact-sm"
+              tone={viewMode === 'grid' ? 'quiet' : 'ghost'}
+              type="button"
+            >
+              그리드
+            </AppButton>
           </ActionRow>
         )}
+      </Group>
 
-        <Text c="var(--app-text-muted)" size="sm">
-          필터는 작업 도구로만 유지하고, 본문은 작품 목록이 먼저 보이도록 정리했습니다.
-        </Text>
-      </SectionCard>
-    </>
+      {collectionScope === 'active' && (
+        <ActionRow>
+          {statusFilterOptions.map((option) => {
+            const isActive = query.status === option.value;
+            const count =
+              option.value === 'all' ? totalActiveCount : statusCounts[option.value];
+
+            return (
+              <AppButton
+                key={option.value}
+                onClick={() =>
+                  onQueryChange({
+                    ...query,
+                    status: option.value,
+                  })
+                }
+                size="compact-sm"
+                tone={isActive ? 'quiet' : 'ghost'}
+                type="button"
+              >
+                {option.label} {count}
+              </AppButton>
+            );
+          })}
+        </ActionRow>
+      )}
+    </SectionCard>
   );
 }

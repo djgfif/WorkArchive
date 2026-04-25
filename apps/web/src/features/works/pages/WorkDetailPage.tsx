@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { liveQuery } from 'dexie';
-import { Accordion, Group, NativeSelect, NumberInput, Stack, Text, TextInput } from '@mantine/core';
+import {
+  Accordion,
+  Group,
+  NativeSelect,
+  NumberInput,
+  Rating,
+  Slider,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
@@ -15,6 +25,7 @@ import {
 } from '@work-archive/shared-types';
 
 import {
+  ActionRow,
   AppButton,
   AppLinkButton,
   FeedbackMessage,
@@ -68,6 +79,92 @@ const relationTypeLabels: Record<string, string> = {
   side_story: '외전',
   spin_off: '스핀오프',
 };
+
+function formatRatingControlValue(value: number) {
+  return value <= 0 ? '미평가' : `${value.toFixed(1)}점`;
+}
+
+function StarRatingControl({
+  disabled,
+  label,
+  onCommit,
+  rating,
+}: {
+  disabled: boolean;
+  label: string;
+  onCommit(nextRating: number | null): void | Promise<void>;
+  rating: number | null;
+}) {
+  const [draftRating, setDraftRating] = useState(rating ?? 0);
+
+  useEffect(() => {
+    setDraftRating(rating ?? 0);
+  }, [rating]);
+
+  function commitRating(value: number) {
+    const nextRating = value <= 0 ? null : value;
+
+    void onCommit(nextRating);
+  }
+
+  return (
+    <Stack gap="xs">
+      <Group justify="space-between" wrap="nowrap">
+        <Text c="var(--app-text-strong)" fw={700} size="sm">
+          별점
+        </Text>
+        <Text c="var(--app-text-muted)" fw={700} size="sm">
+          {formatRatingControlValue(draftRating)}
+        </Text>
+      </Group>
+
+      <Rating
+        aria-label={`${label} 별`}
+        fractions={2}
+        onChange={(value) => {
+          setDraftRating(value);
+          commitRating(value);
+        }}
+        readOnly={disabled}
+        size="lg"
+        value={draftRating}
+      />
+
+      <Slider
+        aria-label={label}
+        disabled={disabled}
+        label={formatRatingControlValue}
+        marks={[
+          { value: 0, label: '미평가' },
+          { value: 2.5, label: '2.5' },
+          { value: 5, label: '5.0' },
+        ]}
+        max={5}
+        min={0}
+        onChange={setDraftRating}
+        onChangeEnd={commitRating}
+        step={0.5}
+        value={draftRating}
+      />
+
+      {draftRating > 0 && (
+        <ActionRow>
+          <AppButton
+            disabled={disabled}
+            onClick={() => {
+              setDraftRating(0);
+              commitRating(0);
+            }}
+            tone="ghost"
+            type="button"
+          >
+            미평가로 변경
+          </AppButton>
+        </ActionRow>
+      )}
+    </Stack>
+  );
+}
 
 function coerceNumberInputValue(value: number | string) {
   if (typeof value === 'number') {
@@ -492,16 +589,19 @@ export function WorkDetailPage() {
   const [localReleaseRecords, setLocalReleaseRecords] = useState<
     UserReleaseRecord[]
   >([]);
+  const workCatalogTitleId = work?.catalogTitleId ?? null;
+  const workId = work?.id ?? null;
+  const workType = work?.type ?? null;
 
   useEffect(() => {
-    if (!work) {
+    if (!workId) {
       setLocalReleaseRecords([]);
 
       return undefined;
     }
 
     const subscription = liveQuery(() =>
-      releaseRecordsService.listByUserWorkRecord(work.id),
+      releaseRecordsService.listByUserWorkRecord(workId),
     ).subscribe({
       next: setLocalReleaseRecords,
       error: () => {
@@ -512,17 +612,18 @@ export function WorkDetailPage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [archiveScopeKey, work?.id]);
+  }, [archiveScopeKey, workId]);
 
   useEffect(() => {
     let isActive = true;
 
     async function loadReleaseData() {
       if (
-        !work ||
+        !workId ||
         mode !== 'authenticated' ||
-        !work.catalogTitleId ||
-        !isVolumeRecordableWorkType(work.type)
+        !workCatalogTitleId ||
+        !workType ||
+        !isVolumeRecordableWorkType(workType)
       ) {
         setReleaseData(null);
 
@@ -530,7 +631,7 @@ export function WorkDetailPage() {
       }
 
       try {
-        const response = await fetchUserRecordReleases(work.id);
+        const response = await fetchUserRecordReleases(workId);
 
         if (isActive) {
           setReleaseData(response);
@@ -547,20 +648,20 @@ export function WorkDetailPage() {
     return () => {
       isActive = false;
     };
-  }, [mode, work?.catalogTitleId, work?.id, work?.type]);
+  }, [mode, workCatalogTitleId, workId, workType]);
 
   useEffect(() => {
     let isActive = true;
 
     async function loadRelatedTitles() {
-      if (!work?.catalogTitleId || mode !== 'authenticated') {
+      if (!workCatalogTitleId || mode !== 'authenticated') {
         setRelatedData(null);
 
         return;
       }
 
       try {
-        const response = await fetchRelatedCatalogTitles(work.catalogTitleId);
+        const response = await fetchRelatedCatalogTitles(workCatalogTitleId);
 
         if (isActive) {
           setRelatedData(response);
@@ -577,7 +678,7 @@ export function WorkDetailPage() {
     return () => {
       isActive = false;
     };
-  }, [mode, work?.catalogTitleId]);
+  }, [mode, workCatalogTitleId]);
 
   async function handleDelete() {
     if (!work) {
@@ -699,7 +800,7 @@ export function WorkDetailPage() {
         quickEdit={
           <Stack gap="md">
             <SectionIntro
-              description="상태와 별점은 여기서 바로 반영하고, 긴 리뷰 수정은 상단 액션에서 이어집니다."
+              description={undefined}
               eyebrow="빠른 수정"
               title="기록 상태 조정"
               titleOrder={3}
@@ -725,35 +826,17 @@ export function WorkDetailPage() {
               ))}
             </NativeSelect>
 
-            <NativeSelect
-              aria-label={`${work.title} 상세 별점`}
+            <StarRatingControl
               disabled={isQuickUpdating}
-              id={`detail-rating-${work.id}`}
-              label="별점"
-              onChange={(event) => {
-                const nextValue =
-                  event.currentTarget.value === ''
-                    ? null
-                    : Number.parseFloat(event.currentTarget.value);
-
-                void handleQuickUpdate({
-                  rating: Number.isNaN(nextValue) ? null : nextValue,
-                });
-              }}
-              value={work.rating?.toString() ?? ''}
-            >
-              <option value="">미평가</option>
-              {ratingOptions.map((option) => (
-                <option key={option.value} value={option.value.toString()}>
-                  {option.label}
-                </option>
-              ))}
-            </NativeSelect>
+              label={`${work.title} 상세 별점`}
+              onCommit={(nextRating) => handleQuickUpdate({ rating: nextRating })}
+              rating={work.rating}
+            />
 
             <Text c="var(--app-text-muted)" size="sm">
               {isQuickUpdating
                 ? '변경 사항을 반영하고 있습니다.'
-                : '상태와 별점은 저장 없이 즉시 반영됩니다.'}
+                : '상태와 별점은 즉시 반영됩니다.'}
             </Text>
           </Stack>
         }

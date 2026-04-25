@@ -1,13 +1,6 @@
-import { Container, Stack } from '@mantine/core';
+import { Container, Group, Stack, Text, ThemeIcon } from '@mantine/core';
 import type { ReactNode } from 'react';
-import { Outlet } from 'react-router-dom';
-
-import {
-  ActionRow,
-  AppLinkButton,
-  BrandLink,
-  ThemeToggleControl,
-} from '../../shared/components/AppPrimitives';
+import { Link, Outlet } from 'react-router-dom';
 
 type AuthLayoutProps = {
   children?: ReactNode;
@@ -16,18 +9,20 @@ type AuthLayoutProps = {
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <main className="layout-shell layout-shell--auth">
-      <Container px="md" size={860}>
-        <Stack gap="xl" justify="center" mih="calc(100vh - 48px)">
-          <Stack align="center" gap="md">
-            <BrandLink heading="워크 아카이브" kicker="취향 아카이브 서비스" />
-            <ActionRow justify="center">
-              <ThemeToggleControl />
-              <AppLinkButton to="/">홈으로 돌아가기</AppLinkButton>
-              <AppLinkButton to="/works" tone="quiet">
-                작품 보기
-              </AppLinkButton>
-            </ActionRow>
-          </Stack>
+      <Container px="md" size={500}>
+        <Stack align="center" gap="lg" justify="center" mih="calc(100vh - 48px)">
+          <Link style={{ textDecoration: 'none' }} to="/">
+            <Group gap="sm" justify="center" wrap="nowrap">
+              <ThemeIcon color="archive" radius="md" size={34} variant="light">
+                <Text fw={700} size="xs">
+                  WA
+                </Text>
+              </ThemeIcon>
+              <Text c="var(--app-text-strong)" fw={700}>
+                워크 아카이브
+              </Text>
+            </Group>
+          </Link>
 
           {children ?? <Outlet />}
         </Stack>

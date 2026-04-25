@@ -53,12 +53,12 @@ export function WorkListRow({
 
   return (
     <Box
-      px="lg"
-      py="lg"
+      px="md"
+      py="md"
       style={{ borderBottom: isLast ? 'none' : '1px solid var(--app-border-color)' }}
     >
-      <Group align="flex-start" gap="lg" justify="space-between" wrap="wrap">
-        <Group align="flex-start" gap="md" miw={0} wrap="nowrap">
+      <Group align="center" gap="md" justify="space-between" wrap="wrap">
+        <Group align="center" gap="md" miw={0} style={{ flex: '1 1 32rem' }} wrap="nowrap">
           <ArtworkPoster
             thumbnailUrl={work.thumbnailUrl}
             title={work.title}
@@ -66,7 +66,7 @@ export function WorkListRow({
             variant="row"
           />
 
-          <Stack flex={1} gap="sm" miw={0}>
+          <Stack flex={1} gap={6} miw={0}>
             <ActionRow>
               <AppBadge>{typeLabel}</AppBadge>
               <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
@@ -76,34 +76,35 @@ export function WorkListRow({
             </ActionRow>
 
             <div>
-              <Title order={3}>
+              <Title order={3} size="h4">
                 <Link style={{ color: 'inherit', textDecoration: 'none' }} to={`/works/${work.id}`}>
                   {work.title}
                 </Link>
               </Title>
-              <Text c="var(--app-text-muted)">
+              <Text c="var(--app-text-muted)" size="sm">
                 {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
               </Text>
             </div>
 
-            <Text c="var(--app-text-secondary)">
+            <Text c="var(--app-text-secondary)" lineClamp={2} size="sm">
               {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
             </Text>
           </Stack>
         </Group>
 
-        <Stack gap="sm" maw={360} style={{ flex: '1 1 18rem', minWidth: 'min(100%, 18rem)' }}>
+        <Stack gap="xs" maw={330} style={{ flex: '1 1 18rem', minWidth: 'min(100%, 18rem)' }}>
           <ActionRow justify="flex-end">
-            <AppLinkButton to={`/works/${work.id}`} tone="quiet">
+            <AppLinkButton size="compact-sm" to={`/works/${work.id}`} tone="quiet">
               보기
             </AppLinkButton>
-            <AppLinkButton to={`/works/${work.id}/edit`} tone="ghost">
+            <AppLinkButton size="compact-sm" to={`/works/${work.id}/edit`} tone="ghost">
               수정
             </AppLinkButton>
             <AppButton
               aria-label={`${work.title} 삭제`}
               disabled={isUpdating}
               onClick={() => void onDelete(work)}
+              size="compact-sm"
               tone="danger"
               type="button"
             >
@@ -111,7 +112,7 @@ export function WorkListRow({
             </AppButton>
           </ActionRow>
 
-          <Group align="flex-end" grow>
+          <Group align="flex-end" grow gap="xs">
             <NativeSelect
               aria-label={`${work.title} 별점`}
               disabled={isUpdating}

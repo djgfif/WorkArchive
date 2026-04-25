@@ -49,6 +49,11 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
+    expect(screen.queryByRole('button', { name: '라이트 모드' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '홈으로 돌아가기' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '작품 보기' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /WA\s*워크 아카이브/ })).toHaveAttribute('href', '/');
+
     await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
     await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
     await user.click(screen.getByRole('button', { name: '회원가입' }));
@@ -234,6 +239,11 @@ describe('Auth flow', () => {
         <RouterProvider router={router} />
       </AuthProvider>,
     );
+
+    expect(screen.queryByRole('button', { name: '라이트 모드' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '홈으로 돌아가기' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '작품 보기' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '비밀번호를 잊으셨나요?' })).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
     await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');

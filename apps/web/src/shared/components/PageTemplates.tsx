@@ -31,14 +31,14 @@ export function FlowPageTemplate({ children }: PageFrameProps) {
 }
 
 interface AuthPageTemplateProps {
-  description: string;
+  description?: string;
   footer?: ReactNode;
   form: ReactNode;
-  highlights: Array<{
+  highlights?: Array<{
     description: string;
     title: string;
   }>;
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
 }
 
@@ -46,12 +46,12 @@ export function AuthPageTemplate({
   description,
   footer,
   form,
-  highlights,
+  highlights = [],
   eyebrow,
   title,
 }: AuthPageTemplateProps) {
   return (
-    <PageShell gap="xl" size={720}>
+    <PageShell gap="md" size={480}>
       <SectionCard gap="lg" padding="xl" tone="default">
         <SectionIntro
           description={description}
@@ -60,6 +60,7 @@ export function AuthPageTemplate({
           titleOrder={1}
         />
         {form}
+        {footer && <Stack gap="xs">{footer}</Stack>}
       </SectionCard>
 
       {highlights.length > 0 && (
@@ -78,14 +79,6 @@ export function AuthPageTemplate({
         </SimpleGrid>
       )}
 
-      {footer && (
-        <Stack gap="xs">
-          <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
-            계정 안내
-          </Text>
-          {footer}
-        </Stack>
-      )}
     </PageShell>
   );
 }
