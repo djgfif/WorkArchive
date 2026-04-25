@@ -149,6 +149,33 @@ function renderAuthenticatedQuickAdd(onSubmit = vi.fn()) {
   );
 }
 
+function renderGuestQuickAdd(onSubmit = vi.fn()) {
+  workArchiveDbManager.switchToGuest();
+  window.localStorage.removeItem('work-archive.auth.tokens');
+
+  return renderWithProviders(
+    <MemoryRouter>
+      <AuthContext.Provider
+        value={{
+          archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
+          isLoading: false,
+          mode: 'guest',
+          user: null,
+          signIn: vi.fn(),
+          signUp: vi.fn(),
+          signOut: vi.fn(),
+        }}
+      >
+        <QuickAddWorkForm
+          isSubmitting={false}
+          onSubmit={onSubmit}
+          submitError={null}
+        />
+      </AuthContext.Provider>
+    </MemoryRouter>,
+  );
+}
+
 function buildExistingWork(
   overrides: Partial<WorkRecord> = {},
 ): WorkRecord {
@@ -204,6 +231,8 @@ async function searchAndSelectCandidate(
   searchTerm: string,
   candidateTitle: string,
 ) {
+  await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+
   const searchInput = getElementById<HTMLInputElement>('quickAddSearch');
 
   await user.clear(searchInput);
@@ -255,6 +284,7 @@ describe('QuickAddWorkForm', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    window.localStorage.clear();
   });
 
   it('uses authenticated search candidates to prefill the Quick Add form', async () => {
@@ -272,6 +302,63 @@ describe('QuickAddWorkForm', () => {
     );
     expect(getElementById<HTMLInputElement>('author')).toHaveValue(candidate.author);
     expect(screen.getAllByText(candidate.note).length).toBeGreaterThan(0);
+  });
+
+  it('submits direct manual adds without catalog or import identity', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderAuthenticatedQuickAdd(onSubmit);
+
+    await user.type(getElementById<HTMLInputElement>('manualTitle'), '직접 쓴 작품');
+    await user.selectOptions(getElementById<HTMLSelectElement>('manualType'), 'anime');
+    await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({
+      title: '직접 쓴 작품',
+      type: 'anime',
+      catalogTitleId: null,
+      importDraft: null,
+    });
+  });
+
+  it('uses public no-key provider search for guests', async () => {
+    const candidate = buildCandidate({
+      sourceId: 'open_library',
+      sourceLabel: 'Open Library',
+      title: 'Dune',
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        provider: 'open_library',
+        providers: ['open_library'],
+        query: 'Dune',
+        candidates: [candidate],
+      }),
+    );
+    const user = userEvent.setup();
+
+    vi.stubGlobal('fetch', fetchMock);
+    renderGuestQuickAdd();
+
+    await searchAndSelectCandidate(user, 'Dune', candidate.title);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    const [firstFetchInput, firstFetchInit] = fetchMock.mock.calls[0] ?? [];
+
+    expect(String(firstFetchInput)).toContain('/imports/search?');
+    expect(firstFetchInit).toMatchObject({
+      method: 'GET',
+    });
+    const headers = new Headers((firstFetchInit as RequestInit | undefined)?.headers);
+
+    expect(headers.has('authorization')).toBe(false);
+    expect(await waitFor(() => getElementById<HTMLInputElement>('title'))).toHaveValue(
+      candidate.title,
+    );
   });
 
   it('submits catalogTitleId and a null importDraft for matched external candidates', async () => {

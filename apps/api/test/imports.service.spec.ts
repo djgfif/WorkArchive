@@ -2,13 +2,18 @@ import {
   BadGatewayException,
   BadRequestException,
   ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { WorkType } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { ExternalApiKeyCryptoService } from '../src/modules/imports/external-api-key-crypto.service';
 import { ImportsCredentialService } from '../src/modules/imports/imports-credential.service';
-import { ALADIN_PROVIDER } from '../src/modules/imports/imports.constants';
+import {
+  ALADIN_PROVIDER,
+  OPEN_LIBRARY_PROVIDER,
+  TMDB_PROVIDER,
+} from '../src/modules/imports/imports.constants';
 import { ImportsService } from '../src/modules/imports/imports.service';
 import type { PrismaService } from '../src/prisma/prisma.service';
 
@@ -227,6 +232,64 @@ describe('ImportsService', () => {
     await expect(
       service.search(USER_ID, {
         provider: ALADIN_PROVIDER,
+        query: 'Dune',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('allows guest search for no-key providers without reading user credentials', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        docs: [
+          {
+            key: '/works/OL123W',
+            title: 'Dune',
+            author_name: ['Frank Herbert'],
+            first_publish_year: 1965,
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        provider: OPEN_LIBRARY_PROVIDER,
+        providers: [OPEN_LIBRARY_PROVIDER],
+        query: 'Dune',
+        candidates: [
+          expect.objectContaining({
+            id: 'open_library:/works/OL123W',
+            sourceId: OPEN_LIBRARY_PROVIDER,
+            title: 'Dune',
+            existingRecord: null,
+          }),
+        ],
+      }),
+    );
+    expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
+  });
+
+  it('requires login for guest requests to user-scoped providers', async () => {
+    await expect(
+      service.search(null, {
+        provider: ALADIN_PROVIDER,
+        query: 'Dune',
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
+  });
+
+  it('keeps server-key providers unavailable to guest search by default', async () => {
+    await expect(
+      service.search(null, {
+        provider: TMDB_PROVIDER,
         query: 'Dune',
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);

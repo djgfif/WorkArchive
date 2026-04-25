@@ -7,9 +7,11 @@ import type {
 
 import {
   ApiRequestError,
+  requestApiJson,
   requestAuthenticatedApi,
   requestAuthenticatedApiJson,
 } from '../../auth/services/auth.api';
+import { readStoredAuthTokens } from '../../auth/services/auth-storage';
 
 export interface ImportCandidate {
   author: string;
@@ -289,15 +291,21 @@ export class ImportsService {
           params.set('providers', options.providers.join(','));
         }
 
-        const response = await requestAuthenticatedApiJson<ImportSearchResponse>(
-          `/imports/search?${params.toString()}`,
-          {
-            method: 'GET',
-          },
-          {
-            missingTokenMessage: 'Aladin 외부 검색은 로그인 후 이용해주세요.',
-          },
-        );
+        const path = `/imports/search?${params.toString()}`;
+        const storedTokens = readStoredAuthTokens();
+        const response = storedTokens
+          ? await requestAuthenticatedApiJson<ImportSearchResponse>(
+              path,
+              {
+                method: 'GET',
+              },
+              {
+                missingTokenMessage: '외부 검색은 로그인 없이도 사용할 수 있습니다.',
+              },
+            )
+          : await requestApiJson<ImportSearchResponse>(path, {
+              method: 'GET',
+            });
 
         return {
           candidates: response.candidates,
@@ -322,7 +330,7 @@ export class ImportsService {
 
     return this.searchPreviewCandidates(
       normalizedQuery,
-      '로그인하지 않은 상태에서는 외부 검색이 아닌 로컬 preview 후보를 표시합니다.',
+      '외부 검색을 건너뛰고 로컬 preview 후보를 표시합니다.',
       options.mediumType,
     );
   }

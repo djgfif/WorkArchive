@@ -1,15 +1,90 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { AuthProvider } from '../../auth/context/AuthProvider';
+import type { ImportCandidate } from '../../imports/services/imports.service';
 import { worksService } from '../services/works.service';
 
+function jsonResponse(body: unknown) {
+  return new Response(JSON.stringify(body), {
+    headers: {
+      'content-type': 'application/json',
+    },
+    status: 200,
+  });
+}
+
+function buildCandidate(title = 'Dune'): ImportCandidate {
+  return {
+    author: 'Frank Herbert',
+    catalogMatch: null,
+    confidence: 0.68,
+    confidenceLabel: 'Open Library 후보',
+    contributors: [
+      {
+        name: 'Frank Herbert',
+        role: 'author',
+      },
+    ],
+    countLabel: '1965',
+    description: 'A desert saga.',
+    existingRecord: null,
+    externalId: '/works/OL123W',
+    externalRefs: [
+      {
+        externalId: '/works/OL123W',
+        provider: 'open_library',
+        rawType: 'novel',
+        url: 'https://openlibrary.org/works/OL123W',
+      },
+    ],
+    formatLabel: '소설/도서',
+    franchiseName: null,
+    genresText: '',
+    id: 'open_library:/works/OL123W',
+    mediumType: 'novel',
+    note: 'Open Library Search API',
+    reason: 'Open Library 제목 검색 결과',
+    releaseCandidates: [],
+    relationsHint: [],
+    releaseYear: 1965,
+    sourceId: 'open_library',
+    sourceLabel: 'Open Library',
+    sourceUrl: 'https://openlibrary.org/works/OL123W',
+    subType: null,
+    thumbnailUrl: '',
+    title,
+    type: 'novel',
+  };
+}
+
+function mockSearch(candidate = buildCandidate()) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(
+      jsonResponse({
+        provider: 'open_library',
+        providers: ['open_library'],
+        query: candidate.title,
+        candidates: [candidate],
+      }),
+    ),
+  );
+}
+
 describe('Works routed flow', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
   it('creates and edits a work through the UI', async () => {
+    mockSearch();
+
     const user = userEvent.setup();
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/works/new'],
@@ -21,7 +96,8 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.type(screen.getByLabelText(/^작품 검색$/), 'Dune');
+    await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+    await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
     await user.click(screen.getByRole('button', { name: '검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
 
@@ -39,7 +115,7 @@ describe('Works routed flow', () => {
     const authorInput = screen.getByLabelText(/작가·제작자/);
     await user.clear(authorInput);
     await user.type(authorInput, 'Frank Herbert');
-    await user.selectOptions(screen.getByLabelText(/^상태$/), 'completed');
+    await user.click(screen.getByRole('button', { name: '완료' }));
 
     await user.click(screen.getByRole('button', { name: '저장' }));
     await user.click(await screen.findByRole('button', { name: '방금 등록한 작품 보기' }));
@@ -59,6 +135,8 @@ describe('Works routed flow', () => {
   });
 
   it('warns when a likely duplicate already exists before continuing', async () => {
+    mockSearch();
+
     await worksService.createWork({
       type: 'novel',
       title: 'Dune',
@@ -85,7 +163,8 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.type(screen.getByLabelText(/^작품 검색$/), 'Dune');
+    await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+    await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
     await user.click(screen.getByRole('button', { name: '검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
 

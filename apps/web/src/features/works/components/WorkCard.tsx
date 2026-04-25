@@ -1,4 +1,4 @@
-import { Stack, Text, Title } from '@mantine/core';
+import { Box, Stack, Text, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
@@ -28,17 +28,27 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
   const ratingLabel = work.rating === null ? '미평가' : `${work.rating.toFixed(1)}점`;
 
   return (
-    <SectionCard gap="md" padding="lg">
-      <ArtworkPoster
-        thumbnailUrl={work.thumbnailUrl}
-        title={work.title}
-        typeLabel={typeLabel}
-        variant="card"
-      />
+    <SectionCard gap="sm" padding="md">
+      <Box pos="relative" w="fit-content">
+        <ArtworkPoster
+          thumbnailUrl={work.thumbnailUrl}
+          title={work.title}
+          typeLabel={typeLabel}
+          variant="card"
+        />
+        <Box
+          pos="absolute"
+          style={{
+            left: '0.45rem',
+            top: '0.45rem',
+          }}
+        >
+          <AppBadge tone="accent">{statusLabel}</AppBadge>
+        </Box>
+      </Box>
 
       <Stack gap="sm">
         <ActionRow>
-          <AppBadge>{statusLabel}</AppBadge>
           <AppBadge>{ratingLabel}</AppBadge>
           <AppBadge>{typeLabel}</AppBadge>
           {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
@@ -71,15 +81,16 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
         </ActionRow>
 
         <ActionRow justify="space-between">
-          <AppLinkButton to={`/works/${work.id}`} tone="quiet">
+          <AppLinkButton size="compact-sm" to={`/works/${work.id}`} tone="quiet">
             상세
           </AppLinkButton>
-          <AppLinkButton to={`/works/${work.id}/edit`} tone="ghost">
+          <AppLinkButton size="compact-sm" to={`/works/${work.id}/edit`} tone="ghost">
             수정
           </AppLinkButton>
           <AppButton
             aria-label={`${work.title} 삭제`}
             onClick={() => void onDelete(work)}
+            size="compact-sm"
             tone="danger"
             type="button"
           >

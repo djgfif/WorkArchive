@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { WorkType } from '@prisma/client';
 
@@ -64,7 +65,7 @@ interface ProviderSearchContext {
   limit: number;
   mediumType?: WorkType;
   query: string;
-  userId: string;
+  userId: string | null;
 }
 
 const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
@@ -179,7 +180,7 @@ export class ImportsService {
     };
   }
 
-  async listProviders(userId: string): Promise<ImportProviderStatusResponseDto[]> {
+  async listProviders(userId: string | null): Promise<ImportProviderStatusResponseDto[]> {
     return Promise.all(
       IMPORT_PROVIDER_VALUES.map(async (provider) => {
         const metadata = PROVIDERS[provider];
@@ -212,13 +213,17 @@ export class ImportsService {
   }
 
   async search(
-    userId: string,
+    userId: string | null,
     searchQuery: ImportSearchQueryDto,
   ): Promise<ImportSearchResponseDto> {
     const query = searchQuery.query.trim();
     const limit = this.normalizeLimit(searchQuery.limit);
     const mediumType = searchQuery.mediumType ?? searchQuery.type;
-    const providers = this.resolveProviders(searchQuery, mediumType);
+    const providers = this.resolveSearchProviders(
+      this.resolveProviders(searchQuery, mediumType),
+      searchQuery,
+      userId,
+    );
     const explicitSingleProvider =
       searchQuery.provider !== undefined &&
       searchQuery.providers === undefined;
@@ -346,11 +351,52 @@ export class ImportsService {
     return !mediumType || PROVIDERS[provider].mediumTypes.includes(mediumType);
   }
 
-  private async isProviderConfigured(userId: string, provider: ImportProvider) {
+  private resolveSearchProviders(
+    providers: ImportProvider[],
+    searchQuery: ImportSearchQueryDto,
+    userId: string | null,
+  ) {
+    if (userId) {
+      return providers;
+    }
+
+    const allowedProviders = providers.filter((provider) => {
+      return PROVIDERS[provider].credentialMode === 'none';
+    });
+    const requestedProviders = [
+      ...(searchQuery.provider ? [searchQuery.provider] : []),
+      ...(searchQuery.providers ?? []),
+    ];
+    const blockedRequestedProvider = requestedProviders.find((provider) => {
+      return PROVIDERS[provider].credentialMode !== 'none';
+    });
+
+    if (blockedRequestedProvider) {
+      const metadata = PROVIDERS[blockedRequestedProvider];
+
+      if (metadata.credentialMode === 'user') {
+        throw new UnauthorizedException(
+          `${metadata.label} search requires a signed-in account.`,
+        );
+      }
+
+      throw new ForbiddenException(
+        `${metadata.label} search is not available for guest search.`,
+      );
+    }
+
+    return allowedProviders;
+  }
+
+  private async isProviderConfigured(userId: string | null, provider: ImportProvider) {
     const metadata = PROVIDERS[provider];
 
     if (metadata.credentialMode === 'none') {
       return true;
+    }
+
+    if (!userId) {
+      return false;
     }
 
     if (provider === ALADIN_PROVIDER) {
@@ -394,6 +440,10 @@ export class ImportsService {
     query,
     userId,
   }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    if (!userId) {
+      throw new UnauthorizedException('Aladin search requires a signed-in account.');
+    }
+
     const ttbKey = await this.credentialService.getDecryptedCredential(
       userId,
       ALADIN_PROVIDER,
@@ -1271,7 +1321,7 @@ export class ImportsService {
   }
 
   private async decorateCandidates(
-    userId: string,
+    userId: string | null,
     candidates: ImportCandidateResponseDto[],
   ) {
     return Promise.all(
@@ -1288,7 +1338,7 @@ export class ImportsService {
             releaseYear: candidate.releaseYear,
             title: candidate.title,
           });
-        const existingRecord = catalogMatch
+        const existingRecord = catalogMatch && userId
           ? await this.prisma.userWorkRecord.findFirst({
               where: {
                 catalogTitleId: catalogMatch.id,
@@ -1661,14 +1711,14 @@ export class ImportsService {
   }
 
   private logSearchSummary(
-    userId: string,
+    userId: string | null,
     provider: string,
     query: string,
     resultCount: number,
     status: string,
   ) {
     this.logger.log(
-      `Import search summary userId=${userId} provider=${provider} queryLength=${query.length} resultCount=${resultCount} status=${status}`,
+      `Import search summary userId=${userId ?? 'guest'} provider=${provider} queryLength=${query.length} resultCount=${resultCount} status=${status}`,
     );
   }
 }
