@@ -5,7 +5,7 @@
 | Status | `active` |
 | Role | `operational entrypoint` |
 | Source of truth | `package.json`, `compose.yml`, `apps/web/package.json`, `apps/api/package.json` |
-| Last verified against | `2026-04-24` working tree |
+| Last verified against | `2026-04-25` local `master` working tree |
 | When to update | 실행 스크립트, 환경 변수, 포트, Compose 흐름, 현재 검증 상태가 바뀔 때 |
 
 Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 작품 감상 기록을 관리하는 local-first 웹 서비스다. 프론트는 IndexedDB를 1차 저장소로 사용하고, 로그인 시 계정별 로컬 아카이브와 수동 동기화를 사용할 수 있다.
@@ -28,8 +28,9 @@ Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 작품 �
 ## Read This Next
 
 1. [`docs/README.md`](./docs/README.md)
-2. [`docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
-3. 작업 영역에 따라 [`docs/frontend/README.md`](./docs/frontend/README.md), [`docs/backend/README.md`](./docs/backend/README.md), [`docs/product/README.md`](./docs/product/README.md)
+2. [`plan.md`](./plan.md)
+3. [`docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
+4. 작업 영역에 따라 [`docs/frontend/README.md`](./docs/frontend/README.md), [`docs/backend/README.md`](./docs/backend/README.md), [`docs/product/README.md`](./docs/product/README.md)
 
 ## Prerequisites
 
@@ -175,7 +176,13 @@ npm run build
 - 로그인 시 계정별 로컬 아카이브로 전환되고 수동 sync를 사용할 수 있다.
 - 로그인 직후 guest 기록이 감지되면 `/account/transfer`에서 중복 후보를 검토한 뒤 선택 import할 수 있다.
 - Quick Add는 authenticated 상태에서 `/imports/search`를 사용하고, 현재 `Aladin`, `AniList`, `Google Books`, `Open Library`, `TVmaze`, `TMDB`, `Naver Book`, `Kakao Book`, `KOBIS`, `manual` provider 구조가 연결돼 있다.
-- Quick Add 저장은 아직 local-first다. 선택한 후보는 Dexie `works` 레코드와 `syncQueue`에 먼저 반영되고, authenticated 생성도 서버 direct create가 아니라 동기화 경로를 탄다.
+- Quick Add 저장은 현재 제품 기준에서 의도적으로 local-first 경로를 유지한다. 선택한 후보는 Dexie `works` 레코드와 `syncQueue`에 먼저 반영되고, authenticated 생성도 서버 direct create가 아니라 동기화 경로를 탄다.
+- Quick Add matched external candidate는 local record에 `catalogTitleId`를 저장하고 `importDraft`는 `null`로 둔다.
+- Quick Add unmatched external candidate는 `importDraft`에 external identity만 저장한다. `title`, `author`, `description`, `thumbnailUrl`, `genres`는 `importDraft`에 중복 저장하지 않는다.
+- Quick Add `manual` / `preview-manual` 후보는 catalog identity 없이 현재 draft를 local-first로 저장한다.
+- duplicate detection 우선순위는 `catalogTitleId -> externalRefs -> title fallback`으로 테스트 고정돼 있다.
+- Settings provider readiness UI는 `/imports/providers` 기반 기본 구현과 테스트가 들어갔다. 남은 작업은 provider별 ranking/search quality와 polish다.
+- SyncPage는 pending / failed / conflict queue item의 상태, 원인, 기록 보기, 재시도 CTA를 표시한다. conflict overwrite/merge resolution은 후속 작업이다.
 - `Tier Boards`, `Insights`, `Community`는 현재 placeholder 성격이 강하다.
 - 인증은 현재 이메일/비밀번호 + access token local storage + refresh cookie 구조다.
 - 백엔드는 이미 `CatalogWork` + `UserWorkRecord` split model을 도입했고, 현재 `Works` API는 flat compatibility 계층으로 유지된다.
@@ -185,12 +192,14 @@ npm run build
 
 - 자동 동기화는 아직 없다.
 - guest -> account 이관은 검토/선택 import 단계까지만 있고, 자동 병합이나 다기기 정책은 아직 없다.
-- Quick Add 검색은 이미 provider 기반이지만, provider readiness UI, ranking, duplicate detection, direct authenticated create path는 아직 정리 중이다.
+- Quick Add provider readiness와 duplicate detection의 기본 구현/테스트는 들어갔지만, provider ranking/search quality와 UI polish는 후속 작업이다.
+- authenticated direct create path는 “미구현 경로”가 아니라 현재 제품 기준에서 채택하지 않는 경로다. 현재 기본 저장 경로는 local-first sync다.
 - `Works` compatibility layer, access token 저장 구조, 공개 레이어 권한 분리 같은 후속 과제는 아직 남아 있다.
 
 ## Documentation
 
 - 문서 허브: [`docs/README.md`](./docs/README.md)
+- 현재 실행 기준: [`plan.md`](./plan.md)
 - 현재 코드 현실: [`docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 - 프론트 기준: [`docs/frontend/FRONTEND_BLUEPRINT_V1.md`](./docs/frontend/FRONTEND_BLUEPRINT_V1.md)
 - 프론트 상세 실행 계획: [`docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](./docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
