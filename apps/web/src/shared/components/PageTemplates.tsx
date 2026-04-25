@@ -62,19 +62,21 @@ export function AuthPageTemplate({
         {form}
       </SectionCard>
 
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
-        {highlights.map((highlight) => (
-          <PageSection
-            divider={false}
-            eyebrow="안내"
-            key={highlight.title}
-            title={highlight.title}
-            titleOrder={3}
-          >
-            <Text c="var(--app-text-muted)">{highlight.description}</Text>
-          </PageSection>
-        ))}
-      </SimpleGrid>
+      {highlights.length > 0 && (
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
+          {highlights.map((highlight) => (
+            <PageSection
+              divider={false}
+              eyebrow="안내"
+              key={highlight.title}
+              title={highlight.title}
+              titleOrder={3}
+            >
+              <Text c="var(--app-text-muted)">{highlight.description}</Text>
+            </PageSection>
+          ))}
+        </SimpleGrid>
+      )}
 
       {footer && (
         <Stack gap="xs">

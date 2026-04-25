@@ -35,6 +35,8 @@ services:
       HOST: ${HOST:-0.0.0.0}
       PORT: 3000
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:8080}
+      PASSWORD_RESET_DEV_LINKS_ENABLED: ${PASSWORD_RESET_DEV_LINKS_ENABLED:-true}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-access-secret}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-secret}
       EXTERNAL_API_KEY_ENCRYPTION_SECRET: ${EXTERNAL_API_KEY_ENCRYPTION_SECRET:-change-me-external-api-key-encryption-secret}

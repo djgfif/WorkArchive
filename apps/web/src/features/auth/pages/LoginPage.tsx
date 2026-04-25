@@ -60,6 +60,8 @@ export function LoginPage() {
         <AuthForm
           isSubmitting={isSubmitting}
           onSubmit={handleSubmit}
+          showPasswordResetLink
+          showRememberMe
           submitError={submitError}
           submitLabel="로그인"
         />

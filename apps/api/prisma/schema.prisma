@@ -118,11 +118,26 @@ model User {
   updatedAt              DateTime                @updatedAt
   workRecords            UserWorkRecord[]
   externalApiCredentials ExternalApiCredential[]
+  passwordResetTokens    PasswordResetToken[]
   catalogSubmissions     CatalogSubmission[]     @relation("CatalogSubmissionSubmitter")
   reviewedSubmissions    CatalogSubmission[]     @relation("CatalogSubmissionReviewer")
   catalogAuditLogs       CatalogAuditLog[]
 
   @@map("users")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @db.Text
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 model CatalogWork {

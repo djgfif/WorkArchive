@@ -193,6 +193,7 @@ describe('Auth flow', () => {
       JSON.parse(window.localStorage.getItem('work-archive.auth.tokens') ?? 'null'),
     ).toEqual({
       accessToken: 'rotated-access-token',
+      persistence: 'local',
     });
 
     const firstAttemptHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
@@ -207,5 +208,158 @@ describe('Auth flow', () => {
     expect(retryHeaders.get('authorization')).toBe(
       'Bearer rotated-access-token',
     );
+  });
+
+  it('stores login tokens in localStorage only when remember-me is checked', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        accessToken: 'access-token',
+        user: {
+          id: 'user-1',
+          email: 'frieren@example.com',
+          nickname: '',
+        },
+      }),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/login'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
+    await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
+    await user.click(screen.getByLabelText('로그인 상태 유지'));
+    await user.click(screen.getByRole('button', { name: '로그인' }));
+
+    expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
+    expect(
+      JSON.parse(window.localStorage.getItem('work-archive.auth.tokens') ?? 'null'),
+    ).toEqual({
+      accessToken: 'access-token',
+      persistence: 'local',
+    });
+    expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      rememberMe: true,
+    });
+  });
+
+  it('uses sessionStorage for login tokens when remember-me is not checked', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          accessToken: 'access-token',
+          user: {
+            id: 'user-1',
+            email: 'frieren@example.com',
+            nickname: '',
+          },
+        }),
+      ),
+    );
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/login'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
+    await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
+    await user.click(screen.getByRole('button', { name: '로그인' }));
+
+    expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
+    expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
+    expect(
+      JSON.parse(window.sessionStorage.getItem('work-archive.auth.tokens') ?? 'null'),
+    ).toEqual({
+      accessToken: 'access-token',
+      persistence: 'session',
+    });
+  });
+
+  it('requests a development password reset link', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          developmentResetUrl:
+            'http://127.0.0.1:53173/auth/password-reset/confirm?token=reset-token',
+          message:
+            '비밀번호 재설정 요청을 확인했습니다. 계정이 있으면 재설정 링크를 사용할 수 있습니다.',
+        }),
+      );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/password-reset'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
+    await user.click(screen.getByRole('button', { name: '재설정 링크 만들기' }));
+
+    expect(await screen.findByText('개발용 복구 링크')).toBeInTheDocument();
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      email: 'frieren@example.com',
+    });
+  });
+
+  it('confirms a development password reset token', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        message: '비밀번호가 재설정되었습니다.',
+      }),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+
+    const confirmRouter = createMemoryRouter(appRoutes, {
+      initialEntries: [
+        {
+          pathname: '/auth/password-reset/confirm',
+          search: '?token=reset-token',
+        },
+      ],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={confirmRouter} />
+      </AuthProvider>,
+    );
+
+    await user.type(await screen.findByLabelText(/새 비밀번호/), 'new-password-123');
+    await user.click(screen.getByRole('button', { name: '새 비밀번호 저장' }));
+
+    expect(await screen.findByText('비밀번호가 재설정되었습니다.')).toBeInTheDocument();
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      password: 'new-password-123',
+      token: 'reset-token',
+    });
   });
 });

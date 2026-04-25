@@ -18,6 +18,7 @@ import {
   readStoredAuthTokens,
   subscribeToStoredAuthTokens,
   writeStoredAuthTokens,
+  type AuthTokenPersistence,
 } from '../services/auth-storage';
 import { workArchiveDbManager } from '../../works/db/work-archive.db';
 import { AuthContext, type AuthContextValue } from './AuthContext';
@@ -82,8 +83,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     tokens: {
       accessToken: string;
     },
+    persistence: AuthTokenPersistence = 'local',
   ) {
-    writeStoredAuthTokens(tokens);
+    writeStoredAuthTokens(tokens, persistence);
     activateAuthenticatedArchive(user);
 
     const pendingGuestTransfer = await guestTransferService.getPendingReview(user.id);
@@ -96,7 +98,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     return activateAuthenticatedSession(session.user, {
       accessToken: session.accessToken,
-    });
+    }, input.rememberMe ? 'local' : 'session');
   }
 
   async function signUp(input: AuthCredentialsInput) {

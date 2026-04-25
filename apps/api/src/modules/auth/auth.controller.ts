@@ -26,6 +26,7 @@ import type { Request, Response } from 'express';
 
 import { AuthService } from './auth.service';
 import {
+  getRefreshTokenClearCookieOptions,
   getRefreshTokenCookieOptions,
   REFRESH_TOKEN_COOKIE_NAME,
 } from './auth.cookies';
@@ -34,6 +35,12 @@ import type { AuthenticatedUser } from './auth.types';
 import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import { LoginDto } from './dto/login.dto';
+import { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
+import { PasswordResetRequestDto } from './dto/password-reset-request.dto';
+import {
+  PasswordResetConfirmResponseDto,
+  PasswordResetRequestResponseDto,
+} from './dto/password-reset-response.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -64,7 +71,9 @@ export class AuthController {
     response.cookie(
       REFRESH_TOKEN_COOKIE_NAME,
       session.refreshToken,
-      getRefreshTokenCookieOptions(),
+      getRefreshTokenCookieOptions({
+        rememberMe: session.rememberMe,
+      }),
     );
 
     return this.authService.toSessionResponse(session);
@@ -91,7 +100,9 @@ export class AuthController {
     response.cookie(
       REFRESH_TOKEN_COOKIE_NAME,
       session.refreshToken,
-      getRefreshTokenCookieOptions(),
+      getRefreshTokenCookieOptions({
+        rememberMe: session.rememberMe,
+      }),
     );
 
     return this.authService.toSessionResponse(session);
@@ -122,7 +133,9 @@ export class AuthController {
     response.cookie(
       REFRESH_TOKEN_COOKIE_NAME,
       session.refreshToken,
-      getRefreshTokenCookieOptions(),
+      getRefreshTokenCookieOptions({
+        rememberMe: session.rememberMe,
+      }),
     );
 
     return this.authService.toSessionResponse(session);
@@ -145,8 +158,35 @@ export class AuthController {
 
     response.clearCookie(
       REFRESH_TOKEN_COOKIE_NAME,
-      getRefreshTokenCookieOptions(),
+      getRefreshTokenClearCookieOptions(),
     );
+  }
+
+  @Post('password-reset/request')
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({
+    type: PasswordResetRequestDto,
+  })
+  @ApiOkResponse({
+    description:
+      'Create a development password reset link when the account exists.',
+    type: PasswordResetRequestResponseDto,
+  })
+  requestPasswordReset(@Body() passwordResetRequestDto: PasswordResetRequestDto) {
+    return this.authService.requestPasswordReset(passwordResetRequestDto);
+  }
+
+  @Post('password-reset/confirm')
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({
+    type: PasswordResetConfirmDto,
+  })
+  @ApiOkResponse({
+    description: 'Reset the password using a valid development reset token.',
+    type: PasswordResetConfirmResponseDto,
+  })
+  confirmPasswordReset(@Body() passwordResetConfirmDto: PasswordResetConfirmDto) {
+    return this.authService.confirmPasswordReset(passwordResetConfirmDto);
   }
 
   @Get('me')

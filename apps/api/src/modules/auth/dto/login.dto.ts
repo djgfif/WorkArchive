@@ -1,6 +1,14 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsBoolean,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class LoginDto {
   @ApiProperty({
@@ -25,4 +33,12 @@ export class LoginDto {
   @MinLength(8)
   @MaxLength(200)
   password!: string;
+
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Keep the refresh cookie persistent for 30 days.',
+  })
+  @IsBoolean()
+  @IsOptional()
+  rememberMe?: boolean;
 }

@@ -18,11 +18,21 @@ export interface AuthUser {
 export interface AuthCredentialsInput {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface AuthSessionResponse {
   accessToken: string;
   user: AuthUser;
+}
+
+export interface PasswordResetRequestResponse {
+  developmentResetUrl?: string;
+  message: string;
+}
+
+export interface PasswordResetConfirmResponse {
+  message: string;
 }
 
 interface ApiErrorBody {
@@ -146,6 +156,25 @@ export async function loginWithEmailPassword(input: AuthCredentialsInput) {
   });
 }
 
+export async function requestPasswordReset(email: string) {
+  return requestApiJson<PasswordResetRequestResponse>('/auth/password-reset/request', {
+    method: 'POST',
+    body: JSON.stringify({
+      email,
+    }),
+  });
+}
+
+export async function confirmPasswordReset(input: {
+  password: string;
+  token: string;
+}) {
+  return requestApiJson<PasswordResetConfirmResponse>('/auth/password-reset/confirm', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 export async function refreshSession() {
   return requestApiJson<AuthSessionResponse>('/auth/refresh', {
     method: 'POST',
@@ -169,13 +198,15 @@ export async function logoutSession() {
 }
 
 async function refreshStoredTokens() {
+  const storedTokens = readStoredAuthTokens();
+
   try {
     const refreshedSession = await refreshSession();
     const nextTokens = {
       accessToken: refreshedSession.accessToken,
     };
 
-    writeStoredAuthTokens(nextTokens);
+    writeStoredAuthTokens(nextTokens, storedTokens?.persistence ?? 'local');
 
     return nextTokens;
   } catch (error) {
