@@ -1,4 +1,4 @@
-import { Container, Grid, Stack } from '@mantine/core';
+import { Container, Grid } from '@mantine/core';
 import { Outlet, useNavigate } from 'react-router-dom';
 
 import {

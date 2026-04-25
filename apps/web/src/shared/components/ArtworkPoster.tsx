@@ -12,7 +12,7 @@ interface ArtworkPosterProps {
 function getPosterSize(variant: ArtworkPosterProps['variant']) {
   switch (variant) {
     case 'detail':
-      return 'clamp(8.5rem, 18vw, 11rem)';
+      return 'clamp(11rem, 22vw, 15rem)';
     case 'form':
       return '8.75rem';
     case 'row':

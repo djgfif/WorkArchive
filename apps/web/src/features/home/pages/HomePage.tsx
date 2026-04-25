@@ -11,12 +11,10 @@ import {
   AppLinkButton,
   FeedbackMessage,
   MetricPill,
-  PageSection,
   SectionCard,
   SectionIntro,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
-import { PageHero } from '../../../shared/components/PageHero';
 import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
@@ -116,10 +114,22 @@ export function HomePage() {
     );
   }
 
+  const hasRecentWorks = recentWorks.length > 0;
+
   return (
     <HomeHubPageTemplate>
-      <PageHero
-        actions={
+      <SectionCard gap="lg" padding="xl" tone="hero">
+        <Group align="flex-start" justify="space-between" wrap="wrap">
+          <Stack gap="xs">
+            <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+              홈
+            </Text>
+            <Title order={1}>기록 홈</Title>
+            <Text c="var(--app-text-secondary)">
+              {isAuthenticated ? `${user?.email ?? '계정'} 아카이브` : '이 기기의 개인 아카이브'}
+            </Text>
+          </Stack>
+
           <ActionRow justify="flex-end">
             <AppLinkButton to="/works/new" tone="primary">
               작품 추가
@@ -128,219 +138,142 @@ export function HomePage() {
               작품 보기
             </AppLinkButton>
           </ActionRow>
-        }
-        description={
-          isAuthenticated
-            ? `${user?.email ?? '계정'} 아카이브를 바로 이어갈 수 있도록 검색과 최근 기록을 앞에 배치했습니다.`
-            : '설명보다 검색과 최근 기록이 먼저 보이는 재진입 허브로 정리했습니다.'
-        }
-        eyebrow="홈"
-        meta={
-          <>
-            <MetricPill label="전체 작품" value={`${totalCount}개`} />
-            <MetricPill label="보는 중" value={`${inProgressCount}개`} />
-            <MetricPill label="평균 별점" value={formatAverageRating(averageRating)} />
-          </>
-        }
-        title="다음 기록을 바로 이어가세요"
-      />
+        </Group>
+
+        <form onSubmit={handleSearchSubmit}>
+          <Group align="flex-end" gap="sm" wrap="wrap">
+            <TextInput
+              aria-label="작품 검색"
+              flex={1}
+              miw={260}
+              onChange={(event) => setSearchTerm(event.currentTarget.value)}
+              placeholder="제목, 작가, 제작자 검색"
+              value={searchTerm}
+            />
+            <AppButton tone="primary" type="submit">
+              검색
+            </AppButton>
+          </Group>
+        </form>
+
+        <ActionRow>
+          <MetricPill label="전체" value={`${totalCount}개`} />
+          <MetricPill label="진행 중" value={`${inProgressCount}개`} />
+          <MetricPill label="완료" value={`${completedCount}개`} />
+          <MetricPill label="평균" value={formatAverageRating(averageRating)} />
+        </ActionRow>
+      </SectionCard>
 
       <SimpleGrid cols={{ base: 1, xl: 12 }} spacing="xl">
-        <div style={{ gridColumn: 'span 7 / span 7' }}>
-          <SectionCard gap="lg" tone="hero">
-            <SectionIntro
-              description="제목이나 작가로 찾고 바로 작품 목록이나 추가 흐름으로 이어갑니다."
-              eyebrow="빠른 시작"
-              title="검색에서 바로 시작"
-              titleOrder={2}
-            />
+        <div style={{ gridColumn: 'span 8 / span 8' }}>
+          <SectionCard gap="lg" padding="lg" tone="default">
+            <Group align="flex-start" justify="space-between" wrap="wrap">
+              <SectionIntro eyebrow="최근 기록" title="최근 수정한 작품" titleOrder={2} />
+              <AppLinkButton to="/works" tone="quiet">
+                전체 보기
+              </AppLinkButton>
+            </Group>
 
-            <form onSubmit={handleSearchSubmit}>
-              <Group align="flex-end" gap="sm" wrap="wrap">
-                <TextInput
-                  aria-label="작품 검색"
-                  flex={1}
-                  miw={240}
-                  onChange={(event) => setSearchTerm(event.currentTarget.value)}
-                  placeholder="제목이나 작가로 작품 찾기"
-                  value={searchTerm}
-                />
-                <AppButton tone="primary" type="submit">
-                  작품 찾기
-                </AppButton>
-              </Group>
-            </form>
+            {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
 
-            {leadRecentWork ? (
+            {!error && isLoading && (
+              <Text c="var(--app-text-muted)">최근 기록을 불러오는 중입니다.</Text>
+            )}
+
+            {!error && !isLoading && !hasRecentWorks && (
+              <StateMessage
+                actions={
+                  <AppLinkButton to="/works/new" tone="primary">
+                    작품 추가
+                  </AppLinkButton>
+                }
+                description="첫 기록을 만들면 최근 작품이 여기에 표시됩니다."
+                title="최근 기록 없음"
+                tone="info"
+              />
+            )}
+
+            {!error && !isLoading && hasRecentWorks && (
               <Paper
-                p="md"
+                p={0}
+                radius="lg"
                 styles={{
                   root: {
-                    backgroundColor: 'var(--app-surface-1)',
+                    backgroundColor: 'var(--app-surface-0)',
                     borderColor: 'var(--app-border-color)',
+                    overflow: 'hidden',
                   },
                 }}
                 withBorder
               >
-                <Group align="flex-start" gap="md" wrap="nowrap">
-                  <ArtworkPoster
-                    thumbnailUrl={leadRecentWork.thumbnailUrl}
-                    title={leadRecentWork.title}
-                    typeLabel={getWorkTypeLabel(leadRecentWork.type)}
-                    variant="row"
-                  />
-
-                  <Stack flex={1} gap="xs" miw={0}>
-                    <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
-                      이어보기
-                    </Text>
-                    <Title order={3}>{leadRecentWork.title}</Title>
-                    <Text c="var(--app-text-secondary)">
-                      {leadRecentWork.shortReview ||
-                        leadRecentWork.description ||
-                        '아직 남긴 메모가 없습니다.'}
-                    </Text>
-                    <ActionRow>
-                      <AppLinkButton to={`/works/${leadRecentWork.id}`}>상세 열기</AppLinkButton>
-                      <AppLinkButton to={`/works/${leadRecentWork.id}/edit`} tone="quiet">
-                        기록 수정
-                      </AppLinkButton>
-                    </ActionRow>
-                  </Stack>
-                </Group>
+                <Stack gap={0}>
+                  {recentWorks.map((work, index) => (
+                    <RecentWorkRow
+                      highlight={index === 0}
+                      isLast={index === recentWorks.length - 1}
+                      key={work.id}
+                      work={work}
+                    />
+                  ))}
+                </Stack>
               </Paper>
-            ) : (
-              <ActionRow>
-                <AppLinkButton to="/works/new" tone="primary">
-                  첫 작품 추가
-                </AppLinkButton>
-                <Text c="var(--app-text-muted)">
-                  첫 작품을 등록하면 최근 기록이 이 자리에서 바로 이어집니다.
-                </Text>
-              </ActionRow>
             )}
           </SectionCard>
         </div>
 
-        <div style={{ gridColumn: 'span 5 / span 5' }}>
-          <SectionCard gap="lg" padding="lg" tone="subtle">
-            <SectionIntro
-              description="짧은 우회 없이 기록 관리 화면으로 이동할 수 있는 고정 경로입니다."
-              eyebrow="바로 가기"
-              title="자주 쓰는 흐름"
-              titleOrder={2}
-            />
+        <div style={{ gridColumn: 'span 4 / span 4' }}>
+          <Stack gap="xl">
+            <SectionCard gap="lg" padding="lg" tone="subtle">
+              <SectionIntro eyebrow="이어가기" title="마지막 기록" titleOrder={2} />
 
-            <Stack gap="md">
-              <Paper
-                component={Link}
-                p="md"
-                styles={{
-                  root: {
-                    backgroundColor: 'transparent',
-                    borderColor: 'var(--app-border-color)',
-                    textDecoration: 'none',
-                  },
-                }}
-                to="/works"
-                withBorder
-              >
-                <Stack gap={4}>
-                  <Text fw={700}>작품 아카이브 열기</Text>
-                  <Text c="var(--app-text-muted)" size="sm">
-                    목록 중심 작업 화면으로 바로 이동합니다.
-                  </Text>
-                </Stack>
-              </Paper>
+              {leadRecentWork ? (
+                <Paper
+                  component={Link}
+                  p="md"
+                  styles={{
+                    root: {
+                      backgroundColor: 'var(--app-surface-1)',
+                      borderColor: 'var(--app-border-color)',
+                      textDecoration: 'none',
+                    },
+                  }}
+                  to={`/works/${leadRecentWork.id}`}
+                  withBorder
+                >
+                  <Group align="flex-start" gap="md" wrap="nowrap">
+                    <ArtworkPoster
+                      thumbnailUrl={leadRecentWork.thumbnailUrl}
+                      title={leadRecentWork.title}
+                      typeLabel={getWorkTypeLabel(leadRecentWork.type)}
+                      variant="row"
+                    />
 
-              <Paper
-                component={Link}
-                p="md"
-                styles={{
-                  root: {
-                    backgroundColor: 'transparent',
-                    borderColor: 'var(--app-border-color)',
-                    textDecoration: 'none',
-                  },
-                }}
-                to="/works/new"
-                withBorder
-              >
-                <Stack gap={4}>
-                  <Text fw={700}>검색으로 새 기록 추가</Text>
-                  <Text c="var(--app-text-muted)" size="sm">
-                    후보를 선택하고 내 기록만 정리하는 흐름으로 이동합니다.
-                  </Text>
-                </Stack>
-              </Paper>
-            </Stack>
+                    <Stack flex={1} gap={4} miw={0}>
+                      <Text fw={700}>{leadRecentWork.title}</Text>
+                      <Text c="var(--app-text-muted)" size="sm">
+                        {getWorkStatusLabel(leadRecentWork.status)} ·{' '}
+                        {formatWorkUpdatedAt(leadRecentWork.updatedAt)}
+                      </Text>
+                    </Stack>
+                  </Group>
+                </Paper>
+              ) : (
+                <Text c="var(--app-text-muted)">최근 수정한 작품이 없습니다.</Text>
+              )}
+            </SectionCard>
 
-            {!error && (
-              <ActionRow>
+            <SectionCard gap="lg" padding="lg" tone="subtle">
+              <SectionIntro eyebrow="상태" title="아카이브 요약" titleOrder={2} />
+              <Stack gap="sm">
+                <MetricPill label="전체 작품" value={`${totalCount}개`} />
+                <MetricPill label="보는 중" value={`${inProgressCount}개`} />
                 <MetricPill label="완료" value={`${completedCount}개`} />
-                <MetricPill label="진행 중" value={`${inProgressCount}개`} />
-              </ActionRow>
-            )}
-          </SectionCard>
+                <MetricPill label="평균 별점" value={formatAverageRating(averageRating)} />
+              </Stack>
+            </SectionCard>
+          </Stack>
         </div>
       </SimpleGrid>
-
-      <PageSection
-        actions={
-          <ActionRow justify="flex-end">
-            <AppLinkButton to="/works">전체 작품 보기</AppLinkButton>
-          </ActionRow>
-        }
-        description="최근 수정한 작품부터 다시 들어갈 수 있도록 한 화면에 정리했습니다."
-        divider={false}
-        eyebrow="최근 기록"
-        title="최근 남긴 작품"
-      >
-        {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
-
-        {!error && isLoading && (
-          <Text c="var(--app-text-muted)">최근 기록을 불러오는 중입니다.</Text>
-        )}
-
-        {!error && !isLoading && recentWorks.length === 0 && (
-          <StateMessage
-            actions={
-              <AppLinkButton to="/works/new" tone="primary">
-                작품 추가
-              </AppLinkButton>
-            }
-            description="첫 작품을 추가하면 홈에서 최근 기록과 핵심 상태를 바로 다시 볼 수 있습니다."
-            title="아직 최근 기록이 없습니다."
-            tone="info"
-          />
-        )}
-
-        {!error && !isLoading && recentWorks.length > 0 && (
-          <Paper
-            p={0}
-            radius="lg"
-            styles={{
-              root: {
-                backgroundColor: 'var(--app-surface-0)',
-                borderColor: 'var(--app-border-color)',
-                overflow: 'hidden',
-              },
-            }}
-            withBorder
-          >
-            <Stack gap={0}>
-              {recentWorks.map((work, index) => (
-                <RecentWorkRow
-                  highlight={index === 0}
-                  isLast={index === recentWorks.length - 1}
-                  key={work.id}
-                  work={work}
-                />
-              ))}
-            </Stack>
-          </Paper>
-        )}
-      </PageSection>
     </HomeHubPageTemplate>
   );
 }

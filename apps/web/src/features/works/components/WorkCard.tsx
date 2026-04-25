@@ -28,14 +28,16 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
   const ratingLabel = work.rating === null ? '미평가' : `${work.rating.toFixed(1)}점`;
 
   return (
-    <SectionCard gap="sm" padding="md">
-      <Box pos="relative" w="fit-content">
-        <ArtworkPoster
-          thumbnailUrl={work.thumbnailUrl}
-          title={work.title}
-          typeLabel={typeLabel}
-          variant="card"
-        />
+    <SectionCard gap="sm" padding="sm">
+      <Box pos="relative" w="100%">
+        <Box maw={128}>
+          <ArtworkPoster
+            thumbnailUrl={work.thumbnailUrl}
+            title={work.title}
+            typeLabel={typeLabel}
+            variant="card"
+          />
+        </Box>
         <Box
           pos="absolute"
           style={{
@@ -55,17 +57,17 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
         </ActionRow>
 
         <div>
-          <Title order={3}>
+          <Title order={3} lineClamp={2} size="h4">
             <Link style={{ color: 'inherit', textDecoration: 'none' }} to={`/works/${work.id}`}>
               {work.title}
             </Link>
           </Title>
-          <Text c="var(--app-text-muted)">
+          <Text c="var(--app-text-muted)" size="sm">
             {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
           </Text>
         </div>
 
-        <Text c="var(--app-text-secondary)">
+        <Text c="var(--app-text-secondary)" lineClamp={2} size="sm">
           {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
         </Text>
 
