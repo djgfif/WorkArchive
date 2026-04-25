@@ -201,6 +201,7 @@ export function WorksToolbar({
             <ActionRow justify="flex-end">
               <AppButton
                 onClick={() => onViewModeChange('list')}
+                size="compact-sm"
                 tone={viewMode === 'list' ? 'quiet' : 'ghost'}
                 type="button"
               >
@@ -208,6 +209,7 @@ export function WorksToolbar({
               </AppButton>
               <AppButton
                 onClick={() => onViewModeChange('grid')}
+                size="compact-sm"
                 tone={viewMode === 'grid' ? 'quiet' : 'ghost'}
                 type="button"
               >

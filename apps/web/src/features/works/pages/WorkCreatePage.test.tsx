@@ -1,4 +1,4 @@
-import { waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -163,11 +163,35 @@ function renderAuthenticatedCreatePage() {
   );
 }
 
+function renderGuestCreatePage() {
+  workArchiveDbManager.switchToGuest();
+
+  return renderWithProviders(
+    <MemoryRouter>
+      <AuthContext.Provider
+        value={{
+          archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
+          isLoading: false,
+          mode: 'guest',
+          user: null,
+          signIn: vi.fn(),
+          signUp: vi.fn(),
+          signOut: vi.fn(),
+        }}
+      >
+        <WorkCreatePage />
+      </AuthContext.Provider>
+    </MemoryRouter>,
+  );
+}
+
 async function searchAndSelectCandidate(
   user: ReturnType<typeof userEvent.setup>,
   searchTerm: string,
   candidateTitle: string,
 ) {
+  await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+
   const searchInput = getElementById<HTMLInputElement>('quickAddSearch');
 
   await user.clear(searchInput);
@@ -219,6 +243,43 @@ describe('WorkCreatePage', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    window.localStorage.clear();
+  });
+
+  it('lets a guest save a direct manual work locally without import identity', async () => {
+    const user = userEvent.setup();
+
+    renderGuestCreatePage();
+
+    await user.type(getElementById<HTMLInputElement>('manualTitle'), '게스트 직접 추가');
+    await user.selectOptions(getElementById<HTMLSelectElement>('manualType'), 'movie');
+    await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
+
+    await waitFor(async () => {
+      expect(await worksRepository.listAll()).toHaveLength(1);
+    });
+
+    const [savedWork] = await worksRepository.listAll();
+    const queueItems = await syncQueueRepository.listAll();
+
+    expect(savedWork).toMatchObject({
+      title: '게스트 직접 추가',
+      type: 'movie',
+      catalogTitleId: null,
+      importDraft: null,
+      syncStatus: 'local-only',
+      serverVersion: 0,
+    });
+    expect(queueItems).toEqual([
+      expect.objectContaining({
+        entityId: savedWork?.id,
+        operation: 'create',
+        payload: expect.objectContaining({
+          catalogTitleId: null,
+          importDraft: null,
+        }),
+      }),
+    ]);
   });
 
   it('keeps authenticated matched search saves on the Dexie to syncQueue path', async () => {

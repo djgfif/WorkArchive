@@ -24,7 +24,7 @@ export function WorksList({
   if (viewMode === 'grid') {
     return (
       <section>
-        <SimpleGrid cols={{ base: 1, xl: 3 }} spacing="md">
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4, xl: 5 }} spacing="md">
           {works.map((work) => (
             <WorkCard key={work.id} onDelete={onDelete} work={work} />
           ))}

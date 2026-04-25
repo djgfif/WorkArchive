@@ -1178,6 +1178,42 @@ describe('Auth, works, and sync API (e2e)', () => {
     expect(searchAfterDeleteResponse.status).toBe(403);
   });
 
+  it('allows guest import search only for no-user-key providers', async () => {
+    const manualSearchResponse = await requestJson(
+      '/api/imports/search?provider=manual&query=Dune&type=novel&limit=5',
+    );
+
+    expect(manualSearchResponse.status).toBe(200);
+    expect(manualSearchResponse.body).toEqual(
+      expect.objectContaining({
+        provider: 'manual',
+        providers: ['manual'],
+        query: 'Dune',
+        candidates: [
+          expect.objectContaining({
+            sourceId: 'manual',
+            title: 'Dune',
+            type: 'novel',
+            catalogMatch: null,
+            existingRecord: null,
+          }),
+        ],
+      }),
+    );
+
+    const aladinGuestResponse = await requestJson(
+      '/api/imports/search?provider=aladin&query=Dune&type=novel',
+    );
+
+    expect(aladinGuestResponse.status).toBe(401);
+
+    const tmdbGuestResponse = await requestJson(
+      '/api/imports/search?provider=tmdb&query=Dune&type=movie',
+    );
+
+    expect(tmdbGuestResponse.status).toBe(403);
+  });
+
   it('supports works CRUD with user scoping, soft delete, and ownership protection', async () => {
     const firstUser = await registerUser('frieren@example.com');
     const secondUser = await registerUser('fern@example.com');

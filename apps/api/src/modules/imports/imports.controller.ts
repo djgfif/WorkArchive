@@ -3,9 +3,11 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Inject,
+  UnauthorizedException,
   Post,
   Put,
   Query,
@@ -21,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
@@ -30,15 +33,16 @@ import { UpsertAladinKeyDto } from './dto/upsert-aladin-key.dto';
 import { ImportsService } from './imports.service';
 
 @ApiTags('imports')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('imports')
 export class ImportsController {
   constructor(
+    @Inject(AuthService) private readonly authService: AuthService,
     @Inject(ImportsService) private readonly importsService: ImportsService,
   ) {}
 
   @Get('providers/aladin/status')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOkResponse({
     description: 'Return whether the current user has configured Aladin search.',
     type: ImportProviderStatusResponseDto,
@@ -59,11 +63,15 @@ export class ImportsController {
   @ApiUnauthorizedResponse({
     description: 'The access token is missing, invalid, or expired.',
   })
-  listProviders(@CurrentUser() user: AuthenticatedUser) {
-    return this.importsService.listProviders(user.userId);
+  async listProviders(@Headers('authorization') authorizationHeader?: string) {
+    const user = await this.getOptionalUser(authorizationHeader);
+
+    return this.importsService.listProviders(user?.userId ?? null);
   }
 
   @Put('providers/aladin/key')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiBody({
     type: UpsertAladinKeyDto,
   })
@@ -85,6 +93,8 @@ export class ImportsController {
   }
 
   @Delete('providers/aladin/key')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse({
     description: 'Remove the current user Aladin TTBKey.',
@@ -104,14 +114,18 @@ export class ImportsController {
   @ApiUnauthorizedResponse({
     description: 'The access token is missing, invalid, or expired.',
   })
-  search(
-    @CurrentUser() user: AuthenticatedUser,
+  async search(
+    @Headers('authorization') authorizationHeader: string | undefined,
     @Query() importSearchQueryDto: ImportSearchQueryDto,
   ) {
-    return this.importsService.search(user.userId, importSearchQueryDto);
+    const user = await this.getOptionalUser(authorizationHeader);
+
+    return this.importsService.search(user?.userId ?? null, importSearchQueryDto);
   }
 
   @Post('resolve')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOkResponse({
     description: 'Return a normalized import candidate payload for client review.',
   })
@@ -123,5 +137,19 @@ export class ImportsController {
       candidate,
       resolved: true,
     };
+  }
+
+  private async getOptionalUser(authorizationHeader?: string) {
+    if (!authorizationHeader) {
+      return null;
+    }
+
+    const [scheme, token] = authorizationHeader.split(' ');
+
+    if (scheme !== 'Bearer' || !token) {
+      throw new UnauthorizedException('Malformed Bearer access token.');
+    }
+
+    return this.authService.validateAccessToken(token);
   }
 }

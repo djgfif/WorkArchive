@@ -64,6 +64,8 @@ interface QuickAddWorkFormProps {
   submitError: string | null;
 }
 
+type AddMode = 'manual' | 'search';
+
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
   const value = (index + 1) * 0.5;
 
@@ -119,6 +121,13 @@ function createQuickAddDefaults(): WorkFormValues {
   return {
     ...createDefaultWorkFormValues(),
     type: 'other',
+  };
+}
+
+function createManualAddDefaults(title = ''): WorkFormValues {
+  return {
+    ...createDefaultWorkFormValues(),
+    title,
   };
 }
 
@@ -309,7 +318,6 @@ interface CandidateRowProps {
   active: boolean;
   candidate: ImportCandidate;
   duplicateCount: number;
-  isLast: boolean;
   onSelect: () => void;
 }
 
@@ -317,7 +325,6 @@ function CandidateRow({
   active,
   candidate,
   duplicateCount,
-  isLast,
   onSelect,
 }: CandidateRowProps) {
   return (
@@ -326,11 +333,13 @@ function CandidateRow({
       onClick={onSelect}
       style={{
         backgroundColor: active ? 'var(--app-surface-1)' : 'transparent',
-        border: 'none',
-        borderBottom: isLast ? 'none' : '1px solid var(--app-border-color)',
+        border: active
+          ? '1px solid var(--app-border-strong)'
+          : '1px solid var(--app-border-color)',
+        borderRadius: '0.75rem',
         color: 'inherit',
         cursor: 'pointer',
-        padding: '1rem',
+        padding: '0.875rem',
         textAlign: 'left',
         width: '100%',
       }}
@@ -391,12 +400,41 @@ function CandidateRow({
   );
 }
 
+interface StatusButtonGroupProps {
+  onChange: (status: WorkFormValues['status']) => void;
+  value: WorkFormValues['status'];
+}
+
+function StatusButtonGroup({ onChange, value }: StatusButtonGroupProps) {
+  return (
+    <Stack gap={6}>
+      <Text c="var(--app-text-muted)" fw={600} size="sm">
+        상태
+      </Text>
+      <ActionRow>
+        {workStatusOptions.map((option) => (
+          <AppButton
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            size="compact-sm"
+            tone={value === option.value ? 'quiet' : 'ghost'}
+            type="button"
+          >
+            {option.label}
+          </AppButton>
+        ))}
+      </ActionRow>
+    </Stack>
+  );
+}
+
 export function QuickAddWorkForm({
   isSubmitting,
   onSubmit,
   submitError,
 }: QuickAddWorkFormProps) {
-  const { archiveScopeKey, mode } = useAuthSession();
+  const { archiveScopeKey } = useAuthSession();
+  const [addMode, setAddMode] = useState<AddMode>('manual');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchMedium, setSearchMedium] =
     useState<CatalogSearchMediumType>('all');
@@ -412,7 +450,9 @@ export function QuickAddWorkForm({
     string | null
   >(null);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [values, setValues] = useState<WorkFormValues>(createQuickAddDefaults);
+  const [values, setValues] = useState<WorkFormValues>(() =>
+    createManualAddDefaults(),
+  );
 
   useEffect(() => {
     const subscription = liveQuery(() => worksRepository.listAll()).subscribe({
@@ -443,6 +483,25 @@ export function QuickAddWorkForm({
     }));
   }
 
+  function switchAddMode(nextMode: AddMode) {
+    setAddMode(nextMode);
+    setValidationError(null);
+    setSelectedCandidate(null);
+    setConfirmedDuplicateCandidateId(null);
+    setValues(
+      nextMode === 'manual'
+        ? createManualAddDefaults(searchTerm.trim())
+        : createQuickAddDefaults(),
+    );
+  }
+
+  function handleStatusChange(status: WorkFormValues['status']) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      status,
+    }));
+  }
+
   async function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -467,7 +526,7 @@ export function QuickAddWorkForm({
       const result = await importsService.searchCandidates(normalizedSearchTerm, {
         limit: 10,
         mediumType: searchMedium,
-        useExternal: mode === 'authenticated',
+        useExternal: true,
       });
 
       setCandidates(result.candidates);
@@ -480,6 +539,25 @@ export function QuickAddWorkForm({
       setSearchNotice(null);
     } finally {
       setIsSearching(false);
+    }
+  }
+
+  async function handleManualSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      setValidationError(null);
+      const input = parseWorkFormValues(values);
+
+      await onSubmit({
+        ...input,
+        catalogTitleId: null,
+        importDraft: null,
+      });
+    } catch (error) {
+      setValidationError(
+        error instanceof Error ? error.message : '작품을 저장하지 못했습니다.',
+      );
     }
   }
 
@@ -531,7 +609,204 @@ export function QuickAddWorkForm({
   const activeStep = selectedCandidate ? 4 : candidates.length > 0 ? 2 : 1;
 
   return (
-    <SimpleGrid cols={{ base: 1, xl: 12 }} spacing="xl">
+    <Stack gap="xl">
+      <SectionCard gap="md" padding="lg" tone="hero">
+        <SectionIntro
+          description="수동 추가는 기본 경로이고, 검색은 외부 후보로 입력을 빠르게 채우는 보조 흐름입니다."
+          eyebrow="추가 방식"
+          title="기록 방식을 선택하세요"
+          titleOrder={2}
+        />
+        <ActionRow>
+          <AppButton
+            onClick={() => switchAddMode('manual')}
+            tone={addMode === 'manual' ? 'primary' : 'ghost'}
+            type="button"
+          >
+            직접 추가
+          </AppButton>
+          <AppButton
+            onClick={() => switchAddMode('search')}
+            tone={addMode === 'search' ? 'primary' : 'ghost'}
+            type="button"
+          >
+            검색으로 추가
+          </AppButton>
+        </ActionRow>
+      </SectionCard>
+
+      {addMode === 'manual' ? (
+        <form onSubmit={handleManualSubmit}>
+          <SectionCard gap="xl" padding="xl" tone="default">
+            <PageSection
+              description="제목과 유형만 있으면 저장할 수 있습니다. 나머지 기록은 지금 적어도 되고 나중에 채워도 됩니다."
+              divider={false}
+              eyebrow="직접 추가"
+              title="검색 없이 작품 기록 만들기"
+            >
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <TextInput
+                    id="manualTitle"
+                    label="제목"
+                    name="title"
+                    onChange={handleInputChange}
+                    placeholder="작품 제목"
+                    value={values.title}
+                  />
+                </div>
+
+                <NativeSelect
+                  id="manualType"
+                  label="유형"
+                  name="type"
+                  onChange={handleInputChange}
+                  value={values.type}
+                >
+                  {workTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+
+                <TextInput
+                  id="manualAuthor"
+                  label="작가·제작자"
+                  name="author"
+                  onChange={handleInputChange}
+                  placeholder="작가, 스튜디오, 제작자를 입력해주세요"
+                  value={values.author}
+                />
+              </SimpleGrid>
+            </PageSection>
+
+            <PageSection
+              description="내 기록에 먼저 남길 상태와 감상을 입력합니다."
+              eyebrow="내 기록"
+              title="상태와 감상"
+            >
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <StatusButtonGroup
+                  onChange={handleStatusChange}
+                  value={values.status}
+                />
+
+                <NativeSelect
+                  aria-label="별점"
+                  id="manualRating"
+                  label="별점"
+                  name="rating"
+                  onChange={handleInputChange}
+                  value={values.rating}
+                >
+                  <option value="">미평가</option>
+                  {ratingOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <Textarea
+                    id="manualShortReview"
+                    label="한줄평"
+                    name="shortReview"
+                    onChange={handleInputChange}
+                    placeholder="목록과 최근 기록에 먼저 보일 짧은 감상을 적어보세요"
+                    rows={3}
+                    value={values.shortReview}
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <Textarea
+                    id="manualReview"
+                    label="상세 감상"
+                    name="review"
+                    onChange={handleInputChange}
+                    placeholder="필요하면 조금 더 긴 감상을 남겨두세요"
+                    rows={6}
+                    value={values.review}
+                  />
+                </div>
+              </SimpleGrid>
+            </PageSection>
+
+            <PageSection
+              description="표지, 장르, 설명 같은 부가 정보는 필요할 때만 펼쳐서 다룹니다."
+              eyebrow="추가 필드"
+              title="고급 정보"
+            >
+              <Accordion>
+                <Accordion.Item value="manual-advanced-fields">
+                  <Accordion.Control>표지, 장르, 설명, 즐겨찾기</Accordion.Control>
+                  <Accordion.Panel>
+                    <Stack gap="md" pt="sm">
+                      <TextInput
+                        id="manualThumbnailUrl"
+                        label="표지 이미지 주소"
+                        name="thumbnailUrl"
+                        onChange={handleInputChange}
+                        placeholder="https://example.com/cover.jpg"
+                        value={values.thumbnailUrl}
+                      />
+
+                      <TextInput
+                        id="manualGenresText"
+                        label="장르"
+                        name="genresText"
+                        onChange={handleInputChange}
+                        placeholder="SF, 로맨스, 스릴러"
+                        value={values.genresText}
+                      />
+
+                      <Textarea
+                        id="manualDescription"
+                        label="설명"
+                        name="description"
+                        onChange={handleInputChange}
+                        placeholder="작품 소개나 줄거리, 기록해두고 싶은 배경을 적어보세요"
+                        rows={4}
+                        value={values.description}
+                      />
+
+                      <Checkbox
+                        checked={values.favorite}
+                        label="즐겨찾기로 표시"
+                        name="favorite"
+                        onChange={handleInputChange}
+                      />
+                    </Stack>
+                  </Accordion.Panel>
+                </Accordion.Item>
+              </Accordion>
+            </PageSection>
+
+            {(validationError || submitError) && (
+              <FeedbackMessage tone="error">
+                {validationError ?? submitError}
+              </FeedbackMessage>
+            )}
+
+            <ActionRow>
+              <AppButton
+                disabled={isSubmitting}
+                fullWidth
+                tone="primary"
+                type="submit"
+              >
+                {isSubmitting ? '저장 중...' : '내 아카이브에 저장'}
+              </AppButton>
+              <AppLinkButton to="/works" tone="quiet">
+                취소
+              </AppLinkButton>
+            </ActionRow>
+          </SectionCard>
+        </form>
+      ) : (
+        <SimpleGrid cols={{ base: 1, xl: 12 }} spacing="xl">
       <div style={{ gridColumn: 'span 4 / span 4' }}>
         <Stack gap="lg">
           <SectionCard gap="lg" tone="hero">
@@ -603,9 +878,18 @@ export function QuickAddWorkForm({
                 선택한 매체에 맞는 provider와 수동 후보를 확인하고 있습니다.
               </Text>
             ) : submittedSearchTerm && candidates.length === 0 ? (
-              <Text c="var(--app-text-muted)">
-                현재 검색어로는 후보를 찾지 못했습니다. 제목이나 작가를 조금 바꿔 다시 찾아보세요.
-              </Text>
+              <Stack gap="sm">
+                <Text c="var(--app-text-muted)">
+                  현재 검색어로는 후보를 찾지 못했습니다. 제목이나 작가를 조금 바꿔 다시 찾거나 직접 추가하세요.
+                </Text>
+                <AppButton
+                  onClick={() => switchAddMode('manual')}
+                  tone="primary"
+                  type="button"
+                >
+                  "{submittedSearchTerm}" 직접 추가
+                </AppButton>
+              </Stack>
             ) : candidates.length > 0 ? (
               <Paper
                 p={0}
@@ -619,13 +903,12 @@ export function QuickAddWorkForm({
                 }}
                 withBorder
               >
-                <Stack gap={0}>
-                  {candidates.map((candidate, index) => (
+                <Stack gap="sm">
+                  {candidates.map((candidate) => (
                     <CandidateRow
                       active={selectedCandidate?.id === candidate.id}
                       candidate={candidate}
                       duplicateCount={findLikelyMatches(candidate, existingWorks).length}
-                      isLast={index === candidates.length - 1}
                       key={candidate.id}
                       onSelect={() => handleSelectCandidate(candidate)}
                     />
@@ -731,7 +1014,7 @@ export function QuickAddWorkForm({
                     thumbnailUrl={values.thumbnailUrl}
                     title={values.title || selectedCandidate.title}
                     typeLabel={getWorkTypeLabel(values.type)}
-                    variant="row"
+                    variant="form"
                   />
 
                   <Stack flex={1} gap="sm" miw={0}>
@@ -818,20 +1101,10 @@ export function QuickAddWorkForm({
                 title="개인 기록 입력"
               >
                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                  <NativeSelect
-                    aria-label="상태"
-                    id="status"
-                    label="상태"
-                    name="status"
-                    onChange={handleInputChange}
+                  <StatusButtonGroup
+                    onChange={handleStatusChange}
                     value={values.status}
-                  >
-                    {workStatusOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </NativeSelect>
+                  />
 
                   <NativeSelect
                     aria-label="별점"
@@ -934,6 +1207,7 @@ export function QuickAddWorkForm({
               <ActionRow>
                 <AppButton
                   disabled={isSubmitting || shouldConfirmDuplicate}
+                  fullWidth
                   tone="primary"
                   type="submit"
                 >
@@ -951,6 +1225,8 @@ export function QuickAddWorkForm({
           </form>
         )}
       </div>
-    </SimpleGrid>
+        </SimpleGrid>
+      )}
+    </Stack>
   );
 }
