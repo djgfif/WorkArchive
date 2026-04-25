@@ -69,6 +69,68 @@ export interface WorkImportDraft {
   releaseCandidates?: WorkImportReleaseCandidate[];
 }
 
+export interface ImportCatalogMatch {
+  id: EntityId;
+  title: string;
+  verificationStatus: CatalogVerificationStatus | string;
+}
+
+export interface ImportExistingRecord {
+  id: EntityId;
+  status: string;
+}
+
+export interface ImportCandidate {
+  author: string;
+  catalogMatch: ImportCatalogMatch | null;
+  confidence: number;
+  confidenceLabel: string;
+  contributors: Array<{
+    name: string;
+    role: string;
+  }>;
+  countLabel: string;
+  description: string;
+  externalId: string;
+  existingRecord: ImportExistingRecord | null;
+  externalRefs: WorkImportExternalRef[];
+  formatLabel: string;
+  franchiseName: string | null;
+  genresText: string;
+  id: EntityId;
+  mediumType: WorkType;
+  note: string;
+  reason: string;
+  relationsHint: Array<{
+    relationType: string;
+    targetTitle: string;
+  }>;
+  releaseCandidates: WorkImportReleaseCandidate[];
+  releaseYear: number | null;
+  sourceId: string;
+  sourceLabel: string;
+  sourceUrl: string;
+  subType: string | null;
+  thumbnailUrl: string;
+  title: string;
+  type: WorkType;
+}
+
+export interface ImportProviderStatus {
+  configured: boolean;
+  credentialMode?: 'none' | 'server' | 'user';
+  label?: string;
+  mediumTypes?: WorkType[];
+  provider: string;
+}
+
+export interface ImportSearchResponse {
+  candidates: ImportCandidate[];
+  provider: string;
+  providers: string[];
+  query: string;
+}
+
 export const WORK_STATUSES = [
   'planned',
   'in_progress',
@@ -95,6 +157,37 @@ export type WorkSyncStatus = (typeof WORK_SYNC_STATUSES)[number];
 export const USER_ROLES = ['user', 'moderator', 'admin'] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
+
+export interface ApiErrorResponse {
+  message?: string | string[];
+}
+
+export interface AuthUserResponse {
+  email: string;
+  id: EntityId;
+  nickname: string;
+  role?: UserRole;
+}
+
+export interface AuthCredentialsRequest {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+export interface AuthSessionResponse {
+  accessToken: string;
+  user: AuthUserResponse;
+}
+
+export interface PasswordResetRequestResponse {
+  developmentResetUrl?: string;
+  message: string;
+}
+
+export interface PasswordResetConfirmResponse {
+  message: string;
+}
 
 export const CATALOG_VERIFICATION_STATUSES = [
   'draft',
@@ -254,7 +347,178 @@ export interface UserReleaseRecord extends AuditFields {
   serverVersion: number;
 }
 
+export interface UserRecordView {
+  catalog: {
+    contributors: Array<{
+      id: EntityId | null;
+      name: string;
+      role: string;
+    }>;
+    franchise: {
+      id: EntityId;
+      name: string;
+    } | null;
+    genres: string[];
+    id: EntityId;
+    mediumType: WorkType;
+    originalTitle: string | null;
+    relations: Array<{
+      relationType: string;
+      targetTitle: string;
+      targetTitleId: EntityId;
+    }>;
+    releaseYear: number | null;
+    status: string;
+    subType: string | null;
+    summary: string;
+    thumbnailUrl: string;
+    title: string;
+    verificationStatus: CatalogVerificationStatus | string;
+  };
+  record: {
+    createdAt: ISODateString;
+    deletedAt: ISODateString | null;
+    favorite: boolean;
+    id: EntityId;
+    lastConsumedLabel?: string | null;
+    progressCurrent?: number | null;
+    progressTotal?: number | null;
+    progressUnit?: ProgressUnit | null;
+    rating: number | null;
+    review: string;
+    serverVersion: number;
+    shortReview: string;
+    status: WorkStatus;
+    syncStatus: WorkSyncStatus;
+    tier: WorkTier | null;
+    updatedAt: ISODateString;
+  };
+}
+
+export interface UserRecordGroupResponse {
+  count: number;
+  key: string;
+  label: string;
+  records: UserRecordView[];
+}
+
+export interface CatalogReleaseWithUserRecord {
+  displayLabel: string;
+  id: EntityId;
+  isbn: string | null;
+  releaseDate: ISODateString | null;
+  releaseType: string;
+  sequence: number | null;
+  summary: string;
+  thumbnailUrl: string;
+  title: string;
+  userReleaseRecord: UserReleaseRecord | null;
+}
+
+export interface UserRecordReleasePolicy {
+  defaultProgressUnit: ProgressUnit | null;
+  mediumType: WorkType;
+  progressOnly: boolean;
+  recordingUnit: RecordingUnit;
+  releaseRecordsSupported: boolean;
+  webPartSplitEnabled: boolean;
+}
+
+export interface UserRecordReleasesResponse {
+  policy: UserRecordReleasePolicy;
+  releases: CatalogReleaseWithUserRecord[];
+}
+
+export interface RelatedCatalogTitle {
+  franchise: {
+    id: EntityId;
+    name: string;
+  } | null;
+  id: EntityId;
+  mediumType: WorkType;
+  relationDirection?: 'incoming' | 'outgoing' | null;
+  relationType?: string | null;
+  releaseYear: number | null;
+  subType: string | null;
+  thumbnailUrl: string;
+  title: string;
+}
+
+export interface RelatedCatalogRelation {
+  relationDirection: 'incoming' | 'outgoing';
+  relationType: string;
+  targetTitle: RelatedCatalogTitle;
+}
+
+export interface RelatedCatalogTitlesResponse {
+  catalogTitleId: EntityId;
+  currentTitle: {
+    displayTitle: string;
+    franchise: {
+      canonicalName: string;
+      id: EntityId;
+      name: string;
+    } | null;
+    id: EntityId;
+    mediumType: WorkType;
+    releaseYear: number | null;
+    subType: string | null;
+    thumbnailUrl: string;
+  };
+  relations: RelatedCatalogRelation[];
+  sameFranchiseTitles: RelatedCatalogTitle[];
+}
+
+export type PushResultStatus = 'applied' | 'conflict' | 'failed';
+export type PullSyncOperation = 'upsert' | 'delete';
+
 export type SyncQueuePayload = WorkRecord | UserReleaseRecord;
+
+export interface PushSyncChangeRequest<TPayload = SyncQueuePayload> {
+  createdAt: ISODateString;
+  entityId: EntityId;
+  entityType: SyncEntityType;
+  operation: SyncOperation;
+  payload: TPayload;
+  queueId: EntityId;
+}
+
+export interface PushSyncRequest {
+  changes: PushSyncChangeRequest[];
+}
+
+export interface PushSyncResult {
+  entityId: EntityId;
+  entityType: SyncEntityType;
+  message: string;
+  queueId: EntityId;
+  releaseRecord?: UserReleaseRecord | null;
+  status: PushResultStatus;
+  work?: WorkRecord | null;
+}
+
+export interface PushSyncResponse {
+  processedAt: ISODateString;
+  results: PushSyncResult[];
+}
+
+export interface PullSyncRequest {
+  since?: ISODateString | null;
+}
+
+export interface PullSyncChange {
+  entityId: EntityId;
+  entityType: SyncEntityType;
+  operation: PullSyncOperation;
+  releaseRecord?: UserReleaseRecord;
+  work?: WorkRecord;
+}
+
+export interface PullSyncResponse {
+  changes: PullSyncChange[];
+  nextSince: ISODateString;
+  pulledAt: ISODateString;
+}
 
 export interface SyncQueueItemRecord<TPayload = SyncQueuePayload> {
   id: EntityId;

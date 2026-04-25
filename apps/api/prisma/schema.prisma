@@ -370,6 +370,7 @@ model UserWorkRecord {
   @@index([userId, deletedAt])
   @@index([userId, status, updatedAt])
   @@index([userId, updatedAt])
+  @@index([userId, updatedAt, id], map: "user_work_records_userId_updatedAt_id_idx")
   @@index([catalogWorkId])
   @@index([catalogTitleId])
   @@map("user_work_records")
@@ -394,8 +395,10 @@ model UserReleaseRecord {
 
   @@unique([userWorkRecordId, catalogReleaseId])
   @@index([userWorkRecordId, deletedAt])
+  @@index([userWorkRecordId, updatedAt, id], map: "user_release_records_userWorkRecordId_updatedAt_id_idx")
   @@index([catalogReleaseId])
   @@index([updatedAt])
+  @@index([updatedAt, id], map: "user_release_records_updatedAt_id_idx")
   @@map("user_release_records")
 }
 
