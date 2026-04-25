@@ -3,6 +3,13 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
+
+  server: {
+    host: '127.0.0.1',
+    port: 53173,
+    strictPort: false,
+  },
+
   build: {
     rollupOptions: {
       output: {
@@ -35,6 +42,7 @@ export default defineConfig({
       },
     },
   },
+
   test: {
     environment: 'jsdom',
     globals: false,
