@@ -100,17 +100,17 @@ export class UserReleaseRecordResponseDto {
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',
   })
-  createdAt!: Date;
+  createdAt!: string;
 
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',
   })
-  updatedAt!: Date;
+  updatedAt!: string;
 
   @ApiProperty({
     nullable: true,
   })
-  deletedAt!: Date | null;
+  deletedAt!: string | null;
 
   @ApiProperty({
     enum: WORK_SYNC_STATUS_VALUES,
@@ -149,7 +149,7 @@ export class CatalogReleaseWithUserRecordDto {
   @ApiProperty({
     nullable: true,
   })
-  releaseDate!: Date | null;
+  releaseDate!: string | null;
 
   @ApiProperty()
   summary!: string;

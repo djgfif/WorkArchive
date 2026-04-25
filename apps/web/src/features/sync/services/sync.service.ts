@@ -1,11 +1,14 @@
 import type {
+  PullSyncResponse,
+  PushSyncResponse,
+  PushSyncResult,
   SyncQueueItemRecord,
   UserReleaseRecord,
   WorkRecord,
   WorkSyncStatus,
 } from '@work-archive/shared-types';
 
-import { requestAuthenticatedApiJson } from '../../auth/services/auth.api';
+import { requestAuthenticatedApiJson } from '../../../shared/services/api-client';
 import {
   worksRepository,
   type WorksRepository,
@@ -25,39 +28,7 @@ import {
 import { localizeServerMessage } from '../../../shared/utils/localize-message';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
-
-type PushResultStatus = 'applied' | 'conflict' | 'failed';
-type PullOperation = 'upsert' | 'delete';
 export type SyncRunState = 'idle' | 'syncing' | 'success' | 'failed';
-
-interface PushSyncResult {
-  queueId: string;
-  entityId: string;
-  entityType: 'work' | 'release_record';
-  status: PushResultStatus;
-  message: string;
-  work?: WorkRecord | null;
-  releaseRecord?: UserReleaseRecord | null;
-}
-
-interface PushSyncResponse {
-  processedAt: string;
-  results: PushSyncResult[];
-}
-
-interface PullSyncChange {
-  entityType: 'work' | 'release_record';
-  entityId: string;
-  operation: PullOperation;
-  work?: WorkRecord;
-  releaseRecord?: UserReleaseRecord;
-}
-
-interface PullSyncResponse {
-  pulledAt: string;
-  nextSince: string;
-  changes: PullSyncChange[];
-}
 
 interface PushCycleResult {
   attemptedCount: number;

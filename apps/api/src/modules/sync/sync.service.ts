@@ -130,14 +130,16 @@ export class SyncService {
       ].sort((left, right) => {
         const leftUpdatedAt =
           left.entityType === 'work'
-            ? left.work!.updatedAt.getTime()
-            : left.releaseRecord!.updatedAt.getTime();
+            ? left.work!.updatedAt
+            : left.releaseRecord!.updatedAt;
         const rightUpdatedAt =
           right.entityType === 'work'
-            ? right.work!.updatedAt.getTime()
-            : right.releaseRecord!.updatedAt.getTime();
+            ? right.work!.updatedAt
+            : right.releaseRecord!.updatedAt;
 
-        return leftUpdatedAt - rightUpdatedAt;
+        return (
+          new Date(leftUpdatedAt).getTime() - new Date(rightUpdatedAt).getTime()
+        );
       });
       const changedRecords = [...works, ...releaseRecords].sort(
         (left, right) => left.updatedAt.getTime() - right.updatedAt.getTime(),

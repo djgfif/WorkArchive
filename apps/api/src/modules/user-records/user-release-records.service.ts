@@ -189,9 +189,9 @@ export function toUserReleaseRecordResponse(record: UserReleaseRecordAggregate) 
     shortReview: record.shortReview,
     review: record.review,
     favorite: record.favorite,
-    createdAt: record.createdAt,
-    updatedAt: record.updatedAt,
-    deletedAt: record.deletedAt,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    deletedAt: record.deletedAt?.toISOString() ?? null,
     syncStatus: toWorkSyncStatusValue(record.syncStatus),
     serverVersion: record.serverVersion,
   };

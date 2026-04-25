@@ -1,7 +1,8 @@
 import type {
   CatalogSearchMediumType,
-  WorkImportExternalRef,
-  WorkImportReleaseCandidate,
+  ImportCandidate,
+  ImportProviderStatus,
+  ImportSearchResponse,
   WorkType,
 } from '@work-archive/shared-types';
 
@@ -10,70 +11,14 @@ import {
   requestApiJson,
   requestAuthenticatedApi,
   requestAuthenticatedApiJson,
-} from '../../auth/services/auth.api';
+} from '../../../shared/services/api-client';
 import { readStoredAuthTokens } from '../../auth/services/auth-storage';
 
-export interface ImportCandidate {
-  author: string;
-  catalogMatch: {
-    id: string;
-    title: string;
-    verificationStatus: string;
-  } | null;
-  confidence: number;
-  confidenceLabel: string;
-  contributors: Array<{
-    name: string;
-    role: string;
-  }>;
-  countLabel: string;
-  description: string;
-  externalId: string;
-  existingRecord: {
-    id: string;
-    status: string;
-  } | null;
-  externalRefs: WorkImportExternalRef[];
-  formatLabel: string;
-  franchiseName: string | null;
-  genresText: string;
-  id: string;
-  mediumType: WorkType;
-  note: string;
-  reason: string;
-  releaseCandidates: WorkImportReleaseCandidate[];
-  relationsHint: Array<{
-    relationType: string;
-    targetTitle: string;
-  }>;
-  releaseYear: number | null;
-  sourceId: string;
-  sourceLabel: string;
-  sourceUrl: string;
-  subType: string | null;
-  thumbnailUrl: string;
-  title: string;
-  type: WorkType;
-}
+export type { ImportCandidate, ImportProviderStatus };
 
 export interface ImportSourceAdapter {
   readonly sourceId: string;
   search(query: string): ImportCandidate[];
-}
-
-export interface ImportProviderStatus {
-  configured: boolean;
-  credentialMode?: 'none' | 'server' | 'user';
-  label?: string;
-  mediumTypes?: WorkType[];
-  provider: string;
-}
-
-interface ImportSearchResponse {
-  candidates: ImportCandidate[];
-  provider: string;
-  providers: string[];
-  query: string;
 }
 
 interface SearchCandidatesOptions {
