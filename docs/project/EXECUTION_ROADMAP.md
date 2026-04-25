@@ -4,19 +4,43 @@
 | --- | --- |
 | Status | `canonical` |
 | Role | `integrated execution roadmap` |
-| Source of truth | [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
-| Last verified against | `2026-04-25` local `master` working tree |
-| When to update | near-term execution order, phase boundaries, frontend design workflow rule, or verification gates change |
+| Source of truth | [`PRODUCT_DIRECTION_LOCK.md`](../product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
+| Last verified against | `2026-04-25` user direction review |
+| When to update | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change |
 
 이 문서는 Work Archive의 **단일 통합 실행 로드맵**이다. current reality 문서를 대체하지 않고, 지금 무엇을 어떤 순서로 고정해야 하는지만 정리한다.
 
 ## Summary
 
-- 현재 제품 기준은 `server-assisted search + local-first save`다.
-- Quick Add 검색은 authenticated 상태에서 `/imports/search`를 사용하고, 저장은 계속 `Dexie -> syncQueue`를 기본으로 둔다.
+- 제품 본질은 **개인 local-first 작품 기록/리뷰 아카이브**다.
+- 로그인은 선택이다. 꼭 계정이 필요한 기능이 아니라면 guest도 사용할 수 있어야 한다.
+- 현재 제품 기준은 `server-assisted search + local-first save`지만, guest search parity와 direct manual add가 아직 부족하다.
 - Quick Add identity 저장, duplicate detection, backend sync create 순서는 테스트로 고정돼 있다.
-- 현재 우선순위는 `Quick Add -> Catalog dedupe -> Works/Sync clarity -> security/deploy -> minimal Insights`다.
-- `Tier Boards`, `Community`는 위 흐름이 안정화된 뒤로 미룬다.
+- 수정된 우선순위는 `manual add -> guest search parity -> Quick Add UX -> Works/Review UX -> Sync clarity -> security/deploy -> minimal Insights`다.
+- `Tier Boards`, `Community`는 개인 아카이브가 안정화된 뒤로 미룬다.
+
+## Product Direction Lock
+
+우선 읽을 기준 문서:
+
+- [`../product/PRODUCT_DIRECTION_LOCK.md`](../product/PRODUCT_DIRECTION_LOCK.md)
+
+핵심 원칙:
+
+```text
+Work Archive의 본질은 개인 local-first 작품 기록/리뷰 아카이브다.
+서버 검색과 catalog identity는 보조 기능이며,
+public/community/catalog promotion은 private sync path와 섞지 않는다.
+```
+
+구현 판단 원칙:
+
+- 수동 추가는 핵심 기능이다.
+- 로그인은 선택이다.
+- 로그인하지 않아도 작품 기록 앱으로 쓸 수 있어야 한다.
+- key가 필요 없는 검색 provider는 guest에게도 제공하는 방향으로 구현한다.
+- 개인 기록 데이터와 서버/catalog/community 데이터는 별도 plane이다.
+- 커뮤니티는 미래 확장이다.
 
 ## Frontend Design Workflow
 
@@ -35,11 +59,13 @@
 
 목표:
 
-- README, canonical docs, env examples, verification 기록을 실제 코드 기준으로 다시 고정한다.
+- README, canonical docs, env examples, verification 기록을 실제 코드와 제품 본질 기준으로 다시 고정한다.
 
 현재 기준:
 
 - 외부 provider 검색은 이미 구현돼 있다.
+- 현재 `/imports/search`는 backend `JwtAuthGuard` 뒤에 있어 guest external search parity가 부족하다.
+- frontend도 guest 상태에서는 external search를 쓰지 않고 preview/manual 후보로 fallback한다.
 - Dexie 테이블은 `works`, `releaseRecords`, `syncQueue`, `appMeta`다.
 - Prisma 표면은 `CatalogWork`, `CatalogTitle`, `CatalogRelease`, `CatalogExternalRef`, `UserWorkRecord`, `UserReleaseRecord`까지 이미 확장돼 있다.
 - `Works`는 compatibility layer고, `user-records/from-import`는 준비돼 있지만 현재 기본 생성 경로는 아니다.
@@ -47,14 +73,90 @@
 완료 기준:
 
 - 루트 README와 current-reality 문서가 같은 제품 현실을 설명한다.
+- 제품 본질이 개인 작품 기록/리뷰 아카이브로 명시된다.
+- guest/login 차별 금지 원칙이 문서에 반영된다.
 - Quick Add 저장 흐름이 현재 local-first sync 규칙과 일치한다.
-- `2026-04-24` 검증 결과가 문서에 남아 있다.
+- 검증 결과가 문서에 남아 있다.
 
-## Track 2. Quick Add Trust
+## Track 2. Manual Add Baseline
 
 목표:
 
-- 검색 결과가 local-first 저장 경로 안에서도 catalog identity를 잃지 않게 만든다.
+- 검색 없이 직접 작품을 추가할 수 있는 명확한 수동 추가 경로를 만든다.
+
+왜 먼저 하는가:
+
+- 이 웹사이트의 1순위 용도는 내가 본 작품을 정리하고 리뷰를 남기는 것이다.
+- 검색 provider가 없거나 틀리거나 로그인하지 않은 상황에서도 사용자는 기록을 남길 수 있어야 한다.
+- 수동 추가는 fallback이 아니라 핵심 기능이다.
+
+현재 부족한 점:
+
+- Quick Add에는 `preview-manual` fallback 후보가 있지만, 검색 없이 바로 저장하는 direct manual add path가 명확하지 않다.
+
+구현 방향:
+
+- `/works/new`에서 `직접 추가` 진입점을 명확하게 제공한다.
+- 최소 필수 입력은 제목과 타입 정도로 제한한다.
+- 상태, 별점, 한줄평, 상세 리뷰는 선택 입력으로 제공한다.
+- guest와 logged-in user 모두 사용할 수 있게 한다.
+- 수동 추가 기록은 catalog identity 없이 local-first로 저장한다.
+- authenticated 상태에서도 direct server create가 아니라 기존 `Dexie -> syncQueue` 경로를 유지한다.
+
+완료 기준:
+
+- 검색 없이 제목을 입력해 저장할 수 있다.
+- guest에서도 동작한다.
+- 수동 추가된 기록은 local-first로 저장된다.
+- 기존 Quick Add matched/unmatched/manual identity 테스트가 깨지지 않는다.
+
+## Track 3. Guest Search Parity
+
+목표:
+
+- 로그인하지 않아도 key가 필요 없는 검색 provider는 사용할 수 있게 한다.
+
+왜 하는가:
+
+- 로그인은 선택이다.
+- 꼭 계정이 필요한 기능이 아니라면 guest에게도 제공해야 한다.
+- 검색은 작품 추가의 편의 기능이지 계정 기능이 아니다.
+
+현재 부족한 점:
+
+- `/imports/search`가 controller-level `JwtAuthGuard` 뒤에 있다.
+- frontend `importsService.searchCandidates`는 guest일 때 external search를 요청하지 않는다.
+- guest는 현재 실제 provider 검색 대신 preview/manual 후보만 본다.
+
+구현 방향:
+
+- provider를 credential mode별로 분리한다.
+- `none` provider는 guest도 사용할 수 있게 한다.
+- `server` provider는 비용/쿼터/rate limit 정책에 따라 guest 제공을 검토한다.
+- `user` provider, 예: Aladin user TTBKey 저장/사용은 로그인 필요로 유지한다.
+- guest external search에는 rate limit을 적용한다.
+- provider readiness UI는 guest에게도 “바로 사용 가능 / 로그인 필요 / 서버 설정 필요”를 설명한다.
+
+예상 no-user-key provider:
+
+- AniList
+- Google Books
+- Open Library
+- TVmaze
+- manual
+
+완료 기준:
+
+- guest도 no-user-key provider 검색을 사용할 수 있다.
+- user-scoped provider는 로그인 필요 안내가 나온다.
+- 검색 실패 시 수동 추가로 자연스럽게 이동할 수 있다.
+- 기존 authenticated provider tests가 깨지지 않는다.
+
+## Track 4. Quick Add Trust And UX
+
+목표:
+
+- 검색 결과가 local-first 저장 경로 안에서도 catalog identity를 잃지 않게 하고, 입력 흐름을 더 명확하게 만든다.
 
 현재 테스트로 고정된 규칙:
 
@@ -68,11 +170,12 @@
 
 다음 단계:
 
+- Quick Add candidate card / selected preview / status input / save CTA polish
 - provider별 ranking/search quality 개선
 - provider readiness UI polish
 - duplicate warning UX polish
 
-## Track 3. Catalog Boundary
+## Track 5. Catalog Boundary
 
 목표:
 
@@ -85,7 +188,13 @@
 - `Works`와 `user-records/from-import`는 유지하되, 새 성장 경로는 `Works`에 누적하지 않는다.
 - authenticated direct create path는 현재 제품 기준에서 채택하지 않는다. 기본 생성 경로는 local-first sync다.
 
-## Track 4. Sync And Product Clarity
+방향:
+
+- 개인 기록 데이터와 서버/catalog 데이터는 별도 plane으로 유지한다.
+- sync는 개인 기록 정합성 문제다.
+- catalog promotion은 별도 검수/공개 pipeline 문제다.
+
+## Track 6. Sync And Product Clarity
 
 목표:
 
@@ -102,9 +211,31 @@
 2. 로그인 직후 pull 자동화 검토
 3. sync 상태 polish와 실패 복구 UX 개선
 
+## Track 7. Later Public / Community
+
+목표:
+
+- 개인 아카이브가 안정화된 뒤 공개/커뮤니티 기능을 별도 plane으로 검토한다.
+
+원칙:
+
+- 개인 기록은 기본 private다.
+- 공개 여부는 사용자가 명시적으로 선택한다.
+- public/community 기능은 private archive 저장 경로를 바꾸지 않는다.
+- catalog promotion은 별도 submission/moderation pipeline을 사용한다.
+
+후순위 항목:
+
+- minimal Insights
+- personal Tier Boards
+- public profile
+- public works
+- community
+- moderation
+
 ## Verification Gates
 
-`2026-04-24` 기준 Phase 1 게이트:
+Phase 1+ 게이트:
 
 - `npm run typecheck`
 - `npm run test --workspace @work-archive/web`
