@@ -4,25 +4,42 @@
 | --- | --- |
 | Status | `active` |
 | Role | `navigation` |
-| Source of truth | [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md), [`FINAL_WEB_DESIGN.md`](./FINAL_WEB_DESIGN.md) |
-| Last verified against | `2026-04-22` working tree |
-| When to update | product 문서 역할과 읽기 순서가 바뀔 때 |
+| Source of truth | [`PRODUCT_DIRECTION_LOCK.md`](./PRODUCT_DIRECTION_LOCK.md), [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md), [`FINAL_WEB_DESIGN.md`](./FINAL_WEB_DESIGN.md) |
+| Last verified against | `2026-04-25` user direction review |
+| When to update | product 문서 역할, 읽기 순서, 제품 본질, guest/login 정책이 바뀔 때 |
 
-이 폴더는 현재 구현 설명이 아니라 **제품 비전, 근거리 우선순위 요약, 확장 전략**을 다룬다.
+이 폴더는 **제품 본질, 근거리 우선순위, 디자인 방향, 확장 전략**을 다룬다.
+
+가장 중요한 기준은 [`PRODUCT_DIRECTION_LOCK.md`](./PRODUCT_DIRECTION_LOCK.md)다. Work Archive의 본질은 커뮤니티나 서버 중심 카탈로그가 아니라, **내가 본 작품을 정리하고 리뷰를 남기는 개인 local-first 작품 아카이브**다.
 
 ## Read In This Order
 
-1. [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
-2. [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
-3. [`FINAL_WEB_DESIGN.md`](./FINAL_WEB_DESIGN.md)
-4. [`CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](./CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
-5. [`AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](./AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
-6. [`VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](./VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
+1. [`PRODUCT_DIRECTION_LOCK.md`](./PRODUCT_DIRECTION_LOCK.md)
+2. [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
+3. [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
+4. [`FINAL_WEB_DESIGN.md`](./FINAL_WEB_DESIGN.md)
+5. [`CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](./CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)
+6. [`AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](./AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
+7. [`VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](./VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)
+
+## Direction Lock Summary
+
+앞으로 제품 판단은 아래 기준을 우선한다.
+
+- 1순위는 개인 작품 기록/리뷰 아카이브다.
+- 로그인은 선택이다.
+- 꼭 계정이 필요한 기능이 아니라면 guest도 사용할 수 있어야 한다.
+- 수동 추가는 핵심 기능이다.
+- key가 필요 없는 검색 provider는 비로그인 사용자에게도 제공하는 방향으로 구현한다.
+- 개인 기록 데이터와 서버/catalog/community 데이터는 별도 plane으로 유지한다.
+- sync는 개인 기록 백업/동기화 문제이고, catalog promotion은 공용 카탈로그 검수 문제다.
+- community는 미래 확장일 뿐 현재 기본 경로가 아니다.
 
 ## Document Roles
 
 | Document | Role |
 | --- | --- |
+| [`PRODUCT_DIRECTION_LOCK.md`](./PRODUCT_DIRECTION_LOCK.md) | 제품 본질, guest/login 정책, 개인 기록과 서버/catalog/community 경계 고정 |
 | [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md) | 근거리 제품 우선순위 요약 |
 | [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md) | 프론트 5단계 상세 실행 기준 |
 | [`FINAL_WEB_DESIGN.md`](./FINAL_WEB_DESIGN.md) | 최종 사용자 경험과 디자인 원칙 |
@@ -39,6 +56,8 @@
 #### Positioning
 
 Tier Board는 작품 상세의 보조 필드가 아니라, **가볍고 공유 가능한 별도 보드 기능**으로 다룬다.
+
+단, 이 기능도 개인 아카이브가 안정화된 뒤에 붙인다. 공개/공유 기능은 private archive 저장 경로와 섞지 않는다.
 
 #### MVP Principles
 
