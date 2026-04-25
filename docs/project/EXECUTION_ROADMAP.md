@@ -14,9 +14,9 @@
 
 - 제품 본질은 **개인 local-first 작품 기록/리뷰 아카이브**다.
 - 로그인은 선택이다. 꼭 계정이 필요한 기능이 아니라면 guest도 사용할 수 있어야 한다.
-- 현재 제품 기준은 `server-assisted search + local-first save`지만, guest search parity와 direct manual add가 아직 부족하다.
-- Quick Add identity 저장, duplicate detection, backend sync create 순서는 테스트로 고정돼 있다.
-- 수정된 우선순위는 `manual add -> guest search parity -> Quick Add UX -> Works/Review UX -> Sync clarity -> security/deploy -> minimal Insights`다.
+- 현재 제품 기준은 `direct manual add + optional-auth server-assisted search + local-first save`다.
+- Manual Add, guest no-key provider search, Quick Add identity 저장, duplicate detection, backend sync create 순서는 테스트로 고정돼 있다.
+- 수정된 우선순위는 `문서 정합성 -> manual add/guest search 테스트 고정 -> Quick Add UX -> WorksList/Review UX -> Sync resolution -> security/deploy -> minimal Insights`다.
 - `Tier Boards`, `Community`는 개인 아카이브가 안정화된 뒤로 미룬다.
 
 ## Product Direction Lock
@@ -64,8 +64,9 @@ public/community/catalog promotion은 private sync path와 섞지 않는다.
 현재 기준:
 
 - 외부 provider 검색은 이미 구현돼 있다.
-- 현재 `/imports/search`는 backend `JwtAuthGuard` 뒤에 있어 guest external search parity가 부족하다.
-- frontend도 guest 상태에서는 external search를 쓰지 않고 preview/manual 후보로 fallback한다.
+- `/imports/providers`와 `/imports/search`는 optional Authorization 기반으로 동작한다.
+- frontend imports service는 토큰이 있으면 authenticated request, 없으면 plain request를 보낸다.
+- guest는 key가 필요 없는 provider 검색과 manual provider를 사용할 수 있고, user/server credential provider는 정책에 따라 제한된다.
 - Dexie 테이블은 `works`, `releaseRecords`, `syncQueue`, `appMeta`다.
 - Prisma 표면은 `CatalogWork`, `CatalogTitle`, `CatalogRelease`, `CatalogExternalRef`, `UserWorkRecord`, `UserReleaseRecord`까지 이미 확장돼 있다.
 - `Works`는 compatibility layer고, `user-records/from-import`는 준비돼 있지만 현재 기본 생성 경로는 아니다.
@@ -82,7 +83,7 @@ public/community/catalog promotion은 private sync path와 섞지 않는다.
 
 목표:
 
-- 검색 없이 직접 작품을 추가할 수 있는 명확한 수동 추가 경로를 만든다.
+- 검색 없이 직접 작품을 추가할 수 있는 수동 추가 경로를 제품 기본 경로로 고정한다.
 
 왜 먼저 하는가:
 
@@ -90,17 +91,17 @@ public/community/catalog promotion은 private sync path와 섞지 않는다.
 - 검색 provider가 없거나 틀리거나 로그인하지 않은 상황에서도 사용자는 기록을 남길 수 있어야 한다.
 - 수동 추가는 fallback이 아니라 핵심 기능이다.
 
-현재 부족한 점:
+현재 기준:
 
-- Quick Add에는 `preview-manual` fallback 후보가 있지만, 검색 없이 바로 저장하는 direct manual add path가 명확하지 않다.
+- `QuickAddWorkForm`은 `manual` / `search` AddMode를 가진다.
+- `/works/new`의 기본 흐름은 `직접 추가`다.
+- 수동 저장은 `catalogTitleId: null`, `importDraft: null`로 local-first 저장된다.
+- guest와 logged-in user 모두 사용할 수 있다.
 
-구현 방향:
+남은 방향:
 
-- `/works/new`에서 `직접 추가` 진입점을 명확하게 제공한다.
-- 최소 필수 입력은 제목과 타입 정도로 제한한다.
-- 상태, 별점, 한줄평, 상세 리뷰는 선택 입력으로 제공한다.
-- guest와 logged-in user 모두 사용할 수 있게 한다.
-- 수동 추가 기록은 catalog identity 없이 local-first로 저장한다.
+- 수동 추가 UX를 더 명확하게 polish한다.
+- `QuickAddWorkForm`이 커지고 있으므로 UI polish 과정에서 작은 컴포넌트로 점진 분리한다.
 - authenticated 상태에서도 direct server create가 아니라 기존 `Dexie -> syncQueue` 경로를 유지한다.
 
 완료 기준:
@@ -114,7 +115,7 @@ public/community/catalog promotion은 private sync path와 섞지 않는다.
 
 목표:
 
-- 로그인하지 않아도 key가 필요 없는 검색 provider는 사용할 수 있게 한다.
+- 로그인하지 않아도 key가 필요 없는 검색 provider를 계속 사용할 수 있게 테스트와 정책을 고정한다.
 
 왜 하는가:
 
@@ -122,17 +123,17 @@ public/community/catalog promotion은 private sync path와 섞지 않는다.
 - 꼭 계정이 필요한 기능이 아니라면 guest에게도 제공해야 한다.
 - 검색은 작품 추가의 편의 기능이지 계정 기능이 아니다.
 
-현재 부족한 점:
+현재 기준:
 
-- `/imports/search`가 controller-level `JwtAuthGuard` 뒤에 있다.
-- frontend `importsService.searchCandidates`는 guest일 때 external search를 요청하지 않는다.
-- guest는 현재 실제 provider 검색 대신 preview/manual 후보만 본다.
+- backend `/imports/providers`와 `/imports/search`는 optional Authorization 기반이다.
+- malformed Authorization은 401로 거절한다.
+- frontend `importsService.searchCandidates`는 토큰이 없으면 plain request를 보내고, 토큰이 있으면 authenticated request를 보낸다.
+- guest는 no-user-key provider와 `manual` provider를 사용할 수 있다.
 
-구현 방향:
+남은 방향:
 
-- provider를 credential mode별로 분리한다.
-- `none` provider는 guest도 사용할 수 있게 한다.
-- `server` provider는 비용/쿼터/rate limit 정책에 따라 guest 제공을 검토한다.
+- provider credential mode 정책을 테스트로 계속 고정한다.
+- `server` provider는 비용/쿼터/rate limit 정책에 따라 guest 제공을 별도로 검토한다.
 - `user` provider, 예: Aladin user TTBKey 저장/사용은 로그인 필요로 유지한다.
 - guest external search에는 rate limit을 적용한다.
 - provider readiness UI는 guest에게도 “바로 사용 가능 / 로그인 필요 / 서버 설정 필요”를 설명한다.

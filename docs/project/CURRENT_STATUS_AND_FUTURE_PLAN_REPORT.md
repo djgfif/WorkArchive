@@ -16,7 +16,7 @@
 - 프론트는 IndexedDB를 1차 저장소로 쓰고, 로그인 시 계정별 로컬 아카이브로 전환한다.
 - 현재 저장소에서 실제 실행 가능한 프론트 런타임은 `apps/web`이며, Tauri shell은 아직 저장소에 없다.
 - 백엔드는 NestJS + Prisma + PostgreSQL 기반 API다.
-- Quick Add는 현재 `server-assisted search + local-first save` 규칙으로 동작한다.
+- Quick Add는 현재 `direct manual add + optional-auth server-assisted search + local-first save` 규칙으로 동작한다.
 - Quick Add matched/unmatched/manual 저장 규칙과 duplicate detection 우선순위는 테스트로 고정돼 있다.
 - 현재 sync는 수동 실행만 지원한다.
 - `Tier Boards`, `Insights`, `Community`는 라우트는 존재하지만 아직 placeholder 성격이 강하다.
@@ -71,7 +71,7 @@
 
 - Home: 검색 진입, 빠른 추가, 통계 요약, 최근 기록 허브
 - Works: 목록/필터/정렬/리스트-그리드 전환/휴지통 관리
-- Work Create: `검색 -> 선택 -> 자동 채움 검토 -> 개인 기록 입력 -> 저장` 형태의 Quick Add 중심 흐름
+- Work Create: `직접 추가 -> 저장`을 기본 경로로 제공하고, `검색 -> 선택 -> 자동 채움 검토 -> 개인 기록 입력 -> 저장`을 보조 Quick Add 흐름으로 제공
 - Work Detail / Edit: 감상 기록 확인과 수정
 - Auth: 회원가입 / 로그인
 - Account: sync, 설정, guest 기록 검토/선택 import
@@ -160,8 +160,10 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - access token local storage + refresh cookie 세션 복구
 - 사용자별 로컬 아카이브 분리
 - 로그인 직후 guest 기록 검토 후 선택 import
+- 검색 없이 제목/타입 중심으로 저장하는 직접 수동 추가
 - 수동 sync queue와 push / pull
-- authenticated Quick Add provider 검색과 preview fallback
+- optional-auth Quick Add provider 검색과 preview fallback
+- guest no-user-key provider 검색
 - Quick Add matched external candidate 저장 규칙: `catalogTitleId` 저장, `importDraft: null`
 - Quick Add unmatched external candidate 저장 규칙: `title`, `author`, `description`, `thumbnailUrl`, `genres`를 중복 저장하지 않는 identity-only `importDraft`
 - Quick Add `manual` / `preview-manual` 저장 규칙: catalog/import identity 없이 local draft 저장
@@ -229,9 +231,9 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 ### Current Verification Status
 
-- `npm run typecheck`: `2026-04-24` 통과 확인
-- `npm run test --workspace @work-archive/web`: `2026-04-24` 기준 `16` files, `50` tests 통과 확인
-- `npm run test --workspace @work-archive/api`: `2026-04-24` 기준 `7` suites, `38` tests 통과 확인
+- `npm run typecheck`: `2026-04-25` 통과 확인
+- `npm run test --workspace @work-archive/web`: `2026-04-25` 기준 `18` files, `70` tests 통과 확인
+- `npm run test --workspace @work-archive/api`: `2026-04-25` 기준 `7` suites, `45` tests 통과 확인
 - `npm run build`: `2026-04-24` 통과 확인
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
@@ -242,7 +244,8 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - Mantine foundation은 도입됐지만 스타일 책임은 아직 `global.css`와 페이지별 클래스 조합에 크게 남아 있다.
 - shared UI primitives가 생기고 있지만 `var(--accent)`류 직접 참조와 커스텀 클래스 조합 의존이 여전히 크다.
 - placeholder 화면과 실제 구현 화면의 성숙도 차이가 크다.
-- Quick Add provider readiness UI와 duplicate policy의 기본 구현/테스트는 들어갔다. 남은 일은 provider별 ranking/search quality와 UI polish다.
+- 직접 수동 추가와 guest no-key provider 검색의 기본 구현/테스트는 들어갔다. 남은 일은 provider별 ranking/search quality와 UI polish다.
+- Quick Add provider readiness UI와 duplicate policy의 기본 구현/테스트는 들어갔다.
 - Quick Add 저장은 현재 제품 기준에서 의도적으로 local-first sync 경로를 유지한다. authenticated direct create path는 기본 생성 경로가 아니다.
 
 ### 7-2. Product UX

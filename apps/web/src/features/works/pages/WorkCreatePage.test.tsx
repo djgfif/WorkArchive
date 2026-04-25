@@ -270,6 +270,12 @@ describe('WorkCreatePage', () => {
       syncStatus: 'local-only',
       serverVersion: 0,
     });
+    expect(
+      await screen.findByText('게스트 직접 추가을(를) 등록했습니다'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '방금 등록한 작품 보기' }),
+    ).toBeInTheDocument();
     expect(queueItems).toEqual([
       expect.objectContaining({
         entityId: savedWork?.id,
