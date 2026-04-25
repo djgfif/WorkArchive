@@ -49,11 +49,14 @@ function getNpmSpawnSpec(args) {
   };
 }
 
-function spawnNpmProcess(label, args) {
+function spawnNpmProcess(label, args, extraEnv = {}) {
   const spec = getNpmSpawnSpec(args);
   const child = spawn(spec.command, spec.args, {
     cwd: workspaceDir,
-    env: process.env,
+    env: {
+      ...process.env,
+      ...extraEnv,
+    },
     shell: false,
     stdio: ['inherit', 'pipe', 'pipe'],
   });
@@ -87,8 +90,8 @@ async function runInitialBuild() {
   await waitForExit(buildProcess, 'Initial API build');
 }
 
-function spawnWatchProcess(label, scriptName) {
-  const child = spawnNpmProcess(label, ['run', scriptName]);
+function spawnWatchProcess(label, scriptName, extraEnv = {}) {
+  const child = spawnNpmProcess(label, ['run', scriptName], extraEnv);
   childProcesses.push({ child, label });
 
   child.once('exit', (code, signal) => {
@@ -159,7 +162,12 @@ try {
 
   spawnWatchProcess('build', 'dev:build');
   spawnWatchProcess('serve', 'dev:serve');
-  spawnWatchProcess('health', 'dev:health');
+  spawnWatchProcess('health', 'dev:health', {
+    API_HEALTH_RESTART_GRACE_MS:
+      process.env.API_HEALTH_RESTART_GRACE_MS ?? '30000',
+    API_HEALTH_STARTUP_TIMEOUT_MS:
+      process.env.API_HEALTH_STARTUP_TIMEOUT_MS ?? '90000',
+  });
 } catch (error) {
   process.stderr.write(
     `[dev-runner] ${error instanceof Error ? error.message : 'Initial API build failed.'}\n`,
