@@ -5,7 +5,7 @@
 | Status | `canonical` |
 | Role | `target backend structure` |
 | Source of truth | current API modules, Prisma schema, `WorksService` orchestration, product expansion strategy |
-| Last verified against | `2026-04-24` working tree |
+| Last verified against | `2026-04-25` local `master` working tree |
 | When to update | 백엔드 도메인 경계, migration slice, target module map이 바뀔 때 |
 
 이 문서는 Work Archive 백엔드의 **목표 구조 기준**이다. 현재 구현 상태 설명은 `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`에서 보고, 여기서는 어디로 더 분리해 가야 하는지를 정의한다.
@@ -22,6 +22,9 @@
 - 다만 현재 `WorksModule`은 flat API 계약을 유지하기 위한 compatibility façade다.
 - 현재 create/update는 `CatalogService`와 `UserRecordsService`를 함께 호출하며 사실상 `1:1` split-only 중간 단계를 유지한다.
 - sync create는 `catalogTitleId`와 `importDraft`를 받아 catalog/user-record 경계로 진입할 수 있지만, 여전히 compatibility catalog work를 함께 만든다.
+- sync create 처리 순서는 `catalogTitleId -> importDraft -> legacy fallback`으로 테스트 고정돼 있다.
+- `importDraft.catalogTitle`은 optional legacy-compatible field이며, 없으면 `payload.title`로 fallback한다.
+- 현재 제품의 authenticated 생성 경로는 direct create가 아니라 local-first sync path다.
 
 즉, 현재 구조는 **분리된 데이터 모델 위에 flat compatibility API가 남아 있는 단계**다.
 
@@ -59,6 +62,7 @@
 
 - `Works`는 현재 사용자-facing API 호환 계층이다.
 - 도메인 지식은 가능한 한 `Catalog`, `UserRecords`, `Imports` 쪽으로 이동한다.
+- Quick Add authenticated direct create path를 새 기본 성장 경로로 보지 않는다. 현재 기본 경로는 local-first sync이고, import identity는 sync create에서 해석한다.
 - 새로운 public/community 요구사항은 `Works`가 아니라 별도 도메인 경계에서 받는다.
 
 ## Next
@@ -68,12 +72,14 @@
 - 현재 `CatalogWork`와 `UserWorkRecord`의 책임 문서화
 - Quick Add / import 흐름을 지원할 `Imports` 경계 정의
 - catalog 후보와 개인 저장 흐름을 제품/백엔드 양쪽에서 분리
+- provider ranking/search quality와 catalog reuse 기준 정리
 
 ### Migration Slice 2
 
 - 현재 `1:1` split-only 구조에서 재사용 가능한 catalog 조건 정의
 - flat `Works` API를 한 번에 제거하지 않고, 점진 분해 전략 준비
 - public aggregate를 붙이기 전 read path 분리 기준 정리
+- sync conflict overwrite/merge resolution의 책임 경계 정의
 
 ## Later / Exploratory
 

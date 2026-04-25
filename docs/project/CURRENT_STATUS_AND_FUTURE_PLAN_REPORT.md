@@ -5,7 +5,7 @@
 | Status | `canonical` |
 | Role | `current reality` |
 | Source of truth | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-04-24` working tree |
+| Last verified against | `2026-04-25` local `master` working tree |
 | When to update | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때 |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -17,6 +17,7 @@
 - 현재 저장소에서 실제 실행 가능한 프론트 런타임은 `apps/web`이며, Tauri shell은 아직 저장소에 없다.
 - 백엔드는 NestJS + Prisma + PostgreSQL 기반 API다.
 - Quick Add는 현재 `server-assisted search + local-first save` 규칙으로 동작한다.
+- Quick Add matched/unmatched/manual 저장 규칙과 duplicate detection 우선순위는 테스트로 고정돼 있다.
 - 현재 sync는 수동 실행만 지원한다.
 - `Tier Boards`, `Insights`, `Community`는 라우트는 존재하지만 아직 placeholder 성격이 강하다.
 
@@ -161,16 +162,24 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - 로그인 직후 guest 기록 검토 후 선택 import
 - 수동 sync queue와 push / pull
 - authenticated Quick Add provider 검색과 preview fallback
+- Quick Add matched external candidate 저장 규칙: `catalogTitleId` 저장, `importDraft: null`
+- Quick Add unmatched external candidate 저장 규칙: `title`, `author`, `description`, `thumbnailUrl`, `genres`를 중복 저장하지 않는 identity-only `importDraft`
+- Quick Add `manual` / `preview-manual` 저장 규칙: catalog/import identity 없이 local draft 저장
+- duplicate detection 우선순위: `catalogTitleId -> externalRefs -> title fallback`
 - 계정 설정의 Aladin 키 저장/삭제
-- `/imports/providers` 기반 provider readiness 조회
+- `/imports/providers` 기반 provider readiness 조회와 Settings provider readiness 기본 UI/테스트
+- SyncPage pending / failed / conflict queue item 표시, 원인 표시, 기록 보기, 재시도 CTA
 - `CatalogTitle` related read model과 `UserReleaseRecord` 흐름
 - 홈 허브 화면
 - 계정 센터 라우트 분리
+- backend sync create의 `catalogTitleId -> importDraft -> legacy fallback` 처리 순서
+- `importDraft.catalogTitle` optional legacy-compatible field와 누락 시 `payload.title` fallback
 
 ### Not Yet Implemented
 
-- authenticated direct create path를 쓰는 server-first Quick Add 저장
-- provider readiness UI의 전체 polish와 provider별 ranking/duplicate 전략 정리
+- provider별 ranking/search quality 개선
+- provider readiness UI polish
+- conflict overwrite/merge resolution
 - guest 기록 자동 병합 정책과 다기기 이관 UX
 - 자동 동기화
 - 공개 프로필 / 공개 기록 / 작품 집계
@@ -233,20 +242,23 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - Mantine foundation은 도입됐지만 스타일 책임은 아직 `global.css`와 페이지별 클래스 조합에 크게 남아 있다.
 - shared UI primitives가 생기고 있지만 `var(--accent)`류 직접 참조와 커스텀 클래스 조합 의존이 여전히 크다.
 - placeholder 화면과 실제 구현 화면의 성숙도 차이가 크다.
-- Quick Add 검색은 provider 기반이지만, provider readiness UI와 duplicate policy는 아직 완성 전이다.
-- Quick Add 저장은 아직 local-first이며 authenticated direct create path로는 연결되지 않았다.
+- Quick Add provider readiness UI와 duplicate policy의 기본 구현/테스트는 들어갔다. 남은 일은 provider별 ranking/search quality와 UI polish다.
+- Quick Add 저장은 현재 제품 기준에서 의도적으로 local-first sync 경로를 유지한다. authenticated direct create path는 기본 생성 경로가 아니다.
 
 ### 7-2. Product UX
 
 - 게스트와 계정 아카이브는 분리되어 있고, 현재는 로그인 직후 review/import 단계까지만 제공된다.
 - sync는 수동이다.
+- SyncPage는 pending / failed / conflict queue item 단위 상태와 원인, 기록 보기, 재시도 CTA를 제공한다.
+- conflict overwrite/merge resolution은 아직 후속 작업이다.
 - Profile / Tier Boards / Community / Insights는 장기 방향에 비해 현재 구현이 얕다.
 
 ### 7-3. Backend / Security
 
 - `WorksModule`은 현재 호환성 계층이라서, 내부 split domain과 외부 flat 계약이 함께 유지되고 있다.
 - 현재 catalog는 shared public catalog라기보다 user record와 강하게 결합된 `1:1` 과도기 구조다.
-- sync create path는 이제 `catalogTitleId`와 `importDraft`를 받을 수 있지만, 장기적으로는 `Works`에서 더 멀어져야 한다.
+- sync create path는 `catalogTitleId -> importDraft -> legacy fallback` 순서로 테스트 고정돼 있다. `importDraft.catalogTitle`은 optional legacy-compatible field이며, 없으면 `payload.title`로 fallback한다.
+- 장기적으로 sync create와 Quick Add import 흐름은 `Works` compatibility layer에서 더 멀어져야 한다.
 - access token은 아직 브라우저 `localStorage`에 저장된다.
 - 공개 레이어, 세션/디바이스 관리, 공개 데이터 권한 분리 같은 확장 전 과제는 아직 남아 있다.
 

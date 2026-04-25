@@ -5,7 +5,7 @@
 | Status | `active` |
 | Role | `frontend roadmap` |
 | Source of truth | [`FRONTEND_BLUEPRINT_V1.md`](./FRONTEND_BLUEPRINT_V1.md), [`FRONTEND_FOUNDATION_MASTERPLAN.md`](./FRONTEND_FOUNDATION_MASTERPLAN.md), current `apps/web` implementation |
-| Last verified against | `2026-04-24` working tree |
+| Last verified against | `2026-04-25` local `master` working tree |
 | When to update | 프론트 상세 실행 순서, Mantine token 기준, 핵심 페이지 우선순위, 완료 기준이 바뀔 때 |
 
 이 문서는 Work Archive 프론트의 **단일 상세 실행 로드맵**이다. Mantine foundation은 이미 일부 도입됐고, 이 문서는 남은 migration 순서를 5단계로 고정한다.
@@ -27,6 +27,8 @@
 - 스타일 인프라는 여전히 `global.css`에 크게 의존한다.
 - shared UI primitives보다 페이지별 클래스 조합이 많다.
 - `WorkDetailPanel`, `HomePage`, `WorkCard`, `QuickAddWorkForm` 등 핵심 화면에 커스텀 클래스 결합이 넓게 남아 있다.
+- Settings provider readiness 기본 UI와 테스트는 구현돼 있다.
+- SyncPage는 pending / failed / conflict queue item 표시, 원인, 기록 보기, 재시도 CTA를 제공한다.
 - `Tier Boards`, `Insights`, `Community`는 placeholder 성격이 강하다.
 
 ## Committed Now
@@ -150,7 +152,8 @@
 ## Next
 
 - Work Create / Edit 입력 경험 polish
-- Sync 상태 표현 개선
+- Sync conflict overwrite/merge resolution UX
+- provider별 ranking/search quality와 Settings provider readiness polish
 - placeholder 목적지의 CTA 품질 향상
 - Mantine 기반 공통 feedback 패턴 정리
 
