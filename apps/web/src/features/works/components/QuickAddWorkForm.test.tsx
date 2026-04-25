@@ -300,8 +300,24 @@ describe('QuickAddWorkForm', () => {
     expect(await waitFor(() => getElementById<HTMLInputElement>('title'))).toHaveValue(
       candidate.title,
     );
+    expect(
+      screen.getByRole('button', { name: /Dune.*후보 선택/ }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('개인 기록 입력')).toBeInTheDocument();
     expect(getElementById<HTMLInputElement>('author')).toHaveValue(candidate.author);
     expect(screen.getAllByText(candidate.note).length).toBeGreaterThan(0);
+  });
+
+  it('shows direct manual add as the default guest path before search is used', () => {
+    renderGuestQuickAdd();
+
+    expect(screen.getByText('검색 없이 작품 기록 만들기')).toBeInTheDocument();
+    expect(getElementById<HTMLInputElement>('manualTitle')).toBeInTheDocument();
+    expect(getElementById<HTMLSelectElement>('manualType')).toBeInTheDocument();
+    expect(document.getElementById('quickAddSearch')).toBeNull();
+    expect(
+      screen.queryByText(/로그인해야만 검색 가능/),
+    ).not.toBeInTheDocument();
   });
 
   it('submits direct manual adds without catalog or import identity', async () => {
@@ -322,6 +338,32 @@ describe('QuickAddWorkForm', () => {
       catalogTitleId: null,
       importDraft: null,
     });
+  });
+
+  it('lets guests submit a minimal manual add without search, candidate selection, or fetch', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const fetchMock = vi.fn();
+    const user = userEvent.setup();
+
+    vi.stubGlobal('fetch', fetchMock);
+    renderGuestQuickAdd(onSubmit);
+
+    await user.type(getElementById<HTMLInputElement>('manualTitle'), '게스트 수동 기록');
+    await user.selectOptions(getElementById<HTMLSelectElement>('manualType'), 'movie');
+    await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({
+      title: '게스트 수동 기록',
+      type: 'movie',
+      catalogTitleId: null,
+      importDraft: null,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText('검색 결과에서 먼저 작품을 선택해주세요.'),
+    ).not.toBeInTheDocument();
   });
 
   it('uses public no-key provider search for guests', async () => {
@@ -359,6 +401,52 @@ describe('QuickAddWorkForm', () => {
     expect(await waitFor(() => getElementById<HTMLInputElement>('title'))).toHaveValue(
       candidate.title,
     );
+  });
+
+  it('offers direct manual add when external search returns no candidates', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        provider: 'open_library',
+        providers: ['open_library'],
+        query: 'No Match Title',
+        candidates: [],
+      }),
+    );
+    const user = userEvent.setup();
+
+    vi.stubGlobal('fetch', fetchMock);
+    renderGuestQuickAdd();
+
+    await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+
+    const searchInput = getElementById<HTMLInputElement>('quickAddSearch');
+
+    await user.type(searchInput, 'No Match Title');
+
+    const searchForm = searchInput.closest('form');
+
+    expect(searchForm).not.toBeNull();
+
+    const searchButton = searchForm?.querySelector<HTMLButtonElement>(
+      'button[type="submit"]',
+    );
+
+    expect(searchButton).not.toBeNull();
+
+    await user.click(searchButton!);
+
+    const manualCta = await screen.findByRole('button', {
+      name: '"No Match Title" 직접 추가',
+    });
+
+    expect(screen.queryByText(/로그인해야만 검색 가능/)).not.toBeInTheDocument();
+
+    await user.click(manualCta);
+
+    expect(getElementById<HTMLInputElement>('manualTitle')).toHaveValue(
+      'No Match Title',
+    );
+    expect(document.getElementById('quickAddSearch')).toBeNull();
   });
 
   it('submits catalogTitleId and a null importDraft for matched external candidates', async () => {

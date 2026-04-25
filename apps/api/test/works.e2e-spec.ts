@@ -1070,6 +1070,29 @@ describe('Auth, works, and sync API (e2e)', () => {
         status: 401,
       }),
     );
+
+    await expect(
+      requestJson('/api/imports/providers/aladin/key', {
+        method: 'PUT',
+        body: JSON.stringify({
+          ttbKey: 'test-ttb-key',
+        }),
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        status: 401,
+      }),
+    );
+
+    await expect(
+      requestJson('/api/imports/providers/aladin/key', {
+        method: 'DELETE',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        status: 401,
+      }),
+    );
   });
 
   it('supports authenticated Aladin key settings and import search without creating works', async () => {
@@ -1115,6 +1138,28 @@ describe('Auth, works, and sync API (e2e)', () => {
       provider: 'aladin',
       configured: true,
     });
+
+    const providerReadinessResponse = await requestJson(
+      '/api/imports/providers',
+      undefined,
+      session.accessToken,
+    );
+
+    expect(providerReadinessResponse.status).toBe(200);
+    expect(providerReadinessResponse.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: 'aladin',
+          credentialMode: 'user',
+          configured: true,
+        }),
+        expect.objectContaining({
+          provider: 'manual',
+          credentialMode: 'none',
+          configured: true,
+        }),
+      ]),
+    );
 
     mockAladinResponse({
       item: [
