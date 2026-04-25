@@ -268,6 +268,31 @@ describe('ImportsService', () => {
     expect(credentialService.hasCredential).not.toHaveBeenCalled();
   });
 
+  it('reports user-scoped provider readiness when a valid user is present', async () => {
+    credentialService.hasCredential.mockResolvedValue(true);
+
+    const providers = await service.listProviders(USER_ID);
+
+    expect(providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: ALADIN_PROVIDER,
+          credentialMode: 'user',
+          configured: true,
+        }),
+        expect.objectContaining({
+          provider: MANUAL_PROVIDER,
+          credentialMode: 'none',
+          configured: true,
+        }),
+      ]),
+    );
+    expect(credentialService.hasCredential).toHaveBeenCalledWith(
+      USER_ID,
+      ALADIN_PROVIDER,
+    );
+  });
+
   it('allows guest search for no-key providers without reading user credentials', async () => {
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({

@@ -95,4 +95,39 @@ describe('ImportsService', () => {
     });
     expect(headers.get('authorization')).toBe('Bearer access-token');
   });
+
+  it.each([401, 403, 502])(
+    'falls back to preview/manual candidates when external search returns %i',
+    async (status) => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        jsonResponse(
+          {
+            message: 'Provider unavailable',
+          },
+          status,
+        ),
+      );
+
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await new ImportsService().searchCandidates('Dune', {
+        providers: ['open_library'],
+        useExternal: true,
+      });
+
+      expect(result.source).toBe('preview-manual');
+      expect(result.candidates).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            sourceId: 'preview-manual',
+            title: 'Dune',
+          }),
+        ]),
+      );
+      expect(result.notice).toContain('사용자 키 설정');
+      expect(result.notice).toContain('TTBKey');
+      expect(result.notice).toContain('로컬 preview 후보');
+      expect(result.notice).not.toBe('로그인해야만 검색 가능');
+    },
+  );
 });
