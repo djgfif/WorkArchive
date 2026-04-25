@@ -1179,6 +1179,29 @@ describe('Auth, works, and sync API (e2e)', () => {
   });
 
   it('allows guest import search only for no-user-key providers', async () => {
+    const providersResponse = await requestJson('/api/imports/providers');
+
+    expect(providersResponse.status).toBe(200);
+    expect(providersResponse.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: 'manual',
+          credentialMode: 'none',
+          configured: true,
+        }),
+        expect.objectContaining({
+          provider: 'aladin',
+          credentialMode: 'user',
+          configured: false,
+        }),
+        expect.objectContaining({
+          provider: 'tmdb',
+          credentialMode: 'server',
+          configured: false,
+        }),
+      ]),
+    );
+
     const manualSearchResponse = await requestJson(
       '/api/imports/search?provider=manual&query=Dune&type=novel&limit=5',
     );
@@ -1212,6 +1235,27 @@ describe('Auth, works, and sync API (e2e)', () => {
     );
 
     expect(tmdbGuestResponse.status).toBe(403);
+  });
+
+  it('rejects malformed optional import authorization headers', async () => {
+    const providersResponse = await requestJson('/api/imports/providers', {
+      headers: {
+        authorization: 'Basic invalid-token',
+      },
+    });
+
+    expect(providersResponse.status).toBe(401);
+
+    const searchResponse = await requestJson(
+      '/api/imports/search?provider=manual&query=Dune&type=novel',
+      {
+        headers: {
+          authorization: 'Bearer',
+        },
+      },
+    );
+
+    expect(searchResponse.status).toBe(401);
   });
 
   it('supports works CRUD with user scoping, soft delete, and ownership protection', async () => {

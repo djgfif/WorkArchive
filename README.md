@@ -115,10 +115,16 @@ npm run dev:api
 
 기본 엔드포인트:
 
-- Web: [http://localhost:5173](http://localhost:5173)
+- Web: [http://127.0.0.1:53173](http://127.0.0.1:53173)
 - Health: [http://localhost:3000/health](http://localhost:3000/health)
 - Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
 - OpenAPI JSON: [http://localhost:3000/docs/openapi.json](http://localhost:3000/docs/openapi.json)
+
+Windows 메모:
+
+- 일부 Windows 환경에서는 `5173`/`5174`가 excluded port range에 걸릴 수 있다.
+- 현재 `apps/web/vite.config.ts`는 개발용 Web port를 `53173`으로 지정한다.
+- Host 기반 개발 접속 주소는 [http://127.0.0.1:53173](http://127.0.0.1:53173)을 기준으로 한다.
 
 ## Docker Compose
 
@@ -164,9 +170,9 @@ npm run build
 
 ## Current Verification Status
 
-- `npm run typecheck`: `2026-04-24` 통과 확인
-- `npm run test --workspace @work-archive/web`: `2026-04-24` 기준 `16 files`, `50 tests` 통과 확인
-- `npm run test --workspace @work-archive/api`: `2026-04-24` 기준 `7 suites`, `38 tests` 통과 확인
+- `npm run typecheck`: `2026-04-25` 통과 확인
+- `npm run test --workspace @work-archive/web`: `2026-04-25` 기준 `18 files`, `70 tests` 통과 확인
+- `npm run test --workspace @work-archive/api`: `2026-04-25` 기준 `7 suites`, `45 tests` 통과 확인
 - `npm run build`: `2026-04-24` 통과 확인
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe`도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
@@ -175,7 +181,10 @@ npm run build
 - 게스트 모드는 항상 사용 가능하며 IndexedDB에만 저장된다.
 - 로그인 시 계정별 로컬 아카이브로 전환되고 수동 sync를 사용할 수 있다.
 - 로그인 직후 guest 기록이 감지되면 `/account/transfer`에서 중복 후보를 검토한 뒤 선택 import할 수 있다.
-- Quick Add는 authenticated 상태에서 `/imports/search`를 사용하고, 현재 `Aladin`, `AniList`, `Google Books`, `Open Library`, `TVmaze`, `TMDB`, `Naver Book`, `Kakao Book`, `KOBIS`, `manual` provider 구조가 연결돼 있다.
+- Quick Add의 기본 진입은 검색 없는 직접 추가이며, 수동 저장은 `catalogTitleId: null`, `importDraft: null`로 local-first 저장된다.
+- Quick Add 외부 검색은 `/imports/search` optional auth 경로를 사용한다. 토큰이 있으면 authenticated request를 보내고, 토큰이 없으면 plain request로 key가 필요 없는 provider를 검색한다.
+- 현재 `Aladin`, `AniList`, `Google Books`, `Open Library`, `TVmaze`, `TMDB`, `Naver Book`, `Kakao Book`, `KOBIS`, `manual` provider 구조가 연결돼 있다.
+- Guest 검색은 현재 `credentialMode: none` provider 중심으로 허용된다. `Aladin` 같은 user-scoped provider는 로그인과 사용자 키가 필요하고, server-key provider의 guest 공개는 아직 정책 검토 대상이다.
 - Quick Add 저장은 현재 제품 기준에서 의도적으로 local-first 경로를 유지한다. 선택한 후보는 Dexie `works` 레코드와 `syncQueue`에 먼저 반영되고, authenticated 생성도 서버 direct create가 아니라 동기화 경로를 탄다.
 - Quick Add matched external candidate는 local record에 `catalogTitleId`를 저장하고 `importDraft`는 `null`로 둔다.
 - Quick Add unmatched external candidate는 `importDraft`에 external identity만 저장한다. `title`, `author`, `description`, `thumbnailUrl`, `genres`는 `importDraft`에 중복 저장하지 않는다.

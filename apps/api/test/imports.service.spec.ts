@@ -11,6 +11,7 @@ import { ExternalApiKeyCryptoService } from '../src/modules/imports/external-api
 import { ImportsCredentialService } from '../src/modules/imports/imports-credential.service';
 import {
   ALADIN_PROVIDER,
+  MANUAL_PROVIDER,
   OPEN_LIBRARY_PROVIDER,
   TMDB_PROVIDER,
 } from '../src/modules/imports/imports.constants';
@@ -235,6 +236,36 @@ describe('ImportsService', () => {
         query: 'Dune',
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('reports guest provider readiness without reading user credentials', async () => {
+    const providers = await service.listProviders(null);
+
+    expect(providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: MANUAL_PROVIDER,
+          credentialMode: 'none',
+          configured: true,
+        }),
+        expect.objectContaining({
+          provider: OPEN_LIBRARY_PROVIDER,
+          credentialMode: 'none',
+          configured: true,
+        }),
+        expect.objectContaining({
+          provider: ALADIN_PROVIDER,
+          credentialMode: 'user',
+          configured: false,
+        }),
+        expect.objectContaining({
+          provider: TMDB_PROVIDER,
+          credentialMode: 'server',
+          configured: false,
+        }),
+      ]),
+    );
+    expect(credentialService.hasCredential).not.toHaveBeenCalled();
   });
 
   it('allows guest search for no-key providers without reading user credentials', async () => {
