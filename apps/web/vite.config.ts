@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 53173,
-    strictPort: false,
+    strictPort: true,
   },
 
   build: {
