@@ -128,6 +128,7 @@ interface KeyValueGridProps {
 
 interface AppButtonProps {
   'aria-label'?: string;
+  'aria-pressed'?: boolean;
   children?: ReactNode;
   disabled?: boolean;
   fullWidth?: boolean;

@@ -15,6 +15,7 @@ import {
   Alert,
   Anchor,
   Checkbox,
+  Grid,
   Group,
   NativeSelect,
   Paper,
@@ -351,7 +352,13 @@ function CandidateRow({
         color: 'inherit',
         cursor: 'pointer',
         padding: '1rem',
+        outline: active
+          ? '2px solid color-mix(in srgb, var(--app-border-strong) 24%, transparent)'
+          : 'none',
+        outlineOffset: '2px',
         textAlign: 'left',
+        transition:
+          'background-color 120ms ease, border-color 120ms ease, outline-color 120ms ease',
         width: '100%',
       }}
       type="button"
@@ -430,6 +437,7 @@ function StatusButtonGroup({ onChange, value }: StatusButtonGroupProps) {
       <Group gap="xs" wrap="wrap">
         {workStatusOptions.map((option) => (
           <AppButton
+            aria-pressed={value === option.value}
             key={option.value}
             onClick={() => onChange(option.value)}
             size="compact-sm"
@@ -441,6 +449,409 @@ function StatusButtonGroup({ onChange, value }: StatusButtonGroupProps) {
         ))}
       </Group>
     </Stack>
+  );
+}
+
+type WorkFormInputChangeHandler = (
+  event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+) => void;
+
+function getFieldId(idPrefix: string, fieldName: string) {
+  if (!idPrefix) {
+    return fieldName;
+  }
+
+  return `${idPrefix}${fieldName.charAt(0).toUpperCase()}${fieldName.slice(1)}`;
+}
+
+interface CoreWorkFieldsProps {
+  idPrefix?: string;
+  onChange: WorkFormInputChangeHandler;
+  values: WorkFormValues;
+}
+
+function CoreWorkFields({
+  idPrefix = '',
+  onChange,
+  values,
+}: CoreWorkFieldsProps) {
+  return (
+    <Paper
+      p="md"
+      radius="lg"
+      styles={{
+        root: {
+          backgroundColor: 'var(--app-surface-1)',
+          borderColor: 'var(--app-border-color)',
+        },
+      }}
+      withBorder
+    >
+      <Stack gap="md">
+        <ActionRow>
+          <AppBadge tone="accent">필수</AppBadge>
+          <Text c="var(--app-text-muted)" size="sm">
+            제목과 유형만 입력하면 저장할 수 있습니다.
+          </Text>
+        </ActionRow>
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          <div style={{ gridColumn: '1 / -1' }}>
+            <TextInput
+              id={getFieldId(idPrefix, 'title')}
+              label="제목"
+              name="title"
+              onChange={onChange}
+              placeholder="작품 제목"
+              value={values.title}
+            />
+          </div>
+
+          <NativeSelect
+            id={getFieldId(idPrefix, 'type')}
+            label="유형"
+            name="type"
+            onChange={onChange}
+            value={values.type}
+          >
+            {workTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+
+          <TextInput
+            id={getFieldId(idPrefix, 'author')}
+            label="작가·제작자"
+            name="author"
+            onChange={onChange}
+            placeholder="작가, 스튜디오, 제작자를 입력해주세요"
+            value={values.author}
+          />
+        </SimpleGrid>
+      </Stack>
+    </Paper>
+  );
+}
+
+interface PersonalRecordFieldsProps {
+  idPrefix?: string;
+  onInputChange: WorkFormInputChangeHandler;
+  onStatusChange: (status: WorkFormValues['status']) => void;
+  values: WorkFormValues;
+}
+
+function PersonalRecordFields({
+  idPrefix = '',
+  onInputChange,
+  onStatusChange,
+  values,
+}: PersonalRecordFieldsProps) {
+  return (
+    <Paper
+      p="md"
+      radius="lg"
+      styles={{
+        root: {
+          backgroundColor: 'var(--app-surface-0)',
+          borderColor: 'var(--app-border-color)',
+        },
+      }}
+      withBorder
+    >
+      <Stack gap="md">
+        <ActionRow>
+          <AppBadge tone="accent">내 기록</AppBadge>
+          <Text c="var(--app-text-muted)" size="sm">
+            상태와 감상은 목록과 상세 화면에서 먼저 보이는 개인 기록입니다.
+          </Text>
+        </ActionRow>
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          <StatusButtonGroup onChange={onStatusChange} value={values.status} />
+
+          <NativeSelect
+            aria-label="별점"
+            id={getFieldId(idPrefix, 'rating')}
+            label="별점"
+            name="rating"
+            onChange={onInputChange}
+            value={values.rating}
+          >
+            <option value="">미평가</option>
+            {ratingOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Textarea
+              id={getFieldId(idPrefix, 'shortReview')}
+              label="한줄평"
+              name="shortReview"
+              onChange={onInputChange}
+              placeholder="목록과 최근 기록에 먼저 보일 짧은 감상을 적어보세요"
+              rows={3}
+              value={values.shortReview}
+            />
+          </div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Textarea
+              id={getFieldId(idPrefix, 'review')}
+              label="상세 감상"
+              name="review"
+              onChange={onInputChange}
+              placeholder="필요하면 조금 더 긴 감상을 남겨두세요"
+              rows={6}
+              value={values.review}
+            />
+          </div>
+        </SimpleGrid>
+      </Stack>
+    </Paper>
+  );
+}
+
+interface AdvancedWorkFieldsProps {
+  idPrefix?: string;
+  itemValue: string;
+  onInputChange: WorkFormInputChangeHandler;
+  values: WorkFormValues;
+}
+
+function AdvancedWorkFields({
+  idPrefix = '',
+  itemValue,
+  onInputChange,
+  values,
+}: AdvancedWorkFieldsProps) {
+  return (
+    <Accordion>
+      <Accordion.Item value={itemValue}>
+        <Accordion.Control>표지, 장르, 설명, 즐겨찾기</Accordion.Control>
+        <Accordion.Panel>
+          <Stack gap="md" pt="sm">
+            <TextInput
+              id={getFieldId(idPrefix, 'thumbnailUrl')}
+              label="표지 이미지 주소"
+              name="thumbnailUrl"
+              onChange={onInputChange}
+              placeholder="https://example.com/cover.jpg"
+              value={values.thumbnailUrl}
+            />
+
+            <TextInput
+              id={getFieldId(idPrefix, 'genresText')}
+              label="장르"
+              name="genresText"
+              onChange={onInputChange}
+              placeholder="SF, 로맨스, 스릴러"
+              value={values.genresText}
+            />
+
+            <Textarea
+              id={getFieldId(idPrefix, 'description')}
+              label="설명"
+              name="description"
+              onChange={onInputChange}
+              placeholder="작품 소개나 줄거리, 기록해두고 싶은 배경을 적어보세요"
+              rows={4}
+              value={values.description}
+            />
+
+            <Checkbox
+              checked={values.favorite}
+              label="즐겨찾기로 표시"
+              name="favorite"
+              onChange={onInputChange}
+            />
+          </Stack>
+        </Accordion.Panel>
+      </Accordion.Item>
+    </Accordion>
+  );
+}
+
+interface DuplicateWarningPanelProps {
+  duplicateMatches: WorkRecord[];
+  onConfirm: () => void;
+  onReset: () => void;
+}
+
+function DuplicateWarningPanel({
+  duplicateMatches,
+  onConfirm,
+  onReset,
+}: DuplicateWarningPanelProps) {
+  return (
+    <Alert color="yellow" radius="md" variant="light">
+      <Stack gap="sm">
+        <Title order={3}>비슷한 기록이 이미 있습니다</Title>
+        <Text c="inherit">
+          이미 저장된 기록과 같은 작품인지 먼저 확인하세요. 다른 작품이 맞다면 그대로 계속 진행할 수 있습니다.
+        </Text>
+        {duplicateMatches.map((work) => (
+          <Paper
+            key={work.id}
+            p="sm"
+            styles={{
+              root: {
+                backgroundColor: 'var(--app-surface-0)',
+                borderColor: 'var(--app-border-color)',
+              },
+            }}
+            withBorder
+          >
+            <Group align="flex-start" justify="space-between" wrap="wrap">
+              <Stack gap={2}>
+                <Text fw={700}>{work.title}</Text>
+                <Text c="var(--app-text-muted)" size="sm">
+                  {work.author || '작가·제작자 미입력'} · {getWorkTypeLabel(work.type)} ·{' '}
+                  {getWorkStatusLabel(work.status)}
+                </Text>
+              </Stack>
+              {work.deletedAt === null ? (
+                <AppLinkButton to={`/works/${work.id}`} tone="quiet">
+                  기존 작품 보기
+                </AppLinkButton>
+              ) : (
+                <AppLinkButton
+                  to={`/works?scope=trash&q=${encodeURIComponent(work.title)}`}
+                  tone="quiet"
+                >
+                  휴지통에서 보기
+                </AppLinkButton>
+              )}
+            </Group>
+          </Paper>
+        ))}
+        <ActionRow>
+          <AppButton onClick={onConfirm} tone="primary" type="button">
+            그래도 계속 추가
+          </AppButton>
+          <AppButton onClick={onReset} tone="ghost" type="button">
+            다른 후보 보기
+          </AppButton>
+        </ActionRow>
+      </Stack>
+    </Alert>
+  );
+}
+
+interface SelectedCandidatePreviewProps {
+  candidate: ImportCandidate;
+  values: WorkFormValues;
+}
+
+function SelectedCandidatePreview({
+  candidate,
+  values,
+}: SelectedCandidatePreviewProps) {
+  return (
+    <Paper
+      p="lg"
+      radius="lg"
+      styles={{
+        root: {
+          backgroundColor: 'var(--app-surface-1)',
+          borderColor: 'var(--app-border-strong)',
+        },
+      }}
+      withBorder
+    >
+      <Group align="flex-start" gap="lg" wrap="wrap">
+        <ArtworkPoster
+          thumbnailUrl={values.thumbnailUrl}
+          title={values.title || candidate.title}
+          typeLabel={getWorkTypeLabel(values.type)}
+          variant="detail"
+        />
+
+        <Stack flex={1} gap="md" miw={0}>
+          <Stack gap="xs">
+            <ActionRow>
+              <AppBadge tone="accent">{candidate.sourceLabel}</AppBadge>
+              <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
+              {candidate.releaseYear && <AppBadge>{candidate.releaseYear}</AppBadge>}
+              {candidate.catalogMatch && (
+                <AppBadge tone="success">카탈로그 매칭</AppBadge>
+              )}
+              {candidate.existingRecord && (
+                <AppBadge tone="warning">이미 내 기록에 있음</AppBadge>
+              )}
+            </ActionRow>
+
+            <div>
+              <Title order={3}>{values.title || candidate.title}</Title>
+              <Text c="var(--app-text-muted)" size="sm">
+                {getCandidateContributorText(candidate)}
+              </Text>
+            </div>
+          </Stack>
+
+          <Text c="var(--app-text-secondary)" lineClamp={3}>
+            {values.description || '설명은 아직 없습니다.'}
+          </Text>
+
+          <ActionRow>
+            <MetricPill label="형식" value={candidate.formatLabel} />
+            <MetricPill label="식별 정보" value={candidate.countLabel} />
+            <MetricPill label="추천 이유" value={candidate.reason} />
+          </ActionRow>
+
+          <Paper
+            p="sm"
+            radius="md"
+            styles={{
+              root: {
+                backgroundColor: 'var(--app-surface-0)',
+                borderColor: 'var(--app-border-color)',
+              },
+            }}
+            withBorder
+          >
+            <Stack gap="xs">
+              <Text c="var(--app-text-muted)" fw={700} size="sm">
+                보조 정보
+              </Text>
+              <ActionRow>
+                {candidate.franchiseName && (
+                  <AppBadge tone="success">{candidate.franchiseName}</AppBadge>
+                )}
+                {candidate.externalRefs.length > 0 && (
+                  <AppBadge tone="muted">
+                    외부 식별자 {candidate.externalRefs.length}
+                  </AppBadge>
+                )}
+                {candidate.releaseCandidates.length > 0 && (
+                  <AppBadge tone="muted">
+                    릴리스 후보 {candidate.releaseCandidates.length}
+                  </AppBadge>
+                )}
+              </ActionRow>
+
+              <Text c="var(--app-text-muted)" size="sm">
+                {candidate.note}
+                {candidate.sourceUrl && (
+                  <>
+                    {' · '}
+                    <Anchor
+                      href={candidate.sourceUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      provider에서 보기
+                    </Anchor>
+                  </>
+                )}
+              </Text>
+            </Stack>
+          </Paper>
+        </Stack>
+      </Group>
+    </Paper>
   );
 }
 
@@ -723,61 +1134,11 @@ export function QuickAddWorkForm({
               eyebrow="직접 추가"
               title="검색 없이 작품 기록 만들기"
             >
-              <Paper
-                p="md"
-                radius="lg"
-                styles={{
-                  root: {
-                    backgroundColor: 'var(--app-surface-1)',
-                    borderColor: 'var(--app-border-color)',
-                  },
-                }}
-                withBorder
-              >
-                <Stack gap="md">
-                  <ActionRow>
-                    <AppBadge tone="accent">필수</AppBadge>
-                    <Text c="var(--app-text-muted)" size="sm">
-                      제목과 유형만 입력하면 저장할 수 있습니다.
-                    </Text>
-                  </ActionRow>
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <TextInput
-                        id="manualTitle"
-                        label="제목"
-                        name="title"
-                        onChange={handleInputChange}
-                        placeholder="작품 제목"
-                        value={values.title}
-                      />
-                    </div>
-
-                    <NativeSelect
-                      id="manualType"
-                      label="유형"
-                      name="type"
-                      onChange={handleInputChange}
-                      value={values.type}
-                    >
-                      {workTypeOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
-
-                    <TextInput
-                      id="manualAuthor"
-                      label="작가·제작자"
-                      name="author"
-                      onChange={handleInputChange}
-                      placeholder="작가, 스튜디오, 제작자를 입력해주세요"
-                      value={values.author}
-                    />
-                  </SimpleGrid>
-                </Stack>
-              </Paper>
+              <CoreWorkFields
+                idPrefix="manual"
+                onChange={handleInputChange}
+                values={values}
+              />
             </PageSection>
 
             <PageSection
@@ -785,64 +1146,12 @@ export function QuickAddWorkForm({
               eyebrow="내 기록"
               title="상태와 감상"
             >
-              <Paper
-                p="md"
-                radius="lg"
-                styles={{
-                  root: {
-                    backgroundColor: 'var(--app-surface-0)',
-                    borderColor: 'var(--app-border-color)',
-                  },
-                }}
-                withBorder
-              >
-                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                  <StatusButtonGroup
-                    onChange={handleStatusChange}
-                    value={values.status}
-                  />
-
-                  <NativeSelect
-                    aria-label="별점"
-                    id="manualRating"
-                    label="별점"
-                    name="rating"
-                    onChange={handleInputChange}
-                    value={values.rating}
-                  >
-                    <option value="">미평가</option>
-                    {ratingOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </NativeSelect>
-
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <Textarea
-                      id="manualShortReview"
-                      label="한줄평"
-                      name="shortReview"
-                      onChange={handleInputChange}
-                      placeholder="목록과 최근 기록에 먼저 보일 짧은 감상을 적어보세요"
-                      rows={3}
-                      value={values.shortReview}
-                    />
-                  </div>
-
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <Textarea
-                      id="manualReview"
-                      label="상세 감상"
-                      name="review"
-                      onChange={handleInputChange}
-                      placeholder="필요하면 조금 더 긴 감상을 남겨두세요"
-                      rows={6}
-                      value={values.review}
-                    />
-                  </div>
-                </SimpleGrid>
-              </Paper>
+              <PersonalRecordFields
+                idPrefix="manual"
+                onInputChange={handleInputChange}
+                onStatusChange={handleStatusChange}
+                values={values}
+              />
             </PageSection>
 
             <PageSection
@@ -850,49 +1159,12 @@ export function QuickAddWorkForm({
               eyebrow="추가 필드"
               title="고급 정보"
             >
-              <Accordion>
-                <Accordion.Item value="manual-advanced-fields">
-                  <Accordion.Control>표지, 장르, 설명, 즐겨찾기</Accordion.Control>
-                  <Accordion.Panel>
-                    <Stack gap="md" pt="sm">
-                      <TextInput
-                        id="manualThumbnailUrl"
-                        label="표지 이미지 주소"
-                        name="thumbnailUrl"
-                        onChange={handleInputChange}
-                        placeholder="https://example.com/cover.jpg"
-                        value={values.thumbnailUrl}
-                      />
-
-                      <TextInput
-                        id="manualGenresText"
-                        label="장르"
-                        name="genresText"
-                        onChange={handleInputChange}
-                        placeholder="SF, 로맨스, 스릴러"
-                        value={values.genresText}
-                      />
-
-                      <Textarea
-                        id="manualDescription"
-                        label="설명"
-                        name="description"
-                        onChange={handleInputChange}
-                        placeholder="작품 소개나 줄거리, 기록해두고 싶은 배경을 적어보세요"
-                        rows={4}
-                        value={values.description}
-                      />
-
-                      <Checkbox
-                        checked={values.favorite}
-                        label="즐겨찾기로 표시"
-                        name="favorite"
-                        onChange={handleInputChange}
-                      />
-                    </Stack>
-                  </Accordion.Panel>
-                </Accordion.Item>
-              </Accordion>
+              <AdvancedWorkFields
+                idPrefix="manual"
+                itemValue="manual-advanced-fields"
+                onInputChange={handleInputChange}
+                values={values}
+              />
             </PageSection>
 
             {(validationError || submitError) && (
@@ -918,9 +1190,9 @@ export function QuickAddWorkForm({
           </SectionCard>
         </form>
       ) : (
-        <SimpleGrid cols={{ base: 1, xl: 12 }} spacing="xl">
-      <div style={{ gridColumn: 'span 4 / span 4' }}>
-        <Stack gap="lg">
+        <Grid gutter="xl">
+          <Grid.Col span={{ base: 12, xl: 4 }}>
+            <Stack gap="lg">
           <SectionCard gap="lg" tone="hero">
             <SectionIntro
               description="검색은 입력을 빠르게 채우는 보조 흐름입니다. key가 필요 없는 provider는 guest도 사용할 수 있습니다."
@@ -1036,328 +1308,76 @@ export function QuickAddWorkForm({
               </Text>
             )}
           </SectionCard>
-        </Stack>
-      </div>
+            </Stack>
+          </Grid.Col>
 
-      <div style={{ gridColumn: 'span 8 / span 8' }}>
-        {!selectedCandidate ? (
-          <StateMessage
-            description="왼쪽에서 검색 후 후보를 하나 선택하면 메타데이터 확인과 개인 기록 입력이 같은 흐름 안에서 이어집니다."
-            eyebrow="선택 대기"
-            title="먼저 검색 결과에서 작품을 선택하세요."
-            tone="info"
-          />
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <SectionCard gap="xl" padding="xl" tone="default">
-              <WorkflowProgress activeStep={shouldConfirmDuplicate ? 3 : 4} />
+          <Grid.Col span={{ base: 12, xl: 8 }}>
+            {!selectedCandidate ? (
+              <StateMessage
+                description="왼쪽에서 검색 후 후보를 하나 선택하면 메타데이터 확인과 개인 기록 입력이 같은 흐름 안에서 이어집니다."
+                eyebrow="선택 대기"
+                title="먼저 검색 결과에서 작품을 선택하세요."
+                tone="info"
+              />
+            ) : (
+              <form onSubmit={handleSubmit}>
+                <SectionCard gap="xl" padding="xl" tone="default">
+                  <WorkflowProgress activeStep={shouldConfirmDuplicate ? 3 : 4} />
 
-              {shouldConfirmDuplicate && (
-                <Alert color="yellow" radius="md" variant="light">
-                  <Stack gap="sm">
-                    <Title order={3}>비슷한 기록이 이미 있습니다</Title>
-                    <Text c="inherit">
-                      이미 저장된 기록과 같은 작품인지 먼저 확인하세요. 다른 작품이 맞다면 그대로 계속 진행할 수 있습니다.
-                    </Text>
-                    {duplicateMatches.map((work) => (
-                      <Paper
-                        key={work.id}
-                        p="sm"
-                        styles={{
-                          root: {
-                            backgroundColor: 'var(--app-surface-0)',
-                            borderColor: 'var(--app-border-color)',
-                          },
-                        }}
-                        withBorder
-                      >
-                        <Group align="flex-start" justify="space-between" wrap="wrap">
-                          <Stack gap={2}>
-                            <Text fw={700}>{work.title}</Text>
-                            <Text c="var(--app-text-muted)" size="sm">
-                      {work.author || '작가·제작자 미입력'} · {getWorkTypeLabel(work.type)} ·{' '}
-                              {getWorkStatusLabel(work.status)}
-                            </Text>
-                          </Stack>
-                          {work.deletedAt === null ? (
-                            <AppLinkButton to={`/works/${work.id}`} tone="quiet">
-                              기존 작품 보기
-                            </AppLinkButton>
-                          ) : (
-                            <AppLinkButton
-                              to={`/works?scope=trash&q=${encodeURIComponent(work.title)}`}
-                              tone="quiet"
-                            >
-                              휴지통에서 보기
-                            </AppLinkButton>
-                          )}
-                        </Group>
-                      </Paper>
-                    ))}
-                    <ActionRow>
-                      <AppButton
-                        onClick={() => setConfirmedDuplicateCandidateId(selectedCandidate.id)}
-                        tone="primary"
-                        type="button"
-                      >
-                        그래도 계속 추가
-                      </AppButton>
-                      <AppButton
-                        onClick={() => {
-                          setSelectedCandidate(null);
-                          setConfirmedDuplicateCandidateId(null);
-                          setValues(createQuickAddDefaults());
-                        }}
-                        tone="ghost"
-                        type="button"
-                      >
-                        다른 후보 보기
-                      </AppButton>
-                    </ActionRow>
-                  </Stack>
-                </Alert>
-              )}
-
-              <PageSection
-                description="검색 결과에서 가져온 초안을 다시 입력하지 않고, 제목과 유형, 작가 정도만 빠르게 확인합니다."
-                divider={false}
-                eyebrow="확인"
-                title="선택한 작품 확인"
-              >
-                <Paper
-                  p="md"
-                  radius="lg"
-                  styles={{
-                    root: {
-                      backgroundColor: 'var(--app-surface-1)',
-                      borderColor: 'var(--app-border-strong)',
-                    },
-                  }}
-                  withBorder
-                >
-                  <Group align="flex-start" gap="lg" wrap="wrap">
-                    <ArtworkPoster
-                      thumbnailUrl={values.thumbnailUrl}
-                      title={values.title || selectedCandidate.title}
-                      typeLabel={getWorkTypeLabel(values.type)}
-                      variant="form"
+                  {shouldConfirmDuplicate && (
+                    <DuplicateWarningPanel
+                      duplicateMatches={duplicateMatches}
+                      onConfirm={() =>
+                        setConfirmedDuplicateCandidateId(selectedCandidate.id)
+                      }
+                      onReset={() => {
+                        setSelectedCandidate(null);
+                        setConfirmedDuplicateCandidateId(null);
+                        setValues(createQuickAddDefaults());
+                      }}
                     />
+                  )}
 
-                    <Stack flex={1} gap="sm" miw={0}>
-                      <ActionRow>
-                        <AppBadge tone="accent">{selectedCandidate.sourceLabel}</AppBadge>
-                        <AppBadge>{getWorkTypeLabel(selectedCandidate.mediumType)}</AppBadge>
-                        {selectedCandidate.releaseYear && (
-                          <AppBadge>{selectedCandidate.releaseYear}</AppBadge>
-                        )}
-                        {selectedCandidate.catalogMatch && (
-                          <AppBadge tone="success">카탈로그 매칭</AppBadge>
-                        )}
-                      </ActionRow>
-
-                      <div>
-                        <Title order={3}>{values.title || selectedCandidate.title}</Title>
-                        <Text c="var(--app-text-muted)" size="sm">
-                          {getCandidateContributorText(selectedCandidate)}
-                        </Text>
-                      </div>
-
-                      <Text c="var(--app-text-secondary)" lineClamp={3}>
-                        {values.description || '설명은 아직 없습니다.'}
-                      </Text>
-
-                      <ActionRow>
-                        <MetricPill label="형식" value={selectedCandidate.formatLabel} />
-                        <MetricPill label="식별 정보" value={selectedCandidate.countLabel} />
-                        <MetricPill label="추천 이유" value={selectedCandidate.reason} />
-                      </ActionRow>
-
-                      <ActionRow>
-                        {selectedCandidate.franchiseName && (
-                          <AppBadge tone="success">{selectedCandidate.franchiseName}</AppBadge>
-                        )}
-                        {selectedCandidate.externalRefs.length > 0 && (
-                          <AppBadge tone="muted">
-                            외부 식별자 {selectedCandidate.externalRefs.length}
-                          </AppBadge>
-                        )}
-                        {selectedCandidate.releaseCandidates.length > 0 && (
-                          <AppBadge tone="muted">
-                            릴리스 후보 {selectedCandidate.releaseCandidates.length}
-                          </AppBadge>
-                        )}
-                      </ActionRow>
-
-                      <Text c="var(--app-text-muted)" size="sm">
-                        {selectedCandidate.note}
-                        {selectedCandidate.sourceUrl && (
-                          <>
-                            {' · '}
-                            <Anchor
-                              href={selectedCandidate.sourceUrl}
-                              rel="noreferrer"
-                              target="_blank"
-                            >
-                              provider에서 보기
-                            </Anchor>
-                          </>
-                        )}
-                      </Text>
-                    </Stack>
-                  </Group>
-                </Paper>
-
-                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <TextInput
-                      id="title"
-                      label="제목"
-                      name="title"
-                      onChange={handleInputChange}
-                      placeholder="작품 제목"
-                      value={values.title}
-                    />
-                  </div>
-
-                  <NativeSelect
-                    id="type"
-                    label="유형"
-                    name="type"
-                    onChange={handleInputChange}
-                    value={values.type}
+                  <PageSection
+                    description="검색 결과에서 가져온 초안을 다시 입력하지 않고, 제목과 유형, 작가 정도만 빠르게 확인합니다."
+                    divider={false}
+                    eyebrow="확인"
+                    title="선택한 작품 확인"
                   >
-                    {workTypeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </NativeSelect>
-
-                  <TextInput
-                    id="author"
-                    label="작가·제작자"
-                    name="author"
-                    onChange={handleInputChange}
-                    placeholder="작가, 스튜디오, 제작자를 입력해주세요"
-                    value={values.author}
-                  />
-                </SimpleGrid>
-              </PageSection>
-
-              <PageSection
-                description="검색 결과는 입력을 돕는 정보이고, 아래 내용이 내 아카이브에 남는 개인 기록입니다."
-                eyebrow="내 기록"
-                title="개인 기록 입력"
-              >
-                <Paper
-                  p="md"
-                  radius="lg"
-                  styles={{
-                    root: {
-                      backgroundColor: 'var(--app-surface-0)',
-                      borderColor: 'var(--app-border-color)',
-                    },
-                  }}
-                  withBorder
-                >
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                    <StatusButtonGroup
-                      onChange={handleStatusChange}
-                      value={values.status}
+                    <SelectedCandidatePreview
+                      candidate={selectedCandidate}
+                      values={values}
                     />
 
-                    <NativeSelect
-                      aria-label="별점"
-                      id="rating"
-                      label="별점"
-                      name="rating"
+                    <CoreWorkFields
                       onChange={handleInputChange}
-                      value={values.rating}
-                    >
-                      <option value="">미평가</option>
-                      {ratingOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
+                      values={values}
+                    />
+                  </PageSection>
 
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <Textarea
-                        id="shortReview"
-                        label="한줄평"
-                        name="shortReview"
-                        onChange={handleInputChange}
-                        placeholder="목록과 최근 기록에 먼저 보일 짧은 감상을 적어보세요"
-                        rows={3}
-                        value={values.shortReview}
-                      />
-                    </div>
+                  <PageSection
+                    description="검색 결과는 입력을 돕는 정보이고, 아래 내용이 내 아카이브에 남는 개인 기록입니다."
+                    eyebrow="내 기록"
+                    title="개인 기록 입력"
+                  >
+                    <PersonalRecordFields
+                      onInputChange={handleInputChange}
+                      onStatusChange={handleStatusChange}
+                      values={values}
+                    />
+                  </PageSection>
 
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <Textarea
-                        id="review"
-                        label="상세 감상"
-                        name="review"
-                        onChange={handleInputChange}
-                        placeholder="필요하면 조금 더 긴 감상을 남겨두세요"
-                        rows={6}
-                        value={values.review}
-                      />
-                    </div>
-                  </SimpleGrid>
-                </Paper>
-              </PageSection>
-
-              <PageSection
-                description="표지, 장르, 설명 같은 부가 정보는 필요할 때만 펼쳐서 다룹니다."
-                eyebrow="추가 필드"
-                title="고급 정보"
-              >
-                <Accordion>
-                  <Accordion.Item value="advanced-fields">
-                    <Accordion.Control>표지, 장르, 설명, 즐겨찾기</Accordion.Control>
-                    <Accordion.Panel>
-                      <Stack gap="md" pt="sm">
-                        <TextInput
-                          id="thumbnailUrl"
-                          label="표지 이미지 주소"
-                          name="thumbnailUrl"
-                          onChange={handleInputChange}
-                          placeholder="https://example.com/cover.jpg"
-                          value={values.thumbnailUrl}
-                        />
-
-                        <TextInput
-                          id="genresText"
-                          label="장르"
-                          name="genresText"
-                          onChange={handleInputChange}
-                          placeholder="SF, 로맨스, 스릴러"
-                          value={values.genresText}
-                        />
-
-                        <Textarea
-                          id="description"
-                          label="설명"
-                          name="description"
-                          onChange={handleInputChange}
-                          placeholder="작품 소개나 줄거리, 기록해두고 싶은 배경을 적어보세요"
-                          rows={4}
-                          value={values.description}
-                        />
-
-                        <Checkbox
-                          checked={values.favorite}
-                          label="즐겨찾기로 표시"
-                          name="favorite"
-                          onChange={handleInputChange}
-                        />
-                      </Stack>
-                    </Accordion.Panel>
-                  </Accordion.Item>
-                </Accordion>
-              </PageSection>
+                  <PageSection
+                    description="표지, 장르, 설명 같은 부가 정보는 필요할 때만 펼쳐서 다룹니다."
+                    eyebrow="추가 필드"
+                    title="고급 정보"
+                  >
+                    <AdvancedWorkFields
+                      itemValue="advanced-fields"
+                      onInputChange={handleInputChange}
+                      values={values}
+                    />
+                  </PageSection>
 
               {(validationError || submitError) && (
                 <FeedbackMessage tone="error">
@@ -1383,11 +1403,11 @@ export function QuickAddWorkForm({
                   취소
                 </AppLinkButton>
               </ActionRow>
-            </SectionCard>
-          </form>
-        )}
-      </div>
-        </SimpleGrid>
+                </SectionCard>
+              </form>
+            )}
+          </Grid.Col>
+        </Grid>
       )}
     </Stack>
   );
