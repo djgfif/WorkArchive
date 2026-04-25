@@ -4,6 +4,7 @@ export interface AuthTokenPayload {
   sub: string;
   email: string;
   type: AuthTokenKind;
+  rememberMe?: boolean;
 }
 
 export interface AuthenticatedUser {

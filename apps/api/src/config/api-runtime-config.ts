@@ -6,8 +6,10 @@ export interface ApiRuntimeConfig {
   isProduction: boolean;
   jwtAccessSecret: string;
   jwtRefreshSecret: string;
+  passwordResetDevLinksEnabled: boolean;
   port: number;
   swaggerEnabled: boolean;
+  webBaseUrl: string;
 }
 
 function readRequiredEnvString(name: string) {
@@ -79,6 +81,10 @@ function readCorsOrigin(value: string | undefined) {
 
 export function readApiRuntimeConfig(): ApiRuntimeConfig {
   const isProduction = process.env.NODE_ENV?.trim() === 'production';
+  const webBaseUrl =
+    process.env.WEB_BASE_URL?.trim() ||
+    process.env.PUBLIC_WEB_BASE_URL?.trim() ||
+    'http://127.0.0.1:53173';
 
   return {
     cookieSecure: readBoolean(process.env.COOKIE_SECURE, isProduction),
@@ -88,8 +94,13 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     isProduction,
     jwtAccessSecret: readRequiredEnvString('JWT_ACCESS_SECRET'),
     jwtRefreshSecret: readRequiredEnvString('JWT_REFRESH_SECRET'),
+    passwordResetDevLinksEnabled: readBoolean(
+      process.env.PASSWORD_RESET_DEV_LINKS_ENABLED,
+      false,
+    ),
     port: readPort(process.env.PORT, 3000),
     swaggerEnabled: readBoolean(process.env.SWAGGER_ENABLED, !isProduction),
+    webBaseUrl,
   };
 }
 

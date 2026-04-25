@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { PasswordInput, Stack, TextInput } from '@mantine/core';
+import { Checkbox, Group, PasswordInput, Stack, TextInput } from '@mantine/core';
+import { Link } from 'react-router-dom';
 
 import {
   ActionRow,
@@ -11,6 +12,8 @@ import type { AuthCredentialsInput } from '../services/auth.api';
 interface AuthFormProps {
   isSubmitting: boolean;
   onSubmit(input: AuthCredentialsInput): Promise<void>;
+  showPasswordResetLink?: boolean;
+  showRememberMe?: boolean;
   submitError: string | null;
   submitLabel: string;
 }
@@ -18,11 +21,14 @@ interface AuthFormProps {
 export function AuthForm({
   isSubmitting,
   onSubmit,
+  showPasswordResetLink = false,
+  showRememberMe = false,
   submitError,
   submitLabel,
 }: AuthFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,6 +36,7 @@ export function AuthForm({
     await onSubmit({
       email,
       password,
+      ...(showRememberMe ? { rememberMe } : {}),
     });
   }
 
@@ -56,10 +63,31 @@ export function AuthForm({
           value={password}
         />
 
+        {(showRememberMe || showPasswordResetLink) && (
+          <Group justify="space-between" wrap="wrap">
+            {showRememberMe && (
+              <Checkbox
+                checked={rememberMe}
+                label="로그인 상태 유지"
+                name="rememberMe"
+                onChange={(event) => setRememberMe(event.currentTarget.checked)}
+              />
+            )}
+            {showPasswordResetLink && (
+              <Link
+                style={{ color: 'var(--app-accent)', fontWeight: 600 }}
+                to="/auth/password-reset"
+              >
+                비밀번호를 잊으셨나요?
+              </Link>
+            )}
+          </Group>
+        )}
+
         {submitError && <FeedbackMessage tone="error">{submitError}</FeedbackMessage>}
 
         <ActionRow>
-          <AppButton disabled={isSubmitting} tone="primary" type="submit">
+          <AppButton disabled={isSubmitting} fullWidth tone="primary" type="submit">
             {isSubmitting ? `${submitLabel} 중...` : submitLabel}
           </AppButton>
         </ActionRow>

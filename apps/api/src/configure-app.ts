@@ -13,7 +13,13 @@ export function configureApp(app: INestApplication, config: ApiRuntimeConfig) {
   app.use(cookieParser());
   app.use(helmet());
   app.use(
-    ['/api/auth/login', '/api/auth/register', '/api/auth/refresh'],
+    [
+      '/api/auth/login',
+      '/api/auth/register',
+      '/api/auth/refresh',
+      '/api/auth/password-reset/request',
+      '/api/auth/password-reset/confirm',
+    ],
     rateLimit({
       legacyHeaders: false,
       max: 10,

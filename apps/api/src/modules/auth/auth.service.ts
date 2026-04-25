@@ -1,6 +1,7 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -16,6 +17,12 @@ import { hashSecret, verifySecret } from './auth-crypto';
 import type { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import type { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import type { LoginDto } from './dto/login.dto';
+import type { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
+import type { PasswordResetRequestDto } from './dto/password-reset-request.dto';
+import type {
+  PasswordResetConfirmResponseDto,
+  PasswordResetRequestResponseDto,
+} from './dto/password-reset-response.dto';
 import type { RegisterDto } from './dto/register.dto';
 import type {
   AuthTokenKind,
@@ -25,10 +32,17 @@ import type {
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
+const PASSWORD_RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
+const PASSWORD_RESET_SUCCESS_MESSAGE =
+  '비밀번호 재설정 요청을 확인했습니다. 계정이 있으면 재설정 링크를 사용할 수 있습니다.';
+const PASSWORD_RESET_CONFIRM_MESSAGE = '비밀번호가 재설정되었습니다.';
+const PASSWORD_RESET_INVALID_MESSAGE =
+  '비밀번호 재설정 링크가 올바르지 않거나 만료되었습니다.';
 
 export interface IssuedAuthSession {
   accessToken: string;
   refreshToken: string;
+  rememberMe: boolean;
   user: AuthUserResponseDto;
 }
 
@@ -81,7 +95,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
-    return this.createSessionForUser(user);
+    return this.createSessionForUser(user, loginDto.rememberMe === true);
   }
 
   async refresh(refreshToken: string): Promise<IssuedAuthSession> {
@@ -115,7 +129,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
-    return this.createSessionForUser(user);
+    return this.createSessionForUser(user, tokenPayload.rememberMe ?? true);
   }
 
   async logout(refreshToken: string | null) {
@@ -171,6 +185,119 @@ export class AuthService {
     return this.toUserResponse(user);
   }
 
+  async requestPasswordReset(
+    passwordResetRequestDto: PasswordResetRequestDto,
+  ): Promise<PasswordResetRequestResponseDto> {
+    const email = this.normalizeEmail(passwordResetRequestDto.email);
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      return {
+        message: PASSWORD_RESET_SUCCESS_MESSAGE,
+      };
+    }
+
+    const tokenId = randomUUID();
+    const tokenSecret = randomBytes(32).toString('hex');
+    const resetToken = `${tokenId}.${tokenSecret}`;
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        id: tokenId,
+        expiresAt: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS),
+        tokenHash: await hashSecret(tokenSecret),
+        userId: user.id,
+      },
+    });
+
+    const config = readApiRuntimeConfig();
+
+    if (!config.passwordResetDevLinksEnabled) {
+      return {
+        message: PASSWORD_RESET_SUCCESS_MESSAGE,
+      };
+    }
+
+    return {
+      developmentResetUrl: `${config.webBaseUrl.replace(/\/$/, '')}/auth/password-reset/confirm?token=${encodeURIComponent(resetToken)}`,
+      message: PASSWORD_RESET_SUCCESS_MESSAGE,
+    };
+  }
+
+  async confirmPasswordReset(
+    passwordResetConfirmDto: PasswordResetConfirmDto,
+  ): Promise<PasswordResetConfirmResponseDto> {
+    const [tokenId, tokenSecret] = passwordResetConfirmDto.token.split('.');
+
+    if (!tokenId || !tokenSecret) {
+      throw new BadRequestException(PASSWORD_RESET_INVALID_MESSAGE);
+    }
+
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: {
+        id: tokenId,
+      },
+    });
+
+    if (
+      !resetToken ||
+      resetToken.usedAt !== null ||
+      resetToken.expiresAt.getTime() <= Date.now()
+    ) {
+      throw new BadRequestException(PASSWORD_RESET_INVALID_MESSAGE);
+    }
+
+    const isTokenValid = await verifySecret(tokenSecret, resetToken.tokenHash);
+
+    if (!isTokenValid) {
+      throw new BadRequestException(PASSWORD_RESET_INVALID_MESSAGE);
+    }
+
+    const now = new Date();
+    const updatedResetToken = await this.prisma.passwordResetToken.updateMany({
+      where: {
+        id: resetToken.id,
+        usedAt: null,
+      },
+      data: {
+        usedAt: now,
+      },
+    });
+
+    if (updatedResetToken.count !== 1) {
+      throw new BadRequestException(PASSWORD_RESET_INVALID_MESSAGE);
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: {
+          id: resetToken.userId,
+        },
+        data: {
+          passwordHash: await hashSecret(passwordResetConfirmDto.password),
+          refreshTokenHash: null,
+        },
+      }),
+      this.prisma.passwordResetToken.updateMany({
+        where: {
+          userId: resetToken.userId,
+          usedAt: null,
+        },
+        data: {
+          usedAt: now,
+        },
+      }),
+    ]);
+
+    return {
+      message: PASSWORD_RESET_CONFIRM_MESSAGE,
+    };
+  }
+
   async validateAccessToken(accessToken: string): Promise<AuthenticatedUser> {
     const tokenPayload = this.verifyToken(accessToken, 'access');
     const user = await this.prisma.user.findUnique({
@@ -197,12 +324,16 @@ export class AuthService {
     };
   }
 
-  private async createSessionForUser(user: User): Promise<IssuedAuthSession> {
+  private async createSessionForUser(
+    user: User,
+    rememberMe = true,
+  ): Promise<IssuedAuthSession> {
     const accessToken = this.signToken(user, 'access', ACCESS_TOKEN_TTL_SECONDS);
     const refreshToken = this.signToken(
       user,
       'refresh',
       REFRESH_TOKEN_TTL_SECONDS,
+      rememberMe,
     );
     const updatedUser = await this.prisma.user.update({
       where: {
@@ -216,6 +347,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+      rememberMe,
       user: this.toUserResponse(updatedUser),
     };
   }
@@ -224,12 +356,14 @@ export class AuthService {
     user: Pick<User, 'id' | 'email'>,
     type: AuthTokenKind,
     expiresIn: number,
+    rememberMe?: boolean,
   ) {
     return jwt.sign(
       {
         sub: user.id,
         email: user.email,
         type,
+        ...(type === 'refresh' && rememberMe !== undefined ? { rememberMe } : {}),
       },
       this.getJwtSecret(type),
       {
@@ -247,7 +381,9 @@ export class AuthService {
         typeof decoded === 'string' ||
         typeof (decoded as JwtPayload).sub !== 'string' ||
         typeof (decoded as JwtPayload).email !== 'string' ||
-        (decoded as JwtPayload).type !== type
+        (decoded as JwtPayload).type !== type ||
+        ('rememberMe' in (decoded as JwtPayload) &&
+          typeof (decoded as JwtPayload).rememberMe !== 'boolean')
       ) {
         throw new UnauthorizedException('Invalid or expired token.');
       }
@@ -256,6 +392,9 @@ export class AuthService {
         sub: (decoded as JwtPayload).sub as string,
         email: (decoded as JwtPayload).email as string,
         type,
+        ...((decoded as JwtPayload).rememberMe !== undefined
+          ? { rememberMe: (decoded as JwtPayload).rememberMe as boolean }
+          : {}),
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) {

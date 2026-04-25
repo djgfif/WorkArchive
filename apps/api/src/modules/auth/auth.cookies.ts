@@ -5,14 +5,30 @@ import { readApiRuntimeConfig } from '../../config/api-runtime-config';
 export const REFRESH_TOKEN_COOKIE_NAME = 'work_archive_refresh_token';
 const REFRESH_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
-export function getRefreshTokenCookieOptions(): CookieOptions {
-  const config = readApiRuntimeConfig();
+interface RefreshTokenCookieOptionsInput {
+  rememberMe?: boolean;
+}
 
-  return {
+export function getRefreshTokenCookieOptions({
+  rememberMe = true,
+}: RefreshTokenCookieOptionsInput = {}): CookieOptions {
+  const config = readApiRuntimeConfig();
+  const options: CookieOptions = {
     httpOnly: true,
-    maxAge: REFRESH_TOKEN_TTL_MS,
     path: '/api/auth',
     sameSite: 'lax',
     secure: config.cookieSecure,
   };
+
+  if (rememberMe) {
+    options.maxAge = REFRESH_TOKEN_TTL_MS;
+  }
+
+  return options;
+}
+
+export function getRefreshTokenClearCookieOptions(): CookieOptions {
+  const { maxAge: _maxAge, ...options } = getRefreshTokenCookieOptions();
+
+  return options;
 }

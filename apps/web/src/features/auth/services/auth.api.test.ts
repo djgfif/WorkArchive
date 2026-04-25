@@ -21,6 +21,7 @@ describe('auth.api', () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   it('retries protected API requests with a refreshed Bearer token', async () => {
@@ -75,6 +76,7 @@ describe('auth.api', () => {
     });
     expect(readStoredAuthTokens()).toEqual({
       accessToken: 'rotated-access-token',
+      persistence: 'local',
     });
 
     const firstAttemptHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
@@ -133,6 +135,7 @@ describe('auth.api', () => {
     await expect(restoreStoredSession()).resolves.toEqual({
       tokens: {
         accessToken: 'rotated-access-token',
+        persistence: 'local',
       },
       user: {
         id: 'user-1',
@@ -200,6 +203,63 @@ describe('auth.api', () => {
     await expect(restoreStoredSession()).resolves.toBeNull();
     expect(readStoredAuthTokens()).toEqual({
       accessToken: 'access-token',
+      persistence: 'local',
+    });
+  });
+
+  it('preserves session storage persistence when refreshing an access token', async () => {
+    window.sessionStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'expired-access-token',
+        persistence: 'session',
+      }),
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              message: 'Invalid or expired token.',
+            },
+            401,
+          ),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            accessToken: 'rotated-access-token',
+            user: {
+              id: 'user-1',
+              email: 'frieren@example.com',
+              nickname: '',
+            },
+          }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            pulledAt: '2026-04-18T01:00:00.000Z',
+            nextSince: '2026-04-18T01:00:00.000Z',
+            changes: [],
+          }),
+        ),
+    );
+
+    await requestAuthenticatedApiJson('/sync/pull', {
+      method: 'POST',
+      body: JSON.stringify({
+        since: null,
+      }),
+    });
+
+    expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
+    expect(
+      JSON.parse(window.sessionStorage.getItem('work-archive.auth.tokens') ?? 'null'),
+    ).toEqual({
+      accessToken: 'rotated-access-token',
+      persistence: 'session',
     });
   });
 });

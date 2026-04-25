@@ -25,5 +25,6 @@ if (!window.matchMedia) {
 afterEach(async () => {
   cleanup();
   window.localStorage.clear();
+  window.sessionStorage.clear();
   await resetWorkArchiveStorage();
 });
