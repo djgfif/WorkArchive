@@ -56,6 +56,35 @@ describe('ImportsService', () => {
     expect(headers.has('authorization')).toBe(false);
   });
 
+  it('uses a plain provider readiness request when no access token is stored', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse([
+        {
+          provider: 'manual',
+          label: 'Manual',
+          credentialMode: 'none',
+          configured: true,
+          mediumTypes: ['novel'],
+        },
+      ]),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(new ImportsService().listProviders()).resolves.toEqual([
+      expect.objectContaining({
+        provider: 'manual',
+        configured: true,
+      }),
+    ]);
+
+    const [input, init] = fetchMock.mock.calls[0] ?? [];
+    const headers = getFetchHeaders(init as RequestInit | undefined);
+
+    expect(String(input)).toContain('/imports/providers');
+    expect(headers.has('authorization')).toBe(false);
+  });
+
   it('uses an authenticated imports search request when an access token is stored', async () => {
     window.localStorage.setItem(
       'work-archive.auth.tokens',

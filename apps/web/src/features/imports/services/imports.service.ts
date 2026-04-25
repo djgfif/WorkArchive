@@ -167,15 +167,21 @@ export class ImportsService {
   }
 
   async listProviders() {
-    return requestAuthenticatedApiJson<ImportProviderStatus[]>(
-      IMPORT_PROVIDERS_PATH,
-      {
-        method: 'GET',
-      },
-      {
-        missingTokenMessage: '외부 검색 설정은 로그인 후 이용해주세요.',
-      },
-    );
+    const storedTokens = readStoredAuthTokens();
+
+    return storedTokens
+      ? requestAuthenticatedApiJson<ImportProviderStatus[]>(
+          IMPORT_PROVIDERS_PATH,
+          {
+            method: 'GET',
+          },
+          {
+            missingTokenMessage: '외부 검색 설정은 로그인 없이도 확인할 수 있습니다.',
+          },
+        )
+      : requestApiJson<ImportProviderStatus[]>(IMPORT_PROVIDERS_PATH, {
+          method: 'GET',
+        });
   }
 
   async saveAladinKey(ttbKey: string) {

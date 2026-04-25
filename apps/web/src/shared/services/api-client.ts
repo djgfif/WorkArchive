@@ -49,6 +49,10 @@ async function readJsonBody<T>(response: Response): Promise<T | null> {
   }
 }
 
+function shouldSetJsonContentType(body: BodyInit | null | undefined) {
+  return typeof body === 'string';
+}
+
 export async function requestApi<TResponse>(
   path: string,
   init: RequestInit,
@@ -56,7 +60,7 @@ export async function requestApi<TResponse>(
 ) {
   const headers = new Headers(init.headers);
 
-  if (init.body && !headers.has('content-type')) {
+  if (shouldSetJsonContentType(init.body) && !headers.has('content-type')) {
     headers.set('content-type', 'application/json');
   }
 
@@ -64,11 +68,20 @@ export async function requestApi<TResponse>(
     headers.set('authorization', `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${getApiBaseUrl()}${path}`, {
+      ...init,
+      credentials: 'include',
+      headers,
+    });
+  } catch {
+    throw new ApiRequestError(
+      0,
+      '네트워크 연결을 확인한 뒤 다시 시도해주세요.',
+    );
+  }
   const responseBody = await readJsonBody<TResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
