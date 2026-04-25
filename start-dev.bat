@@ -30,7 +30,7 @@ if errorlevel 1 (
 )
 
 echo [4/4] Starting web and api...
-start "" "http://localhost:5173"
+start "" "http://localhost:53173"
 call npm run dev
 
 set "DEV_EXIT=%ERRORLEVEL%"
