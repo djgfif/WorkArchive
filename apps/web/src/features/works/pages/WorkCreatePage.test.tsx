@@ -128,6 +128,10 @@ function mockAuthenticatedSearch(candidate: ImportCandidate) {
         });
       }
 
+      if (url.includes('/imports/providers')) {
+        return jsonResponse([]);
+      }
+
       throw new Error(`Unexpected fetch during create flow: ${init?.method ?? 'GET'} ${url}`);
     },
   );
@@ -135,6 +139,12 @@ function mockAuthenticatedSearch(candidate: ImportCandidate) {
   vi.stubGlobal('fetch', fetchMock);
 
   return fetchMock;
+}
+
+function getSearchFetchCalls(fetchMock: ReturnType<typeof vi.fn>) {
+  return fetchMock.mock.calls.filter(([input]) =>
+    getFetchUrl(input as RequestInfo | URL).includes('/imports/search?'),
+  );
 }
 
 function renderAuthenticatedCreatePage() {
@@ -327,8 +337,8 @@ describe('WorkCreatePage', () => {
         importDraft: null,
       }),
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [firstFetchInput, firstFetchInit] = fetchMock.mock.calls[0] ?? [];
+    expect(getSearchFetchCalls(fetchMock)).toHaveLength(1);
+    const [firstFetchInput, firstFetchInit] = getSearchFetchCalls(fetchMock)[0] ?? [];
 
     expect(firstFetchInput).toBeDefined();
     expect(firstFetchInit).toBeDefined();
@@ -420,7 +430,7 @@ describe('WorkCreatePage', () => {
         }),
       }),
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(getSearchFetchCalls(fetchMock)).toHaveLength(1);
   });
 
   it.each(['preview-manual', 'manual'] as const)(
@@ -462,7 +472,7 @@ describe('WorkCreatePage', () => {
           importDraft: null,
         }),
       });
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(getSearchFetchCalls(fetchMock)).toHaveLength(1);
     },
   );
 });

@@ -21,6 +21,116 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+const providerStatuses = [
+  {
+    provider: 'manual',
+    label: 'Manual',
+    credentialMode: 'none',
+    configured: true,
+    mediumTypes: ['novel'],
+  },
+  {
+    provider: 'anilist',
+    label: 'AniList',
+    credentialMode: 'none',
+    configured: true,
+    mediumTypes: ['anime', 'manga'],
+  },
+  {
+    provider: 'google_books',
+    label: 'Google Books',
+    credentialMode: 'none',
+    configured: true,
+    mediumTypes: ['novel'],
+  },
+  {
+    provider: 'open_library',
+    label: 'Open Library',
+    credentialMode: 'none',
+    configured: true,
+    mediumTypes: ['novel'],
+  },
+  {
+    provider: 'tvmaze',
+    label: 'TVmaze',
+    credentialMode: 'none',
+    configured: true,
+    mediumTypes: ['drama'],
+  },
+  {
+    provider: 'aladin',
+    label: 'Aladin Book',
+    credentialMode: 'user',
+    configured: false,
+    mediumTypes: ['novel'],
+  },
+  {
+    provider: 'tmdb',
+    label: 'TMDB',
+    credentialMode: 'server',
+    configured: false,
+    mediumTypes: ['movie', 'drama'],
+  },
+  {
+    provider: 'naver_book',
+    label: 'Naver Book',
+    credentialMode: 'server',
+    configured: false,
+    mediumTypes: ['novel'],
+  },
+  {
+    provider: 'kakao_book',
+    label: 'Kakao Book',
+    credentialMode: 'server',
+    configured: false,
+    mediumTypes: ['novel'],
+  },
+  {
+    provider: 'kobis',
+    label: 'KOBIS',
+    credentialMode: 'server',
+    configured: false,
+    mediumTypes: ['movie'],
+  },
+];
+
+function mockImportsFetch({
+  candidates = [],
+  provider = 'open_library',
+  responseOptions = {},
+}: {
+  candidates?: ImportCandidate[];
+  provider?: string;
+  responseOptions?: {
+    body?: Record<string, unknown>;
+    status?: number;
+  };
+} = {}) {
+  const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+    const url = String(input);
+
+    if (url.includes('/imports/providers')) {
+      return Promise.resolve(jsonResponse(providerStatuses));
+    }
+
+    return Promise.resolve(
+      jsonResponse(
+        responseOptions.body ?? {
+          provider,
+          providers: [provider],
+          query: 'Dune',
+          candidates,
+        },
+        responseOptions.status,
+      ),
+    );
+  });
+
+  vi.stubGlobal('fetch', fetchMock);
+
+  return fetchMock;
+}
+
 function buildCandidate(
   overrides: Partial<ImportCandidate> = {},
 ): ImportCandidate {
@@ -102,21 +212,11 @@ function mockAuthenticatedSearchResponse(
     }),
   );
 
-  const fetchMock = vi.fn().mockResolvedValue(
-    jsonResponse(
-      responseOptions.body ?? {
-        provider: 'aladin',
-        providers: ['aladin'],
-        query: 'Dune',
-        candidates,
-      },
-      responseOptions.status,
-    ),
-  );
-
-  vi.stubGlobal('fetch', fetchMock);
-
-  return fetchMock;
+  return mockImportsFetch({
+    candidates,
+    provider: 'aladin',
+    responseOptions,
+  });
 }
 
 function renderAuthenticatedQuickAdd(onSubmit = vi.fn()) {
@@ -288,7 +388,28 @@ describe('QuickAddWorkForm', () => {
   });
 
   it('uses authenticated search candidates to prefill the Quick Add form', async () => {
-    const candidate = buildCandidate();
+    const candidate = buildCandidate({
+      confidenceLabel: '신뢰도 높음',
+      reason: '제목 정확히 일치 · 카탈로그 매칭됨',
+      releaseCandidates: [
+        {
+          displayLabel: 'Volume 1',
+          externalRefs: [
+            {
+              externalId: 'volume-1',
+              provider: 'aladin',
+              rawType: 'volume',
+              url: 'https://example.com/aladin/volume-1',
+            },
+          ],
+          isbn: '9781234567890',
+          releaseDate: '2026-04-18',
+          releaseType: 'volume',
+          sequence: 1,
+          title: 'Dune Volume 1',
+        },
+      ],
+    });
 
     mockAuthenticatedSearchResponse([candidate]);
 
@@ -305,6 +426,14 @@ describe('QuickAddWorkForm', () => {
     ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('개인 기록 입력')).toBeInTheDocument();
     expect(getElementById<HTMLInputElement>('author')).toHaveValue(candidate.author);
+    expect(screen.getAllByText('신뢰도 높음').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/추천 이유: 제목 정확히 일치 · 카탈로그 매칭됨/).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText('외부 식별자 2').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('릴리스 후보 1').length).toBeGreaterThan(0);
+    expect(screen.getByText('검색 출처')).toBeInTheDocument();
+    expect(screen.getByText('provider에서 보기')).toBeInTheDocument();
     expect(screen.getAllByText(candidate.note).length).toBeGreaterThan(0);
   });
 
@@ -317,6 +446,32 @@ describe('QuickAddWorkForm', () => {
     expect(document.getElementById('quickAddSearch')).toBeNull();
     expect(
       screen.queryByText(/로그인해야만 검색 가능/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows provider readiness in guest search mode without making search login-only', async () => {
+    mockImportsFetch();
+    const user = userEvent.setup();
+
+    renderGuestQuickAdd();
+
+    await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+
+    expect(await screen.findByText('검색 provider 상태')).toBeInTheDocument();
+    expect(screen.getByText('사용 가능')).toBeInTheDocument();
+    expect(
+      screen.getByText(/AniList, Google Books, Open Library, TVmaze/),
+    ).toBeInTheDocument();
+    expect(screen.getByText('로그인 후 사용')).toBeInTheDocument();
+    expect(screen.getByText('Aladin Book')).toBeInTheDocument();
+    expect(screen.getByText('서버 설정 필요')).toBeInTheDocument();
+    expect(
+      screen.getByText(/TMDB, Naver Book, Kakao Book, KOBIS/),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('직접 추가').length).toBeGreaterThan(0);
+    expect(screen.getByText('Manual')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/검색은 로그인해야만 가능/),
     ).not.toBeInTheDocument();
   });
 
@@ -372,24 +527,31 @@ describe('QuickAddWorkForm', () => {
       sourceLabel: 'Open Library',
       title: 'Dune',
     });
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({
-        provider: 'open_library',
-        providers: ['open_library'],
-        query: 'Dune',
-        candidates: [candidate],
-      }),
-    );
+    const fetchMock = mockImportsFetch({
+      candidates: [candidate],
+      provider: 'open_library',
+    });
     const user = userEvent.setup();
 
-    vi.stubGlobal('fetch', fetchMock);
     renderGuestQuickAdd();
 
     await searchAndSelectCandidate(user, 'Dune', candidate.title);
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          String(input).includes('/imports/search?'),
+        ),
+      ).toBe(true);
+    });
 
-    const [firstFetchInput, firstFetchInit] = fetchMock.mock.calls[0] ?? [];
+    const searchFetchCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes('/imports/search?'),
+    );
+
+    expect(searchFetchCall).toBeDefined();
+
+    const [firstFetchInput, firstFetchInit] = searchFetchCall!;
 
     expect(String(firstFetchInput)).toContain('/imports/search?');
     expect(firstFetchInit).toMatchObject({
@@ -404,17 +566,12 @@ describe('QuickAddWorkForm', () => {
   });
 
   it('offers direct manual add when external search returns no candidates', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({
-        provider: 'open_library',
-        providers: ['open_library'],
-        query: 'No Match Title',
-        candidates: [],
-      }),
-    );
+    mockImportsFetch({
+      candidates: [],
+      provider: 'open_library',
+    });
     const user = userEvent.setup();
 
-    vi.stubGlobal('fetch', fetchMock);
     renderGuestQuickAdd();
 
     await user.click(screen.getByRole('button', { name: '검색으로 추가' }));

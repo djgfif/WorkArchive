@@ -153,9 +153,9 @@ describe('ImportsService', () => {
           }),
         ]),
       );
-      expect(result.notice).toContain('사용자 키 설정');
-      expect(result.notice).toContain('TTBKey');
-      expect(result.notice).toContain('로컬 preview 후보');
+      expect(result.notice).toContain('일부 검색 provider');
+      expect(result.notice).toContain('로그인 없이 사용할 수 있는 provider');
+      expect(result.notice).toContain('사용자 키가 필요한 provider');
       expect(result.notice).not.toBe('로그인해야만 검색 가능');
     },
   );
