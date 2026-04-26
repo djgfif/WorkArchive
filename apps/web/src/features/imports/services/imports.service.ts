@@ -39,7 +39,7 @@ const ALADIN_PROVIDER_STATUS_PATH = '/imports/providers/aladin/status';
 const ALADIN_PROVIDER_KEY_PATH = '/imports/providers/aladin/key';
 const IMPORT_PROVIDERS_PATH = '/imports/providers';
 const EXTERNAL_SEARCH_UNAVAILABLE_NOTICE =
-  '외부 검색 provider가 사용자 키 설정, 서버 설정, 또는 일시 오류로 사용할 수 없습니다. Aladin처럼 사용자 키가 필요한 provider는 로그인 후 TTBKey를 등록해주세요. 지금은 로컬 preview 후보를 표시합니다.';
+  '일부 검색 provider를 사용할 수 없어 직접 추가 후보를 표시합니다. 로그인 없이 사용할 수 있는 provider는 계속 지원되며, 사용자 키가 필요한 provider만 로그인 후 설정할 수 있습니다.';
 
 function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
   const normalizedSearchTerm = searchTerm.trim();

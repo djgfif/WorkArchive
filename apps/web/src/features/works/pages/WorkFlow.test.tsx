@@ -65,14 +65,22 @@ function buildCandidate(title = 'Dune'): ImportCandidate {
 function mockSearch(candidate = buildCandidate()) {
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockResolvedValue(
-      jsonResponse({
-        provider: 'open_library',
-        providers: ['open_library'],
-        query: candidate.title,
-        candidates: [candidate],
-      }),
-    ),
+    vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes('/imports/providers')) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      return Promise.resolve(
+        jsonResponse({
+          provider: 'open_library',
+          providers: ['open_library'],
+          query: candidate.title,
+          candidates: [candidate],
+        }),
+      );
+    }),
   );
 }
 

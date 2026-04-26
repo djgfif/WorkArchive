@@ -44,6 +44,11 @@ import {
   importsService,
   type ImportCandidate,
 } from '../../imports/services/imports.service';
+import {
+  formatProviderNames,
+  useImportProviderReadiness,
+  type ProviderReadinessGroup,
+} from '../../imports/hooks/useImportProviderReadiness';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { worksRepository } from '../services/works.repository';
 import {
@@ -325,6 +330,100 @@ function getCandidateContributorText(candidate: ImportCandidate) {
   return candidate.author || '작가·제작자 미입력';
 }
 
+function getCandidateExternalIdentityCount(candidate: ImportCandidate) {
+  return (
+    candidate.externalRefs.length +
+    candidate.releaseCandidates.reduce((count, releaseCandidate) => {
+      return count + (releaseCandidate.externalRefs?.length ?? 0);
+    }, 0)
+  );
+}
+
+interface ProviderGroupLineProps {
+  group: ProviderReadinessGroup;
+  tone?: 'accent' | 'muted' | 'success' | 'warning';
+}
+
+function ProviderGroupLine({
+  group,
+  tone = 'muted',
+}: ProviderGroupLineProps) {
+  if (group.providers.length === 0) {
+    return null;
+  }
+
+  return (
+    <ActionRow>
+      <AppBadge tone={tone}>{group.label}</AppBadge>
+      <Text c="var(--app-text-muted)" size="sm">
+        {formatProviderNames(group.providers)}
+      </Text>
+    </ActionRow>
+  );
+}
+
+interface ProviderReadinessSummaryProps {
+  error: string | null;
+  isLoading: boolean;
+  readiness: ReturnType<typeof useImportProviderReadiness>['readiness'];
+}
+
+function ProviderReadinessSummary({
+  error,
+  isLoading,
+  readiness,
+}: ProviderReadinessSummaryProps) {
+  return (
+    <Paper
+      p="sm"
+      radius="md"
+      styles={{
+        root: {
+          backgroundColor: 'var(--app-surface-1)',
+          borderColor: 'var(--app-border-color)',
+        },
+      }}
+      withBorder
+    >
+      <Stack gap="xs">
+        <ActionRow justify="space-between">
+          <Text c="var(--app-text-strong)" fw={700} size="sm">
+            검색 provider 상태
+          </Text>
+          {isLoading && (
+            <Text c="var(--app-text-muted)" size="xs">
+              상태 확인 중
+            </Text>
+          )}
+        </ActionRow>
+
+        {error ? (
+          <Text c="var(--app-text-muted)" size="sm">
+            provider 상태를 불러오지 못했습니다. 검색과 직접 추가는 계속 사용할 수 있습니다.
+          </Text>
+        ) : (
+          <Stack gap={6}>
+            <ProviderGroupLine group={readiness.available} tone="success" />
+            <ProviderGroupLine
+              group={readiness.userActionRequired}
+              tone="warning"
+            />
+            <ProviderGroupLine
+              group={readiness.serverSetupRequired}
+              tone="muted"
+            />
+            <ProviderGroupLine group={readiness.directFallback} tone="accent" />
+          </Stack>
+        )}
+
+        <Text c="var(--app-text-muted)" size="xs">
+          로그인 없이 가능한 provider는 계속 사용할 수 있고, 일부 provider만 로그인이나 서버 설정이 필요합니다.
+        </Text>
+      </Stack>
+    </Paper>
+  );
+}
+
 interface CandidateRowProps {
   active: boolean;
   candidate: ImportCandidate;
@@ -338,6 +437,8 @@ function CandidateRow({
   duplicateCount,
   onSelect,
 }: CandidateRowProps) {
+  const externalIdentityCount = getCandidateExternalIdentityCount(candidate);
+
   return (
     <button
       aria-label={`${candidate.title} ${getWorkTypeLabel(candidate.type)} 후보 선택`}
@@ -379,9 +480,12 @@ function CandidateRow({
               <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
               {candidate.releaseYear && <AppBadge>{candidate.releaseYear}</AppBadge>}
             </ActionRow>
-            <AppBadge tone={duplicateCount > 0 ? 'warning' : 'muted'}>
-              {duplicateCount > 0 ? `비슷한 기록 ${duplicateCount}` : candidate.confidenceLabel}
-            </AppBadge>
+            <ActionRow>
+              <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
+              {duplicateCount > 0 && (
+                <AppBadge tone="warning">비슷한 기록 {duplicateCount}</AppBadge>
+              )}
+            </ActionRow>
           </ActionRow>
 
           <div>
@@ -402,6 +506,14 @@ function CandidateRow({
             {candidate.catalogMatch && !candidate.existingRecord && (
               <AppBadge tone="success">카탈로그 매칭</AppBadge>
             )}
+            {externalIdentityCount > 0 && (
+              <AppBadge tone="muted">외부 식별자 {externalIdentityCount}</AppBadge>
+            )}
+            {candidate.releaseCandidates.length > 0 && (
+              <AppBadge tone="muted">
+                릴리스 후보 {candidate.releaseCandidates.length}
+              </AppBadge>
+            )}
           </ActionRow>
 
           <Text c="var(--app-text-secondary)" lineClamp={2} size="sm">
@@ -409,7 +521,7 @@ function CandidateRow({
           </Text>
           {candidate.reason && (
             <Text c="var(--app-text-muted)" size="xs">
-              {candidate.reason}
+              추천 이유: {candidate.reason}
             </Text>
           )}
           {candidate.note && (
@@ -749,6 +861,8 @@ function SelectedCandidatePreview({
   candidate,
   values,
 }: SelectedCandidatePreviewProps) {
+  const externalIdentityCount = getCandidateExternalIdentityCount(candidate);
+
   return (
     <Paper
       p="lg"
@@ -773,6 +887,7 @@ function SelectedCandidatePreview({
           <Stack gap="xs">
             <ActionRow>
               <AppBadge tone="accent">{candidate.sourceLabel}</AppBadge>
+              <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
               <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
               {candidate.releaseYear && <AppBadge>{candidate.releaseYear}</AppBadge>}
               {candidate.catalogMatch && (
@@ -796,8 +911,9 @@ function SelectedCandidatePreview({
           </Text>
 
           <ActionRow>
+            <MetricPill label="검색 출처" value={candidate.sourceLabel} />
+            <MetricPill label="신뢰도" value={candidate.confidenceLabel} />
             <MetricPill label="형식" value={candidate.formatLabel} />
-            <MetricPill label="식별 정보" value={candidate.countLabel} />
             <MetricPill label="추천 이유" value={candidate.reason} />
           </ActionRow>
 
@@ -820,9 +936,9 @@ function SelectedCandidatePreview({
                 {candidate.franchiseName && (
                   <AppBadge tone="success">{candidate.franchiseName}</AppBadge>
                 )}
-                {candidate.externalRefs.length > 0 && (
+                {externalIdentityCount > 0 && (
                   <AppBadge tone="muted">
-                    외부 식별자 {candidate.externalRefs.length}
+                    외부 식별자 {externalIdentityCount}
                   </AppBadge>
                 )}
                 {candidate.releaseCandidates.length > 0 && (
@@ -880,6 +996,7 @@ export function QuickAddWorkForm({
   const [values, setValues] = useState<WorkFormValues>(() =>
     createManualAddDefaults(),
   );
+  const providerReadiness = useImportProviderReadiness(addMode === 'search');
 
   useEffect(() => {
     const subscription = liveQuery(() => worksRepository.listAll()).subscribe({
@@ -1203,6 +1320,12 @@ export function QuickAddWorkForm({
 
             <WorkflowProgress activeStep={activeStep} />
 
+            <ProviderReadinessSummary
+              error={providerReadiness.error}
+              isLoading={providerReadiness.isLoading}
+              readiness={providerReadiness.readiness}
+            />
+
             <form onSubmit={handleSearchSubmit}>
               <Group align="flex-end" gap="sm" wrap="wrap">
                 <NativeSelect
@@ -1265,7 +1388,7 @@ export function QuickAddWorkForm({
             ) : submittedSearchTerm && candidates.length === 0 ? (
               <Stack gap="sm">
                 <Text c="var(--app-text-muted)">
-                  현재 검색어로는 후보를 찾지 못했습니다. 검색어를 바꿔 다시 찾거나, 지금 입력한 제목으로 바로 기록을 만들 수 있습니다.
+                  현재 검색어로는 후보를 찾지 못했습니다. 로그인 없이 가능한 provider는 계속 사용할 수 있고, 부족한 결과는 직접 추가로 바로 보완할 수 있습니다.
                 </Text>
                 <AppButton
                   fullWidth
