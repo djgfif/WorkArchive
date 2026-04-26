@@ -19,6 +19,8 @@ import type { ImportCandidateResponseDto } from './dto/import-candidate-response
 import type { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
 import type { ImportSearchQueryDto } from './dto/import-search-query.dto';
 import type { ImportSearchResponseDto } from './dto/import-search-response.dto';
+import { mergeImportCandidates } from './import-candidate-merge';
+import { rankImportCandidates } from './import-candidate-ranking';
 import { ImportsCredentialService } from './imports-credential.service';
 import {
   ALADIN_PROVIDER,
@@ -265,14 +267,19 @@ export class ImportsService {
 
     const decoratedCandidates = await this.decorateCandidates(
       userId,
-      candidates.slice(0, limit),
+      mergeImportCandidates(candidates),
     );
+    const rankedCandidates = rankImportCandidates({
+      candidates: decoratedCandidates,
+      ...(mediumType === undefined ? {} : { mediumType }),
+      query,
+    }).slice(0, limit);
 
     this.logSearchSummary(
       userId,
       providers.join(','),
       query,
-      decoratedCandidates.length,
+      rankedCandidates.length,
       failures.length > 0 ? `partial:${failures.join('|')}` : 'ok',
     );
 
@@ -280,7 +287,7 @@ export class ImportsService {
       provider: searchQuery.provider ?? providers[0] ?? ALADIN_PROVIDER,
       providers,
       query,
-      candidates: decoratedCandidates,
+      candidates: rankedCandidates,
     };
   }
 
@@ -1024,6 +1031,7 @@ export class ImportsService {
     }
 
     const key = this.readString(item.key);
+    const sourceUrl = key ? `https://openlibrary.org${key}` : '';
 
     return this.buildCandidate({
       author: this.readStringArray(item.author_name).slice(0, 3).join(', '),
@@ -1037,10 +1045,18 @@ export class ImportsService {
       id: `${OPEN_LIBRARY_PROVIDER}:${key || title}`,
       note: 'Open Library Search API',
       provider: OPEN_LIBRARY_PROVIDER,
+      releaseCandidates: this.buildBookReleaseCandidates({
+        externalId: key || title,
+        isbn: this.readOpenLibraryIsbn(item.isbn),
+        provider: OPEN_LIBRARY_PROVIDER,
+        releaseDate: this.readNumber(item.first_publish_year)?.toString() ?? null,
+        title,
+        url: sourceUrl,
+      }),
       reason: 'Open Library 제목 검색 결과',
       releaseYear: this.readNumber(item.first_publish_year),
       sourceLabel: 'Open Library',
-      sourceUrl: key ? `https://openlibrary.org${key}` : '',
+      sourceUrl,
       title,
       type: WorkType.novel,
     });
@@ -1633,6 +1649,20 @@ export class ImportsService {
     return this.isRecord(fallback)
       ? this.extractPrimaryIsbn(this.readString(fallback.identifier))
       : null;
+  }
+
+  private readOpenLibraryIsbn(value: unknown) {
+    const isbns = this.readStringArray(value);
+
+    for (const isbn of isbns) {
+      const normalized = this.extractPrimaryIsbn(isbn);
+
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    return null;
   }
 
   private extractVolumeSequence(title: string) {

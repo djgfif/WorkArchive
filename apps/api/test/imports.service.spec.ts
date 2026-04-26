@@ -11,11 +11,13 @@ import { ExternalApiKeyCryptoService } from '../src/modules/imports/external-api
 import { ImportsCredentialService } from '../src/modules/imports/imports-credential.service';
 import {
   ALADIN_PROVIDER,
+  GOOGLE_BOOKS_PROVIDER,
   MANUAL_PROVIDER,
   OPEN_LIBRARY_PROVIDER,
   TMDB_PROVIDER,
 } from '../src/modules/imports/imports.constants';
 import { ImportsService } from '../src/modules/imports/imports.service';
+import type { CatalogIngestionService } from '../src/modules/catalog/catalog-ingestion.service';
 import type { PrismaService } from '../src/prisma/prisma.service';
 
 const USER_ID = '2c92b57e-e529-4344-bd62-0cff4de5dfe2';
@@ -330,6 +332,457 @@ describe('ImportsService', () => {
       }),
     );
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
+  });
+
+  it('ranks an exact title match ahead of earlier provider-order candidates', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: 'google-dune-messiah',
+              volumeInfo: {
+                authors: ['Frank Herbert'],
+                publishedDate: '1969',
+                title: 'Dune Messiah',
+              },
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          docs: [
+            {
+              key: '/works/OL123W',
+              title: 'Dune',
+              author_name: ['Frank Herbert'],
+              first_publish_year: 1965,
+            },
+          ],
+        }),
+      );
+
+    const result = await service.search(null, {
+      providers: [GOOGLE_BOOKS_PROVIDER, OPEN_LIBRARY_PROVIDER],
+      query: 'Dune',
+      limit: 2,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: OPEN_LIBRARY_PROVIDER,
+        title: 'Dune',
+        confidenceLabel: '신뢰도 높음',
+        reason: expect.stringContaining('제목 정확히 일치'),
+      }),
+    );
+    expect(result.candidates[0]?.confidence).toBeGreaterThan(
+      result.candidates[1]?.confidence ?? 0,
+    );
+  });
+
+  it('uses catalog matches as a ranking advantage', async () => {
+    const catalogIngestionService = {
+      findCatalogMatchForImportCandidate: jest.fn(
+        async (candidate: {
+          externalRefs: Array<{
+            externalId: string;
+          }>;
+        }) => {
+          return candidate.externalRefs.some(
+            (externalRef) => externalRef.externalId === '/works/OL456W',
+          )
+            ? {
+                id: 'catalog-title-1',
+                title: 'Dune',
+                verificationStatus: 'draft',
+              }
+            : null;
+        },
+      ),
+    };
+    service = new ImportsService(
+      credentialService as unknown as ImportsCredentialService,
+      catalogIngestionService as unknown as CatalogIngestionService,
+    );
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        docs: [
+          {
+            key: '/works/OL123W',
+            title: 'Dune',
+            author_name: ['Frank Herbert'],
+            first_publish_year: 1965,
+          },
+          {
+            key: '/works/OL456W',
+            title: 'Dune',
+            author_name: ['Frank Herbert'],
+            first_publish_year: 1965,
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 2,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        catalogMatch: expect.objectContaining({
+          id: 'catalog-title-1',
+        }),
+        confidenceLabel: '신뢰도 높음',
+        reason: expect.stringContaining('카탈로그 매칭됨'),
+      }),
+    );
+  });
+
+  it('ranks before applying the final limit so later provider matches are not cut off', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: Array.from({ length: 5 }, (_, index) => ({
+            id: `google-dune-archive-${index}`,
+            volumeInfo: {
+              authors: ['Frank Herbert'],
+              publishedDate: `${1965 + index}`,
+              title: `Dune Archive ${index}`,
+            },
+          })),
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          docs: [
+            {
+              key: '/works/OL123W',
+              title: 'Dune',
+              author_name: ['Frank Herbert'],
+              first_publish_year: 1965,
+            },
+          ],
+        }),
+      );
+
+    const result = await service.search(null, {
+      providers: [GOOGLE_BOOKS_PROVIDER, OPEN_LIBRARY_PROVIDER],
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates).toHaveLength(5);
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: OPEN_LIBRARY_PROVIDER,
+        title: 'Dune',
+      }),
+    );
+    expect(
+      result.candidates.some(
+        (candidate) => candidate.sourceId === OPEN_LIBRARY_PROVIDER,
+      ),
+    ).toBe(true);
+  });
+
+  it('dedupes candidates with the same id before ranking', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        docs: [
+          {
+            key: '/works/OL123W',
+            title: 'Dune',
+          },
+          {
+            key: '/works/OL123W',
+            title: 'Dune',
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]?.id).toBe('open_library:/works/OL123W');
+  });
+
+  it('merges Google Books and Open Library candidates that share an ISBN', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: 'google-dune',
+              volumeInfo: {
+                authors: ['Frank Herbert'],
+                description: 'A desert saga.',
+                industryIdentifiers: [
+                  {
+                    type: 'ISBN_13',
+                    identifier: '9780441172719',
+                  },
+                ],
+                infoLink: 'https://books.google.com/dune',
+                publishedDate: '1965',
+                title: 'Dune',
+              },
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          docs: [
+            {
+              author_name: ['Frank Herbert'],
+              first_publish_year: 1965,
+              isbn: ['978-0-441-17271-9'],
+              key: '/works/OL123W',
+              title: 'Dune',
+            },
+          ],
+        }),
+      );
+
+    const result = await service.search(null, {
+      providers: [GOOGLE_BOOKS_PROVIDER, OPEN_LIBRARY_PROVIDER],
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        title: 'Dune',
+        externalRefs: [
+          expect.objectContaining({
+            externalId: '/works/OL123W',
+            provider: OPEN_LIBRARY_PROVIDER,
+          }),
+        ],
+        releaseCandidates: [
+          expect.objectContaining({
+            isbn: '9780441172719',
+            externalRefs: expect.arrayContaining([
+              expect.objectContaining({
+                externalId: 'google-dune',
+                provider: GOOGLE_BOOKS_PROVIDER,
+              }),
+              expect.objectContaining({
+                externalId: '/works/OL123W',
+                provider: OPEN_LIBRARY_PROVIDER,
+              }),
+            ]),
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('dedupes repeated provider external refs while preserving merged identity', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        items: [
+          {
+            id: 'google-dune',
+            volumeInfo: {
+              industryIdentifiers: [
+                {
+                  type: 'ISBN_13',
+                  identifier: '9780441172719',
+                },
+              ],
+              title: 'Dune',
+            },
+          },
+          {
+            id: 'google-dune',
+            volumeInfo: {
+              industryIdentifiers: [
+                {
+                  type: 'ISBN_13',
+                  identifier: '9780441172719',
+                },
+              ],
+              title: 'Dune Deluxe',
+            },
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: GOOGLE_BOOKS_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]?.releaseCandidates).toHaveLength(1);
+    expect(result.candidates[0]?.releaseCandidates[0]?.externalRefs).toEqual([
+      expect.objectContaining({
+        externalId: 'google-dune',
+        provider: GOOGLE_BOOKS_PROVIDER,
+      }),
+    ]);
+  });
+
+  it('does not merge title-only candidates without a shared ISBN or external ref', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        docs: [
+          {
+            key: '/works/OL123W',
+            title: 'Dune',
+          },
+          {
+            key: '/works/OL456W',
+            title: 'Dune',
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates).toHaveLength(2);
+  });
+
+  it('merges before catalog decoration so combined identity can match catalog', async () => {
+    const catalogIngestionService = {
+      findCatalogMatchForImportCandidate: jest.fn(
+        async (candidate: {
+          releaseCandidates: Array<{
+            externalRefs?: Array<{
+              provider: string;
+            }>;
+            isbn?: string | null;
+          }>;
+        }) => {
+          const providers = new Set(
+            candidate.releaseCandidates.flatMap((releaseCandidate) =>
+              (releaseCandidate.externalRefs ?? []).map(
+                (externalRef) => externalRef.provider,
+              ),
+            ),
+          );
+
+          return candidate.releaseCandidates.some(
+            (releaseCandidate) => releaseCandidate.isbn === '9780441172719',
+          ) &&
+            providers.has(GOOGLE_BOOKS_PROVIDER) &&
+            providers.has(OPEN_LIBRARY_PROVIDER)
+            ? {
+                id: 'catalog-title-1',
+                title: 'Dune',
+                verificationStatus: 'draft',
+              }
+            : null;
+        },
+      ),
+    };
+
+    service = new ImportsService(
+      credentialService as unknown as ImportsCredentialService,
+      catalogIngestionService as unknown as CatalogIngestionService,
+    );
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: 'google-dune',
+              volumeInfo: {
+                industryIdentifiers: [
+                  {
+                    type: 'ISBN_13',
+                    identifier: '9780441172719',
+                  },
+                ],
+                title: 'Dune',
+              },
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          docs: [
+            {
+              isbn: ['9780441172719'],
+              key: '/works/OL123W',
+              title: 'Dune',
+            },
+          ],
+        }),
+      );
+
+    const result = await service.search(null, {
+      providers: [GOOGLE_BOOKS_PROVIDER, OPEN_LIBRARY_PROVIDER],
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]?.catalogMatch).toEqual(
+      expect.objectContaining({
+        id: 'catalog-title-1',
+      }),
+    );
+  });
+
+  it('continues search when a non-explicit provider fails', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new Error('provider unavailable'))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          docs: [
+            {
+              key: '/works/OL123W',
+              title: 'Dune',
+            },
+          ],
+        }),
+      );
+
+    const result = await service.search(null, {
+      providers: [GOOGLE_BOOKS_PROVIDER, OPEN_LIBRARY_PROVIDER],
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates).toEqual([
+      expect.objectContaining({
+        id: 'open_library:/works/OL123W',
+      }),
+    ]);
   });
 
   it('requires login for guest requests to user-scoped providers', async () => {
