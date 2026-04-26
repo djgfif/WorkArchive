@@ -22,6 +22,28 @@ if (!window.matchMedia) {
   });
 }
 
+if (!window.ResizeObserver) {
+  class ResizeObserverMock {
+    observe() {}
+
+    unobserve() {}
+
+    disconnect() {}
+  }
+
+  Object.defineProperty(window, 'ResizeObserver', {
+    configurable: true,
+    value: ResizeObserverMock,
+    writable: true,
+  });
+
+  Object.defineProperty(globalThis, 'ResizeObserver', {
+    configurable: true,
+    value: ResizeObserverMock,
+    writable: true,
+  });
+}
+
 afterEach(async () => {
   cleanup();
   window.localStorage.clear();

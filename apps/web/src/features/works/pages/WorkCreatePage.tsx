@@ -52,12 +52,12 @@ export function WorkCreatePage() {
     <FlowPageTemplate>
       <PageHero
         actions={<AppLinkButton to="/works">작품으로 돌아가기</AppLinkButton>}
-        description="검색 없이 바로 기록하거나, 외부 후보로 입력을 빠르게 채운 뒤 개인 기록만 남깁니다."
+        description="직접 추가로 바로 기록하거나, 검색 후보로 작품 정보를 채운 뒤 아래 폼에서 저장을 마무리합니다."
         eyebrow="작품 추가"
         meta={
           <>
             <MetricPill label="기본 경로" value="직접 추가" />
-            <MetricPill label="보조 경로" value="검색으로 추가" />
+            <MetricPill label="보조 경로" value="검색으로 정보 채우기" />
           </>
         }
         title="새 작품 기록"

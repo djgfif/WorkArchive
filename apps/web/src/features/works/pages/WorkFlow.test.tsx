@@ -98,24 +98,18 @@ describe('Works routed flow', () => {
       initialEntries: ['/works/new'],
     });
 
-    renderWithProviders(
+  renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
     );
 
-    await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+    await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
-    await user.click(screen.getByRole('button', { name: '검색' }));
+    await user.click(screen.getByRole('button', { name: '다시 검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
-
-    await screen.findByRole('heading', {
-      name: /비슷한 기록이 이미 있습니다|선택한 작품 확인/,
-    });
-
-    if (screen.queryByRole('heading', { name: '비슷한 기록이 이미 있습니다' })) {
-      await user.click(screen.getByRole('button', { name: '그래도 계속 추가' }));
-    }
+    await screen.findByText('검색 근거');
+    await user.click(screen.getByRole('button', { name: '이 후보로 입력 채우기' }));
 
     const createTitleInput = await screen.findByLabelText(/^제목$/);
     await user.clear(createTitleInput);
@@ -125,7 +119,7 @@ describe('Works routed flow', () => {
     await user.type(authorInput, 'Frank Herbert');
     await user.click(screen.getByRole('button', { name: '완료' }));
 
-    await user.click(screen.getByRole('button', { name: '저장' }));
+    await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
     await user.click(await screen.findByRole('button', { name: '방금 등록한 작품 보기' }));
 
     expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
@@ -171,17 +165,15 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+    await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
-    await user.click(screen.getByRole('button', { name: '검색' }));
+    await user.click(screen.getByRole('button', { name: '다시 검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
 
-    expect(
-      await screen.findByRole('heading', { name: '비슷한 기록이 이미 있습니다' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '기존 작품 보기' })).toBeInTheDocument();
+    expect(await screen.findByText('비슷한 기록이 이미 있습니다')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Dune' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '그래도 계속 추가' }));
+    await user.click(screen.getByRole('button', { name: '이 후보로 입력 채우기' }));
 
     expect(await screen.findByLabelText(/^제목$/)).toBeInTheDocument();
   });

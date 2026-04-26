@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Box, Grid, Group, Progress, Stack, Text, Title } from '@mantine/core';
+import { Box, Group, Progress, Stack, Text, Title } from '@mantine/core';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
@@ -12,7 +12,6 @@ import {
   MetricPill,
   PageSection,
   SectionCard,
-  SectionIntro,
 } from '../../../shared/components/AppPrimitives';
 import {
   formatWorkDateTime,
@@ -25,8 +24,8 @@ import {
 
 interface WorkDetailPanelProps {
   actions?: ReactNode;
-  children?: ReactNode;
-  quickEdit?: ReactNode;
+  recordSections?: ReactNode;
+  relatedSections?: ReactNode;
   work: WorkRecord;
 }
 
@@ -66,8 +65,8 @@ function getProgressLabel(work: WorkRecord) {
 
 export function WorkDetailPanel({
   actions,
-  children,
-  quickEdit,
+  recordSections,
+  relatedSections,
   work,
 }: WorkDetailPanelProps) {
   const typeLabel = getWorkTypeLabel(work.type);
@@ -78,7 +77,6 @@ export function WorkDetailPanel({
   const review = work.review.trim();
   const progressLabel = getProgressLabel(work);
   const progressPercent = getProgressPercent(work);
-  const hasPersonalReview = shortReview.length > 0 || review.length > 0;
   const sourceIdentityLabel = work.catalogTitleId
     ? '카탈로그 연결됨'
     : work.importDraft
@@ -107,7 +105,6 @@ export function WorkDetailPanel({
             <ActionRow>
               <AppBadge>{typeLabel}</AppBadge>
               <AppBadge tone="accent">{statusLabel}</AppBadge>
-              <AppBadge>{syncLabel}</AppBadge>
               {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
             </ActionRow>
 
@@ -118,12 +115,11 @@ export function WorkDetailPanel({
               </Text>
             </div>
 
-            <Group align="stretch" gap="xl" wrap="wrap">
+            <ActionRow>
+              <MetricPill label="별점" value={renderRatingLabel(work)} />
               <MetricPill label="상태" value={statusLabel} />
-              <MetricPill label="내 평점" value={renderRatingLabel(work)} />
-              <MetricPill label="티어" value={tierLabel} />
               {progressLabel && <MetricPill label="진행도" value={progressLabel} />}
-            </Group>
+            </ActionRow>
 
             {progressPercent !== null && (
               <Stack gap={4}>
@@ -145,112 +141,81 @@ export function WorkDetailPanel({
         </Group>
       </SectionCard>
 
-      <Grid align="start" gutter="xl">
-        <Grid.Col span={{ base: 12, lg: 8 }}>
-          <Stack gap="xl">
-            <PageSection
-              description="이 영역은 작품 소개가 아니라 내 감상과 기록을 다시 읽는 공간입니다."
-              divider={false}
-              eyebrow="내 기록"
-              title="감상 기록"
-            >
-              <Stack gap="lg">
-                <Stack gap="xs">
-                  <Text c="var(--app-text-muted)" fw={700} size="sm">
-                    한줄평
-                  </Text>
-                  <Title
-                    c={shortReview ? 'var(--app-text-strong)' : 'var(--app-text-muted)'}
-                    order={3}
-                  >
-                    {shortReview || '아직 남긴 한줄평이 없습니다.'}
-                  </Title>
-                </Stack>
-
-                <Stack gap="xs">
-                  <Text c="var(--app-text-muted)" fw={700} size="sm">
-                    상세 감상
-                  </Text>
-                  <Text
-                    c={review ? 'var(--app-text-secondary)' : 'var(--app-text-muted)'}
-                    lh={1.8}
-                  >
-                    {review || '아직 남긴 상세 감상이 없습니다.'}
-                  </Text>
-                </Stack>
-
-                {!hasPersonalReview && (
-                  <ActionRow>
-                    <AppLinkButton to={`/works/${work.id}/edit?focus=review`} tone="primary">
-                      감상 기록 추가
-                    </AppLinkButton>
-                  </ActionRow>
-                )}
-              </Stack>
-            </PageSection>
-
-          <PageSection
-            description="작품 자체의 소개와 배경은 기록 다음에 확인할 수 있도록 분리했습니다."
-            eyebrow="작품 소개"
-            title="메모와 소개"
-          >
-            <Text
-              c={work.description.trim() ? 'var(--app-text-secondary)' : 'var(--app-text-muted)'}
-              lh={1.8}
-            >
-              {work.description.trim() || '작품 소개가 아직 없습니다.'}
-            </Text>
-          </PageSection>
-
-            {children}
-          </Stack>
-        </Grid.Col>
-
-        <Grid.Col span={{ base: 12, lg: 4 }}>
+      <PageSection
+        description="작품 소개보다 내가 남긴 기록을 먼저 읽는 화면입니다."
+        divider={false}
+        eyebrow="내 기록"
+        title="감상 기록"
+      >
+        <SectionCard gap="lg" padding="lg" tone="default">
           <Stack gap="lg">
-            {quickEdit && (
-              <SectionCard gap="md" padding="lg" tone="default">
-                {quickEdit}
-              </SectionCard>
-            )}
+            <Stack gap="xs">
+              <Text c="var(--app-text-muted)" fw={700} size="sm">
+                한줄평
+              </Text>
+              <Title
+                c={shortReview ? 'var(--app-text-strong)' : 'var(--app-text-muted)'}
+                order={3}
+              >
+                {shortReview || '아직 남긴 한줄평이 없습니다.'}
+              </Title>
+            </Stack>
 
-            <SectionCard gap="lg" padding="lg" tone="subtle">
-              <PageSection divider={false} eyebrow="기록 정보" title="내 상태" titleOrder={3}>
-                <KeyValueGrid
-                  columns={1}
-                  items={[
-                    { label: '현재 상태', value: statusLabel },
-                    { label: '별점', value: renderRatingLabel(work) },
-                    { label: '티어', value: tierLabel },
-                    ...(progressLabel
-                      ? [{ label: '진행도', value: progressLabel }]
-                      : []),
-                    { label: '즐겨찾기', value: work.favorite ? '등록함' : '없음' },
-                  ]}
-                />
-              </PageSection>
+            <Stack gap="xs">
+              <Text c="var(--app-text-muted)" fw={700} size="sm">
+                상세 감상
+              </Text>
+              <Text
+                c={review ? 'var(--app-text-secondary)' : 'var(--app-text-muted)'}
+                lh={1.8}
+              >
+                {review || '아직 남긴 상세 감상이 없습니다.'}
+              </Text>
+            </Stack>
 
-              <PageSection eyebrow="메타데이터" title="작품과 저장 정보" titleOrder={3}>
-                <KeyValueGrid
-                  columns={1}
-                  items={[
-                    { label: '작가·제작자', value: work.author || '미입력' },
-                    {
-                      label: '장르',
-                      value: work.genres.length > 0 ? work.genres.join(', ') : '없음',
-                    },
-                    { label: '유형', value: typeLabel },
-                    { label: '식별 방식', value: sourceIdentityLabel },
-                    { label: '동기화 상태', value: syncLabel },
-                    { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
-                    { label: '수정한 날', value: formatWorkDateTime(work.updatedAt) },
-                  ]}
-                />
-              </PageSection>
-            </SectionCard>
+            <ActionRow>
+              <AppLinkButton to={`/works/${work.id}/edit?focus=review`} tone="primary">
+                {shortReview || review ? '리뷰 수정' : '리뷰 쓰기'}
+              </AppLinkButton>
+              <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
+                기록 수정
+              </AppLinkButton>
+            </ActionRow>
           </Stack>
-        </Grid.Col>
-      </Grid>
+        </SectionCard>
+
+        {recordSections}
+      </PageSection>
+
+      <PageSection
+        description="작품의 기본 메타데이터와 저장 정보를 차분하게 정리합니다."
+        eyebrow="작품 정보"
+        title="작품과 저장 정보"
+      >
+        <SectionCard gap="lg" padding="lg" tone="subtle">
+          <KeyValueGrid
+            columns={2}
+            items={[
+              { label: '작가·제작자', value: work.author || '미입력' },
+              {
+                label: '장르',
+                value: work.genres.length > 0 ? work.genres.join(', ') : '없음',
+              },
+              {
+                label: '설명',
+                value: work.description.trim() || '작품 소개가 아직 없습니다.',
+              },
+              { label: '식별 방식', value: sourceIdentityLabel },
+              { label: '티어', value: tierLabel },
+              { label: '동기화 상태', value: syncLabel },
+              { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
+              { label: '수정한 날', value: formatWorkDateTime(work.updatedAt) },
+            ]}
+          />
+        </SectionCard>
+      </PageSection>
+
+      {relatedSections}
     </Stack>
   );
 }

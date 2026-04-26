@@ -200,7 +200,7 @@ async function searchAndSelectCandidate(
   searchTerm: string,
   candidateTitle: string,
 ) {
-  await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+  await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
 
   const searchInput = getElementById<HTMLInputElement>('quickAddSearch');
 
@@ -219,7 +219,7 @@ async function searchAndSelectCandidate(
 
   await user.click(searchButton!);
 
-  const candidateButton = (await waitFor(() => {
+  const candidateButton = await waitFor(() => {
     const match = Array.from(document.querySelectorAll('button')).find((button) =>
       button.textContent?.includes(candidateTitle),
     );
@@ -227,26 +227,21 @@ async function searchAndSelectCandidate(
     expect(match).toBeDefined();
 
     return match as HTMLButtonElement;
-  }));
+  });
 
   await user.click(candidateButton);
+  await user.click(screen.getByRole('button', { name: '이 후보로 입력 채우기' }));
 }
 
 async function submitSelectedCandidate(
   user: ReturnType<typeof userEvent.setup>,
 ) {
-  const titleInput = await waitFor(() => getElementById<HTMLInputElement>('title'));
+  const titleInput = await waitFor(() => getElementById<HTMLInputElement>('manualTitle'));
   const submitForm = titleInput.closest('form');
 
   expect(submitForm).not.toBeNull();
 
-  const submitButton = submitForm?.querySelector<HTMLButtonElement>(
-    'button[type="submit"]',
-  );
-
-  expect(submitButton).not.toBeNull();
-
-  await user.click(submitButton!);
+  await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
 }
 
 describe('WorkCreatePage', () => {
@@ -378,7 +373,7 @@ describe('WorkCreatePage', () => {
     renderAuthenticatedCreatePage();
     await searchAndSelectCandidate(user, 'Dune', candidate.title);
 
-    const titleInput = await waitFor(() => getElementById<HTMLInputElement>('title'));
+    const titleInput = await waitFor(() => getElementById<HTMLInputElement>('manualTitle'));
     await user.clear(titleInput);
     await user.type(titleInput, 'Dune Deluxe');
 

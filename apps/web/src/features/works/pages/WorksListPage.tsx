@@ -283,10 +283,10 @@ export function WorksListPage() {
           }
           description={
             collectionScope === 'trash'
-              ? '작품을 삭제하면 여기에서 복원하거나 다시 확인할 수 있습니다.'
+              ? '삭제한 작품은 나중에 여기서 다시 확인하거나 복원할 수 있습니다.'
               : hasActiveFilters
-                ? '검색어나 필터를 조금만 바꿔보세요.'
-                : '첫 작품을 추가해 내 아카이브를 채워보세요.'
+                ? '검색어나 필터를 바꿔 다시 찾아보세요.'
+                : '첫 작품을 추가해 포스터 라이브러리를 채워보세요.'
           }
           eyebrow={
             collectionScope === 'trash'

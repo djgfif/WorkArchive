@@ -102,14 +102,14 @@ export function WorksToolbar({
         </ActionRow>
       </Group>
 
-      <Group gap="xs" wrap="wrap">
+      <ActionRow>
         <MetricPill label="활성" value={totalActiveCount} />
         <MetricPill label="휴지통" value={totalDeletedCount} />
         <MetricPill
-          label="보기"
-          value={collectionScope === 'trash' ? '휴지통' : viewMode === 'list' ? '리스트' : '그리드'}
+          label="현재 보기"
+          value={collectionScope === 'trash' ? '휴지통' : viewMode === 'list' ? '리스트' : '포스터'}
         />
-      </Group>
+      </ActionRow>
 
       <Group align="flex-end" gap="sm" wrap="wrap">
         <div style={{ flex: '1 1 20rem', minWidth: 'min(100%, 20rem)' }}>
@@ -202,7 +202,7 @@ export function WorksToolbar({
               tone={viewMode === 'grid' ? 'quiet' : 'ghost'}
               type="button"
             >
-              그리드
+              포스터
             </AppButton>
           </ActionRow>
         )}

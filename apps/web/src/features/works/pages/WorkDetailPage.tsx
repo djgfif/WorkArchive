@@ -5,8 +5,6 @@ import {
   Group,
   NativeSelect,
   NumberInput,
-  Rating,
-  Slider,
   Stack,
   Text,
   TextInput,
@@ -47,7 +45,6 @@ import {
   type UserRecordReleasesResponse,
 } from '../services/user-records.api';
 import { worksService } from '../services/works.service';
-import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 import {
   getWorkTypeLabel,
   workStatusOptions,
@@ -79,92 +76,6 @@ const relationTypeLabels: Record<string, string> = {
   side_story: '외전',
   spin_off: '스핀오프',
 };
-
-function formatRatingControlValue(value: number) {
-  return value <= 0 ? '미평가' : `${value.toFixed(1)}점`;
-}
-
-function StarRatingControl({
-  disabled,
-  label,
-  onCommit,
-  rating,
-}: {
-  disabled: boolean;
-  label: string;
-  onCommit(nextRating: number | null): void | Promise<void>;
-  rating: number | null;
-}) {
-  const [draftRating, setDraftRating] = useState(rating ?? 0);
-
-  useEffect(() => {
-    setDraftRating(rating ?? 0);
-  }, [rating]);
-
-  function commitRating(value: number) {
-    const nextRating = value <= 0 ? null : value;
-
-    void onCommit(nextRating);
-  }
-
-  return (
-    <Stack gap="xs">
-      <Group justify="space-between" wrap="nowrap">
-        <Text c="var(--app-text-strong)" fw={700} size="sm">
-          별점
-        </Text>
-        <Text c="var(--app-text-muted)" fw={700} size="sm">
-          {formatRatingControlValue(draftRating)}
-        </Text>
-      </Group>
-
-      <Rating
-        aria-label={`${label} 별`}
-        fractions={2}
-        onChange={(value) => {
-          setDraftRating(value);
-          commitRating(value);
-        }}
-        readOnly={disabled}
-        size="lg"
-        value={draftRating}
-      />
-
-      <Slider
-        aria-label={label}
-        disabled={disabled}
-        label={formatRatingControlValue}
-        marks={[
-          { value: 0, label: '미평가' },
-          { value: 2.5, label: '2.5' },
-          { value: 5, label: '5.0' },
-        ]}
-        max={5}
-        min={0}
-        onChange={setDraftRating}
-        onChangeEnd={commitRating}
-        step={0.5}
-        value={draftRating}
-      />
-
-      {draftRating > 0 && (
-        <ActionRow>
-          <AppButton
-            disabled={disabled}
-            onClick={() => {
-              setDraftRating(0);
-              commitRating(0);
-            }}
-            tone="ghost"
-            type="button"
-          >
-            미평가로 변경
-          </AppButton>
-        </ActionRow>
-      )}
-    </Stack>
-  );
-}
 
 function coerceNumberInputValue(value: number | string) {
   if (typeof value === 'number') {
@@ -581,7 +492,6 @@ export function WorkDetailPage() {
   const { archiveScopeKey, mode } = useAuthSession();
   const { error, isLoading, work } = useWorkDetail(id);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [isQuickUpdating, setIsQuickUpdating] = useState(false);
   const [releaseData, setReleaseData] =
     useState<UserRecordReleasesResponse | null>(null);
   const [relatedData, setRelatedData] =
@@ -707,39 +617,6 @@ export function WorkDetailPage() {
     }
   }
 
-  async function handleQuickUpdate(nextValues: {
-    rating?: number | null;
-    status?: (typeof workStatusOptions)[number]['value'];
-  }) {
-    if (!work) {
-      return;
-    }
-
-    try {
-      setActionError(null);
-      setIsQuickUpdating(true);
-
-      const latestWork = await worksService.getWorkById(work.id);
-
-      if (!latestWork) {
-        throw new Error('작품을 찾을 수 없습니다.');
-      }
-
-      await worksService.updateWork(work.id, {
-        ...createUpsertWorkInputFromRecord(latestWork),
-        ...nextValues,
-      });
-    } catch (updateError) {
-      setActionError(
-        updateError instanceof Error
-          ? updateError.message
-          : '작품 기록을 바로 수정하지 못했습니다.',
-      );
-    } finally {
-      setIsQuickUpdating(false);
-    }
-  }
-
   if (error) {
     return (
       <StateMessage
@@ -797,60 +674,20 @@ export function WorkDetailPage() {
             </AppButton>
           </>
         }
-        quickEdit={
-          <Stack gap="md">
-            <SectionIntro
-              description={undefined}
-              eyebrow="빠른 수정"
-              title="기록 상태 조정"
-              titleOrder={3}
+        recordSections={<ProgressOnlySection onError={setActionError} work={work} />}
+        relatedSections={
+          <>
+            <VolumeRecordsSection
+              localRecords={localReleaseRecords}
+              onError={setActionError}
+              releaseData={releaseData}
+              work={work}
             />
-
-            <NativeSelect
-              aria-label={`${work.title} 상세 상태`}
-              disabled={isQuickUpdating}
-              id={`detail-status-${work.id}`}
-              label="상태"
-              onChange={(event) =>
-                void handleQuickUpdate({
-                  status: event.currentTarget
-                    .value as (typeof workStatusOptions)[number]['value'],
-                })
-              }
-              value={work.status}
-            >
-              {workStatusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </NativeSelect>
-
-            <StarRatingControl
-              disabled={isQuickUpdating}
-              label={`${work.title} 상세 별점`}
-              onCommit={(nextRating) => handleQuickUpdate({ rating: nextRating })}
-              rating={work.rating}
-            />
-
-            <Text c="var(--app-text-muted)" size="sm">
-              {isQuickUpdating
-                ? '변경 사항을 반영하고 있습니다.'
-                : '상태와 별점은 즉시 반영됩니다.'}
-            </Text>
-          </Stack>
+            <RelatedTitlesSection relatedData={relatedData} />
+          </>
         }
         work={work}
-      >
-        <ProgressOnlySection onError={setActionError} work={work} />
-        <VolumeRecordsSection
-          localRecords={localReleaseRecords}
-          onError={setActionError}
-          releaseData={releaseData}
-          work={work}
-        />
-        <RelatedTitlesSection relatedData={relatedData} />
-      </WorkDetailPanel>
+      />
     </DetailPageTemplate>
   );
 }
