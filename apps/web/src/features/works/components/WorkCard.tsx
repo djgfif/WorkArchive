@@ -1,4 +1,4 @@
-import { Box, Stack, Text, Title } from '@mantine/core';
+import { Box, Progress, Stack, Text, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
@@ -21,21 +21,53 @@ interface WorkCardProps {
   work: WorkRecord;
 }
 
+function getProgressPercent(work: WorkRecord) {
+  const current = work.progressCurrent ?? null;
+  const total = work.progressTotal ?? null;
+
+  if (current === null || total === null || total <= 0) {
+    return null;
+  }
+
+  return Math.min(100, Math.round((current / total) * 100));
+}
+
+function getProgressLabel(work: WorkRecord) {
+  if (work.lastConsumedLabel) {
+    return work.lastConsumedLabel;
+  }
+
+  const current = work.progressCurrent ?? null;
+  const total = work.progressTotal ?? null;
+
+  if (current !== null && total !== null) {
+    return `${current}/${total}`;
+  }
+
+  if (current !== null) {
+    return `${current}까지 기록`;
+  }
+
+  return null;
+}
+
 export function WorkCard({ onDelete, work }: WorkCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
   const statusLabel = getWorkStatusLabel(work.status);
   const visibleGenres = work.genres.slice(0, 3);
-  const ratingLabel = work.rating === null ? '미평가' : `${work.rating.toFixed(1)}점`;
+  const ratingLabel = work.rating === null ? '별점 미평가' : `별점 ${work.rating.toFixed(1)}`;
+  const progressLabel = getProgressLabel(work);
+  const progressPercent = getProgressPercent(work);
 
   return (
-    <SectionCard gap="sm" padding="sm">
+    <SectionCard gap="sm" padding="sm" tone="subtle">
       <Box pos="relative" w="100%">
-        <Box maw={128}>
+        <Box w="100%">
           <ArtworkPoster
             thumbnailUrl={work.thumbnailUrl}
             title={work.title}
             typeLabel={typeLabel}
-            variant="card"
+            variant="grid"
           />
         </Box>
         <Box
@@ -47,13 +79,23 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
         >
           <AppBadge tone="accent">{statusLabel}</AppBadge>
         </Box>
+        {work.favorite && (
+          <Box
+            pos="absolute"
+            style={{
+              right: '0.45rem',
+              top: '0.45rem',
+            }}
+          >
+            <AppBadge tone="accent">즐겨찾기</AppBadge>
+          </Box>
+        )}
       </Box>
 
       <Stack gap="sm">
-        <ActionRow>
+        <ActionRow justify="space-between">
           <AppBadge>{ratingLabel}</AppBadge>
           <AppBadge>{typeLabel}</AppBadge>
-          {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
         </ActionRow>
 
         <div>
@@ -81,6 +123,28 @@ export function WorkCard({ onDelete, work }: WorkCardProps) {
             <AppBadge>+{work.genres.length - visibleGenres.length}</AppBadge>
           )}
         </ActionRow>
+
+        {progressLabel && (
+          <Stack gap={4}>
+            <ActionRow justify="space-between">
+              <Text c="var(--app-text-muted)" fw={700} size="xs">
+                진행도
+              </Text>
+              <Text c="var(--app-text-secondary)" size="xs">
+                {progressLabel}
+              </Text>
+            </ActionRow>
+            {progressPercent !== null && (
+              <Progress
+                aria-label={`${work.title} 진행도 ${progressPercent}%`}
+                color="archive"
+                radius="xl"
+                size="xs"
+                value={progressPercent}
+              />
+            )}
+          </Stack>
+        )}
 
         <ActionRow justify="space-between">
           <AppLinkButton size="compact-sm" to={`/works/${work.id}`} tone="quiet">

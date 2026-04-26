@@ -430,11 +430,71 @@ describe('QuickAddWorkForm', () => {
     expect(
       screen.getAllByText(/추천 이유: 제목 정확히 일치 · 카탈로그 매칭됨/).length,
     ).toBeGreaterThan(0);
-    expect(screen.getAllByText('외부 식별자 2').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('릴리스 후보 1').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('외부 식별자 2개').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('릴리스 후보 1개').length).toBeGreaterThan(0);
+    expect(screen.getByText('검색 근거')).toBeInTheDocument();
     expect(screen.getByText('검색 출처')).toBeInTheDocument();
     expect(screen.getByText('provider에서 보기')).toBeInTheDocument();
     expect(screen.getAllByText(candidate.note).length).toBeGreaterThan(0);
+  });
+
+  it('shows merged provider source coverage for search candidates', async () => {
+    const candidate = buildCandidate({
+      confidenceLabel: 'ISBN 확인됨',
+      externalId: 'gb-1',
+      externalRefs: [
+        {
+          externalId: 'gb-1',
+          provider: 'google_books',
+          rawType: 'book',
+          url: 'https://example.com/google-books/gb-1',
+        },
+        {
+          externalId: 'ol-1',
+          provider: 'open_library',
+          rawType: 'book',
+          url: 'https://example.com/open-library/ol-1',
+        },
+      ],
+      reason: 'Google Books / Open Library에서 같은 ISBN 확인',
+      releaseCandidates: [
+        {
+          displayLabel: 'ISBN edition',
+          externalRefs: [
+            {
+              externalId: 'isbn-9781234567890',
+              provider: 'open_library',
+              rawType: 'isbn',
+              url: 'https://example.com/open-library/isbn',
+            },
+          ],
+          isbn: '9781234567890',
+          releaseType: 'book',
+          title: 'Dune',
+        },
+      ],
+      sourceId: 'google_books',
+      sourceLabel: 'Google Books',
+    });
+
+    mockAuthenticatedSearchResponse([candidate]);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedQuickAdd();
+    await searchAndSelectCandidate(user, 'Dune', candidate.title);
+
+    expect(screen.getAllByText('출처 2개').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Google Books').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Open Library').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('외부 식별자 3개').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('릴리스 후보 1개').length).toBeGreaterThan(0);
+    expect(screen.getByText('검색 근거')).toBeInTheDocument();
+    expect(screen.getAllByText('ISBN 확인됨').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText('Google Books / Open Library에서 같은 ISBN 확인')
+        .length,
+    ).toBeGreaterThan(0);
   });
 
   it('shows direct manual add as the default guest path before search is used', () => {
@@ -554,6 +614,11 @@ describe('QuickAddWorkForm', () => {
     const [firstFetchInput, firstFetchInit] = searchFetchCall!;
 
     expect(String(firstFetchInput)).toContain('/imports/search?');
+    expect(
+      new URL(String(firstFetchInput), 'http://localhost').searchParams.get(
+        'providers',
+      ),
+    ).toBeNull();
     expect(firstFetchInit).toMatchObject({
       method: 'GET',
     });
@@ -563,6 +628,89 @@ describe('QuickAddWorkForm', () => {
     expect(await waitFor(() => getElementById<HTMLInputElement>('title'))).toHaveValue(
       candidate.title,
     );
+  });
+
+  it('passes selected provider group ids to external search', async () => {
+    const candidate = buildCandidate();
+    const fetchMock = mockAuthenticatedSearchResponse([candidate]);
+    const user = userEvent.setup();
+
+    renderAuthenticatedQuickAdd();
+
+    await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+    await user.click(screen.getByRole('button', { name: '도서' }));
+
+    const searchInput = getElementById<HTMLInputElement>('quickAddSearch');
+    await user.type(searchInput, 'Dune');
+
+    const searchForm = searchInput.closest('form');
+    expect(searchForm).not.toBeNull();
+    await user.click(searchForm!.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          String(input).includes('/imports/search?'),
+        ),
+      ).toBe(true);
+    });
+
+    const searchFetchCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes('/imports/search?'),
+    );
+    const [firstFetchInput] = searchFetchCall!;
+
+    expect(
+      new URL(String(firstFetchInput), 'http://localhost').searchParams.get(
+        'providers',
+      ),
+    ).toBe('google_books,open_library,aladin,naver_book,kakao_book');
+  });
+
+  it('requests only the manual provider for the direct-add search group', async () => {
+    const candidate = buildCandidate({
+      sourceId: 'manual',
+      sourceLabel: '직접 추가',
+    });
+    const fetchMock = mockAuthenticatedSearchResponse([candidate]);
+    const user = userEvent.setup();
+
+    renderAuthenticatedQuickAdd();
+
+    await user.click(screen.getByRole('button', { name: '검색으로 추가' }));
+    const manualProviderGroupButton = screen
+      .getAllByRole('button', { name: '직접 추가' })
+      .find((button) => button.closest('form'));
+
+    expect(manualProviderGroupButton).toBeDefined();
+
+    await user.click(manualProviderGroupButton!);
+
+    const searchInput = getElementById<HTMLInputElement>('quickAddSearch');
+    await user.type(searchInput, 'Dune');
+
+    const searchForm = searchInput.closest('form');
+    expect(searchForm).not.toBeNull();
+    await user.click(searchForm!.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          String(input).includes('/imports/search?'),
+        ),
+      ).toBe(true);
+    });
+
+    const searchFetchCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes('/imports/search?'),
+    );
+    const [firstFetchInput] = searchFetchCall!;
+
+    expect(
+      new URL(String(firstFetchInput), 'http://localhost').searchParams.get(
+        'providers',
+      ),
+    ).toBe('manual');
   });
 
   it('offers direct manual add when external search returns no candidates', async () => {
