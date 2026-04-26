@@ -71,6 +71,7 @@ interface QuickAddWorkFormProps {
 }
 
 type AddMode = 'manual' | 'search';
+type ProviderGroup = 'all' | 'animation_comics' | 'books' | 'manual' | 'screen';
 
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
   const value = (index + 1) * 0.5;
@@ -122,6 +123,51 @@ const quickAddMediumOptions: Array<{
     value: 'webtoon',
   },
 ];
+
+const providerGroupOptions: Array<{
+  description: string;
+  label: string;
+  providers: string[] | null;
+  value: ProviderGroup;
+}> = [
+  {
+    description: '사용 가능한 provider 전체',
+    label: '전체',
+    providers: null,
+    value: 'all',
+  },
+  {
+    description: 'Google Books, Open Library, 국내 도서 provider',
+    label: '도서',
+    providers: ['google_books', 'open_library', 'aladin', 'naver_book', 'kakao_book'],
+    value: 'books',
+  },
+  {
+    description: 'AniList와 도서 기반 만화 후보',
+    label: '애니·만화',
+    providers: ['anilist', 'google_books', 'open_library'],
+    value: 'animation_comics',
+  },
+  {
+    description: '영상 provider 중심',
+    label: '영상',
+    providers: ['tmdb', 'tvmaze', 'kobis'],
+    value: 'screen',
+  },
+  {
+    description: '검색 실패 시 직접 입력 후보',
+    label: '직접 추가',
+    providers: ['manual'],
+    value: 'manual',
+  },
+];
+
+function getProviderGroupProviders(providerGroup: ProviderGroup) {
+  return (
+    providerGroupOptions.find((option) => option.value === providerGroup)
+      ?.providers ?? null
+  );
+}
 
 function createQuickAddDefaults(): WorkFormValues {
   return {
@@ -339,6 +385,84 @@ function getCandidateExternalIdentityCount(candidate: ImportCandidate) {
   );
 }
 
+const providerDisplayLabels: Record<string, string> = {
+  aladin: 'Aladin Book',
+  anilist: 'AniList',
+  google_books: 'Google Books',
+  kakao_book: 'Kakao Book',
+  kobis: 'KOBIS',
+  manual: '직접 추가',
+  naver_book: 'Naver Book',
+  open_library: 'Open Library',
+  preview_manual: '직접 추가',
+  'preview-manual': '직접 추가',
+  tmdb: 'TMDB',
+  tvmaze: 'TVmaze',
+};
+
+interface CandidateSourceCoverage {
+  externalIdentityCount: number;
+  providerCountLabel: string;
+  providerLabels: string[];
+  releaseCandidateCount: number;
+  summaryLabel: string;
+}
+
+function formatProviderLabel(provider: string, candidate: ImportCandidate) {
+  if (provider === candidate.sourceId && candidate.sourceLabel.trim()) {
+    return candidate.sourceLabel;
+  }
+
+  return (
+    providerDisplayLabels[provider] ??
+    provider
+      .split(/[_-]/g)
+      .filter(Boolean)
+      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+      .join(' ')
+  );
+}
+
+function getCandidateSourceCoverage(
+  candidate: ImportCandidate,
+): CandidateSourceCoverage {
+  const providerLabels = new Map<string, string>();
+
+  if (candidate.sourceId && candidate.sourceLabel.trim()) {
+    providerLabels.set(candidate.sourceId, candidate.sourceLabel);
+  }
+
+  for (const ref of candidate.externalRefs) {
+    providerLabels.set(ref.provider, formatProviderLabel(ref.provider, candidate));
+  }
+
+  for (const releaseCandidate of candidate.releaseCandidates) {
+    for (const ref of releaseCandidate.externalRefs ?? []) {
+      providerLabels.set(ref.provider, formatProviderLabel(ref.provider, candidate));
+    }
+  }
+
+  if (providerLabels.size === 0 && candidate.sourceLabel.trim()) {
+    providerLabels.set(candidate.sourceLabel, candidate.sourceLabel);
+  }
+
+  const externalIdentityCount = getCandidateExternalIdentityCount(candidate);
+  const releaseCandidateCount = candidate.releaseCandidates.length;
+  const providerCount = providerLabels.size;
+
+  return {
+    externalIdentityCount,
+    providerCountLabel: `출처 ${providerCount}개`,
+    providerLabels: [...providerLabels.values()],
+    releaseCandidateCount,
+    summaryLabel: [
+      `출처 ${providerCount}개`,
+      `외부 식별자 ${externalIdentityCount}개`,
+      `릴리스 후보 ${releaseCandidateCount}개`,
+    ].join(' · '),
+  };
+}
+
 interface ProviderGroupLineProps {
   group: ProviderReadinessGroup;
   tone?: 'accent' | 'muted' | 'success' | 'warning';
@@ -437,7 +561,7 @@ function CandidateRow({
   duplicateCount,
   onSelect,
 }: CandidateRowProps) {
-  const externalIdentityCount = getCandidateExternalIdentityCount(candidate);
+  const sourceCoverage = getCandidateSourceCoverage(candidate);
 
   return (
     <button
@@ -476,7 +600,7 @@ function CandidateRow({
           <ActionRow justify="space-between">
             <ActionRow>
               {active && <AppBadge tone="accent">선택됨</AppBadge>}
-              <AppBadge tone="accent">{candidate.sourceLabel}</AppBadge>
+              <AppBadge tone="accent">{sourceCoverage.providerCountLabel}</AppBadge>
               <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
               {candidate.releaseYear && <AppBadge>{candidate.releaseYear}</AppBadge>}
             </ActionRow>
@@ -496,6 +620,14 @@ function CandidateRow({
           </div>
 
           <ActionRow>
+            {sourceCoverage.providerLabels.map((providerLabel) => (
+              <AppBadge key={providerLabel} tone="muted">
+                {providerLabel}
+              </AppBadge>
+            ))}
+          </ActionRow>
+
+          <ActionRow>
             {candidate.subType && <AppBadge>{candidate.subType}</AppBadge>}
             {candidate.franchiseName && (
               <AppBadge tone="success">{candidate.franchiseName}</AppBadge>
@@ -506,12 +638,14 @@ function CandidateRow({
             {candidate.catalogMatch && !candidate.existingRecord && (
               <AppBadge tone="success">카탈로그 매칭</AppBadge>
             )}
-            {externalIdentityCount > 0 && (
-              <AppBadge tone="muted">외부 식별자 {externalIdentityCount}</AppBadge>
-            )}
-            {candidate.releaseCandidates.length > 0 && (
+            {sourceCoverage.externalIdentityCount > 0 && (
               <AppBadge tone="muted">
-                릴리스 후보 {candidate.releaseCandidates.length}
+                외부 식별자 {sourceCoverage.externalIdentityCount}개
+              </AppBadge>
+            )}
+            {sourceCoverage.releaseCandidateCount > 0 && (
+              <AppBadge tone="muted">
+                릴리스 후보 {sourceCoverage.releaseCandidateCount}개
               </AppBadge>
             )}
           </ActionRow>
@@ -861,7 +995,7 @@ function SelectedCandidatePreview({
   candidate,
   values,
 }: SelectedCandidatePreviewProps) {
-  const externalIdentityCount = getCandidateExternalIdentityCount(candidate);
+  const sourceCoverage = getCandidateSourceCoverage(candidate);
 
   return (
     <Paper
@@ -886,7 +1020,7 @@ function SelectedCandidatePreview({
         <Stack flex={1} gap="md" miw={0}>
           <Stack gap="xs">
             <ActionRow>
-              <AppBadge tone="accent">{candidate.sourceLabel}</AppBadge>
+              <AppBadge tone="accent">{sourceCoverage.providerCountLabel}</AppBadge>
               <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
               <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
               {candidate.releaseYear && <AppBadge>{candidate.releaseYear}</AppBadge>}
@@ -911,11 +1045,51 @@ function SelectedCandidatePreview({
           </Text>
 
           <ActionRow>
-            <MetricPill label="검색 출처" value={candidate.sourceLabel} />
+            <MetricPill label="검색 출처" value={sourceCoverage.summaryLabel} />
             <MetricPill label="신뢰도" value={candidate.confidenceLabel} />
             <MetricPill label="형식" value={candidate.formatLabel} />
             <MetricPill label="추천 이유" value={candidate.reason} />
           </ActionRow>
+
+          <Paper
+            p="sm"
+            radius="md"
+            styles={{
+              root: {
+                backgroundColor: 'var(--app-surface-0)',
+                borderColor: 'var(--app-border-color)',
+              },
+            }}
+            withBorder
+          >
+            <Stack gap="xs">
+              <Text c="var(--app-text-muted)" fw={700} size="sm">
+                검색 근거
+              </Text>
+              <ActionRow>
+                <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
+                <AppBadge tone={candidate.catalogMatch ? 'success' : 'muted'}>
+                  {candidate.catalogMatch ? '카탈로그 매칭 있음' : '카탈로그 매칭 없음'}
+                </AppBadge>
+                <AppBadge tone="muted">
+                  외부 식별자 {sourceCoverage.externalIdentityCount}개
+                </AppBadge>
+                <AppBadge tone="muted">
+                  릴리스 후보 {sourceCoverage.releaseCandidateCount}개
+                </AppBadge>
+              </ActionRow>
+              <Text c="var(--app-text-secondary)" size="sm">
+                {candidate.reason}
+              </Text>
+              <ActionRow>
+                {sourceCoverage.providerLabels.map((providerLabel) => (
+                  <AppBadge key={providerLabel} tone="muted">
+                    {providerLabel}
+                  </AppBadge>
+                ))}
+              </ActionRow>
+            </Stack>
+          </Paper>
 
           <Paper
             p="sm"
@@ -936,14 +1110,14 @@ function SelectedCandidatePreview({
                 {candidate.franchiseName && (
                   <AppBadge tone="success">{candidate.franchiseName}</AppBadge>
                 )}
-                {externalIdentityCount > 0 && (
+                {sourceCoverage.externalIdentityCount > 0 && (
                   <AppBadge tone="muted">
-                    외부 식별자 {externalIdentityCount}
+                    외부 식별자 {sourceCoverage.externalIdentityCount}개
                   </AppBadge>
                 )}
-                {candidate.releaseCandidates.length > 0 && (
+                {sourceCoverage.releaseCandidateCount > 0 && (
                   <AppBadge tone="muted">
-                    릴리스 후보 {candidate.releaseCandidates.length}
+                    릴리스 후보 {sourceCoverage.releaseCandidateCount}개
                   </AppBadge>
                 )}
               </ActionRow>
@@ -981,6 +1155,7 @@ export function QuickAddWorkForm({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchMedium, setSearchMedium] =
     useState<CatalogSearchMediumType>('all');
+  const [providerGroup, setProviderGroup] = useState<ProviderGroup>('all');
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
   const [candidates, setCandidates] = useState<ImportCandidate[]>([]);
   const [existingWorks, setExistingWorks] = useState<WorkRecord[]>([]);
@@ -1067,9 +1242,13 @@ export function QuickAddWorkForm({
     try {
       setIsSearching(true);
 
+      const providerGroupProviders = getProviderGroupProviders(providerGroup);
       const result = await importsService.searchCandidates(normalizedSearchTerm, {
         limit: 10,
         mediumType: searchMedium,
+        ...(providerGroupProviders
+          ? { providers: providerGroupProviders }
+          : {}),
         useExternal: true,
       });
 
@@ -1327,39 +1506,71 @@ export function QuickAddWorkForm({
             />
 
             <form onSubmit={handleSearchSubmit}>
-              <Group align="flex-end" gap="sm" wrap="wrap">
-                <NativeSelect
-                  id="quickAddMedium"
-                  label="매체"
-                  onChange={(event) =>
-                    setSearchMedium(event.currentTarget.value as CatalogSearchMediumType)
-                  }
-                  value={searchMedium}
-                >
-                  {quickAddMediumOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </NativeSelect>
+              <Stack gap="sm">
+                <Stack gap={6}>
+                  <Text c="var(--app-text-muted)" fw={700} size="sm">
+                    검색 범위
+                  </Text>
+                  <ActionRow>
+                    {providerGroupOptions.map((option) => (
+                      <AppButton
+                        aria-pressed={providerGroup === option.value}
+                        key={option.value}
+                        onClick={() => setProviderGroup(option.value)}
+                        size="compact-sm"
+                        tone={
+                          providerGroup === option.value ? 'primary' : 'secondary'
+                        }
+                        type="button"
+                      >
+                        {option.label}
+                      </AppButton>
+                    ))}
+                  </ActionRow>
+                  <Text c="var(--app-text-muted)" size="xs">
+                    {
+                      providerGroupOptions.find(
+                        (option) => option.value === providerGroup,
+                      )?.description
+                    }
+                    . 일부 provider는 로그인 또는 서버 설정이 필요할 수 있습니다.
+                  </Text>
+                </Stack>
 
-                <TextInput
-                  style={{ flex: '1 1 18rem' }}
-                  id="quickAddSearch"
-                  label="작품 검색"
-                  onChange={(event) => setSearchTerm(event.currentTarget.value)}
-                  placeholder="제목, IP, 작가, 스튜디오를 입력하세요"
-                  value={searchTerm}
-                />
-                <AppButton
-                  disabled={isSearching}
-                  loading={isSearching}
-                  tone="primary"
-                  type="submit"
-                >
-                  {isSearching ? '검색 중...' : '검색'}
-                </AppButton>
-              </Group>
+                <Group align="flex-end" gap="sm" wrap="wrap">
+                  <NativeSelect
+                    id="quickAddMedium"
+                    label="매체"
+                    onChange={(event) =>
+                      setSearchMedium(event.currentTarget.value as CatalogSearchMediumType)
+                    }
+                    value={searchMedium}
+                  >
+                    {quickAddMediumOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </NativeSelect>
+
+                  <TextInput
+                    style={{ flex: '1 1 18rem' }}
+                    id="quickAddSearch"
+                    label="작품 검색"
+                    onChange={(event) => setSearchTerm(event.currentTarget.value)}
+                    placeholder="제목, IP, 작가, 스튜디오를 입력하세요"
+                    value={searchTerm}
+                  />
+                  <AppButton
+                    disabled={isSearching}
+                    loading={isSearching}
+                    tone="primary"
+                    type="submit"
+                  >
+                    {isSearching ? '검색 중...' : '검색'}
+                  </AppButton>
+                </Group>
+              </Stack>
             </form>
           </SectionCard>
 

@@ -90,7 +90,7 @@ export function WorksListPage() {
   const [query, setQuery] = useState<WorksListQuery>(() =>
     getQueryFromSearchParams(searchParams),
   );
-  const [viewMode, setViewMode] = useState<WorksViewMode>('list');
+  const [viewMode, setViewMode] = useState<WorksViewMode>('grid');
   const [actionError, setActionError] = useState<string | null>(null);
   const [updatingWorkId, setUpdatingWorkId] = useState<string | null>(null);
   const [restoringWorkId, setRestoringWorkId] = useState<string | null>(null);

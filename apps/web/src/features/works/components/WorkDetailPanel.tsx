@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Box, Grid, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { Box, Grid, Group, Progress, Stack, Text, Title } from '@mantine/core';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
@@ -7,6 +7,7 @@ import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
   AppBadge,
+  AppLinkButton,
   KeyValueGrid,
   MetricPill,
   PageSection,
@@ -33,6 +34,36 @@ function renderRatingLabel(work: WorkRecord) {
   return work.rating === null ? '미평가' : `${work.rating.toFixed(1)}점`;
 }
 
+function getProgressPercent(work: WorkRecord) {
+  const current = work.progressCurrent ?? null;
+  const total = work.progressTotal ?? null;
+
+  if (current === null || total === null || total <= 0) {
+    return null;
+  }
+
+  return Math.min(100, Math.round((current / total) * 100));
+}
+
+function getProgressLabel(work: WorkRecord) {
+  if (work.lastConsumedLabel) {
+    return work.lastConsumedLabel;
+  }
+
+  const current = work.progressCurrent ?? null;
+  const total = work.progressTotal ?? null;
+
+  if (current !== null && total !== null) {
+    return `${current}/${total}`;
+  }
+
+  if (current !== null) {
+    return `${current}까지 기록`;
+  }
+
+  return null;
+}
+
 export function WorkDetailPanel({
   actions,
   children,
@@ -45,6 +76,14 @@ export function WorkDetailPanel({
   const syncLabel = getWorkSyncStatusLabel(work.syncStatus);
   const shortReview = work.shortReview.trim();
   const review = work.review.trim();
+  const progressLabel = getProgressLabel(work);
+  const progressPercent = getProgressPercent(work);
+  const hasPersonalReview = shortReview.length > 0 || review.length > 0;
+  const sourceIdentityLabel = work.catalogTitleId
+    ? '카탈로그 연결됨'
+    : work.importDraft
+      ? '외부 검색 초안'
+      : '직접 기록';
 
   return (
     <Stack gap="xl">
@@ -67,6 +106,7 @@ export function WorkDetailPanel({
           <Stack flex={1} gap="lg" miw={0} style={{ minWidth: 'min(100%, 26rem)' }}>
             <ActionRow>
               <AppBadge>{typeLabel}</AppBadge>
+              <AppBadge tone="accent">{statusLabel}</AppBadge>
               <AppBadge>{syncLabel}</AppBadge>
               {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
             </ActionRow>
@@ -82,25 +122,23 @@ export function WorkDetailPanel({
               <MetricPill label="상태" value={statusLabel} />
               <MetricPill label="내 평점" value={renderRatingLabel(work)} />
               <MetricPill label="티어" value={tierLabel} />
+              {progressLabel && <MetricPill label="진행도" value={progressLabel} />}
             </Group>
 
-            <Paper
-              p="lg"
-              styles={{
-                root: {
-                  backgroundColor: 'var(--app-surface-1)',
-                  borderColor: 'var(--app-border-color)',
-                },
-              }}
-              withBorder
-            >
-              <SectionIntro
-                description={undefined}
-                eyebrow="한줄평"
-                title={shortReview || '아직 남긴 한줄평이 없습니다.'}
-                titleOrder={3}
-              />
-            </Paper>
+            {progressPercent !== null && (
+              <Stack gap={4}>
+                <Text c="var(--app-text-muted)" fw={700} size="sm">
+                  진행률 {progressPercent}%
+                </Text>
+                <Progress
+                  aria-label={`${work.title} 상세 진행도 ${progressPercent}%`}
+                  color="archive"
+                  radius="xl"
+                  size="sm"
+                  value={progressPercent}
+                />
+              </Stack>
+            )}
 
             {actions && <ActionRow>{actions}</ActionRow>}
           </Stack>
@@ -110,16 +148,46 @@ export function WorkDetailPanel({
       <Grid align="start" gutter="xl">
         <Grid.Col span={{ base: 12, lg: 8 }}>
           <Stack gap="xl">
-          <PageSection
-            description={undefined}
-            divider={false}
-            eyebrow="내 기록"
-            title="상세 감상"
-          >
-            <Text c={review ? 'var(--app-text-secondary)' : 'var(--app-text-muted)'} lh={1.8}>
-              {review || '아직 남긴 상세 감상이 없습니다.'}
-            </Text>
-          </PageSection>
+            <PageSection
+              description="이 영역은 작품 소개가 아니라 내 감상과 기록을 다시 읽는 공간입니다."
+              divider={false}
+              eyebrow="내 기록"
+              title="감상 기록"
+            >
+              <Stack gap="lg">
+                <Stack gap="xs">
+                  <Text c="var(--app-text-muted)" fw={700} size="sm">
+                    한줄평
+                  </Text>
+                  <Title
+                    c={shortReview ? 'var(--app-text-strong)' : 'var(--app-text-muted)'}
+                    order={3}
+                  >
+                    {shortReview || '아직 남긴 한줄평이 없습니다.'}
+                  </Title>
+                </Stack>
+
+                <Stack gap="xs">
+                  <Text c="var(--app-text-muted)" fw={700} size="sm">
+                    상세 감상
+                  </Text>
+                  <Text
+                    c={review ? 'var(--app-text-secondary)' : 'var(--app-text-muted)'}
+                    lh={1.8}
+                  >
+                    {review || '아직 남긴 상세 감상이 없습니다.'}
+                  </Text>
+                </Stack>
+
+                {!hasPersonalReview && (
+                  <ActionRow>
+                    <AppLinkButton to={`/works/${work.id}/edit?focus=review`} tone="primary">
+                      감상 기록 추가
+                    </AppLinkButton>
+                  </ActionRow>
+                )}
+              </Stack>
+            </PageSection>
 
           <PageSection
             description="작품 자체의 소개와 배경은 기록 다음에 확인할 수 있도록 분리했습니다."
@@ -154,6 +222,9 @@ export function WorkDetailPanel({
                     { label: '현재 상태', value: statusLabel },
                     { label: '별점', value: renderRatingLabel(work) },
                     { label: '티어', value: tierLabel },
+                    ...(progressLabel
+                      ? [{ label: '진행도', value: progressLabel }]
+                      : []),
                     { label: '즐겨찾기', value: work.favorite ? '등록함' : '없음' },
                   ]}
                 />
@@ -169,6 +240,7 @@ export function WorkDetailPanel({
                       value: work.genres.length > 0 ? work.genres.join(', ') : '없음',
                     },
                     { label: '유형', value: typeLabel },
+                    { label: '식별 방식', value: sourceIdentityLabel },
                     { label: '동기화 상태', value: syncLabel },
                     { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
                     { label: '수정한 날', value: formatWorkDateTime(work.updatedAt) },

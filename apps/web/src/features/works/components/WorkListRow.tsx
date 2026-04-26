@@ -1,4 +1,4 @@
-import { Box, Group, NativeSelect, Stack, Text, Title } from '@mantine/core';
+import { Box, Group, NativeSelect, Progress, Stack, Text, Title } from '@mantine/core';
 import type { WorkStatus, WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
@@ -42,6 +42,36 @@ function formatRatingLabel(value: number | null) {
   return value === null ? '미평가' : `${value.toFixed(1)}점`;
 }
 
+function getProgressPercent(work: WorkRecord) {
+  const current = work.progressCurrent ?? null;
+  const total = work.progressTotal ?? null;
+
+  if (current === null || total === null || total <= 0) {
+    return null;
+  }
+
+  return Math.min(100, Math.round((current / total) * 100));
+}
+
+function getProgressLabel(work: WorkRecord) {
+  if (work.lastConsumedLabel) {
+    return work.lastConsumedLabel;
+  }
+
+  const current = work.progressCurrent ?? null;
+  const total = work.progressTotal ?? null;
+
+  if (current !== null && total !== null) {
+    return `${current}/${total}`;
+  }
+
+  if (current !== null) {
+    return `${current}까지 기록`;
+  }
+
+  return null;
+}
+
 export function WorkListRow({
   isLast = false,
   isUpdating,
@@ -50,6 +80,8 @@ export function WorkListRow({
   work,
 }: WorkListRowProps) {
   const typeLabel = getWorkTypeLabel(work.type);
+  const progressLabel = getProgressLabel(work);
+  const progressPercent = getProgressPercent(work);
 
   return (
     <Box
@@ -89,6 +121,23 @@ export function WorkListRow({
             <Text c="var(--app-text-secondary)" lineClamp={2} size="sm">
               {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
             </Text>
+
+            {progressLabel && (
+              <Stack gap={4}>
+                <ActionRow>
+                  <AppBadge tone="muted">진행도 {progressLabel}</AppBadge>
+                </ActionRow>
+                {progressPercent !== null && (
+                  <Progress
+                    aria-label={`${work.title} 진행도 ${progressPercent}%`}
+                    color="archive"
+                    radius="xl"
+                    size="xs"
+                    value={progressPercent}
+                  />
+                )}
+              </Stack>
+            )}
           </Stack>
         </Group>
 

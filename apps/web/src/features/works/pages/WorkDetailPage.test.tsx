@@ -47,6 +47,12 @@ describe('WorkDetailPage', () => {
       tier: 'S',
       favorite: true,
     });
+    await worksService.updateProgress(work.id, {
+      lastConsumedLabel: '2권까지',
+      progressCurrent: 2,
+      progressTotal: 3,
+      progressUnit: 'volume',
+    });
 
     const router = createMemoryRouter(appRoutes, {
       initialEntries: [`/works/${work.id}`],
@@ -59,6 +65,8 @@ describe('WorkDetailPage', () => {
     );
 
     expect(await screen.findByText('내 평점')).toBeInTheDocument();
+    expect(screen.getAllByText('2권까지').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Dune 상세 진행도 67%')).toBeInTheDocument();
     expect(screen.getByText('세계관의 밀도와 긴장감이 오래 남는다.')).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -97,6 +105,7 @@ describe('WorkDetailPage', () => {
     );
 
     await screen.findByRole('heading', { name: 'Frieren' });
+    expect(screen.getByRole('link', { name: '감상 기록 추가' })).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText('Frieren 상세 상태'), 'completed');
     await waitFor(() => {

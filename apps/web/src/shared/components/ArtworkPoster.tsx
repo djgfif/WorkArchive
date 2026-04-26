@@ -6,7 +6,7 @@ interface ArtworkPosterProps {
   thumbnailUrl?: string;
   title: string;
   typeLabel?: string;
-  variant?: 'card' | 'detail' | 'form' | 'row';
+  variant?: 'card' | 'detail' | 'form' | 'grid' | 'row';
 }
 
 function getPosterSize(variant: ArtworkPosterProps['variant']) {
@@ -17,6 +17,8 @@ function getPosterSize(variant: ArtworkPosterProps['variant']) {
       return '8.75rem';
     case 'row':
       return '5.5rem';
+    case 'grid':
+      return '100%';
     case 'card':
     default:
       return '7rem';
