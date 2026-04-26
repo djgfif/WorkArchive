@@ -64,7 +64,7 @@ describe('WorkDetailPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('내 평점')).toBeInTheDocument();
+    expect(await screen.findByText('별점')).toBeInTheDocument();
     expect(screen.getAllByText('2권까지').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Dune 상세 진행도 67%')).toBeInTheDocument();
     expect(screen.getByText('세계관의 밀도와 긴장감이 오래 남는다.')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('WorkDetailPage', () => {
     expect(screen.queryByText('상세 감상')).not.toHaveTextContent('있음');
   });
 
-  it('keeps quick edits on detail and links naturally into review editing', async () => {
+  it('keeps detail read-first and links naturally into review editing', async () => {
     const work = await worksService.createWork({
       type: 'novel',
       title: 'Frieren',
@@ -105,16 +105,11 @@ describe('WorkDetailPage', () => {
     );
 
     await screen.findByRole('heading', { name: 'Frieren' });
-    expect(screen.getByRole('link', { name: '감상 기록 추가' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '리뷰 쓰기' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: '기록 수정' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Frieren 상세 상태')).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText('Frieren 상세 상태'), 'completed');
-    await waitFor(() => {
-      expect(
-        (screen.getByLabelText('Frieren 상세 상태') as HTMLSelectElement).value,
-      ).toBe('completed');
-    });
-
-    await user.click(screen.getByRole('link', { name: '리뷰 쓰기' }));
+    await user.click(screen.getAllByRole('link', { name: '리뷰 쓰기' })[0]!);
 
     expect(await screen.findByRole('heading', { name: 'Frieren 감상 수정' })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: '저장' })).toBeInTheDocument();

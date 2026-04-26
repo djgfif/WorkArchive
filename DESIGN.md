@@ -254,6 +254,26 @@ Forms should feel like record capture, not administration. Inputs sit on slightl
 
 Poster artwork is a key visual anchor. It uses a 3:4 ratio and rounded bordered containment. If artwork is missing or fails to load, show a typographic placeholder using the title initial and media type label.
 
+## Layout Rules
+
+- Creation screens use form-first layouts.
+- Search selection uses a modal master-detail picker.
+- Library browsing uses a poster-first grid.
+- Detail pages use section-based layouts.
+- Primary selection flows must not use expandable cards.
+- Use accordion only for secondary metadata.
+- Cards should not contain more than 3 metadata chips.
+
+## Preferred Patterns
+
+- `PosterTile`
+- `SearchPickerModal`
+- `CandidateListRow`
+- `CandidatePreviewPanel`
+- `RecordDetailSection`
+- `CompactToolbar`
+- `EmptyState`
+
 ## Interaction and Motion
 
 Motion is minimal. Use short transitions for border color changes, background color changes, text color changes, and active navigation changes. Avoid complex motion, large movement, and ornamental animation. Respect reduced-motion preferences aggressively.

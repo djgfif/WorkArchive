@@ -60,11 +60,14 @@ describe('WorksListPage', () => {
 
     expect(await screen.findByText(/작품 2개가 등록되어 있습니다\./)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '리스트' })).toBeInTheDocument();
-    expect(screen.queryByText(/리스트 뷰에서는 상태와 별점을 바로 바꿀 수 있습니다\./)).not.toBeInTheDocument();
     expect(screen.getByText('완료')).toBeInTheDocument();
     expect(screen.getByText('별점 5.0')).toBeInTheDocument();
-    expect(screen.getByText('모래 행성의 정치와 신화가 좋다.')).toBeInTheDocument();
-    expect(screen.getByText('4권까지')).toBeInTheDocument();
+    expect(screen.queryByText('모래 행성의 정치와 신화가 좋다.')).not.toBeInTheDocument();
+    expect(screen.queryByText('4권까지')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Dune 진행도 67%')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '리스트' }));
+    expect(await screen.findByText('모래 행성의 정치와 신화가 좋다.')).toBeInTheDocument();
     expect(screen.getByLabelText('Dune 진행도 67%')).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/^유형$/), 'novel');
@@ -101,8 +104,8 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    await screen.findByRole('link', { name: 'Frieren' });
     await user.click(screen.getByRole('button', { name: '리스트' }));
+    await screen.findByText('Frieren');
 
     await user.selectOptions(screen.getByLabelText('Frieren 상태'), 'completed');
     await waitFor(() => {
@@ -161,6 +164,8 @@ describe('WorksListPage', () => {
     });
 
     await user.click(screen.getByRole('button', { name: '작품 목록' }));
-    expect(await screen.findByRole('link', { name: 'Spice & Wolf' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getAllByText('Spice & Wolf').length).toBeGreaterThan(0);
+    });
   });
 });

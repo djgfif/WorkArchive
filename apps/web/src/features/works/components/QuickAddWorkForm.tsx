@@ -1,21 +1,13 @@
 import { liveQuery } from 'dexie';
 import type {
   CatalogSearchMediumType,
-  WorkImportDraft,
   WorkRecord,
 } from '@work-archive/shared-types';
-import {
-  useEffect,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from 'react';
+import { useMediaQuery } from '@mantine/hooks';
 import {
   Accordion,
   Alert,
-  Anchor,
   Checkbox,
-  Grid,
   Group,
   NativeSelect,
   Paper,
@@ -26,19 +18,24 @@ import {
   Textarea,
   Title,
 } from '@mantine/core';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type RefObject,
+} from 'react';
 
-import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
   AppBadge,
   AppButton,
   AppLinkButton,
   FeedbackMessage,
-  MetricPill,
   PageSection,
   SectionCard,
   SectionIntro,
-  StateMessage,
 } from '../../../shared/components/AppPrimitives';
 import {
   importsService,
@@ -50,6 +47,15 @@ import {
   type ProviderReadinessGroup,
 } from '../../imports/hooks/useImportProviderReadiness';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { SearchPickerModal } from './SearchPickerModal';
+import {
+  buildImportIdentity,
+  createValuesFromCandidate,
+  findLikelyMatches,
+  getCandidateSourceCoverage,
+  getProviderGroupProviders,
+  type ProviderGroup,
+} from './quick-add-helpers';
 import { worksRepository } from '../services/works.repository';
 import {
   createDefaultWorkFormValues,
@@ -58,8 +64,6 @@ import {
   type WorkFormValues,
 } from '../utils/work-form';
 import {
-  getWorkStatusLabel,
-  getWorkTypeLabel,
   workStatusOptions,
   workTypeOptions,
 } from '../utils/work-options';
@@ -70,9 +74,6 @@ interface QuickAddWorkFormProps {
   submitError: string | null;
 }
 
-type AddMode = 'manual' | 'search';
-type ProviderGroup = 'all' | 'animation_comics' | 'books' | 'manual' | 'screen';
-
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
   const value = (index + 1) * 0.5;
 
@@ -82,385 +83,23 @@ const ratingOptions = Array.from({ length: 10 }, (_, index) => {
   };
 });
 
-const quickAddMediumOptions: Array<{
-  label: string;
-  value: CatalogSearchMediumType;
-}> = [
-  {
-    label: '전체',
-    value: 'all',
-  },
-  {
-    label: '라이트노벨',
-    value: 'light_novel',
-  },
-  {
-    label: '소설',
-    value: 'novel',
-  },
-  {
-    label: '만화',
-    value: 'manga',
-  },
-  {
-    label: '애니',
-    value: 'anime',
-  },
-  {
-    label: '영화',
-    value: 'movie',
-  },
-  {
-    label: '드라마',
-    value: 'drama',
-  },
-  {
-    label: '웹소설',
-    value: 'web_novel',
-  },
-  {
-    label: '웹툰',
-    value: 'webtoon',
-  },
-];
-
-const providerGroupOptions: Array<{
-  description: string;
-  label: string;
-  providers: string[] | null;
-  value: ProviderGroup;
-}> = [
-  {
-    description: '사용 가능한 provider 전체',
-    label: '전체',
-    providers: null,
-    value: 'all',
-  },
-  {
-    description: 'Google Books, Open Library, 국내 도서 provider',
-    label: '도서',
-    providers: ['google_books', 'open_library', 'aladin', 'naver_book', 'kakao_book'],
-    value: 'books',
-  },
-  {
-    description: 'AniList와 도서 기반 만화 후보',
-    label: '애니·만화',
-    providers: ['anilist', 'google_books', 'open_library'],
-    value: 'animation_comics',
-  },
-  {
-    description: '영상 provider 중심',
-    label: '영상',
-    providers: ['tmdb', 'tvmaze', 'kobis'],
-    value: 'screen',
-  },
-  {
-    description: '검색 실패 시 직접 입력 후보',
-    label: '직접 추가',
-    providers: ['manual'],
-    value: 'manual',
-  },
-];
-
-function getProviderGroupProviders(providerGroup: ProviderGroup) {
-  return (
-    providerGroupOptions.find((option) => option.value === providerGroup)
-      ?.providers ?? null
-  );
-}
-
-function createQuickAddDefaults(): WorkFormValues {
-  return {
-    ...createDefaultWorkFormValues(),
-    type: 'other',
-  };
-}
-
-function createManualAddDefaults(title = ''): WorkFormValues {
+function createFormDefaults(title = ''): WorkFormValues {
   return {
     ...createDefaultWorkFormValues(),
     title,
   };
 }
 
-function normalizeTitle(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/\s*\([^)]*\)\s*$/g, '')
-    .replace(/[^0-9a-z가-힣]+/g, '');
-}
+type WorkFormInputChangeHandler = (
+  event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+) => void;
 
-function createExternalRefKey(ref: {
-  externalId: string;
-  provider: string;
-  rawType?: string;
-}) {
-  return [ref.provider, ref.rawType ?? '', ref.externalId].join(':');
-}
-
-function isPreviewOrManualCandidate(candidate: ImportCandidate) {
-  return candidate.sourceId === 'preview-manual' || candidate.sourceId === 'manual';
-}
-
-function buildImportExternalRef(ref: {
-  externalId: string;
-  provider: string;
-  rawType?: string;
-  url?: string;
-}) {
-  return {
-    externalId: ref.externalId,
-    provider: ref.provider,
-    ...(ref.rawType ? { rawType: ref.rawType } : {}),
-    ...(ref.url ? { url: ref.url } : {}),
-  };
-}
-
-function findLikelyMatches(
-  candidate: ImportCandidate,
-  existingWorks: WorkRecord[],
-) {
-  const matchedCatalogTitleId = candidate.catalogMatch?.id ?? null;
-  const candidateExternalRefKeys = new Set(
-    candidate.externalRefs.map((ref) => createExternalRefKey(ref)),
-  );
-  const candidateTitleKeys = Array.from(
-    new Set(
-      [candidate.title, candidate.title.replace(/\s*\([^)]*\)\s*$/, '')]
-        .map(normalizeTitle)
-        .filter(Boolean),
-    ),
-  );
-
-  return existingWorks.filter((work) => {
-    if (matchedCatalogTitleId && work.catalogTitleId === matchedCatalogTitleId) {
-      return true;
-    }
-
-    if (
-      candidateExternalRefKeys.size > 0 &&
-      work.importDraft?.externalRefs?.some((ref) =>
-        candidateExternalRefKeys.has(createExternalRefKey(ref)),
-      )
-    ) {
-      return true;
-    }
-
-    return candidateTitleKeys.some((key) => normalizeTitle(work.title) === key);
-  });
-}
-
-function createValuesFromCandidate(candidate: ImportCandidate): WorkFormValues {
-  return {
-    ...createQuickAddDefaults(),
-    author: candidate.author,
-    description: candidate.description,
-    genresText: candidate.genresText,
-    thumbnailUrl: candidate.thumbnailUrl,
-    title: candidate.title,
-    type: candidate.mediumType,
-  };
-}
-
-function buildImportIdentity(
-  candidate: ImportCandidate,
-  input: UpsertWorkInput,
-): Pick<UpsertWorkInput, 'catalogTitleId' | 'importDraft'> {
-  if (candidate.catalogMatch?.id) {
-    return {
-      catalogTitleId: candidate.catalogMatch.id,
-      importDraft: null,
-    };
+function getFieldId(idPrefix: string, fieldName: string) {
+  if (!idPrefix) {
+    return fieldName;
   }
 
-  if (isPreviewOrManualCandidate(candidate)) {
-    return {
-      catalogTitleId: null,
-      importDraft: null,
-    };
-  }
-
-  const importDraft: WorkImportDraft = {
-    mediumType: input.type,
-  };
-
-  if (candidate.franchiseName !== null) {
-    importDraft.franchiseName = candidate.franchiseName;
-  }
-
-  if (candidate.subType !== null) {
-    importDraft.subType = candidate.subType;
-  }
-
-  if (candidate.releaseYear !== null) {
-    importDraft.releaseYear = candidate.releaseYear;
-  }
-
-  if (candidate.contributors.length > 0) {
-    importDraft.contributors = candidate.contributors.map((contributor) => ({
-      name: contributor.name,
-    }));
-  }
-
-  if (candidate.externalRefs.length > 0) {
-    importDraft.externalRefs = candidate.externalRefs.map((ref) =>
-      buildImportExternalRef(ref),
-    );
-  }
-
-  if (candidate.releaseCandidates.length > 0) {
-    importDraft.releaseCandidates = candidate.releaseCandidates.map((release) => ({
-      ...(release.displayLabel ? { displayLabel: release.displayLabel } : {}),
-      ...(release.externalRefs && release.externalRefs.length > 0
-        ? {
-            externalRefs: release.externalRefs.map((ref) =>
-              buildImportExternalRef(ref),
-            ),
-          }
-        : {}),
-      isbn: release.isbn ?? null,
-      releaseDate: release.releaseDate ?? null,
-      ...(release.releaseType ? { releaseType: release.releaseType } : {}),
-      sequence: release.sequence ?? null,
-      ...(release.thumbnailUrl ? { thumbnailUrl: release.thumbnailUrl } : {}),
-      ...(release.title ? { title: release.title } : {}),
-    }));
-  }
-
-  return {
-    catalogTitleId: null,
-    importDraft,
-  };
-}
-
-interface WorkflowProgressProps {
-  activeStep: number;
-}
-
-function WorkflowProgress({
-  activeStep,
-}: WorkflowProgressProps) {
-  const steps = ['검색', '선택', '확인', '기록', '저장'];
-
-  return (
-    <ActionRow>
-      {steps.map((step, index) => {
-        const stepNumber = index + 1;
-        const isActive = activeStep === stepNumber;
-        const isComplete = activeStep > stepNumber;
-
-        return (
-          <Text
-            c={isActive || isComplete ? 'var(--app-text-strong)' : 'var(--app-text-muted)'}
-            fw={isActive || isComplete ? 700 : 500}
-            key={step}
-            size="sm"
-          >
-            {stepNumber}. {step}
-          </Text>
-        );
-      })}
-    </ActionRow>
-  );
-}
-
-function getCandidateContributorText(candidate: ImportCandidate) {
-  if (candidate.contributors.length > 0) {
-    return candidate.contributors
-      .map((contributor) => `${contributor.name} · ${contributor.role}`)
-      .join(', ');
-  }
-
-  return candidate.author || '작가·제작자 미입력';
-}
-
-function getCandidateExternalIdentityCount(candidate: ImportCandidate) {
-  return (
-    candidate.externalRefs.length +
-    candidate.releaseCandidates.reduce((count, releaseCandidate) => {
-      return count + (releaseCandidate.externalRefs?.length ?? 0);
-    }, 0)
-  );
-}
-
-const providerDisplayLabels: Record<string, string> = {
-  aladin: 'Aladin Book',
-  anilist: 'AniList',
-  google_books: 'Google Books',
-  kakao_book: 'Kakao Book',
-  kobis: 'KOBIS',
-  manual: '직접 추가',
-  naver_book: 'Naver Book',
-  open_library: 'Open Library',
-  preview_manual: '직접 추가',
-  'preview-manual': '직접 추가',
-  tmdb: 'TMDB',
-  tvmaze: 'TVmaze',
-};
-
-interface CandidateSourceCoverage {
-  externalIdentityCount: number;
-  providerCountLabel: string;
-  providerLabels: string[];
-  releaseCandidateCount: number;
-  summaryLabel: string;
-}
-
-function formatProviderLabel(provider: string, candidate: ImportCandidate) {
-  if (provider === candidate.sourceId && candidate.sourceLabel.trim()) {
-    return candidate.sourceLabel;
-  }
-
-  return (
-    providerDisplayLabels[provider] ??
-    provider
-      .split(/[_-]/g)
-      .filter(Boolean)
-      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-      .join(' ')
-  );
-}
-
-function getCandidateSourceCoverage(
-  candidate: ImportCandidate,
-): CandidateSourceCoverage {
-  const providerLabels = new Map<string, string>();
-
-  if (candidate.sourceId && candidate.sourceLabel.trim()) {
-    providerLabels.set(candidate.sourceId, candidate.sourceLabel);
-  }
-
-  for (const ref of candidate.externalRefs) {
-    providerLabels.set(ref.provider, formatProviderLabel(ref.provider, candidate));
-  }
-
-  for (const releaseCandidate of candidate.releaseCandidates) {
-    for (const ref of releaseCandidate.externalRefs ?? []) {
-      providerLabels.set(ref.provider, formatProviderLabel(ref.provider, candidate));
-    }
-  }
-
-  if (providerLabels.size === 0 && candidate.sourceLabel.trim()) {
-    providerLabels.set(candidate.sourceLabel, candidate.sourceLabel);
-  }
-
-  const externalIdentityCount = getCandidateExternalIdentityCount(candidate);
-  const releaseCandidateCount = candidate.releaseCandidates.length;
-  const providerCount = providerLabels.size;
-
-  return {
-    externalIdentityCount,
-    providerCountLabel: `출처 ${providerCount}개`,
-    providerLabels: [...providerLabels.values()],
-    releaseCandidateCount,
-    summaryLabel: [
-      `출처 ${providerCount}개`,
-      `외부 식별자 ${externalIdentityCount}개`,
-      `릴리스 후보 ${releaseCandidateCount}개`,
-    ].join(' · '),
-  };
+  return `${idPrefix}${fieldName.charAt(0).toUpperCase()}${fieldName.slice(1)}`;
 }
 
 interface ProviderGroupLineProps {
@@ -523,7 +162,7 @@ function ProviderReadinessSummary({
 
         {error ? (
           <Text c="var(--app-text-muted)" size="sm">
-            provider 상태를 불러오지 못했습니다. 검색과 직접 추가는 계속 사용할 수 있습니다.
+            지금은 일부 검색 출처 상태를 확인하지 못했습니다. 검색과 직접 추가는 계속 사용할 수 있습니다.
           </Text>
         ) : (
           <Stack gap={6}>
@@ -539,133 +178,8 @@ function ProviderReadinessSummary({
             <ProviderGroupLine group={readiness.directFallback} tone="accent" />
           </Stack>
         )}
-
-        <Text c="var(--app-text-muted)" size="xs">
-          로그인 없이 가능한 provider는 계속 사용할 수 있고, 일부 provider만 로그인이나 서버 설정이 필요합니다.
-        </Text>
       </Stack>
     </Paper>
-  );
-}
-
-interface CandidateRowProps {
-  active: boolean;
-  candidate: ImportCandidate;
-  duplicateCount: number;
-  onSelect: () => void;
-}
-
-function CandidateRow({
-  active,
-  candidate,
-  duplicateCount,
-  onSelect,
-}: CandidateRowProps) {
-  const sourceCoverage = getCandidateSourceCoverage(candidate);
-
-  return (
-    <button
-      aria-label={`${candidate.title} ${getWorkTypeLabel(candidate.type)} 후보 선택`}
-      aria-pressed={active}
-      onClick={onSelect}
-      style={{
-        backgroundColor: active ? 'var(--app-surface-1)' : 'var(--app-surface-0)',
-        border: active
-          ? '2px solid var(--app-border-strong)'
-          : '1px solid var(--app-border-color)',
-        borderRadius: '0.875rem',
-        color: 'inherit',
-        cursor: 'pointer',
-        padding: '1rem',
-        outline: active
-          ? '2px solid color-mix(in srgb, var(--app-border-strong) 24%, transparent)'
-          : 'none',
-        outlineOffset: '2px',
-        textAlign: 'left',
-        transition:
-          'background-color 120ms ease, border-color 120ms ease, outline-color 120ms ease',
-        width: '100%',
-      }}
-      type="button"
-    >
-      <Group align="flex-start" gap="md" wrap="nowrap">
-        <ArtworkPoster
-          thumbnailUrl={candidate.thumbnailUrl}
-          title={candidate.title}
-          typeLabel={getWorkTypeLabel(candidate.type)}
-          variant="row"
-        />
-
-        <Stack flex={1} gap="xs" miw={0}>
-          <ActionRow justify="space-between">
-            <ActionRow>
-              {active && <AppBadge tone="accent">선택됨</AppBadge>}
-              <AppBadge tone="accent">{sourceCoverage.providerCountLabel}</AppBadge>
-              <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
-              {candidate.releaseYear && <AppBadge>{candidate.releaseYear}</AppBadge>}
-            </ActionRow>
-            <ActionRow>
-              <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
-              {duplicateCount > 0 && (
-                <AppBadge tone="warning">비슷한 기록 {duplicateCount}</AppBadge>
-              )}
-            </ActionRow>
-          </ActionRow>
-
-          <div>
-            <Title order={4}>{candidate.title}</Title>
-            <Text c="var(--app-text-muted)" size="sm">
-              {getCandidateContributorText(candidate)}
-            </Text>
-          </div>
-
-          <ActionRow>
-            {sourceCoverage.providerLabels.map((providerLabel) => (
-              <AppBadge key={providerLabel} tone="muted">
-                {providerLabel}
-              </AppBadge>
-            ))}
-          </ActionRow>
-
-          <ActionRow>
-            {candidate.subType && <AppBadge>{candidate.subType}</AppBadge>}
-            {candidate.franchiseName && (
-              <AppBadge tone="success">{candidate.franchiseName}</AppBadge>
-            )}
-            {candidate.existingRecord && (
-              <AppBadge tone="warning">이미 내 기록에 있음</AppBadge>
-            )}
-            {candidate.catalogMatch && !candidate.existingRecord && (
-              <AppBadge tone="success">카탈로그 매칭</AppBadge>
-            )}
-            {sourceCoverage.externalIdentityCount > 0 && (
-              <AppBadge tone="muted">
-                외부 식별자 {sourceCoverage.externalIdentityCount}개
-              </AppBadge>
-            )}
-            {sourceCoverage.releaseCandidateCount > 0 && (
-              <AppBadge tone="muted">
-                릴리스 후보 {sourceCoverage.releaseCandidateCount}개
-              </AppBadge>
-            )}
-          </ActionRow>
-
-          <Text c="var(--app-text-secondary)" lineClamp={2} size="sm">
-            {candidate.description || '설명은 아직 없습니다.'}
-          </Text>
-          {candidate.reason && (
-            <Text c="var(--app-text-muted)" size="xs">
-              추천 이유: {candidate.reason}
-            </Text>
-          )}
-          {candidate.note && (
-            <Text c="var(--app-text-muted)" size="xs">
-              {candidate.note}
-            </Text>
-          )}
-        </Stack>
-      </Group>
-    </button>
   );
 }
 
@@ -698,27 +212,17 @@ function StatusButtonGroup({ onChange, value }: StatusButtonGroupProps) {
   );
 }
 
-type WorkFormInputChangeHandler = (
-  event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-) => void;
-
-function getFieldId(idPrefix: string, fieldName: string) {
-  if (!idPrefix) {
-    return fieldName;
-  }
-
-  return `${idPrefix}${fieldName.charAt(0).toUpperCase()}${fieldName.slice(1)}`;
-}
-
 interface CoreWorkFieldsProps {
   idPrefix?: string;
   onChange: WorkFormInputChangeHandler;
+  titleInputRef?: RefObject<HTMLInputElement | null>;
   values: WorkFormValues;
 }
 
 function CoreWorkFields({
   idPrefix = '',
   onChange,
+  titleInputRef,
   values,
 }: CoreWorkFieldsProps) {
   return (
@@ -740,6 +244,7 @@ function CoreWorkFields({
             제목과 유형만 입력하면 저장할 수 있습니다.
           </Text>
         </ActionRow>
+
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
           <div style={{ gridColumn: '1 / -1' }}>
             <TextInput
@@ -748,6 +253,7 @@ function CoreWorkFields({
               name="title"
               onChange={onChange}
               placeholder="작품 제목"
+              ref={titleInputRef}
               value={values.title}
             />
           </div>
@@ -809,9 +315,10 @@ function PersonalRecordFields({
         <ActionRow>
           <AppBadge tone="accent">내 기록</AppBadge>
           <Text c="var(--app-text-muted)" size="sm">
-            상태와 감상은 목록과 상세 화면에서 먼저 보이는 개인 기록입니다.
+            상태와 감상은 상세 화면에서 가장 먼저 읽히는 개인 기록입니다.
           </Text>
         </ActionRow>
+
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
           <StatusButtonGroup onChange={onStatusChange} value={values.status} />
 
@@ -837,7 +344,7 @@ function PersonalRecordFields({
               label="한줄평"
               name="shortReview"
               onChange={onInputChange}
-              placeholder="목록과 최근 기록에 먼저 보일 짧은 감상을 적어보세요"
+              placeholder="짧게 남길 감상을 적어보세요"
               rows={3}
               value={values.shortReview}
             />
@@ -849,7 +356,7 @@ function PersonalRecordFields({
               label="상세 감상"
               name="review"
               onChange={onInputChange}
-              placeholder="필요하면 조금 더 긴 감상을 남겨두세요"
+              placeholder="조금 더 긴 감상을 남겨두세요"
               rows={6}
               value={values.review}
             />
@@ -920,258 +427,31 @@ function AdvancedWorkFields({
   );
 }
 
-interface DuplicateWarningPanelProps {
-  duplicateMatches: WorkRecord[];
-  onConfirm: () => void;
-  onReset: () => void;
-}
-
-function DuplicateWarningPanel({
-  duplicateMatches,
-  onConfirm,
-  onReset,
-}: DuplicateWarningPanelProps) {
-  return (
-    <Alert color="yellow" radius="md" variant="light">
-      <Stack gap="sm">
-        <Title order={3}>비슷한 기록이 이미 있습니다</Title>
-        <Text c="inherit">
-          이미 저장된 기록과 같은 작품인지 먼저 확인하세요. 다른 작품이 맞다면 그대로 계속 진행할 수 있습니다.
-        </Text>
-        {duplicateMatches.map((work) => (
-          <Paper
-            key={work.id}
-            p="sm"
-            styles={{
-              root: {
-                backgroundColor: 'var(--app-surface-0)',
-                borderColor: 'var(--app-border-color)',
-              },
-            }}
-            withBorder
-          >
-            <Group align="flex-start" justify="space-between" wrap="wrap">
-              <Stack gap={2}>
-                <Text fw={700}>{work.title}</Text>
-                <Text c="var(--app-text-muted)" size="sm">
-                  {work.author || '작가·제작자 미입력'} · {getWorkTypeLabel(work.type)} ·{' '}
-                  {getWorkStatusLabel(work.status)}
-                </Text>
-              </Stack>
-              {work.deletedAt === null ? (
-                <AppLinkButton to={`/works/${work.id}`} tone="quiet">
-                  기존 작품 보기
-                </AppLinkButton>
-              ) : (
-                <AppLinkButton
-                  to={`/works?scope=trash&q=${encodeURIComponent(work.title)}`}
-                  tone="quiet"
-                >
-                  휴지통에서 보기
-                </AppLinkButton>
-              )}
-            </Group>
-          </Paper>
-        ))}
-        <ActionRow>
-          <AppButton onClick={onConfirm} tone="primary" type="button">
-            그래도 계속 추가
-          </AppButton>
-          <AppButton onClick={onReset} tone="ghost" type="button">
-            다른 후보 보기
-          </AppButton>
-        </ActionRow>
-      </Stack>
-    </Alert>
-  );
-}
-
-interface SelectedCandidatePreviewProps {
-  candidate: ImportCandidate;
-  values: WorkFormValues;
-}
-
-function SelectedCandidatePreview({
-  candidate,
-  values,
-}: SelectedCandidatePreviewProps) {
-  const sourceCoverage = getCandidateSourceCoverage(candidate);
-
-  return (
-    <Paper
-      p="lg"
-      radius="lg"
-      styles={{
-        root: {
-          backgroundColor: 'var(--app-surface-1)',
-          borderColor: 'var(--app-border-strong)',
-        },
-      }}
-      withBorder
-    >
-      <Group align="flex-start" gap="lg" wrap="wrap">
-        <ArtworkPoster
-          thumbnailUrl={values.thumbnailUrl}
-          title={values.title || candidate.title}
-          typeLabel={getWorkTypeLabel(values.type)}
-          variant="detail"
-        />
-
-        <Stack flex={1} gap="md" miw={0}>
-          <Stack gap="xs">
-            <ActionRow>
-              <AppBadge tone="accent">{sourceCoverage.providerCountLabel}</AppBadge>
-              <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
-              <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
-              {candidate.releaseYear && <AppBadge>{candidate.releaseYear}</AppBadge>}
-              {candidate.catalogMatch && (
-                <AppBadge tone="success">카탈로그 매칭</AppBadge>
-              )}
-              {candidate.existingRecord && (
-                <AppBadge tone="warning">이미 내 기록에 있음</AppBadge>
-              )}
-            </ActionRow>
-
-            <div>
-              <Title order={3}>{values.title || candidate.title}</Title>
-              <Text c="var(--app-text-muted)" size="sm">
-                {getCandidateContributorText(candidate)}
-              </Text>
-            </div>
-          </Stack>
-
-          <Text c="var(--app-text-secondary)" lineClamp={3}>
-            {values.description || '설명은 아직 없습니다.'}
-          </Text>
-
-          <ActionRow>
-            <MetricPill label="검색 출처" value={sourceCoverage.summaryLabel} />
-            <MetricPill label="신뢰도" value={candidate.confidenceLabel} />
-            <MetricPill label="형식" value={candidate.formatLabel} />
-            <MetricPill label="추천 이유" value={candidate.reason} />
-          </ActionRow>
-
-          <Paper
-            p="sm"
-            radius="md"
-            styles={{
-              root: {
-                backgroundColor: 'var(--app-surface-0)',
-                borderColor: 'var(--app-border-color)',
-              },
-            }}
-            withBorder
-          >
-            <Stack gap="xs">
-              <Text c="var(--app-text-muted)" fw={700} size="sm">
-                검색 근거
-              </Text>
-              <ActionRow>
-                <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
-                <AppBadge tone={candidate.catalogMatch ? 'success' : 'muted'}>
-                  {candidate.catalogMatch ? '카탈로그 매칭 있음' : '카탈로그 매칭 없음'}
-                </AppBadge>
-                <AppBadge tone="muted">
-                  외부 식별자 {sourceCoverage.externalIdentityCount}개
-                </AppBadge>
-                <AppBadge tone="muted">
-                  릴리스 후보 {sourceCoverage.releaseCandidateCount}개
-                </AppBadge>
-              </ActionRow>
-              <Text c="var(--app-text-secondary)" size="sm">
-                {candidate.reason}
-              </Text>
-              <ActionRow>
-                {sourceCoverage.providerLabels.map((providerLabel) => (
-                  <AppBadge key={providerLabel} tone="muted">
-                    {providerLabel}
-                  </AppBadge>
-                ))}
-              </ActionRow>
-            </Stack>
-          </Paper>
-
-          <Paper
-            p="sm"
-            radius="md"
-            styles={{
-              root: {
-                backgroundColor: 'var(--app-surface-0)',
-                borderColor: 'var(--app-border-color)',
-              },
-            }}
-            withBorder
-          >
-            <Stack gap="xs">
-              <Text c="var(--app-text-muted)" fw={700} size="sm">
-                보조 정보
-              </Text>
-              <ActionRow>
-                {candidate.franchiseName && (
-                  <AppBadge tone="success">{candidate.franchiseName}</AppBadge>
-                )}
-                {sourceCoverage.externalIdentityCount > 0 && (
-                  <AppBadge tone="muted">
-                    외부 식별자 {sourceCoverage.externalIdentityCount}개
-                  </AppBadge>
-                )}
-                {sourceCoverage.releaseCandidateCount > 0 && (
-                  <AppBadge tone="muted">
-                    릴리스 후보 {sourceCoverage.releaseCandidateCount}개
-                  </AppBadge>
-                )}
-              </ActionRow>
-
-              <Text c="var(--app-text-muted)" size="sm">
-                {candidate.note}
-                {candidate.sourceUrl && (
-                  <>
-                    {' · '}
-                    <Anchor
-                      href={candidate.sourceUrl}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      provider에서 보기
-                    </Anchor>
-                  </>
-                )}
-              </Text>
-            </Stack>
-          </Paper>
-        </Stack>
-      </Group>
-    </Paper>
-  );
-}
-
 export function QuickAddWorkForm({
   isSubmitting,
   onSubmit,
   submitError,
 }: QuickAddWorkFormProps) {
   const { archiveScopeKey } = useAuthSession();
-  const [addMode, setAddMode] = useState<AddMode>('manual');
+  const isMobile = useMediaQuery('(max-width: 48em)');
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const [values, setValues] = useState<WorkFormValues>(() => createFormDefaults());
+  const [existingWorks, setExistingWorks] = useState<WorkRecord[]>([]);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [searchModalOpened, setSearchModalOpened] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchMedium, setSearchMedium] =
+  const [searchType, setSearchType] =
     useState<CatalogSearchMediumType>('all');
   const [providerGroup, setProviderGroup] = useState<ProviderGroup>('all');
-  const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
-  const [candidates, setCandidates] = useState<ImportCandidate[]>([]);
-  const [existingWorks, setExistingWorks] = useState<WorkRecord[]>([]);
+  const [searchCandidates, setSearchCandidates] = useState<ImportCandidate[]>([]);
+  const [selectedSearchCandidate, setSelectedSearchCandidate] =
+    useState<ImportCandidate | null>(null);
+  const [selectedImportCandidate, setSelectedImportCandidate] =
+    useState<ImportCandidate | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
-  const [selectedCandidate, setSelectedCandidate] = useState<ImportCandidate | null>(
-    null,
-  );
-  const [confirmedDuplicateCandidateId, setConfirmedDuplicateCandidateId] = useState<
-    string | null
-  >(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [values, setValues] = useState<WorkFormValues>(() =>
-    createManualAddDefaults(),
-  );
-  const providerReadiness = useImportProviderReadiness(addMode === 'search');
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const providerReadiness = useImportProviderReadiness(searchModalOpened);
 
   useEffect(() => {
     const subscription = liveQuery(() => worksRepository.listAll()).subscribe({
@@ -1188,6 +468,20 @@ export function QuickAddWorkForm({
     };
   }, [archiveScopeKey]);
 
+  const duplicateCounts = Object.fromEntries(
+    searchCandidates.map((candidate) => [
+      candidate.id,
+      findLikelyMatches(candidate, existingWorks).length,
+    ]),
+  );
+  const selectedDuplicateMatches =
+    selectedSearchCandidate === null
+      ? []
+      : findLikelyMatches(selectedSearchCandidate, existingWorks);
+  const importedSourceCoverage = selectedImportCandidate
+    ? getCandidateSourceCoverage(selectedImportCandidate)
+    : null;
+
   function handleInputChange(
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) {
@@ -1202,23 +496,24 @@ export function QuickAddWorkForm({
     }));
   }
 
-  function switchAddMode(nextMode: AddMode) {
-    setAddMode(nextMode);
-    setValidationError(null);
-    setSelectedCandidate(null);
-    setConfirmedDuplicateCandidateId(null);
-    setValues(
-      nextMode === 'manual'
-        ? createManualAddDefaults(searchTerm.trim())
-        : createQuickAddDefaults(),
-    );
-  }
-
   function handleStatusChange(status: WorkFormValues['status']) {
     setValues((currentValues) => ({
       ...currentValues,
       status,
     }));
+  }
+
+  function resetImportedCandidate() {
+    setSelectedImportCandidate(null);
+    setSelectedSearchCandidate(null);
+    setSearchNotice(null);
+    setSearchError(null);
+  }
+
+  function focusMainTitle() {
+    requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+    });
   }
 
   async function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1227,17 +522,14 @@ export function QuickAddWorkForm({
     const normalizedSearchTerm = searchTerm.trim();
 
     if (!normalizedSearchTerm) {
-      setValidationError('먼저 작품 제목이나 작가를 검색해주세요.');
+      setSearchError('먼저 작품 제목이나 작가를 검색해주세요.');
       return;
     }
 
-    setValidationError(null);
-    setSubmittedSearchTerm(normalizedSearchTerm);
-    setSelectedCandidate(null);
-    setConfirmedDuplicateCandidateId(null);
-    setCandidates([]);
+    setSearchError(null);
     setSearchNotice(null);
-    setValues(createQuickAddDefaults());
+    setSelectedSearchCandidate(null);
+    setSearchCandidates([]);
 
     try {
       setIsSearching(true);
@@ -1245,74 +537,78 @@ export function QuickAddWorkForm({
       const providerGroupProviders = getProviderGroupProviders(providerGroup);
       const result = await importsService.searchCandidates(normalizedSearchTerm, {
         limit: 10,
-        mediumType: searchMedium,
+        mediumType: searchType,
         ...(providerGroupProviders
           ? { providers: providerGroupProviders }
           : {}),
         useExternal: true,
       });
 
-      setCandidates(result.candidates);
+      setSearchCandidates(result.candidates);
       setSearchNotice(result.notice);
+      setSelectedSearchCandidate(result.candidates[0] ?? null);
     } catch (error) {
-      setValidationError(
+      setSearchError(
         error instanceof Error ? error.message : '후보 검색에 실패했습니다.',
       );
-      setCandidates([]);
+      setSearchCandidates([]);
+      setSelectedSearchCandidate(null);
       setSearchNotice(null);
     } finally {
       setIsSearching(false);
     }
   }
 
-  async function handleManualSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    try {
-      setValidationError(null);
-      const input = parseWorkFormValues(values);
-
-      await onSubmit({
-        ...input,
-        catalogTitleId: null,
-        importDraft: null,
-      });
-    } catch (error) {
-      setValidationError(
-        error instanceof Error ? error.message : '작품을 저장하지 못했습니다.',
-      );
+  function applyCandidateToForm() {
+    if (!selectedSearchCandidate) {
+      setSearchError('검색 결과에서 먼저 작품을 선택해주세요.');
+      return;
     }
+
+    setValues(
+      createValuesFromCandidate(
+        selectedSearchCandidate,
+        createDefaultWorkFormValues,
+      ),
+    );
+    setSelectedImportCandidate(selectedSearchCandidate);
+    setSearchModalOpened(false);
+    setValidationError(null);
+    focusMainTitle();
   }
 
-  function handleSelectCandidate(candidate: ImportCandidate) {
-    setSelectedCandidate(candidate);
-    setConfirmedDuplicateCandidateId((currentValue) =>
-      currentValue === candidate.id ? currentValue : null,
-    );
+  function useSearchTermForManualInput() {
+    const normalizedSearchTerm = searchTerm.trim();
+
+    if (!normalizedSearchTerm) {
+      return;
+    }
+
+    resetImportedCandidate();
+    setSearchModalOpened(false);
+    setValues((currentValues) => ({
+      ...currentValues,
+      title: normalizedSearchTerm,
+    }));
     setValidationError(null);
-    setValues(createValuesFromCandidate(candidate));
+    focusMainTitle();
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!selectedCandidate) {
-      setValidationError('검색 결과에서 먼저 작품을 선택해주세요.');
-      return;
-    }
-
-    if (shouldConfirmDuplicate) {
-      setValidationError('비슷한 기존 기록을 확인한 뒤 계속 진행해주세요.');
-      return;
-    }
-
     try {
       setValidationError(null);
       const input = parseWorkFormValues(values);
 
       await onSubmit({
         ...input,
-        ...buildImportIdentity(selectedCandidate, input),
+        ...(selectedImportCandidate
+          ? buildImportIdentity(selectedImportCandidate, input)
+          : {
+              catalogTitleId: null,
+              importDraft: null,
+            }),
       });
     } catch (error) {
       setValidationError(
@@ -1321,39 +617,24 @@ export function QuickAddWorkForm({
     }
   }
 
-  const duplicateMatches =
-    selectedCandidate === null
-      ? []
-      : findLikelyMatches(selectedCandidate, existingWorks);
-  const shouldConfirmDuplicate =
-    selectedCandidate !== null &&
-    duplicateMatches.length > 0 &&
-    confirmedDuplicateCandidateId !== selectedCandidate.id;
-  const activeStep = selectedCandidate ? 4 : candidates.length > 0 ? 2 : 1;
-
   return (
     <Stack gap="xl">
       <SectionCard gap="md" padding="lg" tone="hero">
         <SectionIntro
-          description="수동 추가는 기본 경로이고, 검색은 외부 후보로 제목과 부가 정보를 빠르게 채우는 입력 보조 흐름입니다."
+          description="직접 추가와 검색 채우기를 모두 사용할 수 있지만, 저장은 항상 아래 폼에서 직접 확인하고 진행합니다."
           eyebrow="추가 방식"
-          title="기록 방식을 선택하세요"
+          title="새 작품 기록 만들기"
           titleOrder={2}
         />
+
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
           <Paper
             p="md"
             radius="lg"
             styles={{
               root: {
-                backgroundColor:
-                  addMode === 'manual'
-                    ? 'var(--app-surface-1)'
-                    : 'var(--app-surface-0)',
-                borderColor:
-                  addMode === 'manual'
-                    ? 'var(--app-border-strong)'
-                    : 'var(--app-border-color)',
+                backgroundColor: 'var(--app-surface-1)',
+                borderColor: 'var(--app-border-strong)',
               },
             }}
             withBorder
@@ -1361,21 +642,23 @@ export function QuickAddWorkForm({
             <Stack gap="sm">
               <ActionRow justify="space-between">
                 <AppBadge tone="accent">기본 경로</AppBadge>
-                {addMode === 'manual' && <AppBadge tone="success">선택 중</AppBadge>}
+                <AppBadge tone="success">form-first</AppBadge>
               </ActionRow>
               <div>
                 <Title order={3}>직접 추가</Title>
                 <Text c="var(--app-text-muted)" size="sm">
-                  검색 없이 제목과 유형만으로 바로 내 아카이브에 저장합니다.
+                  제목과 유형부터 바로 기록하고, 나머지는 필요할 때만 채웁니다.
                 </Text>
               </div>
               <AppButton
                 fullWidth
-                onClick={() => switchAddMode('manual')}
-                tone={addMode === 'manual' ? 'primary' : 'secondary'}
+                onClick={() => {
+                  focusMainTitle();
+                }}
+                tone="primary"
                 type="button"
               >
-                직접 추가
+                직접 입력 계속
               </AppButton>
             </Stack>
           </Paper>
@@ -1385,14 +668,8 @@ export function QuickAddWorkForm({
             radius="lg"
             styles={{
               root: {
-                backgroundColor:
-                  addMode === 'search'
-                    ? 'var(--app-surface-1)'
-                    : 'var(--app-surface-0)',
-                borderColor:
-                  addMode === 'search'
-                    ? 'var(--app-border-strong)'
-                    : 'var(--app-border-color)',
+                backgroundColor: 'var(--app-surface-0)',
+                borderColor: 'var(--app-border-color)',
               },
             }}
             withBorder
@@ -1400,349 +677,164 @@ export function QuickAddWorkForm({
             <Stack gap="sm">
               <ActionRow justify="space-between">
                 <AppBadge tone="muted">입력 보조</AppBadge>
-                {addMode === 'search' && <AppBadge tone="success">선택 중</AppBadge>}
+                {selectedImportCandidate && (
+                  <AppBadge tone="success">불러온 후보 있음</AppBadge>
+                )}
               </ActionRow>
               <div>
-                <Title order={3}>검색으로 추가</Title>
+                <Title order={3}>검색으로 정보 채우기</Title>
                 <Text c="var(--app-text-muted)" size="sm">
-                  provider 후보를 골라 메타데이터를 채운 뒤 내 기록만 저장합니다.
+                  검색 결과를 비교해 제목과 작품 정보를 채우고, 저장은 아래 폼에서 마무리합니다.
                 </Text>
               </div>
               <AppButton
                 fullWidth
-                onClick={() => switchAddMode('search')}
-                tone={addMode === 'search' ? 'primary' : 'secondary'}
+                onClick={() => {
+                  setSearchModalOpened(true);
+                  setSearchError(null);
+                }}
+                tone="secondary"
                 type="button"
               >
-                검색으로 추가
+                {selectedImportCandidate ? '다시 검색' : '검색으로 정보 채우기'}
               </AppButton>
             </Stack>
           </Paper>
         </SimpleGrid>
       </SectionCard>
 
-      {addMode === 'manual' ? (
-        <form onSubmit={handleManualSubmit}>
-          <SectionCard gap="xl" padding="xl" tone="default">
-            <PageSection
-              description="제목과 유형만 있으면 저장할 수 있습니다. 나머지 기록은 지금 적어도 되고 나중에 채워도 됩니다."
-              divider={false}
-              eyebrow="직접 추가"
-              title="검색 없이 작품 기록 만들기"
-            >
-              <CoreWorkFields
-                idPrefix="manual"
-                onChange={handleInputChange}
-                values={values}
-              />
-            </PageSection>
-
-            <PageSection
-              description="상태와 감상은 나중에 목록과 상세 화면에서 가장 먼저 보이는 개인 기록입니다."
-              eyebrow="내 기록"
-              title="상태와 감상"
-            >
-              <PersonalRecordFields
-                idPrefix="manual"
-                onInputChange={handleInputChange}
-                onStatusChange={handleStatusChange}
-                values={values}
-              />
-            </PageSection>
-
-            <PageSection
-              description="표지, 장르, 설명 같은 부가 정보는 필요할 때만 펼쳐서 다룹니다."
-              eyebrow="추가 필드"
-              title="고급 정보"
-            >
-              <AdvancedWorkFields
-                idPrefix="manual"
-                itemValue="manual-advanced-fields"
-                onInputChange={handleInputChange}
-                values={values}
-              />
-            </PageSection>
-
-            {(validationError || submitError) && (
-              <FeedbackMessage tone="error">
-                {validationError ?? submitError}
-              </FeedbackMessage>
-            )}
-
-            <ActionRow>
-              <AppButton
-                disabled={isSubmitting}
-                fullWidth
-                size="lg"
-                tone="primary"
-                type="submit"
-              >
-                {isSubmitting ? '저장 중...' : '내 아카이브에 저장'}
-              </AppButton>
-              <AppLinkButton to="/works" tone="quiet">
-                취소
-              </AppLinkButton>
-            </ActionRow>
-          </SectionCard>
-        </form>
-      ) : (
-        <Grid gutter="xl">
-          <Grid.Col span={{ base: 12, xl: 4 }}>
-            <Stack gap="lg">
-          <SectionCard gap="lg" tone="hero">
-            <SectionIntro
-              description="검색은 입력을 빠르게 채우는 보조 흐름입니다. key가 필요 없는 provider는 guest도 사용할 수 있습니다."
-              eyebrow="검색"
-              title="검색과 후보 선택"
-              titleOrder={2}
-            />
-
-            <WorkflowProgress activeStep={activeStep} />
-
-            <ProviderReadinessSummary
-              error={providerReadiness.error}
-              isLoading={providerReadiness.isLoading}
-              readiness={providerReadiness.readiness}
-            />
-
-            <form onSubmit={handleSearchSubmit}>
+      <form onSubmit={handleSubmit}>
+        <SectionCard gap="xl" padding="xl" tone="default">
+          {selectedImportCandidate && importedSourceCoverage && (
+            <Alert color="blue" radius="lg" variant="light">
               <Stack gap="sm">
-                <Stack gap={6}>
-                  <Text c="var(--app-text-muted)" fw={700} size="sm">
-                    검색 범위
-                  </Text>
+                <ActionRow justify="space-between">
+                  <AppBadge tone="accent">검색으로 채운 정보</AppBadge>
                   <ActionRow>
-                    {providerGroupOptions.map((option) => (
-                      <AppButton
-                        aria-pressed={providerGroup === option.value}
-                        key={option.value}
-                        onClick={() => setProviderGroup(option.value)}
-                        size="compact-sm"
-                        tone={
-                          providerGroup === option.value ? 'primary' : 'secondary'
-                        }
-                        type="button"
-                      >
-                        {option.label}
-                      </AppButton>
-                    ))}
+                    <AppButton
+                      onClick={() => setSearchModalOpened(true)}
+                      size="compact-sm"
+                      tone="ghost"
+                      type="button"
+                    >
+                      다시 검색
+                    </AppButton>
+                    <AppButton
+                      onClick={resetImportedCandidate}
+                      size="compact-sm"
+                      tone="ghost"
+                      type="button"
+                    >
+                      직접 입력으로 전환
+                    </AppButton>
                   </ActionRow>
-                  <Text c="var(--app-text-muted)" size="xs">
-                    {
-                      providerGroupOptions.find(
-                        (option) => option.value === providerGroup,
-                      )?.description
-                    }
-                    . 일부 provider는 로그인 또는 서버 설정이 필요할 수 있습니다.
-                  </Text>
-                </Stack>
-
-                <Group align="flex-end" gap="sm" wrap="wrap">
-                  <NativeSelect
-                    id="quickAddMedium"
-                    label="매체"
-                    onChange={(event) =>
-                      setSearchMedium(event.currentTarget.value as CatalogSearchMediumType)
-                    }
-                    value={searchMedium}
-                  >
-                    {quickAddMediumOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </NativeSelect>
-
-                  <TextInput
-                    style={{ flex: '1 1 18rem' }}
-                    id="quickAddSearch"
-                    label="작품 검색"
-                    onChange={(event) => setSearchTerm(event.currentTarget.value)}
-                    placeholder="제목, IP, 작가, 스튜디오를 입력하세요"
-                    value={searchTerm}
-                  />
-                  <AppButton
-                    disabled={isSearching}
-                    loading={isSearching}
-                    tone="primary"
-                    type="submit"
-                  >
-                    {isSearching ? '검색 중...' : '검색'}
-                  </AppButton>
-                </Group>
-              </Stack>
-            </form>
-          </SectionCard>
-
-          <SectionCard gap="md" padding="lg" tone={candidates.length > 0 ? 'default' : 'subtle'}>
-            <SectionIntro
-              description={
-                submittedSearchTerm
-                  ? `"${submittedSearchTerm}" 기준 후보를 정리했습니다.`
-                  : '검색하면 후보가 여기 표시됩니다.'
-              }
-              eyebrow="후보"
-              title={submittedSearchTerm ? '검색 결과' : '후보 선택 대기'}
-              titleOrder={3}
-            />
-
-            {searchNotice && (
-              <FeedbackMessage tone="info">
-                {searchNotice}
-              </FeedbackMessage>
-            )}
-
-            {isSearching ? (
-              <Text c="var(--app-text-muted)">
-                선택한 매체에 맞는 provider와 수동 후보를 확인하고 있습니다.
-              </Text>
-            ) : submittedSearchTerm && candidates.length === 0 ? (
-              <Stack gap="sm">
-                <Text c="var(--app-text-muted)">
-                  현재 검색어로는 후보를 찾지 못했습니다. 로그인 없이 가능한 provider는 계속 사용할 수 있고, 부족한 결과는 직접 추가로 바로 보완할 수 있습니다.
+                </ActionRow>
+                <Text c="inherit" fw={700}>
+                  {selectedImportCandidate.title}
                 </Text>
-                <AppButton
-                  fullWidth
-                  onClick={() => switchAddMode('manual')}
-                  tone="primary"
-                  type="button"
-                >
-                  "{submittedSearchTerm}" 직접 추가
-                </AppButton>
+                <Text c="inherit" size="sm">
+                  {selectedImportCandidate.reason}
+                </Text>
+                <ActionRow>
+                  <AppBadge tone="muted">{selectedImportCandidate.sourceLabel}</AppBadge>
+                  <AppBadge tone="muted">{importedSourceCoverage.summaryLabel}</AppBadge>
+                </ActionRow>
               </Stack>
-            ) : candidates.length > 0 ? (
-              <Paper
-                p={0}
-                radius="lg"
-                styles={{
-                  root: {
-                    backgroundColor: 'var(--app-surface-0)',
-                    borderColor: 'var(--app-border-color)',
-                    overflow: 'hidden',
-                    padding: '0.5rem',
-                  },
-                }}
-                withBorder
-              >
-                <Stack gap="sm">
-                  {candidates.map((candidate) => (
-                    <CandidateRow
-                      active={selectedCandidate?.id === candidate.id}
-                      candidate={candidate}
-                      duplicateCount={findLikelyMatches(candidate, existingWorks).length}
-                      key={candidate.id}
-                      onSelect={() => handleSelectCandidate(candidate)}
-                    />
-                  ))}
-                </Stack>
-              </Paper>
-            ) : (
-              <Text c="var(--app-text-muted)">
-                제목, 원작자, 스튜디오 등 기억나는 단서로 먼저 검색을 시작하세요.
-              </Text>
-            )}
-          </SectionCard>
-            </Stack>
-          </Grid.Col>
+            </Alert>
+          )}
 
-          <Grid.Col span={{ base: 12, xl: 8 }}>
-            {!selectedCandidate ? (
-              <StateMessage
-                description="왼쪽에서 검색 후 후보를 하나 선택하면 메타데이터 확인과 개인 기록 입력이 같은 흐름 안에서 이어집니다."
-                eyebrow="선택 대기"
-                title="먼저 검색 결과에서 작품을 선택하세요."
-                tone="info"
-              />
-            ) : (
-              <form onSubmit={handleSubmit}>
-                <SectionCard gap="xl" padding="xl" tone="default">
-                  <WorkflowProgress activeStep={shouldConfirmDuplicate ? 3 : 4} />
+          <PageSection
+            description="제목과 유형만 있으면 저장할 수 있습니다. 검색으로 채웠더라도 아래 폼이 최종 저장 기준입니다."
+            divider={false}
+            eyebrow="기본 정보"
+            title="작품 기록 입력"
+          >
+            <CoreWorkFields
+              idPrefix="manual"
+              onChange={handleInputChange}
+              titleInputRef={titleInputRef}
+              values={values}
+            />
+          </PageSection>
 
-                  {shouldConfirmDuplicate && (
-                    <DuplicateWarningPanel
-                      duplicateMatches={duplicateMatches}
-                      onConfirm={() =>
-                        setConfirmedDuplicateCandidateId(selectedCandidate.id)
-                      }
-                      onReset={() => {
-                        setSelectedCandidate(null);
-                        setConfirmedDuplicateCandidateId(null);
-                        setValues(createQuickAddDefaults());
-                      }}
-                    />
-                  )}
+          <PageSection
+            description="상태와 감상은 내 아카이브에서 가장 먼저 읽히는 개인 기록입니다."
+            eyebrow="내 기록"
+            title="상태와 감상"
+          >
+            <PersonalRecordFields
+              idPrefix="manual"
+              onInputChange={handleInputChange}
+              onStatusChange={handleStatusChange}
+              values={values}
+            />
+          </PageSection>
 
-                  <PageSection
-                    description="검색 결과에서 가져온 초안을 다시 입력하지 않고, 제목과 유형, 작가 정도만 빠르게 확인합니다."
-                    divider={false}
-                    eyebrow="확인"
-                    title="선택한 작품 확인"
-                  >
-                    <SelectedCandidatePreview
-                      candidate={selectedCandidate}
-                      values={values}
-                    />
+          <PageSection
+            description="표지, 장르, 설명 같은 부가 정보는 필요할 때만 펼쳐서 다룹니다."
+            eyebrow="추가 필드"
+            title="고급 정보"
+          >
+            <AdvancedWorkFields
+              idPrefix="manual"
+              itemValue="manual-advanced-fields"
+              onInputChange={handleInputChange}
+              values={values}
+            />
+          </PageSection>
 
-                    <CoreWorkFields
-                      onChange={handleInputChange}
-                      values={values}
-                    />
-                  </PageSection>
+          {(validationError || submitError) && (
+            <FeedbackMessage tone="error">
+              {validationError ?? submitError}
+            </FeedbackMessage>
+          )}
 
-                  <PageSection
-                    description="검색 결과는 입력을 돕는 정보이고, 아래 내용이 내 아카이브에 남는 개인 기록입니다."
-                    eyebrow="내 기록"
-                    title="개인 기록 입력"
-                  >
-                    <PersonalRecordFields
-                      onInputChange={handleInputChange}
-                      onStatusChange={handleStatusChange}
-                      values={values}
-                    />
-                  </PageSection>
+          <ActionRow>
+            <AppButton
+              disabled={isSubmitting}
+              fullWidth
+              size="lg"
+              tone="primary"
+              type="submit"
+            >
+              {isSubmitting ? '저장 중...' : '내 아카이브에 저장'}
+            </AppButton>
+            <AppLinkButton to="/works" tone="quiet">
+              취소
+            </AppLinkButton>
+          </ActionRow>
+        </SectionCard>
+      </form>
 
-                  <PageSection
-                    description="표지, 장르, 설명 같은 부가 정보는 필요할 때만 펼쳐서 다룹니다."
-                    eyebrow="추가 필드"
-                    title="고급 정보"
-                  >
-                    <AdvancedWorkFields
-                      itemValue="advanced-fields"
-                      onInputChange={handleInputChange}
-                      values={values}
-                    />
-                  </PageSection>
-
-              {(validationError || submitError) && (
-                <FeedbackMessage tone="error">
-                  {validationError ?? submitError}
-                </FeedbackMessage>
-              )}
-
-              <ActionRow>
-                <AppButton
-                  disabled={isSubmitting || shouldConfirmDuplicate}
-                  fullWidth
-                  size="lg"
-                  tone="primary"
-                  type="submit"
-                >
-                  {isSubmitting
-                    ? '저장 중...'
-                    : shouldConfirmDuplicate
-                      ? '중복 확인 후 저장'
-                      : '저장'}
-                </AppButton>
-                <AppLinkButton to="/works" tone="quiet">
-                  취소
-                </AppLinkButton>
-              </ActionRow>
-                </SectionCard>
-              </form>
-            )}
-          </Grid.Col>
-        </Grid>
-      )}
+      <SearchPickerModal
+        candidates={searchCandidates}
+        duplicateCounts={duplicateCounts}
+        duplicateMatches={selectedDuplicateMatches}
+        fullScreen={Boolean(isMobile)}
+        isSearching={isSearching}
+        onApplyCandidate={applyCandidateToForm}
+        onClose={() => setSearchModalOpened(false)}
+        onProviderGroupChange={setProviderGroup}
+        onSearchSubmit={handleSearchSubmit}
+        onSearchTermChange={setSearchTerm}
+        onSearchTypeChange={(value) => setSearchType(value as CatalogSearchMediumType)}
+        onSelectCandidate={setSelectedSearchCandidate}
+        onUseManualTitle={useSearchTermForManualInput}
+        opened={searchModalOpened}
+        providerGroup={providerGroup}
+        providerReadinessSummary={
+          <ProviderReadinessSummary
+            error={providerReadiness.error}
+            isLoading={providerReadiness.isLoading}
+            readiness={providerReadiness.readiness}
+          />
+        }
+        searchError={searchError}
+        searchNotice={searchNotice}
+        searchTerm={searchTerm}
+        searchType={searchType}
+        selectedCandidate={selectedSearchCandidate}
+      />
     </Stack>
   );
 }

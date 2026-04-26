@@ -1,7 +1,7 @@
 import type { WorkRecord } from '@work-archive/shared-types';
 import { Paper, SimpleGrid, Stack } from '@mantine/core';
 
-import { WorkCard } from './WorkCard';
+import { PosterTile } from './PosterTile';
 import { WorkListRow, type WorkQuickUpdate } from './WorkListRow';
 
 export type WorksViewMode = 'grid' | 'list';
@@ -24,9 +24,9 @@ export function WorksList({
   if (viewMode === 'grid') {
     return (
       <section>
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4, xl: 5 }} spacing="md">
+        <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }} spacing="md">
           {works.map((work) => (
-            <WorkCard key={work.id} onDelete={onDelete} work={work} />
+            <PosterTile key={work.id} work={work} />
           ))}
         </SimpleGrid>
       </section>
