@@ -1,12 +1,12 @@
 # PRODUCT_DIRECTION_LOCK.md
 
-| Field | Value |
-| --- | --- |
-| Status | `canonical` |
-| Role | `product direction lock` |
-| Source of truth | user-stated product intent, current local-first architecture, current README/CURRENT_STATUS, current Quick Add/import behavior |
-| Last verified against | `2026-04-26` personal-only direction lock |
-| When to update | only when the product's primary purpose, personal-only policy, guest/login policy, or data-boundary policy intentionally changes |
+| Field                 | Value                                                                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `canonical`                                                                                                                      |
+| Role                  | `product direction lock`                                                                                                         |
+| Source of truth       | user-stated product intent, current local-first architecture, current README/CURRENT_STATUS, current Quick Add/import behavior   |
+| Last verified against | `2026-04-26` personal-only direction lock                                                                                        |
+| When to update        | only when the product's primary purpose, personal-only policy, guest/login policy, or data-boundary policy intentionally changes |
 
 이 문서는 Work Archive의 제품 본질과 구현 방향을 고정한다. 여러 차례 리팩터링과 확장 문서가 추가되면서 방향이 흐려질 수 있으므로, 앞으로 모든 기획/구현/문서 판단은 이 문서를 우선 기준으로 삼는다.
 
@@ -195,6 +195,13 @@ Quick Add의 역할:
 - 중복 감지
 - 메타데이터 자동 채움
 - 개인 기록 입력 보조
+
+Manual fallback 정책:
+
+- manual provider 후보는 자동 검색 결과처럼 섞어 보여주지 않는다.
+- 자동 검색에서 외부 후보가 없을 때는 후보 목록 대신 “직접 추가로 계속” fallback을 제공한다.
+- 사용자가 검색 출처를 직접 추가 후보로 명시 선택한 경우에만 manual 후보를 후보 목록에 표시한다.
+- manual 후보의 내부 fallback key는 외부 식별자로 표시하지 않는다.
 
 Quick Add 저장 원칙:
 

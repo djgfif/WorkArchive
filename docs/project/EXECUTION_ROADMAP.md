@@ -1,12 +1,12 @@
 # EXECUTION_ROADMAP.md
 
-| Field | Value |
-| --- | --- |
-| Status | `canonical` |
-| Role | `integrated execution roadmap` |
-| Source of truth | [`PRODUCT_DIRECTION_LOCK.md`](../product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
-| Last verified against | `2026-04-26` personal-only direction lock |
-| When to update | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change |
+| Field                 | Value                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status                | `canonical`                                                                                                                                                                                                                                      |
+| Role                  | `integrated execution roadmap`                                                                                                                                                                                                                   |
+| Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
+| Last verified against | `2026-04-26` personal-only direction lock                                                                                                                                                                                                        |
+| When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                     |
 
 이 문서는 Work Archive의 **단일 통합 실행 로드맵**이다. current reality 문서를 대체하지 않고, 지금 무엇을 어떤 순서로 고정해야 하는지만 정리한다.
 
@@ -17,6 +17,7 @@
 - 공개 프로필, 공개 리뷰, 커뮤니티, 팔로우, 댓글, moderation은 현재 제품 범위 밖이다.
 - 현재 제품 기준은 `direct manual add + optional-auth server-assisted search + local-first save`다.
 - Manual Add, guest no-key provider search, Quick Add identity 저장, duplicate detection, backend sync create 순서는 테스트로 고정돼 있다.
+- 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage, manual fallback 분리까지 2차 고도화가 진행됐고, 남은 작업은 실제 검색어 QA와 튜닝이다.
 - 수정된 우선순위는 `개인 기록 UX -> export/import -> 개인 기록 깊이 -> optional private sync -> search quality -> personal Insights`다.
 - `Public`, `Community`, `Social`, `Catalog moderation` 계열 작업은 무기한 보류한다.
 
@@ -171,14 +172,15 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 우선순위:
 
 1. provider ranking/search quality 개선
-2. source merge 표시 개선
-3. 검색 실패 fallback UX 개선
+2. source merge 표시 회귀 확인
+3. 검색 실패 fallback UX 회귀 확인
 4. 제목 alias / 원제 / 번역제 대응
 5. catalog identity 연결 보조
 
 완료 기준:
 
 - 검색 후보가 틀려도 수동 추가를 방해하지 않는다.
+- manual fallback 후보는 자동 검색 결과처럼 표시하지 않는다.
 - 검색 후보를 선택하면 local-first 저장 계약이 유지된다.
 - catalog identity는 개인 기록을 대체하지 않고 보조 정보로만 사용된다.
 

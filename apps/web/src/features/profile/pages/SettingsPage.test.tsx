@@ -164,7 +164,9 @@ describe('SettingsPage', () => {
 
     renderAuthenticatedSettings();
 
-    expect(await screen.findByText(/키가 등록되어 있지 않습니다/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/키가 등록되어 있지 않습니다/),
+    ).toBeInTheDocument();
     expect(screen.getByText('Manual')).toBeInTheDocument();
     expect(screen.getByText('Aladin Book')).toBeInTheDocument();
     expect(screen.getByText(/바로 사용 가능/)).toBeInTheDocument();
@@ -190,7 +192,9 @@ describe('SettingsPage', () => {
       expect.stringContaining('/imports/providers/aladin/key'),
     );
     expect(saveRequestInit.method).toBe('PUT');
-    expect(saveRequestInit.body).toBe(JSON.stringify({ ttbKey: 'ttb-test-key' }));
+    expect(saveRequestInit.body).toBe(
+      JSON.stringify({ ttbKey: 'ttb-test-key' }),
+    );
     expect(saveRequestHeaders.get('authorization')).toBe('Bearer access-token');
 
     await user.click(screen.getByRole('button', { name: /Aladin.*삭제/ }));
@@ -211,6 +215,14 @@ describe('SettingsPage', () => {
     renderGuestSettings();
 
     expect(await screen.findByText(/로그인하면/)).toBeInTheDocument();
+    expect(screen.getByText('로컬 백업과 복구')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'CSV 내보내기' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('JSON 백업 파일 선택')).toBeInTheDocument();
     expect(screen.getAllByText(/TTBKey/).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText('Aladin TTBKey')).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
