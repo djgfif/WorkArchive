@@ -369,6 +369,7 @@ interface AdvancedWorkFieldsProps {
   idPrefix?: string;
   itemValue: string;
   onInputChange: WorkFormInputChangeHandler;
+  tagSuggestions?: string[];
   values: WorkFormValues;
 }
 
@@ -376,6 +377,7 @@ function AdvancedWorkFields({
   idPrefix = '',
   itemValue,
   onInputChange,
+  tagSuggestions = [],
   values,
 }: AdvancedWorkFieldsProps) {
   return (
@@ -401,6 +403,30 @@ function AdvancedWorkFields({
               placeholder="SF, 로맨스, 스릴러"
               value={values.genresText}
             />
+
+            <TextInput
+              aria-describedby={getFieldId(idPrefix, 'personalTagsTextHint')}
+              id={getFieldId(idPrefix, 'personalTagsText')}
+              label="개인 태그"
+              list={getFieldId(idPrefix, 'personalTagsSuggestions')}
+              name="personalTagsText"
+              onChange={onInputChange}
+              placeholder="시간여행, 다시 볼 것, 여운 강함"
+              value={values.personalTagsText}
+            />
+            <datalist id={getFieldId(idPrefix, 'personalTagsSuggestions')}>
+              {tagSuggestions.map((tag) => (
+                <option key={tag} value={tag} />
+              ))}
+            </datalist>
+            <Text
+              c="var(--app-text-muted)"
+              fz="sm"
+              id={getFieldId(idPrefix, 'personalTagsTextHint')}
+              mt={-8}
+            >
+              장르와 분리된 내 분류입니다. 쉼표로 구분해 입력해주세요.
+            </Text>
 
             <Textarea
               id={getFieldId(idPrefix, 'description')}
@@ -482,6 +508,13 @@ export function QuickAddWorkForm({
   const importedSourceCoverage = selectedImportCandidate
     ? getCandidateSourceCoverage(selectedImportCandidate)
     : null;
+  const tagSuggestions = Array.from(
+    new Set(
+      existingWorks
+        .filter((work) => work.deletedAt === null)
+        .flatMap((work) => work.personalTags),
+    ),
+  ).sort((left, right) => left.localeCompare(right));
 
   function handleInputChange(
     event: ChangeEvent<
@@ -802,6 +835,7 @@ export function QuickAddWorkForm({
               idPrefix="manual"
               itemValue="manual-advanced-fields"
               onInputChange={handleInputChange}
+              tagSuggestions={tagSuggestions}
               values={values}
             />
           </PageSection>

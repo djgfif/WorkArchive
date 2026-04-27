@@ -348,6 +348,7 @@ export function SettingsPage() {
           JSON 백업은 작품과 권별 기록을 복구하기 위한 형식입니다. CSV는 사람이
           읽기 쉬운 목록 내보내기이며 다시 가져오기용 형식은 아닙니다. 가져온
           기록은 기존 기록을 덮어쓰지 않고 local-first 기록으로 추가됩니다.
+          기기별 설정(appMeta)과 syncQueue는 백업 파일에서 복원하지 않습니다.
         </Text>
 
         <ActionRow>
@@ -384,7 +385,7 @@ export function SettingsPage() {
         {archiveImportPreview && (
           <SectionCard padding="lg" tone="subtle">
             <SectionIntro
-              description="기존 기록은 보존하고, ID가 겹치는 항목은 새 ID로 가져옵니다. syncQueue는 백업 파일에서 복원하지 않고, 가져온 활성 기록을 새 local-first 생성으로 처리합니다."
+              description="기존 기록은 보존하고, 제목 중복 후보도 새 기록으로 추가합니다. ID가 겹치는 항목은 새 ID로 가져오며, syncQueue와 appMeta는 백업에서 복원하지 않습니다."
               eyebrow="가져오기 미리보기"
               title="가져올 기록 확인"
               titleOrder={3}
@@ -401,6 +402,9 @@ export function SettingsPage() {
               </AppBadge>
               <AppBadge tone="muted">
                 ID 충돌 {archiveImportPreview.idCollisionCount}개
+              </AppBadge>
+              <AppBadge tone="muted">
+                건너뛸 권별 기록 {archiveImportPreview.skippedReleaseRecordCount}개
               </AppBadge>
             </ActionRow>
             <ActionRow>

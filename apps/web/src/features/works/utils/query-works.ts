@@ -4,6 +4,7 @@ export type WorksSortOption = 'updatedAt' | 'title' | 'rating';
 
 export interface WorksListQuery {
   searchTerm: string;
+  tag?: string;
   type: WorkType | 'all';
   status: WorkStatus | 'all';
   sortBy: WorksSortOption;
@@ -11,6 +12,7 @@ export interface WorksListQuery {
 
 export const DEFAULT_WORKS_LIST_QUERY: WorksListQuery = {
   searchTerm: '',
+  tag: '',
   type: 'all',
   status: 'all',
   sortBy: 'updatedAt',
@@ -27,8 +29,10 @@ function matchesSearch(work: WorkRecord, searchTerm: string) {
     work.title,
     work.author,
     work.shortReview,
+    work.review,
     work.description,
     work.genres.join(' '),
+    work.personalTags.join(' '),
   ].some((value) => value.toLowerCase().includes(normalizedSearch));
 }
 
@@ -43,6 +47,15 @@ export function queryWorks(works: WorkRecord[], query: WorksListQuery) {
     }
 
     if (query.status !== 'all' && work.status !== query.status) {
+      return false;
+    }
+
+    if (
+      query.tag?.trim() &&
+      !work.personalTags.some(
+        (tag) => tag.toLowerCase() === query.tag?.trim().toLowerCase(),
+      )
+    ) {
       return false;
     }
 

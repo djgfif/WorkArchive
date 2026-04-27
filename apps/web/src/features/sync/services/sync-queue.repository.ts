@@ -22,6 +22,7 @@ export class SyncQueueRepository {
     return this.enqueueChange(WORK_ENTITY_TYPE, work, operation, {
       ...work,
       genres: [...work.genres],
+      personalTags: [...work.personalTags],
     });
   }
 

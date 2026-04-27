@@ -55,12 +55,38 @@ function createTitleDuplicateKey(work: Pick<WorkRecord, 'title' | 'type'>) {
   return `${work.type}:${normalizeTitle(work.title)}`;
 }
 
-function cloneWorkForImport(work: WorkRecord, id: string): WorkRecord {
+function normalizeStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? Array.from(
+        new Set(
+          value
+            .filter((item): item is string => typeof item === 'string')
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
+      )
+    : [];
+}
+
+function normalizeArchiveWork(work: WorkRecord): WorkRecord {
   return {
     ...work,
-    genres: [...work.genres],
+    genres: normalizeStringArray(work.genres),
+    personalTags: normalizeStringArray(
+      (work as Partial<WorkRecord>).personalTags,
+    ),
+  };
+}
+
+function cloneWorkForImport(work: WorkRecord, id: string): WorkRecord {
+  const normalizedWork = normalizeArchiveWork(work);
+
+  return {
+    ...normalizedWork,
+    genres: [...normalizedWork.genres],
+    personalTags: [...normalizedWork.personalTags],
     id,
-    importDraft: work.importDraft ? { ...work.importDraft } : null,
+    importDraft: normalizedWork.importDraft ? { ...normalizedWork.importDraft } : null,
     serverVersion: 0,
     syncStatus: 'local-only',
   };
@@ -110,7 +136,7 @@ function parseArchive(rawValue: string): LocalArchiveExport {
     format: ARCHIVE_FORMAT,
     releaseRecords: parsedValue.releaseRecords as UserReleaseRecord[],
     version: ARCHIVE_VERSION,
-    works: parsedValue.works as WorkRecord[],
+    works: (parsedValue.works as WorkRecord[]).map(normalizeArchiveWork),
   };
 }
 
@@ -126,6 +152,7 @@ function createCsvRows(works: WorkRecord[]) {
     'type',
     'status',
     'rating',
+    'personalTags',
     'shortReview',
     'review',
     'progress',
@@ -148,6 +175,7 @@ function createCsvRows(works: WorkRecord[]) {
       work.type,
       work.status,
       work.rating ?? '',
+      work.personalTags.join('; '),
       work.shortReview,
       work.review,
       progress,
@@ -268,6 +296,9 @@ export class LocalArchiveService {
 
       return cloneWorkForImport(work, nextId);
     });
+    const worksToImportById = new Map(
+      worksToImport.map((work) => [work.id, work]),
+    );
     const releaseRecordsToImport = archive.releaseRecords.flatMap(
       (releaseRecord) => {
         const mappedWorkId = workIdMap.get(releaseRecord.userWorkRecordId);
@@ -308,12 +339,20 @@ export class LocalArchiveService {
             createQueueItem('work', work.id, 'create', {
               ...work,
               genres: [...work.genres],
+              personalTags: [...work.personalTags],
             }),
           );
         }
 
         for (const releaseRecord of releaseRecordsToImport) {
           if (releaseRecord.deletedAt !== null) {
+            continue;
+          }
+
+          if (
+            worksToImportById.get(releaseRecord.userWorkRecordId)?.deletedAt !==
+            null
+          ) {
             continue;
           }
 

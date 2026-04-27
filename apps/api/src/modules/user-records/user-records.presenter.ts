@@ -13,6 +13,7 @@ export function toUserWorkRecordView(work: WorkAggregate) {
       review: work.review,
       tier: work.tier,
       favorite: work.favorite,
+      personalTags: work.personalTags,
       progressCurrent: work.progressCurrent,
       progressTotal: work.progressTotal,
       progressUnit: work.progressUnit,

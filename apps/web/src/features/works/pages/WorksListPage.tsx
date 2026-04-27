@@ -38,6 +38,7 @@ function getQueryFromSearchParams(searchParams: URLSearchParams): WorksListQuery
   return {
     ...DEFAULT_WORKS_LIST_QUERY,
     searchTerm: searchParams.get('q') ?? '',
+    tag: searchParams.get('tag') ?? '',
     sortBy:
       sortByFromUrl === 'title' || sortByFromUrl === 'rating'
         ? sortByFromUrl
@@ -65,6 +66,10 @@ function buildSearchParams(
 
   if (query.status !== 'all') {
     nextSearchParams.set('status', query.status);
+  }
+
+  if (query.tag?.trim()) {
+    nextSearchParams.set('tag', query.tag.trim());
   }
 
   if (query.type !== 'all') {
@@ -98,12 +103,14 @@ export function WorksListPage() {
     error,
     isLoading,
     statusCounts,
+    tagSuggestions,
     totalActiveCount,
     totalDeletedCount,
     works,
   } = useWorksList(query, collectionScope);
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
+    (query.tag?.trim() ?? '') !== '' ||
     query.type !== 'all' ||
     query.status !== 'all' ||
     query.sortBy !== 'updatedAt';
@@ -224,6 +231,7 @@ export function WorksListPage() {
         onViewModeChange={setViewMode}
         query={query}
         statusCounts={statusCounts}
+        tagSuggestions={tagSuggestions}
         totalActiveCount={totalActiveCount}
         totalDeletedCount={totalDeletedCount}
         viewMode={viewMode}

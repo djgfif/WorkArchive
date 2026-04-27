@@ -350,6 +350,7 @@ export interface WorkRecord extends AuditFields {
   title: string;
   author: string;
   genres: string[];
+  personalTags: string[];
   description: string;
   thumbnailUrl: string;
   status: WorkStatus;
@@ -414,6 +415,7 @@ export interface UserRecordView {
     deletedAt: ISODateString | null;
     favorite: boolean;
     id: EntityId;
+    personalTags: string[];
     lastConsumedLabel?: string | null;
     progressCurrent?: number | null;
     progressTotal?: number | null;

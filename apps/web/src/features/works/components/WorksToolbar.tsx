@@ -29,6 +29,7 @@ interface WorksToolbarProps {
   onViewModeChange: (viewMode: WorksViewMode) => void;
   query: WorksListQuery;
   statusCounts: Record<WorkStatus, number>;
+  tagSuggestions: string[];
   totalActiveCount: number;
   totalDeletedCount: number;
   viewMode: WorksViewMode;
@@ -44,6 +45,7 @@ export function WorksToolbar({
   onViewModeChange,
   query,
   statusCounts,
+  tagSuggestions,
   totalActiveCount,
   totalDeletedCount,
   viewMode,
@@ -70,6 +72,7 @@ export function WorksToolbar({
 
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
+    (query.tag?.trim() ?? '') !== '' ||
     query.status !== 'all' ||
     query.type !== 'all' ||
     query.sortBy !== 'updatedAt';
@@ -119,9 +122,27 @@ export function WorksToolbar({
             onChange={(event) =>
               onQueryChange({ ...query, searchTerm: event.currentTarget.value })
             }
-            placeholder="제목 또는 작가"
+            placeholder="제목, 작가, 감상, 태그"
             value={query.searchTerm}
           />
+        </div>
+
+        <div style={{ flex: '0 1 12rem', minWidth: 160 }}>
+          <TextInput
+            label="개인 태그"
+            list="worksTagFilterSuggestions"
+            name="tag"
+            onChange={(event) =>
+              onQueryChange({ ...query, tag: event.currentTarget.value })
+            }
+            placeholder="태그로 필터"
+            value={query.tag ?? ''}
+          />
+          <datalist id="worksTagFilterSuggestions">
+            {tagSuggestions.map((tag) => (
+              <option key={tag} value={tag} />
+            ))}
+          </datalist>
         </div>
 
         <div style={{ flex: '0 1 10rem', minWidth: 144 }}>

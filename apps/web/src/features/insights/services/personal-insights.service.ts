@@ -17,6 +17,10 @@ export interface PersonalInsights {
     rating: number;
   }>;
   statusCounts: Record<WorkStatus, number>;
+  tagCounts: Array<{
+    count: number;
+    tag: string;
+  }>;
   topRatedWorks: WorkRecord[];
   typeCounts: Record<WorkType, number>;
 }
@@ -49,6 +53,7 @@ export function calculatePersonalInsights(
   const statusCounts = createEmptyStatusCounts();
   const ratedWorks = activeWorks.filter((work) => work.rating !== null);
   const ratingBuckets = new Map<number, number>();
+  const tagBuckets = new Map<string, number>();
 
   for (const work of activeWorks) {
     typeCounts[work.type] += 1;
@@ -56,6 +61,10 @@ export function calculatePersonalInsights(
 
     if (work.rating !== null) {
       ratingBuckets.set(work.rating, (ratingBuckets.get(work.rating) ?? 0) + 1);
+    }
+
+    for (const tag of work.personalTags) {
+      tagBuckets.set(tag, (tagBuckets.get(tag) ?? 0) + 1);
     }
   }
 
@@ -80,6 +89,16 @@ export function calculatePersonalInsights(
       }))
       .sort((left, right) => right.rating - left.rating),
     statusCounts,
+    tagCounts: [...tagBuckets.entries()]
+      .map(([tag, count]) => ({
+        count,
+        tag,
+      }))
+      .sort(
+        (left, right) =>
+          right.count - left.count || left.tag.localeCompare(right.tag),
+      )
+      .slice(0, 10),
     topRatedWorks: [...ratedWorks]
       .sort(
         (left, right) =>

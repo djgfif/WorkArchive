@@ -202,6 +202,13 @@ export function WorkDetailPanel({
                 value: work.genres.length > 0 ? work.genres.join(', ') : '없음',
               },
               {
+                label: '개인 태그',
+                value:
+                  work.personalTags.length > 0
+                    ? work.personalTags.join(', ')
+                    : '없음',
+              },
+              {
                 label: '설명',
                 value: work.description.trim() || '작품 소개가 아직 없습니다.',
               },

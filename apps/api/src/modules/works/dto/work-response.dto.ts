@@ -59,6 +59,11 @@ export class WorkResponseDto {
   review!: string;
 
   @ApiProperty({
+    type: [String],
+  })
+  personalTags!: string[];
+
+  @ApiProperty({
     enum: WorkTier,
     nullable: true,
   })

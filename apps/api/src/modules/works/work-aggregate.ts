@@ -16,6 +16,7 @@ export function toFlatWorkResponse(work: WorkAggregate): WorkResponseDto {
     thumbnailUrl: work.catalogWork.thumbnailUrl,
     status: work.status,
     rating: work.rating,
+    personalTags: work.personalTags,
     shortReview: work.shortReview,
     review: work.review,
     tier: work.tier,
@@ -43,6 +44,16 @@ export function normalizeGenres(genres?: string[] | null) {
 
   return Array.from(
     new Set(genres.map((genre) => genre.trim()).filter(Boolean)),
+  );
+}
+
+export function normalizePersonalTags(personalTags?: string[] | null) {
+  if (!personalTags) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(personalTags.map((tag) => tag.trim()).filter(Boolean)),
   );
 }
 

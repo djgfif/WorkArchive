@@ -17,6 +17,7 @@ import type { UpdateWorkDto } from './dto/update-work.dto';
 import {
   hasChanges,
   normalizeGenres,
+  normalizePersonalTags,
   normalizeString,
   toFlatWorkResponse,
 } from './work-aggregate';
@@ -208,6 +209,7 @@ export class WorksService {
       rating: createWorkDto.rating ?? null,
       shortReview: normalizeString(createWorkDto.shortReview),
       review: normalizeString(createWorkDto.review),
+      personalTags: normalizePersonalTags(createWorkDto.personalTags),
       tier: createWorkDto.tier ?? null,
       favorite: createWorkDto.favorite ?? false,
       syncStatus: DEFAULT_SYNC_STATUS,
@@ -272,6 +274,10 @@ export class WorksService {
 
     if (updateWorkDto.review !== undefined) {
       data.review = normalizeString(updateWorkDto.review);
+    }
+
+    if (updateWorkDto.personalTags !== undefined) {
+      data.personalTags = normalizePersonalTags(updateWorkDto.personalTags);
     }
 
     if (updateWorkDto.tier !== undefined) {

@@ -15,6 +15,7 @@ function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
     title: 'Dune',
     author: 'Frank Herbert',
     genres: ['Science Fiction'],
+    personalTags: [],
     description: 'Classic science fiction',
     thumbnailUrl: '',
     status: 'planned',

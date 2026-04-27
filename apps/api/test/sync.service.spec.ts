@@ -30,6 +30,7 @@ function createWorkAggregateFixture(
     rating: 5,
     shortReview: '',
     review: '',
+    personalTags: [],
     tier: null,
     favorite: false,
     createdAt: new Date('2026-04-18T00:00:00.000Z'),
@@ -64,6 +65,7 @@ function createSyncPayload(
     title: 'The Three-Body Problem',
     author: 'Liu Cixin',
     genres: ['Sci-Fi'],
+    personalTags: [],
     description: '',
     thumbnailUrl: '',
     status: WorkStatus.completed,
@@ -414,6 +416,7 @@ describe('SyncService', () => {
           payload: createSyncPayload({
             id: importedId,
             title: 'Imported Dune',
+            personalTags: ['다시 볼 것'],
             createdAt: '2026-04-18T00:00:00.000Z',
             updatedAt: '2026-04-18T00:00:00.000Z',
             syncStatus: 'local-only',
@@ -437,6 +440,7 @@ describe('SyncService', () => {
         userId: USER_ID,
         catalogWorkId: importedId,
         serverVersion: 1,
+        personalTags: ['다시 볼 것'],
       }),
       expect.any(Object),
     );
@@ -865,6 +869,7 @@ describe('SyncService', () => {
           createdAt: '2026-04-18T02:00:00.000Z',
           payload: createSyncPayload({
             deletedAt: '2026-04-18T02:00:00.000Z',
+            personalTags: ['보관'],
             updatedAt: '2026-04-18T02:00:00.000Z',
           }),
         },
@@ -875,6 +880,7 @@ describe('SyncService', () => {
       '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
       expect.objectContaining({
         deletedAt: new Date('2026-04-18T02:00:00.000Z'),
+        personalTags: ['보관'],
         syncStatus: WorkSyncStatus.synced,
         serverVersion: {
           increment: 1,

@@ -114,7 +114,7 @@ export function InsightsPage() {
                 value={formatRating(insights.averageRating)}
               />
               <MetricPill
-                label="올해 완료"
+                label="올해 수정된 완료 기록"
                 value={insights.completedThisYearCount}
               />
               <MetricPill label="즐겨찾기" value={insights.favoriteCount} />
@@ -166,6 +166,29 @@ export function InsightsPage() {
                   </Group>
                 ))}
               </Stack>
+            </SectionCard>
+
+            <SectionCard>
+              <SectionIntro
+                description="장르가 아니라 내가 붙인 개인 분류를 기준으로 자주 쓰는 태그를 보여줍니다."
+                eyebrow="개인 태그"
+                title="자주 쓴 태그"
+                titleOrder={2}
+              />
+              {insights.tagCounts.length === 0 ? (
+                <Text c="var(--app-text-muted)">
+                  아직 개인 태그를 남긴 작품이 없습니다.
+                </Text>
+              ) : (
+                <Stack gap="sm">
+                  {insights.tagCounts.map(({ count, tag }) => (
+                    <Group justify="space-between" key={tag}>
+                      <Text fw={700}>{tag}</Text>
+                      <AppBadge tone="accent">{count}개</AppBadge>
+                    </Group>
+                  ))}
+                </Stack>
+              )}
             </SectionCard>
 
             <SectionCard>

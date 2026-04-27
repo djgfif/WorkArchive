@@ -21,6 +21,7 @@ function createWorkRecord(
     title: `work-${id}`,
     author: '',
     genres: [],
+    personalTags: [],
     description: '',
     thumbnailUrl: '',
     status: 'planned',

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { liveQuery } from 'dexie';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import {
@@ -10,6 +11,7 @@ import { PageHero } from '../../../shared/components/PageHero';
 import { FlowPageTemplate } from '../../../shared/components/PageTemplates';
 import { WorkForm } from '../components/WorkForm';
 import { useWorkDetail } from '../hooks/useWorkDetail';
+import { worksRepository } from '../services/works.repository';
 import { worksService } from '../services/works.service';
 import {
   createWorkFormValuesFromRecord,
@@ -23,7 +25,29 @@ export function WorkEditPage() {
   const { error, isLoading, work } = useWorkDetail(id);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
   const focusArea = searchParams.get('focus') === 'review' ? 'review' : 'general';
+  const formInitialValues = useMemo(
+    () => (work ? createWorkFormValuesFromRecord(work) : undefined),
+    [work],
+  );
+
+  useEffect(() => {
+    const subscription = liveQuery(() => worksRepository.listActive()).subscribe({
+      next: (works) => {
+        setTagSuggestions(
+          Array.from(new Set(works.flatMap((entry) => entry.personalTags))).sort(
+            (left, right) => left.localeCompare(right),
+          ),
+        );
+      },
+      error: () => setTagSuggestions([]),
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   async function handleSubmit(input: UpsertWorkInput) {
     if (!id) {
@@ -116,11 +140,12 @@ export function WorkEditPage() {
       <WorkForm
         cancelTo={`/works/${work.id}`}
         focusArea={focusArea}
-        initialValues={createWorkFormValuesFromRecord(work)}
+        initialValues={formInitialValues}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}
         submitError={submitError}
         submitLabel="저장"
+        tagSuggestions={tagSuggestions}
       />
     </FlowPageTemplate>
   );
