@@ -1,12 +1,12 @@
 # CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md
 
-| Field | Value |
-| --- | --- |
-| Status | `canonical` |
-| Role | `current reality` |
-| Source of truth | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-04-25` local `master` working tree |
-| When to update | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때 |
+| Field                 | Value                                                                                                                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `canonical`                                                                                                                                                                                                                                                               |
+| Role                  | `current reality`                                                                                                                                                                                                                                                         |
+| Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
+| Last verified against | `2026-04-25` local `master` working tree                                                                                                                                                                                                                                  |
+| When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
 
@@ -18,8 +18,9 @@
 - 백엔드는 NestJS + Prisma + PostgreSQL 기반 API다.
 - Quick Add는 현재 `direct manual add + optional-auth server-assisted search + local-first save` 규칙으로 동작한다.
 - Quick Add matched/unmatched/manual 저장 규칙과 duplicate detection 우선순위는 테스트로 고정돼 있다.
+- Quick Add 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage를 갖추고 manual fallback을 일반 검색 결과에서 분리한다.
 - 현재 sync는 수동 실행만 지원한다.
-- `Tier Boards`, `Insights`, `Community`는 라우트는 존재하지만 아직 placeholder 성격이 강하다.
+- `Tier Boards`, `Community`는 라우트는 존재하지만 현재 범위 밖/후속 기능 안내 성격이 강하다. `Insights`는 local-first 개인 기록 기반 요약 화면으로 시작했다.
 
 ## 2. Verified Stack
 
@@ -59,13 +60,13 @@
 
 ### 3-2. Current Routes
 
-| Area | Routes | Current state |
-| --- | --- | --- |
-| Main product | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/tier-boards`, `/insights`, `/community`, `/profile` | 홈/작품 흐름은 실제 구현, 확장 목적지는 placeholder 성격 혼재 |
-| Auth | `/auth/login`, `/auth/register` | 이메일/비밀번호 인증 구현 |
-| Account | `/account`, `/account/sync`, `/account/transfer`, `/account/settings` | 계정 개요, sync, guest review, 설정 흐름 구현 |
-| Compatibility redirects | `/sync`, `/settings`, `/profile/sync`, `/profile/settings` | `/account/*`로 리다이렉트 |
-| Minimal | `*` | 404 처리 |
+| Area                    | Routes                                                                                                              | Current state                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/tier-boards`, `/insights`, `/community`, `/profile` | 홈/작품 흐름은 실제 구현, 확장 목적지는 placeholder 성격 혼재 |
+| Auth                    | `/auth/login`, `/auth/register`                                                                                     | 이메일/비밀번호 인증 구현                                     |
+| Account                 | `/account`, `/account/sync`, `/account/transfer`, `/account/settings`                                               | 계정 개요, sync, guest review, 설정 흐름 구현                 |
+| Compatibility redirects | `/sync`, `/settings`, `/profile/sync`, `/profile/settings`                                                          | `/account/*`로 리다이렉트                                     |
+| Minimal                 | `*`                                                                                                                 | 404 처리                                                      |
 
 ### 3-3. Current User Flows
 
@@ -167,7 +168,10 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - Quick Add matched external candidate 저장 규칙: `catalogTitleId` 저장, `importDraft: null`
 - Quick Add unmatched external candidate 저장 규칙: `title`, `author`, `description`, `thumbnailUrl`, `genres`를 중복 저장하지 않는 identity-only `importDraft`
 - Quick Add `manual` / `preview-manual` 저장 규칙: catalog/import identity 없이 local draft 저장
+- Quick Add automatic search에서 `manual` / `preview-manual` 후보는 일반 후보 목록에 섞지 않고 직접 추가 fallback으로 분리
 - duplicate detection 우선순위: `catalogTitleId -> externalRefs -> title fallback`
+- Settings의 local archive JSON export/import와 CSV export
+- 개인 기록 기반 Insights 기본 집계
 - 계정 설정의 Aladin 키 저장/삭제
 - `/imports/providers` 기반 provider readiness 조회와 Settings provider readiness 기본 UI/테스트
 - SyncPage pending / failed / conflict queue item 표시, 원인 표시, 기록 보기, 재시도 CTA
@@ -179,7 +183,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 ### Not Yet Implemented
 
-- provider별 ranking/search quality 개선
+- provider별 ranking/search quality 실제 검색어 QA와 튜닝
 - provider readiness UI polish
 - conflict overwrite/merge resolution
 - guest 기록 자동 병합 정책과 다기기 이관 UX
@@ -187,6 +191,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - 공개 프로필 / 공개 기록 / 작품 집계
 - 실제 티어 보드 기능
 - 커뮤니티 기능
+- personal tags / 감상 timeline / 시작일·완료일·중단일
 
 ## 6. Validation Surface
 

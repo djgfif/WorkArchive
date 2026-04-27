@@ -5,30 +5,28 @@ export function CommunityPage() {
   return (
     <FutureFeaturePage
       actions={
-        <AppLinkButton to="/profile">
-          프로필 구조 보기
-        </AppLinkButton>
+        <AppLinkButton to="/works">내 작품 기록으로 돌아가기</AppLinkButton>
       }
-      description="커뮤니티는 메인 탭에 포함되지만, 현재 단계에서는 개인 기록이 중심이라는 원칙을 유지합니다."
-      eyebrow="커뮤니티"
+      description="Work Archive는 현재 순수 개인용 local-first 아카이브로 개발합니다. 공개 프로필, 공개 리뷰, 팔로우, 댓글, 커뮤니티 피드는 현재 제품 범위 밖입니다."
+      eyebrow="범위 밖"
       highlights={[
         {
-          title: '정보형 허브로 시작',
+          title: '개인 기록 우선',
           description:
-            '과도한 피드 대신 인기 작품, 많이 기록된 작품, 대표 한줄평 같은 가벼운 허브 구조를 우선합니다.',
+            '작품 상태, 별점, 리뷰, 진행도, 즐겨찾기 같은 내 기록을 완성하는 일을 먼저 다룹니다.',
         },
         {
-          title: '작품 단위 연결',
+          title: '공개 기능 보류',
           description:
-            '작품 공개 페이지, 프로필, 티어 보드와 연결되는 정보형 반응 레이어를 준비합니다.',
+            '다른 사용자와 연결되는 기능보다 로컬 백업, 복구, 개인 기록 정리를 먼저 완성합니다.',
         },
         {
-          title: '소란스럽지 않은 분위기',
+          title: '데이터 plane 분리',
           description:
-            '추천과 취향 공유는 살리되, 개인 기록 서비스의 차분한 인상을 해치지 않는 방향으로 확장합니다.',
+            '개인 기록과 catalog/search 보조 데이터는 분리하고, public/community plane은 현재 구현하지 않습니다.',
         },
       ]}
-      title="커뮤니티"
+      title="커뮤니티 기능은 현재 만들지 않습니다"
     />
   );
 }
