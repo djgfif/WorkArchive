@@ -210,7 +210,7 @@ export const appTheme = createTheme({
           border: '1px solid transparent',
           fontSize: '0.72rem',
           fontWeight: 600,
-          letterSpacing: '0.02em',
+          letterSpacing: 0,
           paddingInline: '0.55rem',
           textTransform: 'uppercase',
         },
@@ -225,7 +225,7 @@ export const appTheme = createTheme({
         root: {
           borderColor: 'var(--app-border-color)',
           fontWeight: 600,
-          letterSpacing: '-0.01em',
+          letterSpacing: 0,
           paddingInline: '0.9rem',
         },
       },
@@ -343,7 +343,7 @@ export const appTheme = createTheme({
       styles: {
         root: {
           color: 'var(--app-text-strong)',
-          letterSpacing: '-0.03em',
+          letterSpacing: 0,
         },
       },
     },

@@ -6,7 +6,6 @@ import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
   AppButton,
-  AppLinkButton,
   FeedbackMessage,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
@@ -15,6 +14,7 @@ import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
 import { WorksList, type WorksViewMode } from '../components/WorksList';
 import { WorksTrashList } from '../components/WorksTrashList';
 import { WorksToolbar } from '../components/WorksToolbar';
+import { AddWorkDialog } from '../components/AddWorkDialog';
 import { useWorksList } from '../hooks/useWorksList';
 import {
   worksService,
@@ -96,6 +96,7 @@ export function WorksListPage() {
     getQueryFromSearchParams(searchParams),
   );
   const [viewMode, setViewMode] = useState<WorksViewMode>('grid');
+  const [addDialogOpened, setAddDialogOpened] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [updatingWorkId, setUpdatingWorkId] = useState<string | null>(null);
   const [restoringWorkId, setRestoringWorkId] = useState<string | null>(null);
@@ -227,6 +228,7 @@ export function WorksListPage() {
           });
         }}
         onCollectionScopeChange={handleCollectionScopeChange}
+        onCreateWork={() => setAddDialogOpened(true)}
         onQueryChange={handleQueryChange}
         onViewModeChange={setViewMode}
         query={query}
@@ -269,9 +271,13 @@ export function WorksListPage() {
                   작품 목록 보기
                 </AppButton>
               ) : (
-                <AppLinkButton to="/works/new" tone="primary">
+                <AppButton
+                  onClick={() => setAddDialogOpened(true)}
+                  tone="primary"
+                  type="button"
+                >
                   작품 추가
-                </AppLinkButton>
+                </AppButton>
               )}
               {hasActiveFilters && collectionScope === 'active' && (
                 <AppButton
@@ -331,6 +337,11 @@ export function WorksListPage() {
           />
         )
       )}
+
+      <AddWorkDialog
+        onClose={() => setAddDialogOpened(false)}
+        opened={addDialogOpened}
+      />
     </WorkspacePageTemplate>
   );
 }

@@ -1,4 +1,4 @@
-import { PasswordInput, Stack, Text } from '@mantine/core';
+import { Group, PasswordInput, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 
 import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
@@ -339,48 +339,74 @@ export function SettingsPage() {
 
       <SectionCard>
         <SectionIntro
-          description="현재 브라우저의 로컬 아카이브를 파일로 보관하거나, 이전에 내보낸 JSON 백업을 현재 아카이브로 가져옵니다."
+          description="현재 브라우저의 로컬 아카이브를 파일로 보관하고, 이전 백업을 기존 기록 위에 안전하게 더합니다."
           eyebrow="데이터 소유권"
           title="로컬 백업과 복구"
         />
 
-        <Text c="var(--app-text-muted)">
-          JSON 백업은 작품과 권별 기록을 복구하기 위한 형식입니다. CSV는 사람이
-          읽기 쉬운 목록 내보내기이며 다시 가져오기용 형식은 아닙니다. 가져온
-          기록은 기존 기록을 덮어쓰지 않고 local-first 기록으로 추가됩니다.
-          기기별 설정(appMeta)과 syncQueue는 백업 파일에서 복원하지 않습니다.
-        </Text>
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          <SectionCard padding="lg" tone="subtle">
+            <SectionIntro
+              description="작품과 권별 기록을 다시 가져올 수 있는 보관용 파일입니다."
+              eyebrow="보관용"
+              title="JSON 백업"
+              titleOrder={3}
+            />
+            <AppButton
+              disabled={isExportingArchive}
+              onClick={() => void handleExportJson()}
+              tone="primary"
+              type="button"
+            >
+              JSON 백업 내보내기
+            </AppButton>
+          </SectionCard>
+
+          <SectionCard padding="lg" tone="subtle">
+            <SectionIntro
+              description="스프레드시트에서 읽기 위한 목록 파일입니다. 다시 가져오기용 형식은 아닙니다."
+              eyebrow="보기용"
+              title="CSV 내보내기"
+              titleOrder={3}
+            />
+            <AppButton
+              disabled={isExportingArchive}
+              onClick={() => void handleExportCsv()}
+              tone="secondary"
+              type="button"
+            >
+              CSV 내보내기
+            </AppButton>
+          </SectionCard>
+        </SimpleGrid>
+
+        <SectionCard padding="lg" tone="subtle">
+          <Group align="flex-start" justify="space-between" wrap="wrap">
+            <Stack gap="xs">
+              <Text fw={700}>JSON 백업 가져오기</Text>
+              <Text c="var(--app-text-muted)" size="sm">
+                가져온 기록은 기존 기록을 덮어쓰지 않고 새 local-first 기록으로
+                추가됩니다.
+              </Text>
+            </Stack>
+            <input
+              accept="application/json,.json"
+              aria-label="JSON 백업 파일 선택"
+              onChange={(event) => void handleImportFileChange(event)}
+              type="file"
+            />
+          </Group>
+        </SectionCard>
 
         <ActionRow>
-          <AppButton
-            disabled={isExportingArchive}
-            onClick={() => void handleExportJson()}
-            tone="primary"
-            type="button"
-          >
-            JSON 백업 내보내기
-          </AppButton>
-          <AppButton
-            disabled={isExportingArchive}
-            onClick={() => void handleExportCsv()}
-            tone="secondary"
-            type="button"
-          >
-            CSV 내보내기
-          </AppButton>
+          <AppBadge tone="muted">appMeta 복원 안 함</AppBadge>
+          <AppBadge tone="muted">syncQueue 복원 안 함</AppBadge>
+          <AppBadge tone="muted">API key 제외</AppBadge>
         </ActionRow>
-
-        <Stack gap="sm">
-          <Text c="var(--app-text-muted)" fw={700} size="sm">
-            JSON 백업 가져오기
-          </Text>
-          <input
-            accept="application/json,.json"
-            aria-label="JSON 백업 파일 선택"
-            onChange={(event) => void handleImportFileChange(event)}
-            type="file"
-          />
-        </Stack>
+        <Text c="var(--app-text-muted)" size="sm">
+          백업 파일의 syncQueue는 특정 기기의 작업 대기열이므로 가져오기에서
+          복원하지 않습니다.
+        </Text>
 
         {archiveImportPreview && (
           <SectionCard padding="lg" tone="subtle">

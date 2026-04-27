@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -9,6 +9,41 @@ import { AuthProvider } from '../../auth/context/AuthProvider';
 import { worksService } from '../services/works.service';
 
 describe('WorksListPage', () => {
+  it('opens the modal-first add flow from the library page', async () => {
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await screen.findByText('아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.');
+    await user.click(screen.getAllByRole('button', { name: '작품 추가' })[0]!);
+
+    const dialog = await screen.findByRole('dialog');
+
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: '직접 입력' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await user.type(within(dialog).getByLabelText(/^제목$/), 'Modal First Work');
+    await user.selectOptions(within(dialog).getByLabelText(/^유형$/), 'movie');
+    await user.click(
+      within(dialog).getByRole('button', { name: '내 아카이브에 저장' }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText('Modal First Work')).toBeInTheDocument();
+  });
+
   it('shows filtered and total active counts accurately', async () => {
     const dune = await worksService.createWork({
       type: 'novel',

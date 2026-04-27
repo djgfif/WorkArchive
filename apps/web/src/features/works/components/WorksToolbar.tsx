@@ -5,7 +5,6 @@ import type { WorkStatus } from '@work-archive/shared-types';
 import {
   ActionRow,
   AppButton,
-  AppLinkButton,
   MetricPill,
   SectionCard,
 } from '../../../shared/components/AppPrimitives';
@@ -25,6 +24,7 @@ interface WorksToolbarProps {
   isLoading: boolean;
   onClearFilters: () => void;
   onCollectionScopeChange: (scope: WorksCollectionScope) => void;
+  onCreateWork: () => void;
   onQueryChange: (query: WorksListQuery) => void;
   onViewModeChange: (viewMode: WorksViewMode) => void;
   query: WorksListQuery;
@@ -41,6 +41,7 @@ export function WorksToolbar({
   isLoading,
   onClearFilters,
   onCollectionScopeChange,
+  onCreateWork,
   onQueryChange,
   onViewModeChange,
   query,
@@ -99,9 +100,9 @@ export function WorksToolbar({
               초기화
             </AppButton>
           )}
-          <AppLinkButton size="compact-sm" to="/works/new" tone="primary">
+          <AppButton onClick={onCreateWork} size="compact-sm" tone="primary" type="button">
             작품 추가
-          </AppLinkButton>
+          </AppButton>
         </ActionRow>
       </Group>
 
