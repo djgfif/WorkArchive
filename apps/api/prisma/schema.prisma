@@ -351,6 +351,7 @@ model UserWorkRecord {
   rating            Float?
   shortReview       String              @default("")
   review            String              @default("") @db.Text
+  personalTags      String[]            @default([])
   tier              WorkTier?
   favorite          Boolean             @default(false)
   progressCurrent   Int?

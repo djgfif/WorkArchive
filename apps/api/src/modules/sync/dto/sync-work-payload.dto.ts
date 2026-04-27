@@ -161,6 +161,16 @@ export class SyncWorkPayloadDto {
   genres!: string[];
 
   @ApiProperty({
+    type: [String],
+  })
+  @NormalizeStringArray()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(40, { each: true })
+  personalTags!: string[];
+
+  @ApiProperty({
     maxLength: 4000,
   })
   @Trim()

@@ -51,6 +51,7 @@ interface WorkFormProps {
   onSubmit: (input: UpsertWorkInput) => Promise<void>;
   submitError: string | null;
   submitLabel: string;
+  tagSuggestions?: string[];
 }
 
 export function WorkForm({
@@ -61,6 +62,7 @@ export function WorkForm({
   onSubmit,
   submitError,
   submitLabel,
+  tagSuggestions = [],
 }: WorkFormProps) {
   const [values, setValues] = useState<WorkFormValues>(
     initialValues ?? createDefaultWorkFormValues(),
@@ -85,6 +87,11 @@ export function WorkForm({
   const previewGenres = values.genresText
     .split(',')
     .map((genre) => genre.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  const previewPersonalTags = values.personalTagsText
+    .split(',')
+    .map((tag) => tag.trim())
     .filter(Boolean)
     .slice(0, 4);
   const shortReviewLength = values.shortReview.trim().length;
@@ -208,6 +215,27 @@ export function WorkForm({
                   />
                   <Text c="var(--app-text-muted)" fz="sm" id="genresTextHint" mt={6}>
                     장르는 쉼표로 구분해 입력해주세요.
+                  </Text>
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <TextInput
+                    aria-describedby="personalTagsTextHint"
+                    id="personalTagsText"
+                    label="개인 태그"
+                    list="personalTagsSuggestions"
+                    name="personalTagsText"
+                    onChange={handleInputChange}
+                    placeholder="시간여행, 다시 볼 것, 여운 강함"
+                    value={values.personalTagsText}
+                  />
+                  <datalist id="personalTagsSuggestions">
+                    {tagSuggestions.map((tag) => (
+                      <option key={tag} value={tag} />
+                    ))}
+                  </datalist>
+                  <Text c="var(--app-text-muted)" fz="sm" id="personalTagsTextHint" mt={6}>
+                    장르와 분리된 내 분류입니다. 쉼표로 구분해 입력해주세요.
                   </Text>
                 </div>
 
@@ -377,6 +405,18 @@ export function WorkForm({
                   previewGenres.map((genre) => <AppBadge key={genre}>{genre}</AppBadge>)
                 ) : (
                   <AppBadge tone="muted">장르 없음</AppBadge>
+                )}
+              </ActionRow>
+
+              <ActionRow>
+                {previewPersonalTags.length > 0 ? (
+                  previewPersonalTags.map((tag) => (
+                    <AppBadge key={tag} tone="accent">
+                      {tag}
+                    </AppBadge>
+                  ))
+                ) : (
+                  <AppBadge tone="muted">개인 태그 없음</AppBadge>
                 )}
               </ActionRow>
 

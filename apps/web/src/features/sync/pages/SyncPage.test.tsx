@@ -35,6 +35,7 @@ function buildStoredWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
     title: overrides.title ?? 'Stored Work',
     author: overrides.author ?? 'Frank Herbert',
     genres: overrides.genres ?? ['Science Fiction'],
+    personalTags: overrides.personalTags ?? [],
     description: overrides.description ?? '',
     thumbnailUrl: overrides.thumbnailUrl ?? '',
     status: overrides.status ?? 'planned',

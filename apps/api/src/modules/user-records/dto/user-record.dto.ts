@@ -135,6 +135,17 @@ export class CreateUserRecordDto {
   @IsOptional()
   @IsBoolean()
   favorite?: boolean;
+
+  @ApiPropertyOptional({
+    type: [String],
+  })
+  @NormalizeStringArray()
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(40, { each: true })
+  personalTags?: string[];
 }
 
 export class UpdateUserRecordDto {
@@ -189,6 +200,17 @@ export class UpdateUserRecordDto {
   @IsOptional()
   @IsBoolean()
   favorite?: boolean;
+
+  @ApiPropertyOptional({
+    type: [String],
+  })
+  @NormalizeStringArray()
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(40, { each: true })
+  personalTags?: string[];
 }
 
 export class UpdateProgressDto {

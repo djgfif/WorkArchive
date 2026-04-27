@@ -11,6 +11,7 @@ export interface WorkFormValues {
   title: string;
   author: string;
   genresText: string;
+  personalTagsText: string;
   description: string;
   thumbnailUrl: string;
   status: WorkStatus;
@@ -28,6 +29,7 @@ export interface UpsertWorkInput {
   title: string;
   author: string;
   genres: string[];
+  personalTags?: string[];
   description: string;
   thumbnailUrl: string;
   status: WorkStatus;
@@ -44,6 +46,7 @@ export function createDefaultWorkFormValues(): WorkFormValues {
     title: '',
     author: '',
     genresText: '',
+    personalTagsText: '',
     description: '',
     thumbnailUrl: '',
     status: 'planned',
@@ -63,6 +66,7 @@ export function createWorkFormValuesFromRecord(
     title: work.title,
     author: work.author,
     genresText: work.genres.join(', '),
+    personalTagsText: work.personalTags.join(', '),
     description: work.description,
     thumbnailUrl: work.thumbnailUrl,
     status: work.status,
@@ -82,6 +86,7 @@ export function createUpsertWorkInputFromRecord(work: WorkRecord): UpsertWorkInp
     title: work.title,
     author: work.author,
     genres: work.genres,
+    personalTags: work.personalTags,
     description: work.description,
     thumbnailUrl: work.thumbnailUrl,
     status: work.status,
@@ -93,12 +98,12 @@ export function createUpsertWorkInputFromRecord(work: WorkRecord): UpsertWorkInp
   };
 }
 
-function parseGenres(genresText: string) {
+function parseCommaSeparatedTextList(value: string) {
   return Array.from(
     new Set(
-      genresText
+      value
         .split(',')
-        .map((genre) => genre.trim())
+        .map((item) => item.trim())
         .filter(Boolean),
     ),
   );
@@ -125,7 +130,8 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
     type: values.type,
     title,
     author: values.author.trim(),
-    genres: parseGenres(values.genresText),
+    genres: parseCommaSeparatedTextList(values.genresText),
+    personalTags: parseCommaSeparatedTextList(values.personalTagsText),
     description: values.description.trim(),
     thumbnailUrl: values.thumbnailUrl.trim(),
     status: values.status,

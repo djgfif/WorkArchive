@@ -13,6 +13,7 @@ function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
     description: '',
     favorite: false,
     genres: [],
+    personalTags: [],
     id: crypto.randomUUID(),
     importDraft: null,
     progressCurrent: null,
@@ -40,6 +41,7 @@ describe('calculatePersonalInsights', () => {
       [
         buildWork({
           favorite: true,
+          personalTags: ['인생작 후보', '다시 볼 것'],
           rating: 5,
           status: 'completed',
           title: 'Dune',
@@ -47,6 +49,7 @@ describe('calculatePersonalInsights', () => {
           updatedAt: '2026-02-01T00:00:00.000Z',
         }),
         buildWork({
+          personalTags: ['다시 볼 것'],
           rating: 4,
           status: 'in_progress',
           title: 'Frieren',
@@ -74,6 +77,10 @@ describe('calculatePersonalInsights', () => {
     expect(insights.ratingDistribution).toEqual([
       { count: 1, rating: 5 },
       { count: 1, rating: 4 },
+    ]);
+    expect(insights.tagCounts).toEqual([
+      { count: 2, tag: '다시 볼 것' },
+      { count: 1, tag: '인생작 후보' },
     ]);
     expect(insights.topRatedWorks.map((work) => work.title)).toEqual([
       'Dune',

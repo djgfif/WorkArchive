@@ -11,6 +11,7 @@ function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
     title: 'Dune',
     author: 'Frank Herbert',
     genres: ['Science Fiction'],
+    personalTags: [],
     description: '',
     thumbnailUrl: '',
     status: 'planned',
@@ -74,6 +75,38 @@ describe('queryWorks', () => {
         sortBy: 'updatedAt',
       })[0]?.title,
     ).toBe('Bleach');
+  });
+
+  it('searches and filters by personal tags without mixing them with type or status', () => {
+    const taggedWorks = [
+      buildWork({
+        title: 'Steins;Gate',
+        personalTags: ['시간여행', '다시 볼 것'],
+      }),
+      buildWork({
+        title: 'Dune',
+        personalTags: ['인생작 후보'],
+      }),
+    ];
+
+    expect(
+      queryWorks(taggedWorks, {
+        searchTerm: '시간여행',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Steins;Gate']);
+
+    expect(
+      queryWorks(taggedWorks, {
+        searchTerm: '',
+        tag: '인생작 후보',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Dune']);
   });
 
   it('filters by type and status', () => {

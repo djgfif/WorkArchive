@@ -11,6 +11,7 @@ import {
 import { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
 import {
   normalizeGenres,
+  normalizePersonalTags,
   normalizeString,
 } from '../works/work-aggregate';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -401,6 +402,10 @@ export class UserRecordsService {
       data.favorite = input.favorite;
     }
 
+    if (input.personalTags !== undefined) {
+      data.personalTags = normalizePersonalTags(input.personalTags);
+    }
+
     const updated = await this.update(id, {
       ...data,
       serverVersion: {
@@ -514,6 +519,10 @@ export class UserRecordsService {
       recordInput.favorite = input.favorite;
     }
 
+    if (input.personalTags !== undefined) {
+      recordInput.personalTags = input.personalTags;
+    }
+
     return this.createViewForUser(userId, recordInput);
   }
 
@@ -555,6 +564,7 @@ export class UserRecordsService {
           id: recordId,
           rating: input.rating ?? null,
           review: normalizeString(input.review),
+          personalTags: normalizePersonalTags(input.personalTags),
           serverVersion: 1,
           shortReview: normalizeString(input.shortReview),
           status: input.status ?? WorkStatus.planned,

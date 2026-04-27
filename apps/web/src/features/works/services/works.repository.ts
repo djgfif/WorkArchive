@@ -7,19 +7,33 @@ import {
 
 type DatabaseResolver = () => WorkArchiveDatabase;
 
+function normalizeWorkRecord(work: WorkRecord): WorkRecord {
+  return {
+    ...work,
+    genres: Array.isArray(work.genres) ? [...work.genres] : [],
+    personalTags: Array.isArray((work as Partial<WorkRecord>).personalTags)
+      ? [...work.personalTags]
+      : [],
+  };
+}
+
 export class WorksRepository {
   constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
 
   async create(work: WorkRecord) {
-    await this.getDb().works.add(work);
+    const normalizedWork = normalizeWorkRecord(work);
 
-    return work;
+    await this.getDb().works.add(normalizedWork);
+
+    return normalizedWork;
   }
 
   async update(work: WorkRecord) {
-    await this.getDb().works.put(work);
+    const normalizedWork = normalizeWorkRecord(work);
 
-    return work;
+    await this.getDb().works.put(normalizedWork);
+
+    return normalizedWork;
   }
 
   async bulkPut(works: WorkRecord[]) {
@@ -27,29 +41,37 @@ export class WorksRepository {
       return works;
     }
 
-    await this.getDb().works.bulkPut(works);
+    const normalizedWorks = works.map(normalizeWorkRecord);
 
-    return works;
+    await this.getDb().works.bulkPut(normalizedWorks);
+
+    return normalizedWorks;
   }
 
   async getById(id: string) {
-    return (await this.getDb().works.get(id)) ?? null;
+    const work = await this.getDb().works.get(id);
+
+    return work ? normalizeWorkRecord(work) : null;
   }
 
   async listAll() {
-    return this.getDb().works.toArray();
+    return (await this.getDb().works.toArray()).map(normalizeWorkRecord);
   }
 
   async listActive() {
-    return this.getDb()
+    return (
+      await this.getDb()
       .works.filter((work) => work.deletedAt === null)
-      .toArray();
+      .toArray()
+    ).map(normalizeWorkRecord);
   }
 
   async listDeleted() {
-    return this.getDb()
+    return (
+      await this.getDb()
       .works.filter((work) => work.deletedAt !== null)
-      .toArray();
+      .toArray()
+    ).map(normalizeWorkRecord);
   }
 
   async softDelete(

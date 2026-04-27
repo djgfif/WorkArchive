@@ -14,6 +14,7 @@ import type { WorkRecord, WorkStatus } from '@work-archive/shared-types';
 
 interface WorksListState {
   statusCounts: Record<WorkStatus, number>;
+  tagSuggestions: string[];
   works: WorkRecord[];
   totalActiveCount: number;
   totalDeletedCount: number;
@@ -33,6 +34,7 @@ function buildEmptyStatusCounts(): Record<WorkStatus, number> {
 
 const initialState: WorksListState = {
   statusCounts: buildEmptyStatusCounts(),
+  tagSuggestions: [],
   works: [],
   totalActiveCount: 0,
   totalDeletedCount: 0,
@@ -56,9 +58,16 @@ export function useWorksList(
 
     const subscription = liveQuery(() => worksService.listWorks(query, scope)).subscribe(
       {
-        next: ({ statusCounts, totalActiveCount, totalDeletedCount, works }) => {
+        next: ({
+          statusCounts,
+          tagSuggestions,
+          totalActiveCount,
+          totalDeletedCount,
+          works,
+        }) => {
           setState({
             statusCounts,
+            tagSuggestions,
             works,
             totalActiveCount,
             totalDeletedCount,
@@ -69,6 +78,7 @@ export function useWorksList(
         error: (error) => {
           setState({
             statusCounts: buildEmptyStatusCounts(),
+            tagSuggestions: [],
             works: [],
             totalActiveCount: 0,
             totalDeletedCount: 0,

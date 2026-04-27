@@ -23,6 +23,7 @@ function createWorkAggregateFixture(
     rating: 5,
     shortReview: '',
     review: '',
+    personalTags: [],
     tier: null,
     favorite: false,
     createdAt: new Date('2026-04-18T00:00:00.000Z'),
@@ -236,6 +237,7 @@ describe('WorksService', () => {
     const existing = createWorkAggregateFixture();
     const updated = createWorkAggregateFixture({
       favorite: true,
+      personalTags: ['다시 볼 것', '여운 강함'],
       serverVersion: 2,
       catalogWork: {
         ...existing.catalogWork,
@@ -252,6 +254,7 @@ describe('WorksService', () => {
       {
         title: 'The Dark Forest',
         favorite: true,
+        personalTags: ['다시 볼 것', '여운 강함'],
       },
     );
 
@@ -267,6 +270,7 @@ describe('WorksService', () => {
       '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
       expect.objectContaining({
         favorite: true,
+        personalTags: ['다시 볼 것', '여운 강함'],
         syncStatus: WorkSyncStatus.synced,
         serverVersion: {
           increment: 1,
@@ -278,6 +282,7 @@ describe('WorksService', () => {
       expect.objectContaining({
         title: 'The Dark Forest',
         favorite: true,
+        personalTags: ['다시 볼 것', '여운 강함'],
         serverVersion: 2,
       }),
     );

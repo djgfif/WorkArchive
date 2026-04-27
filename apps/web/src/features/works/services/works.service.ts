@@ -20,6 +20,7 @@ function getNextSyncStatus(serverVersion: number): WorkSyncStatus {
 
 interface WorksListResult {
   statusCounts: Record<WorkStatus, number>;
+  tagSuggestions: string[];
   totalActiveCount: number;
   totalDeletedCount: number;
   works: WorkRecord[];
@@ -69,6 +70,9 @@ export class WorksService {
 
     return {
       statusCounts: countStatuses(activeWorks),
+      tagSuggestions: Array.from(
+        new Set(activeWorks.flatMap((work) => work.personalTags)),
+      ).sort((left, right) => left.localeCompare(right)),
       totalActiveCount: activeWorks.length,
       totalDeletedCount: deletedWorks.length,
       works: queryWorks(worksInScope, query),
@@ -92,6 +96,7 @@ export class WorksService {
       ...input,
       catalogTitleId: input.catalogTitleId ?? null,
       importDraft: input.importDraft ?? null,
+      personalTags: [...(input.personalTags ?? [])],
       createdAt: now,
       updatedAt: now,
       progressCurrent: null,
@@ -125,6 +130,7 @@ export class WorksService {
           : input.catalogTitleId,
       importDraft:
         input.importDraft === undefined ? existing.importDraft ?? null : input.importDraft,
+      personalTags: [...(input.personalTags ?? existing.personalTags)],
       updatedAt: new Date().toISOString(),
       syncStatus: getNextSyncStatus(existing.serverVersion),
     };

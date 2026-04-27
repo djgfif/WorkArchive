@@ -22,6 +22,7 @@ import { UserRecordsService, type WorkAggregate } from '../user-records/user-rec
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   normalizeGenres,
+  normalizePersonalTags,
   normalizeString,
   toFlatWorkResponse,
 } from '../works/work-aggregate';
@@ -691,6 +692,7 @@ export class SyncService {
       rating: payload.rating ?? null,
       shortReview: normalizeString(payload.shortReview),
       review: normalizeString(payload.review),
+      personalTags: normalizePersonalTags(payload.personalTags),
       tier: (payload.tier ?? null) as WorkTier | null,
       favorite: payload.favorite,
       progressCurrent: payload.progressCurrent ?? null,
@@ -873,6 +875,7 @@ export class SyncService {
       rating: payload.rating ?? null,
       shortReview: normalizeString(payload.shortReview),
       review: normalizeString(payload.review),
+      personalTags: normalizePersonalTags(payload.personalTags),
       tier: (payload.tier ?? null) as WorkTier | null,
       favorite: payload.favorite,
       progressCurrent: payload.progressCurrent ?? null,
@@ -905,6 +908,8 @@ export class SyncService {
       existing.rating === (payload.rating ?? null) &&
       existing.shortReview === normalizeString(payload.shortReview) &&
       existing.review === normalizeString(payload.review) &&
+      JSON.stringify(existing.personalTags) ===
+        JSON.stringify(normalizePersonalTags(payload.personalTags)) &&
       existing.tier === (payload.tier ?? null) &&
       existing.favorite === payload.favorite &&
       (existing.progressCurrent ?? null) === (payload.progressCurrent ?? null) &&

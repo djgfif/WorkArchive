@@ -58,6 +58,18 @@ export class CreateWorkDto {
   genres?: string[];
 
   @ApiPropertyOptional({
+    type: [String],
+    example: ['다시 볼 것', '여운 강함'],
+  })
+  @NormalizeStringArray()
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(40, { each: true })
+  personalTags?: string[];
+
+  @ApiPropertyOptional({
     example: 'A reflective fantasy journey after the hero party wins.',
     maxLength: 4000,
   })
