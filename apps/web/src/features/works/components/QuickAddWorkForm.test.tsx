@@ -648,6 +648,22 @@ describe('QuickAddWorkForm', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders search as an inline panel instead of a nested modal', async () => {
+    mockImportsFetch();
+    const user = userEvent.setup();
+
+    renderGuestQuickAdd();
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    );
+
+    expect(await screen.findByLabelText(/^작품 검색$/)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('submits direct manual adds without catalog or import identity', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
