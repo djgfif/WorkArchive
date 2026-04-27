@@ -1,14 +1,12 @@
 import { Group, Stack, Text, Title } from '@mantine/core';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
-import {
-  ActionRow,
-  AppBadge,
-} from '../../../shared/components/AppPrimitives';
+import { ActionRow, AppBadge } from '../../../shared/components/AppPrimitives';
 import type { ImportCandidate } from '../../imports/services/imports.service';
 import {
   getCandidateContributorText,
   getCandidateSourceCoverage,
+  isPreviewOrManualCandidate,
 } from './quick-add-helpers';
 import { getWorkTypeLabel } from '../utils/work-options';
 
@@ -26,6 +24,7 @@ export function CandidateListRow({
   onSelect,
 }: CandidateListRowProps) {
   const sourceCoverage = getCandidateSourceCoverage(candidate);
+  const isManualCandidate = isPreviewOrManualCandidate(candidate);
 
   return (
     <button
@@ -33,7 +32,9 @@ export function CandidateListRow({
       aria-pressed={active}
       onClick={onSelect}
       style={{
-        backgroundColor: active ? 'var(--app-surface-1)' : 'var(--app-surface-0)',
+        backgroundColor: active
+          ? 'var(--app-surface-1)'
+          : 'var(--app-surface-0)',
         border: active
           ? '2px solid var(--app-border-strong)'
           : '1px solid var(--app-border-color)',
@@ -42,8 +43,7 @@ export function CandidateListRow({
         cursor: 'pointer',
         padding: '0.875rem',
         textAlign: 'left',
-        transition:
-          'background-color 120ms ease, border-color 120ms ease',
+        transition: 'background-color 120ms ease, border-color 120ms ease',
         width: '100%',
       }}
       type="button"
@@ -59,7 +59,11 @@ export function CandidateListRow({
         <Stack flex={1} gap={6} miw={0}>
           <ActionRow justify="space-between">
             <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
-            <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
+            {isManualCandidate ? (
+              <AppBadge tone="accent">직접 추가 후보</AppBadge>
+            ) : (
+              <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
+            )}
           </ActionRow>
 
           <div>
@@ -70,8 +74,16 @@ export function CandidateListRow({
           </div>
 
           <ActionRow>
-            <AppBadge tone="muted">{candidate.sourceLabel}</AppBadge>
-            <AppBadge tone="muted">{sourceCoverage.providerCountLabel}</AppBadge>
+            <AppBadge tone="muted">
+              {isManualCandidate
+                ? '입력한 제목으로 직접 기록'
+                : candidate.sourceLabel}
+            </AppBadge>
+            {!isManualCandidate && (
+              <AppBadge tone="muted">
+                {sourceCoverage.providerCountLabel}
+              </AppBadge>
+            )}
             {duplicateCount > 0 && (
               <AppBadge tone="warning">비슷한 기록 {duplicateCount}</AppBadge>
             )}

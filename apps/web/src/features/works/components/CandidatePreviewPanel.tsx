@@ -13,6 +13,7 @@ import type { ImportCandidate } from '../../imports/services/imports.service';
 import {
   getCandidateContributorText,
   getCandidateSourceCoverage,
+  isPreviewOrManualCandidate,
 } from './quick-add-helpers';
 import { getWorkTypeLabel } from '../utils/work-options';
 
@@ -28,9 +29,10 @@ export function CandidatePreviewPanel({
   onApply,
 }: CandidatePreviewPanelProps) {
   const sourceCoverage = getCandidateSourceCoverage(candidate);
-  const scoreBreakdown = candidate.scoreBreakdown
-    ?.filter((entry) => entry.weight > 0)
-    .slice(0, 5);
+  const isManualCandidate = isPreviewOrManualCandidate(candidate);
+  const scoreBreakdown = isManualCandidate
+    ? []
+    : candidate.scoreBreakdown?.filter((entry) => entry.weight > 0).slice(0, 5);
   const titleAliases = candidate.titleAliases?.filter(
     (titleAlias) => titleAlias !== candidate.title,
   );
@@ -49,9 +51,17 @@ export function CandidatePreviewPanel({
           <Stack gap="xs">
             <ActionRow>
               <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
-              <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
-              <AppBadge tone="muted">{candidate.sourceLabel}</AppBadge>
-              {candidate.catalogMatch && (
+              {isManualCandidate ? (
+                <AppBadge tone="accent">직접 추가 후보</AppBadge>
+              ) : (
+                <>
+                  <AppBadge tone="success">
+                    {candidate.confidenceLabel}
+                  </AppBadge>
+                  <AppBadge tone="muted">{candidate.sourceLabel}</AppBadge>
+                </>
+              )}
+              {!isManualCandidate && candidate.catalogMatch && (
                 <AppBadge tone="success">카탈로그 매칭</AppBadge>
               )}
             </ActionRow>
@@ -69,7 +79,14 @@ export function CandidatePreviewPanel({
           </Text>
 
           <ActionRow>
-            <MetricPill label="검색 출처" value={sourceCoverage.summaryLabel} />
+            <MetricPill
+              label={isManualCandidate ? '입력 방식' : '검색 출처'}
+              value={
+                isManualCandidate
+                  ? '입력한 제목으로 직접 기록'
+                  : sourceCoverage.summaryLabel
+              }
+            />
             <MetricPill label="형식" value={candidate.formatLabel} />
           </ActionRow>
 
@@ -98,34 +115,42 @@ export function CandidatePreviewPanel({
       >
         <Stack gap="sm">
           <Text c="var(--app-text-muted)" fw={700} size="sm">
-            검색 근거
+            {isManualCandidate ? '직접 추가 안내' : '검색 근거'}
           </Text>
           <Text c="var(--app-text-secondary)" size="sm">
-            {candidate.reason}
+            {isManualCandidate
+              ? '외부 검색 결과가 아니라 입력한 제목으로 직접 기록합니다.'
+              : candidate.reason}
           </Text>
-          {candidate.note && (
+          {!isManualCandidate && candidate.note && (
             <Text c="var(--app-text-muted)" size="sm">
               {candidate.note}
             </Text>
           )}
           <ActionRow>
-            <AppBadge tone="muted">
-              외부 식별자 {sourceCoverage.externalIdentityCount}개
-            </AppBadge>
-            <AppBadge tone="muted">
-              릴리스 후보 {sourceCoverage.releaseCandidateCount}개
-            </AppBadge>
+            {!isManualCandidate && (
+              <>
+                <AppBadge tone="muted">
+                  외부 식별자 {sourceCoverage.externalIdentityCount}개
+                </AppBadge>
+                <AppBadge tone="muted">
+                  릴리스 후보 {sourceCoverage.releaseCandidateCount}개
+                </AppBadge>
+              </>
+            )}
             {candidate.existingRecord && (
               <AppBadge tone="warning">이미 내 기록에 있음</AppBadge>
             )}
           </ActionRow>
-          <ActionRow>
-            {sourceCoverage.providerLabels.map((providerLabel) => (
-              <AppBadge key={providerLabel} tone="muted">
-                {providerLabel}
-              </AppBadge>
-            ))}
-          </ActionRow>
+          {!isManualCandidate && (
+            <ActionRow>
+              {sourceCoverage.providerLabels.map((providerLabel) => (
+                <AppBadge key={providerLabel} tone="muted">
+                  {providerLabel}
+                </AppBadge>
+              ))}
+            </ActionRow>
+          )}
           {scoreBreakdown && scoreBreakdown.length > 0 && (
             <ActionRow>
               {scoreBreakdown.map((entry) => (
@@ -135,7 +160,7 @@ export function CandidatePreviewPanel({
               ))}
             </ActionRow>
           )}
-          {candidate.sourceUrl && (
+          {!isManualCandidate && candidate.sourceUrl && (
             <ActionRow>
               <Anchor
                 href={candidate.sourceUrl}
@@ -189,7 +214,9 @@ export function CandidatePreviewPanel({
           이 후보로 제목과 작품 정보를 채우고, 저장은 메인 폼에서 진행합니다.
         </Text>
         <AppButton onClick={onApply} tone="primary" type="button">
-          이 후보로 입력 채우기
+          {isManualCandidate
+            ? '직접 추가로 입력 채우기'
+            : '이 후보로 입력 채우기'}
         </AppButton>
       </ActionRow>
     </Stack>
