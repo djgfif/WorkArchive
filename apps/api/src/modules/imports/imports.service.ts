@@ -654,7 +654,13 @@ export class ImportsService {
       const responseBody = await this.fetchJson(ANILIST_GRAPHQL_URL, {
         accept: 'application/json',
         body: JSON.stringify(body),
-        cacheKey: this.getProviderCacheKey(ANILIST_PROVIDER, query, mediaType),
+        cacheKey: this.getProviderCacheKey({
+          limit,
+          mediumType,
+          provider: ANILIST_PROVIDER,
+          query,
+          variant: mediaType,
+        }),
         cacheTtlMs: PROVIDER_CACHE_TTL_MS,
         contentType: 'application/json',
         method: 'POST',
@@ -688,7 +694,12 @@ export class ImportsService {
 
     const responseBody = await this.fetchJson(searchUrl, {
       accept: 'application/json',
-      cacheKey: this.getProviderCacheKey(GOOGLE_BOOKS_PROVIDER, query),
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: GOOGLE_BOOKS_PROVIDER,
+        query,
+      }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
     const items = this.readPathArray(responseBody, ['items']);
@@ -705,6 +716,7 @@ export class ImportsService {
 
   private async searchOpenLibrary({
     limit,
+    mediumType,
     query,
   }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
     const searchUrl = new URL(OPEN_LIBRARY_SEARCH_URL);
@@ -714,7 +726,12 @@ export class ImportsService {
 
     const responseBody = await this.fetchJson(searchUrl, {
       accept: 'application/json',
-      cacheKey: this.getProviderCacheKey(OPEN_LIBRARY_PROVIDER, query),
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: OPEN_LIBRARY_PROVIDER,
+        query,
+      }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
     const docs = this.readPathArray(responseBody, ['docs']);
@@ -738,7 +755,12 @@ export class ImportsService {
 
     const responseBody = await this.fetchJson(searchUrl, {
       accept: 'application/json',
-      cacheKey: this.getProviderCacheKey(TVMAZE_PROVIDER, query),
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: TVMAZE_PROVIDER,
+        query,
+      }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
 
@@ -793,7 +815,13 @@ export class ImportsService {
 
       const fetchOptions: Parameters<typeof this.fetchJson>[1] = {
         accept: 'application/json',
-        cacheKey: this.getProviderCacheKey(TMDB_PROVIDER, query, rawType),
+        cacheKey: this.getProviderCacheKey({
+          limit,
+          mediumType,
+          provider: TMDB_PROVIDER,
+          query,
+          variant: rawType,
+        }),
         cacheTtlMs: PROVIDER_CACHE_TTL_MS,
       };
 
@@ -841,7 +869,12 @@ export class ImportsService {
 
     const responseBody = await this.fetchJson(searchUrl, {
       accept: 'application/json',
-      cacheKey: this.getProviderCacheKey(NAVER_BOOK_PROVIDER, query),
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: NAVER_BOOK_PROVIDER,
+        query,
+      }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
       headers: {
         'X-Naver-Client-Id': clientId,
@@ -880,7 +913,12 @@ export class ImportsService {
       accept: 'application/json',
       bearerPrefix: 'KakaoAK',
       bearerToken: restApiKey,
-      cacheKey: this.getProviderCacheKey(KAKAO_BOOK_PROVIDER, query),
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: KAKAO_BOOK_PROVIDER,
+        query,
+      }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
     const documents = this.readPathArray(responseBody, ['documents']);
@@ -897,6 +935,7 @@ export class ImportsService {
 
   private async searchKobis({
     limit,
+    mediumType,
     query,
   }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
     const apiKey = process.env.KOBIS_API_KEY?.trim();
@@ -913,7 +952,12 @@ export class ImportsService {
 
     const responseBody = await this.fetchJson(searchUrl, {
       accept: 'application/json',
-      cacheKey: this.getProviderCacheKey(KOBIS_PROVIDER, query),
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: KOBIS_PROVIDER,
+        query,
+      }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
     const movies = this.readPathArray(responseBody, [
@@ -1735,15 +1779,19 @@ export class ImportsService {
     }
   }
 
-  private getProviderCacheKey(
-    provider: ImportProvider,
-    query: string,
-    variant = '',
-  ) {
+  private getProviderCacheKey(input: {
+    limit: number;
+    mediumType: WorkType | undefined;
+    provider: ImportProvider;
+    query: string;
+    variant?: string;
+  }) {
     return [
-      provider,
-      variant.trim().toLowerCase(),
-      query.normalize('NFKC').trim().toLowerCase(),
+      input.provider,
+      input.mediumType ?? 'all',
+      input.limit.toString(),
+      (input.variant ?? '').trim().toLowerCase(),
+      input.query.normalize('NFKC').trim().toLowerCase(),
     ].join(':');
   }
 
