@@ -113,7 +113,18 @@ export interface ImportCandidate {
   subType: string | null;
   thumbnailUrl: string;
   title: string;
+  titleAliases?: string[];
   type: WorkType;
+  scoreBreakdown?: Array<{
+    label: string;
+    weight: number;
+  }>;
+  sourceCoverage?: {
+    externalIdentityCount: number;
+    providerCount: number;
+    providers: string[];
+    releaseCandidateCount: number;
+  };
 }
 
 export interface ImportProviderStatus {
@@ -124,8 +135,31 @@ export interface ImportProviderStatus {
   provider: string;
 }
 
+export type ImportSearchDiagnosticStatus = 'searched' | 'skipped' | 'failed';
+
+export interface ImportSearchProviderDiagnostic {
+  configured: boolean;
+  credentialMode: 'none' | 'server' | 'user';
+  message: string;
+  provider: string;
+  reasonCode:
+    | 'guest_provider_not_allowed'
+    | 'provider_failed'
+    | 'server_credential_missing'
+    | 'unsupported_medium'
+    | 'user_credential_missing'
+    | null;
+  resultCount: number;
+  status: ImportSearchDiagnosticStatus;
+}
+
+export interface ImportSearchDiagnostics {
+  providers: ImportSearchProviderDiagnostic[];
+}
+
 export interface ImportSearchResponse {
   candidates: ImportCandidate[];
+  diagnostics?: ImportSearchDiagnostics;
   provider: string;
   providers: string[];
   query: string;

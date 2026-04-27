@@ -77,9 +77,16 @@ export const providerGroupOptions: Array<{
     value: 'all',
   },
   {
-    description: 'Google Books, Open Library와 국내 도서 출처를 우선 사용합니다.',
+    description:
+      'Google Books, Open Library와 국내 도서 출처를 우선 사용합니다.',
     label: '도서',
-    providers: ['google_books', 'open_library', 'aladin', 'naver_book', 'kakao_book'],
+    providers: [
+      'google_books',
+      'open_library',
+      'aladin',
+      'naver_book',
+      'kakao_book',
+    ],
     value: 'books',
   },
   {
@@ -136,7 +143,9 @@ function createExternalRefKey(ref: {
 }
 
 export function isPreviewOrManualCandidate(candidate: ImportCandidate) {
-  return candidate.sourceId === 'preview-manual' || candidate.sourceId === 'manual';
+  return (
+    candidate.sourceId === 'preview-manual' || candidate.sourceId === 'manual'
+  );
 }
 
 function buildImportExternalRef(ref: {
@@ -170,7 +179,10 @@ export function findLikelyMatches(
   );
 
   return existingWorks.filter((work) => {
-    if (matchedCatalogTitleId && work.catalogTitleId === matchedCatalogTitleId) {
+    if (
+      matchedCatalogTitleId &&
+      work.catalogTitleId === matchedCatalogTitleId
+    ) {
       return true;
     }
 
@@ -249,22 +261,24 @@ export function buildImportIdentity(
   }
 
   if (candidate.releaseCandidates.length > 0) {
-    importDraft.releaseCandidates = candidate.releaseCandidates.map((release) => ({
-      ...(release.displayLabel ? { displayLabel: release.displayLabel } : {}),
-      ...(release.externalRefs && release.externalRefs.length > 0
-        ? {
-            externalRefs: release.externalRefs.map((ref) =>
-              buildImportExternalRef(ref),
-            ),
-          }
-        : {}),
-      isbn: release.isbn ?? null,
-      releaseDate: release.releaseDate ?? null,
-      ...(release.releaseType ? { releaseType: release.releaseType } : {}),
-      sequence: release.sequence ?? null,
-      ...(release.thumbnailUrl ? { thumbnailUrl: release.thumbnailUrl } : {}),
-      ...(release.title ? { title: release.title } : {}),
-    }));
+    importDraft.releaseCandidates = candidate.releaseCandidates.map(
+      (release) => ({
+        ...(release.displayLabel ? { displayLabel: release.displayLabel } : {}),
+        ...(release.externalRefs && release.externalRefs.length > 0
+          ? {
+              externalRefs: release.externalRefs.map((ref) =>
+                buildImportExternalRef(ref),
+              ),
+            }
+          : {}),
+        isbn: release.isbn ?? null,
+        releaseDate: release.releaseDate ?? null,
+        ...(release.releaseType ? { releaseType: release.releaseType } : {}),
+        sequence: release.sequence ?? null,
+        ...(release.thumbnailUrl ? { thumbnailUrl: release.thumbnailUrl } : {}),
+        ...(release.title ? { title: release.title } : {}),
+      }),
+    );
   }
 
   return {
@@ -325,6 +339,24 @@ function formatProviderLabel(provider: string, candidate: ImportCandidate) {
 export function getCandidateSourceCoverage(
   candidate: ImportCandidate,
 ): CandidateSourceCoverage {
+  if (candidate.sourceCoverage) {
+    const providerLabels = candidate.sourceCoverage.providers.map((provider) =>
+      formatProviderLabel(provider, candidate),
+    );
+
+    return {
+      externalIdentityCount: candidate.sourceCoverage.externalIdentityCount,
+      providerCountLabel: `출처 ${candidate.sourceCoverage.providerCount}개`,
+      providerLabels,
+      releaseCandidateCount: candidate.sourceCoverage.releaseCandidateCount,
+      summaryLabel: [
+        `출처 ${candidate.sourceCoverage.providerCount}개`,
+        `외부 식별자 ${candidate.sourceCoverage.externalIdentityCount}개`,
+        `릴리스 후보 ${candidate.sourceCoverage.releaseCandidateCount}개`,
+      ].join(' · '),
+    };
+  }
+
   const providerLabels = new Map<string, string>();
 
   if (candidate.sourceId && candidate.sourceLabel.trim()) {
@@ -332,12 +364,18 @@ export function getCandidateSourceCoverage(
   }
 
   for (const ref of candidate.externalRefs) {
-    providerLabels.set(ref.provider, formatProviderLabel(ref.provider, candidate));
+    providerLabels.set(
+      ref.provider,
+      formatProviderLabel(ref.provider, candidate),
+    );
   }
 
   for (const releaseCandidate of candidate.releaseCandidates) {
     for (const ref of releaseCandidate.externalRefs ?? []) {
-      providerLabels.set(ref.provider, formatProviderLabel(ref.provider, candidate));
+      providerLabels.set(
+        ref.provider,
+        formatProviderLabel(ref.provider, candidate),
+      );
     }
   }
 

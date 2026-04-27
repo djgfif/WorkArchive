@@ -5,14 +5,24 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { WorkType } from '@prisma/client';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 
 import { ExternalApiKeyCryptoService } from '../src/modules/imports/external-api-key-crypto.service';
 import { ImportsCredentialService } from '../src/modules/imports/imports-credential.service';
 import {
   ALADIN_PROVIDER,
+  ANILIST_PROVIDER,
   GOOGLE_BOOKS_PROVIDER,
+  KOBIS_PROVIDER,
   MANUAL_PROVIDER,
+  NAVER_BOOK_PROVIDER,
   OPEN_LIBRARY_PROVIDER,
   TMDB_PROVIDER,
 } from '../src/modules/imports/imports.constants';
@@ -48,24 +58,26 @@ function createCredentialPrismaMock() {
     deleteMany: jest.fn(),
   };
 
-  externalApiCredential.findUnique.mockImplementation(async (input: unknown) => {
-    const { where } = input as {
-      where: {
-        userId_provider: {
-          provider: string;
-          userId: string;
+  externalApiCredential.findUnique.mockImplementation(
+    async (input: unknown) => {
+      const { where } = input as {
+        where: {
+          userId_provider: {
+            provider: string;
+            userId: string;
+          };
         };
       };
-    };
 
-    return (
-      records.find(
-        (record) =>
-          record.userId === where.userId_provider.userId &&
-          record.provider === where.userId_provider.provider,
-      ) ?? null
-    );
-  });
+      return (
+        records.find(
+          (record) =>
+            record.userId === where.userId_provider.userId &&
+            record.provider === where.userId_provider.provider,
+        ) ?? null
+      );
+    },
+  );
   externalApiCredential.upsert.mockImplementation(async (input: unknown) => {
     const { create, update, where } = input as {
       create: Omit<StoredCredential, 'id'>;
@@ -101,25 +113,27 @@ function createCredentialPrismaMock() {
 
     return record;
   });
-  externalApiCredential.deleteMany.mockImplementation(async (input: unknown) => {
-    const { where } = input as {
-      where: {
-        provider: string;
-        userId: string;
+  externalApiCredential.deleteMany.mockImplementation(
+    async (input: unknown) => {
+      const { where } = input as {
+        where: {
+          provider: string;
+          userId: string;
+        };
       };
-    };
-    const nextRecords = records.filter(
-      (record) =>
-        record.userId !== where.userId || record.provider !== where.provider,
-    );
-    const deletedCount = records.length - nextRecords.length;
+      const nextRecords = records.filter(
+        (record) =>
+          record.userId !== where.userId || record.provider !== where.provider,
+      );
+      const deletedCount = records.length - nextRecords.length;
 
-    records.splice(0, records.length, ...nextRecords);
+      records.splice(0, records.length, ...nextRecords);
 
-    return {
-      count: deletedCount,
-    };
-  });
+      return {
+        count: deletedCount,
+      };
+    },
+  );
 
   return {
     prisma: {
@@ -152,9 +166,9 @@ describe('ExternalApiKeyCryptoService', () => {
   it('fails clearly when the encryption secret is missing', () => {
     delete process.env.EXTERNAL_API_KEY_ENCRYPTION_SECRET;
 
-    expect(() => new ExternalApiKeyCryptoService().encrypt('ttb-test-key')).toThrow(
-      'EXTERNAL_API_KEY_ENCRYPTION_SECRET',
-    );
+    expect(() =>
+      new ExternalApiKeyCryptoService().encrypt('ttb-test-key'),
+    ).toThrow('EXTERNAL_API_KEY_ENCRYPTION_SECRET');
   });
 });
 
@@ -182,9 +196,9 @@ describe('ImportsCredentialService', () => {
     await expect(
       service.getDecryptedCredential(USER_ID, ALADIN_PROVIDER),
     ).resolves.toBe('ttb-test-key');
-    await expect(
-      service.hasCredential(USER_ID, ALADIN_PROVIDER),
-    ).resolves.toBe(true);
+    await expect(service.hasCredential(USER_ID, ALADIN_PROVIDER)).resolves.toBe(
+      true,
+    );
 
     await service.deleteCredential(USER_ID, ALADIN_PROVIDER);
 
@@ -199,7 +213,10 @@ describe('ImportsService', () => {
   let credentialService: jest.Mocked<
     Pick<
       ImportsCredentialService,
-      'deleteCredential' | 'getDecryptedCredential' | 'hasCredential' | 'saveCredential'
+      | 'deleteCredential'
+      | 'getDecryptedCredential'
+      | 'hasCredential'
+      | 'saveCredential'
     >
   >;
   let service: ImportsService;
@@ -329,9 +346,51 @@ describe('ImportsService', () => {
             existingRecord: null,
           }),
         ],
+        diagnostics: {
+          providers: [
+            expect.objectContaining({
+              provider: OPEN_LIBRARY_PROVIDER,
+              status: 'searched',
+              configured: true,
+              resultCount: 1,
+              reasonCode: null,
+            }),
+          ],
+        },
       }),
     );
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
+  });
+
+  it('records skipped diagnostics for guest automatic server providers', async () => {
+    const result = await service.search(null, {
+      query: 'Dune',
+      type: WorkType.movie,
+    });
+
+    expect(result.providers).toEqual([MANUAL_PROVIDER]);
+    expect(result.diagnostics.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: TMDB_PROVIDER,
+          status: 'skipped',
+          credentialMode: 'server',
+          reasonCode: 'guest_provider_not_allowed',
+        }),
+        expect.objectContaining({
+          provider: KOBIS_PROVIDER,
+          status: 'skipped',
+          credentialMode: 'server',
+          reasonCode: 'guest_provider_not_allowed',
+        }),
+        expect.objectContaining({
+          provider: MANUAL_PROVIDER,
+          status: 'searched',
+          reasonCode: null,
+          resultCount: 1,
+        }),
+      ]),
+    );
   });
 
   it('ranks an exact title match ahead of earlier provider-order candidates', async () => {
@@ -381,6 +440,68 @@ describe('ImportsService', () => {
     );
     expect(result.candidates[0]?.confidence).toBeGreaterThan(
       result.candidates[1]?.confidence ?? 0,
+    );
+  });
+
+  it('uses multilingual title aliases when ranking candidates', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        data: {
+          Page: {
+            media: [
+              {
+                id: 9253,
+                title: {
+                  english: 'Steins;Gate',
+                  native: 'シュタインズ・ゲート',
+                  romaji: 'Steins;Gate',
+                },
+                format: 'TV',
+                startDate: {
+                  year: 2011,
+                },
+                coverImage: {
+                  large: 'https://img.example.test/steins-gate.jpg',
+                },
+                studios: {
+                  nodes: [
+                    {
+                      name: 'White Fox',
+                    },
+                  ],
+                },
+                staff: {
+                  nodes: [],
+                },
+              },
+            ],
+          },
+        },
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: ANILIST_PROVIDER,
+      query: 'シュタインズ・ゲート',
+      limit: 5,
+      type: WorkType.anime,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: ANILIST_PROVIDER,
+        title: 'Steins;Gate',
+        titleAliases: expect.arrayContaining([
+          'Steins;Gate',
+          'シュタインズ・ゲート',
+        ]),
+        reason: expect.stringContaining('별칭 제목 일치'),
+        scoreBreakdown: expect.arrayContaining([
+          expect.objectContaining({
+            label: '별칭 제목 일치',
+          }),
+        ]),
+      }),
     );
   });
 
@@ -596,6 +717,85 @@ describe('ImportsService', () => {
     );
   });
 
+  it('normalizes provider ISBN, date, title, and contributor fields', async () => {
+    const originalNaverClientId = process.env.NAVER_CLIENT_ID;
+    const originalNaverClientSecret = process.env.NAVER_CLIENT_SECRET;
+
+    process.env.NAVER_CLIENT_ID = 'naver-client-id';
+    process.env.NAVER_CLIENT_SECRET = 'naver-client-secret';
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        items: [
+          {
+            author: 'Frank Herbert; Frank Herbert / Brian Herbert',
+            description: '<b> A desert saga &amp; archive. </b>',
+            image: ' https://image.example.test/dune.jpg ',
+            isbn: '0441172717 9780441172719',
+            link: ' https://book.example.test/dune ',
+            pubdate: '20260418',
+            publisher: ' Ace ',
+            title: '<b> Dune &amp; Messiah </b>',
+          },
+        ],
+      }),
+    );
+
+    try {
+      const result = await service.search(USER_ID, {
+        provider: NAVER_BOOK_PROVIDER,
+        query: 'Dune',
+        limit: 5,
+        type: WorkType.novel,
+      });
+
+      expect(result.candidates[0]).toEqual(
+        expect.objectContaining({
+          title: 'Dune & Messiah',
+          description: 'A desert saga & archive.',
+          releaseYear: 2026,
+          thumbnailUrl: 'https://image.example.test/dune.jpg',
+          sourceUrl: 'https://book.example.test/dune',
+          contributors: [
+            {
+              name: 'Frank Herbert',
+              role: 'author',
+            },
+            {
+              name: 'Brian Herbert',
+              role: 'author',
+            },
+          ],
+          releaseCandidates: [
+            expect.objectContaining({
+              isbn: '9780441172719',
+              releaseDate: '2026-04-18',
+              externalRefs: [
+                expect.objectContaining({
+                  externalId: '0441172717 9780441172719',
+                  provider: NAVER_BOOK_PROVIDER,
+                  rawType: 'volume',
+                  url: 'https://book.example.test/dune',
+                }),
+              ],
+            }),
+          ],
+        }),
+      );
+    } finally {
+      if (originalNaverClientId === undefined) {
+        delete process.env.NAVER_CLIENT_ID;
+      } else {
+        process.env.NAVER_CLIENT_ID = originalNaverClientId;
+      }
+
+      if (originalNaverClientSecret === undefined) {
+        delete process.env.NAVER_CLIENT_SECRET;
+      } else {
+        process.env.NAVER_CLIENT_SECRET = originalNaverClientSecret;
+      }
+    }
+  });
+
   it('dedupes repeated provider external refs while preserving merged identity', async () => {
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
@@ -669,6 +869,57 @@ describe('ImportsService', () => {
     });
 
     expect(result.candidates).toHaveLength(2);
+  });
+
+  it('conservatively merges title, year, and contributor matches without over-merging title-only results', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: 'google-dune-no-isbn',
+              volumeInfo: {
+                authors: ['Frank Herbert'],
+                publishedDate: '1965',
+                title: 'Dune',
+              },
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          docs: [
+            {
+              author_name: ['Frank Herbert'],
+              first_publish_year: 1965,
+              key: '/works/OL123W',
+              title: 'Dune',
+            },
+          ],
+        }),
+      );
+
+    const result = await service.search(null, {
+      providers: [GOOGLE_BOOKS_PROVIDER, OPEN_LIBRARY_PROVIDER],
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceCoverage: expect.objectContaining({
+          providerCount: 2,
+          providers: expect.arrayContaining([
+            GOOGLE_BOOKS_PROVIDER,
+            OPEN_LIBRARY_PROVIDER,
+          ]),
+        }),
+      }),
+    );
   });
 
   it('merges before catalog decoration so combined identity can match catalog', async () => {
@@ -783,6 +1034,80 @@ describe('ImportsService', () => {
         id: 'open_library:/works/OL123W',
       }),
     ]);
+    expect(result.diagnostics.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: GOOGLE_BOOKS_PROVIDER,
+          status: 'failed',
+          reasonCode: 'provider_failed',
+          resultCount: 0,
+        }),
+        expect.objectContaining({
+          provider: OPEN_LIBRARY_PROVIDER,
+          status: 'searched',
+          resultCount: 1,
+        }),
+      ]),
+    );
+  });
+
+  it('caches credential-safe provider responses for repeated searches', async () => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        docs: [
+          {
+            key: '/works/OL123W',
+            title: 'Dune',
+          },
+        ],
+      }),
+    );
+
+    await service.search(null, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+    await service.search(null, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('times out stalled provider requests', async () => {
+    jest.useFakeTimers();
+
+    try {
+      jest.spyOn(globalThis, 'fetch').mockImplementation(
+        async (_input, init) =>
+          new Promise<Response>((_resolve, reject) => {
+            const signal = (init as RequestInit | undefined)?.signal;
+
+            signal?.addEventListener('abort', () => {
+              reject(new Error('aborted'));
+            });
+          }),
+      );
+
+      const searchPromise = service.search(null, {
+        provider: OPEN_LIBRARY_PROVIDER,
+        query: 'Dune',
+        limit: 5,
+        type: WorkType.novel,
+      });
+      const expectation =
+        expect(searchPromise).rejects.toBeInstanceOf(BadGatewayException);
+
+      await jest.advanceTimersByTimeAsync(5_000);
+      await expectation;
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('requires login for guest requests to user-scoped providers', async () => {
@@ -802,6 +1127,47 @@ describe('ImportsService', () => {
         query: 'Dune',
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('records skipped diagnostics when an authenticated server provider is not configured', async () => {
+    const originalTmdbApiKey = process.env.TMDB_API_KEY;
+    const originalTmdbReadToken = process.env.TMDB_API_READ_TOKEN;
+
+    delete process.env.TMDB_API_KEY;
+    delete process.env.TMDB_API_READ_TOKEN;
+
+    try {
+      const fetchSpy = jest.spyOn(globalThis, 'fetch');
+      const result = await service.search(USER_ID, {
+        provider: TMDB_PROVIDER,
+        query: 'Dune',
+      });
+
+      expect(result.candidates).toEqual([]);
+      expect(result.diagnostics.providers).toEqual([
+        expect.objectContaining({
+          provider: TMDB_PROVIDER,
+          status: 'skipped',
+          credentialMode: 'server',
+          configured: false,
+          reasonCode: 'server_credential_missing',
+          resultCount: 0,
+        }),
+      ]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      if (originalTmdbApiKey === undefined) {
+        delete process.env.TMDB_API_KEY;
+      } else {
+        process.env.TMDB_API_KEY = originalTmdbApiKey;
+      }
+
+      if (originalTmdbReadToken === undefined) {
+        delete process.env.TMDB_API_READ_TOKEN;
+      } else {
+        process.env.TMDB_API_READ_TOKEN = originalTmdbReadToken;
+      }
+    }
   });
 
   it('maps Aladin book results into Quick Add candidates', async () => {

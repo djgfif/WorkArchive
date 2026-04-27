@@ -3,6 +3,12 @@ import type {
   CatalogReleaseCandidateInput,
 } from '../catalog/catalog-ingestion.service';
 import type { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
+import {
+  calculateSourceCoverage,
+  getNormalizedExternalRefKey,
+  normalizeIsbn,
+  normalizeImportTitleSignal,
+} from './import-candidate-normalization';
 
 type Contributor = ImportCandidateResponseDto['contributors'][number];
 type ExternalRef = ImportCandidateResponseDto['externalRefs'][number];
@@ -82,23 +88,39 @@ function mergeCandidateGroup(members: CandidateGroupMember[]) {
       contributors: dedupeContributors(
         candidates.flatMap((candidate) => candidate.contributors),
       ),
-      countLabel: firstFilled(candidates.map((candidate) => candidate.countLabel)),
+      countLabel: firstFilled(
+        candidates.map((candidate) => candidate.countLabel),
+      ),
       description: firstFilled(
         candidates.map((candidate) => candidate.description),
       ),
       externalRefs: mergedExternalRefs,
-      genresText: firstFilled(candidates.map((candidate) => candidate.genresText)),
+      genresText: firstFilled(
+        candidates.map((candidate) => candidate.genresText),
+      ),
       note: firstFilled(candidates.map((candidate) => candidate.note)),
       relationsHint: dedupeRelationsHints(
         candidates.flatMap((candidate) => candidate.relationsHint),
       ),
       releaseCandidates: mergedReleaseCandidates,
-      sourceLabel: firstFilled(candidates.map((candidate) => candidate.sourceLabel)),
-      sourceUrl: firstFilled(candidates.map((candidate) => candidate.sourceUrl)),
+      sourceCoverage: calculateSourceCoverage({
+        externalRefs: mergedExternalRefs,
+        releaseCandidates: mergedReleaseCandidates,
+        sourceId: representative.candidate.sourceId,
+      }),
+      sourceLabel: firstFilled(
+        candidates.map((candidate) => candidate.sourceLabel),
+      ),
+      sourceUrl: firstFilled(
+        candidates.map((candidate) => candidate.sourceUrl),
+      ),
       thumbnailUrl: firstFilled(
         candidates.map((candidate) => candidate.thumbnailUrl),
       ),
       title: firstFilled(candidates.map((candidate) => candidate.title)),
+      titleAliases: dedupeTitleAliases(
+        candidates.flatMap((candidate) => candidate.titleAliases ?? []),
+      ),
     },
     firstIndex: Math.min(...members.map((member) => member.index)),
   };
@@ -107,9 +129,15 @@ function mergeCandidateGroup(members: CandidateGroupMember[]) {
 function getCandidateMergeKeys(candidate: ImportCandidateResponseDto) {
   return [
     `candidate:${candidate.id}`,
+    ...getCandidateCatalogMatchKeys(candidate),
     ...getCandidateIsbnKeys(candidate),
     ...getCandidateExternalRefKeys(candidate),
+    ...getCandidateWeakMergeKeys(candidate),
   ];
+}
+
+function getCandidateCatalogMatchKeys(candidate: ImportCandidateResponseDto) {
+  return candidate.catalogMatch ? [`catalog:${candidate.catalogMatch.id}`] : [];
 }
 
 function getCandidateIsbnKeys(candidate: ImportCandidateResponseDto) {
@@ -133,6 +161,25 @@ function getCandidateExternalRefKeys(candidate: ImportCandidateResponseDto) {
   });
 }
 
+function getCandidateWeakMergeKeys(candidate: ImportCandidateResponseDto) {
+  if (candidate.releaseYear === null) {
+    return [];
+  }
+
+  const titleKey = normalizeImportTitleSignal(candidate.title);
+  const contributorKeys = candidate.contributors
+    .map((contributor) => normalizeImportTitleSignal(contributor.name))
+    .filter(Boolean);
+
+  if (!titleKey || contributorKeys.length === 0) {
+    return [];
+  }
+
+  return contributorKeys.map((contributorKey) => {
+    return `weak:${candidate.mediumType}:${titleKey}:${candidate.releaseYear}:${contributorKey}`;
+  });
+}
+
 function mergeReleaseCandidates(
   releaseCandidates: CatalogReleaseCandidateInput[],
 ) {
@@ -151,7 +198,9 @@ function mergeReleaseCandidates(
 
     releaseMap.set(
       key,
-      existing ? mergeReleaseCandidate(existing, releaseCandidate) : releaseCandidate,
+      existing
+        ? mergeReleaseCandidate(existing, releaseCandidate)
+        : releaseCandidate,
     );
   }
 
@@ -163,7 +212,10 @@ function mergeReleaseCandidate(
   right: CatalogReleaseCandidateInput,
 ): CatalogReleaseCandidateInput {
   return {
-    displayLabel: firstFilled([left.displayLabel ?? '', right.displayLabel ?? '']),
+    displayLabel: firstFilled([
+      left.displayLabel ?? '',
+      right.displayLabel ?? '',
+    ]),
     externalRefs: dedupeExternalRefs([
       ...(left.externalRefs ?? []),
       ...(right.externalRefs ?? []),
@@ -173,12 +225,17 @@ function mergeReleaseCandidate(
     releaseType: firstFilled([left.releaseType ?? '', right.releaseType ?? '']),
     sequence: left.sequence ?? right.sequence ?? null,
     summary: firstFilled([left.summary ?? '', right.summary ?? '']),
-    thumbnailUrl: firstFilled([left.thumbnailUrl ?? '', right.thumbnailUrl ?? '']),
+    thumbnailUrl: firstFilled([
+      left.thumbnailUrl ?? '',
+      right.thumbnailUrl ?? '',
+    ]),
     title: firstFilled([left.title ?? '', right.title ?? '']),
   };
 }
 
-function getReleaseCandidateKey(releaseCandidate: CatalogReleaseCandidateInput) {
+function getReleaseCandidateKey(
+  releaseCandidate: CatalogReleaseCandidateInput,
+) {
   const isbn = normalizeIsbn(releaseCandidate.isbn ?? null);
 
   if (isbn) {
@@ -250,38 +307,46 @@ function dedupeRelationsHints(relationsHints: RelationHint[]) {
   return [...relationMap.values()];
 }
 
-function getExternalRefKey(externalRef: CatalogExternalRefInput) {
-  const provider = externalRef.provider.trim().toLowerCase();
-  const rawType = (externalRef.rawType ?? '').trim().toLowerCase();
-  const externalId = externalRef.externalId.trim().toLowerCase();
+function dedupeTitleAliases(titleAliases: string[]) {
+  const aliasMap = new Map<string, string>();
 
-  return provider && externalId ? `${provider}:${rawType}:${externalId}` : null;
+  for (const titleAlias of titleAliases) {
+    const key = normalizeImportTitleSignal(titleAlias);
+
+    if (!key || aliasMap.has(key)) {
+      continue;
+    }
+
+    aliasMap.set(key, titleAlias);
+  }
+
+  return [...aliasMap.values()];
+}
+
+function getExternalRefKey(externalRef: CatalogExternalRefInput) {
+  return getNormalizedExternalRefKey(externalRef);
 }
 
 function getCandidateCompletenessScore(candidate: ImportCandidateResponseDto) {
-  return [
-    candidate.title,
-    candidate.author,
-    candidate.description,
-    candidate.thumbnailUrl,
-    candidate.genresText,
-    candidate.sourceUrl,
-    candidate.countLabel,
-  ].filter((value) => value.trim()).length +
+  return (
+    [
+      candidate.title,
+      candidate.author,
+      candidate.description,
+      candidate.thumbnailUrl,
+      candidate.genresText,
+      candidate.sourceUrl,
+      candidate.countLabel,
+    ].filter((value) => value.trim()).length +
     candidate.contributors.length +
     candidate.externalRefs.length +
     candidate.releaseCandidates.length +
-    (candidate.releaseYear === null ? 0 : 1);
+    (candidate.releaseYear === null ? 0 : 1)
+  );
 }
 
 function firstFilled(values: string[]) {
   return values.find((value) => value.trim()) ?? '';
-}
-
-function normalizeIsbn(value: string | null) {
-  const normalized = (value ?? '').replace(/[^0-9Xx]/g, '').toUpperCase();
-
-  return normalized.length >= 10 ? normalized : null;
 }
 
 function find(parent: number[], index: number): number {

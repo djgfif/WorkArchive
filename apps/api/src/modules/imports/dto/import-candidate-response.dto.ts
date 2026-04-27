@@ -19,6 +19,11 @@ export class ImportCandidateResponseDto {
   @ApiProperty()
   title!: string;
 
+  @ApiProperty({
+    type: [String],
+  })
+  titleAliases!: string[];
+
   @ApiProperty()
   author!: string;
 
@@ -107,6 +112,24 @@ export class ImportCandidateResponseDto {
 
   @ApiProperty()
   reason!: string;
+
+  @ApiProperty({
+    type: [Object],
+  })
+  scoreBreakdown!: Array<{
+    label: string;
+    weight: number;
+  }>;
+
+  @ApiProperty({
+    type: Object,
+  })
+  sourceCoverage!: {
+    externalIdentityCount: number;
+    providerCount: number;
+    providers: string[];
+    releaseCandidateCount: number;
+  };
 
   @ApiProperty({
     nullable: true,

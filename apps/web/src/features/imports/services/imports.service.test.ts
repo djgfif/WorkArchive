@@ -56,6 +56,61 @@ describe('ImportsService', () => {
     expect(headers.has('authorization')).toBe(false);
   });
 
+  it('summarizes safe provider diagnostics when external search includes them', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        provider: 'open_library',
+        providers: ['open_library'],
+        query: 'Dune',
+        candidates: [],
+        diagnostics: {
+          providers: [
+            {
+              provider: 'open_library',
+              status: 'searched',
+              credentialMode: 'none',
+              configured: true,
+              resultCount: 0,
+              reasonCode: null,
+              message: 'Open Library search completed.',
+            },
+            {
+              provider: 'tmdb',
+              status: 'skipped',
+              credentialMode: 'server',
+              configured: false,
+              resultCount: 0,
+              reasonCode: 'server_credential_missing',
+              message: 'TMDB search is not configured on this server.',
+            },
+            {
+              provider: 'google_books',
+              status: 'failed',
+              credentialMode: 'none',
+              configured: true,
+              resultCount: 0,
+              reasonCode: 'provider_failed',
+              message: 'Google Books search is temporarily unavailable.',
+            },
+          ],
+        },
+      }),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await new ImportsService().searchCandidates('Dune', {
+      providers: ['open_library'],
+      useExternal: true,
+    });
+
+    expect(result.diagnostics?.providers).toHaveLength(3);
+    expect(result.notice).toContain('검색 provider: open_library');
+    expect(result.notice).toContain('검색 완료: Open Library 0개');
+    expect(result.notice).toContain('제외됨: TMDB');
+    expect(result.notice).toContain('일시 실패: Google Books');
+  });
+
   it('uses a plain provider readiness request when no access token is stored', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse([
