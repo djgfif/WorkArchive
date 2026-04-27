@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                                                                                                                                                                               |
 | Role                  | `current reality`                                                                                                                                                                                                                                                         |
 | Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-04-25` local `master` working tree                                                                                                                                                                                                                                  |
+| Last verified against | `2026-04-27` IA v1 modal-first working tree                                                                                                                                                                                                                               |
 | When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -16,7 +16,7 @@
 - 프론트는 IndexedDB를 1차 저장소로 쓰고, 로그인 시 계정별 로컬 아카이브로 전환한다.
 - 현재 저장소에서 실제 실행 가능한 프론트 런타임은 `apps/web`이며, Tauri shell은 아직 저장소에 없다.
 - 백엔드는 NestJS + Prisma + PostgreSQL 기반 API다.
-- Quick Add는 현재 `direct manual add + optional-auth server-assisted search + local-first save` 규칙으로 동작한다.
+- Quick Add는 현재 `modal-first direct manual add + optional-auth server-assisted search + local-first save` 규칙으로 동작한다.
 - Quick Add matched/unmatched/manual 저장 규칙과 duplicate detection 우선순위는 테스트로 고정돼 있다.
 - Quick Add 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage를 갖추고 manual fallback을 일반 검색 결과에서 분리한다.
 - 현재 sync는 수동 실행만 지원한다.
@@ -72,7 +72,7 @@
 
 - Home: 검색 진입, 빠른 추가, 통계 요약, 최근 기록 허브
 - Works: 목록/필터/정렬/리스트-그리드 전환/휴지통 관리
-- Work Create: `직접 추가 -> 저장`을 기본 경로로 제공하고, `검색 -> 선택 -> 자동 채움 검토 -> 개인 기록 입력 -> 저장`을 보조 Quick Add 흐름으로 제공
+- Works / Work Create: `/works`에서는 `AddWorkDialog`로 작품 추가를 열고, `/works/new`는 같은 `QuickAddWorkForm` 흐름을 page fallback으로 제공한다. `직접 입력 -> 저장`이 기본 경로이며, `검색 -> 후보 선택 -> 입력 채우기 -> 개인 기록 확인 -> 저장`은 같은 dialog/page 안의 보조 흐름이다.
 - Work Detail / Edit: 감상 기록 확인과 수정
 - Auth: 회원가입 / 로그인
 - Account: sync, 설정, guest 기록 검토/선택 import
@@ -162,6 +162,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - 사용자별 로컬 아카이브 분리
 - 로그인 직후 guest 기록 검토 후 선택 import
 - 검색 없이 제목/타입 중심으로 저장하는 직접 수동 추가
+- `/works`의 modal-first Add Work flow와 `/works/new` page fallback
 - 수동 sync queue와 push / pull
 - optional-auth Quick Add provider 검색과 preview fallback
 - guest no-user-key provider 검색
@@ -170,11 +171,13 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - Quick Add `manual` / `preview-manual` 저장 규칙: catalog/import identity 없이 local draft 저장
 - Quick Add automatic search에서 `manual` / `preview-manual` 후보는 일반 후보 목록에 섞지 않고 직접 추가 fallback으로 분리
 - duplicate detection 우선순위: `catalogTitleId -> externalRefs -> title fallback`
-- Settings의 local archive JSON export/import와 CSV export
-- 개인 기록 기반 Insights 기본 집계
+- 개인 태그 입력/표시/목록 검색·필터/export/import/sync payload 보존
+- Settings의 local archive JSON export/import, import preview, CSV export
+- Data Ownership 정책: `appMeta`는 export metadata로만 다루고, `syncQueue`, auth token, refresh token, API key, Aladin TTBKey는 백업/복원 대상에서 제외
+- 개인 기록 기반 Insights 기본 집계와 개인 태그 상위 집계
 - 계정 설정의 Aladin 키 저장/삭제
 - `/imports/providers` 기반 provider readiness 조회와 Settings provider readiness 기본 UI/테스트
-- SyncPage pending / failed / conflict queue item 표시, 원인 표시, 기록 보기, 재시도 CTA
+- SyncPage pending / failed / conflict queue item 표시, 상태별 설명, 원인 표시, 기록 보기, 재시도 CTA
 - `CatalogTitle` related read model과 `UserReleaseRecord` 흐름
 - 홈 허브 화면
 - 계정 센터 라우트 분리
@@ -184,14 +187,14 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 ### Not Yet Implemented
 
 - provider별 ranking/search quality 실제 검색어 QA와 튜닝
-- provider readiness UI polish
 - conflict overwrite/merge resolution
 - guest 기록 자동 병합 정책과 다기기 이관 UX
 - 자동 동기화
 - 공개 프로필 / 공개 기록 / 작품 집계
 - 실제 티어 보드 기능
 - 커뮤니티 기능
-- personal tags / 감상 timeline / 시작일·완료일·중단일
+- 시작일·완료일·중단일·마지막 감상일 같은 날짜 필드
+- 감상 timeline 저장 모델과 자동 이벤트 기록
 
 ## 6. Validation Surface
 
@@ -236,10 +239,10 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 ### Current Verification Status
 
-- `npm run typecheck`: `2026-04-25` 통과 확인
-- `npm run test --workspace @work-archive/web`: `2026-04-25` 기준 `18` files, `70` tests 통과 확인
+- `npm run typecheck --workspace @work-archive/web`: `2026-04-27` 통과 확인
+- `npm run test --workspace @work-archive/web`: `2026-04-27` 기준 `21` files, `108` tests 통과 확인
 - `npm run test --workspace @work-archive/api`: `2026-04-25` 기준 `7` suites, `45` tests 통과 확인
-- `npm run build`: `2026-04-24` 통과 확인
+- `npm run build`: `2026-04-27` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
 ## 7. Immediate Limitations
@@ -249,8 +252,8 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - Mantine foundation은 도입됐지만 스타일 책임은 아직 `global.css`와 페이지별 클래스 조합에 크게 남아 있다.
 - shared UI primitives가 생기고 있지만 `var(--accent)`류 직접 참조와 커스텀 클래스 조합 의존이 여전히 크다.
 - placeholder 화면과 실제 구현 화면의 성숙도 차이가 크다.
-- 직접 수동 추가와 guest no-key provider 검색의 기본 구현/테스트는 들어갔다. 남은 일은 provider별 ranking/search quality와 UI polish다.
-- Quick Add provider readiness UI와 duplicate policy의 기본 구현/테스트는 들어갔다.
+- 직접 수동 추가, `/works` AddWorkDialog, `/works/new` fallback, guest no-key provider 검색의 기본 구현/테스트는 들어갔다. 남은 일은 provider별 ranking/search quality와 모바일/브라우저 QA 고도화다.
+- Quick Add provider readiness UI, duplicate policy, SearchPickerPanel 기반 inline 검색 흐름의 기본 구현/테스트는 들어갔다.
 - Quick Add 저장은 현재 제품 기준에서 의도적으로 local-first sync 경로를 유지한다. authenticated direct create path는 기본 생성 경로가 아니다.
 
 ### 7-2. Product UX

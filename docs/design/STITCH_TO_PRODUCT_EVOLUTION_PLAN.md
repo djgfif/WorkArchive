@@ -5,7 +5,7 @@
 | Status | `canonical` |
 | Role | `Stitch reference translation plan` |
 | Source of truth | root `DESIGN.md`, `docs/design/stitch/*`, current `apps/web` implementation |
-| Last verified against | `2026-04-24` working tree |
+| Last verified against | `2026-04-27` IA v1 Stitch reference + modal-first Add implementation |
 | When to update | new Stitch drafts are added, design direction changes, or implementation scope changes |
 
 이 문서는 Google Stitch로 만든 시안을 Work Archive 실제 웹 UI에 반영할 때의 기준 문서다. Stitch 결과물을 그대로 붙여 넣는 것이 아니라, **장점만 추출해서 현재 Mantine + AppPrimitives 기반 디자인 시스템으로 재구현**하는 것이 목적이다.
@@ -32,6 +32,17 @@ Stitch 시안은 다음을 직접 결정하지 않는다.
 - 커뮤니티/public catalog 경계
 - React/Mantine 컴포넌트 구조
 - 공식 디자인 토큰
+
+## 1-1. IA v1 Stitch Application
+
+`WorkArchive IA v1` Stitch pass는 Add Work, Library, Work Detail, Backup/Restore, Sync, Insights의 화면 위계 참고용으로 사용했다. 실제 구현은 Stitch HTML을 붙여 넣지 않고 Mantine + AppPrimitives로 재구현한다.
+
+반영된 기준:
+
+- `/works`의 작품 추가는 `AddWorkDialog` 중심으로 열고, `/works/new`는 page fallback으로 유지한다.
+- 검색 후보 선택은 중첩 modal이 아니라 creation flow 내부의 `SearchPickerPanel` master-detail 영역으로 다룬다.
+- Work Detail은 작품 소개보다 `내 기록`과 `personalTags`를 먼저 읽히게 한다.
+- Settings 백업/복구와 Sync 상태 화면은 기능 추가 없이 정책 설명과 상태 구분을 명확히 한다.
 
 ## 2. What To Extract From Stitch
 
@@ -242,7 +253,7 @@ Do not extract:
 
 Implementation target:
 
-- Improve `QuickAddWorkForm` presentation.
+- Improve `QuickAddWorkForm` presentation and support the modal-first AddWorkDialog plus `/works/new` fallback.
 - Preserve search, selection, duplicate, identity, and save behavior.
 - Keep current saved-work success flow in `WorkCreatePage`.
 
@@ -276,14 +287,13 @@ Implementation target:
 ```text
 1. Store and document Stitch references.
 2. Improve Auth centered card because it is the safest UI uplift.
-3. Improve Quick Add candidate cards and selected-work preview.
-4. Improve Quick Add status input and save CTA.
+3. Stabilize IA v1 AddWorkDialog / SearchPickerPanel browser QA.
+4. Improve Quick Add candidate cards and selected-work preview.
 5. Improve Works grid card density and poster-first scanning.
 6. Add status badge overlay to grid cards.
-7. Compact WorksToolbar filters and view switcher.
-8. Improve Home recent-record bento section.
-9. Add Home in-progress section.
-10. Review visual consistency against DESIGN.md.
+7. Improve Home recent-record bento section.
+8. Add Home in-progress section.
+9. Review visual consistency against DESIGN.md.
 ```
 
 ## 7. Codex Guardrails

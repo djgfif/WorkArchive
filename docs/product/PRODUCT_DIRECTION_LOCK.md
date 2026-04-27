@@ -216,8 +216,8 @@ Quick Add 저장 원칙:
 
 순수 개인용 아카이브에 맞춰 화면 구조를 아래처럼 고정한다.
 
-- Creation screens use form-first layouts.
-- Search selection uses modal master-detail picker.
+- Creation screens use focused form-first dialog layouts with page fallback routes.
+- Search selection uses an internal master-detail picker inside the focused creation flow.
 - Library browsing uses poster-first grid.
 - Detail pages use section-based layouts centered on personal records.
 - Cards must not contain more than a few essential metadata items.
