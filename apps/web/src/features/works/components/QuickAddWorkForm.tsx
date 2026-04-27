@@ -3,7 +3,6 @@ import type {
   CatalogSearchMediumType,
   WorkRecord,
 } from '@work-archive/shared-types';
-import { useMediaQuery } from '@mantine/hooks';
 import {
   Accordion,
   Alert,
@@ -47,7 +46,7 @@ import {
   type ProviderReadinessGroup,
 } from '../../imports/hooks/useImportProviderReadiness';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
-import { SearchPickerModal } from './SearchPickerModal';
+import { SearchPickerPanel } from './SearchPickerModal';
 import {
   buildImportIdentity,
   createValuesFromCandidate,
@@ -69,7 +68,9 @@ import { workStatusOptions, workTypeOptions } from '../utils/work-options';
 interface QuickAddWorkFormProps {
   isSubmitting: boolean;
   onSubmit: (input: UpsertWorkInput) => Promise<void>;
+  onCancel?: () => void;
   submitError: string | null;
+  variant?: 'dialog' | 'page';
 }
 
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
@@ -348,17 +349,9 @@ function PersonalRecordFields({
             />
           </div>
 
-          <div style={{ gridColumn: '1 / -1' }}>
-            <Textarea
-              id={getFieldId(idPrefix, 'review')}
-              label="상세 감상"
-              name="review"
-              onChange={onInputChange}
-              placeholder="조금 더 긴 감상을 남겨두세요"
-              rows={6}
-              value={values.review}
-            />
-          </div>
+          <Text c="var(--app-text-muted)" size="sm" style={{ gridColumn: '1 / -1' }}>
+            긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수 있습니다.
+          </Text>
         </SimpleGrid>
       </Stack>
     </Paper>
@@ -383,7 +376,7 @@ function AdvancedWorkFields({
   return (
     <Accordion>
       <Accordion.Item value={itemValue}>
-        <Accordion.Control>표지, 장르, 설명, 즐겨찾기</Accordion.Control>
+        <Accordion.Control>표지, 장르, 개인 태그, 상세 감상</Accordion.Control>
         <Accordion.Panel>
           <Stack gap="md" pt="sm">
             <TextInput
@@ -429,6 +422,16 @@ function AdvancedWorkFields({
             </Text>
 
             <Textarea
+              id={getFieldId(idPrefix, 'review')}
+              label="상세 감상"
+              name="review"
+              onChange={onInputChange}
+              placeholder="긴 감상은 저장 후 상세 화면에서 이어서 다듬을 수 있습니다"
+              rows={4}
+              value={values.review}
+            />
+
+            <Textarea
               id={getFieldId(idPrefix, 'description')}
               label="설명"
               name="description"
@@ -453,18 +456,19 @@ function AdvancedWorkFields({
 
 export function QuickAddWorkForm({
   isSubmitting,
+  onCancel,
   onSubmit,
   submitError,
+  variant = 'page',
 }: QuickAddWorkFormProps) {
   const { archiveScopeKey } = useAuthSession();
-  const isMobile = useMediaQuery('(max-width: 48em)');
   const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const [mode, setMode] = useState<'manual' | 'search'>('manual');
   const [values, setValues] = useState<WorkFormValues>(() =>
     createFormDefaults(),
   );
   const [existingWorks, setExistingWorks] = useState<WorkRecord[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [searchModalOpened, setSearchModalOpened] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<CatalogSearchMediumType>('all');
   const [providerGroup, setProviderGroup] = useState<ProviderGroup>('all');
@@ -478,7 +482,7 @@ export function QuickAddWorkForm({
   const [isSearching, setIsSearching] = useState(false);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const providerReadiness = useImportProviderReadiness(searchModalOpened);
+  const providerReadiness = useImportProviderReadiness(mode === 'search');
 
   useEffect(() => {
     const subscription = liveQuery(() => worksRepository.listAll()).subscribe({
@@ -615,7 +619,7 @@ export function QuickAddWorkForm({
       ),
     );
     setSelectedImportCandidate(selectedSearchCandidate);
-    setSearchModalOpened(false);
+    setMode('manual');
     setValidationError(null);
     focusMainTitle();
   }
@@ -628,7 +632,7 @@ export function QuickAddWorkForm({
     }
 
     resetImportedCandidate();
-    setSearchModalOpened(false);
+    setMode('manual');
     setValues((currentValues) => ({
       ...currentValues,
       title: normalizedSearchTerm,
@@ -669,94 +673,79 @@ export function QuickAddWorkForm({
   }
 
   return (
-    <Stack gap="xl">
-      <SectionCard gap="md" padding="lg" tone="hero">
-        <SectionIntro
-          description="직접 추가와 검색 채우기를 모두 사용할 수 있지만, 저장은 항상 아래 폼에서 직접 확인하고 진행합니다."
-          eyebrow="추가 방식"
-          title="새 작품 기록 만들기"
-          titleOrder={2}
-        />
-
-        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-          <Paper
-            p="md"
-            radius="lg"
-            styles={{
-              root: {
-                backgroundColor: 'var(--app-surface-1)',
-                borderColor: 'var(--app-border-strong)',
-              },
-            }}
-            withBorder
-          >
-            <Stack gap="sm">
-              <ActionRow justify="space-between">
-                <AppBadge tone="accent">기본 경로</AppBadge>
-                <AppBadge tone="success">form-first</AppBadge>
-              </ActionRow>
-              <div>
-                <Title order={3}>직접 추가</Title>
-                <Text c="var(--app-text-muted)" size="sm">
-                  제목과 유형부터 바로 기록하고, 나머지는 필요할 때만 채웁니다.
-                </Text>
-              </div>
-              <AppButton
-                fullWidth
-                onClick={() => {
-                  focusMainTitle();
-                }}
-                tone="primary"
-                type="button"
-              >
-                직접 입력 계속
-              </AppButton>
-            </Stack>
-          </Paper>
-
-          <Paper
-            p="md"
-            radius="lg"
-            styles={{
-              root: {
-                backgroundColor: 'var(--app-surface-0)',
-                borderColor: 'var(--app-border-color)',
-              },
-            }}
-            withBorder
-          >
-            <Stack gap="sm">
-              <ActionRow justify="space-between">
-                <AppBadge tone="muted">입력 보조</AppBadge>
-                {selectedImportCandidate && (
-                  <AppBadge tone="success">불러온 후보 있음</AppBadge>
-                )}
-              </ActionRow>
-              <div>
-                <Title order={3}>검색으로 정보 채우기</Title>
-                <Text c="var(--app-text-muted)" size="sm">
-                  검색 결과를 비교해 제목과 작품 정보를 채우고, 저장은 아래
-                  폼에서 마무리합니다.
-                </Text>
-              </div>
-              <AppButton
-                fullWidth
-                onClick={() => {
-                  setSearchModalOpened(true);
-                  setSearchError(null);
-                }}
-                tone="secondary"
-                type="button"
-              >
-                {selectedImportCandidate ? '다시 검색' : '검색으로 정보 채우기'}
-              </AppButton>
-            </Stack>
-          </Paper>
-        </SimpleGrid>
+    <Stack gap={variant === 'dialog' ? 'lg' : 'xl'}>
+      <SectionCard gap="md" padding={variant === 'dialog' ? 'lg' : 'xl'} tone="hero">
+        <Group align="flex-start" justify="space-between" wrap="wrap">
+          <SectionIntro
+            description="직접 입력하거나 검색 후보로 기본 정보를 채운 뒤, 저장 전 한 화면에서 최종 확인합니다."
+            eyebrow="새 기록"
+            title="새 작품 기록"
+            titleOrder={variant === 'dialog' ? 2 : 1}
+          />
+          <ActionRow justify="flex-end">
+            <AppButton
+              aria-pressed={mode === 'manual'}
+              onClick={() => {
+                setMode('manual');
+                focusMainTitle();
+              }}
+              size="compact-sm"
+              tone={mode === 'manual' ? 'primary' : 'secondary'}
+              type="button"
+            >
+              직접 입력
+            </AppButton>
+            <AppButton
+              aria-pressed={mode === 'search'}
+              onClick={() => {
+                setMode('search');
+                setSearchError(null);
+              }}
+              size="compact-sm"
+              tone={mode === 'search' ? 'primary' : 'secondary'}
+              type="button"
+            >
+              검색으로 정보 채우기
+            </AppButton>
+          </ActionRow>
+        </Group>
       </SectionCard>
 
-      <form onSubmit={handleSubmit}>
-        <SectionCard gap="xl" padding="xl" tone="default">
+      {mode === 'search' ? (
+        <SectionCard gap="lg" padding={variant === 'dialog' ? 'lg' : 'xl'} tone="default">
+          <SearchPickerPanel
+            candidates={searchCandidates}
+            duplicateCounts={duplicateCounts}
+            duplicateMatches={selectedDuplicateMatches}
+            fullHeight={variant === 'dialog'}
+            isSearching={isSearching}
+            onApplyCandidate={applyCandidateToForm}
+            onProviderGroupChange={handleProviderGroupChange}
+            onSearchSubmit={handleSearchSubmit}
+            onSearchTermChange={setSearchTerm}
+            onSearchTypeChange={(value) =>
+              setSearchType(value as CatalogSearchMediumType)
+            }
+            onSelectCandidate={setSelectedSearchCandidate}
+            onUseManualTitle={useSearchTermForManualInput}
+            providerGroup={providerGroup}
+            providerReadinessSummary={
+              <ProviderReadinessSummary
+                error={providerReadiness.error}
+                isLoading={providerReadiness.isLoading}
+                readiness={providerReadiness.readiness}
+              />
+            }
+            searchError={searchError}
+            searchNotice={searchNotice}
+            searchTerm={searchTerm}
+            searchType={searchType}
+            selectedCandidate={selectedSearchCandidate}
+          />
+        </SectionCard>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <SectionCard gap="xl" padding={variant === 'dialog' ? 'lg' : 'xl'} tone="default">
           {selectedImportCandidate && importedSourceCoverage && (
             <Alert color="blue" radius="lg" variant="light">
               <Stack gap="sm">
@@ -764,7 +753,7 @@ export function QuickAddWorkForm({
                   <AppBadge tone="accent">검색으로 채운 정보</AppBadge>
                   <ActionRow>
                     <AppButton
-                      onClick={() => setSearchModalOpened(true)}
+                      onClick={() => setMode('search')}
                       size="compact-sm"
                       tone="ghost"
                       type="button"
@@ -803,8 +792,8 @@ export function QuickAddWorkForm({
             description="제목과 유형만 있으면 저장할 수 있습니다. 검색으로 채웠더라도 아래 폼이 최종 저장 기준입니다."
             divider={false}
             eyebrow="기본 정보"
-            title="작품 기록 입력"
-          >
+              title="작품 기록 입력"
+            >
             <CoreWorkFields
               idPrefix="manual"
               onChange={handleInputChange}
@@ -816,8 +805,8 @@ export function QuickAddWorkForm({
           <PageSection
             description="상태와 감상은 내 아카이브에서 가장 먼저 읽히는 개인 기록입니다."
             eyebrow="내 기록"
-            title="상태와 감상"
-          >
+              title="상태와 감상"
+            >
             <PersonalRecordFields
               idPrefix="manual"
               onInputChange={handleInputChange}
@@ -829,8 +818,8 @@ export function QuickAddWorkForm({
           <PageSection
             description="표지, 장르, 설명 같은 부가 정보는 필요할 때만 펼쳐서 다룹니다."
             eyebrow="추가 필드"
-            title="고급 정보"
-          >
+              title="고급 정보"
+            >
             <AdvancedWorkFields
               idPrefix="manual"
               itemValue="manual-advanced-fields"
@@ -856,44 +845,19 @@ export function QuickAddWorkForm({
             >
               {isSubmitting ? '저장 중...' : '내 아카이브에 저장'}
             </AppButton>
-            <AppLinkButton to="/works" tone="quiet">
-              취소
-            </AppLinkButton>
+            {onCancel ? (
+              <AppButton onClick={onCancel} tone="quiet" type="button">
+                취소
+              </AppButton>
+            ) : (
+              <AppLinkButton to="/works" tone="quiet">
+                취소
+              </AppLinkButton>
+            )}
           </ActionRow>
-        </SectionCard>
-      </form>
-
-      <SearchPickerModal
-        candidates={searchCandidates}
-        duplicateCounts={duplicateCounts}
-        duplicateMatches={selectedDuplicateMatches}
-        fullScreen={Boolean(isMobile)}
-        isSearching={isSearching}
-        onApplyCandidate={applyCandidateToForm}
-        onClose={() => setSearchModalOpened(false)}
-        onProviderGroupChange={handleProviderGroupChange}
-        onSearchSubmit={handleSearchSubmit}
-        onSearchTermChange={setSearchTerm}
-        onSearchTypeChange={(value) =>
-          setSearchType(value as CatalogSearchMediumType)
-        }
-        onSelectCandidate={setSelectedSearchCandidate}
-        onUseManualTitle={useSearchTermForManualInput}
-        opened={searchModalOpened}
-        providerGroup={providerGroup}
-        providerReadinessSummary={
-          <ProviderReadinessSummary
-            error={providerReadiness.error}
-            isLoading={providerReadiness.isLoading}
-            readiness={providerReadiness.readiness}
-          />
-        }
-        searchError={searchError}
-        searchNotice={searchNotice}
-        searchTerm={searchTerm}
-        searchType={searchType}
-        selectedCandidate={selectedSearchCandidate}
-      />
+          </SectionCard>
+        </form>
+      )}
     </Stack>
   );
 }

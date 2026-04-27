@@ -140,12 +140,12 @@ export function WorkEditPage() {
       <WorkForm
         cancelTo={`/works/${work.id}`}
         focusArea={focusArea}
-        initialValues={formInitialValues}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}
         submitError={submitError}
         submitLabel="저장"
         tagSuggestions={tagSuggestions}
+        {...(formInitialValues ? { initialValues: formInitialValues } : {})}
       />
     </FlowPageTemplate>
   );

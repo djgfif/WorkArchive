@@ -173,6 +173,25 @@ export function WorkDetailPanel({
               </Text>
             </Stack>
 
+            <Stack gap="xs">
+              <Text c="var(--app-text-muted)" fw={700} size="sm">
+                개인 태그
+              </Text>
+              {work.personalTags.length > 0 ? (
+                <ActionRow>
+                  {work.personalTags.map((tag) => (
+                    <AppBadge key={tag} tone="muted">
+                      {tag}
+                    </AppBadge>
+                  ))}
+                </ActionRow>
+              ) : (
+                <Text c="var(--app-text-muted)">
+                  아직 개인 태그를 남기지 않았습니다.
+                </Text>
+              )}
+            </Stack>
+
             <ActionRow>
               <AppLinkButton to={`/works/${work.id}/edit?focus=review`} tone="primary">
                 {shortReview || review ? '리뷰 수정' : '리뷰 쓰기'}
@@ -188,6 +207,32 @@ export function WorkDetailPanel({
       </PageSection>
 
       <PageSection
+        description="날짜 필드와 자동 이벤트 저장 모델이 들어오면 시작, 진행, 완료, 리뷰 수정 흐름을 이곳에서 시간순으로 보여줍니다."
+        eyebrow="감상 이력"
+        title="타임라인"
+      >
+        <SectionCard gap="md" padding="lg" tone="subtle">
+          <Stack gap="sm">
+            <ActionRow>
+              <AppBadge tone="muted">준비 중</AppBadge>
+              <Text c="var(--app-text-muted)" size="sm">
+                지금은 최근 수정일과 진행도 기록을 기준으로만 확인할 수 있습니다.
+              </Text>
+            </ActionRow>
+            <KeyValueGrid
+              columns={2}
+              items={[
+                { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
+                { label: '최근 수정', value: formatWorkDateTime(work.updatedAt) },
+                { label: '진행도', value: progressLabel ?? '아직 없음' },
+                { label: '현재 상태', value: statusLabel },
+              ]}
+            />
+          </Stack>
+        </SectionCard>
+      </PageSection>
+
+      <PageSection
         description="작품의 기본 메타데이터와 저장 정보를 차분하게 정리합니다."
         eyebrow="작품 정보"
         title="작품과 저장 정보"
@@ -200,13 +245,6 @@ export function WorkDetailPanel({
               {
                 label: '장르',
                 value: work.genres.length > 0 ? work.genres.join(', ') : '없음',
-              },
-              {
-                label: '개인 태그',
-                value:
-                  work.personalTags.length > 0
-                    ? work.personalTags.join(', ')
-                    : '없음',
               },
               {
                 label: '설명',

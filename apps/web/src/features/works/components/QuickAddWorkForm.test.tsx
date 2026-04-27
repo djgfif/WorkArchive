@@ -607,7 +607,10 @@ describe('QuickAddWorkForm', () => {
   it('shows direct manual add as the default guest path before search is used', () => {
     renderGuestQuickAdd();
 
-    expect(screen.getByText('직접 추가')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '직접 입력' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByText('작품 기록 입력')).toBeInTheDocument();
     expect(getElementById<HTMLInputElement>('manualTitle')).toBeInTheDocument();
     expect(getElementById<HTMLSelectElement>('manualType')).toBeInTheDocument();

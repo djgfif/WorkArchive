@@ -81,6 +81,7 @@ function getItemStateTone(state: SyncDashboardItem['state']) {
 }
 
 interface SyncQueueSectionProps {
+  description: string;
   emptyMessage: string;
   isGuestMode: boolean;
   isRetryDisabled: boolean;
@@ -91,6 +92,7 @@ interface SyncQueueSectionProps {
 }
 
 function SyncQueueSection({
+  description,
   emptyMessage,
   isGuestMode,
   isRetryDisabled,
@@ -101,7 +103,11 @@ function SyncQueueSection({
 }: SyncQueueSectionProps) {
   return (
     <SectionCard>
-      <SectionIntro title={title} eyebrow="동기화 상태" />
+      <SectionIntro
+        description={description}
+        title={title}
+        eyebrow="동기화 상태"
+      />
 
       {items.length === 0 ? (
         <Text c="var(--app-text-muted)">{emptyMessage}</Text>
@@ -306,6 +312,7 @@ export function SyncPage() {
         {!isLoading && (
           <>
             <SyncQueueSection
+              description="아직 서버 백업에 반영되지 않은 local-first 변경입니다."
               emptyMessage="현재 대기 중인 변경 사항이 없습니다."
               isGuestMode={isGuestMode}
               isRetryDisabled={syncState === 'syncing'}
@@ -318,6 +325,7 @@ export function SyncPage() {
             />
 
             <SyncQueueSection
+              description="전송을 시도했지만 네트워크나 서버 응답 문제로 멈춘 변경입니다."
               emptyMessage="현재 실패한 변경 사항이 없습니다."
               isGuestMode={isGuestMode}
               isRetryDisabled={syncState === 'syncing'}
@@ -330,6 +338,7 @@ export function SyncPage() {
             />
 
             <SyncQueueSection
+              description="원격 기록과 로컬 기록이 같은 기준으로 합쳐지지 않은 항목입니다. 실제 병합 UX는 다음 단계에서 다룹니다."
               emptyMessage="현재 충돌한 변경 사항이 없습니다."
               isGuestMode={isGuestMode}
               isRetryDisabled={syncState === 'syncing'}
