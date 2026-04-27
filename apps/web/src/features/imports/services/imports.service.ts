@@ -1,6 +1,8 @@
 import type {
   CatalogSearchMediumType,
   ImportCandidate,
+  ImportSearchDiagnostics,
+  ImportSearchProviderDiagnostic,
   ImportProviderStatus,
   ImportSearchResponse,
   WorkType,
@@ -31,6 +33,7 @@ interface SearchCandidatesOptions {
 
 export interface SearchCandidatesResult {
   candidates: ImportCandidate[];
+  diagnostics?: ImportSearchDiagnostics;
   notice: string | null;
   source: 'external' | 'preview-manual';
 }
@@ -40,6 +43,70 @@ const ALADIN_PROVIDER_KEY_PATH = '/imports/providers/aladin/key';
 const IMPORT_PROVIDERS_PATH = '/imports/providers';
 const EXTERNAL_SEARCH_UNAVAILABLE_NOTICE =
   '일부 검색 provider를 사용할 수 없어 직접 추가 후보를 표시합니다. 로그인 없이 사용할 수 있는 provider는 계속 지원되며, 사용자 키가 필요한 provider만 로그인 후 설정할 수 있습니다.';
+
+const providerDisplayLabels: Record<string, string> = {
+  aladin: 'Aladin Book',
+  anilist: 'AniList',
+  google_books: 'Google Books',
+  kakao_book: 'Kakao Book',
+  kobis: 'KOBIS',
+  manual: '직접 추가',
+  naver_book: 'Naver Book',
+  open_library: 'Open Library',
+  tmdb: 'TMDB',
+  tvmaze: 'TVmaze',
+};
+
+function formatProviderLabel(provider: string) {
+  return providerDisplayLabels[provider] ?? provider;
+}
+
+function formatProviderResult(diagnostic: ImportSearchProviderDiagnostic) {
+  const label = formatProviderLabel(diagnostic.provider);
+
+  return diagnostic.status === 'searched'
+    ? `${label} ${diagnostic.resultCount}개`
+    : label;
+}
+
+function buildSearchNotice(response: ImportSearchResponse) {
+  const baseNotice =
+    response.providers.length > 0
+      ? `검색 provider: ${response.providers.join(', ')}`
+      : null;
+  const diagnostics = response.diagnostics?.providers ?? [];
+
+  if (diagnostics.length === 0) {
+    return baseNotice;
+  }
+
+  const searched = diagnostics.filter(
+    (diagnostic) => diagnostic.status === 'searched',
+  );
+  const skipped = diagnostics.filter(
+    (diagnostic) => diagnostic.status === 'skipped',
+  );
+  const failed = diagnostics.filter(
+    (diagnostic) => diagnostic.status === 'failed',
+  );
+  const segments = [
+    searched.length > 0
+      ? `검색 완료: ${searched.map(formatProviderResult).join(', ')}`
+      : null,
+    skipped.length > 0
+      ? `제외됨: ${skipped.map(formatProviderResult).join(', ')}`
+      : null,
+    failed.length > 0
+      ? `일시 실패: ${failed.map(formatProviderResult).join(', ')}`
+      : null,
+  ].filter((segment): segment is string => Boolean(segment));
+
+  if (segments.length === 0) {
+    return baseNotice;
+  }
+
+  return [baseNotice, segments.join(' · ')].filter(Boolean).join(' · ');
+}
 
 function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
   const normalizedSearchTerm = searchTerm.trim();
@@ -151,7 +218,9 @@ class PreviewImportsAdapter implements ImportSourceAdapter {
 
 export class ImportsService {
   constructor(
-    private readonly adapters: ImportSourceAdapter[] = [new PreviewImportsAdapter()],
+    private readonly adapters: ImportSourceAdapter[] = [
+      new PreviewImportsAdapter(),
+    ],
   ) {}
 
   async getAladinProviderStatus() {
@@ -176,7 +245,8 @@ export class ImportsService {
             method: 'GET',
           },
           {
-            missingTokenMessage: '외부 검색 설정은 로그인 없이도 확인할 수 있습니다.',
+            missingTokenMessage:
+              '외부 검색 설정은 로그인 없이도 확인할 수 있습니다.',
           },
         )
       : requestApiJson<ImportProviderStatus[]>(IMPORT_PROVIDERS_PATH, {
@@ -251,7 +321,8 @@ export class ImportsService {
                 method: 'GET',
               },
               {
-                missingTokenMessage: '외부 검색은 로그인 없이도 사용할 수 있습니다.',
+                missingTokenMessage:
+                  '외부 검색은 로그인 없이도 사용할 수 있습니다.',
               },
             )
           : await requestApiJson<ImportSearchResponse>(path, {
@@ -260,10 +331,10 @@ export class ImportsService {
 
         return {
           candidates: response.candidates,
-          notice:
-            response.providers.length > 0
-              ? `검색 provider: ${response.providers.join(', ')}`
-              : null,
+          ...(response.diagnostics
+            ? { diagnostics: response.diagnostics }
+            : {}),
+          notice: buildSearchNotice(response),
           source: 'external',
         };
       } catch (error) {
@@ -291,13 +362,17 @@ export class ImportsService {
     notice: string | null,
     mediumType: CatalogSearchMediumType = 'all',
   ): SearchCandidatesResult {
-    const candidates = this.adapters.flatMap((adapter) => adapter.search(normalizedQuery));
+    const candidates = this.adapters.flatMap((adapter) =>
+      adapter.search(normalizedQuery),
+    );
 
     return {
       candidates:
         mediumType === 'all'
           ? candidates
-          : candidates.filter((candidate) => candidate.mediumType === mediumType),
+          : candidates.filter(
+              (candidate) => candidate.mediumType === mediumType,
+            ),
       notice,
       source: 'preview-manual',
     };

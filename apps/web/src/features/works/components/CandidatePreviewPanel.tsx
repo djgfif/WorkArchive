@@ -28,6 +28,12 @@ export function CandidatePreviewPanel({
   onApply,
 }: CandidatePreviewPanelProps) {
   const sourceCoverage = getCandidateSourceCoverage(candidate);
+  const scoreBreakdown = candidate.scoreBreakdown
+    ?.filter((entry) => entry.weight > 0)
+    .slice(0, 5);
+  const titleAliases = candidate.titleAliases?.filter(
+    (titleAlias) => titleAlias !== candidate.title,
+  );
 
   return (
     <Stack gap="lg">
@@ -66,6 +72,16 @@ export function CandidatePreviewPanel({
             <MetricPill label="검색 출처" value={sourceCoverage.summaryLabel} />
             <MetricPill label="형식" value={candidate.formatLabel} />
           </ActionRow>
+
+          {titleAliases && titleAliases.length > 0 && (
+            <ActionRow>
+              {titleAliases.slice(0, 4).map((titleAlias) => (
+                <AppBadge key={titleAlias} tone="muted">
+                  {titleAlias}
+                </AppBadge>
+              ))}
+            </ActionRow>
+          )}
         </Stack>
       </Group>
 
@@ -110,9 +126,22 @@ export function CandidatePreviewPanel({
               </AppBadge>
             ))}
           </ActionRow>
+          {scoreBreakdown && scoreBreakdown.length > 0 && (
+            <ActionRow>
+              {scoreBreakdown.map((entry) => (
+                <AppBadge key={`${entry.label}:${entry.weight}`} tone="success">
+                  {entry.label}
+                </AppBadge>
+              ))}
+            </ActionRow>
+          )}
           {candidate.sourceUrl && (
             <ActionRow>
-              <Anchor href={candidate.sourceUrl} rel="noreferrer" target="_blank">
+              <Anchor
+                href={candidate.sourceUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
                 source link
               </Anchor>
             </ActionRow>
@@ -121,14 +150,24 @@ export function CandidatePreviewPanel({
       </Paper>
 
       {duplicateMatches.length > 0 && (
-        <Alert color="blue" radius="lg" title="비슷한 기록이 이미 있습니다" variant="light">
+        <Alert
+          color="blue"
+          radius="lg"
+          title="비슷한 기록이 이미 있습니다"
+          variant="light"
+        >
           <Stack gap="sm">
             <Text c="inherit" size="sm">
-              같은 작품일 수 있는 기록을 먼저 확인하세요. 다른 작품이라면 그대로 입력을 채워도 됩니다.
+              같은 작품일 수 있는 기록을 먼저 확인하세요. 다른 작품이라면 그대로
+              입력을 채워도 됩니다.
             </Text>
             {duplicateMatches.map((work) =>
               work.deletedAt === null ? (
-                <AppLinkButton key={work.id} to={`/works/${work.id}`} tone="quiet">
+                <AppLinkButton
+                  key={work.id}
+                  to={`/works/${work.id}`}
+                  tone="quiet"
+                >
                   {work.title}
                 </AppLinkButton>
               ) : (

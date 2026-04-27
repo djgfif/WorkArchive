@@ -20,7 +20,21 @@ import type { ImportProviderStatusResponseDto } from './dto/import-provider-stat
 import type { ImportSearchQueryDto } from './dto/import-search-query.dto';
 import type { ImportSearchResponseDto } from './dto/import-search-response.dto';
 import { mergeImportCandidates } from './import-candidate-merge';
+import {
+  normalizeImportCandidate,
+  normalizeIsbn,
+  normalizeReleaseDate,
+  parseNormalizedReleaseYear,
+  stripHtml,
+} from './import-candidate-normalization';
 import { rankImportCandidates } from './import-candidate-ranking';
+import {
+  addProviderDiagnostic,
+  createImportSearchDiagnostics,
+  type ImportSearchDiagnosticReasonCode,
+  type ImportSearchDiagnosticStatus,
+  type ImportSearchDiagnostics,
+} from './import-search-diagnostics';
 import { ImportsCredentialService } from './imports-credential.service';
 import {
   ALADIN_PROVIDER,
@@ -49,10 +63,11 @@ const NAVER_BOOK_SEARCH_URL = 'https://openapi.naver.com/v1/search/book.json';
 const KAKAO_BOOK_SEARCH_URL = 'https://dapi.kakao.com/v3/search/book';
 const KOBIS_MOVIE_SEARCH_URL =
   'http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json';
-const ALADIN_ATTRIBUTION =
-  '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)';
+const ALADIN_ATTRIBUTION = '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)';
 const DEFAULT_LIMIT = 10;
+const DEFAULT_PROVIDER_TIMEOUT_MS = 5_000;
 const MAX_LIMIT = 20;
+const PROVIDER_CACHE_TTL_MS = 5 * 60 * 1_000;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -151,6 +166,13 @@ const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
 @Injectable()
 export class ImportsService {
   private readonly logger = new Logger(ImportsService.name);
+  private readonly providerResponseCache = new Map<
+    string,
+    {
+      expiresAt: number;
+      value: unknown;
+    }
+  >();
 
   constructor(
     @Inject(ImportsCredentialService)
@@ -182,7 +204,9 @@ export class ImportsService {
     };
   }
 
-  async listProviders(userId: string | null): Promise<ImportProviderStatusResponseDto[]> {
+  async listProviders(
+    userId: string | null,
+  ): Promise<ImportProviderStatusResponseDto[]> {
     return Promise.all(
       IMPORT_PROVIDER_VALUES.map(async (provider) => {
         const metadata = PROVIDERS[provider];
@@ -202,7 +226,11 @@ export class ImportsService {
     userId: string,
     ttbKey: string,
   ): Promise<Pick<ImportProviderStatusResponseDto, 'configured' | 'provider'>> {
-    await this.credentialService.saveCredential(userId, ALADIN_PROVIDER, ttbKey);
+    await this.credentialService.saveCredential(
+      userId,
+      ALADIN_PROVIDER,
+      ttbKey,
+    );
 
     return {
       provider: ALADIN_PROVIDER,
@@ -221,14 +249,14 @@ export class ImportsService {
     const query = searchQuery.query.trim();
     const limit = this.normalizeLimit(searchQuery.limit);
     const mediumType = searchQuery.mediumType ?? searchQuery.type;
+    const resolvedProviders = this.resolveProviders(searchQuery, mediumType);
     const providers = this.resolveSearchProviders(
-      this.resolveProviders(searchQuery, mediumType),
+      resolvedProviders,
       searchQuery,
       userId,
     );
     const explicitSingleProvider =
-      searchQuery.provider !== undefined &&
-      searchQuery.providers === undefined;
+      searchQuery.provider !== undefined && searchQuery.providers === undefined;
 
     if (!query) {
       throw new BadRequestException('query must not be empty');
@@ -236,9 +264,61 @@ export class ImportsService {
 
     const candidates: ImportCandidateResponseDto[] = [];
     const failures: string[] = [];
+    const diagnostics = createImportSearchDiagnostics();
 
-    for (const provider of providers) {
+    for (const provider of resolvedProviders) {
       if (!this.supportsMedium(provider, mediumType)) {
+        this.addSearchDiagnostic(diagnostics, provider, {
+          configured: await this.isProviderConfigured(userId, provider),
+          message: `${PROVIDERS[provider].label} does not support the selected work type.`,
+          reasonCode: 'unsupported_medium',
+          resultCount: 0,
+          status: 'skipped',
+        });
+        continue;
+      }
+
+      if (!providers.includes(provider)) {
+        const metadata = PROVIDERS[provider];
+
+        this.addSearchDiagnostic(diagnostics, provider, {
+          configured: await this.isProviderConfigured(userId, provider),
+          message:
+            metadata.credentialMode === 'user'
+              ? `${metadata.label} search requires a signed-in account.`
+              : `${metadata.label} search is not available for guest search.`,
+          reasonCode: 'guest_provider_not_allowed',
+          resultCount: 0,
+          status: 'skipped',
+        });
+        continue;
+      }
+
+      const configured = await this.isProviderConfigured(userId, provider);
+
+      if (!configured && PROVIDERS[provider].credentialMode === 'server') {
+        this.addSearchDiagnostic(diagnostics, provider, {
+          configured,
+          message: `${PROVIDERS[provider].label} search is not configured on this server.`,
+          reasonCode: 'server_credential_missing',
+          resultCount: 0,
+          status: 'skipped',
+        });
+        continue;
+      }
+
+      if (
+        !configured &&
+        PROVIDERS[provider].credentialMode === 'user' &&
+        !explicitSingleProvider
+      ) {
+        this.addSearchDiagnostic(diagnostics, provider, {
+          configured,
+          message: `${PROVIDERS[provider].label} search requires a configured user key.`,
+          reasonCode: 'user_credential_missing',
+          resultCount: 0,
+          status: 'skipped',
+        });
         continue;
       }
 
@@ -256,12 +336,26 @@ export class ImportsService {
         const providerCandidates = await this.searchProvider(provider, context);
 
         candidates.push(...providerCandidates);
+        this.addSearchDiagnostic(diagnostics, provider, {
+          configured,
+          message: `${PROVIDERS[provider].label} search completed.`,
+          reasonCode: null,
+          resultCount: providerCandidates.length,
+          status: 'searched',
+        });
       } catch (error) {
         if (explicitSingleProvider) {
           throw error;
         }
 
         failures.push(`${provider}:${this.describeError(error)}`);
+        this.addSearchDiagnostic(diagnostics, provider, {
+          configured,
+          message: `${PROVIDERS[provider].label} search is temporarily unavailable.`,
+          reasonCode: 'provider_failed',
+          resultCount: 0,
+          status: 'failed',
+        });
       }
     }
 
@@ -269,8 +363,10 @@ export class ImportsService {
       userId,
       mergeImportCandidates(candidates),
     );
+    const decoratedMergedCandidates =
+      mergeImportCandidates(decoratedCandidates);
     const rankedCandidates = rankImportCandidates({
-      candidates: decoratedCandidates,
+      candidates: decoratedMergedCandidates,
       ...(mediumType === undefined ? {} : { mediumType }),
       query,
     }).slice(0, limit);
@@ -288,6 +384,7 @@ export class ImportsService {
       providers,
       query,
       candidates: rankedCandidates,
+      diagnostics,
     };
   }
 
@@ -395,7 +492,10 @@ export class ImportsService {
     return allowedProviders;
   }
 
-  private async isProviderConfigured(userId: string | null, provider: ImportProvider) {
+  private async isProviderConfigured(
+    userId: string | null,
+    provider: ImportProvider,
+  ) {
     const metadata = PROVIDERS[provider];
 
     if (metadata.credentialMode === 'none') {
@@ -448,7 +548,9 @@ export class ImportsService {
     userId,
   }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
     if (!userId) {
-      throw new UnauthorizedException('Aladin search requires a signed-in account.');
+      throw new UnauthorizedException(
+        'Aladin search requires a signed-in account.',
+      );
     }
 
     const ttbKey = await this.credentialService.getDecryptedCredential(
@@ -479,7 +581,9 @@ export class ImportsService {
     });
 
     if (!this.isRecord(responseBody)) {
-      throw new BadGatewayException('Aladin search returned an invalid response.');
+      throw new BadGatewayException(
+        'Aladin search returned an invalid response.',
+      );
     }
 
     if (responseBody.errorCode || responseBody.errorMessage) {
@@ -493,7 +597,9 @@ export class ImportsService {
     }
 
     if (!Array.isArray(items)) {
-      throw new BadGatewayException('Aladin search returned an invalid item list.');
+      throw new BadGatewayException(
+        'Aladin search returned an invalid item list.',
+      );
     }
 
     return items
@@ -548,6 +654,8 @@ export class ImportsService {
       const responseBody = await this.fetchJson(ANILIST_GRAPHQL_URL, {
         accept: 'application/json',
         body: JSON.stringify(body),
+        cacheKey: this.getProviderCacheKey(ANILIST_PROVIDER, query, mediaType),
+        cacheTtlMs: PROVIDER_CACHE_TTL_MS,
         contentType: 'application/json',
         method: 'POST',
       });
@@ -580,6 +688,8 @@ export class ImportsService {
 
     const responseBody = await this.fetchJson(searchUrl, {
       accept: 'application/json',
+      cacheKey: this.getProviderCacheKey(GOOGLE_BOOKS_PROVIDER, query),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
     const items = this.readPathArray(responseBody, ['items']);
 
@@ -604,12 +714,17 @@ export class ImportsService {
 
     const responseBody = await this.fetchJson(searchUrl, {
       accept: 'application/json',
+      cacheKey: this.getProviderCacheKey(OPEN_LIBRARY_PROVIDER, query),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
     const docs = this.readPathArray(responseBody, ['docs']);
 
     return docs
       .map((item, index) => this.mapOpenLibraryItem(item, index))
-      .filter((candidate): candidate is ImportCandidateResponseDto => candidate !== null);
+      .filter(
+        (candidate): candidate is ImportCandidateResponseDto =>
+          candidate !== null,
+      );
   }
 
   private async searchTvMaze({
@@ -623,6 +738,8 @@ export class ImportsService {
 
     const responseBody = await this.fetchJson(searchUrl, {
       accept: 'application/json',
+      cacheKey: this.getProviderCacheKey(TVMAZE_PROVIDER, query),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
 
     if (!Array.isArray(responseBody)) {
@@ -676,6 +793,8 @@ export class ImportsService {
 
       const fetchOptions: Parameters<typeof this.fetchJson>[1] = {
         accept: 'application/json',
+        cacheKey: this.getProviderCacheKey(TMDB_PROVIDER, query, rawType),
+        cacheTtlMs: PROVIDER_CACHE_TTL_MS,
       };
 
       if (credential.kind === 'bearer') {
@@ -693,7 +812,10 @@ export class ImportsService {
         ...results
           .slice(0, limit)
           .map((item, index) => this.mapTmdbItem(item, index, rawType))
-          .filter((candidate): candidate is ImportCandidateResponseDto => candidate !== null),
+          .filter(
+            (candidate): candidate is ImportCandidateResponseDto =>
+              candidate !== null,
+          ),
       );
     }
 
@@ -719,6 +841,8 @@ export class ImportsService {
 
     const responseBody = await this.fetchJson(searchUrl, {
       accept: 'application/json',
+      cacheKey: this.getProviderCacheKey(NAVER_BOOK_PROVIDER, query),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
       headers: {
         'X-Naver-Client-Id': clientId,
         'X-Naver-Client-Secret': clientSecret,
@@ -756,6 +880,8 @@ export class ImportsService {
       accept: 'application/json',
       bearerPrefix: 'KakaoAK',
       bearerToken: restApiKey,
+      cacheKey: this.getProviderCacheKey(KAKAO_BOOK_PROVIDER, query),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
     const documents = this.readPathArray(responseBody, ['documents']);
 
@@ -787,6 +913,8 @@ export class ImportsService {
 
     const responseBody = await this.fetchJson(searchUrl, {
       accept: 'application/json',
+      cacheKey: this.getProviderCacheKey(KOBIS_PROVIDER, query),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
     const movies = this.readPathArray(responseBody, [
       'movieListResult',
@@ -795,7 +923,10 @@ export class ImportsService {
 
     return movies
       .map((item, index) => this.mapKobisMovieItem(item, index))
-      .filter((candidate): candidate is ImportCandidateResponseDto => candidate !== null);
+      .filter(
+        (candidate): candidate is ImportCandidateResponseDto =>
+          candidate !== null,
+      );
   }
 
   private searchManual({
@@ -828,7 +959,10 @@ export class ImportsService {
         provider: MANUAL_PROVIDER,
         reason: '수동 입력 fallback',
         sourceLabel: 'Manual',
-        title: type === mediumType ? query : `${query} (${this.getFormatLabel(type)})`,
+        title:
+          type === mediumType
+            ? query
+            : `${query} (${this.getFormatLabel(type)})`,
         type,
       }),
     );
@@ -908,6 +1042,11 @@ export class ImportsService {
       this.readString(titleObject.english) ||
       this.readString(titleObject.romaji) ||
       this.readString(titleObject.native);
+    const titleAliases = [
+      this.readString(titleObject.english),
+      this.readString(titleObject.romaji),
+      this.readString(titleObject.native),
+    ].filter(Boolean);
 
     if (!title) {
       return null;
@@ -921,7 +1060,9 @@ export class ImportsService {
           ? WorkType.light_novel
           : WorkType.manga;
     const studios = this.readPathArray(item, ['studios', 'nodes'])
-      .map((studio) => (this.isRecord(studio) ? this.readString(studio.name) : ''))
+      .map((studio) =>
+        this.isRecord(studio) ? this.readString(studio.name) : '',
+      )
       .filter(Boolean);
     const staff = this.readPathArray(item, ['staff', 'nodes'])
       .map((person) =>
@@ -952,6 +1093,7 @@ export class ImportsService {
         ? this.readString(item.coverImage.large)
         : '',
       title,
+      titleAliases,
       type,
     });
   }
@@ -980,16 +1122,22 @@ export class ImportsService {
     const thumbnailUrl =
       this.readString(imageLinks.thumbnail) ||
       this.readString(imageLinks.smallThumbnail);
+    const subtitle = this.readString(volumeInfo.subtitle);
 
     return this.buildCandidate({
       author: this.readStringArray(volumeInfo.authors).join(', '),
       confidence: index === 0 ? 0.74 : 0.58,
       confidenceLabel: index === 0 ? 'Google 상위' : 'Google 후보',
       countLabel:
-        [this.readString(volumeInfo.publisher), this.readString(volumeInfo.publishedDate)]
+        [
+          this.readString(volumeInfo.publisher),
+          this.readString(volumeInfo.publishedDate),
+        ]
           .filter(Boolean)
           .join(' · ') || 'Google Books',
-      description: this.normalizeWhitespace(this.readString(volumeInfo.description)),
+      description: this.normalizeWhitespace(
+        this.readString(volumeInfo.description),
+      ),
       externalId: this.readString(item.id),
       externalRefs: [],
       formatLabel: this.getFormatLabel(type),
@@ -1012,6 +1160,7 @@ export class ImportsService {
       sourceUrl,
       thumbnailUrl,
       title,
+      titleAliases: [title, subtitle].filter(Boolean),
       type,
     });
   }
@@ -1049,7 +1198,8 @@ export class ImportsService {
         externalId: key || title,
         isbn: this.readOpenLibraryIsbn(item.isbn),
         provider: OPEN_LIBRARY_PROVIDER,
-        releaseDate: this.readNumber(item.first_publish_year)?.toString() ?? null,
+        releaseDate:
+          this.readNumber(item.first_publish_year)?.toString() ?? null,
         title,
         url: sourceUrl,
       }),
@@ -1083,7 +1233,9 @@ export class ImportsService {
       confidence: index === 0 ? 0.7 : 0.52,
       confidenceLabel: index === 0 ? 'TVmaze 상위' : 'TVmaze 후보',
       countLabel: this.readString(show.premiered) || 'TV series',
-      description: this.normalizeWhitespace(this.stripHtml(this.readString(show.summary))),
+      description: this.normalizeWhitespace(
+        this.stripHtml(this.readString(show.summary)),
+      ),
       externalId: this.readString(show.id),
       formatLabel: '드라마/TV',
       genresText: this.readStringArray(show.genres).join(', '),
@@ -1094,7 +1246,8 @@ export class ImportsService {
       releaseYear: this.parseYear(this.readString(show.premiered)),
       sourceLabel: 'TVmaze',
       sourceUrl: this.readString(show.url),
-      thumbnailUrl: this.readString(image.medium) || this.readString(image.original),
+      thumbnailUrl:
+        this.readString(image.medium) || this.readString(image.original),
       title,
       type: WorkType.drama,
     });
@@ -1113,6 +1266,10 @@ export class ImportsService {
       rawType === 'movie'
         ? this.readString(item.title)
         : this.readString(item.name);
+    const originalTitle =
+      rawType === 'movie'
+        ? this.readString(item.original_title)
+        : this.readString(item.original_name);
 
     if (!title) {
       return null;
@@ -1140,8 +1297,11 @@ export class ImportsService {
       releaseYear: this.parseYear(date),
       sourceLabel: 'TMDB',
       sourceUrl: `https://www.themoviedb.org/${rawType}/${this.readString(item.id)}`,
-      thumbnailUrl: posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : '',
+      thumbnailUrl: posterPath
+        ? `https://image.tmdb.org/t/p/w500${posterPath}`
+        : '',
       title,
+      titleAliases: [title, originalTitle].filter(Boolean),
       type,
     });
   }
@@ -1169,10 +1329,15 @@ export class ImportsService {
       confidence: index === 0 ? 0.72 : 0.54,
       confidenceLabel: index === 0 ? 'Naver 상위' : 'Naver 후보',
       countLabel:
-        [this.stripHtml(this.readString(item.publisher)), this.readString(item.pubdate)]
+        [
+          this.stripHtml(this.readString(item.publisher)),
+          this.readString(item.pubdate),
+        ]
           .filter(Boolean)
           .join(' · ') || 'Naver Book',
-      description: this.normalizeWhitespace(this.stripHtml(this.readString(item.description))),
+      description: this.normalizeWhitespace(
+        this.stripHtml(this.readString(item.description)),
+      ),
       externalId,
       externalRefs: [],
       formatLabel: this.getFormatLabel(type),
@@ -1213,14 +1378,18 @@ export class ImportsService {
     }
 
     const type = this.mapBookWorkType('', title);
-    const externalId = this.readString(item.isbn) || this.readString(item.url) || title;
+    const externalId =
+      this.readString(item.isbn) || this.readString(item.url) || title;
 
     return this.buildCandidate({
       author: this.readStringArray(item.authors).join(', '),
       confidence: index === 0 ? 0.72 : 0.54,
       confidenceLabel: index === 0 ? 'Kakao 상위' : 'Kakao 후보',
       countLabel:
-        [this.readString(item.publisher), this.readString(item.datetime).slice(0, 10)]
+        [
+          this.readString(item.publisher),
+          this.readString(item.datetime).slice(0, 10),
+        ]
           .filter(Boolean)
           .join(' · ') || 'Kakao Book',
       description: this.normalizeWhitespace(this.readString(item.contents)),
@@ -1277,7 +1446,9 @@ export class ImportsService {
       note: 'KOBIS Open API',
       provider: KOBIS_PROVIDER,
       reason: 'KOBIS 영화명 검색 결과',
-      releaseYear: this.parseYear(this.readString(item.prdtYear) || this.readString(item.openDt)),
+      releaseYear: this.parseYear(
+        this.readString(item.prdtYear) || this.readString(item.openDt),
+      ),
       sourceLabel: 'KOBIS',
       title,
       type: WorkType.movie,
@@ -1293,11 +1464,13 @@ export class ImportsService {
       type: WorkType;
     },
   ): ImportCandidateResponseDto {
-    const contributors = input.contributors ?? this.toContributorList(input.author);
+    const contributors =
+      input.contributors ?? this.toContributorList(input.author);
     const rawType = input.rawType ?? input.type;
 
-    return {
-      author: input.author ?? contributors.map((entry) => entry.name).join(', '),
+    return normalizeImportCandidate({
+      author:
+        input.author ?? contributors.map((entry) => entry.name).join(', '),
       catalogMatch: null,
       confidence: input.confidence ?? 0.5,
       confidenceLabel: input.confidenceLabel ?? '후보',
@@ -1306,16 +1479,14 @@ export class ImportsService {
       description: input.description ?? '',
       existingRecord: null,
       externalId: input.externalId,
-      externalRefs:
-        input.externalRefs ??
-        [
-          {
-            externalId: input.externalId,
-            provider: input.provider,
-            rawType,
-            url: input.sourceUrl ?? '',
-          },
-        ],
+      externalRefs: input.externalRefs ?? [
+        {
+          externalId: input.externalId,
+          provider: input.provider,
+          rawType,
+          url: input.sourceUrl ?? '',
+        },
+      ],
       formatLabel: input.formatLabel ?? this.getFormatLabel(input.type),
       franchiseName: input.franchiseName ?? null,
       genresText: input.genresText ?? '',
@@ -1329,11 +1500,19 @@ export class ImportsService {
       sourceId: input.provider,
       sourceLabel: input.sourceLabel ?? PROVIDERS[input.provider].label,
       sourceUrl: input.sourceUrl ?? '',
+      sourceCoverage: {
+        externalIdentityCount: 0,
+        providerCount: 0,
+        providers: [],
+        releaseCandidateCount: 0,
+      },
       subType: input.subType ?? null,
       thumbnailUrl: input.thumbnailUrl ?? '',
       title: input.title,
+      titleAliases: input.titleAliases ?? [],
       type: input.type,
-    };
+      scoreBreakdown: input.scoreBreakdown ?? [],
+    });
   }
 
   private async decorateCandidates(
@@ -1343,30 +1522,33 @@ export class ImportsService {
     return Promise.all(
       candidates.map(async (candidate) => {
         const catalogMatch =
-          await this.catalogIngestionService.findCatalogMatchForImportCandidate({
-            contributorNames: candidate.contributors.map(
-              (contributor) => contributor.name,
-            ),
-            externalRefs: candidate.externalRefs,
-            franchiseName: candidate.franchiseName,
-            mediumType: candidate.mediumType,
-            releaseCandidates: candidate.releaseCandidates,
-            releaseYear: candidate.releaseYear,
-            title: candidate.title,
-          });
-        const existingRecord = catalogMatch && userId
-          ? await this.prisma.userWorkRecord.findFirst({
-              where: {
-                catalogTitleId: catalogMatch.id,
-                deletedAt: null,
-                userId,
-              },
-              select: {
-                id: true,
-                status: true,
-              },
-            })
-          : null;
+          await this.catalogIngestionService.findCatalogMatchForImportCandidate(
+            {
+              contributorNames: candidate.contributors.map(
+                (contributor) => contributor.name,
+              ),
+              externalRefs: candidate.externalRefs,
+              franchiseName: candidate.franchiseName,
+              mediumType: candidate.mediumType,
+              releaseCandidates: candidate.releaseCandidates,
+              releaseYear: candidate.releaseYear,
+              title: candidate.title,
+            },
+          );
+        const existingRecord =
+          catalogMatch && userId
+            ? await this.prisma.userWorkRecord.findFirst({
+                where: {
+                  catalogTitleId: catalogMatch.id,
+                  deletedAt: null,
+                  userId,
+                },
+                select: {
+                  id: true,
+                  status: true,
+                },
+              })
+            : null;
 
         return {
           ...candidate,
@@ -1433,6 +1615,28 @@ export class ImportsService {
     return null;
   }
 
+  private addSearchDiagnostic(
+    diagnostics: ImportSearchDiagnostics,
+    provider: ImportProvider,
+    input: {
+      configured: boolean;
+      message: string;
+      reasonCode: ImportSearchDiagnosticReasonCode | null;
+      resultCount: number;
+      status: ImportSearchDiagnosticStatus;
+    },
+  ) {
+    addProviderDiagnostic(diagnostics, {
+      configured: input.configured,
+      credentialMode: PROVIDERS[provider].credentialMode,
+      message: input.message,
+      provider,
+      reasonCode: input.reasonCode,
+      resultCount: input.resultCount,
+      status: input.status,
+    });
+  }
+
   private async fetchJson(
     rawUrl: URL | string,
     options: {
@@ -1440,13 +1644,21 @@ export class ImportsService {
       bearerPrefix?: string;
       bearerToken?: string;
       body?: string;
+      cacheKey?: string;
+      cacheTtlMs?: number;
       contentType?: string;
       headers?: Record<string, string>;
       method?: string;
       queryApiKey?: string;
+      timeoutMs?: number;
     },
   ) {
     const url = rawUrl instanceof URL ? rawUrl : new URL(rawUrl);
+    const cachedResponse = this.readCachedProviderResponse(options.cacheKey);
+
+    if (cachedResponse !== undefined) {
+      return cachedResponse;
+    }
 
     if (options.queryApiKey) {
       url.searchParams.set('api_key', options.queryApiKey);
@@ -1468,39 +1680,114 @@ export class ImportsService {
     let response: Response;
 
     try {
+      const abortController = new AbortController();
+      const timeout = setTimeout(
+        () => abortController.abort(),
+        options.timeoutMs ?? DEFAULT_PROVIDER_TIMEOUT_MS,
+      );
       const requestInit: RequestInit = {
         headers,
         method: options.method ?? 'GET',
+        signal: abortController.signal,
       };
 
       if (options.body !== undefined) {
         requestInit.body = options.body;
       }
 
-      response = await fetch(url, requestInit);
+      try {
+        response = await fetch(url, requestInit);
+      } finally {
+        clearTimeout(timeout);
+      }
     } catch {
-      throw new BadGatewayException('Import provider is temporarily unavailable.');
+      throw new BadGatewayException(
+        'Import provider is temporarily unavailable.',
+      );
     }
 
     if (response.status === 401 || response.status === 403) {
-      throw new ForbiddenException('Import provider credentials were rejected.');
+      throw new ForbiddenException(
+        'Import provider credentials were rejected.',
+      );
     }
 
     if (!response.ok) {
-      throw new BadGatewayException('Import provider returned an upstream error.');
+      throw new BadGatewayException(
+        'Import provider returned an upstream error.',
+      );
     }
 
     try {
-      return await response.json();
+      const responseBody = await response.json();
+
+      this.writeCachedProviderResponse(
+        options.cacheKey,
+        responseBody,
+        options.cacheTtlMs,
+      );
+
+      return responseBody;
     } catch {
-      throw new BadGatewayException('Import provider returned an unreadable response.');
+      throw new BadGatewayException(
+        'Import provider returned an unreadable response.',
+      );
     }
+  }
+
+  private getProviderCacheKey(
+    provider: ImportProvider,
+    query: string,
+    variant = '',
+  ) {
+    return [
+      provider,
+      variant.trim().toLowerCase(),
+      query.normalize('NFKC').trim().toLowerCase(),
+    ].join(':');
+  }
+
+  private readCachedProviderResponse(cacheKey: string | undefined) {
+    if (!cacheKey) {
+      return undefined;
+    }
+
+    const cached = this.providerResponseCache.get(cacheKey);
+
+    if (!cached) {
+      return undefined;
+    }
+
+    if (cached.expiresAt <= Date.now()) {
+      this.providerResponseCache.delete(cacheKey);
+      return undefined;
+    }
+
+    return cached.value;
+  }
+
+  private writeCachedProviderResponse(
+    cacheKey: string | undefined,
+    value: unknown,
+    ttlMs = PROVIDER_CACHE_TTL_MS,
+  ) {
+    if (!cacheKey || ttlMs <= 0) {
+      return;
+    }
+
+    this.providerResponseCache.set(cacheKey, {
+      expiresAt: Date.now() + ttlMs,
+      value,
+    });
   }
 
   private mapBookWorkType(categoryName: string, title = '') {
     const searchable = `${categoryName} ${title}`;
 
-    if (searchable.includes('라이트노벨') || searchable.includes('라이트 노벨')) {
+    if (
+      searchable.includes('라이트노벨') ||
+      searchable.includes('라이트 노벨')
+    ) {
       return WorkType.light_novel;
     }
 
@@ -1512,7 +1799,10 @@ export class ImportsService {
       return WorkType.manga;
     }
 
-    if (searchable.includes('소설') || searchable.toLowerCase().includes('novel')) {
+    if (
+      searchable.includes('소설') ||
+      searchable.toLowerCase().includes('novel')
+    ) {
       return WorkType.novel;
     }
 
@@ -1569,7 +1859,9 @@ export class ImportsService {
   }
 
   private stripHtml(value: string) {
-    return value.replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+    return stripHtml(value)
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&');
   }
 
   private buildBookReleaseCandidates(input: {
@@ -1589,7 +1881,7 @@ export class ImportsService {
     }
 
     const sequence = input.sequence ?? this.extractVolumeSequence(title);
-    const isbn = this.extractPrimaryIsbn(input.isbn ?? null);
+    const isbn = normalizeIsbn(input.isbn ?? null);
     const externalId = input.externalId?.trim() ?? '';
     const externalRefs: CatalogExternalRefInput[] = externalId
       ? [
@@ -1611,7 +1903,7 @@ export class ImportsService {
         displayLabel: sequence !== null ? `Vol. ${sequence}` : title,
         externalRefs,
         isbn,
-        releaseDate: input.releaseDate?.trim() || null,
+        releaseDate: normalizeReleaseDate(input.releaseDate ?? null),
         releaseType: 'volume',
         sequence,
         thumbnailUrl: input.thumbnailUrl?.trim() ?? '',
@@ -1621,15 +1913,16 @@ export class ImportsService {
   }
 
   private extractPrimaryIsbn(value: string | null) {
-    const normalized = this.readString(value).replace(/[^0-9Xx]/g, '').toUpperCase();
-
-    return normalized.length >= 10 ? normalized : null;
+    return normalizeIsbn(this.readString(value));
   }
 
   private readGoogleBooksIsbn(value: unknown) {
     const identifiers = Array.isArray(value) ? value : [];
     const isbn13 = identifiers.find((entry) => {
-      return this.isRecord(entry) && this.readString(entry.type).toUpperCase() === 'ISBN_13';
+      return (
+        this.isRecord(entry) &&
+        this.readString(entry.type).toUpperCase() === 'ISBN_13'
+      );
     });
 
     if (this.isRecord(isbn13)) {
@@ -1637,7 +1930,10 @@ export class ImportsService {
     }
 
     const isbn10 = identifiers.find((entry) => {
-      return this.isRecord(entry) && this.readString(entry.type).toUpperCase() === 'ISBN_10';
+      return (
+        this.isRecord(entry) &&
+        this.readString(entry.type).toUpperCase() === 'ISBN_10'
+      );
     });
 
     if (this.isRecord(isbn10)) {
@@ -1689,9 +1985,7 @@ export class ImportsService {
   }
 
   private parseYear(value: string) {
-    const match = value.match(/\b(18|19|20)\d{2}\b/);
-
-    return match ? Number(match[0]) : null;
+    return parseNormalizedReleaseYear(value);
   }
 
   private readString(value: unknown) {

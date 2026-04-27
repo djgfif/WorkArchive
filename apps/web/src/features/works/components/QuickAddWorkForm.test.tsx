@@ -152,14 +152,12 @@ function buildCandidate(
     catalogMatch: overrides.catalogMatch ?? null,
     confidence: overrides.confidence ?? 0.86,
     confidenceLabel: overrides.confidenceLabel ?? 'High confidence',
-    contributors:
-      overrides.contributors ??
-      [
-        {
-          name: author,
-          role: 'author',
-        },
-      ],
+    contributors: overrides.contributors ?? [
+      {
+        name: author,
+        role: 'author',
+      },
+    ],
     countLabel: overrides.countLabel ?? 'Published 2026-04-18',
     description: overrides.description ?? 'A desert saga.',
     externalId,
@@ -186,14 +184,23 @@ function buildCandidate(
     releaseCandidates: overrides.releaseCandidates ?? [],
     relationsHint: overrides.relationsHint ?? [],
     releaseYear: overrides.releaseYear ?? 2026,
+    ...(overrides.scoreBreakdown
+      ? { scoreBreakdown: overrides.scoreBreakdown }
+      : {}),
+    ...(overrides.sourceCoverage
+      ? { sourceCoverage: overrides.sourceCoverage }
+      : {}),
     sourceId,
     sourceLabel,
     sourceUrl:
       overrides.sourceUrl ??
-      (hasExternalIdentity ? `https://example.com/${sourceId}/${externalId}` : ''),
+      (hasExternalIdentity
+        ? `https://example.com/${sourceId}/${externalId}`
+        : ''),
     subType: overrides.subType ?? null,
     thumbnailUrl: overrides.thumbnailUrl ?? 'https://example.com/cover.jpg',
     title: overrides.title ?? 'Dune',
+    ...(overrides.titleAliases ? { titleAliases: overrides.titleAliases } : {}),
     type,
   };
 }
@@ -276,9 +283,7 @@ function renderGuestQuickAdd(onSubmit = vi.fn()) {
   );
 }
 
-function buildExistingWork(
-  overrides: Partial<WorkRecord> = {},
-): WorkRecord {
+function buildExistingWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
   const createdAt = overrides.createdAt ?? '2026-04-18T00:00:00.000Z';
   const updatedAt = overrides.updatedAt ?? createdAt;
 
@@ -330,7 +335,9 @@ async function openSearchPicker(
   user: ReturnType<typeof userEvent.setup>,
   searchTerm: string,
 ) {
-  await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
+  await user.click(
+    screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+  );
 
   const searchInput = await screen.findByLabelText(/^작품 검색$/);
 
@@ -355,8 +362,8 @@ async function selectCandidateRow(
   candidateTitle: string,
 ) {
   const candidateButton = await waitFor(() => {
-    const match = Array.from(document.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes(candidateTitle),
+    const match = Array.from(document.querySelectorAll('button')).find(
+      (button) => button.textContent?.includes(candidateTitle),
     );
 
     expect(match).toBeDefined();
@@ -374,13 +381,17 @@ async function searchAndSelectCandidate(
 ) {
   await openSearchPicker(user, searchTerm);
   await selectCandidateRow(user, candidateTitle);
-  await user.click(screen.getByRole('button', { name: '이 후보로 입력 채우기' }));
+  await user.click(
+    screen.getByRole('button', { name: '이 후보로 입력 채우기' }),
+  );
 }
 
 async function submitSelectedCandidate(
   user: ReturnType<typeof userEvent.setup>,
 ) {
-  const titleInput = await waitFor(() => getElementById<HTMLInputElement>('manualTitle'));
+  const titleInput = await waitFor(() =>
+    getElementById<HTMLInputElement>('manualTitle'),
+  );
   const submitForm = titleInput.closest('form');
 
   expect(submitForm).not.toBeNull();
@@ -423,17 +434,22 @@ describe('QuickAddWorkForm', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedQuickAdd();
-    await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
+    await user.click(
+      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    );
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
-    await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
-
-    expect(screen.getByRole('button', { name: /Dune.*후보 선택/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    await user.click(
+      (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
     );
+
+    expect(
+      screen.getByRole('button', { name: /Dune.*후보 선택/ }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getAllByText('신뢰도 높음').length).toBeGreaterThan(0);
-    expect(screen.getByText('제목 정확히 일치 · 카탈로그 매칭됨')).toBeInTheDocument();
+    expect(
+      screen.getByText('제목 정확히 일치 · 카탈로그 매칭됨'),
+    ).toBeInTheDocument();
     expect(screen.getAllByText('외부 식별자 2개').length).toBeGreaterThan(0);
     expect(screen.getAllByText('릴리스 후보 1개').length).toBeGreaterThan(0);
     expect(screen.getByText('검색 근거')).toBeInTheDocument();
@@ -441,12 +457,16 @@ describe('QuickAddWorkForm', () => {
     expect(screen.getByText('source link')).toBeInTheDocument();
     expect(screen.getAllByText(candidate.note).length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole('button', { name: '이 후보로 입력 채우기' }));
-
-    expect(await waitFor(() => getElementById<HTMLInputElement>('manualTitle'))).toHaveValue(
-      candidate.title,
+    await user.click(
+      screen.getByRole('button', { name: '이 후보로 입력 채우기' }),
     );
-    expect(getElementById<HTMLInputElement>('manualAuthor')).toHaveValue(candidate.author);
+
+    expect(
+      await waitFor(() => getElementById<HTMLInputElement>('manualTitle')),
+    ).toHaveValue(candidate.title);
+    expect(getElementById<HTMLInputElement>('manualAuthor')).toHaveValue(
+      candidate.author,
+    );
     expect(screen.getByText('검색으로 채운 정보')).toBeInTheDocument();
   });
 
@@ -494,10 +514,14 @@ describe('QuickAddWorkForm', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedQuickAdd();
-    await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
+    await user.click(
+      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    );
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
-    await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
+    await user.click(
+      (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
+    );
 
     expect(screen.getAllByText('출처 2개').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Google Books').length).toBeGreaterThan(0);
@@ -510,6 +534,56 @@ describe('QuickAddWorkForm', () => {
       screen.getAllByText('Google Books / Open Library에서 같은 ISBN 확인')
         .length,
     ).toBeGreaterThan(0);
+  });
+
+  it('shows backend search aliases and score reasons in candidate preview', async () => {
+    const candidate = buildCandidate({
+      scoreBreakdown: [
+        {
+          label: '별칭 제목 일치',
+          weight: 32,
+        },
+        {
+          label: '출처 신뢰도',
+          weight: 8,
+        },
+      ],
+      sourceCoverage: {
+        externalIdentityCount: 4,
+        providerCount: 2,
+        providers: ['anilist', 'tmdb'],
+        releaseCandidateCount: 1,
+      },
+      sourceId: 'anilist',
+      sourceLabel: 'AniList',
+      title: 'Steins;Gate',
+      titleAliases: ['Steins;Gate', 'シュタインズ・ゲート', '슈타인즈 게이트'],
+      type: 'anime',
+      mediumType: 'anime',
+    });
+
+    mockAuthenticatedSearchResponse([candidate]);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedQuickAdd();
+    await user.click(
+      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    );
+    await user.type(
+      getElementById<HTMLInputElement>('quickAddSearch'),
+      '슈타인즈 게이트',
+    );
+    await user.click(screen.getByRole('button', { name: '다시 검색' }));
+    await user.click(
+      (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
+    );
+
+    expect(screen.getByText('シュタインズ・ゲート')).toBeInTheDocument();
+    expect(screen.getByText('슈타인즈 게이트')).toBeInTheDocument();
+    expect(screen.getByText('별칭 제목 일치')).toBeInTheDocument();
+    expect(screen.getByText('출처 신뢰도')).toBeInTheDocument();
+    expect(screen.getAllByText('외부 식별자 4개').length).toBeGreaterThan(0);
   });
 
   it('shows direct manual add as the default guest path before search is used', () => {
@@ -531,7 +605,9 @@ describe('QuickAddWorkForm', () => {
 
     renderGuestQuickAdd();
 
-    await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
+    await user.click(
+      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    );
 
     expect(await screen.findByText('검색 provider 상태')).toBeInTheDocument();
     expect(screen.getByText('사용 가능')).toBeInTheDocument();
@@ -557,9 +633,17 @@ describe('QuickAddWorkForm', () => {
 
     renderAuthenticatedQuickAdd(onSubmit);
 
-    await user.type(getElementById<HTMLInputElement>('manualTitle'), '직접 쓴 작품');
-    await user.selectOptions(getElementById<HTMLSelectElement>('manualType'), 'anime');
-    await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
+    await user.type(
+      getElementById<HTMLInputElement>('manualTitle'),
+      '직접 쓴 작품',
+    );
+    await user.selectOptions(
+      getElementById<HTMLSelectElement>('manualType'),
+      'anime',
+    );
+    await user.click(
+      screen.getByRole('button', { name: '내 아카이브에 저장' }),
+    );
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
 
@@ -579,9 +663,17 @@ describe('QuickAddWorkForm', () => {
     vi.stubGlobal('fetch', fetchMock);
     renderGuestQuickAdd(onSubmit);
 
-    await user.type(getElementById<HTMLInputElement>('manualTitle'), '게스트 수동 기록');
-    await user.selectOptions(getElementById<HTMLSelectElement>('manualType'), 'movie');
-    await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
+    await user.type(
+      getElementById<HTMLInputElement>('manualTitle'),
+      '게스트 수동 기록',
+    );
+    await user.selectOptions(
+      getElementById<HTMLSelectElement>('manualType'),
+      'movie',
+    );
+    await user.click(
+      screen.getByRole('button', { name: '내 아카이브에 저장' }),
+    );
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
 
@@ -638,12 +730,14 @@ describe('QuickAddWorkForm', () => {
     expect(firstFetchInit).toMatchObject({
       method: 'GET',
     });
-    const headers = new Headers((firstFetchInit as RequestInit | undefined)?.headers);
+    const headers = new Headers(
+      (firstFetchInit as RequestInit | undefined)?.headers,
+    );
 
     expect(headers.has('authorization')).toBe(false);
-    expect(await waitFor(() => getElementById<HTMLInputElement>('manualTitle'))).toHaveValue(
-      candidate.title,
-    );
+    expect(
+      await waitFor(() => getElementById<HTMLInputElement>('manualTitle')),
+    ).toHaveValue(candidate.title);
   });
 
   it('passes selected provider group ids to external search', async () => {
@@ -653,7 +747,9 @@ describe('QuickAddWorkForm', () => {
 
     renderAuthenticatedQuickAdd();
 
-    await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
+    await user.click(
+      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    );
     await user.click(await screen.findByRole('button', { name: '도서' }));
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
@@ -661,7 +757,9 @@ describe('QuickAddWorkForm', () => {
 
     const searchForm = searchInput.closest('form');
     expect(searchForm).not.toBeNull();
-    await user.click(searchForm!.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    await user.click(
+      searchForm!.querySelector<HTMLButtonElement>('button[type="submit"]')!,
+    );
 
     await waitFor(() => {
       expect(
@@ -693,12 +791,13 @@ describe('QuickAddWorkForm', () => {
 
     renderAuthenticatedQuickAdd();
 
-    await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
+    await user.click(
+      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    );
     const manualProviderGroupButton = await waitFor(() => {
       const match = Array.from(document.querySelectorAll('button')).find(
         (button) =>
-          button.textContent?.includes('직접 추가') &&
-          button.closest('form'),
+          button.textContent?.includes('직접 추가') && button.closest('form'),
       );
 
       expect(match).toBeDefined();
@@ -715,7 +814,9 @@ describe('QuickAddWorkForm', () => {
 
     const searchForm = searchInput.closest('form');
     expect(searchForm).not.toBeNull();
-    await user.click(searchForm!.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    await user.click(
+      searchForm!.querySelector<HTMLButtonElement>('button[type="submit"]')!,
+    );
 
     await waitFor(() => {
       expect(
@@ -746,7 +847,9 @@ describe('QuickAddWorkForm', () => {
 
     renderGuestQuickAdd();
 
-    await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
+    await user.click(
+      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    );
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
 
@@ -768,7 +871,9 @@ describe('QuickAddWorkForm', () => {
       name: '"No Match Title" 직접 추가',
     });
 
-    expect(screen.queryByText(/로그인해야만 검색 가능/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/로그인해야만 검색 가능/),
+    ).not.toBeInTheDocument();
 
     await user.click(manualCta);
 
@@ -840,7 +945,9 @@ describe('QuickAddWorkForm', () => {
     renderAuthenticatedQuickAdd(onSubmit);
     await searchAndSelectCandidate(user, 'Dune', candidate.title);
 
-    const titleInput = await waitFor(() => getElementById<HTMLInputElement>('manualTitle'));
+    const titleInput = await waitFor(() =>
+      getElementById<HTMLInputElement>('manualTitle'),
+    );
     await user.clear(titleInput);
     await user.type(titleInput, 'Dune Deluxe');
 
@@ -927,10 +1034,10 @@ describe('QuickAddWorkForm', () => {
 
   it('shows a duplicate warning when catalog identity matches an existing work', async () => {
     await seedAuthenticatedExistingWork({
-        id: 'existing-catalog-match',
-        title: 'Dune Local',
-        catalogTitleId: 'catalog-title-1',
-      });
+      id: 'existing-catalog-match',
+      title: 'Dune Local',
+      catalogTitleId: 'catalog-title-1',
+    });
     const candidate = buildCandidate({
       title: 'Dune (Catalog Match)',
       catalogMatch: {
@@ -951,7 +1058,8 @@ describe('QuickAddWorkForm', () => {
     await waitFor(() => {
       expect(
         Array.from(document.querySelectorAll('a')).some(
-          (link) => link.getAttribute('href') === '/works/existing-catalog-match',
+          (link) =>
+            link.getAttribute('href') === '/works/existing-catalog-match',
         ),
       ).toBe(true);
     });
@@ -959,20 +1067,20 @@ describe('QuickAddWorkForm', () => {
 
   it('shows a duplicate warning when external identity matches an existing importDraft', async () => {
     await seedAuthenticatedExistingWork({
-        id: 'existing-external-match',
-        title: 'Stored External Match',
-        importDraft: {
-          mediumType: 'novel',
-          externalRefs: [
-            {
-              externalId: '123',
-              provider: 'aladin',
-              rawType: 'novel',
-              url: 'https://example.com/aladin/123',
-            },
-          ],
-        },
-      });
+      id: 'existing-external-match',
+      title: 'Stored External Match',
+      importDraft: {
+        mediumType: 'novel',
+        externalRefs: [
+          {
+            externalId: '123',
+            provider: 'aladin',
+            rawType: 'novel',
+            url: 'https://example.com/aladin/123',
+          },
+        ],
+      },
+    });
     const candidate = buildCandidate({
       title: 'Different Display Title',
     });
@@ -985,16 +1093,18 @@ describe('QuickAddWorkForm', () => {
     await openSearchPicker(user, 'Different');
     await selectCandidateRow(user, candidate.title);
 
-    expect(await screen.findByText('비슷한 기록이 이미 있습니다')).toBeInTheDocument();
+    expect(
+      await screen.findByText('비슷한 기록이 이미 있습니다'),
+    ).toBeInTheDocument();
   });
 
   it.each(['preview-manual', 'manual'] as const)(
     'keeps title fallback duplicate detection for %s candidates',
     async (sourceId) => {
       await seedAuthenticatedExistingWork({
-          id: `existing-${sourceId}-title-match`,
-          title: 'Dune',
-        });
+        id: `existing-${sourceId}-title-match`,
+        title: 'Dune',
+      });
       const candidate = buildCandidate({
         sourceId,
         title: 'Dune (Special Edition)',
@@ -1008,27 +1118,29 @@ describe('QuickAddWorkForm', () => {
       await openSearchPicker(user, 'Dune');
       await selectCandidateRow(user, candidate.title);
 
-      expect(await screen.findByText('비슷한 기록이 이미 있습니다')).toBeInTheDocument();
+      expect(
+        await screen.findByText('비슷한 기록이 이미 있습니다'),
+      ).toBeInTheDocument();
     },
   );
 
   it('routes duplicate warnings for deleted records to the trash view', async () => {
     await seedAuthenticatedExistingWork({
-        id: 'existing-deleted-match',
-        title: 'Dune Deleted',
-        deletedAt: '2026-04-18T01:00:00.000Z',
-        importDraft: {
-          mediumType: 'novel',
-          externalRefs: [
-            {
-              externalId: '123',
-              provider: 'aladin',
-              rawType: 'novel',
-              url: 'https://example.com/aladin/123',
-            },
-          ],
-        },
-      });
+      id: 'existing-deleted-match',
+      title: 'Dune Deleted',
+      deletedAt: '2026-04-18T01:00:00.000Z',
+      importDraft: {
+        mediumType: 'novel',
+        externalRefs: [
+          {
+            externalId: '123',
+            provider: 'aladin',
+            rawType: 'novel',
+            url: 'https://example.com/aladin/123',
+          },
+        ],
+      },
+    });
     const candidate = buildCandidate({
       title: 'Dune Deleted Imported',
     });
@@ -1045,8 +1157,7 @@ describe('QuickAddWorkForm', () => {
       expect(
         Array.from(document.querySelectorAll('a')).some(
           (link) =>
-            link.getAttribute('href') ===
-            '/works?scope=trash&q=Dune%20Deleted',
+            link.getAttribute('href') === '/works?scope=trash&q=Dune%20Deleted',
         ),
       ).toBe(true);
     });
@@ -1065,8 +1176,8 @@ describe('QuickAddWorkForm', () => {
     renderAuthenticatedQuickAdd();
     await searchAndSelectCandidate(user, 'Dune', 'Dune');
 
-    expect(await waitFor(() => getElementById<HTMLInputElement>('manualTitle'))).toHaveValue(
-      'Dune',
-    );
+    expect(
+      await waitFor(() => getElementById<HTMLInputElement>('manualTitle')),
+    ).toHaveValue('Dune');
   });
 });
