@@ -148,6 +148,21 @@ export function isPreviewOrManualCandidate(candidate: ImportCandidate) {
   );
 }
 
+export function isManualProviderGroup(providerGroup: ProviderGroup) {
+  return providerGroup === 'manual';
+}
+
+export function getVisibleSearchCandidates(
+  candidates: ImportCandidate[],
+  providerGroup: ProviderGroup,
+) {
+  return candidates.filter((candidate) =>
+    isManualProviderGroup(providerGroup)
+      ? isPreviewOrManualCandidate(candidate)
+      : !isPreviewOrManualCandidate(candidate),
+  );
+}
+
 function buildImportExternalRef(ref: {
   externalId: string;
   provider: string;
@@ -339,6 +354,16 @@ function formatProviderLabel(provider: string, candidate: ImportCandidate) {
 export function getCandidateSourceCoverage(
   candidate: ImportCandidate,
 ): CandidateSourceCoverage {
+  if (isPreviewOrManualCandidate(candidate)) {
+    return {
+      externalIdentityCount: 0,
+      providerCountLabel: '직접 추가',
+      providerLabels: ['직접 추가'],
+      releaseCandidateCount: 0,
+      summaryLabel: '입력한 제목으로 직접 기록',
+    };
+  }
+
   if (candidate.sourceCoverage) {
     const providerLabels = candidate.sourceCoverage.providers.map((provider) =>
       formatProviderLabel(provider, candidate),

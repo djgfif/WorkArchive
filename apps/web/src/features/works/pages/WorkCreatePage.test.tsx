@@ -41,14 +41,12 @@ function buildCandidate(
     catalogMatch: overrides.catalogMatch ?? null,
     confidence: overrides.confidence ?? 0.86,
     confidenceLabel: overrides.confidenceLabel ?? 'High confidence',
-    contributors:
-      overrides.contributors ??
-      [
-        {
-          name: author,
-          role: 'author',
-        },
-      ],
+    contributors: overrides.contributors ?? [
+      {
+        name: author,
+        role: 'author',
+      },
+    ],
     countLabel: overrides.countLabel ?? 'Published 2026-04-18',
     description: overrides.description ?? 'A desert saga.',
     externalId,
@@ -79,7 +77,9 @@ function buildCandidate(
     sourceLabel,
     sourceUrl:
       overrides.sourceUrl ??
-      (hasExternalIdentity ? `https://example.com/${sourceId}/${externalId}` : ''),
+      (hasExternalIdentity
+        ? `https://example.com/${sourceId}/${externalId}`
+        : ''),
     subType: overrides.subType ?? null,
     thumbnailUrl: overrides.thumbnailUrl ?? 'https://example.com/cover.jpg',
     title: overrides.title ?? 'Dune',
@@ -132,7 +132,9 @@ function mockAuthenticatedSearch(candidate: ImportCandidate) {
         return jsonResponse([]);
       }
 
-      throw new Error(`Unexpected fetch during create flow: ${init?.method ?? 'GET'} ${url}`);
+      throw new Error(
+        `Unexpected fetch during create flow: ${init?.method ?? 'GET'} ${url}`,
+      );
     },
   );
 
@@ -199,8 +201,26 @@ async function searchAndSelectCandidate(
   user: ReturnType<typeof userEvent.setup>,
   searchTerm: string,
   candidateTitle: string,
+  options: { providerGroup?: 'manual' } = {},
 ) {
-  await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
+  await user.click(
+    screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+  );
+
+  if (options.providerGroup === 'manual') {
+    const manualProviderGroupButton = await waitFor(() => {
+      const match = Array.from(document.querySelectorAll('button')).find(
+        (button) =>
+          button.textContent?.includes('직접 추가') && button.closest('form'),
+      );
+
+      expect(match).toBeDefined();
+
+      return match as HTMLButtonElement;
+    });
+
+    await user.click(manualProviderGroupButton);
+  }
 
   const searchInput = getElementById<HTMLInputElement>('quickAddSearch');
 
@@ -220,8 +240,8 @@ async function searchAndSelectCandidate(
   await user.click(searchButton!);
 
   const candidateButton = await waitFor(() => {
-    const match = Array.from(document.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes(candidateTitle),
+    const match = Array.from(document.querySelectorAll('button')).find(
+      (button) => button.textContent?.includes(candidateTitle),
     );
 
     expect(match).toBeDefined();
@@ -230,13 +250,22 @@ async function searchAndSelectCandidate(
   });
 
   await user.click(candidateButton);
-  await user.click(screen.getByRole('button', { name: '이 후보로 입력 채우기' }));
+  await user.click(
+    screen.getByRole('button', {
+      name:
+        options.providerGroup === 'manual'
+          ? '직접 추가로 입력 채우기'
+          : '이 후보로 입력 채우기',
+    }),
+  );
 }
 
 async function submitSelectedCandidate(
   user: ReturnType<typeof userEvent.setup>,
 ) {
-  const titleInput = await waitFor(() => getElementById<HTMLInputElement>('manualTitle'));
+  const titleInput = await waitFor(() =>
+    getElementById<HTMLInputElement>('manualTitle'),
+  );
   const submitForm = titleInput.closest('form');
 
   expect(submitForm).not.toBeNull();
@@ -256,9 +285,17 @@ describe('WorkCreatePage', () => {
 
     renderGuestCreatePage();
 
-    await user.type(getElementById<HTMLInputElement>('manualTitle'), '게스트 직접 추가');
-    await user.selectOptions(getElementById<HTMLSelectElement>('manualType'), 'movie');
-    await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
+    await user.type(
+      getElementById<HTMLInputElement>('manualTitle'),
+      '게스트 직접 추가',
+    );
+    await user.selectOptions(
+      getElementById<HTMLSelectElement>('manualType'),
+      'movie',
+    );
+    await user.click(
+      screen.getByRole('button', { name: '내 아카이브에 저장' }),
+    );
 
     await waitFor(async () => {
       expect(await worksRepository.listAll()).toHaveLength(1);
@@ -333,11 +370,14 @@ describe('WorkCreatePage', () => {
       }),
     });
     expect(getSearchFetchCalls(fetchMock)).toHaveLength(1);
-    const [firstFetchInput, firstFetchInit] = getSearchFetchCalls(fetchMock)[0] ?? [];
+    const [firstFetchInput, firstFetchInit] =
+      getSearchFetchCalls(fetchMock)[0] ?? [];
 
     expect(firstFetchInput).toBeDefined();
     expect(firstFetchInit).toBeDefined();
-    expect(getFetchUrl(firstFetchInput as RequestInfo | URL)).toContain('/imports/search?');
+    expect(getFetchUrl(firstFetchInput as RequestInfo | URL)).toContain(
+      '/imports/search?',
+    );
     expect(firstFetchInit).toMatchObject({
       method: 'GET',
     });
@@ -373,7 +413,9 @@ describe('WorkCreatePage', () => {
     renderAuthenticatedCreatePage();
     await searchAndSelectCandidate(user, 'Dune', candidate.title);
 
-    const titleInput = await waitFor(() => getElementById<HTMLInputElement>('manualTitle'));
+    const titleInput = await waitFor(() =>
+      getElementById<HTMLInputElement>('manualTitle'),
+    );
     await user.clear(titleInput);
     await user.type(titleInput, 'Dune Deluxe');
 
@@ -439,7 +481,11 @@ describe('WorkCreatePage', () => {
       const user = userEvent.setup();
 
       renderAuthenticatedCreatePage();
-      await searchAndSelectCandidate(user, 'Dune', candidate.title);
+      await searchAndSelectCandidate(user, 'Dune', candidate.title, {
+        ...(sourceId === 'manual' || sourceId === 'preview-manual'
+          ? { providerGroup: 'manual' as const }
+          : {}),
+      });
       await submitSelectedCandidate(user);
 
       await waitFor(async () => {

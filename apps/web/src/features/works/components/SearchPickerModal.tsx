@@ -20,10 +20,9 @@ import {
 import type { ImportCandidate } from '../../imports/services/imports.service';
 import { CandidateListRow } from './CandidateListRow';
 import { CandidatePreviewPanel } from './CandidatePreviewPanel';
-import type {
-  ProviderGroup,
-} from './quick-add-helpers';
+import type { ProviderGroup } from './quick-add-helpers';
 import {
+  isManualProviderGroup,
   providerGroupOptions,
   quickAddTypeOptions,
 } from './quick-add-helpers';
@@ -75,6 +74,9 @@ export function SearchPickerModal({
   searchType,
   selectedCandidate,
 }: SearchPickerModalProps) {
+  const normalizedSearchTerm = searchTerm.trim();
+  const isManualSearchGroup = isManualProviderGroup(providerGroup);
+
   return (
     <Modal
       centered={!fullScreen}
@@ -96,7 +98,9 @@ export function SearchPickerModal({
                 <TextInput
                   id="quickAddSearch"
                   label="작품 검색"
-                  onChange={(event) => onSearchTermChange(event.currentTarget.value)}
+                  onChange={(event) =>
+                    onSearchTermChange(event.currentTarget.value)
+                  }
                   placeholder="제목, 작가, 스튜디오를 입력하세요"
                   value={searchTerm}
                 />
@@ -106,7 +110,9 @@ export function SearchPickerModal({
                 <NativeSelect
                   id="quickAddType"
                   label="작품 유형"
-                  onChange={(event) => onSearchTypeChange(event.currentTarget.value)}
+                  onChange={(event) =>
+                    onSearchTypeChange(event.currentTarget.value)
+                  }
                   value={searchType}
                 >
                   {quickAddTypeOptions.map((option) => (
@@ -133,7 +139,9 @@ export function SearchPickerModal({
                     key={option.value}
                     onClick={() => onProviderGroupChange(option.value)}
                     size="compact-sm"
-                    tone={providerGroup === option.value ? 'primary' : 'secondary'}
+                    tone={
+                      providerGroup === option.value ? 'primary' : 'secondary'
+                    }
                     type="button"
                   >
                     {option.label}
@@ -142,16 +150,21 @@ export function SearchPickerModal({
               </Group>
               <Text c="var(--app-text-muted)" size="xs">
                 {
-                  providerGroupOptions.find((option) => option.value === providerGroup)
-                    ?.description
+                  providerGroupOptions.find(
+                    (option) => option.value === providerGroup,
+                  )?.description
                 }
               </Text>
             </Stack>
           </Stack>
         </form>
 
-        {searchError && <FeedbackMessage tone="error">{searchError}</FeedbackMessage>}
-        {searchNotice && <FeedbackMessage tone="info">{searchNotice}</FeedbackMessage>}
+        {searchError && (
+          <FeedbackMessage tone="error">{searchError}</FeedbackMessage>
+        )}
+        {searchNotice && (
+          <FeedbackMessage tone="info">{searchNotice}</FeedbackMessage>
+        )}
 
         <Grid gutter="lg">
           <Grid.Col span={{ base: 12, md: 5 }}>
@@ -175,30 +188,63 @@ export function SearchPickerModal({
               ) : candidates.length === 0 ? (
                 <StateMessage
                   actions={
-                    searchTerm.trim() ? (
-                      <AppButton onClick={onUseManualTitle} tone="primary" type="button">
-                        "{searchTerm.trim()}" 직접 추가
+                    normalizedSearchTerm ? (
+                      <AppButton
+                        onClick={onUseManualTitle}
+                        tone="primary"
+                        type="button"
+                      >
+                        직접 추가로 계속
                       </AppButton>
                     ) : undefined
                   }
-                  description="다른 제목으로 다시 검색하거나, 지금 입력한 제목으로 직접 추가할 수 있습니다."
-                  title="검색 결과가 없습니다"
+                  description="입력한 제목으로 직접 기록할 수 있습니다."
+                  title="검색 결과가 없습니다."
                   tone="info"
                 />
               ) : (
-                <ScrollArea.Autosize mah={fullScreen ? undefined : 540} type="scroll">
-                  <Stack gap="sm">
-                    {candidates.map((candidate) => (
-                      <CandidateListRow
-                        active={selectedCandidate?.id === candidate.id}
-                        candidate={candidate}
-                        duplicateCount={duplicateCounts[candidate.id] ?? 0}
-                        key={candidate.id}
-                        onSelect={() => onSelectCandidate(candidate)}
-                      />
-                    ))}
-                  </Stack>
-                </ScrollArea.Autosize>
+                <Stack gap="sm">
+                  <ScrollArea.Autosize
+                    mah={fullScreen ? undefined : 540}
+                    type="scroll"
+                  >
+                    <Stack gap="sm">
+                      {candidates.map((candidate) => (
+                        <CandidateListRow
+                          active={selectedCandidate?.id === candidate.id}
+                          candidate={candidate}
+                          duplicateCount={duplicateCounts[candidate.id] ?? 0}
+                          key={candidate.id}
+                          onSelect={() => onSelectCandidate(candidate)}
+                        />
+                      ))}
+                    </Stack>
+                  </ScrollArea.Autosize>
+
+                  {!isManualSearchGroup && normalizedSearchTerm && (
+                    <Stack
+                      gap={6}
+                      style={{
+                        borderTop: '1px solid var(--app-border-color)',
+                        paddingTop: '0.75rem',
+                      }}
+                    >
+                      <Text fw={700} size="sm">
+                        찾는 작품이 없나요?
+                      </Text>
+                      <Text c="var(--app-text-muted)" size="sm">
+                        "{normalizedSearchTerm}"를 직접 추가할 수 있습니다.
+                      </Text>
+                      <AppButton
+                        onClick={onUseManualTitle}
+                        tone="secondary"
+                        type="button"
+                      >
+                        직접 추가로 계속
+                      </AppButton>
+                    </Stack>
+                  )}
+                </Stack>
               )}
             </Paper>
           </Grid.Col>
@@ -224,8 +270,16 @@ export function SearchPickerModal({
                 />
               ) : (
                 <StateMessage
-                  description="왼쪽 후보를 고르면 큰 포스터와 검색 근거를 여기서 바로 비교할 수 있습니다."
-                  title="후보를 먼저 선택하세요"
+                  description={
+                    isManualSearchGroup
+                      ? '직접 추가 후보를 고르면 입력한 제목으로 기록을 시작할 수 있습니다.'
+                      : '왼쪽 후보를 고르면 큰 포스터와 검색 근거를 여기서 바로 비교할 수 있습니다.'
+                  }
+                  title={
+                    isManualSearchGroup
+                      ? '직접 추가 후보를 먼저 선택하세요'
+                      : '후보를 먼저 선택하세요'
+                  }
                   tone="info"
                 />
               )}

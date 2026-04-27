@@ -357,6 +357,23 @@ async function openSearchPicker(
   await user.click(searchButton!);
 }
 
+async function selectManualProviderGroup(
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  const manualProviderGroupButton = await waitFor(() => {
+    const match = Array.from(document.querySelectorAll('button')).find(
+      (button) =>
+        button.textContent?.includes('직접 추가') && button.closest('form'),
+    );
+
+    expect(match).toBeDefined();
+
+    return match as HTMLButtonElement;
+  });
+
+  await user.click(manualProviderGroupButton);
+}
+
 async function selectCandidateRow(
   user: ReturnType<typeof userEvent.setup>,
   candidateTitle: string,
@@ -794,20 +811,7 @@ describe('QuickAddWorkForm', () => {
     await user.click(
       screen.getByRole('button', { name: '검색으로 정보 채우기' }),
     );
-    const manualProviderGroupButton = await waitFor(() => {
-      const match = Array.from(document.querySelectorAll('button')).find(
-        (button) =>
-          button.textContent?.includes('직접 추가') && button.closest('form'),
-      );
-
-      expect(match).toBeDefined();
-
-      return match as HTMLButtonElement;
-    });
-
-    expect(manualProviderGroupButton).toBeDefined();
-
-    await user.click(manualProviderGroupButton!);
+    await selectManualProviderGroup(user);
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
     await user.type(searchInput, 'Dune');
@@ -838,14 +842,121 @@ describe('QuickAddWorkForm', () => {
     ).toBe('manual');
   });
 
-  it('offers direct manual add when external search returns no candidates', async () => {
+  it('hides manual fallback candidates from automatic search results when external candidates exist', async () => {
+    const externalCandidate = buildCandidate({
+      sourceId: 'open_library',
+      sourceLabel: 'Open Library',
+      title: 'One Piece External',
+    });
+    const manualCandidate = buildCandidate({
+      id: 'manual:one-piece:manga',
+      sourceId: 'manual',
+      sourceLabel: '직접 추가',
+      title: 'One Piece (만화)',
+    });
+
     mockImportsFetch({
-      candidates: [],
+      candidates: [manualCandidate, externalCandidate],
       provider: 'open_library',
     });
     const user = userEvent.setup();
 
     renderGuestQuickAdd();
+    await openSearchPicker(user, 'One Piece');
+
+    expect(
+      (await screen.findAllByText('One Piece External')).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText('One Piece (만화)')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '직접 추가로 계속' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the direct-add CTA instead of manual fallback rows when automatic search only returns manual candidates', async () => {
+    const manualCandidate = buildCandidate({
+      id: 'manual:no-match:manga',
+      sourceId: 'manual',
+      sourceLabel: '직접 추가',
+      title: 'No Match Title (만화)',
+    });
+
+    mockImportsFetch({
+      candidates: [manualCandidate],
+      provider: 'manual',
+    });
+    const user = userEvent.setup();
+
+    renderGuestQuickAdd();
+    await openSearchPicker(user, 'No Match Title');
+
+    expect(
+      await screen.findByText('검색 결과가 없습니다.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('입력한 제목으로 직접 기록할 수 있습니다.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '직접 추가로 계속' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No Match Title (만화)')).not.toBeInTheDocument();
+  });
+
+  it('shows manual fallback candidates only in the direct-add search group without external identity badges', async () => {
+    const manualCandidate = buildCandidate({
+      id: 'manual:custom-dune:manga',
+      sourceId: 'manual',
+      sourceCoverage: {
+        externalIdentityCount: 1,
+        providerCount: 1,
+        providers: ['manual'],
+        releaseCandidateCount: 0,
+      },
+      sourceLabel: '직접 추가',
+      title: 'Custom Dune (만화)',
+    });
+
+    mockAuthenticatedSearchResponse([manualCandidate]);
+    const user = userEvent.setup();
+
+    renderAuthenticatedQuickAdd();
+    await user.click(
+      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    );
+    await selectManualProviderGroup(user);
+
+    const searchInput = await screen.findByLabelText(/^작품 검색$/);
+    await user.type(searchInput, 'Custom Dune');
+
+    const searchForm = searchInput.closest('form');
+    expect(searchForm).not.toBeNull();
+    await user.click(
+      searchForm!.querySelector<HTMLButtonElement>('button[type="submit"]')!,
+    );
+
+    expect(
+      (await screen.findAllByText('Custom Dune (만화)')).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText('직접 추가 후보').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        '외부 검색 결과가 아니라 입력한 제목으로 직접 기록합니다.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('외부 식별자 1개')).not.toBeInTheDocument();
+    expect(screen.queryByText('출처 1개')).not.toBeInTheDocument();
+    expect(screen.queryByText('High confidence')).not.toBeInTheDocument();
+  });
+
+  it('offers direct manual add when external search returns no candidates', async () => {
+    mockImportsFetch({
+      candidates: [],
+      provider: 'open_library',
+    });
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderGuestQuickAdd(onSubmit);
 
     await user.click(
       screen.getByRole('button', { name: '검색으로 정보 채우기' }),
@@ -868,7 +979,7 @@ describe('QuickAddWorkForm', () => {
     await user.click(searchButton!);
 
     const manualCta = await screen.findByRole('button', {
-      name: '"No Match Title" 직접 추가',
+      name: '직접 추가로 계속',
     });
 
     expect(
@@ -880,6 +991,16 @@ describe('QuickAddWorkForm', () => {
     expect(getElementById<HTMLInputElement>('manualTitle')).toHaveValue(
       'No Match Title',
     );
+
+    await submitSelectedCandidate(user);
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({
+      catalogTitleId: null,
+      importDraft: null,
+      title: 'No Match Title',
+    });
   });
 
   it('submits catalogTitleId and a null importDraft for matched external candidates', async () => {
@@ -1016,7 +1137,27 @@ describe('QuickAddWorkForm', () => {
       const user = userEvent.setup();
 
       renderAuthenticatedQuickAdd(onSubmit);
-      await searchAndSelectCandidate(user, 'Dune', candidate.title);
+      if (sourceId === 'manual' || sourceId === 'preview-manual') {
+        await user.click(
+          screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+        );
+        await selectManualProviderGroup(user);
+        const searchInput = await screen.findByLabelText(/^작품 검색$/);
+        await user.type(searchInput, 'Dune');
+        const searchForm = searchInput.closest('form');
+        expect(searchForm).not.toBeNull();
+        await user.click(
+          searchForm!.querySelector<HTMLButtonElement>(
+            'button[type="submit"]',
+          )!,
+        );
+        await selectCandidateRow(user, candidate.title);
+        await user.click(
+          screen.getByRole('button', { name: '직접 추가로 입력 채우기' }),
+        );
+      } else {
+        await searchAndSelectCandidate(user, 'Dune', candidate.title);
+      }
       await submitSelectedCandidate(user);
 
       await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
@@ -1115,7 +1256,23 @@ describe('QuickAddWorkForm', () => {
       const user = userEvent.setup();
 
       renderAuthenticatedQuickAdd();
-      await openSearchPicker(user, 'Dune');
+      if (sourceId === 'manual' || sourceId === 'preview-manual') {
+        await user.click(
+          screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+        );
+        await selectManualProviderGroup(user);
+        const searchInput = await screen.findByLabelText(/^작품 검색$/);
+        await user.type(searchInput, 'Dune');
+        const searchForm = searchInput.closest('form');
+        expect(searchForm).not.toBeNull();
+        await user.click(
+          searchForm!.querySelector<HTMLButtonElement>(
+            'button[type="submit"]',
+          )!,
+        );
+      } else {
+        await openSearchPicker(user, 'Dune');
+      }
       await selectCandidateRow(user, candidate.title);
 
       expect(
@@ -1174,7 +1331,10 @@ describe('QuickAddWorkForm', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedQuickAdd();
-    await searchAndSelectCandidate(user, 'Dune', 'Dune');
+    await openSearchPicker(user, 'Dune');
+    await user.click(
+      await screen.findByRole('button', { name: '직접 추가로 계속' }),
+    );
 
     expect(
       await waitFor(() => getElementById<HTMLInputElement>('manualTitle')),

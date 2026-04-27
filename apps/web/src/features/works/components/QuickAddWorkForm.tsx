@@ -54,6 +54,7 @@ import {
   findLikelyMatches,
   getCandidateSourceCoverage,
   getProviderGroupProviders,
+  getVisibleSearchCandidates,
   type ProviderGroup,
 } from './quick-add-helpers';
 import { worksRepository } from '../services/works.repository';
@@ -63,10 +64,7 @@ import {
   type UpsertWorkInput,
   type WorkFormValues,
 } from '../utils/work-form';
-import {
-  workStatusOptions,
-  workTypeOptions,
-} from '../utils/work-options';
+import { workStatusOptions, workTypeOptions } from '../utils/work-options';
 
 interface QuickAddWorkFormProps {
   isSubmitting: boolean;
@@ -91,7 +89,9 @@ function createFormDefaults(title = ''): WorkFormValues {
 }
 
 type WorkFormInputChangeHandler = (
-  event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  event: ChangeEvent<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  >,
 ) => void;
 
 function getFieldId(idPrefix: string, fieldName: string) {
@@ -107,10 +107,7 @@ interface ProviderGroupLineProps {
   tone?: 'accent' | 'muted' | 'success' | 'warning';
 }
 
-function ProviderGroupLine({
-  group,
-  tone = 'muted',
-}: ProviderGroupLineProps) {
+function ProviderGroupLine({ group, tone = 'muted' }: ProviderGroupLineProps) {
   if (group.providers.length === 0) {
     return null;
   }
@@ -162,7 +159,8 @@ function ProviderReadinessSummary({
 
         {error ? (
           <Text c="var(--app-text-muted)" size="sm">
-            지금은 일부 검색 출처 상태를 확인하지 못했습니다. 검색과 직접 추가는 계속 사용할 수 있습니다.
+            지금은 일부 검색 출처 상태를 확인하지 못했습니다. 검색과 직접 추가는
+            계속 사용할 수 있습니다.
           </Text>
         ) : (
           <Stack gap={6}>
@@ -435,15 +433,18 @@ export function QuickAddWorkForm({
   const { archiveScopeKey } = useAuthSession();
   const isMobile = useMediaQuery('(max-width: 48em)');
   const titleInputRef = useRef<HTMLInputElement | null>(null);
-  const [values, setValues] = useState<WorkFormValues>(() => createFormDefaults());
+  const [values, setValues] = useState<WorkFormValues>(() =>
+    createFormDefaults(),
+  );
   const [existingWorks, setExistingWorks] = useState<WorkRecord[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [searchModalOpened, setSearchModalOpened] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchType, setSearchType] =
-    useState<CatalogSearchMediumType>('all');
+  const [searchType, setSearchType] = useState<CatalogSearchMediumType>('all');
   const [providerGroup, setProviderGroup] = useState<ProviderGroup>('all');
-  const [searchCandidates, setSearchCandidates] = useState<ImportCandidate[]>([]);
+  const [searchCandidates, setSearchCandidates] = useState<ImportCandidate[]>(
+    [],
+  );
   const [selectedSearchCandidate, setSelectedSearchCandidate] =
     useState<ImportCandidate | null>(null);
   const [selectedImportCandidate, setSelectedImportCandidate] =
@@ -483,7 +484,9 @@ export function QuickAddWorkForm({
     : null;
 
   function handleInputChange(
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    event: ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) {
     const { name, type } = event.target;
 
@@ -535,18 +538,25 @@ export function QuickAddWorkForm({
       setIsSearching(true);
 
       const providerGroupProviders = getProviderGroupProviders(providerGroup);
-      const result = await importsService.searchCandidates(normalizedSearchTerm, {
-        limit: 10,
-        mediumType: searchType,
-        ...(providerGroupProviders
-          ? { providers: providerGroupProviders }
-          : {}),
-        useExternal: true,
-      });
+      const result = await importsService.searchCandidates(
+        normalizedSearchTerm,
+        {
+          limit: 10,
+          mediumType: searchType,
+          ...(providerGroupProviders
+            ? { providers: providerGroupProviders }
+            : {}),
+          useExternal: true,
+        },
+      );
+      const visibleCandidates = getVisibleSearchCandidates(
+        result.candidates,
+        providerGroup,
+      );
 
-      setSearchCandidates(result.candidates);
+      setSearchCandidates(visibleCandidates);
       setSearchNotice(result.notice);
-      setSelectedSearchCandidate(result.candidates[0] ?? null);
+      setSelectedSearchCandidate(visibleCandidates[0] ?? null);
     } catch (error) {
       setSearchError(
         error instanceof Error ? error.message : '후보 검색에 실패했습니다.',
@@ -592,6 +602,14 @@ export function QuickAddWorkForm({
     }));
     setValidationError(null);
     focusMainTitle();
+  }
+
+  function handleProviderGroupChange(value: ProviderGroup) {
+    setProviderGroup(value);
+    setSearchCandidates([]);
+    setSelectedSearchCandidate(null);
+    setSearchNotice(null);
+    setSearchError(null);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -684,7 +702,8 @@ export function QuickAddWorkForm({
               <div>
                 <Title order={3}>검색으로 정보 채우기</Title>
                 <Text c="var(--app-text-muted)" size="sm">
-                  검색 결과를 비교해 제목과 작품 정보를 채우고, 저장은 아래 폼에서 마무리합니다.
+                  검색 결과를 비교해 제목과 작품 정보를 채우고, 저장은 아래
+                  폼에서 마무리합니다.
                 </Text>
               </div>
               <AppButton
@@ -736,8 +755,12 @@ export function QuickAddWorkForm({
                   {selectedImportCandidate.reason}
                 </Text>
                 <ActionRow>
-                  <AppBadge tone="muted">{selectedImportCandidate.sourceLabel}</AppBadge>
-                  <AppBadge tone="muted">{importedSourceCoverage.summaryLabel}</AppBadge>
+                  <AppBadge tone="muted">
+                    {selectedImportCandidate.sourceLabel}
+                  </AppBadge>
+                  <AppBadge tone="muted">
+                    {importedSourceCoverage.summaryLabel}
+                  </AppBadge>
                 </ActionRow>
               </Stack>
             </Alert>
@@ -814,10 +837,12 @@ export function QuickAddWorkForm({
         isSearching={isSearching}
         onApplyCandidate={applyCandidateToForm}
         onClose={() => setSearchModalOpened(false)}
-        onProviderGroupChange={setProviderGroup}
+        onProviderGroupChange={handleProviderGroupChange}
         onSearchSubmit={handleSearchSubmit}
         onSearchTermChange={setSearchTerm}
-        onSearchTypeChange={(value) => setSearchType(value as CatalogSearchMediumType)}
+        onSearchTypeChange={(value) =>
+          setSearchType(value as CatalogSearchMediumType)
+        }
         onSelectCandidate={setSelectedSearchCandidate}
         onUseManualTitle={useSearchTermForManualInput}
         opened={searchModalOpened}
