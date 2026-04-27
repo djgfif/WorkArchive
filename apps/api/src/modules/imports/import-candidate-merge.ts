@@ -166,6 +166,10 @@ function getCandidateWeakMergeKeys(candidate: ImportCandidateResponseDto) {
     return [];
   }
 
+  if (hasWeakMergeVariantSignal(candidate)) {
+    return [];
+  }
+
   const titleKey = normalizeImportTitleSignal(candidate.title);
   const contributorKeys = candidate.contributors
     .map((contributor) => normalizeImportTitleSignal(contributor.name))
@@ -178,6 +182,23 @@ function getCandidateWeakMergeKeys(candidate: ImportCandidateResponseDto) {
   return contributorKeys.map((contributorKey) => {
     return `weak:${candidate.mediumType}:${titleKey}:${candidate.releaseYear}:${contributorKey}`;
   });
+}
+
+function hasWeakMergeVariantSignal(candidate: ImportCandidateResponseDto) {
+  const searchable = [
+    candidate.title,
+    candidate.subType ?? '',
+    candidate.formatLabel,
+    candidate.countLabel,
+    ...(candidate.titleAliases ?? []),
+  ]
+    .join(' ')
+    .normalize('NFKC')
+    .toLowerCase();
+
+  return /극장판|영화판|ova|oav|special|스페셜|season|시즌|\bpart\s*\d+\b|파트\s*\d+|\b\d+\s*기\b|\b\d+(?:st|nd|rd|th)\s+season\b/u.test(
+    searchable,
+  );
 }
 
 function mergeReleaseCandidates(

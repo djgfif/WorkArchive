@@ -922,6 +922,46 @@ describe('ImportsService', () => {
     );
   });
 
+  it('does not weak-merge variant titles such as theatrical editions', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: 'google-dune-base',
+              volumeInfo: {
+                authors: ['Frank Herbert'],
+                publishedDate: '1965',
+                title: 'Dune',
+              },
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          docs: [
+            {
+              author_name: ['Frank Herbert'],
+              first_publish_year: 1965,
+              key: '/works/OL-movie-edition',
+              title: 'Dune (극장판)',
+            },
+          ],
+        }),
+      );
+
+    const result = await service.search(null, {
+      providers: [GOOGLE_BOOKS_PROVIDER, OPEN_LIBRARY_PROVIDER],
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates).toHaveLength(2);
+  });
+
   it('merges before catalog decoration so combined identity can match catalog', async () => {
     const catalogIngestionService = {
       findCatalogMatchForImportCandidate: jest.fn(
@@ -1077,6 +1117,50 @@ describe('ImportsService', () => {
     });
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps provider cache entries separate by normalized limit and medium type', async () => {
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          docs: [
+            {
+              key: '/works/OL123W',
+              title: 'Dune',
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          docs: [
+            {
+              key: '/works/OL123W',
+              title: 'Dune',
+            },
+            {
+              key: '/works/OL456W',
+              title: 'Dune Archive',
+            },
+          ],
+        }),
+      );
+
+    await service.search(null, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 1,
+      type: WorkType.novel,
+    });
+    await service.search(null, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 2,
+      type: WorkType.novel,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
   it('times out stalled provider requests', async () => {
