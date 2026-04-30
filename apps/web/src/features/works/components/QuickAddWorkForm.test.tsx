@@ -599,9 +599,53 @@ describe('QuickAddWorkForm', () => {
 
     expect(screen.getByText('シュタインズ・ゲート')).toBeInTheDocument();
     expect(screen.getByText('슈타인즈 게이트')).toBeInTheDocument();
-    expect(screen.getByText('별칭 제목 일치')).toBeInTheDocument();
-    expect(screen.getByText('출처 신뢰도')).toBeInTheDocument();
+    expect(screen.getAllByText('별칭 제목 일치').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('출처 신뢰도').length).toBeGreaterThan(0);
     expect(screen.getAllByText('외부 식별자 4개').length).toBeGreaterThan(0);
+  });
+
+  it('keeps direct manual guidance visible for low-confidence search candidates', async () => {
+    const candidate = buildCandidate({
+      confidence: 0.41,
+      confidenceLabel: '검토 필요',
+      reason: '제목만 있는 약한 후보',
+      scoreBreakdown: [
+        {
+          label: '제목 토큰 일치',
+          weight: 6,
+        },
+        {
+          label: '제목만 있는 약한 후보',
+          weight: -10,
+        },
+      ],
+      sourceId: 'open_library',
+      sourceLabel: 'Open Library',
+      title: 'Dune Archive Notes',
+    });
+
+    mockAuthenticatedSearchResponse([candidate]);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedQuickAdd();
+    await user.click(
+      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    );
+    await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
+    await user.click(screen.getByRole('button', { name: '다시 검색' }));
+    await user.click(
+      (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
+    );
+
+    expect(screen.getAllByText('검토 필요').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('제목 토큰 일치').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText('후보를 확인하고 직접 추가도 고려하세요'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/직접 입력으로 계속할 수 있습니다/),
+    ).toBeInTheDocument();
   });
 
   it('shows direct manual add as the default guest path before search is used', () => {

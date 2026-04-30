@@ -275,9 +275,9 @@ Quick Add 저장 원칙:
 
 ### Priority 5. Search quality and catalog assist
 
-- provider ranking/search quality 개선
-- source merge 표시
-- 검색 실패 fallback UX
+- provider별 실제 검색어 QA와 ranking tuning
+- source merge / trust 표시 polish
+- 검색 실패 fallback UX polish
 - catalog identity 연결 보조
 
 ### Priority 6. Minimal personal Insights
