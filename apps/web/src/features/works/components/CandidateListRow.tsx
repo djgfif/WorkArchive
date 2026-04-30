@@ -25,6 +25,14 @@ export function CandidateListRow({
 }: CandidateListRowProps) {
   const sourceCoverage = getCandidateSourceCoverage(candidate);
   const isManualCandidate = isPreviewOrManualCandidate(candidate);
+  const positiveScoreReasons = isManualCandidate
+    ? []
+    : (candidate.scoreBreakdown
+        ?.filter((entry) => entry.weight > 0)
+        .slice(0, 2) ?? []);
+  const visibleAliases = candidate.titleAliases
+    ?.filter((titleAlias) => titleAlias !== candidate.title)
+    .slice(0, 2);
 
   return (
     <button
@@ -88,6 +96,22 @@ export function CandidateListRow({
               <AppBadge tone="warning">비슷한 기록 {duplicateCount}</AppBadge>
             )}
           </ActionRow>
+
+          {!isManualCandidate && positiveScoreReasons.length > 0 && (
+            <ActionRow>
+              {positiveScoreReasons.map((entry) => (
+                <AppBadge key={`${candidate.id}:${entry.label}`} tone="success">
+                  {entry.label}
+                </AppBadge>
+              ))}
+            </ActionRow>
+          )}
+
+          {visibleAliases && visibleAliases.length > 0 && (
+            <Text c="var(--app-text-muted)" lineClamp={1} size="xs">
+              별칭 {visibleAliases.join(' · ')}
+            </Text>
+          )}
         </Stack>
       </Group>
     </button>

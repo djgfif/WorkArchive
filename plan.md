@@ -53,10 +53,12 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - Settings provider readiness 기본 UI와 테스트는 들어갔다.
 - SyncPage는 pending / failed / conflict queue item 상태, 원인, 기록 보기, 재시도 CTA와 conflict 기본 해결 UX를 제공한다.
 - Sync conflict 해결은 로컬 유지, 원격 적용, 필드별 병합을 지원한다. 자동 병합 판단은 현재 제품 기준에서 채택하지 않는다.
+- Quick Add 검색 ranking은 제목 exact/alias/token, 제작자, 발매연도, provider/source coverage, catalog match를 반영한다.
+- 낮은 신뢰도 검색 후보는 직접 추가 fallback을 방해하지 않도록 후보 UI에서 검토 안내를 표시한다.
 
 ## Current Follow-Up Work
 
-- provider별 ranking/search quality 개선
+- provider별 실제 검색어 QA와 ranking weight 튜닝
 - Settings provider readiness polish
 - Sync conflict 해결 UX polish와 고급 자동 병합 정책 검토
 - 로그인 직후 pull 자동화 검토
@@ -74,7 +76,7 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 
 대신 아래 기준으로 쓴다.
 
-- provider readiness와 duplicate detection의 기본 구현/테스트는 완료, ranking/search quality와 polish는 후속
+- provider readiness, duplicate detection, ranking/search quality의 기본 구현/테스트는 완료, 실제 검색어 QA와 polish는 후속
 - authenticated direct create path는 현재 제품 기준에서 의도적으로 채택하지 않는 경로
 - SyncPage queue item 단위 상태/원인/기록 보기/재시도 CTA와 기본 conflict 해결 UX는 구현
 - Docker Compose는 실제 실행하지 않았다면 미검증

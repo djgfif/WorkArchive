@@ -72,7 +72,7 @@
 - 현재 `CatalogWork`와 `UserWorkRecord`의 책임 문서화
 - Quick Add / import 흐름을 지원할 `Imports` 경계 정의
 - catalog 후보와 개인 저장 흐름을 제품/백엔드 양쪽에서 분리
-- provider ranking/search quality와 catalog reuse 기준 정리
+- Quick Add 검색 ranking/trust 기본 기준과 catalog reuse 기준 정리
 
 ### Migration Slice 2
 
