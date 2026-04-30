@@ -1204,7 +1204,11 @@ export class ImportsService {
       sourceUrl,
       thumbnailUrl,
       title,
-      titleAliases: [title, subtitle].filter(Boolean),
+      titleAliases: [
+        title,
+        subtitle,
+        title && subtitle ? `${title}: ${subtitle}` : '',
+      ].filter(Boolean),
       type,
     });
   }
@@ -1225,6 +1229,12 @@ export class ImportsService {
 
     const key = this.readString(item.key);
     const sourceUrl = key ? `https://openlibrary.org${key}` : '';
+    const titleAliases = [
+      title,
+      ...this.readStringArray(item.alternative_title),
+      ...this.readStringArray(item.title_suggest),
+      this.readString(item.title_suggest),
+    ].filter(Boolean);
 
     return this.buildCandidate({
       author: this.readStringArray(item.author_name).slice(0, 3).join(', '),
@@ -1252,6 +1262,7 @@ export class ImportsService {
       sourceLabel: 'Open Library',
       sourceUrl,
       title,
+      titleAliases,
       type: WorkType.novel,
     });
   }

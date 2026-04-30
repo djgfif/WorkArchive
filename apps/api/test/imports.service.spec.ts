@@ -505,6 +505,82 @@ describe('ImportsService', () => {
     );
   });
 
+  it('keeps exact title matches ahead of partial title matches', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        docs: [
+          {
+            key: '/works/OL456W',
+            title: 'Dune Messiah',
+            author_name: ['Frank Herbert'],
+            first_publish_year: 1969,
+          },
+          {
+            key: '/works/OL123W',
+            title: 'Dune',
+            author_name: ['Frank Herbert'],
+            first_publish_year: 1965,
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        title: 'Dune',
+        reason: expect.stringContaining('제목 정확히 일치'),
+      }),
+    );
+    expect(result.candidates[1]?.title).toBe('Dune Messiah');
+  });
+
+  it('uses query year and contributor signals when titles are similar', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        docs: [
+          {
+            key: '/works/OL-wrong-year',
+            title: 'Dune',
+            author_name: ['Brian Herbert'],
+            first_publish_year: 1999,
+          },
+          {
+            key: '/works/OL-right-year',
+            title: 'Dune',
+            author_name: ['Frank Herbert'],
+            first_publish_year: 1965,
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune Frank Herbert 1965',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        externalId: '/works/OL-right-year',
+        reason: expect.stringContaining('발매연도 근접'),
+        scoreBreakdown: expect.arrayContaining([
+          expect.objectContaining({
+            label: '제작자 일치',
+          }),
+        ]),
+      }),
+    );
+  });
+
   it('uses catalog matches as a ranking advantage', async () => {
     const catalogIngestionService = {
       findCatalogMatchForImportCandidate: jest.fn(
@@ -911,6 +987,11 @@ describe('ImportsService', () => {
     expect(result.candidates).toHaveLength(1);
     expect(result.candidates[0]).toEqual(
       expect.objectContaining({
+        scoreBreakdown: expect.arrayContaining([
+          expect.objectContaining({
+            label: '출처 2개 확인',
+          }),
+        ]),
         sourceCoverage: expect.objectContaining({
           providerCount: 2,
           providers: expect.arrayContaining([
@@ -960,6 +1041,22 @@ describe('ImportsService', () => {
     });
 
     expect(result.candidates).toHaveLength(2);
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        title: 'Dune',
+      }),
+    );
+    expect(
+      result.candidates.find((candidate) => candidate.title === 'Dune (극장판)')
+        ?.scoreBreakdown,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: '변형판 제목 신호',
+          weight: expect.any(Number),
+        }),
+      ]),
+    );
   });
 
   it('merges before catalog decoration so combined identity can match catalog', async () => {
