@@ -1,7 +1,9 @@
 import type {
   PullSyncResponse,
+  PullSyncChange,
   PushSyncResponse,
   PushSyncResult,
+  SyncQueuePayload,
   SyncQueueItemRecord,
   UserReleaseRecord,
   WorkRecord,
@@ -28,6 +30,40 @@ import {
 import { localizeServerMessage } from '../../../shared/utils/localize-message';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
+
+const WORK_MERGE_FIELDS = [
+  'title',
+  'author',
+  'status',
+  'rating',
+  'shortReview',
+  'review',
+  'favorite',
+  'tier',
+  'progressCurrent',
+  'progressTotal',
+  'progressUnit',
+  'lastConsumedLabel',
+  'genres',
+  'personalTags',
+  'description',
+  'thumbnailUrl',
+  'deletedAt',
+] as const satisfies readonly (keyof WorkRecord)[];
+
+const RELEASE_RECORD_MERGE_FIELDS = [
+  'status',
+  'rating',
+  'shortReview',
+  'review',
+  'favorite',
+  'deletedAt',
+] as const satisfies readonly (keyof UserReleaseRecord)[];
+
+export type WorkConflictMergeField = (typeof WORK_MERGE_FIELDS)[number];
+export type ReleaseRecordConflictMergeField =
+  (typeof RELEASE_RECORD_MERGE_FIELDS)[number];
+
 export type SyncRunState = 'idle' | 'syncing' | 'success' | 'failed';
 
 interface PushCycleResult {
@@ -63,6 +99,36 @@ function isDatabaseClosedError(error: unknown) {
     (error.name === 'DatabaseClosedError' ||
       error.message.includes('Database has been closed'))
   );
+}
+
+function cloneWorkRecord(work: WorkRecord): WorkRecord {
+  return {
+    ...work,
+    genres: [...work.genres],
+    personalTags: [...work.personalTags],
+  };
+}
+
+function cloneReleaseRecord(
+  releaseRecord: UserReleaseRecord,
+): UserReleaseRecord {
+  return {
+    ...releaseRecord,
+  };
+}
+
+function cloneQueuePayload<TPayload extends SyncQueuePayload>(
+  payload: TPayload,
+): TPayload {
+  if ('genres' in payload) {
+    return cloneWorkRecord(payload as WorkRecord) as TPayload;
+  }
+
+  return cloneReleaseRecord(payload as UserReleaseRecord) as TPayload;
+}
+
+function getNowIso() {
+  return new Date().toISOString();
 }
 
 async function postJson<TResponse>(
@@ -168,7 +234,10 @@ export class SyncService {
         }
 
         messages.push(
-          localizeServerMessage(result.message, '동기화 결과를 확인하지 못했습니다.'),
+          localizeServerMessage(
+            result.message,
+            '동기화 결과를 확인하지 못했습니다.',
+          ),
         );
 
         if (result.status === 'applied') {
@@ -187,13 +256,18 @@ export class SyncService {
           continue;
         }
 
-        await this.queueRepo.markFailed(
-          result.queueId,
-          localizeServerMessage(result.message, '동기화에 실패했습니다.'),
-        );
-
         if (result.status === 'conflict') {
+          const conflictMessage = localizeServerMessage(
+            result.message,
+            '동기화에 실패했습니다.',
+          );
+
           conflictCount += 1;
+          await this.queueRepo.markConflict(
+            result.queueId,
+            conflictMessage,
+            this.getRemoteConflictPayload(result),
+          );
           await this.markEntitySyncStatus(
             result.entityType,
             result.entityId,
@@ -201,6 +275,10 @@ export class SyncService {
           );
         } else {
           failedCount += 1;
+          await this.queueRepo.markFailed(
+            result.queueId,
+            localizeServerMessage(result.message, '동기화에 실패했습니다.'),
+          );
         }
       }
 
@@ -292,7 +370,9 @@ export class SyncService {
 
         if (hasLocalQueue) {
           skippedCount += 1;
-          messages.push('다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다.');
+          messages.push(
+            '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다.',
+          );
           await this.markEntitySyncStatus(
             change.entityType,
             change.entityId,
@@ -308,6 +388,11 @@ export class SyncService {
             await this.queueRepo.setLastError(
               queueItem.id,
               '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다. 내용을 확인한 뒤 다시 동기화해주세요.',
+            );
+            await this.queueRepo.setConflict(
+              queueItem.id,
+              '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다. 내용을 확인한 뒤 다시 동기화해주세요.',
+              this.getRemotePullConflictPayload(change),
             );
           }
 
@@ -335,7 +420,9 @@ export class SyncService {
       if (response.changes.length === 0) {
         messages.push('가져올 변경 사항이 없습니다.');
       } else if (skippedCount > 0) {
-        messages.push('확인이 필요한 충돌이 있어 일부 내용은 가져오지 않았습니다.');
+        messages.push(
+          '확인이 필요한 충돌이 있어 일부 내용은 가져오지 않았습니다.',
+        );
       }
 
       return {
@@ -367,13 +454,159 @@ export class SyncService {
     }
   }
 
+  async resolveConflictWithLocal(queueItemId: string) {
+    const queueItem = await this.queueRepo.getById(queueItemId);
+
+    if (!queueItem) {
+      throw new Error('해결할 동기화 항목을 찾지 못했습니다.');
+    }
+
+    const now = getNowIso();
+
+    if (queueItem.entityType === 'release_record') {
+      const localReleaseRecord =
+        (await this.releaseRecordsRepo.getById(queueItem.entityId)) ??
+        (queueItem.payload as UserReleaseRecord);
+      const nextReleaseRecord: UserReleaseRecord = {
+        ...cloneReleaseRecord(localReleaseRecord),
+        syncStatus: 'pending',
+        updatedAt: now,
+      };
+
+      await this.releaseRecordsRepo.update(nextReleaseRecord);
+      await this.queueRepo.resetForRetry(queueItem.id, nextReleaseRecord);
+
+      return nextReleaseRecord;
+    }
+
+    const localWork =
+      (await this.worksRepo.getById(queueItem.entityId)) ??
+      (queueItem.payload as WorkRecord);
+    const nextWork: WorkRecord = {
+      ...cloneWorkRecord(localWork),
+      syncStatus: 'pending',
+      updatedAt: now,
+    };
+
+    await this.worksRepo.update(nextWork);
+    await this.queueRepo.resetForRetry(queueItem.id, nextWork);
+
+    return nextWork;
+  }
+
+  async resolveConflictWithRemote(queueItemId: string) {
+    const queueItem = await this.queueRepo.getById(queueItemId);
+
+    if (!queueItem) {
+      throw new Error('해결할 동기화 항목을 찾지 못했습니다.');
+    }
+
+    const remote = queueItem.conflict?.remote ?? null;
+
+    if (!remote) {
+      throw new Error('원격 스냅샷이 없어 원격 기록을 적용할 수 없습니다.');
+    }
+
+    if (queueItem.entityType === 'release_record') {
+      const remoteReleaseRecord: UserReleaseRecord = {
+        ...cloneReleaseRecord(remote as UserReleaseRecord),
+        syncStatus: 'synced',
+      };
+
+      await this.releaseRecordsRepo.update(remoteReleaseRecord);
+      await this.queueRepo.removeMany([queueItem.id]);
+
+      return remoteReleaseRecord;
+    }
+
+    const remoteWork: WorkRecord = {
+      ...cloneWorkRecord(remote as WorkRecord),
+      syncStatus: 'synced',
+    };
+
+    await this.worksRepo.update(remoteWork);
+    await this.queueRepo.removeMany([queueItem.id]);
+
+    return remoteWork;
+  }
+
+  async resolveConflictWithMergedFields(
+    queueItemId: string,
+    remoteFields: readonly string[],
+  ) {
+    const queueItem = await this.queueRepo.getById(queueItemId);
+
+    if (!queueItem) {
+      throw new Error('해결할 동기화 항목을 찾지 못했습니다.');
+    }
+
+    const remote = queueItem.conflict?.remote ?? null;
+
+    if (!remote) {
+      throw new Error('원격 스냅샷이 없어 필드별 병합을 할 수 없습니다.');
+    }
+
+    const now = getNowIso();
+
+    if (queueItem.entityType === 'release_record') {
+      const selectedFields = new Set<keyof UserReleaseRecord>(
+        remoteFields.filter((field): field is ReleaseRecordConflictMergeField =>
+          (RELEASE_RECORD_MERGE_FIELDS as readonly string[]).includes(field),
+        ),
+      );
+      const localReleaseRecord =
+        (await this.releaseRecordsRepo.getById(queueItem.entityId)) ??
+        (queueItem.payload as UserReleaseRecord);
+      const nextReleaseRecord = cloneReleaseRecord(localReleaseRecord);
+      const remoteReleaseRecord = remote as UserReleaseRecord;
+
+      for (const field of selectedFields) {
+        nextReleaseRecord[field] = remoteReleaseRecord[field] as never;
+      }
+
+      nextReleaseRecord.syncStatus = 'pending';
+      nextReleaseRecord.updatedAt = now;
+
+      await this.releaseRecordsRepo.update(nextReleaseRecord);
+      await this.queueRepo.resetForRetry(queueItem.id, nextReleaseRecord);
+
+      return nextReleaseRecord;
+    }
+
+    const selectedFields = new Set<keyof WorkRecord>(
+      remoteFields.filter((field): field is WorkConflictMergeField =>
+        (WORK_MERGE_FIELDS as readonly string[]).includes(field),
+      ),
+    );
+    const localWork =
+      (await this.worksRepo.getById(queueItem.entityId)) ??
+      (queueItem.payload as WorkRecord);
+    const nextWork = cloneWorkRecord(localWork);
+    const remoteWork = remote as WorkRecord;
+
+    for (const field of selectedFields) {
+      nextWork[field] = cloneQueuePayload(remoteWork)[field] as never;
+    }
+
+    nextWork.syncStatus = 'pending';
+    nextWork.updatedAt = now;
+
+    await this.worksRepo.update(nextWork);
+    await this.queueRepo.resetForRetry(queueItem.id, nextWork);
+
+    return nextWork;
+  }
+
   private async applySuccessfulPushResult(
     queueItem: SyncQueueItemRecord,
     result: PushSyncResult,
   ) {
     try {
       if (result.entityType === 'release_record') {
-        if (result.releaseRecord !== null && result.releaseRecord !== undefined) {
+        if (
+          result.releaseRecord !== null &&
+          result.releaseRecord !== undefined
+        ) {
           await this.releaseRecordsRepo.update(result.releaseRecord);
 
           return true;
@@ -467,8 +700,27 @@ export class SyncService {
       : this.markReleaseRecordSyncStatus(id, syncStatus);
   }
 
-  private getEntityKey(entityType: 'work' | 'release_record', entityId: string) {
+  private getEntityKey(
+    entityType: 'work' | 'release_record',
+    entityId: string,
+  ) {
     return `${entityType}:${entityId}`;
+  }
+
+  private getRemoteConflictPayload(result: PushSyncResult) {
+    if (result.entityType === 'release_record') {
+      return result.releaseRecord ?? null;
+    }
+
+    return result.work ?? null;
+  }
+
+  private getRemotePullConflictPayload(change: PullSyncChange) {
+    if (change.entityType === 'release_record') {
+      return change.releaseRecord ?? null;
+    }
+
+    return change.work ?? null;
   }
 }
 

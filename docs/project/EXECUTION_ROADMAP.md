@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                                                                                                                                                      |
 | Role                  | `integrated execution roadmap`                                                                                                                                                                                                                   |
 | Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
-| Last verified against | `2026-04-26` personal-only direction lock                                                                                                                                                                                                        |
+| Last verified against | `2026-04-30` sync conflict resolution working tree                                                                                                                                                                                               |
 | When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                     |
 
 이 문서는 Work Archive의 **단일 통합 실행 로드맵**이다. current reality 문서를 대체하지 않고, 지금 무엇을 어떤 순서로 고정해야 하는지만 정리한다.
@@ -141,10 +141,11 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 
 - SyncPage는 pending / failed / conflict queue item 단위 상태를 표시한다.
 - queue item별 원인, 기록 보기, 재시도 CTA를 제공한다.
+- conflict 항목은 원격 스냅샷을 보존해 로컬 유지, 원격 적용, 필드별 병합으로 기본 해결할 수 있다.
 
 근거리 순서:
 
-1. conflict overwrite/merge resolution 도입
+1. conflict 해결 UX polish와 자동 병합 정책 검토
 2. 로그인 직후 pull 자동화 검토
 3. sync 상태 polish와 실패 복구 UX 개선
 4. guest -> account 선택 import UX 정리

@@ -1,6 +1,8 @@
 import type {
+  SyncConflictSnapshot,
   SyncOperation,
   SyncQueueItemRecord,
+  SyncQueuePayload,
   UserReleaseRecord,
   WorkRecord,
 } from '@work-archive/shared-types';
@@ -55,9 +57,7 @@ export class SyncQueueRepository {
         .toArray();
 
       if (existingItems.length > 0) {
-        await db.syncQueue.bulkDelete(
-          existingItems.map((item) => item.id),
-        );
+        await db.syncQueue.bulkDelete(existingItems.map((item) => item.id));
       }
 
       const hasUnsyncedCreate = existingItems.some(
@@ -83,6 +83,7 @@ export class SyncQueueRepository {
         createdAt: new Date().toISOString(),
         retryCount: 0,
         lastError: null,
+        conflict: null,
       };
 
       await db.syncQueue.add(queueItem);
@@ -118,6 +119,7 @@ export class SyncQueueRepository {
       ...existing,
       retryCount: existing.retryCount + 1,
       lastError,
+      conflict: null,
     };
 
     await this.getDb().syncQueue.put(updated);
@@ -163,6 +165,7 @@ export class SyncQueueRepository {
           ...item,
           retryCount: item.retryCount + 1,
           lastError,
+          conflict: null,
         };
 
         await db.syncQueue.put(updated);
@@ -206,6 +209,82 @@ export class SyncQueueRepository {
           .map((item) => item.entityId),
       ),
     );
+  }
+
+  async markConflict<TPayload extends SyncQueuePayload>(
+    id: string,
+    lastError: string,
+    remote: TPayload | null,
+  ) {
+    const existing = await this.getDb().syncQueue.get(id);
+
+    if (!existing) {
+      return null;
+    }
+
+    const updated: SyncQueueItemRecord = {
+      ...existing,
+      retryCount: existing.retryCount + 1,
+      lastError,
+      conflict: {
+        detectedAt: new Date().toISOString(),
+        message: lastError,
+        remote,
+      } satisfies SyncConflictSnapshot,
+    };
+
+    await this.getDb().syncQueue.put(updated);
+
+    return updated;
+  }
+
+  async setConflict<TPayload extends SyncQueuePayload>(
+    id: string,
+    lastError: string,
+    remote: TPayload | null,
+  ) {
+    const existing = await this.getDb().syncQueue.get(id);
+
+    if (!existing) {
+      return null;
+    }
+
+    const updated: SyncQueueItemRecord = {
+      ...existing,
+      lastError,
+      conflict: {
+        detectedAt: new Date().toISOString(),
+        message: lastError,
+        remote,
+      } satisfies SyncConflictSnapshot,
+    };
+
+    await this.getDb().syncQueue.put(updated);
+
+    return updated;
+  }
+
+  async resetForRetry<TPayload extends SyncQueuePayload>(
+    id: string,
+    payload: TPayload,
+  ) {
+    const existing = await this.getDb().syncQueue.get(id);
+
+    if (!existing) {
+      return null;
+    }
+
+    const updated: SyncQueueItemRecord<TPayload> = {
+      ...existing,
+      payload,
+      retryCount: 0,
+      lastError: null,
+      conflict: null,
+    };
+
+    await this.getDb().syncQueue.put(updated);
+
+    return updated;
   }
 }
 

@@ -269,7 +269,7 @@ Quick Add 저장 원칙:
 ### Priority 4. Optional private sync reliability
 
 - sync 상태 설명
-- conflict overwrite / merge resolution
+- conflict 기본 해결 UX polish와 자동 병합 정책 검토
 - 로그인 직후 pull 정책
 - 백업/동기화 실패 복구 UX
 
