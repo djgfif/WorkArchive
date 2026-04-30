@@ -16,7 +16,7 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import { PageHero } from '../../../shared/components/PageHero';
 import { FlowPageTemplate } from '../../../shared/components/PageTemplates';
-import { QuickAddWorkForm } from '../components/QuickAddWorkForm';
+import { AddWorkFlow } from '../components/AddWorkFlow';
 import { worksService } from '../services/works.service';
 import type { UpsertWorkInput } from '../utils/work-form';
 import {
@@ -57,7 +57,7 @@ export function WorkCreatePage() {
         meta={
           <>
             <MetricPill label="기본 경로" value="직접 추가" />
-            <MetricPill label="보조 경로" value="검색으로 정보 채우기" />
+            <MetricPill label="보조 경로" value="검색으로 채우기" />
           </>
         }
         title="새 작품 기록"
@@ -118,7 +118,7 @@ export function WorkCreatePage() {
           </ActionRow>
         </SectionCard>
       ) : (
-        <QuickAddWorkForm
+        <AddWorkFlow
           isSubmitting={isSubmitting}
           key={formVersion}
           onSubmit={handleSubmit}

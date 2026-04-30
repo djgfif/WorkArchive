@@ -10,12 +10,12 @@ import {
   Group,
   NativeSelect,
   Paper,
+  SegmentedControl,
   SimpleGrid,
   Stack,
   Text,
   TextInput,
   Textarea,
-  Title,
 } from '@mantine/core';
 import {
   useEffect,
@@ -32,9 +32,6 @@ import {
   AppButton,
   AppLinkButton,
   FeedbackMessage,
-  PageSection,
-  SectionCard,
-  SectionIntro,
 } from '../../../shared/components/AppPrimitives';
 import {
   importsService,
@@ -46,7 +43,7 @@ import {
   type ProviderReadinessGroup,
 } from '../../imports/hooks/useImportProviderReadiness';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
-import { SearchPickerPanel } from './SearchPickerModal';
+import { AddWorkSearchPanel } from './AddWorkSearchPanel';
 import {
   buildImportIdentity,
   createValuesFromCandidate,
@@ -65,7 +62,7 @@ import {
 } from '../utils/work-form';
 import { workStatusOptions, workTypeOptions } from '../utils/work-options';
 
-interface QuickAddWorkFormProps {
+interface AddWorkFlowProps {
   isSubmitting: boolean;
   onSubmit: (input: UpsertWorkInput) => Promise<void>;
   onCancel?: () => void;
@@ -225,63 +222,51 @@ function CoreWorkFields({
   values,
 }: CoreWorkFieldsProps) {
   return (
-    <Paper
-      p="md"
-      radius="lg"
-      styles={{
-        root: {
-          backgroundColor: 'var(--app-surface-1)',
-          borderColor: 'var(--app-border-color)',
-        },
-      }}
-      withBorder
-    >
-      <Stack gap="md">
-        <ActionRow>
-          <AppBadge tone="accent">필수</AppBadge>
-          <Text c="var(--app-text-muted)" size="sm">
-            제목과 유형만 입력하면 저장할 수 있습니다.
-          </Text>
-        </ActionRow>
+    <Stack gap="md">
+      <ActionRow>
+        <AppBadge tone="accent">필수</AppBadge>
+        <Text c="var(--app-text-muted)" size="sm">
+          제목과 유형만 입력하면 저장할 수 있습니다.
+        </Text>
+      </ActionRow>
 
-        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-          <div style={{ gridColumn: '1 / -1' }}>
-            <TextInput
-              id={getFieldId(idPrefix, 'title')}
-              label="제목"
-              name="title"
-              onChange={onChange}
-              placeholder="작품 제목"
-              ref={titleInputRef}
-              value={values.title}
-            />
-          </div>
-
-          <NativeSelect
-            id={getFieldId(idPrefix, 'type')}
-            label="유형"
-            name="type"
-            onChange={onChange}
-            value={values.type}
-          >
-            {workTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </NativeSelect>
-
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+        <div style={{ gridColumn: '1 / -1' }}>
           <TextInput
-            id={getFieldId(idPrefix, 'author')}
-            label="작가·제작자"
-            name="author"
+            id={getFieldId(idPrefix, 'title')}
+            label="제목"
+            name="title"
             onChange={onChange}
-            placeholder="작가, 스튜디오, 제작자를 입력해주세요"
-            value={values.author}
+            placeholder="작품 제목"
+            ref={titleInputRef}
+            value={values.title}
           />
-        </SimpleGrid>
-      </Stack>
-    </Paper>
+        </div>
+
+        <NativeSelect
+          id={getFieldId(idPrefix, 'type')}
+          label="유형"
+          name="type"
+          onChange={onChange}
+          value={values.type}
+        >
+          {workTypeOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </NativeSelect>
+
+        <TextInput
+          id={getFieldId(idPrefix, 'author')}
+          label="작가·제작자"
+          name="author"
+          onChange={onChange}
+          placeholder="작가, 스튜디오, 제작자를 입력해주세요"
+          value={values.author}
+        />
+      </SimpleGrid>
+    </Stack>
   );
 }
 
@@ -299,62 +284,50 @@ function PersonalRecordFields({
   values,
 }: PersonalRecordFieldsProps) {
   return (
-    <Paper
-      p="md"
-      radius="lg"
-      styles={{
-        root: {
-          backgroundColor: 'var(--app-surface-0)',
-          borderColor: 'var(--app-border-color)',
-        },
-      }}
-      withBorder
-    >
-      <Stack gap="md">
-        <ActionRow>
-          <AppBadge tone="accent">내 기록</AppBadge>
-          <Text c="var(--app-text-muted)" size="sm">
-            상태와 감상은 상세 화면에서 가장 먼저 읽히는 개인 기록입니다.
-          </Text>
-        </ActionRow>
+    <Stack gap="md">
+      <ActionRow>
+        <AppBadge tone="accent">내 기록</AppBadge>
+        <Text c="var(--app-text-muted)" size="sm">
+          상태, 별점, 한줄평만 먼저 남겨도 충분합니다.
+        </Text>
+      </ActionRow>
 
-        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-          <StatusButtonGroup onChange={onStatusChange} value={values.status} />
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+        <StatusButtonGroup onChange={onStatusChange} value={values.status} />
 
-          <NativeSelect
-            aria-label="별점"
-            id={getFieldId(idPrefix, 'rating')}
-            label="별점"
-            name="rating"
+        <NativeSelect
+          aria-label="별점"
+          id={getFieldId(idPrefix, 'rating')}
+          label="별점"
+          name="rating"
+          onChange={onInputChange}
+          value={values.rating}
+        >
+          <option value="">미평가</option>
+          {ratingOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </NativeSelect>
+
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Textarea
+            id={getFieldId(idPrefix, 'shortReview')}
+            label="한줄평"
+            name="shortReview"
             onChange={onInputChange}
-            value={values.rating}
-          >
-            <option value="">미평가</option>
-            {ratingOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </NativeSelect>
+            placeholder="짧게 남길 감상을 적어보세요"
+            rows={2}
+            value={values.shortReview}
+          />
+        </div>
 
-          <div style={{ gridColumn: '1 / -1' }}>
-            <Textarea
-              id={getFieldId(idPrefix, 'shortReview')}
-              label="한줄평"
-              name="shortReview"
-              onChange={onInputChange}
-              placeholder="짧게 남길 감상을 적어보세요"
-              rows={3}
-              value={values.shortReview}
-            />
-          </div>
-
-          <Text c="var(--app-text-muted)" size="sm" style={{ gridColumn: '1 / -1' }}>
-            긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수 있습니다.
-          </Text>
-        </SimpleGrid>
-      </Stack>
-    </Paper>
+        <Text c="var(--app-text-muted)" size="sm" style={{ gridColumn: '1 / -1' }}>
+          긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수 있습니다.
+        </Text>
+      </SimpleGrid>
+    </Stack>
   );
 }
 
@@ -454,13 +427,13 @@ function AdvancedWorkFields({
   );
 }
 
-export function QuickAddWorkForm({
+export function AddWorkFlow({
   isSubmitting,
   onCancel,
   onSubmit,
   submitError,
   variant = 'page',
-}: QuickAddWorkFormProps) {
+}: AddWorkFlowProps) {
   const { archiveScopeKey } = useAuthSession();
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [mode, setMode] = useState<'manual' | 'search'>('manual');
@@ -673,153 +646,128 @@ export function QuickAddWorkForm({
   }
 
   return (
-    <Stack gap={variant === 'dialog' ? 'lg' : 'xl'}>
-      <SectionCard gap="md" padding={variant === 'dialog' ? 'lg' : 'xl'} tone="hero">
+    <Stack gap={variant === 'dialog' ? 'md' : 'lg'}>
+      <Stack gap="sm">
         <Group align="flex-start" justify="space-between" wrap="wrap">
-          <SectionIntro
-            description="직접 입력하거나 검색 후보로 기본 정보를 채운 뒤, 저장 전 한 화면에서 최종 확인합니다."
-            eyebrow="새 기록"
-            title="새 작품 기록"
-            titleOrder={variant === 'dialog' ? 2 : 1}
-          />
-          <ActionRow justify="flex-end">
-            <AppButton
-              aria-pressed={mode === 'manual'}
-              onClick={() => {
-                setMode('manual');
+          <div>
+            <Text c="var(--app-text-strong)" fw={800} size={variant === 'dialog' ? 'lg' : 'xl'}>
+              새 작품 기록
+            </Text>
+            <Text c="var(--app-text-muted)" size="sm">
+              검색은 입력을 돕는 보조 흐름이고, 저장 전 기준은 아래 입력값입니다.
+            </Text>
+          </div>
+
+          <SegmentedControl
+            aria-label="추가 방식"
+            data={[
+              { label: '직접 입력', value: 'manual' },
+              { label: '검색으로 채우기', value: 'search' },
+            ]}
+            onChange={(value) => {
+              const nextMode = value as 'manual' | 'search';
+
+              setMode(nextMode);
+              if (nextMode === 'manual') {
                 focusMainTitle();
-              }}
-              size="compact-sm"
-              tone={mode === 'manual' ? 'primary' : 'secondary'}
-              type="button"
-            >
-              직접 입력
-            </AppButton>
-            <AppButton
-              aria-pressed={mode === 'search'}
-              onClick={() => {
-                setMode('search');
+              } else {
                 setSearchError(null);
-              }}
-              size="compact-sm"
-              tone={mode === 'search' ? 'primary' : 'secondary'}
-              type="button"
-            >
-              검색으로 정보 채우기
-            </AppButton>
-          </ActionRow>
+              }
+            }}
+            value={mode}
+          />
         </Group>
-      </SectionCard>
+      </Stack>
 
       {mode === 'search' ? (
-        <SectionCard gap="lg" padding={variant === 'dialog' ? 'lg' : 'xl'} tone="default">
-          <SearchPickerPanel
-            candidates={searchCandidates}
-            duplicateCounts={duplicateCounts}
-            duplicateMatches={selectedDuplicateMatches}
-            fullHeight={variant === 'dialog'}
-            isSearching={isSearching}
-            onApplyCandidate={applyCandidateToForm}
-            onProviderGroupChange={handleProviderGroupChange}
-            onSearchSubmit={handleSearchSubmit}
-            onSearchTermChange={setSearchTerm}
-            onSearchTypeChange={(value) =>
-              setSearchType(value as CatalogSearchMediumType)
-            }
-            onSelectCandidate={setSelectedSearchCandidate}
-            onUseManualTitle={useSearchTermForManualInput}
-            providerGroup={providerGroup}
-            providerReadinessSummary={
-              <ProviderReadinessSummary
-                error={providerReadiness.error}
-                isLoading={providerReadiness.isLoading}
-                readiness={providerReadiness.readiness}
-              />
-            }
-            searchError={searchError}
-            searchNotice={searchNotice}
-            searchTerm={searchTerm}
-            searchType={searchType}
-            selectedCandidate={selectedSearchCandidate}
-          />
-        </SectionCard>
+        <AddWorkSearchPanel
+          candidates={searchCandidates}
+          duplicateCounts={duplicateCounts}
+          duplicateMatches={selectedDuplicateMatches}
+          fullHeight={variant === 'dialog'}
+          isSearching={isSearching}
+          onApplyCandidate={applyCandidateToForm}
+          onProviderGroupChange={handleProviderGroupChange}
+          onSearchSubmit={handleSearchSubmit}
+          onSearchTermChange={setSearchTerm}
+          onSearchTypeChange={(value) =>
+            setSearchType(value as CatalogSearchMediumType)
+          }
+          onSelectCandidate={setSelectedSearchCandidate}
+          onUseManualTitle={useSearchTermForManualInput}
+          providerGroup={providerGroup}
+          providerReadinessSummary={
+            <ProviderReadinessSummary
+              error={providerReadiness.error}
+              isLoading={providerReadiness.isLoading}
+              readiness={providerReadiness.readiness}
+            />
+          }
+          searchError={searchError}
+          searchNotice={searchNotice}
+          searchTerm={searchTerm}
+          searchType={searchType}
+          selectedCandidate={selectedSearchCandidate}
+        />
       ) : (
         <form onSubmit={handleSubmit}>
-          <SectionCard gap="xl" padding={variant === 'dialog' ? 'lg' : 'xl'} tone="default">
-          {selectedImportCandidate && importedSourceCoverage && (
-            <Alert color="blue" radius="lg" variant="light">
-              <Stack gap="sm">
-                <ActionRow justify="space-between">
-                  <AppBadge tone="accent">검색으로 채운 정보</AppBadge>
-                  <ActionRow>
-                    <AppButton
-                      onClick={() => setMode('search')}
-                      size="compact-sm"
-                      tone="ghost"
-                      type="button"
-                    >
-                      다시 검색
-                    </AppButton>
-                    <AppButton
-                      onClick={resetImportedCandidate}
-                      size="compact-sm"
-                      tone="ghost"
-                      type="button"
-                    >
-                      직접 입력으로 전환
-                    </AppButton>
+          <Stack gap={variant === 'dialog' ? 'lg' : 'xl'}>
+            {selectedImportCandidate && importedSourceCoverage && (
+              <Alert color="blue" radius="lg" variant="light">
+                <Stack gap="sm">
+                  <ActionRow justify="space-between">
+                    <AppBadge tone="accent">검색으로 채운 정보</AppBadge>
+                    <ActionRow>
+                      <AppButton
+                        onClick={() => setMode('search')}
+                        size="compact-sm"
+                        tone="ghost"
+                        type="button"
+                      >
+                        다시 검색
+                      </AppButton>
+                      <AppButton
+                        onClick={resetImportedCandidate}
+                        size="compact-sm"
+                        tone="ghost"
+                        type="button"
+                      >
+                        직접 입력으로 전환
+                      </AppButton>
+                    </ActionRow>
                   </ActionRow>
-                </ActionRow>
-                <Text c="inherit" fw={700}>
-                  {selectedImportCandidate.title}
-                </Text>
-                <Text c="inherit" size="sm">
-                  {selectedImportCandidate.reason}
-                </Text>
-                <ActionRow>
-                  <AppBadge tone="muted">
-                    {selectedImportCandidate.sourceLabel}
-                  </AppBadge>
-                  <AppBadge tone="muted">
-                    {importedSourceCoverage.summaryLabel}
-                  </AppBadge>
-                </ActionRow>
-              </Stack>
-            </Alert>
-          )}
+                  <Text c="inherit" fw={700}>
+                    {selectedImportCandidate.title}
+                  </Text>
+                  <Text c="inherit" size="sm">
+                    {selectedImportCandidate.reason}
+                  </Text>
+                  <ActionRow>
+                    <AppBadge tone="muted">
+                      {selectedImportCandidate.sourceLabel}
+                    </AppBadge>
+                    <AppBadge tone="muted">
+                      {importedSourceCoverage.summaryLabel}
+                    </AppBadge>
+                  </ActionRow>
+                </Stack>
+              </Alert>
+            )}
 
-          <PageSection
-            description="제목과 유형만 있으면 저장할 수 있습니다. 검색으로 채웠더라도 아래 폼이 최종 저장 기준입니다."
-            divider={false}
-            eyebrow="기본 정보"
-              title="작품 기록 입력"
-            >
             <CoreWorkFields
               idPrefix="manual"
               onChange={handleInputChange}
               titleInputRef={titleInputRef}
               values={values}
             />
-          </PageSection>
 
-          <PageSection
-            description="상태와 감상은 내 아카이브에서 가장 먼저 읽히는 개인 기록입니다."
-            eyebrow="내 기록"
-              title="상태와 감상"
-            >
             <PersonalRecordFields
               idPrefix="manual"
               onInputChange={handleInputChange}
               onStatusChange={handleStatusChange}
               values={values}
             />
-          </PageSection>
 
-          <PageSection
-            description="표지, 장르, 설명 같은 부가 정보는 필요할 때만 펼쳐서 다룹니다."
-            eyebrow="추가 필드"
-              title="고급 정보"
-            >
             <AdvancedWorkFields
               idPrefix="manual"
               itemValue="manual-advanced-fields"
@@ -827,35 +775,34 @@ export function QuickAddWorkForm({
               tagSuggestions={tagSuggestions}
               values={values}
             />
-          </PageSection>
 
-          {(validationError || submitError) && (
-            <FeedbackMessage tone="error">
-              {validationError ?? submitError}
-            </FeedbackMessage>
-          )}
-
-          <ActionRow>
-            <AppButton
-              disabled={isSubmitting}
-              fullWidth
-              size="lg"
-              tone="primary"
-              type="submit"
-            >
-              {isSubmitting ? '저장 중...' : '내 아카이브에 저장'}
-            </AppButton>
-            {onCancel ? (
-              <AppButton onClick={onCancel} tone="quiet" type="button">
-                취소
-              </AppButton>
-            ) : (
-              <AppLinkButton to="/works" tone="quiet">
-                취소
-              </AppLinkButton>
+            {(validationError || submitError) && (
+              <FeedbackMessage tone="error">
+                {validationError ?? submitError}
+              </FeedbackMessage>
             )}
-          </ActionRow>
-          </SectionCard>
+
+            <ActionRow>
+              <AppButton
+                disabled={isSubmitting}
+                fullWidth
+                size="lg"
+                tone="primary"
+                type="submit"
+              >
+                {isSubmitting ? '저장 중...' : '내 아카이브에 저장'}
+              </AppButton>
+              {onCancel ? (
+                <AppButton onClick={onCancel} tone="quiet" type="button">
+                  취소
+                </AppButton>
+              ) : (
+                <AppLinkButton to="/works" tone="quiet">
+                  취소
+                </AppLinkButton>
+              )}
+            </ActionRow>
+          </Stack>
         </form>
       )}
     </Stack>

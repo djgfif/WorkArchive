@@ -6,7 +6,7 @@ import type { WorkRecord } from '@work-archive/shared-types';
 
 import { worksService } from '../services/works.service';
 import type { UpsertWorkInput } from '../utils/work-form';
-import { QuickAddWorkForm } from './QuickAddWorkForm';
+import { AddWorkFlow } from './AddWorkFlow';
 
 interface AddWorkDialogProps {
   onClose: () => void;
@@ -54,7 +54,7 @@ export function AddWorkDialog({
       size="min(72rem, 100vw - 2rem)"
       title="새 작품 기록"
     >
-      <QuickAddWorkForm
+      <AddWorkFlow
         isSubmitting={isSubmitting}
         key={formVersion}
         onCancel={onClose}

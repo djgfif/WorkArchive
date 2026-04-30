@@ -104,7 +104,7 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
+    await user.click(screen.getByLabelText('검색으로 채우기'));
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
@@ -165,7 +165,7 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.click(screen.getByRole('button', { name: '검색으로 정보 채우기' }));
+    await user.click(screen.getByLabelText('검색으로 채우기'));
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);

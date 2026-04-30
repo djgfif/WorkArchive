@@ -27,10 +27,7 @@ describe('WorksListPage', () => {
     const dialog = await screen.findByRole('dialog');
 
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: '직접 입력' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(within(dialog).getByLabelText('직접 입력')).toBeChecked();
 
     await user.type(within(dialog).getByLabelText(/^제목$/), 'Modal First Work');
     await user.selectOptions(within(dialog).getByLabelText(/^유형$/), 'movie');
