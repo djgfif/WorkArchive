@@ -1,12 +1,12 @@
 # Work Archive
 
-| Field | Value |
-| --- | --- |
-| Status | `active` |
-| Role | `operational entrypoint` |
-| Source of truth | `package.json`, `compose.yml`, `apps/web/package.json`, `apps/api/package.json` |
-| Last verified against | `2026-04-25` local `master` working tree |
-| When to update | 실행 스크립트, 환경 변수, 포트, Compose 흐름, 현재 검증 상태가 바뀔 때 |
+| Field                 | Value                                                                           |
+| --------------------- | ------------------------------------------------------------------------------- |
+| Status                | `active`                                                                        |
+| Role                  | `operational entrypoint`                                                        |
+| Source of truth       | `package.json`, `compose.yml`, `apps/web/package.json`, `apps/api/package.json` |
+| Last verified against | `2026-04-25` local `master` working tree                                        |
+| When to update        | 실행 스크립트, 환경 변수, 포트, Compose 흐름, 현재 검증 상태가 바뀔 때          |
 
 Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 작품 감상 기록을 관리하는 local-first 웹 서비스다. 프론트는 IndexedDB를 1차 저장소로 사용하고, 로그인 시 계정별 로컬 아카이브와 수동 동기화를 사용할 수 있다.
 
@@ -40,11 +40,11 @@ Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 작품 �
 
 ## Environment Files
 
-| Path | Use |
-| --- | --- |
-| [`.env.example`](/mnt/c/work/WorkArchive/.env.example) | `docker compose up --build`용 루트 설정 |
-| [`apps/api/.env.example`](/mnt/c/work/WorkArchive/apps/api/.env.example) | 호스트 기반 API 개발용 설정 |
-| [`apps/web/.env.example`](/mnt/c/work/WorkArchive/apps/web/.env.example) | 호스트 기반 웹 개발용 설정 |
+| Path                                                                     | Use                                     |
+| ------------------------------------------------------------------------ | --------------------------------------- |
+| [`.env.example`](/mnt/c/work/WorkArchive/.env.example)                   | `docker compose up --build`용 루트 설정 |
+| [`apps/api/.env.example`](/mnt/c/work/WorkArchive/apps/api/.env.example) | 호스트 기반 API 개발용 설정             |
+| [`apps/web/.env.example`](/mnt/c/work/WorkArchive/apps/web/.env.example) | 호스트 기반 웹 개발용 설정              |
 
 권장 초기화:
 
@@ -170,10 +170,11 @@ npm run build
 
 ## Current Verification Status
 
-- `npm run typecheck`: `2026-04-25` 통과 확인
-- `npm run test --workspace @work-archive/web`: `2026-04-25` 기준 `18 files`, `70 tests` 통과 확인
-- `npm run test --workspace @work-archive/api`: `2026-04-25` 기준 `7 suites`, `45 tests` 통과 확인
-- `npm run build`: `2026-04-24` 통과 확인
+- `npm run typecheck --workspace @work-archive/web`: `2026-04-30` 통과 확인
+- `npm run typecheck --workspace @work-archive/api`: `2026-04-30` 통과 확인
+- `npm run test --workspace @work-archive/web`: `2026-04-30` 기준 `21 files`, `116 tests` 통과 확인
+- `npm run test --workspace @work-archive/api`: `2026-04-30` 기준 `9 suites`, `71 tests` 통과 확인
+- `npm run build`: `2026-04-30` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe`도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
 ## Current Product Reality
@@ -191,7 +192,7 @@ npm run build
 - Quick Add `manual` / `preview-manual` 후보는 catalog identity 없이 현재 draft를 local-first로 저장한다.
 - duplicate detection 우선순위는 `catalogTitleId -> externalRefs -> title fallback`으로 테스트 고정돼 있다.
 - Settings provider readiness UI는 `/imports/providers` 기반 기본 구현과 테스트가 들어갔다. 남은 작업은 provider별 ranking/search quality와 polish다.
-- SyncPage는 pending / failed / conflict queue item의 상태, 원인, 기록 보기, 재시도 CTA를 표시한다. conflict overwrite/merge resolution은 후속 작업이다.
+- SyncPage는 pending / failed / conflict queue item의 상태, 원인, 기록 보기, 재시도 CTA를 표시한다. conflict는 로컬 유지, 원격 적용, 필드별 병합으로 기본 해결할 수 있다.
 - `Tier Boards`, `Insights`, `Community`는 현재 placeholder 성격이 강하다.
 - 인증은 현재 이메일/비밀번호 + access token local storage + refresh cookie 구조다.
 - 백엔드는 이미 `CatalogWork` + `UserWorkRecord` split model을 도입했고, 현재 `Works` API는 flat compatibility 계층으로 유지된다.
@@ -202,6 +203,7 @@ npm run build
 - 자동 동기화는 아직 없다.
 - guest -> account 이관은 검토/선택 import 단계까지만 있고, 자동 병합이나 다기기 정책은 아직 없다.
 - Quick Add provider readiness와 duplicate detection의 기본 구현/테스트는 들어갔지만, provider ranking/search quality와 UI polish는 후속 작업이다.
+- Sync conflict 기본 해결 UX는 들어갔지만, 자동 병합 판단이나 고급 충돌 정책은 후속 작업이다.
 - authenticated direct create path는 “미구현 경로”가 아니라 현재 제품 기준에서 채택하지 않는 경로다. 현재 기본 저장 경로는 local-first sync다.
 - `Works` compatibility layer, access token 저장 구조, 공개 레이어 권한 분리 같은 후속 과제는 아직 남아 있다.
 

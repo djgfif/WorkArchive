@@ -556,6 +556,12 @@ export interface PullSyncResponse {
   pulledAt: ISODateString;
 }
 
+export interface SyncConflictSnapshot<TPayload = SyncQueuePayload> {
+  detectedAt: ISODateString;
+  message: string;
+  remote: TPayload | null;
+}
+
 export interface SyncQueueItemRecord<TPayload = SyncQueuePayload> {
   id: EntityId;
   entityType: SyncEntityType;
@@ -565,6 +571,7 @@ export interface SyncQueueItemRecord<TPayload = SyncQueuePayload> {
   createdAt: ISODateString;
   retryCount: number;
   lastError: string | null;
+  conflict?: SyncConflictSnapshot<TPayload> | null;
 }
 
 export interface AppMetaRecord {
