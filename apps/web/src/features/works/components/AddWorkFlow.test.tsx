@@ -67,29 +67,40 @@ const providerStatuses = [
   {
     provider: 'tmdb',
     label: 'TMDB',
-    credentialMode: 'server',
+    credentialMode: 'user',
     configured: false,
+    credentialFields: [
+      { name: 'readToken', label: 'Read Access Token', secret: true },
+    ],
     mediumTypes: ['movie', 'drama'],
   },
   {
     provider: 'naver_book',
     label: 'Naver Book',
-    credentialMode: 'server',
+    credentialMode: 'user',
     configured: false,
+    credentialFields: [
+      { name: 'clientId', label: 'Client ID', secret: true },
+      { name: 'clientSecret', label: 'Client Secret', secret: true },
+    ],
     mediumTypes: ['novel'],
   },
   {
     provider: 'kakao_book',
     label: 'Kakao Book',
-    credentialMode: 'server',
+    credentialMode: 'user',
     configured: false,
+    credentialFields: [
+      { name: 'restApiKey', label: 'REST API Key', secret: true },
+    ],
     mediumTypes: ['novel'],
   },
   {
     provider: 'kobis',
     label: 'KOBIS',
-    credentialMode: 'server',
+    credentialMode: 'user',
     configured: false,
+    credentialFields: [{ name: 'apiKey', label: 'API Key', secret: true }],
     mediumTypes: ['movie'],
   },
 ];

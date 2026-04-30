@@ -192,7 +192,12 @@ function getActionToneProps(tone: AppActionTone) {
     case 'primary':
       return {
         color: 'archive',
-        variant: 'filled',
+        gradient: {
+          deg: 135,
+          from: 'archive.2',
+          to: 'archive.6',
+        },
+        variant: 'gradient',
       } as const;
     case 'quiet':
       return {
@@ -297,7 +302,7 @@ export function SectionCard({
   return (
     <Paper
       p={padding}
-      radius="lg"
+      radius="md"
       styles={{
         root: {
           backgroundColor: getSurfaceBackground(tone),
@@ -325,7 +330,7 @@ export function SurfaceLinkCard({
     <Paper
       component={Link}
       p={padding}
-      radius="lg"
+      radius="md"
       styles={{
         root: {
           backgroundColor: getSurfaceBackground(tone),

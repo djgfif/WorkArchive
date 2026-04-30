@@ -20,6 +20,7 @@ import {
   ALADIN_PROVIDER,
   ANILIST_PROVIDER,
   GOOGLE_BOOKS_PROVIDER,
+  KAKAO_BOOK_PROVIDER,
   KOBIS_PROVIDER,
   MANUAL_PROVIDER,
   NAVER_BOOK_PROVIDER,
@@ -279,7 +280,7 @@ describe('ImportsService', () => {
         }),
         expect.objectContaining({
           provider: TMDB_PROVIDER,
-          credentialMode: 'server',
+          credentialMode: 'user',
           configured: false,
         }),
       ]),
@@ -307,6 +308,59 @@ describe('ImportsService', () => {
       ]),
     );
     expect(credentialService.hasCredential).toHaveBeenCalledWith(
+      USER_ID,
+      ALADIN_PROVIDER,
+    );
+    expect(credentialService.hasCredential).toHaveBeenCalledWith(
+      USER_ID,
+      TMDB_PROVIDER,
+    );
+  });
+
+  it('stores and deletes provider-generic user credentials as encrypted JSON payloads', async () => {
+    await expect(
+      service.saveProviderKey(USER_ID, NAVER_BOOK_PROVIDER, {
+        clientId: ' naver-client-id ',
+        clientSecret: ' naver-client-secret ',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        provider: NAVER_BOOK_PROVIDER,
+        configured: true,
+      }),
+    );
+
+    expect(credentialService.saveCredential).toHaveBeenCalledWith(
+      USER_ID,
+      NAVER_BOOK_PROVIDER,
+      JSON.stringify({
+        clientId: 'naver-client-id',
+        clientSecret: 'naver-client-secret',
+      }),
+    );
+
+    await service.deleteProviderKey(USER_ID, NAVER_BOOK_PROVIDER);
+
+    expect(credentialService.deleteCredential).toHaveBeenCalledWith(
+      USER_ID,
+      NAVER_BOOK_PROVIDER,
+    );
+  });
+
+  it('keeps the legacy Aladin raw key wrapper compatible with generic storage', async () => {
+    await service.saveAladinKey(USER_ID, ' ttb-test-key ');
+
+    expect(credentialService.saveCredential).toHaveBeenCalledWith(
+      USER_ID,
+      ALADIN_PROVIDER,
+      JSON.stringify({
+        ttbKey: 'ttb-test-key',
+      }),
+    );
+
+    await service.deleteAladinKey(USER_ID);
+
+    expect(credentialService.deleteCredential).toHaveBeenCalledWith(
       USER_ID,
       ALADIN_PROVIDER,
     );
@@ -362,7 +416,7 @@ describe('ImportsService', () => {
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
   });
 
-  it('records skipped diagnostics for guest automatic server providers', async () => {
+  it('records skipped diagnostics for guest automatic user-key providers', async () => {
     const result = await service.search(null, {
       query: 'Dune',
       type: WorkType.movie,
@@ -374,13 +428,13 @@ describe('ImportsService', () => {
         expect.objectContaining({
           provider: TMDB_PROVIDER,
           status: 'skipped',
-          credentialMode: 'server',
+          credentialMode: 'user',
           reasonCode: 'guest_provider_not_allowed',
         }),
         expect.objectContaining({
           provider: KOBIS_PROVIDER,
           status: 'skipped',
-          credentialMode: 'server',
+          credentialMode: 'user',
           reasonCode: 'guest_provider_not_allowed',
         }),
         expect.objectContaining({
@@ -794,11 +848,12 @@ describe('ImportsService', () => {
   });
 
   it('normalizes provider ISBN, date, title, and contributor fields', async () => {
-    const originalNaverClientId = process.env.NAVER_CLIENT_ID;
-    const originalNaverClientSecret = process.env.NAVER_CLIENT_SECRET;
-
-    process.env.NAVER_CLIENT_ID = 'naver-client-id';
-    process.env.NAVER_CLIENT_SECRET = 'naver-client-secret';
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        clientId: 'naver-client-id',
+        clientSecret: 'naver-client-secret',
+      }),
+    );
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
         items: [
@@ -816,60 +871,173 @@ describe('ImportsService', () => {
       }),
     );
 
-    try {
-      const result = await service.search(USER_ID, {
-        provider: NAVER_BOOK_PROVIDER,
-        query: 'Dune',
-        limit: 5,
-        type: WorkType.novel,
-      });
+    const result = await service.search(USER_ID, {
+      provider: NAVER_BOOK_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
 
-      expect(result.candidates[0]).toEqual(
-        expect.objectContaining({
-          title: 'Dune & Messiah',
-          description: 'A desert saga & archive.',
-          releaseYear: 2026,
-          thumbnailUrl: 'https://image.example.test/dune.jpg',
-          sourceUrl: 'https://book.example.test/dune',
-          contributors: [
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        title: 'Dune & Messiah',
+        description: 'A desert saga & archive.',
+        releaseYear: 2026,
+        thumbnailUrl: 'https://image.example.test/dune.jpg',
+        sourceUrl: 'https://book.example.test/dune',
+        contributors: [
+          {
+            name: 'Frank Herbert',
+            role: 'author',
+          },
+          {
+            name: 'Brian Herbert',
+            role: 'author',
+          },
+        ],
+        releaseCandidates: [
+          expect.objectContaining({
+            isbn: '9780441172719',
+            releaseDate: '2026-04-18',
+            externalRefs: [
+              expect.objectContaining({
+                externalId: '0441172717 9780441172719',
+                provider: NAVER_BOOK_PROVIDER,
+                rawType: 'volume',
+                url: 'https://book.example.test/dune',
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    const fetchCall = jest.mocked(globalThis.fetch).mock.calls[0];
+    const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
+
+    expect(fetchHeaders.get('X-Naver-Client-Id')).toBe('naver-client-id');
+    expect(fetchHeaders.get('X-Naver-Client-Secret')).toBe(
+      'naver-client-secret',
+    );
+  });
+
+  it('uses the authenticated user TMDB credential for movie search', async () => {
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        readToken: 'tmdb-read-token',
+      }),
+    );
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        results: [
+          {
+            id: 123,
+            overview: 'Desert planet.',
+            poster_path: '/dune.jpg',
+            release_date: '2021-10-22',
+            title: 'Dune',
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(USER_ID, {
+      provider: TMDB_PROVIDER,
+      query: 'Dune',
+      type: WorkType.movie,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: TMDB_PROVIDER,
+        title: 'Dune',
+      }),
+    );
+
+    const fetchCall = jest.mocked(globalThis.fetch).mock.calls[0];
+    const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
+
+    expect(fetchHeaders.get('authorization')).toBe('Bearer tmdb-read-token');
+  });
+
+  it('uses the authenticated user Kakao credential for book search', async () => {
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        restApiKey: 'kakao-rest-key',
+      }),
+    );
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        documents: [
+          {
+            authors: ['Frank Herbert'],
+            contents: 'Desert planet.',
+            datetime: '1965-08-01T00:00:00.000+09:00',
+            isbn: '9780441172719',
+            title: 'Dune',
+            url: 'https://book.example.test/dune',
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(USER_ID, {
+      provider: KAKAO_BOOK_PROVIDER,
+      query: 'Dune',
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: KAKAO_BOOK_PROVIDER,
+        title: 'Dune',
+      }),
+    );
+
+    const fetchCall = jest.mocked(globalThis.fetch).mock.calls[0];
+    const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
+
+    expect(fetchHeaders.get('authorization')).toBe('KakaoAK kakao-rest-key');
+  });
+
+  it('uses the authenticated user KOBIS credential for movie search', async () => {
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        apiKey: 'kobis-api-key',
+      }),
+    );
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        movieListResult: {
+          movieList: [
             {
-              name: 'Frank Herbert',
-              role: 'author',
-            },
-            {
-              name: 'Brian Herbert',
-              role: 'author',
+              movieCd: '20210001',
+              movieNm: 'Dune',
+              openDt: '20211020',
+              prdtYear: '2021',
             },
           ],
-          releaseCandidates: [
-            expect.objectContaining({
-              isbn: '9780441172719',
-              releaseDate: '2026-04-18',
-              externalRefs: [
-                expect.objectContaining({
-                  externalId: '0441172717 9780441172719',
-                  provider: NAVER_BOOK_PROVIDER,
-                  rawType: 'volume',
-                  url: 'https://book.example.test/dune',
-                }),
-              ],
-            }),
-          ],
-        }),
-      );
-    } finally {
-      if (originalNaverClientId === undefined) {
-        delete process.env.NAVER_CLIENT_ID;
-      } else {
-        process.env.NAVER_CLIENT_ID = originalNaverClientId;
-      }
+        },
+      }),
+    );
 
-      if (originalNaverClientSecret === undefined) {
-        delete process.env.NAVER_CLIENT_SECRET;
-      } else {
-        process.env.NAVER_CLIENT_SECRET = originalNaverClientSecret;
-      }
-    }
+    const result = await service.search(USER_ID, {
+      provider: KOBIS_PROVIDER,
+      query: 'Dune',
+      type: WorkType.movie,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: KOBIS_PROVIDER,
+        title: 'Dune',
+      }),
+    );
+
+    const fetchCall = jest.mocked(globalThis.fetch).mock.calls[0];
+    const fetchUrl = new URL(String(fetchCall?.[0]));
+
+    expect(fetchUrl.searchParams.get('key')).toBe('kobis-api-key');
   });
 
   it('dedupes repeated provider external refs while preserving merged identity', async () => {
@@ -1301,54 +1469,27 @@ describe('ImportsService', () => {
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
   });
 
-  it('keeps server-key providers unavailable to guest search by default', async () => {
+  it('keeps user-key providers unavailable to guest search by default', async () => {
     await expect(
       service.search(null, {
         provider: TMDB_PROVIDER,
         query: 'Dune',
       }),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
-  it('records skipped diagnostics when an authenticated server provider is not configured', async () => {
-    const originalTmdbApiKey = process.env.TMDB_API_KEY;
-    const originalTmdbReadToken = process.env.TMDB_API_READ_TOKEN;
+  it('rejects explicit authenticated search when a user-key provider is not configured', async () => {
+    credentialService.getDecryptedCredential.mockResolvedValue(null);
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
 
-    delete process.env.TMDB_API_KEY;
-    delete process.env.TMDB_API_READ_TOKEN;
-
-    try {
-      const fetchSpy = jest.spyOn(globalThis, 'fetch');
-      const result = await service.search(USER_ID, {
+    await expect(
+      service.search(USER_ID, {
         provider: TMDB_PROVIDER,
         query: 'Dune',
-      });
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
 
-      expect(result.candidates).toEqual([]);
-      expect(result.diagnostics.providers).toEqual([
-        expect.objectContaining({
-          provider: TMDB_PROVIDER,
-          status: 'skipped',
-          credentialMode: 'server',
-          configured: false,
-          reasonCode: 'server_credential_missing',
-          resultCount: 0,
-        }),
-      ]);
-      expect(fetchSpy).not.toHaveBeenCalled();
-    } finally {
-      if (originalTmdbApiKey === undefined) {
-        delete process.env.TMDB_API_KEY;
-      } else {
-        process.env.TMDB_API_KEY = originalTmdbApiKey;
-      }
-
-      if (originalTmdbReadToken === undefined) {
-        delete process.env.TMDB_API_READ_TOKEN;
-      } else {
-        process.env.TMDB_API_READ_TOKEN = originalTmdbReadToken;
-      }
-    }
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('maps Aladin book results into Quick Add candidates', async () => {

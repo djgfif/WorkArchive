@@ -77,11 +77,11 @@ describe('ImportsService', () => {
             {
               provider: 'tmdb',
               status: 'skipped',
-              credentialMode: 'server',
+              credentialMode: 'user',
               configured: false,
               resultCount: 0,
-              reasonCode: 'server_credential_missing',
-              message: 'TMDB search is not configured on this server.',
+              reasonCode: 'user_credential_missing',
+              message: 'TMDB search requires a configured user key.',
             },
             {
               provider: 'google_books',

@@ -73,9 +73,17 @@ type UnknownRecord = Record<string, unknown>;
 
 interface ProviderMetadata {
   credentialMode: 'none' | 'server' | 'user';
+  credentialFields?: ProviderCredentialField[];
   label: string;
   mediumTypes: WorkType[];
   provider: ImportProvider;
+}
+
+interface ProviderCredentialField {
+  description?: string;
+  label: string;
+  name: string;
+  secret?: boolean;
 }
 
 interface ProviderSearchContext {
@@ -85,9 +93,19 @@ interface ProviderSearchContext {
   userId: string | null;
 }
 
+type ProviderCredentialValues = Record<string, string>;
+
 const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
   [ALADIN_PROVIDER]: {
     credentialMode: 'user',
+    credentialFields: [
+      {
+        description: 'Aladin Open API TTBKey',
+        label: 'TTBKey',
+        name: 'ttbKey',
+        secret: true,
+      },
+    ],
     label: 'Aladin Book',
     mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
     provider: ALADIN_PROVIDER,
@@ -138,25 +156,61 @@ const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
     provider: TVMAZE_PROVIDER,
   },
   [TMDB_PROVIDER]: {
-    credentialMode: 'server',
+    credentialMode: 'user',
+    credentialFields: [
+      {
+        description: 'TMDB API Read Access Token',
+        label: 'Read Access Token',
+        name: 'readToken',
+        secret: true,
+      },
+    ],
     label: 'TMDB',
     mediumTypes: [WorkType.movie, WorkType.drama],
     provider: TMDB_PROVIDER,
   },
   [NAVER_BOOK_PROVIDER]: {
-    credentialMode: 'server',
+    credentialMode: 'user',
+    credentialFields: [
+      {
+        label: 'Client ID',
+        name: 'clientId',
+        secret: true,
+      },
+      {
+        label: 'Client Secret',
+        name: 'clientSecret',
+        secret: true,
+      },
+    ],
     label: 'Naver Book',
     mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
     provider: NAVER_BOOK_PROVIDER,
   },
   [KAKAO_BOOK_PROVIDER]: {
-    credentialMode: 'server',
+    credentialMode: 'user',
+    credentialFields: [
+      {
+        description: 'Kakao Developers REST API key',
+        label: 'REST API Key',
+        name: 'restApiKey',
+        secret: true,
+      },
+    ],
     label: 'Kakao Book',
     mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
     provider: KAKAO_BOOK_PROVIDER,
   },
   [KOBIS_PROVIDER]: {
-    credentialMode: 'server',
+    credentialMode: 'user',
+    credentialFields: [
+      {
+        description: 'KOBIS Open API key',
+        label: 'API Key',
+        name: 'apiKey',
+        secret: true,
+      },
+    ],
     label: 'KOBIS',
     mediumTypes: [WorkType.movie],
     provider: KOBIS_PROVIDER,
@@ -217,6 +271,9 @@ export class ImportsService {
           label: metadata.label,
           mediumTypes: metadata.mediumTypes,
           provider,
+          ...(metadata.credentialFields
+            ? { credentialFields: metadata.credentialFields }
+            : {}),
         };
       }),
     );
@@ -226,11 +283,7 @@ export class ImportsService {
     userId: string,
     ttbKey: string,
   ): Promise<Pick<ImportProviderStatusResponseDto, 'configured' | 'provider'>> {
-    await this.credentialService.saveCredential(
-      userId,
-      ALADIN_PROVIDER,
-      ttbKey,
-    );
+    await this.saveProviderKey(userId, ALADIN_PROVIDER, { ttbKey });
 
     return {
       provider: ALADIN_PROVIDER,
@@ -239,7 +292,30 @@ export class ImportsService {
   }
 
   async deleteAladinKey(userId: string) {
-    await this.credentialService.deleteCredential(userId, ALADIN_PROVIDER);
+    await this.deleteProviderKey(userId, ALADIN_PROVIDER);
+  }
+
+  async saveProviderKey(
+    userId: string,
+    providerInput: string,
+    values: ProviderCredentialValues,
+  ): Promise<ImportProviderStatusResponseDto> {
+    const provider = this.assertUserCredentialProvider(providerInput);
+    const credentialValues = this.normalizeCredentialValues(provider, values);
+
+    await this.credentialService.saveCredential(
+      userId,
+      provider,
+      JSON.stringify(credentialValues),
+    );
+
+    return this.buildProviderStatus(provider, true);
+  }
+
+  async deleteProviderKey(userId: string, providerInput: string) {
+    const provider = this.assertUserCredentialProvider(providerInput);
+
+    await this.credentialService.deleteCredential(userId, provider);
   }
 
   async search(
@@ -506,11 +582,11 @@ export class ImportsService {
       return false;
     }
 
-    if (provider === ALADIN_PROVIDER) {
-      return this.credentialService.hasCredential(userId, ALADIN_PROVIDER);
+    if (metadata.credentialMode === 'user') {
+      return this.credentialService.hasCredential(userId, provider);
     }
 
-    return this.readServerCredential(provider) !== null;
+    return false;
   }
 
   private async searchProvider(
@@ -553,10 +629,11 @@ export class ImportsService {
       );
     }
 
-    const ttbKey = await this.credentialService.getDecryptedCredential(
+    const credentials = await this.getProviderCredentialValues(
       userId,
       ALADIN_PROVIDER,
     );
+    const ttbKey = credentials?.ttbKey;
 
     if (!ttbKey) {
       throw new ForbiddenException(
@@ -783,11 +860,17 @@ export class ImportsService {
     limit,
     mediumType,
     query,
+    userId,
   }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
-    const credential = this.readServerCredential(TMDB_PROVIDER);
+    const credential = userId
+      ? await this.getProviderCredentialValues(userId, TMDB_PROVIDER)
+      : null;
+    const readToken = credential?.readToken;
 
-    if (!credential) {
-      return [];
+    if (!readToken) {
+      throw new ForbiddenException(
+        'TMDB API key is not configured for this user.',
+      );
     }
 
     const urls: Array<{ rawType: 'movie' | 'tv'; url: URL }> = [];
@@ -820,18 +903,13 @@ export class ImportsService {
           mediumType,
           provider: TMDB_PROVIDER,
           query,
+          userScope: userId,
           variant: rawType,
         }),
         cacheTtlMs: PROVIDER_CACHE_TTL_MS,
       };
 
-      if (credential.kind === 'bearer') {
-        fetchOptions.bearerToken = credential.value;
-      }
-
-      if (credential.kind === 'query') {
-        fetchOptions.queryApiKey = credential.value;
-      }
+      fetchOptions.bearerToken = readToken;
 
       const responseBody = await this.fetchJson(url, fetchOptions);
       const results = this.readPathArray(responseBody, ['results']);
@@ -854,12 +932,18 @@ export class ImportsService {
     limit,
     mediumType,
     query,
+    userId,
   }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
-    const clientId = process.env.NAVER_CLIENT_ID?.trim();
-    const clientSecret = process.env.NAVER_CLIENT_SECRET?.trim();
+    const credential = userId
+      ? await this.getProviderCredentialValues(userId, NAVER_BOOK_PROVIDER)
+      : null;
+    const clientId = credential?.clientId;
+    const clientSecret = credential?.clientSecret;
 
     if (!clientId || !clientSecret) {
-      return [];
+      throw new ForbiddenException(
+        'Naver Book API key is not configured for this user.',
+      );
     }
 
     const searchUrl = new URL(NAVER_BOOK_SEARCH_URL);
@@ -874,6 +958,7 @@ export class ImportsService {
         mediumType,
         provider: NAVER_BOOK_PROVIDER,
         query,
+        userScope: userId,
       }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
       headers: {
@@ -897,11 +982,17 @@ export class ImportsService {
     limit,
     mediumType,
     query,
+    userId,
   }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
-    const restApiKey = process.env.KAKAO_REST_API_KEY?.trim();
+    const credential = userId
+      ? await this.getProviderCredentialValues(userId, KAKAO_BOOK_PROVIDER)
+      : null;
+    const restApiKey = credential?.restApiKey;
 
     if (!restApiKey) {
-      return [];
+      throw new ForbiddenException(
+        'Kakao Book API key is not configured for this user.',
+      );
     }
 
     const searchUrl = new URL(KAKAO_BOOK_SEARCH_URL);
@@ -918,6 +1009,7 @@ export class ImportsService {
         mediumType,
         provider: KAKAO_BOOK_PROVIDER,
         query,
+        userScope: userId,
       }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
@@ -937,11 +1029,17 @@ export class ImportsService {
     limit,
     mediumType,
     query,
+    userId,
   }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
-    const apiKey = process.env.KOBIS_API_KEY?.trim();
+    const credential = userId
+      ? await this.getProviderCredentialValues(userId, KOBIS_PROVIDER)
+      : null;
+    const apiKey = credential?.apiKey;
 
     if (!apiKey) {
-      return [];
+      throw new ForbiddenException(
+        'KOBIS API key is not configured for this user.',
+      );
     }
 
     const searchUrl = new URL(KOBIS_MOVIE_SEARCH_URL);
@@ -957,6 +1055,7 @@ export class ImportsService {
         mediumType,
         provider: KOBIS_PROVIDER,
         query,
+        userScope: userId,
       }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     });
@@ -1614,57 +1713,111 @@ export class ImportsService {
     );
   }
 
-  private readServerCredential(provider: ImportProvider) {
-    if (provider === TMDB_PROVIDER) {
-      const bearer = process.env.TMDB_API_READ_TOKEN?.trim();
+  private buildProviderStatus(
+    provider: ImportProvider,
+    configured: boolean,
+  ): ImportProviderStatusResponseDto {
+    const metadata = PROVIDERS[provider];
 
-      if (bearer) {
-        return {
-          kind: 'bearer' as const,
-          value: bearer,
-        };
+    return {
+      configured,
+      credentialMode: metadata.credentialMode,
+      label: metadata.label,
+      mediumTypes: metadata.mediumTypes,
+      provider,
+      ...(metadata.credentialFields
+        ? { credentialFields: metadata.credentialFields }
+        : {}),
+    };
+  }
+
+  private assertUserCredentialProvider(providerInput: string) {
+    if (!(IMPORT_PROVIDER_VALUES as readonly string[]).includes(providerInput)) {
+      throw new BadRequestException('Unsupported import provider.');
+    }
+
+    const provider = providerInput as ImportProvider;
+    const metadata = PROVIDERS[provider];
+
+    if (metadata.credentialMode !== 'user') {
+      throw new BadRequestException(
+        `${metadata.label} does not accept user API keys.`,
+      );
+    }
+
+    return provider;
+  }
+
+  private normalizeCredentialValues(
+    provider: ImportProvider,
+    values: ProviderCredentialValues,
+  ) {
+    const fields = PROVIDERS[provider].credentialFields ?? [];
+    const normalized: ProviderCredentialValues = {};
+
+    for (const field of fields) {
+      const value = values[field.name]?.trim();
+
+      if (!value) {
+        throw new BadRequestException(`${field.label} is required.`);
       }
 
-      const apiKey = process.env.TMDB_API_KEY?.trim();
-
-      return apiKey
-        ? {
-            kind: 'query' as const,
-            value: apiKey,
-          }
-        : null;
+      normalized[field.name] = value;
     }
 
-    if (provider === NAVER_BOOK_PROVIDER) {
-      return process.env.NAVER_CLIENT_ID?.trim() &&
-        process.env.NAVER_CLIENT_SECRET?.trim()
-        ? {
-            kind: 'header' as const,
-            value: 'configured',
-          }
-        : null;
+    return normalized;
+  }
+
+  private async getProviderCredentialValues(
+    userId: string,
+    provider: ImportProvider,
+  ) {
+    const rawCredential = await this.credentialService.getDecryptedCredential(
+      userId,
+      provider,
+    );
+
+    if (!rawCredential) {
+      return null;
     }
 
-    if (provider === KAKAO_BOOK_PROVIDER) {
-      const apiKey = process.env.KAKAO_REST_API_KEY?.trim();
+    return this.parseCredentialValues(provider, rawCredential);
+  }
 
-      return apiKey
-        ? {
-            kind: 'bearer' as const,
-            value: apiKey,
-          }
-        : null;
+  private parseCredentialValues(
+    provider: ImportProvider,
+    rawCredential: string,
+  ) {
+    const rawValue = rawCredential.trim();
+
+    if (!rawValue) {
+      return null;
     }
 
-    if (provider === KOBIS_PROVIDER) {
-      const apiKey = process.env.KOBIS_API_KEY?.trim();
+    try {
+      const parsed = JSON.parse(rawValue) as unknown;
 
-      return apiKey
-        ? {
-            kind: 'query' as const,
-            value: apiKey,
+      if (this.isRecord(parsed)) {
+        const values: ProviderCredentialValues = {};
+
+        for (const field of PROVIDERS[provider].credentialFields ?? []) {
+          const value = parsed[field.name];
+
+          if (typeof value === 'string' && value.trim()) {
+            values[field.name] = value.trim();
           }
-        : null;
+        }
+
+        return Object.keys(values).length > 0 ? values : null;
+      }
+    } catch {
+      // Legacy Aladin credentials were stored as a raw TTBKey string.
+    }
+
+    if (provider === ALADIN_PROVIDER) {
+      return {
+        ttbKey: rawValue,
+      };
     }
 
     return null;
@@ -1795,12 +1948,14 @@ export class ImportsService {
     mediumType: WorkType | undefined;
     provider: ImportProvider;
     query: string;
+    userScope?: string | null;
     variant?: string;
   }) {
     return [
       input.provider,
       input.mediumType ?? 'all',
       input.limit.toString(),
+      input.userScope ?? 'public',
       (input.variant ?? '').trim().toLowerCase(),
       input.query.normalize('NFKC').trim().toLowerCase(),
     ].join(':');

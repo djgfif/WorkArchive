@@ -129,10 +129,18 @@ export interface ImportCandidate {
 
 export interface ImportProviderStatus {
   configured: boolean;
+  credentialFields?: ImportProviderCredentialField[];
   credentialMode?: 'none' | 'server' | 'user';
   label?: string;
   mediumTypes?: WorkType[];
   provider: string;
+}
+
+export interface ImportProviderCredentialField {
+  description?: string;
+  label: string;
+  name: string;
+  secret?: boolean;
 }
 
 export type ImportSearchDiagnosticStatus = 'searched' | 'skipped' | 'failed';
