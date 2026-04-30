@@ -36,6 +36,7 @@ export function CandidatePreviewPanel({
   const titleAliases = candidate.titleAliases?.filter(
     (titleAlias) => titleAlias !== candidate.title,
   );
+  const needsManualReview = !isManualCandidate && candidate.confidence < 0.62;
 
   return (
     <Stack gap="lg">
@@ -173,6 +174,20 @@ export function CandidatePreviewPanel({
           )}
         </Stack>
       </Paper>
+
+      {needsManualReview && (
+        <Alert
+          color="yellow"
+          radius="lg"
+          title="후보를 확인하고 직접 추가도 고려하세요"
+          variant="light"
+        >
+          <Text c="inherit" size="sm">
+            제목이나 출처 신호가 약한 후보입니다. 맞는 작품인지 확인한 뒤
+            사용하거나, 검색을 닫고 직접 입력으로 계속할 수 있습니다.
+          </Text>
+        </Alert>
+      )}
 
       {duplicateMatches.length > 0 && (
         <Alert

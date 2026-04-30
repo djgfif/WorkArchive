@@ -17,7 +17,7 @@
 - 공개 프로필, 공개 리뷰, 커뮤니티, 팔로우, 댓글, moderation은 현재 제품 범위 밖이다.
 - 현재 제품 기준은 `direct manual add + optional-auth server-assisted search + local-first save`다.
 - Manual Add, guest no-key provider search, Quick Add identity 저장, duplicate detection, backend sync create 순서는 테스트로 고정돼 있다.
-- 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage, manual fallback 분리까지 2차 고도화가 진행됐고, 남은 작업은 실제 검색어 QA와 튜닝이다.
+- 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage, manual fallback 분리와 candidate trust 표시까지 2차 고도화가 진행됐다. 남은 작업은 실제 provider별 검색어 QA와 튜닝이다.
 - 수정된 우선순위는 `개인 기록 UX -> export/import -> 개인 기록 깊이 -> optional private sync -> search quality -> personal Insights`다.
 - `Public`, `Community`, `Social`, `Catalog moderation` 계열 작업은 무기한 보류한다.
 
@@ -169,13 +169,15 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 - frontend imports service는 토큰이 있으면 authenticated request, 없으면 plain request를 보낸다.
 - guest는 key가 필요 없는 provider 검색과 manual provider를 사용할 수 있고, user/server credential provider는 정책에 따라 제한된다.
 - Quick Add 저장 흐름은 `catalogTitleId`, identity-only `importDraft`, manual/direct record를 구분한다.
+- 검색 ranking은 제목 exact/alias/token, 제작자, 발매연도, provider/source coverage, catalog match를 반영한다.
+- 낮은 신뢰도 후보는 직접 추가 fallback을 방해하지 않도록 후보 UI에서 검토 안내를 표시한다.
 
 우선순위:
 
-1. provider ranking/search quality 개선
+1. provider별 실제 검색어 QA와 ranking weight 튜닝
 2. source merge 표시 회귀 확인
 3. 검색 실패 fallback UX 회귀 확인
-4. 제목 alias / 원제 / 번역제 대응
+4. 제목 alias / 원제 / 번역제 케이스 추가 수집
 5. catalog identity 연결 보조
 
 완료 기준:

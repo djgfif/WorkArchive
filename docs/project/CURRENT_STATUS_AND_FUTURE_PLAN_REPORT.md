@@ -184,10 +184,12 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - 계정 센터 라우트 분리
 - backend sync create의 `catalogTitleId -> importDraft -> legacy fallback` 처리 순서
 - `importDraft.catalogTitle` optional legacy-compatible field와 누락 시 `payload.title` fallback
+- Quick Add 검색 ranking의 제목 exact/alias/token, 제작자, 발매연도, provider/source coverage, catalog match 반영
+- Quick Add 낮은 신뢰도 후보의 직접 추가 fallback 검토 안내
 
 ### Not Yet Implemented
 
-- provider별 ranking/search quality 실제 검색어 QA와 튜닝
+- provider별 실제 검색어 QA와 ranking weight 튜닝
 - Sync conflict 자동 병합 판단과 고급 충돌 정책
 - guest 기록 자동 병합 정책과 다기기 이관 UX
 - 자동 동기화
@@ -254,7 +256,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - Mantine foundation은 도입됐지만 스타일 책임은 아직 `global.css`와 페이지별 클래스 조합에 크게 남아 있다.
 - shared UI primitives가 생기고 있지만 `var(--accent)`류 직접 참조와 커스텀 클래스 조합 의존이 여전히 크다.
 - placeholder 화면과 실제 구현 화면의 성숙도 차이가 크다.
-- 직접 수동 추가, `/works` AddWorkDialog, `/works/new` fallback, guest no-key provider 검색의 기본 구현/테스트는 들어갔다. 남은 일은 provider별 ranking/search quality와 모바일/브라우저 QA 고도화다.
+- 직접 수동 추가, `/works` AddWorkDialog, `/works/new` fallback, guest no-key provider 검색, ranking/search quality 기본 구현/테스트는 들어갔다. 남은 일은 provider별 실제 검색어 QA와 모바일/브라우저 QA 고도화다.
 - Quick Add provider readiness UI, duplicate policy, SearchPickerPanel 기반 inline 검색 흐름의 기본 구현/테스트는 들어갔다.
 - Quick Add 저장은 현재 제품 기준에서 의도적으로 local-first sync 경로를 유지한다. authenticated direct create path는 기본 생성 경로가 아니다.
 
