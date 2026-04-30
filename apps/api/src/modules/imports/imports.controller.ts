@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
   UnauthorizedException,
   Post,
   Put,
@@ -27,9 +28,10 @@ import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
-import { ImportSearchQueryDto } from './dto/import-search-query.dto';
+import type { ImportSearchQueryDto } from './dto/import-search-query.dto';
 import { ImportSearchResponseDto } from './dto/import-search-response.dto';
 import { UpsertAladinKeyDto } from './dto/upsert-aladin-key.dto';
+import { UpsertProviderKeyDto } from './dto/upsert-provider-key.dto';
 import { ImportsService } from './imports.service';
 
 @ApiTags('imports')
@@ -104,6 +106,48 @@ export class ImportsController {
   })
   async deleteAladinKey(@CurrentUser() user: AuthenticatedUser) {
     await this.importsService.deleteAladinKey(user.userId);
+  }
+
+  @Put('providers/:provider/key')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiBody({
+    type: UpsertProviderKeyDto,
+  })
+  @ApiOkResponse({
+    description: 'Store or replace a provider API credential for the current user.',
+    type: ImportProviderStatusResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  saveProviderKey(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('provider') provider: string,
+    @Body() upsertProviderKeyDto: UpsertProviderKeyDto,
+  ) {
+    return this.importsService.saveProviderKey(
+      user.userId,
+      provider,
+      upsertProviderKeyDto.values,
+    );
+  }
+
+  @Delete('providers/:provider/key')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({
+    description: 'Remove a provider API credential for the current user.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  async deleteProviderKey(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('provider') provider: string,
+  ) {
+    await this.importsService.deleteProviderKey(user.userId, provider);
   }
 
   @Get('search')

@@ -1,4 +1,6 @@
 import {
+  Button,
+  Divider,
   Group,
   PasswordInput,
   SimpleGrid,
@@ -29,19 +31,19 @@ function getCredentialModeLabel(mode?: ImportProviderStatus['credentialMode']) {
     case 'server':
       return '서버 자격 증명';
     case 'user':
-      return '사용자 키';
+      return '개인 Key Vault';
     case 'none':
     default:
-      return '추가 키 없음';
+      return '공개 provider';
   }
 }
 
 function getProviderStatusLabel(status: ImportProviderStatus) {
   if (status.credentialMode === 'none') {
-    return '바로 사용 가능';
+    return '사용 가능';
   }
 
-  return status.configured ? '준비됨' : '설정 필요';
+  return status.configured ? '등록됨' : '키 필요';
 }
 
 export function AppearanceSettingsSection() {
@@ -303,8 +305,8 @@ export function ProviderReadinessSection({
 
       {mode !== 'authenticated' ? (
         <Text c="var(--app-text-muted)">
-          로그인하면 provider 준비 상태와 개인 Aladin 키 설정을 함께 확인할 수
-          있습니다.
+          로그인하면 provider 준비 상태와 개인 API Key Vault를 함께 확인할 수
+          있습니다. 공개 provider는 로그인 없이도 계속 사용할 수 있습니다.
         </Text>
       ) : isLoadingProviderStatuses ? (
         <Text c="var(--app-text-muted)">
@@ -321,100 +323,186 @@ export function ProviderReadinessSection({
   );
 }
 
-interface AladinIntegrationSectionProps {
-  aladinFeedback: SettingsFeedback | null;
-  aladinStatus: ImportProviderStatus | null;
-  isDeletingAladinKey: boolean;
+interface ProviderKeyVaultSectionProps {
+  credentialDraft: Record<string, string>;
+  deletingProviderId: string | null;
+  feedback: SettingsFeedback | null;
   isLoadingProviderStatuses: boolean;
-  isSavingAladinKey: boolean;
+  keyManagedProviders: ImportProviderStatus[];
   mode: SettingsAuthMode;
-  onDeleteAladinKey: () => void;
-  onSaveAladinKey: () => void;
-  onTtbKeyChange: (value: string) => void;
-  ttbKey: string;
+  onDeleteProviderKey: () => void;
+  onSaveProviderKey: () => void;
+  onSelectProvider: (provider: string) => void;
+  onUpdateCredentialField: (name: string, value: string) => void;
+  savingProviderId: string | null;
+  selectedProvider: ImportProviderStatus | null;
+  selectedProviderId: string | null;
 }
 
-export function AladinIntegrationSection({
-  aladinFeedback,
-  aladinStatus,
-  isDeletingAladinKey,
+export function ProviderKeyVaultSection({
+  credentialDraft,
+  deletingProviderId,
+  feedback,
   isLoadingProviderStatuses,
-  isSavingAladinKey,
+  keyManagedProviders,
   mode,
-  onDeleteAladinKey,
-  onSaveAladinKey,
-  onTtbKeyChange,
-  ttbKey,
-}: AladinIntegrationSectionProps) {
+  onDeleteProviderKey,
+  onSaveProviderKey,
+  onSelectProvider,
+  onUpdateCredentialField,
+  savingProviderId,
+  selectedProvider,
+  selectedProviderId,
+}: ProviderKeyVaultSectionProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void onSaveAladinKey();
+    void onSaveProviderKey();
   }
+
+  const selectedLabel = selectedProvider?.label ?? selectedProvider?.provider;
+  const isSavingSelected =
+    selectedProvider !== null && savingProviderId === selectedProvider.provider;
+  const isDeletingSelected =
+    selectedProvider !== null &&
+    deletingProviderId === selectedProvider.provider;
 
   return (
     <SectionCard>
       <SectionIntro
-        description="Quick Add에서 Aladin 도서 검색 후보를 가져올 때 사용할 사용자별 TTBKey를 저장합니다. 저장된 키 값은 다시 표시하지 않습니다."
+        description="외부 검색 provider별 개인 API credential을 암호화해 저장합니다. 저장된 raw key 값은 다시 표시하지 않으며 백업 파일에도 포함하지 않습니다."
         eyebrow="외부 검색"
-        title="Aladin Book 연동"
+        title="API Key Vault"
       />
 
       {mode !== 'authenticated' ? (
-        <Text c="var(--app-text-muted)">
-          Aladin 외부 검색은 로그인한 계정에서 TTBKey를 등록한 경우에만 사용할
-          수 있습니다.
-        </Text>
-      ) : (
-        <Stack gap="md">
+        <Stack gap="sm">
+          <Text c="var(--app-text-muted)">
+            API Key Vault는 로그인한 계정에서만 사용할 수 있습니다. Google
+            Books, Open Library, AniList, TVmaze처럼 공개 provider는 키 없이
+            검색 보조에 계속 참여합니다.
+          </Text>
           <ActionRow>
-            <AppBadge tone={aladinStatus?.configured ? 'success' : 'muted'}>
-              {isLoadingProviderStatuses
-                ? '상태 확인 중'
-                : aladinStatus?.configured
-                  ? '키가 등록되어 있습니다'
-                  : '키가 등록되어 있지 않습니다'}
-            </AppBadge>
-            <Text c="var(--app-text-muted)" size="sm">
-              도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)
-            </Text>
+            <AppBadge tone="muted">공개 provider 사용 가능</AppBadge>
+            <AppBadge tone="muted">개인 API key는 백업 제외</AppBadge>
           </ActionRow>
-
-          <form onSubmit={handleSubmit}>
-            <Stack gap="sm">
-              <PasswordInput
-                label="Aladin TTBKey"
-                onChange={(event) => onTtbKeyChange(event.currentTarget.value)}
-                placeholder="발급받은 TTBKey를 입력하세요"
-                value={ttbKey}
-              />
-              <ActionRow>
-                <AppButton
-                  disabled={isDeletingAladinKey}
-                  loading={isSavingAladinKey}
-                  tone="primary"
-                  type="submit"
-                >
-                  Aladin 키 저장
-                </AppButton>
-                <AppButton
-                  disabled={!aladinStatus?.configured || isSavingAladinKey}
-                  loading={isDeletingAladinKey}
-                  onClick={() => void onDeleteAladinKey()}
-                  tone="danger"
-                  type="button"
-                >
-                  Aladin 키 삭제
-                </AppButton>
-              </ActionRow>
-            </Stack>
-          </form>
-
-          {aladinFeedback && (
-            <FeedbackMessage tone={aladinFeedback.tone}>
-              {aladinFeedback.message}
-            </FeedbackMessage>
-          )}
         </Stack>
+      ) : isLoadingProviderStatuses ? (
+        <Text c="var(--app-text-muted)">API Key Vault를 불러오는 중입니다.</Text>
+      ) : (
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+          <Stack gap="xs">
+            {keyManagedProviders.map((provider) => {
+              const isSelected = provider.provider === selectedProviderId;
+
+              return (
+                <Button
+                  color="archive"
+                  fullWidth
+                  justify="space-between"
+                  key={provider.provider}
+                  onClick={() => onSelectProvider(provider.provider)}
+                  radius="md"
+                  rightSection={
+                    <AppBadge tone={provider.configured ? 'success' : 'muted'}>
+                      {getProviderStatusLabel(provider)}
+                    </AppBadge>
+                  }
+                  styles={{
+                    inner: {
+                      justifyContent: 'space-between',
+                    },
+                  }}
+                  type="button"
+                  variant={isSelected ? 'light' : 'subtle'}
+                >
+                  {provider.label ?? provider.provider}
+                </Button>
+              );
+            })}
+          </Stack>
+
+          <Stack gap="md">
+            {selectedProvider ? (
+              <>
+                <Stack gap={4}>
+                  <ActionRow>
+                    <Text fw={700}>{selectedLabel}</Text>
+                    <AppBadge
+                      tone={selectedProvider.configured ? 'success' : 'muted'}
+                    >
+                      {getProviderStatusLabel(selectedProvider)}
+                    </AppBadge>
+                  </ActionRow>
+                  <Text c="var(--app-text-muted)" size="sm">
+                    지원 매체:{' '}
+                    {(selectedProvider.mediumTypes ?? [])
+                      .map(getWorkTypeLabel)
+                      .join(', ')}
+                  </Text>
+                </Stack>
+
+                <Divider />
+
+                <form onSubmit={handleSubmit}>
+                  <Stack gap="sm">
+                    {(selectedProvider.credentialFields ?? []).map((field) => (
+                      <PasswordInput
+                        description={field.description}
+                        key={field.name}
+                        label={field.label}
+                        onChange={(event) =>
+                          onUpdateCredentialField(
+                            field.name,
+                            event.currentTarget.value,
+                          )
+                        }
+                        placeholder={`${field.label} 입력`}
+                        value={credentialDraft[field.name] ?? ''}
+                      />
+                    ))}
+
+                    <ActionRow>
+                      <AppButton
+                        disabled={isDeletingSelected}
+                        loading={isSavingSelected}
+                        tone="primary"
+                        type="submit"
+                      >
+                        {selectedLabel} 키 저장
+                      </AppButton>
+                      <AppButton
+                        disabled={
+                          !selectedProvider.configured || isSavingSelected
+                        }
+                        loading={isDeletingSelected}
+                        onClick={() => void onDeleteProviderKey()}
+                        tone="danger"
+                        type="button"
+                      >
+                        {selectedLabel} 키 삭제
+                      </AppButton>
+                    </ActionRow>
+                  </Stack>
+                </form>
+
+                <Text c="var(--app-text-muted)" size="sm">
+                  이 credential은 검색 요청에만 사용하며, 로컬 아카이브
+                  export/import에는 포함하지 않습니다.
+                </Text>
+              </>
+            ) : (
+              <Text c="var(--app-text-muted)">
+                등록 가능한 외부 검색 provider가 없습니다.
+              </Text>
+            )}
+
+            {feedback && (
+              <FeedbackMessage tone={feedback.tone}>
+                {feedback.message}
+              </FeedbackMessage>
+            )}
+          </Stack>
+        </SimpleGrid>
       )}
     </SectionCard>
   );

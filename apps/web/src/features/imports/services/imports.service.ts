@@ -61,6 +61,10 @@ function formatProviderLabel(provider: string) {
   return providerDisplayLabels[provider] ?? provider;
 }
 
+function getProviderKeyPath(provider: string) {
+  return `/imports/providers/${encodeURIComponent(provider)}/key`;
+}
+
 function formatProviderResult(diagnostic: ImportSearchProviderDiagnostic) {
   const label = formatProviderLabel(diagnostic.provider);
 
@@ -277,6 +281,33 @@ export class ImportsService {
       },
       {
         missingTokenMessage: 'Aladin 검색 설정은 로그인 후 이용해주세요.',
+      },
+    );
+  }
+
+  async saveProviderKey(provider: string, values: Record<string, string>) {
+    return requestAuthenticatedApiJson<ImportProviderStatus>(
+      getProviderKeyPath(provider),
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          values,
+        }),
+      },
+      {
+        missingTokenMessage: '외부 검색 API Key 설정은 로그인 후 이용해주세요.',
+      },
+    );
+  }
+
+  async deleteProviderKey(provider: string) {
+    await requestAuthenticatedApi(
+      getProviderKeyPath(provider),
+      {
+        method: 'DELETE',
+      },
+      {
+        missingTokenMessage: '외부 검색 API Key 설정은 로그인 후 이용해주세요.',
       },
     );
   }

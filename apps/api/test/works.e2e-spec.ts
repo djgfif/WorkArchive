@@ -1241,7 +1241,7 @@ describe('Auth, works, and sync API (e2e)', () => {
         }),
         expect.objectContaining({
           provider: 'tmdb',
-          credentialMode: 'server',
+          credentialMode: 'user',
           configured: false,
         }),
       ]),

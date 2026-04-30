@@ -2,9 +2,9 @@ import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
 import { AppLinkButton } from '../../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import {
-  AladinIntegrationSection,
   AppearanceSettingsSection,
   LocalArchiveSettingsSection,
+  ProviderKeyVaultSection,
   ProviderReadinessSection,
   SettingsFutureSection,
 } from '../components/settings/SettingsSections';
@@ -47,19 +47,22 @@ export function SettingsPage() {
         providerStatuses={importProviderSettings.providerStatuses}
       />
 
-      <AladinIntegrationSection
-        aladinFeedback={importProviderSettings.aladinFeedback}
-        aladinStatus={importProviderSettings.aladinStatus}
-        isDeletingAladinKey={importProviderSettings.isDeletingAladinKey}
+      <ProviderKeyVaultSection
+        credentialDraft={importProviderSettings.credentialDraft}
+        deletingProviderId={importProviderSettings.deletingProviderId}
+        feedback={importProviderSettings.providerFeedback}
         isLoadingProviderStatuses={
           importProviderSettings.isLoadingProviderStatuses
         }
-        isSavingAladinKey={importProviderSettings.isSavingAladinKey}
+        keyManagedProviders={importProviderSettings.keyManagedProviders}
         mode={mode}
-        onDeleteAladinKey={importProviderSettings.deleteAladinKey}
-        onSaveAladinKey={importProviderSettings.saveAladinKey}
-        onTtbKeyChange={importProviderSettings.setTtbKey}
-        ttbKey={importProviderSettings.ttbKey}
+        onDeleteProviderKey={importProviderSettings.deleteSelectedProviderKey}
+        onSaveProviderKey={importProviderSettings.saveSelectedProviderKey}
+        onSelectProvider={importProviderSettings.selectProvider}
+        onUpdateCredentialField={importProviderSettings.updateCredentialField}
+        savingProviderId={importProviderSettings.savingProviderId}
+        selectedProvider={importProviderSettings.selectedProvider}
+        selectedProviderId={importProviderSettings.selectedProviderId}
       />
 
       <SettingsFutureSection />
