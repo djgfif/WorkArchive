@@ -1,12 +1,12 @@
 # BACKEND_SERVICE_REDESIGN_MASTERPLAN.md
 
-| Field | Value |
-| --- | --- |
-| Status | `canonical` |
-| Role | `target backend structure` |
-| Source of truth | current API modules, Prisma schema, `WorksService` orchestration, product expansion strategy |
-| Last verified against | `2026-04-25` local `master` working tree |
-| When to update | 백엔드 도메인 경계, migration slice, target module map이 바뀔 때 |
+| Field                 | Value                                                                                        |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| Status                | `canonical`                                                                                  |
+| Role                  | `target backend structure`                                                                   |
+| Source of truth       | current API modules, Prisma schema, `WorksService` orchestration, product expansion strategy |
+| Last verified against | `2026-04-25` local `master` working tree                                                     |
+| When to update        | 백엔드 도메인 경계, migration slice, target module map이 바뀔 때                             |
 
 이 문서는 Work Archive 백엔드의 **목표 구조 기준**이다. 현재 구현 상태 설명은 `CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`에서 보고, 여기서는 어디로 더 분리해 가야 하는지를 정의한다.
 
@@ -79,7 +79,7 @@
 - 현재 `1:1` split-only 구조에서 재사용 가능한 catalog 조건 정의
 - flat `Works` API를 한 번에 제거하지 않고, 점진 분해 전략 준비
 - public aggregate를 붙이기 전 read path 분리 기준 정리
-- sync conflict overwrite/merge resolution의 책임 경계 정의
+- sync conflict 고급 해결 정책과 자동 병합 책임 경계 정의
 
 ## Later / Exploratory
 

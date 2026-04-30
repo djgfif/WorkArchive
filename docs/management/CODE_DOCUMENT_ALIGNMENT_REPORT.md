@@ -1,12 +1,12 @@
 # CODE_DOCUMENT_ALIGNMENT_REPORT.md
 
-| Field | Value |
-| --- | --- |
-| Status | `active` |
-| Role | `alignment report` |
-| Source of truth | 현재 소스 트리, package manifests, 핵심 엔트리 파일, current canonical docs |
-| Last verified against | `2026-04-24` working tree |
-| When to update | 코드 현실과 문서 해석 사이의 intentional gap이 바뀔 때 |
+| Field                 | Value                                                                       |
+| --------------------- | --------------------------------------------------------------------------- |
+| Status                | `active`                                                                    |
+| Role                  | `alignment report`                                                          |
+| Source of truth       | 현재 소스 트리, package manifests, 핵심 엔트리 파일, current canonical docs |
+| Last verified against | `2026-04-30` sync conflict resolution working tree                          |
+| When to update        | 코드 현실과 문서 해석 사이의 intentional gap이 바뀔 때                      |
 
 이 문서는 현재 코드와 문서 사이에 **의도적으로 남아 있는 간격**만 설명한다. 이미 정정된 현재 상태를 다시 반복하는 문서가 아니다.
 
@@ -17,6 +17,7 @@
 - 현재 인증은 access token local storage + refresh cookie 구조다.
 - 현재 백엔드는 `CatalogWork` + `UserWorkRecord` split model 위에 flat `Works` API를 유지하는 과도기 구조다.
 - 현재 상태 문서와 루트 README는 guest/auth archive 분리, manual sync, placeholder 페이지 존재를 기준 현실로 본다.
+- SyncPage는 conflict queue item의 원격 스냅샷을 보존하고 로컬 유지, 원격 적용, 필드별 병합으로 기본 해결할 수 있다.
 
 ## 2. Intentional Gaps
 

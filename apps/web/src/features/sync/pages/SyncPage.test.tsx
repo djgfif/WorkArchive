@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -192,11 +192,19 @@ describe('SyncPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('로그인하면 동기화할 수 있습니다')).toBeInTheDocument();
     expect(
-      (await screen.findAllByText(/게스트 모드에서는 기록이 이 기기에만 저장됩니다/)).length,
+      await screen.findByText('로그인하면 동기화할 수 있습니다'),
+    ).toBeInTheDocument();
+    expect(
+      (
+        await screen.findAllByText(
+          /게스트 모드에서는 기록이 이 기기에만 저장됩니다/,
+        )
+      ).length,
     ).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: '로그인 후 동기화' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: '로그인 후 동기화' }),
+    ).toBeDisabled();
   });
 
   it('returns to guest mode when a protected sync request cannot refresh the session', async () => {
@@ -264,10 +272,16 @@ describe('SyncPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findAllByText(/frieren@example\.com/)).not.toHaveLength(0);
-    await user.click(await screen.findByRole('button', { name: '수동 동기화' }));
+    expect(await screen.findAllByText(/frieren@example\.com/)).not.toHaveLength(
+      0,
+    );
+    await user.click(
+      await screen.findByRole('button', { name: '수동 동기화' }),
+    );
 
-    expect(await screen.findByText('로그인하면 동기화할 수 있습니다')).toBeInTheDocument();
+    expect(
+      await screen.findByText('로그인하면 동기화할 수 있습니다'),
+    ).toBeInTheDocument();
     expect(await screen.findAllByText('게스트 모드')).not.toHaveLength(0);
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });
@@ -325,7 +339,9 @@ describe('SyncPage', () => {
       favorite: false,
     });
     const queueItems = await syncQueueRepository.listAll();
-    const failedQueueItem = queueItems.find((item) => item.entityId === failedWork.id);
+    const failedQueueItem = queueItems.find(
+      (item) => item.entityId === failedWork.id,
+    );
     const conflictQueueItem = queueItems.find(
       (item) => item.entityId === conflictWork.id,
     );
@@ -333,10 +349,20 @@ describe('SyncPage', () => {
     expect(failedQueueItem).toBeDefined();
     expect(conflictQueueItem).toBeDefined();
 
-    await syncQueueRepository.markFailed(failedQueueItem!.id, 'Request timed out');
     await syncQueueRepository.markFailed(
+      failedQueueItem!.id,
+      'Request timed out',
+    );
+    await syncQueueRepository.markConflict(
       conflictQueueItem!.id,
       'Remote conflict detected',
+      {
+        ...conflictWork,
+        title: 'Remote Conflict Work',
+        status: 'completed',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
     );
     await worksRepository.update({
       ...(await worksRepository.getById(conflictWork.id))!,
@@ -369,18 +395,227 @@ describe('SyncPage', () => {
     const failedSection = screen.getByTestId('sync-section-failed');
     const conflictSection = screen.getByTestId('sync-section-conflict');
 
-    expect(within(pendingSection).getByText('Pending Work')).toBeInTheDocument();
-    expect(within(pendingSection).getByText(pendingWork.id)).toBeInTheDocument();
+    expect(
+      within(pendingSection).getByText('Pending Work'),
+    ).toBeInTheDocument();
+    expect(
+      within(pendingSection).getByText(pendingWork.id),
+    ).toBeInTheDocument();
     expect(within(failedSection).getByText('Failed Work')).toBeInTheDocument();
-    expect(within(failedSection).getByText('Request timed out')).toBeInTheDocument();
-    expect(within(conflictSection).getByText('Conflict Work')).toBeInTheDocument();
+    expect(
+      within(failedSection).getByText('Request timed out'),
+    ).toBeInTheDocument();
+    expect(
+      within(conflictSection).getByText('Conflict Work'),
+    ).toBeInTheDocument();
     expect(
       within(conflictSection).getByText('Remote conflict detected'),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: '다시 동기화 시도' }).length).toBe(3);
+    expect(within(conflictSection).getByText('충돌 해결')).toBeInTheDocument();
+    expect(
+      within(conflictSection).getByText('로컬: Conflict Work'),
+    ).toBeInTheDocument();
+    expect(
+      within(conflictSection).getByText('원격: Remote Conflict Work'),
+    ).toBeInTheDocument();
+    expect(
+      within(conflictSection).getByRole('button', { name: '로컬 유지' }),
+    ).toBeInTheDocument();
+    expect(
+      within(conflictSection).getByRole('button', { name: '원격 적용' }),
+    ).toBeInTheDocument();
+    expect(
+      within(conflictSection).getByRole('button', { name: '필드별 병합' }),
+    ).toBeDisabled();
+    expect(
+      screen.getAllByRole('button', { name: '다시 동기화 시도' }).length,
+    ).toBe(3);
     expect(
       within(failedSection).getByRole('link', { name: '기록 보기' }),
     ).toHaveAttribute('href', `/works/${failedWork.id}`);
+  });
+
+  it('applies a remote work snapshot from the conflict section', async () => {
+    const user = userEvent.setup();
+
+    workArchiveDbManager.switchToUser('user-1');
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
+
+    const conflictWork = await worksService.createWork({
+      type: 'novel',
+      title: 'Local Conflict Work',
+      author: 'Author Three',
+      genres: ['Science Fiction'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: 'Local note',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+    const [conflictQueueItem] = await syncQueueRepository.listAll();
+
+    await syncQueueRepository.markConflict(
+      conflictQueueItem!.id,
+      'Remote conflict detected',
+      {
+        ...conflictWork,
+        title: 'Remote Conflict Work',
+        shortReview: 'Remote note',
+        syncStatus: 'synced',
+        serverVersion: 4,
+      },
+    );
+    await worksRepository.update({
+      ...(await worksRepository.getById(conflictWork.id))!,
+      syncStatus: 'conflict',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          id: 'user-1',
+          email: 'frieren@example.com',
+          nickname: '',
+        }),
+      ),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/sync'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    const conflictSection = await screen.findByTestId('sync-section-conflict');
+
+    await user.click(
+      within(conflictSection).getByRole('button', { name: '원격 적용' }),
+    );
+
+    await waitFor(async () => {
+      await expect(syncQueueRepository.listAll()).resolves.toEqual([]);
+    });
+    expect(await worksRepository.getById(conflictWork.id)).toEqual(
+      expect.objectContaining({
+        title: 'Remote Conflict Work',
+        shortReview: 'Remote note',
+        syncStatus: 'synced',
+        serverVersion: 4,
+      }),
+    );
+  });
+
+  it('merges selected remote fields from the conflict section', async () => {
+    const user = userEvent.setup();
+
+    workArchiveDbManager.switchToUser('user-1');
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
+
+    const conflictWork = await worksService.createWork({
+      type: 'novel',
+      title: 'Local Merge Work',
+      author: 'Local Author',
+      genres: ['Local Genre'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: 'Local note',
+      review: 'Local review',
+      tier: null,
+      favorite: false,
+    });
+    const [conflictQueueItem] = await syncQueueRepository.listAll();
+
+    await syncQueueRepository.markConflict(
+      conflictQueueItem!.id,
+      'Remote conflict detected',
+      {
+        ...conflictWork,
+        title: 'Remote Merge Work',
+        shortReview: 'Remote note',
+        review: 'Remote review',
+        syncStatus: 'synced',
+        serverVersion: 4,
+      },
+    );
+    await worksRepository.update({
+      ...(await worksRepository.getById(conflictWork.id))!,
+      syncStatus: 'conflict',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          id: 'user-1',
+          email: 'frieren@example.com',
+          nickname: '',
+        }),
+      ),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/sync'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    const conflictSection = await screen.findByTestId('sync-section-conflict');
+
+    await user.click(within(conflictSection).getByLabelText('제목'));
+    await user.click(
+      within(conflictSection).getByRole('button', { name: '필드별 병합' }),
+    );
+
+    await waitFor(async () => {
+      const [queueItem] = await syncQueueRepository.listAll();
+
+      expect(queueItem).toEqual(
+        expect.objectContaining({
+          lastError: null,
+          conflict: null,
+          payload: expect.objectContaining({
+            title: 'Remote Merge Work',
+            shortReview: 'Local note',
+            review: 'Local review',
+            syncStatus: 'pending',
+          }),
+        }),
+      );
+    });
+    expect(await worksRepository.getById(conflictWork.id)).toEqual(
+      expect.objectContaining({
+        title: 'Remote Merge Work',
+        shortReview: 'Local note',
+        review: 'Local review',
+        syncStatus: 'pending',
+      }),
+    );
   });
 
   it('links release-record queue items to the parent work detail when available', async () => {
@@ -434,11 +669,105 @@ describe('SyncPage', () => {
       </AuthProvider>,
     );
 
-    const releaseRecordCard = await screen.findByTestId(`sync-item-${queueItem!.id}`);
+    const releaseRecordCard = await screen.findByTestId(
+      `sync-item-${queueItem!.id}`,
+    );
 
-    expect(within(releaseRecordCard).getByText(/Parent Work/)).toBeInTheDocument();
+    expect(
+      within(releaseRecordCard).getByText(/Parent Work/),
+    ).toBeInTheDocument();
     expect(
       within(releaseRecordCard).getByRole('link', { name: '기록 보기' }),
     ).toHaveAttribute('href', `/works/${parentWork.id}`);
+  });
+
+  it('renders conflict resolution controls for release-record queue items', async () => {
+    workArchiveDbManager.switchToUser('user-1');
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
+
+    const parentWork = buildStoredWork({
+      id: 'parent-work',
+      title: 'Parent Work',
+    });
+
+    await worksRepository.create(parentWork);
+
+    const releaseRecord = buildReleaseRecord({
+      id: 'release-record-conflict',
+      userWorkRecordId: parentWork.id,
+      status: 'planned',
+      shortReview: 'Local release note',
+    });
+
+    await releaseRecordsRepository.create(releaseRecord);
+    const queueItem = await syncQueueRepository.enqueueReleaseRecordChange(
+      releaseRecord,
+      'update',
+    );
+
+    expect(queueItem).not.toBeNull();
+
+    await syncQueueRepository.markConflict(
+      queueItem!.id,
+      'Remote release conflict detected',
+      {
+        ...releaseRecord,
+        status: 'completed',
+        shortReview: 'Remote release note',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
+    );
+    await releaseRecordsRepository.update({
+      ...releaseRecord,
+      syncStatus: 'conflict',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          id: 'user-1',
+          email: 'frieren@example.com',
+          nickname: '',
+        }),
+      ),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/sync'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    const releaseRecordCard = await screen.findByTestId(
+      `sync-item-${queueItem!.id}`,
+    );
+
+    expect(
+      within(releaseRecordCard).getByText('충돌 해결'),
+    ).toBeInTheDocument();
+    expect(
+      within(releaseRecordCard).getByText('로컬: planned'),
+    ).toBeInTheDocument();
+    expect(
+      within(releaseRecordCard).getByText('원격: completed'),
+    ).toBeInTheDocument();
+    expect(
+      within(releaseRecordCard).getByRole('button', { name: '로컬 유지' }),
+    ).toBeInTheDocument();
+    expect(
+      within(releaseRecordCard).getByRole('button', { name: '원격 적용' }),
+    ).toBeInTheDocument();
   });
 });
