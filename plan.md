@@ -1,12 +1,12 @@
 # WorkArchive Current Execution Plan
 
-| Field | Value |
-| --- | --- |
-| Status | `active` |
-| Role | `developer execution entrypoint` |
-| Source of truth | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, current local `master` working tree |
-| Last verified against | `2026-04-25` local `master` working tree |
-| When to update | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때 |
+| Field                 | Value                                                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `active`                                                                                                                                       |
+| Role                  | `developer execution entrypoint`                                                                                                               |
+| Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, current local `master` working tree |
+| Last verified against | `2026-04-25` local `master` working tree                                                                                                       |
+| When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                    |
 
 이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`docs/project/PLAN.md`](./docs/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
 
@@ -51,13 +51,14 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - backend sync create는 `catalogTitleId -> importDraft -> legacy fallback` 순서다.
 - `importDraft.catalogTitle`은 optional legacy-compatible field이며, 없으면 `payload.title`로 fallback한다.
 - Settings provider readiness 기본 UI와 테스트는 들어갔다.
-- SyncPage는 pending / failed / conflict queue item 상태, 원인, 기록 보기, 재시도 CTA를 제공한다.
+- SyncPage는 pending / failed / conflict queue item 상태, 원인, 기록 보기, 재시도 CTA와 conflict 기본 해결 UX를 제공한다.
+- Sync conflict 해결은 로컬 유지, 원격 적용, 필드별 병합을 지원한다. 자동 병합 판단은 현재 제품 기준에서 채택하지 않는다.
 
 ## Current Follow-Up Work
 
 - provider별 ranking/search quality 개선
 - Settings provider readiness polish
-- Sync conflict overwrite/merge resolution
+- Sync conflict 해결 UX polish와 고급 자동 병합 정책 검토
 - 로그인 직후 pull 자동화 검토
 - `Works` compatibility layer 축소와 `Catalog` / `Imports` / `UserRecords` 경계 정리
 - access token 저장 구조와 공개 레이어 권한 분리
@@ -75,7 +76,7 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 
 - provider readiness와 duplicate detection의 기본 구현/테스트는 완료, ranking/search quality와 polish는 후속
 - authenticated direct create path는 현재 제품 기준에서 의도적으로 채택하지 않는 경로
-- SyncPage queue item 단위 상태/원인/기록 보기/재시도 CTA는 구현, overwrite/merge resolution은 후속
+- SyncPage queue item 단위 상태/원인/기록 보기/재시도 CTA와 기본 conflict 해결 UX는 구현
 - Docker Compose는 실제 실행하지 않았다면 미검증
 
 ## Validation Policy

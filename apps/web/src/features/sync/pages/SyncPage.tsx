@@ -1,5 +1,15 @@
-import { Group, Stack, Text, Title } from '@mantine/core';
+import {
+  Checkbox,
+  Divider,
+  Group,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { useState } from 'react';
+
+import type { UserReleaseRecord, WorkRecord } from '@work-archive/shared-types';
 
 import {
   AppBadge,
@@ -18,8 +28,15 @@ import {
   formatWorkDateTime,
   getWorkSyncStatusLabel,
 } from '../../works/utils/work-options';
-import { useSyncDashboard, type SyncDashboardItem } from '../hooks/useSyncDashboard';
-import { type ManualSyncResult, type SyncRunState, syncService } from '../services/sync.service';
+import {
+  useSyncDashboard,
+  type SyncDashboardItem,
+} from '../hooks/useSyncDashboard';
+import {
+  type ManualSyncResult,
+  type SyncRunState,
+  syncService,
+} from '../services/sync.service';
 
 function formatOptionalDate(value: string | null, fallback = '아직 없음') {
   return value ? formatWorkDateTime(value) : fallback;
@@ -80,15 +97,200 @@ function getItemStateTone(state: SyncDashboardItem['state']) {
   }
 }
 
+const WORK_CONFLICT_FIELDS = [
+  { key: 'title', label: '제목' },
+  { key: 'author', label: '작가/제작자' },
+  { key: 'status', label: '상태' },
+  { key: 'rating', label: '별점' },
+  { key: 'shortReview', label: '한줄평' },
+  { key: 'review', label: '감상' },
+  { key: 'favorite', label: '즐겨찾기' },
+  { key: 'tier', label: '티어' },
+  { key: 'progressCurrent', label: '현재 진행도' },
+  { key: 'progressTotal', label: '전체 진행도' },
+  { key: 'progressUnit', label: '진행 단위' },
+  { key: 'lastConsumedLabel', label: '마지막 감상 위치' },
+  { key: 'genres', label: '장르' },
+  { key: 'personalTags', label: '개인 태그' },
+  { key: 'description', label: '설명' },
+  { key: 'thumbnailUrl', label: '표지 URL' },
+  { key: 'deletedAt', label: '삭제 시각' },
+] as const;
+
+const RELEASE_RECORD_CONFLICT_FIELDS = [
+  { key: 'status', label: '상태' },
+  { key: 'rating', label: '별점' },
+  { key: 'shortReview', label: '한줄평' },
+  { key: 'review', label: '감상' },
+  { key: 'favorite', label: '즐겨찾기' },
+  { key: 'deletedAt', label: '삭제 시각' },
+] as const;
+
+function formatConflictValue(value: unknown) {
+  if (value === null || value === undefined || value === '') {
+    return '없음';
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0 ? value.join(', ') : '없음';
+  }
+
+  if (typeof value === 'boolean') {
+    return value ? '예' : '아니오';
+  }
+
+  return String(value);
+}
+
+function getConflictFields(item: SyncDashboardItem) {
+  return item.entityType === 'work'
+    ? WORK_CONFLICT_FIELDS
+    : RELEASE_RECORD_CONFLICT_FIELDS;
+}
+
+function getConflictFieldValue(
+  item: SyncDashboardItem,
+  field: string,
+  side: 'local' | 'remote',
+) {
+  const snapshot = side === 'local' ? item.localSnapshot : item.conflictRemote;
+
+  if (!snapshot) {
+    return null;
+  }
+
+  if (item.entityType === 'work') {
+    return (snapshot as WorkRecord)[field as keyof WorkRecord];
+  }
+
+  return (snapshot as UserReleaseRecord)[field as keyof UserReleaseRecord];
+}
+
 interface SyncQueueSectionProps {
   description: string;
   emptyMessage: string;
   isGuestMode: boolean;
   isRetryDisabled: boolean;
   items: SyncDashboardItem[];
+  mergeSelections?: Record<string, string[]>;
+  onMergeSelectionChange?: (itemId: string, fields: string[]) => void;
   onRetry: () => void;
+  onResolveLocal?: (item: SyncDashboardItem) => void;
+  onResolveMerge?: (item: SyncDashboardItem) => void;
+  onResolveRemote?: (item: SyncDashboardItem) => void;
+  resolvingItemId?: string | null;
   testId: string;
   title: string;
+}
+
+interface ConflictResolutionPanelProps {
+  item: SyncDashboardItem;
+  mergeSelections: Record<string, string[]>;
+  onMergeSelectionChange: (itemId: string, fields: string[]) => void;
+  onResolveLocal: (item: SyncDashboardItem) => void;
+  onResolveMerge: (item: SyncDashboardItem) => void;
+  onResolveRemote: (item: SyncDashboardItem) => void;
+  resolvingItemId: string | null;
+}
+
+function ConflictResolutionPanel({
+  item,
+  mergeSelections,
+  onMergeSelectionChange,
+  onResolveLocal,
+  onResolveMerge,
+  onResolveRemote,
+  resolvingItemId,
+}: ConflictResolutionPanelProps) {
+  const fields = getConflictFields(item);
+  const selectedFields = mergeSelections[item.id] ?? [];
+  const hasRemoteSnapshot = item.conflictRemote !== null;
+  const isResolving = resolvingItemId === item.id;
+
+  return (
+    <Stack gap="sm">
+      <Divider />
+      <Stack gap={4}>
+        <Title order={5}>충돌 해결</Title>
+        <Text c="var(--app-text-muted)" size="sm">
+          로컬 기록을 다시 보낼지, 원격 기록을 적용할지, 필요한 필드만 원격
+          값으로 가져올지 선택합니다.
+        </Text>
+      </Stack>
+
+      {!hasRemoteSnapshot && (
+        <FeedbackMessage tone="error">
+          서버가 비교 가능한 원격 스냅샷을 보내지 않아 로컬 유지 후 재동기화만
+          사용할 수 있습니다.
+        </FeedbackMessage>
+      )}
+
+      {hasRemoteSnapshot && (
+        <Stack gap="xs">
+          {fields.map((field) => (
+            <SimpleGrid cols={{ base: 1, md: 3 }} key={field.key} spacing="sm">
+              <Text fw={700}>{field.label}</Text>
+              <Text c="var(--app-text-muted)" size="sm">
+                로컬:{' '}
+                {formatConflictValue(
+                  getConflictFieldValue(item, field.key, 'local'),
+                )}
+              </Text>
+              <Text c="var(--app-text-muted)" size="sm">
+                원격:{' '}
+                {formatConflictValue(
+                  getConflictFieldValue(item, field.key, 'remote'),
+                )}
+              </Text>
+            </SimpleGrid>
+          ))}
+        </Stack>
+      )}
+
+      {hasRemoteSnapshot && (
+        <Checkbox.Group
+          label="필드별 병합에서 원격 값으로 가져올 항목"
+          onChange={(fields) => onMergeSelectionChange(item.id, fields)}
+          value={selectedFields}
+        >
+          <Group gap="sm" mt="xs" wrap="wrap">
+            {fields.map((field) => (
+              <Checkbox key={field.key} label={field.label} value={field.key} />
+            ))}
+          </Group>
+        </Checkbox.Group>
+      )}
+
+      <Group gap="sm" wrap="wrap">
+        <AppButton
+          disabled={isResolving}
+          onClick={() => onResolveLocal(item)}
+          tone="primary"
+          type="button"
+        >
+          로컬 유지
+        </AppButton>
+        <AppButton
+          disabled={!hasRemoteSnapshot || isResolving}
+          onClick={() => onResolveRemote(item)}
+          tone="secondary"
+          type="button"
+        >
+          원격 적용
+        </AppButton>
+        <AppButton
+          disabled={
+            !hasRemoteSnapshot || selectedFields.length === 0 || isResolving
+          }
+          onClick={() => onResolveMerge(item)}
+          tone="secondary"
+          type="button"
+        >
+          필드별 병합
+        </AppButton>
+      </Group>
+    </Stack>
+  );
 }
 
 function SyncQueueSection({
@@ -97,7 +299,13 @@ function SyncQueueSection({
   isGuestMode,
   isRetryDisabled,
   items,
+  mergeSelections = {},
+  onMergeSelectionChange,
   onRetry,
+  onResolveLocal,
+  onResolveMerge,
+  onResolveRemote,
+  resolvingItemId = null,
   testId,
   title,
 }: SyncQueueSectionProps) {
@@ -122,8 +330,12 @@ function SyncQueueSection({
                       <AppBadge tone={getItemStateTone(item.state)}>
                         {getItemStateLabel(item.state)}
                       </AppBadge>
-                      <AppBadge tone="muted">{getEntityTypeLabel(item.entityType)}</AppBadge>
-                      <AppBadge>{getSyncOperationLabel(item.operation)}</AppBadge>
+                      <AppBadge tone="muted">
+                        {getEntityTypeLabel(item.entityType)}
+                      </AppBadge>
+                      <AppBadge>
+                        {getSyncOperationLabel(item.operation)}
+                      </AppBadge>
                     </Group>
                     <Title order={4}>{item.title}</Title>
                   </Stack>
@@ -135,19 +347,26 @@ function SyncQueueSection({
                 <KeyValueGrid
                   items={[
                     { label: '엔티티 ID', value: item.entityId },
-                    { label: '최근 수정', value: formatWorkDateTime(item.updatedAt) },
+                    {
+                      label: '최근 수정',
+                      value: formatWorkDateTime(item.updatedAt),
+                    },
                     {
                       label: '로컬 동기화 상태',
                       value: getWorkSyncStatusLabel(item.syncStatus),
                     },
                     { label: '서버 버전', value: item.serverVersion },
-                    { label: '삭제됨', value: formatOptionalDate(item.deletedAt, '없음') },
+                    {
+                      label: '삭제됨',
+                      value: formatOptionalDate(item.deletedAt, '없음'),
+                    },
                   ]}
                 />
 
                 {(item.lastError || item.state === 'conflict') && (
                   <FeedbackMessage tone="error">
-                    {item.lastError ?? '원격 변경과 충돌했습니다. 내용을 확인한 뒤 다시 동기화를 시도해 주세요.'}
+                    {item.lastError ??
+                      '원격 변경과 충돌했습니다. 내용을 확인한 뒤 다시 동기화를 시도해 주세요.'}
                   </FeedbackMessage>
                 )}
 
@@ -168,6 +387,22 @@ function SyncQueueSection({
                     </AppButton>
                   )}
                 </Group>
+
+                {item.state === 'conflict' &&
+                  onMergeSelectionChange &&
+                  onResolveLocal &&
+                  onResolveMerge &&
+                  onResolveRemote && (
+                    <ConflictResolutionPanel
+                      item={item}
+                      mergeSelections={mergeSelections}
+                      onMergeSelectionChange={onMergeSelectionChange}
+                      onResolveLocal={onResolveLocal}
+                      onResolveMerge={onResolveMerge}
+                      onResolveRemote={onResolveRemote}
+                      resolvingItemId={resolvingItemId}
+                    />
+                  )}
               </SectionCard>
             </div>
           ))}
@@ -189,6 +424,11 @@ export function SyncPage() {
   } = useSyncDashboard();
   const [syncState, setSyncState] = useState<SyncRunState>('idle');
   const [lastRun, setLastRun] = useState<ManualSyncResult | null>(null);
+  const [mergeSelections, setMergeSelections] = useState<
+    Record<string, string[]>
+  >({});
+  const [resolvingItemId, setResolvingItemId] = useState<string | null>(null);
+  const [resolutionError, setResolutionError] = useState<string | null>(null);
   const isGuestMode = mode !== 'authenticated';
 
   async function handleRunSync() {
@@ -205,6 +445,82 @@ export function SyncPage() {
       setSyncState(result.state);
     } catch {
       setSyncState('failed');
+    }
+  }
+
+  function handleMergeSelectionChange(itemId: string, fields: string[]) {
+    setMergeSelections((current) => ({
+      ...current,
+      [itemId]: fields,
+    }));
+  }
+
+  async function handleResolveLocal(item: SyncDashboardItem) {
+    setResolvingItemId(item.id);
+    setResolutionError(null);
+
+    try {
+      await syncService.resolveConflictWithLocal(item.id);
+      setMergeSelections((current) => {
+        const next = { ...current };
+
+        delete next[item.id];
+
+        return next;
+      });
+    } catch (error) {
+      setResolutionError(
+        error instanceof Error ? error.message : '충돌 해결에 실패했습니다.',
+      );
+    } finally {
+      setResolvingItemId(null);
+    }
+  }
+
+  async function handleResolveRemote(item: SyncDashboardItem) {
+    setResolvingItemId(item.id);
+    setResolutionError(null);
+
+    try {
+      await syncService.resolveConflictWithRemote(item.id);
+      setMergeSelections((current) => {
+        const next = { ...current };
+
+        delete next[item.id];
+
+        return next;
+      });
+    } catch (error) {
+      setResolutionError(
+        error instanceof Error ? error.message : '충돌 해결에 실패했습니다.',
+      );
+    } finally {
+      setResolvingItemId(null);
+    }
+  }
+
+  async function handleResolveMerge(item: SyncDashboardItem) {
+    setResolvingItemId(item.id);
+    setResolutionError(null);
+
+    try {
+      await syncService.resolveConflictWithMergedFields(
+        item.id,
+        mergeSelections[item.id] ?? [],
+      );
+      setMergeSelections((current) => {
+        const next = { ...current };
+
+        delete next[item.id];
+
+        return next;
+      });
+    } catch (error) {
+      setResolutionError(
+        error instanceof Error ? error.message : '충돌 해결에 실패했습니다.',
+      );
+    } finally {
+      setResolvingItemId(null);
     }
   }
 
@@ -240,7 +556,10 @@ export function SyncPage() {
           <MetricPill label="대기 중" value={pendingItems.length} />
           <MetricPill label="실패" value={failedItems.length} />
           <MetricPill label="충돌" value={conflictItems.length} />
-          <MetricPill label="최근 동기화" value={formatOptionalDate(lastSuccessfulPullAt)} />
+          <MetricPill
+            label="최근 동기화"
+            value={formatOptionalDate(lastSuccessfulPullAt)}
+          />
           <MetricPill label="현재 상태" value={renderStateLabel(syncState)} />
         </>
       }
@@ -263,6 +582,9 @@ export function SyncPage() {
         )}
 
         {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
+        {resolutionError && (
+          <FeedbackMessage tone="error">{resolutionError}</FeedbackMessage>
+        )}
 
         {lastRun && (
           <SectionCard>
@@ -275,8 +597,9 @@ export function SyncPage() {
             <SectionCard padding="lg" tone="subtle">
               <Title order={4}>보내기</Title>
               <Text c="var(--app-text-muted)">
-                보내기 {lastRun.push.attemptedCount}건 반영 {lastRun.push.appliedCount}건
-                충돌 {lastRun.push.conflictCount}건 실패 {lastRun.push.failedCount}건
+                보내기 {lastRun.push.attemptedCount}건 반영{' '}
+                {lastRun.push.appliedCount}건 충돌 {lastRun.push.conflictCount}
+                건 실패 {lastRun.push.failedCount}건
               </Text>
               <Text c="var(--app-text-muted)">
                 처리 시각 {formatOptionalDate(lastRun.push.processedAt)}
@@ -286,8 +609,8 @@ export function SyncPage() {
             <SectionCard padding="lg" tone="subtle">
               <Title order={4}>가져오기</Title>
               <Text c="var(--app-text-muted)">
-                가져온 {lastRun.pull.pulledCount}건 중 반영 {lastRun.pull.appliedCount}건
-                보류 {lastRun.pull.skippedCount}건
+                가져온 {lastRun.pull.pulledCount}건 중 반영{' '}
+                {lastRun.pull.appliedCount}건 보류 {lastRun.pull.skippedCount}건
               </Text>
               <Text c="var(--app-text-muted)">
                 가져온 시각 {formatOptionalDate(lastRun.pull.pulledAt)}
@@ -296,12 +619,18 @@ export function SyncPage() {
 
             <Stack gap="xs">
               {lastRun.push.messages.map((message, index) => (
-                <Text c="var(--app-text-muted)" key={`push-${index}-${message}`}>
+                <Text
+                  c="var(--app-text-muted)"
+                  key={`push-${index}-${message}`}
+                >
                   보내기 {message}
                 </Text>
               ))}
               {lastRun.pull.messages.map((message, index) => (
-                <Text c="var(--app-text-muted)" key={`pull-${index}-${message}`}>
+                <Text
+                  c="var(--app-text-muted)"
+                  key={`pull-${index}-${message}`}
+                >
                   가져오기 {message}
                 </Text>
               ))}
@@ -338,14 +667,26 @@ export function SyncPage() {
             />
 
             <SyncQueueSection
-              description="원격 기록과 로컬 기록이 같은 기준으로 합쳐지지 않은 항목입니다. 실제 병합 UX는 다음 단계에서 다룹니다."
+              description="원격 기록과 로컬 기록이 같은 기준으로 합쳐지지 않은 항목입니다. 로컬 유지, 원격 적용, 필드별 병합 중 하나로 해결할 수 있습니다."
               emptyMessage="현재 충돌한 변경 사항이 없습니다."
               isGuestMode={isGuestMode}
               isRetryDisabled={syncState === 'syncing'}
               items={conflictItems}
+              mergeSelections={mergeSelections}
+              onMergeSelectionChange={handleMergeSelectionChange}
               onRetry={() => {
                 void handleRunSync();
               }}
+              onResolveLocal={(item) => {
+                void handleResolveLocal(item);
+              }}
+              onResolveMerge={(item) => {
+                void handleResolveMerge(item);
+              }}
+              onResolveRemote={(item) => {
+                void handleResolveRemote(item);
+              }}
+              resolvingItemId={resolvingItemId}
               testId="sync-section-conflict"
               title="충돌한 변경"
             />
@@ -354,7 +695,9 @@ export function SyncPage() {
 
         {isLoading && (
           <SectionCard>
-            <Text c="var(--app-text-muted)">동기화 상태를 불러오는 중입니다.</Text>
+            <Text c="var(--app-text-muted)">
+              동기화 상태를 불러오는 중입니다.
+            </Text>
           </SectionCard>
         )}
       </Stack>

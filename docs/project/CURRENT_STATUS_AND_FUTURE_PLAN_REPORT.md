@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                                                                                                                                                                               |
 | Role                  | `current reality`                                                                                                                                                                                                                                                         |
 | Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-04-27` IA v1 modal-first working tree                                                                                                                                                                                                                               |
+| Last verified against | `2026-04-30` sync conflict resolution working tree                                                                                                                                                                                                                        |
 | When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -178,6 +178,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - 계정 설정의 Aladin 키 저장/삭제
 - `/imports/providers` 기반 provider readiness 조회와 Settings provider readiness 기본 UI/테스트
 - SyncPage pending / failed / conflict queue item 표시, 상태별 설명, 원인 표시, 기록 보기, 재시도 CTA
+- Sync conflict 원격 스냅샷 보존과 로컬 유지 / 원격 적용 / 필드별 병합 기본 해결 UX
 - `CatalogTitle` related read model과 `UserReleaseRecord` 흐름
 - 홈 허브 화면
 - 계정 센터 라우트 분리
@@ -187,7 +188,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 ### Not Yet Implemented
 
 - provider별 ranking/search quality 실제 검색어 QA와 튜닝
-- conflict overwrite/merge resolution
+- Sync conflict 자동 병합 판단과 고급 충돌 정책
 - guest 기록 자동 병합 정책과 다기기 이관 UX
 - 자동 동기화
 - 공개 프로필 / 공개 기록 / 작품 집계
@@ -239,10 +240,11 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 ### Current Verification Status
 
-- `npm run typecheck --workspace @work-archive/web`: `2026-04-27` 통과 확인
-- `npm run test --workspace @work-archive/web`: `2026-04-27` 기준 `21` files, `108` tests 통과 확인
-- `npm run test --workspace @work-archive/api`: `2026-04-25` 기준 `7` suites, `45` tests 통과 확인
-- `npm run build`: `2026-04-27` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
+- `npm run typecheck --workspace @work-archive/web`: `2026-04-30` 통과 확인
+- `npm run typecheck --workspace @work-archive/api`: `2026-04-30` 통과 확인
+- `npm run test --workspace @work-archive/web`: `2026-04-30` 기준 `21` files, `116` tests 통과 확인
+- `npm run test --workspace @work-archive/api`: `2026-04-30` 기준 `9` suites, `71` tests 통과 확인
+- `npm run build`: `2026-04-30` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
 ## 7. Immediate Limitations
@@ -261,7 +263,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - 게스트와 계정 아카이브는 분리되어 있고, 현재는 로그인 직후 review/import 단계까지만 제공된다.
 - sync는 수동이다.
 - SyncPage는 pending / failed / conflict queue item 단위 상태와 원인, 기록 보기, 재시도 CTA를 제공한다.
-- conflict overwrite/merge resolution은 아직 후속 작업이다.
+- SyncPage는 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지, 원격 적용, 필드별 병합으로 해결할 수 있다. 자동 병합 판단은 후속 작업이다.
 - Profile / Tier Boards / Community / Insights는 장기 방향에 비해 현재 구현이 얕다.
 
 ### 7-3. Backend / Security

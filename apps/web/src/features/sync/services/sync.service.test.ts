@@ -144,7 +144,10 @@ describe('SyncService', () => {
     };
 
     await releaseRecordsRepository.create(localReleaseRecord);
-    await queueRepository.enqueueReleaseRecordChange(localReleaseRecord, 'create');
+    await queueRepository.enqueueReleaseRecordChange(
+      localReleaseRecord,
+      'create',
+    );
     const queueItems = await queueRepository.listAll();
     window.localStorage.setItem(
       'work-archive.auth.tokens',
@@ -189,7 +192,9 @@ describe('SyncService', () => {
       }),
     );
     expect(await queueRepository.listAll()).toEqual([]);
-    expect(await releaseRecordsRepository.getById(localReleaseRecord.id)).toEqual(
+    expect(
+      await releaseRecordsRepository.getById(localReleaseRecord.id),
+    ).toEqual(
       expect.objectContaining({
         syncStatus: 'synced',
         serverVersion: 1,
@@ -232,7 +237,8 @@ describe('SyncService', () => {
       expect.objectContaining({
         entityId: localWork.id,
         retryCount: 1,
-        lastError: '동기화 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
+        lastError:
+          '동기화 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
       }),
     ]);
   });
@@ -286,12 +292,211 @@ describe('SyncService', () => {
       expect.objectContaining({
         entityId: localWork.id,
         retryCount: 1,
-        lastError: '다른 곳에서 더 최근 변경이 반영되어 충돌이 발생했습니다. 내용을 확인한 뒤 다시 시도해주세요.',
+        lastError:
+          '다른 곳에서 더 최근 변경이 반영되어 충돌이 발생했습니다. 내용을 확인한 뒤 다시 시도해주세요.',
+        conflict: expect.objectContaining({
+          message:
+            '다른 곳에서 더 최근 변경이 반영되어 충돌이 발생했습니다. 내용을 확인한 뒤 다시 시도해주세요.',
+          remote: expect.objectContaining({
+            id: localWork.id,
+            serverVersion: 3,
+          }),
+        }),
       }),
     ]);
     expect(await worksRepository.getById(localWork.id)).toEqual(
       expect.objectContaining({
         syncStatus: 'conflict',
+      }),
+    );
+  });
+
+  it('resolves a conflict by keeping the local work queued for retry', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Local Dune',
+        review: 'Local review',
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote conflict detected',
+      {
+        ...localWork,
+        title: 'Remote Dune',
+        review: 'Remote review',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+
+    await syncService.resolveConflictWithLocal(queueItem!.id);
+
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        title: 'Local Dune',
+        review: 'Local review',
+        syncStatus: 'pending',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        retryCount: 0,
+        lastError: null,
+        conflict: null,
+        payload: expect.objectContaining({
+          title: 'Local Dune',
+          syncStatus: 'pending',
+        }),
+      }),
+    );
+  });
+
+  it('resolves a conflict by applying the remote work snapshot', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Local Dune',
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote conflict detected',
+      {
+        ...localWork,
+        title: 'Remote Dune',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+
+    await syncService.resolveConflictWithRemote(queueItem!.id);
+
+    expect(await queueRepository.listAll()).toEqual([]);
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        title: 'Remote Dune',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      }),
+    );
+  });
+
+  it('resolves a conflict by merging selected remote work fields into the local payload', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Local Dune',
+        review: 'Local review',
+        personalTags: ['local-tag'],
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote conflict detected',
+      {
+        ...localWork,
+        title: 'Remote Dune',
+        review: 'Remote review',
+        personalTags: ['remote-tag'],
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+
+    await syncService.resolveConflictWithMergedFields(queueItem!.id, [
+      'title',
+      'personalTags',
+    ]);
+
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        title: 'Remote Dune',
+        review: 'Local review',
+        personalTags: ['remote-tag'],
+        syncStatus: 'pending',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: null,
+        payload: expect.objectContaining({
+          title: 'Remote Dune',
+          review: 'Local review',
+          personalTags: ['remote-tag'],
+          syncStatus: 'pending',
+        }),
+      }),
+    );
+  });
+
+  it('resolves a release-record conflict by applying the remote snapshot', async () => {
+    const now = '2026-04-18T01:00:00.000Z';
+    const localReleaseRecord: UserReleaseRecord = {
+      id: 'release-conflict-1',
+      userWorkRecordId: 'work-1',
+      catalogReleaseId: 'release-1',
+      status: 'planned',
+      rating: null,
+      shortReview: 'Local release',
+      review: '',
+      favorite: false,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      syncStatus: 'pending',
+      serverVersion: 1,
+    };
+
+    await releaseRecordsRepository.create(localReleaseRecord);
+    const queueItem = await queueRepository.enqueueReleaseRecordChange(
+      localReleaseRecord,
+      'update',
+    );
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote release conflict detected',
+      {
+        ...localReleaseRecord,
+        status: 'completed',
+        shortReview: 'Remote release',
+        syncStatus: 'synced',
+        serverVersion: 2,
+      },
+    );
+    await releaseRecordsRepository.update({
+      ...localReleaseRecord,
+      syncStatus: 'conflict',
+    });
+
+    await syncService.resolveConflictWithRemote(queueItem!.id);
+
+    expect(await queueRepository.listAll()).toEqual([]);
+    expect(
+      await releaseRecordsRepository.getById(localReleaseRecord.id),
+    ).toEqual(
+      expect.objectContaining({
+        status: 'completed',
+        shortReview: 'Remote release',
+        syncStatus: 'synced',
+        serverVersion: 2,
       }),
     );
   });
@@ -421,6 +626,15 @@ describe('SyncService', () => {
         retryCount: 1,
         lastError:
           '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다. 내용을 확인한 뒤 다시 동기화해주세요.',
+        conflict: expect.objectContaining({
+          message:
+            '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다. 내용을 확인한 뒤 다시 동기화해주세요.',
+          remote: expect.objectContaining({
+            id: existing.id,
+            title: 'Dune Messiah',
+            serverVersion: 2,
+          }),
+        }),
       }),
     );
     expect(await worksRepository.getById(existing.id)).toEqual(

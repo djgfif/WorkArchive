@@ -1,12 +1,12 @@
 # FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md
 
-| Field | Value |
-| --- | --- |
-| Status | `active` |
-| Role | `frontend roadmap` |
-| Source of truth | [`FRONTEND_BLUEPRINT_V1.md`](./FRONTEND_BLUEPRINT_V1.md), [`FRONTEND_FOUNDATION_MASTERPLAN.md`](./FRONTEND_FOUNDATION_MASTERPLAN.md), current `apps/web` implementation |
-| Last verified against | `2026-04-25` local `master` working tree |
-| When to update | 프론트 상세 실행 순서, Mantine token 기준, 핵심 페이지 우선순위, 완료 기준이 바뀔 때 |
+| Field                 | Value                                                                                                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `active`                                                                                                                                                                |
+| Role                  | `frontend roadmap`                                                                                                                                                      |
+| Source of truth       | [`FRONTEND_BLUEPRINT_V1.md`](./FRONTEND_BLUEPRINT_V1.md), [`FRONTEND_FOUNDATION_MASTERPLAN.md`](./FRONTEND_FOUNDATION_MASTERPLAN.md), current `apps/web` implementation |
+| Last verified against | `2026-04-25` local `master` working tree                                                                                                                                |
+| When to update        | 프론트 상세 실행 순서, Mantine token 기준, 핵심 페이지 우선순위, 완료 기준이 바뀔 때                                                                                    |
 
 이 문서는 Work Archive 프론트의 **단일 상세 실행 로드맵**이다. Mantine foundation은 이미 일부 도입됐고, 이 문서는 남은 migration 순서를 5단계로 고정한다.
 
@@ -152,7 +152,7 @@
 ## Next
 
 - Work Create / Edit 입력 경험 polish
-- Sync conflict overwrite/merge resolution UX
+- Sync conflict 해결 UX polish와 자동 병합 정책 검토
 - provider별 ranking/search quality와 Settings provider readiness polish
 - placeholder 목적지의 CTA 품질 향상
 - Mantine 기반 공통 feedback 패턴 정리

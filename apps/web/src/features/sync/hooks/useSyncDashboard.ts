@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type {
   SyncOperation,
   SyncQueueItemRecord,
+  SyncQueuePayload,
   UserReleaseRecord,
   WorkRecord,
   WorkSyncStatus,
@@ -30,6 +31,9 @@ export interface SyncDashboardItem {
   syncStatus: WorkSyncStatus;
   title: string;
   updatedAt: string;
+  localSnapshot: SyncQueuePayload;
+  conflictRemote: SyncQueuePayload | null;
+  conflictMessage: string | null;
 }
 
 interface SyncDashboardState {
@@ -84,10 +88,11 @@ function getReleaseRecordTitle(
     return `${parentWork.title} · 권별 기록`;
   }
 
-  const payload =
-    queueItem.payload as UserReleaseRecord;
+  const payload = queueItem.payload as UserReleaseRecord;
   const catalogReleaseId =
-    releaseRecord?.catalogReleaseId ?? payload.catalogReleaseId ?? queueItem.entityId;
+    releaseRecord?.catalogReleaseId ??
+    payload.catalogReleaseId ??
+    queueItem.entityId;
 
   return `권별 기록 ${catalogReleaseId.slice(0, 8)}`;
 }
@@ -121,6 +126,9 @@ function buildSyncDashboardItem(
       syncStatus,
       title: work.title,
       updatedAt: work.updatedAt,
+      localSnapshot: work,
+      conflictRemote: queueItem.conflict?.remote ?? null,
+      conflictMessage: queueItem.conflict?.message ?? null,
     };
   }
 
@@ -149,6 +157,9 @@ function buildSyncDashboardItem(
     syncStatus,
     title: getReleaseRecordTitle(releaseRecord, parentWork, queueItem),
     updatedAt: releaseRecord.updatedAt,
+    localSnapshot: releaseRecord,
+    conflictRemote: queueItem.conflict?.remote ?? null,
+    conflictMessage: queueItem.conflict?.message ?? null,
   };
 }
 
@@ -169,7 +180,10 @@ export function useSyncDashboard() {
           ]);
         const worksById = new Map(works.map((work) => [work.id, work]));
         const releaseRecordsById = new Map(
-          releaseRecords.map((releaseRecord) => [releaseRecord.id, releaseRecord]),
+          releaseRecords.map((releaseRecord) => [
+            releaseRecord.id,
+            releaseRecord,
+          ]),
         );
         const dashboardItems = queueItems
           .map((queueItem) =>
@@ -179,10 +193,14 @@ export function useSyncDashboard() {
 
         return {
           conflictWorks: works.filter((work) => work.syncStatus === 'conflict'),
-          conflictItems: dashboardItems.filter((item) => item.state === 'conflict'),
+          conflictItems: dashboardItems.filter(
+            (item) => item.state === 'conflict',
+          ),
           failedItems: dashboardItems.filter((item) => item.state === 'failed'),
           lastSuccessfulPullAt,
-          pendingItems: dashboardItems.filter((item) => item.state === 'pending'),
+          pendingItems: dashboardItems.filter(
+            (item) => item.state === 'pending',
+          ),
           queueItems,
         };
       } catch (error) {
