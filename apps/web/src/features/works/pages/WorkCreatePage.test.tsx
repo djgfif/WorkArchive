@@ -204,7 +204,7 @@ async function searchAndSelectCandidate(
   options: { providerGroup?: 'manual' } = {},
 ) {
   await user.click(
-    screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    screen.getByLabelText('검색으로 채우기'),
   );
 
   if (options.providerGroup === 'manual') {

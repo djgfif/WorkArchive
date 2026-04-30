@@ -10,7 +10,7 @@ import { AuthContext } from '../../auth/context/AuthContext';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { workArchiveDbManager } from '../db/work-archive.db';
 import { worksRepository } from '../services/works.repository';
-import { QuickAddWorkForm } from './QuickAddWorkForm';
+import { AddWorkFlow } from './AddWorkFlow';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -226,7 +226,7 @@ function mockAuthenticatedSearchResponse(
   });
 }
 
-function renderAuthenticatedQuickAdd(onSubmit = vi.fn()) {
+function renderAuthenticatedAddWorkFlow(onSubmit = vi.fn()) {
   workArchiveDbManager.switchToUser('user-1');
 
   return renderWithProviders(
@@ -246,7 +246,7 @@ function renderAuthenticatedQuickAdd(onSubmit = vi.fn()) {
           signOut: vi.fn(),
         }}
       >
-        <QuickAddWorkForm
+        <AddWorkFlow
           isSubmitting={false}
           onSubmit={onSubmit}
           submitError={null}
@@ -256,7 +256,7 @@ function renderAuthenticatedQuickAdd(onSubmit = vi.fn()) {
   );
 }
 
-function renderGuestQuickAdd(onSubmit = vi.fn()) {
+function renderGuestAddWorkFlow(onSubmit = vi.fn()) {
   workArchiveDbManager.switchToGuest();
   window.localStorage.removeItem('work-archive.auth.tokens');
 
@@ -273,7 +273,7 @@ function renderGuestQuickAdd(onSubmit = vi.fn()) {
           signOut: vi.fn(),
         }}
       >
-        <QuickAddWorkForm
+        <AddWorkFlow
           isSubmitting={false}
           onSubmit={onSubmit}
           submitError={null}
@@ -337,7 +337,7 @@ async function openSearchPicker(
   searchTerm: string,
 ) {
   await user.click(
-    screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+    screen.getByLabelText('검색으로 채우기'),
   );
 
   const searchInput = await screen.findByLabelText(/^작품 검색$/);
@@ -416,14 +416,14 @@ async function submitSelectedCandidate(
   await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
 }
 
-describe('QuickAddWorkForm', () => {
+describe('AddWorkFlow', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     window.localStorage.clear();
   });
 
-  it('uses authenticated search candidates to prefill the Quick Add form', async () => {
+  it('uses authenticated search candidates to prefill the Add Work form', async () => {
     const candidate = buildCandidate({
       confidenceLabel: '신뢰도 높음',
       reason: '제목 정확히 일치 · 카탈로그 매칭됨',
@@ -451,9 +451,9 @@ describe('QuickAddWorkForm', () => {
 
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
     await user.click(
-      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+      screen.getByLabelText('검색으로 채우기'),
     );
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
@@ -531,9 +531,9 @@ describe('QuickAddWorkForm', () => {
 
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
     await user.click(
-      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+      screen.getByLabelText('검색으로 채우기'),
     );
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
@@ -584,9 +584,9 @@ describe('QuickAddWorkForm', () => {
 
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
     await user.click(
-      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+      screen.getByLabelText('검색으로 채우기'),
     );
     await user.type(
       getElementById<HTMLInputElement>('quickAddSearch'),
@@ -628,9 +628,9 @@ describe('QuickAddWorkForm', () => {
 
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
     await user.click(
-      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+      screen.getByLabelText('검색으로 채우기'),
     );
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
@@ -649,13 +649,10 @@ describe('QuickAddWorkForm', () => {
   });
 
   it('shows direct manual add as the default guest path before search is used', () => {
-    renderGuestQuickAdd();
+    renderGuestAddWorkFlow();
 
-    expect(screen.getByRole('button', { name: '직접 입력' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByText('작품 기록 입력')).toBeInTheDocument();
+    expect(screen.getByLabelText('직접 입력')).toBeChecked();
+    expect(screen.getByText('새 작품 기록')).toBeInTheDocument();
     expect(getElementById<HTMLInputElement>('manualTitle')).toBeInTheDocument();
     expect(getElementById<HTMLSelectElement>('manualType')).toBeInTheDocument();
     expect(document.getElementById('quickAddSearch')).toBeNull();
@@ -668,10 +665,10 @@ describe('QuickAddWorkForm', () => {
     mockImportsFetch();
     const user = userEvent.setup();
 
-    renderGuestQuickAdd();
+    renderGuestAddWorkFlow();
 
     await user.click(
-      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+      screen.getByLabelText('검색으로 채우기'),
     );
 
     expect(await screen.findByText('검색 provider 상태')).toBeInTheDocument();
@@ -696,12 +693,12 @@ describe('QuickAddWorkForm', () => {
     mockImportsFetch();
     const user = userEvent.setup();
 
-    renderGuestQuickAdd();
+    renderGuestAddWorkFlow();
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     await user.click(
-      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+      screen.getByLabelText('검색으로 채우기'),
     );
 
     expect(await screen.findByLabelText(/^작품 검색$/)).toBeInTheDocument();
@@ -712,7 +709,7 @@ describe('QuickAddWorkForm', () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd(onSubmit);
+    renderAuthenticatedAddWorkFlow(onSubmit);
 
     await user.type(
       getElementById<HTMLInputElement>('manualTitle'),
@@ -742,7 +739,7 @@ describe('QuickAddWorkForm', () => {
     const user = userEvent.setup();
 
     vi.stubGlobal('fetch', fetchMock);
-    renderGuestQuickAdd(onSubmit);
+    renderGuestAddWorkFlow(onSubmit);
 
     await user.type(
       getElementById<HTMLInputElement>('manualTitle'),
@@ -782,7 +779,7 @@ describe('QuickAddWorkForm', () => {
     });
     const user = userEvent.setup();
 
-    renderGuestQuickAdd();
+    renderGuestAddWorkFlow();
 
     await searchAndSelectCandidate(user, 'Dune', candidate.title);
 
@@ -826,10 +823,10 @@ describe('QuickAddWorkForm', () => {
     const fetchMock = mockAuthenticatedSearchResponse([candidate]);
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
 
     await user.click(
-      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+      screen.getByLabelText('검색으로 채우기'),
     );
     await user.click(await screen.findByRole('button', { name: '도서' }));
 
@@ -870,10 +867,10 @@ describe('QuickAddWorkForm', () => {
     const fetchMock = mockAuthenticatedSearchResponse([candidate]);
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
 
     await user.click(
-      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+      screen.getByLabelText('검색으로 채우기'),
     );
     await selectManualProviderGroup(user);
 
@@ -925,7 +922,7 @@ describe('QuickAddWorkForm', () => {
     });
     const user = userEvent.setup();
 
-    renderGuestQuickAdd();
+    renderGuestAddWorkFlow();
     await openSearchPicker(user, 'One Piece');
 
     expect(
@@ -951,7 +948,7 @@ describe('QuickAddWorkForm', () => {
     });
     const user = userEvent.setup();
 
-    renderGuestQuickAdd();
+    renderGuestAddWorkFlow();
     await openSearchPicker(user, 'No Match Title');
 
     expect(
@@ -983,9 +980,9 @@ describe('QuickAddWorkForm', () => {
     mockAuthenticatedSearchResponse([manualCandidate]);
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
     await user.click(
-      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+      screen.getByLabelText('검색으로 채우기'),
     );
     await selectManualProviderGroup(user);
 
@@ -1020,10 +1017,10 @@ describe('QuickAddWorkForm', () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
 
-    renderGuestQuickAdd(onSubmit);
+    renderGuestAddWorkFlow(onSubmit);
 
     await user.click(
-      screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+      screen.getByLabelText('검색으로 채우기'),
     );
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
@@ -1081,7 +1078,7 @@ describe('QuickAddWorkForm', () => {
 
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd(onSubmit);
+    renderAuthenticatedAddWorkFlow(onSubmit);
     await searchAndSelectCandidate(user, 'Dune', candidate.title);
     await submitSelectedCandidate(user);
 
@@ -1127,7 +1124,7 @@ describe('QuickAddWorkForm', () => {
 
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd(onSubmit);
+    renderAuthenticatedAddWorkFlow(onSubmit);
     await searchAndSelectCandidate(user, 'Dune', candidate.title);
 
     const titleInput = await waitFor(() =>
@@ -1200,10 +1197,10 @@ describe('QuickAddWorkForm', () => {
 
       const user = userEvent.setup();
 
-      renderAuthenticatedQuickAdd(onSubmit);
+      renderAuthenticatedAddWorkFlow(onSubmit);
       if (sourceId === 'manual' || sourceId === 'preview-manual') {
         await user.click(
-          screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+          screen.getByLabelText('검색으로 채우기'),
         );
         await selectManualProviderGroup(user);
         const searchInput = await screen.findByLabelText(/^작품 검색$/);
@@ -1256,7 +1253,7 @@ describe('QuickAddWorkForm', () => {
 
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
     await openSearchPicker(user, 'Dune');
     await selectCandidateRow(user, candidate.title);
 
@@ -1294,7 +1291,7 @@ describe('QuickAddWorkForm', () => {
 
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
     await openSearchPicker(user, 'Different');
     await selectCandidateRow(user, candidate.title);
 
@@ -1319,10 +1316,10 @@ describe('QuickAddWorkForm', () => {
 
       const user = userEvent.setup();
 
-      renderAuthenticatedQuickAdd();
+      renderAuthenticatedAddWorkFlow();
       if (sourceId === 'manual' || sourceId === 'preview-manual') {
         await user.click(
-          screen.getByRole('button', { name: '검색으로 정보 채우기' }),
+          screen.getByLabelText('검색으로 채우기'),
         );
         await selectManualProviderGroup(user);
         const searchInput = await screen.findByLabelText(/^작품 검색$/);
@@ -1370,7 +1367,7 @@ describe('QuickAddWorkForm', () => {
 
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
     await openSearchPicker(user, 'Dune');
     await selectCandidateRow(user, candidate.title);
 
@@ -1394,7 +1391,7 @@ describe('QuickAddWorkForm', () => {
 
     const user = userEvent.setup();
 
-    renderAuthenticatedQuickAdd();
+    renderAuthenticatedAddWorkFlow();
     await openSearchPicker(user, 'Dune');
     await user.click(
       await screen.findByRole('button', { name: '직접 추가로 계속' }),

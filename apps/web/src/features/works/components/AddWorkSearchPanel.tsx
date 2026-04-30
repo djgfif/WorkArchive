@@ -1,7 +1,6 @@
 import {
   Grid,
   Group,
-  Modal,
   NativeSelect,
   Paper,
   ScrollArea,
@@ -27,21 +26,19 @@ import {
   quickAddTypeOptions,
 } from './quick-add-helpers';
 
-interface SearchPickerModalProps {
+export interface AddWorkSearchPanelProps {
   candidates: ImportCandidate[];
   duplicateCounts: Record<string, number>;
   duplicateMatches: WorkRecord[];
-  fullScreen: boolean;
+  fullHeight?: boolean;
   isSearching: boolean;
   onApplyCandidate: () => void;
-  onClose: () => void;
   onProviderGroupChange: (value: ProviderGroup) => void;
   onSearchSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onSearchTermChange: (value: string) => void;
   onSearchTypeChange: (value: string) => void;
   onSelectCandidate: (candidate: ImportCandidate) => void;
   onUseManualTitle: () => void;
-  opened: boolean;
   providerGroup: ProviderGroup;
   providerReadinessSummary: ReactNode;
   searchError: string | null;
@@ -51,14 +48,7 @@ interface SearchPickerModalProps {
   selectedCandidate: ImportCandidate | null;
 }
 
-type SearchPickerPanelProps = Omit<
-  SearchPickerModalProps,
-  'fullScreen' | 'onClose' | 'opened'
-> & {
-  fullHeight?: boolean;
-};
-
-export function SearchPickerPanel({
+export function AddWorkSearchPanel({
   candidates,
   duplicateCounts,
   duplicateMatches,
@@ -78,7 +68,7 @@ export function SearchPickerPanel({
   searchTerm,
   searchType,
   selectedCandidate,
-}: SearchPickerPanelProps) {
+}: AddWorkSearchPanelProps) {
   const normalizedSearchTerm = searchTerm.trim();
   const isManualSearchGroup = isManualProviderGroup(providerGroup);
 
@@ -282,27 +272,5 @@ export function SearchPickerPanel({
         </Grid.Col>
       </Grid>
     </Stack>
-  );
-}
-
-export function SearchPickerModal({
-  fullScreen,
-  onClose,
-  opened,
-  ...panelProps
-}: SearchPickerModalProps) {
-  return (
-    <Modal
-      centered={!fullScreen}
-      fullScreen={fullScreen}
-      onClose={onClose}
-      opened={opened}
-      padding="lg"
-      radius="lg"
-      size="min(72rem, 100vw - 2rem)"
-      title="검색으로 정보 채우기"
-    >
-      <SearchPickerPanel fullHeight={fullScreen} {...panelProps} />
-    </Modal>
   );
 }
