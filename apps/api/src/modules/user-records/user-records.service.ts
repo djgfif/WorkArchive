@@ -1,5 +1,15 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { WorkStatus, WorkSyncStatus, WorkType, type Prisma } from '@prisma/client';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  WorkStatus,
+  WorkSyncStatus,
+  WorkType,
+  type Prisma,
+} from '@prisma/client';
 
 import { CatalogService } from '../catalog/catalog.service';
 import {
@@ -8,20 +18,20 @@ import {
   getDefaultProgressUnit,
   RECORDING_UNIT,
 } from '../recording/recording-policy';
-import { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
+import type { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
 import {
   normalizeGenres,
   normalizePersonalTags,
   normalizeString,
 } from '../works/work-aggregate';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
+import type {
   CreateUserRecordDto,
   CreateUserRecordFromImportDto,
   UpdateProgressDto,
   UpdateUserRecordDto,
 } from './dto/user-record.dto';
-import { UpsertUserReleaseRecordDto } from './dto/user-release-record.dto';
+import type { UpsertUserReleaseRecordDto } from './dto/user-release-record.dto';
 import {
   toUserReleaseRecordResponse,
   UserReleaseRecordsService,
@@ -33,6 +43,25 @@ import {
 } from './user-records.types';
 
 export type { WorkAggregate } from './user-records.types';
+
+function parseOptionalDtoDate(
+  value: string | null | undefined,
+  fieldName: string,
+) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    throw new BadRequestException(
+      `${fieldName} must be a valid ISO 8601 date string.`,
+    );
+  }
+
+  return parsed;
+}
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -221,12 +250,11 @@ export class UserRecordsService {
         releaseDate: release.releaseDate?.toISOString() ?? null,
         summary: release.summary,
         thumbnailUrl: release.thumbnailUrl,
-        userReleaseRecord:
-          releaseRecordsByReleaseId.has(release.id)
-            ? toUserReleaseRecordResponse(
-                releaseRecordsByReleaseId.get(release.id)!,
-              )
-            : null,
+        userReleaseRecord: releaseRecordsByReleaseId.has(release.id)
+          ? toUserReleaseRecordResponse(
+              releaseRecordsByReleaseId.get(release.id)!,
+            )
+          : null,
       })),
     };
   }
@@ -241,7 +269,10 @@ export class UserRecordsService {
     const progressUnit =
       input.progressUnit ?? getDefaultProgressUnit(mediumType);
 
-    if (progressUnit === null || !canUseProgressUnit(mediumType, progressUnit)) {
+    if (
+      progressUnit === null ||
+      !canUseProgressUnit(mediumType, progressUnit)
+    ) {
       throw new BadRequestException(
         `Progress unit is not supported for medium type "${mediumType}".`,
       );
@@ -254,14 +285,16 @@ export class UserRecordsService {
       input.progressTotal !== null &&
       input.progressCurrent > input.progressTotal
     ) {
-      throw new BadRequestException('progressCurrent cannot exceed progressTotal.');
+      throw new BadRequestException(
+        'progressCurrent cannot exceed progressTotal.',
+      );
     }
 
     const updated = await this.update(id, {
       lastConsumedLabel:
         input.lastConsumedLabel === undefined
           ? existing.lastConsumedLabel
-          : input.lastConsumedLabel?.trim() ?? null,
+          : (input.lastConsumedLabel?.trim() ?? null),
       progressCurrent:
         input.progressCurrent === undefined
           ? existing.progressCurrent
@@ -406,6 +439,25 @@ export class UserRecordsService {
       data.personalTags = normalizePersonalTags(input.personalTags);
     }
 
+    if (input.startedAt !== undefined) {
+      data.startedAt = parseOptionalDtoDate(input.startedAt, 'startedAt');
+    }
+
+    if (input.completedAt !== undefined) {
+      data.completedAt = parseOptionalDtoDate(input.completedAt, 'completedAt');
+    }
+
+    if (input.droppedAt !== undefined) {
+      data.droppedAt = parseOptionalDtoDate(input.droppedAt, 'droppedAt');
+    }
+
+    if (input.lastConsumedAt !== undefined) {
+      data.lastConsumedAt = parseOptionalDtoDate(
+        input.lastConsumedAt,
+        'lastConsumedAt',
+      );
+    }
+
     const updated = await this.update(id, {
       ...data,
       serverVersion: {
@@ -467,9 +519,8 @@ export class UserRecordsService {
       titleInput.thumbnailUrl = input.thumbnailUrl;
     }
 
-    const title = await this.catalogService.createTitleFromImportCandidate(
-      titleInput,
-    );
+    const title =
+      await this.catalogService.createTitleFromImportCandidate(titleInput);
     const recordInput: CreateUserRecordDto = {
       catalogTitleId: title.id,
       title: input.title || input.catalogTitle,
@@ -538,14 +589,15 @@ export class UserRecordsService {
 
   private async createUserRecord(userId: string, input: CreateUserRecordDto) {
     if (input.catalogTitleId) {
-      const duplicate =
-        await this.findActiveByUserAndCatalogTitle(
-          userId,
-          input.catalogTitleId,
-        );
+      const duplicate = await this.findActiveByUserAndCatalogTitle(
+        userId,
+        input.catalogTitleId,
+      );
 
       if (duplicate) {
-        throw new BadRequestException('A record for this catalog title already exists.');
+        throw new BadRequestException(
+          'A record for this catalog title already exists.',
+        );
       }
     }
 
@@ -553,7 +605,11 @@ export class UserRecordsService {
 
     return this.prisma.$transaction(async (tx) => {
       const catalogWorkId = input.catalogTitleId
-        ? await this.createCompatibilityCatalogWorkFromTitle(recordId, input, tx)
+        ? await this.createCompatibilityCatalogWorkFromTitle(
+            recordId,
+            input,
+            tx,
+          )
         : await this.createDraftCatalogWork(recordId, input, tx);
 
       return this.create(
@@ -565,6 +621,13 @@ export class UserRecordsService {
           rating: input.rating ?? null,
           review: normalizeString(input.review),
           personalTags: normalizePersonalTags(input.personalTags),
+          startedAt: parseOptionalDtoDate(input.startedAt, 'startedAt'),
+          completedAt: parseOptionalDtoDate(input.completedAt, 'completedAt'),
+          droppedAt: parseOptionalDtoDate(input.droppedAt, 'droppedAt'),
+          lastConsumedAt: parseOptionalDtoDate(
+            input.lastConsumedAt,
+            'lastConsumedAt',
+          ),
           serverVersion: 1,
           shortReview: normalizeString(input.shortReview),
           status: input.status ?? WorkStatus.planned,
@@ -585,7 +648,9 @@ export class UserRecordsService {
     const title = input.title?.trim();
 
     if (!title) {
-      throw new BadRequestException('title is required when catalogTitleId is absent.');
+      throw new BadRequestException(
+        'title is required when catalogTitleId is absent.',
+      );
     }
 
     await this.catalogService.create(
@@ -609,7 +674,9 @@ export class UserRecordsService {
     input: CreateUserRecordDto,
     tx: Prisma.TransactionClient,
   ) {
-    const title = await this.catalogService.findTitleOrThrow(input.catalogTitleId!);
+    const title = await this.catalogService.findTitleOrThrow(
+      input.catalogTitleId!,
+    );
     const author =
       input.author?.trim() ||
       title.contributors
@@ -662,7 +729,8 @@ export class UserRecordsService {
     }
 
     if (by === 'medium') {
-      const mediumType = record.catalogTitle?.mediumType ?? record.catalogWork.type;
+      const mediumType =
+        record.catalogTitle?.mediumType ?? record.catalogWork.type;
 
       return {
         key: mediumType,

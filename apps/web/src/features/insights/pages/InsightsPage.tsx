@@ -114,7 +114,7 @@ export function InsightsPage() {
                 value={formatRating(insights.averageRating)}
               />
               <MetricPill
-                label="올해 수정된 완료 기록"
+                label="올해 완료한 기록"
                 value={insights.completedThisYearCount}
               />
               <MetricPill label="즐겨찾기" value={insights.favoriteCount} />

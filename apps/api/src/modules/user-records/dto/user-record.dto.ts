@@ -2,6 +2,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -146,6 +147,34 @@ export class CreateUserRecordDto {
   @IsString({ each: true })
   @MaxLength(40, { each: true })
   personalTags?: string[];
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  startedAt?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  completedAt?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  droppedAt?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  lastConsumedAt?: string | null;
 }
 
 export class UpdateUserRecordDto {
@@ -211,6 +240,34 @@ export class UpdateUserRecordDto {
   @IsString({ each: true })
   @MaxLength(40, { each: true })
   personalTags?: string[];
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  startedAt?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  completedAt?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  droppedAt?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  lastConsumedAt?: string | null;
 }
 
 export class UpdateProgressDto {

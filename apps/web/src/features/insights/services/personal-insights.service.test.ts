@@ -40,6 +40,7 @@ describe('calculatePersonalInsights', () => {
     const insights = calculatePersonalInsights(
       [
         buildWork({
+          completedAt: '2026-01-15T00:00:00.000Z',
           favorite: true,
           personalTags: ['인생작 후보', '다시 볼 것'],
           rating: 5,
@@ -86,5 +87,25 @@ describe('calculatePersonalInsights', () => {
       'Dune',
       'Frieren',
     ]);
+  });
+
+  it('uses completedAt before updatedAt for yearly completion counts', () => {
+    const insights = calculatePersonalInsights(
+      [
+        buildWork({
+          completedAt: '2025-12-31T00:00:00.000Z',
+          status: 'completed',
+          updatedAt: '2026-01-02T00:00:00.000Z',
+        }),
+        buildWork({
+          completedAt: '2026-01-03T00:00:00.000Z',
+          status: 'completed',
+          updatedAt: '2025-12-30T00:00:00.000Z',
+        }),
+      ],
+      new Date('2026-04-27T00:00:00.000Z'),
+    );
+
+    expect(insights.completedThisYearCount).toBe(1);
   });
 });

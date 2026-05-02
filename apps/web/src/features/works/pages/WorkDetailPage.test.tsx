@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -6,7 +6,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { AuthProvider } from '../../auth/context/AuthProvider';
-import { AuthContext, type AuthContextValue } from '../../auth/context/AuthContext';
+import {
+  AuthContext,
+  type AuthContextValue,
+} from '../../auth/context/AuthContext';
 import * as userRecordsApi from '../services/user-records.api';
 import { worksRepository } from '../services/works.repository';
 import { worksService } from '../services/works.service';
@@ -67,7 +70,9 @@ describe('WorkDetailPage', () => {
     expect(await screen.findByText('별점')).toBeInTheDocument();
     expect(screen.getAllByText('2권까지').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Dune 상세 진행도 67%')).toBeInTheDocument();
-    expect(screen.getByText('세계관의 밀도와 긴장감이 오래 남는다.')).toBeInTheDocument();
+    expect(
+      screen.getByText('세계관의 밀도와 긴장감이 오래 남는다.'),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
         '긴 감상입니다. 인물의 선택과 정치 구조가 얽히는 방식이 인상적이었고, 후반부의 긴장감도 좋았습니다.',
@@ -105,14 +110,22 @@ describe('WorkDetailPage', () => {
     );
 
     await screen.findByRole('heading', { name: 'Frieren' });
-    expect(screen.getAllByRole('link', { name: '리뷰 쓰기' }).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('link', { name: '리뷰 쓰기' }).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: '기록 수정' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Frieren 상세 상태')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Frieren 상세 상태'),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getAllByRole('link', { name: '리뷰 쓰기' })[0]!);
 
-    expect(await screen.findByRole('heading', { name: 'Frieren 감상 수정' })).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: '저장' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Frieren 감상 수정' }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: '저장' }),
+    ).toBeInTheDocument();
   });
 
   it('shows volume-level records for novels when catalog releases exist', async () => {
@@ -323,8 +336,12 @@ describe('WorkDetailPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'KonoSuba TV Anime' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '애니 진행 상황' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'KonoSuba TV Anime' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '애니 진행 상황' }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('현재 회')).toBeInTheDocument();
     expect(screen.queryByText('권별 기록')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('권별 별점')).not.toBeInTheDocument();

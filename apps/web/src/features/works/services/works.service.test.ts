@@ -63,6 +63,7 @@ describe('WorksService', () => {
     const created = await service.createWork(
       buildInput({
         catalogTitleId: 'catalog-title-1',
+        completedAt: '2026-04-20T00:00:00.000Z',
         personalTags: ['다시 볼 것'],
         importDraft: {
           catalogTitle: 'Dune',
@@ -84,6 +85,7 @@ describe('WorksService', () => {
         operation: 'create',
         payload: expect.objectContaining({
           catalogTitleId: 'catalog-title-1',
+          completedAt: '2026-04-20T00:00:00.000Z',
           personalTags: ['다시 볼 것'],
           importDraft: expect.objectContaining({
             catalogTitle: 'Dune',

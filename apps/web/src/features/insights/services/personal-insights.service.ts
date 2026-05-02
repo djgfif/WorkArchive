@@ -78,7 +78,7 @@ export function calculatePersonalInsights(
     completedThisYearCount: activeWorks.filter(
       (work) =>
         work.status === 'completed' &&
-        isSameYear(work.updatedAt, now.getFullYear()),
+        isSameYear(work.completedAt ?? work.updatedAt, now.getFullYear()),
     ).length,
     favoriteCount: activeWorks.filter((work) => work.favorite).length,
     plannedOrInProgressCount: statusCounts.planned + statusCounts.in_progress,

@@ -10,6 +10,10 @@ type DatabaseResolver = () => WorkArchiveDatabase;
 function normalizeWorkRecord(work: WorkRecord): WorkRecord {
   return {
     ...work,
+    startedAt: work.startedAt ?? null,
+    completedAt: work.completedAt ?? null,
+    droppedAt: work.droppedAt ?? null,
+    lastConsumedAt: work.lastConsumedAt ?? null,
     genres: Array.isArray(work.genres) ? [...work.genres] : [],
     personalTags: Array.isArray((work as Partial<WorkRecord>).personalTags)
       ? [...work.personalTags]
@@ -61,16 +65,16 @@ export class WorksRepository {
   async listActive() {
     return (
       await this.getDb()
-      .works.filter((work) => work.deletedAt === null)
-      .toArray()
+        .works.filter((work) => work.deletedAt === null)
+        .toArray()
     ).map(normalizeWorkRecord);
   }
 
   async listDeleted() {
     return (
       await this.getDb()
-      .works.filter((work) => work.deletedAt !== null)
-      .toArray()
+        .works.filter((work) => work.deletedAt !== null)
+        .toArray()
     ).map(normalizeWorkRecord);
   }
 

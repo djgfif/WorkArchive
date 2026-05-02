@@ -2,6 +2,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -147,4 +148,36 @@ export class CreateWorkDto {
   @IsOptional()
   @IsBoolean()
   favorite?: boolean;
+
+  @ApiPropertyOptional({
+    example: '2026-04-18T00:00:00.000Z',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  startedAt?: string | null;
+
+  @ApiPropertyOptional({
+    example: '2026-04-20T00:00:00.000Z',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  completedAt?: string | null;
+
+  @ApiPropertyOptional({
+    example: null,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  droppedAt?: string | null;
+
+  @ApiPropertyOptional({
+    example: '2026-04-20T00:00:00.000Z',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  lastConsumedAt?: string | null;
 }

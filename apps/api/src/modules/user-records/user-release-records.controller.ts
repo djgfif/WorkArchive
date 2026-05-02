@@ -19,8 +19,9 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type {
+  UpsertUserReleaseRecordDto} from './dto/user-release-record.dto';
 import {
-  UpsertUserReleaseRecordDto,
   UserReleaseRecordResponseDto,
 } from './dto/user-release-record.dto';
 import {

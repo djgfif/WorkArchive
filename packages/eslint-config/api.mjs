@@ -5,7 +5,7 @@ import { baseConfig } from './base.mjs';
 export default [
   ...baseConfig,
   {
-    files: ['**/*.ts'],
+    files: ['**/*.{ts,mjs}'],
     languageOptions: {
       globals: {
         ...globals.node,

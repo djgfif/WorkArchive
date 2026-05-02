@@ -108,14 +108,18 @@ export function WorkForm({
     });
 
     const focusTarget =
-      shortReviewLength === 0 ? shortReviewInputRef.current : reviewInputRef.current;
+      shortReviewLength === 0
+        ? shortReviewInputRef.current
+        : reviewInputRef.current;
 
     focusTarget?.focus();
     hasFocusedReviewRef.current = true;
   }, [focusArea, reviewLength, shortReviewLength]);
 
   function handleInputChange(
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    event: ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) {
     const { name, type } = event.target;
 
@@ -198,8 +202,14 @@ export function WorkForm({
                     type="url"
                     value={values.thumbnailUrl}
                   />
-                  <Text c="var(--app-text-muted)" fz="sm" id="thumbnailUrlHint" mt={6}>
-                    선택 사항입니다. 표지를 넣어두면 라이브러리에서 더 쉽게 찾을 수 있습니다.
+                  <Text
+                    c="var(--app-text-muted)"
+                    fz="sm"
+                    id="thumbnailUrlHint"
+                    mt={6}
+                  >
+                    선택 사항입니다. 표지를 넣어두면 라이브러리에서 더 쉽게 찾을
+                    수 있습니다.
                   </Text>
                 </div>
 
@@ -213,7 +223,12 @@ export function WorkForm({
                     placeholder="SF, 로맨스, 스릴러"
                     value={values.genresText}
                   />
-                  <Text c="var(--app-text-muted)" fz="sm" id="genresTextHint" mt={6}>
+                  <Text
+                    c="var(--app-text-muted)"
+                    fz="sm"
+                    id="genresTextHint"
+                    mt={6}
+                  >
                     장르는 쉼표로 구분해 입력해주세요.
                   </Text>
                 </div>
@@ -234,7 +249,12 @@ export function WorkForm({
                       <option key={tag} value={tag} />
                     ))}
                   </datalist>
-                  <Text c="var(--app-text-muted)" fz="sm" id="personalTagsTextHint" mt={6}>
+                  <Text
+                    c="var(--app-text-muted)"
+                    fz="sm"
+                    id="personalTagsTextHint"
+                    mt={6}
+                  >
                     장르와 분리된 내 분류입니다. 쉼표로 구분해 입력해주세요.
                   </Text>
                 </div>
@@ -308,6 +328,47 @@ export function WorkForm({
               </SimpleGrid>
             </PageSection>
 
+            <PageSection
+              description="시작, 완료, 중단, 마지막 감상일을 남겨두면 상세 화면의 타임라인과 개인 인사이트에서 기록 흐름을 다시 볼 수 있습니다."
+              eyebrow="날짜 기록"
+              title="감상 기간"
+            >
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <TextInput
+                  id="startedAt"
+                  label="시작일"
+                  name="startedAt"
+                  onChange={handleInputChange}
+                  type="date"
+                  value={values.startedAt}
+                />
+                <TextInput
+                  id="lastConsumedAt"
+                  label="마지막 감상일"
+                  name="lastConsumedAt"
+                  onChange={handleInputChange}
+                  type="date"
+                  value={values.lastConsumedAt}
+                />
+                <TextInput
+                  id="completedAt"
+                  label="완료일"
+                  name="completedAt"
+                  onChange={handleInputChange}
+                  type="date"
+                  value={values.completedAt}
+                />
+                <TextInput
+                  id="droppedAt"
+                  label="중단일"
+                  name="droppedAt"
+                  onChange={handleInputChange}
+                  type="date"
+                  value={values.droppedAt}
+                />
+              </SimpleGrid>
+            </PageSection>
+
             <div ref={reviewSectionRef}>
               <PageSection
                 description={
@@ -316,16 +377,26 @@ export function WorkForm({
                     : '짧은 감상과 긴 감상을 나눠두면 나중에 다시 읽을 때 더 편합니다.'
                 }
                 eyebrow="감상 기록"
-                title={focusArea === 'review' ? '이번엔 감상 문장에 집중해보세요' : '감상을 남겨보세요'}
+                title={
+                  focusArea === 'review'
+                    ? '이번엔 감상 문장에 집중해보세요'
+                    : '감상을 남겨보세요'
+                }
               >
                 <ActionRow>
                   <MetricPill
                     label="목록과 홈 최근 기록에 우선 노출됩니다."
-                    value={shortReviewLength > 0 ? `${shortReviewLength}자` : '한줄평 없음'}
+                    value={
+                      shortReviewLength > 0
+                        ? `${shortReviewLength}자`
+                        : '한줄평 없음'
+                    }
                   />
                   <MetricPill
                     label="상세 화면에서 길게 읽는 감상입니다."
-                    value={reviewLength > 0 ? `${reviewLength}자` : '상세 감상 없음'}
+                    value={
+                      reviewLength > 0 ? `${reviewLength}자` : '상세 감상 없음'
+                    }
                   />
                 </ActionRow>
 
@@ -402,7 +473,9 @@ export function WorkForm({
 
               <ActionRow>
                 {previewGenres.length > 0 ? (
-                  previewGenres.map((genre) => <AppBadge key={genre}>{genre}</AppBadge>)
+                  previewGenres.map((genre) => (
+                    <AppBadge key={genre}>{genre}</AppBadge>
+                  ))
                 ) : (
                   <AppBadge tone="muted">장르 없음</AppBadge>
                 )}

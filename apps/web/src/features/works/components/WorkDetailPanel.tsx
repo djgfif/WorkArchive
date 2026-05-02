@@ -15,6 +15,7 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import {
   formatWorkDateTime,
+  formatWorkDate,
   formatWorkUpdatedAt,
   getWorkStatusLabel,
   getWorkSyncStatusLabel,
@@ -63,6 +64,43 @@ function getProgressLabel(work: WorkRecord) {
   return null;
 }
 
+function createTimelineItems(work: WorkRecord) {
+  return [
+    {
+      label: '기록 추가',
+      value: work.createdAt,
+      description: '아카이브에 처음 저장한 날입니다.',
+    },
+    {
+      label: '감상 시작',
+      value: work.startedAt ?? null,
+      description: '작품을 보기 시작한 날입니다.',
+    },
+    {
+      label: '마지막 감상',
+      value: work.lastConsumedAt ?? null,
+      description: work.lastConsumedLabel
+        ? `마지막 위치: ${work.lastConsumedLabel}`
+        : '마지막으로 감상한 날입니다.',
+    },
+    {
+      label: '완료',
+      value: work.completedAt ?? null,
+      description: '끝까지 본 날입니다.',
+    },
+    {
+      label: '중단',
+      value: work.droppedAt ?? null,
+      description: '하차하거나 중단한 날입니다.',
+    },
+  ]
+    .filter((item) => item.value)
+    .sort(
+      (left, right) =>
+        new Date(left.value!).getTime() - new Date(right.value!).getTime(),
+    );
+}
+
 export function WorkDetailPanel({
   actions,
   recordSections,
@@ -77,6 +115,7 @@ export function WorkDetailPanel({
   const review = work.review.trim();
   const progressLabel = getProgressLabel(work);
   const progressPercent = getProgressPercent(work);
+  const timelineItems = createTimelineItems(work);
   const sourceIdentityLabel = work.catalogTitleId
     ? '카탈로그 연결됨'
     : work.importDraft
@@ -101,7 +140,12 @@ export function WorkDetailPanel({
             />
           </Box>
 
-          <Stack flex={1} gap="lg" miw={0} style={{ minWidth: 'min(100%, 26rem)' }}>
+          <Stack
+            flex={1}
+            gap="lg"
+            miw={0}
+            style={{ minWidth: 'min(100%, 26rem)' }}
+          >
             <ActionRow>
               <AppBadge>{typeLabel}</AppBadge>
               <AppBadge tone="accent">{statusLabel}</AppBadge>
@@ -111,14 +155,17 @@ export function WorkDetailPanel({
             <div>
               <Title order={1}>{work.title}</Title>
               <Text c="var(--app-text-muted)">
-                {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
+                {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
+                {formatWorkUpdatedAt(work.updatedAt)}
               </Text>
             </div>
 
             <ActionRow>
               <MetricPill label="별점" value={renderRatingLabel(work)} />
               <MetricPill label="상태" value={statusLabel} />
-              {progressLabel && <MetricPill label="진행도" value={progressLabel} />}
+              {progressLabel && (
+                <MetricPill label="진행도" value={progressLabel} />
+              )}
             </ActionRow>
 
             {progressPercent !== null && (
@@ -154,7 +201,11 @@ export function WorkDetailPanel({
                 한줄평
               </Text>
               <Title
-                c={shortReview ? 'var(--app-text-strong)' : 'var(--app-text-muted)'}
+                c={
+                  shortReview
+                    ? 'var(--app-text-strong)'
+                    : 'var(--app-text-muted)'
+                }
                 order={3}
               >
                 {shortReview || '아직 남긴 한줄평이 없습니다.'}
@@ -166,7 +217,9 @@ export function WorkDetailPanel({
                 상세 감상
               </Text>
               <Text
-                c={review ? 'var(--app-text-secondary)' : 'var(--app-text-muted)'}
+                c={
+                  review ? 'var(--app-text-secondary)' : 'var(--app-text-muted)'
+                }
                 lh={1.8}
               >
                 {review || '아직 남긴 상세 감상이 없습니다.'}
@@ -193,7 +246,10 @@ export function WorkDetailPanel({
             </Stack>
 
             <ActionRow>
-              <AppLinkButton to={`/works/${work.id}/edit?focus=review`} tone="primary">
+              <AppLinkButton
+                to={`/works/${work.id}/edit?focus=review`}
+                tone="primary"
+              >
                 {shortReview || review ? '리뷰 수정' : '리뷰 쓰기'}
               </AppLinkButton>
               <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
@@ -207,23 +263,54 @@ export function WorkDetailPanel({
       </PageSection>
 
       <PageSection
-        description="날짜 필드와 자동 이벤트 저장 모델이 들어오면 시작, 진행, 완료, 리뷰 수정 흐름을 이곳에서 시간순으로 보여줍니다."
+        description="시작, 마지막 감상, 완료, 중단 날짜를 시간순으로 모아 개인 감상 흐름을 보여줍니다."
         eyebrow="감상 이력"
         title="타임라인"
       >
         <SectionCard gap="md" padding="lg" tone="subtle">
-          <Stack gap="sm">
-            <ActionRow>
-              <AppBadge tone="muted">준비 중</AppBadge>
+          <Stack gap="md">
+            {timelineItems.length > 0 ? (
+              timelineItems.map((item) => (
+                <Group
+                  align="flex-start"
+                  justify="space-between"
+                  key={item.label}
+                >
+                  <Stack gap={2}>
+                    <Text fw={700}>{item.label}</Text>
+                    <Text c="var(--app-text-muted)" size="sm">
+                      {item.description}
+                    </Text>
+                  </Stack>
+                  <AppBadge tone="accent">
+                    {formatWorkDate(item.value)}
+                  </AppBadge>
+                </Group>
+              ))
+            ) : (
               <Text c="var(--app-text-muted)" size="sm">
-                지금은 최근 수정일과 진행도 기록을 기준으로만 확인할 수 있습니다.
+                아직 날짜 기록이 없습니다. 시작일이나 마지막 감상일을 남기면
+                이곳에 표시됩니다.
               </Text>
-            </ActionRow>
+            )}
             <KeyValueGrid
               columns={2}
               items={[
-                { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
-                { label: '최근 수정', value: formatWorkDateTime(work.updatedAt) },
+                {
+                  label: '추가한 날',
+                  value: formatWorkDateTime(work.createdAt),
+                },
+                {
+                  label: '최근 수정',
+                  value: formatWorkDateTime(work.updatedAt),
+                },
+                { label: '시작일', value: formatWorkDate(work.startedAt) },
+                { label: '완료일', value: formatWorkDate(work.completedAt) },
+                { label: '중단일', value: formatWorkDate(work.droppedAt) },
+                {
+                  label: '마지막 감상일',
+                  value: formatWorkDate(work.lastConsumedAt),
+                },
                 { label: '진행도', value: progressLabel ?? '아직 없음' },
                 { label: '현재 상태', value: statusLabel },
               ]}

@@ -95,3 +95,13 @@ export function formatWorkDateTime(value: string) {
 export function formatWorkUpdatedAt(value: string) {
   return formatWorkDateTime(value);
 }
+
+export function formatWorkDate(value?: string | null) {
+  if (!value) {
+    return '미기록';
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'medium',
+  }).format(new Date(value));
+}

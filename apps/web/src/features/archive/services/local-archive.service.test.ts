@@ -24,6 +24,10 @@ function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
     progressTotal: null,
     progressUnit: null,
     lastConsumedLabel: null,
+    startedAt: null,
+    completedAt: null,
+    droppedAt: null,
+    lastConsumedAt: null,
     rating: 5,
     review: 'A long review',
     serverVersion: 0,
@@ -158,14 +162,14 @@ describe('LocalArchiveService', () => {
     expect(importedReleaseRecords[0]?.userWorkRecordId).not.toBe('work-1');
     expect(queueItems).toEqual(
       expect.arrayContaining([
-      expect.objectContaining({
-        entityType: 'work',
-        operation: 'create',
-      }),
-      expect.objectContaining({
-        entityType: 'release_record',
-        operation: 'create',
-      }),
+        expect.objectContaining({
+          entityType: 'work',
+          operation: 'create',
+        }),
+        expect.objectContaining({
+          entityType: 'release_record',
+          operation: 'create',
+        }),
       ]),
     );
   });
@@ -249,12 +253,20 @@ describe('LocalArchiveService', () => {
       works: Array<Partial<WorkRecord>>;
     };
     delete backup.works[0]?.personalTags;
+    delete backup.works[0]?.startedAt;
+    delete backup.works[0]?.completedAt;
+    delete backup.works[0]?.droppedAt;
+    delete backup.works[0]?.lastConsumedAt;
 
     await targetService.importJson(JSON.stringify(backup));
 
     expect(await targetDb.works.toArray()).toEqual([
       expect.objectContaining({
+        completedAt: null,
+        droppedAt: null,
+        lastConsumedAt: null,
         personalTags: [],
+        startedAt: null,
       }),
     ]);
   });

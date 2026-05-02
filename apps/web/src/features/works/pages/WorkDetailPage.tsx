@@ -23,13 +23,11 @@ import {
 } from '@work-archive/shared-types';
 
 import {
-  ActionRow,
   AppButton,
   AppLinkButton,
   FeedbackMessage,
   PageSection,
   SectionCard,
-  SectionIntro,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
 import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
@@ -45,10 +43,7 @@ import {
   type UserRecordReleasesResponse,
 } from '../services/user-records.api';
 import { worksService } from '../services/works.service';
-import {
-  getWorkTypeLabel,
-  workStatusOptions,
-} from '../utils/work-options';
+import { getWorkTypeLabel, workStatusOptions } from '../utils/work-options';
 
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
   const value = (index + 1) * 0.5;
@@ -188,7 +183,8 @@ function ProgressOnlySection({
         />
         <Group justify="space-between">
           <Text c="var(--app-text-muted)" size="sm">
-            애니/드라마는 시즌·OVA·극장판을 별도 작품으로 관리하고, 에피소드는 진행도만 남깁니다.
+            애니/드라마는 시즌·OVA·극장판을 별도 작품으로 관리하고, 에피소드는
+            진행도만 남깁니다.
           </Text>
           <AppButton
             disabled={isSaving}
@@ -276,14 +272,18 @@ function ReleaseRecordRow({
   }
 
   const label =
-    release.displayLabel || release.title || `#${release.sequence ?? release.id}`;
+    release.displayLabel ||
+    release.title ||
+    `#${release.sequence ?? release.id}`;
 
   return (
     <SectionCard gap="md" padding="lg" tone="subtle">
       <Stack gap="xs">
         <Text fw={700}>{label}</Text>
         <Text c="var(--app-text-muted)" size="sm">
-          {release.isbn ? `ISBN ${release.isbn}` : release.releaseType || '하위 릴리스'}
+          {release.isbn
+            ? `ISBN ${release.isbn}`
+            : release.releaseType || '하위 릴리스'}
           {record?.deletedAt ? ' · 삭제됨' : ''}
         </Text>
       </Stack>
@@ -365,7 +365,10 @@ function VolumeRecordsSection({
     return null;
   }
 
-  if (!releaseData.policy.releaseRecordsSupported || releaseData.releases.length === 0) {
+  if (
+    !releaseData.policy.releaseRecordsSupported ||
+    releaseData.releases.length === 0
+  ) {
     return null;
   }
 
@@ -381,9 +384,7 @@ function VolumeRecordsSection({
     >
       <Accordion variant="separated">
         <Accordion.Item value="volume-records">
-          <Accordion.Control>
-            권별 별점과 짧은 감상 남기기
-          </Accordion.Control>
+          <Accordion.Control>권별 별점과 짧은 감상 남기기</Accordion.Control>
           <Accordion.Panel>
             <Stack gap="md">
               {releaseData.releases.map((release) => (
@@ -655,7 +656,9 @@ export function WorkDetailPage() {
 
   return (
     <DetailPageTemplate>
-      {actionError && <FeedbackMessage tone="error">{actionError}</FeedbackMessage>}
+      {actionError && (
+        <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
+      )}
 
       <WorkDetailPanel
         actions={
@@ -663,18 +666,29 @@ export function WorkDetailPage() {
             <AppLinkButton to="/works" tone="quiet">
               작품으로 돌아가기
             </AppLinkButton>
-            <AppLinkButton to={`/works/${work.id}/edit?focus=review`} tone="primary">
-              {work.shortReview.trim() || work.review.trim() ? '리뷰 수정' : '리뷰 쓰기'}
+            <AppLinkButton
+              to={`/works/${work.id}/edit?focus=review`}
+              tone="primary"
+            >
+              {work.shortReview.trim() || work.review.trim()
+                ? '리뷰 수정'
+                : '리뷰 쓰기'}
             </AppLinkButton>
             <AppLinkButton to={`/works/${work.id}/edit`} tone="ghost">
               수정
             </AppLinkButton>
-            <AppButton onClick={() => void handleDelete()} tone="danger" type="button">
+            <AppButton
+              onClick={() => void handleDelete()}
+              tone="danger"
+              type="button"
+            >
               삭제
             </AppButton>
           </>
         }
-        recordSections={<ProgressOnlySection onError={setActionError} work={work} />}
+        recordSections={
+          <ProgressOnlySection onError={setActionError} work={work} />
+        }
         relatedSections={
           <>
             <VolumeRecordsSection
