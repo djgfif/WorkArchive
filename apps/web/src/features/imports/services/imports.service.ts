@@ -412,7 +412,10 @@ export class ImportsService {
   private shouldFallbackToPreview(error: unknown) {
     return (
       error instanceof ApiRequestError &&
-      (error.status === 401 || error.status === 403 || error.status === 502)
+      (error.status === 0 ||
+        error.status === 401 ||
+        error.status === 403 ||
+        error.status === 502)
     );
   }
 }

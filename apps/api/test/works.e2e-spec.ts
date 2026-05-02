@@ -1279,7 +1279,7 @@ describe('Auth, works, and sync API (e2e)', () => {
       '/api/imports/search?provider=tmdb&query=Dune&type=movie',
     );
 
-    expect(tmdbGuestResponse.status).toBe(403);
+    expect(tmdbGuestResponse.status).toBe(401);
   });
 
   it('rejects malformed optional import authorization headers', async () => {

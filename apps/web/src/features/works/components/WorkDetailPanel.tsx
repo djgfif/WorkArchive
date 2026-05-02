@@ -176,7 +176,7 @@ export function WorkDetailPanel({
                 <Progress
                   aria-label={`${work.title} 상세 진행도 ${progressPercent}%`}
                   color="archive"
-                  radius="xl"
+                  radius="md"
                   size="sm"
                   value={progressPercent}
                 />
@@ -270,22 +270,42 @@ export function WorkDetailPanel({
         <SectionCard gap="md" padding="lg" tone="subtle">
           <Stack gap="md">
             {timelineItems.length > 0 ? (
-              timelineItems.map((item) => (
-                <Group
-                  align="flex-start"
-                  justify="space-between"
+              timelineItems.map((item, index) => (
+                <Box
                   key={item.label}
+                  style={{
+                    borderLeft: '1px solid var(--app-border-strong)',
+                    paddingBottom:
+                      index === timelineItems.length - 1 ? 0 : '0.85rem',
+                    paddingLeft: '1rem',
+                    position: 'relative',
+                  }}
                 >
-                  <Stack gap={2}>
-                    <Text fw={700}>{item.label}</Text>
-                    <Text c="var(--app-text-muted)" size="sm">
-                      {item.description}
-                    </Text>
-                  </Stack>
-                  <AppBadge tone="accent">
-                    {formatWorkDate(item.value)}
-                  </AppBadge>
-                </Group>
+                  <Box
+                    aria-hidden="true"
+                    style={{
+                      background: 'var(--app-accent)',
+                      border: '2px solid var(--app-surface-1)',
+                      borderRadius: '999px',
+                      height: '0.6rem',
+                      left: '-0.35rem',
+                      position: 'absolute',
+                      top: '0.35rem',
+                      width: '0.6rem',
+                    }}
+                  />
+                  <Group align="flex-start" justify="space-between">
+                    <Stack gap={2}>
+                      <Text fw={700}>{item.label}</Text>
+                      <Text c="var(--app-text-muted)" size="sm">
+                        {item.description}
+                      </Text>
+                    </Stack>
+                    <AppBadge tone="accent">
+                      {formatWorkDate(item.value)}
+                    </AppBadge>
+                  </Group>
+                </Box>
               ))
             ) : (
               <Text c="var(--app-text-muted)" size="sm">

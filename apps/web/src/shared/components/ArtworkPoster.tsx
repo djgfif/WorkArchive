@@ -42,8 +42,9 @@ export function ArtworkPoster({
   if (thumbnailUrl && !imageFailed) {
     return (
       <Paper
-        radius="lg"
+        radius="md"
         style={{
+          borderColor: 'var(--app-border-color)',
           flexShrink: 0,
           overflow: 'hidden',
           width,
@@ -68,9 +69,12 @@ export function ArtworkPoster({
 
   return (
     <Paper
-      radius="lg"
+      radius="md"
       style={{
         aspectRatio: '3 / 4',
+        background:
+          'linear-gradient(135deg, rgba(173, 202, 222, 0.12), transparent 48%), var(--app-surface-low)',
+        borderColor: 'var(--app-border-color)',
         flexShrink: 0,
         overflow: 'hidden',
         width,

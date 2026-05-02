@@ -17,6 +17,7 @@ import {
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiExtraModels,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiTags,
@@ -28,7 +29,7 @@ import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
-import type { ImportSearchQueryDto } from './dto/import-search-query.dto';
+import { ImportSearchQueryDto } from './dto/import-search-query.dto';
 import { ImportSearchResponseDto } from './dto/import-search-response.dto';
 import { UpsertAladinKeyDto } from './dto/upsert-aladin-key.dto';
 import { UpsertProviderKeyDto } from './dto/upsert-provider-key.dto';
@@ -151,6 +152,7 @@ export class ImportsController {
   }
 
   @Get('search')
+  @ApiExtraModels(ImportSearchQueryDto)
   @ApiOkResponse({
     description: 'Search provider metadata candidates for Quick Add.',
     type: ImportSearchResponseDto,

@@ -155,10 +155,11 @@ export function AddWorkSearchPanel({
         <Grid.Col span={{ base: 12, md: 5 }}>
           <Paper
             p="sm"
-            radius="lg"
+            radius="md"
             styles={{
               root: {
-                backgroundColor: 'var(--app-surface-0)',
+                background:
+                  'linear-gradient(180deg, var(--app-surface-0), var(--app-surface-low))',
                 borderColor: 'var(--app-border-color)',
               },
             }}
@@ -237,10 +238,11 @@ export function AddWorkSearchPanel({
         <Grid.Col span={{ base: 12, md: 7 }}>
           <Paper
             p="lg"
-            radius="lg"
+            radius="md"
             styles={{
               root: {
-                backgroundColor: 'var(--app-surface-1)',
+                background:
+                  'linear-gradient(180deg, var(--app-surface-1), var(--app-surface-low))',
                 borderColor: 'var(--app-border-strong)',
                 minHeight: fullHeight ? undefined : '34rem',
               },

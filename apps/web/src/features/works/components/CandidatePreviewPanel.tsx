@@ -105,10 +105,10 @@ export function CandidatePreviewPanel({
 
       <Paper
         p="md"
-        radius="lg"
+        radius="md"
         styles={{
           root: {
-            backgroundColor: 'var(--app-surface-0)',
+            backgroundColor: 'var(--app-surface-low)',
             borderColor: 'var(--app-border-color)',
           },
         }}
@@ -178,7 +178,7 @@ export function CandidatePreviewPanel({
       {needsManualReview && (
         <Alert
           color="yellow"
-          radius="lg"
+          radius="md"
           title="후보를 확인하고 직접 추가도 고려하세요"
           variant="light"
         >
@@ -192,7 +192,7 @@ export function CandidatePreviewPanel({
       {duplicateMatches.length > 0 && (
         <Alert
           color="blue"
-          radius="lg"
+          radius="md"
           title="비슷한 기록이 이미 있습니다"
           variant="light"
         >

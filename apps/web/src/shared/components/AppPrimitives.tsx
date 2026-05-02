@@ -174,7 +174,10 @@ interface AppNavLinkProps {
 function getSurfaceBackground(tone: SurfaceTone) {
   switch (tone) {
     case 'hero':
-      return 'var(--app-surface-0)';
+      return [
+        'linear-gradient(135deg, rgba(173, 202, 222, 0.1), transparent 42%)',
+        'linear-gradient(180deg, var(--app-surface-0), var(--app-surface-low))',
+      ].join(', ');
     case 'subtle':
       return 'var(--app-surface-1)';
     case 'default':
@@ -305,7 +308,7 @@ export function SectionCard({
       radius="md"
       styles={{
         root: {
-          backgroundColor: getSurfaceBackground(tone),
+          background: getSurfaceBackground(tone),
           borderColor: getSurfaceBorder(tone),
           overflow: 'hidden',
         },
@@ -333,7 +336,7 @@ export function SurfaceLinkCard({
       radius="md"
       styles={{
         root: {
-          backgroundColor: getSurfaceBackground(tone),
+          background: getSurfaceBackground(tone),
           borderColor: getSurfaceBorder(tone),
           display: 'block',
           textDecoration: 'none',
@@ -447,7 +450,7 @@ export function BrandLink({
       }}
     >
       <Group gap="sm" wrap="nowrap">
-        <ThemeIcon color="archive" radius="md" size={36} variant="light">
+        <ThemeIcon color="archive" radius="sm" size={36} variant="light">
           <Text fw={700} size="xs">
             WA
           </Text>
@@ -608,10 +611,14 @@ export function MetricPill({
     <Stack
       gap={2}
       miw={112}
-      pl="md"
-      style={{ borderLeft: '1px solid var(--app-border-color)' }}
+      p="xs"
+      style={{
+        background: 'var(--app-surface-low)',
+        border: '1px solid var(--app-border-subtle)',
+        borderRadius: 'var(--app-surface-radius-sm)',
+      }}
     >
-      <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.06em" tt="uppercase">
+      <Text c="var(--app-text-muted)" fw={700} fz="0.7rem" lts="0.06em" tt="uppercase">
         {label}
       </Text>
       <Text c="var(--app-text-strong)" fw={700} fz="0.95rem">
