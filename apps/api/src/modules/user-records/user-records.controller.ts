@@ -22,14 +22,14 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
-import {
+import type { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
+import type {
   CreateUserRecordDto,
   CreateUserRecordFromImportDto,
   UpdateUserRecordDto,
   UpdateProgressDto,
 } from './dto/user-record.dto';
-import { UpsertUserReleaseRecordDto } from './dto/user-release-record.dto';
+import type { UpsertUserReleaseRecordDto } from './dto/user-release-record.dto';
 import { UserRecordsService } from './user-records.service';
 
 @ApiTags('user-records')

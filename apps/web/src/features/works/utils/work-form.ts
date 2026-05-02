@@ -20,6 +20,10 @@ export interface WorkFormValues {
   review: string;
   tier: WorkTier | '';
   favorite: boolean;
+  startedAt: string;
+  completedAt: string;
+  droppedAt: string;
+  lastConsumedAt: string;
 }
 
 export interface UpsertWorkInput {
@@ -38,6 +42,10 @@ export interface UpsertWorkInput {
   review: string;
   tier: WorkTier | null;
   favorite: boolean;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  droppedAt?: string | null;
+  lastConsumedAt?: string | null;
 }
 
 export function createDefaultWorkFormValues(): WorkFormValues {
@@ -55,7 +63,15 @@ export function createDefaultWorkFormValues(): WorkFormValues {
     review: '',
     tier: '',
     favorite: false,
+    startedAt: '',
+    completedAt: '',
+    droppedAt: '',
+    lastConsumedAt: '',
   };
+}
+
+function formatIsoDateForInput(value?: string | null) {
+  return value ? value.slice(0, 10) : '';
 }
 
 export function createWorkFormValuesFromRecord(
@@ -75,10 +91,16 @@ export function createWorkFormValuesFromRecord(
     review: work.review,
     tier: work.tier ?? '',
     favorite: work.favorite,
+    startedAt: formatIsoDateForInput(work.startedAt),
+    completedAt: formatIsoDateForInput(work.completedAt),
+    droppedAt: formatIsoDateForInput(work.droppedAt),
+    lastConsumedAt: formatIsoDateForInput(work.lastConsumedAt),
   };
 }
 
-export function createUpsertWorkInputFromRecord(work: WorkRecord): UpsertWorkInput {
+export function createUpsertWorkInputFromRecord(
+  work: WorkRecord,
+): UpsertWorkInput {
   return {
     catalogTitleId: work.catalogTitleId ?? null,
     importDraft: work.importDraft ?? null,
@@ -95,6 +117,10 @@ export function createUpsertWorkInputFromRecord(work: WorkRecord): UpsertWorkInp
     review: work.review,
     tier: work.tier,
     favorite: work.favorite,
+    startedAt: work.startedAt ?? null,
+    completedAt: work.completedAt ?? null,
+    droppedAt: work.droppedAt ?? null,
+    lastConsumedAt: work.lastConsumedAt ?? null,
   };
 }
 
@@ -107,6 +133,22 @@ function parseCommaSeparatedTextList(value: string) {
         .filter(Boolean),
     ),
   );
+}
+
+function parseOptionalDateInput(value: string, fieldLabel: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = new Date(`${trimmed}T00:00:00.000Z`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${fieldLabel}을 올바른 날짜로 입력해주세요.`);
+  }
+
+  return parsed.toISOString();
 }
 
 export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
@@ -140,5 +182,12 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
     review: values.review.trim(),
     tier: values.tier || null,
     favorite: values.favorite,
+    startedAt: parseOptionalDateInput(values.startedAt, '시작일'),
+    completedAt: parseOptionalDateInput(values.completedAt, '완료일'),
+    droppedAt: parseOptionalDateInput(values.droppedAt, '중단일'),
+    lastConsumedAt: parseOptionalDateInput(
+      values.lastConsumedAt,
+      '마지막 감상일',
+    ),
   };
 }

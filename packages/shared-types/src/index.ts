@@ -371,6 +371,10 @@ export interface WorkRecord extends AuditFields {
   progressTotal?: number | null;
   progressUnit?: ProgressUnit | null;
   lastConsumedLabel?: string | null;
+  startedAt?: ISODateString | null;
+  completedAt?: ISODateString | null;
+  droppedAt?: ISODateString | null;
+  lastConsumedAt?: ISODateString | null;
   deletedAt: ISODateString | null;
   syncStatus: WorkSyncStatus;
   serverVersion: number;
@@ -425,6 +429,10 @@ export interface UserRecordView {
     id: EntityId;
     personalTags: string[];
     lastConsumedLabel?: string | null;
+    startedAt?: ISODateString | null;
+    completedAt?: ISODateString | null;
+    droppedAt?: ISODateString | null;
+    lastConsumedAt?: ISODateString | null;
     progressCurrent?: number | null;
     progressTotal?: number | null;
     progressUnit?: ProgressUnit | null;

@@ -347,9 +347,7 @@ async function openSearchPicker(
   user: ReturnType<typeof userEvent.setup>,
   searchTerm: string,
 ) {
-  await user.click(
-    screen.getByLabelText('검색으로 채우기'),
-  );
+  await user.click(screen.getByLabelText('검색으로 채우기'));
 
   const searchInput = await screen.findByLabelText(/^작품 검색$/);
 
@@ -463,9 +461,7 @@ describe('AddWorkFlow', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedAddWorkFlow();
-    await user.click(
-      screen.getByLabelText('검색으로 채우기'),
-    );
+    await user.click(screen.getByLabelText('검색으로 채우기'));
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
     await user.click(
@@ -543,9 +539,7 @@ describe('AddWorkFlow', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedAddWorkFlow();
-    await user.click(
-      screen.getByLabelText('검색으로 채우기'),
-    );
+    await user.click(screen.getByLabelText('검색으로 채우기'));
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
     await user.click(
@@ -596,9 +590,7 @@ describe('AddWorkFlow', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedAddWorkFlow();
-    await user.click(
-      screen.getByLabelText('검색으로 채우기'),
-    );
+    await user.click(screen.getByLabelText('검색으로 채우기'));
     await user.type(
       getElementById<HTMLInputElement>('quickAddSearch'),
       '슈타인즈 게이트',
@@ -640,9 +632,7 @@ describe('AddWorkFlow', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedAddWorkFlow();
-    await user.click(
-      screen.getByLabelText('검색으로 채우기'),
-    );
+    await user.click(screen.getByLabelText('검색으로 채우기'));
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
     await user.click(
@@ -678,9 +668,7 @@ describe('AddWorkFlow', () => {
 
     renderGuestAddWorkFlow();
 
-    await user.click(
-      screen.getByLabelText('검색으로 채우기'),
-    );
+    await user.click(screen.getByLabelText('검색으로 채우기'));
 
     expect(await screen.findByText('검색 provider 상태')).toBeInTheDocument();
     expect(screen.getByText('사용 가능')).toBeInTheDocument();
@@ -688,10 +676,8 @@ describe('AddWorkFlow', () => {
       screen.getByText(/AniList, Google Books, Open Library, TVmaze/),
     ).toBeInTheDocument();
     expect(screen.getByText('로그인 후 사용')).toBeInTheDocument();
-    expect(screen.getByText('Aladin Book')).toBeInTheDocument();
-    expect(screen.getByText('서버 설정 필요')).toBeInTheDocument();
     expect(
-      screen.getByText(/TMDB, Naver Book, Kakao Book, KOBIS/),
+      screen.getByText(/Aladin Book, TMDB, Naver Book, Kakao Book, KOBIS/),
     ).toBeInTheDocument();
     expect(screen.getAllByText('직접 추가').length).toBeGreaterThan(0);
     expect(screen.getByText('Manual')).toBeInTheDocument();
@@ -708,9 +694,7 @@ describe('AddWorkFlow', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    await user.click(
-      screen.getByLabelText('검색으로 채우기'),
-    );
+    await user.click(screen.getByLabelText('검색으로 채우기'));
 
     expect(await screen.findByLabelText(/^작품 검색$/)).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -836,9 +820,7 @@ describe('AddWorkFlow', () => {
 
     renderAuthenticatedAddWorkFlow();
 
-    await user.click(
-      screen.getByLabelText('검색으로 채우기'),
-    );
+    await user.click(screen.getByLabelText('검색으로 채우기'));
     await user.click(await screen.findByRole('button', { name: '도서' }));
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
@@ -880,9 +862,7 @@ describe('AddWorkFlow', () => {
 
     renderAuthenticatedAddWorkFlow();
 
-    await user.click(
-      screen.getByLabelText('검색으로 채우기'),
-    );
+    await user.click(screen.getByLabelText('검색으로 채우기'));
     await selectManualProviderGroup(user);
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
@@ -992,9 +972,7 @@ describe('AddWorkFlow', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedAddWorkFlow();
-    await user.click(
-      screen.getByLabelText('검색으로 채우기'),
-    );
+    await user.click(screen.getByLabelText('검색으로 채우기'));
     await selectManualProviderGroup(user);
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
@@ -1030,9 +1008,7 @@ describe('AddWorkFlow', () => {
 
     renderGuestAddWorkFlow(onSubmit);
 
-    await user.click(
-      screen.getByLabelText('검색으로 채우기'),
-    );
+    await user.click(screen.getByLabelText('검색으로 채우기'));
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
 
@@ -1210,9 +1186,7 @@ describe('AddWorkFlow', () => {
 
       renderAuthenticatedAddWorkFlow(onSubmit);
       if (sourceId === 'manual' || sourceId === 'preview-manual') {
-        await user.click(
-          screen.getByLabelText('검색으로 채우기'),
-        );
+        await user.click(screen.getByLabelText('검색으로 채우기'));
         await selectManualProviderGroup(user);
         const searchInput = await screen.findByLabelText(/^작품 검색$/);
         await user.type(searchInput, 'Dune');
@@ -1329,9 +1303,7 @@ describe('AddWorkFlow', () => {
 
       renderAuthenticatedAddWorkFlow();
       if (sourceId === 'manual' || sourceId === 'preview-manual') {
-        await user.click(
-          screen.getByLabelText('검색으로 채우기'),
-        );
+        await user.click(screen.getByLabelText('검색으로 채우기'));
         await selectManualProviderGroup(user);
         const searchInput = await screen.findByLabelText(/^작품 검색$/);
         await user.type(searchInput, 'Dune');

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from '@jest/globals';
 import { getRefreshTokenCookieOptions } from '../src/modules/auth/auth.cookies';
 import { hashSecret, verifySecret } from '../src/modules/auth/auth-crypto';
 import { AuthService } from '../src/modules/auth/auth.service';
-import { PrismaService } from '../src/prisma/prisma.service';
+import type { PrismaService } from '../src/prisma/prisma.service';
 
 interface MockUser {
   id: string;

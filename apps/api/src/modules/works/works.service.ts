@@ -25,6 +25,25 @@ import {
 const DEFAULT_SYNC_STATUS = WorkSyncStatus.synced;
 type WorkGroupField = (typeof WORK_GROUP_FIELDS)[number];
 
+function parseOptionalDtoDate(
+  value: string | null | undefined,
+  fieldName: string,
+) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    throw new BadRequestException(
+      `${fieldName} must be a valid ISO 8601 date string.`,
+    );
+  }
+
+  return parsed;
+}
+
 @Injectable()
 export class WorksService {
   private readonly logger = new Logger(WorksService.name);
@@ -167,7 +186,10 @@ export class WorksService {
   }
 
   private async getActiveWorkOrThrow(userId: string, id: string) {
-    const work = await this.userRecordsService.findActiveByUserAndId(userId, id);
+    const work = await this.userRecordsService.findActiveByUserAndId(
+      userId,
+      id,
+    );
 
     if (!work) {
       throw new NotFoundException(`Work with id "${id}" was not found.`);
@@ -212,6 +234,16 @@ export class WorksService {
       personalTags: normalizePersonalTags(createWorkDto.personalTags),
       tier: createWorkDto.tier ?? null,
       favorite: createWorkDto.favorite ?? false,
+      startedAt: parseOptionalDtoDate(createWorkDto.startedAt, 'startedAt'),
+      completedAt: parseOptionalDtoDate(
+        createWorkDto.completedAt,
+        'completedAt',
+      ),
+      droppedAt: parseOptionalDtoDate(createWorkDto.droppedAt, 'droppedAt'),
+      lastConsumedAt: parseOptionalDtoDate(
+        createWorkDto.lastConsumedAt,
+        'lastConsumedAt',
+      ),
       syncStatus: DEFAULT_SYNC_STATUS,
       serverVersion: 1,
     };
@@ -288,6 +320,34 @@ export class WorksService {
       data.favorite = updateWorkDto.favorite;
     }
 
+    if (updateWorkDto.startedAt !== undefined) {
+      data.startedAt = parseOptionalDtoDate(
+        updateWorkDto.startedAt,
+        'startedAt',
+      );
+    }
+
+    if (updateWorkDto.completedAt !== undefined) {
+      data.completedAt = parseOptionalDtoDate(
+        updateWorkDto.completedAt,
+        'completedAt',
+      );
+    }
+
+    if (updateWorkDto.droppedAt !== undefined) {
+      data.droppedAt = parseOptionalDtoDate(
+        updateWorkDto.droppedAt,
+        'droppedAt',
+      );
+    }
+
+    if (updateWorkDto.lastConsumedAt !== undefined) {
+      data.lastConsumedAt = parseOptionalDtoDate(
+        updateWorkDto.lastConsumedAt,
+        'lastConsumedAt',
+      );
+    }
+
     return data;
   }
 
@@ -298,7 +358,8 @@ export class WorksService {
     error: unknown,
   ) {
     const errorName = error instanceof Error ? error.name : 'UnknownError';
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
 
     this.logger.warn(
       `Work ${operation} failed userId=${userId}${workId ? ` workId=${workId}` : ''} reason=${errorName}: ${errorMessage}`,
@@ -306,7 +367,9 @@ export class WorksService {
   }
 
   private getGroupKey(
-    work: Awaited<ReturnType<UserRecordsService['findGroupedSourceByUser']>>[number],
+    work: Awaited<
+      ReturnType<UserRecordsService['findGroupedSourceByUser']>
+    >[number],
     by: WorkGroupField,
   ) {
     if (by === 'status') {

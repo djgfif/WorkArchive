@@ -358,6 +358,10 @@ model UserWorkRecord {
   progressTotal     Int?
   progressUnit      ProgressUnit?
   lastConsumedLabel String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  droppedAt         DateTime?
+  lastConsumedAt    DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   deletedAt         DateTime?

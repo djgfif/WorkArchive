@@ -73,6 +73,28 @@ export class WorkArchiveDatabase extends Dexie {
             }
           }),
       );
+
+    this.version(5)
+      .stores({
+        works:
+          'id, type, title, author, status, rating, updatedAt, deletedAt, syncStatus',
+        releaseRecords:
+          'id, userWorkRecordId, catalogReleaseId, status, updatedAt, deletedAt, syncStatus, [userWorkRecordId+catalogReleaseId]',
+        syncQueue:
+          'id, entityType, entityId, operation, createdAt, retryCount, [entityType+entityId]',
+        appMeta: 'key',
+      })
+      .upgrade((transaction) =>
+        transaction
+          .table<WorkRecord, string>('works')
+          .toCollection()
+          .modify((work) => {
+            work.startedAt ??= null;
+            work.completedAt ??= null;
+            work.droppedAt ??= null;
+            work.lastConsumedAt ??= null;
+          }),
+      );
   }
 }
 

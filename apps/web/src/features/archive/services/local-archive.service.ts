@@ -71,6 +71,10 @@ function normalizeStringArray(value: unknown) {
 function normalizeArchiveWork(work: WorkRecord): WorkRecord {
   return {
     ...work,
+    startedAt: work.startedAt ?? null,
+    completedAt: work.completedAt ?? null,
+    droppedAt: work.droppedAt ?? null,
+    lastConsumedAt: work.lastConsumedAt ?? null,
     genres: normalizeStringArray(work.genres),
     personalTags: normalizeStringArray(
       (work as Partial<WorkRecord>).personalTags,
@@ -86,7 +90,9 @@ function cloneWorkForImport(work: WorkRecord, id: string): WorkRecord {
     genres: [...normalizedWork.genres],
     personalTags: [...normalizedWork.personalTags],
     id,
-    importDraft: normalizedWork.importDraft ? { ...normalizedWork.importDraft } : null,
+    importDraft: normalizedWork.importDraft
+      ? { ...normalizedWork.importDraft }
+      : null,
     serverVersion: 0,
     syncStatus: 'local-only',
   };
@@ -156,6 +162,10 @@ function createCsvRows(works: WorkRecord[]) {
     'shortReview',
     'review',
     'progress',
+    'startedAt',
+    'completedAt',
+    'droppedAt',
+    'lastConsumedAt',
     'favorite',
     'tier',
     'updatedAt',
@@ -179,6 +189,10 @@ function createCsvRows(works: WorkRecord[]) {
       work.shortReview,
       work.review,
       progress,
+      work.startedAt ?? '',
+      work.completedAt ?? '',
+      work.droppedAt ?? '',
+      work.lastConsumedAt ?? '',
       work.favorite ? 'true' : 'false',
       work.tier ?? '',
       work.updatedAt,

@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import {
   WorkSyncStatus,
   type Prisma,
@@ -18,7 +23,10 @@ import {
   UserReleaseRecordsService,
   type UserReleaseRecordAggregate,
 } from '../user-records/user-release-records.service';
-import { UserRecordsService, type WorkAggregate } from '../user-records/user-records.service';
+import {
+  UserRecordsService,
+  type WorkAggregate,
+} from '../user-records/user-records.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   normalizeGenres,
@@ -40,7 +48,8 @@ import type { SyncReleaseRecordPayloadDto } from './dto/sync-release-record-payl
 import type { SyncWorkPayloadDto } from './dto/sync-work-payload.dto';
 
 const SERVER_SYNC_STATUS = WorkSyncStatus.synced;
-const ALREADY_APPLIED_MESSAGE = 'Remote record already matches the queued change.';
+const ALREADY_APPLIED_MESSAGE =
+  'Remote record already matches the queued change.';
 const APPLIED_CHANGE_MESSAGE = 'Queued change applied on the server.';
 const APPLIED_TOMBSTONE_MESSAGE = 'Queued tombstone applied on the server.';
 const CREATED_MESSAGE = 'Queued record created on the server.';
@@ -75,7 +84,10 @@ export class SyncService {
     private readonly releaseRecordsService: UserReleaseRecordsService,
   ) {}
 
-  async push(userId: string, { changes }: PushSyncDto): Promise<PushSyncResponseDto> {
+  async push(
+    userId: string,
+    { changes }: PushSyncDto,
+  ): Promise<PushSyncResponseDto> {
     const sortedChanges = this.sortChangesByCreatedAt(changes);
     const results: PushSyncResultDto[] = [];
 
@@ -100,7 +112,10 @@ export class SyncService {
     }
   }
 
-  async pull(userId: string, { since }: PullSyncDto): Promise<PullSyncResponseDto> {
+  async pull(
+    userId: string,
+    { since }: PullSyncDto,
+  ): Promise<PullSyncResponseDto> {
     try {
       const parsedSince =
         since === undefined || since === null
@@ -332,7 +347,10 @@ export class SyncService {
     const created = await this.prisma.$transaction(async (tx) => {
       if (existingTitle) {
         await tx.catalogWork.create({
-          data: this.buildCompatibilityCatalogWorkCreateData(payload, existingTitle),
+          data: this.buildCompatibilityCatalogWorkCreateData(
+            payload,
+            existingTitle,
+          ),
         });
 
         return this.userRecordsService.create(
@@ -357,7 +375,10 @@ export class SyncService {
         );
       }
 
-      await this.catalogService.create(this.buildCatalogCreateData(payload), tx);
+      await this.catalogService.create(
+        this.buildCatalogCreateData(payload),
+        tx,
+      );
 
       return this.userRecordsService.create(
         this.buildUserRecordCreateData(userId, payload),
@@ -383,7 +404,11 @@ export class SyncService {
     const existing = await this.releaseRecordsService.findById(change.entityId);
 
     if (!existing) {
-      return this.applyMissingRemoteReleaseRecordChange(userId, change, payload);
+      return this.applyMissingRemoteReleaseRecordChange(
+        userId,
+        change,
+        payload,
+      );
     }
 
     if (existing.userWorkRecord.userId !== userId) {
@@ -392,7 +417,8 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'release_record',
         status: 'conflict',
-        message: 'Server mismatch: the release record cannot be modified remotely.',
+        message:
+          'Server mismatch: the release record cannot be modified remotely.',
         releaseRecord: null,
       };
     }
@@ -472,7 +498,8 @@ export class SyncService {
     change: PushSyncChangeDto,
     payload: SyncReleaseRecordPayloadDto,
   ): Promise<PushSyncResultDto> {
-    const isDelete = change.operation === 'delete' || payload.deletedAt !== null;
+    const isDelete =
+      change.operation === 'delete' || payload.deletedAt !== null;
     const canCreate =
       change.operation === 'create' && payload.serverVersion === 0;
 
@@ -541,7 +568,10 @@ export class SyncService {
     };
   }
 
-  private shouldApplyLocalChange(existing: WorkAggregate, payload: SyncWorkPayloadDto) {
+  private shouldApplyLocalChange(
+    existing: WorkAggregate,
+    payload: SyncWorkPayloadDto,
+  ) {
     if (payload.serverVersion === existing.serverVersion) {
       return true;
     }
@@ -594,7 +624,8 @@ export class SyncService {
       return 'Release record parent is missing or belongs to a different user.';
     }
 
-    const mediumType = parent.catalogTitle?.mediumType ?? parent.catalogWork.type;
+    const mediumType =
+      parent.catalogTitle?.mediumType ?? parent.catalogWork.type;
 
     if (!canCreateReleaseRecord(mediumType)) {
       return `Release-level records are not supported for medium type "${mediumType}".`;
@@ -699,6 +730,38 @@ export class SyncService {
       progressTotal: payload.progressTotal ?? null,
       progressUnit: payload.progressUnit ?? null,
       lastConsumedLabel: payload.lastConsumedLabel?.trim() ?? null,
+      ...(payload.startedAt !== undefined
+        ? {
+            startedAt: this.parseOptionalIsoDate(
+              payload.startedAt,
+              'payload.startedAt',
+            ),
+          }
+        : {}),
+      ...(payload.completedAt !== undefined
+        ? {
+            completedAt: this.parseOptionalIsoDate(
+              payload.completedAt,
+              'payload.completedAt',
+            ),
+          }
+        : {}),
+      ...(payload.droppedAt !== undefined
+        ? {
+            droppedAt: this.parseOptionalIsoDate(
+              payload.droppedAt,
+              'payload.droppedAt',
+            ),
+          }
+        : {}),
+      ...(payload.lastConsumedAt !== undefined
+        ? {
+            lastConsumedAt: this.parseOptionalIsoDate(
+              payload.lastConsumedAt,
+              'payload.lastConsumedAt',
+            ),
+          }
+        : {}),
       createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
       updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
       deletedAt: this.parseOptionalIsoDate(
@@ -735,7 +798,8 @@ export class SyncService {
         : {}),
       franchiseName: importDraft.franchiseName?.trim() ?? null,
       mediumType: importDraft.mediumType as WorkType,
-      ...(importDraft.releaseCandidates && importDraft.releaseCandidates.length > 0
+      ...(importDraft.releaseCandidates &&
+      importDraft.releaseCandidates.length > 0
         ? {
             releaseCandidates: importDraft.releaseCandidates.map((release) =>
               this.buildCatalogReleaseCandidateInput(release),
@@ -776,9 +840,11 @@ export class SyncService {
         payload.id,
       author: normalizeString(payload.author) || fallbackAuthor,
       genres: normalizeGenres(payload.genres),
-      description: normalizeString(payload.description) || normalizeString(title?.summary),
+      description:
+        normalizeString(payload.description) || normalizeString(title?.summary),
       thumbnailUrl:
-        normalizeString(payload.thumbnailUrl) || normalizeString(title?.thumbnailUrl),
+        normalizeString(payload.thumbnailUrl) ||
+        normalizeString(title?.thumbnailUrl),
       createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
       updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
     };
@@ -826,7 +892,9 @@ export class SyncService {
     title?: string | null;
   }) {
     return {
-      ...(release.displayLabel?.trim() ? { displayLabel: release.displayLabel.trim() } : {}),
+      ...(release.displayLabel?.trim()
+        ? { displayLabel: release.displayLabel.trim() }
+        : {}),
       ...(release.externalRefs && release.externalRefs.length > 0
         ? {
             externalRefs: release.externalRefs.map((ref) =>
@@ -836,7 +904,9 @@ export class SyncService {
         : {}),
       isbn: release.isbn?.trim() ?? null,
       releaseDate: release.releaseDate ?? null,
-      ...(release.releaseType?.trim() ? { releaseType: release.releaseType.trim() } : {}),
+      ...(release.releaseType?.trim()
+        ? { releaseType: release.releaseType.trim() }
+        : {}),
       sequence: release.sequence ?? null,
       ...(release.thumbnailUrl?.trim()
         ? { thumbnailUrl: release.thumbnailUrl.trim() }
@@ -882,6 +952,22 @@ export class SyncService {
       progressTotal: payload.progressTotal ?? null,
       progressUnit: payload.progressUnit ?? null,
       lastConsumedLabel: payload.lastConsumedLabel?.trim() ?? null,
+      startedAt: this.parseOptionalIsoDate(
+        payload.startedAt ?? null,
+        'payload.startedAt',
+      ),
+      completedAt: this.parseOptionalIsoDate(
+        payload.completedAt ?? null,
+        'payload.completedAt',
+      ),
+      droppedAt: this.parseOptionalIsoDate(
+        payload.droppedAt ?? null,
+        'payload.droppedAt',
+      ),
+      lastConsumedAt: this.parseOptionalIsoDate(
+        payload.lastConsumedAt ?? null,
+        'payload.lastConsumedAt',
+      ),
       deletedAt: this.parseOptionalIsoDate(
         payload.deletedAt,
         'payload.deletedAt',
@@ -896,14 +982,17 @@ export class SyncService {
   private areEquivalent(existing: WorkAggregate, payload: SyncWorkPayloadDto) {
     return (
       (payload.catalogTitleId === undefined ||
-        (payload.catalogTitleId ?? null) === (existing.catalogTitleId ?? null)) &&
+        (payload.catalogTitleId ?? null) ===
+          (existing.catalogTitleId ?? null)) &&
       existing.catalogWork.type === payload.type &&
       existing.catalogWork.title === payload.title.trim() &&
       existing.catalogWork.author === normalizeString(payload.author) &&
       JSON.stringify(existing.catalogWork.genres) ===
         JSON.stringify(normalizeGenres(payload.genres)) &&
-      existing.catalogWork.description === normalizeString(payload.description) &&
-      existing.catalogWork.thumbnailUrl === normalizeString(payload.thumbnailUrl) &&
+      existing.catalogWork.description ===
+        normalizeString(payload.description) &&
+      existing.catalogWork.thumbnailUrl ===
+        normalizeString(payload.thumbnailUrl) &&
       existing.status === payload.status &&
       existing.rating === (payload.rating ?? null) &&
       existing.shortReview === normalizeString(payload.shortReview) &&
@@ -912,11 +1001,24 @@ export class SyncService {
         JSON.stringify(normalizePersonalTags(payload.personalTags)) &&
       existing.tier === (payload.tier ?? null) &&
       existing.favorite === payload.favorite &&
-      (existing.progressCurrent ?? null) === (payload.progressCurrent ?? null) &&
+      (existing.progressCurrent ?? null) ===
+        (payload.progressCurrent ?? null) &&
       (existing.progressTotal ?? null) === (payload.progressTotal ?? null) &&
       (existing.progressUnit ?? null) === (payload.progressUnit ?? null) &&
       (existing.lastConsumedLabel ?? null) ===
         (payload.lastConsumedLabel?.trim() ?? null) &&
+      (payload.startedAt === undefined ||
+        (existing.startedAt?.toISOString() ?? null) ===
+          (payload.startedAt ?? null)) &&
+      (payload.completedAt === undefined ||
+        (existing.completedAt?.toISOString() ?? null) ===
+          (payload.completedAt ?? null)) &&
+      (payload.droppedAt === undefined ||
+        (existing.droppedAt?.toISOString() ?? null) ===
+          (payload.droppedAt ?? null)) &&
+      (payload.lastConsumedAt === undefined ||
+        (existing.lastConsumedAt?.toISOString() ?? null) ===
+          (payload.lastConsumedAt ?? null)) &&
       existing.deletedAt?.toISOString() ===
         (payload.deletedAt === null ? undefined : payload.deletedAt)
     );
@@ -939,7 +1041,10 @@ export class SyncService {
     );
   }
 
-  private buildConflictMessage(existing: WorkAggregate, payload: SyncWorkPayloadDto) {
+  private buildConflictMessage(
+    existing: WorkAggregate,
+    payload: SyncWorkPayloadDto,
+  ) {
     const remoteDeletedAt = existing.deletedAt?.toISOString() ?? 'active';
     const localDeletedAt = payload.deletedAt ?? 'active';
 

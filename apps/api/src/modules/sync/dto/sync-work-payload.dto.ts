@@ -270,6 +270,38 @@ export class SyncWorkPayloadDto {
   @MaxLength(120)
   lastConsumedLabel?: string | null;
 
+  @ApiPropertyOptional({
+    example: null,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  startedAt?: string | null;
+
+  @ApiPropertyOptional({
+    example: null,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  completedAt?: string | null;
+
+  @ApiPropertyOptional({
+    example: null,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  droppedAt?: string | null;
+
+  @ApiPropertyOptional({
+    example: null,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  lastConsumedAt?: string | null;
+
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',
   })

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
@@ -157,7 +158,10 @@ describe('SyncService', () => {
     Pick<CatalogService, 'create' | 'createTitleFromImportCandidate' | 'update'>
   >;
   let userRecordsService: jest.Mocked<
-    Pick<UserRecordsService, 'create' | 'findById' | 'findByUserSince' | 'update'>
+    Pick<
+      UserRecordsService,
+      'create' | 'findById' | 'findByUserSince' | 'update'
+    >
   >;
   let releaseRecordsService: any;
 
@@ -177,10 +181,11 @@ describe('SyncService', () => {
         create: jest.fn(),
       },
     };
-    prisma.$transaction.mockImplementation(async (callback: (client: any) => Promise<any>) =>
-      callback({
-        catalogWork: prisma.catalogWork,
-      }),
+    prisma.$transaction.mockImplementation(
+      async (callback: (client: any) => Promise<any>) =>
+        callback({
+          catalogWork: prisma.catalogWork,
+        }),
     );
 
     catalogService = {
@@ -433,7 +438,9 @@ describe('SyncService', () => {
       }),
       expect.any(Object),
     );
-    expect(catalogService.createTitleFromImportCandidate).not.toHaveBeenCalled();
+    expect(
+      catalogService.createTitleFromImportCandidate,
+    ).not.toHaveBeenCalled();
     expect(userRecordsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         id: importedId,
@@ -680,7 +687,9 @@ describe('SyncService', () => {
       }),
       expect.any(Object),
     );
-    expect(catalogService.createTitleFromImportCandidate.mock.calls[0]?.[0]).toEqual(
+    expect(
+      catalogService.createTitleFromImportCandidate.mock.calls[0]?.[0],
+    ).toEqual(
       expect.objectContaining({
         externalRefs: [
           {
@@ -844,7 +853,9 @@ describe('SyncService', () => {
         work: null,
       }),
     ]);
-    expect(catalogService.createTitleFromImportCandidate).not.toHaveBeenCalled();
+    expect(
+      catalogService.createTitleFromImportCandidate,
+    ).not.toHaveBeenCalled();
     expect(prisma.catalogWork.create).not.toHaveBeenCalled();
     expect(userRecordsService.create).not.toHaveBeenCalled();
   });
@@ -961,7 +972,9 @@ describe('SyncService', () => {
     userRecordsService.findById.mockResolvedValue(parent);
     releaseRecordsService.findById
       .mockImplementationOnce(async () => null)
-      .mockImplementationOnce(async () => createReleaseRecordAggregateFixture());
+      .mockImplementationOnce(async () =>
+        createReleaseRecordAggregateFixture(),
+      );
     prisma.catalogRelease.findFirst.mockResolvedValue({
       id: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
       catalogTitleId: 'catalog-title-1',

@@ -26,13 +26,13 @@ import {
   toCatalogTitleView,
 } from './catalog.presenter';
 import { CatalogService } from './catalog.service';
-import { CatalogSearchQueryDto } from './dto/catalog-search-query.dto';
-import {
+import type { CatalogSearchQueryDto } from './dto/catalog-search-query.dto';
+import type {
   CreateCatalogSubmissionDto,
   MergeCatalogTitleDto,
   ReviewCatalogSubmissionDto,
 } from './dto/catalog-submission.dto';
-import { CatalogSubmissionsQueryDto } from './dto/catalog-submissions-query.dto';
+import type { CatalogSubmissionsQueryDto } from './dto/catalog-submissions-query.dto';
 
 @ApiTags('catalog')
 @ApiBearerAuth()

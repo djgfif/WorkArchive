@@ -103,6 +103,10 @@ export class WorksService {
       progressTotal: null,
       progressUnit: null,
       lastConsumedLabel: null,
+      startedAt: input.startedAt ?? null,
+      completedAt: input.completedAt ?? null,
+      droppedAt: input.droppedAt ?? null,
+      lastConsumedAt: input.lastConsumedAt ?? null,
       deletedAt: null,
       syncStatus: 'local-only',
       serverVersion: 0,
@@ -126,11 +130,17 @@ export class WorksService {
       ...input,
       catalogTitleId:
         input.catalogTitleId === undefined
-          ? existing.catalogTitleId ?? null
+          ? (existing.catalogTitleId ?? null)
           : input.catalogTitleId,
       importDraft:
-        input.importDraft === undefined ? existing.importDraft ?? null : input.importDraft,
+        input.importDraft === undefined
+          ? (existing.importDraft ?? null)
+          : input.importDraft,
       personalTags: [...(input.personalTags ?? existing.personalTags)],
+      startedAt: input.startedAt ?? null,
+      completedAt: input.completedAt ?? null,
+      droppedAt: input.droppedAt ?? null,
+      lastConsumedAt: input.lastConsumedAt ?? null,
       updatedAt: new Date().toISOString(),
       syncStatus: getNextSyncStatus(existing.serverVersion),
     };
@@ -152,19 +162,20 @@ export class WorksService {
       ...existing,
       lastConsumedLabel:
         input.lastConsumedLabel === undefined
-          ? existing.lastConsumedLabel ?? null
-          : input.lastConsumedLabel?.trim() ?? null,
+          ? (existing.lastConsumedLabel ?? null)
+          : (input.lastConsumedLabel?.trim() ?? null),
+      lastConsumedAt: new Date().toISOString(),
       progressCurrent:
         input.progressCurrent === undefined
-          ? existing.progressCurrent ?? null
+          ? (existing.progressCurrent ?? null)
           : input.progressCurrent,
       progressTotal:
         input.progressTotal === undefined
-          ? existing.progressTotal ?? null
+          ? (existing.progressTotal ?? null)
           : input.progressTotal,
       progressUnit:
         input.progressUnit === undefined
-          ? existing.progressUnit ?? null
+          ? (existing.progressUnit ?? null)
           : input.progressUnit,
       updatedAt: new Date().toISOString(),
       syncStatus: getNextSyncStatus(existing.serverVersion),

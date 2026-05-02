@@ -96,6 +96,30 @@ export class WorkResponseDto {
   lastConsumedLabel!: string | null;
 
   @ApiProperty({
+    example: null,
+    nullable: true,
+  })
+  startedAt!: Date | null;
+
+  @ApiProperty({
+    example: null,
+    nullable: true,
+  })
+  completedAt!: Date | null;
+
+  @ApiProperty({
+    example: null,
+    nullable: true,
+  })
+  droppedAt!: Date | null;
+
+  @ApiProperty({
+    example: null,
+    nullable: true,
+  })
+  lastConsumedAt!: Date | null;
+
+  @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',
   })
   createdAt!: Date;

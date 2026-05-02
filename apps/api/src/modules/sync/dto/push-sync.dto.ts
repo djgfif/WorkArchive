@@ -12,8 +12,8 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-import { SyncReleaseRecordPayloadDto } from './sync-release-record-payload.dto';
-import { SyncWorkPayloadDto } from './sync-work-payload.dto';
+import type { SyncReleaseRecordPayloadDto } from './sync-release-record-payload.dto';
+import type { SyncWorkPayloadDto } from './sync-work-payload.dto';
 
 const SYNC_ENTITY_TYPES = ['work', 'release_record'] as const;
 const SYNC_OPERATIONS = ['create', 'update', 'delete'] as const;
