@@ -12,12 +12,41 @@ export interface ApiRuntimeConfig {
   webBaseUrl: string;
 }
 
+const DEFAULT_PRODUCTION_SECRET_VALUES = new Map([
+  ['JWT_ACCESS_SECRET', 'change-me-access-secret'],
+  ['JWT_REFRESH_SECRET', 'change-me-refresh-secret'],
+  [
+    'EXTERNAL_API_KEY_ENCRYPTION_SECRET',
+    'change-me-external-api-key-encryption-secret',
+  ],
+]);
+
 function readRequiredEnvString(name: string) {
   const value = process.env[name]?.trim();
 
   if (!value) {
     throw new Error(`${name} must be configured before the API starts.`);
   }
+
+  return value;
+}
+
+function rejectDefaultProductionSecret(name: string, value: string) {
+  if (process.env.NODE_ENV?.trim() !== 'production') {
+    return;
+  }
+
+  if (DEFAULT_PRODUCTION_SECRET_VALUES.get(name) === value) {
+    throw new Error(
+      `${name} must be changed from the development default in production.`,
+    );
+  }
+}
+
+function readProductionSafeSecret(name: string) {
+  const value = readRequiredEnvString(name);
+
+  rejectDefaultProductionSecret(name, value);
 
   return value;
 }
@@ -92,8 +121,8 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     databaseUrl: readRequiredEnvString('DATABASE_URL'),
     host: process.env.HOST?.trim() || '0.0.0.0',
     isProduction,
-    jwtAccessSecret: readRequiredEnvString('JWT_ACCESS_SECRET'),
-    jwtRefreshSecret: readRequiredEnvString('JWT_REFRESH_SECRET'),
+    jwtAccessSecret: readProductionSafeSecret('JWT_ACCESS_SECRET'),
+    jwtRefreshSecret: readProductionSafeSecret('JWT_REFRESH_SECRET'),
     passwordResetDevLinksEnabled: readBoolean(
       process.env.PASSWORD_RESET_DEV_LINKS_ENABLED,
       false,
@@ -105,7 +134,7 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
 }
 
 export function readExternalApiKeyEncryptionSecret() {
-  return readRequiredEnvString('EXTERNAL_API_KEY_ENCRYPTION_SECRET');
+  return readProductionSafeSecret('EXTERNAL_API_KEY_ENCRYPTION_SECRET');
 }
 
 export function getPublicApiHost(host: string) {

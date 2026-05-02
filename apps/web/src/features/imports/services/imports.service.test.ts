@@ -214,4 +214,27 @@ describe('ImportsService', () => {
       expect(result.notice).not.toBe('로그인해야만 검색 가능');
     },
   );
+
+  it('falls back to preview/manual candidates when the API cannot be reached', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+    );
+
+    const result = await new ImportsService().searchCandidates('Dune', {
+      providers: ['open_library'],
+      useExternal: true,
+    });
+
+    expect(result.source).toBe('preview-manual');
+    expect(result.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: 'preview-manual',
+          title: 'Dune',
+        }),
+      ]),
+    );
+    expect(result.notice).toContain('일부 검색 provider');
+  });
 });

@@ -8,14 +8,14 @@ import {
 const archiveColors: MantineColorsTuple = [
   '#eef7fb',
   '#dcecf4',
-  '#c7deec',
+  '#c9e7fb',
+  '#bbd8ed',
   '#adcade',
   '#8fb0c4',
-  '#7094aa',
-  '#5e7a8c',
-  '#476274',
-  '#354b5a',
-  '#243844',
+  '#6f91a6',
+  '#587487',
+  '#425d6f',
+  '#314b5b',
 ];
 
 const appFontFamily =
@@ -33,6 +33,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
     '--app-content-width-narrow': '47.5rem',
     '--app-surface-radius': theme.radius.md,
     '--app-surface-radius-sm': theme.radius.sm,
+    '--app-focus-border': '0 0 0 2px var(--app-accent-soft)',
     '--app-transition-fast': '160ms ease',
   },
   light: {
@@ -41,7 +42,11 @@ export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
     '--app-surface-0': '#ffffff',
     '--app-surface-1': '#f7f8fa',
     '--app-surface-2': '#eef1f5',
+    '--app-surface-low': '#fbfcfd',
+    '--app-surface-high': '#e6ebf1',
+    '--app-surface-bright': '#dfe8f0',
     '--app-border-color': '#d7dde5',
+    '--app-border-subtle': 'rgba(68, 82, 99, 0.12)',
     '--app-border-strong': '#b9c4d1',
     '--app-text-strong': '#18212d',
     '--app-text-secondary': '#445263',
@@ -53,14 +58,18 @@ export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
   dark: {
     '--app-shell-bg': '#0c0e10',
     '--app-shell-muted-bg': '#111416',
-    '--app-surface-0': '#15191d',
-    '--app-surface-1': '#1a1f24',
+    '--app-surface-0': '#161a1e',
+    '--app-surface-1': '#1b2025',
     '--app-surface-2': '#20262c',
-    '--app-border-color': 'rgba(173, 202, 222, 0.14)',
-    '--app-border-strong': 'rgba(173, 202, 222, 0.28)',
-    '--app-text-strong': '#f3f6f7',
-    '--app-text-secondary': '#c7d0d7',
-    '--app-text-muted': '#94a0aa',
+    '--app-surface-low': '#111416',
+    '--app-surface-high': '#262d33',
+    '--app-surface-bright': '#303841',
+    '--app-border-color': 'rgba(166, 172, 179, 0.16)',
+    '--app-border-subtle': 'rgba(166, 172, 179, 0.1)',
+    '--app-border-strong': 'rgba(173, 202, 222, 0.34)',
+    '--app-text-strong': '#e0e6ed',
+    '--app-text-secondary': '#c2ccd4',
+    '--app-text-muted': '#a6acb3',
     '--app-accent': '#adcade',
     '--app-accent-soft': 'rgba(173, 202, 222, 0.14)',
     '--app-danger-soft': 'rgba(248, 113, 113, 0.18)',
@@ -78,7 +87,7 @@ export const appTheme = createTheme({
     from: 'archive.2',
     to: 'archive.6',
   },
-  defaultRadius: 'md',
+  defaultRadius: 'sm',
   focusRing: 'auto',
   fontFamily: appFontFamily,
   fontFamilyMonospace: '"JetBrains Mono", "Fira Code", monospace',
@@ -162,7 +171,7 @@ export const appTheme = createTheme({
   components: {
     Accordion: {
       defaultProps: {
-        radius: 'lg',
+        radius: 'md',
         variant: 'contained',
       },
       styles: {
@@ -171,7 +180,7 @@ export const appTheme = createTheme({
         },
         control: {
           backgroundColor: 'var(--app-surface-1)',
-          borderRadius: '0.95rem',
+          borderRadius: 'var(--app-surface-radius)',
           color: 'var(--app-text-strong)',
           fontWeight: 600,
         },
@@ -196,7 +205,7 @@ export const appTheme = createTheme({
     },
     Alert: {
       defaultProps: {
-        radius: 'lg',
+        radius: 'md',
         variant: 'light',
       },
     },
@@ -251,6 +260,7 @@ export const appTheme = createTheme({
           backgroundColor: 'var(--app-surface-1)',
           borderColor: 'var(--app-border-color)',
           color: 'var(--app-text-strong)',
+          boxShadow: 'none',
         },
         label: {
           color: 'var(--app-text-secondary)',
@@ -290,6 +300,7 @@ export const appTheme = createTheme({
           backgroundColor: 'var(--app-surface-1)',
           borderColor: 'var(--app-border-color)',
           color: 'var(--app-text-strong)',
+          boxShadow: 'none',
         },
         label: {
           color: 'var(--app-text-secondary)',
@@ -311,6 +322,7 @@ export const appTheme = createTheme({
           backgroundColor: 'var(--app-surface-1)',
           borderColor: 'var(--app-border-color)',
           color: 'var(--app-text-strong)',
+          boxShadow: 'none',
         },
         label: {
           color: 'var(--app-text-secondary)',
@@ -331,6 +343,7 @@ export const appTheme = createTheme({
           backgroundColor: 'var(--app-surface-1)',
           borderColor: 'var(--app-border-color)',
           color: 'var(--app-text-strong)',
+          boxShadow: 'none',
         },
         label: {
           color: 'var(--app-text-secondary)',

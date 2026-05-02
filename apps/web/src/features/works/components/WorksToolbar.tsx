@@ -1,4 +1,13 @@
-import { Group, NativeSelect, Stack, Text, TextInput, Title } from '@mantine/core';
+import {
+  Collapse,
+  Group,
+  NativeSelect,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
+import { useState } from 'react';
 
 import type { WorkStatus } from '@work-archive/shared-types';
 
@@ -51,6 +60,7 @@ export function WorksToolbar({
   totalDeletedCount,
   viewMode,
 }: WorksToolbarProps) {
+  const [filtersExpanded, setFiltersExpanded] = useState(true);
   let countSummary = '작품을 불러오는 중입니다.';
 
   if (!isLoading) {
@@ -90,7 +100,10 @@ export function WorksToolbar({
     <SectionCard gap="md" padding="lg" tone="subtle">
       <Group align="flex-start" justify="space-between" wrap="wrap">
         <Stack gap={4}>
-          <Title order={1}>작품</Title>
+          <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+            Library
+          </Text>
+          <Title order={1}>작품 라이브러리</Title>
           <Text c="var(--app-text-muted)">{countSummary}</Text>
         </Stack>
 
@@ -115,78 +128,130 @@ export function WorksToolbar({
         />
       </ActionRow>
 
-      <Group align="flex-end" gap="sm" wrap="wrap">
-        <div style={{ flex: '1 1 20rem', minWidth: 'min(100%, 20rem)' }}>
-          <TextInput
-            label="검색"
-            name="searchTerm"
-            onChange={(event) =>
-              onQueryChange({ ...query, searchTerm: event.currentTarget.value })
-            }
-            placeholder="제목, 작가, 감상, 태그"
-            value={query.searchTerm}
-          />
-        </div>
+      <ActionRow justify="space-between">
+        <Text c="var(--app-text-muted)" fw={700} size="sm">
+          검색·필터
+        </Text>
+        <AppButton
+          aria-expanded={filtersExpanded}
+          onClick={() => setFiltersExpanded((value) => !value)}
+          size="compact-sm"
+          tone="ghost"
+          type="button"
+        >
+          {filtersExpanded ? '필터 접기' : '필터 펼치기'}
+        </AppButton>
+      </ActionRow>
 
-        <div style={{ flex: '0 1 12rem', minWidth: 160 }}>
-          <TextInput
-            label="개인 태그"
-            list="worksTagFilterSuggestions"
-            name="tag"
-            onChange={(event) =>
-              onQueryChange({ ...query, tag: event.currentTarget.value })
-            }
-            placeholder="태그로 필터"
-            value={query.tag ?? ''}
-          />
-          <datalist id="worksTagFilterSuggestions">
-            {tagSuggestions.map((tag) => (
-              <option key={tag} value={tag} />
-            ))}
-          </datalist>
-        </div>
+      <Collapse in={filtersExpanded}>
+        <Stack gap="md">
+          <Group align="flex-end" gap="sm" wrap="wrap">
+            <div style={{ flex: '1 1 20rem', minWidth: 'min(100%, 20rem)' }}>
+              <TextInput
+                label="검색"
+                name="searchTerm"
+                onChange={(event) =>
+                  onQueryChange({ ...query, searchTerm: event.currentTarget.value })
+                }
+                placeholder="제목, 작가, 감상, 태그"
+                value={query.searchTerm}
+              />
+            </div>
 
-        <div style={{ flex: '0 1 10rem', minWidth: 144 }}>
-          <NativeSelect
-            id="typeFilter"
-            label="유형"
-            onChange={(event) =>
-              onQueryChange({
-                ...query,
-                type: event.currentTarget.value as WorksListQuery['type'],
-              })
-            }
-            value={query.type}
-          >
-            <option value="all">전체 유형</option>
-            {workTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
+            <div style={{ flex: '0 1 12rem', minWidth: 160 }}>
+              <TextInput
+                label="개인 태그"
+                list="worksTagFilterSuggestions"
+                name="tag"
+                onChange={(event) =>
+                  onQueryChange({ ...query, tag: event.currentTarget.value })
+                }
+                placeholder="태그로 필터"
+                value={query.tag ?? ''}
+              />
+              <datalist id="worksTagFilterSuggestions">
+                {tagSuggestions.map((tag) => (
+                  <option key={tag} value={tag} />
+                ))}
+              </datalist>
+            </div>
 
-        <div style={{ flex: '0 1 10rem', minWidth: 144 }}>
-          <NativeSelect
-            id="sortBy"
-            label="정렬"
-            onChange={(event) =>
-              onQueryChange({
-                ...query,
-                sortBy: event.currentTarget.value as WorksListQuery['sortBy'],
-              })
-            }
-            value={query.sortBy}
-          >
-            {workSortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
-      </Group>
+            <div style={{ flex: '0 1 10rem', minWidth: 144 }}>
+              <NativeSelect
+                id="typeFilter"
+                label="유형"
+                onChange={(event) =>
+                  onQueryChange({
+                    ...query,
+                    type: event.currentTarget.value as WorksListQuery['type'],
+                  })
+                }
+                value={query.type}
+              >
+                <option value="all">전체 유형</option>
+                {workTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+
+            <div style={{ flex: '0 1 10rem', minWidth: 144 }}>
+              <NativeSelect
+                id="sortBy"
+                label="정렬"
+                onChange={(event) =>
+                  onQueryChange({
+                    ...query,
+                    sortBy: event.currentTarget.value as WorksListQuery['sortBy'],
+                  })
+                }
+                value={query.sortBy}
+              >
+                {workSortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+          </Group>
+
+          {collectionScope === 'active' && (
+            <ActionRow>
+              {statusFilterOptions.map((option) => {
+                const isActive = query.status === option.value;
+                const count =
+                  option.value === 'all' ? totalActiveCount : statusCounts[option.value];
+
+                return (
+                  <AppButton
+                    key={option.value}
+                    onClick={() =>
+                      onQueryChange({
+                        ...query,
+                        status: option.value,
+                      })
+                    }
+                    size="compact-sm"
+                    tone={isActive ? 'quiet' : 'ghost'}
+                    type="button"
+                  >
+                    {option.label} {count}
+                  </AppButton>
+                );
+              })}
+            </ActionRow>
+          )}
+        </Stack>
+      </Collapse>
+
+      {!filtersExpanded && hasActiveFilters && (
+        <Text c="var(--app-text-muted)" size="sm">
+          일부 필터가 적용되어 있습니다.
+        </Text>
+      )}
 
       <Group gap="sm" justify="space-between" wrap="wrap">
         <ActionRow>
@@ -229,33 +294,6 @@ export function WorksToolbar({
           </ActionRow>
         )}
       </Group>
-
-      {collectionScope === 'active' && (
-        <ActionRow>
-          {statusFilterOptions.map((option) => {
-            const isActive = query.status === option.value;
-            const count =
-              option.value === 'all' ? totalActiveCount : statusCounts[option.value];
-
-            return (
-              <AppButton
-                key={option.value}
-                onClick={() =>
-                  onQueryChange({
-                    ...query,
-                    status: option.value,
-                  })
-                }
-                size="compact-sm"
-                tone={isActive ? 'quiet' : 'ghost'}
-                type="button"
-              >
-                {option.label} {count}
-              </AppButton>
-            );
-          })}
-        </ActionRow>
-      )}
     </SectionCard>
   );
 }

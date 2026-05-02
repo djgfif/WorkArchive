@@ -40,18 +40,19 @@ export function CandidateListRow({
       aria-pressed={active}
       onClick={onSelect}
       style={{
-        backgroundColor: active
-          ? 'var(--app-surface-1)'
+        background: active
+          ? 'linear-gradient(180deg, var(--app-surface-1), var(--app-surface-low))'
           : 'var(--app-surface-0)',
         border: active
-          ? '2px solid var(--app-border-strong)'
+          ? '1px solid var(--app-border-strong)'
           : '1px solid var(--app-border-color)',
-        borderRadius: '0.875rem',
+        borderRadius: 'var(--app-surface-radius)',
+        boxShadow: active ? 'var(--app-focus-border)' : 'none',
         color: 'inherit',
         cursor: 'pointer',
-        padding: '0.875rem',
+        padding: '0.75rem',
         textAlign: 'left',
-        transition: 'background-color 120ms ease, border-color 120ms ease',
+        transition: 'background 120ms ease, border-color 120ms ease, box-shadow 120ms ease',
         width: '100%',
       }}
       type="button"

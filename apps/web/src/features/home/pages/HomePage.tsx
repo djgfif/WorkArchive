@@ -19,6 +19,7 @@ import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
 import {
+  formatWorkDate,
   formatWorkUpdatedAt,
   getWorkStatusLabel,
   getWorkTypeLabel,
@@ -26,6 +27,22 @@ import {
 
 function formatAverageRating(value: number | null) {
   return value === null ? '미평가' : `${value.toFixed(1)}점`;
+}
+
+function getProgressSummary(work: WorkRecord) {
+  if (work.lastConsumedLabel) {
+    return work.lastConsumedLabel;
+  }
+
+  if (work.progressCurrent !== null && work.progressTotal !== null) {
+    return `${work.progressCurrent}/${work.progressTotal}`;
+  }
+
+  if (work.progressCurrent !== null) {
+    return `${work.progressCurrent}까지`;
+  }
+
+  return '진행도 없음';
 }
 
 interface RecentWorkRowProps {
@@ -70,6 +87,7 @@ function RecentWorkRow({
             <AppBadge>{getWorkTypeLabel(work.type)}</AppBadge>
             <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
             <AppBadge>{work.rating === null ? '미평가' : `${work.rating}점`}</AppBadge>
+            <AppBadge tone="muted">{getProgressSummary(work)}</AppBadge>
           </ActionRow>
 
           <div>
@@ -81,6 +99,9 @@ function RecentWorkRow({
 
           <Text c="var(--app-text-secondary)">
             {work.shortReview || work.description || '아직 남긴 메모가 없습니다.'}
+          </Text>
+          <Text c="var(--app-text-muted)" size="sm">
+            마지막 감상 {formatWorkDate(work.lastConsumedAt)}
           </Text>
         </Stack>
       </Group>
@@ -122,11 +143,13 @@ export function HomePage() {
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <Stack gap="xs">
             <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
-              홈
+              Local archive
             </Text>
             <Title order={1}>기록 홈</Title>
             <Text c="var(--app-text-secondary)">
-              {isAuthenticated ? `${user?.email ?? '계정'} 아카이브` : '이 기기의 개인 아카이브'}
+              {isAuthenticated
+                ? `${user?.email ?? '계정'}의 개인 기록 저장소`
+                : '이 기기에 먼저 저장되는 개인 기록 저장소'}
             </Text>
           </Stack>
 
@@ -196,10 +219,10 @@ export function HomePage() {
             {!error && !isLoading && hasRecentWorks && (
               <Paper
                 p={0}
-                radius="lg"
+                radius="md"
                 styles={{
                   root: {
-                    backgroundColor: 'var(--app-surface-0)',
+                    backgroundColor: 'var(--app-surface-low)',
                     borderColor: 'var(--app-border-color)',
                     overflow: 'hidden',
                   },
@@ -252,7 +275,8 @@ export function HomePage() {
                       <Text fw={700}>{leadRecentWork.title}</Text>
                       <Text c="var(--app-text-muted)" size="sm">
                         {getWorkStatusLabel(leadRecentWork.status)} ·{' '}
-                        {formatWorkUpdatedAt(leadRecentWork.updatedAt)}
+                        {getProgressSummary(leadRecentWork)} ·{' '}
+                        마지막 감상 {formatWorkDate(leadRecentWork.lastConsumedAt)}
                       </Text>
                     </Stack>
                   </Group>
