@@ -1,6 +1,6 @@
 import { liveQuery } from 'dexie';
 import { useEffect, useState } from 'react';
-import { Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Group, Progress, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
@@ -16,6 +16,7 @@ import { WorkspacePageTemplate } from '../../../shared/components/PageTemplates'
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { worksRepository } from '../../works/services/works.repository';
 import {
+  formatWorkDate,
   getWorkStatusLabel,
   getWorkTypeLabel,
 } from '../../works/utils/work-options';
@@ -38,6 +39,18 @@ const initialState: InsightsState = {
 
 function formatRating(value: number | null) {
   return value === null ? '아직 없음' : `${value.toFixed(1)}점`;
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function getMaxCount(entries: Array<{ count: number }>) {
+  return Math.max(1, ...entries.map((entry) => entry.count));
+}
+
+function getRecentActivityDate(work: WorkRecord) {
+  return work.lastConsumedAt ?? work.startedAt ?? work.updatedAt;
 }
 
 function getTopEntries<T extends string>(counts: Record<T, number>) {
@@ -118,6 +131,10 @@ export function InsightsPage() {
                 value={insights.completedThisYearCount}
               />
               <MetricPill label="즐겨찾기" value={insights.favoriteCount} />
+              <MetricPill
+                label="중단률"
+                value={formatPercent(insights.droppedRate)}
+              />
             </Group>
           )}
         </SectionCard>
@@ -166,6 +183,42 @@ export function InsightsPage() {
                   </Group>
                 ))}
               </Stack>
+            </SectionCard>
+
+            <SectionCard>
+              <SectionIntro
+                description="작품 메타데이터의 장르를 기준으로 취향의 큰 분포를 봅니다."
+                eyebrow="장르"
+                title="장르별 분포"
+                titleOrder={2}
+              />
+              {insights.genreCounts.length === 0 ? (
+                <Text c="var(--app-text-muted)">
+                  아직 장르가 있는 작품이 없습니다.
+                </Text>
+              ) : (
+                <Stack gap="sm">
+                  {insights.genreCounts.map(({ count, genre }) => {
+                    const maxCount = getMaxCount(insights.genreCounts);
+
+                    return (
+                      <Stack gap={4} key={genre}>
+                        <Group justify="space-between">
+                          <Text fw={700}>{genre}</Text>
+                          <AppBadge tone="accent">{count}개</AppBadge>
+                        </Group>
+                        <Progress
+                          aria-label={`${genre} 장르 ${count}개`}
+                          color="archive"
+                          radius="xl"
+                          size="sm"
+                          value={(count / maxCount) * 100}
+                        />
+                      </Stack>
+                    );
+                  })}
+                </Stack>
+              )}
             </SectionCard>
 
             <SectionCard>
@@ -233,6 +286,44 @@ export function InsightsPage() {
 
             <SectionCard>
               <SectionIntro
+                description="올해 완료한 기록을 월별로 나눠 봅니다."
+                eyebrow="완료 흐름"
+                title="월별 완료"
+                titleOrder={2}
+              />
+              {insights.completedThisYearCount === 0 ? (
+                <Text c="var(--app-text-muted)">
+                  올해 완료한 작품이 아직 없습니다.
+                </Text>
+              ) : (
+                <Stack gap="sm">
+                  {insights.monthlyCompletedCounts
+                    .filter(({ count }) => count > 0)
+                    .map(({ count, month }) => {
+                      const maxCount = getMaxCount(insights.monthlyCompletedCounts);
+
+                      return (
+                        <Stack gap={4} key={month}>
+                          <Group justify="space-between">
+                            <Text fw={700}>{month}월</Text>
+                            <AppBadge tone="success">{count}개</AppBadge>
+                          </Group>
+                          <Progress
+                            aria-label={`${month}월 완료 ${count}개`}
+                            color="archive"
+                            radius="xl"
+                            size="sm"
+                            value={(count / maxCount) * 100}
+                          />
+                        </Stack>
+                      );
+                    })}
+                </Stack>
+              )}
+            </SectionCard>
+
+            <SectionCard>
+              <SectionIntro
                 description="높게 평가한 작품을 다시 찾기 쉽게 모읍니다."
                 eyebrow="다시 보기"
                 title="높은 평가 작품"
@@ -257,6 +348,70 @@ export function InsightsPage() {
                       <AppBadge tone="accent">
                         {formatRating(work.rating)}
                       </AppBadge>
+                    </Group>
+                  ))}
+                </Stack>
+              )}
+            </SectionCard>
+
+            <SectionCard>
+              <SectionIntro
+                description="올해 기록한 작품 중 별점이 높은 항목입니다."
+                eyebrow="올해 최고"
+                title="올해 높은 평가"
+                titleOrder={2}
+              />
+              {insights.topRatedThisYearWorks.length === 0 ? (
+                <Text c="var(--app-text-muted)">
+                  올해 별점을 남긴 작품이 없습니다.
+                </Text>
+              ) : (
+                <Stack gap="sm">
+                  {insights.topRatedThisYearWorks.map((work: WorkRecord) => (
+                    <Group justify="space-between" key={work.id} wrap="nowrap">
+                      <div>
+                        <Title order={3} size="h4">
+                          {work.title}
+                        </Title>
+                        <Text c="var(--app-text-muted)" size="sm">
+                          {getWorkTypeLabel(work.type)}
+                        </Text>
+                      </div>
+                      <AppBadge tone="accent">
+                        {formatRating(work.rating)}
+                      </AppBadge>
+                    </Group>
+                  ))}
+                </Stack>
+              )}
+            </SectionCard>
+
+            <SectionCard>
+              <SectionIntro
+                description="보는 중이거나 보류한 기록 중 30일 이상 움직임이 없는 항목입니다."
+                eyebrow="점검 필요"
+                title="오래 방치한 작품"
+                titleOrder={2}
+              />
+              {insights.staleWorks.length === 0 ? (
+                <Text c="var(--app-text-muted)">
+                  오래 방치된 진행 중 기록이 없습니다.
+                </Text>
+              ) : (
+                <Stack gap="sm">
+                  {insights.staleWorks.map((work: WorkRecord) => (
+                    <Group justify="space-between" key={work.id} wrap="nowrap">
+                      <div>
+                        <Title order={3} size="h4">
+                          {work.title}
+                        </Title>
+                        <Text c="var(--app-text-muted)" size="sm">
+                          {getWorkStatusLabel(work.status)} · 최근 활동 {formatWorkDate(getRecentActivityDate(work))}
+                        </Text>
+                      </div>
+                      <AppLinkButton size="compact-sm" to={`/works/${work.id}`}>
+                        열기
+                      </AppLinkButton>
                     </Group>
                   ))}
                 </Stack>

@@ -42,6 +42,7 @@ describe('calculatePersonalInsights', () => {
         buildWork({
           completedAt: '2026-01-15T00:00:00.000Z',
           favorite: true,
+          genres: ['SF', '정치극'],
           personalTags: ['인생작 후보', '다시 볼 것'],
           rating: 5,
           status: 'completed',
@@ -50,6 +51,7 @@ describe('calculatePersonalInsights', () => {
           updatedAt: '2026-02-01T00:00:00.000Z',
         }),
         buildWork({
+          genres: ['판타지'],
           personalTags: ['다시 볼 것'],
           rating: 4,
           status: 'in_progress',
@@ -71,6 +73,7 @@ describe('calculatePersonalInsights', () => {
     expect(insights.averageRating).toBe(4.5);
     expect(insights.completedThisYearCount).toBe(1);
     expect(insights.favoriteCount).toBe(1);
+    expect(insights.droppedRate).toBe(0);
     expect(insights.typeCounts.novel).toBe(1);
     expect(insights.typeCounts.manga).toBe(1);
     expect(insights.statusCounts.completed).toBe(1);
@@ -82,6 +85,20 @@ describe('calculatePersonalInsights', () => {
     expect(insights.tagCounts).toEqual([
       { count: 2, tag: '다시 볼 것' },
       { count: 1, tag: '인생작 후보' },
+    ]);
+    expect(insights.genreCounts).toEqual([
+      { count: 1, genre: 'SF' },
+      { count: 1, genre: '정치극' },
+      { count: 1, genre: '판타지' },
+    ]);
+    expect(insights.monthlyCompletedCounts.find(({ month }) => month === 1)).toEqual({
+      count: 1,
+      month: 1,
+    });
+    expect(insights.staleWorks.map((work) => work.title)).toEqual(['Frieren']);
+    expect(insights.topRatedThisYearWorks.map((work) => work.title)).toEqual([
+      'Dune',
+      'Frieren',
     ]);
     expect(insights.topRatedWorks.map((work) => work.title)).toEqual([
       'Dune',
@@ -108,4 +125,40 @@ describe('calculatePersonalInsights', () => {
 
     expect(insights.completedThisYearCount).toBe(1);
   });
+
+  it('calculates dropped rate and stale work order from local activity dates', () => {
+    const insights = calculatePersonalInsights(
+      [
+        buildWork({
+          lastConsumedAt: '2026-02-01T00:00:00.000Z',
+          status: 'paused',
+          title: 'Old paused',
+          updatedAt: '2026-04-20T00:00:00.000Z',
+        }),
+        buildWork({
+          lastConsumedAt: '2026-03-10T00:00:00.000Z',
+          status: 'in_progress',
+          title: 'Old progress',
+          updatedAt: '2026-04-20T00:00:00.000Z',
+        }),
+        buildWork({
+          lastConsumedAt: '2026-04-20T00:00:00.000Z',
+          status: 'in_progress',
+          title: 'Recent progress',
+        }),
+        buildWork({
+          status: 'dropped',
+          title: 'Dropped',
+        }),
+      ],
+      new Date('2026-05-01T00:00:00.000Z'),
+    );
+
+    expect(insights.droppedRate).toBe(0.25);
+    expect(insights.staleWorks.map((work) => work.title)).toEqual([
+      'Old paused',
+      'Old progress',
+    ]);
+  });
+
 });

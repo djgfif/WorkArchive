@@ -10,7 +10,16 @@ export interface PersonalInsights {
   activeCount: number;
   averageRating: number | null;
   completedThisYearCount: number;
+  droppedRate: number;
   favoriteCount: number;
+  genreCounts: Array<{
+    count: number;
+    genre: string;
+  }>;
+  monthlyCompletedCounts: Array<{
+    count: number;
+    month: number;
+  }>;
   plannedOrInProgressCount: number;
   ratingDistribution: Array<{
     count: number;
@@ -21,6 +30,8 @@ export interface PersonalInsights {
     count: number;
     tag: string;
   }>;
+  staleWorks: WorkRecord[];
+  topRatedThisYearWorks: WorkRecord[];
   topRatedWorks: WorkRecord[];
   typeCounts: Record<WorkType, number>;
 }
@@ -38,10 +49,37 @@ function createEmptyStatusCounts(): Record<WorkStatus, number> {
   ) as Record<WorkStatus, number>;
 }
 
-function isSameYear(value: string, year: number) {
+function parseDate(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
   const parsed = new Date(value);
 
-  return !Number.isNaN(parsed.getTime()) && parsed.getFullYear() === year;
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isSameYear(value: string | null | undefined, year: number) {
+  const parsed = parseDate(value);
+
+  return parsed !== null && parsed.getFullYear() === year;
+}
+
+function getMonthInYear(value: string | null | undefined, year: number) {
+  const parsed = parseDate(value);
+
+  return parsed !== null && parsed.getFullYear() === year
+    ? parsed.getMonth() + 1
+    : null;
+}
+
+function getActivityTime(work: WorkRecord) {
+  return (
+    parseDate(work.lastConsumedAt)?.getTime() ??
+    parseDate(work.startedAt)?.getTime() ??
+    parseDate(work.updatedAt)?.getTime() ??
+    0
+  );
 }
 
 export function calculatePersonalInsights(
@@ -54,6 +92,12 @@ export function calculatePersonalInsights(
   const ratedWorks = activeWorks.filter((work) => work.rating !== null);
   const ratingBuckets = new Map<number, number>();
   const tagBuckets = new Map<string, number>();
+  const genreBuckets = new Map<string, number>();
+  const monthlyCompletedBuckets = new Map<number, number>(
+    Array.from({ length: 12 }, (_, index) => [index + 1, 0]),
+  );
+  const currentYear = now.getFullYear();
+  const staleThresholdTime = now.getTime() - 30 * 24 * 60 * 60 * 1000;
 
   for (const work of activeWorks) {
     typeCounts[work.type] += 1;
@@ -66,7 +110,34 @@ export function calculatePersonalInsights(
     for (const tag of work.personalTags) {
       tagBuckets.set(tag, (tagBuckets.get(tag) ?? 0) + 1);
     }
+
+    for (const genre of work.genres) {
+      const normalizedGenre = genre.trim();
+
+      if (normalizedGenre) {
+        genreBuckets.set(
+          normalizedGenre,
+          (genreBuckets.get(normalizedGenre) ?? 0) + 1,
+        );
+      }
+    }
+
+    if (work.status === 'completed') {
+      const completedMonth = getMonthInYear(
+        work.completedAt ?? work.updatedAt,
+        currentYear,
+      );
+
+      if (completedMonth !== null) {
+        monthlyCompletedBuckets.set(
+          completedMonth,
+          (monthlyCompletedBuckets.get(completedMonth) ?? 0) + 1,
+        );
+      }
+    }
   }
+
+  const topRatedWorks = [...ratedWorks].sort(sortByRatingThenUpdatedAt);
 
   return {
     activeCount: activeWorks.length,
@@ -78,9 +149,27 @@ export function calculatePersonalInsights(
     completedThisYearCount: activeWorks.filter(
       (work) =>
         work.status === 'completed' &&
-        isSameYear(work.completedAt ?? work.updatedAt, now.getFullYear()),
+        isSameYear(work.completedAt ?? work.updatedAt, currentYear),
     ).length,
+    droppedRate:
+      activeWorks.length > 0 ? statusCounts.dropped / activeWorks.length : 0,
     favoriteCount: activeWorks.filter((work) => work.favorite).length,
+    genreCounts: [...genreBuckets.entries()]
+      .map(([genre, count]) => ({
+        count,
+        genre,
+      }))
+      .sort(
+        (left, right) =>
+          right.count - left.count || left.genre.localeCompare(right.genre),
+      )
+      .slice(0, 10),
+    monthlyCompletedCounts: [...monthlyCompletedBuckets.entries()].map(
+      ([month, count]) => ({
+        count,
+        month,
+      }),
+    ),
     plannedOrInProgressCount: statusCounts.planned + statusCounts.in_progress,
     ratingDistribution: [...ratingBuckets.entries()]
       .map(([rating, count]) => ({
@@ -99,14 +188,26 @@ export function calculatePersonalInsights(
           right.count - left.count || left.tag.localeCompare(right.tag),
       )
       .slice(0, 10),
-    topRatedWorks: [...ratedWorks]
-      .sort(
-        (left, right) =>
-          (right.rating ?? 0) - (left.rating ?? 0) ||
-          new Date(right.updatedAt).getTime() -
-            new Date(left.updatedAt).getTime(),
+    staleWorks: activeWorks
+      .filter(
+        (work) =>
+          (work.status === 'in_progress' || work.status === 'paused') &&
+          getActivityTime(work) < staleThresholdTime,
       )
+      .sort((left, right) => getActivityTime(left) - getActivityTime(right))
       .slice(0, 5),
+    topRatedThisYearWorks: topRatedWorks
+      .filter((work) => isSameYear(work.completedAt ?? work.updatedAt, currentYear))
+      .slice(0, 5),
+    topRatedWorks: topRatedWorks.slice(0, 5),
     typeCounts,
   };
+}
+
+function sortByRatingThenUpdatedAt(left: WorkRecord, right: WorkRecord) {
+  return (
+    (right.rating ?? 0) - (left.rating ?? 0) ||
+    (parseDate(right.updatedAt)?.getTime() ?? 0) -
+      (parseDate(left.updatedAt)?.getTime() ?? 0)
+  );
 }
