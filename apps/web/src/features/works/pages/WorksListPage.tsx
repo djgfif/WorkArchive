@@ -27,11 +27,21 @@ import {
   type WorksListQuery,
 } from '../utils/query-works';
 
-function getCollectionScopeFromSearchParams(searchParams: URLSearchParams): WorksCollectionScope {
+function getCollectionScopeFromSearchParams(
+  searchParams: URLSearchParams,
+): WorksCollectionScope {
   return searchParams.get('scope') === 'trash' ? 'trash' : 'active';
 }
 
-function getQueryFromSearchParams(searchParams: URLSearchParams): WorksListQuery {
+function getViewModeFromSearchParams(
+  searchParams: URLSearchParams,
+): WorksViewMode {
+  return searchParams.get('view') === 'list' ? 'list' : 'grid';
+}
+
+function getQueryFromSearchParams(
+  searchParams: URLSearchParams,
+): WorksListQuery {
   const statusFromUrl = searchParams.get('status');
   const typeFromUrl = searchParams.get('type');
   const sortByFromUrl = searchParams.get('sort');
@@ -45,11 +55,13 @@ function getQueryFromSearchParams(searchParams: URLSearchParams): WorksListQuery
         ? sortByFromUrl
         : DEFAULT_WORKS_LIST_QUERY.sortBy,
     status:
-      statusFromUrl && WORK_STATUSES.includes(statusFromUrl as (typeof WORK_STATUSES)[number])
+      statusFromUrl &&
+      WORK_STATUSES.includes(statusFromUrl as (typeof WORK_STATUSES)[number])
         ? (statusFromUrl as WorksListQuery['status'])
         : DEFAULT_WORKS_LIST_QUERY.status,
     type:
-      typeFromUrl && WORK_TYPES.includes(typeFromUrl as (typeof WORK_TYPES)[number])
+      typeFromUrl &&
+      WORK_TYPES.includes(typeFromUrl as (typeof WORK_TYPES)[number])
         ? (typeFromUrl as WorksListQuery['type'])
         : DEFAULT_WORKS_LIST_QUERY.type,
   };
@@ -58,6 +70,7 @@ function getQueryFromSearchParams(searchParams: URLSearchParams): WorksListQuery
 function buildSearchParams(
   query: WorksListQuery,
   scope: WorksCollectionScope,
+  viewMode: WorksViewMode,
 ) {
   const nextSearchParams = new URLSearchParams();
 
@@ -85,18 +98,24 @@ function buildSearchParams(
     nextSearchParams.set('scope', 'trash');
   }
 
+  if (scope === 'active' && viewMode === 'list') {
+    nextSearchParams.set('view', 'list');
+  }
+
   return nextSearchParams;
 }
 
 export function WorksListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [collectionScope, setCollectionScope] = useState<WorksCollectionScope>(() =>
-    getCollectionScopeFromSearchParams(searchParams),
+  const [collectionScope, setCollectionScope] = useState<WorksCollectionScope>(
+    () => getCollectionScopeFromSearchParams(searchParams),
   );
   const [query, setQuery] = useState<WorksListQuery>(() =>
     getQueryFromSearchParams(searchParams),
   );
-  const [viewMode, setViewMode] = useState<WorksViewMode>('grid');
+  const [viewMode, setViewMode] = useState<WorksViewMode>(() =>
+    getViewModeFromSearchParams(searchParams),
+  );
   const [addDialogOpened, setAddDialogOpened] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [updatingWorkId, setUpdatingWorkId] = useState<string | null>(null);
@@ -120,6 +139,7 @@ export function WorksListPage() {
   useEffect(() => {
     const nextQuery = getQueryFromSearchParams(searchParams);
     const nextScope = getCollectionScopeFromSearchParams(searchParams);
+    const nextViewMode = getViewModeFromSearchParams(searchParams);
 
     setCollectionScope((currentScope) =>
       currentScope === nextScope ? currentScope : nextScope,
@@ -129,18 +149,28 @@ export function WorksListPage() {
         ? currentQuery
         : nextQuery,
     );
+    setViewMode((currentViewMode) =>
+      currentViewMode === nextViewMode ? currentViewMode : nextViewMode,
+    );
   }, [searchParams]);
 
   function handleQueryChange(nextQuery: WorksListQuery) {
     setQuery(nextQuery);
-    setSearchParams(buildSearchParams(nextQuery, collectionScope), {
+    setSearchParams(buildSearchParams(nextQuery, collectionScope, viewMode), {
       replace: true,
     });
   }
 
   function handleCollectionScopeChange(nextScope: WorksCollectionScope) {
     setCollectionScope(nextScope);
-    setSearchParams(buildSearchParams(query, nextScope), {
+    setSearchParams(buildSearchParams(query, nextScope, viewMode), {
+      replace: true,
+    });
+  }
+
+  function handleViewModeChange(nextViewMode: WorksViewMode) {
+    setViewMode(nextViewMode);
+    setSearchParams(buildSearchParams(query, collectionScope, nextViewMode), {
       replace: true,
     });
   }
@@ -255,14 +285,21 @@ export function WorksListPage() {
         isLoading={isLoading}
         onClearFilters={() => {
           setQuery(DEFAULT_WORKS_LIST_QUERY);
-          setSearchParams(buildSearchParams(DEFAULT_WORKS_LIST_QUERY, collectionScope), {
-            replace: true,
-          });
+          setSearchParams(
+            buildSearchParams(
+              DEFAULT_WORKS_LIST_QUERY,
+              collectionScope,
+              viewMode,
+            ),
+            {
+              replace: true,
+            },
+          );
         }}
         onCollectionScopeChange={handleCollectionScopeChange}
         onCreateWork={() => setAddDialogOpened(true)}
         onQueryChange={handleQueryChange}
-        onViewModeChange={setViewMode}
+        onViewModeChange={handleViewModeChange}
         query={query}
         statusCounts={statusCounts}
         tagSuggestions={tagSuggestions}
@@ -271,7 +308,9 @@ export function WorksListPage() {
         viewMode={viewMode}
       />
 
-      {actionError && <FeedbackMessage tone="error">{actionError}</FeedbackMessage>}
+      {actionError && (
+        <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
+      )}
 
       {error && (
         <StateMessage
@@ -316,7 +355,11 @@ export function WorksListPage() {
                   onClick={() => {
                     setQuery(DEFAULT_WORKS_LIST_QUERY);
                     setSearchParams(
-                      buildSearchParams(DEFAULT_WORKS_LIST_QUERY, collectionScope),
+                      buildSearchParams(
+                        DEFAULT_WORKS_LIST_QUERY,
+                        collectionScope,
+                        viewMode,
+                      ),
                       { replace: true },
                     );
                   }}
@@ -352,8 +395,10 @@ export function WorksListPage() {
         />
       )}
 
-      {!error && !isLoading && works.length > 0 && (
-        collectionScope === 'trash' ? (
+      {!error &&
+        !isLoading &&
+        works.length > 0 &&
+        (collectionScope === 'trash' ? (
           <WorksTrashList
             onRestore={handleRestore}
             restoringWorkId={restoringWorkId}
@@ -368,8 +413,7 @@ export function WorksListPage() {
             viewMode={viewMode}
             works={works}
           />
-        )
-      )}
+        ))}
 
       <AddWorkDialog
         onClose={() => setAddDialogOpened(false)}

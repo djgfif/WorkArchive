@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                                                                                                                                                                               |
 | Role                  | `current reality`                                                                                                                                                                                                                                                         |
 | Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-04-30` sync conflict resolution working tree                                                                                                                                                                                                                        |
+| Last verified against | `2026-05-03` Works view URL persistence working tree                                                                                                                                                                                                                      |
 | When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -71,7 +71,7 @@
 ### 3-3. Current User Flows
 
 - Home: 검색 진입, 빠른 추가, 통계 요약, 최근 기록 허브
-- Works: 목록/필터/정렬/리스트-그리드 전환/휴지통 관리
+- Works: 목록/필터/정렬/리스트-그리드 전환/보기 모드 URL 유지/휴지통 관리
 - Works / Work Create: `/works`에서는 `AddWorkDialog`로 작품 추가를 열고, `/works/new`는 같은 `QuickAddWorkForm` 흐름을 page fallback으로 제공한다. `직접 입력 -> 저장`이 기본 경로이며, `검색 -> 후보 선택 -> 입력 채우기 -> 개인 기록 확인 -> 저장`은 같은 dialog/page 안의 보조 흐름이다.
 - Work Detail / Edit: 감상 기록 확인과 수정
 - Auth: 회원가입 / 로그인
@@ -155,6 +155,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 - 작품 생성 / 수정 / 상세 / soft delete / 복원
 - 검색 / 필터 / 정렬
+- Works 보기 모드 URL 유지 (`/works?view=list`)
 - 상태 / 별점 빠른 수정
 - 게스트 모드
 - 이메일/비밀번호 인증

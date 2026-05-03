@@ -5,7 +5,7 @@
 | Status                | `active`                                                                                                                                                                |
 | Role                  | `frontend roadmap`                                                                                                                                                      |
 | Source of truth       | [`FRONTEND_BLUEPRINT_V1.md`](./FRONTEND_BLUEPRINT_V1.md), [`FRONTEND_FOUNDATION_MASTERPLAN.md`](./FRONTEND_FOUNDATION_MASTERPLAN.md), current `apps/web` implementation |
-| Last verified against | `2026-04-25` local `master` working tree                                                                                                                                |
+| Last verified against | `2026-05-03` Works view URL persistence working tree                                                                                                                    |
 | When to update        | 프론트 상세 실행 순서, Mantine token 기준, 핵심 페이지 우선순위, 완료 기준이 바뀔 때                                                                                    |
 
 이 문서는 Work Archive 프론트의 **단일 상세 실행 로드맵**이다. Mantine foundation은 이미 일부 도입됐고, 이 문서는 남은 migration 순서를 5단계로 고정한다.
@@ -113,6 +113,7 @@
 
 - Home은 소개보다 검색, 빠른 추가, 최근 기록, 핵심 통계가 먼저 보이게 유지한다.
 - Works는 탐색과 관리가 주역인 workspace 성격을 강화한다.
+- Works의 포스터/리스트 보기 선택은 URL 상태로 유지해 새로고침, 필터 변경, 공유 링크에서도 사용자의 탐색 맥락이 끊기지 않게 한다.
 - Work Detail은 작품 메타데이터보다 **내 감상 기록**이 먼저 읽히도록 구조를 재배치한다.
 - Work Detail 상단은 상태, 별점, 한줄평, 리뷰, 빠른 수정 행동이 주인공이어야 한다.
 - Auth는 입력 집중형, Account는 관리형 맥락으로 시각 밀도를 구분한다.
@@ -148,6 +149,11 @@
 
 - 다크 모드가 네온/글래스 톤이 아니라 차분한 SaaS 제품 톤으로 읽힌다.
 - depth 표현이 box-shadow 의존이 아니라 surface hierarchy와 border 설계로 설명된다.
+
+## Latest Debugging Notes
+
+- `2026-05-03`: Works list view mode is persisted through `?view=list`; poster mode remains the default URL-less state.
+- Verified with `npm run test --workspace @work-archive/web -- WorksListPage.test.tsx`, `npm run typecheck --workspace @work-archive/web`, and `npm run lint --workspace @work-archive/web`.
 
 ## Next
 
