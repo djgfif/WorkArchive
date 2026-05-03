@@ -1096,6 +1096,7 @@ export class ImportsService {
         description:
           '공식 API 후보가 없거나 웹연재처럼 공개 메타데이터 API가 부족한 경우를 위한 수동 후보입니다. 스크래핑 없이 사용자가 직접 확인합니다.',
         externalId: `${query}:${type}`,
+        externalRefs: [],
         formatLabel: this.getFormatLabel(type),
         id: `${MANUAL_PROVIDER}:${query}:${type}`,
         note: '공식 API/수동 입력만 사용하며 스크래핑하지 않습니다.',

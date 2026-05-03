@@ -196,7 +196,7 @@ function hasWeakMergeVariantSignal(candidate: ImportCandidateResponseDto) {
     .normalize('NFKC')
     .toLowerCase();
 
-  return /극장판|영화판|ova|oav|special|스페셜|season|시즌|\bpart\s*\d+\b|파트\s*\d+|\b\d+\s*기\b|\b\d+(?:st|nd|rd|th)\s+season\b/u.test(
+  return /감독판|개정판|극장판|번외편|스핀오프|시즌|영화판|외전|완전판|특별판|합본|한정판|ova|oav|special|스페셜|season|\bpart\s*\d+\b|파트\s*\d+|\b\d+\s*기\b|\b\d+(?:st|nd|rd|th)\s+season\b/u.test(
     searchable,
   );
 }

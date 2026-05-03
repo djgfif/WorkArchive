@@ -279,7 +279,10 @@ export function rankImportCandidates({
           confidenceLabel: toConfidenceLabel(confidence),
           reason:
             score.breakdown
-              .filter((entry) => entry.weight > 0)
+              .filter(
+                (entry) =>
+                  entry.weight > 0 && entry.label !== '출처 내부 순위',
+              )
               .slice(0, 3)
               .map((entry) => entry.label)
               .join(' · ') || candidate.reason,
@@ -306,11 +309,15 @@ export function rankImportCandidates({
 
 function hasExternalIdentity(candidate: ImportCandidateResponseDto) {
   return (
-    candidate.externalRefs.length > 0 ||
+    candidate.externalRefs.some(isExternalProviderRef) ||
     candidate.releaseCandidates.some((releaseCandidate) => {
-      return (releaseCandidate.externalRefs?.length ?? 0) > 0;
+      return (releaseCandidate.externalRefs ?? []).some(isExternalProviderRef);
     })
   );
+}
+
+function isExternalProviderRef(ref: { provider: string }) {
+  return !['manual', 'preview_manual', 'preview-manual'].includes(ref.provider);
 }
 
 function getTokenMatchWeight(

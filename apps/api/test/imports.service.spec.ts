@@ -416,6 +416,27 @@ describe('ImportsService', () => {
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
   });
 
+  it('keeps manual Quick Add candidates visibly separate from external identity matches', async () => {
+    const result = await service.search(USER_ID, {
+      provider: MANUAL_PROVIDER,
+      query: '전지적 독자 시점',
+      type: WorkType.web_novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        externalRefs: [],
+        reason: expect.not.stringContaining('외부 식별자'),
+        sourceCoverage: expect.objectContaining({
+          externalIdentityCount: 0,
+        }),
+        sourceId: MANUAL_PROVIDER,
+        title: '전지적 독자 시점',
+      }),
+    );
+    expect(result.candidates[0]?.reason).not.toContain('출처 내부 순위');
+  });
+
   it('records skipped diagnostics for guest automatic user-key providers', async () => {
     const result = await service.search(null, {
       query: 'Dune',
