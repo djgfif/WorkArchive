@@ -1464,6 +1464,27 @@ describe('Auth, works, and sync API (e2e)', () => {
     expect(listAfterDelete.body).toEqual([]);
   });
 
+  it('rejects unsupported sync schema versions before reaching sync services', async () => {
+    const user = await registerUser('sync-schema@example.com');
+
+    const pullResponse = await requestJson(
+      '/api/sync/pull',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          schemaVersion: 2,
+          since: null,
+        }),
+      },
+      user.accessToken,
+    );
+
+    expect(pullResponse.status).toBe(400);
+    expect((pullResponse.body as { message: string[] }).message).toEqual(
+      expect.arrayContaining([expect.stringContaining('schemaVersion')]),
+    );
+  });
+
   it('supports authenticated push and pull sync with create, update, delete, duplicate no-op, and conflict handling', async () => {
     const firstUser = await registerUser('sync-owner@example.com');
     const secondUser = await registerUser('sync-other@example.com');

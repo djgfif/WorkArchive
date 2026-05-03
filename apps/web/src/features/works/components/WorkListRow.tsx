@@ -1,5 +1,21 @@
-import { Box, Group, NativeSelect, Progress, Stack, Text, Title } from '@mantine/core';
-import type { WorkStatus, WorkRecord } from '@work-archive/shared-types';
+import {
+  Box,
+  Group,
+  NativeSelect,
+  NumberInput,
+  Progress,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
+import {
+  getDefaultProgressUnitForWorkType,
+  type ProgressUnit,
+  type WorkStatus,
+  type WorkRecord,
+} from '@work-archive/shared-types';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
@@ -22,10 +38,21 @@ export interface WorkQuickUpdate {
   status?: WorkStatus;
 }
 
+export interface WorkQuickProgressUpdate {
+  lastConsumedLabel: string;
+  progressCurrent: number | null;
+  progressTotal: number | null;
+  progressUnit: ProgressUnit;
+}
+
 interface WorkListRowProps {
   isLast?: boolean;
   isUpdating: boolean;
   onDelete: (work: WorkRecord) => Promise<void>;
+  onQuickProgressUpdate: (
+    work: WorkRecord,
+    update: WorkQuickProgressUpdate,
+  ) => Promise<void>;
   onQuickUpdate: (work: WorkRecord, update: WorkQuickUpdate) => Promise<void>;
   work: WorkRecord;
 }
@@ -41,6 +68,22 @@ const ratingOptions = Array.from({ length: 10 }, (_, index) => {
 
 function formatRatingLabel(value: number | null) {
   return value === null ? '미평가' : `${value.toFixed(1)}점`;
+}
+
+const progressUnitLabels: Record<ProgressUnit, string> = {
+  chapter: '화',
+  episode: '회',
+  volume: '권',
+};
+
+function coerceNumberInputValue(value: number | string) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+
+  return Number.isNaN(parsed) ? null : parsed;
 }
 
 function getProgressPercent(work: WorkRecord) {
@@ -77,12 +120,38 @@ export function WorkListRow({
   isLast = false,
   isUpdating,
   onDelete,
+  onQuickProgressUpdate,
   onQuickUpdate,
   work,
 }: WorkListRowProps) {
   const typeLabel = getWorkTypeLabel(work.type);
   const progressLabel = getProgressLabel(work);
   const progressPercent = getProgressPercent(work);
+  const progressUnit =
+    work.progressUnit ?? getDefaultProgressUnitForWorkType(work.type);
+  const [current, setCurrent] = useState<number | null>(
+    work.progressCurrent ?? null,
+  );
+  const [total, setTotal] = useState<number | null>(work.progressTotal ?? null);
+  const [lastLabel, setLastLabel] = useState(work.lastConsumedLabel ?? '');
+
+  useEffect(() => {
+    setCurrent(work.progressCurrent ?? null);
+    setTotal(work.progressTotal ?? null);
+    setLastLabel(work.lastConsumedLabel ?? '');
+  }, [
+    work.id,
+    work.lastConsumedLabel,
+    work.progressCurrent,
+    work.progressTotal,
+  ]);
+
+  const hasProgressChanges =
+    current !== (work.progressCurrent ?? null) ||
+    total !== (work.progressTotal ?? null) ||
+    lastLabel !== (work.lastConsumedLabel ?? '');
+  const hasInvalidProgress =
+    current !== null && total !== null && current > total;
 
   return (
     <Box
@@ -142,7 +211,7 @@ export function WorkListRow({
           </Stack>
         </Group>
 
-        <Stack gap="xs" maw={330} style={{ flex: '1 1 18rem', minWidth: 'min(100%, 18rem)' }}>
+        <Stack gap="xs" maw={380} style={{ flex: '1 1 20rem', minWidth: 'min(100%, 20rem)' }}>
           <ActionRow justify="flex-end">
             <AppLinkButton size="compact-sm" to={`/works/${work.id}`} tone="quiet">
               보기
@@ -226,6 +295,71 @@ export function WorkListRow({
               ))}
             </NativeSelect>
           </Group>
+
+          {progressUnit && (
+            <Stack gap="xs">
+              <Group align="flex-end" grow gap="xs">
+                <NumberInput
+                  allowDecimal={false}
+                  allowNegative={false}
+                  aria-label={`${work.title} 현재 ${progressUnitLabels[progressUnit]}`}
+                  disabled={isUpdating}
+                  label={`현재 ${progressUnitLabels[progressUnit]}`}
+                  min={0}
+                  onChange={(value) => setCurrent(coerceNumberInputValue(value))}
+                  value={current ?? ''}
+                />
+                <NumberInput
+                  allowDecimal={false}
+                  allowNegative={false}
+                  aria-label={`${work.title} 전체 ${progressUnitLabels[progressUnit]}`}
+                  disabled={isUpdating}
+                  label={`전체 ${progressUnitLabels[progressUnit]}`}
+                  min={0}
+                  onChange={(value) => setTotal(coerceNumberInputValue(value))}
+                  value={total ?? ''}
+                />
+              </Group>
+
+              <Group align="flex-end" gap="xs" wrap="wrap">
+                <TextInput
+                  aria-label={`${work.title} 마지막 위치`}
+                  disabled={isUpdating}
+                  label="마지막 위치"
+                  maxLength={120}
+                  onChange={(event) => setLastLabel(event.currentTarget.value)}
+                  placeholder={`예: ${current ?? 18}${progressUnitLabels[progressUnit]}`}
+                  style={{ flex: '1 1 auto' }}
+                  value={lastLabel}
+                />
+                <AppButton
+                  aria-label={`${work.title} 진행도 저장`}
+                  disabled={
+                    isUpdating || !hasProgressChanges || hasInvalidProgress
+                  }
+                  onClick={() =>
+                    void onQuickProgressUpdate(work, {
+                      lastConsumedLabel: lastLabel,
+                      progressCurrent: current,
+                      progressTotal: total,
+                      progressUnit,
+                    })
+                  }
+                  size="compact-sm"
+                  tone="secondary"
+                  type="button"
+                >
+                  저장
+                </AppButton>
+              </Group>
+
+              {hasInvalidProgress && (
+                <Text c="red" size="xs">
+                  현재 진행도가 전체보다 클 수 없습니다.
+                </Text>
+              )}
+            </Stack>
+          )}
         </Stack>
       </Group>
     </Box>

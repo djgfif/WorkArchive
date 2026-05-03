@@ -85,6 +85,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
+          schemaVersion: 1,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -125,6 +126,51 @@ describe('SyncService', () => {
     );
   });
 
+  it('fails push without removing queue items when the response schema version is unsupported', async () => {
+    const localWork = await worksService.createWork(buildInput());
+    const [queueItem] = await queueRepository.listAll();
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 2,
+          processedAt: '2026-04-18T01:00:00.000Z',
+          results: [],
+        }),
+      ),
+    );
+
+    const result = await syncService.pushQueuedChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        attemptedCount: 1,
+        appliedCount: 0,
+        failedCount: 1,
+        requestFailed: true,
+        messages: [
+          '보내기 응답의 동기화 계약 버전을 지원하지 않습니다. 앱을 새로고침하거나 업데이트해주세요.',
+        ],
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        entityId: localWork.id,
+        retryCount: 1,
+        lastError:
+          '보내기 응답의 동기화 계약 버전을 지원하지 않습니다. 앱을 새로고침하거나 업데이트해주세요.',
+      }),
+    );
+  });
+
   it('removes successful release-record queue items and updates local release records', async () => {
     const now = '2026-04-18T01:00:00.000Z';
     const localReleaseRecord: UserReleaseRecord = {
@@ -161,6 +207,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
+          schemaVersion: 1,
           processedAt: '2026-04-18T02:00:00.000Z',
           results: [
             {
@@ -258,6 +305,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
+          schemaVersion: 1,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -514,6 +562,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
+          schemaVersion: 1,
           pulledAt: '2026-04-18T02:00:00.000Z',
           nextSince: '2026-04-18T01:30:00.000Z',
           changes: [
@@ -564,6 +613,50 @@ describe('SyncService', () => {
     ).resolves.toBe('2026-04-18T01:30:00.000Z');
   });
 
+  it('fails pull without advancing the cursor when the response schema version is unsupported', async () => {
+    await appMetaRepository.setValue(
+      'sync.lastSuccessfulPullAt',
+      '2026-04-18T00:00:00.000Z',
+    );
+    window.localStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      }),
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 2,
+          pulledAt: '2026-04-18T02:00:00.000Z',
+          nextSince: '2026-04-18T01:30:00.000Z',
+          changes: [],
+        }),
+      ),
+    );
+
+    const result = await syncService.pullRemoteChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        pulledCount: 0,
+        appliedCount: 0,
+        skippedCount: 0,
+        nextSince: '2026-04-18T00:00:00.000Z',
+        requestFailed: true,
+        messages: [
+          '가져오기 응답의 동기화 계약 버전을 지원하지 않습니다. 앱을 새로고침하거나 업데이트해주세요.',
+        ],
+      }),
+    );
+    await expect(
+      appMetaRepository.getValue('sync.lastSuccessfulPullAt'),
+    ).resolves.toBe('2026-04-18T00:00:00.000Z');
+  });
+
   it('keeps the pull cursor in place when remote changes are skipped due to queued local work', async () => {
     const existing = await worksService.createWork(
       buildInput({
@@ -589,6 +682,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
+          schemaVersion: 1,
           pulledAt: '2026-04-18T02:00:00.000Z',
           nextSince: '2026-04-18T01:30:00.000Z',
           changes: [

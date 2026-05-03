@@ -67,7 +67,7 @@ describe('WorkDetailPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('별점')).toBeInTheDocument();
+    expect((await screen.findAllByText('별점')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('2권까지').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Dune 상세 진행도 67%')).toBeInTheDocument();
     expect(
@@ -78,8 +78,8 @@ describe('WorkDetailPage', () => {
         '긴 감상입니다. 인물의 선택과 정치 구조가 얽히는 방식이 인상적이었고, 후반부의 긴장감도 좋았습니다.',
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText('한줄평')).not.toHaveTextContent('있음');
-    expect(screen.queryByText('상세 감상')).not.toHaveTextContent('있음');
+    expect(screen.getAllByText('한줄평').length).toBeGreaterThan(0);
+    expect(screen.getByText('상세 감상')).toBeInTheDocument();
   });
 
   it('keeps detail read-first and links naturally into review editing', async () => {
@@ -114,9 +114,8 @@ describe('WorkDetailPage', () => {
       screen.getAllByRole('link', { name: '리뷰 쓰기' }).length,
     ).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: '기록 수정' })).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText('Frieren 상세 상태'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Frieren 빠른 상태')).toBeInTheDocument();
+    expect(screen.getByLabelText('Frieren 빠른 별점')).toBeInTheDocument();
 
     await user.click(screen.getAllByRole('link', { name: '리뷰 쓰기' })[0]!);
 
@@ -126,6 +125,59 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('button', { name: '저장' }),
     ).toBeInTheDocument();
+  });
+
+  it('saves status, rating, favorite, and short review from the detail quick record section', async () => {
+    const work = await worksService.createWork({
+      type: 'novel',
+      title: 'Quick Detail Work',
+      author: 'Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [`/works/${work.id}`],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await screen.findByRole('heading', { name: 'Quick Detail Work' });
+    await user.selectOptions(
+      screen.getByLabelText('Quick Detail Work 빠른 상태'),
+      'completed',
+    );
+    await user.selectOptions(
+      screen.getByLabelText('Quick Detail Work 빠른 별점'),
+      '4.5',
+    );
+    await user.type(
+      screen.getByLabelText('Quick Detail Work 빠른 한줄평'),
+      '상세에서 바로 남긴 기록',
+    );
+    await user.click(screen.getByRole('button', { name: '즐겨찾기' }));
+    await user.click(screen.getByRole('button', { name: '빠른 기록 저장' }));
+
+    await expect.poll(async () => worksService.getWorkById(work.id)).toEqual(
+      expect.objectContaining({
+        favorite: true,
+        rating: 4.5,
+        shortReview: '상세에서 바로 남긴 기록',
+        status: 'completed',
+      }),
+    );
   });
 
   it('shows volume-level records for novels when catalog releases exist', async () => {

@@ -1,4 +1,10 @@
-import { Equals, IsDateString, IsInt, IsOptional } from 'class-validator';
+import {
+  Equals,
+  IsDateString,
+  IsInt,
+  IsOptional,
+  ValidateIf,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PullSyncDto {
@@ -7,7 +13,7 @@ export class PullSyncDto {
     description: 'Sync contract version. Missing values are treated as v1.',
     enum: [1],
   })
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
   @Equals(1)
   schemaVersion?: 1;

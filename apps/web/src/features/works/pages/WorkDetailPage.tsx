@@ -44,6 +44,7 @@ import {
 } from '../services/user-records.api';
 import { worksService } from '../services/works.service';
 import { getWorkTypeLabel, workStatusOptions } from '../utils/work-options';
+import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
   const value = (index + 1) * 0.5;
@@ -80,6 +81,123 @@ function coerceNumberInputValue(value: number | string) {
   const parsed = Number.parseInt(value, 10);
 
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function WorkQuickRecordSection({
+  onError,
+  work,
+}: {
+  onError(message: string | null): void;
+  work: WorkRecord;
+}) {
+  const [status, setStatus] = useState<WorkStatus>(work.status);
+  const [rating, setRating] = useState(work.rating?.toString() ?? '');
+  const [favorite, setFavorite] = useState(work.favorite);
+  const [shortReview, setShortReview] = useState(work.shortReview);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setStatus(work.status);
+    setRating(work.rating?.toString() ?? '');
+    setFavorite(work.favorite);
+    setShortReview(work.shortReview);
+  }, [work.favorite, work.id, work.rating, work.shortReview, work.status]);
+
+  const parsedRating = rating === '' ? null : Number.parseFloat(rating);
+  const nextRating = Number.isNaN(parsedRating) ? null : parsedRating;
+  const hasChanges =
+    status !== work.status ||
+    nextRating !== work.rating ||
+    favorite !== work.favorite ||
+    shortReview !== work.shortReview;
+
+  async function handleSave() {
+    try {
+      setIsSaving(true);
+      onError(null);
+      await worksService.updateWork(work.id, {
+        ...createUpsertWorkInputFromRecord(work),
+        favorite,
+        rating: nextRating,
+        shortReview,
+        status,
+      });
+    } catch (error) {
+      onError(
+        error instanceof Error
+          ? error.message
+          : '빠른 기록을 저장하지 못했습니다.',
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <PageSection
+      description="상태, 별점, 즐겨찾기, 한줄평만 빠르게 정리합니다."
+      eyebrow="바로 수정"
+      title="빠른 기록"
+    >
+      <SectionCard gap="md" padding="lg" tone="default">
+        <Group align="flex-end" grow>
+          <NativeSelect
+            aria-label={`${work.title} 빠른 상태`}
+            label="상태"
+            onChange={(event) =>
+              setStatus(event.currentTarget.value as WorkStatus)
+            }
+            value={status}
+          >
+            {workStatusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+          <NativeSelect
+            aria-label={`${work.title} 빠른 별점`}
+            label="별점"
+            onChange={(event) => setRating(event.currentTarget.value)}
+            value={rating}
+          >
+            <option value="">미평가</option>
+            {ratingOptions.map((option) => (
+              <option key={option.value} value={option.value.toString()}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </Group>
+        <TextInput
+          aria-label={`${work.title} 빠른 한줄평`}
+          label="한줄평"
+          maxLength={500}
+          onChange={(event) => setShortReview(event.currentTarget.value)}
+          placeholder="짧게 남겨두기"
+          value={shortReview}
+        />
+        <Group justify="space-between">
+          <AppButton
+            aria-pressed={favorite}
+            onClick={() => setFavorite((current) => !current)}
+            tone={favorite ? 'primary' : 'secondary'}
+            type="button"
+          >
+            {favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+          </AppButton>
+          <AppButton
+            disabled={!hasChanges || isSaving}
+            onClick={() => void handleSave()}
+            tone="primary"
+            type="button"
+          >
+            빠른 기록 저장
+          </AppButton>
+        </Group>
+      </SectionCard>
+    </PageSection>
+  );
 }
 
 function ProgressOnlySection({
@@ -687,7 +805,10 @@ export function WorkDetailPage() {
           </>
         }
         recordSections={
-          <ProgressOnlySection onError={setActionError} work={work} />
+          <>
+            <WorkQuickRecordSection onError={setActionError} work={work} />
+            <ProgressOnlySection onError={setActionError} work={work} />
+          </>
         }
         relatedSections={
           <>

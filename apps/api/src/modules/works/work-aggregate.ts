@@ -4,16 +4,25 @@ import type { WorkResponseDto } from './dto/work-response.dto';
 import { toWorkSyncStatusValue } from './works.constants';
 import type { WorkAggregate } from '../user-records/user-records.service';
 
+function getCatalogTitleContributorName(work: WorkAggregate) {
+  const contributors = work.catalogTitle?.contributors ?? [];
+  const author = contributors.find((entry) => entry.role === 'author');
+
+  return (author ?? contributors[0])?.contributor.displayName ?? null;
+}
+
 export function toFlatWorkResponse(work: WorkAggregate): WorkResponseDto {
+  const catalogTitle = work.catalogTitle;
+
   return {
     id: work.id,
     catalogTitleId: work.catalogTitleId,
-    type: work.catalogWork.type,
-    title: work.catalogWork.title,
-    author: work.catalogWork.author,
+    type: catalogTitle?.mediumType ?? work.catalogWork.type,
+    title: catalogTitle?.displayTitle ?? work.catalogWork.title,
+    author: getCatalogTitleContributorName(work) ?? work.catalogWork.author,
     genres: work.catalogWork.genres,
-    description: work.catalogWork.description,
-    thumbnailUrl: work.catalogWork.thumbnailUrl,
+    description: catalogTitle?.summary ?? work.catalogWork.description,
+    thumbnailUrl: catalogTitle?.thumbnailUrl ?? work.catalogWork.thumbnailUrl,
     status: work.status,
     rating: work.rating,
     personalTags: work.personalTags,

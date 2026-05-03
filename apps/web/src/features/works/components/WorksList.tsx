@@ -2,12 +2,20 @@ import type { WorkRecord } from '@work-archive/shared-types';
 import { Paper, SimpleGrid, Stack } from '@mantine/core';
 
 import { PosterTile } from './PosterTile';
-import { WorkListRow, type WorkQuickUpdate } from './WorkListRow';
+import {
+  WorkListRow,
+  type WorkQuickProgressUpdate,
+  type WorkQuickUpdate,
+} from './WorkListRow';
 
 export type WorksViewMode = 'grid' | 'list';
 
 interface WorksListProps {
   onDelete: (work: WorkRecord) => Promise<void>;
+  onQuickProgressUpdate: (
+    work: WorkRecord,
+    update: WorkQuickProgressUpdate,
+  ) => Promise<void>;
   onQuickUpdate: (work: WorkRecord, update: WorkQuickUpdate) => Promise<void>;
   updatingWorkId: string | null;
   viewMode: WorksViewMode;
@@ -16,6 +24,7 @@ interface WorksListProps {
 
 export function WorksList({
   onDelete,
+  onQuickProgressUpdate,
   onQuickUpdate,
   updatingWorkId,
   viewMode,
@@ -54,6 +63,7 @@ export function WorksList({
               isUpdating={updatingWorkId === work.id}
               key={work.id}
               onDelete={onDelete}
+              onQuickProgressUpdate={onQuickProgressUpdate}
               onQuickUpdate={onQuickUpdate}
               work={work}
             />
