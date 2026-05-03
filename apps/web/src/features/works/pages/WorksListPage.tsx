@@ -186,6 +186,7 @@ export function WorksListPage() {
   async function handleQuickUpdate(
     work: WorkRecord,
     nextValues: {
+      favorite?: boolean;
       rating?: number | null;
       status?: WorkRecord['status'];
     },
