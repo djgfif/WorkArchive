@@ -73,7 +73,8 @@ export function WorksToolbar({
         countSummary = `휴지통 ${totalDeletedCount}개 중 ${filteredCount}개를 보고 있습니다.`;
       }
     } else if (totalActiveCount === 0) {
-      countSummary = '아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.';
+      countSummary =
+        '아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.';
     } else if (filteredCount === totalActiveCount) {
       countSummary = `작품 ${totalActiveCount}개가 등록되어 있습니다.`;
     } else {
@@ -100,7 +101,13 @@ export function WorksToolbar({
     <SectionCard gap="md" padding="lg" tone="subtle">
       <Group align="flex-start" justify="space-between" wrap="wrap">
         <Stack gap={4}>
-          <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+          <Text
+            c="var(--app-text-muted)"
+            fw={700}
+            fz="0.72rem"
+            lts="0.12em"
+            tt="uppercase"
+          >
             Library
           </Text>
           <Title order={1}>작품 라이브러리</Title>
@@ -109,11 +116,21 @@ export function WorksToolbar({
 
         <ActionRow justify="flex-end">
           {hasActiveFilters && (
-            <AppButton onClick={onClearFilters} size="compact-sm" tone="ghost" type="button">
+            <AppButton
+              onClick={onClearFilters}
+              size="compact-sm"
+              tone="ghost"
+              type="button"
+            >
               초기화
             </AppButton>
           )}
-          <AppButton onClick={onCreateWork} size="compact-sm" tone="primary" type="button">
+          <AppButton
+            onClick={onCreateWork}
+            size="compact-sm"
+            tone="primary"
+            type="button"
+          >
             작품 추가
           </AppButton>
         </ActionRow>
@@ -124,7 +141,13 @@ export function WorksToolbar({
         <MetricPill label="휴지통" value={totalDeletedCount} />
         <MetricPill
           label="현재 보기"
-          value={collectionScope === 'trash' ? '휴지통' : viewMode === 'list' ? '리스트' : '포스터'}
+          value={
+            collectionScope === 'trash'
+              ? '휴지통'
+              : viewMode === 'list'
+                ? '리스트'
+                : '포스터'
+          }
         />
       </ActionRow>
 
@@ -151,7 +174,10 @@ export function WorksToolbar({
                 label="검색"
                 name="searchTerm"
                 onChange={(event) =>
-                  onQueryChange({ ...query, searchTerm: event.currentTarget.value })
+                  onQueryChange({
+                    ...query,
+                    searchTerm: event.currentTarget.value,
+                  })
                 }
                 placeholder="제목, 작가, 감상, 태그"
                 value={query.searchTerm}
@@ -204,7 +230,8 @@ export function WorksToolbar({
                 onChange={(event) =>
                   onQueryChange({
                     ...query,
-                    sortBy: event.currentTarget.value as WorksListQuery['sortBy'],
+                    sortBy: event.currentTarget
+                      .value as WorksListQuery['sortBy'],
                   })
                 }
                 value={query.sortBy}
@@ -223,7 +250,9 @@ export function WorksToolbar({
               {statusFilterOptions.map((option) => {
                 const isActive = query.status === option.value;
                 const count =
-                  option.value === 'all' ? totalActiveCount : statusCounts[option.value];
+                  option.value === 'all'
+                    ? totalActiveCount
+                    : statusCounts[option.value];
 
                 return (
                   <AppButton
@@ -256,6 +285,7 @@ export function WorksToolbar({
       <Group gap="sm" justify="space-between" wrap="wrap">
         <ActionRow>
           <AppButton
+            aria-pressed={collectionScope === 'active'}
             onClick={() => onCollectionScopeChange('active')}
             size="compact-sm"
             tone={collectionScope === 'active' ? 'quiet' : 'ghost'}
@@ -264,6 +294,7 @@ export function WorksToolbar({
             작품 목록
           </AppButton>
           <AppButton
+            aria-pressed={collectionScope === 'trash'}
             onClick={() => onCollectionScopeChange('trash')}
             size="compact-sm"
             tone={collectionScope === 'trash' ? 'quiet' : 'ghost'}
@@ -276,6 +307,7 @@ export function WorksToolbar({
         {collectionScope === 'active' && (
           <ActionRow justify="flex-end">
             <AppButton
+              aria-pressed={viewMode === 'list'}
               onClick={() => onViewModeChange('list')}
               size="compact-sm"
               tone={viewMode === 'list' ? 'quiet' : 'ghost'}
@@ -284,6 +316,7 @@ export function WorksToolbar({
               리스트
             </AppButton>
             <AppButton
+              aria-pressed={viewMode === 'grid'}
               onClick={() => onViewModeChange('grid')}
               size="compact-sm"
               tone={viewMode === 'grid' ? 'quiet' : 'ghost'}
