@@ -21,7 +21,9 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    await screen.findByText('아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.');
+    await screen.findByText(
+      '아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.',
+    );
     await user.click(screen.getAllByRole('button', { name: '작품 추가' })[0]!);
 
     const dialog = await screen.findByRole('dialog');
@@ -29,7 +31,10 @@ describe('WorksListPage', () => {
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByLabelText('직접 입력')).toBeChecked();
 
-    await user.type(within(dialog).getByLabelText(/^제목$/), 'Modal First Work');
+    await user.type(
+      within(dialog).getByLabelText(/^제목$/),
+      'Modal First Work',
+    );
     await user.selectOptions(within(dialog).getByLabelText(/^유형$/), 'movie');
     await user.click(
       within(dialog).getByRole('button', { name: '내 아카이브에 저장' }),
@@ -90,23 +95,84 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText(/작품 2개가 등록되어 있습니다\./)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/작품 2개가 등록되어 있습니다\./),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '리스트' })).toBeInTheDocument();
     expect(screen.getByText('완료')).toBeInTheDocument();
     expect(screen.getByText('별점 5.0')).toBeInTheDocument();
-    expect(screen.queryByText('모래 행성의 정치와 신화가 좋다.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('모래 행성의 정치와 신화가 좋다.'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('4권까지')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Dune 진행도 67%')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '리스트' }));
-    expect(await screen.findByText('모래 행성의 정치와 신화가 좋다.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('모래 행성의 정치와 신화가 좋다.'),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Dune 진행도 67%')).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/^유형$/), 'novel');
 
-    expect(await screen.findByText(/전체 2개 중 1개를 보고 있습니다\./)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/전체 2개 중 1개를 보고 있습니다\./),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dune' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Your Name' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Your Name' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the selected works view in the URL', async () => {
+    await worksService.createWork({
+      type: 'novel',
+      title: 'URL View Work',
+      author: 'Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works?view=list'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByLabelText('URL View Work 상태'),
+    ).toBeInTheDocument();
+    expect(router.state.location.search).toBe('?view=list');
+
+    await user.click(screen.getByRole('button', { name: '포스터' }));
+
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('');
+    });
+    expect(
+      screen.queryByLabelText('URL View Work 상태'),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '리스트' }));
+
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('?view=list');
+    });
+    expect(
+      await screen.findByLabelText('URL View Work 상태'),
+    ).toBeInTheDocument();
   });
 
   it('keeps quick edit for status and rating working in list view', async () => {
@@ -139,7 +205,10 @@ describe('WorksListPage', () => {
     await user.click(screen.getByRole('button', { name: '리스트' }));
     await screen.findByText('Frieren');
 
-    await user.selectOptions(screen.getByLabelText('Frieren 상태'), 'completed');
+    await user.selectOptions(
+      screen.getByLabelText('Frieren 상태'),
+      'completed',
+    );
     await waitFor(() => {
       expect(
         (screen.getByLabelText('Frieren 상태') as HTMLSelectElement).value,
@@ -218,7 +287,9 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText(/숨겨둔 작품 1개를 보고 있습니다\./)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/숨겨둔 작품 1개를 보고 있습니다\./),
+    ).toBeInTheDocument();
     expect(await screen.findByText('Spice & Wolf')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '복원' }));
