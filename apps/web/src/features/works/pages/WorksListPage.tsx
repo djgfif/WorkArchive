@@ -12,6 +12,7 @@ import {
 import { WorkspacePageTemplate } from '../../../shared/components/PageTemplates';
 import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
 import { WorksList, type WorksViewMode } from '../components/WorksList';
+import type { WorkQuickProgressUpdate } from '../components/WorkListRow';
 import { WorksTrashList } from '../components/WorksTrashList';
 import { WorksToolbar } from '../components/WorksToolbar';
 import { AddWorkDialog } from '../components/AddWorkDialog';
@@ -216,6 +217,36 @@ export function WorksListPage() {
     }
   }
 
+  async function handleQuickProgressUpdate(
+    work: WorkRecord,
+    nextValues: WorkQuickProgressUpdate,
+  ) {
+    if (
+      nextValues.progressCurrent !== null &&
+      nextValues.progressTotal !== null &&
+      nextValues.progressCurrent > nextValues.progressTotal
+    ) {
+      setActionError('현재 진행도가 전체 진행도보다 클 수 없습니다.');
+
+      return;
+    }
+
+    try {
+      setActionError(null);
+      setUpdatingWorkId(work.id);
+
+      await worksService.updateProgress(work.id, nextValues);
+    } catch (updateError) {
+      setActionError(
+        updateError instanceof Error
+          ? updateError.message
+          : '진행도를 바로 수정하지 못했습니다.',
+      );
+    } finally {
+      setUpdatingWorkId(null);
+    }
+  }
+
   return (
     <WorkspacePageTemplate>
       <WorksToolbar
@@ -331,6 +362,7 @@ export function WorksListPage() {
         ) : (
           <WorksList
             onDelete={handleDelete}
+            onQuickProgressUpdate={handleQuickProgressUpdate}
             onQuickUpdate={handleQuickUpdate}
             updatingWorkId={updatingWorkId}
             viewMode={viewMode}

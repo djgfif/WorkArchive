@@ -102,8 +102,11 @@ export class SyncService {
 
   async push(
     userId: string,
-    { changes }: PushSyncDto,
+    pushSyncDto: PushSyncDto,
   ): Promise<PushSyncResponseDto> {
+    this.assertSupportedSchemaVersion(pushSyncDto);
+
+    const { changes } = pushSyncDto;
     const sortedChanges = this.sortChangesByCreatedAt(changes);
     const results: PushSyncResultDto[] = [];
 
@@ -131,8 +134,11 @@ export class SyncService {
 
   async pull(
     userId: string,
-    { since }: PullSyncDto,
+    pullSyncDto: PullSyncDto,
   ): Promise<PullSyncResponseDto> {
+    this.assertSupportedSchemaVersion(pullSyncDto);
+
+    const { since } = pullSyncDto;
     try {
       const parsedSince =
         since === undefined || since === null
@@ -294,6 +300,22 @@ export class SyncService {
           : APPLIED_TOMBSTONE_MESSAGE,
       work: toFlatWorkResponse(updated),
     };
+  }
+
+  private assertSupportedSchemaVersion({
+    schemaVersion,
+  }: {
+    schemaVersion?: unknown;
+  }) {
+    if (schemaVersion === undefined) {
+      return;
+    }
+
+    if (schemaVersion !== SYNC_SCHEMA_VERSION) {
+      throw new BadRequestException(
+        `Unsupported sync schema version "${String(schemaVersion)}". Supported version is ${SYNC_SCHEMA_VERSION}.`,
+      );
+    }
   }
 
   private async applyMissingRemoteChange(
@@ -622,6 +644,10 @@ export class SyncService {
       return true;
     }
 
+    if (payload.serverVersion < existing.serverVersion) {
+      return false;
+    }
+
     return new Date(payload.updatedAt).getTime() > existing.updatedAt.getTime();
   }
 
@@ -631,6 +657,10 @@ export class SyncService {
   ) {
     if (payload.serverVersion === existing.serverVersion) {
       return true;
+    }
+
+    if (payload.serverVersion < existing.serverVersion) {
+      return false;
     }
 
     return new Date(payload.updatedAt).getTime() > existing.updatedAt.getTime();

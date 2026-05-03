@@ -42,6 +42,7 @@ function createWorkAggregateFixture(
       createdAt: new Date('2026-04-18T00:00:00.000Z'),
       updatedAt: new Date('2026-04-18T00:00:00.000Z'),
     },
+    catalogTitle: null,
     ...overrides,
   } as WorkAggregate;
 }
@@ -98,6 +99,57 @@ describe('WorksService', () => {
       expect.objectContaining({
         id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
         title: 'The Three-Body Problem',
+      }),
+    ]);
+  });
+
+  it('prefers catalog title metadata when returning the flat work response', async () => {
+    userRecordsService.findActiveByUser.mockResolvedValue([
+      createWorkAggregateFixture({
+        catalogTitleId: 'catalog-title-1',
+        catalogWork: {
+          ...createWorkAggregateFixture().catalogWork,
+          type: WorkType.novel,
+          title: 'Legacy Work Title',
+          author: 'Legacy Author',
+          description: 'Legacy description',
+          thumbnailUrl: 'https://example.com/legacy.jpg',
+        },
+        catalogTitle: {
+          id: 'catalog-title-1',
+          mediumType: WorkType.web_novel,
+          displayTitle: 'Catalog Title',
+          summary: 'Catalog summary',
+          thumbnailUrl: 'https://example.com/catalog.jpg',
+          contributors: [
+            {
+              role: 'illustrator',
+              contributor: {
+                displayName: 'Illustrator Name',
+              },
+            },
+            {
+              role: 'author',
+              contributor: {
+                displayName: 'Catalog Author',
+              },
+            },
+          ],
+        } as never,
+      }),
+    ]);
+
+    const result = await service.findAll(USER_ID);
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        catalogTitleId: 'catalog-title-1',
+        type: WorkType.web_novel,
+        title: 'Catalog Title',
+        author: 'Catalog Author',
+        genres: ['Sci-Fi'],
+        description: 'Catalog summary',
+        thumbnailUrl: 'https://example.com/catalog.jpg',
       }),
     ]);
   });

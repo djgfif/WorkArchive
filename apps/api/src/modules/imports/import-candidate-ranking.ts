@@ -46,7 +46,7 @@ const VARIANT_TITLE_PATTERNS = [
   /\b(collector'?s|deluxe|director'?s|extended|limited|omnibus|special|theatrical)\s+edition\b/i,
   /\b(box\s*set|complete\s+collection|director'?s\s+cut|special\s+edition)\b/i,
   /\b(vol\.?|volume|book)\s*\d+\b/i,
-  /(감독판|개정판|극장판|완전판|특별판|합본|한정판)/u,
+  /(감독판|개정판|극장판|번외편|스핀오프|시즌|외전|완전판|특별판|합본|한정판)/u,
 ];
 
 export function normalizeImportTitle(value: string) {
@@ -384,7 +384,7 @@ function getVariantTitlePenalty(
     pattern.test(candidateSignals),
   );
 
-  return candidateHasVariantSignal && !queryHasVariantSignal ? -14 : 0;
+  return candidateHasVariantSignal && !queryHasVariantSignal ? -24 : 0;
 }
 
 function isWeakTitleOnlyCandidate(candidate: ImportCandidateResponseDto) {

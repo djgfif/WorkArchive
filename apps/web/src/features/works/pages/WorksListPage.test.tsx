@@ -168,6 +168,25 @@ describe('WorksListPage', () => {
         }),
       );
     });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Frieren 현재 권')).toBeEnabled();
+    });
+    await user.type(screen.getByLabelText('Frieren 현재 권'), '3');
+    await user.type(screen.getByLabelText('Frieren 전체 권'), '5');
+    await user.type(screen.getByLabelText('Frieren 마지막 위치'), '3권');
+    await user.click(screen.getByLabelText('Frieren 진행도 저장'));
+
+    await waitFor(async () => {
+      expect(await worksService.getWorkById(work.id)).toEqual(
+        expect.objectContaining({
+          lastConsumedLabel: '3권',
+          progressCurrent: 3,
+          progressTotal: 5,
+          progressUnit: 'volume',
+        }),
+      );
+    });
   });
 
   it('shows deleted works in trash scope and restores them', async () => {

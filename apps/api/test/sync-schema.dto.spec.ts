@@ -47,4 +47,29 @@ describe('sync schema version DTOs', () => {
       ]),
     );
   });
+
+  it('rejects null schemaVersion instead of treating it as omitted', async () => {
+    const pushDto = Object.assign(new PushSyncDto(), {
+      changes: [],
+      schemaVersion: null,
+    });
+    const pullDto = Object.assign(new PullSyncDto(), {
+      schemaVersion: null,
+    });
+
+    await expect(validate(pushDto)).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          property: 'schemaVersion',
+        }),
+      ]),
+    );
+    await expect(validate(pullDto)).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          property: 'schemaVersion',
+        }),
+      ]),
+    );
+  });
 });

@@ -123,6 +123,60 @@ function createCandidate(
 }
 
 describe('Korean Quick Add ranking fixtures', () => {
+  it('ranks exact base-title matches ahead of Korean side-story variants', () => {
+    const fixture = {
+      query: '전지적 독자 시점',
+      expectedType: WorkType.web_novel,
+      provider: 'kakao_book',
+    };
+    const expected = createCandidate(fixture, {
+      id: 'base-title',
+      releaseYear: 2018,
+      title: '전지적 독자 시점',
+    });
+    const sideStory = createCandidate(fixture, {
+      catalogMatch: {
+        id: 'catalog-side-story',
+        title: '전지적 독자 시점 외전',
+        verificationStatus: 'verified',
+      },
+      confidence: 0.99,
+      id: 'side-story',
+      releaseYear: 2024,
+      sourceCoverage: {
+        externalIdentityCount: 3,
+        providerCount: 2,
+        providers: ['kakao_book', 'naver_book'],
+        releaseCandidateCount: 2,
+      },
+      title: '전지적 독자 시점 외전',
+    });
+
+    const ranked = rankImportCandidates({
+      candidates: [sideStory, expected],
+      mediumType: WorkType.web_novel,
+      query: '전지적 독자 시점',
+    });
+
+    expect(ranked[0]).toEqual(
+      expect.objectContaining({
+        id: 'base-title',
+        title: '전지적 독자 시점',
+      }),
+    );
+    expect(ranked[1]).toEqual(
+      expect.objectContaining({
+        id: 'side-story',
+        reason: expect.not.stringContaining('제목 정확히 일치'),
+        scoreBreakdown: expect.arrayContaining([
+          expect.objectContaining({
+            label: '변형판 제목 신호',
+          }),
+        ]),
+      }),
+    );
+  });
+
   it('keeps exact Korean title matches in the top 3 across media types', () => {
     for (const fixture of fixtures) {
       const expected = createCandidate(fixture, {

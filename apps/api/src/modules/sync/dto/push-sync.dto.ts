@@ -9,8 +9,8 @@ import {
   IsIn,
   IsInt,
   IsObject,
-  IsOptional,
   IsUUID,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -69,7 +69,7 @@ export class PushSyncDto {
     description: 'Sync contract version. Missing values are treated as v1.',
     enum: [1],
   })
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
   @Equals(1)
   schemaVersion?: 1;

@@ -213,6 +213,28 @@ describe('SyncService', () => {
     );
   });
 
+  it('rejects unsupported push schema versions at the service boundary', async () => {
+    await expect(
+      service.push(USER_ID, {
+        changes: [],
+        schemaVersion: 2,
+      } as any),
+    ).rejects.toThrow('Unsupported sync schema version "2"');
+
+    expect(userRecordsService.findById).not.toHaveBeenCalled();
+  });
+
+  it('rejects null pull schema versions at the service boundary', async () => {
+    await expect(
+      service.pull(USER_ID, {
+        schemaVersion: null,
+        since: null,
+      } as any),
+    ).rejects.toThrow('Unsupported sync schema version "null"');
+
+    expect(userRecordsService.findByUserSince).not.toHaveBeenCalled();
+  });
+
   it('returns a conflict when the server version is newer and the server wins', async () => {
     userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
 
@@ -242,6 +264,37 @@ describe('SyncService', () => {
       }),
     ]);
     expect(result.schemaVersion).toBe(1);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('treats a lower server version as conflict even when the client clock is ahead', async () => {
+    userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: '95f2a1ca-f820-4126-9db4-c6ee3551ae54',
+          entityType: 'work',
+          entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          operation: 'update',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            ...createSyncPayload(),
+            title: 'Future Client Clock',
+            updatedAt: '2099-01-01T00:00:00.000Z',
+            serverVersion: 2,
+          },
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'conflict',
+        code: 'conflict_remote_newer',
+        message: expect.stringContaining('server version 3'),
+      }),
+    ]);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -363,6 +416,49 @@ describe('SyncService', () => {
     );
   });
 
+  it('applies an update when the local payload is based on the current server version', async () => {
+    userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
+    userRecordsService.update.mockResolvedValue(
+      createWorkAggregateFixture({
+        catalogWork: {
+          ...createWorkAggregateFixture().catalogWork,
+          title: 'Dune Messiah',
+        },
+        serverVersion: 4,
+        updatedAt: new Date('2026-04-18T02:00:00.000Z'),
+      }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'aef45379-c7fc-4874-b3db-8dd7d66f7ea4',
+          entityType: 'work',
+          entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          operation: 'update',
+          createdAt: '2026-04-18T02:00:00.000Z',
+          payload: createSyncPayload({
+            title: 'Dune Messiah',
+            updatedAt: '2026-04-18T02:00:00.000Z',
+            serverVersion: 3,
+          }),
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'applied',
+        code: 'applied_change',
+        message: 'Queued change applied on the server.',
+        work: expect.objectContaining({
+          title: 'Dune Messiah',
+          serverVersion: 4,
+        }),
+      }),
+    ]);
+  });
+
   it('returns applied with a stable already-applied message for duplicate push payloads', async () => {
     userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
 
@@ -382,6 +478,7 @@ describe('SyncService', () => {
     expect(result.results).toEqual([
       expect.objectContaining({
         status: 'applied',
+        code: 'already_applied',
         message: 'Remote record already matches the queued change.',
         work: expect.objectContaining({
           id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
@@ -458,6 +555,7 @@ describe('SyncService', () => {
     expect(result.results).toEqual([
       expect.objectContaining({
         status: 'applied',
+        code: 'created',
         work: expect.objectContaining({
           id: importedId,
           title: 'Imported Dune',
@@ -853,6 +951,7 @@ describe('SyncService', () => {
     expect(result.results).toEqual([
       expect.objectContaining({
         status: 'failed',
+        code: 'failed_import_draft_unresolved',
         message:
           'Catalog title could not be resolved from importDraft.catalogTitle or payload.title.',
         work: null,
@@ -907,6 +1006,7 @@ describe('SyncService', () => {
     expect(result.results).toEqual([
       expect.objectContaining({
         status: 'applied',
+        code: 'applied_tombstone',
         message: 'Queued tombstone applied on the server.',
         work: expect.objectContaining({
           deletedAt: new Date('2026-04-18T02:00:00.000Z'),
@@ -930,6 +1030,40 @@ describe('SyncService', () => {
         changes: [],
       }),
     );
+  });
+
+  it('treats a local-only delete for a missing remote record as a no-op', async () => {
+    userRecordsService.findById.mockResolvedValue(null);
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: '95f2a1ca-f820-4126-9db4-c6ee3551ae55',
+          entityType: 'work',
+          entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          operation: 'delete',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            ...createSyncPayload(),
+            updatedAt: '2026-04-18T00:30:00.000Z',
+            deletedAt: '2026-04-18T00:30:00.000Z',
+            serverVersion: 0,
+          },
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'applied',
+        code: 'missing_remote_delete_noop',
+        message:
+          'Remote delete was a no-op because the server record is missing.',
+        work: null,
+      }),
+    ]);
+    expect(catalogService.create).not.toHaveBeenCalled();
+    expect(userRecordsService.create).not.toHaveBeenCalled();
   });
 
   it('returns a conflict when a previously synced delete targets a missing remote record', async () => {
@@ -956,6 +1090,7 @@ describe('SyncService', () => {
     expect(result.results).toEqual([
       expect.objectContaining({
         status: 'conflict',
+        code: 'conflict_remote_missing',
         message: expect.stringContaining('already missing remotely'),
         work: null,
       }),
@@ -1014,11 +1149,46 @@ describe('SyncService', () => {
       expect.objectContaining({
         entityType: 'release_record',
         status: 'applied',
+        code: 'created',
         releaseRecord: expect.objectContaining({
           catalogReleaseId: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
         }),
       }),
     ]);
+  });
+
+  it('returns a conflict when a release-record parent changed remotely', async () => {
+    releaseRecordsService.findById.mockResolvedValue(
+      createReleaseRecordAggregateFixture({
+        userWorkRecordId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'ce8e1f64-3070-4cb9-bdf4-2df15a925827',
+          entityType: 'release_record',
+          entityId: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
+          operation: 'update',
+          createdAt: '2026-04-18T01:00:00.000Z',
+          payload: createReleaseRecordPayload(),
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'release_record',
+        status: 'conflict',
+        code: 'conflict_parent_changed',
+        message: 'Server mismatch: release record parent or release changed.',
+        releaseRecord: expect.objectContaining({
+          userWorkRecordId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        }),
+      }),
+    ]);
+    expect(releaseRecordsService.update).not.toHaveBeenCalled();
   });
 
   it('rejects release-record sync for progress-only anime titles', async () => {

@@ -140,6 +140,21 @@ function getNowIso() {
   return new Date().toISOString();
 }
 
+function assertSupportedResponseSchemaVersion(
+  schemaVersion: unknown,
+  context: 'push' | 'pull',
+) {
+  if (schemaVersion === SYNC_SCHEMA_VERSION) {
+    return;
+  }
+
+  const label = context === 'push' ? '보내기' : '가져오기';
+
+  throw new Error(
+    `${label} 응답의 동기화 계약 버전을 지원하지 않습니다. 앱을 새로고침하거나 업데이트해주세요.`,
+  );
+}
+
 async function postJson<TResponse>(
   path: string,
   body: unknown,
@@ -229,6 +244,8 @@ export class SyncService {
           payload: item.payload,
         })),
       });
+
+      assertSupportedResponseSchemaVersion(response.schemaVersion, 'push');
 
       const appliedQueueIds: string[] = [];
       let appliedCount = 0;
@@ -361,6 +378,9 @@ export class SyncService {
         schemaVersion: SYNC_SCHEMA_VERSION,
         since,
       });
+
+      assertSupportedResponseSchemaVersion(response.schemaVersion, 'pull');
+
       const queuedWorkIds = new Set(await this.queueRepo.getQueuedWorkIds());
       const queuedReleaseRecordIds = new Set(
         await this.queueRepo.getQueuedReleaseRecordIds(),
