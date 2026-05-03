@@ -83,6 +83,7 @@ describe('WorksService', () => {
       expect.objectContaining({
         entityId: created.id,
         operation: 'create',
+        source: 'quick_add',
         payload: expect.objectContaining({
           catalogTitleId: 'catalog-title-1',
           completedAt: '2026-04-20T00:00:00.000Z',
@@ -109,6 +110,7 @@ describe('WorksService', () => {
       expect.objectContaining({
         entityId: created.id,
         operation: 'create',
+        source: 'edit_form',
         payload: expect.objectContaining({
           title: 'Dune Messiah',
           syncStatus: 'local-only',
@@ -142,6 +144,7 @@ describe('WorksService', () => {
       expect.objectContaining({
         entityId: existing.id,
         operation: 'update',
+        source: 'edit_form',
         payload: expect.objectContaining({
           title: 'Children of Dune',
           syncStatus: 'pending',
@@ -174,6 +177,7 @@ describe('WorksService', () => {
       expect.objectContaining({
         entityId: existing.id,
         operation: 'delete',
+        source: 'edit_form',
         payload: expect.objectContaining({
           title: 'Children of Dune',
           deletedAt: expect.any(String),
@@ -206,9 +210,35 @@ describe('WorksService', () => {
       expect.objectContaining({
         entityId: existing.id,
         operation: 'update',
+        source: 'restore',
         payload: expect.objectContaining({
           deletedAt: null,
           syncStatus: 'pending',
+        }),
+      }),
+    ]);
+  });
+
+  it('queues progress edits with progress source metadata', async () => {
+    const existing = buildWork();
+
+    await repository.create(existing);
+
+    await service.updateProgress(existing.id, {
+      progressCurrent: 4,
+      progressTotal: 10,
+      progressUnit: 'chapter',
+    });
+
+    expect(await queueRepository.listAll()).toEqual([
+      expect.objectContaining({
+        entityId: existing.id,
+        operation: 'update',
+        source: 'progress_update',
+        payload: expect.objectContaining({
+          progressCurrent: 4,
+          progressTotal: 10,
+          progressUnit: 'chapter',
         }),
       }),
     ]);

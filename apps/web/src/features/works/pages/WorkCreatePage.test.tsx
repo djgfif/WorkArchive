@@ -322,6 +322,7 @@ describe('WorkCreatePage', () => {
       expect.objectContaining({
         entityId: savedWork?.id,
         operation: 'create',
+        source: 'manual_create',
         payload: expect.objectContaining({
           catalogTitleId: null,
           importDraft: null,
@@ -363,6 +364,7 @@ describe('WorkCreatePage', () => {
     expect(queueItem).toMatchObject({
       entityId: savedWork?.id,
       operation: 'create',
+      source: 'quick_add',
       payload: expect.objectContaining({
         id: savedWork?.id,
         catalogTitleId: 'catalog-title-1',
@@ -458,6 +460,7 @@ describe('WorkCreatePage', () => {
     expect(queueItem).toMatchObject({
       entityId: savedWork?.id,
       operation: 'create',
+      source: 'quick_add',
       payload: expect.objectContaining({
         id: savedWork?.id,
         title: 'Dune Deluxe',
@@ -506,6 +509,7 @@ describe('WorkCreatePage', () => {
       expect(queueItem).toMatchObject({
         entityId: savedWork?.id,
         operation: 'create',
+        source: 'manual_create',
         payload: expect.objectContaining({
           id: savedWork?.id,
           title: candidate.title,

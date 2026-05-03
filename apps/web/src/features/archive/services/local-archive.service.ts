@@ -219,6 +219,7 @@ function createQueueItem<TPayload extends WorkRecord | UserReleaseRecord>(
     operation,
     payload,
     retryCount: 0,
+    source: 'archive_migration',
   };
 }
 

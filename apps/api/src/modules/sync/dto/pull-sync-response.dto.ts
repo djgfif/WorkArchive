@@ -36,6 +36,11 @@ export class PullSyncChangeDto {
 
 export class PullSyncResponseDto {
   @ApiProperty({
+    enum: [1],
+  })
+  schemaVersion!: 1;
+
+  @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',
   })
   pulledAt!: string;

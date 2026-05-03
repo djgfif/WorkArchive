@@ -18,6 +18,12 @@ function getNextSyncStatus(serverVersion: number): WorkSyncStatus {
   return serverVersion > 0 ? 'pending' : 'local-only';
 }
 
+function getCreateSource(input: UpsertWorkInput) {
+  return input.catalogTitleId || input.importDraft
+    ? 'quick_add'
+    : 'manual_create';
+}
+
 interface WorksListResult {
   statusCounts: Record<WorkStatus, number>;
   tagSuggestions: string[];
@@ -113,7 +119,11 @@ export class WorksService {
     };
 
     await this.repository.create(work);
-    await this.queueRepository.enqueueWorkChange(work, 'create');
+    await this.queueRepository.enqueueWorkChange(
+      work,
+      'create',
+      getCreateSource(input),
+    );
 
     return work;
   }
@@ -146,7 +156,7 @@ export class WorksService {
     };
 
     await this.repository.update(updated);
-    await this.queueRepository.enqueueWorkChange(updated, 'update');
+    await this.queueRepository.enqueueWorkChange(updated, 'update', 'edit_form');
 
     return updated;
   }
@@ -182,7 +192,11 @@ export class WorksService {
     };
 
     await this.repository.update(updated);
-    await this.queueRepository.enqueueWorkChange(updated, 'update');
+    await this.queueRepository.enqueueWorkChange(
+      updated,
+      'update',
+      'progress_update',
+    );
 
     return updated;
   }
@@ -205,7 +219,7 @@ export class WorksService {
       throw new Error('작품을 찾을 수 없습니다.');
     }
 
-    await this.queueRepository.enqueueWorkChange(deleted, 'delete');
+    await this.queueRepository.enqueueWorkChange(deleted, 'delete', 'edit_form');
 
     return deleted;
   }
@@ -228,7 +242,7 @@ export class WorksService {
       throw new Error('복원할 작품을 찾을 수 없습니다.');
     }
 
-    await this.queueRepository.enqueueWorkChange(restored, 'update');
+    await this.queueRepository.enqueueWorkChange(restored, 'update', 'restore');
 
     return restored;
   }

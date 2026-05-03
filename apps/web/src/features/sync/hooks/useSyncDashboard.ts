@@ -5,6 +5,8 @@ import type {
   SyncOperation,
   SyncQueueItemRecord,
   SyncQueuePayload,
+  SyncQueueSource,
+  SyncResultCode,
   UserReleaseRecord,
   WorkRecord,
   WorkSyncStatus,
@@ -34,6 +36,8 @@ export interface SyncDashboardItem {
   localSnapshot: SyncQueuePayload;
   conflictRemote: SyncQueuePayload | null;
   conflictMessage: string | null;
+  conflictCode: SyncResultCode | null;
+  source: SyncQueueSource;
 }
 
 interface SyncDashboardState {
@@ -129,6 +133,8 @@ function buildSyncDashboardItem(
       localSnapshot: work,
       conflictRemote: queueItem.conflict?.remote ?? null,
       conflictMessage: queueItem.conflict?.message ?? null,
+      conflictCode: queueItem.conflict?.code ?? null,
+      source: queueItem.source ?? 'unknown',
     };
   }
 
@@ -160,6 +166,8 @@ function buildSyncDashboardItem(
     localSnapshot: releaseRecord,
     conflictRemote: queueItem.conflict?.remote ?? null,
     conflictMessage: queueItem.conflict?.message ?? null,
+    conflictCode: queueItem.conflict?.code ?? null,
+    source: queueItem.source ?? 'unknown',
   };
 }
 

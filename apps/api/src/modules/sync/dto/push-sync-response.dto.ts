@@ -4,6 +4,23 @@ import { UserReleaseRecordResponseDto } from '../../user-records/dto/user-releas
 import { WorkResponseDto } from '../../works/dto/work-response.dto';
 
 const PUSH_SYNC_RESULT_STATUSES = ['applied', 'conflict', 'failed'] as const;
+const SYNC_RESULT_CODES = [
+  'already_applied',
+  'applied_change',
+  'applied_tombstone',
+  'created',
+  'missing_remote_delete_noop',
+  'conflict_remote_newer',
+  'conflict_remote_missing',
+  'conflict_ownership_mismatch',
+  'conflict_parent_changed',
+  'failed_validation',
+  'failed_missing_catalog_title',
+  'failed_import_draft_unresolved',
+  'pull_conflict_local_queue',
+  'result_missing',
+  'unknown',
+] as const;
 
 export class PushSyncResultDto {
   @ApiProperty({
@@ -30,6 +47,11 @@ export class PushSyncResultDto {
   message!: string;
 
   @ApiPropertyOptional({
+    enum: SYNC_RESULT_CODES,
+  })
+  code?: (typeof SYNC_RESULT_CODES)[number];
+
+  @ApiPropertyOptional({
     type: () => WorkResponseDto,
     nullable: true,
   })
@@ -43,6 +65,11 @@ export class PushSyncResultDto {
 }
 
 export class PushSyncResponseDto {
+  @ApiProperty({
+    enum: [1],
+  })
+  schemaVersion!: 1;
+
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',
   })

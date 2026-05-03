@@ -3,6 +3,8 @@ import type {
   SyncOperation,
   SyncQueueItemRecord,
   SyncQueuePayload,
+  SyncQueueSource,
+  SyncResultCode,
   UserReleaseRecord,
   WorkRecord,
 } from '@work-archive/shared-types';
@@ -20,17 +22,28 @@ type DatabaseResolver = () => WorkArchiveDatabase;
 export class SyncQueueRepository {
   constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
 
-  async enqueueWorkChange(work: WorkRecord, operation: SyncOperation) {
-    return this.enqueueChange(WORK_ENTITY_TYPE, work, operation, {
-      ...work,
-      genres: [...work.genres],
-      personalTags: [...work.personalTags],
-    });
+  async enqueueWorkChange(
+    work: WorkRecord,
+    operation: SyncOperation,
+    source: SyncQueueSource = 'unknown',
+  ) {
+    return this.enqueueChange(
+      WORK_ENTITY_TYPE,
+      work,
+      operation,
+      {
+        ...work,
+        genres: [...work.genres],
+        personalTags: [...work.personalTags],
+      },
+      source,
+    );
   }
 
   async enqueueReleaseRecordChange(
     releaseRecord: UserReleaseRecord,
     operation: SyncOperation,
+    source: SyncQueueSource = 'release_record_update',
   ) {
     return this.enqueueChange(
       RELEASE_RECORD_ENTITY_TYPE,
@@ -39,6 +52,7 @@ export class SyncQueueRepository {
       {
         ...releaseRecord,
       },
+      source,
     );
   }
 
@@ -47,6 +61,7 @@ export class SyncQueueRepository {
     entity: TPayload,
     operation: SyncOperation,
     payload: TPayload,
+    source: SyncQueueSource,
   ) {
     const db = this.getDb();
 
@@ -80,6 +95,7 @@ export class SyncQueueRepository {
         entityId: entity.id,
         operation: nextOperation,
         payload,
+        source,
         createdAt: new Date().toISOString(),
         retryCount: 0,
         lastError: null,
@@ -93,11 +109,18 @@ export class SyncQueueRepository {
   }
 
   async listAll() {
-    return this.getDb().syncQueue.orderBy('createdAt').toArray();
+    const items = await this.getDb().syncQueue.orderBy('createdAt').toArray();
+
+    return items.map((item) => ({
+      ...item,
+      source: item.source ?? 'unknown',
+    }));
   }
 
   async getById(id: string) {
-    return (await this.getDb().syncQueue.get(id)) ?? null;
+    const item = await this.getDb().syncQueue.get(id);
+
+    return item ? { ...item, source: item.source ?? 'unknown' } : null;
   }
 
   async removeMany(ids: string[]) {
@@ -215,6 +238,7 @@ export class SyncQueueRepository {
     id: string,
     lastError: string,
     remote: TPayload | null,
+    code?: SyncResultCode,
   ) {
     const existing = await this.getDb().syncQueue.get(id);
 
@@ -227,6 +251,7 @@ export class SyncQueueRepository {
       retryCount: existing.retryCount + 1,
       lastError,
       conflict: {
+        ...(code ? { code } : {}),
         detectedAt: new Date().toISOString(),
         message: lastError,
         remote,
@@ -242,6 +267,7 @@ export class SyncQueueRepository {
     id: string,
     lastError: string,
     remote: TPayload | null,
+    code?: SyncResultCode,
   ) {
     const existing = await this.getDb().syncQueue.get(id);
 
@@ -253,6 +279,7 @@ export class SyncQueueRepository {
       ...existing,
       lastError,
       conflict: {
+        ...(code ? { code } : {}),
         detectedAt: new Date().toISOString(),
         message: lastError,
         remote,
