@@ -17,6 +17,7 @@ import {
 } from '../utils/work-options';
 
 export interface WorkQuickUpdate {
+  favorite?: boolean;
   rating?: number | null;
   status?: WorkStatus;
 }
@@ -149,6 +150,25 @@ export function WorkListRow({
             <AppLinkButton size="compact-sm" to={`/works/${work.id}/edit`} tone="ghost">
               수정
             </AppLinkButton>
+            <AppButton
+              aria-label={
+                work.favorite
+                  ? `${work.title} 즐겨찾기 해제`
+                  : `${work.title} 즐겨찾기`
+              }
+              aria-pressed={work.favorite}
+              disabled={isUpdating}
+              onClick={() =>
+                void onQuickUpdate(work, {
+                  favorite: !work.favorite,
+                })
+              }
+              size="compact-sm"
+              tone={work.favorite ? 'primary' : 'secondary'}
+              type="button"
+            >
+              {work.favorite ? '★' : '☆'}
+            </AppButton>
             <AppButton
               aria-label={`${work.title} 삭제`}
               disabled={isUpdating}

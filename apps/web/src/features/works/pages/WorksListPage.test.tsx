@@ -110,7 +110,7 @@ describe('WorksListPage', () => {
   });
 
   it('keeps quick edit for status and rating working in list view', async () => {
-    await worksService.createWork({
+    const work = await worksService.createWork({
       type: 'novel',
       title: 'Frieren',
       author: 'Kanehito Yamada',
@@ -154,6 +154,19 @@ describe('WorksListPage', () => {
       expect(
         (screen.getByLabelText('Frieren 별점') as HTMLSelectElement).value,
       ).toBe('4.5');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Frieren 즐겨찾기')).toBeEnabled();
+    });
+    await user.click(screen.getByLabelText('Frieren 즐겨찾기'));
+    await waitFor(async () => {
+      expect(await worksService.getWorkById(work.id)).toEqual(
+        expect.objectContaining({
+          favorite: true,
+          syncStatus: 'local-only',
+        }),
+      );
     });
   });
 
