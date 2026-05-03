@@ -625,10 +625,11 @@ describe('SyncService', () => {
       expect.objectContaining({
         retryCount: 1,
         lastError:
-          '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다. 내용을 확인한 뒤 다시 동기화해주세요.',
+          '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다.',
         conflict: expect.objectContaining({
+          code: 'pull_conflict_local_queue',
           message:
-            '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다. 내용을 확인한 뒤 다시 동기화해주세요.',
+            '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다.',
           remote: expect.objectContaining({
             id: existing.id,
             title: 'Dune Messiah',

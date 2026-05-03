@@ -48,6 +48,7 @@ import type { SyncReleaseRecordPayloadDto } from './dto/sync-release-record-payl
 import type { SyncWorkPayloadDto } from './dto/sync-work-payload.dto';
 
 const SERVER_SYNC_STATUS = WorkSyncStatus.synced;
+const SYNC_SCHEMA_VERSION = 1 as const;
 const ALREADY_APPLIED_MESSAGE =
   'Remote record already matches the queued change.';
 const APPLIED_CHANGE_MESSAGE = 'Queued change applied on the server.';
@@ -55,6 +56,21 @@ const APPLIED_TOMBSTONE_MESSAGE = 'Queued tombstone applied on the server.';
 const CREATED_MESSAGE = 'Queued record created on the server.';
 const MISSING_REMOTE_DELETE_NOOP_MESSAGE =
   'Remote delete was a no-op because the server record is missing.';
+
+const SYNC_CODES = {
+  alreadyApplied: 'already_applied',
+  appliedChange: 'applied_change',
+  appliedTombstone: 'applied_tombstone',
+  conflictOwnershipMismatch: 'conflict_ownership_mismatch',
+  conflictParentChanged: 'conflict_parent_changed',
+  conflictRemoteMissing: 'conflict_remote_missing',
+  conflictRemoteNewer: 'conflict_remote_newer',
+  created: 'created',
+  failedImportDraftUnresolved: 'failed_import_draft_unresolved',
+  failedMissingCatalogTitle: 'failed_missing_catalog_title',
+  failedValidation: 'failed_validation',
+  missingRemoteDeleteNoop: 'missing_remote_delete_noop',
+} as const;
 
 const SYNC_CREATE_TITLE_INCLUDE = {
   contributors: {
@@ -99,6 +115,7 @@ export class SyncService {
       const response = {
         processedAt: new Date().toISOString(),
         results,
+        schemaVersion: SYNC_SCHEMA_VERSION,
       };
 
       this.logPushSummary(userId, changes.length, response);
@@ -161,6 +178,7 @@ export class SyncService {
         (left, right) => left.updatedAt.getTime() - right.updatedAt.getTime(),
       );
       const response: PullSyncResponseDto = {
+        schemaVersion: SYNC_SCHEMA_VERSION,
         pulledAt,
         nextSince: this.buildNextSince(since ?? null, pulledAt, changedRecords),
         changes,
@@ -198,6 +216,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'work',
         status: 'failed',
+        code: SYNC_CODES.failedValidation,
         message: progressValidationError,
         work: null,
       };
@@ -215,6 +234,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'work',
         status: 'conflict',
+        code: SYNC_CODES.conflictOwnershipMismatch,
         message: 'Server mismatch: the record cannot be modified remotely.',
         work: null,
       };
@@ -226,6 +246,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'work',
         status: 'applied',
+        code: SYNC_CODES.alreadyApplied,
         message: ALREADY_APPLIED_MESSAGE,
         work: toFlatWorkResponse(existing),
       };
@@ -237,6 +258,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'work',
         status: 'conflict',
+        code: SYNC_CODES.conflictRemoteNewer,
         message: this.buildConflictMessage(existing, payload),
         work: toFlatWorkResponse(existing),
       };
@@ -262,6 +284,10 @@ export class SyncService {
       entityId: change.entityId,
       entityType: 'work',
       status: 'applied',
+      code:
+        payload.deletedAt === null
+          ? SYNC_CODES.appliedChange
+          : SYNC_CODES.appliedTombstone,
       message:
         payload.deletedAt === null
           ? APPLIED_CHANGE_MESSAGE
@@ -287,6 +313,7 @@ export class SyncService {
           entityId: change.entityId,
           entityType: 'work',
           status: 'conflict',
+          code: SYNC_CODES.conflictRemoteMissing,
           message:
             'Server mismatch: the record was already missing remotely when a previously synced delete was pushed.',
           work: null,
@@ -298,6 +325,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'work',
         status: 'applied',
+        code: SYNC_CODES.missingRemoteDeleteNoop,
         message: MISSING_REMOTE_DELETE_NOOP_MESSAGE,
         work: null,
       };
@@ -309,6 +337,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'work',
         status: 'conflict',
+        code: SYNC_CODES.conflictRemoteMissing,
         message: 'Server mismatch: the record does not exist remotely anymore.',
         work: null,
       };
@@ -327,6 +356,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'work',
         status: 'failed',
+        code: SYNC_CODES.failedMissingCatalogTitle,
         message: `Catalog title with id "${payload.catalogTitleId}" was not found.`,
         work: null,
       };
@@ -338,6 +368,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'work',
         status: 'failed',
+        code: SYNC_CODES.failedImportDraftUnresolved,
         message:
           'Catalog title could not be resolved from importDraft.catalogTitle or payload.title.',
         work: null,
@@ -391,6 +422,7 @@ export class SyncService {
       entityId: change.entityId,
       entityType: 'work',
       status: 'applied',
+      code: SYNC_CODES.created,
       message: CREATED_MESSAGE,
       work: toFlatWorkResponse(created),
     };
@@ -417,6 +449,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'release_record',
         status: 'conflict',
+        code: SYNC_CODES.conflictOwnershipMismatch,
         message:
           'Server mismatch: the release record cannot be modified remotely.',
         releaseRecord: null,
@@ -432,6 +465,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'release_record',
         status: 'conflict',
+        code: SYNC_CODES.conflictParentChanged,
         message: 'Server mismatch: release record parent or release changed.',
         releaseRecord: toUserReleaseRecordResponse(existing),
       };
@@ -448,6 +482,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'release_record',
         status: 'failed',
+        code: SYNC_CODES.failedValidation,
         message: validationError,
         releaseRecord: toUserReleaseRecordResponse(existing),
       };
@@ -459,6 +494,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'release_record',
         status: 'applied',
+        code: SYNC_CODES.alreadyApplied,
         message: ALREADY_APPLIED_MESSAGE,
         releaseRecord: toUserReleaseRecordResponse(existing),
       };
@@ -470,6 +506,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'release_record',
         status: 'conflict',
+        code: SYNC_CODES.conflictRemoteNewer,
         message: this.buildReleaseRecordConflictMessage(existing, payload),
         releaseRecord: toUserReleaseRecordResponse(existing),
       };
@@ -485,6 +522,10 @@ export class SyncService {
       entityId: change.entityId,
       entityType: 'release_record',
       status: 'applied',
+      code:
+        payload.deletedAt === null
+          ? SYNC_CODES.appliedChange
+          : SYNC_CODES.appliedTombstone,
       message:
         payload.deletedAt === null
           ? APPLIED_CHANGE_MESSAGE
@@ -510,6 +551,7 @@ export class SyncService {
           entityId: change.entityId,
           entityType: 'release_record',
           status: 'conflict',
+          code: SYNC_CODES.conflictRemoteMissing,
           message:
             'Server mismatch: the release record was already missing remotely.',
           releaseRecord: null,
@@ -521,6 +563,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'release_record',
         status: 'applied',
+        code: SYNC_CODES.missingRemoteDeleteNoop,
         message: MISSING_REMOTE_DELETE_NOOP_MESSAGE,
         releaseRecord: null,
       };
@@ -532,6 +575,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'release_record',
         status: 'conflict',
+        code: SYNC_CODES.conflictRemoteMissing,
         message: 'Server mismatch: the release record does not exist remotely.',
         releaseRecord: null,
       };
@@ -548,6 +592,7 @@ export class SyncService {
         entityId: change.entityId,
         entityType: 'release_record',
         status: 'failed',
+        code: SYNC_CODES.failedValidation,
         message: validationError,
         releaseRecord: null,
       };
@@ -563,6 +608,7 @@ export class SyncService {
       entityId: change.entityId,
       entityType: 'release_record',
       status: 'applied',
+      code: SYNC_CODES.created,
       message: CREATED_MESSAGE,
       releaseRecord: hydrated ? toUserReleaseRecordResponse(hydrated) : null,
     };

@@ -23,6 +23,10 @@ import {
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
 import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
+import {
+  localizeSyncQueueSource,
+  localizeSyncResultCode,
+} from '../../../shared/utils/localize-message';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import {
   formatWorkDateTime,
@@ -170,6 +174,26 @@ function getConflictFieldValue(
   return (snapshot as UserReleaseRecord)[field as keyof UserReleaseRecord];
 }
 
+function getConflictSummaryFields(item: SyncDashboardItem) {
+  if (item.entityType === 'release_record') {
+    return [
+      { key: 'status', label: '상태' },
+      { key: 'rating', label: '별점' },
+      { key: 'updatedAt', label: '수정 시각' },
+      { key: 'deletedAt', label: '삭제 시각' },
+    ];
+  }
+
+  return [
+    { key: 'title', label: '제목' },
+    { key: 'status', label: '상태' },
+    { key: 'rating', label: '별점' },
+    { key: 'progressCurrent', label: '현재 진행도' },
+    { key: 'progressTotal', label: '전체 진행도' },
+    { key: 'updatedAt', label: '수정 시각' },
+  ];
+}
+
 interface SyncQueueSectionProps {
   description: string;
   emptyMessage: string;
@@ -210,6 +234,15 @@ function ConflictResolutionPanel({
   const selectedFields = mergeSelections[item.id] ?? [];
   const hasRemoteSnapshot = item.conflictRemote !== null;
   const isResolving = resolvingItemId === item.id;
+  const conflictReason =
+    item.conflictCode !== null
+      ? localizeSyncResultCode(item.conflictCode)
+      : '원격 변경과 충돌했습니다. 내용을 확인한 뒤 다시 동기화를 시도해 주세요.';
+  const summaryFields = getConflictSummaryFields(item);
+  const summaryFieldKeys = new Set(summaryFields.map((field) => field.key));
+  const detailFields = fields.filter(
+    (field) => !summaryFieldKeys.has(field.key),
+  );
 
   return (
     <Stack gap="sm">
@@ -217,8 +250,7 @@ function ConflictResolutionPanel({
       <Stack gap={4}>
         <Title order={5}>충돌 해결</Title>
         <Text c="var(--app-text-muted)" size="sm">
-          로컬 기록을 다시 보낼지, 원격 기록을 적용할지, 필요한 필드만 원격
-          값으로 가져올지 선택합니다.
+          {conflictReason}
         </Text>
       </Stack>
 
@@ -230,8 +262,31 @@ function ConflictResolutionPanel({
       )}
 
       {hasRemoteSnapshot && (
-        <Stack gap="xs">
-          {fields.map((field) => (
+        <Stack gap="md">
+          <Stack gap="xs">
+            <Text fw={700}>핵심 차이</Text>
+            {summaryFields.map((field) => (
+              <SimpleGrid cols={{ base: 1, md: 3 }} key={field.key} spacing="sm">
+                <Text fw={700}>{field.label}</Text>
+                <Text c="var(--app-text-muted)" size="sm">
+                  로컬:{' '}
+                  {formatConflictValue(
+                    getConflictFieldValue(item, field.key, 'local'),
+                  )}
+                </Text>
+                <Text c="var(--app-text-muted)" size="sm">
+                  원격:{' '}
+                  {formatConflictValue(
+                    getConflictFieldValue(item, field.key, 'remote'),
+                  )}
+                </Text>
+              </SimpleGrid>
+            ))}
+          </Stack>
+
+          <Divider />
+
+          {detailFields.map((field) => (
             <SimpleGrid cols={{ base: 1, md: 3 }} key={field.key} spacing="sm">
               <Text fw={700}>{field.label}</Text>
               <Text c="var(--app-text-muted)" size="sm">
@@ -340,6 +395,9 @@ function SyncQueueSection({
                       <AppBadge>
                         {getSyncOperationLabel(item.operation)}
                       </AppBadge>
+                      <AppBadge tone="muted">
+                        {localizeSyncQueueSource(item.source)}
+                      </AppBadge>
                     </Group>
                     <Title order={4}>{item.title}</Title>
                   </Stack>
@@ -351,6 +409,10 @@ function SyncQueueSection({
                 <KeyValueGrid
                   items={[
                     { label: '엔티티 ID', value: item.entityId },
+                    {
+                      label: '변경 출처',
+                      value: localizeSyncQueueSource(item.source),
+                    },
                     {
                       label: '최근 수정',
                       value: formatWorkDateTime(item.updatedAt),

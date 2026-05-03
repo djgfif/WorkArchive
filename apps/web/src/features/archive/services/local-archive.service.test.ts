@@ -165,10 +165,12 @@ describe('LocalArchiveService', () => {
         expect.objectContaining({
           entityType: 'work',
           operation: 'create',
+          source: 'archive_migration',
         }),
         expect.objectContaining({
           entityType: 'release_record',
           operation: 'create',
+          source: 'archive_migration',
         }),
       ]),
     );

@@ -1,3 +1,67 @@
+import type { SyncQueueSource, SyncResultCode } from '@work-archive/shared-types';
+
+export function localizeSyncResultCode(
+  code: SyncResultCode | null | undefined,
+  fallback = '요청을 처리하지 못했습니다.',
+) {
+  switch (code) {
+    case 'already_applied':
+      return '서버에 이미 같은 변경이 반영되어 있습니다.';
+    case 'applied_change':
+      return '서버에 변경 사항이 반영되었습니다.';
+    case 'applied_tombstone':
+      return '서버에 삭제 상태가 반영되었습니다.';
+    case 'created':
+      return '서버에 기록이 저장되었습니다.';
+    case 'missing_remote_delete_noop':
+      return '서버에 해당 기록이 없어 삭제 요청을 건너뛰었습니다.';
+    case 'conflict_remote_newer':
+      return '다른 곳에서 더 최근 변경이 반영되어 충돌이 발생했습니다.';
+    case 'conflict_remote_missing':
+      return '서버에 해당 기록이 없어 충돌이 발생했습니다.';
+    case 'conflict_ownership_mismatch':
+      return '서버의 기록 소유자 정보가 달라 변경 사항을 반영하지 못했습니다.';
+    case 'conflict_parent_changed':
+      return '권별 기록의 연결 대상이 달라 충돌이 발생했습니다.';
+    case 'failed_validation':
+      return '동기화할 기록 값이 서버 규칙과 맞지 않습니다.';
+    case 'failed_missing_catalog_title':
+      return '연결된 카탈로그 제목을 서버에서 찾지 못했습니다.';
+    case 'failed_import_draft_unresolved':
+      return '검색 후보에서 서버 카탈로그 제목을 만들 수 없습니다.';
+    case 'pull_conflict_local_queue':
+      return '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다.';
+    case 'result_missing':
+      return '일부 변경 사항의 처리 결과를 확인하지 못했습니다.';
+    case 'unknown':
+      return fallback;
+    default:
+      return fallback;
+  }
+}
+
+export function localizeSyncQueueSource(source: SyncQueueSource | undefined) {
+  switch (source ?? 'unknown') {
+    case 'quick_add':
+      return 'Quick Add';
+    case 'manual_create':
+      return '직접 추가';
+    case 'edit_form':
+      return '상세 수정';
+    case 'restore':
+      return '복원';
+    case 'progress_update':
+      return '진행도 수정';
+    case 'release_record_update':
+      return '권별 기록';
+    case 'archive_migration':
+      return '아카이브 이관';
+    case 'unknown':
+    default:
+      return '출처 미확인';
+  }
+}
+
 function getGenericRequestErrorMessage(status: number) {
   if (status === 400) {
     return '입력한 내용을 다시 확인해주세요.';

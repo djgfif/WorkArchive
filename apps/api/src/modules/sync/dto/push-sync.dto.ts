@@ -2,15 +2,18 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayNotEmpty,
+  Equals,
   IsArray,
   IsDateString,
   IsDefined,
   IsIn,
+  IsInt,
   IsObject,
+  IsOptional,
   IsUUID,
   ValidateNested,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import type { SyncReleaseRecordPayloadDto } from './sync-release-record-payload.dto';
 import type { SyncWorkPayloadDto } from './sync-work-payload.dto';
@@ -61,6 +64,16 @@ export class PushSyncChangeDto {
 }
 
 export class PushSyncDto {
+  @ApiPropertyOptional({
+    default: 1,
+    description: 'Sync contract version. Missing values are treated as v1.',
+    enum: [1],
+  })
+  @IsOptional()
+  @IsInt()
+  @Equals(1)
+  schemaVersion?: 1;
+
   @ApiProperty({
     type: [PushSyncChangeDto],
   })

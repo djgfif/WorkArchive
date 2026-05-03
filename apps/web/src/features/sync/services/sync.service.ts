@@ -5,10 +5,12 @@ import type {
   PushSyncResult,
   SyncQueuePayload,
   SyncQueueItemRecord,
+  SyncResultCode,
   UserReleaseRecord,
   WorkRecord,
   WorkSyncStatus,
 } from '@work-archive/shared-types';
+import { SYNC_SCHEMA_VERSION } from '@work-archive/shared-types';
 
 import { requestAuthenticatedApiJson } from '../../../shared/services/api-client';
 import {
@@ -27,7 +29,10 @@ import {
   syncQueueRepository,
   type SyncQueueRepository,
 } from './sync-queue.repository';
-import { localizeServerMessage } from '../../../shared/utils/localize-message';
+import {
+  localizeServerMessage,
+  localizeSyncResultCode,
+} from '../../../shared/utils/localize-message';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
 
@@ -214,6 +219,7 @@ export class SyncService {
 
     try {
       const response = await postJson<PushSyncResponse>('/sync/push', {
+        schemaVersion: SYNC_SCHEMA_VERSION,
         changes: queueItems.map((item) => ({
           queueId: item.id,
           entityType: item.entityType,
@@ -238,7 +244,8 @@ export class SyncService {
         }
 
         messages.push(
-          localizeServerMessage(
+          this.localizeSyncResult(
+            result.code,
             result.message,
             '동기화 결과를 확인하지 못했습니다.',
           ),
@@ -261,7 +268,8 @@ export class SyncService {
         }
 
         if (result.status === 'conflict') {
-          const conflictMessage = localizeServerMessage(
+          const conflictMessage = this.localizeSyncResult(
+            result.code,
             result.message,
             '동기화에 실패했습니다.',
           );
@@ -271,6 +279,7 @@ export class SyncService {
             result.queueId,
             conflictMessage,
             this.getRemoteConflictPayload(result),
+            result.code,
           );
           await this.markEntitySyncStatus(
             result.entityType,
@@ -281,7 +290,11 @@ export class SyncService {
           failedCount += 1;
           await this.queueRepo.markFailed(
             result.queueId,
-            localizeServerMessage(result.message, '동기화에 실패했습니다.'),
+            this.localizeSyncResult(
+              result.code,
+              result.message,
+              '동기화에 실패했습니다.',
+            ),
           );
         }
       }
@@ -296,10 +309,10 @@ export class SyncService {
         }
 
         failedCount += 1;
-        messages.push('일부 변경 사항의 처리 결과를 확인하지 못했습니다.');
+        messages.push(localizeSyncResultCode('result_missing'));
         await this.queueRepo.markFailed(
           queueId,
-          '처리 결과를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.',
+          localizeSyncResultCode('result_missing'),
         );
       }
 
@@ -345,6 +358,7 @@ export class SyncService {
 
     try {
       const response = await postJson<PullSyncResponse>('/sync/pull', {
+        schemaVersion: SYNC_SCHEMA_VERSION,
         since,
       });
       const queuedWorkIds = new Set(await this.queueRepo.getQueuedWorkIds());
@@ -375,7 +389,7 @@ export class SyncService {
         if (hasLocalQueue) {
           skippedCount += 1;
           messages.push(
-            '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다.',
+            localizeSyncResultCode('pull_conflict_local_queue'),
           );
           await this.markEntitySyncStatus(
             change.entityType,
@@ -391,12 +405,13 @@ export class SyncService {
           for (const queueItem of relatedQueueItems) {
             await this.queueRepo.setLastError(
               queueItem.id,
-              '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다. 내용을 확인한 뒤 다시 동기화해주세요.',
+              localizeSyncResultCode('pull_conflict_local_queue'),
             );
             await this.queueRepo.setConflict(
               queueItem.id,
-              '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다. 내용을 확인한 뒤 다시 동기화해주세요.',
+              localizeSyncResultCode('pull_conflict_local_queue'),
               this.getRemotePullConflictPayload(change),
+              'pull_conflict_local_queue',
             );
           }
 
@@ -725,6 +740,18 @@ export class SyncService {
     }
 
     return change.work ?? null;
+  }
+
+  private localizeSyncResult(
+    code: SyncResultCode | null | undefined,
+    message: string,
+    fallback: string,
+  ) {
+    if (code) {
+      return localizeSyncResultCode(code, fallback);
+    }
+
+    return localizeServerMessage(message, fallback);
   }
 }
 

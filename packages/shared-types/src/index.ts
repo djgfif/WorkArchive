@@ -526,6 +526,43 @@ export type PullSyncOperation = 'upsert' | 'delete';
 
 export type SyncQueuePayload = WorkRecord | UserReleaseRecord;
 
+export const SYNC_SCHEMA_VERSION = 1 as const;
+
+export type SyncSchemaVersion = typeof SYNC_SCHEMA_VERSION;
+
+export const SYNC_RESULT_CODES = [
+  'already_applied',
+  'applied_change',
+  'applied_tombstone',
+  'created',
+  'missing_remote_delete_noop',
+  'conflict_remote_newer',
+  'conflict_remote_missing',
+  'conflict_ownership_mismatch',
+  'conflict_parent_changed',
+  'failed_validation',
+  'failed_missing_catalog_title',
+  'failed_import_draft_unresolved',
+  'pull_conflict_local_queue',
+  'result_missing',
+  'unknown',
+] as const;
+
+export type SyncResultCode = (typeof SYNC_RESULT_CODES)[number];
+
+export const SYNC_QUEUE_SOURCES = [
+  'quick_add',
+  'manual_create',
+  'edit_form',
+  'restore',
+  'progress_update',
+  'release_record_update',
+  'archive_migration',
+  'unknown',
+] as const;
+
+export type SyncQueueSource = (typeof SYNC_QUEUE_SOURCES)[number];
+
 export interface PushSyncChangeRequest<TPayload = SyncQueuePayload> {
   createdAt: ISODateString;
   entityId: EntityId;
@@ -537,9 +574,11 @@ export interface PushSyncChangeRequest<TPayload = SyncQueuePayload> {
 
 export interface PushSyncRequest {
   changes: PushSyncChangeRequest[];
+  schemaVersion: SyncSchemaVersion;
 }
 
 export interface PushSyncResult {
+  code?: SyncResultCode;
   entityId: EntityId;
   entityType: SyncEntityType;
   message: string;
@@ -552,9 +591,11 @@ export interface PushSyncResult {
 export interface PushSyncResponse {
   processedAt: ISODateString;
   results: PushSyncResult[];
+  schemaVersion: SyncSchemaVersion;
 }
 
 export interface PullSyncRequest {
+  schemaVersion: SyncSchemaVersion;
   since?: ISODateString | null;
 }
 
@@ -570,9 +611,11 @@ export interface PullSyncResponse {
   changes: PullSyncChange[];
   nextSince: ISODateString;
   pulledAt: ISODateString;
+  schemaVersion: SyncSchemaVersion;
 }
 
 export interface SyncConflictSnapshot<TPayload = SyncQueuePayload> {
+  code?: SyncResultCode;
   detectedAt: ISODateString;
   message: string;
   remote: TPayload | null;
@@ -584,6 +627,7 @@ export interface SyncQueueItemRecord<TPayload = SyncQueuePayload> {
   entityId: EntityId;
   operation: SyncOperation;
   payload: TPayload;
+  source?: SyncQueueSource;
   createdAt: ISODateString;
   retryCount: number;
   lastError: string | null;

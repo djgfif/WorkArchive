@@ -237,9 +237,11 @@ describe('SyncService', () => {
     expect(result.results).toEqual([
       expect.objectContaining({
         status: 'conflict',
+        code: 'conflict_remote_newer',
         message: expect.stringContaining('server version 3'),
       }),
     ]);
+    expect(result.schemaVersion).toBe(1);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -271,6 +273,7 @@ describe('SyncService', () => {
     expect(result.results).toEqual([
       expect.objectContaining({
         status: 'conflict',
+        code: 'conflict_ownership_mismatch',
         message: expect.stringContaining('cannot be modified remotely'),
         work: null,
       }),
@@ -295,6 +298,7 @@ describe('SyncService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
+        schemaVersion: 1,
         nextSince: '2026-04-18T02:00:00.000Z',
         changes: [
           expect.objectContaining({
@@ -586,6 +590,7 @@ describe('SyncService', () => {
     expect(result.results).toEqual([
       expect.objectContaining({
         status: 'failed',
+        code: 'failed_missing_catalog_title',
         message: 'Catalog title with id "missing-catalog-title" was not found.',
         work: null,
       }),
@@ -920,6 +925,7 @@ describe('SyncService', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
+        schemaVersion: 1,
         nextSince: '2026-04-18T00:00:00.000Z',
         changes: [],
       }),
@@ -1047,6 +1053,7 @@ describe('SyncService', () => {
       expect.objectContaining({
         entityType: 'release_record',
         status: 'failed',
+        code: 'failed_validation',
         message: expect.stringContaining('not supported'),
         releaseRecord: null,
       }),
