@@ -34,12 +34,13 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/work_archive?schema=public}
       HOST: ${HOST:-0.0.0.0}
       PORT: 3000
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
       WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:8080}
       PASSWORD_RESET_DEV_LINKS_ENABLED: ${PASSWORD_RESET_DEV_LINKS_ENABLED:-true}
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-access-secret}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-secret}
-      EXTERNAL_API_KEY_ENCRYPTION_SECRET: ${EXTERNAL_API_KEY_ENCRYPTION_SECRET:-change-me-external-api-key-encryption-secret}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-local-compose-access-secret-minimum-32-chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-compose-refresh-secret-minimum-32-chars}
+      EXTERNAL_API_KEY_ENCRYPTION_SECRET: ${EXTERNAL_API_KEY_ENCRYPTION_SECRET:-local-compose-external-api-key-secret-32-chars}
       SEED_DEMO_EMAIL: ${SEED_DEMO_EMAIL:-demo@workarchive.local}
       SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-demo-password-123}
     ports:
