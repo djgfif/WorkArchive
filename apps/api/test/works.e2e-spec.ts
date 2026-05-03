@@ -478,12 +478,17 @@ function createPrismaServiceMock() {
           rating: data.rating ?? null,
           shortReview: data.shortReview ?? '',
           review: data.review ?? '',
+          personalTags: data.personalTags ?? [],
           tier: data.tier ?? null,
           favorite: data.favorite ?? false,
           progressCurrent: data.progressCurrent ?? null,
           progressTotal: data.progressTotal ?? null,
           progressUnit: data.progressUnit ?? null,
           lastConsumedLabel: data.lastConsumedLabel ?? null,
+          startedAt: data.startedAt ?? null,
+          completedAt: data.completedAt ?? null,
+          droppedAt: data.droppedAt ?? null,
+          lastConsumedAt: data.lastConsumedAt ?? null,
           createdAt: data.createdAt ?? now,
           updatedAt: data.updatedAt ?? now,
           deletedAt: data.deletedAt ?? null,
@@ -1202,6 +1207,17 @@ describe('Auth, works, and sync API (e2e)', () => {
           sourceUrl: 'https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=123',
         }),
       ],
+      diagnostics: {
+        providers: [
+          expect.objectContaining({
+            provider: 'aladin',
+            credentialMode: 'user',
+            configured: true,
+            status: 'searched',
+            resultCount: 1,
+          }),
+        ],
+      },
     });
 
     const deleteKeyResponse = await requestJson(
