@@ -172,7 +172,7 @@ npm run build
 
 - `npm run lint`: `2026-05-05` 통과 확인
 - `npm run typecheck`: `2026-05-05` 통과 확인
-- `env TMPDIR=/tmp npm run test`: `2026-05-05` 기준 API `13` suites / `99` tests, web `22` files / `135` tests 통과 확인
+- `env TMPDIR=/tmp npm run test`: `2026-05-05` 기준 API `13` suites / `102` tests, web `23` files / `141` tests 통과 확인
 - `npm run build`: `2026-05-05` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
 - GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 `.github/workflows/validate.yml`에 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe`도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
@@ -195,7 +195,8 @@ npm run build
 - Settings provider readiness UI는 `/imports/providers` 기반 기본 구현과 테스트가 들어갔다. 남은 작업은 provider별 실제 검색어 QA와 polish다.
 - SyncPage는 pending / failed / conflict queue item의 상태, 원인, 기록 보기, 재시도 CTA를 표시한다. conflict는 로컬 유지, 원격 적용, 필드별 병합으로 기본 해결할 수 있다.
 - Works 목록 조회는 Dexie v7의 scope index를 사용해 active/trash 범위를 먼저 좁힌 뒤 필터와 정렬을 적용한다.
-- JSON 백업은 schema/source/exclusion metadata를 포함하고, 가져오기는 dry-run preview로 add/update/duplicate/skip/conflict 예상치를 먼저 보여준다.
+- manual timeline entries는 Dexie v9 sync-ready 모델과 backend `UserTimelineEntry` private storage를 통해 optional account sync 대상에 포함된다.
+- JSON 백업은 schema/source/exclusion metadata와 timeline entries를 포함하고, 가져오기는 dry-run preview로 add/update/duplicate/skip/conflict 예상치를 먼저 보여준다.
 - `Tier Boards`, `Insights`, `Community`는 현재 placeholder 성격이 강하다.
 - 인증은 현재 이메일/비밀번호 + memory-only access token + `HttpOnly` refresh cookie 구조다. 앱 부팅 시 refresh cookie로 access token을 재발급하고, 실패하면 guest/local-first 상태로 돌아간다. 늦게 도착한 startup refresh 실패는 완료된 login/register 세션을 덮어쓰지 않는다.
 - 백엔드는 이미 `CatalogWork` + `UserWorkRecord` split model을 도입했고, 현재 `Works` API는 flat compatibility 계층으로 유지된다.

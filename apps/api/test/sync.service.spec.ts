@@ -1,10 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
+import {
+  TimelineEntryType,
+  WorkStatus,
+  WorkSyncStatus,
+  WorkType,
+} from '@prisma/client';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import type { CatalogService } from '../src/modules/catalog/catalog.service';
 import { SyncService } from '../src/modules/sync/sync.service';
 import type { SyncReleaseRecordPayloadDto } from '../src/modules/sync/dto/sync-release-record-payload.dto';
+import type { SyncTimelineEntryPayloadDto } from '../src/modules/sync/dto/sync-timeline-entry-payload.dto';
 import type { SyncWorkPayloadDto } from '../src/modules/sync/dto/sync-work-payload.dto';
 import { type PrismaService } from '../src/prisma/prisma.service';
 import type {
@@ -15,6 +21,10 @@ import type {
   UserRecordsService,
   WorkAggregate,
 } from '../src/modules/user-records/user-records.service';
+import type {
+  UserTimelineEntriesService,
+  UserTimelineEntryAggregate,
+} from '../src/modules/user-records/user-timeline-entries.service';
 
 const USER_ID = '2c92b57e-e529-4344-bd62-0cff4de5dfe2';
 const OTHER_USER_ID = 'a3fba91f-71c3-46a2-b126-c4cbca6dd1a8';
@@ -151,6 +161,47 @@ function createReleaseRecordPayload(
   };
 }
 
+function createTimelineEntryAggregateFixture(
+  overrides: Partial<UserTimelineEntryAggregate> = {},
+): UserTimelineEntryAggregate {
+  return {
+    id: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
+    userId: USER_ID,
+    userWorkRecordId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+    type: TimelineEntryType.note,
+    occurredAt: new Date('2026-04-18T02:00:00.000Z'),
+    note: 'Manual note',
+    createdAt: new Date('2026-04-18T00:00:00.000Z'),
+    updatedAt: new Date('2026-04-18T02:00:00.000Z'),
+    deletedAt: null,
+    syncStatus: WorkSyncStatus.synced,
+    serverVersion: 1,
+    userWorkRecord: {
+      id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      userId: USER_ID,
+    },
+    ...overrides,
+  } as UserTimelineEntryAggregate;
+}
+
+function createTimelineEntryPayload(
+  overrides: Partial<SyncTimelineEntryPayloadDto> = {},
+): SyncTimelineEntryPayloadDto {
+  return {
+    id: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
+    workId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+    type: TimelineEntryType.note,
+    occurredAt: '2026-04-18T02:00:00.000Z',
+    note: 'Manual note',
+    createdAt: '2026-04-18T00:00:00.000Z',
+    updatedAt: '2026-04-18T02:00:00.000Z',
+    deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
+    ...overrides,
+  };
+}
+
 describe('SyncService', () => {
   let service: SyncService;
   let prisma: any;
@@ -164,6 +215,7 @@ describe('SyncService', () => {
     >
   >;
   let releaseRecordsService: any;
+  let timelineEntriesService: any;
 
   beforeEach(() => {
     prisma = {
@@ -204,12 +256,19 @@ describe('SyncService', () => {
       findByUserSince: jest.fn(async () => []),
       update: jest.fn(),
     };
+    timelineEntriesService = {
+      create: jest.fn(),
+      findById: jest.fn(),
+      findByUserSince: jest.fn(async () => []),
+      update: jest.fn(),
+    };
 
     service = new SyncService(
       prisma as unknown as PrismaService,
       catalogService as unknown as CatalogService,
       userRecordsService as unknown as UserRecordsService,
       releaseRecordsService as unknown as UserReleaseRecordsService,
+      timelineEntriesService as unknown as UserTimelineEntriesService,
     );
   });
 
@@ -217,9 +276,9 @@ describe('SyncService', () => {
     await expect(
       service.push(USER_ID, {
         changes: [],
-        schemaVersion: 2,
+        schemaVersion: 1,
       } as any),
-    ).rejects.toThrow('Unsupported sync schema version "2"');
+    ).rejects.toThrow('Unsupported sync schema version "1"');
 
     expect(userRecordsService.findById).not.toHaveBeenCalled();
   });
@@ -263,7 +322,7 @@ describe('SyncService', () => {
         message: expect.stringContaining('server version 3'),
       }),
     ]);
-    expect(result.schemaVersion).toBe(1);
+    expect(result.schemaVersion).toBe(2);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -351,7 +410,7 @@ describe('SyncService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 1,
+        schemaVersion: 2,
         nextSince: '2026-04-18T02:00:00.000Z',
         changes: [
           expect.objectContaining({
@@ -1025,7 +1084,7 @@ describe('SyncService', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 1,
+        schemaVersion: 2,
         nextSince: '2026-04-18T00:00:00.000Z',
         changes: [],
       }),
@@ -1228,5 +1287,114 @@ describe('SyncService', () => {
         releaseRecord: null,
       }),
     ]);
+  });
+
+  it('pushes a timeline entry create when the user owns the parent work', async () => {
+    const parent = createWorkAggregateFixture();
+    const created = createTimelineEntryAggregateFixture();
+
+    timelineEntriesService.findById.mockResolvedValue(null);
+    userRecordsService.findById.mockResolvedValue(parent);
+    timelineEntriesService.create.mockResolvedValue(created);
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'd8e29511-448f-4d67-bd7a-e2732f8cc9d9',
+          entityType: 'timeline_entry',
+          entityId: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
+          operation: 'create',
+          createdAt: '2026-04-18T02:00:00.000Z',
+          payload: createTimelineEntryPayload(),
+        },
+      ],
+    });
+
+    expect(timelineEntriesService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
+        userId: USER_ID,
+        userWorkRecordId: parent.id,
+        note: 'Manual note',
+        serverVersion: 1,
+      }),
+    );
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'timeline_entry',
+        status: 'applied',
+        code: 'created',
+        timelineEntry: expect.objectContaining({
+          id: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
+          workId: parent.id,
+          syncStatus: 'synced',
+          serverVersion: 1,
+        }),
+      }),
+    ]);
+  });
+
+  it('rejects timeline entry sync when the parent work is missing', async () => {
+    timelineEntriesService.findById.mockResolvedValue(null);
+    userRecordsService.findById.mockResolvedValue(null);
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'd8e29511-448f-4d67-bd7a-e2732f8cc9d9',
+          entityType: 'timeline_entry',
+          entityId: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
+          operation: 'create',
+          createdAt: '2026-04-18T02:00:00.000Z',
+          payload: createTimelineEntryPayload(),
+        },
+      ],
+    });
+
+    expect(timelineEntriesService.create).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'timeline_entry',
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('parent is missing'),
+        timelineEntry: null,
+      }),
+    ]);
+  });
+
+  it('pulls timeline entry changes with the other private sync records', async () => {
+    userRecordsService.findByUserSince.mockResolvedValue([]);
+    releaseRecordsService.findByUserSince.mockResolvedValue([]);
+    timelineEntriesService.findByUserSince.mockResolvedValue([
+      createTimelineEntryAggregateFixture({
+        updatedAt: new Date('2026-04-18T03:00:00.000Z'),
+      }),
+    ]);
+
+    const result = await service.pull(USER_ID, {
+      since: '2026-04-18T00:00:00.000Z',
+    });
+
+    expect(timelineEntriesService.findByUserSince).toHaveBeenCalledWith(
+      USER_ID,
+      new Date('2026-04-18T00:00:00.000Z'),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        schemaVersion: 2,
+        nextSince: '2026-04-18T03:00:00.000Z',
+        changes: [
+          expect.objectContaining({
+            entityType: 'timeline_entry',
+            operation: 'upsert',
+            timelineEntry: expect.objectContaining({
+              note: 'Manual note',
+              workId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+            }),
+          }),
+        ],
+      }),
+    );
   });
 });

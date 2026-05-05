@@ -1,4 +1,7 @@
-import type { SyncQueueSource, SyncResultCode } from '@work-archive/shared-types';
+import type {
+  SyncQueueSource,
+  SyncResultCode,
+} from '@work-archive/shared-types';
 
 export function localizeSyncResultCode(
   code: SyncResultCode | null | undefined,
@@ -52,6 +55,8 @@ export function localizeSyncQueueSource(source: SyncQueueSource | undefined) {
       return '복원';
     case 'progress_update':
       return '진행도 수정';
+    case 'timeline_entry_update':
+      return '타임라인 기록';
     case 'release_record_update':
       return '권별 기록';
     case 'archive_migration':
@@ -169,7 +174,10 @@ export function localizeApiErrorMessage(
   message?: string | null,
 ) {
   if (message) {
-    return localizeServerMessage(message, getGenericRequestErrorMessage(status));
+    return localizeServerMessage(
+      message,
+      getGenericRequestErrorMessage(status),
+    );
   }
 
   return getGenericRequestErrorMessage(status);

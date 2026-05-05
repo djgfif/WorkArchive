@@ -9,14 +9,14 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PullSyncDto {
   @ApiPropertyOptional({
-    default: 1,
-    description: 'Sync contract version. Missing values are treated as v1.',
-    enum: [1],
+    default: 2,
+    description: 'Sync contract version. Missing values are treated as v2.',
+    enum: [2],
   })
   @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
-  @Equals(1)
-  schemaVersion?: 1;
+  @Equals(2)
+  schemaVersion?: 2;
 
   @ApiPropertyOptional({
     example: '2026-04-18T00:00:00.000Z',

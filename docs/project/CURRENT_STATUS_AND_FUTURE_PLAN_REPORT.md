@@ -179,6 +179,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - Dexie v7 works scope index와 active/trash scope-first 목록 조회
 - Settings의 local archive JSON export/import, dry-run import preview, CSV export
 - JSON export schema/source/exclusion metadata와 CSV export 컬럼 계약
+- Dexie v9 timeline entry 저장 모델, Work Detail manual timeline add/delete, JSON export/import timeline 보존, optional account sync parity
 - Data Ownership 정책: `appMeta`는 export metadata로만 다루고, `syncQueue`, auth token, refresh token, API key, Aladin TTBKey는 백업/복원 대상에서 제외
 - 개인 기록 기반 Insights 기본 집계와 개인 태그 상위 집계
 - 계정 설정의 Aladin 키 저장/삭제
@@ -203,8 +204,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - 공개 프로필 / 공개 기록 / 작품 집계
 - 실제 티어 보드 기능
 - 커뮤니티 기능
-- 시작일·완료일·중단일·마지막 감상일 같은 날짜 필드
-- 감상 timeline 저장 모델과 자동 이벤트 기록
+- timeline 자동 이벤트 기록
 
 ## 6. Validation Surface
 
@@ -251,7 +251,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 - `npm run lint`: `2026-05-05` 통과 확인
 - `npm run typecheck`: `2026-05-05` 통과 확인
-- `env TMPDIR=/tmp npm run test`: `2026-05-05` 기준 API `13` suites / `99` tests, web `22` files / `135` tests 통과 확인
+- `env TMPDIR=/tmp npm run test`: `2026-05-05` 기준 API `13` suites / `102` tests, web `23` files / `141` tests 통과 확인
 - `npm run build`: `2026-05-05` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
 - GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 `.github/workflows/validate.yml`에 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.

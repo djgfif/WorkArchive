@@ -6,6 +6,7 @@ import type {
   SyncQueuePayload,
   SyncQueueItemRecord,
   SyncResultCode,
+  TimelineEntryRecord,
   UserReleaseRecord,
   WorkRecord,
   WorkSyncStatus,
@@ -21,6 +22,10 @@ import {
   releaseRecordsRepository,
   type ReleaseRecordsRepository,
 } from '../../works/services/release-records.repository';
+import {
+  timelineEntriesRepository,
+  type TimelineEntriesRepository,
+} from '../../works/services/timeline-entries.repository';
 import {
   appMetaRepository,
   type AppMetaRepository,
@@ -126,6 +131,12 @@ function cloneReleaseRecord(
   };
 }
 
+function cloneTimelineEntry(entry: TimelineEntryRecord): TimelineEntryRecord {
+  return {
+    ...entry,
+  };
+}
+
 function cloneQueuePayload<TPayload extends SyncQueuePayload>(
   payload: TPayload,
 ): TPayload {
@@ -133,7 +144,11 @@ function cloneQueuePayload<TPayload extends SyncQueuePayload>(
     return cloneWorkRecord(payload as WorkRecord) as TPayload;
   }
 
-  return cloneReleaseRecord(payload as UserReleaseRecord) as TPayload;
+  if ('catalogReleaseId' in payload) {
+    return cloneReleaseRecord(payload as UserReleaseRecord) as TPayload;
+  }
+
+  return cloneTimelineEntry(payload as TimelineEntryRecord) as TPayload;
 }
 
 function getNowIso() {
@@ -177,6 +192,7 @@ export class SyncService {
     private readonly releaseRecordsRepo: ReleaseRecordsRepository = releaseRecordsRepository,
     private readonly queueRepo: SyncQueueRepository = syncQueueRepository,
     private readonly metaRepo: AppMetaRepository = appMetaRepository,
+    private readonly timelineEntriesRepo: TimelineEntriesRepository = timelineEntriesRepository,
   ) {}
 
   async runManualSync(): Promise<ManualSyncResult> {
@@ -385,10 +401,14 @@ export class SyncService {
       const queuedReleaseRecordIds = new Set(
         await this.queueRepo.getQueuedReleaseRecordIds(),
       );
+      const queuedTimelineEntryIds = new Set(
+        await this.queueRepo.getQueuedTimelineEntryIds(),
+      );
       const queueItems = await this.queueRepo.listAll();
       const queueItemsByEntityKey = new Map<string, SyncQueueItemRecord[]>();
       const worksToMerge: WorkRecord[] = [];
       const releaseRecordsToMerge: UserReleaseRecord[] = [];
+      const timelineEntriesToMerge: TimelineEntryRecord[] = [];
       let skippedCount = 0;
       const messages: string[] = [];
 
@@ -404,13 +424,13 @@ export class SyncService {
         const hasLocalQueue =
           change.entityType === 'work'
             ? queuedWorkIds.has(change.entityId)
-            : queuedReleaseRecordIds.has(change.entityId);
+            : change.entityType === 'release_record'
+              ? queuedReleaseRecordIds.has(change.entityId)
+              : queuedTimelineEntryIds.has(change.entityId);
 
         if (hasLocalQueue) {
           skippedCount += 1;
-          messages.push(
-            localizeSyncResultCode('pull_conflict_local_queue'),
-          );
+          messages.push(localizeSyncResultCode('pull_conflict_local_queue'));
           await this.markEntitySyncStatus(
             change.entityType,
             change.entityId,
@@ -445,11 +465,17 @@ export class SyncService {
 
         if (change.entityType === 'release_record' && change.releaseRecord) {
           releaseRecordsToMerge.push(change.releaseRecord);
+          continue;
+        }
+
+        if (change.entityType === 'timeline_entry' && change.timelineEntry) {
+          timelineEntriesToMerge.push(change.timelineEntry);
         }
       }
 
       await this.worksRepo.bulkPut(worksToMerge);
       await this.releaseRecordsRepo.bulkPut(releaseRecordsToMerge);
+      await this.timelineEntriesRepo.bulkPut(timelineEntriesToMerge);
       const nextSince = skippedCount > 0 ? since : response.nextSince;
 
       if (nextSince !== null) {
@@ -466,7 +492,10 @@ export class SyncService {
 
       return {
         pulledCount: response.changes.length,
-        appliedCount: worksToMerge.length + releaseRecordsToMerge.length,
+        appliedCount:
+          worksToMerge.length +
+          releaseRecordsToMerge.length +
+          timelineEntriesToMerge.length,
         skippedCount,
         pulledAt: response.pulledAt,
         nextSince,
@@ -518,6 +547,22 @@ export class SyncService {
       return nextReleaseRecord;
     }
 
+    if (queueItem.entityType === 'timeline_entry') {
+      const localTimelineEntry =
+        (await this.timelineEntriesRepo.getById(queueItem.entityId)) ??
+        (queueItem.payload as TimelineEntryRecord);
+      const nextTimelineEntry: TimelineEntryRecord = {
+        ...cloneTimelineEntry(localTimelineEntry),
+        syncStatus: 'pending',
+        updatedAt: now,
+      };
+
+      await this.timelineEntriesRepo.update(nextTimelineEntry);
+      await this.queueRepo.resetForRetry(queueItem.id, nextTimelineEntry);
+
+      return nextTimelineEntry;
+    }
+
     const localWork =
       (await this.worksRepo.getById(queueItem.entityId)) ??
       (queueItem.payload as WorkRecord);
@@ -556,6 +601,18 @@ export class SyncService {
       await this.queueRepo.removeMany([queueItem.id]);
 
       return remoteReleaseRecord;
+    }
+
+    if (queueItem.entityType === 'timeline_entry') {
+      const remoteTimelineEntry: TimelineEntryRecord = {
+        ...cloneTimelineEntry(remote as TimelineEntryRecord),
+        syncStatus: 'synced',
+      };
+
+      await this.timelineEntriesRepo.update(remoteTimelineEntry);
+      await this.queueRepo.removeMany([queueItem.id]);
+
+      return remoteTimelineEntry;
     }
 
     const remoteWork: WorkRecord = {
@@ -612,6 +669,10 @@ export class SyncService {
       return nextReleaseRecord;
     }
 
+    if (queueItem.entityType === 'timeline_entry') {
+      return this.resolveConflictWithLocal(queueItemId);
+    }
+
     const selectedFields = new Set<keyof WorkRecord>(
       remoteFields.filter((field): field is WorkConflictMergeField =>
         (WORK_MERGE_FIELDS as readonly string[]).includes(field),
@@ -661,6 +722,32 @@ export class SyncService {
 
         await this.releaseRecordsRepo.update({
           ...localReleaseRecord,
+          syncStatus: 'synced',
+        });
+
+        return true;
+      }
+
+      if (result.entityType === 'timeline_entry') {
+        if (
+          result.timelineEntry !== null &&
+          result.timelineEntry !== undefined
+        ) {
+          await this.timelineEntriesRepo.update(result.timelineEntry);
+
+          return true;
+        }
+
+        const localTimelineEntry = await this.timelineEntriesRepo.getById(
+          queueItem.entityId,
+        );
+
+        if (!localTimelineEntry) {
+          return true;
+        }
+
+        await this.timelineEntriesRepo.update({
+          ...localTimelineEntry,
           syncStatus: 'synced',
         });
 
@@ -729,18 +816,40 @@ export class SyncService {
     });
   }
 
-  private markEntitySyncStatus(
-    entityType: 'work' | 'release_record',
+  private async markTimelineEntrySyncStatus(
     id: string,
     syncStatus: WorkSyncStatus,
   ) {
-    return entityType === 'work'
-      ? this.markWorkSyncStatus(id, syncStatus)
-      : this.markReleaseRecordSyncStatus(id, syncStatus);
+    const timelineEntry = await this.timelineEntriesRepo.getById(id);
+
+    if (!timelineEntry || timelineEntry.syncStatus === syncStatus) {
+      return;
+    }
+
+    await this.timelineEntriesRepo.update({
+      ...timelineEntry,
+      syncStatus,
+    });
+  }
+
+  private markEntitySyncStatus(
+    entityType: 'work' | 'release_record' | 'timeline_entry',
+    id: string,
+    syncStatus: WorkSyncStatus,
+  ) {
+    if (entityType === 'work') {
+      return this.markWorkSyncStatus(id, syncStatus);
+    }
+
+    if (entityType === 'release_record') {
+      return this.markReleaseRecordSyncStatus(id, syncStatus);
+    }
+
+    return this.markTimelineEntrySyncStatus(id, syncStatus);
   }
 
   private getEntityKey(
-    entityType: 'work' | 'release_record',
+    entityType: 'work' | 'release_record' | 'timeline_entry',
     entityId: string,
   ) {
     return `${entityType}:${entityId}`;
@@ -751,12 +860,20 @@ export class SyncService {
       return result.releaseRecord ?? null;
     }
 
+    if (result.entityType === 'timeline_entry') {
+      return result.timelineEntry ?? null;
+    }
+
     return result.work ?? null;
   }
 
   private getRemotePullConflictPayload(change: PullSyncChange) {
     if (change.entityType === 'release_record') {
       return change.releaseRecord ?? null;
+    }
+
+    if (change.entityType === 'timeline_entry') {
+      return change.timelineEntry ?? null;
     }
 
     return change.work ?? null;

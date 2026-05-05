@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -11,6 +11,8 @@ import {
   type AuthContextValue,
 } from '../../auth/context/AuthContext';
 import * as userRecordsApi from '../services/user-records.api';
+import { syncQueueRepository } from '../../sync/services/sync-queue.repository';
+import { timelineEntriesRepository } from '../services/timeline-entries.repository';
 import { worksRepository } from '../services/works.repository';
 import { worksService } from '../services/works.service';
 
@@ -127,6 +129,97 @@ describe('WorkDetailPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('keeps derived timeline dates and supports manual timeline entry add/delete', async () => {
+    const work = await worksService.createWork({
+      type: 'novel',
+      title: 'Timeline Detail Work',
+      author: 'Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'in_progress',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+      startedAt: '2026-02-01T00:00:00.000Z',
+    });
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [`/works/${work.id}`],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Timeline Detail Work' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('감상 시작').length).toBeGreaterThan(0);
+
+    await user.selectOptions(
+      screen.getByLabelText('Timeline Detail Work 타임라인 유형'),
+      'rewatch',
+    );
+    await user.clear(
+      screen.getByLabelText('Timeline Detail Work 타임라인 날짜'),
+    );
+    await user.type(
+      screen.getByLabelText('Timeline Detail Work 타임라인 날짜'),
+      '2026-02-04',
+    );
+    await user.type(
+      screen.getByLabelText('Timeline Detail Work 타임라인 메모'),
+      '두 번째 감상 시작',
+    );
+    await user.click(
+      screen.getByRole('button', { name: '타임라인 기록 추가' }),
+    );
+
+    expect(await screen.findByText('두 번째 감상 시작')).toBeInTheDocument();
+    await expect
+      .poll(async () => timelineEntriesRepository.listByWorkId(work.id))
+      .toEqual([
+        expect.objectContaining({
+          note: '두 번째 감상 시작',
+          syncStatus: 'pending',
+          type: 'rewatch',
+        }),
+      ]);
+    await expect
+      .poll(async () => syncQueueRepository.listAll())
+      .toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            entityType: 'timeline_entry',
+            operation: 'create',
+          }),
+        ]),
+      );
+
+    const deleteButtons = screen.getAllByRole('button', { name: '삭제' });
+    await user.click(deleteButtons[deleteButtons.length - 1]!);
+
+    await waitFor(() => {
+      expect(screen.queryByText('두 번째 감상 시작')).not.toBeInTheDocument();
+    });
+    await expect
+      .poll(async () => timelineEntriesRepository.listByWorkId(work.id))
+      .toEqual([]);
+    await expect
+      .poll(async () =>
+        (await syncQueueRepository.listAll()).filter(
+          (item) => item.entityType === 'timeline_entry',
+        ),
+      )
+      .toEqual([]);
+  });
+
   it('saves status, rating, favorite, and short review from the detail quick record section', async () => {
     const work = await worksService.createWork({
       type: 'novel',
@@ -170,14 +263,16 @@ describe('WorkDetailPage', () => {
     await user.click(screen.getByRole('button', { name: '즐겨찾기' }));
     await user.click(screen.getByRole('button', { name: '빠른 기록 저장' }));
 
-    await expect.poll(async () => worksService.getWorkById(work.id)).toEqual(
-      expect.objectContaining({
-        favorite: true,
-        rating: 4.5,
-        shortReview: '상세에서 바로 남긴 기록',
-        status: 'completed',
-      }),
-    );
+    await expect
+      .poll(async () => worksService.getWorkById(work.id))
+      .toEqual(
+        expect.objectContaining({
+          favorite: true,
+          rating: 4.5,
+          shortReview: '상세에서 바로 남긴 기록',
+          status: 'completed',
+        }),
+      );
   });
 
   it('shows volume-level records for novels when catalog releases exist', async () => {

@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { UserReleaseRecord, WorkRecord } from '@work-archive/shared-types';
+import type {
+  TimelineEntryRecord,
+  UserReleaseRecord,
+  WorkRecord,
+} from '@work-archive/shared-types';
 
 import {
   createWorkArchiveDb,
@@ -64,6 +68,24 @@ function buildReleaseRecord(
   };
 }
 
+function buildTimelineEntry(
+  overrides: Partial<TimelineEntryRecord> = {},
+): TimelineEntryRecord {
+  return {
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    id: 'timeline-entry-1',
+    note: '첫 감상 메모',
+    occurredAt: '2026-01-02T00:00:00.000Z',
+    serverVersion: 0,
+    syncStatus: 'local-only',
+    type: 'note',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    workId: 'work-1',
+    ...overrides,
+  };
+}
+
 describe('LocalArchiveService', () => {
   let sourceDb: WorkArchiveDatabase;
   let targetDb: WorkArchiveDatabase;
@@ -83,15 +105,14 @@ describe('LocalArchiveService', () => {
   });
 
   it('exports JSON and CSV from the current local archive', async () => {
-    await sourceDb.works.add(
-      {
-        ...buildWork({
+    await sourceDb.works.add({
+      ...buildWork({
         personalTags: ['다시 볼 것', '여운 강함'],
-        }),
-        _deletedAtScope: 'active',
-      } as WorkRecord,
-    );
+      }),
+      _deletedAtScope: 'active',
+    } as WorkRecord);
     await sourceDb.releaseRecords.add(buildReleaseRecord());
+    await sourceDb.timelineEntries.add(buildTimelineEntry());
     await sourceDb.appMeta.add({
       key: 'sync.lastSuccessfulPullAt',
       value: '2026-01-03T00:00:00.000Z',
@@ -114,7 +135,7 @@ describe('LocalArchiveService', () => {
     expect(jsonExport).toMatchObject({
       format: 'work-archive.local-archive',
       version: 1,
-      schemaVersion: 1,
+      schemaVersion: 2,
       source: 'work-archive-web',
       backupExclusions: [
         'syncQueue',
@@ -125,6 +146,7 @@ describe('LocalArchiveService', () => {
       exportedAt: expect.any(String),
       works: [expect.objectContaining({ title: 'Dune' })],
       releaseRecords: [expect.objectContaining({ id: 'release-record-1' })],
+      timelineEntries: [expect.objectContaining({ id: 'timeline-entry-1' })],
       appMeta: [
         expect.objectContaining({
           key: 'sync.lastSuccessfulPullAt',
@@ -144,6 +166,7 @@ describe('LocalArchiveService', () => {
   it('previews and imports without overwriting existing local records', async () => {
     await sourceDb.works.add(buildWork());
     await sourceDb.releaseRecords.add(buildReleaseRecord());
+    await sourceDb.timelineEntries.add(buildTimelineEntry());
     await targetDb.works.add(
       buildWork({
         id: 'work-1',
@@ -157,16 +180,21 @@ describe('LocalArchiveService', () => {
     const result = await targetService.importJson(backup);
     const importedWorks = await targetDb.works.toArray();
     const importedReleaseRecords = await targetDb.releaseRecords.toArray();
+    const importedTimelineEntries = await targetDb.timelineEntries.toArray();
     const queueItems = await targetDb.syncQueue.toArray();
 
     expect(preview).toMatchObject({
       addReleaseRecordCount: 1,
+      addTimelineEntryCount: 1,
       addWorkCount: 1,
       conflictWorkCount: 1,
+      duplicateTimelineEntryCount: 0,
       duplicateWorkCount: 1,
       duplicateTitleCount: 1,
       idCollisionCount: 1,
       releaseRecordCount: 1,
+      skippedTimelineEntryCount: 0,
+      timelineEntryCount: 1,
       skippedWorkCount: 0,
       updateWorkCount: 0,
       workCount: 1,
@@ -174,12 +202,16 @@ describe('LocalArchiveService', () => {
     expect(dryRun).toEqual(preview);
     expect(result).toMatchObject({
       importedReleaseRecordCount: 1,
+      importedTimelineEntryCount: 1,
       importedWorkCount: 1,
     });
     expect(importedWorks).toHaveLength(2);
     expect(new Set(importedWorks.map((work) => work.id)).size).toBe(2);
     expect(importedReleaseRecords).toHaveLength(1);
     expect(importedReleaseRecords[0]?.userWorkRecordId).not.toBe('work-1');
+    expect(importedTimelineEntries).toHaveLength(1);
+    expect(importedTimelineEntries[0]?.workId).not.toBe('work-1');
+    expect(importedTimelineEntries[0]?.syncStatus).toBe('pending');
     expect(queueItems).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -189,6 +221,11 @@ describe('LocalArchiveService', () => {
         }),
         expect.objectContaining({
           entityType: 'release_record',
+          operation: 'create',
+          source: 'archive_migration',
+        }),
+        expect.objectContaining({
+          entityType: 'timeline_entry',
           operation: 'create',
           source: 'archive_migration',
         }),
@@ -205,6 +242,13 @@ describe('LocalArchiveService', () => {
         userWorkRecordId: 'missing-work',
       }),
     ]);
+    await sourceDb.timelineEntries.bulkAdd([
+      buildTimelineEntry(),
+      buildTimelineEntry({
+        id: 'orphan-timeline-entry',
+        workId: 'missing-work',
+      }),
+    ]);
     await sourceDb.appMeta.add({
       key: 'sync.lastSuccessfulPullAt',
       value: '2026-01-03T00:00:00.000Z',
@@ -217,9 +261,12 @@ describe('LocalArchiveService', () => {
     expect(preview).toMatchObject({
       releaseRecordCount: 1,
       skippedReleaseRecordCount: 1,
+      skippedTimelineEntryCount: 1,
+      timelineEntryCount: 1,
       workCount: 1,
     });
     expect(result.importedReleaseRecordCount).toBe(1);
+    expect(result.importedTimelineEntryCount).toBe(1);
     expect(await targetDb.appMeta.toArray()).toEqual([]);
   });
 
@@ -234,16 +281,23 @@ describe('LocalArchiveService', () => {
         deletedAt: '2026-01-04T00:00:00.000Z',
       }),
     );
+    await sourceDb.timelineEntries.add(
+      buildTimelineEntry({
+        deletedAt: '2026-01-04T00:00:00.000Z',
+      }),
+    );
 
     const backup = await sourceService.createJsonExportText();
     const result = await targetService.importJson(backup);
 
     expect(result).toMatchObject({
       importedReleaseRecordCount: 1,
+      importedTimelineEntryCount: 1,
       importedWorkCount: 1,
     });
     expect(await targetDb.works.count()).toBe(1);
     expect(await targetDb.releaseRecords.count()).toBe(1);
+    expect(await targetDb.timelineEntries.count()).toBe(1);
     expect(await targetDb.syncQueue.toArray()).toEqual([]);
   });
 

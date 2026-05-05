@@ -74,7 +74,15 @@ function getSyncOperationLabel(operation: string) {
 }
 
 function getEntityTypeLabel(entityType: SyncDashboardItem['entityType']) {
-  return entityType === 'work' ? '작품' : '권별 기록';
+  switch (entityType) {
+    case 'work':
+      return '작품';
+    case 'timeline_entry':
+      return '타임라인 기록';
+    case 'release_record':
+    default:
+      return '권별 기록';
+  }
 }
 
 function getItemStateLabel(state: SyncDashboardItem['state']) {
@@ -198,6 +206,15 @@ function formatConflictValue(value: unknown) {
 }
 
 function getConflictFields(item: SyncDashboardItem) {
+  if (item.entityType === 'timeline_entry') {
+    return [
+      { key: 'type', label: '유형' },
+      { key: 'occurredAt', label: '발생일' },
+      { key: 'note', label: '메모' },
+      { key: 'deletedAt', label: '삭제 시각' },
+    ] as const;
+  }
+
   return item.entityType === 'work'
     ? WORK_CONFLICT_FIELDS
     : RELEASE_RECORD_CONFLICT_FIELDS;
@@ -218,13 +235,14 @@ function getConflictFieldValue(
     return (snapshot as WorkRecord)[field as keyof WorkRecord];
   }
 
+  if (item.entityType === 'timeline_entry') {
+    return (snapshot as unknown as { [key: string]: unknown })[field];
+  }
+
   return (snapshot as UserReleaseRecord)[field as keyof UserReleaseRecord];
 }
 
-function hasConflictFieldDifference(
-  item: SyncDashboardItem,
-  field: string,
-) {
+function hasConflictFieldDifference(item: SyncDashboardItem, field: string) {
   return (
     formatConflictValue(getConflictFieldValue(item, field, 'local')) !==
     formatConflictValue(getConflictFieldValue(item, field, 'remote'))
@@ -236,6 +254,15 @@ function getConflictSummaryFields(item: SyncDashboardItem) {
     return [
       { key: 'status', label: '상태' },
       { key: 'rating', label: '별점' },
+      { key: 'updatedAt', label: '수정 시각' },
+      { key: 'deletedAt', label: '삭제 시각' },
+    ];
+  }
+
+  if (item.entityType === 'timeline_entry') {
+    return [
+      { key: 'type', label: '유형' },
+      { key: 'occurredAt', label: '발생일' },
       { key: 'updatedAt', label: '수정 시각' },
       { key: 'deletedAt', label: '삭제 시각' },
     ];
@@ -331,7 +358,11 @@ function ConflictResolutionPanel({
           <Stack gap="xs">
             <Text fw={700}>핵심 차이</Text>
             {summaryFields.map((field) => (
-              <SimpleGrid cols={{ base: 1, md: 3 }} key={field.key} spacing="sm">
+              <SimpleGrid
+                cols={{ base: 1, md: 3 }}
+                key={field.key}
+                spacing="sm"
+              >
                 <Text fw={700}>{field.label}</Text>
                 <Text c="var(--app-text-muted)" size="sm">
                   로컬:{' '}

@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { UserReleaseRecordResponseDto } from '../../user-records/dto/user-release-record.dto';
 import { WorkResponseDto } from '../../works/dto/work-response.dto';
+import { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
 
 const PUSH_SYNC_RESULT_STATUSES = ['applied', 'conflict', 'failed'] as const;
 const SYNC_RESULT_CODES = [
@@ -34,9 +35,9 @@ export class PushSyncResultDto {
   entityId!: string;
 
   @ApiProperty({
-    enum: ['work', 'release_record'],
+    enum: ['work', 'release_record', 'timeline_entry'],
   })
-  entityType!: 'work' | 'release_record';
+  entityType!: 'work' | 'release_record' | 'timeline_entry';
 
   @ApiProperty({
     enum: PUSH_SYNC_RESULT_STATUSES,
@@ -62,13 +63,19 @@ export class PushSyncResultDto {
     nullable: true,
   })
   releaseRecord?: UserReleaseRecordResponseDto | null;
+
+  @ApiPropertyOptional({
+    type: () => SyncTimelineEntryPayloadDto,
+    nullable: true,
+  })
+  timelineEntry?: SyncTimelineEntryPayloadDto | null;
 }
 
 export class PushSyncResponseDto {
   @ApiProperty({
-    enum: [1],
+    enum: [2],
   })
-  schemaVersion!: 1;
+  schemaVersion!: 2;
 
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',

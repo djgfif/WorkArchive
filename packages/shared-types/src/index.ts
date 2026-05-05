@@ -7,7 +7,11 @@ export interface AuditFields {
 
 export type EntityId = string;
 
-export const SYNC_ENTITY_TYPES = ['work', 'release_record'] as const;
+export const SYNC_ENTITY_TYPES = [
+  'work',
+  'release_record',
+  'timeline_entry',
+] as const;
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number];
 
@@ -380,6 +384,28 @@ export interface WorkRecord extends AuditFields {
   serverVersion: number;
 }
 
+export const TIMELINE_ENTRY_TYPES = [
+  'note',
+  'started',
+  'completed',
+  'dropped',
+  'rewatch',
+  'progress',
+] as const;
+
+export type TimelineEntryType = (typeof TIMELINE_ENTRY_TYPES)[number];
+
+export interface TimelineEntryRecord extends AuditFields {
+  id: EntityId;
+  workId: EntityId;
+  type: TimelineEntryType;
+  occurredAt: ISODateString;
+  note: string;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
 export interface UserReleaseRecord extends AuditFields {
   id: EntityId;
   userWorkRecordId: EntityId;
@@ -524,9 +550,12 @@ export interface RelatedCatalogTitlesResponse {
 export type PushResultStatus = 'applied' | 'conflict' | 'failed';
 export type PullSyncOperation = 'upsert' | 'delete';
 
-export type SyncQueuePayload = WorkRecord | UserReleaseRecord;
+export type SyncQueuePayload =
+  | WorkRecord
+  | UserReleaseRecord
+  | TimelineEntryRecord;
 
-export const SYNC_SCHEMA_VERSION = 1 as const;
+export const SYNC_SCHEMA_VERSION = 2 as const;
 
 export type SyncSchemaVersion = typeof SYNC_SCHEMA_VERSION;
 
@@ -556,6 +585,7 @@ export const SYNC_QUEUE_SOURCES = [
   'edit_form',
   'restore',
   'progress_update',
+  'timeline_entry_update',
   'release_record_update',
   'archive_migration',
   'unknown',
@@ -584,6 +614,7 @@ export interface PushSyncResult {
   message: string;
   queueId: EntityId;
   releaseRecord?: UserReleaseRecord | null;
+  timelineEntry?: TimelineEntryRecord | null;
   status: PushResultStatus;
   work?: WorkRecord | null;
 }
@@ -604,6 +635,7 @@ export interface PullSyncChange {
   entityType: SyncEntityType;
   operation: PullSyncOperation;
   releaseRecord?: UserReleaseRecord;
+  timelineEntry?: TimelineEntryRecord;
   work?: WorkRecord;
 }
 

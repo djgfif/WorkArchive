@@ -7,6 +7,7 @@ import type {
   SyncQueuePayload,
   SyncQueueSource,
   SyncResultCode,
+  TimelineEntryRecord,
   UserReleaseRecord,
   WorkRecord,
   WorkSyncStatus,
@@ -22,7 +23,7 @@ const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
 export interface SyncDashboardItem {
   id: string;
   entityId: string;
-  entityType: 'release_record' | 'work';
+  entityType: 'release_record' | 'timeline_entry' | 'work';
   deletedAt: string | null;
   lastError: string | null;
   linkTo: string | null;
@@ -101,10 +102,26 @@ function getReleaseRecordTitle(
   return `권별 기록 ${catalogReleaseId.slice(0, 8)}`;
 }
 
+function getTimelineEntryTitle(
+  timelineEntry: TimelineEntryRecord | undefined,
+  parentWork: WorkRecord | undefined,
+  queueItem: SyncQueueItemRecord,
+) {
+  if (parentWork) {
+    return `${parentWork.title} · 타임라인 기록`;
+  }
+
+  const payload = queueItem.payload as TimelineEntryRecord;
+  const entryId = timelineEntry?.id ?? payload.id ?? queueItem.entityId;
+
+  return `타임라인 기록 ${entryId.slice(0, 8)}`;
+}
+
 function buildSyncDashboardItem(
   queueItem: SyncQueueItemRecord,
   worksById: Map<string, WorkRecord>,
   releaseRecordsById: Map<string, UserReleaseRecord>,
+  timelineEntriesById: Map<string, TimelineEntryRecord>,
 ): SyncDashboardItem {
   if (queueItem.entityType === 'work') {
     const work =
@@ -131,6 +148,40 @@ function buildSyncDashboardItem(
       title: work.title,
       updatedAt: work.updatedAt,
       localSnapshot: work,
+      conflictRemote: queueItem.conflict?.remote ?? null,
+      conflictMessage: queueItem.conflict?.message ?? null,
+      conflictCode: queueItem.conflict?.code ?? null,
+      source: queueItem.source ?? 'unknown',
+    };
+  }
+
+  if (queueItem.entityType === 'timeline_entry') {
+    const timelineEntry =
+      timelineEntriesById.get(queueItem.entityId) ??
+      (queueItem.payload as TimelineEntryRecord);
+    const parentWork = worksById.get(timelineEntry.workId);
+    const syncStatus = timelineEntry.syncStatus;
+
+    return {
+      id: queueItem.id,
+      entityId: queueItem.entityId,
+      entityType: 'timeline_entry',
+      deletedAt: timelineEntry.deletedAt,
+      lastError: queueItem.lastError,
+      linkTo: parentWork ? `/works/${parentWork.id}` : null,
+      operation: queueItem.operation,
+      retryCount: queueItem.retryCount,
+      serverVersion: timelineEntry.serverVersion,
+      state:
+        syncStatus === 'conflict'
+          ? 'conflict'
+          : queueItem.lastError
+            ? 'failed'
+            : 'pending',
+      syncStatus,
+      title: getTimelineEntryTitle(timelineEntry, parentWork, queueItem),
+      updatedAt: timelineEntry.updatedAt,
+      localSnapshot: timelineEntry,
       conflictRemote: queueItem.conflict?.remote ?? null,
       conflictMessage: queueItem.conflict?.message ?? null,
       conflictCode: queueItem.conflict?.code ?? null,
@@ -179,13 +230,19 @@ export function useSyncDashboard() {
     const subscription = liveQuery(async () => {
       try {
         const db = getWorkArchiveDb();
-        const [queueItems, works, releaseRecords, lastSuccessfulPullAt] =
-          await Promise.all([
-            syncQueueRepository.listAll(),
-            db.works.toArray(),
-            db.releaseRecords.toArray(),
-            appMetaRepository.getValue(LAST_SUCCESSFUL_PULL_AT_KEY),
-          ]);
+        const [
+          queueItems,
+          works,
+          releaseRecords,
+          timelineEntries,
+          lastSuccessfulPullAt,
+        ] = await Promise.all([
+          syncQueueRepository.listAll(),
+          db.works.toArray(),
+          db.releaseRecords.toArray(),
+          db.timelineEntries.toArray(),
+          appMetaRepository.getValue(LAST_SUCCESSFUL_PULL_AT_KEY),
+        ]);
         const worksById = new Map(works.map((work) => [work.id, work]));
         const releaseRecordsById = new Map(
           releaseRecords.map((releaseRecord) => [
@@ -193,9 +250,17 @@ export function useSyncDashboard() {
             releaseRecord,
           ]),
         );
+        const timelineEntriesById = new Map(
+          timelineEntries.map((entry) => [entry.id, entry]),
+        );
         const dashboardItems = queueItems
           .map((queueItem) =>
-            buildSyncDashboardItem(queueItem, worksById, releaseRecordsById),
+            buildSyncDashboardItem(
+              queueItem,
+              worksById,
+              releaseRecordsById,
+              timelineEntriesById,
+            ),
           )
           .sort(compareSyncDashboardItems);
 

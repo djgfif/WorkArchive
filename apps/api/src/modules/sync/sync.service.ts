@@ -7,6 +7,7 @@ import {
 import {
   WorkSyncStatus,
   type Prisma,
+  type TimelineEntryType,
   type WorkStatus,
   type WorkTier,
   WorkType,
@@ -27,6 +28,11 @@ import {
   UserRecordsService,
   type WorkAggregate,
 } from '../user-records/user-records.service';
+import {
+  toUserTimelineEntryResponse,
+  UserTimelineEntriesService,
+  type UserTimelineEntryAggregate,
+} from '../user-records/user-timeline-entries.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   normalizeGenres,
@@ -45,10 +51,11 @@ import type {
   PushSyncResultDto,
 } from './dto/push-sync-response.dto';
 import type { SyncReleaseRecordPayloadDto } from './dto/sync-release-record-payload.dto';
+import type { SyncTimelineEntryPayloadDto } from './dto/sync-timeline-entry-payload.dto';
 import type { SyncWorkPayloadDto } from './dto/sync-work-payload.dto';
 
 const SERVER_SYNC_STATUS = WorkSyncStatus.synced;
-const SYNC_SCHEMA_VERSION = 1 as const;
+const SYNC_SCHEMA_VERSION = 2 as const;
 const ALREADY_APPLIED_MESSAGE =
   'Remote record already matches the queued change.';
 const APPLIED_CHANGE_MESSAGE = 'Queued change applied on the server.';
@@ -98,6 +105,8 @@ export class SyncService {
     private readonly userRecordsService: UserRecordsService,
     @Inject(UserReleaseRecordsService)
     private readonly releaseRecordsService: UserReleaseRecordsService,
+    @Inject(UserTimelineEntriesService)
+    private readonly timelineEntriesService: UserTimelineEntriesService,
   ) {}
 
   async push(
@@ -152,6 +161,10 @@ export class SyncService {
         userId,
         parsedSince,
       );
+      const timelineEntries = await this.timelineEntriesService.findByUserSince(
+        userId,
+        parsedSince,
+      );
       const pulledAt = new Date().toISOString();
       const changes = [
         ...works.map<PullSyncChangeDto>((work) => ({
@@ -166,21 +179,25 @@ export class SyncService {
           operation: releaseRecord.deletedAt === null ? 'upsert' : 'delete',
           releaseRecord: toUserReleaseRecordResponse(releaseRecord),
         })),
+        ...timelineEntries.map<PullSyncChangeDto>((timelineEntry) => ({
+          entityType: 'timeline_entry',
+          entityId: timelineEntry.id,
+          operation: timelineEntry.deletedAt === null ? 'upsert' : 'delete',
+          timelineEntry: toUserTimelineEntryResponse(timelineEntry),
+        })),
       ].sort((left, right) => {
-        const leftUpdatedAt =
-          left.entityType === 'work'
-            ? left.work!.updatedAt
-            : left.releaseRecord!.updatedAt;
-        const rightUpdatedAt =
-          right.entityType === 'work'
-            ? right.work!.updatedAt
-            : right.releaseRecord!.updatedAt;
+        const leftUpdatedAt = this.getPullChangeUpdatedAt(left);
+        const rightUpdatedAt = this.getPullChangeUpdatedAt(right);
 
         return (
           new Date(leftUpdatedAt).getTime() - new Date(rightUpdatedAt).getTime()
         );
       });
-      const changedRecords = [...works, ...releaseRecords].sort(
+      const changedRecords = [
+        ...works,
+        ...releaseRecords,
+        ...timelineEntries,
+      ].sort(
         (left, right) => left.updatedAt.getTime() - right.updatedAt.getTime(),
       );
       const response: PullSyncResponseDto = {
@@ -205,6 +222,14 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
   ): Promise<PushSyncResultDto> {
+    if (change.entityType === 'timeline_entry') {
+      return this.applyTimelineEntryChange(
+        userId,
+        change,
+        change.payload as SyncTimelineEntryPayloadDto,
+      );
+    }
+
     if (change.entityType === 'release_record') {
       return this.applyReleaseRecordChange(
         userId,
@@ -636,6 +661,190 @@ export class SyncService {
     };
   }
 
+  private async applyTimelineEntryChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncTimelineEntryPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const existing = await this.timelineEntriesService.findById(
+      change.entityId,
+    );
+
+    if (!existing) {
+      return this.applyMissingRemoteTimelineEntryChange(
+        userId,
+        change,
+        payload,
+      );
+    }
+
+    if (existing.userId !== userId) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'timeline_entry',
+        status: 'conflict',
+        code: SYNC_CODES.conflictOwnershipMismatch,
+        message:
+          'Server mismatch: the timeline entry cannot be modified remotely.',
+        timelineEntry: null,
+      };
+    }
+
+    if (existing.userWorkRecordId !== payload.workId) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'timeline_entry',
+        status: 'conflict',
+        code: SYNC_CODES.conflictParentChanged,
+        message: 'Server mismatch: timeline entry parent changed.',
+        timelineEntry: toUserTimelineEntryResponse(existing),
+      };
+    }
+
+    const validationError = await this.validateTimelineEntryTarget(
+      userId,
+      payload,
+    );
+
+    if (validationError) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'timeline_entry',
+        status: 'failed',
+        code: SYNC_CODES.failedValidation,
+        message: validationError,
+        timelineEntry: toUserTimelineEntryResponse(existing),
+      };
+    }
+
+    if (this.areTimelineEntriesEquivalent(existing, payload)) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'timeline_entry',
+        status: 'applied',
+        code: SYNC_CODES.alreadyApplied,
+        message: ALREADY_APPLIED_MESSAGE,
+        timelineEntry: toUserTimelineEntryResponse(existing),
+      };
+    }
+
+    if (!this.shouldApplyTimelineEntryLocalChange(existing, payload)) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'timeline_entry',
+        status: 'conflict',
+        code: SYNC_CODES.conflictRemoteNewer,
+        message: this.buildTimelineEntryConflictMessage(existing, payload),
+        timelineEntry: toUserTimelineEntryResponse(existing),
+      };
+    }
+
+    const updated = await this.timelineEntriesService.update(
+      change.entityId,
+      this.buildTimelineEntryUpdateData(payload),
+    );
+
+    return {
+      queueId: change.queueId,
+      entityId: change.entityId,
+      entityType: 'timeline_entry',
+      status: 'applied',
+      code:
+        payload.deletedAt === null
+          ? SYNC_CODES.appliedChange
+          : SYNC_CODES.appliedTombstone,
+      message:
+        payload.deletedAt === null
+          ? APPLIED_CHANGE_MESSAGE
+          : APPLIED_TOMBSTONE_MESSAGE,
+      timelineEntry: toUserTimelineEntryResponse(updated),
+    };
+  }
+
+  private async applyMissingRemoteTimelineEntryChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncTimelineEntryPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const isDelete =
+      change.operation === 'delete' || payload.deletedAt !== null;
+    const canCreate =
+      change.operation === 'create' && payload.serverVersion === 0;
+
+    if (isDelete) {
+      if (payload.serverVersion > 0) {
+        return {
+          queueId: change.queueId,
+          entityId: change.entityId,
+          entityType: 'timeline_entry',
+          status: 'conflict',
+          code: SYNC_CODES.conflictRemoteMissing,
+          message:
+            'Server mismatch: the timeline entry was already missing remotely.',
+          timelineEntry: null,
+        };
+      }
+
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'timeline_entry',
+        status: 'applied',
+        code: SYNC_CODES.missingRemoteDeleteNoop,
+        message: MISSING_REMOTE_DELETE_NOOP_MESSAGE,
+        timelineEntry: null,
+      };
+    }
+
+    if (!canCreate) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'timeline_entry',
+        status: 'conflict',
+        code: SYNC_CODES.conflictRemoteMissing,
+        message: 'Server mismatch: the timeline entry does not exist remotely.',
+        timelineEntry: null,
+      };
+    }
+
+    const validationError = await this.validateTimelineEntryTarget(
+      userId,
+      payload,
+    );
+
+    if (validationError) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: 'timeline_entry',
+        status: 'failed',
+        code: SYNC_CODES.failedValidation,
+        message: validationError,
+        timelineEntry: null,
+      };
+    }
+
+    const created = await this.timelineEntriesService.create(
+      this.buildTimelineEntryCreateData(userId, payload),
+    );
+
+    return {
+      queueId: change.queueId,
+      entityId: change.entityId,
+      entityType: 'timeline_entry',
+      status: 'applied',
+      code: SYNC_CODES.created,
+      message: CREATED_MESSAGE,
+      timelineEntry: toUserTimelineEntryResponse(created),
+    };
+  }
+
   private shouldApplyLocalChange(
     existing: WorkAggregate,
     payload: SyncWorkPayloadDto,
@@ -654,6 +863,21 @@ export class SyncService {
   private shouldApplyReleaseRecordLocalChange(
     existing: UserReleaseRecordAggregate,
     payload: SyncReleaseRecordPayloadDto,
+  ) {
+    if (payload.serverVersion === existing.serverVersion) {
+      return true;
+    }
+
+    if (payload.serverVersion < existing.serverVersion) {
+      return false;
+    }
+
+    return new Date(payload.updatedAt).getTime() > existing.updatedAt.getTime();
+  }
+
+  private shouldApplyTimelineEntryLocalChange(
+    existing: UserTimelineEntryAggregate,
+    payload: SyncTimelineEntryPayloadDto,
   ) {
     if (payload.serverVersion === existing.serverVersion) {
       return true;
@@ -725,6 +949,19 @@ export class SyncService {
     return null;
   }
 
+  private async validateTimelineEntryTarget(
+    userId: string,
+    payload: SyncTimelineEntryPayloadDto,
+  ) {
+    const parent = await this.userRecordsService.findById(payload.workId);
+
+    if (!parent || parent.userId !== userId) {
+      return 'Timeline entry parent is missing or belongs to a different user.';
+    }
+
+    return null;
+  }
+
   private buildReleaseRecordCreateData(
     payload: SyncReleaseRecordPayloadDto,
   ): Prisma.UserReleaseRecordUncheckedCreateInput {
@@ -757,6 +994,46 @@ export class SyncService {
       shortReview: normalizeString(payload.shortReview),
       review: normalizeString(payload.review),
       favorite: payload.favorite,
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: {
+        increment: 1,
+      },
+    };
+  }
+
+  private buildTimelineEntryCreateData(
+    userId: string,
+    payload: SyncTimelineEntryPayloadDto,
+  ): Prisma.UserTimelineEntryUncheckedCreateInput {
+    return {
+      id: payload.id,
+      userId,
+      userWorkRecordId: payload.workId,
+      type: payload.type as TimelineEntryType,
+      occurredAt: this.parseIsoDate(payload.occurredAt, 'payload.occurredAt'),
+      note: normalizeString(payload.note),
+      createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
+      updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: 1,
+    };
+  }
+
+  private buildTimelineEntryUpdateData(
+    payload: SyncTimelineEntryPayloadDto,
+  ): Prisma.UserTimelineEntryUpdateInput {
+    return {
+      type: payload.type as TimelineEntryType,
+      occurredAt: this.parseIsoDate(payload.occurredAt, 'payload.occurredAt'),
+      note: normalizeString(payload.note),
       deletedAt: this.parseOptionalIsoDate(
         payload.deletedAt,
         'payload.deletedAt',
@@ -1117,6 +1394,20 @@ export class SyncService {
     );
   }
 
+  private areTimelineEntriesEquivalent(
+    existing: UserTimelineEntryAggregate,
+    payload: SyncTimelineEntryPayloadDto,
+  ) {
+    return (
+      existing.userWorkRecordId === payload.workId &&
+      existing.type === payload.type &&
+      existing.occurredAt.toISOString() === payload.occurredAt &&
+      existing.note === normalizeString(payload.note) &&
+      existing.deletedAt?.toISOString() ===
+        (payload.deletedAt === null ? undefined : payload.deletedAt)
+    );
+  }
+
   private buildConflictMessage(
     existing: WorkAggregate,
     payload: SyncWorkPayloadDto,
@@ -1135,6 +1426,28 @@ export class SyncService {
     const localDeletedAt = payload.deletedAt ?? 'active';
 
     return `Conflict: server release-record version ${existing.serverVersion} updated at ${existing.updatedAt.toISOString()} (deletedAt: ${remoteDeletedAt}) won over local version ${payload.serverVersion} updated at ${payload.updatedAt} (deletedAt: ${localDeletedAt}).`;
+  }
+
+  private buildTimelineEntryConflictMessage(
+    existing: UserTimelineEntryAggregate,
+    payload: SyncTimelineEntryPayloadDto,
+  ) {
+    const remoteDeletedAt = existing.deletedAt?.toISOString() ?? 'active';
+    const localDeletedAt = payload.deletedAt ?? 'active';
+
+    return `Conflict: server timeline-entry version ${existing.serverVersion} updated at ${existing.updatedAt.toISOString()} (deletedAt: ${remoteDeletedAt}) won over local version ${payload.serverVersion} updated at ${payload.updatedAt} (deletedAt: ${localDeletedAt}).`;
+  }
+
+  private getPullChangeUpdatedAt(change: PullSyncChangeDto) {
+    if (change.entityType === 'work') {
+      return change.work!.updatedAt;
+    }
+
+    if (change.entityType === 'release_record') {
+      return change.releaseRecord!.updatedAt;
+    }
+
+    return change.timelineEntry!.updatedAt;
   }
 
   private parseIsoDate(value: string, fieldName: string) {

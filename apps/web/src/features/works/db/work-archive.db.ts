@@ -3,6 +3,7 @@ import Dexie, { type Table } from 'dexie';
 import type {
   AppMetaRecord,
   SyncQueueItemRecord,
+  TimelineEntryRecord,
   UserReleaseRecord,
   WorkRecord,
 } from '@work-archive/shared-types';
@@ -24,6 +25,7 @@ const knownDatabaseInstances = new Set<WorkArchiveDatabase>();
 export class WorkArchiveDatabase extends Dexie {
   works!: Table<WorkRecord, string>;
   releaseRecords!: Table<UserReleaseRecord, string>;
+  timelineEntries!: Table<TimelineEntryRecord, string>;
   syncQueue!: Table<SyncQueueItemRecord, string>;
   appMeta!: Table<AppMetaRecord, string>;
 
@@ -130,7 +132,42 @@ export class WorkArchiveDatabase extends Dexie {
           .table<WorkRecord & { _deletedAtScope?: string }, string>('works')
           .toCollection()
           .modify((work) => {
-            work._deletedAtScope = work.deletedAt === null ? 'active' : 'deleted';
+            work._deletedAtScope =
+              work.deletedAt === null ? 'active' : 'deleted';
+          }),
+      );
+
+    this.version(8).stores({
+      works:
+        'id, type, title, author, status, rating, updatedAt, deletedAt, syncStatus, _deletedAtScope, *personalTags, [deletedAt+updatedAt], [deletedAt+status], [deletedAt+type], [_deletedAtScope+updatedAt], [_deletedAtScope+status], [_deletedAtScope+type]',
+      releaseRecords:
+        'id, userWorkRecordId, catalogReleaseId, status, updatedAt, deletedAt, syncStatus, [userWorkRecordId+catalogReleaseId]',
+      timelineEntries:
+        'id, workId, type, occurredAt, deletedAt, [workId+occurredAt], [deletedAt+occurredAt]',
+      syncQueue:
+        'id, entityType, entityId, operation, createdAt, retryCount, [entityType+entityId]',
+      appMeta: 'key',
+    });
+
+    this.version(9)
+      .stores({
+        works:
+          'id, type, title, author, status, rating, updatedAt, deletedAt, syncStatus, _deletedAtScope, *personalTags, [deletedAt+updatedAt], [deletedAt+status], [deletedAt+type], [_deletedAtScope+updatedAt], [_deletedAtScope+status], [_deletedAtScope+type]',
+        releaseRecords:
+          'id, userWorkRecordId, catalogReleaseId, status, updatedAt, deletedAt, syncStatus, [userWorkRecordId+catalogReleaseId]',
+        timelineEntries:
+          'id, workId, type, occurredAt, deletedAt, syncStatus, [workId+occurredAt], [deletedAt+occurredAt]',
+        syncQueue:
+          'id, entityType, entityId, operation, createdAt, retryCount, [entityType+entityId]',
+        appMeta: 'key',
+      })
+      .upgrade((transaction) =>
+        transaction
+          .table<TimelineEntryRecord, string>('timelineEntries')
+          .toCollection()
+          .modify((entry) => {
+            entry.syncStatus ??= 'local-only';
+            entry.serverVersion ??= 0;
           }),
       );
   }
@@ -216,13 +253,11 @@ export function getWorkArchiveDb() {
 export async function clearWorkArchiveDb(db = getWorkArchiveDb()) {
   await db.transaction(
     'rw',
-    db.works,
-    db.releaseRecords,
-    db.syncQueue,
-    db.appMeta,
+    [db.works, db.releaseRecords, db.timelineEntries, db.syncQueue, db.appMeta],
     async () => {
       await db.works.clear();
       await db.releaseRecords.clear();
+      await db.timelineEntries.clear();
       await db.syncQueue.clear();
       await db.appMeta.clear();
     },

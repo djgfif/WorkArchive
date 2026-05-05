@@ -1,9 +1,11 @@
-import type {
-  AppMetaRecord,
-  SyncQueueItemRecord,
-  SyncOperation,
-  UserReleaseRecord,
-  WorkRecord,
+import {
+  TIMELINE_ENTRY_TYPES,
+  type AppMetaRecord,
+  type SyncOperation,
+  type SyncQueueItemRecord,
+  type TimelineEntryRecord,
+  type UserReleaseRecord,
+  type WorkRecord,
 } from '@work-archive/shared-types';
 
 import {
@@ -13,7 +15,7 @@ import {
 
 const ARCHIVE_FORMAT = 'work-archive.local-archive';
 const ARCHIVE_VERSION = 1;
-const ARCHIVE_SCHEMA_VERSION = 1;
+const ARCHIVE_SCHEMA_VERSION = 2;
 const ARCHIVE_SOURCE = 'work-archive-web';
 const BACKUP_EXCLUSIONS = [
   'syncQueue',
@@ -32,26 +34,32 @@ export interface LocalArchiveExport {
   releaseRecords: UserReleaseRecord[];
   schemaVersion: typeof ARCHIVE_SCHEMA_VERSION;
   source: typeof ARCHIVE_SOURCE;
+  timelineEntries: TimelineEntryRecord[];
   version: typeof ARCHIVE_VERSION;
   works: WorkRecord[];
 }
 
 export interface LocalArchiveImportPreview {
   addReleaseRecordCount: number;
+  addTimelineEntryCount: number;
   addWorkCount: number;
   conflictWorkCount: number;
+  duplicateTimelineEntryCount: number;
   duplicateTitleCount: number;
   duplicateWorkCount: number;
   idCollisionCount: number;
   releaseRecordCount: number;
   skippedReleaseRecordCount: number;
+  skippedTimelineEntryCount: number;
   skippedWorkCount: number;
+  timelineEntryCount: number;
   updateWorkCount: number;
   workCount: number;
 }
 
 export interface LocalArchiveImportResult extends LocalArchiveImportPreview {
   importedReleaseRecordCount: number;
+  importedTimelineEntryCount: number;
   importedWorkCount: number;
 }
 
@@ -144,6 +152,33 @@ function cloneReleaseRecordForImport(
   };
 }
 
+function normalizeTimelineEntry(
+  entry: TimelineEntryRecord,
+): TimelineEntryRecord {
+  return {
+    ...entry,
+    deletedAt: entry.deletedAt ?? null,
+    note: typeof entry.note === 'string' ? entry.note : '',
+    serverVersion: Number.isInteger(entry.serverVersion)
+      ? entry.serverVersion
+      : 0,
+    syncStatus: entry.syncStatus ?? 'local-only',
+    type: TIMELINE_ENTRY_TYPES.includes(entry.type) ? entry.type : 'note',
+  };
+}
+
+function cloneTimelineEntryForImport(
+  entry: TimelineEntryRecord,
+  id: string,
+  workId: string,
+): TimelineEntryRecord {
+  return {
+    ...normalizeTimelineEntry(entry),
+    id,
+    workId,
+  };
+}
+
 function parseArchive(rawValue: string): LocalArchiveExport {
   let parsedValue: unknown;
 
@@ -178,6 +213,11 @@ function parseArchive(rawValue: string): LocalArchiveExport {
     releaseRecords: parsedValue.releaseRecords as UserReleaseRecord[],
     schemaVersion: ARCHIVE_SCHEMA_VERSION,
     source: ARCHIVE_SOURCE,
+    timelineEntries: Array.isArray(parsedValue.timelineEntries)
+      ? (parsedValue.timelineEntries as TimelineEntryRecord[]).map(
+          normalizeTimelineEntry,
+        )
+      : [],
     version: ARCHIVE_VERSION,
     works: (parsedValue.works as WorkRecord[]).map(normalizeArchiveWork),
   };
@@ -241,7 +281,9 @@ function createCsvRows(works: WorkRecord[]) {
     .join('\n');
 }
 
-function createQueueItem<TPayload extends WorkRecord | UserReleaseRecord>(
+function createQueueItem<
+  TPayload extends WorkRecord | UserReleaseRecord | TimelineEntryRecord,
+>(
   entityType: SyncQueueItemRecord<TPayload>['entityType'],
   entityId: string,
   operation: SyncOperation,
@@ -265,11 +307,14 @@ export class LocalArchiveService {
 
   async createJsonExport(): Promise<LocalArchiveExport> {
     const db = this.getDb();
-    const [works, releaseRecords, appMeta] = await Promise.all([
-      db.works.toArray(),
-      db.releaseRecords.toArray(),
-      db.appMeta.toArray(),
-    ]);
+    const [works, releaseRecords, timelineEntries, appMeta] = await Promise.all(
+      [
+        db.works.toArray(),
+        db.releaseRecords.toArray(),
+        db.timelineEntries.toArray(),
+        db.appMeta.toArray(),
+      ],
+    );
 
     return {
       appMeta,
@@ -279,6 +324,7 @@ export class LocalArchiveService {
       releaseRecords,
       schemaVersion: ARCHIVE_SCHEMA_VERSION,
       source: ARCHIVE_SOURCE,
+      timelineEntries: timelineEntries.map(normalizeTimelineEntry),
       version: ARCHIVE_VERSION,
       works: works.map(stripLocalOnlyWorkFields),
     };
@@ -310,6 +356,15 @@ export class LocalArchiveService {
     const releaseRecordCount = archive.releaseRecords.filter((releaseRecord) =>
       importedWorkIds.has(releaseRecord.userWorkRecordId),
     ).length;
+    const existingTimelineEntryIds = new Set(
+      (await db.timelineEntries.toArray()).map((entry) => entry.id),
+    );
+    const timelineEntryCount = archive.timelineEntries.filter((entry) =>
+      importedWorkIds.has(entry.workId),
+    ).length;
+    const duplicateTimelineEntryCount = archive.timelineEntries.filter(
+      (entry) => existingTimelineEntryIds.has(entry.id),
+    ).length;
 
     const duplicateTitleCount = archive.works.filter(
       (work) =>
@@ -322,15 +377,20 @@ export class LocalArchiveService {
 
     return {
       addReleaseRecordCount: releaseRecordCount,
+      addTimelineEntryCount: timelineEntryCount,
       addWorkCount: archive.works.length,
       conflictWorkCount: idCollisionCount,
+      duplicateTimelineEntryCount,
       duplicateTitleCount,
       duplicateWorkCount: duplicateTitleCount,
       idCollisionCount,
       releaseRecordCount,
       skippedReleaseRecordCount:
         archive.releaseRecords.length - releaseRecordCount,
+      skippedTimelineEntryCount:
+        archive.timelineEntries.length - timelineEntryCount,
       skippedWorkCount: 0,
+      timelineEntryCount,
       updateWorkCount: 0,
       workCount: archive.works.length,
     };
@@ -350,8 +410,12 @@ export class LocalArchiveService {
     const existingReleaseRecordIds = new Set(
       (await db.releaseRecords.toArray()).map((record) => record.id),
     );
+    const existingTimelineEntryIds = new Set(
+      (await db.timelineEntries.toArray()).map((entry) => entry.id),
+    );
     const usedWorkIds = new Set(existingWorkIds);
     const usedReleaseRecordIds = new Set(existingReleaseRecordIds);
+    const usedTimelineEntryIds = new Set(existingTimelineEntryIds);
     const workIdMap = new Map<string, string>();
     const worksToImport = archive.works.map((work) => {
       let nextId = work.id;
@@ -389,15 +453,36 @@ export class LocalArchiveService {
         ];
       },
     );
+    const timelineEntriesToImport = archive.timelineEntries.flatMap((entry) => {
+      const mappedWorkId = workIdMap.get(entry.workId);
+
+      if (!mappedWorkId) {
+        return [];
+      }
+
+      let nextId = entry.id;
+
+      if (usedTimelineEntryIds.has(nextId)) {
+        nextId = crypto.randomUUID();
+      }
+
+      usedTimelineEntryIds.add(nextId);
+
+      return [cloneTimelineEntryForImport(entry, nextId, mappedWorkId)];
+    });
 
     await db.transaction(
       'rw',
       db.works,
       db.releaseRecords,
+      db.timelineEntries,
       db.syncQueue,
       async () => {
-        await db.works.bulkPut(worksToImport.map(prepareImportedWorkForStorage));
+        await db.works.bulkPut(
+          worksToImport.map(prepareImportedWorkForStorage),
+        );
         await db.releaseRecords.bulkPut(releaseRecordsToImport);
+        await db.timelineEntries.bulkPut(timelineEntriesToImport);
 
         for (const work of worksToImport) {
           if (work.deletedAt !== null) {
@@ -431,12 +516,32 @@ export class LocalArchiveService {
             }),
           );
         }
+
+        for (const timelineEntry of timelineEntriesToImport) {
+          if (timelineEntry.deletedAt !== null) {
+            continue;
+          }
+
+          const queuedTimelineEntry: TimelineEntryRecord = {
+            ...timelineEntry,
+            syncStatus: 'pending',
+          };
+
+          await db.timelineEntries.put(queuedTimelineEntry);
+          await db.syncQueue.add(
+            createQueueItem('timeline_entry', timelineEntry.id, 'create', {
+              ...timelineEntry,
+              syncStatus: 'pending',
+            }),
+          );
+        }
       },
     );
 
     return {
       ...preview,
       importedReleaseRecordCount: releaseRecordsToImport.length,
+      importedTimelineEntryCount: timelineEntriesToImport.length,
       importedWorkCount: worksToImport.length,
     };
   }
