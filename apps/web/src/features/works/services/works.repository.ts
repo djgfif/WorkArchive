@@ -1,23 +1,47 @@
+import Dexie from 'dexie';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
   getWorkArchiveDb,
   type WorkArchiveDatabase,
 } from '../db/work-archive.db';
+import type { WorksListQuery } from '../utils/query-works';
 
 type DatabaseResolver = () => WorkArchiveDatabase;
+type WorkDeletedAtScope = 'active' | 'deleted';
+type StoredWorkRecord = WorkRecord & {
+  _deletedAtScope: WorkDeletedAtScope;
+};
 
-function normalizeWorkRecord(work: WorkRecord): WorkRecord {
+function getDeletedAtScope(
+  work: Pick<WorkRecord, 'deletedAt'>,
+): WorkDeletedAtScope {
+  return work.deletedAt === null ? 'active' : 'deleted';
+}
+
+function normalizeWorkRecord(work: WorkRecord | StoredWorkRecord): WorkRecord {
+  const { _deletedAtScope: _localOnlyIndex, ...rest } =
+    work as StoredWorkRecord;
+
   return {
-    ...work,
-    startedAt: work.startedAt ?? null,
-    completedAt: work.completedAt ?? null,
-    droppedAt: work.droppedAt ?? null,
-    lastConsumedAt: work.lastConsumedAt ?? null,
-    genres: Array.isArray(work.genres) ? [...work.genres] : [],
-    personalTags: Array.isArray((work as Partial<WorkRecord>).personalTags)
-      ? [...work.personalTags]
+    ...rest,
+    startedAt: rest.startedAt ?? null,
+    completedAt: rest.completedAt ?? null,
+    droppedAt: rest.droppedAt ?? null,
+    lastConsumedAt: rest.lastConsumedAt ?? null,
+    genres: Array.isArray(rest.genres) ? [...rest.genres] : [],
+    personalTags: Array.isArray((rest as Partial<WorkRecord>).personalTags)
+      ? [...rest.personalTags]
       : [],
+  };
+}
+
+function prepareStoredWorkRecord(work: WorkRecord): StoredWorkRecord {
+  const normalizedWork = normalizeWorkRecord(work);
+
+  return {
+    ...normalizedWork,
+    _deletedAtScope: getDeletedAtScope(normalizedWork),
   };
 }
 
@@ -25,19 +49,19 @@ export class WorksRepository {
   constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
 
   async create(work: WorkRecord) {
-    const normalizedWork = normalizeWorkRecord(work);
+    const storedWork = prepareStoredWorkRecord(work);
 
-    await this.getDb().works.add(normalizedWork);
+    await this.getDb().works.add(storedWork);
 
-    return normalizedWork;
+    return normalizeWorkRecord(storedWork);
   }
 
   async update(work: WorkRecord) {
-    const normalizedWork = normalizeWorkRecord(work);
+    const storedWork = prepareStoredWorkRecord(work);
 
-    await this.getDb().works.put(normalizedWork);
+    await this.getDb().works.put(storedWork);
 
-    return normalizedWork;
+    return normalizeWorkRecord(storedWork);
   }
 
   async bulkPut(works: WorkRecord[]) {
@@ -45,11 +69,11 @@ export class WorksRepository {
       return works;
     }
 
-    const normalizedWorks = works.map(normalizeWorkRecord);
+    const storedWorks = works.map(prepareStoredWorkRecord);
 
-    await this.getDb().works.bulkPut(normalizedWorks);
+    await this.getDb().works.bulkPut(storedWorks);
 
-    return normalizedWorks;
+    return storedWorks.map(normalizeWorkRecord);
   }
 
   async getById(id: string) {
@@ -65,7 +89,8 @@ export class WorksRepository {
   async listActive() {
     return (
       await this.getDb()
-        .works.filter((work) => work.deletedAt === null)
+        .works.where('_deletedAtScope')
+        .equals('active')
         .toArray()
     ).map(normalizeWorkRecord);
   }
@@ -73,8 +98,48 @@ export class WorksRepository {
   async listDeleted() {
     return (
       await this.getDb()
-        .works.filter((work) => work.deletedAt !== null)
+        .works.where('_deletedAtScope')
+        .equals('deleted')
         .toArray()
+    ).map(normalizeWorkRecord);
+  }
+
+  async listByScopeForQuery(
+    scope: WorkDeletedAtScope,
+    query: Pick<WorksListQuery, 'sortBy' | 'status' | 'type'>,
+  ) {
+    const db = this.getDb();
+
+    if (query.status !== 'all') {
+      return (
+        await db.works
+          .where('[_deletedAtScope+status]')
+          .equals([scope, query.status])
+          .toArray()
+      ).map(normalizeWorkRecord);
+    }
+
+    if (query.type !== 'all') {
+      return (
+        await db.works
+          .where('[_deletedAtScope+type]')
+          .equals([scope, query.type])
+          .toArray()
+      ).map(normalizeWorkRecord);
+    }
+
+    if (query.sortBy === 'updatedAt') {
+      return (
+        await db.works
+          .where('[_deletedAtScope+updatedAt]')
+          .between([scope, Dexie.minKey], [scope, Dexie.maxKey])
+          .reverse()
+          .toArray()
+      ).map(normalizeWorkRecord);
+    }
+
+    return (
+      await db.works.where('_deletedAtScope').equals(scope).toArray()
     ).map(normalizeWorkRecord);
   }
 
@@ -94,11 +159,12 @@ export class WorksRepository {
       const deleted = {
         ...existing,
         ...updates,
+        _deletedAtScope: getDeletedAtScope(updates),
       };
 
       await db.works.put(deleted);
 
-      return deleted;
+      return normalizeWorkRecord(deleted);
     });
   }
 
@@ -118,11 +184,12 @@ export class WorksRepository {
       const restored = {
         ...existing,
         ...updates,
+        _deletedAtScope: getDeletedAtScope(updates),
       };
 
       await db.works.put(restored);
 
-      return restored;
+      return normalizeWorkRecord(restored);
     });
   }
 }

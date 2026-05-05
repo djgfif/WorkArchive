@@ -101,6 +101,53 @@ function getItemStateTone(state: SyncDashboardItem['state']) {
   }
 }
 
+function getFailedItemDiagnostic(item: SyncDashboardItem) {
+  if (item.state === 'conflict' || item.conflictCode) {
+    return '충돌';
+  }
+
+  const message = (item.lastError ?? '').toLowerCase();
+
+  if (
+    message.includes('로그인') ||
+    message.includes('인증') ||
+    message.includes('token') ||
+    message.includes('401')
+  ) {
+    return '인증 만료';
+  }
+
+  if (
+    message.includes('network') ||
+    message.includes('네트워크') ||
+    message.includes('연결') ||
+    message.includes('timed out') ||
+    message.includes('timeout')
+  ) {
+    return '네트워크';
+  }
+
+  if (
+    message.includes('validation') ||
+    message.includes('유효') ||
+    message.includes('필수') ||
+    message.includes('형식')
+  ) {
+    return '서버 검증';
+  }
+
+  if (
+    message.includes('server') ||
+    message.includes('서버') ||
+    message.includes('503') ||
+    message.includes('500')
+  ) {
+    return '서버 오류';
+  }
+
+  return '원인 미분류';
+}
+
 const WORK_CONFLICT_FIELDS = [
   { key: 'title', label: '제목' },
   { key: 'author', label: '작가/제작자' },
@@ -174,6 +221,16 @@ function getConflictFieldValue(
   return (snapshot as UserReleaseRecord)[field as keyof UserReleaseRecord];
 }
 
+function hasConflictFieldDifference(
+  item: SyncDashboardItem,
+  field: string,
+) {
+  return (
+    formatConflictValue(getConflictFieldValue(item, field, 'local')) !==
+    formatConflictValue(getConflictFieldValue(item, field, 'remote'))
+  );
+}
+
 function getConflictSummaryFields(item: SyncDashboardItem) {
   if (item.entityType === 'release_record') {
     return [
@@ -243,6 +300,9 @@ function ConflictResolutionPanel({
   const detailFields = fields.filter(
     (field) => !summaryFieldKeys.has(field.key),
   );
+  const changedFieldCount = fields.filter((field) =>
+    hasConflictFieldDifference(item, field.key),
+  ).length;
 
   return (
     <Stack gap="sm">
@@ -252,6 +312,11 @@ function ConflictResolutionPanel({
         <Text c="var(--app-text-muted)" size="sm">
           {conflictReason}
         </Text>
+        {hasRemoteSnapshot && (
+          <Text c="var(--app-text-muted)" size="sm">
+            로컬과 원격이 다른 필드 {changedFieldCount}개를 비교 중입니다.
+          </Text>
+        )}
       </Stack>
 
       {!hasRemoteSnapshot && (
@@ -430,7 +495,14 @@ function SyncQueueSection({
                 />
 
                 {(item.lastError || item.state === 'conflict') && (
-                  <FeedbackMessage tone="error">
+                  <FeedbackMessage
+                    title={
+                      item.state === 'failed'
+                        ? `실패 원인: ${getFailedItemDiagnostic(item)}`
+                        : undefined
+                    }
+                    tone="error"
+                  >
                     {item.lastError ??
                       '원격 변경과 충돌했습니다. 내용을 확인한 뒤 다시 동기화를 시도해 주세요.'}
                   </FeedbackMessage>

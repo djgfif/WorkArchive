@@ -56,8 +56,14 @@ describe('WorksRepository', () => {
     await repository.create(work);
 
     const created = await repository.getById(work.id);
+    const rawCreated = await db.works.get(work.id);
 
     expect(created).toEqual(work);
+    expect(rawCreated).toEqual(
+      expect.objectContaining({
+        _deletedAtScope: 'active',
+      }),
+    );
 
     const updatedWork = {
       ...work,
@@ -115,5 +121,57 @@ describe('WorksRepository', () => {
         updatedAt: '2026-01-04T00:00:00.000Z',
       }),
     );
+  });
+
+  it('queries works through scope-first indexes before applying list filters', async () => {
+    const activeOlder = buildWork({
+      id: 'active-older',
+      status: 'planned',
+      title: 'Dune',
+      type: 'novel',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+    const activeNewer = buildWork({
+      id: 'active-newer',
+      status: 'completed',
+      title: 'Arrival',
+      type: 'movie',
+      updatedAt: '2026-01-04T00:00:00.000Z',
+    });
+    const deleted = buildWork({
+      deletedAt: '2026-01-05T00:00:00.000Z',
+      id: 'deleted-work',
+      status: 'planned',
+      title: 'Deleted Dune',
+      type: 'novel',
+      updatedAt: '2026-01-05T00:00:00.000Z',
+    });
+
+    await repository.bulkPut([activeOlder, activeNewer, deleted]);
+
+    await expect(
+      repository.listByScopeForQuery('active', {
+        sortBy: 'updatedAt',
+        status: 'all',
+        type: 'all',
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: 'active-newer' }),
+      expect.objectContaining({ id: 'active-older' }),
+    ]);
+    await expect(
+      repository.listByScopeForQuery('active', {
+        sortBy: 'updatedAt',
+        status: 'completed',
+        type: 'all',
+      }),
+    ).resolves.toEqual([expect.objectContaining({ id: 'active-newer' })]);
+    await expect(
+      repository.listByScopeForQuery('deleted', {
+        sortBy: 'updatedAt',
+        status: 'all',
+        type: 'novel',
+      }),
+    ).resolves.toEqual([expect.objectContaining({ id: 'deleted-work' })]);
   });
 });

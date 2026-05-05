@@ -16,9 +16,7 @@ import {
 } from '../../../shared/services/api-client';
 import {
   clearLegacyStoredAuthTokens,
-  clearStoredAuthTokens,
   type MemoryAuthTokens,
-  writeStoredAuthTokens,
 } from './auth-storage';
 
 interface RestoredSession {
@@ -106,14 +104,12 @@ export async function restoreStoredSession(): Promise<RestoredSession | null> {
       accessToken: session.accessToken,
     };
 
-    writeStoredAuthTokens(nextTokens);
-
     return {
       tokens: nextTokens,
       user: session.user,
     };
   } catch {
-    clearStoredAuthTokens();
+    clearLegacyStoredAuthTokens();
     return null;
   }
 }

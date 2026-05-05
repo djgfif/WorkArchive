@@ -279,6 +279,58 @@ describe('SyncService', () => {
     ]);
   });
 
+  it('retries a failed queue item and removes it after a later successful push', async () => {
+    const localWork = await worksService.createWork(buildInput());
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markFailed(queueItem!.id, 'Network request failed.');
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 1,
+          processedAt: '2026-04-18T01:00:00.000Z',
+          results: [
+            {
+              queueId: queueItem!.id,
+              entityId: localWork.id,
+              entityType: 'work',
+              status: 'applied',
+              message: 'Queued record updated on the server.',
+              work: {
+                ...localWork,
+                syncStatus: 'synced',
+                serverVersion: 1,
+                updatedAt: '2026-04-18T01:00:00.000Z',
+              },
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pushQueuedChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        appliedCount: 1,
+        failedCount: 0,
+      }),
+    );
+    await expect(queueRepository.listAll()).resolves.toEqual([]);
+    await expect(worksRepository.getById(localWork.id)).resolves.toEqual(
+      expect.objectContaining({
+        syncStatus: 'synced',
+        serverVersion: 1,
+      }),
+    );
+  });
+
+
   it('marks the local work as conflict when push returns a conflict result', async () => {
     const localWork = await worksService.createWork(buildInput());
     const queueItems = await queueRepository.listAll();

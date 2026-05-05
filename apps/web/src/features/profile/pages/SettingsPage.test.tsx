@@ -318,6 +318,7 @@ describe('SettingsPage', () => {
     expect(await screen.findByText(/로그인하면/)).toBeInTheDocument();
     expect(screen.getByText('로컬 백업과 복구')).toBeInTheDocument();
     expect(screen.getByText(/syncQueue.*복원하지 않습니다/)).toBeInTheDocument();
+    expect(screen.getByText(/access token.*refresh cookie.*provider API key/)).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
     ).toBeInTheDocument();

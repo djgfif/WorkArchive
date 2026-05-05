@@ -26,6 +26,7 @@
 - refresh token을 `HttpOnly` cookie로 저장
 - 프론트는 access token을 memory-only로 관리하고 브라우저 storage에 지속 저장하지 않음
 - 앱 부팅 시 refresh cookie로 access token을 재발급하고, 실패 시 guest/local-first 상태로 fallback
+- startup refresh와 login/register가 겹쳐도 늦게 도착한 startup 실패가 완료된 authenticated 세션을 guest로 되돌리지 않음
 - `cookie-parser` 적용
 - `helmet` 적용
 - auth/sync rate limiting 적용
@@ -53,8 +54,8 @@
 
 ### Public Beta Backlog
 
-- access token memory-first 회귀 방지와 legacy storage cleanup 검증
-- refresh cookie + access token rotation failure path 검증
+- access token memory-first 회귀 방지와 legacy storage cleanup 검증 유지
+- refresh cookie + access token rotation failure path의 상위 통합 테스트 유지
 - production 환경에서 `COOKIE_SECURE`, `CORS_ORIGIN`, `SWAGGER_ENABLED` 설정 검증 절차 고정
 - 로그아웃 / 세션 만료 / 만료된 refresh cookie 처리 E2E 확인
 - 운영 secret 관리와 배포별 설정 분리 원칙 문서화
@@ -62,6 +63,7 @@
 ### Exit Checklist For This Phase
 
 - [x] access token 저장 구조에 대한 명시적 결정이 있다
+- [x] startup refresh 실패와 completed login/register race guard가 있다
 - [ ] production 설정에서 cookie / origin / Swagger 노출 정책이 검증된다
 - [ ] refresh 실패, 로그아웃, 세션 만료 시나리오가 문서와 실제 동작에서 어긋나지 않는다
 - [ ] 공개 레이어 확장 전 필요한 권한/데이터 경계 과제가 식별돼 있다

@@ -69,10 +69,14 @@ export class WorksService {
     query: WorksListQuery,
     scope: WorksCollectionScope = 'active',
   ) {
-    const allWorks = await this.repository.listAll();
-    const activeWorks = allWorks.filter((work) => work.deletedAt === null);
-    const deletedWorks = allWorks.filter((work) => work.deletedAt !== null);
-    const worksInScope = scope === 'trash' ? deletedWorks : activeWorks;
+    const [activeWorks, deletedWorks, worksInScope] = await Promise.all([
+      this.repository.listActive(),
+      this.repository.listDeleted(),
+      this.repository.listByScopeForQuery(
+        scope === 'trash' ? 'deleted' : 'active',
+        query,
+      ),
+    ]);
 
     return {
       statusCounts: countStatuses(activeWorks),

@@ -395,12 +395,18 @@ describe('SyncPage', () => {
       within(failedSection).getByText('Request timed out'),
     ).toBeInTheDocument();
     expect(
+      within(failedSection).getByText('실패 원인: 네트워크'),
+    ).toBeInTheDocument();
+    expect(
       within(conflictSection).getByText('Conflict Work'),
     ).toBeInTheDocument();
     expect(
       within(conflictSection).getByText('Remote conflict detected'),
     ).toBeInTheDocument();
     expect(within(conflictSection).getByText('충돌 해결')).toBeInTheDocument();
+    expect(
+      within(conflictSection).getByText(/로컬과 원격이 다른 필드/),
+    ).toBeInTheDocument();
     expect(
       within(conflictSection).getByText('로컬: Conflict Work'),
     ).toBeInTheDocument();

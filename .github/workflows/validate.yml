@@ -31,7 +31,7 @@ jobs:
         run: npm run typecheck
 
       - name: Test
-        run: npm run test
+        run: env TMPDIR=/tmp npm run test
 
       - name: Build
         run: npm run build

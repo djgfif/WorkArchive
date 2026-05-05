@@ -194,11 +194,14 @@ export function LocalArchiveSettingsSection({
       <ActionRow>
         <AppBadge tone="muted">appMeta 복원 안 함</AppBadge>
         <AppBadge tone="muted">syncQueue 복원 안 함</AppBadge>
+        <AppBadge tone="muted">로그인 토큰 제외</AppBadge>
+        <AppBadge tone="muted">refresh cookie 제외</AppBadge>
         <AppBadge tone="muted">API key 제외</AppBadge>
       </ActionRow>
       <Text c="var(--app-text-muted)" size="sm">
         백업 파일의 syncQueue는 특정 기기의 작업 대기열이므로 가져오기에서
-        복원하지 않습니다.
+        복원하지 않습니다. access token, refresh cookie, provider API key도
+        export/import 대상이 아닙니다.
       </Text>
 
       {archiveImportPreview && (
@@ -211,19 +214,25 @@ export function LocalArchiveSettingsSection({
           />
           <ActionRow>
             <AppBadge tone="accent">
-              작품 {archiveImportPreview.workCount}개
+              추가할 작품 {archiveImportPreview.addWorkCount}개
             </AppBadge>
             <AppBadge tone="accent">
-              권별 기록 {archiveImportPreview.releaseRecordCount}개
+              추가할 권별 기록 {archiveImportPreview.addReleaseRecordCount}개
+            </AppBadge>
+            <AppBadge tone="muted">
+              수정할 작품 {archiveImportPreview.updateWorkCount}개
             </AppBadge>
             <AppBadge tone="warning">
-              제목 중복 후보 {archiveImportPreview.duplicateTitleCount}개
+              중복 후보 {archiveImportPreview.duplicateWorkCount}개
             </AppBadge>
             <AppBadge tone="muted">
-              ID 충돌 {archiveImportPreview.idCollisionCount}개
+              ID 충돌/새 ID 발급 {archiveImportPreview.conflictWorkCount}개
             </AppBadge>
             <AppBadge tone="muted">
-              건너뛸 권별 기록 {archiveImportPreview.skippedReleaseRecordCount}개
+              건너뛸 항목{' '}
+              {archiveImportPreview.skippedWorkCount +
+                archiveImportPreview.skippedReleaseRecordCount}
+              개
             </AppBadge>
           </ActionRow>
           <ActionRow>

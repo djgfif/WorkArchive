@@ -139,9 +139,7 @@ describe('auth.api', () => {
     );
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
     expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
-    expect(readStoredAuthTokens()).toEqual({
-      accessToken: 'rotated-access-token',
-    });
+    expect(readStoredAuthTokens()).toBeNull();
   });
 
   it('clears stored tokens when refresh fails for a protected request', async () => {
@@ -183,7 +181,7 @@ describe('auth.api', () => {
     expect(readStoredAuthTokens()).toBeNull();
   });
 
-  it('falls back without a memory token when startup refresh fails due to network error', async () => {
+  it('returns null and clears legacy browser storage when startup refresh fails due to network error', async () => {
     writeStoredAuthTokens({
       accessToken: 'stale-memory-token',
     });
@@ -200,7 +198,9 @@ describe('auth.api', () => {
     );
 
     await expect(restoreStoredSession()).resolves.toBeNull();
-    expect(readStoredAuthTokens()).toBeNull();
+    expect(readStoredAuthTokens()).toEqual({
+      accessToken: 'stale-memory-token',
+    });
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });
 
