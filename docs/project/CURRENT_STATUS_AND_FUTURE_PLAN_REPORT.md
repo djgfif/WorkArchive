@@ -146,7 +146,9 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 - 로그인/회원가입/refresh 응답은 access token과 사용자 정보를 반환한다.
 - refresh token은 `HttpOnly` cookie로 저장된다.
-- 프론트는 access token만 `localStorage`에 저장한다.
+- 프론트는 access token을 브라우저 storage에 저장하지 않고 메모리에만 둔다.
+- 앱 부팅 시 기존 `work-archive.auth.tokens` local/session storage 값은 제거하고, refresh cookie로 access token을 재발급해 세션을 복구한다.
+- refresh 실패나 네트워크 실패 시 프론트는 guest/local-first 상태로 돌아간다.
 - API 요청은 `credentials: 'include'`를 사용해 refresh cookie를 함께 보낸다.
 
 ## 5. Current Product Capabilities
@@ -159,7 +161,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - 상태 / 별점 빠른 수정
 - 게스트 모드
 - 이메일/비밀번호 인증
-- access token local storage + refresh cookie 세션 복구
+- memory-only access token + refresh cookie 세션 복구
 - 사용자별 로컬 아카이브 분리
 - 로그인 직후 guest 기록 검토 후 선택 import
 - 검색 없이 제목/타입 중심으로 저장하는 직접 수동 추가
@@ -248,6 +250,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - `npm run test --workspace @work-archive/web`: `2026-04-30` 기준 `21` files, `116` tests 통과 확인
 - `npm run test --workspace @work-archive/api`: `2026-04-30` 기준 `9` suites, `71` tests 통과 확인
 - `npm run build`: `2026-04-30` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
+- GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
 ## 7. Immediate Limitations
@@ -275,7 +278,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - 현재 catalog는 shared public catalog라기보다 user record와 강하게 결합된 `1:1` 과도기 구조다.
 - sync create path는 `catalogTitleId -> importDraft -> legacy fallback` 순서로 테스트 고정돼 있다. `importDraft.catalogTitle`은 optional legacy-compatible field이며, 없으면 `payload.title`로 fallback한다.
 - 장기적으로 sync create와 Quick Add import 흐름은 `Works` compatibility layer에서 더 멀어져야 한다.
-- access token은 아직 브라우저 `localStorage`에 저장된다.
+- access token은 memory-first로 관리되며 브라우저 `localStorage`/`sessionStorage`에 지속 저장하지 않는다.
 - 공개 레이어, 세션/디바이스 관리, 공개 데이터 권한 분리 같은 확장 전 과제는 아직 남아 있다.
 
 ## 8. Where To Read Next

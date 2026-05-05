@@ -15,17 +15,15 @@ import {
 import { guestTransferService } from '../services/guest-transfer.service';
 import {
   clearStoredAuthTokens,
-  readStoredAuthTokens,
   subscribeToStoredAuthTokens,
   writeStoredAuthTokens,
-  type AuthTokenPersistence,
 } from '../services/auth-storage';
 import { workArchiveDbManager } from '../../works/db/work-archive.db';
 import { AuthContext, type AuthContextValue } from './AuthContext';
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(() => readStoredAuthTokens() !== null);
+  const [isLoading, setIsLoading] = useState(true);
   const [archiveScopeKey, setArchiveScopeKey] = useState(
     workArchiveDbManager.getCurrentScopeKey(),
   );
@@ -83,9 +81,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     tokens: {
       accessToken: string;
     },
-    persistence: AuthTokenPersistence = 'local',
   ) {
-    writeStoredAuthTokens(tokens, persistence);
+    writeStoredAuthTokens(tokens);
     activateAuthenticatedArchive(user);
 
     const pendingGuestTransfer = await guestTransferService.getPendingReview(user.id);
@@ -98,7 +95,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     return activateAuthenticatedSession(session.user, {
       accessToken: session.accessToken,
-    }, input.rememberMe ? 'local' : 'session');
+    });
   }
 
   async function signUp(input: AuthCredentialsInput) {

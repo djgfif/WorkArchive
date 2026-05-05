@@ -3,6 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UserReleaseRecord, WorkRecord } from '@work-archive/shared-types';
 
 import {
+  clearStoredAuthTokens,
+  writeStoredAuthTokens,
+} from '../../auth/services/auth-storage';
+import {
   createWorkArchiveDb,
   type WorkArchiveDatabase,
 } from '../../works/db/work-archive.db';
@@ -67,19 +71,16 @@ describe('SyncService', () => {
   afterEach(async () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    clearStoredAuthTokens();
     await db.delete();
   });
 
   it('removes successful queue items and updates the local work from push results', async () => {
     const localWork = await worksService.createWork(buildInput());
     const queueItems = await queueRepository.listAll();
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
 
     vi.stubGlobal(
       'fetch',
@@ -129,13 +130,9 @@ describe('SyncService', () => {
   it('fails push without removing queue items when the response schema version is unsupported', async () => {
     const localWork = await worksService.createWork(buildInput());
     const [queueItem] = await queueRepository.listAll();
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
 
     vi.stubGlobal(
       'fetch',
@@ -195,13 +192,9 @@ describe('SyncService', () => {
       'create',
     );
     const queueItems = await queueRepository.listAll();
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
 
     vi.stubGlobal(
       'fetch',
@@ -251,13 +244,9 @@ describe('SyncService', () => {
 
   it('keeps failed queue items with retry metadata when push fails', async () => {
     const localWork = await worksService.createWork(buildInput());
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
 
     vi.stubGlobal(
       'fetch',
@@ -293,13 +282,9 @@ describe('SyncService', () => {
   it('marks the local work as conflict when push returns a conflict result', async () => {
     const localWork = await worksService.createWork(buildInput());
     const queueItems = await queueRepository.listAll();
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
 
     vi.stubGlobal(
       'fetch',
@@ -550,13 +535,9 @@ describe('SyncService', () => {
   });
 
   it('pulls remote changes into the local database and advances the pull cursor', async () => {
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
 
     vi.stubGlobal(
       'fetch',
@@ -618,13 +599,9 @@ describe('SyncService', () => {
       'sync.lastSuccessfulPullAt',
       '2026-04-18T00:00:00.000Z',
     );
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
 
     vi.stubGlobal(
       'fetch',
@@ -664,13 +641,9 @@ describe('SyncService', () => {
       }),
     );
     const [queueItem] = await queueRepository.listAll();
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
 
     await appMetaRepository.setValue(
       'sync.lastSuccessfulPullAt',

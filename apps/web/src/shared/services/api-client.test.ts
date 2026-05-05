@@ -6,7 +6,11 @@ import {
   requestAuthenticatedApi,
   requestAuthenticatedApiJson,
 } from './api-client';
-import { readStoredAuthTokens } from '../../features/auth/services/auth-storage';
+import {
+  clearStoredAuthTokens,
+  readStoredAuthTokens,
+  writeStoredAuthTokens,
+} from '../../features/auth/services/auth-storage';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -21,17 +25,15 @@ describe('api-client', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    clearStoredAuthTokens();
     window.localStorage.clear();
     window.sessionStorage.clear();
   });
 
   it('retries a 401 protected request once after refresh succeeds', async () => {
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'expired-access-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'expired-access-token',
+    });
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ message: 'expired' }, 401))
@@ -70,12 +72,9 @@ describe('api-client', () => {
   });
 
   it('clears tokens when refresh fails after a protected 401', async () => {
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'expired-access-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'expired-access-token',
+    });
     vi.stubGlobal(
       'fetch',
       vi
@@ -116,12 +115,9 @@ describe('api-client', () => {
   });
 
   it('accepts empty 204 responses for void authenticated requests', async () => {
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -169,12 +165,9 @@ describe('api-client', () => {
   });
 
   it('keeps non-JSON bodies under caller-owned content type', async () => {
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
     const body = new FormData();
 

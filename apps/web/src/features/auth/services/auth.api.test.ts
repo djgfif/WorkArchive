@@ -5,7 +5,11 @@ import {
   requestAuthenticatedApiJson,
   restoreStoredSession,
 } from './auth.api';
-import { readStoredAuthTokens } from './auth-storage';
+import {
+  clearStoredAuthTokens,
+  readStoredAuthTokens,
+  writeStoredAuthTokens,
+} from './auth-storage';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -20,17 +24,15 @@ describe('auth.api', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    clearStoredAuthTokens();
     window.localStorage.clear();
     window.sessionStorage.clear();
   });
 
   it('retries protected API requests with a refreshed Bearer token', async () => {
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'expired-access-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'expired-access-token',
+    });
 
     const fetchMock = vi
       .fn()
@@ -76,7 +78,6 @@ describe('auth.api', () => {
     });
     expect(readStoredAuthTokens()).toEqual({
       accessToken: 'rotated-access-token',
-      persistence: 'local',
     });
 
     const firstAttemptHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
@@ -93,49 +94,36 @@ describe('auth.api', () => {
     );
   });
 
-  it('restores a stored session after refreshing an expired access token', async () => {
+  it('restores a session from the refresh cookie and clears legacy stored tokens', async () => {
     window.localStorage.setItem(
       'work-archive.auth.tokens',
       JSON.stringify({
-        accessToken: 'expired-access-token',
+        accessToken: 'legacy-access-token',
+      }),
+    );
+    window.sessionStorage.setItem(
+      'work-archive.auth.tokens',
+      JSON.stringify({
+        accessToken: 'legacy-session-token',
       }),
     );
 
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValueOnce(
-          jsonResponse(
-            {
-              message: 'Invalid or expired token.',
-            },
-            401,
-          ),
-        )
-        .mockResolvedValueOnce(
-          jsonResponse({
-            accessToken: 'rotated-access-token',
-            user: {
-              id: 'user-1',
-              email: 'frieren@example.com',
-              nickname: '',
-            },
-          }),
-        )
-        .mockResolvedValueOnce(
-          jsonResponse({
-            id: 'user-1',
-            email: 'frieren@example.com',
-            nickname: '',
-          }),
-        ),
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        accessToken: 'rotated-access-token',
+        user: {
+          id: 'user-1',
+          email: 'frieren@example.com',
+          nickname: '',
+        },
+      }),
     );
+
+    vi.stubGlobal('fetch', fetchMock);
 
     await expect(restoreStoredSession()).resolves.toEqual({
       tokens: {
         accessToken: 'rotated-access-token',
-        persistence: 'local',
       },
       user: {
         id: 'user-1',
@@ -143,15 +131,23 @@ describe('auth.api', () => {
         nickname: '',
       },
     });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/refresh'),
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+    expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
+    expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
+    expect(readStoredAuthTokens()).toEqual({
+      accessToken: 'rotated-access-token',
+    });
   });
 
   it('clears stored tokens when refresh fails for a protected request', async () => {
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'expired-access-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'expired-access-token',
+    });
 
     vi.stubGlobal(
       'fetch',
@@ -187,11 +183,14 @@ describe('auth.api', () => {
     expect(readStoredAuthTokens()).toBeNull();
   });
 
-  it('keeps stored tokens when restore fails due to network error', async () => {
+  it('falls back without a memory token when startup refresh fails due to network error', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'stale-memory-token',
+    });
     window.localStorage.setItem(
       'work-archive.auth.tokens',
       JSON.stringify({
-        accessToken: 'access-token',
+        accessToken: 'legacy-access-token',
       }),
     );
 
@@ -201,20 +200,14 @@ describe('auth.api', () => {
     );
 
     await expect(restoreStoredSession()).resolves.toBeNull();
-    expect(readStoredAuthTokens()).toEqual({
-      accessToken: 'access-token',
-      persistence: 'local',
-    });
+    expect(readStoredAuthTokens()).toBeNull();
+    expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });
 
-  it('preserves session storage persistence when refreshing an access token', async () => {
-    window.sessionStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'expired-access-token',
-        persistence: 'session',
-      }),
-    );
+  it('keeps refreshed access tokens in memory instead of browser storage', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'expired-access-token',
+    });
 
     vi.stubGlobal(
       'fetch',
@@ -255,11 +248,9 @@ describe('auth.api', () => {
     });
 
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
-    expect(
-      JSON.parse(window.sessionStorage.getItem('work-archive.auth.tokens') ?? 'null'),
-    ).toEqual({
+    expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
+    expect(readStoredAuthTokens()).toEqual({
       accessToken: 'rotated-access-token',
-      persistence: 'session',
     });
   });
 });

@@ -107,7 +107,7 @@ describe('WorksListPage', () => {
     expect(screen.queryByText('4권까지')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Dune 진행도 67%')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '리스트' }));
+    await user.click(await screen.findByRole('button', { name: '리스트' }));
     expect(
       await screen.findByText('모래 행성의 정치와 신화가 좋다.'),
     ).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('WorksListPage', () => {
       screen.queryByLabelText('URL View Work 상태'),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '리스트' }));
+    await user.click(await screen.findByRole('button', { name: '리스트' }));
 
     await waitFor(() => {
       expect(router.state.location.search).toBe('?view=list');
@@ -202,7 +202,7 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    await user.click(screen.getByRole('button', { name: '리스트' }));
+    await user.click(await screen.findByRole('button', { name: '리스트' }));
     await screen.findByText('Frieren');
 
     await user.selectOptions(
