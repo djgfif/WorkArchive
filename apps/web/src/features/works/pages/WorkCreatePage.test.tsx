@@ -5,6 +5,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ImportCandidate } from '../../imports/services/imports.service';
 import { AuthContext } from '../../auth/context/AuthContext';
+import {
+  clearStoredAuthTokens,
+  writeStoredAuthTokens,
+} from '../../auth/services/auth-storage';
 import { syncQueueRepository } from '../../sync/services/sync-queue.repository';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { workArchiveDbManager } from '../db/work-archive.db';
@@ -108,12 +112,9 @@ function getFetchUrl(input: RequestInfo | URL) {
 }
 
 function mockAuthenticatedSearch(candidate: ImportCandidate) {
-  window.localStorage.setItem(
-    'work-archive.auth.tokens',
-    JSON.stringify({
-      accessToken: 'access-token',
-    }),
-  );
+  writeStoredAuthTokens({
+    accessToken: 'access-token',
+  });
 
   const fetchMock = vi.fn(
     async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -277,6 +278,7 @@ describe('WorkCreatePage', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    clearStoredAuthTokens();
     window.localStorage.clear();
   });
 

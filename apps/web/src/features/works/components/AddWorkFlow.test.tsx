@@ -7,6 +7,10 @@ import type { WorkRecord } from '@work-archive/shared-types';
 
 import type { ImportCandidate } from '../../imports/services/imports.service';
 import { AuthContext } from '../../auth/context/AuthContext';
+import {
+  clearStoredAuthTokens,
+  writeStoredAuthTokens,
+} from '../../auth/services/auth-storage';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { workArchiveDbManager } from '../db/work-archive.db';
 import { worksRepository } from '../services/works.repository';
@@ -223,12 +227,9 @@ function mockAuthenticatedSearchResponse(
     status?: number;
   } = {},
 ) {
-  window.localStorage.setItem(
-    'work-archive.auth.tokens',
-    JSON.stringify({
-      accessToken: 'access-token',
-    }),
-  );
+  writeStoredAuthTokens({
+    accessToken: 'access-token',
+  });
 
   return mockImportsFetch({
     candidates,
@@ -269,7 +270,7 @@ function renderAuthenticatedAddWorkFlow(onSubmit = vi.fn()) {
 
 function renderGuestAddWorkFlow(onSubmit = vi.fn()) {
   workArchiveDbManager.switchToGuest();
-  window.localStorage.removeItem('work-archive.auth.tokens');
+  clearStoredAuthTokens();
 
   return renderWithProviders(
     <MemoryRouter>
@@ -429,6 +430,7 @@ describe('AddWorkFlow', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    clearStoredAuthTokens();
     window.localStorage.clear();
   });
 

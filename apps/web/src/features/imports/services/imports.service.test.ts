@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  clearStoredAuthTokens,
+  writeStoredAuthTokens,
+} from '../../auth/services/auth-storage';
 import { ImportsService } from './imports.service';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -19,6 +23,7 @@ describe('ImportsService', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    clearStoredAuthTokens();
     window.localStorage.clear();
   });
 
@@ -141,12 +146,9 @@ describe('ImportsService', () => {
   });
 
   it('uses an authenticated imports search request when an access token is stored', async () => {
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
         provider: 'aladin',

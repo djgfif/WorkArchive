@@ -15,13 +15,14 @@ import {
   requestAuthenticatedApiJson,
 } from '../../../shared/services/api-client';
 import {
+  clearLegacyStoredAuthTokens,
   clearStoredAuthTokens,
-  readStoredAuthTokens,
-  type StoredAuthTokens,
+  type MemoryAuthTokens,
+  writeStoredAuthTokens,
 } from './auth-storage';
 
 interface RestoredSession {
-  tokens: StoredAuthTokens;
+  tokens: MemoryAuthTokens;
   user: AuthUserResponse;
 }
 
@@ -97,29 +98,22 @@ export async function logoutSession() {
 }
 
 export async function restoreStoredSession(): Promise<RestoredSession | null> {
-  const storedTokens = readStoredAuthTokens();
-
-  if (!storedTokens) {
-    return null;
-  }
+  clearLegacyStoredAuthTokens();
 
   try {
-    const user = await requestAuthenticatedApiJson<AuthUser>('/auth/me', {
-      method: 'GET',
-    });
-    const nextTokens = readStoredAuthTokens() ?? storedTokens;
+    const session = await refreshSession();
+    const nextTokens = {
+      accessToken: session.accessToken,
+    };
+
+    writeStoredAuthTokens(nextTokens);
 
     return {
       tokens: nextTokens,
-      user,
+      user: session.user,
     };
-  } catch (error) {
-    if (error instanceof ApiRequestError && error.status === 401) {
-      clearStoredAuthTokens();
-    }
-
+  } catch {
+    clearStoredAuthTokens();
     return null;
   }
-
-  return null;
 }

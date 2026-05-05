@@ -24,9 +24,17 @@ describe('Auth flow', () => {
   });
 
   it('registers a user account and signs out back to guest mode', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            message: 'Invalid or expired refresh token.',
+          },
+          401,
+        ),
+      )
+      .mockResolvedValueOnce(
         jsonResponse({
           accessToken: 'access-token',
           user: {
@@ -35,8 +43,10 @@ describe('Auth flow', () => {
             nickname: '',
           },
         }),
-      ),
-    );
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    vi.stubGlobal('fetch', fetchMock);
 
     const user = userEvent.setup();
     const router = createMemoryRouter(appRoutes, {
@@ -77,7 +87,17 @@ describe('Auth flow', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              message: 'Invalid or expired refresh token.',
+            },
+            401,
+          ),
+        )
+        .mockResolvedValueOnce(
         jsonResponse({
           accessToken: 'access-token',
           user: {
@@ -86,7 +106,7 @@ describe('Auth flow', () => {
             nickname: '',
           },
         }),
-      ),
+        ),
     );
 
     const user = userEvent.setup();
@@ -107,19 +127,22 @@ describe('Auth flow', () => {
     expect(await screen.findByText('게스트 기록 검토')).toBeInTheDocument();
   });
 
-  it('restores a stored session by calling /auth/me on startup', async () => {
+  it('restores a session by calling /auth/refresh on startup', async () => {
     window.localStorage.setItem(
       'work-archive.auth.tokens',
       JSON.stringify({
-        accessToken: 'access-token',
+        accessToken: 'legacy-access-token',
       }),
     );
 
-    const fetchMock = vi.fn().mockResolvedValue(
+    const fetchMock = vi.fn().mockResolvedValueOnce(
       jsonResponse({
-        id: 'user-1',
-        email: 'frieren@example.com',
-        nickname: '',
+        accessToken: 'refreshed-access-token',
+        user: {
+          id: 'user-1',
+          email: 'frieren@example.com',
+          nickname: '',
+        },
       }),
     );
 
@@ -137,48 +160,29 @@ describe('Auth flow', () => {
 
     expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/auth/me'),
+      expect.stringContaining('/auth/refresh'),
       expect.objectContaining({
-        headers: expect.any(Headers),
-        method: 'GET',
+        method: 'POST',
       }),
     );
+    expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });
 
-  it('refreshes an expired stored session before entering authenticated mode', async () => {
+  it('falls back to guest mode when startup refresh fails', async () => {
     window.localStorage.setItem(
       'work-archive.auth.tokens',
       JSON.stringify({
-        accessToken: 'expired-access-token',
+        accessToken: 'legacy-access-token',
       }),
     );
 
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
+    const fetchMock = vi.fn().mockResolvedValueOnce(
         jsonResponse(
           {
-            message: 'Invalid or expired token.',
+          message: 'Invalid or expired refresh token.',
           },
           401,
         ),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          accessToken: 'rotated-access-token',
-          user: {
-            id: 'user-1',
-            email: 'frieren@example.com',
-            nickname: '',
-          },
-        }),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          id: 'user-1',
-          email: 'frieren@example.com',
-          nickname: '',
-        }),
       );
 
     vi.stubGlobal('fetch', fetchMock);
@@ -193,39 +197,37 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
-    expect(
-      JSON.parse(window.localStorage.getItem('work-archive.auth.tokens') ?? 'null'),
-    ).toEqual({
-      accessToken: 'rotated-access-token',
-      persistence: 'local',
-    });
-
-    const firstAttemptHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
-    const retryHeaders = fetchMock.mock.calls[2]?.[1]?.headers as Headers;
-
-    expect(firstAttemptHeaders.get('authorization')).toBe(
-      'Bearer expired-access-token',
-    );
-    expect(fetchMock.mock.calls[1]?.[0]).toEqual(
+    expect(await screen.findByRole('link', { name: '로그인' })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/auth/refresh'),
-    );
-    expect(retryHeaders.get('authorization')).toBe(
-      'Bearer rotated-access-token',
-    );
-  });
-
-  it('stores login tokens in localStorage only when remember-me is checked', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({
-        accessToken: 'access-token',
-        user: {
-          id: 'user-1',
-          email: 'frieren@example.com',
-          nickname: '',
-        },
+      expect.objectContaining({
+        method: 'POST',
       }),
     );
+    expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
+  });
+
+  it('keeps login access tokens out of browser storage when remember-me is checked', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            message: 'Invalid or expired refresh token.',
+          },
+          401,
+        ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          accessToken: 'access-token',
+          user: {
+            id: 'user-1',
+            email: 'frieren@example.com',
+            nickname: '',
+          },
+        }),
+      );
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -251,31 +253,36 @@ describe('Auth flow', () => {
     await user.click(screen.getByRole('button', { name: '로그인' }));
 
     expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
-    expect(
-      JSON.parse(window.localStorage.getItem('work-archive.auth.tokens') ?? 'null'),
-    ).toEqual({
-      accessToken: 'access-token',
-      persistence: 'local',
-    });
+    expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
     expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toMatchObject({
       rememberMe: true,
     });
   });
 
-  it('uses sessionStorage for login tokens when remember-me is not checked', async () => {
+  it('keeps login access tokens out of browser storage when remember-me is not checked', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({
-          accessToken: 'access-token',
-          user: {
-            id: 'user-1',
-            email: 'frieren@example.com',
-            nickname: '',
-          },
-        }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              message: 'Invalid or expired refresh token.',
+            },
+            401,
+          ),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            accessToken: 'access-token',
+            user: {
+              id: 'user-1',
+              email: 'frieren@example.com',
+              nickname: '',
+            },
+          }),
+        ),
     );
 
     const user = userEvent.setup();
@@ -295,17 +302,20 @@ describe('Auth flow', () => {
 
     expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
-    expect(
-      JSON.parse(window.sessionStorage.getItem('work-archive.auth.tokens') ?? 'null'),
-    ).toEqual({
-      accessToken: 'access-token',
-      persistence: 'session',
-    });
+    expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });
 
   it('requests a development password reset link', async () => {
     const fetchMock = vi
       .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            message: 'Invalid or expired refresh token.',
+          },
+          401,
+        ),
+      )
       .mockResolvedValueOnce(
         jsonResponse({
           developmentResetUrl:
@@ -332,17 +342,27 @@ describe('Auth flow', () => {
     await user.click(screen.getByRole('button', { name: '재설정 링크 만들기' }));
 
     expect(await screen.findByText('개발용 복구 링크')).toBeInTheDocument();
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
       email: 'frieren@example.com',
     });
   });
 
   it('confirms a development password reset token', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(
-      jsonResponse({
-        message: '비밀번호가 재설정되었습니다.',
-      }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            message: 'Invalid or expired refresh token.',
+          },
+          401,
+        ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          message: '비밀번호가 재설정되었습니다.',
+        }),
+      );
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -367,7 +387,7 @@ describe('Auth flow', () => {
     await user.click(screen.getByRole('button', { name: '새 비밀번호 저장' }));
 
     expect(await screen.findByText('비밀번호가 재설정되었습니다.')).toBeInTheDocument();
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
       password: 'new-password-123',
       token: 'reset-token',
     });

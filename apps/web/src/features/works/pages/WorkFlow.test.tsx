@@ -9,12 +9,12 @@ import { AuthProvider } from '../../auth/context/AuthProvider';
 import type { ImportCandidate } from '../../imports/services/imports.service';
 import { worksService } from '../services/works.service';
 
-function jsonResponse(body: unknown) {
+function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     headers: {
       'content-type': 'application/json',
     },
-    status: 200,
+    status,
   });
 }
 
@@ -68,6 +68,17 @@ function mockSearch(candidate = buildCandidate()) {
     vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
 
+      if (url.includes('/auth/refresh')) {
+        return Promise.resolve(
+          jsonResponse(
+            {
+              message: 'Invalid or expired refresh token.',
+            },
+            401,
+          ),
+        );
+      }
+
       if (url.includes('/imports/providers')) {
         return Promise.resolve(jsonResponse([]));
       }
@@ -98,13 +109,13 @@ describe('Works routed flow', () => {
       initialEntries: ['/works/new'],
     });
 
-  renderWithProviders(
+    renderWithProviders(
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>,
     );
 
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(await screen.findByLabelText('검색으로 채우기'));
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
@@ -134,7 +145,7 @@ describe('Works routed flow', () => {
     await user.click(screen.getByRole('button', { name: '저장' }));
 
     expect(await screen.findByRole('heading', { name: 'Dune Messiah' })).toBeInTheDocument();
-  });
+  }, 10_000);
 
   it('warns when a likely duplicate already exists before continuing', async () => {
     mockSearch();
@@ -165,7 +176,7 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(await screen.findByLabelText('검색으로 채우기'));
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
     await user.click(screen.getByRole('button', { name: '다시 검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);

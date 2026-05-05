@@ -119,8 +119,6 @@ export async function requestApiJson<TResponse>(
 }
 
 async function refreshStoredTokens() {
-  const storedTokens = readStoredAuthTokens();
-
   try {
     const refreshedSession = await requestApiJson<AuthSessionResponse>('/auth/refresh', {
       method: 'POST',
@@ -129,7 +127,7 @@ async function refreshStoredTokens() {
       accessToken: refreshedSession.accessToken,
     };
 
-    writeStoredAuthTokens(nextTokens, storedTokens?.persistence ?? 'local');
+    writeStoredAuthTokens(nextTokens);
 
     return nextTokens;
   } catch (error) {

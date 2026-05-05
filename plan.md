@@ -55,6 +55,8 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - Sync conflict 해결은 로컬 유지, 원격 적용, 필드별 병합을 지원한다. 자동 병합 판단은 현재 제품 기준에서 채택하지 않는다.
 - Quick Add 검색 ranking은 제목 exact/alias/token, 제작자, 발매연도, provider/source coverage, catalog match를 반영한다.
 - 낮은 신뢰도 검색 후보는 직접 추가 fallback을 방해하지 않도록 후보 UI에서 검토 안내를 표시한다.
+- access token은 브라우저 storage에 저장하지 않고 메모리에만 둔다. 앱 부팅은 `HttpOnly` refresh cookie로 세션을 복구하며, 실패하면 guest archive로 돌아간다.
+- GitHub Actions `validate` workflow는 이미 존재한다. 이 문서 기준 required checks는 repository setting에서 별도 관리한다.
 
 ## Current Follow-Up Work
 
@@ -63,7 +65,7 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - Sync conflict 해결 UX polish와 고급 자동 병합 정책 검토
 - 로그인 직후 pull 자동화 검토
 - `Works` compatibility layer 축소와 `Catalog` / `Imports` / `UserRecords` 경계 정리
-- access token 저장 구조와 공개 레이어 권한 분리
+- 공개 레이어 권한 분리와 production cookie/origin/secret 운영 검증
 
 ## Documentation Sync Checklist
 

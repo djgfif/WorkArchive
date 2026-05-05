@@ -5,6 +5,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { AuthContext } from '../../auth/context/AuthContext';
+import {
+  clearStoredAuthTokens,
+  writeStoredAuthTokens,
+} from '../../auth/services/auth-storage';
 import { SettingsPage } from './SettingsPage';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -68,18 +72,16 @@ function renderGuestSettings() {
 
 describe('SettingsPage', () => {
   afterEach(() => {
+    clearStoredAuthTokens();
     window.localStorage.clear();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
   it('renders provider readiness cards for public and user-key credential modes', async () => {
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-      }),
-    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse([
         {
@@ -171,12 +173,9 @@ describe('SettingsPage', () => {
   ])(
     'saves and deletes the authenticated user $label key without showing it again',
     async ({ fields, label, provider }) => {
-      window.localStorage.setItem(
-        'work-archive.auth.tokens',
-        JSON.stringify({
-          accessToken: 'access-token',
-        }),
-      );
+      writeStoredAuthTokens({
+        accessToken: 'access-token',
+      });
       const providerStatuses = [
         {
           provider: 'manual',

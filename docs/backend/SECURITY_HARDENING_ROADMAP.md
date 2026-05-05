@@ -24,7 +24,8 @@
 - 보호 API에 인증 가드 적용
 - ValidationPipe 사용
 - refresh token을 `HttpOnly` cookie로 저장
-- 프론트는 access token만 `localStorage`에 저장
+- 프론트는 access token을 memory-only로 관리하고 브라우저 storage에 지속 저장하지 않음
+- 앱 부팅 시 refresh cookie로 access token을 재발급하고, 실패 시 guest/local-first 상태로 fallback
 - `cookie-parser` 적용
 - `helmet` 적용
 - auth/sync rate limiting 적용
@@ -34,6 +35,7 @@
 즉, 아래 항목은 더 이상 “계획만 있는 미래 작업”이 아니다.
 
 - refresh token cookie 전환
+- access token memory-first 전환
 - strict CORS whitelist
 - auth/sync rate limiting
 - 기본 보안 헤더
@@ -41,18 +43,17 @@
 
 ## Committed Now
 
-공개 전까지 남은 보안 우선순위는 아래 네 가지로 정리한다.
+공개 전까지 남은 보안 우선순위는 아래 세 가지로 정리한다.
 
-1. access token 저장 구조와 세션 복구 UX 재검토
-2. 배포 환경 기준 cookie / origin / secret 운영 검증
-3. 로그아웃 / 세션 만료 / refresh 실패 시나리오 정합성 검증
-4. 공개 확장 전 권한 및 공개 데이터 경계 준비
+1. 배포 환경 기준 cookie / origin / secret 운영 검증
+2. 로그아웃 / 세션 만료 / refresh 실패 시나리오 정합성 검증
+3. 공개 확장 전 권한 및 공개 데이터 경계 준비
 
 ## Next
 
 ### Public Beta Backlog
 
-- access token의 `localStorage` 저장 구조를 유지할지 대체할지 정책 확정
+- access token memory-first 회귀 방지와 legacy storage cleanup 검증
 - refresh cookie + access token rotation failure path 검증
 - production 환경에서 `COOKIE_SECURE`, `CORS_ORIGIN`, `SWAGGER_ENABLED` 설정 검증 절차 고정
 - 로그아웃 / 세션 만료 / 만료된 refresh cookie 처리 E2E 확인
@@ -60,7 +61,7 @@
 
 ### Exit Checklist For This Phase
 
-- [ ] access token 저장 구조에 대한 명시적 결정이 있다
+- [x] access token 저장 구조에 대한 명시적 결정이 있다
 - [ ] production 설정에서 cookie / origin / Swagger 노출 정책이 검증된다
 - [ ] refresh 실패, 로그아웃, 세션 만료 시나리오가 문서와 실제 동작에서 어긋나지 않는다
 - [ ] 공개 레이어 확장 전 필요한 권한/데이터 경계 과제가 식별돼 있다

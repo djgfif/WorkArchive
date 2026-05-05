@@ -3,7 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { UserReleaseRecord, WorkRecord } from '@work-archive/shared-types';
+import {
+  SYNC_SCHEMA_VERSION,
+  type UserReleaseRecord,
+  type WorkRecord,
+} from '@work-archive/shared-types';
 
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
@@ -21,6 +25,26 @@ function jsonResponse(body: unknown, status = 200) {
       'content-type': 'application/json',
     },
   });
+}
+
+function authSessionResponse(accessToken = 'access-token') {
+  return jsonResponse({
+    accessToken,
+    user: {
+      id: 'user-1',
+      email: 'frieren@example.com',
+      nickname: '',
+    },
+  });
+}
+
+function rejectedRefreshResponse() {
+  return jsonResponse(
+    {
+      message: 'Invalid or expired refresh token.',
+    },
+    401,
+  );
 }
 
 function buildStoredWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
@@ -87,13 +111,6 @@ describe('SyncPage', () => {
 
   it('runs a manual sync and shows the success state', async () => {
     workArchiveDbManager.switchToUser('user-1');
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
 
     const localWork = await worksService.createWork({
       type: 'novel',
@@ -113,15 +130,10 @@ describe('SyncPage', () => {
 
     const fetchMock = vi
       .fn()
+      .mockResolvedValueOnce(authSessionResponse())
       .mockResolvedValueOnce(
         jsonResponse({
-          id: 'user-1',
-          email: 'frieren@example.com',
-          nickname: '',
-        }),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
+          schemaVersion: SYNC_SCHEMA_VERSION,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -142,6 +154,7 @@ describe('SyncPage', () => {
       )
       .mockResolvedValueOnce(
         jsonResponse({
+          schemaVersion: SYNC_SCHEMA_VERSION,
           pulledAt: '2026-04-18T01:00:01.000Z',
           nextSince: '2026-04-18T01:00:00.000Z',
           changes: [],
@@ -182,6 +195,8 @@ describe('SyncPage', () => {
   });
 
   it('shows explicit guest mode messaging and disables manual sync', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(rejectedRefreshResponse()));
+
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/sync'],
     });
@@ -209,13 +224,6 @@ describe('SyncPage', () => {
 
   it('returns to guest mode when a protected sync request cannot refresh the session', async () => {
     workArchiveDbManager.switchToUser('user-1');
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'expired-access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
 
     await worksService.createWork({
       type: 'novel',
@@ -236,13 +244,7 @@ describe('SyncPage', () => {
       'fetch',
       vi
         .fn()
-        .mockResolvedValueOnce(
-          jsonResponse({
-            id: 'user-1',
-            email: 'frieren@example.com',
-            nickname: '',
-          }),
-        )
+        .mockResolvedValueOnce(authSessionResponse('expired-access-token'))
         .mockResolvedValueOnce(
           jsonResponse(
             {
@@ -288,13 +290,6 @@ describe('SyncPage', () => {
 
   it('groups queued changes into pending, failed, and conflict sections', async () => {
     workArchiveDbManager.switchToUser('user-1');
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
 
     const pendingWork = await worksService.createWork({
       type: 'novel',
@@ -372,13 +367,7 @@ describe('SyncPage', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({
-          id: 'user-1',
-          email: 'frieren@example.com',
-          nickname: '',
-        }),
-      ),
+      vi.fn().mockResolvedValue(authSessionResponse()),
     );
 
     const router = createMemoryRouter(appRoutes, {
@@ -439,13 +428,6 @@ describe('SyncPage', () => {
     const user = userEvent.setup();
 
     workArchiveDbManager.switchToUser('user-1');
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
 
     const conflictWork = await worksService.createWork({
       type: 'novel',
@@ -481,13 +463,7 @@ describe('SyncPage', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({
-          id: 'user-1',
-          email: 'frieren@example.com',
-          nickname: '',
-        }),
-      ),
+      vi.fn().mockResolvedValue(authSessionResponse()),
     );
 
     const router = createMemoryRouter(appRoutes, {
@@ -523,13 +499,6 @@ describe('SyncPage', () => {
     const user = userEvent.setup();
 
     workArchiveDbManager.switchToUser('user-1');
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
 
     const conflictWork = await worksService.createWork({
       type: 'novel',
@@ -566,13 +535,7 @@ describe('SyncPage', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({
-          id: 'user-1',
-          email: 'frieren@example.com',
-          nickname: '',
-        }),
-      ),
+      vi.fn().mockResolvedValue(authSessionResponse()),
     );
 
     const router = createMemoryRouter(appRoutes, {
@@ -620,13 +583,6 @@ describe('SyncPage', () => {
 
   it('links release-record queue items to the parent work detail when available', async () => {
     workArchiveDbManager.switchToUser('user-1');
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
 
     const parentWork = buildStoredWork({
       id: 'parent-work',
@@ -650,13 +606,7 @@ describe('SyncPage', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({
-          id: 'user-1',
-          email: 'frieren@example.com',
-          nickname: '',
-        }),
-      ),
+      vi.fn().mockResolvedValue(authSessionResponse()),
     );
 
     const router = createMemoryRouter(appRoutes, {
@@ -683,13 +633,6 @@ describe('SyncPage', () => {
 
   it('renders conflict resolution controls for release-record queue items', async () => {
     workArchiveDbManager.switchToUser('user-1');
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      }),
-    );
 
     const parentWork = buildStoredWork({
       id: 'parent-work',
@@ -731,13 +674,7 @@ describe('SyncPage', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({
-          id: 'user-1',
-          email: 'frieren@example.com',
-          nickname: '',
-        }),
-      ),
+      vi.fn().mockResolvedValue(authSessionResponse()),
     );
 
     const router = createMemoryRouter(appRoutes, {
