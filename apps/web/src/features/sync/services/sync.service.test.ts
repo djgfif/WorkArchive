@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { UserReleaseRecord, WorkRecord } from '@work-archive/shared-types';
+import type {
+  TimelineEntryRecord,
+  UserReleaseRecord,
+  WorkRecord,
+} from '@work-archive/shared-types';
 
 import {
   clearStoredAuthTokens,
@@ -13,6 +17,7 @@ import {
 import { WorksRepository } from '../../works/services/works.repository';
 import { WorksService } from '../../works/services/works.service';
 import { ReleaseRecordsRepository } from '../../works/services/release-records.repository';
+import { TimelineEntriesRepository } from '../../works/services/timeline-entries.repository';
 import { AppMetaRepository } from './app-meta.repository';
 import { SyncQueueRepository } from './sync-queue.repository';
 import { SyncService } from './sync.service';
@@ -48,6 +53,7 @@ describe('SyncService', () => {
   let db: WorkArchiveDatabase;
   let worksRepository: WorksRepository;
   let releaseRecordsRepository: ReleaseRecordsRepository;
+  let timelineEntriesRepository: TimelineEntriesRepository;
   let queueRepository: SyncQueueRepository;
   let appMetaRepository: AppMetaRepository;
   let worksService: WorksService;
@@ -57,6 +63,7 @@ describe('SyncService', () => {
     db = createWorkArchiveDb(`work-archive-test-${crypto.randomUUID()}`);
     worksRepository = new WorksRepository(() => db);
     releaseRecordsRepository = new ReleaseRecordsRepository(() => db);
+    timelineEntriesRepository = new TimelineEntriesRepository(() => db);
     queueRepository = new SyncQueueRepository(() => db);
     appMetaRepository = new AppMetaRepository(() => db);
     worksService = new WorksService(worksRepository, queueRepository);
@@ -65,6 +72,7 @@ describe('SyncService', () => {
       releaseRecordsRepository,
       queueRepository,
       appMetaRepository,
+      timelineEntriesRepository,
     );
   });
 
@@ -86,7 +94,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 1,
+          schemaVersion: 2,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -138,7 +146,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 2,
+          schemaVersion: 1,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [],
         }),
@@ -200,7 +208,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 1,
+          schemaVersion: 2,
           processedAt: '2026-04-18T02:00:00.000Z',
           results: [
             {
@@ -292,7 +300,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 1,
+          schemaVersion: 2,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -330,7 +338,6 @@ describe('SyncService', () => {
     );
   });
 
-
   it('marks the local work as conflict when push returns a conflict result', async () => {
     const localWork = await worksService.createWork(buildInput());
     const queueItems = await queueRepository.listAll();
@@ -342,7 +349,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 1,
+          schemaVersion: 2,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -595,7 +602,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 1,
+          schemaVersion: 2,
           pulledAt: '2026-04-18T02:00:00.000Z',
           nextSince: '2026-04-18T01:30:00.000Z',
           changes: [
@@ -646,6 +653,126 @@ describe('SyncService', () => {
     ).resolves.toBe('2026-04-18T01:30:00.000Z');
   });
 
+  it('updates local timeline entries from successful push results', async () => {
+    const localWork = await worksService.createWork(buildInput());
+    await queueRepository.removeMany(
+      (await queueRepository.listAll()).map((item) => item.id),
+    );
+    const localTimelineEntry = await timelineEntriesRepository.create({
+      note: 'Manual note',
+      occurredAt: '2026-04-18T02:00:00.000Z',
+      type: 'note',
+      workId: localWork.id,
+    });
+    await queueRepository.enqueueTimelineEntryChange(
+      {
+        ...localTimelineEntry,
+        syncStatus: 'pending',
+      },
+      'create',
+    );
+    const queueItem = (await queueRepository.listAll()).find(
+      (item) => item.entityType === 'timeline_entry',
+    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 2,
+          processedAt: '2026-04-18T03:00:00.000Z',
+          results: [
+            {
+              queueId: queueItem!.id,
+              entityId: localTimelineEntry.id,
+              entityType: 'timeline_entry',
+              status: 'applied',
+              message: 'Queued record created on the server.',
+              timelineEntry: {
+                ...localTimelineEntry,
+                syncStatus: 'synced',
+                serverVersion: 1,
+                updatedAt: '2026-04-18T03:00:00.000Z',
+              } satisfies TimelineEntryRecord,
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pushQueuedChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        appliedCount: 1,
+        failedCount: 0,
+      }),
+    );
+    expect(await queueRepository.listAll()).toEqual([]);
+    expect(
+      await timelineEntriesRepository.getById(localTimelineEntry.id),
+    ).toEqual(
+      expect.objectContaining({
+        syncStatus: 'synced',
+        serverVersion: 1,
+        updatedAt: '2026-04-18T03:00:00.000Z',
+      }),
+    );
+  });
+
+  it('pulls remote timeline entries into the local database', async () => {
+    const remoteTimelineEntry: TimelineEntryRecord = {
+      createdAt: '2026-04-18T00:00:00.000Z',
+      deletedAt: null,
+      id: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
+      note: 'Remote note',
+      occurredAt: '2026-04-18T02:00:00.000Z',
+      serverVersion: 2,
+      syncStatus: 'synced',
+      type: 'note',
+      updatedAt: '2026-04-18T03:00:00.000Z',
+      workId: '1ef17be0-b7fd-4b6b-a7f4-64db4026fcbf',
+    };
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 2,
+          pulledAt: '2026-04-18T03:00:00.000Z',
+          nextSince: '2026-04-18T03:00:00.000Z',
+          changes: [
+            {
+              entityType: 'timeline_entry',
+              entityId: remoteTimelineEntry.id,
+              operation: 'upsert',
+              timelineEntry: remoteTimelineEntry,
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pullRemoteChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        pulledCount: 1,
+        appliedCount: 1,
+        skippedCount: 0,
+      }),
+    );
+    await expect(
+      timelineEntriesRepository.getById(remoteTimelineEntry.id),
+    ).resolves.toEqual(remoteTimelineEntry);
+  });
+
   it('fails pull without advancing the cursor when the response schema version is unsupported', async () => {
     await appMetaRepository.setValue(
       'sync.lastSuccessfulPullAt',
@@ -659,7 +786,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 2,
+          schemaVersion: 1,
           pulledAt: '2026-04-18T02:00:00.000Z',
           nextSince: '2026-04-18T01:30:00.000Z',
           changes: [],
@@ -707,7 +834,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 1,
+          schemaVersion: 2,
           pulledAt: '2026-04-18T02:00:00.000Z',
           nextSince: '2026-04-18T01:30:00.000Z',
           changes: [

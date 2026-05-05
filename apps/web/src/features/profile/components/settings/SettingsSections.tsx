@@ -127,9 +127,7 @@ export function LocalArchiveSettingsSection({
   onExportJson,
   onImportFileSelect,
 }: LocalArchiveSettingsSectionProps) {
-  async function handleImportFileChange(
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
+  async function handleImportFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0] ?? null;
 
     if (!file) {
@@ -154,7 +152,7 @@ export function LocalArchiveSettingsSection({
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         <ExportOptionCard
           buttonLabel="JSON 백업 내보내기"
-          description="작품과 권별 기록을 다시 가져올 수 있는 보관용 파일입니다."
+          description="작품, 권별 기록, 타임라인 기록을 다시 가져올 수 있는 보관용 파일입니다."
           disabled={isExportingArchive}
           eyebrow="보관용"
           onClick={() => void onExportJson()}
@@ -219,11 +217,17 @@ export function LocalArchiveSettingsSection({
             <AppBadge tone="accent">
               추가할 권별 기록 {archiveImportPreview.addReleaseRecordCount}개
             </AppBadge>
+            <AppBadge tone="accent">
+              추가할 타임라인 {archiveImportPreview.addTimelineEntryCount}개
+            </AppBadge>
             <AppBadge tone="muted">
               수정할 작품 {archiveImportPreview.updateWorkCount}개
             </AppBadge>
             <AppBadge tone="warning">
-              중복 후보 {archiveImportPreview.duplicateWorkCount}개
+              중복 후보{' '}
+              {archiveImportPreview.duplicateWorkCount +
+                archiveImportPreview.duplicateTimelineEntryCount}
+              개
             </AppBadge>
             <AppBadge tone="muted">
               ID 충돌/새 ID 발급 {archiveImportPreview.conflictWorkCount}개
@@ -231,7 +235,8 @@ export function LocalArchiveSettingsSection({
             <AppBadge tone="muted">
               건너뛸 항목{' '}
               {archiveImportPreview.skippedWorkCount +
-                archiveImportPreview.skippedReleaseRecordCount}
+                archiveImportPreview.skippedReleaseRecordCount +
+                archiveImportPreview.skippedTimelineEntryCount}
               개
             </AppBadge>
           </ActionRow>
@@ -264,8 +269,8 @@ export function LocalArchiveSettingsSection({
       )}
 
       <Text c="var(--app-text-muted)" size="sm">
-        로컬 데이터 초기화가 필요하다면 먼저 JSON 백업을 만든 뒤 브라우저
-        사이트 데이터 삭제 또는 개발자 도구의 IndexedDB 초기화를 사용하세요.
+        로컬 데이터 초기화가 필요하다면 먼저 JSON 백업을 만든 뒤 브라우저 사이트
+        데이터 삭제 또는 개발자 도구의 IndexedDB 초기화를 사용하세요.
       </Text>
     </SectionCard>
   );
@@ -396,7 +401,9 @@ export function ProviderKeyVaultSection({
           </ActionRow>
         </Stack>
       ) : isLoadingProviderStatuses ? (
-        <Text c="var(--app-text-muted)">API Key Vault를 불러오는 중입니다.</Text>
+        <Text c="var(--app-text-muted)">
+          API Key Vault를 불러오는 중입니다.
+        </Text>
       ) : (
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
           <Stack gap="xs">

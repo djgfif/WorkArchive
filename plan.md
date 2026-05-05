@@ -54,7 +54,8 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - SyncPage는 pending / failed / conflict queue item 상태, 원인, 기록 보기, 재시도 CTA와 conflict 기본 해결 UX를 제공한다.
 - Sync conflict 해결은 로컬 유지, 원격 적용, 필드별 병합을 지원한다. 자동 병합 판단은 현재 제품 기준에서 채택하지 않는다.
 - Works 목록 조회는 Dexie v7 scope index로 active/trash를 먼저 좁힌다. status/type/updatedAt 기본 경로는 IndexedDB query를 먼저 사용하고, 검색어/태그 조합은 scope 축소 후 인메모리 필터링한다.
-- JSON export는 schemaVersion, source, backupExclusions metadata를 포함한다. import preview는 dry-run 결과로 add/update/duplicate/skip/conflict 예상치를 표시한다.
+- manual timeline entries는 Dexie v9 sync-ready 모델과 backend `UserTimelineEntry` private storage를 통해 optional account sync 대상에 포함된다.
+- JSON export는 schemaVersion, source, backupExclusions metadata와 timeline entries를 포함한다. import preview는 dry-run 결과로 add/update/duplicate/skip/conflict 예상치를 표시한다.
 - Quick Add 검색 ranking은 제목 exact/alias/token, 제작자, 발매연도, provider/source coverage, catalog match를 반영한다.
 - 낮은 신뢰도 검색 후보는 직접 추가 fallback을 방해하지 않도록 후보 UI에서 검토 안내를 표시한다.
 - access token은 브라우저 storage에 저장하지 않고 메모리에만 둔다. 앱 부팅은 `HttpOnly` refresh cookie로 세션을 복구하며, 실패하면 guest archive로 돌아간다.

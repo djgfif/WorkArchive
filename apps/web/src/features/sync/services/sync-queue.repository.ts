@@ -5,6 +5,7 @@ import type {
   SyncQueuePayload,
   SyncQueueSource,
   SyncResultCode,
+  TimelineEntryRecord,
   UserReleaseRecord,
   WorkRecord,
 } from '@work-archive/shared-types';
@@ -16,6 +17,7 @@ import {
 
 const WORK_ENTITY_TYPE = 'work';
 const RELEASE_RECORD_ENTITY_TYPE = 'release_record';
+const TIMELINE_ENTRY_ENTITY_TYPE = 'timeline_entry';
 
 type DatabaseResolver = () => WorkArchiveDatabase;
 
@@ -56,8 +58,29 @@ export class SyncQueueRepository {
     );
   }
 
-  private async enqueueChange<TPayload extends WorkRecord | UserReleaseRecord>(
-    entityType: typeof WORK_ENTITY_TYPE | typeof RELEASE_RECORD_ENTITY_TYPE,
+  async enqueueTimelineEntryChange(
+    timelineEntry: TimelineEntryRecord,
+    operation: SyncOperation,
+    source: SyncQueueSource = 'timeline_entry_update',
+  ) {
+    return this.enqueueChange(
+      TIMELINE_ENTRY_ENTITY_TYPE,
+      timelineEntry,
+      operation,
+      {
+        ...timelineEntry,
+      },
+      source,
+    );
+  }
+
+  private async enqueueChange<
+    TPayload extends WorkRecord | UserReleaseRecord | TimelineEntryRecord,
+  >(
+    entityType:
+      | typeof WORK_ENTITY_TYPE
+      | typeof RELEASE_RECORD_ENTITY_TYPE
+      | typeof TIMELINE_ENTRY_ENTITY_TYPE,
     entity: TPayload,
     operation: SyncOperation,
     payload: TPayload,
@@ -229,6 +252,18 @@ export class SyncQueueRepository {
       new Set(
         queueItems
           .filter((item) => item.entityType === RELEASE_RECORD_ENTITY_TYPE)
+          .map((item) => item.entityId),
+      ),
+    );
+  }
+
+  async getQueuedTimelineEntryIds() {
+    const queueItems = await this.getDb().syncQueue.toArray();
+
+    return Array.from(
+      new Set(
+        queueItems
+          .filter((item) => item.entityType === TIMELINE_ENTRY_ENTITY_TYPE)
           .map((item) => item.entityId),
       ),
     );

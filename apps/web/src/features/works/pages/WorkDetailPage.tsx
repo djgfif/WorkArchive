@@ -17,6 +17,8 @@ import {
   isProgressOnlyWorkType,
   isVolumeRecordableWorkType,
   type ProgressUnit,
+  type TimelineEntryRecord,
+  type TimelineEntryType,
   type UserReleaseRecord,
   type WorkRecord,
   type WorkStatus,
@@ -36,6 +38,8 @@ import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { WorkDetailPanel } from '../components/WorkDetailPanel';
 import { useWorkDetail } from '../hooks/useWorkDetail';
 import { releaseRecordsService } from '../services/release-records.service';
+import { timelineEntriesRepository } from '../services/timeline-entries.repository';
+import { timelineEntriesService } from '../services/timeline-entries.service';
 import {
   fetchRelatedCatalogTitles,
   fetchUserRecordReleases,
@@ -618,6 +622,9 @@ export function WorkDetailPage() {
   const [localReleaseRecords, setLocalReleaseRecords] = useState<
     UserReleaseRecord[]
   >([]);
+  const [timelineEntries, setTimelineEntries] = useState<TimelineEntryRecord[]>(
+    [],
+  );
   const workCatalogTitleId = work?.catalogTitleId ?? null;
   const workId = work?.id ?? null;
   const workType = work?.type ?? null;
@@ -635,6 +642,27 @@ export function WorkDetailPage() {
       next: setLocalReleaseRecords,
       error: () => {
         setLocalReleaseRecords([]);
+      },
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [archiveScopeKey, workId]);
+
+  useEffect(() => {
+    if (!workId) {
+      setTimelineEntries([]);
+
+      return undefined;
+    }
+
+    const subscription = liveQuery(() =>
+      timelineEntriesRepository.listByWorkId(workId),
+    ).subscribe({
+      next: setTimelineEntries,
+      error: () => {
+        setTimelineEntries([]);
       },
     });
 
@@ -736,6 +764,43 @@ export function WorkDetailPage() {
     }
   }
 
+  async function handleCreateTimelineEntry(input: {
+    note: string;
+    occurredAt: string;
+    type: TimelineEntryType;
+  }) {
+    if (!work) {
+      return;
+    }
+
+    try {
+      setActionError(null);
+      await timelineEntriesService.createTimelineEntry({
+        ...input,
+        workId: work.id,
+      });
+    } catch (timelineError) {
+      setActionError(
+        timelineError instanceof Error
+          ? timelineError.message
+          : '타임라인 기록을 추가하지 못했습니다.',
+      );
+    }
+  }
+
+  async function handleDeleteTimelineEntry(id: string) {
+    try {
+      setActionError(null);
+      await timelineEntriesService.deleteTimelineEntry(id);
+    } catch (timelineError) {
+      setActionError(
+        timelineError instanceof Error
+          ? timelineError.message
+          : '타임라인 기록을 삭제하지 못했습니다.',
+      );
+    }
+  }
+
   if (error) {
     return (
       <StateMessage
@@ -804,6 +869,8 @@ export function WorkDetailPage() {
             </AppButton>
           </>
         }
+        onCreateTimelineEntry={handleCreateTimelineEntry}
+        onDeleteTimelineEntry={handleDeleteTimelineEntry}
         recordSections={
           <>
             <WorkQuickRecordSection onError={setActionError} work={work} />
@@ -821,6 +888,7 @@ export function WorkDetailPage() {
             <RelatedTitlesSection relatedData={relatedData} />
           </>
         }
+        timelineEntries={timelineEntries}
         work={work}
       />
     </DetailPageTemplate>

@@ -5,7 +5,7 @@ import { PullSyncDto } from '../src/modules/sync/dto/pull-sync.dto';
 import { PushSyncDto } from '../src/modules/sync/dto/push-sync.dto';
 
 describe('sync schema version DTOs', () => {
-  it('accepts omitted schemaVersion as v1 compatibility input', async () => {
+  it('accepts omitted schemaVersion as v2 compatibility input', async () => {
     const pushDto = Object.assign(new PushSyncDto(), {
       changes: [],
     });
@@ -26,10 +26,10 @@ describe('sync schema version DTOs', () => {
   it('rejects unsupported sync schema versions', async () => {
     const pushDto = Object.assign(new PushSyncDto(), {
       changes: [],
-      schemaVersion: 2,
+      schemaVersion: 1,
     });
     const pullDto = Object.assign(new PullSyncDto(), {
-      schemaVersion: 2,
+      schemaVersion: 1,
     });
 
     await expect(validate(pushDto)).resolves.toEqual(

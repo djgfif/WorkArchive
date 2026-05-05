@@ -2,14 +2,15 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { UserReleaseRecordResponseDto } from '../../user-records/dto/user-release-record.dto';
 import { WorkResponseDto } from '../../works/dto/work-response.dto';
+import { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
 
 const PULL_SYNC_OPERATIONS = ['upsert', 'delete'] as const;
 
 export class PullSyncChangeDto {
   @ApiProperty({
-    enum: ['work', 'release_record'],
+    enum: ['work', 'release_record', 'timeline_entry'],
   })
-  entityType!: 'work' | 'release_record';
+  entityType!: 'work' | 'release_record' | 'timeline_entry';
 
   @ApiProperty({
     format: 'uuid',
@@ -32,13 +33,19 @@ export class PullSyncChangeDto {
     required: false,
   })
   releaseRecord?: UserReleaseRecordResponseDto;
+
+  @ApiProperty({
+    type: () => SyncTimelineEntryPayloadDto,
+    required: false,
+  })
+  timelineEntry?: SyncTimelineEntryPayloadDto;
 }
 
 export class PullSyncResponseDto {
   @ApiProperty({
-    enum: [1],
+    enum: [2],
   })
-  schemaVersion!: 1;
+  schemaVersion!: 2;
 
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',

@@ -48,6 +48,15 @@ enum ProgressUnit {
   chapter
 }
 
+enum TimelineEntryType {
+  note
+  started
+  completed
+  dropped
+  rewatch
+  progress
+}
+
 enum UserRole {
   user
   moderator
@@ -117,6 +126,7 @@ model User {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   workRecords            UserWorkRecord[]
+  timelineEntries        UserTimelineEntry[]
   externalApiCredentials ExternalApiCredential[]
   passwordResetTokens    PasswordResetToken[]
   catalogSubmissions     CatalogSubmission[]     @relation("CatalogSubmissionSubmitter")
@@ -371,6 +381,7 @@ model UserWorkRecord {
   catalogTitle      CatalogTitle?       @relation(fields: [catalogTitleId], references: [id], onDelete: SetNull)
   user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
   releaseRecords    UserReleaseRecord[]
+  timelineEntries   UserTimelineEntry[]
 
   @@index([userId, deletedAt])
   @@index([userId, status, updatedAt])
@@ -379,6 +390,27 @@ model UserWorkRecord {
   @@index([catalogWorkId])
   @@index([catalogTitleId])
   @@map("user_work_records")
+}
+
+model UserTimelineEntry {
+  id               String            @id @default(uuid())
+  userId           String
+  userWorkRecordId String
+  type             TimelineEntryType @default(note)
+  occurredAt       DateTime
+  note             String            @default("") @db.Text
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+  syncStatus       WorkSyncStatus    @default(synced)
+  serverVersion    Int               @default(1)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userWorkRecord   UserWorkRecord    @relation(fields: [userWorkRecordId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt, id], map: "user_timeline_entries_userId_updatedAt_id_idx")
+  @@index([userWorkRecordId, occurredAt])
+  @@index([userWorkRecordId, deletedAt])
+  @@map("user_timeline_entries")
 }
 
 model UserReleaseRecord {

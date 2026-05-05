@@ -1,12 +1,27 @@
-import type { ReactNode } from 'react';
-import { Box, Group, Progress, Stack, Text, Title } from '@mantine/core';
+import { useState, type ReactNode } from 'react';
+import {
+  Box,
+  Group,
+  NativeSelect,
+  Progress,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+  Title,
+} from '@mantine/core';
 
-import type { WorkRecord } from '@work-archive/shared-types';
+import type {
+  TimelineEntryRecord,
+  TimelineEntryType,
+  WorkRecord,
+} from '@work-archive/shared-types';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
   AppBadge,
+  AppButton,
   AppLinkButton,
   KeyValueGrid,
   MetricPill,
@@ -25,10 +40,32 @@ import {
 
 interface WorkDetailPanelProps {
   actions?: ReactNode;
+  onCreateTimelineEntry?: (input: {
+    note: string;
+    occurredAt: string;
+    type: TimelineEntryType;
+  }) => Promise<void>;
+  onDeleteTimelineEntry?: (id: string) => Promise<void>;
   recordSections?: ReactNode;
   relatedSections?: ReactNode;
+  timelineEntries?: TimelineEntryRecord[];
   work: WorkRecord;
 }
+
+const timelineTypeOptions: Array<{ label: string; value: TimelineEntryType }> =
+  [
+    { label: '메모', value: 'note' },
+    { label: '감상 시작', value: 'started' },
+    { label: '완료', value: 'completed' },
+    { label: '중단', value: 'dropped' },
+    { label: '재감상', value: 'rewatch' },
+    { label: '진행', value: 'progress' },
+  ];
+
+const timelineTypeLabels: Record<TimelineEntryType, string> =
+  Object.fromEntries(
+    timelineTypeOptions.map((option) => [option.value, option.label]),
+  ) as Record<TimelineEntryType, string>;
 
 function renderRatingLabel(work: WorkRecord) {
   return work.rating === null ? '미평가' : `${work.rating.toFixed(1)}점`;
@@ -67,31 +104,41 @@ function getProgressLabel(work: WorkRecord) {
 function createTimelineItems(work: WorkRecord) {
   return [
     {
+      id: 'system-created-at',
       label: '기록 추가',
       value: work.createdAt,
       description: '아카이브에 처음 저장한 날입니다.',
+      source: 'system' as const,
     },
     {
+      id: 'system-started-at',
       label: '감상 시작',
       value: work.startedAt ?? null,
       description: '작품을 보기 시작한 날입니다.',
+      source: 'system' as const,
     },
     {
+      id: 'system-last-consumed-at',
       label: '마지막 감상',
       value: work.lastConsumedAt ?? null,
       description: work.lastConsumedLabel
         ? `마지막 위치: ${work.lastConsumedLabel}`
         : '마지막으로 감상한 날입니다.',
+      source: 'system' as const,
     },
     {
+      id: 'system-completed-at',
       label: '완료',
       value: work.completedAt ?? null,
       description: '끝까지 본 날입니다.',
+      source: 'system' as const,
     },
     {
+      id: 'system-dropped-at',
       label: '중단',
       value: work.droppedAt ?? null,
       description: '하차하거나 중단한 날입니다.',
+      source: 'system' as const,
     },
   ]
     .filter((item) => item.value)
@@ -103,10 +150,22 @@ function createTimelineItems(work: WorkRecord) {
 
 export function WorkDetailPanel({
   actions,
+  onCreateTimelineEntry,
+  onDeleteTimelineEntry,
   recordSections,
   relatedSections,
+  timelineEntries = [],
   work,
 }: WorkDetailPanelProps) {
+  const [timelineDate, setTimelineDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const [timelineNote, setTimelineNote] = useState('');
+  const [timelineType, setTimelineType] = useState<TimelineEntryType>('note');
+  const [isSavingTimelineEntry, setIsSavingTimelineEntry] = useState(false);
+  const [deletingTimelineEntryId, setDeletingTimelineEntryId] = useState<
+    string | null
+  >(null);
   const typeLabel = getWorkTypeLabel(work.type);
   const statusLabel = getWorkStatusLabel(work.status);
   const tierLabel = getWorkTierLabel(work.tier);
@@ -115,12 +174,56 @@ export function WorkDetailPanel({
   const review = work.review.trim();
   const progressLabel = getProgressLabel(work);
   const progressPercent = getProgressPercent(work);
-  const timelineItems = createTimelineItems(work);
+  const timelineItems = [
+    ...createTimelineItems(work),
+    ...timelineEntries.map((entry) => ({
+      description: entry.note.trim() || '직접 남긴 타임라인 기록입니다.',
+      id: entry.id,
+      label: timelineTypeLabels[entry.type],
+      source: 'manual' as const,
+      value: entry.occurredAt,
+    })),
+  ].sort(
+    (left, right) =>
+      new Date(left.value!).getTime() - new Date(right.value!).getTime(),
+  );
   const sourceIdentityLabel = work.catalogTitleId
     ? '카탈로그 연결됨'
     : work.importDraft
       ? '외부 검색 초안'
       : '직접 기록';
+
+  async function handleCreateTimelineEntry() {
+    if (!onCreateTimelineEntry || !timelineDate) {
+      return;
+    }
+
+    try {
+      setIsSavingTimelineEntry(true);
+      await onCreateTimelineEntry({
+        note: timelineNote,
+        occurredAt: new Date(`${timelineDate}T00:00:00.000Z`).toISOString(),
+        type: timelineType,
+      });
+      setTimelineNote('');
+      setTimelineType('note');
+    } finally {
+      setIsSavingTimelineEntry(false);
+    }
+  }
+
+  async function handleDeleteTimelineEntry(id: string) {
+    if (!onDeleteTimelineEntry) {
+      return;
+    }
+
+    try {
+      setDeletingTimelineEntryId(id);
+      await onDeleteTimelineEntry(id);
+    } finally {
+      setDeletingTimelineEntryId(null);
+    }
+  }
 
   return (
     <Stack gap="xl">
@@ -269,10 +372,65 @@ export function WorkDetailPanel({
       >
         <SectionCard gap="md" padding="lg" tone="subtle">
           <Stack gap="md">
+            {onCreateTimelineEntry && (
+              <SectionCard padding="md" tone="default">
+                <Stack gap="md">
+                  <Group align="flex-end" grow>
+                    <NativeSelect
+                      aria-label={`${work.title} 타임라인 유형`}
+                      label="유형"
+                      onChange={(event) =>
+                        setTimelineType(
+                          event.currentTarget.value as TimelineEntryType,
+                        )
+                      }
+                      value={timelineType}
+                    >
+                      {timelineTypeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                    <TextInput
+                      aria-label={`${work.title} 타임라인 날짜`}
+                      label="날짜"
+                      onChange={(event) =>
+                        setTimelineDate(event.currentTarget.value)
+                      }
+                      type="date"
+                      value={timelineDate}
+                    />
+                  </Group>
+                  <Textarea
+                    aria-label={`${work.title} 타임라인 메모`}
+                    autosize
+                    label="메모"
+                    minRows={2}
+                    onChange={(event) =>
+                      setTimelineNote(event.currentTarget.value)
+                    }
+                    placeholder="감상 중 남기고 싶은 변화를 기록하세요."
+                    value={timelineNote}
+                  />
+                  <ActionRow>
+                    <AppButton
+                      disabled={!timelineDate || isSavingTimelineEntry}
+                      loading={isSavingTimelineEntry}
+                      onClick={() => void handleCreateTimelineEntry()}
+                      tone="primary"
+                      type="button"
+                    >
+                      타임라인 기록 추가
+                    </AppButton>
+                  </ActionRow>
+                </Stack>
+              </SectionCard>
+            )}
             {timelineItems.length > 0 ? (
               timelineItems.map((item, index) => (
                 <Box
-                  key={item.label}
+                  key={`${item.source}-${item.id}`}
                   style={{
                     borderLeft: '1px solid var(--app-border-strong)',
                     paddingBottom:
@@ -296,14 +454,36 @@ export function WorkDetailPanel({
                   />
                   <Group align="flex-start" justify="space-between">
                     <Stack gap={2}>
-                      <Text fw={700}>{item.label}</Text>
+                      <Group gap="xs">
+                        <Text fw={700}>{item.label}</Text>
+                        <AppBadge
+                          tone={item.source === 'manual' ? 'accent' : 'muted'}
+                        >
+                          {item.source === 'manual' ? '직접 기록' : '날짜 기록'}
+                        </AppBadge>
+                      </Group>
                       <Text c="var(--app-text-muted)" size="sm">
                         {item.description}
                       </Text>
                     </Stack>
-                    <AppBadge tone="accent">
-                      {formatWorkDate(item.value)}
-                    </AppBadge>
+                    <ActionRow>
+                      <AppBadge tone="accent">
+                        {formatWorkDate(item.value)}
+                      </AppBadge>
+                      {item.source === 'manual' && onDeleteTimelineEntry && (
+                        <AppButton
+                          disabled={deletingTimelineEntryId === item.id}
+                          loading={deletingTimelineEntryId === item.id}
+                          onClick={() =>
+                            void handleDeleteTimelineEntry(item.id)
+                          }
+                          tone="danger"
+                          type="button"
+                        >
+                          삭제
+                        </AppButton>
+                      )}
+                    </ActionRow>
                   </Group>
                 </Box>
               ))
