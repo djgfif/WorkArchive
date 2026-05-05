@@ -84,9 +84,12 @@ describe('LocalArchiveService', () => {
 
   it('exports JSON and CSV from the current local archive', async () => {
     await sourceDb.works.add(
-      buildWork({
+      {
+        ...buildWork({
         personalTags: ['다시 볼 것', '여운 강함'],
-      }),
+        }),
+        _deletedAtScope: 'active',
+      } as WorkRecord,
     );
     await sourceDb.releaseRecords.add(buildReleaseRecord());
     await sourceDb.appMeta.add({
@@ -111,6 +114,14 @@ describe('LocalArchiveService', () => {
     expect(jsonExport).toMatchObject({
       format: 'work-archive.local-archive',
       version: 1,
+      schemaVersion: 1,
+      source: 'work-archive-web',
+      backupExclusions: [
+        'syncQueue',
+        'authTokens',
+        'refreshCookie',
+        'providerApiKeys',
+      ],
       exportedAt: expect.any(String),
       works: [expect.objectContaining({ title: 'Dune' })],
       releaseRecords: [expect.objectContaining({ id: 'release-record-1' })],
@@ -120,6 +131,7 @@ describe('LocalArchiveService', () => {
         }),
       ],
     });
+    expect(jsonExportText).not.toContain('_deletedAtScope');
     expect(jsonExport).not.toHaveProperty('syncQueue');
     expect(jsonExportText).not.toContain('accessToken');
     expect(jsonExportText).not.toContain('refreshToken');
@@ -141,17 +153,25 @@ describe('LocalArchiveService', () => {
 
     const backup = await sourceService.createJsonExportText();
     const preview = await targetService.previewImport(backup);
+    const dryRun = await targetService.dryRunImport(backup);
     const result = await targetService.importJson(backup);
     const importedWorks = await targetDb.works.toArray();
     const importedReleaseRecords = await targetDb.releaseRecords.toArray();
     const queueItems = await targetDb.syncQueue.toArray();
 
     expect(preview).toMatchObject({
+      addReleaseRecordCount: 1,
+      addWorkCount: 1,
+      conflictWorkCount: 1,
+      duplicateWorkCount: 1,
       duplicateTitleCount: 1,
       idCollisionCount: 1,
       releaseRecordCount: 1,
+      skippedWorkCount: 0,
+      updateWorkCount: 0,
       workCount: 1,
     });
+    expect(dryRun).toEqual(preview);
     expect(result).toMatchObject({
       importedReleaseRecordCount: 1,
       importedWorkCount: 1,

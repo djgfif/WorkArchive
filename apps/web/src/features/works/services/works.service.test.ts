@@ -243,4 +243,51 @@ describe('WorksService', () => {
       }),
     ]);
   });
+
+  it('keeps list queries within the large local archive budget', async () => {
+    const statuses = [
+      'planned',
+      'in_progress',
+      'completed',
+      'paused',
+      'dropped',
+    ] as const;
+    const works = Array.from({ length: 6000 }, (_, index) => {
+      const isDeleted = index >= 5000;
+      const updatedAt = new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString();
+
+      return buildWork({
+        deletedAt: isDeleted ? updatedAt : null,
+        id: `large-work-${index}`,
+        personalTags: [`tag-${index % 500}`],
+        status: statuses[index % statuses.length]!,
+        title: `Work ${index}`,
+        type: index % 2 === 0 ? 'novel' : 'movie',
+        updatedAt,
+      });
+    });
+
+    await repository.bulkPut(works);
+
+    const startedAt = performance.now();
+    const result = await service.listWorks(
+      {
+        searchTerm: '',
+        sortBy: 'updatedAt',
+        status: 'completed',
+        tag: '',
+        type: 'all',
+      },
+      'active',
+    );
+    const durationMs = performance.now() - startedAt;
+
+    expect(result.totalActiveCount).toBe(5000);
+    expect(result.totalDeletedCount).toBe(1000);
+    expect(result.statusCounts.completed).toBe(1000);
+    expect(result.tagSuggestions).toHaveLength(500);
+    expect(result.works).toHaveLength(1000);
+    expect(result.works.every((work) => work.deletedAt === null)).toBe(true);
+    expect(durationMs).toBeLessThan(3000);
+  });
 });

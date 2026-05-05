@@ -170,12 +170,11 @@ npm run build
 
 ## Current Verification Status
 
-- `npm run typecheck --workspace @work-archive/web`: `2026-04-30` 통과 확인
-- `npm run typecheck --workspace @work-archive/api`: `2026-04-30` 통과 확인
-- `npm run test --workspace @work-archive/web`: `2026-04-30` 기준 `21 files`, `116 tests` 통과 확인
-- `npm run test --workspace @work-archive/api`: `2026-04-30` 기준 `9 suites`, `71 tests` 통과 확인
-- `npm run build`: `2026-04-30` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
-- GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
+- `npm run lint`: `2026-05-05` 통과 확인
+- `npm run typecheck`: `2026-05-05` 통과 확인
+- `env TMPDIR=/tmp npm run test`: `2026-05-05` 기준 API `13` suites / `99` tests, web `22` files / `135` tests 통과 확인
+- `npm run build`: `2026-05-05` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
+- GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 `.github/workflows/validate.yml`에 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe`도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
 ## Current Product Reality
@@ -195,8 +194,10 @@ npm run build
 - Quick Add 검색 ranking은 제목 exact/alias/token, 제작자, 발매연도, provider/source coverage, catalog match를 반영한다.
 - Settings provider readiness UI는 `/imports/providers` 기반 기본 구현과 테스트가 들어갔다. 남은 작업은 provider별 실제 검색어 QA와 polish다.
 - SyncPage는 pending / failed / conflict queue item의 상태, 원인, 기록 보기, 재시도 CTA를 표시한다. conflict는 로컬 유지, 원격 적용, 필드별 병합으로 기본 해결할 수 있다.
+- Works 목록 조회는 Dexie v7의 scope index를 사용해 active/trash 범위를 먼저 좁힌 뒤 필터와 정렬을 적용한다.
+- JSON 백업은 schema/source/exclusion metadata를 포함하고, 가져오기는 dry-run preview로 add/update/duplicate/skip/conflict 예상치를 먼저 보여준다.
 - `Tier Boards`, `Insights`, `Community`는 현재 placeholder 성격이 강하다.
-- 인증은 현재 이메일/비밀번호 + memory-only access token + `HttpOnly` refresh cookie 구조다. 앱 부팅 시 refresh cookie로 access token을 재발급하고, 실패하면 guest/local-first 상태로 돌아간다.
+- 인증은 현재 이메일/비밀번호 + memory-only access token + `HttpOnly` refresh cookie 구조다. 앱 부팅 시 refresh cookie로 access token을 재발급하고, 실패하면 guest/local-first 상태로 돌아간다. 늦게 도착한 startup refresh 실패는 완료된 login/register 세션을 덮어쓰지 않는다.
 - 백엔드는 이미 `CatalogWork` + `UserWorkRecord` split model을 도입했고, 현재 `Works` API는 flat compatibility 계층으로 유지된다.
 - 현재 프론트 실행 대상은 `apps/web`이며, Tauri shell은 아직 저장소에 없다.
 
@@ -205,7 +206,7 @@ npm run build
 - 자동 동기화는 아직 없다.
 - guest -> account 이관은 검토/선택 import 단계까지만 있고, 자동 병합이나 다기기 정책은 아직 없다.
 - Quick Add provider readiness, duplicate detection, ranking/search quality 기본 구현/테스트는 들어갔지만, provider별 실제 검색어 QA와 UI polish는 후속 작업이다.
-- Sync conflict 기본 해결 UX는 들어갔지만, 자동 병합 판단이나 고급 충돌 정책은 후속 작업이다.
+- Sync conflict 기본 해결 UX와 failed 원인 분류는 들어갔지만, 자동 병합 판단이나 고급 충돌 정책은 후속 작업이다.
 - authenticated direct create path는 “미구현 경로”가 아니라 현재 제품 기준에서 채택하지 않는 경로다. 현재 기본 저장 경로는 local-first sync다.
 - `Works` compatibility layer, 공개 레이어 권한 분리 같은 후속 과제는 아직 남아 있다.
 

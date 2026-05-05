@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
   type PropsWithChildren,
 } from 'react';
@@ -27,6 +28,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [archiveScopeKey, setArchiveScopeKey] = useState(
     workArchiveDbManager.getCurrentScopeKey(),
   );
+  const sessionGenerationRef = useRef(0);
+  const startupRestoreGenerationRef = useRef<number | null>(null);
 
   function activateGuestSession() {
     workArchiveDbManager.switchToGuest();
@@ -44,8 +47,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let isCancelled = false;
+    const restoreGeneration = sessionGenerationRef.current;
+
+    startupRestoreGenerationRef.current = restoreGeneration;
     const unsubscribe = subscribeToStoredAuthTokens((tokens) => {
       if (isCancelled || tokens !== null) {
+        return;
+      }
+
+      if (
+        startupRestoreGenerationRef.current !== null &&
+        sessionGenerationRef.current !== startupRestoreGenerationRef.current
+      ) {
         return;
       }
 
@@ -59,12 +72,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
+      if (sessionGenerationRef.current !== restoreGeneration) {
+        startupRestoreGenerationRef.current = null;
+
+        return;
+      }
+
+      startupRestoreGenerationRef.current = null;
+
       if (restoredSession) {
+        writeStoredAuthTokens(restoredSession.tokens);
         activateAuthenticatedArchive(restoredSession.user);
 
         return;
       }
 
+      clearStoredAuthTokens();
       activateGuestSession();
     }
 
@@ -82,6 +105,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       accessToken: string;
     },
   ) {
+    sessionGenerationRef.current += 1;
+    startupRestoreGenerationRef.current = null;
     writeStoredAuthTokens(tokens);
     activateAuthenticatedArchive(user);
 
@@ -107,6 +132,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }
 
   async function signOut() {
+    sessionGenerationRef.current += 1;
+    startupRestoreGenerationRef.current = null;
+
     try {
       await logoutSession();
     } catch {

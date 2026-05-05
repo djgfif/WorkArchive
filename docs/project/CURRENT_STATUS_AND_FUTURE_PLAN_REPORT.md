@@ -149,6 +149,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - 프론트는 access token을 브라우저 storage에 저장하지 않고 메모리에만 둔다.
 - 앱 부팅 시 기존 `work-archive.auth.tokens` local/session storage 값은 제거하고, refresh cookie로 access token을 재발급해 세션을 복구한다.
 - refresh 실패나 네트워크 실패 시 프론트는 guest/local-first 상태로 돌아간다.
+- AuthProvider는 startup refresh와 login/register가 겹치는 경우 늦게 도착한 startup 실패가 완료된 authenticated 세션을 guest로 되돌리지 않게 generation guard를 둔다.
 - API 요청은 `credentials: 'include'`를 사용해 refresh cookie를 함께 보낸다.
 
 ## 5. Current Product Capabilities
@@ -175,12 +176,15 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - Quick Add automatic search에서 `manual` / `preview-manual` 후보는 일반 후보 목록에 섞지 않고 직접 추가 fallback으로 분리
 - duplicate detection 우선순위: `catalogTitleId -> externalRefs -> title fallback`
 - 개인 태그 입력/표시/목록 검색·필터/export/import/sync payload 보존
-- Settings의 local archive JSON export/import, import preview, CSV export
+- Dexie v7 works scope index와 active/trash scope-first 목록 조회
+- Settings의 local archive JSON export/import, dry-run import preview, CSV export
+- JSON export schema/source/exclusion metadata와 CSV export 컬럼 계약
 - Data Ownership 정책: `appMeta`는 export metadata로만 다루고, `syncQueue`, auth token, refresh token, API key, Aladin TTBKey는 백업/복원 대상에서 제외
 - 개인 기록 기반 Insights 기본 집계와 개인 태그 상위 집계
 - 계정 설정의 Aladin 키 저장/삭제
 - `/imports/providers` 기반 provider readiness 조회와 Settings provider readiness 기본 UI/테스트
 - SyncPage pending / failed / conflict queue item 표시, 상태별 설명, 원인 표시, 기록 보기, 재시도 CTA
+- failed sync item의 인증/네트워크/conflict/server validation/server error 원인 분류
 - Sync conflict 원격 스냅샷 보존과 로컬 유지 / 원격 적용 / 필드별 병합 기본 해결 UX
 - `CatalogTitle` related read model과 `UserReleaseRecord` 흐름
 - 홈 허브 화면
@@ -245,12 +249,11 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 ### Current Verification Status
 
-- `npm run typecheck --workspace @work-archive/web`: `2026-04-30` 통과 확인
-- `npm run typecheck --workspace @work-archive/api`: `2026-04-30` 통과 확인
-- `npm run test --workspace @work-archive/web`: `2026-04-30` 기준 `21` files, `116` tests 통과 확인
-- `npm run test --workspace @work-archive/api`: `2026-04-30` 기준 `9` suites, `71` tests 통과 확인
-- `npm run build`: `2026-04-30` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
-- GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
+- `npm run lint`: `2026-05-05` 통과 확인
+- `npm run typecheck`: `2026-05-05` 통과 확인
+- `env TMPDIR=/tmp npm run test`: `2026-05-05` 기준 API `13` suites / `99` tests, web `22` files / `135` tests 통과 확인
+- `npm run build`: `2026-05-05` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
+- GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 `.github/workflows/validate.yml`에 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
 ## 7. Immediate Limitations

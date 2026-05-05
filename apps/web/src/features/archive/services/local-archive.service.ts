@@ -13,23 +13,40 @@ import {
 
 const ARCHIVE_FORMAT = 'work-archive.local-archive';
 const ARCHIVE_VERSION = 1;
+const ARCHIVE_SCHEMA_VERSION = 1;
+const ARCHIVE_SOURCE = 'work-archive-web';
+const BACKUP_EXCLUSIONS = [
+  'syncQueue',
+  'authTokens',
+  'refreshCookie',
+  'providerApiKeys',
+];
 
 type DatabaseResolver = () => WorkArchiveDatabase;
 
 export interface LocalArchiveExport {
   appMeta: AppMetaRecord[];
+  backupExclusions: string[];
   exportedAt: string;
   format: typeof ARCHIVE_FORMAT;
   releaseRecords: UserReleaseRecord[];
+  schemaVersion: typeof ARCHIVE_SCHEMA_VERSION;
+  source: typeof ARCHIVE_SOURCE;
   version: typeof ARCHIVE_VERSION;
   works: WorkRecord[];
 }
 
 export interface LocalArchiveImportPreview {
+  addReleaseRecordCount: number;
+  addWorkCount: number;
+  conflictWorkCount: number;
   duplicateTitleCount: number;
+  duplicateWorkCount: number;
   idCollisionCount: number;
   releaseRecordCount: number;
   skippedReleaseRecordCount: number;
+  skippedWorkCount: number;
+  updateWorkCount: number;
   workCount: number;
 }
 
@@ -79,6 +96,21 @@ function normalizeArchiveWork(work: WorkRecord): WorkRecord {
     personalTags: normalizeStringArray(
       (work as Partial<WorkRecord>).personalTags,
     ),
+  };
+}
+
+function stripLocalOnlyWorkFields(
+  work: WorkRecord & { _deletedAtScope?: unknown },
+): WorkRecord {
+  const { _deletedAtScope: _localOnlyIndex, ...archiveWork } = work;
+
+  return normalizeArchiveWork(archiveWork);
+}
+
+function prepareImportedWorkForStorage(work: WorkRecord) {
+  return {
+    ...work,
+    _deletedAtScope: work.deletedAt === null ? 'active' : 'deleted',
   };
 }
 
@@ -135,12 +167,17 @@ function parseArchive(rawValue: string): LocalArchiveExport {
     appMeta: Array.isArray(parsedValue.appMeta)
       ? (parsedValue.appMeta as AppMetaRecord[])
       : [],
+    backupExclusions: Array.isArray(parsedValue.backupExclusions)
+      ? normalizeStringArray(parsedValue.backupExclusions)
+      : [...BACKUP_EXCLUSIONS],
     exportedAt:
       typeof parsedValue.exportedAt === 'string'
         ? parsedValue.exportedAt
         : new Date().toISOString(),
     format: ARCHIVE_FORMAT,
     releaseRecords: parsedValue.releaseRecords as UserReleaseRecord[],
+    schemaVersion: ARCHIVE_SCHEMA_VERSION,
+    source: ARCHIVE_SOURCE,
     version: ARCHIVE_VERSION,
     works: (parsedValue.works as WorkRecord[]).map(normalizeArchiveWork),
   };
@@ -236,11 +273,14 @@ export class LocalArchiveService {
 
     return {
       appMeta,
+      backupExclusions: [...BACKUP_EXCLUSIONS],
       exportedAt: new Date().toISOString(),
       format: ARCHIVE_FORMAT,
       releaseRecords,
+      schemaVersion: ARCHIVE_SCHEMA_VERSION,
+      source: ARCHIVE_SOURCE,
       version: ARCHIVE_VERSION,
-      works,
+      works: works.map(stripLocalOnlyWorkFields),
     };
   }
 
@@ -256,7 +296,7 @@ export class LocalArchiveService {
     return createCsvRows(works);
   }
 
-  async previewImport(rawValue: string): Promise<LocalArchiveImportPreview> {
+  async dryRunImport(rawValue: string): Promise<LocalArchiveImportPreview> {
     const archive = parseArchive(rawValue);
     const db = this.getDb();
     const existingWorks = await db.works.toArray();
@@ -271,19 +311,33 @@ export class LocalArchiveService {
       importedWorkIds.has(releaseRecord.userWorkRecordId),
     ).length;
 
+    const duplicateTitleCount = archive.works.filter(
+      (work) =>
+        work.deletedAt === null &&
+        existingTitleKeys.has(createTitleDuplicateKey(work)),
+    ).length;
+    const idCollisionCount = archive.works.filter((work) =>
+      existingIds.has(work.id),
+    ).length;
+
     return {
-      duplicateTitleCount: archive.works.filter(
-        (work) =>
-          work.deletedAt === null &&
-          existingTitleKeys.has(createTitleDuplicateKey(work)),
-      ).length,
-      idCollisionCount: archive.works.filter((work) => existingIds.has(work.id))
-        .length,
+      addReleaseRecordCount: releaseRecordCount,
+      addWorkCount: archive.works.length,
+      conflictWorkCount: idCollisionCount,
+      duplicateTitleCount,
+      duplicateWorkCount: duplicateTitleCount,
+      idCollisionCount,
       releaseRecordCount,
       skippedReleaseRecordCount:
         archive.releaseRecords.length - releaseRecordCount,
+      skippedWorkCount: 0,
+      updateWorkCount: 0,
       workCount: archive.works.length,
     };
+  }
+
+  async previewImport(rawValue: string): Promise<LocalArchiveImportPreview> {
+    return this.dryRunImport(rawValue);
   }
 
   async importJson(rawValue: string): Promise<LocalArchiveImportResult> {
@@ -342,7 +396,7 @@ export class LocalArchiveService {
       db.releaseRecords,
       db.syncQueue,
       async () => {
-        await db.works.bulkPut(worksToImport);
+        await db.works.bulkPut(worksToImport.map(prepareImportedWorkForStorage));
         await db.releaseRecords.bulkPut(releaseRecordsToImport);
 
         for (const work of worksToImport) {

@@ -5,7 +5,7 @@
 | Status                | `active`                                                                    |
 | Role                  | `alignment report`                                                          |
 | Source of truth       | 현재 소스 트리, package manifests, 핵심 엔트리 파일, current canonical docs |
-| Last verified against | `2026-04-30` sync conflict resolution working tree                          |
+| Last verified against | `2026-05-05` memory-first auth and local performance follow-up              |
 | When to update        | 코드 현실과 문서 해석 사이의 intentional gap이 바뀔 때                      |
 
 이 문서는 현재 코드와 문서 사이에 **의도적으로 남아 있는 간격**만 설명한다. 이미 정정된 현재 상태를 다시 반복하는 문서가 아니다.
@@ -14,7 +14,7 @@
 
 - 저장소 실제 스택은 React `19` + Vite `6` + Dexie 프론트, NestJS `11` + Prisma `6` API, npm workspaces 모노레포다.
 - 현재 프론트 라우트는 `MainProductLayout`, `AuthLayout`, `AccountLayout`, `MinimalLayout`의 4개 맥락으로 분리되어 있다.
-- 현재 인증은 access token local storage + refresh cookie 구조다.
+- 현재 인증은 memory-only access token + `HttpOnly` refresh cookie 구조다.
 - 현재 백엔드는 `CatalogWork` + `UserWorkRecord` split model 위에 flat `Works` API를 유지하는 과도기 구조다.
 - 현재 상태 문서와 루트 README는 guest/auth archive 분리, manual sync, placeholder 페이지 존재를 기준 현실로 본다.
 - SyncPage는 conflict queue item의 원격 스냅샷을 보존하고 로컬 유지, 원격 적용, 필드별 병합으로 기본 해결할 수 있다.

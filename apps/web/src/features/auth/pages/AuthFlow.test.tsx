@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -6,6 +6,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { AuthProvider } from '../context/AuthProvider';
+import {
+  readStoredAuthTokens,
+  writeStoredAuthTokens,
+} from '../services/auth-storage';
 import { guestTransferService } from '../services/guest-transfer.service';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -169,6 +173,9 @@ describe('Auth flow', () => {
   });
 
   it('falls back to guest mode when startup refresh fails', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'stale-memory-token',
+    });
     window.localStorage.setItem(
       'work-archive.auth.tokens',
       JSON.stringify({
@@ -205,6 +212,74 @@ describe('Auth flow', () => {
       }),
     );
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
+    expect(readStoredAuthTokens()).toBeNull();
+  });
+
+  it('does not let a late startup refresh failure replace a completed login session', async () => {
+    let resolveRefresh!: (response: Response) => void;
+    const refreshPromise = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes('/auth/refresh')) {
+        return refreshPromise;
+      }
+
+      if (url.includes('/auth/login')) {
+        return Promise.resolve(
+          jsonResponse({
+            accessToken: 'login-access-token',
+            user: {
+              id: 'user-1',
+              email: 'frieren@example.com',
+              nickname: '',
+            },
+          }),
+        );
+      }
+
+      return Promise.reject(new Error(`Unexpected request: ${url}`));
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/login'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
+    await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
+    await user.click(screen.getByRole('button', { name: '로그인' }));
+
+    expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
+    expect(readStoredAuthTokens()).toEqual({
+      accessToken: 'login-access-token',
+    });
+
+    resolveRefresh(
+      jsonResponse(
+        {
+          message: 'Invalid or expired refresh token.',
+        },
+        401,
+      ),
+    );
+
+    await waitFor(() => {
+      expect(readStoredAuthTokens()).toEqual({
+        accessToken: 'login-access-token',
+      });
+    });
+    expect(screen.getByText('frieren@example.com')).toBeInTheDocument();
   });
 
   it('keeps login access tokens out of browser storage when remember-me is checked', async () => {
