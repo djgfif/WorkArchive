@@ -24,9 +24,25 @@ interface MockPasswordResetToken {
   createdAt: Date;
 }
 
+interface MockUserRefreshSession {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  rememberMe: boolean;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  lastUsedAt: Date | null;
+  rotatedAt: Date | null;
+  expiresAt: Date;
+  revokedAt: Date | null;
+}
+
 function createPrismaMock() {
   const users: MockUser[] = [];
   const passwordResetTokens: MockPasswordResetToken[] = [];
+  const userRefreshSessions: MockUserRefreshSession[] = [];
 
   const prisma = {
     $transaction: async <T>(promises: Promise<T>[]) => Promise.all(promises),
@@ -50,6 +66,24 @@ function createPrismaMock() {
 
           return true;
         }) ?? null,
+      create: async ({
+        data,
+      }: {
+        data: Partial<MockUser> & Pick<MockUser, 'email' | 'passwordHash'>;
+      }) => {
+        const user = {
+          email: data.email,
+          id: data.id ?? crypto.randomUUID(),
+          nickname: data.nickname ?? '',
+          passwordHash: data.passwordHash,
+          refreshTokenHash: data.refreshTokenHash ?? null,
+          role: data.role ?? 'user',
+        } satisfies MockUser;
+
+        users.push(user);
+
+        return user;
+      },
       update: async ({
         data,
         where,
@@ -77,6 +111,159 @@ function createPrismaMock() {
         };
 
         return users[index];
+      },
+    },
+    userRefreshSession: {
+      create: async ({
+        data,
+      }: {
+        data: Omit<
+          MockUserRefreshSession,
+          'createdAt' | 'revokedAt' | 'rotatedAt' | 'updatedAt'
+        > &
+          Partial<
+            Pick<
+              MockUserRefreshSession,
+              'createdAt' | 'revokedAt' | 'rotatedAt' | 'updatedAt'
+            >
+          >;
+      }) => {
+        const now = new Date();
+        const session = {
+          ...data,
+          createdAt: data.createdAt ?? now,
+          revokedAt: data.revokedAt ?? null,
+          rotatedAt: data.rotatedAt ?? null,
+          updatedAt: data.updatedAt ?? now,
+        };
+
+        userRefreshSessions.push(session);
+
+        return session;
+      },
+      findMany: async ({
+        orderBy,
+        where,
+      }: {
+        orderBy?: {
+          createdAt?: 'asc' | 'desc';
+        };
+        where?: {
+          expiresAt?: {
+            gt: Date;
+          };
+          revokedAt?: null;
+          userId?: string;
+        };
+      } = {}) =>
+        [...userRefreshSessions]
+          .filter((session) => {
+            if (where?.userId && session.userId !== where.userId) {
+              return false;
+            }
+
+            if (where?.revokedAt === null && session.revokedAt !== null) {
+              return false;
+            }
+
+            if (
+              where?.expiresAt?.gt &&
+              session.expiresAt.getTime() <= where.expiresAt.gt.getTime()
+            ) {
+              return false;
+            }
+
+            return true;
+          })
+          .sort((left, right) => {
+            const delta = left.createdAt.getTime() - right.createdAt.getTime();
+
+            return orderBy?.createdAt === 'asc' ? delta : -delta;
+          }),
+      findUnique: async ({
+        include,
+        where,
+      }: {
+        include?: {
+          user?: boolean;
+        };
+        where: {
+          id: string;
+        };
+      }) => {
+        const session =
+          userRefreshSessions.find((candidate) => candidate.id === where.id) ??
+          null;
+
+        if (!session || !include?.user) {
+          return session;
+        }
+
+        return {
+          ...session,
+          user: users.find((user) => user.id === session.userId),
+        };
+      },
+      update: async ({
+        data,
+        where,
+      }: {
+        data: Partial<MockUserRefreshSession>;
+        where: {
+          id: string;
+        };
+      }) => {
+        const index = userRefreshSessions.findIndex(
+          (session) => session.id === where.id,
+        );
+
+        if (index === -1) {
+          throw new Error('session not found');
+        }
+
+        userRefreshSessions[index] = {
+          ...userRefreshSessions[index]!,
+          ...data,
+          updatedAt: new Date(),
+        };
+
+        return userRefreshSessions[index];
+      },
+      updateMany: async ({
+        data,
+        where,
+      }: {
+        data: Partial<MockUserRefreshSession>;
+        where: {
+          id?: string;
+          revokedAt?: null;
+          userId?: string;
+        };
+      }) => {
+        let count = 0;
+
+        for (const session of userRefreshSessions) {
+          if (where.id && session.id !== where.id) {
+            continue;
+          }
+
+          if (where.userId && session.userId !== where.userId) {
+            continue;
+          }
+
+          if ('revokedAt' in where && session.revokedAt !== where.revokedAt) {
+            continue;
+          }
+
+          Object.assign(session, data, {
+            updatedAt: new Date(),
+          });
+          count += 1;
+        }
+
+        return {
+          count,
+        };
       },
     },
     passwordResetToken: {
@@ -143,6 +330,7 @@ function createPrismaMock() {
   return {
     passwordResetTokens,
     prisma,
+    userRefreshSessions,
     users,
   };
 }
@@ -196,8 +384,9 @@ describe('AuthService', () => {
     expect(passwordResetTokens).toHaveLength(0);
   });
 
-  it('resets a password once and clears the existing refresh session', async () => {
-    const { passwordResetTokens, prisma, users } = createPrismaMock();
+  it('resets a password once and revokes existing refresh sessions', async () => {
+    const { passwordResetTokens, prisma, userRefreshSessions, users } =
+      createPrismaMock();
     users.push({
       email: 'frieren@example.com',
       id: 'user-1',
@@ -205,6 +394,20 @@ describe('AuthService', () => {
       passwordHash: await hashSecret('old-password-123'),
       refreshTokenHash: 'existing-refresh-hash',
       role: 'user',
+    });
+    userRefreshSessions.push({
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      id: 'session-1',
+      ipAddress: null,
+      lastUsedAt: null,
+      rememberMe: true,
+      revokedAt: null,
+      rotatedAt: null,
+      tokenHash: 'existing-session-hash',
+      updatedAt: new Date(),
+      userAgent: null,
+      userId: 'user-1',
     });
     const authService = new AuthService(prisma as unknown as PrismaService);
     const requestResponse = await authService.requestPasswordReset({
@@ -225,7 +428,7 @@ describe('AuthService', () => {
     expect(await verifySecret('new-password-123', users[0]?.passwordHash ?? '')).toBe(
       true,
     );
-    expect(users[0]?.refreshTokenHash).toBeNull();
+    expect(userRefreshSessions[0]?.revokedAt).toBeInstanceOf(Date);
     expect(passwordResetTokens[0]?.usedAt).toBeInstanceOf(Date);
 
     await expect(
@@ -236,8 +439,8 @@ describe('AuthService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('tracks remember-me session intent on login', async () => {
-    const { prisma, users } = createPrismaMock();
+  it('tracks remember-me session intent on login without using the legacy user column', async () => {
+    const { prisma, userRefreshSessions, users } = createPrismaMock();
     users.push({
       email: 'frieren@example.com',
       id: 'user-1',
@@ -257,6 +460,94 @@ describe('AuthService', () => {
     ).resolves.toMatchObject({
       rememberMe: false,
     });
+    expect(users[0]?.refreshTokenHash).toBeNull();
+    expect(userRefreshSessions).toHaveLength(1);
+    expect(userRefreshSessions[0]).toMatchObject({
+      rememberMe: false,
+      userId: 'user-1',
+    });
+    expect(userRefreshSessions[0]?.tokenHash).toEqual(expect.any(String));
+  });
+
+  it('keeps multiple refresh sessions independent until token reuse is detected', async () => {
+    const { prisma, userRefreshSessions, users } = createPrismaMock();
+    users.push({
+      email: 'frieren@example.com',
+      id: 'user-1',
+      nickname: '',
+      passwordHash: await hashSecret('old-password-123'),
+      refreshTokenHash: null,
+      role: 'user',
+    });
+    const authService = new AuthService(prisma as unknown as PrismaService);
+
+    const firstSession = await authService.login({
+      email: 'frieren@example.com',
+      password: 'old-password-123',
+    });
+    const secondSession = await authService.login({
+      email: 'frieren@example.com',
+      password: 'old-password-123',
+    });
+
+    expect(userRefreshSessions).toHaveLength(2);
+
+    await expect(authService.refresh(firstSession.refreshToken)).resolves.toEqual(
+      expect.objectContaining({
+        sessionId: firstSession.sessionId,
+      }),
+    );
+    expect(
+      userRefreshSessions.find(
+        (session) => session.id === secondSession.sessionId,
+      )?.revokedAt,
+    ).toBeNull();
+
+    await authService.logout(secondSession.refreshToken);
+    expect(
+      userRefreshSessions.find(
+        (session) => session.id === firstSession.sessionId,
+      )?.revokedAt,
+    ).toBeNull();
+    expect(
+      userRefreshSessions.find(
+        (session) => session.id === secondSession.sessionId,
+      )?.revokedAt,
+    ).toBeInstanceOf(Date);
+
+    await expect(authService.refresh(firstSession.refreshToken)).rejects.toThrow(
+      'Invalid or expired refresh token.',
+    );
+    expect(userRefreshSessions.every((session) => session.revokedAt)).toBe(true);
+  });
+
+  it('rejects access tokens after their backing refresh session is revoked', async () => {
+    const { prisma, userRefreshSessions, users } = createPrismaMock();
+    users.push({
+      email: 'frieren@example.com',
+      id: 'user-1',
+      nickname: '',
+      passwordHash: await hashSecret('old-password-123'),
+      refreshTokenHash: null,
+      role: 'user',
+    });
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const session = await authService.login({
+      email: 'frieren@example.com',
+      password: 'old-password-123',
+    });
+
+    await expect(authService.validateAccessToken(session.accessToken)).resolves.toEqual(
+      expect.objectContaining({
+        sessionId: session.sessionId,
+      }),
+    );
+
+    userRefreshSessions[0]!.revokedAt = new Date();
+
+    await expect(
+      authService.validateAccessToken(session.accessToken),
+    ).rejects.toThrow('Session is no longer valid.');
   });
 });
 

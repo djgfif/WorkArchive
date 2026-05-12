@@ -185,8 +185,15 @@ describe('API PostgreSQL integration', () => {
         id: registered.userId,
       },
     });
+    const createdSessions = await prisma.userRefreshSession.findMany({
+      where: {
+        userId: registered.userId,
+      },
+    });
 
-    expect(createdUser?.refreshTokenHash).toEqual(expect.any(String));
+    expect(createdUser?.refreshTokenHash).toBeNull();
+    expect(createdSessions).toHaveLength(1);
+    expect(createdSessions[0]?.tokenHash).toEqual(expect.any(String));
 
     const meResponse = await requestJson('/api/auth/me', undefined, registered.accessToken);
 
@@ -210,14 +217,32 @@ describe('API PostgreSQL integration', () => {
     expect(refreshResponse.status).toBe(200);
 
     const refreshedCookie = extractCookieHeader(refreshResponse.setCookie);
-    const refreshedUser = await prisma.user.findUniqueOrThrow({
+    const refreshedSession = await prisma.userRefreshSession.findUniqueOrThrow({
       where: {
-        id: registered.userId,
+        id: createdSessions[0]!.id,
       },
     });
 
-    expect(refreshedUser.refreshTokenHash).toEqual(expect.any(String));
-    expect(refreshedUser.refreshTokenHash).not.toBe(createdUser?.refreshTokenHash);
+    expect(refreshedSession.tokenHash).toEqual(expect.any(String));
+    expect(refreshedSession.tokenHash).not.toBe(createdSessions[0]?.tokenHash);
+    expect(refreshedSession.rotatedAt).toBeInstanceOf(Date);
+
+    const sessionsResponse = await requestJson(
+      '/api/auth/sessions',
+      undefined,
+      refreshResponse.body!.accessToken,
+    );
+
+    expect(sessionsResponse.status).toBe(200);
+    expect(sessionsResponse.body).toEqual({
+      sessions: [
+        expect.objectContaining({
+          id: createdSessions[0]!.id,
+          current: true,
+          rememberMe: true,
+        }),
+      ],
+    });
 
     const logoutResponse = await requestJson(
       '/api/auth/logout',
@@ -230,13 +255,13 @@ describe('API PostgreSQL integration', () => {
 
     expect(logoutResponse.status).toBe(204);
 
-    const loggedOutUser = await prisma.user.findUniqueOrThrow({
+    const loggedOutSession = await prisma.userRefreshSession.findUniqueOrThrow({
       where: {
-        id: registered.userId,
+        id: createdSessions[0]!.id,
       },
     });
 
-    expect(loggedOutUser.refreshTokenHash).toBeNull();
+    expect(loggedOutSession.revokedAt).toBeInstanceOf(Date);
 
     const refreshAfterLogoutResponse = await requestJson(
       '/api/auth/refresh',
@@ -248,6 +273,109 @@ describe('API PostgreSQL integration', () => {
     );
 
     expect(refreshAfterLogoutResponse.status).toBe(401);
+  });
+
+  it('manages multiple refresh sessions and revokes all on token reuse', async () => {
+    const firstSession = await registerUser('session-db@example.com');
+    const loginResponse = await requestJson<AuthSessionBody>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: 'session-db@example.com',
+        password: TEST_PASSWORD,
+      }),
+    });
+
+    expect(loginResponse.status).toBe(200);
+
+    const secondCookie = extractCookieHeader(loginResponse.setCookie);
+    const activeSessions = await prisma.userRefreshSession.findMany({
+      where: {
+        userId: firstSession.userId,
+        revokedAt: null,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    expect(activeSessions).toHaveLength(2);
+
+    const secondAccessToken = loginResponse.body!.accessToken;
+    const listResponse = await requestJson(
+      '/api/auth/sessions',
+      undefined,
+      secondAccessToken,
+    );
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body).toEqual({
+      sessions: expect.arrayContaining([
+        expect.objectContaining({
+          id: activeSessions[0]!.id,
+          current: false,
+        }),
+        expect.objectContaining({
+          id: activeSessions[1]!.id,
+          current: true,
+        }),
+      ]),
+    });
+
+    const revokeOtherResponse = await requestJson(
+      `/api/auth/sessions/${activeSessions[0]!.id}`,
+      {
+        method: 'DELETE',
+      },
+      secondAccessToken,
+    );
+
+    expect(revokeOtherResponse.status).toBe(204);
+
+    const firstSessionAfterRevoke =
+      await prisma.userRefreshSession.findUniqueOrThrow({
+        where: {
+          id: activeSessions[0]!.id,
+        },
+      });
+    const secondSessionAfterRevoke =
+      await prisma.userRefreshSession.findUniqueOrThrow({
+        where: {
+          id: activeSessions[1]!.id,
+        },
+      });
+
+    expect(firstSessionAfterRevoke.revokedAt).toBeInstanceOf(Date);
+    expect(secondSessionAfterRevoke.revokedAt).toBeNull();
+
+    const refreshResponse = await requestJson<AuthSessionBody>(
+      '/api/auth/refresh',
+      {
+        method: 'POST',
+      },
+      undefined,
+      secondCookie,
+    );
+
+    expect(refreshResponse.status).toBe(200);
+
+    const staleReuseResponse = await requestJson(
+      '/api/auth/refresh',
+      {
+        method: 'POST',
+      },
+      undefined,
+      secondCookie,
+    );
+
+    expect(staleReuseResponse.status).toBe(401);
+    await expect(
+      prisma.userRefreshSession.count({
+        where: {
+          userId: firstSession.userId,
+          revokedAt: null,
+        },
+      }),
+    ).resolves.toBe(0);
   });
 
   it('persists works with user isolation and ownership protection', async () => {

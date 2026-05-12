@@ -226,6 +226,22 @@ export interface AuthSessionResponse {
   user: AuthUserResponse;
 }
 
+export interface AuthRefreshSessionResponse {
+  id: EntityId;
+  current: boolean;
+  rememberMe: boolean;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: ISODateString;
+  lastUsedAt: ISODateString | null;
+  rotatedAt: ISODateString | null;
+  expiresAt: ISODateString;
+}
+
+export interface AuthRefreshSessionsResponse {
+  sessions: AuthRefreshSessionResponse[];
+}
+
 export interface PasswordResetRequestResponse {
   developmentResetUrl?: string;
   message: string;

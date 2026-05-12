@@ -63,7 +63,12 @@ describe('UserRecordsController', () => {
     userRecordsService.getReleasesView.mockResolvedValue(response as never);
 
     const result = await controller.findReleases(
-      { email: 'user@example.com', role: 'user', userId: 'user-1' },
+      {
+        email: 'user@example.com',
+        role: 'user',
+        sessionId: 'session-1',
+        userId: 'user-1',
+      },
       'record-1',
     );
 

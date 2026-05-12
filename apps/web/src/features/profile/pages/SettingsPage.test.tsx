@@ -26,8 +26,26 @@ function noContentResponse() {
   });
 }
 
-function renderAuthenticatedSettings() {
-  return renderWithProviders(
+function authSessionsResponse() {
+  return {
+    sessions: [
+      {
+        id: 'session-1',
+        current: true,
+        rememberMe: true,
+        userAgent: 'Vitest Browser',
+        ipAddress: '127.0.0.1',
+        createdAt: '2026-05-12T00:00:00.000Z',
+        lastUsedAt: '2026-05-12T00:00:00.000Z',
+        rotatedAt: null,
+        expiresAt: '2026-06-11T00:00:00.000Z',
+      },
+    ],
+  };
+}
+
+function renderAuthenticatedSettings(signOut = vi.fn()) {
+  const view = renderWithProviders(
     <MemoryRouter>
       <AuthContext.Provider
         value={{
@@ -41,13 +59,18 @@ function renderAuthenticatedSettings() {
           },
           signIn: vi.fn(),
           signUp: vi.fn(),
-          signOut: vi.fn(),
+          signOut,
         }}
       >
         <SettingsPage />
       </AuthContext.Provider>
     </MemoryRouter>,
   );
+
+  return {
+    ...view,
+    signOut,
+  };
 }
 
 function renderGuestSettings() {
@@ -82,8 +105,7 @@ describe('SettingsPage', () => {
     writeStoredAuthTokens({
       accessToken: 'access-token',
     });
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse([
+    const providerStatuses = [
         {
           provider: 'manual',
           label: 'Manual',
@@ -109,8 +131,16 @@ describe('SettingsPage', () => {
           ],
           mediumTypes: ['movie', 'drama'],
         },
-      ]),
-    );
+      ];
+    const fetchMock = vi.fn((url: string | URL | Request) => {
+      const requestUrl = String(url);
+
+      if (requestUrl.includes('/auth/sessions')) {
+        return Promise.resolve(jsonResponse(authSessionsResponse()));
+      }
+
+      return Promise.resolve(jsonResponse(providerStatuses));
+    });
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -123,10 +153,15 @@ describe('SettingsPage', () => {
     expect(screen.getAllByText(/키 필요/).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/공개 provider/)).toBeInTheDocument();
     expect(screen.getAllByText(/개인 Key Vault/).length).toBeGreaterThan(0);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toEqual(
-      expect.stringContaining('/imports/providers'),
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('/imports/providers'),
+        expect.stringContaining('/auth/sessions'),
+      ]),
     );
+    expect(await screen.findByText('Login sessions')).toBeInTheDocument();
+    expect(screen.getByText('Current session')).toBeInTheDocument();
   });
 
   it.each([
@@ -236,16 +271,30 @@ describe('SettingsPage', () => {
           mediumTypes: ['movie'],
         },
       ];
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce(jsonResponse(providerStatuses))
-        .mockResolvedValueOnce(
-          jsonResponse({
-            provider,
-            configured: true,
-          }),
-        )
-        .mockResolvedValueOnce(noContentResponse());
+      const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+        const requestUrl = String(url);
+
+        if (requestUrl.includes('/auth/sessions')) {
+          return Promise.resolve(jsonResponse(authSessionsResponse()));
+        }
+
+        if (requestUrl.includes(`/imports/providers/${provider}/key`)) {
+          if (init?.method === 'PUT') {
+            return Promise.resolve(
+              jsonResponse({
+                provider,
+                configured: true,
+              }),
+            );
+          }
+
+          if (init?.method === 'DELETE') {
+            return Promise.resolve(noContentResponse());
+          }
+        }
+
+        return Promise.resolve(jsonResponse(providerStatuses));
+      });
 
       vi.stubGlobal('fetch', fetchMock);
 
@@ -273,8 +322,14 @@ describe('SettingsPage', () => {
       }
       expect(screen.getAllByText(/등록됨/).length).toBeGreaterThan(0);
 
-      const providerRequest = fetchMock.mock.calls[0];
-      const saveRequest = fetchMock.mock.calls[1];
+      const providerRequest = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes('/imports/providers'),
+      );
+      const saveRequest = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          String(url).includes(`/imports/providers/${provider}/key`) &&
+          (init as RequestInit | undefined)?.method === 'PUT',
+      );
       const saveRequestInit = saveRequest?.[1] as RequestInit;
       const saveRequestHeaders = saveRequestInit.headers as Headers;
       const expectedValues = Object.fromEntries(
@@ -299,14 +354,107 @@ describe('SettingsPage', () => {
 
       expect(await screen.findByText(/API Key를 삭제했습니다/)).toBeInTheDocument();
       expect(screen.getAllByText(/키 필요/).length).toBeGreaterThan(0);
-      expect(fetchMock.mock.calls[2]?.[0]).toEqual(
+      const deleteRequest = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          String(url).includes(`/imports/providers/${provider}/key`) &&
+          (init as RequestInit | undefined)?.method === 'DELETE',
+      );
+      expect(deleteRequest?.[0]).toEqual(
         expect.stringContaining(`/imports/providers/${provider}/key`),
       );
-      expect((fetchMock.mock.calls[2]?.[1] as RequestInit).method).toBe(
-        'DELETE',
-      );
+      expect((deleteRequest?.[1] as RequestInit).method).toBe('DELETE');
     },
   );
+
+  it('revokes the current session and signs out locally', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const fetchMock = vi.fn((url: string | URL | Request, _init?: RequestInit) => {
+      const requestUrl = String(url);
+
+      if (requestUrl.includes('/auth/sessions/session-1')) {
+        return Promise.resolve(noContentResponse());
+      }
+
+      if (requestUrl.includes('/auth/sessions')) {
+        return Promise.resolve(jsonResponse(authSessionsResponse()));
+      }
+
+      return Promise.resolve(jsonResponse([]));
+    });
+    const signOut = vi.fn().mockResolvedValue(undefined);
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedSettings(signOut);
+
+    expect(await screen.findByText('Current session')).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Sign out this device',
+      }),
+    );
+
+    expect(fetchMock.mock.calls).toEqual(
+      expect.arrayContaining([
+        expect.arrayContaining([
+          expect.stringContaining('/auth/sessions/session-1'),
+          expect.objectContaining({
+            method: 'DELETE',
+          }),
+        ]),
+      ]),
+    );
+    expect(signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('revokes every session and signs out locally', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const fetchMock = vi.fn((url: string | URL | Request) => {
+      const requestUrl = String(url);
+
+      if (requestUrl.includes('/auth/sessions/revoke-all')) {
+        return Promise.resolve(noContentResponse());
+      }
+
+      if (requestUrl.includes('/auth/sessions')) {
+        return Promise.resolve(jsonResponse(authSessionsResponse()));
+      }
+
+      return Promise.resolve(jsonResponse([]));
+    });
+    const signOut = vi.fn().mockResolvedValue(undefined);
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedSettings(signOut);
+
+    expect(await screen.findByText('Current session')).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Sign out all devices',
+      }),
+    );
+
+    expect(fetchMock.mock.calls).toEqual(
+      expect.arrayContaining([
+        expect.arrayContaining([
+          expect.stringContaining('/auth/sessions/revoke-all'),
+          expect.objectContaining({
+            method: 'POST',
+          }),
+        ]),
+      ]),
+    );
+    expect(signOut).toHaveBeenCalledTimes(1);
+  });
 
   it('shows login guidance instead of provider readiness for guests', async () => {
     const fetchMock = vi.fn();

@@ -7,6 +7,7 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
+import type { AuthRefreshSessionResponse } from '@work-archive/shared-types';
 import type { ChangeEvent, FormEvent } from 'react';
 
 import { FutureFeaturePage } from '../../../../shared/components/FutureFeaturePage';
@@ -25,6 +26,17 @@ import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import { getWorkTypeLabel } from '../../../works/utils/work-options';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
+
+function formatSessionDate(value: string | null) {
+  if (!value) {
+    return 'Never';
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
 
 function getCredentialModeLabel(mode?: ImportProviderStatus['credentialMode']) {
   switch (mode) {
@@ -519,6 +531,121 @@ export function ProviderKeyVaultSection({
             )}
           </Stack>
         </SimpleGrid>
+      )}
+    </SectionCard>
+  );
+}
+
+interface LoginSessionsSectionProps {
+  feedback: SettingsFeedback | null;
+  isLoadingSessions: boolean;
+  mode: SettingsAuthMode;
+  onRefreshSessions: () => void;
+  onRevokeAllSessions: () => void;
+  onRevokeSession: (session: AuthRefreshSessionResponse) => void;
+  revokingSessionId: string | null;
+  sessions: AuthRefreshSessionResponse[];
+}
+
+export function LoginSessionsSection({
+  feedback,
+  isLoadingSessions,
+  mode,
+  onRefreshSessions,
+  onRevokeAllSessions,
+  onRevokeSession,
+  revokingSessionId,
+  sessions,
+}: LoginSessionsSectionProps) {
+  const hasSessions = sessions.length > 0;
+
+  return (
+    <SectionCard>
+      <SectionIntro
+        description="Review active refresh sessions and revoke devices that should no longer stay signed in."
+        eyebrow="Security"
+        title="Login sessions"
+      />
+
+      {mode !== 'authenticated' ? (
+        <Text c="var(--app-text-muted)">
+          Sign in to review and revoke account sessions.
+        </Text>
+      ) : isLoadingSessions ? (
+        <Text c="var(--app-text-muted)">Loading sessions.</Text>
+      ) : !hasSessions ? (
+        <Text c="var(--app-text-muted)">No active sessions were found.</Text>
+      ) : (
+        <Stack gap="sm">
+          {sessions.map((session) => (
+            <div
+              key={session.id}
+              style={{
+                border: '1px solid var(--app-border)',
+                borderRadius: 8,
+                padding: '1rem',
+              }}
+            >
+              <Stack gap="xs">
+                <ActionRow>
+                  <Text fw={700}>
+                    {session.current ? 'Current session' : 'Other session'}
+                  </Text>
+                  <AppBadge tone={session.current ? 'success' : 'muted'}>
+                    {session.current ? 'Current' : 'Active'}
+                  </AppBadge>
+                  <AppBadge tone={session.rememberMe ? 'accent' : 'muted'}>
+                    {session.rememberMe ? 'Remembered' : 'Browser session'}
+                  </AppBadge>
+                </ActionRow>
+
+                <Text c="var(--app-text-muted)" size="sm">
+                  Last used: {formatSessionDate(session.lastUsedAt)} | Created:{' '}
+                  {formatSessionDate(session.createdAt)} | Expires:{' '}
+                  {formatSessionDate(session.expiresAt)}
+                </Text>
+                <Text c="var(--app-text-muted)" size="sm">
+                  Device: {session.userAgent || 'Unknown'} | IP:{' '}
+                  {session.ipAddress || 'Unknown'}
+                </Text>
+
+                <ActionRow>
+                  <AppButton
+                    loading={revokingSessionId === session.id}
+                    onClick={() => onRevokeSession(session)}
+                    tone={session.current ? 'danger' : 'secondary'}
+                    type="button"
+                  >
+                    {session.current ? 'Sign out this device' : 'Revoke session'}
+                  </AppButton>
+                </ActionRow>
+              </Stack>
+            </div>
+          ))}
+
+          <ActionRow>
+            <AppButton
+              disabled={revokingSessionId !== null}
+              onClick={onRefreshSessions}
+              tone="quiet"
+              type="button"
+            >
+              Refresh sessions
+            </AppButton>
+            <AppButton
+              loading={revokingSessionId === 'all'}
+              onClick={onRevokeAllSessions}
+              tone="danger"
+              type="button"
+            >
+              Sign out all devices
+            </AppButton>
+          </ActionRow>
+        </Stack>
+      )}
+
+      {feedback && (
+        <FeedbackMessage tone={feedback.tone}>{feedback.message}</FeedbackMessage>
       )}
     </SectionCard>
   );
