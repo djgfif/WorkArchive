@@ -4,13 +4,15 @@
 | --------------------- | ------------------------------------------------------------------------------- |
 | Status                | `active`                                                                        |
 | Role                  | `operational entrypoint`                                                        |
-| Source of truth       | `package.json`, `compose.yml`, `apps/web/package.json`, `apps/api/package.json` |
+| Source of truth       | `package.json`, `compose.yml`, `compose.prod.yml`, `apps/web/package.json`, `apps/api/package.json` |
 | Last verified against | `2026-04-25` local `master` working tree                                        |
 | When to update        | 실행 스크립트, 환경 변수, 포트, Compose 흐름, 현재 검증 상태가 바뀔 때          |
 
 Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 작품 감상 기록을 관리하는 local-first 웹 서비스다. 프론트는 IndexedDB를 1차 저장소로 사용하고, 로그인 시 계정별 로컬 아카이브와 수동 동기화를 사용할 수 있다.
 
 ## Current Stack
+
+Sync policy note: logged-in users can use the manual Sync page, and the web runtime also performs limited automatic sync: initial/auth-scope pull, focus/online pull, and debounced push after `syncQueue` changes. Conflict auto-merge is not implemented; conflicts remain visible and manually resolvable on the Sync page.
 
 - Frontend: React `19.1`, Vite `6.3`, TypeScript `5.8`, Mantine `7`, Dexie, React Router `7`
 - API: NestJS `11`, Prisma `6.6`, PostgreSQL
@@ -118,6 +120,7 @@ npm run dev:api
 - Web: [http://127.0.0.1:53173](http://127.0.0.1:53173)
 - Health: [http://localhost:3000/health](http://localhost:3000/health)
 - Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
+
 - OpenAPI JSON: [http://localhost:3000/docs/openapi.json](http://localhost:3000/docs/openapi.json)
 
 Windows 메모:
@@ -127,6 +130,8 @@ Windows 메모:
 - Host 기반 개발 접속 주소는 [http://127.0.0.1:53173](http://127.0.0.1:53173)을 기준으로 한다.
 
 ## Docker Compose
+
+Production compose note: `compose.yml` is for local development only and must not be used for production. Production deployments must use [`compose.prod.yml`](/mnt/c/work/WorkArchive/compose.prod.yml), which requires explicit secrets and production URLs with `${VAR:?required}` and locks `SWAGGER_ENABLED=false`, `PASSWORD_RESET_DEV_LINKS_ENABLED=false`, and `COOKIE_SECURE=true`.
 
 전체 스택을 컨테이너로 올릴 수 있다.
 
@@ -165,8 +170,11 @@ npm run db:seed
 npm run lint
 npm run typecheck
 npm run test
+npm run test:integration
 npm run build
 ```
+
+Integration test note: `npm run test:integration` requires a migrated PostgreSQL database and a `DATABASE_URL` that includes `test` or `integration`. Run `npm run db:migrate:deploy` against that database first. The reset helper refuses to truncate a generic local or production database.
 
 ## Current Verification Status
 
@@ -179,8 +187,12 @@ npm run build
 
 ## Current Product Reality
 
+- Sync policy: manual Sync page plus limited automatic sync for authenticated users. Automatic pull runs on account archive activation and browser focus/online events; automatic push runs after local `syncQueue` changes with debounce.
+- Conflict policy: automatic conflict merge is not implemented. Failed/conflict items are kept for SyncPage retry, remote-apply, local-keep, or field-level merge resolution.
+- Auth session policy: the backend currently stores one `refreshTokenHash` per user, so multi-device refresh sessions and device-level logout are follow-up work.
+
 - 게스트 모드는 항상 사용 가능하며 IndexedDB에만 저장된다.
-- 로그인 시 계정별 로컬 아카이브로 전환되고 수동 sync를 사용할 수 있다.
+- 로그인 시 계정별 로컬 아카이브로 전환되고, 수동 Sync page와 로그인 상태의 제한적 자동 sync를 사용할 수 있다.
 - 로그인 직후 guest 기록이 감지되면 `/account/transfer`에서 중복 후보를 검토한 뒤 선택 import할 수 있다.
 - Quick Add의 기본 진입은 검색 없는 직접 추가이며, 수동 저장은 `catalogTitleId: null`, `importDraft: null`로 local-first 저장된다.
 - Quick Add 외부 검색은 `/imports/search` optional auth 경로를 사용한다. 토큰이 있으면 authenticated request를 보내고, 토큰이 없으면 plain request로 key가 필요 없는 provider를 검색한다.
@@ -204,7 +216,7 @@ npm run build
 
 ## Known Limitations
 
-- 자동 동기화는 아직 없다.
+- 자동 동기화는 제한적으로 동작한다. 로그인 상태에서 초기/account scope pull, focus/online pull, `syncQueue` 변경 후 debounced push를 수행하며, 자동 conflict merge는 아직 없다.
 - guest -> account 이관은 검토/선택 import 단계까지만 있고, 자동 병합이나 다기기 정책은 아직 없다.
 - Quick Add provider readiness, duplicate detection, ranking/search quality 기본 구현/테스트는 들어갔지만, provider별 실제 검색어 QA와 UI polish는 후속 작업이다.
 - Sync conflict 기본 해결 UX와 failed 원인 분류는 들어갔지만, 자동 병합 판단이나 고급 충돌 정책은 후속 작업이다.

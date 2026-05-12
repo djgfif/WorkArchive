@@ -253,4 +253,146 @@ describe('auth.api', () => {
       accessToken: 'rotated-access-token',
     });
   });
+
+  it('shares one refresh request across concurrent protected API retries', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'expired-access-token',
+    });
+
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const requestUrl = String(url);
+      const headers = init?.headers as Headers | undefined;
+      const authorizationHeader = headers?.get('authorization');
+
+      if (requestUrl.includes('/auth/refresh')) {
+        return jsonResponse({
+          accessToken: 'rotated-access-token',
+          user: {
+            id: 'user-1',
+            email: 'frieren@example.com',
+            nickname: '',
+          },
+        });
+      }
+
+      if (authorizationHeader === 'Bearer expired-access-token') {
+        return jsonResponse(
+          {
+            message: 'Invalid or expired token.',
+          },
+          401,
+        );
+      }
+
+      if (authorizationHeader === 'Bearer rotated-access-token') {
+        return jsonResponse({
+          ok: true,
+        });
+      }
+
+      return jsonResponse(
+        {
+          message: 'Unauthorized.',
+        },
+        401,
+      );
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      Promise.all([
+        requestAuthenticatedApiJson('/sync/pull', {
+          method: 'POST',
+          body: JSON.stringify({
+            since: null,
+          }),
+        }),
+        requestAuthenticatedApiJson('/sync/push', {
+          method: 'POST',
+          body: JSON.stringify({
+            changes: [],
+          }),
+        }),
+      ]),
+    ).resolves.toEqual([
+      {
+        ok: true,
+      },
+      {
+        ok: true,
+      },
+    ]);
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth/refresh')),
+    ).toHaveLength(1);
+    expect(readStoredAuthTokens()).toEqual({
+      accessToken: 'rotated-access-token',
+    });
+  });
+
+  it('clears memory tokens for all concurrent protected requests when shared refresh fails', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'expired-access-token',
+    });
+
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const requestUrl = String(url);
+      const headers = init?.headers as Headers | undefined;
+      const authorizationHeader = headers?.get('authorization');
+
+      if (requestUrl.includes('/auth/refresh')) {
+        return jsonResponse(
+          {
+            message: 'Invalid or expired refresh token.',
+          },
+          401,
+        );
+      }
+
+      if (authorizationHeader === 'Bearer expired-access-token') {
+        return jsonResponse(
+          {
+            message: 'Invalid or expired token.',
+          },
+          401,
+        );
+      }
+
+      return jsonResponse({
+        ok: true,
+      });
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const results = await Promise.allSettled([
+      requestAuthenticatedApiJson('/sync/pull', {
+        method: 'POST',
+        body: JSON.stringify({
+          since: null,
+        }),
+      }),
+      requestAuthenticatedApiJson('/sync/push', {
+        method: 'POST',
+        body: JSON.stringify({
+          changes: [],
+        }),
+      }),
+    ]);
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        status: 'rejected',
+      }),
+      expect.objectContaining({
+        status: 'rejected',
+      }),
+    ]);
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth/refresh')),
+    ).toHaveLength(1);
+    expect(readStoredAuthTokens()).toBeNull();
+  });
 });
