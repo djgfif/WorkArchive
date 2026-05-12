@@ -12,6 +12,8 @@
 
 ## 1. Snapshot
 
+Sync policy correction: current code supports the manual Sync page plus limited automatic sync for authenticated users. `useAutoSync` runs pull on account archive activation and browser focus/online events, and runs debounced push after `syncQueue` changes. Conflict auto-merge and advanced multi-device policy are still not implemented.
+
 - Work Archive는 작품 감상 기록을 관리하는 local-first 웹 서비스다.
 - 프론트는 IndexedDB를 1차 저장소로 쓰고, 로그인 시 계정별 로컬 아카이브로 전환한다.
 - 현재 저장소에서 실제 실행 가능한 프론트 런타임은 `apps/web`이며, Tauri shell은 아직 저장소에 없다.
@@ -19,7 +21,7 @@
 - Quick Add는 현재 `modal-first direct manual add + optional-auth server-assisted search + local-first save` 규칙으로 동작한다.
 - Quick Add matched/unmatched/manual 저장 규칙과 duplicate detection 우선순위는 테스트로 고정돼 있다.
 - Quick Add 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage를 갖추고 manual fallback을 일반 검색 결과에서 분리한다.
-- 현재 sync는 수동 실행만 지원한다.
+- 현재 sync는 수동 Sync page와 로그인 상태의 제한적 자동 sync를 함께 지원한다.
 - `Tier Boards`, `Community`는 라우트는 존재하지만 현재 범위 밖/후속 기능 안내 성격이 강하다. `Insights`는 local-first 개인 기록 기반 요약 화면으로 시작했다.
 
 ## 2. Verified Stack
@@ -132,6 +134,8 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 ### 4-3. Runtime Behavior
 
+Production hardening baseline: production startup rejects development secrets (`change-me-*`, `local-compose-*`), short JWT/encryption secrets, localhost CORS, `postgres/postgres` database credentials, demo seed passwords, `SWAGGER_ENABLED=true`, `PASSWORD_RESET_DEV_LINKS_ENABLED=true`, and `COOKIE_SECURE=false`. Local `compose.yml` is development-only; production deployments use `compose.prod.yml` with required environment variables.
+
 - 전역 prefix: `/api` (`/health`는 예외)
 - Swagger: `SWAGGER_ENABLED` 기반으로 `/docs` 노출 여부 제어
 - Health check: `/health`
@@ -143,6 +147,8 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 - CORS: `CORS_ORIGIN` 기반 explicit whitelist만 허용
 
 ### 4-4. Current Auth Session Shape
+
+Current session policy: the API still stores a single `refreshTokenHash` on `User`. That means the product currently has one effective refresh session per user; multi-device session lists, device-level logout, refresh token reuse detection, and logout-all-devices require a future `UserRefreshSession` migration.
 
 - 로그인/회원가입/refresh 응답은 access token과 사용자 정보를 반환한다.
 - refresh token은 `HttpOnly` cookie로 저장된다.
@@ -269,8 +275,10 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 ### 7-2. Product UX
 
+Sync UX reality: sync is not manual-only anymore. The manual Sync page remains the explicit user-facing control surface, while authenticated users also get limited automatic pull/push behavior from `useAutoSync`. Automatic conflict merge remains out of scope; conflict items are resolved on SyncPage.
+
 - 게스트와 계정 아카이브는 분리되어 있고, 현재는 로그인 직후 review/import 단계까지만 제공된다.
-- sync는 수동이다.
+- sync는 수동 Sync page를 기본 조작면으로 제공하고, 로그인 상태에서는 제한적 자동 pull/push도 수행한다.
 - SyncPage는 pending / failed / conflict queue item 단위 상태와 원인, 기록 보기, 재시도 CTA를 제공한다.
 - SyncPage는 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지, 원격 적용, 필드별 병합으로 해결할 수 있다. 자동 병합 판단은 후속 작업이다.
 - Profile / Tier Boards / Community / Insights는 장기 방향에 비해 현재 구현이 얕다.

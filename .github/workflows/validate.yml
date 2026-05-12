@@ -35,3 +35,52 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: work_archive_integration
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d work_archive_integration"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      CORS_ORIGIN: http://localhost:8080
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/work_archive_integration?schema=public
+      EXTERNAL_API_KEY_ENCRYPTION_SECRET: integration-external-api-key-secret-minimum-32-chars
+      JWT_ACCESS_SECRET: integration-access-secret-minimum-32-chars
+      JWT_REFRESH_SECRET: integration-refresh-secret-minimum-32-chars
+      NODE_ENV: test
+      PASSWORD_RESET_DEV_LINKS_ENABLED: 'false'
+      SWAGGER_ENABLED: 'false'
+      WEB_BASE_URL: http://localhost:8080
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Deploy migrations
+        run: npm run prisma:migrate:deploy --workspace @work-archive/api
+
+      - name: Integration test
+        run: npm run test:integration --workspace @work-archive/api

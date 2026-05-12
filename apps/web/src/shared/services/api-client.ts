@@ -9,6 +9,10 @@ import { localizeApiErrorMessage } from '../utils/localize-message';
 
 const DEFAULT_API_BASE_URL = 'http://localhost:3000/api';
 
+type StoredAuthTokens = NonNullable<ReturnType<typeof readStoredAuthTokens>>;
+
+let refreshStoredTokensPromise: Promise<StoredAuthTokens> | null = null;
+
 interface AuthenticatedRequestOptions {
   missingTokenMessage?: string;
 }
@@ -118,7 +122,7 @@ export async function requestApiJson<TResponse>(
   return responseBody;
 }
 
-async function refreshStoredTokens() {
+async function runRefreshStoredTokens() {
   try {
     const refreshedSession = await requestApiJson<AuthSessionResponse>('/auth/refresh', {
       method: 'POST',
@@ -134,6 +138,16 @@ async function refreshStoredTokens() {
     clearStoredAuthTokens();
     throw error;
   }
+}
+
+async function refreshStoredTokens() {
+  if (!refreshStoredTokensPromise) {
+    refreshStoredTokensPromise = runRefreshStoredTokens().finally(() => {
+      refreshStoredTokensPromise = null;
+    });
+  }
+
+  return refreshStoredTokensPromise;
 }
 
 export async function requestAuthenticatedApiJson<TResponse>(

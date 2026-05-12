@@ -159,10 +159,7 @@ export function calculatePersonalInsights(
         count,
         genre,
       }))
-      .sort(
-        (left, right) =>
-          right.count - left.count || left.genre.localeCompare(right.genre),
-      )
+      .sort((left, right) => right.count - left.count)
       .slice(0, 10),
     monthlyCompletedCounts: [...monthlyCompletedBuckets.entries()].map(
       ([month, count]) => ({
