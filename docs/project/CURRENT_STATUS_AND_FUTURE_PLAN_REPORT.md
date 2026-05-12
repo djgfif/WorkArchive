@@ -148,7 +148,7 @@ Production hardening baseline: production startup rejects development secrets (`
 
 ### 4-4. Current Auth Session Shape
 
-Current session policy: the API still stores a single `refreshTokenHash` on `User`. That means the product currently has one effective refresh session per user; multi-device session lists, device-level logout, refresh token reuse detection, and logout-all-devices require a future `UserRefreshSession` migration.
+Current session policy: refresh sessions are stored in `UserRefreshSession` / `user_refresh_sessions`. Login and register create a device-level refresh session, refresh rotates the hash in that session, and account settings can list sessions, revoke one session, or sign out all devices. The legacy nullable `users.refreshTokenHash` column remains for compatibility but new auth code does not write it. Refresh token reuse detection revokes all active sessions for the user.
 
 - 로그인/회원가입/refresh 응답은 access token과 사용자 정보를 반환한다.
 - refresh token은 `HttpOnly` cookie로 저장된다.

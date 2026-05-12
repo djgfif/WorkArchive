@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Inject,
   Logger,
+  Param,
   Post,
   Req,
   Res,
@@ -32,6 +34,7 @@ import {
 } from './auth.cookies';
 import { CurrentUser } from './current-user.decorator';
 import type { AuthenticatedUser } from './auth.types';
+import { AuthRefreshSessionsResponseDto } from './dto/auth-refresh-session-response.dto';
 import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import { LoginDto } from './dto/login.dto';
@@ -64,9 +67,13 @@ export class AuthController {
   })
   async register(
     @Body() registerDto: RegisterDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const session = await this.authService.register(registerDto);
+    const session = await this.authService.register(
+      registerDto,
+      this.getSessionMetadata(request),
+    );
 
     response.cookie(
       REFRESH_TOKEN_COOKIE_NAME,
@@ -93,9 +100,13 @@ export class AuthController {
   })
   async login(
     @Body() loginDto: LoginDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const session = await this.authService.login(loginDto);
+    const session = await this.authService.login(
+      loginDto,
+      this.getSessionMetadata(request),
+    );
 
     response.cookie(
       REFRESH_TOKEN_COOKIE_NAME,
@@ -201,5 +212,77 @@ export class AuthController {
   })
   me(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.getCurrentUser(user.userId);
+  }
+
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: 'List active refresh sessions for the current user.',
+    type: AuthRefreshSessionsResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  sessions(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.listRefreshSessions(user);
+  }
+
+  @Delete('sessions/:sessionId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiNoContentResponse({
+    description: 'Revoke one active refresh session owned by the user.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  async revokeSession(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('sessionId') sessionId: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.revokeRefreshSession(user, sessionId);
+
+    if (result.revokedCurrent) {
+      response.clearCookie(
+        REFRESH_TOKEN_COOKIE_NAME,
+        getRefreshTokenClearCookieOptions(),
+      );
+    }
+  }
+
+  @Post('sessions/revoke-all')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiNoContentResponse({
+    description: 'Revoke every refresh session for the current user.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  async revokeAllSessions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    await this.authService.revokeAllRefreshSessions(user);
+
+    response.clearCookie(
+      REFRESH_TOKEN_COOKIE_NAME,
+      getRefreshTokenClearCookieOptions(),
+    );
+  }
+
+  private getSessionMetadata(request: Request) {
+    const rawUserAgent = request.headers['user-agent'];
+
+    return {
+      ipAddress: request.ip ?? null,
+      userAgent: Array.isArray(rawUserAgent)
+        ? rawUserAgent.join(' ')
+        : rawUserAgent ?? null,
+    };
   }
 }

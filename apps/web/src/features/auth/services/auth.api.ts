@@ -1,5 +1,6 @@
 import type {
   AuthCredentialsRequest,
+  AuthRefreshSessionsResponse,
   AuthSessionResponse as SharedAuthSessionResponse,
   AuthUserResponse,
   PasswordResetConfirmResponse as SharedPasswordResetConfirmResponse,
@@ -26,6 +27,7 @@ interface RestoredSession {
 
 export type AuthCredentialsInput = AuthCredentialsRequest;
 export type AuthSessionResponse = SharedAuthSessionResponse;
+export type AuthRefreshSessions = AuthRefreshSessionsResponse;
 export type AuthUser = AuthUserResponse;
 export type PasswordResetConfirmResponse = SharedPasswordResetConfirmResponse;
 export type PasswordResetRequestResponse = SharedPasswordResetRequestResponse;
@@ -91,6 +93,24 @@ export async function fetchCurrentUser(accessToken: string) {
 
 export async function logoutSession() {
   await requestApi('/auth/logout', {
+    method: 'POST',
+  });
+}
+
+export async function fetchAuthSessions() {
+  return requestAuthenticatedApiJson<AuthRefreshSessions>('/auth/sessions', {
+    method: 'GET',
+  });
+}
+
+export async function revokeAuthSession(sessionId: string) {
+  await requestAuthenticatedApi(`/auth/sessions/${sessionId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function revokeAllAuthSessions() {
+  await requestAuthenticatedApi('/auth/sessions/revoke-all', {
     method: 'POST',
   });
 }

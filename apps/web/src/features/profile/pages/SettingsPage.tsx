@@ -3,18 +3,21 @@ import { AppLinkButton } from '../../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import {
   AppearanceSettingsSection,
+  LoginSessionsSection,
   LocalArchiveSettingsSection,
   ProviderKeyVaultSection,
   ProviderReadinessSection,
   SettingsFutureSection,
 } from '../components/settings/SettingsSections';
+import { useAuthSessionSettings } from '../hooks/useAuthSessionSettings';
 import { useImportProviderSettings } from '../hooks/useImportProviderSettings';
 import { useLocalArchiveSettings } from '../hooks/useLocalArchiveSettings';
 
 export function SettingsPage() {
-  const { mode } = useAuthSession();
+  const { mode, signOut } = useAuthSession();
   const importProviderSettings = useImportProviderSettings(mode);
   const localArchiveSettings = useLocalArchiveSettings();
+  const authSessionSettings = useAuthSessionSettings(mode, signOut);
 
   return (
     <AccountPageTemplate
@@ -63,6 +66,19 @@ export function SettingsPage() {
         savingProviderId={importProviderSettings.savingProviderId}
         selectedProvider={importProviderSettings.selectedProvider}
         selectedProviderId={importProviderSettings.selectedProviderId}
+      />
+
+      <LoginSessionsSection
+        feedback={authSessionSettings.sessionFeedback}
+        isLoadingSessions={authSessionSettings.isLoadingSessions}
+        mode={mode}
+        onRefreshSessions={() => void authSessionSettings.refreshSessions()}
+        onRevokeAllSessions={() => void authSessionSettings.revokeEverySession()}
+        onRevokeSession={(session) =>
+          void authSessionSettings.revokeSession(session)
+        }
+        revokingSessionId={authSessionSettings.revokingSessionId}
+        sessions={authSessionSettings.sessions}
       />
 
       <SettingsFutureSection />

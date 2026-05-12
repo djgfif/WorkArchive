@@ -189,7 +189,7 @@ Integration test note: `npm run test:integration` requires a migrated PostgreSQL
 
 - Sync policy: manual Sync page plus limited automatic sync for authenticated users. Automatic pull runs on account archive activation and browser focus/online events; automatic push runs after local `syncQueue` changes with debounce.
 - Conflict policy: automatic conflict merge is not implemented. Failed/conflict items are kept for SyncPage retry, remote-apply, local-keep, or field-level merge resolution.
-- Auth session policy: the backend currently stores one `refreshTokenHash` per user, so multi-device refresh sessions and device-level logout are follow-up work.
+- Auth session policy: refresh sessions are stored in `user_refresh_sessions`, not the legacy `users.refreshTokenHash` column. The account settings screen can list active sessions, revoke one session, or sign out all devices. Refresh token reuse detection revokes every active session for that user.
 
 - 게스트 모드는 항상 사용 가능하며 IndexedDB에만 저장된다.
 - 로그인 시 계정별 로컬 아카이브로 전환되고, 수동 Sync page와 로그인 상태의 제한적 자동 sync를 사용할 수 있다.

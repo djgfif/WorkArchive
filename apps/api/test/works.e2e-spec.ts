@@ -17,6 +17,7 @@ function createPrismaServiceMock() {
   const catalogExternalRefs: Array<Record<string, unknown>> = [];
   const userWorkRecords: Array<Record<string, unknown>> = [];
   const userReleaseRecords: Array<Record<string, unknown>> = [];
+  const userRefreshSessions: Array<Record<string, unknown>> = [];
   const externalApiCredentials: Array<Record<string, unknown>> = [];
 
   function buildServerVersion(
@@ -149,6 +150,7 @@ function createPrismaServiceMock() {
           passwordHash: data.passwordHash,
           refreshTokenHash: data.refreshTokenHash ?? null,
           nickname: data.nickname ?? '',
+          role: data.role ?? 'user',
           createdAt: now,
           updatedAt: now,
         };
@@ -181,6 +183,158 @@ function createPrismaServiceMock() {
         users[index] = updatedUser;
 
         return updatedUser;
+      },
+    };
+  prismaMock.userRefreshSession = {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const now = new Date();
+        const session = {
+          id: data.id ?? crypto.randomUUID(),
+          userId: data.userId,
+          tokenHash: data.tokenHash,
+          rememberMe: data.rememberMe ?? true,
+          userAgent: data.userAgent ?? null,
+          ipAddress: data.ipAddress ?? null,
+          createdAt: data.createdAt ?? now,
+          updatedAt: data.updatedAt ?? now,
+          lastUsedAt: data.lastUsedAt ?? null,
+          rotatedAt: data.rotatedAt ?? null,
+          expiresAt: data.expiresAt,
+          revokedAt: data.revokedAt ?? null,
+        };
+
+        userRefreshSessions.push(session);
+
+        return session;
+      },
+      findUnique: async ({
+        include,
+        where,
+      }: {
+        include?: {
+          user?: boolean;
+        };
+        where: {
+          id: string;
+        };
+      }) => {
+        const session =
+          userRefreshSessions.find((candidate) => candidate.id === where.id) ??
+          null;
+
+        if (!session || !include?.user) {
+          return session;
+        }
+
+        return {
+          ...session,
+          user: users.find((user) => user.id === session.userId),
+        };
+      },
+      findMany: async ({
+        orderBy,
+        where,
+      }: {
+        orderBy?: {
+          createdAt?: 'asc' | 'desc';
+        };
+        where?: {
+          expiresAt?: {
+            gt: Date;
+          };
+          revokedAt?: null;
+          userId?: string;
+        };
+      } = {}) =>
+        [...userRefreshSessions]
+          .filter((session) => {
+            if (where?.userId && session.userId !== where.userId) {
+              return false;
+            }
+
+            if (where?.revokedAt === null && session.revokedAt !== null) {
+              return false;
+            }
+
+            if (
+              where?.expiresAt?.gt &&
+              new Date(session.expiresAt as Date).getTime() <=
+                where.expiresAt.gt.getTime()
+            ) {
+              return false;
+            }
+
+            return true;
+          })
+          .sort((left, right) => {
+            const delta =
+              new Date(left.createdAt as Date).getTime() -
+              new Date(right.createdAt as Date).getTime();
+
+            return orderBy?.createdAt === 'asc' ? delta : -delta;
+          }),
+      update: async ({
+        data,
+        where,
+      }: {
+        data: Record<string, unknown>;
+        where: {
+          id: string;
+        };
+      }) => {
+        const index = userRefreshSessions.findIndex(
+          (session) => session.id === where.id,
+        );
+
+        if (index === -1) {
+          throw new Error('session not found');
+        }
+
+        const updatedSession = {
+          ...userRefreshSessions[index],
+          ...data,
+          updatedAt: new Date(),
+        };
+
+        userRefreshSessions[index] = updatedSession;
+
+        return updatedSession;
+      },
+      updateMany: async ({
+        data,
+        where,
+      }: {
+        data: Record<string, unknown>;
+        where: {
+          id?: string;
+          revokedAt?: null;
+          userId?: string;
+        };
+      }) => {
+        let count = 0;
+
+        for (const session of userRefreshSessions) {
+          if (where.id && session.id !== where.id) {
+            continue;
+          }
+
+          if (where.userId && session.userId !== where.userId) {
+            continue;
+          }
+
+          if ('revokedAt' in where && session.revokedAt !== where.revokedAt) {
+            continue;
+          }
+
+          Object.assign(session, data, {
+            updatedAt: new Date(),
+          });
+          count += 1;
+        }
+
+        return {
+          count,
+        };
       },
     };
   prismaMock.catalogWork = {

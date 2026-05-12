@@ -129,11 +129,32 @@ model User {
   timelineEntries        UserTimelineEntry[]
   externalApiCredentials ExternalApiCredential[]
   passwordResetTokens    PasswordResetToken[]
+  refreshSessions        UserRefreshSession[]
   catalogSubmissions     CatalogSubmission[]     @relation("CatalogSubmissionSubmitter")
   reviewedSubmissions    CatalogSubmission[]     @relation("CatalogSubmissionReviewer")
   catalogAuditLogs       CatalogAuditLog[]
 
   @@map("users")
+}
+
+model UserRefreshSession {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @db.Text
+  rememberMe Boolean   @default(true)
+  userAgent  String?   @db.Text
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastUsedAt DateTime?
+  rotatedAt  DateTime?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("user_refresh_sessions")
 }
 
 model PasswordResetToken {

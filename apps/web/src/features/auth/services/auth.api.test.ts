@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ApiRequestError,
+  fetchAuthSessions,
   requestAuthenticatedApiJson,
+  revokeAllAuthSessions,
+  revokeAuthSession,
   restoreStoredSession,
 } from './auth.api';
 import {
@@ -394,5 +397,65 @@ describe('auth.api', () => {
       fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth/refresh')),
     ).toHaveLength(1);
     expect(readStoredAuthTokens()).toBeNull();
+  });
+
+  it('calls auth session management endpoints with the current access token', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    const fetchMock = vi.fn(
+      (url: string | URL | Request, _init?: RequestInit) => {
+      const requestUrl = String(url);
+
+      if (requestUrl.includes('/auth/sessions') && !requestUrl.includes('revoke-all')) {
+        return Promise.resolve(
+          jsonResponse({
+            sessions: [
+              {
+                id: 'session-1',
+                current: true,
+                rememberMe: true,
+                userAgent: 'Vitest',
+                ipAddress: '127.0.0.1',
+                createdAt: '2026-05-12T00:00:00.000Z',
+                lastUsedAt: null,
+                rotatedAt: null,
+                expiresAt: '2026-06-11T00:00:00.000Z',
+              },
+            ],
+          }),
+        );
+      }
+
+      return Promise.resolve(new Response(null, { status: 204 }));
+      },
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchAuthSessions()).resolves.toEqual({
+      sessions: [
+        expect.objectContaining({
+          id: 'session-1',
+          current: true,
+        }),
+      ],
+    });
+    await expect(revokeAuthSession('session-1')).resolves.toBeUndefined();
+    await expect(revokeAllAuthSessions()).resolves.toBeUndefined();
+
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('/auth/sessions'),
+        expect.stringContaining('/auth/sessions/session-1'),
+        expect.stringContaining('/auth/sessions/revoke-all'),
+      ]),
+    );
+    for (const [, init] of fetchMock.mock.calls) {
+      expect((init?.headers as Headers).get('authorization')).toBe(
+        'Bearer access-token',
+      );
+    }
   });
 });
