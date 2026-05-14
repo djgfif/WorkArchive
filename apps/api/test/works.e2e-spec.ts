@@ -17,6 +17,7 @@ function createPrismaServiceMock() {
   const catalogExternalRefs: Array<Record<string, unknown>> = [];
   const userWorkRecords: Array<Record<string, unknown>> = [];
   const userReleaseRecords: Array<Record<string, unknown>> = [];
+  const userTimelineEntries: Array<Record<string, unknown>> = [];
   const userRefreshSessions: Array<Record<string, unknown>> = [];
   const externalApiCredentials: Array<Record<string, unknown>> = [];
 
@@ -107,6 +108,22 @@ function createPrismaServiceMock() {
       ...record,
       catalogWork: getCatalogWorkById(record.catalogWorkId as string),
       catalogTitle: getCatalogTitleById(record.catalogTitleId as string | null),
+    };
+  }
+
+  function joinTimelineEntry(entry: Record<string, unknown>) {
+    const parent =
+      userWorkRecords.find((record) => record.id === entry.userWorkRecordId) ??
+      null;
+
+    return {
+      ...entry,
+      userWorkRecord: parent
+        ? {
+            id: parent.id,
+            userId: parent.userId,
+          }
+        : null,
     };
   }
 
@@ -815,6 +832,111 @@ function createPrismaServiceMock() {
           return true;
         }),
     };
+  prismaMock.userTimelineEntry = {
+      findUnique: async ({
+        where,
+      }: {
+        where: {
+          id: string;
+        };
+      }) => {
+        const entry =
+          userTimelineEntries.find((candidate) => candidate.id === where.id) ??
+          null;
+
+        return entry ? joinTimelineEntry(entry) : null;
+      },
+      findMany: async ({
+        where,
+      }: {
+        where?: {
+          updatedAt?: {
+            gt: Date;
+          };
+          userId?: string;
+        };
+      } = {}) =>
+        [...userTimelineEntries]
+          .filter((entry) => {
+            if (where?.userId && entry.userId !== where.userId) {
+              return false;
+            }
+
+            if (
+              where?.updatedAt?.gt &&
+              new Date(entry.updatedAt as Date).getTime() <=
+                where.updatedAt.gt.getTime()
+            ) {
+              return false;
+            }
+
+            return true;
+          })
+          .sort((left, right) => {
+            const updatedAtDelta =
+              new Date(left.updatedAt as Date).getTime() -
+              new Date(right.updatedAt as Date).getTime();
+
+            if (updatedAtDelta !== 0) {
+              return updatedAtDelta;
+            }
+
+            return String(left.id).localeCompare(String(right.id));
+          })
+          .map((entry) => joinTimelineEntry(entry)),
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const now = new Date();
+        const entry = {
+          id: data.id ?? crypto.randomUUID(),
+          userId: data.userId,
+          userWorkRecordId: data.userWorkRecordId,
+          type: data.type ?? 'note',
+          occurredAt: data.occurredAt ?? now,
+          note: data.note ?? '',
+          createdAt: data.createdAt ?? now,
+          updatedAt: data.updatedAt ?? now,
+          deletedAt: data.deletedAt ?? null,
+          syncStatus: data.syncStatus ?? WorkSyncStatus.synced,
+          serverVersion: data.serverVersion ?? 1,
+        };
+
+        userTimelineEntries.push(entry);
+
+        return joinTimelineEntry(entry);
+      },
+      update: async ({
+        data,
+        where,
+      }: {
+        data: Record<string, unknown>;
+        where: {
+          id: string;
+        };
+      }) => {
+        const index = userTimelineEntries.findIndex(
+          (entry) => entry.id === where.id,
+        );
+
+        if (index === -1) {
+          throw new Error('timeline entry not found');
+        }
+
+        const current = userTimelineEntries[index]!;
+        const updatedEntry = {
+          ...current,
+          ...data,
+          serverVersion: buildServerVersion(
+            Number(current.serverVersion),
+            data.serverVersion,
+          ),
+          updatedAt: data.updatedAt ?? new Date(),
+        };
+
+        userTimelineEntries[index] = updatedEntry;
+
+        return joinTimelineEntry(updatedEntry);
+      },
+    };
   prismaMock.externalApiCredential = {
       findUnique: async ({
         where,
@@ -1183,6 +1305,185 @@ describe('Auth, works, and sync API (e2e)', () => {
     });
 
     expect(refreshAfterLogoutResponse.status).toBe(401);
+  });
+
+  it('lists refresh sessions and supports device-level revoke and logout-all', async () => {
+    const registerResponse = await requestJson('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: 'sessions@example.com',
+        password: 'strong-password-123',
+      }),
+    });
+    const firstSession = registerResponse.body as {
+      accessToken: string;
+      user: {
+        id: string;
+      };
+    };
+
+    expect(registerResponse.status).toBe(201);
+
+    const loginResponse = await requestJson('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: 'sessions@example.com',
+        password: 'strong-password-123',
+      }),
+    });
+    const secondSession = loginResponse.body as {
+      accessToken: string;
+    };
+
+    expect(loginResponse.status).toBe(200);
+
+    const sessionsResponse = await requestJson(
+      '/api/auth/sessions',
+      undefined,
+      secondSession.accessToken,
+    );
+
+    expect(sessionsResponse.status).toBe(200);
+    expect(sessionsResponse.body).toEqual({
+      sessions: expect.arrayContaining([
+        expect.objectContaining({
+          current: false,
+          rememberMe: true,
+        }),
+        expect.objectContaining({
+          current: true,
+          rememberMe: false,
+        }),
+      ]),
+    });
+
+    const listedSessions = (sessionsResponse.body as {
+      sessions: Array<{
+        current: boolean;
+        id: string;
+      }>;
+    }).sessions;
+    const otherSession = listedSessions.find((session) => !session.current);
+
+    expect(otherSession).toBeDefined();
+
+    const revokeOtherResponse = await requestJson(
+      `/api/auth/sessions/${otherSession!.id}`,
+      {
+        method: 'DELETE',
+      },
+      secondSession.accessToken,
+    );
+
+    expect(revokeOtherResponse.status).toBe(204);
+
+    const firstMeAfterRevoke = await requestJson(
+      '/api/auth/me',
+      undefined,
+      firstSession.accessToken,
+    );
+    const secondMeAfterRevoke = await requestJson(
+      '/api/auth/me',
+      undefined,
+      secondSession.accessToken,
+    );
+
+    expect(firstMeAfterRevoke.status).toBe(401);
+    expect(secondMeAfterRevoke.status).toBe(200);
+
+    const revokeAllResponse = await requestJson(
+      '/api/auth/sessions/revoke-all',
+      {
+        method: 'POST',
+      },
+      secondSession.accessToken,
+    );
+
+    expect(revokeAllResponse.status).toBe(204);
+    expect(revokeAllResponse.setCookie).toContain(
+      `${REFRESH_TOKEN_COOKIE_NAME}=;`,
+    );
+
+    const secondMeAfterRevokeAll = await requestJson(
+      '/api/auth/me',
+      undefined,
+      secondSession.accessToken,
+    );
+
+    expect(secondMeAfterRevokeAll.status).toBe(401);
+  });
+
+  it('revokes all active sessions when a rotated refresh token is reused', async () => {
+    const registerResponse = await requestJson('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: 'reuse@example.com',
+        password: 'strong-password-123',
+      }),
+    });
+    const firstSession = registerResponse.body as {
+      accessToken: string;
+    };
+
+    expect(registerResponse.status).toBe(201);
+
+    const loginResponse = await requestJson('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: 'reuse@example.com',
+        password: 'strong-password-123',
+      }),
+    });
+    const secondSession = loginResponse.body as {
+      accessToken: string;
+    };
+    const staleRefreshCookie = cookieJar;
+
+    expect(loginResponse.status).toBe(200);
+
+    const refreshResponse = await requestJson('/api/auth/refresh', {
+      method: 'POST',
+    });
+    const rotatedSession = refreshResponse.body as {
+      accessToken: string;
+    };
+
+    expect(refreshResponse.status).toBe(200);
+
+    const staleRefreshResponse = await requestJson('/api/auth/refresh', {
+      method: 'POST',
+      ...(staleRefreshCookie
+        ? {
+            headers: {
+              cookie: staleRefreshCookie,
+            },
+          }
+        : {}),
+    });
+
+    expect(staleRefreshResponse.status).toBe(401);
+
+    await expect(
+      requestJson('/api/auth/me', undefined, firstSession.accessToken),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        status: 401,
+      }),
+    );
+    await expect(
+      requestJson('/api/auth/me', undefined, secondSession.accessToken),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        status: 401,
+      }),
+    );
+    await expect(
+      requestJson('/api/auth/me', undefined, rotatedSession.accessToken),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        status: 401,
+      }),
+    );
   });
 
   it('protects auth, works, and sync routes when authentication is missing', async () => {
@@ -1626,7 +1927,7 @@ describe('Auth, works, and sync API (e2e)', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 2,
+          schemaVersion: 1,
           since: null,
         }),
       },

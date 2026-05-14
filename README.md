@@ -170,9 +170,12 @@ npm run db:seed
 npm run lint
 npm run typecheck
 npm run test
+npm run test:e2e
 npm run test:integration
 npm run build
 ```
+
+API E2E note: `npm run test:e2e` runs the fast Nest contract suite with an in-memory Prisma mock. It covers auth/session, works, sync, and provider credential flows without requiring PostgreSQL.
 
 Integration test note: `npm run test:integration` requires a migrated PostgreSQL database and a `DATABASE_URL` that includes `test` or `integration`. Run `npm run db:migrate:deploy` against that database first. The reset helper refuses to truncate a generic local or production database.
 

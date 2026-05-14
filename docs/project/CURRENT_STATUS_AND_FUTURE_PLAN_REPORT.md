@@ -253,6 +253,8 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - `test/works.service.spec.ts`
 - `test/works.e2e-spec.ts`
 
+`test/works.e2e-spec.ts` is the fast API mock contract suite. It covers auth/session, works, sync, and provider credential flows without PostgreSQL. Real database coverage remains in `npm run test:integration`.
+
 ### Current Verification Status
 
 - `npm run lint`: `2026-05-05` 통과 확인
