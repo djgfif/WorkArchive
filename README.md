@@ -71,7 +71,40 @@ Quick Add 외부 검색은 현재 아래 두 축으로 동작한다.
 
 공개 키가 필요 없는 `AniList`, `Google Books`, `Open Library`, `TVmaze`, `manual` provider도 현재 코드에 연결돼 있다.
 
+## Local Development
+
+The default startup path is the Docker Compose app stack. This keeps
+PostgreSQL, Prisma migrations, API, and web inside the same Docker network, so
+startup does not depend on Windows reaching PostgreSQL at `127.0.0.1:5432`.
+The script starts Compose in detached mode, waits for API health, verifies that
+Windows can reach the published localhost ports, and only then opens the browser.
+
+```bat
+start-dev.bat
+```
+
+Default endpoints:
+
+- Web: [http://localhost:8080](http://localhost:8080)
+- Health: [http://localhost:3000/health](http://localhost:3000/health)
+- Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
+
+To stop local Compose services:
+
+```bat
+stop-dev.bat
+```
+
 ## Host-Based Development
+
+Host mode is optional and is intended for Vite/API watch-mode development on
+the Windows host. It requires Docker Desktop localhost port forwarding to expose
+PostgreSQL at `127.0.0.1:5432`. If that port check fails, use default Compose
+startup instead.
+
+```bat
+start-dev.bat host
+```
 
 1. 의존성 설치
 
@@ -131,7 +164,10 @@ Windows 메모:
 
 ## Docker Compose
 
-Production compose note: `compose.yml` is for local development only and must not be used for production. Production deployments must use [`compose.prod.yml`](/mnt/c/work/WorkArchive/compose.prod.yml), which requires explicit secrets and production URLs with `${VAR:?required}` and locks `SWAGGER_ENABLED=false`, `PASSWORD_RESET_DEV_LINKS_ENABLED=false`, and `COOKIE_SECURE=true`.
+Production compose note: `compose.yml` is for local development only and must not be used for production. Production deployments must use [`compose.prod.yml`](/mnt/c/work/WorkArchive/compose.prod.yml), which requires explicit secrets and production URLs with `${VAR:?required}` and locks `NODE_ENV=production`, `SWAGGER_ENABLED=false`, `PASSWORD_RESET_DEV_LINKS_ENABLED=false`, and `COOKIE_SECURE=true`.
+
+Local Compose uses `NODE_ENV=development` and is the default `start-dev.bat`
+mode.
 
 전체 스택을 컨테이너로 올릴 수 있다.
 

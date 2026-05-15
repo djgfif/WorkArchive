@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-const DEFAULT_STARTUP_TIMEOUT_MS = 90_000;
+const DEFAULT_STARTUP_TIMEOUT_MS = 20_000;
 const DEFAULT_RESTART_GRACE_MS = 30_000;
 const DEFAULT_POLL_INTERVAL_MS = 1_000;
 const DEFAULT_FETCH_TIMEOUT_MS = 2_000;
@@ -33,7 +33,9 @@ function readPositiveInteger(value, fallback) {
 
   const parsedValue = Number.parseInt(normalizedValue, 10);
 
-  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : fallback;
+  return Number.isInteger(parsedValue) && parsedValue > 0
+    ? parsedValue
+    : fallback;
 }
 
 function getPort() {
