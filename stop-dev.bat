@@ -2,8 +2,8 @@
 setlocal
 cd /d "%~dp0"
 
-echo Stopping PostgreSQL container...
-docker compose stop postgres
+echo Stopping Docker Compose services...
+docker compose stop web api postgres
 
 echo Done.
 pause

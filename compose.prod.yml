@@ -29,6 +29,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL:?required}
       HOST: ${HOST:-0.0.0.0}
       PORT: 3000

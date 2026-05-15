@@ -85,6 +85,29 @@ function waitForExit(child, label) {
   });
 }
 
+function killProcessTree(child) {
+  if (child.exitCode !== null || child.killed || !child.pid) {
+    return;
+  }
+
+  if (process.platform !== 'win32') {
+    child.kill('SIGTERM');
+    return;
+  }
+
+  const killer = spawn(
+    'taskkill.exe',
+    ['/pid', String(child.pid), '/T', '/F'],
+    {
+      stdio: 'ignore',
+    },
+  );
+
+  killer.once('error', () => {
+    child.kill('SIGTERM');
+  });
+}
+
 async function runInitialBuild() {
   const buildProcess = spawnNpmProcess('build:init', ['run', 'build']);
   await waitForExit(buildProcess, 'Initial API build');
@@ -112,13 +135,17 @@ function spawnWatchProcess(label, scriptName, extraEnv = {}) {
       return;
     }
 
-    process.stderr.write(`[dev-runner] ${label} failed to start: ${error.message}\n`);
+    process.stderr.write(
+      `[dev-runner] ${label} failed to start: ${error.message}\n`,
+    );
     shutdown(1);
   });
 }
 
 function maybeExitParent() {
-  if (childProcesses.some(({ child }) => child.exitCode === null && !child.killed)) {
+  if (
+    childProcesses.some(({ child }) => child.exitCode === null && !child.killed)
+  ) {
     return;
   }
 
@@ -137,16 +164,12 @@ function shutdown(code) {
   isShuttingDown = true;
 
   for (const { child } of childProcesses) {
-    if (child.exitCode === null && !child.killed) {
-      child.kill('SIGTERM');
-    }
+    killProcessTree(child);
   }
 
   setTimeout(() => {
     for (const { child } of childProcesses) {
-      if (child.exitCode === null && !child.killed) {
-        child.kill('SIGKILL');
-      }
+      killProcessTree(child);
     }
   }, 5_000).unref();
 
@@ -166,7 +189,7 @@ try {
     API_HEALTH_RESTART_GRACE_MS:
       process.env.API_HEALTH_RESTART_GRACE_MS ?? '30000',
     API_HEALTH_STARTUP_TIMEOUT_MS:
-      process.env.API_HEALTH_STARTUP_TIMEOUT_MS ?? '90000',
+      process.env.API_HEALTH_STARTUP_TIMEOUT_MS ?? '20000',
   });
 } catch (error) {
   process.stderr.write(
