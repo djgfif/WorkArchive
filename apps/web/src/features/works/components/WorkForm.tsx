@@ -68,6 +68,8 @@ export function WorkForm({
     initialValues ?? createDefaultWorkFormValues(),
   );
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
   const reviewSectionRef = useRef<HTMLDivElement | null>(null);
   const shortReviewInputRef = useRef<HTMLTextAreaElement | null>(null);
   const reviewInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -75,6 +77,8 @@ export function WorkForm({
 
   useEffect(() => {
     setValues(initialValues ?? createDefaultWorkFormValues());
+    setTitleError(null);
+    setValidationError(null);
   }, [initialValues]);
 
   useEffect(() => {
@@ -123,6 +127,11 @@ export function WorkForm({
   ) {
     const { name, type } = event.target;
 
+    if (name === 'title') {
+      setTitleError(null);
+      setValidationError(null);
+    }
+
     setValues((currentValues) => ({
       ...currentValues,
       [name]:
@@ -137,6 +146,17 @@ export function WorkForm({
 
     try {
       setValidationError(null);
+      setTitleError(null);
+
+      if (!values.title.trim()) {
+        const message = '제목을 입력해주세요.';
+
+        setTitleError(message);
+        setValidationError(message);
+        titleInputRef.current?.focus();
+        return;
+      }
+
       await onSubmit(parseWorkFormValues(values));
     } catch (error) {
       setValidationError(
@@ -182,11 +202,15 @@ export function WorkForm({
 
                 <div style={{ gridColumn: '1 / -1' }}>
                   <TextInput
+                    aria-label="제목"
                     id="title"
+                    ref={titleInputRef}
                     label="제목"
                     name="title"
                     onChange={handleInputChange}
                     placeholder="작품 제목을 입력해주세요"
+                    error={titleError}
+                    withAsterisk
                     value={values.title}
                   />
                 </div>
