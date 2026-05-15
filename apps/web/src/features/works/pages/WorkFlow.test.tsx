@@ -117,7 +117,7 @@ describe('Works routed flow', () => {
 
     await user.click(await screen.findByLabelText('검색으로 채우기'));
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
-    await user.click(screen.getByRole('button', { name: '다시 검색' }));
+    await user.click(screen.getByRole('button', { name: '검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
     await screen.findByText('검색 근거');
     await user.click(screen.getByRole('button', { name: '이 후보로 입력 채우기' }));
@@ -146,6 +146,26 @@ describe('Works routed flow', () => {
 
     expect(await screen.findByRole('heading', { name: 'Dune Messiah' })).toBeInTheDocument();
   }, 10_000);
+
+  it('keeps manual create local and shows field feedback before save', async () => {
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works/new'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: '내 아카이브에 저장' }),
+    );
+
+    expect(await screen.findAllByText('제목을 입력해주세요.')).not.toHaveLength(0);
+    expect(await screen.findByLabelText(/^제목$/)).toHaveFocus();
+  });
 
   it('warns when a likely duplicate already exists before continuing', async () => {
     mockSearch();
@@ -178,7 +198,7 @@ describe('Works routed flow', () => {
 
     await user.click(await screen.findByLabelText('검색으로 채우기'));
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
-    await user.click(screen.getByRole('button', { name: '다시 검색' }));
+    await user.click(screen.getByRole('button', { name: '검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
 
     expect(await screen.findByText('비슷한 기록이 이미 있습니다')).toBeInTheDocument();

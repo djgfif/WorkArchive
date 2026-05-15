@@ -31,6 +31,7 @@ export interface AddWorkSearchPanelProps {
   duplicateCounts: Record<string, number>;
   duplicateMatches: WorkRecord[];
   fullHeight?: boolean;
+  hasSearched: boolean;
   isSearching: boolean;
   onApplyCandidate: () => void;
   onProviderGroupChange: (value: ProviderGroup) => void;
@@ -53,6 +54,7 @@ export function AddWorkSearchPanel({
   duplicateCounts,
   duplicateMatches,
   fullHeight = false,
+  hasSearched,
   isSearching,
   onApplyCandidate,
   onProviderGroupChange,
@@ -109,7 +111,7 @@ export function AddWorkSearchPanel({
             </div>
 
             <AppButton loading={isSearching} tone="primary" type="submit">
-              {isSearching ? '검색 중...' : '다시 검색'}
+              {isSearching ? '검색 중...' : hasSearched ? '다시 검색' : '검색'}
             </AppButton>
           </Group>
 
@@ -184,8 +186,16 @@ export function AddWorkSearchPanel({
                     </AppButton>
                   ) : undefined
                 }
-                description="입력한 제목으로 직접 기록할 수 있습니다."
-                title="검색 결과가 없습니다."
+                description={
+                  hasSearched
+                    ? '입력한 제목으로 직접 기록할 수 있습니다.'
+                    : '검색은 선택 사항입니다. 제목을 입력해 후보를 찾거나 직접 추가로 돌아가 바로 저장할 수 있습니다.'
+                }
+                title={
+                  hasSearched
+                    ? '검색 결과가 없습니다.'
+                    : '검색어를 입력해 후보를 찾아보세요.'
+                }
                 tone="info"
               />
             ) : (
@@ -260,12 +270,16 @@ export function AddWorkSearchPanel({
                 description={
                   isManualSearchGroup
                     ? '직접 추가 후보를 고르면 입력한 제목으로 기록을 시작할 수 있습니다.'
-                    : '왼쪽 후보를 고르면 큰 포스터와 검색 근거를 여기서 바로 비교할 수 있습니다.'
+                    : hasSearched
+                      ? '왼쪽 후보를 고르면 큰 포스터와 검색 근거를 여기서 바로 비교할 수 있습니다.'
+                      : '검색 결과가 생기면 후보 정보와 내 기록 중복 가능성을 여기에서 확인합니다.'
                 }
                 title={
                   isManualSearchGroup
                     ? '직접 추가 후보를 먼저 선택하세요'
-                    : '후보를 먼저 선택하세요'
+                    : hasSearched
+                      ? '후보를 먼저 선택하세요'
+                      : '검색 후보 미리보기'
                 }
                 tone="info"
               />

@@ -209,6 +209,7 @@ function StatusButtonGroup({ onChange, value }: StatusButtonGroupProps) {
 }
 
 interface CoreWorkFieldsProps {
+  error?: string | null;
   idPrefix?: string;
   onChange: WorkFormInputChangeHandler;
   titleInputRef?: RefObject<HTMLInputElement | null>;
@@ -216,6 +217,7 @@ interface CoreWorkFieldsProps {
 }
 
 function CoreWorkFields({
+  error,
   idPrefix = '',
   onChange,
   titleInputRef,
@@ -233,12 +235,15 @@ function CoreWorkFields({
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         <div style={{ gridColumn: '1 / -1' }}>
           <TextInput
+            aria-label="제목"
             id={getFieldId(idPrefix, 'title')}
             label="제목"
             name="title"
             onChange={onChange}
             placeholder="작품 제목"
             ref={titleInputRef}
+            error={error}
+            withAsterisk
             value={values.title}
           />
         </div>
@@ -453,8 +458,10 @@ export function AddWorkFlow({
   const [selectedImportCandidate, setSelectedImportCandidate] =
     useState<ImportCandidate | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const providerReadiness = useImportProviderReadiness(mode === 'search');
 
   useEffect(() => {
@@ -500,6 +507,11 @@ export function AddWorkFlow({
   ) {
     const { name, type } = event.target;
 
+    if (name === 'title') {
+      setTitleError(null);
+      setValidationError(null);
+    }
+
     setValues((currentValues) => ({
       ...currentValues,
       [name]:
@@ -543,6 +555,7 @@ export function AddWorkFlow({
     setSearchNotice(null);
     setSelectedSearchCandidate(null);
     setSearchCandidates([]);
+    setHasSearched(true);
 
     try {
       setIsSearching(true);
@@ -594,6 +607,7 @@ export function AddWorkFlow({
     setSelectedImportCandidate(selectedSearchCandidate);
     setMode('manual');
     setValidationError(null);
+    setTitleError(null);
     focusMainTitle();
   }
 
@@ -611,6 +625,7 @@ export function AddWorkFlow({
       title: normalizedSearchTerm,
     }));
     setValidationError(null);
+    setTitleError(null);
     focusMainTitle();
   }
 
@@ -620,6 +635,7 @@ export function AddWorkFlow({
     setSelectedSearchCandidate(null);
     setSearchNotice(null);
     setSearchError(null);
+    setHasSearched(false);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -627,6 +643,17 @@ export function AddWorkFlow({
 
     try {
       setValidationError(null);
+      setTitleError(null);
+
+      if (!values.title.trim()) {
+        const message = '제목을 입력해주세요.';
+
+        setTitleError(message);
+        setValidationError(message);
+        focusMainTitle();
+        return;
+      }
+
       const input = parseWorkFormValues(values);
 
       await onSubmit({
@@ -654,7 +681,7 @@ export function AddWorkFlow({
               새 작품 기록
             </Text>
             <Text c="var(--app-text-muted)" size="sm">
-              검색은 입력을 돕는 보조 흐름이고, 저장 전 기준은 아래 입력값입니다.
+              직접 입력으로 바로 저장할 수 있고, 검색은 작품 정보를 채우는 선택 도구입니다.
             </Text>
           </div>
 
@@ -685,6 +712,7 @@ export function AddWorkFlow({
           duplicateCounts={duplicateCounts}
           duplicateMatches={selectedDuplicateMatches}
           fullHeight={variant === 'dialog'}
+          hasSearched={hasSearched}
           isSearching={isSearching}
           onApplyCandidate={applyCandidateToForm}
           onProviderGroupChange={handleProviderGroupChange}
@@ -755,6 +783,7 @@ export function AddWorkFlow({
             )}
 
             <CoreWorkFields
+              error={titleError}
               idPrefix="manual"
               onChange={handleInputChange}
               titleInputRef={titleInputRef}
