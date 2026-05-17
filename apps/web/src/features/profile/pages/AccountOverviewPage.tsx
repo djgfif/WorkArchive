@@ -87,14 +87,14 @@ export function AccountOverviewPage() {
 
         <SectionCard>
           <SectionIntro
-            description="서비스 경험을 바꾸는 설정과 공개 범위 정책은 이 영역에서 점진적으로 확장합니다."
+            description="테마, 외부 검색 provider, 로컬 백업/복구 같은 개인 기록 운영 설정을 관리합니다."
             eyebrow="설정"
-            title="계정·테마·공개 범위"
+            title="계정·테마·데이터 관리"
           />
 
           <Group gap="xs" wrap="wrap">
             <Badge>테마</Badge>
-            <Badge>공개 범위</Badge>
+            <Badge>백업</Badge>
             <Badge>계정 정보</Badge>
           </Group>
 
@@ -103,13 +103,13 @@ export function AccountOverviewPage() {
 
         <SectionCard>
           <SectionIntro
-            description="프로필은 메인 제품 목적지로 남기고, 계정 센터에서는 공개 범위와 연결 정책을 관리합니다."
-            eyebrow="프로필 연결"
-            title="공개 프로필과 연결 준비"
+            description="프로필 화면은 내 기록 요약을 보는 개인용 화면으로 유지합니다. 공개 SNS 기능은 현재 제품 범위에 포함하지 않습니다."
+            eyebrow="프로필"
+            title="개인 기록 프로필"
           />
 
           <Text c="var(--app-text-muted)">
-            계정 설정과 프로필 목적지는 분리해 유지보수성과 확장성을 높입니다.
+            계정 설정과 개인 기록 프로필을 분리해 동기화, 백업, 설정 흐름을 명확하게 유지합니다.
           </Text>
 
           <AppLinkButton to="/profile">프로필 보기</AppLinkButton>

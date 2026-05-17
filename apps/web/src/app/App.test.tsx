@@ -8,12 +8,16 @@ describe('App', () => {
   it('renders the home entry inside the product layout', async () => {
     renderWithProviders(<App />);
 
-    expect(screen.getByText('워크 아카이브')).toBeInTheDocument();
+    expect(screen.getByText('Work Archive')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: '기록 홈' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '홈' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '작품' })).toBeInTheDocument();
-    expect(screen.queryByText('티어 보드')).not.toBeInTheDocument();
-    expect(screen.queryByText('인사이트')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '인사이트' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '티어 보드' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '계정' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '동기화' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '설정' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '작품 추가' }).length).toBeGreaterThan(0);
     expect(screen.queryByText('커뮤니티')).not.toBeInTheDocument();
   });
 });

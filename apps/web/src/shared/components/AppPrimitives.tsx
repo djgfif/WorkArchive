@@ -91,6 +91,12 @@ interface FeedbackMessageProps {
   tone?: MessageTone;
 }
 
+interface ChipSummaryProps {
+  emptyLabel?: ReactNode;
+  label: ReactNode;
+  values: ReactNode[];
+}
+
 interface StateMessageProps {
   actions?: ReactNode;
   description: ReactNode;
@@ -168,6 +174,7 @@ interface AppNavLinkProps {
   children: ReactNode;
   end?: boolean;
   fullWidth?: boolean;
+  onClick?: ComponentPropsWithoutRef<'a'>['onClick'];
   to: string;
 }
 
@@ -492,11 +499,13 @@ export function AppNavLink({
   children,
   end = false,
   fullWidth = false,
+  onClick,
   to,
 }: AppNavLinkProps) {
   return (
     <NavLink
       end={end}
+      {...(onClick !== undefined ? { onClick } : {})}
       style={({ isActive }) => ({
         alignItems: 'center',
         background: fullWidth && isActive ? 'var(--app-surface-1)' : 'transparent',
@@ -628,6 +637,33 @@ export function MetricPill({
   );
 }
 
+export function ChipSummary({
+  emptyLabel = '없음',
+  label,
+  values,
+}: ChipSummaryProps) {
+  return (
+    <Stack gap={6}>
+      <Text c="var(--app-text-muted)" fw={700} fz="0.76rem">
+        {label}
+      </Text>
+      {values.length > 0 ? (
+        <ActionRow>
+          {values.map((value, index) => (
+            <AppBadge key={`${String(value)}-${index}`} tone="muted">
+              {value}
+            </AppBadge>
+          ))}
+        </ActionRow>
+      ) : (
+        <Text c="var(--app-text-muted)" size="sm">
+          {emptyLabel}
+        </Text>
+      )}
+    </Stack>
+  );
+}
+
 export function StatCard({
   accent = false,
   description,
@@ -724,7 +760,7 @@ export function FeedbackMessage({
 }: FeedbackMessageProps) {
   return (
     <Alert color={getMessageColor(tone)} radius="md" title={title} variant="light">
-      <Text c="inherit">{children}</Text>
+      {typeof children === 'string' ? <Text c="inherit">{children}</Text> : children}
     </Alert>
   );
 }
