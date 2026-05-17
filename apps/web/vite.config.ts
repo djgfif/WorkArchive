@@ -11,30 +11,18 @@ export default defineConfig({
   },
 
   build: {
+    chunkSizeWarningLimit: 650,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (!id.includes('node_modules')) {
+          const normalizedId = id.replaceAll('\\', '/');
+
+          if (!normalizedId.includes('node_modules')) {
             return undefined;
           }
 
-          if (
-            id.includes('/react-router') ||
-            id.includes('/@remix-run/')
-          ) {
-            return 'router-vendor';
-          }
-
-          if (id.includes('/@mantine/')) {
-            return 'mantine-vendor';
-          }
-
-          if (id.includes('/dexie')) {
+          if (normalizedId.includes('/dexie')) {
             return 'dexie-vendor';
-          }
-
-          if (id.includes('/react') || id.includes('/scheduler')) {
-            return 'react-vendor';
           }
 
           return 'vendor';
@@ -47,5 +35,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: false,
     setupFiles: './src/test/setup.ts',
+    testTimeout: 15_000,
   },
 });

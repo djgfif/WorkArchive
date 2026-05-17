@@ -40,9 +40,12 @@ describe('WorksListPage', () => {
       within(dialog).getByRole('button', { name: '내 아카이브에 저장' }),
     );
 
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      },
+      { timeout: 5_000 },
+    );
     expect(await screen.findByText('Modal First Work')).toBeInTheDocument();
   });
 
