@@ -124,6 +124,14 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Frieren 감상 수정' }),
     ).toBeInTheDocument();
+    expect((await screen.findAllByText('리뷰 집중 모드')).length).toBeGreaterThan(
+      0,
+    );
+    const shortReviewInput = await screen.findByLabelText('한 줄 감상');
+    await waitFor(() => expect(shortReviewInput).toHaveFocus());
+    expect(shortReviewInput).toHaveAccessibleDescription(
+      /상세 화면에서 이어 온 리뷰 집중 수정 입력입니다/,
+    );
     expect(
       await screen.findByRole('button', { name: '저장' }),
     ).toBeInTheDocument();
@@ -220,6 +228,57 @@ describe('WorkDetailPage', () => {
       .toEqual([]);
   });
 
+  it('keeps dense timelines summarized until the user expands them', async () => {
+    const work = await worksService.createWork({
+      type: 'novel',
+      title: 'Dense Timeline Work',
+      author: 'Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'dropped',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+      completedAt: '2026-02-03T00:00:00.000Z',
+      droppedAt: '2026-02-04T00:00:00.000Z',
+      lastConsumedAt: '2026-02-02T00:00:00.000Z',
+      startedAt: '2026-02-01T00:00:00.000Z',
+    });
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [`/works/${work.id}`],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Dense Timeline Work' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('최근 흐름: 중단')).toBeInTheDocument();
+    expect(screen.getByText('4개 기록')).toBeInTheDocument();
+
+    const timelineToggle = screen.getByRole('button', {
+      name: '전체 타임라인과 기록 추가',
+    });
+
+    expect(timelineToggle).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(timelineToggle);
+
+    expect(timelineToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      screen.getByLabelText('Dense Timeline Work 타임라인 유형'),
+    ).toBeInTheDocument();
+  });
+
   it('saves status, rating, favorite, and short review from the detail quick record section', async () => {
     const work = await worksService.createWork({
       type: 'novel',
@@ -263,6 +322,9 @@ describe('WorkDetailPage', () => {
     await user.click(screen.getByRole('button', { name: '즐겨찾기' }));
     await user.click(screen.getByRole('button', { name: '빠른 기록 저장' }));
 
+    expect(
+      await screen.findByText('빠른 기록을 저장했습니다.'),
+    ).toBeInTheDocument();
     await expect
       .poll(async () => worksService.getWorkById(work.id))
       .toEqual(

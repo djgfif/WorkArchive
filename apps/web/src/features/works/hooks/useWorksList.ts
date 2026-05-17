@@ -48,6 +48,7 @@ export function useWorksList(
 ) {
   const { archiveScopeKey } = useAuthSession();
   const [state, setState] = useState<WorksListState>(initialState);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     setState((previousState) => ({
@@ -95,7 +96,10 @@ export function useWorksList(
     return () => {
       subscription.unsubscribe();
     };
-  }, [archiveScopeKey, query, scope]);
+  }, [archiveScopeKey, query, reloadKey, scope]);
 
-  return state;
+  return {
+    ...state,
+    retry: () => setReloadKey((currentKey) => currentKey + 1),
+  };
 }

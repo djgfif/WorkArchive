@@ -238,6 +238,17 @@ function mockAuthenticatedSearchResponse(
   });
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, reject, resolve };
+}
+
 function renderAuthenticatedAddWorkFlow(onSubmit = vi.fn()) {
   workArchiveDbManager.switchToUser('user-1');
 
@@ -495,6 +506,82 @@ describe('AddWorkFlow', () => {
       candidate.author,
     );
     expect(screen.getByText('검색으로 채운 정보')).toBeInTheDocument();
+  });
+
+  it('shows structured loading while search candidates are loading', async () => {
+    const candidate = buildCandidate();
+    const searchResponse = createDeferred<Response>();
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes('/imports/providers')) {
+        return Promise.resolve(jsonResponse(providerStatuses));
+      }
+
+      return searchResponse.promise;
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+
+    renderGuestAddWorkFlow();
+
+    await openSearchPicker(user, 'Dune');
+
+    expect(
+      await screen.findByText('검색 후보를 불러오는 중입니다'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('candidate-search-loading')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+
+    searchResponse.resolve(
+      jsonResponse({
+        provider: 'open_library',
+        providers: ['open_library'],
+        query: 'Dune',
+        candidates: [candidate],
+      }),
+    );
+
+    expect(
+      await screen.findByRole('button', { name: /Dune.*후보 선택/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('submits genres and personal tags from chip inputs', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderGuestAddWorkFlow(onSubmit);
+
+    await user.type(getElementById<HTMLInputElement>('manualTitle'), 'Dune');
+    await user.click(
+      screen.getByRole('button', {
+        name: /표지, 장르, 개인 태그, 상세 감상/,
+      }),
+    );
+    await user.type(
+      getElementById<HTMLInputElement>('manualGenresText'),
+      'Science Fiction{Enter}Adventure{Enter}',
+    );
+    await user.type(
+      getElementById<HTMLInputElement>('manualPersonalTagsText'),
+      'rewatch{Enter}quiet ending{Enter}',
+    );
+    await user.click(
+      screen.getByRole('button', { name: '내 아카이브에 저장' }),
+    );
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({
+      genres: ['Science Fiction', 'Adventure'],
+      personalTags: ['rewatch', 'quiet ending'],
+      title: 'Dune',
+    });
   });
 
   it('shows merged provider source coverage for search candidates', async () => {

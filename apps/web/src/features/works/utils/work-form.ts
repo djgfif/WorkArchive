@@ -124,7 +124,7 @@ export function createUpsertWorkInputFromRecord(
   };
 }
 
-function parseCommaSeparatedTextList(value: string) {
+export function parseCommaSeparatedTextList(value: string) {
   return Array.from(
     new Set(
       value
@@ -133,6 +133,12 @@ function parseCommaSeparatedTextList(value: string) {
         .filter(Boolean),
     ),
   );
+}
+
+export function formatTextListForWorkForm(values: string[]) {
+  return Array.from(
+    new Set(values.map((value) => value.trim()).filter(Boolean)),
+  ).join(', ');
 }
 
 function parseOptionalDateInput(value: string, fieldLabel: string) {

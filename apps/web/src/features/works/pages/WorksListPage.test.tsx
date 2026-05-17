@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
@@ -9,6 +9,45 @@ import { AuthProvider } from '../../auth/context/AuthProvider';
 import { worksService } from '../services/works.service';
 
 describe('WorksListPage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('offers recovery actions when the works list cannot load', async () => {
+    const user = userEvent.setup();
+    const listWorksSpy = vi
+      .spyOn(worksService, 'listWorks')
+      .mockRejectedValueOnce(new Error('IndexedDB 연결 실패'));
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', {
+        name: '작품 목록을 불러오지 못했습니다.',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('IndexedDB 연결 실패')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '목록 오류 상태에서 작품 추가' }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '다시 불러오기' }));
+
+    expect(
+      await screen.findByText(
+        '아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.',
+      ),
+    ).toBeInTheDocument();
+    expect(listWorksSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
   it('opens the modal-first add flow from the library page', async () => {
     const user = userEvent.setup();
     const router = createMemoryRouter(appRoutes, {
@@ -121,10 +160,198 @@ describe('WorksListPage', () => {
     expect(
       await screen.findByText(/전체 2개 중 1개를 보고 있습니다\./),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Dune' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: 'Your Name' }),
+      screen.queryByRole('heading', { name: 'Your Name' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps active filter chips visible while advanced filters are collapsed and removes them individually', async () => {
+    await worksService.createWork({
+      type: 'novel',
+      title: 'Dune',
+      author: 'Frank Herbert',
+      genres: ['Science Fiction'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'completed',
+      rating: 5,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    await worksService.createWork({
+      type: 'movie',
+      title: 'Your Name',
+      author: 'Makoto Shinkai',
+      genres: ['Drama'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: 4,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [
+        '/works?q=Dune&status=completed&type=novel&rating=5&sort=rating',
+      ],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByText(/전체 2개 중 1개를 보고 있습니다\./),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('작품 라이브러리 검색')).toHaveValue('Dune');
+    expect(
+      screen.getByRole('button', { name: '고급 필터 펼치기' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('5개 적용')).toBeInTheDocument();
+    const activeFilterGroup = screen.getByRole('group', {
+      name: '적용된 필터',
+    });
+    expect(
+      within(activeFilterGroup).getByRole('button', {
+        name: '검색: Dune 필터 제거',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(activeFilterGroup).getByRole('button', {
+        name: '상태: 완료 필터 제거',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(activeFilterGroup).getByRole('button', {
+        name: '별점: 5.0점 필터 제거',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(activeFilterGroup).getByRole('button', {
+        name: '유형: 소설 필터 제거',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(activeFilterGroup).getByRole('button', {
+        name: '정렬: 별점순 필터 제거',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Your Name' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: '검색: Dune 필터 제거' }),
+    );
+
+    await waitFor(() => {
+      expect(new URLSearchParams(router.state.location.search).has('q')).toBe(
+        false,
+      );
+    });
+    expect(screen.getByLabelText('작품 라이브러리 검색')).toHaveValue('');
+    expect(
+      screen.getByRole('button', { name: '상태: 완료 필터 제거' }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: '상태: 완료 필터 제거' }),
+    );
+    await waitFor(() => {
+      expect(
+        new URLSearchParams(router.state.location.search).has('status'),
+      ).toBe(false);
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: '별점: 5.0점 필터 제거' }),
+    );
+    await waitFor(() => {
+      expect(
+        new URLSearchParams(router.state.location.search).has('rating'),
+      ).toBe(false);
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: '유형: 소설 필터 제거' }),
+    );
+    await waitFor(() => {
+      expect(
+        new URLSearchParams(router.state.location.search).has('type'),
+      ).toBe(false);
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: '정렬: 별점순 필터 제거' }),
+    );
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('');
+    });
+    expect(
+      await screen.findByText(/작품 2개가 등록되어 있습니다\./),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Your Name' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders large libraries progressively and lets users load more items', async () => {
+    for (let index = 1; index <= 75; index += 1) {
+      await worksService.createWork({
+        type: 'novel',
+        title: `Work ${String(index).padStart(3, '0')}`,
+        author: 'Archive Author',
+        genres: [],
+        description: '',
+        thumbnailUrl: '',
+        status: 'planned',
+        rating: null,
+        shortReview: '',
+        review: '',
+        tier: null,
+        favorite: false,
+      });
+    }
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works?sort=title'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Work 001' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('60 / 75개')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Work 075' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: '작품 15개 더 보기' }),
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Work 075' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('75 / 75개')).toBeInTheDocument();
   });
 
   it('keeps the selected works view in the URL', async () => {

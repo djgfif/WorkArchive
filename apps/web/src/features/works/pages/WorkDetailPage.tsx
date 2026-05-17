@@ -9,7 +9,12 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
-import { useNavigate, useParams } from 'react-router-dom';
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 
 import {
   canUseProgressUnitForWorkType,
@@ -28,6 +33,7 @@ import {
   AppButton,
   AppLinkButton,
   FeedbackMessage,
+  LoadingState,
   PageSection,
   SectionCard,
   StateMessage,
@@ -77,6 +83,20 @@ const relationTypeLabels: Record<string, string> = {
   spin_off: '스핀오프',
 };
 
+function getRouteFeedback(state: unknown) {
+  if (!state || typeof state !== 'object' || !('feedback' in state)) {
+    return null;
+  }
+
+  const feedback = (state as { feedback?: unknown }).feedback;
+
+  return typeof feedback === 'string' ? feedback : null;
+}
+
+function getSavedFeedback(value: string | null) {
+  return value === 'edit' ? '작품 수정 내용을 저장했습니다.' : null;
+}
+
 function coerceNumberInputValue(value: number | string) {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : null;
@@ -89,9 +109,11 @@ function coerceNumberInputValue(value: number | string) {
 
 function WorkQuickRecordSection({
   onError,
+  onSuccess,
   work,
 }: {
   onError(message: string | null): void;
+  onSuccess(message: string): void;
   work: WorkRecord;
 }) {
   const [status, setStatus] = useState<WorkStatus>(work.status);
@@ -126,6 +148,7 @@ function WorkQuickRecordSection({
         shortReview,
         status,
       });
+      onSuccess('빠른 기록을 저장했습니다.');
     } catch (error) {
       onError(
         error instanceof Error
@@ -206,9 +229,11 @@ function WorkQuickRecordSection({
 
 function ProgressOnlySection({
   onError,
+  onSuccess,
   work,
 }: {
   onError(message: string | null): void;
+  onSuccess(message: string): void;
   work: WorkRecord;
 }) {
   const defaultUnit = getDefaultProgressUnitForWorkType(work.type);
@@ -260,6 +285,7 @@ function ProgressOnlySection({
         progressTotal: total,
         progressUnit: defaultUnit,
       });
+      onSuccess('진행도를 저장했습니다.');
     } catch (error) {
       onError(
         error instanceof Error
@@ -327,11 +353,13 @@ function ReleaseRecordRow({
   release,
   workId,
   onError,
+  onSuccess,
 }: {
   record: UserReleaseRecord | null;
   release: UserRecordReleasesResponse['releases'][number];
   workId: string;
   onError(message: string | null): void;
+  onSuccess(message: string): void;
 }) {
   const [status, setStatus] = useState<WorkStatus>(record?.status ?? 'planned');
   const [rating, setRating] = useState(record?.rating?.toString() ?? '');
@@ -357,6 +385,7 @@ function ReleaseRecordRow({
         status,
         userWorkRecordId: workId,
       });
+      onSuccess('권별 기록을 저장했습니다.');
     } catch (error) {
       onError(
         error instanceof Error
@@ -379,8 +408,10 @@ function ReleaseRecordRow({
 
       if (record.deletedAt) {
         await releaseRecordsService.restoreReleaseRecord(record.id);
+        onSuccess('권별 기록을 복원했습니다.');
       } else {
         await releaseRecordsService.deleteReleaseRecord(record.id);
+        onSuccess('권별 기록을 삭제했습니다.');
       }
     } catch (error) {
       onError(
@@ -475,11 +506,13 @@ function ReleaseRecordRow({
 function VolumeRecordsSection({
   localRecords,
   onError,
+  onSuccess,
   releaseData,
   work,
 }: {
   localRecords: UserReleaseRecord[];
   onError(message: string | null): void;
+  onSuccess(message: string): void;
   releaseData: UserRecordReleasesResponse | null;
   work: WorkRecord;
 }) {
@@ -513,6 +546,7 @@ function VolumeRecordsSection({
                 <ReleaseRecordRow
                   key={release.id}
                   onError={onError}
+                  onSuccess={onSuccess}
                   record={
                     localByReleaseId.get(release.id) ??
                     release.userReleaseRecord
@@ -611,10 +645,17 @@ function RelatedTitlesSection({
 
 export function WorkDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { archiveScopeKey, mode } = useAuthSession();
   const { error, isLoading, work } = useWorkDetail(id);
   const [actionError, setActionError] = useState<string | null>(null);
+  const routeFeedback =
+    getRouteFeedback(location.state) ?? getSavedFeedback(searchParams.get('saved'));
+  const [actionSuccess, setActionSuccess] = useState<string | null>(
+    () => routeFeedback,
+  );
   const [releaseData, setReleaseData] =
     useState<UserRecordReleasesResponse | null>(null);
   const [relatedData, setRelatedData] =
@@ -628,6 +669,42 @@ export function WorkDetailPage() {
   const workCatalogTitleId = work?.catalogTitleId ?? null;
   const workId = work?.id ?? null;
   const workType = work?.type ?? null;
+
+  function handleActionError(message: string | null) {
+    setActionError(message);
+
+    if (message) {
+      setActionSuccess(null);
+    }
+  }
+
+  function handleActionSuccess(message: string) {
+    setActionError(null);
+    setActionSuccess(message);
+  }
+
+  useEffect(() => {
+    if (!routeFeedback) {
+      return;
+    }
+
+    setActionError(null);
+    setActionSuccess(routeFeedback);
+  }, [routeFeedback]);
+
+  useEffect(() => {
+    if (!actionSuccess) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setActionSuccess(null);
+    }, 5_000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [actionSuccess]);
 
   useEffect(() => {
     if (!workId) {
@@ -754,6 +831,7 @@ export function WorkDetailPage() {
 
     try {
       setActionError(null);
+      setActionSuccess(null);
       await worksService.deleteWork(work.id);
       navigate('/works');
     } catch (deleteError) {
@@ -776,10 +854,12 @@ export function WorkDetailPage() {
 
     try {
       setActionError(null);
+      setActionSuccess(null);
       await timelineEntriesService.createTimelineEntry({
         ...input,
         workId: work.id,
       });
+      handleActionSuccess('타임라인 기록을 추가했습니다.');
     } catch (timelineError) {
       setActionError(
         timelineError instanceof Error
@@ -792,7 +872,9 @@ export function WorkDetailPage() {
   async function handleDeleteTimelineEntry(id: string) {
     try {
       setActionError(null);
+      setActionSuccess(null);
       await timelineEntriesService.deleteTimelineEntry(id);
+      handleActionSuccess('타임라인 기록을 삭제했습니다.');
     } catch (timelineError) {
       setActionError(
         timelineError instanceof Error
@@ -813,13 +895,7 @@ export function WorkDetailPage() {
   }
 
   if (isLoading) {
-    return (
-      <StateMessage
-        description="잠시만 기다려주세요."
-        title="작품 정보를 불러오는 중입니다."
-        tone="loading"
-      />
-    );
+    return <LoadingState rows={3} title="작품 정보를 불러오는 중입니다" />;
   }
 
   if (!work) {
@@ -842,6 +918,9 @@ export function WorkDetailPage() {
     <DetailPageTemplate>
       {actionError && (
         <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
+      )}
+      {actionSuccess && (
+        <FeedbackMessage tone="success">{actionSuccess}</FeedbackMessage>
       )}
 
       <WorkDetailPanel
@@ -867,15 +946,24 @@ export function WorkDetailPage() {
         onDeleteTimelineEntry={handleDeleteTimelineEntry}
         recordSections={
           <>
-            <WorkQuickRecordSection onError={setActionError} work={work} />
-            <ProgressOnlySection onError={setActionError} work={work} />
+            <WorkQuickRecordSection
+              onError={handleActionError}
+              onSuccess={handleActionSuccess}
+              work={work}
+            />
+            <ProgressOnlySection
+              onError={handleActionError}
+              onSuccess={handleActionSuccess}
+              work={work}
+            />
           </>
         }
         relatedSections={
           <>
             <VolumeRecordsSection
               localRecords={localReleaseRecords}
-              onError={setActionError}
+              onError={handleActionError}
+              onSuccess={handleActionSuccess}
               releaseData={releaseData}
               work={work}
             />

@@ -2,6 +2,8 @@ import { Container, Group, Stack, Text, ThemeIcon } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
+import { AppBadge } from '../../shared/components/AppPrimitives';
+
 type AuthLayoutProps = {
   children?: ReactNode;
 };
@@ -25,6 +27,18 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           </Link>
 
           {children ?? <Outlet />}
+
+          <Stack align="center" gap="xs">
+            <Group gap="xs" justify="center" wrap="wrap">
+              <AppBadge tone="accent">로컬 우선 저장</AppBadge>
+              <AppBadge tone="muted">선택적 계정 동기화</AppBadge>
+              <AppBadge tone="muted">공개 피드 없음</AppBadge>
+            </Group>
+            <Text c="var(--app-text-muted)" maw={420} size="sm" ta="center">
+              로그인 전에도 기록은 이 기기에 저장됩니다. 계정은 백업과 제한적
+              동기화를 위한 선택 경로입니다.
+            </Text>
+          </Stack>
         </Stack>
       </Container>
     </main>

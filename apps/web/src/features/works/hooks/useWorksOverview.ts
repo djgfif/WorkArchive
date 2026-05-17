@@ -36,6 +36,7 @@ function compareUpdatedAtDescending(left: WorkRecord, right: WorkRecord) {
 export function useWorksOverview() {
   const { archiveScopeKey } = useAuthSession();
   const [state, setState] = useState<WorksOverviewState>(initialState);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     setState((currentState) => ({
@@ -104,7 +105,10 @@ export function useWorksOverview() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [archiveScopeKey]);
+  }, [archiveScopeKey, reloadKey]);
 
-  return state;
+  return {
+    ...state,
+    retry: () => setReloadKey((currentKey) => currentKey + 1),
+  };
 }

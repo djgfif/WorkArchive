@@ -1,12 +1,22 @@
 import { liveQuery } from 'dexie';
 import { useEffect, useState } from 'react';
-import { Group, Progress, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import {
+  Box,
+  Group,
+  Progress,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
   AppBadge,
+  AppButton,
   AppLinkButton,
+  LoadingState,
   MetricPill,
   SectionCard,
   SectionIntro,
@@ -62,22 +72,37 @@ function getTopEntries<T extends string>(counts: Record<T, number>) {
     .slice(0, 6) as Array<[T, number]>;
 }
 
+function buildWorksLink(params: Record<string, string>) {
+  const searchParams = new URLSearchParams(params);
+
+  return `/works?${searchParams.toString()}`;
+}
+
 function InsightProgressRow({
   count,
   label,
   maxCount,
   tone = 'accent',
+  to,
 }: {
   count: number;
   label: string;
   maxCount: number;
   tone?: 'accent' | 'success';
+  to?: string;
 }) {
   return (
     <Stack gap={4}>
       <Group justify="space-between">
         <Text fw={700}>{label}</Text>
-        <AppBadge tone={tone}>{count}개</AppBadge>
+        <Group gap="xs" wrap="nowrap">
+          <AppBadge tone={tone}>{count}개</AppBadge>
+          {to && (
+            <AppLinkButton size="compact-xs" to={to} tone="quiet">
+              보기
+            </AppLinkButton>
+          )}
+        </Group>
       </Group>
       <Progress
         aria-label={`${label} ${count}개`}
@@ -93,6 +118,7 @@ function InsightProgressRow({
 export function InsightsPage() {
   const { archiveScopeKey, mode } = useAuthSession();
   const [state, setState] = useState<InsightsState>(initialState);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     setState((currentState) => ({
@@ -128,7 +154,7 @@ export function InsightsPage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [archiveScopeKey]);
+  }, [archiveScopeKey, reloadKey]);
 
   const insights = state.insights;
 
@@ -168,15 +194,32 @@ export function InsightsPage() {
         </SectionCard>
 
         {state.isLoading && (
-          <StateMessage
-            description="현재 로컬 아카이브를 집계하고 있습니다."
-            title="인사이트를 불러오는 중입니다"
-            tone="loading"
-          />
+          <LoadingState rows={3} title="인사이트를 집계하는 중입니다" />
         )}
 
         {state.error && (
           <StateMessage
+            actions={
+              <>
+                <AppButton
+                  onClick={() => setReloadKey((currentKey) => currentKey + 1)}
+                  tone="primary"
+                  type="button"
+                >
+                  다시 불러오기
+                </AppButton>
+                <AppLinkButton to="/works" tone="secondary">
+                  작품 목록 열기
+                </AppLinkButton>
+                <AppLinkButton
+                  aria-label="인사이트 오류 상태에서 작품 추가"
+                  to="/works/new"
+                  tone="quiet"
+                >
+                  작품 추가
+                </AppLinkButton>
+              </>
+            }
             description={state.error}
             title="인사이트를 불러오지 못했습니다"
             tone="error"
@@ -217,6 +260,7 @@ export function InsightsPage() {
                       key={type}
                       label={getWorkTypeLabel(type)}
                       maxCount={maxCount}
+                      to={buildWorksLink({ type })}
                     />
                   );
                 })}
@@ -243,7 +287,16 @@ export function InsightsPage() {
                       <Stack gap={4} key={genre}>
                         <Group justify="space-between">
                           <Text fw={700}>{genre}</Text>
-                          <AppBadge tone="accent">{count}개</AppBadge>
+                          <Group gap="xs" wrap="nowrap">
+                            <AppBadge tone="accent">{count}개</AppBadge>
+                            <AppLinkButton
+                              size="compact-xs"
+                              to={buildWorksLink({ q: genre })}
+                              tone="quiet"
+                            >
+                              보기
+                            </AppLinkButton>
+                          </Group>
                         </Group>
                         <Progress
                           aria-label={`${genre} 장르 ${count}개`}
@@ -275,7 +328,16 @@ export function InsightsPage() {
                   {insights.tagCounts.map(({ count, tag }) => (
                     <Group justify="space-between" key={tag}>
                       <Text fw={700}>{tag}</Text>
-                      <AppBadge tone="accent">{count}개</AppBadge>
+                      <Group gap="xs" wrap="nowrap">
+                        <AppBadge tone="accent">{count}개</AppBadge>
+                        <AppLinkButton
+                          size="compact-xs"
+                          to={buildWorksLink({ tag })}
+                          tone="quiet"
+                        >
+                          보기
+                        </AppLinkButton>
+                      </Group>
                     </Group>
                   ))}
                 </Stack>
@@ -304,6 +366,7 @@ export function InsightsPage() {
                       label={getWorkStatusLabel(status)}
                       maxCount={maxCount}
                       tone="success"
+                      to={buildWorksLink({ status })}
                     />
                   );
                 })}
@@ -329,6 +392,10 @@ export function InsightsPage() {
                       key={rating}
                       label={`${rating.toFixed(1)}점`}
                       maxCount={getMaxCount(insights.ratingDistribution)}
+                      to={buildWorksLink({
+                        rating: rating.toString(),
+                        sort: 'rating',
+                      })}
                     />
                   ))}
                 </Stack>
@@ -457,17 +524,27 @@ export function InsightsPage() {
               ) : (
                 <Stack gap="sm">
                   {insights.staleWorks.map((work: WorkRecord) => (
-                    <Group justify="space-between" key={work.id} wrap="nowrap">
-                      <div>
-                        <Title order={3} size="h4">
+                    <Group
+                      align="center"
+                      justify="space-between"
+                      key={work.id}
+                      wrap="nowrap"
+                    >
+                      <Box miw={0}>
+                        <Title lineClamp={2} order={3} size="h4">
                           {work.title}
                         </Title>
                         <Text c="var(--app-text-muted)" size="sm">
-                          {getWorkStatusLabel(work.status)} · 최근 활동 {formatWorkDate(getRecentActivityDate(work))}
+                          {getWorkStatusLabel(work.status)} · 최근 활동{' '}
+                          {formatWorkDate(getRecentActivityDate(work))}
                         </Text>
-                      </div>
-                      <AppLinkButton size="compact-sm" to={`/works/${work.id}`}>
-                        열기
+                      </Box>
+                      <AppLinkButton
+                        aria-label={`${work.title} 이어 기록하기`}
+                        size="compact-sm"
+                        to={`/works/${work.id}`}
+                      >
+                        이어 기록하기
                       </AppLinkButton>
                     </Group>
                   ))}

@@ -3,6 +3,7 @@ import type { WorkRecord, WorkStatus, WorkType } from '@work-archive/shared-type
 export type WorksSortOption = 'updatedAt' | 'title' | 'rating';
 
 export interface WorksListQuery {
+  rating: number | null;
   searchTerm: string;
   tag?: string;
   type: WorkType | 'all';
@@ -11,6 +12,7 @@ export interface WorksListQuery {
 }
 
 export const DEFAULT_WORKS_LIST_QUERY: WorksListQuery = {
+  rating: null,
   searchTerm: '',
   tag: '',
   type: 'all',
@@ -48,6 +50,10 @@ export function queryWorks(works: WorkRecord[], query: WorksListQuery) {
 
     if (query.status !== 'all' && work.status !== query.status) {
       return false;
+    }
+
+    if (query.rating !== null) {
+      return work.rating === query.rating;
     }
 
     if (

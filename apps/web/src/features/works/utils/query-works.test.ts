@@ -60,6 +60,7 @@ describe('queryWorks', () => {
   it('searches by title and author', () => {
     expect(
       queryWorks(works, {
+        rating: null,
         searchTerm: 'frank',
         type: 'all',
         status: 'all',
@@ -69,6 +70,7 @@ describe('queryWorks', () => {
 
     expect(
       queryWorks(works, {
+        rating: null,
         searchTerm: 'bleach',
         type: 'all',
         status: 'all',
@@ -91,6 +93,7 @@ describe('queryWorks', () => {
 
     expect(
       queryWorks(taggedWorks, {
+        rating: null,
         searchTerm: '시간여행',
         type: 'all',
         status: 'all',
@@ -100,6 +103,7 @@ describe('queryWorks', () => {
 
     expect(
       queryWorks(taggedWorks, {
+        rating: null,
         searchTerm: '',
         tag: '인생작 후보',
         type: 'all',
@@ -111,6 +115,7 @@ describe('queryWorks', () => {
 
   it('filters by type and status', () => {
     const filtered = queryWorks(works, {
+      rating: null,
       searchTerm: '',
       type: 'manga',
       status: 'in_progress',
@@ -121,9 +126,22 @@ describe('queryWorks', () => {
     expect(filtered[0]?.title).toBe('Bleach');
   });
 
+  it('filters by exact rating', () => {
+    expect(
+      queryWorks(works, {
+        rating: 5,
+        searchTerm: '',
+        type: 'all',
+        status: 'all',
+        sortBy: 'updatedAt',
+      }).map((work) => work.title),
+    ).toEqual(['Dune']);
+  });
+
   it('sorts by rating, title, and updatedAt', () => {
     expect(
       queryWorks(works, {
+        rating: null,
         searchTerm: '',
         type: 'all',
         status: 'all',
@@ -133,6 +151,7 @@ describe('queryWorks', () => {
 
     expect(
       queryWorks(works, {
+        rating: null,
         searchTerm: '',
         type: 'all',
         status: 'all',
@@ -142,6 +161,7 @@ describe('queryWorks', () => {
 
     expect(
       queryWorks(works, {
+        rating: null,
         searchTerm: '',
         type: 'all',
         status: 'all',

@@ -13,6 +13,7 @@ import {
   SegmentedControl,
   SimpleGrid,
   Stack,
+  TagsInput,
   Text,
   TextInput,
   Textarea,
@@ -58,6 +59,8 @@ import {
 import { worksRepository } from '../services/works.repository';
 import {
   createDefaultWorkFormValues,
+  formatTextListForWorkForm,
+  parseCommaSeparatedTextList,
   parseWorkFormValues,
   type UpsertWorkInput,
   type WorkFormValues,
@@ -100,14 +103,6 @@ function getFieldId(idPrefix: string, fieldName: string) {
   }
 
   return `${idPrefix}${fieldName.charAt(0).toUpperCase()}${fieldName.slice(1)}`;
-}
-
-function getCommaSeparatedPreviewValues(value: string) {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 8);
 }
 
 function getCandidateFieldSummary(values: WorkFormValues) {
@@ -367,6 +362,10 @@ interface AdvancedWorkFieldsProps {
   idPrefix?: string;
   itemValue: string;
   onInputChange: WorkFormInputChangeHandler;
+  onTextListChange: (
+    name: 'genresText' | 'personalTagsText',
+    values: string[],
+  ) => void;
   tagSuggestions?: string[];
   values: WorkFormValues;
 }
@@ -375,13 +374,12 @@ function AdvancedWorkFields({
   idPrefix = '',
   itemValue,
   onInputChange,
+  onTextListChange,
   tagSuggestions = [],
   values,
 }: AdvancedWorkFieldsProps) {
-  const genrePreviewValues = getCommaSeparatedPreviewValues(values.genresText);
-  const personalTagPreviewValues = getCommaSeparatedPreviewValues(
-    values.personalTagsText,
-  );
+  const genreValues = parseCommaSeparatedTextList(values.genresText);
+  const personalTagValues = parseCommaSeparatedTextList(values.personalTagsText);
   const previewTitle = values.title.trim() || '제목 없는 작품';
 
   return (
@@ -425,47 +423,31 @@ function AdvancedWorkFields({
               </Group>
             </Paper>
 
-            <TextInput
+            <TagsInput
+              clearable
+              description="쉼표나 Enter로 여러 장르를 나눠 입력할 수 있습니다."
               id={getFieldId(idPrefix, 'genresText')}
               label="장르"
               name="genresText"
-              onChange={onInputChange}
+              onChange={(items) => onTextListChange('genresText', items)}
               placeholder="SF, 로맨스, 스릴러"
-              value={values.genresText}
-            />
-            <ChipSummary
-              emptyLabel="입력한 장르가 없습니다."
-              label="장르 미리보기"
-              values={genrePreviewValues}
+              splitChars={[',']}
+              value={genreValues}
             />
 
-            <TextInput
-              aria-describedby={getFieldId(idPrefix, 'personalTagsTextHint')}
+            <TagsInput
+              clearable
+              data={Array.from(new Set(tagSuggestions))}
+              description="개인 태그는 장르와 분리된 내 감상 분류입니다."
               id={getFieldId(idPrefix, 'personalTagsText')}
               label="개인 태그"
-              list={getFieldId(idPrefix, 'personalTagsSuggestions')}
               name="personalTagsText"
-              onChange={onInputChange}
+              onChange={(items) =>
+                onTextListChange('personalTagsText', items)
+              }
               placeholder="시간여행, 다시 볼 것, 여운 강함"
-              value={values.personalTagsText}
-            />
-            <datalist id={getFieldId(idPrefix, 'personalTagsSuggestions')}>
-              {tagSuggestions.map((tag) => (
-                <option key={tag} value={tag} />
-              ))}
-            </datalist>
-            <Text
-              c="var(--app-text-muted)"
-              fz="sm"
-              id={getFieldId(idPrefix, 'personalTagsTextHint')}
-              mt={-8}
-            >
-              쉼표로 이어서 입력하면 아래처럼 태그 단위로 저장됩니다.
-            </Text>
-            <ChipSummary
-              emptyLabel="입력한 개인 태그가 없습니다."
-              label="개인 태그 미리보기"
-              values={personalTagPreviewValues}
+              splitChars={[',']}
+              value={personalTagValues}
             />
 
             <Textarea
@@ -595,6 +577,16 @@ export function AddWorkFlow({
     setValues((currentValues) => ({
       ...currentValues,
       status,
+    }));
+  }
+
+  function handleTextListChange(
+    name: 'genresText' | 'personalTagsText',
+    items: string[],
+  ) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      [name]: formatTextListForWorkForm(items),
     }));
   }
 
@@ -883,6 +875,7 @@ export function AddWorkFlow({
               idPrefix="manual"
               itemValue="manual-advanced-fields"
               onInputChange={handleInputChange}
+              onTextListChange={handleTextListChange}
               tagSuggestions={tagSuggestions}
               values={values}
             />

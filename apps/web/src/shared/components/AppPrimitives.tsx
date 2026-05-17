@@ -1,6 +1,5 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import {
-  Alert,
   Badge,
   Button,
   Container,
@@ -8,6 +7,7 @@ import {
   Group,
   Paper,
   SimpleGrid,
+  Skeleton,
   Stack,
   Text,
   ThemeIcon,
@@ -103,6 +103,16 @@ interface StateMessageProps {
   eyebrow?: ReactNode;
   title: ReactNode;
   tone?: MessageTone;
+}
+
+interface LoadingStateProps {
+  actionWidth?: number;
+  rows?: number;
+  title?: ReactNode;
+}
+
+interface LoadingRowsProps {
+  rows?: number;
 }
 
 interface PageHeaderProps {
@@ -483,6 +493,7 @@ export function ThemeToggleControl({
 
   return (
     <AppButton
+      aria-label={`${nextColorScheme === 'dark' ? '다크' : '라이트'} 모드로 전환`}
       fullWidth={fullWidth}
       onClick={() => setColorScheme(nextColorScheme)}
       size="compact-md"
@@ -758,10 +769,28 @@ export function FeedbackMessage({
   title,
   tone = 'error',
 }: FeedbackMessageProps) {
+  const color = getMessageColor(tone);
+
   return (
-    <Alert color={getMessageColor(tone)} radius="md" title={title} variant="light">
-      {typeof children === 'string' ? <Text c="inherit">{children}</Text> : children}
-    </Alert>
+    <Paper
+      aria-live={tone === 'error' ? 'assertive' : 'polite'}
+      p="md"
+      radius="md"
+      role={tone === 'error' ? 'alert' : 'status'}
+      styles={{
+        root: {
+          backgroundColor: `var(--mantine-color-${color}-light)`,
+          borderColor: `var(--mantine-color-${color}-light-color)`,
+          color: `var(--mantine-color-${color}-light-color)`,
+        },
+      }}
+      withBorder
+    >
+      <Stack gap={4}>
+        {title && <Text c="inherit" fw={700}>{title}</Text>}
+        {typeof children === 'string' ? <Text c="inherit">{children}</Text> : children}
+      </Stack>
+    </Paper>
   );
 }
 
@@ -785,6 +814,83 @@ export function StateMessage({
         {actions && <ActionRow>{actions}</ActionRow>}
       </Stack>
     </SectionCard>
+  );
+}
+
+export function LoadingState({
+  actionWidth = 136,
+  rows = 3,
+  title = '콘텐츠를 불러오는 중입니다',
+}: LoadingStateProps) {
+  return (
+    <SectionCard padding="lg" tone="subtle">
+      <Stack gap="md" aria-busy="true" aria-live="polite">
+        <Group justify="space-between" wrap="nowrap">
+          <Stack gap={8} miw={0} style={{ flex: '1 1 auto' }}>
+            <Skeleton height={12} radius="sm" width={96} />
+            <Text c="var(--app-text-muted)" fw={700}>
+              {title}
+            </Text>
+          </Stack>
+          <Skeleton height={36} radius="sm" visibleFrom="sm" width={actionWidth} />
+        </Group>
+        <Stack gap="sm">
+          {Array.from({ length: rows }, (_, index) => (
+            <Paper
+              key={index}
+              p="md"
+              radius="md"
+              styles={{
+                root: {
+                  backgroundColor: 'var(--app-surface-0)',
+                  borderColor: 'var(--app-border-color)',
+                },
+              }}
+              withBorder
+            >
+              <Group gap="md" wrap="nowrap">
+                <Skeleton height={72} radius="md" width={54} />
+                <Stack flex={1} gap="xs" miw={0}>
+                  <Skeleton height={14} radius="sm" width="55%" />
+                  <Skeleton height={10} radius="sm" width="78%" />
+                  <Skeleton height={10} radius="sm" width="42%" />
+                </Stack>
+              </Group>
+            </Paper>
+          ))}
+        </Stack>
+      </Stack>
+    </SectionCard>
+  );
+}
+
+export function LoadingRows({ rows = 3 }: LoadingRowsProps) {
+  return (
+    <Stack gap="sm" aria-busy="true" aria-live="polite">
+      {Array.from({ length: rows }, (_, index) => (
+        <Paper
+          key={index}
+          p="md"
+          radius="md"
+          styles={{
+            root: {
+              backgroundColor: 'var(--app-surface-low)',
+              borderColor: 'var(--app-border-color)',
+            },
+          }}
+          withBorder
+        >
+          <Group gap="md" wrap="nowrap">
+            <Skeleton height={72} radius="md" width={54} />
+            <Stack flex={1} gap="xs" miw={0}>
+              <Skeleton height={14} radius="sm" width="55%" />
+              <Skeleton height={10} radius="sm" width="78%" />
+              <Skeleton height={10} radius="sm" width="42%" />
+            </Stack>
+          </Group>
+        </Paper>
+      ))}
+    </Stack>
   );
 }
 

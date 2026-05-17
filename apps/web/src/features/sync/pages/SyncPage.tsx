@@ -1,4 +1,5 @@
 import {
+  Accordion,
   Checkbox,
   Divider,
   Group,
@@ -17,6 +18,7 @@ import {
   AppLinkButton,
   FeedbackMessage,
   KeyValueGrid,
+  LoadingState,
   MetricPill,
   SectionCard,
   SectionIntro,
@@ -58,6 +60,35 @@ function renderStateLabel(state: SyncRunState) {
     default:
       return '대기';
   }
+}
+
+function getLastRunSummary(result: ManualSyncResult) {
+  const issueCount =
+    result.push.failedCount +
+    result.push.conflictCount +
+    result.pull.skippedCount +
+    (result.push.requestFailed ? 1 : 0) +
+    (result.pull.requestFailed ? 1 : 0);
+
+  if (result.state === 'success') {
+    return {
+      description:
+        '대기 중인 변경과 원격 변경을 처리했습니다. 추가 조치가 필요한 항목은 없습니다.',
+      label: '완료',
+      title: '동기화가 완료되었습니다',
+      tone: 'success' as const,
+    };
+  }
+
+  return {
+    description:
+      issueCount > 0
+        ? `확인이 필요한 항목 ${issueCount}건이 있습니다. 아래 실패/충돌/보류 내용을 확인한 뒤 다시 동기화하세요.`
+        : '동기화가 끝났지만 일부 단계가 정상 완료되지 않았습니다. 아래 메시지를 확인한 뒤 다시 시도하세요.',
+    label: '확인 필요',
+    title: '동기화 후 확인이 필요합니다',
+    tone: 'danger' as const,
+  };
 }
 
 function getSyncOperationLabel(operation: string) {
@@ -109,9 +140,19 @@ function getItemStateTone(state: SyncDashboardItem['state']) {
   }
 }
 
-function getFailedItemDiagnostic(item: SyncDashboardItem) {
+type FailedItemDiagnosticKind =
+  | 'auth'
+  | 'conflict'
+  | 'network'
+  | 'server'
+  | 'unknown'
+  | 'validation';
+
+function getFailedItemDiagnosticKind(
+  item: SyncDashboardItem,
+): FailedItemDiagnosticKind {
   if (item.state === 'conflict' || item.conflictCode) {
-    return '충돌';
+    return 'conflict';
   }
 
   const message = (item.lastError ?? '').toLowerCase();
@@ -122,7 +163,7 @@ function getFailedItemDiagnostic(item: SyncDashboardItem) {
     message.includes('token') ||
     message.includes('401')
   ) {
-    return '인증 만료';
+    return 'auth';
   }
 
   if (
@@ -132,7 +173,7 @@ function getFailedItemDiagnostic(item: SyncDashboardItem) {
     message.includes('timed out') ||
     message.includes('timeout')
   ) {
-    return '네트워크';
+    return 'network';
   }
 
   if (
@@ -141,7 +182,7 @@ function getFailedItemDiagnostic(item: SyncDashboardItem) {
     message.includes('필수') ||
     message.includes('형식')
   ) {
-    return '서버 검증';
+    return 'validation';
   }
 
   if (
@@ -150,10 +191,74 @@ function getFailedItemDiagnostic(item: SyncDashboardItem) {
     message.includes('503') ||
     message.includes('500')
   ) {
-    return '서버 오류';
+    return 'server';
   }
 
-  return '원인 미분류';
+  return 'unknown';
+}
+
+function getFailedItemDiagnostic(item: SyncDashboardItem) {
+  switch (getFailedItemDiagnosticKind(item)) {
+    case 'auth':
+      return '인증 만료';
+    case 'conflict':
+      return '충돌';
+    case 'network':
+      return '네트워크';
+    case 'server':
+      return '서버 오류';
+    case 'validation':
+      return '서버 검증';
+    case 'unknown':
+    default:
+      return '원인 미분류';
+  }
+}
+
+function getFailedItemRecovery(item: SyncDashboardItem) {
+  switch (getFailedItemDiagnosticKind(item)) {
+    case 'auth':
+      return {
+        actionLabel: '다시 로그인',
+        actionTo: '/auth/login',
+        description:
+          '로그인 세션이 만료됐을 수 있습니다. 다시 로그인한 뒤 수동 동기화를 실행하세요.',
+        title: '세션 확인 필요',
+      };
+    case 'network':
+      return {
+        description:
+          '네트워크가 안정된 뒤 다시 동기화를 시도하세요. 기록은 로컬 대기열에 남아 있습니다.',
+        title: '연결 상태 확인',
+      };
+    case 'server':
+      return {
+        description:
+          '서버 응답 문제일 수 있습니다. 잠시 후 다시 동기화를 실행하세요.',
+        title: '잠시 후 재시도',
+      };
+    case 'validation':
+      return {
+        actionLabel: item.linkTo ? '기록 열기' : undefined,
+        actionTo: item.linkTo ?? undefined,
+        description:
+          '서버가 일부 필드를 받지 못했습니다. 기록을 열어 필수값과 날짜/별점 형식을 확인하세요.',
+        title: '기록 내용 확인',
+      };
+    case 'conflict':
+      return {
+        description:
+          '로컬과 원격 변경이 동시에 존재합니다. 아래 충돌 해결 도구에서 유지할 값을 선택하세요.',
+        title: '충돌 해결 필요',
+      };
+    case 'unknown':
+    default:
+      return {
+        description:
+          '오류 메시지를 확인한 뒤 다시 동기화를 시도하세요. 반복되면 기록을 열어 최근 수정 내용을 확인하세요.',
+        title: '수동 확인 필요',
+      };
+  }
 }
 
 const WORK_CONFLICT_FIELDS = [
@@ -380,25 +485,43 @@ function ConflictResolutionPanel({
             ))}
           </Stack>
 
-          <Divider />
-
-          {detailFields.map((field) => (
-            <SimpleGrid cols={{ base: 1, md: 3 }} key={field.key} spacing="sm">
-              <Text fw={700}>{field.label}</Text>
-              <Text c="var(--app-text-muted)" size="sm">
-                로컬:{' '}
-                {formatConflictValue(
-                  getConflictFieldValue(item, field.key, 'local'),
-                )}
-              </Text>
-              <Text c="var(--app-text-muted)" size="sm">
-                원격:{' '}
-                {formatConflictValue(
-                  getConflictFieldValue(item, field.key, 'remote'),
-                )}
-              </Text>
-            </SimpleGrid>
-          ))}
+          {detailFields.length > 0 && (
+            <Accordion variant="contained">
+              <Accordion.Item value="all-conflict-fields">
+                <Accordion.Control>
+                  전체 비교 필드 보기
+                  <Text c="var(--app-text-muted)" component="span" ml="xs" size="sm">
+                    핵심 차이 외 {detailFields.length}개 항목
+                  </Text>
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <Stack gap="sm">
+                    {detailFields.map((field) => (
+                      <SimpleGrid
+                        cols={{ base: 1, md: 3 }}
+                        key={field.key}
+                        spacing="sm"
+                      >
+                        <Text fw={700}>{field.label}</Text>
+                        <Text c="var(--app-text-muted)" size="sm">
+                          로컬:{' '}
+                          {formatConflictValue(
+                            getConflictFieldValue(item, field.key, 'local'),
+                          )}
+                        </Text>
+                        <Text c="var(--app-text-muted)" size="sm">
+                          원격:{' '}
+                          {formatConflictValue(
+                            getConflictFieldValue(item, field.key, 'remote'),
+                          )}
+                        </Text>
+                      </SimpleGrid>
+                    ))}
+                  </Stack>
+                </Accordion.Panel>
+              </Accordion.Item>
+            </Accordion>
+          )}
         </Stack>
       )}
 
@@ -476,8 +599,12 @@ function SyncQueueSection({
         <Text c="var(--app-text-muted)">{emptyMessage}</Text>
       ) : (
         <Stack data-testid={testId} gap="md">
-          {items.map((item) => (
-            <div data-testid={`sync-item-${item.id}`} key={item.id}>
+          {items.map((item) => {
+            const recovery =
+              item.state === 'failed' ? getFailedItemRecovery(item) : null;
+
+            return (
+              <div data-testid={`sync-item-${item.id}`} key={item.id}>
               <SectionCard padding="lg" tone="subtle">
                 <Group align="flex-start" justify="space-between" wrap="wrap">
                   <Stack gap={4}>
@@ -539,6 +666,24 @@ function SyncQueueSection({
                   </FeedbackMessage>
                 )}
 
+                {recovery && (
+                  <Stack gap={6}>
+                    <Text c="var(--app-text-strong)" fw={700} size="sm">
+                      다음 행동: {recovery.title}
+                    </Text>
+                    <Text c="var(--app-text-muted)" size="sm">
+                      {recovery.description}
+                    </Text>
+                    {recovery.actionTo && recovery.actionLabel && (
+                      <Group>
+                        <AppLinkButton to={recovery.actionTo} tone="quiet">
+                          {recovery.actionLabel}
+                        </AppLinkButton>
+                      </Group>
+                    )}
+                  </Stack>
+                )}
+
                 <Group gap="sm" wrap="wrap">
                   {item.linkTo && (
                     <AppLinkButton to={item.linkTo} tone="quiet">
@@ -574,7 +719,8 @@ function SyncQueueSection({
                   )}
               </SectionCard>
             </div>
-          ))}
+            );
+          })}
         </Stack>
       )}
     </SectionCard>
@@ -763,6 +909,47 @@ export function SyncPage() {
               title="최근 동기화 결과"
             />
 
+            <Stack gap="sm">
+              <Group align="flex-start" justify="space-between" wrap="wrap">
+                <Stack gap={4}>
+                  <AppBadge tone={getLastRunSummary(lastRun).tone}>
+                    {getLastRunSummary(lastRun).label}
+                  </AppBadge>
+                  <Title order={3}>{getLastRunSummary(lastRun).title}</Title>
+                  <Text c="var(--app-text-muted)">
+                    {getLastRunSummary(lastRun).description}
+                  </Text>
+                </Stack>
+                {lastRun.state === 'failed' && !isGuestMode && (
+                  <AppButton
+                    disabled={syncState === 'syncing'}
+                    onClick={() => {
+                      void handleRunSync();
+                    }}
+                    tone="primary"
+                    type="button"
+                  >
+                    다시 동기화
+                  </AppButton>
+                )}
+              </Group>
+
+              <Group gap="sm" wrap="wrap">
+                <MetricPill
+                  label="보내기 실패"
+                  value={lastRun.push.failedCount}
+                />
+                <MetricPill
+                  label="보내기 충돌"
+                  value={lastRun.push.conflictCount}
+                />
+                <MetricPill
+                  label="가져오기 보류"
+                  value={lastRun.pull.skippedCount}
+                />
+              </Group>
+            </Stack>
+
             <SectionCard padding="lg" tone="subtle">
               <Title order={4}>보내기</Title>
               <Text c="var(--app-text-muted)">
@@ -863,11 +1050,7 @@ export function SyncPage() {
         )}
 
         {isLoading && (
-          <SectionCard>
-            <Text c="var(--app-text-muted)">
-              동기화 상태를 불러오는 중입니다.
-            </Text>
-          </SectionCard>
+          <LoadingState rows={3} title="동기화 상태를 불러오는 중입니다" />
         )}
       </Stack>
     </AccountPageTemplate>

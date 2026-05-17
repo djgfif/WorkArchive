@@ -67,6 +67,12 @@ describe('Auth flow', () => {
     expect(screen.queryByRole('link', { name: '홈으로 돌아가기' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '작품 보기' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /WA\s*워크 아카이브/ })).toHaveAttribute('href', '/');
+    expect(screen.getByText('로컬 우선 저장')).toBeInTheDocument();
+    expect(screen.getByText('local-first 유지')).toBeInTheDocument();
+    expect(
+      screen.getByText(/회원가입 후에도 작품 추가와 수정은 IndexedDB 로컬 저장 경로를 먼저 사용합니다/),
+    ).toBeInTheDocument();
+    expect(screen.getByText('계정 동기화와 복구에 사용할 이메일입니다.')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
     await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
@@ -129,6 +135,49 @@ describe('Auth flow', () => {
     await user.click(screen.getByRole('button', { name: '로그인' }));
 
     expect(await screen.findByText('게스트 기록 검토')).toBeInTheDocument();
+  });
+
+  it('lets users retry when guest transfer review cannot be loaded', async () => {
+    vi.spyOn(guestTransferService, 'getPendingReview')
+      .mockRejectedValueOnce(new Error('IndexedDB blocked'))
+      .mockResolvedValueOnce(null);
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(
+        jsonResponse({
+          accessToken: 'refreshed-access-token',
+          user: {
+            id: 'user-1',
+            email: 'frieren@example.com',
+            nickname: '',
+          },
+        }),
+      ),
+    );
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/account/transfer'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByText(
+        '게스트 기록 검토 상태를 불러오지 못했습니다. 네트워크나 IndexedDB 상태를 확인한 뒤 다시 시도해주세요.',
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '다시 확인' }));
+
+    expect(
+      await screen.findByText('지금 검토할 guest 기록이 없습니다'),
+    ).toBeInTheDocument();
   });
 
   it('restores a session by calling /auth/refresh on startup', async () => {
@@ -321,6 +370,9 @@ describe('Auth flow', () => {
     expect(screen.queryByRole('link', { name: '홈으로 돌아가기' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '작품 보기' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: '비밀번호를 잊으셨나요?' })).toBeInTheDocument();
+    expect(screen.getByText('게스트 기록 보호')).toBeInTheDocument();
+    expect(screen.getByText(/로그인 전 기록은 사라지지 않습니다/)).toBeInTheDocument();
+    expect(screen.getByText('공개 피드 없음')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
     await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
@@ -378,6 +430,51 @@ describe('Auth flow', () => {
     expect(await screen.findByText('frieren@example.com')).toBeInTheDocument();
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
     expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
+  });
+
+  it('shows a contextual credential error on failed login', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              message: 'Invalid or expired refresh token.',
+            },
+            401,
+          ),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              message: 'Invalid email or password.',
+            },
+            401,
+          ),
+        ),
+    );
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/login'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await user.type(screen.getByLabelText(/이메일/), 'wrong@example.com');
+    await user.type(screen.getByLabelText(/비밀번호/), 'wrong-password');
+    await user.click(screen.getByRole('button', { name: '로그인' }));
+
+    expect(
+      await screen.findByText(
+        '이메일 또는 비밀번호가 맞지 않습니다. 입력한 정보를 다시 확인해주세요.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('requests a development password reset link', async () => {

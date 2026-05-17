@@ -8,6 +8,7 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import { AuthPageTemplate } from '../../../shared/components/PageTemplates';
 import { confirmPasswordReset } from '../services/auth.api';
+import { getAuthSubmitErrorMessage } from '../utils/auth-error-message';
 
 export function PasswordResetConfirmPage() {
   const [searchParams] = useSearchParams();
@@ -37,11 +38,7 @@ export function PasswordResetConfirmPage() {
       setSuccessMessage(response.message);
       setPassword('');
     } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : '비밀번호를 재설정하지 못했습니다.',
-      );
+      setSubmitError(getAuthSubmitErrorMessage(error, 'password-reset-confirm'));
     } finally {
       setIsSubmitting(false);
     }
@@ -49,7 +46,7 @@ export function PasswordResetConfirmPage() {
 
   return (
     <AuthPageTemplate
-      description="개발용 복구 링크로 들어왔다면 새 비밀번호를 저장할 수 있습니다."
+      description="복구 링크가 유효하면 새 비밀번호를 저장하고 다시 로그인할 수 있습니다."
       eyebrow="새 비밀번호"
       footer={
         <Text c="var(--app-text-muted)">
@@ -64,6 +61,7 @@ export function PasswordResetConfirmPage() {
           <Stack gap="md">
             <PasswordInput
               autoComplete="new-password"
+              description="8자 이상 새 비밀번호를 입력해주세요."
               disabled={!token || successMessage !== null}
               label="새 비밀번호"
               minLength={8}
@@ -78,14 +76,21 @@ export function PasswordResetConfirmPage() {
                 비밀번호 재설정 링크가 올바르지 않습니다.
               </FeedbackMessage>
             )}
-            {submitError && <FeedbackMessage tone="error">{submitError}</FeedbackMessage>}
+            {submitError && (
+              <FeedbackMessage title="저장하지 못했습니다" tone="error">
+                {submitError}
+              </FeedbackMessage>
+            )}
             {successMessage && (
-              <FeedbackMessage tone="success">{successMessage}</FeedbackMessage>
+              <FeedbackMessage title="비밀번호를 저장했습니다" tone="success">
+                {successMessage}
+              </FeedbackMessage>
             )}
 
             <AppButton
               disabled={!token || isSubmitting || successMessage !== null}
               fullWidth
+              loading={isSubmitting}
               tone="primary"
               type="submit"
             >
@@ -94,7 +99,13 @@ export function PasswordResetConfirmPage() {
           </Stack>
         </form>
       }
-      highlights={[]}
+      highlights={[
+        {
+          description:
+            '복구 링크가 없거나 만료된 경우에는 다시 요청해야 합니다. 이미 저장된 작품 기록은 그대로 유지됩니다.',
+          title: '복구 링크 확인',
+        },
+      ]}
       title="새 비밀번호 저장"
     />
   );

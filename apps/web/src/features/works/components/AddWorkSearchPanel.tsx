@@ -4,6 +4,7 @@ import {
   NativeSelect,
   Paper,
   ScrollArea,
+  Skeleton,
   Stack,
   Text,
   TextInput,
@@ -47,6 +48,65 @@ export interface AddWorkSearchPanelProps {
   searchTerm: string;
   searchType: string;
   selectedCandidate: ImportCandidate | null;
+}
+
+function SearchCandidateLoadingList() {
+  return (
+    <Stack
+      aria-busy="true"
+      aria-live="polite"
+      data-testid="candidate-search-loading"
+      gap="sm"
+    >
+      <Text fw={700}>검색 후보를 불러오는 중입니다</Text>
+      <Text c="var(--app-text-muted)" size="sm">
+        출처별 결과, 중복 가능성, 적용할 수 있는 정보를 함께 정리하고 있습니다.
+      </Text>
+      {Array.from({ length: 4 }, (_, index) => (
+        <Stack
+          gap="xs"
+          key={index}
+          style={{
+            borderBottom:
+              index === 3 ? 'none' : '1px solid var(--app-border-color)',
+            paddingBlock: '0.5rem',
+          }}
+        >
+          <Group gap="xs" wrap="nowrap">
+            <Skeleton height={20} radius="xl" width={68} />
+            <Skeleton height={20} radius="xl" width={92} />
+          </Group>
+          <Skeleton height={16} radius="sm" width="70%" />
+          <Skeleton height={12} radius="sm" width="48%" />
+          <Skeleton height={12} radius="sm" width="82%" />
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
+function SearchPreviewLoading() {
+  return (
+    <Stack aria-busy="true" aria-live="polite" gap="md">
+      <Stack gap="xs">
+        <Skeleton height={18} radius="sm" width={120} />
+        <Skeleton height={28} radius="sm" width="64%" />
+        <Skeleton height={14} radius="sm" width="46%" />
+      </Stack>
+      <Group align="flex-start" gap="lg" wrap="nowrap">
+        <Skeleton height={210} radius="md" width={142} />
+        <Stack flex={1} gap="sm">
+          <Skeleton height={14} radius="sm" width="88%" />
+          <Skeleton height={14} radius="sm" width="72%" />
+          <Skeleton height={14} radius="sm" width="54%" />
+          <Group gap="xs">
+            <Skeleton height={24} radius="xl" width={82} />
+            <Skeleton height={24} radius="xl" width={112} />
+          </Group>
+        </Stack>
+      </Group>
+    </Stack>
+  );
 }
 
 export function AddWorkSearchPanel({
@@ -168,11 +228,7 @@ export function AddWorkSearchPanel({
             withBorder
           >
             {isSearching ? (
-              <StateMessage
-                description="검색 출처별 후보를 정리하고 있습니다."
-                title="검색 중입니다."
-                tone="loading"
-              />
+              <SearchCandidateLoadingList />
             ) : candidates.length === 0 ? (
               <StateMessage
                 actions={
@@ -259,7 +315,9 @@ export function AddWorkSearchPanel({
             }}
             withBorder
           >
-            {selectedCandidate ? (
+            {isSearching ? (
+              <SearchPreviewLoading />
+            ) : selectedCandidate ? (
               <CandidatePreviewPanel
                 candidate={selectedCandidate}
                 duplicateMatches={duplicateMatches}

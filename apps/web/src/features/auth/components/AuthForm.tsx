@@ -11,6 +11,7 @@ import type { AuthCredentialsInput } from '../services/auth.api';
 
 interface AuthFormProps {
   isSubmitting: boolean;
+  mode: 'login' | 'register';
   onSubmit(input: AuthCredentialsInput): Promise<void>;
   showPasswordResetLink?: boolean;
   showRememberMe?: boolean;
@@ -20,6 +21,7 @@ interface AuthFormProps {
 
 export function AuthForm({
   isSubmitting,
+  mode,
   onSubmit,
   showPasswordResetLink = false,
   showRememberMe = false,
@@ -45,6 +47,7 @@ export function AuthForm({
       <Stack gap="md">
         <TextInput
           autoComplete="email"
+          description="계정 동기화와 복구에 사용할 이메일입니다."
           label="이메일"
           name="email"
           onChange={(event) => setEmail(event.currentTarget.value)}
@@ -54,7 +57,8 @@ export function AuthForm({
         />
 
         <PasswordInput
-          autoComplete="current-password"
+          autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+          description="8자 이상 입력해주세요."
           label="비밀번호"
           minLength={8}
           name="password"
@@ -84,10 +88,20 @@ export function AuthForm({
           </Group>
         )}
 
-        {submitError && <FeedbackMessage tone="error">{submitError}</FeedbackMessage>}
+        {submitError && (
+          <FeedbackMessage title="요청을 완료하지 못했습니다" tone="error">
+            {submitError}
+          </FeedbackMessage>
+        )}
 
         <ActionRow>
-          <AppButton disabled={isSubmitting} fullWidth tone="primary" type="submit">
+          <AppButton
+            disabled={isSubmitting}
+            fullWidth
+            loading={isSubmitting}
+            tone="primary"
+            type="submit"
+          >
             {isSubmitting ? `${submitLabel} 중...` : submitLabel}
           </AppButton>
         </ActionRow>

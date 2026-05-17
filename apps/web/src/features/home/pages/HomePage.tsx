@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Group, Paper, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Grid, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -9,7 +9,7 @@ import {
   AppBadge,
   AppButton,
   AppLinkButton,
-  FeedbackMessage,
+  LoadingRows,
   MetricPill,
   SectionCard,
   SectionIntro,
@@ -119,6 +119,7 @@ export function HomePage() {
     inProgressCount,
     isLoading,
     recentWorks,
+    retry,
     totalCount,
   } = useWorksOverview();
   const [searchTerm, setSearchTerm] = useState('');
@@ -187,8 +188,8 @@ export function HomePage() {
         </ActionRow>
       </SectionCard>
 
-      <SimpleGrid cols={{ base: 1, xl: 12 }} spacing="xl">
-        <div style={{ gridColumn: 'span 8 / span 8' }}>
+      <Grid align="start" gutter="xl">
+        <Grid.Col span={{ base: 12, xl: 8 }}>
           <SectionCard gap="lg" padding="lg" tone="default">
             <Group align="flex-start" justify="space-between" wrap="wrap">
               <SectionIntro eyebrow="최근 기록" title="최근 수정한 작품" titleOrder={2} />
@@ -197,10 +198,33 @@ export function HomePage() {
               </AppLinkButton>
             </Group>
 
-            {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
+            {error && (
+              <StateMessage
+                actions={
+                  <>
+                    <AppButton onClick={retry} tone="primary" type="button">
+                      다시 불러오기
+                    </AppButton>
+                    <AppLinkButton to="/works" tone="secondary">
+                      작품 목록 열기
+                    </AppLinkButton>
+                    <AppLinkButton
+                      aria-label="최근 기록 오류 상태에서 작품 추가"
+                      to="/works/new"
+                      tone="quiet"
+                    >
+                      작품 추가
+                    </AppLinkButton>
+                  </>
+                }
+                description={error}
+                title="최근 기록을 불러오지 못했습니다."
+                tone="error"
+              />
+            )}
 
             {!error && isLoading && (
-              <Text c="var(--app-text-muted)">최근 기록을 불러오는 중입니다.</Text>
+              <LoadingRows rows={3} />
             )}
 
             {!error && !isLoading && !hasRecentWorks && (
@@ -242,9 +266,9 @@ export function HomePage() {
               </Paper>
             )}
           </SectionCard>
-        </div>
+        </Grid.Col>
 
-        <div style={{ gridColumn: 'span 4 / span 4' }}>
+        <Grid.Col span={{ base: 12, xl: 4 }}>
           <Stack gap="xl">
             <SectionCard gap="lg" padding="lg" tone="subtle">
               <SectionIntro eyebrow="이어가기" title="마지막 기록" titleOrder={2} />
@@ -296,8 +320,8 @@ export function HomePage() {
               </Stack>
             </SectionCard>
           </Stack>
-        </div>
-      </SimpleGrid>
+        </Grid.Col>
+      </Grid>
     </HomeHubPageTemplate>
   );
 }

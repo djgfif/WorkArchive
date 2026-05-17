@@ -28,6 +28,15 @@ import {
 } from '../utils/work-options';
 import type { WorksViewMode } from './WorksList';
 
+const ratingFilterOptions = Array.from({ length: 10 }, (_, index) => {
+  const value = ((index + 1) * 0.5).toFixed(1);
+
+  return {
+    label: `${value}점`,
+    value,
+  };
+}).reverse();
+
 interface WorksToolbarProps {
   collectionScope: WorksCollectionScope;
   filteredCount: number;
@@ -61,7 +70,7 @@ export function WorksToolbar({
   totalDeletedCount,
   viewMode,
 }: WorksToolbarProps) {
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   let countSummary = '작품을 불러오는 중입니다.';
 
   if (!isLoading) {
@@ -86,6 +95,7 @@ export function WorksToolbar({
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
     (query.tag?.trim() ?? '') !== '' ||
+    query.rating !== null ||
     query.status !== 'all' ||
     query.type !== 'all' ||
     query.sortBy !== 'updatedAt';
@@ -120,6 +130,14 @@ export function WorksToolbar({
           {
             label: `상태: ${getWorkStatusLabel(query.status)}`,
             onRemove: () => onQueryChange({ ...query, status: 'all' }),
+          },
+        ]
+      : []),
+    ...(query.rating !== null
+      ? [
+          {
+            label: `별점: ${query.rating.toFixed(1)}점`,
+            onRemove: () => onQueryChange({ ...query, rating: null }),
           },
         ]
       : []),
@@ -201,10 +219,24 @@ export function WorksToolbar({
         />
       </ActionRow>
 
+      <TextInput
+        aria-label="작품 라이브러리 검색"
+        label="검색"
+        name="searchTerm"
+        onChange={(event) =>
+          onQueryChange({
+            ...query,
+            searchTerm: event.currentTarget.value,
+          })
+        }
+        placeholder="제목, 작가, 감상, 태그"
+        value={query.searchTerm}
+      />
+
       {hasActiveFilters && (
         <Stack gap="xs">
           <Group gap="xs" justify="space-between" wrap="wrap">
-            <Group gap="xs" wrap="wrap">
+            <Group aria-label="적용된 필터" gap="xs" role="group" wrap="wrap">
               <AppBadge tone="accent">적용 중</AppBadge>
               {activeFilterChips.map((chip) => (
                 <AppButton
@@ -235,9 +267,14 @@ export function WorksToolbar({
       )}
 
       <ActionRow justify="space-between">
-        <Text c="var(--app-text-muted)" fw={700} size="sm">
-          검색·필터
-        </Text>
+        <Group gap="xs" wrap="wrap">
+          <Text c="var(--app-text-muted)" fw={700} size="sm">
+            고급 필터
+          </Text>
+          {hasActiveFilters && (
+            <AppBadge tone="muted">{activeFilterChips.length}개 적용</AppBadge>
+          )}
+        </Group>
         <AppButton
           aria-expanded={filtersExpanded}
           onClick={() => setFiltersExpanded((value) => !value)}
@@ -245,28 +282,13 @@ export function WorksToolbar({
           tone="ghost"
           type="button"
         >
-          {filtersExpanded ? '필터 접기' : '필터 펼치기'}
+          {filtersExpanded ? '고급 필터 접기' : '고급 필터 펼치기'}
         </AppButton>
       </ActionRow>
 
       <Collapse in={filtersExpanded}>
         <Stack gap="md">
           <Group align="flex-end" gap="sm" wrap="wrap">
-            <div style={{ flex: '1 1 20rem', minWidth: 'min(100%, 20rem)' }}>
-              <TextInput
-                label="검색"
-                name="searchTerm"
-                onChange={(event) =>
-                  onQueryChange({
-                    ...query,
-                    searchTerm: event.currentTarget.value,
-                  })
-                }
-                placeholder="제목, 작가, 감상, 태그"
-                value={query.searchTerm}
-              />
-            </div>
-
             <div style={{ flex: '0 1 12rem', minWidth: 160 }}>
               <TextInput
                 label="개인 태그"
@@ -299,6 +321,35 @@ export function WorksToolbar({
               >
                 <option value="all">전체 유형</option>
                 {workTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+
+            <div style={{ flex: '0 1 10rem', minWidth: 144 }}>
+              <NativeSelect
+                id="ratingFilter"
+                label="별점"
+                onChange={(event) => {
+                  const nextRating = Number.parseFloat(
+                    event.currentTarget.value,
+                  );
+
+                  onQueryChange({
+                    ...query,
+                    rating: Number.isFinite(nextRating) ? nextRating : null,
+                  });
+                }}
+                value={
+                  query.rating !== null
+                    ? query.rating.toFixed(1)
+                    : 'all'
+                }
+              >
+                <option value="all">전체 별점</option>
+                {ratingFilterOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

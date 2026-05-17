@@ -6,6 +6,7 @@ import { AuthPageTemplate } from '../../../shared/components/PageTemplates';
 import { AuthForm } from '../components/AuthForm';
 import { useAuthSession } from '../hooks/useAuthSession';
 import type { AuthCredentialsInput } from '../services/auth.api';
+import { getAuthSubmitErrorMessage } from '../utils/auth-error-message';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -26,11 +27,7 @@ export function RegisterPage() {
       const nextLocation = await signUp(input);
       navigate(nextLocation);
     } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : '지금은 회원가입을 완료할 수 없습니다. 잠시 후 다시 시도해주세요.',
-      );
+      setSubmitError(getAuthSubmitErrorMessage(error, 'register'));
     } finally {
       setIsSubmitting(false);
     }
@@ -38,7 +35,7 @@ export function RegisterPage() {
 
   return (
     <AuthPageTemplate
-      description="나만의 아카이브를 시작하세요."
+      description="개인 작품 기록을 계정 아카이브로 백업하고 이어서 관리합니다."
       footer={
         <Text c="var(--app-text-muted)" ta="center">
           이미 계정이 있나요?{' '}
@@ -50,11 +47,24 @@ export function RegisterPage() {
       form={
         <AuthForm
           isSubmitting={isSubmitting}
+          mode="register"
           onSubmit={handleSubmit}
           submitError={submitError}
           submitLabel="회원가입"
         />
       }
+      highlights={[
+        {
+          description:
+            '회원가입 후에도 작품 추가와 수정은 IndexedDB 로컬 저장 경로를 먼저 사용합니다.',
+          title: 'local-first 유지',
+        },
+        {
+          description:
+            '이 계정은 개인 백업과 제한적 동기화를 위한 계정이며, 공개 프로필이나 커뮤니티 피드를 만들지 않습니다.',
+          title: '개인 기록 전용',
+        },
+      ]}
       title="회원가입"
     />
   );
