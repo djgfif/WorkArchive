@@ -23,6 +23,7 @@ import {
   AppBadge,
   AppButton,
   AppLinkButton,
+  ChipSummary,
   FeedbackMessage,
   MetricPill,
   PageSection,
@@ -52,6 +53,14 @@ interface WorkFormProps {
   submitError: string | null;
   submitLabel: string;
   tagSuggestions?: string[];
+}
+
+function getCommaSeparatedPreviewValues(value: string) {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 8);
 }
 
 export function WorkForm({
@@ -100,6 +109,10 @@ export function WorkForm({
     .slice(0, 4);
   const shortReviewLength = values.shortReview.trim().length;
   const reviewLength = values.review.trim().length;
+  const genrePreviewValues = getCommaSeparatedPreviewValues(values.genresText);
+  const personalTagPreviewValues = getCommaSeparatedPreviewValues(
+    values.personalTagsText,
+  );
 
   useEffect(() => {
     if (focusArea !== 'review' || hasFocusedReviewRef.current) {
@@ -253,8 +266,13 @@ export function WorkForm({
                     id="genresTextHint"
                     mt={6}
                   >
-                    장르는 쉼표로 구분해 입력해주세요.
+                    쉼표로 이어서 입력하면 아래처럼 장르 단위로 저장됩니다.
                   </Text>
+                  <ChipSummary
+                    emptyLabel="입력한 장르가 없습니다."
+                    label="장르 미리보기"
+                    values={genrePreviewValues}
+                  />
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>
@@ -279,8 +297,13 @@ export function WorkForm({
                     id="personalTagsTextHint"
                     mt={6}
                   >
-                    장르와 분리된 내 분류입니다. 쉼표로 구분해 입력해주세요.
+                    장르와 분리된 내 분류입니다. 쉼표로 이어서 입력하면 태그 단위로 저장됩니다.
                   </Text>
+                  <ChipSummary
+                    emptyLabel="입력한 개인 태그가 없습니다."
+                    label="개인 태그 미리보기"
+                    values={personalTagPreviewValues}
+                  />
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>

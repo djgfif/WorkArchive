@@ -62,6 +62,34 @@ function getTopEntries<T extends string>(counts: Record<T, number>) {
     .slice(0, 6) as Array<[T, number]>;
 }
 
+function InsightProgressRow({
+  count,
+  label,
+  maxCount,
+  tone = 'accent',
+}: {
+  count: number;
+  label: string;
+  maxCount: number;
+  tone?: 'accent' | 'success';
+}) {
+  return (
+    <Stack gap={4}>
+      <Group justify="space-between">
+        <Text fw={700}>{label}</Text>
+        <AppBadge tone={tone}>{count}개</AppBadge>
+      </Group>
+      <Progress
+        aria-label={`${label} ${count}개`}
+        color={tone === 'success' ? 'teal' : 'archive'}
+        radius="xl"
+        size="sm"
+        value={(count / maxCount) * 100}
+      />
+    </Stack>
+  );
+}
+
 export function InsightsPage() {
   const { archiveScopeKey, mode } = useAuthSession();
   const [state, setState] = useState<InsightsState>(initialState);
@@ -111,11 +139,11 @@ export function InsightsPage() {
           <SectionIntro
             description={
               mode === 'authenticated'
-                ? '현재 계정 로컬 아카이브에 저장된 개인 기록만 집계합니다.'
-                : '현재 기기의 guest 로컬 아카이브에 저장된 개인 기록만 집계합니다.'
+                ? '현재 계정 로컬 아카이브의 개인 기록만 집계합니다. 공개 지표나 커뮤니티 데이터는 포함하지 않습니다.'
+                : '현재 기기의 guest 로컬 아카이브만 집계합니다. 로그인 전에도 내 기기 기록을 기준으로 취향을 확인할 수 있습니다.'
             }
             eyebrow="개인 인사이트"
-            title="내 기록 요약"
+            title="내 취향 대시보드"
             titleOrder={1}
           />
 
@@ -132,7 +160,7 @@ export function InsightsPage() {
               />
               <MetricPill label="즐겨찾기" value={insights.favoriteCount} />
               <MetricPill
-                label="중단률"
+                label="중단/보류 비율"
                 value={formatPercent(insights.droppedRate)}
               />
             </Group>
@@ -170,18 +198,28 @@ export function InsightsPage() {
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
             <SectionCard>
               <SectionIntro
-                description="내가 어떤 매체를 주로 기록하고 있는지 보여줍니다."
+                description="내 기록이 어떤 매체에 집중되어 있는지 빠르게 비교합니다."
                 eyebrow="매체"
                 title="매체별 기록"
                 titleOrder={2}
               />
               <Stack gap="sm">
-                {getTopEntries(insights.typeCounts).map(([type, count]) => (
-                  <Group justify="space-between" key={type}>
-                    <Text fw={700}>{getWorkTypeLabel(type)}</Text>
-                    <AppBadge tone="accent">{count}개</AppBadge>
-                  </Group>
-                ))}
+                {getTopEntries(insights.typeCounts).map(([type, count]) => {
+                  const maxCount = getMaxCount(
+                    getTopEntries(insights.typeCounts).map(([, entryCount]) => ({
+                      count: entryCount,
+                    })),
+                  );
+
+                  return (
+                    <InsightProgressRow
+                      count={count}
+                      key={type}
+                      label={getWorkTypeLabel(type)}
+                      maxCount={maxCount}
+                    />
+                  );
+                })}
               </Stack>
             </SectionCard>
 
@@ -252,12 +290,23 @@ export function InsightsPage() {
                 titleOrder={2}
               />
               <Stack gap="sm">
-                {getTopEntries(insights.statusCounts).map(([status, count]) => (
-                  <Group justify="space-between" key={status}>
-                    <Text fw={700}>{getWorkStatusLabel(status)}</Text>
-                    <AppBadge tone="success">{count}개</AppBadge>
-                  </Group>
-                ))}
+                {getTopEntries(insights.statusCounts).map(([status, count]) => {
+                  const maxCount = getMaxCount(
+                    getTopEntries(insights.statusCounts).map(([, entryCount]) => ({
+                      count: entryCount,
+                    })),
+                  );
+
+                  return (
+                    <InsightProgressRow
+                      count={count}
+                      key={status}
+                      label={getWorkStatusLabel(status)}
+                      maxCount={maxCount}
+                      tone="success"
+                    />
+                  );
+                })}
               </Stack>
             </SectionCard>
 
@@ -275,10 +324,12 @@ export function InsightsPage() {
               ) : (
                 <Stack gap="sm">
                   {insights.ratingDistribution.map(({ count, rating }) => (
-                    <Group justify="space-between" key={rating}>
-                      <Text fw={700}>{rating.toFixed(1)}점</Text>
-                      <AppBadge tone="accent">{count}개</AppBadge>
-                    </Group>
+                    <InsightProgressRow
+                      count={count}
+                      key={rating}
+                      label={`${rating.toFixed(1)}점`}
+                      maxCount={getMaxCount(insights.ratingDistribution)}
+                    />
                   ))}
                 </Stack>
               )}
@@ -348,6 +399,9 @@ export function InsightsPage() {
                       <AppBadge tone="accent">
                         {formatRating(work.rating)}
                       </AppBadge>
+                      <AppLinkButton size="compact-sm" to={`/works/${work.id}`}>
+                        열기
+                      </AppLinkButton>
                     </Group>
                   ))}
                 </Stack>
@@ -380,6 +434,9 @@ export function InsightsPage() {
                       <AppBadge tone="accent">
                         {formatRating(work.rating)}
                       </AppBadge>
+                      <AppLinkButton size="compact-sm" to={`/works/${work.id}`}>
+                        열기
+                      </AppLinkButton>
                     </Group>
                   ))}
                 </Stack>

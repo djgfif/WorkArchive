@@ -5,6 +5,7 @@ import { WORK_STATUSES, WORK_TYPES } from '@work-archive/shared-types';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
+  ActionRow,
   AppButton,
   FeedbackMessage,
   StateMessage,
@@ -118,6 +119,7 @@ export function WorksListPage() {
   );
   const [addDialogOpened, setAddDialogOpened] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [deletedNotice, setDeletedNotice] = useState<WorkRecord | null>(null);
   const [updatingWorkId, setUpdatingWorkId] = useState<string | null>(null);
   const [restoringWorkId, setRestoringWorkId] = useState<string | null>(null);
   const {
@@ -177,7 +179,8 @@ export function WorksListPage() {
 
   async function handleDelete(work: WorkRecord) {
     const shouldDelete = await confirmDialogAdapter.confirm({
-      description: '현재는 목록에서 숨겨집니다.',
+      description:
+        '현재 목록에서는 숨겨지고, 휴지통에서 다시 복원할 수 있습니다.',
       title: `"${work.title}"을 삭제할까요?`,
     });
 
@@ -188,6 +191,7 @@ export function WorksListPage() {
     try {
       setActionError(null);
       await worksService.deleteWork(work.id);
+      setDeletedNotice(work);
     } catch (deleteError) {
       setActionError(
         deleteError instanceof Error
@@ -203,6 +207,9 @@ export function WorksListPage() {
       setRestoringWorkId(work.id);
 
       await worksService.restoreWork(work.id);
+      setDeletedNotice((currentNotice) =>
+        currentNotice?.id === work.id ? null : currentNotice,
+      );
     } catch (restoreError) {
       setActionError(
         restoreError instanceof Error
@@ -310,6 +317,35 @@ export function WorksListPage() {
 
       {actionError && (
         <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
+      )}
+
+      {deletedNotice && collectionScope === 'active' && (
+        <FeedbackMessage title="목록에서 숨겼습니다" tone="success">
+          <ActionRow justify="space-between">
+            <span>
+              {deletedNotice.title}은 휴지통에서 복원할 수 있습니다.
+            </span>
+            <ActionRow justify="flex-end">
+              <AppButton
+                disabled={restoringWorkId === deletedNotice.id}
+                onClick={() => void handleRestore(deletedNotice)}
+                size="compact-sm"
+                tone="secondary"
+                type="button"
+              >
+                되돌리기
+              </AppButton>
+              <AppButton
+                onClick={() => setDeletedNotice(null)}
+                size="compact-sm"
+                tone="ghost"
+                type="button"
+              >
+                닫기
+              </AppButton>
+            </ActionRow>
+          </ActionRow>
+        </FeedbackMessage>
       )}
 
       {error && (

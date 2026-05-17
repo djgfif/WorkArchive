@@ -13,6 +13,7 @@ import type { WorkStatus } from '@work-archive/shared-types';
 
 import {
   ActionRow,
+  AppBadge,
   AppButton,
   MetricPill,
   SectionCard,
@@ -97,6 +98,55 @@ export function WorksToolbar({
     })),
   ];
 
+  const activeFilterChips = [
+    ...(query.searchTerm.trim()
+      ? [
+          {
+            label: `검색: ${query.searchTerm.trim()}`,
+            onRemove: () => onQueryChange({ ...query, searchTerm: '' }),
+          },
+        ]
+      : []),
+    ...(query.tag?.trim()
+      ? [
+          {
+            label: `태그: ${query.tag.trim()}`,
+            onRemove: () => onQueryChange({ ...query, tag: '' }),
+          },
+        ]
+      : []),
+    ...(query.status !== 'all'
+      ? [
+          {
+            label: `상태: ${getWorkStatusLabel(query.status)}`,
+            onRemove: () => onQueryChange({ ...query, status: 'all' }),
+          },
+        ]
+      : []),
+    ...(query.type !== 'all'
+      ? [
+          {
+            label: `유형: ${
+              workTypeOptions.find((option) => option.value === query.type)
+                ?.label ?? query.type
+            }`,
+            onRemove: () => onQueryChange({ ...query, type: 'all' }),
+          },
+        ]
+      : []),
+    ...(query.sortBy !== 'updatedAt'
+      ? [
+          {
+            label: `정렬: ${
+              workSortOptions.find((option) => option.value === query.sortBy)
+                ?.label ?? query.sortBy
+            }`,
+            onRemove: () => onQueryChange({ ...query, sortBy: 'updatedAt' }),
+          },
+        ]
+      : []),
+  ];
+
   return (
     <SectionCard gap="md" padding="lg" tone="subtle">
       <Group align="flex-start" justify="space-between" wrap="wrap">
@@ -150,6 +200,39 @@ export function WorksToolbar({
           }
         />
       </ActionRow>
+
+      {hasActiveFilters && (
+        <Stack gap="xs">
+          <Group gap="xs" justify="space-between" wrap="wrap">
+            <Group gap="xs" wrap="wrap">
+              <AppBadge tone="accent">적용 중</AppBadge>
+              {activeFilterChips.map((chip) => (
+                <AppButton
+                  aria-label={`${chip.label} 필터 제거`}
+                  key={chip.label}
+                  onClick={chip.onRemove}
+                  size="compact-xs"
+                  tone="secondary"
+                  type="button"
+                >
+                  {chip.label} ×
+                </AppButton>
+              ))}
+            </Group>
+            <AppButton
+              onClick={onClearFilters}
+              size="compact-xs"
+              tone="ghost"
+              type="button"
+            >
+              모두 지우기
+            </AppButton>
+          </Group>
+          <Text c="var(--app-text-muted)" size="sm">
+            필터는 주소에 저장되어 새로고침하거나 링크를 공유해도 유지됩니다.
+          </Text>
+        </Stack>
+      )}
 
       <ActionRow justify="space-between">
         <Text c="var(--app-text-muted)" fw={700} size="sm">

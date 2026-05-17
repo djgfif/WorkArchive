@@ -743,7 +743,8 @@ export function WorkDetailPage() {
     }
 
     const shouldDelete = await confirmDialogAdapter.confirm({
-      description: '현재는 목록에서 숨겨집니다.',
+      description:
+        '작품 목록에서는 숨겨지고 휴지통에서 복원할 수 있습니다.',
       title: `"${work.title}"을 삭제할까요?`,
     });
 
@@ -860,13 +861,6 @@ export function WorkDetailPage() {
             <AppLinkButton to={`/works/${work.id}/edit`} tone="ghost">
               수정
             </AppLinkButton>
-            <AppButton
-              onClick={() => void handleDelete()}
-              tone="danger"
-              type="button"
-            >
-              삭제
-            </AppButton>
           </>
         }
         onCreateTimelineEntry={handleCreateTimelineEntry}
@@ -891,6 +885,30 @@ export function WorkDetailPage() {
         timelineEntries={timelineEntries}
         work={work}
       />
+
+      <PageSection
+        description="삭제하면 작품 목록에서는 숨겨지고, 휴지통에서 복원할 수 있습니다."
+        eyebrow="위험 작업"
+        title="기록 관리"
+      >
+        <SectionCard gap="md" padding="lg" tone="subtle">
+          <Group align="center" justify="space-between" wrap="wrap">
+            <Stack gap={4}>
+              <Text fw={700}>작품을 휴지통으로 이동</Text>
+              <Text c="var(--app-text-muted)" size="sm">
+                기록은 즉시 완전 삭제되지 않습니다. Works의 휴지통 보기에서 다시 복원할 수 있습니다.
+              </Text>
+            </Stack>
+            <AppButton
+              onClick={() => void handleDelete()}
+              tone="danger"
+              type="button"
+            >
+              휴지통으로 이동
+            </AppButton>
+          </Group>
+        </SectionCard>
+      </PageSection>
     </DetailPageTemplate>
   );
 }

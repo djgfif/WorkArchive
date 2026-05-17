@@ -31,8 +31,10 @@ import {
   AppBadge,
   AppButton,
   AppLinkButton,
+  ChipSummary,
   FeedbackMessage,
 } from '../../../shared/components/AppPrimitives';
+import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   importsService,
   type ImportCandidate,
@@ -98,6 +100,31 @@ function getFieldId(idPrefix: string, fieldName: string) {
   }
 
   return `${idPrefix}${fieldName.charAt(0).toUpperCase()}${fieldName.slice(1)}`;
+}
+
+function getCommaSeparatedPreviewValues(value: string) {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
+function getCandidateFieldSummary(values: WorkFormValues) {
+  const filled = [
+    values.title.trim() ? '제목' : null,
+    values.author.trim() ? '작가·제작자' : null,
+    values.thumbnailUrl.trim() ? '표지' : null,
+    values.genresText.trim() ? '장르' : null,
+    values.description.trim() ? '설명' : null,
+  ].filter(Boolean) as string[];
+  const missing = [
+    values.shortReview.trim() ? null : '한줄평',
+    values.rating ? null : '별점',
+    values.personalTagsText.trim() ? null : '개인 태그',
+  ].filter(Boolean) as string[];
+
+  return { filled, missing };
 }
 
 interface ProviderGroupLineProps {
@@ -351,6 +378,12 @@ function AdvancedWorkFields({
   tagSuggestions = [],
   values,
 }: AdvancedWorkFieldsProps) {
+  const genrePreviewValues = getCommaSeparatedPreviewValues(values.genresText);
+  const personalTagPreviewValues = getCommaSeparatedPreviewValues(
+    values.personalTagsText,
+  );
+  const previewTitle = values.title.trim() || '제목 없는 작품';
+
   return (
     <Accordion>
       <Accordion.Item value={itemValue}>
@@ -365,6 +398,32 @@ function AdvancedWorkFields({
               placeholder="https://example.com/cover.jpg"
               value={values.thumbnailUrl}
             />
+            <Paper
+              p="sm"
+              radius="md"
+              styles={{
+                root: {
+                  backgroundColor: 'var(--app-surface-1)',
+                  borderColor: 'var(--app-border-color)',
+                },
+              }}
+              withBorder
+            >
+              <Group align="center" gap="md" wrap="nowrap">
+                <ArtworkPoster
+                  thumbnailUrl={values.thumbnailUrl}
+                  title={previewTitle}
+                  typeLabel="표지"
+                  variant="row"
+                />
+                <Stack gap={4} miw={0}>
+                  <Text fw={700}>표지 미리보기</Text>
+                  <Text c="var(--app-text-muted)" size="sm">
+                    이미지가 없거나 불러오지 못하면 제목 기반 fallback으로 표시됩니다.
+                  </Text>
+                </Stack>
+              </Group>
+            </Paper>
 
             <TextInput
               id={getFieldId(idPrefix, 'genresText')}
@@ -373,6 +432,11 @@ function AdvancedWorkFields({
               onChange={onInputChange}
               placeholder="SF, 로맨스, 스릴러"
               value={values.genresText}
+            />
+            <ChipSummary
+              emptyLabel="입력한 장르가 없습니다."
+              label="장르 미리보기"
+              values={genrePreviewValues}
             />
 
             <TextInput
@@ -396,8 +460,13 @@ function AdvancedWorkFields({
               id={getFieldId(idPrefix, 'personalTagsTextHint')}
               mt={-8}
             >
-              장르와 분리된 내 분류입니다. 쉼표로 구분해 입력해주세요.
+              쉼표로 이어서 입력하면 아래처럼 태그 단위로 저장됩니다.
             </Text>
+            <ChipSummary
+              emptyLabel="입력한 개인 태그가 없습니다."
+              label="개인 태그 미리보기"
+              values={personalTagPreviewValues}
+            />
 
             <Textarea
               id={getFieldId(idPrefix, 'review')}
@@ -492,6 +561,7 @@ export function AddWorkFlow({
   const importedSourceCoverage = selectedImportCandidate
     ? getCandidateSourceCoverage(selectedImportCandidate)
     : null;
+  const importedFieldSummary = getCandidateFieldSummary(values);
   const tagSuggestions = Array.from(
     new Set(
       existingWorks
@@ -778,6 +848,18 @@ export function AddWorkFlow({
                       {importedSourceCoverage.summaryLabel}
                     </AppBadge>
                   </ActionRow>
+                  <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                    <ChipSummary
+                      emptyLabel="자동으로 채워진 필드가 없습니다."
+                      label="채워진 정보"
+                      values={importedFieldSummary.filled}
+                    />
+                    <ChipSummary
+                      emptyLabel="지금 바로 추가 입력할 항목이 없습니다."
+                      label="내가 채우면 좋은 정보"
+                      values={importedFieldSummary.missing}
+                    />
+                  </SimpleGrid>
                 </Stack>
               </Alert>
             )}
