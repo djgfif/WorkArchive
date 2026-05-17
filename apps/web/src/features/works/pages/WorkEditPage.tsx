@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import {
   AppLinkButton,
+  LoadingState,
   MetricPill,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
@@ -61,7 +62,9 @@ export function WorkEditPage() {
 
       await worksService.updateWork(id, input);
 
-      navigate(`/works/${id}`);
+      navigate(`/works/${id}?saved=edit`, {
+        state: { feedback: '작품 수정 내용을 저장했습니다.' },
+      });
     } catch (saveError) {
       setSubmitError(
         saveError instanceof Error ? saveError.message : '작품을 수정하지 못했습니다.',
@@ -82,13 +85,7 @@ export function WorkEditPage() {
   }
 
   if (isLoading) {
-    return (
-      <StateMessage
-        description="잠시만 기다려주세요."
-        title="작품 정보를 불러오는 중입니다."
-        tone="loading"
-      />
-    );
+    return <LoadingState rows={3} title="작품 정보를 불러오는 중입니다" />;
   }
 
   if (!work) {

@@ -1,3 +1,5 @@
+import { Group, Stack, Text } from '@mantine/core';
+
 import { AppLinkButton } from '../../../shared/components/AppPrimitives';
 import { FutureFeaturePage } from '../../../shared/components/FutureFeaturePage';
 
@@ -26,6 +28,22 @@ export function TierBoardsPage() {
             '보드는 내 작품 기록에서만 출발하며 공개 프로필이나 커뮤니티 연결은 현재 범위에 포함하지 않습니다.',
         },
       ]}
+      footer={
+        <Stack gap="sm">
+          <Text fw={700}>지금은 작품 기록을 먼저 정리할 수 있습니다</Text>
+          <Text c="var(--app-text-muted)">
+            티어 보드는 아직 저장 가능한 기능으로 노출하지 않습니다. 대신 작품별
+            별점, 상태, 개인 태그를 정리해두면 이후 보드 기능의 기준 데이터로
+            이어갈 수 있습니다.
+          </Text>
+          <Group gap="sm" wrap="wrap">
+            <AppLinkButton to="/works">작품 목록 보기</AppLinkButton>
+            <AppLinkButton to="/works/new" tone="primary">
+              작품 추가
+            </AppLinkButton>
+          </Group>
+        </Stack>
+      }
       title="티어 보드"
     />
   );

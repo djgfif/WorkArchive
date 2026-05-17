@@ -1,6 +1,7 @@
-import { Badge, Group, SimpleGrid, Text } from '@mantine/core';
+import { Group, SimpleGrid, Text } from '@mantine/core';
 
 import {
+  AppBadge,
   AppLinkButton,
   KeyValueGrid,
   MetricPill,
@@ -26,10 +27,11 @@ export function AccountOverviewPage() {
   const { averageRating, completedCount, totalCount } = useWorksOverview();
   const { conflictWorks, lastSuccessfulPullAt, queueItems } = useSyncDashboard();
   const isAuthenticated = mode === 'authenticated';
+  const syncAttentionCount = queueItems.length + conflictWorks.length;
 
   return (
     <AccountPageTemplate
-      actions={<AppLinkButton to="/profile">프로필 보기</AppLinkButton>}
+      actions={<AppLinkButton to="/profile">기록 요약 보기</AppLinkButton>}
       description={
         isAuthenticated
           ? '동기화, 계정 상태, 설정 진입을 한 곳에 모아 관리하는 계정 전용 영역입니다.'
@@ -69,9 +71,13 @@ export function AccountOverviewPage() {
 
         <SectionCard>
           <SectionIntro
-            description="대기열, 충돌, 최근 동기화 상태를 이 영역에서 계속 관리합니다."
+            description={
+              syncAttentionCount > 0
+                ? '대기 중이거나 확인이 필요한 동기화 항목이 있습니다.'
+                : '대기열, 충돌, 최근 동기화 상태를 이 영역에서 계속 관리합니다.'
+            }
             eyebrow="동기화"
-            title="계정 보조 기능"
+            title="동기화 상태"
           />
 
           <KeyValueGrid
@@ -82,7 +88,12 @@ export function AccountOverviewPage() {
             ]}
           />
 
-          <AppLinkButton to="/account/sync">동기화 열기</AppLinkButton>
+          <Group gap="xs" wrap="wrap">
+            <AppBadge tone={syncAttentionCount > 0 ? 'warning' : 'success'}>
+              {syncAttentionCount > 0 ? '확인 필요' : '대기 항목 없음'}
+            </AppBadge>
+            <AppLinkButton to="/account/sync">동기화 열기</AppLinkButton>
+          </Group>
         </SectionCard>
 
         <SectionCard>
@@ -93,9 +104,9 @@ export function AccountOverviewPage() {
           />
 
           <Group gap="xs" wrap="wrap">
-            <Badge>테마</Badge>
-            <Badge>백업</Badge>
-            <Badge>계정 정보</Badge>
+            <AppBadge tone="muted">테마</AppBadge>
+            <AppBadge tone="muted">백업</AppBadge>
+            <AppBadge tone="muted">계정 정보</AppBadge>
           </Group>
 
           <AppLinkButton to="/account/settings">설정 열기</AppLinkButton>
@@ -103,16 +114,16 @@ export function AccountOverviewPage() {
 
         <SectionCard>
           <SectionIntro
-            description="프로필 화면은 내 기록 요약을 보는 개인용 화면으로 유지합니다. 공개 SNS 기능은 현재 제품 범위에 포함하지 않습니다."
-            eyebrow="프로필"
-            title="개인 기록 프로필"
+            description="기록 요약 화면은 내 작품 수, 완료 수, 평균 별점, 동기화 상태를 빠르게 보는 개인용 화면입니다."
+            eyebrow="기록 요약"
+            title="개인 기록 요약"
           />
 
           <Text c="var(--app-text-muted)">
-            계정 설정과 개인 기록 프로필을 분리해 동기화, 백업, 설정 흐름을 명확하게 유지합니다.
+            계정 설정과 개인 기록 요약을 분리해 동기화, 백업, 설정 흐름을 명확하게 유지합니다.
           </Text>
 
-          <AppLinkButton to="/profile">프로필 보기</AppLinkButton>
+          <AppLinkButton to="/profile">기록 요약 보기</AppLinkButton>
         </SectionCard>
       </SimpleGrid>
     </AccountPageTemplate>

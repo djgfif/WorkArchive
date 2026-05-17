@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Checkbox, Stack, Text, Title } from '@mantine/core';
 import { Navigate } from 'react-router-dom';
 
@@ -20,6 +20,30 @@ import {
   type GuestTransferReviewData,
 } from '../services/guest-transfer.service';
 
+type GuestTransferErrorContext = 'import' | 'load' | 'skip';
+
+function getGuestTransferErrorMessage(
+  error: unknown,
+  context: GuestTransferErrorContext,
+) {
+  if (
+    error instanceof Error &&
+    error.message.includes('게스트 기록 상태가 바뀌었습니다')
+  ) {
+    return '게스트 기록 상태가 바뀌었습니다. 다시 확인한 뒤 최신 목록에서 가져올 항목을 선택해주세요.';
+  }
+
+  if (context === 'load') {
+    return '게스트 기록 검토 상태를 불러오지 못했습니다. 네트워크나 IndexedDB 상태를 확인한 뒤 다시 시도해주세요.';
+  }
+
+  if (context === 'skip') {
+    return '검토 완료 상태를 저장하지 못했습니다. 다시 시도하거나 Works에서 기록 상태를 먼저 확인해주세요.';
+  }
+
+  return '선택한 guest 기록을 가져오지 못했습니다. 목록을 다시 확인한 뒤 다시 시도해주세요.';
+}
+
 export function GuestTransferReviewPage() {
   const { mode, user } = useAuthSession();
   const [review, setReview] = useState<GuestTransferReviewData | null>(null);
@@ -29,54 +53,55 @@ export function GuestTransferReviewPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isCancelled = false;
+  const loadReview = useCallback(async (options?: { isCancelled?: () => boolean }) => {
+    if (!user) {
+      return;
+    }
 
-    async function loadReview() {
-      if (!user) {
+    setIsLoading(true);
+    setSubmitError(null);
+
+    try {
+      const pendingReview = await guestTransferService.getPendingReview(user.id);
+
+      if (options?.isCancelled?.()) {
         return;
       }
 
-      setIsLoading(true);
+      setReview(pendingReview);
+      setSelectedIds(
+        pendingReview
+          ? pendingReview.items
+              .filter((item) => !item.hasDuplicates)
+              .map((item) => item.guestWork.id)
+          : [],
+      );
+    } catch (error) {
+      if (options?.isCancelled?.()) {
+        return;
+      }
 
-      try {
-        const pendingReview = await guestTransferService.getPendingReview(user.id);
-
-        if (isCancelled) {
-          return;
-        }
-
-        setReview(pendingReview);
-        setSelectedIds(
-          pendingReview
-            ? pendingReview.items
-                .filter((item) => !item.hasDuplicates)
-                .map((item) => item.guestWork.id)
-            : [],
-        );
-      } catch (error) {
-        if (isCancelled) {
-          return;
-        }
-
-        setSubmitError(
-          error instanceof Error
-            ? error.message
-            : '게스트 기록 검토 상태를 불러오지 못했습니다.',
-        );
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
+      setReview(null);
+      setSelectedIds([]);
+      setSubmitError(getGuestTransferErrorMessage(error, 'load'));
+    } finally {
+      if (!options?.isCancelled?.()) {
+        setIsLoading(false);
       }
     }
+  }, [user]);
 
-    void loadReview();
+  useEffect(() => {
+    let isCancelled = false;
+
+    void loadReview({
+      isCancelled: () => isCancelled,
+    });
 
     return () => {
       isCancelled = true;
     };
-  }, [user]);
+  }, [loadReview]);
 
   const selectedCount = selectedIds.length;
   const canSubmit = review !== null && selectedCount > 0 && !isSubmitting;
@@ -113,11 +138,7 @@ export function GuestTransferReviewPage() {
       setReview(null);
       setSelectedIds([]);
     } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : '게스트 기록 상태를 저장하지 못했습니다.',
-      );
+      setSubmitError(getGuestTransferErrorMessage(error, 'skip'));
     } finally {
       setIsSubmitting(false);
     }
@@ -144,11 +165,7 @@ export function GuestTransferReviewPage() {
       setReview(null);
       setSelectedIds([]);
     } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : '선택한 guest 기록을 가져오지 못했습니다.',
-      );
+      setSubmitError(getGuestTransferErrorMessage(error, 'import'));
     } finally {
       setIsSubmitting(false);
     }
@@ -192,7 +209,28 @@ export function GuestTransferReviewPage() {
         />
       )}
 
-      {submitError && <FeedbackMessage tone="error">{submitError}</FeedbackMessage>}
+      {submitError && (
+        <FeedbackMessage title="게스트 기록을 처리하지 못했습니다" tone="error">
+          <Stack gap="sm">
+            <Text>{submitError}</Text>
+            {!isLoading && review === null && !resultMessage && (
+              <ActionRow>
+                <AppButton
+                  disabled={isSubmitting}
+                  onClick={() => void loadReview()}
+                  tone="primary"
+                  type="button"
+                >
+                  다시 확인
+                </AppButton>
+                <AppLinkButton to="/works" tone="quiet">
+                  Works에서 확인
+                </AppLinkButton>
+              </ActionRow>
+            )}
+          </Stack>
+        </FeedbackMessage>
+      )}
 
       {resultMessage && (
         <SectionCard tone="subtle">

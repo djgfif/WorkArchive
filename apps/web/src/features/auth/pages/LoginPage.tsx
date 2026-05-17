@@ -6,6 +6,7 @@ import { AuthPageTemplate } from '../../../shared/components/PageTemplates';
 import { AuthForm } from '../components/AuthForm';
 import { useAuthSession } from '../hooks/useAuthSession';
 import type { AuthCredentialsInput } from '../services/auth.api';
+import { getAuthSubmitErrorMessage } from '../utils/auth-error-message';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -26,11 +27,7 @@ export function LoginPage() {
       const nextLocation = await signIn(input);
       navigate(nextLocation);
     } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : '로그인하지 못했습니다. 입력한 정보를 확인해주세요.',
-      );
+      setSubmitError(getAuthSubmitErrorMessage(error, 'login'));
     } finally {
       setIsSubmitting(false);
     }
@@ -38,7 +35,7 @@ export function LoginPage() {
 
   return (
     <AuthPageTemplate
-      description="기록을 계속하려면 로그인하세요."
+      description="계정 아카이브로 전환하고 동기화 상태를 이어서 관리합니다."
       footer={
         <Text c="var(--app-text-muted)" ta="center">
           계정이 없으신가요?{' '}
@@ -50,6 +47,7 @@ export function LoginPage() {
       form={
         <AuthForm
           isSubmitting={isSubmitting}
+          mode="login"
           onSubmit={handleSubmit}
           showPasswordResetLink
           showRememberMe
@@ -57,6 +55,18 @@ export function LoginPage() {
           submitLabel="로그인"
         />
       }
+      highlights={[
+        {
+          description:
+            '로그인 전 기록은 사라지지 않습니다. 게스트 기록이 있으면 로그인 후 검토 흐름으로 이어집니다.',
+          title: '게스트 기록 보호',
+        },
+        {
+          description:
+            '동기화와 세션 관리는 계정 영역에서 확인하고, 실패 항목은 수동 Sync 화면에서 처리합니다.',
+          title: '계정 동기화 관리',
+        },
+      ]}
       title="로그인"
     />
   );

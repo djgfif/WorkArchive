@@ -58,6 +58,14 @@ function getProviderStatusLabel(status: ImportProviderStatus) {
   return status.configured ? '등록됨' : '키 필요';
 }
 
+function getProviderStatusTone(status: ImportProviderStatus) {
+  if (status.configured) {
+    return 'success';
+  }
+
+  return status.credentialMode === 'user' ? 'warning' : 'muted';
+}
+
 export function AppearanceSettingsSection() {
   return (
     <SectionCard>
@@ -293,7 +301,7 @@ function ProviderStatusCard({ status }: { status: ImportProviderStatus }) {
     <SectionCard padding="lg" tone="subtle">
       <Stack gap="xs">
         <ActionRow>
-          <AppBadge tone={status.configured ? 'success' : 'muted'}>
+          <AppBadge tone={getProviderStatusTone(status)}>
             {getProviderStatusLabel(status)}
           </AppBadge>
           <AppBadge>{getCredentialModeLabel(status.credentialMode)}</AppBadge>
@@ -321,6 +329,16 @@ export function ProviderReadinessSection({
   mode,
   providerStatuses,
 }: ProviderReadinessSectionProps) {
+  const publicProviderCount = providerStatuses.filter(
+    (status) => status.credentialMode === 'none',
+  ).length;
+  const configuredProviderCount = providerStatuses.filter(
+    (status) => status.configured,
+  ).length;
+  const keyRequiredProviderCount = providerStatuses.filter(
+    (status) => status.credentialMode === 'user' && !status.configured,
+  ).length;
+
   return (
     <SectionCard>
       <SectionIntro
@@ -330,16 +348,31 @@ export function ProviderReadinessSection({
       />
 
       {mode !== 'authenticated' ? (
-        <Text c="var(--app-text-muted)">
-          로그인하면 provider 준비 상태와 개인 API Key Vault를 함께 확인할 수
-          있습니다. 공개 provider는 로그인 없이도 계속 사용할 수 있습니다.
-        </Text>
+        <Stack gap="sm">
+          <Text c="var(--app-text-muted)">
+            로그인하면 provider 준비 상태와 개인 API Key Vault를 함께 확인할 수
+            있습니다. 공개 provider는 로그인 없이도 계속 사용할 수 있습니다.
+          </Text>
+          <ActionRow>
+            <AppBadge tone="success">공개 provider 사용 가능</AppBadge>
+            <AppBadge tone="muted">개인 Key Vault 로그인 필요</AppBadge>
+          </ActionRow>
+        </Stack>
       ) : isLoadingProviderStatuses ? (
-        <Text c="var(--app-text-muted)">
+        <Text aria-busy="true" c="var(--app-text-muted)">
           provider 상태를 불러오는 중입니다.
         </Text>
       ) : (
         <Stack gap="sm">
+          <ActionRow>
+            <AppBadge tone="success">
+              사용 가능 {configuredProviderCount}개
+            </AppBadge>
+            <AppBadge tone="accent">공개 {publicProviderCount}개</AppBadge>
+            <AppBadge tone={keyRequiredProviderCount > 0 ? 'warning' : 'muted'}>
+              키 필요 {keyRequiredProviderCount}개
+            </AppBadge>
+          </ActionRow>
           {providerStatuses.map((status) => (
             <ProviderStatusCard key={status.provider} status={status} />
           ))}
@@ -562,21 +595,38 @@ export function LoginSessionsSection({
   return (
     <SectionCard>
       <SectionIntro
-        description="Review active refresh sessions and revoke devices that should no longer stay signed in."
-        eyebrow="Security"
-        title="Login sessions"
+        description="현재 로그인 유지 중인 refresh session을 확인하고, 더 이상 사용하지 않는 기기를 해제합니다."
+        eyebrow="보안"
+        title="로그인 세션"
       />
 
       {mode !== 'authenticated' ? (
         <Text c="var(--app-text-muted)">
-          Sign in to review and revoke account sessions.
+          로그인하면 계정 세션을 확인하고 원격 기기의 로그인 상태를 해제할 수
+          있습니다.
         </Text>
       ) : isLoadingSessions ? (
-        <Text c="var(--app-text-muted)">Loading sessions.</Text>
+        <Text aria-busy="true" c="var(--app-text-muted)">
+          세션 목록을 불러오는 중입니다.
+        </Text>
       ) : !hasSessions ? (
-        <Text c="var(--app-text-muted)">No active sessions were found.</Text>
+        <Text c="var(--app-text-muted)">
+          현재 확인된 활성 세션이 없습니다.
+        </Text>
       ) : (
         <Stack gap="sm">
+          <ActionRow>
+            <AppBadge tone="success">활성 세션 {sessions.length}개</AppBadge>
+            <AppBadge tone="accent">
+              로그인 유지 {sessions.filter((session) => session.rememberMe).length}
+              개
+            </AppBadge>
+            <AppBadge tone="muted">
+              현재 기기{' '}
+              {sessions.filter((session) => session.current).length}개
+            </AppBadge>
+          </ActionRow>
+
           {sessions.map((session) => (
             <div
               key={session.id}
@@ -589,24 +639,24 @@ export function LoginSessionsSection({
               <Stack gap="xs">
                 <ActionRow>
                   <Text fw={700}>
-                    {session.current ? 'Current session' : 'Other session'}
+                    {session.current ? '현재 기기' : '다른 기기'}
                   </Text>
                   <AppBadge tone={session.current ? 'success' : 'muted'}>
-                    {session.current ? 'Current' : 'Active'}
+                    {session.current ? '현재 세션' : '활성'}
                   </AppBadge>
                   <AppBadge tone={session.rememberMe ? 'accent' : 'muted'}>
-                    {session.rememberMe ? 'Remembered' : 'Browser session'}
+                    {session.rememberMe ? '로그인 유지' : '브라우저 세션'}
                   </AppBadge>
                 </ActionRow>
 
                 <Text c="var(--app-text-muted)" size="sm">
-                  Last used: {formatSessionDate(session.lastUsedAt)} | Created:{' '}
-                  {formatSessionDate(session.createdAt)} | Expires:{' '}
+                  마지막 사용: {formatSessionDate(session.lastUsedAt)} | 생성:{' '}
+                  {formatSessionDate(session.createdAt)} | 만료:{' '}
                   {formatSessionDate(session.expiresAt)}
                 </Text>
                 <Text c="var(--app-text-muted)" size="sm">
-                  Device: {session.userAgent || 'Unknown'} | IP:{' '}
-                  {session.ipAddress || 'Unknown'}
+                  기기: {session.userAgent || '알 수 없음'} | IP:{' '}
+                  {session.ipAddress || '알 수 없음'}
                 </Text>
 
                 <ActionRow>
@@ -616,7 +666,7 @@ export function LoginSessionsSection({
                     tone={session.current ? 'danger' : 'secondary'}
                     type="button"
                   >
-                    {session.current ? 'Sign out this device' : 'Revoke session'}
+                    {session.current ? '이 기기 로그아웃' : '세션 해제'}
                   </AppButton>
                 </ActionRow>
               </Stack>
@@ -630,7 +680,7 @@ export function LoginSessionsSection({
               tone="quiet"
               type="button"
             >
-              Refresh sessions
+              세션 새로고침
             </AppButton>
             <AppButton
               loading={revokingSessionId === 'all'}
@@ -638,9 +688,13 @@ export function LoginSessionsSection({
               tone="danger"
               type="button"
             >
-              Sign out all devices
+              모든 기기 로그아웃
             </AppButton>
           </ActionRow>
+          <Text c="var(--app-text-muted)" size="sm">
+            현재 기기를 로그아웃하면 즉시 게스트 모드로 돌아갑니다. 다른 기기
+            세션 해제는 해당 기기의 다음 요청부터 적용됩니다.
+          </Text>
         </Stack>
       )}
 

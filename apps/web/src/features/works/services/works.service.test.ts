@@ -272,6 +272,7 @@ describe('WorksService', () => {
     const startedAt = performance.now();
     const result = await service.listWorks(
       {
+        rating: null,
         searchTerm: '',
         sortBy: 'updatedAt',
         status: 'completed',

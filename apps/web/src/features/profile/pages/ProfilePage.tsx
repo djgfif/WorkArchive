@@ -1,18 +1,29 @@
-import { Badge, Group, SimpleGrid, Text } from '@mantine/core';
+import { Group, SimpleGrid, Stack, Text } from '@mantine/core';
+import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
+  AppBadge,
+  AppButton,
   AppLinkButton,
   KeyValueGrid,
+  LoadingRows,
   MetricPill,
   SectionCard,
   SectionIntro,
+  StateMessage,
+  SurfaceLinkCard,
 } from '../../../shared/components/AppPrimitives';
 import { PageHero } from '../../../shared/components/PageHero';
 import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { useSyncDashboard } from '../../sync/hooks/useSyncDashboard';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
-import { formatWorkDateTime } from '../../works/utils/work-options';
+import {
+  formatWorkDateTime,
+  formatWorkUpdatedAt,
+  getWorkStatusLabel,
+  getWorkTypeLabel,
+} from '../../works/utils/work-options';
 
 function formatOptionalDate(value: string | null, fallback = '아직 없음') {
   return value ? formatWorkDateTime(value) : fallback;
@@ -22,27 +33,67 @@ function formatAverageRating(value: number | null) {
   return value === null ? '미평가' : `${value.toFixed(1)}점`;
 }
 
+function RecentRecordLink({ accent = false, work }: { accent?: boolean; work: WorkRecord }) {
+  return (
+    <SurfaceLinkCard padding="md" to={`/works/${work.id}`} tone={accent ? 'hero' : 'subtle'}>
+      <Group align="flex-start" justify="space-between" wrap="nowrap">
+        <Stack gap={2} miw={0}>
+          <Text fw={700} lineClamp={1}>
+            {work.title}
+          </Text>
+          <Text c="var(--app-text-muted)" lineClamp={1} size="sm">
+            {work.author || '작가·제작자 미입력'}
+          </Text>
+        </Stack>
+        <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
+      </Group>
+      <Group gap="xs" wrap="wrap">
+        <AppBadge tone="muted">{getWorkTypeLabel(work.type)}</AppBadge>
+        <AppBadge tone="muted">
+          {work.rating === null ? '미평가' : `${work.rating}점`}
+        </AppBadge>
+        <AppBadge tone="muted">최근 수정 {formatWorkUpdatedAt(work.updatedAt)}</AppBadge>
+      </Group>
+    </SurfaceLinkCard>
+  );
+}
+
 export function ProfilePage() {
   const { mode, user } = useAuthSession();
-  const { averageRating, completedCount, totalCount } = useWorksOverview();
+  const {
+    averageRating,
+    completedCount,
+    error,
+    isLoading,
+    recentWorks,
+    retry,
+    totalCount,
+  } = useWorksOverview();
   const { conflictWorks, lastSuccessfulPullAt, queueItems } = useSyncDashboard();
   const isAuthenticated = mode === 'authenticated';
+  const leadRecentWork = recentWorks[0] ?? null;
+  const hasRecentWorks = recentWorks.length > 0;
 
   return (
     <DetailPageTemplate>
       <PageHero
         actions={
           <>
+            {leadRecentWork && (
+              <AppLinkButton to={`/works/${leadRecentWork.id}`} tone="primary">
+                이어 기록하기
+              </AppLinkButton>
+            )}
             <AppLinkButton to="/account">계정 센터</AppLinkButton>
             <AppLinkButton to="/works">작품 보기</AppLinkButton>
           </>
         }
         description={
           isAuthenticated
-            ? '개인 취향 아카이브의 얼굴이 되는 프로필 화면입니다. 계정 관리와 동기화는 별도 계정 센터로 분리했습니다.'
-            : '지금은 게스트 모드이지만, 프로필은 앞으로 공개 취향 아카이브로 확장될 메인 목적지입니다.'
+            ? '내 작품 기록의 규모, 감상 흐름, 운영 상태를 개인용으로 요약합니다. 계정 관리와 동기화는 별도 계정 센터에서 처리합니다.'
+            : '지금은 게스트 모드입니다. 이 화면은 외부에 노출되지 않는 현재 기기의 개인 기록 요약입니다.'
         }
-        eyebrow="프로필"
+        eyebrow="개인 기록"
         meta={
           <>
             <MetricPill label="기록한 작품" value={totalCount} />
@@ -50,7 +101,7 @@ export function ProfilePage() {
             <MetricPill label="평균 별점" value={formatAverageRating(averageRating)} />
           </>
         }
-        title={isAuthenticated ? '내 프로필' : '내 아카이브 프로필'}
+        title={isAuthenticated ? '내 기록 요약' : '게스트 기록 요약'}
       />
 
       <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
@@ -58,23 +109,23 @@ export function ProfilePage() {
           <SectionIntro
             description={
               isAuthenticated
-                ? `${user?.email ?? '계정'} 기준으로 기록을 모으고 있습니다. 대표 작품, 공개 소개, 티어 보드가 앞으로 이 구조에 연결됩니다.`
-                : '로그인하지 않아도 기록은 시작할 수 있습니다. 계정을 만들면 이 흐름을 계정 프로필로 자연스럽게 이어갈 수 있습니다.'
+                ? `${user?.email ?? '계정'} 기준의 개인 아카이브입니다. 이 요약은 내 기기와 계정 기록을 확인하기 위한 화면입니다.`
+                : '로그인하지 않아도 기록은 시작할 수 있습니다. 계정을 만들면 이 흐름을 계정 아카이브와 동기화할 수 있습니다.'
             }
-            eyebrow="프로필 소개"
-            title={isAuthenticated ? '내 취향 아카이브' : '게스트 프로필 미리보기'}
+            eyebrow="기록 범위"
+            title={isAuthenticated ? '내 취향 아카이브' : '게스트 기록 미리보기'}
           />
 
           <Group gap="xs" wrap="wrap">
-            <Badge>대표 작품</Badge>
-            <Badge>공개 소개</Badge>
-            <Badge>취향 요약</Badge>
+            <AppBadge>개인 요약</AppBadge>
+            <AppBadge>기록 상태</AppBadge>
+            <AppBadge>취향 통계</AppBadge>
           </Group>
         </SectionCard>
 
         <SectionCard>
           <SectionIntro
-            description="프로필은 기록량과 감상 흐름을 보여주는 목적지입니다. 관리 동작은 계정 센터에서 이어집니다."
+            description="기록량과 감상 흐름을 빠르게 확인합니다. 관리 동작은 계정 센터에서 이어집니다."
             eyebrow="기록 요약"
             title="지금 보이는 아카이브 상태"
           />
@@ -90,7 +141,7 @@ export function ProfilePage() {
 
         <SectionCard>
           <SectionIntro
-            description="동기화, 설정, 공개 범위는 메인 프로필 흐름과 분리된 관리 영역에서 차분하게 다룹니다."
+            description="동기화, 설정, 세션, 로컬 백업은 개인 기록 요약과 분리된 관리 영역에서 다룹니다."
             eyebrow="계정 센터"
             title="관리 기능은 따로 분리했습니다"
           />
@@ -103,19 +154,58 @@ export function ProfilePage() {
 
         <SectionCard>
           <SectionIntro
-            description="앞으로는 대표 작품, 공개 티어 보드, 요약 소개가 이 자리에서 연결됩니다. 지금은 구조만 먼저 확보합니다."
-            eyebrow="공개 프로필"
-            title="취향 소개 공간"
+            description="공개 피드나 팔로우 없이, 내 기록을 다시 열고 이어 쓰기 위한 다음 행동만 제공합니다."
+            eyebrow="다음 행동"
+            title="개인 기록 이어가기"
           />
 
-          <Text c="var(--app-text-muted)">
-            개인 기록과 공개 표면을 분리해 이후 확장 시 충돌을 줄이는 방향으로 준비합니다.
-          </Text>
+          {error && (
+            <StateMessage
+              actions={
+                <>
+                  <AppButton onClick={retry} tone="primary" type="button">
+                    다시 불러오기
+                  </AppButton>
+                  <AppLinkButton to="/works" tone="secondary">
+                    작품 목록 열기
+                  </AppLinkButton>
+                  <AppLinkButton
+                    aria-label="개인 기록 오류 상태에서 작품 추가"
+                    to="/works/new"
+                    tone="quiet"
+                  >
+                    작품 추가
+                  </AppLinkButton>
+                </>
+              }
+              description={error}
+              title="개인 기록 요약을 불러오지 못했습니다."
+              tone="error"
+            />
+          )}
 
-          <Group gap="xs" wrap="wrap">
-            <Badge>대표 작품</Badge>
-            <Badge>공개 리스트</Badge>
-            <Badge>티어 보드</Badge>
+          {!error && isLoading && <LoadingRows rows={2} />}
+
+          {!error && !isLoading && !hasRecentWorks && (
+            <Stack gap="sm">
+              <AppBadge tone="accent">첫 기록 대기</AppBadge>
+              <Text c="var(--app-text-muted)">
+                첫 작품을 등록하면 이곳에서 최근 기록으로 바로 돌아갈 수 있습니다.
+              </Text>
+            </Stack>
+          )}
+
+          {!error && !isLoading && hasRecentWorks && (
+            <Stack gap="sm">
+              {recentWorks.slice(0, 3).map((work, index) => (
+                <RecentRecordLink accent={index === 0} key={work.id} work={work} />
+              ))}
+            </Stack>
+          )}
+
+          <Group gap="sm" wrap="wrap">
+            <AppLinkButton to="/works/new">작품 추가</AppLinkButton>
+            <AppLinkButton to="/insights">인사이트 보기</AppLinkButton>
           </Group>
         </SectionCard>
       </SimpleGrid>

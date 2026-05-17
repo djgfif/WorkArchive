@@ -17,6 +17,7 @@ import { releaseRecordsRepository } from '../../works/services/release-records.r
 import { worksRepository } from '../../works/services/works.repository';
 import { worksService } from '../../works/services/works.service';
 import { syncQueueRepository } from '../services/sync-queue.repository';
+import { syncService } from '../services/sync.service';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -222,6 +223,61 @@ describe('SyncPage', () => {
     ).toBeDisabled();
   });
 
+  it('summarizes a failed manual sync with clear recovery actions', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(authSessionResponse()));
+    vi.spyOn(syncService, 'runManualSync').mockResolvedValue({
+      completedAt: '2026-04-18T01:00:00.000Z',
+      state: 'failed',
+      push: {
+        attemptedCount: 2,
+        appliedCount: 1,
+        conflictCount: 1,
+        failedCount: 1,
+        messages: ['1건은 서버 검증에 실패했습니다.'],
+        processedAt: '2026-04-18T01:00:01.000Z',
+        requestFailed: false,
+      },
+      pull: {
+        appliedCount: 0,
+        messages: ['로컬 변경이 있어 1건을 보류했습니다.'],
+        nextSince: '2026-04-18T01:00:02.000Z',
+        pulledAt: '2026-04-18T01:00:02.000Z',
+        pulledCount: 1,
+        requestFailed: false,
+        skippedCount: 1,
+      },
+    });
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/sync'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: '수동 동기화' }));
+
+    expect(
+      await screen.findByRole('heading', {
+        name: '동기화 후 확인이 필요합니다',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('확인 필요')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '확인이 필요한 항목 3건이 있습니다. 아래 실패/충돌/보류 내용을 확인한 뒤 다시 동기화하세요.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('보내기 실패')).toBeInTheDocument();
+    expect(screen.getByText('보내기 충돌')).toBeInTheDocument();
+    expect(screen.getByText('가져오기 보류')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '다시 동기화' })).toBeEnabled();
+  });
+
   it('returns to guest mode when a protected sync request cannot refresh the session', async () => {
     workArchiveDbManager.switchToUser('user-1');
 
@@ -289,6 +345,8 @@ describe('SyncPage', () => {
   });
 
   it('groups queued changes into pending, failed, and conflict sections', async () => {
+    const user = userEvent.setup();
+
     workArchiveDbManager.switchToUser('user-1');
 
     const pendingWork = await worksService.createWork({
@@ -319,6 +377,20 @@ describe('SyncPage', () => {
       tier: null,
       favorite: false,
     });
+    const authFailedWork = await worksService.createWork({
+      type: 'novel',
+      title: 'Auth Failed Work',
+      author: 'Author Four',
+      genres: ['Science Fiction'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
     const conflictWork = await worksService.createWork({
       type: 'novel',
       title: 'Conflict Work',
@@ -337,16 +409,24 @@ describe('SyncPage', () => {
     const failedQueueItem = queueItems.find(
       (item) => item.entityId === failedWork.id,
     );
+    const authFailedQueueItem = queueItems.find(
+      (item) => item.entityId === authFailedWork.id,
+    );
     const conflictQueueItem = queueItems.find(
       (item) => item.entityId === conflictWork.id,
     );
 
     expect(failedQueueItem).toBeDefined();
+    expect(authFailedQueueItem).toBeDefined();
     expect(conflictQueueItem).toBeDefined();
 
     await syncQueueRepository.markFailed(
       failedQueueItem!.id,
       'Request timed out',
+    );
+    await syncQueueRepository.markFailed(
+      authFailedQueueItem!.id,
+      'Invalid or expired token.',
     );
     await syncQueueRepository.markConflict(
       conflictQueueItem!.id,
@@ -354,6 +434,7 @@ describe('SyncPage', () => {
       {
         ...conflictWork,
         title: 'Remote Conflict Work',
+        author: 'Remote Author Three',
         status: 'completed',
         syncStatus: 'synced',
         serverVersion: 3,
@@ -398,6 +479,23 @@ describe('SyncPage', () => {
       within(failedSection).getByText('실패 원인: 네트워크'),
     ).toBeInTheDocument();
     expect(
+      within(failedSection).getByText('다음 행동: 연결 상태 확인'),
+    ).toBeInTheDocument();
+    expect(
+      within(failedSection).getByText(
+        '네트워크가 안정된 뒤 다시 동기화를 시도하세요. 기록은 로컬 대기열에 남아 있습니다.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(failedSection).getByText('Auth Failed Work'),
+    ).toBeInTheDocument();
+    expect(
+      within(failedSection).getByText('실패 원인: 인증 만료'),
+    ).toBeInTheDocument();
+    expect(
+      within(failedSection).getByRole('link', { name: '다시 로그인' }),
+    ).toHaveAttribute('href', '/auth/login');
+    expect(
       within(conflictSection).getByText('Conflict Work'),
     ).toBeInTheDocument();
     expect(
@@ -413,6 +511,18 @@ describe('SyncPage', () => {
     expect(
       within(conflictSection).getByText('원격: Remote Conflict Work'),
     ).toBeInTheDocument();
+    const detailToggle = within(conflictSection).getByRole('button', {
+      name: /전체 비교 필드 보기/,
+    });
+    expect(detailToggle).toHaveAttribute('aria-expanded', 'false');
+    await user.click(detailToggle);
+    expect(detailToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      within(conflictSection).getByText('로컬: Author Three'),
+    ).toBeInTheDocument();
+    expect(
+      within(conflictSection).getByText('원격: Remote Author Three'),
+    ).toBeInTheDocument();
     expect(
       within(conflictSection).getByRole('button', { name: '로컬 유지' }),
     ).toBeInTheDocument();
@@ -424,9 +534,11 @@ describe('SyncPage', () => {
     ).toBeDisabled();
     expect(
       screen.getAllByRole('button', { name: '다시 동기화 시도' }).length,
-    ).toBe(3);
+    ).toBe(4);
     expect(
-      within(failedSection).getByRole('link', { name: '기록 보기' }),
+      within(
+        screen.getByTestId(`sync-item-${failedQueueItem!.id}`),
+      ).getByRole('link', { name: '기록 보기' }),
     ).toHaveAttribute('href', `/works/${failedWork.id}`);
   });
 

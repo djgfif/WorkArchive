@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import {
+  Accordion,
   Box,
   Group,
   NativeSelect,
@@ -104,13 +105,6 @@ function getProgressLabel(work: WorkRecord) {
 function createTimelineItems(work: WorkRecord) {
   return [
     {
-      id: 'system-created-at',
-      label: '기록 추가',
-      value: work.createdAt,
-      description: '아카이브에 처음 저장한 날입니다.',
-      source: 'system' as const,
-    },
-    {
       id: 'system-started-at',
       label: '감상 시작',
       value: work.startedAt ?? null,
@@ -187,6 +181,11 @@ export function WorkDetailPanel({
     (left, right) =>
       new Date(left.value!).getTime() - new Date(right.value!).getTime(),
   );
+  const latestTimelineItem =
+    timelineItems.length > 0
+      ? timelineItems[timelineItems.length - 1]
+      : null;
+  const shouldCollapseTimelineByDefault = timelineItems.length > 3;
   const sourceIdentityLabel = work.catalogTitleId
     ? '카탈로그 연결됨'
     : work.importDraft
@@ -372,127 +371,177 @@ export function WorkDetailPanel({
       >
         <SectionCard gap="md" padding="lg" tone="subtle">
           <Stack gap="md">
-            {onCreateTimelineEntry && (
-              <SectionCard padding="md" tone="default">
-                <Stack gap="md">
-                  <Group align="flex-end" grow>
-                    <NativeSelect
-                      aria-label={`${work.title} 타임라인 유형`}
-                      label="유형"
-                      onChange={(event) =>
-                        setTimelineType(
-                          event.currentTarget.value as TimelineEntryType,
-                        )
-                      }
-                      value={timelineType}
-                    >
-                      {timelineTypeOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                    <TextInput
-                      aria-label={`${work.title} 타임라인 날짜`}
-                      label="날짜"
-                      onChange={(event) =>
-                        setTimelineDate(event.currentTarget.value)
-                      }
-                      type="date"
-                      value={timelineDate}
-                    />
-                  </Group>
-                  <Textarea
-                    aria-label={`${work.title} 타임라인 메모`}
-                    autosize
-                    label="메모"
-                    minRows={2}
-                    onChange={(event) =>
-                      setTimelineNote(event.currentTarget.value)
-                    }
-                    placeholder="감상 중 남기고 싶은 변화를 기록하세요."
-                    value={timelineNote}
-                  />
-                  <ActionRow>
-                    <AppButton
-                      disabled={!timelineDate || isSavingTimelineEntry}
-                      loading={isSavingTimelineEntry}
-                      onClick={() => void handleCreateTimelineEntry()}
-                      tone="primary"
-                      type="button"
-                    >
-                      타임라인 기록 추가
-                    </AppButton>
-                  </ActionRow>
+            <SectionCard padding="md" tone="default">
+              <Group align="flex-start" justify="space-between" wrap="wrap">
+                <Stack gap={4}>
+                  <Text fw={700}>
+                    {latestTimelineItem
+                      ? `최근 흐름: ${latestTimelineItem.label}`
+                      : '아직 날짜 기록이 없습니다'}
+                  </Text>
+                  <Text c="var(--app-text-muted)" size="sm">
+                    {latestTimelineItem
+                      ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.description}`
+                      : '시작일이나 마지막 감상일을 남기면 이곳에 요약됩니다.'}
+                  </Text>
                 </Stack>
-              </SectionCard>
-            )}
-            {timelineItems.length > 0 ? (
-              timelineItems.map((item, index) => (
-                <Box
-                  key={`${item.source}-${item.id}`}
-                  style={{
-                    borderLeft: '1px solid var(--app-border-strong)',
-                    paddingBottom:
-                      index === timelineItems.length - 1 ? 0 : '0.85rem',
-                    paddingLeft: '1rem',
-                    position: 'relative',
-                  }}
-                >
-                  <Box
-                    aria-hidden="true"
-                    style={{
-                      background: 'var(--app-accent)',
-                      border: '2px solid var(--app-surface-1)',
-                      borderRadius: '999px',
-                      height: '0.6rem',
-                      left: '-0.35rem',
-                      position: 'absolute',
-                      top: '0.35rem',
-                      width: '0.6rem',
-                    }}
-                  />
-                  <Group align="flex-start" justify="space-between">
-                    <Stack gap={2}>
-                      <Group gap="xs">
-                        <Text fw={700}>{item.label}</Text>
-                        <AppBadge
-                          tone={item.source === 'manual' ? 'accent' : 'muted'}
+                <AppBadge tone="accent">{timelineItems.length}개 기록</AppBadge>
+              </Group>
+            </SectionCard>
+
+            <Accordion
+              defaultValue={
+                shouldCollapseTimelineByDefault ? null : 'timeline-details'
+              }
+              variant="separated"
+            >
+              <Accordion.Item value="timeline-details">
+                <Accordion.Control>
+                  전체 타임라인과 기록 추가
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <Stack gap="md">
+                    {onCreateTimelineEntry && (
+                      <SectionCard padding="md" tone="default">
+                        <Stack gap="md">
+                          <Group align="flex-end" grow>
+                            <NativeSelect
+                              aria-label={`${work.title} 타임라인 유형`}
+                              label="유형"
+                              onChange={(event) =>
+                                setTimelineType(
+                                  event.currentTarget
+                                    .value as TimelineEntryType,
+                                )
+                              }
+                              value={timelineType}
+                            >
+                              {timelineTypeOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </NativeSelect>
+                            <TextInput
+                              aria-label={`${work.title} 타임라인 날짜`}
+                              label="날짜"
+                              onChange={(event) =>
+                                setTimelineDate(event.currentTarget.value)
+                              }
+                              type="date"
+                              value={timelineDate}
+                            />
+                          </Group>
+                          <Textarea
+                            aria-label={`${work.title} 타임라인 메모`}
+                            autosize
+                            label="메모"
+                            minRows={2}
+                            onChange={(event) =>
+                              setTimelineNote(event.currentTarget.value)
+                            }
+                            placeholder="감상 중 남기고 싶은 변화를 기록하세요."
+                            value={timelineNote}
+                          />
+                          <ActionRow>
+                            <AppButton
+                              disabled={!timelineDate || isSavingTimelineEntry}
+                              loading={isSavingTimelineEntry}
+                              onClick={() => void handleCreateTimelineEntry()}
+                              tone="primary"
+                              type="button"
+                            >
+                              타임라인 기록 추가
+                            </AppButton>
+                          </ActionRow>
+                        </Stack>
+                      </SectionCard>
+                    )}
+                    {timelineItems.length > 0 ? (
+                      timelineItems.map((item, index) => (
+                        <Box
+                          key={`${item.source}-${item.id}`}
+                          style={{
+                            borderLeft:
+                              '1px solid var(--app-border-strong)',
+                            paddingBottom:
+                              index === timelineItems.length - 1
+                                ? 0
+                                : '0.85rem',
+                            paddingLeft: '1rem',
+                            position: 'relative',
+                          }}
                         >
-                          {item.source === 'manual' ? '직접 기록' : '날짜 기록'}
-                        </AppBadge>
-                      </Group>
+                          <Box
+                            aria-hidden="true"
+                            style={{
+                              background: 'var(--app-accent)',
+                              border: '2px solid var(--app-surface-1)',
+                              borderRadius: '999px',
+                              height: '0.6rem',
+                              left: '-0.35rem',
+                              position: 'absolute',
+                              top: '0.35rem',
+                              width: '0.6rem',
+                            }}
+                          />
+                          <Group align="flex-start" justify="space-between">
+                            <Stack gap={2}>
+                              <Group gap="xs">
+                                <Text fw={700}>{item.label}</Text>
+                                <AppBadge
+                                  tone={
+                                    item.source === 'manual'
+                                      ? 'accent'
+                                      : 'muted'
+                                  }
+                                >
+                                  {item.source === 'manual'
+                                    ? '직접 기록'
+                                    : '날짜 기록'}
+                                </AppBadge>
+                              </Group>
+                              <Text c="var(--app-text-muted)" size="sm">
+                                {item.description}
+                              </Text>
+                            </Stack>
+                            <ActionRow>
+                              <AppBadge tone="accent">
+                                {formatWorkDate(item.value)}
+                              </AppBadge>
+                              {item.source === 'manual' &&
+                                onDeleteTimelineEntry && (
+                                  <AppButton
+                                    disabled={
+                                      deletingTimelineEntryId === item.id
+                                    }
+                                    loading={
+                                      deletingTimelineEntryId === item.id
+                                    }
+                                    onClick={() =>
+                                      void handleDeleteTimelineEntry(item.id)
+                                    }
+                                    tone="danger"
+                                    type="button"
+                                  >
+                                    삭제
+                                  </AppButton>
+                                )}
+                            </ActionRow>
+                          </Group>
+                        </Box>
+                      ))
+                    ) : (
                       <Text c="var(--app-text-muted)" size="sm">
-                        {item.description}
+                        아직 날짜 기록이 없습니다. 시작일이나 마지막 감상일을 남기면
+                        이곳에 표시됩니다.
                       </Text>
-                    </Stack>
-                    <ActionRow>
-                      <AppBadge tone="accent">
-                        {formatWorkDate(item.value)}
-                      </AppBadge>
-                      {item.source === 'manual' && onDeleteTimelineEntry && (
-                        <AppButton
-                          disabled={deletingTimelineEntryId === item.id}
-                          loading={deletingTimelineEntryId === item.id}
-                          onClick={() =>
-                            void handleDeleteTimelineEntry(item.id)
-                          }
-                          tone="danger"
-                          type="button"
-                        >
-                          삭제
-                        </AppButton>
-                      )}
-                    </ActionRow>
-                  </Group>
-                </Box>
-              ))
-            ) : (
-              <Text c="var(--app-text-muted)" size="sm">
-                아직 날짜 기록이 없습니다. 시작일이나 마지막 감상일을 남기면
-                이곳에 표시됩니다.
-              </Text>
-            )}
+                    )}
+                  </Stack>
+                </Accordion.Panel>
+              </Accordion.Item>
+            </Accordion>
+
             <KeyValueGrid
               columns={2}
               items={[

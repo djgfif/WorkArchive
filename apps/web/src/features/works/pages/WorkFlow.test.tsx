@@ -142,10 +142,16 @@ describe('Works routed flow', () => {
 
     await user.clear(titleInput);
     await user.type(titleInput, 'Dune Messiah');
+    expect(
+      screen.getByRole('button', { name: '저장 하단 고정 저장' }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '저장' }));
 
     expect(await screen.findByRole('heading', { name: 'Dune Messiah' })).toBeInTheDocument();
-  }, 10_000);
+    expect(
+      await screen.findByText('작품 수정 내용을 저장했습니다.'),
+    ).toBeInTheDocument();
+  }, 20_000);
 
   it('keeps manual create local and shows field feedback before save', async () => {
     const user = userEvent.setup();

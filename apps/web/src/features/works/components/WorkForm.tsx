@@ -6,11 +6,13 @@ import {
   type FormEvent,
 } from 'react';
 import {
+  Affix,
   Checkbox,
   Grid,
   NativeSelect,
   SimpleGrid,
   Stack,
+  TagsInput,
   Text,
   TextInput,
   Textarea,
@@ -23,7 +25,6 @@ import {
   AppBadge,
   AppButton,
   AppLinkButton,
-  ChipSummary,
   FeedbackMessage,
   MetricPill,
   PageSection,
@@ -31,6 +32,8 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import {
   createDefaultWorkFormValues,
+  formatTextListForWorkForm,
+  parseCommaSeparatedTextList,
   parseWorkFormValues,
   type UpsertWorkInput,
   type WorkFormValues,
@@ -44,6 +47,8 @@ import {
   workTypeOptions,
 } from '../utils/work-options';
 
+const REVIEW_FOCUS_DESCRIPTION_ID = 'work-form-review-focus-description';
+
 interface WorkFormProps {
   cancelTo: string;
   focusArea?: 'general' | 'review';
@@ -53,14 +58,6 @@ interface WorkFormProps {
   submitError: string | null;
   submitLabel: string;
   tagSuggestions?: string[];
-}
-
-function getCommaSeparatedPreviewValues(value: string) {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 8);
 }
 
 export function WorkForm({
@@ -97,22 +94,19 @@ export function WorkForm({
   }, [focusArea]);
 
   const previewTitle = values.title.trim() || '제목 없는 작품';
-  const previewGenres = values.genresText
-    .split(',')
-    .map((genre) => genre.trim())
-    .filter(Boolean)
-    .slice(0, 4);
-  const previewPersonalTags = values.personalTagsText
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter(Boolean)
-    .slice(0, 4);
-  const shortReviewLength = values.shortReview.trim().length;
-  const reviewLength = values.review.trim().length;
-  const genrePreviewValues = getCommaSeparatedPreviewValues(values.genresText);
-  const personalTagPreviewValues = getCommaSeparatedPreviewValues(
+  const genreValues = parseCommaSeparatedTextList(values.genresText);
+  const personalTagValues = parseCommaSeparatedTextList(
     values.personalTagsText,
   );
+  const previewGenres = genreValues.slice(0, 4);
+  const previewPersonalTags = personalTagValues.slice(0, 4);
+  const shortReviewLength = values.shortReview.trim().length;
+  const reviewLength = values.review.trim().length;
+  const submitButtonLabel = isSubmitting ? '저장 중...' : submitLabel;
+  const mobileActionSummary = values.title.trim()
+    ? `${values.title.trim()} 저장 준비`
+    : '제목을 입력하면 저장할 수 있습니다.';
+  const uniqueTagSuggestions = Array.from(new Set(tagSuggestions));
 
   useEffect(() => {
     if (focusArea !== 'review' || hasFocusedReviewRef.current) {
@@ -151,6 +145,16 @@ export function WorkForm({
         type === 'checkbox'
           ? (event.target as HTMLInputElement).checked
           : event.target.value,
+    }));
+  }
+
+  function handleTextListChange(
+    name: 'genresText' | 'personalTagsText',
+    items: string[],
+  ) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      [name]: formatTextListForWorkForm(items),
     }));
   }
 
@@ -251,58 +255,35 @@ export function WorkForm({
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <TextInput
-                    aria-describedby="genresTextHint"
+                  <TagsInput
+                    clearable
+                    description="쉼표나 Enter로 여러 장르를 나눠 입력할 수 있습니다."
                     id="genresText"
                     label="장르"
                     name="genresText"
-                    onChange={handleInputChange}
+                    onChange={(items) =>
+                      handleTextListChange('genresText', items)
+                    }
                     placeholder="SF, 로맨스, 스릴러"
-                    value={values.genresText}
-                  />
-                  <Text
-                    c="var(--app-text-muted)"
-                    fz="sm"
-                    id="genresTextHint"
-                    mt={6}
-                  >
-                    쉼표로 이어서 입력하면 아래처럼 장르 단위로 저장됩니다.
-                  </Text>
-                  <ChipSummary
-                    emptyLabel="입력한 장르가 없습니다."
-                    label="장르 미리보기"
-                    values={genrePreviewValues}
+                    splitChars={[',']}
+                    value={genreValues}
                   />
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <TextInput
-                    aria-describedby="personalTagsTextHint"
+                  <TagsInput
+                    clearable
+                    data={uniqueTagSuggestions}
+                    description="개인 태그는 장르와 분리된 내 감상 분류입니다."
                     id="personalTagsText"
                     label="개인 태그"
-                    list="personalTagsSuggestions"
                     name="personalTagsText"
-                    onChange={handleInputChange}
+                    onChange={(items) =>
+                      handleTextListChange('personalTagsText', items)
+                    }
                     placeholder="시간여행, 다시 볼 것, 여운 강함"
-                    value={values.personalTagsText}
-                  />
-                  <datalist id="personalTagsSuggestions">
-                    {tagSuggestions.map((tag) => (
-                      <option key={tag} value={tag} />
-                    ))}
-                  </datalist>
-                  <Text
-                    c="var(--app-text-muted)"
-                    fz="sm"
-                    id="personalTagsTextHint"
-                    mt={6}
-                  >
-                    장르와 분리된 내 분류입니다. 쉼표로 이어서 입력하면 태그 단위로 저장됩니다.
-                  </Text>
-                  <ChipSummary
-                    emptyLabel="입력한 개인 태그가 없습니다."
-                    label="개인 태그 미리보기"
-                    values={personalTagPreviewValues}
+                    splitChars={[',']}
+                    value={personalTagValues}
                   />
                 </div>
 
@@ -447,7 +428,26 @@ export function WorkForm({
                   />
                 </ActionRow>
 
+                {focusArea === 'review' && (
+                  <FeedbackMessage title="리뷰 집중 모드" tone="info">
+                    <span id={REVIEW_FOCUS_DESCRIPTION_ID}>
+                      한줄평과 상세 감상 입력으로 바로 이동했습니다. 저장하면
+                      상세 화면의 개인 감상 기록으로 돌아갑니다.
+                    </span>
+                  </FeedbackMessage>
+                )}
+
                 <Textarea
+                  aria-describedby={
+                    focusArea === 'review'
+                      ? REVIEW_FOCUS_DESCRIPTION_ID
+                      : undefined
+                  }
+                  description={
+                    focusArea === 'review'
+                      ? '상세 화면에서 이어 온 리뷰 집중 수정 입력입니다.'
+                      : undefined
+                  }
                   id="shortReview"
                   label="한 줄 감상"
                   name="shortReview"
@@ -459,6 +459,16 @@ export function WorkForm({
                 />
 
                 <Textarea
+                  aria-describedby={
+                    focusArea === 'review'
+                      ? REVIEW_FOCUS_DESCRIPTION_ID
+                      : undefined
+                  }
+                  description={
+                    focusArea === 'review'
+                      ? '한줄평보다 길게 남기는 개인 감상 입력입니다.'
+                      : undefined
+                  }
                   id="review"
                   label="상세 감상"
                   name="review"
@@ -478,8 +488,13 @@ export function WorkForm({
             )}
 
             <ActionRow>
-              <AppButton disabled={isSubmitting} tone="primary" type="submit">
-                {isSubmitting ? '저장 중...' : submitLabel}
+              <AppButton
+                disabled={isSubmitting}
+                loading={isSubmitting}
+                tone="primary"
+                type="submit"
+              >
+                {submitButtonLabel}
               </AppButton>
               <AppLinkButton to={cancelTo} tone="quiet">
                 취소
@@ -549,6 +564,29 @@ export function WorkForm({
           </SectionCard>
         </Grid.Col>
       </Grid>
+
+      <Affix bottom={12} hiddenFrom="sm" left={12} right={12} zIndex={200}>
+        <SectionCard gap="xs" padding="sm" tone="default">
+          <Text c="var(--app-text-muted)" fz="xs" fw={700} lineClamp={1}>
+            {mobileActionSummary}
+          </Text>
+          <ActionRow>
+            <AppButton
+              aria-label={`${submitLabel} 하단 고정 저장`}
+              disabled={isSubmitting}
+              fullWidth
+              loading={isSubmitting}
+              tone="primary"
+              type="submit"
+            >
+              {submitButtonLabel}
+            </AppButton>
+            <AppLinkButton to={cancelTo} tone="quiet">
+              취소
+            </AppLinkButton>
+          </ActionRow>
+        </SectionCard>
+      </Affix>
     </form>
   );
 }

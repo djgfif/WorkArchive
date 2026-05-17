@@ -8,6 +8,7 @@ import {
   ActionRow,
   AppButton,
   FeedbackMessage,
+  LoadingState,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
 import { WorkspacePageTemplate } from '../../../shared/components/PageTemplates';
@@ -43,12 +44,17 @@ function getViewModeFromSearchParams(
 function getQueryFromSearchParams(
   searchParams: URLSearchParams,
 ): WorksListQuery {
+  const ratingFromUrl = Number.parseFloat(searchParams.get('rating') ?? '');
   const statusFromUrl = searchParams.get('status');
   const typeFromUrl = searchParams.get('type');
   const sortByFromUrl = searchParams.get('sort');
 
   return {
     ...DEFAULT_WORKS_LIST_QUERY,
+    rating:
+      Number.isFinite(ratingFromUrl) && ratingFromUrl >= 0 && ratingFromUrl <= 5
+        ? ratingFromUrl
+        : DEFAULT_WORKS_LIST_QUERY.rating,
     searchTerm: searchParams.get('q') ?? '',
     tag: searchParams.get('tag') ?? '',
     sortBy:
@@ -81,6 +87,10 @@ function buildSearchParams(
 
   if (query.status !== 'all') {
     nextSearchParams.set('status', query.status);
+  }
+
+  if (query.rating !== null) {
+    nextSearchParams.set('rating', query.rating.toString());
   }
 
   if (query.tag?.trim()) {
@@ -125,6 +135,7 @@ export function WorksListPage() {
   const {
     error,
     isLoading,
+    retry,
     statusCounts,
     tagSuggestions,
     totalActiveCount,
@@ -134,6 +145,7 @@ export function WorksListPage() {
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
     (query.tag?.trim() ?? '') !== '' ||
+    query.rating !== null ||
     query.type !== 'all' ||
     query.status !== 'all' ||
     query.sortBy !== 'updatedAt';
@@ -350,6 +362,21 @@ export function WorksListPage() {
 
       {error && (
         <StateMessage
+          actions={
+            <ActionRow>
+              <AppButton onClick={retry} tone="primary" type="button">
+                다시 불러오기
+              </AppButton>
+              <AppButton
+                aria-label="목록 오류 상태에서 작품 추가"
+                onClick={() => setAddDialogOpened(true)}
+                tone="secondary"
+                type="button"
+              >
+                작품 추가
+              </AppButton>
+            </ActionRow>
+          }
           description={error}
           title="작품 목록을 불러오지 못했습니다."
           tone="error"
@@ -357,10 +384,9 @@ export function WorksListPage() {
       )}
 
       {!error && isLoading && (
-        <StateMessage
-          description="잠시만 기다려주세요."
-          title="작품 목록을 불러오는 중입니다."
-          tone="loading"
+        <LoadingState
+          rows={collectionScope === 'trash' ? 2 : 4}
+          title="작품 목록을 불러오는 중입니다"
         />
       )}
 

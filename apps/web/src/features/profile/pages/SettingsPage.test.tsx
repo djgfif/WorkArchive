@@ -149,7 +149,7 @@ describe('SettingsPage', () => {
     expect(await screen.findByText('Manual')).toBeInTheDocument();
     expect(screen.getAllByText('Aladin Book').length).toBeGreaterThan(0);
     expect(screen.getAllByText('TMDB').length).toBeGreaterThan(0);
-    expect(screen.getByText(/사용 가능/)).toBeInTheDocument();
+    expect(screen.getAllByText(/사용 가능/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/키 필요/).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/공개 provider/)).toBeInTheDocument();
     expect(screen.getAllByText(/개인 Key Vault/).length).toBeGreaterThan(0);
@@ -160,8 +160,10 @@ describe('SettingsPage', () => {
         expect.stringContaining('/auth/sessions'),
       ]),
     );
-    expect(await screen.findByText('Login sessions')).toBeInTheDocument();
-    expect(screen.getByText('Current session')).toBeInTheDocument();
+    expect(screen.getByText('사용 가능 1개')).toBeInTheDocument();
+    expect(screen.getByText('키 필요 2개')).toBeInTheDocument();
+    expect(await screen.findByText('로그인 세션')).toBeInTheDocument();
+    expect(screen.getByText('현재 기기')).toBeInTheDocument();
   });
 
   it.each([
@@ -391,10 +393,10 @@ describe('SettingsPage', () => {
 
     renderAuthenticatedSettings(signOut);
 
-    expect(await screen.findByText('Current session')).toBeInTheDocument();
+    expect(await screen.findByText('현재 기기')).toBeInTheDocument();
     await user.click(
       screen.getByRole('button', {
-        name: 'Sign out this device',
+        name: '이 기기 로그아웃',
       }),
     );
 
@@ -436,10 +438,10 @@ describe('SettingsPage', () => {
 
     renderAuthenticatedSettings(signOut);
 
-    expect(await screen.findByText('Current session')).toBeInTheDocument();
+    expect(await screen.findByText('현재 기기')).toBeInTheDocument();
     await user.click(
       screen.getByRole('button', {
-        name: 'Sign out all devices',
+        name: '모든 기기 로그아웃',
       }),
     );
 
@@ -463,7 +465,8 @@ describe('SettingsPage', () => {
 
     renderGuestSettings();
 
-    expect(await screen.findByText(/로그인하면/)).toBeInTheDocument();
+    expect(await screen.findByText(/provider 준비 상태/)).toBeInTheDocument();
+    expect(screen.getByText(/원격 기기의 로그인 상태/)).toBeInTheDocument();
     expect(screen.getByText('로컬 백업과 복구')).toBeInTheDocument();
     expect(screen.getByText(/syncQueue.*복원하지 않습니다/)).toBeInTheDocument();
     expect(screen.getByText(/access token.*refresh cookie.*provider API key/)).toBeInTheDocument();

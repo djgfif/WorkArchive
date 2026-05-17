@@ -2,101 +2,45 @@
 
 Last reviewed: 2026-05-17
 
-## Scope And Design Source
+## Audit Method
 
-This audit covers the current React/Mantine web app in `apps/web`: Home, Works, Work Detail, Add/Edit, Insights, Account, Sync, Settings, Auth, Tier Boards, and Community.
+This audit checks the current worktree against the commercial UI objective for the Work Archive web frontend. Evidence is taken from current source files, product documents, and the latest validation commands.
 
-Stitch was available and reviewed through the connected `WorkArchive IA v1` and prior Work Archive design system projects. The implementation follows the existing Stitch direction: personal archive first, quiet commercial app shell, dense but readable library views, local-first save clarity, and no public/community plane in this phase.
+Status values:
 
-## Product Friction Summary
+- `Proven`: current source and validation evidence satisfy the requirement.
+- `Scoped`: intentionally out of this product phase and clearly framed in the UI.
+- `Follow-up`: not required for this completion pass, but worth tracking after real usage or larger data volume.
 
-- First-run comprehension is close, but the previous global navigation over-emphasized Home/Works/Profile while hiding Insights, Sync, and Settings behind route knowledge.
-- The library already preserves filters in the URL, but applied filters were not summarized as removable chips, so users had to inspect every control to understand why a result set was narrow.
-- Delete actions were technically soft-delete, but the UI did not clearly say that records can be restored from trash after deletion.
-- Add Work had the right direct/search split, but imported candidate feedback did not clearly show which fields were filled and which personal fields still needed user input.
-- Edit had a usable full form, but genre/tag comma inputs did not provide a chip-like confirmation of what would be saved.
-- Detail already prioritizes personal review/progress above metadata, but destructive actions were still grouped with primary review/edit CTAs.
-- Insights had real aggregation, but much of it read as flat card lists rather than an exploratory taste dashboard.
-- Account/Profile wording still implied future public profile concepts in places. For this product phase, account should mean sync/settings/data management, not social identity.
-- Tier Boards and Community are correctly not implemented as public features. Community needs to remain explicit that it is intentionally out of scope, not an unfinished core tab.
+## Requirement Matrix
 
-## Route And Navigation Audit
+| Requirement | Status | Current evidence |
+| --- | --- | --- |
+| Phase 0 UX audit document exists and covers all core screens | Proven | `docs/frontend/COMMERCIAL_WEB_UI_AUDIT.md` covers Home, Works, Create/Edit, Detail, Insights, Account, Sync, Settings, Auth, Tier Boards, Community, and placeholder patterns. |
+| Phase 1 product design standard exists | Proven | `docs/frontend/PRODUCT_UI_DESIGN_STANDARD.md` defines product character, screen archetypes, color, surface, button, badge, typography, state, mobile, accessibility, and shared primitive rules. |
+| Mantine theme is the design-system source of truth | Proven | `apps/web/src/app/mantine-theme.ts` defines color tokens, spacing, radius, typography, component defaults, focus, and reduced-motion behavior. `global.css` remains limited to shell/reset/focus/reduced-motion rules. |
+| App shell separates product, account, auth, and minimal contexts | Proven | `MainProductLayout.tsx`, `AccountLayout.tsx`, `AuthLayout.tsx`, `MinimalLayout.tsx`; `App.test.tsx` and `AccountLayout.test.tsx` cover nav and mobile account action grouping. |
+| Home behaves as a daily personal archive hub | Proven | `HomePage.tsx` exposes search, add, recent records, continue actions, metrics, guest/account local-first copy, structured loading, and recovery actions. `App.test.tsx` covers Home shell and recent-record recovery. |
+| Works behaves as a media library workspace | Proven | `WorksToolbar.tsx`, `WorksList.tsx`, `WorksListPage.tsx`; `WorksListPage.test.tsx` covers recovery, modal add, URL filters, active filter chips, view persistence, trash restore, quick edits, and progressive rendering for 75 records. |
+| Works avoids excessive initial DOM for larger personal libraries | Proven | `WorksList.tsx` limits initial grid/list rendering and exposes `더 보기`; `WorksListPage.test.tsx` proves 75-item progressive rendering. |
+| Create/Edit preserve local-first title-only save and improve candidate-assisted entry | Proven | `AddWorkFlow.tsx`, `AddWorkSearchPanel.tsx`, `WorkForm.tsx`; `AddWorkFlow.test.tsx`, `WorkCreatePage.test.tsx`, and `WorkFlow.test.tsx` cover title validation, direct manual save, provider readiness, candidate application, duplicate warning, chip inputs, and local-first sync queue behavior. |
+| Detail presents a personal record dossier before metadata | Proven | `WorkDetailPage.tsx`, `WorkDetailPanel.tsx`; `WorkDetailPage.test.tsx` covers review-before-metadata, review edit path, quick record save, timeline, release records, related works, dense timeline summary, and danger-zone separation. |
+| Insights is a personal taste dashboard with next actions | Proven | `InsightsPage.tsx`, `personal-insights.service.ts`; `InsightsPage.test.tsx` covers distribution drill-down links, stale-work continue actions, and aggregation error recovery. |
+| Account, Sync, and Settings work as a management plane | Proven | `AccountLayout.tsx`, `AccountOverviewPage.tsx`, `ProfilePage.tsx`, `SyncPage.tsx`, `SettingsSections.tsx`; tests cover account mobile grouping, private record summary, provider readiness, session actions, sync success/failure/conflict flows, merge/apply actions, and sync recovery. |
+| Auth screens are focused, trustworthy, and local-first aware | Proven | `AuthLayout.tsx`, auth pages, `AuthForm.tsx`, `auth-error-message.ts`; `AuthFlow.test.tsx` covers register/login/logout, guest transfer review, refresh behavior, token storage, contextual login error, and password reset flows. |
+| Placeholder features are not presented as completed features | Proven | `TierBoardsPage.tsx`, `CommunityPage.tsx`, `FutureFeaturePage.tsx`; `PlaceholderPages.test.tsx` verifies prepared/out-of-scope copy and alternative CTA behavior. |
+| Community/SNS/public feed is excluded | Scoped | Community is route-level only, excluded from main navigation, and explicitly says public profile/review/follow/comment/feed are outside the current product scope. |
+| Tier Boards remains lower-priority and clearly unfinished | Scoped | Main nav labels it `보드` with `준비 중`; page copy frames it as a future personal organization feature with alternatives back to Works/Insights. |
+| Loading, empty, error, success, saving, deleting, restoring, sync-pending, sync-failed, and sync-conflict states are handled | Proven | `LoadingState`, `LoadingRows`, `StateMessage`, `FeedbackMessage`, Works empty branches, delete/restore feedback, sync queue diagnostics, conflict merge/apply controls, and targeted tests across Home, Works, Insights, Sync, Profile, Auth, and placeholders. |
+| Mobile core flows are verified at narrow widths | Proven | Completion report records production visual smoke at 390px for Works/Account/Tier Boards and 320px CDP checks for Work Create, Work Detail, Work Edit, and Sync with no horizontal overflow. Main shell tests cover mobile action grouping. |
+| Accessibility baseline is addressed | Proven | Theme focus-visible support, Mantine dialog/menu primitives, icon/control accessible labels, active nav semantics through `aria-current`, `FeedbackMessage` roles, `StateMessage` actions, and tests querying accessible names for nav, filter chips, error recovery, sync actions, and auth feedback. |
+| Required validation commands pass | Proven | Latest run: `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`, and `git diff --check` all passed. Full test count: API 109 tests, Web 171 tests. |
+| Completion report exists | Proven | `docs/frontend/COMMERCIAL_UI_COMPLETION_REPORT.md` summarizes changes, screen improvements, remaining scoped limits, validation commands, visual smoke, and follow-up. |
 
-Current route surface:
+## Residual Risks And Follow-up
 
-- Core: `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`
-- Discovery/analysis: `/insights`, `/tier-boards`
-- Account plane: `/account`, `/account/sync`, `/account/settings`, auth routes
-- Out of scope: `/community`
-
-Recommended exposure policy:
-
-- Main product navigation: Home, Works, Insights, Tier Boards.
-- Account utility navigation: Account, Sync, Settings.
-- Global persistent CTA: Add Work.
-- Community: do not expose in global navigation. Keep route-level explanation only.
-
-## Screen Findings
-
-### Home
-
-- Strength: search, quick add, recent records, and summary metrics exist.
-- Risk: home copy should stay centered on “personal records saved locally first,” especially for guest users.
-- Improvement: keep recent/continue/action blocks above any secondary product explanation.
-
-### Works
-
-- Strength: URL-backed search, status, type, tag, sort, scope, and view mode already exist.
-- Risk: filter state was visually implicit.
-- Improvement: applied chips with individual remove actions, clearer restore-after-delete feedback, and better mobile wrapping.
-
-### Add / Edit
-
-- Strength: title-only save path is preserved; search is optional fill assistance; provider readiness and duplicate detection exist.
-- Risk: users could apply a candidate without knowing which personal record fields remain blank.
-- Improvement: show filled/missing field summary, cover fallback preview, and chip previews for comma-separated genre/tag fields.
-
-### Work Detail
-
-- Strength: personal review, quick record, progress, timeline, release records, related metadata all exist.
-- Risk: delete sat next to primary review/edit actions.
-- Improvement: separate destructive actions into a danger management section and explain trash restore behavior.
-
-### Insights
-
-- Strength: actual local-first aggregate service exists.
-- Risk: lists were useful but not as scannable as a commercial dashboard.
-- Improvement: use progress/list combinations and stronger “personal-only dashboard” framing.
-
-### Account / Sync / Settings
-
-- Strength: account center, sync dashboard, provider readiness, local archive import/export, and sessions are present.
-- Risk: account/profile language could be mistaken for public profile/community direction.
-- Improvement: describe account as data management, sync, backup, provider, and settings plane.
-
-### Auth
-
-- Strength: auth routes use focused templates and do not replace local-first saving.
-- Risk: guest/account archive transfer remains a high-trust flow and needs continued copy precision.
-
-### Tier Boards / Community
-
-- Tier Boards can remain a next-step personal organization placeholder.
-- Community must remain out of global nav and explain that public SNS features are intentionally outside the current product scope.
-
-## Accessibility And Responsive Risks
-
-- Mobile nav needed direct access to account/sync/settings and the Add Work CTA.
-- Filter controls needed removable active states with accessible names.
-- Destructive actions needed clearer labels and surrounding explanation.
-- Long Korean labels in compact controls remain a regression risk; verification should include 320px and tablet widths.
-- Loading states are serviceable but should continue moving toward skeletons for dense library/detail surfaces.
-
-## Verification Targets
-
-- Main navigation renders Home, Works, Insights, Tier Boards, Account, Sync, Settings, and Add Work.
-- Works filter URL preservation still passes.
-- Works view mode URL preservation still passes.
-- Empty states remain distinct for no records, no search results, and empty trash.
-- AddWorkFlow title validation and candidate form reflection still pass.
-- Detail delete remains soft-delete and routes back to Works.
+- Tier Boards is intentionally not a production feature in this phase. This is not a completion blocker because the requirement was to prevent placeholder confusion, not to implement tier boards.
+- Community is intentionally outside the product surface. This is not a blocker because public/SNS/feed work was explicitly prohibited.
+- External provider searches can fail due to credentials or service availability. The product mitigates this by keeping direct local entry obvious and tested.
+- If real local libraries reach thousands of records, measure browser performance and consider full virtualization. Current personal-library scale is covered by service budget tests and UI progressive rendering.
+- Add broader automated visual regression only after a stable browser automation workflow is chosen for this repo.

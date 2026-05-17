@@ -1,5 +1,6 @@
 import {
   Burger,
+  Box,
   Button,
   Container,
   Divider,
@@ -28,7 +29,7 @@ const primaryNavigationItems = [
   { label: '홈', to: '/' },
   { label: '작품', to: '/works' },
   { label: '인사이트', to: '/insights' },
-  { label: '티어 보드', to: '/tier-boards' },
+  { badge: '준비 중', label: '보드', to: '/tier-boards' },
 ] as const;
 
 const accountNavigationItems = [
@@ -101,7 +102,16 @@ export function MainProductLayout() {
                 wrap="nowrap"
               >
                 {primaryNavigationItems.map((item) => (
-                  <AppNavLink end={item.to === '/'} key={item.to} to={item.to}>
+                  <AppNavLink
+                    badge={
+                      'badge' in item ? (
+                        <AppBadge tone="muted">{item.badge}</AppBadge>
+                      ) : undefined
+                    }
+                    end={item.to === '/'}
+                    key={item.to}
+                    to={item.to}
+                  >
                     {item.label}
                   </AppNavLink>
                 ))}
@@ -121,10 +131,24 @@ export function MainProductLayout() {
                   ))}
                 </Group>
 
-                <ThemeToggleControl />
-                <AppLinkButton to="/works/new" tone="primary">
-                  작품 추가
-                </AppLinkButton>
+                <Box visibleFrom="md">
+                  <ThemeToggleControl />
+                </Box>
+                <Box hiddenFrom="sm">
+                  <AppLinkButton
+                    aria-label="작품 추가"
+                    size="compact-sm"
+                    to="/works/new"
+                    tone="primary"
+                  >
+                    추가
+                  </AppLinkButton>
+                </Box>
+                <Box visibleFrom="sm">
+                  <AppLinkButton to="/works/new" tone="primary">
+                    작품 추가
+                  </AppLinkButton>
+                </Box>
                 {isAuthenticated && user?.email && (
                   <Text
                     c="var(--app-text-muted)"
@@ -145,41 +169,43 @@ export function MainProductLayout() {
                   </Group>
                 )}
 
-                <Menu position="bottom-end" shadow="md" width={260} withinPortal={false}>
-                  <Menu.Target>
-                    <Button aria-label={accountMenuLabel} variant="subtle">
-                      {isAuthenticated ? '계정' : 'Guest'}
-                    </Button>
-                  </Menu.Target>
-                  <Menu.Dropdown>
-                    <Menu.Label>{accountMenuLabel}</Menu.Label>
-                    <Menu.Item onClick={() => navigate('/account')}>
-                      계정 센터
-                    </Menu.Item>
-                    <Menu.Item onClick={() => navigate('/account/sync')}>
-                      동기화
-                      {syncAttentionCount > 0 ? ` (${syncAttentionCount})` : ''}
-                    </Menu.Item>
-                    <Menu.Item onClick={() => navigate('/account/settings')}>
-                      설정
-                    </Menu.Item>
-                    <Menu.Divider />
-                    {isAuthenticated ? (
-                      <Menu.Item color="red" onClick={() => void handleSignOut()}>
-                        로그아웃
+                <Box visibleFrom="md">
+                  <Menu position="bottom-end" shadow="md" width={260} withinPortal={false}>
+                    <Menu.Target>
+                      <Button aria-label={accountMenuLabel} variant="subtle">
+                        {isAuthenticated ? '계정' : 'Guest'}
+                      </Button>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Label>{accountMenuLabel}</Menu.Label>
+                      <Menu.Item onClick={() => navigate('/account')}>
+                        계정 센터
                       </Menu.Item>
-                    ) : (
-                      <>
-                        <Menu.Item onClick={() => navigate('/auth/login')}>
-                          로그인
+                      <Menu.Item onClick={() => navigate('/account/sync')}>
+                        동기화
+                        {syncAttentionCount > 0 ? ` (${syncAttentionCount})` : ''}
+                      </Menu.Item>
+                      <Menu.Item onClick={() => navigate('/account/settings')}>
+                        설정
+                      </Menu.Item>
+                      <Menu.Divider />
+                      {isAuthenticated ? (
+                        <Menu.Item color="red" onClick={() => void handleSignOut()}>
+                          로그아웃
                         </Menu.Item>
-                        <Menu.Item onClick={() => navigate('/auth/register')}>
-                          회원가입
-                        </Menu.Item>
-                      </>
-                    )}
-                  </Menu.Dropdown>
-                </Menu>
+                      ) : (
+                        <>
+                          <Menu.Item onClick={() => navigate('/auth/login')}>
+                            로그인
+                          </Menu.Item>
+                          <Menu.Item onClick={() => navigate('/auth/register')}>
+                            회원가입
+                          </Menu.Item>
+                        </>
+                      )}
+                    </Menu.Dropdown>
+                  </Menu>
+                </Box>
               </Group>
             </Flex>
           </header>
@@ -196,6 +222,11 @@ export function MainProductLayout() {
               <Stack component="nav" gap={4} aria-label="모바일 주요 메뉴">
                 {primaryNavigationItems.map((item) => (
                   <AppNavLink
+                    badge={
+                      'badge' in item ? (
+                        <AppBadge tone="muted">{item.badge}</AppBadge>
+                      ) : undefined
+                    }
                     end={item.to === '/'}
                     fullWidth
                     key={item.to}

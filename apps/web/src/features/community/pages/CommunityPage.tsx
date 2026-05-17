@@ -1,3 +1,5 @@
+import { Group, Stack, Text } from '@mantine/core';
+
 import { AppLinkButton } from '../../../shared/components/AppPrimitives';
 import { FutureFeaturePage } from '../../../shared/components/FutureFeaturePage';
 
@@ -26,6 +28,22 @@ export function CommunityPage() {
             '개인 기록과 catalog/search 보조 데이터는 분리하고, public/community plane은 현재 구현하지 않습니다.',
         },
       ]}
+      footer={
+        <Stack gap="sm">
+          <Text fw={700}>대체 흐름</Text>
+          <Text c="var(--app-text-muted)">
+            현재 제품 범위는 개인 기록, 로컬 백업, 제한적 계정 동기화입니다.
+            공개 피드처럼 보이는 임시 화면은 만들지 않고, 내 기록을 완성하는
+            화면으로 이동합니다.
+          </Text>
+          <Group gap="sm" wrap="wrap">
+            <AppLinkButton to="/works">작품 기록 관리</AppLinkButton>
+            <AppLinkButton to="/insights" tone="quiet">
+              내 취향 보기
+            </AppLinkButton>
+          </Group>
+        </Stack>
+      }
       title="커뮤니티 기능은 현재 만들지 않습니다"
     />
   );
