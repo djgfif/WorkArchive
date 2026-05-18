@@ -30,24 +30,19 @@ interface PageShellProps {
 
 interface SectionCardProps {
   children: ReactNode;
-  className?: string | undefined;
+  className?: string;
   gap?: string | number;
   padding?: string | number;
   tone?: SurfaceTone;
 }
 
-interface SurfaceLinkCardProps {
-  children: ReactNode;
-  className?: string | undefined;
-  gap?: string | number;
-  padding?: string | number;
+interface SurfaceLinkCardProps extends SectionCardProps {
   to: string;
-  tone?: SurfaceTone;
 }
 
 interface ActionRowProps {
   children: ReactNode;
-  className?: string | undefined;
+  className?: string;
   justify?: 'center' | 'flex-end' | 'flex-start' | 'space-between';
 }
 
@@ -119,7 +114,7 @@ interface LoadingRowsProps {
 interface PageHeaderProps {
   actions?: ReactNode;
   aside?: ReactNode;
-  className?: string | undefined;
+  className?: string;
   description?: ReactNode;
   eyebrow?: ReactNode;
   meta?: ReactNode;
@@ -137,10 +132,7 @@ interface ActionBarProps {
 
 interface KeyValueGridProps {
   columns?: 1 | 2 | 3;
-  items: Array<{
-    label: ReactNode;
-    value: ReactNode;
-  }>;
+  items: Array<{ label: ReactNode; value: ReactNode }>;
 }
 
 interface AppButtonProps {
@@ -158,15 +150,7 @@ interface AppButtonProps {
   type?: ComponentPropsWithoutRef<'button'>['type'];
 }
 
-interface AppLinkButtonProps {
-  'aria-label'?: string;
-  children?: ReactNode;
-  fullWidth?: boolean;
-  leftSection?: ReactNode;
-  loading?: boolean;
-  rightSection?: ReactNode;
-  size?: 'compact-md' | 'compact-sm' | 'compact-xs' | 'lg' | 'md' | 'sm' | 'xl' | 'xs';
-  tone?: AppActionTone;
+interface AppLinkButtonProps extends Omit<AppButtonProps, 'onClick' | 'type'> {
   to: ComponentPropsWithoutRef<typeof Link>['to'];
 }
 
@@ -190,22 +174,14 @@ interface AppNavLinkProps {
 }
 
 function getSurfaceBackground(tone: SurfaceTone) {
-  switch (tone) {
-    case 'hero':
-      return [
-        'linear-gradient(135deg, rgba(173, 202, 222, 0.1), transparent 42%)',
-        'linear-gradient(180deg, var(--mantine-color-body), var(--mantine-color-default-hover))',
-      ].join(', ');
-    case 'subtle':
-      return 'var(--mantine-color-default)';
-    case 'default':
-    default:
-      return 'var(--mantine-color-body)';
+  if (tone === 'hero') {
+    return [
+      'radial-gradient(circle at 82% 18%, rgba(169, 152, 240, 0.16), transparent 32%)',
+      'linear-gradient(145deg, var(--app-surface-hero), var(--app-bg-elevated))',
+    ].join(', ');
   }
-}
 
-function getSurfaceBorder(tone: SurfaceTone) {
-  return tone === 'hero' ? 'var(--mantine-color-default-border)' : 'var(--mantine-color-default-border)';
+  return tone === 'subtle' ? 'var(--app-surface-subtle)' : 'var(--app-surface-card)';
 }
 
 function getActionToneProps(tone: AppActionTone) {
@@ -213,33 +189,18 @@ function getActionToneProps(tone: AppActionTone) {
     case 'primary':
       return {
         color: 'archive',
-        gradient: {
-          deg: 135,
-          from: 'archive.2',
-          to: 'archive.6',
-        },
+        gradient: { deg: 135, from: 'archive.3', to: 'archive.6' },
         variant: 'gradient',
       } as const;
     case 'quiet':
-      return {
-        color: 'gray',
-        variant: 'subtle',
-      } as const;
+      return { color: 'gray', variant: 'subtle' } as const;
     case 'ghost':
-      return {
-        color: 'gray',
-        variant: 'transparent',
-      } as const;
+      return { color: 'gray', variant: 'transparent' } as const;
     case 'danger':
-      return {
-        color: 'red',
-        variant: 'light',
-      } as const;
+      return { color: 'red', variant: 'light' } as const;
     case 'secondary':
     default:
-      return {
-        variant: 'default',
-      } as const;
+      return { variant: 'default' } as const;
   }
 }
 
@@ -261,12 +222,26 @@ function getBadgeToneProps(tone: AppBadgeTone) {
   }
 }
 
+function getMessageLabel(tone: MessageTone) {
+  switch (tone) {
+    case 'success':
+      return '완료';
+    case 'loading':
+      return '불러오는 중';
+    case 'error':
+      return '문제 발생';
+    case 'info':
+    default:
+      return '안내';
+  }
+}
+
 function getMessageColor(tone: MessageTone) {
   switch (tone) {
     case 'success':
       return 'teal';
     case 'loading':
-      return 'blue';
+      return 'archive';
     case 'info':
       return 'gray';
     case 'error':
@@ -275,37 +250,13 @@ function getMessageColor(tone: MessageTone) {
   }
 }
 
-function getMessageLabel(tone: MessageTone) {
-  switch (tone) {
-    case 'success':
-      return '완료';
-    case 'loading':
-      return '불러오는 중';
-    case 'info':
-      return '안내';
-    case 'error':
-    default:
-      return '문제 발생';
-  }
-}
-
 function getResponsiveColumns(columns: 1 | 2 | 3) {
-  if (columns === 1) {
-    return { base: 1 };
-  }
-
-  if (columns === 3) {
-    return { base: 1, lg: 3, sm: 2 };
-  }
-
+  if (columns === 1) return { base: 1 };
+  if (columns === 3) return { base: 1, sm: 2, lg: 3 };
   return { base: 1, sm: 2 };
 }
 
-export function PageShell({
-  children,
-  gap = 'xl',
-  size = 1240,
-}: PageShellProps) {
+export function PageShell({ children, gap = 'xl', size = 1240 }: PageShellProps) {
   return (
     <Container px="md" size={size} w="100%">
       <Stack gap={gap}>{children}</Stack>
@@ -323,11 +274,12 @@ export function SectionCard({
   return (
     <Paper
       p={padding}
-      radius="md"
+      radius={tone === 'hero' ? 'xl' : 'lg'}
       styles={{
         root: {
           background: getSurfaceBackground(tone),
-          borderColor: getSurfaceBorder(tone),
+          borderColor: tone === 'hero' ? 'var(--app-border-strong)' : 'var(--app-border-subtle)',
+          boxShadow: tone === 'hero' ? 'var(--app-shadow-card)' : 'none',
           overflow: 'hidden',
         },
       }}
@@ -355,15 +307,15 @@ export function SurfaceLinkCard({
     <Paper
       component={Link}
       p={padding}
-      radius="md"
+      radius="lg"
       styles={{
         root: {
           background: getSurfaceBackground(tone),
-          borderColor: getSurfaceBorder(tone),
+          borderColor: 'var(--app-border-subtle)',
+          color: 'inherit',
           display: 'block',
           textDecoration: 'none',
-          transition:
-            'border-color 160ms ease, background-color 160ms ease',
+          transition: 'transform 160ms ease, border-color 160ms ease, background 160ms ease',
         },
       }}
       to={to}
@@ -375,11 +327,7 @@ export function SurfaceLinkCard({
   );
 }
 
-export function ActionRow({
-  children,
-  className,
-  justify = 'flex-start',
-}: ActionRowProps) {
+export function ActionRow({ children, className, justify = 'flex-start' }: ActionRowProps) {
   return (
     <Group gap="sm" justify={justify} wrap="wrap" {...(className ? { className } : {})}>
       {children}
@@ -446,10 +394,7 @@ export function AppLinkButton({
   );
 }
 
-export function AppBadge({
-  children,
-  tone = 'default',
-}: AppBadgeProps) {
+export function AppBadge({ children, tone = 'default' }: AppBadgeProps) {
   return (
     <Badge {...getBadgeToneProps(tone)} w="fit-content">
       {children}
@@ -457,30 +402,18 @@ export function AppBadge({
   );
 }
 
-export function BrandLink({
-  heading,
-  kicker,
-  to = '/',
-}: BrandLinkProps) {
+export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
   return (
-    <Box
-      component={Link}
-      display="inline-flex"
-      miw={0}
-      to={to}
-      td="none"
-    >
+    <Box component={Link} display="inline-flex" miw={0} td="none" to={to}>
       <Group gap="sm" wrap="nowrap">
-        <ThemeIcon color="archive" radius="sm" size={36} variant="light">
-          <Text fw={700} size="xs">
-            WA
-          </Text>
+        <ThemeIcon color="archive" radius="md" size={38} variant="light">
+          <Text fw={800} size="xs">WA</Text>
         </ThemeIcon>
         <Stack gap={0} miw={0}>
-          <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+          <Text c="dimmed" fw={800} size="xs" tt="uppercase">
             {kicker}
           </Text>
-          <Text fw={700} size="md">
+          <Text fw={800} size="md">
             {heading}
           </Text>
         </Stack>
@@ -489,9 +422,7 @@ export function BrandLink({
   );
 }
 
-export function ThemeToggleControl({
-  fullWidth = false,
-}: ThemeToggleControlProps) {
+export function ThemeToggleControl({ fullWidth = false }: ThemeToggleControlProps) {
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const nextColorScheme = colorScheme === 'dark' ? 'light' : 'dark';
 
@@ -520,30 +451,27 @@ export function AppNavLink({
   return (
     <NavLink
       end={end}
-      {...(onClick !== undefined ? { onClick } : {})}
+      onClick={onClick}
       style={({ isActive }) => ({
         alignItems: 'center',
-        background: fullWidth && isActive ? 'var(--mantine-color-default)' : 'transparent',
-        borderBottom: fullWidth
-          ? 'none'
-          : `2px solid ${isActive ? 'var(--mantine-primary-color-filled)' : 'transparent'}`,
-        borderLeft: fullWidth
-          ? `2px solid ${isActive ? 'var(--mantine-primary-color-filled)' : 'transparent'}`
-          : 'none',
-        color: 'inherit',
+        background: fullWidth && isActive ? 'var(--app-surface-subtle)' : 'transparent',
+        border: fullWidth
+          ? `1px solid ${isActive ? 'var(--app-border-strong)' : 'transparent'}`
+          : '1px solid transparent',
+        borderRadius: fullWidth ? 'var(--mantine-radius-md)' : undefined,
+        color: isActive ? 'var(--app-text-primary)' : 'var(--app-text-secondary)',
         display: fullWidth ? 'flex' : 'inline-flex',
         gap: '0.625rem',
         justifyContent: 'space-between',
-        padding: fullWidth ? '0.8rem 0.95rem' : '0.45rem 0',
+        padding: fullWidth ? '0.82rem 0.95rem' : '0.45rem 0.2rem',
         textDecoration: 'none',
-        transition:
-          'border-color 160ms ease, background-color 160ms ease, color 160ms ease',
+        transition: 'border-color 160ms ease, background 160ms ease, color 160ms ease',
         width: fullWidth ? '100%' : undefined,
       })}
       to={to}
     >
       <Group gap="xs" justify="space-between" wrap="nowrap" w="100%">
-        <Text component="span" fw={600}>
+        <Text component="span" fw={700}>
           {children}
         </Text>
         {badge}
@@ -561,7 +489,7 @@ export function SectionIntro({
   return (
     <Stack gap={6}>
       {eyebrow && (
-        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+        <Text c="var(--app-accent-primary)" fw={800} size="xs" tt="uppercase">
           {eyebrow}
         </Text>
       )}
@@ -585,39 +513,27 @@ export function PageSection({
   titleOrder = 2,
 }: PageSectionProps) {
   const hasIntro = eyebrow || title || description;
-  const hasHeader = hasIntro || actions;
 
   return (
     <Stack
       gap="md"
-      pt={divider ? 'lg' : 0}
-      style={divider ? { borderTop: '1px solid var(--mantine-color-default-border)' } : undefined}
+      pt={divider ? 'xl' : 0}
+      {...(divider ? { style: { borderTop: '1px solid var(--app-border-subtle)' } } : {})}
     >
-      {hasHeader && (
+      {(hasIntro || actions) && (
         <Flex
           align={{ base: 'stretch', md: 'flex-start' }}
           direction={{ base: 'column', md: 'row' }}
           gap="lg"
           justify="space-between"
         >
-          {hasIntro && (
-            title ? (
-              <SectionIntro
-                description={description}
-                eyebrow={eyebrow}
-                title={title}
-                titleOrder={titleOrder}
-              />
-            ) : (
-              <Stack gap={6}>
-                {eyebrow && (
-                  <Text c="dimmed" fw={700} size="xs" tt="uppercase">
-                    {eyebrow}
-                  </Text>
-                )}
-                {description && <Text c="dimmed">{description}</Text>}
-              </Stack>
-            )
+          {hasIntro && title ? (
+            <SectionIntro description={description} eyebrow={eyebrow} title={title} titleOrder={titleOrder} />
+          ) : (
+            <Stack gap={6}>
+              {eyebrow && <Text c="dimmed" fw={800} size="xs" tt="uppercase">{eyebrow}</Text>}
+              {description && <Text c="dimmed">{description}</Text>}
+            </Stack>
           )}
           {actions && <ActionRow justify="flex-end">{actions}</ActionRow>}
         </Flex>
@@ -627,22 +543,14 @@ export function PageSection({
   );
 }
 
-export function MetricPill({
-  label,
-  value,
-}: MetricPillProps) {
+export function MetricPill({ label, value }: MetricPillProps) {
   return (
-    <Paper
-      miw={112}
-      p="xs"
-      radius="md"
-      withBorder
-    >
+    <Paper miw={112} p="sm" radius="md" styles={{ root: { background: 'var(--app-surface-subtle)' } }} withBorder>
       <Stack gap={2}>
-        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+        <Text c="dimmed" fw={800} size="xs" tt="uppercase">
           {label}
         </Text>
-        <Text fw={700} size="sm">
+        <Text fw={800} size="md">
           {value}
         </Text>
       </Stack>
@@ -650,92 +558,47 @@ export function MetricPill({
   );
 }
 
-export function ChipSummary({
-  emptyLabel = '없음',
-  label,
-  values,
-}: ChipSummaryProps) {
+export function ChipSummary({ emptyLabel = '없음', label, values }: ChipSummaryProps) {
   return (
     <Stack gap={6}>
-      <Text c="dimmed" fw={700} size="xs">
-        {label}
-      </Text>
+      <Text c="dimmed" fw={800} size="xs">{label}</Text>
       {values.length > 0 ? (
         <ActionRow>
           {values.map((value, index) => (
-            <AppBadge key={`${String(value)}-${index}`} tone="muted">
-              {value}
-            </AppBadge>
+            <AppBadge key={`${String(value)}-${index}`} tone="muted">{value}</AppBadge>
           ))}
         </ActionRow>
       ) : (
-        <Text c="dimmed" size="sm">
-          {emptyLabel}
-        </Text>
+        <Text c="dimmed" size="sm">{emptyLabel}</Text>
       )}
     </Stack>
   );
 }
 
-export function StatCard({
-  accent = false,
-  description,
-  label,
-  to,
-  value,
-}: StatCardProps) {
+export function StatCard({ accent = false, description, label, to, value }: StatCardProps) {
   const content = (
     <Stack gap={6}>
-      <Text c={accent ? 'archive.6' : 'dimmed'} fw={700} size="xs">
-        {label}
-      </Text>
+      <Text c={accent ? 'archive.2' : 'dimmed'} fw={800} size="xs" tt="uppercase">{label}</Text>
       <Title order={3}>{value}</Title>
       {description && <Text c="dimmed">{description}</Text>}
     </Stack>
   );
 
-  if (to) {
-    return (
-      <SurfaceLinkCard padding="lg" to={to} tone={accent ? 'hero' : 'subtle'}>
-        {content}
-      </SurfaceLinkCard>
-    );
-  }
-
-  return (
-    <SectionCard gap={6} padding="lg" tone={accent ? 'hero' : 'subtle'}>
-      {content}
-    </SectionCard>
+  return to ? (
+    <SurfaceLinkCard padding="lg" to={to} tone={accent ? 'hero' : 'subtle'}>{content}</SurfaceLinkCard>
+  ) : (
+    <SectionCard gap={6} padding="lg" tone={accent ? 'hero' : 'subtle'}>{content}</SectionCard>
   );
 }
 
-export function KeyValueGrid({
-  columns = 2,
-  items,
-}: KeyValueGridProps) {
+export function KeyValueGrid({ columns = 2, items }: KeyValueGridProps) {
   return (
-    <Paper
-      component="dl"
-      m={0}
-      p={0}
-      radius={0}
-      styles={{ root: { background: 'transparent', border: 'none' } }}
-      withBorder={false}
-    >
+    <Paper component="dl" m={0} p={0} radius={0} styles={{ root: { background: 'transparent', border: 'none' } }} withBorder={false}>
       <SimpleGrid cols={getResponsiveColumns(columns)} spacing="lg">
         {items.map((item, index) => (
-          <Stack
-            gap={6}
-            key={index}
-            pb="sm"
-            style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
-          >
-            <Text c="dimmed" component="dt" fw={600} size="xs">
-              {item.label}
-            </Text>
-            <Text component="dd" fw={600} m={0}>
-              {item.value}
-            </Text>
+          <Stack gap={6} key={index} pb="sm" style={{ borderBottom: '1px solid var(--app-border-subtle)' }}>
+            <Text c="dimmed" component="dt" fw={700} size="xs">{item.label}</Text>
+            <Text component="dd" fw={700} m={0}>{item.value}</Text>
           </Stack>
         ))}
       </SimpleGrid>
@@ -743,41 +606,24 @@ export function KeyValueGrid({
   );
 }
 
-export function ActionBar({
-  actions,
-  children,
-  description,
-  eyebrow,
-  title,
-}: ActionBarProps) {
+export function ActionBar({ actions, children, description, eyebrow, title }: ActionBarProps) {
   return (
     <SectionCard padding="lg" tone="subtle">
-      <PageSection
-        actions={actions}
-        description={description}
-        divider={false}
-        eyebrow={eyebrow}
-        title={title}
-        titleOrder={3}
-      >
+      <PageSection actions={actions} description={description} divider={false} eyebrow={eyebrow} title={title} titleOrder={3}>
         {children}
       </PageSection>
     </SectionCard>
   );
 }
 
-export function FeedbackMessage({
-  children,
-  title,
-  tone = 'error',
-}: FeedbackMessageProps) {
+export function FeedbackMessage({ children, title, tone = 'error' }: FeedbackMessageProps) {
   const color = getMessageColor(tone);
 
   return (
     <Paper
       aria-live={tone === 'error' ? 'assertive' : 'polite'}
       p="md"
-      radius="md"
+      radius="lg"
       role={tone === 'error' ? 'alert' : 'status'}
       styles={{
         root: {
@@ -789,78 +635,40 @@ export function FeedbackMessage({
       withBorder
     >
       <Stack gap={4}>
-        {title && <Text c="inherit" fw={700}>{title}</Text>}
+        {title && <Text c="inherit" fw={800}>{title}</Text>}
         {typeof children === 'string' ? <Text c="inherit">{children}</Text> : children}
       </Stack>
     </Paper>
   );
 }
 
-export function StateMessage({
-  actions,
-  description,
-  eyebrow,
-  title,
-  tone = 'info',
-}: StateMessageProps) {
+export function StateMessage({ actions, description, eyebrow, title, tone = 'info' }: StateMessageProps) {
   return (
-    <SectionCard padding="lg" tone="subtle">
+    <SectionCard padding="xl" tone="subtle">
       <Stack gap="md">
         <AppBadge tone={tone === 'error' ? 'danger' : tone === 'success' ? 'success' : 'accent'}>
           {eyebrow ?? getMessageLabel(tone)}
         </AppBadge>
         <Title order={2}>{title}</Title>
-        <Text c="dimmed" maw="56ch">
-          {description}
-        </Text>
+        <Text c="dimmed" maw="58ch">{description}</Text>
         {actions && <ActionRow>{actions}</ActionRow>}
       </Stack>
     </SectionCard>
   );
 }
 
-export function LoadingState({
-  actionWidth = 136,
-  rows = 3,
-  title = '콘텐츠를 불러오는 중입니다',
-}: LoadingStateProps) {
+export function LoadingState({ actionWidth = 136, rows = 3, title = '콘텐츠를 불러오는 중입니다' }: LoadingStateProps) {
   return (
-    <SectionCard padding="lg" tone="subtle">
-      <Stack gap="md" aria-busy="true" aria-live="polite">
+    <SectionCard padding="xl" tone="subtle">
+      <Stack aria-busy="true" aria-live="polite" gap="md">
         <Group justify="space-between" wrap="nowrap">
           <Stack flex={1} gap={8} miw={0}>
             <Skeleton height={12} radius="sm" width={96} />
-            <Text c="dimmed" fw={700}>
-              {title}
-            </Text>
+            <Text c="dimmed" fw={800}>{title}</Text>
           </Stack>
           <Skeleton height={36} radius="sm" visibleFrom="sm" width={actionWidth} />
         </Group>
-        <Stack gap="sm">
-          {Array.from({ length: rows }, (_, index) => (
-            <Paper
-              key={index}
-              p="md"
-              radius="md"
-              styles={{
-                root: {
-                  backgroundColor: 'var(--mantine-color-body)',
-                  borderColor: 'var(--mantine-color-default-border)',
-                },
-              }}
-              withBorder
-            >
-              <Group gap="md" wrap="nowrap">
-                <Skeleton height={72} radius="md" width={54} />
-                <Stack flex={1} gap="xs" miw={0}>
-                  <Skeleton height={14} radius="sm" width="55%" />
-                  <Skeleton height={10} radius="sm" width="78%" />
-                  <Skeleton height={10} radius="sm" width="42%" />
-                </Stack>
-              </Group>
-            </Paper>
-          ))}
-        </Stack>
+        <LoadingRows rows={rows} />
       </Stack>
     </SectionCard>
   );
@@ -868,22 +676,11 @@ export function LoadingState({
 
 export function LoadingRows({ rows = 3 }: LoadingRowsProps) {
   return (
-    <Stack gap="sm" aria-busy="true" aria-live="polite">
+    <Stack aria-busy="true" aria-live="polite" gap="sm">
       {Array.from({ length: rows }, (_, index) => (
-        <Paper
-          key={index}
-          p="md"
-          radius="md"
-          styles={{
-            root: {
-              backgroundColor: 'var(--mantine-color-default-hover)',
-              borderColor: 'var(--mantine-color-default-border)',
-            },
-          }}
-          withBorder
-        >
+        <Paper key={index} p="md" radius="lg" styles={{ root: { backgroundColor: 'var(--app-surface-subtle)' } }} withBorder>
           <Group gap="md" wrap="nowrap">
-            <Skeleton height={72} radius="md" width={54} />
+            <Skeleton height={84} radius="md" width={62} />
             <Stack flex={1} gap="xs" miw={0}>
               <Skeleton height={14} radius="sm" width="55%" />
               <Skeleton height={10} radius="sm" width="78%" />
@@ -910,29 +707,14 @@ export function PageHeader({
     <Stack
       gap="lg"
       pb="lg"
-      style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
+      style={{ borderBottom: '1px solid var(--app-border-subtle)' }}
       {...(className ? { className } : {})}
     >
-      <Flex
-        align={{ base: 'stretch', md: 'flex-start' }}
-        direction={{ base: 'column', md: 'row' }}
-        gap="xl"
-        justify="space-between"
-      >
+      <Flex align={{ base: 'stretch', md: 'flex-start' }} direction={{ base: 'column', md: 'row' }} gap="xl" justify="space-between">
         <Stack gap="md" maw={760} miw={0}>
-          <SectionIntro
-            description={description}
-            eyebrow={eyebrow}
-            title={title}
-            titleOrder={titleOrder}
-          />
-          {meta && (
-            <Group align="stretch" gap="xl" wrap="wrap">
-              {meta}
-            </Group>
-          )}
+          <SectionIntro description={description} eyebrow={eyebrow} title={title} titleOrder={titleOrder} />
+          {meta && <Group align="stretch" gap="xl" wrap="wrap">{meta}</Group>}
         </Stack>
-
         {(aside || actions) && (
           <Stack gap="md" maw={360} miw={0}>
             {aside}

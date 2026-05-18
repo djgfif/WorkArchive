@@ -8,26 +8,29 @@ import {
   ActionRow,
   AppButton,
   FeedbackMessage,
-  LoadingState,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
-import { WorkspacePageTemplate } from '../../../shared/components/PageTemplates';
+import { LibraryTemplate } from '../../../shared/components/PageTemplates';
 import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
+import {
+  ArchiveEmptyState,
+  ArchiveSkeleton,
+} from '../components/ArchiveComponents';
+import { AddWorkDialog } from '../components/AddWorkDialog';
 import { WorksList, type WorksViewMode } from '../components/WorksList';
 import type { WorkQuickProgressUpdate } from '../components/WorkListRow';
-import { WorksTrashList } from '../components/WorksTrashList';
 import { WorksToolbar } from '../components/WorksToolbar';
-import { AddWorkDialog } from '../components/AddWorkDialog';
+import { WorksTrashList } from '../components/WorksTrashList';
 import { useWorksList } from '../hooks/useWorksList';
 import {
   worksService,
   type WorksCollectionScope,
 } from '../services/works.service';
-import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 import {
   DEFAULT_WORKS_LIST_QUERY,
   type WorksListQuery,
 } from '../utils/query-works';
+import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 
 function getCollectionScopeFromSearchParams(
   searchParams: URLSearchParams,
@@ -81,37 +84,16 @@ function buildSearchParams(
 ) {
   const nextSearchParams = new URLSearchParams();
 
-  if (query.searchTerm.trim()) {
-    nextSearchParams.set('q', query.searchTerm.trim());
-  }
-
-  if (query.status !== 'all') {
-    nextSearchParams.set('status', query.status);
-  }
-
-  if (query.rating !== null) {
-    nextSearchParams.set('rating', query.rating.toString());
-  }
-
-  if (query.tag?.trim()) {
-    nextSearchParams.set('tag', query.tag.trim());
-  }
-
-  if (query.type !== 'all') {
-    nextSearchParams.set('type', query.type);
-  }
-
+  if (query.searchTerm.trim()) nextSearchParams.set('q', query.searchTerm.trim());
+  if (query.status !== 'all') nextSearchParams.set('status', query.status);
+  if (query.rating !== null) nextSearchParams.set('rating', query.rating.toString());
+  if (query.tag?.trim()) nextSearchParams.set('tag', query.tag.trim());
+  if (query.type !== 'all') nextSearchParams.set('type', query.type);
   if (query.sortBy !== DEFAULT_WORKS_LIST_QUERY.sortBy) {
     nextSearchParams.set('sort', query.sortBy);
   }
-
-  if (scope === 'trash') {
-    nextSearchParams.set('scope', 'trash');
-  }
-
-  if (scope === 'active' && viewMode === 'list') {
-    nextSearchParams.set('view', 'list');
-  }
+  if (scope === 'trash') nextSearchParams.set('scope', 'trash');
+  if (scope === 'active' && viewMode === 'list') nextSearchParams.set('view', 'list');
 
   return nextSearchParams;
 }
@@ -189,16 +171,21 @@ export function WorksListPage() {
     });
   }
 
+  function handleClearFilters() {
+    setQuery(DEFAULT_WORKS_LIST_QUERY);
+    setSearchParams(
+      buildSearchParams(DEFAULT_WORKS_LIST_QUERY, collectionScope, viewMode),
+      { replace: true },
+    );
+  }
+
   async function handleDelete(work: WorkRecord) {
     const shouldDelete = await confirmDialogAdapter.confirm({
-      description:
-        '현재 목록에서는 숨겨지고, 휴지통에서 다시 복원할 수 있습니다.',
-      title: `"${work.title}"을 삭제할까요?`,
+      description: '목록에서는 숨겨지고 휴지통에서 다시 복원할 수 있습니다.',
+      title: `"${work.title}"을 휴지통으로 이동할까요?`,
     });
 
-    if (!shouldDelete) {
-      return;
-    }
+    if (!shouldDelete) return;
 
     try {
       setActionError(null);
@@ -217,7 +204,6 @@ export function WorksListPage() {
     try {
       setActionError(null);
       setRestoringWorkId(work.id);
-
       await worksService.restoreWork(work.id);
       setDeletedNotice((currentNotice) =>
         currentNotice?.id === work.id ? null : currentNotice,
@@ -246,10 +232,7 @@ export function WorksListPage() {
       setUpdatingWorkId(work.id);
 
       const latestWork = await worksService.getWorkById(work.id);
-
-      if (!latestWork) {
-        throw new Error('작품을 찾을 수 없습니다.');
-      }
+      if (!latestWork) throw new Error('작품을 찾을 수 없습니다.');
 
       await worksService.updateWork(work.id, {
         ...createUpsertWorkInputFromRecord(latestWork),
@@ -275,15 +258,13 @@ export function WorksListPage() {
       nextValues.progressTotal !== null &&
       nextValues.progressCurrent > nextValues.progressTotal
     ) {
-      setActionError('현재 진행도가 전체 진행도보다 클 수 없습니다.');
-
+      setActionError('현재 진행량이 전체 진행량보다 클 수 없습니다.');
       return;
     }
 
     try {
       setActionError(null);
       setUpdatingWorkId(work.id);
-
       await worksService.updateProgress(work.id, nextValues);
     } catch (updateError) {
       setActionError(
@@ -297,24 +278,12 @@ export function WorksListPage() {
   }
 
   return (
-    <WorkspacePageTemplate>
+    <LibraryTemplate>
       <WorksToolbar
         collectionScope={collectionScope}
         filteredCount={works.length}
         isLoading={isLoading}
-        onClearFilters={() => {
-          setQuery(DEFAULT_WORKS_LIST_QUERY);
-          setSearchParams(
-            buildSearchParams(
-              DEFAULT_WORKS_LIST_QUERY,
-              collectionScope,
-              viewMode,
-            ),
-            {
-              replace: true,
-            },
-          );
-        }}
+        onClearFilters={handleClearFilters}
         onCollectionScopeChange={handleCollectionScopeChange}
         onCreateWork={() => setAddDialogOpened(true)}
         onQueryChange={handleQueryChange}
@@ -327,16 +296,12 @@ export function WorksListPage() {
         viewMode={viewMode}
       />
 
-      {actionError && (
-        <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
-      )}
+      {actionError && <FeedbackMessage tone="error">{actionError}</FeedbackMessage>}
 
       {deletedNotice && collectionScope === 'active' && (
         <FeedbackMessage title="목록에서 숨겼습니다" tone="success">
           <ActionRow justify="space-between">
-            <span>
-              {deletedNotice.title}은 휴지통에서 복원할 수 있습니다.
-            </span>
+            <span>{deletedNotice.title}은 휴지통에서 복원할 수 있습니다.</span>
             <ActionRow justify="flex-end">
               <AppButton
                 disabled={restoringWorkId === deletedNotice.id}
@@ -384,24 +349,16 @@ export function WorksListPage() {
       )}
 
       {!error && isLoading && (
-        <LoadingState
-          rows={collectionScope === 'trash' ? 2 : 4}
-          title="작품 목록을 불러오는 중입니다"
-        />
+        <ArchiveSkeleton count={collectionScope === 'trash' ? 4 : 10} />
       )}
 
       {!error && !isLoading && works.length === 0 && (
-        <StateMessage
+        <ArchiveEmptyState
           actions={
             <>
               {collectionScope === 'trash' ? (
-                <AppButton
-                  onClick={() => {
-                    handleCollectionScopeChange('active');
-                  }}
-                  type="button"
-                >
-                  작품 목록 보기
+                <AppButton onClick={() => handleCollectionScopeChange('active')} type="button">
+                  작품 목록
                 </AppButton>
               ) : (
                 <AppButton
@@ -413,20 +370,7 @@ export function WorksListPage() {
                 </AppButton>
               )}
               {hasActiveFilters && collectionScope === 'active' && (
-                <AppButton
-                  onClick={() => {
-                    setQuery(DEFAULT_WORKS_LIST_QUERY);
-                    setSearchParams(
-                      buildSearchParams(
-                        DEFAULT_WORKS_LIST_QUERY,
-                        collectionScope,
-                        viewMode,
-                      ),
-                      { replace: true },
-                    );
-                  }}
-                  type="button"
-                >
+                <AppButton onClick={handleClearFilters} type="button">
                   초기화
                 </AppButton>
               )}
@@ -434,26 +378,25 @@ export function WorksListPage() {
           }
           description={
             collectionScope === 'trash'
-              ? '삭제한 작품은 나중에 여기서 다시 확인하거나 복원할 수 있습니다.'
+              ? '숨긴 작품은 이곳에서 다시 확인하거나 복원할 수 있습니다.'
               : hasActiveFilters
                 ? '검색어나 필터를 바꿔 다시 찾아보세요.'
-                : '첫 작품을 추가해 포스터 라이브러리를 채워보세요.'
+                : '아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.'
           }
           eyebrow={
             collectionScope === 'trash'
-              ? '휴지통 비어 있음'
+              ? 'Trash'
               : hasActiveFilters
-                ? '검색 결과 없음'
-                : '아직 없음'
+                ? 'No result'
+                : 'Empty shelf'
           }
           title={
             collectionScope === 'trash'
-              ? '숨겨둔 작품이 없습니다.'
+              ? '휴지통이 비어 있습니다.'
               : hasActiveFilters
                 ? '조건에 맞는 작품이 없습니다.'
-                : '아직 등록된 작품이 없습니다.'
+                : '아직 기록한 작품이 없습니다.'
           }
-          tone="info"
         />
       )}
 
@@ -481,6 +424,6 @@ export function WorksListPage() {
         onClose={() => setAddDialogOpened(false)}
         opened={addDialogOpened}
       />
-    </WorkspacePageTemplate>
+    </LibraryTemplate>
   );
 }

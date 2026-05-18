@@ -6,29 +6,29 @@ import {
 } from '@mantine/core';
 
 const archiveColors: MantineColorsTuple = [
-  '#f3f0ff',
-  '#e4dcff',
-  '#c9bcff',
-  '#aa99f5',
-  '#8a78dd',
+  '#f5f1ff',
+  '#e5dcff',
+  '#cbbcff',
+  '#a998f0',
+  '#8a78db',
   '#6f5fc2',
-  '#5a4ca0',
-  '#473e7f',
-  '#373363',
-  '#282746',
+  '#594b9b',
+  '#453b77',
+  '#342f58',
+  '#24233a',
 ];
 
 const emberColors: MantineColorsTuple = [
-  '#fff7e5',
-  '#ffe9bd',
-  '#ffd782',
-  '#f6bd46',
-  '#d99a24',
-  '#b87815',
-  '#935d12',
-  '#744a14',
-  '#5a3b15',
-  '#3f2b13',
+  '#fff6df',
+  '#ffe8b3',
+  '#ffd278',
+  '#efb546',
+  '#c98d24',
+  '#9f6918',
+  '#7c4f17',
+  '#5f3d18',
+  '#442d16',
+  '#2d2012',
 ];
 
 const appFontFamily =
@@ -39,20 +39,57 @@ export const appColorSchemeManager = localStorageColorSchemeManager({
 });
 
 export const appCssVariablesResolver: CSSVariablesResolver = () => ({
-  variables: {},
-  light: {},
+  variables: {
+    '--app-bg-base': '#07080b',
+    '--app-bg-elevated': '#0c0e14',
+    '--app-surface-subtle': '#10131b',
+    '--app-surface-card': '#151924',
+    '--app-surface-hero': '#181b27',
+    '--app-border-subtle': 'rgba(255, 255, 255, 0.075)',
+    '--app-border-strong': 'rgba(255, 255, 255, 0.16)',
+    '--app-text-primary': '#f5f1ea',
+    '--app-text-secondary': 'rgba(245, 241, 234, 0.74)',
+    '--app-text-muted': 'rgba(245, 241, 234, 0.54)',
+    '--app-accent-primary': '#a998f0',
+    '--app-accent-warm': '#efb546',
+    '--app-state-success': '#4fc3a1',
+    '--app-state-warning': '#efb546',
+    '--app-state-danger': '#ff6b6b',
+    '--app-shadow-card': '0 14px 36px rgba(0, 0, 0, 0.28)',
+    '--app-shadow-poster': '0 22px 60px rgba(0, 0, 0, 0.42)',
+    '--app-shadow-overlay': '0 30px 90px rgba(0, 0, 0, 0.5)',
+    '--app-space-page': 'clamp(1.25rem, 3vw, 2.5rem)',
+    '--app-space-section': 'clamp(2rem, 5vw, 4.5rem)',
+    '--app-space-card': 'clamp(1rem, 2.4vw, 1.5rem)',
+    '--app-space-control': '0.75rem',
+    '--app-type-display': 'clamp(2.7rem, 8vw, 6rem)',
+    '--app-type-h1': 'clamp(2.15rem, 5vw, 4.1rem)',
+    '--app-type-h2': 'clamp(1.45rem, 3vw, 2.15rem)',
+    '--app-type-h3': '1.08rem',
+    '--app-type-body': '1rem',
+    '--app-type-caption': '0.84rem',
+    '--app-type-meta': '0.76rem',
+  },
+  light: {
+    '--mantine-color-body': '#f4f1eb',
+    '--mantine-color-text': '#17151c',
+    '--mantine-color-dimmed': 'rgba(23, 21, 28, 0.62)',
+    '--mantine-color-default': '#ffffff',
+    '--mantine-color-default-hover': '#f3f0ea',
+    '--mantine-color-default-border': 'rgba(23, 21, 28, 0.12)',
+  },
   dark: {
-    '--mantine-color-body': '#08090d',
-    '--mantine-color-text': '#f4f1eb',
-    '--mantine-color-dimmed': 'rgba(244, 241, 235, 0.62)',
-    '--mantine-color-default': '#12141d',
-    '--mantine-color-default-hover': '#181b26',
-    '--mantine-color-default-border': 'rgba(255, 255, 255, 0.09)',
+    '--mantine-color-body': 'var(--app-bg-base)',
+    '--mantine-color-text': 'var(--app-text-primary)',
+    '--mantine-color-dimmed': 'var(--app-text-secondary)',
+    '--mantine-color-default': 'var(--app-surface-card)',
+    '--mantine-color-default-hover': '#1a1f2c',
+    '--mantine-color-default-border': 'var(--app-border-subtle)',
   },
 });
 
 export const appTheme = createTheme({
-  black: '#08090d',
+  black: '#07080b',
   colors: {
     archive: archiveColors,
     ember: emberColors,
@@ -60,7 +97,7 @@ export const appTheme = createTheme({
   cursorType: 'pointer',
   defaultGradient: {
     deg: 135,
-    from: 'archive.2',
+    from: 'archive.3',
     to: 'archive.6',
   },
   defaultRadius: 'md',
@@ -68,40 +105,22 @@ export const appTheme = createTheme({
   fontFamily: appFontFamily,
   fontFamilyMonospace: '"JetBrains Mono", "Fira Code", monospace',
   fontSizes: {
-    xs: '0.78rem',
-    sm: '0.9rem',
-    md: '1rem',
+    xs: 'var(--app-type-meta)',
+    sm: 'var(--app-type-caption)',
+    md: 'var(--app-type-body)',
     lg: '1.13rem',
     xl: '1.32rem',
   },
   headings: {
     fontFamily: appFontFamily,
-    fontWeight: '700',
+    fontWeight: '760',
     sizes: {
-      h1: {
-        fontSize: 'clamp(2.2rem, 5vw, 4.2rem)',
-        lineHeight: '1.08',
-      },
-      h2: {
-        fontSize: 'clamp(1.45rem, 3vw, 2.05rem)',
-        lineHeight: '1.14',
-      },
-      h3: {
-        fontSize: '1.16rem',
-        lineHeight: '1.24',
-      },
-      h4: {
-        fontSize: '1.02rem',
-        lineHeight: '1.28',
-      },
-      h5: {
-        fontSize: '0.96rem',
-        lineHeight: '1.3',
-      },
-      h6: {
-        fontSize: '0.88rem',
-        lineHeight: '1.34',
-      },
+      h1: { fontSize: 'var(--app-type-h1)', lineHeight: '1.06' },
+      h2: { fontSize: 'var(--app-type-h2)', lineHeight: '1.14' },
+      h3: { fontSize: 'var(--app-type-h3)', lineHeight: '1.25' },
+      h4: { fontSize: '1rem', lineHeight: '1.28' },
+      h5: { fontSize: '0.94rem', lineHeight: '1.3' },
+      h6: { fontSize: '0.86rem', lineHeight: '1.34' },
     },
     textWrap: 'balance',
   },
@@ -113,92 +132,56 @@ export const appTheme = createTheme({
     xl: '1.75',
   },
   other: {
-    captionSize: '0.82rem',
+    captionSize: 'var(--app-type-caption)',
     contentWidth: 1240,
-    displaySize: 'clamp(2.7rem, 7vw, 5.8rem)',
-    eyebrowSize: '0.76rem',
-    metaSize: '0.84rem',
+    displaySize: 'var(--app-type-display)',
+    eyebrowSize: 'var(--app-type-meta)',
+    metaSize: 'var(--app-type-caption)',
     narrowContentWidth: 760,
     shellWidth: 1360,
   },
   primaryColor: 'archive',
-  primaryShade: {
-    dark: 4,
-    light: 6,
-  },
+  primaryShade: { dark: 4, light: 6 },
   radius: {
     xs: '0.25rem',
     sm: '0.45rem',
-    md: '0.7rem',
+    md: '0.75rem',
     lg: '1rem',
-    xl: '1.4rem',
+    xl: '1.5rem',
   },
   respectReducedMotion: true,
   shadows: {
     xs: '0 1px 2px rgba(0, 0, 0, 0.18)',
-    sm: '0 10px 28px rgba(0, 0, 0, 0.22)',
-    md: '0 18px 48px rgba(0, 0, 0, 0.28)',
-    lg: '0 26px 80px rgba(0, 0, 0, 0.34)',
-    xl: '0 36px 110px rgba(0, 0, 0, 0.42)',
+    sm: 'var(--app-shadow-card)',
+    md: 'var(--app-shadow-poster)',
+    lg: 'var(--app-shadow-overlay)',
+    xl: '0 42px 120px rgba(0, 0, 0, 0.58)',
   },
   spacing: {
     xs: '0.5rem',
     sm: '0.75rem',
     md: '1rem',
     lg: '1.25rem',
-    xl: '1.5rem',
+    xl: '1.75rem',
   },
   components: {
-    Accordion: {
-      defaultProps: {
-        radius: 'md',
-        variant: 'contained',
-      },
-      styles: {
-        content: {
-          backgroundColor: 'transparent',
-        },
-        control: {
-          backgroundColor: 'var(--mantine-color-default)',
-          borderRadius: 'var(--mantine-radius-md)',
-          color: 'var(--mantine-color-text)',
-          fontWeight: 600,
-        },
-        item: {
-          backgroundColor: 'transparent',
-          border: 'none',
-        },
-      },
-    },
     ActionIcon: {
-      defaultProps: {
-        radius: 'md',
-        variant: 'default',
-      },
+      defaultProps: { radius: 'md', variant: 'default' },
       styles: {
         root: {
-          backgroundColor: 'var(--mantine-color-default)',
-          borderColor: 'var(--mantine-color-default-border)',
-          color: 'var(--mantine-color-text)',
+          backgroundColor: 'var(--app-surface-subtle)',
+          borderColor: 'var(--app-border-subtle)',
+          color: 'var(--app-text-primary)',
         },
-      },
-    },
-    Alert: {
-      defaultProps: {
-        radius: 'md',
-        variant: 'light',
       },
     },
     Badge: {
-      defaultProps: {
-        radius: 'xl',
-        variant: 'light',
-      },
+      defaultProps: { radius: 'xl', variant: 'light' },
       styles: {
         root: {
           border: '1px solid transparent',
-          fontSize: 'var(--mantine-font-size-xs)',
-          fontWeight: 600,
+          fontSize: 'var(--app-type-meta)',
+          fontWeight: 700,
           letterSpacing: 0,
           paddingInline: '0.65rem',
           textTransform: 'none',
@@ -206,179 +189,67 @@ export const appTheme = createTheme({
       },
     },
     Button: {
-      defaultProps: {
-        radius: 'md',
-        size: 'sm',
-      },
+      defaultProps: { radius: 'md', size: 'sm' },
       styles: {
         root: {
-          borderColor: 'var(--mantine-color-default-border)',
-          fontWeight: 600,
+          borderColor: 'var(--app-border-subtle)',
+          fontWeight: 700,
           letterSpacing: 0,
           paddingInline: '1rem',
+          transition:
+            'transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease',
         },
       },
     },
-    Checkbox: {
-      styles: {
-        body: {
-          alignItems: 'center',
-        },
-        label: {
-          color: 'var(--mantine-color-text)',
-          fontWeight: 500,
-        },
-      },
-    },
-    NativeSelect: {
-      defaultProps: {
-        radius: 'md',
-        size: 'md',
-      },
+    Input: {
       styles: {
         input: {
-          backgroundColor: 'var(--mantine-color-default)',
-          borderColor: 'var(--mantine-color-default-border)',
-          color: 'var(--mantine-color-text)',
-          boxShadow: 'none',
+          backgroundColor: 'var(--app-bg-elevated)',
+          borderColor: 'var(--app-border-subtle)',
+          color: 'var(--app-text-primary)',
         },
+      },
+    },
+    InputWrapper: {
+      styles: {
+        description: { color: 'var(--app-text-muted)' },
         label: {
-          color: 'var(--mantine-color-text)',
-          fontWeight: 600,
+          color: 'var(--app-text-primary)',
+          fontWeight: 700,
           marginBottom: '0.4rem',
         },
       },
     },
-    NumberInput: {
-      defaultProps: {
-        radius: 'md',
-        size: 'md',
-      },
-      styles: {
-        input: {
-          backgroundColor: 'var(--mantine-color-default)',
-          borderColor: 'var(--mantine-color-default-border)',
-          color: 'var(--mantine-color-text)',
-          boxShadow: 'none',
-        },
-        label: {
-          color: 'var(--mantine-color-text)',
-          fontWeight: 600,
-          marginBottom: '0.4rem',
-        },
-      },
-    },
+    NativeSelect: { defaultProps: { radius: 'md', size: 'md' } },
+    NumberInput: { defaultProps: { radius: 'md', size: 'md' } },
     Paper: {
-      defaultProps: {
-        radius: 'lg',
-        withBorder: true,
-      },
+      defaultProps: { radius: 'lg', withBorder: true },
       styles: {
         root: {
-          backgroundColor: 'var(--mantine-color-body)',
-          borderColor: 'var(--mantine-color-default-border)',
-          boxShadow: 'var(--mantine-shadow-xs)',
+          backgroundColor: 'var(--app-surface-card)',
+          borderColor: 'var(--app-border-subtle)',
+          boxShadow: 'none',
         },
       },
     },
     SegmentedControl: {
-      defaultProps: {
-        radius: 'md',
-      },
+      defaultProps: { radius: 'md' },
       styles: {
         root: {
-          backgroundColor: 'var(--mantine-color-default)',
-          border: '1px solid var(--mantine-color-default-border)',
+          backgroundColor: 'var(--app-bg-elevated)',
+          border: '1px solid var(--app-border-subtle)',
         },
       },
     },
-    Select: {
-      defaultProps: {
-        radius: 'md',
-        size: 'md',
-      },
-      styles: {
-        input: {
-          backgroundColor: 'var(--mantine-color-default)',
-          borderColor: 'var(--mantine-color-default-border)',
-          color: 'var(--mantine-color-text)',
-          boxShadow: 'none',
-        },
-        label: {
-          color: 'var(--mantine-color-text)',
-          fontWeight: 600,
-          marginBottom: '0.4rem',
-        },
-      },
-    },
-    PasswordInput: {
-      defaultProps: {
-        radius: 'md',
-        size: 'md',
-      },
-      styles: {
-        input: {
-          backgroundColor: 'var(--mantine-color-default)',
-          borderColor: 'var(--mantine-color-default-border)',
-          color: 'var(--mantine-color-text)',
-          boxShadow: 'none',
-        },
-        label: {
-          color: 'var(--mantine-color-text)',
-          fontWeight: 600,
-          marginBottom: '0.4rem',
-        },
-        innerInput: {
-          color: 'var(--mantine-color-text)',
-        },
-      },
-    },
-    TextInput: {
-      defaultProps: {
-        radius: 'md',
-        size: 'md',
-      },
-      styles: {
-        input: {
-          backgroundColor: 'var(--mantine-color-default)',
-          borderColor: 'var(--mantine-color-default-border)',
-          color: 'var(--mantine-color-text)',
-          boxShadow: 'none',
-        },
-        label: {
-          color: 'var(--mantine-color-text)',
-          fontWeight: 600,
-          marginBottom: '0.4rem',
-        },
-      },
-    },
+    Select: { defaultProps: { radius: 'md', size: 'md' } },
+    PasswordInput: { defaultProps: { radius: 'md', size: 'md' } },
+    TextInput: { defaultProps: { radius: 'md', size: 'md' } },
     Textarea: {
-      defaultProps: {
-        autosize: true,
-        minRows: 3,
-        radius: 'md',
-        size: 'md',
-      },
-      styles: {
-        input: {
-          backgroundColor: 'var(--mantine-color-default)',
-          borderColor: 'var(--mantine-color-default-border)',
-          color: 'var(--mantine-color-text)',
-          boxShadow: 'none',
-        },
-        label: {
-          color: 'var(--mantine-color-text)',
-          fontWeight: 600,
-          marginBottom: '0.4rem',
-        },
-      },
+      defaultProps: { autosize: true, minRows: 3, radius: 'md', size: 'md' },
     },
     Title: {
       styles: {
-        root: {
-          color: 'var(--mantine-color-text)',
-          letterSpacing: 0,
-        },
+        root: { color: 'var(--app-text-primary)', letterSpacing: 0 },
       },
     },
   },

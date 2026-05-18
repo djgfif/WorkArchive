@@ -27,7 +27,7 @@ const workStatusLabels: Record<WorkStatus, string> = {
   in_progress: '보는 중',
   completed: '완료',
   paused: '보류',
-  dropped: '하차',
+  dropped: '중단',
 };
 
 const workTierLabels: Record<WorkTier, string> = {
@@ -39,7 +39,7 @@ const workTierLabels: Record<WorkTier, string> = {
 };
 
 const workSyncStatusLabels: Record<WorkSyncStatus, string> = {
-  'local-only': '이 기기에만 저장',
+  'local-only': '기기에 저장됨',
   pending: '자동 백업 중',
   synced: '백업됨',
   conflict: '확인 필요',
@@ -60,11 +60,8 @@ export const workTierOptions = WORK_TIERS.map((value) => ({
   label: workTierLabels[value],
 }));
 
-export const workSortOptions: Array<{
-  value: WorksSortOption;
-  label: string;
-}> = [
-  { value: 'updatedAt', label: '최근 수정순' },
+export const workSortOptions: Array<{ value: WorksSortOption; label: string }> = [
+  { value: 'updatedAt', label: '최근 수정' },
   { value: 'title', label: '제목순' },
   { value: 'rating', label: '별점순' },
 ];

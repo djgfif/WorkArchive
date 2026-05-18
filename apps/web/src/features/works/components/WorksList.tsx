@@ -1,11 +1,9 @@
 import type { WorkRecord } from '@work-archive/shared-types';
-import { Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Group, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 
-import { AppButton, MetricPill } from '../../../shared/components/AppPrimitives';
-import {
-  WorkPosterCard,
-} from './ArchiveComponents';
+import { AppButton, SectionCard } from '../../../shared/components/AppPrimitives';
+import { WorkPosterCard } from './ArchiveComponents';
 import {
   WorkListRow,
   type WorkQuickProgressUpdate,
@@ -62,25 +60,14 @@ export function WorksList({
 
   const renderProgress =
     works.length > renderLimit ? (
-      <Paper
-        p="md"
-        radius="md"
-        styles={{
-          root: {
-            backgroundColor: 'var(--mantine-color-default)',
-            borderColor: 'var(--mantine-color-default-border)',
-          },
-        }}
-        withBorder
-      >
+      <SectionCard padding="md" tone="subtle">
         <Group justify="space-between" wrap="wrap">
           <Stack gap={4}>
-            <MetricPill
-              label="보이는 기록"
-              value={`${visibleWorks.length} / ${works.length}개`}
-            />
+            <Text fw={800}>
+              {visibleWorks.length} / {works.length}개
+            </Text>
             <Text c="dimmed" size="sm">
-              큰 아카이브에서도 포스터 레일을 가볍게 훑을 수 있게 나눠서 표시합니다.
+              큰 아카이브도 포스터 중심 화면이 가볍게 열리도록 나누어 표시합니다.
             </Text>
           </Stack>
           {hasHiddenWorks && (
@@ -97,7 +84,7 @@ export function WorksList({
             </AppButton>
           )}
         </Group>
-      </Paper>
+      </SectionCard>
     ) : null;
 
   if (viewMode === 'grid') {
@@ -118,22 +105,20 @@ export function WorksList({
   }
 
   return (
-    <section aria-label="작품 줄 목록">
-      <Paper p={0} radius="lg" withBorder>
-        <Stack gap={0}>
-          {visibleWorks.map((work, index) => (
-            <WorkListRow
-          isLast={index === visibleWorks.length - 1}
-          isUpdating={updatingWorkId === work.id}
-          key={work.id}
-          onDelete={onDelete}
-          onQuickProgressUpdate={onQuickProgressUpdate}
-          onQuickUpdate={onQuickUpdate}
-          work={work}
-        />
-          ))}
-        </Stack>
-      </Paper>
+    <section aria-label="작품 리스트">
+      <Stack gap="sm">
+        {visibleWorks.map((work, index) => (
+          <WorkListRow
+            isLast={index === visibleWorks.length - 1}
+            isUpdating={updatingWorkId === work.id}
+            key={work.id}
+            onDelete={onDelete}
+            onQuickProgressUpdate={onQuickProgressUpdate}
+            onQuickUpdate={onQuickUpdate}
+            work={work}
+          />
+        ))}
+      </Stack>
       {renderProgress}
     </section>
   );

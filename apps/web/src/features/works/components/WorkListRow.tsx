@@ -1,8 +1,8 @@
-import {
-  Box,
+﻿import {
   Group,
   NativeSelect,
   NumberInput,
+  Paper,
   Progress,
   Stack,
   Text,
@@ -12,13 +12,12 @@ import {
 import {
   getDefaultProgressUnitForWorkType,
   type ProgressUnit,
-  type WorkStatus,
   type WorkRecord,
+  type WorkStatus,
 } from '@work-archive/shared-types';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
   AppBadge,
@@ -31,6 +30,14 @@ import {
   getWorkTypeLabel,
   workStatusOptions,
 } from '../utils/work-options';
+import { WorkPoster } from './ArchiveComponents';
+import styles from './ArchiveComponents.module.css';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 export interface WorkQuickUpdate {
   favorite?: boolean;
@@ -60,21 +67,18 @@ interface WorkListRowProps {
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
   const value = (index + 1) * 0.5;
 
-  return {
-    label: `${value.toFixed(1)}점`,
-    value,
-  };
+  return { label: `${value.toFixed(1)}점`, value };
 });
-
-function formatRatingLabel(value: number | null) {
-  return value === null ? '미평가' : `${value.toFixed(1)}점`;
-}
 
 const progressUnitLabels: Record<ProgressUnit, string> = {
   chapter: '화',
   episode: '회',
   volume: '권',
 };
+
+function formatRatingLabel(value: number | null) {
+  return value === null ? '미평가' : `${value.toFixed(1)}점`;
+}
 
 function coerceNumberInputValue(value: number | string) {
   if (typeof value === 'number') {
@@ -98,26 +102,18 @@ function getProgressPercent(work: WorkRecord) {
 }
 
 function getProgressLabel(work: WorkRecord) {
-  if (work.lastConsumedLabel) {
-    return work.lastConsumedLabel;
-  }
+  if (work.lastConsumedLabel) return work.lastConsumedLabel;
 
   const current = work.progressCurrent ?? null;
   const total = work.progressTotal ?? null;
 
-  if (current !== null && total !== null) {
-    return `${current}/${total}`;
-  }
-
-  if (current !== null) {
-    return `${current}까지 기록`;
-  }
+  if (current !== null && total !== null) return `${current}/${total}`;
+  if (current !== null) return `${current}까지 기록`;
 
   return null;
 }
 
 export function WorkListRow({
-  isLast = false,
   isUpdating,
   onDelete,
   onQuickProgressUpdate,
@@ -139,12 +135,7 @@ export function WorkListRow({
     setCurrent(work.progressCurrent ?? null);
     setTotal(work.progressTotal ?? null);
     setLastLabel(work.lastConsumedLabel ?? '');
-  }, [
-    work.id,
-    work.lastConsumedLabel,
-    work.progressCurrent,
-    work.progressTotal,
-  ]);
+  }, [work.id, work.lastConsumedLabel, work.progressCurrent, work.progressTotal]);
 
   const hasProgressChanges =
     current !== (work.progressCurrent ?? null) ||
@@ -154,14 +145,10 @@ export function WorkListRow({
     current !== null && total !== null && current > total;
 
   return (
-    <Box
-      px="md"
-      py="md"
-      style={{ borderBottom: isLast ? 'none' : '1px solid var(--mantine-color-default-border)' }}
-    >
+    <Paper className={cn(css.listRowSurface)} radius="lg" withBorder>
       <Group align="center" gap="md" justify="space-between" wrap="wrap">
-        <Group align="center" gap="md" miw={0} style={{ flex: '1 1 32rem' }} wrap="nowrap">
-          <ArtworkPoster
+        <Group align="center" className={cn(css.listRowMain)} gap="md" miw={0} wrap="nowrap">
+          <WorkPoster
             thumbnailUrl={work.thumbnailUrl}
             title={work.title}
             typeLabel={typeLabel}
@@ -169,34 +156,32 @@ export function WorkListRow({
           />
 
           <Stack flex={1} gap={6} miw={0}>
-            <ActionRow>
-              <AppBadge>{typeLabel}</AppBadge>
-              <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
-              <AppBadge>{formatRatingLabel(work.rating)}</AppBadge>
-              {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
-              {isUpdating && <AppBadge tone="accent">반영 중</AppBadge>}
-            </ActionRow>
-
-            <div>
-              <Title order={3} size="h4">
-                <Link style={{ color: 'inherit', textDecoration: 'none' }} to={`/works/${work.id}`}>
-                  {work.title}
-                </Link>
-              </Title>
-              <Text c="var(--mantine-color-dimmed)" size="sm">
-                {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
+            <Group gap="xs" wrap="nowrap">
+              <Text c="dimmed" lineClamp={1} size="xs">
+                {typeLabel}
               </Text>
-            </div>
+              <Text c="dimmed" size="xs">/</Text>
+              <Text c="dimmed" lineClamp={1} size="xs">
+                {getWorkStatusLabel(work.status)}
+              </Text>
+              {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
+            </Group>
 
-            <Text c="var(--mantine-color-text)" lineClamp={2} size="sm">
+            <Title lineClamp={1} order={3} size="h4">
+              <Link to={`/works/${work.id}`}>{work.title}</Link>
+            </Title>
+            <Text c="dimmed" lineClamp={1} size="sm">
+              {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
+            </Text>
+            <Text c="var(--app-text-secondary)" lineClamp={2} size="sm">
               {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
             </Text>
-
             {progressLabel && (
               <Stack gap={4}>
-                <ActionRow>
-                  <AppBadge tone="muted">진행도 {progressLabel}</AppBadge>
-                </ActionRow>
+                <Group gap="xs" wrap="wrap">
+                  <AppBadge tone="muted">진행 {progressLabel}</AppBadge>
+                  <AppBadge tone="muted">{formatRatingLabel(work.rating)}</AppBadge>
+                </Group>
                 {progressPercent !== null && (
                   <Progress
                     aria-label={`${work.title} 진행도 ${progressPercent}%`}
@@ -211,7 +196,7 @@ export function WorkListRow({
           </Stack>
         </Group>
 
-        <Stack gap="xs" maw={380} style={{ flex: '1 1 20rem', minWidth: 'min(100%, 20rem)' }}>
+        <Stack className={cn(css.listRowControls)} gap="xs">
           <ActionRow justify="flex-end">
             <AppLinkButton size="compact-sm" to={`/works/${work.id}`} tone="quiet">
               보기
@@ -220,33 +205,15 @@ export function WorkListRow({
               수정
             </AppLinkButton>
             <AppButton
-              aria-label={
-                work.favorite
-                  ? `${work.title} 즐겨찾기 해제`
-                  : `${work.title} 즐겨찾기`
-              }
+              aria-label={work.favorite ? `${work.title} 즐겨찾기 해제` : `${work.title} 즐겨찾기`}
               aria-pressed={work.favorite}
               disabled={isUpdating}
-              onClick={() =>
-                void onQuickUpdate(work, {
-                  favorite: !work.favorite,
-                })
-              }
+              onClick={() => void onQuickUpdate(work, { favorite: !work.favorite })}
               size="compact-sm"
               tone={work.favorite ? 'primary' : 'secondary'}
               type="button"
             >
               {work.favorite ? '★' : '☆'}
-            </AppButton>
-            <AppButton
-              aria-label={`${work.title} 삭제`}
-              disabled={isUpdating}
-              onClick={() => void onDelete(work)}
-              size="compact-sm"
-              tone="danger"
-              type="button"
-            >
-              삭제
             </AppButton>
           </ActionRow>
 
@@ -254,7 +221,6 @@ export function WorkListRow({
             <NativeSelect
               aria-label={`${work.title} 별점`}
               disabled={isUpdating}
-              id={`rating-${work.id}`}
               label="별점"
               onChange={(event) => {
                 const nextValue =
@@ -279,7 +245,6 @@ export function WorkListRow({
             <NativeSelect
               aria-label={`${work.title} 상태`}
               disabled={isUpdating}
-              id={`status-${work.id}`}
               label="상태"
               onChange={(event) =>
                 void onQuickUpdate(work, {
@@ -324,19 +289,17 @@ export function WorkListRow({
               <Group align="flex-end" gap="xs" wrap="wrap">
                 <TextInput
                   aria-label={`${work.title} 마지막 위치`}
+                  className={cn(css.lastLocationInput)}
                   disabled={isUpdating}
                   label="마지막 위치"
                   maxLength={120}
                   onChange={(event) => setLastLabel(event.currentTarget.value)}
                   placeholder={`예: ${current ?? 18}${progressUnitLabels[progressUnit]}`}
-                  style={{ flex: '1 1 auto' }}
                   value={lastLabel}
                 />
                 <AppButton
                   aria-label={`${work.title} 진행도 저장`}
-                  disabled={
-                    isUpdating || !hasProgressChanges || hasInvalidProgress
-                  }
+                  disabled={isUpdating || !hasProgressChanges || hasInvalidProgress}
                   onClick={() =>
                     void onQuickProgressUpdate(work, {
                       lastConsumedLabel: lastLabel,
@@ -352,16 +315,28 @@ export function WorkListRow({
                   저장
                 </AppButton>
               </Group>
-
               {hasInvalidProgress && (
                 <Text c="red" size="xs">
-                  현재 진행도가 전체보다 클 수 없습니다.
+                  현재 진행량이 전체보다 클 수 없습니다.
                 </Text>
               )}
             </Stack>
           )}
+
+          <ActionRow justify="flex-end">
+            <AppButton
+              aria-label={`${work.title} 삭제`}
+              disabled={isUpdating}
+              onClick={() => void onDelete(work)}
+              size="compact-sm"
+              tone="danger"
+              type="button"
+            >
+              삭제
+            </AppButton>
+          </ActionRow>
         </Stack>
       </Group>
-    </Box>
+    </Paper>
   );
 }

@@ -3,7 +3,6 @@ import { SimpleGrid, Stack, Text, Title } from '@mantine/core';
 
 import {
   ActionRow,
-  PageSection,
   PageShell,
   SectionCard,
   SectionIntro,
@@ -14,30 +13,36 @@ interface PageFrameProps {
   children: ReactNode;
 }
 
-export function HomeHubPageTemplate({ children }: PageFrameProps) {
-  return <PageShell gap="xl" size={1240}>{children}</PageShell>;
+export function HomeLandingTemplate({ children }: PageFrameProps) {
+  return <PageShell gap="var(--app-space-section)" size={1280}>{children}</PageShell>;
 }
 
-export function WorkspacePageTemplate({ children }: PageFrameProps) {
-  return <PageShell gap="lg" size={1280}>{children}</PageShell>;
+export function LibraryTemplate({ children }: PageFrameProps) {
+  return <PageShell gap="xl" size={1320}>{children}</PageShell>;
 }
 
-export function DetailPageTemplate({ children }: PageFrameProps) {
-  return <PageShell gap="xl" size={1200}>{children}</PageShell>;
+export function WorkDetailTemplate({ children }: PageFrameProps) {
+  return <PageShell gap="var(--app-space-section)" size={1180}>{children}</PageShell>;
 }
 
-export function FlowPageTemplate({ children }: PageFrameProps) {
-  return <PageShell gap="xl" size={1280}>{children}</PageShell>;
+export function FormFlowTemplate({ children }: PageFrameProps) {
+  return <PageShell gap="xl" size={1160}>{children}</PageShell>;
 }
+
+export function AccountSettingsTemplate({ children }: PageFrameProps) {
+  return <PageShell gap="lg" size={1120}>{children}</PageShell>;
+}
+
+export const HomeHubPageTemplate = HomeLandingTemplate;
+export const WorkspacePageTemplate = LibraryTemplate;
+export const DetailPageTemplate = WorkDetailTemplate;
+export const FlowPageTemplate = FormFlowTemplate;
 
 interface AuthPageTemplateProps {
   description?: string;
   footer?: ReactNode;
   form: ReactNode;
-  highlights?: Array<{
-    description: string;
-    title: string;
-  }>;
+  highlights?: Array<{ description: string; title: string }>;
   eyebrow?: string;
   title: string;
 }
@@ -53,12 +58,7 @@ export function AuthPageTemplate({
   return (
     <PageShell gap="md" size={480}>
       <SectionCard gap="lg" padding="xl" tone="default">
-        <SectionIntro
-          description={description}
-          eyebrow={eyebrow}
-          title={title}
-          titleOrder={1}
-        />
+        <SectionIntro description={description} eyebrow={eyebrow} title={title} titleOrder={1} />
         {form}
         {footer && <Stack gap="xs">{footer}</Stack>}
       </SectionCard>
@@ -66,19 +66,13 @@ export function AuthPageTemplate({
       {highlights.length > 0 && (
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
           {highlights.map((highlight) => (
-            <PageSection
-              divider={false}
-              eyebrow="안내"
-              key={highlight.title}
-              title={highlight.title}
-              titleOrder={3}
-            >
-              <Text c="var(--mantine-color-dimmed)">{highlight.description}</Text>
-            </PageSection>
+            <SectionCard key={highlight.title} padding="lg" tone="subtle">
+              <SectionIntro eyebrow="안내" title={highlight.title} titleOrder={3} />
+              <Text c="dimmed">{highlight.description}</Text>
+            </SectionCard>
           ))}
         </SimpleGrid>
       )}
-
     </PageShell>
   );
 }
@@ -101,7 +95,7 @@ export function AccountPageTemplate({
   title,
 }: AccountPageTemplateProps) {
   return (
-    <PageShell gap="lg" size={1120}>
+    <AccountSettingsTemplate>
       <PageHero
         actions={actions}
         description={description}
@@ -111,7 +105,7 @@ export function AccountPageTemplate({
         titleAs="h1"
       />
       {children}
-    </PageShell>
+    </AccountSettingsTemplate>
   );
 }
 
@@ -130,14 +124,12 @@ export function MinimalPageTemplate({
 }: MinimalPageTemplateProps) {
   return (
     <PageShell gap="lg" size={760}>
-      <SectionCard padding="xl" tone="default">
-        <Text c="var(--mantine-primary-color-filled)" fw={700} fz="0.76rem" lts="0.12em" tt="uppercase">
+      <SectionCard padding="xl" tone="hero">
+        <Text c="archive.2" fw={800} size="xs" tt="uppercase">
           {eyebrow}
         </Text>
         <Title order={1}>{title}</Title>
-        <Text c="var(--mantine-color-text)" maw="58ch">
-          {description}
-        </Text>
+        <Text c="dimmed" maw="58ch">{description}</Text>
         {actions && <ActionRow>{actions}</ActionRow>}
       </SectionCard>
     </PageShell>

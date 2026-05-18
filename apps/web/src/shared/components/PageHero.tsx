@@ -27,12 +27,12 @@ export function PageHero({
     <PageHeader
       actions={actions}
       aside={aside}
-      className={className}
       description={description}
       eyebrow={eyebrow}
       meta={meta}
       title={title}
       titleOrder={titleAs === 'h1' ? 1 : 2}
+      {...(className ? { className } : {})}
     />
   );
 }
