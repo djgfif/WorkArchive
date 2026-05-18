@@ -105,9 +105,9 @@ function AccountNavigationCard({
       </Group>
 
       <SectionIntro
-        description="계정, 로컬 백업, 화면 설정을 이곳에서 관리합니다. 로그인하면 자동 백업은 백그라운드에서 조용히 실행됩니다."
+        description="기록은 이 기기에 먼저 남고, 로그인하면 백업이 조용히 따라갑니다."
         eyebrow={isAuthenticated ? '로그인됨' : '게스트 모드'}
-        title="설정과 로컬 백업"
+        title="내 기록 보관함"
       />
 
       <Stack gap={4}>

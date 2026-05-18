@@ -27,7 +27,6 @@ import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 const primaryNavigationItems = [
   { label: '홈', to: '/' },
   { label: '작품', to: '/works' },
-  { label: '작품 추가', to: '/works/new' },
   { label: '설정', to: '/account/settings' },
 ] as const;
 
@@ -38,7 +37,7 @@ export function MainProductLayout() {
   const isAuthenticated = mode === 'authenticated';
   const accountMenuLabel = isAuthenticated
     ? (user?.email ?? '계정')
-    : '게스트';
+    : '계정';
 
   async function handleSignOut() {
     await signOut();
@@ -64,7 +63,7 @@ export function MainProductLayout() {
                   opened={mobileMenuOpened}
                   size="sm"
                 />
-                <BrandLink heading="Work Archive" kicker="Personal media archive" />
+                <BrandLink heading="Work Archive" kicker="개인 감상 서재" />
               </Group>
 
               <Group
@@ -86,9 +85,6 @@ export function MainProductLayout() {
               </Group>
 
               <Group gap="sm" justify="flex-end" wrap="nowrap">
-                <Box visibleFrom="md">
-                  <ThemeToggleControl />
-                </Box>
                 <Box hiddenFrom="sm">
                   <AppLinkButton
                     aria-label="작품 추가"
@@ -104,14 +100,6 @@ export function MainProductLayout() {
                     작품 추가
                   </AppLinkButton>
                 </Box>
-                {!isAuthenticated && (
-                  <Group gap="xs" visibleFrom="md" wrap="nowrap">
-                    <AppLinkButton to="/auth/login">로그인</AppLinkButton>
-                    <AppLinkButton to="/auth/register" tone="quiet">
-                      회원가입
-                    </AppLinkButton>
-                  </Group>
-                )}
 
                 <Box visibleFrom="md">
                   <Menu position="bottom-end" shadow="md" width={240} withinPortal={false}>
@@ -128,6 +116,9 @@ export function MainProductLayout() {
                       <Menu.Item onClick={() => navigate('/account/settings')}>
                         설정과 백업
                       </Menu.Item>
+                      <Box p="xs">
+                        <ThemeToggleControl fullWidth />
+                      </Box>
                       <Menu.Divider />
                       {isAuthenticated ? (
                         <Menu.Item color="red" onClick={() => void handleSignOut()}>
@@ -204,7 +195,7 @@ export function MainProductLayout() {
 
           {isLoading ? (
             <StateMessage
-              description="Please wait while your archive is prepared."
+              description="개인 기록을 불러오는 동안 잠시만 기다려주세요."
               eyebrow="불러오는 중"
               title="Work Archive를 준비하고 있습니다"
               tone="loading"

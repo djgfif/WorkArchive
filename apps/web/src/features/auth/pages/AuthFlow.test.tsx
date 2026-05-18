@@ -83,8 +83,9 @@ describe('Auth flow', () => {
     await user.click(screen.getByRole('button', { name: 'frieren@example.com' }));
     await user.click(await screen.findByRole('menuitem', { name: '로그아웃' }));
 
-    expect(await screen.findByRole('link', { name: '로그인' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '회원가입' })).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: '계정' }));
+    expect(await screen.findByRole('menuitem', { name: '로그인' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: '회원가입' })).toBeInTheDocument();
   });
 
   it('navigates to guest transfer review after login when pending guest data exists', async () => {
@@ -222,6 +223,8 @@ describe('Auth flow', () => {
   });
 
   it('falls back to guest mode when startup refresh fails', async () => {
+    const user = userEvent.setup();
+
     writeStoredAuthTokens({
       accessToken: 'stale-memory-token',
     });
@@ -253,7 +256,8 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByRole('link', { name: '로그인' })).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: '계정' }));
+    expect(await screen.findByRole('menuitem', { name: '로그인' })).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/auth/refresh'),
       expect.objectContaining({

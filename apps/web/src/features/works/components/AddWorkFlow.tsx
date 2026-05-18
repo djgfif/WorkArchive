@@ -7,6 +7,7 @@ import {
   Accordion,
   Alert,
   Checkbox,
+  Grid,
   Group,
   NativeSelect,
   Paper,
@@ -17,6 +18,7 @@ import {
   Text,
   TextInput,
   Textarea,
+  Title,
 } from '@mantine/core';
 import {
   useEffect,
@@ -35,7 +37,6 @@ import {
   ChipSummary,
   FeedbackMessage,
 } from '../../../shared/components/AppPrimitives';
-import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   importsService,
   type ImportCandidate,
@@ -47,6 +48,7 @@ import {
 } from '../../imports/hooks/useImportProviderReadiness';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
+import { WorkPoster } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
 import {
   buildImportIdentity,
@@ -162,14 +164,9 @@ function ProviderReadinessSummary({
 }: ProviderReadinessSummaryProps) {
   return (
     <Paper
+      className={cn(css.providerStatusPanel)}
       p="sm"
       radius="md"
-      styles={{
-        root: {
-          backgroundColor: 'var(--mantine-color-default)',
-          borderColor: 'var(--mantine-color-default-border)',
-        },
-      }}
       withBorder
     >
       <Stack gap="xs">
@@ -405,18 +402,14 @@ function AdvancedWorkFields({
               value={values.thumbnailUrl}
             />
             <Paper
+              className={cn(css.coverPreviewPanel)}
               p="sm"
               radius="md"
-              styles={{
-                root: {
-                  backgroundColor: 'var(--mantine-color-default)',
-                  borderColor: 'var(--mantine-color-default-border)',
-                },
-              }}
               withBorder
             >
               <Group align="center" gap="md" wrap="nowrap">
-                <ArtworkPoster
+                <WorkPoster
+                  coverSeed={`advanced:${previewTitle}:${values.type}`}
                   thumbnailUrl={values.thumbnailUrl}
                   title={previewTitle}
                   typeLabel="표지"
@@ -488,6 +481,44 @@ function AdvancedWorkFields({
         </Accordion.Panel>
       </Accordion.Item>
     </Accordion>
+  );
+}
+
+function QuickCapturePreview({ values }: { values: WorkFormValues }) {
+  const previewTitle = values.title.trim() || '제목 없는 작품';
+  const typeLabel =
+    workTypeOptions.find((option) => option.value === values.type)?.label ??
+    '작품';
+  const statusLabel =
+    workStatusOptions.find((option) => option.value === values.status)?.label ??
+    '기록';
+  const shortReview = values.shortReview.trim();
+
+  return (
+    <Paper className={cn(css.quickCapturePreview)} withBorder>
+      <Stack gap="lg">
+        <WorkPoster
+          coverSeed={`quick:${values.type}:${previewTitle}`}
+          thumbnailUrl={values.thumbnailUrl}
+          title={previewTitle}
+          typeLabel={typeLabel}
+          variant="form"
+        />
+        <Stack gap="sm">
+          <Text c="var(--mantine-color-dimmed)" fw={800} size="xs">
+            저장될 기록
+          </Text>
+          <Title order={3}>{previewTitle}</Title>
+          <Text c="var(--mantine-color-dimmed)" size="sm">
+            {typeLabel} · {statusLabel}
+            {values.rating ? ` · ★ ${Number.parseFloat(values.rating).toFixed(1)}` : ''}
+          </Text>
+          <Text c="var(--mantine-color-dimmed)" lineClamp={4}>
+            {shortReview || '짧은 감상을 적지 않아도 먼저 저장할 수 있습니다.'}
+          </Text>
+        </Stack>
+      </Stack>
+    </Paper>
   );
 }
 
@@ -864,29 +895,66 @@ export function AddWorkFlow({
               </Alert>
             )}
 
-            <CoreWorkFields
-              error={titleError}
-              idPrefix="manual"
-              onChange={handleInputChange}
-              titleInputRef={titleInputRef}
-              values={values}
-            />
+            {variant === 'page' ? (
+              <Grid align="start" gutter="xl">
+                <Grid.Col span={{ base: 12, lg: 8 }}>
+                  <Stack gap="xl">
+                    <CoreWorkFields
+                      error={titleError}
+                      idPrefix="manual"
+                      onChange={handleInputChange}
+                      titleInputRef={titleInputRef}
+                      values={values}
+                    />
 
-            <PersonalRecordFields
-              idPrefix="manual"
-              onInputChange={handleInputChange}
-              onStatusChange={handleStatusChange}
-              values={values}
-            />
+                    <PersonalRecordFields
+                      idPrefix="manual"
+                      onInputChange={handleInputChange}
+                      onStatusChange={handleStatusChange}
+                      values={values}
+                    />
 
-            <AdvancedWorkFields
-              idPrefix="manual"
-              itemValue="manual-advanced-fields"
-              onInputChange={handleInputChange}
-              onTextListChange={handleTextListChange}
-              tagSuggestions={tagSuggestions}
-              values={values}
-            />
+                    <AdvancedWorkFields
+                      idPrefix="manual"
+                      itemValue="manual-advanced-fields"
+                      onInputChange={handleInputChange}
+                      onTextListChange={handleTextListChange}
+                      tagSuggestions={tagSuggestions}
+                      values={values}
+                    />
+                  </Stack>
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, lg: 4 }}>
+                  <QuickCapturePreview values={values} />
+                </Grid.Col>
+              </Grid>
+            ) : (
+              <>
+                <CoreWorkFields
+                  error={titleError}
+                  idPrefix="manual"
+                  onChange={handleInputChange}
+                  titleInputRef={titleInputRef}
+                  values={values}
+                />
+
+                <PersonalRecordFields
+                  idPrefix="manual"
+                  onInputChange={handleInputChange}
+                  onStatusChange={handleStatusChange}
+                  values={values}
+                />
+
+                <AdvancedWorkFields
+                  idPrefix="manual"
+                  itemValue="manual-advanced-fields"
+                  onInputChange={handleInputChange}
+                  onTextListChange={handleTextListChange}
+                  tagSuggestions={tagSuggestions}
+                  values={values}
+                />
+              </>
+            )}
 
             {(validationError || submitError) && (
               <FeedbackMessage tone="error">

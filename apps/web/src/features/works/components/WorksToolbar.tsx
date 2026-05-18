@@ -146,7 +146,7 @@ export function WorksToolbar({
   ];
 
   return (
-    <Stack gap="lg">
+    <Stack gap="md">
       <ArchiveHero
         actions={
           <Group gap="sm" justify="flex-end" wrap="wrap">
@@ -161,8 +161,9 @@ export function WorksToolbar({
           </Group>
         }
         description={countSummary}
-        eyebrow="Library"
-        title="작품 라이브러리"
+        eyebrow="내 작품"
+        title="작품 서재"
+        variant="compact"
       >
         <ArchiveSearchBar
           aria-label="작품 라이브러리 검색"
@@ -231,7 +232,7 @@ export function WorksToolbar({
           tone="ghost"
           type="button"
         >
-          {filtersExpanded ? '상세 필터 접기' : '상세 필터'}
+          {filtersExpanded ? '필터 접기' : '필터'}
         </AppButton>
       </Group>
 
