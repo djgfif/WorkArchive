@@ -155,6 +155,52 @@ function getNowIso() {
   return new Date().toISOString();
 }
 
+function getLatestIso(left: string, right: string) {
+  return Date.parse(left) >= Date.parse(right) ? left : right;
+}
+
+function mergePulledWorkWithQueuedPayload(
+  remote: WorkRecord,
+  localPayload: WorkRecord,
+): WorkRecord {
+  return {
+    ...cloneWorkRecord(remote),
+    ...cloneWorkRecord(localPayload),
+    createdAt: remote.createdAt,
+    serverVersion: remote.serverVersion,
+    syncStatus: 'pending',
+    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+  };
+}
+
+function mergePulledReleaseRecordWithQueuedPayload(
+  remote: UserReleaseRecord,
+  localPayload: UserReleaseRecord,
+): UserReleaseRecord {
+  return {
+    ...cloneReleaseRecord(remote),
+    ...cloneReleaseRecord(localPayload),
+    createdAt: remote.createdAt,
+    serverVersion: remote.serverVersion,
+    syncStatus: 'pending',
+    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+  };
+}
+
+function mergePulledTimelineEntryWithQueuedPayload(
+  remote: TimelineEntryRecord,
+  localPayload: TimelineEntryRecord,
+): TimelineEntryRecord {
+  return {
+    ...cloneTimelineEntry(remote),
+    ...cloneTimelineEntry(localPayload),
+    createdAt: remote.createdAt,
+    serverVersion: remote.serverVersion,
+    syncStatus: 'pending',
+    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+  };
+}
+
 function assertSupportedResponseSchemaVersion(
   schemaVersion: unknown,
   context: 'push' | 'pull',
@@ -397,19 +443,12 @@ export class SyncService {
 
       assertSupportedResponseSchemaVersion(response.schemaVersion, 'pull');
 
-      const queuedWorkIds = new Set(await this.queueRepo.getQueuedWorkIds());
-      const queuedReleaseRecordIds = new Set(
-        await this.queueRepo.getQueuedReleaseRecordIds(),
-      );
-      const queuedTimelineEntryIds = new Set(
-        await this.queueRepo.getQueuedTimelineEntryIds(),
-      );
       const queueItems = await this.queueRepo.listAll();
       const queueItemsByEntityKey = new Map<string, SyncQueueItemRecord[]>();
       const worksToMerge: WorkRecord[] = [];
       const releaseRecordsToMerge: UserReleaseRecord[] = [];
       const timelineEntriesToMerge: TimelineEntryRecord[] = [];
-      let skippedCount = 0;
+      const skippedCount = 0;
       const messages: string[] = [];
 
       for (const item of queueItems) {
@@ -421,40 +460,17 @@ export class SyncService {
       }
 
       for (const change of response.changes) {
-        const hasLocalQueue =
-          change.entityType === 'work'
-            ? queuedWorkIds.has(change.entityId)
-            : change.entityType === 'release_record'
-              ? queuedReleaseRecordIds.has(change.entityId)
-              : queuedTimelineEntryIds.has(change.entityId);
+        const relatedQueueItems =
+          queueItemsByEntityKey.get(
+            this.getEntityKey(change.entityType, change.entityId),
+          ) ?? [];
+        const hasLocalQueue = relatedQueueItems.length > 0;
 
         if (hasLocalQueue) {
-          skippedCount += 1;
-          messages.push(localizeSyncResultCode('pull_conflict_local_queue'));
-          await this.markEntitySyncStatus(
-            change.entityType,
-            change.entityId,
-            'conflict',
+          await this.autoMergePullChangeWithQueuedPayload(
+            change,
+            relatedQueueItems,
           );
-
-          const relatedQueueItems =
-            queueItemsByEntityKey.get(
-              this.getEntityKey(change.entityType, change.entityId),
-            ) ?? [];
-
-          for (const queueItem of relatedQueueItems) {
-            await this.queueRepo.setLastError(
-              queueItem.id,
-              localizeSyncResultCode('pull_conflict_local_queue'),
-            );
-            await this.queueRepo.setConflict(
-              queueItem.id,
-              localizeSyncResultCode('pull_conflict_local_queue'),
-              this.getRemotePullConflictPayload(change),
-              'pull_conflict_local_queue',
-            );
-          }
-
           continue;
         }
 
@@ -476,7 +492,7 @@ export class SyncService {
       await this.worksRepo.bulkPut(worksToMerge);
       await this.releaseRecordsRepo.bulkPut(releaseRecordsToMerge);
       await this.timelineEntriesRepo.bulkPut(timelineEntriesToMerge);
-      const nextSince = skippedCount > 0 ? since : response.nextSince;
+      const nextSince = response.nextSince;
 
       if (nextSince !== null) {
         await this.metaRepo.setValue(LAST_SUCCESSFUL_PULL_AT_KEY, nextSince);
@@ -877,6 +893,51 @@ export class SyncService {
     }
 
     return change.work ?? null;
+  }
+
+  private async autoMergePullChangeWithQueuedPayload(
+    change: PullSyncChange,
+    queueItems: SyncQueueItemRecord[],
+  ) {
+    if (change.entityType === 'work' && change.work) {
+      for (const queueItem of queueItems) {
+        const merged = mergePulledWorkWithQueuedPayload(
+          change.work,
+          queueItem.payload as WorkRecord,
+        );
+
+        await this.worksRepo.update(merged);
+        await this.queueRepo.resetForRetry(queueItem.id, merged);
+      }
+
+      return;
+    }
+
+    if (change.entityType === 'release_record' && change.releaseRecord) {
+      for (const queueItem of queueItems) {
+        const merged = mergePulledReleaseRecordWithQueuedPayload(
+          change.releaseRecord,
+          queueItem.payload as UserReleaseRecord,
+        );
+
+        await this.releaseRecordsRepo.update(merged);
+        await this.queueRepo.resetForRetry(queueItem.id, merged);
+      }
+
+      return;
+    }
+
+    if (change.entityType === 'timeline_entry' && change.timelineEntry) {
+      for (const queueItem of queueItems) {
+        const merged = mergePulledTimelineEntryWithQueuedPayload(
+          change.timelineEntry,
+          queueItem.payload as TimelineEntryRecord,
+        );
+
+        await this.timelineEntriesRepo.update(merged);
+        await this.queueRepo.resetForRetry(queueItem.id, merged);
+      }
+    }
   }
 
   private localizeSyncResult(

@@ -7,7 +7,6 @@ import {
   LocalArchiveSettingsSection,
   ProviderKeyVaultSection,
   ProviderReadinessSection,
-  SettingsFutureSection,
 } from '../components/settings/SettingsSections';
 import { useAuthSessionSettings } from '../hooks/useAuthSessionSettings';
 import { useImportProviderSettings } from '../hooks/useImportProviderSettings';
@@ -80,8 +79,6 @@ export function SettingsPage() {
         revokingSessionId={authSessionSettings.revokingSessionId}
         sessions={authSessionSettings.sessions}
       />
-
-      <SettingsFutureSection />
     </AccountPageTemplate>
   );
 }

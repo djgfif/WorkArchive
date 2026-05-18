@@ -44,7 +44,7 @@ export function ArtworkPoster({
       <Paper
         radius="md"
         style={{
-          borderColor: 'var(--app-border-color)',
+          borderColor: 'var(--mantine-color-default-border)',
           flexShrink: 0,
           overflow: 'hidden',
           width,
@@ -73,8 +73,8 @@ export function ArtworkPoster({
       style={{
         aspectRatio: '3 / 4',
         background:
-          'linear-gradient(135deg, rgba(173, 202, 222, 0.12), transparent 48%), var(--app-surface-low)',
-        borderColor: 'var(--app-border-color)',
+          'linear-gradient(135deg, rgba(173, 202, 222, 0.12), transparent 48%), var(--mantine-color-default-hover)',
+        borderColor: 'var(--mantine-color-default-border)',
         flexShrink: 0,
         overflow: 'hidden',
         width,
@@ -84,11 +84,11 @@ export function ArtworkPoster({
     >
       <Center h="100%">
         <Stack align="center" gap={6} px="sm">
-          <Text c="var(--app-text-secondary)" fw={700} fz="1.9rem">
+          <Text c="var(--mantine-color-text)" fw={700} fz="1.9rem">
             {(title.trim()[0] ?? 'W').toUpperCase()}
           </Text>
           {typeLabel && (
-            <Text c="var(--app-text-muted)" fw={600} fz="0.72rem" lts="0.1em" ta="center" tt="uppercase">
+            <Text c="var(--mantine-color-dimmed)" fw={600} fz="0.72rem" lts="0.1em" ta="center" tt="uppercase">
               {typeLabel}
             </Text>
           )}

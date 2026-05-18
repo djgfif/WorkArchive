@@ -60,7 +60,7 @@ export function useAutoSync({
       try {
         await service.pullRemoteChanges();
       } catch {
-        // Pull failures are surfaced by the manual sync dashboard; local writes stay unblocked.
+        // Pull failures stay quiet; the next focus or reconnect attempts the background pull again.
       } finally {
         isPullRunningRef.current = false;
       }
@@ -113,7 +113,7 @@ export function useAutoSync({
       try {
         await service.pushQueuedChanges();
       } catch {
-        // Push failures leave queue items available for SyncPage retry/conflict handling.
+        // Push failures leave queue items pending for the next background retry.
       } finally {
         isPushRunningRef.current = false;
       }

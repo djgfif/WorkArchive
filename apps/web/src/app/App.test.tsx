@@ -16,15 +16,11 @@ describe('App', () => {
 
     expect(screen.getByText('Work Archive')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: '기록 홈' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '홈' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '작품' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '인사이트' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '보드 준비 중' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '계정' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '동기화' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '설정' })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: '작품 추가' }).length).toBeGreaterThan(0);
-    expect(screen.queryByText('커뮤니티')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Works' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Settings' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Quick Add' }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: /Tier|Board|Community|Insight|Sync/i })).not.toBeInTheDocument();
   });
 
   it('offers recovery actions when the home recent records cannot load', async () => {

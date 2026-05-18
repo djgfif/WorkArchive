@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   TimelineEntryRecord,
@@ -184,7 +184,7 @@ describe('SyncService', () => {
       catalogReleaseId: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
       status: 'completed',
       rating: 4.5,
-      shortReview: '1권 감상',
+      shortReview: '1沅?媛먯긽',
       review: '',
       favorite: false,
       createdAt: now,
@@ -813,7 +813,7 @@ describe('SyncService', () => {
     ).resolves.toBe('2026-04-18T00:00:00.000Z');
   });
 
-  it('keeps the pull cursor in place when remote changes are skipped due to queued local work', async () => {
+  it('auto-merges pulled work into queued local work without marking a conflict', async () => {
     const existing = await worksService.createWork(
       buildInput({
         title: 'Dune',
@@ -862,37 +862,33 @@ describe('SyncService', () => {
       expect.objectContaining({
         pulledCount: 1,
         appliedCount: 0,
-        skippedCount: 1,
-        nextSince: '2026-04-18T00:00:00.000Z',
+        skippedCount: 0,
+        nextSince: '2026-04-18T01:30:00.000Z',
         requestFailed: false,
       }),
     );
     expect(queueAfterPull).toEqual(
       expect.objectContaining({
-        retryCount: 1,
-        lastError:
-          '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다.',
-        conflict: expect.objectContaining({
-          code: 'pull_conflict_local_queue',
-          message:
-            '다른 곳에서 변경된 내용이 있어 자동으로 가져오지 않았습니다.',
-          remote: expect.objectContaining({
-            id: existing.id,
-            title: 'Dune Messiah',
-            serverVersion: 2,
-          }),
+        retryCount: 0,
+        lastError: null,
+        conflict: null,
+        payload: expect.objectContaining({
+          id: existing.id,
+          title: 'Dune',
+          syncStatus: 'pending',
+          serverVersion: 2,
         }),
       }),
     );
     expect(await worksRepository.getById(existing.id)).toEqual(
       expect.objectContaining({
         title: 'Dune',
-        syncStatus: 'conflict',
-        serverVersion: 0,
+        syncStatus: 'pending',
+        serverVersion: 2,
       }),
     );
     await expect(
       appMetaRepository.getValue('sync.lastSuccessfulPullAt'),
-    ).resolves.toBe('2026-04-18T00:00:00.000Z');
+    ).resolves.toBe('2026-04-18T01:30:00.000Z');
   });
 });

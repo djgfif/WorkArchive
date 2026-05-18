@@ -256,7 +256,7 @@ export function WorkDetailPanel({
 
             <div>
               <Title order={1}>{work.title}</Title>
-              <Text c="var(--app-text-muted)">
+              <Text c="var(--mantine-color-dimmed)">
                 {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
                 {formatWorkUpdatedAt(work.updatedAt)}
               </Text>
@@ -272,7 +272,7 @@ export function WorkDetailPanel({
 
             {progressPercent !== null && (
               <Stack gap={4}>
-                <Text c="var(--app-text-muted)" fw={700} size="sm">
+                <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
                   진행률 {progressPercent}%
                 </Text>
                 <Progress
@@ -299,14 +299,14 @@ export function WorkDetailPanel({
         <SectionCard gap="lg" padding="lg" tone="default">
           <Stack gap="lg">
             <Stack gap="xs">
-              <Text c="var(--app-text-muted)" fw={700} size="sm">
+              <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
                 한줄평
               </Text>
               <Title
                 c={
                   shortReview
-                    ? 'var(--app-text-strong)'
-                    : 'var(--app-text-muted)'
+                    ? 'var(--mantine-color-text)'
+                    : 'var(--mantine-color-dimmed)'
                 }
                 order={3}
               >
@@ -315,12 +315,12 @@ export function WorkDetailPanel({
             </Stack>
 
             <Stack gap="xs">
-              <Text c="var(--app-text-muted)" fw={700} size="sm">
+              <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
                 상세 감상
               </Text>
               <Text
                 c={
-                  review ? 'var(--app-text-secondary)' : 'var(--app-text-muted)'
+                  review ? 'var(--mantine-color-text)' : 'var(--mantine-color-dimmed)'
                 }
                 lh={1.8}
               >
@@ -329,7 +329,7 @@ export function WorkDetailPanel({
             </Stack>
 
             <Stack gap="xs">
-              <Text c="var(--app-text-muted)" fw={700} size="sm">
+              <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
                 개인 태그
               </Text>
               {work.personalTags.length > 0 ? (
@@ -341,7 +341,7 @@ export function WorkDetailPanel({
                   ))}
                 </ActionRow>
               ) : (
-                <Text c="var(--app-text-muted)">
+                <Text c="var(--mantine-color-dimmed)">
                   아직 개인 태그를 남기지 않았습니다.
                 </Text>
               )}
@@ -379,7 +379,7 @@ export function WorkDetailPanel({
                       ? `최근 흐름: ${latestTimelineItem.label}`
                       : '아직 날짜 기록이 없습니다'}
                   </Text>
-                  <Text c="var(--app-text-muted)" size="sm">
+                  <Text c="var(--mantine-color-dimmed)" size="sm">
                     {latestTimelineItem
                       ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.description}`
                       : '시작일이나 마지막 감상일을 남기면 이곳에 요약됩니다.'}
@@ -463,7 +463,7 @@ export function WorkDetailPanel({
                           key={`${item.source}-${item.id}`}
                           style={{
                             borderLeft:
-                              '1px solid var(--app-border-strong)',
+                              '1px solid var(--mantine-color-default-border)',
                             paddingBottom:
                               index === timelineItems.length - 1
                                 ? 0
@@ -475,8 +475,8 @@ export function WorkDetailPanel({
                           <Box
                             aria-hidden="true"
                             style={{
-                              background: 'var(--app-accent)',
-                              border: '2px solid var(--app-surface-1)',
+                              background: 'var(--mantine-primary-color-filled)',
+                              border: '2px solid var(--mantine-color-default)',
                               borderRadius: '999px',
                               height: '0.6rem',
                               left: '-0.35rem',
@@ -501,7 +501,7 @@ export function WorkDetailPanel({
                                     : '날짜 기록'}
                                 </AppBadge>
                               </Group>
-                              <Text c="var(--app-text-muted)" size="sm">
+                              <Text c="var(--mantine-color-dimmed)" size="sm">
                                 {item.description}
                               </Text>
                             </Stack>
@@ -532,7 +532,7 @@ export function WorkDetailPanel({
                         </Box>
                       ))
                     ) : (
-                      <Text c="var(--app-text-muted)" size="sm">
+                      <Text c="var(--mantine-color-dimmed)" size="sm">
                         아직 날짜 기록이 없습니다. 시작일이나 마지막 감상일을 남기면
                         이곳에 표시됩니다.
                       </Text>

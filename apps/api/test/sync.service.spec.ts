@@ -294,8 +294,17 @@ describe('SyncService', () => {
     expect(userRecordsService.findByUserSince).not.toHaveBeenCalled();
   });
 
-  it('returns a conflict when the server version is newer and the server wins', async () => {
+  it('applies a queued work update even when the server version is newer', async () => {
     userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
+    userRecordsService.update.mockResolvedValue(
+      createWorkAggregateFixture({
+        catalogWork: {
+          ...createWorkAggregateFixture().catalogWork,
+          title: 'The Dark Forest',
+        },
+        serverVersion: 4,
+      }),
+    );
 
     const result = await service.push(USER_ID, {
       changes: [
@@ -317,17 +326,29 @@ describe('SyncService', () => {
 
     expect(result.results).toEqual([
       expect.objectContaining({
-        status: 'conflict',
-        code: 'conflict_remote_newer',
-        message: expect.stringContaining('server version 3'),
+        status: 'applied',
+        code: 'applied_change',
+        work: expect.objectContaining({
+          title: 'The Dark Forest',
+          serverVersion: 4,
+        }),
       }),
     ]);
     expect(result.schemaVersion).toBe(2);
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
-  it('treats a lower server version as conflict even when the client clock is ahead', async () => {
+  it('does not turn a lower local server version into a user-visible conflict', async () => {
     userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
+    userRecordsService.update.mockResolvedValue(
+      createWorkAggregateFixture({
+        catalogWork: {
+          ...createWorkAggregateFixture().catalogWork,
+          title: 'Future Client Clock',
+        },
+        serverVersion: 4,
+      }),
+    );
 
     const result = await service.push(USER_ID, {
       changes: [
@@ -349,12 +370,15 @@ describe('SyncService', () => {
 
     expect(result.results).toEqual([
       expect.objectContaining({
-        status: 'conflict',
-        code: 'conflict_remote_newer',
-        message: expect.stringContaining('server version 3'),
+        status: 'applied',
+        code: 'applied_change',
+        work: expect.objectContaining({
+          title: 'Future Client Clock',
+          serverVersion: 4,
+        }),
       }),
     ]);
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it('refuses to modify a record that belongs to another user', async () => {

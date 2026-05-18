@@ -32,7 +32,7 @@ describe('ProfilePage', () => {
     expect(
       screen.getAllByRole('link', { name: '작품 추가' }).length,
     ).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: '인사이트 보기' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '작품 보기' }).length).toBeGreaterThan(0);
     expect(screen.queryByText('공개 소개')).not.toBeInTheDocument();
     expect(screen.queryByText('공개 리스트')).not.toBeInTheDocument();
     expect(screen.queryByText('공개 프로필')).not.toBeInTheDocument();

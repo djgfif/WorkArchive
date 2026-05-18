@@ -73,7 +73,7 @@ export function AuthPageTemplate({
               title={highlight.title}
               titleOrder={3}
             >
-              <Text c="var(--app-text-muted)">{highlight.description}</Text>
+              <Text c="var(--mantine-color-dimmed)">{highlight.description}</Text>
             </PageSection>
           ))}
         </SimpleGrid>
@@ -131,11 +131,11 @@ export function MinimalPageTemplate({
   return (
     <PageShell gap="lg" size={760}>
       <SectionCard padding="xl" tone="default">
-        <Text c="var(--app-accent)" fw={700} fz="0.76rem" lts="0.12em" tt="uppercase">
+        <Text c="var(--mantine-primary-color-filled)" fw={700} fz="0.76rem" lts="0.12em" tt="uppercase">
           {eyebrow}
         </Text>
         <Title order={1}>{title}</Title>
-        <Text c="var(--app-text-secondary)" maw="58ch">
+        <Text c="var(--mantine-color-text)" maw="58ch">
           {description}
         </Text>
         {actions && <ActionRow>{actions}</ActionRow>}

@@ -65,8 +65,8 @@ export function WorksList({
         radius="md"
         styles={{
           root: {
-            backgroundColor: 'var(--app-surface-1)',
-            borderColor: 'var(--app-border-color)',
+            backgroundColor: 'var(--mantine-color-default)',
+            borderColor: 'var(--mantine-color-default-border)',
           },
         }}
         withBorder
@@ -77,7 +77,7 @@ export function WorksList({
               label="표시 중"
               value={`${visibleWorks.length} / ${works.length}개`}
             />
-            <Text c="var(--app-text-muted)" fz="sm">
+            <Text c="var(--mantine-color-dimmed)" fz="sm">
               많은 기록은 필요한 만큼만 이어서 불러와 목록 조작이 느려지지 않게 합니다.
             </Text>
           </Stack>
@@ -118,8 +118,8 @@ export function WorksList({
         radius="lg"
         styles={{
           root: {
-            backgroundColor: 'var(--app-surface-0)',
-            borderColor: 'var(--app-border-color)',
+            backgroundColor: 'var(--mantine-color-body)',
+            borderColor: 'var(--mantine-color-default-border)',
             overflow: 'hidden',
           },
         }}

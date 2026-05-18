@@ -10,7 +10,6 @@ import {
 import type { AuthRefreshSessionResponse } from '@work-archive/shared-types';
 import type { ChangeEvent, FormEvent } from 'react';
 
-import { FutureFeaturePage } from '../../../../shared/components/FutureFeaturePage';
 import {
   ActionRow,
   AppBadge,
@@ -75,7 +74,7 @@ export function AppearanceSettingsSection() {
         title="라이트·다크 모드"
       />
 
-      <Text c="var(--app-text-muted)">
+      <Text c="var(--mantine-color-dimmed)">
         선택한 모드는 로컬 저장소에 보존되고, 메인 레이아웃과 계정 화면에
         동일하게 적용됩니다.
       </Text>
@@ -195,7 +194,7 @@ export function LocalArchiveSettingsSection({
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <Stack gap="xs">
             <Text fw={700}>JSON 백업 가져오기</Text>
-            <Text c="var(--app-text-muted)" size="sm">
+            <Text c="var(--mantine-color-dimmed)" size="sm">
               가져온 기록은 기존 기록을 덮어쓰지 않고 새 local-first 기록으로
               추가됩니다.
             </Text>
@@ -216,7 +215,7 @@ export function LocalArchiveSettingsSection({
         <AppBadge tone="muted">refresh cookie 제외</AppBadge>
         <AppBadge tone="muted">API key 제외</AppBadge>
       </ActionRow>
-      <Text c="var(--app-text-muted)" size="sm">
+      <Text c="var(--mantine-color-dimmed)" size="sm">
         백업 파일의 syncQueue는 특정 기기의 작업 대기열이므로 가져오기에서
         복원하지 않습니다. access token, refresh cookie, provider API key도
         export/import 대상이 아닙니다.
@@ -288,7 +287,7 @@ export function LocalArchiveSettingsSection({
         </FeedbackMessage>
       )}
 
-      <Text c="var(--app-text-muted)" size="sm">
+      <Text c="var(--mantine-color-dimmed)" size="sm">
         로컬 데이터 초기화가 필요하다면 먼저 JSON 백업을 만든 뒤 브라우저 사이트
         데이터 삭제 또는 개발자 도구의 IndexedDB 초기화를 사용하세요.
       </Text>
@@ -309,7 +308,7 @@ function ProviderStatusCard({ status }: { status: ImportProviderStatus }) {
 
         <Text fw={700}>{status.label ?? status.provider}</Text>
         {status.mediumTypes && status.mediumTypes.length > 0 && (
-          <Text c="var(--app-text-muted)" size="sm">
+          <Text c="var(--mantine-color-dimmed)" size="sm">
             지원 매체: {status.mediumTypes.map(getWorkTypeLabel).join(', ')}
           </Text>
         )}
@@ -349,7 +348,7 @@ export function ProviderReadinessSection({
 
       {mode !== 'authenticated' ? (
         <Stack gap="sm">
-          <Text c="var(--app-text-muted)">
+          <Text c="var(--mantine-color-dimmed)">
             로그인하면 provider 준비 상태와 개인 API Key Vault를 함께 확인할 수
             있습니다. 공개 provider는 로그인 없이도 계속 사용할 수 있습니다.
           </Text>
@@ -359,7 +358,7 @@ export function ProviderReadinessSection({
           </ActionRow>
         </Stack>
       ) : isLoadingProviderStatuses ? (
-        <Text aria-busy="true" c="var(--app-text-muted)">
+        <Text aria-busy="true" c="var(--mantine-color-dimmed)">
           provider 상태를 불러오는 중입니다.
         </Text>
       ) : (
@@ -435,7 +434,7 @@ export function ProviderKeyVaultSection({
 
       {mode !== 'authenticated' ? (
         <Stack gap="sm">
-          <Text c="var(--app-text-muted)">
+          <Text c="var(--mantine-color-dimmed)">
             API Key Vault는 로그인한 계정에서만 사용할 수 있습니다. Google
             Books, Open Library, AniList, TVmaze처럼 공개 provider는 키 없이
             검색 보조에 계속 참여합니다.
@@ -446,7 +445,7 @@ export function ProviderKeyVaultSection({
           </ActionRow>
         </Stack>
       ) : isLoadingProviderStatuses ? (
-        <Text c="var(--app-text-muted)">
+        <Text c="var(--mantine-color-dimmed)">
           API Key Vault를 불러오는 중입니다.
         </Text>
       ) : (
@@ -494,7 +493,7 @@ export function ProviderKeyVaultSection({
                       {getProviderStatusLabel(selectedProvider)}
                     </AppBadge>
                   </ActionRow>
-                  <Text c="var(--app-text-muted)" size="sm">
+                  <Text c="var(--mantine-color-dimmed)" size="sm">
                     지원 매체:{' '}
                     {(selectedProvider.mediumTypes ?? [])
                       .map(getWorkTypeLabel)
@@ -546,13 +545,13 @@ export function ProviderKeyVaultSection({
                   </Stack>
                 </form>
 
-                <Text c="var(--app-text-muted)" size="sm">
+                <Text c="var(--mantine-color-dimmed)" size="sm">
                   이 credential은 검색 요청에만 사용하며, 로컬 아카이브
                   export/import에는 포함하지 않습니다.
                 </Text>
               </>
             ) : (
-              <Text c="var(--app-text-muted)">
+              <Text c="var(--mantine-color-dimmed)">
                 등록 가능한 외부 검색 provider가 없습니다.
               </Text>
             )}
@@ -601,16 +600,16 @@ export function LoginSessionsSection({
       />
 
       {mode !== 'authenticated' ? (
-        <Text c="var(--app-text-muted)">
+        <Text c="var(--mantine-color-dimmed)">
           로그인하면 계정 세션을 확인하고 원격 기기의 로그인 상태를 해제할 수
           있습니다.
         </Text>
       ) : isLoadingSessions ? (
-        <Text aria-busy="true" c="var(--app-text-muted)">
+        <Text aria-busy="true" c="var(--mantine-color-dimmed)">
           세션 목록을 불러오는 중입니다.
         </Text>
       ) : !hasSessions ? (
-        <Text c="var(--app-text-muted)">
+        <Text c="var(--mantine-color-dimmed)">
           현재 확인된 활성 세션이 없습니다.
         </Text>
       ) : (
@@ -631,7 +630,7 @@ export function LoginSessionsSection({
             <div
               key={session.id}
               style={{
-                border: '1px solid var(--app-border)',
+                border: '1px solid var(--mantine-color-default-border)',
                 borderRadius: 8,
                 padding: '1rem',
               }}
@@ -649,12 +648,12 @@ export function LoginSessionsSection({
                   </AppBadge>
                 </ActionRow>
 
-                <Text c="var(--app-text-muted)" size="sm">
+                <Text c="var(--mantine-color-dimmed)" size="sm">
                   마지막 사용: {formatSessionDate(session.lastUsedAt)} | 생성:{' '}
                   {formatSessionDate(session.createdAt)} | 만료:{' '}
                   {formatSessionDate(session.expiresAt)}
                 </Text>
-                <Text c="var(--app-text-muted)" size="sm">
+                <Text c="var(--mantine-color-dimmed)" size="sm">
                   기기: {session.userAgent || '알 수 없음'} | IP:{' '}
                   {session.ipAddress || '알 수 없음'}
                 </Text>
@@ -691,7 +690,7 @@ export function LoginSessionsSection({
               모든 기기 로그아웃
             </AppButton>
           </ActionRow>
-          <Text c="var(--app-text-muted)" size="sm">
+          <Text c="var(--mantine-color-dimmed)" size="sm">
             현재 기기를 로그아웃하면 즉시 게스트 모드로 돌아갑니다. 다른 기기
             세션 해제는 해당 기기의 다음 요청부터 적용됩니다.
           </Text>
@@ -705,30 +704,3 @@ export function LoginSessionsSection({
   );
 }
 
-export function SettingsFutureSection() {
-  return (
-    <FutureFeaturePage
-      description="설정은 계정, 동기화 정책, 테마, 로컬 데이터 관리처럼 개인 아카이브 운영에 필요한 항목을 모읍니다."
-      eyebrow="계정 설정"
-      highlights={[
-        {
-          title: '계정 설정',
-          description:
-            '계정 정보와 로그인 세션, 개인 provider 키 설정을 여기에 모읍니다.',
-        },
-        {
-          title: '동기화 설정',
-          description:
-            '수동 동기화는 이미 사용할 수 있고, 이후 자동 동기화 정책도 이 계층에서 다룹니다.',
-        },
-        {
-          title: '환경 설정',
-          description:
-            '테마와 표시 밀도처럼 서비스 경험을 조정하는 옵션이 이곳에 들어올 예정입니다.',
-        },
-      ]}
-      template="bare"
-      title="설정 준비 상태"
-    />
-  );
-}

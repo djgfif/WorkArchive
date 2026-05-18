@@ -41,9 +41,9 @@ export function PasswordResetRequestPage() {
       description="가입한 이메일을 입력하면 계정 복구 흐름을 시작합니다. 저장된 작품 기록은 삭제되지 않습니다."
       eyebrow="비밀번호 재설정"
       footer={
-        <Text c="var(--app-text-muted)">
+        <Text c="var(--mantine-color-dimmed)">
           비밀번호가 기억났다면{' '}
-          <Link style={{ color: 'var(--app-accent)', fontWeight: 600 }} to="/auth/login">
+          <Link style={{ color: 'var(--mantine-primary-color-filled)', fontWeight: 600 }} to="/auth/login">
             로그인으로 돌아가기
           </Link>
         </Text>
@@ -76,7 +76,7 @@ export function PasswordResetRequestPage() {
             {developmentResetUrl && (
               <SectionCard gap="sm" padding="md" tone="subtle">
                 <Text fw={700}>개발용 복구 링크</Text>
-                <Text c="var(--app-text-muted)" size="sm">
+                <Text c="var(--mantine-color-dimmed)" size="sm">
                   메일 발송 대신 로컬 개발 확인을 위해 이 링크를 표시합니다.
                 </Text>
                 <Anchor href={developmentResetUrl}>{developmentResetUrl}</Anchor>

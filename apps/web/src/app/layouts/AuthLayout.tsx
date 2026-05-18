@@ -20,7 +20,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
                   WA
                 </Text>
               </ThemeIcon>
-              <Text c="var(--app-text-strong)" fw={700}>
+              <Text c="var(--mantine-color-text)" fw={700}>
                 워크 아카이브
               </Text>
             </Group>
@@ -34,7 +34,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
               <AppBadge tone="muted">선택적 계정 동기화</AppBadge>
               <AppBadge tone="muted">공개 피드 없음</AppBadge>
             </Group>
-            <Text c="var(--app-text-muted)" maw={420} size="sm" ta="center">
+            <Text c="var(--mantine-color-dimmed)" maw={420} size="sm" ta="center">
               로그인 전에도 기록은 이 기기에 저장됩니다. 계정은 백업과 제한적
               동기화를 위한 선택 경로입니다.
             </Text>

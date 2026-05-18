@@ -37,9 +37,9 @@ export function LoginPage() {
     <AuthPageTemplate
       description="계정 아카이브로 전환하고 동기화 상태를 이어서 관리합니다."
       footer={
-        <Text c="var(--app-text-muted)" ta="center">
+        <Text c="var(--mantine-color-dimmed)" ta="center">
           계정이 없으신가요?{' '}
-          <Link style={{ color: 'var(--app-accent)', fontWeight: 600 }} to="/auth/register">
+          <Link style={{ color: 'var(--mantine-primary-color-filled)', fontWeight: 600 }} to="/auth/register">
             회원가입
           </Link>
         </Text>

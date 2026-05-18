@@ -41,13 +41,13 @@ export function CandidateListRow({
       onClick={onSelect}
       style={{
         background: active
-          ? 'linear-gradient(180deg, var(--app-surface-1), var(--app-surface-low))'
-          : 'var(--app-surface-0)',
+          ? 'linear-gradient(180deg, var(--mantine-color-default), var(--mantine-color-default-hover))'
+          : 'var(--mantine-color-body)',
         border: active
-          ? '1px solid var(--app-border-strong)'
-          : '1px solid var(--app-border-color)',
-        borderRadius: 'var(--app-surface-radius)',
-        boxShadow: active ? 'var(--app-focus-border)' : 'none',
+          ? '1px solid var(--mantine-color-default-border)'
+          : '1px solid var(--mantine-color-default-border)',
+        borderRadius: 'var(--mantine-radius-md)',
+        boxShadow: active ? '0 0 0 2px var(--mantine-primary-color-light)' : 'none',
         color: 'inherit',
         cursor: 'pointer',
         padding: '0.75rem',
@@ -77,7 +77,7 @@ export function CandidateListRow({
 
           <div>
             <Title order={4}>{candidate.title}</Title>
-            <Text c="var(--app-text-muted)" lineClamp={1} size="sm">
+            <Text c="var(--mantine-color-dimmed)" lineClamp={1} size="sm">
               {getCandidateContributorText(candidate)}
             </Text>
           </div>
@@ -109,7 +109,7 @@ export function CandidateListRow({
           )}
 
           {visibleAliases && visibleAliases.length > 0 && (
-            <Text c="var(--app-text-muted)" lineClamp={1} size="xs">
+            <Text c="var(--mantine-color-dimmed)" lineClamp={1} size="xs">
               별칭 {visibleAliases.join(' · ')}
             </Text>
           )}

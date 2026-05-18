@@ -66,7 +66,7 @@ export function PosterTile({ work }: PosterTileProps) {
           >
             <Text
               aria-label={`${work.title} 즐겨찾기`}
-              c="var(--app-text-strong)"
+              c="var(--mantine-color-text)"
               fw={700}
               size="lg"
             >
@@ -77,7 +77,7 @@ export function PosterTile({ work }: PosterTileProps) {
       </Box>
 
       <Stack gap={6}>
-        <Title c="var(--app-text-strong)" lineClamp={2} order={3} size="h4">
+        <Title c="var(--mantine-color-text)" lineClamp={2} order={3} size="h4">
           {work.title}
         </Title>
 
@@ -91,12 +91,12 @@ export function PosterTile({ work }: PosterTileProps) {
         {(progressLabel || lastConsumedAtLabel) && (
           <Stack gap={2}>
             {progressLabel && (
-              <Text c="var(--app-text-secondary)" fw={700} size="sm" lineClamp={1}>
+              <Text c="var(--mantine-color-text)" fw={700} size="sm" lineClamp={1}>
                 진행 {progressLabel}
               </Text>
             )}
             {lastConsumedAtLabel && (
-              <Text c="var(--app-text-muted)" size="xs" lineClamp={1}>
+              <Text c="var(--mantine-color-dimmed)" size="xs" lineClamp={1}>
                 마지막 감상 {lastConsumedAtLabel}
               </Text>
             )}

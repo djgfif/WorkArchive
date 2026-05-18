@@ -69,13 +69,13 @@ export function CandidatePreviewPanel({
 
             <div>
               <Title order={3}>{candidate.title}</Title>
-              <Text c="var(--app-text-muted)" size="sm">
+              <Text c="var(--mantine-color-dimmed)" size="sm">
                 {getCandidateContributorText(candidate)}
               </Text>
             </div>
           </Stack>
 
-          <Text c="var(--app-text-secondary)" lh={1.7}>
+          <Text c="var(--mantine-color-text)" lh={1.7}>
             {candidate.description || '설명은 아직 없습니다.'}
           </Text>
 
@@ -108,23 +108,23 @@ export function CandidatePreviewPanel({
         radius="md"
         styles={{
           root: {
-            backgroundColor: 'var(--app-surface-low)',
-            borderColor: 'var(--app-border-color)',
+            backgroundColor: 'var(--mantine-color-default-hover)',
+            borderColor: 'var(--mantine-color-default-border)',
           },
         }}
         withBorder
       >
         <Stack gap="sm">
-          <Text c="var(--app-text-muted)" fw={700} size="sm">
+          <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
             {isManualCandidate ? '직접 추가 안내' : '검색 근거'}
           </Text>
-          <Text c="var(--app-text-secondary)" size="sm">
+          <Text c="var(--mantine-color-text)" size="sm">
             {isManualCandidate
               ? '외부 검색 결과가 아니라 입력한 제목으로 직접 기록합니다.'
               : candidate.reason}
           </Text>
           {!isManualCandidate && candidate.note && (
-            <Text c="var(--app-text-muted)" size="sm">
+            <Text c="var(--mantine-color-dimmed)" size="sm">
               {candidate.note}
             </Text>
           )}
@@ -225,7 +225,7 @@ export function CandidatePreviewPanel({
       )}
 
       <ActionRow justify="space-between">
-        <Text c="var(--app-text-muted)" size="sm">
+        <Text c="var(--mantine-color-dimmed)" size="sm">
           이 후보로 제목과 작품 정보를 채우고, 저장은 메인 폼에서 진행합니다.
         </Text>
         <AppButton onClick={onApply} tone="primary" type="button">
