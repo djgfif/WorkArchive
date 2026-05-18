@@ -42,7 +42,7 @@ const ALADIN_PROVIDER_STATUS_PATH = '/imports/providers/aladin/status';
 const ALADIN_PROVIDER_KEY_PATH = '/imports/providers/aladin/key';
 const IMPORT_PROVIDERS_PATH = '/imports/providers';
 const EXTERNAL_SEARCH_UNAVAILABLE_NOTICE =
-  '일부 검색 provider를 사용할 수 없어 직접 추가 후보를 표시합니다. 로그인 없이 사용할 수 있는 provider는 계속 지원되며, 사용자 키가 필요한 provider만 로그인 후 설정할 수 있습니다.';
+  '일부 검색 출처를 사용할 수 없어 직접 추가 후보를 표시합니다. 로그인 없이 사용할 수 있는 출처는 계속 지원되며, 개인 키가 필요한 출처만 로그인 후 설정할 수 있습니다.';
 
 const providerDisplayLabels: Record<string, string> = {
   aladin: 'Aladin Book',
@@ -76,7 +76,7 @@ function formatProviderResult(diagnostic: ImportSearchProviderDiagnostic) {
 function buildSearchNotice(response: ImportSearchResponse) {
   const baseNotice =
     response.providers.length > 0
-      ? `검색 provider: ${response.providers.join(', ')}`
+      ? `검색 출처: ${response.providers.join(', ')}`
       : null;
   const diagnostics = response.diagnostics?.providers ?? [];
 
@@ -163,7 +163,7 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
       confidenceLabel: '가장 유력',
       countLabel: '완결권수 확인 필요',
       description:
-        '현재 공개 버전에서는 외부 API를 붙이지 않고 import-ready 경계만 유지합니다. 이후 source adapter가 연결되면 이 카드에 실제 메타데이터가 채워집니다.',
+        '현재 공개 버전에서는 제목 기반 후보를 먼저 제공합니다. 이후 외부 출처가 연결되면 이 카드에 실제 메타데이터가 채워집니다.',
       formatLabel: '원작 후보',
       genresText: '드라마, 감상 기록',
       id: `${normalizedSearchTerm}-core`,
@@ -180,7 +180,7 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
       confidenceLabel: '미디어믹스',
       countLabel: 'TV 시리즈 추정',
       description:
-        '같은 제목의 영상화 후보를 구분하는 자리입니다. 실제 adapter 연결 전까지는 타입, 제작 정보, 메모 구조만 검증합니다.',
+        '같은 제목의 영상화 후보를 구분하는 자리입니다. 실제 외부 출처 연결 전까지는 타입, 제작 정보, 메모 구조만 제공합니다.',
       formatLabel: '영상 후보',
       genresText: '애니, 어댑테이션',
       id: `${normalizedSearchTerm}-screen`,
@@ -197,7 +197,7 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
       confidenceLabel: '연재형',
       countLabel: '연재 상태 확인 필요',
       description:
-        '연재형 작품 adapter를 붙일 자리를 미리 확보합니다. 권수, 연재 상태, 플랫폼 식별값은 이후 provider가 들어오면 같은 흐름으로 확장됩니다.',
+        '연재형 작품을 구분할 수 있도록 권수, 연재 상태, 플랫폼 메모를 함께 정리합니다.',
       formatLabel: '연재 후보',
       genresText: '웹소설, 연재',
       id: `${normalizedSearchTerm}-serial`,

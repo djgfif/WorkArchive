@@ -69,7 +69,7 @@ export function AppearanceSettingsSection() {
   return (
     <SectionCard>
       <SectionIntro
-        description="이번 foundation 패스에서는 표시 모드만 먼저 안정적으로 분리해 유지보수 비용을 낮춥니다."
+        description="아카이브를 읽기 편한 화면 톤으로 전환합니다."
         eyebrow="표시 모드"
         title="라이트·다크 모드"
       />
@@ -424,7 +424,7 @@ export function ProviderKeyVaultSection({
   return (
     <SectionCard>
       <SectionIntro
-        description="외부 검색 소스별 개인 검색 키를 암호화해 저장합니다. 저장된 값은 다시 표시하지 않으며 백업 파일에도 포함하지 않습니다."
+        description="외부 검색에 필요한 개인 키를 안전하게 보관합니다. 저장된 값은 다시 표시하지 않으며 백업 파일에도 포함하지 않습니다."
         eyebrow="외부 검색"
         title="개인 검색 키"
       />
@@ -464,11 +464,6 @@ export function ProviderKeyVaultSection({
                       {getProviderStatusLabel(provider)}
                     </AppBadge>
                   }
-                  styles={{
-                    inner: {
-                      justifyContent: 'space-between',
-                    },
-                  }}
                   type="button"
                   variant={isSelected ? 'light' : 'subtle'}
                 >
@@ -543,8 +538,7 @@ export function ProviderKeyVaultSection({
                 </form>
 
                 <Text c="var(--mantine-color-dimmed)" size="sm">
-                  이 credential은 검색 요청에만 사용하며, 로컬 아카이브
-                  export/import에는 포함하지 않습니다.
+                  이 키는 검색 요청에만 사용하며, 로컬 백업 파일에는 포함하지 않습니다.
                 </Text>
               </>
             ) : (
@@ -591,9 +585,9 @@ export function LoginSessionsSection({
   return (
     <SectionCard>
       <SectionIntro
-        description="현재 로그인 유지 중인 refresh session을 확인하고, 더 이상 사용하지 않는 기기를 해제합니다."
+        description="현재 로그인된 기기를 확인하고, 더 이상 사용하지 않는 기기를 해제합니다."
         eyebrow="보안"
-        title="로그인 세션"
+        title="로그인된 기기"
       />
 
       {mode !== 'authenticated' ? (
@@ -624,13 +618,10 @@ export function LoginSessionsSection({
           </ActionRow>
 
           {sessions.map((session) => (
-            <div
+            <SectionCard
               key={session.id}
-              style={{
-                border: '1px solid var(--mantine-color-default-border)',
-                borderRadius: 8,
-                padding: '1rem',
-              }}
+              padding="md"
+              tone="subtle"
             >
               <Stack gap="xs">
                 <ActionRow>
@@ -638,7 +629,7 @@ export function LoginSessionsSection({
                     {session.current ? '현재 기기' : '다른 기기'}
                   </Text>
                   <AppBadge tone={session.current ? 'success' : 'muted'}>
-                    {session.current ? '현재 세션' : '활성'}
+                    {session.current ? '이 기기' : '활성'}
                   </AppBadge>
                   <AppBadge tone={session.rememberMe ? 'accent' : 'muted'}>
                     {session.rememberMe ? '로그인 유지' : '브라우저 세션'}
@@ -666,7 +657,7 @@ export function LoginSessionsSection({
                   </AppButton>
                 </ActionRow>
               </Stack>
-            </div>
+            </SectionCard>
           ))}
 
           <ActionRow>
@@ -676,7 +667,7 @@ export function LoginSessionsSection({
               tone="quiet"
               type="button"
             >
-              세션 새로고침
+              다시 불러오기
             </AppButton>
             <AppButton
               loading={revokingSessionId === 'all'}

@@ -26,6 +26,13 @@ import {
   providerGroupOptions,
   quickAddTypeOptions,
 } from './quick-add-helpers';
+import styles from './ArchiveComponents.module.css';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 export interface AddWorkSearchPanelProps {
   candidates: ImportCandidate[];
@@ -64,13 +71,13 @@ function SearchCandidateLoadingList() {
       </Text>
       {Array.from({ length: 4 }, (_, index) => (
         <Stack
+          className={
+            index === 3
+              ? `${cn(css.searchLoadingItem)} ${cn(css.searchLoadingItemLast)}`
+              : cn(css.searchLoadingItem)
+          }
           gap="xs"
           key={index}
-          style={{
-            borderBottom:
-              index === 3 ? 'none' : '1px solid var(--mantine-color-default-border)',
-            paddingBlock: '0.5rem',
-          }}
         >
           <Group gap="xs" wrap="nowrap">
             <Skeleton height={20} radius="xl" width={68} />
@@ -141,7 +148,7 @@ export function AddWorkSearchPanel({
       <form onSubmit={onSearchSubmit}>
         <Stack gap="sm">
           <Group align="flex-end" gap="sm" wrap="wrap">
-            <div style={{ flex: '1 1 20rem', minWidth: 'min(100%, 20rem)' }}>
+            <div className={cn(css.quickSearchField)}>
               <TextInput
                 id="quickAddSearch"
                 label="작품 검색"
@@ -153,7 +160,7 @@ export function AddWorkSearchPanel({
               />
             </div>
 
-            <div style={{ flex: '0 1 11rem', minWidth: 160 }}>
+            <div className={cn(css.quickSearchType)}>
               <NativeSelect
                 id="quickAddType"
                 label="작품 유형"
@@ -216,15 +223,9 @@ export function AddWorkSearchPanel({
       <Grid gutter="lg">
         <Grid.Col span={{ base: 12, md: 5 }}>
           <Paper
+            className={cn(css.searchResultPanel)}
             p="sm"
             radius="md"
-            styles={{
-              root: {
-                background:
-                  'linear-gradient(180deg, var(--mantine-color-body), var(--mantine-color-default-hover))',
-                borderColor: 'var(--mantine-color-default-border)',
-              },
-            }}
             withBorder
           >
             {isSearching ? (
@@ -274,13 +275,7 @@ export function AddWorkSearchPanel({
                 </ScrollArea.Autosize>
 
                 {!isManualSearchGroup && normalizedSearchTerm && (
-                  <Stack
-                    gap={6}
-                    style={{
-                      borderTop: '1px solid var(--mantine-color-default-border)',
-                      paddingTop: '0.75rem',
-                    }}
-                  >
+                  <Stack className={cn(css.searchManualFallback)} gap={6}>
                     <Text fw={700} size="sm">
                       찾는 작품이 없나요?
                     </Text>
@@ -303,16 +298,10 @@ export function AddWorkSearchPanel({
 
         <Grid.Col span={{ base: 12, md: 7 }}>
           <Paper
+            className={cn(css.searchPreviewPanel)}
             p="lg"
             radius="md"
-            styles={{
-              root: {
-                background:
-                  'linear-gradient(180deg, var(--mantine-color-default), var(--mantine-color-default-hover))',
-                borderColor: 'var(--mantine-color-default-border)',
-                minHeight: fullHeight ? undefined : '34rem',
-              },
-            }}
+            {...(fullHeight ? { mih: undefined } : {})}
             withBorder
           >
             {isSearching ? (

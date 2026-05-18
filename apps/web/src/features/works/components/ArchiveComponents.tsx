@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, type ReactNode } from 'react';
 import {
+  ActionIcon,
   Box,
   Button,
   Group,
@@ -38,13 +39,14 @@ function cn(value: string | undefined) {
   return value ?? '';
 }
 
-type PosterVariant = 'card' | 'detail' | 'form' | 'grid' | 'row';
+type PosterVariant = 'card' | 'detail' | 'form' | 'grid' | 'hero' | 'row';
 
 const posterVariantClass: Record<PosterVariant, string> = {
   card: cn(css.posterCard),
   detail: cn(css.posterDetail),
   form: cn(css.posterForm),
   grid: cn(css.posterGrid),
+  hero: cn(css.posterHero),
   row: cn(css.posterRow),
 };
 
@@ -63,6 +65,7 @@ interface WorkPosterProps {
 }
 
 interface WorkPosterCardProps {
+  isUpdating?: boolean;
   work: WorkRecord;
 }
 
@@ -154,7 +157,12 @@ function coerceNumberInputValue(value: number | string) {
 }
 
 function getPrimaryMetaLine(work: WorkRecord) {
-  return getWorkStatusLabel(work.status);
+  const progressLabel = getWorkProgressLabel(work);
+  const ratingLabel = work.rating === null ? null : `★ ${work.rating.toFixed(1)}`;
+
+  return [getWorkStatusLabel(work.status), progressLabel, ratingLabel]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 export function WorkPoster({
@@ -250,16 +258,27 @@ export function ProgressDisplay({ work }: ProgressDisplayProps) {
   );
 }
 
-export function WorkPosterCard({ work }: WorkPosterCardProps) {
+export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
+  const shortReview = work.shortReview.trim();
 
   return (
-    <Link className={cn(css.posterCardLink)} to={`/works/${work.id}`}>
+    <Link
+      aria-label={`${work.title} 상세 보기`}
+      className={cn(css.posterCardLink)}
+      to={`/works/${work.id}`}
+    >
       <Paper className={cn(css.posterCardSurface)} withBorder>
         {work.favorite && (
-          <Box aria-label="즐겨찾기" className={cn(css.favoriteMark)}>
+          <ActionIcon
+            aria-label={`${work.title} 즐겨찾기`}
+            className={cn(css.favoriteMark)}
+            component="span"
+            size="sm"
+            variant="default"
+          >
             ★
-          </Box>
+          </ActionIcon>
         )}
         <WorkPoster
           thumbnailUrl={work.thumbnailUrl}
@@ -271,14 +290,15 @@ export function WorkPosterCard({ work }: WorkPosterCardProps) {
           <Title lineClamp={2} order={3} size="h4">
             {work.title}
           </Title>
-          <Group className={cn(css.posterMetaLine)} gap="xs" justify="space-between" wrap="nowrap">
-            <Text c="dimmed" lineClamp={1} size="sm">
-              {getPrimaryMetaLine(work)}
+          <Text c="dimmed" className={cn(css.posterMetaLine)} lineClamp={1} size="sm">
+            {getPrimaryMetaLine(work)}
+          </Text>
+          {shortReview && (
+            <Text c="var(--wa-text-secondary)" lineClamp={1} size="sm">
+              {shortReview}
             </Text>
-            <Text c={work.rating === null ? 'dimmed' : 'ember.3'} fw={800} size="sm">
-              {work.rating === null ? '미평가' : `별점 ${work.rating.toFixed(1)}`}
-            </Text>
-          </Group>
+          )}
+          {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
         </Stack>
       </Paper>
     </Link>

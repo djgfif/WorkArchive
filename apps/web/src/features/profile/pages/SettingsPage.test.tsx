@@ -162,7 +162,7 @@ describe('SettingsPage', () => {
     );
     expect(screen.getByText('사용 가능 1개')).toBeInTheDocument();
     expect(screen.getByText('키 필요 2개')).toBeInTheDocument();
-    expect(await screen.findByText('로그인 세션')).toBeInTheDocument();
+    expect(await screen.findByText('로그인된 기기')).toBeInTheDocument();
     expect(screen.getByText('현재 기기')).toBeInTheDocument();
   });
 

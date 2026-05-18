@@ -46,7 +46,7 @@ describe('ImportsService', () => {
 
     expect(result).toMatchObject({
       candidates: [],
-      notice: '검색 provider: open_library',
+      notice: '검색 출처: open_library',
       source: 'external',
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -110,7 +110,7 @@ describe('ImportsService', () => {
     });
 
     expect(result.diagnostics?.providers).toHaveLength(3);
-    expect(result.notice).toContain('검색 provider: open_library');
+    expect(result.notice).toContain('검색 출처: open_library');
     expect(result.notice).toContain('검색 완료: Open Library 0개');
     expect(result.notice).toContain('제외됨: TMDB');
     expect(result.notice).toContain('일시 실패: Google Books');
@@ -167,7 +167,7 @@ describe('ImportsService', () => {
 
     expect(result).toMatchObject({
       candidates: [],
-      notice: '검색 provider: aladin',
+      notice: '검색 출처: aladin',
       source: 'external',
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -210,9 +210,9 @@ describe('ImportsService', () => {
           }),
         ]),
       );
-      expect(result.notice).toContain('일부 검색 provider');
-      expect(result.notice).toContain('로그인 없이 사용할 수 있는 provider');
-      expect(result.notice).toContain('사용자 키가 필요한 provider');
+      expect(result.notice).toContain('일부 검색 출처');
+      expect(result.notice).toContain('로그인 없이 사용할 수 있는 출처');
+      expect(result.notice).toContain('개인 키가 필요한 출처');
       expect(result.notice).not.toBe('로그인해야만 검색 가능');
     },
   );
@@ -237,6 +237,6 @@ describe('ImportsService', () => {
         }),
       ]),
     );
-    expect(result.notice).toContain('일부 검색 provider');
+    expect(result.notice).toContain('일부 검색 출처');
   });
 });

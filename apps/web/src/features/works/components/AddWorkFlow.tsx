@@ -47,6 +47,7 @@ import {
 } from '../../imports/hooks/useImportProviderReadiness';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
+import styles from './ArchiveComponents.module.css';
 import {
   buildImportIdentity,
   createValuesFromCandidate,
@@ -66,6 +67,12 @@ import {
   type WorkFormValues,
 } from '../utils/work-form';
 import { workStatusOptions, workTypeOptions } from '../utils/work-options';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 interface AddWorkFlowProps {
   isSubmitting: boolean;
@@ -168,7 +175,7 @@ function ProviderReadinessSummary({
       <Stack gap="xs">
         <ActionRow justify="space-between">
           <Text c="var(--mantine-color-text)" fw={700} size="sm">
-            검색 provider 상태
+            검색 출처 상태
           </Text>
           {isLoading && (
             <Text c="var(--mantine-color-dimmed)" size="xs">
@@ -255,7 +262,7 @@ function CoreWorkFields({
       </ActionRow>
 
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-        <div style={{ gridColumn: '1 / -1' }}>
+        <div className={cn(css.gridSpanFull)}>
           <TextInput
             aria-label="제목"
             id={getFieldId(idPrefix, 'title')}
@@ -284,14 +291,6 @@ function CoreWorkFields({
           ))}
         </NativeSelect>
 
-        <TextInput
-          id={getFieldId(idPrefix, 'author')}
-          label="작가·제작자"
-          name="author"
-          onChange={onChange}
-          placeholder="작가, 스튜디오, 제작자를 입력해주세요"
-          value={values.author}
-        />
       </SimpleGrid>
     </Stack>
   );
@@ -338,7 +337,7 @@ function PersonalRecordFields({
           ))}
         </NativeSelect>
 
-        <div style={{ gridColumn: '1 / -1' }}>
+        <div className={cn(css.gridSpanFull)}>
           <Textarea
             id={getFieldId(idPrefix, 'shortReview')}
             label="한줄평"
@@ -350,7 +349,7 @@ function PersonalRecordFields({
           />
         </div>
 
-        <Text c="var(--mantine-color-dimmed)" size="sm" style={{ gridColumn: '1 / -1' }}>
+        <Text c="var(--mantine-color-dimmed)" className={cn(css.gridSpanFull)} size="sm">
           긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수 있습니다.
         </Text>
       </SimpleGrid>
@@ -388,6 +387,15 @@ function AdvancedWorkFields({
         <Accordion.Control>표지, 장르, 개인 태그, 상세 감상</Accordion.Control>
         <Accordion.Panel>
           <Stack gap="md" pt="sm">
+            <TextInput
+              id={getFieldId(idPrefix, 'author')}
+              label="작가·제작자"
+              name="author"
+              onChange={onInputChange}
+              placeholder="작가, 스튜디오, 제작자"
+              value={values.author}
+            />
+
             <TextInput
               id={getFieldId(idPrefix, 'thumbnailUrl')}
               label="표지 이미지 주소"

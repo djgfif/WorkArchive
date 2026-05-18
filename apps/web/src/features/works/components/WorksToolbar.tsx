@@ -1,13 +1,4 @@
-import {
-  Collapse,
-  Group,
-  NativeSelect,
-  SimpleGrid,
-  Stack,
-  Text,
-  TextInput,
-  VisuallyHidden,
-} from '@mantine/core';
+import { Collapse, Group, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { useState } from 'react';
 
 import type { WorkStatus } from '@work-archive/shared-types';
@@ -76,55 +67,81 @@ export function WorksToolbar({
     query.type !== 'all' ||
     query.sortBy !== 'updatedAt';
 
-  let countSummary = '작품을 불러오는 중입니다.';
-
-  if (!isLoading) {
-    if (collectionScope === 'trash') {
-      countSummary =
-        totalDeletedCount === 0
-          ? '휴지통은 비어 있습니다.'
-          : `숨겨둔 작품 ${filteredCount}개를 보고 있습니다.`;
-    } else if (totalActiveCount === 0) {
-      countSummary = '제목만 넣고 빠르게 첫 기록을 시작할 수 있습니다.';
-    } else if (filteredCount === totalActiveCount) {
-      countSummary = `작품 ${totalActiveCount}개가 등록되어 있습니다.`;
-    } else {
-      countSummary = `전체 ${totalActiveCount}개 중 ${filteredCount}개를 보고 있습니다.`;
-    }
-  }
+  const countSummary = isLoading
+    ? '작품을 불러오는 중입니다.'
+    : collectionScope === 'trash'
+      ? totalDeletedCount === 0
+        ? '휴지통이 비어 있습니다.'
+        : `숨겨둔 작품 ${filteredCount}개를 보고 있습니다.`
+      : totalActiveCount === 0
+        ? '제목만 넣고 빠르게 첫 기록을 시작할 수 있습니다.'
+        : filteredCount === totalActiveCount
+          ? `작품 ${totalActiveCount}개가 등록되어 있습니다.`
+          : `전체 ${totalActiveCount}개 중 ${filteredCount}개를 보고 있습니다.`;
 
   const statusFilterOptions = [
-    { label: '전체', value: 'all' as const },
+    { label: '전체', value: 'all' as const, count: totalActiveCount },
     ...workStatusOptions.map((option) => ({
       label: getWorkStatusLabel(option.value),
       value: option.value,
+      count: statusCounts[option.value],
     })),
   ];
 
   const activeFilterChips = [
     ...(query.searchTerm.trim()
-      ? [{ label: `검색: ${query.searchTerm.trim()}`, onRemove: () => onQueryChange({ ...query, searchTerm: '' }) }]
+      ? [
+          {
+            label: `검색: ${query.searchTerm.trim()}`,
+            onRemove: () => onQueryChange({ ...query, searchTerm: '' }),
+          },
+        ]
       : []),
     ...(query.tag?.trim()
-      ? [{ label: `태그: ${query.tag.trim()}`, onRemove: () => onQueryChange({ ...query, tag: '' }) }]
+      ? [
+          {
+            label: `태그: ${query.tag.trim()}`,
+            onRemove: () => onQueryChange({ ...query, tag: '' }),
+          },
+        ]
       : []),
     ...(query.status !== 'all'
-      ? [{ label: `상태: ${getWorkStatusLabel(query.status)}`, onRemove: () => onQueryChange({ ...query, status: 'all' }) }]
+      ? [
+          {
+            label: `상태: ${getWorkStatusLabel(query.status)}`,
+            onRemove: () => onQueryChange({ ...query, status: 'all' }),
+          },
+        ]
       : []),
     ...(query.rating !== null
-      ? [{ label: `별점: ${query.rating.toFixed(1)}점`, onRemove: () => onQueryChange({ ...query, rating: null }) }]
+      ? [
+          {
+            label: `별점: ${query.rating.toFixed(1)}점 이상`,
+            onRemove: () => onQueryChange({ ...query, rating: null }),
+          },
+        ]
       : []),
     ...(query.type !== 'all'
-      ? [{
-          label: `유형: ${workTypeOptions.find((option) => option.value === query.type)?.label ?? query.type}`,
-          onRemove: () => onQueryChange({ ...query, type: 'all' }),
-        }]
+      ? [
+          {
+            label: `유형: ${
+              workTypeOptions.find((option) => option.value === query.type)?.label ??
+              query.type
+            }`,
+            onRemove: () => onQueryChange({ ...query, type: 'all' }),
+          },
+        ]
       : []),
     ...(query.sortBy !== 'updatedAt'
-      ? [{
-          label: `정렬: ${workSortOptions.find((option) => option.value === query.sortBy)?.label ?? query.sortBy}`,
-          onRemove: () => onQueryChange({ ...query, sortBy: 'updatedAt' }),
-        }]
+      ? [
+          {
+            label: `정렬: ${
+              workSortOptions.find((option) => option.value === query.sortBy)?.label ??
+              query.sortBy
+            }`,
+            onRemove: () => onQueryChange({ ...query, sortBy: 'updatedAt' }),
+          },
+        ]
       : []),
   ];
 
@@ -150,7 +167,7 @@ export function WorksToolbar({
         <ArchiveSearchBar
           aria-label="작품 라이브러리 검색"
           onChange={(searchTerm) => onQueryChange({ ...query, searchTerm })}
-          placeholder="제목, 작가, 한줄평, 태그로 검색"
+          placeholder="제목, 작가, 한줄평, 태그 검색"
           value={query.searchTerm}
         />
         <Group gap="md" justify="space-between" wrap="wrap">
@@ -182,23 +199,23 @@ export function WorksToolbar({
           <Text c="dimmed" size="sm">
             {activeFilterChips.length}개 적용
           </Text>
-        <Group aria-label="적용된 필터" gap="xs" role="group" wrap="wrap">
-          {activeFilterChips.map((chip) => (
-            <AppButton
-              aria-label={`${chip.label} 필터 제거`}
-              key={chip.label}
-              onClick={chip.onRemove}
-              size="compact-xs"
-              tone="secondary"
-              type="button"
-            >
-              {chip.label} ×
+          <Group aria-label="적용된 필터" gap="xs" role="group" wrap="wrap">
+            {activeFilterChips.map((chip) => (
+              <AppButton
+                aria-label={`${chip.label} 필터 제거`}
+                key={chip.label}
+                onClick={chip.onRemove}
+                size="compact-xs"
+                tone="secondary"
+                type="button"
+              >
+                {chip.label} ×
+              </AppButton>
+            ))}
+            <AppButton onClick={onClearFilters} size="compact-xs" tone="ghost" type="button">
+              모두 지우기
             </AppButton>
-          ))}
-          <AppButton onClick={onClearFilters} size="compact-xs" tone="ghost" type="button">
-            모두 지우기
-          </AppButton>
-        </Group>
+          </Group>
         </Stack>
       )}
 
@@ -207,69 +224,55 @@ export function WorksToolbar({
           필터
         </Text>
         <AppButton
+          aria-label={filtersExpanded ? '고급 필터 접기' : '고급 필터 펼치기'}
           aria-expanded={filtersExpanded}
           onClick={() => setFiltersExpanded((value) => !value)}
           size="compact-sm"
           tone="ghost"
           type="button"
         >
-          {filtersExpanded ? '고급 필터 접기' : '고급 필터 펼치기'}
+          {filtersExpanded ? '상세 필터 접기' : '상세 필터'}
         </AppButton>
       </Group>
 
-      <VisuallyHidden>
-        <NativeSelect
-          label="유형"
-          onChange={(event) =>
-            onQueryChange({
-              ...query,
-              type: event.currentTarget.value as WorksListQuery['type'],
-            })
-          }
-          value={query.type}
-        >
-          <option value="all">전체 유형</option>
-          {workTypeOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-      </VisuallyHidden>
-
       <Collapse in={filtersExpanded}>
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-          <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="sm">상태</Text>
-            {collectionScope === 'active' && (
+          {collectionScope === 'active' && (
+            <Stack gap="xs">
+              <Text c="dimmed" fw={800} size="sm">
+                상태
+              </Text>
               <FilterPillGroup
                 aria-label="상태 필터"
                 onChange={(status) => onQueryChange({ ...query, status })}
-                options={statusFilterOptions.map((option) => ({
-                  label: option.label,
-                  value: option.value,
-                  count: option.value === 'all' ? totalActiveCount : statusCounts[option.value],
-                }))}
+                options={statusFilterOptions}
                 value={query.status}
               />
-            )}
-          </Stack>
+            </Stack>
+          )}
 
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="sm">유형</Text>
+            <Text c="dimmed" fw={800} size="sm">
+              유형
+            </Text>
             <FilterPillGroup
               aria-label="유형 필터"
               onChange={(type) => onQueryChange({ ...query, type })}
               options={[
                 { label: '전체', value: 'all' as const },
-                ...workTypeOptions.map((option) => ({ label: option.label, value: option.value })),
+                ...workTypeOptions.map((option) => ({
+                  label: option.label,
+                  value: option.value,
+                })),
               ]}
               value={query.type}
             />
           </Stack>
 
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="sm">정렬</Text>
+            <Text c="dimmed" fw={800} size="sm">
+              정렬
+            </Text>
             <FilterPillGroup
               aria-label="정렬"
               onChange={(sortBy) => onQueryChange({ ...query, sortBy })}
@@ -279,7 +282,9 @@ export function WorksToolbar({
           </Stack>
 
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="sm">별점</Text>
+            <Text c="dimmed" fw={800} size="sm">
+              별점
+            </Text>
             <FilterPillGroup
               aria-label="별점 필터"
               onChange={(rating) =>
@@ -290,14 +295,16 @@ export function WorksToolbar({
               }
               options={[
                 { label: '전체', value: 'all' },
-                ...ratingFilterOptions.map((option) => ({ label: option.label, value: option.value })),
+                ...ratingFilterOptions,
               ]}
               value={query.rating === null ? 'all' : query.rating.toFixed(1)}
             />
           </Stack>
 
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="sm">개인 태그</Text>
+            <Text c="dimmed" fw={800} size="sm">
+              개인 태그
+            </Text>
             <TextInput
               list="worksTagFilterSuggestions"
               name="tag"

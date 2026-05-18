@@ -759,7 +759,7 @@ describe('AddWorkFlow', () => {
 
     await user.click(screen.getByLabelText('검색으로 채우기'));
 
-    expect(await screen.findByText('검색 provider 상태')).toBeInTheDocument();
+    expect(await screen.findByText('검색 출처 상태')).toBeInTheDocument();
     expect(screen.getByText('사용 가능')).toBeInTheDocument();
     expect(
       screen.getByText(/AniList, Google Books, Open Library, TVmaze/),

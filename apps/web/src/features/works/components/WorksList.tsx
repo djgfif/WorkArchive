@@ -67,7 +67,7 @@ export function WorksList({
               {visibleWorks.length} / {works.length}개
             </Text>
             <Text c="dimmed" size="sm">
-              큰 아카이브도 포스터 중심 화면이 가볍게 열리도록 나누어 표시합니다.
+              포스터 목록은 필요한 만큼만 나누어 보여줍니다.
             </Text>
           </Stack>
           {hasHiddenWorks && (
@@ -96,7 +96,11 @@ export function WorksList({
           verticalSpacing="xl"
         >
           {visibleWorks.map((work) => (
-            <WorkPosterCard key={work.id} work={work} />
+            <WorkPosterCard
+              isUpdating={updatingWorkId === work.id}
+              key={work.id}
+              work={work}
+            />
           ))}
         </SimpleGrid>
         {renderProgress}

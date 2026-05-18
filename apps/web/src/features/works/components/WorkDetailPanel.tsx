@@ -41,10 +41,17 @@ import {
   ReviewNoteCard,
   WorkPoster,
 } from './ArchiveComponents';
+import styles from './ArchiveComponents.module.css';
 import {
   getWorkProgressLabel,
   getWorkProgressPercent,
 } from './archive-display';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 interface WorkDetailPanelProps {
   actions?: ReactNode;
@@ -200,25 +207,20 @@ export function WorkDetailPanel({
     <Stack gap="xl">
       <SectionCard gap="xl" padding="xl" tone="hero">
         <Group align="flex-start" gap="xl" wrap="wrap">
-          <Box
-            style={{
-              flex: '0 0 clamp(12.5rem, 24vw, 18rem)',
-              maxWidth: '100%',
-            }}
-          >
+          <Box className={cn(css.detailHeroPoster)}>
             <WorkPoster
               thumbnailUrl={work.thumbnailUrl}
               title={work.title}
               typeLabel={typeLabel}
-              variant="detail"
+              variant="hero"
             />
           </Box>
 
           <Stack
+            className={cn(css.detailHeroBody)}
             flex={1}
             gap="lg"
             miw={0}
-            style={{ minWidth: 'min(100%, 26rem)' }}
           >
             <Group gap="xs" wrap="wrap">
               <Text c="dimmed" fw={700} size="sm">
@@ -411,30 +413,16 @@ export function WorkDetailPanel({
                     {timelineItems.length > 0 ? (
                       timelineItems.map((item, index) => (
                         <Box
+                          className={
+                            index === timelineItems.length - 1
+                              ? `${cn(css.timelineItem)} ${cn(css.timelineItemLast)}`
+                              : cn(css.timelineItem)
+                          }
                           key={`${item.source}-${item.id}`}
-                          style={{
-                            borderLeft:
-                              '1px solid var(--mantine-color-default-border)',
-                            paddingBottom:
-                              index === timelineItems.length - 1
-                                ? 0
-                                : '0.85rem',
-                            paddingLeft: '1rem',
-                            position: 'relative',
-                          }}
                         >
                           <Box
                             aria-hidden="true"
-                            style={{
-                              background: 'var(--mantine-primary-color-filled)',
-                              border: '2px solid var(--mantine-color-default)',
-                              borderRadius: '999px',
-                              height: '0.6rem',
-                              left: '-0.35rem',
-                              position: 'absolute',
-                              top: '0.35rem',
-                              width: '0.6rem',
-                            }}
+                            className={cn(css.timelineDot)}
                           />
                           <Group align="flex-start" justify="space-between">
                             <Stack gap={2}>

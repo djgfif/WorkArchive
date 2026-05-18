@@ -5,7 +5,7 @@ interface ArtworkPosterProps {
   thumbnailUrl?: string;
   title: string;
   typeLabel?: string;
-  variant?: 'card' | 'detail' | 'form' | 'grid' | 'row';
+  variant?: 'card' | 'detail' | 'form' | 'grid' | 'hero' | 'row';
 }
 
 export function ArtworkPoster(props: ArtworkPosterProps) {
