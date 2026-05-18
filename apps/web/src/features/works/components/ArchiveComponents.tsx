@@ -401,6 +401,15 @@ export function ArchiveStarterShelf() {
     <Stack className={cn(css.starterShelf)} gap="md">
       <Group justify="space-between" wrap="wrap">
         <Stack gap={4}>
+          <Text
+            c="var(--app-accent-primary)"
+            fw={800}
+            size="xs"
+            tt="uppercase"
+            style={{ letterSpacing: '0.06em' }}
+          >
+            시작하기
+          </Text>
           <Title order={2}>처음 채울 선반</Title>
           <Text c="dimmed" size="sm">
             제목 하나만 남겨도 포스터처럼 정리됩니다.
@@ -445,7 +454,17 @@ export function ArchiveHero({
       <Stack className={cn(css.heroContent)} gap="xl">
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <Stack gap="sm" maw={760}>
-            {eyebrow && <Text className={cn(css.eyebrow)}>{eyebrow}</Text>}
+            {eyebrow && (
+              <Text
+                c="var(--app-accent-primary)"
+                fw={800}
+                size="xs"
+                tt="uppercase"
+                style={{ letterSpacing: '0.08em' }}
+              >
+                {eyebrow}
+              </Text>
+            )}
             <Title className={cn(css.heroTitle)} order={1}>{title}</Title>
             <Text c="dimmed" size="lg">
               {description}
@@ -479,7 +498,9 @@ export function FilterPillGroup<T extends string>({
             size="sm"
             variant="default"
           >
-            {option.count !== undefined ? `${option.label} ${option.count}` : option.label}
+            {option.count !== undefined
+              ? `${option.label} ${option.count}`
+              : option.label}
           </Button>
         );
       })}

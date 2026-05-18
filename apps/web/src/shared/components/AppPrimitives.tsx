@@ -151,6 +151,7 @@ interface AppButtonProps {
 }
 
 interface AppLinkButtonProps extends Omit<AppButtonProps, 'onClick' | 'type'> {
+  onClick?: ComponentPropsWithoutRef<'a'>['onClick'];
   to: ComponentPropsWithoutRef<typeof Link>['to'];
 }
 
@@ -176,7 +177,7 @@ interface AppNavLinkProps {
 function getSurfaceBackground(tone: SurfaceTone) {
   if (tone === 'hero') {
     return [
-      'radial-gradient(circle at 82% 18%, rgba(169, 152, 240, 0.16), transparent 32%)',
+      'radial-gradient(circle at 82% 18%, rgba(91, 140, 187, 0.14), transparent 32%)',
       'linear-gradient(145deg, var(--app-surface-hero), var(--app-bg-elevated))',
     ].join(', ');
   }
@@ -189,7 +190,7 @@ function getActionToneProps(tone: AppActionTone) {
     case 'primary':
       return {
         color: 'archive',
-        gradient: { deg: 135, from: 'archive.3', to: 'archive.6' },
+        gradient: { deg: 135, from: 'archive.4', to: 'archive.7' },
         variant: 'gradient',
       } as const;
     case 'quiet':
@@ -315,7 +316,12 @@ export function SurfaceLinkCard({
           color: 'inherit',
           display: 'block',
           textDecoration: 'none',
-          transition: 'transform 160ms ease, border-color 160ms ease, background 160ms ease',
+          transition: 'transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            borderColor: 'var(--app-border-strong)',
+            boxShadow: 'var(--app-shadow-card)',
+          },
         },
       }}
       to={to}
@@ -371,6 +377,7 @@ export function AppLinkButton({
   fullWidth,
   leftSection,
   loading,
+  onClick,
   rightSection,
   size,
   tone = 'secondary',
@@ -385,6 +392,7 @@ export function AppLinkButton({
       {...(fullWidth !== undefined ? { fullWidth } : {})}
       {...(leftSection !== undefined ? { leftSection } : {})}
       {...(loading !== undefined ? { loading } : {})}
+      {...(onClick !== undefined ? { onClick } : {})}
       {...(rightSection !== undefined ? { rightSection } : {})}
       {...(size !== undefined ? { size } : {})}
       {...props}
@@ -406,14 +414,22 @@ export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
   return (
     <Box component={Link} display="inline-flex" miw={0} td="none" to={to}>
       <Group gap="sm" wrap="nowrap">
-        <ThemeIcon color="archive" radius="md" size={38} variant="light">
-          <Text fw={800} size="xs">WA</Text>
+        <ThemeIcon
+          color="archive"
+          radius="md"
+          size={36}
+          variant="gradient"
+          gradient={{ deg: 135, from: 'archive.4', to: 'archive.7' }}
+        >
+          <Text c="white" fw={900} size="xs" style={{ letterSpacing: '-0.04em' }}>
+            WA
+          </Text>
         </ThemeIcon>
         <Stack gap={0} miw={0}>
-          <Text c="dimmed" fw={800} size="xs" tt="uppercase">
+          <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
             {kicker}
           </Text>
-          <Text fw={800} size="md">
+          <Text fw={800} size="md" style={{ letterSpacing: '-0.02em' }}>
             {heading}
           </Text>
         </Stack>
@@ -435,7 +451,7 @@ export function ThemeToggleControl({ fullWidth = false }: ThemeToggleControlProp
       tone="ghost"
       type="button"
     >
-      {colorScheme === 'dark' ? '라이트 모드' : '다크 모드'}
+      {colorScheme === 'dark' ? '☀ 라이트 모드' : '◑ 다크 모드'}
     </AppButton>
   );
 }
@@ -459,19 +475,24 @@ export function AppNavLink({
           ? `1px solid ${isActive ? 'var(--app-border-strong)' : 'transparent'}`
           : '1px solid transparent',
         borderRadius: fullWidth ? 'var(--mantine-radius-md)' : undefined,
-        color: isActive ? 'var(--app-text-primary)' : 'var(--app-text-secondary)',
+        color: isActive ? 'var(--app-text-primary)' : 'var(--app-text-muted)',
         display: fullWidth ? 'flex' : 'inline-flex',
+        fontWeight: isActive ? 700 : 600,
         gap: '0.625rem',
         justifyContent: 'space-between',
-        padding: fullWidth ? '0.82rem 0.95rem' : '0.45rem 0.2rem',
+        padding: fullWidth ? '0.82rem 0.95rem' : '0.45rem 0.55rem',
         textDecoration: 'none',
         transition: 'border-color 160ms ease, background 160ms ease, color 160ms ease',
         width: fullWidth ? '100%' : undefined,
+        borderBottom: !fullWidth && isActive
+          ? '2px solid var(--app-accent-primary)'
+          : !fullWidth ? '2px solid transparent' : undefined,
+        paddingBottom: !fullWidth ? '0.35rem' : undefined,
       })}
       to={to}
     >
       <Group gap="xs" justify="space-between" wrap="nowrap" w="100%">
-        <Text component="span" fw={700}>
+        <Text component="span" fw="inherit" size="sm">
           {children}
         </Text>
         {badge}
@@ -489,7 +510,13 @@ export function SectionIntro({
   return (
     <Stack gap={6}>
       {eyebrow && (
-        <Text c="var(--app-accent-primary)" fw={800} size="xs" tt="uppercase">
+        <Text
+          c="var(--app-accent-primary)"
+          fw={800}
+          size="xs"
+          tt="uppercase"
+          style={{ letterSpacing: '0.08em' }}
+        >
           {eyebrow}
         </Text>
       )}
@@ -545,12 +572,30 @@ export function PageSection({
 
 export function MetricPill({ label, value }: MetricPillProps) {
   return (
-    <Paper miw={112} p="sm" radius="md" styles={{ root: { background: 'var(--app-surface-subtle)' } }} withBorder>
-      <Stack gap={2}>
-        <Text c="dimmed" fw={800} size="xs" tt="uppercase">
+    <Paper
+      miw={112}
+      p="md"
+      radius="lg"
+      styles={{
+        root: {
+          background: 'var(--app-surface-subtle)',
+          borderColor: 'var(--app-border-subtle)',
+          transition: 'border-color 160ms ease',
+        },
+      }}
+      withBorder
+    >
+      <Stack gap={4}>
+        <Text
+          c="var(--app-accent-primary)"
+          fw={800}
+          size="xs"
+          tt="uppercase"
+          style={{ letterSpacing: '0.06em' }}
+        >
           {label}
         </Text>
-        <Text fw={800} size="md">
+        <Text fw={800} size="lg">
           {value}
         </Text>
       </Stack>
@@ -578,9 +623,17 @@ export function ChipSummary({ emptyLabel = '없음', label, values }: ChipSummar
 export function StatCard({ accent = false, description, label, to, value }: StatCardProps) {
   const content = (
     <Stack gap={6}>
-      <Text c={accent ? 'archive.2' : 'dimmed'} fw={800} size="xs" tt="uppercase">{label}</Text>
+      <Text
+        c={accent ? 'archive.3' : 'dimmed'}
+        fw={800}
+        size="xs"
+        tt="uppercase"
+        style={{ letterSpacing: '0.06em' }}
+      >
+        {label}
+      </Text>
       <Title order={3}>{value}</Title>
-      {description && <Text c="dimmed">{description}</Text>}
+      {description && <Text c="dimmed" size="sm">{description}</Text>}
     </Stack>
   );
 
@@ -593,10 +646,22 @@ export function StatCard({ accent = false, description, label, to, value }: Stat
 
 export function KeyValueGrid({ columns = 2, items }: KeyValueGridProps) {
   return (
-    <Paper component="dl" m={0} p={0} radius={0} styles={{ root: { background: 'transparent', border: 'none' } }} withBorder={false}>
+    <Paper
+      component="dl"
+      m={0}
+      p={0}
+      radius={0}
+      styles={{ root: { background: 'transparent', border: 'none' } }}
+      withBorder={false}
+    >
       <SimpleGrid cols={getResponsiveColumns(columns)} spacing="lg">
         {items.map((item, index) => (
-          <Stack gap={6} key={index} pb="sm" style={{ borderBottom: '1px solid var(--app-border-subtle)' }}>
+          <Stack
+            gap={6}
+            key={index}
+            pb="sm"
+            style={{ borderBottom: '1px solid var(--app-border-subtle)' }}
+          >
             <Text c="dimmed" component="dt" fw={700} size="xs">{item.label}</Text>
             <Text component="dd" fw={700} m={0}>{item.value}</Text>
           </Stack>
@@ -609,7 +674,14 @@ export function KeyValueGrid({ columns = 2, items }: KeyValueGridProps) {
 export function ActionBar({ actions, children, description, eyebrow, title }: ActionBarProps) {
   return (
     <SectionCard padding="lg" tone="subtle">
-      <PageSection actions={actions} description={description} divider={false} eyebrow={eyebrow} title={title} titleOrder={3}>
+      <PageSection
+        actions={actions}
+        description={description}
+        divider={false}
+        eyebrow={eyebrow}
+        title={title}
+        titleOrder={3}
+      >
         {children}
       </PageSection>
     </SectionCard>
@@ -642,7 +714,13 @@ export function FeedbackMessage({ children, title, tone = 'error' }: FeedbackMes
   );
 }
 
-export function StateMessage({ actions, description, eyebrow, title, tone = 'info' }: StateMessageProps) {
+export function StateMessage({
+  actions,
+  description,
+  eyebrow,
+  title,
+  tone = 'info',
+}: StateMessageProps) {
   return (
     <SectionCard padding="xl" tone="subtle">
       <Stack gap="md">
@@ -657,7 +735,11 @@ export function StateMessage({ actions, description, eyebrow, title, tone = 'inf
   );
 }
 
-export function LoadingState({ actionWidth = 136, rows = 3, title = '콘텐츠를 불러오는 중입니다' }: LoadingStateProps) {
+export function LoadingState({
+  actionWidth = 136,
+  rows = 3,
+  title = '콘텐츠를 불러오는 중입니다',
+}: LoadingStateProps) {
   return (
     <SectionCard padding="xl" tone="subtle">
       <Stack aria-busy="true" aria-live="polite" gap="md">
@@ -678,7 +760,13 @@ export function LoadingRows({ rows = 3 }: LoadingRowsProps) {
   return (
     <Stack aria-busy="true" aria-live="polite" gap="sm">
       {Array.from({ length: rows }, (_, index) => (
-        <Paper key={index} p="md" radius="lg" styles={{ root: { backgroundColor: 'var(--app-surface-subtle)' } }} withBorder>
+        <Paper
+          key={index}
+          p="md"
+          radius="lg"
+          styles={{ root: { backgroundColor: 'var(--app-surface-subtle)' } }}
+          withBorder
+        >
           <Group gap="md" wrap="nowrap">
             <Skeleton height={84} radius="md" width={62} />
             <Stack flex={1} gap="xs" miw={0}>
@@ -710,9 +798,19 @@ export function PageHeader({
       style={{ borderBottom: '1px solid var(--app-border-subtle)' }}
       {...(className ? { className } : {})}
     >
-      <Flex align={{ base: 'stretch', md: 'flex-start' }} direction={{ base: 'column', md: 'row' }} gap="xl" justify="space-between">
+      <Flex
+        align={{ base: 'stretch', md: 'flex-start' }}
+        direction={{ base: 'column', md: 'row' }}
+        gap="xl"
+        justify="space-between"
+      >
         <Stack gap="md" maw={760} miw={0}>
-          <SectionIntro description={description} eyebrow={eyebrow} title={title} titleOrder={titleOrder} />
+          <SectionIntro
+            description={description}
+            eyebrow={eyebrow}
+            title={title}
+            titleOrder={titleOrder}
+          />
           {meta && <Group align="stretch" gap="xl" wrap="wrap">{meta}</Group>}
         </Stack>
         {(aside || actions) && (

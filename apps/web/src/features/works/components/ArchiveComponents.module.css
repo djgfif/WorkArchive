@@ -1,3 +1,6 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Poster shell
+───────────────────────────────────────────────────────────────────────────── */
 .posterShell {
   position: relative;
   flex-shrink: 0;
@@ -7,10 +10,18 @@
   border-radius: var(--mantine-radius-lg);
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 32%),
-    radial-gradient(circle at 22% 18%, rgba(169, 152, 240, 0.22), transparent 28%),
+    radial-gradient(circle at 22% 18%, rgba(91, 140, 187, 0.22), transparent 28%),
     radial-gradient(circle at 80% 72%, rgba(239, 181, 70, 0.12), transparent 32%),
     linear-gradient(160deg, #222536, #0b0d13 72%);
   box-shadow: var(--app-shadow-poster);
+}
+
+[data-mantine-color-scheme='light'] .posterShell {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.5), transparent 32%),
+    radial-gradient(circle at 22% 18%, rgba(61, 99, 144, 0.18), transparent 28%),
+    radial-gradient(circle at 80% 72%, rgba(201, 141, 36, 0.10), transparent 32%),
+    linear-gradient(160deg, #dce4ee, #c8d4e0 72%);
 }
 
 .posterShell::after {
@@ -18,9 +29,10 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, transparent 58%, rgba(0, 0, 0, 0.34));
+  background: linear-gradient(180deg, transparent 58%, rgba(0, 0, 0, 0.28));
 }
 
+/* ── Poster size variants ───────────────────────────────────────────────── */
 .posterGrid {
   --poster-width: 100%;
 }
@@ -49,6 +61,7 @@
   --poster-width: min(100%, 15rem);
 }
 
+/* ── Poster image / fallback ────────────────────────────────────────────── */
 .posterImage,
 .posterFallback {
   display: block;
@@ -68,7 +81,7 @@
   padding: 0.9rem;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 34%),
-    radial-gradient(circle at 18% 20%, rgba(169, 152, 240, 0.2), transparent 36%),
+    radial-gradient(circle at 18% 20%, rgba(91, 140, 187, 0.2), transparent 36%),
     radial-gradient(circle at 84% 78%, rgba(239, 181, 70, 0.1), transparent 32%),
     repeating-linear-gradient(
       135deg,
@@ -109,11 +122,12 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* ── Cover tones ────────────────────────────────────────────────────────── */
 .posterFallback[data-cover-tone='0'] {
   background:
-    radial-gradient(circle at 18% 18%, rgba(192, 149, 255, 0.32), transparent 34%),
+    radial-gradient(circle at 18% 18%, rgba(91, 140, 187, 0.32), transparent 34%),
     radial-gradient(circle at 80% 80%, rgba(239, 181, 70, 0.14), transparent 32%),
-    linear-gradient(160deg, #28253d, #07080b 78%);
+    linear-gradient(160deg, #1e2c3d, #07080b 78%);
 }
 
 .posterFallback[data-cover-tone='1'] {
@@ -133,21 +147,21 @@
 .posterFallback[data-cover-tone='3'] {
   background:
     radial-gradient(circle at 82% 74%, rgba(88, 151, 124, 0.28), transparent 34%),
-    radial-gradient(circle at 22% 18%, rgba(169, 152, 240, 0.14), transparent 31%),
+    radial-gradient(circle at 22% 18%, rgba(91, 140, 187, 0.14), transparent 31%),
     linear-gradient(160deg, #1a2d28, #07080b 78%);
 }
 
 .posterFallback[data-cover-tone='4'] {
   background:
     radial-gradient(circle at 24% 18%, rgba(235, 159, 82, 0.24), transparent 34%),
-    radial-gradient(circle at 80% 82%, rgba(99, 125, 218, 0.18), transparent 31%),
+    radial-gradient(circle at 80% 82%, rgba(61, 99, 144, 0.18), transparent 31%),
     linear-gradient(160deg, #2c2219, #07080b 78%);
 }
 
 .posterFallback[data-cover-tone='5'] {
   background:
     radial-gradient(circle at 72% 20%, rgba(217, 218, 191, 0.18), transparent 34%),
-    radial-gradient(circle at 18% 82%, rgba(169, 152, 240, 0.2), transparent 31%),
+    radial-gradient(circle at 18% 82%, rgba(91, 140, 187, 0.2), transparent 31%),
     linear-gradient(160deg, #262a32, #07080b 78%);
 }
 
@@ -173,6 +187,9 @@
   letter-spacing: 0;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Poster card (grid view)
+───────────────────────────────────────────────────────────────────────────── */
 .posterCardLink,
 .rowCard {
   display: block;
@@ -205,7 +222,7 @@
 .posterCardLink:hover .posterCardSurface,
 .posterCardLink:focus-visible .posterCardSurface {
   transform: translateY(-4px);
-  border-color: rgba(169, 152, 240, 0.36);
+  border-color: var(--app-border-strong);
   box-shadow: var(--app-shadow-card);
 }
 
@@ -231,6 +248,12 @@
   pointer-events: none;
 }
 
+[data-mantine-color-scheme='light'] .favoriteMark {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--app-accent-warm);
+}
+
 .posterCardBody {
   padding-top: 0.75rem;
 }
@@ -240,10 +263,13 @@
   font-size: var(--wa-type-caption);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Row card (list view)
+───────────────────────────────────────────────────────────────────────────── */
 .rowSurface {
   padding: 0.95rem;
   border-color: var(--app-border-subtle);
-  background: rgba(16, 19, 27, 0.72);
+  background: var(--app-surface-card);
   box-shadow: none;
   transition:
     background 160ms ease,
@@ -251,10 +277,25 @@
     transform 160ms ease;
 }
 
+.rowCard:hover .rowSurface {
+  transform: translateY(-1px);
+  border-color: var(--app-border-strong);
+  background: var(--app-bg-elevated);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   List row (works list page)
+───────────────────────────────────────────────────────────────────────────── */
 .listRowSurface {
   padding: 1rem;
   border-color: var(--app-border-subtle);
-  background: rgba(16, 19, 27, 0.72);
+  background: var(--app-surface-card);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.listRowSurface:hover {
+  border-color: var(--app-border-strong);
+  background: var(--app-bg-elevated);
 }
 
 .listRowMain {
@@ -262,21 +303,18 @@
 }
 
 .listRowControls {
-  flex: 1 1 20rem;
-  max-width: 24rem;
-  min-width: min(100%, 20rem);
+  flex: 0 0 auto;
+  max-width: 14rem;
+  min-width: min(100%, 10rem);
 }
 
 .lastLocationInput {
   flex: 1 1 auto;
 }
 
-.rowCard:hover .rowSurface {
-  transform: translateY(-1px);
-  border-color: rgba(169, 152, 240, 0.28);
-  background: rgba(21, 25, 36, 0.9);
-}
-
+/* ─────────────────────────────────────────────────────────────────────────────
+   Shelf (horizontal scroll)
+───────────────────────────────────────────────────────────────────────────── */
 .shelf {
   display: grid;
   grid-auto-columns: minmax(9rem, 11.5rem);
@@ -291,6 +329,9 @@
   scroll-snap-align: start;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Hero panels
+───────────────────────────────────────────────────────────────────────────── */
 .hero {
   position: relative;
   overflow: hidden;
@@ -298,9 +339,15 @@
   border: 1px solid var(--app-border-strong);
   border-radius: var(--mantine-radius-xl);
   background:
-    radial-gradient(circle at 82% 14%, rgba(169, 152, 240, 0.2), transparent 30%),
+    radial-gradient(circle at 82% 14%, rgba(91, 140, 187, 0.18), transparent 30%),
     linear-gradient(135deg, rgba(24, 27, 39, 0.98), rgba(7, 8, 11, 0.96));
   box-shadow: var(--app-shadow-overlay);
+}
+
+[data-mantine-color-scheme='light'] .hero {
+  background:
+    radial-gradient(circle at 82% 14%, rgba(61, 99, 144, 0.10), transparent 30%),
+    linear-gradient(135deg, rgba(240, 244, 250, 0.98), rgba(220, 228, 238, 0.96));
 }
 
 .heroCompact {
@@ -329,8 +376,14 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.045), transparent 24%),
-    linear-gradient(180deg, transparent 74%, rgba(0, 0, 0, 0.24));
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04), transparent 24%),
+    linear-gradient(180deg, transparent 74%, rgba(0, 0, 0, 0.18));
+}
+
+[data-mantine-color-scheme='light'] .hero::after {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.3), transparent 24%),
+    linear-gradient(180deg, transparent 74%, rgba(0, 0, 0, 0.04));
 }
 
 .heroContent {
@@ -344,6 +397,9 @@
   word-break: keep-all;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Detail hero
+───────────────────────────────────────────────────────────────────────────── */
 .detailHero {
   position: relative;
   overflow: hidden;
@@ -356,6 +412,12 @@
   box-shadow: var(--app-shadow-overlay);
 }
 
+[data-mantine-color-scheme='light'] .detailHero {
+  background:
+    radial-gradient(circle at 22% 18%, rgba(201, 141, 36, 0.07), transparent 34%),
+    linear-gradient(145deg, rgba(240, 244, 250, 0.98), rgba(220, 228, 238, 0.96));
+}
+
 .detailHeroPoster {
   flex: 0 0 clamp(12.5rem, 24vw, 18rem);
   max-width: 100%;
@@ -365,6 +427,9 @@
   min-width: min(100%, 26rem);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Timeline
+───────────────────────────────────────────────────────────────────────────── */
 .timelineItem {
   position: relative;
   padding-bottom: 0.85rem;
@@ -387,16 +452,28 @@
   background: var(--mantine-primary-color-filled);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Search
+───────────────────────────────────────────────────────────────────────────── */
 .searchInput input {
   min-height: 2.85rem;
   border-color: var(--app-border-strong);
-  background: rgba(7, 8, 11, 0.68);
+  background: var(--app-bg-elevated);
   font-size: 0.96rem;
+  transition: border-color 160ms ease, background 160ms ease;
 }
 
+.searchInput input:focus {
+  border-color: var(--app-accent-primary);
+  background: var(--app-surface-card);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Filter pills
+───────────────────────────────────────────────────────────────────────────── */
 .filterPill {
   border-color: var(--app-border-subtle);
-  background: rgba(16, 19, 27, 0.76);
+  background: var(--app-surface-subtle);
   color: var(--app-text-secondary);
   transition:
     background 160ms ease,
@@ -404,12 +481,26 @@
     color 160ms ease;
 }
 
-.filterPillActive {
-  border-color: rgba(169, 152, 240, 0.5);
-  background: rgba(169, 152, 240, 0.14);
-  color: var(--mantine-color-archive-1);
+.filterPill:hover {
+  border-color: var(--app-border-strong);
+  background: var(--app-bg-elevated);
 }
 
+.filterPillActive {
+  border-color: var(--app-accent-primary);
+  background: color-mix(in srgb, var(--app-accent-primary) 12%, transparent);
+  color: var(--app-accent-primary);
+}
+
+[data-mantine-color-scheme='light'] .filterPillActive {
+  border-color: var(--app-accent-primary);
+  background: color-mix(in srgb, var(--app-accent-primary) 10%, transparent);
+  color: var(--app-accent-primary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Empty state / skeleton
+───────────────────────────────────────────────────────────────────────────── */
 .emptyState,
 .skeletonGrid {
   border: 1px solid var(--app-border-subtle);
@@ -421,6 +512,9 @@
   padding: clamp(1.25rem, 4vw, 2.4rem);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Starter shelf
+───────────────────────────────────────────────────────────────────────────── */
 .starterShelf {
   position: relative;
   overflow: hidden;
@@ -428,8 +522,8 @@
   border: 1px solid var(--app-border-subtle);
   border-radius: var(--mantine-radius-xl);
   background:
-    radial-gradient(circle at 82% 18%, rgba(239, 181, 70, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(16, 19, 27, 0.72), rgba(7, 8, 11, 0.28));
+    radial-gradient(circle at 82% 18%, rgba(239, 181, 70, 0.07), transparent 28%),
+    linear-gradient(180deg, var(--app-surface-subtle), var(--app-bg-elevated));
 }
 
 .starterCovers {
@@ -443,39 +537,55 @@
   padding: var(--app-space-card);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Note card
+───────────────────────────────────────────────────────────────────────────── */
 .noteCard {
   padding: clamp(1rem, 3vw, 1.5rem);
   border-color: var(--app-border-subtle);
-  background:
-    linear-gradient(180deg, rgba(21, 25, 36, 0.9), rgba(12, 14, 20, 0.94)),
-    radial-gradient(circle at 90% 10%, rgba(239, 181, 70, 0.08), transparent 32%);
+  background: var(--app-surface-subtle);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Progress track
+───────────────────────────────────────────────────────────────────────────── */
 .progressTrack {
   width: 100%;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Quick panel
+───────────────────────────────────────────────────────────────────────────── */
 .quickPanel {
   padding: var(--app-space-card);
   border-color: var(--app-border-subtle);
   background: var(--app-surface-subtle);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Load more control
+───────────────────────────────────────────────────────────────────────────── */
 .loadMoreControl {
   padding: 0.9rem 1rem;
   border-color: var(--app-border-subtle);
   border-radius: var(--mantine-radius-lg);
   background:
-    linear-gradient(90deg, rgba(169, 152, 240, 0.08), transparent 42%),
-    rgba(16, 19, 27, 0.56);
+    linear-gradient(90deg, color-mix(in srgb, var(--app-accent-primary) 8%, transparent), transparent 42%),
+    var(--app-surface-subtle);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Provider / cover preview panels
+───────────────────────────────────────────────────────────────────────────── */
 .providerStatusPanel,
 .coverPreviewPanel {
   border-color: var(--app-border-subtle);
-  background: rgba(16, 19, 27, 0.72);
+  background: var(--app-surface-card);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Quick capture preview
+───────────────────────────────────────────────────────────────────────────── */
 .quickCapturePreview {
   position: sticky;
   top: 1rem;
@@ -483,14 +593,17 @@
   border-color: var(--app-border-subtle);
   border-radius: var(--mantine-radius-xl);
   background:
-    radial-gradient(circle at 80% 14%, rgba(239, 181, 70, 0.08), transparent 32%),
-    linear-gradient(180deg, rgba(21, 25, 36, 0.8), rgba(7, 8, 11, 0.5));
+    radial-gradient(circle at 80% 14%, rgba(239, 181, 70, 0.07), transparent 32%),
+    linear-gradient(180deg, var(--app-surface-subtle), var(--app-bg-elevated));
 }
 
 .quickCapturePreview .posterShell {
   margin-inline: auto;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Quick search fields
+───────────────────────────────────────────────────────────────────────────── */
 .quickSearchField {
   flex: 1 1 20rem;
   min-width: min(100%, 20rem);
@@ -501,6 +614,9 @@
   min-width: 10rem;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Search result panels
+───────────────────────────────────────────────────────────────────────────── */
 .searchLoadingItem {
   padding-block: 0.5rem;
   border-bottom: 1px solid var(--mantine-color-default-border);
@@ -534,10 +650,16 @@
   border-top: 1px solid var(--mantine-color-default-border);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Grid utilities
+───────────────────────────────────────────────────────────────────────────── */
 .gridSpanFull {
   grid-column: 1 / -1;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Responsive
+───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 48rem) {
   .shelf {
     grid-auto-columns: minmax(8.4rem, 44vw);
@@ -549,6 +671,11 @@
 
   .posterRow {
     --poster-width: 4.7rem;
+  }
+
+  .listRowControls {
+    max-width: 100%;
+    min-width: 100%;
   }
 }
 
@@ -563,10 +690,14 @@
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Reduced motion
+───────────────────────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .posterImage,
   .posterCardSurface,
   .rowSurface,
+  .listRowSurface,
   .filterPill {
     transition: none;
   }

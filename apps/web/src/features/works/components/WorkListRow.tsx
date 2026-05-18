@@ -1,4 +1,6 @@
 ﻿import {
+  Box,
+  Collapse,
   Group,
   NativeSelect,
   NumberInput,
@@ -9,6 +11,7 @@
   TextInput,
   Title,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
   getDefaultProgressUnitForWorkType,
   type ProgressUnit,
@@ -67,7 +70,7 @@ interface WorkListRowProps {
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
   const value = (index + 1) * 0.5;
 
-  return { label: `${value.toFixed(1)}점`, value };
+  return { label: `★ ${value.toFixed(1)}`, value };
 });
 
 const progressUnitLabels: Record<ProgressUnit, string> = {
@@ -77,7 +80,7 @@ const progressUnitLabels: Record<ProgressUnit, string> = {
 };
 
 function formatRatingLabel(value: number | null) {
-  return value === null ? '미평가' : `${value.toFixed(1)}점`;
+  return value === null ? '미평가' : `★ ${value.toFixed(1)}`;
 }
 
 function coerceNumberInputValue(value: number | string) {
@@ -108,7 +111,7 @@ function getProgressLabel(work: WorkRecord) {
   const total = work.progressTotal ?? null;
 
   if (current !== null && total !== null) return `${current}/${total}`;
-  if (current !== null) return `${current}까지 기록`;
+  if (current !== null) return `${current}까지`;
 
   return null;
 }
@@ -125,6 +128,8 @@ export function WorkListRow({
   const progressPercent = getProgressPercent(work);
   const progressUnit =
     work.progressUnit ?? getDefaultProgressUnitForWorkType(work.type);
+
+  const [editOpen, { toggle: toggleEdit }] = useDisclosure(false);
   const [current, setCurrent] = useState<number | null>(
     work.progressCurrent ?? null,
   );
@@ -146,57 +151,99 @@ export function WorkListRow({
 
   return (
     <Paper className={cn(css.listRowSurface)} radius="lg" withBorder>
-      <Group align="center" gap="md" justify="space-between" wrap="wrap">
-        <Group align="center" className={cn(css.listRowMain)} gap="md" miw={0} wrap="nowrap">
-          <WorkPoster
-            thumbnailUrl={work.thumbnailUrl}
-            title={work.title}
-            typeLabel={typeLabel}
-            variant="row"
-          />
+      {/* ── Main row ─────────────────────────────────────────────────── */}
+      <Group align="flex-start" gap="md" justify="space-between" wrap="wrap">
+        {/* Left: poster + info */}
+        <Group
+          align="flex-start"
+          className={cn(css.listRowMain)}
+          gap="md"
+          miw={0}
+          wrap="nowrap"
+        >
+          <Link
+            aria-label={`${work.title} 상세 보기`}
+            style={{ flexShrink: 0, display: 'block' }}
+            to={`/works/${work.id}`}
+          >
+            <WorkPoster
+              thumbnailUrl={work.thumbnailUrl}
+              title={work.title}
+              typeLabel={typeLabel}
+              variant="row"
+            />
+          </Link>
 
-          <Stack flex={1} gap={6} miw={0}>
-            <Group gap="xs" wrap="nowrap">
-              <Text c="dimmed" lineClamp={1} size="xs">
-                {typeLabel}
-              </Text>
-              <Text c="dimmed" size="xs">/</Text>
-              <Text c="dimmed" lineClamp={1} size="xs">
+          <Stack flex={1} gap={5} miw={0} pt={2}>
+            {/* Type / Status badges */}
+            <Group gap={6} wrap="nowrap">
+              <AppBadge tone="muted">{typeLabel}</AppBadge>
+              <AppBadge
+                tone={
+                  work.status === 'completed'
+                    ? 'success'
+                    : work.status === 'in_progress'
+                      ? 'accent'
+                      : work.status === 'dropped'
+                        ? 'danger'
+                        : 'default'
+                }
+              >
                 {getWorkStatusLabel(work.status)}
-              </Text>
+              </AppBadge>
               {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
             </Group>
 
+            {/* Title */}
             <Title lineClamp={1} order={3} size="h4">
-              <Link to={`/works/${work.id}`}>{work.title}</Link>
+              <Link
+                style={{ color: 'inherit', textDecoration: 'none' }}
+                to={`/works/${work.id}`}
+              >
+                {work.title}
+              </Link>
             </Title>
-            <Text c="dimmed" lineClamp={1} size="sm">
-              {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
+
+            {/* Author + updated */}
+            <Text c="dimmed" lineClamp={1} size="xs">
+              {work.author || '작가·제작자 미입력'}
+              {' · '}
+              {formatWorkUpdatedAt(work.updatedAt)}
             </Text>
-            <Text c="var(--app-text-secondary)" lineClamp={2} size="sm">
-              {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
-            </Text>
-            {progressLabel && (
-              <Stack gap={4}>
-                <Group gap="xs" wrap="wrap">
-                  <AppBadge tone="muted">진행 {progressLabel}</AppBadge>
-                  <AppBadge tone="muted">{formatRatingLabel(work.rating)}</AppBadge>
-                </Group>
-                {progressPercent !== null && (
-                  <Progress
-                    aria-label={`${work.title} 진행도 ${progressPercent}%`}
-                    color="archive"
-                    radius="xl"
-                    size="xs"
-                    value={progressPercent}
-                  />
-                )}
-              </Stack>
+
+            {/* Short review / description */}
+            {(work.shortReview || work.description) && (
+              <Text c="var(--app-text-muted)" lineClamp={1} size="sm">
+                {work.shortReview || work.description}
+              </Text>
+            )}
+
+            {/* Progress + rating inline summary */}
+            <Group gap="xs" wrap="wrap">
+              {progressLabel && (
+                <AppBadge tone="muted">진행 {progressLabel}</AppBadge>
+              )}
+              <AppBadge tone={work.rating !== null ? 'warning' : 'muted'}>
+                {formatRatingLabel(work.rating)}
+              </AppBadge>
+              {work.favorite && <AppBadge tone="accent">★ 즐겨찾기</AppBadge>}
+            </Group>
+
+            {/* Progress bar */}
+            {progressPercent !== null && (
+              <Progress
+                aria-label={`${work.title} 진행도 ${progressPercent}%`}
+                color="archive"
+                radius="xl"
+                size="xs"
+                value={progressPercent}
+              />
             )}
           </Stack>
         </Group>
 
-        <Stack className={cn(css.listRowControls)} gap="xs">
+        {/* Right: compact action buttons */}
+        <Stack className={cn(css.listRowControls)} gap="xs" style={{ minWidth: 'min(100%, 10rem)' }}>
           <ActionRow justify="flex-end">
             <AppLinkButton size="compact-sm" to={`/works/${work.id}`} tone="quiet">
               보기
@@ -217,126 +264,156 @@ export function WorkListRow({
             </AppButton>
           </ActionRow>
 
-          <Group align="flex-end" grow gap="xs">
-            <NativeSelect
-              aria-label={`${work.title} 별점`}
-              disabled={isUpdating}
-              label="별점"
-              onChange={(event) => {
-                const nextValue =
-                  event.currentTarget.value === ''
-                    ? null
-                    : Number.parseFloat(event.currentTarget.value);
-
-                void onQuickUpdate(work, {
-                  rating: Number.isNaN(nextValue) ? null : nextValue,
-                });
-              }}
-              value={work.rating?.toString() ?? ''}
-            >
-              <option value="">미평가</option>
-              {ratingOptions.map((option) => (
-                <option key={option.value} value={option.value.toString()}>
-                  {option.label}
-                </option>
-              ))}
-            </NativeSelect>
-
-            <NativeSelect
-              aria-label={`${work.title} 상태`}
-              disabled={isUpdating}
-              label="상태"
-              onChange={(event) =>
-                void onQuickUpdate(work, {
-                  status: event.currentTarget.value as WorkStatus,
-                })
-              }
-              value={work.status}
-            >
-              {workStatusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </NativeSelect>
-          </Group>
-
-          {progressUnit && (
-            <Stack gap="xs">
-              <Group align="flex-end" grow gap="xs">
-                <NumberInput
-                  allowDecimal={false}
-                  allowNegative={false}
-                  aria-label={`${work.title} 현재 ${progressUnitLabels[progressUnit]}`}
-                  disabled={isUpdating}
-                  label={`현재 ${progressUnitLabels[progressUnit]}`}
-                  min={0}
-                  onChange={(value) => setCurrent(coerceNumberInputValue(value))}
-                  value={current ?? ''}
-                />
-                <NumberInput
-                  allowDecimal={false}
-                  allowNegative={false}
-                  aria-label={`${work.title} 전체 ${progressUnitLabels[progressUnit]}`}
-                  disabled={isUpdating}
-                  label={`전체 ${progressUnitLabels[progressUnit]}`}
-                  min={0}
-                  onChange={(value) => setTotal(coerceNumberInputValue(value))}
-                  value={total ?? ''}
-                />
-              </Group>
-
-              <Group align="flex-end" gap="xs" wrap="wrap">
-                <TextInput
-                  aria-label={`${work.title} 마지막 위치`}
-                  className={cn(css.lastLocationInput)}
-                  disabled={isUpdating}
-                  label="마지막 위치"
-                  maxLength={120}
-                  onChange={(event) => setLastLabel(event.currentTarget.value)}
-                  placeholder={`예: ${current ?? 18}${progressUnitLabels[progressUnit]}`}
-                  value={lastLabel}
-                />
-                <AppButton
-                  aria-label={`${work.title} 진행도 저장`}
-                  disabled={isUpdating || !hasProgressChanges || hasInvalidProgress}
-                  onClick={() =>
-                    void onQuickProgressUpdate(work, {
-                      lastConsumedLabel: lastLabel,
-                      progressCurrent: current,
-                      progressTotal: total,
-                      progressUnit,
-                    })
-                  }
-                  size="compact-sm"
-                  tone="secondary"
-                  type="button"
-                >
-                  저장
-                </AppButton>
-              </Group>
-              {hasInvalidProgress && (
-                <Text c="red" size="xs">
-                  현재 진행량이 전체보다 클 수 없습니다.
-                </Text>
-              )}
-            </Stack>
-          )}
-
+          {/* Quick edit toggle */}
           <ActionRow justify="flex-end">
             <AppButton
-              aria-label={`${work.title} 삭제`}
-              disabled={isUpdating}
-              onClick={() => void onDelete(work)}
-              size="compact-sm"
-              tone="danger"
+              aria-expanded={editOpen}
+              aria-label="빠른 수정 패널 열기"
+              onClick={toggleEdit}
+              size="compact-xs"
+              tone="ghost"
               type="button"
             >
-              삭제
+              {editOpen ? '빠른 수정 닫기 ↑' : '빠른 수정 ↓'}
             </AppButton>
           </ActionRow>
         </Stack>
       </Group>
+
+      {/* ── Collapsible quick-edit panel ─────────────────────────────── */}
+      <Collapse in={editOpen}>
+        <Box
+          mt="md"
+          pt="md"
+          style={{ borderTop: '1px solid var(--app-border-subtle)' }}
+        >
+          <Stack gap="md">
+            {/* Status + Rating row */}
+            <Group align="flex-end" gap="sm" grow wrap="wrap">
+              <NativeSelect
+                aria-label={`${work.title} 별점`}
+                disabled={isUpdating}
+                label="별점"
+                onChange={(event) => {
+                  const nextValue =
+                    event.currentTarget.value === ''
+                      ? null
+                      : Number.parseFloat(event.currentTarget.value);
+
+                  void onQuickUpdate(work, {
+                    rating: Number.isNaN(nextValue) ? null : nextValue,
+                  });
+                }}
+                value={work.rating?.toString() ?? ''}
+              >
+                <option value="">미평가</option>
+                {ratingOptions.map((option) => (
+                  <option key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
+
+              <NativeSelect
+                aria-label={`${work.title} 상태`}
+                disabled={isUpdating}
+                label="상태"
+                onChange={(event) =>
+                  void onQuickUpdate(work, {
+                    status: event.currentTarget.value as WorkStatus,
+                  })
+                }
+                value={work.status}
+              >
+                {workStatusOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Group>
+
+            {/* Progress inputs */}
+            {progressUnit && (
+              <Stack gap="xs">
+                <Group align="flex-end" gap="sm" grow wrap="wrap">
+                  <NumberInput
+                    allowDecimal={false}
+                    allowNegative={false}
+                    aria-label={`${work.title} 현재 ${progressUnitLabels[progressUnit]}`}
+                    disabled={isUpdating}
+                    label={`현재 ${progressUnitLabels[progressUnit]}`}
+                    min={0}
+                    onChange={(value) => setCurrent(coerceNumberInputValue(value))}
+                    value={current ?? ''}
+                  />
+                  <NumberInput
+                    allowDecimal={false}
+                    allowNegative={false}
+                    aria-label={`${work.title} 전체 ${progressUnitLabels[progressUnit]}`}
+                    disabled={isUpdating}
+                    label={`전체 ${progressUnitLabels[progressUnit]}`}
+                    min={0}
+                    onChange={(value) => setTotal(coerceNumberInputValue(value))}
+                    value={total ?? ''}
+                  />
+                </Group>
+
+                <Group align="flex-end" gap="sm" wrap="wrap">
+                  <TextInput
+                    aria-label={`${work.title} 마지막 위치`}
+                    disabled={isUpdating}
+                    flex={1}
+                    label="마지막 위치"
+                    maxLength={120}
+                    onChange={(event) => setLastLabel(event.currentTarget.value)}
+                    placeholder={`예: ${current ?? 18}${progressUnitLabels[progressUnit]}`}
+                    style={{ minWidth: 'min(100%, 12rem)' }}
+                    value={lastLabel}
+                  />
+                  <AppButton
+                    aria-label={`${work.title} 진행도 저장`}
+                    disabled={isUpdating || !hasProgressChanges || hasInvalidProgress}
+                    onClick={() =>
+                      void onQuickProgressUpdate(work, {
+                        lastConsumedLabel: lastLabel,
+                        progressCurrent: current,
+                        progressTotal: total,
+                        progressUnit,
+                      })
+                    }
+                    size="compact-sm"
+                    tone="primary"
+                    type="button"
+                  >
+                    저장
+                  </AppButton>
+                </Group>
+
+                {hasInvalidProgress && (
+                  <Text c="red" size="xs">
+                    현재 진행량이 전체보다 클 수 없습니다.
+                  </Text>
+                )}
+              </Stack>
+            )}
+
+            {/* Delete */}
+            <ActionRow justify="flex-end">
+              <AppButton
+                aria-label={`${work.title} 삭제`}
+                disabled={isUpdating}
+                onClick={() => void onDelete(work)}
+                size="compact-sm"
+                tone="danger"
+                type="button"
+              >
+                휴지통으로 이동
+              </AppButton>
+            </ActionRow>
+          </Stack>
+        </Box>
+      </Collapse>
     </Paper>
   );
 }

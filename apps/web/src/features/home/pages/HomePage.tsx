@@ -1,5 +1,14 @@
 import { useState, type FormEvent } from 'react';
-import { Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import {
+  Box,
+  Group,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+} from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -20,7 +29,51 @@ import {
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
 
 function formatAverageRating(value: number | null) {
-  return value === null ? '미평가' : `${value.toFixed(1)}점`;
+  return value === null ? '미평가' : `★ ${value.toFixed(1)}`;
+}
+
+interface QuickStatProps {
+  accent?: boolean;
+  icon: string;
+  label: string;
+  value: string;
+}
+
+function QuickStat({ accent = false, icon, label, value }: QuickStatProps) {
+  return (
+    <Paper
+      p="md"
+      radius="lg"
+      styles={{
+        root: {
+          background: accent
+            ? 'linear-gradient(135deg, var(--app-surface-hero), var(--app-bg-elevated))'
+            : 'var(--app-surface-subtle)',
+          borderColor: accent ? 'var(--app-border-strong)' : 'var(--app-border-subtle)',
+          transition: 'border-color 160ms ease',
+        },
+      }}
+      withBorder
+    >
+      <Group gap="sm" wrap="nowrap">
+        <ThemeIcon
+          color={accent ? 'archive' : 'gray'}
+          radius="md"
+          size={36}
+          variant={accent ? 'gradient' : 'light'}
+          {...(accent ? { gradient: { deg: 135, from: 'archive.4', to: 'archive.7' } } : {})}
+        >
+          <Text fw={900} size="sm">{icon}</Text>
+        </ThemeIcon>
+        <Stack gap={2} miw={0}>
+          <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
+            {label}
+          </Text>
+          <Text fw={800} size="lg">{value}</Text>
+        </Stack>
+      </Group>
+    </Paper>
+  );
 }
 
 export function HomePage() {
@@ -56,19 +109,20 @@ export function HomePage() {
 
   return (
     <HomeHubPageTemplate>
+      {/* ── Hero ───────────────────────────────────────────────────────── */}
       <ArchiveHero
         actions={
           <AppLinkButton size="md" to="/works/new" tone="primary">
-            작품 추가
+            + 작품 추가
           </AppLinkButton>
         }
         description={
           isAuthenticated
-            ? `${user?.email ?? '내 계정'}의 개인 감상 기록 저장소`
+            ? `${user?.email ?? '내 계정'} · 개인 감상 기록 저장소`
             : '이 기기에 먼저 저장되는 개인 감상 기록 저장소'
         }
         eyebrow="개인 감상 서재"
-        title="기록 홈"
+        title="내 아카이브"
         variant="landing"
       >
         <form onSubmit={handleSearchSubmit}>
@@ -87,6 +141,7 @@ export function HomePage() {
         </form>
       </ArchiveHero>
 
+      {/* ── Error ──────────────────────────────────────────────────────── */}
       {error && (
         <StateMessage
           actions={
@@ -97,11 +152,7 @@ export function HomePage() {
               <AppLinkButton to="/works" tone="secondary">
                 작품 목록 열기
               </AppLinkButton>
-              <AppLinkButton
-                aria-label="최근 기록 오류 상태에서 작품 추가"
-                to="/works/new"
-                tone="quiet"
-              >
+              <AppLinkButton to="/works/new" tone="quiet">
                 작품 추가
               </AppLinkButton>
             </>
@@ -112,20 +163,53 @@ export function HomePage() {
         />
       )}
 
+      {/* ── Loading ────────────────────────────────────────────────────── */}
       {!error && isLoading && <LoadingRows rows={4} />}
 
+      {/* ── Content ────────────────────────────────────────────────────── */}
       {!error && !isLoading && (
         <Stack gap={48}>
+          {/* Quick stats — shown prominently at top when there's data */}
+          {totalCount > 0 && (
+            <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
+              <QuickStat
+                accent
+                icon="📚"
+                label="전체 작품"
+                value={`${totalCount}개`}
+              />
+              <QuickStat
+                icon="▶"
+                label="보는 중"
+                value={`${inProgressCount}개`}
+              />
+              <QuickStat
+                icon="✓"
+                label="완료"
+                value={`${completedCount}개`}
+              />
+              <QuickStat
+                icon="★"
+                label="평균 별점"
+                value={formatAverageRating(averageRating)}
+              />
+            </SimpleGrid>
+          )}
+
+          {/* 이어보기 선반 */}
           <WorkShelf
-            empty={
-              <ArchiveStarterShelf />
-            }
+            empty={<ArchiveStarterShelf />}
             title={
               <Group justify="space-between" wrap="wrap">
                 <Stack gap={4}>
-                  <Title order={2}>이어보기 선반</Title>
+                  <Group gap="xs" wrap="nowrap">
+                    <Text c="var(--app-accent-primary)" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
+                      이어보기
+                    </Text>
+                  </Group>
+                  <Title order={2}>보는 중인 작품</Title>
                   <Text c="dimmed" size="sm">
-                    보는 중인 기록만 조용히 모았습니다.
+                    진행 중인 기록만 조용히 모았습니다.
                   </Text>
                 </Stack>
                 <AppLinkButton to="/works?status=in_progress" tone="quiet">
@@ -136,16 +220,20 @@ export function HomePage() {
             works={continueWorks}
           />
 
+          {/* 최근 손본 작품 */}
           <Stack gap="md">
             <Group justify="space-between" wrap="wrap">
               <Stack gap={4}>
+                <Text c="var(--app-accent-primary)" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
+                  최근 활동
+                </Text>
                 <Title order={2}>최근 손본 작품</Title>
                 <Text c="dimmed" size="sm">
                   방금 손본 작품을 빠르게 다시 엽니다.
                 </Text>
               </Stack>
               <AppLinkButton to="/works" tone="quiet">
-                작품 목록
+                작품 목록 전체
               </AppLinkButton>
             </Group>
             {recentWorks.length > 0 ? (
@@ -158,20 +246,11 @@ export function HomePage() {
                   </AppLinkButton>
                 }
                 description="첫 기록을 만들면 홈에서 이어보기와 최근 수정 흐름이 시작됩니다."
-                title="최근 기록 없음"
+                eyebrow="시작하기"
+                title="아직 기록이 없습니다"
                 tone="info"
               />
             )}
-          </Stack>
-
-          <Stack gap="md">
-            <Title order={2}>아카이브 요약</Title>
-            <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
-              <MetricPill label="전체" value={`${totalCount}개`} />
-              <MetricPill label="보는 중" value={`${inProgressCount}개`} />
-              <MetricPill label="완료" value={`${completedCount}개`} />
-              <MetricPill label="평균 별점" value={formatAverageRating(averageRating)} />
-            </SimpleGrid>
           </Stack>
         </Stack>
       )}
