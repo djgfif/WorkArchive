@@ -23,7 +23,7 @@ export function SettingsPage() {
       actions={
         <AppLinkButton to="/account">계정 홈으로 돌아가기</AppLinkButton>
       }
-      description="설정은 메인 제품 경험과 분리된 계정 관리 맥락에서 확장합니다."
+      description="자동 백업, 로컬 백업, 계정 상태를 한곳에서 관리합니다."
       eyebrow="설정"
       title="설정"
     >

@@ -19,13 +19,13 @@ export function localizeSyncResultCode(
     case 'missing_remote_delete_noop':
       return '서버에 해당 기록이 없어 삭제 요청을 건너뛰었습니다.';
     case 'conflict_remote_newer':
-      return '다른 곳에서 더 최근 변경이 반영되어 충돌이 발생했습니다.';
+      return '자동 백업 중 일부 항목 확인이 필요합니다.';
     case 'conflict_remote_missing':
-      return '서버에 해당 기록이 없어 충돌이 발생했습니다.';
+      return '자동 백업 중 일부 항목 확인이 필요합니다.';
     case 'conflict_ownership_mismatch':
       return '서버의 기록 소유자 정보가 달라 변경 사항을 반영하지 못했습니다.';
     case 'conflict_parent_changed':
-      return '권별 기록의 연결 대상이 달라 충돌이 발생했습니다.';
+      return '권별 기록의 연결 대상 확인이 필요합니다.';
     case 'failed_validation':
       return '동기화할 기록 값이 서버 규칙과 맞지 않습니다.';
     case 'failed_missing_catalog_title':
@@ -110,7 +110,7 @@ export function localizeServerMessage(
   );
 
   if (conflictMatch) {
-    return '다른 곳에서 더 최근 변경이 반영되어 충돌이 발생했습니다. 내용을 확인한 뒤 다시 시도해주세요.';
+    return '자동 백업 중 일부 항목 확인이 필요합니다. 잠시 후 다시 시도해주세요.';
   }
 
   if (/^Work with id ".+" was not found\.$/.test(normalized)) {
@@ -159,9 +159,9 @@ export function localizeServerMessage(
     case 'Server mismatch: the record cannot be modified remotely.':
       return '서버 상태가 달라 변경 사항을 반영하지 못했습니다.';
     case 'Server mismatch: the record does not exist remotely anymore.':
-      return '서버에 해당 작품이 없어 충돌이 발생했습니다.';
+      return '자동 백업 중 일부 항목 확인이 필요합니다.';
     case 'Server mismatch: the record was already missing remotely when a previously synced delete was pushed.':
-      return '이미 서버에서 삭제된 작품이라 충돌이 발생했습니다.';
+      return '자동 백업 중 일부 항목 확인이 필요합니다.';
     case 'Sync server is unavailable.':
       return '동기화 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
     default:

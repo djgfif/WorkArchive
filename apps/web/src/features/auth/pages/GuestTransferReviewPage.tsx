@@ -38,7 +38,7 @@ function getGuestTransferErrorMessage(
   }
 
   if (context === 'skip') {
-    return '검토 완료 상태를 저장하지 못했습니다. 다시 시도하거나 Works에서 기록 상태를 먼저 확인해주세요.';
+    return '검토 완료 상태를 저장하지 못했습니다. 다시 시도하거나 작품 목록에서 기록 상태를 먼저 확인해주세요.';
   }
 
   return '선택한 guest 기록을 가져오지 못했습니다. 목록을 다시 확인한 뒤 다시 시도해주세요.';
@@ -160,7 +160,7 @@ export function GuestTransferReviewPage() {
       );
 
       setResultMessage(
-        `선택한 ${result.importedCount}개 기록을 계정 로컬 아카이브로 가져왔습니다. Works 화면에서 바로 이어서 정리할 수 있습니다.`,
+        `선택한 ${result.importedCount}개 기록을 계정 로컬 아카이브로 가져왔습니다. 작품 화면에서 바로 이어서 정리할 수 있습니다.`,
       );
       setReview(null);
       setSelectedIds([]);
@@ -183,7 +183,7 @@ export function GuestTransferReviewPage() {
     <AccountPageTemplate
       actions={
         <>
-          <AppLinkButton to="/works">Works로 이동</AppLinkButton>
+          <AppLinkButton to="/works">작품으로 이동</AppLinkButton>
           <AppLinkButton to="/account">계정 홈</AppLinkButton>
         </>
       }
@@ -224,7 +224,7 @@ export function GuestTransferReviewPage() {
                   다시 확인
                 </AppButton>
                 <AppLinkButton to="/works" tone="quiet">
-                  Works에서 확인
+                  작품에서 확인
                 </AppLinkButton>
               </ActionRow>
             )}
@@ -238,7 +238,7 @@ export function GuestTransferReviewPage() {
           <Text c="var(--mantine-color-dimmed)">{resultMessage}</Text>
           <ActionRow>
             <AppLinkButton to="/works" tone="primary">
-              Works 열기
+              작품 열기
             </AppLinkButton>
           </ActionRow>
         </SectionCard>

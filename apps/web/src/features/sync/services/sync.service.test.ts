@@ -338,8 +338,14 @@ describe('SyncService', () => {
     );
   });
 
-  it('marks the local work as conflict when push returns a conflict result', async () => {
-    const localWork = await worksService.createWork(buildInput());
+  it('auto-merges a push conflict and keeps the work queued for backup retry', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        favorite: true,
+        genres: ['Science Fiction'],
+        personalTags: ['local'],
+      }),
+    );
     const queueItems = await queueRepository.listAll();
     writeStoredAuthTokens({
       accessToken: 'access-token',
@@ -358,12 +364,15 @@ describe('SyncService', () => {
               entityType: 'work',
               status: 'conflict',
               message:
-                'Conflict: server version 3 updated at 2026-04-18T01:00:00.000Z won.',
+                'Conflict: server version 3 updated at 2026-06-18T01:00:00.000Z won.',
               work: {
                 ...localWork,
+                favorite: false,
+                genres: ['Classic'],
+                personalTags: ['remote'],
                 syncStatus: 'synced',
                 serverVersion: 3,
-                updatedAt: '2026-04-18T01:00:00.000Z',
+                updatedAt: '2026-06-18T01:00:00.000Z',
               },
             },
           ],
@@ -376,29 +385,32 @@ describe('SyncService', () => {
     expect(result).toEqual(
       expect.objectContaining({
         appliedCount: 0,
-        conflictCount: 1,
+        conflictCount: 0,
         failedCount: 0,
       }),
     );
     expect(await queueRepository.listAll()).toEqual([
       expect.objectContaining({
         entityId: localWork.id,
-        retryCount: 1,
-        lastError:
-          '다른 곳에서 더 최근 변경이 반영되어 충돌이 발생했습니다. 내용을 확인한 뒤 다시 시도해주세요.',
-        conflict: expect.objectContaining({
-          message:
-            '다른 곳에서 더 최근 변경이 반영되어 충돌이 발생했습니다. 내용을 확인한 뒤 다시 시도해주세요.',
-          remote: expect.objectContaining({
-            id: localWork.id,
-            serverVersion: 3,
-          }),
+        retryCount: 0,
+        lastError: null,
+        conflict: null,
+        payload: expect.objectContaining({
+          favorite: true,
+          genres: ['Classic', 'Science Fiction'],
+          personalTags: ['remote', 'local'],
+          serverVersion: 3,
+          syncStatus: 'pending',
         }),
       }),
     ]);
     expect(await worksRepository.getById(localWork.id)).toEqual(
       expect.objectContaining({
-        syncStatus: 'conflict',
+        favorite: true,
+        genres: ['Classic', 'Science Fiction'],
+        personalTags: ['remote', 'local'],
+        serverVersion: 3,
+        syncStatus: 'pending',
       }),
     );
   });
@@ -618,7 +630,7 @@ describe('SyncService', () => {
                   status: 'completed',
                 }),
                 createdAt: '2026-04-17T00:00:00.000Z',
-                updatedAt: '2026-04-18T01:30:00.000Z',
+                updatedAt: '2026-06-18T01:30:00.000Z',
                 deletedAt: null,
                 syncStatus: 'synced',
                 serverVersion: 4,
@@ -845,7 +857,7 @@ describe('SyncService', () => {
               work: {
                 ...existing,
                 title: 'Dune Messiah',
-                updatedAt: '2026-04-18T01:30:00.000Z',
+                updatedAt: '2026-06-18T01:30:00.000Z',
                 syncStatus: 'synced',
                 serverVersion: 2,
               },
@@ -874,7 +886,7 @@ describe('SyncService', () => {
         conflict: null,
         payload: expect.objectContaining({
           id: existing.id,
-          title: 'Dune',
+          title: 'Dune Messiah',
           syncStatus: 'pending',
           serverVersion: 2,
         }),
@@ -882,7 +894,7 @@ describe('SyncService', () => {
     );
     expect(await worksRepository.getById(existing.id)).toEqual(
       expect.objectContaining({
-        title: 'Dune',
+        title: 'Dune Messiah',
         syncStatus: 'pending',
         serverVersion: 2,
       }),

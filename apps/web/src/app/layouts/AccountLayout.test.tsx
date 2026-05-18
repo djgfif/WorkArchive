@@ -52,17 +52,17 @@ describe('AccountLayout', () => {
     expect(await screen.findByText('계정 본문')).toBeInTheDocument();
 
     const quickActions = screen.getByRole('group', {
-      name: 'Account quick actions',
+      name: '계정 빠른 작업',
     });
 
     expect(
       within(quickActions).getByRole('button', { name: /모드로 전환/ }),
     ).toBeInTheDocument();
     expect(
-      within(quickActions).getByRole('link', { name: 'Works' }),
+      within(quickActions).getByRole('link', { name: '작품' }),
     ).toHaveAttribute('href', '/works');
     expect(
-      within(quickActions).getByRole('link', { name: 'Log in' }),
+      within(quickActions).getByRole('link', { name: '로그인' }),
     ).toHaveAttribute('href', '/auth/login');
   });
 });

@@ -473,10 +473,10 @@ export function BrandLink({
           </Text>
         </ThemeIcon>
         <Stack gap={0} miw={0}>
-          <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.7rem" lts="0.12em" tt="uppercase">
+          <Text c="dimmed" fw={700} fz="0.7rem" lts="0.12em" tt="uppercase">
             {kicker}
           </Text>
-          <Text c="var(--mantine-color-text)" fw={700} fz="1rem">
+          <Text fw={700} fz="1rem">
             {heading}
           </Text>
         </Stack>
@@ -526,7 +526,7 @@ export function AppNavLink({
         borderLeft: fullWidth
           ? `2px solid ${isActive ? 'var(--mantine-primary-color-filled)' : 'transparent'}`
           : 'none',
-        color: isActive ? 'var(--mantine-color-text)' : 'var(--mantine-color-text)',
+        color: 'inherit',
         display: fullWidth ? 'flex' : 'inline-flex',
         gap: '0.625rem',
         justifyContent: 'space-between',
@@ -557,13 +557,13 @@ export function SectionIntro({
   return (
     <Stack gap={6}>
       {eyebrow && (
-        <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+        <Text c="dimmed" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
           {eyebrow}
         </Text>
       )}
       <Title order={titleOrder}>{title}</Title>
       {description && (
-        <Text c="var(--mantine-color-dimmed)" maw="64ch">
+        <Text c="dimmed" maw="64ch">
           {description}
         </Text>
       )}
@@ -607,11 +607,11 @@ export function PageSection({
             ) : (
               <Stack gap={6}>
                 {eyebrow && (
-                  <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+                  <Text c="dimmed" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
                     {eyebrow}
                   </Text>
                 )}
-                {description && <Text c="var(--mantine-color-dimmed)">{description}</Text>}
+                {description && <Text c="dimmed">{description}</Text>}
               </Stack>
             )
           )}
@@ -638,10 +638,10 @@ export function MetricPill({
         borderRadius: 'var(--mantine-radius-sm)',
       }}
     >
-      <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.7rem" lts="0.06em" tt="uppercase">
+      <Text c="dimmed" fw={700} fz="0.7rem" lts="0.06em" tt="uppercase">
         {label}
       </Text>
-      <Text c="var(--mantine-color-text)" fw={700} fz="0.95rem">
+      <Text fw={700} fz="0.95rem">
         {value}
       </Text>
     </Stack>
@@ -655,7 +655,7 @@ export function ChipSummary({
 }: ChipSummaryProps) {
   return (
     <Stack gap={6}>
-      <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.76rem">
+      <Text c="dimmed" fw={700} fz="0.76rem">
         {label}
       </Text>
       {values.length > 0 ? (
@@ -667,7 +667,7 @@ export function ChipSummary({
           ))}
         </ActionRow>
       ) : (
-        <Text c="var(--mantine-color-dimmed)" size="sm">
+        <Text c="dimmed" size="sm">
           {emptyLabel}
         </Text>
       )}
@@ -684,11 +684,11 @@ export function StatCard({
 }: StatCardProps) {
   const content = (
     <Stack gap={6}>
-      <Text c={accent ? 'var(--mantine-primary-color-filled)' : 'var(--mantine-color-dimmed)'} fw={700} fz="0.74rem">
+      <Text c={accent ? 'archive.6' : 'dimmed'} fw={700} fz="0.74rem">
         {label}
       </Text>
       <Title order={3}>{value}</Title>
-      {description && <Text c="var(--mantine-color-dimmed)">{description}</Text>}
+      {description && <Text c="dimmed">{description}</Text>}
     </Stack>
   );
 
@@ -728,10 +728,10 @@ export function KeyValueGrid({
             pb="sm"
             style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
           >
-            <Text c="var(--mantine-color-dimmed)" component="dt" fw={600} fz="0.76rem" lts="0.04em">
+            <Text c="dimmed" component="dt" fw={600} fz="0.76rem" lts="0.04em">
               {item.label}
             </Text>
-            <Text c="var(--mantine-color-text)" component="dd" fw={600} m={0}>
+            <Text component="dd" fw={600} m={0}>
               {item.value}
             </Text>
           </Stack>
@@ -808,7 +808,7 @@ export function StateMessage({
           {eyebrow ?? getMessageLabel(tone)}
         </AppBadge>
         <Title order={2}>{title}</Title>
-        <Text c="var(--mantine-color-dimmed)" maw="56ch">
+        <Text c="dimmed" maw="56ch">
           {description}
         </Text>
         {actions && <ActionRow>{actions}</ActionRow>}
@@ -828,7 +828,7 @@ export function LoadingState({
         <Group justify="space-between" wrap="nowrap">
           <Stack gap={8} miw={0} style={{ flex: '1 1 auto' }}>
             <Skeleton height={12} radius="sm" width={96} />
-            <Text c="var(--mantine-color-dimmed)" fw={700}>
+            <Text c="dimmed" fw={700}>
               {title}
             </Text>
           </Stack>

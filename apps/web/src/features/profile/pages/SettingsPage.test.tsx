@@ -151,7 +151,7 @@ describe('SettingsPage', () => {
     expect(screen.getAllByText('TMDB').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/사용 가능/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/키 필요/).length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText(/공개 provider/)).toBeInTheDocument();
+    expect(screen.getByText(/공개 검색/)).toBeInTheDocument();
     expect(screen.getAllByText(/개인 Key Vault/).length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(
@@ -465,11 +465,15 @@ describe('SettingsPage', () => {
 
     renderGuestSettings();
 
-    expect(await screen.findByText(/provider 준비 상태/)).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText(/외부 검색 준비 상태/)).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByText(/원격 기기의 로그인 상태/)).toBeInTheDocument();
     expect(screen.getByText('로컬 백업과 복구')).toBeInTheDocument();
-    expect(screen.getByText(/syncQueue.*복원하지 않습니다/)).toBeInTheDocument();
-    expect(screen.getByText(/access token.*refresh cookie.*provider API key/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/기기별 임시 상태.*복원하지 않습니다/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/access token.*refresh cookie.*외부 검색 API key/)).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
     ).toBeInTheDocument();
@@ -477,7 +481,7 @@ describe('SettingsPage', () => {
       screen.getByRole('button', { name: 'CSV 내보내기' }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('JSON 백업 파일 선택')).toBeInTheDocument();
-    expect(screen.getByText(/공개 provider는 키 없이/)).toBeInTheDocument();
+    expect(screen.getByText(/공개 검색 소스는 키 없이/)).toBeInTheDocument();
     expect(screen.queryByLabelText('TTBKey')).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });

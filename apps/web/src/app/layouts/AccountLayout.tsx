@@ -17,8 +17,8 @@ import {
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 
 const accountNavigationItems = [
-  { label: 'Account', to: '/account' },
-  { label: 'Settings', to: '/account/settings' },
+  { label: '계정', to: '/account' },
+  { label: '설정', to: '/account/settings' },
 ] as const;
 
 export function AccountLayout() {
@@ -33,13 +33,13 @@ export function AccountLayout() {
 
   const sessionBadge = (
     <AppBadge tone={isAuthenticated ? 'success' : 'muted'}>
-      {isAuthenticated ? 'signed in' : 'guest'}
+      {isAuthenticated ? '로그인됨' : '게스트'}
     </AppBadge>
   );
 
   const accountSummary = isAuthenticated
-    ? (user?.email ?? 'Account')
-    : 'Stored on this device';
+    ? (user?.email ?? '계정')
+    : '이 기기에 저장 중';
 
   return (
     <main className="layout-shell layout-shell--account">
@@ -69,7 +69,7 @@ export function AccountLayout() {
 
           <Grid.Col span={{ base: 12, lg: 9 }}>
             {isLoading ? (
-              <LoadingState rows={2} title="Preparing account settings" />
+              <LoadingState rows={2} title="계정 설정을 준비하고 있습니다" />
             ) : (
               <Outlet />
             )}
@@ -100,19 +100,19 @@ function AccountNavigationCard({
   return (
     <SectionCard gap="lg" tone="subtle">
       <Group align="flex-start" justify="space-between" wrap="nowrap">
-        <BrandLink heading="Account" kicker="Settings and backup" />
+        <BrandLink heading="계정" kicker="설정과 백업" />
         {sessionBadge}
       </Group>
 
       <SectionIntro
-        description="Account, local backup, and appearance settings are grouped here. Sync runs quietly in the background when you are signed in."
-        eyebrow={isAuthenticated ? 'Signed in' : 'Guest mode'}
-        title="Settings and local backup"
+        description="계정, 로컬 백업, 화면 설정을 이곳에서 관리합니다. 로그인하면 자동 백업은 백그라운드에서 조용히 실행됩니다."
+        eyebrow={isAuthenticated ? '로그인됨' : '게스트 모드'}
+        title="설정과 로컬 백업"
       />
 
       <Stack gap={4}>
         <Text c="dimmed" fw={700} size="sm">
-          Current session
+          현재 상태
         </Text>
         <Text fw={600} truncate>
           {accountSummary}
@@ -124,7 +124,7 @@ function AccountNavigationCard({
           component="nav"
           cols={{ base: 1, xs: 2 }}
           spacing="xs"
-          aria-label="Account navigation"
+          aria-label="계정 내비게이션"
         >
           {accountNavigationItems.map((item) => (
             <AppNavLink
@@ -138,7 +138,7 @@ function AccountNavigationCard({
           ))}
         </SimpleGrid>
       ) : (
-        <Stack component="nav" gap="xs" aria-label="Account navigation">
+        <Stack component="nav" gap="xs" aria-label="계정 내비게이션">
           {accountNavigationItems.map((item) => (
             <AppNavLink
               end={item.to === '/account'}
@@ -154,36 +154,36 @@ function AccountNavigationCard({
 
       {isMobile ? (
         <SimpleGrid
-          aria-label="Account quick actions"
+          aria-label="계정 빠른 작업"
           cols={{ base: 1, xs: 3 }}
           role="group"
           spacing="xs"
         >
           <ThemeToggleControl fullWidth />
           <AppLinkButton fullWidth to="/works">
-            Works
+            작품
           </AppLinkButton>
           {isAuthenticated ? (
             <AppButton fullWidth onClick={onSignOut} tone="quiet" type="button">
-              Log out
+              로그아웃
             </AppButton>
           ) : (
             <AppLinkButton fullWidth to="/auth/login" tone="primary">
-              Log in
+              로그인
             </AppLinkButton>
           )}
         </SimpleGrid>
       ) : (
         <ActionRow>
           <ThemeToggleControl />
-          <AppLinkButton to="/works">Works</AppLinkButton>
+          <AppLinkButton to="/works">작품</AppLinkButton>
           {isAuthenticated ? (
             <AppButton onClick={onSignOut} tone="quiet" type="button">
-              Log out
+              로그아웃
             </AppButton>
           ) : (
             <AppLinkButton to="/auth/login" tone="primary">
-              Log in
+              로그인
             </AppLinkButton>
           )}
         </ActionRow>

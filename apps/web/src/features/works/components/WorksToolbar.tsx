@@ -1,4 +1,5 @@
 import {
+  Box,
   Collapse,
   Group,
   NativeSelect,
@@ -289,7 +290,7 @@ export function WorksToolbar({
       <Collapse in={filtersExpanded}>
         <Stack gap="md">
           <Group align="flex-end" gap="sm" wrap="wrap">
-            <div style={{ flex: '0 1 12rem', minWidth: 160 }}>
+            <Box flex="0 1 12rem" miw={160}>
               <TextInput
                 label="개인 태그"
                 list="worksTagFilterSuggestions"
@@ -305,9 +306,9 @@ export function WorksToolbar({
                   <option key={tag} value={tag} />
                 ))}
               </datalist>
-            </div>
+            </Box>
 
-            <div style={{ flex: '0 1 10rem', minWidth: 144 }}>
+            <Box flex="0 1 10rem" miw={144}>
               <NativeSelect
                 id="typeFilter"
                 label="유형"
@@ -326,9 +327,9 @@ export function WorksToolbar({
                   </option>
                 ))}
               </NativeSelect>
-            </div>
+            </Box>
 
-            <div style={{ flex: '0 1 10rem', minWidth: 144 }}>
+            <Box flex="0 1 10rem" miw={144}>
               <NativeSelect
                 id="ratingFilter"
                 label="별점"
@@ -355,9 +356,9 @@ export function WorksToolbar({
                   </option>
                 ))}
               </NativeSelect>
-            </div>
+            </Box>
 
-            <div style={{ flex: '0 1 10rem', minWidth: 144 }}>
+            <Box flex="0 1 10rem" miw={144}>
               <NativeSelect
                 id="sortBy"
                 label="정렬"
@@ -376,7 +377,7 @@ export function WorksToolbar({
                   </option>
                 ))}
               </NativeSelect>
-            </div>
+            </Box>
           </Group>
 
           {collectionScope === 'active' && (

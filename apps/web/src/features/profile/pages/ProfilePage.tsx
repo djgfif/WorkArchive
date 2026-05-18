@@ -25,7 +25,7 @@ import {
   getWorkTypeLabel,
 } from '../../works/utils/work-options';
 
-function formatOptionalDate(value: string | null, fallback = '아직 없음') {
+function formatOptionalDate(value: string | null, fallback = '아직 백업 전') {
   return value ? formatWorkDateTime(value) : fallback;
 }
 
@@ -69,8 +69,11 @@ export function ProfilePage() {
     retry,
     totalCount,
   } = useWorksOverview();
-  const { conflictWorks, lastSuccessfulPullAt, queueItems } = useSyncDashboard();
+  const { conflictItems, failedItems, lastSuccessfulPullAt, pendingItems } =
+    useSyncDashboard();
   const isAuthenticated = mode === 'authenticated';
+  const backupAttentionCount = conflictItems.length + failedItems.length;
+  const backupPendingCount = pendingItems.length;
   const leadRecentWork = recentWorks[0] ?? null;
   const hasRecentWorks = recentWorks.length > 0;
 
@@ -90,7 +93,7 @@ export function ProfilePage() {
         }
         description={
           isAuthenticated
-            ? '내 작품 기록의 규모, 감상 흐름, 운영 상태를 개인용으로 요약합니다. 계정 관리와 동기화는 별도 계정 센터에서 처리합니다.'
+            ? '내 작품 기록의 규모와 감상 흐름을 개인용으로 요약합니다. 계정 관리와 백업은 별도 계정 센터에서 처리합니다.'
             : '지금은 게스트 모드입니다. 이 화면은 외부에 노출되지 않는 현재 기기의 개인 기록 요약입니다.'
         }
         eyebrow="개인 기록"
@@ -109,8 +112,8 @@ export function ProfilePage() {
           <SectionIntro
             description={
               isAuthenticated
-                ? `${user?.email ?? '계정'} 기준의 개인 아카이브입니다. 이 요약은 내 기기와 계정 기록을 확인하기 위한 화면입니다.`
-                : '로그인하지 않아도 기록은 시작할 수 있습니다. 계정을 만들면 이 흐름을 계정 아카이브와 동기화할 수 있습니다.'
+                ? `${user?.email ?? '계정'} 기준의 개인 아카이브입니다. 이 요약은 작품과 감상 흐름을 확인하기 위한 화면입니다.`
+                : '로그인하지 않아도 기록은 시작할 수 있습니다. 계정을 만들면 자동 백업을 사용할 수 있습니다.'
             }
             eyebrow="기록 범위"
             title={isAuthenticated ? '내 취향 아카이브' : '게스트 기록 미리보기'}
@@ -132,16 +135,16 @@ export function ProfilePage() {
 
           <KeyValueGrid
             items={[
-              { label: '대기 중', value: `${queueItems.length}건` },
-              { label: '충돌', value: `${conflictWorks.length}건` },
-              { label: '최근 동기화', value: formatOptionalDate(lastSuccessfulPullAt) },
+              { label: '자동 백업', value: backupAttentionCount > 0 ? '확인 필요' : backupPendingCount > 0 ? '백업 중' : '정상' },
+              { label: '최근 백업', value: formatOptionalDate(lastSuccessfulPullAt) },
+              { label: '오프라인 기록', value: '가능' },
             ]}
           />
         </SectionCard>
 
         <SectionCard>
           <SectionIntro
-            description="동기화, 설정, 세션, 로컬 백업은 개인 기록 요약과 분리된 관리 영역에서 다룹니다."
+            description="자동 백업, 설정, 세션, 로컬 백업은 개인 기록 요약과 분리된 관리 영역에서 다룹니다."
             eyebrow="계정 센터"
             title="관리 기능은 따로 분리했습니다"
           />

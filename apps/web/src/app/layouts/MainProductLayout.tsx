@@ -25,9 +25,9 @@ import {
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 
 const primaryNavigationItems = [
-  { label: 'Home', to: '/' },
-  { label: 'Works', to: '/works' },
-  { label: 'Settings', to: '/account/settings' },
+  { label: '홈', to: '/' },
+  { label: '작품', to: '/works' },
+  { label: '설정', to: '/account/settings' },
 ] as const;
 
 export function MainProductLayout() {
@@ -49,7 +49,11 @@ export function MainProductLayout() {
     <main className="layout-shell layout-shell--product">
       <Container px="md" size={1360}>
         <Stack gap="lg">
-          <Box component="header" pb="md" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
+          <Box
+            component="header"
+            pb="md"
+            style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
+          >
             <Flex align="center" gap="lg" justify="space-between" wrap="nowrap">
               <Group gap="lg" miw={0} wrap="nowrap">
                 <Burger
@@ -86,17 +90,17 @@ export function MainProductLayout() {
                 </Box>
                 <Box hiddenFrom="sm">
                   <AppLinkButton
-                    aria-label="Add work"
+                    aria-label="작품 추가"
                     size="compact-sm"
                     to="/works/new"
                     tone="primary"
                   >
-                    Add
+                    추가
                   </AppLinkButton>
                 </Box>
                 <Box visibleFrom="sm">
                   <AppLinkButton to="/works/new" tone="primary">
-                    Quick Add
+                    작품 추가
                   </AppLinkButton>
                 </Box>
                 {!isAuthenticated && (
@@ -118,10 +122,10 @@ export function MainProductLayout() {
                     <Menu.Dropdown>
                       <Menu.Label>{accountMenuLabel}</Menu.Label>
                       <Menu.Item onClick={() => navigate('/account')}>
-                        Account
+                        계정
                       </Menu.Item>
                       <Menu.Item onClick={() => navigate('/account/settings')}>
-                        Settings and backup
+                        설정과 백업
                       </Menu.Item>
                       <Menu.Divider />
                       {isAuthenticated ? (
@@ -173,12 +177,12 @@ export function MainProductLayout() {
               <Stack gap="sm">
                 <Group justify="space-between">
                   <Text c="dimmed" fw={700} size="sm">
-                    Account
+                    계정
                   </Text>
-                  {!isAuthenticated && <AppBadge tone="muted">guest</AppBadge>}
+                  {!isAuthenticated && <AppBadge tone="muted">게스트</AppBadge>}
                 </Group>
                 <AppLinkButton fullWidth to="/works/new" tone="primary">
-                  Quick Add
+                  작품 추가
                 </AppLinkButton>
                 <ThemeToggleControl fullWidth />
                 {isAuthenticated ? (
@@ -200,8 +204,8 @@ export function MainProductLayout() {
           {isLoading ? (
             <StateMessage
               description="Please wait while your archive is prepared."
-              eyebrow="Loading"
-              title="Loading Work Archive"
+              eyebrow="불러오는 중"
+              title="Work Archive를 준비하고 있습니다"
               tone="loading"
             />
           ) : (
