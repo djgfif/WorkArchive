@@ -4,7 +4,6 @@ import {
   Accordion,
   Group,
   NativeSelect,
-  NumberInput,
   Stack,
   Text,
   TextInput,
@@ -42,6 +41,7 @@ import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
 import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { WorkDetailPanel } from '../components/WorkDetailPanel';
+import { QuickProgressControl } from '../components/ArchiveComponents';
 import { useWorkDetail } from '../hooks/useWorkDetail';
 import { releaseRecordsService } from '../services/release-records.service';
 import { timelineEntriesRepository } from '../services/timeline-entries.repository';
@@ -64,12 +64,6 @@ const ratingOptions = Array.from({ length: 10 }, (_, index) => {
     value,
   };
 });
-
-const progressUnitLabels: Record<ProgressUnit, string> = {
-  chapter: '화',
-  episode: '회',
-  volume: '권',
-};
 
 const relationTypeLabels: Record<string, string> = {
   adaptation: '각색',
@@ -95,16 +89,6 @@ function getRouteFeedback(state: unknown) {
 
 function getSavedFeedback(value: string | null) {
   return value === 'edit' ? '작품 수정 내용을 저장했습니다.' : null;
-}
-
-function coerceNumberInputValue(value: number | string) {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-
-  return Number.isNaN(parsed) ? null : parsed;
 }
 
 function WorkQuickRecordSection({
@@ -237,54 +221,36 @@ function ProgressOnlySection({
   work: WorkRecord;
 }) {
   const defaultUnit = getDefaultProgressUnitForWorkType(work.type);
-  const [current, setCurrent] = useState<number | null>(
-    work.progressCurrent ?? null,
-  );
-  const [total, setTotal] = useState<number | null>(work.progressTotal ?? null);
-  const [lastLabel, setLastLabel] = useState(work.lastConsumedLabel ?? '');
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    setCurrent(work.progressCurrent ?? null);
-    setTotal(work.progressTotal ?? null);
-    setLastLabel(work.lastConsumedLabel ?? '');
-  }, [
-    work.id,
-    work.lastConsumedLabel,
-    work.progressCurrent,
-    work.progressTotal,
-  ]);
-
   if (!isProgressOnlyWorkType(work.type) || defaultUnit === null) {
     return null;
   }
+  const progressUnit = defaultUnit;
 
-  async function handleSave() {
-    if (defaultUnit === null) {
-      return;
-    }
-
-    if (!canUseProgressUnitForWorkType(work.type, defaultUnit)) {
+  async function handleSave(nextValues: {
+    lastConsumedLabel: string;
+    progressCurrent: number | null;
+    progressTotal: number | null;
+    progressUnit: ProgressUnit;
+  }) {
+    if (!canUseProgressUnitForWorkType(work.type, progressUnit)) {
       onError('이 작품 유형에는 진행도 기록을 사용할 수 없습니다.');
 
       return;
     }
 
-    if (current !== null && total !== null && current > total) {
+    if (
+      nextValues.progressCurrent !== null &&
+      nextValues.progressTotal !== null &&
+      nextValues.progressCurrent > nextValues.progressTotal
+    ) {
       onError('현재 진행도가 전체 진행도보다 클 수 없습니다.');
 
       return;
     }
 
     try {
-      setIsSaving(true);
       onError(null);
-      await worksService.updateProgress(work.id, {
-        lastConsumedLabel: lastLabel,
-        progressCurrent: current,
-        progressTotal: total,
-        progressUnit: defaultUnit,
-      });
+      await worksService.updateProgress(work.id, nextValues);
       onSuccess('진행도를 저장했습니다.');
     } catch (error) {
       onError(
@@ -292,58 +258,15 @@ function ProgressOnlySection({
           ? error.message
           : '진행도를 저장하지 못했습니다.',
       );
-    } finally {
-      setIsSaving(false);
     }
   }
 
   return (
     <PageSection
-      description="회차별 별점과 리뷰는 만들지 않고, title-level 진행도만 기록합니다."
       eyebrow="진행도"
       title={`${getWorkTypeLabel(work.type)} 진행 상황`}
     >
-      <SectionCard gap="md" padding="lg" tone="default">
-        <Group align="flex-end" grow>
-          <NumberInput
-            allowDecimal={false}
-            allowNegative={false}
-            label={`현재 ${progressUnitLabels[defaultUnit]}`}
-            min={0}
-            onChange={(value) => setCurrent(coerceNumberInputValue(value))}
-            value={current ?? ''}
-          />
-          <NumberInput
-            allowDecimal={false}
-            allowNegative={false}
-            label={`전체 ${progressUnitLabels[defaultUnit]}`}
-            min={0}
-            onChange={(value) => setTotal(coerceNumberInputValue(value))}
-            value={total ?? ''}
-          />
-        </Group>
-        <TextInput
-          label="마지막으로 본 위치"
-          maxLength={120}
-          onChange={(event) => setLastLabel(event.currentTarget.value)}
-          placeholder={`예: ${current ?? 18}${progressUnitLabels[defaultUnit]}`}
-          value={lastLabel}
-        />
-        <Group justify="space-between">
-          <Text c="var(--mantine-color-dimmed)" size="sm">
-            애니/드라마는 시즌·OVA·극장판을 별도 작품으로 관리하고, 에피소드는
-            진행도만 남깁니다.
-          </Text>
-          <AppButton
-            disabled={isSaving}
-            onClick={() => void handleSave()}
-            tone="primary"
-            type="button"
-          >
-            진행도 저장
-          </AppButton>
-        </Group>
-      </SectionCard>
+      <QuickProgressControl onSave={handleSave} work={work} />
     </PageSection>
   );
 }
@@ -699,7 +622,7 @@ export function WorkDetailPage() {
 
     const timeoutId = window.setTimeout(() => {
       setActionSuccess(null);
-    }, 5_000);
+    }, 30_000);
 
     return () => {
       window.clearTimeout(timeoutId);

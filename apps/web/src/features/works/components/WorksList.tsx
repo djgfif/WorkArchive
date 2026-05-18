@@ -3,7 +3,9 @@ import { Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AppButton, MetricPill } from '../../../shared/components/AppPrimitives';
-import { PosterTile } from './PosterTile';
+import {
+  WorkPosterCard,
+} from './ArchiveComponents';
 import {
   WorkListRow,
   type WorkQuickProgressUpdate,
@@ -74,11 +76,11 @@ export function WorksList({
         <Group justify="space-between" wrap="wrap">
           <Stack gap={4}>
             <MetricPill
-              label="표시 중"
+              label="보이는 기록"
               value={`${visibleWorks.length} / ${works.length}개`}
             />
-            <Text c="var(--mantine-color-dimmed)" fz="sm">
-              많은 기록은 필요한 만큼만 이어서 불러와 목록 조작이 느려지지 않게 합니다.
+            <Text c="dimmed" size="sm">
+              큰 아카이브에서도 포스터 레일을 가볍게 훑을 수 있게 나눠서 표시합니다.
             </Text>
           </Stack>
           {hasHiddenWorks && (
@@ -100,42 +102,35 @@ export function WorksList({
 
   if (viewMode === 'grid') {
     return (
-      <section aria-label="작품 카드 목록">
-        <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }} spacing="md">
+      <Stack aria-label="작품 포스터 목록" component="section" gap="xl">
+        <SimpleGrid
+          cols={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }}
+          spacing={{ base: 'lg', md: 'xl' }}
+          verticalSpacing="xl"
+        >
           {visibleWorks.map((work) => (
-            <PosterTile key={work.id} work={work} />
+            <WorkPosterCard key={work.id} work={work} />
           ))}
         </SimpleGrid>
         {renderProgress}
-      </section>
+      </Stack>
     );
   }
 
   return (
-    <section aria-label="작품 행 목록">
-      <Paper
-        p={0}
-        radius="lg"
-        styles={{
-          root: {
-            backgroundColor: 'var(--mantine-color-body)',
-            borderColor: 'var(--mantine-color-default-border)',
-            overflow: 'hidden',
-          },
-        }}
-        withBorder
-      >
+    <section aria-label="작품 줄 목록">
+      <Paper p={0} radius="lg" withBorder>
         <Stack gap={0}>
           {visibleWorks.map((work, index) => (
             <WorkListRow
-              isLast={index === visibleWorks.length - 1}
-              isUpdating={updatingWorkId === work.id}
-              key={work.id}
-              onDelete={onDelete}
-              onQuickProgressUpdate={onQuickProgressUpdate}
-              onQuickUpdate={onQuickUpdate}
-              work={work}
-            />
+          isLast={index === visibleWorks.length - 1}
+          isUpdating={updatingWorkId === work.id}
+          key={work.id}
+          onDelete={onDelete}
+          onQuickProgressUpdate={onQuickProgressUpdate}
+          onQuickUpdate={onQuickUpdate}
+          work={work}
+        />
           ))}
         </Stack>
       </Paper>

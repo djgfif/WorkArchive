@@ -1,6 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import {
   Badge,
+  Box,
   Button,
   Container,
   Flex,
@@ -338,6 +339,10 @@ export function SectionCard({
   );
 }
 
+export const AppCard = SectionCard;
+export const AppPage = PageShell;
+export const AppText = Text;
+
 export function SurfaceLinkCard({
   children,
   className,
@@ -458,13 +463,12 @@ export function BrandLink({
   to = '/',
 }: BrandLinkProps) {
   return (
-    <Link
+    <Box
+      component={Link}
+      display="inline-flex"
+      miw={0}
       to={to}
-      style={{
-        display: 'inline-flex',
-        minWidth: 0,
-        textDecoration: 'none',
-      }}
+      td="none"
     >
       <Group gap="sm" wrap="nowrap">
         <ThemeIcon color="archive" radius="sm" size={36} variant="light">
@@ -473,15 +477,15 @@ export function BrandLink({
           </Text>
         </ThemeIcon>
         <Stack gap={0} miw={0}>
-          <Text c="dimmed" fw={700} fz="0.7rem" lts="0.12em" tt="uppercase">
+          <Text c="dimmed" fw={700} size="xs" tt="uppercase">
             {kicker}
           </Text>
-          <Text fw={700} fz="1rem">
+          <Text fw={700} size="md">
             {heading}
           </Text>
         </Stack>
       </Group>
-    </Link>
+    </Box>
   );
 }
 
@@ -557,7 +561,7 @@ export function SectionIntro({
   return (
     <Stack gap={6}>
       {eyebrow && (
-        <Text c="dimmed" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
           {eyebrow}
         </Text>
       )}
@@ -607,7 +611,7 @@ export function PageSection({
             ) : (
               <Stack gap={6}>
                 {eyebrow && (
-                  <Text c="dimmed" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+                  <Text c="dimmed" fw={700} size="xs" tt="uppercase">
                     {eyebrow}
                   </Text>
                 )}
@@ -628,23 +632,21 @@ export function MetricPill({
   value,
 }: MetricPillProps) {
   return (
-    <Stack
-      gap={2}
+    <Paper
       miw={112}
       p="xs"
-      style={{
-        background: 'var(--mantine-color-default-hover)',
-        border: '1px solid var(--mantine-color-default-border)',
-        borderRadius: 'var(--mantine-radius-sm)',
-      }}
+      radius="md"
+      withBorder
     >
-      <Text c="dimmed" fw={700} fz="0.7rem" lts="0.06em" tt="uppercase">
-        {label}
-      </Text>
-      <Text fw={700} fz="0.95rem">
-        {value}
-      </Text>
-    </Stack>
+      <Stack gap={2}>
+        <Text c="dimmed" fw={700} size="xs" tt="uppercase">
+          {label}
+        </Text>
+        <Text fw={700} size="sm">
+          {value}
+        </Text>
+      </Stack>
+    </Paper>
   );
 }
 
@@ -655,7 +657,7 @@ export function ChipSummary({
 }: ChipSummaryProps) {
   return (
     <Stack gap={6}>
-      <Text c="dimmed" fw={700} fz="0.76rem">
+      <Text c="dimmed" fw={700} size="xs">
         {label}
       </Text>
       {values.length > 0 ? (
@@ -684,7 +686,7 @@ export function StatCard({
 }: StatCardProps) {
   const content = (
     <Stack gap={6}>
-      <Text c={accent ? 'archive.6' : 'dimmed'} fw={700} fz="0.74rem">
+      <Text c={accent ? 'archive.6' : 'dimmed'} fw={700} size="xs">
         {label}
       </Text>
       <Title order={3}>{value}</Title>
@@ -728,7 +730,7 @@ export function KeyValueGrid({
             pb="sm"
             style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
           >
-            <Text c="dimmed" component="dt" fw={600} fz="0.76rem" lts="0.04em">
+            <Text c="dimmed" component="dt" fw={600} size="xs">
               {item.label}
             </Text>
             <Text component="dd" fw={600} m={0}>
@@ -826,7 +828,7 @@ export function LoadingState({
     <SectionCard padding="lg" tone="subtle">
       <Stack gap="md" aria-busy="true" aria-live="polite">
         <Group justify="space-between" wrap="nowrap">
-          <Stack gap={8} miw={0} style={{ flex: '1 1 auto' }}>
+          <Stack flex={1} gap={8} miw={0}>
             <Skeleton height={12} radius="sm" width={96} />
             <Text c="dimmed" fw={700}>
               {title}

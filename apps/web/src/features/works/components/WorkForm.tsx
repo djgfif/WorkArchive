@@ -6,10 +6,13 @@ import {
   type FormEvent,
 } from 'react';
 import {
+  Accordion,
   Affix,
   Checkbox,
   Grid,
+  Group,
   NativeSelect,
+  Paper,
   SimpleGrid,
   Stack,
   TagsInput,
@@ -19,7 +22,6 @@ import {
   Title,
 } from '@mantine/core';
 
-import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
   AppBadge,
@@ -27,7 +29,6 @@ import {
   AppLinkButton,
   FeedbackMessage,
   MetricPill,
-  PageSection,
   SectionCard,
 } from '../../../shared/components/AppPrimitives';
 import {
@@ -46,6 +47,7 @@ import {
   workTierOptions,
   workTypeOptions,
 } from '../utils/work-options';
+import { RatingDisplay, WorkPoster } from './ArchiveComponents';
 
 const REVIEW_FOCUS_DESCRIPTION_ID = 'work-form-review-focus-description';
 
@@ -59,6 +61,8 @@ interface WorkFormProps {
   submitLabel: string;
   tagSuggestions?: string[];
 }
+
+type WorkFormInput = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
 export function WorkForm({
   cancelTo,
@@ -98,8 +102,11 @@ export function WorkForm({
   const personalTagValues = parseCommaSeparatedTextList(
     values.personalTagsText,
   );
-  const previewGenres = genreValues.slice(0, 4);
-  const previewPersonalTags = personalTagValues.slice(0, 4);
+  const posterUrl = values.thumbnailUrl.trim();
+  const ratingValue =
+    values.rating.trim() === '' ? null : Number.parseFloat(values.rating);
+  const normalizedRating =
+    ratingValue !== null && Number.isFinite(ratingValue) ? ratingValue : null;
   const shortReviewLength = values.shortReview.trim().length;
   const reviewLength = values.review.trim().length;
   const submitButtonLabel = isSubmitting ? '저장 중...' : submitLabel;
@@ -107,6 +114,7 @@ export function WorkForm({
     ? `${values.title.trim()} 저장 준비`
     : '제목을 입력하면 저장할 수 있습니다.';
   const uniqueTagSuggestions = Array.from(new Set(tagSuggestions));
+  const previewTags = [...genreValues, ...personalTagValues].slice(0, 3);
 
   useEffect(() => {
     if (focusArea !== 'review' || hasFocusedReviewRef.current) {
@@ -127,11 +135,7 @@ export function WorkForm({
     hasFocusedReviewRef.current = true;
   }, [focusArea, reviewLength, shortReviewLength]);
 
-  function handleInputChange(
-    event: ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) {
+  function handleInputChange(event: ChangeEvent<WorkFormInput>) {
     const { name, type } = event.target;
 
     if (name === 'title') {
@@ -186,299 +190,296 @@ export function WorkForm({
     <form onSubmit={handleSubmit}>
       <Grid align="start" gutter="xl">
         <Grid.Col span={{ base: 12, lg: 8 }}>
-          <SectionCard gap="xl" padding="xl" tone="default">
-            <PageSection
-              description="필수 정보만 먼저 입력하고, 나머지는 나중에 추가해도 기록 흐름이 깨지지 않도록 정리했습니다."
-              divider={false}
-              eyebrow="기본 정보"
-              title="작품 정보"
-            >
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                <NativeSelect
-                  id="type"
-                  label="유형"
-                  name="type"
-                  onChange={handleInputChange}
-                  value={values.type}
-                >
-                  {workTypeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-
-                <TextInput
-                  id="author"
-                  label="작가·제작자"
-                  name="author"
-                  onChange={handleInputChange}
-                  placeholder="작가, 스튜디오, 제작자를 입력해주세요"
-                  value={values.author}
-                />
-
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <TextInput
-                    aria-label="제목"
-                    id="title"
-                    ref={titleInputRef}
-                    label="제목"
-                    name="title"
-                    onChange={handleInputChange}
-                    placeholder="작품 제목을 입력해주세요"
-                    error={titleError}
-                    withAsterisk
-                    value={values.title}
-                  />
-                </div>
-
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <TextInput
-                    aria-describedby="thumbnailUrlHint"
-                    id="thumbnailUrl"
-                    label="표지 이미지 주소"
-                    name="thumbnailUrl"
-                    onChange={handleInputChange}
-                    placeholder="https://example.com/cover.jpg"
-                    type="url"
-                    value={values.thumbnailUrl}
-                  />
-                  <Text
-                    c="var(--mantine-color-dimmed)"
-                    fz="sm"
-                    id="thumbnailUrlHint"
-                    mt={6}
-                  >
-                    선택 사항입니다. 표지를 넣어두면 라이브러리에서 더 쉽게 찾을
-                    수 있습니다.
+          <Stack gap="xl">
+            <SectionCard gap="xl" padding="xl" tone="default">
+              <Stack gap="lg">
+                <Stack gap={6}>
+                  <Text c="archive.2" fw={800} size="xs" tt="uppercase">
+                    Essential
                   </Text>
-                </div>
+                  <Title order={2}>기록 기본값</Title>
+                  <Text c="dimmed">
+                    제목, 유형, 상태와 짧은 감상만 먼저 정리합니다. 나머지는
+                    필요할 때 펼쳐서 채우면 됩니다.
+                  </Text>
+                </Stack>
 
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <TagsInput
-                    clearable
-                    description="쉼표나 Enter로 여러 장르를 나눠 입력할 수 있습니다."
-                    id="genresText"
-                    label="장르"
-                    name="genresText"
-                    onChange={(items) =>
-                      handleTextListChange('genresText', items)
-                    }
-                    placeholder="SF, 로맨스, 스릴러"
-                    splitChars={[',']}
-                    value={genreValues}
-                  />
-                </div>
+                <Grid gutter="md">
+                  <Grid.Col span={12}>
+                    <TextInput
+                      aria-label="제목"
+                      error={titleError}
+                      id="title"
+                      label="제목"
+                      name="title"
+                      onChange={handleInputChange}
+                      placeholder="작품 제목"
+                      ref={titleInputRef}
+                      value={values.title}
+                      withAsterisk
+                    />
+                  </Grid.Col>
 
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <TagsInput
-                    clearable
-                    data={uniqueTagSuggestions}
-                    description="개인 태그는 장르와 분리된 내 감상 분류입니다."
-                    id="personalTagsText"
-                    label="개인 태그"
-                    name="personalTagsText"
-                    onChange={(items) =>
-                      handleTextListChange('personalTagsText', items)
-                    }
-                    placeholder="시간여행, 다시 볼 것, 여운 강함"
-                    splitChars={[',']}
-                    value={personalTagValues}
-                  />
-                </div>
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <NativeSelect
+                      id="type"
+                      label="유형"
+                      name="type"
+                      onChange={handleInputChange}
+                      value={values.type}
+                    >
+                      {workTypeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </Grid.Col>
 
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <Textarea
-                    id="description"
-                    label="설명"
-                    name="description"
-                    onChange={handleInputChange}
-                    placeholder="작품 소개나 줄거리, 기록해두고 싶은 배경을 적어보세요"
-                    rows={5}
-                    value={values.description}
-                  />
-                </div>
-              </SimpleGrid>
-            </PageSection>
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <NativeSelect
+                      id="status"
+                      label="상태"
+                      name="status"
+                      onChange={handleInputChange}
+                      value={values.status}
+                    >
+                      {workStatusOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </Grid.Col>
 
-            <PageSection eyebrow="기록 정보" title="상태와 평가">
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                <NativeSelect
-                  id="status"
-                  label="상태"
-                  name="status"
-                  onChange={handleInputChange}
-                  value={values.status}
-                >
-                  {workStatusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </NativeSelect>
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <TextInput
+                      id="rating"
+                      label="별점"
+                      max="5"
+                      min="0"
+                      name="rating"
+                      onChange={handleInputChange}
+                      placeholder="0~5"
+                      step="0.5"
+                      type="number"
+                      value={values.rating}
+                    />
+                  </Grid.Col>
 
-                <TextInput
-                  id="rating"
-                  label="별점"
-                  max="5"
-                  min="0"
-                  name="rating"
-                  onChange={handleInputChange}
-                  placeholder="0~5"
-                  step="0.5"
-                  type="number"
-                  value={values.rating}
-                />
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <TextInput
+                      id="author"
+                      label="작가/제작자"
+                      name="author"
+                      onChange={handleInputChange}
+                      placeholder="작가, 스튜디오, 제작자"
+                      value={values.author}
+                    />
+                  </Grid.Col>
 
-                <NativeSelect
-                  id="tier"
-                  label="티어"
-                  name="tier"
-                  onChange={handleInputChange}
-                  value={values.tier}
-                >
-                  <option value="">미지정</option>
-                  {workTierOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-
-                <Checkbox
-                  checked={values.favorite}
-                  id="favorite"
-                  label="즐겨찾기로 표시"
-                  mt="xl"
-                  name="favorite"
-                  onChange={handleInputChange}
-                />
-              </SimpleGrid>
-            </PageSection>
-
-            <PageSection
-              description="시작, 완료, 중단, 마지막 감상일을 남겨두면 상세 화면의 타임라인과 개인 인사이트에서 기록 흐름을 다시 볼 수 있습니다."
-              eyebrow="날짜 기록"
-              title="감상 기간"
-            >
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                <TextInput
-                  id="startedAt"
-                  label="시작일"
-                  name="startedAt"
-                  onChange={handleInputChange}
-                  type="date"
-                  value={values.startedAt}
-                />
-                <TextInput
-                  id="lastConsumedAt"
-                  label="마지막 감상일"
-                  name="lastConsumedAt"
-                  onChange={handleInputChange}
-                  type="date"
-                  value={values.lastConsumedAt}
-                />
-                <TextInput
-                  id="completedAt"
-                  label="완료일"
-                  name="completedAt"
-                  onChange={handleInputChange}
-                  type="date"
-                  value={values.completedAt}
-                />
-                <TextInput
-                  id="droppedAt"
-                  label="중단일"
-                  name="droppedAt"
-                  onChange={handleInputChange}
-                  type="date"
-                  value={values.droppedAt}
-                />
-              </SimpleGrid>
-            </PageSection>
+                  <Grid.Col span={12}>
+                    <Textarea
+                      aria-describedby={
+                        focusArea === 'review'
+                          ? REVIEW_FOCUS_DESCRIPTION_ID
+                          : undefined
+                      }
+                      description={
+                        focusArea === 'review'
+                          ? '상세 화면에서 이어 온 리뷰 집중 수정 입력입니다.'
+                          : undefined
+                      }
+                      id="shortReview"
+                      label="한 줄 감상"
+                      name="shortReview"
+                      onChange={handleInputChange}
+                      placeholder="목록과 상세 상단에 남길 짧은 감상"
+                      ref={shortReviewInputRef}
+                      rows={3}
+                      value={values.shortReview}
+                    />
+                  </Grid.Col>
+                </Grid>
+              </Stack>
+            </SectionCard>
 
             <div ref={reviewSectionRef}>
-              <PageSection
-                description={
-                  focusArea === 'review'
-                    ? '이번에는 감상 문장을 먼저 정리할 수 있도록 이 영역을 바로 열어둡니다.'
-                    : '짧은 감상과 긴 감상을 나눠두면 나중에 다시 읽을 때 더 편합니다.'
-                }
-                eyebrow="감상 기록"
-                title={
-                  focusArea === 'review'
-                    ? '이번엔 감상 문장에 집중해보세요'
-                    : '감상을 남겨보세요'
-                }
+              <Accordion
+                defaultValue={focusArea === 'review' ? ['review'] : []}
+                multiple
+                variant="contained"
               >
-                <ActionRow>
-                  <MetricPill
-                    label="목록과 홈 최근 기록에 우선 노출됩니다."
-                    value={
-                      shortReviewLength > 0
-                        ? `${shortReviewLength}자`
-                        : '한줄평 없음'
-                    }
-                  />
-                  <MetricPill
-                    label="상세 화면에서 길게 읽는 감상입니다."
-                    value={
-                      reviewLength > 0 ? `${reviewLength}자` : '상세 감상 없음'
-                    }
-                  />
-                </ActionRow>
+                <Accordion.Item value="cover">
+                  <Accordion.Control>표지와 분류</Accordion.Control>
+                  <Accordion.Panel>
+                    <Stack gap="md" pt="sm">
+                      <TextInput
+                        aria-describedby="thumbnailUrlHint"
+                        id="thumbnailUrl"
+                        label="표지 이미지 주소"
+                        name="thumbnailUrl"
+                        onChange={handleInputChange}
+                        placeholder="https://example.com/cover.jpg"
+                        type="url"
+                        value={values.thumbnailUrl}
+                      />
+                      <Text c="dimmed" id="thumbnailUrlHint" size="sm">
+                        표지가 없으면 어두운 fallback 커버로 표시됩니다.
+                      </Text>
 
-                {focusArea === 'review' && (
-                  <FeedbackMessage title="리뷰 집중 모드" tone="info">
-                    <span id={REVIEW_FOCUS_DESCRIPTION_ID}>
-                      한줄평과 상세 감상 입력으로 바로 이동했습니다. 저장하면
-                      상세 화면의 개인 감상 기록으로 돌아갑니다.
-                    </span>
-                  </FeedbackMessage>
-                )}
+                      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                        <TagsInput
+                          clearable
+                          description="쉼표나 Enter로 여러 장르를 나눠 입력할 수 있습니다."
+                          id="genresText"
+                          label="장르"
+                          name="genresText"
+                          onChange={(items) =>
+                            handleTextListChange('genresText', items)
+                          }
+                          placeholder="SF, 로맨스, 드라마"
+                          splitChars={[',']}
+                          value={genreValues}
+                        />
+                        <TagsInput
+                          clearable
+                          data={uniqueTagSuggestions}
+                          description="개인 태그는 장르와 분리된 내 감상 분류입니다."
+                          id="personalTagsText"
+                          label="개인 태그"
+                          name="personalTagsText"
+                          onChange={(items) =>
+                            handleTextListChange('personalTagsText', items)
+                          }
+                          placeholder="시간여행, 다시 볼 것, 여운"
+                          splitChars={[',']}
+                          value={personalTagValues}
+                        />
+                      </SimpleGrid>
+                    </Stack>
+                  </Accordion.Panel>
+                </Accordion.Item>
 
-                <Textarea
-                  aria-describedby={
-                    focusArea === 'review'
-                      ? REVIEW_FOCUS_DESCRIPTION_ID
-                      : undefined
-                  }
-                  description={
-                    focusArea === 'review'
-                      ? '상세 화면에서 이어 온 리뷰 집중 수정 입력입니다.'
-                      : undefined
-                  }
-                  id="shortReview"
-                  label="한 줄 감상"
-                  name="shortReview"
-                  onChange={handleInputChange}
-                  placeholder="나중에 빠르게 훑어볼 수 있는 짧은 감상을 남겨보세요"
-                  ref={shortReviewInputRef}
-                  rows={3}
-                  value={values.shortReview}
-                />
+                <Accordion.Item value="review">
+                  <Accordion.Control>상세 감상</Accordion.Control>
+                  <Accordion.Panel>
+                    <Stack gap="md" pt="sm">
+                      {focusArea === 'review' && (
+                        <FeedbackMessage title="리뷰 집중 모드" tone="info">
+                          <span id={REVIEW_FOCUS_DESCRIPTION_ID}>
+                            한줄평과 상세 감상 입력으로 바로 이동했습니다.
+                            저장하면 상세 화면의 개인 감상 기록으로 돌아갑니다.
+                          </span>
+                        </FeedbackMessage>
+                      )}
 
-                <Textarea
-                  aria-describedby={
-                    focusArea === 'review'
-                      ? REVIEW_FOCUS_DESCRIPTION_ID
-                      : undefined
-                  }
-                  description={
-                    focusArea === 'review'
-                      ? '한줄평보다 길게 남기는 개인 감상 입력입니다.'
-                      : undefined
-                  }
-                  id="review"
-                  label="상세 감상"
-                  name="review"
-                  onChange={handleInputChange}
-                  placeholder="조금 더 길게 남기고 싶은 생각이나 감상을 적어보세요"
-                  ref={reviewInputRef}
-                  rows={8}
-                  value={values.review}
-                />
-              </PageSection>
+                      <Textarea
+                        aria-describedby={
+                          focusArea === 'review'
+                            ? REVIEW_FOCUS_DESCRIPTION_ID
+                            : undefined
+                        }
+                        description={
+                          focusArea === 'review'
+                            ? '한줄평보다 길게 남기는 개인 감상 입력입니다.'
+                            : undefined
+                        }
+                        id="review"
+                        label="상세 감상"
+                        name="review"
+                        onChange={handleInputChange}
+                        placeholder="길게 남기고 싶은 장면, 인상, 생각"
+                        ref={reviewInputRef}
+                        rows={8}
+                        value={values.review}
+                      />
+                    </Stack>
+                  </Accordion.Panel>
+                </Accordion.Item>
+
+                <Accordion.Item value="details">
+                  <Accordion.Control>추가 정보</Accordion.Control>
+                  <Accordion.Panel>
+                    <Stack gap="md" pt="sm">
+                      <Textarea
+                        id="description"
+                        label="작품 메모"
+                        name="description"
+                        onChange={handleInputChange}
+                        placeholder="줄거리나 기억해둘 배경"
+                        rows={4}
+                        value={values.description}
+                      />
+
+                      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                        <NativeSelect
+                          id="tier"
+                          label="티어"
+                          name="tier"
+                          onChange={handleInputChange}
+                          value={values.tier}
+                        >
+                          <option value="">미지정</option>
+                          {workTierOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </NativeSelect>
+
+                        <Checkbox
+                          checked={values.favorite}
+                          label="즐겨찾기로 표시"
+                          mt="xl"
+                          name="favorite"
+                          onChange={handleInputChange}
+                        />
+                      </SimpleGrid>
+                    </Stack>
+                  </Accordion.Panel>
+                </Accordion.Item>
+
+                <Accordion.Item value="dates">
+                  <Accordion.Control>감상 날짜</Accordion.Control>
+                  <Accordion.Panel>
+                    <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" pt="sm">
+                      <TextInput
+                        id="startedAt"
+                        label="시작일"
+                        name="startedAt"
+                        onChange={handleInputChange}
+                        type="date"
+                        value={values.startedAt}
+                      />
+                      <TextInput
+                        id="lastConsumedAt"
+                        label="마지막 감상일"
+                        name="lastConsumedAt"
+                        onChange={handleInputChange}
+                        type="date"
+                        value={values.lastConsumedAt}
+                      />
+                      <TextInput
+                        id="completedAt"
+                        label="완료일"
+                        name="completedAt"
+                        onChange={handleInputChange}
+                        type="date"
+                        value={values.completedAt}
+                      />
+                      <TextInput
+                        id="droppedAt"
+                        label="중단일"
+                        name="droppedAt"
+                        onChange={handleInputChange}
+                        type="date"
+                        value={values.droppedAt}
+                      />
+                    </SimpleGrid>
+                  </Accordion.Panel>
+                </Accordion.Item>
+              </Accordion>
             </div>
 
             {(validationError || submitError) && (
@@ -500,74 +501,74 @@ export function WorkForm({
                 취소
               </AppLinkButton>
             </ActionRow>
-          </SectionCard>
+          </Stack>
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, lg: 4 }}>
-          <SectionCard gap="lg" padding="lg" tone="subtle">
-            <ArtworkPoster
-              thumbnailUrl={values.thumbnailUrl}
-              title={previewTitle}
-              typeLabel={getWorkTypeLabel(values.type)}
-              variant="form"
-            />
+          <Paper p="lg" radius="lg" shadow="archiveCard" withBorder>
+            <Stack gap="lg">
+              <WorkPoster
+                title={previewTitle}
+                typeLabel={getWorkTypeLabel(values.type)}
+                variant="form"
+                {...(posterUrl ? { thumbnailUrl: posterUrl } : {})}
+              />
 
-            <Stack gap="sm">
-              <ActionRow>
-                <AppBadge>{getWorkTypeLabel(values.type)}</AppBadge>
-                <AppBadge>{getWorkStatusLabel(values.status)}</AppBadge>
-                <AppBadge>{getWorkTierLabel(values.tier || null)}</AppBadge>
-                {values.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
-              </ActionRow>
+              <Stack gap="sm">
+                <Group gap="xs">
+                  <AppBadge>{getWorkTypeLabel(values.type)}</AppBadge>
+                  <AppBadge>{getWorkStatusLabel(values.status)}</AppBadge>
+                  {values.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
+                </Group>
 
-              <div>
-                <Title order={3}>{previewTitle}</Title>
-                <Text c="var(--mantine-color-dimmed)">
-                  {values.author.trim() || '작가·제작자 미입력'}
+                <div>
+                  <Title order={3}>{previewTitle}</Title>
+                  <Text c="dimmed">
+                    {values.author.trim() || '작가/제작자 미입력'}
+                  </Text>
+                </div>
+
+                <RatingDisplay value={normalizedRating} />
+
+                <Text c="dimmed">
+                  {values.shortReview.trim() ||
+                    values.description.trim() ||
+                    '지금 남긴 감상은 목록과 상세 화면에서 다시 읽기 쉽게 보입니다.'}
                 </Text>
-              </div>
 
-              <Text c="var(--mantine-color-text)">
-                {values.shortReview.trim() ||
-                  values.description.trim() ||
-                  '짧은 감상이나 설명을 남겨두면 나중에 다시 찾기 쉽습니다.'}
-              </Text>
+                <ActionRow>
+                  {previewTags.length > 0 ? (
+                    previewTags.map((tag) => <AppBadge key={tag}>{tag}</AppBadge>)
+                  ) : (
+                    <AppBadge tone="muted">분류 없음</AppBadge>
+                  )}
+                </ActionRow>
 
-              <ActionRow>
-                {previewGenres.length > 0 ? (
-                  previewGenres.map((genre) => (
-                    <AppBadge key={genre}>{genre}</AppBadge>
-                  ))
-                ) : (
-                  <AppBadge tone="muted">장르 없음</AppBadge>
+                {values.tier && (
+                  <MetricPill
+                    label="개인 티어"
+                    value={getWorkTierLabel(values.tier)}
+                  />
                 )}
-              </ActionRow>
-
-              <ActionRow>
-                {previewPersonalTags.length > 0 ? (
-                  previewPersonalTags.map((tag) => (
-                    <AppBadge key={tag} tone="accent">
-                      {tag}
-                    </AppBadge>
-                  ))
-                ) : (
-                  <AppBadge tone="muted">개인 태그 없음</AppBadge>
-                )}
-              </ActionRow>
-
-              <Text c="var(--mantine-color-dimmed)">
-                {focusArea === 'review'
-                  ? '지금 쓰는 감상은 저장 후 상세 화면의 리뷰 영역으로 바로 이어집니다.'
-                  : '핵심 정보부터 저장하고, 나중에 더 채워도 기록 구조는 그대로 유지됩니다.'}
-              </Text>
+                <MetricPill
+                  label="감상 길이"
+                  value={
+                    reviewLength > 0
+                      ? `상세 ${reviewLength}자`
+                      : shortReviewLength > 0
+                        ? `한줄평 ${shortReviewLength}자`
+                        : '아직 없음'
+                  }
+                />
+              </Stack>
             </Stack>
-          </SectionCard>
+          </Paper>
         </Grid.Col>
       </Grid>
 
       <Affix bottom={12} hiddenFrom="sm" left={12} right={12} zIndex={200}>
         <SectionCard gap="xs" padding="sm" tone="default">
-          <Text c="var(--mantine-color-dimmed)" fz="xs" fw={700} lineClamp={1}>
+          <Text c="dimmed" fw={700} lineClamp={1} size="xs">
             {mobileActionSummary}
           </Text>
           <ActionRow>

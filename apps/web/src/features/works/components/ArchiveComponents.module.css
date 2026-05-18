@@ -1,0 +1,223 @@
+.posterShell {
+  position: relative;
+  flex-shrink: 0;
+  width: var(--poster-width);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--mantine-radius-lg);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 213, 130, 0.12), transparent 34%),
+    linear-gradient(145deg, #1d2030, #0d0f16 72%);
+  box-shadow: var(--mantine-shadow-sm);
+}
+
+.posterShell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent 54%, rgba(0, 0, 0, 0.42)),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.018) 0,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px,
+      transparent 7px
+    );
+}
+
+.posterGrid {
+  --poster-width: 100%;
+}
+
+.posterCard {
+  --poster-width: 7rem;
+}
+
+.posterRow {
+  --poster-width: 5.35rem;
+  border-radius: var(--mantine-radius-md);
+}
+
+.posterDetail {
+  --poster-width: clamp(12.5rem, 24vw, 18rem);
+  border-radius: var(--mantine-radius-xl);
+  box-shadow: var(--mantine-shadow-md);
+}
+
+.posterForm {
+  --poster-width: 9.25rem;
+}
+
+.posterImage,
+.posterFallback {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+}
+
+.posterImage {
+  object-fit: cover;
+}
+
+.posterFallback {
+  position: relative;
+  display: grid;
+  align-content: space-between;
+  padding: 0.9rem;
+}
+
+.posterFallbackMark {
+  align-self: center;
+  color: rgba(244, 241, 235, 0.94);
+  font-size: clamp(2.1rem, 5vw, 4.2rem);
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.posterFallbackType,
+.eyebrow,
+.metaText {
+  color: rgba(244, 241, 235, 0.58);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.posterCardLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.posterCardLink:focus-visible,
+.rowCard:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 4px;
+}
+
+.posterCardSurface {
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: transparent;
+  box-shadow: none;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.posterCardLink:hover .posterCardSurface {
+  transform: translateY(-3px);
+  border-color: rgba(170, 153, 245, 0.34);
+  box-shadow: var(--mantine-shadow-sm);
+}
+
+.posterCardBody {
+  padding-top: 0.75rem;
+}
+
+.rowCard {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.rowSurface {
+  padding: 0.9rem;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(18, 20, 29, 0.58);
+  box-shadow: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.rowCard:hover .rowSurface {
+  transform: translateY(-1px);
+  border-color: rgba(170, 153, 245, 0.26);
+  background: rgba(24, 27, 38, 0.84);
+}
+
+.shelf {
+  display: grid;
+  grid-auto-columns: minmax(9.5rem, 12rem);
+  grid-auto-flow: column;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.45rem;
+  scroll-snap-type: x proximity;
+}
+
+.shelf > * {
+  scroll-snap-align: start;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1.3rem, 4vw, 3rem);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--mantine-radius-xl);
+  background:
+    radial-gradient(circle at 82% 16%, rgba(170, 153, 245, 0.2), transparent 34%),
+    radial-gradient(circle at 12% 88%, rgba(246, 189, 70, 0.12), transparent 32%),
+    linear-gradient(135deg, rgba(18, 20, 29, 0.96), rgba(8, 9, 13, 0.94));
+  box-shadow: var(--mantine-shadow-md);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04), transparent 22%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.018) 0,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px,
+      transparent 96px
+    );
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+}
+
+.searchInput input {
+  min-height: 3.25rem;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(8, 9, 13, 0.58);
+  font-size: 1rem;
+}
+
+.filterPill {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(18, 20, 29, 0.72);
+}
+
+.filterPillActive {
+  border-color: rgba(170, 153, 245, 0.44);
+  background: rgba(170, 153, 245, 0.14);
+  color: var(--mantine-color-archive-1);
+}
+
+.noteCard {
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(18, 20, 29, 0.86), rgba(12, 13, 18, 0.92)),
+    radial-gradient(circle at 90% 10%, rgba(246, 189, 70, 0.08), transparent 32%);
+}
+
+.progressTrack {
+  width: 100%;
+}

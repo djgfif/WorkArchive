@@ -4,7 +4,6 @@ import {
   Box,
   Group,
   NativeSelect,
-  Progress,
   Stack,
   Text,
   Textarea,
@@ -18,7 +17,6 @@ import type {
   WorkRecord,
 } from '@work-archive/shared-types';
 
-import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
   AppBadge,
@@ -34,10 +32,19 @@ import {
   formatWorkDate,
   formatWorkUpdatedAt,
   getWorkStatusLabel,
-  getWorkSyncStatusLabel,
   getWorkTierLabel,
   getWorkTypeLabel,
 } from '../utils/work-options';
+import {
+  ProgressDisplay,
+  RatingDisplay,
+  ReviewNoteCard,
+  WorkPoster,
+} from './ArchiveComponents';
+import {
+  getWorkProgressLabel,
+  getWorkProgressPercent,
+} from './archive-display';
 
 interface WorkDetailPanelProps {
   actions?: ReactNode;
@@ -67,40 +74,6 @@ const timelineTypeLabels: Record<TimelineEntryType, string> =
   Object.fromEntries(
     timelineTypeOptions.map((option) => [option.value, option.label]),
   ) as Record<TimelineEntryType, string>;
-
-function renderRatingLabel(work: WorkRecord) {
-  return work.rating === null ? '미평가' : `${work.rating.toFixed(1)}점`;
-}
-
-function getProgressPercent(work: WorkRecord) {
-  const current = work.progressCurrent ?? null;
-  const total = work.progressTotal ?? null;
-
-  if (current === null || total === null || total <= 0) {
-    return null;
-  }
-
-  return Math.min(100, Math.round((current / total) * 100));
-}
-
-function getProgressLabel(work: WorkRecord) {
-  if (work.lastConsumedLabel) {
-    return work.lastConsumedLabel;
-  }
-
-  const current = work.progressCurrent ?? null;
-  const total = work.progressTotal ?? null;
-
-  if (current !== null && total !== null) {
-    return `${current}/${total}`;
-  }
-
-  if (current !== null) {
-    return `${current}까지 기록`;
-  }
-
-  return null;
-}
 
 function createTimelineItems(work: WorkRecord) {
   return [
@@ -163,11 +136,10 @@ export function WorkDetailPanel({
   const typeLabel = getWorkTypeLabel(work.type);
   const statusLabel = getWorkStatusLabel(work.status);
   const tierLabel = getWorkTierLabel(work.tier);
-  const syncLabel = getWorkSyncStatusLabel(work.syncStatus);
   const shortReview = work.shortReview.trim();
   const review = work.review.trim();
-  const progressLabel = getProgressLabel(work);
-  const progressPercent = getProgressPercent(work);
+  const progressLabel = getWorkProgressLabel(work);
+  const progressPercent = getWorkProgressPercent(work);
   const timelineItems = [
     ...createTimelineItems(work),
     ...timelineEntries.map((entry) => ({
@@ -226,15 +198,15 @@ export function WorkDetailPanel({
 
   return (
     <Stack gap="xl">
-      <SectionCard gap="lg" padding="xl" tone="hero">
+      <SectionCard gap="xl" padding="xl" tone="hero">
         <Group align="flex-start" gap="xl" wrap="wrap">
           <Box
             style={{
-              flex: '0 0 clamp(11rem, 22vw, 15rem)',
+              flex: '0 0 clamp(12.5rem, 24vw, 18rem)',
               maxWidth: '100%',
             }}
           >
-            <ArtworkPoster
+            <WorkPoster
               thumbnailUrl={work.thumbnailUrl}
               title={work.title}
               typeLabel={typeLabel}
@@ -248,41 +220,42 @@ export function WorkDetailPanel({
             miw={0}
             style={{ minWidth: 'min(100%, 26rem)' }}
           >
-            <ActionRow>
-              <AppBadge>{typeLabel}</AppBadge>
-              <AppBadge tone="accent">{statusLabel}</AppBadge>
+            <Group gap="xs" wrap="wrap">
+              <Text c="dimmed" fw={700} size="sm">
+                {typeLabel}
+              </Text>
+              <Text c="dimmed" size="sm">
+                /
+              </Text>
+              <Text c="dimmed" fw={700} size="sm">
+                {statusLabel}
+              </Text>
               {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
-            </ActionRow>
+            </Group>
 
             <div>
               <Title order={1}>{work.title}</Title>
-              <Text c="var(--mantine-color-dimmed)">
+              <Text c="dimmed">
                 {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
                 {formatWorkUpdatedAt(work.updatedAt)}
               </Text>
             </div>
 
-            <ActionRow>
-              <MetricPill label="별점" value={renderRatingLabel(work)} />
+            <Group align="stretch" gap="xl" wrap="wrap">
+              <Stack gap={4}>
+                <Text c="dimmed" fw={700} size="sm">
+                  별점
+                </Text>
+                <RatingDisplay value={work.rating} />
+              </Stack>
               <MetricPill label="상태" value={statusLabel} />
               {progressLabel && (
                 <MetricPill label="진행도" value={progressLabel} />
               )}
-            </ActionRow>
+            </Group>
 
             {progressPercent !== null && (
-              <Stack gap={4}>
-                <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
-                  진행률 {progressPercent}%
-                </Text>
-                <Progress
-                  aria-label={`${work.title} 상세 진행도 ${progressPercent}%`}
-                  color="archive"
-                  radius="md"
-                  size="sm"
-                  value={progressPercent}
-                />
-              </Stack>
+              <ProgressDisplay work={work} />
             )}
 
             {actions && <ActionRow>{actions}</ActionRow>}
@@ -296,40 +269,19 @@ export function WorkDetailPanel({
         eyebrow="내 기록"
         title="감상 기록"
       >
-        <SectionCard gap="lg" padding="lg" tone="default">
-          <Stack gap="lg">
+        <Stack gap="md">
+          <ReviewNoteCard
+            emptyLabel="아직 남긴 한줄평이 없습니다."
+            label="한줄평"
+            value={shortReview}
+          />
+          <ReviewNoteCard
+            emptyLabel="아직 남긴 상세 감상이 없습니다."
+            label="상세 감상"
+            value={review}
+          />
             <Stack gap="xs">
-              <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
-                한줄평
-              </Text>
-              <Title
-                c={
-                  shortReview
-                    ? 'var(--mantine-color-text)'
-                    : 'var(--mantine-color-dimmed)'
-                }
-                order={3}
-              >
-                {shortReview || '아직 남긴 한줄평이 없습니다.'}
-              </Title>
-            </Stack>
-
-            <Stack gap="xs">
-              <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
-                상세 감상
-              </Text>
-              <Text
-                c={
-                  review ? 'var(--mantine-color-text)' : 'var(--mantine-color-dimmed)'
-                }
-                lh={1.8}
-              >
-                {review || '아직 남긴 상세 감상이 없습니다.'}
-              </Text>
-            </Stack>
-
-            <Stack gap="xs">
-              <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
+              <Text c="dimmed" fw={700} size="sm">
                 개인 태그
               </Text>
               {work.personalTags.length > 0 ? (
@@ -341,7 +293,7 @@ export function WorkDetailPanel({
                   ))}
                 </ActionRow>
               ) : (
-                <Text c="var(--mantine-color-dimmed)">
+                <Text c="dimmed">
                   아직 개인 태그를 남기지 않았습니다.
                 </Text>
               )}
@@ -358,8 +310,7 @@ export function WorkDetailPanel({
                 기록 수정
               </AppLinkButton>
             </ActionRow>
-          </Stack>
-        </SectionCard>
+        </Stack>
 
         {recordSections}
       </PageSection>
@@ -569,9 +520,9 @@ export function WorkDetailPanel({
       </PageSection>
 
       <PageSection
-        description="작품의 기본 메타데이터와 저장 정보를 차분하게 정리합니다."
+        description="작품을 다시 찾을 때 필요한 기본 정보만 모았습니다."
         eyebrow="작품 정보"
-        title="작품과 저장 정보"
+        title="작품 정보"
       >
         <SectionCard gap="lg" padding="lg" tone="subtle">
           <KeyValueGrid
@@ -588,7 +539,6 @@ export function WorkDetailPanel({
               },
               { label: '식별 방식', value: sourceIdentityLabel },
               { label: '티어', value: tierLabel },
-              { label: '자동 백업', value: syncLabel },
               { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
               { label: '수정한 날', value: formatWorkDateTime(work.updatedAt) },
             ]}

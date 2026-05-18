@@ -40,9 +40,9 @@ function formatSessionDate(value: string | null) {
 function getCredentialModeLabel(mode?: ImportProviderStatus['credentialMode']) {
   switch (mode) {
     case 'server':
-      return '서버 자격 증명';
+      return '기본 검색';
     case 'user':
-      return '개인 Key Vault';
+      return '개인 검색 키';
     case 'none':
     default:
       return '공개 검색';
@@ -195,8 +195,8 @@ export function LocalArchiveSettingsSection({
           <Stack gap="xs">
             <Text fw={700}>JSON 백업 가져오기</Text>
             <Text c="var(--mantine-color-dimmed)" size="sm">
-              가져온 기록은 기존 기록을 덮어쓰지 않고 새 local-first 기록으로
-              추가됩니다.
+              가져온 기록은 기존 기록을 덮어쓰지 않고 내 아카이브에 새 기록으로
+              더해집니다.
             </Text>
           </Stack>
           <input
@@ -209,22 +209,19 @@ export function LocalArchiveSettingsSection({
       </SectionCard>
 
       <ActionRow>
-        <AppBadge tone="muted">내부 설정 복원 안 함</AppBadge>
-        <AppBadge tone="muted">기기별 임시 상태 복원 안 함</AppBadge>
-        <AppBadge tone="muted">로그인 토큰 제외</AppBadge>
-        <AppBadge tone="muted">refresh cookie 제외</AppBadge>
-        <AppBadge tone="muted">API key 제외</AppBadge>
+        <AppBadge tone="muted">작품 기록 중심</AppBadge>
+        <AppBadge tone="muted">로그인 정보 제외</AppBadge>
+        <AppBadge tone="muted">검색 키 제외</AppBadge>
       </ActionRow>
       <Text c="var(--mantine-color-dimmed)" size="sm">
-        백업 파일의 기기별 임시 상태는 가져오기에서 복원하지 않습니다.
-        access token, refresh cookie, 외부 검색 API key도
-        export/import 대상이 아닙니다.
+        백업 파일은 작품, 감상, 진행 기록을 옮기는 용도입니다. 계정 로그인 정보와
+        개인 검색 키는 포함하지 않습니다.
       </Text>
 
       {archiveImportPreview && (
         <SectionCard padding="lg" tone="subtle">
           <SectionIntro
-            description="기존 기록은 보존하고, 제목 중복 후보도 새 기록으로 추가합니다. 같은 기록으로 보이는 항목은 새 기록으로 안전하게 정리하며, 내부 설정과 기기별 임시 상태는 백업에서 복원하지 않습니다."
+            description="기존 기록은 보존하고, 제목이 비슷한 후보도 새 기록으로 추가합니다. 같은 작품처럼 보이는 항목은 별도 기록으로 정리해 나중에 직접 살펴볼 수 있게 둡니다."
             eyebrow="가져오기 미리보기"
             title="가져올 기록 확인"
             titleOrder={3}
@@ -249,7 +246,7 @@ export function LocalArchiveSettingsSection({
               개
             </AppBadge>
             <AppBadge tone="muted">
-              새 기록으로 정리 {archiveImportPreview.conflictWorkCount}개
+              따로 살펴볼 기록 {archiveImportPreview.conflictWorkCount}개
             </AppBadge>
             <AppBadge tone="muted">
               건너뛸 항목{' '}
@@ -288,8 +285,8 @@ export function LocalArchiveSettingsSection({
       )}
 
       <Text c="var(--mantine-color-dimmed)" size="sm">
-        로컬 데이터 초기화가 필요하다면 먼저 JSON 백업을 만든 뒤 브라우저 사이트
-        데이터 삭제 또는 개발자 도구의 IndexedDB 초기화를 사용하세요.
+        기록을 비우기 전에는 먼저 JSON 백업을 만들어두세요. 브라우저의 사이트
+        데이터 삭제 기능으로 이 기기의 기록을 초기화할 수 있습니다.
       </Text>
     </SectionCard>
   );
@@ -349,12 +346,12 @@ export function ProviderReadinessSection({
       {mode !== 'authenticated' ? (
         <Stack gap="sm">
           <Text c="var(--mantine-color-dimmed)">
-            로그인하면 외부 검색 준비 상태와 개인 API Key Vault를 함께 확인할 수
+            로그인하면 외부 검색 준비 상태와 개인 검색 키를 함께 확인할 수
             있습니다. 공개 검색 소스는 로그인 없이도 계속 사용할 수 있습니다.
           </Text>
           <ActionRow>
             <AppBadge tone="success">공개 검색 사용 가능</AppBadge>
-            <AppBadge tone="muted">개인 Key Vault 로그인 필요</AppBadge>
+            <AppBadge tone="muted">개인 검색 키는 로그인 필요</AppBadge>
           </ActionRow>
         </Stack>
       ) : isLoadingProviderStatuses ? (
@@ -427,26 +424,26 @@ export function ProviderKeyVaultSection({
   return (
     <SectionCard>
       <SectionIntro
-        description="외부 검색 소스별 개인 API key를 암호화해 저장합니다. 저장된 key 값은 다시 표시하지 않으며 백업 파일에도 포함하지 않습니다."
+        description="외부 검색 소스별 개인 검색 키를 암호화해 저장합니다. 저장된 값은 다시 표시하지 않으며 백업 파일에도 포함하지 않습니다."
         eyebrow="외부 검색"
-        title="API Key Vault"
+        title="개인 검색 키"
       />
 
       {mode !== 'authenticated' ? (
         <Stack gap="sm">
           <Text c="var(--mantine-color-dimmed)">
-            API Key Vault는 로그인한 계정에서만 사용할 수 있습니다. Google
+            개인 검색 키는 로그인한 계정에서만 사용할 수 있습니다. Google
             Books, Open Library, AniList, TVmaze처럼 공개 검색 소스는 키 없이
             검색 보조에 계속 참여합니다.
           </Text>
           <ActionRow>
             <AppBadge tone="muted">공개 검색 사용 가능</AppBadge>
-            <AppBadge tone="muted">개인 API key는 백업 제외</AppBadge>
+            <AppBadge tone="muted">개인 검색 키는 백업 제외</AppBadge>
           </ActionRow>
         </Stack>
       ) : isLoadingProviderStatuses ? (
         <Text c="var(--mantine-color-dimmed)">
-          API Key Vault를 불러오는 중입니다.
+          개인 검색 키 설정을 불러오는 중입니다.
         </Text>
       ) : (
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">

@@ -1,24 +1,25 @@
 import {
-  Box,
   Collapse,
   Group,
   NativeSelect,
+  SimpleGrid,
   Stack,
   Text,
   TextInput,
-  Title,
+  VisuallyHidden,
 } from '@mantine/core';
 import { useState } from 'react';
 
 import type { WorkStatus } from '@work-archive/shared-types';
 
 import {
-  ActionRow,
-  AppBadge,
   AppButton,
-  MetricPill,
-  SectionCard,
 } from '../../../shared/components/AppPrimitives';
+import {
+  ArchiveHero,
+  ArchiveSearchBar,
+  FilterPillGroup,
+} from './ArchiveComponents';
 import type { WorksCollectionScope } from '../services/works.service';
 import type { WorksListQuery } from '../utils/query-works';
 import {
@@ -167,78 +168,68 @@ export function WorksToolbar({
   ];
 
   return (
-    <SectionCard gap="md" padding="lg" tone="subtle">
-      <Group align="flex-start" justify="space-between" wrap="wrap">
-        <Stack gap={4}>
-          <Text
-            c="var(--mantine-color-dimmed)"
-            fw={700}
-            fz="0.72rem"
-            lts="0.12em"
-            tt="uppercase"
-          >
-            Library
-          </Text>
-          <Title order={1}>작품 라이브러리</Title>
-          <Text c="var(--mantine-color-dimmed)">{countSummary}</Text>
-        </Stack>
-
-        <ActionRow justify="flex-end">
-          {hasActiveFilters && (
+    <Stack gap="lg">
+      <ArchiveHero
+        actions={
+          <Group gap="sm" justify="flex-end" wrap="wrap">
+            {hasActiveFilters && (
+              <AppButton
+                onClick={onClearFilters}
+                size="compact-sm"
+                tone="ghost"
+                type="button"
+              >
+                초기화
+              </AppButton>
+            )}
             <AppButton
-              onClick={onClearFilters}
-              size="compact-sm"
-              tone="ghost"
+              onClick={onCreateWork}
+              size="md"
+              tone="primary"
               type="button"
             >
-              초기화
+              작품 추가
             </AppButton>
-          )}
-          <AppButton
-            onClick={onCreateWork}
-            size="compact-sm"
-            tone="primary"
-            type="button"
-          >
-            작품 추가
-          </AppButton>
-        </ActionRow>
-      </Group>
-
-      <ActionRow>
-        <MetricPill label="활성" value={totalActiveCount} />
-        <MetricPill label="휴지통" value={totalDeletedCount} />
-        <MetricPill
-          label="현재 보기"
-          value={
-            collectionScope === 'trash'
-              ? '휴지통'
-              : viewMode === 'list'
-                ? '리스트'
-                : '포스터'
-          }
-        />
-      </ActionRow>
-
-      <TextInput
-        aria-label="작품 라이브러리 검색"
-        label="검색"
-        name="searchTerm"
-        onChange={(event) =>
-          onQueryChange({
-            ...query,
-            searchTerm: event.currentTarget.value,
-          })
+          </Group>
         }
-        placeholder="제목, 작가, 감상, 태그"
-        value={query.searchTerm}
-      />
+        description={countSummary}
+        eyebrow="Library"
+        title="작품 라이브러리"
+      >
+        <ArchiveSearchBar
+          aria-label="작품 라이브러리 검색"
+          onChange={(searchTerm) => onQueryChange({ ...query, searchTerm })}
+          placeholder="제목, 작가, 한줄평, 태그로 검색"
+          value={query.searchTerm}
+        />
+        <Group gap="md" justify="space-between" wrap="wrap">
+          <FilterPillGroup
+            aria-label="작품 범위"
+            onChange={onCollectionScopeChange}
+            options={[
+              { label: '작품 목록', value: 'active', count: totalActiveCount },
+              { label: '휴지통', value: 'trash', count: totalDeletedCount },
+            ]}
+            value={collectionScope}
+          />
+          {collectionScope === 'active' && (
+            <FilterPillGroup
+              aria-label="보기 방식"
+              onChange={onViewModeChange}
+              options={[
+                { label: '포스터', value: 'grid' },
+                { label: '리스트', value: 'list' },
+              ]}
+              value={viewMode}
+            />
+          )}
+        </Group>
+      </ArchiveHero>
 
       {hasActiveFilters && (
         <Stack gap="xs">
           <Group gap="xs" justify="space-between" wrap="wrap">
             <Group aria-label="적용된 필터" gap="xs" role="group" wrap="wrap">
-              <AppBadge tone="accent">적용 중</AppBadge>
               {activeFilterChips.map((chip) => (
                 <AppButton
                   aria-label={`${chip.label} 필터 제거`}
@@ -261,20 +252,18 @@ export function WorksToolbar({
               모두 지우기
             </AppButton>
           </Group>
-          <Text c="var(--mantine-color-dimmed)" size="sm">
-            필터는 주소에 저장되어 새로고침하거나 링크를 공유해도 유지됩니다.
+          <Text c="dimmed" size="sm">
+            필터는 주소에 저장되어 새로고침해도 유지됩니다.
           </Text>
         </Stack>
       )}
 
-      <ActionRow justify="space-between">
+      <Group justify="space-between">
         <Group gap="xs" wrap="wrap">
-          <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
-            고급 필터
+          <Text c="dimmed" fw={700} size="sm">
+            필터
           </Text>
-          {hasActiveFilters && (
-            <AppBadge tone="muted">{activeFilterChips.length}개 적용</AppBadge>
-          )}
+          {hasActiveFilters && <Text c="dimmed" size="sm">{activeFilterChips.length}개 적용</Text>}
         </Group>
         <AppButton
           aria-expanded={filtersExpanded}
@@ -285,14 +274,110 @@ export function WorksToolbar({
         >
           {filtersExpanded ? '고급 필터 접기' : '고급 필터 펼치기'}
         </AppButton>
-      </ActionRow>
+      </Group>
+
+      <VisuallyHidden>
+        <NativeSelect
+          label="유형"
+          onChange={(event) =>
+            onQueryChange({
+              ...query,
+              type: event.currentTarget.value as WorksListQuery['type'],
+            })
+          }
+          value={query.type}
+        >
+          <option value="all">전체 유형</option>
+          {workTypeOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </NativeSelect>
+      </VisuallyHidden>
 
       <Collapse in={filtersExpanded}>
         <Stack gap="md">
-          <Group align="flex-end" gap="sm" wrap="wrap">
-            <Box flex="0 1 12rem" miw={160}>
+          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+            <Stack gap="xs">
+              <Text c="dimmed" fw={700} size="sm">
+                상태
+              </Text>
+              {collectionScope === 'active' && (
+                <FilterPillGroup
+                  aria-label="상태 필터"
+                  onChange={(status) => onQueryChange({ ...query, status })}
+                  options={statusFilterOptions.map((option) => ({
+                    label: option.label,
+                    value: option.value,
+                    count:
+                      option.value === 'all'
+                        ? totalActiveCount
+                        : statusCounts[option.value],
+                  }))}
+                  value={query.status}
+                />
+              )}
+            </Stack>
+
+            <Stack gap="xs">
+              <Text c="dimmed" fw={700} size="sm">
+                유형
+              </Text>
+              <FilterPillGroup
+                aria-label="유형 필터"
+                onChange={(type) => onQueryChange({ ...query, type })}
+                options={[
+                  { label: '전체', value: 'all' as const },
+                  ...workTypeOptions.map((option) => ({
+                    label: option.label,
+                    value: option.value,
+                  })),
+                ]}
+                value={query.type}
+              />
+            </Stack>
+
+            <Stack gap="xs">
+              <Text c="dimmed" fw={700} size="sm">
+                정렬
+              </Text>
+              <FilterPillGroup
+                aria-label="정렬"
+                onChange={(sortBy) => onQueryChange({ ...query, sortBy })}
+                options={workSortOptions}
+                value={query.sortBy}
+              />
+            </Stack>
+
+            <Stack gap="xs">
+              <Text c="dimmed" fw={700} size="sm">
+                별점
+              </Text>
+              <FilterPillGroup
+                aria-label="별점 필터"
+                onChange={(rating) =>
+                  onQueryChange({
+                    ...query,
+                    rating: rating === 'all' ? null : Number.parseFloat(rating),
+                  })
+                }
+                options={[
+                  { label: '전체', value: 'all' },
+                  ...ratingFilterOptions.map((option) => ({
+                    label: option.label,
+                    value: option.value,
+                  })),
+                ]}
+                value={query.rating === null ? 'all' : query.rating.toFixed(1)}
+              />
+            </Stack>
+
+            <Stack gap="xs">
+              <Text c="dimmed" fw={700} size="sm">
+                개인 태그
+              </Text>
               <TextInput
-                label="개인 태그"
                 list="worksTagFilterSuggestions"
                 name="tag"
                 onChange={(event) =>
@@ -306,162 +391,16 @@ export function WorksToolbar({
                   <option key={tag} value={tag} />
                 ))}
               </datalist>
-            </Box>
-
-            <Box flex="0 1 10rem" miw={144}>
-              <NativeSelect
-                id="typeFilter"
-                label="유형"
-                onChange={(event) =>
-                  onQueryChange({
-                    ...query,
-                    type: event.currentTarget.value as WorksListQuery['type'],
-                  })
-                }
-                value={query.type}
-              >
-                <option value="all">전체 유형</option>
-                {workTypeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Box>
-
-            <Box flex="0 1 10rem" miw={144}>
-              <NativeSelect
-                id="ratingFilter"
-                label="별점"
-                onChange={(event) => {
-                  const nextRating = Number.parseFloat(
-                    event.currentTarget.value,
-                  );
-
-                  onQueryChange({
-                    ...query,
-                    rating: Number.isFinite(nextRating) ? nextRating : null,
-                  });
-                }}
-                value={
-                  query.rating !== null
-                    ? query.rating.toFixed(1)
-                    : 'all'
-                }
-              >
-                <option value="all">전체 별점</option>
-                {ratingFilterOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Box>
-
-            <Box flex="0 1 10rem" miw={144}>
-              <NativeSelect
-                id="sortBy"
-                label="정렬"
-                onChange={(event) =>
-                  onQueryChange({
-                    ...query,
-                    sortBy: event.currentTarget
-                      .value as WorksListQuery['sortBy'],
-                  })
-                }
-                value={query.sortBy}
-              >
-                {workSortOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Box>
-          </Group>
-
-          {collectionScope === 'active' && (
-            <ActionRow>
-              {statusFilterOptions.map((option) => {
-                const isActive = query.status === option.value;
-                const count =
-                  option.value === 'all'
-                    ? totalActiveCount
-                    : statusCounts[option.value];
-
-                return (
-                  <AppButton
-                    key={option.value}
-                    onClick={() =>
-                      onQueryChange({
-                        ...query,
-                        status: option.value,
-                      })
-                    }
-                    size="compact-sm"
-                    tone={isActive ? 'quiet' : 'ghost'}
-                    type="button"
-                  >
-                    {option.label} {count}
-                  </AppButton>
-                );
-              })}
-            </ActionRow>
-          )}
+            </Stack>
+          </SimpleGrid>
         </Stack>
       </Collapse>
 
       {!filtersExpanded && hasActiveFilters && (
-        <Text c="var(--mantine-color-dimmed)" size="sm">
+        <Text c="dimmed" size="sm">
           일부 필터가 적용되어 있습니다.
         </Text>
       )}
-
-      <Group gap="sm" justify="space-between" wrap="wrap">
-        <ActionRow>
-          <AppButton
-            aria-pressed={collectionScope === 'active'}
-            onClick={() => onCollectionScopeChange('active')}
-            size="compact-sm"
-            tone={collectionScope === 'active' ? 'quiet' : 'ghost'}
-            type="button"
-          >
-            작품 목록
-          </AppButton>
-          <AppButton
-            aria-pressed={collectionScope === 'trash'}
-            onClick={() => onCollectionScopeChange('trash')}
-            size="compact-sm"
-            tone={collectionScope === 'trash' ? 'quiet' : 'ghost'}
-            type="button"
-          >
-            {totalDeletedCount > 0 ? `휴지통 ${totalDeletedCount}` : '휴지통'}
-          </AppButton>
-        </ActionRow>
-
-        {collectionScope === 'active' && (
-          <ActionRow justify="flex-end">
-            <AppButton
-              aria-pressed={viewMode === 'list'}
-              onClick={() => onViewModeChange('list')}
-              size="compact-sm"
-              tone={viewMode === 'list' ? 'quiet' : 'ghost'}
-              type="button"
-            >
-              리스트
-            </AppButton>
-            <AppButton
-              aria-pressed={viewMode === 'grid'}
-              onClick={() => onViewModeChange('grid')}
-              size="compact-sm"
-              tone={viewMode === 'grid' ? 'quiet' : 'ghost'}
-              type="button"
-            >
-              포스터
-            </AppButton>
-          </ActionRow>
-        )}
-      </Group>
-    </SectionCard>
+    </Stack>
   );
 }
