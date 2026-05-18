@@ -252,32 +252,6 @@ export function WorkForm({
                     </NativeSelect>
                   </Grid.Col>
 
-                  <Grid.Col span={{ base: 12, md: 6 }}>
-                    <TextInput
-                      id="rating"
-                      label="별점"
-                      max="5"
-                      min="0"
-                      name="rating"
-                      onChange={handleInputChange}
-                      placeholder="0~5"
-                      step="0.5"
-                      type="number"
-                      value={values.rating}
-                    />
-                  </Grid.Col>
-
-                  <Grid.Col span={{ base: 12, md: 6 }}>
-                    <TextInput
-                      id="author"
-                      label="작가/제작자"
-                      name="author"
-                      onChange={handleInputChange}
-                      placeholder="작가, 스튜디오, 제작자"
-                      value={values.author}
-                    />
-                  </Grid.Col>
-
                   <Grid.Col span={12}>
                     <Textarea
                       aria-describedby={
@@ -402,6 +376,29 @@ export function WorkForm({
                   <Accordion.Control>추가 정보</Accordion.Control>
                   <Accordion.Panel>
                     <Stack gap="md" pt="sm">
+                      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                        <TextInput
+                          id="author"
+                          label="작가/제작자"
+                          name="author"
+                          onChange={handleInputChange}
+                          placeholder="작가, 스튜디오, 제작자"
+                          value={values.author}
+                        />
+                        <TextInput
+                          id="rating"
+                          label="별점"
+                          max="5"
+                          min="0"
+                          name="rating"
+                          onChange={handleInputChange}
+                          placeholder="0~5"
+                          step="0.5"
+                          type="number"
+                          value={values.rating}
+                        />
+                      </SimpleGrid>
+
                       <Textarea
                         id="description"
                         label="작품 메모"
@@ -505,7 +502,7 @@ export function WorkForm({
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, lg: 4 }}>
-          <Paper p="lg" radius="lg" shadow="archiveCard" withBorder>
+          <Paper p="lg" radius="lg" shadow="md" withBorder>
             <Stack gap="lg">
               <WorkPoster
                 title={previewTitle}

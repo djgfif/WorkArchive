@@ -7,6 +7,8 @@
   border-radius: var(--mantine-radius-lg);
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 32%),
+    radial-gradient(circle at 22% 18%, rgba(169, 152, 240, 0.22), transparent 28%),
+    radial-gradient(circle at 80% 72%, rgba(239, 181, 70, 0.12), transparent 32%),
     linear-gradient(160deg, #222536, #0b0d13 72%);
   box-shadow: var(--app-shadow-poster);
 }
@@ -38,6 +40,11 @@
   border-radius: var(--mantine-radius-xl);
 }
 
+.posterHero {
+  --poster-width: clamp(14rem, 26vw, 20rem);
+  border-radius: var(--mantine-radius-xl);
+}
+
 .posterForm {
   --poster-width: min(100%, 11rem);
 }
@@ -59,6 +66,18 @@
   display: grid;
   align-content: space-between;
   padding: 0.9rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 34%),
+    radial-gradient(circle at 18% 20%, rgba(169, 152, 240, 0.2), transparent 36%),
+    radial-gradient(circle at 84% 78%, rgba(239, 181, 70, 0.1), transparent 32%),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.025) 0,
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    linear-gradient(160deg, #1d2232, #07080b 76%);
 }
 
 .posterFallbackMark {
@@ -103,18 +122,20 @@
   background: transparent;
   box-shadow: none;
   transition:
-    transform 170ms ease,
-    border-color 170ms ease,
-    box-shadow 170ms ease;
+    transform var(--wa-motion-normal),
+    border-color var(--wa-motion-normal),
+    box-shadow var(--wa-motion-normal);
 }
 
-.posterCardLink:hover .posterCardSurface {
+.posterCardLink:hover .posterCardSurface,
+.posterCardLink:focus-visible .posterCardSurface {
   transform: translateY(-4px);
   border-color: rgba(169, 152, 240, 0.36);
   box-shadow: var(--app-shadow-card);
 }
 
-.posterCardLink:hover .posterImage {
+.posterCardLink:hover .posterImage,
+.posterCardLink:focus-visible .posterImage {
   transform: scale(1.025);
 }
 
@@ -132,6 +153,7 @@
   background: rgba(7, 8, 11, 0.62);
   color: var(--app-accent-warm);
   font-weight: 900;
+  pointer-events: none;
 }
 
 .posterCardBody {
@@ -140,6 +162,7 @@
 
 .posterMetaLine {
   min-height: 1.5rem;
+  font-size: var(--wa-type-caption);
 }
 
 .rowSurface {
@@ -223,6 +246,7 @@
 .heroTitle {
   font-size: var(--app-type-display);
   line-height: 0.98;
+  word-break: keep-all;
 }
 
 .detailHero {
@@ -235,6 +259,37 @@
     radial-gradient(circle at 22% 18%, rgba(239, 181, 70, 0.09), transparent 34%),
     linear-gradient(145deg, rgba(24, 27, 39, 0.96), rgba(8, 9, 13, 0.98));
   box-shadow: var(--app-shadow-overlay);
+}
+
+.detailHeroPoster {
+  flex: 0 0 clamp(12.5rem, 24vw, 18rem);
+  max-width: 100%;
+}
+
+.detailHeroBody {
+  min-width: min(100%, 26rem);
+}
+
+.timelineItem {
+  position: relative;
+  padding-bottom: 0.85rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--mantine-color-default-border);
+}
+
+.timelineItemLast {
+  padding-bottom: 0;
+}
+
+.timelineDot {
+  position: absolute;
+  top: 0.35rem;
+  left: -0.35rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 2px solid var(--mantine-color-default);
+  border-radius: 999px;
+  background: var(--mantine-primary-color-filled);
 }
 
 .searchInput input {
@@ -293,6 +348,53 @@
   background: var(--app-surface-subtle);
 }
 
+.quickSearchField {
+  flex: 1 1 20rem;
+  min-width: min(100%, 20rem);
+}
+
+.quickSearchType {
+  flex: 0 1 11rem;
+  min-width: 10rem;
+}
+
+.searchLoadingItem {
+  padding-block: 0.5rem;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.searchLoadingItemLast {
+  border-bottom: none;
+}
+
+.searchResultPanel {
+  border-color: var(--mantine-color-default-border);
+  background: linear-gradient(
+    180deg,
+    var(--mantine-color-body),
+    var(--mantine-color-default-hover)
+  );
+}
+
+.searchPreviewPanel {
+  min-height: 34rem;
+  border-color: var(--mantine-color-default-border);
+  background: linear-gradient(
+    180deg,
+    var(--mantine-color-default),
+    var(--mantine-color-default-hover)
+  );
+}
+
+.searchManualFallback {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.gridSpanFull {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 48rem) {
   .shelf {
     grid-auto-columns: minmax(8.4rem, 44vw);
@@ -300,6 +402,13 @@
 
   .posterRow {
     --poster-width: 4.7rem;
+  }
+}
+
+@media (max-width: 30rem) {
+  .heroTitle {
+    font-size: clamp(2.05rem, 11vw, 2.45rem);
+    line-height: 1.05;
   }
 }
 

@@ -141,11 +141,10 @@ describe('WorksListPage', () => {
       await screen.findByText(/작품 2개가 등록되어 있습니다\./),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '리스트' })).toBeInTheDocument();
-    expect(screen.getByText('완료')).toBeInTheDocument();
-    expect(screen.getByText('별점 5.0')).toBeInTheDocument();
+    expect(screen.getByText(/완료 .* ★ 5\.0/)).toBeInTheDocument();
     expect(
       screen.queryByText('모래 행성의 정치와 신화가 좋다.'),
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
     expect(screen.queryByText('4권까지')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Dune 진행도 67%')).not.toBeInTheDocument();
 
@@ -155,7 +154,8 @@ describe('WorksListPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Dune 진행도 67%')).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText(/^유형$/), 'novel');
+    await user.click(screen.getByRole('button', { name: '고급 필터 펼치기' }));
+    await user.click(screen.getByRole('button', { name: '소설' }));
 
     expect(
       await screen.findByText(/전체 2개 중 1개를 보고 있습니다\./),
@@ -233,7 +233,7 @@ describe('WorksListPage', () => {
     ).toBeInTheDocument();
     expect(
       within(activeFilterGroup).getByRole('button', {
-        name: '별점: 5.0점 필터 제거',
+        name: '별점: 5.0점 이상 필터 제거',
       }),
     ).toBeInTheDocument();
     expect(
@@ -275,7 +275,7 @@ describe('WorksListPage', () => {
     });
 
     await user.click(
-      screen.getByRole('button', { name: '별점: 5.0점 필터 제거' }),
+      screen.getByRole('button', { name: '별점: 5.0점 이상 필터 제거' }),
     );
     await waitFor(() => {
       expect(
