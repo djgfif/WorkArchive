@@ -73,12 +73,12 @@ goto wait_api_health
 echo API container is healthy.
 
 echo [3/4] Checking Windows localhost access...
-"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "$client = [Net.Sockets.TcpClient]::new(); $async = $client.BeginConnect('127.0.0.1', 8080, $null, $null); if (-not $async.AsyncWaitHandle.WaitOne(3000)) { $client.Close(); exit 1 }; try { $client.EndConnect($async); $client.Close(); exit 0 } catch { $client.Close(); exit 1 }"
-set "WEB_PORT_OK=%ERRORLEVEL%"
-"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "$client = [Net.Sockets.TcpClient]::new(); $async = $client.BeginConnect('127.0.0.1', 3000, $null, $null); if (-not $async.AsyncWaitHandle.WaitOne(3000)) { $client.Close(); exit 1 }; try { $client.EndConnect($async); $client.Close(); exit 0 } catch { $client.Close(); exit 1 }"
-set "API_PORT_OK=%ERRORLEVEL%"
+curl.exe -fsS --max-time 5 -o NUL "%COMPOSE_WEB_URL%"
+set "WEB_URL_OK=%ERRORLEVEL%"
+curl.exe -fsS --max-time 5 -o NUL "%API_URL%/health"
+set "API_URL_OK=%ERRORLEVEL%"
 
-if "%WEB_PORT_OK%"=="0" if "%API_PORT_OK%"=="0" goto open_browser
+if "%WEB_URL_OK%"=="0" if "%API_URL_OK%"=="0" goto open_browser
 
 echo Docker Compose is healthy, but Windows cannot reach one or more localhost ports.
 echo This usually means WSL/Docker Desktop port forwarding is broken.
@@ -86,9 +86,9 @@ echo Current endpoints are reachable inside WSL/Docker, but not from Windows Chr
 echo   Web: %COMPOSE_WEB_URL%
 echo   API: %API_URL%/health
 echo.
-echo Checked ports:
-echo   127.0.0.1:8080 result=%WEB_PORT_OK%
-echo   127.0.0.1:3000 result=%API_PORT_OK%
+echo Checked endpoints:
+echo   %COMPOSE_WEB_URL% result=%WEB_URL_OK%
+echo   %API_URL%/health result=%API_URL_OK%
 echo.
 echo System-level fix to consider:
 echo   Change %%USERPROFILE%%\.wslconfig from networkingMode=mirrored to networkingMode=nat,
