@@ -50,9 +50,9 @@ export function MainProductLayout() {
       <Container px="md" size={1360}>
         <Stack gap="lg">
           <Box
+            className="product-header"
             component="header"
             pb="md"
-            style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
           >
             <Flex align="center" gap="lg" justify="space-between" wrap="nowrap">
               <Group gap="lg" miw={0} wrap="nowrap">

@@ -152,7 +152,7 @@ describe('SettingsPage', () => {
     expect(screen.getAllByText(/사용 가능/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/키 필요/).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/공개 검색/)).toBeInTheDocument();
-    expect(screen.getAllByText(/개인 Key Vault/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/개인 검색 키/).length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(
       expect.arrayContaining([
@@ -304,7 +304,7 @@ describe('SettingsPage', () => {
 
       renderAuthenticatedSettings();
 
-      expect(await screen.findByText('API Key Vault')).toBeInTheDocument();
+      expect(await screen.findByText('개인 검색 키')).toBeInTheDocument();
       if (provider !== 'aladin') {
         await user.click(
           await screen.findByRole('button', {
@@ -470,10 +470,8 @@ describe('SettingsPage', () => {
     ).toBeGreaterThan(0);
     expect(screen.getByText(/원격 기기의 로그인 상태/)).toBeInTheDocument();
     expect(screen.getByText('로컬 백업과 복구')).toBeInTheDocument();
-    expect(
-      screen.getByText(/기기별 임시 상태.*복원하지 않습니다/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/access token.*refresh cookie.*외부 검색 API key/)).toBeInTheDocument();
+    expect(screen.getByText(/작품, 감상, 진행 기록/)).toBeInTheDocument();
+    expect(screen.getByText(/개인 검색 키는 포함하지 않습니다/)).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
     ).toBeInTheDocument();

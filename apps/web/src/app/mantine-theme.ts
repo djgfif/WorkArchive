@@ -6,16 +6,29 @@ import {
 } from '@mantine/core';
 
 const archiveColors: MantineColorsTuple = [
-  '#eef7fb',
-  '#dcecf4',
-  '#c9e7fb',
-  '#bbd8ed',
-  '#adcade',
-  '#8fb0c4',
-  '#6f91a6',
-  '#587487',
-  '#425d6f',
-  '#314b5b',
+  '#f3f0ff',
+  '#e4dcff',
+  '#c9bcff',
+  '#aa99f5',
+  '#8a78dd',
+  '#6f5fc2',
+  '#5a4ca0',
+  '#473e7f',
+  '#373363',
+  '#282746',
+];
+
+const emberColors: MantineColorsTuple = [
+  '#fff7e5',
+  '#ffe9bd',
+  '#ffd782',
+  '#f6bd46',
+  '#d99a24',
+  '#b87815',
+  '#935d12',
+  '#744a14',
+  '#5a3b15',
+  '#3f2b13',
 ];
 
 const appFontFamily =
@@ -28,13 +41,21 @@ export const appColorSchemeManager = localStorageColorSchemeManager({
 export const appCssVariablesResolver: CSSVariablesResolver = () => ({
   variables: {},
   light: {},
-  dark: {},
+  dark: {
+    '--mantine-color-body': '#08090d',
+    '--mantine-color-text': '#f4f1eb',
+    '--mantine-color-dimmed': 'rgba(244, 241, 235, 0.62)',
+    '--mantine-color-default': '#12141d',
+    '--mantine-color-default-hover': '#181b26',
+    '--mantine-color-default-border': 'rgba(255, 255, 255, 0.09)',
+  },
 });
 
 export const appTheme = createTheme({
-  black: '#121212',
+  black: '#08090d',
   colors: {
     archive: archiveColors,
+    ember: emberColors,
   },
   cursorType: 'pointer',
   defaultGradient: {
@@ -42,31 +63,31 @@ export const appTheme = createTheme({
     from: 'archive.2',
     to: 'archive.6',
   },
-  defaultRadius: 'sm',
+  defaultRadius: 'md',
   focusRing: 'auto',
   fontFamily: appFontFamily,
   fontFamilyMonospace: '"JetBrains Mono", "Fira Code", monospace',
   fontSizes: {
-    xs: '0.8rem',
-    sm: '0.93rem',
+    xs: '0.78rem',
+    sm: '0.9rem',
     md: '1rem',
-    lg: '1.08rem',
-    xl: '1.24rem',
+    lg: '1.13rem',
+    xl: '1.32rem',
   },
   headings: {
     fontFamily: appFontFamily,
     fontWeight: '700',
     sizes: {
       h1: {
-        fontSize: 'clamp(1.9rem, 4vw, 2.45rem)',
+        fontSize: 'clamp(2.2rem, 5vw, 4.2rem)',
         lineHeight: '1.08',
       },
       h2: {
-        fontSize: 'clamp(1.34rem, 3vw, 1.72rem)',
+        fontSize: 'clamp(1.45rem, 3vw, 2.05rem)',
         lineHeight: '1.14',
       },
       h3: {
-        fontSize: '1.08rem',
+        fontSize: '1.16rem',
         lineHeight: '1.24',
       },
       h4: {
@@ -92,7 +113,11 @@ export const appTheme = createTheme({
     xl: '1.75',
   },
   other: {
+    captionSize: '0.82rem',
     contentWidth: 1240,
+    displaySize: 'clamp(2.7rem, 7vw, 5.8rem)',
+    eyebrowSize: '0.76rem',
+    metaSize: '0.84rem',
     narrowContentWidth: 760,
     shellWidth: 1360,
   },
@@ -102,19 +127,19 @@ export const appTheme = createTheme({
     light: 6,
   },
   radius: {
-    xs: '0.125rem',
-    sm: '0.25rem',
-    md: '0.375rem',
-    lg: '0.5rem',
-    xl: '0.75rem',
+    xs: '0.25rem',
+    sm: '0.45rem',
+    md: '0.7rem',
+    lg: '1rem',
+    xl: '1.4rem',
   },
   respectReducedMotion: true,
   shadows: {
-    xs: 'none',
-    sm: 'none',
-    md: 'none',
-    lg: 'none',
-    xl: 'none',
+    xs: '0 1px 2px rgba(0, 0, 0, 0.18)',
+    sm: '0 10px 28px rgba(0, 0, 0, 0.22)',
+    md: '0 18px 48px rgba(0, 0, 0, 0.28)',
+    lg: '0 26px 80px rgba(0, 0, 0, 0.34)',
+    xl: '0 36px 110px rgba(0, 0, 0, 0.42)',
   },
   spacing: {
     xs: '0.5rem',
@@ -166,23 +191,23 @@ export const appTheme = createTheme({
     },
     Badge: {
       defaultProps: {
-        radius: 'sm',
+        radius: 'xl',
         variant: 'light',
       },
       styles: {
         root: {
           border: '1px solid transparent',
-          fontSize: '0.72rem',
+          fontSize: 'var(--mantine-font-size-xs)',
           fontWeight: 600,
           letterSpacing: 0,
-          paddingInline: '0.55rem',
-          textTransform: 'uppercase',
+          paddingInline: '0.65rem',
+          textTransform: 'none',
         },
       },
     },
     Button: {
       defaultProps: {
-        radius: 'sm',
+        radius: 'md',
         size: 'sm',
       },
       styles: {
@@ -190,7 +215,7 @@ export const appTheme = createTheme({
           borderColor: 'var(--mantine-color-default-border)',
           fontWeight: 600,
           letterSpacing: 0,
-          paddingInline: '0.9rem',
+          paddingInline: '1rem',
         },
       },
     },
@@ -245,14 +270,14 @@ export const appTheme = createTheme({
     },
     Paper: {
       defaultProps: {
-        radius: 'md',
+        radius: 'lg',
         withBorder: true,
       },
       styles: {
         root: {
           backgroundColor: 'var(--mantine-color-body)',
           borderColor: 'var(--mantine-color-default-border)',
-          boxShadow: 'none',
+          boxShadow: 'var(--mantine-shadow-xs)',
         },
       },
     },

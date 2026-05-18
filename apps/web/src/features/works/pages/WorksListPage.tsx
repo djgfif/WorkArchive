@@ -363,7 +363,7 @@ export function WorksListPage() {
       {error && (
         <StateMessage
           actions={
-            <ActionRow>
+            <>
               <AppButton onClick={retry} tone="primary" type="button">
                 다시 불러오기
               </AppButton>
@@ -375,7 +375,7 @@ export function WorksListPage() {
               >
                 작품 추가
               </AppButton>
-            </ActionRow>
+            </>
           }
           description={error}
           title="작품 목록을 불러오지 못했습니다."
