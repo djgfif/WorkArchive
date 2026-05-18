@@ -41,7 +41,7 @@ function RecentRecordLink({ accent = false, work }: { accent?: boolean; work: Wo
           <Text fw={700} lineClamp={1}>
             {work.title}
           </Text>
-          <Text c="var(--app-text-muted)" lineClamp={1} size="sm">
+          <Text c="var(--mantine-color-dimmed)" lineClamp={1} size="sm">
             {work.author || '작가·제작자 미입력'}
           </Text>
         </Stack>
@@ -148,7 +148,7 @@ export function ProfilePage() {
 
           <Group gap="sm">
             <AppLinkButton to="/account">계정 센터 열기</AppLinkButton>
-            <AppLinkButton to="/account/sync">동기화 바로가기</AppLinkButton>
+            <AppLinkButton to="/account/settings">설정 열기</AppLinkButton>
           </Group>
         </SectionCard>
 
@@ -189,7 +189,7 @@ export function ProfilePage() {
           {!error && !isLoading && !hasRecentWorks && (
             <Stack gap="sm">
               <AppBadge tone="accent">첫 기록 대기</AppBadge>
-              <Text c="var(--app-text-muted)">
+              <Text c="var(--mantine-color-dimmed)">
                 첫 작품을 등록하면 이곳에서 최근 기록으로 바로 돌아갈 수 있습니다.
               </Text>
             </Stack>
@@ -205,7 +205,7 @@ export function ProfilePage() {
 
           <Group gap="sm" wrap="wrap">
             <AppLinkButton to="/works/new">작품 추가</AppLinkButton>
-            <AppLinkButton to="/insights">인사이트 보기</AppLinkButton>
+            <AppLinkButton to="/works">작품 보기</AppLinkButton>
           </Group>
         </SectionCard>
       </SimpleGrid>

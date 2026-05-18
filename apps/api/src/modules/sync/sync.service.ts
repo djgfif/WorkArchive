@@ -283,18 +283,6 @@ export class SyncService {
       };
     }
 
-    if (!this.shouldApplyLocalChange(existing, payload)) {
-      return {
-        queueId: change.queueId,
-        entityId: change.entityId,
-        entityType: 'work',
-        status: 'conflict',
-        code: SYNC_CODES.conflictRemoteNewer,
-        message: this.buildConflictMessage(existing, payload),
-        work: toFlatWorkResponse(existing),
-      };
-    }
-
     const updated = await this.prisma.$transaction(async (tx) => {
       // split-only 단계에서는 catalog 메타데이터도 해당 user record와 함께 동기화합니다.
       await this.catalogService.update(
@@ -547,18 +535,6 @@ export class SyncService {
       };
     }
 
-    if (!this.shouldApplyReleaseRecordLocalChange(existing, payload)) {
-      return {
-        queueId: change.queueId,
-        entityId: change.entityId,
-        entityType: 'release_record',
-        status: 'conflict',
-        code: SYNC_CODES.conflictRemoteNewer,
-        message: this.buildReleaseRecordConflictMessage(existing, payload),
-        releaseRecord: toUserReleaseRecordResponse(existing),
-      };
-    }
-
     const updated = await this.releaseRecordsService.update(
       change.entityId,
       this.buildReleaseRecordUpdateData(payload),
@@ -732,18 +708,6 @@ export class SyncService {
       };
     }
 
-    if (!this.shouldApplyTimelineEntryLocalChange(existing, payload)) {
-      return {
-        queueId: change.queueId,
-        entityId: change.entityId,
-        entityType: 'timeline_entry',
-        status: 'conflict',
-        code: SYNC_CODES.conflictRemoteNewer,
-        message: this.buildTimelineEntryConflictMessage(existing, payload),
-        timelineEntry: toUserTimelineEntryResponse(existing),
-      };
-    }
-
     const updated = await this.timelineEntriesService.update(
       change.entityId,
       this.buildTimelineEntryUpdateData(payload),
@@ -843,51 +807,6 @@ export class SyncService {
       message: CREATED_MESSAGE,
       timelineEntry: toUserTimelineEntryResponse(created),
     };
-  }
-
-  private shouldApplyLocalChange(
-    existing: WorkAggregate,
-    payload: SyncWorkPayloadDto,
-  ) {
-    if (payload.serverVersion === existing.serverVersion) {
-      return true;
-    }
-
-    if (payload.serverVersion < existing.serverVersion) {
-      return false;
-    }
-
-    return new Date(payload.updatedAt).getTime() > existing.updatedAt.getTime();
-  }
-
-  private shouldApplyReleaseRecordLocalChange(
-    existing: UserReleaseRecordAggregate,
-    payload: SyncReleaseRecordPayloadDto,
-  ) {
-    if (payload.serverVersion === existing.serverVersion) {
-      return true;
-    }
-
-    if (payload.serverVersion < existing.serverVersion) {
-      return false;
-    }
-
-    return new Date(payload.updatedAt).getTime() > existing.updatedAt.getTime();
-  }
-
-  private shouldApplyTimelineEntryLocalChange(
-    existing: UserTimelineEntryAggregate,
-    payload: SyncTimelineEntryPayloadDto,
-  ) {
-    if (payload.serverVersion === existing.serverVersion) {
-      return true;
-    }
-
-    if (payload.serverVersion < existing.serverVersion) {
-      return false;
-    }
-
-    return new Date(payload.updatedAt).getTime() > existing.updatedAt.getTime();
   }
 
   private validateWorkProgressPayload(payload: SyncWorkPayloadDto) {
@@ -1406,36 +1325,6 @@ export class SyncService {
       existing.deletedAt?.toISOString() ===
         (payload.deletedAt === null ? undefined : payload.deletedAt)
     );
-  }
-
-  private buildConflictMessage(
-    existing: WorkAggregate,
-    payload: SyncWorkPayloadDto,
-  ) {
-    const remoteDeletedAt = existing.deletedAt?.toISOString() ?? 'active';
-    const localDeletedAt = payload.deletedAt ?? 'active';
-
-    return `Conflict: server version ${existing.serverVersion} updated at ${existing.updatedAt.toISOString()} (deletedAt: ${remoteDeletedAt}) won over local version ${payload.serverVersion} updated at ${payload.updatedAt} (deletedAt: ${localDeletedAt}).`;
-  }
-
-  private buildReleaseRecordConflictMessage(
-    existing: UserReleaseRecordAggregate,
-    payload: SyncReleaseRecordPayloadDto,
-  ) {
-    const remoteDeletedAt = existing.deletedAt?.toISOString() ?? 'active';
-    const localDeletedAt = payload.deletedAt ?? 'active';
-
-    return `Conflict: server release-record version ${existing.serverVersion} updated at ${existing.updatedAt.toISOString()} (deletedAt: ${remoteDeletedAt}) won over local version ${payload.serverVersion} updated at ${payload.updatedAt} (deletedAt: ${localDeletedAt}).`;
-  }
-
-  private buildTimelineEntryConflictMessage(
-    existing: UserTimelineEntryAggregate,
-    payload: SyncTimelineEntryPayloadDto,
-  ) {
-    const remoteDeletedAt = existing.deletedAt?.toISOString() ?? 'active';
-    const localDeletedAt = payload.deletedAt ?? 'active';
-
-    return `Conflict: server timeline-entry version ${existing.serverVersion} updated at ${existing.updatedAt.toISOString()} (deletedAt: ${remoteDeletedAt}) won over local version ${payload.serverVersion} updated at ${payload.updatedAt} (deletedAt: ${localDeletedAt}).`;
   }
 
   private getPullChangeUpdatedAt(change: PullSyncChangeDto) {

@@ -235,7 +235,7 @@ export function GuestTransferReviewPage() {
       {resultMessage && (
         <SectionCard tone="subtle">
           <AppBadge tone="accent">반영 완료</AppBadge>
-          <Text c="var(--app-text-muted)">{resultMessage}</Text>
+          <Text c="var(--mantine-color-dimmed)">{resultMessage}</Text>
           <ActionRow>
             <AppLinkButton to="/works" tone="primary">
               Works 열기
@@ -248,7 +248,7 @@ export function GuestTransferReviewPage() {
         <SectionCard tone="subtle">
           <AppBadge tone="accent">정리됨</AppBadge>
           <Title order={2}>지금 검토할 guest 기록이 없습니다</Title>
-          <Text c="var(--app-text-muted)">
+          <Text c="var(--mantine-color-dimmed)">
             새 guest 기록이 생기면 다시 검토 화면을 열 수 있습니다. 지금은 계정 아카이브를 바로 사용하면 됩니다.
           </Text>
         </SectionCard>
@@ -264,7 +264,7 @@ export function GuestTransferReviewPage() {
             />
 
             {duplicateSummary && (
-              <Text c="var(--app-text-muted)">{duplicateSummary}</Text>
+              <Text c="var(--mantine-color-dimmed)">{duplicateSummary}</Text>
             )}
 
             <ActionRow>
@@ -314,7 +314,7 @@ export function GuestTransferReviewPage() {
 
                     <div>
                       <Title order={3}>{item.guestWork.title}</Title>
-                      <Text c="var(--app-text-muted)">
+                      <Text c="var(--mantine-color-dimmed)">
                         {item.guestWork.author || '작가 미입력'} · 별점{' '}
                         {item.guestWork.rating === null
                           ? '미평가'
@@ -333,7 +333,7 @@ export function GuestTransferReviewPage() {
                 {item.hasDuplicates && (
                   <Stack gap="xs">
                     {item.duplicateCandidates.map((candidate) => (
-                      <Text c="var(--app-text-muted)" key={candidate.id}>
+                      <Text c="var(--mantine-color-dimmed)" key={candidate.id}>
                         기존 계정 기록 후보: {candidate.title} / {candidate.type} / {candidate.status}
                       </Text>
                     ))}
@@ -341,7 +341,7 @@ export function GuestTransferReviewPage() {
                 )}
 
                 {item.guestWork.shortReview && (
-                  <Text c="var(--app-text-secondary)">{item.guestWork.shortReview}</Text>
+                  <Text c="var(--mantine-color-text)">{item.guestWork.shortReview}</Text>
                 )}
               </SectionCard>
             ))}

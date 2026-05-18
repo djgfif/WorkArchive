@@ -49,9 +49,9 @@ export function PasswordResetConfirmPage() {
       description="복구 링크가 유효하면 새 비밀번호를 저장하고 다시 로그인할 수 있습니다."
       eyebrow="새 비밀번호"
       footer={
-        <Text c="var(--app-text-muted)">
+        <Text c="var(--mantine-color-dimmed)">
           재설정을 마쳤다면{' '}
-          <Link style={{ color: 'var(--app-accent)', fontWeight: 600 }} to="/auth/login">
+          <Link style={{ color: 'var(--mantine-primary-color-filled)', fontWeight: 600 }} to="/auth/login">
             로그인으로 돌아가기
           </Link>
         </Text>

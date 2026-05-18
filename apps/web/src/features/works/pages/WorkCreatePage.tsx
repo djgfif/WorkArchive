@@ -90,7 +90,7 @@ export function WorkCreatePage() {
 
               <div>
                 <Title order={3}>{savedWork.title}</Title>
-                <Text c="var(--app-text-muted)">
+                <Text c="var(--mantine-color-dimmed)">
                   {savedWork.author || '작가·제작자 미입력'}
                 </Text>
               </div>

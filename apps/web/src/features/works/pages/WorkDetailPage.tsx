@@ -330,7 +330,7 @@ function ProgressOnlySection({
           value={lastLabel}
         />
         <Group justify="space-between">
-          <Text c="var(--app-text-muted)" size="sm">
+          <Text c="var(--mantine-color-dimmed)" size="sm">
             애니/드라마는 시즌·OVA·극장판을 별도 작품으로 관리하고, 에피소드는
             진행도만 남깁니다.
           </Text>
@@ -433,7 +433,7 @@ function ReleaseRecordRow({
     <SectionCard gap="md" padding="lg" tone="subtle">
       <Stack gap="xs">
         <Text fw={700}>{label}</Text>
-        <Text c="var(--app-text-muted)" size="sm">
+        <Text c="var(--mantine-color-dimmed)" size="sm">
           {release.isbn
             ? `ISBN ${release.isbn}`
             : release.releaseType || '하위 릴리스'}
@@ -475,7 +475,7 @@ function ReleaseRecordRow({
         value={shortReview}
       />
       <Group justify="space-between">
-        <Text c="var(--app-text-muted)" size="sm">
+        <Text c="var(--mantine-color-dimmed)" size="sm">
           이 기록은 작품 전체 별점/리뷰와 별도로 저장됩니다.
         </Text>
         <Group>
@@ -621,13 +621,13 @@ function RelatedTitlesSection({
             <Group justify="space-between">
               <Text fw={700}>{relation.targetTitle.title}</Text>
               {relation.relationType ? (
-                <Text c="var(--app-text-muted)" size="sm">
+                <Text c="var(--mantine-color-dimmed)" size="sm">
                   {relationTypeLabels[relation.relationType] ??
                     relation.relationType}
                 </Text>
               ) : null}
             </Group>
-            <Text c="var(--app-text-muted)" size="sm">
+            <Text c="var(--mantine-color-dimmed)" size="sm">
               {getWorkTypeLabel(relation.targetTitle.mediumType)}
               {relation.targetTitle.subType
                 ? ` · ${relation.targetTitle.subType}`
@@ -983,7 +983,7 @@ export function WorkDetailPage() {
           <Group align="center" justify="space-between" wrap="wrap">
             <Stack gap={4}>
               <Text fw={700}>작품을 휴지통으로 이동</Text>
-              <Text c="var(--app-text-muted)" size="sm">
+              <Text c="var(--mantine-color-dimmed)" size="sm">
                 기록은 즉시 완전 삭제되지 않습니다. Works의 휴지통 보기에서 다시 복원할 수 있습니다.
               </Text>
             </Stack>

@@ -135,7 +135,7 @@ function ProviderGroupLine({ group, tone = 'muted' }: ProviderGroupLineProps) {
   return (
     <ActionRow>
       <AppBadge tone={tone}>{group.label}</AppBadge>
-      <Text c="var(--app-text-muted)" size="sm">
+      <Text c="var(--mantine-color-dimmed)" size="sm">
         {formatProviderNames(group.providers)}
       </Text>
     </ActionRow>
@@ -159,26 +159,26 @@ function ProviderReadinessSummary({
       radius="md"
       styles={{
         root: {
-          backgroundColor: 'var(--app-surface-1)',
-          borderColor: 'var(--app-border-color)',
+          backgroundColor: 'var(--mantine-color-default)',
+          borderColor: 'var(--mantine-color-default-border)',
         },
       }}
       withBorder
     >
       <Stack gap="xs">
         <ActionRow justify="space-between">
-          <Text c="var(--app-text-strong)" fw={700} size="sm">
+          <Text c="var(--mantine-color-text)" fw={700} size="sm">
             검색 provider 상태
           </Text>
           {isLoading && (
-            <Text c="var(--app-text-muted)" size="xs">
+            <Text c="var(--mantine-color-dimmed)" size="xs">
               상태 확인 중
             </Text>
           )}
         </ActionRow>
 
         {error ? (
-          <Text c="var(--app-text-muted)" size="sm">
+          <Text c="var(--mantine-color-dimmed)" size="sm">
             지금은 일부 검색 출처 상태를 확인하지 못했습니다. 검색과 직접 추가는
             계속 사용할 수 있습니다.
           </Text>
@@ -209,7 +209,7 @@ interface StatusButtonGroupProps {
 function StatusButtonGroup({ onChange, value }: StatusButtonGroupProps) {
   return (
     <Stack gap={6}>
-      <Text c="var(--app-text-muted)" fw={600} size="sm">
+      <Text c="var(--mantine-color-dimmed)" fw={600} size="sm">
         상태
       </Text>
       <Group gap="xs" wrap="wrap">
@@ -249,7 +249,7 @@ function CoreWorkFields({
     <Stack gap="md">
       <ActionRow>
         <AppBadge tone="accent">필수</AppBadge>
-        <Text c="var(--app-text-muted)" size="sm">
+        <Text c="var(--mantine-color-dimmed)" size="sm">
           제목과 유형만 입력하면 저장할 수 있습니다.
         </Text>
       </ActionRow>
@@ -314,7 +314,7 @@ function PersonalRecordFields({
     <Stack gap="md">
       <ActionRow>
         <AppBadge tone="accent">내 기록</AppBadge>
-        <Text c="var(--app-text-muted)" size="sm">
+        <Text c="var(--mantine-color-dimmed)" size="sm">
           상태, 별점, 한줄평만 먼저 남겨도 충분합니다.
         </Text>
       </ActionRow>
@@ -350,7 +350,7 @@ function PersonalRecordFields({
           />
         </div>
 
-        <Text c="var(--app-text-muted)" size="sm" style={{ gridColumn: '1 / -1' }}>
+        <Text c="var(--mantine-color-dimmed)" size="sm" style={{ gridColumn: '1 / -1' }}>
           긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수 있습니다.
         </Text>
       </SimpleGrid>
@@ -401,8 +401,8 @@ function AdvancedWorkFields({
               radius="md"
               styles={{
                 root: {
-                  backgroundColor: 'var(--app-surface-1)',
-                  borderColor: 'var(--app-border-color)',
+                  backgroundColor: 'var(--mantine-color-default)',
+                  borderColor: 'var(--mantine-color-default-border)',
                 },
               }}
               withBorder
@@ -416,7 +416,7 @@ function AdvancedWorkFields({
                 />
                 <Stack gap={4} miw={0}>
                   <Text fw={700}>표지 미리보기</Text>
-                  <Text c="var(--app-text-muted)" size="sm">
+                  <Text c="var(--mantine-color-dimmed)" size="sm">
                     이미지가 없거나 불러오지 못하면 제목 기반 fallback으로 표시됩니다.
                   </Text>
                 </Stack>
@@ -739,10 +739,10 @@ export function AddWorkFlow({
       <Stack gap="sm">
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <div>
-            <Text c="var(--app-text-strong)" fw={800} size={variant === 'dialog' ? 'lg' : 'xl'}>
+            <Text c="var(--mantine-color-text)" fw={800} size={variant === 'dialog' ? 'lg' : 'xl'}>
               새 작품 기록
             </Text>
-            <Text c="var(--app-text-muted)" size="sm">
+            <Text c="var(--mantine-color-dimmed)" size="sm">
               직접 입력으로 바로 저장할 수 있고, 검색은 작품 정보를 채우는 선택 도구입니다.
             </Text>
           </div>

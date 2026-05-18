@@ -35,8 +35,8 @@ export function WorksTrashList({
         radius="lg"
         styles={{
           root: {
-            backgroundColor: 'var(--app-surface-0)',
-            borderColor: 'var(--app-border-color)',
+            backgroundColor: 'var(--mantine-color-body)',
+            borderColor: 'var(--mantine-color-default-border)',
             overflow: 'hidden',
           },
         }}
@@ -53,9 +53,9 @@ export function WorksTrashList({
                 px="lg"
                 py="lg"
                 style={{
-                  backgroundColor: isRestoring ? 'var(--app-surface-1)' : 'transparent',
+                  backgroundColor: isRestoring ? 'var(--mantine-color-default)' : 'transparent',
                   borderBottom:
-                    index === works.length - 1 ? 'none' : '1px solid var(--app-border-color)',
+                    index === works.length - 1 ? 'none' : '1px solid var(--mantine-color-default-border)',
                 }}
               >
                 <Group align="flex-start" gap="lg" justify="space-between" wrap="wrap">
@@ -84,13 +84,13 @@ export function WorksTrashList({
                             {work.title}
                           </Link>
                         </Title>
-                        <Text c="var(--app-text-muted)">
+                        <Text c="var(--mantine-color-dimmed)">
                           {work.author || '작가·제작자 미입력'} · 삭제한 날{' '}
                           {formatWorkDateTime(work.deletedAt ?? work.updatedAt)}
                         </Text>
                       </div>
 
-                      <Text c="var(--app-text-secondary)">
+                      <Text c="var(--mantine-color-text)">
                         {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
                       </Text>
                     </Stack>
@@ -111,7 +111,7 @@ export function WorksTrashList({
                       </AppLinkButton>
                     </ActionRow>
 
-                    <Text c="var(--app-text-muted)" fz="sm">
+                    <Text c="var(--mantine-color-dimmed)" fz="sm">
                       복원하면 다시 작품 목록으로 돌아가며 현재 기록 상태도 그대로 유지됩니다.
                     </Text>
                   </Stack>

@@ -157,7 +157,7 @@ export function WorkListRow({
     <Box
       px="md"
       py="md"
-      style={{ borderBottom: isLast ? 'none' : '1px solid var(--app-border-color)' }}
+      style={{ borderBottom: isLast ? 'none' : '1px solid var(--mantine-color-default-border)' }}
     >
       <Group align="center" gap="md" justify="space-between" wrap="wrap">
         <Group align="center" gap="md" miw={0} style={{ flex: '1 1 32rem' }} wrap="nowrap">
@@ -183,12 +183,12 @@ export function WorkListRow({
                   {work.title}
                 </Link>
               </Title>
-              <Text c="var(--app-text-muted)" size="sm">
+              <Text c="var(--mantine-color-dimmed)" size="sm">
                 {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
               </Text>
             </div>
 
-            <Text c="var(--app-text-secondary)" lineClamp={2} size="sm">
+            <Text c="var(--mantine-color-text)" lineClamp={2} size="sm">
               {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
             </Text>
 

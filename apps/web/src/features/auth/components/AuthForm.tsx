@@ -79,7 +79,7 @@ export function AuthForm({
             )}
             {showPasswordResetLink && (
               <Link
-                style={{ color: 'var(--app-accent)', fontWeight: 600 }}
+                style={{ color: 'var(--mantine-primary-color-filled)', fontWeight: 600 }}
                 to="/auth/password-reset"
               >
                 비밀번호를 잊으셨나요?

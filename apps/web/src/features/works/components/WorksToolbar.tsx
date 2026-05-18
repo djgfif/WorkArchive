@@ -170,7 +170,7 @@ export function WorksToolbar({
       <Group align="flex-start" justify="space-between" wrap="wrap">
         <Stack gap={4}>
           <Text
-            c="var(--app-text-muted)"
+            c="var(--mantine-color-dimmed)"
             fw={700}
             fz="0.72rem"
             lts="0.12em"
@@ -179,7 +179,7 @@ export function WorksToolbar({
             Library
           </Text>
           <Title order={1}>작품 라이브러리</Title>
-          <Text c="var(--app-text-muted)">{countSummary}</Text>
+          <Text c="var(--mantine-color-dimmed)">{countSummary}</Text>
         </Stack>
 
         <ActionRow justify="flex-end">
@@ -260,7 +260,7 @@ export function WorksToolbar({
               모두 지우기
             </AppButton>
           </Group>
-          <Text c="var(--app-text-muted)" size="sm">
+          <Text c="var(--mantine-color-dimmed)" size="sm">
             필터는 주소에 저장되어 새로고침하거나 링크를 공유해도 유지됩니다.
           </Text>
         </Stack>
@@ -268,7 +268,7 @@ export function WorksToolbar({
 
       <ActionRow justify="space-between">
         <Group gap="xs" wrap="wrap">
-          <Text c="var(--app-text-muted)" fw={700} size="sm">
+          <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
             고급 필터
           </Text>
           {hasActiveFilters && (
@@ -411,7 +411,7 @@ export function WorksToolbar({
       </Collapse>
 
       {!filtersExpanded && hasActiveFilters && (
-        <Text c="var(--app-text-muted)" size="sm">
+        <Text c="var(--mantine-color-dimmed)" size="sm">
           일부 필터가 적용되어 있습니다.
         </Text>
       )}

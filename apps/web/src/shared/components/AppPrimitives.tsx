@@ -193,18 +193,18 @@ function getSurfaceBackground(tone: SurfaceTone) {
     case 'hero':
       return [
         'linear-gradient(135deg, rgba(173, 202, 222, 0.1), transparent 42%)',
-        'linear-gradient(180deg, var(--app-surface-0), var(--app-surface-low))',
+        'linear-gradient(180deg, var(--mantine-color-body), var(--mantine-color-default-hover))',
       ].join(', ');
     case 'subtle':
-      return 'var(--app-surface-1)';
+      return 'var(--mantine-color-default)';
     case 'default':
     default:
-      return 'var(--app-surface-0)';
+      return 'var(--mantine-color-body)';
   }
 }
 
 function getSurfaceBorder(tone: SurfaceTone) {
-  return tone === 'hero' ? 'var(--app-border-strong)' : 'var(--app-border-color)';
+  return tone === 'hero' ? 'var(--mantine-color-default-border)' : 'var(--mantine-color-default-border)';
 }
 
 function getActionToneProps(tone: AppActionTone) {
@@ -358,7 +358,7 @@ export function SurfaceLinkCard({
           display: 'block',
           textDecoration: 'none',
           transition:
-            'border-color var(--app-transition-fast), background-color var(--app-transition-fast)',
+            'border-color 160ms ease, background-color 160ms ease',
         },
       }}
       to={to}
@@ -473,10 +473,10 @@ export function BrandLink({
           </Text>
         </ThemeIcon>
         <Stack gap={0} miw={0}>
-          <Text c="var(--app-text-muted)" fw={700} fz="0.7rem" lts="0.12em" tt="uppercase">
+          <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.7rem" lts="0.12em" tt="uppercase">
             {kicker}
           </Text>
-          <Text c="var(--app-text-strong)" fw={700} fz="1rem">
+          <Text c="var(--mantine-color-text)" fw={700} fz="1rem">
             {heading}
           </Text>
         </Stack>
@@ -519,21 +519,21 @@ export function AppNavLink({
       {...(onClick !== undefined ? { onClick } : {})}
       style={({ isActive }) => ({
         alignItems: 'center',
-        background: fullWidth && isActive ? 'var(--app-surface-1)' : 'transparent',
+        background: fullWidth && isActive ? 'var(--mantine-color-default)' : 'transparent',
         borderBottom: fullWidth
           ? 'none'
-          : `2px solid ${isActive ? 'var(--app-accent)' : 'transparent'}`,
+          : `2px solid ${isActive ? 'var(--mantine-primary-color-filled)' : 'transparent'}`,
         borderLeft: fullWidth
-          ? `2px solid ${isActive ? 'var(--app-accent)' : 'transparent'}`
+          ? `2px solid ${isActive ? 'var(--mantine-primary-color-filled)' : 'transparent'}`
           : 'none',
-        color: isActive ? 'var(--app-text-strong)' : 'var(--app-text-secondary)',
+        color: isActive ? 'var(--mantine-color-text)' : 'var(--mantine-color-text)',
         display: fullWidth ? 'flex' : 'inline-flex',
         gap: '0.625rem',
         justifyContent: 'space-between',
         padding: fullWidth ? '0.8rem 0.95rem' : '0.45rem 0',
         textDecoration: 'none',
         transition:
-          'border-color var(--app-transition-fast), background-color var(--app-transition-fast), color var(--app-transition-fast)',
+          'border-color 160ms ease, background-color 160ms ease, color 160ms ease',
         width: fullWidth ? '100%' : undefined,
       })}
       to={to}
@@ -557,13 +557,13 @@ export function SectionIntro({
   return (
     <Stack gap={6}>
       {eyebrow && (
-        <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+        <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
           {eyebrow}
         </Text>
       )}
       <Title order={titleOrder}>{title}</Title>
       {description && (
-        <Text c="var(--app-text-muted)" maw="64ch">
+        <Text c="var(--mantine-color-dimmed)" maw="64ch">
           {description}
         </Text>
       )}
@@ -587,7 +587,7 @@ export function PageSection({
     <Stack
       gap="md"
       pt={divider ? 'lg' : 0}
-      style={divider ? { borderTop: '1px solid var(--app-border-color)' } : undefined}
+      style={divider ? { borderTop: '1px solid var(--mantine-color-default-border)' } : undefined}
     >
       {hasHeader && (
         <Flex
@@ -607,11 +607,11 @@ export function PageSection({
             ) : (
               <Stack gap={6}>
                 {eyebrow && (
-                  <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+                  <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
                     {eyebrow}
                   </Text>
                 )}
-                {description && <Text c="var(--app-text-muted)">{description}</Text>}
+                {description && <Text c="var(--mantine-color-dimmed)">{description}</Text>}
               </Stack>
             )
           )}
@@ -633,15 +633,15 @@ export function MetricPill({
       miw={112}
       p="xs"
       style={{
-        background: 'var(--app-surface-low)',
-        border: '1px solid var(--app-border-subtle)',
-        borderRadius: 'var(--app-surface-radius-sm)',
+        background: 'var(--mantine-color-default-hover)',
+        border: '1px solid var(--mantine-color-default-border)',
+        borderRadius: 'var(--mantine-radius-sm)',
       }}
     >
-      <Text c="var(--app-text-muted)" fw={700} fz="0.7rem" lts="0.06em" tt="uppercase">
+      <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.7rem" lts="0.06em" tt="uppercase">
         {label}
       </Text>
-      <Text c="var(--app-text-strong)" fw={700} fz="0.95rem">
+      <Text c="var(--mantine-color-text)" fw={700} fz="0.95rem">
         {value}
       </Text>
     </Stack>
@@ -655,7 +655,7 @@ export function ChipSummary({
 }: ChipSummaryProps) {
   return (
     <Stack gap={6}>
-      <Text c="var(--app-text-muted)" fw={700} fz="0.76rem">
+      <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.76rem">
         {label}
       </Text>
       {values.length > 0 ? (
@@ -667,7 +667,7 @@ export function ChipSummary({
           ))}
         </ActionRow>
       ) : (
-        <Text c="var(--app-text-muted)" size="sm">
+        <Text c="var(--mantine-color-dimmed)" size="sm">
           {emptyLabel}
         </Text>
       )}
@@ -684,11 +684,11 @@ export function StatCard({
 }: StatCardProps) {
   const content = (
     <Stack gap={6}>
-      <Text c={accent ? 'var(--app-accent)' : 'var(--app-text-muted)'} fw={700} fz="0.74rem">
+      <Text c={accent ? 'var(--mantine-primary-color-filled)' : 'var(--mantine-color-dimmed)'} fw={700} fz="0.74rem">
         {label}
       </Text>
       <Title order={3}>{value}</Title>
-      {description && <Text c="var(--app-text-muted)">{description}</Text>}
+      {description && <Text c="var(--mantine-color-dimmed)">{description}</Text>}
     </Stack>
   );
 
@@ -726,12 +726,12 @@ export function KeyValueGrid({
             gap={6}
             key={index}
             pb="sm"
-            style={{ borderBottom: '1px solid var(--app-border-color)' }}
+            style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
           >
-            <Text c="var(--app-text-muted)" component="dt" fw={600} fz="0.76rem" lts="0.04em">
+            <Text c="var(--mantine-color-dimmed)" component="dt" fw={600} fz="0.76rem" lts="0.04em">
               {item.label}
             </Text>
-            <Text c="var(--app-text-strong)" component="dd" fw={600} m={0}>
+            <Text c="var(--mantine-color-text)" component="dd" fw={600} m={0}>
               {item.value}
             </Text>
           </Stack>
@@ -808,7 +808,7 @@ export function StateMessage({
           {eyebrow ?? getMessageLabel(tone)}
         </AppBadge>
         <Title order={2}>{title}</Title>
-        <Text c="var(--app-text-muted)" maw="56ch">
+        <Text c="var(--mantine-color-dimmed)" maw="56ch">
           {description}
         </Text>
         {actions && <ActionRow>{actions}</ActionRow>}
@@ -828,7 +828,7 @@ export function LoadingState({
         <Group justify="space-between" wrap="nowrap">
           <Stack gap={8} miw={0} style={{ flex: '1 1 auto' }}>
             <Skeleton height={12} radius="sm" width={96} />
-            <Text c="var(--app-text-muted)" fw={700}>
+            <Text c="var(--mantine-color-dimmed)" fw={700}>
               {title}
             </Text>
           </Stack>
@@ -842,8 +842,8 @@ export function LoadingState({
               radius="md"
               styles={{
                 root: {
-                  backgroundColor: 'var(--app-surface-0)',
-                  borderColor: 'var(--app-border-color)',
+                  backgroundColor: 'var(--mantine-color-body)',
+                  borderColor: 'var(--mantine-color-default-border)',
                 },
               }}
               withBorder
@@ -874,8 +874,8 @@ export function LoadingRows({ rows = 3 }: LoadingRowsProps) {
           radius="md"
           styles={{
             root: {
-              backgroundColor: 'var(--app-surface-low)',
-              borderColor: 'var(--app-border-color)',
+              backgroundColor: 'var(--mantine-color-default-hover)',
+              borderColor: 'var(--mantine-color-default-border)',
             },
           }}
           withBorder
@@ -908,7 +908,7 @@ export function PageHeader({
     <Stack
       gap="lg"
       pb="lg"
-      style={{ borderBottom: '1px solid var(--app-border-color)' }}
+      style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
       {...(className ? { className } : {})}
     >
       <Flex

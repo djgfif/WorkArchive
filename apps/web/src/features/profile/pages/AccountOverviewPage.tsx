@@ -92,7 +92,7 @@ export function AccountOverviewPage() {
             <AppBadge tone={syncAttentionCount > 0 ? 'warning' : 'success'}>
               {syncAttentionCount > 0 ? '확인 필요' : '대기 항목 없음'}
             </AppBadge>
-            <AppLinkButton to="/account/sync">동기화 열기</AppLinkButton>
+            <AppLinkButton to="/account/settings">설정 열기</AppLinkButton>
           </Group>
         </SectionCard>
 
@@ -119,7 +119,7 @@ export function AccountOverviewPage() {
             title="개인 기록 요약"
           />
 
-          <Text c="var(--app-text-muted)">
+          <Text c="var(--mantine-color-dimmed)">
             계정 설정과 개인 기록 요약을 분리해 동기화, 백업, 설정 흐름을 명확하게 유지합니다.
           </Text>
 

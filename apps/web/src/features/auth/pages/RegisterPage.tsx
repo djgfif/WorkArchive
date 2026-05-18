@@ -37,9 +37,9 @@ export function RegisterPage() {
     <AuthPageTemplate
       description="개인 작품 기록을 계정 아카이브로 백업하고 이어서 관리합니다."
       footer={
-        <Text c="var(--app-text-muted)" ta="center">
+        <Text c="var(--mantine-color-dimmed)" ta="center">
           이미 계정이 있나요?{' '}
-          <Link style={{ color: 'var(--app-accent)', fontWeight: 600 }} to="/auth/login">
+          <Link style={{ color: 'var(--mantine-primary-color-filled)', fontWeight: 600 }} to="/auth/login">
             로그인
           </Link>
         </Text>

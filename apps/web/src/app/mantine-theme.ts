@@ -25,55 +25,10 @@ export const appColorSchemeManager = localStorageColorSchemeManager({
   key: 'work-archive.ui.color-scheme',
 });
 
-export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
-  variables: {
-    '--app-shell-padding': 'clamp(1rem, 2vw, 1.5rem)',
-    '--app-shell-width': '85rem',
-    '--app-content-width': '77.5rem',
-    '--app-content-width-narrow': '47.5rem',
-    '--app-surface-radius': theme.radius.md,
-    '--app-surface-radius-sm': theme.radius.sm,
-    '--app-focus-border': '0 0 0 2px var(--app-accent-soft)',
-    '--app-transition-fast': '160ms ease',
-  },
-  light: {
-    '--app-shell-bg': '#f5f6f8',
-    '--app-shell-muted-bg': '#eceef2',
-    '--app-surface-0': '#ffffff',
-    '--app-surface-1': '#f7f8fa',
-    '--app-surface-2': '#eef1f5',
-    '--app-surface-low': '#fbfcfd',
-    '--app-surface-high': '#e6ebf1',
-    '--app-surface-bright': '#dfe8f0',
-    '--app-border-color': '#d7dde5',
-    '--app-border-subtle': 'rgba(68, 82, 99, 0.12)',
-    '--app-border-strong': '#b9c4d1',
-    '--app-text-strong': '#18212d',
-    '--app-text-secondary': '#445263',
-    '--app-text-muted': '#6b7888',
-    '--app-accent': '#3d6390',
-    '--app-accent-soft': 'rgba(61, 99, 144, 0.1)',
-    '--app-danger-soft': 'rgba(220, 38, 38, 0.12)',
-  },
-  dark: {
-    '--app-shell-bg': '#0c0e10',
-    '--app-shell-muted-bg': '#111416',
-    '--app-surface-0': '#161a1e',
-    '--app-surface-1': '#1b2025',
-    '--app-surface-2': '#20262c',
-    '--app-surface-low': '#111416',
-    '--app-surface-high': '#262d33',
-    '--app-surface-bright': '#303841',
-    '--app-border-color': 'rgba(166, 172, 179, 0.16)',
-    '--app-border-subtle': 'rgba(166, 172, 179, 0.1)',
-    '--app-border-strong': 'rgba(173, 202, 222, 0.34)',
-    '--app-text-strong': '#e0e6ed',
-    '--app-text-secondary': '#c2ccd4',
-    '--app-text-muted': '#a6acb3',
-    '--app-accent': '#adcade',
-    '--app-accent-soft': 'rgba(173, 202, 222, 0.14)',
-    '--app-danger-soft': 'rgba(248, 113, 113, 0.18)',
-  },
+export const appCssVariablesResolver: CSSVariablesResolver = () => ({
+  variables: {},
+  light: {},
+  dark: {},
 });
 
 export const appTheme = createTheme({
@@ -179,9 +134,9 @@ export const appTheme = createTheme({
           backgroundColor: 'transparent',
         },
         control: {
-          backgroundColor: 'var(--app-surface-1)',
-          borderRadius: 'var(--app-surface-radius)',
-          color: 'var(--app-text-strong)',
+          backgroundColor: 'var(--mantine-color-default)',
+          borderRadius: 'var(--mantine-radius-md)',
+          color: 'var(--mantine-color-text)',
           fontWeight: 600,
         },
         item: {
@@ -197,9 +152,9 @@ export const appTheme = createTheme({
       },
       styles: {
         root: {
-          backgroundColor: 'var(--app-surface-1)',
-          borderColor: 'var(--app-border-color)',
-          color: 'var(--app-text-strong)',
+          backgroundColor: 'var(--mantine-color-default)',
+          borderColor: 'var(--mantine-color-default-border)',
+          color: 'var(--mantine-color-text)',
         },
       },
     },
@@ -232,7 +187,7 @@ export const appTheme = createTheme({
       },
       styles: {
         root: {
-          borderColor: 'var(--app-border-color)',
+          borderColor: 'var(--mantine-color-default-border)',
           fontWeight: 600,
           letterSpacing: 0,
           paddingInline: '0.9rem',
@@ -245,7 +200,7 @@ export const appTheme = createTheme({
           alignItems: 'center',
         },
         label: {
-          color: 'var(--app-text-secondary)',
+          color: 'var(--mantine-color-text)',
           fontWeight: 500,
         },
       },
@@ -257,13 +212,13 @@ export const appTheme = createTheme({
       },
       styles: {
         input: {
-          backgroundColor: 'var(--app-surface-1)',
-          borderColor: 'var(--app-border-color)',
-          color: 'var(--app-text-strong)',
+          backgroundColor: 'var(--mantine-color-default)',
+          borderColor: 'var(--mantine-color-default-border)',
+          color: 'var(--mantine-color-text)',
           boxShadow: 'none',
         },
         label: {
-          color: 'var(--app-text-secondary)',
+          color: 'var(--mantine-color-text)',
           fontWeight: 600,
           marginBottom: '0.4rem',
         },
@@ -276,8 +231,8 @@ export const appTheme = createTheme({
       },
       styles: {
         root: {
-          backgroundColor: 'var(--app-surface-0)',
-          borderColor: 'var(--app-border-color)',
+          backgroundColor: 'var(--mantine-color-body)',
+          borderColor: 'var(--mantine-color-default-border)',
           boxShadow: 'none',
         },
       },
@@ -285,8 +240,8 @@ export const appTheme = createTheme({
     SegmentedControl: {
       styles: {
         root: {
-          backgroundColor: 'var(--app-surface-1)',
-          border: '1px solid var(--app-border-color)',
+          backgroundColor: 'var(--mantine-color-default)',
+          border: '1px solid var(--mantine-color-default-border)',
         },
       },
     },
@@ -297,18 +252,18 @@ export const appTheme = createTheme({
       },
       styles: {
         input: {
-          backgroundColor: 'var(--app-surface-1)',
-          borderColor: 'var(--app-border-color)',
-          color: 'var(--app-text-strong)',
+          backgroundColor: 'var(--mantine-color-default)',
+          borderColor: 'var(--mantine-color-default-border)',
+          color: 'var(--mantine-color-text)',
           boxShadow: 'none',
         },
         label: {
-          color: 'var(--app-text-secondary)',
+          color: 'var(--mantine-color-text)',
           fontWeight: 600,
           marginBottom: '0.4rem',
         },
         innerInput: {
-          color: 'var(--app-text-strong)',
+          color: 'var(--mantine-color-text)',
         },
       },
     },
@@ -319,13 +274,13 @@ export const appTheme = createTheme({
       },
       styles: {
         input: {
-          backgroundColor: 'var(--app-surface-1)',
-          borderColor: 'var(--app-border-color)',
-          color: 'var(--app-text-strong)',
+          backgroundColor: 'var(--mantine-color-default)',
+          borderColor: 'var(--mantine-color-default-border)',
+          color: 'var(--mantine-color-text)',
           boxShadow: 'none',
         },
         label: {
-          color: 'var(--app-text-secondary)',
+          color: 'var(--mantine-color-text)',
           fontWeight: 600,
           marginBottom: '0.4rem',
         },
@@ -340,13 +295,13 @@ export const appTheme = createTheme({
       },
       styles: {
         input: {
-          backgroundColor: 'var(--app-surface-1)',
-          borderColor: 'var(--app-border-color)',
-          color: 'var(--app-text-strong)',
+          backgroundColor: 'var(--mantine-color-default)',
+          borderColor: 'var(--mantine-color-default-border)',
+          color: 'var(--mantine-color-text)',
           boxShadow: 'none',
         },
         label: {
-          color: 'var(--app-text-secondary)',
+          color: 'var(--mantine-color-text)',
           fontWeight: 600,
           marginBottom: '0.4rem',
         },
@@ -355,7 +310,7 @@ export const appTheme = createTheme({
     Title: {
       styles: {
         root: {
-          color: 'var(--app-text-strong)',
+          color: 'var(--mantine-color-text)',
           letterSpacing: 0,
         },
       },

@@ -1,6 +1,5 @@
 :root {
   color-scheme: light dark;
-  background: var(--app-shell-bg);
   font-family: 'IBM Plex Sans KR', 'Pretendard Variable', 'Pretendard', sans-serif;
   font-synthesis: none;
   font-weight: 400;
@@ -17,15 +16,15 @@
 }
 
 html {
-  background: var(--app-shell-bg);
+  background: var(--mantine-color-body);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   min-width: 320px;
-  background: var(--app-shell-bg);
-  color: var(--app-text-strong);
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
 }
 
 body,
@@ -53,12 +52,12 @@ textarea {
 }
 
 ::selection {
-  background: var(--app-accent-soft);
-  color: var(--app-text-strong);
+  background: var(--mantine-primary-color-light);
+  color: var(--mantine-primary-color-light-color);
 }
 
 :focus-visible {
-  outline: 2px solid var(--app-accent);
+  outline: 2px solid var(--mantine-primary-color-filled);
   outline-offset: 3px;
 }
 
@@ -68,8 +67,8 @@ textarea {
 
 .layout-shell {
   min-height: 100vh;
-  padding: var(--app-shell-padding);
-  background: var(--app-shell-bg);
+  padding: clamp(1rem, 2vw, 1.5rem);
+  background: var(--mantine-color-body);
 }
 
 .layout-shell--minimal {

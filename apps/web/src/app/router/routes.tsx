@@ -11,14 +11,10 @@ import { LoginPage } from '../../features/auth/pages/LoginPage';
 import { PasswordResetConfirmPage } from '../../features/auth/pages/PasswordResetConfirmPage';
 import { PasswordResetRequestPage } from '../../features/auth/pages/PasswordResetRequestPage';
 import { RegisterPage } from '../../features/auth/pages/RegisterPage';
-import { CommunityPage } from '../../features/community/pages/CommunityPage';
 import { HomePage } from '../../features/home/pages/HomePage';
-import { InsightsPage } from '../../features/insights/pages/InsightsPage';
 import { AccountOverviewPage } from '../../features/profile/pages/AccountOverviewPage';
 import { ProfilePage } from '../../features/profile/pages/ProfilePage';
 import { SettingsPage } from '../../features/profile/pages/SettingsPage';
-import { TierBoardsPage } from '../../features/tier-boards/pages/TierBoardsPage';
-import { SyncPage } from '../../features/sync/pages/SyncPage';
 import { WorkCreatePage } from '../../features/works/pages/WorkCreatePage';
 import { WorkDetailPage } from '../../features/works/pages/WorkDetailPage';
 import { WorkEditPage } from '../../features/works/pages/WorkEditPage';
@@ -51,18 +47,6 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'works/:id/edit',
         element: <WorkEditPage />,
-      },
-      {
-        path: 'tier-boards',
-        element: <TierBoardsPage />,
-      },
-      {
-        path: 'insights',
-        element: <InsightsPage />,
-      },
-      {
-        path: 'community',
-        element: <CommunityPage />,
       },
       {
         path: 'profile',
@@ -101,10 +85,6 @@ export const appRoutes: RouteObject[] = [
         element: <AccountOverviewPage />,
       },
       {
-        path: 'sync',
-        element: <SyncPage />,
-      },
-      {
         path: 'transfer',
         element: <GuestTransferReviewPage />,
       },
@@ -115,8 +95,24 @@ export const appRoutes: RouteObject[] = [
     ],
   },
   {
+    path: '/tier-boards',
+    element: <Navigate replace to="/works" />,
+  },
+  {
+    path: '/community',
+    element: <Navigate replace to="/works" />,
+  },
+  {
+    path: '/insights',
+    element: <Navigate replace to="/works" />,
+  },
+  {
+    path: '/account/sync',
+    element: <Navigate replace to="/account/settings" />,
+  },
+  {
     path: '/sync',
-    element: <Navigate replace to="/account/sync" />,
+    element: <Navigate replace to="/account/settings" />,
   },
   {
     path: '/settings',
@@ -124,7 +120,7 @@ export const appRoutes: RouteObject[] = [
   },
   {
     path: '/profile/sync',
-    element: <Navigate replace to="/account/sync" />,
+    element: <Navigate replace to="/account/settings" />,
   },
   {
     path: '/profile/settings',

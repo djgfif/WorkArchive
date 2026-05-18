@@ -63,9 +63,9 @@ function RecentWorkRow({
       radius={0}
       styles={{
         root: {
-          backgroundColor: highlight ? 'var(--app-surface-1)' : 'transparent',
+          backgroundColor: highlight ? 'var(--mantine-color-default)' : 'transparent',
           border: 'none',
-          borderBottom: isLast ? 'none' : '1px solid var(--app-border-color)',
+          borderBottom: isLast ? 'none' : '1px solid var(--mantine-color-default-border)',
           display: 'block',
           textDecoration: 'none',
         },
@@ -92,15 +92,15 @@ function RecentWorkRow({
 
           <div>
             <Title order={highlight ? 3 : 4}>{work.title}</Title>
-            <Text c="var(--app-text-muted)">
+            <Text c="var(--mantine-color-dimmed)">
               {work.author || '작가·제작자 미입력'} · 최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
             </Text>
           </div>
 
-          <Text c="var(--app-text-secondary)">
+          <Text c="var(--mantine-color-text)">
             {work.shortReview || work.description || '아직 남긴 메모가 없습니다.'}
           </Text>
-          <Text c="var(--app-text-muted)" size="sm">
+          <Text c="var(--mantine-color-dimmed)" size="sm">
             마지막 감상 {formatWorkDate(work.lastConsumedAt)}
           </Text>
         </Stack>
@@ -143,11 +143,11 @@ export function HomePage() {
       <SectionCard gap="lg" padding="xl" tone="hero">
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <Stack gap="xs">
-            <Text c="var(--app-text-muted)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
+            <Text c="var(--mantine-color-dimmed)" fw={700} fz="0.72rem" lts="0.12em" tt="uppercase">
               Local archive
             </Text>
             <Title order={1}>기록 홈</Title>
-            <Text c="var(--app-text-secondary)">
+            <Text c="var(--mantine-color-text)">
               {isAuthenticated
                 ? `${user?.email ?? '계정'}의 개인 기록 저장소`
                 : '이 기기에 먼저 저장되는 개인 기록 저장소'}
@@ -246,8 +246,8 @@ export function HomePage() {
                 radius="md"
                 styles={{
                   root: {
-                    backgroundColor: 'var(--app-surface-low)',
-                    borderColor: 'var(--app-border-color)',
+                    backgroundColor: 'var(--mantine-color-default-hover)',
+                    borderColor: 'var(--mantine-color-default-border)',
                     overflow: 'hidden',
                   },
                 }}
@@ -279,8 +279,8 @@ export function HomePage() {
                   p="md"
                   styles={{
                     root: {
-                      backgroundColor: 'var(--app-surface-1)',
-                      borderColor: 'var(--app-border-color)',
+                      backgroundColor: 'var(--mantine-color-default)',
+                      borderColor: 'var(--mantine-color-default-border)',
                       textDecoration: 'none',
                     },
                   }}
@@ -297,7 +297,7 @@ export function HomePage() {
 
                     <Stack flex={1} gap={4} miw={0}>
                       <Text fw={700}>{leadRecentWork.title}</Text>
-                      <Text c="var(--app-text-muted)" size="sm">
+                      <Text c="var(--mantine-color-dimmed)" size="sm">
                         {getWorkStatusLabel(leadRecentWork.status)} ·{' '}
                         {getProgressSummary(leadRecentWork)} ·{' '}
                         마지막 감상 {formatWorkDate(leadRecentWork.lastConsumedAt)}
@@ -306,7 +306,7 @@ export function HomePage() {
                   </Group>
                 </Paper>
               ) : (
-                <Text c="var(--app-text-muted)">최근 수정한 작품이 없습니다.</Text>
+                <Text c="var(--mantine-color-dimmed)">최근 수정한 작품이 없습니다.</Text>
               )}
             </SectionCard>
 

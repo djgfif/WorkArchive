@@ -59,7 +59,7 @@ function SearchCandidateLoadingList() {
       gap="sm"
     >
       <Text fw={700}>검색 후보를 불러오는 중입니다</Text>
-      <Text c="var(--app-text-muted)" size="sm">
+      <Text c="var(--mantine-color-dimmed)" size="sm">
         출처별 결과, 중복 가능성, 적용할 수 있는 정보를 함께 정리하고 있습니다.
       </Text>
       {Array.from({ length: 4 }, (_, index) => (
@@ -68,7 +68,7 @@ function SearchCandidateLoadingList() {
           key={index}
           style={{
             borderBottom:
-              index === 3 ? 'none' : '1px solid var(--app-border-color)',
+              index === 3 ? 'none' : '1px solid var(--mantine-color-default-border)',
             paddingBlock: '0.5rem',
           }}
         >
@@ -176,7 +176,7 @@ export function AddWorkSearchPanel({
           </Group>
 
           <Stack gap={6}>
-            <Text c="var(--app-text-muted)" fw={700} size="sm">
+            <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
               검색 출처
             </Text>
             <Group gap="xs" wrap="wrap">
@@ -195,7 +195,7 @@ export function AddWorkSearchPanel({
                 </AppButton>
               ))}
             </Group>
-            <Text c="var(--app-text-muted)" size="xs">
+            <Text c="var(--mantine-color-dimmed)" size="xs">
               {
                 providerGroupOptions.find(
                   (option) => option.value === providerGroup,
@@ -221,8 +221,8 @@ export function AddWorkSearchPanel({
             styles={{
               root: {
                 background:
-                  'linear-gradient(180deg, var(--app-surface-0), var(--app-surface-low))',
-                borderColor: 'var(--app-border-color)',
+                  'linear-gradient(180deg, var(--mantine-color-body), var(--mantine-color-default-hover))',
+                borderColor: 'var(--mantine-color-default-border)',
               },
             }}
             withBorder
@@ -277,14 +277,14 @@ export function AddWorkSearchPanel({
                   <Stack
                     gap={6}
                     style={{
-                      borderTop: '1px solid var(--app-border-color)',
+                      borderTop: '1px solid var(--mantine-color-default-border)',
                       paddingTop: '0.75rem',
                     }}
                   >
                     <Text fw={700} size="sm">
                       찾는 작품이 없나요?
                     </Text>
-                    <Text c="var(--app-text-muted)" size="sm">
+                    <Text c="var(--mantine-color-dimmed)" size="sm">
                       "{normalizedSearchTerm}"를 직접 추가할 수 있습니다.
                     </Text>
                     <AppButton
@@ -308,8 +308,8 @@ export function AddWorkSearchPanel({
             styles={{
               root: {
                 background:
-                  'linear-gradient(180deg, var(--app-surface-1), var(--app-surface-low))',
-                borderColor: 'var(--app-border-strong)',
+                  'linear-gradient(180deg, var(--mantine-color-default), var(--mantine-color-default-hover))',
+                borderColor: 'var(--mantine-color-default-border)',
                 minHeight: fullHeight ? undefined : '34rem',
               },
             }}

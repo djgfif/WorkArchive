@@ -244,7 +244,7 @@ export function WorkForm({
                     value={values.thumbnailUrl}
                   />
                   <Text
-                    c="var(--app-text-muted)"
+                    c="var(--mantine-color-dimmed)"
                     fz="sm"
                     id="thumbnailUrlHint"
                     mt={6}
@@ -522,12 +522,12 @@ export function WorkForm({
 
               <div>
                 <Title order={3}>{previewTitle}</Title>
-                <Text c="var(--app-text-muted)">
+                <Text c="var(--mantine-color-dimmed)">
                   {values.author.trim() || '작가·제작자 미입력'}
                 </Text>
               </div>
 
-              <Text c="var(--app-text-secondary)">
+              <Text c="var(--mantine-color-text)">
                 {values.shortReview.trim() ||
                   values.description.trim() ||
                   '짧은 감상이나 설명을 남겨두면 나중에 다시 찾기 쉽습니다.'}
@@ -555,7 +555,7 @@ export function WorkForm({
                 )}
               </ActionRow>
 
-              <Text c="var(--app-text-muted)">
+              <Text c="var(--mantine-color-dimmed)">
                 {focusArea === 'review'
                   ? '지금 쓰는 감상은 저장 후 상세 화면의 리뷰 영역으로 바로 이어집니다.'
                   : '핵심 정보부터 저장하고, 나중에 더 채워도 기록 구조는 그대로 유지됩니다.'}
@@ -567,7 +567,7 @@ export function WorkForm({
 
       <Affix bottom={12} hiddenFrom="sm" left={12} right={12} zIndex={200}>
         <SectionCard gap="xs" padding="sm" tone="default">
-          <Text c="var(--app-text-muted)" fz="xs" fw={700} lineClamp={1}>
+          <Text c="var(--mantine-color-dimmed)" fz="xs" fw={700} lineClamp={1}>
             {mobileActionSummary}
           </Text>
           <ActionRow>
