@@ -30,7 +30,8 @@ COPY --from=build /workspace/apps/api/dist ./apps/api/dist
 COPY --from=build /workspace/apps/api/prisma ./apps/api/prisma
 COPY --from=build /workspace/apps/api/docker-entrypoint.sh ./apps/api/docker-entrypoint.sh
 
-RUN chmod +x /workspace/apps/api/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /workspace/apps/api/docker-entrypoint.sh \
+  && chmod +x /workspace/apps/api/docker-entrypoint.sh
 
 EXPOSE 3000
 
