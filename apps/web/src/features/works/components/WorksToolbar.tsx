@@ -12,9 +12,7 @@ import { useState } from 'react';
 
 import type { WorkStatus } from '@work-archive/shared-types';
 
-import {
-  AppButton,
-} from '../../../shared/components/AppPrimitives';
+import { AppButton } from '../../../shared/components/AppPrimitives';
 import {
   ArchiveHero,
   ArchiveSearchBar,
@@ -33,10 +31,7 @@ import type { WorksViewMode } from './WorksList';
 const ratingFilterOptions = Array.from({ length: 10 }, (_, index) => {
   const value = ((index + 1) * 0.5).toFixed(1);
 
-  return {
-    label: `${value}점`,
-    value,
-  };
+  return { label: `${value}점 이상`, value };
 }).reverse();
 
 interface WorksToolbarProps {
@@ -73,27 +68,6 @@ export function WorksToolbar({
   viewMode,
 }: WorksToolbarProps) {
   const [filtersExpanded, setFiltersExpanded] = useState(false);
-  let countSummary = '작품을 불러오는 중입니다.';
-
-  if (!isLoading) {
-    if (collectionScope === 'trash') {
-      if (totalDeletedCount === 0) {
-        countSummary = '휴지통은 비어 있습니다.';
-      } else if (filteredCount === totalDeletedCount) {
-        countSummary = `숨겨둔 작품 ${totalDeletedCount}개를 보고 있습니다.`;
-      } else {
-        countSummary = `휴지통 ${totalDeletedCount}개 중 ${filteredCount}개를 보고 있습니다.`;
-      }
-    } else if (totalActiveCount === 0) {
-      countSummary =
-        '아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.';
-    } else if (filteredCount === totalActiveCount) {
-      countSummary = `작품 ${totalActiveCount}개가 등록되어 있습니다.`;
-    } else {
-      countSummary = `전체 ${totalActiveCount}개 중 ${filteredCount}개를 보고 있습니다.`;
-    }
-  }
-
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
     (query.tag?.trim() ?? '') !== '' ||
@@ -101,6 +75,23 @@ export function WorksToolbar({
     query.status !== 'all' ||
     query.type !== 'all' ||
     query.sortBy !== 'updatedAt';
+
+  let countSummary = '작품을 불러오는 중입니다.';
+
+  if (!isLoading) {
+    if (collectionScope === 'trash') {
+      countSummary =
+        totalDeletedCount === 0
+          ? '휴지통은 비어 있습니다.'
+          : `숨겨둔 작품 ${filteredCount}개를 보고 있습니다.`;
+    } else if (totalActiveCount === 0) {
+      countSummary = '제목만 넣고 빠르게 첫 기록을 시작할 수 있습니다.';
+    } else if (filteredCount === totalActiveCount) {
+      countSummary = `작품 ${totalActiveCount}개가 등록되어 있습니다.`;
+    } else {
+      countSummary = `전체 ${totalActiveCount}개 중 ${filteredCount}개를 보고 있습니다.`;
+    }
+  }
 
   const statusFilterOptions = [
     { label: '전체', value: 'all' as const },
@@ -112,58 +103,28 @@ export function WorksToolbar({
 
   const activeFilterChips = [
     ...(query.searchTerm.trim()
-      ? [
-          {
-            label: `검색: ${query.searchTerm.trim()}`,
-            onRemove: () => onQueryChange({ ...query, searchTerm: '' }),
-          },
-        ]
+      ? [{ label: `검색: ${query.searchTerm.trim()}`, onRemove: () => onQueryChange({ ...query, searchTerm: '' }) }]
       : []),
     ...(query.tag?.trim()
-      ? [
-          {
-            label: `태그: ${query.tag.trim()}`,
-            onRemove: () => onQueryChange({ ...query, tag: '' }),
-          },
-        ]
+      ? [{ label: `태그: ${query.tag.trim()}`, onRemove: () => onQueryChange({ ...query, tag: '' }) }]
       : []),
     ...(query.status !== 'all'
-      ? [
-          {
-            label: `상태: ${getWorkStatusLabel(query.status)}`,
-            onRemove: () => onQueryChange({ ...query, status: 'all' }),
-          },
-        ]
+      ? [{ label: `상태: ${getWorkStatusLabel(query.status)}`, onRemove: () => onQueryChange({ ...query, status: 'all' }) }]
       : []),
     ...(query.rating !== null
-      ? [
-          {
-            label: `별점: ${query.rating.toFixed(1)}점`,
-            onRemove: () => onQueryChange({ ...query, rating: null }),
-          },
-        ]
+      ? [{ label: `별점: ${query.rating.toFixed(1)}점`, onRemove: () => onQueryChange({ ...query, rating: null }) }]
       : []),
     ...(query.type !== 'all'
-      ? [
-          {
-            label: `유형: ${
-              workTypeOptions.find((option) => option.value === query.type)
-                ?.label ?? query.type
-            }`,
-            onRemove: () => onQueryChange({ ...query, type: 'all' }),
-          },
-        ]
+      ? [{
+          label: `유형: ${workTypeOptions.find((option) => option.value === query.type)?.label ?? query.type}`,
+          onRemove: () => onQueryChange({ ...query, type: 'all' }),
+        }]
       : []),
     ...(query.sortBy !== 'updatedAt'
-      ? [
-          {
-            label: `정렬: ${
-              workSortOptions.find((option) => option.value === query.sortBy)
-                ?.label ?? query.sortBy
-            }`,
-            onRemove: () => onQueryChange({ ...query, sortBy: 'updatedAt' }),
-          },
-        ]
+      ? [{
+          label: `정렬: ${workSortOptions.find((option) => option.value === query.sortBy)?.label ?? query.sortBy}`,
+          onRemove: () => onQueryChange({ ...query, sortBy: 'updatedAt' }),
+        }]
       : []),
   ];
 
@@ -173,21 +134,11 @@ export function WorksToolbar({
         actions={
           <Group gap="sm" justify="flex-end" wrap="wrap">
             {hasActiveFilters && (
-              <AppButton
-                onClick={onClearFilters}
-                size="compact-sm"
-                tone="ghost"
-                type="button"
-              >
+              <AppButton onClick={onClearFilters} size="compact-sm" tone="ghost" type="button">
                 초기화
               </AppButton>
             )}
-            <AppButton
-              onClick={onCreateWork}
-              size="md"
-              tone="primary"
-              type="button"
-            >
+            <AppButton onClick={onCreateWork} size="md" tone="primary" type="button">
               작품 추가
             </AppButton>
           </Group>
@@ -207,7 +158,7 @@ export function WorksToolbar({
             aria-label="작품 범위"
             onChange={onCollectionScopeChange}
             options={[
-              { label: '작품 목록', value: 'active', count: totalActiveCount },
+              { label: '작품', value: 'active', count: totalActiveCount },
               { label: '휴지통', value: 'trash', count: totalDeletedCount },
             ]}
             value={collectionScope}
@@ -228,43 +179,33 @@ export function WorksToolbar({
 
       {hasActiveFilters && (
         <Stack gap="xs">
-          <Group gap="xs" justify="space-between" wrap="wrap">
-            <Group aria-label="적용된 필터" gap="xs" role="group" wrap="wrap">
-              {activeFilterChips.map((chip) => (
-                <AppButton
-                  aria-label={`${chip.label} 필터 제거`}
-                  key={chip.label}
-                  onClick={chip.onRemove}
-                  size="compact-xs"
-                  tone="secondary"
-                  type="button"
-                >
-                  {chip.label} ×
-                </AppButton>
-              ))}
-            </Group>
+          <Text c="dimmed" size="sm">
+            {activeFilterChips.length}개 적용
+          </Text>
+        <Group aria-label="적용된 필터" gap="xs" role="group" wrap="wrap">
+          {activeFilterChips.map((chip) => (
             <AppButton
-              onClick={onClearFilters}
+              aria-label={`${chip.label} 필터 제거`}
+              key={chip.label}
+              onClick={chip.onRemove}
               size="compact-xs"
-              tone="ghost"
+              tone="secondary"
               type="button"
             >
-              모두 지우기
+              {chip.label} ×
             </AppButton>
-          </Group>
-          <Text c="dimmed" size="sm">
-            필터는 주소에 저장되어 새로고침해도 유지됩니다.
-          </Text>
+          ))}
+          <AppButton onClick={onClearFilters} size="compact-xs" tone="ghost" type="button">
+            모두 지우기
+          </AppButton>
+        </Group>
         </Stack>
       )}
 
       <Group justify="space-between">
-        <Group gap="xs" wrap="wrap">
-          <Text c="dimmed" fw={700} size="sm">
-            필터
-          </Text>
-          {hasActiveFilters && <Text c="dimmed" size="sm">{activeFilterChips.length}개 적용</Text>}
-        </Group>
+        <Text c="dimmed" fw={800} size="sm">
+          필터
+        </Text>
         <AppButton
           aria-expanded={filtersExpanded}
           onClick={() => setFiltersExpanded((value) => !value)}
@@ -297,110 +238,81 @@ export function WorksToolbar({
       </VisuallyHidden>
 
       <Collapse in={filtersExpanded}>
-        <Stack gap="md">
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="sm">
-                상태
-              </Text>
-              {collectionScope === 'active' && (
-                <FilterPillGroup
-                  aria-label="상태 필터"
-                  onChange={(status) => onQueryChange({ ...query, status })}
-                  options={statusFilterOptions.map((option) => ({
-                    label: option.label,
-                    value: option.value,
-                    count:
-                      option.value === 'all'
-                        ? totalActiveCount
-                        : statusCounts[option.value],
-                  }))}
-                  value={query.status}
-                />
-              )}
-            </Stack>
-
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="sm">
-                유형
-              </Text>
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          <Stack gap="xs">
+            <Text c="dimmed" fw={800} size="sm">상태</Text>
+            {collectionScope === 'active' && (
               <FilterPillGroup
-                aria-label="유형 필터"
-                onChange={(type) => onQueryChange({ ...query, type })}
-                options={[
-                  { label: '전체', value: 'all' as const },
-                  ...workTypeOptions.map((option) => ({
-                    label: option.label,
-                    value: option.value,
-                  })),
-                ]}
-                value={query.type}
+                aria-label="상태 필터"
+                onChange={(status) => onQueryChange({ ...query, status })}
+                options={statusFilterOptions.map((option) => ({
+                  label: option.label,
+                  value: option.value,
+                  count: option.value === 'all' ? totalActiveCount : statusCounts[option.value],
+                }))}
+                value={query.status}
               />
-            </Stack>
+            )}
+          </Stack>
 
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="sm">
-                정렬
-              </Text>
-              <FilterPillGroup
-                aria-label="정렬"
-                onChange={(sortBy) => onQueryChange({ ...query, sortBy })}
-                options={workSortOptions}
-                value={query.sortBy}
-              />
-            </Stack>
+          <Stack gap="xs">
+            <Text c="dimmed" fw={800} size="sm">유형</Text>
+            <FilterPillGroup
+              aria-label="유형 필터"
+              onChange={(type) => onQueryChange({ ...query, type })}
+              options={[
+                { label: '전체', value: 'all' as const },
+                ...workTypeOptions.map((option) => ({ label: option.label, value: option.value })),
+              ]}
+              value={query.type}
+            />
+          </Stack>
 
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="sm">
-                별점
-              </Text>
-              <FilterPillGroup
-                aria-label="별점 필터"
-                onChange={(rating) =>
-                  onQueryChange({
-                    ...query,
-                    rating: rating === 'all' ? null : Number.parseFloat(rating),
-                  })
-                }
-                options={[
-                  { label: '전체', value: 'all' },
-                  ...ratingFilterOptions.map((option) => ({
-                    label: option.label,
-                    value: option.value,
-                  })),
-                ]}
-                value={query.rating === null ? 'all' : query.rating.toFixed(1)}
-              />
-            </Stack>
+          <Stack gap="xs">
+            <Text c="dimmed" fw={800} size="sm">정렬</Text>
+            <FilterPillGroup
+              aria-label="정렬"
+              onChange={(sortBy) => onQueryChange({ ...query, sortBy })}
+              options={workSortOptions}
+              value={query.sortBy}
+            />
+          </Stack>
 
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="sm">
-                개인 태그
-              </Text>
-              <TextInput
-                list="worksTagFilterSuggestions"
-                name="tag"
-                onChange={(event) =>
-                  onQueryChange({ ...query, tag: event.currentTarget.value })
-                }
-                placeholder="태그로 필터"
-                value={query.tag ?? ''}
-              />
-              <datalist id="worksTagFilterSuggestions">
-                {tagSuggestions.map((tag) => (
-                  <option key={tag} value={tag} />
-                ))}
-              </datalist>
-            </Stack>
-          </SimpleGrid>
-        </Stack>
+          <Stack gap="xs">
+            <Text c="dimmed" fw={800} size="sm">별점</Text>
+            <FilterPillGroup
+              aria-label="별점 필터"
+              onChange={(rating) =>
+                onQueryChange({
+                  ...query,
+                  rating: rating === 'all' ? null : Number.parseFloat(rating),
+                })
+              }
+              options={[
+                { label: '전체', value: 'all' },
+                ...ratingFilterOptions.map((option) => ({ label: option.label, value: option.value })),
+              ]}
+              value={query.rating === null ? 'all' : query.rating.toFixed(1)}
+            />
+          </Stack>
+
+          <Stack gap="xs">
+            <Text c="dimmed" fw={800} size="sm">개인 태그</Text>
+            <TextInput
+              list="worksTagFilterSuggestions"
+              name="tag"
+              onChange={(event) => onQueryChange({ ...query, tag: event.currentTarget.value })}
+              placeholder="태그로 필터"
+              value={query.tag ?? ''}
+            />
+            <datalist id="worksTagFilterSuggestions">
+              {tagSuggestions.map((tag) => (
+                <option key={tag} value={tag} />
+              ))}
+            </datalist>
+          </Stack>
+        </SimpleGrid>
       </Collapse>
-
-      {!filtersExpanded && hasActiveFilters && (
-        <Text c="dimmed" size="sm">
-          일부 필터가 적용되어 있습니다.
-        </Text>
-      )}
     </Stack>
   );
 }

@@ -27,6 +27,7 @@ import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 const primaryNavigationItems = [
   { label: '홈', to: '/' },
   { label: '작품', to: '/works' },
+  { label: '작품 추가', to: '/works/new' },
   { label: '설정', to: '/account/settings' },
 ] as const;
 
@@ -36,7 +37,7 @@ export function MainProductLayout() {
   const { isLoading, mode, signOut, user } = useAuthSession();
   const isAuthenticated = mode === 'authenticated';
   const accountMenuLabel = isAuthenticated
-    ? (user?.email ?? 'Account')
+    ? (user?.email ?? '계정')
     : '게스트';
 
   async function handleSignOut() {
@@ -63,7 +64,7 @@ export function MainProductLayout() {
                   opened={mobileMenuOpened}
                   size="sm"
                 />
-                <BrandLink heading="Work Archive" kicker="Personal records" />
+                <BrandLink heading="Work Archive" kicker="Personal media archive" />
               </Group>
 
               <Group

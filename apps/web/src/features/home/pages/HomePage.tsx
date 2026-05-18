@@ -14,6 +14,7 @@ import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import {
   ArchiveHero,
   ArchiveSearchBar,
+  ArchiveEmptyState,
   WorkRowCard,
   WorkShelf,
 } from '../../works/components/ArchiveComponents';
@@ -117,17 +118,21 @@ export function HomePage() {
         <Stack gap={48}>
           <WorkShelf
             empty={
-              <Stack gap="sm">
-                <Title order={2}>이어볼 작품</Title>
-                <Text c="dimmed">
-                  보는 중인 작품을 추가하면 이곳에 포스터로 이어집니다.
-                </Text>
-              </Stack>
+              <ArchiveEmptyState
+                actions={
+                  <AppLinkButton to="/works/new" tone="primary">
+                    보는 중인 작품 추가
+                  </AppLinkButton>
+                }
+                description="보는 중인 작품을 기록하면 홈 첫 선반에 포스터로 이어집니다."
+                eyebrow="Continue shelf"
+                title="이어볼 작품이 없습니다"
+              />
             }
             title={
               <Group justify="space-between" wrap="wrap">
                 <Stack gap={4}>
-                  <Title order={2}>이어보기</Title>
+                  <Title order={2}>Continue Shelf</Title>
                   <Text c="dimmed" size="sm">
                     보는 중인 기록만 조용히 모았습니다.
                   </Text>
@@ -143,7 +148,7 @@ export function HomePage() {
           <Stack gap="md">
             <Group justify="space-between" wrap="wrap">
               <Stack gap={4}>
-                <Title order={2}>최근 수정</Title>
+                  <Title order={2}>Recently Updated</Title>
                 <Text c="dimmed" size="sm">
                   방금 손본 작품을 빠르게 다시 엽니다.
                 </Text>
@@ -173,7 +178,7 @@ export function HomePage() {
           </Stack>
 
           <Stack gap="md">
-            <Title order={2}>아카이브 요약</Title>
+            <Title order={2}>Archive Summary</Title>
             <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
               <MetricPill label="전체" value={`${totalCount}개`} />
               <MetricPill label="보는 중" value={`${inProgressCount}개`} />

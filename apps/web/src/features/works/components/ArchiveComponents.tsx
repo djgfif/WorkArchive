@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+﻿import { useEffect, useState, type ReactNode } from 'react';
 import {
   Box,
   Button,
@@ -6,6 +6,8 @@ import {
   NumberInput,
   Paper,
   Progress,
+  SimpleGrid,
+  Skeleton,
   Stack,
   Text,
   TextInput,
@@ -30,16 +32,20 @@ import {
 } from './archive-display';
 import styles from './ArchiveComponents.module.css';
 
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
+
 type PosterVariant = 'card' | 'detail' | 'form' | 'grid' | 'row';
 
-const css = (className: string | undefined) => className ?? '';
-
 const posterVariantClass: Record<PosterVariant, string> = {
-  card: css(styles.posterCard),
-  detail: css(styles.posterDetail),
-  form: css(styles.posterForm),
-  grid: css(styles.posterGrid),
-  row: css(styles.posterRow),
+  card: cn(css.posterCard),
+  detail: cn(css.posterDetail),
+  form: cn(css.posterForm),
+  grid: cn(css.posterGrid),
+  row: cn(css.posterRow),
 };
 
 const progressUnitLabels: Record<ProgressUnit, string> = {
@@ -126,6 +132,13 @@ interface ArchiveSearchBarProps {
   value: string;
 }
 
+interface ArchiveEmptyStateProps {
+  actions?: ReactNode;
+  description: ReactNode;
+  eyebrow?: ReactNode;
+  title: ReactNode;
+}
+
 function cx(...classes: Array<string | false | undefined>): string {
   return classes.filter(Boolean).join(' ');
 }
@@ -138,6 +151,10 @@ function coerceNumberInputValue(value: number | string) {
   const parsed = Number.parseInt(value, 10);
 
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function getPrimaryMetaLine(work: WorkRecord) {
+  return getWorkStatusLabel(work.status);
 }
 
 export function WorkPoster({
@@ -154,27 +171,21 @@ export function WorkPoster({
   }, [thumbnailUrl]);
 
   return (
-    <Box
-      className={cx(
-        css(styles.posterShell),
-        posterVariantClass[variant],
-        className,
-      )}
-    >
+    <Box className={cx(cn(css.posterShell), posterVariantClass[variant], className)}>
       {thumbnailUrl && !imageFailed ? (
         <img
           alt={`${title} 포스터`}
-          className={css(styles.posterImage)}
+          className={cn(css.posterImage)}
           onError={() => setImageFailed(true)}
           src={thumbnailUrl}
         />
       ) : (
-        <Box className={css(styles.posterFallback)}>
-          <Text className={css(styles.posterFallbackType)}>{typeLabel ?? 'Archive'}</Text>
-          <Text className={css(styles.posterFallbackMark)}>
+        <Box className={cn(css.posterFallback)}>
+          <Text className={cn(css.posterFallbackType)}>{typeLabel ?? 'Archive'}</Text>
+          <Text className={cn(css.posterFallbackMark)}>
             {(title.trim()[0] ?? 'W').toUpperCase()}
           </Text>
-          <Text className={css(styles.posterFallbackType)}>Work Archive</Text>
+          <Text className={cn(css.posterFallbackType)}>Work Archive</Text>
         </Box>
       )}
     </Box>
@@ -192,10 +203,10 @@ export function RatingDisplay({ compact = false, value }: RatingDisplayProps) {
 
   return (
     <Group gap={5} wrap="nowrap">
-      <Text c="ember.3" fw={800} size={compact ? 'sm' : 'md'}>
+      <Text c="ember.3" fw={900} size={compact ? 'sm' : 'md'}>
         ★
       </Text>
-      <Text fw={700} size={compact ? 'xs' : 'sm'}>
+      <Text fw={800} size={compact ? 'xs' : 'sm'}>
         {value.toFixed(1)}
       </Text>
     </Group>
@@ -209,13 +220,13 @@ export function ProgressDisplay({ work }: ProgressDisplayProps) {
   if (!progressLabel) {
     return (
       <Text c="dimmed" size="sm">
-        진행도 없음
+        진행 기록 없음
       </Text>
     );
   }
 
   return (
-    <Stack className={css(styles.progressTrack)} gap={5}>
+    <Stack className={cn(css.progressTrack)} gap={5}>
       <Group gap="xs" justify="space-between" wrap="nowrap">
         <Text c="dimmed" lineClamp={1} size="sm">
           {progressLabel}
@@ -243,23 +254,28 @@ export function WorkPosterCard({ work }: WorkPosterCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
 
   return (
-    <Link className={css(styles.posterCardLink)} to={`/works/${work.id}`}>
-      <Paper className={css(styles.posterCardSurface)} withBorder>
+    <Link className={cn(css.posterCardLink)} to={`/works/${work.id}`}>
+      <Paper className={cn(css.posterCardSurface)} withBorder>
+        {work.favorite && (
+          <Box aria-label="즐겨찾기" className={cn(css.favoriteMark)}>
+            ★
+          </Box>
+        )}
         <WorkPoster
           thumbnailUrl={work.thumbnailUrl}
           title={work.title}
           typeLabel={typeLabel}
           variant="grid"
         />
-        <Stack className={css(styles.posterCardBody)} gap={6}>
+        <Stack className={cn(css.posterCardBody)} gap={7}>
           <Title lineClamp={2} order={3} size="h4">
             {work.title}
           </Title>
-          <Group gap="xs" justify="space-between" wrap="nowrap">
+          <Group className={cn(css.posterMetaLine)} gap="xs" justify="space-between" wrap="nowrap">
             <Text c="dimmed" lineClamp={1} size="sm">
-              {getWorkStatusLabel(work.status)}
+              {getPrimaryMetaLine(work)}
             </Text>
-            <Text c={work.rating === null ? 'dimmed' : 'ember.3'} fw={700} size="sm">
+            <Text c={work.rating === null ? 'dimmed' : 'ember.3'} fw={800} size="sm">
               {work.rating === null ? '미평가' : `별점 ${work.rating.toFixed(1)}`}
             </Text>
           </Group>
@@ -273,8 +289,8 @@ export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
 
   return (
-    <Link className={css(styles.rowCard)} to={`/works/${work.id}`}>
-      <Paper className={css(styles.rowSurface)} withBorder>
+    <Link className={cn(css.rowCard)} to={`/works/${work.id}`}>
+      <Paper className={cn(css.rowSurface)} withBorder>
         <Group align="center" gap="md" wrap="nowrap">
           <WorkPoster
             thumbnailUrl={work.thumbnailUrl}
@@ -287,9 +303,7 @@ export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
               <Text c="dimmed" lineClamp={1} size="xs">
                 {typeLabel}
               </Text>
-              <Text c="dimmed" size="xs">
-                /
-              </Text>
+              <Text c="dimmed" size="xs">/</Text>
               <Text c="dimmed" lineClamp={1} size="xs">
                 {getWorkStatusLabel(work.status)}
               </Text>
@@ -306,7 +320,7 @@ export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
             </Group>
             {work.shortReview.trim() && (
               <Text c="dimmed" lineClamp={1} size="sm">
-                {work.shortReview}
+                {work.shortReview.trim()}
               </Text>
             )}
           </Stack>
@@ -324,7 +338,7 @@ export function WorkShelf({ empty, title, works }: WorkShelfProps) {
   return (
     <Stack gap="md">
       {title}
-      <Box className={css(styles.shelf)}>
+      <Box className={cn(css.shelf)}>
         {works.map((work) => (
           <WorkPosterCard key={work.id} work={work} />
         ))}
@@ -341,12 +355,12 @@ export function ArchiveHero({
   title,
 }: ArchiveHeroProps) {
   return (
-    <Paper className={css(styles.hero)} withBorder>
-      <Stack className={css(styles.heroContent)} gap="xl">
+    <Paper className={cn(css.hero)} withBorder>
+      <Stack className={cn(css.heroContent)} gap="xl">
         <Group align="flex-start" justify="space-between" wrap="wrap">
-          <Stack gap="sm" maw={720}>
-            {eyebrow && <Text className={css(styles.eyebrow)}>{eyebrow}</Text>}
-            <Title order={1}>{title}</Title>
+          <Stack gap="sm" maw={760}>
+            {eyebrow && <Text className={cn(css.eyebrow)}>{eyebrow}</Text>}
+            <Title className={cn(css.heroTitle)} order={1}>{title}</Title>
             <Text c="dimmed" size="lg">
               {description}
             </Text>
@@ -356,6 +370,59 @@ export function ArchiveHero({
         {children}
       </Stack>
     </Paper>
+  );
+}
+
+export function FilterPillGroup<T extends string>({
+  'aria-label': ariaLabel,
+  onChange,
+  options,
+  value,
+}: FilterPillGroupProps<T>) {
+  return (
+    <Group aria-label={ariaLabel} gap="xs" role="group" wrap="wrap">
+      {options.map((option) => {
+        const isActive = option.value === value;
+
+        return (
+          <Button
+            aria-pressed={isActive}
+            className={cx(cn(css.filterPill), isActive && cn(css.filterPillActive))}
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            size="sm"
+            variant="default"
+          >
+            {option.count !== undefined ? `${option.label} ${option.count}` : option.label}
+          </Button>
+        );
+      })}
+    </Group>
+  );
+}
+
+export function ArchiveSearchBar({
+  'aria-label': ariaLabel,
+  onChange,
+  onSubmit,
+  placeholder,
+  value,
+}: ArchiveSearchBarProps) {
+  return (
+    <TextInput
+      aria-label={ariaLabel}
+      className={cn(css.searchInput)}
+      flex={1}
+      miw={0}
+      onChange={(event) => onChange(event.currentTarget.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          onSubmit?.();
+        }
+      }}
+      placeholder={placeholder}
+      value={value}
+    />
   );
 }
 
@@ -392,9 +459,7 @@ export function QuickProgressControl({
   const unitLabel = progressUnitLabels[defaultUnit];
 
   async function handleSave() {
-    if (!defaultUnit) {
-      return;
-    }
+    if (!defaultUnit) return;
 
     try {
       setIsSaving(true);
@@ -410,7 +475,7 @@ export function QuickProgressControl({
   }
 
   return (
-    <Paper p="md" radius="lg" withBorder>
+    <Paper className={cn(css.quickPanel)} radius="lg" withBorder>
       <Stack gap="md">
         <Group align="flex-end" gap="sm" wrap="wrap">
           <NumberInput
@@ -435,9 +500,7 @@ export function QuickProgressControl({
           />
           <AppButton
             disabled={disabled || isSaving}
-            onClick={() =>
-              setCurrent((value) => (value === null ? 1 : value + 1))
-            }
+            onClick={() => setCurrent((value) => (value === null ? 1 : value + 1))}
             tone="secondary"
             type="button"
           >
@@ -463,20 +526,18 @@ export function QuickProgressControl({
             value={lastLabel}
           />
           <AppButton
-            disabled={
-              disabled || isSaving || !hasChanges || hasInvalidProgress
-            }
+            disabled={disabled || isSaving || !hasChanges || hasInvalidProgress}
             loading={isSaving}
             onClick={() => void handleSave()}
             tone="primary"
             type="button"
           >
-            진행도 저장
+            진행 저장
           </AppButton>
         </Group>
         {hasInvalidProgress && (
           <Text c="red" size="sm">
-            현재 진행도가 전체보다 클 수 없습니다.
+            현재 진행량이 전체보다 클 수 없습니다.
           </Text>
         )}
       </Stack>
@@ -492,15 +553,13 @@ export function ReviewNoteCard({
   const isEmpty = typeof value === 'string' && value.trim() === '';
 
   return (
-    <Paper className={css(styles.noteCard)} withBorder>
+    <Paper className={cn(css.noteCard)} withBorder>
       <Stack gap="sm">
-        <Text c="dimmed" fw={700} size="sm">
+        <Text c="dimmed" fw={800} size="sm">
           {label}
         </Text>
         {isEmpty ? (
-          <Text c="dimmed" lh={1.8}>
-            {emptyLabel}
-          </Text>
+          <Text c="dimmed" lh={1.8}>{emptyLabel}</Text>
         ) : (
           <Text lh={1.8}>{value}</Text>
         )}
@@ -509,61 +568,40 @@ export function ReviewNoteCard({
   );
 }
 
-export function FilterPillGroup<T extends string>({
-  'aria-label': ariaLabel,
-  onChange,
-  options,
-  value,
-}: FilterPillGroupProps<T>) {
+export function ArchiveEmptyState({
+  actions,
+  description,
+  eyebrow = 'Empty shelf',
+  title,
+}: ArchiveEmptyStateProps) {
   return (
-    <Group aria-label={ariaLabel} gap="xs" role="group" wrap="wrap">
-      {options.map((option) => {
-        const isActive = option.value === value;
-
-        return (
-          <Button
-            aria-label={option.label}
-            className={cx(
-              css(styles.filterPill),
-              isActive && css(styles.filterPillActive),
-            )}
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            size="sm"
-            variant="default"
-          >
-            {option.count !== undefined
-              ? `${option.label} ${option.count}`
-              : option.label}
-          </Button>
-        );
-      })}
-    </Group>
+    <Stack className={cn(css.emptyState)} gap="md">
+      <AppBadge tone="accent">{eyebrow}</AppBadge>
+      <Title order={2}>{title}</Title>
+      <Text c="dimmed" maw="58ch">{description}</Text>
+      {actions && <Group gap="sm" wrap="wrap">{actions}</Group>}
+    </Stack>
   );
 }
 
-export function ArchiveSearchBar({
-  'aria-label': ariaLabel,
-  onChange,
-  onSubmit,
-  placeholder,
-  value,
-}: ArchiveSearchBarProps) {
+export function ArchiveSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <TextInput
-      aria-label={ariaLabel}
-      className={css(styles.searchInput)}
-      flex={1}
-      miw={0}
-      onChange={(event) => onChange(event.currentTarget.value)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          onSubmit?.();
-        }
-      }}
-      placeholder={placeholder}
-      value={value}
-    />
+    <SimpleGrid
+      aria-busy="true"
+      aria-live="polite"
+      className={cn(css.skeletonGrid)}
+      cols={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }}
+      spacing={{ base: 'md', md: 'xl' }}
+      verticalSpacing="xl"
+    >
+      {Array.from({ length: count }, (_, index) => (
+        <Stack gap="sm" key={index}>
+          <Skeleton height={220} radius="lg" />
+          <Skeleton height={14} radius="sm" width="80%" />
+          <Skeleton height={10} radius="sm" width="55%" />
+        </Stack>
+      ))}
+    </SimpleGrid>
   );
 }
 
