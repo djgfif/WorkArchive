@@ -5,17 +5,18 @@ import {
   type MantineColorsTuple,
 } from '@mantine/core';
 
+// DESIGN.md 기준 아카이브 블루 팔레트 (blue-gray library tone)
 const archiveColors: MantineColorsTuple = [
-  '#f5f1ff',
-  '#e5dcff',
-  '#cbbcff',
-  '#a998f0',
-  '#8a78db',
-  '#6f5fc2',
-  '#594b9b',
-  '#453b77',
-  '#342f58',
-  '#24233a',
+  '#eef5fb', // 0 — lightest
+  '#dde8f1', // 1
+  '#bfd1e4', // 2
+  '#9bb5d4', // 3
+  '#799cc7', // 4
+  '#5d88bb', // 5
+  '#4b78ac', // 6 — primary action (light)
+  '#3d6390', // 7
+  '#324f73', // 8
+  '#253b55', // 9 — darkest
 ];
 
 const emberColors: MantineColorsTuple = [
@@ -38,32 +39,110 @@ export const appColorSchemeManager = localStorageColorSchemeManager({
   key: 'work-archive.ui.color-scheme',
 });
 
-export const appCssVariablesResolver: CSSVariablesResolver = () => ({
+export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
   variables: {
-    '--wa-bg-base': '#07080b',
-    '--wa-bg-elevated': '#0c0e14',
-    '--wa-surface-subtle': '#10131b',
-    '--wa-surface-card': '#151924',
-    '--wa-surface-hero': '#181b27',
-    '--wa-border-subtle': 'rgba(255, 255, 255, 0.075)',
-    '--wa-border-strong': 'rgba(255, 255, 255, 0.16)',
-    '--wa-text-primary': '#f5f1ea',
-    '--wa-text-secondary': 'rgba(245, 241, 234, 0.74)',
-    '--wa-text-muted': 'rgba(245, 241, 234, 0.58)',
-    '--wa-accent-primary': '#a998f0',
-    '--wa-accent-warm': '#efb546',
-    '--wa-shadow-card': '0 14px 36px rgba(0, 0, 0, 0.28)',
-    '--wa-shadow-poster': '0 22px 60px rgba(0, 0, 0, 0.42)',
-    '--wa-shadow-hero': '0 34px 100px rgba(0, 0, 0, 0.54)',
+    // ── Motion ──────────────────────────────────────────────────────
     '--wa-motion-fast': '140ms ease',
     '--wa-motion-normal': '190ms ease',
-    '--wa-type-display': 'clamp(2.7rem, 8vw, 6rem)',
-    '--wa-type-h1': 'clamp(2.15rem, 5vw, 4.1rem)',
-    '--wa-type-h2': 'clamp(1.45rem, 3vw, 2.15rem)',
+    // ── Typography scale ────────────────────────────────────────────
+    '--wa-type-display': 'clamp(2.4rem, 7vw, 5.2rem)',
+    '--wa-type-h1': 'clamp(1.9rem, 4.5vw, 3.6rem)',
+    '--wa-type-h2': 'clamp(1.35rem, 2.8vw, 2rem)',
     '--wa-type-h3': '1.08rem',
     '--wa-type-body': '1rem',
     '--wa-type-caption': '0.84rem',
     '--wa-type-meta': '0.76rem',
+    // ── Aliases ─────────────────────────────────────────────────────
+    '--app-type-display': 'var(--wa-type-display)',
+    '--app-type-h1': 'var(--wa-type-h1)',
+    '--app-type-h2': 'var(--wa-type-h2)',
+    '--app-type-h3': 'var(--wa-type-h3)',
+    '--app-type-body': 'var(--wa-type-body)',
+    '--app-type-caption': 'var(--wa-type-caption)',
+    '--app-type-meta': 'var(--wa-type-meta)',
+    // ── Spacing ─────────────────────────────────────────────────────
+    '--app-space-page': 'clamp(1.25rem, 3vw, 2.5rem)',
+    '--app-space-section': 'clamp(2rem, 5vw, 4rem)',
+    '--app-space-card': 'clamp(1rem, 2.4vw, 1.5rem)',
+    '--app-space-control': '0.75rem',
+  },
+  light: {
+    // ── Surfaces ────────────────────────────────────────────────────
+    '--wa-bg-base': '#f5f6f8',
+    '--wa-bg-elevated': '#eceef2',
+    '--wa-surface-subtle': '#eef1f5',
+    '--wa-surface-card': '#ffffff',
+    '--wa-surface-hero': '#f7f8fa',
+    // ── Borders ─────────────────────────────────────────────────────
+    '--wa-border-subtle': '#d7dde5',
+    '--wa-border-strong': '#b9c4d1',
+    // ── Text ────────────────────────────────────────────────────────
+    '--wa-text-primary': '#18212d',
+    '--wa-text-secondary': '#445263',
+    '--wa-text-muted': '#6b7888',
+    // ── Accent ──────────────────────────────────────────────────────
+    '--wa-accent-primary': '#3d6390',
+    '--wa-accent-warm': '#c98d24',
+    // ── Shadows ─────────────────────────────────────────────────────
+    '--wa-shadow-card': '0 2px 8px rgba(0, 0, 0, 0.07)',
+    '--wa-shadow-poster': '0 6px 20px rgba(0, 0, 0, 0.10)',
+    '--wa-shadow-hero': '0 12px 40px rgba(0, 0, 0, 0.12)',
+    // ── Mantine overrides ───────────────────────────────────────────
+    '--mantine-color-body': '#f5f6f8',
+    '--mantine-color-text': '#18212d',
+    '--mantine-color-dimmed': '#6b7888',
+    '--mantine-color-default': '#ffffff',
+    '--mantine-color-default-hover': '#eceef2',
+    '--mantine-color-default-border': '#d7dde5',
+    // ── App aliases ─────────────────────────────────────────────────
+    '--app-bg-base': 'var(--wa-bg-base)',
+    '--app-bg-elevated': 'var(--wa-bg-elevated)',
+    '--app-surface-subtle': 'var(--wa-surface-subtle)',
+    '--app-surface-card': 'var(--wa-surface-card)',
+    '--app-surface-hero': 'var(--wa-surface-hero)',
+    '--app-border-subtle': 'var(--wa-border-subtle)',
+    '--app-border-strong': 'var(--wa-border-strong)',
+    '--app-text-primary': 'var(--wa-text-primary)',
+    '--app-text-secondary': 'var(--wa-text-secondary)',
+    '--app-text-muted': 'var(--wa-text-muted)',
+    '--app-accent-primary': 'var(--wa-accent-primary)',
+    '--app-accent-warm': 'var(--wa-accent-warm)',
+    '--app-state-success': '#0f766e',
+    '--app-state-warning': '#c98d24',
+    '--app-state-danger': '#dc2626',
+    '--app-shadow-card': 'var(--wa-shadow-card)',
+    '--app-shadow-poster': 'var(--wa-shadow-poster)',
+    '--app-shadow-overlay': 'var(--wa-shadow-hero)',
+  },
+  dark: {
+    // ── Surfaces ────────────────────────────────────────────────────
+    '--wa-bg-base': '#14171b',
+    '--wa-bg-elevated': '#1a1f25',
+    '--wa-surface-subtle': '#1c2128',
+    '--wa-surface-card': '#1e2430',
+    '--wa-surface-hero': '#232932',
+    // ── Borders ─────────────────────────────────────────────────────
+    '--wa-border-subtle': 'rgba(255, 255, 255, 0.07)',
+    '--wa-border-strong': 'rgba(255, 255, 255, 0.16)',
+    // ── Text ────────────────────────────────────────────────────────
+    '--wa-text-primary': '#f1f5f9',
+    '--wa-text-secondary': '#d1d8e2',
+    '--wa-text-muted': '#9ca8b8',
+    // ── Accent ──────────────────────────────────────────────────────
+    '--wa-accent-primary': '#9bb5d4',
+    '--wa-accent-warm': '#efb546',
+    // ── Shadows ─────────────────────────────────────────────────────
+    '--wa-shadow-card': '0 8px 24px rgba(0, 0, 0, 0.28)',
+    '--wa-shadow-poster': '0 16px 48px rgba(0, 0, 0, 0.40)',
+    '--wa-shadow-hero': '0 28px 80px rgba(0, 0, 0, 0.52)',
+    // ── Mantine overrides ───────────────────────────────────────────
+    '--mantine-color-body': '#14171b',
+    '--mantine-color-text': '#f1f5f9',
+    '--mantine-color-dimmed': '#9ca8b8',
+    '--mantine-color-default': '#1e2430',
+    '--mantine-color-default-hover': '#232932',
+    '--mantine-color-default-border': 'rgba(255, 255, 255, 0.07)',
+    // ── App aliases ─────────────────────────────────────────────────
     '--app-bg-base': 'var(--wa-bg-base)',
     '--app-bg-elevated': 'var(--wa-bg-elevated)',
     '--app-surface-subtle': 'var(--wa-surface-subtle)',
@@ -82,38 +161,11 @@ export const appCssVariablesResolver: CSSVariablesResolver = () => ({
     '--app-shadow-card': 'var(--wa-shadow-card)',
     '--app-shadow-poster': 'var(--wa-shadow-poster)',
     '--app-shadow-overlay': 'var(--wa-shadow-hero)',
-    '--app-space-page': 'clamp(1.25rem, 3vw, 2.5rem)',
-    '--app-space-section': 'clamp(2rem, 5vw, 4.5rem)',
-    '--app-space-card': 'clamp(1rem, 2.4vw, 1.5rem)',
-    '--app-space-control': '0.75rem',
-    '--app-type-display': 'var(--wa-type-display)',
-    '--app-type-h1': 'var(--wa-type-h1)',
-    '--app-type-h2': 'var(--wa-type-h2)',
-    '--app-type-h3': 'var(--wa-type-h3)',
-    '--app-type-body': 'var(--wa-type-body)',
-    '--app-type-caption': 'var(--wa-type-caption)',
-    '--app-type-meta': 'var(--wa-type-meta)',
-  },
-  light: {
-    '--mantine-color-body': '#f4f1eb',
-    '--mantine-color-text': '#17151c',
-    '--mantine-color-dimmed': 'rgba(23, 21, 28, 0.62)',
-    '--mantine-color-default': '#ffffff',
-    '--mantine-color-default-hover': '#f3f0ea',
-    '--mantine-color-default-border': 'rgba(23, 21, 28, 0.12)',
-  },
-  dark: {
-    '--mantine-color-body': 'var(--wa-bg-base)',
-    '--mantine-color-text': 'var(--wa-text-primary)',
-    '--mantine-color-dimmed': 'var(--wa-text-secondary)',
-    '--mantine-color-default': 'var(--wa-surface-card)',
-    '--mantine-color-default-hover': '#1a1f2c',
-    '--mantine-color-default-border': 'var(--wa-border-subtle)',
   },
 });
 
 export const appTheme = createTheme({
-  black: '#07080b',
+  black: '#14171b',
   colors: {
     archive: archiveColors,
     ember: emberColors,
@@ -121,8 +173,8 @@ export const appTheme = createTheme({
   cursorType: 'pointer',
   defaultGradient: {
     deg: 135,
-    from: 'archive.3',
-    to: 'archive.6',
+    from: 'archive.4',
+    to: 'archive.7',
   },
   defaultRadius: 'md',
   focusRing: 'auto',
@@ -165,7 +217,7 @@ export const appTheme = createTheme({
     shellWidth: 1360,
   },
   primaryColor: 'archive',
-  primaryShade: { dark: 4, light: 6 },
+  primaryShade: { dark: 3, light: 6 },
   radius: {
     xs: '0.25rem',
     sm: '0.45rem',
@@ -175,11 +227,11 @@ export const appTheme = createTheme({
   },
   respectReducedMotion: true,
   shadows: {
-    xs: '0 1px 2px rgba(0, 0, 0, 0.18)',
+    xs: '0 1px 3px rgba(0, 0, 0, 0.10)',
     sm: 'var(--wa-shadow-card)',
     md: 'var(--wa-shadow-poster)',
     lg: 'var(--wa-shadow-hero)',
-    xl: '0 42px 120px rgba(0, 0, 0, 0.58)',
+    xl: '0 36px 100px rgba(0, 0, 0, 0.50)',
   },
   spacing: {
     xs: '0.5rem',
@@ -196,6 +248,7 @@ export const appTheme = createTheme({
           backgroundColor: 'var(--app-surface-subtle)',
           borderColor: 'var(--app-border-subtle)',
           color: 'var(--app-text-primary)',
+          transition: 'border-color 160ms ease, background 160ms ease',
         },
       },
     },
@@ -231,6 +284,7 @@ export const appTheme = createTheme({
           backgroundColor: 'var(--app-bg-elevated)',
           borderColor: 'var(--app-border-subtle)',
           color: 'var(--app-text-primary)',
+          transition: 'border-color 160ms ease',
         },
       },
     },
@@ -273,8 +327,11 @@ export const appTheme = createTheme({
     },
     Title: {
       styles: {
-        root: { color: 'var(--app-text-primary)', letterSpacing: 0 },
+        root: { color: 'var(--app-text-primary)', letterSpacing: '-0.02em' },
       },
+    },
+    Tooltip: {
+      defaultProps: { radius: 'md', withArrow: true },
     },
   },
 });

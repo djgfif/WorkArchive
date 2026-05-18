@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import type { WorkStatus } from '@work-archive/shared-types';
 
-import { AppButton } from '../../../shared/components/AppPrimitives';
+import { AppButton, AppBadge } from '../../../shared/components/AppPrimitives';
 import {
   ArchiveHero,
   ArchiveSearchBar,
@@ -22,7 +22,7 @@ import type { WorksViewMode } from './WorksList';
 const ratingFilterOptions = Array.from({ length: 10 }, (_, index) => {
   const value = ((index + 1) * 0.5).toFixed(1);
 
-  return { label: `${value}점 이상`, value };
+  return { label: `★ ${value}+`, value };
 }).reverse();
 
 interface WorksToolbarProps {
@@ -58,7 +58,8 @@ export function WorksToolbar({
   totalDeletedCount,
   viewMode,
 }: WorksToolbarProps) {
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
     (query.tag?.trim() ?? '') !== '' ||
@@ -72,12 +73,12 @@ export function WorksToolbar({
     : collectionScope === 'trash'
       ? totalDeletedCount === 0
         ? '휴지통이 비어 있습니다.'
-        : `숨겨둔 작품 ${filteredCount}개를 보고 있습니다.`
+        : `숨겨둔 작품 ${filteredCount}개`
       : totalActiveCount === 0
-        ? '제목만 넣고 빠르게 첫 기록을 시작할 수 있습니다.'
+        ? '제목 하나만 넣고 첫 기록을 시작해 보세요.'
         : filteredCount === totalActiveCount
-          ? `작품 ${totalActiveCount}개가 등록되어 있습니다.`
-          : `전체 ${totalActiveCount}개 중 ${filteredCount}개를 보고 있습니다.`;
+          ? `작품 ${totalActiveCount}개`
+          : `전체 ${totalActiveCount}개 중 ${filteredCount}개`;
 
   const statusFilterOptions = [
     { label: '전체', value: 'all' as const, count: totalActiveCount },
@@ -116,7 +117,7 @@ export function WorksToolbar({
     ...(query.rating !== null
       ? [
           {
-            label: `별점: ${query.rating.toFixed(1)}점 이상`,
+            label: `★ ${query.rating.toFixed(1)}점+`,
             onRemove: () => onQueryChange({ ...query, rating: null }),
           },
         ]
@@ -147,16 +148,17 @@ export function WorksToolbar({
 
   return (
     <Stack gap="md">
+      {/* ── Hero header ──────────────────────────────────────────────── */}
       <ArchiveHero
         actions={
-          <Group gap="sm" justify="flex-end" wrap="wrap">
+          <Group gap="xs" justify="flex-end" wrap="nowrap">
             {hasActiveFilters && (
               <AppButton onClick={onClearFilters} size="compact-sm" tone="ghost" type="button">
                 초기화
               </AppButton>
             )}
             <AppButton onClick={onCreateWork} size="md" tone="primary" type="button">
-              작품 추가
+              + 작품 추가
             </AppButton>
           </Group>
         }
@@ -165,12 +167,15 @@ export function WorksToolbar({
         title="작품 서재"
         variant="compact"
       >
+        {/* Search bar */}
         <ArchiveSearchBar
           aria-label="작품 라이브러리 검색"
           onChange={(searchTerm) => onQueryChange({ ...query, searchTerm })}
           placeholder="제목, 작가, 한줄평, 태그 검색"
           value={query.searchTerm}
         />
+
+        {/* Scope + view mode row */}
         <Group gap="md" justify="space-between" wrap="wrap">
           <FilterPillGroup
             aria-label="작품 범위"
@@ -195,65 +200,61 @@ export function WorksToolbar({
         </Group>
       </ArchiveHero>
 
-      {hasActiveFilters && (
-        <Stack gap="xs">
-          <Text c="dimmed" size="sm">
-            {activeFilterChips.length}개 적용
-          </Text>
-          <Group aria-label="적용된 필터" gap="xs" role="group" wrap="wrap">
-            {activeFilterChips.map((chip) => (
-              <AppButton
-                aria-label={`${chip.label} 필터 제거`}
-                key={chip.label}
-                onClick={chip.onRemove}
-                size="compact-xs"
-                tone="secondary"
-                type="button"
-              >
-                {chip.label} ×
-              </AppButton>
-            ))}
-            <AppButton onClick={onClearFilters} size="compact-xs" tone="ghost" type="button">
-              모두 지우기
-            </AppButton>
-          </Group>
-        </Stack>
+      {/* ── Status quick-filter (always visible when active scope) ──── */}
+      {collectionScope === 'active' && (
+        <FilterPillGroup
+          aria-label="상태 필터"
+          onChange={(status) => onQueryChange({ ...query, status })}
+          options={statusFilterOptions}
+          value={query.status}
+        />
       )}
 
-      <Group justify="space-between">
-        <Text c="dimmed" fw={800} size="sm">
-          필터
-        </Text>
+      {/* ── Active filter chips ──────────────────────────────────────── */}
+      {hasActiveFilters && (
+        <Group aria-label="적용된 필터" gap="xs" role="group" wrap="wrap">
+          {activeFilterChips.map((chip) => (
+            <AppButton
+              aria-label={`${chip.label} 필터 제거`}
+              key={chip.label}
+              onClick={chip.onRemove}
+              size="compact-xs"
+              tone="secondary"
+              type="button"
+            >
+              {chip.label} ×
+            </AppButton>
+          ))}
+          <AppButton onClick={onClearFilters} size="compact-xs" tone="ghost" type="button">
+            모두 지우기
+          </AppButton>
+        </Group>
+      )}
+
+      {/* ── Advanced filter toggle ───────────────────────────────────── */}
+      <Group justify="flex-end">
         <AppButton
-          aria-label={filtersExpanded ? '고급 필터 접기' : '고급 필터 펼치기'}
-          aria-expanded={filtersExpanded}
-          onClick={() => setFiltersExpanded((value) => !value)}
+          aria-label={advancedOpen ? '고급 필터 접기' : '고급 필터 펼치기'}
+          aria-expanded={advancedOpen}
+          onClick={() => setAdvancedOpen((v) => !v)}
+          rightSection={
+            hasActiveFilters && !advancedOpen ? (
+              <AppBadge tone="accent">{activeFilterChips.length}</AppBadge>
+            ) : undefined
+          }
           size="compact-sm"
           tone="ghost"
           type="button"
         >
-          {filtersExpanded ? '필터 접기' : '필터'}
+          {advancedOpen ? '필터 접기 ↑' : '고급 필터 ↓'}
         </AppButton>
       </Group>
 
-      <Collapse in={filtersExpanded}>
+      {/* ── Advanced filter panel ────────────────────────────────────── */}
+      <Collapse in={advancedOpen}>
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-          {collectionScope === 'active' && (
-            <Stack gap="xs">
-              <Text c="dimmed" fw={800} size="sm">
-                상태
-              </Text>
-              <FilterPillGroup
-                aria-label="상태 필터"
-                onChange={(status) => onQueryChange({ ...query, status })}
-                options={statusFilterOptions}
-                value={query.status}
-              />
-            </Stack>
-          )}
-
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="sm">
+            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
               유형
             </Text>
             <FilterPillGroup
@@ -271,7 +272,7 @@ export function WorksToolbar({
           </Stack>
 
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="sm">
+            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
               정렬
             </Text>
             <FilterPillGroup
@@ -283,8 +284,8 @@ export function WorksToolbar({
           </Stack>
 
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="sm">
-              별점
+            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
+              별점 최소
             </Text>
             <FilterPillGroup
               aria-label="별점 필터"
@@ -303,7 +304,7 @@ export function WorksToolbar({
           </Stack>
 
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="sm">
+            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
               개인 태그
             </Text>
             <TextInput

@@ -17,17 +17,26 @@
 
 html {
   background: var(--mantine-color-body);
+  scroll-behavior: smooth;
 }
 
+/* ── Body background ─────────────────────────────────────────────── */
 body {
   margin: 0;
   min-height: 100vh;
   min-width: 320px;
   background:
-    radial-gradient(circle at 18% -8%, rgba(169, 152, 240, 0.13), transparent 32rem),
-    radial-gradient(circle at 92% 8%, rgba(239, 181, 70, 0.08), transparent 28rem),
+    radial-gradient(ellipse at 15% -5%, rgba(91, 140, 187, 0.10), transparent 36rem),
+    radial-gradient(ellipse at 88% 6%, rgba(239, 181, 70, 0.06), transparent 28rem),
     var(--mantine-color-body);
   color: var(--mantine-color-text);
+}
+
+[data-mantine-color-scheme='light'] body {
+  background:
+    radial-gradient(ellipse at 15% -5%, rgba(61, 99, 144, 0.07), transparent 32rem),
+    radial-gradient(ellipse at 88% 6%, rgba(201, 141, 36, 0.05), transparent 24rem),
+    var(--mantine-color-body);
 }
 
 body,
@@ -54,25 +63,36 @@ textarea {
   min-width: 0;
 }
 
+/* ── Selection ───────────────────────────────────────────────────── */
 ::selection {
   background: var(--mantine-primary-color-light);
   color: var(--mantine-primary-color-light-color);
 }
 
+/* ── Focus ───────────────────────────────────────────────────────── */
 :focus-visible {
   outline: 2px solid var(--mantine-primary-color-filled);
   outline-offset: 3px;
+  border-radius: 4px;
 }
 
+/* ── Root ────────────────────────────────────────────────────────── */
 #root {
   min-height: 100vh;
 }
 
+/* ── Layout shell ────────────────────────────────────────────────── */
 .layout-shell {
   min-height: 100vh;
   padding: clamp(1rem, 2vw, 1.5rem);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 16rem),
+    linear-gradient(180deg, rgba(91, 140, 187, 0.04), transparent 14rem),
+    transparent;
+}
+
+[data-mantine-color-scheme='light'] .layout-shell {
+  background:
+    linear-gradient(180deg, rgba(61, 99, 144, 0.03), transparent 12rem),
     transparent;
 }
 
@@ -81,16 +101,49 @@ textarea {
   align-content: center;
 }
 
+/* ── Product header ──────────────────────────────────────────────── */
 .product-header {
   border-bottom: 1px solid var(--mantine-color-default-border);
+  /* Subtle backdrop for sticky feel */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--mantine-color-body);
+  padding-top: clamp(0.6rem, 1.2vw, 0.9rem);
+  padding-bottom: clamp(0.6rem, 1.2vw, 0.9rem);
+  margin-bottom: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--mantine-color-body) 88%, transparent);
 }
 
+/* ── Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--mantine-color-default-border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--app-border-strong, rgba(155, 181, 212, 0.4));
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 48rem) {
   .layout-shell {
-    padding: 1rem;
+    padding: 0.75rem;
   }
 }
 
+/* ── Reduced motion ──────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
