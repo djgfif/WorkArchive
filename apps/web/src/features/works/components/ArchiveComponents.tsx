@@ -21,7 +21,11 @@ import {
 } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
-import { AppBadge, AppButton } from '../../../shared/components/AppPrimitives';
+import {
+  AppBadge,
+  AppButton,
+  AppLinkButton,
+} from '../../../shared/components/AppPrimitives';
 import {
   formatWorkDate,
   getWorkStatusLabel,
@@ -58,6 +62,7 @@ const progressUnitLabels: Record<ProgressUnit, string> = {
 
 interface WorkPosterProps {
   className?: string;
+  coverSeed?: string;
   thumbnailUrl?: string;
   title: string;
   typeLabel?: string;
@@ -86,6 +91,7 @@ interface ArchiveHeroProps {
   description: ReactNode;
   eyebrow?: ReactNode;
   title: ReactNode;
+  variant?: 'default' | 'compact' | 'landing';
 }
 
 interface RatingDisplayProps {
@@ -165,8 +171,19 @@ function getPrimaryMetaLine(work: WorkRecord) {
     .join(' · ');
 }
 
+function getCoverTone(seed: string) {
+  let hash = 0;
+
+  for (const character of seed) {
+    hash = (hash * 31 + character.charCodeAt(0)) % 997;
+  }
+
+  return String(hash % 6);
+}
+
 export function WorkPoster({
   className,
+  coverSeed,
   thumbnailUrl,
   title,
   typeLabel,
@@ -188,12 +205,15 @@ export function WorkPoster({
           src={thumbnailUrl}
         />
       ) : (
-        <Box className={cn(css.posterFallback)}>
+        <Box
+          className={cn(css.posterFallback)}
+          data-cover-tone={getCoverTone(coverSeed ?? `${typeLabel ?? ''}:${title}`)}
+        >
           <Text className={cn(css.posterFallbackType)}>{typeLabel ?? 'Archive'}</Text>
           <Text className={cn(css.posterFallbackMark)}>
             {(title.trim()[0] ?? 'W').toUpperCase()}
           </Text>
-          <Text className={cn(css.posterFallbackType)}>Work Archive</Text>
+          <Text className={cn(css.posterFallbackType)}>개인 기록</Text>
         </Box>
       )}
     </Box>
@@ -281,6 +301,7 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
           </ActionIcon>
         )}
         <WorkPoster
+          coverSeed={work.id}
           thumbnailUrl={work.thumbnailUrl}
           title={work.title}
           typeLabel={typeLabel}
@@ -313,6 +334,7 @@ export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
       <Paper className={cn(css.rowSurface)} withBorder>
         <Group align="center" gap="md" wrap="nowrap">
           <WorkPoster
+            coverSeed={work.id}
             thumbnailUrl={work.thumbnailUrl}
             title={work.title}
             typeLabel={typeLabel}
@@ -367,15 +389,59 @@ export function WorkShelf({ empty, title, works }: WorkShelfProps) {
   );
 }
 
+export function ArchiveStarterShelf() {
+  const starterCovers = [
+    { title: '첫 기록', typeLabel: '소설' },
+    { title: '이어보기', typeLabel: '애니' },
+    { title: '다시 보고 싶은 장면', typeLabel: '영화' },
+    { title: '한줄 감상', typeLabel: '만화' },
+  ];
+
+  return (
+    <Stack className={cn(css.starterShelf)} gap="md">
+      <Group justify="space-between" wrap="wrap">
+        <Stack gap={4}>
+          <Title order={2}>처음 채울 선반</Title>
+          <Text c="dimmed" size="sm">
+            제목 하나만 남겨도 포스터처럼 정리됩니다.
+          </Text>
+        </Stack>
+        <AppLinkButton to="/works/new" tone="primary">
+          첫 작품 기록
+        </AppLinkButton>
+      </Group>
+      <Box className={cn(css.starterCovers)} aria-hidden="true">
+        {starterCovers.map((cover, index) => (
+          <WorkPoster
+            coverSeed={`starter:${index}`}
+            key={cover.title}
+            title={cover.title}
+            typeLabel={cover.typeLabel}
+            variant="grid"
+          />
+        ))}
+      </Box>
+    </Stack>
+  );
+}
+
 export function ArchiveHero({
   actions,
   children,
   description,
   eyebrow,
   title,
+  variant = 'default',
 }: ArchiveHeroProps) {
   return (
-    <Paper className={cn(css.hero)} withBorder>
+    <Paper
+      className={cx(
+        cn(css.hero),
+        variant === 'compact' && cn(css.heroCompact),
+        variant === 'landing' && cn(css.heroLanding),
+      )}
+      withBorder
+    >
       <Stack className={cn(css.heroContent)} gap="xl">
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <Stack gap="sm" maw={760}>
@@ -591,7 +657,7 @@ export function ReviewNoteCard({
 export function ArchiveEmptyState({
   actions,
   description,
-  eyebrow = 'Empty shelf',
+  eyebrow = '빈 선반',
   title,
 }: ArchiveEmptyStateProps) {
   return (

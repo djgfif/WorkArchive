@@ -385,10 +385,10 @@ export function WorksListPage() {
           }
           eyebrow={
             collectionScope === 'trash'
-              ? 'Trash'
+              ? '휴지통'
               : hasActiveFilters
-                ? 'No result'
-                : 'Empty shelf'
+                ? '검색 결과 없음'
+                : '빈 선반'
           }
           title={
             collectionScope === 'trash'

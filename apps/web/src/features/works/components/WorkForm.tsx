@@ -195,12 +195,11 @@ export function WorkForm({
               <Stack gap="lg">
                 <Stack gap={6}>
                   <Text c="archive.2" fw={800} size="xs" tt="uppercase">
-                    Essential
+                    빠른 기록
                   </Text>
-                  <Title order={2}>기록 기본값</Title>
+                  <Title order={2}>작품을 바로 남기기</Title>
                   <Text c="dimmed">
-                    제목, 유형, 상태와 짧은 감상만 먼저 정리합니다. 나머지는
-                    필요할 때 펼쳐서 채우면 됩니다.
+                    제목 하나로 시작하고, 감상은 나중에 천천히 채워도 됩니다.
                   </Text>
                 </Stack>
 

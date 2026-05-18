@@ -14,8 +14,7 @@ import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import {
   ArchiveHero,
   ArchiveSearchBar,
-  ArchiveEmptyState,
-  WorkRowCard,
+  ArchiveStarterShelf,
   WorkShelf,
 } from '../../works/components/ArchiveComponents';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
@@ -68,8 +67,9 @@ export function HomePage() {
             ? `${user?.email ?? '내 계정'}의 개인 감상 기록 저장소`
             : '이 기기에 먼저 저장되는 개인 감상 기록 저장소'
         }
-        eyebrow="Personal archive"
+        eyebrow="개인 감상 서재"
         title="기록 홈"
+        variant="landing"
       >
         <form onSubmit={handleSearchSubmit}>
           <Group align="center" gap="sm" wrap="nowrap">
@@ -118,21 +118,12 @@ export function HomePage() {
         <Stack gap={48}>
           <WorkShelf
             empty={
-              <ArchiveEmptyState
-                actions={
-                  <AppLinkButton to="/works/new" tone="primary">
-                    보는 중인 작품 추가
-                  </AppLinkButton>
-                }
-                description="보는 중인 작품을 기록하면 홈 첫 선반에 포스터로 이어집니다."
-                eyebrow="Continue shelf"
-                title="이어볼 작품이 없습니다"
-              />
+              <ArchiveStarterShelf />
             }
             title={
               <Group justify="space-between" wrap="wrap">
                 <Stack gap={4}>
-                  <Title order={2}>Continue Shelf</Title>
+                  <Title order={2}>이어보기 선반</Title>
                   <Text c="dimmed" size="sm">
                     보는 중인 기록만 조용히 모았습니다.
                   </Text>
@@ -148,7 +139,7 @@ export function HomePage() {
           <Stack gap="md">
             <Group justify="space-between" wrap="wrap">
               <Stack gap={4}>
-                  <Title order={2}>Recently Updated</Title>
+                <Title order={2}>최근 손본 작품</Title>
                 <Text c="dimmed" size="sm">
                   방금 손본 작품을 빠르게 다시 엽니다.
                 </Text>
@@ -158,11 +149,7 @@ export function HomePage() {
               </AppLinkButton>
             </Group>
             {recentWorks.length > 0 ? (
-              <Stack gap="sm">
-                {recentWorks.slice(0, 5).map((work) => (
-                  <WorkRowCard key={work.id} work={work} />
-                ))}
-              </Stack>
+              <WorkShelf works={recentWorks.slice(0, 8)} />
             ) : (
               <StateMessage
                 actions={
@@ -178,7 +165,7 @@ export function HomePage() {
           </Stack>
 
           <Stack gap="md">
-            <Title order={2}>Archive Summary</Title>
+            <Title order={2}>아카이브 요약</Title>
             <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
               <MetricPill label="전체" value={`${totalCount}개`} />
               <MetricPill label="보는 중" value={`${inProgressCount}개`} />

@@ -10,7 +10,6 @@ import {
   AppBadge,
   AppButton,
   AppLinkButton,
-  MetricPill,
   SectionCard,
   SectionIntro,
 } from '../../../shared/components/AppPrimitives';
@@ -52,15 +51,9 @@ export function WorkCreatePage() {
     <FlowPageTemplate>
       <PageHero
         actions={<AppLinkButton to="/works">작품으로 돌아가기</AppLinkButton>}
-        description="직접 추가로 바로 기록하거나, 검색 후보로 작품 정보를 채운 뒤 아래 폼에서 저장을 마무리합니다."
-        eyebrow="작품 추가"
-        meta={
-          <>
-            <MetricPill label="기본 경로" value="직접 추가" />
-            <MetricPill label="보조 경로" value="검색으로 채우기" />
-          </>
-        }
-        title="새 작품 기록"
+        description="제목만 입력해도 바로 저장할 수 있습니다. 검색은 필요할 때만 작품 정보를 채우는 보조 도구입니다."
+        eyebrow="빠른 기록"
+        title="작품 추가"
       />
 
       {savedWork ? (

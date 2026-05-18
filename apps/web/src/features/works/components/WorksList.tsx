@@ -1,9 +1,10 @@
 import type { WorkRecord } from '@work-archive/shared-types';
-import { Group, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 
-import { AppButton, SectionCard } from '../../../shared/components/AppPrimitives';
+import { AppButton } from '../../../shared/components/AppPrimitives';
 import { WorkPosterCard } from './ArchiveComponents';
+import styles from './ArchiveComponents.module.css';
 import {
   WorkListRow,
   type WorkQuickProgressUpdate,
@@ -15,6 +16,7 @@ export type WorksViewMode = 'grid' | 'list';
 const GRID_RENDER_LIMIT = 60;
 const LIST_RENDER_LIMIT = 40;
 const RENDER_INCREMENT = 40;
+const css = styles as Record<string, string>;
 
 interface WorksListProps {
   onDelete: (work: WorkRecord) => Promise<void>;
@@ -60,7 +62,7 @@ export function WorksList({
 
   const renderProgress =
     works.length > renderLimit ? (
-      <SectionCard padding="md" tone="subtle">
+      <Paper className={css.loadMoreControl ?? ''} withBorder>
         <Group justify="space-between" wrap="wrap">
           <Stack gap={4}>
             <Text fw={800}>
@@ -84,7 +86,7 @@ export function WorksList({
             </AppButton>
           )}
         </Group>
-      </SectionCard>
+      </Paper>
     ) : null;
 
   if (viewMode === 'grid') {
@@ -92,8 +94,8 @@ export function WorksList({
       <Stack aria-label="작품 포스터 목록" component="section" gap="xl">
         <SimpleGrid
           cols={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }}
-          spacing={{ base: 'lg', md: 'xl' }}
-          verticalSpacing="xl"
+          spacing={{ base: 'md', md: 'lg' }}
+          verticalSpacing="lg"
         >
           {visibleWorks.map((work) => (
             <WorkPosterCard

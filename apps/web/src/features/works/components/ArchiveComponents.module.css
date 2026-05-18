@@ -46,7 +46,7 @@
 }
 
 .posterForm {
-  --poster-width: min(100%, 11rem);
+  --poster-width: min(100%, 15rem);
 }
 
 .posterImage,
@@ -80,7 +80,80 @@
     linear-gradient(160deg, #1d2232, #07080b 76%);
 }
 
+.posterFallback::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.14), transparent 0.55rem, transparent calc(100% - 0.55rem), rgba(0, 0, 0, 0.22)),
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.075), transparent 42%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.018) 0,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px,
+      transparent 5px
+    );
+  mix-blend-mode: screen;
+}
+
+.posterFallback::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0.38rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.posterFallback[data-cover-tone='0'] {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(192, 149, 255, 0.32), transparent 34%),
+    radial-gradient(circle at 80% 80%, rgba(239, 181, 70, 0.14), transparent 32%),
+    linear-gradient(160deg, #28253d, #07080b 78%);
+}
+
+.posterFallback[data-cover-tone='1'] {
+  background:
+    radial-gradient(circle at 78% 18%, rgba(73, 156, 183, 0.3), transparent 36%),
+    radial-gradient(circle at 20% 82%, rgba(239, 181, 70, 0.1), transparent 30%),
+    linear-gradient(160deg, #172a33, #07080b 78%);
+}
+
+.posterFallback[data-cover-tone='2'] {
+  background:
+    radial-gradient(circle at 18% 76%, rgba(193, 88, 96, 0.28), transparent 34%),
+    radial-gradient(circle at 84% 18%, rgba(255, 219, 143, 0.12), transparent 31%),
+    linear-gradient(160deg, #301b24, #07080b 78%);
+}
+
+.posterFallback[data-cover-tone='3'] {
+  background:
+    radial-gradient(circle at 82% 74%, rgba(88, 151, 124, 0.28), transparent 34%),
+    radial-gradient(circle at 22% 18%, rgba(169, 152, 240, 0.14), transparent 31%),
+    linear-gradient(160deg, #1a2d28, #07080b 78%);
+}
+
+.posterFallback[data-cover-tone='4'] {
+  background:
+    radial-gradient(circle at 24% 18%, rgba(235, 159, 82, 0.24), transparent 34%),
+    radial-gradient(circle at 80% 82%, rgba(99, 125, 218, 0.18), transparent 31%),
+    linear-gradient(160deg, #2c2219, #07080b 78%);
+}
+
+.posterFallback[data-cover-tone='5'] {
+  background:
+    radial-gradient(circle at 72% 20%, rgba(217, 218, 191, 0.18), transparent 34%),
+    radial-gradient(circle at 18% 82%, rgba(169, 152, 240, 0.2), transparent 31%),
+    linear-gradient(160deg, #262a32, #07080b 78%);
+}
+
 .posterFallbackMark {
+  position: relative;
+  z-index: 1;
   align-self: center;
   color: var(--app-text-primary);
   font-size: clamp(2.1rem, 5vw, 4.2rem);
@@ -92,6 +165,8 @@
 .posterFallbackType,
 .eyebrow,
 .metaText {
+  position: relative;
+  z-index: 1;
   color: var(--app-text-muted);
   font-size: var(--app-type-meta);
   font-weight: 800;
@@ -157,7 +232,7 @@
 }
 
 .posterCardBody {
-  padding-top: 0.85rem;
+  padding-top: 0.75rem;
 }
 
 .posterMetaLine {
@@ -204,9 +279,9 @@
 
 .shelf {
   display: grid;
-  grid-auto-columns: minmax(9.5rem, 12.25rem);
+  grid-auto-columns: minmax(9rem, 11.5rem);
   grid-auto-flow: column;
-  gap: 1.05rem;
+  gap: 0.95rem;
   overflow-x: auto;
   padding: 0.2rem 0.1rem 0.65rem;
   scroll-snap-type: x proximity;
@@ -226,6 +301,26 @@
     radial-gradient(circle at 82% 14%, rgba(169, 152, 240, 0.2), transparent 30%),
     linear-gradient(135deg, rgba(24, 27, 39, 0.98), rgba(7, 8, 11, 0.96));
   box-shadow: var(--app-shadow-overlay);
+}
+
+.heroCompact {
+  padding: clamp(1rem, 2.2vw, 1.9rem);
+  border-radius: var(--mantine-radius-lg);
+  box-shadow: var(--app-shadow-card);
+}
+
+.heroCompact .heroContent {
+  gap: 1rem;
+}
+
+.heroCompact .heroTitle {
+  font-size: clamp(2.15rem, 4.1vw, 3.7rem);
+}
+
+.heroLanding {
+  min-height: clamp(17rem, 33vw, 25rem);
+  display: grid;
+  align-items: end;
 }
 
 .hero::after {
@@ -293,10 +388,10 @@
 }
 
 .searchInput input {
-  min-height: 3.25rem;
+  min-height: 2.85rem;
   border-color: var(--app-border-strong);
   background: rgba(7, 8, 11, 0.68);
-  font-size: 1rem;
+  font-size: 0.96rem;
 }
 
 .filterPill {
@@ -326,6 +421,24 @@
   padding: clamp(1.25rem, 4vw, 2.4rem);
 }
 
+.starterShelf {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1.1rem, 3vw, 1.8rem);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-xl);
+  background:
+    radial-gradient(circle at 82% 18%, rgba(239, 181, 70, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(16, 19, 27, 0.72), rgba(7, 8, 11, 0.28));
+}
+
+.starterCovers {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(7rem, 1fr));
+  gap: clamp(0.75rem, 2vw, 1.15rem);
+  max-width: 48rem;
+}
+
 .skeletonGrid {
   padding: var(--app-space-card);
 }
@@ -346,6 +459,36 @@
   padding: var(--app-space-card);
   border-color: var(--app-border-subtle);
   background: var(--app-surface-subtle);
+}
+
+.loadMoreControl {
+  padding: 0.9rem 1rem;
+  border-color: var(--app-border-subtle);
+  border-radius: var(--mantine-radius-lg);
+  background:
+    linear-gradient(90deg, rgba(169, 152, 240, 0.08), transparent 42%),
+    rgba(16, 19, 27, 0.56);
+}
+
+.providerStatusPanel,
+.coverPreviewPanel {
+  border-color: var(--app-border-subtle);
+  background: rgba(16, 19, 27, 0.72);
+}
+
+.quickCapturePreview {
+  position: sticky;
+  top: 1rem;
+  padding: clamp(1rem, 2.5vw, 1.35rem);
+  border-color: var(--app-border-subtle);
+  border-radius: var(--mantine-radius-xl);
+  background:
+    radial-gradient(circle at 80% 14%, rgba(239, 181, 70, 0.08), transparent 32%),
+    linear-gradient(180deg, rgba(21, 25, 36, 0.8), rgba(7, 8, 11, 0.5));
+}
+
+.quickCapturePreview .posterShell {
+  margin-inline: auto;
 }
 
 .quickSearchField {
@@ -400,6 +543,10 @@
     grid-auto-columns: minmax(8.4rem, 44vw);
   }
 
+  .starterCovers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .posterRow {
     --poster-width: 4.7rem;
   }
@@ -409,6 +556,10 @@
   .heroTitle {
     font-size: clamp(2.05rem, 11vw, 2.45rem);
     line-height: 1.05;
+  }
+
+  .heroCompact {
+    padding: 1rem;
   }
 }
 

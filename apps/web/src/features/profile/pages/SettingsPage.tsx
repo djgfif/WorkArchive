@@ -25,10 +25,8 @@ export function SettingsPage() {
       }
       description="자동 백업, 로컬 백업, 계정 상태를 한곳에서 관리합니다."
       eyebrow="설정"
-      title="설정"
+      title="백업과 계정"
     >
-      <AppearanceSettingsSection />
-
       <LocalArchiveSettingsSection
         archiveFeedback={localArchiveSettings.archiveFeedback}
         archiveImportPreview={localArchiveSettings.archiveImportPreview}
@@ -66,6 +64,8 @@ export function SettingsPage() {
         selectedProvider={importProviderSettings.selectedProvider}
         selectedProviderId={importProviderSettings.selectedProviderId}
       />
+
+      <AppearanceSettingsSection />
 
       <LoginSessionsSection
         feedback={authSessionSettings.sessionFeedback}
