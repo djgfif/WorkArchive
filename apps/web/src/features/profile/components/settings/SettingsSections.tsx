@@ -45,7 +45,7 @@ function getCredentialModeLabel(mode?: ImportProviderStatus['credentialMode']) {
       return '개인 Key Vault';
     case 'none':
     default:
-      return '공개 provider';
+      return '공개 검색';
   }
 }
 
@@ -209,22 +209,22 @@ export function LocalArchiveSettingsSection({
       </SectionCard>
 
       <ActionRow>
-        <AppBadge tone="muted">appMeta 복원 안 함</AppBadge>
-        <AppBadge tone="muted">syncQueue 복원 안 함</AppBadge>
+        <AppBadge tone="muted">내부 설정 복원 안 함</AppBadge>
+        <AppBadge tone="muted">기기별 임시 상태 복원 안 함</AppBadge>
         <AppBadge tone="muted">로그인 토큰 제외</AppBadge>
         <AppBadge tone="muted">refresh cookie 제외</AppBadge>
         <AppBadge tone="muted">API key 제외</AppBadge>
       </ActionRow>
       <Text c="var(--mantine-color-dimmed)" size="sm">
-        백업 파일의 syncQueue는 특정 기기의 작업 대기열이므로 가져오기에서
-        복원하지 않습니다. access token, refresh cookie, provider API key도
+        백업 파일의 기기별 임시 상태는 가져오기에서 복원하지 않습니다.
+        access token, refresh cookie, 외부 검색 API key도
         export/import 대상이 아닙니다.
       </Text>
 
       {archiveImportPreview && (
         <SectionCard padding="lg" tone="subtle">
           <SectionIntro
-            description="기존 기록은 보존하고, 제목 중복 후보도 새 기록으로 추가합니다. ID가 겹치는 항목은 새 ID로 가져오며, syncQueue와 appMeta는 백업에서 복원하지 않습니다."
+            description="기존 기록은 보존하고, 제목 중복 후보도 새 기록으로 추가합니다. 같은 기록으로 보이는 항목은 새 기록으로 안전하게 정리하며, 내부 설정과 기기별 임시 상태는 백업에서 복원하지 않습니다."
             eyebrow="가져오기 미리보기"
             title="가져올 기록 확인"
             titleOrder={3}
@@ -249,7 +249,7 @@ export function LocalArchiveSettingsSection({
               개
             </AppBadge>
             <AppBadge tone="muted">
-              ID 충돌/새 ID 발급 {archiveImportPreview.conflictWorkCount}개
+              새 기록으로 정리 {archiveImportPreview.conflictWorkCount}개
             </AppBadge>
             <AppBadge tone="muted">
               건너뛸 항목{' '}
@@ -341,25 +341,25 @@ export function ProviderReadinessSection({
   return (
     <SectionCard>
       <SectionIntro
-        description="Quick Add가 어떤 provider를 바로 쓸 수 있는지, 어떤 provider가 별도 키를 요구하는지 먼저 확인합니다."
-        eyebrow="Provider 상태"
+        description="작품 추가에서 바로 사용할 수 있는 외부 검색 소스와 별도 키가 필요한 소스를 확인합니다."
+        eyebrow="외부 검색 상태"
         title="외부 검색 준비 상태"
       />
 
       {mode !== 'authenticated' ? (
         <Stack gap="sm">
           <Text c="var(--mantine-color-dimmed)">
-            로그인하면 provider 준비 상태와 개인 API Key Vault를 함께 확인할 수
-            있습니다. 공개 provider는 로그인 없이도 계속 사용할 수 있습니다.
+            로그인하면 외부 검색 준비 상태와 개인 API Key Vault를 함께 확인할 수
+            있습니다. 공개 검색 소스는 로그인 없이도 계속 사용할 수 있습니다.
           </Text>
           <ActionRow>
-            <AppBadge tone="success">공개 provider 사용 가능</AppBadge>
+            <AppBadge tone="success">공개 검색 사용 가능</AppBadge>
             <AppBadge tone="muted">개인 Key Vault 로그인 필요</AppBadge>
           </ActionRow>
         </Stack>
       ) : isLoadingProviderStatuses ? (
         <Text aria-busy="true" c="var(--mantine-color-dimmed)">
-          provider 상태를 불러오는 중입니다.
+          외부 검색 상태를 불러오는 중입니다.
         </Text>
       ) : (
         <Stack gap="sm">
@@ -427,7 +427,7 @@ export function ProviderKeyVaultSection({
   return (
     <SectionCard>
       <SectionIntro
-        description="외부 검색 provider별 개인 API credential을 암호화해 저장합니다. 저장된 raw key 값은 다시 표시하지 않으며 백업 파일에도 포함하지 않습니다."
+        description="외부 검색 소스별 개인 API key를 암호화해 저장합니다. 저장된 key 값은 다시 표시하지 않으며 백업 파일에도 포함하지 않습니다."
         eyebrow="외부 검색"
         title="API Key Vault"
       />
@@ -436,11 +436,11 @@ export function ProviderKeyVaultSection({
         <Stack gap="sm">
           <Text c="var(--mantine-color-dimmed)">
             API Key Vault는 로그인한 계정에서만 사용할 수 있습니다. Google
-            Books, Open Library, AniList, TVmaze처럼 공개 provider는 키 없이
+            Books, Open Library, AniList, TVmaze처럼 공개 검색 소스는 키 없이
             검색 보조에 계속 참여합니다.
           </Text>
           <ActionRow>
-            <AppBadge tone="muted">공개 provider 사용 가능</AppBadge>
+            <AppBadge tone="muted">공개 검색 사용 가능</AppBadge>
             <AppBadge tone="muted">개인 API key는 백업 제외</AppBadge>
           </ActionRow>
         </Stack>
@@ -552,7 +552,7 @@ export function ProviderKeyVaultSection({
               </>
             ) : (
               <Text c="var(--mantine-color-dimmed)">
-                등록 가능한 외부 검색 provider가 없습니다.
+                등록 가능한 외부 검색 소스가 없습니다.
               </Text>
             )}
 

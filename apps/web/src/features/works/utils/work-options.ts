@@ -40,9 +40,9 @@ const workTierLabels: Record<WorkTier, string> = {
 
 const workSyncStatusLabels: Record<WorkSyncStatus, string> = {
   'local-only': '이 기기에만 저장',
-  pending: '동기화 대기',
-  synced: '동기화됨',
-  conflict: '충돌',
+  pending: '자동 백업 중',
+  synced: '백업됨',
+  conflict: '확인 필요',
 };
 
 export const workTypeOptions = WORK_TYPES.map((value) => ({

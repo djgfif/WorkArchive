@@ -984,7 +984,7 @@ export function WorkDetailPage() {
             <Stack gap={4}>
               <Text fw={700}>작품을 휴지통으로 이동</Text>
               <Text c="var(--mantine-color-dimmed)" size="sm">
-                기록은 즉시 완전 삭제되지 않습니다. Works의 휴지통 보기에서 다시 복원할 수 있습니다.
+                기록은 즉시 완전 삭제되지 않습니다. 작품의 휴지통 보기에서 다시 복원할 수 있습니다.
               </Text>
             </Stack>
             <AppButton

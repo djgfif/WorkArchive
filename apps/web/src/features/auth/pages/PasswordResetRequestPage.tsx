@@ -98,7 +98,7 @@ export function PasswordResetRequestPage() {
       highlights={[
         {
           description:
-            '이 절차는 로그인 자격 증명만 바꾸며, 로컬 아카이브와 동기화 대기열을 삭제하지 않습니다.',
+            '이 절차는 로그인 자격 증명만 바꾸며, 로컬 아카이브와 자동 백업 상태를 삭제하지 않습니다.',
           title: '기록 데이터 유지',
         },
       ]}

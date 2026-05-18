@@ -35,7 +35,7 @@ export function LoginPage() {
 
   return (
     <AuthPageTemplate
-      description="계정 아카이브로 전환하고 동기화 상태를 이어서 관리합니다."
+      description="계정 아카이브로 전환하고 자동 백업 상태를 이어서 관리합니다."
       footer={
         <Text c="var(--mantine-color-dimmed)" ta="center">
           계정이 없으신가요?{' '}
@@ -63,8 +63,8 @@ export function LoginPage() {
         },
         {
           description:
-            '동기화와 세션 관리는 계정 영역에서 확인하고, 실패 항목은 수동 Sync 화면에서 처리합니다.',
-          title: '계정 동기화 관리',
+            '자동 백업과 세션 관리는 계정 영역에서 확인합니다. 문제가 있으면 기록 작성은 유지한 채 다시 시도할 수 있습니다.',
+          title: '자동 백업 관리',
         },
       ]}
       title="로그인"

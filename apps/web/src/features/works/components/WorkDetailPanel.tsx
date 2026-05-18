@@ -588,7 +588,7 @@ export function WorkDetailPanel({
               },
               { label: '식별 방식', value: sourceIdentityLabel },
               { label: '티어', value: tierLabel },
-              { label: '동기화 상태', value: syncLabel },
+              { label: '자동 백업', value: syncLabel },
               { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
               { label: '수정한 날', value: formatWorkDateTime(work.updatedAt) },
             ]}

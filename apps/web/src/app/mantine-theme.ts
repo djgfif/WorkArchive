@@ -224,6 +224,25 @@ export const appTheme = createTheme({
         },
       },
     },
+    NumberInput: {
+      defaultProps: {
+        radius: 'md',
+        size: 'md',
+      },
+      styles: {
+        input: {
+          backgroundColor: 'var(--mantine-color-default)',
+          borderColor: 'var(--mantine-color-default-border)',
+          color: 'var(--mantine-color-text)',
+          boxShadow: 'none',
+        },
+        label: {
+          color: 'var(--mantine-color-text)',
+          fontWeight: 600,
+          marginBottom: '0.4rem',
+        },
+      },
+    },
     Paper: {
       defaultProps: {
         radius: 'md',
@@ -238,10 +257,32 @@ export const appTheme = createTheme({
       },
     },
     SegmentedControl: {
+      defaultProps: {
+        radius: 'md',
+      },
       styles: {
         root: {
           backgroundColor: 'var(--mantine-color-default)',
           border: '1px solid var(--mantine-color-default-border)',
+        },
+      },
+    },
+    Select: {
+      defaultProps: {
+        radius: 'md',
+        size: 'md',
+      },
+      styles: {
+        input: {
+          backgroundColor: 'var(--mantine-color-default)',
+          borderColor: 'var(--mantine-color-default-border)',
+          color: 'var(--mantine-color-text)',
+          boxShadow: 'none',
+        },
+        label: {
+          color: 'var(--mantine-color-text)',
+          fontWeight: 600,
+          marginBottom: '0.4rem',
         },
       },
     },

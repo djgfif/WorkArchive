@@ -159,46 +159,97 @@ function getLatestIso(left: string, right: string) {
   return Date.parse(left) >= Date.parse(right) ? left : right;
 }
 
-function mergePulledWorkWithQueuedPayload(
+function getRecordChangeTime(record: { deletedAt: string | null; updatedAt: string }) {
+  if (!record.deletedAt) {
+    return Date.parse(record.updatedAt);
+  }
+
+  return Math.max(Date.parse(record.updatedAt), Date.parse(record.deletedAt));
+}
+
+function getNewerRecord<TRecord extends { deletedAt: string | null; updatedAt: string }>(
+  local: TRecord,
+  remote: TRecord,
+) {
+  return getRecordChangeTime(local) >= getRecordChangeTime(remote)
+    ? local
+    : remote;
+}
+
+function mergeUniqueValues(left: readonly string[], right: readonly string[]) {
+  return Array.from(new Set([...left, ...right]));
+}
+
+function mergeWorkSnapshots(
   remote: WorkRecord,
   localPayload: WorkRecord,
 ): WorkRecord {
+  const newer = getNewerRecord(localPayload, remote);
+  const merged: WorkRecord = {
+    ...cloneWorkRecord(newer),
+    createdAt: remote.createdAt,
+    deletedAt: newer.deletedAt,
+    favorite: localPayload.favorite || remote.favorite,
+    genres: mergeUniqueValues(remote.genres, localPayload.genres),
+    personalTags: mergeUniqueValues(remote.personalTags, localPayload.personalTags),
+    serverVersion: remote.serverVersion,
+    syncStatus: 'pending',
+    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+  };
+
+  return merged;
+}
+
+function mergeReleaseRecordSnapshots(
+  remote: UserReleaseRecord,
+  localPayload: UserReleaseRecord,
+): UserReleaseRecord {
+  const newer = getNewerRecord(localPayload, remote);
+
   return {
-    ...cloneWorkRecord(remote),
-    ...cloneWorkRecord(localPayload),
+    ...cloneReleaseRecord(newer),
+    createdAt: remote.createdAt,
+    favorite: localPayload.favorite || remote.favorite,
+    serverVersion: remote.serverVersion,
+    syncStatus: 'pending',
+    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+  };
+}
+
+function mergeTimelineEntrySnapshots(
+  remote: TimelineEntryRecord,
+  localPayload: TimelineEntryRecord,
+): TimelineEntryRecord {
+  const newer = getNewerRecord(localPayload, remote);
+
+  return {
+    ...cloneTimelineEntry(newer),
     createdAt: remote.createdAt,
     serverVersion: remote.serverVersion,
     syncStatus: 'pending',
     updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
   };
+}
+
+function mergePulledWorkWithQueuedPayload(
+  remote: WorkRecord,
+  localPayload: WorkRecord,
+): WorkRecord {
+  return mergeWorkSnapshots(remote, localPayload);
 }
 
 function mergePulledReleaseRecordWithQueuedPayload(
   remote: UserReleaseRecord,
   localPayload: UserReleaseRecord,
 ): UserReleaseRecord {
-  return {
-    ...cloneReleaseRecord(remote),
-    ...cloneReleaseRecord(localPayload),
-    createdAt: remote.createdAt,
-    serverVersion: remote.serverVersion,
-    syncStatus: 'pending',
-    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
-  };
+  return mergeReleaseRecordSnapshots(remote, localPayload);
 }
 
 function mergePulledTimelineEntryWithQueuedPayload(
   remote: TimelineEntryRecord,
   localPayload: TimelineEntryRecord,
 ): TimelineEntryRecord {
-  return {
-    ...cloneTimelineEntry(remote),
-    ...cloneTimelineEntry(localPayload),
-    createdAt: remote.createdAt,
-    serverVersion: remote.serverVersion,
-    syncStatus: 'pending',
-    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
-  };
+  return mergeTimelineEntrySnapshots(remote, localPayload);
 }
 
 function assertSupportedResponseSchemaVersion(
@@ -347,10 +398,20 @@ export class SyncService {
         }
 
         if (result.status === 'conflict') {
+          const autoMerged = await this.applyAutoMergedPushConflict(
+            queueItem,
+            result,
+          );
+
+          if (autoMerged) {
+            messages.push('자동 백업 내용을 정리해 다시 시도합니다.');
+            continue;
+          }
+
           const conflictMessage = this.localizeSyncResult(
             result.code,
             result.message,
-            '동기화에 실패했습니다.',
+            '자동 백업 중 일부 항목 확인이 필요합니다.',
           );
 
           conflictCount += 1;
@@ -502,7 +563,7 @@ export class SyncService {
         messages.push('가져올 변경 사항이 없습니다.');
       } else if (skippedCount > 0) {
         messages.push(
-          '확인이 필요한 충돌이 있어 일부 내용은 가져오지 않았습니다.',
+          '확인이 필요한 항목이 있어 일부 내용은 자동으로 가져오지 않았습니다.',
         );
       }
 
@@ -799,6 +860,61 @@ export class SyncService {
           : '동기화 후 화면에 반영하지 못했습니다.',
       );
 
+      return false;
+    }
+  }
+
+  private async applyAutoMergedPushConflict(
+    queueItem: SyncQueueItemRecord,
+    result: PushSyncResult,
+  ) {
+    const remote = this.getRemoteConflictPayload(result);
+
+    if (!remote) {
+      return false;
+    }
+
+    try {
+      if (result.entityType === 'release_record') {
+        const localReleaseRecord =
+          (await this.releaseRecordsRepo.getById(queueItem.entityId)) ??
+          (queueItem.payload as UserReleaseRecord);
+        const merged = mergeReleaseRecordSnapshots(
+          remote as UserReleaseRecord,
+          localReleaseRecord,
+        );
+
+        await this.releaseRecordsRepo.update(merged);
+        await this.queueRepo.resetForRetry(queueItem.id, merged);
+
+        return true;
+      }
+
+      if (result.entityType === 'timeline_entry') {
+        const localTimelineEntry =
+          (await this.timelineEntriesRepo.getById(queueItem.entityId)) ??
+          (queueItem.payload as TimelineEntryRecord);
+        const merged = mergeTimelineEntrySnapshots(
+          remote as TimelineEntryRecord,
+          localTimelineEntry,
+        );
+
+        await this.timelineEntriesRepo.update(merged);
+        await this.queueRepo.resetForRetry(queueItem.id, merged);
+
+        return true;
+      }
+
+      const localWork =
+        (await this.worksRepo.getById(queueItem.entityId)) ??
+        (queueItem.payload as WorkRecord);
+      const merged = mergeWorkSnapshots(remote as WorkRecord, localWork);
+
+      await this.worksRepo.update(merged);
+      await this.queueRepo.resetForRetry(queueItem.id, merged);
+
+      return true;
+    } catch {
       return false;
     }
   }
