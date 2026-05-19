@@ -160,7 +160,7 @@ describe('API PostgreSQL integration', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
-    configureApp(app, readApiRuntimeConfig());
+    await configureApp(app, readApiRuntimeConfig());
     await app.init();
     await app.listen(0);
 

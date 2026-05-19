@@ -373,6 +373,25 @@ model CatalogAuditLog {
   @@map("catalog_audit_logs")
 }
 
+model SecurityEvent {
+  id            String   @id @default(uuid())
+  eventType     String
+  severity      String
+  requestId     String?
+  userId        String?
+  sessionId     String?
+  ipHash        String?
+  userAgentHash String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([eventType, createdAt])
+  @@index([severity, createdAt])
+  @@index([userId, createdAt])
+  @@index([requestId])
+  @@map("security_events")
+}
+
 model UserWorkRecord {
   id                String              @id @default(uuid())
   userId            String?

@@ -16,7 +16,7 @@ export function getRefreshTokenCookieOptions({
   const options: CookieOptions = {
     httpOnly: true,
     path: '/api/auth',
-    sameSite: 'lax',
+    sameSite: config.isProduction ? 'strict' : 'lax',
     secure: config.cookieSecure,
   };
 

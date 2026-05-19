@@ -10,10 +10,12 @@ import { SyncModule } from './modules/sync/sync.module';
 import { UserRecordsModule } from './modules/user-records/user-records.module';
 import { WorksModule } from './modules/works/works.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
     PrismaModule,
+    SecurityModule,
     AuthModule,
     HealthModule,
     CatalogModule,

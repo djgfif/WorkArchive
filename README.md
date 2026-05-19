@@ -1,12 +1,12 @@
 # Work Archive
 
-| Field                 | Value                                                                           |
-| --------------------- | ------------------------------------------------------------------------------- |
-| Status                | `active`                                                                        |
-| Role                  | `operational entrypoint`                                                        |
+| Field                 | Value                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| Status                | `active`                                                                                            |
+| Role                  | `operational entrypoint`                                                                            |
 | Source of truth       | `package.json`, `compose.yml`, `compose.prod.yml`, `apps/web/package.json`, `apps/api/package.json` |
-| Last verified against | `2026-04-25` local `master` working tree                                        |
-| When to update        | 실행 스크립트, 환경 변수, 포트, Compose 흐름, 현재 검증 상태가 바뀔 때          |
+| Last verified against | `2026-04-25` local `master` working tree                                                            |
+| When to update        | 실행 스크립트, 환경 변수, 포트, Compose 흐름, 현재 검증 상태가 바뀔 때                              |
 
 Work Archive는 소설, 애니, 만화, 라이트노벨, 웹소설 등 작품 감상 기록을 관리하는 local-first 웹 서비스다. 프론트는 IndexedDB를 1차 저장소로 사용하고, 로그인 시 계정별 로컬 아카이브와 수동 동기화를 사용할 수 있다.
 
@@ -164,7 +164,7 @@ Windows 메모:
 
 ## Docker Compose
 
-Production compose note: `compose.yml` is for local development only and must not be used for production. Production deployments must use [`compose.prod.yml`](/mnt/c/work/WorkArchive/compose.prod.yml), which requires explicit secrets and production URLs with `${VAR:?required}` and locks `NODE_ENV=production`, `SWAGGER_ENABLED=false`, `PASSWORD_RESET_DEV_LINKS_ENABLED=false`, and `COOKIE_SECURE=true`.
+Production compose note: `compose.yml` is for local development only and must not be used for production. Production deployments must use [`compose.prod.yml`](/mnt/c/work/WorkArchive/compose.prod.yml), which requires explicit secrets and production URLs with `${VAR:?required}` and locks `NODE_ENV=production`, `SWAGGER_ENABLED=false`, `PASSWORD_RESET_DEV_LINKS_ENABLED=false`, and `COOKIE_SECURE=true`. Production compose exposes only the web reverse proxy, routes `/api` internally to the API container, and requires Redis-backed rate limiting with `RATE_LIMIT_STORE=redis`, `REDIS_URL`, and `TRUST_PROXY_HOPS=1`. Set `SECURITY_EVENT_HASH_SECRET` to a unique 32+ character secret; it is used only to HMAC-hash audit IP and user-agent data before storage.
 
 Local Compose uses `NODE_ENV=development` and is the default `start-dev.bat`
 mode.

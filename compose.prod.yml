@@ -10,11 +10,20 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"',
-        ]
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: work-archive-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,6 +37,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL:?required}
@@ -37,18 +48,20 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:?required}
       WEB_BASE_URL: ${WEB_BASE_URL:?required}
       PASSWORD_RESET_DEV_LINKS_ENABLED: 'false'
-      RATE_LIMIT_STORE: ${RATE_LIMIT_STORE:-external}
+      RATE_LIMIT_STORE: ${RATE_LIMIT_STORE:-redis}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+      RATE_LIMIT_PREFIX: ${RATE_LIMIT_PREFIX:-work-archive:rate-limit:}
       COOKIE_SECURE: 'true'
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?required}
+      SECURITY_EVENT_HASH_SECRET: ${SECURITY_EVENT_HASH_SECRET:?required}
       EXTERNAL_API_KEY_ENCRYPTION_SECRET: ${EXTERNAL_API_KEY_ENCRYPTION_SECRET:?required}
-    ports:
-      - '${API_PORT:-3000}:3000'
     healthcheck:
       test:
         [
           'CMD-SHELL',
-          "node -e \"fetch('http://127.0.0.1:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+          'node -e "fetch(''http://127.0.0.1:3000/health'').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"',
         ]
       interval: 10s
       timeout: 5s
@@ -59,7 +72,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:?required}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     container_name: work-archive-web
     restart: unless-stopped
     depends_on:
@@ -70,3 +83,4 @@ services:
 
 volumes:
   postgres-data:
+  redis-data:

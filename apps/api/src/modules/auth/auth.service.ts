@@ -6,6 +6,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { User, UserRefreshSession } from '@prisma/client';
@@ -13,6 +14,7 @@ import jwt, { type JwtPayload } from 'jsonwebtoken';
 
 import { readApiRuntimeConfig } from '../../config/api-runtime-config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { SecurityAuditService } from '../../security/security-audit.service';
 import { hashSecret, verifySecret } from './auth-crypto';
 import type { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import type {
@@ -53,6 +55,7 @@ export interface IssuedAuthSession {
 
 export interface AuthSessionMetadata {
   ipAddress?: string | null;
+  requestId?: string | null;
   userAgent?: string | null;
 }
 
@@ -60,7 +63,10 @@ export interface AuthSessionMetadata {
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Optional() private readonly securityAudit?: SecurityAuditService,
+  ) {}
 
   async register(
     registerDto: RegisterDto,
@@ -111,16 +117,27 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
-    return this.createSessionForUser(user, loginDto.rememberMe === true, metadata);
+    return this.createSessionForUser(
+      user,
+      loginDto.rememberMe === true,
+      metadata,
+    );
   }
 
-  async refresh(refreshToken: string): Promise<IssuedAuthSession> {
+  async refresh(
+    refreshToken: string,
+    metadata: AuthSessionMetadata = {},
+  ): Promise<IssuedAuthSession> {
     let tokenPayload: AuthTokenPayload;
 
     try {
       tokenPayload = this.verifyToken(refreshToken, 'refresh');
     } catch (error) {
-      this.logRefreshFailure('invalid_or_expired_token');
+      this.recordRefreshFailure(
+        'invalid_or_expired_token',
+        undefined,
+        metadata,
+      );
       throw error;
     }
 
@@ -134,13 +151,32 @@ export class AuthService {
     });
 
     if (!session || session.userId !== tokenPayload.sub) {
-      this.logRefreshFailure('missing_refresh_session', tokenPayload.sub);
+      this.recordRefreshFailure(
+        'missing_refresh_session',
+        tokenPayload.sub,
+        metadata,
+      );
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
-    if (session.revokedAt || session.expiresAt.getTime() <= Date.now()) {
+    if (session.revokedAt) {
       await this.revokeAllUserSessions(session.userId);
-      this.logRefreshFailure('inactive_refresh_session_reuse', session.userId);
+      this.recordRefreshFailure(
+        'inactive_refresh_session_reuse',
+        session.userId,
+        metadata,
+        'auth.refresh.reuse_detected',
+      );
+      throw new UnauthorizedException('Invalid or expired refresh token.');
+    }
+
+    if (session.expiresAt.getTime() <= Date.now()) {
+      await this.revokeAllUserSessions(session.userId);
+      this.recordRefreshFailure(
+        'expired_refresh_session',
+        session.userId,
+        metadata,
+      );
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
@@ -151,7 +187,12 @@ export class AuthService {
 
     if (!isRefreshTokenValid) {
       await this.revokeAllUserSessions(session.userId);
-      this.logRefreshFailure('refresh_token_reuse_detected', session.userId);
+      this.recordRefreshFailure(
+        'refresh_token_reuse_detected',
+        session.userId,
+        metadata,
+        'auth.refresh.reuse_detected',
+      );
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
@@ -526,7 +567,9 @@ export class AuthService {
         email: user.email,
         sid: sessionId,
         type,
-        ...(type === 'refresh' && rememberMe !== undefined ? { rememberMe } : {}),
+        ...(type === 'refresh' && rememberMe !== undefined
+          ? { rememberMe }
+          : {}),
       },
       this.getJwtSecret(type),
       {
@@ -573,11 +616,7 @@ export class AuthService {
   private getJwtSecret(type: AuthTokenKind) {
     const config = readApiRuntimeConfig();
 
-    return (
-      type === 'access'
-        ? config.jwtAccessSecret
-        : config.jwtRefreshSecret
-    );
+    return type === 'access' ? config.jwtAccessSecret : config.jwtRefreshSecret;
   }
 
   private normalizeEmail(email: string) {
@@ -624,9 +663,29 @@ export class AuthService {
     });
   }
 
-  private logRefreshFailure(reason: string, userId?: string) {
+  private recordRefreshFailure(
+    reason: string,
+    userId: string | undefined,
+    metadata: AuthSessionMetadata,
+    eventType:
+      | 'auth.refresh.failure'
+      | 'auth.refresh.reuse_detected' = 'auth.refresh.failure',
+  ) {
     this.logger.warn(
       `Refresh failed reason=${reason}${userId ? ` userId=${userId}` : ''}`,
     );
+
+    void this.securityAudit?.record({
+      eventType,
+      ipAddress: metadata.ipAddress ?? null,
+      metadata: {
+        reason,
+      },
+      requestId: metadata.requestId ?? null,
+      severity:
+        eventType === 'auth.refresh.reuse_detected' ? 'critical' : 'warning',
+      userAgent: metadata.userAgent ?? null,
+      userId: userId ?? null,
+    });
   }
 }
