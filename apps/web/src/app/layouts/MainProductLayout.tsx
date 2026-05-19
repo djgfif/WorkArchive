@@ -6,12 +6,12 @@ import {
   Container,
   Divider,
   Drawer,
-  Flex,
   Group,
   Menu,
   Stack,
   Text,
   Tooltip,
+  UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Outlet, useNavigate } from 'react-router-dom';
@@ -55,15 +55,15 @@ export function MainProductLayout() {
     <main className="layout-shell layout-shell--product">
       <Container px="md" size={1360}>
         <Stack gap={0}>
-          {/* ── Sticky header ──────────────────────────────────────────── */}
+          {/* ── Sticky header — 3단 구조: Left / Center / Right ─────────── */}
           <Box
             className="product-header"
             component="header"
             style={{ width: '100%' }}
           >
-            <Flex align="center" gap="lg" h="100%" justify="space-between" wrap="nowrap">
-              {/* Left: burger + brand */}
-              <Group gap="sm" miw={0} wrap="nowrap">
+            {/* Left: burger + brand */}
+            <Box className="header-left">
+              <Group gap="sm" wrap="nowrap">
                 <Burger
                   aria-label="메뉴 열기"
                   hiddenFrom="md"
@@ -73,29 +73,31 @@ export function MainProductLayout() {
                 />
                 <BrandLink heading="Work Archive" kicker="개인 감상 서재" />
               </Group>
+            </Box>
 
-              {/* Center: primary nav (desktop) */}
-              <Group
-                aria-label="주요 탐색"
-                component="nav"
-                gap={4}
-                style={{ flex: '0 0 auto' }}
-                visibleFrom="md"
-                wrap="nowrap"
-              >
-                {primaryNavigationItems.map((item) => (
-                  <AppNavLink
-                    end={item.to === '/'}
-                    key={item.to}
-                    to={item.to}
-                  >
-                    {item.label}
-                  </AppNavLink>
-                ))}
-              </Group>
+            {/* Center: primary nav (desktop only) */}
+            <Group
+              aria-label="주요 탐색"
+              className="header-center"
+              component="nav"
+              gap={4}
+              visibleFrom="md"
+              wrap="nowrap"
+            >
+              {primaryNavigationItems.map((item) => (
+                <AppNavLink
+                  end={item.to === '/'}
+                  key={item.to}
+                  to={item.to}
+                >
+                  {item.label}
+                </AppNavLink>
+              ))}
+            </Group>
 
-              {/* Right: add button + account menu */}
-              <Group gap="sm" justify="flex-end" style={{ flex: '0 0 auto' }} wrap="nowrap">
+            {/* Right: add button + profile avatar (always right-aligned) */}
+            <Box className="header-right">
+              <Group gap="sm" wrap="nowrap">
                 {/* 작품 추가 버튼 */}
                 <Box hiddenFrom="sm">
                   <Tooltip label="작품 추가" position="bottom">
@@ -115,44 +117,54 @@ export function MainProductLayout() {
                   </AppLinkButton>
                 </Box>
 
-                {/* Account menu (desktop) */}
+                {/* Profile avatar menu (desktop) — 완전 우측 고정 */}
                 <Box visibleFrom="md">
                   <Menu
                     position="bottom-end"
                     shadow="lg"
                     transitionProps={{ transition: 'pop-top-right', duration: 160 }}
-                    width={256}
-                    withinPortal={false}
+                    width={272}
                   >
                     <Menu.Target>
-                      <Button
-                        aria-label={accountMenuLabel}
-                        leftSection={
+                      <Tooltip label={accountMenuLabel} position="bottom-end">
+                        <UnstyledButton
+                          aria-label={`프로필: ${accountMenuLabel}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%',
+                            padding: 2,
+                            transition: 'box-shadow 140ms ease, opacity 140ms ease',
+                          }}
+                          styles={{
+                            root: {
+                              '&:hover': {
+                                boxShadow: '0 0 0 2px var(--app-accent-primary)',
+                                opacity: 0.9,
+                              },
+                            },
+                          } as Record<string, unknown>}
+                        >
                           <Avatar
                             color={isAuthenticated ? 'archive' : 'gray'}
                             radius="xl"
-                            size={26}
+                            size={34}
                             variant="filled"
                           >
-                            <Text fw={800} size="xs">
+                            <Text fw={800} size="sm">
                               {avatarInitial}
                             </Text>
                           </Avatar>
-                        }
-                        size="sm"
-                        variant="subtle"
-                        style={{
-                          color: 'var(--app-text-primary)',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {accountShortLabel}
-                      </Button>
+                        </UnstyledButton>
+                      </Tooltip>
                     </Menu.Target>
+
                     <Menu.Dropdown
                       style={{
                         backgroundColor: 'var(--app-surface-card)',
                         borderColor: 'var(--app-border-subtle)',
+                        boxShadow: 'var(--app-shadow-overlay)',
                       }}
                     >
                       {/* 계정 헤더 */}
@@ -161,14 +173,14 @@ export function MainProductLayout() {
                           <Avatar
                             color={isAuthenticated ? 'archive' : 'gray'}
                             radius="xl"
-                            size={32}
+                            size={36}
                             variant="filled"
                           >
-                            <Text fw={800} size="xs">
+                            <Text fw={800} size="sm">
                               {avatarInitial}
                             </Text>
                           </Avatar>
-                          <Stack gap={1} miw={0}>
+                          <Stack gap={2} miw={0} style={{ flex: 1 }}>
                             <Text fw={700} size="sm" truncate>
                               {accountMenuLabel}
                             </Text>
@@ -180,17 +192,22 @@ export function MainProductLayout() {
                           </Stack>
                         </Group>
                       </Box>
+
                       <Menu.Divider />
+
                       <Menu.Item onClick={() => navigate('/account')}>
                         계정 개요
                       </Menu.Item>
                       <Menu.Item onClick={() => navigate('/account/settings')}>
                         설정과 백업
                       </Menu.Item>
+
                       <Box px="xs" py={4}>
                         <ThemeToggleControl fullWidth />
                       </Box>
+
                       <Menu.Divider />
+
                       {isAuthenticated ? (
                         <Menu.Item color="red" onClick={() => void handleSignOut()}>
                           로그아웃
@@ -215,7 +232,7 @@ export function MainProductLayout() {
                   </Menu>
                 </Box>
               </Group>
-            </Flex>
+            </Box>
           </Box>
 
           {/* ── Page content ───────────────────────────────────────────── */}
