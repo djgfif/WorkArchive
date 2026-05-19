@@ -19,13 +19,18 @@ import { ImportsCredentialService } from '../src/modules/imports/imports-credent
 import {
   ALADIN_PROVIDER,
   ANILIST_PROVIDER,
+  BRAVE_SEARCH_PROVIDER,
   GOOGLE_BOOKS_PROVIDER,
   KAKAO_BOOK_PROVIDER,
+  KAKAO_WEB_PROVIDER,
   KOBIS_PROVIDER,
   MANUAL_PROVIDER,
   NAVER_BOOK_PROVIDER,
+  NAVER_WEB_PROVIDER,
   OPEN_LIBRARY_PROVIDER,
+  TAVILY_SEARCH_PROVIDER,
   TMDB_PROVIDER,
+  TVMAZE_PROVIDER,
 } from '../src/modules/imports/imports.constants';
 import { ImportsService } from '../src/modules/imports/imports.service';
 import type { CatalogIngestionService } from '../src/modules/catalog/catalog-ingestion.service';
@@ -223,6 +228,9 @@ describe('ImportsService', () => {
   let service: ImportsService;
 
   beforeEach(() => {
+    delete process.env.BRAVE_SEARCH_API_KEY;
+    delete process.env.TAVILY_API_KEY;
+    delete process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED;
     credentialService = {
       deleteCredential: jest.fn(),
       getDecryptedCredential: jest.fn(),
@@ -235,6 +243,9 @@ describe('ImportsService', () => {
   });
 
   afterEach(() => {
+    delete process.env.BRAVE_SEARCH_API_KEY;
+    delete process.env.TAVILY_API_KEY;
+    delete process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED;
     jest.restoreAllMocks();
   });
 
@@ -281,6 +292,33 @@ describe('ImportsService', () => {
         expect.objectContaining({
           provider: TMDB_PROVIDER,
           credentialMode: 'user',
+          configured: false,
+        }),
+        expect.objectContaining({
+          provider: BRAVE_SEARCH_PROVIDER,
+          credentialMode: 'server',
+          configured: false,
+        }),
+      ]),
+    );
+    expect(credentialService.hasCredential).not.toHaveBeenCalled();
+  });
+
+  it('reports server provider readiness from environment keys', async () => {
+    process.env.BRAVE_SEARCH_API_KEY = 'brave-server-key';
+
+    const providers = await service.listProviders(null);
+
+    expect(providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: BRAVE_SEARCH_PROVIDER,
+          credentialMode: 'server',
+          configured: true,
+        }),
+        expect.objectContaining({
+          provider: TAVILY_SEARCH_PROVIDER,
+          credentialMode: 'server',
           configured: false,
         }),
       ]),
@@ -705,6 +743,26 @@ describe('ImportsService', () => {
     expect(result.diagnostics.providers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          provider: BRAVE_SEARCH_PROVIDER,
+          reasonCode: 'guest_provider_not_allowed',
+          status: 'skipped',
+        }),
+        expect.objectContaining({
+          provider: KAKAO_WEB_PROVIDER,
+          reasonCode: 'guest_provider_not_allowed',
+          status: 'skipped',
+        }),
+        expect.objectContaining({
+          provider: NAVER_WEB_PROVIDER,
+          reasonCode: 'guest_provider_not_allowed',
+          status: 'skipped',
+        }),
+        expect.objectContaining({
+          provider: TAVILY_SEARCH_PROVIDER,
+          reasonCode: 'guest_provider_not_allowed',
+          status: 'skipped',
+        }),
+        expect.objectContaining({
           provider: KAKAO_BOOK_PROVIDER,
           reasonCode: 'guest_provider_not_allowed',
           status: 'skipped',
@@ -721,6 +779,318 @@ describe('ImportsService', () => {
         expect.objectContaining({
           provider: MANUAL_PROVIDER,
           status: 'searched',
+        }),
+      ]),
+    );
+  });
+
+  it('uses Naver and Kakao web providers before book providers for authenticated web novel search', async () => {
+    credentialService.hasCredential.mockResolvedValue(true);
+    credentialService.getDecryptedCredential.mockImplementation(
+      async (_userId, provider) => {
+        if (
+          provider === NAVER_WEB_PROVIDER ||
+          provider === NAVER_BOOK_PROVIDER
+        ) {
+          return JSON.stringify({
+            clientId: 'naver-client-id',
+            clientSecret: 'naver-client-secret',
+          });
+        }
+
+        if (
+          provider === KAKAO_WEB_PROVIDER ||
+          provider === KAKAO_BOOK_PROVIDER
+        ) {
+          return JSON.stringify({
+            restApiKey: 'kakao-rest-key',
+          });
+        }
+
+        return null;
+      },
+    );
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          documents: [
+            {
+              contents: '웹소설 연재 작품',
+              datetime: '2018-01-01T00:00:00.000+09:00',
+              title: '<b>전지적 독자 시점</b> 외전 - 카카오페이지',
+              url: 'https://page.kakao.com/content/12345',
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              description: '네이버 시리즈 웹소설',
+              link: 'https://series.naver.com/novel/detail.series?productNo=1',
+              title: '<b>전지적 독자 시점</b> 1권 - 네이버 시리즈',
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ documents: [] }))
+      .mockResolvedValueOnce(jsonResponse({ items: [] }))
+      .mockResolvedValueOnce(jsonResponse({ items: [] }));
+
+    const result = await service.search(USER_ID, {
+      query: '전지적 독자 시점',
+      limit: 5,
+      type: WorkType.web_novel,
+    });
+
+    expect(result.providers).toEqual([
+      BRAVE_SEARCH_PROVIDER,
+      KAKAO_WEB_PROVIDER,
+      NAVER_WEB_PROVIDER,
+      TAVILY_SEARCH_PROVIDER,
+      KAKAO_BOOK_PROVIDER,
+      NAVER_BOOK_PROVIDER,
+      GOOGLE_BOOKS_PROVIDER,
+      MANUAL_PROVIDER,
+    ]);
+    expect(result.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: KAKAO_WEB_PROVIDER,
+          title: '전지적 독자 시점',
+          mediumType: WorkType.web_novel,
+          sourceUrl: 'https://page.kakao.com/content/12345',
+        }),
+        expect.objectContaining({
+          sourceId: NAVER_WEB_PROVIDER,
+          title: '전지적 독자 시점',
+          mediumType: WorkType.web_novel,
+          sourceUrl: 'https://series.naver.com/novel/detail.series?productNo=1',
+        }),
+      ]),
+    );
+
+    const firstUrl = new URL(String(fetchSpy.mock.calls[0]?.[0]));
+    const firstHeaders = new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
+    const secondUrl = new URL(String(fetchSpy.mock.calls[1]?.[0]));
+    const secondHeaders = new Headers(fetchSpy.mock.calls[1]?.[1]?.headers);
+
+    expect(firstUrl.hostname).toBe('dapi.kakao.com');
+    expect(firstHeaders.get('authorization')).toBe('KakaoAK kakao-rest-key');
+    expect(secondUrl.hostname).toBe('openapi.naver.com');
+    expect(secondHeaders.get('X-Naver-Client-Id')).toBe('naver-client-id');
+  });
+
+  it('maps web search results to webtoon candidates and strips site or episode suffixes', async () => {
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        clientId: 'naver-client-id',
+        clientSecret: 'naver-client-secret',
+      }),
+    );
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        items: [
+          {
+            description: '인기 웹툰',
+            link: 'https://comic.naver.com/webtoon/list?titleId=123',
+            title: '<b>외모지상주의</b> 10화 - 네이버 웹툰',
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(USER_ID, {
+      provider: NAVER_WEB_PROVIDER,
+      query: '외모지상주의',
+      limit: 5,
+      type: WorkType.webtoon,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: NAVER_WEB_PROVIDER,
+        title: '외모지상주의',
+        mediumType: WorkType.webtoon,
+        sourceLabel: 'Naver Web',
+        sourceUrl: 'https://comic.naver.com/webtoon/list?titleId=123',
+      }),
+    );
+  });
+
+  it('skips unconfigured server search providers with diagnostics', async () => {
+    const result = await service.search(USER_ID, {
+      providers: [
+        BRAVE_SEARCH_PROVIDER,
+        TAVILY_SEARCH_PROVIDER,
+        MANUAL_PROVIDER,
+      ],
+      query: '전지적 독자 시점',
+      limit: 5,
+      type: WorkType.web_novel,
+    });
+
+    expect(result.candidates).toEqual([
+      expect.objectContaining({
+        sourceId: MANUAL_PROVIDER,
+        title: '전지적 독자 시점',
+      }),
+    ]);
+    expect(result.diagnostics.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: BRAVE_SEARCH_PROVIDER,
+          configured: false,
+          reasonCode: 'server_credential_missing',
+          status: 'skipped',
+        }),
+        expect.objectContaining({
+          provider: TAVILY_SEARCH_PROVIDER,
+          configured: false,
+          reasonCode: 'server_credential_missing',
+          status: 'skipped',
+        }),
+      ]),
+    );
+  });
+
+  it('uses Brave Search server credentials and Korean query rewrite for web novel search', async () => {
+    process.env.BRAVE_SEARCH_API_KEY = 'brave-server-key';
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        web: {
+          results: [
+            {
+              description: '무협 웹소설 연재',
+              title: '<b>화산귀환</b> - 네이버 시리즈',
+              url: 'https://series.naver.com/novel/detail.series?productNo=1',
+            },
+          ],
+        },
+      }),
+    );
+
+    const result = await service.search(USER_ID, {
+      provider: BRAVE_SEARCH_PROVIDER,
+      query: '화산귀환',
+      limit: 5,
+      type: WorkType.web_novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: BRAVE_SEARCH_PROVIDER,
+        title: '화산귀환',
+        mediumType: WorkType.web_novel,
+        sourceUrl: 'https://series.naver.com/novel/detail.series?productNo=1',
+      }),
+    );
+
+    const fetchCall = fetchSpy.mock.calls[0];
+    const fetchUrl = new URL(String(fetchCall?.[0]));
+    const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
+
+    expect(fetchUrl.hostname).toBe('api.search.brave.com');
+    expect(fetchUrl.searchParams.get('q')).toBe('"화산귀환" 웹소설 OR 소설');
+    expect(fetchUrl.searchParams.get('country')).toBe('kr');
+    expect(fetchUrl.searchParams.get('search_lang')).toBe('ko');
+    expect(fetchUrl.searchParams.get('count')).toBe('5');
+    expect(fetchHeaders.get('X-Subscription-Token')).toBe('brave-server-key');
+  });
+
+  it('uses Tavily domain-constrained server search for webtoon search', async () => {
+    process.env.TAVILY_API_KEY = 'tavily-server-key';
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        results: [
+          {
+            content: '네이버 웹툰 연재',
+            title: '외모지상주의 - 네이버 웹툰',
+            url: 'https://comic.naver.com/webtoon/list?titleId=123',
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(USER_ID, {
+      provider: TAVILY_SEARCH_PROVIDER,
+      query: '외모지상주의',
+      limit: 5,
+      type: WorkType.webtoon,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: TAVILY_SEARCH_PROVIDER,
+        title: '외모지상주의',
+        mediumType: WorkType.webtoon,
+        sourceUrl: 'https://comic.naver.com/webtoon/list?titleId=123',
+      }),
+    );
+
+    const fetchCall = fetchSpy.mock.calls[0];
+    const fetchBody = JSON.parse(String(fetchCall?.[1]?.body)) as {
+      country: string;
+      include_domains: string[];
+      max_results: number;
+      query: string;
+      search_depth: string;
+    };
+    const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
+
+    expect(fetchHeaders.get('authorization')).toBe('Bearer tavily-server-key');
+    expect(fetchBody).toEqual(
+      expect.objectContaining({
+        country: 'south korea',
+        max_results: 5,
+        query: '"외모지상주의" 웹툰 OR 만화',
+        search_depth: 'basic',
+      }),
+    );
+    expect(fetchBody.include_domains).toEqual(
+      expect.arrayContaining([
+        'series.naver.com',
+        'comic.naver.com',
+        'page.kakao.com',
+        'webtoon.kakao.com',
+      ]),
+    );
+  });
+
+  it('resolves anime search providers with Brave Search between AniList and TVmaze', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          data: {
+            Page: {
+              media: [],
+            },
+          },
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse([]));
+
+    const result = await service.search(USER_ID, {
+      query: '슈타인즈 게이트',
+      limit: 5,
+      type: WorkType.anime,
+    });
+
+    expect(result.providers).toEqual([
+      ANILIST_PROVIDER,
+      BRAVE_SEARCH_PROVIDER,
+      TVMAZE_PROVIDER,
+      MANUAL_PROVIDER,
+    ]);
+    expect(result.diagnostics.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: BRAVE_SEARCH_PROVIDER,
+          reasonCode: 'server_credential_missing',
+          status: 'skipped',
         }),
       ]),
     );

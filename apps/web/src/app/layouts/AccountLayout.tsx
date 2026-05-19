@@ -1,11 +1,8 @@
-import { Avatar, Box, Container, Divider, Grid, Group, Stack, Text, ThemeIcon } from '@mantine/core';
+import { Avatar, Box, Container, Divider, Grid, Group, Stack, Text } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 
 import {
-  AppBadge,
-  AppButton,
-  AppLinkButton,
   AppNavLink,
   LoadingState,
   ThemeToggleControl,

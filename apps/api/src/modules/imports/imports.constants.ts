@@ -7,6 +7,10 @@ export const TVMAZE_PROVIDER = 'tvmaze' as const;
 export const TMDB_PROVIDER = 'tmdb' as const;
 export const NAVER_BOOK_PROVIDER = 'naver_book' as const;
 export const KAKAO_BOOK_PROVIDER = 'kakao_book' as const;
+export const NAVER_WEB_PROVIDER = 'naver_web' as const;
+export const KAKAO_WEB_PROVIDER = 'kakao_web' as const;
+export const BRAVE_SEARCH_PROVIDER = 'brave_search' as const;
+export const TAVILY_SEARCH_PROVIDER = 'tavily_search' as const;
 export const KOBIS_PROVIDER = 'kobis' as const;
 
 export const IMPORT_PROVIDER_VALUES = [
@@ -19,7 +23,11 @@ export const IMPORT_PROVIDER_VALUES = [
   TMDB_PROVIDER,
   NAVER_BOOK_PROVIDER,
   KAKAO_BOOK_PROVIDER,
+  NAVER_WEB_PROVIDER,
+  KAKAO_WEB_PROVIDER,
+  BRAVE_SEARCH_PROVIDER,
+  TAVILY_SEARCH_PROVIDER,
   KOBIS_PROVIDER,
 ] as const;
 
-export type ImportProvider = typeof IMPORT_PROVIDER_VALUES[number];
+export type ImportProvider = (typeof IMPORT_PROVIDER_VALUES)[number];

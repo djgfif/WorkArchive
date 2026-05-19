@@ -30,14 +30,18 @@ interface CandidateScore {
 const PROVIDER_RELIABILITY_WEIGHTS: Record<string, number> = {
   aladin: 8,
   anilist: 8,
+  brave_search: 7,
   google_books: 5,
   kakao_book: 6,
   kobis: 7,
   manual: -12,
   naver_book: 6,
+  naver_web: 7,
   open_library: 4,
   preview_manual: -12,
   'preview-manual': -12,
+  kakao_web: 7,
+  tavily_search: 7,
   tmdb: 8,
   tvmaze: 5,
 };
@@ -46,6 +50,8 @@ const VARIANT_TITLE_PATTERNS = [
   /\b(collector'?s|deluxe|director'?s|extended|limited|omnibus|special|theatrical)\s+edition\b/i,
   /\b(box\s*set|complete\s+collection|director'?s\s+cut|special\s+edition)\b/i,
   /\b(vol\.?|volume|book)\s*\d+\b/i,
+  /\bseason\s*\d+\b/i,
+  /(?:외전|특별편|개정판|완전판|번외편|후일담|시즌)/u,
   /(감독판|개정판|극장판|번외편|스핀오프|시즌|외전|완전판|특별판|합본|한정판)/u,
 ];
 
@@ -280,8 +286,7 @@ export function rankImportCandidates({
           reason:
             score.breakdown
               .filter(
-                (entry) =>
-                  entry.weight > 0 && entry.label !== '출처 내부 순위',
+                (entry) => entry.weight > 0 && entry.label !== '출처 내부 순위',
               )
               .slice(0, 3)
               .map((entry) => entry.label)
