@@ -22,6 +22,7 @@ import type { ImportSearchResponseDto } from './dto/import-search-response.dto';
 import { mergeImportCandidates } from './import-candidate-merge';
 import {
   normalizeImportCandidate,
+  normalizeImportTitleSignal,
   normalizeIsbn,
   normalizeReleaseDate,
   parseNormalizedReleaseYear,
@@ -140,7 +141,13 @@ const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
   [GOOGLE_BOOKS_PROVIDER]: {
     credentialMode: 'none',
     label: 'Google Books',
-    mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
+    mediumTypes: [
+      WorkType.novel,
+      WorkType.light_novel,
+      WorkType.manga,
+      WorkType.web_novel,
+      WorkType.webtoon,
+    ],
     provider: GOOGLE_BOOKS_PROVIDER,
   },
   [OPEN_LIBRARY_PROVIDER]: {
@@ -184,7 +191,13 @@ const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
       },
     ],
     label: 'Naver Book',
-    mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
+    mediumTypes: [
+      WorkType.novel,
+      WorkType.light_novel,
+      WorkType.manga,
+      WorkType.web_novel,
+      WorkType.webtoon,
+    ],
     provider: NAVER_BOOK_PROVIDER,
   },
   [KAKAO_BOOK_PROVIDER]: {
@@ -198,7 +211,13 @@ const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
       },
     ],
     label: 'Kakao Book',
-    mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
+    mediumTypes: [
+      WorkType.novel,
+      WorkType.light_novel,
+      WorkType.manga,
+      WorkType.web_novel,
+      WorkType.webtoon,
+    ],
     provider: KAKAO_BOOK_PROVIDER,
   },
   [KOBIS_PROVIDER]: {
@@ -409,7 +428,10 @@ export class ImportsService {
           context.mediumType = mediumType;
         }
 
-        const providerCandidates = await this.searchProvider(provider, context);
+        const providerCandidates = await this.searchProviderWithFallback(
+          provider,
+          context,
+        );
 
         candidates.push(...providerCandidates);
         this.addSearchDiagnostic(diagnostics, provider, {
@@ -485,7 +507,12 @@ export class ImportsService {
     }
 
     if (mediumType === WorkType.web_novel || mediumType === WorkType.webtoon) {
-      return [MANUAL_PROVIDER];
+      return [
+        KAKAO_BOOK_PROVIDER,
+        NAVER_BOOK_PROVIDER,
+        GOOGLE_BOOKS_PROVIDER,
+        MANUAL_PROVIDER,
+      ];
     }
 
     if (mediumType === WorkType.anime) {
@@ -529,6 +556,28 @@ export class ImportsService {
 
   private supportsMedium(provider: ImportProvider, mediumType?: WorkType) {
     return !mediumType || PROVIDERS[provider].mediumTypes.includes(mediumType);
+  }
+
+  private matchesProviderResultMedium(
+    candidate: ImportCandidateResponseDto,
+    mediumType?: WorkType,
+  ) {
+    if (!mediumType || candidate.mediumType === mediumType) {
+      return true;
+    }
+
+    if (mediumType === WorkType.web_novel) {
+      return (
+        candidate.mediumType === WorkType.novel ||
+        candidate.mediumType === WorkType.light_novel
+      );
+    }
+
+    if (mediumType === WorkType.webtoon) {
+      return candidate.mediumType === WorkType.manga;
+    }
+
+    return false;
   }
 
   private resolveSearchProviders(
@@ -615,6 +664,109 @@ export class ImportsService {
       case MANUAL_PROVIDER:
         return this.searchManual(context);
     }
+  }
+
+  private async searchProviderWithFallback(
+    provider: ImportProvider,
+    context: ProviderSearchContext,
+  ) {
+    const variants =
+      provider === MANUAL_PROVIDER
+        ? [context.query]
+        : this.getProviderSearchQueryVariants(context.query);
+    const candidates: ImportCandidateResponseDto[] = [];
+
+    for (const [index, query] of variants.entries()) {
+      try {
+        const providerCandidates = await this.searchProvider(provider, {
+          ...context,
+          query,
+        });
+
+        candidates.push(...providerCandidates);
+
+        if (
+          index === 0 &&
+          !this.shouldTrySearchFallback(providerCandidates, context.query)
+        ) {
+          return providerCandidates;
+        }
+
+        if (index > 0 && providerCandidates.length > 0) {
+          break;
+        }
+      } catch (error) {
+        if (index === 0 || candidates.length === 0) {
+          throw error;
+        }
+
+        break;
+      }
+    }
+
+    return candidates;
+  }
+
+  private getProviderSearchQueryVariants(query: string) {
+    const normalized = this.normalizeProviderSearchQuery(query);
+    const withoutBracketSuffix = this.normalizeProviderSearchQuery(
+      normalized.replace(/\s*[\[(（][^\])）]*[\])）]\s*$/u, ''),
+    );
+    const withoutVolumeSuffix = this.normalizeProviderSearchQuery(
+      withoutBracketSuffix.replace(
+        /\s*(?:(?:vol(?:ume)?\.?|book|시즌|season)\s*\d+|\d+\s*(?:권|화|회|장|부))\s*$/iu,
+        '',
+      ),
+    );
+    const withoutNumericSuffix = this.normalizeProviderSearchQuery(
+      withoutVolumeSuffix.replace(/\s+\d+\s*$/u, ''),
+    );
+
+    return Array.from(
+      new Set(
+        [
+          normalized,
+          withoutBracketSuffix,
+          withoutVolumeSuffix,
+          withoutNumericSuffix,
+        ].filter(Boolean),
+      ),
+    );
+  }
+
+  private normalizeProviderSearchQuery(query: string) {
+    return query.normalize('NFKC').trim().replace(/\s+/g, ' ');
+  }
+
+  private shouldTrySearchFallback(
+    candidates: ImportCandidateResponseDto[],
+    query: string,
+  ) {
+    return (
+      candidates.length === 0 ||
+      !candidates.some((candidate) => this.hasStrongTitleSignal(candidate, query))
+    );
+  }
+
+  private hasStrongTitleSignal(
+    candidate: ImportCandidateResponseDto,
+    query: string,
+  ) {
+    const normalizedQuery = normalizeImportTitleSignal(query);
+
+    if (!normalizedQuery) {
+      return false;
+    }
+
+    return [candidate.title, ...(candidate.titleAliases ?? [])]
+      .map(normalizeImportTitleSignal)
+      .some((titleSignal) => {
+        return (
+          titleSignal === normalizedQuery ||
+          titleSignal.includes(normalizedQuery) ||
+          normalizedQuery.includes(titleSignal)
+        );
+      });
   }
 
   private async searchAladin({
@@ -786,7 +938,7 @@ export class ImportsService {
       .filter((candidate): candidate is ImportCandidateResponseDto => {
         return (
           candidate !== null &&
-          (!mediumType || candidate.mediumType === mediumType)
+          this.matchesProviderResultMedium(candidate, mediumType)
         );
       });
   }
@@ -973,7 +1125,7 @@ export class ImportsService {
       .filter((candidate): candidate is ImportCandidateResponseDto => {
         return (
           candidate !== null &&
-          (!mediumType || candidate.mediumType === mediumType)
+          this.matchesProviderResultMedium(candidate, mediumType)
         );
       });
   }
@@ -1020,7 +1172,7 @@ export class ImportsService {
       .filter((candidate): candidate is ImportCandidateResponseDto => {
         return (
           candidate !== null &&
-          (!mediumType || candidate.mediumType === mediumType)
+          this.matchesProviderResultMedium(candidate, mediumType)
         );
       });
   }

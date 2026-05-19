@@ -775,6 +775,50 @@ describe('AddWorkFlow', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows readable provider diagnostics after a candidate search', async () => {
+    mockImportsFetch({
+      responseOptions: {
+        body: {
+          provider: 'open_library',
+          providers: ['open_library', 'tmdb'],
+          query: 'Dune',
+          candidates: [],
+          diagnostics: {
+            providers: [
+              {
+                provider: 'open_library',
+                status: 'searched',
+                credentialMode: 'none',
+                configured: true,
+                resultCount: 0,
+                reasonCode: null,
+                message: 'Open Library search completed.',
+              },
+              {
+                provider: 'tmdb',
+                status: 'skipped',
+                credentialMode: 'user',
+                configured: false,
+                resultCount: 0,
+                reasonCode: 'user_credential_missing',
+                message: 'TMDB search requires a configured user key.',
+              },
+            ],
+          },
+        },
+      },
+    });
+    const user = userEvent.setup();
+
+    renderGuestAddWorkFlow();
+    await openSearchPicker(user, 'Dune');
+
+    expect(
+      await screen.findByText(/검색 완료: Open Library 0개/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/제외됨: TMDB/)).toBeInTheDocument();
+  });
+
   it('renders search as an inline panel instead of a nested modal', async () => {
     mockImportsFetch();
     const user = userEvent.setup();
@@ -1367,6 +1411,86 @@ describe('AddWorkFlow', () => {
 
     renderAuthenticatedAddWorkFlow();
     await openSearchPicker(user, 'Different');
+    await selectCandidateRow(user, candidate.title);
+
+    expect(
+      await screen.findByText('비슷한 기록이 이미 있습니다'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a duplicate warning when a candidate alias matches an existing title', async () => {
+    await seedAuthenticatedExistingWork({
+      id: 'existing-alias-match',
+      title: '나 혼자만 레벨업',
+    });
+    const candidate = buildCandidate({
+      sourceId: 'google_books',
+      sourceLabel: 'Google Books',
+      title: 'Solo Leveling',
+      titleAliases: ['나 혼자만 레벨업'],
+    });
+
+    mockAuthenticatedSearchResponse([candidate]);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedAddWorkFlow();
+    await openSearchPicker(user, 'Solo Leveling');
+    await selectCandidateRow(user, candidate.title);
+
+    expect(
+      await screen.findByText('비슷한 기록이 이미 있습니다'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a duplicate warning when release candidate external refs match an existing importDraft', async () => {
+    await seedAuthenticatedExistingWork({
+      id: 'existing-release-external-match',
+      title: 'Stored Release Match',
+      importDraft: {
+        mediumType: 'novel',
+        releaseCandidates: [
+          {
+            externalRefs: [
+              {
+                externalId: 'release-1',
+                provider: 'google_books',
+                rawType: 'volume',
+                url: 'https://example.com/google-books/release-1',
+              },
+            ],
+            isbn: '9781234567890',
+          },
+        ],
+      },
+    });
+    const candidate = buildCandidate({
+      externalRefs: [],
+      releaseCandidates: [
+        {
+          displayLabel: 'Volume 1',
+          externalRefs: [
+            {
+              externalId: 'release-1',
+              provider: 'google_books',
+              rawType: 'volume',
+              url: 'https://example.com/google-books/release-1',
+            },
+          ],
+          isbn: '9781234567890',
+          releaseType: 'volume',
+          title: 'Dune Volume 1',
+        },
+      ],
+      title: 'Different Release Title',
+    });
+
+    mockAuthenticatedSearchResponse([candidate]);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedAddWorkFlow();
+    await openSearchPicker(user, 'Different Release');
     await selectCandidateRow(user, candidate.title);
 
     expect(

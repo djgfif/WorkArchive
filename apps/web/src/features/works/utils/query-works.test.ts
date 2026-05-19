@@ -113,6 +113,52 @@ describe('queryWorks', () => {
     ).toEqual(['Dune']);
   });
 
+  it('matches Korean titles across spacing, symbols, and trailing subtitles', () => {
+    const koreanWorks = [
+      buildWork({
+        title: '나 혼자만 레벨업 (외전)',
+        author: '추공',
+        genres: ['웹소설', '현대 판타지'],
+        personalTags: ['재독 후보'],
+      }),
+      buildWork({
+        title: '귀멸의 칼날',
+        author: '고토게 코요하루',
+        genres: ['만화'],
+      }),
+    ];
+
+    expect(
+      queryWorks(koreanWorks, {
+        rating: null,
+        searchTerm: '나혼자만레벨업',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['나 혼자만 레벨업 (외전)']);
+
+    expect(
+      queryWorks(koreanWorks, {
+        rating: null,
+        searchTerm: '귀 멸 의 칼날',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['귀멸의 칼날']);
+
+    expect(
+      queryWorks(koreanWorks, {
+        rating: null,
+        searchTerm: '현대-판타지',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['나 혼자만 레벨업 (외전)']);
+  });
+
   it('filters by type and status', () => {
     const filtered = queryWorks(works, {
       rating: null,

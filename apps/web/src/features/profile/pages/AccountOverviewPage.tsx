@@ -12,14 +12,37 @@ import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { useSyncDashboard } from '../../sync/hooks/useSyncDashboard';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
-import { formatWorkDateTime } from '../../works/utils/work-options';
-
-function formatOptionalDate(value: string | null, fallback = '아직 백업 전') {
-  return value ? formatWorkDateTime(value) : fallback;
-}
 
 function formatAverageRating(value: number | null) {
   return value === null ? '미평가' : `${value.toFixed(1)}점`;
+}
+
+function formatRelativeBackupTime(value: string | null) {
+  if (!value) {
+    return '아직 백업 전';
+  }
+
+  const backupTime = new Date(value).getTime();
+  if (Number.isNaN(backupTime)) {
+    return '백업 시간 확인 필요';
+  }
+
+  const diffMs = Date.now() - backupTime;
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60_000));
+
+  if (diffMinutes < 1) return '방금 전';
+  if (diffMinutes < 60) return `${diffMinutes}분 전`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}시간 전`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}일 전`;
+
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) return `${diffMonths}개월 전`;
+
+  return `${Math.floor(diffMonths / 12)}년 전`;
 }
 
 export function AccountOverviewPage() {
@@ -30,6 +53,27 @@ export function AccountOverviewPage() {
   const isAuthenticated = mode === 'authenticated';
   const backupAttentionCount = conflictItems.length + failedItems.length;
   const backupPendingCount = pendingItems.length;
+  const backupStatus =
+    backupAttentionCount > 0
+      ? {
+          badge: '오류/확인 필요',
+          description: '자동 백업 중 일부 항목 확인이 필요합니다. 기록 작성은 계속할 수 있습니다.',
+          tone: 'warning' as const,
+          value: '확인이 필요한 항목 있음',
+        }
+      : backupPendingCount > 0
+        ? {
+            badge: '대기',
+            description: '최근 변경 사항을 자동으로 백업하는 중입니다. 오프라인에서도 기록할 수 있습니다.',
+            tone: 'info' as const,
+            value: '백업 대기 중',
+          }
+        : {
+            badge: '정상',
+            description: '기록은 안전하게 보관됩니다. 오프라인에서도 먼저 기록하고 나중에 백업됩니다.',
+            tone: 'success' as const,
+            value: '기록은 안전하게 보관됨',
+          };
 
   return (
     <AccountPageTemplate
@@ -73,13 +117,7 @@ export function AccountOverviewPage() {
 
         <SectionCard>
           <SectionIntro
-            description={
-              backupAttentionCount > 0
-                ? '자동 백업 중 일부 항목 확인이 필요합니다. 기록 작성은 계속할 수 있습니다.'
-                : backupPendingCount > 0
-                  ? '최근 변경 사항을 자동으로 백업하는 중입니다. 오프라인에서도 기록할 수 있습니다.'
-                  : '기록은 안전하게 보관됩니다. 오프라인에서도 먼저 기록하고 나중에 백업됩니다.'
-            }
+            description={backupStatus.description}
             eyebrow="자동 백업"
             title="자동 백업 상태"
           />
@@ -88,22 +126,18 @@ export function AccountOverviewPage() {
             items={[
               {
                 label: '상태',
-                value:
-                  backupAttentionCount > 0
-                    ? '확인이 필요한 항목 있음'
-                    : backupPendingCount > 0
-                      ? '백업 중'
-                      : '기록은 안전하게 보관됨',
+                value: backupStatus.value,
               },
-              { label: '최근 백업', value: formatOptionalDate(lastSuccessfulPullAt) },
+              {
+                label: '최근 백업',
+                value: formatRelativeBackupTime(lastSuccessfulPullAt),
+              },
               { label: '오프라인 기록', value: '가능' },
             ]}
           />
 
           <Group gap="xs" wrap="wrap">
-            <AppBadge tone={backupAttentionCount > 0 ? 'warning' : 'success'}>
-              {backupAttentionCount > 0 ? '확인 필요' : '정상'}
-            </AppBadge>
+            <AppBadge tone={backupStatus.tone}>{backupStatus.badge}</AppBadge>
             <AppLinkButton to="/account/settings">백업 설정</AppLinkButton>
           </Group>
         </SectionCard>

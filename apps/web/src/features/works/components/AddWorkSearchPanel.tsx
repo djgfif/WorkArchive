@@ -145,73 +145,80 @@ export function AddWorkSearchPanel({
     <Stack gap="lg">
       {providerReadinessSummary}
 
-      <form onSubmit={onSearchSubmit}>
-        <Stack gap="sm">
-          <Group align="flex-end" gap="sm" wrap="wrap">
-            <div className={cn(css.quickSearchField)}>
-              <TextInput
-                id="quickAddSearch"
-                label="작품 검색"
-                onChange={(event) =>
-                  onSearchTermChange(event.currentTarget.value)
-                }
-                placeholder="제목, 작가, 스튜디오를 입력하세요"
-                value={searchTerm}
-              />
-            </div>
-
-            <div className={cn(css.quickSearchType)}>
-              <NativeSelect
-                id="quickAddType"
-                label="작품 유형"
-                onChange={(event) =>
-                  onSearchTypeChange(event.currentTarget.value)
-                }
-                value={searchType}
-              >
-                {quickAddTypeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </NativeSelect>
-            </div>
-
-            <AppButton loading={isSearching} tone="primary" type="submit">
-              {isSearching ? '검색 중...' : hasSearched ? '다시 검색' : '검색'}
-            </AppButton>
-          </Group>
-
-          <Stack gap={6}>
-            <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
-              검색 출처
-            </Text>
-            <Group gap="xs" wrap="wrap">
-              {providerGroupOptions.map((option) => (
-                <AppButton
-                  aria-pressed={providerGroup === option.value}
-                  key={option.value}
-                  onClick={() => onProviderGroupChange(option.value)}
-                  size="compact-sm"
-                  tone={
-                    providerGroup === option.value ? 'primary' : 'secondary'
+      <Paper
+        className={cn(css.quickSearchSticky)}
+        p="md"
+        radius="lg"
+        withBorder
+      >
+        <form onSubmit={onSearchSubmit}>
+          <Stack gap="sm">
+            <Group align="flex-end" gap="sm" wrap="wrap">
+              <div className={cn(css.quickSearchField)}>
+                <TextInput
+                  id="quickAddSearch"
+                  label="작품 검색"
+                  onChange={(event) =>
+                    onSearchTermChange(event.currentTarget.value)
                   }
-                  type="button"
+                  placeholder="제목, 작가, 스튜디오를 입력하세요"
+                  value={searchTerm}
+                />
+              </div>
+
+              <div className={cn(css.quickSearchType)}>
+                <NativeSelect
+                  id="quickAddType"
+                  label="작품 유형"
+                  onChange={(event) =>
+                    onSearchTypeChange(event.currentTarget.value)
+                  }
+                  value={searchType}
                 >
-                  {option.label}
-                </AppButton>
-              ))}
+                  {quickAddTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+
+              <AppButton loading={isSearching} tone="primary" type="submit">
+                {isSearching ? '검색 중...' : hasSearched ? '다시 검색' : '검색'}
+              </AppButton>
             </Group>
-            <Text c="var(--mantine-color-dimmed)" size="xs">
-              {
-                providerGroupOptions.find(
-                  (option) => option.value === providerGroup,
-                )?.description
-              }
-            </Text>
+
+            <Stack gap={6}>
+              <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
+                검색 출처
+              </Text>
+              <Group gap="xs" role="group" aria-label="검색 출처" wrap="wrap">
+                {providerGroupOptions.map((option) => (
+                  <AppButton
+                    aria-pressed={providerGroup === option.value}
+                    key={option.value}
+                    onClick={() => onProviderGroupChange(option.value)}
+                    size="compact-sm"
+                    tone={
+                      providerGroup === option.value ? 'primary' : 'secondary'
+                    }
+                    type="button"
+                  >
+                    {option.label}
+                  </AppButton>
+                ))}
+              </Group>
+              <Text c="var(--mantine-color-dimmed)" size="xs">
+                {
+                  providerGroupOptions.find(
+                    (option) => option.value === providerGroup,
+                  )?.description
+                }
+              </Text>
+            </Stack>
           </Stack>
-        </Stack>
-      </form>
+        </form>
+      </Paper>
 
       {searchError && (
         <FeedbackMessage tone="error">{searchError}</FeedbackMessage>

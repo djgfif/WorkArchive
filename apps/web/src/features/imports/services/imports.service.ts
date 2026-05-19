@@ -76,7 +76,7 @@ function formatProviderResult(diagnostic: ImportSearchProviderDiagnostic) {
 function buildSearchNotice(response: ImportSearchResponse) {
   const baseNotice =
     response.providers.length > 0
-      ? `검색 출처: ${response.providers.join(', ')}`
+      ? `검색 출처: ${response.providers.map(formatProviderLabel).join(', ')}`
       : null;
   const diagnostics = response.diagnostics?.providers ?? [];
 

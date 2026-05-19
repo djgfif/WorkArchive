@@ -33,6 +33,10 @@ export function CandidateListRow({
   const visibleAliases = candidate.titleAliases
     ?.filter((titleAlias) => titleAlias !== candidate.title)
     .slice(0, 2);
+  const yearLabel =
+    candidate.releaseYear !== null && candidate.releaseYear !== undefined
+      ? String(candidate.releaseYear)
+      : candidate.countLabel;
 
   return (
     <button
@@ -91,9 +95,12 @@ export function CandidateListRow({
           variant="row"
         />
 
-        <Stack flex={1} gap={6} miw={0}>
+        <Stack flex={1} gap={7} miw={0}>
           <ActionRow justify="space-between">
-            <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
+            <Group gap={6} wrap="wrap">
+              <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
+              {yearLabel && <AppBadge tone="muted">{yearLabel}</AppBadge>}
+            </Group>
             {isManualCandidate ? (
               <AppBadge tone="accent">직접 추가 후보</AppBadge>
             ) : (
@@ -131,6 +138,9 @@ export function CandidateListRow({
               <AppBadge tone="muted">
                 {sourceCoverage.providerCountLabel}
               </AppBadge>
+            )}
+            {!isManualCandidate && (
+              <AppBadge tone="muted">{candidate.formatLabel}</AppBadge>
             )}
             {duplicateCount > 0 && (
               <AppBadge tone="warning">비슷한 기록 {duplicateCount}</AppBadge>
