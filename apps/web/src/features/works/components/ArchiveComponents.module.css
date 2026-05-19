@@ -71,7 +71,7 @@
 
 .posterImage {
   object-fit: cover;
-  transition: transform 180ms ease;
+  transition: transform var(--wa-motion-normal, 200ms ease);
 }
 
 .posterFallback {
@@ -214,21 +214,21 @@
   background: transparent;
   box-shadow: none;
   transition:
-    transform var(--wa-motion-normal),
-    border-color var(--wa-motion-normal),
-    box-shadow var(--wa-motion-normal);
+    transform var(--wa-motion-normal, 200ms ease),
+    border-color var(--wa-motion-normal, 200ms ease),
+    box-shadow var(--wa-motion-normal, 200ms ease);
 }
 
 .posterCardLink:hover .posterCardSurface,
 .posterCardLink:focus-visible .posterCardSurface {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
   border-color: var(--app-border-strong);
-  box-shadow: var(--app-shadow-card);
+  box-shadow: var(--app-shadow-overlay);
 }
 
 .posterCardLink:hover .posterImage,
 .posterCardLink:focus-visible .posterImage {
-  transform: scale(1.025);
+  transform: scale(1.04);
 }
 
 .favoriteMark {
@@ -272,15 +272,17 @@
   background: var(--app-surface-card);
   box-shadow: none;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    transform 160ms ease;
+    background var(--wa-motion-fast, 140ms ease),
+    border-color var(--wa-motion-fast, 140ms ease),
+    transform var(--wa-motion-fast, 140ms ease),
+    box-shadow var(--wa-motion-fast, 140ms ease);
 }
 
 .rowCard:hover .rowSurface {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   border-color: var(--app-border-strong);
   background: var(--app-bg-elevated);
+  box-shadow: var(--app-shadow-card);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -290,12 +292,16 @@
   padding: 1rem;
   border-color: var(--app-border-subtle);
   background: var(--app-surface-card);
-  transition: border-color 160ms ease, background 160ms ease;
+  transition:
+    border-color var(--wa-motion-fast, 140ms ease),
+    background var(--wa-motion-fast, 140ms ease),
+    box-shadow var(--wa-motion-fast, 140ms ease);
 }
 
 .listRowSurface:hover {
   border-color: var(--app-border-strong);
   background: var(--app-bg-elevated);
+  box-shadow: var(--app-shadow-card);
 }
 
 .listRowMain {
@@ -339,15 +345,17 @@
   border: 1px solid var(--app-border-strong);
   border-radius: var(--mantine-radius-xl);
   background:
-    radial-gradient(circle at 82% 14%, rgba(91, 140, 187, 0.18), transparent 30%),
-    linear-gradient(135deg, rgba(24, 27, 39, 0.98), rgba(7, 8, 11, 0.96));
+    radial-gradient(circle at 82% 14%, rgba(59, 130, 246, 0.16), transparent 32%),
+    radial-gradient(circle at 18% 82%, rgba(99, 102, 241, 0.10), transparent 28%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(7, 8, 11, 0.97));
   box-shadow: var(--app-shadow-overlay);
 }
 
 [data-mantine-color-scheme='light'] .hero {
   background:
-    radial-gradient(circle at 82% 14%, rgba(61, 99, 144, 0.10), transparent 30%),
-    linear-gradient(135deg, rgba(240, 244, 250, 0.98), rgba(220, 228, 238, 0.96));
+    radial-gradient(circle at 82% 14%, rgba(59, 130, 246, 0.08), transparent 32%),
+    radial-gradient(circle at 18% 82%, rgba(99, 102, 241, 0.06), transparent 28%),
+    linear-gradient(135deg, rgba(241, 245, 249, 0.99), rgba(226, 232, 240, 0.97));
 }
 
 .heroCompact {
@@ -460,12 +468,16 @@
   border-color: var(--app-border-strong);
   background: var(--app-bg-elevated);
   font-size: 0.96rem;
-  transition: border-color 160ms ease, background 160ms ease;
+  transition:
+    border-color var(--wa-motion-fast, 140ms ease),
+    background var(--wa-motion-fast, 140ms ease),
+    box-shadow var(--wa-motion-fast, 140ms ease);
 }
 
 .searchInput input:focus {
   border-color: var(--app-accent-primary);
   background: var(--app-surface-card);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent-primary) 18%, transparent);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -475,27 +487,33 @@
   border-color: var(--app-border-subtle);
   background: var(--app-surface-subtle);
   color: var(--app-text-secondary);
+  font-weight: 500;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease;
+    background var(--wa-motion-fast, 140ms ease),
+    border-color var(--wa-motion-fast, 140ms ease),
+    color var(--wa-motion-fast, 140ms ease),
+    box-shadow var(--wa-motion-fast, 140ms ease);
 }
 
 .filterPill:hover {
   border-color: var(--app-border-strong);
   background: var(--app-bg-elevated);
+  color: var(--app-text-primary);
 }
 
 .filterPillActive {
   border-color: var(--app-accent-primary);
-  background: color-mix(in srgb, var(--app-accent-primary) 12%, transparent);
+  background: color-mix(in srgb, var(--app-accent-primary) 14%, transparent);
   color: var(--app-accent-primary);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-accent-primary) 30%, transparent);
 }
 
 [data-mantine-color-scheme='light'] .filterPillActive {
   border-color: var(--app-accent-primary);
   background: color-mix(in srgb, var(--app-accent-primary) 10%, transparent);
   color: var(--app-accent-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-accent-primary) 20%, transparent);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

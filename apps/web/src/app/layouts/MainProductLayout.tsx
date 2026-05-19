@@ -1,4 +1,5 @@
 import {
+  Avatar,
   Box,
   Burger,
   Button,
@@ -10,7 +11,6 @@ import {
   Menu,
   Stack,
   Text,
-  ThemeIcon,
   Tooltip,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -41,6 +41,9 @@ export function MainProductLayout() {
   const accountShortLabel = isAuthenticated
     ? (user?.email?.split('@')[0] ?? '계정')
     : '게스트';
+  const avatarInitial = isAuthenticated
+    ? (accountShortLabel[0] ?? 'U').toUpperCase()
+    : 'G';
 
   async function handleSignOut() {
     await signOut();
@@ -56,8 +59,9 @@ export function MainProductLayout() {
           <Box
             className="product-header"
             component="header"
+            style={{ width: '100%' }}
           >
-            <Flex align="center" gap="lg" justify="space-between" wrap="nowrap">
+            <Flex align="center" gap="lg" h="100%" justify="space-between" wrap="nowrap">
               {/* Left: burger + brand */}
               <Group gap="sm" miw={0} wrap="nowrap">
                 <Burger
@@ -74,7 +78,7 @@ export function MainProductLayout() {
               <Group
                 aria-label="주요 탐색"
                 component="nav"
-                gap="xs"
+                gap={4}
                 style={{ flex: '0 0 auto' }}
                 visibleFrom="md"
                 wrap="nowrap"
@@ -115,43 +119,67 @@ export function MainProductLayout() {
                 <Box visibleFrom="md">
                   <Menu
                     position="bottom-end"
-                    shadow="md"
-                    transitionProps={{ transition: 'pop-top-right', duration: 140 }}
-                    width={240}
+                    shadow="lg"
+                    transitionProps={{ transition: 'pop-top-right', duration: 160 }}
+                    width={256}
                     withinPortal={false}
                   >
                     <Menu.Target>
                       <Button
                         aria-label={accountMenuLabel}
                         leftSection={
-                          <ThemeIcon
+                          <Avatar
                             color={isAuthenticated ? 'archive' : 'gray'}
                             radius="xl"
-                            size={22}
-                            variant="light"
+                            size={26}
+                            variant="filled"
                           >
                             <Text fw={800} size="xs">
-                              {isAuthenticated
-                                ? (accountShortLabel[0] ?? 'U').toUpperCase()
-                                : 'G'}
+                              {avatarInitial}
                             </Text>
-                          </ThemeIcon>
+                          </Avatar>
                         }
                         size="sm"
                         variant="subtle"
+                        style={{
+                          color: 'var(--app-text-primary)',
+                          fontWeight: 600,
+                        }}
                       >
                         {accountShortLabel}
                       </Button>
                     </Menu.Target>
-                    <Menu.Dropdown>
-                      <Menu.Label>
-                        <Stack gap={2}>
-                          <Text fw={700} size="sm">{accountMenuLabel}</Text>
-                          {!isAuthenticated && (
-                            <Text c="dimmed" size="xs">로그인하면 기록이 동기화됩니다</Text>
-                          )}
-                        </Stack>
-                      </Menu.Label>
+                    <Menu.Dropdown
+                      style={{
+                        backgroundColor: 'var(--app-surface-card)',
+                        borderColor: 'var(--app-border-subtle)',
+                      }}
+                    >
+                      {/* 계정 헤더 */}
+                      <Box px="sm" py="xs">
+                        <Group gap="xs" wrap="nowrap">
+                          <Avatar
+                            color={isAuthenticated ? 'archive' : 'gray'}
+                            radius="xl"
+                            size={32}
+                            variant="filled"
+                          >
+                            <Text fw={800} size="xs">
+                              {avatarInitial}
+                            </Text>
+                          </Avatar>
+                          <Stack gap={1} miw={0}>
+                            <Text fw={700} size="sm" truncate>
+                              {accountMenuLabel}
+                            </Text>
+                            <Text c="dimmed" size="xs">
+                              {isAuthenticated
+                                ? '로그인됨'
+                                : '게스트 — 이 기기에만 저장됩니다'}
+                            </Text>
+                          </Stack>
+                        </Group>
+                      </Box>
                       <Menu.Divider />
                       <Menu.Item onClick={() => navigate('/account')}>
                         계정 개요
@@ -159,7 +187,7 @@ export function MainProductLayout() {
                       <Menu.Item onClick={() => navigate('/account/settings')}>
                         설정과 백업
                       </Menu.Item>
-                      <Box p="xs">
+                      <Box px="xs" py={4}>
                         <ThemeToggleControl fullWidth />
                       </Box>
                       <Menu.Divider />
@@ -191,7 +219,7 @@ export function MainProductLayout() {
           </Box>
 
           {/* ── Page content ───────────────────────────────────────────── */}
-          <Box pt="lg">
+          <Box>
             {isLoading ? (
               <StateMessage
                 description="개인 기록을 불러오는 동안 잠시만 기다려주세요."
@@ -217,6 +245,15 @@ export function MainProductLayout() {
         title={
           <BrandLink heading="Work Archive" kicker="개인 감상 서재" />
         }
+        styles={{
+          content: {
+            backgroundColor: 'var(--app-surface-card)',
+          },
+          header: {
+            backgroundColor: 'var(--app-surface-card)',
+            borderBottom: '1px solid var(--app-border-subtle)',
+          },
+        }}
       >
         <Stack gap="lg" h="100%">
           {/* Navigation */}
@@ -234,24 +271,36 @@ export function MainProductLayout() {
             ))}
           </Stack>
 
-          <Divider />
+          <Divider color="var(--app-border-subtle)" />
 
           {/* Account section */}
           <Stack gap="sm">
-            <Group justify="space-between" wrap="nowrap">
-              <Stack gap={2} miw={0}>
+            <Group gap="xs" wrap="nowrap">
+              <Avatar
+                color={isAuthenticated ? 'archive' : 'gray'}
+                radius="xl"
+                size={36}
+                variant="filled"
+              >
+                <Text fw={800} size="sm">
+                  {avatarInitial}
+                </Text>
+              </Avatar>
+              <Stack gap={1} miw={0} style={{ flex: 1 }}>
                 <Text fw={700} size="sm" truncate>
                   {accountMenuLabel}
                 </Text>
-                {!isAuthenticated && (
-                  <Text c="dimmed" size="xs">
-                    게스트 모드 — 이 기기에만 저장됩니다
-                  </Text>
-                )}
+                <Group gap={4} wrap="nowrap">
+                  <AppBadge tone={isAuthenticated ? 'accent' : 'muted'}>
+                    {isAuthenticated ? '로그인' : '게스트'}
+                  </AppBadge>
+                  {!isAuthenticated && (
+                    <Text c="dimmed" size="xs" truncate>
+                      이 기기에만 저장됩니다
+                    </Text>
+                  )}
+                </Group>
               </Stack>
-              <AppBadge tone={isAuthenticated ? 'accent' : 'muted'}>
-                {isAuthenticated ? '로그인' : '게스트'}
-              </AppBadge>
             </Group>
 
             <AppLinkButton fullWidth onClick={mobileMenu.close} to="/works/new" tone="primary">
