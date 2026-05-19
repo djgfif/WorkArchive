@@ -1,10 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { getRefreshTokenCookieOptions } from '../src/modules/auth/auth.cookies';
 import { hashSecret, verifySecret } from '../src/modules/auth/auth-crypto';
 import { AuthService } from '../src/modules/auth/auth.service';
 import type { PrismaService } from '../src/prisma/prisma.service';
+
+const ORIGINAL_ENV = { ...process.env };
 
 interface MockUser {
   id: string;
@@ -288,8 +290,7 @@ function createPrismaMock() {
         where: {
           id: string;
         };
-      }) =>
-        passwordResetTokens.find((token) => token.id === where.id) ?? null,
+      }) => passwordResetTokens.find((token) => token.id === where.id) ?? null,
       updateMany: async ({
         data,
         where,
@@ -337,7 +338,8 @@ function createPrismaMock() {
 
 describe('AuthService', () => {
   beforeEach(() => {
-    process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/work_archive';
+    process.env.DATABASE_URL =
+      'postgresql://postgres:postgres@localhost:5432/work_archive';
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
     process.env.PASSWORD_RESET_DEV_LINKS_ENABLED = 'true';
@@ -413,9 +415,9 @@ describe('AuthService', () => {
     const requestResponse = await authService.requestPasswordReset({
       email: 'frieren@example.com',
     });
-    const token = new URL(requestResponse.developmentResetUrl ?? '').searchParams.get(
-      'token',
-    );
+    const token = new URL(
+      requestResponse.developmentResetUrl ?? '',
+    ).searchParams.get('token');
 
     await expect(
       authService.confirmPasswordReset({
@@ -425,9 +427,9 @@ describe('AuthService', () => {
     ).resolves.toEqual({
       message: '비밀번호가 재설정되었습니다.',
     });
-    expect(await verifySecret('new-password-123', users[0]?.passwordHash ?? '')).toBe(
-      true,
-    );
+    expect(
+      await verifySecret('new-password-123', users[0]?.passwordHash ?? ''),
+    ).toBe(true);
     expect(userRefreshSessions[0]?.revokedAt).toBeInstanceOf(Date);
     expect(passwordResetTokens[0]?.usedAt).toBeInstanceOf(Date);
 
@@ -492,7 +494,9 @@ describe('AuthService', () => {
 
     expect(userRefreshSessions).toHaveLength(2);
 
-    await expect(authService.refresh(firstSession.refreshToken)).resolves.toEqual(
+    await expect(
+      authService.refresh(firstSession.refreshToken),
+    ).resolves.toEqual(
       expect.objectContaining({
         sessionId: firstSession.sessionId,
       }),
@@ -515,10 +519,12 @@ describe('AuthService', () => {
       )?.revokedAt,
     ).toBeInstanceOf(Date);
 
-    await expect(authService.refresh(firstSession.refreshToken)).rejects.toThrow(
-      'Invalid or expired refresh token.',
+    await expect(
+      authService.refresh(firstSession.refreshToken),
+    ).rejects.toThrow('Invalid or expired refresh token.');
+    expect(userRefreshSessions.every((session) => session.revokedAt)).toBe(
+      true,
     );
-    expect(userRefreshSessions.every((session) => session.revokedAt)).toBe(true);
   });
 
   it('rejects access tokens after their backing refresh session is revoked', async () => {
@@ -537,7 +543,9 @@ describe('AuthService', () => {
       password: 'old-password-123',
     });
 
-    await expect(authService.validateAccessToken(session.accessToken)).resolves.toEqual(
+    await expect(
+      authService.validateAccessToken(session.accessToken),
+    ).resolves.toEqual(
       expect.objectContaining({
         sessionId: session.sessionId,
       }),
@@ -552,21 +560,52 @@ describe('AuthService', () => {
 });
 
 describe('refresh cookie options', () => {
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
   beforeEach(() => {
-    process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/work_archive';
+    process.env.DATABASE_URL =
+      'postgresql://postgres:postgres@localhost:5432/work_archive';
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
   });
 
   it('omits maxAge for browser-session cookies when remember-me is off', () => {
-    expect(getRefreshTokenCookieOptions({ rememberMe: false })).not.toHaveProperty(
-      'maxAge',
-    );
+    expect(
+      getRefreshTokenCookieOptions({ rememberMe: false }),
+    ).not.toHaveProperty('maxAge');
   });
 
   it('uses a 30-day persistent cookie when remember-me is on', () => {
     expect(getRefreshTokenCookieOptions({ rememberMe: true })).toMatchObject({
       maxAge: 1000 * 60 * 60 * 24 * 30,
+    });
+  });
+
+  it('uses strict secure refresh cookies in production', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.COOKIE_SECURE = 'true';
+    process.env.CORS_ORIGIN = 'https://workarchive.example.com';
+    process.env.DATABASE_URL =
+      'postgresql://workarchive:secure-password@postgres:5432/work_archive';
+    process.env.WEB_BASE_URL = 'https://workarchive.example.com';
+    process.env.RATE_LIMIT_STORE = 'redis';
+    process.env.REDIS_URL = 'redis://redis:6379';
+    process.env.SECURITY_EVENT_HASH_SECRET =
+      'production-security-event-hash-secret-minimum-32-chars';
+    process.env.TRUST_PROXY_HOPS = '1';
+    process.env.SEED_DEMO_PASSWORD = 'production-safe-demo-password';
+    process.env.PASSWORD_RESET_DEV_LINKS_ENABLED = 'false';
+    process.env.SWAGGER_ENABLED = 'false';
+    process.env.JWT_ACCESS_SECRET = 'test-access-secret-minimum-32-chars';
+    process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-minimum-32-chars';
+
+    expect(getRefreshTokenCookieOptions()).toMatchObject({
+      httpOnly: true,
+      path: '/api/auth',
+      sameSite: 'strict',
+      secure: true,
     });
   });
 });

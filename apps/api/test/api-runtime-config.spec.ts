@@ -8,6 +8,17 @@ import {
 const ORIGINAL_ENV = { ...process.env };
 
 function resetEnv(overrides: NodeJS.ProcessEnv = {}) {
+  const productionDefaults =
+    overrides.NODE_ENV === 'production'
+      ? {
+          RATE_LIMIT_STORE: 'redis',
+          REDIS_URL: 'redis://redis:6379',
+          SECURITY_EVENT_HASH_SECRET:
+            'production-security-event-hash-secret-minimum-32-chars',
+          TRUST_PROXY_HOPS: '1',
+        }
+      : {};
+
   process.env = {
     ...ORIGINAL_ENV,
     NODE_ENV: 'test',
@@ -16,6 +27,7 @@ function resetEnv(overrides: NodeJS.ProcessEnv = {}) {
     JWT_REFRESH_SECRET: 'test-refresh-secret-minimum-32-chars',
     EXTERNAL_API_KEY_ENCRYPTION_SECRET:
       'test-external-api-key-encryption-secret-minimum-32-chars',
+    ...productionDefaults,
     ...overrides,
   };
 }
@@ -192,15 +204,16 @@ describe('api runtime config', () => {
     );
   });
 
-  it('requires an external rate limit store in production', () => {
+  it('requires Redis rate limiting and a narrow trust proxy setting in production', () => {
     resetEnv({
       NODE_ENV: 'production',
       CORS_ORIGIN: 'https://workarchive.example.com',
+      REDIS_URL: '',
       WEB_BASE_URL: 'https://workarchive.example.com',
     });
 
     expect(() => readApiRuntimeConfig()).toThrow(
-      'RATE_LIMIT_STORE must be set to "external" in production.',
+      'REDIS_URL must be configured when RATE_LIMIT_STORE is "redis".',
     );
 
     resetEnv({
@@ -217,14 +230,86 @@ describe('api runtime config', () => {
     resetEnv({
       NODE_ENV: 'production',
       CORS_ORIGIN: 'https://workarchive.example.com',
-      RATE_LIMIT_STORE: 'external',
+      TRUST_PROXY_HOPS: '',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'TRUST_PROXY_HOPS must be configured in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      TRUST_PROXY_HOPS: 'true',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'TRUST_PROXY_HOPS must be a positive integer, not a boolean.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      TRUST_PROXY_HOPS: '2',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'TRUST_PROXY_HOPS must be 1 in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
       WEB_BASE_URL: 'https://workarchive.example.com',
     });
 
     expect(readApiRuntimeConfig()).toEqual(
       expect.objectContaining({
-        rateLimitStore: 'external',
+        rateLimitPrefix: 'work-archive:rate-limit:',
+        rateLimitStore: 'redis',
+        redisUrl: 'redis://redis:6379',
+        securityEventHashSecret:
+          'production-security-event-hash-secret-minimum-32-chars',
+        trustProxyHops: 1,
       }),
+    );
+  });
+
+  it('requires a non-default security audit hash secret in production', () => {
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      SECURITY_EVENT_HASH_SECRET: '',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'SECURITY_EVENT_HASH_SECRET must be configured in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      SECURITY_EVENT_HASH_SECRET: 'change-me-security-event-hash-secret',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'SECURITY_EVENT_HASH_SECRET must be changed from the development default in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      SECURITY_EVENT_HASH_SECRET: 'short-production-audit-secret',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'SECURITY_EVENT_HASH_SECRET must be at least 32 characters in production.',
     );
   });
 });

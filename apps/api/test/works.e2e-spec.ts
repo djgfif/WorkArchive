@@ -3,7 +3,14 @@ import { type AddressInfo } from 'node:net';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 
 import { AppModule } from '../src/app.module';
 import { readApiRuntimeConfig } from '../src/config/api-runtime-config';
@@ -20,6 +27,7 @@ function createPrismaServiceMock() {
   const userTimelineEntries: Array<Record<string, unknown>> = [];
   const userRefreshSessions: Array<Record<string, unknown>> = [];
   const externalApiCredentials: Array<Record<string, unknown>> = [];
+  const securityEvents: Array<Record<string, unknown>> = [];
 
   function buildServerVersion(
     currentVersion: number,
@@ -30,10 +38,15 @@ function createPrismaServiceMock() {
       nextVersionInput !== null &&
       'increment' in nextVersionInput
     ) {
-      return currentVersion + Number((nextVersionInput as { increment: number }).increment);
+      return (
+        currentVersion +
+        Number((nextVersionInput as { increment: number }).increment)
+      );
     }
 
-    return typeof nextVersionInput === 'number' ? nextVersionInput : currentVersion;
+    return typeof nextVersionInput === 'number'
+      ? nextVersionInput
+      : currentVersion;
   }
 
   function getCatalogWorkById(id: string) {
@@ -140,685 +153,437 @@ function createPrismaServiceMock() {
   };
 
   prismaMock.user = {
-      findUnique: async ({
-        where,
-      }: {
-        where: {
-          email?: string;
-          id?: string;
-        };
-      }) =>
-        users.find((user) => {
-          if (where.id && user.id !== where.id) {
-            return false;
-          }
-
-          if (where.email && user.email !== where.email) {
-            return false;
-          }
-
-          return true;
-        }) ?? null,
-      create: async ({ data }: { data: Record<string, unknown> }) => {
-        const now = new Date();
-        const user = {
-          id: data.id ?? crypto.randomUUID(),
-          email: data.email,
-          passwordHash: data.passwordHash,
-          refreshTokenHash: data.refreshTokenHash ?? null,
-          nickname: data.nickname ?? '',
-          role: data.role ?? 'user',
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        users.push(user);
-
-        return user;
-      },
-      update: async ({
-        where,
-        data,
-      }: {
-        where: {
-          id: string;
-        };
-        data: Record<string, unknown>;
-      }) => {
-        const index = users.findIndex((user) => user.id === where.id);
-
-        if (index === -1) {
-          throw new Error('user not found');
+    findUnique: async ({
+      where,
+    }: {
+      where: {
+        email?: string;
+        id?: string;
+      };
+    }) =>
+      users.find((user) => {
+        if (where.id && user.id !== where.id) {
+          return false;
         }
 
-        const updatedUser = {
-          ...users[index],
-          ...data,
-          updatedAt: new Date(),
-        };
+        if (where.email && user.email !== where.email) {
+          return false;
+        }
 
-        users[index] = updatedUser;
+        return true;
+      }) ?? null,
+    create: async ({ data }: { data: Record<string, unknown> }) => {
+      const now = new Date();
+      const user = {
+        id: data.id ?? crypto.randomUUID(),
+        email: data.email,
+        passwordHash: data.passwordHash,
+        refreshTokenHash: data.refreshTokenHash ?? null,
+        nickname: data.nickname ?? '',
+        role: data.role ?? 'user',
+        createdAt: now,
+        updatedAt: now,
+      };
 
-        return updatedUser;
-      },
-    };
+      users.push(user);
+
+      return user;
+    },
+    update: async ({
+      where,
+      data,
+    }: {
+      where: {
+        id: string;
+      };
+      data: Record<string, unknown>;
+    }) => {
+      const index = users.findIndex((user) => user.id === where.id);
+
+      if (index === -1) {
+        throw new Error('user not found');
+      }
+
+      const updatedUser = {
+        ...users[index],
+        ...data,
+        updatedAt: new Date(),
+      };
+
+      users[index] = updatedUser;
+
+      return updatedUser;
+    },
+  };
   prismaMock.userRefreshSession = {
-      create: async ({ data }: { data: Record<string, unknown> }) => {
-        const now = new Date();
-        const session = {
-          id: data.id ?? crypto.randomUUID(),
-          userId: data.userId,
-          tokenHash: data.tokenHash,
-          rememberMe: data.rememberMe ?? true,
-          userAgent: data.userAgent ?? null,
-          ipAddress: data.ipAddress ?? null,
-          createdAt: data.createdAt ?? now,
-          updatedAt: data.updatedAt ?? now,
-          lastUsedAt: data.lastUsedAt ?? null,
-          rotatedAt: data.rotatedAt ?? null,
-          expiresAt: data.expiresAt,
-          revokedAt: data.revokedAt ?? null,
-        };
+    create: async ({ data }: { data: Record<string, unknown> }) => {
+      const now = new Date();
+      const session = {
+        id: data.id ?? crypto.randomUUID(),
+        userId: data.userId,
+        tokenHash: data.tokenHash,
+        rememberMe: data.rememberMe ?? true,
+        userAgent: data.userAgent ?? null,
+        ipAddress: data.ipAddress ?? null,
+        createdAt: data.createdAt ?? now,
+        updatedAt: data.updatedAt ?? now,
+        lastUsedAt: data.lastUsedAt ?? null,
+        rotatedAt: data.rotatedAt ?? null,
+        expiresAt: data.expiresAt,
+        revokedAt: data.revokedAt ?? null,
+      };
 
-        userRefreshSessions.push(session);
+      userRefreshSessions.push(session);
 
+      return session;
+    },
+    findUnique: async ({
+      include,
+      where,
+    }: {
+      include?: {
+        user?: boolean;
+      };
+      where: {
+        id: string;
+      };
+    }) => {
+      const session =
+        userRefreshSessions.find((candidate) => candidate.id === where.id) ??
+        null;
+
+      if (!session || !include?.user) {
         return session;
-      },
-      findUnique: async ({
-        include,
-        where,
-      }: {
-        include?: {
-          user?: boolean;
+      }
+
+      return {
+        ...session,
+        user: users.find((user) => user.id === session.userId),
+      };
+    },
+    findMany: async ({
+      orderBy,
+      where,
+    }: {
+      orderBy?: {
+        createdAt?: 'asc' | 'desc';
+      };
+      where?: {
+        expiresAt?: {
+          gt: Date;
         };
-        where: {
-          id: string;
-        };
-      }) => {
-        const session =
-          userRefreshSessions.find((candidate) => candidate.id === where.id) ??
-          null;
-
-        if (!session || !include?.user) {
-          return session;
-        }
-
-        return {
-          ...session,
-          user: users.find((user) => user.id === session.userId),
-        };
-      },
-      findMany: async ({
-        orderBy,
-        where,
-      }: {
-        orderBy?: {
-          createdAt?: 'asc' | 'desc';
-        };
-        where?: {
-          expiresAt?: {
-            gt: Date;
-          };
-          revokedAt?: null;
-          userId?: string;
-        };
-      } = {}) =>
-        [...userRefreshSessions]
-          .filter((session) => {
-            if (where?.userId && session.userId !== where.userId) {
-              return false;
-            }
-
-            if (where?.revokedAt === null && session.revokedAt !== null) {
-              return false;
-            }
-
-            if (
-              where?.expiresAt?.gt &&
-              new Date(session.expiresAt as Date).getTime() <=
-                where.expiresAt.gt.getTime()
-            ) {
-              return false;
-            }
-
-            return true;
-          })
-          .sort((left, right) => {
-            const delta =
-              new Date(left.createdAt as Date).getTime() -
-              new Date(right.createdAt as Date).getTime();
-
-            return orderBy?.createdAt === 'asc' ? delta : -delta;
-          }),
-      update: async ({
-        data,
-        where,
-      }: {
-        data: Record<string, unknown>;
-        where: {
-          id: string;
-        };
-      }) => {
-        const index = userRefreshSessions.findIndex(
-          (session) => session.id === where.id,
-        );
-
-        if (index === -1) {
-          throw new Error('session not found');
-        }
-
-        const updatedSession = {
-          ...userRefreshSessions[index],
-          ...data,
-          updatedAt: new Date(),
-        };
-
-        userRefreshSessions[index] = updatedSession;
-
-        return updatedSession;
-      },
-      updateMany: async ({
-        data,
-        where,
-      }: {
-        data: Record<string, unknown>;
-        where: {
-          id?: string;
-          revokedAt?: null;
-          userId?: string;
-        };
-      }) => {
-        let count = 0;
-
-        for (const session of userRefreshSessions) {
-          if (where.id && session.id !== where.id) {
-            continue;
-          }
-
-          if (where.userId && session.userId !== where.userId) {
-            continue;
-          }
-
-          if ('revokedAt' in where && session.revokedAt !== where.revokedAt) {
-            continue;
-          }
-
-          Object.assign(session, data, {
-            updatedAt: new Date(),
-          });
-          count += 1;
-        }
-
-        return {
-          count,
-        };
-      },
-    };
-  prismaMock.catalogWork = {
-      create: async ({ data }: { data: Record<string, unknown> }) => {
-        const now = new Date();
-        const catalogWork = {
-          id: data.id ?? crypto.randomUUID(),
-          type: data.type ?? WorkType.novel,
-          title: data.title,
-          author: data.author ?? '',
-          genres: data.genres ?? [],
-          description: data.description ?? '',
-          thumbnailUrl: data.thumbnailUrl ?? '',
-          createdAt: data.createdAt ?? now,
-          updatedAt: data.updatedAt ?? now,
-        };
-
-        catalogWorks.push(catalogWork);
-
-        return catalogWork;
-      },
-      update: async ({
-        where,
-        data,
-      }: {
-        where: {
-          id: string;
-        };
-        data: Record<string, unknown>;
-      }) => {
-        const index = catalogWorks.findIndex(
-          (catalogWork) => catalogWork.id === where.id,
-        );
-
-        if (index === -1) {
-          throw new Error('catalog work not found');
-        }
-
-        const updatedCatalogWork = {
-          ...catalogWorks[index],
-          ...data,
-          updatedAt: data.updatedAt ?? new Date(),
-        };
-
-        catalogWorks[index] = updatedCatalogWork;
-
-        return updatedCatalogWork;
-      },
-    };
-  prismaMock.catalogTitle = {
-      upsert: async ({
-        create,
-        update,
-        where,
-      }: {
-        create: Record<string, unknown>;
-        update: Record<string, unknown>;
-        where: {
-          id: string;
-        };
-      }) => {
-        const index = catalogTitles.findIndex((title) => title.id === where.id);
-        const now = new Date();
-
-        if (index >= 0) {
-          const updatedTitle = {
-            ...catalogTitles[index],
-            ...update,
-            updatedAt: update.updatedAt ?? now,
-          };
-
-          catalogTitles[index] = updatedTitle;
-
-          return updatedTitle;
-        }
-
-        const title = {
-          id: create.id ?? where.id,
-          franchiseId: create.franchiseId ?? null,
-          mediumType: create.mediumType ?? WorkType.other,
-          subType: create.subType ?? null,
-          canonicalTitle: create.canonicalTitle,
-          displayTitle: create.displayTitle,
-          originalTitle: create.originalTitle ?? null,
-          aliases: create.aliases ?? [],
-          releaseYear: create.releaseYear ?? null,
-          startDate: create.startDate ?? null,
-          endDate: create.endDate ?? null,
-          country: create.country ?? null,
-          status: create.status ?? 'unknown',
-          summary: create.summary ?? '',
-          thumbnailUrl: create.thumbnailUrl ?? '',
-          verificationStatus: create.verificationStatus ?? 'draft',
-          createdAt: create.createdAt ?? now,
-          updatedAt: create.updatedAt ?? now,
-          franchise: null,
-          contributors: [],
-          outgoingRelations: [],
-          externalRefs: [],
-        };
-
-        catalogTitles.push(title);
-
-        return title;
-      },
-      findFirst: async ({
-        where,
-        select,
-      }: {
-        where?: {
-          displayTitle?: {
-            equals: string;
-            mode?: string;
-          };
-          mediumType?: WorkType;
-        };
-        select?: Record<string, boolean>;
-      } = {}) => {
-        const title =
-          catalogTitles.find((catalogTitle) => {
-            if (
-              where?.mediumType &&
-              catalogTitle.mediumType !== where.mediumType
-            ) {
-              return false;
-            }
-
-            if (where?.displayTitle?.equals) {
-              const expected = where.displayTitle.equals.toLowerCase();
-              const actual = String(catalogTitle.displayTitle).toLowerCase();
-
-              if (actual !== expected) {
-                return false;
-              }
-            }
-
-            return true;
-          }) ?? null;
-
-        if (!title || !select) {
-          return title;
-        }
-
-        return Object.fromEntries(
-          Object.entries(select)
-            .filter(([, enabled]) => enabled)
-            .map(([key]) => [key, title[key]]),
-        );
-      },
-      findMany: async ({
-        where,
-      }: {
-        where?: {
-          franchiseId?: string;
-          mediumType?: WorkType;
-          verificationStatus?: {
-            not?: string;
-          };
-        };
-      } = {}) =>
-        catalogTitles.filter((catalogTitle) => {
-          if (where?.franchiseId && catalogTitle.franchiseId !== where.franchiseId) {
+        revokedAt?: null;
+        userId?: string;
+      };
+    } = {}) =>
+      [...userRefreshSessions]
+        .filter((session) => {
+          if (where?.userId && session.userId !== where.userId) {
             return false;
           }
 
-          if (where?.mediumType && catalogTitle.mediumType !== where.mediumType) {
+          if (where?.revokedAt === null && session.revokedAt !== null) {
             return false;
           }
 
           if (
-            where?.verificationStatus?.not &&
-            catalogTitle.verificationStatus === where.verificationStatus.not
+            where?.expiresAt?.gt &&
+            new Date(session.expiresAt as Date).getTime() <=
+              where.expiresAt.gt.getTime()
           ) {
             return false;
           }
 
           return true;
+        })
+        .sort((left, right) => {
+          const delta =
+            new Date(left.createdAt as Date).getTime() -
+            new Date(right.createdAt as Date).getTime();
+
+          return orderBy?.createdAt === 'asc' ? delta : -delta;
         }),
-      findUnique: async ({
-        where,
-      }: {
-        where: {
-          id: string;
+    update: async ({
+      data,
+      where,
+    }: {
+      data: Record<string, unknown>;
+      where: {
+        id: string;
+      };
+    }) => {
+      const index = userRefreshSessions.findIndex(
+        (session) => session.id === where.id,
+      );
+
+      if (index === -1) {
+        throw new Error('session not found');
+      }
+
+      const updatedSession = {
+        ...userRefreshSessions[index],
+        ...data,
+        updatedAt: new Date(),
+      };
+
+      userRefreshSessions[index] = updatedSession;
+
+      return updatedSession;
+    },
+    updateMany: async ({
+      data,
+      where,
+    }: {
+      data: Record<string, unknown>;
+      where: {
+        id?: string;
+        revokedAt?: null;
+        userId?: string;
+      };
+    }) => {
+      let count = 0;
+
+      for (const session of userRefreshSessions) {
+        if (where.id && session.id !== where.id) {
+          continue;
+        }
+
+        if (where.userId && session.userId !== where.userId) {
+          continue;
+        }
+
+        if ('revokedAt' in where && session.revokedAt !== where.revokedAt) {
+          continue;
+        }
+
+        Object.assign(session, data, {
+          updatedAt: new Date(),
+        });
+        count += 1;
+      }
+
+      return {
+        count,
+      };
+    },
+  };
+  prismaMock.catalogWork = {
+    create: async ({ data }: { data: Record<string, unknown> }) => {
+      const now = new Date();
+      const catalogWork = {
+        id: data.id ?? crypto.randomUUID(),
+        type: data.type ?? WorkType.novel,
+        title: data.title,
+        author: data.author ?? '',
+        genres: data.genres ?? [],
+        description: data.description ?? '',
+        thumbnailUrl: data.thumbnailUrl ?? '',
+        createdAt: data.createdAt ?? now,
+        updatedAt: data.updatedAt ?? now,
+      };
+
+      catalogWorks.push(catalogWork);
+
+      return catalogWork;
+    },
+    update: async ({
+      where,
+      data,
+    }: {
+      where: {
+        id: string;
+      };
+      data: Record<string, unknown>;
+    }) => {
+      const index = catalogWorks.findIndex(
+        (catalogWork) => catalogWork.id === where.id,
+      );
+
+      if (index === -1) {
+        throw new Error('catalog work not found');
+      }
+
+      const updatedCatalogWork = {
+        ...catalogWorks[index],
+        ...data,
+        updatedAt: data.updatedAt ?? new Date(),
+      };
+
+      catalogWorks[index] = updatedCatalogWork;
+
+      return updatedCatalogWork;
+    },
+  };
+  prismaMock.catalogTitle = {
+    upsert: async ({
+      create,
+      update,
+      where,
+    }: {
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+      where: {
+        id: string;
+      };
+    }) => {
+      const index = catalogTitles.findIndex((title) => title.id === where.id);
+      const now = new Date();
+
+      if (index >= 0) {
+        const updatedTitle = {
+          ...catalogTitles[index],
+          ...update,
+          updatedAt: update.updatedAt ?? now,
         };
-      }) => getCatalogTitleById(where.id),
-    };
+
+        catalogTitles[index] = updatedTitle;
+
+        return updatedTitle;
+      }
+
+      const title = {
+        id: create.id ?? where.id,
+        franchiseId: create.franchiseId ?? null,
+        mediumType: create.mediumType ?? WorkType.other,
+        subType: create.subType ?? null,
+        canonicalTitle: create.canonicalTitle,
+        displayTitle: create.displayTitle,
+        originalTitle: create.originalTitle ?? null,
+        aliases: create.aliases ?? [],
+        releaseYear: create.releaseYear ?? null,
+        startDate: create.startDate ?? null,
+        endDate: create.endDate ?? null,
+        country: create.country ?? null,
+        status: create.status ?? 'unknown',
+        summary: create.summary ?? '',
+        thumbnailUrl: create.thumbnailUrl ?? '',
+        verificationStatus: create.verificationStatus ?? 'draft',
+        createdAt: create.createdAt ?? now,
+        updatedAt: create.updatedAt ?? now,
+        franchise: null,
+        contributors: [],
+        outgoingRelations: [],
+        externalRefs: [],
+      };
+
+      catalogTitles.push(title);
+
+      return title;
+    },
+    findFirst: async ({
+      where,
+      select,
+    }: {
+      where?: {
+        displayTitle?: {
+          equals: string;
+          mode?: string;
+        };
+        mediumType?: WorkType;
+      };
+      select?: Record<string, boolean>;
+    } = {}) => {
+      const title =
+        catalogTitles.find((catalogTitle) => {
+          if (
+            where?.mediumType &&
+            catalogTitle.mediumType !== where.mediumType
+          ) {
+            return false;
+          }
+
+          if (where?.displayTitle?.equals) {
+            const expected = where.displayTitle.equals.toLowerCase();
+            const actual = String(catalogTitle.displayTitle).toLowerCase();
+
+            if (actual !== expected) {
+              return false;
+            }
+          }
+
+          return true;
+        }) ?? null;
+
+      if (!title || !select) {
+        return title;
+      }
+
+      return Object.fromEntries(
+        Object.entries(select)
+          .filter(([, enabled]) => enabled)
+          .map(([key]) => [key, title[key]]),
+      );
+    },
+    findMany: async ({
+      where,
+    }: {
+      where?: {
+        franchiseId?: string;
+        mediumType?: WorkType;
+        verificationStatus?: {
+          not?: string;
+        };
+      };
+    } = {}) =>
+      catalogTitles.filter((catalogTitle) => {
+        if (
+          where?.franchiseId &&
+          catalogTitle.franchiseId !== where.franchiseId
+        ) {
+          return false;
+        }
+
+        if (where?.mediumType && catalogTitle.mediumType !== where.mediumType) {
+          return false;
+        }
+
+        if (
+          where?.verificationStatus?.not &&
+          catalogTitle.verificationStatus === where.verificationStatus.not
+        ) {
+          return false;
+        }
+
+        return true;
+      }),
+    findUnique: async ({
+      where,
+    }: {
+      where: {
+        id: string;
+      };
+    }) => getCatalogTitleById(where.id),
+  };
   prismaMock.userWorkRecord = {
-      findMany: async ({
-        where,
-        orderBy,
-      }: {
-        where?: {
-          deletedAt?: null;
-          updatedAt?: {
-            gt: Date;
-          };
-          userId?: string;
+    findMany: async ({
+      where,
+      orderBy,
+    }: {
+      where?: {
+        deletedAt?: null;
+        updatedAt?: {
+          gt: Date;
         };
-        orderBy?:
-          | {
-              id?: 'asc' | 'desc';
-              updatedAt?: 'asc' | 'desc';
-            }
-          | Array<{
-              id?: 'asc' | 'desc';
-              updatedAt?: 'asc' | 'desc';
-            }>;
-      } = {}) =>
-        [...userWorkRecords]
-          .filter((record) => {
-            if (where?.userId && record.userId !== where.userId) {
-              return false;
-            }
+        userId?: string;
+      };
+      orderBy?:
+        | {
+            id?: 'asc' | 'desc';
+            updatedAt?: 'asc' | 'desc';
+          }
+        | Array<{
+            id?: 'asc' | 'desc';
+            updatedAt?: 'asc' | 'desc';
+          }>;
+    } = {}) =>
+      [...userWorkRecords]
+        .filter((record) => {
+          if (where?.userId && record.userId !== where.userId) {
+            return false;
+          }
 
-            if (where?.deletedAt === null && record.deletedAt !== null) {
-              return false;
-            }
-
-            if (
-              where?.updatedAt?.gt &&
-              new Date(record.updatedAt as Date).getTime() <=
-                where.updatedAt.gt.getTime()
-            ) {
-              return false;
-            }
-
-            return true;
-          })
-          .sort((left, right) => {
-            const { idDirection, updatedAtDirection } = getSortDirections(orderBy);
-            const updatedAtDelta =
-              new Date(left.updatedAt as Date).getTime() -
-              new Date(right.updatedAt as Date).getTime();
-
-            if (updatedAtDelta !== 0) {
-              return updatedAtDirection === 'asc' ? updatedAtDelta : -updatedAtDelta;
-            }
-
-            const idDelta = String(left.id).localeCompare(String(right.id));
-
-            return idDirection === 'asc' ? idDelta : -idDelta;
-          })
-          .map((record) => joinRecord(record)),
-      findUnique: async ({
-        where,
-      }: {
-        where: {
-          id: string;
-        };
-      }) => {
-        const record = userWorkRecords.find((work) => work.id === where.id) ?? null;
-
-        return record ? joinRecord(record) : null;
-      },
-      findFirst: async ({
-        where,
-      }: {
-        where: {
-          deletedAt?: null;
-          id?: string;
-          userId?: string;
-        };
-      }) => {
-        const record =
-          userWorkRecords.find((work) => {
-            if (where.id && work.id !== where.id) {
-              return false;
-            }
-
-            if (where.userId && work.userId !== where.userId) {
-              return false;
-            }
-
-            if (where.deletedAt === null && work.deletedAt !== null) {
-              return false;
-            }
-
-            return true;
-          }) ?? null;
-
-        return record ? joinRecord(record) : null;
-      },
-      create: async ({
-        data,
-      }: {
-        data: Record<string, unknown>;
-      }) => {
-        const now = new Date();
-        const record = {
-          id: data.id ?? crypto.randomUUID(),
-          userId: data.userId ?? null,
-          catalogWorkId: data.catalogWorkId,
-          catalogTitleId: data.catalogTitleId ?? null,
-          status: data.status ?? WorkStatus.planned,
-          rating: data.rating ?? null,
-          shortReview: data.shortReview ?? '',
-          review: data.review ?? '',
-          personalTags: data.personalTags ?? [],
-          tier: data.tier ?? null,
-          favorite: data.favorite ?? false,
-          progressCurrent: data.progressCurrent ?? null,
-          progressTotal: data.progressTotal ?? null,
-          progressUnit: data.progressUnit ?? null,
-          lastConsumedLabel: data.lastConsumedLabel ?? null,
-          startedAt: data.startedAt ?? null,
-          completedAt: data.completedAt ?? null,
-          droppedAt: data.droppedAt ?? null,
-          lastConsumedAt: data.lastConsumedAt ?? null,
-          createdAt: data.createdAt ?? now,
-          updatedAt: data.updatedAt ?? now,
-          deletedAt: data.deletedAt ?? null,
-          syncStatus: data.syncStatus ?? WorkSyncStatus.synced,
-          serverVersion: data.serverVersion ?? 1,
-        };
-
-        userWorkRecords.push(record);
-
-        return joinRecord(record);
-      },
-      update: async ({
-        where,
-        data,
-      }: {
-        where: {
-          id: string;
-        };
-        data: Record<string, unknown>;
-      }) => {
-        const index = userWorkRecords.findIndex((record) => record.id === where.id);
-
-        if (index === -1) {
-          throw new Error('user work record not found');
-        }
-
-        const current = userWorkRecords[index]!;
-        const updatedRecord = {
-          ...current,
-          ...data,
-          serverVersion: buildServerVersion(
-            Number(current.serverVersion),
-            data.serverVersion,
-          ),
-          updatedAt: data.updatedAt ?? new Date(),
-        };
-
-        userWorkRecords[index] = updatedRecord;
-
-        return joinRecord(updatedRecord);
-      },
-    };
-  prismaMock.catalogExternalRef = {
-      findUnique: async ({
-        include,
-        where,
-      }: {
-        include?: {
-          catalogTitle?: boolean;
-        };
-        where: {
-          provider_rawType_externalId: {
-            externalId: string;
-            provider: string;
-            rawType: string;
-          };
-        };
-      }) => {
-        const ref =
-          catalogExternalRefs.find(
-            (externalRef) =>
-              externalRef.externalId ===
-                where.provider_rawType_externalId.externalId &&
-              externalRef.provider ===
-                where.provider_rawType_externalId.provider &&
-              externalRef.rawType ===
-                where.provider_rawType_externalId.rawType,
-          ) ?? null;
-
-        if (!ref || !include?.catalogTitle) {
-          return ref;
-        }
-
-        return {
-          ...ref,
-          catalogTitle: getCatalogTitleById(ref.catalogTitleId as string | null),
-        };
-      },
-      upsert: async ({
-        create,
-        update,
-        where,
-      }: {
-        create: Record<string, unknown>;
-        update: Record<string, unknown>;
-        where: {
-          provider_rawType_externalId: {
-            externalId: string;
-            provider: string;
-            rawType: string;
-          };
-        };
-      }) => {
-        const index = catalogExternalRefs.findIndex(
-          (externalRef) =>
-            externalRef.externalId ===
-              where.provider_rawType_externalId.externalId &&
-            externalRef.provider === where.provider_rawType_externalId.provider &&
-            externalRef.rawType === where.provider_rawType_externalId.rawType,
-        );
-        const now = new Date();
-
-        if (index >= 0) {
-          const updatedRef = {
-            ...catalogExternalRefs[index],
-            ...update,
-            updatedAt: now,
-          };
-
-          catalogExternalRefs[index] = updatedRef;
-
-          return updatedRef;
-        }
-
-        const ref = {
-          id: create.id ?? crypto.randomUUID(),
-          catalogTitleId: create.catalogTitleId ?? null,
-          catalogReleaseId: create.catalogReleaseId ?? null,
-          franchiseId: create.franchiseId ?? null,
-          contributorId: create.contributorId ?? null,
-          provider: create.provider,
-          externalId: create.externalId,
-          url: create.url ?? '',
-          rawType: create.rawType ?? '',
-          language: create.language ?? null,
-          country: create.country ?? null,
-          confidence: create.confidence ?? null,
-          lastFetchedAt: create.lastFetchedAt ?? null,
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        catalogExternalRefs.push(ref);
-
-        return ref;
-      },
-    };
-  prismaMock.userReleaseRecord = {
-      findMany: async ({
-        where,
-      }: {
-        where?: {
-          updatedAt?: {
-            gt: Date;
-          };
-          userWorkRecord?: {
-            userId?: string;
-          };
-        };
-      } = {}) =>
-        userReleaseRecords.filter((record) => {
-          if (where?.userWorkRecord?.userId) {
-            const parent = userWorkRecords.find(
-              (workRecord) => workRecord.id === record.userWorkRecordId,
-            );
-
-            if (parent?.userId !== where.userWorkRecord.userId) {
-              return false;
-            }
+          if (where?.deletedAt === null && record.deletedAt !== null) {
+            return false;
           }
 
           if (
@@ -830,203 +595,469 @@ function createPrismaServiceMock() {
           }
 
           return true;
-        }),
-    };
-  prismaMock.userTimelineEntry = {
-      findUnique: async ({
-        where,
-      }: {
-        where: {
-          id: string;
+        })
+        .sort((left, right) => {
+          const { idDirection, updatedAtDirection } =
+            getSortDirections(orderBy);
+          const updatedAtDelta =
+            new Date(left.updatedAt as Date).getTime() -
+            new Date(right.updatedAt as Date).getTime();
+
+          if (updatedAtDelta !== 0) {
+            return updatedAtDirection === 'asc'
+              ? updatedAtDelta
+              : -updatedAtDelta;
+          }
+
+          const idDelta = String(left.id).localeCompare(String(right.id));
+
+          return idDirection === 'asc' ? idDelta : -idDelta;
+        })
+        .map((record) => joinRecord(record)),
+    findUnique: async ({
+      where,
+    }: {
+      where: {
+        id: string;
+      };
+    }) => {
+      const record =
+        userWorkRecords.find((work) => work.id === where.id) ?? null;
+
+      return record ? joinRecord(record) : null;
+    },
+    findFirst: async ({
+      where,
+    }: {
+      where: {
+        deletedAt?: null;
+        id?: string;
+        userId?: string;
+      };
+    }) => {
+      const record =
+        userWorkRecords.find((work) => {
+          if (where.id && work.id !== where.id) {
+            return false;
+          }
+
+          if (where.userId && work.userId !== where.userId) {
+            return false;
+          }
+
+          if (where.deletedAt === null && work.deletedAt !== null) {
+            return false;
+          }
+
+          return true;
+        }) ?? null;
+
+      return record ? joinRecord(record) : null;
+    },
+    create: async ({ data }: { data: Record<string, unknown> }) => {
+      const now = new Date();
+      const record = {
+        id: data.id ?? crypto.randomUUID(),
+        userId: data.userId ?? null,
+        catalogWorkId: data.catalogWorkId,
+        catalogTitleId: data.catalogTitleId ?? null,
+        status: data.status ?? WorkStatus.planned,
+        rating: data.rating ?? null,
+        shortReview: data.shortReview ?? '',
+        review: data.review ?? '',
+        personalTags: data.personalTags ?? [],
+        tier: data.tier ?? null,
+        favorite: data.favorite ?? false,
+        progressCurrent: data.progressCurrent ?? null,
+        progressTotal: data.progressTotal ?? null,
+        progressUnit: data.progressUnit ?? null,
+        lastConsumedLabel: data.lastConsumedLabel ?? null,
+        startedAt: data.startedAt ?? null,
+        completedAt: data.completedAt ?? null,
+        droppedAt: data.droppedAt ?? null,
+        lastConsumedAt: data.lastConsumedAt ?? null,
+        createdAt: data.createdAt ?? now,
+        updatedAt: data.updatedAt ?? now,
+        deletedAt: data.deletedAt ?? null,
+        syncStatus: data.syncStatus ?? WorkSyncStatus.synced,
+        serverVersion: data.serverVersion ?? 1,
+      };
+
+      userWorkRecords.push(record);
+
+      return joinRecord(record);
+    },
+    update: async ({
+      where,
+      data,
+    }: {
+      where: {
+        id: string;
+      };
+      data: Record<string, unknown>;
+    }) => {
+      const index = userWorkRecords.findIndex(
+        (record) => record.id === where.id,
+      );
+
+      if (index === -1) {
+        throw new Error('user work record not found');
+      }
+
+      const current = userWorkRecords[index]!;
+      const updatedRecord = {
+        ...current,
+        ...data,
+        serverVersion: buildServerVersion(
+          Number(current.serverVersion),
+          data.serverVersion,
+        ),
+        updatedAt: data.updatedAt ?? new Date(),
+      };
+
+      userWorkRecords[index] = updatedRecord;
+
+      return joinRecord(updatedRecord);
+    },
+  };
+  prismaMock.catalogExternalRef = {
+    findUnique: async ({
+      include,
+      where,
+    }: {
+      include?: {
+        catalogTitle?: boolean;
+      };
+      where: {
+        provider_rawType_externalId: {
+          externalId: string;
+          provider: string;
+          rawType: string;
         };
-      }) => {
-        const entry =
-          userTimelineEntries.find((candidate) => candidate.id === where.id) ??
-          null;
+      };
+    }) => {
+      const ref =
+        catalogExternalRefs.find(
+          (externalRef) =>
+            externalRef.externalId ===
+              where.provider_rawType_externalId.externalId &&
+            externalRef.provider ===
+              where.provider_rawType_externalId.provider &&
+            externalRef.rawType === where.provider_rawType_externalId.rawType,
+        ) ?? null;
 
-        return entry ? joinTimelineEntry(entry) : null;
-      },
-      findMany: async ({
-        where,
-      }: {
-        where?: {
-          updatedAt?: {
-            gt: Date;
-          };
-          userId?: string;
+      if (!ref || !include?.catalogTitle) {
+        return ref;
+      }
+
+      return {
+        ...ref,
+        catalogTitle: getCatalogTitleById(ref.catalogTitleId as string | null),
+      };
+    },
+    upsert: async ({
+      create,
+      update,
+      where,
+    }: {
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+      where: {
+        provider_rawType_externalId: {
+          externalId: string;
+          provider: string;
+          rawType: string;
         };
-      } = {}) =>
-        [...userTimelineEntries]
-          .filter((entry) => {
-            if (where?.userId && entry.userId !== where.userId) {
-              return false;
-            }
+      };
+    }) => {
+      const index = catalogExternalRefs.findIndex(
+        (externalRef) =>
+          externalRef.externalId ===
+            where.provider_rawType_externalId.externalId &&
+          externalRef.provider === where.provider_rawType_externalId.provider &&
+          externalRef.rawType === where.provider_rawType_externalId.rawType,
+      );
+      const now = new Date();
 
-            if (
-              where?.updatedAt?.gt &&
-              new Date(entry.updatedAt as Date).getTime() <=
-                where.updatedAt.gt.getTime()
-            ) {
-              return false;
-            }
-
-            return true;
-          })
-          .sort((left, right) => {
-            const updatedAtDelta =
-              new Date(left.updatedAt as Date).getTime() -
-              new Date(right.updatedAt as Date).getTime();
-
-            if (updatedAtDelta !== 0) {
-              return updatedAtDelta;
-            }
-
-            return String(left.id).localeCompare(String(right.id));
-          })
-          .map((entry) => joinTimelineEntry(entry)),
-      create: async ({ data }: { data: Record<string, unknown> }) => {
-        const now = new Date();
-        const entry = {
-          id: data.id ?? crypto.randomUUID(),
-          userId: data.userId,
-          userWorkRecordId: data.userWorkRecordId,
-          type: data.type ?? 'note',
-          occurredAt: data.occurredAt ?? now,
-          note: data.note ?? '',
-          createdAt: data.createdAt ?? now,
-          updatedAt: data.updatedAt ?? now,
-          deletedAt: data.deletedAt ?? null,
-          syncStatus: data.syncStatus ?? WorkSyncStatus.synced,
-          serverVersion: data.serverVersion ?? 1,
-        };
-
-        userTimelineEntries.push(entry);
-
-        return joinTimelineEntry(entry);
-      },
-      update: async ({
-        data,
-        where,
-      }: {
-        data: Record<string, unknown>;
-        where: {
-          id: string;
-        };
-      }) => {
-        const index = userTimelineEntries.findIndex(
-          (entry) => entry.id === where.id,
-        );
-
-        if (index === -1) {
-          throw new Error('timeline entry not found');
-        }
-
-        const current = userTimelineEntries[index]!;
-        const updatedEntry = {
-          ...current,
-          ...data,
-          serverVersion: buildServerVersion(
-            Number(current.serverVersion),
-            data.serverVersion,
-          ),
-          updatedAt: data.updatedAt ?? new Date(),
-        };
-
-        userTimelineEntries[index] = updatedEntry;
-
-        return joinTimelineEntry(updatedEntry);
-      },
-    };
-  prismaMock.externalApiCredential = {
-      findUnique: async ({
-        where,
-      }: {
-        where: {
-          userId_provider: {
-            provider: string;
-            userId: string;
-          };
-        };
-      }) =>
-        externalApiCredentials.find(
-          (credential) =>
-            credential.userId === where.userId_provider.userId &&
-            credential.provider === where.userId_provider.provider,
-        ) ?? null,
-      upsert: async ({
-        create,
-        update,
-        where,
-      }: {
-        create: Record<string, unknown>;
-        update: Record<string, unknown>;
-        where: {
-          userId_provider: {
-            provider: string;
-            userId: string;
-          };
-        };
-      }) => {
-        const index = externalApiCredentials.findIndex(
-          (credential) =>
-            credential.userId === where.userId_provider.userId &&
-            credential.provider === where.userId_provider.provider,
-        );
-        const now = new Date();
-
-        if (index >= 0) {
-          const updatedCredential = {
-            ...externalApiCredentials[index],
-            ...update,
-            updatedAt: now,
-          };
-
-          externalApiCredentials[index] = updatedCredential;
-
-          return updatedCredential;
-        }
-
-        const credential = {
-          id: create.id ?? crypto.randomUUID(),
-          userId: create.userId,
-          provider: create.provider,
-          encryptedKey: create.encryptedKey,
-          iv: create.iv,
-          authTag: create.authTag,
-          createdAt: now,
+      if (index >= 0) {
+        const updatedRef = {
+          ...catalogExternalRefs[index],
+          ...update,
           updatedAt: now,
         };
 
-        externalApiCredentials.push(credential);
+        catalogExternalRefs[index] = updatedRef;
 
-        return credential;
-      },
-      deleteMany: async ({
-        where,
-      }: {
-        where: {
+        return updatedRef;
+      }
+
+      const ref = {
+        id: create.id ?? crypto.randomUUID(),
+        catalogTitleId: create.catalogTitleId ?? null,
+        catalogReleaseId: create.catalogReleaseId ?? null,
+        franchiseId: create.franchiseId ?? null,
+        contributorId: create.contributorId ?? null,
+        provider: create.provider,
+        externalId: create.externalId,
+        url: create.url ?? '',
+        rawType: create.rawType ?? '',
+        language: create.language ?? null,
+        country: create.country ?? null,
+        confidence: create.confidence ?? null,
+        lastFetchedAt: create.lastFetchedAt ?? null,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      catalogExternalRefs.push(ref);
+
+      return ref;
+    },
+  };
+  prismaMock.userReleaseRecord = {
+    findMany: async ({
+      where,
+    }: {
+      where?: {
+        updatedAt?: {
+          gt: Date;
+        };
+        userWorkRecord?: {
+          userId?: string;
+        };
+      };
+    } = {}) =>
+      userReleaseRecords.filter((record) => {
+        if (where?.userWorkRecord?.userId) {
+          const parent = userWorkRecords.find(
+            (workRecord) => workRecord.id === record.userWorkRecordId,
+          );
+
+          if (parent?.userId !== where.userWorkRecord.userId) {
+            return false;
+          }
+        }
+
+        if (
+          where?.updatedAt?.gt &&
+          new Date(record.updatedAt as Date).getTime() <=
+            where.updatedAt.gt.getTime()
+        ) {
+          return false;
+        }
+
+        return true;
+      }),
+  };
+  prismaMock.userTimelineEntry = {
+    findUnique: async ({
+      where,
+    }: {
+      where: {
+        id: string;
+      };
+    }) => {
+      const entry =
+        userTimelineEntries.find((candidate) => candidate.id === where.id) ??
+        null;
+
+      return entry ? joinTimelineEntry(entry) : null;
+    },
+    findMany: async ({
+      where,
+    }: {
+      where?: {
+        updatedAt?: {
+          gt: Date;
+        };
+        userId?: string;
+      };
+    } = {}) =>
+      [...userTimelineEntries]
+        .filter((entry) => {
+          if (where?.userId && entry.userId !== where.userId) {
+            return false;
+          }
+
+          if (
+            where?.updatedAt?.gt &&
+            new Date(entry.updatedAt as Date).getTime() <=
+              where.updatedAt.gt.getTime()
+          ) {
+            return false;
+          }
+
+          return true;
+        })
+        .sort((left, right) => {
+          const updatedAtDelta =
+            new Date(left.updatedAt as Date).getTime() -
+            new Date(right.updatedAt as Date).getTime();
+
+          if (updatedAtDelta !== 0) {
+            return updatedAtDelta;
+          }
+
+          return String(left.id).localeCompare(String(right.id));
+        })
+        .map((entry) => joinTimelineEntry(entry)),
+    create: async ({ data }: { data: Record<string, unknown> }) => {
+      const now = new Date();
+      const entry = {
+        id: data.id ?? crypto.randomUUID(),
+        userId: data.userId,
+        userWorkRecordId: data.userWorkRecordId,
+        type: data.type ?? 'note',
+        occurredAt: data.occurredAt ?? now,
+        note: data.note ?? '',
+        createdAt: data.createdAt ?? now,
+        updatedAt: data.updatedAt ?? now,
+        deletedAt: data.deletedAt ?? null,
+        syncStatus: data.syncStatus ?? WorkSyncStatus.synced,
+        serverVersion: data.serverVersion ?? 1,
+      };
+
+      userTimelineEntries.push(entry);
+
+      return joinTimelineEntry(entry);
+    },
+    update: async ({
+      data,
+      where,
+    }: {
+      data: Record<string, unknown>;
+      where: {
+        id: string;
+      };
+    }) => {
+      const index = userTimelineEntries.findIndex(
+        (entry) => entry.id === where.id,
+      );
+
+      if (index === -1) {
+        throw new Error('timeline entry not found');
+      }
+
+      const current = userTimelineEntries[index]!;
+      const updatedEntry = {
+        ...current,
+        ...data,
+        serverVersion: buildServerVersion(
+          Number(current.serverVersion),
+          data.serverVersion,
+        ),
+        updatedAt: data.updatedAt ?? new Date(),
+      };
+
+      userTimelineEntries[index] = updatedEntry;
+
+      return joinTimelineEntry(updatedEntry);
+    },
+  };
+  prismaMock.externalApiCredential = {
+    findUnique: async ({
+      where,
+    }: {
+      where: {
+        userId_provider: {
           provider: string;
           userId: string;
         };
-      }) => {
-        const nextCredentials = externalApiCredentials.filter(
-          (credential) =>
-            credential.userId !== where.userId ||
-            credential.provider !== where.provider,
-        );
-        const count = externalApiCredentials.length - nextCredentials.length;
-
-        externalApiCredentials.splice(
-          0,
-          externalApiCredentials.length,
-          ...nextCredentials,
-        );
-
-        return {
-          count,
+      };
+    }) =>
+      externalApiCredentials.find(
+        (credential) =>
+          credential.userId === where.userId_provider.userId &&
+          credential.provider === where.userId_provider.provider,
+      ) ?? null,
+    upsert: async ({
+      create,
+      update,
+      where,
+    }: {
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+      where: {
+        userId_provider: {
+          provider: string;
+          userId: string;
         };
-      },
-    };
+      };
+    }) => {
+      const index = externalApiCredentials.findIndex(
+        (credential) =>
+          credential.userId === where.userId_provider.userId &&
+          credential.provider === where.userId_provider.provider,
+      );
+      const now = new Date();
+
+      if (index >= 0) {
+        const updatedCredential = {
+          ...externalApiCredentials[index],
+          ...update,
+          updatedAt: now,
+        };
+
+        externalApiCredentials[index] = updatedCredential;
+
+        return updatedCredential;
+      }
+
+      const credential = {
+        id: create.id ?? crypto.randomUUID(),
+        userId: create.userId,
+        provider: create.provider,
+        encryptedKey: create.encryptedKey,
+        iv: create.iv,
+        authTag: create.authTag,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      externalApiCredentials.push(credential);
+
+      return credential;
+    },
+    deleteMany: async ({
+      where,
+    }: {
+      where: {
+        provider: string;
+        userId: string;
+      };
+    }) => {
+      const nextCredentials = externalApiCredentials.filter(
+        (credential) =>
+          credential.userId !== where.userId ||
+          credential.provider !== where.provider,
+      );
+      const count = externalApiCredentials.length - nextCredentials.length;
+
+      externalApiCredentials.splice(
+        0,
+        externalApiCredentials.length,
+        ...nextCredentials,
+      );
+
+      return {
+        count,
+      };
+    },
+  };
+
+  prismaMock.securityEvent = {
+    create: async ({ data }: { data: Record<string, unknown> }) => {
+      const event = {
+        id: data.id ?? crypto.randomUUID(),
+        ...data,
+        createdAt: data.createdAt ?? new Date(),
+      };
+
+      securityEvents.push(event);
+
+      return event;
+    },
+  };
 
   return prismaMock;
 }
@@ -1051,7 +1082,7 @@ describe('Auth, works, and sync API (e2e)', () => {
       .compile();
 
     app = moduleRef.createNestApplication();
-    configureApp(app, readApiRuntimeConfig());
+    await configureApp(app, readApiRuntimeConfig());
     await app.listen(0);
     cookieJar = null;
 
@@ -1201,7 +1232,9 @@ describe('Auth, works, and sync API (e2e)', () => {
     });
 
     expect(registerResponse.status).toBe(201);
-    expect(registerResponse.setCookie).toContain(`${REFRESH_TOKEN_COOKIE_NAME}=`);
+    expect(registerResponse.setCookie).toContain(
+      `${REFRESH_TOKEN_COOKIE_NAME}=`,
+    );
     expect(registerResponse.body).toEqual(
       expect.objectContaining({
         accessToken: expect.any(String),
@@ -1253,7 +1286,9 @@ describe('Auth, works, and sync API (e2e)', () => {
     });
 
     expect(refreshResponse.status).toBe(200);
-    expect(refreshResponse.setCookie).toContain(`${REFRESH_TOKEN_COOKIE_NAME}=`);
+    expect(refreshResponse.setCookie).toContain(
+      `${REFRESH_TOKEN_COOKIE_NAME}=`,
+    );
     expect(refreshResponse.body).toEqual(
       expect.objectContaining({
         accessToken: expect.any(String),
@@ -1298,7 +1333,9 @@ describe('Auth, works, and sync API (e2e)', () => {
     );
 
     expect(logoutResponse.status).toBe(204);
-    expect(logoutResponse.setCookie).toContain(`${REFRESH_TOKEN_COOKIE_NAME}=;`);
+    expect(logoutResponse.setCookie).toContain(
+      `${REFRESH_TOKEN_COOKIE_NAME}=;`,
+    );
 
     const refreshAfterLogoutResponse = await requestJson('/api/auth/refresh', {
       method: 'POST',
@@ -1357,12 +1394,14 @@ describe('Auth, works, and sync API (e2e)', () => {
       ]),
     });
 
-    const listedSessions = (sessionsResponse.body as {
-      sessions: Array<{
-        current: boolean;
-        id: string;
-      }>;
-    }).sessions;
+    const listedSessions = (
+      sessionsResponse.body as {
+        sessions: Array<{
+          current: boolean;
+          id: string;
+        }>;
+      }
+    ).sessions;
     const otherSession = listedSessions.find((session) => !session.current);
 
     expect(otherSession).toBeDefined();
@@ -1525,7 +1564,9 @@ describe('Auth, works, and sync API (e2e)', () => {
       }),
     );
 
-    await expect(requestJson('/api/imports/providers/aladin/status')).resolves.toEqual(
+    await expect(
+      requestJson('/api/imports/providers/aladin/status'),
+    ).resolves.toEqual(
       expect.objectContaining({
         status: 401,
       }),
@@ -2252,11 +2293,7 @@ describe('Auth, works, and sync API (e2e)', () => {
     expect(blankTitleCreateResponse.status).toBe(400);
     expect(
       (blankTitleCreateResponse.body as { message: string[] }).message,
-    ).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('title'),
-      ]),
-    );
+    ).toEqual(expect.arrayContaining([expect.stringContaining('title')]));
 
     const minimalCreateResponse = await requestJson(
       '/api/works',

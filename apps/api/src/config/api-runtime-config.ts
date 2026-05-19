@@ -1,4 +1,7 @@
+import { z } from 'zod';
+
 export interface ApiRuntimeConfig {
+  authRateLimitMax: number;
   cookieSecure: boolean;
   corsOrigin: string[];
   databaseUrl: string;
@@ -8,18 +11,21 @@ export interface ApiRuntimeConfig {
   jwtRefreshSecret: string;
   passwordResetDevLinksEnabled: boolean;
   port: number;
-  rateLimitStore: 'external' | 'memory';
+  rateLimitPrefix: string;
+  rateLimitStore: 'memory' | 'redis';
+  rateLimitWindowMs: number;
+  redisUrl: string | null;
+  securityEventHashSecret: string;
   swaggerEnabled: boolean;
+  syncRateLimitMax: number;
+  trustProxyHops: number | null;
   webBaseUrl: string;
 }
 
 const DEFAULT_PRODUCTION_SECRET_VALUES = new Map([
   [
     'JWT_ACCESS_SECRET',
-    [
-      'change-me-access-secret',
-      'local-compose-access-secret-minimum-32-chars',
-    ],
+    ['change-me-access-secret', 'local-compose-access-secret-minimum-32-chars'],
   ],
   [
     'JWT_REFRESH_SECRET',
@@ -35,9 +41,49 @@ const DEFAULT_PRODUCTION_SECRET_VALUES = new Map([
       'local-compose-external-api-key-secret-32-chars',
     ],
   ],
+  [
+    'SECURITY_EVENT_HASH_SECRET',
+    [
+      'change-me-security-event-hash-secret',
+      'local-compose-security-event-secret-32-chars',
+    ],
+  ],
 ]);
 
 const MINIMUM_PRODUCTION_SECRET_LENGTH = 32;
+const DEVELOPMENT_SECURITY_EVENT_HASH_SECRET =
+  'development-security-event-hash-secret';
+
+const apiEnvironmentSchema = z
+  .object({
+    AUTH_RATE_LIMIT_MAX: z.string().optional(),
+    COOKIE_SECURE: z.string().optional(),
+    CORS_ORIGIN: z.string().optional(),
+    DATABASE_URL: z.string().optional(),
+    EXTERNAL_API_KEY_ENCRYPTION_SECRET: z.string().optional(),
+    HOST: z.string().optional(),
+    JWT_ACCESS_SECRET: z.string().optional(),
+    JWT_REFRESH_SECRET: z.string().optional(),
+    NODE_ENV: z.string().optional(),
+    PASSWORD_RESET_DEV_LINKS_ENABLED: z.string().optional(),
+    PORT: z.string().optional(),
+    PUBLIC_WEB_BASE_URL: z.string().optional(),
+    RATE_LIMIT_PREFIX: z.string().optional(),
+    RATE_LIMIT_STORE: z.string().optional(),
+    RATE_LIMIT_WINDOW_MS: z.string().optional(),
+    REDIS_URL: z.string().optional(),
+    SECURITY_EVENT_HASH_SECRET: z.string().optional(),
+    SEED_DEMO_PASSWORD: z.string().optional(),
+    SWAGGER_ENABLED: z.string().optional(),
+    SYNC_RATE_LIMIT_MAX: z.string().optional(),
+    TRUST_PROXY_HOPS: z.string().optional(),
+    WEB_BASE_URL: z.string().optional(),
+  })
+  .passthrough();
+
+function readEnvironment() {
+  return apiEnvironmentSchema.parse(process.env);
+}
 
 function readRequiredEnvString(name: string) {
   const value = process.env[name]?.trim();
@@ -86,6 +132,24 @@ function readProductionSafeSecret(name: string) {
   return value;
 }
 
+function readSecurityEventHashSecret(isProduction: boolean) {
+  const value = process.env.SECURITY_EVENT_HASH_SECRET?.trim();
+
+  if (!value) {
+    if (isProduction) {
+      throw new Error(
+        'SECURITY_EVENT_HASH_SECRET must be configured in production.',
+      );
+    }
+
+    return DEVELOPMENT_SECURITY_EVENT_HASH_SECRET;
+  }
+
+  rejectDefaultProductionSecret('SECURITY_EVENT_HASH_SECRET', value);
+
+  return value;
+}
+
 function readPort(value: string | undefined, fallback: number) {
   const normalizedValue = value?.trim();
 
@@ -97,6 +161,26 @@ function readPort(value: string | undefined, fallback: number) {
 
   if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
     throw new Error('PORT must be a positive integer.');
+  }
+
+  return parsedValue;
+}
+
+function readPositiveInteger(
+  name: string,
+  value: string | undefined,
+  fallback: number,
+) {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue) {
+    return fallback;
+  }
+
+  const parsedValue = Number(normalizedValue);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    throw new Error(`${name} must be a positive integer.`);
   }
 
   return parsedValue;
@@ -117,7 +201,9 @@ function readBoolean(value: string | undefined, fallback: boolean) {
     return false;
   }
 
-  throw new Error('Boolean environment values must be either "true" or "false".');
+  throw new Error(
+    'Boolean environment values must be either "true" or "false".',
+  );
 }
 
 function isLocalhostOrigin(origin: string) {
@@ -165,8 +251,7 @@ function readCorsOrigin(value: string | undefined, isProduction: boolean) {
 
 function readWebBaseUrl(isProduction: boolean) {
   const configuredValue =
-    process.env.WEB_BASE_URL?.trim() ||
-    process.env.PUBLIC_WEB_BASE_URL?.trim();
+    process.env.WEB_BASE_URL?.trim() || process.env.PUBLIC_WEB_BASE_URL?.trim();
 
   if (configuredValue) {
     return configuredValue;
@@ -183,17 +268,11 @@ function readRateLimitStore(isProduction: boolean) {
   const configuredValue = process.env.RATE_LIMIT_STORE?.trim().toLowerCase();
 
   if (!configuredValue) {
-    if (isProduction) {
-      throw new Error(
-        'RATE_LIMIT_STORE must be set to "external" in production.',
-      );
-    }
-
-    return 'memory' as const;
+    return isProduction ? ('redis' as const) : ('memory' as const);
   }
 
-  if (configuredValue !== 'memory' && configuredValue !== 'external') {
-    throw new Error('RATE_LIMIT_STORE must be either "memory" or "external".');
+  if (configuredValue !== 'memory' && configuredValue !== 'redis') {
+    throw new Error('RATE_LIMIT_STORE must be either "memory" or "redis".');
   }
 
   if (isProduction && configuredValue === 'memory') {
@@ -201,6 +280,62 @@ function readRateLimitStore(isProduction: boolean) {
   }
 
   return configuredValue;
+}
+
+function readRedisUrl(rateLimitStore: ApiRuntimeConfig['rateLimitStore']) {
+  const normalizedValue = process.env.REDIS_URL?.trim();
+
+  if (rateLimitStore !== 'redis') {
+    return null;
+  }
+
+  if (!normalizedValue) {
+    throw new Error(
+      'REDIS_URL must be configured when RATE_LIMIT_STORE is "redis".',
+    );
+  }
+
+  try {
+    const redisUrl = new URL(normalizedValue);
+
+    if (redisUrl.protocol !== 'redis:' && redisUrl.protocol !== 'rediss:') {
+      throw new Error();
+    }
+  } catch {
+    throw new Error('REDIS_URL must be a valid redis:// or rediss:// URL.');
+  }
+
+  return normalizedValue;
+}
+
+function readTrustProxyHops(isProduction: boolean) {
+  const normalizedValue = process.env.TRUST_PROXY_HOPS?.trim().toLowerCase();
+
+  if (!normalizedValue) {
+    if (isProduction) {
+      throw new Error('TRUST_PROXY_HOPS must be configured in production.');
+    }
+
+    return null;
+  }
+
+  if (normalizedValue === 'true' || normalizedValue === 'false') {
+    throw new Error(
+      'TRUST_PROXY_HOPS must be a positive integer, not a boolean.',
+    );
+  }
+
+  const trustProxyHops = readPositiveInteger(
+    'TRUST_PROXY_HOPS',
+    normalizedValue,
+    1,
+  );
+
+  if (isProduction && trustProxyHops !== 1) {
+    throw new Error('TRUST_PROXY_HOPS must be 1 in production.');
+  }
+
+  return trustProxyHops;
 }
 
 function rejectUnsafeProductionDatabaseUrl(value: string) {
@@ -228,6 +363,8 @@ function rejectUnsafeProductionSeedDefaults() {
 }
 
 export function readApiRuntimeConfig(): ApiRuntimeConfig {
+  readEnvironment();
+
   const isProduction = isProductionEnvironment();
   const cookieSecure = readBoolean(process.env.COOKIE_SECURE, isProduction);
   const databaseUrl = readRequiredEnvString('DATABASE_URL');
@@ -235,11 +372,18 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     process.env.PASSWORD_RESET_DEV_LINKS_ENABLED,
     false,
   );
-  const swaggerEnabled = readBoolean(process.env.SWAGGER_ENABLED, !isProduction);
+  const swaggerEnabled = readBoolean(
+    process.env.SWAGGER_ENABLED,
+    !isProduction,
+  );
   const corsOrigin = readCorsOrigin(process.env.CORS_ORIGIN, isProduction);
   const webBaseUrl = readWebBaseUrl(isProduction);
   const jwtAccessSecret = readProductionSafeSecret('JWT_ACCESS_SECRET');
   const jwtRefreshSecret = readProductionSafeSecret('JWT_REFRESH_SECRET');
+  const securityEventHashSecret = readSecurityEventHashSecret(isProduction);
+  const rateLimitStore = readRateLimitStore(isProduction);
+  const redisUrl = readRedisUrl(rateLimitStore);
+  const trustProxyHops = readTrustProxyHops(isProduction);
 
   rejectUnsafeProductionDatabaseUrl(databaseUrl);
   rejectUnsafeProductionSeedDefaults();
@@ -258,9 +402,12 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     throw new Error('SWAGGER_ENABLED must not be true in production.');
   }
 
-  const rateLimitStore = readRateLimitStore(isProduction);
-
   return {
+    authRateLimitMax: readPositiveInteger(
+      'AUTH_RATE_LIMIT_MAX',
+      process.env.AUTH_RATE_LIMIT_MAX,
+      10,
+    ),
     cookieSecure,
     corsOrigin,
     databaseUrl,
@@ -270,8 +417,23 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     jwtRefreshSecret,
     passwordResetDevLinksEnabled,
     port: readPort(process.env.PORT, 3000),
+    rateLimitPrefix:
+      process.env.RATE_LIMIT_PREFIX?.trim() || 'work-archive:rate-limit:',
     rateLimitStore,
+    rateLimitWindowMs: readPositiveInteger(
+      'RATE_LIMIT_WINDOW_MS',
+      process.env.RATE_LIMIT_WINDOW_MS,
+      60_000,
+    ),
+    redisUrl,
+    securityEventHashSecret,
     swaggerEnabled,
+    syncRateLimitMax: readPositiveInteger(
+      'SYNC_RATE_LIMIT_MAX',
+      process.env.SYNC_RATE_LIMIT_MAX,
+      30,
+    ),
+    trustProxyHops,
     webBaseUrl,
   };
 }

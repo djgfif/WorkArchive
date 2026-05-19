@@ -26,6 +26,10 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
+import {
+  getRequestId,
+  SecurityAuditService,
+} from '../../security/security-audit.service';
 import { AuthService } from './auth.service';
 import {
   getRefreshTokenClearCookieOptions,
@@ -52,7 +56,10 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(@Inject(AuthService) private readonly authService: AuthService) {}
+  constructor(
+    @Inject(AuthService) private readonly authService: AuthService,
+    private readonly securityAudit: SecurityAuditService,
+  ) {}
 
   @Post('register')
   @ApiBody({
@@ -103,10 +110,30 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const session = await this.authService.login(
-      loginDto,
-      this.getSessionMetadata(request),
-    );
+    const metadata = this.getSessionMetadata(request);
+    let session: Awaited<ReturnType<AuthService['login']>>;
+
+    try {
+      session = await this.authService.login(loginDto, metadata);
+    } catch (error) {
+      void this.securityAudit.record({
+        eventType: 'auth.login.failure',
+        metadata: {
+          reason: 'invalid_credentials',
+        },
+        request,
+        severity: 'warning',
+      });
+      throw error;
+    }
+
+    void this.securityAudit.record({
+      eventType: 'auth.login.success',
+      request,
+      severity: 'info',
+      sessionId: session.sessionId,
+      userId: session.user.id,
+    });
 
     response.cookie(
       REFRESH_TOKEN_COOKIE_NAME,
@@ -136,10 +163,21 @@ export class AuthController {
 
     if (typeof refreshToken !== 'string' || !refreshToken) {
       this.logger.warn('Refresh rejected: missing refresh cookie.');
+      void this.securityAudit.record({
+        eventType: 'auth.refresh.failure',
+        metadata: {
+          reason: 'missing_refresh_cookie',
+        },
+        request,
+        severity: 'warning',
+      });
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
-    const session = await this.authService.refresh(refreshToken);
+    const session = await this.authService.refresh(
+      refreshToken,
+      this.getSessionMetadata(request),
+    );
 
     response.cookie(
       REFRESH_TOKEN_COOKIE_NAME,
@@ -167,6 +205,12 @@ export class AuthController {
       typeof refreshToken === 'string' ? refreshToken : null,
     );
 
+    void this.securityAudit.record({
+      eventType: 'auth.logout',
+      request,
+      severity: 'info',
+    });
+
     response.clearCookie(
       REFRESH_TOKEN_COOKIE_NAME,
       getRefreshTokenClearCookieOptions(),
@@ -183,8 +227,21 @@ export class AuthController {
       'Create a development password reset link when the account exists.',
     type: PasswordResetRequestResponseDto,
   })
-  requestPasswordReset(@Body() passwordResetRequestDto: PasswordResetRequestDto) {
-    return this.authService.requestPasswordReset(passwordResetRequestDto);
+  async requestPasswordReset(
+    @Body() passwordResetRequestDto: PasswordResetRequestDto,
+    @Req() request: Request,
+  ) {
+    const response = await this.authService.requestPasswordReset(
+      passwordResetRequestDto,
+    );
+
+    void this.securityAudit.record({
+      eventType: 'auth.password_reset.request',
+      request,
+      severity: 'info',
+    });
+
+    return response;
   }
 
   @Post('password-reset/confirm')
@@ -196,8 +253,21 @@ export class AuthController {
     description: 'Reset the password using a valid development reset token.',
     type: PasswordResetConfirmResponseDto,
   })
-  confirmPasswordReset(@Body() passwordResetConfirmDto: PasswordResetConfirmDto) {
-    return this.authService.confirmPasswordReset(passwordResetConfirmDto);
+  async confirmPasswordReset(
+    @Body() passwordResetConfirmDto: PasswordResetConfirmDto,
+    @Req() request: Request,
+  ) {
+    const response = await this.authService.confirmPasswordReset(
+      passwordResetConfirmDto,
+    );
+
+    void this.securityAudit.record({
+      eventType: 'auth.password_reset.confirm',
+      request,
+      severity: 'info',
+    });
+
+    return response;
   }
 
   @Get('me')
@@ -241,9 +311,18 @@ export class AuthController {
   async revokeSession(
     @CurrentUser() user: AuthenticatedUser,
     @Param('sessionId') sessionId: string,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
     const result = await this.authService.revokeRefreshSession(user, sessionId);
+
+    void this.securityAudit.record({
+      eventType: 'auth.session.revoke',
+      request,
+      sessionId,
+      severity: 'info',
+      userId: user.userId,
+    });
 
     if (result.revokedCurrent) {
       response.clearCookie(
@@ -265,9 +344,17 @@ export class AuthController {
   })
   async revokeAllSessions(
     @CurrentUser() user: AuthenticatedUser,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
     await this.authService.revokeAllRefreshSessions(user);
+
+    void this.securityAudit.record({
+      eventType: 'auth.session.revoke_all',
+      request,
+      severity: 'warning',
+      userId: user.userId,
+    });
 
     response.clearCookie(
       REFRESH_TOKEN_COOKIE_NAME,
@@ -280,9 +367,10 @@ export class AuthController {
 
     return {
       ipAddress: request.ip ?? null,
+      requestId: getRequestId(request),
       userAgent: Array.isArray(rawUserAgent)
         ? rawUserAgent.join(' ')
-        : rawUserAgent ?? null,
+        : (rawUserAgent ?? null),
     };
   }
 }

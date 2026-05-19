@@ -17,7 +17,7 @@ async function bootstrap() {
     const config = readApiRuntimeConfig();
     const app = await NestFactory.create(AppModule);
 
-    configureApp(app, config);
+    await configureApp(app, config);
     await app.listen(config.port, config.host);
 
     const publicHost = getPublicApiHost(config.host);
@@ -31,7 +31,7 @@ async function bootstrap() {
     }
   } catch (error) {
     logger.error(
-      'API failed to start. Check PORT, HOST, DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, and PostgreSQL availability.',
+      'API failed to start. Check PORT, HOST, DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, REDIS_URL, TRUST_PROXY_HOPS, SECURITY_EVENT_HASH_SECRET, and backing service availability.',
       error instanceof Error ? error.stack : undefined,
     );
     process.exit(1);
