@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react';
 import {
-  Box,
   Group,
   Paper,
   SimpleGrid,
@@ -15,7 +14,6 @@ import {
   AppButton,
   AppLinkButton,
   LoadingRows,
-  MetricPill,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
 import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
@@ -47,10 +45,13 @@ function QuickStat({ accent = false, icon, label, value }: QuickStatProps) {
       styles={{
         root: {
           background: accent
-            ? 'linear-gradient(135deg, var(--app-surface-hero), var(--app-bg-elevated))'
+            ? [
+                'radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.12), transparent 60%)',
+                'linear-gradient(135deg, var(--app-surface-hero), var(--app-bg-elevated))',
+              ].join(', ')
             : 'var(--app-surface-subtle)',
           borderColor: accent ? 'var(--app-border-strong)' : 'var(--app-border-subtle)',
-          transition: 'border-color 160ms ease',
+          transition: 'border-color var(--wa-motion-fast, 140ms ease), box-shadow var(--wa-motion-fast, 140ms ease)',
         },
       }}
       withBorder
@@ -61,7 +62,7 @@ function QuickStat({ accent = false, icon, label, value }: QuickStatProps) {
           radius="md"
           size={36}
           variant={accent ? 'gradient' : 'light'}
-          {...(accent ? { gradient: { deg: 135, from: 'archive.4', to: 'archive.7' } } : {})}
+          {...(accent ? { gradient: { deg: 135, from: 'archive.5', to: 'archive.7' } } : {})}
         >
           <Text fw={900} size="sm">{icon}</Text>
         </ThemeIcon>
@@ -69,10 +70,43 @@ function QuickStat({ accent = false, icon, label, value }: QuickStatProps) {
           <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
             {label}
           </Text>
-          <Text fw={800} size="lg">{value}</Text>
+          <Text c="var(--app-text-primary)" fw={800} size="lg">{value}</Text>
         </Stack>
       </Group>
     </Paper>
+  );
+}
+
+// 섹션 헤더 공통 컴포넌트
+interface SectionHeaderProps {
+  eyebrow: string;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}
+
+function SectionHeader({ eyebrow, title, description, action }: SectionHeaderProps) {
+  return (
+    <Group align="flex-start" justify="space-between" wrap="wrap">
+      <Stack gap={4}>
+        <Text
+          c="var(--app-accent-primary)"
+          fw={800}
+          size="xs"
+          tt="uppercase"
+          style={{ letterSpacing: '0.08em' }}
+        >
+          {eyebrow}
+        </Text>
+        <Title order={2} style={{ letterSpacing: '-0.02em' }}>
+          {title}
+        </Title>
+        <Text c="dimmed" size="sm">
+          {description}
+        </Text>
+      </Stack>
+      {action}
+    </Group>
   );
 }
 
@@ -97,9 +131,7 @@ export function HomePage() {
 
   function handleSearchSubmit(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
-
     const normalizedSearchTerm = searchTerm.trim();
-
     navigate(
       normalizedSearchTerm
         ? `/works?q=${encodeURIComponent(normalizedSearchTerm)}`
@@ -168,8 +200,8 @@ export function HomePage() {
 
       {/* ── Content ────────────────────────────────────────────────────── */}
       {!error && !isLoading && (
-        <Stack gap={48}>
-          {/* Quick stats — shown prominently at top when there's data */}
+        <Stack gap={56}>
+          {/* Quick stats — 데이터가 있을 때만 최상단에 표시 */}
           {totalCount > 0 && (
             <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
               <QuickStat
@@ -197,45 +229,35 @@ export function HomePage() {
           )}
 
           {/* 이어보기 선반 */}
-          <WorkShelf
-            empty={<ArchiveStarterShelf />}
-            title={
-              <Group justify="space-between" wrap="wrap">
-                <Stack gap={4}>
-                  <Group gap="xs" wrap="nowrap">
-                    <Text c="var(--app-accent-primary)" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
-                      이어보기
-                    </Text>
-                  </Group>
-                  <Title order={2}>보는 중인 작품</Title>
-                  <Text c="dimmed" size="sm">
-                    진행 중인 기록만 조용히 모았습니다.
-                  </Text>
-                </Stack>
+          <Stack gap="md">
+            <SectionHeader
+              action={
                 <AppLinkButton to="/works?status=in_progress" tone="quiet">
                   모두 보기
                 </AppLinkButton>
-              </Group>
-            }
-            works={continueWorks}
-          />
+              }
+              description="진행 중인 기록만 조용히 모았습니다."
+              eyebrow="이어보기"
+              title="보는 중인 작품"
+            />
+            <WorkShelf
+              empty={<ArchiveStarterShelf />}
+              works={continueWorks}
+            />
+          </Stack>
 
           {/* 최근 손본 작품 */}
           <Stack gap="md">
-            <Group justify="space-between" wrap="wrap">
-              <Stack gap={4}>
-                <Text c="var(--app-accent-primary)" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
-                  최근 활동
-                </Text>
-                <Title order={2}>최근 손본 작품</Title>
-                <Text c="dimmed" size="sm">
-                  방금 손본 작품을 빠르게 다시 엽니다.
-                </Text>
-              </Stack>
-              <AppLinkButton to="/works" tone="quiet">
-                작품 목록 전체
-              </AppLinkButton>
-            </Group>
+            <SectionHeader
+              action={
+                <AppLinkButton to="/works" tone="quiet">
+                  작품 목록 전체
+                </AppLinkButton>
+              }
+              description="방금 손본 작품을 빠르게 다시 엽니다."
+              eyebrow="최근 활동"
+              title="최근 손본 작품"
+            />
             {recentWorks.length > 0 ? (
               <WorkShelf works={recentWorks.slice(0, 8)} />
             ) : (

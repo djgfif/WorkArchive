@@ -254,7 +254,7 @@ export function WorksToolbar({
       <Collapse in={advancedOpen}>
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
+            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
               유형
             </Text>
             <FilterPillGroup
@@ -272,7 +272,7 @@ export function WorksToolbar({
           </Stack>
 
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
+            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
               정렬
             </Text>
             <FilterPillGroup
@@ -284,7 +284,7 @@ export function WorksToolbar({
           </Stack>
 
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
+            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
               별점 최소
             </Text>
             <FilterPillGroup
@@ -304,7 +304,7 @@ export function WorksToolbar({
           </Stack>
 
           <Stack gap="xs">
-            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
+            <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
               개인 태그
             </Text>
             <TextInput

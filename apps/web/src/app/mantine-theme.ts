@@ -5,31 +5,32 @@ import {
   type MantineColorsTuple,
 } from '@mantine/core';
 
-// DESIGN.md 기준 아카이브 블루 팔레트 (blue-gray library tone)
+// Archive Blue 팔레트 — 개발 가이드 v2.0.0 (Tailwind Blue 계열, 프리미엄 다크 최적화)
 const archiveColors: MantineColorsTuple = [
-  '#eef5fb', // 0 — lightest
-  '#dde8f1', // 1
-  '#bfd1e4', // 2
-  '#9bb5d4', // 3
-  '#799cc7', // 4
-  '#5d88bb', // 5
-  '#4b78ac', // 6 — primary action (light)
-  '#3d6390', // 7
-  '#324f73', // 8
-  '#253b55', // 9 — darkest
+  '#eff6ff', // 0 — lightest tint
+  '#dbeafe', // 1
+  '#bfdbfe', // 2
+  '#93c5fd', // 3 — dark mode accent
+  '#60a5fa', // 4 — dark mode primary
+  '#3b82f6', // 5
+  '#2563eb', // 6 — light mode primary
+  '#1d4ed8', // 7
+  '#1e40af', // 8
+  '#1e3a8a', // 9 — darkest
 ];
 
+// Ember (황금빛 강조) 팔레트 — Tailwind Amber 계열
 const emberColors: MantineColorsTuple = [
-  '#fff6df',
-  '#ffe8b3',
-  '#ffd278',
-  '#efb546',
-  '#c98d24',
-  '#9f6918',
-  '#7c4f17',
-  '#5f3d18',
-  '#442d16',
-  '#2d2012',
+  '#fffbeb',
+  '#fef3c7',
+  '#fde68a',
+  '#fcd34d',
+  '#fbbf24',
+  '#f59e0b',
+  '#d97706',
+  '#b45309',
+  '#92400e',
+  '#78350f',
 ];
 
 const appFontFamily =
@@ -39,11 +40,12 @@ export const appColorSchemeManager = localStorageColorSchemeManager({
   key: 'work-archive.ui.color-scheme',
 });
 
-export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
+export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
   variables: {
     // ── Motion ──────────────────────────────────────────────────────
     '--wa-motion-fast': '140ms ease',
-    '--wa-motion-normal': '190ms ease',
+    '--wa-motion-normal': '200ms ease',
+    '--wa-motion-spring': '300ms cubic-bezier(0.25, 1, 0.5, 1)',
     // ── Typography scale ────────────────────────────────────────────
     '--wa-type-display': 'clamp(2.4rem, 7vw, 5.2rem)',
     '--wa-type-h1': 'clamp(1.9rem, 4.5vw, 3.6rem)',
@@ -68,33 +70,35 @@ export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
   },
   light: {
     // ── Surfaces ────────────────────────────────────────────────────
-    '--wa-bg-base': '#f5f6f8',
-    '--wa-bg-elevated': '#eceef2',
+    '--wa-bg-shell': '#f8fafc',
+    '--wa-bg-base': '#f1f5f9',
+    '--wa-bg-elevated': '#e8edf3',
     '--wa-surface-subtle': '#eef1f5',
     '--wa-surface-card': '#ffffff',
-    '--wa-surface-hero': '#f7f8fa',
+    '--wa-surface-hero': '#f7f9fb',
     // ── Borders ─────────────────────────────────────────────────────
-    '--wa-border-subtle': '#d7dde5',
-    '--wa-border-strong': '#b9c4d1',
+    '--wa-border-subtle': '#e2e8f0',
+    '--wa-border-strong': '#cbd5e1',
     // ── Text ────────────────────────────────────────────────────────
-    '--wa-text-primary': '#18212d',
-    '--wa-text-secondary': '#445263',
-    '--wa-text-muted': '#6b7888',
+    '--wa-text-primary': '#0f172a',
+    '--wa-text-secondary': '#334155',
+    '--wa-text-muted': '#64748b',
     // ── Accent ──────────────────────────────────────────────────────
-    '--wa-accent-primary': '#3d6390',
-    '--wa-accent-warm': '#c98d24',
+    '--wa-accent-primary': '#2563eb',
+    '--wa-accent-warm': '#d97706',
     // ── Shadows ─────────────────────────────────────────────────────
-    '--wa-shadow-card': '0 2px 8px rgba(0, 0, 0, 0.07)',
-    '--wa-shadow-poster': '0 6px 20px rgba(0, 0, 0, 0.10)',
-    '--wa-shadow-hero': '0 12px 40px rgba(0, 0, 0, 0.12)',
+    '--wa-shadow-card': '0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)',
+    '--wa-shadow-poster': '0 4px 16px rgba(0,0,0,0.10)',
+    '--wa-shadow-hero': '0 8px 32px rgba(0,0,0,0.12)',
     // ── Mantine overrides ───────────────────────────────────────────
-    '--mantine-color-body': '#f5f6f8',
-    '--mantine-color-text': '#18212d',
-    '--mantine-color-dimmed': '#6b7888',
+    '--mantine-color-body': '#f8fafc',
+    '--mantine-color-text': '#0f172a',
+    '--mantine-color-dimmed': '#64748b',
     '--mantine-color-default': '#ffffff',
-    '--mantine-color-default-hover': '#eceef2',
-    '--mantine-color-default-border': '#d7dde5',
+    '--mantine-color-default-hover': '#f1f5f9',
+    '--mantine-color-default-border': '#e2e8f0',
     // ── App aliases ─────────────────────────────────────────────────
+    '--app-bg-shell': 'var(--wa-bg-shell)',
     '--app-bg-base': 'var(--wa-bg-base)',
     '--app-bg-elevated': 'var(--wa-bg-elevated)',
     '--app-surface-subtle': 'var(--wa-surface-subtle)',
@@ -108,41 +112,43 @@ export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
     '--app-accent-primary': 'var(--wa-accent-primary)',
     '--app-accent-warm': 'var(--wa-accent-warm)',
     '--app-state-success': '#0f766e',
-    '--app-state-warning': '#c98d24',
+    '--app-state-warning': '#d97706',
     '--app-state-danger': '#dc2626',
     '--app-shadow-card': 'var(--wa-shadow-card)',
     '--app-shadow-poster': 'var(--wa-shadow-poster)',
     '--app-shadow-overlay': 'var(--wa-shadow-hero)',
   },
   dark: {
-    // ── Surfaces ────────────────────────────────────────────────────
-    '--wa-bg-base': '#14171b',
-    '--wa-bg-elevated': '#1a1f25',
-    '--wa-surface-subtle': '#1c2128',
+    // ── Surfaces — 순수 블랙 대신 블루-그레이 계열로 깊이감 부여 ──────────
+    '--wa-bg-shell': '#0c0e12',
+    '--wa-bg-base': '#13161c',
+    '--wa-bg-elevated': '#1a1e26',
+    '--wa-surface-subtle': '#1c2028',
     '--wa-surface-card': '#1e2430',
-    '--wa-surface-hero': '#232932',
-    // ── Borders ─────────────────────────────────────────────────────
-    '--wa-border-subtle': 'rgba(255, 255, 255, 0.07)',
-    '--wa-border-strong': 'rgba(255, 255, 255, 0.16)',
+    '--wa-surface-hero': '#222a36',
+    // ── Borders — 미세한 명도 차이만으로 계층 구분 ──────────────────────
+    '--wa-border-subtle': 'rgba(255, 255, 255, 0.06)',
+    '--wa-border-strong': 'rgba(255, 255, 255, 0.12)',
     // ── Text ────────────────────────────────────────────────────────
     '--wa-text-primary': '#f1f5f9',
-    '--wa-text-secondary': '#d1d8e2',
-    '--wa-text-muted': '#9ca8b8',
-    // ── Accent ──────────────────────────────────────────────────────
-    '--wa-accent-primary': '#9bb5d4',
-    '--wa-accent-warm': '#efb546',
-    // ── Shadows ─────────────────────────────────────────────────────
-    '--wa-shadow-card': '0 8px 24px rgba(0, 0, 0, 0.28)',
-    '--wa-shadow-poster': '0 16px 48px rgba(0, 0, 0, 0.40)',
-    '--wa-shadow-hero': '0 28px 80px rgba(0, 0, 0, 0.52)',
+    '--wa-text-secondary': '#cbd5e1',
+    '--wa-text-muted': '#94a3b8',
+    // ── Accent — 다크 모드에서 더 밝은 파랑 사용 ────────────────────────
+    '--wa-accent-primary': '#60a5fa',
+    '--wa-accent-warm': '#fbbf24',
+    // ── Shadows — 다크 모드에서 더 강한 그림자 ──────────────────────────
+    '--wa-shadow-card': '0 4px 16px rgba(0,0,0,0.32)',
+    '--wa-shadow-poster': '0 8px 32px rgba(0,0,0,0.48)',
+    '--wa-shadow-hero': '0 16px 56px rgba(0,0,0,0.60)',
     // ── Mantine overrides ───────────────────────────────────────────
-    '--mantine-color-body': '#14171b',
+    '--mantine-color-body': '#0c0e12',
     '--mantine-color-text': '#f1f5f9',
-    '--mantine-color-dimmed': '#9ca8b8',
+    '--mantine-color-dimmed': '#94a3b8',
     '--mantine-color-default': '#1e2430',
-    '--mantine-color-default-hover': '#232932',
-    '--mantine-color-default-border': 'rgba(255, 255, 255, 0.07)',
+    '--mantine-color-default-hover': '#222a36',
+    '--mantine-color-default-border': 'rgba(255, 255, 255, 0.06)',
     // ── App aliases ─────────────────────────────────────────────────
+    '--app-bg-shell': 'var(--wa-bg-shell)',
     '--app-bg-base': 'var(--wa-bg-base)',
     '--app-bg-elevated': 'var(--wa-bg-elevated)',
     '--app-surface-subtle': 'var(--wa-surface-subtle)',
@@ -155,9 +161,9 @@ export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
     '--app-text-muted': 'var(--wa-text-muted)',
     '--app-accent-primary': 'var(--wa-accent-primary)',
     '--app-accent-warm': 'var(--wa-accent-warm)',
-    '--app-state-success': '#4fc3a1',
-    '--app-state-warning': '#efb546',
-    '--app-state-danger': '#ff6b6b',
+    '--app-state-success': '#2dd4bf',
+    '--app-state-warning': '#fbbf24',
+    '--app-state-danger': '#f87171',
     '--app-shadow-card': 'var(--wa-shadow-card)',
     '--app-shadow-poster': 'var(--wa-shadow-poster)',
     '--app-shadow-overlay': 'var(--wa-shadow-hero)',
@@ -165,7 +171,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (theme) => ({
 });
 
 export const appTheme = createTheme({
-  black: '#14171b',
+  black: '#0c0e12',
   colors: {
     archive: archiveColors,
     ember: emberColors,
@@ -173,7 +179,7 @@ export const appTheme = createTheme({
   cursorType: 'pointer',
   defaultGradient: {
     deg: 135,
-    from: 'archive.4',
+    from: 'archive.5',
     to: 'archive.7',
   },
   defaultRadius: 'md',
@@ -248,7 +254,7 @@ export const appTheme = createTheme({
           backgroundColor: 'var(--app-surface-subtle)',
           borderColor: 'var(--app-border-subtle)',
           color: 'var(--app-text-primary)',
-          transition: 'border-color 160ms ease, background 160ms ease',
+          transition: 'border-color var(--wa-motion-fast), background var(--wa-motion-fast)',
         },
       },
     },
@@ -274,7 +280,7 @@ export const appTheme = createTheme({
           letterSpacing: 0,
           paddingInline: '1rem',
           transition:
-            'transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease',
+            'transform var(--wa-motion-fast), border-color var(--wa-motion-fast), background var(--wa-motion-fast), color var(--wa-motion-fast)',
         },
       },
     },
@@ -284,7 +290,7 @@ export const appTheme = createTheme({
           backgroundColor: 'var(--app-bg-elevated)',
           borderColor: 'var(--app-border-subtle)',
           color: 'var(--app-text-primary)',
-          transition: 'border-color 160ms ease',
+          transition: 'border-color var(--wa-motion-fast)',
         },
       },
     },

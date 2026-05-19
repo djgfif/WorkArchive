@@ -150,7 +150,14 @@ export function WorkListRow({
     current !== null && total !== null && current > total;
 
   return (
-    <Paper className={cn(css.listRowSurface)} radius="lg" withBorder>
+    <Paper
+      className={cn(css.listRowSurface)}
+      radius="lg"
+      style={{
+        transition: 'border-color var(--wa-motion-fast, 140ms ease), box-shadow var(--wa-motion-fast, 140ms ease)',
+      }}
+      withBorder
+    >
       {/* ── Main row ─────────────────────────────────────────────────── */}
       <Group align="flex-start" gap="md" justify="space-between" wrap="wrap">
         {/* Left: poster + info */}
@@ -233,7 +240,7 @@ export function WorkListRow({
             {progressPercent !== null && (
               <Progress
                 aria-label={`${work.title} 진행도 ${progressPercent}%`}
-                color="archive"
+                color="archive.5"
                 radius="xl"
                 size="xs"
                 value={progressPercent}
@@ -285,7 +292,14 @@ export function WorkListRow({
         <Box
           mt="md"
           pt="md"
-          style={{ borderTop: '1px solid var(--app-border-subtle)' }}
+          style={{
+            borderTop: '1px solid var(--app-border-subtle)',
+            background: 'var(--app-surface-subtle)',
+            borderRadius: '0 0 var(--mantine-radius-lg) var(--mantine-radius-lg)',
+            margin: 'calc(var(--mantine-spacing-md) * -1)',
+            marginTop: 'var(--mantine-spacing-md)',
+            padding: 'var(--mantine-spacing-md)',
+          }}
         >
           <Stack gap="md">
             {/* Status + Rating row */}

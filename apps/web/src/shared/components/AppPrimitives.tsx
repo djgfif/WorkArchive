@@ -177,7 +177,8 @@ interface AppNavLinkProps {
 function getSurfaceBackground(tone: SurfaceTone) {
   if (tone === 'hero') {
     return [
-      'radial-gradient(circle at 82% 18%, rgba(91, 140, 187, 0.14), transparent 32%)',
+      'radial-gradient(circle at 82% 18%, rgba(59, 130, 246, 0.10), transparent 32%)',
+      'radial-gradient(circle at 18% 80%, rgba(251, 191, 36, 0.05), transparent 28%)',
       'linear-gradient(145deg, var(--app-surface-hero), var(--app-bg-elevated))',
     ].join(', ');
   }
@@ -190,7 +191,7 @@ function getActionToneProps(tone: AppActionTone) {
     case 'primary':
       return {
         color: 'archive',
-        gradient: { deg: 135, from: 'archive.4', to: 'archive.7' },
+        gradient: { deg: 135, from: 'archive.5', to: 'archive.7' },
         variant: 'gradient',
       } as const;
     case 'quiet':
@@ -316,7 +317,7 @@ export function SurfaceLinkCard({
           color: 'inherit',
           display: 'block',
           textDecoration: 'none',
-          transition: 'transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease',
+          transition: 'transform var(--wa-motion-fast, 140ms ease), border-color var(--wa-motion-fast, 140ms ease), background var(--wa-motion-fast, 140ms ease), box-shadow var(--wa-motion-fast, 140ms ease)',
           '&:hover': {
             transform: 'translateY(-2px)',
             borderColor: 'var(--app-border-strong)',
@@ -419,7 +420,8 @@ export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
           radius="md"
           size={36}
           variant="gradient"
-          gradient={{ deg: 135, from: 'archive.4', to: 'archive.7' }}
+          gradient={{ deg: 135, from: 'archive.5', to: 'archive.7' }}
+          style={{ flexShrink: 0 }}
         >
           <Text c="white" fw={900} size="xs" style={{ letterSpacing: '-0.04em' }}>
             WA
@@ -482,7 +484,7 @@ export function AppNavLink({
         justifyContent: 'space-between',
         padding: fullWidth ? '0.82rem 0.95rem' : '0.45rem 0.55rem',
         textDecoration: 'none',
-        transition: 'border-color 160ms ease, background 160ms ease, color 160ms ease',
+        transition: 'border-color var(--wa-motion-fast, 140ms ease), background var(--wa-motion-fast, 140ms ease), color var(--wa-motion-fast, 140ms ease)',
         width: fullWidth ? '100%' : undefined,
         borderBottom: !fullWidth && isActive
           ? '2px solid var(--app-accent-primary)'
