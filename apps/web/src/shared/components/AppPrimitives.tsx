@@ -180,8 +180,8 @@ interface AppNavLinkProps {
 function getSurfaceBackground(tone: SurfaceTone) {
   if (tone === 'hero') {
     return [
-      'radial-gradient(circle at 82% 12%, rgba(59, 130, 246, 0.14), transparent 38%)',
-      'radial-gradient(circle at 12% 85%, rgba(251, 191, 36, 0.07), transparent 32%)',
+      'radial-gradient(circle at 82% 12%, color-mix(in srgb, var(--app-accent-primary) 14%, transparent), transparent 38%)',
+      'radial-gradient(circle at 12% 85%, color-mix(in srgb, var(--app-accent-warm) 7%, transparent), transparent 32%)',
       'linear-gradient(145deg, var(--app-surface-hero), var(--app-surface-card))',
     ].join(', ');
   }
@@ -445,7 +445,7 @@ export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
           gradient={{ deg: 135, from: 'archive.4', to: 'archive.7' }}
           style={{
             flexShrink: 0,
-            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.35)',
+            boxShadow: 'var(--wa-shadow-glow)',
           }}
         >
           <Text

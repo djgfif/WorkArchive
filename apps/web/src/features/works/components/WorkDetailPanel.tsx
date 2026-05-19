@@ -284,12 +284,14 @@ export function WorkDetailPanel({
                     <Text
                       className={cn(css.detailHeroRatingValue)}
                       component="span"
+                      style={{ fontVariantNumeric: 'tabular-nums' }}
                     >
                       {work.rating.toFixed(1)}
                     </Text>
                     <Text
                       className={cn(css.detailHeroRatingMax)}
                       component="span"
+                      style={{ fontVariantNumeric: 'tabular-nums' }}
                     >
                       / 5.0
                     </Text>

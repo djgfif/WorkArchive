@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type ReactNode } from 'react';
+﻿import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   ActionIcon,
   Box,
@@ -235,7 +235,7 @@ export function RatingDisplay({ compact = false, value }: RatingDisplayProps) {
       <Text c="ember.3" fw={900} size={compact ? 'sm' : 'md'}>
         ★
       </Text>
-      <Text fw={800} size={compact ? 'xs' : 'sm'}>
+      <Text fw={800} size={compact ? 'xs' : 'sm'} style={{ fontVariantNumeric: 'tabular-nums' }}>
         {value.toFixed(1)}
       </Text>
     </Group>
@@ -261,7 +261,7 @@ export function ProgressDisplay({ work }: ProgressDisplayProps) {
           {progressLabel}
         </Text>
         {progressPercent !== null && (
-          <Text c="dimmed" size="xs">
+          <Text c="dimmed" size="xs" style={{ fontVariantNumeric: 'tabular-nums' }}>
             {progressPercent}%
           </Text>
         )}
@@ -279,12 +279,25 @@ export function ProgressDisplay({ work }: ProgressDisplayProps) {
   );
 }
 
+type AppBadgeToneValue = 'accent' | 'danger' | 'default' | 'error' | 'info' | 'muted' | 'success' | 'warning';
+
+function getStatusBadgeTone(status: string): AppBadgeToneValue {
+  switch (status) {
+    case 'in_progress': return 'info';
+    case 'completed':   return 'success';
+    case 'planned':     return 'muted';
+    case 'paused':      return 'warning';
+    case 'dropped':     return 'danger';
+    default:            return 'default';
+  }
+}
+
 const statusOverlayConfig: Record<string, { color: string; label: string }> = {
-  in_progress: { color: 'rgba(59,130,246,0.88)', label: '보는 중' },
-  completed:   { color: 'rgba(20,184,166,0.88)', label: '완료' },
-  planned:     { color: 'rgba(100,116,139,0.82)', label: '볼 예정' },
-  paused:      { color: 'rgba(245,158,11,0.85)', label: '보류' },
-  dropped:     { color: 'rgba(239,68,68,0.85)', label: '중단' },
+  in_progress: { color: 'var(--app-accent-primary)',  label: '보는 중' },
+  completed:   { color: 'var(--app-accent-teal)',     label: '완료' },
+  planned:     { color: 'var(--app-text-muted)',      label: '볼 예정' },
+  paused:      { color: 'var(--app-accent-warm)',     label: '보류' },
+  dropped:     { color: 'var(--app-accent-rose)',     label: '중단' },
 };
 
 export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps) {
@@ -315,13 +328,13 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
               <Box
                 aria-label={`상태: ${statusOverlay.label}`}
                 className={cn(css.statusOverlay)}
-                style={{ background: statusOverlay.color }}
+                style={{ '--status-color': statusOverlay.color } as CSSProperties}
               >
                 <Text
                   fw={700}
                   style={{
-                    color: '#fff',
-                    fontSize: '0.68rem',
+                    color: 'var(--app-text-primary)',
+                    fontSize: 'var(--app-type-meta, 0.76rem)',
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
                   }}
@@ -374,7 +387,7 @@ export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
             {/* 메타: 유형 배지 + 상태 배지 */}
             <Group gap={6} wrap="nowrap">
               <AppBadge tone="muted">{typeLabel}</AppBadge>
-              <AppBadge tone="default">{getWorkStatusLabel(work.status)}</AppBadge>
+              <AppBadge tone={getStatusBadgeTone(work.status)}>{getWorkStatusLabel(work.status)}</AppBadge>
               {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
             </Group>
             <Title lineClamp={1} order={3} size="h4">

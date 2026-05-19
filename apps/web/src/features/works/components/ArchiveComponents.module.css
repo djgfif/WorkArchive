@@ -278,18 +278,15 @@
   align-items: center;
   justify-content: center;
   padding: 0.28rem 0.5rem;
+  /* 배경: 상태 색상 CSS 변수 기반 반투명 (인라인 style 대체) */
+  background: color-mix(in srgb, var(--status-color, var(--app-text-muted)) 80%, transparent);
   /* 하단 그라디언트와 자연스럽게 블렌딩 */
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   /* 포스터 이미지 위에 올라오도록 */
   pointer-events: none;
-  /* 포스터 카드 바디 위에 겹치지 않도록 */
   height: 1.7rem;
-  /* 포스터 셸 하단에 붙이기 위해 posterShell 기준 */
-  bottom: calc(var(--poster-card-body-height, 4.5rem));
-  /* 실제로는 posterShell 내부에 있으므로 posterShell 하단에 붙임 */
   bottom: 0;
-  /* posterCardSurface 내부 posterShell 바로 아래에 위치 */
 }
 
 /* posterShell 내부에서 statusOverlay가 이미지 하단에 오도록 */
