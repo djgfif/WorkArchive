@@ -15,6 +15,7 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
+import type { KeyboardEvent } from 'react';
 import {
   getDefaultProgressUnitForWorkType,
   type ProgressUnit,
@@ -134,6 +135,20 @@ interface FilterPillGroupProps<T extends string> {
   value: T;
 }
 
+interface SegmentedChoiceOption<T extends string> {
+  description?: string;
+  label: string;
+  value: T;
+}
+
+interface SegmentedChoiceGroupProps<T extends string> {
+  'aria-label': string;
+  label: ReactNode;
+  onChange: (value: T) => void;
+  options: Array<SegmentedChoiceOption<T>>;
+  value: T;
+}
+
 interface ArchiveSearchBarProps {
   'aria-label': string;
   inputRef?: React.RefObject<HTMLInputElement | null>;
@@ -183,6 +198,99 @@ function getCoverTone(seed: string) {
   return String(hash % 6);
 }
 
+export function SegmentedChoiceGroup<T extends string>({
+  'aria-label': ariaLabel,
+  label,
+  onChange,
+  options,
+  value,
+}: SegmentedChoiceGroupProps<T>) {
+  function handleKeyDown(
+    event: KeyboardEvent<HTMLButtonElement>,
+    optionValue: T,
+  ) {
+    const currentIndex = options.findIndex((option) => option.value === optionValue);
+    const lastIndex = options.length - 1;
+    let nextIndex: number | null = null;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = currentIndex === lastIndex ? 0 : currentIndex + 1;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = currentIndex <= 0 ? lastIndex : currentIndex - 1;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = lastIndex;
+    } else if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      onChange(optionValue);
+      return;
+    }
+
+    if (nextIndex === null) {
+      return;
+    }
+
+    event.preventDefault();
+    const nextValue = options[nextIndex]?.value;
+    if (nextValue !== undefined) {
+      onChange(nextValue);
+      window.requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLButtonElement>(
+            `[data-segmented-choice="${ariaLabel}:${nextValue}"]`,
+          )
+          ?.focus();
+      });
+    }
+  }
+
+  return (
+    <Stack gap={6}>
+      <Text fw={600} size="sm" style={{ color: 'var(--app-text-secondary)' }}>
+        {label}
+      </Text>
+      <Group
+        aria-label={ariaLabel}
+        className={cn(css.segmentedChoiceGroup)}
+        gap={4}
+        role="radiogroup"
+        wrap="wrap"
+      >
+        {options.map((option) => {
+          const isActive = option.value === value;
+
+          return (
+            <button
+              aria-checked={isActive}
+              className={cx(
+                cn(css.segmentedChoice),
+                isActive && cn(css.segmentedChoiceActive),
+              )}
+              data-segmented-choice={`${ariaLabel}:${option.value}`}
+              key={option.value}
+              onClick={() => onChange(option.value)}
+              onKeyDown={(event) => handleKeyDown(event, option.value)}
+              role="radio"
+              tabIndex={isActive ? 0 : -1}
+              type="button"
+            >
+              <span className={cn(css.segmentedChoiceLabel)}>
+                {option.label}
+              </span>
+              {option.description && (
+                <span className={cn(css.segmentedChoiceDescription)}>
+                  {option.description}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </Group>
+    </Stack>
+  );
+}
+
 export function WorkPoster({
   className,
   coverSeed,
@@ -193,18 +301,29 @@ export function WorkPoster({
   variant = 'card',
 }: WorkPosterProps & { overlay?: React.ReactNode }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   useEffect(() => {
     setImageFailed(false);
+    setImageLoaded(false);
   }, [thumbnailUrl]);
   return (
     <Box className={cx(cn(css.posterShell), posterVariantClass[variant], className)}>
       {thumbnailUrl && !imageFailed ? (
-        <img
-          alt={`${title} 포스터`}
-          className={cn(css.posterImage)}
-          onError={() => setImageFailed(true)}
-          src={thumbnailUrl}
-        />
+        <>
+          {!imageLoaded && (
+            <Box aria-hidden="true" className={cn(css.posterImageSkeleton)} />
+          )}
+          <img
+            alt={`${title} 포스터`}
+            className={cx(
+              cn(css.posterImage),
+              imageLoaded && cn(css.posterImageLoaded),
+            )}
+            onError={() => setImageFailed(true)}
+            onLoad={() => setImageLoaded(true)}
+            src={thumbnailUrl}
+          />
+        </>
       ) : (
         <Box
           className={cn(css.posterFallback)}

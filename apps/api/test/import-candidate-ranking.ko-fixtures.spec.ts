@@ -177,6 +177,46 @@ describe('Korean Quick Add ranking fixtures', () => {
     );
   });
 
+  it('uses Korean aliases and avoids over-promoting volume or subtitle variants', () => {
+    const fixture = {
+      query: '나 혼자만 레벨업',
+      expectedType: WorkType.web_novel,
+      provider: 'google_books',
+    };
+    const aliasMatch = createCandidate(fixture, {
+      id: 'alias-match',
+      title: 'Solo Leveling',
+      titleAliases: ['나 혼자만 레벨업'],
+    });
+    const volumeVariant = createCandidate(fixture, {
+      confidence: 0.99,
+      id: 'volume-variant',
+      title: '나 혼자만 레벨업 1권',
+    });
+    const subtitleVariant = createCandidate(fixture, {
+      confidence: 0.98,
+      id: 'subtitle-variant',
+      title: '나 혼자만 레벨업 (외전)',
+    });
+
+    const ranked = rankImportCandidates({
+      candidates: [volumeVariant, subtitleVariant, aliasMatch],
+      mediumType: WorkType.web_novel,
+      query: '나 혼자만 레벨업',
+    });
+
+    expect(ranked[0]).toEqual(
+      expect.objectContaining({
+        id: 'alias-match',
+        reason: expect.stringContaining('별칭 제목 일치'),
+      }),
+    );
+    expect(ranked.slice(1).map((candidate) => candidate.id)).toEqual([
+      'volume-variant',
+      'subtitle-variant',
+    ]);
+  });
+
   it('keeps exact Korean title matches in the top 3 across media types', () => {
     for (const fixture of fixtures) {
       const expected = createCandidate(fixture, {

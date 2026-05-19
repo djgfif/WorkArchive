@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -51,18 +51,20 @@ describe('AccountLayout', () => {
 
     expect(await screen.findByText('계정 본문')).toBeInTheDocument();
 
-    const quickActions = screen.getByRole('group', {
-      name: '계정 빠른 작업',
-    });
-
     expect(
-      within(quickActions).getByRole('button', { name: /모드로 전환/ }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('button', { name: /모드로 전환/ }).length,
+    ).toBeGreaterThan(0);
     expect(
-      within(quickActions).getByRole('link', { name: '작품' }),
+      screen.getAllByRole('link', { name: '작품 목록으로' })[0],
     ).toHaveAttribute('href', '/works');
     expect(
-      within(quickActions).getByRole('link', { name: '로그인' }),
+      screen.getAllByRole('link', { name: '로그인' })[0],
     ).toHaveAttribute('href', '/auth/login');
+    expect(
+      screen.getAllByRole('navigation', { name: '계정 내비게이션' }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('link', { name: '계정 개요' }).length,
+    ).toBeGreaterThan(0);
   });
 });

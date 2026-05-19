@@ -15,10 +15,9 @@ describe('App', () => {
     renderWithProviders(<App />);
 
     expect(screen.getByText('Work Archive')).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: '기록 홈' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '내 아카이브' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '홈' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '작품' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '설정' })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: '작품 추가' }).length).toBeGreaterThan(0);
     expect(screen.queryByRole('link', { name: /Tier|Board|Community|Insight|Sync/i })).not.toBeInTheDocument();
   });
@@ -42,13 +41,13 @@ describe('App', () => {
       '/works',
     );
     expect(
-      screen.getByRole('link', { name: '최근 기록 오류 상태에서 작품 추가' }),
+      screen.getAllByRole('link', { name: '작품 추가' })[0],
     ).toHaveAttribute('href', '/works/new');
 
     await user.click(screen.getByRole('button', { name: '다시 불러오기' }));
 
     expect(
-      await screen.findByRole('heading', { name: '최근 기록 없음' }),
+      await screen.findByRole('heading', { name: '아직 기록이 없습니다' }),
     ).toBeInTheDocument();
     expect(listActiveSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
   });

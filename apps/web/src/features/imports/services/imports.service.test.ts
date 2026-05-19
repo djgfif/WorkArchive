@@ -46,7 +46,7 @@ describe('ImportsService', () => {
 
     expect(result).toMatchObject({
       candidates: [],
-      notice: '검색 출처: open_library',
+      notice: '검색 출처: Open Library',
       source: 'external',
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -110,7 +110,7 @@ describe('ImportsService', () => {
     });
 
     expect(result.diagnostics?.providers).toHaveLength(3);
-    expect(result.notice).toContain('검색 출처: open_library');
+    expect(result.notice).toContain('검색 출처: Open Library');
     expect(result.notice).toContain('검색 완료: Open Library 0개');
     expect(result.notice).toContain('제외됨: TMDB');
     expect(result.notice).toContain('일시 실패: Google Books');
@@ -167,7 +167,7 @@ describe('ImportsService', () => {
 
     expect(result).toMatchObject({
       candidates: [],
-      notice: '검색 출처: aladin',
+      notice: '검색 출처: Aladin Book',
       source: 'external',
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);

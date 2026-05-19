@@ -20,14 +20,41 @@ export const DEFAULT_WORKS_LIST_QUERY: WorksListQuery = {
   sortBy: 'updatedAt',
 };
 
+function normalizeSearchText(value: string) {
+  return value.normalize('NFKC').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function stripTrailingParenthetical(value: string) {
+  return value.replace(/\s*[\[(（][^\])）]*[\])）]\s*$/u, '').trim();
+}
+
+function compactSearchText(value: string) {
+  return stripTrailingParenthetical(normalizeSearchText(value)).replace(
+    /[^\p{Letter}\p{Number}]+/gu,
+    '',
+  );
+}
+
+function createSearchSignals(value: string) {
+  const normalized = normalizeSearchText(value);
+  const stripped = stripTrailingParenthetical(normalized);
+
+  return Array.from(
+    new Set(
+      [normalized, stripped, compactSearchText(value)].filter(Boolean),
+    ),
+  );
+}
+
 function matchesSearch(work: WorkRecord, searchTerm: string) {
-  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const normalizedSearch = normalizeSearchText(searchTerm);
 
   if (!normalizedSearch) {
     return true;
   }
 
-  return [
+  const searchSignals = createSearchSignals(searchTerm);
+  const workSignals = [
     work.title,
     work.author,
     work.shortReview,
@@ -35,7 +62,11 @@ function matchesSearch(work: WorkRecord, searchTerm: string) {
     work.description,
     work.genres.join(' '),
     work.personalTags.join(' '),
-  ].some((value) => value.toLowerCase().includes(normalizedSearch));
+  ].flatMap(createSearchSignals);
+
+  return searchSignals.some((searchSignal) =>
+    workSignals.some((workSignal) => workSignal.includes(searchSignal)),
+  );
 }
 
 function compareUpdatedAtDescending(a: WorkRecord, b: WorkRecord) {

@@ -168,6 +168,7 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Timeline Detail Work' }),
     ).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: /타임라인/ }));
     expect(screen.getAllByText('감상 시작').length).toBeGreaterThan(0);
 
     await user.selectOptions(
@@ -262,11 +263,12 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Dense Timeline Work' }),
     ).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: /타임라인/ }));
     expect(screen.getByText('최근 흐름: 중단')).toBeInTheDocument();
     expect(screen.getByText('4개 기록')).toBeInTheDocument();
 
     const timelineToggle = screen.getByRole('button', {
-      name: '전체 타임라인과 기록 추가',
+      name: '전체 타임라인 보기',
     });
 
     expect(timelineToggle).toHaveAttribute('aria-expanded', 'false');

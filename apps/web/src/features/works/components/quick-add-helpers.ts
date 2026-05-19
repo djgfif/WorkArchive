@@ -127,11 +127,12 @@ export function createQuickAddDefaults(
 
 export function normalizeTitle(value: string) {
   return value
+    .normalize('NFKC')
     .toLowerCase()
     .trim()
     .replace(/\s+/g, ' ')
-    .replace(/\s*\([^)]*\)\s*$/g, '')
-    .replace(/[^0-9a-z가-힣]+/g, '');
+    .replace(/\s*[\[(（][^\])）]*[\])）]\s*$/u, '')
+    .replace(/[^\p{Letter}\p{Number}]+/gu, '');
 }
 
 function createExternalRefKey(ref: {
@@ -140,6 +141,60 @@ function createExternalRefKey(ref: {
   rawType?: string;
 }) {
   return [ref.provider, ref.rawType ?? '', ref.externalId].join(':');
+}
+
+function getCandidateExternalRefKeys(candidate: ImportCandidate) {
+  return new Set(
+    [
+      ...candidate.externalRefs,
+      ...candidate.releaseCandidates.flatMap(
+        (releaseCandidate) => releaseCandidate.externalRefs ?? [],
+      ),
+    ].map((ref) => createExternalRefKey(ref)),
+  );
+}
+
+function getWorkExternalRefKeys(work: WorkRecord) {
+  return new Set(
+    [
+      ...(work.importDraft?.externalRefs ?? []),
+      ...(work.importDraft?.releaseCandidates?.flatMap(
+        (releaseCandidate) => releaseCandidate.externalRefs ?? [],
+      ) ?? []),
+    ].map((ref) => createExternalRefKey(ref)),
+  );
+}
+
+function normalizeIsbn(value: string | null | undefined) {
+  const normalized = (value ?? '').replace(/[^0-9Xx]/g, '').toUpperCase();
+
+  return normalized.length >= 10 ? normalized : '';
+}
+
+function getCandidateIsbnKeys(candidate: ImportCandidate) {
+  return new Set(
+    candidate.releaseCandidates
+      .map((releaseCandidate) => normalizeIsbn(releaseCandidate.isbn))
+      .filter(Boolean),
+  );
+}
+
+function getWorkIsbnKeys(work: WorkRecord) {
+  return new Set(
+    (work.importDraft?.releaseCandidates ?? [])
+      .map((releaseCandidate) => normalizeIsbn(releaseCandidate.isbn))
+      .filter(Boolean),
+  );
+}
+
+function hasAnyIntersection(left: Set<string>, right: Set<string>) {
+  for (const value of left) {
+    if (right.has(value)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function isPreviewOrManualCandidate(candidate: ImportCandidate) {
@@ -182,12 +237,15 @@ export function findLikelyMatches(
   existingWorks: WorkRecord[],
 ) {
   const matchedCatalogTitleId = candidate.catalogMatch?.id ?? null;
-  const candidateExternalRefKeys = new Set(
-    candidate.externalRefs.map((ref) => createExternalRefKey(ref)),
-  );
+  const candidateExternalRefKeys = getCandidateExternalRefKeys(candidate);
+  const candidateIsbnKeys = getCandidateIsbnKeys(candidate);
   const candidateTitleKeys = Array.from(
     new Set(
-      [candidate.title, candidate.title.replace(/\s*\([^)]*\)\s*$/, '')]
+      [
+        candidate.title,
+        candidate.title.replace(/\s*[\[(（][^\])）]*[\])）]\s*$/u, ''),
+        ...(candidate.titleAliases ?? []),
+      ]
         .map(normalizeTitle)
         .filter(Boolean),
     ),
@@ -203,9 +261,14 @@ export function findLikelyMatches(
 
     if (
       candidateExternalRefKeys.size > 0 &&
-      work.importDraft?.externalRefs?.some((ref) =>
-        candidateExternalRefKeys.has(createExternalRefKey(ref)),
-      )
+      hasAnyIntersection(candidateExternalRefKeys, getWorkExternalRefKeys(work))
+    ) {
+      return true;
+    }
+
+    if (
+      candidateIsbnKeys.size > 0 &&
+      hasAnyIntersection(candidateIsbnKeys, getWorkIsbnKeys(work))
     ) {
       return true;
     }

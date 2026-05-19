@@ -616,6 +616,116 @@ describe('ImportsService', () => {
     expect(result.candidates[1]?.title).toBe('Dune Messiah');
   });
 
+  it('retries official provider search with a cleaned Korean title when the original query has no strong match', async () => {
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: 'google-solo-leveling',
+              volumeInfo: {
+                authors: ['추공'],
+                industryIdentifiers: [
+                  {
+                    type: 'ISBN_13',
+                    identifier: '9790000000001',
+                  },
+                ],
+                publishedDate: '2018',
+                title: '나 혼자만 레벨업',
+              },
+            },
+          ],
+        }),
+      );
+
+    const result = await service.search(null, {
+      provider: GOOGLE_BOOKS_PROVIDER,
+      query: '나 혼자만 레벨업 1권',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: GOOGLE_BOOKS_PROVIDER,
+        title: '나 혼자만 레벨업',
+      }),
+    );
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    const firstUrl = new URL(String(fetchSpy.mock.calls[0]?.[0]));
+    const secondUrl = new URL(String(fetchSpy.mock.calls[1]?.[0]));
+
+    expect(firstUrl.searchParams.get('q')).toBe('나 혼자만 레벨업 1권');
+    expect(secondUrl.searchParams.get('q')).toBe('나 혼자만 레벨업');
+  });
+
+  it('uses official book providers as auxiliary web novel search without removing manual fallback', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        items: [
+          {
+            id: 'google-web-novel',
+            volumeInfo: {
+              authors: ['싱숑'],
+              title: '전지적 독자 시점',
+            },
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      query: '전지적 독자 시점',
+      limit: 5,
+      type: WorkType.web_novel,
+    });
+
+    expect(result.providers).toEqual([GOOGLE_BOOKS_PROVIDER, MANUAL_PROVIDER]);
+    expect(result.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: GOOGLE_BOOKS_PROVIDER,
+          title: '전지적 독자 시점',
+        }),
+        expect.objectContaining({
+          sourceId: MANUAL_PROVIDER,
+          title: '전지적 독자 시점',
+          type: WorkType.web_novel,
+        }),
+      ]),
+    );
+    expect(result.diagnostics.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: KAKAO_BOOK_PROVIDER,
+          reasonCode: 'guest_provider_not_allowed',
+          status: 'skipped',
+        }),
+        expect.objectContaining({
+          provider: NAVER_BOOK_PROVIDER,
+          reasonCode: 'guest_provider_not_allowed',
+          status: 'skipped',
+        }),
+        expect.objectContaining({
+          provider: GOOGLE_BOOKS_PROVIDER,
+          status: 'searched',
+        }),
+        expect.objectContaining({
+          provider: MANUAL_PROVIDER,
+          status: 'searched',
+        }),
+      ]),
+    );
+  });
+
   it('uses query year and contributor signals when titles are similar', async () => {
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({

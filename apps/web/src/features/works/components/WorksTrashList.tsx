@@ -1,9 +1,8 @@
-import { Box, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { Group, Paper, Stack, Text, Title } from '@mantine/core';
 import { Link } from 'react-router-dom';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
-import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import {
   ActionRow,
   AppBadge,
@@ -16,6 +15,14 @@ import {
   getWorkSyncStatusLabel,
   getWorkTypeLabel,
 } from '../utils/work-options';
+import { WorkPoster } from './ArchiveComponents';
+import styles from './ArchiveComponents.module.css';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 interface WorksTrashListProps {
   onRestore: (work: WorkRecord) => Promise<void>;
@@ -29,98 +36,100 @@ export function WorksTrashList({
   works,
 }: WorksTrashListProps) {
   return (
-    <section>
-      <Paper
-        p={0}
-        radius="lg"
-        styles={{
-          root: {
-            backgroundColor: 'var(--mantine-color-body)',
-            borderColor: 'var(--mantine-color-default-border)',
-            overflow: 'hidden',
-          },
-        }}
-        withBorder
-      >
-        <Stack gap={0}>
-          {works.map((work, index) => {
-            const isRestoring = restoringWorkId === work.id;
-            const typeLabel = getWorkTypeLabel(work.type);
+    <section aria-label="휴지통 작품 목록">
+      <Stack gap="md">
+        {works.map((work) => {
+          const isRestoring = restoringWorkId === work.id;
+          const typeLabel = getWorkTypeLabel(work.type);
 
-            return (
-              <Box
-                key={work.id}
-                px="lg"
-                py="lg"
-                style={{
-                  backgroundColor: isRestoring ? 'var(--mantine-color-default)' : 'transparent',
-                  borderBottom:
-                    index === works.length - 1 ? 'none' : '1px solid var(--mantine-color-default-border)',
-                }}
-              >
-                <Group align="flex-start" gap="lg" justify="space-between" wrap="wrap">
-                  <Group align="flex-start" gap="md" miw={0} wrap="nowrap">
-                    <ArtworkPoster
+          return (
+            <Paper
+              className={cn(css.listRowSurface)}
+              key={work.id}
+              radius="lg"
+              style={{
+                opacity: isRestoring ? 0.78 : 1,
+              }}
+              withBorder
+            >
+              <Group align="flex-start" gap="md" justify="space-between" wrap="wrap">
+                <Group
+                  align="flex-start"
+                  className={cn(css.listRowMain)}
+                  gap="md"
+                  miw={0}
+                  wrap="nowrap"
+                >
+                  <Link
+                    aria-label={`${work.title} 상세 보기`}
+                    style={{ flexShrink: 0, display: 'block' }}
+                    to={`/works/${work.id}`}
+                  >
+                    <WorkPoster
                       thumbnailUrl={work.thumbnailUrl}
                       title={work.title}
                       typeLabel={typeLabel}
                       variant="row"
                     />
+                  </Link>
 
-                    <Stack gap="sm" miw={0}>
-                      <ActionRow>
-                        <AppBadge>{typeLabel}</AppBadge>
-                        <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
-                        <AppBadge>{getWorkSyncStatusLabel(work.syncStatus)}</AppBadge>
-                        {isRestoring && <AppBadge tone="accent">복원 중</AppBadge>}
-                      </ActionRow>
+                  <Stack flex={1} gap={6} miw={0} pt={2}>
+                    <Group gap={6} wrap="wrap">
+                      <AppBadge tone="muted">{typeLabel}</AppBadge>
+                      <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
+                      <AppBadge>{getWorkSyncStatusLabel(work.syncStatus)}</AppBadge>
+                      {isRestoring && <AppBadge tone="accent">복원 중</AppBadge>}
+                    </Group>
 
-                      <div>
-                        <Title order={3}>
-                          <Link
-                            style={{ color: 'inherit', textDecoration: 'none' }}
-                            to={`/works/${work.id}`}
-                          >
-                            {work.title}
-                          </Link>
-                        </Title>
-                        <Text c="var(--mantine-color-dimmed)">
-                          {work.author || '작가·제작자 미입력'} · 삭제한 날{' '}
-                          {formatWorkDateTime(work.deletedAt ?? work.updatedAt)}
-                        </Text>
-                      </div>
-
-                      <Text c="var(--mantine-color-text)">
-                        {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
-                      </Text>
-                    </Stack>
-                  </Group>
-
-                  <Stack gap="sm" style={{ flex: '1 1 16rem', minWidth: 'min(100%, 16rem)' }}>
-                    <ActionRow justify="flex-end">
-                      <AppButton
-                        disabled={isRestoring}
-                        onClick={() => void onRestore(work)}
-                        tone="primary"
-                        type="button"
+                    <Title lineClamp={1} order={3} size="h4">
+                      <Link
+                        style={{ color: 'inherit', textDecoration: 'none' }}
+                        to={`/works/${work.id}`}
                       >
-                        {isRestoring ? '복원 중...' : '복원'}
-                      </AppButton>
-                      <AppLinkButton to={`/works?q=${encodeURIComponent(work.title)}`} tone="quiet">
-                        비슷한 기록 보기
-                      </AppLinkButton>
-                    </ActionRow>
+                        {work.title}
+                      </Link>
+                    </Title>
 
-                    <Text c="var(--mantine-color-dimmed)" fz="sm">
-                      복원하면 다시 작품 목록으로 돌아가며 현재 기록 상태도 그대로 유지됩니다.
+                    <Text c="dimmed" lineClamp={1} size="xs">
+                      {work.author || '작가·제작자 미입력'}
+                      {' · 삭제한 날 '}
+                      {formatWorkDateTime(work.deletedAt ?? work.updatedAt)}
+                    </Text>
+
+                    <Text c="var(--mantine-color-text)" lineClamp={2}>
+                      {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
                     </Text>
                   </Stack>
                 </Group>
-              </Box>
-            );
-          })}
-        </Stack>
-      </Paper>
+
+                <Stack className={cn(css.listRowControls)} gap="xs">
+                  <ActionRow justify="flex-end">
+                    <AppButton
+                      disabled={isRestoring}
+                      onClick={() => void onRestore(work)}
+                      size="compact-sm"
+                      tone="primary"
+                      type="button"
+                    >
+                      {isRestoring ? '복원 중...' : '복원'}
+                    </AppButton>
+                    <AppLinkButton
+                      size="compact-sm"
+                      to={`/works?q=${encodeURIComponent(work.title)}`}
+                      tone="quiet"
+                    >
+                      비슷한 기록 보기
+                    </AppLinkButton>
+                  </ActionRow>
+                  <Text c="dimmed" size="xs" ta="right">
+                    복원하면 작품 목록으로 돌아갑니다.
+                  </Text>
+                </Stack>
+              </Group>
+            </Paper>
+          );
+        })}
+      </Stack>
     </section>
   );
 }
