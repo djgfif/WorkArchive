@@ -1,3 +1,4 @@
+import React from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import {
   Badge,
@@ -20,7 +21,7 @@ import { Link, NavLink } from 'react-router-dom';
 type SurfaceTone = 'default' | 'hero' | 'subtle';
 type MessageTone = 'error' | 'info' | 'loading' | 'success';
 type AppActionTone = 'danger' | 'ghost' | 'primary' | 'quiet' | 'secondary';
-type AppBadgeTone = 'accent' | 'danger' | 'default' | 'muted' | 'success' | 'warning';
+type AppBadgeTone = 'accent' | 'danger' | 'default' | 'error' | 'info' | 'muted' | 'success' | 'warning';
 
 interface PageShellProps {
   children: ReactNode;
@@ -137,6 +138,7 @@ interface KeyValueGridProps {
 
 interface AppButtonProps {
   'aria-label'?: string;
+  'aria-expanded'?: boolean;
   'aria-pressed'?: boolean;
   children?: ReactNode;
   disabled?: boolean;
@@ -146,6 +148,7 @@ interface AppButtonProps {
   onClick?: ComponentPropsWithoutRef<'button'>['onClick'];
   rightSection?: ReactNode;
   size?: 'compact-md' | 'compact-sm' | 'compact-xs' | 'lg' | 'md' | 'sm' | 'xl' | 'xs';
+  style?: React.CSSProperties;
   tone?: AppActionTone;
   type?: ComponentPropsWithoutRef<'button'>['type'];
 }
@@ -211,7 +214,10 @@ function getBadgeToneProps(tone: AppBadgeTone) {
     case 'accent':
       return { color: 'archive' } as const;
     case 'danger':
+    case 'error':
       return { color: 'red' } as const;
+    case 'info':
+      return { color: 'blue' } as const;
     case 'warning':
       return { color: 'yellow' } as const;
     case 'success':

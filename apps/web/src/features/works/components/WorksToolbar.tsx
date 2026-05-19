@@ -1,5 +1,6 @@
-import { Collapse, Group, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
-import { useState } from 'react';
+import { Collapse, Group, SimpleGrid, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { useHotkeys } from '@mantine/hooks';
+import { useRef, useState } from 'react';
 
 import type { WorkStatus } from '@work-archive/shared-types';
 
@@ -59,6 +60,36 @@ export function WorksToolbar({
   viewMode,
 }: WorksToolbarProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [sortAsc, setSortAsc] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  /* ── 키보드 단축키 ── */
+  useHotkeys([
+    // '/' — 검색상자 포커스
+    ['slash', () => {
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    }],
+    // 'Escape' — 검색어 입력 시 지우기
+    ['Escape', () => {
+      if (query.searchTerm) {
+        onQueryChange({ ...query, searchTerm: '' });
+        searchRef.current?.blur();
+      }
+    }],
+    // 'g' — 그리드/리스트 전환 (입력 필드 외부에서만)
+    ['g', (event) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      onViewModeChange(viewMode === 'grid' ? 'list' : 'grid');
+    }],
+    // 'f' — 고급 필터 패널 토글
+    ['f', (event) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      setAdvancedOpen((v) => !v);
+    }],
+  ]);
 
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
@@ -169,9 +200,10 @@ export function WorksToolbar({
       >
         {/* Search bar */}
         <ArchiveSearchBar
-          aria-label="작품 라이브러리 검색"
+          aria-label="작품 라이브러리 검색 (단축키: /)"
+          inputRef={searchRef}
           onChange={(searchTerm) => onQueryChange({ ...query, searchTerm })}
-          placeholder="제목, 작가, 한줄평, 태그 검색"
+          placeholder="제목, 작가, 태그 검색  (/)"
           value={query.searchTerm}
         />
 
@@ -186,17 +218,39 @@ export function WorksToolbar({
             ]}
             value={collectionScope}
           />
-          {collectionScope === 'active' && (
-            <FilterPillGroup
-              aria-label="보기 방식"
-              onChange={onViewModeChange}
-              options={[
-                { label: '포스터', value: 'grid' },
-                { label: '리스트', value: 'list' },
-              ]}
-              value={viewMode}
-            />
-          )}
+          <Group gap="xs" wrap="nowrap">
+            {collectionScope === 'active' && (
+              <FilterPillGroup
+                aria-label="보기 방식 (단축키: g)"
+                onChange={onViewModeChange}
+                options={[
+                  { label: '포스터', value: 'grid' },
+                  { label: '리스트', value: 'list' },
+                ]}
+                value={viewMode}
+              />
+            )}
+            {/* 정렬 방향 토글 */}
+            {query.sortBy !== 'updatedAt' && (
+              <Tooltip
+                label={sortAsc ? '오름차순 정렬 중 — 클릭하면 내림차순' : '내림차순 정렬 중 — 클릭하면 오름차순'}
+                position="bottom"
+                withArrow
+              >
+                <AppButton
+                  aria-label={sortAsc ? '오름차순 정렬' : '내림차순 정렬'}
+                  aria-pressed={sortAsc}
+                  onClick={() => setSortAsc((v) => !v)}
+                  size="compact-sm"
+                  tone="secondary"
+                  type="button"
+                  style={{ fontVariantNumeric: 'tabular-nums', minWidth: 36 }}
+                >
+                  {sortAsc ? '↑ ASC' : '↓ DESC'}
+                </AppButton>
+              </Tooltip>
+            )}
+          </Group>
         </Group>
       </ArchiveHero>
 

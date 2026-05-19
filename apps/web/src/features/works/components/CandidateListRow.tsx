@@ -40,20 +40,46 @@ export function CandidateListRow({
       aria-pressed={active}
       onClick={onSelect}
       style={{
+        /* ── 배경 / 테두리 ── */
         background: active
-          ? 'linear-gradient(180deg, var(--mantine-color-default), var(--mantine-color-default-hover))'
-          : 'var(--mantine-color-body)',
-        border: active
-          ? '1px solid var(--mantine-color-default-border)'
-          : '1px solid var(--mantine-color-default-border)',
-        borderRadius: 'var(--mantine-radius-md)',
-        boxShadow: active ? '0 0 0 2px var(--mantine-primary-color-light)' : 'none',
-        color: 'inherit',
+          ? 'var(--app-surface-card)'
+          : 'var(--app-surface-subtle)',
+        border: `1px solid ${active ? 'var(--app-accent-primary)' : 'var(--app-border-subtle)'}`,
+        borderRadius: 'var(--mantine-radius-lg)',
+
+        /* ── 활성 포커스 링 ── */
+        boxShadow: active
+          ? '0 0 0 2px rgba(59, 130, 246, 0.25), var(--wa-shadow-card)'
+          : 'none',
+
+        /* ── 텍스트 / 레이아웃 ── */
+        color: 'var(--app-text-primary)',
         cursor: 'pointer',
-        padding: '0.75rem',
+        padding: '0.875rem',
         textAlign: 'left',
-        transition: 'background 120ms ease, border-color 120ms ease, box-shadow 120ms ease',
         width: '100%',
+
+        /* ── 전환 ── */
+        transition: [
+          'background var(--wa-motion-fast, 150ms) var(--wa-ease-spring)',
+          'border-color var(--wa-motion-fast, 150ms) var(--wa-ease-spring)',
+          'box-shadow var(--wa-motion-normal, 240ms) var(--wa-ease-spring)',
+          'transform var(--wa-motion-fast, 150ms) var(--wa-ease-spring)',
+        ].join(', '),
+      }}
+      onMouseEnter={(e) => {
+        if (!active) {
+          (e.currentTarget as HTMLElement).style.background = 'var(--app-surface-card)';
+          (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-border-default)';
+        }
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          (e.currentTarget as HTMLElement).style.background = 'var(--app-surface-subtle)';
+          (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-border-subtle)';
+        }
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
       }}
       type="button"
     >
@@ -76,8 +102,21 @@ export function CandidateListRow({
           </ActionRow>
 
           <div>
-            <Title order={4}>{candidate.title}</Title>
-            <Text c="var(--mantine-color-dimmed)" lineClamp={1} size="sm">
+            <Title
+              order={4}
+              style={{
+                color: 'var(--app-text-primary)',
+                letterSpacing: '-0.015em',
+                lineHeight: 1.3,
+              }}
+            >
+              {candidate.title}
+            </Title>
+            <Text
+              lineClamp={1}
+              size="sm"
+              style={{ color: 'var(--app-text-secondary)', marginTop: 2 }}
+            >
               {getCandidateContributorText(candidate)}
             </Text>
           </div>
@@ -109,7 +148,11 @@ export function CandidateListRow({
           )}
 
           {visibleAliases && visibleAliases.length > 0 && (
-            <Text c="var(--mantine-color-dimmed)" lineClamp={1} size="xs">
+            <Text
+              lineClamp={1}
+              size="xs"
+              style={{ color: 'var(--app-text-muted)', fontStyle: 'italic' }}
+            >
               별칭 {visibleAliases.join(' · ')}
             </Text>
           )}

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import {
   Box,
+  Divider,
   Group,
   Paper,
   SimpleGrid,
@@ -10,8 +11,10 @@ import {
   Title,
 } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
+import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
+  AppBadge,
   AppButton,
   AppLinkButton,
   LoadingRows,
@@ -26,9 +29,116 @@ import {
   WorkShelf,
 } from '../../works/components/ArchiveComponents';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
+import { getWorkStatusLabel } from '../../works/utils/work-options';
 
 function formatAverageRating(value: number | null) {
   return value === null ? '미평가' : `★ ${value.toFixed(1)}`;
+}
+
+function formatRelativeDate(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return '오늘';
+  if (diffDays === 1) return '어제';
+  if (diffDays < 7) return `${diffDays}일 전`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}개월 전`;
+  return `${Math.floor(diffDays / 365)}년 전`;
+}
+
+function groupWorksByDate(works: WorkRecord[]): Array<{ label: string; works: WorkRecord[] }> {
+  const groups = new Map<string, WorkRecord[]>();
+  for (const work of works) {
+    const label = formatRelativeDate(work.updatedAt);
+    const existing = groups.get(label);
+    if (existing) {
+      existing.push(work);
+    } else {
+      groups.set(label, [work]);
+    }
+  }
+  return Array.from(groups.entries()).map(([label, ws]) => ({ label, works: ws }));
+}
+
+function getStatusTone(status: string): 'success' | 'info' | 'warning' | 'error' | 'muted' | 'accent' {
+  switch (status) {
+    case 'completed': return 'success';
+    case 'in_progress': return 'info';
+    case 'dropped': return 'error';
+    case 'on_hold': return 'warning';
+    default: return 'muted';
+  }
+}
+
+function ActivityTimelineItem({ work }: { work: WorkRecord }) {
+  const navigate = useNavigate();
+  return (
+    <Group
+      gap="sm"
+      wrap="nowrap"
+      onClick={() => navigate(`/works/${work.id}`)}
+      style={{
+        padding: '0.6rem 0.75rem',
+        borderRadius: 'var(--mantine-radius-md)',
+        cursor: 'pointer',
+        transition: 'background var(--wa-motion-fast, 150ms)',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.background = 'var(--app-surface-subtle)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.background = 'transparent';
+      }}
+    >
+      {/* 타임라인 도트 */}
+      <Box
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          flexShrink: 0,
+          background: 'var(--app-accent-primary)',
+          opacity: 0.7,
+          marginTop: 2,
+        }}
+      />
+      <Stack gap={2} miw={0} style={{ flex: 1 }}>
+        <Group gap="xs" wrap="nowrap">
+          <Text
+            fw={600}
+            size="sm"
+            truncate
+            style={{ color: 'var(--app-text-primary)', flex: 1 }}
+          >
+            {work.title}
+          </Text>
+          <AppBadge tone={getStatusTone(work.status)}>
+            {getWorkStatusLabel(work.status)}
+          </AppBadge>
+        </Group>
+        {work.author && (
+          <Text size="xs" style={{ color: 'var(--app-text-muted)' }} truncate>
+            {work.author}
+          </Text>
+        )}
+      </Stack>
+      {work.rating !== null && (
+        <Text
+          fw={700}
+          size="xs"
+          style={{
+            color: 'var(--app-accent-primary)',
+            fontVariantNumeric: 'tabular-nums',
+            flexShrink: 0,
+          }}
+        >
+          ★ {work.rating.toFixed(1)}
+        </Text>
+      )}
+    </Group>
+  );
 }
 
 interface QuickStatProps {
@@ -320,6 +430,73 @@ export function HomePage() {
               />
             )}
           </Stack>
+
+          {/* 활동 타임라인 */}
+          {recentWorks.length > 0 && (
+            <Stack gap="lg">
+              <SectionHeader
+                action={
+                  <AppLinkButton to="/works" tone="quiet">
+                    전체 보기
+                  </AppLinkButton>
+                }
+                description="날짜별로 정리된 최근 기록 흐름입니다."
+                eyebrow="타임라인"
+                title="활동 기록"
+              />
+              <Paper
+                p="md"
+                radius="lg"
+                withBorder
+                style={{
+                  background: 'var(--app-surface-subtle)',
+                  borderColor: 'var(--app-border-subtle)',
+                }}
+              >
+                <Stack gap={0}>
+                  {groupWorksByDate(recentWorks.slice(0, 20)).map((group, groupIndex) => (
+                    <Box key={group.label}>
+                      {groupIndex > 0 && (
+                        <Divider
+                          color="var(--app-border-subtle)"
+                          my="xs"
+                        />
+                      )}
+                      {/* 날짜 레이블 */}
+                      <Group gap="sm" mb="xs" pl="xs">
+                        <Box
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            flexShrink: 0,
+                            background: 'var(--app-border-strong)',
+                          }}
+                        />
+                        <Text
+                          fw={700}
+                          size="xs"
+                          tt="uppercase"
+                          style={{
+                            letterSpacing: '0.08em',
+                            color: 'var(--app-text-muted)',
+                          }}
+                        >
+                          {group.label}
+                        </Text>
+                      </Group>
+                      {/* 해당 날짜의 작품들 */}
+                      <Stack gap={2}>
+                        {group.works.map((work) => (
+                          <ActivityTimelineItem key={work.id} work={work} />
+                        ))}
+                      </Stack>
+                    </Box>
+                  ))}
+                </Stack>
+              </Paper>
+            </Stack>
+          )}
         </Stack>
       )}
     </HomeHubPageTemplate>

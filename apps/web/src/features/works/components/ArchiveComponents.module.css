@@ -267,6 +267,50 @@
   padding-top: 0.75rem;
 }
 
+/* ── 상태 오버레이 배지 ─────────────────────────────────────────────────── */
+.statusOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.28rem 0.5rem;
+  /* 하단 그라디언트와 자연스럽게 블렌딩 */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  /* 포스터 이미지 위에 올라오도록 */
+  pointer-events: none;
+  /* 포스터 카드 바디 위에 겹치지 않도록 */
+  height: 1.7rem;
+  /* 포스터 셸 하단에 붙이기 위해 posterShell 기준 */
+  bottom: calc(var(--poster-card-body-height, 4.5rem));
+  /* 실제로는 posterShell 내부에 있으므로 posterShell 하단에 붙임 */
+  bottom: 0;
+  /* posterCardSurface 내부 posterShell 바로 아래에 위치 */
+}
+
+/* posterShell 내부에서 statusOverlay가 이미지 하단에 오도록 */
+.posterShell .statusOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+}
+
+/* posterCardSurface 내부에서 statusOverlay 위치 조정 */
+.posterCardSurface .statusOverlay {
+  /* posterShell 바로 아래, posterCardBody 바로 위 */
+  position: absolute;
+  /* posterShell의 높이 = aspect-ratio 3/4 기준 */
+  /* posterCard variant: --poster-width: 7rem → height = 7 * 4/3 ≈ 9.33rem */
+  /* 정확한 위치는 posterShell 내부 bottom:0 */
+  z-index: 3;
+}
+
 .posterMetaLine {
   min-height: 1.5rem;
   font-size: var(--wa-type-caption);
@@ -431,28 +475,74 @@
 .detailHero {
   position: relative;
   overflow: hidden;
-  padding: clamp(1.25rem, 4vw, 2.5rem);
+  padding: clamp(1.5rem, 4vw, 3rem);
   border: 1px solid var(--app-border-strong);
   border-radius: var(--mantine-radius-xl);
   background:
-    radial-gradient(circle at 22% 18%, rgba(239, 181, 70, 0.09), transparent 34%),
-    linear-gradient(145deg, rgba(24, 27, 39, 0.96), rgba(8, 9, 13, 0.98));
-  box-shadow: var(--app-shadow-overlay);
+    /* 상단 인셋 하이라이트 */
+    linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 60%),
+    /* 좌측 포스터 영역 블루 glow */
+    radial-gradient(ellipse at 18% 50%, rgba(59, 130, 246, 0.10), transparent 50%),
+    /* 앙버 워시 */
+    radial-gradient(circle at 22% 18%, rgba(239, 181, 70, 0.08), transparent 34%),
+    linear-gradient(145deg, rgba(18, 21, 32, 0.97), rgba(8, 9, 13, 0.99));
+  box-shadow:
+    var(--app-shadow-overlay),
+    inset 0 1px 0 rgba(255,255,255,0.06);
 }
-
 [data-mantine-color-scheme='light'] .detailHero {
   background:
-    radial-gradient(circle at 22% 18%, rgba(201, 141, 36, 0.07), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,0.8) 0%, transparent 60%),
+    radial-gradient(ellipse at 18% 50%, rgba(37, 99, 235, 0.06), transparent 50%),
+    radial-gradient(circle at 22% 18%, rgba(201, 141, 36, 0.06), transparent 34%),
     linear-gradient(145deg, rgba(240, 244, 250, 0.98), rgba(220, 228, 238, 0.96));
 }
-
 .detailHeroPoster {
-  flex: 0 0 clamp(12.5rem, 24vw, 18rem);
+  flex: 0 0 clamp(11rem, 22vw, 16rem);
   max-width: 100%;
+  /* 포스터 주변 미세 glow */
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.45)) drop-shadow(0 2px 8px rgba(59,130,246,0.18));
+  transition: filter var(--wa-motion-normal, 240ms cubic-bezier(0.16,1,0.3,1));
 }
-
+.detailHeroPoster:hover {
+  filter: drop-shadow(0 12px 32px rgba(0,0,0,0.55)) drop-shadow(0 4px 12px rgba(59,130,246,0.28));
+}
 .detailHeroBody {
   min-width: min(100%, 26rem);
+}
+/* 상세 히어로 메타 구분선 */
+.detailHeroMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.detailHeroMetaDivider {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--app-text-muted, var(--mantine-color-dimmed));
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+/* 상세 히어로 별점 영역 */
+.detailHeroRating {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+.detailHeroRatingValue {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--app-accent-warm, var(--mantine-color-yellow-4));
+}
+.detailHeroRatingMax {
+  font-size: 0.9rem;
+  color: var(--app-text-muted);
+  font-weight: 500;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -536,7 +626,50 @@
 }
 
 .emptyState {
-  padding: clamp(1.25rem, 4vw, 2.4rem);
+  padding: clamp(1.5rem, 4vw, 2.8rem);
+}
+/* 빈 상태 일러스트 */
+.emptyIllustration {
+  color: var(--app-text-primary);
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
+}
+/* 부유 애니메이션 — 메인 포스터 */
+.emptyFloat1 {
+  animation: emptyFloat 3.6s ease-in-out infinite;
+  transform-origin: center;
+}
+/* 부유 애니메이션 — 좌측 포스터 */
+.emptyFloat2 {
+  animation: emptyFloat 4.2s ease-in-out 0.4s infinite;
+  transform-origin: center;
+}
+/* 부유 애니메이션 — 우측 포스터 */
+.emptyFloat3 {
+  animation: emptyFloat 3.9s ease-in-out 0.8s infinite;
+  transform-origin: center;
+}
+/* 반짝이는 별 1 */
+.emptySparkle1 {
+  animation: emptySparkle 2.4s ease-in-out infinite;
+}
+/* 반짜이는 별 2 */
+.emptySparkle2 {
+  animation: emptySparkle 2.8s ease-in-out 0.6s infinite;
+}
+@keyframes emptyFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+@keyframes emptySparkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.85); }
+  50%       { opacity: 0.50; transform: scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .emptyFloat1, .emptyFloat2, .emptyFloat3,
+  .emptySparkle1, .emptySparkle2 {
+    animation: none;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
