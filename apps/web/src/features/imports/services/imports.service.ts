@@ -47,12 +47,16 @@ const EXTERNAL_SEARCH_UNAVAILABLE_NOTICE =
 const providerDisplayLabels: Record<string, string> = {
   aladin: 'Aladin Book',
   anilist: 'AniList',
+  brave_search: 'Brave Search',
   google_books: 'Google Books',
   kakao_book: 'Kakao Book',
+  kakao_web: 'Kakao Web',
   kobis: 'KOBIS',
   manual: '직접 추가',
   naver_book: 'Naver Book',
+  naver_web: 'Naver Web',
   open_library: 'Open Library',
+  tavily_search: 'Tavily Search',
   tmdb: 'TMDB',
   tvmaze: 'TVmaze',
 };

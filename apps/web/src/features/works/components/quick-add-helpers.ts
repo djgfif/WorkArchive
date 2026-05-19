@@ -20,7 +20,8 @@ export type ProviderGroup =
   | 'animation_comics'
   | 'books'
   | 'manual'
-  | 'screen';
+  | 'screen'
+  | 'web_serial';
 
 export const quickAddTypeOptions: Array<{
   label: string;
@@ -96,6 +97,21 @@ export const providerGroupOptions: Array<{
     value: 'animation_comics',
   },
   {
+    description:
+      'Brave Search, Naver/Kakao 웹문서와 국내 도서 출처로 웹소설·웹툰 후보를 확인합니다.',
+    label: '웹연재',
+    providers: [
+      'brave_search',
+      'naver_web',
+      'kakao_web',
+      'tavily_search',
+      'kakao_book',
+      'naver_book',
+      'google_books',
+    ],
+    value: 'web_serial',
+  },
+  {
     description: '영상 출처 중심으로 후보를 모읍니다.',
     label: '영상',
     providers: ['tmdb', 'tvmaze', 'kobis'],
@@ -131,7 +147,7 @@ export function normalizeTitle(value: string) {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, ' ')
-    .replace(/\s*[\[(（][^\])）]*[\])）]\s*$/u, '')
+    .replace(/\s*[[（(][^\])）]*[\])）]\s*$/u, '')
     .replace(/[^\p{Letter}\p{Number}]+/gu, '');
 }
 
@@ -243,7 +259,7 @@ export function findLikelyMatches(
     new Set(
       [
         candidate.title,
-        candidate.title.replace(/\s*[\[(（][^\])）]*[\])）]\s*$/u, ''),
+        candidate.title.replace(/\s*[[（(][^\])）]*[\])）]\s*$/u, ''),
         ...(candidate.titleAliases ?? []),
       ]
         .map(normalizeTitle)
@@ -387,14 +403,18 @@ function getCandidateExternalIdentityCount(candidate: ImportCandidate) {
 const providerDisplayLabels: Record<string, string> = {
   aladin: 'Aladin Book',
   anilist: 'AniList',
+  brave_search: 'Brave Search',
   google_books: 'Google Books',
   kakao_book: 'Kakao Book',
+  kakao_web: 'Kakao Web',
   kobis: 'KOBIS',
   manual: '직접 추가',
   naver_book: 'Naver Book',
+  naver_web: 'Naver Web',
   open_library: 'Open Library',
   preview_manual: '직접 추가',
   'preview-manual': '직접 추가',
+  tavily_search: 'Tavily Search',
   tmdb: 'TMDB',
   tvmaze: 'TVmaze',
 };

@@ -25,7 +25,7 @@ function normalizeSearchText(value: string) {
 }
 
 function stripTrailingParenthetical(value: string) {
-  return value.replace(/\s*[\[(（][^\])）]*[\])）]\s*$/u, '').trim();
+  return value.replace(/\s*[[（(][^\])）]*[\])）]\s*$/u, '').trim();
 }
 
 function compactSearchText(value: string) {

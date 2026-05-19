@@ -46,9 +46,13 @@ import {
   KOBIS_PROVIDER,
   MANUAL_PROVIDER,
   NAVER_BOOK_PROVIDER,
+  NAVER_WEB_PROVIDER,
   OPEN_LIBRARY_PROVIDER,
   TMDB_PROVIDER,
+  BRAVE_SEARCH_PROVIDER,
+  TAVILY_SEARCH_PROVIDER,
   TVMAZE_PROVIDER,
+  KAKAO_WEB_PROVIDER,
   type ImportProvider,
 } from './imports.constants';
 
@@ -62,6 +66,10 @@ const TMDB_SEARCH_MOVIE_URL = 'https://api.themoviedb.org/3/search/movie';
 const TMDB_SEARCH_TV_URL = 'https://api.themoviedb.org/3/search/tv';
 const NAVER_BOOK_SEARCH_URL = 'https://openapi.naver.com/v1/search/book.json';
 const KAKAO_BOOK_SEARCH_URL = 'https://dapi.kakao.com/v3/search/book';
+const NAVER_WEB_SEARCH_URL = 'https://openapi.naver.com/v1/search/webkr.json';
+const KAKAO_WEB_SEARCH_URL = 'https://dapi.kakao.com/v2/search/web';
+const BRAVE_SEARCH_URL = 'https://api.search.brave.com/res/v1/web/search';
+const TAVILY_SEARCH_URL = 'https://api.tavily.com/search';
 const KOBIS_MOVIE_SEARCH_URL =
   'http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json';
 const ALADIN_ATTRIBUTION = '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)';
@@ -69,6 +77,16 @@ const DEFAULT_LIMIT = 10;
 const DEFAULT_PROVIDER_TIMEOUT_MS = 5_000;
 const MAX_LIMIT = 20;
 const PROVIDER_CACHE_TTL_MS = 5 * 60 * 1_000;
+const WEB_SERIAL_INCLUDE_DOMAINS = [
+  'series.naver.com',
+  'comic.naver.com',
+  'page.kakao.com',
+  'webtoon.kakao.com',
+  'ridibooks.com',
+  'munpia.com',
+  'novelpia.com',
+  'joara.com',
+] as const;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -219,6 +237,50 @@ const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
       WorkType.webtoon,
     ],
     provider: KAKAO_BOOK_PROVIDER,
+  },
+  [NAVER_WEB_PROVIDER]: {
+    credentialMode: 'user',
+    credentialFields: [
+      {
+        label: 'Client ID',
+        name: 'clientId',
+        secret: true,
+      },
+      {
+        label: 'Client Secret',
+        name: 'clientSecret',
+        secret: true,
+      },
+    ],
+    label: 'Naver Web',
+    mediumTypes: [WorkType.web_novel, WorkType.webtoon],
+    provider: NAVER_WEB_PROVIDER,
+  },
+  [KAKAO_WEB_PROVIDER]: {
+    credentialMode: 'user',
+    credentialFields: [
+      {
+        description: 'Kakao Developers REST API key',
+        label: 'REST API Key',
+        name: 'restApiKey',
+        secret: true,
+      },
+    ],
+    label: 'Kakao Web',
+    mediumTypes: [WorkType.web_novel, WorkType.webtoon],
+    provider: KAKAO_WEB_PROVIDER,
+  },
+  [BRAVE_SEARCH_PROVIDER]: {
+    credentialMode: 'server',
+    label: 'Brave Search',
+    mediumTypes: [WorkType.web_novel, WorkType.webtoon, WorkType.anime],
+    provider: BRAVE_SEARCH_PROVIDER,
+  },
+  [TAVILY_SEARCH_PROVIDER]: {
+    credentialMode: 'server',
+    label: 'Tavily Search',
+    mediumTypes: [WorkType.web_novel, WorkType.webtoon],
+    provider: TAVILY_SEARCH_PROVIDER,
   },
   [KOBIS_PROVIDER]: {
     credentialMode: 'user',
@@ -506,8 +568,12 @@ export class ImportsService {
       return [searchQuery.provider];
     }
 
-    if (mediumType === WorkType.web_novel || mediumType === WorkType.webtoon) {
+    if (mediumType === WorkType.web_novel) {
       return [
+        BRAVE_SEARCH_PROVIDER,
+        KAKAO_WEB_PROVIDER,
+        NAVER_WEB_PROVIDER,
+        TAVILY_SEARCH_PROVIDER,
         KAKAO_BOOK_PROVIDER,
         NAVER_BOOK_PROVIDER,
         GOOGLE_BOOKS_PROVIDER,
@@ -515,8 +581,26 @@ export class ImportsService {
       ];
     }
 
+    if (mediumType === WorkType.webtoon) {
+      return [
+        BRAVE_SEARCH_PROVIDER,
+        NAVER_WEB_PROVIDER,
+        KAKAO_WEB_PROVIDER,
+        TAVILY_SEARCH_PROVIDER,
+        NAVER_BOOK_PROVIDER,
+        KAKAO_BOOK_PROVIDER,
+        GOOGLE_BOOKS_PROVIDER,
+        MANUAL_PROVIDER,
+      ];
+    }
+
     if (mediumType === WorkType.anime) {
-      return [ANILIST_PROVIDER, TVMAZE_PROVIDER, MANUAL_PROVIDER];
+      return [
+        ANILIST_PROVIDER,
+        BRAVE_SEARCH_PROVIDER,
+        TVMAZE_PROVIDER,
+        MANUAL_PROVIDER,
+      ];
     }
 
     if (mediumType === WorkType.movie) {
@@ -590,7 +674,12 @@ export class ImportsService {
     }
 
     const allowedProviders = providers.filter((provider) => {
-      return PROVIDERS[provider].credentialMode === 'none';
+      const credentialMode = PROVIDERS[provider].credentialMode;
+
+      return (
+        credentialMode === 'none' ||
+        (credentialMode === 'server' && this.isServerSearchGuestEnabled())
+      );
     });
     const requestedProviders = [
       ...(searchQuery.provider ? [searchQuery.provider] : []),
@@ -627,8 +716,30 @@ export class ImportsService {
       return true;
     }
 
+    if (metadata.credentialMode === 'server') {
+      return Boolean(this.getServerProviderApiKey(provider));
+    }
+
     if (!userId) {
       return false;
+    }
+
+    if (provider === NAVER_WEB_PROVIDER) {
+      return (
+        (await this.credentialService.hasCredential(
+          userId,
+          NAVER_WEB_PROVIDER,
+        )) || this.credentialService.hasCredential(userId, NAVER_BOOK_PROVIDER)
+      );
+    }
+
+    if (provider === KAKAO_WEB_PROVIDER) {
+      return (
+        (await this.credentialService.hasCredential(
+          userId,
+          KAKAO_WEB_PROVIDER,
+        )) || this.credentialService.hasCredential(userId, KAKAO_BOOK_PROVIDER)
+      );
     }
 
     if (metadata.credentialMode === 'user') {
@@ -659,6 +770,14 @@ export class ImportsService {
         return this.searchNaverBook(context);
       case KAKAO_BOOK_PROVIDER:
         return this.searchKakaoBook(context);
+      case BRAVE_SEARCH_PROVIDER:
+        return this.searchBrave(context);
+      case TAVILY_SEARCH_PROVIDER:
+        return this.searchTavily(context);
+      case NAVER_WEB_PROVIDER:
+        return this.searchNaverWeb(context);
+      case KAKAO_WEB_PROVIDER:
+        return this.searchKakaoWeb(context);
       case KOBIS_PROVIDER:
         return this.searchKobis(context);
       case MANUAL_PROVIDER:
@@ -710,7 +829,7 @@ export class ImportsService {
   private getProviderSearchQueryVariants(query: string) {
     const normalized = this.normalizeProviderSearchQuery(query);
     const withoutBracketSuffix = this.normalizeProviderSearchQuery(
-      normalized.replace(/\s*[\[(（][^\])）]*[\])）]\s*$/u, ''),
+      normalized.replace(/\s*[[（(][^\])）]*[\])）]\s*$/u, ''),
     );
     const withoutVolumeSuffix = this.normalizeProviderSearchQuery(
       withoutBracketSuffix.replace(
@@ -744,7 +863,9 @@ export class ImportsService {
   ) {
     return (
       candidates.length === 0 ||
-      !candidates.some((candidate) => this.hasStrongTitleSignal(candidate, query))
+      !candidates.some((candidate) =>
+        this.hasStrongTitleSignal(candidate, query),
+      )
     );
   }
 
@@ -1173,6 +1294,201 @@ export class ImportsService {
         return (
           candidate !== null &&
           this.matchesProviderResultMedium(candidate, mediumType)
+        );
+      });
+  }
+
+  private async searchBrave({
+    limit,
+    mediumType,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const apiKey = this.getServerProviderApiKey(BRAVE_SEARCH_PROVIDER);
+
+    if (!apiKey) {
+      throw new ForbiddenException('Brave Search API key is not configured.');
+    }
+
+    const searchUrl = new URL(BRAVE_SEARCH_URL);
+    const rewrittenQuery = this.buildGeneralWebSearchQuery(query, mediumType);
+
+    searchUrl.searchParams.set('q', rewrittenQuery);
+    searchUrl.searchParams.set('count', Math.min(limit, 20).toString());
+    searchUrl.searchParams.set('country', 'kr');
+    searchUrl.searchParams.set('search_lang', 'ko');
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: BRAVE_SEARCH_PROVIDER,
+        query: rewrittenQuery,
+      }),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
+      headers: {
+        'X-Subscription-Token': apiKey,
+      },
+    });
+    const results = this.readPathArray(responseBody, ['web', 'results']);
+
+    return results
+      .map((item, index) => this.mapBraveSearchItem(item, index, mediumType))
+      .filter((candidate): candidate is ImportCandidateResponseDto => {
+        return (
+          candidate !== null &&
+          (!mediumType || candidate.mediumType === mediumType)
+        );
+      });
+  }
+
+  private async searchTavily({
+    limit,
+    mediumType,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const apiKey = this.getServerProviderApiKey(TAVILY_SEARCH_PROVIDER);
+
+    if (!apiKey) {
+      throw new ForbiddenException('Tavily Search API key is not configured.');
+    }
+
+    const rewrittenQuery = this.buildGeneralWebSearchQuery(query, mediumType);
+    const responseBody = await this.fetchJson(TAVILY_SEARCH_URL, {
+      accept: 'application/json',
+      bearerToken: apiKey,
+      body: JSON.stringify({
+        query: rewrittenQuery,
+        country: 'south korea',
+        include_domains: WEB_SERIAL_INCLUDE_DOMAINS,
+        include_raw_content: false,
+        max_results: Math.min(limit, 20),
+        search_depth: 'basic',
+        topic: 'general',
+      }),
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: TAVILY_SEARCH_PROVIDER,
+        query: rewrittenQuery,
+      }),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
+      contentType: 'application/json',
+      method: 'POST',
+    });
+    const results = this.readPathArray(responseBody, ['results']);
+
+    return results
+      .map((item, index) => this.mapTavilySearchItem(item, index, mediumType))
+      .filter((candidate): candidate is ImportCandidateResponseDto => {
+        return (
+          candidate !== null &&
+          (!mediumType || candidate.mediumType === mediumType)
+        );
+      });
+  }
+
+  private async searchNaverWeb({
+    limit,
+    mediumType,
+    query,
+    userId,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const credential = userId
+      ? await this.getProviderCredentialValuesWithFallback(
+          userId,
+          NAVER_WEB_PROVIDER,
+          NAVER_BOOK_PROVIDER,
+        )
+      : null;
+    const clientId = credential?.clientId;
+    const clientSecret = credential?.clientSecret;
+
+    if (!clientId || !clientSecret) {
+      throw new ForbiddenException(
+        'Naver Web API key is not configured for this user.',
+      );
+    }
+
+    const searchUrl = new URL(NAVER_WEB_SEARCH_URL);
+
+    searchUrl.searchParams.set('query', query);
+    searchUrl.searchParams.set('display', Math.min(limit, 20).toString());
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: NAVER_WEB_PROVIDER,
+        query,
+        userScope: userId,
+      }),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
+      headers: {
+        'X-Naver-Client-Id': clientId,
+        'X-Naver-Client-Secret': clientSecret,
+      },
+    });
+    const items = this.readPathArray(responseBody, ['items']);
+
+    return items
+      .map((item, index) => this.mapNaverWebItem(item, index, mediumType))
+      .filter((candidate): candidate is ImportCandidateResponseDto => {
+        return (
+          candidate !== null &&
+          (!mediumType || candidate.mediumType === mediumType)
+        );
+      });
+  }
+
+  private async searchKakaoWeb({
+    limit,
+    mediumType,
+    query,
+    userId,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const credential = userId
+      ? await this.getProviderCredentialValuesWithFallback(
+          userId,
+          KAKAO_WEB_PROVIDER,
+          KAKAO_BOOK_PROVIDER,
+        )
+      : null;
+    const restApiKey = credential?.restApiKey;
+
+    if (!restApiKey) {
+      throw new ForbiddenException(
+        'Kakao Web API key is not configured for this user.',
+      );
+    }
+
+    const searchUrl = new URL(KAKAO_WEB_SEARCH_URL);
+
+    searchUrl.searchParams.set('query', query);
+    searchUrl.searchParams.set('size', Math.min(limit, 20).toString());
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      bearerPrefix: 'KakaoAK',
+      bearerToken: restApiKey,
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: KAKAO_WEB_PROVIDER,
+        query,
+        userScope: userId,
+      }),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
+    });
+    const documents = this.readPathArray(responseBody, ['documents']);
+
+    return documents
+      .map((item, index) => this.mapKakaoWebItem(item, index, mediumType))
+      .filter((candidate): candidate is ImportCandidateResponseDto => {
+        return (
+          candidate !== null &&
+          (!mediumType || candidate.mediumType === mediumType)
         );
       });
   }
@@ -1725,6 +2041,153 @@ export class ImportsService {
     });
   }
 
+  private mapBraveSearchItem(
+    item: unknown,
+    index: number,
+    requestedMediumType?: WorkType,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    return this.buildExternalWebSearchCandidate({
+      confidence: index === 0 ? 0.78 : 0.6,
+      description: this.readString(item.description),
+      idPrefix: BRAVE_SEARCH_PROVIDER,
+      note: 'Brave Search API',
+      provider: BRAVE_SEARCH_PROVIDER,
+      reason: 'Brave 웹 검색 결과',
+      requestedMediumType,
+      sourceLabel: 'Brave Search',
+      title: this.readString(item.title),
+      url: this.readString(item.url),
+    });
+  }
+
+  private mapTavilySearchItem(
+    item: unknown,
+    index: number,
+    requestedMediumType?: WorkType,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    return this.buildExternalWebSearchCandidate({
+      confidence: index === 0 ? 0.76 : 0.58,
+      description: this.readString(item.content),
+      idPrefix: TAVILY_SEARCH_PROVIDER,
+      note: 'Tavily Search API',
+      provider: TAVILY_SEARCH_PROVIDER,
+      reason: 'Tavily 웹 검색 결과',
+      requestedMediumType,
+      sourceLabel: 'Tavily Search',
+      title: this.readString(item.title),
+      url: this.readString(item.url),
+    });
+  }
+
+  private mapNaverWebItem(
+    item: unknown,
+    index: number,
+    requestedMediumType?: WorkType,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    const rawTitle = this.stripHtml(this.readString(item.title));
+    const title = this.normalizeWebSearchTitle(rawTitle);
+    const sourceUrl = this.readString(item.link);
+    const description = this.normalizeWhitespace(
+      this.stripHtml(this.readString(item.description)),
+    );
+    const type = this.inferWebSearchWorkType({
+      description,
+      requestedMediumType,
+      title,
+      url: sourceUrl,
+    });
+
+    if (!title || !type) {
+      return null;
+    }
+
+    const externalId = sourceUrl || title;
+
+    return this.buildCandidate({
+      confidence: index === 0 ? 0.76 : 0.58,
+      confidenceLabel: index === 0 ? 'Naver Web 상위' : 'Naver Web 후보',
+      countLabel: this.getWebSourceLabel(sourceUrl) || 'Naver Web',
+      description,
+      externalId,
+      formatLabel: this.getFormatLabel(type),
+      id: `${NAVER_WEB_PROVIDER}:${externalId}`,
+      note: 'Naver Search Web API',
+      provider: NAVER_WEB_PROVIDER,
+      reason: 'Naver 웹문서 검색 결과',
+      sourceLabel: 'Naver Web',
+      sourceUrl,
+      title,
+      titleAliases: [rawTitle, title].filter(Boolean),
+      type,
+    });
+  }
+
+  private mapKakaoWebItem(
+    item: unknown,
+    index: number,
+    requestedMediumType?: WorkType,
+  ): ImportCandidateResponseDto | null {
+    if (!this.isRecord(item)) {
+      return null;
+    }
+
+    const rawTitle = this.stripHtml(this.readString(item.title));
+    const title = this.normalizeWebSearchTitle(rawTitle);
+    const sourceUrl = this.readString(item.url);
+    const description = this.normalizeWhitespace(
+      this.stripHtml(this.readString(item.contents)),
+    );
+    const type = this.inferWebSearchWorkType({
+      description,
+      requestedMediumType,
+      title,
+      url: sourceUrl,
+    });
+
+    if (!title || !type) {
+      return null;
+    }
+
+    const externalId = sourceUrl || title;
+
+    return this.buildCandidate({
+      confidence: index === 0 ? 0.76 : 0.58,
+      confidenceLabel: index === 0 ? 'Kakao Web 상위' : 'Kakao Web 후보',
+      countLabel:
+        [
+          this.getWebSourceLabel(sourceUrl),
+          this.readString(item.datetime).slice(0, 10),
+        ]
+          .filter(Boolean)
+          .join(' · ') || 'Kakao Web',
+      description,
+      externalId,
+      formatLabel: this.getFormatLabel(type),
+      id: `${KAKAO_WEB_PROVIDER}:${externalId}`,
+      note: 'Kakao Daum Web Search API',
+      provider: KAKAO_WEB_PROVIDER,
+      reason: 'Kakao 웹문서 검색 결과',
+      releaseYear: this.parseYear(this.readString(item.datetime)),
+      sourceLabel: 'Kakao Web',
+      sourceUrl,
+      title,
+      titleAliases: [rawTitle, title].filter(Boolean),
+      type,
+    });
+  }
+
   private mapKobisMovieItem(
     item: unknown,
     index: number,
@@ -1822,6 +2285,59 @@ export class ImportsService {
     });
   }
 
+  private buildExternalWebSearchCandidate(input: {
+    confidence: number;
+    description: string;
+    idPrefix: ImportProvider;
+    note: string;
+    provider: ImportProvider;
+    reason: string;
+    requestedMediumType: WorkType | undefined;
+    sourceLabel: string;
+    title: string;
+    url: string;
+  }) {
+    const rawTitle = this.stripHtml(input.title);
+    const title = this.normalizeWebSearchTitle(rawTitle);
+    const sourceUrl = input.url.trim();
+    const description = this.normalizeWhitespace(
+      this.stripHtml(input.description),
+    );
+    const type = this.inferWebSearchWorkType({
+      description,
+      requestedMediumType: input.requestedMediumType,
+      title,
+      url: sourceUrl,
+    });
+
+    if (!title || !type || !sourceUrl) {
+      return null;
+    }
+
+    const sourceLabel = this.getWebSourceLabel(sourceUrl) || input.sourceLabel;
+
+    return this.buildCandidate({
+      confidence: input.confidence,
+      confidenceLabel:
+        input.confidence >= 0.76
+          ? `${input.sourceLabel} 상위`
+          : `${input.sourceLabel} 후보`,
+      countLabel: sourceLabel,
+      description,
+      externalId: sourceUrl,
+      formatLabel: this.getFormatLabel(type),
+      id: `${input.idPrefix}:${sourceUrl}`,
+      note: input.note,
+      provider: input.provider,
+      reason: input.reason,
+      sourceLabel: input.sourceLabel,
+      sourceUrl,
+      title,
+      titleAliases: [rawTitle, title].filter(Boolean),
+      type,
+    });
+  }
+
   private async decorateCandidates(
     userId: string | null,
     candidates: ImportCandidateResponseDto[],
@@ -1885,7 +2401,9 @@ export class ImportsService {
   }
 
   private assertUserCredentialProvider(providerInput: string) {
-    if (!(IMPORT_PROVIDER_VALUES as readonly string[]).includes(providerInput)) {
+    if (
+      !(IMPORT_PROVIDER_VALUES as readonly string[]).includes(providerInput)
+    ) {
       throw new BadRequestException('Unsupported import provider.');
     }
 
@@ -1935,6 +2453,17 @@ export class ImportsService {
     }
 
     return this.parseCredentialValues(provider, rawCredential);
+  }
+
+  private async getProviderCredentialValuesWithFallback(
+    userId: string,
+    provider: ImportProvider,
+    fallbackProvider: ImportProvider,
+  ) {
+    return (
+      (await this.getProviderCredentialValues(userId, provider)) ??
+      this.getProviderCredentialValues(userId, fallbackProvider)
+    );
   }
 
   private parseCredentialValues(
@@ -2223,6 +2752,141 @@ export class ImportsService {
 
   private normalizeWhitespace(value: string) {
     return value.trim().replace(/\s+/g, ' ');
+  }
+
+  private isServerSearchGuestEnabled() {
+    return (
+      process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED?.trim().toLowerCase() ===
+      'true'
+    );
+  }
+
+  private getServerProviderApiKey(provider: ImportProvider) {
+    if (provider === BRAVE_SEARCH_PROVIDER) {
+      return process.env.BRAVE_SEARCH_API_KEY?.trim() ?? '';
+    }
+
+    if (provider === TAVILY_SEARCH_PROVIDER) {
+      return process.env.TAVILY_API_KEY?.trim() ?? '';
+    }
+
+    return '';
+  }
+
+  private buildGeneralWebSearchQuery(query: string, mediumType?: WorkType) {
+    const normalizedQuery = this.normalizeProviderSearchQuery(query);
+
+    if (mediumType === WorkType.web_novel) {
+      return `"${normalizedQuery}" 웹소설 OR 소설`;
+    }
+
+    if (mediumType === WorkType.webtoon) {
+      return `"${normalizedQuery}" 웹툰 OR 만화`;
+    }
+
+    if (mediumType === WorkType.anime) {
+      return `"${normalizedQuery}" anime OR 애니`;
+    }
+
+    return `"${normalizedQuery}" 웹소설 OR 웹툰 OR 애니`;
+  }
+
+  private normalizeWebSearchTitle(value: string) {
+    return this.normalizeWhitespace(value)
+      .replace(
+        /\s*(?:[-|:]\s*)?(?:네이버\s*시리즈|네이버\s*웹툰|카카오페이지|카카오\s*웹툰|리디|문피아|노벨피아|조아라)\s*$/iu,
+        '',
+      )
+      .replace(
+        /\s*(?:\(?\s*(?:외전|특별편|개정판|완전판|번외편|후일담|시즌\s*\d+)\s*\)?|\d+(?:\.\d+)?\s*(?:권|화|회|부)|vol(?:ume)?\.?\s*\d+)\s*$/iu,
+        '',
+      )
+      .trim();
+  }
+
+  private inferWebSearchWorkType(input: {
+    description: string;
+    requestedMediumType: WorkType | undefined;
+    title: string;
+    url: string;
+  }) {
+    if (
+      input.requestedMediumType === WorkType.web_novel ||
+      input.requestedMediumType === WorkType.webtoon
+    ) {
+      return input.requestedMediumType;
+    }
+
+    const hostname = this.readHostname(input.url);
+    const searchable = `${input.title} ${input.description}`.toLowerCase();
+
+    if (
+      hostname === 'comic.naver.com' ||
+      hostname === 'webtoon.kakao.com' ||
+      searchable.includes('웹툰')
+    ) {
+      return WorkType.webtoon;
+    }
+
+    if (
+      hostname === 'series.naver.com' ||
+      hostname === 'page.kakao.com' ||
+      hostname.endsWith('ridibooks.com') ||
+      hostname.endsWith('munpia.com') ||
+      hostname.endsWith('novelpia.com') ||
+      hostname.endsWith('joara.com') ||
+      searchable.includes('웹소설')
+    ) {
+      return WorkType.web_novel;
+    }
+
+    return null;
+  }
+
+  private getWebSourceLabel(url: string) {
+    const hostname = this.readHostname(url);
+
+    if (hostname === 'series.naver.com') {
+      return 'Naver Series';
+    }
+
+    if (hostname === 'comic.naver.com') {
+      return 'Naver Webtoon';
+    }
+
+    if (hostname === 'page.kakao.com') {
+      return 'Kakao Page';
+    }
+
+    if (hostname === 'webtoon.kakao.com') {
+      return 'Kakao Webtoon';
+    }
+
+    if (hostname.endsWith('ridibooks.com')) {
+      return 'Ridi';
+    }
+
+    if (hostname.endsWith('munpia.com')) {
+      return 'Munpia';
+    }
+
+    if (hostname.endsWith('novelpia.com')) {
+      return 'Novelpia';
+    }
+
+    if (hostname.endsWith('joara.com')) {
+      return 'Joara';
+    }
+
+    return hostname;
+  }
+
+  private readHostname(url: string) {
+    try {
+      return new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+    } catch {
+      return '';
+    }
   }
 
   private stripHtml(value: string) {

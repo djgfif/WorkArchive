@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 
 import type { WorkStatus } from '@work-archive/shared-types';
 
-import { AppBadge, AppButton } from '../../../shared/components/AppPrimitives';
+import { AppButton } from '../../../shared/components/AppPrimitives';
 import {
   ArchiveHero,
   ArchiveSearchBar,

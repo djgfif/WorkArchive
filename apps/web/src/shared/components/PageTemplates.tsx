@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react';
-import { Box, Divider, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Box, Divider, Group, Stack, Text, Title } from '@mantine/core';
 
 import {
   ActionRow,
   PageShell,
   SectionCard,
-  SectionIntro,
 } from './AppPrimitives';
 import { PageHero } from './PageHero';
 
