@@ -53,9 +53,9 @@ import type {
 import type { SyncReleaseRecordPayloadDto } from './dto/sync-release-record-payload.dto';
 import type { SyncTimelineEntryPayloadDto } from './dto/sync-timeline-entry-payload.dto';
 import type { SyncWorkPayloadDto } from './dto/sync-work-payload.dto';
+import { SYNC_SCHEMA_VERSION, type SyncEntityType } from './sync.constants';
 
 const SERVER_SYNC_STATUS = WorkSyncStatus.synced;
-const SYNC_SCHEMA_VERSION = 2 as const;
 const ALREADY_APPLIED_MESSAGE =
   'Remote record already matches the queued change.';
 const APPLIED_CHANGE_MESSAGE = 'Queued change applied on the server.';
@@ -93,6 +93,18 @@ const SYNC_CREATE_TITLE_INCLUDE = {
 type SyncCreateTitleView = Prisma.CatalogTitleGetPayload<{
   include: typeof SYNC_CREATE_TITLE_INCLUDE;
 }>;
+
+interface PullCursor {
+  entityId: string;
+  entityType: SyncEntityType;
+  updatedAt: string;
+}
+
+interface OrderedPullChange {
+  change: PullSyncChangeDto;
+  cursor: PullCursor;
+  updatedAtMs: number;
+}
 
 @Injectable()
 export class SyncService {
@@ -153,6 +165,7 @@ export class SyncService {
         since === undefined || since === null
           ? null
           : this.parseIsoDate(since, 'since');
+      const parsedCursor = this.parsePullCursor(pullSyncDto.cursor ?? null);
       const works = await this.userRecordsService.findByUserSince(
         userId,
         parsedSince,
@@ -166,33 +179,18 @@ export class SyncService {
         parsedSince,
       );
       const pulledAt = new Date().toISOString();
-      const changes = [
-        ...works.map<PullSyncChangeDto>((work) => ({
-          entityType: 'work',
-          entityId: work.id,
-          operation: work.deletedAt === null ? 'upsert' : 'delete',
-          work: toFlatWorkResponse(work),
-        })),
-        ...releaseRecords.map<PullSyncChangeDto>((releaseRecord) => ({
-          entityType: 'release_record',
-          entityId: releaseRecord.id,
-          operation: releaseRecord.deletedAt === null ? 'upsert' : 'delete',
-          releaseRecord: toUserReleaseRecordResponse(releaseRecord),
-        })),
-        ...timelineEntries.map<PullSyncChangeDto>((timelineEntry) => ({
-          entityType: 'timeline_entry',
-          entityId: timelineEntry.id,
-          operation: timelineEntry.deletedAt === null ? 'upsert' : 'delete',
-          timelineEntry: toUserTimelineEntryResponse(timelineEntry),
-        })),
-      ].sort((left, right) => {
-        const leftUpdatedAt = this.getPullChangeUpdatedAt(left);
-        const rightUpdatedAt = this.getPullChangeUpdatedAt(right);
-
-        return (
-          new Date(leftUpdatedAt).getTime() - new Date(rightUpdatedAt).getTime()
-        );
-      });
+      const orderedChanges = this.buildOrderedPullChanges({
+        releaseRecords,
+        timelineEntries,
+        works,
+      }).filter((entry) => this.isAfterPullCursor(entry.cursor, parsedCursor));
+      const pageLimit = pullSyncDto.limit ?? null;
+      const pagedChanges =
+        pageLimit === null ? orderedChanges : orderedChanges.slice(0, pageLimit);
+      const hasMore =
+        pageLimit !== null && orderedChanges.length > pagedChanges.length;
+      const lastPagedChange = pagedChanges.at(-1) ?? null;
+      const changes = pagedChanges.map((entry) => entry.change);
       const changedRecords = [
         ...works,
         ...releaseRecords,
@@ -203,7 +201,14 @@ export class SyncService {
       const response: PullSyncResponseDto = {
         schemaVersion: SYNC_SCHEMA_VERSION,
         pulledAt,
-        nextSince: this.buildNextSince(since ?? null, pulledAt, changedRecords),
+        nextSince: hasMore
+          ? (since ?? pulledAt)
+          : this.buildNextSince(since ?? null, pulledAt, changedRecords),
+        nextCursor:
+          hasMore && lastPagedChange
+            ? this.encodePullCursor(lastPagedChange.cursor)
+            : null,
+        hasMore,
         changes,
       };
 
@@ -1325,6 +1330,148 @@ export class SyncService {
       existing.deletedAt?.toISOString() ===
         (payload.deletedAt === null ? undefined : payload.deletedAt)
     );
+  }
+
+  private buildOrderedPullChanges({
+    releaseRecords,
+    timelineEntries,
+    works,
+  }: {
+    releaseRecords: UserReleaseRecordAggregate[];
+    timelineEntries: UserTimelineEntryAggregate[];
+    works: WorkAggregate[];
+  }) {
+    return [
+      ...works.map<OrderedPullChange>((work) => {
+        const updatedAt = work.updatedAt.toISOString();
+
+        return {
+          change: {
+            entityType: 'work',
+            entityId: work.id,
+            operation: work.deletedAt === null ? 'upsert' : 'delete',
+            work: toFlatWorkResponse(work),
+          },
+          cursor: {
+            entityId: work.id,
+            entityType: 'work',
+            updatedAt,
+          },
+          updatedAtMs: work.updatedAt.getTime(),
+        };
+      }),
+      ...releaseRecords.map<OrderedPullChange>((releaseRecord) => {
+        const updatedAt = releaseRecord.updatedAt.toISOString();
+
+        return {
+          change: {
+            entityType: 'release_record',
+            entityId: releaseRecord.id,
+            operation: releaseRecord.deletedAt === null ? 'upsert' : 'delete',
+            releaseRecord: toUserReleaseRecordResponse(releaseRecord),
+          },
+          cursor: {
+            entityId: releaseRecord.id,
+            entityType: 'release_record',
+            updatedAt,
+          },
+          updatedAtMs: releaseRecord.updatedAt.getTime(),
+        };
+      }),
+      ...timelineEntries.map<OrderedPullChange>((timelineEntry) => {
+        const updatedAt = timelineEntry.updatedAt.toISOString();
+
+        return {
+          change: {
+            entityType: 'timeline_entry',
+            entityId: timelineEntry.id,
+            operation: timelineEntry.deletedAt === null ? 'upsert' : 'delete',
+            timelineEntry: toUserTimelineEntryResponse(timelineEntry),
+          },
+          cursor: {
+            entityId: timelineEntry.id,
+            entityType: 'timeline_entry',
+            updatedAt,
+          },
+          updatedAtMs: timelineEntry.updatedAt.getTime(),
+        };
+      }),
+    ].sort((left, right) => {
+      const updatedAtDelta = left.updatedAtMs - right.updatedAtMs;
+
+      if (updatedAtDelta !== 0) {
+        return updatedAtDelta;
+      }
+
+      const entityTypeDelta = left.cursor.entityType.localeCompare(
+        right.cursor.entityType,
+      );
+
+      if (entityTypeDelta !== 0) {
+        return entityTypeDelta;
+      }
+
+      return left.cursor.entityId.localeCompare(right.cursor.entityId);
+    });
+  }
+
+  private encodePullCursor(cursor: PullCursor) {
+    return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+  }
+
+  private parsePullCursor(value: string | null): PullCursor | null {
+    if (!value) {
+      return null;
+    }
+
+    try {
+      const decoded = JSON.parse(
+        Buffer.from(value, 'base64url').toString('utf8'),
+      ) as Partial<PullCursor>;
+
+      if (
+        typeof decoded.updatedAt !== 'string' ||
+        typeof decoded.entityType !== 'string' ||
+        typeof decoded.entityId !== 'string' ||
+        !['work', 'release_record', 'timeline_entry'].includes(
+          decoded.entityType,
+        ) ||
+        Number.isNaN(Date.parse(decoded.updatedAt))
+      ) {
+        throw new Error('Invalid cursor shape.');
+      }
+
+      return {
+        entityId: decoded.entityId,
+        entityType: decoded.entityType as SyncEntityType,
+        updatedAt: decoded.updatedAt,
+      };
+    } catch {
+      throw new BadRequestException('cursor must be a valid sync pull cursor.');
+    }
+  }
+
+  private isAfterPullCursor(cursor: PullCursor, previous: PullCursor | null) {
+    if (!previous) {
+      return true;
+    }
+
+    const updatedAtDelta =
+      Date.parse(cursor.updatedAt) - Date.parse(previous.updatedAt);
+
+    if (updatedAtDelta !== 0) {
+      return updatedAtDelta > 0;
+    }
+
+    const entityTypeDelta = cursor.entityType.localeCompare(
+      previous.entityType,
+    );
+
+    if (entityTypeDelta !== 0) {
+      return entityTypeDelta > 0;
+    }
+
+    return cursor.entityId.localeCompare(previous.entityId) > 0;
   }
 
   private getPullChangeUpdatedAt(change: PullSyncChangeDto) {

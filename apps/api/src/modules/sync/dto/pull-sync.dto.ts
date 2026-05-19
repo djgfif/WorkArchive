@@ -3,20 +3,25 @@ import {
   IsDateString,
   IsInt,
   IsOptional,
+  IsString,
+  Max,
+  Min,
   ValidateIf,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { SYNC_SCHEMA_VERSION } from '../sync.constants';
 
 export class PullSyncDto {
   @ApiPropertyOptional({
-    default: 2,
+    default: SYNC_SCHEMA_VERSION,
     description: 'Sync contract version. Missing values are treated as v2.',
-    enum: [2],
+    enum: [SYNC_SCHEMA_VERSION],
   })
   @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
-  @Equals(2)
-  schemaVersion?: 2;
+  @Equals(SYNC_SCHEMA_VERSION)
+  schemaVersion?: typeof SYNC_SCHEMA_VERSION;
 
   @ApiPropertyOptional({
     example: '2026-04-18T00:00:00.000Z',
@@ -25,4 +30,27 @@ export class PullSyncDto {
   @IsOptional()
   @IsDateString()
   since?: string | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Opaque pagination cursor returned as nextCursor. Use with limit to continue a large pull without skipping same-timestamp changes.',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  cursor?: string | null;
+
+  @ApiPropertyOptional({
+    default: 500,
+    description:
+      'Maximum number of changes to return. Omit for the legacy unpaged pull response.',
+    maximum: 1000,
+    minimum: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  limit?: number;
 }

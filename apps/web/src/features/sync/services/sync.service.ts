@@ -40,6 +40,7 @@ import {
 } from '../../../shared/utils/localize-message';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
+const PULL_PAGE_LIMIT = 500;
 
 const WORK_MERGE_FIELDS = [
   'title',
@@ -497,13 +498,6 @@ export class SyncService {
     const since = await this.metaRepo.getValue(LAST_SUCCESSFUL_PULL_AT_KEY);
 
     try {
-      const response = await postJson<PullSyncResponse>('/sync/pull', {
-        schemaVersion: SYNC_SCHEMA_VERSION,
-        since,
-      });
-
-      assertSupportedResponseSchemaVersion(response.schemaVersion, 'pull');
-
       const queueItems = await this.queueRepo.listAll();
       const queueItemsByEntityKey = new Map<string, SyncQueueItemRecord[]>();
       const worksToMerge: WorkRecord[] = [];
@@ -511,6 +505,10 @@ export class SyncService {
       const timelineEntriesToMerge: TimelineEntryRecord[] = [];
       const skippedCount = 0;
       const messages: string[] = [];
+      let cursor: string | null = null;
+      let nextSince = since;
+      let pulledAt: string | null = null;
+      let pulledCount = 0;
 
       for (const item of queueItems) {
         const entityKey = this.getEntityKey(item.entityType, item.entityId);
@@ -520,46 +518,67 @@ export class SyncService {
         queueItemsByEntityKey.set(entityKey, itemsForEntity);
       }
 
-      for (const change of response.changes) {
-        const relatedQueueItems =
-          queueItemsByEntityKey.get(
-            this.getEntityKey(change.entityType, change.entityId),
-          ) ?? [];
-        const hasLocalQueue = relatedQueueItems.length > 0;
+      do {
+        const response: PullSyncResponse = await postJson<PullSyncResponse>(
+          '/sync/pull',
+          {
+            cursor,
+            limit: PULL_PAGE_LIMIT,
+            schemaVersion: SYNC_SCHEMA_VERSION,
+            since,
+          },
+        );
 
-        if (hasLocalQueue) {
-          await this.autoMergePullChangeWithQueuedPayload(
-            change,
-            relatedQueueItems,
-          );
-          continue;
+        assertSupportedResponseSchemaVersion(response.schemaVersion, 'pull');
+        pulledAt = response.pulledAt;
+        pulledCount += response.changes.length;
+        nextSince = response.nextSince;
+
+        for (const change of response.changes) {
+          const relatedQueueItems =
+            queueItemsByEntityKey.get(
+              this.getEntityKey(change.entityType, change.entityId),
+            ) ?? [];
+          const hasLocalQueue = relatedQueueItems.length > 0;
+
+          if (hasLocalQueue) {
+            await this.autoMergePullChangeWithQueuedPayload(
+              change,
+              relatedQueueItems,
+            );
+            continue;
+          }
+
+          if (change.entityType === 'work' && change.work) {
+            worksToMerge.push(change.work);
+            continue;
+          }
+
+          if (change.entityType === 'release_record' && change.releaseRecord) {
+            releaseRecordsToMerge.push(change.releaseRecord);
+            continue;
+          }
+
+          if (change.entityType === 'timeline_entry' && change.timelineEntry) {
+            timelineEntriesToMerge.push(change.timelineEntry);
+          }
         }
 
-        if (change.entityType === 'work' && change.work) {
-          worksToMerge.push(change.work);
-          continue;
-        }
-
-        if (change.entityType === 'release_record' && change.releaseRecord) {
-          releaseRecordsToMerge.push(change.releaseRecord);
-          continue;
-        }
-
-        if (change.entityType === 'timeline_entry' && change.timelineEntry) {
-          timelineEntriesToMerge.push(change.timelineEntry);
-        }
-      }
+        cursor =
+          response.hasMore === true && response.nextCursor
+            ? response.nextCursor
+            : null;
+      } while (cursor !== null);
 
       await this.worksRepo.bulkPut(worksToMerge);
       await this.releaseRecordsRepo.bulkPut(releaseRecordsToMerge);
       await this.timelineEntriesRepo.bulkPut(timelineEntriesToMerge);
-      const nextSince = response.nextSince;
 
       if (nextSince !== null) {
         await this.metaRepo.setValue(LAST_SUCCESSFUL_PULL_AT_KEY, nextSince);
       }
 
-      if (response.changes.length === 0) {
+      if (pulledCount === 0) {
         messages.push('가져올 변경 사항이 없습니다.');
       } else if (skippedCount > 0) {
         messages.push(
@@ -568,13 +587,13 @@ export class SyncService {
       }
 
       return {
-        pulledCount: response.changes.length,
+        pulledCount,
         appliedCount:
           worksToMerge.length +
           releaseRecordsToMerge.length +
           timelineEntriesToMerge.length,
         skippedCount,
-        pulledAt: response.pulledAt,
+        pulledAt,
         nextSince,
         messages,
         requestFailed: false,

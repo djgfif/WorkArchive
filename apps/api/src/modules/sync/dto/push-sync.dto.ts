@@ -14,13 +14,17 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  SYNC_ENTITY_TYPES,
+  SYNC_OPERATIONS,
+  SYNC_SCHEMA_VERSION,
+  type SyncEntityType,
+  type SyncOperation,
+} from '../sync.constants';
 
 import type { SyncReleaseRecordPayloadDto } from './sync-release-record-payload.dto';
 import type { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
 import type { SyncWorkPayloadDto } from './sync-work-payload.dto';
-
-const SYNC_ENTITY_TYPES = ['work', 'release_record', 'timeline_entry'] as const;
-const SYNC_OPERATIONS = ['create', 'update', 'delete'] as const;
 
 export class PushSyncChangeDto {
   @ApiProperty({
@@ -33,7 +37,7 @@ export class PushSyncChangeDto {
     enum: SYNC_ENTITY_TYPES,
   })
   @IsIn(SYNC_ENTITY_TYPES)
-  entityType!: (typeof SYNC_ENTITY_TYPES)[number];
+  entityType!: SyncEntityType;
 
   @ApiProperty({
     format: 'uuid',
@@ -45,7 +49,7 @@ export class PushSyncChangeDto {
     enum: SYNC_OPERATIONS,
   })
   @IsIn(SYNC_OPERATIONS)
-  operation!: 'create' | 'update' | 'delete';
+  operation!: SyncOperation;
 
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',
@@ -70,14 +74,14 @@ export class PushSyncChangeDto {
 
 export class PushSyncDto {
   @ApiPropertyOptional({
-    default: 2,
+    default: SYNC_SCHEMA_VERSION,
     description: 'Sync contract version. Missing values are treated as v2.',
-    enum: [2],
+    enum: [SYNC_SCHEMA_VERSION],
   })
   @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
-  @Equals(2)
-  schemaVersion?: 2;
+  @Equals(SYNC_SCHEMA_VERSION)
+  schemaVersion?: typeof SYNC_SCHEMA_VERSION;
 
   @ApiProperty({
     type: [PushSyncChangeDto],

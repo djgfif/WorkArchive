@@ -37,6 +37,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:?required}
       WEB_BASE_URL: ${WEB_BASE_URL:?required}
       PASSWORD_RESET_DEV_LINKS_ENABLED: 'false'
+      RATE_LIMIT_STORE: ${RATE_LIMIT_STORE:-external}
       COOKIE_SECURE: 'true'
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?required}

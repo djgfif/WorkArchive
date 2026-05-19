@@ -191,4 +191,40 @@ describe('api runtime config', () => {
       'SEED_DEMO_PASSWORD must not use the demo password in production.',
     );
   });
+
+  it('requires an external rate limit store in production', () => {
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'RATE_LIMIT_STORE must be set to "external" in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      RATE_LIMIT_STORE: 'memory',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'RATE_LIMIT_STORE must not be "memory" in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      RATE_LIMIT_STORE: 'external',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        rateLimitStore: 'external',
+      }),
+    );
+  });
 });

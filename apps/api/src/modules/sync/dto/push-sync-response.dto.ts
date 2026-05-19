@@ -1,27 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  PUSH_RESULT_STATUSES,
+  SYNC_ENTITY_TYPES,
+  SYNC_RESULT_CODES,
+  SYNC_SCHEMA_VERSION,
+  type PushResultStatus,
+  type SyncEntityType,
+  type SyncResultCode,
+} from '../sync.constants';
 
 import { UserReleaseRecordResponseDto } from '../../user-records/dto/user-release-record.dto';
 import { WorkResponseDto } from '../../works/dto/work-response.dto';
 import { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
-
-const PUSH_SYNC_RESULT_STATUSES = ['applied', 'conflict', 'failed'] as const;
-const SYNC_RESULT_CODES = [
-  'already_applied',
-  'applied_change',
-  'applied_tombstone',
-  'created',
-  'missing_remote_delete_noop',
-  'conflict_remote_newer',
-  'conflict_remote_missing',
-  'conflict_ownership_mismatch',
-  'conflict_parent_changed',
-  'failed_validation',
-  'failed_missing_catalog_title',
-  'failed_import_draft_unresolved',
-  'pull_conflict_local_queue',
-  'result_missing',
-  'unknown',
-] as const;
 
 export class PushSyncResultDto {
   @ApiProperty({
@@ -35,14 +25,14 @@ export class PushSyncResultDto {
   entityId!: string;
 
   @ApiProperty({
-    enum: ['work', 'release_record', 'timeline_entry'],
+    enum: SYNC_ENTITY_TYPES,
   })
-  entityType!: 'work' | 'release_record' | 'timeline_entry';
+  entityType!: SyncEntityType;
 
   @ApiProperty({
-    enum: PUSH_SYNC_RESULT_STATUSES,
+    enum: PUSH_RESULT_STATUSES,
   })
-  status!: (typeof PUSH_SYNC_RESULT_STATUSES)[number];
+  status!: PushResultStatus;
 
   @ApiProperty()
   message!: string;
@@ -50,7 +40,7 @@ export class PushSyncResultDto {
   @ApiPropertyOptional({
     enum: SYNC_RESULT_CODES,
   })
-  code?: (typeof SYNC_RESULT_CODES)[number];
+  code?: SyncResultCode;
 
   @ApiPropertyOptional({
     type: () => WorkResponseDto,
@@ -73,9 +63,9 @@ export class PushSyncResultDto {
 
 export class PushSyncResponseDto {
   @ApiProperty({
-    enum: [2],
+    enum: [SYNC_SCHEMA_VERSION],
   })
-  schemaVersion!: 2;
+  schemaVersion!: typeof SYNC_SCHEMA_VERSION;
 
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',

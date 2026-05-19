@@ -30,6 +30,12 @@ import {
 } from './import-candidate-normalization';
 import { rankImportCandidates } from './import-candidate-ranking';
 import {
+  PROVIDERS,
+  type ProviderCredentialValues,
+  type ProviderMetadata,
+  type ProviderSearchContext,
+} from './import-provider-adapter';
+import {
   addProviderDiagnostic,
   createImportSearchDiagnostics,
   type ImportSearchDiagnosticReasonCode,
@@ -89,214 +95,6 @@ const WEB_SERIAL_INCLUDE_DOMAINS = [
 ] as const;
 
 type UnknownRecord = Record<string, unknown>;
-
-interface ProviderMetadata {
-  credentialMode: 'none' | 'server' | 'user';
-  credentialFields?: ProviderCredentialField[];
-  label: string;
-  mediumTypes: WorkType[];
-  provider: ImportProvider;
-}
-
-interface ProviderCredentialField {
-  description?: string;
-  label: string;
-  name: string;
-  secret?: boolean;
-}
-
-interface ProviderSearchContext {
-  limit: number;
-  mediumType?: WorkType;
-  query: string;
-  userId: string | null;
-}
-
-type ProviderCredentialValues = Record<string, string>;
-
-const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
-  [ALADIN_PROVIDER]: {
-    credentialMode: 'user',
-    credentialFields: [
-      {
-        description: 'Aladin Open API TTBKey',
-        label: 'TTBKey',
-        name: 'ttbKey',
-        secret: true,
-      },
-    ],
-    label: 'Aladin Book',
-    mediumTypes: [WorkType.novel, WorkType.light_novel, WorkType.manga],
-    provider: ALADIN_PROVIDER,
-  },
-  [MANUAL_PROVIDER]: {
-    credentialMode: 'none',
-    label: 'Manual',
-    mediumTypes: [
-      WorkType.novel,
-      WorkType.light_novel,
-      WorkType.manga,
-      WorkType.anime,
-      WorkType.movie,
-      WorkType.drama,
-      WorkType.web_novel,
-      WorkType.webtoon,
-      WorkType.other,
-    ],
-    provider: MANUAL_PROVIDER,
-  },
-  [ANILIST_PROVIDER]: {
-    credentialMode: 'none',
-    label: 'AniList',
-    mediumTypes: [
-      WorkType.anime,
-      WorkType.manga,
-      WorkType.light_novel,
-      WorkType.web_novel,
-    ],
-    provider: ANILIST_PROVIDER,
-  },
-  [GOOGLE_BOOKS_PROVIDER]: {
-    credentialMode: 'none',
-    label: 'Google Books',
-    mediumTypes: [
-      WorkType.novel,
-      WorkType.light_novel,
-      WorkType.manga,
-      WorkType.web_novel,
-      WorkType.webtoon,
-    ],
-    provider: GOOGLE_BOOKS_PROVIDER,
-  },
-  [OPEN_LIBRARY_PROVIDER]: {
-    credentialMode: 'none',
-    label: 'Open Library',
-    mediumTypes: [WorkType.novel, WorkType.light_novel],
-    provider: OPEN_LIBRARY_PROVIDER,
-  },
-  [TVMAZE_PROVIDER]: {
-    credentialMode: 'none',
-    label: 'TVmaze',
-    mediumTypes: [WorkType.drama, WorkType.anime],
-    provider: TVMAZE_PROVIDER,
-  },
-  [TMDB_PROVIDER]: {
-    credentialMode: 'user',
-    credentialFields: [
-      {
-        description: 'TMDB API Read Access Token',
-        label: 'Read Access Token',
-        name: 'readToken',
-        secret: true,
-      },
-    ],
-    label: 'TMDB',
-    mediumTypes: [WorkType.movie, WorkType.drama],
-    provider: TMDB_PROVIDER,
-  },
-  [NAVER_BOOK_PROVIDER]: {
-    credentialMode: 'user',
-    credentialFields: [
-      {
-        label: 'Client ID',
-        name: 'clientId',
-        secret: true,
-      },
-      {
-        label: 'Client Secret',
-        name: 'clientSecret',
-        secret: true,
-      },
-    ],
-    label: 'Naver Book',
-    mediumTypes: [
-      WorkType.novel,
-      WorkType.light_novel,
-      WorkType.manga,
-      WorkType.web_novel,
-      WorkType.webtoon,
-    ],
-    provider: NAVER_BOOK_PROVIDER,
-  },
-  [KAKAO_BOOK_PROVIDER]: {
-    credentialMode: 'user',
-    credentialFields: [
-      {
-        description: 'Kakao Developers REST API key',
-        label: 'REST API Key',
-        name: 'restApiKey',
-        secret: true,
-      },
-    ],
-    label: 'Kakao Book',
-    mediumTypes: [
-      WorkType.novel,
-      WorkType.light_novel,
-      WorkType.manga,
-      WorkType.web_novel,
-      WorkType.webtoon,
-    ],
-    provider: KAKAO_BOOK_PROVIDER,
-  },
-  [NAVER_WEB_PROVIDER]: {
-    credentialMode: 'user',
-    credentialFields: [
-      {
-        label: 'Client ID',
-        name: 'clientId',
-        secret: true,
-      },
-      {
-        label: 'Client Secret',
-        name: 'clientSecret',
-        secret: true,
-      },
-    ],
-    label: 'Naver Web',
-    mediumTypes: [WorkType.web_novel, WorkType.webtoon],
-    provider: NAVER_WEB_PROVIDER,
-  },
-  [KAKAO_WEB_PROVIDER]: {
-    credentialMode: 'user',
-    credentialFields: [
-      {
-        description: 'Kakao Developers REST API key',
-        label: 'REST API Key',
-        name: 'restApiKey',
-        secret: true,
-      },
-    ],
-    label: 'Kakao Web',
-    mediumTypes: [WorkType.web_novel, WorkType.webtoon],
-    provider: KAKAO_WEB_PROVIDER,
-  },
-  [BRAVE_SEARCH_PROVIDER]: {
-    credentialMode: 'server',
-    label: 'Brave Search',
-    mediumTypes: [WorkType.web_novel, WorkType.webtoon, WorkType.anime],
-    provider: BRAVE_SEARCH_PROVIDER,
-  },
-  [TAVILY_SEARCH_PROVIDER]: {
-    credentialMode: 'server',
-    label: 'Tavily Search',
-    mediumTypes: [WorkType.web_novel, WorkType.webtoon],
-    provider: TAVILY_SEARCH_PROVIDER,
-  },
-  [KOBIS_PROVIDER]: {
-    credentialMode: 'user',
-    credentialFields: [
-      {
-        description: 'KOBIS Open API key',
-        label: 'API Key',
-        name: 'apiKey',
-        secret: true,
-      },
-    ],
-    label: 'KOBIS',
-    mediumTypes: [WorkType.movie],
-    provider: KOBIS_PROVIDER,
-  },
-};
 
 @Injectable()
 export class ImportsService {
@@ -546,6 +344,98 @@ export class ImportsService {
       candidates: rankedCandidates,
       diagnostics,
     };
+  }
+
+  async resolveCandidate(
+    userId: string | null,
+    candidateInput: unknown,
+  ): Promise<ImportCandidateResponseDto> {
+    if (!this.isRecord(candidateInput)) {
+      throw new BadRequestException('Import candidate payload must be an object.');
+    }
+
+    const type = this.readCandidateWorkType(
+      candidateInput.mediumType ?? candidateInput.type,
+    );
+    const title = this.normalizeWhitespace(this.readString(candidateInput.title));
+
+    if (!title) {
+      throw new BadRequestException('Import candidate title is required.');
+    }
+
+    const sourceId =
+      this.normalizeWhitespace(
+        this.readString(candidateInput.sourceId ?? candidateInput.provider),
+      ) || MANUAL_PROVIDER;
+    const externalId =
+      this.normalizeWhitespace(this.readString(candidateInput.externalId)) ||
+      `${sourceId}:${title}`;
+    const externalRefs = this.readCandidateExternalRefs(
+      candidateInput.externalRefs,
+    );
+
+    const normalized = normalizeImportCandidate({
+      author: this.readString(candidateInput.author),
+      catalogMatch: null,
+      confidence: this.readNumber(candidateInput.confidence) ?? 0.5,
+      confidenceLabel: this.readString(candidateInput.confidenceLabel),
+      contributors: this.readCandidateContributors(candidateInput.contributors),
+      countLabel: this.readString(candidateInput.countLabel),
+      description: this.readString(candidateInput.description),
+      existingRecord: null,
+      externalId,
+      externalRefs:
+        externalRefs.length > 0
+          ? externalRefs
+          : [
+              {
+                externalId,
+                provider: sourceId,
+                rawType: type,
+                url: this.readString(candidateInput.sourceUrl),
+              },
+            ],
+      formatLabel:
+        this.readString(candidateInput.formatLabel) || this.getFormatLabel(type),
+      franchiseName:
+        this.normalizeWhitespace(this.readString(candidateInput.franchiseName)) ||
+        null,
+      genresText: this.readString(candidateInput.genresText),
+      id: this.readString(candidateInput.id) || `${sourceId}:${externalId}`,
+      mediumType: type,
+      note: this.readString(candidateInput.note),
+      reason: this.readString(candidateInput.reason),
+      relationsHint: this.readCandidateRelations(candidateInput.relationsHint),
+      releaseCandidates: this.readCandidateReleases(
+        candidateInput.releaseCandidates,
+      ),
+      releaseYear:
+        this.readNumber(candidateInput.releaseYear) ??
+        this.parseYear(this.readString(candidateInput.releaseDate)),
+      scoreBreakdown: this.readCandidateScoreBreakdown(
+        candidateInput.scoreBreakdown,
+      ),
+      sourceCoverage: {
+        externalIdentityCount: 0,
+        providerCount: 0,
+        providers: [],
+        releaseCandidateCount: 0,
+      },
+      sourceId,
+      sourceLabel:
+        this.readString(candidateInput.sourceLabel) ||
+        this.getCandidateSourceLabel(sourceId),
+      sourceUrl: this.readString(candidateInput.sourceUrl),
+      subType:
+        this.normalizeWhitespace(this.readString(candidateInput.subType)) || null,
+      thumbnailUrl: this.readString(candidateInput.thumbnailUrl),
+      title,
+      titleAliases: this.readStringArray(candidateInput.titleAliases),
+      type,
+    });
+    const [decorated] = await this.decorateCandidates(userId, [normalized]);
+
+    return decorated ?? normalized;
   }
 
   private normalizeLimit(limit: number | undefined) {
@@ -3017,6 +2907,153 @@ export class ImportsService {
 
   private parseYear(value: string) {
     return parseNormalizedReleaseYear(value);
+  }
+
+  private readCandidateWorkType(value: unknown) {
+    const normalized = this.readString(value);
+
+    if ((Object.values(WorkType) as string[]).includes(normalized)) {
+      return normalized as WorkType;
+    }
+
+    throw new BadRequestException('Import candidate type is required.');
+  }
+
+  private readCandidateContributors(value: unknown) {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((entry) => {
+        if (!this.isRecord(entry)) {
+          return null;
+        }
+
+        return {
+          name: this.readString(entry.name),
+          role: this.readString(entry.role) || 'creator',
+        };
+      })
+      .filter((entry): entry is { name: string; role: string } =>
+        Boolean(entry?.name),
+      );
+  }
+
+  private readCandidateExternalRefs(
+    value: unknown,
+  ): ImportCandidateResponseDto['externalRefs'] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((entry) => {
+        if (!this.isRecord(entry)) {
+          return null;
+        }
+
+        const provider = this.readString(entry.provider);
+        const externalId = this.readString(entry.externalId);
+
+        if (!provider || !externalId) {
+          return null;
+        }
+
+        const externalRef: ImportCandidateResponseDto['externalRefs'][number] = {
+          externalId,
+          provider,
+          rawType: this.readString(entry.rawType),
+          url: this.readString(entry.url),
+        };
+
+        return externalRef;
+      })
+      .filter(
+        (
+          entry,
+        ): entry is ImportCandidateResponseDto['externalRefs'][number] =>
+          entry !== null,
+      );
+  }
+
+  private readCandidateRelations(value: unknown) {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((entry) => {
+        if (!this.isRecord(entry)) {
+          return null;
+        }
+
+        return {
+          relationType: this.readString(entry.relationType),
+          targetTitle: this.readString(entry.targetTitle),
+        };
+      })
+      .filter(
+        (entry): entry is { relationType: string; targetTitle: string } =>
+          Boolean(entry?.relationType && entry.targetTitle),
+      );
+  }
+
+  private readCandidateReleases(
+    value: unknown,
+  ): CatalogReleaseCandidateInput[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((entry) => {
+        if (!this.isRecord(entry)) {
+          return null;
+        }
+
+        const externalRefs = this.readCandidateExternalRefs(entry.externalRefs);
+
+        const release: CatalogReleaseCandidateInput = {
+          displayLabel: this.readString(entry.displayLabel),
+          externalRefs,
+          isbn: this.readString(entry.isbn) || null,
+          releaseDate: this.readString(entry.releaseDate) || null,
+          releaseType: this.readString(entry.releaseType),
+          sequence: this.readNumber(entry.sequence),
+          thumbnailUrl: this.readString(entry.thumbnailUrl),
+          title: this.readString(entry.title),
+        };
+
+        return release;
+      })
+      .filter((entry): entry is CatalogReleaseCandidateInput => entry !== null);
+  }
+
+  private readCandidateScoreBreakdown(value: unknown) {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((entry) => {
+        if (!this.isRecord(entry)) {
+          return null;
+        }
+
+        return {
+          label: this.readString(entry.label),
+          weight: this.readNumber(entry.weight) ?? 0,
+        };
+      })
+      .filter((entry): entry is { label: string; weight: number } =>
+        Boolean(entry?.label),
+      );
+  }
+
+  private getCandidateSourceLabel(sourceId: string) {
+    return (PROVIDERS as Partial<Record<string, ProviderMetadata>>)[sourceId]
+      ?.label ?? sourceId;
   }
 
   private readString(value: unknown) {
