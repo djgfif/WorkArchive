@@ -49,7 +49,7 @@ export function CandidateListRow({
 
         /* ── 활성 포커스 링 ── */
         boxShadow: active
-          ? '0 0 0 2px rgba(59, 130, 246, 0.25), var(--wa-shadow-card)'
+          ? 'var(--wa-shadow-glow), var(--wa-shadow-card)'
           : 'none',
 
         /* ── 텍스트 / 레이아웃 ── */

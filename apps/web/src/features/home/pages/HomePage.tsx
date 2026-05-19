@@ -157,7 +157,7 @@ function QuickStat({ accent = false, icon, label, value }: QuickStatProps) {
         root: {
           background: accent
             ? [
-                'radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.16), transparent 60%)',
+                'radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--app-accent-primary) 16%, transparent), transparent 60%)',
                 'linear-gradient(135deg, var(--app-surface-hero), var(--app-surface-card))',
               ].join(', ')
             : 'var(--app-surface-subtle)',
@@ -183,7 +183,7 @@ function QuickStat({ accent = false, icon, label, value }: QuickStatProps) {
           size={38}
           variant={accent ? 'gradient' : 'light'}
           {...(accent ? { gradient: { deg: 135, from: 'archive.4', to: 'archive.7' } } : {})}
-          style={accent ? { boxShadow: '0 2px 8px rgba(59,130,246,0.30)' } : undefined}
+          style={accent ? { boxShadow: 'var(--wa-shadow-glow)' } : undefined}
         >
           <Text fw={900} size="sm">{icon}</Text>
         </ThemeIcon>
