@@ -294,3 +294,37 @@ textarea {
     color: black;
   }
 }
+
+/* ── 타이포그래피 피처 설정 ──────────────────────────────────────────────── */
+/* 숫자 정렬: 별점·진행도·통계 등 숫자가 일정한 너비로 정렬됨 */
+.tabular-nums,
+[data-tabular-nums],
+.mantine-Text-root[data-numeric],
+.mantine-NumberInput-input,
+.mantine-Progress-label {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 전역 합자(ligature) 및 커닝 활성화 */
+body {
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+/* 숫자 포함 요소 — tabular-nums 자동 적용 */
+[data-numeric="true"],
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ── 페이지 전환 애니메이션 ──────────────────────────────────────────────── */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

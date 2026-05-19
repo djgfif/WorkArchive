@@ -219,47 +219,120 @@ export function WorkDetailPanel({
           <Stack
             className={cn(css.detailHeroBody)}
             flex={1}
-            gap="lg"
+            gap="md"
             miw={0}
           >
-            <Group gap="xs" wrap="wrap">
-              <Text c="dimmed" fw={700} size="sm">
-                {typeLabel}
-              </Text>
-              <Text c="dimmed" size="sm">
-                /
-              </Text>
-              <Text c="dimmed" fw={700} size="sm">
+            {/* 메타 행 — 유형 · 상태 · 즐겨찾기 */}
+            <Group gap={6} wrap="wrap">
+              <AppBadge tone="muted">{typeLabel}</AppBadge>
+              <Box
+                aria-hidden="true"
+                className={cn(css.detailHeroMetaDivider)}
+                component="span"
+              />
+              <AppBadge
+                tone={
+                  work.status === 'completed' ? 'accent'
+                  : work.status === 'in_progress' ? 'info'
+                  : 'muted'
+                }
+              >
                 {statusLabel}
-              </Text>
-              {work.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
-            </Group>
-
-            <div>
-              <Title order={1}>{work.title}</Title>
-              <Text c="dimmed">
-                {work.author || '작가·제작자 미입력'} · 최근 수정{' '}
-                {formatWorkUpdatedAt(work.updatedAt)}
-              </Text>
-            </div>
-
-            <Group align="stretch" gap="xl" wrap="wrap">
-              <Stack gap={4}>
-                <Text c="dimmed" fw={700} size="sm">
-                  별점
-                </Text>
-                <RatingDisplay value={work.rating} />
-              </Stack>
-              <MetricPill label="상태" value={statusLabel} />
-              {progressLabel && (
-                <MetricPill label="진행도" value={progressLabel} />
+              </AppBadge>
+              {work.favorite && (
+                <AppBadge tone="accent">★ 즐겨찾기</AppBadge>
+              )}
+              {tierLabel !== '미지정' && (
+                <AppBadge tone="muted">Tier {tierLabel}</AppBadge>
               )}
             </Group>
 
+            {/* 제목 + 저자 */}
+            <Stack gap={4}>
+              <Title
+                order={1}
+                style={{
+                  fontSize: 'clamp(1.5rem, 3.5vw, 2.4rem)',
+                  fontWeight: 800,
+                  letterSpacing: '-0.025em',
+                  lineHeight: 1.15,
+                }}
+              >
+                {work.title}
+              </Title>
+              <Text c="dimmed" size="sm">
+                {work.author || '작가·제작자 미입력'}
+                {' · '}
+                <Text c="dimmed" component="span" size="xs">
+                  최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
+                </Text>
+              </Text>
+            </Stack>
+
+            {/* 별점 + 진행도 대형 표시 */}
+            <Group align="flex-end" gap="xl" wrap="wrap">
+              {work.rating !== null ? (
+                <Stack gap={2}>
+                  <Text
+                    c="dimmed"
+                    size="xs"
+                    style={{ letterSpacing: '0.08em', textTransform: 'uppercase' }}
+                  >
+                    별점
+                  </Text>
+                  <Group align="baseline" gap={4}>
+                    <Text
+                      className={cn(css.detailHeroRatingValue)}
+                      component="span"
+                    >
+                      {work.rating.toFixed(1)}
+                    </Text>
+                    <Text
+                      className={cn(css.detailHeroRatingMax)}
+                      component="span"
+                    >
+                      / 5.0
+                    </Text>
+                  </Group>
+                </Stack>
+              ) : (
+                <Stack gap={2}>
+                  <Text
+                    c="dimmed"
+                    size="xs"
+                    style={{ letterSpacing: '0.08em', textTransform: 'uppercase' }}
+                  >
+                    별점
+                  </Text>
+                  <Text c="dimmed" size="sm">미평가</Text>
+                </Stack>
+              )}
+              {progressLabel && (
+                <Stack gap={2}>
+                  <Text
+                    c="dimmed"
+                    size="xs"
+                    style={{ letterSpacing: '0.08em', textTransform: 'uppercase' }}
+                  >
+                    진행도
+                  </Text>
+                  <Text
+                    fw={700}
+                    size="lg"
+                    style={{ fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {progressLabel}
+                  </Text>
+                </Stack>
+              )}
+            </Group>
+
+            {/* 진행도 바 */}
             {progressPercent !== null && (
               <ProgressDisplay work={work} />
             )}
 
+            {/* 액션 버튼 */}
             {actions && <ActionRow>{actions}</ActionRow>}
           </Stack>
         </Group>

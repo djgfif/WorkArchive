@@ -15,7 +15,7 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import {
   AppBadge,
@@ -26,6 +26,19 @@ import {
   ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
+
+/* ── 페이지 전환 래퍼 ── */
+function PageTransitionWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <Box
+      style={{
+        animation: 'pageEnter 280ms cubic-bezier(0.16, 1, 0.3, 1) both',
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
 
 const primaryNavigationItems = [
   { label: '홈',   to: '/' },
@@ -91,6 +104,7 @@ function ProfileAvatarButton({
 
 export function MainProductLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpened, mobileMenu] = useDisclosure(false);
   const { isLoading, mode, signOut, user } = useAuthSession();
   const isAuthenticated = mode === 'authenticated';
@@ -304,7 +318,7 @@ export function MainProductLayout() {
           </Box>
 
           {/* ── Page content ─────────────────────────────────────────────── */}
-          <Box>
+          <PageTransitionWrapper key={location.pathname}>
             {isLoading ? (
               <StateMessage
                 description="개인 기록을 불러오는 동안 잠시만 기다려주세요."
@@ -315,7 +329,7 @@ export function MainProductLayout() {
             ) : (
               <Outlet />
             )}
-          </Box>
+          </PageTransitionWrapper>
         </Stack>
       </Container>
 

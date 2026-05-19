@@ -135,6 +135,7 @@ interface FilterPillGroupProps<T extends string> {
 
 interface ArchiveSearchBarProps {
   'aria-label': string;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
   onChange: (value: string) => void;
   onSubmit?: () => void;
   placeholder: string;
@@ -184,17 +185,16 @@ function getCoverTone(seed: string) {
 export function WorkPoster({
   className,
   coverSeed,
+  overlay,
   thumbnailUrl,
   title,
   typeLabel,
   variant = 'card',
-}: WorkPosterProps) {
+}: WorkPosterProps & { overlay?: React.ReactNode }) {
   const [imageFailed, setImageFailed] = useState(false);
-
   useEffect(() => {
     setImageFailed(false);
   }, [thumbnailUrl]);
-
   return (
     <Box className={cx(cn(css.posterShell), posterVariantClass[variant], className)}>
       {thumbnailUrl && !imageFailed ? (
@@ -216,6 +216,7 @@ export function WorkPoster({
           <Text className={cn(css.posterFallbackType)}>개인 기록</Text>
         </Box>
       )}
+      {overlay}
     </Box>
   );
 }
@@ -278,9 +279,17 @@ export function ProgressDisplay({ work }: ProgressDisplayProps) {
   );
 }
 
+const statusOverlayConfig: Record<string, { color: string; label: string }> = {
+  in_progress: { color: 'rgba(59,130,246,0.88)', label: '보는 중' },
+  completed:   { color: 'rgba(20,184,166,0.88)', label: '완료' },
+  planned:     { color: 'rgba(100,116,139,0.82)', label: '볼 예정' },
+  paused:      { color: 'rgba(245,158,11,0.85)', label: '보류' },
+  dropped:     { color: 'rgba(239,68,68,0.85)', label: '중단' },
+};
+
 export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
-
+  const statusOverlay = statusOverlayConfig[work.status];
   return (
     <Link
       aria-label={`${work.title} 상세 보기`}
@@ -301,6 +310,27 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
         )}
         <WorkPoster
           coverSeed={work.id}
+          overlay={
+            statusOverlay ? (
+              <Box
+                aria-label={`상태: ${statusOverlay.label}`}
+                className={cn(css.statusOverlay)}
+                style={{ background: statusOverlay.color }}
+              >
+                <Text
+                  fw={700}
+                  style={{
+                    color: '#fff',
+                    fontSize: '0.68rem',
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {statusOverlay.label}
+                </Text>
+              </Box>
+            ) : undefined
+          }
           thumbnailUrl={work.thumbnailUrl}
           title={work.title}
           typeLabel={typeLabel}
@@ -310,7 +340,13 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
           <Title lineClamp={2} order={3} size="h4">
             {work.title}
           </Title>
-          <Text c="dimmed" className={cn(css.posterMetaLine)} lineClamp={1} size="sm">
+          <Text
+            c="dimmed"
+            className={cn(css.posterMetaLine)}
+            lineClamp={1}
+            size="sm"
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
             {getPrimaryMetaLine(work)}
           </Text>
           {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
@@ -533,6 +569,7 @@ export function FilterPillGroup<T extends string>({
 
 export function ArchiveSearchBar({
   'aria-label': ariaLabel,
+  inputRef,
   onChange,
   onSubmit,
   placeholder,
@@ -551,6 +588,7 @@ export function ArchiveSearchBar({
         }
       }}
       placeholder={placeholder}
+      ref={inputRef}
       value={value}
     />
   );
@@ -698,6 +736,69 @@ export function ReviewNoteCard({
   );
 }
 
+function EmptyStateIllustration() {
+  return (
+    <svg
+      aria-hidden="true"
+      className={cn(css.emptyIllustration)}
+      fill="none"
+      height="120"
+      viewBox="0 0 160 120"
+      width="160"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* 배경 원 */}
+      <circle cx="80" cy="60" fill="currentColor" opacity="0.04" r="56" />
+      <circle cx="80" cy="60" fill="currentColor" opacity="0.04" r="40" />
+      {/* 포스터 더미 1 (뒤) */}
+      <rect
+        className={cn(css.emptyFloat2)}
+        fill="currentColor"
+        height="64"
+        opacity="0.10"
+        rx="6"
+        transform="rotate(-8 52 30)"
+        width="44"
+        x="32"
+        y="28"
+      />
+      {/* 포스터 더미 2 (뒤) */}
+      <rect
+        className={cn(css.emptyFloat3)}
+        fill="currentColor"
+        height="64"
+        opacity="0.10"
+        rx="6"
+        transform="rotate(6 84 28)"
+        width="44"
+        x="84"
+        y="28"
+      />
+      {/* 메인 포스터 */}
+      <rect
+        className={cn(css.emptyFloat1)}
+        fill="currentColor"
+        height="72"
+        opacity="0.18"
+        rx="8"
+        width="48"
+        x="56"
+        y="24"
+      />
+      {/* 포스터 내 제목 자리 */}
+      <rect fill="currentColor" height="4" opacity="0.25" rx="2" width="30" x="65" y="56" />
+      <rect fill="currentColor" height="3" opacity="0.15" rx="1.5" width="20" x="70" y="64" />
+      {/* 반짝이는 별 */}
+      <circle className={cn(css.emptySparkle1)} cx="28" cy="22" fill="currentColor" opacity="0.35" r="3" />
+      <circle className={cn(css.emptySparkle2)} cx="132" cy="32" fill="currentColor" opacity="0.25" r="2" />
+      <circle className={cn(css.emptySparkle1)} cx="140" cy="80" fill="currentColor" opacity="0.20" r="2.5" />
+      <circle className={cn(css.emptySparkle2)} cx="20" cy="88" fill="currentColor" opacity="0.30" r="2" />
+      {/* 하단 선반 라인 */}
+      <rect fill="currentColor" height="3" opacity="0.12" rx="1.5" width="120" x="20" y="100" />
+    </svg>
+  );
+}
+
 export function ArchiveEmptyState({
   actions,
   description,
@@ -705,7 +806,8 @@ export function ArchiveEmptyState({
   title,
 }: ArchiveEmptyStateProps) {
   return (
-    <Stack className={cn(css.emptyState)} gap="md">
+    <Stack align="flex-start" className={cn(css.emptyState)} gap="md">
+      <EmptyStateIllustration />
       <AppBadge tone="accent">{eyebrow}</AppBadge>
       <Title order={2}>{title}</Title>
       <Text c="dimmed" maw="58ch">{description}</Text>
