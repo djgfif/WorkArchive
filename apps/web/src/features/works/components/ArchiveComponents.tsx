@@ -280,7 +280,6 @@ export function ProgressDisplay({ work }: ProgressDisplayProps) {
 
 export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
-  const shortReview = work.shortReview.trim();
 
   return (
     <Link
@@ -307,18 +306,13 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
           typeLabel={typeLabel}
           variant="grid"
         />
-        <Stack className={cn(css.posterCardBody)} gap={7}>
+        <Stack className={cn(css.posterCardBody)} gap={6}>
           <Title lineClamp={2} order={3} size="h4">
             {work.title}
           </Title>
           <Text c="dimmed" className={cn(css.posterMetaLine)} lineClamp={1} size="sm">
             {getPrimaryMetaLine(work)}
           </Text>
-          {shortReview && (
-            <Text c="var(--wa-text-secondary)" lineClamp={1} size="sm">
-              {shortReview}
-            </Text>
-          )}
           {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
         </Stack>
       </Paper>
@@ -341,14 +335,10 @@ export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
             variant="row"
           />
           <Stack flex={1} gap={6} miw={0}>
-            <Group gap="xs" wrap="nowrap">
-              <Text c="dimmed" lineClamp={1} size="xs">
-                {typeLabel}
-              </Text>
-              <Text c="dimmed" size="xs">/</Text>
-              <Text c="dimmed" lineClamp={1} size="xs">
-                {getWorkStatusLabel(work.status)}
-              </Text>
+            {/* 메타: 유형 배지 + 상태 배지 */}
+            <Group gap={6} wrap="nowrap">
+              <AppBadge tone="muted">{typeLabel}</AppBadge>
+              <AppBadge tone="default">{getWorkStatusLabel(work.status)}</AppBadge>
               {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
             </Group>
             <Title lineClamp={1} order={3} size="h4">
@@ -360,11 +350,6 @@ export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
               </Box>
               <RatingDisplay compact value={work.rating} />
             </Group>
-            {work.shortReview.trim() && (
-              <Text c="dimmed" lineClamp={1} size="sm">
-                {work.shortReview.trim()}
-              </Text>
-            )}
           </Stack>
         </Group>
       </Paper>

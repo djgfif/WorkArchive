@@ -218,13 +218,6 @@ export function WorkListRow({
               {formatWorkUpdatedAt(work.updatedAt)}
             </Text>
 
-            {/* Short review / description */}
-            {(work.shortReview || work.description) && (
-              <Text c="var(--app-text-muted)" lineClamp={1} size="sm">
-                {work.shortReview || work.description}
-              </Text>
-            )}
-
             {/* Progress + rating inline summary */}
             <Group gap="xs" wrap="wrap">
               {progressLabel && (
