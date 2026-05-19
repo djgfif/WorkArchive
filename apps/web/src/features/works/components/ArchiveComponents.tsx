@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+﻿import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   ActionIcon,
   Box,
@@ -13,6 +13,7 @@ import {
   Text,
   TextInput,
   Title,
+  Tooltip,
 } from '@mantine/core';
 import {
   getDefaultProgressUnitForWorkType,
@@ -221,6 +222,14 @@ export function WorkPoster({
   );
 }
 
+// ── 별점 레이블 맵 (0.5 단위) ────────────────────────────────────────────────
+const STAR_LABELS: Record<string, string> = {
+  '0.5': '최악', '1.0': '별로', '1.5': '그저 그럼', '2.0': '보통',
+  '2.5': '괜찮음', '3.0': '좋음', '3.5': '꽤 좋음', '4.0': '훌륭함',
+  '4.5': '거의 완벽', '5.0': '완벽',
+};
+
+/** 별점 읽기 전용 표시 — 포스터 카드·목록 행 등에서 사용 */
 export function RatingDisplay({ compact = false, value }: RatingDisplayProps) {
   if (value === null) {
     return (
@@ -230,15 +239,208 @@ export function RatingDisplay({ compact = false, value }: RatingDisplayProps) {
     );
   }
 
+  const filled = Math.floor(value);        // 완전히 채워진 별 수
+  const half   = value % 1 >= 0.5 ? 1 : 0; // 반쪽 별 여부
+  const empty  = 5 - filled - half;         // 빈 별 수
+  const label  = STAR_LABELS[value.toFixed(1)] ?? '';
+
   return (
-    <Group gap={5} wrap="nowrap">
-      <Text c="ember.3" fw={900} size={compact ? 'sm' : 'md'}>
-        ★
-      </Text>
-      <Text fw={800} size={compact ? 'xs' : 'sm'} style={{ fontVariantNumeric: 'tabular-nums' }}>
-        {value.toFixed(1)}
-      </Text>
+    <Group align="center" gap={compact ? 3 : 5} wrap="nowrap">
+      {/* 채워진 별 */}
+      {Array.from({ length: filled }).map((_, i) => (
+        <Text
+          key={`f${i}`}
+          component="span"
+          style={{
+            color: 'var(--app-accent-warm, #f59e0b)',
+            fontSize: compact ? '0.85rem' : '1rem',
+            lineHeight: 1,
+          }}
+        >
+          ★
+        </Text>
+      ))}
+      {/* 반쪽 별 */}
+      {half === 1 && (
+        <Text
+          component="span"
+          style={{
+            color: 'var(--app-accent-warm, #f59e0b)',
+            fontSize: compact ? '0.85rem' : '1rem',
+            lineHeight: 1,
+            opacity: 0.6,
+          }}
+        >
+          ★
+        </Text>
+      )}
+      {/* 빈 별 */}
+      {Array.from({ length: empty }).map((_, i) => (
+        <Text
+          key={`e${i}`}
+          component="span"
+          style={{
+            color: 'var(--app-border-default)',
+            fontSize: compact ? '0.85rem' : '1rem',
+            lineHeight: 1,
+          }}
+        >
+          ☆
+        </Text>
+      ))}
+      {/* 숫자 + 레이블 */}
+      {!compact && (
+        <Text
+          c="dimmed"
+          fw={600}
+          size="xs"
+          style={{ fontVariantNumeric: 'tabular-nums', marginLeft: 2 }}
+        >
+          {value.toFixed(1)}
+          {label ? ` · ${label}` : ''}
+        </Text>
+      )}
+      {compact && (
+        <Text
+          fw={700}
+          size="xs"
+          style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--app-text-secondary)' }}
+        >
+          {value.toFixed(1)}
+        </Text>
+      )}
     </Group>
+  );
+}
+
+/** 별점 입력 컴포넌트 — 넷플릭스식 호버/클릭 인터랙션 */
+export interface StarRatingInputProps {
+  label?: string;
+  onChange: (value: number | null) => void;
+  value: number | null;
+}
+
+export function StarRatingInput({ label = '별점', onChange, value }: StarRatingInputProps) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const display = hovered ?? value;
+  const displayLabel = display !== null ? (STAR_LABELS[display.toFixed(1)] ?? '') : '평가 안 함';
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const starWidth = rect.width / 5;
+    const starIndex = Math.floor(x / starWidth); // 0~4
+    const halfOffset = (x % starWidth) / starWidth;
+    const score = halfOffset < 0.5 ? starIndex + 0.5 : starIndex + 1.0;
+    setHovered(Math.min(5, Math.max(0.5, score)));
+  }
+
+  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const starWidth = rect.width / 5;
+    const starIndex = Math.floor(x / starWidth);
+    const halfOffset = (x % starWidth) / starWidth;
+    const score = halfOffset < 0.5 ? starIndex + 0.5 : starIndex + 1.0;
+    const newValue = Math.min(5, Math.max(0.5, score));
+    // 같은 값 클릭 시 초기화
+    onChange(value === newValue ? null : newValue);
+  }
+
+  return (
+    <Box>
+      {label && (
+        <Text
+          fw={600}
+          mb={6}
+          size="sm"
+          style={{ color: 'var(--app-text-secondary)' }}
+        >
+          {label}
+        </Text>
+      )}
+      <Group align="center" gap="xs">
+        {/* 별 5개 인터랙티브 영역 */}
+        <Box
+          aria-label={`별점 ${display !== null ? display.toFixed(1) : '없음'}`}
+          aria-valuemax={5}
+          aria-valuemin={0}
+          aria-valuenow={display ?? 0}
+          className={cn(css.starRatingTrack)}
+          onClick={handleClick}
+          onMouseLeave={() => setHovered(null)}
+          onMouseMove={handleMouseMove}
+          ref={containerRef}
+          role="slider"
+          style={{ cursor: 'pointer', display: 'flex', gap: 2, userSelect: 'none' }}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight') {
+              const next = Math.min(5, (value ?? 0) + 0.5);
+              onChange(next);
+            } else if (e.key === 'ArrowLeft') {
+              const prev = (value ?? 0) - 0.5;
+              onChange(prev <= 0 ? null : prev);
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+              onChange(null);
+            }
+          }}
+        >
+          {[1, 2, 3, 4, 5].map((star) => {
+            const filled = display !== null && display >= star;
+            const half   = display !== null && display >= star - 0.5 && display < star;
+            return (
+              <Text
+                key={star}
+                component="span"
+                style={{
+                  color: (filled || half)
+                    ? 'var(--app-accent-warm, #f59e0b)'
+                    : 'var(--app-border-default)',
+                  fontSize: '1.6rem',
+                  lineHeight: 1,
+                  opacity: half ? 0.65 : 1,
+                  transition: 'color 80ms ease, transform 80ms ease',
+                  transform: (filled || half) ? 'scale(1.12)' : 'scale(1)',
+                  display: 'inline-block',
+                }}
+              >
+                {(filled || half) ? '★' : '☆'}
+              </Text>
+            );
+          })}
+        </Box>
+        {/* 레이블 텍스트 */}
+        <Text
+          c="dimmed"
+          fw={600}
+          size="sm"
+          style={{
+            minWidth: '6rem',
+            transition: 'opacity 120ms ease',
+            opacity: displayLabel ? 1 : 0.4,
+          }}
+        >
+          {display !== null ? `${display.toFixed(1)} · ${displayLabel}` : '평가 안 함'}
+        </Text>
+        {/* 초기화 버튼 */}
+        {value !== null && (
+          <Tooltip label="별점 초기화" withArrow>
+            <ActionIcon
+              aria-label="별점 초기화"
+              color="gray"
+              onClick={() => onChange(null)}
+              size="sm"
+              variant="subtle"
+            >
+              <Text size="xs">✕</Text>
+            </ActionIcon>
+          </Tooltip>
+        )}
+      </Group>
+    </Box>
   );
 }
 

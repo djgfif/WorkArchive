@@ -47,7 +47,7 @@ import {
   workTierOptions,
   workTypeOptions,
 } from '../utils/work-options';
-import { RatingDisplay, WorkPoster } from './ArchiveComponents';
+import { RatingDisplay, StarRatingInput, WorkPoster } from './ArchiveComponents';
 
 const REVIEW_FOCUS_DESCRIPTION_ID = 'work-form-review-focus-description';
 
@@ -107,6 +107,13 @@ export function WorkForm({
     values.rating.trim() === '' ? null : Number.parseFloat(values.rating);
   const normalizedRating =
     ratingValue !== null && Number.isFinite(ratingValue) ? ratingValue : null;
+
+  function handleRatingChange(newRating: number | null) {
+    setValues((prev) => ({
+      ...prev,
+      rating: newRating !== null ? String(newRating) : '',
+    }));
+  }
   const shortReviewLength = values.shortReview.trim().length;
   const reviewLength = values.review.trim().length;
   const submitButtonLabel = isSubmitting ? '저장 중...' : submitLabel;
@@ -301,35 +308,145 @@ export function WorkForm({
                         표지가 없으면 어두운 fallback 커버로 표시됩니다.
                       </Text>
 
-                      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                        <TagsInput
-                          clearable
-                          description="쉼표나 Enter로 여러 장르를 나눠 입력할 수 있습니다."
-                          id="genresText"
-                          label="장르"
-                          name="genresText"
-                          onChange={(items) =>
-                            handleTextListChange('genresText', items)
-                          }
-                          placeholder="SF, 로맨스, 드라마"
-                          splitChars={[',']}
-                          value={genreValues}
-                        />
-                        <TagsInput
-                          clearable
-                          data={uniqueTagSuggestions}
-                          description="개인 태그는 장르와 분리된 내 감상 분류입니다."
-                          id="personalTagsText"
-                          label="개인 태그"
-                          name="personalTagsText"
-                          onChange={(items) =>
-                            handleTextListChange('personalTagsText', items)
-                          }
-                          placeholder="시간여행, 다시 볼 것, 여운"
-                          splitChars={[',']}
-                          value={personalTagValues}
-                        />
-                      </SimpleGrid>
+                      <Stack gap="lg">
+                        {/* 장르 태그 */}
+                        <Stack gap="xs">
+                          <Text fw={600} size="sm" style={{ color: 'var(--app-text-secondary)' }}>
+                            장르
+                          </Text>
+                          <TagsInput
+                            clearable
+                            id="genresText"
+                            name="genresText"
+                            onChange={(items) => handleTextListChange('genresText', items)}
+                            placeholder="Enter 또는 쉼표로 구분"
+                            splitChars={[',']}
+                            value={genreValues}
+                            styles={{
+                              input: {
+                                background: 'var(--app-surface-default)',
+                                border: '1.5px solid var(--app-border-default)',
+                                borderRadius: 10,
+                                fontSize: '0.875rem',
+                              },
+                              pill: {
+                                background: 'color-mix(in srgb, var(--app-accent-primary) 14%, transparent)',
+                                border: '1px solid color-mix(in srgb, var(--app-accent-primary) 30%, transparent)',
+                                color: 'var(--app-accent-primary)',
+                                fontWeight: 600,
+                                borderRadius: 6,
+                                fontSize: '0.8rem',
+                              },
+                            }}
+                          />
+                          {/* 자주 쓰는 장르 빠른 선택 */}
+                          {(['SF', '판타지', '로맨스', '액션', '드라마', '스릴러', '호러', '코미디', '슬라이스 오브 라이프', '스포츠', '역사', '시대극'] as const).map((genre) => (
+                            <span
+                              key={genre}
+                              onClick={() => {
+                                if (!genreValues.includes(genre)) {
+                                  handleTextListChange('genresText', [...genreValues, genre]);
+                                }
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '3px 10px',
+                                borderRadius: 20,
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                userSelect: 'none',
+                                marginRight: 4,
+                                marginBottom: 4,
+                                transition: 'all 120ms ease',
+                                background: genreValues.includes(genre)
+                                  ? 'color-mix(in srgb, var(--app-accent-primary) 18%, transparent)'
+                                  : 'var(--app-surface-subtle)',
+                                border: genreValues.includes(genre)
+                                  ? '1.5px solid color-mix(in srgb, var(--app-accent-primary) 40%, transparent)'
+                                  : '1.5px solid var(--app-border-default)',
+                                color: genreValues.includes(genre)
+                                  ? 'var(--app-accent-primary)'
+                                  : 'var(--app-text-secondary)',
+                              }}
+                            >
+                              {genreValues.includes(genre) ? '✓ ' : '+ '}{genre}
+                            </span>
+                          ))}
+                        </Stack>
+
+                        {/* 개인 태그 */}
+                        <Stack gap="xs">
+                          <Text fw={600} size="sm" style={{ color: 'var(--app-text-secondary)' }}>
+                            개인 태그
+                            <Text component="span" c="dimmed" fw={400} size="xs" ml={6}>
+                              나만의 감상 분류
+                            </Text>
+                          </Text>
+                          <TagsInput
+                            clearable
+                            data={uniqueTagSuggestions}
+                            id="personalTagsText"
+                            name="personalTagsText"
+                            onChange={(items) => handleTextListChange('personalTagsText', items)}
+                            placeholder="여운, 다시 볼 것, 시간여행"
+                            splitChars={[',']}
+                            value={personalTagValues}
+                            styles={{
+                              input: {
+                                background: 'var(--app-surface-default)',
+                                border: '1.5px solid var(--app-border-default)',
+                                borderRadius: 10,
+                                fontSize: '0.875rem',
+                              },
+                              pill: {
+                                background: 'color-mix(in srgb, var(--app-accent-secondary) 14%, transparent)',
+                                border: '1px solid color-mix(in srgb, var(--app-accent-secondary) 30%, transparent)',
+                                color: 'var(--app-accent-secondary)',
+                                fontWeight: 600,
+                                borderRadius: 6,
+                                fontSize: '0.8rem',
+                              },
+                            }}
+                          />
+                          {/* 추청 태그 빠른 선택 */}
+                          {uniqueTagSuggestions.slice(0, 12).map((tag) => (
+                            <span
+                              key={tag}
+                              onClick={() => {
+                                if (!personalTagValues.includes(tag)) {
+                                  handleTextListChange('personalTagsText', [...personalTagValues, tag]);
+                                }
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '3px 10px',
+                                borderRadius: 20,
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                userSelect: 'none',
+                                marginRight: 4,
+                                marginBottom: 4,
+                                transition: 'all 120ms ease',
+                                background: personalTagValues.includes(tag)
+                                  ? 'color-mix(in srgb, var(--app-accent-secondary) 18%, transparent)'
+                                  : 'var(--app-surface-subtle)',
+                                border: personalTagValues.includes(tag)
+                                  ? '1.5px solid color-mix(in srgb, var(--app-accent-secondary) 40%, transparent)'
+                                  : '1.5px solid var(--app-border-default)',
+                                color: personalTagValues.includes(tag)
+                                  ? 'var(--app-accent-secondary)'
+                                  : 'var(--app-text-secondary)',
+                              }}
+                            >
+                              {personalTagValues.includes(tag) ? '✓ ' : '+ '}{tag}
+                            </span>
+                          ))}
+                        </Stack>
+                      </Stack>
                     </Stack>
                   </Accordion.Panel>
                 </Accordion.Item>
@@ -384,17 +501,10 @@ export function WorkForm({
                           placeholder="작가, 스튜디오, 제작자"
                           value={values.author}
                         />
-                        <TextInput
-                          id="rating"
+                        <StarRatingInput
                           label="별점"
-                          max="5"
-                          min="0"
-                          name="rating"
-                          onChange={handleInputChange}
-                          placeholder="0~5"
-                          step="0.5"
-                          type="number"
-                          value={values.rating}
+                          onChange={handleRatingChange}
+                          value={normalizedRating}
                         />
                       </SimpleGrid>
 
