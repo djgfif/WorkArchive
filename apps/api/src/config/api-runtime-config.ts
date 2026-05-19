@@ -8,6 +8,7 @@ export interface ApiRuntimeConfig {
   jwtRefreshSecret: string;
   passwordResetDevLinksEnabled: boolean;
   port: number;
+  rateLimitStore: 'external' | 'memory';
   swaggerEnabled: boolean;
   webBaseUrl: string;
 }
@@ -178,6 +179,30 @@ function readWebBaseUrl(isProduction: boolean) {
   return 'http://127.0.0.1:53173';
 }
 
+function readRateLimitStore(isProduction: boolean) {
+  const configuredValue = process.env.RATE_LIMIT_STORE?.trim().toLowerCase();
+
+  if (!configuredValue) {
+    if (isProduction) {
+      throw new Error(
+        'RATE_LIMIT_STORE must be set to "external" in production.',
+      );
+    }
+
+    return 'memory' as const;
+  }
+
+  if (configuredValue !== 'memory' && configuredValue !== 'external') {
+    throw new Error('RATE_LIMIT_STORE must be either "memory" or "external".');
+  }
+
+  if (isProduction && configuredValue === 'memory') {
+    throw new Error('RATE_LIMIT_STORE must not be "memory" in production.');
+  }
+
+  return configuredValue;
+}
+
 function rejectUnsafeProductionDatabaseUrl(value: string) {
   if (!isProductionEnvironment()) {
     return;
@@ -211,7 +236,10 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     false,
   );
   const swaggerEnabled = readBoolean(process.env.SWAGGER_ENABLED, !isProduction);
+  const corsOrigin = readCorsOrigin(process.env.CORS_ORIGIN, isProduction);
   const webBaseUrl = readWebBaseUrl(isProduction);
+  const jwtAccessSecret = readProductionSafeSecret('JWT_ACCESS_SECRET');
+  const jwtRefreshSecret = readProductionSafeSecret('JWT_REFRESH_SECRET');
 
   rejectUnsafeProductionDatabaseUrl(databaseUrl);
   rejectUnsafeProductionSeedDefaults();
@@ -230,16 +258,19 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     throw new Error('SWAGGER_ENABLED must not be true in production.');
   }
 
+  const rateLimitStore = readRateLimitStore(isProduction);
+
   return {
     cookieSecure,
-    corsOrigin: readCorsOrigin(process.env.CORS_ORIGIN, isProduction),
+    corsOrigin,
     databaseUrl,
     host: process.env.HOST?.trim() || '0.0.0.0',
     isProduction,
-    jwtAccessSecret: readProductionSafeSecret('JWT_ACCESS_SECRET'),
-    jwtRefreshSecret: readProductionSafeSecret('JWT_REFRESH_SECRET'),
+    jwtAccessSecret,
+    jwtRefreshSecret,
     passwordResetDevLinksEnabled,
     port: readPort(process.env.PORT, 3000),
+    rateLimitStore,
     swaggerEnabled,
     webBaseUrl,
   };

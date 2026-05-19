@@ -1,16 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  PULL_SYNC_OPERATIONS,
+  SYNC_ENTITY_TYPES,
+  SYNC_SCHEMA_VERSION,
+  type PullSyncOperation,
+  type SyncEntityType,
+} from '../sync.constants';
 
 import { UserReleaseRecordResponseDto } from '../../user-records/dto/user-release-record.dto';
 import { WorkResponseDto } from '../../works/dto/work-response.dto';
 import { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
 
-const PULL_SYNC_OPERATIONS = ['upsert', 'delete'] as const;
-
 export class PullSyncChangeDto {
   @ApiProperty({
-    enum: ['work', 'release_record', 'timeline_entry'],
+    enum: SYNC_ENTITY_TYPES,
   })
-  entityType!: 'work' | 'release_record' | 'timeline_entry';
+  entityType!: SyncEntityType;
 
   @ApiProperty({
     format: 'uuid',
@@ -20,7 +25,7 @@ export class PullSyncChangeDto {
   @ApiProperty({
     enum: PULL_SYNC_OPERATIONS,
   })
-  operation!: (typeof PULL_SYNC_OPERATIONS)[number];
+  operation!: PullSyncOperation;
 
   @ApiProperty({
     type: () => WorkResponseDto,
@@ -43,9 +48,9 @@ export class PullSyncChangeDto {
 
 export class PullSyncResponseDto {
   @ApiProperty({
-    enum: [2],
+    enum: [SYNC_SCHEMA_VERSION],
   })
-  schemaVersion!: 2;
+  schemaVersion!: typeof SYNC_SCHEMA_VERSION;
 
   @ApiProperty({
     example: '2026-04-18T00:00:00.000Z',
@@ -56,6 +61,17 @@ export class PullSyncResponseDto {
     example: '2026-04-18T00:00:00.000Z',
   })
   nextSince!: string;
+
+  @ApiProperty({
+    nullable: true,
+    required: false,
+  })
+  nextCursor?: string | null;
+
+  @ApiProperty({
+    required: false,
+  })
+  hasMore?: boolean;
 
   @ApiProperty({
     type: [PullSyncChangeDto],

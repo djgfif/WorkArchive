@@ -28,6 +28,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
 import { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
 import { ImportSearchQueryDto } from './dto/import-search-query.dto';
 import { ImportSearchResponseDto } from './dto/import-search-response.dto';
@@ -174,15 +175,16 @@ export class ImportsController {
   @UseGuards(JwtAuthGuard)
   @ApiOkResponse({
     description: 'Return a normalized import candidate payload for client review.',
+    type: ImportCandidateResponseDto,
   })
   @ApiUnauthorizedResponse({
     description: 'The access token is missing, invalid, or expired.',
   })
-  resolve(@Body() candidate: Record<string, unknown>) {
-    return {
-      candidate,
-      resolved: true,
-    };
+  resolve(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() candidate: Record<string, unknown>,
+  ) {
+    return this.importsService.resolveCandidate(user.userId, candidate);
   }
 
   private async getOptionalUser(authorizationHeader?: string) {

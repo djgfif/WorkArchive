@@ -446,6 +446,65 @@ describe('SyncService', () => {
     );
   });
 
+  it('paginates pull changes with a stable cursor across same-timestamp entity types', async () => {
+    const sharedUpdatedAt = new Date('2026-04-18T02:00:00.000Z');
+    userRecordsService.findByUserSince.mockResolvedValue([
+      createWorkAggregateFixture({
+        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        catalogWorkId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        updatedAt: sharedUpdatedAt,
+        catalogWork: {
+          ...createWorkAggregateFixture().catalogWork,
+          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          updatedAt: sharedUpdatedAt,
+        },
+      }),
+    ]);
+    releaseRecordsService.findByUserSince.mockResolvedValue([
+      createReleaseRecordAggregateFixture({
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        updatedAt: sharedUpdatedAt,
+      }),
+    ]);
+    timelineEntriesService.findByUserSince.mockResolvedValue([
+      createTimelineEntryAggregateFixture({
+        id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        updatedAt: sharedUpdatedAt,
+      }),
+    ]);
+
+    const firstPage = await service.pull(USER_ID, {
+      limit: 2,
+      since: '2026-04-18T00:00:00.000Z',
+    });
+
+    expect(firstPage.hasMore).toBe(true);
+    expect(firstPage.nextSince).toBe('2026-04-18T00:00:00.000Z');
+    expect(firstPage.nextCursor).toEqual(expect.any(String));
+    expect(firstPage.changes.map((change) => change.entityType)).toEqual([
+      'release_record',
+      'timeline_entry',
+    ]);
+    const nextCursor = firstPage.nextCursor;
+
+    if (!nextCursor) {
+      throw new Error('Expected first page to include a next cursor.');
+    }
+
+    const secondPage = await service.pull(USER_ID, {
+      cursor: nextCursor,
+      limit: 2,
+      since: '2026-04-18T00:00:00.000Z',
+    });
+
+    expect(secondPage.hasMore).toBe(false);
+    expect(secondPage.nextCursor).toBeNull();
+    expect(secondPage.nextSince).toBe('2026-04-18T02:00:00.000Z');
+    expect(secondPage.changes.map((change) => change.entityType)).toEqual([
+      'work',
+    ]);
+  });
+
   it('applies queued creates in createdAt order even when the payloads arrive out of order', async () => {
     userRecordsService.findById.mockResolvedValue(null);
     userRecordsService.create.mockResolvedValue(createWorkAggregateFixture());

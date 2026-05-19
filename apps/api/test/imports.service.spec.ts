@@ -258,6 +258,60 @@ describe('ImportsService', () => {
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
   });
 
+  it('normalizes import candidate resolve payloads for preview', async () => {
+    const candidate = await service.resolveCandidate(USER_ID, {
+      externalId: '  dune-1  ',
+      externalRefs: [
+        {
+          externalId: '  dune-1 ',
+          provider: ' google_books ',
+          rawType: ' volume ',
+          url: ' https://books.example/dune ',
+        },
+      ],
+      mediumType: WorkType.novel,
+      sourceId: ' google_books ',
+      title: ' <b>Dune</b> ',
+      titleAliases: ['Dune', ' Dune '],
+    });
+
+    expect(candidate).toEqual(
+      expect.objectContaining({
+        externalId: 'dune-1',
+        mediumType: WorkType.novel,
+        sourceId: 'google_books',
+        title: 'Dune',
+        titleAliases: ['Dune'],
+        type: WorkType.novel,
+      }),
+    );
+    expect(candidate.externalRefs).toEqual([
+      {
+        externalId: 'dune-1',
+        provider: 'google_books',
+        rawType: 'volume',
+        url: 'https://books.example/dune',
+      },
+    ]);
+  });
+
+  it('rejects invalid import candidate resolve payloads', async () => {
+    await expect(service.resolveCandidate(USER_ID, null)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(
+      service.resolveCandidate(USER_ID, {
+        mediumType: WorkType.novel,
+        title: '   ',
+      }),
+    ).rejects.toThrow('Import candidate title is required.');
+    await expect(
+      service.resolveCandidate(USER_ID, {
+        title: 'Dune',
+      }),
+    ).rejects.toThrow('Import candidate type is required.');
+  });
+
   it('returns forbidden when the current user has no Aladin key', async () => {
     credentialService.getDecryptedCredential.mockResolvedValue(null);
 

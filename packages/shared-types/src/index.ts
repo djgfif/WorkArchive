@@ -564,7 +564,19 @@ export interface RelatedCatalogTitlesResponse {
 }
 
 export type PushResultStatus = 'applied' | 'conflict' | 'failed';
+
+export const PUSH_RESULT_STATUSES = [
+  'applied',
+  'conflict',
+  'failed',
+] as const satisfies readonly PushResultStatus[];
+
 export type PullSyncOperation = 'upsert' | 'delete';
+
+export const PULL_SYNC_OPERATIONS = [
+  'upsert',
+  'delete',
+] as const satisfies readonly PullSyncOperation[];
 
 export type SyncQueuePayload =
   | WorkRecord
@@ -642,6 +654,8 @@ export interface PushSyncResponse {
 }
 
 export interface PullSyncRequest {
+  cursor?: string | null;
+  limit?: number;
   schemaVersion: SyncSchemaVersion;
   since?: ISODateString | null;
 }
@@ -657,6 +671,8 @@ export interface PullSyncChange {
 
 export interface PullSyncResponse {
   changes: PullSyncChange[];
+  hasMore?: boolean;
+  nextCursor?: string | null;
   nextSince: ISODateString;
   pulledAt: ISODateString;
   schemaVersion: SyncSchemaVersion;
