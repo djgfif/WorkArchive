@@ -1,13 +1,20 @@
-/* ── 기본 설정 ────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   Work Archive — Global CSS v3.0.0
+   "Calm Premium Dark" — Linear·Vercel 수준의 프리미엄 다크 UI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 기본 설정 ────────────────────────────────────────────────────────────── */
 :root {
   color-scheme: light dark;
-  font-family: 'IBM Plex Sans KR', 'Pretendard Variable', 'Pretendard', sans-serif;
+  font-family: 'Pretendard Variable', Pretendard, 'IBM Plex Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-synthesis: none;
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.55;
   text-rendering: optimizeLegibility;
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
+  /* 서브픽셀 렌더링 최적화 */
+  text-size-adjust: 100%;
 }
 
 *,
@@ -21,25 +28,35 @@ html {
   scroll-behavior: smooth;
 }
 
-/* ── Body background ─────────────────────────────────────────────── */
-/* 다크 모드: 블루-그레이 배경 + 미세한 라디얼 그라디언트 */
+/* ── Body — 프리미엄 다크 배경 ─────────────────────────────────────────────
+   순수 검정 대신 깊은 네이비 블루를 기반으로,
+   미세한 라디얼 그라디언트로 공간감 부여 (Apple TV+ 스타일)
+   ─────────────────────────────────────────────────────────────────────────── */
 body {
   margin: 0;
   min-height: 100vh;
   min-width: 320px;
   background:
-    radial-gradient(ellipse at 15% -5%, rgba(59, 130, 246, 0.08), transparent 36rem),
-    radial-gradient(ellipse at 88% 6%, rgba(251, 191, 36, 0.04), transparent 28rem),
+    /* 좌상단 — 블루 광원 */
+    radial-gradient(ellipse at 12% -8%, rgba(59, 130, 246, 0.12), transparent 40rem),
+    /* 우상단 — 앰버 광원 (미세) */
+    radial-gradient(ellipse at 90% 4%, rgba(251, 191, 36, 0.05), transparent 32rem),
+    /* 중앙 하단 — 깊이감 */
+    radial-gradient(ellipse at 50% 100%, rgba(30, 58, 138, 0.08), transparent 48rem),
     var(--app-bg-shell, var(--mantine-color-body));
   color: var(--app-text-secondary, var(--mantine-color-text));
+  /* 노이즈 텍스처 — 고급 인쇄물 느낌 */
+  background-attachment: fixed;
 }
 
-/* 라이트 모드: 더 연한 라디얼 그라디언트 */
+/* 라이트 모드 배경 */
 [data-mantine-color-scheme='light'] body {
   background:
-    radial-gradient(ellipse at 15% -5%, rgba(37, 99, 235, 0.05), transparent 32rem),
-    radial-gradient(ellipse at 88% 6%, rgba(217, 119, 6, 0.04), transparent 24rem),
+    radial-gradient(ellipse at 12% -8%, rgba(37, 99, 235, 0.06), transparent 36rem),
+    radial-gradient(ellipse at 90% 4%, rgba(217, 119, 6, 0.04), transparent 28rem),
+    radial-gradient(ellipse at 50% 100%, rgba(30, 64, 175, 0.04), transparent 44rem),
     var(--app-bg-shell, var(--mantine-color-body));
+  background-attachment: fixed;
 }
 
 body,
@@ -52,6 +69,7 @@ textarea {
 
 a {
   color: inherit;
+  text-decoration: none;
 }
 
 img {
@@ -66,36 +84,41 @@ textarea {
   min-width: 0;
 }
 
-/* ── Selection ───────────────────────────────────────────────────── */
+/* ── Selection ───────────────────────────────────────────────────────────── */
 ::selection {
-  background: rgba(59, 130, 246, 0.18);
+  background: rgba(96, 165, 250, 0.22);
   color: var(--app-text-primary, var(--mantine-color-text));
 }
 
-/* ── Focus ───────────────────────────────────────────────────────── */
+[data-mantine-color-scheme='light'] ::selection {
+  background: rgba(37, 99, 235, 0.15);
+}
+
+/* ── Focus ───────────────────────────────────────────────────────────────── */
 :focus-visible {
   outline: 2px solid var(--app-accent-primary, var(--mantine-primary-color-filled));
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* ── Root ────────────────────────────────────────────────────────── */
+/* ── Root ────────────────────────────────────────────────────────────────── */
 #root {
   min-height: 100vh;
 }
 
-/* ── Layout shell ────────────────────────────────────────────────── */
+/* ── Layout shell ────────────────────────────────────────────────────────── */
 .layout-shell {
   min-height: 100vh;
   padding: clamp(0.75rem, 2vw, 1.5rem);
+  /* 헤더 아래 미세한 그라디언트 오버레이 */
   background:
-    linear-gradient(180deg, rgba(59, 130, 246, 0.03), transparent 14rem),
+    linear-gradient(180deg, rgba(59, 130, 246, 0.025) 0, transparent 12rem),
     transparent;
 }
 
 [data-mantine-color-scheme='light'] .layout-shell {
   background:
-    linear-gradient(180deg, rgba(37, 99, 235, 0.025), transparent 12rem),
+    linear-gradient(180deg, rgba(37, 99, 235, 0.02) 0, transparent 10rem),
     transparent;
 }
 
@@ -104,12 +127,17 @@ textarea {
   align-content: center;
 }
 
-/* ── Product header (sticky + premium blur) ──────────────────────── */
+/* ── Product header — sticky + premium blur ──────────────────────────────
+   Apple/Linear 수준의 프리미엄 헤더:
+   - backdrop-filter: blur(20px) saturate(1.6) — 강한 블러
+   - 3단 grid: Left(브랜드) / Center(nav) / Right(프로필)
+   - 스크롤 시 border-bottom이 나타나는 효과
+   ─────────────────────────────────────────────────────────────────────────── */
 .product-header {
   position: sticky;
   top: 0;
-  z-index: 100;
-  height: 64px;
+  z-index: 200;
+  height: 60px;
   /* 3단 구조: Left(브랜드) / Center(nav) / Right(프로필) */
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -118,14 +146,16 @@ textarea {
   padding-top: 0;
   padding-bottom: 0;
   margin-bottom: 0;
-  /* 프리미엄 블러 효과 — Apple/Linear 수준 */
-  backdrop-filter: blur(12px) saturate(1.2);
-  -webkit-backdrop-filter: blur(12px) saturate(1.2);
-  background: color-mix(in srgb, var(--app-bg-shell, var(--mantine-color-body)) 85%, transparent);
+  /* 프리미엄 블러 효과 */
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  background: color-mix(in srgb, var(--app-bg-shell, var(--mantine-color-body)) 80%, transparent);
   border-bottom: 1px solid var(--app-border-subtle, var(--mantine-color-default-border));
   transition:
-    background 140ms ease,
-    border-color 140ms ease;
+    background var(--wa-motion-fast, 150ms),
+    border-color var(--wa-motion-fast, 150ms);
+  /* 헤더 하단 미세한 그라디언트 */
+  box-shadow: 0 1px 0 var(--app-border-subtle);
 }
 
 /* Left: 브랜드 로고 — 좌측 정렬 */
@@ -148,10 +178,11 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 0.5rem;
   min-width: 0;
 }
 
-/* ── Scrollbar ───────────────────────────────────────────────────── */
+/* ── Scrollbar — 얇고 세련된 스크롤바 ───────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -162,16 +193,66 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--app-border-strong, var(--mantine-color-default-border));
+  background: var(--app-border-strong, rgba(148, 163, 184, 0.24));
   border-radius: 999px;
-  transition: background 140ms ease;
+  transition: background var(--wa-motion-fast, 150ms);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--app-accent-primary, rgba(59, 130, 246, 0.5));
+  background: var(--app-accent-primary, rgba(96, 165, 250, 0.5));
 }
 
-/* ── Responsive ──────────────────────────────────────────────────── */
+/* ── Mantine 컴포넌트 오버라이드 ─────────────────────────────────────────── */
+
+/* Input 포커스 글로우 */
+.mantine-Input-input:focus,
+.mantine-Input-input:focus-within {
+  border-color: var(--app-accent-primary) !important;
+  box-shadow: var(--app-shadow-glow, var(--wa-shadow-glow)) !important;
+}
+
+/* Button 활성 상태 */
+.mantine-Button-root:active {
+  transform: scale(0.97);
+}
+
+/* Paper 기본 배경 */
+.mantine-Paper-root {
+  background-color: var(--app-surface-card);
+}
+
+/* ── 유틸리티 클래스 ─────────────────────────────────────────────────────── */
+
+/* 텍스트 그라디언트 — 제목 강조 */
+.text-gradient {
+  background: linear-gradient(135deg, var(--app-text-primary), var(--app-accent-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 글래스 카드 효과 */
+.glass-card {
+  background: color-mix(in srgb, var(--app-surface-card) 85%, transparent);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  border: 1px solid var(--app-border-subtle);
+}
+
+/* 인터랙티브 표면 — 호버 시 배경 변화 */
+.interactive-surface {
+  transition:
+    background var(--wa-motion-fast, 150ms),
+    border-color var(--wa-motion-fast, 150ms),
+    box-shadow var(--wa-motion-fast, 150ms);
+}
+
+.interactive-surface:hover {
+  background: var(--app-surface-hero);
+  border-color: var(--app-border-default);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 48rem) {
   .layout-shell {
     padding: 0.75rem;
@@ -179,10 +260,17 @@ textarea {
 
   .product-header {
     height: 56px;
+    /* 모바일: 브랜드 + 햄버거 2단 */
+    grid-template-columns: 1fr auto;
+  }
+
+  /* 모바일에서 center nav 숨기기 */
+  .header-center {
+    display: none;
   }
 }
 
-/* ── Reduced motion ──────────────────────────────────────────────── */
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -191,5 +279,18 @@ textarea {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── 인쇄 ────────────────────────────────────────────────────────────────── */
+@media print {
+  .product-header {
+    position: static;
+    backdrop-filter: none;
+  }
+
+  body {
+    background: white;
+    color: black;
   }
 }

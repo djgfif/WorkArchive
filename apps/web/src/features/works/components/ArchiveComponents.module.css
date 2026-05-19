@@ -71,7 +71,8 @@
 
 .posterImage {
   object-fit: cover;
-  transition: transform var(--wa-motion-normal, 200ms ease);
+  transition: transform var(--wa-motion-normal, 240ms) cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .posterFallback {
@@ -214,21 +215,29 @@
   background: transparent;
   box-shadow: none;
   transition:
-    transform var(--wa-motion-normal, 200ms ease),
-    border-color var(--wa-motion-normal, 200ms ease),
-    box-shadow var(--wa-motion-normal, 200ms ease);
+    transform var(--wa-motion-normal, 240ms) cubic-bezier(0.16, 1, 0.3, 1),
+    border-color var(--wa-motion-fast, 150ms) ease,
+    box-shadow var(--wa-motion-normal, 240ms) cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .posterCardLink:hover .posterCardSurface,
 .posterCardLink:focus-visible .posterCardSurface {
-  transform: translateY(-5px);
-  border-color: var(--app-border-strong);
-  box-shadow: var(--app-shadow-overlay);
+  transform: translateY(-6px);
+  border-color: var(--app-border-default);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.38),
+    0 4px 12px rgba(0, 0, 0, 0.22),
+    0 0 0 1px var(--app-border-default);
+}
+
+.posterCardLink:active .posterCardSurface {
+  transform: translateY(-2px);
 }
 
 .posterCardLink:hover .posterImage,
 .posterCardLink:focus-visible .posterImage {
-  transform: scale(1.04);
+  transform: scale(1.05);
 }
 
 .favoriteMark {
@@ -272,17 +281,22 @@
   background: var(--app-surface-card);
   box-shadow: none;
   transition:
-    background var(--wa-motion-fast, 140ms ease),
-    border-color var(--wa-motion-fast, 140ms ease),
-    transform var(--wa-motion-fast, 140ms ease),
-    box-shadow var(--wa-motion-fast, 140ms ease);
+    background var(--wa-motion-fast, 150ms) ease,
+    border-color var(--wa-motion-fast, 150ms) ease,
+    transform var(--wa-motion-normal, 240ms) cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow var(--wa-motion-normal, 240ms) cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .rowCard:hover .rowSurface {
-  transform: translateY(-2px);
-  border-color: var(--app-border-strong);
+  transform: translateY(-3px);
+  border-color: var(--app-border-default);
   background: var(--app-bg-elevated);
-  box-shadow: var(--app-shadow-card);
+  box-shadow: var(--wa-shadow-card);
+}
+
+.rowCard:active .rowSurface {
+  transform: translateY(-1px);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -293,15 +307,18 @@
   border-color: var(--app-border-subtle);
   background: var(--app-surface-card);
   transition:
-    border-color var(--wa-motion-fast, 140ms ease),
-    background var(--wa-motion-fast, 140ms ease),
-    box-shadow var(--wa-motion-fast, 140ms ease);
+    border-color var(--wa-motion-fast, 150ms) ease,
+    background var(--wa-motion-fast, 150ms) ease,
+    box-shadow var(--wa-motion-normal, 240ms) cubic-bezier(0.16, 1, 0.3, 1),
+    transform var(--wa-motion-normal, 240ms) cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .listRowSurface:hover {
-  border-color: var(--app-border-strong);
+  border-color: var(--app-border-default);
   background: var(--app-bg-elevated);
-  box-shadow: var(--app-shadow-card);
+  box-shadow: var(--wa-shadow-card);
+  transform: translateY(-1px);
 }
 
 .listRowMain {
@@ -342,13 +359,16 @@
   position: relative;
   overflow: hidden;
   padding: clamp(1.4rem, 4vw, 3.25rem);
-  border: 1px solid var(--app-border-strong);
+  border: 1px solid var(--app-border-default);
   border-radius: var(--mantine-radius-xl);
   background:
-    radial-gradient(circle at 82% 14%, rgba(59, 130, 246, 0.16), transparent 32%),
+    radial-gradient(circle at 82% 14%, rgba(59, 130, 246, 0.18), transparent 36%),
     radial-gradient(circle at 18% 82%, rgba(99, 102, 241, 0.10), transparent 28%),
+    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.04), transparent 60%),
     linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(7, 8, 11, 0.97));
-  box-shadow: var(--app-shadow-overlay);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    var(--app-shadow-overlay);
 }
 
 [data-mantine-color-scheme='light'] .hero {
@@ -465,55 +485,44 @@
 ───────────────────────────────────────────────────────────────────────────── */
 .searchInput input {
   min-height: 2.85rem;
-  border-color: var(--app-border-strong);
+  border-color: var(--app-border-default);
   background: var(--app-bg-elevated);
   font-size: 0.96rem;
   transition:
-    border-color var(--wa-motion-fast, 140ms ease),
-    background var(--wa-motion-fast, 140ms ease),
-    box-shadow var(--wa-motion-fast, 140ms ease);
+    border-color var(--wa-motion-fast, 150ms) ease,
+    background var(--wa-motion-fast, 150ms) ease,
+    box-shadow var(--wa-motion-fast, 150ms) ease;
+}
+
+.searchInput input:hover {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-card);
 }
 
 .searchInput input:focus {
   border-color: var(--app-accent-primary);
   background: var(--app-surface-card);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent-primary) 18%, transparent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--app-accent-primary) 20%, transparent),
+    0 1px 4px rgba(0, 0, 0, 0.12);
+  outline: none;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Filter pills
 ───────────────────────────────────────────────────────────────────────────── */
+/* filterPill 스타일은 FilterPillGroup 인라인 style로 제어됨 */
+/* 아래는 CSS 모듈 기반 fallback 및 포커스 링 */
 .filterPill {
-  border-color: var(--app-border-subtle);
-  background: var(--app-surface-subtle);
-  color: var(--app-text-secondary);
-  font-weight: 500;
   transition:
-    background var(--wa-motion-fast, 140ms ease),
-    border-color var(--wa-motion-fast, 140ms ease),
-    color var(--wa-motion-fast, 140ms ease),
-    box-shadow var(--wa-motion-fast, 140ms ease);
-}
-
-.filterPill:hover {
-  border-color: var(--app-border-strong);
-  background: var(--app-bg-elevated);
-  color: var(--app-text-primary);
+    background var(--wa-motion-fast, 150ms) ease,
+    border-color var(--wa-motion-fast, 150ms) ease,
+    color var(--wa-motion-fast, 150ms) ease,
+    box-shadow var(--wa-motion-fast, 150ms) ease;
 }
 
 .filterPillActive {
-  border-color: var(--app-accent-primary);
-  background: color-mix(in srgb, var(--app-accent-primary) 14%, transparent);
-  color: var(--app-accent-primary);
-  font-weight: 600;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-accent-primary) 30%, transparent);
-}
-
-[data-mantine-color-scheme='light'] .filterPillActive {
-  border-color: var(--app-accent-primary);
-  background: color-mix(in srgb, var(--app-accent-primary) 10%, transparent);
-  color: var(--app-accent-primary);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-accent-primary) 20%, transparent);
+  font-weight: 700;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -716,7 +725,9 @@
   .posterCardSurface,
   .rowSurface,
   .listRowSurface,
-  .filterPill {
-    transition: none;
+  .filterPill,
+  .searchInput input {
+    transition: none !important;
+    will-change: auto !important;
   }
 }

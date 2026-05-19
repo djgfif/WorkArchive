@@ -177,9 +177,9 @@ interface AppNavLinkProps {
 function getSurfaceBackground(tone: SurfaceTone) {
   if (tone === 'hero') {
     return [
-      'radial-gradient(circle at 82% 18%, rgba(59, 130, 246, 0.10), transparent 32%)',
-      'radial-gradient(circle at 18% 80%, rgba(251, 191, 36, 0.05), transparent 28%)',
-      'linear-gradient(145deg, var(--app-surface-hero), var(--app-bg-elevated))',
+      'radial-gradient(circle at 82% 12%, rgba(59, 130, 246, 0.14), transparent 38%)',
+      'radial-gradient(circle at 12% 85%, rgba(251, 191, 36, 0.07), transparent 32%)',
+      'linear-gradient(145deg, var(--app-surface-hero), var(--app-surface-card))',
     ].join(', ');
   }
 
@@ -191,7 +191,7 @@ function getActionToneProps(tone: AppActionTone) {
     case 'primary':
       return {
         color: 'archive',
-        gradient: { deg: 135, from: 'archive.5', to: 'archive.7' },
+        gradient: { deg: 135, from: 'archive.4', to: 'archive.7' },
         variant: 'gradient',
       } as const;
     case 'quiet':
@@ -317,11 +317,18 @@ export function SurfaceLinkCard({
           color: 'inherit',
           display: 'block',
           textDecoration: 'none',
-          transition: 'transform var(--wa-motion-fast, 140ms ease), border-color var(--wa-motion-fast, 140ms ease), background var(--wa-motion-fast, 140ms ease), box-shadow var(--wa-motion-fast, 140ms ease)',
+          transition: [
+            'transform var(--wa-motion-normal, 240ms)',
+            'border-color var(--wa-motion-fast, 150ms)',
+            'box-shadow var(--wa-motion-normal, 240ms)',
+          ].join(', '),
           '&:hover': {
-            transform: 'translateY(-2px)',
-            borderColor: 'var(--app-border-strong)',
-            boxShadow: 'var(--app-shadow-card)',
+            transform: 'translateY(-3px)',
+            borderColor: 'var(--app-border-default)',
+            boxShadow: 'var(--wa-shadow-card)',
+          },
+          '&:active': {
+            transform: 'translateY(-1px)',
           },
         },
       }}
@@ -413,25 +420,56 @@ export function AppBadge({ children, tone = 'default' }: AppBadgeProps) {
 
 export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
   return (
-    <Box component={Link} display="inline-flex" miw={0} td="none" to={to}>
+    <Box
+      component={Link}
+      display="inline-flex"
+      miw={0}
+      td="none"
+      to={to}
+      style={{ transition: 'opacity var(--wa-motion-fast, 150ms)' }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.80'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+    >
       <Group gap="sm" wrap="nowrap">
         <ThemeIcon
           color="archive"
           radius="md"
           size={36}
           variant="gradient"
-          gradient={{ deg: 135, from: 'archive.5', to: 'archive.7' }}
-          style={{ flexShrink: 0 }}
+          gradient={{ deg: 135, from: 'archive.4', to: 'archive.7' }}
+          style={{
+            flexShrink: 0,
+            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.35)',
+          }}
         >
-          <Text c="white" fw={900} size="xs" style={{ letterSpacing: '-0.04em' }}>
+          <Text
+            c="white"
+            fw={900}
+            size="xs"
+            style={{ letterSpacing: '-0.05em', fontFeatureSettings: '"ss01"' }}
+          >
             WA
           </Text>
         </ThemeIcon>
         <Stack gap={0} miw={0}>
-          <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+          <Text
+            c="dimmed"
+            fw={700}
+            size="xs"
+            tt="uppercase"
+            style={{ letterSpacing: '0.10em', fontSize: '0.68rem' }}
+          >
             {kicker}
           </Text>
-          <Text fw={800} size="md" style={{ letterSpacing: '-0.02em' }}>
+          <Text
+            fw={800}
+            size="md"
+            style={{
+              letterSpacing: '-0.025em',
+              color: 'var(--app-text-primary)',
+              lineHeight: 1.2,
+            }}
+          >
             {heading}
           </Text>
         </Stack>
@@ -474,22 +512,28 @@ export function AppNavLink({
         alignItems: 'center',
         background: fullWidth && isActive ? 'var(--app-surface-subtle)' : 'transparent',
         border: fullWidth
-          ? `1px solid ${isActive ? 'var(--app-border-strong)' : 'transparent'}`
-          : '1px solid transparent',
+          ? `1px solid ${isActive ? 'var(--app-border-default)' : 'transparent'}`
+          : 'none',
         borderRadius: fullWidth ? 'var(--mantine-radius-md)' : undefined,
-        color: isActive ? 'var(--app-text-primary)' : 'var(--app-text-muted)',
+        color: isActive ? 'var(--app-text-primary)' : 'var(--app-text-secondary)',
         display: fullWidth ? 'flex' : 'inline-flex',
-        fontWeight: isActive ? 700 : 600,
+        fontWeight: isActive ? 700 : 500,
         gap: '0.625rem',
         justifyContent: 'space-between',
-        padding: fullWidth ? '0.82rem 0.95rem' : '0.45rem 0.55rem',
+        padding: fullWidth ? '0.75rem 0.95rem' : '0.4rem 0.6rem',
         textDecoration: 'none',
-        transition: 'border-color var(--wa-motion-fast, 140ms ease), background var(--wa-motion-fast, 140ms ease), color var(--wa-motion-fast, 140ms ease)',
+        transition: [
+          'color var(--wa-motion-fast, 150ms)',
+          'background var(--wa-motion-fast, 150ms)',
+          'border-color var(--wa-motion-fast, 150ms)',
+        ].join(', '),
         width: fullWidth ? '100%' : undefined,
+        /* 데스크탑 인라인 nav: 하단 밑줄 애니메이션 */
         borderBottom: !fullWidth && isActive
           ? '2px solid var(--app-accent-primary)'
           : !fullWidth ? '2px solid transparent' : undefined,
-        paddingBottom: !fullWidth ? '0.35rem' : undefined,
+        paddingBottom: !fullWidth ? '0.4rem' : undefined,
+        fontSize: 'var(--app-type-body)',
       })}
       to={to}
     >
@@ -575,29 +619,45 @@ export function PageSection({
 export function MetricPill({ label, value }: MetricPillProps) {
   return (
     <Paper
-      miw={112}
+      miw={120}
       p="md"
       radius="lg"
       styles={{
         root: {
           background: 'var(--app-surface-subtle)',
           borderColor: 'var(--app-border-subtle)',
-          transition: 'border-color 160ms ease',
+          transition: [
+            'border-color var(--wa-motion-fast, 150ms)',
+            'transform var(--wa-motion-normal, 240ms)',
+            'box-shadow var(--wa-motion-normal, 240ms)',
+          ].join(', '),
+          '&:hover': {
+            borderColor: 'var(--app-border-default)',
+            transform: 'translateY(-2px)',
+            boxShadow: 'var(--wa-shadow-card)',
+          },
         },
       }}
       withBorder
     >
       <Stack gap={4}>
         <Text
-          c="var(--app-accent-primary)"
-          fw={800}
+          fw={700}
           size="xs"
           tt="uppercase"
-          style={{ letterSpacing: '0.06em' }}
+          style={{
+            letterSpacing: '0.08em',
+            color: 'var(--app-text-muted)',
+            fontSize: 'var(--app-type-meta)',
+          }}
         >
           {label}
         </Text>
-        <Text fw={800} size="lg">
+        <Text
+          fw={800}
+          size="lg"
+          style={{ color: 'var(--app-text-primary)', letterSpacing: '-0.02em' }}
+        >
           {value}
         </Text>
       </Stack>
@@ -626,16 +686,28 @@ export function StatCard({ accent = false, description, label, to, value }: Stat
   const content = (
     <Stack gap={6}>
       <Text
-        c={accent ? 'archive.3' : 'dimmed'}
-        fw={800}
+        fw={700}
         size="xs"
         tt="uppercase"
-        style={{ letterSpacing: '0.06em' }}
+        style={{
+          letterSpacing: '0.08em',
+          color: accent ? 'var(--app-accent-primary)' : 'var(--app-text-muted)',
+          fontSize: 'var(--app-type-meta)',
+        }}
       >
         {label}
       </Text>
-      <Title order={3}>{value}</Title>
-      {description && <Text c="dimmed" size="sm">{description}</Text>}
+      <Title
+        order={3}
+        style={{ letterSpacing: '-0.03em', color: 'var(--app-text-primary)' }}
+      >
+        {value}
+      </Title>
+      {description && (
+        <Text size="sm" style={{ color: 'var(--app-text-muted)' }}>
+          {description}
+        </Text>
+      )}
     </Stack>
   );
 

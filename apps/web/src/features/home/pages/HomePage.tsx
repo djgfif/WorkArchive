@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import {
+  Box,
   Group,
   Paper,
   SimpleGrid,
@@ -46,12 +47,21 @@ function QuickStat({ accent = false, icon, label, value }: QuickStatProps) {
         root: {
           background: accent
             ? [
-                'radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.12), transparent 60%)',
-                'linear-gradient(135deg, var(--app-surface-hero), var(--app-bg-elevated))',
+                'radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.16), transparent 60%)',
+                'linear-gradient(135deg, var(--app-surface-hero), var(--app-surface-card))',
               ].join(', ')
             : 'var(--app-surface-subtle)',
-          borderColor: accent ? 'var(--app-border-strong)' : 'var(--app-border-subtle)',
-          transition: 'border-color var(--wa-motion-fast, 140ms ease), box-shadow var(--wa-motion-fast, 140ms ease)',
+          borderColor: accent ? 'var(--app-border-default)' : 'var(--app-border-subtle)',
+          transition: [
+            'border-color var(--wa-motion-fast, 150ms)',
+            'box-shadow var(--wa-motion-normal, 240ms)',
+            'transform var(--wa-motion-normal, 240ms)',
+          ].join(', '),
+          '&:hover': {
+            borderColor: accent ? 'var(--app-accent-primary)' : 'var(--app-border-default)',
+            boxShadow: 'var(--wa-shadow-card)',
+            transform: 'translateY(-2px)',
+          },
         },
       }}
       withBorder
@@ -60,24 +70,43 @@ function QuickStat({ accent = false, icon, label, value }: QuickStatProps) {
         <ThemeIcon
           color={accent ? 'archive' : 'gray'}
           radius="md"
-          size={36}
+          size={38}
           variant={accent ? 'gradient' : 'light'}
-          {...(accent ? { gradient: { deg: 135, from: 'archive.5', to: 'archive.7' } } : {})}
+          {...(accent ? { gradient: { deg: 135, from: 'archive.4', to: 'archive.7' } } : {})}
+          style={accent ? { boxShadow: '0 2px 8px rgba(59,130,246,0.30)' } : undefined}
         >
           <Text fw={900} size="sm">{icon}</Text>
         </ThemeIcon>
         <Stack gap={2} miw={0}>
-          <Text c="dimmed" fw={800} size="xs" tt="uppercase" style={{ letterSpacing: '0.06em' }}>
+          <Text
+            fw={700}
+            size="xs"
+            tt="uppercase"
+            style={{
+              letterSpacing: '0.08em',
+              color: 'var(--app-text-muted)',
+              fontSize: 'var(--app-type-meta)',
+            }}
+          >
             {label}
           </Text>
-          <Text c="var(--app-text-primary)" fw={800} size="lg">{value}</Text>
+          <Text
+            fw={800}
+            size="lg"
+            style={{
+              color: 'var(--app-text-primary)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+            }}
+          >
+            {value}
+          </Text>
         </Stack>
       </Group>
     </Paper>
   );
 }
 
-// 섹션 헤더 공통 컴포넌트
 interface SectionHeaderProps {
   eyebrow: string;
   title: string;
@@ -87,25 +116,42 @@ interface SectionHeaderProps {
 
 function SectionHeader({ eyebrow, title, description, action }: SectionHeaderProps) {
   return (
-    <Group align="flex-start" justify="space-between" wrap="wrap">
+    <Group align="flex-start" justify="space-between" wrap="wrap" gap="sm">
       <Stack gap={4}>
         <Text
-          c="var(--app-accent-primary)"
-          fw={800}
+          fw={700}
           size="xs"
           tt="uppercase"
-          style={{ letterSpacing: '0.08em' }}
+          style={{
+            letterSpacing: '0.10em',
+            color: 'var(--app-accent-primary)',
+            fontSize: 'var(--app-type-meta)',
+          }}
         >
           {eyebrow}
         </Text>
-        <Title order={2} style={{ letterSpacing: '-0.02em' }}>
+        <Title
+          order={2}
+          style={{
+            letterSpacing: '-0.025em',
+            color: 'var(--app-text-primary)',
+            lineHeight: 1.25,
+          }}
+        >
           {title}
         </Title>
-        <Text c="dimmed" size="sm">
+        <Text
+          size="sm"
+          style={{ color: 'var(--app-text-secondary)', maxWidth: '52ch' }}
+        >
           {description}
         </Text>
       </Stack>
-      {action}
+      {action && (
+        <Box style={{ flexShrink: 0, alignSelf: 'flex-start', marginTop: '2px' }}>
+          {action}
+        </Box>
+      )}
     </Group>
   );
 }
@@ -200,8 +246,8 @@ export function HomePage() {
 
       {/* ── Content ────────────────────────────────────────────────────── */}
       {!error && !isLoading && (
-        <Stack gap={56}>
-          {/* Quick stats — 데이터가 있을 때만 최상단에 표시 */}
+        <Stack gap={64}>
+          {/* Quick stats — 데이터가 있을 때만 표시 */}
           {totalCount > 0 && (
             <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
               <QuickStat
@@ -229,7 +275,7 @@ export function HomePage() {
           )}
 
           {/* 이어보기 선반 */}
-          <Stack gap="md">
+          <Stack gap="lg">
             <SectionHeader
               action={
                 <AppLinkButton to="/works?status=in_progress" tone="quiet">
@@ -247,7 +293,7 @@ export function HomePage() {
           </Stack>
 
           {/* 최근 손본 작품 */}
-          <Stack gap="md">
+          <Stack gap="lg">
             <SectionHeader
               action={
                 <AppLinkButton to="/works" tone="quiet">

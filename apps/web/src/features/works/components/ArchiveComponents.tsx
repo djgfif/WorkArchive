@@ -441,17 +441,29 @@ export function ArchiveHero({
           <Stack gap="sm" maw={760}>
             {eyebrow && (
               <Text
-                c="var(--app-accent-primary)"
-                fw={800}
+                fw={700}
                 size="xs"
                 tt="uppercase"
-                style={{ letterSpacing: '0.08em' }}
+                style={{
+                  letterSpacing: '0.10em',
+                  color: 'var(--app-accent-primary)',
+                  fontSize: 'var(--app-type-meta)',
+                }}
               >
                 {eyebrow}
               </Text>
             )}
-            <Title className={cn(css.heroTitle)} order={1}>{title}</Title>
-            <Text c="dimmed" size="lg">
+            <Title
+              className={cn(css.heroTitle)}
+              order={1}
+              style={{ letterSpacing: '-0.03em', lineHeight: 1.15 }}
+            >
+              {title}
+            </Title>
+            <Text
+              size="lg"
+              style={{ color: 'var(--app-text-secondary)', lineHeight: 1.6 }}
+            >
               {description}
             </Text>
           </Stack>
@@ -470,18 +482,44 @@ export function FilterPillGroup<T extends string>({
   value,
 }: FilterPillGroupProps<T>) {
   return (
-    <Group aria-label={ariaLabel} gap="xs" role="group" wrap="wrap">
+    <Group
+      aria-label={ariaLabel}
+      gap={4}
+      role="group"
+      wrap="wrap"
+      style={{
+        padding: '3px',
+        background: 'var(--app-surface-subtle)',
+        borderRadius: 'var(--mantine-radius-md)',
+        border: '1px solid var(--app-border-subtle)',
+        display: 'inline-flex',
+      }}
+    >
       {options.map((option) => {
         const isActive = option.value === value;
-
         return (
           <Button
             aria-pressed={isActive}
             className={cx(cn(css.filterPill), isActive && cn(css.filterPillActive))}
             key={option.value}
             onClick={() => onChange(option.value)}
-            size="sm"
+            size="compact-sm"
             variant="default"
+            style={{
+              borderRadius: 'calc(var(--mantine-radius-md) - 2px)',
+              fontWeight: isActive ? 700 : 500,
+              fontSize: 'var(--app-type-body)',
+              letterSpacing: isActive ? '-0.01em' : '0',
+              transition: [
+                'background var(--wa-motion-fast, 150ms)',
+                'color var(--wa-motion-fast, 150ms)',
+                'box-shadow var(--wa-motion-fast, 150ms)',
+              ].join(', '),
+              background: isActive ? 'var(--app-surface-card)' : 'transparent',
+              border: isActive ? '1px solid var(--app-border-default)' : '1px solid transparent',
+              boxShadow: isActive ? 'var(--wa-shadow-card)' : 'none',
+              color: isActive ? 'var(--app-text-primary)' : 'var(--app-text-secondary)',
+            }}
           >
             {option.count !== undefined
               ? `${option.label} ${option.count}`
