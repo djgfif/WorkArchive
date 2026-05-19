@@ -1,24 +1,61 @@
-import { Box, Container, Grid, Group, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Avatar, Box, Container, Divider, Grid, Group, Stack, Text, ThemeIcon } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 
 import {
-  ActionRow,
   AppBadge,
   AppButton,
   AppLinkButton,
   AppNavLink,
-  BrandLink,
   LoadingState,
-  SectionCard,
-  SectionIntro,
   ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 
+/* ── 아이콘 ── */
+function IconHome({ size = 15 }: { size?: number }) {
+  return (
+    <svg fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={size}>
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  );
+}
+function IconSettings({ size = 15 }: { size?: number }) {
+  return (
+    <svg fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={size}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+function IconLogOut({ size = 15 }: { size?: number }) {
+  return (
+    <svg fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={size}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+    </svg>
+  );
+}
+function IconLogin({ size = 15 }: { size?: number }) {
+  return (
+    <svg fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={size}>
+      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+    </svg>
+  );
+}
+function IconArchive({ size = 15 }: { size?: number }) {
+  return (
+    <svg fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={size}>
+      <polyline points="21 8 21 21 3 21 3 8" />
+      <rect height="5" width="22" x="1" y="3" />
+      <line x1="10" x2="14" y1="12" y2="12" />
+    </svg>
+  );
+}
+
 const accountNavigationItems = [
-  { label: '계정', to: '/account' },
-  { label: '설정', to: '/account/settings' },
+  { label: '계정 개요', to: '/account',          icon: <IconHome /> },
+  { label: '설정과 백업', to: '/account/settings', icon: <IconSettings /> },
 ] as const;
 
 export function AccountLayout() {
@@ -31,47 +68,51 @@ export function AccountLayout() {
     navigate('/');
   }
 
-  const sessionBadge = (
-    <AppBadge tone={isAuthenticated ? 'success' : 'muted'}>
-      {isAuthenticated ? '로그인됨' : '게스트'}
-    </AppBadge>
-  );
-
-  const accountSummary = isAuthenticated
-    ? (user?.email ?? '계정')
-    : '이 기기에 저장 중';
+  const accountLabel   = isAuthenticated ? (user?.email ?? '계정') : '게스트';
+  const avatarInitial  = isAuthenticated
+    ? (accountLabel.split('@')[0]?.[0] ?? 'U').toUpperCase()
+    : 'G';
 
   return (
     <main className="layout-shell layout-shell--account">
       <Container px="md" size={1360}>
         <Grid align="start" gutter="xl">
+          {/* 모바일 — 상단 수평 nav */}
           <Grid.Col hiddenFrom="lg" span={12}>
-            <AccountNavigationCard
-              accountSummary={accountSummary}
+            <AccountSidebar
+              accountLabel={accountLabel}
+              avatarInitial={avatarInitial}
               isAuthenticated={isAuthenticated}
               onSignOut={() => void handleSignOut()}
-              sessionBadge={sessionBadge}
               variant="mobile"
             />
           </Grid.Col>
 
+          {/* 데스크탑 — 좌측 sticky 사이드바 */}
           <Grid.Col span={3} visibleFrom="lg">
-            <Box pos="sticky" top={24}>
-              <AccountNavigationCard
-                accountSummary={accountSummary}
+            <Box pos="sticky" top={88}>
+              <AccountSidebar
+                accountLabel={accountLabel}
+                avatarInitial={avatarInitial}
                 isAuthenticated={isAuthenticated}
                 onSignOut={() => void handleSignOut()}
-                sessionBadge={sessionBadge}
                 variant="desktop"
               />
             </Box>
           </Grid.Col>
 
+          {/* 콘텐츠 영역 */}
           <Grid.Col span={{ base: 12, lg: 9 }}>
             {isLoading ? (
               <LoadingState rows={2} title="계정 설정을 준비하고 있습니다" />
             ) : (
-              <Outlet />
+              <Box
+                style={{
+                  animation: 'pageEnter 280ms cubic-bezier(0.16,1,0.3,1) both',
+                }}
+              >
+                <Outlet />
+              </Box>
             )}
           </Grid.Col>
         </Grid>
@@ -80,114 +121,182 @@ export function AccountLayout() {
   );
 }
 
-interface AccountNavigationCardProps {
-  accountSummary: string;
+/* ── 사이드바 컴포넌트 ── */
+interface AccountSidebarProps {
+  accountLabel:    string;
+  avatarInitial:   string;
   isAuthenticated: boolean;
-  onSignOut: () => void;
-  sessionBadge: ReactNode;
-  variant: 'desktop' | 'mobile';
+  onSignOut:       () => void;
+  variant:         'desktop' | 'mobile';
 }
 
-function AccountNavigationCard({
-  accountSummary,
+function AccountSidebar({
+  accountLabel,
+  avatarInitial,
   isAuthenticated,
   onSignOut,
-  sessionBadge,
   variant,
-}: AccountNavigationCardProps) {
+}: AccountSidebarProps) {
   const isMobile = variant === 'mobile';
 
   return (
-    <SectionCard gap="lg" tone="subtle">
-      <Group align="flex-start" justify="space-between" wrap="nowrap">
-        <BrandLink heading="계정" kicker="설정과 백업" />
-        {sessionBadge}
-      </Group>
-
-      <SectionIntro
-        description="기록은 이 기기에 먼저 남고, 로그인하면 백업이 조용히 따라갑니다."
-        eyebrow={isAuthenticated ? '로그인됨' : '게스트 모드'}
-        title="내 기록 보관함"
-      />
-
-      <Stack gap={4}>
-        <Text c="dimmed" fw={700} size="sm">
-          현재 상태
-        </Text>
-        <Text fw={600} truncate>
-          {accountSummary}
-        </Text>
-      </Stack>
-
-      {isMobile ? (
-        <SimpleGrid
-          component="nav"
-          cols={{ base: 1, xs: 2 }}
-          spacing="xs"
-          aria-label="계정 내비게이션"
-        >
-          {accountNavigationItems.map((item) => (
-            <AppNavLink
-              end={item.to === '/account'}
-              fullWidth
-              key={item.to}
-              to={item.to}
+    <Box
+      style={{
+        background:   'var(--app-surface-card)',
+        border:       '1px solid var(--app-border-default)',
+        borderRadius: 'var(--mantine-radius-xl)',
+        overflow:     'hidden',
+      }}
+    >
+      {/* 계정 헤더 */}
+      <Box
+        style={{
+          padding:       '1.25rem 1.25rem 1rem',
+          borderBottom:  '1px solid var(--app-border-subtle)',
+          background:    'var(--app-surface-subtle)',
+        }}
+      >
+        <Group gap="sm" wrap="nowrap">
+          <Avatar
+            color={isAuthenticated ? 'archive' : 'gray'}
+            radius="xl"
+            size={44}
+            variant="filled"
+            style={{ fontWeight: 800, flexShrink: 0 }}
+          >
+            {avatarInitial}
+          </Avatar>
+          <Stack gap={3} miw={0} style={{ flex: 1 }}>
+            <Text
+              fw={700}
+              size="sm"
+              truncate
+              style={{ color: 'var(--app-text-primary)', letterSpacing: '-0.01em' }}
             >
-              {item.label}
-            </AppNavLink>
-          ))}
-        </SimpleGrid>
-      ) : (
-        <Stack component="nav" gap="xs" aria-label="계정 내비게이션">
+              {accountLabel}
+            </Text>
+            <Group gap={6} wrap="nowrap">
+              <Box
+                style={{
+                  width:        7,
+                  height:       7,
+                  borderRadius: '50%',
+                  flexShrink:   0,
+                  background:   isAuthenticated
+                    ? 'var(--app-accent-teal, #2dd4bf)'
+                    : 'var(--app-text-muted)',
+                }}
+              />
+              <Text c="dimmed" size="xs">
+                {isAuthenticated ? '로그인됨' : '게스트 — 로컬 저장'}
+              </Text>
+            </Group>
+          </Stack>
+        </Group>
+      </Box>
+
+      {/* 네비게이션 */}
+      <Box
+        component="nav"
+        aria-label="계정 내비게이션"
+        style={{ padding: '0.5rem' }}
+      >
+        <Stack gap={2}>
           {accountNavigationItems.map((item) => (
-            <AppNavLink
+            <AccountNavItem
               end={item.to === '/account'}
-              fullWidth
+              icon={item.icon}
               key={item.to}
+              label={item.label}
               to={item.to}
-            >
-              {item.label}
-            </AppNavLink>
+            />
           ))}
         </Stack>
-      )}
+      </Box>
 
-      {isMobile ? (
-        <SimpleGrid
-          aria-label="계정 빠른 작업"
-          cols={{ base: 1, xs: 3 }}
-          role="group"
-          spacing="xs"
-        >
-          <ThemeToggleControl fullWidth />
-          <AppLinkButton fullWidth to="/works">
-            작품
-          </AppLinkButton>
+      <Divider color="var(--app-border-subtle)" mx="sm" />
+
+      {/* 하단 액션 */}
+      <Box style={{ padding: '0.5rem' }}>
+        <Stack gap={2}>
+          {/* 작품 목록으로 */}
+          <AccountNavItem
+            end={false}
+            icon={<IconArchive />}
+            label="작품 목록으로"
+            to="/works"
+          />
+
+          {/* 테마 전환 */}
+          <Box style={{ padding: '0.25rem 0.5rem' }}>
+            <ThemeToggleControl fullWidth={isMobile} />
+          </Box>
+
+          {/* 로그인/로그아웃 */}
           {isAuthenticated ? (
-            <AppButton fullWidth onClick={onSignOut} tone="quiet" type="button">
+            <Box
+              component="button"
+              onClick={onSignOut}
+              style={{
+                display:        'flex',
+                alignItems:     'center',
+                gap:            '0.625rem',
+                padding:        '0.5rem 0.75rem',
+                borderRadius:   'var(--mantine-radius-md)',
+                border:         'none',
+                background:     'transparent',
+                cursor:         'pointer',
+                color:          'var(--mantine-color-red-5)',
+                fontWeight:     500,
+                fontSize:       '0.875rem',
+                width:          '100%',
+                textAlign:      'left',
+                transition:     'background var(--wa-motion-fast, 150ms)',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background =
+                  'color-mix(in srgb, var(--mantine-color-red-5) 10%, transparent)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'transparent';
+              }}
+            >
+              <Box style={{ opacity: 0.8, display: 'flex', alignItems: 'center' }}>
+                <IconLogOut />
+              </Box>
               로그아웃
-            </AppButton>
+            </Box>
           ) : (
-            <AppLinkButton fullWidth to="/auth/login" tone="primary">
-              로그인
-            </AppLinkButton>
+            <AccountNavItem
+              end={false}
+              icon={<IconLogin />}
+              label="로그인"
+              to="/auth/login"
+            />
           )}
-        </SimpleGrid>
-      ) : (
-        <ActionRow>
-          <ThemeToggleControl />
-          <AppLinkButton to="/works">작품</AppLinkButton>
-          {isAuthenticated ? (
-            <AppButton onClick={onSignOut} tone="quiet" type="button">
-              로그아웃
-            </AppButton>
-          ) : (
-            <AppLinkButton to="/auth/login" tone="primary">
-              로그인
-            </AppLinkButton>
-          )}
-        </ActionRow>
-      )}
-    </SectionCard>
+        </Stack>
+      </Box>
+    </Box>
+  );
+}
+
+/* ── 사이드바 네비게이션 아이템 ── */
+interface AccountNavItemProps {
+  end:   boolean;
+  icon:  ReactNode;
+  label: string;
+  to:    string;
+}
+
+function AccountNavItem({ end, icon, label, to }: AccountNavItemProps) {
+  return (
+    <AppNavLink end={end} fullWidth to={to}>
+      <Group gap="sm" wrap="nowrap">
+        <Box style={{ opacity: 0.7, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          {icon}
+        </Box>
+        {label}
+      </Group>
+    </AppNavLink>
   );
 }
