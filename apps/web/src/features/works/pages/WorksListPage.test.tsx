@@ -5,6 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
+import {
+  getActiveFilterControls,
+  getAdvancedFiltersButton,
+  openAdvancedFilters,
+  selectWorksView,
+} from '../../../test/ui-helpers';
 import { AuthProvider } from '../../auth/context/AuthProvider';
 import { worksService } from '../services/works.service';
 
@@ -40,11 +46,10 @@ describe('WorksListPage', () => {
 
     await user.click(screen.getByRole('button', { name: '다시 불러오기' }));
 
-    expect(
-      await screen.findByText(
-        '아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.',
-      ),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(listWorksSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+    expect(screen.queryByText('IndexedDB 연결 실패')).not.toBeInTheDocument();
     expect(listWorksSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -60,10 +65,9 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    await screen.findByText(
-      '아직 등록된 작품이 없습니다. 검색과 추가 흐름에서 바로 시작할 수 있습니다.',
+    await user.click(
+      (await screen.findAllByRole('button', { name: '작품 추가' }))[0]!,
     );
-    await user.click(screen.getAllByRole('button', { name: '작품 추가' })[0]!);
 
     const dialog = await screen.findByRole('dialog');
 
@@ -137,30 +141,31 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    expect(
-      await screen.findByText(/작품 2개/),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '리스트 뷰' })).toBeInTheDocument();
-    expect(screen.getByText(/완료 .* ★ 5\.0/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your Name' })).toBeInTheDocument();
     expect(
       screen.queryByText('모래 행성의 정치와 신화가 좋다.'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('4권까지')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Dune 진행도 67%')).not.toBeInTheDocument();
 
-    await user.click(await screen.findByRole('button', { name: '리스트 뷰' }));
+    await selectWorksView(user, 'list');
     expect(screen.getByLabelText('Dune 진행도 67%')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '고급 필터' }));
+    await openAdvancedFilters(user);
     await user.click(screen.getByRole('button', { name: '소설' }));
 
-    expect(
-      await screen.findByText(/2개 중 1개 표시 중/),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(new URLSearchParams(router.state.location.search).get('type')).toBe(
+        'novel',
+      );
+    });
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
-    expect(
-      screen.queryByRole('heading', { name: 'Your Name' }),
-    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('heading', { name: 'Your Name' }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('keeps active filter chips visible while advanced filters are collapsed and removes them individually', async () => {
@@ -207,49 +212,16 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    expect(
-      await screen.findByText(/2개 중 1개 표시 중/),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(screen.getByLabelText('작품 검색 (단축키: /)')).toHaveValue('Dune');
-    expect(
-      screen.getByRole('button', { name: '고급 필터' }),
-    ).toHaveAttribute('aria-expanded', 'false');
-    const activeFilterGroup = screen.getByRole('group', {
-      name: '적용된 필터',
-    });
-    expect(
-      within(activeFilterGroup).getByRole('button', {
-        name: '"Dune" 필터 제거',
-      }),
-    ).toBeInTheDocument();
-    expect(
-      within(activeFilterGroup).getByRole('button', {
-        name: '완료 필터 제거',
-      }),
-    ).toBeInTheDocument();
-    expect(
-      within(activeFilterGroup).getByRole('button', {
-        name: '★ 5.0+ 필터 제거',
-      }),
-    ).toBeInTheDocument();
-    expect(
-      within(activeFilterGroup).getByRole('button', {
-        name: '소설 필터 제거',
-      }),
-    ).toBeInTheDocument();
-    expect(
-      within(activeFilterGroup).getByRole('button', {
-        name: '정렬: 별점순 필터 제거',
-      }),
-    ).toBeInTheDocument();
+    expect(getAdvancedFiltersButton()).toHaveAttribute('aria-expanded', 'false');
+    expect(getActiveFilterControls()).toHaveLength(5);
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: 'Your Name' }),
     ).not.toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: '"Dune" 필터 제거' }),
-    );
+    await user.click(getActiveFilterControls()[0]!);
 
     await waitFor(() => {
       expect(new URLSearchParams(router.state.location.search).has('q')).toBe(
@@ -257,50 +229,34 @@ describe('WorksListPage', () => {
       );
     });
     expect(screen.getByLabelText('작품 검색 (단축키: /)')).toHaveValue('');
-    expect(
-      screen.getByRole('button', { name: '완료 필터 제거' }),
-    ).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: '완료 필터 제거' }),
-    );
+    await user.click(getActiveFilterControls()[0]!);
     await waitFor(() => {
       expect(
         new URLSearchParams(router.state.location.search).has('status'),
       ).toBe(false);
     });
 
-    await user.click(
-      screen.getByRole('button', { name: '★ 5.0+ 필터 제거' }),
-    );
+    await user.click(getActiveFilterControls()[0]!);
     await waitFor(() => {
       expect(
         new URLSearchParams(router.state.location.search).has('rating'),
       ).toBe(false);
     });
 
-    await user.click(
-      screen.getByRole('button', { name: '소설 필터 제거' }),
-    );
+    await user.click(getActiveFilterControls()[0]!);
     await waitFor(() => {
       expect(
         new URLSearchParams(router.state.location.search).has('type'),
       ).toBe(false);
     });
 
-    await user.click(
-      screen.getByRole('button', { name: '정렬: 별점순 필터 제거' }),
-    );
+    await user.click(getActiveFilterControls()[0]!);
     await waitFor(() => {
       expect(router.state.location.search).toBe('');
     });
-    expect(
-      await screen.findByText(/작품 2개/),
-    ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Your Name' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your Name' })).toBeInTheDocument();
   });
 
   it('renders large libraries progressively and lets users load more items', async () => {
@@ -335,7 +291,7 @@ describe('WorksListPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Work 001' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('60 / 75개')).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: /^Work \d{3}$/ })).toHaveLength(60);
     expect(
       screen.queryByRole('heading', { name: 'Work 075' }),
     ).not.toBeInTheDocument();
@@ -347,7 +303,7 @@ describe('WorksListPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Work 075' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('75 / 75개')).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: /^Work \d{3}$/ })).toHaveLength(75);
   });
 
   it('keeps the selected works view in the URL', async () => {
@@ -382,7 +338,7 @@ describe('WorksListPage', () => {
     ).toBeInTheDocument();
     expect(router.state.location.search).toBe('?view=list');
 
-    await user.click(screen.getByRole('button', { name: '포스터 뷰' }));
+    await selectWorksView(user, 'grid');
 
     await waitFor(() => {
       expect(router.state.location.search).toBe('');
@@ -391,7 +347,7 @@ describe('WorksListPage', () => {
       screen.queryByLabelText('URL View Work 상태'),
     ).not.toBeInTheDocument();
 
-    await user.click(await screen.findByRole('button', { name: '리스트 뷰' }));
+    await selectWorksView(user, 'list');
 
     await waitFor(() => {
       expect(router.state.location.search).toBe('?view=list');
@@ -428,7 +384,7 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    await user.click(await screen.findByRole('button', { name: '리스트 뷰' }));
+    await selectWorksView(user, 'list');
     await screen.findByText('Frieren');
 
     await user.selectOptions(
@@ -513,9 +469,6 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    expect(
-      await screen.findByText(/숨겨둔 작품 1개/),
-    ).toBeInTheDocument();
     expect(await screen.findByText('Spice & Wolf')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '복원' }));

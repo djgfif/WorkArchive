@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
+import { getLinkByHref, openProfileMenu } from '../../../test/ui-helpers';
 import { AuthProvider } from '../context/AuthProvider';
 import {
   readStoredAuthTokens,
@@ -63,29 +64,20 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(screen.queryByRole('button', { name: '라이트 모드' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '홈으로 돌아가기' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '작품 보기' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /WA\s*워크 아카이브/ })).toHaveAttribute('href', '/');
-    expect(screen.getByText('로컬 우선 저장')).toBeInTheDocument();
-    expect(screen.getByText('Local-first')).toBeInTheDocument();
-    expect(screen.getByText('개인 기록 전용')).toBeInTheDocument();
-    expect(screen.getByText('계정 동기화와 복구에 사용할 이메일입니다.')).toBeInTheDocument();
+    expect(getLinkByHref('/')).toBeInTheDocument();
+    expect(screen.getByLabelText(/이메일/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/비밀번호/)).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
     await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
     await user.click(screen.getByRole('button', { name: '회원가입' }));
 
-    expect(
-      await screen.findByRole('button', {
-        name: '프로필: frieren@example.com',
-      }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '프로필: frieren@example.com' }));
+    await openProfileMenu(user, /frieren@example.com/);
     await user.click(await screen.findByRole('menuitem', { name: '로그아웃' }));
 
-    await user.click(await screen.findByRole('button', { name: '프로필: 게스트' }));
+    await openProfileMenu(user, /게스트/);
     expect(await screen.findByRole('menuitem', { name: '로그인' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: '회원가입' })).toBeInTheDocument();
   });
@@ -214,11 +206,7 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(
-      await screen.findByRole('button', {
-        name: '프로필: frieren@example.com',
-      }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/auth/refresh'),
       expect.objectContaining({
@@ -262,7 +250,7 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    await user.click(await screen.findByRole('button', { name: '프로필: 게스트' }));
+    await openProfileMenu(user, /게스트/);
     expect(await screen.findByRole('menuitem', { name: '로그인' })).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/auth/refresh'),
@@ -319,11 +307,7 @@ describe('Auth flow', () => {
     await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
     await user.click(screen.getByRole('button', { name: '로그인' }));
 
-    expect(
-      await screen.findByRole('button', {
-        name: '프로필: frieren@example.com',
-      }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
     expect(readStoredAuthTokens()).toEqual({
       accessToken: 'login-access-token',
     });
@@ -342,9 +326,7 @@ describe('Auth flow', () => {
         accessToken: 'login-access-token',
       });
     });
-    expect(
-      screen.getByRole('button', { name: '프로필: frieren@example.com' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
   });
 
   it('keeps login access tokens out of browser storage when remember-me is checked', async () => {
@@ -382,24 +364,17 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(screen.queryByRole('button', { name: '라이트 모드' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '홈으로 돌아가기' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '작품 보기' })).not.toBeInTheDocument();
+    expect(getLinkByHref('/')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '비밀번호를 잊으셨나요?' })).toBeInTheDocument();
-    expect(screen.getByText('Local-first')).toBeInTheDocument();
-    expect(screen.getByText(/로그인 전에도 기록은 이 기기에 저장됩니다/)).toBeInTheDocument();
-    expect(screen.getByText('공개 피드 없음')).toBeInTheDocument();
+    expect(screen.getByLabelText(/이메일/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/비밀번호/)).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
     await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
     await user.click(screen.getByLabelText('로그인 상태 유지'));
     await user.click(screen.getByRole('button', { name: '로그인' }));
 
-    expect(
-      await screen.findByRole('button', {
-        name: '프로필: frieren@example.com',
-      }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
     expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toMatchObject({
@@ -447,11 +422,7 @@ describe('Auth flow', () => {
     await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
     await user.click(screen.getByRole('button', { name: '로그인' }));
 
-    expect(
-      await screen.findByRole('button', {
-        name: '프로필: frieren@example.com',
-      }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
     expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });

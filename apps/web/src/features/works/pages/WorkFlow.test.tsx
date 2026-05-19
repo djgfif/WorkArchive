@@ -119,7 +119,9 @@ describe('Works routed flow', () => {
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
     await user.click(screen.getByRole('button', { name: '검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
-    await screen.findByText('검색 근거');
+    expect(
+      await screen.findByRole('button', { name: /Dune.*후보 선택/ }),
+    ).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: '이 후보로 입력 채우기' }));
 
     const createTitleInput = await screen.findByLabelText(/^제목$/);

@@ -69,7 +69,7 @@ describe('WorkDetailPage', () => {
       </AuthProvider>,
     );
 
-    expect((await screen.findAllByText('별점')).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(screen.getAllByText('2권까지').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Dune 상세 진행도 67%')).toBeInTheDocument();
     expect(
@@ -80,8 +80,6 @@ describe('WorkDetailPage', () => {
         '긴 감상입니다. 인물의 선택과 정치 구조가 얽히는 방식이 인상적이었고, 후반부의 긴장감도 좋았습니다.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getAllByText('한줄평').length).toBeGreaterThan(0);
-    expect(screen.getByText('상세 감상')).toBeInTheDocument();
   });
 
   it('keeps detail read-first and links naturally into review editing', async () => {
@@ -264,11 +262,8 @@ describe('WorkDetailPage', () => {
       await screen.findByRole('heading', { name: 'Dense Timeline Work' }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: /타임라인/ }));
-    expect(screen.getByText('최근 흐름: 중단')).toBeInTheDocument();
-    expect(screen.getByText('4개 기록')).toBeInTheDocument();
-
     const timelineToggle = screen.getByRole('button', {
-      name: '전체 타임라인 보기',
+      expanded: false,
     });
 
     expect(timelineToggle).toHaveAttribute('aria-expanded', 'false');

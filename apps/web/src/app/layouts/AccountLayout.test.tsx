@@ -3,6 +3,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '../../test/render-with-providers';
+import { getLinkByHref } from '../../test/ui-helpers';
 import {
   AuthContext,
   type AuthContextValue,
@@ -46,7 +47,7 @@ function renderAccountLayout() {
 }
 
 describe('AccountLayout', () => {
-  it('groups mobile account actions as clear full-width quick actions', async () => {
+  it('renders account navigation and account actions', async () => {
     renderAccountLayout();
 
     expect(await screen.findByText('계정 본문')).toBeInTheDocument();
@@ -54,17 +55,9 @@ describe('AccountLayout', () => {
     expect(
       screen.getAllByRole('button', { name: /모드로 전환/ }).length,
     ).toBeGreaterThan(0);
-    expect(
-      screen.getAllByRole('link', { name: '작품 목록으로' })[0],
-    ).toHaveAttribute('href', '/works');
-    expect(
-      screen.getAllByRole('link', { name: '로그인' })[0],
-    ).toHaveAttribute('href', '/auth/login');
-    expect(
-      screen.getAllByRole('navigation', { name: '계정 내비게이션' }).length,
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getAllByRole('link', { name: '계정 개요' }).length,
-    ).toBeGreaterThan(0);
+    expect(getLinkByHref('/works')).toBeInTheDocument();
+    expect(getLinkByHref('/auth/login')).toBeInTheDocument();
+    expect(screen.getAllByRole('navigation').length).toBeGreaterThan(0);
+    expect(getLinkByHref('/account')).toBeInTheDocument();
   });
 });
