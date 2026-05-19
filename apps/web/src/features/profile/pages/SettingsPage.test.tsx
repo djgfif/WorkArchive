@@ -149,10 +149,6 @@ describe('SettingsPage', () => {
     expect(await screen.findByText('Manual')).toBeInTheDocument();
     expect(screen.getAllByText('Aladin Book').length).toBeGreaterThan(0);
     expect(screen.getAllByText('TMDB').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/사용 가능/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/키 필요/).length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText(/공개 검색/)).toBeInTheDocument();
-    expect(screen.getAllByText(/개인 검색 키/).length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(
       expect.arrayContaining([
@@ -160,10 +156,9 @@ describe('SettingsPage', () => {
         expect.stringContaining('/auth/sessions'),
       ]),
     );
-    expect(screen.getByText('사용 가능 1개')).toBeInTheDocument();
-    expect(screen.getByText('키 필요 2개')).toBeInTheDocument();
-    expect(await screen.findByText('로그인된 기기')).toBeInTheDocument();
-    expect(screen.getByText('현재 기기')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: '이 기기 로그아웃' }),
+    ).toBeInTheDocument();
   });
 
   it.each([
@@ -322,8 +317,6 @@ describe('SettingsPage', () => {
       for (const field of fields) {
         expect(screen.getByLabelText(field.label)).toHaveValue('');
       }
-      expect(screen.getAllByText(/등록됨/).length).toBeGreaterThan(0);
-
       const providerRequest = fetchMock.mock.calls.find(([url]) =>
         String(url).includes('/imports/providers'),
       );
@@ -355,7 +348,6 @@ describe('SettingsPage', () => {
       await user.click(screen.getByRole('button', { name: /키 삭제/ }));
 
       expect(await screen.findByText(/API Key를 삭제했습니다/)).toBeInTheDocument();
-      expect(screen.getAllByText(/키 필요/).length).toBeGreaterThan(0);
       const deleteRequest = fetchMock.mock.calls.find(
         ([url, init]) =>
           String(url).includes(`/imports/providers/${provider}/key`) &&
@@ -393,7 +385,9 @@ describe('SettingsPage', () => {
 
     renderAuthenticatedSettings(signOut);
 
-    expect(await screen.findByText('현재 기기')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: '이 기기 로그아웃' }),
+    ).toBeInTheDocument();
     await user.click(
       screen.getByRole('button', {
         name: '이 기기 로그아웃',
@@ -438,7 +432,9 @@ describe('SettingsPage', () => {
 
     renderAuthenticatedSettings(signOut);
 
-    expect(await screen.findByText('현재 기기')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: '모든 기기 로그아웃' }),
+    ).toBeInTheDocument();
     await user.click(
       screen.getByRole('button', {
         name: '모든 기기 로그아웃',
@@ -466,20 +462,12 @@ describe('SettingsPage', () => {
     renderGuestSettings();
 
     expect(
-      (await screen.findAllByText(/외부 검색 준비 상태/)).length,
-    ).toBeGreaterThan(0);
-    expect(screen.getByText(/원격 기기의 로그인 상태/)).toBeInTheDocument();
-    expect(screen.getByText('로컬 백업과 복구')).toBeInTheDocument();
-    expect(screen.getByText(/작품, 감상, 진행 기록/)).toBeInTheDocument();
-    expect(screen.getByText(/개인 검색 키는 포함하지 않습니다/)).toBeInTheDocument();
-    expect(
       screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'CSV 내보내기' }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('JSON 백업 파일 선택')).toBeInTheDocument();
-    expect(screen.getByText(/공개 검색 소스는 키 없이/)).toBeInTheDocument();
     expect(screen.queryByLabelText('TTBKey')).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });

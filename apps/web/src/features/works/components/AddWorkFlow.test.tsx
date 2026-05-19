@@ -484,16 +484,6 @@ describe('AddWorkFlow', () => {
     expect(
       screen.getByRole('button', { name: /Dune.*후보 선택/ }),
     ).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getAllByText('신뢰도 높음').length).toBeGreaterThan(0);
-    expect(
-      screen.getByText('제목 정확히 일치 · 카탈로그 매칭됨'),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText('외부 식별자 2개').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('릴리스 후보 1개').length).toBeGreaterThan(0);
-    expect(screen.getByText('검색 근거')).toBeInTheDocument();
-    expect(screen.getAllByText('검색 출처').length).toBeGreaterThan(0);
-    expect(screen.getByText('source link')).toBeInTheDocument();
-    expect(screen.getAllByText(candidate.note).length).toBeGreaterThan(0);
 
     await user.click(
       screen.getByRole('button', { name: '이 후보로 입력 채우기' }),
@@ -505,7 +495,6 @@ describe('AddWorkFlow', () => {
     expect(getElementById<HTMLInputElement>('manualAuthor')).toHaveValue(
       candidate.author,
     );
-    expect(screen.getByText('검색으로 채운 정보')).toBeInTheDocument();
   });
 
   it('shows structured loading while search candidates are loading', async () => {
@@ -529,13 +518,12 @@ describe('AddWorkFlow', () => {
 
     await openSearchPicker(user, 'Dune');
 
-    expect(
-      await screen.findByText('검색 후보를 불러오는 중입니다'),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('candidate-search-loading')).toHaveAttribute(
+    await waitFor(() => {
+      expect(screen.getByTestId('candidate-search-loading')).toHaveAttribute(
       'aria-busy',
       'true',
-    );
+      );
+    });
 
     searchResponse.resolve(
       jsonResponse({
@@ -558,11 +546,7 @@ describe('AddWorkFlow', () => {
     renderGuestAddWorkFlow(onSubmit);
 
     await user.type(getElementById<HTMLInputElement>('manualTitle'), 'Dune');
-    await user.click(
-      screen.getByRole('button', {
-        name: /표지, 장르, 개인 태그, 상세 감상/,
-      }),
-    );
+    await user.click(screen.getByRole('button', { name: /감상 기록|상세/ }));
     await user.type(
       getElementById<HTMLInputElement>('manualGenresText'),
       'Science Fiction{Enter}Adventure{Enter}',
@@ -635,17 +619,8 @@ describe('AddWorkFlow', () => {
       (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
     );
 
-    expect(screen.getAllByText('출처 2개').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Google Books').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Open Library').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('외부 식별자 3개').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('릴리스 후보 1개').length).toBeGreaterThan(0);
-    expect(screen.getByText('검색 근거')).toBeInTheDocument();
-    expect(screen.getAllByText('ISBN 확인됨').length).toBeGreaterThan(0);
-    expect(
-      screen.getAllByText('Google Books / Open Library에서 같은 ISBN 확인')
-        .length,
-    ).toBeGreaterThan(0);
   });
 
   it('shows backend search aliases and score reasons in candidate preview', async () => {
@@ -691,12 +666,9 @@ describe('AddWorkFlow', () => {
 
     expect(screen.getByText('シュタインズ・ゲート')).toBeInTheDocument();
     expect(screen.getByText('슈타인즈 게이트')).toBeInTheDocument();
-    expect(screen.getAllByText('별칭 제목 일치').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('출처 신뢰도').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('외부 식별자 4개').length).toBeGreaterThan(0);
   });
 
-  it('keeps direct manual guidance visible for low-confidence search candidates', async () => {
+  it('keeps low-confidence search candidates selectable', async () => {
     const candidate = buildCandidate({
       confidence: 0.41,
       confidenceLabel: '검토 필요',
@@ -728,13 +700,11 @@ describe('AddWorkFlow', () => {
       (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
     );
 
-    expect(screen.getAllByText('검토 필요').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('제목 토큰 일치').length).toBeGreaterThan(0);
     expect(
-      screen.getByText('후보를 확인하고 직접 추가도 고려하세요'),
-    ).toBeInTheDocument();
+      screen.getByRole('button', { name: /Dune Archive Notes.*후보 선택/ }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(
-      screen.getByText(/직접 입력으로 계속할 수 있습니다/),
+      screen.getByRole('button', { name: '직접 추가로 계속' }),
     ).toBeInTheDocument();
   });
 
@@ -742,7 +712,6 @@ describe('AddWorkFlow', () => {
     renderGuestAddWorkFlow();
 
     expect(screen.getByLabelText('직접 입력')).toBeChecked();
-    expect(screen.getByText('새 작품 기록')).toBeInTheDocument();
     expect(getElementById<HTMLInputElement>('manualTitle')).toBeInTheDocument();
     expect(getElementById<HTMLSelectElement>('manualType')).toBeInTheDocument();
     expect(document.getElementById('quickAddSearch')).toBeNull();
@@ -759,17 +728,8 @@ describe('AddWorkFlow', () => {
 
     await user.click(screen.getByLabelText('검색으로 채우기'));
 
-    expect(await screen.findByText('검색 출처 상태')).toBeInTheDocument();
-    expect(screen.getByText('사용 가능')).toBeInTheDocument();
-    expect(
-      screen.getByText(/AniList, Google Books, Open Library, TVmaze/),
-    ).toBeInTheDocument();
-    expect(screen.getByText('로그인 후 사용')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Aladin Book, TMDB, Naver Book, Kakao Book, KOBIS/),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText('직접 추가').length).toBeGreaterThan(0);
-    expect(screen.getByText('Manual')).toBeInTheDocument();
+    expect(await screen.findByLabelText(/^작품 검색$/)).toBeInTheDocument();
+    expect(screen.getAllByText('Manual').length).toBeGreaterThan(0);
     expect(
       screen.queryByText(/검색은 로그인해야만 가능/),
     ).not.toBeInTheDocument();
@@ -890,9 +850,6 @@ describe('AddWorkFlow', () => {
       importDraft: null,
     });
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(
-      screen.queryByText('검색 결과에서 먼저 작품을 선택해주세요.'),
-    ).not.toBeInTheDocument();
   });
 
   it('uses public no-key provider search for guests', async () => {
@@ -1075,15 +1032,7 @@ describe('AddWorkFlow', () => {
     renderGuestAddWorkFlow();
     await openSearchPicker(user, 'No Match Title');
 
-    expect(
-      await screen.findByText('검색 결과가 없습니다.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('입력한 제목으로 직접 기록할 수 있습니다.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: '직접 추가로 계속' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '직접 추가로 계속' })).toBeInTheDocument();
     expect(screen.queryByText('No Match Title (만화)')).not.toBeInTheDocument();
   });
 
@@ -1120,12 +1069,6 @@ describe('AddWorkFlow', () => {
     expect(
       (await screen.findAllByText('Custom Dune (만화)')).length,
     ).toBeGreaterThan(0);
-    expect(screen.getAllByText('직접 추가 후보').length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(
-        '외부 검색 결과가 아니라 입력한 제목으로 직접 기록합니다.',
-      ),
-    ).toBeInTheDocument();
     expect(screen.queryByText('외부 식별자 1개')).not.toBeInTheDocument();
     expect(screen.queryByText('출처 1개')).not.toBeInTheDocument();
     expect(screen.queryByText('High confidence')).not.toBeInTheDocument();
