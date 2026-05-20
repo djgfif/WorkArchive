@@ -600,6 +600,8 @@ describe('refresh cookie options', () => {
     process.env.SWAGGER_ENABLED = 'false';
     process.env.JWT_ACCESS_SECRET = 'test-access-secret-minimum-32-chars';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-minimum-32-chars';
+    process.env.GOOGLE_OAUTH_REDIRECT_URI =
+      'https://workarchive.example.com/api/auth/google/callback';
 
     expect(getRefreshTokenCookieOptions()).toMatchObject({
       httpOnly: true,

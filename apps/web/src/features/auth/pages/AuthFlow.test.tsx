@@ -7,10 +7,7 @@ import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { getLinkByHref, openProfileMenu } from '../../../test/ui-helpers';
 import { AuthProvider } from '../context/AuthProvider';
-import {
-  readStoredAuthTokens,
-  writeStoredAuthTokens,
-} from '../services/auth-storage';
+import { readStoredAuthTokens } from '../services/auth-storage';
 import { guestTransferService } from '../services/guest-transfer.service';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -22,96 +19,45 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function sessionBody(accessToken = 'access-token') {
+  return {
+    accessToken,
+    user: {
+      authAccounts: [
+        {
+          email: 'frieren@example.com',
+          emailVerified: true,
+          name: 'Frieren',
+          pictureUrl: '',
+          provider: 'google',
+        },
+      ],
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: 'Frieren',
+      role: 'user',
+    },
+  };
+}
+
 describe('Auth flow', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it('registers a user account and signs out back to guest mode', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
+  it('shows Google-first login and hides email/password auth', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(
         jsonResponse(
           {
             message: 'Invalid or expired refresh token.',
           },
           401,
         ),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          accessToken: 'access-token',
-          user: {
-            id: 'user-1',
-            email: 'frieren@example.com',
-            nickname: '',
-          },
-        }),
-      )
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));
-
-    vi.stubGlobal('fetch', fetchMock);
-
-    const user = userEvent.setup();
-    const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/auth/register'],
-    });
-
-    renderWithProviders(
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>,
-    );
-
-    expect(getLinkByHref('/')).toBeInTheDocument();
-    expect(screen.getByLabelText(/이메일/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/비밀번호/)).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
-    await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
-    await user.click(screen.getByRole('button', { name: '회원가입' }));
-
-    expect(await screen.findByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
-
-    await openProfileMenu(user, /frieren@example.com/);
-    await user.click(await screen.findByRole('menuitem', { name: '로그아웃' }));
-
-    await openProfileMenu(user, /게스트/);
-    expect(await screen.findByRole('menuitem', { name: '로그인' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: '회원가입' })).toBeInTheDocument();
-  });
-
-  it('navigates to guest transfer review after login when pending guest data exists', async () => {
-    vi.spyOn(guestTransferService, 'getPendingReview').mockResolvedValue({
-      duplicateCount: 0,
-      fingerprint: 'pending-review',
-      items: [],
-      totalActiveCount: 1,
-    });
-
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValueOnce(
-          jsonResponse(
-            {
-              message: 'Invalid or expired refresh token.',
-            },
-            401,
-          ),
-        )
-        .mockResolvedValueOnce(
-        jsonResponse({
-          accessToken: 'access-token',
-          user: {
-            id: 'user-1',
-            email: 'frieren@example.com',
-            nickname: '',
-          },
-        }),
-        ),
+      ),
     );
 
     const user = userEvent.setup();
@@ -125,35 +71,33 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
-    await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
-    await user.click(screen.getByRole('button', { name: '로그인' }));
+    expect(getLinkByHref('/')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Google로 계속하기' })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/이메일/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/비밀번호/)).not.toBeInTheDocument();
 
-    expect(await screen.findByText('게스트 기록 검토')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '게스트로 계속하기' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/works');
+    });
   });
 
-  it('lets users retry when guest transfer review cannot be loaded', async () => {
-    vi.spyOn(guestTransferService, 'getPendingReview')
-      .mockRejectedValueOnce(new Error('IndexedDB blocked'))
-      .mockResolvedValueOnce(null);
-
+  it('redirects register and password reset routes back to Google login', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValueOnce(
-        jsonResponse({
-          accessToken: 'refreshed-access-token',
-          user: {
-            id: 'user-1',
-            email: 'frieren@example.com',
-            nickname: '',
+      vi.fn().mockResolvedValue(
+        jsonResponse(
+          {
+            message: 'Invalid or expired refresh token.',
           },
-        }),
+          401,
+        ),
       ),
     );
 
-    const user = userEvent.setup();
     const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/account/transfer'],
+      initialEntries: ['/auth/register'],
     });
 
     renderWithProviders(
@@ -162,17 +106,45 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(
-      await screen.findByText(
-        '게스트 기록 검토 상태를 불러오지 못했습니다. 네트워크나 IndexedDB 상태를 확인한 뒤 다시 시도해주세요.',
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Google로 계속하기' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '다시 확인' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/auth/login');
+    });
+  });
 
-    expect(
-      await screen.findByText('지금 검토할 guest 기록이 없습니다'),
-    ).toBeInTheDocument();
+  it('completes Google login through refresh restore and opens transfer review when guest data is pending', async () => {
+    vi.spyOn(guestTransferService, 'getPendingReview').mockResolvedValue({
+      duplicateCount: 0,
+      fingerprint: 'pending-review',
+      items: [],
+      totalActiveCount: 1,
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(sessionBody('startup-access-token')))
+        .mockResolvedValueOnce(jsonResponse(sessionBody('google-access-token'))),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/google/complete'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/account/transfer');
+    });
+    expect(readStoredAuthTokens()).toEqual({
+      accessToken: 'google-access-token',
+    });
   });
 
   it('restores a session by calling /auth/refresh on startup', async () => {
@@ -184,14 +156,7 @@ describe('Auth flow', () => {
     );
 
     const fetchMock = vi.fn().mockResolvedValueOnce(
-      jsonResponse({
-        accessToken: 'refreshed-access-token',
-        user: {
-          id: 'user-1',
-          email: 'frieren@example.com',
-          nickname: '',
-        },
-      }),
+      jsonResponse(sessionBody('refreshed-access-token')),
     );
 
     vi.stubGlobal('fetch', fetchMock);
@@ -218,27 +183,17 @@ describe('Auth flow', () => {
 
   it('falls back to guest mode when startup refresh fails', async () => {
     const user = userEvent.setup();
-
-    writeStoredAuthTokens({
-      accessToken: 'stale-memory-token',
-    });
-    window.localStorage.setItem(
-      'work-archive.auth.tokens',
-      JSON.stringify({
-        accessToken: 'legacy-access-token',
-      }),
-    );
-
-    const fetchMock = vi.fn().mockResolvedValueOnce(
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(
         jsonResponse(
           {
-          message: 'Invalid or expired refresh token.',
+            message: 'Invalid or expired refresh token.',
           },
           401,
         ),
-      );
-
-    vi.stubGlobal('fetch', fetchMock);
+      ),
+    );
 
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/works'],
@@ -251,165 +206,21 @@ describe('Auth flow', () => {
     );
 
     await openProfileMenu(user, /게스트/);
-    expect(await screen.findByRole('menuitem', { name: '로그인' })).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/auth/refresh'),
-      expect.objectContaining({
-        method: 'POST',
-      }),
-    );
-    expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
-    expect(readStoredAuthTokens()).toBeNull();
+    expect(await screen.findByRole('menuitem', { name: /로그인/ })).toBeInTheDocument();
   });
 
-  it('does not let a late startup refresh failure replace a completed login session', async () => {
-    let resolveRefresh!: (response: Response) => void;
-    const refreshPromise = new Promise<Response>((resolve) => {
-      resolveRefresh = resolve;
-    });
-    const fetchMock = vi.fn((input: RequestInfo | URL) => {
-      const url = String(input);
-
-      if (url.includes('/auth/refresh')) {
-        return refreshPromise;
-      }
-
-      if (url.includes('/auth/login')) {
-        return Promise.resolve(
-          jsonResponse({
-            accessToken: 'login-access-token',
-            user: {
-              id: 'user-1',
-              email: 'frieren@example.com',
-              nickname: '',
-            },
-          }),
-        );
-      }
-
-      return Promise.reject(new Error(`Unexpected request: ${url}`));
-    });
-
-    vi.stubGlobal('fetch', fetchMock);
-
+  it('logs out by clearing the refresh cookie session and returning to guest mode', async () => {
     const user = userEvent.setup();
-    const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/auth/login'],
-    });
-
-    renderWithProviders(
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>,
-    );
-
-    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
-    await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
-    await user.click(screen.getByRole('button', { name: '로그인' }));
-
-    expect(await screen.findByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
-    expect(readStoredAuthTokens()).toEqual({
-      accessToken: 'login-access-token',
-    });
-
-    resolveRefresh(
-      jsonResponse(
-        {
-          message: 'Invalid or expired refresh token.',
-        },
-        401,
-      ),
-    );
-
-    await waitFor(() => {
-      expect(readStoredAuthTokens()).toEqual({
-        accessToken: 'login-access-token',
-      });
-    });
-    expect(screen.getByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
-  });
-
-  it('keeps login access tokens out of browser storage when remember-me is checked', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        jsonResponse(
-          {
-            message: 'Invalid or expired refresh token.',
-          },
-          401,
-        ),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          accessToken: 'access-token',
-          user: {
-            id: 'user-1',
-            email: 'frieren@example.com',
-            nickname: '',
-          },
-        }),
-      );
-
-    vi.stubGlobal('fetch', fetchMock);
-
-    const user = userEvent.setup();
-    const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/auth/login'],
-    });
-
-    renderWithProviders(
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>,
-    );
-
-    expect(getLinkByHref('/')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '비밀번호를 잊으셨나요?' })).toBeInTheDocument();
-    expect(screen.getByLabelText(/이메일/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/비밀번호/)).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
-    await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
-    await user.click(screen.getByLabelText('로그인 상태 유지'));
-    await user.click(screen.getByRole('button', { name: '로그인' }));
-
-    expect(await screen.findByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
-    expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
-    expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
-    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toMatchObject({
-      rememberMe: true,
-    });
-  });
-
-  it('keeps login access tokens out of browser storage when remember-me is not checked', async () => {
     vi.stubGlobal(
       'fetch',
       vi
         .fn()
-        .mockResolvedValueOnce(
-          jsonResponse(
-            {
-              message: 'Invalid or expired refresh token.',
-            },
-            401,
-          ),
-        )
-        .mockResolvedValueOnce(
-          jsonResponse({
-            accessToken: 'access-token',
-            user: {
-              id: 'user-1',
-              email: 'frieren@example.com',
-              nickname: '',
-            },
-          }),
-        ),
+        .mockResolvedValueOnce(jsonResponse(sessionBody('refreshed-access-token')))
+        .mockResolvedValueOnce(new Response(null, { status: 204 })),
     );
 
-    const user = userEvent.setup();
     const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/auth/login'],
+      initialEntries: ['/works'],
     });
 
     renderWithProviders(
@@ -418,145 +229,10 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
-    await user.type(screen.getByLabelText(/비밀번호/), 'strong-password-123');
-    await user.click(screen.getByRole('button', { name: '로그인' }));
+    await openProfileMenu(user, /frieren@example.com/);
+    await user.click(await screen.findByRole('menuitem', { name: /로그아웃/ }));
 
-    expect(await screen.findByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
-    expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
-    expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
-  });
-
-  it('shows a contextual credential error on failed login', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValueOnce(
-          jsonResponse(
-            {
-              message: 'Invalid or expired refresh token.',
-            },
-            401,
-          ),
-        )
-        .mockResolvedValueOnce(
-          jsonResponse(
-            {
-              message: 'Invalid email or password.',
-            },
-            401,
-          ),
-        ),
-    );
-
-    const user = userEvent.setup();
-    const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/auth/login'],
-    });
-
-    renderWithProviders(
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>,
-    );
-
-    await user.type(screen.getByLabelText(/이메일/), 'wrong@example.com');
-    await user.type(screen.getByLabelText(/비밀번호/), 'wrong-password');
-    await user.click(screen.getByRole('button', { name: '로그인' }));
-
-    expect(
-      await screen.findByText(
-        '이메일 또는 비밀번호가 맞지 않습니다. 입력한 정보를 다시 확인해주세요.',
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it('requests a development password reset link', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        jsonResponse(
-          {
-            message: 'Invalid or expired refresh token.',
-          },
-          401,
-        ),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          developmentResetUrl:
-            'http://127.0.0.1:53173/auth/password-reset/confirm?token=reset-token',
-          message:
-            '비밀번호 재설정 요청을 확인했습니다. 계정이 있으면 재설정 링크를 사용할 수 있습니다.',
-        }),
-      );
-
-    vi.stubGlobal('fetch', fetchMock);
-
-    const user = userEvent.setup();
-    const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/auth/password-reset'],
-    });
-
-    renderWithProviders(
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>,
-    );
-
-    await user.type(screen.getByLabelText(/이메일/), 'frieren@example.com');
-    await user.click(screen.getByRole('button', { name: '재설정 링크 만들기' }));
-
-    expect(await screen.findByText('개발용 복구 링크')).toBeInTheDocument();
-    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
-      email: 'frieren@example.com',
-    });
-  });
-
-  it('confirms a development password reset token', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        jsonResponse(
-          {
-            message: 'Invalid or expired refresh token.',
-          },
-          401,
-        ),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          message: '비밀번호가 재설정되었습니다.',
-        }),
-      );
-
-    vi.stubGlobal('fetch', fetchMock);
-
-    const user = userEvent.setup();
-
-    const confirmRouter = createMemoryRouter(appRoutes, {
-      initialEntries: [
-        {
-          pathname: '/auth/password-reset/confirm',
-          search: '?token=reset-token',
-        },
-      ],
-    });
-
-    renderWithProviders(
-      <AuthProvider>
-        <RouterProvider router={confirmRouter} />
-      </AuthProvider>,
-    );
-
-    await user.type(await screen.findByLabelText(/새 비밀번호/), 'new-password-123');
-    await user.click(screen.getByRole('button', { name: '새 비밀번호 저장' }));
-
-    expect(await screen.findByText('비밀번호가 재설정되었습니다.')).toBeInTheDocument();
-    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
-      password: 'new-password-123',
-      token: 'reset-token',
-    });
+    await openProfileMenu(user, /게스트/);
+    expect(await screen.findByRole('menuitem', { name: /로그인/ })).toBeInTheDocument();
   });
 });

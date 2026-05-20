@@ -5,6 +5,9 @@ export interface ApiRuntimeConfig {
   cookieSecure: boolean;
   corsOrigin: string[];
   databaseUrl: string;
+  googleOAuthClientId: string | null;
+  googleOAuthClientSecret: string | null;
+  googleOAuthRedirectUri: string;
   host: string;
   isProduction: boolean;
   jwtAccessSecret: string;
@@ -61,6 +64,9 @@ const apiEnvironmentSchema = z
     CORS_ORIGIN: z.string().optional(),
     DATABASE_URL: z.string().optional(),
     EXTERNAL_API_KEY_ENCRYPTION_SECRET: z.string().optional(),
+    GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
+    GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
+    GOOGLE_OAUTH_REDIRECT_URI: z.string().optional(),
     HOST: z.string().optional(),
     JWT_ACCESS_SECRET: z.string().optional(),
     JWT_REFRESH_SECRET: z.string().optional(),
@@ -264,6 +270,20 @@ function readWebBaseUrl(isProduction: boolean) {
   return 'http://127.0.0.1:53173';
 }
 
+function readGoogleOAuthRedirectUri(isProduction: boolean, port: number) {
+  const configuredValue = process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim();
+
+  if (configuredValue) {
+    return configuredValue;
+  }
+
+  if (isProduction) {
+    throw new Error('GOOGLE_OAUTH_REDIRECT_URI must be configured in production.');
+  }
+
+  return `http://localhost:${port}/api/auth/google/callback`;
+}
+
 function readRateLimitStore(isProduction: boolean) {
   const configuredValue = process.env.RATE_LIMIT_STORE?.trim().toLowerCase();
 
@@ -368,6 +388,7 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
   const isProduction = isProductionEnvironment();
   const cookieSecure = readBoolean(process.env.COOKIE_SECURE, isProduction);
   const databaseUrl = readRequiredEnvString('DATABASE_URL');
+  const port = readPort(process.env.PORT, 3000);
   const passwordResetDevLinksEnabled = readBoolean(
     process.env.PASSWORD_RESET_DEV_LINKS_ENABLED,
     false,
@@ -378,6 +399,11 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
   );
   const corsOrigin = readCorsOrigin(process.env.CORS_ORIGIN, isProduction);
   const webBaseUrl = readWebBaseUrl(isProduction);
+  const googleOAuthClientId =
+    process.env.GOOGLE_OAUTH_CLIENT_ID?.trim() || null;
+  const googleOAuthClientSecret =
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim() || null;
+  const googleOAuthRedirectUri = readGoogleOAuthRedirectUri(isProduction, port);
   const jwtAccessSecret = readProductionSafeSecret('JWT_ACCESS_SECRET');
   const jwtRefreshSecret = readProductionSafeSecret('JWT_REFRESH_SECRET');
   const securityEventHashSecret = readSecurityEventHashSecret(isProduction);
@@ -411,12 +437,15 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     cookieSecure,
     corsOrigin,
     databaseUrl,
+    googleOAuthClientId,
+    googleOAuthClientSecret,
+    googleOAuthRedirectUri,
     host: process.env.HOST?.trim() || '0.0.0.0',
     isProduction,
     jwtAccessSecret,
     jwtRefreshSecret,
     passwordResetDevLinksEnabled,
-    port: readPort(process.env.PORT, 3000),
+    port,
     rateLimitPrefix:
       process.env.RATE_LIMIT_PREFIX?.trim() || 'work-archive:rate-limit:',
     rateLimitStore,

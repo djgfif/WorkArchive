@@ -3,6 +3,7 @@ import { AppLinkButton } from '../../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import {
   AppearanceSettingsSection,
+  AccountIdentitySection,
   LoginSessionsSection,
   LocalArchiveSettingsSection,
   ProviderKeyVaultSection,
@@ -13,7 +14,7 @@ import { useImportProviderSettings } from '../hooks/useImportProviderSettings';
 import { useLocalArchiveSettings } from '../hooks/useLocalArchiveSettings';
 
 export function SettingsPage() {
-  const { mode, signOut } = useAuthSession();
+  const { mode, signOut, user } = useAuthSession();
   const importProviderSettings = useImportProviderSettings(mode);
   const localArchiveSettings = useLocalArchiveSettings();
   const authSessionSettings = useAuthSessionSettings(mode, signOut);
@@ -27,6 +28,8 @@ export function SettingsPage() {
       eyebrow="설정"
       title="백업과 계정"
     >
+      <AccountIdentitySection mode={mode} user={user} />
+
       <LocalArchiveSettingsSection
         archiveFeedback={localArchiveSettings.archiveFeedback}
         archiveImportPreview={localArchiveSettings.archiveImportPreview}

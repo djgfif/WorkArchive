@@ -165,12 +165,14 @@ enum CatalogSubmissionStatus {
 model User {
   id                     String                  @id @default(uuid())
   email                  String                  @unique
-  passwordHash           String                  @db.Text
+  passwordHash           String?                 @db.Text
+  handle                 String?                 @unique
   refreshTokenHash       String?                 @db.Text
   nickname               String                  @default("")
   role                   UserRole                @default(user)
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
+  authAccounts           UserAuthAccount[]
   workRecords            UserWorkRecord[]
   timelineEntries        UserTimelineEntry[]
   externalApiCredentials ExternalApiCredential[]
@@ -184,6 +186,25 @@ model User {
   workRelations          UserWorkRelation[]
 
   @@map("users")
+}
+
+model UserAuthAccount {
+  id                String   @id @default(uuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  email             String
+  emailVerified     Boolean  @default(false)
+  name              String   @default("")
+  pictureUrl        String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([email])
+  @@map("user_auth_accounts")
 }
 
 model UserRefreshSession {

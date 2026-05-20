@@ -115,6 +115,10 @@ export async function revokeAllAuthSessions() {
   });
 }
 
+export function getGoogleLoginStartUrl() {
+  return `${getApiBaseUrl()}/auth/google/start`;
+}
+
 export async function restoreStoredSession(): Promise<RestoredSession | null> {
   clearLegacyStoredAuthTokens();
 

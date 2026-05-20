@@ -213,7 +213,15 @@ export interface ApiErrorResponse {
 }
 
 export interface AuthUserResponse {
+  authAccounts?: Array<{
+    email: string;
+    emailVerified: boolean;
+    name: string;
+    pictureUrl: string;
+    provider: string;
+  }>;
   email: string;
+  handle?: string | null;
   id: EntityId;
   nickname: string;
   role?: UserRole;

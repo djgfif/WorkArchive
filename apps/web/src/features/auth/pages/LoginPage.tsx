@@ -1,73 +1,53 @@
-import { useState } from 'react';
 import { Text } from '@mantine/core';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { AuthPageTemplate } from '../../../shared/components/PageTemplates';
 import { AuthForm } from '../components/AuthForm';
 import { useAuthSession } from '../hooks/useAuthSession';
-import type { AuthCredentialsInput } from '../services/auth.api';
-import { getAuthSubmitErrorMessage } from '../utils/auth-error-message';
 
 export function LoginPage() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { isLoading, mode, signIn } = useAuthSession();
-  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { continueWithGoogle, isLoading, mode } = useAuthSession();
+  const googleFailed =
+    new URLSearchParams(location.search).get('google') === 'failed';
 
-  if (!isLoading && mode === 'authenticated' && !hasAttemptedSubmit) {
+  if (!isLoading && mode === 'authenticated') {
     return <Navigate replace to="/" />;
-  }
-
-  async function handleSubmit(input: AuthCredentialsInput) {
-    try {
-      setHasAttemptedSubmit(true);
-      setIsSubmitting(true);
-      setSubmitError(null);
-      const nextLocation = await signIn(input);
-      navigate(nextLocation);
-    } catch (error) {
-      setSubmitError(getAuthSubmitErrorMessage(error, 'login'));
-    } finally {
-      setIsSubmitting(false);
-    }
   }
 
   return (
     <AuthPageTemplate
-      description="계정 아카이브로 전환하고 자동 백업 상태를 이어서 관리합니다."
+      description="로그인은 기록 작성의 필수 조건이 아닙니다. Google 계정은 비공개 백업, 다중 기기 동기화, 개인 API key vault를 연결할 때 사용합니다."
       footer={
         <Text c="var(--mantine-color-dimmed)" ta="center">
-          계정이 없으신가요?{' '}
-          <Link style={{ color: 'var(--mantine-primary-color-filled)', fontWeight: 600 }} to="/auth/register">
-            회원가입
-          </Link>
+          이메일/비밀번호 가입과 로그인은 더 이상 새 UI에서 제공하지 않습니다.
         </Text>
       }
       form={
         <AuthForm
-          isSubmitting={isSubmitting}
-          mode="login"
-          onSubmit={handleSubmit}
-          showPasswordResetLink
-          showRememberMe
-          submitError={submitError}
-          submitLabel="로그인"
+          onContinueAsGuest={() => navigate('/works')}
+          onContinueWithGoogle={continueWithGoogle ?? (() => undefined)}
+          submitError={
+            googleFailed
+              ? 'Google 로그인을 완료하지 못했습니다. 다시 시도하거나 게스트로 계속 사용할 수 있습니다.'
+              : null
+          }
         />
       }
       highlights={[
         {
           description:
-            '로그인 전 기록은 사라지지 않습니다. 게스트 기록이 있으면 로그인 후 검토 흐름으로 이어집니다.',
-          title: '게스트 기록 보호',
+            '게스트 기록은 이 기기에 남아 있으며 로그인 직후 기존 transfer review에서 계정 아카이브로 옮길 항목을 검토합니다.',
+          title: '게스트 기록 유지',
         },
         {
           description:
-            '자동 백업과 세션 관리는 계정 영역에서 확인합니다. 문제가 있으면 기록 작성은 유지한 채 다시 시도할 수 있습니다.',
-          title: '자동 백업 관리',
+            '계정 연결 후에도 refresh cookie 기반 세션 복구와 로그아웃/세션 해제 흐름은 기존 구조를 사용합니다.',
+          title: '기존 세션 구조 재사용',
         },
       ]}
-      title="로그인"
+      title="Google로 계정 연결"
     />
   );
 }

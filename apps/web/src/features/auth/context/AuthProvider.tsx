@@ -6,6 +6,7 @@ import {
 } from 'react';
 
 import {
+  getGoogleLoginStartUrl,
   loginWithEmailPassword,
   logoutSession,
   registerWithEmailPassword,
@@ -131,6 +132,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     });
   }
 
+  function continueWithGoogle() {
+    window.location.assign(getGoogleLoginStartUrl());
+  }
+
+  async function completeGoogleSignIn() {
+    const restoredSession = await restoreStoredSession();
+
+    if (!restoredSession) {
+      throw new Error('Google sign-in session could not be restored.');
+    }
+
+    return activateAuthenticatedSession(restoredSession.user, restoredSession.tokens);
+  }
+
   async function signOut() {
     sessionGenerationRef.current += 1;
     startupRestoreGenerationRef.current = null;
@@ -147,6 +162,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const value: AuthContextValue = {
     archiveScopeKey,
+    completeGoogleSignIn,
+    continueWithGoogle,
     isLoading,
     mode: user ? 'authenticated' : 'guest',
     user,

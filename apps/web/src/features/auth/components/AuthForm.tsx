@@ -1,111 +1,69 @@
-import { useState, type FormEvent } from 'react';
-import { Checkbox, Group, PasswordInput, Stack, TextInput } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { Divider, Stack, Text } from '@mantine/core';
 
 import {
   ActionRow,
   AppButton,
   FeedbackMessage,
 } from '../../../shared/components/AppPrimitives';
-import type { AuthCredentialsInput } from '../services/auth.api';
 
 interface AuthFormProps {
-  isSubmitting: boolean;
-  mode: 'login' | 'register';
-  onSubmit(input: AuthCredentialsInput): Promise<void>;
-  showPasswordResetLink?: boolean;
-  showRememberMe?: boolean;
-  submitError: string | null;
-  submitLabel: string;
+  isSubmitting?: boolean;
+  onContinueAsGuest?: () => void;
+  onContinueWithGoogle: () => void;
+  submitError?: string | null;
 }
 
 export function AuthForm({
-  isSubmitting,
-  mode,
-  onSubmit,
-  showPasswordResetLink = false,
-  showRememberMe = false,
-  submitError,
-  submitLabel,
+  isSubmitting = false,
+  onContinueAsGuest,
+  onContinueWithGoogle,
+  submitError = null,
 }: AuthFormProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    await onSubmit({
-      email,
-      password,
-      ...(showRememberMe ? { rememberMe } : {}),
-    });
-  }
-
   return (
-    <form onSubmit={(event) => void handleSubmit(event)}>
-      <Stack gap="md">
-        <TextInput
-          autoComplete="email"
-          description="계정 동기화와 복구에 사용할 이메일입니다."
-          label="이메일"
-          name="email"
-          onChange={(event) => setEmail(event.currentTarget.value)}
-          required
-          type="email"
-          value={email}
-        />
+    <Stack gap="md">
+      <AppButton
+        disabled={isSubmitting}
+        fullWidth
+        loading={isSubmitting}
+        onClick={onContinueWithGoogle}
+        tone="primary"
+        type="button"
+      >
+        Google로 계속하기
+      </AppButton>
 
-        <PasswordInput
-          autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-          description="8자 이상 입력해주세요."
-          label="비밀번호"
-          minLength={8}
-          name="password"
-          onChange={(event) => setPassword(event.currentTarget.value)}
-          required
-          value={password}
-        />
+      <Text c="var(--mantine-color-dimmed)" size="sm">
+        Google 로그인은 비공개 백업, 여러 기기 동기화, 계정별 API key vault를
+        연결하기 위한 선택 사항입니다.
+      </Text>
 
-        {(showRememberMe || showPasswordResetLink) && (
-          <Group justify="space-between" wrap="wrap">
-            {showRememberMe && (
-              <Checkbox
-                checked={rememberMe}
-                label="로그인 상태 유지"
-                name="rememberMe"
-                onChange={(event) => setRememberMe(event.currentTarget.checked)}
-              />
-            )}
-            {showPasswordResetLink && (
-              <Link
-                style={{ color: 'var(--mantine-primary-color-filled)', fontWeight: 600 }}
-                to="/auth/password-reset"
-              >
-                비밀번호를 잊으셨나요?
-              </Link>
-            )}
-          </Group>
+      <Divider color="var(--app-border-subtle)" />
+
+      <Stack gap="xs">
+        <Text fw={700}>게스트로 계속 사용</Text>
+        <Text c="var(--mantine-color-dimmed)" size="sm">
+          로그인하지 않아도 이 기기에서 작품을 만들고 수정하고 export할 수 있습니다.
+        </Text>
+        {onContinueAsGuest && (
+          <ActionRow>
+            <AppButton
+              disabled={isSubmitting}
+              fullWidth
+              onClick={onContinueAsGuest}
+              tone="secondary"
+              type="button"
+            >
+              게스트로 계속하기
+            </AppButton>
+          </ActionRow>
         )}
-
-        {submitError && (
-          <FeedbackMessage title="요청을 완료하지 못했습니다" tone="error">
-            {submitError}
-          </FeedbackMessage>
-        )}
-
-        <ActionRow>
-          <AppButton
-            disabled={isSubmitting}
-            fullWidth
-            loading={isSubmitting}
-            tone="primary"
-            type="submit"
-          >
-            {isSubmitting ? `${submitLabel} 중...` : submitLabel}
-          </AppButton>
-        </ActionRow>
       </Stack>
-    </form>
+
+      {submitError && (
+        <FeedbackMessage title="로그인을 완료하지 못했습니다" tone="error">
+          {submitError}
+        </FeedbackMessage>
+      )}
+    </Stack>
   );
 }
