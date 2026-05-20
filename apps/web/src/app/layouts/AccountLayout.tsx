@@ -1,6 +1,6 @@
 import { Avatar, Box, Container, Divider, Grid, Group, Stack, Text } from '@mantine/core';
 import type { ReactNode } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import {
   AppNavLink,
@@ -57,8 +57,10 @@ const accountNavigationItems = [
 
 export function AccountLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoading, mode, signOut, user } = useAuthSession();
   const isAuthenticated = mode === 'authenticated';
+  const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
 
   async function handleSignOut() {
     await signOut();
@@ -80,6 +82,7 @@ export function AccountLayout() {
               accountLabel={accountLabel}
               avatarInitial={avatarInitial}
               isAuthenticated={isAuthenticated}
+              loginReturnTo={loginReturnTo}
               onSignOut={() => void handleSignOut()}
               variant="mobile"
             />
@@ -92,6 +95,7 @@ export function AccountLayout() {
                 accountLabel={accountLabel}
                 avatarInitial={avatarInitial}
                 isAuthenticated={isAuthenticated}
+                loginReturnTo={loginReturnTo}
                 onSignOut={() => void handleSignOut()}
                 variant="desktop"
               />
@@ -123,6 +127,7 @@ interface AccountSidebarProps {
   accountLabel:    string;
   avatarInitial:   string;
   isAuthenticated: boolean;
+  loginReturnTo:   string;
   onSignOut:       () => void;
   variant:         'desktop' | 'mobile';
 }
@@ -131,6 +136,7 @@ function AccountSidebar({
   accountLabel,
   avatarInitial,
   isAuthenticated,
+  loginReturnTo,
   onSignOut,
   variant,
 }: AccountSidebarProps) {
@@ -268,6 +274,9 @@ function AccountSidebar({
               end={false}
               icon={<IconLogin />}
               label="로그인"
+              state={{
+                returnTo: loginReturnTo,
+              }}
               to="/auth/login"
             />
           )}
@@ -282,12 +291,13 @@ interface AccountNavItemProps {
   end:   boolean;
   icon:  ReactNode;
   label: string;
+  state?: unknown;
   to:    string;
 }
 
-function AccountNavItem({ end, icon, label, to }: AccountNavItemProps) {
+function AccountNavItem({ end, icon, label, state, to }: AccountNavItemProps) {
   return (
-    <AppNavLink end={end} fullWidth to={to}>
+    <AppNavLink end={end} fullWidth state={state} to={to}>
       <Group gap="sm" wrap="nowrap">
         <Box style={{ opacity: 0.7, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
           {icon}

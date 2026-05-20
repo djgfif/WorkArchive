@@ -81,6 +81,7 @@ function authStartupFetchMock({
 
 describe('Auth flow', () => {
   afterEach(() => {
+    window.sessionStorage.clear();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -160,7 +161,7 @@ describe('Auth flow', () => {
     });
   });
 
-  it('completes Google login through refresh restore and opens transfer review when guest data is pending', async () => {
+  it('completes Google login from an already restored session and opens transfer review when guest data is pending', async () => {
     vi.spyOn(guestTransferService, 'getPendingReview').mockResolvedValue({
       duplicateCount: 0,
       fingerprint: 'pending-review',
@@ -168,13 +169,16 @@ describe('Auth flow', () => {
       totalActiveCount: 1,
     });
 
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValueOnce(jsonResponse(sessionBody('startup-access-token')))
-        .mockResolvedValueOnce(jsonResponse(sessionBody('google-access-token'))),
+    window.sessionStorage.setItem(
+      'work-archive.auth.googleReturnTo',
+      '/works?view=list',
     );
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(sessionBody('startup-access-token')));
+
+    vi.stubGlobal('fetch', fetchMock);
 
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/auth/google/complete'],
@@ -190,8 +194,74 @@ describe('Auth flow', () => {
       expect(router.state.location.pathname).toBe('/account/transfer');
     });
     expect(readStoredAuthTokens()).toEqual({
-      accessToken: 'google-access-token',
+      accessToken: 'startup-access-token',
     });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(window.sessionStorage.getItem('work-archive.auth.googleReturnTo')).toBeNull();
+  });
+
+  it('returns to the saved pre-login route after Google login completes', async () => {
+    vi.spyOn(guestTransferService, 'getPendingReview').mockResolvedValue(null);
+    window.sessionStorage.setItem(
+      'work-archive.auth.googleReturnTo',
+      '/works?view=list',
+    );
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(sessionBody('startup-access-token')));
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/google/complete'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/works');
+      expect(router.state.location.search).toBe('?view=list');
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(window.sessionStorage.getItem('work-archive.auth.googleReturnTo')).toBeNull();
+  });
+
+  it.each([
+    '/auth/login',
+    '/auth?google=failed',
+    'https://example.com/works',
+    '//example.com/works',
+  ])('falls back to home when the saved Google return route is not app-safe: %s', async (returnTo) => {
+    vi.spyOn(guestTransferService, 'getPendingReview').mockResolvedValue(null);
+    window.sessionStorage.setItem(
+      'work-archive.auth.googleReturnTo',
+      returnTo,
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(jsonResponse(sessionBody('startup-access-token'))),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/google/complete'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+    expect(window.sessionStorage.getItem('work-archive.auth.googleReturnTo')).toBeNull();
   });
 
   it('restores a session by calling /auth/refresh on startup', async () => {

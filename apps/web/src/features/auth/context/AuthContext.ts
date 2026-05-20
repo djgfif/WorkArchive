@@ -7,7 +7,7 @@ type AuthMode = 'guest' | 'authenticated';
 export interface AuthContextValue {
   archiveScopeKey: string;
   completeGoogleSignIn?: () => Promise<string>;
-  continueWithGoogle?: () => void;
+  continueWithGoogle?: (returnTo?: string) => void;
   isLoading: boolean;
   mode: AuthMode;
   user: AuthUser | null;

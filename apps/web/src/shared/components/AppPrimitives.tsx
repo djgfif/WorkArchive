@@ -167,6 +167,7 @@ interface AppButtonProps {
 
 interface AppLinkButtonProps extends Omit<AppButtonProps, 'onClick' | 'type'> {
   onClick?: ComponentPropsWithoutRef<'a'>['onClick'];
+  state?: ComponentPropsWithoutRef<typeof Link>['state'];
   to: ComponentPropsWithoutRef<typeof Link>['to'];
 }
 
@@ -186,7 +187,8 @@ interface AppNavLinkProps {
   end?: boolean;
   fullWidth?: boolean;
   onClick?: ComponentPropsWithoutRef<'a'>['onClick'];
-  to: string;
+  state?: ComponentPropsWithoutRef<typeof NavLink>['state'];
+  to: ComponentPropsWithoutRef<typeof NavLink>['to'];
 }
 
 function getSurfaceBackground(tone: SurfaceTone) {
@@ -417,6 +419,7 @@ export function AppLinkButton({
   onClick,
   rightSection,
   size,
+  state,
   tone = 'secondary',
   to,
   ...props
@@ -425,6 +428,7 @@ export function AppLinkButton({
     <Button
       {...getActionToneProps(tone)}
       component={Link}
+      state={state}
       to={to}
       {...(fullWidth !== undefined ? { fullWidth } : {})}
       {...(leftSection !== undefined ? { leftSection } : {})}
@@ -525,6 +529,7 @@ export function AppNavLink({
   end = false,
   fullWidth = false,
   onClick,
+  state,
   to,
 }: AppNavLinkProps) {
   return (
@@ -538,6 +543,7 @@ export function AppNavLink({
       }
       end={end}
       onClick={onClick}
+      state={state}
       to={to}
     >
       <Group gap="xs" justify="space-between" wrap="nowrap" w="100%">

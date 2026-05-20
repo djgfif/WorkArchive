@@ -20,6 +20,58 @@ import {
 import { workArchiveDbManager } from '../../works/db/work-archive.db';
 import { AuthContext, type AuthContextValue } from './AuthContext';
 
+const GOOGLE_RETURN_TO_STORAGE_KEY = 'work-archive.auth.googleReturnTo';
+
+function normalizeGoogleReturnTo(returnTo?: string | null) {
+  if (!returnTo || !returnTo.startsWith('/') || returnTo.startsWith('//')) {
+    return null;
+  }
+
+  if (
+    returnTo === '/auth' ||
+    returnTo.startsWith('/auth/') ||
+    returnTo.startsWith('/auth?') ||
+    returnTo.startsWith('/auth#')
+  ) {
+    return null;
+  }
+
+  return returnTo;
+}
+
+function writeGoogleReturnTo(returnTo?: string) {
+  const normalizedReturnTo = normalizeGoogleReturnTo(returnTo);
+
+  try {
+    if (normalizedReturnTo) {
+      window.sessionStorage.setItem(
+        GOOGLE_RETURN_TO_STORAGE_KEY,
+        normalizedReturnTo,
+      );
+
+      return;
+    }
+
+    window.sessionStorage.removeItem(GOOGLE_RETURN_TO_STORAGE_KEY);
+  } catch {
+    // Storage can be unavailable in restricted browser contexts.
+  }
+}
+
+function consumeGoogleReturnTo() {
+  try {
+    const returnTo = normalizeGoogleReturnTo(
+      window.sessionStorage.getItem(GOOGLE_RETURN_TO_STORAGE_KEY),
+    );
+
+    window.sessionStorage.removeItem(GOOGLE_RETURN_TO_STORAGE_KEY);
+
+    return returnTo;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +93,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setUser(user);
     setArchiveScopeKey(workArchiveDbManager.getCurrentScopeKey());
     setIsLoading(false);
+  }
+
+  async function getPostGoogleSignInLocation(user: AuthUser) {
+    const returnTo = consumeGoogleReturnTo();
+    const pendingGuestTransfer = await guestTransferService.getPendingReview(user.id);
+
+    return pendingGuestTransfer ? '/account/transfer' : (returnTo ?? '/');
   }
 
   useEffect(() => {
@@ -108,16 +167,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
     writeStoredAuthTokens(tokens);
     activateAuthenticatedArchive(user);
 
-    const pendingGuestTransfer = await guestTransferService.getPendingReview(user.id);
-
-    return pendingGuestTransfer ? '/account/transfer' : '/';
+    return getPostGoogleSignInLocation(user);
   }
 
-  function continueWithGoogle() {
+  function continueWithGoogle(returnTo?: string) {
+    writeGoogleReturnTo(returnTo);
     window.location.assign(getGoogleLoginStartUrl());
   }
 
   async function completeGoogleSignIn() {
+    if (user) {
+      return getPostGoogleSignInLocation(user);
+    }
+
     const restoredSession = await restoreStoredSession();
 
     if (!restoredSession) {

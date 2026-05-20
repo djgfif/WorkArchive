@@ -129,6 +129,7 @@ export function MainProductLayout() {
   const [mobileMenuOpened, mobileMenu] = useDisclosure(false);
   const { isLoading, mode, signOut, user } = useAuthSession();
   const isAuthenticated = mode === 'authenticated';
+  const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
   const accountMenuLabel  = isAuthenticated ? (user?.email ?? '계정') : '게스트';
   const accountShortLabel = isAuthenticated
     ? (user?.email?.split('@')[0] ?? '계정')
@@ -308,7 +309,13 @@ export function MainProductLayout() {
                             <IconLogin size={13} />
                           </ThemeIcon>
                         }
-                        onClick={() => navigate('/auth/login')}
+                        onClick={() =>
+                          navigate('/auth/login', {
+                            state: {
+                              returnTo: loginReturnTo,
+                            },
+                          })
+                        }
                       >
                         로그인
                       </Menu.Item>
@@ -437,7 +444,15 @@ export function MainProductLayout() {
             </Stack>
           ) : (
             <Stack gap="xs">
-              <AppLinkButton fullWidth onClick={mobileMenu.close} to="/auth/login" tone="primary">
+              <AppLinkButton
+                fullWidth
+                onClick={mobileMenu.close}
+                state={{
+                  returnTo: loginReturnTo,
+                }}
+                to="/auth/login"
+                tone="primary"
+              >
                 로그인
               </AppLinkButton>
             </Stack>

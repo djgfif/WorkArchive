@@ -1,4 +1,5 @@
 import { Group, SimpleGrid, Text } from '@mantine/core';
+import { useLocation } from 'react-router-dom';
 
 import {
   AppBadge,
@@ -46,11 +47,13 @@ function formatRelativeBackupTime(value: string | null) {
 }
 
 export function AccountOverviewPage() {
+  const location = useLocation();
   const { mode, user } = useAuthSession();
   const { averageRating, completedCount, totalCount } = useWorksOverview();
   const { conflictItems, failedItems, lastSuccessfulPullAt, pendingItems } =
     useSyncDashboard();
   const isAuthenticated = mode === 'authenticated';
+  const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
   const backupAttentionCount = conflictItems.length + failedItems.length;
   const backupPendingCount = pendingItems.length;
   const backupStatus =
@@ -109,8 +112,22 @@ export function AccountOverviewPage() {
             <AppLinkButton to="/account/settings">계정 설정 보기</AppLinkButton>
           ) : (
             <Group gap="sm">
-              <AppLinkButton to="/auth/login">로그인</AppLinkButton>
-              <AppLinkButton to="/auth/login">Google 계정 연결</AppLinkButton>
+              <AppLinkButton
+                state={{
+                  returnTo: loginReturnTo,
+                }}
+                to="/auth/login"
+              >
+                로그인
+              </AppLinkButton>
+              <AppLinkButton
+                state={{
+                  returnTo: loginReturnTo,
+                }}
+                to="/auth/login"
+              >
+                Google 계정 연결
+              </AppLinkButton>
             </Group>
           )}
         </SectionCard>

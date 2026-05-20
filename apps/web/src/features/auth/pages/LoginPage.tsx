@@ -7,11 +7,25 @@ import { AuthForm } from '../components/AuthForm';
 import { useAuthSession } from '../hooks/useAuthSession';
 import { fetchGoogleAuthStatus } from '../services/auth.api';
 
+function getReturnToFromLocationState(state: unknown) {
+  if (
+    typeof state === 'object' &&
+    state !== null &&
+    'returnTo' in state &&
+    typeof state.returnTo === 'string'
+  ) {
+    return state.returnTo;
+  }
+
+  return undefined;
+}
+
 export function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { continueWithGoogle, isLoading, mode } = useAuthSession();
   const [googleConfigured, setGoogleConfigured] = useState(true);
+  const returnTo = getReturnToFromLocationState(location.state);
   const googleStatus = new URLSearchParams(location.search).get('google');
   const googleFailed = googleStatus === 'failed';
   const googleUnconfigured = googleStatus === 'unconfigured';
@@ -56,7 +70,7 @@ export function LoginPage() {
         <AuthForm
           googleConfigured={googleConfigured && !googleUnconfigured}
           onContinueAsGuest={() => navigate('/works')}
-          onContinueWithGoogle={continueWithGoogle ?? (() => undefined)}
+          onContinueWithGoogle={() => continueWithGoogle?.(returnTo)}
           submitError={
             googleFailed
               ? 'Google 로그인을 완료하지 못했습니다. 다시 시도하거나 게스트로 계속 사용할 수 있습니다.'
