@@ -65,7 +65,9 @@ export class AuthService {
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Optional() private readonly securityAudit?: SecurityAuditService,
+    @Inject(SecurityAuditService)
+    @Optional()
+    private readonly securityAudit?: SecurityAuditService,
   ) {}
 
   async register(

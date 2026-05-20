@@ -58,6 +58,7 @@ export class AuthController {
 
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
+    @Inject(SecurityAuditService)
     private readonly securityAudit: SecurityAuditService,
   ) {}
 

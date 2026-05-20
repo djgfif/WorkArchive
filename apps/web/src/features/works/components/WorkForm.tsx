@@ -5,6 +5,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from 'react';
+import { useForm } from '@mantine/form';
 import {
   Affix,
   Box,
@@ -21,6 +22,8 @@ import {
   Textarea,
   Title,
 } from '@mantine/core';
+import { zod4Resolver } from 'mantine-form-zod-resolver';
+import { z } from 'zod/v4';
 
 import {
   ActionRow,
@@ -57,9 +60,53 @@ import styles from './ArchiveComponents.module.css';
 
 const REVIEW_FOCUS_DESCRIPTION_ID = 'work-form-review-focus-description';
 const css = styles as Record<string, string>;
+const REQUIRED_TITLE_MESSAGE = 'Title is required.';
+const RATING_RANGE_MESSAGE = 'Rating must be between 0 and 5.';
 
 function cn(value: string | undefined) {
   return value ?? '';
+}
+
+function optionalDateInputSchema(fieldLabel: string) {
+  return z.string().refine((value) => {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return true;
+    }
+
+    return !Number.isNaN(new Date(`${trimmed}T00:00:00.000Z`).getTime());
+  }, `${fieldLabel} must be a valid date.`);
+}
+
+const workFormSchema = z
+  .object({
+    completedAt: optionalDateInputSchema('completedAt'),
+    droppedAt: optionalDateInputSchema('droppedAt'),
+    lastConsumedAt: optionalDateInputSchema('lastConsumedAt'),
+    rating: z.string().refine((value) => {
+      const trimmed = value.trim();
+
+      if (!trimmed) {
+        return true;
+      }
+
+      const parsedRating = Number.parseFloat(trimmed);
+
+      return (
+        Number.isFinite(parsedRating) &&
+        parsedRating >= 0 &&
+        parsedRating <= 5
+      );
+    }, RATING_RANGE_MESSAGE),
+    startedAt: optionalDateInputSchema('startedAt'),
+    title: z.string().trim().min(1, REQUIRED_TITLE_MESSAGE),
+  })
+  .passthrough();
+const validateWorkFormSchema = zod4Resolver(workFormSchema);
+
+function validateWorkForm(values: WorkFormValues) {
+  return validateWorkFormSchema(values as unknown as Record<string, unknown>);
 }
 
 interface WorkFormProps {
@@ -85,9 +132,20 @@ export function WorkForm({
   submitLabel,
   tagSuggestions = [],
 }: WorkFormProps) {
-  const [values, setValues] = useState<WorkFormValues>(
-    initialValues ?? createDefaultWorkFormValues(),
-  );
+  const form = useForm<WorkFormValues>({
+    clearInputErrorOnChange: true,
+    initialValues: initialValues ?? createDefaultWorkFormValues(),
+    validate: validateWorkForm,
+    validateInputOnBlur: [
+      'completedAt',
+      'droppedAt',
+      'lastConsumedAt',
+      'rating',
+      'startedAt',
+      'title',
+    ],
+  });
+  const values = form.values;
   const [activeStep, setActiveStep] = useState(focusArea === 'review' ? 1 : 0);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
@@ -98,9 +156,17 @@ export function WorkForm({
   const hasFocusedReviewRef = useRef(false);
 
   useEffect(() => {
-    setValues(initialValues ?? createDefaultWorkFormValues());
+    const nextValues = initialValues ?? createDefaultWorkFormValues();
+
+    form.setValues(nextValues);
+    form.setInitialValues(nextValues);
+    form.resetDirty(nextValues);
+    form.clearErrors();
     setTitleError(null);
     setValidationError(null);
+    // The Mantine form instance is intentionally excluded; this effect only
+    // reconciles external initialValues changes into the existing form.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValues]);
 
   useEffect(() => {
@@ -124,10 +190,7 @@ export function WorkForm({
     ratingValue !== null && Number.isFinite(ratingValue) ? ratingValue : null;
 
   function handleRatingChange(newRating: number | null) {
-    setValues((prev) => ({
-      ...prev,
-      rating: newRating !== null ? String(newRating) : '',
-    }));
+    form.setFieldValue('rating', newRating !== null ? String(newRating) : '');
   }
   const shortReviewLength = values.shortReview.trim().length;
   const reviewLength = values.review.trim().length;
@@ -167,19 +230,19 @@ export function WorkForm({
 
   function handleInputChange(event: ChangeEvent<WorkFormInput>) {
     const { name, type } = event.target;
+    const fieldName = name as keyof WorkFormValues;
 
     if (name === 'title') {
       setTitleError(null);
       setValidationError(null);
     }
 
-    setValues((currentValues) => ({
-      ...currentValues,
-      [name]:
-        type === 'checkbox'
-          ? (event.target as HTMLInputElement).checked
-          : event.target.value,
-    }));
+    form.setFieldValue(
+      fieldName,
+      (type === 'checkbox'
+        ? (event.target as HTMLInputElement).checked
+        : event.target.value) as WorkFormValues[typeof fieldName],
+    );
   }
 
   function handleValueChange<Value extends WorkFormValues[keyof WorkFormValues]>(
@@ -191,20 +254,14 @@ export function WorkForm({
       setValidationError(null);
     }
 
-    setValues((currentValues) => ({
-      ...currentValues,
-      [name]: value,
-    }));
+    form.setFieldValue(name, value);
   }
 
   function handleTextListChange(
     name: 'genresText' | 'personalTagsText',
     items: string[],
   ) {
-    setValues((currentValues) => ({
-      ...currentValues,
-      [name]: formatTextListForWorkForm(items),
-    }));
+    form.setFieldValue(name, formatTextListForWorkForm(items));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -213,6 +270,22 @@ export function WorkForm({
     try {
       setValidationError(null);
       setTitleError(null);
+      const validation = form.validate();
+
+      if (validation.hasErrors) {
+        const firstError = Object.values(validation.errors).find(Boolean);
+
+        setValidationError(
+          typeof firstError === 'string'
+            ? firstError
+            : REQUIRED_TITLE_MESSAGE,
+        );
+
+        if (validation.errors.title) {
+          titleInputRef.current?.focus();
+        }
+        return;
+      }
 
       if (!values.title.trim()) {
         const message = '제목을 입력해주세요.';
@@ -258,7 +331,7 @@ export function WorkForm({
                         <Grid.Col span={12}>
                           <TextInput
                             aria-label="제목"
-                            error={titleError}
+                            error={form.errors.title ?? titleError}
                             id="title"
                             label="제목"
                             name="title"
