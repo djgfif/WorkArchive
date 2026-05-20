@@ -6,7 +6,7 @@ import { RedisStore, type RedisReply } from 'rate-limit-redis';
 import { randomUUID } from 'node:crypto';
 
 import type { ApiRuntimeConfig } from '../config/api-runtime-config';
-import { SecurityAuditService } from './security-audit.service';
+import type { SecurityAuditService } from './security-audit.service';
 import { setRequestId } from './security-audit.service';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -55,7 +55,15 @@ export function createProductionOriginGuard(
 export function createRequestIdMiddleware() {
   return (request: Request, response: Response, next: NextFunction) => {
     const headerRequestId = request.header('x-request-id');
-    const requestId = headerRequestId?.trim() || randomUUID();
+    const requestWithLoggerId = request as Request & {
+      id?: string;
+    };
+    const requestId =
+      headerRequestId?.trim() ||
+      (typeof requestWithLoggerId.id === 'string'
+        ? requestWithLoggerId.id
+        : null) ||
+      randomUUID();
 
     setRequestId(request, requestId);
     response.setHeader('x-request-id', requestId);

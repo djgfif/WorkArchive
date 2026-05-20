@@ -1,7 +1,6 @@
-import { Logger, ValidationPipe, type INestApplication } from '@nestjs/common';
+import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
-import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 
 import type { ApiRuntimeConfig } from './config/api-runtime-config';
@@ -11,7 +10,6 @@ import {
   createSecurityRateLimiters,
 } from './security/security-middleware';
 import {
-  getRequestId,
   SecurityAuditService,
 } from './security/security-audit.service';
 
@@ -24,7 +22,6 @@ export async function configureApp(
   app: INestApplication,
   config: ApiRuntimeConfig,
 ) {
-  const requestLogger = new Logger('HttpRequest');
   const expressInstance = app.getHttpAdapter().getInstance() as ExpressInstance;
   const securityAudit = app.get(SecurityAuditService, { strict: false });
 
@@ -46,20 +43,6 @@ export async function configureApp(
     }),
   );
   app.use(createRequestIdMiddleware());
-  app.use((request: Request, response: Response, next: NextFunction) => {
-    const startedAt = Date.now();
-
-    response.on('finish', () => {
-      if (request.path === '/health') {
-        return;
-      }
-
-      requestLogger.log(
-        `requestId=${getRequestId(request)} method=${request.method} path=${request.path} status=${response.statusCode} durationMs=${Date.now() - startedAt}`,
-      );
-    });
-    next();
-  });
   app.use(createProductionOriginGuard(config, securityAudit));
 
   const rateLimiters = await createSecurityRateLimiters(config, securityAudit);

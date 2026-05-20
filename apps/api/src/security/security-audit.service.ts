@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import type { Request } from 'express';
 
@@ -41,7 +41,7 @@ export interface SecurityAuditEvent extends SecurityAuditContext {
 export class SecurityAuditService {
   private readonly logger = new Logger(SecurityAuditService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async record(event: SecurityAuditEvent) {
     try {

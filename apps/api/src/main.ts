@@ -1,7 +1,8 @@
 import 'reflect-metadata';
 
-import { Logger } from '@nestjs/common';
+import { Logger as BootstrapLogger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { Logger } from 'nestjs-pino';
 
 import {
   getPublicApiHost,
@@ -11,12 +12,15 @@ import { AppModule } from './app.module';
 import { configureApp } from './configure-app';
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
+  const logger = new BootstrapLogger('Bootstrap');
 
   try {
     const config = readApiRuntimeConfig();
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, {
+      bufferLogs: true,
+    });
 
+    app.useLogger(app.get(Logger));
     await configureApp(app, config);
     await app.listen(config.port, config.host);
 

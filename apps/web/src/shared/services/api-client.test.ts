@@ -11,19 +11,10 @@ import {
   readStoredAuthTokens,
   writeStoredAuthTokens,
 } from '../../features/auth/services/auth-storage';
-
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'content-type': 'application/json',
-    },
-  });
-}
+import { API_BASE_URL, HttpResponse, http, server } from '../../test/msw';
 
 describe('api-client', () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     clearStoredAuthTokens();
     window.localStorage.clear();
@@ -34,22 +25,32 @@ describe('api-client', () => {
     writeStoredAuthTokens({
       accessToken: 'expired-access-token',
     });
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse({ message: 'expired' }, 401))
-      .mockResolvedValueOnce(
-        jsonResponse({
+    const protectedRequests: Request[] = [];
+    const refreshRequests: Request[] = [];
+
+    server.use(
+      http.post(`${API_BASE_URL}/sync/pull`, ({ request }) => {
+        protectedRequests.push(request);
+
+        if (protectedRequests.length === 1) {
+          return HttpResponse.json({ message: 'expired' }, { status: 401 });
+        }
+
+        return HttpResponse.json({ ok: true });
+      }),
+      http.post(`${API_BASE_URL}/auth/refresh`, ({ request }) => {
+        refreshRequests.push(request);
+
+        return HttpResponse.json({
           accessToken: 'rotated-access-token',
           user: {
             email: 'user@example.com',
             id: 'user-1',
             nickname: '',
           },
-        }),
-      )
-      .mockResolvedValueOnce(jsonResponse({ ok: true }));
-
-    vi.stubGlobal('fetch', fetchMock);
+        });
+      }),
+    );
 
     await expect(
       requestAuthenticatedApiJson('/sync/pull', {
@@ -60,27 +61,25 @@ describe('api-client', () => {
       }),
     ).resolves.toEqual({ ok: true });
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[1]?.[0]).toEqual(
-      expect.stringContaining('/auth/refresh'),
+    expect(protectedRequests).toHaveLength(2);
+    expect(refreshRequests).toHaveLength(1);
+    expect(protectedRequests[1]?.headers.get('authorization')).toBe(
+      'Bearer rotated-access-token',
     );
-    expect(
-      new Headers((fetchMock.mock.calls[2]?.[1] as RequestInit).headers).get(
-        'authorization',
-      ),
-    ).toBe('Bearer rotated-access-token');
   });
 
   it('clears tokens when refresh fails after a protected 401', async () => {
     writeStoredAuthTokens({
       accessToken: 'expired-access-token',
     });
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValueOnce(jsonResponse({ message: 'expired' }, 401))
-        .mockResolvedValueOnce(jsonResponse({ message: 'refresh failed' }, 401)),
+
+    server.use(
+      http.post(`${API_BASE_URL}/sync/push`, () =>
+        HttpResponse.json({ message: 'expired' }, { status: 401 }),
+      ),
+      http.post(`${API_BASE_URL}/auth/refresh`, () =>
+        HttpResponse.json({ message: 'refresh failed' }, { status: 401 }),
+      ),
     );
 
     await expect(
@@ -96,10 +95,9 @@ describe('api-client', () => {
   });
 
   it('normalizes non-JSON error responses', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response('service unavailable', {
+    server.use(
+      http.get(`${API_BASE_URL}/imports/search`, () =>
+        HttpResponse.text('service unavailable', {
           status: 503,
         }),
       ),
@@ -118,12 +116,11 @@ describe('api-client', () => {
     writeStoredAuthTokens({
       accessToken: 'access-token',
     });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(null, {
-          status: 204,
-        }),
+
+    server.use(
+      http.delete(
+        `${API_BASE_URL}/imports/providers/aladin/key`,
+        () => new HttpResponse(null, { status: 204 }),
       ),
     );
 
@@ -135,9 +132,8 @@ describe('api-client', () => {
   });
 
   it('normalizes network failures', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockRejectedValue(new TypeError('Network request failed')),
+    server.use(
+      http.get(`${API_BASE_URL}/imports/providers`, () => Response.error()),
     );
 
     await expect(
@@ -145,43 +141,54 @@ describe('api-client', () => {
         method: 'GET',
       }),
     ).rejects.toMatchObject({
-      message: '네트워크 연결을 확인한 뒤 다시 시도해주세요.',
       status: 0,
     });
   });
 
   it('sends guest plain requests without authorization', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
+    const requests: Request[] = [];
 
-    vi.stubGlobal('fetch', fetchMock);
+    server.use(
+      http.get(`${API_BASE_URL}/imports/providers`, ({ request }) => {
+        requests.push(request);
+
+        return HttpResponse.json([]);
+      }),
+    );
 
     await requestApi('/imports/providers', {
       method: 'GET',
     });
 
-    const headers = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit).headers);
-
-    expect(headers.has('authorization')).toBe(false);
+    expect(requests[0]?.headers.has('authorization')).toBe(false);
   });
 
   it('keeps non-JSON bodies under caller-owned content type', async () => {
     writeStoredAuthTokens({
       accessToken: 'access-token',
     });
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+    const requests: Request[] = [];
     const body = new FormData();
 
     body.set('file', new Blob(['hello']), 'hello.txt');
-    vi.stubGlobal('fetch', fetchMock);
+    server.use(
+      http.post(`${API_BASE_URL}/imports/resolve`, ({ request }) => {
+        requests.push(request);
+
+        return HttpResponse.json({ ok: true });
+      }),
+    );
 
     await requestAuthenticatedApiJson('/imports/resolve', {
       method: 'POST',
       body,
     });
 
-    const headers = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit).headers);
-
-    expect(headers.get('authorization')).toBe('Bearer access-token');
-    expect(headers.has('content-type')).toBe(false);
+    expect(requests[0]?.headers.get('authorization')).toBe(
+      'Bearer access-token',
+    );
+    expect(requests[0]?.headers.get('content-type')).not.toBe(
+      'application/json',
+    );
   });
 });

@@ -22,15 +22,21 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:e2e": "npm run test:e2e --workspace @work-archive/api",
+    "test:e2e:web": "playwright test",
     "test:integration": "npm run test:integration --workspace @work-archive/api",
+    "api:generate": "orval --config orval.config.ts",
     "build": "npm run build --workspaces --if-present",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "postinstall": "npm run prisma:generate --workspace @work-archive/api"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "concurrently": "^9.1.2",
     "eslint": "^9.25.1",
+    "fast-check": "^4.8.0",
+    "msw": "^2.14.6",
+    "orval": "^8.11.0",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3"
   }
