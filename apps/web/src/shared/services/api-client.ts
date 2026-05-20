@@ -7,7 +7,8 @@ import {
 } from '../../features/auth/services/auth-storage';
 import { localizeApiErrorMessage } from '../utils/localize-message';
 
-const DEFAULT_API_BASE_URL = 'http://localhost:3000/api';
+const DEFAULT_API_BASE_URL = '/api';
+const LOOPBACK_API_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 
 type StoredAuthTokens = NonNullable<ReturnType<typeof readStoredAuthTokens>>;
 
@@ -30,7 +31,23 @@ export class ApiRequestError extends Error {
 export function getApiBaseUrl() {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 
+  if (
+    import.meta.env.PROD &&
+    configuredBaseUrl &&
+    isLoopbackApiBaseUrl(configuredBaseUrl)
+  ) {
+    return DEFAULT_API_BASE_URL;
+  }
+
   return (configuredBaseUrl || DEFAULT_API_BASE_URL).replace(/\/$/, '');
+}
+
+function isLoopbackApiBaseUrl(configuredBaseUrl: string) {
+  try {
+    return LOOPBACK_API_HOSTS.has(new URL(configuredBaseUrl).hostname);
+  } catch {
+    return false;
+  }
 }
 
 function getApiErrorMessage(status: number, body: ApiErrorResponse | null) {

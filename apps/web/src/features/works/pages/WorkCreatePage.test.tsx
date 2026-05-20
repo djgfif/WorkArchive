@@ -165,8 +165,6 @@ function renderAuthenticatedCreatePage() {
             email: 'frieren@example.com',
             nickname: '',
           },
-          signIn: vi.fn(),
-          signUp: vi.fn(),
           signOut: vi.fn(),
         }}
       >
@@ -187,8 +185,6 @@ function renderGuestCreatePage() {
           isLoading: false,
           mode: 'guest',
           user: null,
-          signIn: vi.fn(),
-          signUp: vi.fn(),
           signOut: vi.fn(),
         }}
       >

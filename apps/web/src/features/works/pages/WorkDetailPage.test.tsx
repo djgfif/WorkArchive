@@ -26,9 +26,7 @@ const authenticatedContextValue: AuthContextValue = {
     nickname: 'Tester',
     role: 'user',
   },
-  signIn: vi.fn(async () => '/'),
   signOut: vi.fn(async () => undefined),
-  signUp: vi.fn(async () => '/'),
 };
 
 afterEach(() => {

@@ -264,8 +264,6 @@ function renderAuthenticatedAddWorkFlow(onSubmit = vi.fn()) {
             email: 'frieren@example.com',
             nickname: '',
           },
-          signIn: vi.fn(),
-          signUp: vi.fn(),
           signOut: vi.fn(),
         }}
       >
@@ -291,8 +289,6 @@ function renderGuestAddWorkFlow(onSubmit = vi.fn()) {
           isLoading: false,
           mode: 'guest',
           user: null,
-          signIn: vi.fn(),
-          signUp: vi.fn(),
           signOut: vi.fn(),
         }}
       >

@@ -88,16 +88,6 @@ function IconLogin({ size = 16 }: { size?: number }) {
     </svg>
   );
 }
-function IconUserPlus({ size = 16 }: { size?: number }) {
-  return (
-    <svg fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={size}>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="8.5" cy="7" r="4" />
-      <line x1="20" x2="20" y1="8" y2="14" />
-      <line x1="23" x2="17" y1="11" y2="11" />
-    </svg>
-  );
-}
 
 /* ── 프로필 아바타 버튼 ── */
 function ProfileAvatarButton({
@@ -327,29 +317,17 @@ export function MainProductLayout() {
                         로그아웃
                       </Menu.Item>
                     ) : (
-                      <>
-                        <Menu.Item
-                          fw={600}
-                          leftSection={
-                            <ThemeIcon color="archive" size={22} variant="light" radius="sm">
-                              <IconLogin size={13} />
-                            </ThemeIcon>
-                          }
-                          onClick={() => navigate('/auth/login')}
-                        >
-                          로그인
-                        </Menu.Item>
-                        <Menu.Item
-                          leftSection={
-                            <ThemeIcon color="gray" size={22} variant="light" radius="sm">
-                              <IconUserPlus size={13} />
-                            </ThemeIcon>
-                          }
-                          onClick={() => navigate('/auth/login')}
-                        >
-                          회원가입
-                        </Menu.Item>
-                      </>
+                      <Menu.Item
+                        fw={600}
+                        leftSection={
+                          <ThemeIcon color="archive" size={22} variant="light" radius="sm">
+                            <IconLogin size={13} />
+                          </ThemeIcon>
+                        }
+                        onClick={() => navigate('/auth/login')}
+                      >
+                        로그인
+                      </Menu.Item>
                     )}
                   </Menu.Dropdown>
                 </Menu>
@@ -477,9 +455,6 @@ export function MainProductLayout() {
             <Stack gap="xs">
               <AppLinkButton fullWidth onClick={mobileMenu.close} to="/auth/login" tone="primary">
                 로그인
-              </AppLinkButton>
-              <AppLinkButton fullWidth onClick={mobileMenu.close} to="/auth/login" tone="secondary">
-                회원가입
               </AppLinkButton>
             </Stack>
           )}

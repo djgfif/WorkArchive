@@ -16,9 +16,7 @@ const authValue: AuthContextValue = {
     id: 'user-1',
     nickname: 'User',
   },
-  signIn: vi.fn(),
   signOut: vi.fn(),
-  signUp: vi.fn(),
 };
 
 function AutoSyncProbe() {

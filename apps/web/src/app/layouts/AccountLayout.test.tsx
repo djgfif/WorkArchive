@@ -14,9 +14,7 @@ const guestContextValue: AuthContextValue = {
   archiveScopeKey: 'guest',
   isLoading: false,
   mode: 'guest',
-  signIn: vi.fn(async () => '/'),
   signOut: vi.fn(async () => undefined),
-  signUp: vi.fn(async () => '/'),
   user: null,
 };
 

@@ -57,8 +57,6 @@ function renderAuthenticatedSettings(signOut = vi.fn()) {
             email: 'frieren@example.com',
             nickname: '',
           },
-          signIn: vi.fn(),
-          signUp: vi.fn(),
           signOut,
         }}
       >
@@ -82,8 +80,6 @@ function renderGuestSettings() {
           isLoading: false,
           mode: 'guest',
           user: null,
-          signIn: vi.fn(),
-          signUp: vi.fn(),
           signOut: vi.fn(),
         }}
       >

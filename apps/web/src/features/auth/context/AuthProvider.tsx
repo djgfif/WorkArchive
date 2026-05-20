@@ -7,11 +7,8 @@ import {
 
 import {
   getGoogleLoginStartUrl,
-  loginWithEmailPassword,
   logoutSession,
-  registerWithEmailPassword,
   restoreStoredSession,
-  type AuthCredentialsInput,
   type AuthUser,
 } from '../services/auth.api';
 import { guestTransferService } from '../services/guest-transfer.service';
@@ -116,22 +113,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return pendingGuestTransfer ? '/account/transfer' : '/';
   }
 
-  async function signIn(input: AuthCredentialsInput) {
-    const session = await loginWithEmailPassword(input);
-
-    return activateAuthenticatedSession(session.user, {
-      accessToken: session.accessToken,
-    });
-  }
-
-  async function signUp(input: AuthCredentialsInput) {
-    const session = await registerWithEmailPassword(input);
-
-    return activateAuthenticatedSession(session.user, {
-      accessToken: session.accessToken,
-    });
-  }
-
   function continueWithGoogle() {
     window.location.assign(getGoogleLoginStartUrl());
   }
@@ -167,8 +148,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     isLoading,
     mode: user ? 'authenticated' : 'guest',
     user,
-    signIn,
-    signUp,
     signOut,
   };
 
