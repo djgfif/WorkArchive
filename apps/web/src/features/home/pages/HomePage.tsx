@@ -10,7 +10,7 @@ import {
   ThemeIcon,
   Title,
 } from '@mantine/core';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
@@ -30,6 +30,7 @@ import {
   WorkShelf,
 } from '../../works/components/ArchiveComponents';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
+import type { WorkCollectionSummary } from '../../works/utils/graph-tags';
 import { getWorkStatusLabel, getWorkTypeLabel } from '../../works/utils/work-options';
 import styles from './HomePage.module.css';
 
@@ -300,17 +301,78 @@ function SectionHeader({ eyebrow, title, description, action }: SectionHeaderPro
   );
 }
 
+function formatCollectionRating(value: number | null) {
+  return value === null ? '미평가' : `★ ${value.toFixed(1)}`;
+}
+
+function CollectionShelf({
+  collections,
+}: {
+  collections: WorkCollectionSummary[];
+}) {
+  if (collections.length === 0) {
+    return null;
+  }
+
+  return (
+    <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="sm">
+      {collections.map((collection) => {
+        const mediaLabel = collection.mediaTypes
+          .slice(0, 3)
+          .map(getWorkTypeLabel)
+          .join(' · ');
+
+        return (
+          <Paper
+            component={Link}
+            key={collection.key}
+            p="md"
+            radius="lg"
+            style={{
+              background: 'var(--app-surface-subtle)',
+              borderColor: 'var(--app-border-subtle)',
+              color: 'inherit',
+              textDecoration: 'none',
+            }}
+            to={collection.href}
+            withBorder
+          >
+            <Stack gap="xs">
+              <Group justify="space-between" wrap="nowrap">
+                <Title lineClamp={1} order={3} size="h4">
+                  {collection.label}
+                </Title>
+                <AppBadge tone="accent">{collection.totalCount}</AppBadge>
+              </Group>
+              <Text c="dimmed" lineClamp={1} size="sm">
+                {mediaLabel || '매체 미지정'}
+              </Text>
+              <Text c="dimmed" size="xs">
+                완료 {collection.completedCount} · 보는 중{' '}
+                {collection.inProgressCount} ·{' '}
+                {formatCollectionRating(collection.averageRating)}
+              </Text>
+            </Stack>
+          </Paper>
+        );
+      })}
+    </SimpleGrid>
+  );
+}
+
 export function HomePage() {
   const navigate = useNavigate();
   const { mode, user } = useAuthSession();
   const {
     averageRating,
     completedCount,
+    contributorCollections,
     error,
     inProgressCount,
     isLoading,
     recentWorks,
     retry,
+    seriesCollections,
     totalCount,
   } = useWorksOverview();
   const [searchTerm, setSearchTerm] = useState('');
@@ -418,6 +480,34 @@ export function HomePage() {
               />
             </SimpleGrid>
           )}
+
+          <Stack gap="lg">
+            <SectionHeader
+              action={
+                <AppLinkButton to="/works" tone="quiet">
+                  작품 서재
+                </AppLinkButton>
+              }
+              description="같은 시리즈와 세계관으로 묶인 기록을 먼저 봅니다."
+              eyebrow="시리즈"
+              title="시리즈 컬렉션"
+            />
+            <CollectionShelf collections={seriesCollections} />
+          </Stack>
+
+          <Stack gap="lg">
+            <SectionHeader
+              action={
+                <AppLinkButton to="/works" tone="quiet">
+                  전체 보기
+                </AppLinkButton>
+              }
+              description="작가, 감독, 스튜디오, 출판사, 플랫폼 기준으로 다시 찾습니다."
+              eyebrow="제작진"
+              title="제작진으로 보기"
+            />
+            <CollectionShelf collections={contributorCollections} />
+          </Stack>
 
           {/* 이어보기 선반 */}
           <Stack gap="lg">

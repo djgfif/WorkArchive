@@ -62,6 +62,8 @@ const REVIEW_FOCUS_DESCRIPTION_ID = 'work-form-review-focus-description';
 const css = styles as Record<string, string>;
 const REQUIRED_TITLE_MESSAGE = 'Title is required.';
 const RATING_RANGE_MESSAGE = 'Rating must be between 0 and 5.';
+const REVIEW_STEP_INDEX = 3;
+const LAST_STEP_INDEX = 3;
 
 function cn(value: string | undefined) {
   return value ?? '';
@@ -146,7 +148,9 @@ export function WorkForm({
     ],
   });
   const values = form.values;
-  const [activeStep, setActiveStep] = useState(focusArea === 'review' ? 1 : 0);
+  const [activeStep, setActiveStep] = useState(
+    focusArea === 'review' ? REVIEW_STEP_INDEX : 0,
+  );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
@@ -175,7 +179,7 @@ export function WorkForm({
       return;
     }
 
-    setActiveStep(1);
+    setActiveStep(REVIEW_STEP_INDEX);
   }, [focusArea]);
 
   const previewTitle = values.title.trim() || '제목 없는 작품';
@@ -207,8 +211,8 @@ export function WorkForm({
       return;
     }
 
-    if (activeStep !== 1) {
-      setActiveStep(1);
+    if (activeStep !== REVIEW_STEP_INDEX) {
+      setActiveStep(REVIEW_STEP_INDEX);
       return;
     }
 
@@ -506,73 +510,74 @@ export function WorkForm({
                         </Group>
                       </Stack>
 
-                      <Stack gap="xs">
-                        <Text fw={600} size="sm" style={{ color: 'var(--app-text-secondary)' }}>
-                          개인 태그
-                          <Text component="span" c="dimmed" fw={400} size="xs" ml={6}>
-                            나만의 감상 분류
-                          </Text>
-                        </Text>
-                        <TagsInput
-                          clearable
-                          data={uniqueTagSuggestions}
-                          id="personalTagsText"
-                          name="personalTagsText"
-                          onChange={(items) => handleTextListChange('personalTagsText', items)}
-                          placeholder="여운, 다시 볼 것, 시간여행"
-                          splitChars={[',']}
-                          value={personalTagValues}
-                          styles={{
-                            input: {
-                              background: 'var(--app-surface-default)',
-                              border: '1.5px solid var(--app-border-default)',
-                              borderRadius: 10,
-                              fontSize: '0.875rem',
-                            },
-                            pill: {
-                              background: 'color-mix(in srgb, var(--app-accent-secondary) 14%, transparent)',
-                              border: '1px solid color-mix(in srgb, var(--app-accent-secondary) 30%, transparent)',
-                              color: 'var(--app-accent-secondary)',
-                              fontWeight: 600,
-                              borderRadius: 6,
-                              fontSize: '0.8rem',
-                            },
-                          }}
+                    </Stack>
+                  </Stepper.Step>
+
+                  <Stepper.Step
+                    description="시리즈, 세계관"
+                    label="시리즈 / 관계"
+                  >
+                    <Stack gap="lg" pt="md">
+                      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                        <TextInput
+                          id="seriesText"
+                          label="시리즈"
+                          name="seriesText"
+                          onChange={handleInputChange}
+                          placeholder="예: Fate, 해리포터, 귀멸의 칼날"
+                          value={values.seriesText}
                         />
-                        <Group gap={4}>
-                          {uniqueTagSuggestions.slice(0, 12).map((tag) => (
-                            <button
-                              aria-pressed={personalTagValues.includes(tag)}
-                              className={css.filterPill}
-                              key={tag}
-                              onClick={() => {
-                                if (!personalTagValues.includes(tag)) {
-                                  handleTextListChange('personalTagsText', [...personalTagValues, tag]);
-                                }
-                              }}
-                              style={{
-                                background: personalTagValues.includes(tag)
-                                  ? 'color-mix(in srgb, var(--app-accent-secondary) 18%, transparent)'
-                                  : 'var(--app-surface-subtle)',
-                                border: personalTagValues.includes(tag)
-                                  ? '1.5px solid color-mix(in srgb, var(--app-accent-secondary) 40%, transparent)'
-                                  : '1.5px solid var(--app-border-default)',
-                                borderRadius: 20,
-                                color: personalTagValues.includes(tag)
-                                  ? 'var(--app-accent-secondary)'
-                                  : 'var(--app-text-secondary)',
-                                cursor: 'pointer',
-                                fontSize: '0.78rem',
-                                fontWeight: 600,
-                                padding: '3px 10px',
-                              }}
-                              type="button"
-                            >
-                              {personalTagValues.includes(tag) ? '✓ ' : '+ '}{tag}
-                            </button>
-                          ))}
-                        </Group>
-                      </Stack>
+                        <TextInput
+                          id="universeText"
+                          label="세계관 / 프랜차이즈"
+                          name="universeText"
+                          onChange={handleInputChange}
+                          placeholder="예: TYPE-MOON, Wizarding World"
+                          value={values.universeText}
+                        />
+                      </SimpleGrid>
+                    </Stack>
+                  </Stepper.Step>
+
+                  <Stepper.Step
+                    description="작가, 스튜디오, 출판사"
+                    label="제작진"
+                  >
+                    <Stack gap="lg" pt="md">
+                      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                        <TextInput
+                          id="creatorText"
+                          label="작가 / 원작자 / 감독"
+                          name="creatorText"
+                          onChange={handleInputChange}
+                          placeholder="여러 명은 쉼표로 구분"
+                          value={values.creatorText}
+                        />
+                        <TextInput
+                          id="studioText"
+                          label="스튜디오 / 제작사"
+                          name="studioText"
+                          onChange={handleInputChange}
+                          placeholder="예: ufotable, MAPPA"
+                          value={values.studioText}
+                        />
+                        <TextInput
+                          id="publisherText"
+                          label="출판사"
+                          name="publisherText"
+                          onChange={handleInputChange}
+                          placeholder="예: Shueisha, Bloomsbury"
+                          value={values.publisherText}
+                        />
+                        <TextInput
+                          id="platformText"
+                          label="플랫폼"
+                          name="platformText"
+                          onChange={handleInputChange}
+                          placeholder="예: 문피아, Netflix"
+                          value={values.platformText}
+                        />
+                      </SimpleGrid>
                     </Stack>
                   </Stepper.Step>
 
@@ -648,6 +653,74 @@ export function WorkForm({
                           value={values.description}
                         />
                       </SimpleGrid>
+
+                      <Stack gap="xs">
+                        <Text fw={600} size="sm" style={{ color: 'var(--app-text-secondary)' }}>
+                          개인 태그
+                          <Text component="span" c="dimmed" fw={400} size="xs" ml={6}>
+                            나만의 감상 분류
+                          </Text>
+                        </Text>
+                        <TagsInput
+                          clearable
+                          data={uniqueTagSuggestions}
+                          id="personalTagsText"
+                          name="personalTagsText"
+                          onChange={(items) => handleTextListChange('personalTagsText', items)}
+                          placeholder="여운, 다시 볼 것, 시간여행"
+                          splitChars={[',']}
+                          value={personalTagValues}
+                          styles={{
+                            input: {
+                              background: 'var(--app-surface-default)',
+                              border: '1.5px solid var(--app-border-default)',
+                              borderRadius: 10,
+                              fontSize: '0.875rem',
+                            },
+                            pill: {
+                              background: 'color-mix(in srgb, var(--app-accent-secondary) 14%, transparent)',
+                              border: '1px solid color-mix(in srgb, var(--app-accent-secondary) 30%, transparent)',
+                              color: 'var(--app-accent-secondary)',
+                              fontWeight: 600,
+                              borderRadius: 6,
+                              fontSize: '0.8rem',
+                            },
+                          }}
+                        />
+                        <Group gap={4}>
+                          {uniqueTagSuggestions.slice(0, 12).map((tag) => (
+                            <button
+                              aria-pressed={personalTagValues.includes(tag)}
+                              className={css.filterPill}
+                              key={tag}
+                              onClick={() => {
+                                if (!personalTagValues.includes(tag)) {
+                                  handleTextListChange('personalTagsText', [...personalTagValues, tag]);
+                                }
+                              }}
+                              style={{
+                                background: personalTagValues.includes(tag)
+                                  ? 'color-mix(in srgb, var(--app-accent-secondary) 18%, transparent)'
+                                  : 'var(--app-surface-subtle)',
+                                border: personalTagValues.includes(tag)
+                                  ? '1.5px solid color-mix(in srgb, var(--app-accent-secondary) 40%, transparent)'
+                                  : '1.5px solid var(--app-border-default)',
+                                borderRadius: 20,
+                                color: personalTagValues.includes(tag)
+                                  ? 'var(--app-accent-secondary)'
+                                  : 'var(--app-text-secondary)',
+                                cursor: 'pointer',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                padding: '3px 10px',
+                              }}
+                              type="button"
+                            >
+                              {personalTagValues.includes(tag) ? '✓ ' : '+ '}{tag}
+                            </button>
+                          ))}
+                        </Group>
+                      </Stack>
                     </Stack>
                     </Box>
                   </Stepper.Step>
@@ -656,18 +729,28 @@ export function WorkForm({
                 <ActionRow justify="space-between">
                   <AppButton
                     disabled={activeStep === 0}
-                    onClick={() => setActiveStep(0)}
+                    onClick={() =>
+                      setActiveStep((currentStep) =>
+                        Math.max(0, currentStep - 1),
+                      )
+                    }
                     tone="secondary"
                     type="button"
                   >
-                    기본 정보
+                    이전
                   </AppButton>
                   <AppButton
-                    onClick={() => setActiveStep(activeStep === 0 ? 1 : 0)}
+                    onClick={() =>
+                      setActiveStep((currentStep) =>
+                        currentStep >= LAST_STEP_INDEX
+                          ? 0
+                          : currentStep + 1,
+                      )
+                    }
                     tone="secondary"
                     type="button"
                   >
-                    {activeStep === 0 ? '감상 기록으로' : '기본 정보로'}
+                    {activeStep >= LAST_STEP_INDEX ? '처음으로' : '다음'}
                   </AppButton>
                 </ActionRow>
               </Stack>

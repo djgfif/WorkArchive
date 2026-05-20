@@ -113,6 +113,59 @@ describe('queryWorks', () => {
     ).toEqual(['Dune']);
   });
 
+  it('filters by graph tags without exposing prefixed tags as personal tags', () => {
+    const graphWorks = [
+      buildWork({
+        title: 'Fate/stay night',
+        type: 'anime',
+        status: 'completed',
+        genres: ['Fantasy'],
+        personalTags: ['series:Fate', 'studio:ufotable', 'rewatch'],
+      }),
+      buildWork({
+        title: 'Dune',
+        type: 'novel',
+        status: 'planned',
+        genres: ['Science Fiction'],
+        personalTags: ['series:Dune', 'creator:Frank Herbert'],
+      }),
+    ];
+
+    expect(
+      queryWorks(graphWorks, {
+        rating: null,
+        searchTerm: '',
+        series: 'Fate',
+        contributor: 'ufotable',
+        genre: 'Fantasy',
+        type: 'anime',
+        status: 'completed',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Fate/stay night']);
+
+    expect(
+      queryWorks(graphWorks, {
+        rating: null,
+        searchTerm: '',
+        tag: 'series:Fate',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }),
+    ).toHaveLength(0);
+
+    expect(
+      queryWorks(graphWorks, {
+        rating: null,
+        searchTerm: 'ufotable',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Fate/stay night']);
+  });
+
   it('matches Korean titles across spacing, symbols, and trailing subtitles', () => {
     const koreanWorks = [
       buildWork({

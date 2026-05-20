@@ -81,7 +81,9 @@ const ratingFilterOptions = Array.from({ length: 10 }, (_, i) => {
 
 interface WorksToolbarProps {
   collectionScope:          WorksCollectionScope;
+  contributorSuggestions:   string[];
   filteredCount:            number;
+  genreSuggestions:         string[];
   isLoading:                boolean;
   onClearFilters:           () => void;
   onCollectionScopeChange:  (scope: WorksCollectionScope) => void;
@@ -89,6 +91,7 @@ interface WorksToolbarProps {
   onQueryChange:            (query: WorksListQuery) => void;
   onViewModeChange:         (viewMode: WorksViewMode) => void;
   query:                    WorksListQuery;
+  seriesSuggestions:        string[];
   statusCounts:             Record<WorkStatus, number>;
   tagSuggestions:           string[];
   totalActiveCount:         number;
@@ -98,7 +101,9 @@ interface WorksToolbarProps {
 
 export function WorksToolbar({
   collectionScope,
+  contributorSuggestions,
   filteredCount,
+  genreSuggestions,
   isLoading,
   onClearFilters,
   onCollectionScopeChange,
@@ -106,6 +111,7 @@ export function WorksToolbar({
   onQueryChange,
   onViewModeChange,
   query,
+  seriesSuggestions,
   statusCounts,
   tagSuggestions,
   totalActiveCount,
@@ -139,6 +145,9 @@ export function WorksToolbar({
 
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
+    (query.series?.trim() ?? '') !== '' ||
+    (query.contributor?.trim() ?? '') !== '' ||
+    (query.genre?.trim() ?? '') !== '' ||
     (query.tag?.trim() ?? '') !== '' ||
     query.rating !== null ||
     query.status !== 'all' ||
@@ -167,6 +176,15 @@ export function WorksToolbar({
   const activeFilterChips = [
     ...(query.searchTerm.trim()
       ? [{ label: `"${query.searchTerm.trim()}"`, onRemove: () => onQueryChange({ ...query, searchTerm: '' }) }]
+      : []),
+    ...(query.series?.trim()
+      ? [{ label: `시리즈: ${query.series.trim()}`, onRemove: () => onQueryChange({ ...query, series: '' }) }]
+      : []),
+    ...(query.contributor?.trim()
+      ? [{ label: `제작진: ${query.contributor.trim()}`, onRemove: () => onQueryChange({ ...query, contributor: '' }) }]
+      : []),
+    ...(query.genre?.trim()
+      ? [{ label: `장르: ${query.genre.trim()}`, onRemove: () => onQueryChange({ ...query, genre: '' }) }]
       : []),
     ...(query.tag?.trim()
       ? [{ label: `#${query.tag.trim()}`, onRemove: () => onQueryChange({ ...query, tag: '' }) }]
@@ -386,14 +404,100 @@ export function WorksToolbar({
         </Box>
       </ArchiveHero>
 
+      {collectionScope === 'active' && (
+        <Stack gap="sm">
+          <Stack gap={6}>
+            <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+              매체
+            </Text>
+            <FilterPillGroup
+              aria-label="매체 필터"
+              onChange={(type) => onQueryChange({ ...query, type })}
+              options={[
+                { label: '전체', value: 'all' as const },
+                ...workTypeOptions.map((o) => ({ label: o.label, value: o.value })),
+              ]}
+              value={query.type}
+            />
+          </Stack>
+
+          {seriesSuggestions.length > 0 && (
+            <Stack gap={6}>
+              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+                시리즈 / 세계관
+              </Text>
+              <FilterPillGroup
+                aria-label="시리즈 필터"
+                onChange={(series) => onQueryChange({ ...query, series })}
+                options={[
+                  { label: '전체', value: '' },
+                  ...seriesSuggestions.slice(0, 12).map((series) => ({
+                    label: series,
+                    value: series,
+                  })),
+                ]}
+                value={query.series ?? ''}
+              />
+            </Stack>
+          )}
+
+          {contributorSuggestions.length > 0 && (
+            <Stack gap={6}>
+              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+                제작진 / 회사
+              </Text>
+              <FilterPillGroup
+                aria-label="제작진 필터"
+                onChange={(contributor) =>
+                  onQueryChange({ ...query, contributor })
+                }
+                options={[
+                  { label: '전체', value: '' },
+                  ...contributorSuggestions.slice(0, 12).map((contributor) => ({
+                    label: contributor,
+                    value: contributor,
+                  })),
+                ]}
+                value={query.contributor ?? ''}
+              />
+            </Stack>
+          )}
+
+          {genreSuggestions.length > 0 && (
+            <Stack gap={6}>
+              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+                장르
+              </Text>
+              <FilterPillGroup
+                aria-label="장르 필터"
+                onChange={(genre) => onQueryChange({ ...query, genre })}
+                options={[
+                  { label: '전체', value: '' },
+                  ...genreSuggestions.slice(0, 12).map((genre) => ({
+                    label: genre,
+                    value: genre,
+                  })),
+                ]}
+                value={query.genre ?? ''}
+              />
+            </Stack>
+          )}
+        </Stack>
+      )}
+
       {/* ── 상태 퀵 필터 ─────────────────────────────────────────────── */}
       {collectionScope === 'active' && (
-        <FilterPillGroup
-          aria-label="상태 필터"
-          onChange={(status) => onQueryChange({ ...query, status })}
-          options={statusFilterOptions}
-          value={query.status}
-        />
+        <Stack gap={6}>
+          <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+            상태
+          </Text>
+          <FilterPillGroup
+            aria-label="상태 필터"
+            onChange={(status) => onQueryChange({ ...query, status })}
+            options={statusFilterOptions}
+            value={query.status}
+          />
+        </Stack>
       )}
 
       {/* ── 활성 필터 칩 ─────────────────────────────────────────────── */}
@@ -510,22 +614,6 @@ export function WorksToolbar({
           </Group>
 
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
-            {/* 유형 */}
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                유형
-              </Text>
-              <FilterPillGroup
-                aria-label="유형 필터"
-                onChange={(type) => onQueryChange({ ...query, type })}
-                options={[
-                  { label: '전체', value: 'all' as const },
-                  ...workTypeOptions.map((o) => ({ label: o.label, value: o.value })),
-                ]}
-                value={query.type}
-              />
-            </Stack>
-
             {/* 정렬 */}
             <Stack gap="xs">
               <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>

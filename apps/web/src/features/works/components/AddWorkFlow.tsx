@@ -68,6 +68,7 @@ import {
   type UpsertWorkInput,
   type WorkFormValues,
 } from '../utils/work-form';
+import { getPersonalTags } from '../utils/graph-tags';
 import { workStatusOptions, workTypeOptions } from '../utils/work-options';
 
 const css = styles as Record<string, string>;
@@ -393,6 +394,57 @@ function AdvancedWorkFields({
               value={values.author}
             />
 
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+              <TextInput
+                id={getFieldId(idPrefix, 'seriesText')}
+                label="시리즈"
+                name="seriesText"
+                onChange={onInputChange}
+                placeholder="예: Fate, 해리포터"
+                value={values.seriesText}
+              />
+              <TextInput
+                id={getFieldId(idPrefix, 'universeText')}
+                label="세계관 / 프랜차이즈"
+                name="universeText"
+                onChange={onInputChange}
+                placeholder="예: TYPE-MOON, Wizarding World"
+                value={values.universeText}
+              />
+              <TextInput
+                id={getFieldId(idPrefix, 'creatorText')}
+                label="작가 / 원작자 / 감독"
+                name="creatorText"
+                onChange={onInputChange}
+                placeholder="여러 명은 쉼표로 구분"
+                value={values.creatorText}
+              />
+              <TextInput
+                id={getFieldId(idPrefix, 'studioText')}
+                label="스튜디오 / 제작사"
+                name="studioText"
+                onChange={onInputChange}
+                placeholder="예: ufotable, MAPPA"
+                value={values.studioText}
+              />
+              <TextInput
+                id={getFieldId(idPrefix, 'publisherText')}
+                label="출판사"
+                name="publisherText"
+                onChange={onInputChange}
+                placeholder="예: Shueisha, Bloomsbury"
+                value={values.publisherText}
+              />
+              <TextInput
+                id={getFieldId(idPrefix, 'platformText')}
+                label="플랫폼"
+                name="platformText"
+                onChange={onInputChange}
+                placeholder="예: 문피아, Netflix"
+                value={values.platformText}
+              />
+            </SimpleGrid>
+
             <TextInput
               id={getFieldId(idPrefix, 'thumbnailUrl')}
               label="표지 이미지 주소"
@@ -587,7 +639,7 @@ export function AddWorkFlow({
     new Set(
       existingWorks
         .filter((work) => work.deletedAt === null)
-        .flatMap((work) => work.personalTags),
+        .flatMap((work) => getPersonalTags(work.personalTags)),
     ),
   ).sort((left, right) => left.localeCompare(right));
 

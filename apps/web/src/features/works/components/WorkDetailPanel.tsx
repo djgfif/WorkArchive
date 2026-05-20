@@ -45,6 +45,13 @@ import {
   getWorkProgressLabel,
   getWorkProgressPercent,
 } from './archive-display';
+import {
+  getContributorEntries,
+  getGraphTagKindLabel,
+  getPersonalTags,
+  getSeriesTagValues,
+  workContributorValues,
+} from '../utils/graph-tags';
 
 const css = styles as Record<string, string>;
 
@@ -146,6 +153,10 @@ export function WorkDetailPanel({
   const tierLabel = getWorkTierLabel(work.tier);
   const shortReview = work.shortReview.trim();
   const review = work.review.trim();
+  const personalTags = getPersonalTags(work.personalTags);
+  const seriesTags = getSeriesTagValues(work.personalTags);
+  const contributorEntries = getContributorEntries(work.personalTags);
+  const contributorValues = workContributorValues(work);
   const progressLabel = getWorkProgressLabel(work);
   const progressPercent = getWorkProgressPercent(work);
   const timelineItems = [
@@ -220,6 +231,16 @@ export function WorkDetailPanel({
             {/* 메타 행 */}
             <Group gap={6} wrap="wrap">
               <AppBadge tone="muted">{typeLabel}</AppBadge>
+              {seriesTags.slice(0, 2).map((series) => (
+                <AppBadge key={`series-${series}`} tone="accent">
+                  {series}
+                </AppBadge>
+              ))}
+              {contributorValues.slice(0, 2).map((contributor) => (
+                <AppBadge key={`contributor-${contributor}`} tone="muted">
+                  {contributor}
+                </AppBadge>
+              ))}
               <Box
                 aria-hidden="true"
                 className={cn(css.detailHeroMetaDivider)}
@@ -370,8 +391,8 @@ export function WorkDetailPanel({
                   개인 태그
                 </Text>
                 <Text fw={800} lh={1.5}>
-                  {work.personalTags.length > 0
-                    ? work.personalTags.map((tag) => `#${tag}`).join(' ')
+                  {personalTags.length > 0
+                    ? personalTags.map((tag) => `#${tag}`).join(' ')
                     : '아직 개인 태그가 없습니다.'}
                 </Text>
               </Stack>
@@ -454,6 +475,47 @@ export function WorkDetailPanel({
         <Tabs.Panel value="record">
           <Stack gap="md">
             {/* 장르 태그 */}
+            {(seriesTags.length > 0 || contributorValues.length > 0) && (
+              <Group gap={6} wrap="wrap">
+                {seriesTags.map((series) => (
+                  <span
+                    key={`series-chip-${series}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '3px 10px',
+                      borderRadius: 20,
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      background: 'color-mix(in srgb, var(--app-accent-primary) 12%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--app-accent-primary) 30%, transparent)',
+                      color: 'var(--app-accent-primary)',
+                    }}
+                  >
+                    {series}
+                  </span>
+                ))}
+                {contributorValues.map((contributor) => (
+                  <span
+                    key={`contributor-chip-${contributor}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '3px 10px',
+                      borderRadius: 20,
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      background: 'color-mix(in srgb, var(--app-accent-secondary) 12%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--app-accent-secondary) 30%, transparent)',
+                      color: 'var(--app-accent-secondary)',
+                    }}
+                  >
+                    {contributor}
+                  </span>
+                ))}
+              </Group>
+            )}
+
             {work.genres.length > 0 && (
               <Group gap={6} wrap="wrap">
                 {work.genres.map((genre) => (
@@ -493,9 +555,9 @@ export function WorkDetailPanel({
               <Text c="dimmed" fw={700} mb={6} size="sm">
                 개인 태그
               </Text>
-              {work.personalTags.length > 0 ? (
+              {personalTags.length > 0 ? (
                 <Group gap={6} wrap="wrap">
-                  {work.personalTags.map((tag) => (
+                  {personalTags.map((tag) => (
                     <span
                       key={tag}
                       style={{
@@ -518,6 +580,48 @@ export function WorkDetailPanel({
                 <Text c="dimmed" size="sm">아직 개인 태그를 남기지 않았습니다.</Text>
               )}
             </SectionCard>
+
+            {(seriesTags.length > 0 ||
+              contributorEntries.length > 0 ||
+              work.author.trim()) && (
+              <SectionCard gap="md" padding="lg" tone="subtle">
+                <Stack gap="sm">
+                  <Text c="dimmed" fw={800} size="sm">
+                    제작 정보
+                  </Text>
+                  {seriesTags.length > 0 && (
+                    <Group gap={6} wrap="wrap">
+                      {seriesTags.map((series) => (
+                        <AppBadge key={`info-series-${series}`} tone="accent">
+                          시리즈: {series}
+                        </AppBadge>
+                      ))}
+                    </Group>
+                  )}
+                  {contributorEntries.length > 0 ? (
+                    <Stack gap={6}>
+                      {contributorEntries.map((entry) => (
+                        <Text key={`${entry.kind}-${entry.value}`} size="sm">
+                          <Text c="dimmed" component="span" fw={700}>
+                            {getGraphTagKindLabel(entry.kind)}
+                          </Text>
+                          {': '}
+                          {entry.value}
+                        </Text>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Text size="sm">
+                      <Text c="dimmed" component="span" fw={700}>
+                        제작진
+                      </Text>
+                      {': '}
+                      {work.author.trim() || '미입력'}
+                    </Text>
+                  )}
+                </Stack>
+              </SectionCard>
+            )}
 
             <ActionRow>
               <AppLinkButton
