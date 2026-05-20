@@ -197,6 +197,12 @@ export class AuthService {
     return authorizationUrl.toString();
   }
 
+  isGoogleOAuthConfigured() {
+    const config = readApiRuntimeConfig();
+
+    return Boolean(config.googleOAuthClientId && config.googleOAuthClientSecret);
+  }
+
   async loginWithGoogleAuthorizationCode(
     code: string,
     expectedNonce: string,

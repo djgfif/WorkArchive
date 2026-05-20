@@ -1073,6 +1073,9 @@ describe('Auth, works, and sync API (e2e)', () => {
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
     process.env.EXTERNAL_API_KEY_ENCRYPTION_SECRET =
       'test-external-api-key-encryption-secret';
+    process.env.WEB_BASE_URL = 'http://127.0.0.1:53173';
+    delete process.env.GOOGLE_OAUTH_CLIENT_ID;
+    delete process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -1213,6 +1216,34 @@ describe('Auth, works, and sync API (e2e)', () => {
       ...overrides,
     };
   }
+
+  it('reports Google OAuth readiness and redirects unconfigured starts to login', async () => {
+    const unconfiguredStatus = await requestJson('/api/auth/google/status');
+
+    expect(unconfiguredStatus.status).toBe(200);
+    expect(unconfiguredStatus.body).toEqual({
+      configured: false,
+    });
+
+    const unconfiguredStart = await fetch(`${baseUrl}/api/auth/google/start`, {
+      redirect: 'manual',
+    });
+
+    expect(unconfiguredStart.status).toBe(302);
+    expect(unconfiguredStart.headers.get('location')).toBe(
+      'http://127.0.0.1:53173/auth/login?google=unconfigured',
+    );
+
+    process.env.GOOGLE_OAUTH_CLIENT_ID = 'google-client-id';
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google-client-secret';
+
+    const configuredStatus = await requestJson('/api/auth/google/status');
+
+    expect(configuredStatus.status).toBe(200);
+    expect(configuredStatus.body).toEqual({
+      configured: true,
+    });
+  });
 
   it('keeps health public and supports register, login, refresh, stale refresh rejection, and /auth/me', async () => {
     const healthResponse = await fetch(`${baseUrl}/health`);

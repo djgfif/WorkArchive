@@ -22,6 +22,10 @@ interface RestoredSession {
   user: AuthUserResponse;
 }
 
+interface GoogleAuthStatusResponse {
+  configured: boolean;
+}
+
 export type AuthSessionResponse = SharedAuthSessionResponse;
 export type AuthRefreshSessions = AuthRefreshSessionsResponse;
 export type AuthUser = AuthUserResponse;
@@ -76,6 +80,12 @@ export async function revokeAllAuthSessions() {
 
 export function getGoogleLoginStartUrl() {
   return `${getApiBaseUrl()}/auth/google/start`;
+}
+
+export async function fetchGoogleAuthStatus() {
+  return requestApiJson<GoogleAuthStatusResponse>('/auth/google/status', {
+    method: 'GET',
+  });
 }
 
 export async function restoreStoredSession(): Promise<RestoredSession | null> {

@@ -1,16 +1,44 @@
 import { Text } from '@mantine/core';
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { AuthPageTemplate } from '../../../shared/components/PageTemplates';
 import { AuthForm } from '../components/AuthForm';
 import { useAuthSession } from '../hooks/useAuthSession';
+import { fetchGoogleAuthStatus } from '../services/auth.api';
 
 export function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { continueWithGoogle, isLoading, mode } = useAuthSession();
-  const googleFailed =
-    new URLSearchParams(location.search).get('google') === 'failed';
+  const [googleConfigured, setGoogleConfigured] = useState(true);
+  const googleStatus = new URLSearchParams(location.search).get('google');
+  const googleFailed = googleStatus === 'failed';
+  const googleUnconfigured = googleStatus === 'unconfigured';
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadGoogleStatus() {
+      try {
+        const status = await fetchGoogleAuthStatus();
+
+        if (!isCancelled) {
+          setGoogleConfigured(status.configured);
+        }
+      } catch {
+        if (!isCancelled) {
+          setGoogleConfigured(true);
+        }
+      }
+    }
+
+    void loadGoogleStatus();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   if (!isLoading && mode === 'authenticated') {
     return <Navigate replace to="/" />;
@@ -26,12 +54,15 @@ export function LoginPage() {
       }
       form={
         <AuthForm
+          googleConfigured={googleConfigured && !googleUnconfigured}
           onContinueAsGuest={() => navigate('/works')}
           onContinueWithGoogle={continueWithGoogle ?? (() => undefined)}
           submitError={
             googleFailed
               ? 'Google 로그인을 완료하지 못했습니다. 다시 시도하거나 게스트로 계속 사용할 수 있습니다.'
-              : null
+              : googleUnconfigured
+                ? 'Google OAuth가 현재 서버 환경에 설정되어 있지 않습니다. 게스트로 계속 사용할 수 있습니다.'
+                : null
           }
         />
       }

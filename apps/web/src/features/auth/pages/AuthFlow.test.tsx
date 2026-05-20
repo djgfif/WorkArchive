@@ -41,6 +41,44 @@ function sessionBody(accessToken = 'access-token') {
   };
 }
 
+function authStartupFetchMock({
+  googleConfigured = true,
+}: {
+  googleConfigured?: boolean;
+} = {}) {
+  return vi.fn((input: string | URL | Request) => {
+    const requestUrl = String(input);
+
+    if (requestUrl.includes('/auth/google/status')) {
+      return Promise.resolve(
+        jsonResponse({
+          configured: googleConfigured,
+        }),
+      );
+    }
+
+    if (requestUrl.includes('/auth/refresh')) {
+      return Promise.resolve(
+        jsonResponse(
+          {
+            message: 'Invalid or expired refresh token.',
+          },
+          401,
+        ),
+      );
+    }
+
+    return Promise.resolve(
+      jsonResponse(
+        {
+          message: 'Not found.',
+        },
+        404,
+      ),
+    );
+  });
+}
+
 describe('Auth flow', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -48,17 +86,7 @@ describe('Auth flow', () => {
   });
 
   it('shows Google-first login and hides email/password auth', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValueOnce(
-        jsonResponse(
-          {
-            message: 'Invalid or expired refresh token.',
-          },
-          401,
-        ),
-      ),
-    );
+    vi.stubGlobal('fetch', authStartupFetchMock());
 
     const user = userEvent.setup();
     const router = createMemoryRouter(appRoutes, {
@@ -83,18 +111,37 @@ describe('Auth flow', () => {
     });
   });
 
-  it('redirects register and password reset routes back to Google login', async () => {
+  it('disables Google login when OAuth is not configured', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse(
-          {
-            message: 'Invalid or expired refresh token.',
-          },
-          401,
-        ),
-      ),
+      authStartupFetchMock({
+        googleConfigured: false,
+      }),
     );
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/login?google=unconfigured'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('Google OAuth 설정 필요')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Google로 계속하기' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: '게스트로 계속하기' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/works');
+    });
+  });
+
+  it('redirects register and password reset routes back to Google login', async () => {
+    vi.stubGlobal('fetch', authStartupFetchMock());
 
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/auth/register'],

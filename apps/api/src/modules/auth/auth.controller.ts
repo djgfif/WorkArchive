@@ -119,6 +119,11 @@ export class AuthController {
 
   @Get('google/start')
   async startGoogleLogin(@Res() response: Response) {
+    if (!this.authService.isGoogleOAuthConfigured()) {
+      response.redirect(this.getGoogleLoginFailureRedirectUrl('unconfigured'));
+      return;
+    }
+
     const state = this.generateOAuthSecret();
     const nonce = this.generateOAuthSecret();
     const cookieOptions = this.getOAuthCookieOptions();
@@ -127,6 +132,13 @@ export class AuthController {
     response.cookie(GOOGLE_OAUTH_NONCE_COOKIE, nonce, cookieOptions);
 
     response.redirect(this.authService.getGoogleAuthorizationUrl(state, nonce));
+  }
+
+  @Get('google/status')
+  googleStatus() {
+    return {
+      configured: this.authService.isGoogleOAuthConfigured(),
+    };
   }
 
   @Get('google/callback')
@@ -153,7 +165,7 @@ export class AuthController {
         severity: 'warning',
       });
 
-      response.redirect(this.getGoogleLoginFailureRedirectUrl());
+      response.redirect(this.getGoogleLoginFailureRedirectUrl('failed'));
       return;
     }
 
@@ -455,7 +467,7 @@ export class AuthController {
     return `${readApiRuntimeConfig().webBaseUrl.replace(/\/$/, '')}/auth/google/complete`;
   }
 
-  private getGoogleLoginFailureRedirectUrl() {
-    return `${readApiRuntimeConfig().webBaseUrl.replace(/\/$/, '')}/auth/login?google=failed`;
+  private getGoogleLoginFailureRedirectUrl(reason: 'failed' | 'unconfigured') {
+    return `${readApiRuntimeConfig().webBaseUrl.replace(/\/$/, '')}/auth/login?google=${reason}`;
   }
 }
