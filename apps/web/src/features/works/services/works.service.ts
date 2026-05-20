@@ -10,6 +10,12 @@ import {
   syncQueueRepository,
   type SyncQueueRepository,
 } from '../../sync/services/sync-queue.repository';
+import {
+  SERIES_GRAPH_TAG_KINDS,
+  getContributorSuggestionValues,
+  getPersonalTags,
+  getSuggestionValues,
+} from '../utils/graph-tags';
 import { queryWorks, type WorksListQuery } from '../utils/query-works';
 import type { UpsertWorkInput } from '../utils/work-form';
 import { worksRepository } from './works.repository';
@@ -25,6 +31,9 @@ function getCreateSource(input: UpsertWorkInput) {
 }
 
 interface WorksListResult {
+  contributorSuggestions: string[];
+  genreSuggestions: string[];
+  seriesSuggestions: string[];
   statusCounts: Record<WorkStatus, number>;
   tagSuggestions: string[];
   totalActiveCount: number;
@@ -79,9 +88,14 @@ export class WorksService {
     ]);
 
     return {
+      contributorSuggestions: getContributorSuggestionValues(activeWorks),
+      genreSuggestions: Array.from(
+        new Set(activeWorks.flatMap((work) => work.genres)),
+      ).sort((left, right) => left.localeCompare(right)),
+      seriesSuggestions: getSuggestionValues(activeWorks, SERIES_GRAPH_TAG_KINDS),
       statusCounts: countStatuses(activeWorks),
       tagSuggestions: Array.from(
-        new Set(activeWorks.flatMap((work) => work.personalTags)),
+        new Set(activeWorks.flatMap((work) => getPersonalTags(work.personalTags))),
       ).sort((left, right) => left.localeCompare(right)),
       totalActiveCount: activeWorks.length,
       totalDeletedCount: deletedWorks.length,

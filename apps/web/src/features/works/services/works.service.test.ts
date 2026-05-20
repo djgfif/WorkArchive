@@ -244,6 +244,46 @@ describe('WorksService', () => {
     ]);
   });
 
+  it('separates graph tag suggestions from personal tag suggestions', async () => {
+    await service.createWork(
+      buildInput({
+        genres: ['Fantasy'],
+        personalTags: [
+          'series:Fate',
+          'universe:TYPE-MOON',
+          'studio:ufotable',
+          'rewatch',
+        ],
+        title: 'Fate/stay night',
+      }),
+    );
+    await service.createWork(
+      buildInput({
+        author: 'Frank Herbert',
+        genres: ['Science Fiction'],
+        personalTags: ['creator:Frank Herbert', 'favorite prose'],
+        title: 'Dune',
+      }),
+    );
+
+    const result = await service.listWorks(
+      {
+        rating: null,
+        searchTerm: '',
+        sortBy: 'title',
+        status: 'all',
+        tag: '',
+        type: 'all',
+      },
+      'active',
+    );
+
+    expect(result.seriesSuggestions).toEqual(['Fate', 'TYPE-MOON']);
+    expect(result.contributorSuggestions).toEqual(['Frank Herbert', 'ufotable']);
+    expect(result.genreSuggestions).toEqual(['Fantasy', 'Science Fiction']);
+    expect(result.tagSuggestions).toEqual(['favorite prose', 'rewatch']);
+  });
+
   it('keeps list queries within the large local archive budget', async () => {
     const statuses = [
       'planned',

@@ -54,11 +54,14 @@ function getQueryFromSearchParams(
 
   return {
     ...DEFAULT_WORKS_LIST_QUERY,
+    contributor: searchParams.get('contributor') ?? '',
+    genre: searchParams.get('genre') ?? '',
     rating:
       Number.isFinite(ratingFromUrl) && ratingFromUrl >= 0 && ratingFromUrl <= 5
         ? ratingFromUrl
         : DEFAULT_WORKS_LIST_QUERY.rating,
     searchTerm: searchParams.get('q') ?? '',
+    series: searchParams.get('series') ?? '',
     tag: searchParams.get('tag') ?? '',
     sortBy:
       sortByFromUrl === 'title' || sortByFromUrl === 'rating'
@@ -85,6 +88,11 @@ function buildSearchParams(
   const nextSearchParams = new URLSearchParams();
 
   if (query.searchTerm.trim()) nextSearchParams.set('q', query.searchTerm.trim());
+  if (query.series?.trim()) nextSearchParams.set('series', query.series.trim());
+  if (query.contributor?.trim()) {
+    nextSearchParams.set('contributor', query.contributor.trim());
+  }
+  if (query.genre?.trim()) nextSearchParams.set('genre', query.genre.trim());
   if (query.status !== 'all') nextSearchParams.set('status', query.status);
   if (query.rating !== null) nextSearchParams.set('rating', query.rating.toString());
   if (query.tag?.trim()) nextSearchParams.set('tag', query.tag.trim());
@@ -115,9 +123,12 @@ export function WorksListPage() {
   const [updatingWorkId, setUpdatingWorkId] = useState<string | null>(null);
   const [restoringWorkId, setRestoringWorkId] = useState<string | null>(null);
   const {
+    contributorSuggestions,
     error,
+    genreSuggestions,
     isLoading,
     retry,
+    seriesSuggestions,
     statusCounts,
     tagSuggestions,
     totalActiveCount,
@@ -126,6 +137,9 @@ export function WorksListPage() {
   } = useWorksList(query, collectionScope);
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
+    (query.series?.trim() ?? '') !== '' ||
+    (query.contributor?.trim() ?? '') !== '' ||
+    (query.genre?.trim() ?? '') !== '' ||
     (query.tag?.trim() ?? '') !== '' ||
     query.rating !== null ||
     query.type !== 'all' ||
@@ -289,6 +303,9 @@ export function WorksListPage() {
         onQueryChange={handleQueryChange}
         onViewModeChange={handleViewModeChange}
         query={query}
+        contributorSuggestions={contributorSuggestions}
+        genreSuggestions={genreSuggestions}
+        seriesSuggestions={seriesSuggestions}
         statusCounts={statusCounts}
         tagSuggestions={tagSuggestions}
         totalActiveCount={totalActiveCount}

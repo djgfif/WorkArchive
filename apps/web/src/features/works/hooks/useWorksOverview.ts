@@ -4,28 +4,37 @@ import { useEffect, useState } from 'react';
 
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { worksRepository } from '../services/works.repository';
+import {
+  buildContributorCollectionSummaries,
+  buildSeriesCollectionSummaries,
+  type WorkCollectionSummary,
+} from '../utils/graph-tags';
 
 interface WorksOverviewState {
   averageRating: number | null;
   completedCount: number;
+  contributorCollections: WorkCollectionSummary[];
   deletedCount: number;
   error: string | null;
   inProgressCount: number;
   isLoading: boolean;
   pausedOrDroppedCount: number;
   recentWorks: WorkRecord[];
+  seriesCollections: WorkCollectionSummary[];
   totalCount: number;
 }
 
 const initialState: WorksOverviewState = {
   averageRating: null,
   completedCount: 0,
+  contributorCollections: [],
   deletedCount: 0,
   error: null,
   inProgressCount: 0,
   isLoading: true,
   pausedOrDroppedCount: 0,
   recentWorks: [],
+  seriesCollections: [],
   totalCount: 0,
 };
 
@@ -60,33 +69,39 @@ export function useWorksOverview() {
         averageRating:
           ratedWorks.length > 0 ? totalRating / ratedWorks.length : null,
         completedCount: works.filter((work) => work.status === 'completed').length,
+        contributorCollections: buildContributorCollectionSummaries(works),
         deletedCount: deletedWorks.length,
         inProgressCount: works.filter((work) => work.status === 'in_progress').length,
         pausedOrDroppedCount: works.filter(
           (work) => work.status === 'paused' || work.status === 'dropped',
         ).length,
         recentWorks: [...works].sort(compareUpdatedAtDescending).slice(0, 6),
+        seriesCollections: buildSeriesCollectionSummaries(works),
         totalCount: works.length,
       };
     }).subscribe({
       next: ({
         averageRating,
         completedCount,
+        contributorCollections,
         deletedCount,
         inProgressCount,
         pausedOrDroppedCount,
         recentWorks,
+        seriesCollections,
         totalCount,
       }) => {
         setState({
           averageRating,
           completedCount,
+          contributorCollections,
           deletedCount,
           error: null,
           inProgressCount,
           isLoading: false,
           pausedOrDroppedCount,
           recentWorks,
+          seriesCollections,
           totalCount,
         });
       },

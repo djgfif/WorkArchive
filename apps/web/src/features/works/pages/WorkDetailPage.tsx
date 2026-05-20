@@ -52,7 +52,9 @@ import {
   type RelatedCatalogTitlesResponse,
   type UserRecordReleasesResponse,
 } from '../services/user-records.api';
+import { worksRepository } from '../services/works.repository';
 import { worksService } from '../services/works.service';
+import { getSeriesTagValues } from '../utils/graph-tags';
 import { getWorkTypeLabel, workStatusOptions } from '../utils/work-options';
 import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 
@@ -486,6 +488,64 @@ function VolumeRecordsSection({
   );
 }
 
+function LocalSeriesSection({
+  currentWork,
+  works,
+}: {
+  currentWork: WorkRecord;
+  works: WorkRecord[];
+}) {
+  const seriesValues = getSeriesTagValues(currentWork.personalTags);
+
+  if (seriesValues.length === 0) {
+    return null;
+  }
+
+  const normalizedSeriesValues = new Set(
+    seriesValues.map((value) => value.trim().toLowerCase()),
+  );
+  const sameSeriesWorks = works
+    .filter((work) => work.id !== currentWork.id)
+    .filter((work) =>
+      getSeriesTagValues(work.personalTags).some((value) =>
+        normalizedSeriesValues.has(value.trim().toLowerCase()),
+      ),
+    )
+    .sort((left, right) => left.title.localeCompare(right.title))
+    .slice(0, 8);
+
+  if (sameSeriesWorks.length === 0) {
+    return null;
+  }
+
+  return (
+    <PageSection
+      description="로컬 기록의 시리즈/세계관 태그로 묶은 작품입니다."
+      eyebrow="시리즈"
+      title="이 시리즈 안에서"
+    >
+      <Stack gap="md">
+        {sameSeriesWorks.map((work) => (
+          <SectionCard key={work.id} gap="xs" padding="lg" tone="subtle">
+            <Group justify="space-between">
+              <Stack gap={4}>
+                <Text fw={700}>{work.title}</Text>
+                <Text c="var(--mantine-color-dimmed)" size="sm">
+                  {getWorkTypeLabel(work.type)}
+                  {work.rating !== null ? ` · ★ ${work.rating.toFixed(1)}` : ''}
+                </Text>
+              </Stack>
+              <AppLinkButton to={`/works/${work.id}`} tone="quiet">
+                보기
+              </AppLinkButton>
+            </Group>
+          </SectionCard>
+        ))}
+      </Stack>
+    </PageSection>
+  );
+}
+
 function RelatedTitlesSection({
   relatedData,
 }: {
@@ -531,7 +591,7 @@ function RelatedTitlesSection({
     <PageSection
       description="같은 Franchise 안의 후속작, 외전, 각색 작품은 별도 title-level 기록 대상으로 봅니다."
       eyebrow="관련 작품"
-      title="같은 IP의 다른 타이틀"
+      title="관련 작품"
     >
       <Stack gap="md">
         {relatedEntries.map((relation) => (
@@ -589,6 +649,7 @@ export function WorkDetailPage() {
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntryRecord[]>(
     [],
   );
+  const [localWorks, setLocalWorks] = useState<WorkRecord[]>([]);
   const workCatalogTitleId = work?.catalogTitleId ?? null;
   const workId = work?.id ?? null;
   const workType = work?.type ?? null;
@@ -670,6 +731,17 @@ export function WorkDetailPage() {
       subscription.unsubscribe();
     };
   }, [archiveScopeKey, workId]);
+
+  useEffect(() => {
+    const subscription = liveQuery(() => worksRepository.listActive()).subscribe({
+      next: setLocalWorks,
+      error: () => setLocalWorks([]),
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [archiveScopeKey]);
 
   useEffect(() => {
     let isActive = true;
@@ -883,6 +955,7 @@ export function WorkDetailPage() {
         }
         relatedSections={
           <>
+            <LocalSeriesSection currentWork={work} works={localWorks} />
             <VolumeRecordsSection
               localRecords={localReleaseRecords}
               onError={handleActionError}

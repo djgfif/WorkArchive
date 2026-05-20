@@ -259,6 +259,90 @@ describe('WorksListPage', () => {
     expect(screen.getByRole('heading', { name: 'Your Name' })).toBeInTheDocument();
   });
 
+  it('shows graph filters before status and syncs them with the URL', async () => {
+    await worksService.createWork({
+      type: 'anime',
+      title: 'Fate/stay night',
+      author: 'TYPE-MOON',
+      genres: ['Fantasy'],
+      personalTags: ['series:Fate', 'universe:TYPE-MOON', 'studio:ufotable'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'completed',
+      rating: 5,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    await worksService.createWork({
+      type: 'novel',
+      title: 'Dune',
+      author: 'Frank Herbert',
+      genres: ['Science Fiction'],
+      personalTags: ['series:Dune', 'creator:Frank Herbert'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Fate/stay night' }),
+    ).toBeInTheDocument();
+
+    const orderedLabels = [
+      '매체',
+      '시리즈 / 세계관',
+      '제작진 / 회사',
+      '장르',
+      '상태',
+    ].map((label) => screen.getByText(label));
+
+    for (let index = 0; index < orderedLabels.length - 1; index += 1) {
+      expect(
+        orderedLabels[index]!.compareDocumentPosition(orderedLabels[index + 1]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+
+    await user.click(screen.getByRole('button', { name: '애니' }));
+    await user.click(screen.getByRole('button', { name: 'Fate' }));
+    await user.click(screen.getByRole('button', { name: 'ufotable' }));
+    await user.click(screen.getByRole('button', { name: 'Fantasy' }));
+    await user.click(screen.getByRole('button', { name: /완료/ }));
+
+    await waitFor(() => {
+      const params = new URLSearchParams(router.state.location.search);
+
+      expect(params.get('type')).toBe('anime');
+      expect(params.get('series')).toBe('Fate');
+      expect(params.get('contributor')).toBe('ufotable');
+      expect(params.get('genre')).toBe('Fantasy');
+      expect(params.get('status')).toBe('completed');
+    });
+    expect(screen.getByRole('heading', { name: 'Fate/stay night' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Dune' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders large libraries progressively and lets users load more items', async () => {
     for (let index = 1; index <= 75; index += 1) {
       await worksService.createWork({

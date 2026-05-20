@@ -1,10 +1,23 @@
 import type { WorkRecord, WorkStatus, WorkType } from '@work-archive/shared-types';
 
+import {
+  CONTRIBUTOR_GRAPH_TAG_KINDS,
+  SERIES_GRAPH_TAG_KINDS,
+  getGraphTags,
+  getPersonalTags,
+  matchesGraphTagValue,
+  matchesPersonalTag,
+  workContributorValues,
+} from './graph-tags';
+
 export type WorksSortOption = 'updatedAt' | 'title' | 'rating';
 
 export interface WorksListQuery {
+  contributor?: string;
+  genre?: string;
   rating: number | null;
   searchTerm: string;
+  series?: string;
   tag?: string;
   type: WorkType | 'all';
   status: WorkStatus | 'all';
@@ -12,8 +25,11 @@ export interface WorksListQuery {
 }
 
 export const DEFAULT_WORKS_LIST_QUERY: WorksListQuery = {
+  contributor: '',
+  genre: '',
   rating: null,
   searchTerm: '',
+  series: '',
   tag: '',
   type: 'all',
   status: 'all',
@@ -61,7 +77,11 @@ function matchesSearch(work: WorkRecord, searchTerm: string) {
     work.review,
     work.description,
     work.genres.join(' '),
-    work.personalTags.join(' '),
+    getPersonalTags(work.personalTags).join(' '),
+    getGraphTags(work.personalTags)
+      .map((tag) => tag.value)
+      .join(' '),
+    workContributorValues(work).join(' '),
   ].flatMap(createSearchSignals);
 
   return searchSignals.some((searchSignal) =>
@@ -87,10 +107,35 @@ export function queryWorks(works: WorkRecord[], query: WorksListQuery) {
       return work.rating === query.rating;
     }
 
+    if (!matchesPersonalTag(work.personalTags, query.tag)) {
+      return false;
+    }
+
+    if (!matchesGraphTagValue(work.personalTags, SERIES_GRAPH_TAG_KINDS, query.series)) {
+      return false;
+    }
+
     if (
-      query.tag?.trim() &&
-      !work.personalTags.some(
-        (tag) => tag.toLowerCase() === query.tag?.trim().toLowerCase(),
+      query.contributor?.trim() &&
+      !matchesGraphTagValue(
+        work.personalTags,
+        CONTRIBUTOR_GRAPH_TAG_KINDS,
+        query.contributor,
+      ) &&
+      !workContributorValues(work).some(
+        (value) =>
+          normalizeSearchText(value) ===
+          normalizeSearchText(query.contributor ?? ''),
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      query.genre?.trim() &&
+      !work.genres.some(
+        (genre) =>
+          normalizeSearchText(genre) === normalizeSearchText(query.genre ?? ''),
       )
     ) {
       return false;

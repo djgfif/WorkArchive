@@ -297,10 +297,16 @@ export function createValuesFromCandidate(
   candidate: ImportCandidate,
   createDefaultWorkFormValues: () => WorkFormValues,
 ): WorkFormValues {
+  const contributorNames = candidate.contributors
+    .map((contributor) => contributor.name.trim())
+    .filter(Boolean);
+
   return {
     ...createQuickAddDefaults(createDefaultWorkFormValues),
     author: candidate.author,
+    creatorText: contributorNames.join(', '),
     description: candidate.description,
+    seriesText: candidate.franchiseName ?? '',
     genresText: candidate.genresText,
     thumbnailUrl: candidate.thumbnailUrl,
     title: candidate.title,

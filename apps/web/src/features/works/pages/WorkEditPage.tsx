@@ -18,6 +18,7 @@ import {
   createWorkFormValuesFromRecord,
   type UpsertWorkInput,
 } from '../utils/work-form';
+import { getPersonalTags } from '../utils/graph-tags';
 
 export function WorkEditPage() {
   const { id } = useParams();
@@ -37,9 +38,9 @@ export function WorkEditPage() {
     const subscription = liveQuery(() => worksRepository.listActive()).subscribe({
       next: (works) => {
         setTagSuggestions(
-          Array.from(new Set(works.flatMap((entry) => entry.personalTags))).sort(
-            (left, right) => left.localeCompare(right),
-          ),
+          Array.from(
+            new Set(works.flatMap((entry) => getPersonalTags(entry.personalTags))),
+          ).sort((left, right) => left.localeCompare(right)),
         );
       },
       error: () => setTagSuggestions([]),

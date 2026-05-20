@@ -6,12 +6,24 @@ import type {
   WorkType,
 } from '@work-archive/shared-types';
 
+import {
+  getGraphTagValues,
+  getPersonalTags,
+  mergeGraphTags,
+} from './graph-tags';
+
 export interface WorkFormValues {
   type: WorkType;
   title: string;
   author: string;
   genresText: string;
   personalTagsText: string;
+  seriesText: string;
+  universeText: string;
+  creatorText: string;
+  studioText: string;
+  publisherText: string;
+  platformText: string;
   description: string;
   thumbnailUrl: string;
   status: WorkStatus;
@@ -55,6 +67,12 @@ export function createDefaultWorkFormValues(): WorkFormValues {
     author: '',
     genresText: '',
     personalTagsText: '',
+    seriesText: '',
+    universeText: '',
+    creatorText: '',
+    studioText: '',
+    publisherText: '',
+    platformText: '',
     description: '',
     thumbnailUrl: '',
     status: 'planned',
@@ -82,7 +100,13 @@ export function createWorkFormValuesFromRecord(
     title: work.title,
     author: work.author,
     genresText: work.genres.join(', '),
-    personalTagsText: work.personalTags.join(', '),
+    personalTagsText: getPersonalTags(work.personalTags).join(', '),
+    seriesText: getGraphTagValues(work.personalTags, ['series']).join(', '),
+    universeText: getGraphTagValues(work.personalTags, ['universe']).join(', '),
+    creatorText: getGraphTagValues(work.personalTags, ['creator']).join(', '),
+    studioText: getGraphTagValues(work.personalTags, ['studio']).join(', '),
+    publisherText: getGraphTagValues(work.personalTags, ['publisher']).join(', '),
+    platformText: getGraphTagValues(work.personalTags, ['platform']).join(', '),
     description: work.description,
     thumbnailUrl: work.thumbnailUrl,
     status: work.status,
@@ -174,12 +198,24 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
     throw new Error('별점은 0점부터 5점 사이로 입력해주세요.');
   }
 
+  const personalTags = mergeGraphTags(
+    parseCommaSeparatedTextList(values.personalTagsText),
+    {
+      creator: parseCommaSeparatedTextList(values.creatorText),
+      platform: parseCommaSeparatedTextList(values.platformText),
+      publisher: parseCommaSeparatedTextList(values.publisherText),
+      series: parseCommaSeparatedTextList(values.seriesText),
+      studio: parseCommaSeparatedTextList(values.studioText),
+      universe: parseCommaSeparatedTextList(values.universeText),
+    },
+  );
+
   return {
     type: values.type,
     title,
     author: values.author.trim(),
     genres: parseCommaSeparatedTextList(values.genresText),
-    personalTags: parseCommaSeparatedTextList(values.personalTagsText),
+    personalTags,
     description: values.description.trim(),
     thumbnailUrl: values.thumbnailUrl.trim(),
     status: values.status,
