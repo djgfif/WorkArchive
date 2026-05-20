@@ -110,6 +110,53 @@ enum CatalogRelationType {
   alternate_version
 }
 
+enum SeriesKind {
+  series
+  franchise
+  universe
+  arc
+  collection
+}
+
+enum WorkSeriesRole {
+  main
+  season
+  arc
+  movie
+  ova
+  spin_off
+  side_story
+}
+
+enum WorkContributorRole {
+  author
+  illustrator
+  director
+  studio
+  publisher
+  screenwriter
+  original_creator
+  artist
+  translator
+  platform
+  production_company
+}
+
+enum WorkRelationType {
+  original
+  adaptation
+  spin_off
+  sequel
+  prequel
+  side_story
+  remake
+  compilation
+  alternate_version
+  same_universe
+  season_next
+  season_previous
+}
+
 enum CatalogSubmissionStatus {
   pending
   approved
@@ -133,6 +180,9 @@ model User {
   catalogSubmissions     CatalogSubmission[]     @relation("CatalogSubmissionSubmitter")
   reviewedSubmissions    CatalogSubmission[]     @relation("CatalogSubmissionReviewer")
   catalogAuditLogs       CatalogAuditLog[]
+  series                 UserSeries[]
+  contributors           UserContributor[]
+  workRelations          UserWorkRelation[]
 
   @@map("users")
 }
@@ -422,6 +472,10 @@ model UserWorkRecord {
   user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
   releaseRecords    UserReleaseRecord[]
   timelineEntries   UserTimelineEntry[]
+  seriesLinks       UserWorkSeriesLink[]
+  contributorLinks  UserWorkContributor[]
+  outgoingRelations UserWorkRelation[]  @relation("UserWorkRelationSource")
+  incomingRelations UserWorkRelation[]  @relation("UserWorkRelationTarget")
 
   @@index([userId, deletedAt])
   @@index([userId, status, updatedAt])
@@ -477,6 +531,117 @@ model UserReleaseRecord {
   @@index([updatedAt])
   @@index([updatedAt, id], map: "user_release_records_updatedAt_id_idx")
   @@map("user_release_records")
+}
+
+model UserSeries {
+  id              String               @id @default(uuid())
+  userId          String
+  title           String
+  normalizedTitle String
+  aliases         String[]             @default([])
+  kind            SeriesKind           @default(series)
+  parentId        String?
+  description     String               @default("") @db.Text
+  thumbnailUrl    String               @default("")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  deletedAt       DateTime?
+  syncStatus      WorkSyncStatus       @default(synced)
+  serverVersion   Int                  @default(1)
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent          UserSeries?          @relation("UserSeriesParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children        UserSeries[]         @relation("UserSeriesParent")
+  workLinks       UserWorkSeriesLink[]
+
+  @@unique([userId, kind, normalizedTitle])
+  @@index([userId, updatedAt, id])
+  @@index([userId, deletedAt])
+  @@index([parentId])
+  @@map("user_series")
+}
+
+model UserWorkSeriesLink {
+  id            String         @id @default(uuid())
+  userWorkId    String
+  userSeriesId  String
+  role          WorkSeriesRole @default(main)
+  orderIndex    Float?
+  orderLabel    String         @default("")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+  syncStatus    WorkSyncStatus @default(synced)
+  serverVersion Int            @default(1)
+  userWork      UserWorkRecord @relation(fields: [userWorkId], references: [id], onDelete: Cascade)
+  userSeries    UserSeries     @relation(fields: [userSeriesId], references: [id], onDelete: Cascade)
+
+  @@unique([userWorkId, userSeriesId, role])
+  @@index([userSeriesId, role])
+  @@index([updatedAt, id])
+  @@map("user_work_series_links")
+}
+
+model UserContributor {
+  id             String                    @id @default(uuid())
+  userId         String
+  name           String
+  normalizedName String
+  aliases        String[]                  @default([])
+  entityType     ContributorEntityType     @default(person)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  deletedAt      DateTime?
+  syncStatus     WorkSyncStatus            @default(synced)
+  serverVersion  Int                       @default(1)
+  user           User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workLinks      UserWorkContributor[]
+
+  @@unique([userId, entityType, normalizedName])
+  @@index([userId, updatedAt, id])
+  @@index([userId, deletedAt])
+  @@map("user_contributors")
+}
+
+model UserWorkContributor {
+  id                String              @id @default(uuid())
+  userWorkId        String
+  userContributorId String
+  role              WorkContributorRole
+  displayOrder      Int                 @default(0)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  syncStatus        WorkSyncStatus      @default(synced)
+  serverVersion     Int                 @default(1)
+  userWork          UserWorkRecord      @relation(fields: [userWorkId], references: [id], onDelete: Cascade)
+  userContributor   UserContributor     @relation(fields: [userContributorId], references: [id], onDelete: Cascade)
+
+  @@unique([userWorkId, userContributorId, role])
+  @@index([userContributorId, role])
+  @@index([updatedAt, id])
+  @@map("user_work_contributors")
+}
+
+model UserWorkRelation {
+  id             String           @id @default(uuid())
+  userId         String
+  sourceWorkId   String
+  targetWorkId   String
+  relationType   WorkRelationType
+  note           String           @default("") @db.Text
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+  syncStatus     WorkSyncStatus   @default(synced)
+  serverVersion  Int              @default(1)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceWork     UserWorkRecord   @relation("UserWorkRelationSource", fields: [sourceWorkId], references: [id], onDelete: Cascade)
+  targetWork     UserWorkRecord   @relation("UserWorkRelationTarget", fields: [targetWorkId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceWorkId, targetWorkId, relationType])
+  @@index([userId, updatedAt, id])
+  @@index([targetWorkId, relationType])
+  @@map("user_work_relations")
 }
 
 model ExternalApiCredential {

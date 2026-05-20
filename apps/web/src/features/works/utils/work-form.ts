@@ -6,11 +6,8 @@ import type {
   WorkType,
 } from '@work-archive/shared-types';
 
-import {
-  getGraphTagValues,
-  getPersonalTags,
-  mergeGraphTags,
-} from './graph-tags';
+import { getGraphTags, getPersonalTags } from './graph-tags';
+import type { WorkGraphInput, WorkGraphSnapshot } from '../services/graph.repository';
 
 export interface WorkFormValues {
   type: WorkType;
@@ -58,6 +55,7 @@ export interface UpsertWorkInput {
   completedAt?: string | null;
   droppedAt?: string | null;
   lastConsumedAt?: string | null;
+  graph?: WorkGraphInput;
 }
 
 export function createDefaultWorkFormValues(): WorkFormValues {
@@ -94,19 +92,59 @@ function formatIsoDateForInput(value?: string | null) {
 
 export function createWorkFormValuesFromRecord(
   work: WorkRecord,
+  graph?: WorkGraphSnapshot,
 ): WorkFormValues {
+  const getSeriesTitlesByKind = (kind: 'series' | 'universe') =>
+    graph?.workSeriesLinks && graph.workSeriesLinks.length > 0
+      ? graph.workSeriesLinks
+          .map((link) =>
+            graph.series.find((series) => series.id === link.seriesId),
+          )
+          .filter((series): series is NonNullable<typeof series> =>
+            Boolean(series && series.kind === kind),
+          )
+          .map((series) => series.title)
+      : getGraphTags(work.personalTags)
+          .filter((tag) => tag.kind === kind)
+          .map((tag) => tag.value);
+  const getContributorNamesByRole = (role: string) =>
+    graph?.workContributors && graph.workContributors.length > 0
+      ? graph.workContributors
+          .filter((link) => link.role === role)
+          .sort((left, right) => left.displayOrder - right.displayOrder)
+          .map((link) =>
+            graph.contributors.find(
+              (contributor) => contributor.id === link.contributorId,
+            ),
+          )
+          .filter(
+            (contributor): contributor is NonNullable<typeof contributor> =>
+              Boolean(contributor),
+          )
+          .map((contributor) => contributor.name)
+      : getGraphTags(work.personalTags)
+          .filter((tag) => {
+            if (role === 'original_creator') return tag.kind === 'creator';
+            if (role === 'studio') return tag.kind === 'studio';
+            if (role === 'publisher') return tag.kind === 'publisher';
+            if (role === 'platform') return tag.kind === 'platform';
+
+            return false;
+          })
+          .map((tag) => tag.value);
+
   return {
     type: work.type,
     title: work.title,
     author: work.author,
     genresText: work.genres.join(', '),
     personalTagsText: getPersonalTags(work.personalTags).join(', '),
-    seriesText: getGraphTagValues(work.personalTags, ['series']).join(', '),
-    universeText: getGraphTagValues(work.personalTags, ['universe']).join(', '),
-    creatorText: getGraphTagValues(work.personalTags, ['creator']).join(', '),
-    studioText: getGraphTagValues(work.personalTags, ['studio']).join(', '),
-    publisherText: getGraphTagValues(work.personalTags, ['publisher']).join(', '),
-    platformText: getGraphTagValues(work.personalTags, ['platform']).join(', '),
+    seriesText: getSeriesTitlesByKind('series').join(', '),
+    universeText: getSeriesTitlesByKind('universe').join(', '),
+    creatorText: getContributorNamesByRole('original_creator').join(', '),
+    studioText: getContributorNamesByRole('studio').join(', '),
+    publisherText: getContributorNamesByRole('publisher').join(', '),
+    platformText: getContributorNamesByRole('platform').join(', '),
     description: work.description,
     thumbnailUrl: work.thumbnailUrl,
     status: work.status,
@@ -198,17 +236,49 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
     throw new Error('별점은 0점부터 5점 사이로 입력해주세요.');
   }
 
-  const personalTags = mergeGraphTags(
+  const personalTags = getPersonalTags(
     parseCommaSeparatedTextList(values.personalTagsText),
-    {
-      creator: parseCommaSeparatedTextList(values.creatorText),
-      platform: parseCommaSeparatedTextList(values.platformText),
-      publisher: parseCommaSeparatedTextList(values.publisherText),
-      series: parseCommaSeparatedTextList(values.seriesText),
-      studio: parseCommaSeparatedTextList(values.studioText),
-      universe: parseCommaSeparatedTextList(values.universeText),
-    },
   );
+  const graph: WorkGraphInput = {
+    series: [
+      ...parseCommaSeparatedTextList(values.seriesText).map((seriesTitle) => ({
+        kind: 'series' as const,
+        role: 'main' as const,
+        title: seriesTitle,
+      })),
+      ...parseCommaSeparatedTextList(values.universeText).map((seriesTitle) => ({
+        kind: 'universe' as const,
+        role: 'main' as const,
+        title: seriesTitle,
+      })),
+    ],
+    contributors: [
+      ...parseCommaSeparatedTextList(values.creatorText).map((name, index) => ({
+        displayOrder: index,
+        entityType: 'person' as const,
+        name,
+        role: 'original_creator' as const,
+      })),
+      ...parseCommaSeparatedTextList(values.studioText).map((name, index) => ({
+        displayOrder: index,
+        entityType: 'organization' as const,
+        name,
+        role: 'studio' as const,
+      })),
+      ...parseCommaSeparatedTextList(values.publisherText).map((name, index) => ({
+        displayOrder: index,
+        entityType: 'organization' as const,
+        name,
+        role: 'publisher' as const,
+      })),
+      ...parseCommaSeparatedTextList(values.platformText).map((name, index) => ({
+        displayOrder: index,
+        entityType: 'organization' as const,
+        name,
+        role: 'platform' as const,
+      })),
+    ],
+  };
 
   return {
     type: values.type,
@@ -224,12 +294,13 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
     review: values.review.trim(),
     tier: values.tier || null,
     favorite: values.favorite,
-    startedAt: parseOptionalDateInput(values.startedAt, '시작일'),
-    completedAt: parseOptionalDateInput(values.completedAt, '완료일'),
-    droppedAt: parseOptionalDateInput(values.droppedAt, '중단일'),
+    startedAt: parseOptionalDateInput(values.startedAt, 'startedAt'),
+    completedAt: parseOptionalDateInput(values.completedAt, 'completedAt'),
+    droppedAt: parseOptionalDateInput(values.droppedAt, 'droppedAt'),
     lastConsumedAt: parseOptionalDateInput(
       values.lastConsumedAt,
-      '마지막 감상일',
+      'lastConsumedAt',
     ),
+    graph,
   };
 }

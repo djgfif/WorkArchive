@@ -3,9 +3,12 @@ import { liveQuery } from 'dexie';
 import { useEffect, useState } from 'react';
 
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { graphRepository } from '../services/graph.repository';
 import { worksRepository } from '../services/works.repository';
 import {
+  buildContributorCollectionSummariesFromGraph,
   buildContributorCollectionSummaries,
+  buildSeriesCollectionSummariesFromGraph,
   buildSeriesCollectionSummaries,
   type WorkCollectionSummary,
 } from '../utils/graph-tags';
@@ -55,9 +58,10 @@ export function useWorksOverview() {
     }));
 
     const subscription = liveQuery(async () => {
-      const [works, deletedWorks] = await Promise.all([
+      const [works, deletedWorks, graph] = await Promise.all([
         worksRepository.listActive(),
         worksRepository.listDeleted(),
+        graphRepository.listActiveGraph(),
       ]);
       const ratedWorks = works.filter((work) => work.rating !== null);
       const totalRating = ratedWorks.reduce(
@@ -69,14 +73,20 @@ export function useWorksOverview() {
         averageRating:
           ratedWorks.length > 0 ? totalRating / ratedWorks.length : null,
         completedCount: works.filter((work) => work.status === 'completed').length,
-        contributorCollections: buildContributorCollectionSummaries(works),
+        contributorCollections:
+          graph.workContributors.length > 0
+            ? buildContributorCollectionSummariesFromGraph(works, graph)
+            : buildContributorCollectionSummaries(works),
         deletedCount: deletedWorks.length,
         inProgressCount: works.filter((work) => work.status === 'in_progress').length,
         pausedOrDroppedCount: works.filter(
           (work) => work.status === 'paused' || work.status === 'dropped',
         ).length,
         recentWorks: [...works].sort(compareUpdatedAtDescending).slice(0, 6),
-        seriesCollections: buildSeriesCollectionSummaries(works),
+        seriesCollections:
+          graph.workSeriesLinks.length > 0
+            ? buildSeriesCollectionSummariesFromGraph(works, graph)
+            : buildSeriesCollectionSummaries(works),
         totalCount: works.length,
       };
     }).subscribe({

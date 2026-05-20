@@ -13,11 +13,22 @@ import {
 import {
   SERIES_GRAPH_TAG_KINDS,
   getContributorSuggestionValues,
+  getGraphTags,
   getPersonalTags,
   getSuggestionValues,
 } from '../utils/graph-tags';
-import { queryWorks, type WorksListQuery } from '../utils/query-works';
+import {
+  queryWorks,
+  type WorksGraphQueryIndex,
+  type WorksListQuery,
+} from '../utils/query-works';
 import type { UpsertWorkInput } from '../utils/work-form';
+import {
+  graphRepository,
+  type GraphRepository,
+  type WorkGraphInput,
+  type WorkGraphSnapshot,
+} from './graph.repository';
 import { worksRepository } from './works.repository';
 
 function getNextSyncStatus(serverVersion: number): WorkSyncStatus {
@@ -68,38 +79,101 @@ function countStatuses(works: WorkRecord[]) {
   }, buildEmptyStatusCounts());
 }
 
+function buildGraphInputFromLegacyTags(tags: string[]): WorkGraphInput | null {
+  const graphTags = getGraphTags(tags);
+
+  if (graphTags.length === 0) {
+    return null;
+  }
+
+  const graph: WorkGraphInput = {
+    contributors: [],
+    series: [],
+  };
+  const contributorOrderByRole = new Map<string, number>();
+
+  for (const tag of graphTags) {
+    if (tag.kind === 'series' || tag.kind === 'universe') {
+      graph.series.push({
+        kind: tag.kind,
+        role: 'main',
+        title: tag.value,
+      });
+      continue;
+    }
+
+    const role =
+      tag.kind === 'creator'
+        ? 'original_creator'
+        : tag.kind === 'studio'
+          ? 'studio'
+          : tag.kind === 'publisher'
+            ? 'publisher'
+            : 'platform';
+    const displayOrder = contributorOrderByRole.get(role) ?? 0;
+
+    contributorOrderByRole.set(role, displayOrder + 1);
+    graph.contributors.push({
+      displayOrder,
+      entityType: tag.kind === 'creator' ? 'person' : 'organization',
+      name: tag.value,
+      role,
+    });
+  }
+
+  return graph;
+}
+
 export class WorksService {
   constructor(
     private readonly repository: WorksRepository = worksRepository,
     private readonly queueRepository: SyncQueueRepository = syncQueueRepository,
+    private readonly graphRepo: GraphRepository = graphRepository,
   ) {}
 
   async listWorks(
     query: WorksListQuery,
     scope: WorksCollectionScope = 'active',
   ) {
-    const [activeWorks, deletedWorks, worksInScope] = await Promise.all([
+    const [activeWorks, deletedWorks, worksInScope, graph] = await Promise.all([
       this.repository.listActive(),
       this.repository.listDeleted(),
       this.repository.listByScopeForQuery(
         scope === 'trash' ? 'deleted' : 'active',
         query,
       ),
+      this.graphRepo.listActiveGraph(),
     ]);
+    const graphIndex = buildGraphQueryIndex(graph);
+    const graphContributorSuggestions = Array.from(
+      new Set([
+        ...graph.contributors.map((contributor) => contributor.name),
+        ...activeWorks.map((work) => work.author.trim()).filter(Boolean),
+      ]),
+    ).sort((left, right) => left.localeCompare(right));
+    const graphSeriesSuggestions = Array.from(
+      new Set(graph.series.map((series) => series.title)),
+    ).sort((left, right) => left.localeCompare(right));
 
     return {
-      contributorSuggestions: getContributorSuggestionValues(activeWorks),
+      contributorSuggestions:
+        graphContributorSuggestions.length > 0
+          ? graphContributorSuggestions
+          : getContributorSuggestionValues(activeWorks),
       genreSuggestions: Array.from(
         new Set(activeWorks.flatMap((work) => work.genres)),
       ).sort((left, right) => left.localeCompare(right)),
-      seriesSuggestions: getSuggestionValues(activeWorks, SERIES_GRAPH_TAG_KINDS),
+      seriesSuggestions:
+        graphSeriesSuggestions.length > 0
+          ? graphSeriesSuggestions
+          : getSuggestionValues(activeWorks, SERIES_GRAPH_TAG_KINDS),
       statusCounts: countStatuses(activeWorks),
       tagSuggestions: Array.from(
         new Set(activeWorks.flatMap((work) => getPersonalTags(work.personalTags))),
       ).sort((left, right) => left.localeCompare(right)),
       totalActiveCount: activeWorks.length,
       totalDeletedCount: deletedWorks.length,
-      works: queryWorks(worksInScope, query),
+      works: queryWorks(worksInScope, query, graphIndex),
     } satisfies WorksListResult;
   }
 
@@ -120,7 +194,7 @@ export class WorksService {
       ...input,
       catalogTitleId: input.catalogTitleId ?? null,
       importDraft: input.importDraft ?? null,
-      personalTags: [...(input.personalTags ?? [])],
+      personalTags: getPersonalTags([...(input.personalTags ?? [])]),
       createdAt: now,
       updatedAt: now,
       progressCurrent: null,
@@ -142,6 +216,12 @@ export class WorksService {
       'create',
       getCreateSource(input),
     );
+    const graphInput =
+      input.graph ?? buildGraphInputFromLegacyTags(input.personalTags ?? []);
+
+    if (graphInput) {
+      await this.graphRepo.saveWorkGraph(work.id, graphInput, getCreateSource(input));
+    }
 
     return work;
   }
@@ -164,7 +244,7 @@ export class WorksService {
         input.importDraft === undefined
           ? (existing.importDraft ?? null)
           : input.importDraft,
-      personalTags: [...(input.personalTags ?? existing.personalTags)],
+      personalTags: getPersonalTags([...(input.personalTags ?? existing.personalTags)]),
       startedAt: input.startedAt ?? null,
       completedAt: input.completedAt ?? null,
       droppedAt: input.droppedAt ?? null,
@@ -175,6 +255,12 @@ export class WorksService {
 
     await this.repository.update(updated);
     await this.queueRepository.enqueueWorkChange(updated, 'update', 'edit_form');
+    const graphInput =
+      input.graph ?? buildGraphInputFromLegacyTags(input.personalTags ?? []);
+
+    if (graphInput) {
+      await this.graphRepo.saveWorkGraph(updated.id, graphInput, 'edit_form');
+    }
 
     return updated;
   }
@@ -267,3 +353,41 @@ export class WorksService {
 }
 
 export const worksService = new WorksService();
+
+function buildGraphQueryIndex(graph: WorkGraphSnapshot): WorksGraphQueryIndex {
+  const seriesById = new Map(graph.series.map((series) => [series.id, series]));
+  const contributorsById = new Map(
+    graph.contributors.map((contributor) => [contributor.id, contributor]),
+  );
+  const seriesValuesByWorkId = new Map<string, string[]>();
+  const contributorValuesByWorkId = new Map<string, string[]>();
+
+  for (const link of graph.workSeriesLinks) {
+    const series = seriesById.get(link.seriesId);
+
+    if (!series) {
+      continue;
+    }
+
+    const values = seriesValuesByWorkId.get(link.workId) ?? [];
+    values.push(series.title);
+    seriesValuesByWorkId.set(link.workId, values);
+  }
+
+  for (const link of graph.workContributors) {
+    const contributor = contributorsById.get(link.contributorId);
+
+    if (!contributor) {
+      continue;
+    }
+
+    const values = contributorValuesByWorkId.get(link.workId) ?? [];
+    values.push(contributor.name);
+    contributorValuesByWorkId.set(link.workId, values);
+  }
+
+  return {
+    contributorValuesByWorkId,
+    seriesValuesByWorkId,
+  };
+}

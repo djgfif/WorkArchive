@@ -43,6 +43,10 @@ import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { WorkDetailPanel } from '../components/WorkDetailPanel';
 import { QuickProgressControl } from '../components/ArchiveComponents';
 import { useWorkDetail } from '../hooks/useWorkDetail';
+import {
+  graphRepository,
+  type WorkGraphSnapshot,
+} from '../services/graph.repository';
 import { releaseRecordsService } from '../services/release-records.service';
 import { timelineEntriesRepository } from '../services/timeline-entries.repository';
 import { timelineEntriesService } from '../services/timeline-entries.service';
@@ -490,29 +494,59 @@ function VolumeRecordsSection({
 
 function LocalSeriesSection({
   currentWork,
+  graph,
   works,
 }: {
   currentWork: WorkRecord;
+  graph: WorkGraphSnapshot | null;
   works: WorkRecord[];
 }) {
-  const seriesValues = getSeriesTagValues(currentWork.personalTags);
+  const seriesById = new Map(
+    graph?.series.map((series) => [series.id, series]) ?? [],
+  );
+  const currentSeriesIds = new Set(
+    graph?.workSeriesLinks
+      .filter((link) => link.workId === currentWork.id)
+      .map((link) => link.seriesId) ?? [],
+  );
+  const seriesValues =
+    currentSeriesIds.size > 0
+      ? Array.from(currentSeriesIds)
+          .map((seriesId) => seriesById.get(seriesId)?.title ?? '')
+          .filter(Boolean)
+      : getSeriesTagValues(currentWork.personalTags);
 
   if (seriesValues.length === 0) {
     return null;
   }
 
-  const normalizedSeriesValues = new Set(
-    seriesValues.map((value) => value.trim().toLowerCase()),
-  );
-  const sameSeriesWorks = works
-    .filter((work) => work.id !== currentWork.id)
-    .filter((work) =>
-      getSeriesTagValues(work.personalTags).some((value) =>
-        normalizedSeriesValues.has(value.trim().toLowerCase()),
-      ),
-    )
-    .sort((left, right) => left.title.localeCompare(right.title))
-    .slice(0, 8);
+  const sameSeriesWorks =
+    currentSeriesIds.size > 0 && graph
+      ? works
+          .filter((work) => work.id !== currentWork.id)
+          .filter((work) =>
+            graph.workSeriesLinks.some(
+              (link) =>
+                link.workId === work.id && currentSeriesIds.has(link.seriesId),
+            ),
+          )
+          .sort((left, right) => left.title.localeCompare(right.title))
+          .slice(0, 8)
+      : (() => {
+          const normalizedSeriesValues = new Set(
+            seriesValues.map((value) => value.trim().toLowerCase()),
+          );
+
+          return works
+            .filter((work) => work.id !== currentWork.id)
+            .filter((work) =>
+              getSeriesTagValues(work.personalTags).some((value) =>
+                normalizedSeriesValues.has(value.trim().toLowerCase()),
+              ),
+            )
+            .sort((left, right) => left.title.localeCompare(right.title))
+            .slice(0, 8);
+        })();
 
   if (sameSeriesWorks.length === 0) {
     return null;
@@ -650,6 +684,7 @@ export function WorkDetailPage() {
     [],
   );
   const [localWorks, setLocalWorks] = useState<WorkRecord[]>([]);
+  const [localGraph, setLocalGraph] = useState<WorkGraphSnapshot | null>(null);
   const workCatalogTitleId = work?.catalogTitleId ?? null;
   const workId = work?.id ?? null;
   const workType = work?.type ?? null;
@@ -736,6 +771,19 @@ export function WorkDetailPage() {
     const subscription = liveQuery(() => worksRepository.listActive()).subscribe({
       next: setLocalWorks,
       error: () => setLocalWorks([]),
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [archiveScopeKey]);
+
+  useEffect(() => {
+    const subscription = liveQuery(() =>
+      graphRepository.listActiveGraph(),
+    ).subscribe({
+      next: setLocalGraph,
+      error: () => setLocalGraph(null),
     });
 
     return () => {
@@ -909,6 +957,27 @@ export function WorkDetailPage() {
     );
   }
 
+  const currentWorkGraph: WorkGraphSnapshot | null = localGraph
+    ? {
+        contributors: localGraph.contributors,
+        relations: localGraph.relations.filter(
+          (relation) =>
+            relation.sourceWorkId === work.id || relation.targetWorkId === work.id,
+        ),
+        series: localGraph.series,
+        workContributors: localGraph.workContributors.filter(
+          (link) => link.workId === work.id,
+        ),
+        workRelations: localGraph.workRelations.filter(
+          (relation) =>
+            relation.sourceWorkId === work.id || relation.targetWorkId === work.id,
+        ),
+        workSeriesLinks: localGraph.workSeriesLinks.filter(
+          (link) => link.workId === work.id,
+        ),
+      }
+    : null;
+
   return (
     <DetailPageTemplate>
       {actionError && (
@@ -939,6 +1008,7 @@ export function WorkDetailPage() {
         }
         onCreateTimelineEntry={handleCreateTimelineEntry}
         onDeleteTimelineEntry={handleDeleteTimelineEntry}
+        graph={currentWorkGraph}
         recordSections={
           <>
             <WorkQuickRecordSection
@@ -955,7 +1025,11 @@ export function WorkDetailPage() {
         }
         relatedSections={
           <>
-            <LocalSeriesSection currentWork={work} works={localWorks} />
+            <LocalSeriesSection
+              currentWork={work}
+              graph={localGraph}
+              works={localWorks}
+            />
             <VolumeRecordsSection
               localRecords={localReleaseRecords}
               onError={handleActionError}

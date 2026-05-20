@@ -33,8 +33,8 @@ function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
   };
 }
 
-describe('work-form graph tags', () => {
-  it('stores series and contributor fields as prefixed personal tags', () => {
+describe('work-form graph fields', () => {
+  it('stores series and contributor fields as graph input separate from personal tags', () => {
     const values = createDefaultWorkFormValues();
 
     const parsed = parseWorkFormValues({
@@ -51,16 +51,39 @@ describe('work-form graph tags', () => {
       platformText: 'Netflix',
     });
 
-    expect(parsed.personalTags).toEqual([
-      'rewatch',
-      'favorite route',
-      'series:Fate',
-      'universe:TYPE-MOON',
-      'creator:Nasu Kinoko',
-      'studio:ufotable',
-      'publisher:Kadokawa',
-      'platform:Netflix',
-    ]);
+    expect(parsed.personalTags).toEqual(['rewatch', 'favorite route']);
+    expect(parsed.graph).toEqual({
+      series: [
+        { kind: 'series', role: 'main', title: 'Fate' },
+        { kind: 'universe', role: 'main', title: 'TYPE-MOON' },
+      ],
+      contributors: [
+        {
+          displayOrder: 0,
+          entityType: 'person',
+          name: 'Nasu Kinoko',
+          role: 'original_creator',
+        },
+        {
+          displayOrder: 0,
+          entityType: 'organization',
+          name: 'ufotable',
+          role: 'studio',
+        },
+        {
+          displayOrder: 0,
+          entityType: 'organization',
+          name: 'Kadokawa',
+          role: 'publisher',
+        },
+        {
+          displayOrder: 0,
+          entityType: 'organization',
+          name: 'Netflix',
+          role: 'platform',
+        },
+      ],
+    });
   });
 
   it('restores prefixed tags into graph fields without leaking them into personal tags', () => {
@@ -99,6 +122,17 @@ describe('work-form graph tags', () => {
       studioText: 'ufotable',
     });
 
-    expect(parsed.personalTags).toEqual(['rewatch', 'series:Fate', 'studio:ufotable']);
+    expect(parsed.personalTags).toEqual(['rewatch']);
+    expect(parsed.graph).toEqual({
+      series: [{ kind: 'series', role: 'main', title: 'Fate' }],
+      contributors: [
+        {
+          displayOrder: 0,
+          entityType: 'organization',
+          name: 'ufotable',
+          role: 'studio',
+        },
+      ],
+    });
   });
 });

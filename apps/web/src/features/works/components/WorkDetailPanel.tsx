@@ -16,6 +16,7 @@ import {
 import type {
   TimelineEntryRecord,
   TimelineEntryType,
+  WorkContributorRole,
   WorkRecord,
 } from '@work-archive/shared-types';
 
@@ -52,11 +53,50 @@ import {
   getSeriesTagValues,
   workContributorValues,
 } from '../utils/graph-tags';
+import type { WorkGraphSnapshot } from '../services/graph.repository';
 
 const css = styles as Record<string, string>;
 
 function cn(value: string | undefined) {
   return value ?? '';
+}
+
+const WORK_CONTRIBUTOR_ROLE_LABELS: Partial<
+  Record<WorkContributorRole, string>
+> = {
+  artist: '아티스트',
+  author: '작가',
+  director: '감독',
+  illustrator: '일러스트',
+  original_creator: '원작',
+  platform: '플랫폼',
+  production_company: '제작사',
+  publisher: '출판사',
+  screenwriter: '각본',
+  studio: '스튜디오',
+  translator: '번역',
+};
+
+function getWorkContributorRoleLabel(role: WorkContributorRole) {
+  return WORK_CONTRIBUTOR_ROLE_LABELS[role] ?? role;
+}
+
+function uniqueValues(values: string[]) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values.map((entry) => entry.trim()).filter(Boolean)) {
+    const key = value.toLowerCase();
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push(value);
+  }
+
+  return result;
 }
 
 interface WorkDetailPanelProps {
@@ -71,6 +111,7 @@ interface WorkDetailPanelProps {
   relatedSections?: ReactNode;
   timelineEntries?: TimelineEntryRecord[];
   work: WorkRecord;
+  graph?: WorkGraphSnapshot | null;
 }
 
 const timelineTypeOptions: Array<{ label: string; value: TimelineEntryType }> =
@@ -130,6 +171,7 @@ function createTimelineItems(work: WorkRecord) {
 
 export function WorkDetailPanel({
   actions,
+  graph,
   onCreateTimelineEntry,
   onDeleteTimelineEntry,
   recordSections,
@@ -154,9 +196,50 @@ export function WorkDetailPanel({
   const shortReview = work.shortReview.trim();
   const review = work.review.trim();
   const personalTags = getPersonalTags(work.personalTags);
-  const seriesTags = getSeriesTagValues(work.personalTags);
-  const contributorEntries = getContributorEntries(work.personalTags);
-  const contributorValues = workContributorValues(work);
+  const graphSeriesById = new Map(
+    graph?.series.map((series) => [series.id, series]) ?? [],
+  );
+  const graphContributorsById = new Map(
+    graph?.contributors.map((contributor) => [contributor.id, contributor]) ?? [],
+  );
+  const graphSeriesTags = uniqueValues(
+    graph?.workSeriesLinks
+      .map((link) => graphSeriesById.get(link.seriesId)?.title ?? '')
+      .filter(Boolean) ?? [],
+  );
+  const seriesTags =
+    graphSeriesTags.length > 0
+      ? graphSeriesTags
+      : getSeriesTagValues(work.personalTags);
+  const graphContributorEntries =
+    graph?.workContributors
+      .map((link) => {
+        const contributor = graphContributorsById.get(link.contributorId);
+
+        return contributor
+          ? {
+              key: `${link.role}-${contributor.id}`,
+              label: getWorkContributorRoleLabel(link.role),
+              value: contributor.name,
+            }
+          : null;
+      })
+      .filter(
+        (entry): entry is { key: string; label: string; value: string } =>
+          entry !== null,
+      ) ?? [];
+  const contributorEntries =
+    graphContributorEntries.length > 0
+      ? graphContributorEntries
+      : getContributorEntries(work.personalTags).map((entry) => ({
+          key: `${entry.kind}-${entry.value}`,
+          label: getGraphTagKindLabel(entry.kind),
+          value: entry.value,
+        }));
+  const contributorValues =
+    contributorEntries.length > 0
+      ? uniqueValues(contributorEntries.map((entry) => entry.value))
+      : workContributorValues(work);
   const progressLabel = getWorkProgressLabel(work);
   const progressPercent = getWorkProgressPercent(work);
   const timelineItems = [
@@ -601,9 +684,9 @@ export function WorkDetailPanel({
                   {contributorEntries.length > 0 ? (
                     <Stack gap={6}>
                       {contributorEntries.map((entry) => (
-                        <Text key={`${entry.kind}-${entry.value}`} size="sm">
+                        <Text key={entry.key} size="sm">
                           <Text c="dimmed" component="span" fw={700}>
-                            {getGraphTagKindLabel(entry.kind)}
+                            {entry.label}
                           </Text>
                           {': '}
                           {entry.value}

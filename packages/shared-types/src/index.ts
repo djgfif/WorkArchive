@@ -11,6 +11,11 @@ export const SYNC_ENTITY_TYPES = [
   'work',
   'release_record',
   'timeline_entry',
+  'series',
+  'work_series_link',
+  'contributor',
+  'work_contributor',
+  'work_relation',
 ] as const;
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number];
@@ -276,6 +281,61 @@ export const CATALOG_RELATION_TYPES = [
 
 export type CatalogRelationType = (typeof CATALOG_RELATION_TYPES)[number];
 
+export const SERIES_KINDS = [
+  'series',
+  'franchise',
+  'universe',
+  'arc',
+  'collection',
+] as const;
+
+export type SeriesKind = (typeof SERIES_KINDS)[number];
+
+export const WORK_SERIES_ROLES = [
+  'main',
+  'season',
+  'arc',
+  'movie',
+  'ova',
+  'spin_off',
+  'side_story',
+] as const;
+
+export type WorkSeriesRole = (typeof WORK_SERIES_ROLES)[number];
+
+export const CONTRIBUTOR_ENTITY_TYPES = [
+  'person',
+  'organization',
+  'group',
+] as const;
+
+export type ContributorEntityType = (typeof CONTRIBUTOR_ENTITY_TYPES)[number];
+
+export const WORK_CONTRIBUTOR_ROLES = [
+  'author',
+  'illustrator',
+  'director',
+  'studio',
+  'publisher',
+  'screenwriter',
+  'original_creator',
+  'artist',
+  'translator',
+  'platform',
+  'production_company',
+] as const;
+
+export type WorkContributorRole = (typeof WORK_CONTRIBUTOR_ROLES)[number];
+
+export const WORK_RELATION_TYPES = [
+  ...CATALOG_RELATION_TYPES,
+  'same_universe',
+  'season_next',
+  'season_previous',
+] as const;
+
+export type WorkRelationType = (typeof WORK_RELATION_TYPES)[number];
+
 export const RECORDING_UNIT = 'catalog_title' as const;
 
 export type RecordingUnit = typeof RECORDING_UNIT;
@@ -436,6 +496,65 @@ export interface UserReleaseRecord extends AuditFields {
   serverVersion: number;
 }
 
+export interface SeriesRecord extends AuditFields {
+  id: EntityId;
+  title: string;
+  normalizedTitle: string;
+  aliases: string[];
+  kind: SeriesKind;
+  parentId: EntityId | null;
+  description: string;
+  thumbnailUrl: string;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
+export interface WorkSeriesLinkRecord extends AuditFields {
+  id: EntityId;
+  workId: EntityId;
+  seriesId: EntityId;
+  role: WorkSeriesRole;
+  orderIndex: number | null;
+  orderLabel: string;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
+export interface ContributorRecord extends AuditFields {
+  id: EntityId;
+  name: string;
+  normalizedName: string;
+  aliases: string[];
+  entityType: ContributorEntityType;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
+export interface WorkContributorRecord extends AuditFields {
+  id: EntityId;
+  workId: EntityId;
+  contributorId: EntityId;
+  role: WorkContributorRole;
+  displayOrder: number;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
+export interface WorkRelationRecord extends AuditFields {
+  id: EntityId;
+  sourceWorkId: EntityId;
+  targetWorkId: EntityId;
+  relationType: WorkRelationType;
+  note: string;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
 export interface UserRecordView {
   catalog: {
     contributors: Array<{
@@ -581,9 +700,14 @@ export const PULL_SYNC_OPERATIONS = [
 export type SyncQueuePayload =
   | WorkRecord
   | UserReleaseRecord
-  | TimelineEntryRecord;
+  | TimelineEntryRecord
+  | SeriesRecord
+  | WorkSeriesLinkRecord
+  | ContributorRecord
+  | WorkContributorRecord
+  | WorkRelationRecord;
 
-export const SYNC_SCHEMA_VERSION = 2 as const;
+export const SYNC_SCHEMA_VERSION = 3 as const;
 
 export type SyncSchemaVersion = typeof SYNC_SCHEMA_VERSION;
 
@@ -615,6 +739,11 @@ export const SYNC_QUEUE_SOURCES = [
   'progress_update',
   'timeline_entry_update',
   'release_record_update',
+  'series_update',
+  'work_series_link_update',
+  'contributor_update',
+  'work_contributor_update',
+  'work_relation_update',
   'archive_migration',
   'unknown',
 ] as const;
@@ -642,9 +771,14 @@ export interface PushSyncResult {
   message: string;
   queueId: EntityId;
   releaseRecord?: UserReleaseRecord | null;
+  series?: SeriesRecord | null;
   timelineEntry?: TimelineEntryRecord | null;
+  workContributor?: WorkContributorRecord | null;
+  workRelation?: WorkRelationRecord | null;
+  workSeriesLink?: WorkSeriesLinkRecord | null;
   status: PushResultStatus;
   work?: WorkRecord | null;
+  contributor?: ContributorRecord | null;
 }
 
 export interface PushSyncResponse {
@@ -664,9 +798,14 @@ export interface PullSyncChange {
   entityId: EntityId;
   entityType: SyncEntityType;
   operation: PullSyncOperation;
+  contributor?: ContributorRecord;
   releaseRecord?: UserReleaseRecord;
+  series?: SeriesRecord;
   timelineEntry?: TimelineEntryRecord;
   work?: WorkRecord;
+  workContributor?: WorkContributorRecord;
+  workRelation?: WorkRelationRecord;
+  workSeriesLink?: WorkSeriesLinkRecord;
 }
 
 export interface PullSyncResponse {

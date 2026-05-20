@@ -1,6 +1,7 @@
 ﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
+  SeriesRecord,
   TimelineEntryRecord,
   UserReleaseRecord,
   WorkRecord,
@@ -18,6 +19,7 @@ import { WorksRepository } from '../../works/services/works.repository';
 import { WorksService } from '../../works/services/works.service';
 import { ReleaseRecordsRepository } from '../../works/services/release-records.repository';
 import { TimelineEntriesRepository } from '../../works/services/timeline-entries.repository';
+import { GraphRepository } from '../../works/services/graph.repository';
 import { AppMetaRepository } from './app-meta.repository';
 import { SyncQueueRepository } from './sync-queue.repository';
 import { SyncService } from './sync.service';
@@ -40,6 +42,27 @@ function buildInput(overrides: Partial<WorkRecord> = {}) {
   };
 }
 
+function buildSeries(overrides: Partial<SeriesRecord> = {}): SeriesRecord {
+  const now = '2026-04-18T00:00:00.000Z';
+
+  return {
+    id: '0dd891e7-2f56-42a1-a9f6-fbd5d36938c1',
+    title: 'Fate',
+    normalizedTitle: 'fate',
+    aliases: [],
+    kind: 'series',
+    parentId: null,
+    description: '',
+    thumbnailUrl: '',
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
+    ...overrides,
+  };
+}
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -54,6 +77,7 @@ describe('SyncService', () => {
   let worksRepository: WorksRepository;
   let releaseRecordsRepository: ReleaseRecordsRepository;
   let timelineEntriesRepository: TimelineEntriesRepository;
+  let graphRepository: GraphRepository;
   let queueRepository: SyncQueueRepository;
   let appMetaRepository: AppMetaRepository;
   let worksService: WorksService;
@@ -65,6 +89,7 @@ describe('SyncService', () => {
     releaseRecordsRepository = new ReleaseRecordsRepository(() => db);
     timelineEntriesRepository = new TimelineEntriesRepository(() => db);
     queueRepository = new SyncQueueRepository(() => db);
+    graphRepository = new GraphRepository(() => db, queueRepository);
     appMetaRepository = new AppMetaRepository(() => db);
     worksService = new WorksService(worksRepository, queueRepository);
     syncService = new SyncService(
@@ -73,6 +98,7 @@ describe('SyncService', () => {
       queueRepository,
       appMetaRepository,
       timelineEntriesRepository,
+      graphRepository,
     );
   });
 
@@ -94,7 +120,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 2,
+          schemaVersion: 3,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -127,6 +153,66 @@ describe('SyncService', () => {
     );
     expect(await queueRepository.listAll()).toEqual([]);
     expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        syncStatus: 'synced',
+        serverVersion: 1,
+        updatedAt: '2026-04-18T01:00:00.000Z',
+      }),
+    );
+  });
+
+  it('removes successful graph queue items and updates local graph records', async () => {
+    const localSeries = buildSeries();
+
+    await db.series.add(localSeries);
+    await queueRepository.enqueueEntityChange(
+      'series',
+      localSeries,
+      'create',
+      localSeries,
+      'edit_form',
+    );
+    const [queueItem] = await queueRepository.listAll();
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 3,
+          processedAt: '2026-04-18T01:00:00.000Z',
+          results: [
+            {
+              queueId: queueItem!.id,
+              entityId: localSeries.id,
+              entityType: 'series',
+              status: 'applied',
+              message: 'Queued graph record created on the server.',
+              series: {
+                ...localSeries,
+                syncStatus: 'synced',
+                serverVersion: 1,
+                updatedAt: '2026-04-18T01:00:00.000Z',
+              },
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pushQueuedChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        appliedCount: 1,
+        failedCount: 0,
+        requestFailed: false,
+      }),
+    );
+    expect(await queueRepository.listAll()).toEqual([]);
+    expect(await db.series.get(localSeries.id)).toEqual(
       expect.objectContaining({
         syncStatus: 'synced',
         serverVersion: 1,
@@ -208,7 +294,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 2,
+          schemaVersion: 3,
           processedAt: '2026-04-18T02:00:00.000Z',
           results: [
             {
@@ -300,7 +386,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 2,
+          schemaVersion: 3,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -355,7 +441,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 2,
+          schemaVersion: 3,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -614,7 +700,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 2,
+          schemaVersion: 3,
           pulledAt: '2026-04-18T02:00:00.000Z',
           nextSince: '2026-04-18T01:30:00.000Z',
           changes: [
@@ -665,6 +751,49 @@ describe('SyncService', () => {
     ).resolves.toBe('2026-04-18T01:30:00.000Z');
   });
 
+  it('pulls remote graph records into the local database', async () => {
+    const remoteSeries = buildSeries({
+      id: '4cc0c4f5-9e5b-4376-aaaf-68b8241cc552',
+      syncStatus: 'synced',
+      serverVersion: 2,
+      updatedAt: '2026-04-18T03:00:00.000Z',
+    });
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 3,
+          pulledAt: '2026-04-18T03:00:00.000Z',
+          nextSince: '2026-04-18T03:00:00.000Z',
+          changes: [
+            {
+              entityType: 'series',
+              entityId: remoteSeries.id,
+              operation: 'upsert',
+              series: remoteSeries,
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pullRemoteChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        pulledCount: 1,
+        appliedCount: 1,
+        skippedCount: 0,
+        requestFailed: false,
+      }),
+    );
+    expect(await db.series.get(remoteSeries.id)).toEqual(remoteSeries);
+  });
+
   it('updates local timeline entries from successful push results', async () => {
     const localWork = await worksService.createWork(buildInput());
     await queueRepository.removeMany(
@@ -694,7 +823,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 2,
+          schemaVersion: 3,
           processedAt: '2026-04-18T03:00:00.000Z',
           results: [
             {
@@ -756,7 +885,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 2,
+          schemaVersion: 3,
           pulledAt: '2026-04-18T03:00:00.000Z',
           nextSince: '2026-04-18T03:00:00.000Z',
           changes: [
@@ -846,7 +975,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 2,
+          schemaVersion: 3,
           pulledAt: '2026-04-18T02:00:00.000Z',
           nextSince: '2026-04-18T01:30:00.000Z',
           changes: [

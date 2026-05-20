@@ -1,4 +1,10 @@
-import type { WorkRecord } from '@work-archive/shared-types';
+import type {
+  ContributorRecord,
+  SeriesRecord,
+  WorkContributorRecord,
+  WorkRecord,
+  WorkSeriesLinkRecord,
+} from '@work-archive/shared-types';
 
 export const GRAPH_TAG_KINDS = [
   'series',
@@ -333,6 +339,52 @@ export function buildSeriesCollectionSummaries(
   );
 }
 
+export function buildSeriesCollectionSummariesFromGraph(
+  works: WorkRecord[],
+  graph: {
+    series: SeriesRecord[];
+    workSeriesLinks: WorkSeriesLinkRecord[];
+  },
+  limit = 8,
+) {
+  const worksById = new Map(works.map((work) => [work.id, work]));
+  const seriesById = new Map(graph.series.map((series) => [series.id, series]));
+  const grouped = new Map<string, { label: string; works: WorkRecord[] }>();
+
+  for (const link of graph.workSeriesLinks) {
+    const work = worksById.get(link.workId);
+    const series = seriesById.get(link.seriesId);
+
+    if (!work || !series) {
+      continue;
+    }
+
+    const key = `${series.kind}:${normalizeComparisonValue(series.title)}`;
+    const group = grouped.get(key);
+
+    if (group) {
+      group.works.push(work);
+    } else {
+      grouped.set(key, {
+        label: series.title,
+        works: [work],
+      });
+    }
+  }
+
+  return sortCollectionSummaries(
+    Array.from(grouped.entries()).map(([key, group]) =>
+      createCollectionSummary(
+        key,
+        group.label,
+        group.works,
+        `/works?series=${encodeURIComponent(group.label)}`,
+      ),
+    ),
+    limit,
+  );
+}
+
 export function buildContributorCollectionSummaries(
   works: WorkRecord[],
   limit = 8,
@@ -352,6 +404,56 @@ export function buildContributorCollectionSummaries(
           works: [work],
         });
       }
+    }
+  }
+
+  return sortCollectionSummaries(
+    Array.from(grouped.entries()).map(([key, group]) =>
+      createCollectionSummary(
+        key,
+        group.label,
+        group.works,
+        `/works?contributor=${encodeURIComponent(group.label)}`,
+      ),
+    ),
+    limit,
+  );
+}
+
+export function buildContributorCollectionSummariesFromGraph(
+  works: WorkRecord[],
+  graph: {
+    contributors: ContributorRecord[];
+    workContributors: WorkContributorRecord[];
+  },
+  limit = 8,
+) {
+  const worksById = new Map(works.map((work) => [work.id, work]));
+  const contributorsById = new Map(
+    graph.contributors.map((contributor) => [contributor.id, contributor]),
+  );
+  const grouped = new Map<string, { label: string; works: WorkRecord[] }>();
+
+  for (const link of graph.workContributors) {
+    const work = worksById.get(link.workId);
+    const contributor = contributorsById.get(link.contributorId);
+
+    if (!work || !contributor) {
+      continue;
+    }
+
+    const key = `${contributor.entityType}:${normalizeComparisonValue(
+      contributor.name,
+    )}`;
+    const group = grouped.get(key);
+
+    if (group) {
+      group.works.push(work);
+    } else {
+      grouped.set(key, {
+        label: contributor.name,
+        works: [work],
+      });
     }
   }
 

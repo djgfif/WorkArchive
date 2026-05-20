@@ -23,8 +23,13 @@ import {
 } from '../sync.constants';
 
 import type { SyncReleaseRecordPayloadDto } from './sync-release-record-payload.dto';
+import type { SyncSeriesPayloadDto } from './sync-series-payload.dto';
 import type { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
+import type { SyncContributorPayloadDto } from './sync-contributor-payload.dto';
+import type { SyncWorkContributorPayloadDto } from './sync-work-contributor-payload.dto';
 import type { SyncWorkPayloadDto } from './sync-work-payload.dto';
+import type { SyncWorkRelationPayloadDto } from './sync-work-relation-payload.dto';
+import type { SyncWorkSeriesLinkPayloadDto } from './sync-work-series-link-payload.dto';
 
 export class PushSyncChangeDto {
   @ApiProperty({
@@ -62,6 +67,11 @@ export class PushSyncChangeDto {
       { $ref: '#/components/schemas/SyncWorkPayloadDto' },
       { $ref: '#/components/schemas/SyncReleaseRecordPayloadDto' },
       { $ref: '#/components/schemas/SyncTimelineEntryPayloadDto' },
+      { $ref: '#/components/schemas/SyncSeriesPayloadDto' },
+      { $ref: '#/components/schemas/SyncWorkSeriesLinkPayloadDto' },
+      { $ref: '#/components/schemas/SyncContributorPayloadDto' },
+      { $ref: '#/components/schemas/SyncWorkContributorPayloadDto' },
+      { $ref: '#/components/schemas/SyncWorkRelationPayloadDto' },
     ],
   })
   @IsDefined()
@@ -69,7 +79,12 @@ export class PushSyncChangeDto {
   payload!:
     | SyncWorkPayloadDto
     | SyncReleaseRecordPayloadDto
-    | SyncTimelineEntryPayloadDto;
+    | SyncTimelineEntryPayloadDto
+    | SyncSeriesPayloadDto
+    | SyncWorkSeriesLinkPayloadDto
+    | SyncContributorPayloadDto
+    | SyncWorkContributorPayloadDto
+    | SyncWorkRelationPayloadDto;
 }
 
 export class PushSyncDto {

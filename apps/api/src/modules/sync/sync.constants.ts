@@ -1,9 +1,14 @@
-export const SYNC_SCHEMA_VERSION = 2 as const;
+export const SYNC_SCHEMA_VERSION = 3 as const;
 
 export const SYNC_ENTITY_TYPES = [
   'work',
   'release_record',
   'timeline_entry',
+  'series',
+  'work_series_link',
+  'contributor',
+  'work_contributor',
+  'work_relation',
 ] as const;
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number];
