@@ -77,7 +77,9 @@ export function useLocalArchiveSettings() {
       setArchiveFeedback({
         tone: 'error',
         message:
-          error instanceof Error ? error.message : 'CSV 파일을 만들지 못했습니다.',
+          error instanceof Error
+            ? error.message
+            : 'CSV 파일을 만들지 못했습니다.',
       });
     } finally {
       setIsExportingArchive(false);

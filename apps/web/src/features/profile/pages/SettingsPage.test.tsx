@@ -295,7 +295,7 @@ describe('SettingsPage', () => {
 
       renderAuthenticatedSettings();
 
-      expect(await screen.findByText('개인 검색 키')).toBeInTheDocument();
+      expect(await screen.findByText('Search provider 관리')).toBeInTheDocument();
       if (provider !== 'aladin') {
         await user.click(
           await screen.findByRole('button', {
@@ -309,7 +309,7 @@ describe('SettingsPage', () => {
       }
       await user.click(screen.getByRole('button', { name: /키 저장/ }));
 
-      expect(await screen.findByText(/API Key를 저장했습니다/)).toBeInTheDocument();
+      expect(await screen.findByText(/API key를 저장했습니다/)).toBeInTheDocument();
       for (const field of fields) {
         expect(screen.getByLabelText(field.label)).toHaveValue('');
       }
@@ -343,7 +343,7 @@ describe('SettingsPage', () => {
 
       await user.click(screen.getByRole('button', { name: /키 삭제/ }));
 
-      expect(await screen.findByText(/API Key를 삭제했습니다/)).toBeInTheDocument();
+      expect(await screen.findByText(/API key를 삭제했습니다/)).toBeInTheDocument();
       const deleteRequest = fetchMock.mock.calls.find(
         ([url, init]) =>
           String(url).includes(`/imports/providers/${provider}/key`) &&
