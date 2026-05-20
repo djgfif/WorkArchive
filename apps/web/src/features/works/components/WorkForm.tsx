@@ -148,11 +148,14 @@ export function WorkForm({
     ],
   });
   const values = form.values;
+  const hasSeriesRelation =
+    values.seriesText.trim() !== '' || values.universeText.trim() !== '';
   const [activeStep, setActiveStep] = useState(
     focusArea === 'review' ? REVIEW_STEP_INDEX : 0,
   );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [isSeriesWork, setIsSeriesWork] = useState(hasSeriesRelation);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const reviewSectionRef = useRef<HTMLDivElement | null>(null);
   const shortReviewInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -173,10 +176,19 @@ export function WorkForm({
     form.clearErrors();
     setTitleError(null);
     setValidationError(null);
+    setIsSeriesWork(
+      nextValues.seriesText.trim() !== '' || nextValues.universeText.trim() !== '',
+    );
     // The Mantine form instance is intentionally excluded; this effect only
     // reconciles external initialValues changes into the existing form.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValues]);
+
+  useEffect(() => {
+    if (hasSeriesRelation) {
+      setIsSeriesWork(true);
+    }
+  }, [hasSeriesRelation]);
 
   useEffect(() => {
     if (focusArea !== 'review') {
@@ -523,6 +535,22 @@ export function WorkForm({
                     label="시리즈 / 관계"
                   >
                     <Stack gap="lg" pt="md">
+                      <Checkbox
+                        checked={isSeriesWork}
+                        description="시리즈나 세계관으로 묶이는 작품일 때만 관련 정보를 입력합니다."
+                        label="시리즈 작품"
+                        onChange={(event) => {
+                          const checked = event.currentTarget.checked;
+                          setIsSeriesWork(checked);
+
+                          if (!checked) {
+                            form.setFieldValue('seriesText', '');
+                            form.setFieldValue('universeText', '');
+                          }
+                        }}
+                      />
+
+                      {isSeriesWork && (
                       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                         <TextInput
                           id="seriesText"
@@ -541,6 +569,7 @@ export function WorkForm({
                           value={values.universeText}
                         />
                       </SimpleGrid>
+                      )}
                     </Stack>
                   </Stepper.Step>
 

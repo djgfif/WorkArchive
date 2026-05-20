@@ -27,6 +27,30 @@ describe('production deployment config', () => {
     expect(apiService).not.toContain('\n    ports:');
   });
 
+  it('passes Google OAuth secrets only to the production API service', () => {
+    const composeProd = readFileSync(
+      join(repoRoot, 'compose.prod.yml'),
+      'utf8',
+    );
+    const apiService = composeProd.slice(
+      composeProd.indexOf('  api:'),
+      composeProd.indexOf('  web:'),
+    );
+    const webService = composeProd.slice(composeProd.indexOf('  web:'));
+
+    expect(apiService).toContain(
+      'GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?required}',
+    );
+    expect(apiService).toContain(
+      'GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:?required}',
+    );
+    expect(apiService).toContain(
+      'GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:?required}',
+    );
+    expect(webService).not.toContain('GOOGLE_OAUTH_CLIENT_SECRET');
+    expect(webService).not.toContain('VITE_GOOGLE_OAUTH_CLIENT_SECRET');
+  });
+
   it('routes /api through NGINX before the SPA fallback and sends security headers', () => {
     const nginxConfig = readFileSync(
       join(repoRoot, 'apps', 'web', 'nginx.conf'),

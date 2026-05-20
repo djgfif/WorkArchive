@@ -74,11 +74,6 @@ function IconPlus({ size = 14 }: { size?: number }) {
   );
 }
 
-const ratingFilterOptions = Array.from({ length: 10 }, (_, i) => {
-  const v = ((i + 1) * 0.5).toFixed(1);
-  return { label: `★ ${v}+`, value: v };
-}).reverse();
-
 interface WorksToolbarProps {
   collectionScope:          WorksCollectionScope;
   filteredCount:            number;
@@ -206,7 +201,7 @@ export function WorksToolbar({
       ? [{ label: getWorkStatusLabel(query.status), onRemove: () => onQueryChange({ ...query, status: 'all' }) }]
       : []),
     ...(query.rating !== null
-      ? [{ label: `★ ${query.rating.toFixed(1)}+`, onRemove: () => onQueryChange({ ...query, rating: null }) }]
+      ? [{ label: `★ ${query.rating.toFixed(1)}`, onRemove: () => onQueryChange({ ...query, rating: null }) }]
       : []),
     ...(query.type !== 'all'
       ? [{ label: workTypeOptions.find((o) => o.value === query.type)?.label ?? query.type, onRemove: () => onQueryChange({ ...query, type: 'all' }) }]
@@ -656,27 +651,6 @@ export function WorksToolbar({
                 onChange={(sortBy) => onQueryChange({ ...query, sortBy })}
                 options={workSortOptions}
                 value={query.sortBy}
-              />
-            </Stack>
-
-            {/* 별점 */}
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                별점 최소
-              </Text>
-              <FilterPillGroup
-                aria-label="별점 필터"
-                onChange={(rating) =>
-                  onQueryChange({
-                    ...query,
-                    rating: rating === 'all' ? null : Number.parseFloat(rating),
-                  })
-                }
-                options={[
-                  { label: '전체', value: 'all' },
-                  ...ratingFilterOptions,
-                ]}
-                value={query.rating === null ? 'all' : query.rating.toFixed(1)}
               />
             </Stack>
 

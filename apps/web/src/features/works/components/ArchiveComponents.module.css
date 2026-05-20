@@ -618,6 +618,73 @@
   font-weight: 500;
 }
 
+.starRatingInput {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  min-height: 4.05rem;
+  padding: 0.82rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--app-accent-warm) 16%, var(--app-border-subtle));
+  border-radius: var(--mantine-radius-md);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--app-surface-card) 76%, transparent), color-mix(in srgb, var(--app-bg-elevated) 90%, transparent));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    0 16px 34px color-mix(in srgb, black 18%, transparent);
+}
+
+.starRatingScore {
+  min-width: 2.2rem;
+  color: var(--app-accent-warm);
+  font-size: 0.92rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.starRatingControl {
+  flex: 1 1 auto;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.starRatingControl :global(.mantine-Rating-symbolGroup) {
+  gap: 0.08rem;
+}
+
+.starRatingControl :global(.mantine-Rating-symbolBody) {
+  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--app-accent-warm) 18%, transparent));
+}
+
+.starRatingControl :global(.mantine-Rating-label) {
+  border-radius: 999px;
+}
+
+.starRatingControl :global(.mantine-Rating-input:focus-visible + .mantine-Rating-label) {
+  outline: 2px solid var(--app-accent-primary);
+  outline-offset: 2px;
+}
+
+.starRatingMeta {
+  flex: 0 0 auto;
+  min-width: 2.2rem;
+  justify-content: flex-end;
+}
+
+.starRatingMeta :global(.mantine-ActionIcon-root) {
+  color: var(--app-text-muted);
+}
+
+.starRatingMeta :global(.mantine-ActionIcon-root:hover) {
+  color: var(--app-text-primary);
+  background: color-mix(in srgb, var(--app-accent-warm) 12%, transparent);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Timeline
 ───────────────────────────────────────────────────────────────────────────── */

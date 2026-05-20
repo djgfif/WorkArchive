@@ -190,21 +190,8 @@ export function MainProductLayout() {
               ))}
             </Group>
 
-            {/* ── Right: 작품추가(데스크탑) + Profile ─────────────────── */}
+            {/* Right: Profile */}
             <Box className="header-right">
-              {/* 작품 추가 버튼 — 데스크탑에서만 표시, 모바일은 Drawer에서 */}
-              <Box visibleFrom="md">
-                <Tooltip label="새 작품 기록 추가 (N)" position="bottom" withArrow>
-                  <AppLinkButton
-                    leftSection={<IconPlus size={14} />}
-                    size="sm"
-                    to="/works/new"
-                    tone="primary"
-                  >
-                    작품 추가
-                  </AppLinkButton>
-                </Tooltip>
-              </Box>
 
               {/* Profile avatar menu (desktop) */}
               <Box visibleFrom="md">
@@ -231,14 +218,7 @@ export function MainProductLayout() {
                     </Indicator>
                   </Menu.Target>
 
-                  <Menu.Dropdown
-                    style={{
-                      backgroundColor: 'var(--app-surface-overlay)',
-                      borderColor:     'var(--app-border-default)',
-                      boxShadow:       'var(--wa-shadow-overlay)',
-                      backdropFilter:  'blur(20px) saturate(1.4)',
-                    }}
-                  >
+                  <Menu.Dropdown className={cn(css.accountMenuDropdown)}>
                     {/* 계정 헤더 */}
                     <Box
                       className={cn(css.menuHeader)}
@@ -276,6 +256,7 @@ export function MainProductLayout() {
 
                     {/* 계정 메뉴 항목 */}
                     <Menu.Item
+                      className={cn(css.accountMenuItem)}
                       leftSection={
                         <ThemeIcon color="gray" size={22} variant="light" radius="sm">
                           <IconUser size={13} />
@@ -286,6 +267,7 @@ export function MainProductLayout() {
                       계정 개요
                     </Menu.Item>
                     <Menu.Item
+                      className={cn(css.accountMenuItem)}
                       leftSection={
                         <ThemeIcon color="gray" size={22} variant="light" radius="sm">
                           <IconSettings size={13} />
@@ -297,7 +279,7 @@ export function MainProductLayout() {
                     </Menu.Item>
 
                     {/* 테마 전환 */}
-                    <Box px="xs" py={6}>
+                    <Box className={cn(css.themeToggleWrap)} px="xs" py={6}>
                       <ThemeToggleControl fullWidth />
                     </Box>
 
@@ -306,6 +288,7 @@ export function MainProductLayout() {
                     {/* 로그인/로그아웃 */}
                     {isAuthenticated ? (
                       <Menu.Item
+                        className={cn(css.accountMenuItem)}
                         color="red"
                         leftSection={
                           <ThemeIcon color="red" size={22} variant="light" radius="sm">
@@ -318,6 +301,7 @@ export function MainProductLayout() {
                       </Menu.Item>
                     ) : (
                       <Menu.Item
+                        className={cn(css.accountMenuItem)}
                         fw={600}
                         leftSection={
                           <ThemeIcon color="archive" size={22} variant="light" radius="sm">

@@ -280,6 +280,17 @@ function CoreWorkFields({
           ))}
         </NativeSelect>
 
+        <div className={cn(css.gridSpanFull)}>
+          <TextInput
+            description="오른쪽 미리보기에 바로 반영됩니다. 비워두면 제목과 유형 기반의 기본 표지를 사용합니다."
+            id={getFieldId(idPrefix, 'thumbnailUrl')}
+            label="표지 이미지 주소"
+            name="thumbnailUrl"
+            onChange={onChange}
+            placeholder="https://example.com/cover.jpg"
+            value={values.thumbnailUrl}
+          />
+        </div>
       </SimpleGrid>
     </Stack>
   );
@@ -347,6 +358,7 @@ interface AdvancedWorkFieldsProps {
   idPrefix?: string;
   itemValue: string;
   onInputChange: WorkFormInputChangeHandler;
+  onSeriesFieldsClear: () => void;
   onTextListChange: (
     name: 'genresText' | 'personalTagsText',
     values: string[],
@@ -359,18 +371,27 @@ function AdvancedWorkFields({
   idPrefix = '',
   itemValue,
   onInputChange,
+  onSeriesFieldsClear,
   onTextListChange,
   tagSuggestions = [],
   values,
 }: AdvancedWorkFieldsProps) {
   const genreValues = parseCommaSeparatedTextList(values.genresText);
   const personalTagValues = parseCommaSeparatedTextList(values.personalTagsText);
-  const previewTitle = values.title.trim() || '제목 없는 작품';
+  const hasSeriesRelation =
+    values.seriesText.trim() !== '' || values.universeText.trim() !== '';
+  const [isSeriesWork, setIsSeriesWork] = useState(hasSeriesRelation);
+
+  useEffect(() => {
+    if (hasSeriesRelation) {
+      setIsSeriesWork(true);
+    }
+  }, [hasSeriesRelation]);
 
   return (
     <Accordion>
       <Accordion.Item value={itemValue}>
-        <Accordion.Control>표지, 장르, 개인 태그, 상세 감상</Accordion.Control>
+        <Accordion.Control>장르, 개인 태그, 상세 감상</Accordion.Control>
         <Accordion.Panel>
           <Stack gap="md" pt="sm">
             <TextInput
@@ -382,23 +403,44 @@ function AdvancedWorkFields({
               value={values.author}
             />
 
+            <Stack gap="sm">
+              <Checkbox
+                checked={isSeriesWork}
+                description="시리즈나 세계관으로 묶이는 작품일 때만 관련 정보를 입력합니다."
+                label="시리즈 작품"
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
+                  setIsSeriesWork(checked);
+
+                  if (!checked) {
+                    onSeriesFieldsClear();
+                  }
+                }}
+              />
+
+              {isSeriesWork && (
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                  <TextInput
+                    id={getFieldId(idPrefix, 'seriesText')}
+                    label="시리즈"
+                    name="seriesText"
+                    onChange={onInputChange}
+                    placeholder="예: Fate, 해리포터"
+                    value={values.seriesText}
+                  />
+                  <TextInput
+                    id={getFieldId(idPrefix, 'universeText')}
+                    label="세계관 / 프랜차이즈"
+                    name="universeText"
+                    onChange={onInputChange}
+                    placeholder="예: TYPE-MOON, Wizarding World"
+                    value={values.universeText}
+                  />
+                </SimpleGrid>
+              )}
+            </Stack>
+
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-              <TextInput
-                id={getFieldId(idPrefix, 'seriesText')}
-                label="시리즈"
-                name="seriesText"
-                onChange={onInputChange}
-                placeholder="예: Fate, 해리포터"
-                value={values.seriesText}
-              />
-              <TextInput
-                id={getFieldId(idPrefix, 'universeText')}
-                label="세계관 / 프랜차이즈"
-                name="universeText"
-                onChange={onInputChange}
-                placeholder="예: TYPE-MOON, Wizarding World"
-                value={values.universeText}
-              />
               <TextInput
                 id={getFieldId(idPrefix, 'creatorText')}
                 label="작가 / 원작자 / 감독"
@@ -432,37 +474,6 @@ function AdvancedWorkFields({
                 value={values.platformText}
               />
             </SimpleGrid>
-
-            <TextInput
-              id={getFieldId(idPrefix, 'thumbnailUrl')}
-              label="표지 이미지 주소"
-              name="thumbnailUrl"
-              onChange={onInputChange}
-              placeholder="https://example.com/cover.jpg"
-              value={values.thumbnailUrl}
-            />
-            <Paper
-              className={cn(css.coverPreviewPanel)}
-              p="sm"
-              radius="md"
-              withBorder
-            >
-              <Group align="center" gap="md" wrap="nowrap">
-                <WorkPoster
-                  coverSeed={`advanced:${previewTitle}:${values.type}`}
-                  thumbnailUrl={values.thumbnailUrl}
-                  title={previewTitle}
-                  typeLabel="표지"
-                  variant="row"
-                />
-                <Stack gap={4} miw={0}>
-                  <Text fw={700}>표지 미리보기</Text>
-                  <Text c="var(--mantine-color-dimmed)" size="sm">
-                    이미지가 없거나 불러오지 못하면 제목 기반 fallback으로 표시됩니다.
-                  </Text>
-                </Stack>
-              </Group>
-            </Paper>
 
             <TagsInput
               clearable
@@ -673,6 +684,14 @@ export function AddWorkFlow({
     setValues((currentValues) => ({
       ...currentValues,
       [name]: formatTextListForWorkForm(items),
+    }));
+  }
+
+  function handleSeriesFieldsClear() {
+    setValues((currentValues) => ({
+      ...currentValues,
+      seriesText: '',
+      universeText: '',
     }));
   }
 
@@ -966,6 +985,7 @@ export function AddWorkFlow({
                       idPrefix="manual"
                       itemValue="manual-advanced-fields"
                       onInputChange={handleInputChange}
+                      onSeriesFieldsClear={handleSeriesFieldsClear}
                       onTextListChange={handleTextListChange}
                       tagSuggestions={tagSuggestions}
                       values={values}
@@ -998,6 +1018,7 @@ export function AddWorkFlow({
                   idPrefix="manual"
                   itemValue="manual-advanced-fields"
                   onInputChange={handleInputChange}
+                  onSeriesFieldsClear={handleSeriesFieldsClear}
                   onTextListChange={handleTextListChange}
                   tagSuggestions={tagSuggestions}
                   values={values}
