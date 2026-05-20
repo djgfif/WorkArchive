@@ -98,8 +98,9 @@ export function AuthPageTemplate({
       <Box
         style={{
           display:             'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
           maxWidth:            860,
+          minWidth:            0,
           width:               '100%',
           borderRadius:        'var(--mantine-radius-xl)',
           overflow:            'hidden',
@@ -111,6 +112,7 @@ export function AuthPageTemplate({
         <Box
           style={{
             background:    'linear-gradient(155deg, #3b82f6 0%, #1d4ed8 55%, #1e1b4b 100%)',
+            minWidth:      0,
             padding:       'clamp(2rem, 5vw, 3rem)',
             display:       'flex',
             flexDirection: 'column',
@@ -238,6 +240,7 @@ export function AuthPageTemplate({
         <Box
           style={{
             background:    'var(--app-surface-card)',
+            minWidth:      0,
             padding:       'clamp(2rem, 5vw, 3rem)',
             display:       'flex',
             flexDirection: 'column',

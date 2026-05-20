@@ -26,10 +26,18 @@ import {
   ArchiveHero,
   ArchiveSearchBar,
   ArchiveStarterShelf,
+  WorkPoster,
   WorkShelf,
 } from '../../works/components/ArchiveComponents';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
-import { getWorkStatusLabel } from '../../works/utils/work-options';
+import { getWorkStatusLabel, getWorkTypeLabel } from '../../works/utils/work-options';
+import styles from './HomePage.module.css';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 function formatAverageRating(value: number | null) {
   return value === null ? '미평가' : `★ ${value.toFixed(1)}`;
@@ -76,34 +84,13 @@ function ActivityTimelineItem({ work }: { work: WorkRecord }) {
   const navigate = useNavigate();
   return (
     <Group
+      className={cn(css.activityItem)}
       gap="sm"
       wrap="nowrap"
       onClick={() => navigate(`/works/${work.id}`)}
-      style={{
-        padding: '0.6rem 0.75rem',
-        borderRadius: 'var(--mantine-radius-md)',
-        cursor: 'pointer',
-        transition: 'background var(--wa-motion-fast, 150ms)',
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.background = 'var(--app-surface-subtle)';
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.background = 'transparent';
-      }}
     >
       {/* 타임라인 도트 */}
-      <Box
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-          flexShrink: 0,
-          background: 'var(--app-accent-primary)',
-          opacity: 0.7,
-          marginTop: 2,
-        }}
-      />
+      <Box className={cn(css.activityDot)} />
       <Stack gap={2} miw={0} style={{ flex: 1 }}>
         <Group gap="xs" wrap="nowrap">
           <Text
@@ -138,6 +125,53 @@ function ActivityTimelineItem({ work }: { work: WorkRecord }) {
         </Text>
       )}
     </Group>
+  );
+}
+
+function HeroPosterStack({ works }: { works: WorkRecord[] }) {
+  const displayWorks = works.slice(0, 3);
+  const fallbackWorks = [
+    {
+      id: 'starter-hero-1',
+      rating: null,
+      thumbnailUrl: '',
+      title: '체인소 맨',
+      type: 'manga' as const,
+    },
+    {
+      id: 'starter-hero-2',
+      rating: 4.5,
+      thumbnailUrl: '',
+      title: '은하철도의 밤',
+      type: 'novel' as const,
+    },
+    {
+      id: 'starter-hero-3',
+      rating: null,
+      thumbnailUrl: '',
+      title: '블루 피리어드',
+      type: 'anime' as const,
+    },
+  ];
+  const posters = displayWorks.length > 0 ? displayWorks : fallbackWorks;
+
+  return (
+    <Box aria-hidden="true" className={cn(css.heroPosterStack)}>
+      {posters.map((work) => (
+        <Box className={cn(css.heroPoster)} key={work.id}>
+          <WorkPoster
+            coverSeed={work.id}
+            thumbnailUrl={work.thumbnailUrl}
+            title={work.title}
+            typeLabel={getWorkTypeLabel(work.type)}
+            variant="hero"
+          />
+          {work.rating !== null && (
+            <Text className={cn(css.heroPosterRating)}>★ {work.rating.toFixed(1)}</Text>
+          )}
+        </Box>
+      ))}
+    </Box>
   );
 }
 
@@ -312,9 +346,10 @@ export function HomePage() {
         eyebrow="개인 감상 서재"
         title="내 아카이브"
         variant="landing"
+        visual={<HeroPosterStack works={recentWorks} />}
       >
         <form onSubmit={handleSearchSubmit}>
-          <Group align="center" gap="sm" wrap="nowrap">
+          <Group align="center" gap="sm" wrap="wrap">
             <ArchiveSearchBar
               aria-label="아카이브 검색"
               onChange={setSearchTerm}
@@ -359,7 +394,7 @@ export function HomePage() {
         <Stack gap={64}>
           {/* Quick stats — 데이터가 있을 때만 표시 */}
           {totalCount > 0 && (
-            <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
+            <SimpleGrid className={cn(css.statsGrid)} cols={{ base: 2, sm: 4 }} spacing="sm">
               <QuickStat
                 accent
                 icon="📚"
@@ -445,13 +480,10 @@ export function HomePage() {
                 title="활동 기록"
               />
               <Paper
+                className={cn(css.activityPanel)}
                 p="md"
                 radius="lg"
                 withBorder
-                style={{
-                  background: 'var(--app-surface-subtle)',
-                  borderColor: 'var(--app-border-subtle)',
-                }}
               >
                 <Stack gap={0}>
                   {groupWorksByDate(recentWorks.slice(0, 20)).map((group, groupIndex) => (

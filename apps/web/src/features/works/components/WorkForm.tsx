@@ -696,7 +696,7 @@ export function WorkForm({
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, lg: 4 }}>
-          <Paper p="lg" radius="lg" shadow="md" withBorder>
+          <Paper className={cn(css.quickCapturePreview)} p="lg" radius="lg" shadow="md" withBorder>
             <Stack gap="lg">
               <WorkPoster
                 title={previewTitle}

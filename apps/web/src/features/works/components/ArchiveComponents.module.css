@@ -6,8 +6,8 @@
   flex-shrink: 0;
   width: var(--poster-width);
   overflow: hidden;
-  border: 1px solid var(--app-border-subtle);
-  border-radius: var(--mantine-radius-lg);
+  border: 1px solid color-mix(in srgb, var(--app-border-strong) 72%, transparent);
+  border-radius: 0.85rem;
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 32%),
     radial-gradient(circle at 22% 18%, rgba(91, 140, 187, 0.22), transparent 28%),
@@ -213,10 +213,11 @@
   z-index: 1;
   align-self: center;
   color: var(--app-text-primary);
-  font-size: clamp(2.1rem, 5vw, 4.2rem);
+  font-size: clamp(2.6rem, 7vw, 5.2rem);
   font-weight: 850;
   line-height: 1;
   text-align: center;
+  text-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
 }
 
 .posterFallbackType,
@@ -318,16 +319,18 @@
   z-index: 3;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0.28rem 0.5rem;
+  justify-content: flex-start;
+  padding: 0.34rem 0.7rem;
   /* 배경: 상태 색상 CSS 변수 기반 반투명 (인라인 style 대체) */
-  background: color-mix(in srgb, var(--status-color, var(--app-text-muted)) 80%, transparent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--status-color, var(--app-text-muted)) 18%, transparent), transparent 52%),
+    rgba(0, 0, 0, 0.82);
   /* 하단 그라디언트와 자연스럽게 블렌딩 */
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   /* 포스터 이미지 위에 올라오도록 */
   pointer-events: none;
-  height: 1.7rem;
+  min-height: 2rem;
   bottom: 0;
 }
 
@@ -423,12 +426,14 @@
 ───────────────────────────────────────────────────────────────────────────── */
 .shelf {
   display: grid;
-  grid-auto-columns: minmax(9rem, 11.5rem);
+  position: relative;
+  grid-auto-columns: minmax(9.25rem, 12rem);
   grid-auto-flow: column;
   gap: 0.95rem;
   overflow-x: auto;
-  padding: 0.2rem 0.1rem 0.65rem;
+  padding: 0.25rem 0.1rem 0.9rem;
   scroll-snap-type: x proximity;
+  scrollbar-gutter: stable;
 }
 
 .shelf > * {
@@ -441,14 +446,14 @@
 .hero {
   position: relative;
   overflow: hidden;
-  padding: clamp(1.4rem, 4vw, 3.25rem);
-  border: 1px solid var(--app-border-default);
+  padding: clamp(1.55rem, 4.2vw, 3.55rem);
+  border: 1px solid color-mix(in srgb, var(--app-border-strong) 82%, transparent);
   border-radius: var(--mantine-radius-xl);
   background:
-    radial-gradient(circle at 82% 14%, rgba(59, 130, 246, 0.18), transparent 36%),
-    radial-gradient(circle at 18% 82%, rgba(99, 102, 241, 0.10), transparent 28%),
-    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.04), transparent 60%),
-    linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(7, 8, 11, 0.97));
+    radial-gradient(circle at 82% 14%, rgba(96, 165, 250, 0.16), transparent 34%),
+    radial-gradient(circle at 18% 82%, rgba(251, 191, 36, 0.07), transparent 30%),
+    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.045), transparent 62%),
+    linear-gradient(135deg, color-mix(in srgb, var(--app-surface-hero) 94%, black), rgba(5, 7, 13, 0.98));
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
     var(--app-shadow-overlay);
@@ -478,7 +483,7 @@
 .heroLanding {
   min-height: clamp(17rem, 33vw, 25rem);
   display: grid;
-  align-items: end;
+  align-items: center;
 }
 
 .hero::after {
@@ -500,6 +505,23 @@
 .heroContent {
   position: relative;
   z-index: 1;
+}
+
+.heroLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(18rem, 0.78fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.heroTextColumn {
+  min-width: 0;
+}
+
+.heroVisual {
+  display: flex;
+  min-width: 0;
+  justify-content: center;
 }
 
 .heroTitle {
@@ -548,6 +570,18 @@
 }
 .detailHeroBody {
   min-width: min(100%, 26rem);
+}
+
+.detailSummary {
+  flex: 0 1 22rem;
+  min-width: min(100%, 18rem);
+  padding: clamp(1rem, 2.5vw, 1.35rem);
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-xl);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
+    rgba(5, 7, 13, 0.48);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.22);
 }
 /* 상세 히어로 메타 구분선 */
 .detailHeroMeta {
@@ -960,6 +994,14 @@
 @media (max-width: 48rem) {
   .shelf {
     grid-auto-columns: minmax(8.4rem, 44vw);
+  }
+
+  .heroLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .heroVisual {
+    order: -1;
   }
 
   .starterCovers {

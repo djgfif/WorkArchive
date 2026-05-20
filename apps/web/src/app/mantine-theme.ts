@@ -104,6 +104,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--wa-text-disabled':   '#cbd5e1',
 
     '--wa-accent-primary':  '#2563eb',
+    '--wa-accent-strong':   '#1d4ed8',
     '--wa-accent-warm':     '#d97706',
     '--wa-accent-teal':     '#0d9488',
     '--wa-accent-rose':     '#e11d48',
@@ -125,6 +126,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-bg-shell':        'var(--wa-bg-shell)',
     '--app-bg-base':         'var(--wa-bg-base)',
     '--app-bg-elevated':     'var(--wa-bg-elevated)',
+    '--app-surface-default': 'var(--wa-surface-card)',
     '--app-surface-subtle':  'var(--wa-surface-subtle)',
     '--app-surface-card':    'var(--wa-surface-card)',
     '--app-surface-hero':    'var(--wa-surface-hero)',
@@ -137,6 +139,8 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-text-muted':      'var(--wa-text-muted)',
     '--app-text-disabled':   'var(--wa-text-disabled)',
     '--app-accent-primary':  'var(--wa-accent-primary)',
+    '--app-accent-strong':   'var(--wa-accent-strong)',
+    '--app-accent-secondary':'var(--wa-accent-teal)',
     '--app-accent-warm':     'var(--wa-accent-warm)',
     '--app-accent-teal':     'var(--wa-accent-teal)',
     '--app-accent-rose':     'var(--wa-accent-rose)',
@@ -152,36 +156,37 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
 
   /* ── 다크 모드 ── */
   dark: {
-    '--wa-bg-shell':        '#080c14',   // 최하위 — 깊은 네이비 블랙
-    '--wa-bg-base':         '#0d1220',   // 페이지 배경
-    '--wa-bg-elevated':     '#111827',   // 인풋, 세그먼트 배경
-    '--wa-surface-subtle':  '#141c2e',   // 섹션 배경
-    '--wa-surface-card':    '#1a2540',   // 카드 표면
-    '--wa-surface-hero':    '#1e2d4a',   // 히어로 배경
-    '--wa-surface-overlay': '#1a2540',   // 드롭다운, 모달
+    '--wa-bg-shell':        '#05070d',
+    '--wa-bg-base':         '#080c16',
+    '--wa-bg-elevated':     '#0d1424',
+    '--wa-surface-subtle':  '#111a2e',
+    '--wa-surface-card':    '#16213a',
+    '--wa-surface-hero':    '#10192d',
+    '--wa-surface-overlay': '#111827',
 
-    '--wa-border-subtle':   'rgba(148, 163, 184, 0.07)',
-    '--wa-border-default':  'rgba(148, 163, 184, 0.13)',
-    '--wa-border-strong':   'rgba(148, 163, 184, 0.24)',
+    '--wa-border-subtle':   'rgba(148, 163, 184, 0.08)',
+    '--wa-border-default':  'rgba(148, 163, 184, 0.16)',
+    '--wa-border-strong':   'rgba(148, 163, 184, 0.28)',
 
     '--wa-text-primary':    '#e8f0fe',   // 제목 — 따뜻한 화이트
     '--wa-text-secondary':  '#94a3b8',   // 본문
-    '--wa-text-muted':      '#4b5e7a',   // 보조
+    '--wa-text-muted':      '#52647f',   // 보조
     '--wa-text-disabled':   '#2d3a52',   // 비활성
 
     '--wa-accent-primary':  '#60a5fa',   // Archive Blue 4
+    '--wa-accent-strong':   '#2563eb',
     '--wa-accent-warm':     '#fbbf24',   // Ember 4
     '--wa-accent-teal':     '#2dd4bf',   // 완료 상태
     '--wa-accent-rose':     '#fb7185',   // 드롭 상태
 
     '--wa-shadow-xs':     '0 1px 2px rgba(0, 0, 0, 0.5)',
-    '--wa-shadow-card':   '0 2px 8px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(148, 163, 184, 0.06)',
-    '--wa-shadow-poster': '0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.35)',
-    '--wa-shadow-hero':   '0 20px 60px rgba(0, 0, 0, 0.65), 0 4px 16px rgba(0, 0, 0, 0.4)',
-    '--wa-shadow-overlay':'0 24px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(148, 163, 184, 0.10)',
+    '--wa-shadow-card':   '0 10px 32px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(148, 163, 184, 0.06)',
+    '--wa-shadow-poster': '0 18px 44px rgba(0, 0, 0, 0.58), 0 5px 14px rgba(0, 0, 0, 0.34)',
+    '--wa-shadow-hero':   '0 32px 80px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(148, 163, 184, 0.09)',
+    '--wa-shadow-overlay':'0 28px 92px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(148, 163, 184, 0.12)',
     '--wa-shadow-glow':   '0 0 0 3px rgba(96, 165, 250, 0.25)',
 
-    '--mantine-color-body':           '#080c14',
+    '--mantine-color-body':           '#05070d',
     '--mantine-color-text':           '#e8f0fe',
     '--mantine-color-dimmed':         '#94a3b8',
     '--mantine-color-default':        '#1a2540',
@@ -191,6 +196,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-bg-shell':        'var(--wa-bg-shell)',
     '--app-bg-base':         'var(--wa-bg-base)',
     '--app-bg-elevated':     'var(--wa-bg-elevated)',
+    '--app-surface-default': 'var(--wa-surface-card)',
     '--app-surface-subtle':  'var(--wa-surface-subtle)',
     '--app-surface-card':    'var(--wa-surface-card)',
     '--app-surface-hero':    'var(--wa-surface-hero)',
@@ -203,6 +209,8 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-text-muted':      'var(--wa-text-muted)',
     '--app-text-disabled':   'var(--wa-text-disabled)',
     '--app-accent-primary':  'var(--wa-accent-primary)',
+    '--app-accent-strong':   'var(--wa-accent-strong)',
+    '--app-accent-secondary':'var(--wa-accent-teal)',
     '--app-accent-warm':     'var(--wa-accent-warm)',
     '--app-accent-teal':     'var(--wa-accent-teal)',
     '--app-accent-rose':     'var(--wa-accent-rose)',
