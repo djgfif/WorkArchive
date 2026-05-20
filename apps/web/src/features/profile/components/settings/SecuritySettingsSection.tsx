@@ -34,6 +34,56 @@ function formatSessionDate(value: string | null) {
   }).format(new Date(value));
 }
 
+function formatUserAgent(value: string | null) {
+  if (!value) {
+    return '정보 없음';
+  }
+
+  const browser =
+    value.includes('Edg/')
+      ? 'Edge'
+      : value.includes('Chrome/')
+        ? 'Chrome'
+        : value.includes('Firefox/')
+          ? 'Firefox'
+          : value.includes('Safari/')
+            ? 'Safari'
+            : '브라우저';
+  const os =
+    value.includes('Windows')
+      ? 'Windows'
+      : value.includes('Mac OS X')
+        ? 'macOS'
+        : value.includes('Android')
+          ? 'Android'
+          : value.includes('iPhone') || value.includes('iPad')
+            ? 'iOS'
+            : value.includes('Linux')
+              ? 'Linux'
+              : null;
+  const label = [browser, os].filter(Boolean).join(' · ');
+
+  return label || value.slice(0, 80);
+}
+
+function maskIpAddress(value: string | null) {
+  if (!value) {
+    return '정보 없음';
+  }
+
+  if (value.includes(':')) {
+    const segments = value.split(':').filter(Boolean);
+
+    return segments.length > 1
+      ? `${segments.slice(0, 2).join(':')}:…`
+      : `${value.slice(0, 6)}…`;
+  }
+
+  const parts = value.split('.');
+
+  return parts.length === 4 ? `${parts.slice(0, 3).join('.')}.x` : value;
+}
+
 export function SecuritySettingsSection({
   feedback,
   isLoadingSessions,
@@ -116,9 +166,9 @@ export function SecuritySettingsSection({
                   {formatSessionDate(session.createdAt)} | 만료:{' '}
                   {formatSessionDate(session.expiresAt)}
                 </Text>
-                <Text c="dimmed" size="sm">
-                  기기: {session.userAgent || '정보 없음'} | IP:{' '}
-                  {session.ipAddress || '정보 없음'}
+                <Text c="dimmed" lineClamp={1} size="sm">
+                  기기: {formatUserAgent(session.userAgent)} · IP:{' '}
+                  {maskIpAddress(session.ipAddress)}
                 </Text>
 
                 <ActionRow>

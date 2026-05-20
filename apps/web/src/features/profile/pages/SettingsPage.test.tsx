@@ -421,8 +421,10 @@ describe('SettingsPage', () => {
       return Promise.resolve(jsonResponse([]));
     });
     const signOut = vi.fn().mockResolvedValue(undefined);
+    const confirmMock = vi.fn(() => true);
 
     vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('confirm', confirmMock);
 
     const user = userEvent.setup();
 
@@ -437,6 +439,7 @@ describe('SettingsPage', () => {
       }),
     );
 
+    expect(confirmMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls).toEqual(
       expect.arrayContaining([
         expect.arrayContaining([

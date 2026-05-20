@@ -7,6 +7,7 @@ import {
   SectionCard,
   SectionIntro,
 } from '../../../../shared/components/AppPrimitives';
+import { confirmDialogAdapter } from '../../../../shared/runtime/dialog-adapter';
 import styles from './SettingsControlCenter.module.css';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
@@ -25,6 +26,20 @@ export function DangerZoneSection({
   revokingSessionId,
   sessionCount,
 }: DangerZoneSectionProps) {
+  async function handleRevokeAllSessions() {
+    const shouldRevoke = await confirmDialogAdapter.confirm({
+      title: '모든 기기에서 로그아웃할까요?',
+      description:
+        '현재 기기를 포함한 모든 로그인 세션이 해제되고 이 브라우저도 즉시 게스트 모드로 전환됩니다.',
+    });
+
+    if (!shouldRevoke) {
+      return;
+    }
+
+    onRevokeAllSessions();
+  }
+
   return (
     <SectionCard className={css.dangerCard ?? ''}>
       <SectionIntro
@@ -51,7 +66,7 @@ export function DangerZoneSection({
             <AppButton
               disabled={mode !== 'authenticated'}
               loading={revokingSessionId === 'all'}
-              onClick={onRevokeAllSessions}
+              onClick={() => void handleRevokeAllSessions()}
               tone="danger"
               type="button"
             >

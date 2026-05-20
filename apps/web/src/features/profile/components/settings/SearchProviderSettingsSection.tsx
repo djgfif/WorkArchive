@@ -291,7 +291,7 @@ export function SearchProviderSettingsSection({
                   </Text>
                 </Stack>
               ) : (
-                <Text c="dimmed">등록 가능한 개인 key provider가 없습니다.</Text>
+                <Text c="dimmed">왼쪽에서 provider를 선택하세요.</Text>
               )}
 
               {feedback && (

@@ -16,17 +16,22 @@ function getBrowserConfirm() {
 }
 
 export function createBrowserConfirmDialogAdapter(
-  confirmImplementation: ((message: string) => boolean) | null = getBrowserConfirm(),
+  confirmImplementation?: ((message: string) => boolean) | null,
 ): ConfirmDialogAdapter {
   return {
     async confirm({ description, title }) {
-      if (!confirmImplementation) {
+      const confirm =
+        confirmImplementation === undefined
+          ? getBrowserConfirm()
+          : confirmImplementation;
+
+      if (!confirm) {
         return false;
       }
 
       const message = [title.trim(), description?.trim()].filter(Boolean).join('\n');
 
-      return confirmImplementation(message);
+      return confirm(message);
     },
   };
 }
