@@ -10,7 +10,9 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { CatalogService } from '../src/modules/catalog/catalog.service';
 import { SyncService } from '../src/modules/sync/sync.service';
 import type { SyncReleaseRecordPayloadDto } from '../src/modules/sync/dto/sync-release-record-payload.dto';
+import type { SyncSeriesPayloadDto } from '../src/modules/sync/dto/sync-series-payload.dto';
 import type { SyncTimelineEntryPayloadDto } from '../src/modules/sync/dto/sync-timeline-entry-payload.dto';
+import type { SyncWorkSeriesLinkPayloadDto } from '../src/modules/sync/dto/sync-work-series-link-payload.dto';
 import type { SyncWorkPayloadDto } from '../src/modules/sync/dto/sync-work-payload.dto';
 import { type PrismaService } from '../src/prisma/prisma.service';
 import type {
@@ -90,6 +92,47 @@ function createSyncPayload(
     deletedAt: null,
     syncStatus: 'pending',
     serverVersion: 3,
+    ...overrides,
+  };
+}
+
+function createUserSeriesFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    id: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+    userId: USER_ID,
+    title: 'Fate',
+    normalizedTitle: 'fate',
+    aliases: [],
+    kind: 'series',
+    parentId: null,
+    description: '',
+    thumbnailUrl: '',
+    createdAt: new Date('2026-04-18T00:00:00.000Z'),
+    updatedAt: new Date('2026-04-18T01:00:00.000Z'),
+    deletedAt: null,
+    syncStatus: WorkSyncStatus.synced,
+    serverVersion: 1,
+    ...overrides,
+  };
+}
+
+function createSyncSeriesPayload(
+  overrides: Partial<SyncSeriesPayloadDto> = {},
+): SyncSeriesPayloadDto {
+  return {
+    id: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+    title: 'Fate',
+    normalizedTitle: 'fate',
+    aliases: [],
+    kind: 'series',
+    parentId: null,
+    description: '',
+    thumbnailUrl: '',
+    createdAt: '2026-04-18T00:00:00.000Z',
+    updatedAt: '2026-04-18T01:00:00.000Z',
+    deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
     ...overrides,
   };
 }
@@ -232,6 +275,38 @@ describe('SyncService', () => {
       userReleaseRecord: {
         create: jest.fn(),
       },
+      userSeries: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(async () => []),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      userWorkSeriesLink: {
+        create: jest.fn(),
+        findMany: jest.fn(async () => []),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      userContributor: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(async () => []),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      userWorkContributor: {
+        create: jest.fn(),
+        findMany: jest.fn(async () => []),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      userWorkRelation: {
+        create: jest.fn(),
+        findMany: jest.fn(async () => []),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
     };
     prisma.$transaction.mockImplementation(
       async (callback: (client: any) => Promise<any>) =>
@@ -334,7 +409,7 @@ describe('SyncService', () => {
         }),
       }),
     ]);
-    expect(result.schemaVersion).toBe(2);
+    expect(result.schemaVersion).toBe(3);
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
@@ -434,7 +509,7 @@ describe('SyncService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 2,
+        schemaVersion: 3,
         nextSince: '2026-04-18T02:00:00.000Z',
         changes: [
           expect.objectContaining({
@@ -1167,7 +1242,7 @@ describe('SyncService', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 2,
+        schemaVersion: 3,
         nextSince: '2026-04-18T00:00:00.000Z',
         changes: [],
       }),
@@ -1239,6 +1314,97 @@ describe('SyncService', () => {
     ]);
     expect(catalogService.create).not.toHaveBeenCalled();
     expect(userRecordsService.create).not.toHaveBeenCalled();
+  });
+
+  it('pushes a local series graph record as a private user entity', async () => {
+    const createdSeries = createUserSeriesFixture();
+    prisma.userSeries.findUnique.mockResolvedValue(null);
+    prisma.userSeries.create.mockResolvedValue(createdSeries);
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'graph-series-queue-1',
+          entityType: 'series',
+          entityId: createdSeries.id,
+          operation: 'create',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: createSyncSeriesPayload(),
+        },
+      ],
+    });
+
+    expect(prisma.userSeries.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          id: createdSeries.id,
+          userId: USER_ID,
+          title: 'Fate',
+          normalizedTitle: 'fate',
+          serverVersion: 1,
+        }),
+      }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        schemaVersion: 3,
+        results: [
+          expect.objectContaining({
+            entityType: 'series',
+            status: 'applied',
+            code: 'created',
+            series: expect.objectContaining({
+              id: createdSeries.id,
+              title: 'Fate',
+              syncStatus: 'synced',
+              serverVersion: 1,
+            }),
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('rejects a work-series link when the parent work or series is missing', async () => {
+    prisma.userWorkSeriesLink.findUnique.mockResolvedValue(null);
+    userRecordsService.findById.mockResolvedValue(null);
+    prisma.userSeries.findFirst.mockResolvedValue(createUserSeriesFixture());
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'graph-link-queue-1',
+          entityType: 'work_series_link',
+          entityId: '4a822eea-c1c9-40d3-b18c-b4d35a75b0f3',
+          operation: 'create',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            id: '4a822eea-c1c9-40d3-b18c-b4d35a75b0f3',
+            workId: 'missing-work',
+            seriesId: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+            role: 'main',
+            orderIndex: null,
+            orderLabel: '',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:30:00.000Z',
+            deletedAt: null,
+            syncStatus: 'local-only',
+            serverVersion: 0,
+          } satisfies SyncWorkSeriesLinkPayloadDto,
+        },
+      ],
+    });
+
+    expect(prisma.userWorkSeriesLink.create).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'work_series_link',
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('parent work is missing'),
+        workSeriesLink: null,
+      }),
+    ]);
   });
 
   it('pushes a local release record for volume-recordable titles only', async () => {
@@ -1465,7 +1631,7 @@ describe('SyncService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 2,
+        schemaVersion: 3,
         nextSince: '2026-04-18T03:00:00.000Z',
         changes: [
           expect.objectContaining({

@@ -162,6 +162,11 @@ export function WorkForm({
   useEffect(() => {
     const nextValues = initialValues ?? createDefaultWorkFormValues();
 
+    if (form.isDirty()) {
+      form.setInitialValues(nextValues);
+      return;
+    }
+
     form.setValues(nextValues);
     form.setInitialValues(nextValues);
     form.resetDirty(nextValues);

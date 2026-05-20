@@ -87,12 +87,12 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Fate/stay night' }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText('Fate').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('TYPE-MOON').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('ufotable').length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Fate')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('TYPE-MOON')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('ufotable')).length).toBeGreaterThan(0);
     expect(screen.getByText('제작 정보')).toBeInTheDocument();
     expect(screen.getByText('이 시리즈 안에서')).toBeInTheDocument();
-    expect(screen.getByText('Fate/Zero')).toBeInTheDocument();
+    expect(await screen.findByText('Fate/Zero')).toBeInTheDocument();
   });
 
   it('renders short review and full review before metadata cards', async () => {

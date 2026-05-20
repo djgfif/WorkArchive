@@ -12,6 +12,10 @@ import { PageHero } from '../../../shared/components/PageHero';
 import { FlowPageTemplate } from '../../../shared/components/PageTemplates';
 import { WorkForm } from '../components/WorkForm';
 import { useWorkDetail } from '../hooks/useWorkDetail';
+import {
+  graphRepository,
+  type WorkGraphSnapshot,
+} from '../services/graph.repository';
 import { worksRepository } from '../services/works.repository';
 import { worksService } from '../services/works.service';
 import {
@@ -28,10 +32,12 @@ export function WorkEditPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+  const [workGraph, setWorkGraph] = useState<WorkGraphSnapshot | null>(null);
   const focusArea = searchParams.get('focus') === 'review' ? 'review' : 'general';
   const formInitialValues = useMemo(
-    () => (work ? createWorkFormValuesFromRecord(work) : undefined),
-    [work],
+    () =>
+      work ? createWorkFormValuesFromRecord(work, workGraph ?? undefined) : undefined,
+    [work, workGraph],
   );
 
   useEffect(() => {
@@ -50,6 +56,25 @@ export function WorkEditPage() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!work) {
+      setWorkGraph(null);
+
+      return undefined;
+    }
+
+    const subscription = liveQuery(() =>
+      graphRepository.getWorkGraph(work.id),
+    ).subscribe({
+      next: setWorkGraph,
+      error: () => setWorkGraph(null),
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [work]);
 
   async function handleSubmit(input: UpsertWorkInput) {
     if (!id) {

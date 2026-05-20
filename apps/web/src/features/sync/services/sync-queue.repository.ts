@@ -1,5 +1,6 @@
 import type {
   SyncConflictSnapshot,
+  SyncEntityType,
   SyncOperation,
   SyncQueueItemRecord,
   SyncQueuePayload,
@@ -19,6 +20,17 @@ const WORK_ENTITY_TYPE = 'work';
 const RELEASE_RECORD_ENTITY_TYPE = 'release_record';
 const TIMELINE_ENTRY_ENTITY_TYPE = 'timeline_entry';
 
+const SYNC_PUSH_ORDER: Record<SyncEntityType, number> = {
+  work: 0,
+  series: 1,
+  contributor: 1,
+  work_series_link: 2,
+  work_contributor: 2,
+  work_relation: 2,
+  release_record: 3,
+  timeline_entry: 3,
+};
+
 type DatabaseResolver = () => WorkArchiveDatabase;
 
 export class SyncQueueRepository {
@@ -29,7 +41,7 @@ export class SyncQueueRepository {
     operation: SyncOperation,
     source: SyncQueueSource = 'unknown',
   ) {
-    return this.enqueueChange(
+    return this.enqueueEntityChange(
       WORK_ENTITY_TYPE,
       work,
       operation,
@@ -47,7 +59,7 @@ export class SyncQueueRepository {
     operation: SyncOperation,
     source: SyncQueueSource = 'release_record_update',
   ) {
-    return this.enqueueChange(
+    return this.enqueueEntityChange(
       RELEASE_RECORD_ENTITY_TYPE,
       releaseRecord,
       operation,
@@ -63,7 +75,7 @@ export class SyncQueueRepository {
     operation: SyncOperation,
     source: SyncQueueSource = 'timeline_entry_update',
   ) {
-    return this.enqueueChange(
+    return this.enqueueEntityChange(
       TIMELINE_ENTRY_ENTITY_TYPE,
       timelineEntry,
       operation,
@@ -74,13 +86,8 @@ export class SyncQueueRepository {
     );
   }
 
-  private async enqueueChange<
-    TPayload extends WorkRecord | UserReleaseRecord | TimelineEntryRecord,
-  >(
-    entityType:
-      | typeof WORK_ENTITY_TYPE
-      | typeof RELEASE_RECORD_ENTITY_TYPE
-      | typeof TIMELINE_ENTRY_ENTITY_TYPE,
+  async enqueueEntityChange<TPayload extends SyncQueuePayload>(
+    entityType: SyncEntityType,
     entity: TPayload,
     operation: SyncOperation,
     payload: TPayload,
@@ -134,10 +141,17 @@ export class SyncQueueRepository {
   async listAll() {
     const items = await this.getDb().syncQueue.orderBy('createdAt').toArray();
 
-    return items.map((item) => ({
-      ...item,
-      source: item.source ?? 'unknown',
-    }));
+    return items
+      .map((item) => ({
+        ...item,
+        source: item.source ?? 'unknown',
+      }))
+      .sort(
+        (left, right) =>
+          SYNC_PUSH_ORDER[left.entityType] - SYNC_PUSH_ORDER[right.entityType] ||
+          left.createdAt.localeCompare(right.createdAt) ||
+          left.id.localeCompare(right.id),
+      );
   }
 
   async getById(id: string) {

@@ -9,7 +9,12 @@ import {
 
 import { UserReleaseRecordResponseDto } from '../../user-records/dto/user-release-record.dto';
 import { WorkResponseDto } from '../../works/dto/work-response.dto';
+import { SyncContributorPayloadDto } from './sync-contributor-payload.dto';
+import { SyncSeriesPayloadDto } from './sync-series-payload.dto';
 import { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
+import { SyncWorkContributorPayloadDto } from './sync-work-contributor-payload.dto';
+import { SyncWorkRelationPayloadDto } from './sync-work-relation-payload.dto';
+import { SyncWorkSeriesLinkPayloadDto } from './sync-work-series-link-payload.dto';
 
 export class PullSyncChangeDto {
   @ApiProperty({
@@ -44,6 +49,36 @@ export class PullSyncChangeDto {
     required: false,
   })
   timelineEntry?: SyncTimelineEntryPayloadDto;
+
+  @ApiProperty({
+    type: () => SyncSeriesPayloadDto,
+    required: false,
+  })
+  series?: SyncSeriesPayloadDto;
+
+  @ApiProperty({
+    type: () => SyncWorkSeriesLinkPayloadDto,
+    required: false,
+  })
+  workSeriesLink?: SyncWorkSeriesLinkPayloadDto;
+
+  @ApiProperty({
+    type: () => SyncContributorPayloadDto,
+    required: false,
+  })
+  contributor?: SyncContributorPayloadDto;
+
+  @ApiProperty({
+    type: () => SyncWorkContributorPayloadDto,
+    required: false,
+  })
+  workContributor?: SyncWorkContributorPayloadDto;
+
+  @ApiProperty({
+    type: () => SyncWorkRelationPayloadDto,
+    required: false,
+  })
+  workRelation?: SyncWorkRelationPayloadDto;
 }
 
 export class PullSyncResponseDto {

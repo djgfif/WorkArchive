@@ -24,6 +24,11 @@ export interface WorksListQuery {
   sortBy: WorksSortOption;
 }
 
+export interface WorksGraphQueryIndex {
+  contributorValuesByWorkId: Map<string, string[]>;
+  seriesValuesByWorkId: Map<string, string[]>;
+}
+
 export const DEFAULT_WORKS_LIST_QUERY: WorksListQuery = {
   contributor: '',
   genre: '',
@@ -62,7 +67,44 @@ function createSearchSignals(value: string) {
   );
 }
 
-function matchesSearch(work: WorkRecord, searchTerm: string) {
+function getWorkSeriesValues(
+  work: WorkRecord,
+  graphIndex?: WorksGraphQueryIndex,
+) {
+  return graphIndex?.seriesValuesByWorkId.get(work.id) ?? getGraphTags(
+    work.personalTags,
+    SERIES_GRAPH_TAG_KINDS,
+  ).map((tag) => tag.value);
+}
+
+function getWorkContributorValues(
+  work: WorkRecord,
+  graphIndex?: WorksGraphQueryIndex,
+) {
+  const graphValues = graphIndex?.contributorValuesByWorkId.get(work.id);
+
+  if (graphValues && graphValues.length > 0) {
+    return graphValues;
+  }
+
+  return workContributorValues(work);
+}
+
+function matchesGraphValue(values: string[], value: string | undefined) {
+  const normalizedValue = normalizeSearchText(value ?? '');
+
+  if (!normalizedValue) {
+    return true;
+  }
+
+  return values.some((entry) => normalizeSearchText(entry) === normalizedValue);
+}
+
+function matchesSearch(
+  work: WorkRecord,
+  searchTerm: string,
+  graphIndex?: WorksGraphQueryIndex,
+) {
   const normalizedSearch = normalizeSearchText(searchTerm);
 
   if (!normalizedSearch) {
@@ -81,7 +123,8 @@ function matchesSearch(work: WorkRecord, searchTerm: string) {
     getGraphTags(work.personalTags)
       .map((tag) => tag.value)
       .join(' '),
-    workContributorValues(work).join(' '),
+    getWorkSeriesValues(work, graphIndex).join(' '),
+    getWorkContributorValues(work, graphIndex).join(' '),
   ].flatMap(createSearchSignals);
 
   return searchSignals.some((searchSignal) =>
@@ -93,7 +136,11 @@ function compareUpdatedAtDescending(a: WorkRecord, b: WorkRecord) {
   return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
 }
 
-export function queryWorks(works: WorkRecord[], query: WorksListQuery) {
+export function queryWorks(
+  works: WorkRecord[],
+  query: WorksListQuery,
+  graphIndex?: WorksGraphQueryIndex,
+) {
   const filtered = works.filter((work) => {
     if (query.type !== 'all' && work.type !== query.type) {
       return false;
@@ -111,7 +158,14 @@ export function queryWorks(works: WorkRecord[], query: WorksListQuery) {
       return false;
     }
 
-    if (!matchesGraphTagValue(work.personalTags, SERIES_GRAPH_TAG_KINDS, query.series)) {
+    if (
+      !matchesGraphTagValue(
+        work.personalTags,
+        SERIES_GRAPH_TAG_KINDS,
+        query.series,
+      ) &&
+      !matchesGraphValue(getWorkSeriesValues(work, graphIndex), query.series)
+    ) {
       return false;
     }
 
@@ -122,7 +176,7 @@ export function queryWorks(works: WorkRecord[], query: WorksListQuery) {
         CONTRIBUTOR_GRAPH_TAG_KINDS,
         query.contributor,
       ) &&
-      !workContributorValues(work).some(
+      !getWorkContributorValues(work, graphIndex).some(
         (value) =>
           normalizeSearchText(value) ===
           normalizeSearchText(query.contributor ?? ''),
@@ -141,7 +195,7 @@ export function queryWorks(works: WorkRecord[], query: WorksListQuery) {
       return false;
     }
 
-    return matchesSearch(work, query.searchTerm);
+    return matchesSearch(work, query.searchTerm, graphIndex);
   });
 
   return filtered.sort((a, b) => {

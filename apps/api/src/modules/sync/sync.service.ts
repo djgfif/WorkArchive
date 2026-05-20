@@ -4,13 +4,19 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import {
-  WorkSyncStatus,
-  type Prisma,
-  type TimelineEntryType,
-  type WorkStatus,
-  type WorkTier,
-  WorkType,
+import { WorkSyncStatus, WorkType } from '@prisma/client';
+import type {
+  ContributorEntityType,
+  Prisma,
+  SeriesKind,
+  TimelineEntryType,
+  UserContributor,
+  UserSeries,
+  WorkContributorRole,
+  WorkRelationType,
+  WorkSeriesRole,
+  WorkStatus,
+  WorkTier,
 } from '@prisma/client';
 
 import { CatalogService } from '../catalog/catalog.service';
@@ -50,10 +56,19 @@ import type {
   PushSyncResponseDto,
   PushSyncResultDto,
 } from './dto/push-sync-response.dto';
+import type { SyncContributorPayloadDto } from './dto/sync-contributor-payload.dto';
 import type { SyncReleaseRecordPayloadDto } from './dto/sync-release-record-payload.dto';
+import type { SyncSeriesPayloadDto } from './dto/sync-series-payload.dto';
 import type { SyncTimelineEntryPayloadDto } from './dto/sync-timeline-entry-payload.dto';
+import type { SyncWorkContributorPayloadDto } from './dto/sync-work-contributor-payload.dto';
 import type { SyncWorkPayloadDto } from './dto/sync-work-payload.dto';
-import { SYNC_SCHEMA_VERSION, type SyncEntityType } from './sync.constants';
+import type { SyncWorkRelationPayloadDto } from './dto/sync-work-relation-payload.dto';
+import type { SyncWorkSeriesLinkPayloadDto } from './dto/sync-work-series-link-payload.dto';
+import {
+  SYNC_ENTITY_TYPES,
+  SYNC_SCHEMA_VERSION,
+  type SyncEntityType,
+} from './sync.constants';
 
 const SERVER_SYNC_STATUS = WorkSyncStatus.synced;
 const ALREADY_APPLIED_MESSAGE =
@@ -90,9 +105,71 @@ const SYNC_CREATE_TITLE_INCLUDE = {
   },
 } satisfies Prisma.CatalogTitleInclude;
 
+const USER_WORK_SERIES_LINK_INCLUDE = {
+  userSeries: {
+    select: {
+      id: true,
+      userId: true,
+    },
+  },
+  userWork: {
+    select: {
+      id: true,
+      userId: true,
+    },
+  },
+} satisfies Prisma.UserWorkSeriesLinkInclude;
+
+const USER_WORK_CONTRIBUTOR_INCLUDE = {
+  userContributor: {
+    select: {
+      id: true,
+      userId: true,
+    },
+  },
+  userWork: {
+    select: {
+      id: true,
+      userId: true,
+    },
+  },
+} satisfies Prisma.UserWorkContributorInclude;
+
+const USER_WORK_RELATION_INCLUDE = {
+  sourceWork: {
+    select: {
+      id: true,
+      userId: true,
+    },
+  },
+  targetWork: {
+    select: {
+      id: true,
+      userId: true,
+    },
+  },
+} satisfies Prisma.UserWorkRelationInclude;
+
 type SyncCreateTitleView = Prisma.CatalogTitleGetPayload<{
   include: typeof SYNC_CREATE_TITLE_INCLUDE;
 }>;
+type UserSeriesSyncView = UserSeries;
+type UserContributorSyncView = UserContributor;
+type UserWorkSeriesLinkSyncView = Prisma.UserWorkSeriesLinkGetPayload<{
+  include: typeof USER_WORK_SERIES_LINK_INCLUDE;
+}>;
+type UserWorkContributorSyncView = Prisma.UserWorkContributorGetPayload<{
+  include: typeof USER_WORK_CONTRIBUTOR_INCLUDE;
+}>;
+type UserWorkRelationSyncView = Prisma.UserWorkRelationGetPayload<{
+  include: typeof USER_WORK_RELATION_INCLUDE;
+}>;
+type GraphPayloadKey =
+  | 'contributor'
+  | 'series'
+  | 'workContributor'
+  | 'workRelation'
+  | 'workSeriesLink';
 
 interface PullCursor {
   entityId: string;
@@ -178,8 +255,13 @@ export class SyncService {
         userId,
         parsedSince,
       );
+      const graphRecords = await this.findGraphRecordsByUserSince(
+        userId,
+        parsedSince,
+      );
       const pulledAt = new Date().toISOString();
       const orderedChanges = this.buildOrderedPullChanges({
+        ...graphRecords,
         releaseRecords,
         timelineEntries,
         works,
@@ -195,6 +277,11 @@ export class SyncService {
         ...works,
         ...releaseRecords,
         ...timelineEntries,
+        ...graphRecords.series,
+        ...graphRecords.contributors,
+        ...graphRecords.workSeriesLinks,
+        ...graphRecords.workContributors,
+        ...graphRecords.workRelations,
       ].sort(
         (left, right) => left.updatedAt.getTime() - right.updatedAt.getTime(),
       );
@@ -227,6 +314,46 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
   ): Promise<PushSyncResultDto> {
+    if (change.entityType === 'series') {
+      return this.applySeriesChange(
+        userId,
+        change,
+        change.payload as SyncSeriesPayloadDto,
+      );
+    }
+
+    if (change.entityType === 'contributor') {
+      return this.applyContributorChange(
+        userId,
+        change,
+        change.payload as SyncContributorPayloadDto,
+      );
+    }
+
+    if (change.entityType === 'work_series_link') {
+      return this.applyWorkSeriesLinkChange(
+        userId,
+        change,
+        change.payload as SyncWorkSeriesLinkPayloadDto,
+      );
+    }
+
+    if (change.entityType === 'work_contributor') {
+      return this.applyWorkContributorChange(
+        userId,
+        change,
+        change.payload as SyncWorkContributorPayloadDto,
+      );
+    }
+
+    if (change.entityType === 'work_relation') {
+      return this.applyWorkRelationChange(
+        userId,
+        change,
+        change.payload as SyncWorkRelationPayloadDto,
+      );
+    }
+
     if (change.entityType === 'timeline_entry') {
       return this.applyTimelineEntryChange(
         userId,
@@ -814,6 +941,499 @@ export class SyncService {
     };
   }
 
+  private async applySeriesChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncSeriesPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const existing = await this.prisma.userSeries.findUnique({
+      where: { id: change.entityId },
+    });
+
+    if (!existing) {
+      return this.applyMissingRemoteSeriesChange(userId, change, payload);
+    }
+
+    if (existing.userId !== userId) {
+      return this.buildGraphOwnershipConflict(change, 'series');
+    }
+
+    const validationError = await this.validateSeriesParent(userId, payload);
+    if (validationError) {
+      return this.buildGraphValidationFailure(change, 'series', validationError, {
+        series: this.toSyncSeriesPayload(existing),
+      });
+    }
+
+    if (
+      existing.serverVersion > payload.serverVersion &&
+      !this.areSeriesEquivalent(existing, payload)
+    ) {
+      return this.buildGraphRemoteNewerConflict(change, 'series', {
+        series: this.toSyncSeriesPayload(existing),
+      });
+    }
+
+    if (this.areSeriesEquivalent(existing, payload)) {
+      return this.buildGraphAppliedResult(change, 'series', {
+        code: SYNC_CODES.alreadyApplied,
+        message: ALREADY_APPLIED_MESSAGE,
+        series: this.toSyncSeriesPayload(existing),
+      });
+    }
+
+    const updated = await this.prisma.userSeries.update({
+      where: { id: change.entityId },
+      data: this.buildSeriesUpdateData(payload),
+    });
+
+    return this.buildGraphAppliedResult(change, 'series', {
+      code:
+        payload.deletedAt === null
+          ? SYNC_CODES.appliedChange
+          : SYNC_CODES.appliedTombstone,
+      message:
+        payload.deletedAt === null
+          ? APPLIED_CHANGE_MESSAGE
+          : APPLIED_TOMBSTONE_MESSAGE,
+      series: this.toSyncSeriesPayload(updated),
+    });
+  }
+
+  private async applyMissingRemoteSeriesChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncSeriesPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const missingResult = this.getMissingRemoteGraphResult(change, payload);
+    if (missingResult) return missingResult;
+
+    const validationError = await this.validateSeriesParent(userId, payload);
+    if (validationError) {
+      return this.buildGraphValidationFailure(change, 'series', validationError, {
+        series: null,
+      });
+    }
+
+    const created = await this.prisma.userSeries.create({
+      data: this.buildSeriesCreateData(userId, payload),
+    });
+
+    return this.buildGraphAppliedResult(change, 'series', {
+      code: SYNC_CODES.created,
+      message: CREATED_MESSAGE,
+      series: this.toSyncSeriesPayload(created),
+    });
+  }
+
+  private async applyContributorChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncContributorPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const existing = await this.prisma.userContributor.findUnique({
+      where: { id: change.entityId },
+    });
+
+    if (!existing) {
+      return this.applyMissingRemoteContributorChange(userId, change, payload);
+    }
+
+    if (existing.userId !== userId) {
+      return this.buildGraphOwnershipConflict(change, 'contributor');
+    }
+
+    if (
+      existing.serverVersion > payload.serverVersion &&
+      !this.areContributorsEquivalent(existing, payload)
+    ) {
+      return this.buildGraphRemoteNewerConflict(change, 'contributor', {
+        contributor: this.toSyncContributorPayload(existing),
+      });
+    }
+
+    if (this.areContributorsEquivalent(existing, payload)) {
+      return this.buildGraphAppliedResult(change, 'contributor', {
+        code: SYNC_CODES.alreadyApplied,
+        contributor: this.toSyncContributorPayload(existing),
+        message: ALREADY_APPLIED_MESSAGE,
+      });
+    }
+
+    const updated = await this.prisma.userContributor.update({
+      where: { id: change.entityId },
+      data: this.buildContributorUpdateData(payload),
+    });
+
+    return this.buildGraphAppliedResult(change, 'contributor', {
+      code:
+        payload.deletedAt === null
+          ? SYNC_CODES.appliedChange
+          : SYNC_CODES.appliedTombstone,
+      contributor: this.toSyncContributorPayload(updated),
+      message:
+        payload.deletedAt === null
+          ? APPLIED_CHANGE_MESSAGE
+          : APPLIED_TOMBSTONE_MESSAGE,
+    });
+  }
+
+  private async applyMissingRemoteContributorChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncContributorPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const missingResult = this.getMissingRemoteGraphResult(change, payload);
+    if (missingResult) return missingResult;
+
+    const created = await this.prisma.userContributor.create({
+      data: this.buildContributorCreateData(userId, payload),
+    });
+
+    return this.buildGraphAppliedResult(change, 'contributor', {
+      code: SYNC_CODES.created,
+      contributor: this.toSyncContributorPayload(created),
+      message: CREATED_MESSAGE,
+    });
+  }
+
+  private async applyWorkSeriesLinkChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncWorkSeriesLinkPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const existing = await this.prisma.userWorkSeriesLink.findUnique({
+      where: { id: change.entityId },
+      include: USER_WORK_SERIES_LINK_INCLUDE,
+    });
+
+    if (!existing) {
+      return this.applyMissingRemoteWorkSeriesLinkChange(userId, change, payload);
+    }
+
+    if (
+      existing.userWork.userId !== userId ||
+      existing.userSeries.userId !== userId
+    ) {
+      return this.buildGraphOwnershipConflict(change, 'workSeriesLink');
+    }
+
+    if (
+      existing.userWorkId !== payload.workId ||
+      existing.userSeriesId !== payload.seriesId
+    ) {
+      return this.buildGraphParentChangedConflict(change, 'workSeriesLink', {
+        workSeriesLink: this.toSyncWorkSeriesLinkPayload(existing),
+      });
+    }
+
+    const validationError = await this.validateWorkSeriesLinkTarget(
+      userId,
+      payload,
+    );
+    if (validationError) {
+      return this.buildGraphValidationFailure(
+        change,
+        'workSeriesLink',
+        validationError,
+        { workSeriesLink: this.toSyncWorkSeriesLinkPayload(existing) },
+      );
+    }
+
+    if (
+      existing.serverVersion > payload.serverVersion &&
+      !this.areWorkSeriesLinksEquivalent(existing, payload)
+    ) {
+      return this.buildGraphRemoteNewerConflict(change, 'workSeriesLink', {
+        workSeriesLink: this.toSyncWorkSeriesLinkPayload(existing),
+      });
+    }
+
+    if (this.areWorkSeriesLinksEquivalent(existing, payload)) {
+      return this.buildGraphAppliedResult(change, 'workSeriesLink', {
+        code: SYNC_CODES.alreadyApplied,
+        message: ALREADY_APPLIED_MESSAGE,
+        workSeriesLink: this.toSyncWorkSeriesLinkPayload(existing),
+      });
+    }
+
+    const updated = await this.prisma.userWorkSeriesLink.update({
+      where: { id: change.entityId },
+      data: this.buildWorkSeriesLinkUpdateData(payload),
+      include: USER_WORK_SERIES_LINK_INCLUDE,
+    });
+
+    return this.buildGraphAppliedResult(change, 'workSeriesLink', {
+      code:
+        payload.deletedAt === null
+          ? SYNC_CODES.appliedChange
+          : SYNC_CODES.appliedTombstone,
+      message:
+        payload.deletedAt === null
+          ? APPLIED_CHANGE_MESSAGE
+          : APPLIED_TOMBSTONE_MESSAGE,
+      workSeriesLink: this.toSyncWorkSeriesLinkPayload(updated),
+    });
+  }
+
+  private async applyMissingRemoteWorkSeriesLinkChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncWorkSeriesLinkPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const missingResult = this.getMissingRemoteGraphResult(change, payload);
+    if (missingResult) return missingResult;
+
+    const validationError = await this.validateWorkSeriesLinkTarget(
+      userId,
+      payload,
+    );
+    if (validationError) {
+      return this.buildGraphValidationFailure(
+        change,
+        'workSeriesLink',
+        validationError,
+        { workSeriesLink: null },
+      );
+    }
+
+    const created = await this.prisma.userWorkSeriesLink.create({
+      data: this.buildWorkSeriesLinkCreateData(payload),
+      include: USER_WORK_SERIES_LINK_INCLUDE,
+    });
+
+    return this.buildGraphAppliedResult(change, 'workSeriesLink', {
+      code: SYNC_CODES.created,
+      message: CREATED_MESSAGE,
+      workSeriesLink: this.toSyncWorkSeriesLinkPayload(created),
+    });
+  }
+
+  private async applyWorkContributorChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncWorkContributorPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const existing = await this.prisma.userWorkContributor.findUnique({
+      where: { id: change.entityId },
+      include: USER_WORK_CONTRIBUTOR_INCLUDE,
+    });
+
+    if (!existing) {
+      return this.applyMissingRemoteWorkContributorChange(userId, change, payload);
+    }
+
+    if (
+      existing.userWork.userId !== userId ||
+      existing.userContributor.userId !== userId
+    ) {
+      return this.buildGraphOwnershipConflict(change, 'workContributor');
+    }
+
+    if (
+      existing.userWorkId !== payload.workId ||
+      existing.userContributorId !== payload.contributorId
+    ) {
+      return this.buildGraphParentChangedConflict(change, 'workContributor', {
+        workContributor: this.toSyncWorkContributorPayload(existing),
+      });
+    }
+
+    const validationError = await this.validateWorkContributorTarget(
+      userId,
+      payload,
+    );
+    if (validationError) {
+      return this.buildGraphValidationFailure(
+        change,
+        'workContributor',
+        validationError,
+        { workContributor: this.toSyncWorkContributorPayload(existing) },
+      );
+    }
+
+    if (
+      existing.serverVersion > payload.serverVersion &&
+      !this.areWorkContributorsEquivalent(existing, payload)
+    ) {
+      return this.buildGraphRemoteNewerConflict(change, 'workContributor', {
+        workContributor: this.toSyncWorkContributorPayload(existing),
+      });
+    }
+
+    if (this.areWorkContributorsEquivalent(existing, payload)) {
+      return this.buildGraphAppliedResult(change, 'workContributor', {
+        code: SYNC_CODES.alreadyApplied,
+        message: ALREADY_APPLIED_MESSAGE,
+        workContributor: this.toSyncWorkContributorPayload(existing),
+      });
+    }
+
+    const updated = await this.prisma.userWorkContributor.update({
+      where: { id: change.entityId },
+      data: this.buildWorkContributorUpdateData(payload),
+      include: USER_WORK_CONTRIBUTOR_INCLUDE,
+    });
+
+    return this.buildGraphAppliedResult(change, 'workContributor', {
+      code:
+        payload.deletedAt === null
+          ? SYNC_CODES.appliedChange
+          : SYNC_CODES.appliedTombstone,
+      message:
+        payload.deletedAt === null
+          ? APPLIED_CHANGE_MESSAGE
+          : APPLIED_TOMBSTONE_MESSAGE,
+      workContributor: this.toSyncWorkContributorPayload(updated),
+    });
+  }
+
+  private async applyMissingRemoteWorkContributorChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncWorkContributorPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const missingResult = this.getMissingRemoteGraphResult(change, payload);
+    if (missingResult) return missingResult;
+
+    const validationError = await this.validateWorkContributorTarget(
+      userId,
+      payload,
+    );
+    if (validationError) {
+      return this.buildGraphValidationFailure(
+        change,
+        'workContributor',
+        validationError,
+        { workContributor: null },
+      );
+    }
+
+    const created = await this.prisma.userWorkContributor.create({
+      data: this.buildWorkContributorCreateData(payload),
+      include: USER_WORK_CONTRIBUTOR_INCLUDE,
+    });
+
+    return this.buildGraphAppliedResult(change, 'workContributor', {
+      code: SYNC_CODES.created,
+      message: CREATED_MESSAGE,
+      workContributor: this.toSyncWorkContributorPayload(created),
+    });
+  }
+
+  private async applyWorkRelationChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncWorkRelationPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const existing = await this.prisma.userWorkRelation.findUnique({
+      where: { id: change.entityId },
+      include: USER_WORK_RELATION_INCLUDE,
+    });
+
+    if (!existing) {
+      return this.applyMissingRemoteWorkRelationChange(userId, change, payload);
+    }
+
+    if (
+      existing.userId !== userId ||
+      existing.sourceWork.userId !== userId ||
+      existing.targetWork.userId !== userId
+    ) {
+      return this.buildGraphOwnershipConflict(change, 'workRelation');
+    }
+
+    if (
+      existing.sourceWorkId !== payload.sourceWorkId ||
+      existing.targetWorkId !== payload.targetWorkId
+    ) {
+      return this.buildGraphParentChangedConflict(change, 'workRelation', {
+        workRelation: this.toSyncWorkRelationPayload(existing),
+      });
+    }
+
+    const validationError = await this.validateWorkRelationTarget(
+      userId,
+      payload,
+    );
+    if (validationError) {
+      return this.buildGraphValidationFailure(
+        change,
+        'workRelation',
+        validationError,
+        { workRelation: this.toSyncWorkRelationPayload(existing) },
+      );
+    }
+
+    if (
+      existing.serverVersion > payload.serverVersion &&
+      !this.areWorkRelationsEquivalent(existing, payload)
+    ) {
+      return this.buildGraphRemoteNewerConflict(change, 'workRelation', {
+        workRelation: this.toSyncWorkRelationPayload(existing),
+      });
+    }
+
+    if (this.areWorkRelationsEquivalent(existing, payload)) {
+      return this.buildGraphAppliedResult(change, 'workRelation', {
+        code: SYNC_CODES.alreadyApplied,
+        message: ALREADY_APPLIED_MESSAGE,
+        workRelation: this.toSyncWorkRelationPayload(existing),
+      });
+    }
+
+    const updated = await this.prisma.userWorkRelation.update({
+      where: { id: change.entityId },
+      data: this.buildWorkRelationUpdateData(payload),
+      include: USER_WORK_RELATION_INCLUDE,
+    });
+
+    return this.buildGraphAppliedResult(change, 'workRelation', {
+      code:
+        payload.deletedAt === null
+          ? SYNC_CODES.appliedChange
+          : SYNC_CODES.appliedTombstone,
+      message:
+        payload.deletedAt === null
+          ? APPLIED_CHANGE_MESSAGE
+          : APPLIED_TOMBSTONE_MESSAGE,
+      workRelation: this.toSyncWorkRelationPayload(updated),
+    });
+  }
+
+  private async applyMissingRemoteWorkRelationChange(
+    userId: string,
+    change: PushSyncChangeDto,
+    payload: SyncWorkRelationPayloadDto,
+  ): Promise<PushSyncResultDto> {
+    const missingResult = this.getMissingRemoteGraphResult(change, payload);
+    if (missingResult) return missingResult;
+
+    const validationError = await this.validateWorkRelationTarget(
+      userId,
+      payload,
+    );
+    if (validationError) {
+      return this.buildGraphValidationFailure(
+        change,
+        'workRelation',
+        validationError,
+        { workRelation: null },
+      );
+    }
+
+    const created = await this.prisma.userWorkRelation.create({
+      data: this.buildWorkRelationCreateData(userId, payload),
+      include: USER_WORK_RELATION_INCLUDE,
+    });
+
+    return this.buildGraphAppliedResult(change, 'workRelation', {
+      code: SYNC_CODES.created,
+      message: CREATED_MESSAGE,
+      workRelation: this.toSyncWorkRelationPayload(created),
+    });
+  }
+
   private validateWorkProgressPayload(payload: SyncWorkPayloadDto) {
     if (payload.progressUnit !== null && payload.progressUnit !== undefined) {
       const type = payload.type as WorkType;
@@ -884,6 +1504,223 @@ export class SyncService {
     }
 
     return null;
+  }
+
+  private async validateSeriesParent(
+    userId: string,
+    payload: SyncSeriesPayloadDto,
+  ) {
+    if (!payload.parentId) {
+      return null;
+    }
+
+    if (payload.parentId === payload.id) {
+      return 'Series parent cannot point to itself.';
+    }
+
+    const parent = await this.prisma.userSeries.findFirst({
+      where: {
+        id: payload.parentId,
+        userId,
+      },
+    });
+
+    return parent ? null : 'Series parent is missing or belongs to a different user.';
+  }
+
+  private async validateWorkSeriesLinkTarget(
+    userId: string,
+    payload: SyncWorkSeriesLinkPayloadDto,
+  ) {
+    const [work, series] = await Promise.all([
+      this.userRecordsService.findById(payload.workId),
+      this.prisma.userSeries.findFirst({
+        where: {
+          id: payload.seriesId,
+          userId,
+        },
+      }),
+    ]);
+
+    if (!work || work.userId !== userId) {
+      return 'Series link parent work is missing or belongs to a different user.';
+    }
+
+    if (!series) {
+      return 'Series link target series is missing or belongs to a different user.';
+    }
+
+    return null;
+  }
+
+  private async validateWorkContributorTarget(
+    userId: string,
+    payload: SyncWorkContributorPayloadDto,
+  ) {
+    const [work, contributor] = await Promise.all([
+      this.userRecordsService.findById(payload.workId),
+      this.prisma.userContributor.findFirst({
+        where: {
+          id: payload.contributorId,
+          userId,
+        },
+      }),
+    ]);
+
+    if (!work || work.userId !== userId) {
+      return 'Contributor link parent work is missing or belongs to a different user.';
+    }
+
+    if (!contributor) {
+      return 'Contributor link target is missing or belongs to a different user.';
+    }
+
+    return null;
+  }
+
+  private async validateWorkRelationTarget(
+    userId: string,
+    payload: SyncWorkRelationPayloadDto,
+  ) {
+    if (payload.sourceWorkId === payload.targetWorkId) {
+      return 'Work relation cannot point to the same work.';
+    }
+
+    const [sourceWork, targetWork] = await Promise.all([
+      this.userRecordsService.findById(payload.sourceWorkId),
+      this.userRecordsService.findById(payload.targetWorkId),
+    ]);
+
+    if (!sourceWork || sourceWork.userId !== userId) {
+      return 'Relation source work is missing or belongs to a different user.';
+    }
+
+    if (!targetWork || targetWork.userId !== userId) {
+      return 'Relation target work is missing or belongs to a different user.';
+    }
+
+    return null;
+  }
+
+  private getMissingRemoteGraphResult(
+    change: PushSyncChangeDto,
+    payload: { deletedAt: string | null; serverVersion: number },
+  ): PushSyncResultDto | null {
+    const isDelete = change.operation === 'delete' || payload.deletedAt !== null;
+    const canCreate = change.operation === 'create' && payload.serverVersion === 0;
+
+    if (isDelete) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: change.entityType,
+        status: payload.serverVersion > 0 ? 'conflict' : 'applied',
+        code:
+          payload.serverVersion > 0
+            ? SYNC_CODES.conflictRemoteMissing
+            : SYNC_CODES.missingRemoteDeleteNoop,
+        message:
+          payload.serverVersion > 0
+            ? 'Server mismatch: the graph record was already missing remotely.'
+            : MISSING_REMOTE_DELETE_NOOP_MESSAGE,
+      };
+    }
+
+    if (!canCreate) {
+      return {
+        queueId: change.queueId,
+        entityId: change.entityId,
+        entityType: change.entityType,
+        status: 'conflict',
+        code: SYNC_CODES.conflictRemoteMissing,
+        message: 'Server mismatch: the graph record does not exist remotely.',
+      };
+    }
+
+    return null;
+  }
+
+  private buildGraphOwnershipConflict(
+    change: PushSyncChangeDto,
+    key: GraphPayloadKey,
+  ): PushSyncResultDto {
+    return {
+      queueId: change.queueId,
+      entityId: change.entityId,
+      entityType: change.entityType,
+      status: 'conflict',
+      code: SYNC_CODES.conflictOwnershipMismatch,
+      message: 'Server mismatch: the graph record belongs to a different user.',
+      [key]: null,
+    };
+  }
+
+  private buildGraphParentChangedConflict(
+    change: PushSyncChangeDto,
+    key: GraphPayloadKey,
+    payload: Partial<PushSyncResultDto>,
+  ): PushSyncResultDto {
+    return {
+      queueId: change.queueId,
+      entityId: change.entityId,
+      entityType: change.entityType,
+      status: 'conflict',
+      code: SYNC_CODES.conflictParentChanged,
+      message: 'Server mismatch: graph record parent changed.',
+      ...payload,
+      [key]: payload[key] ?? null,
+    };
+  }
+
+  private buildGraphRemoteNewerConflict(
+    change: PushSyncChangeDto,
+    key: GraphPayloadKey,
+    payload: Partial<PushSyncResultDto>,
+  ): PushSyncResultDto {
+    return {
+      queueId: change.queueId,
+      entityId: change.entityId,
+      entityType: change.entityType,
+      status: 'conflict',
+      code: SYNC_CODES.conflictRemoteNewer,
+      message: 'Server mismatch: the graph record has a newer remote version.',
+      ...payload,
+      [key]: payload[key] ?? null,
+    };
+  }
+
+  private buildGraphValidationFailure(
+    change: PushSyncChangeDto,
+    key: GraphPayloadKey,
+    message: string,
+    payload: Partial<PushSyncResultDto>,
+  ): PushSyncResultDto {
+    return {
+      queueId: change.queueId,
+      entityId: change.entityId,
+      entityType: change.entityType,
+      status: 'failed',
+      code: SYNC_CODES.failedValidation,
+      message,
+      ...payload,
+      [key]: payload[key] ?? null,
+    };
+  }
+
+  private buildGraphAppliedResult(
+    change: PushSyncChangeDto,
+    key: GraphPayloadKey,
+    payload: Partial<PushSyncResultDto> &
+      Pick<PushSyncResultDto, 'code' | 'message'>,
+  ): PushSyncResultDto {
+    return {
+      queueId: change.queueId,
+      entityId: change.entityId,
+      entityType: change.entityType,
+      status: 'applied',
+      ...payload,
+      [key]: payload[key] ?? null,
+    };
   }
 
   private buildReleaseRecordCreateData(
@@ -966,6 +1803,199 @@ export class SyncService {
       serverVersion: {
         increment: 1,
       },
+    };
+  }
+
+  private buildSeriesCreateData(
+    userId: string,
+    payload: SyncSeriesPayloadDto,
+  ): Prisma.UserSeriesUncheckedCreateInput {
+    return {
+      id: payload.id,
+      userId,
+      title: payload.title.trim(),
+      normalizedTitle: normalizeString(payload.normalizedTitle),
+      aliases: payload.aliases.map(normalizeString).filter(Boolean),
+      kind: payload.kind as SeriesKind,
+      parentId: payload.parentId ?? null,
+      description: normalizeString(payload.description),
+      thumbnailUrl: normalizeString(payload.thumbnailUrl),
+      createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
+      updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: 1,
+    };
+  }
+
+  private buildSeriesUpdateData(
+    payload: SyncSeriesPayloadDto,
+  ): Prisma.UserSeriesUncheckedUpdateInput {
+    return {
+      title: payload.title.trim(),
+      normalizedTitle: normalizeString(payload.normalizedTitle),
+      aliases: payload.aliases.map(normalizeString).filter(Boolean),
+      kind: payload.kind as SeriesKind,
+      parentId: payload.parentId ?? null,
+      description: normalizeString(payload.description),
+      thumbnailUrl: normalizeString(payload.thumbnailUrl),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: { increment: 1 },
+    };
+  }
+
+  private buildContributorCreateData(
+    userId: string,
+    payload: SyncContributorPayloadDto,
+  ): Prisma.UserContributorUncheckedCreateInput {
+    return {
+      id: payload.id,
+      userId,
+      name: payload.name.trim(),
+      normalizedName: normalizeString(payload.normalizedName),
+      aliases: payload.aliases.map(normalizeString).filter(Boolean),
+      entityType: payload.entityType as ContributorEntityType,
+      createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
+      updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: 1,
+    };
+  }
+
+  private buildContributorUpdateData(
+    payload: SyncContributorPayloadDto,
+  ): Prisma.UserContributorUncheckedUpdateInput {
+    return {
+      name: payload.name.trim(),
+      normalizedName: normalizeString(payload.normalizedName),
+      aliases: payload.aliases.map(normalizeString).filter(Boolean),
+      entityType: payload.entityType as ContributorEntityType,
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: { increment: 1 },
+    };
+  }
+
+  private buildWorkSeriesLinkCreateData(
+    payload: SyncWorkSeriesLinkPayloadDto,
+  ): Prisma.UserWorkSeriesLinkUncheckedCreateInput {
+    return {
+      id: payload.id,
+      userWorkId: payload.workId,
+      userSeriesId: payload.seriesId,
+      role: payload.role as WorkSeriesRole,
+      orderIndex: payload.orderIndex ?? null,
+      orderLabel: normalizeString(payload.orderLabel),
+      createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
+      updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: 1,
+    };
+  }
+
+  private buildWorkSeriesLinkUpdateData(
+    payload: SyncWorkSeriesLinkPayloadDto,
+  ): Prisma.UserWorkSeriesLinkUncheckedUpdateInput {
+    return {
+      role: payload.role as WorkSeriesRole,
+      orderIndex: payload.orderIndex ?? null,
+      orderLabel: normalizeString(payload.orderLabel),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: { increment: 1 },
+    };
+  }
+
+  private buildWorkContributorCreateData(
+    payload: SyncWorkContributorPayloadDto,
+  ): Prisma.UserWorkContributorUncheckedCreateInput {
+    return {
+      id: payload.id,
+      userWorkId: payload.workId,
+      userContributorId: payload.contributorId,
+      role: payload.role as WorkContributorRole,
+      displayOrder: payload.displayOrder,
+      createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
+      updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: 1,
+    };
+  }
+
+  private buildWorkContributorUpdateData(
+    payload: SyncWorkContributorPayloadDto,
+  ): Prisma.UserWorkContributorUncheckedUpdateInput {
+    return {
+      role: payload.role as WorkContributorRole,
+      displayOrder: payload.displayOrder,
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: { increment: 1 },
+    };
+  }
+
+  private buildWorkRelationCreateData(
+    userId: string,
+    payload: SyncWorkRelationPayloadDto,
+  ): Prisma.UserWorkRelationUncheckedCreateInput {
+    return {
+      id: payload.id,
+      userId,
+      sourceWorkId: payload.sourceWorkId,
+      targetWorkId: payload.targetWorkId,
+      relationType: payload.relationType as WorkRelationType,
+      note: normalizeString(payload.note),
+      createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
+      updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: 1,
+    };
+  }
+
+  private buildWorkRelationUpdateData(
+    payload: SyncWorkRelationPayloadDto,
+  ): Prisma.UserWorkRelationUncheckedUpdateInput {
+    return {
+      relationType: payload.relationType as WorkRelationType,
+      note: normalizeString(payload.note),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: { increment: 1 },
     };
   }
 
@@ -1332,13 +2362,254 @@ export class SyncService {
     );
   }
 
+  private areSeriesEquivalent(
+    existing: UserSeriesSyncView,
+    payload: SyncSeriesPayloadDto,
+  ) {
+    return (
+      existing.title === payload.title.trim() &&
+      existing.normalizedTitle === normalizeString(payload.normalizedTitle) &&
+      JSON.stringify(existing.aliases) ===
+        JSON.stringify(payload.aliases.map(normalizeString).filter(Boolean)) &&
+      existing.kind === payload.kind &&
+      (existing.parentId ?? null) === (payload.parentId ?? null) &&
+      existing.description === normalizeString(payload.description) &&
+      existing.thumbnailUrl === normalizeString(payload.thumbnailUrl) &&
+      existing.deletedAt?.toISOString() ===
+        (payload.deletedAt === null ? undefined : payload.deletedAt)
+    );
+  }
+
+  private areContributorsEquivalent(
+    existing: UserContributorSyncView,
+    payload: SyncContributorPayloadDto,
+  ) {
+    return (
+      existing.name === payload.name.trim() &&
+      existing.normalizedName === normalizeString(payload.normalizedName) &&
+      JSON.stringify(existing.aliases) ===
+        JSON.stringify(payload.aliases.map(normalizeString).filter(Boolean)) &&
+      existing.entityType === payload.entityType &&
+      existing.deletedAt?.toISOString() ===
+        (payload.deletedAt === null ? undefined : payload.deletedAt)
+    );
+  }
+
+  private areWorkSeriesLinksEquivalent(
+    existing: UserWorkSeriesLinkSyncView,
+    payload: SyncWorkSeriesLinkPayloadDto,
+  ) {
+    return (
+      existing.userWorkId === payload.workId &&
+      existing.userSeriesId === payload.seriesId &&
+      existing.role === payload.role &&
+      (existing.orderIndex ?? null) === (payload.orderIndex ?? null) &&
+      existing.orderLabel === normalizeString(payload.orderLabel) &&
+      existing.deletedAt?.toISOString() ===
+        (payload.deletedAt === null ? undefined : payload.deletedAt)
+    );
+  }
+
+  private areWorkContributorsEquivalent(
+    existing: UserWorkContributorSyncView,
+    payload: SyncWorkContributorPayloadDto,
+  ) {
+    return (
+      existing.userWorkId === payload.workId &&
+      existing.userContributorId === payload.contributorId &&
+      existing.role === payload.role &&
+      existing.displayOrder === payload.displayOrder &&
+      existing.deletedAt?.toISOString() ===
+        (payload.deletedAt === null ? undefined : payload.deletedAt)
+    );
+  }
+
+  private areWorkRelationsEquivalent(
+    existing: UserWorkRelationSyncView,
+    payload: SyncWorkRelationPayloadDto,
+  ) {
+    return (
+      existing.sourceWorkId === payload.sourceWorkId &&
+      existing.targetWorkId === payload.targetWorkId &&
+      existing.relationType === payload.relationType &&
+      existing.note === normalizeString(payload.note) &&
+      existing.deletedAt?.toISOString() ===
+        (payload.deletedAt === null ? undefined : payload.deletedAt)
+    );
+  }
+
+  private toSyncSeriesPayload(series: UserSeriesSyncView): SyncSeriesPayloadDto {
+    return {
+      id: series.id,
+      title: series.title,
+      normalizedTitle: series.normalizedTitle,
+      aliases: series.aliases,
+      kind: series.kind,
+      parentId: series.parentId ?? null,
+      description: series.description,
+      thumbnailUrl: series.thumbnailUrl,
+      createdAt: series.createdAt.toISOString(),
+      updatedAt: series.updatedAt.toISOString(),
+      deletedAt: series.deletedAt?.toISOString() ?? null,
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: series.serverVersion,
+    };
+  }
+
+  private toSyncContributorPayload(
+    contributor: UserContributorSyncView,
+  ): SyncContributorPayloadDto {
+    return {
+      id: contributor.id,
+      name: contributor.name,
+      normalizedName: contributor.normalizedName,
+      aliases: contributor.aliases,
+      entityType: contributor.entityType,
+      createdAt: contributor.createdAt.toISOString(),
+      updatedAt: contributor.updatedAt.toISOString(),
+      deletedAt: contributor.deletedAt?.toISOString() ?? null,
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: contributor.serverVersion,
+    };
+  }
+
+  private toSyncWorkSeriesLinkPayload(
+    link: UserWorkSeriesLinkSyncView,
+  ): SyncWorkSeriesLinkPayloadDto {
+    return {
+      id: link.id,
+      workId: link.userWorkId,
+      seriesId: link.userSeriesId,
+      role: link.role,
+      orderIndex: link.orderIndex ?? null,
+      orderLabel: link.orderLabel,
+      createdAt: link.createdAt.toISOString(),
+      updatedAt: link.updatedAt.toISOString(),
+      deletedAt: link.deletedAt?.toISOString() ?? null,
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: link.serverVersion,
+    };
+  }
+
+  private toSyncWorkContributorPayload(
+    link: UserWorkContributorSyncView,
+  ): SyncWorkContributorPayloadDto {
+    return {
+      id: link.id,
+      workId: link.userWorkId,
+      contributorId: link.userContributorId,
+      role: link.role,
+      displayOrder: link.displayOrder,
+      createdAt: link.createdAt.toISOString(),
+      updatedAt: link.updatedAt.toISOString(),
+      deletedAt: link.deletedAt?.toISOString() ?? null,
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: link.serverVersion,
+    };
+  }
+
+  private toSyncWorkRelationPayload(
+    relation: UserWorkRelationSyncView,
+  ): SyncWorkRelationPayloadDto {
+    return {
+      id: relation.id,
+      sourceWorkId: relation.sourceWorkId,
+      targetWorkId: relation.targetWorkId,
+      relationType: relation.relationType,
+      note: relation.note,
+      createdAt: relation.createdAt.toISOString(),
+      updatedAt: relation.updatedAt.toISOString(),
+      deletedAt: relation.deletedAt?.toISOString() ?? null,
+      syncStatus: SERVER_SYNC_STATUS,
+      serverVersion: relation.serverVersion,
+    };
+  }
+
+  private async findGraphRecordsByUserSince(userId: string, since: Date | null) {
+    const updatedAtFilter = since
+      ? {
+          updatedAt: {
+            gt: since,
+          },
+        }
+      : {};
+    const [
+      series,
+      contributors,
+      workSeriesLinks,
+      workContributors,
+      workRelations,
+    ] = await Promise.all([
+      this.prisma.userSeries.findMany({
+        where: {
+          userId,
+          ...updatedAtFilter,
+        },
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.userContributor.findMany({
+        where: {
+          userId,
+          ...updatedAtFilter,
+        },
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.userWorkSeriesLink.findMany({
+        where: {
+          userWork: {
+            userId,
+          },
+          ...updatedAtFilter,
+        },
+        include: USER_WORK_SERIES_LINK_INCLUDE,
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.userWorkContributor.findMany({
+        where: {
+          userWork: {
+            userId,
+          },
+          ...updatedAtFilter,
+        },
+        include: USER_WORK_CONTRIBUTOR_INCLUDE,
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.userWorkRelation.findMany({
+        where: {
+          userId,
+          ...updatedAtFilter,
+        },
+        include: USER_WORK_RELATION_INCLUDE,
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      }),
+    ]);
+
+    return {
+      contributors,
+      series,
+      workContributors,
+      workRelations,
+      workSeriesLinks,
+    };
+  }
+
   private buildOrderedPullChanges({
+    contributors,
     releaseRecords,
+    series,
     timelineEntries,
+    workContributors,
+    workRelations,
+    workSeriesLinks,
     works,
   }: {
+    contributors: UserContributorSyncView[];
     releaseRecords: UserReleaseRecordAggregate[];
+    series: UserSeriesSyncView[];
     timelineEntries: UserTimelineEntryAggregate[];
+    workContributors: UserWorkContributorSyncView[];
+    workRelations: UserWorkRelationSyncView[];
+    workSeriesLinks: UserWorkSeriesLinkSyncView[];
     works: WorkAggregate[];
   }) {
     return [
@@ -1396,6 +2667,96 @@ export class SyncService {
           updatedAtMs: timelineEntry.updatedAt.getTime(),
         };
       }),
+      ...series.map<OrderedPullChange>((entry) => {
+        const updatedAt = entry.updatedAt.toISOString();
+
+        return {
+          change: {
+            entityType: 'series',
+            entityId: entry.id,
+            operation: entry.deletedAt === null ? 'upsert' : 'delete',
+            series: this.toSyncSeriesPayload(entry),
+          },
+          cursor: {
+            entityId: entry.id,
+            entityType: 'series',
+            updatedAt,
+          },
+          updatedAtMs: entry.updatedAt.getTime(),
+        };
+      }),
+      ...contributors.map<OrderedPullChange>((entry) => {
+        const updatedAt = entry.updatedAt.toISOString();
+
+        return {
+          change: {
+            entityType: 'contributor',
+            entityId: entry.id,
+            operation: entry.deletedAt === null ? 'upsert' : 'delete',
+            contributor: this.toSyncContributorPayload(entry),
+          },
+          cursor: {
+            entityId: entry.id,
+            entityType: 'contributor',
+            updatedAt,
+          },
+          updatedAtMs: entry.updatedAt.getTime(),
+        };
+      }),
+      ...workSeriesLinks.map<OrderedPullChange>((entry) => {
+        const updatedAt = entry.updatedAt.toISOString();
+
+        return {
+          change: {
+            entityType: 'work_series_link',
+            entityId: entry.id,
+            operation: entry.deletedAt === null ? 'upsert' : 'delete',
+            workSeriesLink: this.toSyncWorkSeriesLinkPayload(entry),
+          },
+          cursor: {
+            entityId: entry.id,
+            entityType: 'work_series_link',
+            updatedAt,
+          },
+          updatedAtMs: entry.updatedAt.getTime(),
+        };
+      }),
+      ...workContributors.map<OrderedPullChange>((entry) => {
+        const updatedAt = entry.updatedAt.toISOString();
+
+        return {
+          change: {
+            entityType: 'work_contributor',
+            entityId: entry.id,
+            operation: entry.deletedAt === null ? 'upsert' : 'delete',
+            workContributor: this.toSyncWorkContributorPayload(entry),
+          },
+          cursor: {
+            entityId: entry.id,
+            entityType: 'work_contributor',
+            updatedAt,
+          },
+          updatedAtMs: entry.updatedAt.getTime(),
+        };
+      }),
+      ...workRelations.map<OrderedPullChange>((entry) => {
+        const updatedAt = entry.updatedAt.toISOString();
+
+        return {
+          change: {
+            entityType: 'work_relation',
+            entityId: entry.id,
+            operation: entry.deletedAt === null ? 'upsert' : 'delete',
+            workRelation: this.toSyncWorkRelationPayload(entry),
+          },
+          cursor: {
+            entityId: entry.id,
+            entityType: 'work_relation',
+            updatedAt,
+          },
+          updatedAtMs: entry.updatedAt.getTime(),
+        };
+      }),
     ].sort((left, right) => {
       const updatedAtDelta = left.updatedAtMs - right.updatedAtMs;
 
@@ -1433,9 +2794,7 @@ export class SyncService {
         typeof decoded.updatedAt !== 'string' ||
         typeof decoded.entityType !== 'string' ||
         typeof decoded.entityId !== 'string' ||
-        !['work', 'release_record', 'timeline_entry'].includes(
-          decoded.entityType,
-        ) ||
+          !(SYNC_ENTITY_TYPES as readonly string[]).includes(decoded.entityType) ||
         Number.isNaN(Date.parse(decoded.updatedAt))
       ) {
         throw new Error('Invalid cursor shape.');
@@ -1483,7 +2842,27 @@ export class SyncService {
       return change.releaseRecord!.updatedAt;
     }
 
-    return change.timelineEntry!.updatedAt;
+    if (change.entityType === 'timeline_entry') {
+      return change.timelineEntry!.updatedAt;
+    }
+
+    if (change.entityType === 'series') {
+      return change.series!.updatedAt;
+    }
+
+    if (change.entityType === 'contributor') {
+      return change.contributor!.updatedAt;
+    }
+
+    if (change.entityType === 'work_series_link') {
+      return change.workSeriesLink!.updatedAt;
+    }
+
+    if (change.entityType === 'work_contributor') {
+      return change.workContributor!.updatedAt;
+    }
+
+    return change.workRelation!.updatedAt;
   }
 
   private parseIsoDate(value: string, fieldName: string) {

@@ -2,6 +2,9 @@ import { liveQuery } from 'dexie';
 import { useEffect, useState } from 'react';
 
 import type {
+  ContributorRecord,
+  SeriesRecord,
+  SyncEntityType,
   SyncOperation,
   SyncQueueItemRecord,
   SyncQueuePayload,
@@ -9,7 +12,10 @@ import type {
   SyncResultCode,
   TimelineEntryRecord,
   UserReleaseRecord,
+  WorkContributorRecord,
   WorkRecord,
+  WorkRelationRecord,
+  WorkSeriesLinkRecord,
   WorkSyncStatus,
 } from '@work-archive/shared-types';
 
@@ -23,7 +29,7 @@ const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
 export interface SyncDashboardItem {
   id: string;
   entityId: string;
-  entityType: 'release_record' | 'timeline_entry' | 'work';
+  entityType: SyncEntityType;
   deletedAt: string | null;
   lastError: string | null;
   linkTo: string | null;
@@ -117,11 +123,66 @@ function getTimelineEntryTitle(
   return `타임라인 기록 ${entryId.slice(0, 8)}`;
 }
 
+function getGraphEntityTitle(
+  queueItem: SyncQueueItemRecord,
+  worksById: Map<string, WorkRecord>,
+  seriesById: Map<string, SeriesRecord>,
+  contributorsById: Map<string, ContributorRecord>,
+) {
+  if (queueItem.entityType === 'series') {
+    const series =
+      seriesById.get(queueItem.entityId) ?? (queueItem.payload as SeriesRecord);
+
+    return `${series.title} · 시리즈`;
+  }
+
+  if (queueItem.entityType === 'contributor') {
+    const contributor =
+      contributorsById.get(queueItem.entityId) ??
+      (queueItem.payload as ContributorRecord);
+
+    return `${contributor.name} · 제작진`;
+  }
+
+  if (queueItem.entityType === 'work_series_link') {
+    const link = queueItem.payload as WorkSeriesLinkRecord;
+    const work = worksById.get(link.workId);
+    const series = seriesById.get(link.seriesId);
+
+    return `${work?.title ?? '작품'} · ${series?.title ?? '시리즈'} 연결`;
+  }
+
+  if (queueItem.entityType === 'work_contributor') {
+    const link = queueItem.payload as WorkContributorRecord;
+    const work = worksById.get(link.workId);
+    const contributor = contributorsById.get(link.contributorId);
+
+    return `${work?.title ?? '작품'} · ${contributor?.name ?? '제작진'} 연결`;
+  }
+
+  const relation = queueItem.payload as WorkRelationRecord;
+  const sourceWork = worksById.get(relation.sourceWorkId);
+  const targetWork = worksById.get(relation.targetWorkId);
+
+  return `${sourceWork?.title ?? '작품'} · ${targetWork?.title ?? '관련 작품'}`;
+}
+
+function getGraphSnapshot(queueItem: SyncQueueItemRecord) {
+  return queueItem.payload as
+    | ContributorRecord
+    | SeriesRecord
+    | WorkContributorRecord
+    | WorkRelationRecord
+    | WorkSeriesLinkRecord;
+}
+
 function buildSyncDashboardItem(
   queueItem: SyncQueueItemRecord,
   worksById: Map<string, WorkRecord>,
   releaseRecordsById: Map<string, UserReleaseRecord>,
   timelineEntriesById: Map<string, TimelineEntryRecord>,
+  seriesById: Map<string, SeriesRecord>,
+  contributorsById: Map<string, ContributorRecord>,
 ): SyncDashboardItem {
   if (queueItem.entityType === 'work') {
     const work =
@@ -189,6 +250,54 @@ function buildSyncDashboardItem(
     };
   }
 
+  if (
+    queueItem.entityType === 'series' ||
+    queueItem.entityType === 'contributor' ||
+    queueItem.entityType === 'work_series_link' ||
+    queueItem.entityType === 'work_contributor' ||
+    queueItem.entityType === 'work_relation'
+  ) {
+    const snapshot = getGraphSnapshot(queueItem);
+    const syncStatus = snapshot.syncStatus;
+    const workId =
+      'workId' in snapshot
+        ? snapshot.workId
+        : 'sourceWorkId' in snapshot
+          ? snapshot.sourceWorkId
+          : null;
+
+    return {
+      id: queueItem.id,
+      entityId: queueItem.entityId,
+      entityType: queueItem.entityType,
+      deletedAt: snapshot.deletedAt,
+      lastError: queueItem.lastError,
+      linkTo: workId ? `/works/${workId}` : null,
+      operation: queueItem.operation,
+      retryCount: queueItem.retryCount,
+      serverVersion: snapshot.serverVersion,
+      state:
+        syncStatus === 'conflict'
+          ? 'conflict'
+          : queueItem.lastError
+            ? 'failed'
+            : 'pending',
+      syncStatus,
+      title: getGraphEntityTitle(
+        queueItem,
+        worksById,
+        seriesById,
+        contributorsById,
+      ),
+      updatedAt: snapshot.updatedAt,
+      localSnapshot: snapshot,
+      conflictRemote: queueItem.conflict?.remote ?? null,
+      conflictMessage: queueItem.conflict?.message ?? null,
+      conflictCode: queueItem.conflict?.code ?? null,
+      source: queueItem.source ?? 'unknown',
+    };
+  }
+
   const releaseRecord =
     releaseRecordsById.get(queueItem.entityId) ??
     (queueItem.payload as UserReleaseRecord);
@@ -235,12 +344,16 @@ export function useSyncDashboard() {
           works,
           releaseRecords,
           timelineEntries,
+          series,
+          contributors,
           lastSuccessfulPullAt,
         ] = await Promise.all([
           syncQueueRepository.listAll(),
           db.works.toArray(),
           db.releaseRecords.toArray(),
           db.timelineEntries.toArray(),
+          db.series.toArray(),
+          db.contributors.toArray(),
           appMetaRepository.getValue(LAST_SUCCESSFUL_PULL_AT_KEY),
         ]);
         const worksById = new Map(works.map((work) => [work.id, work]));
@@ -253,6 +366,10 @@ export function useSyncDashboard() {
         const timelineEntriesById = new Map(
           timelineEntries.map((entry) => [entry.id, entry]),
         );
+        const seriesById = new Map(series.map((entry) => [entry.id, entry]));
+        const contributorsById = new Map(
+          contributors.map((entry) => [entry.id, entry]),
+        );
         const dashboardItems = queueItems
           .map((queueItem) =>
             buildSyncDashboardItem(
@@ -260,6 +377,8 @@ export function useSyncDashboard() {
               worksById,
               releaseRecordsById,
               timelineEntriesById,
+              seriesById,
+              contributorsById,
             ),
           )
           .sort(compareSyncDashboardItems);

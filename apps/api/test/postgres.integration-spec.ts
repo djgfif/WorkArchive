@@ -463,7 +463,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 2,
+          schemaVersion: 3,
           changes: [
             {
               queueId: '6a8f8eb6-8317-4e8a-b8e7-530c5cc1db4d',
@@ -509,7 +509,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 2,
+          schemaVersion: 3,
           changes: [
             {
               queueId: 'ea483856-fafc-4aa9-ac6f-925f9c34d5ea',
@@ -549,7 +549,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 2,
+          schemaVersion: 3,
           changes: [
             {
               queueId: 'd125b784-6d75-429f-bfa1-04f0f491de14',
@@ -586,7 +586,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 2,
+          schemaVersion: 3,
           since: '2026-04-17T00:00:00.000Z',
         }),
       },
@@ -615,7 +615,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 2,
+          schemaVersion: 3,
           changes: [
             {
               queueId: '5188f5b1-1c80-49fd-ba6d-6848b8f0f6a3',
@@ -668,7 +668,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 2,
+          schemaVersion: 3,
           since: pullResponse.body!.nextSince,
         }),
       },

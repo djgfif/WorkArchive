@@ -1,14 +1,20 @@
 import type {
+  ContributorRecord,
   PullSyncResponse,
   PullSyncChange,
   PushSyncResponse,
   PushSyncResult,
+  SeriesRecord,
+  SyncEntityType,
   SyncQueuePayload,
   SyncQueueItemRecord,
   SyncResultCode,
   TimelineEntryRecord,
   UserReleaseRecord,
+  WorkContributorRecord,
   WorkRecord,
+  WorkRelationRecord,
+  WorkSeriesLinkRecord,
   WorkSyncStatus,
 } from '@work-archive/shared-types';
 import { SYNC_SCHEMA_VERSION } from '@work-archive/shared-types';
@@ -38,6 +44,10 @@ import {
   localizeServerMessage,
   localizeSyncResultCode,
 } from '../../../shared/utils/localize-message';
+import {
+  graphRepository,
+  type GraphRepository,
+} from '../../works/services/graph.repository';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
 const PULL_PAGE_LIMIT = 500;
@@ -78,6 +88,12 @@ const RELEASE_RECORD_MERGE_FIELDS = [
 export type WorkConflictMergeField = (typeof WORK_MERGE_FIELDS)[number];
 export type ReleaseRecordConflictMergeField =
   (typeof RELEASE_RECORD_MERGE_FIELDS)[number];
+type GraphEntityRecord =
+  | ContributorRecord
+  | SeriesRecord
+  | WorkContributorRecord
+  | WorkRelationRecord
+  | WorkSeriesLinkRecord;
 
 export type SyncRunState = 'idle' | 'syncing' | 'success' | 'failed';
 
@@ -138,6 +154,21 @@ function cloneTimelineEntry(entry: TimelineEntryRecord): TimelineEntryRecord {
   };
 }
 
+function cloneGraphEntity<TPayload extends GraphEntityRecord>(
+  payload: TPayload,
+): TPayload {
+  if ('aliases' in payload) {
+    return {
+      ...payload,
+      aliases: [...payload.aliases],
+    } as TPayload;
+  }
+
+  return {
+    ...payload,
+  };
+}
+
 function cloneQueuePayload<TPayload extends SyncQueuePayload>(
   payload: TPayload,
 ): TPayload {
@@ -149,7 +180,11 @@ function cloneQueuePayload<TPayload extends SyncQueuePayload>(
     return cloneReleaseRecord(payload as UserReleaseRecord) as TPayload;
   }
 
-  return cloneTimelineEntry(payload as TimelineEntryRecord) as TPayload;
+  if ('occurredAt' in payload) {
+    return cloneTimelineEntry(payload as TimelineEntryRecord) as TPayload;
+  }
+
+  return cloneGraphEntity(payload as GraphEntityRecord) as TPayload;
 }
 
 function getNowIso() {
@@ -232,6 +267,21 @@ function mergeTimelineEntrySnapshots(
   };
 }
 
+function mergeGraphEntitySnapshots<TRecord extends GraphEntityRecord>(
+  remote: TRecord,
+  localPayload: TRecord,
+): TRecord {
+  const newer = getNewerRecord(localPayload, remote);
+
+  return {
+    ...cloneGraphEntity(newer),
+    createdAt: remote.createdAt,
+    serverVersion: remote.serverVersion,
+    syncStatus: 'pending',
+    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+  } as TRecord;
+}
+
 function mergePulledWorkWithQueuedPayload(
   remote: WorkRecord,
   localPayload: WorkRecord,
@@ -251,6 +301,16 @@ function mergePulledTimelineEntryWithQueuedPayload(
   localPayload: TimelineEntryRecord,
 ): TimelineEntryRecord {
   return mergeTimelineEntrySnapshots(remote, localPayload);
+}
+
+function isGraphEntityType(entityType: SyncEntityType) {
+  return (
+    entityType === 'series' ||
+    entityType === 'contributor' ||
+    entityType === 'work_series_link' ||
+    entityType === 'work_contributor' ||
+    entityType === 'work_relation'
+  );
 }
 
 function assertSupportedResponseSchemaVersion(
@@ -291,6 +351,7 @@ export class SyncService {
     private readonly queueRepo: SyncQueueRepository = syncQueueRepository,
     private readonly metaRepo: AppMetaRepository = appMetaRepository,
     private readonly timelineEntriesRepo: TimelineEntriesRepository = timelineEntriesRepository,
+    private readonly graphRepo: GraphRepository = graphRepository,
   ) {}
 
   async runManualSync(): Promise<ManualSyncResult> {
@@ -503,6 +564,11 @@ export class SyncService {
       const worksToMerge: WorkRecord[] = [];
       const releaseRecordsToMerge: UserReleaseRecord[] = [];
       const timelineEntriesToMerge: TimelineEntryRecord[] = [];
+      const seriesToMerge: SeriesRecord[] = [];
+      const contributorsToMerge: ContributorRecord[] = [];
+      const workSeriesLinksToMerge: WorkSeriesLinkRecord[] = [];
+      const workContributorsToMerge: WorkContributorRecord[] = [];
+      const workRelationsToMerge: WorkRelationRecord[] = [];
       const skippedCount = 0;
       const messages: string[] = [];
       let cursor: string | null = null;
@@ -561,6 +627,37 @@ export class SyncService {
 
           if (change.entityType === 'timeline_entry' && change.timelineEntry) {
             timelineEntriesToMerge.push(change.timelineEntry);
+            continue;
+          }
+
+          if (change.entityType === 'series' && change.series) {
+            seriesToMerge.push(change.series);
+            continue;
+          }
+
+          if (change.entityType === 'contributor' && change.contributor) {
+            contributorsToMerge.push(change.contributor);
+            continue;
+          }
+
+          if (
+            change.entityType === 'work_series_link' &&
+            change.workSeriesLink
+          ) {
+            workSeriesLinksToMerge.push(change.workSeriesLink);
+            continue;
+          }
+
+          if (
+            change.entityType === 'work_contributor' &&
+            change.workContributor
+          ) {
+            workContributorsToMerge.push(change.workContributor);
+            continue;
+          }
+
+          if (change.entityType === 'work_relation' && change.workRelation) {
+            workRelationsToMerge.push(change.workRelation);
           }
         }
 
@@ -573,6 +670,11 @@ export class SyncService {
       await this.worksRepo.bulkPut(worksToMerge);
       await this.releaseRecordsRepo.bulkPut(releaseRecordsToMerge);
       await this.timelineEntriesRepo.bulkPut(timelineEntriesToMerge);
+      await this.graphRepo.bulkPutSeries(seriesToMerge);
+      await this.graphRepo.bulkPutContributors(contributorsToMerge);
+      await this.graphRepo.bulkPutWorkSeriesLinks(workSeriesLinksToMerge);
+      await this.graphRepo.bulkPutWorkContributors(workContributorsToMerge);
+      await this.graphRepo.bulkPutWorkRelations(workRelationsToMerge);
 
       if (nextSince !== null) {
         await this.metaRepo.setValue(LAST_SUCCESSFUL_PULL_AT_KEY, nextSince);
@@ -591,7 +693,12 @@ export class SyncService {
         appliedCount:
           worksToMerge.length +
           releaseRecordsToMerge.length +
-          timelineEntriesToMerge.length,
+          timelineEntriesToMerge.length +
+          seriesToMerge.length +
+          contributorsToMerge.length +
+          workSeriesLinksToMerge.length +
+          workContributorsToMerge.length +
+          workRelationsToMerge.length,
         skippedCount,
         pulledAt,
         nextSince,
@@ -659,6 +766,24 @@ export class SyncService {
       return nextTimelineEntry;
     }
 
+    if (isGraphEntityType(queueItem.entityType)) {
+      const localGraphEntity =
+        ((await this.graphRepo.getEntity(
+          queueItem.entityType,
+          queueItem.entityId,
+        )) as GraphEntityRecord | null) ?? (queueItem.payload as GraphEntityRecord);
+      const nextGraphEntity = {
+        ...cloneGraphEntity(localGraphEntity),
+        syncStatus: 'pending',
+        updatedAt: now,
+      } as GraphEntityRecord;
+
+      await this.graphRepo.putEntity(nextGraphEntity);
+      await this.queueRepo.resetForRetry(queueItem.id, nextGraphEntity);
+
+      return nextGraphEntity;
+    }
+
     const localWork =
       (await this.worksRepo.getById(queueItem.entityId)) ??
       (queueItem.payload as WorkRecord);
@@ -709,6 +834,18 @@ export class SyncService {
       await this.queueRepo.removeMany([queueItem.id]);
 
       return remoteTimelineEntry;
+    }
+
+    if (isGraphEntityType(queueItem.entityType)) {
+      const remoteGraphEntity = {
+        ...cloneGraphEntity(remote as GraphEntityRecord),
+        syncStatus: 'synced',
+      } as GraphEntityRecord;
+
+      await this.graphRepo.putEntity(remoteGraphEntity);
+      await this.queueRepo.removeMany([queueItem.id]);
+
+      return remoteGraphEntity;
     }
 
     const remoteWork: WorkRecord = {
@@ -769,6 +906,10 @@ export class SyncService {
       return this.resolveConflictWithLocal(queueItemId);
     }
 
+    if (isGraphEntityType(queueItem.entityType)) {
+      return this.resolveConflictWithLocal(queueItemId);
+    }
+
     const selectedFields = new Set<keyof WorkRecord>(
       remoteFields.filter((field): field is WorkConflictMergeField =>
         (WORK_MERGE_FIELDS as readonly string[]).includes(field),
@@ -798,6 +939,26 @@ export class SyncService {
     result: PushSyncResult,
   ) {
     try {
+      if (isGraphEntityType(result.entityType)) {
+        const remoteGraphEntity = this.getRemoteConflictPayload(
+          result,
+        ) as GraphEntityRecord | null;
+
+        if (remoteGraphEntity) {
+          await this.graphRepo.putEntity(remoteGraphEntity);
+
+          return true;
+        }
+
+        await this.graphRepo.markSyncStatus(
+          result.entityType,
+          queueItem.entityId,
+          'synced',
+        );
+
+        return true;
+      }
+
       if (result.entityType === 'release_record') {
         if (
           result.releaseRecord !== null &&
@@ -894,6 +1055,23 @@ export class SyncService {
     }
 
     try {
+      if (isGraphEntityType(result.entityType)) {
+        const localGraphEntity =
+          ((await this.graphRepo.getEntity(
+            queueItem.entityType,
+            queueItem.entityId,
+          )) as GraphEntityRecord | null) ?? (queueItem.payload as GraphEntityRecord);
+        const merged = mergeGraphEntitySnapshots(
+          remote as GraphEntityRecord,
+          localGraphEntity,
+        );
+
+        await this.graphRepo.putEntity(merged);
+        await this.queueRepo.resetForRetry(queueItem.id, merged);
+
+        return true;
+      }
+
       if (result.entityType === 'release_record') {
         const localReleaseRecord =
           (await this.releaseRecordsRepo.getById(queueItem.entityId)) ??
@@ -984,7 +1162,7 @@ export class SyncService {
   }
 
   private markEntitySyncStatus(
-    entityType: 'work' | 'release_record' | 'timeline_entry',
+    entityType: SyncEntityType,
     id: string,
     syncStatus: WorkSyncStatus,
   ) {
@@ -996,13 +1174,14 @@ export class SyncService {
       return this.markReleaseRecordSyncStatus(id, syncStatus);
     }
 
-    return this.markTimelineEntrySyncStatus(id, syncStatus);
+    if (entityType === 'timeline_entry') {
+      return this.markTimelineEntrySyncStatus(id, syncStatus);
+    }
+
+    return this.graphRepo.markSyncStatus(entityType, id, syncStatus);
   }
 
-  private getEntityKey(
-    entityType: 'work' | 'release_record' | 'timeline_entry',
-    entityId: string,
-  ) {
+  private getEntityKey(entityType: SyncEntityType, entityId: string) {
     return `${entityType}:${entityId}`;
   }
 
@@ -1015,6 +1194,26 @@ export class SyncService {
       return result.timelineEntry ?? null;
     }
 
+    if (result.entityType === 'series') {
+      return result.series ?? null;
+    }
+
+    if (result.entityType === 'contributor') {
+      return result.contributor ?? null;
+    }
+
+    if (result.entityType === 'work_series_link') {
+      return result.workSeriesLink ?? null;
+    }
+
+    if (result.entityType === 'work_contributor') {
+      return result.workContributor ?? null;
+    }
+
+    if (result.entityType === 'work_relation') {
+      return result.workRelation ?? null;
+    }
+
     return result.work ?? null;
   }
 
@@ -1025,6 +1224,26 @@ export class SyncService {
 
     if (change.entityType === 'timeline_entry') {
       return change.timelineEntry ?? null;
+    }
+
+    if (change.entityType === 'series') {
+      return change.series ?? null;
+    }
+
+    if (change.entityType === 'contributor') {
+      return change.contributor ?? null;
+    }
+
+    if (change.entityType === 'work_series_link') {
+      return change.workSeriesLink ?? null;
+    }
+
+    if (change.entityType === 'work_contributor') {
+      return change.workContributor ?? null;
+    }
+
+    if (change.entityType === 'work_relation') {
+      return change.workRelation ?? null;
     }
 
     return change.work ?? null;
@@ -1069,7 +1288,29 @@ export class SyncService {
           queueItem.payload as TimelineEntryRecord,
         );
 
-        await this.timelineEntriesRepo.update(merged);
+      await this.timelineEntriesRepo.update(merged);
+      await this.queueRepo.resetForRetry(queueItem.id, merged);
+      }
+
+      return;
+    }
+
+    if (isGraphEntityType(change.entityType)) {
+      const remoteGraphEntity = this.getRemotePullConflictPayload(
+        change,
+      ) as GraphEntityRecord | null;
+
+      if (!remoteGraphEntity) {
+        return;
+      }
+
+      for (const queueItem of queueItems) {
+        const merged = mergeGraphEntitySnapshots(
+          remoteGraphEntity,
+          queueItem.payload as GraphEntityRecord,
+        );
+
+        await this.graphRepo.putEntity(merged);
         await this.queueRepo.resetForRetry(queueItem.id, merged);
       }
     }
