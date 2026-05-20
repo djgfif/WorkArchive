@@ -23,6 +23,8 @@ interface SettingsLayoutProps {
 export function SettingsLayout({ sections }: SettingsLayoutProps) {
   const defaultSectionId = sections[0]?.id ?? '';
   const [activeSectionId, setActiveSectionId] = useState(defaultSectionId);
+  const activeSection =
+    sections.find((section) => section.id === activeSectionId) ?? sections[0];
 
   useEffect(() => {
     function syncActiveSectionFromHash() {
@@ -43,14 +45,29 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
     };
   }, [defaultSectionId, sections]);
 
-  function getNavLinkProps(section: SettingsSectionItem) {
+  function selectSection(sectionId: string) {
+    setActiveSectionId(sectionId);
+
+    if (window.location.hash !== `#${sectionId}`) {
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${window.location.search}#${sectionId}`,
+      );
+    }
+  }
+
+  function getNavButtonProps(section: SettingsSectionItem) {
     const isActive = section.id === activeSectionId;
 
     return {
+      'aria-controls': `settings-panel-${section.id}`,
+      'aria-selected': isActive,
       className: cx(css.navLink ?? '', isActive && (css.navLinkActive ?? '')),
-      href: `#${section.id}`,
-      onClick: () => setActiveSectionId(section.id),
-      ...(isActive ? { 'aria-current': 'location' as const } : {}),
+      'data-section-id': section.id,
+      onClick: () => selectSection(section.id),
+      role: 'tab',
+      type: 'button' as const,
     };
   }
 
@@ -58,33 +75,40 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
     <div className={css.layout ?? ''}>
       <nav aria-label="설정 섹션" className={css.sideNav ?? ''}>
         <SectionCard padding="sm" tone="subtle">
-          {sections.map((section) => (
-            <a key={section.id} {...getNavLinkProps(section)}>
-              <span>{section.label}</span>
-            </a>
-          ))}
+          <div className={css.navList ?? ''} role="tablist">
+            {sections.map((section) => (
+              <button key={section.id} {...getNavButtonProps(section)}>
+                <span>{section.label}</span>
+              </button>
+            ))}
+          </div>
         </SectionCard>
       </nav>
 
-      <nav aria-label="설정 섹션 바로가기" className={css.mobileNav ?? ''}>
+      <nav
+        aria-label="설정 섹션 바로가기"
+        className={css.mobileNav ?? ''}
+        role="tablist"
+      >
         {sections.map((section) => (
-          <a key={section.id} {...getNavLinkProps(section)}>
+          <button key={section.id} {...getNavButtonProps(section)}>
             {section.label}
-          </a>
+          </button>
         ))}
       </nav>
 
       <div className={css.content ?? ''}>
-        {sections.map((section) => (
+        {activeSection && (
           <section
-            aria-label={section.label}
-            className={css.sectionAnchor ?? ''}
-            id={section.id}
-            key={section.id}
+            aria-label={activeSection.label}
+            className={css.sectionPanel ?? ''}
+            id={`settings-panel-${activeSection.id}`}
+            key={activeSection.id}
+            role="tabpanel"
           >
-            {section.content}
+            {activeSection.content}
           </section>
-        ))}
+        )}
       </div>
     </div>
   );

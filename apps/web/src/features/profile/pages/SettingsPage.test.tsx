@@ -89,6 +89,21 @@ function renderGuestSettings() {
   );
 }
 
+async function openSettingsSection(
+  user: ReturnType<typeof userEvent.setup>,
+  sectionId: string,
+) {
+  const sectionTab = document.querySelector(
+    `[data-section-id="${sectionId}"]`,
+  );
+
+  if (!(sectionTab instanceof HTMLElement)) {
+    throw new Error(`Settings section tab not found: ${sectionId}`);
+  }
+
+  await user.click(sectionTab);
+}
+
 describe('SettingsPage', () => {
   afterEach(() => {
     clearStoredAuthTokens();
@@ -140,7 +155,10 @@ describe('SettingsPage', () => {
 
     vi.stubGlobal('fetch', fetchMock);
 
+    const user = userEvent.setup();
+
     renderAuthenticatedSettings();
+    await openSettingsSection(user, 'search-providers');
 
     expect(await screen.findByText('Manual')).toBeInTheDocument();
     expect(screen.getAllByText('Aladin Book').length).toBeGreaterThan(0);
@@ -152,6 +170,7 @@ describe('SettingsPage', () => {
         expect.stringContaining('/auth/sessions'),
       ]),
     );
+    await openSettingsSection(user, 'security');
     expect(
       await screen.findByRole('button', { name: '이 기기 로그아웃' }),
     ).toBeInTheDocument();
@@ -294,6 +313,7 @@ describe('SettingsPage', () => {
       const user = userEvent.setup();
 
       renderAuthenticatedSettings();
+      await openSettingsSection(user, 'search-providers');
 
       expect(await screen.findByText('Search provider 관리')).toBeInTheDocument();
       if (provider !== 'aladin') {
@@ -380,6 +400,7 @@ describe('SettingsPage', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedSettings(signOut);
+    await openSettingsSection(user, 'security');
 
     expect(
       await screen.findByRole('button', { name: '이 기기 로그아웃' }),
@@ -429,6 +450,7 @@ describe('SettingsPage', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedSettings(signOut);
+    await openSettingsSection(user, 'danger-zone');
 
     expect(
       await screen.findByRole('button', { name: '모든 기기 로그아웃' }),
@@ -458,7 +480,10 @@ describe('SettingsPage', () => {
 
     vi.stubGlobal('fetch', fetchMock);
 
+    const user = userEvent.setup();
+
     renderGuestSettings();
+    await openSettingsSection(user, 'data-backup');
 
     expect(
       screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
