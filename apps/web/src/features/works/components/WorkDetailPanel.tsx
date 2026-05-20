@@ -205,7 +205,7 @@ export function WorkDetailPanel({
   return (
     <Stack gap="xl">
       {/* ── 히어로 카드 ── */}
-      <SectionCard gap="xl" padding="xl" tone="hero">
+      <SectionCard className={cn(css.detailHero)} gap="xl" padding="xl" tone="hero">
         <Group align="flex-start" gap="xl" wrap="wrap">
           <Box className={cn(css.detailHeroPoster)}>
             <WorkPoster
@@ -350,6 +350,44 @@ export function WorkDetailPanel({
             {/* 액션 버튼 */}
             {actions && <ActionRow>{actions}</ActionRow>}
           </Stack>
+
+          <Box className={cn(css.detailSummary)}>
+            <Stack gap="lg">
+              <Stack gap={4}>
+                <Text c="var(--app-accent-primary)" fw={800} size="sm">
+                  개인 기록 요약
+                </Text>
+                <Text c="dimmed" fw={700} size="xs">
+                  한줄평
+                </Text>
+                <Text fw={800} lh={1.5}>
+                  {shortReview ? `“${shortReview}”` : '아직 한줄평이 없습니다.'}
+                </Text>
+              </Stack>
+
+              <Stack gap={6}>
+                <Text c="dimmed" fw={700} size="xs">
+                  개인 태그
+                </Text>
+                <Text fw={800} lh={1.5}>
+                  {work.personalTags.length > 0
+                    ? work.personalTags.map((tag) => `#${tag}`).join(' ')
+                    : '아직 개인 태그가 없습니다.'}
+                </Text>
+              </Stack>
+
+              <Stack gap={6}>
+                <Text c="dimmed" fw={700} size="xs">
+                  마지막 감상
+                </Text>
+                <Text fw={800} lh={1.5}>
+                  {latestTimelineItem
+                    ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.label}`
+                    : '아직 감상 흐름이 없습니다.'}
+                </Text>
+              </Stack>
+            </Stack>
+          </Box>
         </Group>
       </SectionCard>
 

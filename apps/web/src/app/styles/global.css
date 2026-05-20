@@ -38,11 +38,12 @@ body {
   min-width: 320px;
   background:
     /* 좌상단 — 블루 광원 */
-    radial-gradient(ellipse at 12% -8%, rgba(59, 130, 246, 0.12), transparent 40rem),
+    radial-gradient(ellipse at 10% -10%, rgba(96, 165, 250, 0.16), transparent 42rem),
     /* 우상단 — 앰버 광원 (미세) */
-    radial-gradient(ellipse at 90% 4%, rgba(251, 191, 36, 0.05), transparent 32rem),
+    radial-gradient(ellipse at 88% 2%, rgba(251, 191, 36, 0.07), transparent 34rem),
     /* 중앙 하단 — 깊이감 */
-    radial-gradient(ellipse at 50% 100%, rgba(30, 58, 138, 0.08), transparent 48rem),
+    radial-gradient(ellipse at 50% 106%, rgba(37, 99, 235, 0.10), transparent 52rem),
+    linear-gradient(180deg, rgba(5, 7, 13, 0.35), rgba(5, 7, 13, 0.98) 72%),
     var(--app-bg-shell, var(--mantine-color-body));
   color: var(--app-text-secondary, var(--mantine-color-text));
   /* 노이즈 텍스처 — 고급 인쇄물 느낌 */
@@ -109,7 +110,7 @@ textarea {
 /* ── Layout shell ────────────────────────────────────────────────────────── */
 .layout-shell {
   min-height: 100vh;
-  padding: clamp(0.75rem, 2vw, 1.5rem);
+  padding: clamp(0.75rem, 1.65vw, 1.35rem);
   /* 헤더 아래 미세한 그라디언트 오버레이 */
   background:
     linear-gradient(180deg, rgba(59, 130, 246, 0.025) 0, transparent 12rem),
@@ -135,27 +136,31 @@ textarea {
    ─────────────────────────────────────────────────────────────────────────── */
 .product-header {
   position: sticky;
-  top: 0;
+  top: clamp(0.45rem, 1vw, 0.8rem);
   z-index: 200;
-  height: 60px;
+  height: 62px;
   /* 3단 구조: Left(브랜드) / Center(nav) / Right(프로필) */
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 1rem;
-  padding-top: 0;
-  padding-bottom: 0;
-  margin-bottom: 0;
+  padding: 0 1rem;
+  margin-bottom: clamp(1.5rem, 3vw, 2.6rem);
   /* 프리미엄 블러 효과 */
   backdrop-filter: blur(20px) saturate(1.6);
   -webkit-backdrop-filter: blur(20px) saturate(1.6);
-  background: color-mix(in srgb, var(--app-bg-shell, var(--mantine-color-body)) 80%, transparent);
-  border-bottom: 1px solid var(--app-border-subtle, var(--mantine-color-default-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
+    color-mix(in srgb, var(--app-bg-shell, var(--mantine-color-body)) 78%, transparent);
+  border: 1px solid var(--app-border-default, var(--mantine-color-default-border));
+  border-radius: 999px;
   transition:
     background var(--wa-motion-fast, 150ms),
     border-color var(--wa-motion-fast, 150ms);
   /* 헤더 하단 미세한 그라디언트 */
-  box-shadow: 0 1px 0 var(--app-border-subtle);
+  box-shadow:
+    0 14px 48px rgba(0, 0, 0, 0.24),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
 }
 
 /* Left: 브랜드 로고 — 좌측 정렬 */
@@ -259,7 +264,10 @@ textarea {
   }
 
   .product-header {
+    top: 0;
     height: 56px;
+    margin-bottom: 1rem;
+    border-radius: 1rem;
     /* 모바일: 브랜드 + 햄버거 2단 */
     grid-template-columns: 1fr auto;
   }

@@ -18,6 +18,18 @@ import {
 } from '@mantine/core';
 import { Link, NavLink } from 'react-router-dom';
 
+import styles from './AppPrimitives.module.css';
+
+const css = styles as Record<string, string>;
+
+function cx(...classes: Array<string | false | undefined>) {
+  return classes.filter(Boolean).join(' ');
+}
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
+
 type SurfaceTone = 'default' | 'hero' | 'subtle';
 type MessageTone = 'error' | 'info' | 'loading' | 'success';
 type AppActionTone = 'danger' | 'ghost' | 'primary' | 'quiet' | 'secondary';
@@ -281,6 +293,12 @@ export function SectionCard({
 }: SectionCardProps) {
   return (
     <Paper
+      className={cx(
+        css.sectionCard,
+        tone === 'hero' && css.sectionCardHero,
+        tone === 'subtle' && css.sectionCardSubtle,
+        className,
+      )}
       p={padding}
       radius={tone === 'hero' ? 'xl' : 'lg'}
       styles={{
@@ -291,7 +309,6 @@ export function SectionCard({
           overflow: 'hidden',
         },
       }}
-      {...(className ? { className } : {})}
       withBorder
     >
       <Stack gap={gap}>{children}</Stack>
@@ -313,6 +330,13 @@ export function SurfaceLinkCard({
 }: SurfaceLinkCardProps) {
   return (
     <Paper
+      className={cx(
+        css.sectionCard,
+        css.surfaceLink,
+        tone === 'hero' && css.sectionCardHero,
+        tone === 'subtle' && css.sectionCardSubtle,
+        className,
+      )}
       component={Link}
       p={padding}
       radius="lg"
@@ -339,7 +363,6 @@ export function SurfaceLinkCard({
         },
       }}
       to={to}
-      {...(className ? { className } : {})}
       withBorder
     >
       <Stack gap={gap}>{children}</Stack>
@@ -427,14 +450,11 @@ export function AppBadge({ children, tone = 'default' }: AppBadgeProps) {
 export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
   return (
     <Box
+      className={cn(css.brandLink)}
       component={Link}
-      display="inline-flex"
       miw={0}
       td="none"
       to={to}
-      style={{ transition: 'opacity var(--wa-motion-fast, 150ms)' }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.80'; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
     >
       <Group gap="sm" wrap="nowrap">
         <ThemeIcon
@@ -442,11 +462,8 @@ export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
           radius="md"
           size={36}
           variant="gradient"
+          className={cn(css.brandMark)}
           gradient={{ deg: 135, from: 'archive.4', to: 'archive.7' }}
-          style={{
-            flexShrink: 0,
-            boxShadow: 'var(--wa-shadow-glow)',
-          }}
         >
           <Text
             c="white"
@@ -512,35 +529,15 @@ export function AppNavLink({
 }: AppNavLinkProps) {
   return (
     <NavLink
+      className={({ isActive }) =>
+        cx(
+          css.navLink,
+          fullWidth && css.navLinkFull,
+          isActive && css.navLinkActive,
+        )
+      }
       end={end}
       onClick={onClick}
-      style={({ isActive }) => ({
-        alignItems: 'center',
-        background: fullWidth && isActive ? 'var(--app-surface-subtle)' : 'transparent',
-        border: fullWidth
-          ? `1px solid ${isActive ? 'var(--app-border-default)' : 'transparent'}`
-          : 'none',
-        borderRadius: fullWidth ? 'var(--mantine-radius-md)' : undefined,
-        color: isActive ? 'var(--app-text-primary)' : 'var(--app-text-secondary)',
-        display: fullWidth ? 'flex' : 'inline-flex',
-        fontWeight: isActive ? 700 : 500,
-        gap: '0.625rem',
-        justifyContent: 'space-between',
-        padding: fullWidth ? '0.75rem 0.95rem' : '0.4rem 0.6rem',
-        textDecoration: 'none',
-        transition: [
-          'color var(--wa-motion-fast, 150ms)',
-          'background var(--wa-motion-fast, 150ms)',
-          'border-color var(--wa-motion-fast, 150ms)',
-        ].join(', '),
-        width: fullWidth ? '100%' : undefined,
-        /* 데스크탑 인라인 nav: 하단 밑줄 애니메이션 */
-        borderBottom: !fullWidth && isActive
-          ? '2px solid var(--app-accent-primary)'
-          : !fullWidth ? '2px solid transparent' : undefined,
-        paddingBottom: !fullWidth ? '0.4rem' : undefined,
-        fontSize: 'var(--app-type-body)',
-      })}
       to={to}
     >
       <Group gap="xs" justify="space-between" wrap="nowrap" w="100%">
@@ -625,6 +622,7 @@ export function PageSection({
 export function MetricPill({ label, value }: MetricPillProps) {
   return (
     <Paper
+      className={cn(css.metricPill)}
       miw={120}
       p="md"
       radius="lg"
@@ -774,6 +772,7 @@ export function FeedbackMessage({ children, title, tone = 'error' }: FeedbackMes
   return (
     <Paper
       aria-live={tone === 'error' ? 'assertive' : 'polite'}
+      className={cn(css.feedback)}
       p="md"
       radius="lg"
       role={tone === 'error' ? 'alert' : 'status'}
@@ -802,7 +801,7 @@ export function StateMessage({
   tone = 'info',
 }: StateMessageProps) {
   return (
-    <SectionCard padding="xl" tone="subtle">
+    <SectionCard className={cn(css.stateMessage)} padding="xl" tone="subtle">
       <Stack gap="md">
         <AppBadge tone={tone === 'error' ? 'danger' : tone === 'success' ? 'success' : 'accent'}>
           {eyebrow ?? getMessageLabel(tone)}
@@ -841,6 +840,7 @@ export function LoadingRows({ rows = 3 }: LoadingRowsProps) {
     <Stack aria-busy="true" aria-live="polite" gap="sm">
       {Array.from({ length: rows }, (_, index) => (
         <Paper
+          className={cn(css.loadingRow)}
           key={index}
           p="md"
           radius="lg"
@@ -873,10 +873,8 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <Stack
+      className={cx(css.pageHeader, className)}
       gap="lg"
-      pb="lg"
-      style={{ borderBottom: '1px solid var(--app-border-subtle)' }}
-      {...(className ? { className } : {})}
     >
       <Flex
         align={{ base: 'stretch', md: 'flex-start' }}

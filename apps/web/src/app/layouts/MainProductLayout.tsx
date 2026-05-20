@@ -27,18 +27,21 @@ import {
   ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
+import styles from './MainProductLayout.module.css';
+
+const css = styles as Record<string, string>;
+
+function cx(...classes: Array<string | false | undefined>) {
+  return classes.filter(Boolean).join(' ');
+}
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 /* ── 페이지 전환 래퍼 ── */
 function PageTransitionWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <Box
-      style={{
-        animation: 'pageEnter 280ms cubic-bezier(0.16, 1, 0.3, 1) both',
-      }}
-    >
-      {children}
-    </Box>
-  );
+  return <Box className={cn(css.pageTransition)}>{children}</Box>;
 }
 
 /* ── 네비게이션 항목 (설정은 프로필 메뉴에만) ── */
@@ -110,29 +113,7 @@ function ProfileAvatarButton({
     <Tooltip label={label} position="bottom-end" withArrow>
       <UnstyledButton
         aria-label={`프로필: ${label}`}
-        style={{
-          display:        'flex',
-          alignItems:     'center',
-          justifyContent: 'center',
-          borderRadius:   '50%',
-          padding:        2,
-          outline:        'none',
-          transition:     'box-shadow var(--wa-motion-fast, 150ms)',
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.boxShadow =
-            '0 0 0 2.5px var(--app-accent-primary)';
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
-        }}
-        onFocus={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.boxShadow =
-            '0 0 0 2.5px var(--app-accent-primary)';
-        }}
-        onBlur={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
-        }}
+        className={cn(css.avatarButton)}
       >
         <Avatar
           color={isAuthenticated ? 'archive' : 'gray'}
@@ -270,12 +251,9 @@ export function MainProductLayout() {
                   >
                     {/* 계정 헤더 */}
                     <Box
+                      className={cn(css.menuHeader)}
                       px="sm"
                       py="sm"
-                      style={{
-                        borderBottom:  '1px solid var(--app-border-subtle)',
-                        marginBottom:  '0.35rem',
-                      }}
                     >
                       <Group gap="sm" wrap="nowrap">
                         <Avatar
@@ -293,15 +271,10 @@ export function MainProductLayout() {
                           </Text>
                           <Group gap={6} wrap="nowrap">
                             <Box
-                              style={{
-                                width:        7,
-                                height:       7,
-                                borderRadius: '50%',
-                                flexShrink:   0,
-                                background:   isAuthenticated
-                                  ? 'var(--app-accent-teal, #2dd4bf)'
-                                  : 'var(--app-text-muted)',
-                              }}
+                              className={cx(
+                                css.statusDot,
+                                isAuthenticated && css.statusDotAuthenticated,
+                              )}
                             />
                             <Text c="dimmed" size="xs" truncate>
                               {isAuthenticated ? '로그인됨' : '게스트 — 이 기기에만 저장됩니다'}
@@ -456,14 +429,9 @@ export function MainProductLayout() {
 
           {/* 계정 상태 카드 */}
           <Group
+            className={cn(css.mobileAccountCard)}
             gap="sm"
             wrap="nowrap"
-            style={{
-              padding:      '0.75rem',
-              borderRadius: 'var(--mantine-radius-lg)',
-              background:   'var(--app-surface-subtle)',
-              border:       '1px solid var(--app-border-subtle)',
-            }}
           >
             <Avatar
               color={isAuthenticated ? 'archive' : 'gray'}

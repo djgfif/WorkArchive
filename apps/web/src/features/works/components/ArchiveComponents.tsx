@@ -94,6 +94,7 @@ interface ArchiveHeroProps {
   eyebrow?: ReactNode;
   title: ReactNode;
   variant?: 'default' | 'compact' | 'landing';
+  visual?: ReactNode;
 }
 
 interface RatingDisplayProps {
@@ -796,6 +797,7 @@ export function ArchiveHero({
   eyebrow,
   title,
   variant = 'default',
+  visual,
 }: ArchiveHeroProps) {
   return (
     <Paper
@@ -807,8 +809,47 @@ export function ArchiveHero({
       withBorder
     >
       <Stack className={cn(css.heroContent)} gap="xl">
-        <Group align="flex-start" justify="space-between" wrap="wrap">
-          <Stack gap="sm" maw={760}>
+        {visual ? (
+          <Box className={cn(css.heroLayout)}>
+            <Stack className={cn(css.heroTextColumn)} gap="lg">
+              <Stack gap="sm">
+                {eyebrow && (
+                  <Text
+                    fw={700}
+                    size="xs"
+                    tt="uppercase"
+                    style={{
+                      letterSpacing: '0.10em',
+                      color: 'var(--app-accent-primary)',
+                      fontSize: 'var(--app-type-meta)',
+                    }}
+                  >
+                    {eyebrow}
+                  </Text>
+                )}
+                <Title
+                  className={cn(css.heroTitle)}
+                  order={1}
+                  style={{ letterSpacing: '-0.03em', lineHeight: 1.15 }}
+                >
+                  {title}
+                </Title>
+                <Text
+                  size="lg"
+                  style={{ color: 'var(--app-text-secondary)', lineHeight: 1.6 }}
+                >
+                  {description}
+                </Text>
+              </Stack>
+              {children}
+              {actions && <Group gap="sm" wrap="wrap">{actions}</Group>}
+            </Stack>
+            <Box className={cn(css.heroVisual)}>{visual}</Box>
+          </Box>
+        ) : (
+          <>
+            <Group align="flex-start" justify="space-between" wrap="wrap">
+              <Stack gap="sm" maw={760}>
             {eyebrow && (
               <Text
                 fw={700}
@@ -836,10 +877,12 @@ export function ArchiveHero({
             >
               {description}
             </Text>
-          </Stack>
-          {actions}
-        </Group>
-        {children}
+              </Stack>
+              {actions}
+            </Group>
+            {children}
+          </>
+        )}
       </Stack>
     </Paper>
   );
