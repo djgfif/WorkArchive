@@ -443,7 +443,7 @@ export function WorkForm({
                         />
                         <TextInput
                           id="droppedAt"
-                          label="중단일"
+                          label="하차일"
                           name="droppedAt"
                           onChange={handleInputChange}
                           type="date"
@@ -644,7 +644,7 @@ export function WorkForm({
                       />
                       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                         <StarRatingInput
-                          label="별점"
+                          label="고급별점"
                           onChange={handleRatingChange}
                           value={normalizedRating}
                         />

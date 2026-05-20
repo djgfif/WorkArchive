@@ -307,19 +307,19 @@ describe('WorksListPage', () => {
       await screen.findByRole('heading', { name: 'Fate/stay night' }),
     ).toBeInTheDocument();
 
-    const orderedLabels = [
-      '매체',
+    expect(screen.getByText('매체')).toBeInTheDocument();
+    expect(screen.getByText('작가 / 제작진')).not.toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: '고급 필터' }));
+
+    for (const label of [
       '시리즈 / 세계관',
-      '제작진 / 회사',
+      '작가 / 제작진',
+      '회사 / 플랫폼',
       '장르',
       '상태',
-    ].map((label) => screen.getByText(label));
-
-    for (let index = 0; index < orderedLabels.length - 1; index += 1) {
-      expect(
-        orderedLabels[index]!.compareDocumentPosition(orderedLabels[index + 1]!) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
+    ]) {
+      expect(screen.getByText(label)).toBeInTheDocument();
     }
 
     await user.click(screen.getByRole('button', { name: '애니' }));
@@ -333,7 +333,7 @@ describe('WorksListPage', () => {
 
       expect(params.get('type')).toBe('anime');
       expect(params.get('series')).toBe('Fate');
-      expect(params.get('contributor')).toBe('ufotable');
+      expect(params.get('organizationContributor')).toBe('ufotable');
       expect(params.get('genre')).toBe('Fantasy');
       expect(params.get('status')).toBe('completed');
     });
@@ -532,7 +532,7 @@ describe('WorksListPage', () => {
       genres: ['Fantasy'],
       description: '',
       thumbnailUrl: '',
-      status: 'paused',
+      status: 'dropped',
       rating: 4,
       shortReview: '다시 읽을 예정',
       review: '',

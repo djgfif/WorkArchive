@@ -7,6 +7,8 @@ import {
   getPersonalTags,
   matchesGraphTagValue,
   matchesPersonalTag,
+  workOrganizationContributorValues,
+  workPersonContributorValues,
   workContributorValues,
 } from './graph-tags';
 
@@ -15,6 +17,8 @@ export type WorksSortOption = 'updatedAt' | 'title' | 'rating';
 export interface WorksListQuery {
   contributor?: string;
   genre?: string;
+  organizationContributor?: string;
+  personContributor?: string;
   rating: number | null;
   searchTerm: string;
   series?: string;
@@ -26,12 +30,16 @@ export interface WorksListQuery {
 
 export interface WorksGraphQueryIndex {
   contributorValuesByWorkId: Map<string, string[]>;
+  organizationContributorValuesByWorkId: Map<string, string[]>;
+  personContributorValuesByWorkId: Map<string, string[]>;
   seriesValuesByWorkId: Map<string, string[]>;
 }
 
 export const DEFAULT_WORKS_LIST_QUERY: WorksListQuery = {
   contributor: '',
   genre: '',
+  organizationContributor: '',
+  personContributor: '',
   rating: null,
   searchTerm: '',
   series: '',
@@ -90,6 +98,34 @@ function getWorkContributorValues(
   return workContributorValues(work);
 }
 
+function getWorkPersonContributorValues(
+  work: WorkRecord,
+  graphIndex?: WorksGraphQueryIndex,
+) {
+  const graphValues = graphIndex?.personContributorValuesByWorkId.get(work.id);
+
+  if (graphValues && graphValues.length > 0) {
+    return Array.from(
+      new Set([...graphValues, ...workPersonContributorValues(work)]),
+    );
+  }
+
+  return workPersonContributorValues(work);
+}
+
+function getWorkOrganizationContributorValues(
+  work: WorkRecord,
+  graphIndex?: WorksGraphQueryIndex,
+) {
+  const graphValues = graphIndex?.organizationContributorValuesByWorkId.get(work.id);
+
+  if (graphValues && graphValues.length > 0) {
+    return graphValues;
+  }
+
+  return workOrganizationContributorValues(work);
+}
+
 function matchesGraphValue(values: string[], value: string | undefined) {
   const normalizedValue = normalizeSearchText(value ?? '');
 
@@ -115,9 +151,6 @@ function matchesSearch(
   const workSignals = [
     work.title,
     work.author,
-    work.shortReview,
-    work.review,
-    work.description,
     work.genres.join(' '),
     getPersonalTags(work.personalTags).join(' '),
     getGraphTags(work.personalTags)
@@ -130,6 +163,14 @@ function matchesSearch(
   return searchSignals.some((searchSignal) =>
     workSignals.some((workSignal) => workSignal.includes(searchSignal)),
   );
+}
+
+function matchesStatus(work: WorkRecord, status: WorkStatus | 'all') {
+  if (status === 'all') {
+    return true;
+  }
+
+  return work.status === status;
 }
 
 function compareUpdatedAtDescending(a: WorkRecord, b: WorkRecord) {
@@ -146,7 +187,7 @@ export function queryWorks(
       return false;
     }
 
-    if (query.status !== 'all' && work.status !== query.status) {
+    if (!matchesStatus(work, query.status)) {
       return false;
     }
 
@@ -180,6 +221,28 @@ export function queryWorks(
         (value) =>
           normalizeSearchText(value) ===
           normalizeSearchText(query.contributor ?? ''),
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      query.personContributor?.trim() &&
+      !getWorkPersonContributorValues(work, graphIndex).some(
+        (value) =>
+          normalizeSearchText(value) ===
+          normalizeSearchText(query.personContributor ?? ''),
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      query.organizationContributor?.trim() &&
+      !getWorkOrganizationContributorValues(work, graphIndex).some(
+        (value) =>
+          normalizeSearchText(value) ===
+          normalizeSearchText(query.organizationContributor ?? ''),
       )
     ) {
       return false;

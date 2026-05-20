@@ -3,7 +3,6 @@ import {
   type WorkSyncStatus,
   type WorkTier,
   type WorkType,
-  WORK_STATUSES,
   WORK_TIERS,
   WORK_TYPES,
 } from '@work-archive/shared-types';
@@ -26,9 +25,15 @@ const workStatusLabels: Record<WorkStatus, string> = {
   planned: '볼 예정',
   in_progress: '보는 중',
   completed: '완료',
-  paused: '보류',
-  dropped: '중단',
+  dropped: '하차',
 };
+
+export const visibleWorkStatuses = [
+  'planned',
+  'in_progress',
+  'completed',
+  'dropped',
+] as const satisfies readonly WorkStatus[];
 
 const workTierLabels: Record<WorkTier, string> = {
   S: 'S',
@@ -50,7 +55,12 @@ export const workTypeOptions = WORK_TYPES.map((value) => ({
   label: workTypeLabels[value],
 }));
 
-export const workStatusOptions = WORK_STATUSES.map((value) => ({
+export const workStatusOptions = visibleWorkStatuses.map((value) => ({
+  value,
+  label: workStatusLabels[value],
+}));
+
+export const visibleWorkStatusOptions = visibleWorkStatuses.map((value) => ({
   value,
   label: workStatusLabels[value],
 }));

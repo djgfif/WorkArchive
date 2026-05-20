@@ -119,7 +119,7 @@ const timelineTypeOptions: Array<{ label: string; value: TimelineEntryType }> =
     { label: '메모', value: 'note' },
     { label: '감상 시작', value: 'started' },
     { label: '완료', value: 'completed' },
-    { label: '중단', value: 'dropped' },
+    { label: '하차', value: 'dropped' },
     { label: '재감상', value: 'rewatch' },
     { label: '진행', value: 'progress' },
   ];
@@ -156,9 +156,9 @@ function createTimelineItems(work: WorkRecord) {
     },
     {
       id: 'system-dropped-at',
-      label: '중단',
+      label: '하차',
       value: work.droppedAt ?? null,
-      description: '하차하거나 중단한 날입니다.',
+      description: '하차한 날입니다.',
       source: 'system' as const,
     },
   ]
@@ -862,7 +862,7 @@ export function WorkDetailPanel({
                   { label: '최근 수정', value: formatWorkDateTime(work.updatedAt) },
                   { label: '시작일', value: formatWorkDate(work.startedAt) },
                   { label: '완료일', value: formatWorkDate(work.completedAt) },
-                  { label: '중단일', value: formatWorkDate(work.droppedAt) },
+                  { label: '하차일', value: formatWorkDate(work.droppedAt) },
                   { label: '마지막 감상일', value: formatWorkDate(work.lastConsumedAt) },
                   { label: '진행도', value: progressLabel ?? '아직 없음' },
                   { label: '현재 상태', value: statusLabel },

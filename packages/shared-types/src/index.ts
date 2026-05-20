@@ -186,7 +186,6 @@ export const WORK_STATUSES = [
   'planned',
   'in_progress',
   'completed',
-  'paused',
   'dropped',
 ] as const;
 

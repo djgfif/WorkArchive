@@ -15,6 +15,8 @@ import {
   getContributorSuggestionValues,
   getGraphTags,
   getPersonalTags,
+  getOrganizationContributorSuggestionValues,
+  getPersonContributorSuggestionValues,
   getSuggestionValues,
 } from '../utils/graph-tags';
 import {
@@ -44,6 +46,8 @@ function getCreateSource(input: UpsertWorkInput) {
 interface WorksListResult {
   contributorSuggestions: string[];
   genreSuggestions: string[];
+  organizationContributorSuggestions: string[];
+  personContributorSuggestions: string[];
   seriesSuggestions: string[];
   statusCounts: Record<WorkStatus, number>;
   tagSuggestions: string[];
@@ -66,7 +70,6 @@ function buildEmptyStatusCounts(): Record<WorkStatus, number> {
     completed: 0,
     dropped: 0,
     in_progress: 0,
-    paused: 0,
     planned: 0,
   };
 }
@@ -151,6 +154,21 @@ export class WorksService {
         ...activeWorks.map((work) => work.author.trim()).filter(Boolean),
       ]),
     ).sort((left, right) => left.localeCompare(right));
+    const graphPersonContributorSuggestions = Array.from(
+      new Set([
+        ...graph.contributors
+          .filter((contributor) => contributor.entityType === 'person')
+          .map((contributor) => contributor.name),
+        ...activeWorks.map((work) => work.author.trim()).filter(Boolean),
+      ]),
+    ).sort((left, right) => left.localeCompare(right));
+    const graphOrganizationContributorSuggestions = Array.from(
+      new Set(
+        graph.contributors
+          .filter((contributor) => contributor.entityType !== 'person')
+          .map((contributor) => contributor.name),
+      ),
+    ).sort((left, right) => left.localeCompare(right));
     const graphSeriesSuggestions = Array.from(
       new Set(graph.series.map((series) => series.title)),
     ).sort((left, right) => left.localeCompare(right));
@@ -163,6 +181,14 @@ export class WorksService {
       genreSuggestions: Array.from(
         new Set(activeWorks.flatMap((work) => work.genres)),
       ).sort((left, right) => left.localeCompare(right)),
+      organizationContributorSuggestions:
+        graphOrganizationContributorSuggestions.length > 0
+          ? graphOrganizationContributorSuggestions
+          : getOrganizationContributorSuggestionValues(activeWorks),
+      personContributorSuggestions:
+        graphPersonContributorSuggestions.length > 0
+          ? graphPersonContributorSuggestions
+          : getPersonContributorSuggestionValues(activeWorks),
       seriesSuggestions:
         graphSeriesSuggestions.length > 0
           ? graphSeriesSuggestions
@@ -361,6 +387,8 @@ function buildGraphQueryIndex(graph: WorkGraphSnapshot): WorksGraphQueryIndex {
   );
   const seriesValuesByWorkId = new Map<string, string[]>();
   const contributorValuesByWorkId = new Map<string, string[]>();
+  const organizationContributorValuesByWorkId = new Map<string, string[]>();
+  const personContributorValuesByWorkId = new Map<string, string[]>();
 
   for (const link of graph.workSeriesLinks) {
     const series = seriesById.get(link.seriesId);
@@ -384,10 +412,20 @@ function buildGraphQueryIndex(graph: WorkGraphSnapshot): WorksGraphQueryIndex {
     const values = contributorValuesByWorkId.get(link.workId) ?? [];
     values.push(contributor.name);
     contributorValuesByWorkId.set(link.workId, values);
+
+    const scopedMap =
+      contributor.entityType === 'person'
+        ? personContributorValuesByWorkId
+        : organizationContributorValuesByWorkId;
+    const scopedValues = scopedMap.get(link.workId) ?? [];
+    scopedValues.push(contributor.name);
+    scopedMap.set(link.workId, scopedValues);
   }
 
   return {
     contributorValuesByWorkId,
+    organizationContributorValuesByWorkId,
+    personContributorValuesByWorkId,
     seriesValuesByWorkId,
   };
 }
