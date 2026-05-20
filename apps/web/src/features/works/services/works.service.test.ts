@@ -289,7 +289,6 @@ describe('WorksService', () => {
       'planned',
       'in_progress',
       'completed',
-      'paused',
       'dropped',
     ] as const;
     const works = Array.from({ length: 6000 }, (_, index) => {
@@ -325,9 +324,9 @@ describe('WorksService', () => {
 
     expect(result.totalActiveCount).toBe(5000);
     expect(result.totalDeletedCount).toBe(1000);
-    expect(result.statusCounts.completed).toBe(1000);
+    expect(result.statusCounts.completed).toBe(1250);
     expect(result.tagSuggestions).toHaveLength(500);
-    expect(result.works).toHaveLength(1000);
+    expect(result.works).toHaveLength(1250);
     expect(result.works.every((work) => work.deletedAt === null)).toBe(true);
     expect(durationMs).toBeLessThan(3000);
   });

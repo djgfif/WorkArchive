@@ -14,8 +14,8 @@ import type { WorksCollectionScope } from '../services/works.service';
 import type { WorksListQuery } from '../utils/query-works';
 import {
   getWorkStatusLabel,
+  visibleWorkStatusOptions,
   workSortOptions,
-  workStatusOptions,
   workTypeOptions,
 } from '../utils/work-options';
 import type { WorksViewMode } from './WorksList';
@@ -81,15 +81,16 @@ const ratingFilterOptions = Array.from({ length: 10 }, (_, i) => {
 
 interface WorksToolbarProps {
   collectionScope:          WorksCollectionScope;
-  contributorSuggestions:   string[];
   filteredCount:            number;
   genreSuggestions:         string[];
   isLoading:                boolean;
+  organizationContributorSuggestions: string[];
   onClearFilters:           () => void;
   onCollectionScopeChange:  (scope: WorksCollectionScope) => void;
   onCreateWork:             () => void;
   onQueryChange:            (query: WorksListQuery) => void;
   onViewModeChange:         (viewMode: WorksViewMode) => void;
+  personContributorSuggestions: string[];
   query:                    WorksListQuery;
   seriesSuggestions:        string[];
   statusCounts:             Record<WorkStatus, number>;
@@ -101,15 +102,16 @@ interface WorksToolbarProps {
 
 export function WorksToolbar({
   collectionScope,
-  contributorSuggestions,
   filteredCount,
   genreSuggestions,
   isLoading,
+  organizationContributorSuggestions,
   onClearFilters,
   onCollectionScopeChange,
   onCreateWork,
   onQueryChange,
   onViewModeChange,
+  personContributorSuggestions,
   query,
   seriesSuggestions,
   statusCounts,
@@ -147,6 +149,8 @@ export function WorksToolbar({
     query.searchTerm.trim() !== '' ||
     (query.series?.trim() ?? '') !== '' ||
     (query.contributor?.trim() ?? '') !== '' ||
+    (query.personContributor?.trim() ?? '') !== '' ||
+    (query.organizationContributor?.trim() ?? '') !== '' ||
     (query.genre?.trim() ?? '') !== '' ||
     (query.tag?.trim() ?? '') !== '' ||
     query.rating !== null ||
@@ -166,10 +170,13 @@ export function WorksToolbar({
 
   const statusFilterOptions = [
     { label: '전체', value: 'all' as const, count: totalActiveCount },
-    ...workStatusOptions.map((o) => ({
+    ...visibleWorkStatusOptions.map((o) => ({
       label: getWorkStatusLabel(o.value),
       value: o.value,
-      count: statusCounts[o.value],
+      count:
+        o.value === 'dropped'
+          ? statusCounts.dropped
+          : statusCounts[o.value],
     })),
   ];
 
@@ -182,6 +189,12 @@ export function WorksToolbar({
       : []),
     ...(query.contributor?.trim()
       ? [{ label: `제작진: ${query.contributor.trim()}`, onRemove: () => onQueryChange({ ...query, contributor: '' }) }]
+      : []),
+    ...(query.personContributor?.trim()
+      ? [{ label: `작가/제작진: ${query.personContributor.trim()}`, onRemove: () => onQueryChange({ ...query, personContributor: '' }) }]
+      : []),
+    ...(query.organizationContributor?.trim()
+      ? [{ label: `회사/플랫폼: ${query.organizationContributor.trim()}`, onRemove: () => onQueryChange({ ...query, organizationContributor: '' }) }]
       : []),
     ...(query.genre?.trim()
       ? [{ label: `장르: ${query.genre.trim()}`, onRemove: () => onQueryChange({ ...query, genre: '' }) }]
@@ -420,83 +433,6 @@ export function WorksToolbar({
               value={query.type}
             />
           </Stack>
-
-          {seriesSuggestions.length > 0 && (
-            <Stack gap={6}>
-              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                시리즈 / 세계관
-              </Text>
-              <FilterPillGroup
-                aria-label="시리즈 필터"
-                onChange={(series) => onQueryChange({ ...query, series })}
-                options={[
-                  { label: '전체', value: '' },
-                  ...seriesSuggestions.slice(0, 12).map((series) => ({
-                    label: series,
-                    value: series,
-                  })),
-                ]}
-                value={query.series ?? ''}
-              />
-            </Stack>
-          )}
-
-          {contributorSuggestions.length > 0 && (
-            <Stack gap={6}>
-              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                제작진 / 회사
-              </Text>
-              <FilterPillGroup
-                aria-label="제작진 필터"
-                onChange={(contributor) =>
-                  onQueryChange({ ...query, contributor })
-                }
-                options={[
-                  { label: '전체', value: '' },
-                  ...contributorSuggestions.slice(0, 12).map((contributor) => ({
-                    label: contributor,
-                    value: contributor,
-                  })),
-                ]}
-                value={query.contributor ?? ''}
-              />
-            </Stack>
-          )}
-
-          {genreSuggestions.length > 0 && (
-            <Stack gap={6}>
-              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                장르
-              </Text>
-              <FilterPillGroup
-                aria-label="장르 필터"
-                onChange={(genre) => onQueryChange({ ...query, genre })}
-                options={[
-                  { label: '전체', value: '' },
-                  ...genreSuggestions.slice(0, 12).map((genre) => ({
-                    label: genre,
-                    value: genre,
-                  })),
-                ]}
-                value={query.genre ?? ''}
-              />
-            </Stack>
-          )}
-        </Stack>
-      )}
-
-      {/* ── 상태 퀵 필터 ─────────────────────────────────────────────── */}
-      {collectionScope === 'active' && (
-        <Stack gap={6}>
-          <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-            상태
-          </Text>
-          <FilterPillGroup
-            aria-label="상태 필터"
-            onChange={(status) => onQueryChange({ ...query, status })}
-            options={statusFilterOptions}
-            value={query.status}
-          />
         </Stack>
       )}
 
@@ -614,6 +550,102 @@ export function WorksToolbar({
           </Group>
 
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+            {seriesSuggestions.length > 0 && (
+              <Stack gap="xs">
+                <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+                  시리즈 / 세계관
+                </Text>
+                <FilterPillGroup
+                  aria-label="시리즈 필터"
+                  onChange={(series) => onQueryChange({ ...query, series })}
+                  options={[
+                    { label: '전체', value: '' },
+                    ...seriesSuggestions.slice(0, 12).map((series) => ({
+                      label: series,
+                      value: series,
+                    })),
+                  ]}
+                  value={query.series ?? ''}
+                />
+              </Stack>
+            )}
+
+            {personContributorSuggestions.length > 0 && (
+              <Stack gap="xs">
+                <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+                  작가 / 제작진
+                </Text>
+                <FilterPillGroup
+                  aria-label="작가 제작진 필터"
+                  onChange={(personContributor) =>
+                    onQueryChange({ ...query, personContributor })
+                  }
+                  options={[
+                    { label: '전체', value: '' },
+                    ...personContributorSuggestions.slice(0, 12).map((contributor) => ({
+                      label: contributor,
+                      value: contributor,
+                    })),
+                  ]}
+                  value={query.personContributor ?? ''}
+                />
+              </Stack>
+            )}
+
+            {organizationContributorSuggestions.length > 0 && (
+              <Stack gap="xs">
+                <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+                  회사 / 플랫폼
+                </Text>
+                <FilterPillGroup
+                  aria-label="회사 플랫폼 필터"
+                  onChange={(organizationContributor) =>
+                    onQueryChange({ ...query, organizationContributor })
+                  }
+                  options={[
+                    { label: '전체', value: '' },
+                    ...organizationContributorSuggestions.slice(0, 12).map((contributor) => ({
+                      label: contributor,
+                      value: contributor,
+                    })),
+                  ]}
+                  value={query.organizationContributor ?? ''}
+                />
+              </Stack>
+            )}
+
+            {genreSuggestions.length > 0 && (
+              <Stack gap="xs">
+                <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+                  장르
+                </Text>
+                <FilterPillGroup
+                  aria-label="장르 필터"
+                  onChange={(genre) => onQueryChange({ ...query, genre })}
+                  options={[
+                    { label: '전체', value: '' },
+                    ...genreSuggestions.slice(0, 12).map((genre) => ({
+                      label: genre,
+                      value: genre,
+                    })),
+                  ]}
+                  value={query.genre ?? ''}
+                />
+              </Stack>
+            )}
+
+            <Stack gap="xs">
+              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+                상태
+              </Text>
+              <FilterPillGroup
+                aria-label="상태 필터"
+                onChange={(status) => onQueryChange({ ...query, status })}
+                options={statusFilterOptions}
+                value={query.status}
+              />
+            </Stack>
+
             {/* 정렬 */}
             <Stack gap="xs">
               <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>

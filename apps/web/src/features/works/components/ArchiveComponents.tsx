@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+﻿import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   ActionIcon,
   Box,
@@ -13,7 +13,6 @@ import {
   Text,
   TextInput,
   Title,
-  Tooltip,
 } from '@mantine/core';
 import type { KeyboardEvent } from 'react';
 import {
@@ -433,7 +432,7 @@ export function RatingDisplay({ compact = false, value }: RatingDisplayProps) {
   );
 }
 
-/** 별점 입력 컴포넌트 — 넷플릭스식 호버/클릭 인터랙션 */
+/** 별점 입력 컴포넌트 — 0.5 단위 버튼 선택 */
 export interface StarRatingInputProps {
   label?: string;
   onChange: (value: number | null) => void;
@@ -441,33 +440,8 @@ export interface StarRatingInputProps {
 }
 
 export function StarRatingInput({ label = '별점', onChange, value }: StarRatingInputProps) {
-  const [hovered, setHovered] = useState<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const display = hovered ?? value;
-  const displayLabel = display !== null ? (STAR_LABELS[display.toFixed(1)] ?? '') : '평가 안 함';
-
-  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const starWidth = rect.width / 5;
-    const starIndex = Math.floor(x / starWidth); // 0~4
-    const halfOffset = (x % starWidth) / starWidth;
-    const score = halfOffset < 0.5 ? starIndex + 0.5 : starIndex + 1.0;
-    setHovered(Math.min(5, Math.max(0.5, score)));
-  }
-
-  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const starWidth = rect.width / 5;
-    const starIndex = Math.floor(x / starWidth);
-    const halfOffset = (x % starWidth) / starWidth;
-    const score = halfOffset < 0.5 ? starIndex + 0.5 : starIndex + 1.0;
-    const newValue = Math.min(5, Math.max(0.5, score));
-    // 같은 값 클릭 시 초기화
-    onChange(value === newValue ? null : newValue);
-  }
+  const ratingChoices = Array.from({ length: 10 }, (_, index) => (index + 1) * 0.5);
+  const displayLabel = value !== null ? (STAR_LABELS[value.toFixed(1)] ?? '') : '평가 안 함';
 
   return (
     <Box>
@@ -481,85 +455,61 @@ export function StarRatingInput({ label = '별점', onChange, value }: StarRatin
           {label}
         </Text>
       )}
-      <Group align="center" gap="xs">
-        {/* 별 5개 인터랙티브 영역 */}
-        <Box
-          aria-label={`별점 ${display !== null ? display.toFixed(1) : '없음'}`}
-          aria-valuemax={5}
-          aria-valuemin={0}
-          aria-valuenow={display ?? 0}
-          className={cn(css.starRatingTrack)}
-          onClick={handleClick}
-          onMouseLeave={() => setHovered(null)}
-          onMouseMove={handleMouseMove}
-          ref={containerRef}
-          role="slider"
-          style={{ cursor: 'pointer', display: 'flex', gap: 2, userSelect: 'none' }}
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowRight') {
-              const next = Math.min(5, (value ?? 0) + 0.5);
-              onChange(next);
-            } else if (e.key === 'ArrowLeft') {
-              const prev = (value ?? 0) - 0.5;
-              onChange(prev <= 0 ? null : prev);
-            } else if (e.key === 'Delete' || e.key === 'Backspace') {
-              onChange(null);
-            }
-          }}
-        >
-          {[1, 2, 3, 4, 5].map((star) => {
-            const filled = display !== null && display >= star;
-            const half   = display !== null && display >= star - 0.5 && display < star;
+      <Stack gap="xs">
+        <Group gap={4} role="radiogroup" aria-label={label} wrap="wrap">
+          {ratingChoices.map((ratingChoice) => {
+            const isSelected = value === ratingChoice;
+
             return (
-              <Text
-                key={star}
-                component="span"
+              <Button
+                aria-checked={isSelected}
+                key={ratingChoice}
+                onClick={() => onChange(isSelected ? null : ratingChoice)}
+                role="radio"
+                size="compact-sm"
+                variant={isSelected ? 'filled' : 'default'}
                 style={{
-                  color: (filled || half)
+                  background: isSelected
+                    ? 'var(--app-accent-warm, #f59e0b)'
+                    : 'var(--app-surface-subtle)',
+                  borderColor: isSelected
                     ? 'var(--app-accent-warm, #f59e0b)'
                     : 'var(--app-border-default)',
-                  fontSize: '1.6rem',
-                  lineHeight: 1,
-                  opacity: half ? 0.65 : 1,
-                  transition: 'color 80ms ease, transform 80ms ease',
-                  transform: (filled || half) ? 'scale(1.12)' : 'scale(1)',
-                  display: 'inline-block',
+                  color: isSelected ? '#111827' : 'var(--app-text-secondary)',
+                  fontVariantNumeric: 'tabular-nums',
+                  fontWeight: 700,
+                  minWidth: 52,
                 }}
+                type="button"
               >
-                {(filled || half) ? '★' : '☆'}
-              </Text>
+                {ratingChoice.toFixed(1)}
+              </Button>
             );
           })}
-        </Box>
-        {/* 레이블 텍스트 */}
+        </Group>
         <Text
           c="dimmed"
           fw={600}
           size="sm"
           style={{
-            minWidth: '6rem',
             transition: 'opacity 120ms ease',
             opacity: displayLabel ? 1 : 0.4,
           }}
         >
-          {display !== null ? `${display.toFixed(1)} · ${displayLabel}` : '평가 안 함'}
+          {value !== null ? `${value.toFixed(1)} · ${displayLabel}` : '평가 안 함'}
         </Text>
-        {/* 초기화 버튼 */}
         {value !== null && (
-          <Tooltip label="별점 초기화" withArrow>
-            <ActionIcon
-              aria-label="별점 초기화"
-              color="gray"
-              onClick={() => onChange(null)}
-              size="sm"
-              variant="subtle"
-            >
-              <Text size="xs">✕</Text>
-            </ActionIcon>
-          </Tooltip>
+          <ActionIcon
+            aria-label="별점 초기화"
+            color="gray"
+            onClick={() => onChange(null)}
+            size="sm"
+            variant="subtle"
+          >
+            <Text size="xs">✕</Text>
+          </ActionIcon>
         )}
-      </Group>
+      </Stack>
     </Box>
   );
 }
@@ -608,7 +558,6 @@ function getStatusBadgeTone(status: string): AppBadgeToneValue {
     case 'in_progress': return 'info';
     case 'completed':   return 'success';
     case 'planned':     return 'muted';
-    case 'paused':      return 'warning';
     case 'dropped':     return 'danger';
     default:            return 'default';
   }
@@ -618,8 +567,7 @@ const statusOverlayConfig: Record<string, { color: string; label: string }> = {
   in_progress: { color: 'var(--app-accent-primary)',  label: '보는 중' },
   completed:   { color: 'var(--app-accent-teal)',     label: '완료' },
   planned:     { color: 'var(--app-text-muted)',      label: '볼 예정' },
-  paused:      { color: 'var(--app-accent-warm)',     label: '보류' },
-  dropped:     { color: 'var(--app-accent-rose)',     label: '중단' },
+  dropped:     { color: 'var(--app-accent-rose)',     label: '하차' },
 };
 
 export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps) {

@@ -29,6 +29,9 @@ interface ParsedMigrationGraphTag {
   value: string;
 }
 
+type LegacyWorkRecord = Omit<WorkRecord, 'status'> & { status: string };
+type LegacyReleaseRecord = Omit<UserReleaseRecord, 'status'> & { status: string };
+
 const DEFAULT_DB_NAME = 'work-archive-db-guest';
 
 export type ArchiveScope =
@@ -220,6 +223,30 @@ export class WorkArchiveDatabase extends Dexie {
         appMeta: 'key',
       })
       .upgrade((transaction) => migratePrefixedTagsToGraph(transaction));
+
+    this.version(11)
+      .stores({
+        works:
+          'id, type, title, author, status, rating, updatedAt, deletedAt, syncStatus, _deletedAtScope, *personalTags, [deletedAt+updatedAt], [deletedAt+status], [deletedAt+type], [_deletedAtScope+updatedAt], [_deletedAtScope+status], [_deletedAtScope+type]',
+        releaseRecords:
+          'id, userWorkRecordId, catalogReleaseId, status, updatedAt, deletedAt, syncStatus, [userWorkRecordId+catalogReleaseId]',
+        timelineEntries:
+          'id, workId, type, occurredAt, deletedAt, syncStatus, [workId+occurredAt], [deletedAt+occurredAt]',
+        series:
+          'id, kind, normalizedTitle, parentId, updatedAt, deletedAt, syncStatus, [kind+normalizedTitle]',
+        workSeriesLinks:
+          'id, workId, seriesId, role, updatedAt, deletedAt, syncStatus, [workId+seriesId+role], [workId+deletedAt], [seriesId+deletedAt]',
+        contributors:
+          'id, entityType, normalizedName, updatedAt, deletedAt, syncStatus, [entityType+normalizedName]',
+        workContributors:
+          'id, workId, contributorId, role, updatedAt, deletedAt, syncStatus, [workId+contributorId+role], [workId+deletedAt], [contributorId+deletedAt]',
+        workRelations:
+          'id, sourceWorkId, targetWorkId, relationType, updatedAt, deletedAt, syncStatus, [sourceWorkId+targetWorkId+relationType], [sourceWorkId+deletedAt], [targetWorkId+deletedAt]',
+        syncQueue:
+          'id, entityType, entityId, operation, createdAt, retryCount, [entityType+entityId]',
+        appMeta: 'key',
+      })
+      .upgrade((transaction) => migratePausedStatusToDropped(transaction));
   }
 }
 
@@ -483,6 +510,41 @@ async function migratePrefixedTagsToGraph(transaction: Transaction) {
       );
     }
   }
+}
+
+async function migratePausedStatusToDropped(transaction: Transaction) {
+  await transaction
+    .table<LegacyWorkRecord, string>('works')
+    .toCollection()
+    .modify((work) => {
+      if (work.status === 'paused') {
+        work.status = 'dropped';
+      }
+    });
+
+  await transaction
+    .table<LegacyReleaseRecord, string>('releaseRecords')
+    .toCollection()
+    .modify((record) => {
+      if (record.status === 'paused') {
+        record.status = 'dropped';
+      }
+    });
+
+  await transaction
+    .table<
+      SyncQueueItemRecord & { payload?: { status?: string } },
+      string
+    >('syncQueue')
+    .toCollection()
+    .modify((item) => {
+      if (
+        (item.entityType === 'work' || item.entityType === 'release_record') &&
+        item.payload?.status === 'paused'
+      ) {
+        item.payload.status = 'dropped';
+      }
+    });
 }
 
 function registerDatabaseName(name: string) {

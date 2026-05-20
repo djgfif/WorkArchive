@@ -32,6 +32,15 @@ import {
 } from '../utils/query-works';
 import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 
+function normalizeStatusQueryParam(
+  value: string | null,
+): WorksListQuery['status'] {
+  return value &&
+    WORK_STATUSES.includes(value as (typeof WORK_STATUSES)[number])
+    ? (value as WorksListQuery['status'])
+    : DEFAULT_WORKS_LIST_QUERY.status;
+}
+
 function getCollectionScopeFromSearchParams(
   searchParams: URLSearchParams,
 ): WorksCollectionScope {
@@ -56,6 +65,8 @@ function getQueryFromSearchParams(
     ...DEFAULT_WORKS_LIST_QUERY,
     contributor: searchParams.get('contributor') ?? '',
     genre: searchParams.get('genre') ?? '',
+    organizationContributor: searchParams.get('organizationContributor') ?? '',
+    personContributor: searchParams.get('personContributor') ?? '',
     rating:
       Number.isFinite(ratingFromUrl) && ratingFromUrl >= 0 && ratingFromUrl <= 5
         ? ratingFromUrl
@@ -67,11 +78,7 @@ function getQueryFromSearchParams(
       sortByFromUrl === 'title' || sortByFromUrl === 'rating'
         ? sortByFromUrl
         : DEFAULT_WORKS_LIST_QUERY.sortBy,
-    status:
-      statusFromUrl &&
-      WORK_STATUSES.includes(statusFromUrl as (typeof WORK_STATUSES)[number])
-        ? (statusFromUrl as WorksListQuery['status'])
-        : DEFAULT_WORKS_LIST_QUERY.status,
+    status: normalizeStatusQueryParam(statusFromUrl),
     type:
       typeFromUrl &&
       WORK_TYPES.includes(typeFromUrl as (typeof WORK_TYPES)[number])
@@ -91,6 +98,15 @@ function buildSearchParams(
   if (query.series?.trim()) nextSearchParams.set('series', query.series.trim());
   if (query.contributor?.trim()) {
     nextSearchParams.set('contributor', query.contributor.trim());
+  }
+  if (query.personContributor?.trim()) {
+    nextSearchParams.set('personContributor', query.personContributor.trim());
+  }
+  if (query.organizationContributor?.trim()) {
+    nextSearchParams.set(
+      'organizationContributor',
+      query.organizationContributor.trim(),
+    );
   }
   if (query.genre?.trim()) nextSearchParams.set('genre', query.genre.trim());
   if (query.status !== 'all') nextSearchParams.set('status', query.status);
@@ -123,10 +139,11 @@ export function WorksListPage() {
   const [updatingWorkId, setUpdatingWorkId] = useState<string | null>(null);
   const [restoringWorkId, setRestoringWorkId] = useState<string | null>(null);
   const {
-    contributorSuggestions,
     error,
     genreSuggestions,
     isLoading,
+    organizationContributorSuggestions,
+    personContributorSuggestions,
     retry,
     seriesSuggestions,
     statusCounts,
@@ -139,6 +156,8 @@ export function WorksListPage() {
     query.searchTerm.trim() !== '' ||
     (query.series?.trim() ?? '') !== '' ||
     (query.contributor?.trim() ?? '') !== '' ||
+    (query.personContributor?.trim() ?? '') !== '' ||
+    (query.organizationContributor?.trim() ?? '') !== '' ||
     (query.genre?.trim() ?? '') !== '' ||
     (query.tag?.trim() ?? '') !== '' ||
     query.rating !== null ||
@@ -303,8 +322,9 @@ export function WorksListPage() {
         onQueryChange={handleQueryChange}
         onViewModeChange={handleViewModeChange}
         query={query}
-        contributorSuggestions={contributorSuggestions}
         genreSuggestions={genreSuggestions}
+        organizationContributorSuggestions={organizationContributorSuggestions}
+        personContributorSuggestions={personContributorSuggestions}
         seriesSuggestions={seriesSuggestions}
         statusCounts={statusCounts}
         tagSuggestions={tagSuggestions}

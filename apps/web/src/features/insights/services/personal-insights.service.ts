@@ -188,7 +188,7 @@ export function calculatePersonalInsights(
     staleWorks: activeWorks
       .filter(
         (work) =>
-          (work.status === 'in_progress' || work.status === 'paused') &&
+          work.status === 'in_progress' &&
           getActivityTime(work) < staleThresholdTime,
       )
       .sort((left, right) => getActivityTime(left) - getActivityTime(right))

@@ -15,6 +15,8 @@ import type { WorkRecord, WorkStatus } from '@work-archive/shared-types';
 interface WorksListState {
   contributorSuggestions: string[];
   genreSuggestions: string[];
+  organizationContributorSuggestions: string[];
+  personContributorSuggestions: string[];
   seriesSuggestions: string[];
   statusCounts: Record<WorkStatus, number>;
   tagSuggestions: string[];
@@ -30,7 +32,6 @@ function buildEmptyStatusCounts(): Record<WorkStatus, number> {
     completed: 0,
     dropped: 0,
     in_progress: 0,
-    paused: 0,
     planned: 0,
   };
 }
@@ -38,6 +39,8 @@ function buildEmptyStatusCounts(): Record<WorkStatus, number> {
 const initialState: WorksListState = {
   contributorSuggestions: [],
   genreSuggestions: [],
+  organizationContributorSuggestions: [],
+  personContributorSuggestions: [],
   seriesSuggestions: [],
   statusCounts: buildEmptyStatusCounts(),
   tagSuggestions: [],
@@ -68,6 +71,8 @@ export function useWorksList(
         next: ({
           contributorSuggestions,
           genreSuggestions,
+          organizationContributorSuggestions,
+          personContributorSuggestions,
           seriesSuggestions,
           statusCounts,
           tagSuggestions,
@@ -78,6 +83,8 @@ export function useWorksList(
           setState({
             contributorSuggestions,
             genreSuggestions,
+            organizationContributorSuggestions,
+            personContributorSuggestions,
             seriesSuggestions,
             statusCounts,
             tagSuggestions,
@@ -92,6 +99,8 @@ export function useWorksList(
           setState({
             contributorSuggestions: [],
             genreSuggestions: [],
+            organizationContributorSuggestions: [],
+            personContributorSuggestions: [],
             seriesSuggestions: [],
             statusCounts: buildEmptyStatusCounts(),
             tagSuggestions: [],

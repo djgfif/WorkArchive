@@ -79,6 +79,34 @@ describe('queryWorks', () => {
     ).toBe('Bleach');
   });
 
+  it('does not search private review text from the general search box', () => {
+    const reviewOnlyWorks = [
+      buildWork({
+        title: 'Frieren',
+        author: 'Kanehito Yamada',
+        description: 'quiet-note',
+        shortReview: 'hidden-short-review',
+        review: 'hidden-long-review',
+      }),
+    ];
+
+    for (const searchTerm of [
+      'quiet-note',
+      'hidden-short-review',
+      'hidden-long-review',
+    ]) {
+      expect(
+        queryWorks(reviewOnlyWorks, {
+          rating: null,
+          searchTerm,
+          type: 'all',
+          status: 'all',
+          sortBy: 'updatedAt',
+        }),
+      ).toHaveLength(0);
+    }
+  });
+
   it('searches and filters by personal tags without mixing them with type or status', () => {
     const taggedWorks = [
       buildWork({
@@ -223,6 +251,71 @@ describe('queryWorks', () => {
 
     expect(filtered).toHaveLength(1);
     expect(filtered[0]?.title).toBe('Bleach');
+  });
+
+  it('filters dropped records by the visible status filter', () => {
+    const statusWorks = [
+      buildWork({ title: 'Dropped Work', status: 'dropped' }),
+      buildWork({ title: 'Current Work', status: 'in_progress' }),
+    ];
+
+    expect(
+      queryWorks(statusWorks, {
+        rating: null,
+        searchTerm: '',
+        type: 'all',
+        status: 'dropped',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Dropped Work']);
+  });
+
+  it('separates person and organization contributor filters', () => {
+    const contributorWorks = [
+      buildWork({
+        title: 'Author Work',
+        author: 'Frank Herbert',
+        personalTags: ['creator:Frank Herbert'],
+      }),
+      buildWork({
+        title: 'Studio Work',
+        author: 'Studio Label',
+        personalTags: ['studio:ufotable'],
+      }),
+    ];
+
+    expect(
+      queryWorks(contributorWorks, {
+        rating: null,
+        searchTerm: '',
+        personContributor: 'Frank Herbert',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Author Work']);
+
+    expect(
+      queryWorks(contributorWorks, {
+        rating: null,
+        searchTerm: '',
+        organizationContributor: 'ufotable',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Studio Work']);
+
+    expect(
+      queryWorks(contributorWorks, {
+        rating: null,
+        searchTerm: '',
+        organizationContributor: 'Frank Herbert',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }),
+    ).toHaveLength(0);
   });
 
   it('filters by exact rating', () => {

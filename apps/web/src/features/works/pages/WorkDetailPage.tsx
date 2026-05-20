@@ -59,7 +59,10 @@ import {
 import { worksRepository } from '../services/works.repository';
 import { worksService } from '../services/works.service';
 import { getSeriesTagValues } from '../utils/graph-tags';
-import { getWorkTypeLabel, workStatusOptions } from '../utils/work-options';
+import {
+  getWorkTypeLabel,
+  workStatusOptions,
+} from '../utils/work-options';
 import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {

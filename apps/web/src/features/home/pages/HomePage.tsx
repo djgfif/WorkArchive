@@ -76,7 +76,6 @@ function getStatusTone(status: string): 'success' | 'info' | 'warning' | 'error'
     case 'completed': return 'success';
     case 'in_progress': return 'info';
     case 'dropped': return 'error';
-    case 'on_hold': return 'warning';
     default: return 'muted';
   }
 }
@@ -416,7 +415,7 @@ export function HomePage() {
               aria-label="아카이브 검색"
               onChange={setSearchTerm}
               onSubmit={() => handleSearchSubmit()}
-              placeholder="작품, 작가, 한줄평을 검색"
+              placeholder="작품, 작가를 검색"
               value={searchTerm}
             />
             <AppButton tone="primary" type="submit">

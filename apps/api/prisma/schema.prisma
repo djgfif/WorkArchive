@@ -23,7 +23,6 @@ enum WorkStatus {
   planned
   in_progress
   completed
-  paused
   dropped
 }
 

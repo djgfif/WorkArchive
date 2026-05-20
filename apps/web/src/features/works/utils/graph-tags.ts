@@ -27,6 +27,16 @@ export const CONTRIBUTOR_GRAPH_TAG_KINDS = [
   'platform',
 ] as const satisfies readonly GraphTagKind[];
 
+export const PERSON_CONTRIBUTOR_GRAPH_TAG_KINDS = [
+  'creator',
+] as const satisfies readonly GraphTagKind[];
+
+export const ORGANIZATION_CONTRIBUTOR_GRAPH_TAG_KINDS = [
+  'studio',
+  'publisher',
+  'platform',
+] as const satisfies readonly GraphTagKind[];
+
 export interface ParsedGraphTag {
   kind: GraphTagKind;
   value: string;
@@ -242,6 +252,23 @@ export function workContributorValues(work: WorkRecord) {
   return author ? [author] : [];
 }
 
+export function workPersonContributorValues(work: WorkRecord) {
+  const values = getGraphTagValues(
+    work.personalTags,
+    PERSON_CONTRIBUTOR_GRAPH_TAG_KINDS,
+  );
+  const author = normalizeTagValue(work.author);
+
+  return Array.from(new Set([...values, ...(author ? [author] : [])]));
+}
+
+export function workOrganizationContributorValues(work: WorkRecord) {
+  return getGraphTagValues(
+    work.personalTags,
+    ORGANIZATION_CONTRIBUTOR_GRAPH_TAG_KINDS,
+  );
+}
+
 export function getSuggestionValues(
   works: WorkRecord[],
   kinds: readonly GraphTagKind[],
@@ -254,6 +281,18 @@ export function getSuggestionValues(
 export function getContributorSuggestionValues(works: WorkRecord[]) {
   return Array.from(
     new Set(works.flatMap((work) => workContributorValues(work))),
+  ).sort((left, right) => left.localeCompare(right));
+}
+
+export function getPersonContributorSuggestionValues(works: WorkRecord[]) {
+  return Array.from(
+    new Set(works.flatMap((work) => workPersonContributorValues(work))),
+  ).sort((left, right) => left.localeCompare(right));
+}
+
+export function getOrganizationContributorSuggestionValues(works: WorkRecord[]) {
+  return Array.from(
+    new Set(works.flatMap((work) => workOrganizationContributorValues(work))),
   ).sort((left, right) => left.localeCompare(right));
 }
 

@@ -131,8 +131,8 @@ describe('calculatePersonalInsights', () => {
       [
         buildWork({
           lastConsumedAt: '2026-02-01T00:00:00.000Z',
-          status: 'paused',
-          title: 'Old paused',
+          status: 'dropped',
+          title: 'Old dropped',
           updatedAt: '2026-04-20T00:00:00.000Z',
         }),
         buildWork({
@@ -154,9 +154,8 @@ describe('calculatePersonalInsights', () => {
       new Date('2026-05-01T00:00:00.000Z'),
     );
 
-    expect(insights.droppedRate).toBe(0.25);
+    expect(insights.droppedRate).toBe(0.5);
     expect(insights.staleWorks.map((work) => work.title)).toEqual([
-      'Old paused',
       'Old progress',
     ]);
   });

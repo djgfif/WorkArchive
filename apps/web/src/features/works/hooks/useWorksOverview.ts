@@ -21,7 +21,7 @@ interface WorksOverviewState {
   error: string | null;
   inProgressCount: number;
   isLoading: boolean;
-  pausedOrDroppedCount: number;
+  droppedCount: number;
   recentWorks: WorkRecord[];
   seriesCollections: WorkCollectionSummary[];
   totalCount: number;
@@ -35,7 +35,7 @@ const initialState: WorksOverviewState = {
   error: null,
   inProgressCount: 0,
   isLoading: true,
-  pausedOrDroppedCount: 0,
+  droppedCount: 0,
   recentWorks: [],
   seriesCollections: [],
   totalCount: 0,
@@ -79,9 +79,7 @@ export function useWorksOverview() {
             : buildContributorCollectionSummaries(works),
         deletedCount: deletedWorks.length,
         inProgressCount: works.filter((work) => work.status === 'in_progress').length,
-        pausedOrDroppedCount: works.filter(
-          (work) => work.status === 'paused' || work.status === 'dropped',
-        ).length,
+        droppedCount: works.filter((work) => work.status === 'dropped').length,
         recentWorks: [...works].sort(compareUpdatedAtDescending).slice(0, 6),
         seriesCollections:
           graph.workSeriesLinks.length > 0
@@ -96,7 +94,7 @@ export function useWorksOverview() {
         contributorCollections,
         deletedCount,
         inProgressCount,
-        pausedOrDroppedCount,
+        droppedCount,
         recentWorks,
         seriesCollections,
         totalCount,
@@ -109,7 +107,7 @@ export function useWorksOverview() {
           error: null,
           inProgressCount,
           isLoading: false,
-          pausedOrDroppedCount,
+          droppedCount,
           recentWorks,
           seriesCollections,
           totalCount,

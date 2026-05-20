@@ -48,7 +48,7 @@ import {
 } from '../../imports/hooks/useImportProviderReadiness';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
-import { WorkPoster } from './ArchiveComponents';
+import { StarRatingInput, WorkPoster } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
 import {
   buildImportIdentity,
@@ -84,15 +84,6 @@ interface AddWorkFlowProps {
   submitError: string | null;
   variant?: 'dialog' | 'page';
 }
-
-const ratingOptions = Array.from({ length: 10 }, (_, index) => {
-  const value = (index + 1) * 0.5;
-
-  return {
-    label: `${value.toFixed(1)}점`,
-    value: value.toString(),
-  };
-});
 
 function createFormDefaults(title = ''): WorkFormValues {
   return {
@@ -297,6 +288,7 @@ function CoreWorkFields({
 interface PersonalRecordFieldsProps {
   idPrefix?: string;
   onInputChange: WorkFormInputChangeHandler;
+  onRatingChange: (rating: number | null) => void;
   onStatusChange: (status: WorkFormValues['status']) => void;
   values: WorkFormValues;
 }
@@ -304,9 +296,15 @@ interface PersonalRecordFieldsProps {
 function PersonalRecordFields({
   idPrefix = '',
   onInputChange,
+  onRatingChange,
   onStatusChange,
   values,
 }: PersonalRecordFieldsProps) {
+  const ratingValue =
+    values.rating.trim() === '' ? null : Number.parseFloat(values.rating);
+  const normalizedRating =
+    ratingValue !== null && Number.isFinite(ratingValue) ? ratingValue : null;
+
   return (
     <Stack gap="md">
       <ActionRow>
@@ -319,21 +317,11 @@ function PersonalRecordFields({
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         <StatusButtonGroup onChange={onStatusChange} value={values.status} />
 
-        <NativeSelect
-          aria-label="별점"
-          id={getFieldId(idPrefix, 'rating')}
-          label="별점"
-          name="rating"
-          onChange={onInputChange}
-          value={values.rating}
-        >
-          <option value="">미평가</option>
-          {ratingOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
+        <StarRatingInput
+          label="고급별점"
+          onChange={onRatingChange}
+          value={normalizedRating}
+        />
 
         <div className={cn(css.gridSpanFull)}>
           <Textarea
@@ -671,6 +659,13 @@ export function AddWorkFlow({
     }));
   }
 
+  function handleRatingChange(rating: number | null) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      rating: rating === null ? '' : rating.toString(),
+    }));
+  }
+
   function handleTextListChange(
     name: 'genresText' | 'personalTagsText',
     items: string[],
@@ -962,6 +957,7 @@ export function AddWorkFlow({
                     <PersonalRecordFields
                       idPrefix="manual"
                       onInputChange={handleInputChange}
+                      onRatingChange={handleRatingChange}
                       onStatusChange={handleStatusChange}
                       values={values}
                     />
@@ -993,6 +989,7 @@ export function AddWorkFlow({
                 <PersonalRecordFields
                   idPrefix="manual"
                   onInputChange={handleInputChange}
+                  onRatingChange={handleRatingChange}
                   onStatusChange={handleStatusChange}
                   values={values}
                 />
