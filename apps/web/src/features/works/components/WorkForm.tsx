@@ -45,10 +45,8 @@ import {
 } from '../utils/work-form';
 import {
   getWorkStatusLabel,
-  getWorkTierLabel,
   getWorkTypeLabel,
   workStatusOptions,
-  workTierOptions,
   workTypeOptions,
 } from '../utils/work-options';
 import {
@@ -277,8 +275,6 @@ export function WorkForm({
   const uniqueSeriesSuggestions = Array.from(new Set(seriesSuggestions));
   const uniqueTagSuggestions = Array.from(new Set(tagSuggestions));
   const previewTags = [...genreValues, ...personalTagValues].slice(0, 3);
-  const tierOptions = [{ label: '미지정', value: '' }, ...workTierOptions];
-
   useEffect(() => {
     if (focusArea !== 'review' || hasFocusedReviewRef.current) {
       return;
@@ -494,14 +490,6 @@ export function WorkForm({
                           value={values.status}
                         />
                       </SimpleGrid>
-
-                      <SegmentedChoiceGroup
-                        aria-label="개인 티어"
-                        label="티어"
-                        onChange={(value) => handleValueChange('tier', value)}
-                        options={tierOptions}
-                        value={values.tier}
-                      />
 
                       <Checkbox
                         checked={values.favorite}
@@ -963,12 +951,6 @@ export function WorkForm({
                   )}
                 </ActionRow>
 
-                {values.tier && (
-                  <MetricPill
-                    label="개인 티어"
-                    value={getWorkTierLabel(values.tier)}
-                  />
-                )}
                 <MetricPill
                   label="감상 길이"
                   value={

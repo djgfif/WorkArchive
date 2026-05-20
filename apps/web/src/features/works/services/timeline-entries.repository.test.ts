@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+﻿import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { TimelineEntryRecord } from '@work-archive/shared-types';
 
@@ -43,7 +43,6 @@ describe('TimelineEntriesRepository', () => {
       status: 'in_progress',
       syncStatus: 'local-only',
       thumbnailUrl: '',
-      tier: null,
       title: 'Timeline Work',
       type: 'novel',
       updatedAt: '2026-01-01T00:00:00.000Z',

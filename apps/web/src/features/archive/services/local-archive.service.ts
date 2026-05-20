@@ -244,7 +244,6 @@ function createCsvRows(works: WorkRecord[]) {
     'droppedAt',
     'lastConsumedAt',
     'favorite',
-    'tier',
     'updatedAt',
   ];
   const rows = works.map((work) => {
@@ -271,7 +270,6 @@ function createCsvRows(works: WorkRecord[]) {
       work.droppedAt ?? '',
       work.lastConsumedAt ?? '',
       work.favorite ? 'true' : 'false',
-      work.tier ?? '',
       work.updatedAt,
     ];
   });

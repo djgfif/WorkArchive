@@ -666,7 +666,6 @@ function createPrismaServiceMock() {
         shortReview: data.shortReview ?? '',
         review: data.review ?? '',
         personalTags: data.personalTags ?? [],
-        tier: data.tier ?? null,
         favorite: data.favorite ?? false,
         progressCurrent: data.progressCurrent ?? null,
         progressTotal: data.progressTotal ?? null,
@@ -1206,7 +1205,6 @@ describe('Auth, works, and sync API (e2e)', () => {
       rating: 5,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
       createdAt: '2026-04-18T00:00:00.000Z',
       updatedAt: '2026-04-18T00:00:00.000Z',
@@ -2346,7 +2344,6 @@ describe('Auth, works, and sync API (e2e)', () => {
         genres: [],
         status: WorkStatus.planned,
         rating: null,
-        tier: null,
         favorite: false,
         syncStatus: 'synced',
       }),
@@ -2372,7 +2369,6 @@ describe('Auth, works, and sync API (e2e)', () => {
         method: 'PATCH',
         body: JSON.stringify({
           rating: '4',
-          tier: 'Z',
           genres: 'Drama',
         }),
       },
@@ -2385,7 +2381,6 @@ describe('Auth, works, and sync API (e2e)', () => {
     ).toEqual(
       expect.arrayContaining([
         expect.stringContaining('rating'),
-        expect.stringContaining('tier'),
         expect.stringContaining('genres'),
       ]),
     );

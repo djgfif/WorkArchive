@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+﻿import { screen } from '@testing-library/react';
 import type { WorkRecord } from '@work-archive/shared-types';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -69,7 +69,6 @@ function buildWorkRecord(
     rating: null,
     shortReview: '',
     review: '',
-    tier: null,
     favorite: false,
     createdAt: now,
     updatedAt: now,

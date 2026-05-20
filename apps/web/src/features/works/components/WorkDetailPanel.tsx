@@ -33,7 +33,6 @@ import {
   formatWorkDate,
   formatWorkUpdatedAt,
   getWorkStatusLabel,
-  getWorkTierLabel,
   getWorkTypeLabel,
 } from '../utils/work-options';
 import {
@@ -192,7 +191,6 @@ export function WorkDetailPanel({
 
   const typeLabel = getWorkTypeLabel(work.type);
   const statusLabel = getWorkStatusLabel(work.status);
-  const tierLabel = getWorkTierLabel(work.tier);
   const shortReview = work.shortReview.trim();
   const review = work.review.trim();
   const personalTags = getPersonalTags(work.personalTags);
@@ -340,9 +338,6 @@ export function WorkDetailPanel({
               </AppBadge>
               {work.favorite && (
                 <AppBadge tone="accent">★ 즐겨찾기</AppBadge>
-              )}
-              {tierLabel !== '미지정' && (
-                <AppBadge tone="muted">Tier {tierLabel}</AppBadge>
               )}
             </Group>
 
@@ -889,7 +884,6 @@ export function WorkDetailPanel({
                     value: work.description.trim() || '작품 소개가 아직 없습니다.',
                   },
                   { label: '식별 방식', value: sourceIdentityLabel },
-                  { label: '티어', value: tierLabel },
                   { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
                   { label: '수정한 날', value: formatWorkDateTime(work.updatedAt) },
                 ]}

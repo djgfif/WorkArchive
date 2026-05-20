@@ -24,7 +24,6 @@ function createWorkAggregateFixture(
     shortReview: '',
     review: '',
     personalTags: [],
-    tier: null,
     favorite: false,
     createdAt: new Date('2026-04-18T00:00:00.000Z'),
     updatedAt: new Date('2026-04-18T00:00:00.000Z'),

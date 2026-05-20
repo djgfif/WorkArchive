@@ -9,6 +9,10 @@ import type {
   SyncQueuePayload,
   SyncQueueItemRecord,
   SyncResultCode,
+  TierBoardAssetRecord,
+  TierBoardItemRecord,
+  TierBoardLaneRecord,
+  TierBoardRecord,
   TimelineEntryRecord,
   UserReleaseRecord,
   WorkContributorRecord,
@@ -48,6 +52,11 @@ import {
   graphRepository,
   type GraphRepository,
 } from '../../works/services/graph.repository';
+import {
+  tierBoardRepository,
+  type TierBoardRepository,
+  type StoredTierBoardAssetRecord,
+} from '../../tier-boards/services/tier-board.repository';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
 const PULL_PAGE_LIMIT = 500;
@@ -60,7 +69,6 @@ const WORK_MERGE_FIELDS = [
   'shortReview',
   'review',
   'favorite',
-  'tier',
   'progressCurrent',
   'progressTotal',
   'progressUnit',
@@ -94,6 +102,11 @@ type GraphEntityRecord =
   | WorkContributorRecord
   | WorkRelationRecord
   | WorkSeriesLinkRecord;
+type TierBoardEntityRecord =
+  | TierBoardRecord
+  | TierBoardLaneRecord
+  | TierBoardItemRecord
+  | TierBoardAssetRecord;
 
 export type SyncRunState = 'idle' | 'syncing' | 'success' | 'failed';
 
@@ -182,6 +195,14 @@ function cloneQueuePayload<TPayload extends SyncQueuePayload>(
 
   if ('occurredAt' in payload) {
     return cloneTimelineEntry(payload as TimelineEntryRecord) as TPayload;
+  }
+
+  if (
+    'layout' in payload ||
+    'boardId' in payload ||
+    'storageType' in payload
+  ) {
+    return { ...payload } as TPayload;
   }
 
   return cloneGraphEntity(payload as GraphEntityRecord) as TPayload;
@@ -282,6 +303,28 @@ function mergeGraphEntitySnapshots<TRecord extends GraphEntityRecord>(
   } as TRecord;
 }
 
+function mergeTierBoardEntitySnapshots<TRecord extends TierBoardEntityRecord>(
+  remote: TRecord,
+  localPayload: TRecord,
+): TRecord {
+  const newer =
+    'serverVersion' in localPayload && 'serverVersion' in remote
+      ? getNewerRecord(
+          localPayload as TRecord & { deletedAt: string | null; updatedAt: string },
+          remote as TRecord & { deletedAt: string | null; updatedAt: string },
+        )
+      : localPayload;
+
+  return {
+    ...newer,
+    createdAt: remote.createdAt,
+    ...(remote && 'serverVersion' in remote
+      ? { serverVersion: remote.serverVersion, syncStatus: 'pending' }
+      : {}),
+    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+  } as TRecord;
+}
+
 function mergePulledWorkWithQueuedPayload(
   remote: WorkRecord,
   localPayload: WorkRecord,
@@ -310,6 +353,15 @@ function isGraphEntityType(entityType: SyncEntityType) {
     entityType === 'work_series_link' ||
     entityType === 'work_contributor' ||
     entityType === 'work_relation'
+  );
+}
+
+function isTierBoardEntityType(entityType: SyncEntityType) {
+  return (
+    entityType === 'tier_board' ||
+    entityType === 'tier_board_lane' ||
+    entityType === 'tier_board_item' ||
+    entityType === 'tier_board_asset'
   );
 }
 
@@ -352,6 +404,7 @@ export class SyncService {
     private readonly metaRepo: AppMetaRepository = appMetaRepository,
     private readonly timelineEntriesRepo: TimelineEntriesRepository = timelineEntriesRepository,
     private readonly graphRepo: GraphRepository = graphRepository,
+    private readonly tierBoardRepo: TierBoardRepository = tierBoardRepository,
   ) {}
 
   async runManualSync(): Promise<ManualSyncResult> {
@@ -569,6 +622,10 @@ export class SyncService {
       const workSeriesLinksToMerge: WorkSeriesLinkRecord[] = [];
       const workContributorsToMerge: WorkContributorRecord[] = [];
       const workRelationsToMerge: WorkRelationRecord[] = [];
+      const tierBoardsToMerge: TierBoardRecord[] = [];
+      const tierBoardLanesToMerge: TierBoardLaneRecord[] = [];
+      const tierBoardItemsToMerge: TierBoardItemRecord[] = [];
+      const tierBoardAssetsToMerge: TierBoardAssetRecord[] = [];
       const skippedCount = 0;
       const messages: string[] = [];
       let cursor: string | null = null;
@@ -658,6 +715,26 @@ export class SyncService {
 
           if (change.entityType === 'work_relation' && change.workRelation) {
             workRelationsToMerge.push(change.workRelation);
+            continue;
+          }
+
+          if (change.entityType === 'tier_board' && change.tierBoard) {
+            tierBoardsToMerge.push(change.tierBoard);
+            continue;
+          }
+
+          if (change.entityType === 'tier_board_lane' && change.tierBoardLane) {
+            tierBoardLanesToMerge.push(change.tierBoardLane);
+            continue;
+          }
+
+          if (change.entityType === 'tier_board_item' && change.tierBoardItem) {
+            tierBoardItemsToMerge.push(change.tierBoardItem);
+            continue;
+          }
+
+          if (change.entityType === 'tier_board_asset' && change.tierBoardAsset) {
+            tierBoardAssetsToMerge.push(change.tierBoardAsset);
           }
         }
 
@@ -675,6 +752,10 @@ export class SyncService {
       await this.graphRepo.bulkPutWorkSeriesLinks(workSeriesLinksToMerge);
       await this.graphRepo.bulkPutWorkContributors(workContributorsToMerge);
       await this.graphRepo.bulkPutWorkRelations(workRelationsToMerge);
+      await this.tierBoardRepo.bulkPutBoards(tierBoardsToMerge);
+      await this.tierBoardRepo.bulkPutLanes(tierBoardLanesToMerge);
+      await this.tierBoardRepo.bulkPutItems(tierBoardItemsToMerge);
+      await this.tierBoardRepo.bulkPutAssets(tierBoardAssetsToMerge);
 
       if (nextSince !== null) {
         await this.metaRepo.setValue(LAST_SUCCESSFUL_PULL_AT_KEY, nextSince);
@@ -698,7 +779,11 @@ export class SyncService {
           contributorsToMerge.length +
           workSeriesLinksToMerge.length +
           workContributorsToMerge.length +
-          workRelationsToMerge.length,
+          workRelationsToMerge.length +
+          tierBoardsToMerge.length +
+          tierBoardLanesToMerge.length +
+          tierBoardItemsToMerge.length +
+          tierBoardAssetsToMerge.length,
         skippedCount,
         pulledAt,
         nextSince,
@@ -784,6 +869,27 @@ export class SyncService {
       return nextGraphEntity;
     }
 
+    if (isTierBoardEntityType(queueItem.entityType)) {
+      const localTierBoardEntity =
+        ((await this.tierBoardRepo.getEntity(
+          queueItem.entityType,
+          queueItem.entityId,
+        )) as TierBoardEntityRecord | null) ??
+        (queueItem.payload as TierBoardEntityRecord);
+      const nextTierBoardEntity = {
+        ...localTierBoardEntity,
+        ...('syncStatus' in localTierBoardEntity
+          ? { syncStatus: 'pending' as const }
+          : {}),
+        updatedAt: now,
+      } as TierBoardEntityRecord;
+
+      await this.tierBoardRepo.putEntity(nextTierBoardEntity);
+      await this.queueRepo.resetForRetry(queueItem.id, nextTierBoardEntity);
+
+      return nextTierBoardEntity;
+    }
+
     const localWork =
       (await this.worksRepo.getById(queueItem.entityId)) ??
       (queueItem.payload as WorkRecord);
@@ -848,6 +954,20 @@ export class SyncService {
       return remoteGraphEntity;
     }
 
+    if (isTierBoardEntityType(queueItem.entityType)) {
+      const remoteTierBoardEntity = {
+        ...(remote as TierBoardEntityRecord),
+        ...('syncStatus' in (remote as TierBoardEntityRecord)
+          ? { syncStatus: 'synced' as const }
+          : {}),
+      } as TierBoardEntityRecord;
+
+      await this.tierBoardRepo.putEntity(remoteTierBoardEntity);
+      await this.queueRepo.removeMany([queueItem.id]);
+
+      return remoteTierBoardEntity;
+    }
+
     const remoteWork: WorkRecord = {
       ...cloneWorkRecord(remote as WorkRecord),
       syncStatus: 'synced',
@@ -910,6 +1030,10 @@ export class SyncService {
       return this.resolveConflictWithLocal(queueItemId);
     }
 
+    if (isTierBoardEntityType(queueItem.entityType)) {
+      return this.resolveConflictWithLocal(queueItemId);
+    }
+
     const selectedFields = new Set<keyof WorkRecord>(
       remoteFields.filter((field): field is WorkConflictMergeField =>
         (WORK_MERGE_FIELDS as readonly string[]).includes(field),
@@ -951,6 +1075,26 @@ export class SyncService {
         }
 
         await this.graphRepo.markSyncStatus(
+          result.entityType,
+          queueItem.entityId,
+          'synced',
+        );
+
+        return true;
+      }
+
+      if (isTierBoardEntityType(result.entityType)) {
+        const remoteTierBoardEntity = this.getRemoteConflictPayload(
+          result,
+        ) as TierBoardEntityRecord | null;
+
+        if (remoteTierBoardEntity) {
+          await this.tierBoardRepo.putEntity(remoteTierBoardEntity);
+
+          return true;
+        }
+
+        await this.tierBoardRepo.markSyncStatus(
           result.entityType,
           queueItem.entityId,
           'synced',
@@ -1072,6 +1216,24 @@ export class SyncService {
         return true;
       }
 
+      if (isTierBoardEntityType(result.entityType)) {
+        const localTierBoardEntity =
+          ((await this.tierBoardRepo.getEntity(
+            queueItem.entityType,
+            queueItem.entityId,
+          )) as TierBoardEntityRecord | null) ??
+          (queueItem.payload as TierBoardEntityRecord);
+        const merged = mergeTierBoardEntitySnapshots(
+          remote as TierBoardEntityRecord,
+          localTierBoardEntity,
+        );
+
+        await this.tierBoardRepo.putEntity(merged);
+        await this.queueRepo.resetForRetry(queueItem.id, merged);
+
+        return true;
+      }
+
       if (result.entityType === 'release_record') {
         const localReleaseRecord =
           (await this.releaseRecordsRepo.getById(queueItem.entityId)) ??
@@ -1178,6 +1340,10 @@ export class SyncService {
       return this.markTimelineEntrySyncStatus(id, syncStatus);
     }
 
+    if (isTierBoardEntityType(entityType)) {
+      return this.tierBoardRepo.markSyncStatus(entityType, id, syncStatus);
+    }
+
     return this.graphRepo.markSyncStatus(entityType, id, syncStatus);
   }
 
@@ -1214,6 +1380,22 @@ export class SyncService {
       return result.workRelation ?? null;
     }
 
+    if (result.entityType === 'tier_board') {
+      return result.tierBoard ?? null;
+    }
+
+    if (result.entityType === 'tier_board_lane') {
+      return result.tierBoardLane ?? null;
+    }
+
+    if (result.entityType === 'tier_board_item') {
+      return result.tierBoardItem ?? null;
+    }
+
+    if (result.entityType === 'tier_board_asset') {
+      return result.tierBoardAsset ?? null;
+    }
+
     return result.work ?? null;
   }
 
@@ -1244,6 +1426,22 @@ export class SyncService {
 
     if (change.entityType === 'work_relation') {
       return change.workRelation ?? null;
+    }
+
+    if (change.entityType === 'tier_board') {
+      return change.tierBoard ?? null;
+    }
+
+    if (change.entityType === 'tier_board_lane') {
+      return change.tierBoardLane ?? null;
+    }
+
+    if (change.entityType === 'tier_board_item') {
+      return change.tierBoardItem ?? null;
+    }
+
+    if (change.entityType === 'tier_board_asset') {
+      return change.tierBoardAsset ?? null;
     }
 
     return change.work ?? null;
@@ -1311,6 +1509,26 @@ export class SyncService {
         );
 
         await this.graphRepo.putEntity(merged);
+        await this.queueRepo.resetForRetry(queueItem.id, merged);
+      }
+    }
+
+    if (isTierBoardEntityType(change.entityType)) {
+      const remoteTierBoardEntity = this.getRemotePullConflictPayload(
+        change,
+      ) as TierBoardEntityRecord | null;
+
+      if (!remoteTierBoardEntity) {
+        return;
+      }
+
+      for (const queueItem of queueItems) {
+        const merged = mergeTierBoardEntitySnapshots(
+          remoteTierBoardEntity,
+          queueItem.payload as TierBoardEntityRecord,
+        );
+
+        await this.tierBoardRepo.putEntity(merged);
         await this.queueRepo.resetForRetry(queueItem.id, merged);
       }
     }

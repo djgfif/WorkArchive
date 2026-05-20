@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { ProgressUnit, WorkStatus, WorkTier, WorkType } from '@prisma/client';
+﻿import { ApiProperty } from '@nestjs/swagger';
+import { ProgressUnit, WorkStatus, WorkType } from '@prisma/client';
 
 import {
   WORK_SYNC_STATUS_VALUES,
@@ -62,12 +62,6 @@ export class WorkResponseDto {
     type: [String],
   })
   personalTags!: string[];
-
-  @ApiProperty({
-    enum: WorkTier,
-    nullable: true,
-  })
-  tier!: WorkTier | null;
 
   @ApiProperty()
   favorite!: boolean;

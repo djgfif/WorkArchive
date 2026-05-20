@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+﻿import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -133,7 +133,6 @@ describe('WorksListPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
     const router = createMemoryRouter(appRoutes, {
@@ -167,7 +166,6 @@ describe('WorksListPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
     const modifiedWork = await worksService.createWork({
@@ -181,7 +179,6 @@ describe('WorksListPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
     await worksService.updateWork(modifiedWork.id, {
@@ -195,7 +192,6 @@ describe('WorksListPage', () => {
       rating: modifiedWork.rating,
       shortReview: modifiedWork.shortReview,
       review: modifiedWork.review,
-      tier: modifiedWork.tier,
       favorite: modifiedWork.favorite,
       personalTags: modifiedWork.personalTags,
       lastConsumedAt: modifiedWork.lastConsumedAt ?? null,
@@ -235,7 +231,6 @@ describe('WorksListPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
     const secondWork = await worksService.createWork({
@@ -249,7 +244,6 @@ describe('WorksListPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
     const user = userEvent.setup();
@@ -310,11 +304,13 @@ describe('WorksListPage', () => {
       );
     });
 
-    await user.click(
-      screen.getByRole('button', { name: '선택 작품 휴지통 이동' }),
-    );
+    const bulkDeleteButton = screen.getByRole('button', {
+      name: '선택 작품 휴지통 이동',
+    });
+    await waitFor(() => expect(bulkDeleteButton).toBeEnabled());
+    await user.click(bulkDeleteButton);
 
-    expect(confirmSpy).toHaveBeenCalled();
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
     await waitFor(async () => {
       await expect(worksService.getWorkById(firstWork.id)).resolves.toBeNull();
       await expect(worksService.getWorkById(secondWork.id)).resolves.toBeNull();
@@ -333,7 +329,6 @@ describe('WorksListPage', () => {
       rating: 5,
       shortReview: '모래 행성의 정치와 신화가 좋다.',
       review: '',
-      tier: 'S',
       favorite: true,
     });
 
@@ -355,7 +350,6 @@ describe('WorksListPage', () => {
       rating: 4,
       shortReview: '',
       review: '',
-      tier: 'A',
       favorite: false,
     });
 
@@ -409,7 +403,6 @@ describe('WorksListPage', () => {
       rating: 5,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -424,7 +417,6 @@ describe('WorksListPage', () => {
       rating: 4,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -501,7 +493,6 @@ describe('WorksListPage', () => {
       rating: 5,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -517,7 +508,6 @@ describe('WorksListPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -585,7 +575,6 @@ describe('WorksListPage', () => {
         rating: null,
         shortReview: '',
         review: '',
-        tier: null,
         favorite: false,
       });
     }
@@ -631,7 +620,6 @@ describe('WorksListPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -682,7 +670,6 @@ describe('WorksListPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -766,7 +753,6 @@ describe('WorksListPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
     const user = userEvent.setup();
@@ -814,7 +800,6 @@ describe('WorksListPage', () => {
       rating: 4,
       shortReview: '다시 읽을 예정',
       review: '',
-      tier: null,
       favorite: false,
     });
 

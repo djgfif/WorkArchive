@@ -1,4 +1,4 @@
-import Dexie, { type Table, type Transaction } from 'dexie';
+﻿import Dexie, { type Table, type Transaction } from 'dexie';
 
 import type {
   AppMetaRecord,
@@ -7,6 +7,11 @@ import type {
   SeriesKind,
   SeriesRecord,
   SyncQueueItemRecord,
+  SyncQueuePayload,
+  TierBoardAssetRecord,
+  TierBoardItemRecord,
+  TierBoardLaneRecord,
+  TierBoardRecord,
   TimelineEntryRecord,
   UserReleaseRecord,
   WorkContributorRecord,
@@ -31,6 +36,10 @@ interface ParsedMigrationGraphTag {
 
 type LegacyWorkRecord = Omit<WorkRecord, 'status'> & { status: string };
 type LegacyReleaseRecord = Omit<UserReleaseRecord, 'status'> & { status: string };
+type LegacyTierWorkRecord = WorkRecord & { tier?: string | null };
+type StoredTierBoardAssetRecord = TierBoardAssetRecord & {
+  blob?: Blob | null;
+};
 
 const DEFAULT_DB_NAME = 'work-archive-db-guest';
 
@@ -55,6 +64,10 @@ export class WorkArchiveDatabase extends Dexie {
   contributors!: Table<ContributorRecord, string>;
   workContributors!: Table<WorkContributorRecord, string>;
   workRelations!: Table<WorkRelationRecord, string>;
+  tierBoards!: Table<TierBoardRecord, string>;
+  tierBoardLanes!: Table<TierBoardLaneRecord, string>;
+  tierBoardItems!: Table<TierBoardItemRecord, string>;
+  tierBoardAssets!: Table<StoredTierBoardAssetRecord, string>;
   syncQueue!: Table<SyncQueueItemRecord, string>;
   appMeta!: Table<AppMetaRecord, string>;
 
@@ -247,6 +260,37 @@ export class WorkArchiveDatabase extends Dexie {
         appMeta: 'key',
       })
       .upgrade((transaction) => migratePausedStatusToDropped(transaction));
+
+    this.version(12)
+      .stores({
+        works:
+          'id, type, title, author, status, rating, updatedAt, deletedAt, syncStatus, _deletedAtScope, *personalTags, [deletedAt+updatedAt], [deletedAt+status], [deletedAt+type], [_deletedAtScope+updatedAt], [_deletedAtScope+status], [_deletedAtScope+type]',
+        releaseRecords:
+          'id, userWorkRecordId, catalogReleaseId, status, updatedAt, deletedAt, syncStatus, [userWorkRecordId+catalogReleaseId]',
+        timelineEntries:
+          'id, workId, type, occurredAt, deletedAt, syncStatus, [workId+occurredAt], [deletedAt+occurredAt]',
+        series:
+          'id, kind, normalizedTitle, parentId, updatedAt, deletedAt, syncStatus, [kind+normalizedTitle]',
+        workSeriesLinks:
+          'id, workId, seriesId, role, updatedAt, deletedAt, syncStatus, [workId+seriesId+role], [workId+deletedAt], [seriesId+deletedAt]',
+        contributors:
+          'id, entityType, normalizedName, updatedAt, deletedAt, syncStatus, [entityType+normalizedName]',
+        workContributors:
+          'id, workId, contributorId, role, updatedAt, deletedAt, syncStatus, [workId+contributorId+role], [workId+deletedAt], [contributorId+deletedAt]',
+        workRelations:
+          'id, sourceWorkId, targetWorkId, relationType, updatedAt, deletedAt, syncStatus, [sourceWorkId+targetWorkId+relationType], [sourceWorkId+deletedAt], [targetWorkId+deletedAt]',
+        tierBoards: 'id, title, updatedAt, deletedAt, syncStatus',
+        tierBoardLanes:
+          'id, boardId, orderIndex, updatedAt, deletedAt, syncStatus, [boardId+orderIndex]',
+        tierBoardItems:
+          'id, boardId, laneId, linkedWorkId, sourceType, orderIndex, updatedAt, deletedAt, syncStatus, [boardId+laneId+orderIndex], [boardId+deletedAt], [linkedWorkId+deletedAt]',
+        tierBoardAssets:
+          'id, boardId, itemId, deletedAt, updatedAt, [boardId+deletedAt], [itemId+deletedAt]',
+        syncQueue:
+          'id, entityType, entityId, operation, createdAt, retryCount, [entityType+entityId]',
+        appMeta: 'key',
+      })
+      .upgrade((transaction) => migrateTierBoards(transaction));
   }
 }
 
@@ -317,7 +361,11 @@ function mapGraphTagToContributor(kind: GraphTagKind): {
   }
 }
 
-function createQueueItem<TPayload extends WorkRecord | SeriesRecord | WorkSeriesLinkRecord | ContributorRecord | WorkContributorRecord>(
+function getPayloadServerVersion(payload: SyncQueuePayload) {
+  return 'serverVersion' in payload ? payload.serverVersion : 0;
+}
+
+function createQueueItem<TPayload extends SyncQueuePayload>(
   entityType: SyncQueueItemRecord<TPayload>['entityType'],
   payload: TPayload,
   createdAt: string,
@@ -326,7 +374,7 @@ function createQueueItem<TPayload extends WorkRecord | SeriesRecord | WorkSeries
     id: crypto.randomUUID(),
     entityType,
     entityId: payload.id,
-    operation: payload.serverVersion === 0 ? 'create' : 'update',
+    operation: getPayloadServerVersion(payload) === 0 ? 'create' : 'update',
     payload,
     source: 'archive_migration',
     createdAt,
@@ -336,7 +384,7 @@ function createQueueItem<TPayload extends WorkRecord | SeriesRecord | WorkSeries
   };
 }
 
-async function replaceQueuedEntity<TPayload extends WorkRecord | SeriesRecord | WorkSeriesLinkRecord | ContributorRecord | WorkContributorRecord>(
+async function replaceQueuedEntity<TPayload extends SyncQueuePayload>(
   syncQueue: Table<SyncQueueItemRecord, string>,
   queueItem: SyncQueueItemRecord<TPayload>,
 ) {
@@ -350,6 +398,189 @@ async function replaceQueuedEntity<TPayload extends WorkRecord | SeriesRecord | 
   }
 
   await syncQueue.add(queueItem);
+}
+
+const DEFAULT_TIER_BOARD_LANES = [
+  { label: 'S', color: '#f97373' },
+  { label: 'A', color: '#f59e0b' },
+  { label: 'B', color: '#22c55e' },
+  { label: 'C', color: '#38bdf8' },
+  { label: 'D', color: '#94a3b8' },
+] as const;
+
+function createTierBoardRecord(
+  title: string,
+  description: string,
+  now: string,
+): TierBoardRecord {
+  return {
+    id: crypto.randomUUID(),
+    title,
+    description,
+    layout: 'classic',
+    visibility: 'private',
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
+  };
+}
+
+function createDefaultTierBoardLanes(
+  boardId: string,
+  now: string,
+): TierBoardLaneRecord[] {
+  return DEFAULT_TIER_BOARD_LANES.map((lane, index) => ({
+    id: crypto.randomUUID(),
+    boardId,
+    label: lane.label,
+    description: '',
+    color: lane.color,
+    orderIndex: index,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
+  }));
+}
+
+function buildWorkSnapshotSubtitle(work: LegacyTierWorkRecord) {
+  return [
+    work.type,
+    work.author,
+    work.rating === null || work.rating === undefined
+      ? null
+      : `??${work.rating.toFixed(1)}`,
+  ]
+    .filter(Boolean)
+    .join(' 쨌 ');
+}
+
+function stripLegacyTier<TRecord extends Record<string, unknown>>(record: TRecord) {
+  const { tier: _tier, ...rest } = record;
+
+  return rest as Omit<TRecord, 'tier'>;
+}
+
+async function migrateTierBoards(transaction: Transaction) {
+  const worksTable = transaction.table<LegacyTierWorkRecord & { _deletedAtScope?: string }, string>('works');
+  const tierBoardsTable = transaction.table<TierBoardRecord, string>('tierBoards');
+  const tierBoardLanesTable = transaction.table<TierBoardLaneRecord, string>('tierBoardLanes');
+  const tierBoardItemsTable = transaction.table<TierBoardItemRecord, string>('tierBoardItems');
+  const syncQueueTable = transaction.table<SyncQueueItemRecord, string>('syncQueue');
+  const now = new Date().toISOString();
+  const defaultBoard = createTierBoardRecord(
+    '??泥??곗뼱蹂대뱶',
+    '?먯쑀濡?쾶 ??ぉ??異붽??섍퀬 ?먰븯??湲곗??쇰줈 ?뺣━?섏꽭??',
+    now,
+  );
+  const defaultLanes = createDefaultTierBoardLanes(defaultBoard.id, now);
+
+  await tierBoardsTable.add(defaultBoard);
+  await tierBoardLanesTable.bulkAdd(defaultLanes);
+  await replaceQueuedEntity(
+    syncQueueTable,
+    createQueueItem('tier_board', defaultBoard, now),
+  );
+  for (const lane of defaultLanes) {
+    await replaceQueuedEntity(
+      syncQueueTable,
+      createQueueItem('tier_board_lane', lane, now),
+    );
+  }
+
+  const works = await worksTable.toArray();
+  const tieredWorks = works.filter(
+    (work) => work.deletedAt === null && typeof work.tier === 'string' && work.tier,
+  );
+
+  if (tieredWorks.length > 0) {
+    const legacyBoard = createTierBoardRecord(
+      'Legacy ?묓뭹 ?곗뼱蹂대뱶',
+      '湲곗〈 ?묓뭹 ?곗뼱 媛믪쓣 ?낅┰ ?곗뼱蹂대뱶 item snapshot?쇰줈 蹂?섑뻽?듬땲??',
+      now,
+    );
+    const legacyLabels = Array.from(
+      new Set(tieredWorks.map((work) => work.tier).filter(Boolean) as string[]),
+    );
+    const legacyLanes = legacyLabels.map<TierBoardLaneRecord>((label, index) => {
+      const defaultLane = DEFAULT_TIER_BOARD_LANES.find((lane) => lane.label === label);
+
+      return {
+        id: crypto.randomUUID(),
+        boardId: legacyBoard.id,
+        label,
+        description: '',
+        color: defaultLane?.color ?? '#64748b',
+        orderIndex: index,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        syncStatus: 'local-only',
+        serverVersion: 0,
+      };
+    });
+    const laneByLabel = new Map(legacyLanes.map((lane) => [lane.label, lane]));
+    const orderByLane = new Map<string, number>();
+    const legacyItems = tieredWorks.map<TierBoardItemRecord>((work) => {
+      const label = work.tier ?? '';
+      const orderIndex = orderByLane.get(label) ?? 0;
+
+      orderByLane.set(label, orderIndex + 1);
+
+      return {
+        id: crypto.randomUUID(),
+        boardId: legacyBoard.id,
+        laneId: laneByLabel.get(label)?.id ?? null,
+        sourceType: 'work_ref',
+        title: work.title,
+        subtitle: buildWorkSnapshotSubtitle(work),
+        imageUrl: work.thumbnailUrl,
+        note: work.shortReview || work.review,
+        linkedWorkId: work.id,
+        linkedCatalogTitleId: work.catalogTitleId ?? null,
+        orderIndex,
+        createdAt: work.createdAt ?? now,
+        updatedAt: now,
+        deletedAt: null,
+        syncStatus: 'local-only',
+        serverVersion: 0,
+      };
+    });
+
+    await tierBoardsTable.add(legacyBoard);
+    await tierBoardLanesTable.bulkAdd(legacyLanes);
+    await tierBoardItemsTable.bulkAdd(legacyItems);
+    await replaceQueuedEntity(
+      syncQueueTable,
+      createQueueItem('tier_board', legacyBoard, now),
+    );
+    for (const lane of legacyLanes) {
+      await replaceQueuedEntity(
+        syncQueueTable,
+        createQueueItem('tier_board_lane', lane, now),
+      );
+    }
+    for (const item of legacyItems) {
+      await replaceQueuedEntity(
+        syncQueueTable,
+        createQueueItem('tier_board_item', item, now),
+      );
+    }
+  }
+
+  await worksTable.toCollection().modify((work) => {
+    delete work.tier;
+  });
+  await syncQueueTable.toCollection().modify((item) => {
+    if (item.entityType === 'work' && item.payload && 'tier' in item.payload) {
+      item.payload = stripLegacyTier(
+        item.payload as Record<string, unknown>,
+      ) as unknown as SyncQueuePayload;
+    }
+  });
 }
 
 async function migratePrefixedTagsToGraph(transaction: Transaction) {
@@ -636,6 +867,10 @@ export async function clearWorkArchiveDb(db = getWorkArchiveDb()) {
       db.contributors,
       db.workContributors,
       db.workRelations,
+      db.tierBoards,
+      db.tierBoardLanes,
+      db.tierBoardItems,
+      db.tierBoardAssets,
       db.syncQueue,
       db.appMeta,
     ],
@@ -648,6 +883,10 @@ export async function clearWorkArchiveDb(db = getWorkArchiveDb()) {
       await db.contributors.clear();
       await db.workContributors.clear();
       await db.workRelations.clear();
+      await db.tierBoards.clear();
+      await db.tierBoardLanes.clear();
+      await db.tierBoardItems.clear();
+      await db.tierBoardAssets.clear();
       await db.syncQueue.clear();
       await db.appMeta.clear();
     },

@@ -28,7 +28,6 @@ export function toFlatWorkResponse(work: WorkAggregate): WorkResponseDto {
     personalTags: work.personalTags,
     shortReview: work.shortReview,
     review: work.review,
-    tier: work.tier,
     favorite: work.favorite,
     progressCurrent: work.progressCurrent,
     progressTotal: work.progressTotal,

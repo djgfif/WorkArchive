@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+﻿import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -321,7 +321,6 @@ function buildExistingWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
     rating: overrides.rating ?? 4.5,
     shortReview: overrides.shortReview ?? '',
     review: overrides.review ?? '',
-    tier: overrides.tier ?? null,
     favorite: overrides.favorite ?? false,
     progressCurrent: overrides.progressCurrent ?? null,
     progressTotal: overrides.progressTotal ?? null,

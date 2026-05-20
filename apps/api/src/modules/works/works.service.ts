@@ -232,7 +232,6 @@ export class WorksService {
       shortReview: normalizeString(createWorkDto.shortReview),
       review: normalizeString(createWorkDto.review),
       personalTags: normalizePersonalTags(createWorkDto.personalTags),
-      tier: createWorkDto.tier ?? null,
       favorite: createWorkDto.favorite ?? false,
       startedAt: parseOptionalDtoDate(createWorkDto.startedAt, 'startedAt'),
       completedAt: parseOptionalDtoDate(
@@ -310,10 +309,6 @@ export class WorksService {
 
     if (updateWorkDto.personalTags !== undefined) {
       data.personalTags = normalizePersonalTags(updateWorkDto.personalTags);
-    }
-
-    if (updateWorkDto.tier !== undefined) {
-      data.tier = updateWorkDto.tier;
     }
 
     if (updateWorkDto.favorite !== undefined) {

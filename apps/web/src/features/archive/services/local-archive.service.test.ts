@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+﻿import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type {
   TimelineEntryRecord,
@@ -39,7 +39,6 @@ function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
     status: 'completed',
     syncStatus: 'local-only',
     thumbnailUrl: '',
-    tier: 'S',
     title: 'Dune',
     type: 'novel',
     updatedAt: '2026-01-02T00:00:00.000Z',

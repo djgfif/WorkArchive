@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+﻿import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
@@ -23,7 +23,6 @@ function buildInput(overrides: Partial<WorkRecord> = {}) {
     rating: null,
     shortReview: '',
     review: '',
-    tier: null,
     favorite: false,
     ...overrides,
   };

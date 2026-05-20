@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+﻿import { render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthContext, type AuthContextValue } from '../../auth/context/AuthContext';
@@ -109,7 +109,6 @@ describe('useAutoSync', () => {
       shortReview: '',
       status: 'planned',
       thumbnailUrl: '',
-      tier: null,
       title: 'Dune',
       type: 'novel',
     });

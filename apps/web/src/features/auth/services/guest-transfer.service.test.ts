@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
@@ -28,7 +28,6 @@ function createWorkRecord(
     rating: null,
     shortReview: '',
     review: '',
-    tier: null,
     favorite: false,
     createdAt: now,
     updatedAt: now,

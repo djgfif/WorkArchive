@@ -132,7 +132,6 @@ function buildSyncWorkPayload(
     rating: 4.5,
     shortReview: '',
     review: '',
-    tier: null,
     favorite: false,
     progressCurrent: null,
     progressTotal: null,
