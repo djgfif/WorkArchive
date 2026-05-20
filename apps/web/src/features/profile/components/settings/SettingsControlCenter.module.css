@@ -135,6 +135,171 @@
   min-height: 2.9rem;
 }
 
+.providerManagementGrid {
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.38fr) minmax(20rem, 0.62fr);
+  gap: var(--mantine-spacing-lg);
+  align-items: start;
+}
+
+.keyProviderList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.keyProviderButton {
+  width: 100%;
+  appearance: none;
+  padding: 0.78rem 0.85rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-bg-elevated) 62%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    background var(--wa-motion-fast),
+    border-color var(--wa-motion-fast),
+    transform var(--wa-motion-fast);
+}
+
+.keyProviderButton:hover,
+.keyProviderButton:focus-visible {
+  border-color: var(--app-border-default);
+  background: var(--app-surface-card);
+}
+
+.keyProviderButton:focus-visible {
+  outline: 2px solid var(--app-accent-primary);
+  outline-offset: 2px;
+}
+
+.keyProviderButtonActive {
+  border-color: color-mix(in srgb, var(--app-accent-primary) 56%, var(--app-border-default));
+  background: color-mix(in srgb, var(--app-accent-primary) 13%, var(--app-surface-card));
+}
+
+.keyProviderTitle,
+.providerInfoTitle {
+  color: var(--app-text-primary);
+  font-size: 0.95rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.providerInfoBenefit {
+  color: var(--app-text-secondary);
+  font-size: var(--app-type-caption);
+  line-height: 1.45;
+}
+
+.keyProviderMeta,
+.providerInfoMeta {
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.publicProviderGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.65rem;
+}
+
+.providerInfoCard {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-bg-elevated) 55%, transparent);
+}
+
+.publicProviderDisclosure {
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-lg);
+  background: var(--app-surface-subtle);
+  overflow: hidden;
+}
+
+.publicProviderDisclosure[open] {
+  background: var(--app-surface-card);
+}
+
+.publicProviderSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-md);
+  min-height: 4.5rem;
+  padding: 0.95rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.publicProviderSummary::-webkit-details-marker {
+  display: none;
+}
+
+.publicProviderSummary:hover {
+  background: color-mix(in srgb, var(--app-surface-card) 72%, transparent);
+}
+
+.publicProviderSummaryTitle {
+  color: var(--app-text-primary);
+  font-size: 0.98rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.publicProviderSummaryDescription {
+  color: var(--app-text-muted);
+  font-size: var(--app-type-caption);
+  line-height: 1.35;
+}
+
+.publicProviderChevron {
+  display: inline-flex;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: 999px;
+  color: var(--app-text-muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+  transition: transform var(--wa-motion-fast);
+}
+
+.publicProviderDisclosure[open] .publicProviderChevron {
+  transform: rotate(180deg);
+}
+
+.publicProviderDisclosure .publicProviderGrid {
+  padding: 0 1rem 1rem;
+}
+
+.providerVaultPanel {
+  position: sticky;
+  top: 5.5rem;
+}
+
+.providerSecurityBox {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--app-accent-teal) 30%, var(--app-border-subtle));
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-accent-teal) 8%, transparent);
+}
+
 .fileDropzone {
   display: flex;
   min-height: 8.75rem;
@@ -193,6 +358,14 @@
 
   .twoColumnPanel {
     grid-template-columns: 1fr;
+  }
+
+  .providerManagementGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .providerVaultPanel {
+    position: static;
   }
 }
 
