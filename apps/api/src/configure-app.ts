@@ -51,6 +51,8 @@ export async function configureApp(
       '/api/auth/login',
       '/api/auth/logout',
       '/api/auth/register',
+      '/api/auth/google/start',
+      '/api/auth/google/callback',
       '/api/auth/refresh',
       '/api/auth/password-reset/request',
       '/api/auth/password-reset/confirm',

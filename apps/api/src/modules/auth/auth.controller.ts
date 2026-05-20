@@ -3,17 +3,20 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   HttpCode,
   HttpStatus,
   Inject,
   Logger,
   Param,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import {
   ApiBody,
   ApiBearerAuth,
@@ -26,6 +29,7 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
+import { readApiRuntimeConfig } from '../../config/api-runtime-config';
 import {
   getRequestId,
   SecurityAuditService,
@@ -50,6 +54,10 @@ import {
 } from './dto/password-reset-response.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+
+const GOOGLE_OAUTH_STATE_COOKIE = 'wa_google_oauth_state';
+const GOOGLE_OAUTH_NONCE_COOKIE = 'wa_google_oauth_nonce';
+const GOOGLE_OAUTH_COOKIE_MAX_AGE_MS = 1000 * 60 * 10;
 
 @ApiTags('auth')
 @Controller('auth')
@@ -78,20 +86,11 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const session = await this.authService.register(
-      registerDto,
-      this.getSessionMetadata(request),
-    );
+    void registerDto;
+    void request;
+    void response;
 
-    response.cookie(
-      REFRESH_TOKEN_COOKIE_NAME,
-      session.refreshToken,
-      getRefreshTokenCookieOptions({
-        rememberMe: session.rememberMe,
-      }),
-    );
-
-    return this.authService.toSessionResponse(session);
+    throw this.createLegacyAuthDisabledException();
   }
 
   @Post('login')
@@ -111,25 +110,83 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const metadata = this.getSessionMetadata(request);
-    let session: Awaited<ReturnType<AuthService['login']>>;
+    void loginDto;
+    void request;
+    void response;
 
-    try {
-      session = await this.authService.login(loginDto, metadata);
-    } catch (error) {
+    throw this.createLegacyAuthDisabledException();
+  }
+
+  @Get('google/start')
+  async startGoogleLogin(@Res() response: Response) {
+    const state = this.generateOAuthSecret();
+    const nonce = this.generateOAuthSecret();
+    const cookieOptions = this.getOAuthCookieOptions();
+
+    response.cookie(GOOGLE_OAUTH_STATE_COOKIE, state, cookieOptions);
+    response.cookie(GOOGLE_OAUTH_NONCE_COOKIE, nonce, cookieOptions);
+
+    response.redirect(this.authService.getGoogleAuthorizationUrl(state, nonce));
+  }
+
+  @Get('google/callback')
+  async completeGoogleLogin(
+    @Query('code') code: string | undefined,
+    @Query('error') error: string | undefined,
+    @Query('state') state: string | undefined,
+    @Req() request: Request,
+    @Res() response: Response,
+  ) {
+    const expectedState = request.cookies?.[GOOGLE_OAUTH_STATE_COOKIE];
+    const expectedNonce = request.cookies?.[GOOGLE_OAUTH_NONCE_COOKIE];
+
+    this.clearOAuthCookies(response);
+
+    if (error) {
       void this.securityAudit.record({
         eventType: 'auth.login.failure',
         metadata: {
-          reason: 'invalid_credentials',
+          provider: 'google',
+          reason: 'oauth_error',
         },
         request,
         severity: 'warning',
       });
-      throw error;
+
+      response.redirect(this.getGoogleLoginFailureRedirectUrl());
+      return;
     }
+
+    if (
+      typeof code !== 'string' ||
+      typeof state !== 'string' ||
+      typeof expectedState !== 'string' ||
+      typeof expectedNonce !== 'string' ||
+      state !== expectedState
+    ) {
+      void this.securityAudit.record({
+        eventType: 'auth.login.failure',
+        metadata: {
+          provider: 'google',
+          reason: 'invalid_oauth_state',
+        },
+        request,
+        severity: 'warning',
+      });
+      throw new UnauthorizedException('Invalid Google OAuth state.');
+    }
+
+    const session = await this.authService.loginWithGoogleAuthorizationCode(
+      code,
+      expectedNonce,
+      this.getSessionMetadata(request),
+    );
 
     void this.securityAudit.record({
       eventType: 'auth.login.success',
+      metadata: {
+        provider: 'google',
+      },
       request,
       severity: 'info',
       sessionId: session.sessionId,
@@ -143,8 +200,7 @@ export class AuthController {
         rememberMe: session.rememberMe,
       }),
     );
-
-    return this.authService.toSessionResponse(session);
+    response.redirect(this.getGoogleLoginSuccessRedirectUrl());
   }
 
   @Post('refresh')
@@ -232,17 +288,10 @@ export class AuthController {
     @Body() passwordResetRequestDto: PasswordResetRequestDto,
     @Req() request: Request,
   ) {
-    const response = await this.authService.requestPasswordReset(
-      passwordResetRequestDto,
-    );
+    void passwordResetRequestDto;
+    void request;
 
-    void this.securityAudit.record({
-      eventType: 'auth.password_reset.request',
-      request,
-      severity: 'info',
-    });
-
-    return response;
+    throw this.createLegacyAuthDisabledException();
   }
 
   @Post('password-reset/confirm')
@@ -258,17 +307,10 @@ export class AuthController {
     @Body() passwordResetConfirmDto: PasswordResetConfirmDto,
     @Req() request: Request,
   ) {
-    const response = await this.authService.confirmPasswordReset(
-      passwordResetConfirmDto,
-    );
+    void passwordResetConfirmDto;
+    void request;
 
-    void this.securityAudit.record({
-      eventType: 'auth.password_reset.confirm',
-      request,
-      severity: 'info',
-    });
-
-    return response;
+    throw this.createLegacyAuthDisabledException();
   }
 
   @Get('me')
@@ -373,5 +415,47 @@ export class AuthController {
         ? rawUserAgent.join(' ')
         : (rawUserAgent ?? null),
     };
+  }
+
+  private createLegacyAuthDisabledException() {
+    return new HttpException(
+      'Email/password authentication is disabled. Continue with Google or use Work Archive as a guest.',
+      HttpStatus.GONE,
+    );
+  }
+
+  private generateOAuthSecret() {
+    return randomBytes(32).toString('base64url');
+  }
+
+  private getOAuthCookieOptions() {
+    const config = readApiRuntimeConfig();
+
+    return {
+      httpOnly: true,
+      maxAge: GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
+      sameSite: 'lax' as const,
+      secure: config.cookieSecure,
+    };
+  }
+
+  private clearOAuthCookies(response: Response) {
+    const config = readApiRuntimeConfig();
+    const options = {
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      secure: config.cookieSecure,
+    };
+
+    response.clearCookie(GOOGLE_OAUTH_STATE_COOKIE, options);
+    response.clearCookie(GOOGLE_OAUTH_NONCE_COOKIE, options);
+  }
+
+  private getGoogleLoginSuccessRedirectUrl() {
+    return `${readApiRuntimeConfig().webBaseUrl.replace(/\/$/, '')}/auth/google/complete`;
+  }
+
+  private getGoogleLoginFailureRedirectUrl() {
+    return `${readApiRuntimeConfig().webBaseUrl.replace(/\/$/, '')}/auth/login?google=failed`;
   }
 }

@@ -7,10 +7,8 @@ import { MainProductLayout } from '../layouts/MainProductLayout';
 import { MinimalLayout } from '../layouts/MinimalLayout';
 import { NotFoundPage } from './NotFoundPage';
 import { GuestTransferReviewPage } from '../../features/auth/pages/GuestTransferReviewPage';
+import { GoogleAuthCompletePage } from '../../features/auth/pages/GoogleAuthCompletePage';
 import { LoginPage } from '../../features/auth/pages/LoginPage';
-import { PasswordResetConfirmPage } from '../../features/auth/pages/PasswordResetConfirmPage';
-import { PasswordResetRequestPage } from '../../features/auth/pages/PasswordResetRequestPage';
-import { RegisterPage } from '../../features/auth/pages/RegisterPage';
 import { HomePage } from '../../features/home/pages/HomePage';
 import { AccountOverviewPage } from '../../features/profile/pages/AccountOverviewPage';
 import { ProfilePage } from '../../features/profile/pages/ProfilePage';
@@ -64,15 +62,19 @@ export const appRoutes: RouteObject[] = [
       },
       {
         path: 'register',
-        element: <RegisterPage />,
+        element: <Navigate replace to="/auth/login" />,
+      },
+      {
+        path: 'google/complete',
+        element: <GoogleAuthCompletePage />,
       },
       {
         path: 'password-reset',
-        element: <PasswordResetRequestPage />,
+        element: <Navigate replace to="/auth/login" />,
       },
       {
         path: 'password-reset/confirm',
-        element: <PasswordResetConfirmPage />,
+        element: <Navigate replace to="/auth/login" />,
       },
     ],
   },

@@ -110,7 +110,7 @@ export function AccountOverviewPage() {
           ) : (
             <Group gap="sm">
               <AppLinkButton to="/auth/login">로그인</AppLinkButton>
-              <AppLinkButton to="/auth/register">회원가입</AppLinkButton>
+              <AppLinkButton to="/auth/login">Google 계정 연결</AppLinkButton>
             </Group>
           )}
         </SectionCard>

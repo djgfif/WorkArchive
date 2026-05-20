@@ -1,4 +1,9 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import {
+  createPublicKey,
+  randomBytes,
+  randomUUID,
+  type JsonWebKey,
+} from 'node:crypto';
 
 import {
   BadRequestException,
@@ -7,9 +12,15 @@ import {
   Injectable,
   Logger,
   Optional,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { User, UserRefreshSession } from '@prisma/client';
+import type {
+  Prisma,
+  User,
+  UserAuthAccount,
+  UserRefreshSession,
+} from '@prisma/client';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 
 import { readApiRuntimeConfig } from '../../config/api-runtime-config';
@@ -39,6 +50,15 @@ import type {
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const PASSWORD_RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
+const GOOGLE_AUTH_PROVIDER = 'google';
+const GOOGLE_AUTHORIZATION_URL =
+  'https://accounts.google.com/o/oauth2/v2/auth';
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
+const GOOGLE_OIDC_ISSUERS: [string, string] = [
+  'https://accounts.google.com',
+  'accounts.google.com',
+];
 const PASSWORD_RESET_SUCCESS_MESSAGE =
   '비밀번호 재설정 요청을 확인했습니다. 계정이 있으면 재설정 링크를 사용할 수 있습니다.';
 const PASSWORD_RESET_CONFIRM_MESSAGE = '비밀번호가 재설정되었습니다.';
@@ -59,9 +79,41 @@ export interface AuthSessionMetadata {
   userAgent?: string | null;
 }
 
+type UserWithAuthAccounts = User & {
+  authAccounts?: UserAuthAccount[];
+};
+
+interface GoogleTokenResponse {
+  id_token?: unknown;
+}
+
+interface GoogleJwksResponse {
+  keys?: Array<JsonWebKey & { kid?: string }>;
+}
+
+interface GoogleIdentityProfile {
+  providerAccountId: string;
+  email: string;
+  emailVerified: boolean;
+  name: string;
+  pictureUrl: string;
+}
+
+type GoogleIdTokenPayload = JwtPayload & {
+  email?: unknown;
+  email_verified?: unknown;
+  name?: unknown;
+  nonce?: unknown;
+  picture?: unknown;
+};
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private googleSigningKeysCache: {
+    expiresAt: number;
+    keysByKid: Map<string, string>;
+  } | null = null;
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -110,6 +162,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Invalid email or password.');
+    }
+
     const isPasswordValid = await verifySecret(
       loginDto.password,
       user.passwordHash,
@@ -124,6 +180,45 @@ export class AuthService {
       loginDto.rememberMe === true,
       metadata,
     );
+  }
+
+  getGoogleAuthorizationUrl(state: string, nonce: string) {
+    const config = this.requireGoogleOAuthConfig();
+    const authorizationUrl = new URL(GOOGLE_AUTHORIZATION_URL);
+
+    authorizationUrl.searchParams.set('client_id', config.clientId);
+    authorizationUrl.searchParams.set('redirect_uri', config.redirectUri);
+    authorizationUrl.searchParams.set('response_type', 'code');
+    authorizationUrl.searchParams.set('scope', 'openid email profile');
+    authorizationUrl.searchParams.set('state', state);
+    authorizationUrl.searchParams.set('nonce', nonce);
+    authorizationUrl.searchParams.set('prompt', 'select_account');
+
+    return authorizationUrl.toString();
+  }
+
+  async loginWithGoogleAuthorizationCode(
+    code: string,
+    expectedNonce: string,
+    metadata: AuthSessionMetadata = {},
+  ): Promise<IssuedAuthSession> {
+    const tokenResponse = await this.exchangeGoogleAuthorizationCode(code);
+    const idToken =
+      typeof tokenResponse.id_token === 'string' ? tokenResponse.id_token : null;
+
+    if (!idToken) {
+      throw new UnauthorizedException('Google did not return an id_token.');
+    }
+
+    const profile = await this.verifyGoogleIdToken(idToken, expectedNonce);
+
+    if (!profile.emailVerified) {
+      throw new UnauthorizedException('Google account email is not verified.');
+    }
+
+    const user = await this.findOrCreateGoogleUser(profile);
+
+    return this.createSessionForUser(user, true, metadata);
   }
 
   async refresh(
@@ -148,7 +243,11 @@ export class AuthService {
         id: tokenPayload.sid,
       },
       include: {
-        user: true,
+        user: {
+          include: {
+            authAccounts: true,
+          },
+        },
       },
     });
 
@@ -253,6 +352,9 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: {
         id: userId,
+      },
+      include: {
+        authAccounts: true,
       },
     });
 
@@ -474,7 +576,7 @@ export class AuthService {
   }
 
   private async createSessionForUser(
-    user: User,
+    user: UserWithAuthAccounts,
     rememberMe = true,
     metadata: AuthSessionMetadata = {},
   ): Promise<IssuedAuthSession> {
@@ -516,7 +618,7 @@ export class AuthService {
   }
 
   private async rotateSessionForUser(
-    user: User,
+    user: UserWithAuthAccounts,
     session: UserRefreshSession,
     rememberMe = true,
   ): Promise<IssuedAuthSession> {
@@ -626,13 +728,247 @@ export class AuthService {
   }
 
   private toUserResponse(
-    user: Pick<User, 'id' | 'email' | 'nickname' | 'role'>,
+    user: Pick<User, 'id' | 'email' | 'handle' | 'nickname' | 'role'> & {
+      authAccounts?: Pick<
+        UserAuthAccount,
+        'email' | 'emailVerified' | 'name' | 'pictureUrl' | 'provider'
+      >[];
+    },
   ): AuthUserResponseDto {
     return {
+      authAccounts:
+        user.authAccounts?.map((account) => ({
+          email: account.email,
+          emailVerified: account.emailVerified,
+          name: account.name,
+          pictureUrl: account.pictureUrl,
+          provider: account.provider,
+        })) ?? [],
       id: user.id,
       email: user.email,
+      handle: user.handle,
       nickname: user.nickname,
       role: user.role,
+    };
+  }
+
+  private requireGoogleOAuthConfig() {
+    const config = readApiRuntimeConfig();
+
+    if (!config.googleOAuthClientId || !config.googleOAuthClientSecret) {
+      throw new ServiceUnavailableException(
+        'Google OAuth is not configured for this environment.',
+      );
+    }
+
+    return {
+      clientId: config.googleOAuthClientId,
+      clientSecret: config.googleOAuthClientSecret,
+      redirectUri: config.googleOAuthRedirectUri,
+    };
+  }
+
+  private async exchangeGoogleAuthorizationCode(code: string) {
+    const config = this.requireGoogleOAuthConfig();
+    const body = new URLSearchParams({
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: config.redirectUri,
+    });
+
+    const response = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      body,
+    });
+
+    if (!response.ok) {
+      this.logger.warn(`Google token exchange failed status=${response.status}`);
+      throw new UnauthorizedException('Google login could not be completed.');
+    }
+
+    return (await response.json()) as GoogleTokenResponse;
+  }
+
+  private async verifyGoogleIdToken(
+    idToken: string,
+    expectedNonce: string,
+  ): Promise<GoogleIdentityProfile> {
+    const config = this.requireGoogleOAuthConfig();
+    const decodedHeader = jwt.decode(idToken, {
+      complete: true,
+    });
+    const kid = decodedHeader?.header.kid;
+
+    if (!kid || decodedHeader.header.alg !== 'RS256') {
+      throw new UnauthorizedException('Google id_token is not trusted.');
+    }
+
+    const publicKey = await this.getGoogleSigningKey(kid);
+    const payload = jwt.verify(idToken, publicKey, {
+      algorithms: ['RS256'],
+      audience: config.clientId,
+      issuer: GOOGLE_OIDC_ISSUERS,
+    }) as GoogleIdTokenPayload;
+
+    if (
+      typeof payload.sub !== 'string' ||
+      typeof payload.email !== 'string' ||
+      payload.nonce !== expectedNonce
+    ) {
+      throw new UnauthorizedException('Google id_token is invalid.');
+    }
+
+    return {
+      email: this.normalizeEmail(payload.email),
+      emailVerified: payload.email_verified === true,
+      name: typeof payload.name === 'string' ? payload.name : '',
+      pictureUrl: typeof payload.picture === 'string' ? payload.picture : '',
+      providerAccountId: payload.sub,
+    };
+  }
+
+  private async getGoogleSigningKey(kid: string) {
+    if (
+      this.googleSigningKeysCache &&
+      this.googleSigningKeysCache.expiresAt > Date.now()
+    ) {
+      const cachedKey = this.googleSigningKeysCache.keysByKid.get(kid);
+
+      if (cachedKey) {
+        return cachedKey;
+      }
+    }
+
+    const response = await fetch(GOOGLE_JWKS_URL);
+
+    if (!response.ok) {
+      throw new UnauthorizedException('Google signing keys are unavailable.');
+    }
+
+    const jwks = (await response.json()) as GoogleJwksResponse;
+    const keysByKid = new Map<string, string>();
+
+    for (const jwk of jwks.keys ?? []) {
+      if (!jwk.kid) {
+        continue;
+      }
+
+      keysByKid.set(
+        jwk.kid,
+        createPublicKey({
+          format: 'jwk',
+          key: jwk,
+        })
+          .export({
+            format: 'pem',
+            type: 'spki',
+          })
+          .toString(),
+      );
+    }
+
+    const maxAgeMatch = response.headers
+      .get('cache-control')
+      ?.match(/max-age=(\d+)/);
+    const maxAgeSeconds = maxAgeMatch ? Number(maxAgeMatch[1]) : 3600;
+
+    this.googleSigningKeysCache = {
+      expiresAt: Date.now() + maxAgeSeconds * 1000,
+      keysByKid,
+    };
+
+    const signingKey = keysByKid.get(kid);
+
+    if (!signingKey) {
+      throw new UnauthorizedException('Google id_token signing key is unknown.');
+    }
+
+    return signingKey;
+  }
+
+  private async findOrCreateGoogleUser(profile: GoogleIdentityProfile) {
+    return this.prisma.$transaction(async (tx) => {
+      const existingAccount = await tx.userAuthAccount.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider: GOOGLE_AUTH_PROVIDER,
+            providerAccountId: profile.providerAccountId,
+          },
+        },
+        include: {
+          user: true,
+        },
+      });
+
+      if (existingAccount) {
+        await tx.userAuthAccount.update({
+          where: {
+            id: existingAccount.id,
+          },
+          data: this.toGoogleAuthAccountData(profile),
+        });
+
+        return tx.user.findUniqueOrThrow({
+          where: {
+            id: existingAccount.userId,
+          },
+          include: {
+            authAccounts: true,
+          },
+        });
+      }
+
+      const existingUser = await tx.user.findUnique({
+        where: {
+          email: profile.email,
+        },
+      });
+      const user =
+        existingUser ??
+        (await tx.user.create({
+          data: {
+            email: profile.email,
+            nickname: profile.name,
+            passwordHash: null,
+          },
+        }));
+
+      await tx.userAuthAccount.create({
+        data: {
+          ...this.toGoogleAuthAccountData(profile),
+          provider: GOOGLE_AUTH_PROVIDER,
+          providerAccountId: profile.providerAccountId,
+          userId: user.id,
+        },
+      });
+
+      return tx.user.findUniqueOrThrow({
+        where: {
+          id: user.id,
+        },
+        include: {
+          authAccounts: true,
+        },
+      });
+    });
+  }
+
+  private toGoogleAuthAccountData(
+    profile: GoogleIdentityProfile,
+  ): Pick<
+    Prisma.UserAuthAccountUncheckedCreateInput,
+    'email' | 'emailVerified' | 'name' | 'pictureUrl'
+  > {
+    return {
+      email: profile.email,
+      emailVerified: profile.emailVerified,
+      name: profile.name,
+      pictureUrl: profile.pictureUrl,
     };
   }
 

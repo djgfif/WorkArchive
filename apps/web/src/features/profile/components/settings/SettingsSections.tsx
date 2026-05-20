@@ -2,12 +2,16 @@ import {
   Button,
   Divider,
   Group,
+  Image,
   PasswordInput,
   SimpleGrid,
   Stack,
   Text,
 } from '@mantine/core';
-import type { AuthRefreshSessionResponse } from '@work-archive/shared-types';
+import type {
+  AuthRefreshSessionResponse,
+  AuthUserResponse,
+} from '@work-archive/shared-types';
 import type { ChangeEvent, FormEvent } from 'react';
 
 import {
@@ -25,6 +29,79 @@ import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import { getWorkTypeLabel } from '../../../works/utils/work-options';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
+
+interface AccountIdentitySectionProps {
+  mode: SettingsAuthMode;
+  user: AuthUserResponse | null;
+}
+
+export function AccountIdentitySection({
+  mode,
+  user,
+}: AccountIdentitySectionProps) {
+  const googleAccount = user?.authAccounts?.find(
+    (account) => account.provider === 'google',
+  );
+  const displayName =
+    googleAccount?.name || user?.nickname || user?.email || '게스트';
+  const handle = user?.handle ? `@${user.handle}` : '@handle 미설정';
+
+  return (
+    <SectionCard>
+      <SectionIntro
+        description="Google 계정은 비공개 백업, 여러 기기 동기화, 계정별 API key vault를 위한 연결 수단입니다."
+        eyebrow="계정 연결"
+        title="Google 계정과 프로필"
+      />
+
+      {mode !== 'authenticated' || !user ? (
+        <Stack gap="sm">
+          <Text c="var(--mantine-color-dimmed)">
+            게스트 모드에서는 기록 작성, 수정, export를 계속 사용할 수 있습니다.
+            백업과 개인 API key vault가 필요할 때 Google 계정을 연결하세요.
+          </Text>
+          <ActionRow>
+            <AppBadge tone="muted">게스트 기록 가능</AppBadge>
+            <AppBadge tone="muted">Google 연결 선택 사항</AppBadge>
+          </ActionRow>
+        </Stack>
+      ) : (
+        <Stack gap="md">
+          <Group align="center" gap="md" wrap="wrap">
+            {googleAccount?.pictureUrl && (
+              <Image
+                alt=""
+                h={48}
+                radius="xl"
+                src={googleAccount.pictureUrl}
+                w={48}
+              />
+            )}
+            <Stack gap={2}>
+              <Text fw={700}>{displayName}</Text>
+              <Text c="var(--mantine-color-dimmed)" size="sm">
+                {googleAccount?.email ?? user.email}
+              </Text>
+              <Text c="var(--mantine-color-dimmed)" size="sm">
+                {handle}
+              </Text>
+            </Stack>
+          </Group>
+
+          <ActionRow>
+            <AppBadge tone={googleAccount ? 'success' : 'warning'}>
+              {googleAccount ? 'Google 연결됨' : 'Google 연결 필요'}
+            </AppBadge>
+            <AppBadge tone={googleAccount?.emailVerified ? 'success' : 'muted'}>
+              {googleAccount?.emailVerified ? '이메일 검증됨' : '검증 정보 없음'}
+            </AppBadge>
+            <AppBadge tone={user.handle ? 'accent' : 'muted'}>{handle}</AppBadge>
+          </ActionRow>
+        </Stack>
+      )}
+    </SectionCard>
+  );
+}
 
 function formatSessionDate(value: string | null) {
   if (!value) {

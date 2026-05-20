@@ -41,6 +41,9 @@ services:
       PASSWORD_RESET_DEV_LINKS_ENABLED: ${PASSWORD_RESET_DEV_LINKS_ENABLED:-true}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-local-compose-access-secret-minimum-32-chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-compose-refresh-secret-minimum-32-chars}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:3000/api/auth/google/callback}
       EXTERNAL_API_KEY_ENCRYPTION_SECRET: ${EXTERNAL_API_KEY_ENCRYPTION_SECRET:-local-compose-external-api-key-secret-32-chars}
       SEED_DEMO_EMAIL: ${SEED_DEMO_EMAIL:-demo@workarchive.local}
       SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-demo-password-123}

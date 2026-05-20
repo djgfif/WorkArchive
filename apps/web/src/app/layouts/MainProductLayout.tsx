@@ -345,7 +345,7 @@ export function MainProductLayout() {
                               <IconUserPlus size={13} />
                             </ThemeIcon>
                           }
-                          onClick={() => navigate('/auth/register')}
+                          onClick={() => navigate('/auth/login')}
                         >
                           회원가입
                         </Menu.Item>
@@ -478,7 +478,7 @@ export function MainProductLayout() {
               <AppLinkButton fullWidth onClick={mobileMenu.close} to="/auth/login" tone="primary">
                 로그인
               </AppLinkButton>
-              <AppLinkButton fullWidth onClick={mobileMenu.close} to="/auth/register" tone="secondary">
+              <AppLinkButton fullWidth onClick={mobileMenu.close} to="/auth/login" tone="secondary">
                 회원가입
               </AppLinkButton>
             </Stack>
