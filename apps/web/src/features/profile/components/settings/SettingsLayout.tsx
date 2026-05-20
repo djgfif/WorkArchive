@@ -47,53 +47,46 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
 
   function selectSection(sectionId: string) {
     setActiveSectionId(sectionId);
-
-    if (window.location.hash !== `#${sectionId}`) {
-      window.history.replaceState(
-        null,
-        '',
-        `${window.location.pathname}${window.location.search}#${sectionId}`,
-      );
-    }
   }
 
-  function getNavButtonProps(section: SettingsSectionItem) {
+  function getNavLinkProps(section: SettingsSectionItem) {
     const isActive = section.id === activeSectionId;
 
     return {
+      'aria-current': isActive ? ('location' as const) : undefined,
       'aria-controls': `settings-panel-${section.id}`,
       'aria-selected': isActive,
       className: cx(css.navLink ?? '', isActive && (css.navLinkActive ?? '')),
       'data-section-id': section.id,
+      href: `#${section.id}`,
       onClick: () => selectSection(section.id),
-      role: 'tab',
-      type: 'button' as const,
+      role: 'tab' as const,
     };
   }
 
   return (
     <div className={css.layout ?? ''}>
-      <nav aria-label="설정 섹션" className={css.sideNav ?? ''}>
+      <nav aria-label="설정 사이드 섹션 탐색" className={css.sideNav ?? ''}>
         <SectionCard padding="sm" tone="subtle">
           <div className={css.navList ?? ''} role="tablist">
             {sections.map((section) => (
-              <button key={section.id} {...getNavButtonProps(section)}>
+              <a key={section.id} {...getNavLinkProps(section)}>
                 <span>{section.label}</span>
-              </button>
+              </a>
             ))}
           </div>
         </SectionCard>
       </nav>
 
       <nav
-        aria-label="설정 섹션 바로가기"
+        aria-label="설정 모바일 섹션 탐색"
         className={css.mobileNav ?? ''}
         role="tablist"
       >
         {sections.map((section) => (
-          <button key={section.id} {...getNavButtonProps(section)}>
+          <a key={section.id} {...getNavLinkProps(section)}>
             {section.label}
-          </button>
+          </a>
         ))}
       </nav>
 

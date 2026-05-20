@@ -91,20 +91,21 @@ export function AccountSettingsSection({
                 <TextInput
                   label="표시 이름"
                   placeholder="표시 이름"
+                  defaultValue={displayName}
                   readOnly
-                  value={displayName}
                 />
                 <TextInput
                   label="@handle"
                   leftSection="@"
                   placeholder="handle"
+                  defaultValue={handle}
                   readOnly
-                  value={handle}
                 />
               </Group>
               <ActionRow>
-                <AppBadge tone="muted">프로필 편집 API 연결 대기</AppBadge>
-                <AppBadge tone="muted">현재 화면에서는 수정 불가</AppBadge>
+                <AppBadge tone="muted">
+                  프로필 편집은 다음 단계에서 제공됩니다
+                </AppBadge>
               </ActionRow>
             </Stack>
           </SectionCard>

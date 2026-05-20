@@ -116,6 +116,9 @@ export function SearchProviderSettingsSection({
   const configuredProviderCount = providerStatuses.filter(
     (status) => status.configured,
   ).length;
+  const keyManagedProviderCount = providerStatuses.filter(
+    (status) => status.credentialMode === 'user',
+  ).length;
   const keyRequiredProviderCount = providerStatuses.filter(
     (status) => status.credentialMode === 'user' && !status.configured,
   ).length;
@@ -291,7 +294,11 @@ export function SearchProviderSettingsSection({
                   </Text>
                 </Stack>
               ) : (
-                <Text c="dimmed">왼쪽에서 provider를 선택하세요.</Text>
+                <Text c="dimmed">
+                  {keyManagedProviderCount > 0
+                    ? '왼쪽에서 개인 키를 등록할 provider를 선택하세요.'
+                    : '등록 가능한 개인 key provider가 없습니다.'}
+                </Text>
               )}
 
               {feedback && (

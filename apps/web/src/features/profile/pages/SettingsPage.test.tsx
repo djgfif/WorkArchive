@@ -462,6 +462,12 @@ describe('SettingsPage', () => {
     );
 
     expect(confirmMock).toHaveBeenCalledTimes(1);
+    expect(confirmMock).toHaveBeenCalledWith(
+      [
+        '모든 기기에서 로그아웃할까요?',
+        '현재 기기를 포함한 모든 로그인 세션이 해제되고, 이 브라우저는 게스트 모드로 전환됩니다.',
+      ].join('\n'),
+    );
     expect(fetchMock.mock.calls).toEqual(
       expect.arrayContaining([
         expect.arrayContaining([
@@ -473,6 +479,49 @@ describe('SettingsPage', () => {
       ]),
     );
     expect(signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps every session when revoke all confirmation is cancelled', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const fetchMock = vi.fn((url: string | URL | Request) => {
+      const requestUrl = String(url);
+
+      if (requestUrl.includes('/auth/sessions/revoke-all')) {
+        return Promise.resolve(noContentResponse());
+      }
+
+      if (requestUrl.includes('/auth/sessions')) {
+        return Promise.resolve(jsonResponse(authSessionsResponse()));
+      }
+
+      return Promise.resolve(jsonResponse([]));
+    });
+    const signOut = vi.fn().mockResolvedValue(undefined);
+    const confirmMock = vi.fn(() => false);
+
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('confirm', confirmMock);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedSettings(signOut);
+    await openSettingsSection(user, 'danger-zone');
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: '모든 기기 로그아웃',
+      }),
+    );
+
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+    expect(
+      fetchMock.mock.calls.some(([url]) =>
+        String(url).includes('/auth/sessions/revoke-all'),
+      ),
+    ).toBe(false);
+    expect(signOut).not.toHaveBeenCalled();
   });
 
   it('shows login guidance instead of provider readiness for guests', async () => {

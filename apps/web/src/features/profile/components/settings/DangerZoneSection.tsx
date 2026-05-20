@@ -30,7 +30,7 @@ export function DangerZoneSection({
     const shouldRevoke = await confirmDialogAdapter.confirm({
       title: '모든 기기에서 로그아웃할까요?',
       description:
-        '현재 기기를 포함한 모든 로그인 세션이 해제되고 이 브라우저도 즉시 게스트 모드로 전환됩니다.',
+        '현재 기기를 포함한 모든 로그인 세션이 해제되고, 이 브라우저는 게스트 모드로 전환됩니다.',
     });
 
     if (!shouldRevoke) {
