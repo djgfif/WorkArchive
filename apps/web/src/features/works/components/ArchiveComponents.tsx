@@ -327,14 +327,15 @@ export function WorkPoster({
         </>
       ) : (
         <Box
+          aria-label={`${title} 포스터 대체 표지`}
           className={cn(css.posterFallback)}
           data-cover-tone={getCoverTone(coverSeed ?? `${typeLabel ?? ''}:${title}`)}
         >
-          <Text className={cn(css.posterFallbackType)}>{typeLabel ?? 'Archive'}</Text>
+          <Text className={cn(css.posterFallbackType)}>{typeLabel ?? '기록'}</Text>
           <Text className={cn(css.posterFallbackMark)}>
             {(title.trim()[0] ?? 'W').toUpperCase()}
           </Text>
-          <Text className={cn(css.posterFallbackType)}>개인 기록</Text>
+          <Text className={cn(css.posterFallbackType)}>표지 없음</Text>
         </Box>
       )}
       {overlay}

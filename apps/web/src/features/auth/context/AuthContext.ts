@@ -12,6 +12,7 @@ export interface AuthContextValue {
   mode: AuthMode;
   user: AuthUser | null;
   signOut(): Promise<void>;
+  updateUser?(user: AuthUser): void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

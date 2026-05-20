@@ -151,7 +151,7 @@ describe('Works routed flow', () => {
 
     expect(await screen.findByRole('heading', { name: 'Dune Messiah' })).toBeInTheDocument();
     expect(
-      await screen.findByText('작품 수정 내용을 저장했습니다.'),
+      await screen.findByText(/로컬에 저장됨/),
     ).toBeInTheDocument();
   }, 20_000);
 

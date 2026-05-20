@@ -1,17 +1,14 @@
 import { Group, Stack, Text } from '@mantine/core';
-import type {
-  AuthRefreshSessionResponse,
-  AuthUserResponse,
-} from '@work-archive/shared-types';
+import type { AuthUserResponse } from '@work-archive/shared-types';
 
 import {
   AppBadge,
   SectionCard,
   SectionIntro,
 } from '../../../../shared/components/AppPrimitives';
-import type { ImportProviderStatus } from '../../../imports/services/imports.service';
 import type { LocalArchiveImportPreview } from '../../../archive/services/local-archive.service';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
+import type { SettingsOverviewStats } from '../../hooks/useSettingsOverviewStats';
 import styles from './SettingsControlCenter.module.css';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
@@ -21,11 +18,8 @@ type SummaryIconName = 'data' | 'google' | 'key' | 'security';
 interface SettingsOverviewProps {
   archiveFeedback: SettingsFeedback | null;
   archiveImportPreview: LocalArchiveImportPreview | null;
-  isLoadingProviderStatuses: boolean;
-  isLoadingSessions: boolean;
   mode: SettingsAuthMode;
-  providerStatuses: ImportProviderStatus[];
-  sessions: AuthRefreshSessionResponse[];
+  stats: SettingsOverviewStats;
   user: AuthUserResponse | null;
 }
 
@@ -76,78 +70,96 @@ function MiniIcon({ name }: { name: SummaryIconName }) {
   );
 }
 
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return '아직 없음';
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
 export function SettingsOverview({
   archiveFeedback,
   archiveImportPreview,
-  isLoadingProviderStatuses,
-  isLoadingSessions,
   mode,
-  providerStatuses,
-  sessions,
+  stats,
   user,
 }: SettingsOverviewProps) {
   const googleAccount = user?.authAccounts?.find(
     (account) => account.provider === 'google',
   );
-  const publicProviderCount = providerStatuses.filter(
-    (status) => status.credentialMode === 'none',
-  ).length;
-  const keyRequiredProviderCount = providerStatuses.filter(
-    (status) => status.credentialMode === 'user',
-  ).length;
-  const configuredProviderCount = providerStatuses.filter(
-    (status) => status.configured,
-  ).length;
-  const activeSessionCount = sessions.length;
+  const backupQueueLabel =
+    stats.syncQueueItemCount === 0
+      ? '백업 대기 없음'
+      : `백업 대기 ${stats.syncQueueItemCount}개`;
+  const dataSafetyTone =
+    stats.conflictQueueItemCount > 0 || stats.failedQueueItemCount > 0
+      ? 'warning'
+      : stats.syncQueueItemCount > 0
+        ? 'accent'
+        : 'success';
 
   const cards = [
     {
       description:
         mode === 'authenticated'
-          ? googleAccount?.email ?? user?.email ?? 'Google 계정으로 연결됨'
-          : '게스트 모드에서 로컬 기록만 사용 중',
+          ? `${googleAccount?.email ?? user?.email ?? 'Google 계정'}에 연결된 로컬 아카이브입니다. 동기화 상태는 이 브라우저의 로컬 대기열 기준으로 표시됩니다.`
+          : '게스트 모드입니다. 기록은 이 브라우저의 로컬 저장소에만 보관됩니다.',
       icon: 'google',
-      label: 'Google 계정 상태',
+      label: '저장 범위',
       tone: mode === 'authenticated' ? 'success' : 'muted',
-      value: mode === 'authenticated' ? '연결됨' : '미연결',
+      value: mode === 'authenticated' ? 'Google 연결' : '로컬 전용',
+    },
+    {
+      description: [
+        `활성 작품 ${stats.activeWorkCount}개`,
+        `휴지통 ${stats.deletedWorkCount}개`,
+        `타임라인 ${stats.timelineEntryCount}개`,
+        `릴리스 기록 ${stats.releaseRecordCount}개`,
+      ].join(' · '),
+      icon: 'data',
+      label: '로컬 데이터',
+      tone: 'success',
+      value: `${stats.activeWorkCount}개 작품`,
+    },
+    {
+      description:
+        mode === 'authenticated'
+          ? [
+              `전체 ${stats.syncQueueItemCount}개`,
+              `충돌 ${stats.conflictQueueItemCount}개`,
+              `실패 ${stats.failedQueueItemCount}개`,
+            ].join(' · ')
+          : '게스트 모드에서는 서버 동기화 대기열을 사용하지 않습니다.',
+      icon: 'key',
+      label: '백업 대기열',
+      tone: mode === 'authenticated' ? dataSafetyTone : 'muted',
+      value: mode === 'authenticated' ? backupQueueLabel : '로컬 전용',
     },
     {
       description: archiveImportPreview
-        ? '가져오기 미리보기 확인 대기'
+        ? 'JSON 가져오기 미리보기를 확인 중입니다.'
         : archiveFeedback?.tone === 'success'
           ? archiveFeedback.message
-          : 'API key 없이 JSON/CSV 백업 가능',
-      icon: 'data',
-      label: '로컬 데이터/백업 상태',
-      tone: archiveImportPreview ? 'warning' : 'success',
-      value: archiveImportPreview ? '검토 필요' : '준비됨',
-    },
-    {
-      description: isLoadingProviderStatuses
-        ? '검색 provider 상태를 확인 중'
-        : `공개 ${publicProviderCount}개 · 키 필요 ${keyRequiredProviderCount}개`,
-      icon: 'key',
-      label: '검색 provider/API key 상태',
-      tone: configuredProviderCount > 0 ? 'success' : 'muted',
-      value: `${configuredProviderCount}개 등록`,
-    },
-    {
-      description: isLoadingSessions
-        ? '활성 세션을 확인 중'
-        : mode === 'authenticated'
-          ? `활성 세션 ${activeSessionCount}개`
-          : '로그인 후 세션 관리 가능',
+          : 'JSON export 시각은 브라우저 로컬 메타데이터에만 기록됩니다.',
       icon: 'security',
-      label: '보안/활성 세션 상태',
-      tone: mode === 'authenticated' ? 'success' : 'muted',
-      value: mode === 'authenticated' ? '관리 가능' : '게스트',
+      label: '마지막 JSON 백업',
+      tone: archiveImportPreview
+        ? 'warning'
+        : stats.lastJsonExportAt
+          ? 'success'
+          : 'muted',
+      value: formatDateTime(stats.lastJsonExportAt),
     },
   ] as const;
 
   return (
     <Stack gap="md">
       <SectionIntro
-        description="계정 연결, 로컬 백업, 외부 검색 키, 로그인 세션을 한 화면에서 점검합니다."
+        description="현재 브라우저에 저장된 로컬 아카이브, 백업 대기열, 마지막 JSON 백업 시각을 즉시 확인합니다."
         eyebrow="Settings Control Center"
         title="설정 개요"
       />

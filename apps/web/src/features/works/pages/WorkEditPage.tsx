@@ -10,30 +10,46 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import { PageHero } from '../../../shared/components/PageHero';
 import { FlowPageTemplate } from '../../../shared/components/PageTemplates';
+import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { syncQueueRepository } from '../../sync/services/sync-queue.repository';
 import { WorkForm } from '../components/WorkForm';
 import { useWorkDetail } from '../hooks/useWorkDetail';
 import {
   graphRepository,
   type WorkGraphSnapshot,
 } from '../services/graph.repository';
-import { worksRepository } from '../services/works.repository';
+import { buildWorkFormDraftKey } from '../services/work-form-draft.service';
 import { worksService } from '../services/works.service';
+import { DEFAULT_WORKS_LIST_QUERY } from '../utils/query-works';
 import {
   createWorkFormValuesFromRecord,
   type UpsertWorkInput,
 } from '../utils/work-form';
-import { getPersonalTags } from '../utils/graph-tags';
 
 export function WorkEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { archiveScopeKey, mode } = useAuthSession();
   const [searchParams] = useSearchParams();
   const { error, isLoading, work } = useWorkDetail(id);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+  const [workSuggestions, setWorkSuggestions] = useState({
+    organizationContributorSuggestions: [] as string[],
+    personContributorSuggestions: [] as string[],
+    seriesSuggestions: [] as string[],
+    tagSuggestions: [] as string[],
+  });
   const [workGraph, setWorkGraph] = useState<WorkGraphSnapshot | null>(null);
   const focusArea = searchParams.get('focus') === 'review' ? 'review' : 'general';
+  const draftKey = id
+    ? buildWorkFormDraftKey({
+        archiveScopeKey,
+        focusArea,
+        mode: 'edit',
+        workId: id,
+      })
+    : null;
   const formInitialValues = useMemo(
     () =>
       work ? createWorkFormValuesFromRecord(work, workGraph ?? undefined) : undefined,
@@ -41,15 +57,30 @@ export function WorkEditPage() {
   );
 
   useEffect(() => {
-    const subscription = liveQuery(() => worksRepository.listActive()).subscribe({
-      next: (works) => {
-        setTagSuggestions(
-          Array.from(
-            new Set(works.flatMap((entry) => getPersonalTags(entry.personalTags))),
-          ).sort((left, right) => left.localeCompare(right)),
-        );
+    const subscription = liveQuery(() =>
+      worksService.listWorks(DEFAULT_WORKS_LIST_QUERY, 'active'),
+    ).subscribe({
+      next: ({
+        organizationContributorSuggestions,
+        personContributorSuggestions,
+        seriesSuggestions,
+        tagSuggestions,
+      }) => {
+        setWorkSuggestions({
+          organizationContributorSuggestions,
+          personContributorSuggestions,
+          seriesSuggestions,
+          tagSuggestions,
+        });
       },
-      error: () => setTagSuggestions([]),
+      error: () => {
+        setWorkSuggestions({
+          organizationContributorSuggestions: [],
+          personContributorSuggestions: [],
+          seriesSuggestions: [],
+          tagSuggestions: [],
+        });
+      },
     });
 
     return () => {
@@ -87,9 +118,16 @@ export function WorkEditPage() {
       setSubmitError(null);
 
       await worksService.updateWork(id, input);
+      const hasQueuedWork =
+        mode === 'authenticated' &&
+        (await syncQueueRepository.hasQueuedWork(id));
 
       navigate(`/works/${id}?saved=edit`, {
-        state: { feedback: '작품 수정 내용을 저장했습니다.' },
+        state: {
+          feedback: hasQueuedWork
+            ? '로컬에 저장됨 · 백업 대기 중'
+            : '로컬에 저장됨',
+        },
       });
     } catch (saveError) {
       setSubmitError(
@@ -161,13 +199,21 @@ export function WorkEditPage() {
       />
 
       <WorkForm
+        catalogTitleId={work.catalogTitleId ?? null}
         cancelTo={`/works/${work.id}`}
+        currentWorkId={work.id}
+        draftKey={draftKey}
         focusArea={focusArea}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}
+        organizationContributorSuggestions={
+          workSuggestions.organizationContributorSuggestions
+        }
+        personContributorSuggestions={workSuggestions.personContributorSuggestions}
+        seriesSuggestions={workSuggestions.seriesSuggestions}
         submitError={submitError}
         submitLabel="저장"
-        tagSuggestions={tagSuggestions}
+        tagSuggestions={workSuggestions.tagSuggestions}
         {...(formInitialValues ? { initialValues: formInitialValues } : {})}
       />
     </FlowPageTemplate>

@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import type { WorkRecord } from '@work-archive/shared-types';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +10,11 @@ import {
   clearStoredAuthTokens,
   writeStoredAuthTokens,
 } from '../../auth/services/auth-storage';
+import {
+  resetWorkArchiveStorage,
+  workArchiveDbManager,
+} from '../../works/db/work-archive.db';
+import { LAST_JSON_EXPORT_AT_META_KEY } from '../hooks/useSettingsOverviewStats';
 import { SettingsPage } from './SettingsPage';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -44,20 +50,140 @@ function authSessionsResponse() {
   };
 }
 
+function buildWorkRecord(
+  id: string,
+  overrides: Partial<WorkRecord> = {},
+): WorkRecord {
+  const now = '2026-05-20T00:00:00.000Z';
+
+  return {
+    id,
+    type: 'novel',
+    title: id,
+    author: '',
+    genres: [],
+    personalTags: [],
+    description: '',
+    thumbnailUrl: '',
+    status: 'planned',
+    rating: null,
+    shortReview: '',
+    review: '',
+    tier: null,
+    favorite: false,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
+    ...overrides,
+  };
+}
+
+async function seedOverviewStats() {
+  const db = workArchiveDbManager.getCurrentDb();
+  const now = '2026-05-20T00:00:00.000Z';
+
+  await db.works.bulkAdd([
+    buildWorkRecord('work-active-1'),
+    buildWorkRecord('work-active-2'),
+    buildWorkRecord('work-deleted-1', {
+      deletedAt: now,
+    }),
+  ]);
+  await db.timelineEntries.add({
+    id: 'timeline-entry-1',
+    workId: 'work-active-1',
+    type: 'note',
+    occurredAt: now,
+    note: '',
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
+  });
+  await db.releaseRecords.add({
+    id: 'release-record-1',
+    userWorkRecordId: 'work-active-1',
+    catalogReleaseId: 'catalog-release-1',
+    status: 'completed',
+    rating: null,
+    shortReview: '',
+    review: '',
+    favorite: false,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
+  });
+  await db.syncQueue.bulkAdd([
+    {
+      id: 'queue-1',
+      entityType: 'work',
+      entityId: 'work-active-1',
+      operation: 'update',
+      payload: buildWorkRecord('work-active-1'),
+      source: 'edit_form',
+      createdAt: now,
+      retryCount: 0,
+      lastError: null,
+      conflict: null,
+    },
+    {
+      id: 'queue-2',
+      entityType: 'work',
+      entityId: 'work-active-2',
+      operation: 'update',
+      payload: buildWorkRecord('work-active-2'),
+      source: 'edit_form',
+      createdAt: now,
+      retryCount: 1,
+      lastError: 'network failed',
+      conflict: null,
+    },
+    {
+      id: 'queue-3',
+      entityType: 'work',
+      entityId: 'work-deleted-1',
+      operation: 'update',
+      payload: buildWorkRecord('work-deleted-1'),
+      source: 'edit_form',
+      createdAt: now,
+      retryCount: 1,
+      lastError: 'conflict',
+      conflict: {
+        detectedAt: now,
+        message: 'conflict',
+        remote: null,
+      },
+    },
+  ]);
+  await db.appMeta.put({
+    key: LAST_JSON_EXPORT_AT_META_KEY,
+    value: '2026-05-20T12:30:00.000Z',
+  });
+}
+
 function renderAuthenticatedSettings(signOut = vi.fn()) {
+  workArchiveDbManager.switchToUser('user-1');
+  const updateUser = vi.fn();
   const view = renderWithProviders(
     <MemoryRouter>
       <AuthContext.Provider
         value={{
-          archiveScopeKey: 'user:user-1',
+          archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'authenticated',
           user: {
             id: 'user-1',
             email: 'frieren@example.com',
-            nickname: '',
+            handle: 'frieren',
+            nickname: 'Frieren',
           },
           signOut,
+          updateUser,
         }}
       >
         <SettingsPage />
@@ -68,10 +194,13 @@ function renderAuthenticatedSettings(signOut = vi.fn()) {
   return {
     ...view,
     signOut,
+    updateUser,
   };
 }
 
 function renderGuestSettings() {
+  workArchiveDbManager.switchToGuest();
+
   return renderWithProviders(
     <MemoryRouter>
       <AuthContext.Provider
@@ -81,6 +210,7 @@ function renderGuestSettings() {
           mode: 'guest',
           user: null,
           signOut: vi.fn(),
+          updateUser: vi.fn(),
         }}
       >
         <SettingsPage />
@@ -105,11 +235,12 @@ async function openSettingsSection(
 }
 
 describe('SettingsPage', () => {
-  afterEach(() => {
+  afterEach(async () => {
     clearStoredAuthTokens();
     window.localStorage.clear();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    await resetWorkArchiveStorage();
   });
 
   it('renders provider readiness cards for public and user-key credential modes', async () => {
@@ -174,6 +305,286 @@ describe('SettingsPage', () => {
     expect(
       await screen.findByRole('button', { name: '이 기기 로그아웃' }),
     ).toBeInTheDocument();
+  });
+
+  it('renders local-first overview stats from Dexie without waiting for backend data', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(() => new Promise<Response>(() => undefined));
+    workArchiveDbManager.switchToUser('user-1');
+    await seedOverviewStats();
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderAuthenticatedSettings();
+    await openSettingsSection(user, 'overview');
+
+    expect(await screen.findByText('2개 작품')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '활성 작품 2개 · 휴지통 1개 · 타임라인 1개 · 릴리스 기록 1개',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('백업 대기 3개')).toBeInTheDocument();
+    expect(screen.getByText('전체 3개 · 충돌 1개 · 실패 1개')).toBeInTheDocument();
+    expect(screen.getByText(/2026/)).toBeInTheDocument();
+  });
+
+  it('marks guest overview as local-only with no JSON export history', async () => {
+    const user = userEvent.setup();
+
+    renderGuestSettings();
+    await openSettingsSection(user, 'overview');
+
+    expect(await screen.findAllByText('로컬 전용')).toHaveLength(2);
+    expect(screen.getByText('아직 없음')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '게스트 모드입니다. 기록은 이 브라우저의 로컬 저장소에만 보관됩니다.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('saves account profile changes and updates the auth user', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const updatedUser = {
+      id: 'user-1',
+      email: 'frieren@example.com',
+      handle: 'mage_frieren',
+      nickname: 'Mage Frieren',
+      role: 'user',
+      authAccounts: [],
+    };
+    const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+      const requestUrl = String(url);
+
+      if (requestUrl.includes('/auth/profile')) {
+        return Promise.resolve(jsonResponse(updatedUser));
+      }
+
+      if (requestUrl.includes('/auth/sessions')) {
+        return Promise.resolve(jsonResponse(authSessionsResponse()));
+      }
+
+      return Promise.resolve(jsonResponse([]));
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    const { updateUser } = renderAuthenticatedSettings();
+
+    await openSettingsSection(user, 'account');
+
+    const saveButton = screen.getByRole('button', {
+      name: '프로필 변경 저장',
+    });
+
+    expect(saveButton).toBeDisabled();
+
+    await user.clear(screen.getByLabelText('표시 이름'));
+    await user.type(screen.getByLabelText('표시 이름'), 'Mage Frieren');
+    await user.clear(screen.getByLabelText('handle'));
+    await user.type(screen.getByLabelText('handle'), '@mage_frieren');
+    await user.click(saveButton);
+
+    expect(
+      await screen.findByText('프로필 변경 사항을 저장했습니다.'),
+    ).toBeInTheDocument();
+    expect(updateUser).toHaveBeenCalledWith(updatedUser);
+
+    const profileRequest = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes('/auth/profile'),
+    );
+    const profileRequestInit = profileRequest?.[1] as RequestInit;
+    const profileRequestHeaders = profileRequestInit.headers as Headers;
+
+    expect(profileRequest?.[0]).toEqual(
+      expect.stringContaining('/auth/profile'),
+    );
+    expect(profileRequestInit.method).toBe('PATCH');
+    expect(profileRequestInit.body).toBe(
+      JSON.stringify({
+        handle: 'mage_frieren',
+        nickname: 'Mage Frieren',
+      }),
+    );
+    expect(profileRequestHeaders.get('authorization')).toBe(
+      'Bearer access-token',
+    );
+  });
+
+  it('shows Korean profile validation and duplicate handle messages', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+      const requestUrl = String(url);
+
+      if (requestUrl.includes('/auth/profile') && init?.method === 'PATCH') {
+        return Promise.resolve(
+          jsonResponse(
+            {
+              message: 'Handle is already in use.',
+            },
+            409,
+          ),
+        );
+      }
+
+      if (requestUrl.includes('/auth/sessions')) {
+        return Promise.resolve(jsonResponse(authSessionsResponse()));
+      }
+
+      return Promise.resolve(jsonResponse([]));
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedSettings();
+    await openSettingsSection(user, 'account');
+
+    await user.clear(screen.getByLabelText('handle'));
+    await user.type(screen.getByLabelText('handle'), '_bad');
+    await user.click(screen.getByRole('button', { name: '프로필 변경 저장' }));
+
+    expect(
+      (await screen.findAllByText(/앞뒤 밑줄은 사용할 수 없습니다/)).length,
+    ).toBeGreaterThan(0);
+    expect(
+      fetchMock.mock.calls.some(([url]) =>
+        String(url).includes('/auth/profile'),
+      ),
+    ).toBe(false);
+
+    await user.clear(screen.getByLabelText('handle'));
+    await user.type(screen.getByLabelText('handle'), 'fern');
+    await user.click(screen.getByRole('button', { name: '프로필 변경 저장' }));
+
+    expect(
+      await screen.findByText('이미 사용 중인 handle입니다.'),
+    ).toBeInTheDocument();
+  });
+
+  it('tests configured provider keys and reports success or failure feedback', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const providerStatuses = [
+      {
+        provider: 'aladin',
+        label: 'Aladin Book',
+        credentialMode: 'user',
+        configured: false,
+        credentialFields: [{ name: 'ttbKey', label: 'TTBKey', secret: true }],
+        mediumTypes: ['novel', 'light_novel', 'manga'],
+      },
+      {
+        provider: 'tmdb',
+        label: 'TMDB',
+        credentialMode: 'user',
+        configured: true,
+        credentialFields: [
+          { name: 'readToken', label: 'Read Access Token', secret: true },
+        ],
+        mediumTypes: ['movie', 'drama'],
+      },
+      {
+        provider: 'kobis',
+        label: 'KOBIS',
+        credentialMode: 'user',
+        configured: true,
+        credentialFields: [{ name: 'apiKey', label: 'API Key', secret: true }],
+        mediumTypes: ['movie'],
+      },
+    ];
+    const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+      const requestUrl = String(url);
+
+      if (requestUrl.includes('/auth/sessions')) {
+        return Promise.resolve(jsonResponse(authSessionsResponse()));
+      }
+
+      if (requestUrl.includes('/imports/providers/tmdb/test')) {
+        return Promise.resolve(
+          jsonResponse({
+            provider: 'tmdb',
+            ok: true,
+            message: 'TMDB API key connection test succeeded.',
+            reason: null,
+            checkedAt: '2026-05-20T00:00:00.000Z',
+          }),
+        );
+      }
+
+      if (requestUrl.includes('/imports/providers/kobis/test')) {
+        return Promise.resolve(
+          jsonResponse({
+            provider: 'kobis',
+            ok: false,
+            message: 'KOBIS API key was rejected by the provider.',
+            reason: 'unauthorized',
+            checkedAt: '2026-05-20T00:00:00.000Z',
+          }),
+        );
+      }
+
+      if (requestUrl.includes('/imports/providers')) {
+        return Promise.resolve(jsonResponse(providerStatuses));
+      }
+
+      return Promise.resolve(jsonResponse([]));
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedSettings();
+    await openSettingsSection(user, 'search-providers');
+
+    const testButton = await screen.findByRole('button', {
+      name: '연결 테스트',
+    });
+
+    expect(testButton).toBeDisabled();
+
+    await user.click(await screen.findByRole('button', { name: /TMDB/ }));
+    expect(screen.getByRole('button', { name: '연결 테스트' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: '연결 테스트' }));
+
+    expect(
+      await screen.findByText('TMDB 연결 테스트에 성공했습니다.'),
+    ).toBeInTheDocument();
+
+    await user.click(await screen.findByRole('button', { name: /KOBIS/ }));
+    await user.click(screen.getByRole('button', { name: '연결 테스트' }));
+
+    expect(
+      await screen.findByText(
+        'KOBIS API key가 provider에서 거부되었습니다. key 값을 다시 확인해 주세요.',
+      ),
+    ).toBeInTheDocument();
+
+    expect(fetchMock.mock.calls).toEqual(
+      expect.arrayContaining([
+        expect.arrayContaining([
+          expect.stringContaining('/imports/providers/tmdb/test'),
+          expect.objectContaining({
+            method: 'POST',
+          }),
+        ]),
+        expect.arrayContaining([
+          expect.stringContaining('/imports/providers/kobis/test'),
+          expect.objectContaining({
+            method: 'POST',
+          }),
+        ]),
+      ]),
+    );
   });
 
   it.each([

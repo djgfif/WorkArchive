@@ -145,6 +145,20 @@ export interface ImportProviderStatus {
   provider: string;
 }
 
+export type ImportProviderKeyTestFailureReason =
+  | 'missing_key'
+  | 'provider_unavailable'
+  | 'unauthorized'
+  | 'unknown';
+
+export interface ImportProviderKeyTestResponse {
+  checkedAt: ISODateString;
+  message: string;
+  ok: boolean;
+  provider: string;
+  reason: ImportProviderKeyTestFailureReason | null;
+}
+
 export interface ImportProviderCredentialField {
   description?: string;
   label: string;
@@ -231,6 +245,11 @@ export interface AuthCredentialsRequest {
   email: string;
   password: string;
   rememberMe?: boolean;
+}
+
+export interface UpdateAuthProfileRequest {
+  handle: string | null;
+  nickname: string;
 }
 
 export interface AuthSessionResponse {

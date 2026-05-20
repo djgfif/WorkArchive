@@ -12,7 +12,15 @@ import {
   workContributorValues,
 } from './graph-tags';
 
-export type WorksSortOption = 'updatedAt' | 'title' | 'rating';
+export type WorksSortDirection = 'asc' | 'desc';
+export type WorksSortOption =
+  | 'completedAt'
+  | 'createdAt'
+  | 'lastConsumedAt'
+  | 'rating'
+  | 'startedAt'
+  | 'title'
+  | 'updatedAt';
 
 export interface WorksListQuery {
   contributor?: string;
@@ -26,6 +34,7 @@ export interface WorksListQuery {
   type: WorkType | 'all';
   status: WorkStatus | 'all';
   sortBy: WorksSortOption;
+  sortDirection?: WorksSortDirection;
 }
 
 export interface WorksGraphQueryIndex {
@@ -47,6 +56,7 @@ export const DEFAULT_WORKS_LIST_QUERY: WorksListQuery = {
   type: 'all',
   status: 'all',
   sortBy: 'updatedAt',
+  sortDirection: 'desc',
 };
 
 function normalizeSearchText(value: string) {
@@ -177,6 +187,36 @@ function compareUpdatedAtDescending(a: WorkRecord, b: WorkRecord) {
   return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
 }
 
+export function getDefaultSortDirection(sortBy: WorksSortOption) {
+  return sortBy === 'title' ? 'asc' : 'desc';
+}
+
+function compareIsoDateValues(
+  leftValue: string | null | undefined,
+  rightValue: string | null | undefined,
+  direction: WorksSortDirection,
+) {
+  const emptyValue = direction === 'asc' ? Number.POSITIVE_INFINITY : -1;
+  const leftTime = leftValue ? new Date(leftValue).getTime() : emptyValue;
+  const rightTime = rightValue ? new Date(rightValue).getTime() : emptyValue;
+  const baseComparison = leftTime - rightTime;
+
+  return direction === 'asc' ? baseComparison : -baseComparison;
+}
+
+function compareNumericValues(
+  leftValue: number | null,
+  rightValue: number | null,
+  direction: WorksSortDirection,
+) {
+  const emptyValue = direction === 'asc' ? Number.POSITIVE_INFINITY : -1;
+  const leftNumber = leftValue ?? emptyValue;
+  const rightNumber = rightValue ?? emptyValue;
+  const baseComparison = leftNumber - rightNumber;
+
+  return direction === 'asc' ? baseComparison : -baseComparison;
+}
+
 export function queryWorks(
   works: WorkRecord[],
   query: WorksListQuery,
@@ -261,19 +301,50 @@ export function queryWorks(
     return matchesSearch(work, query.searchTerm, graphIndex);
   });
 
+  const sortDirection = query.sortDirection ?? getDefaultSortDirection(query.sortBy);
+
   return filtered.sort((a, b) => {
     switch (query.sortBy) {
       case 'title':
-        return a.title.localeCompare(b.title) || compareUpdatedAtDescending(a, b);
-      case 'rating': {
-        const leftRating = a.rating ?? -1;
-        const rightRating = b.rating ?? -1;
-
-        return rightRating - leftRating || compareUpdatedAtDescending(a, b);
-      }
+        return (
+          (sortDirection === 'asc'
+            ? a.title.localeCompare(b.title)
+            : b.title.localeCompare(a.title)) || compareUpdatedAtDescending(a, b)
+        );
+      case 'rating':
+        return (
+          compareNumericValues(a.rating, b.rating, sortDirection) ||
+          compareUpdatedAtDescending(a, b)
+        );
+      case 'createdAt':
+        return (
+          compareIsoDateValues(a.createdAt, b.createdAt, sortDirection) ||
+          compareUpdatedAtDescending(a, b)
+        );
+      case 'lastConsumedAt':
+        return (
+          compareIsoDateValues(
+            a.lastConsumedAt,
+            b.lastConsumedAt,
+            sortDirection,
+          ) || compareUpdatedAtDescending(a, b)
+        );
+      case 'startedAt':
+        return (
+          compareIsoDateValues(a.startedAt, b.startedAt, sortDirection) ||
+          compareUpdatedAtDescending(a, b)
+        );
+      case 'completedAt':
+        return (
+          compareIsoDateValues(a.completedAt, b.completedAt, sortDirection) ||
+          compareUpdatedAtDescending(a, b)
+        );
       case 'updatedAt':
       default:
-        return compareUpdatedAtDescending(a, b);
+        return (
+          compareIsoDateValues(a.updatedAt, b.updatedAt, sortDirection) ||
+          compareUpdatedAtDescending(a, b)
+        );
     }
   });
 }

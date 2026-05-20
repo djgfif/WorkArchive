@@ -1,6 +1,7 @@
 import type {
   AuthRefreshSessionsResponse,
   AuthSessionResponse as SharedAuthSessionResponse,
+  UpdateAuthProfileRequest,
   AuthUserResponse,
 } from '@work-archive/shared-types';
 
@@ -52,6 +53,13 @@ export async function fetchCurrentUser(accessToken: string) {
     },
     accessToken,
   );
+}
+
+export async function updateAuthProfile(input: UpdateAuthProfileRequest) {
+  return requestAuthenticatedApiJson<AuthUser>('/auth/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
 }
 
 export async function logoutSession() {

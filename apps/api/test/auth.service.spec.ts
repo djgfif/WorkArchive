@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { getRefreshTokenCookieOptions } from '../src/modules/auth/auth.cookies';
@@ -11,6 +11,7 @@ const ORIGINAL_ENV = { ...process.env };
 interface MockUser {
   id: string;
   email: string;
+  handle: string | null;
   passwordHash: string;
   refreshTokenHash: string | null;
   nickname: string;
@@ -54,6 +55,7 @@ function createPrismaMock() {
       }: {
         where: {
           email?: string;
+          handle?: string;
           id?: string;
         };
       }) =>
@@ -66,6 +68,10 @@ function createPrismaMock() {
             return false;
           }
 
+          if (where.handle && user.handle !== where.handle) {
+            return false;
+          }
+
           return true;
         }) ?? null,
       create: async ({
@@ -75,6 +81,7 @@ function createPrismaMock() {
       }) => {
         const user = {
           email: data.email,
+          handle: data.handle ?? null,
           id: data.id ?? crypto.randomUUID(),
           nickname: data.nickname ?? '',
           passwordHash: data.passwordHash,
@@ -350,6 +357,7 @@ describe('AuthService', () => {
     const { passwordResetTokens, prisma, users } = createPrismaMock();
     users.push({
       email: 'frieren@example.com',
+      handle: null,
       id: 'user-1',
       nickname: '',
       passwordHash: await hashSecret('old-password-123'),
@@ -391,6 +399,7 @@ describe('AuthService', () => {
       createPrismaMock();
     users.push({
       email: 'frieren@example.com',
+      handle: null,
       id: 'user-1',
       nickname: '',
       passwordHash: await hashSecret('old-password-123'),
@@ -445,6 +454,7 @@ describe('AuthService', () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
     users.push({
       email: 'frieren@example.com',
+      handle: null,
       id: 'user-1',
       nickname: '',
       passwordHash: await hashSecret('old-password-123'),
@@ -475,6 +485,7 @@ describe('AuthService', () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
     users.push({
       email: 'frieren@example.com',
+      handle: null,
       id: 'user-1',
       nickname: '',
       passwordHash: await hashSecret('old-password-123'),
@@ -531,6 +542,7 @@ describe('AuthService', () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
     users.push({
       email: 'frieren@example.com',
+      handle: null,
       id: 'user-1',
       nickname: '',
       passwordHash: await hashSecret('old-password-123'),
@@ -556,6 +568,113 @@ describe('AuthService', () => {
     await expect(
       authService.validateAccessToken(session.accessToken),
     ).rejects.toThrow('Session is no longer valid.');
+  });
+
+  it('updates nickname and handle for the current user', async () => {
+    const { prisma, users } = createPrismaMock();
+    users.push({
+      email: 'frieren@example.com',
+      handle: 'frieren',
+      id: 'user-1',
+      nickname: 'Frieren',
+      passwordHash: await hashSecret('old-password-123'),
+      refreshTokenHash: null,
+      role: 'user',
+    });
+    const authService = new AuthService(prisma as unknown as PrismaService);
+
+    await expect(
+      authService.updateProfile('user-1', {
+        handle: 'mage_frieren',
+        nickname: 'Mage Frieren',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        email: 'frieren@example.com',
+        handle: 'mage_frieren',
+        nickname: 'Mage Frieren',
+      }),
+    );
+    expect(users[0]).toMatchObject({
+      handle: 'mage_frieren',
+      nickname: 'Mage Frieren',
+    });
+  });
+
+  it('allows keeping the current handle and clearing it', async () => {
+    const { prisma, users } = createPrismaMock();
+    users.push({
+      email: 'frieren@example.com',
+      handle: 'frieren',
+      id: 'user-1',
+      nickname: 'Frieren',
+      passwordHash: await hashSecret('old-password-123'),
+      refreshTokenHash: null,
+      role: 'user',
+    });
+    const authService = new AuthService(prisma as unknown as PrismaService);
+
+    await expect(
+      authService.updateProfile('user-1', {
+        handle: 'frieren',
+        nickname: 'Frieren the Slayer',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        handle: 'frieren',
+        nickname: 'Frieren the Slayer',
+      }),
+    );
+
+    await expect(
+      authService.updateProfile('user-1', {
+        handle: null,
+        nickname: 'Frieren',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        handle: null,
+        nickname: 'Frieren',
+      }),
+    );
+  });
+
+  it('rejects reserved and duplicate handles', async () => {
+    const { prisma, users } = createPrismaMock();
+    users.push(
+      {
+        email: 'frieren@example.com',
+        handle: 'frieren',
+        id: 'user-1',
+        nickname: 'Frieren',
+        passwordHash: await hashSecret('old-password-123'),
+        refreshTokenHash: null,
+        role: 'user',
+      },
+      {
+        email: 'fern@example.com',
+        handle: 'fern',
+        id: 'user-2',
+        nickname: 'Fern',
+        passwordHash: await hashSecret('old-password-123'),
+        refreshTokenHash: null,
+        role: 'user',
+      },
+    );
+    const authService = new AuthService(prisma as unknown as PrismaService);
+
+    await expect(
+      authService.updateProfile('user-1', {
+        handle: 'admin',
+        nickname: 'Frieren',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      authService.updateProfile('user-1', {
+        handle: 'fern',
+        nickname: 'Frieren',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });
 

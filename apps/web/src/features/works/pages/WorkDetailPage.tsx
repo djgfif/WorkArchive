@@ -48,6 +48,7 @@ import {
   type WorkGraphSnapshot,
 } from '../services/graph.repository';
 import { releaseRecordsService } from '../services/release-records.service';
+import { recentWorkViewsService } from '../services/recent-work-views.service';
 import { timelineEntriesRepository } from '../services/timeline-entries.repository';
 import { timelineEntriesService } from '../services/timeline-entries.service';
 import {
@@ -97,7 +98,7 @@ function getRouteFeedback(state: unknown) {
 }
 
 function getSavedFeedback(value: string | null) {
-  return value === 'edit' ? '작품 수정 내용을 저장했습니다.' : null;
+  return value === 'edit' ? '로컬에 저장됨' : null;
 }
 
 function WorkQuickRecordSection({
@@ -706,6 +707,14 @@ export function WorkDetailPage() {
   }
 
   useEffect(() => {
+    if (!workId) {
+      return;
+    }
+
+    recentWorkViewsService.recordView(archiveScopeKey, workId);
+  }, [archiveScopeKey, workId]);
+
+  useEffect(() => {
     if (!routeFeedback) {
       return;
     }
@@ -879,7 +888,11 @@ export function WorkDetailPage() {
       setActionError(null);
       setActionSuccess(null);
       await worksService.deleteWork(work.id);
-      navigate('/works');
+      navigate('/works', {
+        state: {
+          deletedWork: work,
+        },
+      });
     } catch (deleteError) {
       setActionError(
         deleteError instanceof Error

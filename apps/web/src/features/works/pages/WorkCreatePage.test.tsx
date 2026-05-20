@@ -13,6 +13,7 @@ import { syncQueueRepository } from '../../sync/services/sync-queue.repository';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { workArchiveDbManager } from '../db/work-archive.db';
 import { worksRepository } from '../services/works.repository';
+import { worksService } from '../services/works.service';
 import { WorkCreatePage } from './WorkCreatePage';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -150,6 +151,12 @@ function getSearchFetchCalls(fetchMock: ReturnType<typeof vi.fn>) {
   );
 }
 
+async function getQueuedWorkItems() {
+  return (await syncQueueRepository.listAll()).filter(
+    (item) => item.entityType === 'work',
+  );
+}
+
 function renderAuthenticatedCreatePage() {
   workArchiveDbManager.switchToUser('user-1');
 
@@ -278,6 +285,121 @@ describe('WorkCreatePage', () => {
     window.localStorage.clear();
   });
 
+  it('autosaves, restores, and discards manual create drafts locally', async () => {
+    const user = userEvent.setup();
+    const firstView = renderGuestCreatePage();
+
+    await user.type(
+      getElementById<HTMLInputElement>('manualTitle'),
+      'Draft Dune',
+    );
+
+    expect(await screen.findByText('임시저장됨')).toBeInTheDocument();
+    expect(
+      Object.keys(window.localStorage).some((key) =>
+        key.includes('work-form-draft'),
+      ),
+    ).toBe(true);
+
+    firstView.unmount();
+    const secondView = renderGuestCreatePage();
+
+    expect(await screen.findByText('임시작성 있음')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '이어서 작성하기' }));
+    expect(getElementById<HTMLInputElement>('manualTitle')).toHaveValue(
+      'Draft Dune',
+    );
+
+    secondView.unmount();
+    renderGuestCreatePage();
+
+    expect(await screen.findByText('임시작성 있음')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '임시작성 삭제' }));
+    expect(screen.queryByText('임시작성 있음')).not.toBeInTheDocument();
+    expect(
+      Object.keys(window.localStorage).some((key) =>
+        key.includes('work-form-draft'),
+      ),
+    ).toBe(false);
+  });
+
+  it('clears the create draft after a successful local save', async () => {
+    const user = userEvent.setup();
+
+    renderGuestCreatePage();
+
+    await user.type(
+      getElementById<HTMLInputElement>('manualTitle'),
+      'Saved Draft Work',
+    );
+    expect(await screen.findByText('임시저장됨')).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: '내 아카이브에 저장' }),
+    );
+
+    expect(await screen.findByText('로컬에 저장됨')).toBeInTheDocument();
+    expect(
+      Object.keys(window.localStorage).some((key) =>
+        key.includes('work-form-draft'),
+      ),
+    ).toBe(false);
+  });
+
+  it('warns before internal navigation when a create form has unsaved changes', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const user = userEvent.setup();
+
+    renderGuestCreatePage();
+
+    await user.type(
+      getElementById<HTMLInputElement>('manualTitle'),
+      'Unsaved Work',
+    );
+    expect(await screen.findByText('임시저장됨')).toBeInTheDocument();
+
+    const backLink = document.querySelector<HTMLAnchorElement>('a[href="/works"]');
+
+    expect(backLink).not.toBeNull();
+    await user.click(backLink!);
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      '저장되지 않은 변경 사항이 있습니다. 이 페이지를 떠나시겠습니까?',
+    );
+  });
+
+  it('shows duplicate title candidates while typing a new work title', async () => {
+    workArchiveDbManager.switchToGuest();
+    await worksService.createWork({
+      type: 'novel',
+      title: 'Dune',
+      author: 'Frank Herbert',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+
+    const user = userEvent.setup();
+
+    renderGuestCreatePage();
+
+    await user.type(getElementById<HTMLInputElement>('manualTitle'), 'Dune');
+
+    expect(
+      await screen.findByText('비슷한 기록이 있습니다'),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/Frank Herbert/).length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('link', { name: '기존 작품 보기' }),
+    ).toHaveAttribute('href', expect.stringContaining('/works/'));
+  });
+
   it('lets a guest save a direct manual work locally without import identity', async () => {
     const user = userEvent.setup();
 
@@ -346,11 +468,11 @@ describe('WorkCreatePage', () => {
 
     await waitFor(async () => {
       expect(await worksRepository.listAll()).toHaveLength(1);
-      expect(await syncQueueRepository.listAll()).toHaveLength(1);
+      expect(await getQueuedWorkItems()).toHaveLength(1);
     });
 
     const [savedWork] = await worksRepository.listAll();
-    const [queueItem] = await syncQueueRepository.listAll();
+    const [queueItem] = await getQueuedWorkItems();
 
     expect(savedWork).toMatchObject({
       title: 'Dune',
@@ -423,11 +545,11 @@ describe('WorkCreatePage', () => {
 
     await waitFor(async () => {
       expect(await worksRepository.listAll()).toHaveLength(1);
-      expect(await syncQueueRepository.listAll()).toHaveLength(1);
+      expect(await getQueuedWorkItems()).toHaveLength(1);
     });
 
     const [savedWork] = await worksRepository.listAll();
-    const [queueItem] = await syncQueueRepository.listAll();
+    const [queueItem] = await getQueuedWorkItems();
 
     expect(savedWork).toMatchObject({
       title: 'Dune Deluxe',
@@ -491,11 +613,11 @@ describe('WorkCreatePage', () => {
 
       await waitFor(async () => {
         expect(await worksRepository.listAll()).toHaveLength(1);
-        expect(await syncQueueRepository.listAll()).toHaveLength(1);
+        expect(await getQueuedWorkItems()).toHaveLength(1);
       });
 
       const [savedWork] = await worksRepository.listAll();
-      const [queueItem] = await syncQueueRepository.listAll();
+      const [queueItem] = await getQueuedWorkItems();
 
       expect(savedWork).toMatchObject({
         title: candidate.title,

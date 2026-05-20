@@ -1,6 +1,7 @@
 import type {
   CatalogSearchMediumType,
   ImportCandidate,
+  ImportProviderKeyTestResponse,
   ImportSearchDiagnostics,
   ImportSearchProviderDiagnostic,
   ImportProviderStatus,
@@ -67,6 +68,10 @@ function formatProviderLabel(provider: string) {
 
 function getProviderKeyPath(provider: string) {
   return `/imports/providers/${encodeURIComponent(provider)}/key`;
+}
+
+function getProviderKeyTestPath(provider: string) {
+  return `/imports/providers/${encodeURIComponent(provider)}/test`;
 }
 
 function formatProviderResult(diagnostic: ImportSearchProviderDiagnostic) {
@@ -312,6 +317,18 @@ export class ImportsService {
       },
       {
         missingTokenMessage: '외부 검색 API Key 설정은 로그인 후 이용해주세요.',
+      },
+    );
+  }
+
+  async testProviderKey(provider: string) {
+    return requestAuthenticatedApiJson<ImportProviderKeyTestResponse>(
+      getProviderKeyTestPath(provider),
+      {
+        method: 'POST',
+      },
+      {
+        missingTokenMessage: '검색 provider 연결 테스트는 로그인 후 사용할 수 있습니다.',
       },
     );
   }

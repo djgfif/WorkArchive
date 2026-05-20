@@ -4,7 +4,9 @@ import {
   localArchiveService,
   type LocalArchiveImportPreview,
 } from '../../archive/services/local-archive.service';
+import { appMetaRepository } from '../../sync/services/app-meta.repository';
 import type { SettingsFeedback } from './useImportProviderSettings';
+import { LAST_JSON_EXPORT_AT_META_KEY } from './useSettingsOverviewStats';
 
 function downloadTextFile(filename: string, type: string, content: string) {
   const blob = new Blob([content], {
@@ -40,6 +42,10 @@ export function useLocalArchiveSettings() {
         `work-archive-backup-${new Date().toISOString().slice(0, 10)}.json`,
         'application/json',
         content,
+      );
+      await appMetaRepository.setValue(
+        LAST_JSON_EXPORT_AT_META_KEY,
+        new Date().toISOString(),
       );
       setArchiveFeedback({
         tone: 'success',

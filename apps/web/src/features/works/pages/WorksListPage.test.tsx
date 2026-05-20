@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -12,6 +12,8 @@ import {
   selectWorksView,
 } from '../../../test/ui-helpers';
 import { AuthProvider } from '../../auth/context/AuthProvider';
+import { appMetaRepository } from '../../sync/services/app-meta.repository';
+import { LAST_JSON_EXPORT_AT_META_KEY } from '../../profile/hooks/useSettingsOverviewStats';
 import { worksService } from '../services/works.service';
 
 describe('WorksListPage', () => {
@@ -90,6 +92,233 @@ describe('WorksListPage', () => {
       { timeout: 5_000 },
     );
     expect(await screen.findByText('Modal First Work')).toBeInTheDocument();
+  });
+
+  it('shows empty-state actions for direct add, search add, and JSON backup import', async () => {
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', {
+        name: '아직 기록한 작품이 없습니다.',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: '직접 추가' }),
+    ).toHaveAttribute('href', '/works/new');
+    expect(
+      screen.getByRole('button', { name: '검색으로 추가' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'JSON 백업 가져오기' }),
+    ).toHaveAttribute('href', '/account/settings');
+  });
+
+  it('shows recently viewed works after opening a detail page', async () => {
+    const viewedWork = await worksService.createWork({
+      type: 'movie',
+      title: 'Recently Viewed Movie',
+      author: 'Director',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [`/works/${viewedWork.id}`],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('Recently Viewed Movie')).toBeInTheDocument();
+
+    await router.navigate('/works');
+
+    expect(await screen.findByText('최근 본 작품')).toBeInTheDocument();
+    expect(screen.getByText('방금 열어본 기록')).toBeInTheDocument();
+    expect(screen.getAllByText('Recently Viewed Movie').length).toBeGreaterThan(0);
+  });
+
+  it('shows recently modified works as shortcuts', async () => {
+    await worksService.createWork({
+      type: 'novel',
+      title: 'Older Work',
+      author: 'Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+    const modifiedWork = await worksService.createWork({
+      type: 'anime',
+      title: 'Freshly Edited Work',
+      author: 'Studio',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+    await worksService.updateWork(modifiedWork.id, {
+      type: modifiedWork.type,
+      title: modifiedWork.title,
+      author: modifiedWork.author,
+      genres: modifiedWork.genres,
+      description: 'updated',
+      thumbnailUrl: modifiedWork.thumbnailUrl,
+      status: modifiedWork.status,
+      rating: modifiedWork.rating,
+      shortReview: modifiedWork.shortReview,
+      review: modifiedWork.review,
+      tier: modifiedWork.tier,
+      favorite: modifiedWork.favorite,
+      personalTags: modifiedWork.personalTags,
+      lastConsumedAt: modifiedWork.lastConsumedAt ?? null,
+      startedAt: modifiedWork.startedAt ?? null,
+      completedAt: modifiedWork.completedAt ?? null,
+      droppedAt: modifiedWork.droppedAt ?? null,
+    });
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('최근 수정한 작품')).toBeInTheDocument();
+    expect(screen.getByText('최근 손본 기록')).toBeInTheDocument();
+    expect(screen.getAllByText('Freshly Edited Work').length).toBeGreaterThan(0);
+  });
+
+  it('shows the last JSON backup time and applies bulk management actions', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await appMetaRepository.setValue(
+      LAST_JSON_EXPORT_AT_META_KEY,
+      '2026-05-20T03:00:00.000Z',
+    );
+    const firstWork = await worksService.createWork({
+      type: 'novel',
+      title: 'Bulk First',
+      author: 'Archive Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+    const secondWork = await worksService.createWork({
+      type: 'movie',
+      title: 'Bulk Second',
+      author: 'Archive Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText(/마지막 JSON 백업:/)).toBeInTheDocument();
+    expect(await screen.findByText(/2026/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '일괄 선택' }));
+    await user.click(screen.getByLabelText('Bulk First 선택'));
+    await user.click(screen.getByLabelText('Bulk Second 선택'));
+
+    const bulkTagInput = screen
+      .getAllByLabelText('일괄 태그 추가')
+      .find((element) => element instanceof HTMLInputElement);
+    if (!bulkTagInput) {
+      throw new Error('Bulk tag input was not found.');
+    }
+    await user.type(bulkTagInput, '관리대상{enter}');
+    await user.click(screen.getByRole('button', { name: '선택 작품 태그 추가' }));
+
+    await waitFor(async () => {
+      await expect(worksService.getWorkById(firstWork.id)).resolves.toEqual(
+        expect.objectContaining({
+          personalTags: expect.arrayContaining(['관리대상']),
+        }),
+      );
+      await expect(worksService.getWorkById(secondWork.id)).resolves.toEqual(
+        expect.objectContaining({
+          personalTags: expect.arrayContaining(['관리대상']),
+        }),
+      );
+    });
+
+    const bulkStatusSelect = screen.getByLabelText('일괄 상태 변경');
+    await waitFor(() => expect(bulkStatusSelect).toBeEnabled());
+    fireEvent.change(bulkStatusSelect, { target: { value: 'completed' } });
+    const bulkStatusButton = screen.getByRole('button', {
+      name: '선택 작품 상태 변경',
+    });
+    await waitFor(() => expect(bulkStatusButton).toBeEnabled());
+    await user.click(bulkStatusButton);
+
+    await waitFor(async () => {
+      await expect(worksService.getWorkById(firstWork.id)).resolves.toEqual(
+        expect.objectContaining({ status: 'completed' }),
+      );
+      await expect(worksService.getWorkById(secondWork.id)).resolves.toEqual(
+        expect.objectContaining({ status: 'completed' }),
+      );
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: '선택 작품 휴지통 이동' }),
+    );
+
+    expect(confirmSpy).toHaveBeenCalled();
+    await waitFor(async () => {
+      await expect(worksService.getWorkById(firstWork.id)).resolves.toBeNull();
+      await expect(worksService.getWorkById(secondWork.id)).resolves.toBeNull();
+    });
   });
 
   it('shows filtered and total active counts accurately', async () => {
@@ -519,6 +748,55 @@ describe('WorksListPage', () => {
           progressCurrent: 3,
           progressTotal: 5,
           progressUnit: 'volume',
+        }),
+      );
+    });
+  });
+
+  it('offers undo after soft-deleting a work from the list', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const deleted = await worksService.createWork({
+      type: 'novel',
+      title: 'Undo Target',
+      author: 'Archive Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      tier: null,
+      favorite: false,
+    });
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works?view=list'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('Undo Target')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('Undo Target 삭제'));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(
+      await screen.findByText('휴지통으로 이동했습니다.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Undo Target 기록을 되돌릴 수 있습니다.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '되돌리기' }));
+
+    expect(await screen.findByText('되돌렸습니다.')).toBeInTheDocument();
+    await waitFor(async () => {
+      expect(await worksService.getWorkById(deleted.id)).toEqual(
+        expect.objectContaining({
+          deletedAt: null,
+          title: 'Undo Target',
         }),
       );
     });

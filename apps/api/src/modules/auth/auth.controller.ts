@@ -9,6 +9,7 @@ import {
   Inject,
   Logger,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -53,6 +54,7 @@ import {
   PasswordResetRequestResponseDto,
 } from './dto/password-reset-response.dto';
 import { RegisterDto } from './dto/register.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 const GOOGLE_OAUTH_STATE_COOKIE = 'wa_google_oauth_state';
@@ -337,6 +339,29 @@ export class AuthController {
   })
   me(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.getCurrentUser(user.userId);
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiBody({
+    type: UpdateProfileDto,
+  })
+  @ApiOkResponse({
+    description: 'Update the current user profile.',
+    type: AuthUserResponseDto,
+  })
+  @ApiConflictResponse({
+    description: 'The requested handle is already in use.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  updateProfile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(user.userId, updateProfileDto);
   }
 
   @Get('sessions')

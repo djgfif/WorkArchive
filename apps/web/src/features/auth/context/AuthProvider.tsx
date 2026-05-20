@@ -203,6 +203,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     activateGuestSession();
   }
 
+  function updateUser(nextUser: AuthUser) {
+    setUser(nextUser);
+  }
+
   const value: AuthContextValue = {
     archiveScopeKey,
     completeGoogleSignIn,
@@ -211,6 +215,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     mode: user ? 'authenticated' : 'guest',
     user,
     signOut,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

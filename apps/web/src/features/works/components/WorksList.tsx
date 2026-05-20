@@ -1,5 +1,5 @@
 import type { WorkRecord } from '@work-archive/shared-types';
-import { Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Box, Checkbox, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AppButton } from '../../../shared/components/AppPrimitives';
@@ -25,6 +25,9 @@ interface WorksListProps {
     update: WorkQuickProgressUpdate,
   ) => Promise<void>;
   onQuickUpdate: (work: WorkRecord, update: WorkQuickUpdate) => Promise<void>;
+  onSelectionChange?: (workId: string, selected: boolean) => void;
+  selectedWorkIds?: Set<string>;
+  selectionMode?: boolean;
   updatingWorkId: string | null;
   viewMode: WorksViewMode;
   works: WorkRecord[];
@@ -34,6 +37,9 @@ export function WorksList({
   onDelete,
   onQuickProgressUpdate,
   onQuickUpdate,
+  onSelectionChange,
+  selectedWorkIds = new Set<string>(),
+  selectionMode = false,
   updatingWorkId,
   viewMode,
   works,
@@ -98,11 +104,28 @@ export function WorksList({
           verticalSpacing="lg"
         >
           {visibleWorks.map((work) => (
-            <WorkPosterCard
-              isUpdating={updatingWorkId === work.id}
-              key={work.id}
-              work={work}
-            />
+            <Box key={work.id} style={{ position: 'relative' }}>
+              {selectionMode && (
+                <Checkbox
+                  aria-label={`${work.title} 선택`}
+                  checked={selectedWorkIds.has(work.id)}
+                  onChange={(event) =>
+                    onSelectionChange?.(work.id, event.currentTarget.checked)
+                  }
+                  radius="sm"
+                  style={{
+                    left: 8,
+                    position: 'absolute',
+                    top: 8,
+                    zIndex: 3,
+                  }}
+                />
+              )}
+              <WorkPosterCard
+                isUpdating={updatingWorkId === work.id}
+                work={work}
+              />
+            </Box>
           ))}
         </SimpleGrid>
         {renderProgress}
@@ -114,15 +137,29 @@ export function WorksList({
     <section aria-label="작품 리스트">
       <Stack gap="sm">
         {visibleWorks.map((work, index) => (
-          <WorkListRow
-            isLast={index === visibleWorks.length - 1}
-            isUpdating={updatingWorkId === work.id}
-            key={work.id}
-            onDelete={onDelete}
-            onQuickProgressUpdate={onQuickProgressUpdate}
-            onQuickUpdate={onQuickUpdate}
-            work={work}
-          />
+          <Group align="flex-start" gap="sm" key={work.id} wrap="nowrap">
+            {selectionMode && (
+              <Checkbox
+                aria-label={`${work.title} 선택`}
+                checked={selectedWorkIds.has(work.id)}
+                mt="lg"
+                onChange={(event) =>
+                  onSelectionChange?.(work.id, event.currentTarget.checked)
+                }
+                radius="sm"
+              />
+            )}
+            <Box flex={1} miw={0}>
+              <WorkListRow
+                isLast={index === visibleWorks.length - 1}
+                isUpdating={updatingWorkId === work.id}
+                onDelete={onDelete}
+                onQuickProgressUpdate={onQuickProgressUpdate}
+                onQuickUpdate={onQuickUpdate}
+                work={work}
+              />
+            </Box>
+          </Group>
         ))}
       </Stack>
       {renderProgress}

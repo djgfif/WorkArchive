@@ -72,6 +72,10 @@ export const workTierOptions = WORK_TIERS.map((value) => ({
 
 export const workSortOptions: Array<{ value: WorksSortOption; label: string }> = [
   { value: 'updatedAt', label: '최근 수정' },
+  { value: 'createdAt', label: '추가일' },
+  { value: 'lastConsumedAt', label: '마지막 감상' },
+  { value: 'startedAt', label: '시작일' },
+  { value: 'completedAt', label: '완료일' },
   { value: 'title', label: '제목순' },
   { value: 'rating', label: '별점순' },
 ];

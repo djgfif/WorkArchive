@@ -1,22 +1,79 @@
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Group, Image, Stack, Text, TextInput } from '@mantine/core';
 import type { AuthUserResponse } from '@work-archive/shared-types';
 
 import {
   ActionRow,
   AppBadge,
+  AppButton,
+  FeedbackMessage,
   SectionCard,
   SectionIntro,
 } from '../../../../shared/components/AppPrimitives';
+import {
+  ApiRequestError,
+  updateAuthProfile,
+} from '../../../auth/services/auth.api';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
 
 interface AccountSettingsSectionProps {
   mode: SettingsAuthMode;
+  onUserUpdated(user: AuthUserResponse): void;
   user: AuthUserResponse | null;
+}
+
+const HANDLE_PATTERN = /^[a-z0-9][a-z0-9_]*[a-z0-9]$/;
+const RESERVED_HANDLES = new Set([
+  'admin',
+  'api',
+  'auth',
+  'account',
+  'settings',
+  'works',
+  'sync',
+  'profile',
+]);
+
+function getHandleValidationMessage(handle: string) {
+  if (!handle) {
+    return null;
+  }
+
+  if (
+    handle.length < 3 ||
+    handle.length > 24 ||
+    !HANDLE_PATTERN.test(handle)
+  ) {
+    return 'handle은 3~24자의 영문 소문자, 숫자, 밑줄만 사용할 수 있고 앞뒤 밑줄은 사용할 수 없습니다.';
+  }
+
+  if (RESERVED_HANDLES.has(handle)) {
+    return '예약된 handle입니다. 다른 handle을 입력해 주세요.';
+  }
+
+  return null;
+}
+
+function getProfileUpdateErrorMessage(error: unknown) {
+  if (error instanceof ApiRequestError) {
+    if (error.status === 409) {
+      return '이미 사용 중인 handle입니다.';
+    }
+
+    if (error.status === 400) {
+      return 'handle 형식을 다시 확인해 주세요. 3~24자의 영문 소문자, 숫자, 밑줄만 사용할 수 있습니다.';
+    }
+  }
+
+  return error instanceof Error
+    ? error.message
+    : '프로필을 저장하지 못했습니다.';
 }
 
 export function AccountSettingsSection({
   mode,
+  onUserUpdated,
   user,
 }: AccountSettingsSectionProps) {
   const googleAccount = user?.authAccounts?.find(
@@ -24,8 +81,68 @@ export function AccountSettingsSection({
   );
   const displayName =
     googleAccount?.name || user?.nickname || user?.email || '게스트';
-  const handle = user?.handle ?? '';
   const email = googleAccount?.email ?? user?.email ?? '로그인되지 않음';
+  const [nickname, setNickname] = useState(user?.nickname ?? '');
+  const [handle, setHandle] = useState(user?.handle ?? '');
+  const [feedback, setFeedback] = useState<{
+    message: string;
+    tone: 'error' | 'success';
+  } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setNickname(user?.nickname ?? '');
+    setHandle(user?.handle ?? '');
+    setFeedback(null);
+  }, [user?.handle, user?.id, user?.nickname]);
+
+  const handleValidationMessage = useMemo(
+    () => getHandleValidationMessage(handle),
+    [handle],
+  );
+  const hasChanges =
+    nickname !== (user?.nickname ?? '') || handle !== (user?.handle ?? '');
+  const canSave = mode === 'authenticated' && Boolean(user) && hasChanges;
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!user || !canSave) {
+      return;
+    }
+
+    if (handleValidationMessage) {
+      setFeedback({
+        message: handleValidationMessage,
+        tone: 'error',
+      });
+
+      return;
+    }
+
+    setIsSaving(true);
+    setFeedback(null);
+
+    try {
+      const updatedUser = await updateAuthProfile({
+        handle: handle || null,
+        nickname,
+      });
+
+      onUserUpdated(updatedUser);
+      setFeedback({
+        message: '프로필 변경 사항을 저장했습니다.',
+        tone: 'success',
+      });
+    } catch (error) {
+      setFeedback({
+        message: getProfileUpdateErrorMessage(error),
+        tone: 'error',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <SectionCard>
@@ -80,34 +197,54 @@ export function AccountSettingsSection({
           </Group>
 
           <SectionCard padding="lg" tone="subtle">
-            <Stack gap="md">
-              <SectionIntro
-                description="표시 이름과 handle 저장 API가 아직 연결되지 않았습니다. 현재 값은 계정 정보에서 읽어온 미리보기입니다."
-                eyebrow="편집 준비 중"
-                title="표시 이름과 handle"
-                titleOrder={3}
-              />
-              <Group align="flex-end" grow>
-                <TextInput
-                  label="표시 이름"
-                  placeholder="표시 이름"
-                  defaultValue={displayName}
-                  readOnly
+            <form onSubmit={handleSubmit}>
+              <Stack gap="md">
+                <SectionIntro
+                  description="표시 이름과 handle은 Work Archive 안에서 보이는 프로필 정보입니다. 로그인 방식은 Google 연결만 사용합니다."
+                  eyebrow="프로필 편집"
+                  title="표시 이름과 handle"
+                  titleOrder={3}
                 />
-                <TextInput
-                  label="@handle"
-                  leftSection="@"
-                  placeholder="handle"
-                  defaultValue={handle}
-                  readOnly
-                />
-              </Group>
-              <ActionRow>
-                <AppBadge tone="muted">
-                  프로필 편집은 다음 단계에서 제공됩니다
-                </AppBadge>
-              </ActionRow>
-            </Stack>
+                {feedback && (
+                  <FeedbackMessage tone={feedback.tone}>
+                    {feedback.message}
+                  </FeedbackMessage>
+                )}
+                <Group align="flex-end" grow>
+                  <TextInput
+                    label="표시 이름"
+                    placeholder="표시 이름"
+                    value={nickname}
+                    onChange={(event) => setNickname(event.currentTarget.value)}
+                  />
+                  <TextInput
+                    error={handleValidationMessage}
+                    label="handle"
+                    leftSection="@"
+                    placeholder="handle"
+                    value={handle}
+                    onChange={(event) =>
+                      setHandle(
+                        event.currentTarget.value
+                          .replace(/^@+/, '')
+                          .trim()
+                          .toLowerCase(),
+                      )
+                    }
+                  />
+                </Group>
+                <ActionRow justify="flex-end">
+                  <AppButton
+                    disabled={!canSave}
+                    loading={isSaving}
+                    tone="primary"
+                    type="submit"
+                  >
+                    프로필 변경 저장
+                  </AppButton>
+                </ActionRow>
+              </Stack>
+            </form>
           </SectionCard>
         </Stack>
       )}

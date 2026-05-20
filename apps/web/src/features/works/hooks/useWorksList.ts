@@ -20,6 +20,7 @@ interface WorksListState {
   seriesSuggestions: string[];
   statusCounts: Record<WorkStatus, number>;
   tagSuggestions: string[];
+  recentModifiedWorks: WorkRecord[];
   works: WorkRecord[];
   totalActiveCount: number;
   totalDeletedCount: number;
@@ -44,6 +45,7 @@ const initialState: WorksListState = {
   seriesSuggestions: [],
   statusCounts: buildEmptyStatusCounts(),
   tagSuggestions: [],
+  recentModifiedWorks: [],
   works: [],
   totalActiveCount: 0,
   totalDeletedCount: 0,
@@ -73,6 +75,7 @@ export function useWorksList(
           genreSuggestions,
           organizationContributorSuggestions,
           personContributorSuggestions,
+          recentModifiedWorks,
           seriesSuggestions,
           statusCounts,
           tagSuggestions,
@@ -85,6 +88,7 @@ export function useWorksList(
             genreSuggestions,
             organizationContributorSuggestions,
             personContributorSuggestions,
+            recentModifiedWorks,
             seriesSuggestions,
             statusCounts,
             tagSuggestions,
@@ -101,6 +105,7 @@ export function useWorksList(
             genreSuggestions: [],
             organizationContributorSuggestions: [],
             personContributorSuggestions: [],
+            recentModifiedWorks: [],
             seriesSuggestions: [],
             statusCounts: buildEmptyStatusCounts(),
             tagSuggestions: [],

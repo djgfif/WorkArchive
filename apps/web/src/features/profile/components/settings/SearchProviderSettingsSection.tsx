@@ -34,11 +34,13 @@ interface SearchProviderSettingsSectionProps {
   onDeleteProviderKey: () => void;
   onSaveProviderKey: () => void;
   onSelectProvider: (provider: string) => void;
+  onTestProviderKey: () => void;
   onUpdateCredentialField: (name: string, value: string) => void;
   providerStatuses: ImportProviderStatus[];
   savingProviderId: string | null;
   selectedProvider: ImportProviderStatus | null;
   selectedProviderId: string | null;
+  testingProviderId: string | null;
 }
 
 function cx(...classes: Array<string | false | undefined>) {
@@ -209,11 +211,13 @@ export function SearchProviderSettingsSection({
   onDeleteProviderKey,
   onSaveProviderKey,
   onSelectProvider,
+  onTestProviderKey,
   onUpdateCredentialField,
   providerStatuses,
   savingProviderId,
   selectedProvider,
   selectedProviderId,
+  testingProviderId,
 }: SearchProviderSettingsSectionProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -238,6 +242,8 @@ export function SearchProviderSettingsSection({
   const isDeletingSelected =
     selectedProvider !== null &&
     deletingProviderId === selectedProvider.provider;
+  const isTestingSelected =
+    selectedProvider !== null && testingProviderId === selectedProvider.provider;
 
   return (
     <SectionCard>
@@ -375,7 +381,9 @@ export function SearchProviderSettingsSection({
                         </AppButton>
                         <AppButton
                           disabled={
-                            !selectedProvider.configured || isSavingSelected
+                            !selectedProvider.configured ||
+                            isSavingSelected ||
+                            isTestingSelected
                           }
                           loading={isDeletingSelected}
                           onClick={() => void onDeleteProviderKey()}
@@ -383,6 +391,19 @@ export function SearchProviderSettingsSection({
                           type="button"
                         >
                           {selectedLabel} 키 삭제
+                        </AppButton>
+                        <AppButton
+                          disabled={
+                            !selectedProvider.configured ||
+                            isSavingSelected ||
+                            isDeletingSelected
+                          }
+                          loading={isTestingSelected}
+                          onClick={() => void onTestProviderKey()}
+                          tone="secondary"
+                          type="button"
+                        >
+                          연결 테스트
                         </AppButton>
                       </ActionRow>
                     </Stack>

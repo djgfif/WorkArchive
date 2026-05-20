@@ -18,6 +18,7 @@ import { SettingsOverview } from '../components/settings/SettingsOverview';
 import { useAuthSessionSettings } from '../hooks/useAuthSessionSettings';
 import { useImportProviderSettings } from '../hooks/useImportProviderSettings';
 import { useLocalArchiveSettings } from '../hooks/useLocalArchiveSettings';
+import { useSettingsOverviewStats } from '../hooks/useSettingsOverviewStats';
 
 function DisplaySettingsSection() {
   return (
@@ -38,10 +39,11 @@ function DisplaySettingsSection() {
 }
 
 export function SettingsPage() {
-  const { mode, signOut, user } = useAuthSession();
+  const { archiveScopeKey, mode, signOut, updateUser, user } = useAuthSession();
   const importProviderSettings = useImportProviderSettings(mode);
   const localArchiveSettings = useLocalArchiveSettings();
   const authSessionSettings = useAuthSessionSettings(mode, signOut);
+  const overviewStats = useSettingsOverviewStats(archiveScopeKey);
 
   const sections = [
     {
@@ -51,13 +53,8 @@ export function SettingsPage() {
         <SettingsOverview
           archiveFeedback={localArchiveSettings.archiveFeedback}
           archiveImportPreview={localArchiveSettings.archiveImportPreview}
-          isLoadingProviderStatuses={
-            importProviderSettings.isLoadingProviderStatuses
-          }
-          isLoadingSessions={authSessionSettings.isLoadingSessions}
           mode={mode}
-          providerStatuses={importProviderSettings.providerStatuses}
-          sessions={authSessionSettings.sessions}
+          stats={overviewStats}
           user={user}
         />
       ),
@@ -65,7 +62,13 @@ export function SettingsPage() {
     {
       id: 'account',
       label: '계정',
-      content: <AccountSettingsSection mode={mode} user={user} />,
+      content: (
+        <AccountSettingsSection
+          mode={mode}
+          onUserUpdated={updateUser ?? (() => undefined)}
+          user={user}
+        />
+      ),
     },
     {
       id: 'data-backup',
@@ -99,11 +102,13 @@ export function SettingsPage() {
           onDeleteProviderKey={importProviderSettings.deleteSelectedProviderKey}
           onSaveProviderKey={importProviderSettings.saveSelectedProviderKey}
           onSelectProvider={importProviderSettings.selectProvider}
+          onTestProviderKey={importProviderSettings.testSelectedProviderKey}
           onUpdateCredentialField={importProviderSettings.updateCredentialField}
           providerStatuses={importProviderSettings.providerStatuses}
           savingProviderId={importProviderSettings.savingProviderId}
           selectedProvider={importProviderSettings.selectedProvider}
           selectedProviderId={importProviderSettings.selectedProviderId}
+          testingProviderId={importProviderSettings.testingProviderId}
         />
       ),
     },
