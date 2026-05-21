@@ -30,7 +30,29 @@ Notes:
 | `npm run test --workspace @work-archive/api`                    | Pending |                  |
 | `npm run test --workspace @work-archive/web`                    | Pending |                  |
 | `npm run build`                                                 | Pending |                  |
-| `docker compose -f compose.prod.yml --env-file .env.prod build` | Pending |                  |
+| `scripts/deploy/prod-build.sh`                                  | Pending |                  |
+
+## Scripted Deployment Execution
+
+- [ ] `.env.prod` created on the target host from `.env.prod.example`; secrets were not pasted into this report.
+- [ ] `docker compose -f compose.prod.yml --env-file .env.prod config >/dev/null` passed.
+- [ ] `scripts/deploy/prod-build.sh` passed.
+- [ ] `scripts/deploy/prod-up.sh` started the stack.
+- [ ] `scripts/deploy/prod-healthcheck.sh` passed for `/health`, `/livez`, and `/readyz`.
+- [ ] `scripts/deploy/prod-backup.sh` created a UTC timestamped `.dump` backup.
+- [ ] Backup was copied off-host.
+- [ ] `scripts/deploy/prod-restore.sh.example` was reviewed and restore was performed only on an approved disposable or incident target.
+- [ ] `scripts/deploy/prod-logs.sh` log review found no secrets.
+- [ ] `scripts/deploy/prod-down.sh` rollback/stop command was rehearsed or explicitly marked not required.
+
+Script execution notes:
+
+- Build timestamp/result:
+- Up timestamp/result:
+- Healthcheck base URL:
+- Backup filename:
+- Restore target/result:
+- Operator notes:
 
 ## Production Compose
 

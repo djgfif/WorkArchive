@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# EXAMPLE ONLY.
+# Do not run this file directly against production.
+# Copy the commands you need into an incident ticket or a temporary operator
+# script, replace placeholders, get approval for the restore window, and verify
+# the target is disposable or intentionally being replaced.
+
+echo "This is an example restore procedure only. Read the comments before restoring." >&2
+exit 1
+
+# 1. Select the backup produced by scripts/deploy/prod-backup.sh.
+#    The file should be a pg_dump custom-format .dump file that has already
+#    been copied off-host and integrity-checked.
+#
+#      BACKUP_FILE=/secure/work-archive/work-archive-YYYYMMDDTHHMMSSZ.dump
+#
+# 2. Stop web/API traffic before restoring production. For a rehearsal restore,
+#    use a disposable host or disposable PostgreSQL volume.
+#
+#      scripts/deploy/prod-down.sh
+#
+# 3. Start only PostgreSQL and Redis on the target stack.
+#
+#      docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis
+#
+# 4. Restore with pg_restore. This intentionally cleans existing objects in the
+#    selected target database. Never run this against a database you have not
+#    explicitly approved for replacement.
+#
+#      docker compose -f compose.prod.yml --env-file .env.prod exec -T postgres sh -lc 'pg_restore \
+#        --clean \
+#        --if-exists \
+#        --no-owner \
+#        --no-privileges \
+#        --dbname "$POSTGRES_DB"' < "$BACKUP_FILE"
+#
+# 5. Apply any pending Prisma migrations for the checked-out release. The API
+#    container entrypoint runs `prisma migrate deploy` on startup. If you need to
+#    run it as an explicit reviewed step, use the same compose env file.
+#
+#      docker compose -f compose.prod.yml --env-file .env.prod run --rm api ./node_modules/.bin/prisma migrate deploy --schema /workspace/apps/api/prisma/schema.prisma
+#
+# 6. Start the full stack and verify readiness.
+#
+#      scripts/deploy/prod-up.sh
+#      HEALTHCHECK_BASE_URL=https://archive.example.com scripts/deploy/prod-healthcheck.sh
+#
+# 7. Complete post-restore smoke checks: Google OAuth, sync idempotency, tier
+#    boards, and log redaction. Record the backup filename and result in
+#    docs/deployment/DEPLOYMENT_READINESS_REPORT.md without pasting secrets.

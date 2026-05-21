@@ -16,6 +16,14 @@ Do not add Kafka, Saga orchestration, an API Gateway, Redis general caching, pub
 - Compose file: `compose.prod.yml`
 - Env template: `.env.prod.example`
 - Host-only env file: `.env.prod`
+- Deployment scripts:
+  - `scripts/deploy/prod-build.sh`
+  - `scripts/deploy/prod-up.sh`
+  - `scripts/deploy/prod-down.sh`
+  - `scripts/deploy/prod-logs.sh`
+  - `scripts/deploy/prod-healthcheck.sh`
+  - `scripts/deploy/prod-backup.sh`
+  - `scripts/deploy/prod-restore.sh.example`
 - Readiness report template: `docs/deployment/DEPLOYMENT_READINESS_REPORT.md`
 - Backup policy: `docs/operations/BACKUP_POLICY.md`
 - Runbook: `docs/operations/RUNBOOK.md`
@@ -45,7 +53,7 @@ Required checks:
 Validate compose interpolation:
 
 ```bash
-docker compose -f compose.prod.yml --env-file .env.prod config
+docker compose -f compose.prod.yml --env-file .env.prod config >/dev/null
 ```
 
 ## 2. Build And Start
@@ -53,14 +61,13 @@ docker compose -f compose.prod.yml --env-file .env.prod config
 Build the production images:
 
 ```bash
-docker compose -f compose.prod.yml --env-file .env.prod build
+scripts/deploy/prod-build.sh
 ```
 
 Start the stack:
 
 ```bash
-docker compose -f compose.prod.yml --env-file .env.prod up -d
-docker compose -f compose.prod.yml --env-file .env.prod ps
+scripts/deploy/prod-up.sh
 ```
 
 Expected:
@@ -74,9 +81,9 @@ Expected:
 If the API does not become healthy, check:
 
 ```bash
-docker logs work-archive-api --tail=200
-docker logs work-archive-postgres --tail=100
-docker logs work-archive-redis --tail=100
+TAIL=200 FOLLOW=0 scripts/deploy/prod-logs.sh api
+TAIL=100 FOLLOW=0 scripts/deploy/prod-logs.sh postgres
+TAIL=100 FOLLOW=0 scripts/deploy/prod-logs.sh redis
 ```
 
 ## 3. Health Smoke
@@ -90,9 +97,7 @@ DOMAIN=https://archive.example.com
 Run:
 
 ```bash
-curl -i "$DOMAIN/health"
-curl -i "$DOMAIN/livez"
-curl -i "$DOMAIN/readyz"
+HEALTHCHECK_BASE_URL="$DOMAIN" scripts/deploy/prod-healthcheck.sh
 ```
 
 Expected:
@@ -140,17 +145,7 @@ Smoke:
 Create a backup:
 
 ```bash
-mkdir -p backups
-BACKUP_FILE="backups/work-archive-$(date -u +%Y%m%dT%H%M%SZ).dump"
-
-docker exec work-archive-postgres sh -lc 'pg_dump \
-  -U "$POSTGRES_USER" \
-  -d "$POSTGRES_DB" \
-  --format=custom \
-  --no-owner \
-  --no-privileges' > "$BACKUP_FILE"
-
-ls -lh "$BACKUP_FILE"
+BACKUP_DIR=backups scripts/deploy/prod-backup.sh
 ```
 
 Move it off-host immediately. A backup kept only on the database server does not satisfy rehearsal.
@@ -158,19 +153,25 @@ Move it off-host immediately. A backup kept only on the database server does not
 Restore drill on a disposable rehearsal database or volume:
 
 ```bash
-docker compose -f compose.prod.yml --env-file .env.prod down
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
+
+scripts/deploy/prod-down.sh
 docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis
 
-docker exec -i work-archive-postgres sh -lc 'pg_restore \
+docker compose -f compose.prod.yml --env-file .env.prod exec -T postgres sh -lc 'pg_restore \
   --clean \
   --if-exists \
   --no-owner \
   --no-privileges \
   --dbname "$POSTGRES_DB"' < "$BACKUP_FILE"
 
-docker compose -f compose.prod.yml --env-file .env.prod up -d api web
-curl -i "$DOMAIN/readyz"
+scripts/deploy/prod-up.sh api web
+HEALTHCHECK_BASE_URL="$DOMAIN" scripts/deploy/prod-healthcheck.sh
 ```
+
+`scripts/deploy/prod-restore.sh.example` is intentionally an example only. Use
+it as the reviewed procedure for restore drills or approved incidents; do not
+commit a production restore script with a selected backup path.
 
 Post-restore smoke:
 
@@ -224,8 +225,8 @@ Expected: zero rows.
 Review API and web logs:
 
 ```bash
-docker logs work-archive-api --tail=300
-docker logs work-archive-web --tail=100
+TAIL=300 FOLLOW=0 scripts/deploy/prod-logs.sh api
+TAIL=100 FOLLOW=0 scripts/deploy/prod-logs.sh web
 ```
 
 Must not appear:
@@ -252,11 +253,11 @@ Should appear when relevant:
 Closed beta is ready only when:
 
 - all npm verification commands pass;
-- production docker build passes;
+- `scripts/deploy/prod-build.sh` passes;
 - compose stack boots on the target host;
-- `/health`, `/livez`, and `/readyz` pass;
+- `scripts/deploy/prod-healthcheck.sh` passes for `/health`, `/livez`, and `/readyz`;
 - Google OAuth production login succeeds;
-- backup is created and stored off-host;
+- `scripts/deploy/prod-backup.sh` creates a backup that is stored off-host;
 - restore drill succeeds on a disposable target;
 - tier board smoke passes;
 - sync idempotency smoke passes;
