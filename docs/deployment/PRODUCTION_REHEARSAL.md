@@ -1,0 +1,269 @@
+# Production Rehearsal
+
+Closed beta rehearsal verifies that the existing runtime can be built, started, smoked, backed up, restored, and rolled back without adding new architecture.
+
+Do not add Kafka, Saga orchestration, an API Gateway, Redis general caching, public community features, or email/password login during rehearsal.
+
+## Scope
+
+- Runtime: local-first web app, NestJS API, PostgreSQL, Redis rate limiting, Dexie `syncQueue`.
+- Auth: Google OAuth only.
+- Product smoke: local archive, sync idempotency, and Tier Board Maker.
+- Operations smoke: production compose build/up, health endpoints, backup/restore drill, and log redaction.
+
+## Files
+
+- Compose file: `compose.prod.yml`
+- Env template: `.env.prod.example`
+- Host-only env file: `.env.prod`
+- Readiness report template: `docs/deployment/DEPLOYMENT_READINESS_REPORT.md`
+- Backup policy: `docs/operations/BACKUP_POLICY.md`
+- Runbook: `docs/operations/RUNBOOK.md`
+
+## 1. Production Env Preparation
+
+On the deployment or rehearsal host:
+
+```bash
+cp .env.prod.example .env.prod
+chmod 600 .env.prod
+```
+
+Replace every placeholder in `.env.prod`. Do not commit `.env.prod`.
+
+Required checks:
+
+- `POSTGRES_PASSWORD` is generated and not reused from development.
+- `DATABASE_URL` matches `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`.
+- JWT, external API key encryption, and security event hash secrets are all unique.
+- `CORS_ORIGIN` and `WEB_BASE_URL` use the production HTTPS origin.
+- `RATE_LIMIT_STORE=redis` and `REDIS_URL=redis://redis:6379`.
+- `IMPORT_SERVER_SEARCH_GUEST_ENABLED=false` unless explicitly approved.
+- No OAuth secret, API key, real DB password, token, or cookie value is copied into the readiness report.
+
+Validate compose interpolation:
+
+```bash
+docker compose -f compose.prod.yml --env-file .env.prod config
+```
+
+## 2. Build And Start
+
+Build the production images:
+
+```bash
+docker compose -f compose.prod.yml --env-file .env.prod build
+```
+
+Start the stack:
+
+```bash
+docker compose -f compose.prod.yml --env-file .env.prod up -d
+docker compose -f compose.prod.yml --env-file .env.prod ps
+```
+
+Expected:
+
+- `work-archive-postgres` is healthy.
+- `work-archive-redis` is healthy.
+- `work-archive-api` is healthy.
+- `work-archive-web` is running and exposes `${WEB_PORT:-8080}:80`.
+
+If the API does not become healthy, check:
+
+```bash
+docker logs work-archive-api --tail=200
+docker logs work-archive-postgres --tail=100
+docker logs work-archive-redis --tail=100
+```
+
+## 3. Health Smoke
+
+Set the public origin:
+
+```bash
+DOMAIN=https://archive.example.com
+```
+
+Run:
+
+```bash
+curl -i "$DOMAIN/health"
+curl -i "$DOMAIN/livez"
+curl -i "$DOMAIN/readyz"
+```
+
+Expected:
+
+- `/health`: HTTP 200 and basic service status.
+- `/livez`: HTTP 200 while the API process is alive.
+- `/readyz`: HTTP 200 only when config, PostgreSQL, and Redis are ready.
+
+Failure routing:
+
+- `config`: fix `.env.prod` and restart API.
+- `postgres`: follow `docs/operations/RUNBOOK.md`.
+- `redis`: confirm Redis is used for rate limiting only, then follow the Redis runbook.
+
+## 4. Google OAuth Production Redirect Checklist
+
+Google Cloud Console:
+
+- OAuth client type is Web application.
+- Authorized redirect URI exactly equals `https://archive.example.com/api/auth/google/callback`.
+- No localhost redirect is the only configured production URI.
+- OAuth consent screen is configured for closed beta testers.
+
+`.env.prod`:
+
+- `GOOGLE_OAUTH_CLIENT_ID` matches the production web client.
+- `GOOGLE_OAUTH_CLIENT_SECRET` is present only in `.env.prod` or the host secret store.
+- `GOOGLE_OAUTH_REDIRECT_URI` exactly matches the Google Console URI.
+- `WEB_BASE_URL` is the production HTTPS web origin.
+- `COOKIE_SECURE=true` through `compose.prod.yml`.
+
+Smoke:
+
+1. Open `/auth/login`.
+2. Click the Google login action.
+3. Confirm `/api/auth/google/start` redirects to Google.
+4. Complete login with a beta tester account.
+5. Confirm callback returns to `/auth/google/complete`.
+6. Confirm `/api/auth/me` returns the authenticated user.
+7. Confirm cookies are `HttpOnly`, `Secure`, and not logged.
+8. Confirm email/password registration and reset paths still redirect to login.
+
+## 5. PostgreSQL Backup/Restore Drill
+
+Create a backup:
+
+```bash
+mkdir -p backups
+BACKUP_FILE="backups/work-archive-$(date -u +%Y%m%dT%H%M%SZ).dump"
+
+docker exec work-archive-postgres sh -lc 'pg_dump \
+  -U "$POSTGRES_USER" \
+  -d "$POSTGRES_DB" \
+  --format=custom \
+  --no-owner \
+  --no-privileges' > "$BACKUP_FILE"
+
+ls -lh "$BACKUP_FILE"
+```
+
+Move it off-host immediately. A backup kept only on the database server does not satisfy rehearsal.
+
+Restore drill on a disposable rehearsal database or volume:
+
+```bash
+docker compose -f compose.prod.yml --env-file .env.prod down
+docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis
+
+docker exec -i work-archive-postgres sh -lc 'pg_restore \
+  --clean \
+  --if-exists \
+  --no-owner \
+  --no-privileges \
+  --dbname "$POSTGRES_DB"' < "$BACKUP_FILE"
+
+docker compose -f compose.prod.yml --env-file .env.prod up -d api web
+curl -i "$DOMAIN/readyz"
+```
+
+Post-restore smoke:
+
+- Google login succeeds, or users are asked to log in again if the restore point predates their session.
+- Sync pull returns existing records.
+- New work creation syncs once.
+- Replayed `clientMutationId` is idempotent.
+- Existing tier boards load.
+
+## 6. Tier Board Smoke Checklist
+
+- `/tier-boards` opens with `tierBoards` enabled.
+- New board can be created.
+- Text card can be added.
+- Image URL card can be added.
+- Uploaded image card respects MIME and size validation.
+- Existing work snapshot card can be added.
+- Card can move from pool to lane.
+- Card can move from lane to pool.
+- JSON export succeeds.
+- JSON import creates a board without modifying unrelated works.
+- PNG export succeeds or shows the documented fallback.
+- Linked `WorkRecord` `updatedAt` and `serverVersion` do not change from card movement alone.
+- Public community/share feed remains disabled.
+
+## 7. Sync Idempotency Smoke Checklist
+
+Use a beta test account. Do not paste access tokens or cookies into reports.
+
+- Create one work in the web UI.
+- Trigger sync and capture the local request body only in a secure local scratch file.
+- Re-send the same `/api/sync/push` body with the same `clientMutationId`.
+- Expected result is already applied, not a duplicate create.
+- Confirm no duplicate work row exists.
+- Create one tier board card and repeat the duplicate push test.
+- Confirm no duplicate tier board card row exists.
+- Confirm `user_sync_applied_mutations` has no duplicate `clientMutationId` per user.
+
+Read-only duplicate check:
+
+```bash
+docker exec -it work-archive-postgres sh -lc \
+  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c '\''select "userId", "clientMutationId", count(*) from user_sync_applied_mutations group by 1, 2 having count(*) > 1;'\'''
+```
+
+Expected: zero rows.
+
+## 8. Log Redaction Checklist
+
+Review API and web logs:
+
+```bash
+docker logs work-archive-api --tail=300
+docker logs work-archive-web --tail=100
+```
+
+Must not appear:
+
+- OAuth authorization code
+- OAuth access, ID, or refresh token
+- `Authorization` header value
+- `Cookie` or `Set-Cookie` header value
+- Google OAuth client secret
+- Provider API key
+- PostgreSQL password
+- Raw image data or full data URLs
+
+Should appear when relevant:
+
+- `requestId`
+- safe `errorCode`
+- `sync.push.completed`
+- `health.ready.failed` without secrets
+- `imports.provider.failed` without provider credentials
+
+## 9. Rehearsal Exit Criteria
+
+Closed beta is ready only when:
+
+- all npm verification commands pass;
+- production docker build passes;
+- compose stack boots on the target host;
+- `/health`, `/livez`, and `/readyz` pass;
+- Google OAuth production login succeeds;
+- backup is created and stored off-host;
+- restore drill succeeds on a disposable target;
+- tier board smoke passes;
+- sync idempotency smoke passes;
+- log redaction review passes;
+- readiness report is filled with evidence and owner/date.
+
+Shutdown a disposable rehearsal stack:
+
+```bash
+docker compose -f compose.prod.yml --env-file .env.prod down
+```
+
+Do not remove volumes unless the rehearsal database is intentionally disposable.

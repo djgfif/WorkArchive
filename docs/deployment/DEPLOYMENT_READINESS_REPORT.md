@@ -1,123 +1,132 @@
-# Deployment Readiness Report
+# Deployment Readiness Report Template
 
-Date: 2026-05-21
+Date:
 
-Scope: production rehearsal for the existing Work Archive architecture:
-Google-only auth, local-first Dexie, syncQueue, Tier Board Maker,
-readiness/liveness, sync idempotency, structured logs, Redis rate limiting, and
-provider circuit breaker.
+Release/commit:
 
-Kafka, Saga, API Gateway, Redis general cache, and distributed locks remain out
-of scope.
+Environment:
+
+Operator:
+
+Scope: closed beta production rehearsal for the existing Work Archive architecture: local-first web, NestJS API, PostgreSQL, Redis rate limiting, Google-only auth, Dexie `syncQueue`, and Tier Board Maker.
+
+Out of scope: Kafka, Saga orchestration, API Gateway, Redis general caching, public community/share feed, and email/password login.
+
+## Summary Judgment
+
+Status: Pending / Ready for closed beta / Not ready
+
+Decision owner:
+
+Notes:
 
 ## Automated Verification
 
-| Check | Result | Notes |
+| Check | Result | Evidence / Notes |
 | --- | --- | --- |
-| `npm run typecheck --workspace @work-archive/shared-types` | Pass | Completed on 2026-05-21. |
-| `npm run typecheck --workspace @work-archive/api` | Pass | Completed on 2026-05-21. |
-| `npm run typecheck --workspace @work-archive/web` | Pass | Completed on 2026-05-21. |
-| `npm run test --workspace @work-archive/api` | Pass | 18 suites, 153 tests. |
-| `npm run test --workspace @work-archive/web` | Pass | 30 files, 207 tests. |
-| `npm run build` | Pass | Vite emitted a non-blocking chunk-size warning. |
-| `docker compose -f compose.prod.yml --env-file .env.prod build` | Blocked | Docker was reachable after escalation, but local `.env.prod` is intentionally absent. Create it from `PRODUCTION_ENV_CHECKLIST.md` on the target host; do not commit it. |
+| `npm run typecheck --workspace @work-archive/shared-types` | Pending |  |
+| `npm run typecheck --workspace @work-archive/api` | Pending |  |
+| `npm run typecheck --workspace @work-archive/web` | Pending |  |
+| `npm run test --workspace @work-archive/api` | Pending |  |
+| `npm run test --workspace @work-archive/web` | Pending |  |
+| `npm run build` | Pending |  |
+| `docker compose -f compose.prod.yml --env-file .env.prod build` | Pending |  |
 
-## Production Compose Boot
+## Production Compose
 
-| Item | Result | Evidence |
+| Item | Result | Evidence / Notes |
 | --- | --- | --- |
-| `docker compose -f compose.prod.yml --env-file .env.prod build` | Blocked locally | `.env.prod` was not present in this workspace. |
-| `docker compose -f compose.prod.yml --env-file .env.prod up -d` | Pending |  |
-| `docker compose -f compose.prod.yml --env-file .env.prod ps` | Pending |  |
+| `.env.prod` created from `.env.prod.example` | Pending | Do not paste secret values. |
+| `docker compose config` succeeds | Pending |  |
+| production images build | Pending |  |
+| stack starts with `up -d` | Pending |  |
 | `work-archive-postgres` healthy | Pending |  |
 | `work-archive-redis` healthy | Pending |  |
 | `work-archive-api` healthy | Pending |  |
 | `work-archive-web` running | Pending |  |
 
-## Health Results
+## Health Smoke
 
-| Endpoint | Result | Notes |
+| Endpoint | Result | Evidence / Notes |
 | --- | --- | --- |
-| `/health` | Pending | Backward-compatible health. |
-| `/livez` | Pending | Process liveness only. |
-| `/readyz` | Pending | PostgreSQL and Redis readiness. |
+| `/health` | Pending |  |
+| `/livez` | Pending |  |
+| `/readyz` | Pending |  |
 
-## Google OAuth Results
+## Google OAuth
 
-| Scenario | Result | Notes |
+| Check | Result | Evidence / Notes |
 | --- | --- | --- |
-| Google Console redirect URI registered | Pending | Must match production callback exactly. |
-| `/auth/login` Google button visible | Pending |  |
-| `/api/auth/google/start` redirects to Google | Pending |  |
-| `/api/auth/google/callback` returns to `/auth/google/complete` | Pending |  |
-| refresh cookie issued securely | Pending | Check `Secure`, `HttpOnly`. |
-| `/api/auth/me` succeeds | Pending |  |
-| guest transfer review preserved | Pending |  |
+| Google Console redirect URI exactly matches production callback | Pending |  |
+| `.env.prod` redirect URI exactly matches Google Console | Pending |  |
+| `/auth/login` shows Google-only login | Pending |  |
+| Google start endpoint redirects to Google | Pending |  |
+| callback returns to `/auth/google/complete` | Pending |  |
+| `/api/auth/me` returns authenticated user | Pending |  |
+| cookies are `HttpOnly` and `Secure` | Pending | Do not paste cookie values. |
+| email/password routes remain unavailable | Pending |  |
 
-## DB Backup And Restore
+## Backup And Restore Drill
 
-| Scenario | Result | Notes |
+| Check | Result | Evidence / Notes |
 | --- | --- | --- |
-| `pg_dump | gzip` backup created | Pending | Backup file moved off-host. |
-| restore into clean rehearsal DB | Pending |  |
-| `/readyz` after restore | Pending |  |
-| login/session smoke after restore | Pending |  |
-| sync smoke after restore | Pending |  |
-| tier board smoke after restore | Pending |  |
-
-## Sync Idempotency Smoke
-
-| Entity | Result | Notes |
-| --- | --- | --- |
-| work duplicate `clientMutationId` returns `already_applied` | Pending |  |
-| no duplicate work row | Pending |  |
-| tier board card duplicate `clientMutationId` returns `already_applied` | Pending |  |
-| no duplicate tier board card row | Pending |  |
+| pre-rehearsal backup created | Pending | Filename only; no secrets. |
+| backup copied off-host | Pending | Destination class only. |
+| restore into disposable target succeeds | Pending |  |
+| `/readyz` passes after restore | Pending |  |
+| Google login checked after restore | Pending |  |
+| sync checked after restore | Pending |  |
+| tier boards checked after restore | Pending |  |
 
 ## Tier Board Smoke
 
-| Scenario | Result | Notes |
+| Check | Result | Evidence / Notes |
 | --- | --- | --- |
 | `/tier-boards` opens | Pending |  |
-| new board created | Pending |  |
+| board created | Pending |  |
 | text card added | Pending |  |
 | image URL card added | Pending |  |
 | uploaded image card added | Pending |  |
 | work snapshot card added | Pending |  |
-| pool to lane move | Pending |  |
-| lane to pool move | Pending |  |
-| JSON export/import | Pending |  |
-| PNG export | Pending |  |
-| linked WorkRecord not modified by card movement | Pending | Compare `updatedAt` and `serverVersion`. |
+| pool-to-lane move works | Pending |  |
+| lane-to-pool move works | Pending |  |
+| JSON export/import works | Pending |  |
+| PNG export works or documented fallback appears | Pending |  |
+| linked WorkRecord not modified by movement | Pending |  |
+| public share/community remains disabled | Pending |  |
 
-## Observability Review
+## Sync Idempotency Smoke
 
-| Log sample | Result | Notes |
+| Check | Result | Evidence / Notes |
 | --- | --- | --- |
-| requestId present | Pending |  |
-| `sync.push.completed` present | Pending |  |
-| `sync.push.failed` safe sample reviewed | Pending |  |
-| `auth.google.failed` safe `errorCode` only | Pending |  |
-| `imports.provider.failed` has no API key | Pending |  |
-| `tier_board.import.failed` has no raw image data | Pending |  |
-| no cookie/token/OAuth code in logs | Pending |  |
+| duplicate work `clientMutationId` is already applied | Pending |  |
+| no duplicate work row | Pending |  |
+| duplicate tier board card `clientMutationId` is already applied | Pending |  |
+| no duplicate tier board card row | Pending |  |
+| no duplicate applied mutation row per user/mutation | Pending |  |
 
-## Known Issues
+## Log Redaction Review
 
-- Vite may warn that some chunks are larger than 650 kB after minification. This
-  is not a deployment blocker for closed beta, but code splitting should be
-  revisited before public beta.
-- Provider circuit breaker state is memory-local. It is acceptable for a
-  single-instance beta deployment; use Redis-backed shared state before
-  multi-instance API deployment.
-- Sync conflict handling remains conservative. Idempotency prevents duplicate
-  application but does not add automatic multi-device merge.
+| Check | Result | Evidence / Notes |
+| --- | --- | --- |
+| no OAuth code/token values | Pending |  |
+| no authorization header values | Pending |  |
+| no cookie or refresh token values | Pending |  |
+| no provider API key values | Pending |  |
+| no database password values | Pending |  |
+| no raw image data or full data URLs | Pending |  |
+| safe `errorCode` and `requestId` present where expected | Pending |  |
 
-## Deployment Judgment
+## Open Risks
 
-Current recommended judgment: **closed beta pending successful compose boot,
-OAuth smoke, backup/restore drill, and production sync/tier-board smoke on the
-target host**.
+- 
 
-Public beta should wait until the pending production-host checks above have
-actual evidence recorded.
+## Follow-Up Before Closed Beta
+
+- 
+
+## Approval
+
+Approved by:
+
+Approved at:
