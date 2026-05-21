@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+﻿import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -18,7 +18,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ProgressUnit, WorkStatus, WorkTier, WorkType } from '@prisma/client';
+import { ProgressUnit, WorkStatus, WorkType } from '@prisma/client';
 
 import {
   WORK_SYNC_STATUS_VALUES,
@@ -221,14 +221,6 @@ export class SyncWorkPayloadDto {
   @IsString()
   @MaxLength(10000)
   review!: string;
-
-  @ApiPropertyOptional({
-    enum: WorkTier,
-    nullable: true,
-  })
-  @IsOptional()
-  @IsEnum(WorkTier)
-  tier!: WorkTier | null;
 
   @ApiProperty()
   @IsBoolean()

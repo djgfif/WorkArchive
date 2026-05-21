@@ -1,9 +1,7 @@
 import {
   type WorkStatus,
   type WorkSyncStatus,
-  type WorkTier,
   type WorkType,
-  WORK_TIERS,
   WORK_TYPES,
 } from '@work-archive/shared-types';
 
@@ -35,14 +33,6 @@ export const visibleWorkStatuses = [
   'dropped',
 ] as const satisfies readonly WorkStatus[];
 
-const workTierLabels: Record<WorkTier, string> = {
-  S: 'S',
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-};
-
 const workSyncStatusLabels: Record<WorkSyncStatus, string> = {
   'local-only': '기기에 저장됨',
   pending: '자동 백업 중',
@@ -65,13 +55,12 @@ export const visibleWorkStatusOptions = visibleWorkStatuses.map((value) => ({
   label: workStatusLabels[value],
 }));
 
-export const workTierOptions = WORK_TIERS.map((value) => ({
-  value,
-  label: workTierLabels[value],
-}));
-
 export const workSortOptions: Array<{ value: WorksSortOption; label: string }> = [
   { value: 'updatedAt', label: '최근 수정' },
+  { value: 'createdAt', label: '추가일' },
+  { value: 'lastConsumedAt', label: '마지막 감상' },
+  { value: 'startedAt', label: '시작일' },
+  { value: 'completedAt', label: '완료일' },
   { value: 'title', label: '제목순' },
   { value: 'rating', label: '별점순' },
 ];
@@ -82,10 +71,6 @@ export function getWorkTypeLabel(value: WorkType) {
 
 export function getWorkStatusLabel(value: WorkStatus) {
   return workStatusLabels[value];
-}
-
-export function getWorkTierLabel(value: WorkTier | null) {
-  return value ? workTierLabels[value] : '미지정';
 }
 
 export function getWorkSyncStatusLabel(value: WorkSyncStatus) {

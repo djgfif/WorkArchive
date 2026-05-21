@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
@@ -17,7 +17,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ProgressUnit, WorkStatus, WorkTier, WorkType } from '@prisma/client';
+import { ProgressUnit, WorkStatus, WorkType } from '@prisma/client';
 
 import { NormalizeStringArray, Trim } from '../../works/dto/transformers';
 
@@ -123,14 +123,6 @@ export class CreateUserRecordDto {
   review?: string;
 
   @ApiPropertyOptional({
-    enum: WorkTier,
-    nullable: true,
-  })
-  @IsOptional()
-  @IsEnum(WorkTier)
-  tier?: WorkTier | null;
-
-  @ApiPropertyOptional({
     default: false,
   })
   @IsOptional()
@@ -216,14 +208,6 @@ export class UpdateUserRecordDto {
   @IsString()
   @MaxLength(10000)
   review?: string;
-
-  @ApiPropertyOptional({
-    enum: WorkTier,
-    nullable: true,
-  })
-  @IsOptional()
-  @IsEnum(WorkTier)
-  tier?: WorkTier | null;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -13,7 +13,7 @@ import {
   Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { WorkStatus, WorkTier, WorkType } from '@prisma/client';
+import { WorkStatus, WorkType } from '@prisma/client';
 
 import { NormalizeStringArray, Trim } from './transformers';
 
@@ -132,14 +132,6 @@ export class CreateWorkDto {
   @IsString()
   @MaxLength(10000)
   review?: string;
-
-  @ApiPropertyOptional({
-    enum: WorkTier,
-    nullable: true,
-  })
-  @IsOptional()
-  @IsEnum(WorkTier)
-  tier?: WorkTier | null;
 
   @ApiPropertyOptional({
     example: false,

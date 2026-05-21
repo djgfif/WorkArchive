@@ -1,10 +1,9 @@
-import { Group, SimpleGrid, Text } from '@mantine/core';
+import { Box, Group, Stack, Text, Title } from '@mantine/core';
+import { useLocation } from 'react-router-dom';
 
 import {
   AppBadge,
   AppLinkButton,
-  KeyValueGrid,
-  MetricPill,
   SectionCard,
   SectionIntro,
 } from '../../../shared/components/AppPrimitives';
@@ -12,19 +11,30 @@ import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import { useSyncDashboard } from '../../sync/hooks/useSyncDashboard';
 import { useWorksOverview } from '../../works/hooks/useWorksOverview';
+import styles from './AccountOverviewPage.module.css';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
+
+function cx(...classes: Array<string | undefined>) {
+  return classes.filter(Boolean).join(' ');
+}
 
 function formatAverageRating(value: number | null) {
-  return value === null ? '미평가' : `${value.toFixed(1)}점`;
+  return value === null ? '없음' : `${value.toFixed(1)}점`;
 }
 
 function formatRelativeBackupTime(value: string | null) {
   if (!value) {
-    return '아직 백업 전';
+    return '아직 없음';
   }
 
   const backupTime = new Date(value).getTime();
   if (Number.isNaN(backupTime)) {
-    return '백업 시간 확인 필요';
+    return '확인 필요';
   }
 
   const diffMs = Date.now() - backupTime;
@@ -45,34 +55,104 @@ function formatRelativeBackupTime(value: string | null) {
   return `${Math.floor(diffMonths / 12)}년 전`;
 }
 
+interface OverviewMetricProps {
+  label: string;
+  value: string | number;
+}
+
+function OverviewMetric({ label, value }: OverviewMetricProps) {
+  return (
+    <Box className={cn(css.metricItem)}>
+      <Text className={cn(css.metricValue)}>{value}</Text>
+      <Text className={cn(css.metricLabel)}>{label}</Text>
+    </Box>
+  );
+}
+
+interface StatusLineProps {
+  label: string;
+  tone: 'default' | 'success' | 'warning';
+  value: string;
+}
+
+function StatusLine({ label, tone, value }: StatusLineProps) {
+  return (
+    <Group className={cn(css.statusLine)} gap="sm" justify="space-between" wrap="nowrap">
+      <Group gap="xs" miw={0} wrap="nowrap">
+        <span className={cx(css.statusDot, css[`statusDot_${tone}`])} />
+        <Text className={cn(css.statusLabel)}>{label}</Text>
+      </Group>
+      <Text className={cn(css.statusValue)}>{value}</Text>
+    </Group>
+  );
+}
+
+interface ActionItemProps {
+  action: string;
+  description: string;
+  state?: unknown;
+  title: string;
+  to: string;
+  tone?: 'primary' | 'secondary';
+}
+
+function ActionItem({
+  action,
+  description,
+  state,
+  title,
+  to,
+  tone = 'secondary',
+}: ActionItemProps) {
+  return (
+    <Box className={cn(css.actionItem)}>
+      <Stack gap={3} miw={0}>
+        <Text className={cn(css.actionTitle)}>{title}</Text>
+        <Text className={cn(css.actionDescription)}>{description}</Text>
+      </Stack>
+      <AppLinkButton state={state} to={to} tone={tone}>
+        {action}
+      </AppLinkButton>
+    </Box>
+  );
+}
+
 export function AccountOverviewPage() {
+  const location = useLocation();
   const { mode, user } = useAuthSession();
   const { averageRating, completedCount, totalCount } = useWorksOverview();
   const { conflictItems, failedItems, lastSuccessfulPullAt, pendingItems } =
     useSyncDashboard();
   const isAuthenticated = mode === 'authenticated';
+  const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
   const backupAttentionCount = conflictItems.length + failedItems.length;
   const backupPendingCount = pendingItems.length;
+  const accountLabel = isAuthenticated
+    ? (user?.email ?? '연결된 계정')
+    : '게스트 모드';
   const backupStatus =
     backupAttentionCount > 0
       ? {
-          badge: '오류/확인 필요',
-          description: '자동 백업 중 일부 항목 확인이 필요합니다. 기록 작성은 계속할 수 있습니다.',
+          badge: '확인 필요',
+          description:
+            '일부 백업 항목에 충돌이나 오류가 있습니다. 기록은 계속 작성할 수 있습니다.',
           tone: 'warning' as const,
-          value: '확인이 필요한 항목 있음',
+          value: '검토 필요',
         }
       : backupPendingCount > 0
         ? {
-            badge: '대기',
-            description: '최근 변경 사항을 자동으로 백업하는 중입니다. 오프라인에서도 기록할 수 있습니다.',
+            badge: '대기 중',
+            description:
+              '최근 변경 사항을 동기화하는 중입니다. 오프라인에서도 기록은 유지됩니다.',
             tone: 'info' as const,
-            value: '백업 대기 중',
+            value: '백업 대기',
           }
         : {
             badge: '정상',
-            description: '기록은 안전하게 보관됩니다. 오프라인에서도 먼저 기록하고 나중에 백업됩니다.',
+            description:
+              '로컬 기록을 기준으로 안전하게 보관 중입니다. 로그인하면 자동 백업을 사용할 수 있습니다.',
             tone: 'success' as const,
-            value: '기록은 안전하게 보관됨',
+            value: isAuthenticated ? '보호됨' : '로컬 저장',
           };
 
   return (
@@ -81,97 +161,152 @@ export function AccountOverviewPage() {
       description={
         isAuthenticated
           ? '계정 상태, 자동 백업, 로컬 백업 설정을 한 곳에서 확인합니다.'
-          : '지금은 게스트 모드입니다. 로그인하면 자동 백업과 설정을 이곳에서 관리할 수 있습니다.'
+          : '현재 기기에 저장된 개인 기록과 계정 연결 상태를 확인합니다.'
       }
-      eyebrow="계정 홈"
-      meta={
-        <>
-          <MetricPill label="기록한 작품" value={totalCount} />
-          <MetricPill label="완료" value={completedCount} />
-          <MetricPill label="평균 별점" value={formatAverageRating(averageRating)} />
-        </>
-      }
-      title={isAuthenticated ? '계정 센터' : '계정 안내'}
+      eyebrow="계정"
+      title={isAuthenticated ? '계정 센터' : '개인 기록 센터'}
     >
-      <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
-        <SectionCard>
-          <SectionIntro
-            description={
-              isAuthenticated
-                ? `${user?.email ?? '계정'}으로 사용 중입니다. 기록은 이 기기에 먼저 저장되고 자동 백업됩니다.`
-                : '게스트 모드에서는 이 기기에만 저장됩니다. 로그인하면 자동 백업을 사용할 수 있습니다.'
-            }
-            eyebrow="계정 상태"
-            title={isAuthenticated ? '로그인된 계정' : '게스트 모드'}
-          />
+      <Stack gap="md">
+        <Box className={cn(css.accountHero)}>
+          <Group align="flex-start" justify="space-between" gap="xl" wrap="wrap">
+            <Stack gap="md" className={cn(css.heroCopy)}>
+              <Group gap="sm" wrap="nowrap">
+                <Box className={cn(css.accountMark)} aria-hidden>
+                  {isAuthenticated ? 'A' : 'G'}
+                </Box>
+                <Stack gap={2} miw={0}>
+                  <Text className={cn(css.heroEyebrow)}>
+                    {isAuthenticated ? '연결된 계정' : '로컬 계정'}
+                  </Text>
+                  <Title className={cn(css.heroTitle)} order={2}>
+                    {accountLabel}
+                  </Title>
+                </Stack>
+              </Group>
+              <Text className={cn(css.heroDescription)}>
+                {isAuthenticated
+                  ? '작품 기록은 이 기기에 먼저 저장되고, 계정 백업으로 이어집니다.'
+                  : '로그인 전까지 기록은 이 기기에만 저장됩니다. 필요할 때 계정 연결과 백업을 켤 수 있습니다.'}
+              </Text>
+              <Group gap="xs" wrap="wrap">
+                <AppBadge tone={isAuthenticated ? 'success' : 'muted'}>
+                  {isAuthenticated ? '로그인됨' : '게스트'}
+                </AppBadge>
+                <AppBadge tone={backupStatus.tone}>{backupStatus.badge}</AppBadge>
+              </Group>
+            </Stack>
 
-          {isAuthenticated ? (
-            <AppLinkButton to="/account/settings">계정 설정 보기</AppLinkButton>
-          ) : (
-            <Group gap="sm">
-              <AppLinkButton to="/auth/login">로그인</AppLinkButton>
-              <AppLinkButton to="/auth/login">Google 계정 연결</AppLinkButton>
-            </Group>
-          )}
-        </SectionCard>
-
-        <SectionCard>
-          <SectionIntro
-            description={backupStatus.description}
-            eyebrow="자동 백업"
-            title="자동 백업 상태"
-          />
-
-          <KeyValueGrid
-            items={[
-              {
-                label: '상태',
-                value: backupStatus.value,
-              },
-              {
-                label: '최근 백업',
-                value: formatRelativeBackupTime(lastSuccessfulPullAt),
-              },
-              { label: '오프라인 기록', value: '가능' },
-            ]}
-          />
-
-          <Group gap="xs" wrap="wrap">
-            <AppBadge tone={backupStatus.tone}>{backupStatus.badge}</AppBadge>
-            <AppLinkButton to="/account/settings">백업 설정</AppLinkButton>
+            <Box className={cn(css.metricStrip)} aria-label="기록 지표">
+              <OverviewMetric label="기록한 작품" value={totalCount} />
+              <OverviewMetric label="완료" value={completedCount} />
+              <OverviewMetric
+                label="평균 별점"
+                value={formatAverageRating(averageRating)}
+              />
+            </Box>
           </Group>
-        </SectionCard>
+        </Box>
 
-        <SectionCard>
-          <SectionIntro
-            description="테마, 외부 검색, 로컬 백업과 복구 설정을 관리합니다."
-            eyebrow="설정"
-            title="계정과 백업 관리"
-          />
+        <div className={cn(css.managementGrid)}>
+          <SectionCard className={cn(css.statusPanel)}>
+            <SectionIntro
+              description="계정 연결과 백업 상태를 한 곳에서 확인합니다."
+              eyebrow="상태"
+              title="현재 상태"
+              titleOrder={3}
+            />
 
-          <Group gap="xs" wrap="wrap">
-            <AppBadge tone="muted">테마</AppBadge>
-            <AppBadge tone="muted">백업</AppBadge>
-            <AppBadge tone="muted">계정 정보</AppBadge>
-          </Group>
+            <Stack gap="lg">
+              <Box className={cn(css.statusGroup)}>
+                <Group gap="xs" justify="space-between" wrap="nowrap">
+                  <Text className={cn(css.statusGroupTitle)}>계정</Text>
+                  <AppBadge tone={isAuthenticated ? 'success' : 'muted'}>
+                    {isAuthenticated ? '활성' : '게스트'}
+                  </AppBadge>
+                </Group>
+                <StatusLine
+                  label="연결 상태"
+                  tone={isAuthenticated ? 'success' : 'default'}
+                  value={isAuthenticated ? '로그인됨' : '로컬 전용'}
+                />
+                <StatusLine
+                  label="저장 위치"
+                  tone="success"
+                  value={isAuthenticated ? '로컬 + 계정' : '이 기기'}
+                />
+              </Box>
 
-          <AppLinkButton to="/account/settings">설정 열기</AppLinkButton>
-        </SectionCard>
+              <Box className={cn(css.statusGroup)}>
+                <Group gap="xs" justify="space-between" wrap="nowrap">
+                  <Text className={cn(css.statusGroupTitle)}>백업</Text>
+                  <AppBadge tone={backupStatus.tone}>{backupStatus.badge}</AppBadge>
+                </Group>
+                <Text className={cn(css.statusDescription)}>
+                  {backupStatus.description}
+                </Text>
+                <StatusLine
+                  label="백업 상태"
+                  tone={backupStatus.tone === 'warning' ? 'warning' : 'success'}
+                  value={backupStatus.value}
+                />
+                <StatusLine
+                  label="최근 백업"
+                  tone="default"
+                  value={formatRelativeBackupTime(lastSuccessfulPullAt)}
+                />
+                <StatusLine label="오프라인 기록" tone="success" value="가능" />
+              </Box>
+            </Stack>
+          </SectionCard>
 
-        <SectionCard>
-          <SectionIntro
-            description="기록 요약 화면은 내 작품 수, 완료 수, 평균 별점, 최근 기록을 빠르게 보는 개인용 화면입니다."
-            eyebrow="기록 요약"
-            title="개인 기록 요약"
-          />
+          <SectionCard className={cn(css.workPanel)} tone="subtle">
+            <SectionIntro
+              description="필요한 작업만 바로 실행할 수 있게 정리했습니다."
+              eyebrow="작업"
+              title="빠른 작업"
+              titleOrder={3}
+            />
 
-          <Text c="var(--mantine-color-dimmed)">
-            계정 설정과 개인 기록 요약을 분리해 백업과 설정 흐름을 명확하게 유지합니다.
-          </Text>
-
-          <AppLinkButton to="/profile">기록 요약 보기</AppLinkButton>
-        </SectionCard>
-      </SimpleGrid>
+            <div className={cn(css.actionList)}>
+              {isAuthenticated ? (
+                <ActionItem
+                  action="계정 설정"
+                  description="계정 정보와 로그인 상태를 확인합니다."
+                  title="계정 관리"
+                  to="/account/settings#account"
+                />
+              ) : (
+                <ActionItem
+                  action="로그인"
+                  description="자동 백업과 세션 관리를 활성화합니다."
+                  state={{ returnTo: loginReturnTo }}
+                  title="계정 연결"
+                  to="/auth/login"
+                  tone="primary"
+                />
+              )}
+              <ActionItem
+                action="백업 설정"
+                description="JSON/CSV 백업과 가져오기를 관리합니다."
+                title="데이터와 백업"
+                to="/account/settings#data-backup"
+              />
+              <ActionItem
+                action="설정 열기"
+                description="테마, 검색 소스, API 키, 보안 설정을 조정합니다."
+                title="환경 설정"
+                to="/account/settings"
+              />
+              <ActionItem
+                action="요약 보기"
+                description="작품 수, 완료 수, 평균 별점과 최근 기록을 봅니다."
+                title="기록 요약"
+                to="/profile"
+              />
+            </div>
+          </SectionCard>
+        </div>
+      </Stack>
     </AccountPageTemplate>
   );
 }

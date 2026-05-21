@@ -28,6 +28,9 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
   const [deletingProviderId, setDeletingProviderId] = useState<string | null>(
     null,
   );
+  const [testingProviderId, setTestingProviderId] = useState<string | null>(
+    null,
+  );
   const [providerFeedback, setProviderFeedback] =
     useState<SettingsFeedback | null>(null);
 
@@ -79,7 +82,7 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
             message:
               error instanceof Error
                 ? error.message
-                : '외부 검색 provider 상태를 불러오지 못했습니다.',
+                : '검색 provider 상태를 불러오지 못했습니다.',
           });
         }
       } finally {
@@ -121,7 +124,7 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
     if (missingField) {
       setProviderFeedback({
         tone: 'error',
-        message: `${missingField.label}를 입력해주세요.`,
+        message: `${missingField.label}를 입력해 주세요.`,
       });
 
       return;
@@ -144,7 +147,7 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
       setCredentialDraft({});
       setProviderFeedback({
         tone: 'success',
-        message: `${selectedProvider.label ?? selectedProvider.provider} API Key를 저장했습니다.`,
+        message: `${selectedProvider.label ?? selectedProvider.provider} API key를 저장했습니다.`,
       });
     } catch (error) {
       setProviderFeedback({
@@ -152,7 +155,7 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : `${selectedProvider.label ?? selectedProvider.provider} API Key를 저장하지 못했습니다.`,
+            : `${selectedProvider.label ?? selectedProvider.provider} API key를 저장하지 못했습니다.`,
       });
     } finally {
       setSavingProviderId(null);
@@ -177,7 +180,7 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
       setCredentialDraft({});
       setProviderFeedback({
         tone: 'success',
-        message: `${selectedProvider.label ?? selectedProvider.provider} API Key를 삭제했습니다.`,
+        message: `${selectedProvider.label ?? selectedProvider.provider} API key를 삭제했습니다.`,
       });
     } catch (error) {
       setProviderFeedback({
@@ -185,10 +188,46 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : `${selectedProvider.label ?? selectedProvider.provider} API Key를 삭제하지 못했습니다.`,
+            : `${selectedProvider.label ?? selectedProvider.provider} API key를 삭제하지 못했습니다.`,
       });
     } finally {
       setDeletingProviderId(null);
+    }
+  }
+
+  async function testSelectedProviderKey() {
+    if (!selectedProvider || !selectedProvider.configured) {
+      setProviderFeedback({
+        tone: 'error',
+        message: '저장된 API key가 있는 provider만 연결 테스트를 실행할 수 있습니다.',
+      });
+
+      return;
+    }
+
+    try {
+      setTestingProviderId(selectedProvider.provider);
+      const result = await importsService.testProviderKey(
+        selectedProvider.provider,
+      );
+      const label = selectedProvider.label ?? selectedProvider.provider;
+
+      setProviderFeedback({
+        tone: result.ok ? 'success' : 'error',
+        message: result.ok
+          ? `${label} 연결 테스트에 성공했습니다.`
+          : getProviderKeyTestFailureMessage(result.reason, label),
+      });
+    } catch (error) {
+      setProviderFeedback({
+        tone: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : `${selectedProvider.label ?? selectedProvider.provider} 연결 테스트에 실패했습니다.`,
+      });
+    } finally {
+      setTestingProviderId(null);
     }
   }
 
@@ -205,6 +244,22 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
     selectedProviderId,
     selectProvider,
     deleteSelectedProviderKey,
+    testingProviderId,
+    testSelectedProviderKey,
     updateCredentialField,
   };
+}
+
+function getProviderKeyTestFailureMessage(reason: string | null, label: string) {
+  switch (reason) {
+    case 'missing_key':
+      return `${label}에 저장된 API key가 없습니다.`;
+    case 'unauthorized':
+      return `${label} API key가 provider에서 거부되었습니다. key 값을 다시 확인해 주세요.`;
+    case 'provider_unavailable':
+      return `${label} provider에 일시적으로 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.`;
+    case 'unknown':
+    default:
+      return `${label} 연결 테스트에 실패했습니다.`;
+  }
 }

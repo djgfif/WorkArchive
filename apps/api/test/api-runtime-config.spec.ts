@@ -16,6 +16,8 @@ function resetEnv(overrides: NodeJS.ProcessEnv = {}) {
           SECURITY_EVENT_HASH_SECRET:
             'production-security-event-hash-secret-minimum-32-chars',
           TRUST_PROXY_HOPS: '1',
+          GOOGLE_OAUTH_REDIRECT_URI:
+            'https://workarchive.example.com/api/auth/google/callback',
         }
       : {};
 

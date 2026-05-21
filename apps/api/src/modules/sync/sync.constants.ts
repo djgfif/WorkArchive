@@ -1,4 +1,4 @@
-export const SYNC_SCHEMA_VERSION = 3 as const;
+export const SYNC_SCHEMA_VERSION = 4 as const;
 
 export const SYNC_ENTITY_TYPES = [
   'work',
@@ -9,6 +9,10 @@ export const SYNC_ENTITY_TYPES = [
   'contributor',
   'work_contributor',
   'work_relation',
+  'tier_board',
+  'tier_board_lane',
+  'tier_board_item',
+  'tier_board_asset',
 ] as const;
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number];

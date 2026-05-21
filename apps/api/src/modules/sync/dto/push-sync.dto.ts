@@ -25,6 +25,12 @@ import {
 import type { SyncReleaseRecordPayloadDto } from './sync-release-record-payload.dto';
 import type { SyncSeriesPayloadDto } from './sync-series-payload.dto';
 import type { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
+import type {
+  SyncTierBoardAssetPayloadDto,
+  SyncTierBoardItemPayloadDto,
+  SyncTierBoardLanePayloadDto,
+  SyncTierBoardPayloadDto,
+} from './sync-tier-board-payload.dto';
 import type { SyncContributorPayloadDto } from './sync-contributor-payload.dto';
 import type { SyncWorkContributorPayloadDto } from './sync-work-contributor-payload.dto';
 import type { SyncWorkPayloadDto } from './sync-work-payload.dto';
@@ -72,6 +78,10 @@ export class PushSyncChangeDto {
       { $ref: '#/components/schemas/SyncContributorPayloadDto' },
       { $ref: '#/components/schemas/SyncWorkContributorPayloadDto' },
       { $ref: '#/components/schemas/SyncWorkRelationPayloadDto' },
+      { $ref: '#/components/schemas/SyncTierBoardPayloadDto' },
+      { $ref: '#/components/schemas/SyncTierBoardLanePayloadDto' },
+      { $ref: '#/components/schemas/SyncTierBoardItemPayloadDto' },
+      { $ref: '#/components/schemas/SyncTierBoardAssetPayloadDto' },
     ],
   })
   @IsDefined()
@@ -84,7 +94,11 @@ export class PushSyncChangeDto {
     | SyncWorkSeriesLinkPayloadDto
     | SyncContributorPayloadDto
     | SyncWorkContributorPayloadDto
-    | SyncWorkRelationPayloadDto;
+    | SyncWorkRelationPayloadDto
+    | SyncTierBoardPayloadDto
+    | SyncTierBoardLanePayloadDto
+    | SyncTierBoardItemPayloadDto
+    | SyncTierBoardAssetPayloadDto;
 }
 
 export class PushSyncDto {

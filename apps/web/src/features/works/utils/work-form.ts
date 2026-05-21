@@ -2,7 +2,6 @@ import type {
   WorkImportDraft,
   WorkRecord,
   WorkStatus,
-  WorkTier,
   WorkType,
 } from '@work-archive/shared-types';
 
@@ -27,7 +26,6 @@ export interface WorkFormValues {
   rating: string;
   shortReview: string;
   review: string;
-  tier: WorkTier | '';
   favorite: boolean;
   startedAt: string;
   completedAt: string;
@@ -49,7 +47,6 @@ export interface UpsertWorkInput {
   rating: number | null;
   shortReview: string;
   review: string;
-  tier: WorkTier | null;
   favorite: boolean;
   startedAt?: string | null;
   completedAt?: string | null;
@@ -77,7 +74,6 @@ export function createDefaultWorkFormValues(): WorkFormValues {
     rating: '',
     shortReview: '',
     review: '',
-    tier: '',
     favorite: false,
     startedAt: '',
     completedAt: '',
@@ -151,7 +147,6 @@ export function createWorkFormValuesFromRecord(
     rating: work.rating?.toString() ?? '',
     shortReview: work.shortReview,
     review: work.review,
-    tier: work.tier ?? '',
     favorite: work.favorite,
     startedAt: formatIsoDateForInput(work.startedAt),
     completedAt: formatIsoDateForInput(work.completedAt),
@@ -177,7 +172,6 @@ export function createUpsertWorkInputFromRecord(
     rating: work.rating,
     shortReview: work.shortReview,
     review: work.review,
-    tier: work.tier,
     favorite: work.favorite,
     startedAt: work.startedAt ?? null,
     completedAt: work.completedAt ?? null,
@@ -292,7 +286,6 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
     rating: parsedRating,
     shortReview: values.shortReview.trim(),
     review: values.review.trim(),
-    tier: values.tier || null,
     favorite: values.favorite,
     startedAt: parseOptionalDateInput(values.startedAt, 'startedAt'),
     completedAt: parseOptionalDateInput(values.completedAt, 'completedAt'),

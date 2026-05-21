@@ -439,6 +439,76 @@ describe('ImportsService', () => {
     );
   });
 
+  it('returns a clear provider key test result when no key is stored', async () => {
+    credentialService.getDecryptedCredential.mockResolvedValue(null);
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
+
+    await expect(
+      service.testProviderKey(USER_ID, TMDB_PROVIDER),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        checkedAt: expect.any(String),
+        ok: false,
+        provider: TMDB_PROVIDER,
+        reason: 'missing_key',
+      }),
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('tests a configured provider key with the provider API', async () => {
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        readToken: 'tmdb-read-token',
+      }),
+    );
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        results: [],
+      }),
+    );
+
+    await expect(
+      service.testProviderKey(USER_ID, TMDB_PROVIDER),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        checkedAt: expect.any(String),
+        ok: true,
+        provider: TMDB_PROVIDER,
+        reason: null,
+      }),
+    );
+
+    const fetchCall = jest.mocked(globalThis.fetch).mock.calls[0];
+    const fetchUrl = new URL(String(fetchCall?.[0]));
+    const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
+
+    expect(fetchUrl.searchParams.get('query')).toBe('inception');
+    expect(fetchHeaders.get('authorization')).toBe('Bearer tmdb-read-token');
+  });
+
+  it('classifies provider key test authorization failures without exposing secrets', async () => {
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        clientId: 'naver-client-id',
+        clientSecret: 'naver-client-secret',
+      }),
+    );
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({}, 401));
+
+    const result = await service.testProviderKey(USER_ID, NAVER_BOOK_PROVIDER);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: false,
+        provider: NAVER_BOOK_PROVIDER,
+        reason: 'unauthorized',
+      }),
+    );
+    expect(result.message).not.toContain('naver-client-secret');
+    expect(result.message).not.toContain('naver-client-id');
+  });
+
   it('keeps the legacy Aladin raw key wrapper compatible with generic storage', async () => {
     await service.saveAladinKey(USER_ID, ' ttb-test-key ');
 

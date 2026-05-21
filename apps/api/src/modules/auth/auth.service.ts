@@ -41,6 +41,7 @@ import type {
   PasswordResetRequestResponseDto,
 } from './dto/password-reset-response.dto';
 import type { RegisterDto } from './dto/register.dto';
+import type { UpdateProfileDto } from './dto/update-profile.dto';
 import type {
   AuthTokenKind,
   AuthTokenPayload,
@@ -59,6 +60,16 @@ const GOOGLE_OIDC_ISSUERS: [string, string] = [
   'https://accounts.google.com',
   'accounts.google.com',
 ];
+const RESERVED_HANDLES = new Set([
+  'admin',
+  'api',
+  'auth',
+  'account',
+  'settings',
+  'works',
+  'sync',
+  'profile',
+]);
 const PASSWORD_RESET_SUCCESS_MESSAGE =
   '비밀번호 재설정 요청을 확인했습니다. 계정이 있으면 재설정 링크를 사용할 수 있습니다.';
 const PASSWORD_RESET_CONFIRM_MESSAGE = '비밀번호가 재설정되었습니다.';
@@ -195,6 +206,12 @@ export class AuthService {
     authorizationUrl.searchParams.set('prompt', 'select_account');
 
     return authorizationUrl.toString();
+  }
+
+  isGoogleOAuthConfigured() {
+    const config = readApiRuntimeConfig();
+
+    return Boolean(config.googleOAuthClientId && config.googleOAuthClientSecret);
   }
 
   async loginWithGoogleAuthorizationCode(
@@ -363,6 +380,52 @@ export class AuthService {
     }
 
     return this.toUserResponse(user);
+  }
+
+  async updateProfile(
+    userId: string,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<AuthUserResponseDto> {
+    const handle = updateProfileDto.handle ?? null;
+
+    if (handle && RESERVED_HANDLES.has(handle)) {
+      throw new BadRequestException('Handle is reserved.');
+    }
+
+    if (handle) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: {
+          handle,
+        },
+      });
+
+      if (existingUser && existingUser.id !== userId) {
+        throw new ConflictException('Handle is already in use.');
+      }
+    }
+
+    try {
+      const user = await this.prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          handle,
+          nickname: updateProfileDto.nickname,
+        },
+        include: {
+          authAccounts: true,
+        },
+      });
+
+      return this.toUserResponse(user);
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException('Handle is already in use.');
+      }
+
+      throw error;
+    }
   }
 
   async listRefreshSessions(
@@ -725,6 +788,15 @@ export class AuthService {
 
   private normalizeEmail(email: string) {
     return email.trim().toLowerCase();
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'P2002'
+    );
   }
 
   private toUserResponse(

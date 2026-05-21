@@ -36,7 +36,6 @@ function buildInput(overrides: Partial<WorkRecord> = {}) {
     rating: null,
     shortReview: '',
     review: '',
-    tier: null,
     favorite: false,
     ...overrides,
   };
@@ -120,7 +119,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 3,
+          schemaVersion: 4,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -181,7 +180,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 3,
+          schemaVersion: 4,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -294,7 +293,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 3,
+          schemaVersion: 4,
           processedAt: '2026-04-18T02:00:00.000Z',
           results: [
             {
@@ -386,7 +385,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 3,
+          schemaVersion: 4,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -441,7 +440,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 3,
+          schemaVersion: 4,
           processedAt: '2026-04-18T01:00:00.000Z',
           results: [
             {
@@ -700,7 +699,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 3,
+          schemaVersion: 4,
           pulledAt: '2026-04-18T02:00:00.000Z',
           nextSince: '2026-04-18T01:30:00.000Z',
           changes: [
@@ -766,7 +765,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 3,
+          schemaVersion: 4,
           pulledAt: '2026-04-18T03:00:00.000Z',
           nextSince: '2026-04-18T03:00:00.000Z',
           changes: [
@@ -823,7 +822,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 3,
+          schemaVersion: 4,
           processedAt: '2026-04-18T03:00:00.000Z',
           results: [
             {
@@ -885,7 +884,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 3,
+          schemaVersion: 4,
           pulledAt: '2026-04-18T03:00:00.000Z',
           nextSince: '2026-04-18T03:00:00.000Z',
           changes: [
@@ -975,7 +974,7 @@ describe('SyncService', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         jsonResponse({
-          schemaVersion: 3,
+          schemaVersion: 4,
           pulledAt: '2026-04-18T02:00:00.000Z',
           nextSince: '2026-04-18T01:30:00.000Z',
           changes: [

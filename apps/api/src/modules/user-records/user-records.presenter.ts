@@ -11,7 +11,6 @@ export function toUserWorkRecordView(work: WorkAggregate) {
       rating: work.rating,
       shortReview: work.shortReview,
       review: work.review,
-      tier: work.tier,
       favorite: work.favorite,
       personalTags: work.personalTags,
       progressCurrent: work.progressCurrent,

@@ -21,12 +21,29 @@
   transform: scale(0.98);
 }
 
+.accountMenuDropdown {
+  overflow: hidden;
+  border: 1px solid var(--app-border-default);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--app-surface-card) 96%, var(--app-accent-primary) 4%),
+      color-mix(in srgb, var(--app-surface-subtle) 84%, var(--app-surface-card) 16%)
+    );
+  box-shadow: var(--app-shadow-overlay);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+
 .menuHeader,
 .mobileAccountCard {
   border: 1px solid var(--app-border-subtle);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012)),
-    var(--app-surface-subtle);
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--app-accent-primary) 9%, transparent), transparent 42%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--app-surface-card) 82%, transparent),
+      color-mix(in srgb, var(--app-surface-subtle) 92%, var(--app-surface-card) 8%)
+    );
 }
 
 .menuHeader {
@@ -38,6 +55,41 @@
 .mobileAccountCard {
   padding: 0.75rem;
   border-radius: var(--mantine-radius-lg);
+}
+
+.accountMenuItem {
+  min-height: 2.35rem;
+  margin-block: 2px;
+  border: 1px solid transparent;
+  color: var(--app-text-secondary);
+  font-weight: 650;
+}
+
+.accountMenuItem:hover,
+.accountMenuItem[data-hovered] {
+  border-color: var(--app-border-subtle);
+  background: color-mix(in srgb, var(--app-accent-primary) 9%, var(--app-surface-card));
+  color: var(--app-text-primary);
+}
+
+.themeToggleWrap :global(.mantine-Button-root) {
+  min-height: 2.35rem;
+  justify-content: flex-start;
+  border: 1px solid transparent;
+  border-radius: var(--mantine-radius-md);
+  color: var(--app-text-secondary);
+  font-weight: 650;
+  transition:
+    background var(--wa-motion-fast),
+    border-color var(--wa-motion-fast),
+    color var(--wa-motion-fast);
+}
+
+.themeToggleWrap :global(.mantine-Button-root:hover),
+.themeToggleWrap :global(.mantine-Button-root:focus-visible) {
+  border-color: var(--app-border-subtle);
+  background: color-mix(in srgb, var(--app-accent-primary) 9%, var(--app-surface-card));
+  color: var(--app-text-primary);
 }
 
 .statusDot {

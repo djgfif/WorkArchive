@@ -51,6 +51,7 @@ interface WorksListResult {
   seriesSuggestions: string[];
   statusCounts: Record<WorkStatus, number>;
   tagSuggestions: string[];
+  recentModifiedWorks: WorkRecord[];
   totalActiveCount: number;
   totalDeletedCount: number;
   works: WorkRecord[];
@@ -197,6 +198,13 @@ export class WorksService {
       tagSuggestions: Array.from(
         new Set(activeWorks.flatMap((work) => getPersonalTags(work.personalTags))),
       ).sort((left, right) => left.localeCompare(right)),
+      recentModifiedWorks: [...activeWorks]
+        .sort(
+          (left, right) =>
+            new Date(right.updatedAt).getTime() -
+            new Date(left.updatedAt).getTime(),
+        )
+        .slice(0, 8),
       totalActiveCount: activeWorks.length,
       totalDeletedCount: deletedWorks.length,
       works: queryWorks(worksInScope, query, graphIndex),

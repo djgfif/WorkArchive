@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -44,10 +45,8 @@ import {
 } from '../utils/work-form';
 import {
   getWorkStatusLabel,
-  getWorkTierLabel,
   getWorkTypeLabel,
   workStatusOptions,
-  workTierOptions,
   workTypeOptions,
 } from '../utils/work-options';
 import {
@@ -56,6 +55,10 @@ import {
   StarRatingInput,
   WorkPoster,
 } from './ArchiveComponents';
+import { DuplicateWorkCandidatesCard } from './DuplicateWorkCandidatesCard';
+import { useDuplicateWorkCandidates } from '../hooks/useDuplicateWorkCandidates';
+import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
+import { useWorkFormDraft } from '../hooks/useWorkFormDraft';
 import styles from './ArchiveComponents.module.css';
 
 const REVIEW_FOCUS_DESCRIPTION_ID = 'work-form-review-focus-description';
@@ -113,23 +116,44 @@ function validateWorkForm(values: WorkFormValues) {
 
 interface WorkFormProps {
   cancelTo: string;
+  catalogTitleId?: string | null;
+  currentWorkId?: string | null;
+  draftKey?: string | null;
   focusArea?: 'general' | 'review';
   initialValues?: WorkFormValues;
   isSubmitting: boolean;
   onSubmit: (input: UpsertWorkInput) => Promise<void>;
+  organizationContributorSuggestions?: string[];
+  personContributorSuggestions?: string[];
+  seriesSuggestions?: string[];
   submitError: string | null;
   submitLabel: string;
   tagSuggestions?: string[];
 }
 
 type WorkFormInput = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+type WorkFormListFieldName =
+  | 'creatorText'
+  | 'genresText'
+  | 'personalTagsText'
+  | 'platformText'
+  | 'publisherText'
+  | 'seriesText'
+  | 'studioText'
+  | 'universeText';
 
 export function WorkForm({
   cancelTo,
+  catalogTitleId = null,
+  currentWorkId = null,
+  draftKey = null,
   focusArea = 'general',
   initialValues,
   isSubmitting,
   onSubmit,
+  organizationContributorSuggestions = [],
+  personContributorSuggestions = [],
+  seriesSuggestions = [],
   submitError,
   submitLabel,
   tagSuggestions = [],
@@ -148,16 +172,38 @@ export function WorkForm({
     ],
   });
   const values = form.values;
+  const hasSeriesRelation =
+    values.seriesText.trim() !== '' || values.universeText.trim() !== '';
   const [activeStep, setActiveStep] = useState(
     focusArea === 'review' ? REVIEW_STEP_INDEX : 0,
   );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [isSeriesWork, setIsSeriesWork] = useState(hasSeriesRelation);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const reviewSectionRef = useRef<HTMLDivElement | null>(null);
   const shortReviewInputRef = useRef<HTMLTextAreaElement | null>(null);
   const reviewInputRef = useRef<HTMLTextAreaElement | null>(null);
   const hasFocusedReviewRef = useRef(false);
+  const defaultDraftBaseline = useMemo(() => createDefaultWorkFormValues(), []);
+  const draft = useWorkFormDraft({
+    baselineValues: initialValues ?? defaultDraftBaseline,
+    draftKey,
+    onRestore: (draftValues) => {
+      form.setValues(draftValues);
+      form.clearErrors();
+      setTitleError(null);
+      setValidationError(null);
+    },
+    values,
+  });
+  const duplicateCandidates = useDuplicateWorkCandidates({
+    catalogTitleId,
+    currentWorkId,
+    title: values.title,
+    type: values.type,
+  });
+  useUnsavedChangesWarning(draft.isDirty && !isSubmitting);
 
   useEffect(() => {
     const nextValues = initialValues ?? createDefaultWorkFormValues();
@@ -173,10 +219,19 @@ export function WorkForm({
     form.clearErrors();
     setTitleError(null);
     setValidationError(null);
+    setIsSeriesWork(
+      nextValues.seriesText.trim() !== '' || nextValues.universeText.trim() !== '',
+    );
     // The Mantine form instance is intentionally excluded; this effect only
     // reconciles external initialValues changes into the existing form.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValues]);
+
+  useEffect(() => {
+    if (hasSeriesRelation) {
+      setIsSeriesWork(true);
+    }
+  }, [hasSeriesRelation]);
 
   useEffect(() => {
     if (focusArea !== 'review') {
@@ -192,6 +247,12 @@ export function WorkForm({
   const personalTagValues = parseCommaSeparatedTextList(
     values.personalTagsText,
   );
+  const seriesValues = parseCommaSeparatedTextList(values.seriesText);
+  const universeValues = parseCommaSeparatedTextList(values.universeText);
+  const creatorValues = parseCommaSeparatedTextList(values.creatorText);
+  const studioValues = parseCommaSeparatedTextList(values.studioText);
+  const publisherValues = parseCommaSeparatedTextList(values.publisherText);
+  const platformValues = parseCommaSeparatedTextList(values.platformText);
   const posterUrl = values.thumbnailUrl.trim();
   const ratingValue =
     values.rating.trim() === '' ? null : Number.parseFloat(values.rating);
@@ -207,10 +268,13 @@ export function WorkForm({
   const mobileActionSummary = values.title.trim()
     ? `${values.title.trim()} 저장 준비`
     : '제목을 입력하면 저장할 수 있습니다.';
+  const uniqueOrganizationSuggestions = Array.from(
+    new Set(organizationContributorSuggestions),
+  );
+  const uniquePersonSuggestions = Array.from(new Set(personContributorSuggestions));
+  const uniqueSeriesSuggestions = Array.from(new Set(seriesSuggestions));
   const uniqueTagSuggestions = Array.from(new Set(tagSuggestions));
   const previewTags = [...genreValues, ...personalTagValues].slice(0, 3);
-  const tierOptions = [{ label: '미지정', value: '' }, ...workTierOptions];
-
   useEffect(() => {
     if (focusArea !== 'review' || hasFocusedReviewRef.current) {
       return;
@@ -267,7 +331,7 @@ export function WorkForm({
   }
 
   function handleTextListChange(
-    name: 'genresText' | 'personalTagsText',
+    name: WorkFormListFieldName,
     items: string[],
   ) {
     form.setFieldValue(name, formatTextListForWorkForm(items));
@@ -306,6 +370,7 @@ export function WorkForm({
       }
 
       await onSubmit(parseWorkFormValues(values));
+      draft.clearDraft();
     } catch (error) {
       setValidationError(
         error instanceof Error ? error.message : '작품을 저장하지 못했습니다.',
@@ -315,6 +380,31 @@ export function WorkForm({
 
   return (
     <form onSubmit={handleSubmit}>
+      {draft.pendingDraft && (
+        <FeedbackMessage title="임시작성 있음" tone="info">
+          <ActionRow justify="space-between">
+            <Text c="inherit">이전에 작성하던 내용이 있습니다.</Text>
+            <ActionRow justify="flex-end">
+              <AppButton
+                onClick={draft.applyDraft}
+                size="compact-sm"
+                tone="secondary"
+                type="button"
+              >
+                이어서 작성하기
+              </AppButton>
+              <AppButton
+                onClick={draft.clearDraft}
+                size="compact-sm"
+                tone="ghost"
+                type="button"
+              >
+                임시작성 삭제
+              </AppButton>
+            </ActionRow>
+          </ActionRow>
+        </FeedbackMessage>
+      )}
       <Grid align="start" gutter="xl">
         <Grid.Col span={{ base: 12, lg: 8 }}>
           <Stack gap="xl">
@@ -400,14 +490,6 @@ export function WorkForm({
                           value={values.status}
                         />
                       </SimpleGrid>
-
-                      <SegmentedChoiceGroup
-                        aria-label="개인 티어"
-                        label="티어"
-                        onChange={(value) => handleValueChange('tier', value)}
-                        options={tierOptions}
-                        value={values.tier}
-                      />
 
                       <Checkbox
                         checked={values.favorite}
@@ -523,24 +605,47 @@ export function WorkForm({
                     label="시리즈 / 관계"
                   >
                     <Stack gap="lg" pt="md">
+                      <Checkbox
+                        checked={isSeriesWork}
+                        description="시리즈나 세계관으로 묶이는 작품일 때만 관련 정보를 입력합니다."
+                        label="시리즈 작품"
+                        onChange={(event) => {
+                          const checked = event.currentTarget.checked;
+                          setIsSeriesWork(checked);
+
+                          if (!checked) {
+                            form.setFieldValue('seriesText', '');
+                            form.setFieldValue('universeText', '');
+                          }
+                        }}
+                      />
+
+                      {isSeriesWork && (
                       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                        <TextInput
+                        <TagsInput
+                          clearable
+                          data={uniqueSeriesSuggestions}
                           id="seriesText"
                           label="시리즈"
                           name="seriesText"
-                          onChange={handleInputChange}
+                          onChange={(items) => handleTextListChange('seriesText', items)}
                           placeholder="예: Fate, 해리포터, 귀멸의 칼날"
-                          value={values.seriesText}
+                          splitChars={[',']}
+                          value={seriesValues}
                         />
-                        <TextInput
+                        <TagsInput
+                          clearable
+                          data={uniqueSeriesSuggestions}
                           id="universeText"
                           label="세계관 / 프랜차이즈"
                           name="universeText"
-                          onChange={handleInputChange}
+                          onChange={(items) => handleTextListChange('universeText', items)}
                           placeholder="예: TYPE-MOON, Wizarding World"
-                          value={values.universeText}
+                          splitChars={[',']}
+                          value={universeValues}
                         />
                       </SimpleGrid>
+                      )}
                     </Stack>
                   </Stepper.Step>
 
@@ -550,37 +655,49 @@ export function WorkForm({
                   >
                     <Stack gap="lg" pt="md">
                       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                        <TextInput
+                        <TagsInput
+                          clearable
+                          data={uniquePersonSuggestions}
                           id="creatorText"
                           label="작가 / 원작자 / 감독"
                           name="creatorText"
-                          onChange={handleInputChange}
+                          onChange={(items) => handleTextListChange('creatorText', items)}
                           placeholder="여러 명은 쉼표로 구분"
-                          value={values.creatorText}
+                          splitChars={[',']}
+                          value={creatorValues}
                         />
-                        <TextInput
+                        <TagsInput
+                          clearable
+                          data={uniqueOrganizationSuggestions}
                           id="studioText"
                           label="스튜디오 / 제작사"
                           name="studioText"
-                          onChange={handleInputChange}
+                          onChange={(items) => handleTextListChange('studioText', items)}
                           placeholder="예: ufotable, MAPPA"
-                          value={values.studioText}
+                          splitChars={[',']}
+                          value={studioValues}
                         />
-                        <TextInput
+                        <TagsInput
+                          clearable
+                          data={uniqueOrganizationSuggestions}
                           id="publisherText"
                           label="출판사"
                           name="publisherText"
-                          onChange={handleInputChange}
+                          onChange={(items) => handleTextListChange('publisherText', items)}
                           placeholder="예: Shueisha, Bloomsbury"
-                          value={values.publisherText}
+                          splitChars={[',']}
+                          value={publisherValues}
                         />
-                        <TextInput
+                        <TagsInput
+                          clearable
+                          data={uniqueOrganizationSuggestions}
                           id="platformText"
                           label="플랫폼"
                           name="platformText"
-                          onChange={handleInputChange}
+                          onChange={(items) => handleTextListChange('platformText', items)}
                           placeholder="예: 문피아, Netflix"
-                          value={values.platformText}
+                          splitChars={[',']}
+                          value={platformValues}
                         />
                       </SimpleGrid>
                     </Stack>
@@ -761,6 +878,8 @@ export function WorkForm({
               </Stack>
             </SectionCard>
 
+            <DuplicateWorkCandidatesCard candidates={duplicateCandidates} />
+
             {(validationError || submitError) && (
               <FeedbackMessage tone="error">
                 {validationError ?? submitError}
@@ -779,6 +898,15 @@ export function WorkForm({
               <AppLinkButton to={cancelTo} tone="quiet">
                 취소
               </AppLinkButton>
+              {draft.saveStatus === 'saving' && (
+                <AppBadge tone="muted">임시저장 중</AppBadge>
+              )}
+              {draft.saveStatus === 'saved' && (
+                <AppBadge tone="success">임시저장됨</AppBadge>
+              )}
+              {draft.saveStatus === 'restored' && (
+                <AppBadge tone="accent">임시작성 복구됨</AppBadge>
+              )}
             </ActionRow>
           </Stack>
         </Grid.Col>
@@ -823,12 +951,6 @@ export function WorkForm({
                   )}
                 </ActionRow>
 
-                {values.tier && (
-                  <MetricPill
-                    label="개인 티어"
-                    value={getWorkTierLabel(values.tier)}
-                  />
-                )}
                 <MetricPill
                   label="감상 길이"
                   value={
@@ -869,6 +991,9 @@ export function WorkForm({
             <AppLinkButton to={cancelTo} tone="quiet">
               취소
             </AppLinkButton>
+            {draft.saveStatus === 'saved' && (
+              <AppBadge tone="success">임시저장됨</AppBadge>
+            )}
           </ActionRow>
         </SectionCard>
       </Affix>

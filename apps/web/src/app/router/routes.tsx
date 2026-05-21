@@ -12,6 +12,8 @@ import { LoginPage } from '../../features/auth/pages/LoginPage';
 import { HomePage } from '../../features/home/pages/HomePage';
 import { AccountOverviewPage } from '../../features/profile/pages/AccountOverviewPage';
 import { ProfilePage } from '../../features/profile/pages/ProfilePage';
+import { TierBoardEditorPage } from '../../features/tier-boards/pages/TierBoardEditorPage';
+import { TierBoardsPage } from '../../features/tier-boards/pages/TierBoardsPage';
 import { SettingsPage } from '../../features/profile/pages/SettingsPage';
 import { WorkCreatePage } from '../../features/works/pages/WorkCreatePage';
 import { WorkDetailPage } from '../../features/works/pages/WorkDetailPage';
@@ -45,6 +47,14 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'works/:id/edit',
         element: <WorkEditPage />,
+      },
+      {
+        path: 'tier-boards',
+        element: <TierBoardsPage />,
+      },
+      {
+        path: 'tier-boards/:boardId',
+        element: <TierBoardEditorPage />,
       },
       {
         path: 'profile',
@@ -95,10 +105,6 @@ export const appRoutes: RouteObject[] = [
         element: <SettingsPage />,
       },
     ],
-  },
-  {
-    path: '/tier-boards',
-    element: <Navigate replace to="/works" />,
   },
   {
     path: '/community',

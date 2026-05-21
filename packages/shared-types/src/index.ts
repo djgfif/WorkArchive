@@ -16,6 +16,10 @@ export const SYNC_ENTITY_TYPES = [
   'contributor',
   'work_contributor',
   'work_relation',
+  'tier_board',
+  'tier_board_lane',
+  'tier_board_item',
+  'tier_board_asset',
 ] as const;
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number];
@@ -145,6 +149,20 @@ export interface ImportProviderStatus {
   provider: string;
 }
 
+export type ImportProviderKeyTestFailureReason =
+  | 'missing_key'
+  | 'provider_unavailable'
+  | 'unauthorized'
+  | 'unknown';
+
+export interface ImportProviderKeyTestResponse {
+  checkedAt: ISODateString;
+  message: string;
+  ok: boolean;
+  provider: string;
+  reason: ImportProviderKeyTestFailureReason | null;
+}
+
 export interface ImportProviderCredentialField {
   description?: string;
   label: string;
@@ -191,10 +209,6 @@ export const WORK_STATUSES = [
 
 export type WorkStatus = (typeof WORK_STATUSES)[number];
 
-export const WORK_TIERS = ['S', 'A', 'B', 'C', 'D'] as const;
-
-export type WorkTier = (typeof WORK_TIERS)[number];
-
 export const WORK_SYNC_STATUSES = [
   'local-only',
   'pending',
@@ -231,6 +245,11 @@ export interface AuthCredentialsRequest {
   email: string;
   password: string;
   rememberMe?: boolean;
+}
+
+export interface UpdateAuthProfileRequest {
+  handle: string | null;
+  nickname: string;
 }
 
 export interface AuthSessionResponse {
@@ -452,7 +471,6 @@ export interface WorkRecord extends AuditFields {
   rating: number | null;
   shortReview: string;
   review: string;
-  tier: WorkTier | null;
   favorite: boolean;
   progressCurrent?: number | null;
   progressTotal?: number | null;
@@ -465,6 +483,90 @@ export interface WorkRecord extends AuditFields {
   deletedAt: ISODateString | null;
   syncStatus: WorkSyncStatus;
   serverVersion: number;
+}
+
+export const TIER_BOARD_LAYOUTS = ['classic', 'compact', 'gallery'] as const;
+
+export type TierBoardLayout = (typeof TIER_BOARD_LAYOUTS)[number];
+
+export const TIER_BOARD_VISIBILITIES = ['private', 'exported'] as const;
+
+export type TierBoardVisibility = (typeof TIER_BOARD_VISIBILITIES)[number];
+
+export const TIER_BOARD_ITEM_SOURCE_TYPES = [
+  'custom',
+  'image',
+  'url',
+  'work_ref',
+  'catalog_ref',
+] as const;
+
+export type TierBoardItemSourceType =
+  (typeof TIER_BOARD_ITEM_SOURCE_TYPES)[number];
+
+export const TIER_BOARD_ASSET_KINDS = ['image'] as const;
+
+export type TierBoardAssetKind = (typeof TIER_BOARD_ASSET_KINDS)[number];
+
+export const TIER_BOARD_ASSET_STORAGE_TYPES = [
+  'local_blob',
+  'remote_url',
+] as const;
+
+export type TierBoardAssetStorageType =
+  (typeof TIER_BOARD_ASSET_STORAGE_TYPES)[number];
+
+export interface TierBoardRecord extends AuditFields {
+  id: EntityId;
+  title: string;
+  description: string;
+  layout: TierBoardLayout;
+  visibility: TierBoardVisibility;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
+export interface TierBoardLaneRecord extends AuditFields {
+  id: EntityId;
+  boardId: EntityId;
+  label: string;
+  description: string;
+  color: string;
+  orderIndex: number;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
+export interface TierBoardItemRecord extends AuditFields {
+  id: EntityId;
+  boardId: EntityId;
+  laneId: EntityId | null;
+  sourceType: TierBoardItemSourceType;
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  note: string;
+  linkedWorkId: EntityId | null;
+  linkedCatalogTitleId: EntityId | null;
+  orderIndex: number;
+  deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
+}
+
+export interface TierBoardAssetRecord extends AuditFields {
+  id: EntityId;
+  boardId: EntityId;
+  itemId: EntityId | null;
+  kind: TierBoardAssetKind;
+  storageType: TierBoardAssetStorageType;
+  objectUrl: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  deletedAt: ISODateString | null;
 }
 
 export const TIMELINE_ENTRY_TYPES = [
@@ -610,7 +712,6 @@ export interface UserRecordView {
     shortReview: string;
     status: WorkStatus;
     syncStatus: WorkSyncStatus;
-    tier: WorkTier | null;
     updatedAt: ISODateString;
   };
 }
@@ -712,9 +813,13 @@ export type SyncQueuePayload =
   | WorkSeriesLinkRecord
   | ContributorRecord
   | WorkContributorRecord
-  | WorkRelationRecord;
+  | WorkRelationRecord
+  | TierBoardRecord
+  | TierBoardLaneRecord
+  | TierBoardItemRecord
+  | TierBoardAssetRecord;
 
-export const SYNC_SCHEMA_VERSION = 3 as const;
+export const SYNC_SCHEMA_VERSION = 4 as const;
 
 export type SyncSchemaVersion = typeof SYNC_SCHEMA_VERSION;
 
@@ -751,6 +856,9 @@ export const SYNC_QUEUE_SOURCES = [
   'contributor_update',
   'work_contributor_update',
   'work_relation_update',
+  'tier_board_update',
+  'tier_board_import',
+  'tier_board_asset_update',
   'archive_migration',
   'unknown',
 ] as const;
@@ -779,6 +887,10 @@ export interface PushSyncResult {
   queueId: EntityId;
   releaseRecord?: UserReleaseRecord | null;
   series?: SeriesRecord | null;
+  tierBoard?: TierBoardRecord | null;
+  tierBoardLane?: TierBoardLaneRecord | null;
+  tierBoardItem?: TierBoardItemRecord | null;
+  tierBoardAsset?: TierBoardAssetRecord | null;
   timelineEntry?: TimelineEntryRecord | null;
   workContributor?: WorkContributorRecord | null;
   workRelation?: WorkRelationRecord | null;
@@ -808,6 +920,10 @@ export interface PullSyncChange {
   contributor?: ContributorRecord;
   releaseRecord?: UserReleaseRecord;
   series?: SeriesRecord;
+  tierBoard?: TierBoardRecord;
+  tierBoardLane?: TierBoardLaneRecord;
+  tierBoardItem?: TierBoardItemRecord;
+  tierBoardAsset?: TierBoardAssetRecord;
   timelineEntry?: TimelineEntryRecord;
   work?: WorkRecord;
   workContributor?: WorkContributorRecord;

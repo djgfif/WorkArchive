@@ -22,6 +22,7 @@ import {
 } from '@mantine/core';
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -59,7 +60,13 @@ import {
   getVisibleSearchCandidates,
   type ProviderGroup,
 } from './quick-add-helpers';
+import { DuplicateWorkCandidatesCard } from './DuplicateWorkCandidatesCard';
+import { findDuplicateWorkCandidates } from '../hooks/useDuplicateWorkCandidates';
+import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
+import { useWorkFormDraft } from '../hooks/useWorkFormDraft';
 import { worksRepository } from '../services/works.repository';
+import { worksService } from '../services/works.service';
+import { DEFAULT_WORKS_LIST_QUERY } from '../utils/query-works';
 import {
   createDefaultWorkFormValues,
   formatTextListForWorkForm,
@@ -68,7 +75,6 @@ import {
   type UpsertWorkInput,
   type WorkFormValues,
 } from '../utils/work-form';
-import { getPersonalTags } from '../utils/graph-tags';
 import { workStatusOptions, workTypeOptions } from '../utils/work-options';
 
 const css = styles as Record<string, string>;
@@ -78,6 +84,7 @@ function cn(value: string | undefined) {
 }
 
 interface AddWorkFlowProps {
+  draftKey?: string | null;
   isSubmitting: boolean;
   onSubmit: (input: UpsertWorkInput) => Promise<void>;
   onCancel?: () => void;
@@ -97,6 +104,16 @@ type WorkFormInputChangeHandler = (
     HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
   >,
 ) => void;
+
+type WorkFormListFieldName =
+  | 'creatorText'
+  | 'genresText'
+  | 'personalTagsText'
+  | 'platformText'
+  | 'publisherText'
+  | 'seriesText'
+  | 'studioText'
+  | 'universeText';
 
 function getFieldId(idPrefix: string, fieldName: string) {
   if (!idPrefix) {
@@ -280,6 +297,17 @@ function CoreWorkFields({
           ))}
         </NativeSelect>
 
+        <div className={cn(css.gridSpanFull)}>
+          <TextInput
+            description="오른쪽 미리보기에 바로 반영됩니다. 비워두면 제목과 유형 기반의 기본 표지를 사용합니다."
+            id={getFieldId(idPrefix, 'thumbnailUrl')}
+            label="표지 이미지 주소"
+            name="thumbnailUrl"
+            onChange={onChange}
+            placeholder="https://example.com/cover.jpg"
+            value={values.thumbnailUrl}
+          />
+        </div>
       </SimpleGrid>
     </Stack>
   );
@@ -347,10 +375,11 @@ interface AdvancedWorkFieldsProps {
   idPrefix?: string;
   itemValue: string;
   onInputChange: WorkFormInputChangeHandler;
-  onTextListChange: (
-    name: 'genresText' | 'personalTagsText',
-    values: string[],
-  ) => void;
+  onSeriesFieldsClear: () => void;
+  onTextListChange: (name: WorkFormListFieldName, values: string[]) => void;
+  organizationContributorSuggestions?: string[];
+  personContributorSuggestions?: string[];
+  seriesSuggestions?: string[];
   tagSuggestions?: string[];
   values: WorkFormValues;
 }
@@ -359,18 +388,42 @@ function AdvancedWorkFields({
   idPrefix = '',
   itemValue,
   onInputChange,
+  onSeriesFieldsClear,
   onTextListChange,
+  organizationContributorSuggestions = [],
+  personContributorSuggestions = [],
+  seriesSuggestions = [],
   tagSuggestions = [],
   values,
 }: AdvancedWorkFieldsProps) {
   const genreValues = parseCommaSeparatedTextList(values.genresText);
+  const seriesValues = parseCommaSeparatedTextList(values.seriesText);
+  const universeValues = parseCommaSeparatedTextList(values.universeText);
+  const creatorValues = parseCommaSeparatedTextList(values.creatorText);
+  const studioValues = parseCommaSeparatedTextList(values.studioText);
+  const publisherValues = parseCommaSeparatedTextList(values.publisherText);
+  const platformValues = parseCommaSeparatedTextList(values.platformText);
   const personalTagValues = parseCommaSeparatedTextList(values.personalTagsText);
-  const previewTitle = values.title.trim() || '제목 없는 작품';
+  const uniqueOrganizationSuggestions = Array.from(
+    new Set(organizationContributorSuggestions),
+  );
+  const uniquePersonSuggestions = Array.from(new Set(personContributorSuggestions));
+  const uniqueSeriesSuggestions = Array.from(new Set(seriesSuggestions));
+  const uniqueTagSuggestions = Array.from(new Set(tagSuggestions));
+  const hasSeriesRelation =
+    values.seriesText.trim() !== '' || values.universeText.trim() !== '';
+  const [isSeriesWork, setIsSeriesWork] = useState(hasSeriesRelation);
+
+  useEffect(() => {
+    if (hasSeriesRelation) {
+      setIsSeriesWork(true);
+    }
+  }, [hasSeriesRelation]);
 
   return (
     <Accordion>
       <Accordion.Item value={itemValue}>
-        <Accordion.Control>표지, 장르, 개인 태그, 상세 감상</Accordion.Control>
+        <Accordion.Control>장르, 개인 태그, 상세 감상</Accordion.Control>
         <Accordion.Panel>
           <Stack gap="md" pt="sm">
             <TextInput
@@ -382,87 +435,95 @@ function AdvancedWorkFields({
               value={values.author}
             />
 
+            <Stack gap="sm">
+              <Checkbox
+                checked={isSeriesWork}
+                description="시리즈나 세계관으로 묶이는 작품일 때만 관련 정보를 입력합니다."
+                label="시리즈 작품"
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
+                  setIsSeriesWork(checked);
+
+                  if (!checked) {
+                    onSeriesFieldsClear();
+                  }
+                }}
+              />
+
+              {isSeriesWork && (
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                  <TagsInput
+                    clearable
+                    data={uniqueSeriesSuggestions}
+                    id={getFieldId(idPrefix, 'seriesText')}
+                    label="시리즈"
+                    name="seriesText"
+                    onChange={(items) => onTextListChange('seriesText', items)}
+                    placeholder="예: Fate, 해리포터"
+                    splitChars={[',']}
+                    value={seriesValues}
+                  />
+                  <TagsInput
+                    clearable
+                    data={uniqueSeriesSuggestions}
+                    id={getFieldId(idPrefix, 'universeText')}
+                    label="세계관 / 프랜차이즈"
+                    name="universeText"
+                    onChange={(items) => onTextListChange('universeText', items)}
+                    placeholder="예: TYPE-MOON, Wizarding World"
+                    splitChars={[',']}
+                    value={universeValues}
+                  />
+                </SimpleGrid>
+              )}
+            </Stack>
+
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-              <TextInput
-                id={getFieldId(idPrefix, 'seriesText')}
-                label="시리즈"
-                name="seriesText"
-                onChange={onInputChange}
-                placeholder="예: Fate, 해리포터"
-                value={values.seriesText}
-              />
-              <TextInput
-                id={getFieldId(idPrefix, 'universeText')}
-                label="세계관 / 프랜차이즈"
-                name="universeText"
-                onChange={onInputChange}
-                placeholder="예: TYPE-MOON, Wizarding World"
-                value={values.universeText}
-              />
-              <TextInput
+              <TagsInput
+                clearable
+                data={uniquePersonSuggestions}
                 id={getFieldId(idPrefix, 'creatorText')}
                 label="작가 / 원작자 / 감독"
                 name="creatorText"
-                onChange={onInputChange}
+                onChange={(items) => onTextListChange('creatorText', items)}
                 placeholder="여러 명은 쉼표로 구분"
-                value={values.creatorText}
+                splitChars={[',']}
+                value={creatorValues}
               />
-              <TextInput
+              <TagsInput
+                clearable
+                data={uniqueOrganizationSuggestions}
                 id={getFieldId(idPrefix, 'studioText')}
                 label="스튜디오 / 제작사"
                 name="studioText"
-                onChange={onInputChange}
+                onChange={(items) => onTextListChange('studioText', items)}
                 placeholder="예: ufotable, MAPPA"
-                value={values.studioText}
+                splitChars={[',']}
+                value={studioValues}
               />
-              <TextInput
+              <TagsInput
+                clearable
+                data={uniqueOrganizationSuggestions}
                 id={getFieldId(idPrefix, 'publisherText')}
                 label="출판사"
                 name="publisherText"
-                onChange={onInputChange}
+                onChange={(items) => onTextListChange('publisherText', items)}
                 placeholder="예: Shueisha, Bloomsbury"
-                value={values.publisherText}
+                splitChars={[',']}
+                value={publisherValues}
               />
-              <TextInput
+              <TagsInput
+                clearable
+                data={uniqueOrganizationSuggestions}
                 id={getFieldId(idPrefix, 'platformText')}
                 label="플랫폼"
                 name="platformText"
-                onChange={onInputChange}
+                onChange={(items) => onTextListChange('platformText', items)}
                 placeholder="예: 문피아, Netflix"
-                value={values.platformText}
+                splitChars={[',']}
+                value={platformValues}
               />
             </SimpleGrid>
-
-            <TextInput
-              id={getFieldId(idPrefix, 'thumbnailUrl')}
-              label="표지 이미지 주소"
-              name="thumbnailUrl"
-              onChange={onInputChange}
-              placeholder="https://example.com/cover.jpg"
-              value={values.thumbnailUrl}
-            />
-            <Paper
-              className={cn(css.coverPreviewPanel)}
-              p="sm"
-              radius="md"
-              withBorder
-            >
-              <Group align="center" gap="md" wrap="nowrap">
-                <WorkPoster
-                  coverSeed={`advanced:${previewTitle}:${values.type}`}
-                  thumbnailUrl={values.thumbnailUrl}
-                  title={previewTitle}
-                  typeLabel="표지"
-                  variant="row"
-                />
-                <Stack gap={4} miw={0}>
-                  <Text fw={700}>표지 미리보기</Text>
-                  <Text c="var(--mantine-color-dimmed)" size="sm">
-                    이미지가 없거나 불러오지 못하면 제목 기반 fallback으로 표시됩니다.
-                  </Text>
-                </Stack>
-              </Group>
-            </Paper>
 
             <TagsInput
               clearable
@@ -478,7 +539,7 @@ function AdvancedWorkFields({
 
             <TagsInput
               clearable
-              data={Array.from(new Set(tagSuggestions))}
+              data={uniqueTagSuggestions}
               description="개인 태그는 장르와 분리된 내 감상 분류입니다."
               id={getFieldId(idPrefix, 'personalTagsText')}
               label="개인 태그"
@@ -563,6 +624,7 @@ function QuickCapturePreview({ values }: { values: WorkFormValues }) {
 }
 
 export function AddWorkFlow({
+  draftKey = null,
   isSubmitting,
   onCancel,
   onSubmit,
@@ -592,7 +654,29 @@ export function AddWorkFlow({
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [workSuggestions, setWorkSuggestions] = useState({
+    organizationContributorSuggestions: [] as string[],
+    personContributorSuggestions: [] as string[],
+    seriesSuggestions: [] as string[],
+    tagSuggestions: [] as string[],
+  });
   const providerReadiness = useImportProviderReadiness(mode === 'search');
+  const draftBaselineValues = useMemo(() => createFormDefaults(), []);
+  const draft = useWorkFormDraft({
+    baselineValues: draftBaselineValues,
+    draftKey,
+    enabled: Boolean(draftKey),
+    onRestore: (draftValues) => {
+      resetImportedCandidate();
+      setMode('manual');
+      setValues(draftValues);
+      setValidationError(null);
+      setTitleError(null);
+      focusMainTitle();
+    },
+    values,
+  });
+  useUnsavedChangesWarning(Boolean(draftKey) && draft.isDirty && !isSubmitting);
 
   useEffect(() => {
     const subscription = liveQuery(() => worksRepository.listAll()).subscribe({
@@ -601,6 +685,38 @@ export function AddWorkFlow({
       },
       error: () => {
         setExistingWorks([]);
+      },
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [archiveScopeKey]);
+
+  useEffect(() => {
+    const subscription = liveQuery(() =>
+      worksService.listWorks(DEFAULT_WORKS_LIST_QUERY, 'active'),
+    ).subscribe({
+      next: ({
+        organizationContributorSuggestions,
+        personContributorSuggestions,
+        seriesSuggestions,
+        tagSuggestions,
+      }) => {
+        setWorkSuggestions({
+          organizationContributorSuggestions,
+          personContributorSuggestions,
+          seriesSuggestions,
+          tagSuggestions,
+        });
+      },
+      error: () => {
+        setWorkSuggestions({
+          organizationContributorSuggestions: [],
+          personContributorSuggestions: [],
+          seriesSuggestions: [],
+          tagSuggestions: [],
+        });
       },
     });
 
@@ -619,18 +735,16 @@ export function AddWorkFlow({
     selectedSearchCandidate === null
       ? []
       : findLikelyMatches(selectedSearchCandidate, existingWorks);
+  const duplicateCandidates = findDuplicateWorkCandidates({
+    catalogTitleId: selectedImportCandidate?.catalogMatch?.id ?? null,
+    title: values.title,
+    type: values.type,
+    works: existingWorks,
+  });
   const importedSourceCoverage = selectedImportCandidate
     ? getCandidateSourceCoverage(selectedImportCandidate)
     : null;
   const importedFieldSummary = getCandidateFieldSummary(values);
-  const tagSuggestions = Array.from(
-    new Set(
-      existingWorks
-        .filter((work) => work.deletedAt === null)
-        .flatMap((work) => getPersonalTags(work.personalTags)),
-    ),
-  ).sort((left, right) => left.localeCompare(right));
-
   function handleInputChange(
     event: ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -667,12 +781,20 @@ export function AddWorkFlow({
   }
 
   function handleTextListChange(
-    name: 'genresText' | 'personalTagsText',
+    name: WorkFormListFieldName,
     items: string[],
   ) {
     setValues((currentValues) => ({
       ...currentValues,
       [name]: formatTextListForWorkForm(items),
+    }));
+  }
+
+  function handleSeriesFieldsClear() {
+    setValues((currentValues) => ({
+      ...currentValues,
+      seriesText: '',
+      universeText: '',
     }));
   }
 
@@ -813,6 +935,7 @@ export function AddWorkFlow({
               importDraft: null,
             }),
       });
+      draft.clearDraft();
     } catch (error) {
       setValidationError(
         error instanceof Error ? error.message : '작품을 저장하지 못했습니다.',
@@ -822,6 +945,31 @@ export function AddWorkFlow({
 
   return (
     <Stack gap={variant === 'dialog' ? 'md' : 'lg'}>
+      {draft.pendingDraft && (
+        <FeedbackMessage title="임시작성 있음" tone="info">
+          <ActionRow justify="space-between">
+            <Text c="inherit">이전에 작성하던 내용이 있습니다.</Text>
+            <ActionRow justify="flex-end">
+              <AppButton
+                onClick={draft.applyDraft}
+                size="compact-sm"
+                tone="secondary"
+                type="button"
+              >
+                이어서 작성하기
+              </AppButton>
+              <AppButton
+                onClick={draft.clearDraft}
+                size="compact-sm"
+                tone="ghost"
+                type="button"
+              >
+                임시작성 삭제
+              </AppButton>
+            </ActionRow>
+          </ActionRow>
+        </FeedbackMessage>
+      )}
       <Stack gap="sm">
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <div>
@@ -966,8 +1114,16 @@ export function AddWorkFlow({
                       idPrefix="manual"
                       itemValue="manual-advanced-fields"
                       onInputChange={handleInputChange}
+                      onSeriesFieldsClear={handleSeriesFieldsClear}
                       onTextListChange={handleTextListChange}
-                      tagSuggestions={tagSuggestions}
+                      organizationContributorSuggestions={
+                        workSuggestions.organizationContributorSuggestions
+                      }
+                      personContributorSuggestions={
+                        workSuggestions.personContributorSuggestions
+                      }
+                      seriesSuggestions={workSuggestions.seriesSuggestions}
+                      tagSuggestions={workSuggestions.tagSuggestions}
                       values={values}
                     />
                   </Stack>
@@ -998,12 +1154,22 @@ export function AddWorkFlow({
                   idPrefix="manual"
                   itemValue="manual-advanced-fields"
                   onInputChange={handleInputChange}
+                  onSeriesFieldsClear={handleSeriesFieldsClear}
                   onTextListChange={handleTextListChange}
-                  tagSuggestions={tagSuggestions}
+                  organizationContributorSuggestions={
+                    workSuggestions.organizationContributorSuggestions
+                  }
+                  personContributorSuggestions={
+                    workSuggestions.personContributorSuggestions
+                  }
+                  seriesSuggestions={workSuggestions.seriesSuggestions}
+                  tagSuggestions={workSuggestions.tagSuggestions}
                   values={values}
                 />
               </>
             )}
+
+            <DuplicateWorkCandidatesCard candidates={duplicateCandidates} />
 
             {(validationError || submitError) && (
               <FeedbackMessage tone="error">
@@ -1029,6 +1195,15 @@ export function AddWorkFlow({
                 <AppLinkButton to="/works" tone="quiet">
                   취소
                 </AppLinkButton>
+              )}
+              {draft.saveStatus === 'saving' && (
+                <AppBadge tone="muted">임시저장 중</AppBadge>
+              )}
+              {draft.saveStatus === 'saved' && (
+                <AppBadge tone="success">임시저장됨</AppBadge>
+              )}
+              {draft.saveStatus === 'restored' && (
+                <AppBadge tone="accent">임시작성 복구됨</AppBadge>
               )}
             </ActionRow>
           </Stack>

@@ -10,12 +10,16 @@ import {
   AppBadge,
   AppButton,
   AppLinkButton,
+  FeedbackMessage,
   SectionCard,
   SectionIntro,
 } from '../../../shared/components/AppPrimitives';
 import { PageHero } from '../../../shared/components/PageHero';
 import { FlowPageTemplate } from '../../../shared/components/PageTemplates';
+import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { syncQueueRepository } from '../../sync/services/sync-queue.repository';
 import { AddWorkFlow } from '../components/AddWorkFlow';
+import { buildWorkFormDraftKey } from '../services/work-form-draft.service';
 import { worksService } from '../services/works.service';
 import type { UpsertWorkInput } from '../utils/work-form';
 import {
@@ -25,10 +29,17 @@ import {
 
 export function WorkCreatePage() {
   const navigate = useNavigate();
+  const { archiveScopeKey, mode } = useAuthSession();
   const [formVersion, setFormVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedWork, setSavedWork] = useState<WorkRecord | null>(null);
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const draftKey = buildWorkFormDraftKey({
+    archiveScopeKey,
+    focusArea: 'general',
+    mode: 'create',
+  });
 
   async function handleSubmit(input: UpsertWorkInput) {
     try {
@@ -36,8 +47,14 @@ export function WorkCreatePage() {
       setSubmitError(null);
 
       const work = await worksService.createWork(input);
+      const hasQueuedWork =
+        mode === 'authenticated' &&
+        (await syncQueueRepository.hasQueuedWork(work.id));
 
       setSavedWork(work);
+      setSaveFeedback(
+        hasQueuedWork ? '로컬에 저장됨 · 백업 대기 중' : '로컬에 저장됨',
+      );
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : '작품을 추가하지 못했습니다.',
@@ -63,6 +80,10 @@ export function WorkCreatePage() {
             eyebrow="저장 완료"
             title={`${savedWork.title}을(를) 등록했습니다`}
           />
+
+          {saveFeedback && (
+            <FeedbackMessage tone="success">{saveFeedback}</FeedbackMessage>
+          )}
 
           <Group align="flex-start" gap="md" wrap="nowrap">
             <ArtworkPoster
@@ -94,6 +115,7 @@ export function WorkCreatePage() {
             <AppButton
               onClick={() => {
                 setSavedWork(null);
+                setSaveFeedback(null);
                 setSubmitError(null);
                 setFormVersion((currentValue) => currentValue + 1);
               }}
@@ -112,6 +134,7 @@ export function WorkCreatePage() {
         </SectionCard>
       ) : (
         <AddWorkFlow
+          draftKey={draftKey}
           isSubmitting={isSubmitting}
           key={formVersion}
           onSubmit={handleSubmit}

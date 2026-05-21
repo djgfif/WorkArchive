@@ -29,6 +29,7 @@ import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
+import { ImportProviderKeyTestResponseDto } from './dto/import-provider-key-test-response.dto';
 import { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
 import { ImportSearchQueryDto } from './dto/import-search-query.dto';
 import { ImportSearchResponseDto } from './dto/import-search-response.dto';
@@ -150,6 +151,24 @@ export class ImportsController {
     @Param('provider') provider: string,
   ) {
     await this.importsService.deleteProviderKey(user.userId, provider);
+  }
+
+  @Post('providers/:provider/test')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    description: 'Test a stored provider API credential for the current user.',
+    type: ImportProviderKeyTestResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  testProviderKey(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('provider') provider: string,
+  ) {
+    return this.importsService.testProviderKey(user.userId, provider);
   }
 
   @Get('search')

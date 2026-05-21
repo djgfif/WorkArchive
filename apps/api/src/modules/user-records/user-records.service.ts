@@ -427,10 +427,6 @@ export class UserRecordsService {
       data.review = normalizeString(input.review);
     }
 
-    if (input.tier !== undefined) {
-      data.tier = input.tier;
-    }
-
     if (input.favorite !== undefined) {
       data.favorite = input.favorite;
     }
@@ -562,10 +558,6 @@ export class UserRecordsService {
       recordInput.review = input.review;
     }
 
-    if (input.tier !== undefined) {
-      recordInput.tier = input.tier;
-    }
-
     if (input.favorite !== undefined) {
       recordInput.favorite = input.favorite;
     }
@@ -632,7 +624,6 @@ export class UserRecordsService {
           shortReview: normalizeString(input.shortReview),
           status: input.status ?? WorkStatus.planned,
           syncStatus: WorkSyncStatus.synced,
-          tier: input.tier ?? null,
           userId,
         },
         tx,

@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+﻿import { render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthContext, type AuthContextValue } from '../../auth/context/AuthContext';
@@ -16,9 +16,7 @@ const authValue: AuthContextValue = {
     id: 'user-1',
     nickname: 'User',
   },
-  signIn: vi.fn(),
   signOut: vi.fn(),
-  signUp: vi.fn(),
 };
 
 function AutoSyncProbe() {
@@ -111,7 +109,6 @@ describe('useAutoSync', () => {
       shortReview: '',
       status: 'planned',
       thumbnailUrl: '',
-      tier: null,
       title: 'Dune',
       type: 'novel',
     });

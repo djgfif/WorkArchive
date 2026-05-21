@@ -7,6 +7,7 @@ import {
   NumberInput,
   Paper,
   Progress,
+  Rating,
   SimpleGrid,
   Skeleton,
   Stack,
@@ -326,14 +327,15 @@ export function WorkPoster({
         </>
       ) : (
         <Box
+          aria-label={`${title} 포스터 대체 표지`}
           className={cn(css.posterFallback)}
           data-cover-tone={getCoverTone(coverSeed ?? `${typeLabel ?? ''}:${title}`)}
         >
-          <Text className={cn(css.posterFallbackType)}>{typeLabel ?? 'Archive'}</Text>
+          <Text className={cn(css.posterFallbackType)}>{typeLabel ?? '기록'}</Text>
           <Text className={cn(css.posterFallbackMark)}>
             {(title.trim()[0] ?? 'W').toUpperCase()}
           </Text>
-          <Text className={cn(css.posterFallbackType)}>개인 기록</Text>
+          <Text className={cn(css.posterFallbackType)}>표지 없음</Text>
         </Box>
       )}
       {overlay}
@@ -432,7 +434,7 @@ export function RatingDisplay({ compact = false, value }: RatingDisplayProps) {
   );
 }
 
-/** 별점 입력 컴포넌트 — 0.5 단위 버튼 선택 */
+/** 별점 입력 컴포넌트 — Mantine Rating 기반 0.5 단위 선택 */
 export interface StarRatingInputProps {
   label?: string;
   onChange: (value: number | null) => void;
@@ -440,64 +442,30 @@ export interface StarRatingInputProps {
 }
 
 export function StarRatingInput({ label = '별점', onChange, value }: StarRatingInputProps) {
-  const ratingChoices = Array.from({ length: 10 }, (_, index) => (index + 1) * 0.5);
-  const displayLabel = value !== null ? (STAR_LABELS[value.toFixed(1)] ?? '') : '평가 안 함';
+  const scoreLabel = value !== null ? value.toFixed(1) : null;
 
   return (
-    <Box>
-      {label && (
-        <Text
-          fw={600}
-          mb={6}
-          size="sm"
-          style={{ color: 'var(--app-text-secondary)' }}
-        >
-          {label}
-        </Text>
-      )}
-      <Stack gap="xs">
-        <Group gap={4} role="radiogroup" aria-label={label} wrap="wrap">
-          {ratingChoices.map((ratingChoice) => {
-            const isSelected = value === ratingChoice;
+    <Box aria-label={label} className={cn(css.starRatingInput)}>
+      <Rating
+        aria-label={label}
+        className={cn(css.starRatingControl)}
+        color="yellow"
+        count={5}
+        fractions={2}
+        getSymbolLabel={(rating) =>
+          rating === 0 ? '평가 안 함' : `${rating.toFixed(1)}점`
+        }
+        onChange={(nextValue) => onChange(nextValue <= 0 ? null : nextValue)}
+        size="xl"
+        value={value ?? 0}
+      />
 
-            return (
-              <Button
-                aria-checked={isSelected}
-                key={ratingChoice}
-                onClick={() => onChange(isSelected ? null : ratingChoice)}
-                role="radio"
-                size="compact-sm"
-                variant={isSelected ? 'filled' : 'default'}
-                style={{
-                  background: isSelected
-                    ? 'var(--app-accent-warm, #f59e0b)'
-                    : 'var(--app-surface-subtle)',
-                  borderColor: isSelected
-                    ? 'var(--app-accent-warm, #f59e0b)'
-                    : 'var(--app-border-default)',
-                  color: isSelected ? '#111827' : 'var(--app-text-secondary)',
-                  fontVariantNumeric: 'tabular-nums',
-                  fontWeight: 700,
-                  minWidth: 52,
-                }}
-                type="button"
-              >
-                {ratingChoice.toFixed(1)}
-              </Button>
-            );
-          })}
-        </Group>
-        <Text
-          c="dimmed"
-          fw={600}
-          size="sm"
-          style={{
-            transition: 'opacity 120ms ease',
-            opacity: displayLabel ? 1 : 0.4,
-          }}
-        >
-          {value !== null ? `${value.toFixed(1)} · ${displayLabel}` : '평가 안 함'}
-        </Text>
+      <Group className={cn(css.starRatingMeta)} gap="xs" wrap="nowrap">
+        {scoreLabel && (
+          <Text className={cn(css.starRatingScore)}>
+            {scoreLabel}
+          </Text>
+        )}
         {value !== null && (
           <ActionIcon
             aria-label="별점 초기화"
@@ -509,7 +477,7 @@ export function StarRatingInput({ label = '별점', onChange, value }: StarRatin
             <Text size="xs">✕</Text>
           </ActionIcon>
         )}
-      </Stack>
+      </Group>
     </Box>
   );
 }

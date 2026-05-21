@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ApiRequestError,
   fetchAuthSessions,
+  fetchGoogleAuthStatus,
   requestAuthenticatedApiJson,
   revokeAllAuthSessions,
   revokeAuthSession,
@@ -30,6 +31,26 @@ describe('auth.api', () => {
     clearStoredAuthTokens();
     window.localStorage.clear();
     window.sessionStorage.clear();
+  });
+
+  it('fetches public Google OAuth configuration status', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        configured: false,
+      }),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchGoogleAuthStatus()).resolves.toEqual({
+      configured: false,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/google/status'),
+      expect.objectContaining({
+        method: 'GET',
+      }),
+    );
   });
 
   it('retries protected API requests with a refreshed Bearer token', async () => {

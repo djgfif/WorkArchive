@@ -182,6 +182,35 @@ describe('ImportsService', () => {
     expect(headers.get('authorization')).toBe('Bearer access-token');
   });
 
+  it('posts an authenticated provider key test request', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const response = {
+      provider: 'tmdb',
+      ok: true,
+      message: 'TMDB API key connection test succeeded.',
+      reason: null,
+      checkedAt: '2026-05-20T00:00:00.000Z',
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(response));
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(new ImportsService().testProviderKey('tmdb')).resolves.toEqual(
+      response,
+    );
+
+    const [input, init] = fetchMock.mock.calls[0] ?? [];
+    const headers = getFetchHeaders(init as RequestInit | undefined);
+
+    expect(String(input)).toContain('/imports/providers/tmdb/test');
+    expect(init).toMatchObject({
+      method: 'POST',
+    });
+    expect(headers.get('authorization')).toBe('Bearer access-token');
+  });
+
   it.each([401, 403, 502])(
     'falls back to preview/manual candidates when external search returns %i',
     async (status) => {

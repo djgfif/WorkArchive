@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+﻿import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -26,9 +26,7 @@ const authenticatedContextValue: AuthContextValue = {
     nickname: 'Tester',
     role: 'user',
   },
-  signIn: vi.fn(async () => '/'),
   signOut: vi.fn(async () => undefined),
-  signUp: vi.fn(async () => '/'),
 };
 
 afterEach(() => {
@@ -54,7 +52,6 @@ describe('WorkDetailPage', () => {
       rating: 4.5,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -70,7 +67,6 @@ describe('WorkDetailPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -108,7 +104,6 @@ describe('WorkDetailPage', () => {
       shortReview: '세계관의 밀도와 긴장감이 오래 남는다.',
       review:
         '긴 감상입니다. 인물의 선택과 정치 구조가 얽히는 방식이 인상적이었고, 후반부의 긴장감도 좋았습니다.',
-      tier: 'S',
       favorite: true,
     });
     await worksService.updateProgress(work.id, {
@@ -153,7 +148,6 @@ describe('WorkDetailPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -206,7 +200,6 @@ describe('WorkDetailPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
       startedAt: '2026-02-01T00:00:00.000Z',
     });
@@ -298,7 +291,6 @@ describe('WorkDetailPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
       completedAt: '2026-02-03T00:00:00.000Z',
       droppedAt: '2026-02-04T00:00:00.000Z',
@@ -323,6 +315,7 @@ describe('WorkDetailPage', () => {
     await user.click(screen.getByRole('tab', { name: /타임라인/ }));
     const timelineToggle = screen.getByRole('button', {
       expanded: false,
+      name: '전체 타임라인 보기',
     });
 
     expect(timelineToggle).toHaveAttribute('aria-expanded', 'false');
@@ -347,7 +340,6 @@ describe('WorkDetailPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -443,7 +435,6 @@ describe('WorkDetailPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
     await worksRepository.update({
@@ -553,7 +544,6 @@ describe('WorkDetailPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
     await worksRepository.update({
@@ -587,7 +577,6 @@ describe('WorkDetailPage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 

@@ -27,11 +27,19 @@ const SYNC_PUSH_ORDER: Record<SyncEntityType, number> = {
   work_series_link: 2,
   work_contributor: 2,
   work_relation: 2,
+  tier_board: 3,
+  tier_board_lane: 4,
+  tier_board_item: 5,
+  tier_board_asset: 6,
   release_record: 3,
   timeline_entry: 3,
 };
 
 type DatabaseResolver = () => WorkArchiveDatabase;
+
+function getPayloadServerVersion(payload: SyncQueuePayload) {
+  return 'serverVersion' in payload ? payload.serverVersion : 0;
+}
 
 export class SyncQueueRepository {
   constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
@@ -111,13 +119,15 @@ export class SyncQueueRepository {
 
       if (
         entity.deletedAt !== null &&
-        (hasUnsyncedCreate || entity.serverVersion === 0)
+        (hasUnsyncedCreate || getPayloadServerVersion(entity) === 0)
       ) {
         return null;
       }
 
       const nextOperation =
-        hasUnsyncedCreate || entity.serverVersion === 0 ? 'create' : operation;
+        hasUnsyncedCreate || getPayloadServerVersion(entity) === 0
+          ? 'create'
+          : operation;
 
       const queueItem: SyncQueueItemRecord<TPayload> = {
         id: crypto.randomUUID(),

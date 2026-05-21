@@ -1,10 +1,8 @@
 import type {
-  AuthCredentialsRequest,
   AuthRefreshSessionsResponse,
   AuthSessionResponse as SharedAuthSessionResponse,
+  UpdateAuthProfileRequest,
   AuthUserResponse,
-  PasswordResetConfirmResponse as SharedPasswordResetConfirmResponse,
-  PasswordResetRequestResponse as SharedPasswordResetRequestResponse,
 } from '@work-archive/shared-types';
 
 import {
@@ -25,12 +23,13 @@ interface RestoredSession {
   user: AuthUserResponse;
 }
 
-export type AuthCredentialsInput = AuthCredentialsRequest;
+interface GoogleAuthStatusResponse {
+  configured: boolean;
+}
+
 export type AuthSessionResponse = SharedAuthSessionResponse;
 export type AuthRefreshSessions = AuthRefreshSessionsResponse;
 export type AuthUser = AuthUserResponse;
-export type PasswordResetConfirmResponse = SharedPasswordResetConfirmResponse;
-export type PasswordResetRequestResponse = SharedPasswordResetRequestResponse;
 
 export {
   ApiRequestError,
@@ -39,41 +38,6 @@ export {
   requestAuthenticatedApi,
   requestAuthenticatedApiJson,
 };
-
-export async function registerWithEmailPassword(
-  input: AuthCredentialsInput,
-) {
-  return requestApiJson<AuthSessionResponse>('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-}
-
-export async function loginWithEmailPassword(input: AuthCredentialsInput) {
-  return requestApiJson<AuthSessionResponse>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-}
-
-export async function requestPasswordReset(email: string) {
-  return requestApiJson<PasswordResetRequestResponse>('/auth/password-reset/request', {
-    method: 'POST',
-    body: JSON.stringify({
-      email,
-    }),
-  });
-}
-
-export async function confirmPasswordReset(input: {
-  password: string;
-  token: string;
-}) {
-  return requestApiJson<PasswordResetConfirmResponse>('/auth/password-reset/confirm', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-}
 
 export async function refreshSession() {
   return requestApiJson<AuthSessionResponse>('/auth/refresh', {
@@ -89,6 +53,13 @@ export async function fetchCurrentUser(accessToken: string) {
     },
     accessToken,
   );
+}
+
+export async function updateAuthProfile(input: UpdateAuthProfileRequest) {
+  return requestAuthenticatedApiJson<AuthUser>('/auth/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
 }
 
 export async function logoutSession() {
@@ -117,6 +88,12 @@ export async function revokeAllAuthSessions() {
 
 export function getGoogleLoginStartUrl() {
   return `${getApiBaseUrl()}/auth/google/start`;
+}
+
+export async function fetchGoogleAuthStatus() {
+  return requestApiJson<GoogleAuthStatusResponse>('/auth/google/status', {
+    method: 'GET',
+  });
 }
 
 export async function restoreStoredSession(): Promise<RestoredSession | null> {

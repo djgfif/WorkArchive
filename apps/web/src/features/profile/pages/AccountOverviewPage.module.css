@@ -1,0 +1,240 @@
+.accountHero {
+  padding: clamp(1.15rem, 2.5vw, 1.7rem);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-lg);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--app-surface-card) 88%, transparent), color-mix(in srgb, var(--app-surface-subtle) 94%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 7%, transparent);
+}
+
+.heroCopy {
+  min-width: min(100%, 22rem);
+  flex: 1 1 22rem;
+}
+
+.accountMark {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--app-accent-primary) 36%, var(--app-border-default));
+  border-radius: var(--mantine-radius-md);
+  background: linear-gradient(135deg, var(--app-accent-primary), color-mix(in srgb, var(--app-accent-primary) 54%, black));
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--app-accent-primary) 24%, transparent);
+}
+
+.heroEyebrow {
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  max-width: min(100%, 34rem);
+  color: var(--app-text-primary);
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.heroDescription {
+  max-width: 58ch;
+  color: var(--app-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.metricStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(6.6rem, 1fr));
+  min-width: min(100%, 24rem);
+  flex: 1 1 24rem;
+  overflow: hidden;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-bg-elevated) 72%, transparent);
+}
+
+.metricItem {
+  min-width: 0;
+  padding: 1rem;
+  border-right: 1px solid var(--app-border-subtle);
+}
+
+.metricItem:last-child {
+  border-right: 0;
+}
+
+.metricValue {
+  color: var(--app-text-primary);
+  font-size: clamp(1.35rem, 3vw, 1.9rem);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.metricLabel {
+  margin-top: 0.45rem;
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+  font-weight: 760;
+  line-height: 1.2;
+}
+
+.managementGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
+  gap: var(--mantine-spacing-md);
+  align-items: stretch;
+}
+
+.statusPanel,
+.workPanel {
+  height: 100%;
+}
+
+.statusGroup {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.statusGroup + .statusGroup {
+  padding-top: var(--mantine-spacing-md);
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+.statusGroupTitle {
+  color: var(--app-text-primary);
+  font-size: 0.95rem;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.statusDescription {
+  color: var(--app-text-secondary);
+  font-size: var(--app-type-caption);
+  line-height: 1.55;
+}
+
+.statusLine {
+  min-height: 2.55rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--app-border-subtle);
+}
+
+.statusDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--app-text-muted);
+}
+
+.statusDot_default {
+  background: var(--app-text-muted);
+}
+
+.statusDot_success {
+  background: var(--app-accent-teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent-teal) 14%, transparent);
+}
+
+.statusDot_warning {
+  background: var(--mantine-color-yellow-5);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mantine-color-yellow-5) 16%, transparent);
+}
+
+.statusLabel {
+  color: var(--app-text-muted);
+  font-size: var(--app-type-caption);
+  font-weight: 760;
+}
+
+.statusValue {
+  color: var(--app-text-primary);
+  font-size: var(--app-type-caption);
+  font-weight: 850;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.actionList {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--app-bg-elevated) 60%, transparent);
+}
+
+.actionItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--mantine-spacing-md);
+  align-items: center;
+  min-height: 5.35rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--app-border-subtle);
+}
+
+.actionItem:last-child {
+  border-bottom: 0;
+}
+
+.actionItem:hover {
+  background: color-mix(in srgb, var(--app-surface-card) 74%, transparent);
+}
+
+.actionTitle {
+  color: var(--app-text-primary);
+  font-size: 0.96rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.actionDescription {
+  max-width: 52ch;
+  color: var(--app-text-muted);
+  font-size: var(--app-type-caption);
+  line-height: 1.45;
+}
+
+@media (max-width: 62em) {
+  .managementGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 48em) {
+  .metricStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .metricItem {
+    border-right: 0;
+    border-bottom: 1px solid var(--app-border-subtle);
+  }
+
+  .metricItem:last-child {
+    border-bottom: 0;
+  }
+
+  .actionItem {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+}

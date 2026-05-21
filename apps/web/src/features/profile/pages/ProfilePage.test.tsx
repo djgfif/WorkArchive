@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+﻿import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -45,7 +45,6 @@ describe('ProfilePage', () => {
       rating: null,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
     const recentWork = await worksService.createWork({
@@ -59,7 +58,6 @@ describe('ProfilePage', () => {
       rating: 4,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: true,
     });
     const router = createMemoryRouter(appRoutes, {

@@ -12,6 +12,12 @@ import { WorkResponseDto } from '../../works/dto/work-response.dto';
 import { SyncContributorPayloadDto } from './sync-contributor-payload.dto';
 import { SyncSeriesPayloadDto } from './sync-series-payload.dto';
 import { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
+import {
+  SyncTierBoardAssetPayloadDto,
+  SyncTierBoardItemPayloadDto,
+  SyncTierBoardLanePayloadDto,
+  SyncTierBoardPayloadDto,
+} from './sync-tier-board-payload.dto';
 import { SyncWorkContributorPayloadDto } from './sync-work-contributor-payload.dto';
 import { SyncWorkRelationPayloadDto } from './sync-work-relation-payload.dto';
 import { SyncWorkSeriesLinkPayloadDto } from './sync-work-series-link-payload.dto';
@@ -79,6 +85,30 @@ export class PullSyncChangeDto {
     required: false,
   })
   workRelation?: SyncWorkRelationPayloadDto;
+
+  @ApiProperty({
+    type: () => SyncTierBoardPayloadDto,
+    required: false,
+  })
+  tierBoard?: SyncTierBoardPayloadDto;
+
+  @ApiProperty({
+    type: () => SyncTierBoardLanePayloadDto,
+    required: false,
+  })
+  tierBoardLane?: SyncTierBoardLanePayloadDto;
+
+  @ApiProperty({
+    type: () => SyncTierBoardItemPayloadDto,
+    required: false,
+  })
+  tierBoardItem?: SyncTierBoardItemPayloadDto;
+
+  @ApiProperty({
+    type: () => SyncTierBoardAssetPayloadDto,
+    required: false,
+  })
+  tierBoardAsset?: SyncTierBoardAssetPayloadDto;
 }
 
 export class PullSyncResponseDto {

@@ -16,6 +16,10 @@ import {
 } from '../catalog/catalog-ingestion.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
+import type {
+  ImportProviderKeyTestFailureReason,
+  ImportProviderKeyTestResponseDto,
+} from './dto/import-provider-key-test-response.dto';
 import type { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
 import type { ImportSearchQueryDto } from './dto/import-search-query.dto';
 import type { ImportSearchResponseDto } from './dto/import-search-response.dto';
@@ -195,6 +199,47 @@ export class ImportsService {
     const provider = this.assertUserCredentialProvider(providerInput);
 
     await this.credentialService.deleteCredential(userId, provider);
+  }
+
+  async testProviderKey(
+    userId: string,
+    providerInput: string,
+  ): Promise<ImportProviderKeyTestResponseDto> {
+    const provider = this.assertUserCredentialProvider(providerInput);
+    const checkedAt = new Date().toISOString();
+    const credentials = await this.getProviderCredentialValues(userId, provider);
+
+    if (!credentials) {
+      return this.buildProviderKeyTestResponse({
+        checkedAt,
+        message: `${PROVIDERS[provider].label} API key is not configured.`,
+        ok: false,
+        provider,
+        reason: 'missing_key',
+      });
+    }
+
+    try {
+      await this.runProviderKeyTest(provider, credentials);
+
+      return this.buildProviderKeyTestResponse({
+        checkedAt,
+        message: `${PROVIDERS[provider].label} API key connection test succeeded.`,
+        ok: true,
+        provider,
+        reason: null,
+      });
+    } catch (error) {
+      const reason = this.classifyProviderKeyTestFailure(error);
+
+      return this.buildProviderKeyTestResponse({
+        checkedAt,
+        message: this.getProviderKeyTestFailureMessage(provider, reason),
+        ok: false,
+        provider,
+        reason,
+      });
+    }
   }
 
   async search(
@@ -637,6 +682,198 @@ export class ImportsService {
     }
 
     return false;
+  }
+
+  private buildProviderKeyTestResponse(input: {
+    checkedAt: string;
+    message: string;
+    ok: boolean;
+    provider: ImportProvider;
+    reason: ImportProviderKeyTestFailureReason | null;
+  }): ImportProviderKeyTestResponseDto {
+    return {
+      checkedAt: input.checkedAt,
+      message: input.message,
+      ok: input.ok,
+      provider: input.provider,
+      reason: input.reason,
+    };
+  }
+
+  private async runProviderKeyTest(
+    provider: ImportProvider,
+    credentials: ProviderCredentialValues,
+  ) {
+    switch (provider) {
+      case ALADIN_PROVIDER:
+        return this.testAladinProviderKey(credentials);
+      case NAVER_BOOK_PROVIDER:
+        return this.testNaverProviderKey(credentials, NAVER_BOOK_SEARCH_URL);
+      case NAVER_WEB_PROVIDER:
+        return this.testNaverProviderKey(credentials, NAVER_WEB_SEARCH_URL);
+      case KAKAO_BOOK_PROVIDER:
+        return this.testKakaoProviderKey(credentials, KAKAO_BOOK_SEARCH_URL);
+      case KAKAO_WEB_PROVIDER:
+        return this.testKakaoProviderKey(credentials, KAKAO_WEB_SEARCH_URL);
+      case TMDB_PROVIDER:
+        return this.testTmdbProviderKey(credentials);
+      case KOBIS_PROVIDER:
+        return this.testKobisProviderKey(credentials);
+      default:
+        throw new BadRequestException('Unsupported provider key test.');
+    }
+  }
+
+  private async testAladinProviderKey(credentials: ProviderCredentialValues) {
+    const ttbKey = credentials.ttbKey;
+
+    if (!ttbKey) {
+      throw new ForbiddenException('Provider API key is missing.');
+    }
+
+    const searchUrl = new URL(ALADIN_ITEM_SEARCH_URL);
+
+    searchUrl.searchParams.set('ttbkey', ttbKey);
+    searchUrl.searchParams.set('Query', '해리포터');
+    searchUrl.searchParams.set('QueryType', 'Keyword');
+    searchUrl.searchParams.set('SearchTarget', 'Book');
+    searchUrl.searchParams.set('output', 'JS');
+    searchUrl.searchParams.set('Version', '20131101');
+    searchUrl.searchParams.set('MaxResults', '1');
+    searchUrl.searchParams.set('start', '1');
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      timeoutMs: DEFAULT_PROVIDER_TIMEOUT_MS,
+    });
+
+    if (
+      this.isRecord(responseBody) &&
+      (responseBody.errorCode || responseBody.errorMessage)
+    ) {
+      throw new ForbiddenException('Provider API key was rejected.');
+    }
+  }
+
+  private async testNaverProviderKey(
+    credentials: ProviderCredentialValues,
+    rawUrl: string,
+  ) {
+    const clientId = credentials.clientId;
+    const clientSecret = credentials.clientSecret;
+
+    if (!clientId || !clientSecret) {
+      throw new ForbiddenException('Provider API key is missing.');
+    }
+
+    const searchUrl = new URL(rawUrl);
+
+    searchUrl.searchParams.set('query', '해리포터');
+    searchUrl.searchParams.set('display', '1');
+
+    await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      headers: {
+        'X-Naver-Client-Id': clientId,
+        'X-Naver-Client-Secret': clientSecret,
+      },
+      timeoutMs: DEFAULT_PROVIDER_TIMEOUT_MS,
+    });
+  }
+
+  private async testKakaoProviderKey(
+    credentials: ProviderCredentialValues,
+    rawUrl: string,
+  ) {
+    const restApiKey = credentials.restApiKey;
+
+    if (!restApiKey) {
+      throw new ForbiddenException('Provider API key is missing.');
+    }
+
+    const searchUrl = new URL(rawUrl);
+
+    searchUrl.searchParams.set('query', '해리포터');
+    searchUrl.searchParams.set('size', '1');
+
+    await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      bearerPrefix: 'KakaoAK',
+      bearerToken: restApiKey,
+      timeoutMs: DEFAULT_PROVIDER_TIMEOUT_MS,
+    });
+  }
+
+  private async testTmdbProviderKey(credentials: ProviderCredentialValues) {
+    const readToken = credentials.readToken;
+
+    if (!readToken) {
+      throw new ForbiddenException('Provider API key is missing.');
+    }
+
+    const searchUrl = new URL(TMDB_SEARCH_MOVIE_URL);
+
+    searchUrl.searchParams.set('query', 'inception');
+    searchUrl.searchParams.set('include_adult', 'false');
+    searchUrl.searchParams.set('language', 'ko-KR');
+
+    await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      bearerToken: readToken,
+      timeoutMs: DEFAULT_PROVIDER_TIMEOUT_MS,
+    });
+  }
+
+  private async testKobisProviderKey(credentials: ProviderCredentialValues) {
+    const apiKey = credentials.apiKey;
+
+    if (!apiKey) {
+      throw new ForbiddenException('Provider API key is missing.');
+    }
+
+    const searchUrl = new URL(KOBIS_MOVIE_SEARCH_URL);
+
+    searchUrl.searchParams.set('key', apiKey);
+    searchUrl.searchParams.set('movieNm', 'inception');
+    searchUrl.searchParams.set('itemPerPage', '1');
+
+    await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      timeoutMs: DEFAULT_PROVIDER_TIMEOUT_MS,
+    });
+  }
+
+  private classifyProviderKeyTestFailure(
+    error: unknown,
+  ): ImportProviderKeyTestFailureReason {
+    if (error instanceof ForbiddenException) {
+      return 'unauthorized';
+    }
+
+    if (error instanceof BadGatewayException) {
+      return 'provider_unavailable';
+    }
+
+    return 'unknown';
+  }
+
+  private getProviderKeyTestFailureMessage(
+    provider: ImportProvider,
+    reason: ImportProviderKeyTestFailureReason,
+  ) {
+    const label = PROVIDERS[provider].label;
+
+    switch (reason) {
+      case 'missing_key':
+        return `${label} API key is not configured.`;
+      case 'unauthorized':
+        return `${label} API key was rejected by the provider.`;
+      case 'provider_unavailable':
+        return `${label} provider is temporarily unavailable.`;
+      case 'unknown':
+      default:
+        return `${label} API key connection test failed.`;
+    }
   }
 
   private async searchProvider(

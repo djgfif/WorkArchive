@@ -1,4 +1,13 @@
-import { Box, Collapse, Group, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core';
+import {
+  Box,
+  Collapse,
+  Group,
+  NativeSelect,
+  SimpleGrid,
+  Stack,
+  Text,
+  Tooltip,
+} from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
 import { useRef, useState } from 'react';
 
@@ -11,7 +20,10 @@ import {
   FilterPillGroup,
 } from './ArchiveComponents';
 import type { WorksCollectionScope } from '../services/works.service';
-import type { WorksListQuery } from '../utils/query-works';
+import {
+  getDefaultSortDirection,
+  type WorksListQuery,
+} from '../utils/query-works';
 import {
   getWorkStatusLabel,
   visibleWorkStatusOptions,
@@ -74,11 +86,6 @@ function IconPlus({ size = 14 }: { size?: number }) {
   );
 }
 
-const ratingFilterOptions = Array.from({ length: 10 }, (_, i) => {
-  const v = ((i + 1) * 0.5).toFixed(1);
-  return { label: `★ ${v}+`, value: v };
-}).reverse();
-
 interface WorksToolbarProps {
   collectionScope:          WorksCollectionScope;
   filteredCount:            number;
@@ -121,8 +128,9 @@ export function WorksToolbar({
   viewMode,
 }: WorksToolbarProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [sortAsc, setSortAsc]           = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const defaultSortDirection = getDefaultSortDirection(query.sortBy);
+  const sortDirection = query.sortDirection ?? defaultSortDirection;
 
   /* ── 키보드 단축키 ── */
   useHotkeys([
@@ -156,7 +164,8 @@ export function WorksToolbar({
     query.rating !== null ||
     query.status !== 'all' ||
     query.type !== 'all' ||
-    query.sortBy !== 'updatedAt';
+    query.sortBy !== 'updatedAt' ||
+    sortDirection !== defaultSortDirection;
 
   const countSummary = isLoading
     ? '불러오는 중…'
@@ -206,13 +215,16 @@ export function WorksToolbar({
       ? [{ label: getWorkStatusLabel(query.status), onRemove: () => onQueryChange({ ...query, status: 'all' }) }]
       : []),
     ...(query.rating !== null
-      ? [{ label: `★ ${query.rating.toFixed(1)}+`, onRemove: () => onQueryChange({ ...query, rating: null }) }]
+      ? [{ label: `★ ${query.rating.toFixed(1)}`, onRemove: () => onQueryChange({ ...query, rating: null }) }]
       : []),
     ...(query.type !== 'all'
       ? [{ label: workTypeOptions.find((o) => o.value === query.type)?.label ?? query.type, onRemove: () => onQueryChange({ ...query, type: 'all' }) }]
       : []),
     ...(query.sortBy !== 'updatedAt'
       ? [{ label: `정렬: ${workSortOptions.find((o) => o.value === query.sortBy)?.label ?? query.sortBy}`, onRemove: () => onQueryChange({ ...query, sortBy: 'updatedAt' }) }]
+      : []),
+    ...(sortDirection !== defaultSortDirection
+      ? [{ label: sortDirection === 'asc' ? '오름차순' : '내림차순', onRemove: () => onQueryChange({ ...query, sortDirection: defaultSortDirection }) }]
       : []),
   ];
 
@@ -311,17 +323,49 @@ export function WorksToolbar({
           )}
 
           {/* 정렬 방향 */}
-          {query.sortBy !== 'updatedAt' && (
+          <NativeSelect
+            aria-label="정렬 기준"
+            data={workSortOptions.map((option) => ({
+              label: option.label,
+              value: option.value,
+            }))}
+            onChange={(event) =>
+              onQueryChange({
+                ...query,
+                sortBy: event.currentTarget.value as typeof query.sortBy,
+                sortDirection: getDefaultSortDirection(
+                  event.currentTarget.value as typeof query.sortBy,
+                ),
+              })
+            }
+            size="sm"
+            style={{ flex: '0 1 10rem' }}
+            value={query.sortBy}
+          />
+
+          {query.sortBy !== 'updatedAt' || sortDirection !== defaultSortDirection ? (
             <Tooltip
-              label={sortAsc ? '오름차순 — 클릭하면 내림차순' : '내림차순 — 클릭하면 오름차순'}
+              label={
+                sortDirection === 'asc'
+                  ? '오름차순 — 클릭하면 내림차순'
+                  : '내림차순 — 클릭하면 오름차순'
+              }
               position="bottom"
               withArrow
             >
               <Box
                 component="button"
-                aria-label={sortAsc ? '오름차순' : '내림차순'}
-                aria-pressed={sortAsc}
-                onClick={() => setSortAsc((v) => !v)}
+                aria-label={
+                  sortDirection === 'asc' ? '오름차순' : '내림차순'
+                }
+                aria-pressed={sortDirection === 'asc'}
+                onClick={() =>
+                  onQueryChange({
+                    ...query,
+                    sortDirection:
+                      sortDirection === 'asc' ? 'desc' : 'asc',
+                  })
+                }
                 type="button"
                 style={{
                   display:        'flex',
@@ -342,11 +386,11 @@ export function WorksToolbar({
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                {sortAsc ? <IconSortAsc /> : <IconSortDesc />}
-                {sortAsc ? 'ASC' : 'DESC'}
+                {sortDirection === 'asc' ? <IconSortAsc /> : <IconSortDesc />}
+                {sortDirection === 'asc' ? 'ASC' : 'DESC'}
               </Box>
             </Tooltip>
-          )}
+          ) : null}
 
           {/* 고급 필터 버튼 */}
           <Tooltip label="고급 필터 (f)" position="bottom" withArrow>
@@ -643,40 +687,6 @@ export function WorksToolbar({
                 onChange={(status) => onQueryChange({ ...query, status })}
                 options={statusFilterOptions}
                 value={query.status}
-              />
-            </Stack>
-
-            {/* 정렬 */}
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                정렬 기준
-              </Text>
-              <FilterPillGroup
-                aria-label="정렬"
-                onChange={(sortBy) => onQueryChange({ ...query, sortBy })}
-                options={workSortOptions}
-                value={query.sortBy}
-              />
-            </Stack>
-
-            {/* 별점 */}
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                별점 최소
-              </Text>
-              <FilterPillGroup
-                aria-label="별점 필터"
-                onChange={(rating) =>
-                  onQueryChange({
-                    ...query,
-                    rating: rating === 'all' ? null : Number.parseFloat(rating),
-                  })
-                }
-                options={[
-                  { label: '전체', value: 'all' },
-                  ...ratingFilterOptions,
-                ]}
-                value={query.rating === null ? 'all' : query.rating.toFixed(1)}
               />
             </Stack>
 

@@ -44,7 +44,6 @@ function createWorkAggregateFixture(
     shortReview: '',
     review: '',
     personalTags: [],
-    tier: null,
     favorite: false,
     createdAt: new Date('2026-04-18T00:00:00.000Z'),
     updatedAt: new Date('2026-04-18T01:00:00.000Z'),
@@ -85,7 +84,6 @@ function createSyncPayload(
     rating: 5,
     shortReview: '',
     review: '',
-    tier: null,
     favorite: false,
     createdAt: '2026-04-18T00:00:00.000Z',
     updatedAt: '2026-04-18T01:00:00.000Z',
@@ -307,6 +305,34 @@ describe('SyncService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      userTierBoard: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(async () => []),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      userTierBoardLane: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(async () => []),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      userTierBoardItem: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(async () => []),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      userTierBoardAsset: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(async () => []),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
     };
     prisma.$transaction.mockImplementation(
       async (callback: (client: any) => Promise<any>) =>
@@ -409,7 +435,7 @@ describe('SyncService', () => {
         }),
       }),
     ]);
-    expect(result.schemaVersion).toBe(3);
+    expect(result.schemaVersion).toBe(4);
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
@@ -509,7 +535,7 @@ describe('SyncService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 3,
+        schemaVersion: 4,
         nextSince: '2026-04-18T02:00:00.000Z',
         changes: [
           expect.objectContaining({
@@ -1242,7 +1268,7 @@ describe('SyncService', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 3,
+        schemaVersion: 4,
         nextSince: '2026-04-18T00:00:00.000Z',
         changes: [],
       }),
@@ -1347,7 +1373,7 @@ describe('SyncService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 3,
+        schemaVersion: 4,
         results: [
           expect.objectContaining({
             entityType: 'series',
@@ -1631,7 +1657,7 @@ describe('SyncService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 3,
+        schemaVersion: 4,
         nextSince: '2026-04-18T03:00:00.000Z',
         changes: [
           expect.objectContaining({

@@ -9,6 +9,7 @@ import {
   Inject,
   Logger,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -53,6 +54,7 @@ import {
   PasswordResetRequestResponseDto,
 } from './dto/password-reset-response.dto';
 import { RegisterDto } from './dto/register.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 const GOOGLE_OAUTH_STATE_COOKIE = 'wa_google_oauth_state';
@@ -119,6 +121,11 @@ export class AuthController {
 
   @Get('google/start')
   async startGoogleLogin(@Res() response: Response) {
+    if (!this.authService.isGoogleOAuthConfigured()) {
+      response.redirect(this.getGoogleLoginFailureRedirectUrl('unconfigured'));
+      return;
+    }
+
     const state = this.generateOAuthSecret();
     const nonce = this.generateOAuthSecret();
     const cookieOptions = this.getOAuthCookieOptions();
@@ -127,6 +134,13 @@ export class AuthController {
     response.cookie(GOOGLE_OAUTH_NONCE_COOKIE, nonce, cookieOptions);
 
     response.redirect(this.authService.getGoogleAuthorizationUrl(state, nonce));
+  }
+
+  @Get('google/status')
+  googleStatus() {
+    return {
+      configured: this.authService.isGoogleOAuthConfigured(),
+    };
   }
 
   @Get('google/callback')
@@ -153,7 +167,7 @@ export class AuthController {
         severity: 'warning',
       });
 
-      response.redirect(this.getGoogleLoginFailureRedirectUrl());
+      response.redirect(this.getGoogleLoginFailureRedirectUrl('failed'));
       return;
     }
 
@@ -327,6 +341,29 @@ export class AuthController {
     return this.authService.getCurrentUser(user.userId);
   }
 
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiBody({
+    type: UpdateProfileDto,
+  })
+  @ApiOkResponse({
+    description: 'Update the current user profile.',
+    type: AuthUserResponseDto,
+  })
+  @ApiConflictResponse({
+    description: 'The requested handle is already in use.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  updateProfile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(user.userId, updateProfileDto);
+  }
+
   @Get('sessions')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -455,7 +492,7 @@ export class AuthController {
     return `${readApiRuntimeConfig().webBaseUrl.replace(/\/$/, '')}/auth/google/complete`;
   }
 
-  private getGoogleLoginFailureRedirectUrl() {
-    return `${readApiRuntimeConfig().webBaseUrl.replace(/\/$/, '')}/auth/login?google=failed`;
+  private getGoogleLoginFailureRedirectUrl(reason: 'failed' | 'unconfigured') {
+    return `${readApiRuntimeConfig().webBaseUrl.replace(/\/$/, '')}/auth/login?google=${reason}`;
   }
 }

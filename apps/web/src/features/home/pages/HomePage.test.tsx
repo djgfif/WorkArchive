@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+﻿import { screen } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
@@ -21,7 +21,6 @@ describe('HomePage', () => {
       rating: 5,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 
@@ -37,7 +36,6 @@ describe('HomePage', () => {
       rating: 4,
       shortReview: '',
       review: '',
-      tier: null,
       favorite: false,
     });
 

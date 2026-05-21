@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+﻿import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -264,8 +264,6 @@ function renderAuthenticatedAddWorkFlow(onSubmit = vi.fn()) {
             email: 'frieren@example.com',
             nickname: '',
           },
-          signIn: vi.fn(),
-          signUp: vi.fn(),
           signOut: vi.fn(),
         }}
       >
@@ -291,8 +289,6 @@ function renderGuestAddWorkFlow(onSubmit = vi.fn()) {
           isLoading: false,
           mode: 'guest',
           user: null,
-          signIn: vi.fn(),
-          signUp: vi.fn(),
           signOut: vi.fn(),
         }}
       >
@@ -325,7 +321,6 @@ function buildExistingWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
     rating: overrides.rating ?? 4.5,
     shortReview: overrides.shortReview ?? '',
     review: overrides.review ?? '',
-    tier: overrides.tier ?? null,
     favorite: overrides.favorite ?? false,
     progressCurrent: overrides.progressCurrent ?? null,
     progressTotal: overrides.progressTotal ?? null,

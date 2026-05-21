@@ -1,0 +1,243 @@
+import { Group, SimpleGrid, Stack, Text } from '@mantine/core';
+import type { ChangeEvent, DragEvent } from 'react';
+import { useRef } from 'react';
+
+import {
+  ActionRow,
+  AppBadge,
+  AppButton,
+  FeedbackMessage,
+  SectionCard,
+  SectionIntro,
+} from '../../../../shared/components/AppPrimitives';
+import type { LocalArchiveImportPreview } from '../../../archive/services/local-archive.service';
+import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
+import styles from './SettingsControlCenter.module.css';
+
+const css = styles as Record<string, string>;
+
+interface ExportOptionCardProps {
+  buttonLabel: string;
+  description: string;
+  disabled: boolean;
+  eyebrow: string;
+  onClick: () => void;
+  title: string;
+  tone: 'primary' | 'secondary';
+}
+
+interface DataBackupSettingsSectionProps {
+  archiveFeedback: SettingsFeedback | null;
+  archiveImportPreview: LocalArchiveImportPreview | null;
+  isExportingArchive: boolean;
+  isImportingArchive: boolean;
+  onCancelImport: () => void;
+  onConfirmImport: () => void;
+  onExportCsv: () => void;
+  onExportJson: () => void;
+  onImportFileSelect: (file: File) => Promise<void>;
+}
+
+function ExportOptionCard({
+  buttonLabel,
+  description,
+  disabled,
+  eyebrow,
+  onClick,
+  title,
+  tone,
+}: ExportOptionCardProps) {
+  return (
+    <SectionCard padding="lg" tone="subtle">
+      <SectionIntro
+        description={description}
+        eyebrow={eyebrow}
+        title={title}
+        titleOrder={3}
+      />
+      <AppButton
+        disabled={disabled}
+        onClick={onClick}
+        tone={tone}
+        type="button"
+      >
+        {buttonLabel}
+      </AppButton>
+    </SectionCard>
+  );
+}
+
+export function DataBackupSettingsSection({
+  archiveFeedback,
+  archiveImportPreview,
+  isExportingArchive,
+  isImportingArchive,
+  onCancelImport,
+  onConfirmImport,
+  onExportCsv,
+  onExportJson,
+  onImportFileSelect,
+}: DataBackupSettingsSectionProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function handleImportFile(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    await onImportFileSelect(file);
+  }
+
+  async function handleImportFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0] ?? null;
+
+    try {
+      await handleImportFile(file);
+    } finally {
+      event.currentTarget.value = '';
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    void handleImportFile(event.dataTransfer.files?.[0] ?? null);
+  }
+
+  return (
+    <SectionCard>
+      <SectionIntro
+        description="현재 브라우저의 로컬 아카이브를 파일로 보관하고, 이전 JSON 백업을 기존 기록 위에 안전하게 병합합니다."
+        eyebrow="데이터와 백업"
+        title="로컬 백업과 복구"
+      />
+
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+        <ExportOptionCard
+          buttonLabel="JSON 백업 내보내기"
+          description="작품, 권별 기록, 타임라인 기록을 다시 가져올 수 있는 보관용 파일입니다."
+          disabled={isExportingArchive}
+          eyebrow="복구 가능"
+          onClick={() => void onExportJson()}
+          title="JSON 백업"
+          tone="primary"
+        />
+
+        <ExportOptionCard
+          buttonLabel="CSV 내보내기"
+          description="스프레드시트에서 읽기 위한 목록 파일입니다. 다시 가져오기용 형식은 아닙니다."
+          disabled={isExportingArchive}
+          eyebrow="검토용"
+          onClick={() => void onExportCsv()}
+          title="CSV 내보내기"
+          tone="secondary"
+        />
+      </SimpleGrid>
+
+      <div
+        className={css.fileDropzone ?? ''}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={handleDrop}
+      >
+        <Stack gap="xs">
+          <Text fw={800}>JSON 백업 가져오기</Text>
+          <Text c="dimmed" size="sm">
+            백업 파일을 여기에 놓거나 파일 선택 버튼을 사용하세요. API key와
+            로그인 세션 정보는 백업 파일에 포함되지 않습니다.
+          </Text>
+          <ActionRow>
+            <AppBadge tone="muted">기존 기록 유지</AppBadge>
+            <AppBadge tone="muted">중복 미리보기</AppBadge>
+            <AppBadge tone="muted">API key 제외</AppBadge>
+          </ActionRow>
+        </Stack>
+        <AppButton
+          onClick={() => fileInputRef.current?.click()}
+          tone="secondary"
+          type="button"
+        >
+          JSON 백업 선택
+        </AppButton>
+        <input
+          accept="application/json,.json"
+          aria-label="JSON 백업 파일 선택"
+          className={css.visuallyHiddenInput ?? ''}
+          onChange={(event) => void handleImportFileChange(event)}
+          ref={fileInputRef}
+          type="file"
+        />
+      </div>
+
+      {archiveImportPreview && (
+        <SectionCard padding="lg" tone="subtle">
+          <SectionIntro
+            description="기존 기록은 보존하고, 제목이 비슷한 후보를 미리 보여준 뒤 새 기록으로 추가합니다."
+            eyebrow="가져오기 미리보기"
+            title="가져올 기록 확인"
+            titleOrder={3}
+          />
+          <ActionRow>
+            <AppBadge tone="accent">
+              추가 작품 {archiveImportPreview.addWorkCount}개
+            </AppBadge>
+            <AppBadge tone="accent">
+              추가 권별 기록 {archiveImportPreview.addReleaseRecordCount}개
+            </AppBadge>
+            <AppBadge tone="accent">
+              추가 타임라인 {archiveImportPreview.addTimelineEntryCount}개
+            </AppBadge>
+            <AppBadge tone="muted">
+              수정 작품 {archiveImportPreview.updateWorkCount}개
+            </AppBadge>
+            <AppBadge tone="warning">
+              중복 후보{' '}
+              {archiveImportPreview.duplicateWorkCount +
+                archiveImportPreview.duplicateTimelineEntryCount}
+              개
+            </AppBadge>
+            <AppBadge tone="muted">
+              직접 확인 {archiveImportPreview.conflictWorkCount}개
+            </AppBadge>
+            <AppBadge tone="muted">
+              건너뜀{' '}
+              {archiveImportPreview.skippedWorkCount +
+                archiveImportPreview.skippedReleaseRecordCount +
+                archiveImportPreview.skippedTimelineEntryCount}
+              개
+            </AppBadge>
+          </ActionRow>
+          <ActionRow>
+            <AppButton
+              disabled={isImportingArchive}
+              loading={isImportingArchive}
+              onClick={() => void onConfirmImport()}
+              tone="primary"
+              type="button"
+            >
+              현재 아카이브로 가져오기
+            </AppButton>
+            <AppButton
+              disabled={isImportingArchive}
+              onClick={onCancelImport}
+              tone="quiet"
+              type="button"
+            >
+              취소
+            </AppButton>
+          </ActionRow>
+        </SectionCard>
+      )}
+
+      {archiveFeedback && (
+        <FeedbackMessage tone={archiveFeedback.tone}>
+          {archiveFeedback.message}
+        </FeedbackMessage>
+      )}
+
+      <Group gap="xs">
+        <AppBadge tone="muted">작품 기록 중심</AppBadge>
+        <AppBadge tone="muted">로그인 정보 제외</AppBadge>
+        <AppBadge tone="muted">검색 key 제외</AppBadge>
+      </Group>
+    </SectionCard>
+  );
+}
