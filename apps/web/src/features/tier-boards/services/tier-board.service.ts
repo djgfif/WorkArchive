@@ -38,6 +38,11 @@ const SUPPORTED_UPLOAD_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
+const localAssetDataUrlCache = new Map<string, string>();
+
+type TierBoardExportAsset = TierBoardAssetRecord & {
+  dataUrl?: string;
+};
 
 export const TIER_BOARD_TEMPLATES = [
   {
@@ -130,13 +135,18 @@ interface ImportIdMaps {
 }
 
 export interface TierBoardExportDocument {
-  assets: TierBoardAssetRecord[];
+  assets: TierBoardExportAsset[];
   board: TierBoardRecord;
   exportedAt: string;
   format: 'work-archive.tier-board';
   cards: TierBoardCardRecord[];
   lanes: TierLaneRecord[];
   version: 1;
+}
+
+export interface TierLaneDeleteSnapshot {
+  cards: TierBoardCardRecord[];
+  lane: TierLaneRecord;
 }
 
 function nowIso() {
@@ -266,6 +276,119 @@ function assertExportDocument(value: unknown): TierBoardExportDocument {
   return value as TierBoardExportDocument;
 }
 
+function blobToDataUrl(blob: Blob) {
+  if (typeof blob.arrayBuffer === 'function') {
+    return blob.arrayBuffer().then((buffer) => {
+      const bytes = new Uint8Array(buffer);
+      const base64 = bytesToBase64(bytes);
+
+      return `data:${blob.type || 'application/octet-stream'};base64,${base64}`;
+    });
+  }
+
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(reader.error ?? new Error('이미지 데이터를 읽지 못했습니다.'));
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') {
+        reject(new Error('이미지 데이터를 읽지 못했습니다.'));
+        return;
+      }
+      resolve(reader.result);
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  const bufferCtor = (globalThis as typeof globalThis & {
+    Buffer?: { from(input: Uint8Array): { toString(encoding: 'base64'): string } };
+  }).Buffer;
+
+  if (bufferCtor) {
+    return bufferCtor.from(bytes).toString('base64');
+  }
+
+  let binary = '';
+
+  for (let index = 0; index < bytes.length; index += 1) {
+    binary += String.fromCharCode(bytes[index]!);
+  }
+
+  return btoa(binary);
+}
+
+function base64ToBytes(base64: string) {
+  const bufferCtor = (globalThis as typeof globalThis & {
+    Buffer?: { from(input: string, encoding: 'base64'): Uint8Array };
+  }).Buffer;
+
+  if (bufferCtor) {
+    return new Uint8Array(bufferCtor.from(base64, 'base64'));
+  }
+
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return bytes;
+}
+
+function dataUrlToBlob(dataUrl: string) {
+  const match = /^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+
+  if (!match) {
+    throw new Error('지원하지 않는 이미지 데이터 형식입니다.');
+  }
+
+  const mimeType = match[1];
+  const base64 = match[2];
+
+  if (!mimeType || !base64 || !SUPPORTED_UPLOAD_MIME_TYPES.has(mimeType)) {
+    throw new Error('지원하지 않는 이미지 MIME 타입입니다.');
+  }
+
+  const bytes = base64ToBytes(base64);
+
+  if (bytes.byteLength > MAX_UPLOAD_BYTES) {
+    throw new Error('이미지 파일은 5MB 이하만 가져올 수 있습니다.');
+  }
+
+  return new Blob([bytes], { type: mimeType });
+}
+
+async function fileToBlob(file: File) {
+  if (typeof file.arrayBuffer === 'function') {
+    return new Blob([await file.arrayBuffer()], { type: file.type });
+  }
+
+  return new Promise<Blob>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(reader.error ?? new Error('이미지 파일을 읽지 못했습니다.'));
+    reader.onload = () => {
+      if (!(reader.result instanceof ArrayBuffer)) {
+        reject(new Error('이미지 파일을 읽지 못했습니다.'));
+        return;
+      }
+      resolve(new Blob([reader.result], { type: file.type }));
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function getRestoreOperation(record: { serverVersion?: number }): SyncOperation {
+  return (record.serverVersion ?? 0) === 0 ? 'create' : 'update';
+}
+
+function getRestoredSyncStatus(record: { serverVersion?: number }): WorkSyncStatus {
+  return getNextSyncStatus(record.serverVersion ?? 0);
+}
+
 export class TierBoardService {
   constructor(
     private readonly repository: TierBoardRepository = tierBoardRepository,
@@ -377,6 +500,30 @@ export class TierBoardService {
 
   async restoreBoardSnapshot(state: TierBoardEditorState) {
     const db = this.repository.getDbInstance();
+    const now = nowIso();
+    const board: TierBoardRecord = {
+      ...state.board,
+      deletedAt: null,
+      updatedAt: now,
+      syncStatus: getRestoredSyncStatus(state.board),
+    };
+    const lanes = state.lanes.map<TierLaneRecord>((lane) => ({
+      ...lane,
+      deletedAt: null,
+      updatedAt: now,
+      syncStatus: getRestoredSyncStatus(lane),
+    }));
+    const cards = state.cards.map<TierBoardCardRecord>((card) => ({
+      ...card,
+      deletedAt: null,
+      updatedAt: now,
+      syncStatus: getRestoredSyncStatus(card),
+    }));
+    const assets = state.assets.map<StoredTierBoardAssetRecord>((asset) => ({
+      ...asset,
+      deletedAt: null,
+      updatedAt: now,
+    }));
 
     await db.transaction(
       'rw',
@@ -385,22 +532,20 @@ export class TierBoardService {
       db.tierBoardCards,
       db.tierBoardAssets,
       async () => {
-        await db.tierBoards.put({
-          ...state.board,
-          deletedAt: null,
-          updatedAt: nowIso(),
-        });
-        await db.tierLanes.bulkPut(
-          state.lanes.map((lane) => ({ ...lane, deletedAt: null })),
-        );
-        await db.tierBoardCards.bulkPut(
-          state.cards.map((card) => ({ ...card, deletedAt: null })),
-        );
-        await db.tierBoardAssets.bulkPut(
-          state.assets.map((asset) => ({ ...asset, deletedAt: null })),
-        );
+        await db.tierBoards.put(board);
+        await db.tierLanes.bulkPut(lanes);
+        await db.tierBoardCards.bulkPut(cards);
+        await db.tierBoardAssets.bulkPut(assets);
       },
     );
+    await this.enqueueBoard(board, getRestoreOperation(board));
+    await Promise.all([
+      ...lanes.map((lane) => this.enqueueLane(lane, getRestoreOperation(lane))),
+      ...cards.map((card) => this.enqueueCard(card, getRestoreOperation(card))),
+      ...assets.map((asset) => this.enqueueAsset(asset, 'create')),
+    ]);
+
+    return { assets, board, cards, lanes };
   }
 
   async duplicateBoard(id: string) {
@@ -409,6 +554,7 @@ export class TierBoardService {
     const board = cloneBoard(state.board, now);
     const laneIdMap = new Map<string, string>();
     const cardIdMap = new Map<string, string>();
+    const assetObjectUrlMap = new Map<string, string>();
     const lanes = state.lanes.map<TierLaneRecord>((lane) => {
       const nextId = crypto.randomUUID();
       laneIdMap.set(lane.id, nextId);
@@ -442,6 +588,12 @@ export class TierBoardService {
     });
     const assets = state.assets.map<StoredTierBoardAssetRecord>((asset) => {
       const id = crypto.randomUUID();
+      const objectUrl =
+        asset.storageType === 'local_blob'
+          ? `indexeddb://tier-board-assets/${id}`
+          : asset.objectUrl;
+
+      assetObjectUrlMap.set(asset.objectUrl, objectUrl);
 
       return {
         ...asset,
@@ -451,12 +603,13 @@ export class TierBoardService {
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
-        objectUrl:
-          asset.storageType === 'local_blob'
-            ? `indexeddb://tier-board-assets/${id}`
-            : asset.objectUrl,
+        objectUrl,
       };
     });
+    const normalizedCards = cards.map<TierBoardCardRecord>((card) => ({
+      ...card,
+      imageUrl: assetObjectUrlMap.get(card.imageUrl) ?? card.imageUrl,
+    }));
     const db = this.repository.getDbInstance();
 
     await db.transaction(
@@ -468,14 +621,14 @@ export class TierBoardService {
       async () => {
         await db.tierBoards.add(board);
         await db.tierLanes.bulkAdd(lanes);
-        await db.tierBoardCards.bulkAdd(cards);
+        await db.tierBoardCards.bulkAdd(normalizedCards);
         await db.tierBoardAssets.bulkAdd(assets);
       },
     );
     await this.enqueueBoard(board, 'create');
     await Promise.all([
       ...lanes.map((lane) => this.enqueueLane(lane, 'create')),
-      ...cards.map((card) => this.enqueueCard(card, 'create')),
+      ...normalizedCards.map((card) => this.enqueueCard(card, 'create')),
       ...assets.map((asset) => this.enqueueAsset(asset, 'create')),
     ]);
 
@@ -552,8 +705,8 @@ export class TierBoardService {
       updatedAt: now,
       syncStatus: getNextSyncStatus(lane.serverVersion),
     };
-    const movedCards = state.cards
-      .filter((card) => card.laneId === id)
+    const laneCards = state.cards.filter((card) => card.laneId === id);
+    const movedCards = laneCards
       .map<TierBoardCardRecord>((card, index) => ({
         ...card,
         laneId: null,
@@ -573,7 +726,34 @@ export class TierBoardService {
     await this.enqueueLane(deletedLane, 'delete');
     await Promise.all(movedCards.map((card) => this.enqueueCard(card, 'update')));
 
-    return { cards: movedCards, lane };
+    return { cards: laneCards, lane } satisfies TierLaneDeleteSnapshot;
+  }
+
+  async restoreLaneDeleteSnapshot(snapshot: TierLaneDeleteSnapshot) {
+    const now = nowIso();
+    const lane: TierLaneRecord = {
+      ...snapshot.lane,
+      deletedAt: null,
+      updatedAt: now,
+      syncStatus: getRestoredSyncStatus(snapshot.lane),
+    };
+    const cards = snapshot.cards.map<TierBoardCardRecord>((card) => ({
+      ...card,
+      deletedAt: null,
+      updatedAt: now,
+      syncStatus: getRestoredSyncStatus(card),
+    }));
+    const db = this.repository.getDbInstance();
+
+    await db.transaction('rw', db.tierLanes, db.tierBoardCards, async () => {
+      await db.tierLanes.put(lane);
+      await db.tierBoardCards.bulkPut(cards);
+    });
+    await this.touchBoard(lane.boardId);
+    await this.enqueueLane(lane, getRestoreOperation(lane));
+    await Promise.all(cards.map((card) => this.enqueueCard(card, getRestoreOperation(card))));
+
+    return { cards, lane };
   }
 
   async createCard(boardId: string, input: CreateCardInput) {
@@ -668,11 +848,12 @@ export class TierBoardService {
       ...card,
       deletedAt: null,
       updatedAt: nowIso(),
-      syncStatus: getNextSyncStatus(card.serverVersion),
+      syncStatus: getRestoredSyncStatus(card),
     };
 
     await this.repository.putCard(restored);
-    await this.enqueueCard(restored, card.serverVersion === 0 ? 'create' : 'update');
+    await this.touchBoard(restored.boardId);
+    await this.enqueueCard(restored, getRestoreOperation(restored));
 
     return restored;
   }
@@ -775,6 +956,9 @@ export class TierBoardService {
     });
     const assetId = crypto.randomUUID();
     const objectUrl = `indexeddb://tier-board-assets/${assetId}`;
+    const blob = await fileToBlob(file);
+    const dataUrl = await blobToDataUrl(blob);
+    localAssetDataUrlCache.set(assetId, dataUrl);
     const asset: StoredTierBoardAssetRecord = {
       id: assetId,
       boardId,
@@ -788,7 +972,8 @@ export class TierBoardService {
       createdAt: nowIso(),
       updatedAt: nowIso(),
       deletedAt: null,
-      blob: new Blob([await file.arrayBuffer()], { type: file.type }),
+      blob,
+      dataUrl,
     };
     const updatedCard = await this.updateCard(card.id, { imageUrl: objectUrl });
 
@@ -800,6 +985,29 @@ export class TierBoardService {
 
   async exportBoardJson(boardId: string): Promise<TierBoardExportDocument> {
     const state = await this.requireEditorState(boardId);
+    const assets = await Promise.all(
+      state.assets.map<Promise<TierBoardExportAsset>>(async ({ blob, dataUrl, ...asset }) => {
+        const cachedDataUrl = dataUrl ?? localAssetDataUrlCache.get(asset.id);
+
+        if (asset.storageType !== 'local_blob' || !blob || asset.sizeBytes > MAX_UPLOAD_BYTES) {
+          return cachedDataUrl && asset.storageType === 'local_blob' && asset.sizeBytes <= MAX_UPLOAD_BYTES
+            ? { ...asset, dataUrl: cachedDataUrl }
+            : asset;
+        }
+
+        try {
+          const nextDataUrl = await blobToDataUrl(blob);
+          localAssetDataUrlCache.set(asset.id, nextDataUrl);
+
+          return {
+            ...asset,
+            dataUrl: nextDataUrl,
+          };
+        } catch {
+          return cachedDataUrl ? { ...asset, dataUrl: cachedDataUrl } : asset;
+        }
+      }),
+    );
 
     return {
       format: 'work-archive.tier-board',
@@ -808,7 +1016,7 @@ export class TierBoardService {
       board: state.board,
       lanes: state.lanes,
       cards: state.cards,
-      assets: state.assets.map(({ blob: _blob, ...asset }) => asset),
+      assets,
     };
   }
 
@@ -863,15 +1071,68 @@ export class TierBoardService {
         serverVersion: 0,
       };
     });
-    const assets = parsed.assets.map<StoredTierBoardAssetRecord>((asset) => ({
-      ...asset,
-      id: crypto.randomUUID(),
-      boardId: board.id,
-      cardId: asset.cardId ? (maps.cardIds.get(asset.cardId) ?? null) : null,
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
-    }));
+    const cardImageUrlByOldCardId = new Map(parsed.cards.map((card) => [card.id, card.imageUrl]));
+    const localAssetUrlRemaps = new Map<string, string>();
+    const localAssetMissingUrls = new Set<string>();
+    const assets = parsed.assets.map<StoredTierBoardAssetRecord>((asset) => {
+      const { dataUrl, ...assetRecord } = asset;
+      const id = crypto.randomUUID();
+      const objectUrl =
+        assetRecord.storageType === 'local_blob'
+          ? `indexeddb://tier-board-assets/${id}`
+          : assetRecord.objectUrl;
+      let blob: Blob | null = null;
+
+      if (assetRecord.storageType === 'local_blob' && dataUrl) {
+        try {
+          blob = dataUrlToBlob(dataUrl);
+          localAssetUrlRemaps.set(assetRecord.objectUrl, objectUrl);
+        } catch {
+          localAssetMissingUrls.add(assetRecord.objectUrl);
+        }
+      } else if (assetRecord.storageType === 'local_blob') {
+        localAssetMissingUrls.add(assetRecord.objectUrl);
+      }
+
+      const importedAsset: StoredTierBoardAssetRecord = {
+        ...assetRecord,
+        id,
+        boardId: board.id,
+        cardId: assetRecord.cardId ? (maps.cardIds.get(assetRecord.cardId) ?? null) : null,
+        objectUrl: assetRecord.storageType === 'local_blob' && !blob ? '' : objectUrl,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        blob,
+      };
+
+      if (blob && dataUrl) {
+        importedAsset.dataUrl = dataUrl;
+        localAssetDataUrlCache.set(id, dataUrl);
+      }
+
+      return importedAsset;
+    });
+    const normalizedCards = cards.map<TierBoardCardRecord>((card) => {
+      const oldCardId = [...maps.cardIds.entries()].find(([, nextId]) => nextId === card.id)?.[0];
+      const oldImageUrl = oldCardId ? cardImageUrlByOldCardId.get(oldCardId) : card.imageUrl;
+
+      if (oldImageUrl && localAssetUrlRemaps.has(oldImageUrl)) {
+        return {
+          ...card,
+          imageUrl: localAssetUrlRemaps.get(oldImageUrl)!,
+        };
+      }
+
+      if (oldImageUrl && localAssetMissingUrls.has(oldImageUrl)) {
+        return {
+          ...card,
+          imageUrl: '',
+        };
+      }
+
+      return card;
+    });
     const db = this.repository.getDbInstance();
 
     await db.transaction(
@@ -883,7 +1144,7 @@ export class TierBoardService {
       async () => {
         await db.tierBoards.add(board);
         await db.tierLanes.bulkAdd(lanes);
-        await db.tierBoardCards.bulkAdd(cards);
+        await db.tierBoardCards.bulkAdd(normalizedCards);
         await db.tierBoardAssets.bulkAdd(assets);
       },
     );
@@ -892,7 +1153,7 @@ export class TierBoardService {
       ...lanes.map((lane) =>
         this.enqueueLane(lane, 'create', 'tier_board_import'),
       ),
-      ...cards.map((card) =>
+      ...normalizedCards.map((card) =>
         this.enqueueCard(card, 'create', 'tier_board_import'),
       ),
       ...assets.map((asset) =>
@@ -1077,7 +1338,7 @@ export class TierBoardService {
       | 'tier_board_migration'
       | 'tier_board_import' = 'tier_board_asset_update',
   ) {
-    const { blob: _blob, ...payload } = asset;
+    const { blob: _blob, dataUrl: _dataUrl, ...payload } = asset;
 
     return this.queueRepository.enqueueEntityChange(
       'tier_board_asset',

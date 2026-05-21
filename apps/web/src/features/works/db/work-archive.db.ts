@@ -39,6 +39,7 @@ type LegacyReleaseRecord = Omit<UserReleaseRecord, 'status'> & { status: string 
 type LegacyTierWorkRecord = WorkRecord & { tier?: string | null };
 type StoredTierBoardAssetRecord = TierBoardAssetRecord & {
   blob?: Blob | null;
+  dataUrl?: string;
 };
 
 const DEFAULT_DB_NAME = 'work-archive-db-guest';

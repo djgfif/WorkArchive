@@ -1,6 +1,7 @@
 ﻿import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TierBoardEditorState } from '../services/tier-board.repository';
 import type { TierBoardRecord } from '@work-archive/shared-types';
@@ -12,7 +13,37 @@ const tierBoardMocks = vi.hoisted(() => ({
 
 vi.mock('../services/tier-board.service', () => ({
   TIER_BOARD_TEMPLATES: [
-    { title: '기본 S/A/B/C/D', lanes: [] },
+    {
+      title: 'S/A/B/C/D',
+      lanes: [
+        { title: 'S', colorToken: '#ef4444' },
+        { title: 'A', colorToken: '#f97316' },
+        { title: 'B', colorToken: '#22c55e' },
+        { title: 'C', colorToken: '#38bdf8' },
+        { title: 'D', colorToken: '#94a3b8' },
+      ],
+    },
+    {
+      title: 'SS/S/A/B/C/D/F',
+      lanes: [
+        { title: 'SS', colorToken: '#f43f5e' },
+        { title: 'S', colorToken: '#ef4444' },
+        { title: 'A', colorToken: '#f97316' },
+        { title: 'B', colorToken: '#22c55e' },
+        { title: 'C', colorToken: '#38bdf8' },
+        { title: 'D', colorToken: '#94a3b8' },
+        { title: 'F', colorToken: '#64748b' },
+      ],
+    },
+    {
+      title: '최애/좋음/무난/아쉬움',
+      lanes: [
+        { title: '최애', colorToken: '#ec4899' },
+        { title: '좋음', colorToken: '#22c55e' },
+        { title: '무난', colorToken: '#38bdf8' },
+        { title: '아쉬움', colorToken: '#94a3b8' },
+      ],
+    },
     { title: '빈 보드', lanes: [] },
   ],
   tierBoardService: {
@@ -29,6 +60,7 @@ vi.mock('../services/tier-board.service', () => ({
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { AuthProvider } from '../../auth/context/AuthProvider';
+import { tierBoardService } from '../services/tier-board.service';
 
 function buildBoard(overrides: Partial<TierBoardRecord> = {}): TierBoardRecord {
   return {
@@ -66,6 +98,19 @@ describe('TierBoardsPage', () => {
   beforeEach(() => {
     tierBoardMocks.boards = [];
     tierBoardMocks.states.clear();
+    vi.mocked(tierBoardService.createBoard).mockResolvedValue(buildBoard({ id: 'created-board' }));
+    vi.mocked(tierBoardService.deleteBoard).mockResolvedValue({
+      assets: [],
+      board: buildBoard(),
+      cards: [],
+      lanes: [],
+    });
+    vi.mocked(tierBoardService.duplicateBoard).mockResolvedValue(buildBoard({ id: 'copy-board' }));
+    vi.stubGlobal('confirm', vi.fn(() => true));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('renders the tier board route instead of redirecting to works', async () => {
@@ -137,6 +182,29 @@ describe('TierBoardsPage', () => {
     expect(screen.getByRole('link', { name: '보기' })).toHaveAttribute(
       'href',
       `/tier-boards/${board.id}/view`,
+    );
+  });
+
+  it('creates boards from a modal with visual template choices', async () => {
+    const user = userEvent.setup();
+
+    renderRoute();
+
+    await user.click((await screen.findAllByRole('button', { name: '새 티어보드 만들기' }))[0]!);
+
+    expect(await screen.findByRole('dialog', { name: '새 티어보드 만들기' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /SS\/S\/A\/B\/C\/D\/F/ })).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('새 티어보드 제목'));
+    await user.type(screen.getByLabelText('새 티어보드 제목'), '새 UX 보드');
+    await user.click(screen.getByRole('button', { name: /최애\/좋음\/무난\/아쉬움/ }));
+    await user.click(screen.getByRole('button', { name: '만들기' }));
+
+    expect(tierBoardService.createBoard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateTitle: '최애/좋음/무난/아쉬움',
+        title: '새 UX 보드',
+      }),
     );
   });
 });

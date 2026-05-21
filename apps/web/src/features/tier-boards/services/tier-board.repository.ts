@@ -15,6 +15,7 @@ type DatabaseResolver = () => WorkArchiveDatabase;
 
 export type StoredTierBoardAssetRecord = TierBoardAssetRecord & {
   blob?: Blob | null;
+  dataUrl?: string;
 };
 
 export interface TierBoardEditorState {

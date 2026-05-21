@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import {
+  Box,
   Group,
+  Modal,
   Paper,
   Select,
+  SimpleGrid,
   Stack,
   Text,
   Textarea,
@@ -11,6 +14,7 @@ import {
 } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 
+import type { TierBoardRecord, TierBoardType } from '@work-archive/shared-types';
 import {
   AppBadge,
   AppButton,
@@ -19,7 +23,6 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import { ArchiveEmptyState, ArchiveHero } from '../../works/components/ArchiveComponents';
 import { TIER_BOARD_TEMPLATES, tierBoardService } from '../services/tier-board.service';
-import type { TierBoardRecord, TierBoardType } from '@work-archive/shared-types';
 import styles from './TierBoardsPage.module.css';
 
 const css = styles as Record<string, string>;
@@ -35,11 +38,38 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function TemplatePreview({ templateTitle }: { templateTitle: string }) {
+  const template = TIER_BOARD_TEMPLATES.find((candidate) => candidate.title === templateTitle);
+
+  if (!template || template.lanes.length === 0) {
+    return (
+      <Box className={cn(css.templatePreview)}>
+        <Text c="dimmed" size="xs">빈 보드</Text>
+      </Box>
+    );
+  }
+
+  return (
+    <Group className={cn(css.templatePreview)} gap={4} wrap="nowrap">
+      {template.lanes.map((lane) => (
+        <Box
+          className={cn(css.templateLane)}
+          key={`${template.title}-${lane.title}`}
+          style={{ backgroundColor: lane.colorToken }}
+        >
+          {lane.title}
+        </Box>
+      ))}
+    </Group>
+  );
+}
+
 export function TierBoardsPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [boards, setBoards] = useState<TierBoardRecord[]>([]);
   const [counts, setCounts] = useState<Record<string, { cards: number; lanes: number }>>({});
+  const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState('새 티어보드');
   const [description, setDescription] = useState('');
   const [templateTitle, setTemplateTitle] = useState<string>(TIER_BOARD_TEMPLATES[0]!.title);
@@ -81,6 +111,7 @@ export function TierBoardsPage() {
       setDescription('');
       setTemplateTitle(TIER_BOARD_TEMPLATES[0]!.title);
       setBoardType('classic_tier');
+      setCreateOpen(false);
       await loadBoards();
       navigate(`/tier-boards/${board.id}`);
     } catch (error) {
@@ -99,6 +130,12 @@ export function TierBoardsPage() {
   }
 
   async function handleDeleteBoard(id: string) {
+    const board = boards.find((candidate) => candidate.id === id);
+
+    if (!window.confirm(`"${board?.title ?? '선택한 보드'}" 티어보드를 삭제할까요? 삭제 후 되돌릴 수 있습니다.`)) {
+      return;
+    }
+
     const snapshot = await tierBoardService.deleteBoard(id);
     setDeletedSnapshot(snapshot);
     setFeedback({ message: '티어보드를 삭제했습니다.', tone: 'success' });
@@ -138,7 +175,7 @@ export function TierBoardsPage() {
       <ArchiveHero
         actions={
           <Group gap="sm" wrap="wrap">
-            <AppButton onClick={() => void handleCreateBoard()} tone="primary" type="button">
+            <AppButton onClick={() => setCreateOpen(true)} tone="primary" type="button">
               새 티어보드 만들기
             </AppButton>
             <AppButton onClick={() => fileInputRef.current?.click()} tone="secondary" type="button">
@@ -157,49 +194,7 @@ export function TierBoardsPage() {
         eyebrow="Tier Board Maker"
         title="자유형 티어보드"
         variant="compact"
-      >
-        <Stack gap="sm">
-          <Group align="flex-start" gap="sm" wrap="wrap">
-            <TextInput
-              aria-label="새 티어보드 제목"
-              label="제목"
-              onChange={(event) => setTitle(event.currentTarget.value)}
-              value={title}
-              w={260}
-            />
-            <Textarea
-              aria-label="새 티어보드 설명"
-              autosize
-              label="설명"
-              minRows={1}
-              onChange={(event) => setDescription(event.currentTarget.value)}
-              value={description}
-              w={420}
-            />
-            <Select
-              data={TIER_BOARD_TEMPLATES.map((template) => ({
-                label: template.title,
-                value: template.title,
-              }))}
-              label="템플릿"
-              onChange={(value) => value && setTemplateTitle(value)}
-              value={templateTitle}
-              w={220}
-            />
-            <Select
-              data={[
-                { label: 'Classic tier', value: 'classic_tier' },
-                { label: 'Ranking', value: 'ranking' },
-                { label: 'Freeform', value: 'freeform' },
-              ]}
-              label="보드 타입"
-              onChange={(value) => value && setBoardType(value as TierBoardType)}
-              value={boardType}
-              w={180}
-            />
-          </Group>
-        </Stack>
-      </ArchiveHero>
+      />
 
       {feedback && (
         <FeedbackMessage tone={feedback.tone}>
@@ -218,7 +213,7 @@ export function TierBoardsPage() {
         <ArchiveEmptyState
           actions={
             <Group gap="sm">
-              <AppButton onClick={() => void handleCreateBoard()} tone="primary" type="button">
+              <AppButton onClick={() => setCreateOpen(true)} tone="primary" type="button">
                 새 티어보드 만들기
               </AppButton>
               <AppButton onClick={() => fileInputRef.current?.click()} tone="secondary" type="button">
@@ -236,6 +231,13 @@ export function TierBoardsPage() {
             <Paper className={cn(css.card)} key={board.id} p="lg">
               <Stack h="100%" justify="space-between">
                 <Stack gap="sm">
+                  <Box className={cn(css.coverPreview)}>
+                    {board.coverImageUrl ? (
+                      <img alt="" crossOrigin="anonymous" src={board.coverImageUrl} />
+                    ) : (
+                      <TemplatePreview templateTitle="S/A/B/C/D" />
+                    )}
+                  </Box>
                   <Group justify="space-between" wrap="nowrap">
                     <Title lineClamp={2} order={2} size="h3">
                       {board.title}
@@ -274,6 +276,59 @@ export function TierBoardsPage() {
           ))}
         </div>
       )}
+
+      <Modal onClose={() => setCreateOpen(false)} opened={createOpen} size="lg" title="새 티어보드 만들기">
+        <Stack gap="md">
+          <TextInput
+            aria-label="새 티어보드 제목"
+            label="제목"
+            onChange={(event) => setTitle(event.currentTarget.value)}
+            value={title}
+          />
+          <Textarea
+            aria-label="새 티어보드 설명"
+            autosize
+            label="설명"
+            minRows={2}
+            onChange={(event) => setDescription(event.currentTarget.value)}
+            value={description}
+          />
+          <Select
+            data={[
+              { label: 'Classic tier', value: 'classic_tier' },
+              { label: 'Ranking', value: 'ranking' },
+              { label: 'Freeform', value: 'freeform' },
+            ]}
+            label="보드 타입"
+            onChange={(value) => value && setBoardType(value as TierBoardType)}
+            value={boardType}
+          />
+          <Stack gap="xs">
+            <Text fw={700} size="sm">템플릿</Text>
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
+              {TIER_BOARD_TEMPLATES.map((template) => (
+                <button
+                  className={`${cn(css.templateCard)} ${templateTitle === template.title ? cn(css.templateCardSelected) : ''}`}
+                  key={template.title}
+                  onClick={() => setTemplateTitle(template.title)}
+                  type="button"
+                >
+                  <Text fw={700} size="sm">{template.title}</Text>
+                  <TemplatePreview templateTitle={template.title} />
+                </button>
+              ))}
+            </SimpleGrid>
+          </Stack>
+          <Group justify="flex-end">
+            <AppButton onClick={() => setCreateOpen(false)} tone="quiet" type="button">
+              취소
+            </AppButton>
+            <AppButton onClick={() => void handleCreateBoard()} tone="primary" type="button">
+              만들기
+            </AppButton>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }

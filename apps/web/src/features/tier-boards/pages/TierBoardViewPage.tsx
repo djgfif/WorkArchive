@@ -37,8 +37,10 @@ export function TierBoardViewPage() {
     const urls = new Map<string, string>();
 
     for (const asset of state?.assets ?? []) {
-      if (asset.storageType === 'local_blob' && asset.blob) {
+      if (asset.storageType === 'local_blob' && asset.blob instanceof Blob) {
         urls.set(asset.objectUrl, URL.createObjectURL(asset.blob));
+      } else if (asset.storageType === 'local_blob' && asset.dataUrl) {
+        urls.set(asset.objectUrl, asset.dataUrl);
       } else {
         urls.set(asset.objectUrl, asset.objectUrl);
       }
@@ -107,7 +109,12 @@ export function TierBoardViewPage() {
                   return (
                     <Paper className={cn(css.itemCard)} key={card.id} withBorder>
                       {imageUrl ? (
-                        <img alt={card.title} className={cn(css.itemImage)} src={imageUrl} />
+                        <img
+                          alt={card.title}
+                          className={cn(css.itemImage)}
+                          crossOrigin="anonymous"
+                          src={imageUrl}
+                        />
                       ) : (
                         <Box className={cn(css.itemFallback)}>
                           <Text fw={800}>{card.title.slice(0, 1).toUpperCase()}</Text>

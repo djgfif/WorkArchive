@@ -106,19 +106,16 @@ describe('TierBoardService', () => {
     expect(await worksRepository.getById(work.id)).toEqual(work);
   });
 
-  it('exports and imports board JSON without raw uploaded blobs', async () => {
+  it('exports and imports uploaded image JSON with recoverable local blobs', async () => {
     const board = await service.createBoard({ title: 'OP/ED 순위' });
     const card = await service.createImageUrlCard(board.id, {
       imageUrl: 'https://example.com/op.jpg',
       subtitle: 'Opening',
       title: 'OP 1',
     });
-    const file = {
-      arrayBuffer: async () => new TextEncoder().encode('image-bytes').buffer,
-      name: 'cover.png',
-      size: 11,
+    const file = new File([new TextEncoder().encode('image-bytes')], 'cover.png', {
       type: 'image/png',
-    } as File;
+    });
     const uploaded = await service.createUploadedImageCard(board.id, file, {
       laneId: null,
       title: '업로드 이미지',
@@ -126,8 +123,15 @@ describe('TierBoardService', () => {
 
     await service.moveCardToLane(card.id, (await service.getBoardEditorState(board.id))!.lanes[0]!.id);
     const exported = await service.exportBoardJson(board.id);
+    const uploadedAsset = exported.assets.find((asset) => asset.cardId === uploaded.card.id);
 
-    expect(exported.assets[0]).not.toHaveProperty('blob');
+    expect(uploadedAsset).not.toHaveProperty('blob');
+    expect(uploadedAsset).toEqual(
+      expect.objectContaining({
+        dataUrl: expect.stringMatching(/^data:image\/png;base64,/),
+        storageType: 'local_blob',
+      }),
+    );
     expect(exported.cards).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ cardSourceType: 'image_url', imageUrl: 'https://example.com/op.jpg' }),
@@ -137,6 +141,131 @@ describe('TierBoardService', () => {
 
     const imported = await service.importBoardJson(JSON.stringify(exported));
     expect(imported.id).not.toBe(board.id);
-    expect((await service.getBoardEditorState(imported.id))?.cards).toHaveLength(2);
+    const importedState = await service.getBoardEditorState(imported.id);
+    const importedUpload = importedState?.cards.find((candidate) => candidate.cardSourceType === 'image_upload');
+
+    expect(importedState?.cards).toHaveLength(2);
+    expect(importedState?.assets[0]).toEqual(
+      expect.objectContaining({
+        dataUrl: expect.stringMatching(/^data:image\/png;base64,/),
+        objectUrl: expect.stringMatching(/^indexeddb:\/\/tier-board-assets\//),
+        storageType: 'local_blob',
+      }),
+    );
+    expect(importedUpload?.imageUrl).toBe(importedState?.assets[0]?.objectUrl);
+    expect(importedState?.cards).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ cardSourceType: 'image_url', imageUrl: 'https://example.com/op.jpg' }),
+      ]),
+    );
+  });
+
+  it('keeps cards when importing old local_blob exports without image payloads', async () => {
+    const board = await service.createBoard({ title: 'old export' });
+    const file = new File([new TextEncoder().encode('image-bytes')], 'cover.png', {
+      type: 'image/png',
+    });
+    await service.createUploadedImageCard(board.id, file, {
+      laneId: null,
+      title: 'old upload',
+    });
+    const exported = await service.exportBoardJson(board.id);
+    const oldExport = {
+      ...exported,
+      assets: exported.assets.map(({ dataUrl: _dataUrl, ...asset }) => asset),
+    };
+
+    const imported = await service.importBoardJson(JSON.stringify(oldExport));
+    const importedState = await service.getBoardEditorState(imported.id);
+
+    expect(importedState?.cards).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          cardSourceType: 'image_upload',
+          imageUrl: '',
+          title: 'old upload',
+        }),
+      ]),
+    );
+    expect(importedState?.assets[0]).toEqual(
+      expect.objectContaining({
+        blob: null,
+        objectUrl: '',
+        storageType: 'local_blob',
+      }),
+    );
+  });
+
+  it('re-enqueues restored board, lane, and card snapshots after delete undo', async () => {
+    const board = await service.createBoard({ title: 'Undo sync' });
+    const lane = await service.createLane(board.id, { title: '복원 행' });
+    const card = await service.createCard(board.id, {
+      laneId: lane.id,
+      note: '되돌리기 검증',
+      title: '복원 카드',
+    });
+
+    await db.tierBoards.update(board.id, { serverVersion: 3, syncStatus: 'synced' });
+    await db.tierLanes.update(lane.id, { serverVersion: 4, syncStatus: 'synced' });
+    await db.tierBoardCards.update(card.id, { serverVersion: 5, syncStatus: 'synced' });
+    await db.syncQueue.clear();
+
+    const boardSnapshot = await service.deleteBoard(board.id);
+    expect(await queueRepository.listAll()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ entityId: board.id, entityType: 'tier_board', operation: 'delete' }),
+      ]),
+    );
+    await service.restoreBoardSnapshot(boardSnapshot);
+    expect(await queueRepository.listAll()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ entityId: board.id, entityType: 'tier_board', operation: 'update' }),
+        expect.objectContaining({ entityId: lane.id, entityType: 'tier_lane', operation: 'update' }),
+        expect.objectContaining({ entityId: card.id, entityType: 'tier_board_card', operation: 'update' }),
+      ]),
+    );
+    expect((await queueRepository.listAll()).some((item) => item.operation === 'delete')).toBe(false);
+
+    await db.syncQueue.clear();
+    const cardSnapshot = await service.deleteCard(card.id);
+    await service.restoreCardSnapshot(cardSnapshot);
+    expect(await queueRepository.listAll()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ entityId: card.id, entityType: 'tier_board_card', operation: 'update' }),
+      ]),
+    );
+    expect((await queueRepository.listAll()).some((item) => item.entityId === card.id && item.operation === 'delete')).toBe(false);
+
+    await db.syncQueue.clear();
+    const laneSnapshot = await service.deleteLane(lane.id);
+    await service.restoreLaneDeleteSnapshot(laneSnapshot);
+    expect(await queueRepository.listAll()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ entityId: lane.id, entityType: 'tier_lane', operation: 'update' }),
+        expect.objectContaining({ entityId: card.id, entityType: 'tier_board_card', operation: 'update' }),
+      ]),
+    );
+    expect(await repository.getCardById(card.id)).toEqual(
+      expect.objectContaining({ laneId: lane.id, orderIndex: card.orderIndex }),
+    );
+    expect((await queueRepository.listAll()).some((item) => item.entityId === lane.id && item.operation === 'delete')).toBe(false);
+  });
+
+  it('never mutates WorkRecord when library_work cards are created, edited, moved, or deleted', async () => {
+    const board = await service.createBoard({ title: 'Work snapshot guard' });
+    const lane = (await service.getBoardEditorState(board.id))!.lanes[0]!;
+    const work = await worksRepository.create(buildWork());
+    const original = await worksRepository.getById(work.id);
+
+    const card = await service.createCardFromWorkSnapshot(board.id, work.id, lane.id);
+    await service.updateCard(card.id, {
+      imageUrl: 'https://example.com/override.jpg',
+      note: '카드 전용 메모',
+      title: '카드 전용 제목',
+    });
+    await service.removeCardFromLane(card.id);
+    await service.deleteCard(card.id);
+
+    expect(await worksRepository.getById(work.id)).toEqual(original);
   });
 });

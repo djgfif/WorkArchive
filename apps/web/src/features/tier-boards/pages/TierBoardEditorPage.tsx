@@ -9,6 +9,7 @@ import {
   ScrollArea,
   Select,
   Stack,
+  Tabs,
   Text,
   Textarea,
   TextInput,
@@ -37,6 +38,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import type {
   TierBoardCardRecord,
   TierBoardType,
+  TierBoardVisibility,
   TierLaneRecord,
   WorkRecord,
 } from '@work-archive/shared-types';
@@ -50,11 +52,14 @@ import { worksRepository } from '../../works/services/works.repository';
 import {
   TIER_BOARD_TEMPLATES,
   tierBoardService,
+  type TierLaneDeleteSnapshot,
 } from '../services/tier-board.service';
 import type { TierBoardEditorState } from '../services/tier-board.repository';
 import styles from './TierBoardsPage.module.css';
 
 const css = styles as Record<string, string>;
+const POOL_ID = 'pool';
+const LANE_COLORS = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#38bdf8', '#6366f1', '#a855f7', '#ec4899', '#64748b'];
 
 function cn(value: string | undefined) {
   return value ?? '';
@@ -78,18 +83,48 @@ function downloadDataUrl(filename: string, dataUrl: string) {
   anchor.click();
 }
 
-function getContainerId(laneId: string | null) {
-  return laneId === null ? 'pool' : `lane:${laneId}`;
+function getLaneContainerId(laneId: string) {
+  return `lane-drop:${laneId}`;
 }
 
-function parseContainerId(id: string) {
-  return id === 'pool' ? null : id.startsWith('lane:') ? id.slice(5) : null;
+function getLaneSortableId(laneId: string) {
+  return `lane:${laneId}`;
+}
+
+function getCardSortableId(cardId: string) {
+  return `card:${cardId}`;
+}
+
+function parseLaneSortableId(id: string) {
+  return id.startsWith('lane:') ? id.slice(5) : null;
+}
+
+function parseCardSortableId(id: string) {
+  return id.startsWith('card:') ? id.slice(5) : null;
+}
+
+function parseDropLaneId(id: string) {
+  if (id === POOL_ID) return null;
+  if (id.startsWith('lane-drop:')) return id.slice(10);
+  if (id.startsWith('lane:')) return id.slice(5);
+
+  return undefined;
 }
 
 function getCardsForLane(cards: TierBoardCardRecord[], laneId: string | null) {
   return cards
     .filter((card) => card.laneId === laneId)
     .sort((left, right) => left.orderIndex - right.orderIndex);
+}
+
+function createWorkSubtitle(work: WorkRecord) {
+  return [
+    work.type,
+    work.author,
+    work.rating === null ? null : `★ ${work.rating.toFixed(1)}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 function DroppableZone({
@@ -104,21 +139,57 @@ function DroppableZone({
   return <div ref={setNodeRef}>{children}</div>;
 }
 
+function CardImage({
+  imageUrl,
+  title,
+}: {
+  imageUrl: string;
+  title: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [imageUrl]);
+
+  if (!imageUrl || failed) {
+    return (
+      <Box className={cn(css.itemFallback)}>
+        <Text fw={800}>{title.slice(0, 1).toUpperCase()}</Text>
+      </Box>
+    );
+  }
+
+  return (
+    <img
+      alt={title}
+      className={cn(css.itemImage)}
+      crossOrigin="anonymous"
+      onError={() => setFailed(true)}
+      src={imageUrl}
+    />
+  );
+}
+
 function SortableCard({
   assetUrls,
   card,
   lanes,
   onDelete,
+  onDuplicate,
+  onEdit,
   onMove,
 }: {
   assetUrls: Map<string, string>;
   card: TierBoardCardRecord;
   lanes: TierLaneRecord[];
   onDelete: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onEdit: (card: TierBoardCardRecord) => void;
   onMove: (id: string, laneId: string | null) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: card.id });
+    useSortable({ id: getCardSortableId(card.id) });
   const imageUrl = assetUrls.get(card.imageUrl) ?? card.imageUrl;
 
   return (
@@ -132,13 +203,7 @@ function SortableCard({
       withBorder
     >
       <Box {...attributes} {...listeners} aria-label={`${card.title} 이동`} role="button" tabIndex={0}>
-        {imageUrl ? (
-          <img alt={card.title} className={cn(css.itemImage)} src={imageUrl} />
-        ) : (
-          <Box className={cn(css.itemFallback)}>
-            <Text fw={800}>{card.title.slice(0, 1).toUpperCase()}</Text>
-          </Box>
-        )}
+        <CardImage imageUrl={imageUrl} title={card.title} />
       </Box>
       <Stack gap={4} p="xs">
         <Group justify="space-between" wrap="nowrap">
@@ -160,8 +225,10 @@ function SortableCard({
                 </Menu.Item>
               ))}
               <Menu.Divider />
+              <Menu.Item onClick={() => onEdit(card)}>카드 수정</Menu.Item>
+              <Menu.Item onClick={() => onDuplicate(card.id)}>카드 복제</Menu.Item>
               <Menu.Item color="red" onClick={() => onDelete(card.id)}>
-                삭제
+                카드 삭제
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
@@ -186,9 +253,11 @@ function SortableLane({
   cards,
   lane,
   lanes,
-  onDeleteItem,
+  onDeleteCard,
   onDeleteLane,
-  onMoveItem,
+  onDuplicateCard,
+  onEditCard,
+  onMoveCard,
   onMoveLane,
   onUpdateLane,
 }: {
@@ -196,14 +265,16 @@ function SortableLane({
   cards: TierBoardCardRecord[];
   lane: TierLaneRecord;
   lanes: TierLaneRecord[];
-  onDeleteItem: (id: string) => void;
+  onDeleteCard: (id: string) => void;
   onDeleteLane: (id: string) => void;
-  onMoveItem: (id: string, laneId: string | null) => void;
+  onDuplicateCard: (id: string) => void;
+  onEditCard: (card: TierBoardCardRecord) => void;
+  onMoveCard: (id: string, laneId: string | null) => void;
   onMoveLane: (id: string, delta: number) => void;
   onUpdateLane: (lane: TierLaneRecord) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: lane.id });
+    useSortable({ id: getLaneSortableId(lane.id) });
 
   return (
     <div
@@ -258,9 +329,9 @@ function SortableLane({
           </ActionIcon>
         </Group>
       </Stack>
-      <DroppableZone id={getContainerId(lane.id)}>
+      <DroppableZone id={getLaneContainerId(lane.id)}>
         <Box p="md">
-          <SortableContext items={cards.map((card) => card.id)}>
+          <SortableContext items={cards.map((card) => getCardSortableId(card.id))}>
             <div className={cn(css.itemGrid)}>
               {cards.map((card) => (
                 <SortableCard
@@ -268,8 +339,10 @@ function SortableLane({
                   card={card}
                   key={card.id}
                   lanes={lanes}
-                  onDelete={onDeleteItem}
-                  onMove={onMoveItem}
+                  onDelete={onDeleteCard}
+                  onDuplicate={onDuplicateCard}
+                  onEdit={onEditCard}
+                  onMove={onMoveCard}
                 />
               ))}
             </div>
@@ -289,10 +362,23 @@ export function TierBoardEditorPage() {
   const [works, setWorks] = useState<WorkRecord[]>([]);
   const [feedback, setFeedback] = useState<{ message: string; tone: 'error' | 'success' } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsDraft, setSettingsDraft] = useState({
+    boardType: 'classic_tier' as TierBoardType,
+    description: '',
+    title: '',
+    visibility: 'private' as TierBoardVisibility,
+  });
   const [laneEditor, setLaneEditor] = useState<TierLaneRecord | null>(null);
-  const [cardDraft, setCardDraft] = useState({ imageUrl: '', note: '', subtitle: '', title: '' });
-  const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
+  const [cardEditor, setCardEditor] = useState<TierBoardCardRecord | null>(null);
+  const [textDraft, setTextDraft] = useState({ note: '', subtitle: '', title: '' });
+  const [urlDraft, setUrlDraft] = useState({ imageUrl: '', note: '', subtitle: '', title: '' });
+  const [uploadDraft, setUploadDraft] = useState({ note: '', subtitle: '', title: '' });
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState('');
+  const [workSearch, setWorkSearch] = useState('');
   const [deletedCard, setDeletedCard] = useState<TierBoardCardRecord | null>(null);
+  const [deletedLane, setDeletedLane] = useState<TierLaneDeleteSnapshot | null>(null);
+  const [isExportingPng, setIsExportingPng] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -302,8 +388,10 @@ export function TierBoardEditorPage() {
     const urls = new Map<string, string>();
 
     for (const asset of state?.assets ?? []) {
-      if (asset.storageType === 'local_blob' && asset.blob) {
+      if (asset.storageType === 'local_blob' && asset.blob instanceof Blob) {
         urls.set(asset.objectUrl, URL.createObjectURL(asset.blob));
+      } else if (asset.storageType === 'local_blob' && asset.dataUrl) {
+        urls.set(asset.objectUrl, asset.dataUrl);
       } else {
         urls.set(asset.objectUrl, asset.objectUrl);
       }
@@ -311,6 +399,21 @@ export function TierBoardEditorPage() {
 
     return urls;
   }, [state?.assets]);
+  const uploadPreviewUrl = useMemo(
+    () => (uploadFile ? URL.createObjectURL(uploadFile) : ''),
+    [uploadFile],
+  );
+  const filteredWorks = useMemo(() => {
+    const query = workSearch.trim().toLowerCase();
+
+    return works
+      .filter((work) =>
+        query
+          ? `${work.title} ${work.author} ${work.type}`.toLowerCase().includes(query)
+          : true,
+      )
+      .slice(0, 20);
+  }, [workSearch, works]);
 
   async function loadState() {
     if (!boardId) return;
@@ -341,6 +444,13 @@ export function TierBoardEditorPage() {
     [assetUrls],
   );
 
+  useEffect(
+    () => () => {
+      if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
+    },
+    [uploadPreviewUrl],
+  );
+
   if (!boardId || !state) {
     return (
       <FeedbackMessage tone="info">
@@ -360,40 +470,57 @@ export function TierBoardEditorPage() {
 
   async function handleCreateTextCard() {
     await tierBoardService.createCustomTextCard(activeBoardId, {
-      note: cardDraft.note,
-      subtitle: cardDraft.subtitle,
-      title: cardDraft.title || '텍스트 카드',
+      note: textDraft.note,
+      subtitle: textDraft.subtitle,
+      title: textDraft.title || '텍스트 카드',
     });
-    setCardDraft({ imageUrl: '', note: '', subtitle: '', title: '' });
+    setTextDraft({ note: '', subtitle: '', title: '' });
     await refreshWithSuccess('텍스트 카드를 추가했습니다.');
   }
 
   async function handleCreateUrlCard() {
     await tierBoardService.createImageUrlCard(activeBoardId, {
-      imageUrl: cardDraft.imageUrl,
-      note: cardDraft.note,
-      subtitle: cardDraft.subtitle,
-      title: cardDraft.title || '이미지 카드',
+      imageUrl: urlDraft.imageUrl,
+      note: urlDraft.note,
+      subtitle: urlDraft.subtitle,
+      title: urlDraft.title || '이미지 카드',
     });
-    setCardDraft({ imageUrl: '', note: '', subtitle: '', title: '' });
+    setUrlDraft({ imageUrl: '', note: '', subtitle: '', title: '' });
     await refreshWithSuccess('이미지 URL 카드를 추가했습니다.');
   }
 
-  async function handleUpload(file: File | null) {
+  function handleUploadFile(file: File | null) {
+    setUploadError('');
+    setUploadFile(null);
+
     if (!file) return;
-    await tierBoardService.createUploadedImageCard(activeBoardId, file, {
-      note: cardDraft.note,
-      subtitle: cardDraft.subtitle,
-      title: cardDraft.title || file.name,
+    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+      setUploadError('jpg, jpeg, png, webp 이미지만 업로드할 수 있습니다.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('이미지 파일은 5MB 이하만 업로드할 수 있습니다.');
+      return;
+    }
+    setUploadFile(file);
+    setUploadDraft((draft) => ({ ...draft, title: draft.title || file.name }));
+  }
+
+  async function handleUpload() {
+    if (!uploadFile) return;
+    await tierBoardService.createUploadedImageCard(activeBoardId, uploadFile, {
+      note: uploadDraft.note,
+      subtitle: uploadDraft.subtitle,
+      title: uploadDraft.title || uploadFile.name,
     });
+    setUploadDraft({ note: '', subtitle: '', title: '' });
+    setUploadFile(null);
     await refreshWithSuccess('업로드 이미지 카드를 추가했습니다.');
   }
 
-  async function handleImportWork() {
-    if (!selectedWorkId) return;
-    await tierBoardService.createCardFromWorkSnapshot(activeBoardId, selectedWorkId);
-    setSelectedWorkId(null);
-    await refreshWithSuccess('내 작품에서 snapshot card을 만들었습니다.');
+  async function handleImportWork(workId: string) {
+    await tierBoardService.createCardFromWorkSnapshot(activeBoardId, workId);
+    await refreshWithSuccess('내 작품에서 snapshot card를 만들었습니다.');
   }
 
   async function handleMoveCard(id: string, laneId: string | null) {
@@ -403,6 +530,16 @@ export function TierBoardEditorPage() {
   }
 
   async function handleDeleteCard(id: string) {
+    const card = editorState.cards.find((candidate) => candidate.id === id);
+
+    if (
+      card &&
+      (card.cardSourceType === 'image_upload' || card.note.trim()) &&
+      !window.confirm('이 카드는 이미지 또는 메모가 있습니다. 삭제 후 되돌릴 수 있지만 계속할까요?')
+    ) {
+      return;
+    }
+
     const snapshot = await tierBoardService.deleteCard(id);
     setDeletedCard(snapshot);
     await refreshWithSuccess('카드를 삭제했습니다.');
@@ -416,8 +553,31 @@ export function TierBoardEditorPage() {
   }
 
   async function handleDeleteLane(id: string) {
-    await tierBoardService.deleteLane(id);
-    await refreshWithSuccess('행을 삭제하고 항목을 미배치로 옮겼습니다.');
+    const lane = editorState.lanes.find((candidate) => candidate.id === id);
+
+    if (
+      !window.confirm(
+        `"${lane?.title ?? '선택한 행'}" 행을 삭제할까요? 이 행의 카드는 미배치 카드로 이동됩니다.`,
+      )
+    ) {
+      return;
+    }
+
+    const snapshot = await tierBoardService.deleteLane(id);
+    setDeletedLane(snapshot);
+    await refreshWithSuccess('행을 삭제하고 카드를 미배치로 옮겼습니다.');
+  }
+
+  async function handleUndoDeleteLane() {
+    if (!deletedLane) return;
+    await tierBoardService.restoreLaneDeleteSnapshot(deletedLane);
+    setDeletedLane(null);
+    await refreshWithSuccess('행 삭제를 되돌렸습니다.');
+  }
+
+  async function handleDuplicateCard(id: string) {
+    await tierBoardService.duplicateCard(id);
+    await refreshWithSuccess('카드를 복제했습니다.');
   }
 
   async function handleMoveLane(id: string, delta: number) {
@@ -436,10 +596,13 @@ export function TierBoardEditorPage() {
 
     if (!overId || activeId === overId) return;
 
-    if (editorState.lanes.some((lane) => lane.id === activeId)) {
+    const activeLaneId = parseLaneSortableId(activeId);
+    if (activeLaneId) {
+      const overLaneId = parseLaneSortableId(overId);
+      if (!overLaneId) return;
       const laneIds = editorState.lanes.map((lane) => lane.id);
-      const oldIndex = laneIds.indexOf(activeId);
-      const newIndex = laneIds.indexOf(overId);
+      const oldIndex = laneIds.indexOf(activeLaneId);
+      const newIndex = laneIds.indexOf(overLaneId);
 
       if (oldIndex >= 0 && newIndex >= 0) {
         await tierBoardService.reorderLane(activeBoardId, arrayMove(laneIds, oldIndex, newIndex));
@@ -448,26 +611,35 @@ export function TierBoardEditorPage() {
       return;
     }
 
-    const card = editorState.cards.find((candidate) => candidate.id === activeId);
+    const activeCardId = parseCardSortableId(activeId);
+    if (!activeCardId) return;
 
-    if (!card) return;
+    const activeCard = editorState.cards.find((candidate) => candidate.id === activeCardId);
+    const overCardId = parseCardSortableId(overId);
+    const overCard = overCardId
+      ? editorState.cards.find((candidate) => candidate.id === overCardId)
+      : null;
+    const dropLaneId = parseDropLaneId(overId);
 
-    const overCard = editorState.cards.find((candidate) => candidate.id === overId);
-    const targetLaneId = overCard?.laneId ?? parseContainerId(overId);
-    const targetCards = getCardsForLane(editorState.cards, targetLaneId);
+    if (!activeCard) return;
+
+    const targetLaneId = overCard ? overCard.laneId : dropLaneId;
+    if (targetLaneId === undefined) return;
 
     if (overCard) {
+      const targetCards = getCardsForLane(editorState.cards, targetLaneId);
       const ids = targetCards.map((candidate) => candidate.id);
-      const oldIndex = ids.indexOf(activeId);
-      const newIndex = ids.indexOf(overId);
+      const oldIndex = ids.indexOf(activeCardId);
+      const newIndex = ids.indexOf(overCard.id);
       const nextIds =
         oldIndex >= 0
           ? arrayMove(ids, oldIndex, newIndex)
-          : [...ids.slice(0, newIndex), activeId, ...ids.slice(newIndex)];
+          : [...ids.slice(0, newIndex), activeCardId, ...ids.slice(newIndex)];
 
       await tierBoardService.reorderCard(activeBoardId, targetLaneId, nextIds);
-    } else {
-      await handleMoveCard(activeId, targetLaneId);
+    } else if (activeCard.laneId !== targetLaneId) {
+      if (targetLaneId) await tierBoardService.moveCardToLane(activeCardId, targetLaneId);
+      else await tierBoardService.removeCardFromLane(activeCardId);
     }
 
     await loadState();
@@ -481,22 +653,82 @@ export function TierBoardEditorPage() {
   }
 
   async function handleExportPng() {
-    if (!boardRef.current) return;
-    const dataUrl = await toPng(boardRef.current, { cacheBust: true, pixelRatio: 2 });
-    downloadDataUrl(`${editorState.board.title}.png`, dataUrl);
-    await refreshWithSuccess('PNG 이미지로 내보냈습니다.');
+    if (!boardRef.current || isExportingPng) return;
+    setIsExportingPng(true);
+    try {
+      const dataUrl = await toPng(boardRef.current, {
+        backgroundColor: '#101419',
+        cacheBust: true,
+        pixelRatio: 2,
+      });
+      downloadDataUrl(`${editorState.board.title}.png`, dataUrl);
+      await refreshWithSuccess('PNG 이미지로 내보냈습니다.');
+    } catch {
+      setFeedback({
+        message: 'PNG 내보내기에 실패했습니다. 외부 이미지 CORS 때문에 실패했을 수 있습니다.',
+        tone: 'error',
+      });
+    } finally {
+      setIsExportingPng(false);
+    }
   }
 
   async function handleCopyPng() {
     if (!boardRef.current || !navigator.clipboard || !('ClipboardItem' in window)) return;
-    const blob = await toBlob(boardRef.current, { cacheBust: true, pixelRatio: 2 });
-    if (!blob) return;
-    await navigator.clipboard.write([
-      new ClipboardItem({
-        [blob.type]: blob,
-      }),
-    ]);
-    setFeedback({ message: '클립보드에 이미지로 복사했습니다.', tone: 'success' });
+    try {
+      const blob = await toBlob(boardRef.current, {
+        backgroundColor: '#101419',
+        cacheBust: true,
+        pixelRatio: 2,
+      });
+      if (!blob) return;
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob,
+        }),
+      ]);
+      setFeedback({ message: '클립보드에 이미지로 복사했습니다.', tone: 'success' });
+    } catch {
+      setFeedback({
+        message: '클립보드 복사에 실패했습니다. 외부 이미지 CORS 때문에 실패했을 수 있습니다.',
+        tone: 'error',
+      });
+    }
+  }
+
+  function openSettings() {
+    setSettingsDraft({
+      boardType: editorState.board.boardType,
+      description: editorState.board.description,
+      title: editorState.board.title,
+      visibility: editorState.board.visibility,
+    });
+    setSettingsOpen(true);
+  }
+
+  async function saveSettings() {
+    await tierBoardService.updateBoard(activeBoardId, settingsDraft);
+    setSettingsOpen(false);
+    await loadState();
+  }
+
+  async function saveLaneEditor() {
+    if (!laneEditor) return;
+    await tierBoardService.updateLane(laneEditor.id, laneEditor);
+    setLaneEditor(null);
+    await loadState();
+  }
+
+  async function saveCardEditor() {
+    if (!cardEditor) return;
+    await tierBoardService.updateCard(cardEditor.id, {
+      imageUrl: cardEditor.imageUrl,
+      note: cardEditor.note,
+      subtitle: cardEditor.subtitle,
+      title: cardEditor.title,
+    });
+    setCardEditor(null);
+    await loadState();
   }
 
   return (
@@ -521,14 +753,14 @@ export function TierBoardEditorPage() {
             </Text>
           </Stack>
           <Group gap="xs">
-            <AppButton onClick={() => setSettingsOpen(true)} tone="secondary" type="button">
+            <AppButton onClick={openSettings} tone="secondary" type="button">
               보드 설정
             </AppButton>
             <AppButton onClick={() => void handleExportJson()} tone="secondary" type="button">
               JSON 내보내기
             </AppButton>
-            <AppButton onClick={() => void handleExportPng()} tone="secondary" type="button">
-              PNG 이미지로 내보내기
+            <AppButton disabled={isExportingPng} onClick={() => void handleExportPng()} tone="secondary" type="button">
+              {isExportingPng ? 'PNG 생성 중' : 'PNG 이미지로 내보내기'}
             </AppButton>
             <AppButton onClick={() => void handleCopyPng()} tone="quiet" type="button">
               클립보드 복사
@@ -554,109 +786,151 @@ export function TierBoardEditorPage() {
         <FeedbackMessage tone={feedback.tone}>
           <Group justify="space-between">
             <Text>{feedback.message}</Text>
-            {deletedCard && (
-              <AppButton onClick={() => void handleUndoDeleteCard()} tone="secondary" type="button">
-                되돌리기
-              </AppButton>
-            )}
+            <Group gap="xs">
+              {deletedCard && (
+                <AppButton onClick={() => void handleUndoDeleteCard()} tone="secondary" type="button">
+                  카드 되돌리기
+                </AppButton>
+              )}
+              {deletedLane && (
+                <AppButton onClick={() => void handleUndoDeleteLane()} tone="secondary" type="button">
+                  행 되돌리기
+                </AppButton>
+              )}
+            </Group>
           </Group>
         </FeedbackMessage>
       )}
 
-      <div className={cn(css.editorShell)}>
-        <Paper className={cn(css.sourcePanel)} p="md">
-          <Stack gap="md">
-            <Stack gap={4}>
-              <Title order={2} size="h3">
-                Card source
-              </Title>
-              <Text c="dimmed" size="sm">
-                작품 DB는 snapshot source로만 사용됩니다.
-              </Text>
-            </Stack>
-            <TextInput
-              label="Title"
-              onChange={(event) => setCardDraft((draft) => ({ ...draft, title: event.currentTarget.value }))}
-              value={cardDraft.title}
-            />
-            <TextInput
-              label="Subtitle"
-              onChange={(event) => setCardDraft((draft) => ({ ...draft, subtitle: event.currentTarget.value }))}
-              value={cardDraft.subtitle}
-            />
-            <TextInput
-              label="Image URL"
-              onChange={(event) => setCardDraft((draft) => ({ ...draft, imageUrl: event.currentTarget.value }))}
-              value={cardDraft.imageUrl}
-            />
-            <Textarea
-              autosize
-              label="Note"
-              minRows={2}
-              onChange={(event) => setCardDraft((draft) => ({ ...draft, note: event.currentTarget.value }))}
-              value={cardDraft.note}
-            />
-            <Group gap="xs">
-              <AppButton onClick={() => void handleCreateTextCard()} tone="primary" type="button">
-                텍스트 카드 추가
-              </AppButton>
-              <AppButton onClick={() => void handleCreateUrlCard()} tone="secondary" type="button">
-                이미지 URL 카드 추가
-              </AppButton>
-            </Group>
-            <input
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              hidden
-              onChange={(event) => void handleUpload(event.currentTarget.files?.[0] ?? null)}
-              ref={uploadInputRef}
-              type="file"
-            />
-            <AppButton onClick={() => uploadInputRef.current?.click()} tone="secondary" type="button">
-              이미지 업로드 카드 추가
-            </AppButton>
-            <Select
-              data={works.map((work) => ({
-                label: work.title,
-                value: work.id,
-              }))}
-              label="내 작품에서 가져오기"
-              onChange={setSelectedWorkId}
-              placeholder="작품 검색"
-              searchable
-              value={selectedWorkId}
-            />
-            <AppButton disabled={!selectedWorkId} onClick={() => void handleImportWork()} tone="secondary" type="button">
-              작품 snapshot 추가
-            </AppButton>
-            <DroppableZone id="pool">
-              <Paper className={cn(css.pool)} p="sm">
-                <Stack gap="xs">
-                  <Text fw={700} size="sm">
-                    미배치 카드
-                  </Text>
-                  <SortableContext items={poolCards.map((card) => card.id)}>
+      <DndContext collisionDetection={closestCenter} onDragEnd={(event) => void handleDragEnd(event)} sensors={sensors}>
+        <div className={cn(css.editorShell)} data-testid="tier-board-dnd-context">
+          <Paper className={cn(css.sourcePanel)} p="md">
+            <Stack gap="md">
+              <Stack gap={4}>
+                <Title order={2} size="h3">
+                  카드 추가
+                </Title>
+                <Text c="dimmed" size="sm">
+                  작품 DB는 snapshot source로만 사용됩니다.
+                </Text>
+              </Stack>
+              <Tabs defaultValue="text">
+                <Tabs.List grow>
+                  <Tabs.Tab value="text">텍스트</Tabs.Tab>
+                  <Tabs.Tab value="url">이미지 URL</Tabs.Tab>
+                  <Tabs.Tab value="upload">업로드</Tabs.Tab>
+                  <Tabs.Tab value="work">내 작품</Tabs.Tab>
+                </Tabs.List>
+                <Tabs.Panel pt="md" value="text">
+                  <Stack gap="sm">
+                    <TextInput label="Title" onChange={(event) => setTextDraft((draft) => ({ ...draft, title: event.currentTarget.value }))} value={textDraft.title} />
+                    <TextInput label="Subtitle" onChange={(event) => setTextDraft((draft) => ({ ...draft, subtitle: event.currentTarget.value }))} value={textDraft.subtitle} />
+                    <Textarea autosize label="Note" minRows={2} onChange={(event) => setTextDraft((draft) => ({ ...draft, note: event.currentTarget.value }))} value={textDraft.note} />
+                    <AppButton onClick={() => void handleCreateTextCard()} tone="primary" type="button">
+                      텍스트 카드 추가
+                    </AppButton>
+                  </Stack>
+                </Tabs.Panel>
+                <Tabs.Panel pt="md" value="url">
+                  <Stack gap="sm">
+                    <TextInput label="Image URL" onChange={(event) => setUrlDraft((draft) => ({ ...draft, imageUrl: event.currentTarget.value }))} value={urlDraft.imageUrl} />
+                    <Paper className={cn(css.previewBox)} p="xs">
+                      <CardImage imageUrl={urlDraft.imageUrl} title={urlDraft.title || '이미지 URL 미리보기'} />
+                    </Paper>
+                    <TextInput label="Title" onChange={(event) => setUrlDraft((draft) => ({ ...draft, title: event.currentTarget.value }))} value={urlDraft.title} />
+                    <TextInput label="Subtitle" onChange={(event) => setUrlDraft((draft) => ({ ...draft, subtitle: event.currentTarget.value }))} value={urlDraft.subtitle} />
+                    <Textarea autosize label="Note" minRows={2} onChange={(event) => setUrlDraft((draft) => ({ ...draft, note: event.currentTarget.value }))} value={urlDraft.note} />
+                    <AppButton disabled={!urlDraft.imageUrl.trim()} onClick={() => void handleCreateUrlCard()} tone="primary" type="button">
+                      이미지 URL 카드 추가
+                    </AppButton>
+                  </Stack>
+                </Tabs.Panel>
+                <Tabs.Panel pt="md" value="upload">
+                  <Stack gap="sm">
+                    <input
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      hidden
+                      onChange={(event) => handleUploadFile(event.currentTarget.files?.[0] ?? null)}
+                      ref={uploadInputRef}
+                      type="file"
+                    />
+                    <AppButton onClick={() => uploadInputRef.current?.click()} tone="secondary" type="button">
+                      이미지 선택
+                    </AppButton>
+                    {uploadError && <FeedbackMessage tone="error">{uploadError}</FeedbackMessage>}
+                    {uploadFile && (
+                      <Paper className={cn(css.previewBox)} p="xs">
+                        <CardImage imageUrl={uploadPreviewUrl} title={uploadFile.name} />
+                        <Text c="dimmed" size="xs">
+                          {uploadFile.name} · {(uploadFile.size / 1024).toFixed(1)} KB
+                        </Text>
+                      </Paper>
+                    )}
+                    <TextInput label="Title" onChange={(event) => setUploadDraft((draft) => ({ ...draft, title: event.currentTarget.value }))} value={uploadDraft.title} />
+                    <TextInput label="Subtitle" onChange={(event) => setUploadDraft((draft) => ({ ...draft, subtitle: event.currentTarget.value }))} value={uploadDraft.subtitle} />
+                    <Textarea autosize label="Note" minRows={2} onChange={(event) => setUploadDraft((draft) => ({ ...draft, note: event.currentTarget.value }))} value={uploadDraft.note} />
+                    <AppButton disabled={!uploadFile} onClick={() => void handleUpload()} tone="primary" type="button">
+                      이미지 업로드 카드 추가
+                    </AppButton>
+                  </Stack>
+                </Tabs.Panel>
+                <Tabs.Panel pt="md" value="work">
+                  <Stack gap="sm">
+                    <TextInput label="작품 검색" onChange={(event) => setWorkSearch(event.currentTarget.value)} value={workSearch} />
                     <Stack gap="xs">
-                      {poolCards.map((card) => (
-                        <SortableCard
-                          assetUrls={assetUrls}
-                          card={card}
-                          key={card.id}
-                          lanes={editorState.lanes}
-                          onDelete={(id) => void handleDeleteCard(id)}
-                          onMove={(id, laneId) => void handleMoveCard(id, laneId)}
-                        />
+                      {filteredWorks.map((work) => (
+                        <Paper className={cn(css.workResult)} key={work.id} p="sm" withBorder>
+                          <Group align="center" gap="sm" wrap="nowrap">
+                            <Box className={cn(css.workThumb)}>
+                              <CardImage imageUrl={work.thumbnailUrl} title={work.title} />
+                            </Box>
+                            <Stack gap={2} style={{ flex: 1 }}>
+                              <Text fw={700} lineClamp={1} size="sm">{work.title}</Text>
+                              <Text c="dimmed" lineClamp={1} size="xs">{createWorkSubtitle(work)}</Text>
+                            </Stack>
+                            <AppButton onClick={() => void handleImportWork(work.id)} tone="secondary" type="button">
+                              추가
+                            </AppButton>
+                          </Group>
+                        </Paper>
                       ))}
+                      {filteredWorks.length === 0 && (
+                        <Text c="dimmed" size="sm">가져올 작품이 없습니다.</Text>
+                      )}
                     </Stack>
-                  </SortableContext>
-                </Stack>
-              </Paper>
-            </DroppableZone>
-          </Stack>
-        </Paper>
+                  </Stack>
+                </Tabs.Panel>
+              </Tabs>
+              <DroppableZone id={POOL_ID}>
+                <Paper className={cn(css.pool)} p="sm">
+                  <Stack gap="xs">
+                    <Text fw={700} size="sm">
+                      미배치 카드
+                    </Text>
+                    <SortableContext items={poolCards.map((card) => getCardSortableId(card.id))}>
+                      <Stack gap="xs">
+                        {poolCards.map((card) => (
+                          <SortableCard
+                            assetUrls={assetUrls}
+                            card={card}
+                            key={card.id}
+                            lanes={editorState.lanes}
+                            onDelete={(id) => void handleDeleteCard(id)}
+                            onDuplicate={(id) => void handleDuplicateCard(id)}
+                            onEdit={setCardEditor}
+                            onMove={(id, laneId) => void handleMoveCard(id, laneId)}
+                          />
+                        ))}
+                      </Stack>
+                    </SortableContext>
+                  </Stack>
+                </Paper>
+              </DroppableZone>
+            </Stack>
+          </Paper>
 
-        <DndContext collisionDetection={closestCenter} onDragEnd={(event) => void handleDragEnd(event)} sensors={sensors}>
           <Paper className={cn(css.canvas)} ref={boardRef}>
-            <SortableContext items={editorState.lanes.map((lane) => lane.id)}>
+            <SortableContext items={editorState.lanes.map((lane) => getLaneSortableId(lane.id))}>
               <ScrollArea type="auto">
                 {editorState.lanes.map((lane) => (
                   <SortableLane
@@ -665,32 +939,34 @@ export function TierBoardEditorPage() {
                     key={lane.id}
                     lane={lane}
                     lanes={editorState.lanes}
-                    onDeleteItem={(id) => void handleDeleteCard(id)}
+                    onDeleteCard={(id) => void handleDeleteCard(id)}
                     onDeleteLane={(id) => void handleDeleteLane(id)}
-                    onMoveItem={(id, laneId) => void handleMoveCard(id, laneId)}
+                    onDuplicateCard={(id) => void handleDuplicateCard(id)}
+                    onEditCard={setCardEditor}
+                    onMoveCard={(id, laneId) => void handleMoveCard(id, laneId)}
                     onMoveLane={(id, delta) => void handleMoveLane(id, delta)}
-                    onUpdateLane={setLaneEditor}
+                    onUpdateLane={(lane) => setLaneEditor({ ...lane })}
                   />
                 ))}
               </ScrollArea>
             </SortableContext>
           </Paper>
-        </DndContext>
-      </div>
+        </div>
+      </DndContext>
 
       <Modal onClose={() => setSettingsOpen(false)} opened={settingsOpen} title="보드 설정">
         <Stack gap="md">
           <TextInput
             label="보드 제목"
-            onBlur={(event) => void tierBoardService.updateBoard(activeBoardId, { title: event.currentTarget.value }).then(loadState)}
-            defaultValue={editorState.board.title}
+            onChange={(event) => setSettingsDraft((draft) => ({ ...draft, title: event.currentTarget.value }))}
+            value={settingsDraft.title}
           />
           <Textarea
             autosize
             label="설명"
             minRows={2}
-            onBlur={(event) => void tierBoardService.updateBoard(activeBoardId, { description: event.currentTarget.value }).then(loadState)}
-            defaultValue={editorState.board.description}
+            onChange={(event) => setSettingsDraft((draft) => ({ ...draft, description: event.currentTarget.value }))}
+            value={settingsDraft.description}
           />
           <Select
             data={[
@@ -699,13 +975,18 @@ export function TierBoardEditorPage() {
               { label: 'Freeform', value: 'freeform' },
             ]}
             label="Board type"
-            onChange={(value) =>
-              value &&
-              void tierBoardService
-                .updateBoard(activeBoardId, { boardType: value as TierBoardType })
-                .then(loadState)
-            }
-            value={editorState.board.boardType}
+            onChange={(value) => value && setSettingsDraft((draft) => ({ ...draft, boardType: value as TierBoardType }))}
+            value={settingsDraft.boardType}
+          />
+          <Select
+            data={[
+              { label: 'Private', value: 'private' },
+              { label: 'Link only', value: 'link_only' },
+              { label: 'Exported', value: 'exported' },
+            ]}
+            label="Visibility"
+            onChange={(value) => value && setSettingsDraft((draft) => ({ ...draft, visibility: value as TierBoardVisibility }))}
+            value={settingsDraft.visibility}
           />
           <Select
             data={TIER_BOARD_TEMPLATES.map((template) => ({
@@ -718,20 +999,30 @@ export function TierBoardEditorPage() {
             }
             placeholder="템플릿 선택"
           />
-          <AppButton
-            onClick={() =>
-              void tierBoardService
-                .createLane(activeBoardId, {
-                  colorToken: '#64748b',
-                  title: '새 행',
-                })
-                .then(loadState)
-            }
-            tone="primary"
-            type="button"
-          >
-            Lane 추가
-          </AppButton>
+          <Group justify="space-between">
+            <AppButton
+              onClick={() =>
+                void tierBoardService
+                  .createLane(activeBoardId, {
+                    colorToken: '#64748b',
+                    title: '새 행',
+                  })
+                  .then(loadState)
+              }
+              tone="secondary"
+              type="button"
+            >
+              Lane 추가
+            </AppButton>
+            <Group gap="xs">
+              <AppButton onClick={() => setSettingsOpen(false)} tone="quiet" type="button">
+                취소
+              </AppButton>
+              <AppButton onClick={() => void saveSettings()} tone="primary" type="button">
+                저장
+              </AppButton>
+            </Group>
+          </Group>
         </Stack>
       </Modal>
 
@@ -743,8 +1034,23 @@ export function TierBoardEditorPage() {
               onChange={(event) => setLaneEditor({ ...laneEditor, title: event.currentTarget.value })}
               value={laneEditor.title}
             />
+            <Stack gap="xs">
+              <Text fw={700} size="sm">Preset color</Text>
+              <Group gap="xs">
+                {LANE_COLORS.map((color) => (
+                  <button
+                    aria-label={`색상 ${color}`}
+                    className={cn(css.colorChip)}
+                    key={color}
+                    onClick={() => setLaneEditor({ ...laneEditor, colorToken: color })}
+                    style={{ backgroundColor: color }}
+                    type="button"
+                  />
+                ))}
+              </Group>
+            </Stack>
             <TextInput
-              label="Color"
+              label="Hex color"
               onChange={(event) => setLaneEditor({ ...laneEditor, colorToken: event.currentTarget.value })}
               value={laneEditor.colorToken}
             />
@@ -755,17 +1061,33 @@ export function TierBoardEditorPage() {
               onChange={(event) => setLaneEditor({ ...laneEditor, description: event.currentTarget.value })}
               value={laneEditor.description}
             />
-            <AppButton
-              onClick={async () => {
-                await tierBoardService.updateLane(laneEditor.id, laneEditor);
-                setLaneEditor(null);
-                await loadState();
-              }}
-              tone="primary"
-              type="button"
-            >
-              저장
-            </AppButton>
+            <Group justify="flex-end">
+              <AppButton onClick={() => setLaneEditor(null)} tone="quiet" type="button">
+                취소
+              </AppButton>
+              <AppButton onClick={() => void saveLaneEditor()} tone="primary" type="button">
+                저장
+              </AppButton>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
+
+      <Modal onClose={() => setCardEditor(null)} opened={cardEditor !== null} title="카드 수정">
+        {cardEditor && (
+          <Stack gap="md">
+            <TextInput label="Title" onChange={(event) => setCardEditor({ ...cardEditor, title: event.currentTarget.value })} value={cardEditor.title} />
+            <TextInput label="Subtitle" onChange={(event) => setCardEditor({ ...cardEditor, subtitle: event.currentTarget.value })} value={cardEditor.subtitle} />
+            <TextInput label="Image URL" onChange={(event) => setCardEditor({ ...cardEditor, imageUrl: event.currentTarget.value })} value={cardEditor.imageUrl} />
+            <Textarea autosize label="Note" minRows={2} onChange={(event) => setCardEditor({ ...cardEditor, note: event.currentTarget.value })} value={cardEditor.note} />
+            <Group justify="flex-end">
+              <AppButton onClick={() => setCardEditor(null)} tone="quiet" type="button">
+                취소
+              </AppButton>
+              <AppButton onClick={() => void saveCardEditor()} tone="primary" type="button">
+                저장
+              </AppButton>
+            </Group>
           </Stack>
         )}
       </Modal>

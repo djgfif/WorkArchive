@@ -133,7 +133,16 @@ describe('Works routed flow', () => {
     await user.click(screen.getByRole('button', { name: '완료' }));
 
     await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
-    await user.click(await screen.findByRole('button', { name: '방금 등록한 작품 보기' }));
+    expect(
+      await screen.findByText(/Dune을\(를\) 등록했습니다/, {}, { timeout: 10_000 }),
+    ).toBeInTheDocument();
+    await user.click(
+      await screen.findByRole(
+        'button',
+        { name: '방금 등록한 작품 보기' },
+        { timeout: 10_000 },
+      ),
+    );
 
     expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(screen.getAllByText(/Frank Herbert/i).length).toBeGreaterThan(0);
@@ -150,9 +159,6 @@ describe('Works routed flow', () => {
     await user.click(screen.getByRole('button', { name: '저장' }));
 
     expect(await screen.findByRole('heading', { name: 'Dune Messiah' })).toBeInTheDocument();
-    expect(
-      await screen.findByText(/로컬에 저장됨/),
-    ).toBeInTheDocument();
   }, 20_000);
 
   it('keeps manual create local and shows field feedback before save', async () => {

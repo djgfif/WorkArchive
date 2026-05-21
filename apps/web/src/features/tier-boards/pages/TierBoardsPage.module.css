@@ -39,6 +39,7 @@
 }
 
 .canvas {
+  background: #101419;
   overflow: hidden;
 }
 
@@ -105,6 +106,91 @@
 .settingsGrid {
   display: grid;
   gap: 10px;
+}
+
+.previewBox {
+  background: var(--app-surface-subtle);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: 8px;
+}
+
+.workResult {
+  background: var(--app-surface-subtle);
+  border-radius: 8px;
+}
+
+.workThumb {
+  flex: 0 0 54px;
+  overflow: hidden;
+  width: 54px;
+}
+
+.workThumb .itemImage,
+.workThumb .itemFallback {
+  border-radius: 6px;
+}
+
+.colorChip {
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+  height: 28px;
+  width: 28px;
+}
+
+.coverPreview {
+  align-items: center;
+  background: var(--app-surface-subtle);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: 8px;
+  display: flex;
+  min-height: 84px;
+  overflow: hidden;
+}
+
+.coverPreview img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.templatePreview {
+  align-items: center;
+  display: flex;
+  min-height: 42px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.templateLane {
+  align-items: center;
+  border-radius: 5px;
+  color: #fff;
+  display: flex;
+  flex: 1 1 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 30px;
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.templateCard {
+  background: var(--app-surface-subtle);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: 8px;
+  color: var(--app-text-primary);
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  text-align: left;
+}
+
+.templateCardSelected {
+  border-color: var(--mantine-color-archive-4);
+  box-shadow: 0 0 0 1px var(--mantine-color-archive-4);
 }
 
 @media (max-width: 860px) {
