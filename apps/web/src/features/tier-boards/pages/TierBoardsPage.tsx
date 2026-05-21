@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Group,
   Paper,
+  Select,
   Stack,
   Text,
   Textarea,
@@ -17,8 +18,8 @@ import {
   FeedbackMessage,
 } from '../../../shared/components/AppPrimitives';
 import { ArchiveEmptyState, ArchiveHero } from '../../works/components/ArchiveComponents';
-import { tierBoardService } from '../services/tier-board.service';
-import type { TierBoardRecord } from '@work-archive/shared-types';
+import { TIER_BOARD_TEMPLATES, tierBoardService } from '../services/tier-board.service';
+import type { TierBoardRecord, TierBoardType } from '@work-archive/shared-types';
 import styles from './TierBoardsPage.module.css';
 
 const css = styles as Record<string, string>;
@@ -38,21 +39,23 @@ export function TierBoardsPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [boards, setBoards] = useState<TierBoardRecord[]>([]);
-  const [counts, setCounts] = useState<Record<string, { items: number; lanes: number }>>({});
+  const [counts, setCounts] = useState<Record<string, { cards: number; lanes: number }>>({});
   const [title, setTitle] = useState('새 티어보드');
   const [description, setDescription] = useState('');
+  const [templateTitle, setTemplateTitle] = useState<string>(TIER_BOARD_TEMPLATES[0]!.title);
+  const [boardType, setBoardType] = useState<TierBoardType>('classic_tier');
   const [feedback, setFeedback] = useState<{ message: string; tone: 'error' | 'success' } | null>(null);
   const [deletedSnapshot, setDeletedSnapshot] = useState<Awaited<ReturnType<typeof tierBoardService.deleteBoard>> | null>(null);
 
   async function loadBoards() {
     const nextBoards = await tierBoardService.listBoards();
-    const nextCounts: Record<string, { items: number; lanes: number }> = {};
+    const nextCounts: Record<string, { cards: number; lanes: number }> = {};
 
     await Promise.all(
       nextBoards.map(async (board) => {
         const state = await tierBoardService.getBoardEditorState(board.id);
         nextCounts[board.id] = {
-          items: state?.items.length ?? 0,
+          cards: state?.cards.length ?? 0,
           lanes: state?.lanes.length ?? 0,
         };
       }),
@@ -67,10 +70,17 @@ export function TierBoardsPage() {
 
   async function handleCreateBoard() {
     try {
-      const board = await tierBoardService.createBoard({ description, title });
+      const board = await tierBoardService.createBoard({
+        boardType,
+        description,
+        templateTitle,
+        title,
+      });
       setFeedback({ message: '티어보드를 만들었습니다.', tone: 'success' });
       setTitle('새 티어보드');
       setDescription('');
+      setTemplateTitle(TIER_BOARD_TEMPLATES[0]!.title);
+      setBoardType('classic_tier');
       await loadBoards();
       navigate(`/tier-boards/${board.id}`);
     } catch (error) {
@@ -166,6 +176,27 @@ export function TierBoardsPage() {
               value={description}
               w={420}
             />
+            <Select
+              data={TIER_BOARD_TEMPLATES.map((template) => ({
+                label: template.title,
+                value: template.title,
+              }))}
+              label="템플릿"
+              onChange={(value) => value && setTemplateTitle(value)}
+              value={templateTitle}
+              w={220}
+            />
+            <Select
+              data={[
+                { label: 'Classic tier', value: 'classic_tier' },
+                { label: 'Ranking', value: 'ranking' },
+                { label: 'Freeform', value: 'freeform' },
+              ]}
+              label="보드 타입"
+              onChange={(value) => value && setBoardType(value as TierBoardType)}
+              value={boardType}
+              w={180}
+            />
           </Group>
         </Stack>
       </ArchiveHero>
@@ -218,7 +249,7 @@ export function TierBoardsPage() {
                   </Text>
                   <Group gap="xs">
                     <AppBadge tone="accent">{counts[board.id]?.lanes ?? 0} lanes</AppBadge>
-                    <AppBadge tone="muted">{counts[board.id]?.items ?? 0} items</AppBadge>
+                    <AppBadge tone="muted">{counts[board.id]?.cards ?? 0} cards</AppBadge>
                   </Group>
                   <Text c="dimmed" size="xs">
                     마지막 수정 {formatDate(board.updatedAt)}
@@ -227,6 +258,9 @@ export function TierBoardsPage() {
                 <Group gap="xs">
                   <AppLinkButton to={`/tier-boards/${board.id}`} tone="primary">
                     열기
+                  </AppLinkButton>
+                  <AppLinkButton to={`/tier-boards/${board.id}/view`} tone="secondary">
+                    보기
                   </AppLinkButton>
                   <AppButton onClick={() => void handleDuplicateBoard(board.id)} tone="secondary" type="button">
                     복제

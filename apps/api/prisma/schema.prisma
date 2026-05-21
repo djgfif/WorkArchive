@@ -33,23 +33,23 @@ enum WorkSyncStatus {
   conflict
 }
 
-enum TierBoardLayout {
-  classic
-  compact
-  gallery
-}
-
 enum TierBoardVisibility {
   private
+  link_only
   exported
 }
 
-enum TierBoardItemSourceType {
+enum TierBoardType {
+  classic_tier
+  ranking
+  freeform
+}
+
+enum TierBoardCardSourceType {
   custom
-  image
-  url
-  work_ref
-  catalog_ref
+  image_upload
+  image_url
+  library_work
 }
 
 enum TierBoardAssetKind {
@@ -324,7 +324,6 @@ model CatalogTitle {
   incomingRelations  CatalogRelation[]         @relation("CatalogRelationTarget")
   externalRefs       CatalogExternalRef[]
   userRecords        UserWorkRecord[]
-  tierBoardItems     UserTierBoardItem[]
 
   @@index([franchiseId])
   @@index([mediumType, updatedAt])
@@ -517,7 +516,7 @@ model UserWorkRecord {
   contributorLinks  UserWorkContributor[]
   outgoingRelations UserWorkRelation[]  @relation("UserWorkRelationSource")
   incomingRelations UserWorkRelation[]  @relation("UserWorkRelationTarget")
-  tierBoardItems    UserTierBoardItem[]
+  tierBoardCards    UserTierBoardCard[]
 
   @@index([userId, deletedAt])
   @@index([userId, status, updatedAt])
@@ -689,31 +688,34 @@ model UserWorkRelation {
 model UserTierBoard {
   id            String              @id @default(uuid())
   userId        String
+  slug          String
   title         String
   description   String              @default("") @db.Text
-  layout        TierBoardLayout      @default(classic)
+  boardType     TierBoardType        @default(classic_tier)
   visibility    TierBoardVisibility  @default(private)
+  coverImageUrl String              @default("") @db.Text
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   deletedAt     DateTime?
   syncStatus    WorkSyncStatus       @default(synced)
   serverVersion Int                 @default(1)
   user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lanes         UserTierBoardLane[]
-  items         UserTierBoardItem[]
+  lanes         UserTierLane[]
+  cards         UserTierBoardCard[]
   assets        UserTierBoardAsset[]
 
   @@index([userId, updatedAt, id])
   @@index([userId, deletedAt])
+  @@unique([userId, slug])
   @@map("user_tier_boards")
 }
 
-model UserTierBoardLane {
+model UserTierLane {
   id            String          @id @default(uuid())
   boardId       String
-  label         String
+  title         String
   description   String          @default("") @db.Text
-  color         String          @default("#64748b")
+  colorToken    String          @default("#64748b")
   orderIndex    Int             @default(0)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -721,47 +723,45 @@ model UserTierBoardLane {
   syncStatus    WorkSyncStatus   @default(synced)
   serverVersion Int             @default(1)
   board         UserTierBoard    @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  items         UserTierBoardItem[]
+  cards         UserTierBoardCard[]
 
   @@index([boardId, orderIndex])
   @@index([updatedAt, id])
-  @@map("user_tier_board_lanes")
+  @@map("user_tier_lanes")
 }
 
-model UserTierBoardItem {
-  id                   String                  @id @default(uuid())
-  boardId              String
-  laneId               String?
-  sourceType           TierBoardItemSourceType @default(custom)
-  title                String
-  subtitle             String                  @default("")
-  imageUrl             String                  @default("") @db.Text
-  note                 String                  @default("") @db.Text
-  linkedWorkId         String?
-  linkedCatalogTitleId String?
-  orderIndex           Int                     @default(0)
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
-  deletedAt            DateTime?
-  syncStatus           WorkSyncStatus          @default(synced)
-  serverVersion        Int                     @default(1)
-  board                UserTierBoard           @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  lane                 UserTierBoardLane?      @relation(fields: [laneId], references: [id], onDelete: SetNull)
-  linkedWork           UserWorkRecord?         @relation(fields: [linkedWorkId], references: [id], onDelete: SetNull)
-  linkedCatalogTitle   CatalogTitle?           @relation(fields: [linkedCatalogTitleId], references: [id], onDelete: SetNull)
-  assets               UserTierBoardAsset[]
+model UserTierBoardCard {
+  id             String                  @id @default(uuid())
+  boardId        String
+  laneId         String?
+  orderIndex     Int                     @default(0)
+  cardSourceType TierBoardCardSourceType @default(custom)
+  userWorkId     String?
+  title          String
+  subtitle       String                  @default("")
+  imageUrl       String                  @default("") @db.Text
+  note           String                  @default("") @db.Text
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  deletedAt      DateTime?
+  syncStatus     WorkSyncStatus          @default(synced)
+  serverVersion  Int                     @default(1)
+  board          UserTierBoard           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  lane           UserTierLane?           @relation(fields: [laneId], references: [id], onDelete: SetNull)
+  linkedWork     UserWorkRecord?         @relation(fields: [userWorkId], references: [id], onDelete: SetNull)
+  assets         UserTierBoardAsset[]
 
   @@index([boardId, laneId, orderIndex])
   @@index([boardId, deletedAt])
-  @@index([linkedWorkId, deletedAt])
+  @@index([userWorkId, deletedAt])
   @@index([updatedAt, id])
-  @@map("user_tier_board_items")
+  @@map("user_tier_board_cards")
 }
 
 model UserTierBoardAsset {
   id          String                    @id @default(uuid())
   boardId     String
-  itemId      String?
+  cardId      String?
   kind        TierBoardAssetKind        @default(image)
   storageType TierBoardAssetStorageType
   objectUrl   String                    @db.Text
@@ -772,10 +772,10 @@ model UserTierBoardAsset {
   updatedAt   DateTime                  @updatedAt
   deletedAt   DateTime?
   board       UserTierBoard             @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  item        UserTierBoardItem?        @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  card        UserTierBoardCard?        @relation(fields: [cardId], references: [id], onDelete: SetNull)
 
   @@index([boardId, deletedAt])
-  @@index([itemId, deletedAt])
+  @@index([cardId, deletedAt])
   @@index([updatedAt, id])
   @@map("user_tier_board_assets")
 }

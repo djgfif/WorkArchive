@@ -10,8 +10,8 @@ import type {
   SyncQueueItemRecord,
   SyncResultCode,
   TierBoardAssetRecord,
-  TierBoardItemRecord,
-  TierBoardLaneRecord,
+  TierBoardCardRecord,
+  TierLaneRecord,
   TierBoardRecord,
   TimelineEntryRecord,
   UserReleaseRecord,
@@ -104,8 +104,8 @@ type GraphEntityRecord =
   | WorkSeriesLinkRecord;
 type TierBoardEntityRecord =
   | TierBoardRecord
-  | TierBoardLaneRecord
-  | TierBoardItemRecord
+  | TierLaneRecord
+  | TierBoardCardRecord
   | TierBoardAssetRecord;
 
 export type SyncRunState = 'idle' | 'syncing' | 'success' | 'failed';
@@ -198,7 +198,7 @@ function cloneQueuePayload<TPayload extends SyncQueuePayload>(
   }
 
   if (
-    'layout' in payload ||
+    'boardType' in payload ||
     'boardId' in payload ||
     'storageType' in payload
   ) {
@@ -359,8 +359,8 @@ function isGraphEntityType(entityType: SyncEntityType) {
 function isTierBoardEntityType(entityType: SyncEntityType) {
   return (
     entityType === 'tier_board' ||
-    entityType === 'tier_board_lane' ||
-    entityType === 'tier_board_item' ||
+    entityType === 'tier_lane' ||
+    entityType === 'tier_board_card' ||
     entityType === 'tier_board_asset'
   );
 }
@@ -623,8 +623,8 @@ export class SyncService {
       const workContributorsToMerge: WorkContributorRecord[] = [];
       const workRelationsToMerge: WorkRelationRecord[] = [];
       const tierBoardsToMerge: TierBoardRecord[] = [];
-      const tierBoardLanesToMerge: TierBoardLaneRecord[] = [];
-      const tierBoardItemsToMerge: TierBoardItemRecord[] = [];
+      const tierLanesToMerge: TierLaneRecord[] = [];
+      const tierBoardCardsToMerge: TierBoardCardRecord[] = [];
       const tierBoardAssetsToMerge: TierBoardAssetRecord[] = [];
       const skippedCount = 0;
       const messages: string[] = [];
@@ -723,13 +723,13 @@ export class SyncService {
             continue;
           }
 
-          if (change.entityType === 'tier_board_lane' && change.tierBoardLane) {
-            tierBoardLanesToMerge.push(change.tierBoardLane);
+          if (change.entityType === 'tier_lane' && change.tierLane) {
+            tierLanesToMerge.push(change.tierLane);
             continue;
           }
 
-          if (change.entityType === 'tier_board_item' && change.tierBoardItem) {
-            tierBoardItemsToMerge.push(change.tierBoardItem);
+          if (change.entityType === 'tier_board_card' && change.tierBoardCard) {
+            tierBoardCardsToMerge.push(change.tierBoardCard);
             continue;
           }
 
@@ -753,8 +753,8 @@ export class SyncService {
       await this.graphRepo.bulkPutWorkContributors(workContributorsToMerge);
       await this.graphRepo.bulkPutWorkRelations(workRelationsToMerge);
       await this.tierBoardRepo.bulkPutBoards(tierBoardsToMerge);
-      await this.tierBoardRepo.bulkPutLanes(tierBoardLanesToMerge);
-      await this.tierBoardRepo.bulkPutItems(tierBoardItemsToMerge);
+      await this.tierBoardRepo.bulkPutLanes(tierLanesToMerge);
+      await this.tierBoardRepo.bulkPutCards(tierBoardCardsToMerge);
       await this.tierBoardRepo.bulkPutAssets(tierBoardAssetsToMerge);
 
       if (nextSince !== null) {
@@ -781,8 +781,8 @@ export class SyncService {
           workContributorsToMerge.length +
           workRelationsToMerge.length +
           tierBoardsToMerge.length +
-          tierBoardLanesToMerge.length +
-          tierBoardItemsToMerge.length +
+          tierLanesToMerge.length +
+          tierBoardCardsToMerge.length +
           tierBoardAssetsToMerge.length,
         skippedCount,
         pulledAt,
@@ -1384,12 +1384,12 @@ export class SyncService {
       return result.tierBoard ?? null;
     }
 
-    if (result.entityType === 'tier_board_lane') {
-      return result.tierBoardLane ?? null;
+    if (result.entityType === 'tier_lane') {
+      return result.tierLane ?? null;
     }
 
-    if (result.entityType === 'tier_board_item') {
-      return result.tierBoardItem ?? null;
+    if (result.entityType === 'tier_board_card') {
+      return result.tierBoardCard ?? null;
     }
 
     if (result.entityType === 'tier_board_asset') {
@@ -1432,12 +1432,12 @@ export class SyncService {
       return change.tierBoard ?? null;
     }
 
-    if (change.entityType === 'tier_board_lane') {
-      return change.tierBoardLane ?? null;
+    if (change.entityType === 'tier_lane') {
+      return change.tierLane ?? null;
     }
 
-    if (change.entityType === 'tier_board_item') {
-      return change.tierBoardItem ?? null;
+    if (change.entityType === 'tier_board_card') {
+      return change.tierBoardCard ?? null;
     }
 
     if (change.entityType === 'tier_board_asset') {

@@ -1056,8 +1056,8 @@ function createPrismaServiceMock() {
   prismaMock.userWorkContributor = emptyFindManyDelegate;
   prismaMock.userWorkRelation = emptyFindManyDelegate;
   prismaMock.userTierBoard = emptyFindManyDelegate;
-  prismaMock.userTierBoardLane = emptyFindManyDelegate;
-  prismaMock.userTierBoardItem = emptyFindManyDelegate;
+  prismaMock.userTierLane = emptyFindManyDelegate;
+  prismaMock.userTierBoardCard = emptyFindManyDelegate;
   prismaMock.userTierBoardAsset = emptyFindManyDelegate;
 
   prismaMock.securityEvent = {

@@ -312,14 +312,14 @@ describe('SyncService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
-      userTierBoardLane: {
+      userTierLane: {
         create: jest.fn(),
         findFirst: jest.fn(),
         findMany: jest.fn(async () => []),
         findUnique: jest.fn(),
         update: jest.fn(),
       },
-      userTierBoardItem: {
+      userTierBoardCard: {
         create: jest.fn(),
         findFirst: jest.fn(),
         findMany: jest.fn(async () => []),
@@ -435,7 +435,7 @@ describe('SyncService', () => {
         }),
       }),
     ]);
-    expect(result.schemaVersion).toBe(4);
+    expect(result.schemaVersion).toBe(5);
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
@@ -535,7 +535,7 @@ describe('SyncService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 4,
+        schemaVersion: 5,
         nextSince: '2026-04-18T02:00:00.000Z',
         changes: [
           expect.objectContaining({
@@ -1268,7 +1268,7 @@ describe('SyncService', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 4,
+        schemaVersion: 5,
         nextSince: '2026-04-18T00:00:00.000Z',
         changes: [],
       }),
@@ -1373,7 +1373,7 @@ describe('SyncService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 4,
+        schemaVersion: 5,
         results: [
           expect.objectContaining({
             entityType: 'series',
@@ -1657,7 +1657,7 @@ describe('SyncService', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        schemaVersion: 4,
+        schemaVersion: 5,
         nextSince: '2026-04-18T03:00:00.000Z',
         changes: [
           expect.objectContaining({

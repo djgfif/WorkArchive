@@ -13,6 +13,7 @@ import { HomePage } from '../../features/home/pages/HomePage';
 import { AccountOverviewPage } from '../../features/profile/pages/AccountOverviewPage';
 import { ProfilePage } from '../../features/profile/pages/ProfilePage';
 import { TierBoardEditorPage } from '../../features/tier-boards/pages/TierBoardEditorPage';
+import { TierBoardViewPage } from '../../features/tier-boards/pages/TierBoardViewPage';
 import { TierBoardsPage } from '../../features/tier-boards/pages/TierBoardsPage';
 import { SettingsPage } from '../../features/profile/pages/SettingsPage';
 import { WorkCreatePage } from '../../features/works/pages/WorkCreatePage';
@@ -55,6 +56,10 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'tier-boards/:boardId',
         element: <TierBoardEditorPage />,
+      },
+      {
+        path: 'tier-boards/:boardId/view',
+        element: <TierBoardViewPage />,
       },
       {
         path: 'profile',

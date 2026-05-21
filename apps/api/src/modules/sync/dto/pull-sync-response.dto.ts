@@ -14,8 +14,8 @@ import { SyncSeriesPayloadDto } from './sync-series-payload.dto';
 import { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
 import {
   SyncTierBoardAssetPayloadDto,
-  SyncTierBoardItemPayloadDto,
-  SyncTierBoardLanePayloadDto,
+  SyncTierBoardCardPayloadDto,
+  SyncTierLanePayloadDto,
   SyncTierBoardPayloadDto,
 } from './sync-tier-board-payload.dto';
 import { SyncWorkContributorPayloadDto } from './sync-work-contributor-payload.dto';
@@ -93,16 +93,16 @@ export class PullSyncChangeDto {
   tierBoard?: SyncTierBoardPayloadDto;
 
   @ApiProperty({
-    type: () => SyncTierBoardLanePayloadDto,
+    type: () => SyncTierLanePayloadDto,
     required: false,
   })
-  tierBoardLane?: SyncTierBoardLanePayloadDto;
+  tierLane?: SyncTierLanePayloadDto;
 
   @ApiProperty({
-    type: () => SyncTierBoardItemPayloadDto,
+    type: () => SyncTierBoardCardPayloadDto,
     required: false,
   })
-  tierBoardItem?: SyncTierBoardItemPayloadDto;
+  tierBoardCard?: SyncTierBoardCardPayloadDto;
 
   @ApiProperty({
     type: () => SyncTierBoardAssetPayloadDto,

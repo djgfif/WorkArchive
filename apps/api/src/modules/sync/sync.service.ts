@@ -61,8 +61,8 @@ import type { SyncSeriesPayloadDto } from './dto/sync-series-payload.dto';
 import type { SyncTimelineEntryPayloadDto } from './dto/sync-timeline-entry-payload.dto';
 import type {
   SyncTierBoardAssetPayloadDto,
-  SyncTierBoardItemPayloadDto,
-  SyncTierBoardLanePayloadDto,
+  SyncTierBoardCardPayloadDto,
+  SyncTierLanePayloadDto,
   SyncTierBoardPayloadDto,
 } from './dto/sync-tier-board-payload.dto';
 import type { SyncWorkContributorPayloadDto } from './dto/sync-work-contributor-payload.dto';
@@ -293,8 +293,8 @@ export class SyncService {
         ...graphRecords.workContributors,
         ...graphRecords.workRelations,
         ...tierBoardRecords.tierBoards,
-        ...tierBoardRecords.tierBoardLanes,
-        ...tierBoardRecords.tierBoardItems,
+        ...tierBoardRecords.tierLanes,
+        ...tierBoardRecords.tierBoardCards,
         ...tierBoardRecords.tierBoardAssets,
       ].sort(
         (left, right) => left.updatedAt.getTime() - right.updatedAt.getTime(),
@@ -376,19 +376,19 @@ export class SyncService {
       );
     }
 
-    if (change.entityType === 'tier_board_lane') {
-      return this.applyTierBoardLaneChange(
+    if (change.entityType === 'tier_lane') {
+      return this.applyTierLaneChange(
         userId,
         change,
-        change.payload as SyncTierBoardLanePayloadDto,
+        change.payload as SyncTierLanePayloadDto,
       );
     }
 
-    if (change.entityType === 'tier_board_item') {
-      return this.applyTierBoardItemChange(
+    if (change.entityType === 'tier_board_card') {
+      return this.applyTierBoardCardChange(
         userId,
         change,
-        change.payload as SyncTierBoardItemPayloadDto,
+        change.payload as SyncTierBoardCardPayloadDto,
       );
     }
 
@@ -2104,8 +2104,10 @@ export class SyncService {
           data: {
             title: normalizeString(payload.title) || payload.id,
             description: normalizeString(payload.description),
-            layout: payload.layout,
+            slug: normalizeString(payload.slug) || payload.id,
+            boardType: payload.boardType,
             visibility: payload.visibility,
+            coverImageUrl: normalizeString(payload.coverImageUrl),
             deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
             syncStatus: SERVER_SYNC_STATUS,
             serverVersion: { increment: 1 },
@@ -2115,10 +2117,12 @@ export class SyncService {
           data: {
             id: payload.id,
             userId,
+            slug: normalizeString(payload.slug) || payload.id,
             title: normalizeString(payload.title) || payload.id,
             description: normalizeString(payload.description),
-            layout: payload.layout,
+            boardType: payload.boardType,
             visibility: payload.visibility,
+            coverImageUrl: normalizeString(payload.coverImageUrl),
             createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
             updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
             deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
@@ -2138,26 +2142,26 @@ export class SyncService {
     };
   }
 
-  private async applyTierBoardLaneChange(
+  private async applyTierLaneChange(
     userId: string,
     change: PushSyncChangeDto,
-    payload: SyncTierBoardLanePayloadDto,
+    payload: SyncTierLanePayloadDto,
   ): Promise<PushSyncResultDto> {
     const board = await this.prisma.userTierBoard.findUnique({
       where: { id: payload.boardId },
     });
 
     if (!board || board.userId !== userId) {
-      return this.buildTierBoardParentConflict(change, 'tierBoardLane');
+      return this.buildTierBoardParentConflict(change, 'tierLane');
     }
 
-    const existing = await this.prisma.userTierBoardLane.findUnique({
+    const existing = await this.prisma.userTierLane.findUnique({
       where: { id: change.entityId },
       include: { board: true },
     });
 
     if (payload.deletedAt !== null && !existing) {
-      return this.buildTierBoardDeleteNoop(change, 'tierBoardLane');
+      return this.buildTierBoardDeleteNoop(change, 'tierLane');
     }
 
     if (existing && existing.board.userId !== userId) {
@@ -2165,25 +2169,25 @@ export class SyncService {
     }
 
     const record = existing
-      ? await this.prisma.userTierBoardLane.update({
+      ? await this.prisma.userTierLane.update({
           where: { id: change.entityId },
           data: {
-            label: normalizeString(payload.label) || payload.id,
+            title: normalizeString(payload.title) || payload.id,
             description: normalizeString(payload.description),
-            color: normalizeString(payload.color) || '#64748b',
+            colorToken: normalizeString(payload.colorToken) || '#64748b',
             orderIndex: payload.orderIndex,
             deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
             syncStatus: SERVER_SYNC_STATUS,
             serverVersion: { increment: 1 },
           },
         })
-      : await this.prisma.userTierBoardLane.create({
+      : await this.prisma.userTierLane.create({
           data: {
             id: payload.id,
             boardId: payload.boardId,
-            label: normalizeString(payload.label) || payload.id,
+            title: normalizeString(payload.title) || payload.id,
             description: normalizeString(payload.description),
-            color: normalizeString(payload.color) || '#64748b',
+            colorToken: normalizeString(payload.colorToken) || '#64748b',
             orderIndex: payload.orderIndex,
             createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
             updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
@@ -2193,30 +2197,30 @@ export class SyncService {
           },
         });
 
-    return this.buildTierBoardAppliedResult(change, 'tierBoardLane', {
-      tierBoardLane: this.toSyncTierBoardLanePayload(record),
+    return this.buildTierBoardAppliedResult(change, 'tierLane', {
+      tierLane: this.toSyncTierLanePayload(record),
       code: existing ? SYNC_CODES.appliedChange : SYNC_CODES.created,
       message: existing ? APPLIED_CHANGE_MESSAGE : CREATED_MESSAGE,
     });
   }
 
-  private async applyTierBoardItemChange(
+  private async applyTierBoardCardChange(
     userId: string,
     change: PushSyncChangeDto,
-    payload: SyncTierBoardItemPayloadDto,
+    payload: SyncTierBoardCardPayloadDto,
   ): Promise<PushSyncResultDto> {
-    const validationError = await this.validateTierBoardItemParents(userId, payload);
+    const validationError = await this.validateTierBoardCardParents(userId, payload);
     if (validationError) {
-      return this.buildTierBoardParentConflict(change, 'tierBoardItem', validationError);
+      return this.buildTierBoardParentConflict(change, 'tierBoardCard', validationError);
     }
 
-    const existing = await this.prisma.userTierBoardItem.findUnique({
+    const existing = await this.prisma.userTierBoardCard.findUnique({
       where: { id: change.entityId },
       include: { board: true },
     });
 
     if (payload.deletedAt !== null && !existing) {
-      return this.buildTierBoardDeleteNoop(change, 'tierBoardItem');
+      return this.buildTierBoardDeleteNoop(change, 'tierBoardCard');
     }
 
     if (existing && existing.board.userId !== userId) {
@@ -2224,24 +2228,23 @@ export class SyncService {
     }
 
     const data = {
-      sourceType: payload.sourceType,
+      cardSourceType: payload.cardSourceType,
       title: normalizeString(payload.title) || payload.id,
       subtitle: normalizeString(payload.subtitle),
       imageUrl: normalizeString(payload.imageUrl),
       note: normalizeString(payload.note),
       laneId: payload.laneId,
-      linkedWorkId: payload.linkedWorkId,
-      linkedCatalogTitleId: payload.linkedCatalogTitleId,
+      userWorkId: payload.workId,
       orderIndex: payload.orderIndex,
       deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
       syncStatus: SERVER_SYNC_STATUS,
     };
     const record = existing
-      ? await this.prisma.userTierBoardItem.update({
+      ? await this.prisma.userTierBoardCard.update({
           where: { id: change.entityId },
           data: { ...data, serverVersion: { increment: 1 } },
         })
-      : await this.prisma.userTierBoardItem.create({
+      : await this.prisma.userTierBoardCard.create({
           data: {
             ...data,
             id: payload.id,
@@ -2252,8 +2255,8 @@ export class SyncService {
           },
         });
 
-    return this.buildTierBoardAppliedResult(change, 'tierBoardItem', {
-      tierBoardItem: this.toSyncTierBoardItemPayload(record),
+    return this.buildTierBoardAppliedResult(change, 'tierBoardCard', {
+      tierBoardCard: this.toSyncTierBoardCardPayload(record),
       code: existing ? SYNC_CODES.appliedChange : SYNC_CODES.created,
       message: existing ? APPLIED_CHANGE_MESSAGE : CREATED_MESSAGE,
     });
@@ -2289,7 +2292,7 @@ export class SyncService {
       originalName: normalizeString(payload.originalName),
       mimeType: normalizeString(payload.mimeType),
       sizeBytes: payload.sizeBytes,
-      itemId: payload.itemId,
+      cardId: payload.cardId,
       deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
     };
     const record = existing
@@ -2327,7 +2330,7 @@ export class SyncService {
 
   private buildTierBoardParentConflict(
     change: PushSyncChangeDto,
-    key: 'tierBoardAsset' | 'tierBoardItem' | 'tierBoardLane',
+    key: 'tierBoardAsset' | 'tierBoardCard' | 'tierLane',
     message = 'Parent tier board entity is missing or belongs to another user.',
   ): PushSyncResultDto {
     return {
@@ -2343,7 +2346,7 @@ export class SyncService {
 
   private buildTierBoardDeleteNoop(
     change: PushSyncChangeDto,
-    key: 'tierBoardAsset' | 'tierBoardItem' | 'tierBoardLane',
+    key: 'tierBoardAsset' | 'tierBoardCard' | 'tierLane',
   ): PushSyncResultDto {
     return {
       queueId: change.queueId,
@@ -2358,7 +2361,7 @@ export class SyncService {
 
   private buildTierBoardAppliedResult(
     change: PushSyncChangeDto,
-    _key: 'tierBoardAsset' | 'tierBoardItem' | 'tierBoardLane',
+    _key: 'tierBoardAsset' | 'tierBoardCard' | 'tierLane',
     data: Partial<PushSyncResultDto>,
   ): PushSyncResultDto {
     return {
@@ -2371,9 +2374,9 @@ export class SyncService {
     } as PushSyncResultDto;
   }
 
-  private async validateTierBoardItemParents(
+  private async validateTierBoardCardParents(
     userId: string,
-    payload: SyncTierBoardItemPayloadDto,
+    payload: SyncTierBoardCardPayloadDto,
   ) {
     const board = await this.prisma.userTierBoard.findUnique({
       where: { id: payload.boardId },
@@ -2384,7 +2387,7 @@ export class SyncService {
     }
 
     if (payload.laneId) {
-      const lane = await this.prisma.userTierBoardLane.findUnique({
+      const lane = await this.prisma.userTierLane.findUnique({
         where: { id: payload.laneId },
         include: { board: true },
       });
@@ -2394,9 +2397,9 @@ export class SyncService {
       }
     }
 
-    if (payload.linkedWorkId) {
+    if (payload.workId) {
       const work = await this.prisma.userWorkRecord.findUnique({
-        where: { id: payload.linkedWorkId },
+        where: { id: payload.workId },
       });
 
       if (!work || work.userId !== userId) {
@@ -2419,14 +2422,14 @@ export class SyncService {
       return 'Parent tier board is missing or belongs to another user.';
     }
 
-    if (payload.itemId) {
-      const item = await this.prisma.userTierBoardItem.findUnique({
-        where: { id: payload.itemId },
+    if (payload.cardId) {
+      const card = await this.prisma.userTierBoardCard.findUnique({
+        where: { id: payload.cardId },
         include: { board: true },
       });
 
-      if (!item || item.boardId !== payload.boardId || item.board.userId !== userId) {
-        return 'Parent tier board item is missing or belongs to another user.';
+      if (!card || card.boardId !== payload.boardId || card.board.userId !== userId) {
+        return 'Parent tier board card is missing or belongs to another user.';
       }
     }
 
@@ -3019,17 +3022,17 @@ export class SyncService {
           },
         }
       : {};
-    const [tierBoards, tierBoardLanes, tierBoardItems, tierBoardAssets] =
+    const [tierBoards, tierLanes, tierBoardCards, tierBoardAssets] =
       await Promise.all([
         this.prisma.userTierBoard.findMany({
           where: { userId, ...updatedAtFilter },
           orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
         }),
-        this.prisma.userTierBoardLane.findMany({
+        this.prisma.userTierLane.findMany({
           where: { board: { userId }, ...updatedAtFilter },
           orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
         }),
-        this.prisma.userTierBoardItem.findMany({
+        this.prisma.userTierBoardCard.findMany({
           where: { board: { userId }, ...updatedAtFilter },
           orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
         }),
@@ -3041,18 +3044,20 @@ export class SyncService {
 
     return {
       tierBoardAssets,
-      tierBoardItems,
-      tierBoardLanes,
+      tierBoardCards,
+      tierLanes,
       tierBoards,
     };
   }
 
   private toSyncTierBoardPayload(board: {
     id: string;
+    slug: string;
     title: string;
     description: string;
-    layout: string;
+    boardType: string;
     visibility: string;
+    coverImageUrl: string;
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;
@@ -3062,8 +3067,10 @@ export class SyncService {
       id: board.id,
       title: board.title,
       description: board.description,
-      layout: board.layout as SyncTierBoardPayloadDto['layout'],
+      slug: board.slug,
+      boardType: board.boardType as SyncTierBoardPayloadDto['boardType'],
       visibility: board.visibility as SyncTierBoardPayloadDto['visibility'],
+      coverImageUrl: board.coverImageUrl,
       createdAt: board.createdAt.toISOString(),
       updatedAt: board.updatedAt.toISOString(),
       deletedAt: board.deletedAt?.toISOString() ?? null,
@@ -3072,24 +3079,24 @@ export class SyncService {
     };
   }
 
-  private toSyncTierBoardLanePayload(lane: {
+  private toSyncTierLanePayload(lane: {
     id: string;
     boardId: string;
-    label: string;
+    title: string;
     description: string;
-    color: string;
+    colorToken: string;
     orderIndex: number;
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;
     serverVersion: number;
-  }): SyncTierBoardLanePayloadDto {
+  }): SyncTierLanePayloadDto {
     return {
       id: lane.id,
       boardId: lane.boardId,
-      label: lane.label,
+      title: lane.title,
       description: lane.description,
-      color: lane.color,
+      colorToken: lane.colorToken,
       orderIndex: lane.orderIndex,
       createdAt: lane.createdAt.toISOString(),
       updatedAt: lane.updatedAt.toISOString(),
@@ -3099,47 +3106,45 @@ export class SyncService {
     };
   }
 
-  private toSyncTierBoardItemPayload(item: {
+  private toSyncTierBoardCardPayload(card: {
     id: string;
     boardId: string;
     laneId: string | null;
-    sourceType: string;
+    cardSourceType: string;
     title: string;
     subtitle: string;
     imageUrl: string;
     note: string;
-    linkedWorkId: string | null;
-    linkedCatalogTitleId: string | null;
+    userWorkId: string | null;
     orderIndex: number;
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;
     serverVersion: number;
-  }): SyncTierBoardItemPayloadDto {
+  }): SyncTierBoardCardPayloadDto {
     return {
-      id: item.id,
-      boardId: item.boardId,
-      laneId: item.laneId,
-      sourceType: item.sourceType as SyncTierBoardItemPayloadDto['sourceType'],
-      title: item.title,
-      subtitle: item.subtitle,
-      imageUrl: item.imageUrl,
-      note: item.note,
-      linkedWorkId: item.linkedWorkId,
-      linkedCatalogTitleId: item.linkedCatalogTitleId,
-      orderIndex: item.orderIndex,
-      createdAt: item.createdAt.toISOString(),
-      updatedAt: item.updatedAt.toISOString(),
-      deletedAt: item.deletedAt?.toISOString() ?? null,
+      id: card.id,
+      boardId: card.boardId,
+      laneId: card.laneId,
+      cardSourceType: card.cardSourceType as SyncTierBoardCardPayloadDto['cardSourceType'],
+      title: card.title,
+      subtitle: card.subtitle,
+      imageUrl: card.imageUrl,
+      note: card.note,
+      workId: card.userWorkId,
+      orderIndex: card.orderIndex,
+      createdAt: card.createdAt.toISOString(),
+      updatedAt: card.updatedAt.toISOString(),
+      deletedAt: card.deletedAt?.toISOString() ?? null,
       syncStatus: SERVER_SYNC_STATUS,
-      serverVersion: item.serverVersion,
+      serverVersion: card.serverVersion,
     };
   }
 
   private toSyncTierBoardAssetPayload(asset: {
     id: string;
     boardId: string;
-    itemId: string | null;
+    cardId: string | null;
     kind: string;
     storageType: string;
     objectUrl: string;
@@ -3153,7 +3158,7 @@ export class SyncService {
     return {
       id: asset.id,
       boardId: asset.boardId,
-      itemId: asset.itemId,
+      cardId: asset.cardId,
       kind: asset.kind as SyncTierBoardAssetPayloadDto['kind'],
       storageType:
         asset.storageType as SyncTierBoardAssetPayloadDto['storageType'],
@@ -3172,8 +3177,8 @@ export class SyncService {
     releaseRecords,
     series,
     tierBoardAssets,
-    tierBoardItems,
-    tierBoardLanes,
+    tierBoardCards,
+    tierLanes,
     tierBoards,
     timelineEntries,
     workContributors,
@@ -3187,7 +3192,7 @@ export class SyncService {
     tierBoardAssets: Array<{
       id: string;
       boardId: string;
-      itemId: string | null;
+      cardId: string | null;
       kind: string;
       storageType: string;
       objectUrl: string;
@@ -3198,17 +3203,16 @@ export class SyncService {
       updatedAt: Date;
       deletedAt: Date | null;
     }>;
-    tierBoardItems: Array<{
+    tierBoardCards: Array<{
       id: string;
       boardId: string;
       laneId: string | null;
-      sourceType: string;
+      cardSourceType: string;
       title: string;
       subtitle: string;
       imageUrl: string;
       note: string;
-      linkedWorkId: string | null;
-      linkedCatalogTitleId: string | null;
+      userWorkId: string | null;
       orderIndex: number;
       createdAt: Date;
       updatedAt: Date;
@@ -3216,12 +3220,12 @@ export class SyncService {
       syncStatus: WorkSyncStatus;
       serverVersion: number;
     }>;
-    tierBoardLanes: Array<{
+    tierLanes: Array<{
       id: string;
       boardId: string;
-      label: string;
+      title: string;
       description: string;
-      color: string;
+      colorToken: string;
       orderIndex: number;
       createdAt: Date;
       updatedAt: Date;
@@ -3231,10 +3235,12 @@ export class SyncService {
     }>;
     tierBoards: Array<{
       id: string;
+      slug: string;
       title: string;
       description: string;
-      layout: string;
+      boardType: string;
       visibility: string;
+      coverImageUrl: string;
       createdAt: Date;
       updatedAt: Date;
       deletedAt: Date | null;
@@ -3406,31 +3412,31 @@ export class SyncService {
           updatedAtMs: entry.updatedAt.getTime(),
         };
       }),
-      ...tierBoardLanes.map<OrderedPullChange>((entry) => {
+      ...tierLanes.map<OrderedPullChange>((entry) => {
         const updatedAt = entry.updatedAt.toISOString();
 
         return {
           change: {
-            entityType: 'tier_board_lane',
+            entityType: 'tier_lane',
             entityId: entry.id,
             operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            tierBoardLane: this.toSyncTierBoardLanePayload(entry),
+            tierLane: this.toSyncTierLanePayload(entry),
           },
-          cursor: { entityId: entry.id, entityType: 'tier_board_lane', updatedAt },
+          cursor: { entityId: entry.id, entityType: 'tier_lane', updatedAt },
           updatedAtMs: entry.updatedAt.getTime(),
         };
       }),
-      ...tierBoardItems.map<OrderedPullChange>((entry) => {
+      ...tierBoardCards.map<OrderedPullChange>((entry) => {
         const updatedAt = entry.updatedAt.toISOString();
 
         return {
           change: {
-            entityType: 'tier_board_item',
+            entityType: 'tier_board_card',
             entityId: entry.id,
             operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            tierBoardItem: this.toSyncTierBoardItemPayload(entry),
+            tierBoardCard: this.toSyncTierBoardCardPayload(entry),
           },
-          cursor: { entityId: entry.id, entityType: 'tier_board_item', updatedAt },
+          cursor: { entityId: entry.id, entityType: 'tier_board_card', updatedAt },
           updatedAtMs: entry.updatedAt.getTime(),
         };
       }),
@@ -3557,12 +3563,12 @@ export class SyncService {
       return change.tierBoard!.updatedAt;
     }
 
-    if (change.entityType === 'tier_board_lane') {
-      return change.tierBoardLane!.updatedAt;
+    if (change.entityType === 'tier_lane') {
+      return change.tierLane!.updatedAt;
     }
 
-    if (change.entityType === 'tier_board_item') {
-      return change.tierBoardItem!.updatedAt;
+    if (change.entityType === 'tier_board_card') {
+      return change.tierBoardCard!.updatedAt;
     }
 
     if (change.entityType === 'tier_board_asset') {

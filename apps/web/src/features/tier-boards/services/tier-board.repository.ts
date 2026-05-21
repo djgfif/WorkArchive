@@ -1,8 +1,8 @@
 import type {
   SyncEntityType,
   TierBoardAssetRecord,
-  TierBoardItemRecord,
-  TierBoardLaneRecord,
+  TierBoardCardRecord,
+  TierLaneRecord,
   TierBoardRecord,
 } from '@work-archive/shared-types';
 
@@ -20,8 +20,8 @@ export type StoredTierBoardAssetRecord = TierBoardAssetRecord & {
 export interface TierBoardEditorState {
   assets: StoredTierBoardAssetRecord[];
   board: TierBoardRecord;
-  items: TierBoardItemRecord[];
-  lanes: TierBoardLaneRecord[];
+  cards: TierBoardCardRecord[];
+  lanes: TierLaneRecord[];
 }
 
 function isActive(record: { deletedAt: string | null }) {
@@ -55,8 +55,8 @@ export class TierBoardRepository {
       return null;
     }
 
-    const [lanes, items, assets] = await Promise.all([
-      db.tierBoardLanes
+    const [lanes, cards, assets] = await Promise.all([
+      db.tierLanes
         .where('boardId')
         .equals(id)
         .toArray()
@@ -65,7 +65,7 @@ export class TierBoardRepository {
             .filter(isActive)
             .sort((left, right) => left.orderIndex - right.orderIndex),
         ),
-      db.tierBoardItems
+      db.tierBoardCards
         .where('boardId')
         .equals(id)
         .filter(isActive)
@@ -87,7 +87,7 @@ export class TierBoardRepository {
     return {
       assets,
       board,
-      items,
+      cards,
       lanes,
     };
   }
@@ -98,16 +98,16 @@ export class TierBoardRepository {
     return board;
   }
 
-  async putLane(lane: TierBoardLaneRecord) {
-    await this.getDb().tierBoardLanes.put(lane);
+  async putLane(lane: TierLaneRecord) {
+    await this.getDb().tierLanes.put(lane);
 
     return lane;
   }
 
-  async putItem(item: TierBoardItemRecord) {
-    await this.getDb().tierBoardItems.put(item);
+  async putCard(card: TierBoardCardRecord) {
+    await this.getDb().tierBoardCards.put(card);
 
-    return item;
+    return card;
   }
 
   async putAsset(asset: StoredTierBoardAssetRecord) {
@@ -124,20 +124,20 @@ export class TierBoardRepository {
     return boards;
   }
 
-  async bulkPutLanes(lanes: TierBoardLaneRecord[]) {
+  async bulkPutLanes(lanes: TierLaneRecord[]) {
     if (lanes.length > 0) {
-      await this.getDb().tierBoardLanes.bulkPut(lanes);
+      await this.getDb().tierLanes.bulkPut(lanes);
     }
 
     return lanes;
   }
 
-  async bulkPutItems(items: TierBoardItemRecord[]) {
-    if (items.length > 0) {
-      await this.getDb().tierBoardItems.bulkPut(items);
+  async bulkPutCards(cards: TierBoardCardRecord[]) {
+    if (cards.length > 0) {
+      await this.getDb().tierBoardCards.bulkPut(cards);
     }
 
-    return items;
+    return cards;
   }
 
   async bulkPutAssets(assets: StoredTierBoardAssetRecord[]) {
@@ -149,21 +149,21 @@ export class TierBoardRepository {
   }
 
   async getLaneById(id: string) {
-    const lane = await this.getDb().tierBoardLanes.get(id);
+    const lane = await this.getDb().tierLanes.get(id);
 
     return lane && isActive(lane) ? lane : null;
   }
 
-  async getItemById(id: string) {
-    const item = await this.getDb().tierBoardItems.get(id);
+  async getCardById(id: string) {
+    const card = await this.getDb().tierBoardCards.get(id);
 
-    return item && isActive(item) ? item : null;
+    return card && isActive(card) ? card : null;
   }
 
   async getEntity(entityType: SyncEntityType, id: string) {
     if (entityType === 'tier_board') return this.getDb().tierBoards.get(id);
-    if (entityType === 'tier_board_lane') return this.getDb().tierBoardLanes.get(id);
-    if (entityType === 'tier_board_item') return this.getDb().tierBoardItems.get(id);
+    if (entityType === 'tier_lane') return this.getDb().tierLanes.get(id);
+    if (entityType === 'tier_board_card') return this.getDb().tierBoardCards.get(id);
     if (entityType === 'tier_board_asset') return this.getDb().tierBoardAssets.get(id);
 
     return null;
@@ -172,12 +172,12 @@ export class TierBoardRepository {
   async putEntity(
     entity:
       | TierBoardRecord
-      | TierBoardLaneRecord
-      | TierBoardItemRecord
+      | TierLaneRecord
+      | TierBoardCardRecord
       | StoredTierBoardAssetRecord,
   ) {
-    if ('layout' in entity) return this.putBoard(entity);
-    if ('sourceType' in entity) return this.putItem(entity);
+    if ('boardType' in entity) return this.putBoard(entity);
+    if ('cardSourceType' in entity) return this.putCard(entity);
     if ('storageType' in entity) return this.putAsset(entity);
 
     return this.putLane(entity);
@@ -193,7 +193,7 @@ export class TierBoardRepository {
     await this.putEntity({
       ...entity,
       syncStatus,
-    } as TierBoardRecord | TierBoardLaneRecord | TierBoardItemRecord);
+    } as TierBoardRecord | TierLaneRecord | TierBoardCardRecord);
   }
 }
 

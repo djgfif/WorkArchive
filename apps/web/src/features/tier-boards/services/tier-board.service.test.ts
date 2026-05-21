@@ -58,11 +58,11 @@ describe('TierBoardService', () => {
     const board = await service.createBoard({ title: '전투력 순위' });
     const state = await service.getBoardEditorState(board.id);
 
-    expect(state?.lanes.map((lane) => lane.label)).toEqual(['S', 'A', 'B', 'C', 'D']);
+    expect(state?.lanes.map((lane) => lane.title)).toEqual(['S', 'A', 'B', 'C', 'D']);
     expect(await queueRepository.listAll()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ entityType: 'tier_board', operation: 'create' }),
-        expect.objectContaining({ entityType: 'tier_board_lane', operation: 'create' }),
+        expect.objectContaining({ entityType: 'tier_lane', operation: 'create' }),
       ]),
     );
 
@@ -75,40 +75,40 @@ describe('TierBoardService', () => {
     const snapshot = await service.deleteBoard(board.id);
     expect(snapshot.board.id).toBe(board.id);
     expect(await service.getBoardById(board.id)).toBeNull();
-    expect((await queueRepository.listAll()).some((item) => item.entityId === board.id)).toBe(false);
+    expect((await queueRepository.listAll()).some((card) => card.entityId === board.id)).toBe(false);
   });
 
-  it('keeps lane deletion and item movement independent from work records', async () => {
+  it('keeps lane deletion and card movement independent from work records', async () => {
     const board = await service.createBoard({ title: '호감도 순위' });
     const lane = await service.createLane(board.id, {
-      color: '#22c55e',
-      label: '최애',
+      colorToken: '#22c55e',
+      title: '최애',
     });
     const work = await worksRepository.create(buildWork());
-    const workItem = await service.createItemFromWorkSnapshot(board.id, work.id, lane.id);
-    const textItem = await service.createItem(board.id, {
+    const workCard = await service.createCardFromWorkSnapshot(board.id, work.id, lane.id);
+    const textCard = await service.createCard(board.id, {
       laneId: null,
       note: '메모',
       subtitle: '직접 만든 카드',
       title: '커스텀 카드',
     });
 
-    await service.moveItemToLane(textItem.id, lane.id);
-    expect(await repository.getItemById(textItem.id)).toEqual(
+    await service.moveCardToLane(textCard.id, lane.id);
+    expect(await repository.getCardById(textCard.id)).toEqual(
       expect.objectContaining({ laneId: lane.id, orderIndex: 1 }),
     );
 
     await service.deleteLane(lane.id);
     expect(await repository.getLaneById(lane.id)).toBeNull();
-    expect(await repository.getItemById(workItem.id)).toEqual(
-      expect.objectContaining({ laneId: null, sourceType: 'work_ref', linkedWorkId: work.id }),
+    expect(await repository.getCardById(workCard.id)).toEqual(
+      expect.objectContaining({ laneId: null, cardSourceType: 'library_work', workId: work.id }),
     );
     expect(await worksRepository.getById(work.id)).toEqual(work);
   });
 
   it('exports and imports board JSON without raw uploaded blobs', async () => {
     const board = await service.createBoard({ title: 'OP/ED 순위' });
-    const item = await service.createItemFromImageUrl(board.id, {
+    const card = await service.createImageUrlCard(board.id, {
       imageUrl: 'https://example.com/op.jpg',
       subtitle: 'Opening',
       title: 'OP 1',
@@ -119,24 +119,24 @@ describe('TierBoardService', () => {
       size: 11,
       type: 'image/png',
     } as File;
-    const uploaded = await service.createItemFromUploadedImage(board.id, file, {
+    const uploaded = await service.createUploadedImageCard(board.id, file, {
       laneId: null,
       title: '업로드 이미지',
     });
 
-    await service.moveItemToLane(item.id, (await service.getBoardEditorState(board.id))!.lanes[0]!.id);
+    await service.moveCardToLane(card.id, (await service.getBoardEditorState(board.id))!.lanes[0]!.id);
     const exported = await service.exportBoardJson(board.id);
 
     expect(exported.assets[0]).not.toHaveProperty('blob');
-    expect(exported.items).toEqual(
+    expect(exported.cards).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ sourceType: 'url', imageUrl: 'https://example.com/op.jpg' }),
-        expect.objectContaining({ id: uploaded.item.id, sourceType: 'image' }),
+        expect.objectContaining({ cardSourceType: 'image_url', imageUrl: 'https://example.com/op.jpg' }),
+        expect.objectContaining({ id: uploaded.card.id, cardSourceType: 'image_upload' }),
       ]),
     );
 
     const imported = await service.importBoardJson(JSON.stringify(exported));
     expect(imported.id).not.toBe(board.id);
-    expect((await service.getBoardEditorState(imported.id))?.items).toHaveLength(2);
+    expect((await service.getBoardEditorState(imported.id))?.cards).toHaveLength(2);
   });
 });

@@ -12,8 +12,8 @@ import {
 import {
   TierBoardAssetKind,
   TierBoardAssetStorageType,
-  TierBoardItemSourceType,
-  TierBoardLayout,
+  TierBoardCardSourceType,
+  TierBoardType,
   TierBoardVisibility,
 } from '@prisma/client';
 
@@ -40,13 +40,25 @@ export class SyncTierBoardPayloadDto {
   @MaxLength(4000)
   description!: string;
 
-  @ApiProperty({ enum: TierBoardLayout })
-  @IsEnum(TierBoardLayout)
-  layout!: TierBoardLayout;
+  @ApiProperty()
+  @Trim()
+  @IsString()
+  @MaxLength(220)
+  slug!: string;
+
+  @ApiProperty({ enum: TierBoardType })
+  @IsEnum(TierBoardType)
+  boardType!: TierBoardType;
 
   @ApiProperty({ enum: TierBoardVisibility })
   @IsEnum(TierBoardVisibility)
   visibility!: TierBoardVisibility;
+
+  @ApiProperty()
+  @Trim()
+  @IsString()
+  @MaxLength(2048)
+  coverImageUrl!: string;
 
   @ApiProperty()
   @IsDateString()
@@ -70,7 +82,7 @@ export class SyncTierBoardPayloadDto {
   serverVersion!: number;
 }
 
-export class SyncTierBoardLanePayloadDto {
+export class SyncTierLanePayloadDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
   id!: string;
@@ -83,7 +95,7 @@ export class SyncTierBoardLanePayloadDto {
   @Trim()
   @IsString()
   @MaxLength(80)
-  label!: string;
+  title!: string;
 
   @ApiProperty()
   @Trim()
@@ -95,7 +107,7 @@ export class SyncTierBoardLanePayloadDto {
   @Trim()
   @IsString()
   @MaxLength(40)
-  color!: string;
+  colorToken!: string;
 
   @ApiProperty()
   @IsInt()
@@ -123,7 +135,7 @@ export class SyncTierBoardLanePayloadDto {
   serverVersion!: number;
 }
 
-export class SyncTierBoardItemPayloadDto {
+export class SyncTierBoardCardPayloadDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
   id!: string;
@@ -137,9 +149,9 @@ export class SyncTierBoardItemPayloadDto {
   @IsUUID()
   laneId!: string | null;
 
-  @ApiProperty({ enum: TierBoardItemSourceType })
-  @IsEnum(TierBoardItemSourceType)
-  sourceType!: TierBoardItemSourceType;
+  @ApiProperty({ enum: TierBoardCardSourceType })
+  @IsEnum(TierBoardCardSourceType)
+  cardSourceType!: TierBoardCardSourceType;
 
   @ApiProperty()
   @Trim()
@@ -168,12 +180,7 @@ export class SyncTierBoardItemPayloadDto {
   @ApiPropertyOptional({ format: 'uuid', nullable: true })
   @IsOptional()
   @IsUUID()
-  linkedWorkId!: string | null;
-
-  @ApiPropertyOptional({ format: 'uuid', nullable: true })
-  @IsOptional()
-  @IsUUID()
-  linkedCatalogTitleId!: string | null;
+  workId!: string | null;
 
   @ApiProperty()
   @IsInt()
@@ -213,7 +220,7 @@ export class SyncTierBoardAssetPayloadDto {
   @ApiPropertyOptional({ format: 'uuid', nullable: true })
   @IsOptional()
   @IsUUID()
-  itemId!: string | null;
+  cardId!: string | null;
 
   @ApiProperty({ enum: TierBoardAssetKind })
   @IsEnum(TierBoardAssetKind)

@@ -27,8 +27,8 @@ import type { SyncSeriesPayloadDto } from './sync-series-payload.dto';
 import type { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
 import type {
   SyncTierBoardAssetPayloadDto,
-  SyncTierBoardItemPayloadDto,
-  SyncTierBoardLanePayloadDto,
+  SyncTierBoardCardPayloadDto,
+  SyncTierLanePayloadDto,
   SyncTierBoardPayloadDto,
 } from './sync-tier-board-payload.dto';
 import type { SyncContributorPayloadDto } from './sync-contributor-payload.dto';
@@ -79,8 +79,8 @@ export class PushSyncChangeDto {
       { $ref: '#/components/schemas/SyncWorkContributorPayloadDto' },
       { $ref: '#/components/schemas/SyncWorkRelationPayloadDto' },
       { $ref: '#/components/schemas/SyncTierBoardPayloadDto' },
-      { $ref: '#/components/schemas/SyncTierBoardLanePayloadDto' },
-      { $ref: '#/components/schemas/SyncTierBoardItemPayloadDto' },
+      { $ref: '#/components/schemas/SyncTierLanePayloadDto' },
+      { $ref: '#/components/schemas/SyncTierBoardCardPayloadDto' },
       { $ref: '#/components/schemas/SyncTierBoardAssetPayloadDto' },
     ],
   })
@@ -96,8 +96,8 @@ export class PushSyncChangeDto {
     | SyncWorkContributorPayloadDto
     | SyncWorkRelationPayloadDto
     | SyncTierBoardPayloadDto
-    | SyncTierBoardLanePayloadDto
-    | SyncTierBoardItemPayloadDto
+    | SyncTierLanePayloadDto
+    | SyncTierBoardCardPayloadDto
     | SyncTierBoardAssetPayloadDto;
 }
 
