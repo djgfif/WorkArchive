@@ -19,6 +19,7 @@ const css = {
 
 interface AuthFormProps {
   googleConfigured?: boolean;
+  googleUnavailableDetail?: ReactNode;
   isSubmitting?: boolean;
   onContinueAsGuest?: () => void;
   onContinueWithGoogle: () => void;
@@ -58,6 +59,7 @@ function GoogleIcon() {
 
 export function AuthForm({
   googleConfigured = true,
+  googleUnavailableDetail = '현재 이 환경에서는 Google 로그인을 사용할 수 없습니다. 로그인 없이 계속 사용할 수 있습니다.',
   isSubmitting = false,
   onContinueAsGuest,
   onContinueWithGoogle,
@@ -87,7 +89,7 @@ export function AuthForm({
 
       {!googleConfigured && (
         <FeedbackMessage title="Google OAuth 설정 필요" tone="info">
-          현재 이 환경에서는 Google 로그인을 사용할 수 없습니다. 로그인 없이 계속 사용할 수 있습니다.
+          {googleUnavailableDetail}
         </FeedbackMessage>
       )}
 

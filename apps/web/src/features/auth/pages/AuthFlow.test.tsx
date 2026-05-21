@@ -139,9 +139,7 @@ describe('Auth flow', () => {
     );
 
     expect(await screen.findByText('Google OAuth 설정 필요')).toBeInTheDocument();
-    expect(
-      screen.getAllByText('현재 이 환경에서는 Google 로그인을 사용할 수 없습니다. 로그인 없이 계속 사용할 수 있습니다.').length,
-    ).toBeGreaterThan(0);
+    expect(screen.getByText(/현재 이 환경에서는 Google 로그인을 사용할 수 없습니다/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Google로 백업 연결' })).toBeDisabled();
 
     await user.click(screen.getByRole('button', { name: '로그인 없이 시작하기' }));

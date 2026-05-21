@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Box, Divider, Group, Stack, Text, Title } from '@mantine/core';
+import { Link } from 'react-router-dom';
 
 import {
   ActionRow,
@@ -16,6 +17,7 @@ const css = {
   brandDescription: styles.brandDescription ?? '',
   brandHeader: styles.brandHeader ?? '',
   brandKicker: styles.brandKicker ?? '',
+  brandLink: styles.brandLink ?? '',
   brandMark: styles.brandMark ?? '',
   brandName: styles.brandName ?? '',
   brandPanel: styles.brandPanel ?? '',
@@ -140,28 +142,29 @@ export function AuthPageTemplate({
         {/* ── 좌측: 브랜드 패널 ── */}
         <Box className={css.brandPanel}>
           {/* 브랜드 로고 */}
-          <Group className={css.brandHeader} gap="sm" wrap="nowrap">
-            <Box className={css.brandMark}>
-              WA
-            </Box>
-            <Stack gap={0}>
-              <Text className={css.brandName} fw={800} size="sm">
-                Work Archive
-              </Text>
-              <Text className={css.brandKicker} size="xs">
-                개인 감상 서재
-              </Text>
-            </Stack>
-          </Group>
+          <Link className={css.brandLink} to="/">
+            <Group className={css.brandHeader} gap="sm" wrap="nowrap">
+              <Box className={css.brandMark}>
+                WA
+              </Box>
+              <Stack gap={0}>
+                <Text className={css.brandName} fw={800} size="sm">
+                  Work Archive
+                </Text>
+                <Text className={css.brandKicker} size="xs">
+                  개인 감상 서재
+                </Text>
+              </Stack>
+            </Group>
+          </Link>
 
           {/* 슬로건 */}
           <Stack className={css.brandCopy} gap="sm">
             <Title className={css.brandTitle} order={2}>
-              감상한 모든 작품을,<br />한 곳에서 기록하세요.
+              로컬 기록으로 시작하고,<br />필요할 때 백업하세요.
             </Title>
             <Text className={css.brandDescription} size="sm">
-              소설·애니·만화·드라마·영화 —<br />
-              장르 불문, 나만의 아카이브를 만들어 보세요.
+              로그인은 선택 사항입니다. 계정 연결 전에도 내 기록은 이 기기에 먼저 저장됩니다.
             </Text>
           </Stack>
 

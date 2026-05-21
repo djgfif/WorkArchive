@@ -70,30 +70,27 @@ export function LoginPage() {
       form={
         <AuthForm
           googleConfigured={googleAvailable}
+          googleUnavailableDetail={
+            <>
+              현재 이 환경에서는 Google 로그인을 사용할 수 없습니다. 로그인 없이 계속 사용할 수 있습니다.
+              {import.meta.env.DEV && (
+                <>
+                  <br />
+                  개발 환경: 서버의 Google OAuth 설정을 확인하세요.
+                </>
+              )}
+            </>
+          }
           onContinueAsGuest={() => navigate('/works')}
           onContinueWithGoogle={() => continueWithGoogle?.(returnTo)}
           submitError={
             googleFailed
               ? '다시 시도하거나 로그인 없이 계속할 수 있습니다.'
-              : googleUnconfigured
-                ? (
-                    <>
-                      현재 이 환경에서는 Google 로그인을 사용할 수 없습니다. 로그인 없이 계속 사용할 수 있습니다.
-                      {import.meta.env.DEV && (
-                        <>
-                          <br />
-                          개발 환경: 서버의 Google OAuth 설정을 확인하세요.
-                        </>
-                      )}
-                    </>
-                  )
                 : null
           }
           submitErrorTitle={
             googleFailed
               ? 'Google 로그인을 완료하지 못했습니다.'
-              : googleUnconfigured
-                ? 'Google 로그인을 사용할 수 없습니다.'
                 : undefined
           }
         />

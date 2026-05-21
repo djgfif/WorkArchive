@@ -2,21 +2,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 64px);
-  padding: clamp(1.5rem, 4vw, 3rem) var(--mantine-spacing-md);
+  min-height: calc(100vh - 2.7rem);
+  padding: clamp(0.75rem, 2vw, 1.5rem) 0;
 }
 
 .authShell {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+  grid-template-columns: minmax(300px, 0.88fr) minmax(360px, 1fr);
   width: 100%;
-  max-width: 960px;
+  max-width: 1040px;
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--app-border-default);
-  border-radius: var(--mantine-radius-xl);
+  border-radius: var(--mantine-radius-lg);
   background: var(--app-surface-card);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.34), 0 4px 16px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--app-shadow-card);
 }
 
 .brandPanel {
@@ -24,29 +24,23 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 2rem;
-  padding: clamp(2rem, 5vw, 3rem);
+  gap: 1.65rem;
+  padding: clamp(1.75rem, 4vw, 2.5rem);
   overflow: hidden;
+  border-right: 1px solid var(--app-border-subtle);
   background:
-    linear-gradient(150deg, rgba(26, 82, 73, 0.88), rgba(24, 26, 37, 0.98) 52%, rgba(65, 42, 72, 0.92)),
-    var(--app-surface-hero);
+    linear-gradient(180deg, color-mix(in srgb, var(--app-accent-primary) 12%, transparent), transparent 38%),
+    var(--app-surface-subtle);
 }
 
 .brandPanel::before {
   position: absolute;
-  inset: 0;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 0.25rem;
   pointer-events: none;
   content: '';
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 22%),
-    repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.035) 0,
-      rgba(255, 255, 255, 0.035) 1px,
-      transparent 1px,
-      transparent 18px
-    );
-  opacity: 0.55;
+  background: linear-gradient(90deg, var(--app-accent-primary), var(--app-accent-warm));
 }
 
 .brandHeader,
@@ -56,6 +50,17 @@
   z-index: 1;
 }
 
+.brandLink {
+  width: fit-content;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brandLink:hover .brandName,
+.brandLink:focus-visible .brandName {
+  color: var(--app-text-primary);
+}
+
 .brandMark {
   display: flex;
   width: 2.375rem;
@@ -63,32 +68,35 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 0.625rem;
-  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid color-mix(in srgb, var(--app-accent-primary) 54%, var(--app-border-default));
+  border-radius: var(--mantine-radius-md);
+  background:
+    linear-gradient(135deg, var(--app-accent-primary), var(--app-accent-strong));
   color: #fff;
   font-size: 0.88rem;
   font-weight: 900;
 }
 
 .brandName {
-  color: #fff;
+  color: var(--app-text-primary);
 }
 
 .brandKicker {
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--app-text-muted);
 }
 
 .brandTitle {
-  color: #fff;
-  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  max-width: 14ch;
+  color: var(--app-text-primary);
+  font-size: clamp(1.35rem, 2.7vw, 1.75rem);
   font-weight: 800;
   letter-spacing: 0;
   line-height: 1.25;
 }
 
 .brandDescription {
-  color: rgba(255, 255, 255, 0.74);
+  max-width: 30ch;
+  color: var(--app-text-secondary);
   line-height: 1.65;
 }
 
@@ -100,18 +108,18 @@
   align-items: center;
   justify-content: center;
   margin-top: 0.125rem;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--app-border-subtle);
   border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.13);
-  color: #fff;
+  background: var(--app-surface-card);
+  color: var(--app-accent-primary);
 }
 
 .featureTitle {
-  color: #fff;
+  color: var(--app-text-primary);
 }
 
 .featureDescription {
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--app-text-secondary);
   line-height: 1.5;
 }
 
@@ -120,11 +128,9 @@
   min-width: 0;
   flex-direction: column;
   justify-content: center;
-  gap: 1.5rem;
-  padding: clamp(2rem, 5vw, 3rem);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
-    var(--app-surface-card);
+  gap: 1.35rem;
+  padding: clamp(1.75rem, 4vw, 2.75rem);
+  background: var(--app-surface-card);
 }
 
 .eyebrow {
@@ -136,23 +142,20 @@
 
 .formTitle {
   color: var(--app-text-primary);
-  font-size: clamp(1.4rem, 3vw, 1.75rem);
+  max-width: 17ch;
+  font-size: clamp(1.45rem, 2.6vw, 1.9rem);
   font-weight: 800;
   letter-spacing: 0;
-  line-height: 1.2;
+  line-height: 1.18;
 }
 
 .formDescription {
+  max-width: 42ch;
   line-height: 1.65;
 }
 
 .trustCard {
-  padding: 0.875rem 1rem;
-  border: 1px solid var(--app-border-subtle);
-  border-radius: var(--mantine-radius-md);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
-    var(--app-surface-subtle);
+  padding-top: 0.25rem;
 }
 
 .trustItem {
@@ -185,6 +188,13 @@
   }
 
   .brandPanel {
-    gap: 1.5rem;
+    gap: 1.25rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--app-border-subtle);
+  }
+
+  .brandTitle,
+  .formTitle {
+    max-width: none;
   }
 }

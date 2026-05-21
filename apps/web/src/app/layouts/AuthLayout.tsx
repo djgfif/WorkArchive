@@ -1,6 +1,6 @@
 import { Container, Group, Stack, Text, ThemeIcon } from '@mantine/core';
 import type { ReactNode } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 
 import { AppBadge } from '../../shared/components/AppPrimitives';
 
@@ -9,6 +9,17 @@ type AuthLayoutProps = {
 };
 
 export function AuthLayout({ children }: AuthLayoutProps) {
+  const location = useLocation();
+  const content = children ?? <Outlet />;
+
+  if (location.pathname === '/auth/login') {
+    return (
+      <main className="layout-shell layout-shell--auth">
+        {content}
+      </main>
+    );
+  }
+
   return (
     <main className="layout-shell layout-shell--auth">
       <Container px="md" size={500}>
@@ -26,7 +37,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             </Group>
           </Link>
 
-          {children ?? <Outlet />}
+          {content}
 
           <Stack align="center" gap="xs">
             <Group gap="xs" justify="center" wrap="wrap">
