@@ -10,13 +10,14 @@ import {
   StateMessage,
   ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
+import { featureFlags } from '../../shared/runtime/feature-flags';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 import { getUserAvatarProfile } from '../../features/auth/utils/user-profile';
 
 const primaryNavigationItems = [
   { label: '홈', to: '/' },
   { label: '작품', to: '/works' },
-  { label: '티어보드', to: '/tier-boards' },
+  ...(featureFlags.tierBoards ? [{ label: '티어보드', to: '/tier-boards' }] : []),
 ] as const;
 
 export function MainProductLayout() {

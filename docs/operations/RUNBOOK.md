@@ -1,0 +1,99 @@
+# Work Archive Operations Runbook
+
+This runbook keeps the current runtime: local-first web app, NestJS API, PostgreSQL, Redis rate limit, and Dexie `syncQueue`.
+
+## API가 안 뜰 때
+
+1. Check container or process status.
+   - Docker: `docker compose ps`
+   - Local: confirm the API `npm run dev --workspace @work-archive/api` process is still running.
+2. Check startup logs for config validation errors.
+3. Verify required environment values: `DATABASE_URL`, JWT secrets, `SECURITY_EVENT_HASH_SECRET`, `EXTERNAL_API_KEY_ENCRYPTION_SECRET`, Google OAuth settings, and CORS/web base URLs.
+4. Confirm the API port is not already occupied.
+5. Run `/health` after restart. If `/health` is OK but `/readyz` fails, use the readiness section below.
+
+## `/readyz` 503일 때
+
+`/readyz` checks runtime config, PostgreSQL, and Redis when `REDIS_URL` is configured.
+
+1. Read the JSON response `checks` field.
+2. If `config` is listed, fix the missing or invalid environment variable and restart.
+3. If `postgres` is listed, follow the PostgreSQL 장애 section.
+4. If `redis` is listed, follow the Redis 장애 section.
+5. After mitigation, re-run:
+   - `curl -fsS http://localhost:3000/health`
+   - `curl -fsS http://localhost:3000/livez`
+   - `curl -fsS http://localhost:3000/readyz`
+
+## PostgreSQL 장애
+
+1. Confirm the database process is running: `docker compose ps postgres`.
+2. Check connectivity using the same `DATABASE_URL` as the API.
+3. Inspect disk pressure and recent container logs.
+4. Do not run destructive migrations as a recovery step.
+5. If data corruption or accidental deletion is suspected, stop writes, take a fresh copy of current data if possible, and start restore from the latest verified backup.
+6. After recovery, run `/readyz` and a sync smoke test.
+
+## Redis 장애
+
+Redis is used for rate limiting only. It is not a durable data store and must not be used as a general cache.
+
+1. Confirm Redis is running: `docker compose ps redis`.
+2. Check `REDIS_URL` and network reachability from the API container.
+3. Restart Redis if it is unavailable.
+4. If Redis cannot be restored quickly, decide whether to temporarily run with memory rate limiting for a single-node emergency deployment. Document the change and revert it after Redis recovery.
+5. Re-run `/readyz`.
+
+## Google OAuth 실패
+
+1. Confirm `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`, and web base URL values.
+2. Compare the configured redirect URI with the Google Cloud OAuth client exactly.
+3. Check browser callback URL and API auth logs without logging codes or tokens.
+4. Confirm cookies are set with the expected secure/same-site behavior for the environment.
+5. Verify legacy email/password routes still redirect and are not exposed as login options.
+
+## Sync conflict 증가
+
+1. Check recent API logs for sync validation errors, schema version mismatches, and duplicate `clientMutationId` handling.
+2. Confirm the web build and API build are from compatible releases.
+3. Inspect whether a Dexie version migration or sync `schemaVersion` changed in the release.
+4. Pause rollout if conflicts started after deployment.
+5. Ask affected users to export local JSON before attempting repair.
+6. Prefer additive server fixes over client data rewrites.
+
+## Provider circuit breaker OPEN 지속
+
+1. Identify the provider in diagnostics.
+2. Check whether provider credentials exist and are valid.
+3. Verify upstream provider status, rate limits, and response shape changes.
+4. Confirm API logs do not include provider API keys or raw image payloads.
+5. If one provider remains open, leave fallback providers enabled and communicate degraded search/import coverage.
+6. Release a parser or credential handling fix only after provider-specific smoke testing.
+
+## DB migration 실패
+
+1. Stop the rollout and keep the previous application version running if possible.
+2. Check whether the migration partially applied in `_prisma_migrations`.
+3. Do not edit production data manually without a written recovery plan.
+4. Restore from the pre-deployment backup if the migration changed data destructively or left the schema unusable.
+5. For non-destructive failures, fix the migration in a new migration and re-run deploy after review.
+6. Record the failure and mitigation in release notes.
+
+## Backup restore 절차
+
+1. Stop API writes.
+2. Preserve the current broken database state if investigation is needed.
+3. Restore the selected dump into the target database.
+4. Run Prisma migration deploy only if the restored dump is from an older approved schema.
+5. Start the API and check `/health`, `/livez`, and `/readyz`.
+6. Run sync and tier board smoke tests.
+
+See `docs/operations/BACKUP_POLICY.md` for exact backup and restore commands.
+
+## Rollback 절차
+
+1. Prefer rolling back application code before database rollback when migrations are backward-compatible.
+2. If the release included an expand/migrate/contract sequence, rollback only to a version compatible with the expanded schema.
+3. If a destructive or irreversible migration was approved and applied, restore from the pre-deployment backup.
+4. Re-check Google OAuth redirect, env values, `/readyz`, sync smoke, and tier board smoke after rollback.
+5. Leave public community/share feature flags disabled.

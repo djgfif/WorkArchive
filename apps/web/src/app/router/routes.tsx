@@ -6,6 +6,8 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { MainProductLayout } from '../layouts/MainProductLayout';
 import { MinimalLayout } from '../layouts/MinimalLayout';
 import { NotFoundPage } from './NotFoundPage';
+import { RouteErrorBoundary } from '../../shared/components/RouteErrorBoundary';
+import { featureFlags } from '../../shared/runtime/feature-flags';
 import { GuestTransferReviewPage } from '../../features/auth/pages/GuestTransferReviewPage';
 import { GoogleAuthCompletePage } from '../../features/auth/pages/GoogleAuthCompletePage';
 import { LoginPage } from '../../features/auth/pages/LoginPage';
@@ -40,6 +42,13 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'works/new',
         element: <WorkCreatePage />,
+        errorElement: (
+          <RouteErrorBoundary
+            fallbackLabel="작품 목록으로 돌아가기"
+            fallbackPath="/works"
+            title="작품 추가 화면을 복구할 수 없습니다"
+          />
+        ),
       },
       {
         path: 'works/:id',
@@ -51,15 +60,34 @@ export const appRoutes: RouteObject[] = [
       },
       {
         path: 'tier-boards',
-        element: <TierBoardsPage />,
+        element: featureFlags.tierBoards ? (
+          <TierBoardsPage />
+        ) : (
+          <Navigate replace to="/works" />
+        ),
       },
       {
         path: 'tier-boards/:boardId',
-        element: <TierBoardEditorPage />,
+        element: featureFlags.tierBoards ? (
+          <TierBoardEditorPage />
+        ) : (
+          <Navigate replace to="/works" />
+        ),
+        errorElement: (
+          <RouteErrorBoundary
+            fallbackLabel="티어보드 목록으로 돌아가기"
+            fallbackPath="/tier-boards"
+            title="티어보드 편집 화면을 복구할 수 없습니다"
+          />
+        ),
       },
       {
         path: 'tier-boards/:boardId/view',
-        element: <TierBoardViewPage />,
+        element: featureFlags.tierBoards ? (
+          <TierBoardViewPage />
+        ) : (
+          <Navigate replace to="/works" />
+        ),
       },
       {
         path: 'profile',
@@ -108,6 +136,13 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'settings',
         element: <SettingsPage />,
+        errorElement: (
+          <RouteErrorBoundary
+            fallbackLabel="계정 개요로 돌아가기"
+            fallbackPath="/account"
+            title="설정 화면을 복구할 수 없습니다"
+          />
+        ),
       },
     ],
   },
