@@ -22,9 +22,9 @@ import {
   ApiBody,
   ApiBearerAuth,
   ApiConflictResponse,
-  ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
+  ApiResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -46,14 +46,6 @@ import type { AuthenticatedUser } from './auth.types';
 import { AuthRefreshSessionsResponseDto } from './dto/auth-refresh-session-response.dto';
 import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import { AuthUserResponseDto } from './dto/auth-user-response.dto';
-import { LoginDto } from './dto/login.dto';
-import { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
-import { PasswordResetRequestDto } from './dto/password-reset-request.dto';
-import {
-  PasswordResetConfirmResponseDto,
-  PasswordResetRequestResponseDto,
-} from './dto/password-reset-response.dto';
-import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -73,49 +65,21 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  @ApiBody({
-    type: RegisterDto,
+  @ApiResponse({
+    status: HttpStatus.GONE,
+    description: 'Email/password registration is disabled.',
   })
-  @ApiCreatedResponse({
-    description: 'Create a user account and return a fresh session.',
-    type: AuthSessionResponseDto,
-  })
-  @ApiConflictResponse({
-    description: 'An account with this email already exists.',
-  })
-  async register(
-    @Body() registerDto: RegisterDto,
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    void registerDto;
-    void request;
-    void response;
-
+  register() {
     throw this.createLegacyAuthDisabledException();
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiBody({
-    type: LoginDto,
+  @ApiResponse({
+    status: HttpStatus.GONE,
+    description: 'Email/password login is disabled.',
   })
-  @ApiOkResponse({
-    description: 'Authenticate with email and password.',
-    type: AuthSessionResponseDto,
-  })
-  @ApiUnauthorizedResponse({
-    description: 'The email or password is invalid.',
-  })
-  async login(
-    @Body() loginDto: LoginDto,
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    void loginDto;
-    void request;
-    void response;
-
+  login() {
     throw this.createLegacyAuthDisabledException();
   }
 
@@ -290,40 +254,21 @@ export class AuthController {
 
   @Post('password-reset/request')
   @HttpCode(HttpStatus.OK)
-  @ApiBody({
-    type: PasswordResetRequestDto,
+  @ApiResponse({
+    status: HttpStatus.GONE,
+    description: 'Email/password password reset is disabled.',
   })
-  @ApiOkResponse({
-    description:
-      'Create a development password reset link when the account exists.',
-    type: PasswordResetRequestResponseDto,
-  })
-  async requestPasswordReset(
-    @Body() passwordResetRequestDto: PasswordResetRequestDto,
-    @Req() request: Request,
-  ) {
-    void passwordResetRequestDto;
-    void request;
-
+  requestPasswordReset() {
     throw this.createLegacyAuthDisabledException();
   }
 
   @Post('password-reset/confirm')
   @HttpCode(HttpStatus.OK)
-  @ApiBody({
-    type: PasswordResetConfirmDto,
+  @ApiResponse({
+    status: HttpStatus.GONE,
+    description: 'Email/password password reset is disabled.',
   })
-  @ApiOkResponse({
-    description: 'Reset the password using a valid development reset token.',
-    type: PasswordResetConfirmResponseDto,
-  })
-  async confirmPasswordReset(
-    @Body() passwordResetConfirmDto: PasswordResetConfirmDto,
-    @Req() request: Request,
-  ) {
-    void passwordResetConfirmDto;
-    void request;
-
+  confirmPasswordReset() {
     throw this.createLegacyAuthDisabledException();
   }
 

@@ -2,8 +2,10 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { getRefreshTokenCookieOptions } from '../src/modules/auth/auth.cookies';
-import { hashSecret, verifySecret } from '../src/modules/auth/auth-crypto';
-import { AuthService } from '../src/modules/auth/auth.service';
+import {
+  AuthService,
+  type IssuedAuthSession,
+} from '../src/modules/auth/auth.service';
 import type { PrismaService } from '../src/prisma/prisma.service';
 
 const ORIGINAL_ENV = { ...process.env };
@@ -12,19 +14,10 @@ interface MockUser {
   id: string;
   email: string;
   handle: string | null;
-  passwordHash: string;
+  passwordHash: string | null;
   refreshTokenHash: string | null;
   nickname: string;
   role: 'user';
-}
-
-interface MockPasswordResetToken {
-  id: string;
-  userId: string;
-  tokenHash: string;
-  expiresAt: Date;
-  usedAt: Date | null;
-  createdAt: Date;
 }
 
 interface MockUserRefreshSession {
@@ -44,7 +37,6 @@ interface MockUserRefreshSession {
 
 function createPrismaMock() {
   const users: MockUser[] = [];
-  const passwordResetTokens: MockPasswordResetToken[] = [];
   const userRefreshSessions: MockUserRefreshSession[] = [];
 
   const prisma = {
@@ -77,14 +69,14 @@ function createPrismaMock() {
       create: async ({
         data,
       }: {
-        data: Partial<MockUser> & Pick<MockUser, 'email' | 'passwordHash'>;
+        data: Partial<MockUser> & Pick<MockUser, 'email'>;
       }) => {
         const user = {
           email: data.email,
           handle: data.handle ?? null,
           id: data.id ?? crypto.randomUUID(),
           nickname: data.nickname ?? '',
-          passwordHash: data.passwordHash,
+          passwordHash: data.passwordHash ?? null,
           refreshTokenHash: data.refreshTokenHash ?? null,
           role: data.role ?? 'user',
         } satisfies MockUser;
@@ -275,72 +267,28 @@ function createPrismaMock() {
         };
       },
     },
-    passwordResetToken: {
-      create: async ({
-        data,
-      }: {
-        data: Omit<MockPasswordResetToken, 'createdAt' | 'usedAt'>;
-      }) => {
-        const token = {
-          ...data,
-          createdAt: new Date(),
-          usedAt: null,
-        };
-
-        passwordResetTokens.push(token);
-
-        return token;
-      },
-      findUnique: async ({
-        where,
-      }: {
-        where: {
-          id: string;
-        };
-      }) => passwordResetTokens.find((token) => token.id === where.id) ?? null,
-      updateMany: async ({
-        data,
-        where,
-      }: {
-        data: Partial<MockPasswordResetToken>;
-        where: {
-          id?: string;
-          usedAt?: null;
-          userId?: string;
-        };
-      }) => {
-        let count = 0;
-
-        for (const token of passwordResetTokens) {
-          if (where.id && token.id !== where.id) {
-            continue;
-          }
-
-          if (where.userId && token.userId !== where.userId) {
-            continue;
-          }
-
-          if ('usedAt' in where && token.usedAt !== where.usedAt) {
-            continue;
-          }
-
-          Object.assign(token, data);
-          count += 1;
-        }
-
-        return {
-          count,
-        };
-      },
-    },
   };
 
   return {
-    passwordResetTokens,
     prisma,
     userRefreshSessions,
     users,
   };
+}
+
+async function issueSession(
+  authService: AuthService,
+  user: MockUser,
+  rememberMe = true,
+): Promise<IssuedAuthSession> {
+  return (
+    authService as unknown as {
+      createSessionForUser: (
+        user: MockUser,
+        rememberMe?: boolean,
+      ) => Promise<IssuedAuthSession>;
+    }
+  ).createSessionForUser(user, rememberMe);
 }
 
 describe('AuthService', () => {
@@ -349,127 +297,24 @@ describe('AuthService', () => {
       'postgresql://postgres:postgres@localhost:5432/work_archive';
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-    process.env.PASSWORD_RESET_DEV_LINKS_ENABLED = 'true';
     process.env.WEB_BASE_URL = 'http://127.0.0.1:53173';
   });
 
-  it('creates development password reset links without exposing the token hash', async () => {
-    const { passwordResetTokens, prisma, users } = createPrismaMock();
-    users.push({
-      email: 'frieren@example.com',
-      handle: null,
-      id: 'user-1',
-      nickname: '',
-      passwordHash: await hashSecret('old-password-123'),
-      refreshTokenHash: 'existing-refresh-hash',
-      role: 'user',
-    });
-    const authService = new AuthService(prisma as unknown as PrismaService);
-
-    const response = await authService.requestPasswordReset({
-      email: 'FRIEREN@example.com',
-    });
-
-    expect(response.developmentResetUrl).toMatch(
-      /^http:\/\/127\.0\.0\.1:53173\/auth\/password-reset\/confirm\?token=/,
-    );
-    expect(passwordResetTokens).toHaveLength(1);
-    expect(response.developmentResetUrl).not.toContain(
-      passwordResetTokens[0]?.tokenHash ?? '',
-    );
-  });
-
-  it('returns the same request shape for unknown emails', async () => {
-    const { passwordResetTokens, prisma } = createPrismaMock();
-    const authService = new AuthService(prisma as unknown as PrismaService);
-
-    await expect(
-      authService.requestPasswordReset({
-        email: 'missing@example.com',
-      }),
-    ).resolves.toEqual({
-      message:
-        '비밀번호 재설정 요청을 확인했습니다. 계정이 있으면 재설정 링크를 사용할 수 있습니다.',
-    });
-    expect(passwordResetTokens).toHaveLength(0);
-  });
-
-  it('resets a password once and revokes existing refresh sessions', async () => {
-    const { passwordResetTokens, prisma, userRefreshSessions, users } =
-      createPrismaMock();
-    users.push({
-      email: 'frieren@example.com',
-      handle: null,
-      id: 'user-1',
-      nickname: '',
-      passwordHash: await hashSecret('old-password-123'),
-      refreshTokenHash: 'existing-refresh-hash',
-      role: 'user',
-    });
-    userRefreshSessions.push({
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60),
-      id: 'session-1',
-      ipAddress: null,
-      lastUsedAt: null,
-      rememberMe: true,
-      revokedAt: null,
-      rotatedAt: null,
-      tokenHash: 'existing-session-hash',
-      updatedAt: new Date(),
-      userAgent: null,
-      userId: 'user-1',
-    });
-    const authService = new AuthService(prisma as unknown as PrismaService);
-    const requestResponse = await authService.requestPasswordReset({
-      email: 'frieren@example.com',
-    });
-    const token = new URL(
-      requestResponse.developmentResetUrl ?? '',
-    ).searchParams.get('token');
-
-    await expect(
-      authService.confirmPasswordReset({
-        password: 'new-password-123',
-        token: token ?? '',
-      }),
-    ).resolves.toEqual({
-      message: '비밀번호가 재설정되었습니다.',
-    });
-    expect(
-      await verifySecret('new-password-123', users[0]?.passwordHash ?? ''),
-    ).toBe(true);
-    expect(userRefreshSessions[0]?.revokedAt).toBeInstanceOf(Date);
-    expect(passwordResetTokens[0]?.usedAt).toBeInstanceOf(Date);
-
-    await expect(
-      authService.confirmPasswordReset({
-        password: 'another-password-123',
-        token: token ?? '',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it('tracks remember-me session intent on login without using the legacy user column', async () => {
+  it('tracks remember-me session intent without using the legacy user column', async () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
-    users.push({
+    const user = {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
       nickname: '',
-      passwordHash: await hashSecret('old-password-123'),
+      passwordHash: null,
       refreshTokenHash: null,
       role: 'user',
-    });
+    } satisfies MockUser;
+    users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
 
-    await expect(
-      authService.login({
-        email: 'frieren@example.com',
-        password: 'old-password-123',
-        rememberMe: false,
-      }),
-    ).resolves.toMatchObject({
+    await expect(issueSession(authService, user, false)).resolves.toMatchObject({
       rememberMe: false,
     });
     expect(users[0]?.refreshTokenHash).toBeNull();
@@ -483,25 +328,20 @@ describe('AuthService', () => {
 
   it('keeps multiple refresh sessions independent until token reuse is detected', async () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
-    users.push({
+    const user = {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
       nickname: '',
-      passwordHash: await hashSecret('old-password-123'),
+      passwordHash: null,
       refreshTokenHash: null,
       role: 'user',
-    });
+    } satisfies MockUser;
+    users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
 
-    const firstSession = await authService.login({
-      email: 'frieren@example.com',
-      password: 'old-password-123',
-    });
-    const secondSession = await authService.login({
-      email: 'frieren@example.com',
-      password: 'old-password-123',
-    });
+    const firstSession = await issueSession(authService, user);
+    const secondSession = await issueSession(authService, user);
 
     expect(userRefreshSessions).toHaveLength(2);
 
@@ -540,20 +380,18 @@ describe('AuthService', () => {
 
   it('rejects access tokens after their backing refresh session is revoked', async () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
-    users.push({
+    const user = {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
       nickname: '',
-      passwordHash: await hashSecret('old-password-123'),
+      passwordHash: null,
       refreshTokenHash: null,
       role: 'user',
-    });
+    } satisfies MockUser;
+    users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
-    const session = await authService.login({
-      email: 'frieren@example.com',
-      password: 'old-password-123',
-    });
+    const session = await issueSession(authService, user);
 
     await expect(
       authService.validateAccessToken(session.accessToken),
@@ -577,7 +415,7 @@ describe('AuthService', () => {
       handle: 'frieren',
       id: 'user-1',
       nickname: 'Frieren',
-      passwordHash: await hashSecret('old-password-123'),
+      passwordHash: null,
       refreshTokenHash: null,
       role: 'user',
     });
@@ -608,7 +446,7 @@ describe('AuthService', () => {
       handle: 'frieren',
       id: 'user-1',
       nickname: 'Frieren',
-      passwordHash: await hashSecret('old-password-123'),
+      passwordHash: null,
       refreshTokenHash: null,
       role: 'user',
     });
@@ -647,7 +485,7 @@ describe('AuthService', () => {
         handle: 'frieren',
         id: 'user-1',
         nickname: 'Frieren',
-        passwordHash: await hashSecret('old-password-123'),
+        passwordHash: null,
         refreshTokenHash: null,
         role: 'user',
       },
@@ -656,7 +494,7 @@ describe('AuthService', () => {
         handle: 'fern',
         id: 'user-2',
         nickname: 'Fern',
-        passwordHash: await hashSecret('old-password-123'),
+        passwordHash: null,
         refreshTokenHash: null,
         role: 'user',
       },
@@ -715,7 +553,6 @@ describe('refresh cookie options', () => {
       'production-security-event-hash-secret-minimum-32-chars';
     process.env.TRUST_PROXY_HOPS = '1';
     process.env.SEED_DEMO_PASSWORD = 'production-safe-demo-password';
-    process.env.PASSWORD_RESET_DEV_LINKS_ENABLED = 'false';
     process.env.SWAGGER_ENABLED = 'false';
     process.env.JWT_ACCESS_SECRET = 'test-access-secret-minimum-32-chars';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-minimum-32-chars';

@@ -15,7 +15,9 @@ import {
 import { AppModule } from '../src/app.module';
 import { readApiRuntimeConfig } from '../src/config/api-runtime-config';
 import { configureApp } from '../src/configure-app';
+import { AuthService } from '../src/modules/auth/auth.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { createTestSession } from './test-auth-session';
 
 function createPrismaServiceMock() {
   const users: Array<Record<string, unknown>> = [];
@@ -1044,6 +1046,20 @@ function createPrismaServiceMock() {
     },
   };
 
+  const emptyFindManyDelegate = {
+    findMany: async () => [],
+  };
+
+  prismaMock.userSeries = emptyFindManyDelegate;
+  prismaMock.userContributor = emptyFindManyDelegate;
+  prismaMock.userWorkSeriesLink = emptyFindManyDelegate;
+  prismaMock.userWorkContributor = emptyFindManyDelegate;
+  prismaMock.userWorkRelation = emptyFindManyDelegate;
+  prismaMock.userTierBoard = emptyFindManyDelegate;
+  prismaMock.userTierBoardLane = emptyFindManyDelegate;
+  prismaMock.userTierBoardItem = emptyFindManyDelegate;
+  prismaMock.userTierBoardAsset = emptyFindManyDelegate;
+
   prismaMock.securityEvent = {
     create: async ({ data }: { data: Record<string, unknown> }) => {
       const event = {
@@ -1064,8 +1080,10 @@ function createPrismaServiceMock() {
 describe('Auth, works, and sync API (e2e)', () => {
   const REFRESH_TOKEN_COOKIE_NAME = 'work_archive_refresh_token';
   let app: INestApplication;
+  let authService: AuthService;
   let baseUrl: string;
   let cookieJar: string | null;
+  let prisma: PrismaService;
 
   beforeEach(async () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
@@ -1086,6 +1104,8 @@ describe('Auth, works, and sync API (e2e)', () => {
     app = moduleRef.createNestApplication();
     await configureApp(app, readApiRuntimeConfig());
     await app.listen(0);
+    authService = app.get(AuthService);
+    prisma = app.get(PrismaService);
     cookieJar = null;
 
     const address = app.getHttpServer().address() as AddressInfo;
@@ -1138,24 +1158,17 @@ describe('Auth, works, and sync API (e2e)', () => {
     };
   }
 
-  async function registerUser(email: string) {
-    const response = await requestJson('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        email,
-        password: 'strong-password-123',
-      }),
+  async function createAuthenticatedUser(email: string, rememberMe = true) {
+    const session = await createTestSession({
+      authService,
+      email,
+      prisma,
+      rememberMe,
     });
 
-    expect(response.status).toBe(201);
+    cookieJar = session.cookie;
 
-    return response.body as {
-      accessToken: string;
-      user: {
-        email: string;
-        id: string;
-      };
-    };
+    return session;
   }
 
   function getFetchInputUrl(input: Parameters<typeof fetch>[0]) {
@@ -1243,7 +1256,29 @@ describe('Auth, works, and sync API (e2e)', () => {
     });
   });
 
-  it('keeps health public and supports register, login, refresh, stale refresh rejection, and /auth/me', async () => {
+  it('keeps legacy email/password auth endpoints disabled with 410 Gone', async () => {
+    for (const path of [
+      '/api/auth/register',
+      '/api/auth/login',
+      '/api/auth/password-reset/request',
+      '/api/auth/password-reset/confirm',
+    ]) {
+      const response = await requestJson(path, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+
+      expect(response.status).toBe(410);
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          message:
+            'Email/password authentication is disabled. Continue with Google or use Work Archive as a guest.',
+        }),
+      );
+    }
+  });
+
+  it('keeps health public and supports seeded sessions, refresh, stale refresh rejection, and /auth/me', async () => {
     const healthResponse = await fetch(`${baseUrl}/health`);
 
     expect(healthResponse.status).toBe(200);
@@ -1252,50 +1287,7 @@ describe('Auth, works, and sync API (e2e)', () => {
       status: 'ok',
     });
 
-    const registerResponse = await requestJson('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'frieren@example.com',
-        password: 'strong-password-123',
-      }),
-    });
-
-    expect(registerResponse.status).toBe(201);
-    expect(registerResponse.setCookie).toContain(
-      `${REFRESH_TOKEN_COOKIE_NAME}=`,
-    );
-    expect(registerResponse.body).toEqual(
-      expect.objectContaining({
-        accessToken: expect.any(String),
-        user: expect.objectContaining({
-          email: 'frieren@example.com',
-          id: expect.any(String),
-        }),
-      }),
-    );
-
-    const loginResponse = await requestJson('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'frieren@example.com',
-        password: 'strong-password-123',
-      }),
-    });
-
-    expect(loginResponse.status).toBe(200);
-    expect(loginResponse.setCookie).toContain(`${REFRESH_TOKEN_COOKIE_NAME}=`);
-    expect(loginResponse.body).toEqual(
-      expect.objectContaining({
-        accessToken: expect.any(String),
-        user: expect.objectContaining({
-          email: 'frieren@example.com',
-        }),
-      }),
-    );
-
-    const session = loginResponse.body as {
-      accessToken: string;
-    };
+    const session = await createAuthenticatedUser('frieren@example.com');
     const staleRefreshCookie = cookieJar;
     const meResponse = await requestJson(
       '/api/auth/me',
@@ -1351,7 +1343,7 @@ describe('Auth, works, and sync API (e2e)', () => {
   });
 
   it('logs out cleanly and rejects refresh attempts after logout', async () => {
-    const session = await registerUser('logout@example.com');
+    const session = await createAuthenticatedUser('logout@example.com');
 
     const logoutResponse = await requestJson(
       '/api/auth/logout',
@@ -1374,34 +1366,14 @@ describe('Auth, works, and sync API (e2e)', () => {
   });
 
   it('lists refresh sessions and supports device-level revoke and logout-all', async () => {
-    const registerResponse = await requestJson('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'sessions@example.com',
-        password: 'strong-password-123',
-      }),
-    });
-    const firstSession = registerResponse.body as {
-      accessToken: string;
-      user: {
-        id: string;
-      };
-    };
-
-    expect(registerResponse.status).toBe(201);
-
-    const loginResponse = await requestJson('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'sessions@example.com',
-        password: 'strong-password-123',
-      }),
-    });
-    const secondSession = loginResponse.body as {
-      accessToken: string;
-    };
-
-    expect(loginResponse.status).toBe(200);
+    const firstSession = await createAuthenticatedUser(
+      'sessions@example.com',
+      true,
+    );
+    const secondSession = await createAuthenticatedUser(
+      'sessions@example.com',
+      false,
+    );
 
     const sessionsResponse = await requestJson(
       '/api/auth/sessions',
@@ -1482,32 +1454,9 @@ describe('Auth, works, and sync API (e2e)', () => {
   });
 
   it('revokes all active sessions when a rotated refresh token is reused', async () => {
-    const registerResponse = await requestJson('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'reuse@example.com',
-        password: 'strong-password-123',
-      }),
-    });
-    const firstSession = registerResponse.body as {
-      accessToken: string;
-    };
-
-    expect(registerResponse.status).toBe(201);
-
-    const loginResponse = await requestJson('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'reuse@example.com',
-        password: 'strong-password-123',
-      }),
-    });
-    const secondSession = loginResponse.body as {
-      accessToken: string;
-    };
+    const firstSession = await createAuthenticatedUser('reuse@example.com');
+    const secondSession = await createAuthenticatedUser('reuse@example.com');
     const staleRefreshCookie = cookieJar;
-
-    expect(loginResponse.status).toBe(200);
 
     const refreshResponse = await requestJson('/api/auth/refresh', {
       method: 'POST',
@@ -1626,7 +1575,7 @@ describe('Auth, works, and sync API (e2e)', () => {
   });
 
   it('supports authenticated Aladin key settings and import search without creating works', async () => {
-    const session = await registerUser('imports@example.com');
+    const session = await createAuthenticatedUser('imports@example.com');
     const statusBeforeSave = await requestJson(
       '/api/imports/providers/aladin/status',
       undefined,
@@ -1845,8 +1794,8 @@ describe('Auth, works, and sync API (e2e)', () => {
   });
 
   it('supports works CRUD with user scoping, soft delete, and ownership protection', async () => {
-    const firstUser = await registerUser('frieren@example.com');
-    const secondUser = await registerUser('fern@example.com');
+    const firstUser = await createAuthenticatedUser('frieren@example.com');
+    const secondUser = await createAuthenticatedUser('fern@example.com');
 
     const createResponse = await requestJson(
       '/api/works',
@@ -1990,7 +1939,7 @@ describe('Auth, works, and sync API (e2e)', () => {
   });
 
   it('rejects unsupported sync schema versions before reaching sync services', async () => {
-    const user = await registerUser('sync-schema@example.com');
+    const user = await createAuthenticatedUser('sync-schema@example.com');
 
     const pullResponse = await requestJson(
       '/api/sync/pull',
@@ -2011,8 +1960,8 @@ describe('Auth, works, and sync API (e2e)', () => {
   });
 
   it('supports authenticated push and pull sync with create, update, delete, duplicate no-op, and conflict handling', async () => {
-    const firstUser = await registerUser('sync-owner@example.com');
-    const secondUser = await registerUser('sync-other@example.com');
+    const firstUser = await createAuthenticatedUser('sync-owner@example.com');
+    const secondUser = await createAuthenticatedUser('sync-other@example.com');
     const workId = '3f831224-abf9-44c3-b3f9-9ff4da2f7de8';
 
     const pushCreateResponse = await requestJson(
@@ -2150,7 +2099,7 @@ describe('Auth, works, and sync API (e2e)', () => {
       }),
     );
 
-    const conflictResponse = await requestJson(
+    const staleVersionUpdateResponse = await requestJson(
       '/api/sync/push',
       {
         method: 'POST',
@@ -2174,13 +2123,16 @@ describe('Auth, works, and sync API (e2e)', () => {
       firstUser.accessToken,
     );
 
-    expect(conflictResponse.status).toBe(200);
-    expect(conflictResponse.body).toEqual(
+    expect(staleVersionUpdateResponse.status).toBe(200);
+    expect(staleVersionUpdateResponse.body).toEqual(
       expect.objectContaining({
         results: [
           expect.objectContaining({
-            status: 'conflict',
-            message: expect.stringContaining('server version 2'),
+            status: 'applied',
+            work: expect.objectContaining({
+              title: 'Children of Dune',
+              serverVersion: 3,
+            }),
           }),
         ],
       }),
@@ -2206,8 +2158,8 @@ describe('Auth, works, and sync API (e2e)', () => {
             entityId: workId,
             operation: 'upsert',
             work: expect.objectContaining({
-              title: 'Dune Messiah',
-              serverVersion: 2,
+              title: 'Children of Dune',
+              serverVersion: 3,
             }),
           }),
         ]),
@@ -2233,10 +2185,10 @@ describe('Auth, works, and sync API (e2e)', () => {
               operation: 'delete',
               createdAt: '2026-04-18T00:04:00.000Z',
               payload: buildSyncPayload(workId, {
-                title: 'Dune Messiah',
+                title: 'Children of Dune',
                 updatedAt: '2026-04-18T00:04:00.000Z',
                 deletedAt: '2026-04-18T00:04:00.000Z',
-                serverVersion: 2,
+                serverVersion: 3,
               }),
             },
           ],
@@ -2253,7 +2205,7 @@ describe('Auth, works, and sync API (e2e)', () => {
             status: 'applied',
             work: expect.objectContaining({
               deletedAt: '2026-04-18T00:04:00.000Z',
-              serverVersion: 3,
+              serverVersion: 4,
             }),
           }),
         ],
@@ -2280,7 +2232,7 @@ describe('Auth, works, and sync API (e2e)', () => {
             operation: 'delete',
             work: expect.objectContaining({
               deletedAt: '2026-04-18T00:04:00.000Z',
-              serverVersion: 3,
+              serverVersion: 4,
             }),
           }),
         ],
@@ -2288,26 +2240,8 @@ describe('Auth, works, and sync API (e2e)', () => {
     );
   });
 
-  it('validates auth and works payloads, including blank titles', async () => {
-    const invalidRegisterResponse = await requestJson('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'not-an-email',
-        password: 'short',
-      }),
-    });
-
-    expect(invalidRegisterResponse.status).toBe(400);
-    expect(
-      (invalidRegisterResponse.body as { message: string[] }).message,
-    ).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('email'),
-        expect.stringContaining('password'),
-      ]),
-    );
-
-    const session = await registerUser('validation@example.com');
+  it('validates works payloads, including blank titles', async () => {
+    const session = await createAuthenticatedUser('validation@example.com');
     const blankTitleCreateResponse = await requestJson(
       '/api/works',
       {

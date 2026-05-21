@@ -12,7 +12,6 @@ export interface ApiRuntimeConfig {
   isProduction: boolean;
   jwtAccessSecret: string;
   jwtRefreshSecret: string;
-  passwordResetDevLinksEnabled: boolean;
   port: number;
   rateLimitPrefix: string;
   rateLimitStore: 'memory' | 'redis';
@@ -71,7 +70,6 @@ const apiEnvironmentSchema = z
     JWT_ACCESS_SECRET: z.string().optional(),
     JWT_REFRESH_SECRET: z.string().optional(),
     NODE_ENV: z.string().optional(),
-    PASSWORD_RESET_DEV_LINKS_ENABLED: z.string().optional(),
     PORT: z.string().optional(),
     PUBLIC_WEB_BASE_URL: z.string().optional(),
     RATE_LIMIT_PREFIX: z.string().optional(),
@@ -389,10 +387,6 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
   const cookieSecure = readBoolean(process.env.COOKIE_SECURE, isProduction);
   const databaseUrl = readRequiredEnvString('DATABASE_URL');
   const port = readPort(process.env.PORT, 3000);
-  const passwordResetDevLinksEnabled = readBoolean(
-    process.env.PASSWORD_RESET_DEV_LINKS_ENABLED,
-    false,
-  );
   const swaggerEnabled = readBoolean(
     process.env.SWAGGER_ENABLED,
     !isProduction,
@@ -418,12 +412,6 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     throw new Error('COOKIE_SECURE must not be false in production.');
   }
 
-  if (isProduction && passwordResetDevLinksEnabled) {
-    throw new Error(
-      'PASSWORD_RESET_DEV_LINKS_ENABLED must not be true in production.',
-    );
-  }
-
   if (isProduction && swaggerEnabled) {
     throw new Error('SWAGGER_ENABLED must not be true in production.');
   }
@@ -444,7 +432,6 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     isProduction,
     jwtAccessSecret,
     jwtRefreshSecret,
-    passwordResetDevLinksEnabled,
     port,
     rateLimitPrefix:
       process.env.RATE_LIMIT_PREFIX?.trim() || 'work-archive:rate-limit:',

@@ -33,14 +33,6 @@ import type {
   AuthRefreshSessionsResponseDto,
 } from './dto/auth-refresh-session-response.dto';
 import type { AuthUserResponseDto } from './dto/auth-user-response.dto';
-import type { LoginDto } from './dto/login.dto';
-import type { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
-import type { PasswordResetRequestDto } from './dto/password-reset-request.dto';
-import type {
-  PasswordResetConfirmResponseDto,
-  PasswordResetRequestResponseDto,
-} from './dto/password-reset-response.dto';
-import type { RegisterDto } from './dto/register.dto';
 import type { UpdateProfileDto } from './dto/update-profile.dto';
 import type {
   AuthTokenKind,
@@ -50,7 +42,6 @@ import type {
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
-const PASSWORD_RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
 const GOOGLE_AUTH_PROVIDER = 'google';
 const GOOGLE_AUTHORIZATION_URL =
   'https://accounts.google.com/o/oauth2/v2/auth';
@@ -70,12 +61,6 @@ const RESERVED_HANDLES = new Set([
   'sync',
   'profile',
 ]);
-const PASSWORD_RESET_SUCCESS_MESSAGE =
-  '비밀번호 재설정 요청을 확인했습니다. 계정이 있으면 재설정 링크를 사용할 수 있습니다.';
-const PASSWORD_RESET_CONFIRM_MESSAGE = '비밀번호가 재설정되었습니다.';
-const PASSWORD_RESET_INVALID_MESSAGE =
-  '비밀번호 재설정 링크가 올바르지 않거나 만료되었습니다.';
-
 export interface IssuedAuthSession {
   accessToken: string;
   refreshToken: string;
@@ -132,66 +117,6 @@ export class AuthService {
     @Optional()
     private readonly securityAudit?: SecurityAuditService,
   ) {}
-
-  async register(
-    registerDto: RegisterDto,
-    metadata: AuthSessionMetadata = {},
-  ): Promise<IssuedAuthSession> {
-    const email = this.normalizeEmail(registerDto.email);
-    const existingUser = await this.prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
-
-    if (existingUser) {
-      throw new ConflictException('An account with this email already exists.');
-    }
-
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        passwordHash: await hashSecret(registerDto.password),
-      },
-    });
-
-    return this.createSessionForUser(user, true, metadata);
-  }
-
-  async login(
-    loginDto: LoginDto,
-    metadata: AuthSessionMetadata = {},
-  ): Promise<IssuedAuthSession> {
-    const email = this.normalizeEmail(loginDto.email);
-    const user = await this.prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid email or password.');
-    }
-
-    if (!user.passwordHash) {
-      throw new UnauthorizedException('Invalid email or password.');
-    }
-
-    const isPasswordValid = await verifySecret(
-      loginDto.password,
-      user.passwordHash,
-    );
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password.');
-    }
-
-    return this.createSessionForUser(
-      user,
-      loginDto.rememberMe === true,
-      metadata,
-    );
-  }
 
   getGoogleAuthorizationUrl(state: string, nonce: string) {
     const config = this.requireGoogleOAuthConfig();
@@ -473,127 +398,6 @@ export class AuthService {
 
   async revokeAllRefreshSessions(user: AuthenticatedUser) {
     await this.revokeAllUserSessions(user.userId);
-  }
-
-  async requestPasswordReset(
-    passwordResetRequestDto: PasswordResetRequestDto,
-  ): Promise<PasswordResetRequestResponseDto> {
-    const email = this.normalizeEmail(passwordResetRequestDto.email);
-    const user = await this.prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
-
-    if (!user) {
-      return {
-        message: PASSWORD_RESET_SUCCESS_MESSAGE,
-      };
-    }
-
-    const tokenId = randomUUID();
-    const tokenSecret = randomBytes(32).toString('hex');
-    const resetToken = `${tokenId}.${tokenSecret}`;
-
-    await this.prisma.passwordResetToken.create({
-      data: {
-        id: tokenId,
-        expiresAt: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS),
-        tokenHash: await hashSecret(tokenSecret),
-        userId: user.id,
-      },
-    });
-
-    const config = readApiRuntimeConfig();
-
-    if (!config.passwordResetDevLinksEnabled) {
-      return {
-        message: PASSWORD_RESET_SUCCESS_MESSAGE,
-      };
-    }
-
-    return {
-      developmentResetUrl: `${config.webBaseUrl.replace(/\/$/, '')}/auth/password-reset/confirm?token=${encodeURIComponent(resetToken)}`,
-      message: PASSWORD_RESET_SUCCESS_MESSAGE,
-    };
-  }
-
-  async confirmPasswordReset(
-    passwordResetConfirmDto: PasswordResetConfirmDto,
-  ): Promise<PasswordResetConfirmResponseDto> {
-    const [tokenId, tokenSecret] = passwordResetConfirmDto.token.split('.');
-
-    if (!tokenId || !tokenSecret) {
-      throw new BadRequestException(PASSWORD_RESET_INVALID_MESSAGE);
-    }
-
-    const resetToken = await this.prisma.passwordResetToken.findUnique({
-      where: {
-        id: tokenId,
-      },
-    });
-
-    if (
-      !resetToken ||
-      resetToken.usedAt !== null ||
-      resetToken.expiresAt.getTime() <= Date.now()
-    ) {
-      throw new BadRequestException(PASSWORD_RESET_INVALID_MESSAGE);
-    }
-
-    const isTokenValid = await verifySecret(tokenSecret, resetToken.tokenHash);
-
-    if (!isTokenValid) {
-      throw new BadRequestException(PASSWORD_RESET_INVALID_MESSAGE);
-    }
-
-    const now = new Date();
-    const updatedResetToken = await this.prisma.passwordResetToken.updateMany({
-      where: {
-        id: resetToken.id,
-        usedAt: null,
-      },
-      data: {
-        usedAt: now,
-      },
-    });
-
-    if (updatedResetToken.count !== 1) {
-      throw new BadRequestException(PASSWORD_RESET_INVALID_MESSAGE);
-    }
-
-    await this.prisma.$transaction([
-      this.prisma.user.update({
-        where: {
-          id: resetToken.userId,
-        },
-        data: {
-          passwordHash: await hashSecret(passwordResetConfirmDto.password),
-        },
-      }),
-      this.prisma.userRefreshSession.updateMany({
-        where: {
-          userId: resetToken.userId,
-          revokedAt: null,
-        },
-        data: {
-          revokedAt: now,
-        },
-      }),
-      this.prisma.passwordResetToken.updateMany({
-        where: {
-          userId: resetToken.userId,
-          usedAt: null,
-        },
-        data: {
-          usedAt: now,
-        },
-      }),
-    ]);
-
-    return {
-      message: PASSWORD_RESET_CONFIRM_MESSAGE,
-    };
   }
 
   async validateAccessToken(accessToken: string): Promise<AuthenticatedUser> {

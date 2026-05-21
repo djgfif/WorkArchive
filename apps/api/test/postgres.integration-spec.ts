@@ -3,15 +3,22 @@ import { type AddressInfo } from 'node:net';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from '@jest/globals';
 
 import { AppModule } from '../src/app.module';
 import { readApiRuntimeConfig } from '../src/config/api-runtime-config';
 import { configureApp } from '../src/configure-app';
+import { AuthService } from '../src/modules/auth/auth.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { resetIntegrationDatabase } from './integration-db';
-
-const TEST_PASSWORD = 'integration-password-123';
+import { createTestSession } from './test-auth-session';
 
 interface JsonResponse<TBody = unknown> {
   body: TBody | null;
@@ -21,13 +28,10 @@ interface JsonResponse<TBody = unknown> {
 
 interface AuthSessionBody {
   accessToken: string;
-  user: {
-    email: string;
-    id: string;
-  };
 }
 
 let app: INestApplication;
+let authService: AuthService;
 let baseUrl: string;
 let prisma: PrismaService;
 
@@ -40,7 +44,6 @@ function configureIntegrationEnvironment() {
     'integration-access-secret-minimum-32-chars';
   process.env.JWT_REFRESH_SECRET ??=
     'integration-refresh-secret-minimum-32-chars';
-  process.env.PASSWORD_RESET_DEV_LINKS_ENABLED ??= 'false';
   process.env.SWAGGER_ENABLED ??= 'false';
   process.env.WEB_BASE_URL ??= 'http://localhost:8080';
 
@@ -94,22 +97,18 @@ async function requestJson<TBody = unknown>(
   };
 }
 
-async function registerUser(email: string) {
-  const response = await requestJson<AuthSessionBody>('/api/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({
-      email,
-      password: TEST_PASSWORD,
-    }),
+async function createAuthenticatedUser(email: string, rememberMe = true) {
+  const session = await createTestSession({
+    authService,
+    email,
+    prisma,
+    rememberMe,
   });
 
-  expect(response.status).toBe(201);
-  expect(response.body).not.toBeNull();
-
   return {
-    accessToken: response.body!.accessToken,
-    cookie: extractCookieHeader(response.setCookie),
-    userId: response.body!.user.id,
+    accessToken: session.accessToken,
+    cookie: session.cookie,
+    userId: session.userId,
   };
 }
 
@@ -165,6 +164,7 @@ describe('API PostgreSQL integration', () => {
 
     const address = app.getHttpServer().address() as AddressInfo;
     baseUrl = `http://127.0.0.1:${address.port}`;
+    authService = app.get(AuthService);
     prisma = app.get(PrismaService);
     await prisma.$queryRaw`SELECT 1`;
   });
@@ -178,7 +178,7 @@ describe('API PostgreSQL integration', () => {
   });
 
   it('runs auth session persistence and refresh rotation against real users', async () => {
-    const registered = await registerUser('auth-db@example.com');
+    const registered = await createAuthenticatedUser('auth-db@example.com');
     const createdUser = await prisma.user.findUnique({
       where: {
         id: registered.userId,
@@ -275,18 +275,12 @@ describe('API PostgreSQL integration', () => {
   });
 
   it('manages multiple refresh sessions and revokes all on token reuse', async () => {
-    const firstSession = await registerUser('session-db@example.com');
-    const loginResponse = await requestJson<AuthSessionBody>('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'session-db@example.com',
-        password: TEST_PASSWORD,
-      }),
-    });
-
-    expect(loginResponse.status).toBe(200);
-
-    const secondCookie = extractCookieHeader(loginResponse.setCookie);
+    const firstSession = await createAuthenticatedUser('session-db@example.com');
+    const secondSession = await createAuthenticatedUser(
+      'session-db@example.com',
+      false,
+    );
+    const secondCookie = secondSession.cookie;
     const activeSessions = await prisma.userRefreshSession.findMany({
       where: {
         userId: firstSession.userId,
@@ -299,11 +293,10 @@ describe('API PostgreSQL integration', () => {
 
     expect(activeSessions).toHaveLength(2);
 
-    const secondAccessToken = loginResponse.body!.accessToken;
     const listResponse = await requestJson(
       '/api/auth/sessions',
       undefined,
-      secondAccessToken,
+      secondSession.accessToken,
     );
 
     expect(listResponse.status).toBe(200);
@@ -325,7 +318,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'DELETE',
       },
-      secondAccessToken,
+      secondSession.accessToken,
     );
 
     expect(revokeOtherResponse.status).toBe(204);
@@ -378,8 +371,8 @@ describe('API PostgreSQL integration', () => {
   });
 
   it('persists works with user isolation and ownership protection', async () => {
-    const firstUser = await registerUser('works-owner@example.com');
-    const secondUser = await registerUser('works-other@example.com');
+    const firstUser = await createAuthenticatedUser('works-owner@example.com');
+    const secondUser = await createAuthenticatedUser('works-other@example.com');
 
     const createResponse = await requestJson<{ id: string }>(
       '/api/works',
@@ -454,7 +447,7 @@ describe('API PostgreSQL integration', () => {
   });
 
   it('round-trips sync create, update, conflict, delete, and pull cursor in PostgreSQL', async () => {
-    const user = await registerUser('sync-db@example.com');
+    const user = await createAuthenticatedUser('sync-db@example.com');
     const workId = '3f831224-abf9-44c3-b3f9-9ff4da2f7de8';
 
     const createResponse = await requestJson(
@@ -543,7 +536,7 @@ describe('API PostgreSQL integration', () => {
       }),
     );
 
-    const conflictResponse = await requestJson(
+    const staleVersionUpdateResponse = await requestJson(
       '/api/sync/push',
       {
         method: 'POST',
@@ -568,13 +561,16 @@ describe('API PostgreSQL integration', () => {
       user.accessToken,
     );
 
-    expect(conflictResponse.status).toBe(200);
-    expect(conflictResponse.body).toEqual(
+    expect(staleVersionUpdateResponse.status).toBe(200);
+    expect(staleVersionUpdateResponse.body).toEqual(
       expect.objectContaining({
         results: [
           expect.objectContaining({
-            status: 'conflict',
-            message: expect.stringContaining('server version 2'),
+            status: 'applied',
+            work: expect.objectContaining({
+              title: 'Children of Dune',
+              serverVersion: 3,
+            }),
           }),
         ],
       }),
@@ -601,8 +597,8 @@ describe('API PostgreSQL integration', () => {
             entityId: workId,
             operation: 'upsert',
             work: expect.objectContaining({
-              title: 'Dune Messiah',
-              serverVersion: 2,
+              title: 'Children of Dune',
+              serverVersion: 3,
             }),
           }),
         ]),
@@ -623,11 +619,11 @@ describe('API PostgreSQL integration', () => {
               operation: 'delete',
               createdAt: '2026-04-18T00:04:00.000Z',
               payload: buildSyncWorkPayload(workId, {
-                title: 'Dune Messiah',
+                title: 'Children of Dune',
                 updatedAt: '2026-04-18T00:04:00.000Z',
                 deletedAt: '2026-04-18T00:04:00.000Z',
                 syncStatus: WorkSyncStatus.pending,
-                serverVersion: 2,
+                serverVersion: 3,
               }),
             },
           ],
@@ -644,7 +640,7 @@ describe('API PostgreSQL integration', () => {
             status: 'applied',
             work: expect.objectContaining({
               deletedAt: '2026-04-18T00:04:00.000Z',
-              serverVersion: 3,
+              serverVersion: 4,
             }),
           }),
         ],
@@ -660,7 +656,7 @@ describe('API PostgreSQL integration', () => {
     expect(deletedRecord.deletedAt?.toISOString()).toBe(
       '2026-04-18T00:04:00.000Z',
     );
-    expect(deletedRecord.serverVersion).toBe(3);
+    expect(deletedRecord.serverVersion).toBe(4);
 
     const pullDeletedResponse = await requestJson(
       '/api/sync/pull',
@@ -682,7 +678,7 @@ describe('API PostgreSQL integration', () => {
             entityId: workId,
             operation: 'delete',
             work: expect.objectContaining({
-              serverVersion: 3,
+              serverVersion: 4,
             }),
           }),
         ],
@@ -691,7 +687,7 @@ describe('API PostgreSQL integration', () => {
   });
 
   it('encrypts provider credentials and restores readiness after delete', async () => {
-    const user = await registerUser('credential-db@example.com');
+    const user = await createAuthenticatedUser('credential-db@example.com');
 
     const saveResponse = await requestJson(
       '/api/imports/providers/aladin/key',

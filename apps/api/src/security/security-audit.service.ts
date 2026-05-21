@@ -13,8 +13,6 @@ export type SecurityEventType =
   | 'auth.login.failure'
   | 'auth.login.success'
   | 'auth.logout'
-  | 'auth.password_reset.confirm'
-  | 'auth.password_reset.request'
   | 'auth.refresh.failure'
   | 'auth.refresh.reuse_detected'
   | 'auth.session.revoke'

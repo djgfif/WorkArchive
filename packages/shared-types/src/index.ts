@@ -241,12 +241,6 @@ export interface AuthUserResponse {
   role?: UserRole;
 }
 
-export interface AuthCredentialsRequest {
-  email: string;
-  password: string;
-  rememberMe?: boolean;
-}
-
 export interface UpdateAuthProfileRequest {
   handle: string | null;
   nickname: string;

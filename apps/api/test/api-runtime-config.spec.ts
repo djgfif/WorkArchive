@@ -139,17 +139,6 @@ describe('api runtime config', () => {
       NODE_ENV: 'production',
       CORS_ORIGIN: 'https://workarchive.example.com',
       WEB_BASE_URL: 'https://workarchive.example.com',
-      PASSWORD_RESET_DEV_LINKS_ENABLED: 'true',
-    });
-
-    expect(() => readApiRuntimeConfig()).toThrow(
-      'PASSWORD_RESET_DEV_LINKS_ENABLED must not be true in production.',
-    );
-
-    resetEnv({
-      NODE_ENV: 'production',
-      CORS_ORIGIN: 'https://workarchive.example.com',
-      WEB_BASE_URL: 'https://workarchive.example.com',
       COOKIE_SECURE: 'false',
     });
 
