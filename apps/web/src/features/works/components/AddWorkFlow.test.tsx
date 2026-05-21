@@ -838,6 +838,9 @@ describe('AddWorkFlow', () => {
     expect(
       await screen.findByText(/검색 완료: Open Library 0개/),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/설정에서 개인 API key를 등록하면 사용할 수 있습니다\./),
+    ).toBeInTheDocument();
     expect(screen.getByText(/제외됨: TMDB/)).toBeInTheDocument();
   });
 

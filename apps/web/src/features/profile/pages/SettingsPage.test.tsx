@@ -280,6 +280,22 @@ describe('SettingsPage', () => {
           ],
           mediumTypes: ['movie', 'drama'],
         },
+        {
+          provider: 'brave_search',
+          label: 'Brave Search',
+          credentialMode: 'user',
+          configured: false,
+          credentialFields: [{ name: 'apiKey', label: 'API Key', secret: true }],
+          mediumTypes: ['web_novel', 'webtoon', 'anime'],
+        },
+        {
+          provider: 'tavily_search',
+          label: 'Tavily Search',
+          credentialMode: 'user',
+          configured: false,
+          credentialFields: [{ name: 'apiKey', label: 'API Key', secret: true }],
+          mediumTypes: ['web_novel', 'webtoon'],
+        },
       ];
     const fetchMock = vi.fn((url: string | URL | Request) => {
       const requestUrl = String(url);
@@ -305,6 +321,18 @@ describe('SettingsPage', () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText('Aladin Book').length).toBeGreaterThan(0);
     expect(screen.getAllByText('TMDB').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Brave Search').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Tavily Search').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        /사용자 개인 Brave Search API key가 필요합니다\. 서버 운영자 키를 사용하지 않습니다\./,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /사용자 개인 Tavily API key가 필요합니다\. 서버 운영자 키를 사용하지 않습니다\./,
+      ),
+    ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(
       expect.arrayContaining([
@@ -645,6 +673,16 @@ describe('SettingsPage', () => {
       label: 'KOBIS',
       fields: [{ name: 'apiKey', label: 'API Key', value: 'kobis-api-key' }],
     },
+    {
+      provider: 'brave_search',
+      label: 'Brave Search',
+      fields: [{ name: 'apiKey', label: 'API Key', value: 'brave-user-key' }],
+    },
+    {
+      provider: 'tavily_search',
+      label: 'Tavily Search',
+      fields: [{ name: 'apiKey', label: 'API Key', value: 'tavily-user-key' }],
+    },
   ])(
     'saves and deletes the authenticated user $label key without showing it again',
     async ({ fields, label, provider }) => {
@@ -709,6 +747,26 @@ describe('SettingsPage', () => {
             { name: 'apiKey', label: 'API Key', secret: true },
           ],
           mediumTypes: ['movie'],
+        },
+        {
+          provider: 'brave_search',
+          label: 'Brave Search',
+          credentialMode: 'user',
+          configured: false,
+          credentialFields: [
+            { name: 'apiKey', label: 'API Key', secret: true },
+          ],
+          mediumTypes: ['web_novel', 'webtoon', 'anime'],
+        },
+        {
+          provider: 'tavily_search',
+          label: 'Tavily Search',
+          credentialMode: 'user',
+          configured: false,
+          credentialFields: [
+            { name: 'apiKey', label: 'API Key', secret: true },
+          ],
+          mediumTypes: ['web_novel', 'webtoon'],
         },
       ];
       const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {

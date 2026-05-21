@@ -230,8 +230,6 @@ describe('ImportsService', () => {
   let service: ImportsService;
 
   beforeEach(() => {
-    delete process.env.BRAVE_SEARCH_API_KEY;
-    delete process.env.TAVILY_API_KEY;
     delete process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED;
     credentialService = {
       deleteCredential: jest.fn(),
@@ -245,8 +243,6 @@ describe('ImportsService', () => {
   });
 
   afterEach(() => {
-    delete process.env.BRAVE_SEARCH_API_KEY;
-    delete process.env.TAVILY_API_KEY;
     delete process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED;
     jest.restoreAllMocks();
   });
@@ -357,30 +353,29 @@ describe('ImportsService', () => {
         }),
         expect.objectContaining({
           provider: BRAVE_SEARCH_PROVIDER,
-          credentialMode: 'server',
+          credentialMode: 'user',
           configured: false,
-        }),
-      ]),
-    );
-    expect(credentialService.hasCredential).not.toHaveBeenCalled();
-  });
-
-  it('reports server provider readiness from environment keys', async () => {
-    process.env.BRAVE_SEARCH_API_KEY = 'brave-server-key';
-
-    const providers = await service.listProviders(null);
-
-    expect(providers).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          provider: BRAVE_SEARCH_PROVIDER,
-          credentialMode: 'server',
-          configured: true,
+          credentialFields: [
+            {
+              description: 'Brave Search API key',
+              label: 'API Key',
+              name: 'apiKey',
+              secret: true,
+            },
+          ],
         }),
         expect.objectContaining({
           provider: TAVILY_SEARCH_PROVIDER,
-          credentialMode: 'server',
+          credentialMode: 'user',
           configured: false,
+          credentialFields: [
+            {
+              description: 'Tavily API key',
+              label: 'API Key',
+              name: 'apiKey',
+              secret: true,
+            },
+          ],
         }),
       ]),
     );
@@ -396,6 +391,16 @@ describe('ImportsService', () => {
       expect.arrayContaining([
         expect.objectContaining({
           provider: ALADIN_PROVIDER,
+          credentialMode: 'user',
+          configured: true,
+        }),
+        expect.objectContaining({
+          provider: BRAVE_SEARCH_PROVIDER,
+          credentialMode: 'user',
+          configured: true,
+        }),
+        expect.objectContaining({
+          provider: TAVILY_SEARCH_PROVIDER,
           credentialMode: 'user',
           configured: true,
         }),
@@ -494,6 +499,80 @@ describe('ImportsService', () => {
     expect(fetchHeaders.get('authorization')).toBe('Bearer tmdb-read-token');
   });
 
+  it('tests a configured Brave Search user key with the provider API', async () => {
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        apiKey: 'brave-user-key',
+      }),
+    );
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        web: {
+          results: [],
+        },
+      }),
+    );
+
+    await expect(
+      service.testProviderKey(USER_ID, BRAVE_SEARCH_PROVIDER),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        ok: true,
+        provider: BRAVE_SEARCH_PROVIDER,
+        reason: null,
+      }),
+    );
+
+    const fetchCall = jest.mocked(globalThis.fetch).mock.calls[0];
+    const fetchUrl = new URL(String(fetchCall?.[0]));
+    const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
+
+    expect(fetchUrl.hostname).toBe('api.search.brave.com');
+    expect(fetchUrl.searchParams.get('q')).toBe('test');
+    expect(fetchUrl.searchParams.get('count')).toBe('1');
+    expect(fetchHeaders.get('X-Subscription-Token')).toBe('brave-user-key');
+  });
+
+  it('tests a configured Tavily Search user key with the provider API', async () => {
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        apiKey: 'tavily-user-key',
+      }),
+    );
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        results: [],
+      }),
+    );
+
+    await expect(
+      service.testProviderKey(USER_ID, TAVILY_SEARCH_PROVIDER),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        ok: true,
+        provider: TAVILY_SEARCH_PROVIDER,
+        reason: null,
+      }),
+    );
+
+    const fetchCall = jest.mocked(globalThis.fetch).mock.calls[0];
+    const fetchBody = JSON.parse(String(fetchCall?.[1]?.body)) as {
+      include_raw_content: boolean;
+      max_results: number;
+      query: string;
+      search_depth: string;
+    };
+    const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
+
+    expect(fetchHeaders.get('authorization')).toBe('Bearer tavily-user-key');
+    expect(fetchBody).toEqual({
+      include_raw_content: false,
+      max_results: 1,
+      query: 'test',
+      search_depth: 'basic',
+    });
+  });
+
   it('classifies provider key test authorization failures without exposing secrets', async () => {
     credentialService.getDecryptedCredential.mockResolvedValue(
       JSON.stringify({
@@ -515,6 +594,32 @@ describe('ImportsService', () => {
     expect(result.message).not.toContain('naver-client-secret');
     expect(result.message).not.toContain('naver-client-id');
   });
+
+  it.each([
+    [BRAVE_SEARCH_PROVIDER, 'brave-user-key'],
+    [TAVILY_SEARCH_PROVIDER, 'tavily-user-key'],
+  ])(
+    'classifies %s provider key test failures without exposing the user key',
+    async (provider, apiKey) => {
+      credentialService.getDecryptedCredential.mockResolvedValue(
+        JSON.stringify({
+          apiKey,
+        }),
+      );
+      jest.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({}, 401));
+
+      const result = await service.testProviderKey(USER_ID, provider);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          ok: false,
+          provider,
+          reason: 'unauthorized',
+        }),
+      );
+      expect(result.message).not.toContain(apiKey);
+    },
+  );
 
   it('keeps the legacy Aladin raw key wrapper compatible with generic storage', async () => {
     await service.saveAladinKey(USER_ID, ' ttb-test-key ');
@@ -1062,6 +1167,25 @@ describe('ImportsService', () => {
     );
   });
 
+  it('does not expose Brave or Tavily to guests when server guest search is enabled', async () => {
+    process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED = 'true';
+
+    await expect(
+      service.search(null, {
+        provider: BRAVE_SEARCH_PROVIDER,
+        query: '전지적 독자 시점',
+        type: WorkType.web_novel,
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(
+      service.search(null, {
+        provider: TAVILY_SEARCH_PROVIDER,
+        query: '전지적 독자 시점',
+        type: WorkType.web_novel,
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
   it('ranks an exact title match ahead of earlier provider-order candidates', async () => {
     jest
       .spyOn(globalThis, 'fetch')
@@ -1349,7 +1473,16 @@ describe('ImportsService', () => {
   });
 
   it('uses Naver and Kakao web providers before book providers for authenticated web novel search', async () => {
-    credentialService.hasCredential.mockResolvedValue(true);
+    credentialService.hasCredential.mockImplementation(
+      async (_userId, provider) => {
+        return (
+          provider === NAVER_WEB_PROVIDER ||
+          provider === NAVER_BOOK_PROVIDER ||
+          provider === KAKAO_WEB_PROVIDER ||
+          provider === KAKAO_BOOK_PROVIDER
+        );
+      },
+    );
     credentialService.getDecryptedCredential.mockImplementation(
       async (_userId, provider) => {
         if (
@@ -1485,7 +1618,9 @@ describe('ImportsService', () => {
     );
   });
 
-  it('skips unconfigured server search providers with diagnostics', async () => {
+  it('skips unconfigured Brave and Tavily user providers with diagnostics', async () => {
+    credentialService.hasCredential.mockResolvedValue(false);
+
     const result = await service.search(USER_ID, {
       providers: [
         BRAVE_SEARCH_PROVIDER,
@@ -1508,21 +1643,28 @@ describe('ImportsService', () => {
         expect.objectContaining({
           provider: BRAVE_SEARCH_PROVIDER,
           configured: false,
-          reasonCode: 'server_credential_missing',
+          credentialMode: 'user',
+          reasonCode: 'user_credential_missing',
           status: 'skipped',
         }),
         expect.objectContaining({
           provider: TAVILY_SEARCH_PROVIDER,
           configured: false,
-          reasonCode: 'server_credential_missing',
+          credentialMode: 'user',
+          reasonCode: 'user_credential_missing',
           status: 'skipped',
         }),
       ]),
     );
   });
 
-  it('uses Brave Search server credentials and Korean query rewrite for web novel search', async () => {
-    process.env.BRAVE_SEARCH_API_KEY = 'brave-server-key';
+  it('uses Brave Search user credentials and Korean query rewrite for web novel search', async () => {
+    credentialService.hasCredential.mockResolvedValue(true);
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        apiKey: 'brave-user-key',
+      }),
+    );
     const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
         web: {
@@ -1562,11 +1704,16 @@ describe('ImportsService', () => {
     expect(fetchUrl.searchParams.get('country')).toBe('kr');
     expect(fetchUrl.searchParams.get('search_lang')).toBe('ko');
     expect(fetchUrl.searchParams.get('count')).toBe('5');
-    expect(fetchHeaders.get('X-Subscription-Token')).toBe('brave-server-key');
+    expect(fetchHeaders.get('X-Subscription-Token')).toBe('brave-user-key');
   });
 
-  it('uses Tavily domain-constrained server search for webtoon search', async () => {
-    process.env.TAVILY_API_KEY = 'tavily-server-key';
+  it('uses Tavily user credentials for domain-constrained webtoon search', async () => {
+    credentialService.hasCredential.mockResolvedValue(true);
+    credentialService.getDecryptedCredential.mockResolvedValue(
+      JSON.stringify({
+        apiKey: 'tavily-user-key',
+      }),
+    );
     const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
         results: [
@@ -1605,7 +1752,7 @@ describe('ImportsService', () => {
     };
     const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
 
-    expect(fetchHeaders.get('authorization')).toBe('Bearer tavily-server-key');
+    expect(fetchHeaders.get('authorization')).toBe('Bearer tavily-user-key');
     expect(fetchBody).toEqual(
       expect.objectContaining({
         country: 'south korea',
@@ -1655,7 +1802,8 @@ describe('ImportsService', () => {
       expect.arrayContaining([
         expect.objectContaining({
           provider: BRAVE_SEARCH_PROVIDER,
-          reasonCode: 'server_credential_missing',
+          credentialMode: 'user',
+          reasonCode: 'user_credential_missing',
           status: 'skipped',
         }),
       ]),

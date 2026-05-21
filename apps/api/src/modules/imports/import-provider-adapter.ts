@@ -213,13 +213,29 @@ export const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
     provider: KAKAO_WEB_PROVIDER,
   },
   [BRAVE_SEARCH_PROVIDER]: {
-    credentialMode: 'server',
+    credentialMode: 'user',
+    credentialFields: [
+      {
+        description: 'Brave Search API key',
+        label: 'API Key',
+        name: 'apiKey',
+        secret: true,
+      },
+    ],
     label: 'Brave Search',
     mediumTypes: [WorkType.web_novel, WorkType.webtoon, WorkType.anime],
     provider: BRAVE_SEARCH_PROVIDER,
   },
   [TAVILY_SEARCH_PROVIDER]: {
-    credentialMode: 'server',
+    credentialMode: 'user',
+    credentialFields: [
+      {
+        description: 'Tavily API key',
+        label: 'API Key',
+        name: 'apiKey',
+        secret: true,
+      },
+    ],
     label: 'Tavily Search',
     mediumTypes: [WorkType.web_novel, WorkType.webtoon],
     provider: TAVILY_SEARCH_PROVIDER,

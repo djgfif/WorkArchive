@@ -106,12 +106,18 @@ function buildSearchNotice(response: ImportSearchResponse) {
   const skippedWithoutCircuitOpen = skipped.filter(
     (diagnostic) => diagnostic.reasonCode !== 'circuit_open',
   );
+  const hasMissingUserCredential = skippedWithoutCircuitOpen.some(
+    (diagnostic) => diagnostic.reasonCode === 'user_credential_missing',
+  );
   const failed = diagnostics.filter(
     (diagnostic) => diagnostic.status === 'failed',
   );
   const segments = [
     circuitOpen.length > 0
       ? '일부 검색 소스가 일시적으로 쉬는 중입니다. 잠시 후 다시 시도하거나 직접 추가하세요.'
+      : null,
+    hasMissingUserCredential
+      ? '설정에서 개인 API key를 등록하면 사용할 수 있습니다.'
       : null,
     searched.length > 0
       ? `검색 완료: ${searched.map(formatProviderResult).join(', ')}`

@@ -111,6 +111,9 @@ describe('ImportsService', () => {
 
     expect(result.diagnostics?.providers).toHaveLength(3);
     expect(result.notice).toContain('검색 출처: Open Library');
+    expect(result.notice).toContain(
+      '설정에서 개인 API key를 등록하면 사용할 수 있습니다.',
+    );
     expect(result.notice).toContain('검색 완료: Open Library 0개');
     expect(result.notice).toContain('제외됨: TMDB');
     expect(result.notice).toContain('일시 실패: Google Books');

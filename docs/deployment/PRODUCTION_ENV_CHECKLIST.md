@@ -88,23 +88,18 @@ NODE_ENV=production
 `TRUST_PROXY_HOPS=1` assumes the API receives requests through the web/reverse
 proxy layer. Re-evaluate only if the proxy topology changes.
 
-## Optional Provider Keys
+## Search Provider Keys
 
-Server-scoped import provider keys are optional:
+Cost-bearing import provider keys are user-scoped. Users enter Brave Search,
+Tavily Search, Naver, Kakao, Aladin, TMDB, and KOBIS keys in Settings; values
+are encrypted with `EXTERNAL_API_KEY_ENCRYPTION_SECRET`.
 
 ```bash
-TMDB_API_READ_TOKEN=
-NAVER_CLIENT_ID=
-NAVER_CLIENT_SECRET=
-KAKAO_REST_API_KEY=
-KOBIS_API_KEY=
-BRAVE_SEARCH_API_KEY=
-TAVILY_API_KEY=
 IMPORT_SERVER_SEARCH_GUEST_ENABLED=false
 ```
 
-User-scoped provider keys are entered by users in Settings and encrypted with
-`EXTERNAL_API_KEY_ENCRYPTION_SECRET`.
+`IMPORT_SERVER_SEARCH_GUEST_ENABLED` is reserved for future server-credential
+providers. It does not expose Brave Search or Tavily Search to guests.
 
 ## Final Preflight
 

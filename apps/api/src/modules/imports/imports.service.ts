@@ -900,6 +900,10 @@ export class ImportsService {
         return this.testKakaoProviderKey(credentials, KAKAO_WEB_SEARCH_URL);
       case TMDB_PROVIDER:
         return this.testTmdbProviderKey(credentials);
+      case BRAVE_SEARCH_PROVIDER:
+        return this.testBraveProviderKey(credentials);
+      case TAVILY_SEARCH_PROVIDER:
+        return this.testTavilyProviderKey(credentials);
       case KOBIS_PROVIDER:
         return this.testKobisProviderKey(credentials);
       default:
@@ -1022,6 +1026,49 @@ export class ImportsService {
 
     await this.fetchJson(searchUrl, {
       accept: 'application/json',
+      timeoutMs: DEFAULT_PROVIDER_TIMEOUT_MS,
+    });
+  }
+
+  private async testBraveProviderKey(credentials: ProviderCredentialValues) {
+    const apiKey = credentials.apiKey;
+
+    if (!apiKey) {
+      throw new ForbiddenException('Provider API key is missing.');
+    }
+
+    const searchUrl = new URL(BRAVE_SEARCH_URL);
+
+    searchUrl.searchParams.set('q', 'test');
+    searchUrl.searchParams.set('count', '1');
+
+    await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      headers: {
+        'X-Subscription-Token': apiKey,
+      },
+      timeoutMs: DEFAULT_PROVIDER_TIMEOUT_MS,
+    });
+  }
+
+  private async testTavilyProviderKey(credentials: ProviderCredentialValues) {
+    const apiKey = credentials.apiKey;
+
+    if (!apiKey) {
+      throw new ForbiddenException('Provider API key is missing.');
+    }
+
+    await this.fetchJson(TAVILY_SEARCH_URL, {
+      accept: 'application/json',
+      bearerToken: apiKey,
+      body: JSON.stringify({
+        include_raw_content: false,
+        max_results: 1,
+        query: 'test',
+        search_depth: 'basic',
+      }),
+      contentType: 'application/json',
+      method: 'POST',
       timeoutMs: DEFAULT_PROVIDER_TIMEOUT_MS,
     });
   }
@@ -1614,11 +1661,24 @@ export class ImportsService {
     limit,
     mediumType,
     query,
+    userId,
   }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
-    const apiKey = this.getServerProviderApiKey(BRAVE_SEARCH_PROVIDER);
+    if (!userId) {
+      throw new UnauthorizedException(
+        'Brave Search requires a signed-in account.',
+      );
+    }
+
+    const credentials = await this.getProviderCredentialValues(
+      userId,
+      BRAVE_SEARCH_PROVIDER,
+    );
+    const apiKey = credentials?.apiKey;
 
     if (!apiKey) {
-      throw new ForbiddenException('Brave Search API key is not configured.');
+      throw new ForbiddenException(
+        'Brave Search API key is not configured for this user.',
+      );
     }
 
     const searchUrl = new URL(BRAVE_SEARCH_URL);
@@ -1636,6 +1696,7 @@ export class ImportsService {
         mediumType,
         provider: BRAVE_SEARCH_PROVIDER,
         query: rewrittenQuery,
+        userScope: userId,
       }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
       headers: {
@@ -1658,11 +1719,24 @@ export class ImportsService {
     limit,
     mediumType,
     query,
+    userId,
   }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
-    const apiKey = this.getServerProviderApiKey(TAVILY_SEARCH_PROVIDER);
+    if (!userId) {
+      throw new UnauthorizedException(
+        'Tavily Search requires a signed-in account.',
+      );
+    }
+
+    const credentials = await this.getProviderCredentialValues(
+      userId,
+      TAVILY_SEARCH_PROVIDER,
+    );
+    const apiKey = credentials?.apiKey;
 
     if (!apiKey) {
-      throw new ForbiddenException('Tavily Search API key is not configured.');
+      throw new ForbiddenException(
+        'Tavily API key is not configured for this user.',
+      );
     }
 
     const rewrittenQuery = this.buildGeneralWebSearchQuery(query, mediumType);
@@ -1683,6 +1757,7 @@ export class ImportsService {
         mediumType,
         provider: TAVILY_SEARCH_PROVIDER,
         query: rewrittenQuery,
+        userScope: userId,
       }),
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
       contentType: 'application/json',
@@ -3832,14 +3907,7 @@ export class ImportsService {
   }
 
   private getServerProviderApiKey(provider: ImportProvider) {
-    if (provider === BRAVE_SEARCH_PROVIDER) {
-      return process.env.BRAVE_SEARCH_API_KEY?.trim() ?? '';
-    }
-
-    if (provider === TAVILY_SEARCH_PROVIDER) {
-      return process.env.TAVILY_API_KEY?.trim() ?? '';
-    }
-
+    void provider;
     return '';
   }
 

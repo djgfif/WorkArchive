@@ -116,9 +116,9 @@ function getProviderBenefit(status: ImportProviderStatus) {
     case 'wikidata':
       return '공개 Wikidata/Wikimedia 정보로 별칭, 제작진, 시리즈 관계와 외부 식별자를 보강합니다.';
     case 'brave_search':
-      return '서버에 설정된 검색 키로 웹 기반 후보 탐색을 보강합니다.';
+      return '사용자 개인 Brave Search API key가 필요합니다. 서버 운영자 키를 사용하지 않습니다.';
     case 'tavily_search':
-      return '서버에 설정된 검색 키로 웹 자료 탐색을 보강합니다.';
+      return '사용자 개인 Tavily API key가 필요합니다. 서버 운영자 키를 사용하지 않습니다.';
     default:
       return '작품 추가 검색에서 후보와 메타데이터를 보강합니다.';
   }
@@ -207,6 +207,9 @@ function KeyProviderButton({
           </Text>
           <Text className={css.keyProviderMeta ?? ''}>
             {formatMediumTypes(status)}
+          </Text>
+          <Text className={css.keyProviderMeta ?? ''}>
+            {getProviderBenefit(status)}
           </Text>
           {status.circuitState === 'open' && (
             <Text className={css.keyProviderMeta ?? ''}>

@@ -46,7 +46,8 @@ Required checks:
 - JWT, external API key encryption, and security event hash secrets are all unique.
 - `CORS_ORIGIN` and `WEB_BASE_URL` use the production HTTPS origin.
 - `RATE_LIMIT_STORE=redis` and `REDIS_URL=redis://redis:6379`.
-- `IMPORT_SERVER_SEARCH_GUEST_ENABLED=false` unless explicitly approved.
+- `IMPORT_SERVER_SEARCH_GUEST_ENABLED=false`; it is reserved for future server
+  credential providers and does not expose Brave/Tavily guest search.
 - No OAuth secret, API key, real DB password, token, or cookie value is copied into the readiness report.
 - Runtime web feature flag overrides, if needed, are placed in `/work-archive-config.js` and loaded before the React bundle. Do not place secrets in this file.
 
