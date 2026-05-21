@@ -44,6 +44,7 @@ const PROVIDER_RELIABILITY_WEIGHTS: Record<string, number> = {
   tavily_search: 7,
   tmdb: 8,
   tvmaze: 5,
+  wikidata: 3,
 };
 
 const VARIANT_TITLE_PATTERNS = [
@@ -189,6 +190,16 @@ export function scoreImportCandidate({
       label: contributorMatched ? '제작자 일치' : '제작자 정보 있음',
       weight: contributorWeight,
     });
+  }
+
+  if ((candidate.titleAliases ?? []).length > 1) {
+    totalScore += 3;
+    breakdown.push({ label: '별칭 정보 있음', weight: 3 });
+  }
+
+  if (candidate.franchiseName || candidate.relationsHint.length > 0) {
+    totalScore += 4;
+    breakdown.push({ label: '시리즈·관계 정보 있음', weight: 4 });
   }
 
   if (hasExternalIdentity(candidate)) {

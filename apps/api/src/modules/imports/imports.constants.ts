@@ -12,6 +12,7 @@ export const KAKAO_WEB_PROVIDER = 'kakao_web' as const;
 export const BRAVE_SEARCH_PROVIDER = 'brave_search' as const;
 export const TAVILY_SEARCH_PROVIDER = 'tavily_search' as const;
 export const KOBIS_PROVIDER = 'kobis' as const;
+export const WIKIDATA_PROVIDER = 'wikidata' as const;
 
 export const IMPORT_PROVIDER_VALUES = [
   ALADIN_PROVIDER,
@@ -28,6 +29,7 @@ export const IMPORT_PROVIDER_VALUES = [
   BRAVE_SEARCH_PROVIDER,
   TAVILY_SEARCH_PROVIDER,
   KOBIS_PROVIDER,
+  WIKIDATA_PROVIDER,
 ] as const;
 
 export type ImportProvider = (typeof IMPORT_PROVIDER_VALUES)[number];

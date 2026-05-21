@@ -113,6 +113,8 @@ function getProviderBenefit(status: ImportProviderStatus) {
       return '해외 도서 서지 정보를 키 없이 보조 검색합니다.';
     case 'tvmaze':
       return '드라마와 시리즈 정보를 키 없이 보조 검색합니다.';
+    case 'wikidata':
+      return '공개 Wikidata/Wikimedia 정보로 별칭, 제작진, 시리즈 관계와 외부 식별자를 보강합니다.';
     case 'brave_search':
       return '서버에 설정된 검색 키로 웹 기반 후보 탐색을 보강합니다.';
     case 'tavily_search':

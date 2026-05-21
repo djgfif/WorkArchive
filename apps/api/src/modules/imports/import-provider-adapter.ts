@@ -16,6 +16,7 @@ import {
   TAVILY_SEARCH_PROVIDER,
   TMDB_PROVIDER,
   TVMAZE_PROVIDER,
+  WIKIDATA_PROVIDER,
   type ImportProvider,
 } from './imports.constants';
 
@@ -236,5 +237,21 @@ export const PROVIDERS: Record<ImportProvider, ProviderMetadata> = {
     label: 'KOBIS',
     mediumTypes: [WorkType.movie],
     provider: KOBIS_PROVIDER,
+  },
+  [WIKIDATA_PROVIDER]: {
+    credentialMode: 'none',
+    label: 'Wikidata',
+    mediumTypes: [
+      WorkType.novel,
+      WorkType.light_novel,
+      WorkType.manga,
+      WorkType.anime,
+      WorkType.movie,
+      WorkType.drama,
+      WorkType.web_novel,
+      WorkType.webtoon,
+      WorkType.other,
+    ],
+    provider: WIKIDATA_PROVIDER,
   },
 };

@@ -123,6 +123,43 @@ function createCandidate(
 }
 
 describe('Korean Quick Add ranking fixtures', () => {
+  it('keeps Wikidata below domain providers when title quality is otherwise equal', () => {
+    const fixture = {
+      query: '듄',
+      expectedType: WorkType.novel,
+      provider: 'google_books',
+    };
+    const googleBooks = createCandidate(fixture, {
+      id: 'google-books-dune',
+      sourceId: 'google_books',
+      sourceLabel: 'Google Books',
+      title: '듄',
+    });
+    const wikidata = createCandidate(fixture, {
+      id: 'wikidata-dune',
+      sourceId: 'wikidata',
+      sourceLabel: 'Wikidata',
+      title: '듄',
+    });
+
+    const ranked = rankImportCandidates({
+      candidates: [wikidata, googleBooks],
+      mediumType: WorkType.novel,
+      query: '듄',
+    });
+
+    expect(ranked[0]).toEqual(
+      expect.objectContaining({
+        id: 'google-books-dune',
+      }),
+    );
+    expect(ranked[1]).toEqual(
+      expect.objectContaining({
+        id: 'wikidata-dune',
+      }),
+    );
+  });
+
   it('ranks exact base-title matches ahead of Korean side-story variants', () => {
     const fixture = {
       query: '전지적 독자 시점',

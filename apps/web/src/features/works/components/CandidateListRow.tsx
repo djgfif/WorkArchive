@@ -6,6 +6,7 @@ import type { ImportCandidate } from '../../imports/services/imports.service';
 import {
   getCandidateContributorText,
   getCandidateSourceCoverage,
+  hasWikidataSource,
   isPreviewOrManualCandidate,
 } from './quick-add-helpers';
 import { getWorkTypeLabel } from '../utils/work-options';
@@ -25,6 +26,7 @@ export function CandidateListRow({
 }: CandidateListRowProps) {
   const sourceCoverage = getCandidateSourceCoverage(candidate);
   const isManualCandidate = isPreviewOrManualCandidate(candidate);
+  const wikidataIncluded = hasWikidataSource(candidate);
   const positiveScoreReasons = isManualCandidate
     ? []
     : (candidate.scoreBreakdown
@@ -137,6 +139,13 @@ export function CandidateListRow({
             {!isManualCandidate && (
               <AppBadge tone="muted">
                 {sourceCoverage.providerCountLabel}
+              </AppBadge>
+            )}
+            {!isManualCandidate && wikidataIncluded && (
+              <AppBadge tone="accent">
+                {candidate.sourceId === 'wikidata'
+                  ? 'Wikidata 출처 포함'
+                  : 'Wikidata 보강'}
               </AppBadge>
             )}
             {!isManualCandidate && (

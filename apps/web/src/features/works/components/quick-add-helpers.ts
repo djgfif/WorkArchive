@@ -84,6 +84,7 @@ export const providerGroupOptions: Array<{
     providers: [
       'google_books',
       'open_library',
+      'wikidata',
       'aladin',
       'naver_book',
       'kakao_book',
@@ -93,7 +94,7 @@ export const providerGroupOptions: Array<{
   {
     description: 'AniList와 도서 기반 만화 후보를 함께 확인합니다.',
     label: '애니·만화',
-    providers: ['anilist', 'google_books', 'open_library'],
+    providers: ['anilist', 'google_books', 'open_library', 'wikidata'],
     value: 'animation_comics',
   },
   {
@@ -108,13 +109,14 @@ export const providerGroupOptions: Array<{
       'kakao_book',
       'naver_book',
       'google_books',
+      'wikidata',
     ],
     value: 'web_serial',
   },
   {
     description: '영상 출처 중심으로 후보를 모읍니다.',
     label: '영상',
-    providers: ['tmdb', 'tvmaze', 'kobis'],
+    providers: ['tmdb', 'tvmaze', 'kobis', 'wikidata'],
     value: 'screen',
   },
   {
@@ -221,6 +223,19 @@ export function isPreviewOrManualCandidate(candidate: ImportCandidate) {
 
 export function isManualProviderGroup(providerGroup: ProviderGroup) {
   return providerGroup === 'manual';
+}
+
+export function hasWikidataSource(candidate: ImportCandidate) {
+  return (
+    candidate.sourceId === 'wikidata' ||
+    candidate.sourceCoverage?.providers.includes('wikidata') === true ||
+    candidate.externalRefs.some((ref) => ref.provider === 'wikidata') ||
+    candidate.releaseCandidates.some((releaseCandidate) =>
+      (releaseCandidate.externalRefs ?? []).some(
+        (ref) => ref.provider === 'wikidata',
+      ),
+    )
+  );
 }
 
 export function getVisibleSearchCandidates(
@@ -423,6 +438,7 @@ const providerDisplayLabels: Record<string, string> = {
   tavily_search: 'Tavily Search',
   tmdb: 'TMDB',
   tvmaze: 'TVmaze',
+  wikidata: 'Wikidata',
 };
 
 function formatProviderLabel(provider: string, candidate: ImportCandidate) {

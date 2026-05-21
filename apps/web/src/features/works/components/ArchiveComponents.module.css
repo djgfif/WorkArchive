@@ -1016,36 +1016,13 @@
   background: var(--app-surface-card);
 }
 
-.coreWorkFieldsLayout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(8.8rem, 10rem);
-  gap: 1.1rem;
-  align-items: start;
-}
-
-.inlineCoverPreview {
-  padding: 0.55rem;
-  border-color: var(--app-border-subtle);
-  border-radius: var(--mantine-radius-lg);
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--app-surface-card) 78%, transparent), transparent),
-    var(--app-surface-subtle);
-}
-
-.inlineCoverPreview .posterShell {
-  --poster-width: 100%;
-  max-width: 9rem;
-  margin-inline: auto;
-  border-radius: var(--mantine-radius-md);
-}
-
 /* ─────────────────────────────────────────────────────────────────────────────
    Quick capture preview
 ───────────────────────────────────────────────────────────────────────────── */
 .quickCapturePreview {
   position: sticky;
   top: 1rem;
-  padding: clamp(1rem, 2.5vw, 1.35rem);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
   border-color: var(--app-border-subtle);
   border-radius: var(--mantine-radius-xl);
   background:
@@ -1054,6 +1031,7 @@
 }
 
 .quickCapturePreview .posterShell {
+  --poster-width: min(100%, 14rem);
   margin-inline: auto;
 }
 
@@ -1136,13 +1114,8 @@
    Responsive
 ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 48rem) {
-  .coreWorkFieldsLayout {
-    grid-template-columns: 1fr;
-  }
-
-  .inlineCoverPreview .posterShell {
-    max-width: 7.25rem;
-    margin-inline: 0;
+  .quickCapturePreview {
+    position: static;
   }
 
   .shelf {

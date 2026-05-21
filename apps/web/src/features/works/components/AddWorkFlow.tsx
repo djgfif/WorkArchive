@@ -259,11 +259,6 @@ function CoreWorkFields({
   titleInputRef,
   values,
 }: CoreWorkFieldsProps) {
-  const previewTitle = values.title.trim() || '제목 없는 작품';
-  const typeLabel =
-    workTypeOptions.find((option) => option.value === values.type)?.label ??
-    '작품';
-
   return (
     <Stack gap="md">
       <ActionRow>
@@ -273,56 +268,44 @@ function CoreWorkFields({
         </Text>
       </ActionRow>
 
-      <div className={cn(css.coreWorkFieldsLayout)}>
-        <Stack gap="md" miw={0}>
-          <TextInput
-            aria-label="제목"
-            error={error}
-            id={getFieldId(idPrefix, 'title')}
-            label="제목"
-            name="title"
-            onChange={onChange}
-            placeholder="작품 제목"
-            ref={titleInputRef}
-            value={values.title}
-            withAsterisk
-          />
+      <Stack gap="md">
+        <TextInput
+          aria-label="제목"
+          error={error}
+          id={getFieldId(idPrefix, 'title')}
+          label="제목"
+          name="title"
+          onChange={onChange}
+          placeholder="작품 제목"
+          ref={titleInputRef}
+          value={values.title}
+          withAsterisk
+        />
 
-          <NativeSelect
-            id={getFieldId(idPrefix, 'type')}
-            label="유형"
-            name="type"
-            onChange={onChange}
-            value={values.type}
-          >
-            {workTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </NativeSelect>
+        <NativeSelect
+          id={getFieldId(idPrefix, 'type')}
+          label="유형"
+          name="type"
+          onChange={onChange}
+          value={values.type}
+        >
+          {workTypeOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </NativeSelect>
 
-          <TextInput
-            description="오른쪽 표지 미리보기에 바로 반영됩니다. 비워두면 기본 표지를 사용합니다."
-            id={getFieldId(idPrefix, 'thumbnailUrl')}
-            label="표지 이미지 주소"
-            name="thumbnailUrl"
-            onChange={onChange}
-            placeholder="https://example.com/cover.jpg"
-            value={values.thumbnailUrl}
-          />
-        </Stack>
-
-        <Paper className={cn(css.inlineCoverPreview)} withBorder>
-          <WorkPoster
-            coverSeed={`inline:${values.type}:${previewTitle}`}
-            thumbnailUrl={values.thumbnailUrl}
-            title={previewTitle}
-            typeLabel={typeLabel}
-            variant="form"
-          />
-        </Paper>
-      </div>
+        <TextInput
+          description="비워두면 오른쪽 미리보기에 기본 표지를 사용합니다."
+          id={getFieldId(idPrefix, 'thumbnailUrl')}
+          label="표지 이미지 주소"
+          name="thumbnailUrl"
+          onChange={onChange}
+          placeholder="https://example.com/cover.jpg"
+          value={values.thumbnailUrl}
+        />
+      </Stack>
     </Stack>
   );
 }

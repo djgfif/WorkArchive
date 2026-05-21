@@ -132,6 +132,7 @@ function getCandidateMergeKeys(candidate: ImportCandidateResponseDto) {
     ...getCandidateCatalogMatchKeys(candidate),
     ...getCandidateIsbnKeys(candidate),
     ...getCandidateExternalRefKeys(candidate),
+    ...getCandidateAliasYearKeys(candidate),
     ...getCandidateWeakMergeKeys(candidate),
   ];
 }
@@ -181,6 +182,24 @@ function getCandidateWeakMergeKeys(candidate: ImportCandidateResponseDto) {
 
   return contributorKeys.map((contributorKey) => {
     return `weak:${candidate.mediumType}:${titleKey}:${candidate.releaseYear}:${contributorKey}`;
+  });
+}
+
+function getCandidateAliasYearKeys(candidate: ImportCandidateResponseDto) {
+  if (candidate.releaseYear === null || hasWeakMergeVariantSignal(candidate)) {
+    return [];
+  }
+
+  const aliases = [candidate.title, ...(candidate.titleAliases ?? [])]
+    .map(normalizeImportTitleSignal)
+    .filter(Boolean);
+
+  if (aliases.length === 0 || !hasExternalIdentity(candidate)) {
+    return [];
+  }
+
+  return Array.from(new Set(aliases)).map((alias) => {
+    return `alias-year:${candidate.mediumType}:${candidate.releaseYear}:${alias}`;
   });
 }
 
@@ -363,6 +382,15 @@ function getCandidateCompletenessScore(candidate: ImportCandidateResponseDto) {
     candidate.externalRefs.length +
     candidate.releaseCandidates.length +
     (candidate.releaseYear === null ? 0 : 1)
+  );
+}
+
+function hasExternalIdentity(candidate: ImportCandidateResponseDto) {
+  return (
+    candidate.externalRefs.length > 0 ||
+    candidate.releaseCandidates.some(
+      (releaseCandidate) => (releaseCandidate.externalRefs ?? []).length > 0,
+    )
   );
 }
 

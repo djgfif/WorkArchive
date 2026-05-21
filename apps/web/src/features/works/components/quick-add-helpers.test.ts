@@ -23,6 +23,7 @@ describe('quick-add provider groups', () => {
       'kakao_book',
       'naver_book',
       'google_books',
+      'wikidata',
     ]);
   });
 });

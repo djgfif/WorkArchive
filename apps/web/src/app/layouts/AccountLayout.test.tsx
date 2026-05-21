@@ -55,6 +55,7 @@ describe('AccountLayout', () => {
     ).toBeGreaterThan(0);
     expect(getLinkByHref('/works')).toBeInTheDocument();
     expect(getLinkByHref('/auth/login')).toBeInTheDocument();
+    expect(getLinkByHref('/')).toHaveTextContent('Work Archive');
     expect(screen.getAllByRole('navigation').length).toBeGreaterThan(0);
     expect(getLinkByHref('/account')).toBeInTheDocument();
   });

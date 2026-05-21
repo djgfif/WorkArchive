@@ -63,6 +63,7 @@ import {
   TAVILY_SEARCH_PROVIDER,
   TVMAZE_PROVIDER,
   KAKAO_WEB_PROVIDER,
+  WIKIDATA_PROVIDER,
   type ImportProvider,
 } from './imports.constants';
 
@@ -82,6 +83,9 @@ const BRAVE_SEARCH_URL = 'https://api.search.brave.com/res/v1/web/search';
 const TAVILY_SEARCH_URL = 'https://api.tavily.com/search';
 const KOBIS_MOVIE_SEARCH_URL =
   'http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json';
+const WIKIDATA_API_URL = 'https://www.wikidata.org/w/api.php';
+const WIKIDATA_USER_AGENT =
+  'WorkArchive/1.0 (Wikidata enrichment provider; local-first personal archive)';
 const ALADIN_ATTRIBUTION = '도서 DB 제공: 알라딘 인터넷서점(www.aladin.co.kr)';
 const DEFAULT_LIMIT = 10;
 const DEFAULT_PROVIDER_TIMEOUT_MS = 5_000;
@@ -101,6 +105,61 @@ const WEB_SERIAL_INCLUDE_DOMAINS = [
 ] as const;
 
 type UnknownRecord = Record<string, unknown>;
+
+const WIKIDATA_CLAIM_MAPPINGS = {
+  contributor: {
+    P50: 'author',
+    P57: 'director',
+    P86: 'composer',
+    P98: 'editor',
+    P110: 'illustrator',
+    P170: 'creator',
+    P178: 'studio',
+    P272: 'production company',
+    P287: 'designer',
+    P676: 'lyricist',
+  },
+  externalRef: {
+    P212: { provider: 'isbn', rawType: 'isbn13' },
+    P345: { provider: 'imdb', rawType: 'title' },
+    P648: { provider: 'open_library', rawType: 'work' },
+    P675: { provider: 'google_books', rawType: 'volume' },
+    P957: { provider: 'isbn', rawType: 'isbn10' },
+    P1712: { provider: 'metacritic', rawType: 'work' },
+    P1874: { provider: 'netflix', rawType: 'title' },
+    P2437: { provider: 'kitsu', rawType: 'media' },
+    P2603: { provider: 'kinopoisk', rawType: 'film' },
+    P2704: { provider: 'eidr', rawType: 'work' },
+    P3121: { provider: 'erogamescape', rawType: 'work' },
+    P3302: { provider: 'open_media_database', rawType: 'title' },
+    P4086: { provider: 'myanimelist', rawType: 'anime' },
+    P4087: { provider: 'myanimelist', rawType: 'manga' },
+    P4665: { provider: 'cine_magia', rawType: 'film' },
+    P4835: { provider: 'thetvdb', rawType: 'series' },
+    P4947: { provider: 'tmdb', rawType: 'movie' },
+    P4983: { provider: 'tmdb', rawType: 'tv' },
+    P5842: { provider: 'anilist', rawType: 'anime' },
+    P8729: { provider: 'anilist', rawType: 'anime' },
+    P8731: { provider: 'anilist', rawType: 'manga' },
+  },
+  franchise: ['P179'],
+  image: ['P18'],
+  instanceOf: ['P31'],
+  partOf: ['P361'],
+  publicationDate: ['P577'],
+  releaseDate: ['P577', 'P580'],
+} as const;
+
+const WIKIDATA_WORK_TYPE_QIDS: Partial<Record<WorkType, string[]>> = {
+  [WorkType.anime]: ['Q1107', 'Q63952888', 'Q20650540'],
+  [WorkType.drama]: ['Q5398426', 'Q15416', 'Q1259759'],
+  [WorkType.light_novel]: ['Q747381'],
+  [WorkType.manga]: ['Q8274', 'Q21198342'],
+  [WorkType.movie]: ['Q11424'],
+  [WorkType.novel]: ['Q8261', 'Q571', 'Q7725634'],
+  [WorkType.web_novel]: ['Q7725634', 'Q8261'],
+  [WorkType.webtoon]: ['Q20442589', 'Q8274', 'Q1004'],
+};
 
 @Injectable()
 export class ImportsService {
@@ -631,6 +690,7 @@ export class ImportsService {
         KAKAO_BOOK_PROVIDER,
         NAVER_BOOK_PROVIDER,
         GOOGLE_BOOKS_PROVIDER,
+        WIKIDATA_PROVIDER,
         MANUAL_PROVIDER,
       ];
     }
@@ -644,6 +704,7 @@ export class ImportsService {
         NAVER_BOOK_PROVIDER,
         KAKAO_BOOK_PROVIDER,
         GOOGLE_BOOKS_PROVIDER,
+        WIKIDATA_PROVIDER,
         MANUAL_PROVIDER,
       ];
     }
@@ -653,16 +714,17 @@ export class ImportsService {
         ANILIST_PROVIDER,
         BRAVE_SEARCH_PROVIDER,
         TVMAZE_PROVIDER,
+        WIKIDATA_PROVIDER,
         MANUAL_PROVIDER,
       ];
     }
 
     if (mediumType === WorkType.movie) {
-      return [TMDB_PROVIDER, KOBIS_PROVIDER, MANUAL_PROVIDER];
+      return [TMDB_PROVIDER, KOBIS_PROVIDER, WIKIDATA_PROVIDER, MANUAL_PROVIDER];
     }
 
     if (mediumType === WorkType.drama) {
-      return [TMDB_PROVIDER, TVMAZE_PROVIDER, MANUAL_PROVIDER];
+      return [TMDB_PROVIDER, TVMAZE_PROVIDER, WIKIDATA_PROVIDER, MANUAL_PROVIDER];
     }
 
     if (
@@ -677,6 +739,7 @@ export class ImportsService {
         GOOGLE_BOOKS_PROVIDER,
         OPEN_LIBRARY_PROVIDER,
         ANILIST_PROVIDER,
+        WIKIDATA_PROVIDER,
         MANUAL_PROVIDER,
       ];
     }
@@ -688,6 +751,7 @@ export class ImportsService {
       OPEN_LIBRARY_PROVIDER,
       TMDB_PROVIDER,
       TVMAZE_PROVIDER,
+      WIKIDATA_PROVIDER,
       MANUAL_PROVIDER,
     ];
   }
@@ -1026,6 +1090,8 @@ export class ImportsService {
         return this.searchKakaoWeb(context);
       case KOBIS_PROVIDER:
         return this.searchKobis(context);
+      case WIKIDATA_PROVIDER:
+        return this.searchWikidata(context);
       case MANUAL_PROVIDER:
         return this.searchManual(context);
     }
@@ -1786,6 +1852,94 @@ export class ImportsService {
       );
   }
 
+  private async searchWikidata({
+    limit,
+    mediumType,
+    query,
+  }: ProviderSearchContext): Promise<ImportCandidateResponseDto[]> {
+    const searchUrl = new URL(WIKIDATA_API_URL);
+    const language = this.getWikidataSearchLanguage(query);
+
+    searchUrl.searchParams.set('action', 'wbsearchentities');
+    searchUrl.searchParams.set('format', 'json');
+    searchUrl.searchParams.set('language', language);
+    searchUrl.searchParams.set('uselang', language);
+    searchUrl.searchParams.set('type', 'item');
+    searchUrl.searchParams.set('search', query);
+    searchUrl.searchParams.set('limit', Math.min(limit, 10).toString());
+
+    const responseBody = await this.fetchJson(searchUrl, {
+      accept: 'application/json',
+      cacheKey: this.getProviderCacheKey({
+        limit,
+        mediumType,
+        provider: WIKIDATA_PROVIDER,
+        query,
+        variant: `search:${language}`,
+      }),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
+      headers: this.getWikidataHeaders(),
+      retryAfterMaxMs: 1_000,
+    });
+    const qids = Array.from(
+      new Set(
+        this.readPathArray(responseBody, ['search'])
+          .map((item) =>
+            this.isRecord(item)
+              ? this.readString(item.id) || this.readString(item.title)
+              : '',
+          )
+          .filter((id) => /^Q\d+$/u.test(id)),
+      ),
+    ).slice(0, Math.min(limit, 10));
+
+    if (qids.length === 0) {
+      return [];
+    }
+
+    const entityMap = await this.fetchWikidataEntities({
+      ids: qids,
+      limit,
+      mediumType,
+      query,
+      variant: 'primary',
+    });
+    const relatedIds = Array.from(
+      new Set(
+        [...entityMap.values()].flatMap((entity) =>
+          this.readWikidataRelatedEntityIds(entity),
+        ),
+      ),
+    ).slice(0, 50);
+    const relatedEntityMap =
+      relatedIds.length > 0
+        ? await this.fetchWikidataEntities({
+            ids: relatedIds,
+            limit,
+            mediumType,
+            query,
+            variant: 'related',
+          })
+        : new Map<string, UnknownRecord>();
+
+    return qids
+      .map((qid, index) =>
+        this.mapWikidataEntity({
+          entity: entityMap.get(qid),
+          index,
+          mediumType,
+          query,
+          relatedEntityMap,
+        }),
+      )
+      .filter((candidate): candidate is ImportCandidateResponseDto => {
+        return (
+          candidate !== null &&
+          (!mediumType || candidate.mediumType === mediumType)
+        );
+      });
+  }
+
   private searchManual({
     mediumType,
     query,
@@ -2471,6 +2625,124 @@ export class ImportsService {
     });
   }
 
+  private mapWikidataEntity({
+    entity,
+    index,
+    mediumType,
+    query,
+    relatedEntityMap,
+  }: {
+    entity: UnknownRecord | undefined;
+    index: number;
+    mediumType: WorkType | undefined;
+    query: string;
+    relatedEntityMap: Map<string, UnknownRecord>;
+  }): ImportCandidateResponseDto | null {
+    if (!entity) {
+      return null;
+    }
+
+    const qid = this.readString(entity.id);
+
+    if (!/^Q\d+$/u.test(qid)) {
+      return null;
+    }
+
+    const labels = this.readWikidataMultilingualValues(entity.labels);
+    const aliases = this.readWikidataAliases(entity.aliases);
+    const title = labels[0] ?? aliases[0] ?? qid;
+
+    if (!title) {
+      return null;
+    }
+
+    const type = mediumType ?? this.inferWikidataWorkType(entity);
+    const sourceUrl = `https://www.wikidata.org/wiki/${qid}`;
+    const wikipediaUrl = this.readWikidataSitelinkUrl(entity.sitelinks);
+    const externalRefs = this.dedupeRawExternalRefs([
+      {
+        externalId: qid,
+        provider: WIKIDATA_PROVIDER,
+        rawType: 'entity',
+        url: sourceUrl,
+      },
+      ...(wikipediaUrl
+        ? [
+            {
+              externalId: wikipediaUrl,
+              provider: 'wikipedia',
+              rawType: 'article',
+              url: wikipediaUrl,
+            },
+          ]
+        : []),
+      ...this.readWikidataExternalRefs(entity),
+    ]);
+    const franchiseName = this.readWikidataRelatedLabel(
+      entity,
+      WIKIDATA_CLAIM_MAPPINGS.franchise,
+      relatedEntityMap,
+    );
+    const relationsHint = this.readWikidataRelations(
+      entity,
+      relatedEntityMap,
+    );
+    const releaseYear = this.readWikidataReleaseYear(entity);
+    const confidence = this.calculateWikidataConfidence({
+      aliases: [...labels, ...aliases],
+      index,
+      query,
+      title,
+    });
+    const isbns = this.readWikidataIsbns(entity);
+
+    return this.buildCandidate({
+      confidence,
+      confidenceLabel:
+        confidence >= 0.72
+          ? 'Wikidata 상위'
+          : confidence >= 0.58
+            ? 'Wikidata 후보'
+            : 'Wikidata 검토 필요',
+      contributors: this.readWikidataContributors(entity, relatedEntityMap),
+      countLabel: releaseYear ? `${releaseYear}` : 'Wikidata entity',
+      description: this.readWikidataMultilingualValues(entity.descriptions)[0] ?? '',
+      externalId: qid,
+      externalRefs,
+      formatLabel: this.getFormatLabel(type),
+      franchiseName,
+      id: `${WIKIDATA_PROVIDER}:${qid}`,
+      note: 'Wikidata/Wikimedia public data',
+      provider: WIKIDATA_PROVIDER,
+      relationsHint,
+      releaseCandidates: isbns.map((isbn) => ({
+        displayLabel: title,
+        externalRefs: [
+          {
+            externalId: qid,
+            provider: WIKIDATA_PROVIDER,
+            rawType: 'entity',
+            url: sourceUrl,
+          },
+        ],
+        isbn,
+        releaseDate: null,
+        releaseType: 'edition',
+        sequence: null,
+        thumbnailUrl: this.readWikidataThumbnailUrl(entity),
+        title,
+      })),
+      reason: this.getWikidataReason(query, title, [...labels, ...aliases]),
+      releaseYear,
+      sourceLabel: 'Wikidata',
+      sourceUrl,
+      thumbnailUrl: this.readWikidataThumbnailUrl(entity),
+      title,
+      titleAliases: [...labels, ...aliases],
+      type,
+    });
+  }
+
   private buildCandidate(
     input: Partial<ImportCandidateResponseDto> & {
       externalId: string;
@@ -2582,6 +2854,497 @@ export class ImportsService {
       titleAliases: [rawTitle, title].filter(Boolean),
       type,
     });
+  }
+
+  private async fetchWikidataEntities(input: {
+    ids: string[];
+    limit: number;
+    mediumType: WorkType | undefined;
+    query: string;
+    variant: string;
+  }) {
+    const ids = Array.from(new Set(input.ids.filter((id) => /^Q\d+$/u.test(id))));
+    const entityMap = new Map<string, UnknownRecord>();
+
+    if (ids.length === 0) {
+      return entityMap;
+    }
+
+    const entityUrl = new URL(WIKIDATA_API_URL);
+
+    entityUrl.searchParams.set('action', 'wbgetentities');
+    entityUrl.searchParams.set('format', 'json');
+    entityUrl.searchParams.set('ids', ids.slice(0, 50).join('|'));
+    entityUrl.searchParams.set(
+      'props',
+      'labels|descriptions|aliases|claims|sitelinks/urls',
+    );
+    entityUrl.searchParams.set('languages', 'ko|en|ja|mul');
+    entityUrl.searchParams.set('sitefilter', 'kowiki|enwiki|jawiki');
+
+    const responseBody = await this.fetchJson(entityUrl, {
+      accept: 'application/json',
+      cacheKey: this.getProviderCacheKey({
+        limit: input.limit,
+        mediumType: input.mediumType,
+        provider: WIKIDATA_PROVIDER,
+        query: input.query,
+        variant: `entities:${input.variant}:${ids.join(',')}`,
+      }),
+      cacheTtlMs: PROVIDER_CACHE_TTL_MS,
+      headers: this.getWikidataHeaders(),
+      retryAfterMaxMs: 1_000,
+    });
+    const entities = this.readPath(responseBody, ['entities']);
+
+    if (!this.isRecord(entities)) {
+      return entityMap;
+    }
+
+    for (const id of ids) {
+      const entity = entities[id];
+
+      if (this.isRecord(entity) && !entity.missing) {
+        entityMap.set(id, entity);
+      }
+    }
+
+    return entityMap;
+  }
+
+  private getWikidataHeaders() {
+    return {
+      'User-Agent': WIKIDATA_USER_AGENT,
+    };
+  }
+
+  private getWikidataSearchLanguage(query: string) {
+    if (/[가-힣]/u.test(query)) {
+      return 'ko';
+    }
+
+    if (/[\u3040-\u30ff]/u.test(query)) {
+      return 'ja';
+    }
+
+    return 'en';
+  }
+
+  private readWikidataRelatedEntityIds(entity: UnknownRecord) {
+    return [
+      ...Object.keys(WIKIDATA_CLAIM_MAPPINGS.contributor),
+      ...WIKIDATA_CLAIM_MAPPINGS.franchise,
+      ...WIKIDATA_CLAIM_MAPPINGS.partOf,
+    ].flatMap((property) =>
+      this.readWikidataClaims(entity, property).flatMap((claim) => {
+        const entityId = this.readWikidataClaimEntityId(claim);
+
+        return entityId ? [entityId] : [];
+      }),
+    );
+  }
+
+  private readWikidataMultilingualValues(value: unknown) {
+    if (!this.isRecord(value)) {
+      return [];
+    }
+
+    const values = ['ko', 'en', 'ja', 'mul'].map((language) => {
+      const entry = value[language];
+
+      return this.isRecord(entry) ? this.readString(entry.value) : '';
+    });
+
+    return this.uniqueNonEmpty(values);
+  }
+
+  private readWikidataAliases(value: unknown) {
+    if (!this.isRecord(value)) {
+      return [];
+    }
+
+    return this.uniqueNonEmpty(
+      ['ko', 'en', 'ja', 'mul'].flatMap((language) => {
+        const entries = value[language];
+
+        return Array.isArray(entries)
+          ? entries.map((entry) =>
+              this.isRecord(entry) ? this.readString(entry.value) : '',
+            )
+          : [];
+      }),
+    );
+  }
+
+  private readWikidataClaims(entity: UnknownRecord, property: string) {
+    const claims = this.readPath(entity, ['claims', property]);
+
+    return Array.isArray(claims)
+      ? claims.filter((claim): claim is UnknownRecord => this.isRecord(claim))
+      : [];
+  }
+
+  private readWikidataClaimValue(claim: UnknownRecord) {
+    return this.readPath(claim, ['mainsnak', 'datavalue', 'value']);
+  }
+
+  private readWikidataClaimString(claim: UnknownRecord) {
+    const value = this.readWikidataClaimValue(claim);
+
+    return this.readString(value);
+  }
+
+  private readWikidataClaimEntityId(claim: UnknownRecord) {
+    const value = this.readWikidataClaimValue(claim);
+
+    if (!this.isRecord(value)) {
+      return null;
+    }
+
+    const id = this.readString(value.id);
+
+    if (/^Q\d+$/u.test(id)) {
+      return id;
+    }
+
+    const numericId = this.readNumber(value['numeric-id']);
+
+    return numericId ? `Q${numericId}` : null;
+  }
+
+  private readWikidataRelatedLabel(
+    entity: UnknownRecord,
+    properties: readonly string[],
+    relatedEntityMap: Map<string, UnknownRecord>,
+  ) {
+    for (const property of properties) {
+      for (const claim of this.readWikidataClaims(entity, property)) {
+        const entityId = this.readWikidataClaimEntityId(claim);
+        const relatedEntity = entityId ? relatedEntityMap.get(entityId) : null;
+        const label = relatedEntity
+          ? this.readWikidataMultilingualValues(relatedEntity.labels)[0]
+          : '';
+
+        if (label) {
+          return label;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private readWikidataContributors(
+    entity: UnknownRecord,
+    relatedEntityMap: Map<string, UnknownRecord>,
+  ) {
+    return Object.entries(WIKIDATA_CLAIM_MAPPINGS.contributor)
+      .flatMap(([property, role]) =>
+        this.readWikidataClaims(entity, property).flatMap((claim) => {
+          const entityId = this.readWikidataClaimEntityId(claim);
+          const relatedEntity = entityId ? relatedEntityMap.get(entityId) : null;
+          const name = relatedEntity
+            ? this.readWikidataMultilingualValues(relatedEntity.labels)[0]
+            : '';
+
+          return name ? [{ name, role }] : [];
+        }),
+      )
+      .slice(0, 8);
+  }
+
+  private readWikidataRelations(
+    entity: UnknownRecord,
+    relatedEntityMap: Map<string, UnknownRecord>,
+  ) {
+    const relationInputs: Array<{
+      properties: readonly string[];
+      relationType: string;
+    }> = [
+      {
+        properties: WIKIDATA_CLAIM_MAPPINGS.franchise,
+        relationType: 'series',
+      },
+      {
+        properties: WIKIDATA_CLAIM_MAPPINGS.partOf,
+        relationType: 'part_of',
+      },
+    ];
+
+    return relationInputs.flatMap(({ properties, relationType }) =>
+      properties.flatMap((property) =>
+        this.readWikidataClaims(entity, property).flatMap((claim) => {
+          const entityId = this.readWikidataClaimEntityId(claim);
+          const relatedEntity = entityId ? relatedEntityMap.get(entityId) : null;
+          const targetTitle = relatedEntity
+            ? this.readWikidataMultilingualValues(relatedEntity.labels)[0]
+            : '';
+
+          return targetTitle ? [{ relationType, targetTitle }] : [];
+        }),
+      ),
+    );
+  }
+
+  private readWikidataExternalRefs(entity: UnknownRecord) {
+    const refs: CatalogExternalRefInput[] = [];
+
+    for (const [property, metadata] of Object.entries(
+      WIKIDATA_CLAIM_MAPPINGS.externalRef,
+    )) {
+      for (const claim of this.readWikidataClaims(entity, property)) {
+        const externalId = this.readWikidataClaimString(claim).trim();
+
+        if (!externalId) {
+          continue;
+        }
+
+        refs.push({
+          externalId,
+          provider: metadata.provider,
+          rawType: metadata.rawType,
+          url: this.buildExternalRefUrl({
+            externalId,
+            provider: metadata.provider,
+            rawType: metadata.rawType,
+          }),
+        });
+      }
+    }
+
+    return refs;
+  }
+
+  private readWikidataIsbns(entity: UnknownRecord) {
+    return this.uniqueNonEmpty([
+      ...this.readWikidataClaims(entity, 'P212').map((claim) =>
+        normalizeIsbn(this.readWikidataClaimString(claim)) ?? '',
+      ),
+      ...this.readWikidataClaims(entity, 'P957').map((claim) =>
+        normalizeIsbn(this.readWikidataClaimString(claim)) ?? '',
+      ),
+    ]);
+  }
+
+  private readWikidataSitelinkUrl(value: unknown) {
+    if (!this.isRecord(value)) {
+      return '';
+    }
+
+    const preferredSites = ['kowiki', 'enwiki', 'jawiki'];
+
+    for (const site of preferredSites) {
+      const sitelink = value[site];
+
+      if (!this.isRecord(sitelink)) {
+        continue;
+      }
+
+      const url = this.readString(sitelink.url);
+
+      if (url) {
+        return url;
+      }
+
+      const title = this.readString(sitelink.title);
+
+      if (title) {
+        const language = site.replace(/wiki$/u, '');
+
+        return `https://${language}.wikipedia.org/wiki/${encodeURIComponent(
+          title.replace(/ /g, '_'),
+        )}`;
+      }
+    }
+
+    return '';
+  }
+
+  private readWikidataThumbnailUrl(entity: UnknownRecord) {
+    const imageName = this.readWikidataClaims(entity, 'P18')
+      .map((claim) => this.readWikidataClaimString(claim))
+      .find(Boolean);
+
+    return imageName
+      ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(
+          imageName,
+        )}?width=500`
+      : '';
+  }
+
+  private readWikidataReleaseYear(entity: UnknownRecord) {
+    for (const property of WIKIDATA_CLAIM_MAPPINGS.releaseDate) {
+      for (const claim of this.readWikidataClaims(entity, property)) {
+        const value = this.readWikidataClaimValue(claim);
+        const time = this.isRecord(value) ? this.readString(value.time) : '';
+        const match = time.match(/[+-](\d{4})-/u);
+
+        if (match?.[1]) {
+          return this.parseYear(match[1]);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private inferWikidataWorkType(entity: UnknownRecord) {
+    const instanceQids = new Set(
+      WIKIDATA_CLAIM_MAPPINGS.instanceOf.flatMap((property) =>
+        this.readWikidataClaims(entity, property).flatMap((claim) => {
+          const entityId = this.readWikidataClaimEntityId(claim);
+
+          return entityId ? [entityId] : [];
+        }),
+      ),
+    );
+
+    for (const [type, qids] of Object.entries(WIKIDATA_WORK_TYPE_QIDS)) {
+      if (qids?.some((qid) => instanceQids.has(qid))) {
+        return type as WorkType;
+      }
+    }
+
+    return WorkType.other;
+  }
+
+  private calculateWikidataConfidence(input: {
+    aliases: string[];
+    index: number;
+    query: string;
+    title: string;
+  }) {
+    const normalizedQuery = normalizeImportTitleSignal(input.query);
+    const normalizedTitle = normalizeImportTitleSignal(input.title);
+    const normalizedAliases = input.aliases
+      .map(normalizeImportTitleSignal)
+      .filter(Boolean);
+    const rankPenalty = Math.min(input.index, 6) * 0.03;
+
+    if (normalizedQuery && normalizedTitle === normalizedQuery) {
+      return Math.max(0.58, 0.8 - rankPenalty);
+    }
+
+    if (
+      normalizedQuery &&
+      normalizedAliases.some((alias) => alias === normalizedQuery)
+    ) {
+      return Math.max(0.55, 0.74 - rankPenalty);
+    }
+
+    if (
+      normalizedQuery &&
+      normalizedTitle &&
+      (normalizedTitle.includes(normalizedQuery) ||
+        normalizedQuery.includes(normalizedTitle))
+    ) {
+      return Math.max(0.44, 0.6 - rankPenalty);
+    }
+
+    if (
+      normalizedQuery &&
+      normalizedAliases.some(
+        (alias) =>
+          alias.includes(normalizedQuery) || normalizedQuery.includes(alias),
+      )
+    ) {
+      return Math.max(0.42, 0.56 - rankPenalty);
+    }
+
+    return Math.max(0.28, 0.45 - rankPenalty);
+  }
+
+  private getWikidataReason(query: string, title: string, aliases: string[]) {
+    const normalizedQuery = normalizeImportTitleSignal(query);
+    const normalizedTitle = normalizeImportTitleSignal(title);
+    const normalizedAliases = aliases
+      .map(normalizeImportTitleSignal)
+      .filter(Boolean);
+
+    if (normalizedQuery && normalizedTitle === normalizedQuery) {
+      return 'Wikidata 제목 정확히 일치';
+    }
+
+    if (
+      normalizedQuery &&
+      normalizedAliases.some((alias) => alias === normalizedQuery)
+    ) {
+      return 'Wikidata 별칭 제목 일치';
+    }
+
+    return 'Wikidata 제목/별칭 검색 결과';
+  }
+
+  private buildExternalRefUrl(input: {
+    externalId: string;
+    provider: string;
+    rawType: string;
+  }) {
+    const encoded = encodeURIComponent(input.externalId);
+
+    if (input.provider === 'imdb') {
+      return `https://www.imdb.com/title/${encoded}/`;
+    }
+
+    if (input.provider === 'tmdb') {
+      return `https://www.themoviedb.org/${input.rawType}/${encoded}`;
+    }
+
+    if (input.provider === 'anilist') {
+      return `https://anilist.co/${input.rawType}/${encoded}`;
+    }
+
+    if (input.provider === 'open_library') {
+      return input.externalId.startsWith('/')
+        ? `https://openlibrary.org${input.externalId}`
+        : `https://openlibrary.org/works/${encoded}`;
+    }
+
+    if (input.provider === 'google_books') {
+      return `https://books.google.com/books?id=${encoded}`;
+    }
+
+    return '';
+  }
+
+  private dedupeRawExternalRefs(
+    externalRefs: CatalogExternalRefInput[],
+  ): ImportCandidateResponseDto['externalRefs'] {
+    const refs = new Map<string, ImportCandidateResponseDto['externalRefs'][number]>();
+
+    for (const ref of externalRefs) {
+      const key = `${ref.provider}:${ref.rawType ?? ''}:${ref.externalId}`;
+
+      if (!ref.provider || !ref.externalId || refs.has(key)) {
+        continue;
+      }
+
+      refs.set(key, {
+        externalId: ref.externalId,
+        provider: ref.provider,
+        rawType: ref.rawType ?? '',
+        url: ref.url ?? '',
+      });
+    }
+
+    return [...refs.values()];
+  }
+
+  private uniqueNonEmpty(values: string[]) {
+    const unique = new Map<string, string>();
+
+    for (const value of values) {
+      const normalized = this.normalizeWhitespace(value);
+      const key = normalizeImportTitleSignal(normalized);
+
+      if (!normalized || unique.has(key)) {
+        continue;
+      }
+
+      unique.set(key, normalized);
+    }
+
+    return [...unique.values()];
   }
 
   private async decorateCandidates(
@@ -2787,6 +3550,7 @@ export class ImportsService {
       headers?: Record<string, string>;
       method?: string;
       queryApiKey?: string;
+      retryAfterMaxMs?: number;
       timeoutMs?: number;
     },
   ) {
@@ -2817,25 +3581,30 @@ export class ImportsService {
     let response: Response;
 
     try {
-      const abortController = new AbortController();
-      const timeout = setTimeout(
-        () => abortController.abort(),
-        options.timeoutMs ?? DEFAULT_PROVIDER_TIMEOUT_MS,
-      );
-      const requestInit: RequestInit = {
+      response = await this.fetchWithTimeout(url, {
+        body: options.body,
         headers,
         method: options.method ?? 'GET',
-        signal: abortController.signal,
-      };
+        timeoutMs: options.timeoutMs ?? DEFAULT_PROVIDER_TIMEOUT_MS,
+      });
 
-      if (options.body !== undefined) {
-        requestInit.body = options.body;
-      }
+      if (response.status === 429) {
+        const retryAfterMs = this.parseRetryAfterMs(
+          response.headers.get('retry-after'),
+        );
 
-      try {
-        response = await fetch(url, requestInit);
-      } finally {
-        clearTimeout(timeout);
+        if (
+          retryAfterMs !== null &&
+          retryAfterMs <= (options.retryAfterMaxMs ?? 0)
+        ) {
+          await this.delay(retryAfterMs);
+          response = await this.fetchWithTimeout(url, {
+            body: options.body,
+            headers,
+            method: options.method ?? 'GET',
+            timeoutMs: options.timeoutMs ?? DEFAULT_PROVIDER_TIMEOUT_MS,
+          });
+        }
       }
     } catch {
       throw new BadGatewayException(
@@ -2870,6 +3639,60 @@ export class ImportsService {
         'Import provider returned an unreadable response.',
       );
     }
+  }
+
+  private async fetchWithTimeout(
+    url: URL,
+    input: {
+      body: string | undefined;
+      headers: Record<string, string>;
+      method: string;
+      timeoutMs: number;
+    },
+  ) {
+    const abortController = new AbortController();
+    const timeout = setTimeout(() => abortController.abort(), input.timeoutMs);
+    const requestInit: RequestInit = {
+      headers: input.headers,
+      method: input.method,
+      signal: abortController.signal,
+    };
+
+    if (input.body !== undefined) {
+      requestInit.body = input.body;
+    }
+
+    try {
+      return await fetch(url, requestInit);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private parseRetryAfterMs(value: string | null) {
+    if (!value) {
+      return null;
+    }
+
+    const seconds = Number(value);
+
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return Math.round(seconds * 1_000);
+    }
+
+    const dateMs = Date.parse(value);
+
+    if (Number.isFinite(dateMs)) {
+      return Math.max(0, dateMs - Date.now());
+    }
+
+    return null;
+  }
+
+  private delay(ms: number) {
+    return new Promise<void>((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 
   private getProviderCacheKey(input: {

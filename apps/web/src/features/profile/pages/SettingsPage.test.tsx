@@ -256,6 +256,13 @@ describe('SettingsPage', () => {
           mediumTypes: ['novel', 'anime'],
         },
         {
+          provider: 'wikidata',
+          label: 'Wikidata',
+          credentialMode: 'none',
+          configured: true,
+          mediumTypes: ['novel', 'anime', 'movie', 'drama'],
+        },
+        {
           provider: 'aladin',
           label: 'Aladin Book',
           credentialMode: 'user',
@@ -292,6 +299,10 @@ describe('SettingsPage', () => {
     await openSettingsSection(user, 'search-providers');
 
     expect(await screen.findByText('Manual')).toBeInTheDocument();
+    expect(screen.getAllByText('Wikidata').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/공개 Wikidata\/Wikimedia 정보/),
+    ).toBeInTheDocument();
     expect(screen.getAllByText('Aladin Book').length).toBeGreaterThan(0);
     expect(screen.getAllByText('TMDB').length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(2);

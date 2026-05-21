@@ -13,6 +13,7 @@ import type { ImportCandidate } from '../../imports/services/imports.service';
 import {
   getCandidateContributorText,
   getCandidateSourceCoverage,
+  hasWikidataSource,
   isPreviewOrManualCandidate,
 } from './quick-add-helpers';
 import { getWorkTypeLabel } from '../utils/work-options';
@@ -37,6 +38,7 @@ export function CandidatePreviewPanel({
     (titleAlias) => titleAlias !== candidate.title,
   );
   const needsManualReview = !isManualCandidate && candidate.confidence < 0.62;
+  const wikidataIncluded = hasWikidataSource(candidate);
 
   return (
     <Stack gap="lg">
@@ -60,6 +62,13 @@ export function CandidatePreviewPanel({
                     {candidate.confidenceLabel}
                   </AppBadge>
                   <AppBadge tone="muted">{candidate.sourceLabel}</AppBadge>
+                  {wikidataIncluded && (
+                    <AppBadge tone="accent">
+                      {candidate.sourceId === 'wikidata'
+                        ? 'Wikidata 출처 포함'
+                        : 'Wikidata 보강'}
+                    </AppBadge>
+                  )}
                 </>
               )}
               {!isManualCandidate && candidate.catalogMatch && (
@@ -96,6 +105,19 @@ export function CandidatePreviewPanel({
               {titleAliases.slice(0, 4).map((titleAlias) => (
                 <AppBadge key={titleAlias} tone="muted">
                   {titleAlias}
+                </AppBadge>
+              ))}
+            </ActionRow>
+          )}
+
+          {!isManualCandidate && candidate.relationsHint.length > 0 && (
+            <ActionRow>
+              {candidate.relationsHint.slice(0, 4).map((relation) => (
+                <AppBadge
+                  key={`${relation.relationType}:${relation.targetTitle}`}
+                  tone="muted"
+                >
+                  {relation.relationType}: {relation.targetTitle}
                 </AppBadge>
               ))}
             </ActionRow>

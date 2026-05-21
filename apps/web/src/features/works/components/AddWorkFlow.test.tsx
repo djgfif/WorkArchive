@@ -62,6 +62,23 @@ const providerStatuses = [
     mediumTypes: ['drama'],
   },
   {
+    provider: 'wikidata',
+    label: 'Wikidata',
+    credentialMode: 'none',
+    configured: true,
+    mediumTypes: [
+      'novel',
+      'anime',
+      'manga',
+      'light_novel',
+      'web_novel',
+      'webtoon',
+      'movie',
+      'drama',
+      'other',
+    ],
+  },
+  {
     provider: 'aladin',
     label: 'Aladin Book',
     credentialMode: 'user',
@@ -638,9 +655,29 @@ describe('AddWorkFlow', () => {
       sourceCoverage: {
         externalIdentityCount: 4,
         providerCount: 2,
-        providers: ['anilist', 'tmdb'],
+        providers: ['anilist', 'wikidata'],
         releaseCandidateCount: 1,
       },
+      externalRefs: [
+        {
+          externalId: '9253',
+          provider: 'anilist',
+          rawType: 'anime',
+          url: 'https://anilist.co/anime/9253',
+        },
+        {
+          externalId: 'Q123',
+          provider: 'wikidata',
+          rawType: 'entity',
+          url: 'https://www.wikidata.org/wiki/Q123',
+        },
+      ],
+      relationsHint: [
+        {
+          relationType: 'series',
+          targetTitle: 'Science Adventure',
+        },
+      ],
       sourceId: 'anilist',
       sourceLabel: 'AniList',
       title: 'Steins;Gate',
@@ -666,6 +703,8 @@ describe('AddWorkFlow', () => {
 
     expect(screen.getByText('シュタインズ・ゲート')).toBeInTheDocument();
     expect(screen.getByText('슈타인즈 게이트')).toBeInTheDocument();
+    expect(screen.getAllByText('Wikidata 보강').length).toBeGreaterThan(0);
+    expect(screen.getByText('series: Science Adventure')).toBeInTheDocument();
   });
 
   it('keeps low-confidence search candidates selectable', async () => {
@@ -963,7 +1002,7 @@ describe('AddWorkFlow', () => {
       new URL(String(firstFetchInput), 'http://localhost').searchParams.get(
         'providers',
       ),
-    ).toBe('google_books,open_library,aladin,naver_book,kakao_book');
+    ).toBe('google_books,open_library,wikidata,aladin,naver_book,kakao_book');
   });
 
   it('requests only the manual provider for the direct-add search group', async () => {

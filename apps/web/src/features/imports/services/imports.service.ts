@@ -60,6 +60,7 @@ const providerDisplayLabels: Record<string, string> = {
   tavily_search: 'Tavily Search',
   tmdb: 'TMDB',
   tvmaze: 'TVmaze',
+  wikidata: 'Wikidata',
 };
 
 function formatProviderLabel(provider: string) {

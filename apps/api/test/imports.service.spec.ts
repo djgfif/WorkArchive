@@ -32,6 +32,7 @@ import {
   TAVILY_SEARCH_PROVIDER,
   TMDB_PROVIDER,
   TVMAZE_PROVIDER,
+  WIKIDATA_PROVIDER,
 } from '../src/modules/imports/imports.constants';
 import { ImportsService } from '../src/modules/imports/imports.service';
 import type { CatalogIngestionService } from '../src/modules/catalog/catalog-ingestion.service';
@@ -340,6 +341,11 @@ describe('ImportsService', () => {
           configured: true,
         }),
         expect.objectContaining({
+          provider: WIKIDATA_PROVIDER,
+          credentialMode: 'none',
+          configured: true,
+        }),
+        expect.objectContaining({
           provider: ALADIN_PROVIDER,
           credentialMode: 'user',
           configured: false,
@@ -579,6 +585,356 @@ describe('ImportsService', () => {
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
   });
 
+  it('uses Wikidata for guest enrichment without user credentials', async () => {
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          search: [
+            {
+              id: 'Q105052217',
+              label: 'Dune',
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          entities: {
+            Q105052217: {
+              aliases: {
+                en: [{ value: 'Dune: Part One' }],
+              },
+              claims: {
+                P18: [
+                  {
+                    mainsnak: {
+                      datavalue: {
+                        value: 'Dune 2021 poster.jpg',
+                      },
+                    },
+                  },
+                ],
+                P31: [
+                  {
+                    mainsnak: {
+                      datavalue: {
+                        value: {
+                          id: 'Q11424',
+                        },
+                      },
+                    },
+                  },
+                ],
+                P57: [
+                  {
+                    mainsnak: {
+                      datavalue: {
+                        value: {
+                          id: 'Q132157',
+                        },
+                      },
+                    },
+                  },
+                ],
+                P179: [
+                  {
+                    mainsnak: {
+                      datavalue: {
+                        value: {
+                          id: 'Q12345',
+                        },
+                      },
+                    },
+                  },
+                ],
+                P345: [
+                  {
+                    mainsnak: {
+                      datavalue: {
+                        value: 'tt1160419',
+                      },
+                    },
+                  },
+                ],
+                P4947: [
+                  {
+                    mainsnak: {
+                      datavalue: {
+                        value: '438631',
+                      },
+                    },
+                  },
+                ],
+                P577: [
+                  {
+                    mainsnak: {
+                      datavalue: {
+                        value: {
+                          time: '+2021-09-03T00:00:00Z',
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+              descriptions: {
+                en: {
+                  value: '2021 science fiction film',
+                },
+              },
+              id: 'Q105052217',
+              labels: {
+                en: {
+                  value: 'Dune',
+                },
+              },
+              sitelinks: {
+                enwiki: {
+                  title: 'Dune (2021 film)',
+                  url: 'https://en.wikipedia.org/wiki/Dune_(2021_film)',
+                },
+              },
+            },
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          entities: {
+            Q132157: {
+              id: 'Q132157',
+              labels: {
+                en: {
+                  value: 'Denis Villeneuve',
+                },
+              },
+            },
+            Q12345: {
+              id: 'Q12345',
+              labels: {
+                en: {
+                  value: 'Dune franchise',
+                },
+              },
+            },
+          },
+        }),
+      );
+
+    const result = await service.search(null, {
+      provider: WIKIDATA_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.movie,
+    });
+
+    expect(result.providers).toEqual([WIKIDATA_PROVIDER]);
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: WIKIDATA_PROVIDER,
+        sourceLabel: 'Wikidata',
+        externalId: 'Q105052217',
+        title: 'Dune',
+        description: '2021 science fiction film',
+        releaseYear: 2021,
+        franchiseName: 'Dune franchise',
+        thumbnailUrl:
+          'https://commons.wikimedia.org/wiki/Special:FilePath/Dune%202021%20poster.jpg?width=500',
+        contributors: [
+          {
+            name: 'Denis Villeneuve',
+            role: 'director',
+          },
+        ],
+        relationsHint: [
+          {
+            relationType: 'series',
+            targetTitle: 'Dune franchise',
+          },
+        ],
+        externalRefs: expect.arrayContaining([
+          expect.objectContaining({
+            provider: WIKIDATA_PROVIDER,
+            externalId: 'Q105052217',
+            rawType: 'entity',
+          }),
+          expect.objectContaining({
+            provider: 'wikipedia',
+            url: 'https://en.wikipedia.org/wiki/Dune_(2021_film)',
+          }),
+          expect.objectContaining({
+            provider: 'imdb',
+            externalId: 'tt1160419',
+          }),
+          expect.objectContaining({
+            provider: 'tmdb',
+            externalId: '438631',
+            rawType: 'movie',
+          }),
+        ]),
+      }),
+    );
+
+    const firstHeaders = new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
+
+    expect(firstHeaders.get('User-Agent')).toContain('WorkArchive');
+    expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
+  });
+
+  it('merges Wikidata aliases into existing provider candidates instead of increasing candidate count', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [
+            {
+              id: 'google-orv',
+              volumeInfo: {
+                authors: ['싱숑'],
+                publishedDate: '2018',
+                title: "Omniscient Reader's Viewpoint",
+              },
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          search: [
+            {
+              id: 'Q999',
+              label: '전지적 독자 시점',
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          entities: {
+            Q999: {
+              aliases: {
+                en: [{ value: "Omniscient Reader's Viewpoint" }],
+              },
+              claims: {
+                P577: [
+                  {
+                    mainsnak: {
+                      datavalue: {
+                        value: {
+                          time: '+2018-01-01T00:00:00Z',
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+              descriptions: {
+                ko: {
+                  value: '한국 웹소설',
+                },
+              },
+              id: 'Q999',
+              labels: {
+                ko: {
+                  value: '전지적 독자 시점',
+                },
+              },
+            },
+          },
+        }),
+      );
+
+    const result = await service.search(null, {
+      providers: [GOOGLE_BOOKS_PROVIDER, WIKIDATA_PROVIDER],
+      query: "Omniscient Reader's Viewpoint",
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceCoverage: expect.objectContaining({
+          providerCount: 2,
+          providers: expect.arrayContaining([
+            GOOGLE_BOOKS_PROVIDER,
+            WIKIDATA_PROVIDER,
+          ]),
+        }),
+        titleAliases: expect.arrayContaining([
+          '전지적 독자 시점',
+          "Omniscient Reader's Viewpoint",
+        ]),
+        externalRefs: expect.arrayContaining([
+          expect.objectContaining({
+            provider: WIKIDATA_PROVIDER,
+            externalId: 'Q999',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('reports Wikidata timeout failures through provider diagnostics', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new Error('provider timeout'));
+
+    const result = await service.search(null, {
+      providers: [WIKIDATA_PROVIDER, MANUAL_PROVIDER],
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.diagnostics.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: WIKIDATA_PROVIDER,
+          reasonCode: 'provider_failed',
+          status: 'failed',
+        }),
+      ]),
+    );
+    expect(result.candidates).toEqual([
+      expect.objectContaining({
+        sourceId: MANUAL_PROVIDER,
+      }),
+    ]);
+  });
+
+  it('opens the Wikidata provider circuit after repeated upstream failures', async () => {
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(jsonResponse({}, 429));
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await service.search(null, {
+        providers: [WIKIDATA_PROVIDER, MANUAL_PROVIDER],
+        query: 'Dune',
+        type: WorkType.novel,
+      });
+    }
+
+    const result = await service.search(null, {
+      providers: [WIKIDATA_PROVIDER, MANUAL_PROVIDER],
+      query: 'Dune',
+      type: WorkType.novel,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(result.diagnostics.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: WIKIDATA_PROVIDER,
+          reasonCode: 'circuit_open',
+          status: 'skipped',
+        }),
+      ]),
+    );
+  });
+
   it('opens provider circuit breaker diagnostics after repeated failures', async () => {
     const fetchSpy = jest
       .spyOn(globalThis, 'fetch')
@@ -681,7 +1037,7 @@ describe('ImportsService', () => {
       type: WorkType.movie,
     });
 
-    expect(result.providers).toEqual([MANUAL_PROVIDER]);
+    expect(result.providers).toEqual([WIKIDATA_PROVIDER, MANUAL_PROVIDER]);
     expect(result.diagnostics.providers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -926,7 +1282,11 @@ describe('ImportsService', () => {
       type: WorkType.web_novel,
     });
 
-    expect(result.providers).toEqual([GOOGLE_BOOKS_PROVIDER, MANUAL_PROVIDER]);
+    expect(result.providers).toEqual([
+      GOOGLE_BOOKS_PROVIDER,
+      WIKIDATA_PROVIDER,
+      MANUAL_PROVIDER,
+    ]);
     expect(result.candidates).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -975,6 +1335,10 @@ describe('ImportsService', () => {
         expect.objectContaining({
           provider: GOOGLE_BOOKS_PROVIDER,
           status: 'searched',
+        }),
+        expect.objectContaining({
+          provider: WIKIDATA_PROVIDER,
+          status: 'failed',
         }),
         expect.objectContaining({
           provider: MANUAL_PROVIDER,
@@ -1053,6 +1417,7 @@ describe('ImportsService', () => {
       KAKAO_BOOK_PROVIDER,
       NAVER_BOOK_PROVIDER,
       GOOGLE_BOOKS_PROVIDER,
+      WIKIDATA_PROVIDER,
       MANUAL_PROVIDER,
     ]);
     expect(result.candidates).toEqual(
@@ -1283,6 +1648,7 @@ describe('ImportsService', () => {
       ANILIST_PROVIDER,
       BRAVE_SEARCH_PROVIDER,
       TVMAZE_PROVIDER,
+      WIKIDATA_PROVIDER,
       MANUAL_PROVIDER,
     ]);
     expect(result.diagnostics.providers).toEqual(
