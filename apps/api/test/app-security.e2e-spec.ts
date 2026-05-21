@@ -35,6 +35,8 @@ const baseConfig: ApiRuntimeConfig = {
   googleOAuthClientSecret: null,
   googleOAuthRedirectUri: 'http://localhost:3000/api/auth/google/callback',
   host: '127.0.0.1',
+  importAuthenticatedRateLimitMax: 60,
+  importGuestRateLimitMax: 20,
   isProduction: false,
   jwtAccessSecret: 'test-access-secret',
   jwtRefreshSecret: 'test-refresh-secret',

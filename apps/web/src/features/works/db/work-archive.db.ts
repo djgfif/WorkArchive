@@ -328,6 +328,49 @@ export class WorkArchiveDatabase extends Dexie {
         appMeta: 'key',
       })
       .upgrade((transaction) => migrateTierBoardDraftSchema(transaction));
+
+    this.version(14)
+      .stores({
+        works:
+          'id, type, title, author, status, rating, updatedAt, deletedAt, syncStatus, _deletedAtScope, *personalTags, [deletedAt+updatedAt], [deletedAt+status], [deletedAt+type], [_deletedAtScope+updatedAt], [_deletedAtScope+status], [_deletedAtScope+type]',
+        releaseRecords:
+          'id, userWorkRecordId, catalogReleaseId, status, updatedAt, deletedAt, syncStatus, [userWorkRecordId+catalogReleaseId]',
+        timelineEntries:
+          'id, workId, type, occurredAt, deletedAt, syncStatus, [workId+occurredAt], [deletedAt+occurredAt]',
+        series:
+          'id, kind, normalizedTitle, parentId, updatedAt, deletedAt, syncStatus, [kind+normalizedTitle]',
+        workSeriesLinks:
+          'id, workId, seriesId, role, updatedAt, deletedAt, syncStatus, [workId+seriesId+role], [workId+deletedAt], [seriesId+deletedAt]',
+        contributors:
+          'id, entityType, normalizedName, updatedAt, deletedAt, syncStatus, [entityType+normalizedName]',
+        workContributors:
+          'id, workId, contributorId, role, updatedAt, deletedAt, syncStatus, [workId+contributorId+role], [workId+deletedAt], [contributorId+deletedAt]',
+        workRelations:
+          'id, sourceWorkId, targetWorkId, relationType, updatedAt, deletedAt, syncStatus, [sourceWorkId+targetWorkId+relationType], [sourceWorkId+deletedAt], [targetWorkId+deletedAt]',
+        tierBoards:
+          'id, slug, title, boardType, visibility, updatedAt, deletedAt, syncStatus',
+        tierLanes:
+          'id, boardId, orderIndex, updatedAt, deletedAt, syncStatus, [boardId+orderIndex]',
+        tierBoardCards:
+          'id, boardId, laneId, workId, cardSourceType, orderIndex, updatedAt, deletedAt, syncStatus, [boardId+laneId+orderIndex], [boardId+deletedAt], [workId+deletedAt]',
+        tierBoardAssets:
+          'id, boardId, cardId, storageType, updatedAt, deletedAt, [boardId+deletedAt], [cardId+deletedAt]',
+        tierBoardLanes:
+          'id, boardId, orderIndex, updatedAt, deletedAt, syncStatus, [boardId+orderIndex]',
+        tierBoardItems:
+          'id, boardId, laneId, linkedWorkId, sourceType, orderIndex, updatedAt, deletedAt, syncStatus, [boardId+laneId+orderIndex], [boardId+deletedAt], [linkedWorkId+deletedAt]',
+        syncQueue:
+          'id, entityType, entityId, operation, createdAt, retryCount, [entityType+entityId]',
+        appMeta: 'key',
+      })
+      .upgrade((transaction) =>
+        transaction
+          .table<SyncQueueItemRecord, string>('syncQueue')
+          .toCollection()
+          .modify((item) => {
+            item.clientMutationId ??= crypto.randomUUID();
+          }),
+      );
   }
 }
 
@@ -409,6 +452,7 @@ function createQueueItem<TPayload extends SyncQueuePayload>(
 ): SyncQueueItemRecord<TPayload> {
   return {
     id: crypto.randomUUID(),
+    clientMutationId: crypto.randomUUID(),
     entityType,
     entityId: payload.id,
     operation: getPayloadServerVersion(payload) === 0 ? 'create' : 'update',

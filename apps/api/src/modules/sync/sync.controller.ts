@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Inject,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -14,7 +15,9 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import type { Request } from 'express';
 
+import { getRequestId } from '../../security/security-audit.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -46,8 +49,13 @@ export class SyncController {
   push(
     @CurrentUser() user: AuthenticatedUser,
     @Body() pushSyncDto: PushSyncDto,
+    @Req() request: Request,
   ) {
-    return this.syncService.push(user.userId, pushSyncDto);
+    return this.syncService.push(
+      user.userId,
+      pushSyncDto,
+      getRequestId(request) ?? undefined,
+    );
   }
 
   @Post('pull')
@@ -65,7 +73,12 @@ export class SyncController {
   pull(
     @CurrentUser() user: AuthenticatedUser,
     @Body() pullSyncDto: PullSyncDto,
+    @Req() request: Request,
   ) {
-    return this.syncService.pull(user.userId, pullSyncDto);
+    return this.syncService.pull(
+      user.userId,
+      pullSyncDto,
+      getRequestId(request) ?? undefined,
+    );
   }
 }

@@ -77,6 +77,14 @@ export async function createSecurityRateLimiters(
 ) {
   const authRateLimitStore = await createRateLimitStore(config, 'auth');
   const syncRateLimitStore = await createRateLimitStore(config, 'sync');
+  const importsGuestRateLimitStore = await createRateLimitStore(
+    config,
+    'imports:guest',
+  );
+  const importsAuthenticatedRateLimitStore = await createRateLimitStore(
+    config,
+    'imports:auth',
+  );
 
   return {
     auth: rateLimit(
@@ -97,6 +105,26 @@ export async function createSecurityRateLimiters(
         securityAudit,
       ),
     ),
+    importsGuest: rateLimit({
+      ...buildRateLimitOptions(
+        config,
+        'imports_guest',
+        config.importGuestRateLimitMax,
+        importsGuestRateLimitStore,
+        securityAudit,
+      ),
+      skip: (request) => Boolean(request.header('authorization')),
+    }),
+    importsAuthenticated: rateLimit({
+      ...buildRateLimitOptions(
+        config,
+        'imports_authenticated',
+        config.importAuthenticatedRateLimitMax,
+        importsAuthenticatedRateLimitStore,
+        securityAudit,
+      ),
+      skip: (request) => !request.header('authorization'),
+    }),
   };
 }
 

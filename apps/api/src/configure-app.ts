@@ -32,7 +32,7 @@ export async function configureApp(
   }
 
   app.setGlobalPrefix('api', {
-    exclude: ['health'],
+    exclude: ['health', 'livez', 'readyz'],
   });
   app.use(cookieParser());
   app.use(
@@ -60,6 +60,9 @@ export async function configureApp(
     rateLimiters.auth,
   );
   app.use(['/api/sync/push', '/api/sync/pull'], rateLimiters.sync);
+  app.use('/api/imports/search', rateLimiters.importsGuest);
+  app.use('/api/imports/search', rateLimiters.importsAuthenticated);
+  app.use('/api/imports/resolve', rateLimiters.importsAuthenticated);
 
   app.enableCors({
     origin: config.corsOrigin,

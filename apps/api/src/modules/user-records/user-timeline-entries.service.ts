@@ -4,7 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { toWorkSyncStatusValue } from '../works/works.constants';
 
-const USER_TIMELINE_ENTRY_INCLUDE = {
+export const USER_TIMELINE_ENTRY_INCLUDE = {
   userWorkRecord: {
     select: {
       id: true,

@@ -5,7 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { toWorkSyncStatusValue } from '../works/works.constants';
 import type { UpsertUserReleaseRecordDto } from './dto/user-release-record.dto';
 
-const USER_RELEASE_RECORD_INCLUDE = {
+export const USER_RELEASE_RECORD_INCLUDE = {
   catalogRelease: true,
   userWorkRecord: {
     select: {

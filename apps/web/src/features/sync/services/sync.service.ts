@@ -465,6 +465,7 @@ export class SyncService {
         schemaVersion: SYNC_SCHEMA_VERSION,
         changes: queueItems.map((item) => ({
           queueId: item.id,
+          clientMutationId: item.clientMutationId ?? item.id,
           entityType: item.entityType,
           entityId: item.entityId,
           operation: item.operation,

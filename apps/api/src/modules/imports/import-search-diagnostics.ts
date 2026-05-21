@@ -10,6 +10,7 @@ export type ImportSearchDiagnosticStatus =
   (typeof IMPORT_SEARCH_DIAGNOSTIC_STATUSES)[number];
 
 export type ImportSearchDiagnosticReasonCode =
+  | 'circuit_open'
   | 'guest_provider_not_allowed'
   | 'provider_failed'
   | 'server_credential_missing'

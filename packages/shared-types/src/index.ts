@@ -178,6 +178,7 @@ export interface ImportSearchProviderDiagnostic {
   message: string;
   provider: string;
   reasonCode:
+    | 'circuit_open'
     | 'guest_provider_not_allowed'
     | 'provider_failed'
     | 'server_credential_missing'
@@ -863,6 +864,7 @@ export const SYNC_QUEUE_SOURCES = [
 export type SyncQueueSource = (typeof SYNC_QUEUE_SOURCES)[number];
 
 export interface PushSyncChangeRequest<TPayload = SyncQueuePayload> {
+  clientMutationId: EntityId;
   createdAt: ISODateString;
   entityId: EntityId;
   entityType: SyncEntityType;
@@ -946,6 +948,7 @@ export interface SyncConflictSnapshot<TPayload = SyncQueuePayload> {
 
 export interface SyncQueueItemRecord<TPayload = SyncQueuePayload> {
   id: EntityId;
+  clientMutationId?: EntityId;
   entityType: SyncEntityType;
   entityId: EntityId;
   operation: SyncOperation;

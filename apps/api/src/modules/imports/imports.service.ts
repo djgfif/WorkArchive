@@ -87,6 +87,8 @@ const DEFAULT_LIMIT = 10;
 const DEFAULT_PROVIDER_TIMEOUT_MS = 5_000;
 const MAX_LIMIT = 20;
 const PROVIDER_CACHE_TTL_MS = 5 * 60 * 1_000;
+const PROVIDER_CIRCUIT_FAILURE_THRESHOLD = 3;
+const PROVIDER_CIRCUIT_OPEN_MS = 60_000;
 const WEB_SERIAL_INCLUDE_DOMAINS = [
   'series.naver.com',
   'comic.naver.com',
@@ -108,6 +110,15 @@ export class ImportsService {
     {
       expiresAt: number;
       value: unknown;
+    }
+  >();
+  // TODO: Move provider circuit state to Redis if this API runs multiple instances.
+  private readonly providerCircuitState = new Map<
+    ImportProvider,
+    {
+      consecutiveFailures: number;
+      openedUntil: number | null;
+      reasonCode: 'provider_failed';
     }
   >();
 
@@ -322,6 +333,17 @@ export class ImportsService {
         continue;
       }
 
+      if (this.isProviderCircuitOpen(provider)) {
+        this.addSearchDiagnostic(diagnostics, provider, {
+          configured,
+          message: `${PROVIDERS[provider].label} search is temporarily skipped after repeated failures.`,
+          reasonCode: 'circuit_open',
+          resultCount: 0,
+          status: 'skipped',
+        });
+        continue;
+      }
+
       try {
         const context: ProviderSearchContext = {
           limit,
@@ -339,6 +361,7 @@ export class ImportsService {
         );
 
         candidates.push(...providerCandidates);
+        this.recordProviderSuccess(provider);
         this.addSearchDiagnostic(diagnostics, provider, {
           configured,
           message: `${PROVIDERS[provider].label} search completed.`,
@@ -347,11 +370,17 @@ export class ImportsService {
           status: 'searched',
         });
       } catch (error) {
+        this.recordProviderFailure(provider);
         if (explicitSingleProvider) {
           throw error;
         }
 
         failures.push(`${provider}:${this.describeError(error)}`);
+        this.logEvent('imports.provider.failed', {
+          errorCode: this.describeError(error),
+          provider,
+          userId: userId ?? undefined,
+        });
         this.addSearchDiagnostic(diagnostics, provider, {
           configured,
           message: `${PROVIDERS[provider].label} search is temporarily unavailable.`,
@@ -389,6 +418,74 @@ export class ImportsService {
       candidates: rankedCandidates,
       diagnostics,
     };
+  }
+
+  private isProviderCircuitOpen(provider: ImportProvider) {
+    const state = this.providerCircuitState.get(provider);
+
+    if (!state?.openedUntil) {
+      return false;
+    }
+
+    if (Date.now() < state.openedUntil) {
+      return true;
+    }
+
+    this.providerCircuitState.set(provider, {
+      consecutiveFailures: 0,
+      openedUntil: null,
+      reasonCode: 'provider_failed',
+    });
+
+    return false;
+  }
+
+  private recordProviderSuccess(provider: ImportProvider) {
+    this.providerCircuitState.delete(provider);
+  }
+
+  private recordProviderFailure(provider: ImportProvider) {
+    const current = this.providerCircuitState.get(provider) ?? {
+      consecutiveFailures: 0,
+      openedUntil: null,
+      reasonCode: 'provider_failed' as const,
+    };
+    const consecutiveFailures = current.consecutiveFailures + 1;
+
+    this.providerCircuitState.set(provider, {
+      consecutiveFailures,
+      openedUntil:
+        consecutiveFailures >= PROVIDER_CIRCUIT_FAILURE_THRESHOLD
+          ? Date.now() + PROVIDER_CIRCUIT_OPEN_MS
+          : null,
+      reasonCode: 'provider_failed',
+    });
+  }
+
+  private logEvent(
+    event: string,
+    fields: {
+      count?: number;
+      durationMs?: number;
+      entityType?: string;
+      errorCode?: string;
+      provider?: string;
+      requestId?: string;
+      userId?: string | undefined;
+    },
+  ) {
+    this.logger.warn(
+      JSON.stringify({
+        count: fields.count ?? null,
+        durationMs: fields.durationMs ?? null,
+        entityType: fields.entityType ?? null,
+        errorCode: fields.errorCode ?? null,
+        event,
+        provider: fields.provider ?? null,
+        requestId: fields.requestId ?? null,
+        userId: fields.userId ?? null,
+      }),
+    );
   }
 
   async resolveCandidate(

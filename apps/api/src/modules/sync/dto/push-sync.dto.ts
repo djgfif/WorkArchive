@@ -45,6 +45,13 @@ export class PushSyncChangeDto {
   queueId!: string;
 
   @ApiProperty({
+    format: 'uuid',
+  })
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsUUID()
+  clientMutationId?: string;
+
+  @ApiProperty({
     enum: SYNC_ENTITY_TYPES,
   })
   @IsIn(SYNC_ENTITY_TYPES)

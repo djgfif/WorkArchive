@@ -131,6 +131,9 @@ export class SyncQueueRepository {
 
       const queueItem: SyncQueueItemRecord<TPayload> = {
         id: crypto.randomUUID(),
+        clientMutationId:
+          existingItems.find((item) => item.clientMutationId)?.clientMutationId ??
+          crypto.randomUUID(),
         entityType,
         entityId: entity.id,
         operation: nextOperation,
@@ -149,7 +152,18 @@ export class SyncQueueRepository {
   }
 
   async listAll() {
-    const items = await this.getDb().syncQueue.orderBy('createdAt').toArray();
+    const db = this.getDb();
+    const items = await db.syncQueue.orderBy('createdAt').toArray();
+    const missingMutationIds = items.filter((item) => !item.clientMutationId);
+
+    if (missingMutationIds.length > 0) {
+      await db.transaction('rw', db.syncQueue, async () => {
+        for (const item of missingMutationIds) {
+          item.clientMutationId = crypto.randomUUID();
+          await db.syncQueue.put(item);
+        }
+      });
+    }
 
     return items
       .map((item) => ({
@@ -255,6 +269,60 @@ export class SyncQueueRepository {
         .equals([WORK_ENTITY_TYPE, entityId])
         .count()) > 0
     );
+  }
+
+  async enqueueEntityChangeInOpenTransaction<TPayload extends SyncQueuePayload>(
+    entityType: SyncEntityType,
+    entity: TPayload,
+    operation: SyncOperation,
+    payload: TPayload,
+    source: SyncQueueSource,
+  ) {
+    const db = this.getDb();
+    const existingItems = await db.syncQueue
+      .where('[entityType+entityId]')
+      .equals([entityType, entity.id])
+      .toArray();
+
+    if (existingItems.length > 0) {
+      await db.syncQueue.bulkDelete(existingItems.map((item) => item.id));
+    }
+
+    const hasUnsyncedCreate = existingItems.some(
+      (item) => item.operation === 'create',
+    );
+
+    if (
+      entity.deletedAt !== null &&
+      (hasUnsyncedCreate || getPayloadServerVersion(entity) === 0)
+    ) {
+      return null;
+    }
+
+    const nextOperation =
+      hasUnsyncedCreate || getPayloadServerVersion(entity) === 0
+        ? 'create'
+        : operation;
+
+    const queueItem: SyncQueueItemRecord<TPayload> = {
+      id: crypto.randomUUID(),
+      clientMutationId:
+        existingItems.find((item) => item.clientMutationId)?.clientMutationId ??
+        crypto.randomUUID(),
+      entityType,
+      entityId: entity.id,
+      operation: nextOperation,
+      payload,
+      source,
+      createdAt: new Date().toISOString(),
+      retryCount: 0,
+      lastError: null,
+      conflict: null,
+    };
+
+    await db.syncQueue.add(queueItem);
+
+    return queueItem;
   }
 
   async getQueuedWorkIds() {

@@ -121,6 +121,7 @@ export class AuthController {
     this.clearOAuthCookies(response);
 
     if (error) {
+      this.logAuthGoogleFailed(request, 'oauth_error');
       void this.securityAudit.record({
         eventType: 'auth.login.failure',
         metadata: {
@@ -142,6 +143,7 @@ export class AuthController {
       typeof expectedNonce !== 'string' ||
       state !== expectedState
     ) {
+      this.logAuthGoogleFailed(request, 'invalid_oauth_state');
       void this.securityAudit.record({
         eventType: 'auth.login.failure',
         metadata: {
@@ -154,11 +156,23 @@ export class AuthController {
       throw new UnauthorizedException('Invalid Google OAuth state.');
     }
 
-    const session = await this.authService.loginWithGoogleAuthorizationCode(
-      code,
-      expectedNonce,
-      this.getSessionMetadata(request),
-    );
+    let session: Awaited<
+      ReturnType<typeof this.authService.loginWithGoogleAuthorizationCode>
+    >;
+
+    try {
+      session = await this.authService.loginWithGoogleAuthorizationCode(
+        code,
+        expectedNonce,
+        this.getSessionMetadata(request),
+      );
+    } catch (loginError) {
+      this.logAuthGoogleFailed(
+        request,
+        loginError instanceof Error ? loginError.message : String(loginError),
+      );
+      throw loginError;
+    }
 
     void this.securityAudit.record({
       eventType: 'auth.login.success',
@@ -179,6 +193,21 @@ export class AuthController {
       }),
     );
     response.redirect(this.getGoogleLoginSuccessRedirectUrl());
+  }
+
+  private logAuthGoogleFailed(request: Request, errorCode: string) {
+    this.logger.warn(
+      JSON.stringify({
+        count: null,
+        durationMs: null,
+        entityType: null,
+        errorCode,
+        event: 'auth.google.failed',
+        provider: 'google',
+        requestId: getRequestId(request),
+        userId: null,
+      }),
+    );
   }
 
   @Post('refresh')

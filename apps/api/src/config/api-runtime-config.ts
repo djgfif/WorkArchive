@@ -9,6 +9,8 @@ export interface ApiRuntimeConfig {
   googleOAuthClientSecret: string | null;
   googleOAuthRedirectUri: string;
   host: string;
+  importAuthenticatedRateLimitMax: number;
+  importGuestRateLimitMax: number;
   isProduction: boolean;
   jwtAccessSecret: string;
   jwtRefreshSecret: string;
@@ -67,6 +69,8 @@ const apiEnvironmentSchema = z
     GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
     GOOGLE_OAUTH_REDIRECT_URI: z.string().optional(),
     HOST: z.string().optional(),
+    IMPORT_AUTH_RATE_LIMIT_MAX: z.string().optional(),
+    IMPORT_GUEST_RATE_LIMIT_MAX: z.string().optional(),
     JWT_ACCESS_SECRET: z.string().optional(),
     JWT_REFRESH_SECRET: z.string().optional(),
     NODE_ENV: z.string().optional(),
@@ -429,6 +433,16 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     googleOAuthClientSecret,
     googleOAuthRedirectUri,
     host: process.env.HOST?.trim() || '0.0.0.0',
+    importAuthenticatedRateLimitMax: readPositiveInteger(
+      'IMPORT_AUTH_RATE_LIMIT_MAX',
+      process.env.IMPORT_AUTH_RATE_LIMIT_MAX,
+      60,
+    ),
+    importGuestRateLimitMax: readPositiveInteger(
+      'IMPORT_GUEST_RATE_LIMIT_MAX',
+      process.env.IMPORT_GUEST_RATE_LIMIT_MAX,
+      20,
+    ),
     isProduction,
     jwtAccessSecret,
     jwtRefreshSecret,

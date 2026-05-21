@@ -333,12 +333,14 @@ describe('SyncService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      userSyncAppliedMutation: {
+        create: jest.fn(),
+        findUnique: jest.fn(async () => null),
+      },
     };
     prisma.$transaction.mockImplementation(
       async (callback: (client: any) => Promise<any>) =>
-        callback({
-          catalogWork: prisma.catalogWork,
-        }),
+        callback(prisma),
     );
 
     catalogService = {
@@ -729,7 +731,7 @@ describe('SyncService', () => {
         }),
       }),
     ]);
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it('creates a missing remote record for a local-only payload and assigns the authenticated owner', async () => {
@@ -1593,6 +1595,7 @@ describe('SyncService', () => {
         note: 'Manual note',
         serverVersion: 1,
       }),
+      prisma,
     );
     expect(result.results).toEqual([
       expect.objectContaining({

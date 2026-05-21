@@ -25,6 +25,7 @@ import {
   canUseProgressUnit,
 } from '../recording/recording-policy';
 import {
+  USER_RELEASE_RECORD_INCLUDE,
   toUserReleaseRecordResponse,
   UserReleaseRecordsService,
   type UserReleaseRecordAggregate,
@@ -34,6 +35,7 @@ import {
   type WorkAggregate,
 } from '../user-records/user-records.service';
 import {
+  USER_TIMELINE_ENTRY_INCLUDE,
   toUserTimelineEntryResponse,
   UserTimelineEntriesService,
   type UserTimelineEntryAggregate,
@@ -175,6 +177,15 @@ type GraphPayloadKey =
   | 'workContributor'
   | 'workRelation'
   | 'workSeriesLink';
+type StructuredLogFields = {
+  count?: number;
+  durationMs?: number;
+  entityType?: string;
+  errorCode?: string | undefined;
+  provider?: string;
+  requestId?: string | undefined;
+  userId?: string;
+};
 
 interface PullCursor {
   entityId: string;
@@ -206,16 +217,24 @@ export class SyncService {
   async push(
     userId: string,
     pushSyncDto: PushSyncDto,
+    requestId?: string,
   ): Promise<PushSyncResponseDto> {
     this.assertSupportedSchemaVersion(pushSyncDto);
 
     const { changes } = pushSyncDto;
     const sortedChanges = this.sortChangesByCreatedAt(changes);
     const results: PushSyncResultDto[] = [];
+    const startedAt = Date.now();
+
+    this.logEvent('sync.push.started', {
+      count: changes.length,
+      requestId,
+      userId,
+    });
 
     try {
       for (const change of sortedChanges) {
-        results.push(await this.applyChange(userId, change));
+        results.push(await this.applyIdempotentChange(userId, change));
       }
 
       const response = {
@@ -225,9 +244,22 @@ export class SyncService {
       };
 
       this.logPushSummary(userId, changes.length, response);
+      this.logEvent('sync.push.completed', {
+        count: response.results.length,
+        durationMs: Date.now() - startedAt,
+        requestId,
+        userId,
+      });
 
       return response;
     } catch (error) {
+      this.logEvent('sync.push.failed', {
+        count: changes.length,
+        durationMs: Date.now() - startedAt,
+        errorCode: this.describeError(error),
+        requestId,
+        userId,
+      });
       this.logger.warn(
         `Sync push failed userId=${userId} requested=${changes.length} reason=${this.describeError(error)}`,
       );
@@ -238,10 +270,18 @@ export class SyncService {
   async pull(
     userId: string,
     pullSyncDto: PullSyncDto,
+    requestId?: string,
   ): Promise<PullSyncResponseDto> {
     this.assertSupportedSchemaVersion(pullSyncDto);
 
     const { since } = pullSyncDto;
+    const startedAt = Date.now();
+
+    this.logEvent('sync.pull.started', {
+      requestId,
+      userId,
+    });
+
     try {
       const parsedSince =
         since === undefined || since === null
@@ -314,9 +354,21 @@ export class SyncService {
       };
 
       this.logPullSummary(userId, since ?? null, response);
+      this.logEvent('sync.pull.completed', {
+        count: response.changes.length,
+        durationMs: Date.now() - startedAt,
+        requestId,
+        userId,
+      });
 
       return response;
     } catch (error) {
+      this.logEvent('sync.pull.failed', {
+        durationMs: Date.now() - startedAt,
+        errorCode: this.describeError(error),
+        requestId,
+        userId,
+      });
       this.logger.warn(
         `Sync pull failed userId=${userId} since=${since ?? 'null'} reason=${this.describeError(error)}`,
       );
@@ -324,15 +376,83 @@ export class SyncService {
     }
   }
 
+  private async applyIdempotentChange(
+    userId: string,
+    change: PushSyncChangeDto,
+  ): Promise<PushSyncResultDto> {
+    const clientMutationId = change.clientMutationId ?? change.queueId;
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.userSyncAppliedMutation.findUnique({
+        where: {
+          userId_clientMutationId: {
+            clientMutationId,
+            userId,
+          },
+        },
+      });
+
+      if (existing) {
+        return existing.result as unknown as PushSyncResultDto;
+      }
+
+      const result = await this.applyChange(userId, change, tx);
+
+      if (result.status === 'conflict') {
+        this.logEvent('sync.conflict.detected', {
+          entityType: change.entityType,
+          errorCode: result.code,
+          userId,
+        });
+      }
+
+      if (result.status === 'applied') {
+        await tx.userSyncAppliedMutation.create({
+          data: {
+            clientMutationId,
+            entityId: change.entityId,
+            entityType: change.entityType,
+            queueId: change.queueId,
+            result: this.toJsonValue(result),
+            userId,
+          },
+        });
+      }
+
+      return result;
+    });
+  }
+
+  private logEvent(event: string, fields: StructuredLogFields) {
+    this.logger.log(
+      JSON.stringify({
+        count: fields.count ?? null,
+        durationMs: fields.durationMs ?? null,
+        entityType: fields.entityType ?? null,
+        errorCode: fields.errorCode ?? null,
+        event,
+        provider: fields.provider ?? null,
+        requestId: fields.requestId ?? null,
+        userId: fields.userId ?? null,
+      }),
+    );
+  }
+
+  private toJsonValue(value: unknown): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  }
+
   private async applyChange(
     userId: string,
     change: PushSyncChangeDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     if (change.entityType === 'series') {
       return this.applySeriesChange(
         userId,
         change,
         change.payload as SyncSeriesPayloadDto,
+        client,
       );
     }
 
@@ -341,6 +461,7 @@ export class SyncService {
         userId,
         change,
         change.payload as SyncContributorPayloadDto,
+        client,
       );
     }
 
@@ -349,6 +470,7 @@ export class SyncService {
         userId,
         change,
         change.payload as SyncWorkSeriesLinkPayloadDto,
+        client,
       );
     }
 
@@ -357,6 +479,7 @@ export class SyncService {
         userId,
         change,
         change.payload as SyncWorkContributorPayloadDto,
+        client,
       );
     }
 
@@ -365,6 +488,7 @@ export class SyncService {
         userId,
         change,
         change.payload as SyncWorkRelationPayloadDto,
+        client,
       );
     }
 
@@ -373,6 +497,7 @@ export class SyncService {
         userId,
         change,
         change.payload as SyncTierBoardPayloadDto,
+        client,
       );
     }
 
@@ -381,6 +506,7 @@ export class SyncService {
         userId,
         change,
         change.payload as SyncTierLanePayloadDto,
+        client,
       );
     }
 
@@ -389,6 +515,7 @@ export class SyncService {
         userId,
         change,
         change.payload as SyncTierBoardCardPayloadDto,
+        client,
       );
     }
 
@@ -397,6 +524,7 @@ export class SyncService {
         userId,
         change,
         change.payload as SyncTierBoardAssetPayloadDto,
+        client,
       );
     }
 
@@ -405,6 +533,7 @@ export class SyncService {
         userId,
         change,
         change.payload as SyncTimelineEntryPayloadDto,
+        client,
       );
     }
 
@@ -413,6 +542,7 @@ export class SyncService {
         userId,
         change,
         change.payload as SyncReleaseRecordPayloadDto,
+        client,
       );
     }
 
@@ -434,7 +564,7 @@ export class SyncService {
     const existing = await this.userRecordsService.findById(change.entityId);
 
     if (!existing) {
-      return this.applyMissingRemoteChange(userId, change, payload);
+      return this.applyMissingRemoteChange(userId, change, payload, client);
     }
 
     if (existing.userId !== userId) {
@@ -461,20 +591,19 @@ export class SyncService {
       };
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      // split-only ?④퀎?먯꽌??catalog 硫뷀??곗씠?곕룄 ?대떦 user record? ?④퍡 ?숆린?뷀빀?덈떎.
-      await this.catalogService.update(
-        existing.catalogWorkId,
-        this.buildCatalogUpdateData(payload),
-        tx,
-      );
+    // Keep catalog compatibility metadata and the user record update in the
+    // same sync mutation transaction.
+    await this.catalogService.update(
+      existing.catalogWorkId,
+      this.buildCatalogUpdateData(payload),
+      client,
+    );
 
-      return this.userRecordsService.update(
-        change.entityId,
-        this.buildUserRecordUpdateData(payload),
-        tx,
-      );
-    });
+    const updated = await this.userRecordsService.update(
+      change.entityId,
+      this.buildUserRecordUpdateData(payload),
+      client,
+    );
 
     return {
       queueId: change.queueId,
@@ -513,6 +642,7 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncWorkPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     const isDelete =
       change.operation === 'delete' || payload.deletedAt !== null;
@@ -588,47 +718,42 @@ export class SyncService {
       };
     }
 
-    const created = await this.prisma.$transaction(async (tx) => {
-      if (existingTitle) {
-        await tx.catalogWork.create({
-          data: this.buildCompatibilityCatalogWorkCreateData(
-            payload,
-            existingTitle,
-          ),
-        });
+    let created: WorkAggregate;
 
-        return this.userRecordsService.create(
-          this.buildUserRecordCreateData(userId, payload, existingTitle.id),
-          tx,
-        );
-      }
+    if (existingTitle) {
+      await client.catalogWork.create({
+        data: this.buildCompatibilityCatalogWorkCreateData(
+          payload,
+          existingTitle,
+        ),
+      });
 
-      if (payload.importDraft) {
-        const title = await this.catalogService.createTitleFromImportCandidate(
-          this.buildImportTitleCreateData(payload, importDraftCatalogTitle!),
-          tx,
-        );
-
-        await tx.catalogWork.create({
-          data: this.buildCompatibilityCatalogWorkCreateData(payload),
-        });
-
-        return this.userRecordsService.create(
-          this.buildUserRecordCreateData(userId, payload, title.id),
-          tx,
-        );
-      }
-
-      await this.catalogService.create(
-        this.buildCatalogCreateData(payload),
-        tx,
+      created = await this.userRecordsService.create(
+        this.buildUserRecordCreateData(userId, payload, existingTitle.id),
+        client,
+      );
+    } else if (payload.importDraft) {
+      const title = await this.catalogService.createTitleFromImportCandidate(
+        this.buildImportTitleCreateData(payload, importDraftCatalogTitle!),
+        client,
       );
 
-      return this.userRecordsService.create(
+      await client.catalogWork.create({
+        data: this.buildCompatibilityCatalogWorkCreateData(payload),
+      });
+
+      created = await this.userRecordsService.create(
+        this.buildUserRecordCreateData(userId, payload, title.id),
+        client,
+      );
+    } else {
+      await this.catalogService.create(this.buildCatalogCreateData(payload), client);
+
+      created = await this.userRecordsService.create(
         this.buildUserRecordCreateData(userId, payload),
-        tx,
+        client,
       );
-    });
+    }
 
     return {
       queueId: change.queueId,
@@ -645,6 +770,7 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncReleaseRecordPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     const existing = await this.releaseRecordsService.findById(change.entityId);
 
@@ -653,6 +779,7 @@ export class SyncService {
         userId,
         change,
         payload,
+        client,
       );
     }
 
@@ -687,6 +814,7 @@ export class SyncService {
     const validationError = await this.validateReleaseRecordTarget(
       userId,
       payload,
+      client,
     );
 
     if (validationError) {
@@ -716,6 +844,7 @@ export class SyncService {
     const updated = await this.releaseRecordsService.update(
       change.entityId,
       this.buildReleaseRecordUpdateData(payload),
+      client,
     );
 
     return {
@@ -739,6 +868,7 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncReleaseRecordPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     const isDelete =
       change.operation === 'delete' || payload.deletedAt !== null;
@@ -785,6 +915,7 @@ export class SyncService {
     const validationError = await this.validateReleaseRecordTarget(
       userId,
       payload,
+      client,
     );
 
     if (validationError) {
@@ -799,10 +930,14 @@ export class SyncService {
       };
     }
 
-    const created = await this.prisma.userReleaseRecord.create({
+    const created = await client.userReleaseRecord.create({
       data: this.buildReleaseRecordCreateData(payload),
+      include: USER_RELEASE_RECORD_INCLUDE,
     });
-    const hydrated = await this.releaseRecordsService.findById(created.id);
+    const hydrated =
+      created.createdAt instanceof Date
+        ? created
+        : await this.releaseRecordsService.findById(created.id);
 
     return {
       queueId: change.queueId,
@@ -819,6 +954,7 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncTimelineEntryPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     const existing = await this.timelineEntriesService.findById(
       change.entityId,
@@ -829,6 +965,7 @@ export class SyncService {
         userId,
         change,
         payload,
+        client,
       );
     }
 
@@ -860,6 +997,7 @@ export class SyncService {
     const validationError = await this.validateTimelineEntryTarget(
       userId,
       payload,
+      client,
     );
 
     if (validationError) {
@@ -889,6 +1027,7 @@ export class SyncService {
     const updated = await this.timelineEntriesService.update(
       change.entityId,
       this.buildTimelineEntryUpdateData(payload),
+      client,
     );
 
     return {
@@ -912,6 +1051,7 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncTimelineEntryPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     const isDelete =
       change.operation === 'delete' || payload.deletedAt !== null;
@@ -958,6 +1098,7 @@ export class SyncService {
     const validationError = await this.validateTimelineEntryTarget(
       userId,
       payload,
+      client,
     );
 
     if (validationError) {
@@ -974,6 +1115,7 @@ export class SyncService {
 
     const created = await this.timelineEntriesService.create(
       this.buildTimelineEntryCreateData(userId, payload),
+      client,
     );
 
     return {
@@ -991,20 +1133,21 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncSeriesPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const existing = await this.prisma.userSeries.findUnique({
+    const existing = await client.userSeries.findUnique({
       where: { id: change.entityId },
     });
 
     if (!existing) {
-      return this.applyMissingRemoteSeriesChange(userId, change, payload);
+      return this.applyMissingRemoteSeriesChange(userId, change, payload, client);
     }
 
     if (existing.userId !== userId) {
       return this.buildGraphOwnershipConflict(change, 'series');
     }
 
-    const validationError = await this.validateSeriesParent(userId, payload);
+    const validationError = await this.validateSeriesParent(userId, payload, client);
     if (validationError) {
       return this.buildGraphValidationFailure(change, 'series', validationError, {
         series: this.toSyncSeriesPayload(existing),
@@ -1028,7 +1171,7 @@ export class SyncService {
       });
     }
 
-    const updated = await this.prisma.userSeries.update({
+    const updated = await client.userSeries.update({
       where: { id: change.entityId },
       data: this.buildSeriesUpdateData(payload),
     });
@@ -1050,18 +1193,19 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncSeriesPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     const missingResult = this.getMissingRemoteGraphResult(change, payload);
     if (missingResult) return missingResult;
 
-    const validationError = await this.validateSeriesParent(userId, payload);
+    const validationError = await this.validateSeriesParent(userId, payload, client);
     if (validationError) {
       return this.buildGraphValidationFailure(change, 'series', validationError, {
         series: null,
       });
     }
 
-    const created = await this.prisma.userSeries.create({
+    const created = await client.userSeries.create({
       data: this.buildSeriesCreateData(userId, payload),
     });
 
@@ -1076,13 +1220,14 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncContributorPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const existing = await this.prisma.userContributor.findUnique({
+    const existing = await client.userContributor.findUnique({
       where: { id: change.entityId },
     });
 
     if (!existing) {
-      return this.applyMissingRemoteContributorChange(userId, change, payload);
+      return this.applyMissingRemoteContributorChange(userId, change, payload, client);
     }
 
     if (existing.userId !== userId) {
@@ -1106,7 +1251,7 @@ export class SyncService {
       });
     }
 
-    const updated = await this.prisma.userContributor.update({
+    const updated = await client.userContributor.update({
       where: { id: change.entityId },
       data: this.buildContributorUpdateData(payload),
     });
@@ -1128,11 +1273,12 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncContributorPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     const missingResult = this.getMissingRemoteGraphResult(change, payload);
     if (missingResult) return missingResult;
 
-    const created = await this.prisma.userContributor.create({
+    const created = await client.userContributor.create({
       data: this.buildContributorCreateData(userId, payload),
     });
 
@@ -1147,14 +1293,15 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncWorkSeriesLinkPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const existing = await this.prisma.userWorkSeriesLink.findUnique({
+    const existing = await client.userWorkSeriesLink.findUnique({
       where: { id: change.entityId },
       include: USER_WORK_SERIES_LINK_INCLUDE,
     });
 
     if (!existing) {
-      return this.applyMissingRemoteWorkSeriesLinkChange(userId, change, payload);
+      return this.applyMissingRemoteWorkSeriesLinkChange(userId, change, payload, client);
     }
 
     if (
@@ -1176,6 +1323,7 @@ export class SyncService {
     const validationError = await this.validateWorkSeriesLinkTarget(
       userId,
       payload,
+      client,
     );
     if (validationError) {
       return this.buildGraphValidationFailure(
@@ -1203,7 +1351,7 @@ export class SyncService {
       });
     }
 
-    const updated = await this.prisma.userWorkSeriesLink.update({
+    const updated = await client.userWorkSeriesLink.update({
       where: { id: change.entityId },
       data: this.buildWorkSeriesLinkUpdateData(payload),
       include: USER_WORK_SERIES_LINK_INCLUDE,
@@ -1226,6 +1374,7 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncWorkSeriesLinkPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     const missingResult = this.getMissingRemoteGraphResult(change, payload);
     if (missingResult) return missingResult;
@@ -1233,6 +1382,7 @@ export class SyncService {
     const validationError = await this.validateWorkSeriesLinkTarget(
       userId,
       payload,
+      client,
     );
     if (validationError) {
       return this.buildGraphValidationFailure(
@@ -1243,7 +1393,7 @@ export class SyncService {
       );
     }
 
-    const created = await this.prisma.userWorkSeriesLink.create({
+    const created = await client.userWorkSeriesLink.create({
       data: this.buildWorkSeriesLinkCreateData(payload),
       include: USER_WORK_SERIES_LINK_INCLUDE,
     });
@@ -1259,14 +1409,15 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncWorkContributorPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const existing = await this.prisma.userWorkContributor.findUnique({
+    const existing = await client.userWorkContributor.findUnique({
       where: { id: change.entityId },
       include: USER_WORK_CONTRIBUTOR_INCLUDE,
     });
 
     if (!existing) {
-      return this.applyMissingRemoteWorkContributorChange(userId, change, payload);
+      return this.applyMissingRemoteWorkContributorChange(userId, change, payload, client);
     }
 
     if (
@@ -1288,6 +1439,7 @@ export class SyncService {
     const validationError = await this.validateWorkContributorTarget(
       userId,
       payload,
+      client,
     );
     if (validationError) {
       return this.buildGraphValidationFailure(
@@ -1315,7 +1467,7 @@ export class SyncService {
       });
     }
 
-    const updated = await this.prisma.userWorkContributor.update({
+    const updated = await client.userWorkContributor.update({
       where: { id: change.entityId },
       data: this.buildWorkContributorUpdateData(payload),
       include: USER_WORK_CONTRIBUTOR_INCLUDE,
@@ -1338,6 +1490,7 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncWorkContributorPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     const missingResult = this.getMissingRemoteGraphResult(change, payload);
     if (missingResult) return missingResult;
@@ -1345,6 +1498,7 @@ export class SyncService {
     const validationError = await this.validateWorkContributorTarget(
       userId,
       payload,
+      client,
     );
     if (validationError) {
       return this.buildGraphValidationFailure(
@@ -1355,7 +1509,7 @@ export class SyncService {
       );
     }
 
-    const created = await this.prisma.userWorkContributor.create({
+    const created = await client.userWorkContributor.create({
       data: this.buildWorkContributorCreateData(payload),
       include: USER_WORK_CONTRIBUTOR_INCLUDE,
     });
@@ -1371,14 +1525,15 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncWorkRelationPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const existing = await this.prisma.userWorkRelation.findUnique({
+    const existing = await client.userWorkRelation.findUnique({
       where: { id: change.entityId },
       include: USER_WORK_RELATION_INCLUDE,
     });
 
     if (!existing) {
-      return this.applyMissingRemoteWorkRelationChange(userId, change, payload);
+      return this.applyMissingRemoteWorkRelationChange(userId, change, payload, client);
     }
 
     if (
@@ -1401,6 +1556,7 @@ export class SyncService {
     const validationError = await this.validateWorkRelationTarget(
       userId,
       payload,
+      client,
     );
     if (validationError) {
       return this.buildGraphValidationFailure(
@@ -1428,7 +1584,7 @@ export class SyncService {
       });
     }
 
-    const updated = await this.prisma.userWorkRelation.update({
+    const updated = await client.userWorkRelation.update({
       where: { id: change.entityId },
       data: this.buildWorkRelationUpdateData(payload),
       include: USER_WORK_RELATION_INCLUDE,
@@ -1451,6 +1607,7 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncWorkRelationPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
     const missingResult = this.getMissingRemoteGraphResult(change, payload);
     if (missingResult) return missingResult;
@@ -1458,6 +1615,7 @@ export class SyncService {
     const validationError = await this.validateWorkRelationTarget(
       userId,
       payload,
+      client,
     );
     if (validationError) {
       return this.buildGraphValidationFailure(
@@ -1468,7 +1626,7 @@ export class SyncService {
       );
     }
 
-    const created = await this.prisma.userWorkRelation.create({
+    const created = await client.userWorkRelation.create({
       data: this.buildWorkRelationCreateData(userId, payload),
       include: USER_WORK_RELATION_INCLUDE,
     });
@@ -1505,6 +1663,7 @@ export class SyncService {
   private async validateReleaseRecordTarget(
     userId: string,
     payload: SyncReleaseRecordPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
     const parent = await this.userRecordsService.findById(
       payload.userWorkRecordId,
@@ -1525,7 +1684,7 @@ export class SyncService {
       return 'Release-level records require a catalog title bridge.';
     }
 
-    const release = await this.prisma.catalogRelease.findFirst({
+    const release = await client.catalogRelease.findFirst({
       where: {
         id: payload.catalogReleaseId,
         catalogTitleId: parent.catalogTitleId,
@@ -1542,6 +1701,7 @@ export class SyncService {
   private async validateTimelineEntryTarget(
     userId: string,
     payload: SyncTimelineEntryPayloadDto,
+    _client: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
     const parent = await this.userRecordsService.findById(payload.workId);
 
@@ -1555,6 +1715,7 @@ export class SyncService {
   private async validateSeriesParent(
     userId: string,
     payload: SyncSeriesPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
     if (!payload.parentId) {
       return null;
@@ -1564,7 +1725,7 @@ export class SyncService {
       return 'Series parent cannot point to itself.';
     }
 
-    const parent = await this.prisma.userSeries.findFirst({
+    const parent = await client.userSeries.findFirst({
       where: {
         id: payload.parentId,
         userId,
@@ -1577,10 +1738,11 @@ export class SyncService {
   private async validateWorkSeriesLinkTarget(
     userId: string,
     payload: SyncWorkSeriesLinkPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
     const [work, series] = await Promise.all([
       this.userRecordsService.findById(payload.workId),
-      this.prisma.userSeries.findFirst({
+      client.userSeries.findFirst({
         where: {
           id: payload.seriesId,
           userId,
@@ -1602,10 +1764,11 @@ export class SyncService {
   private async validateWorkContributorTarget(
     userId: string,
     payload: SyncWorkContributorPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
     const [work, contributor] = await Promise.all([
       this.userRecordsService.findById(payload.workId),
-      this.prisma.userContributor.findFirst({
+      client.userContributor.findFirst({
         where: {
           id: payload.contributorId,
           userId,
@@ -1627,6 +1790,7 @@ export class SyncService {
   private async validateWorkRelationTarget(
     userId: string,
     payload: SyncWorkRelationPayloadDto,
+    _client: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
     if (payload.sourceWorkId === payload.targetWorkId) {
       return 'Work relation cannot point to the same work.';
@@ -2065,8 +2229,9 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncTierBoardPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const existing = await this.prisma.userTierBoard.findUnique({
+    const existing = await client.userTierBoard.findUnique({
       where: { id: change.entityId },
     });
 
@@ -2099,7 +2264,7 @@ export class SyncService {
     }
 
     const record = existing
-      ? await this.prisma.userTierBoard.update({
+      ? await client.userTierBoard.update({
           where: { id: change.entityId },
           data: {
             title: normalizeString(payload.title) || payload.id,
@@ -2113,7 +2278,7 @@ export class SyncService {
             serverVersion: { increment: 1 },
           },
         })
-      : await this.prisma.userTierBoard.create({
+      : await client.userTierBoard.create({
           data: {
             id: payload.id,
             userId,
@@ -2146,16 +2311,17 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncTierLanePayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const board = await this.prisma.userTierBoard.findUnique({
+    const board = await client.userTierBoard.findUnique({
       where: { id: payload.boardId },
     });
 
-    if (!board || board.userId !== userId) {
+    if (!board || board.userId !== userId || board.deletedAt !== null) {
       return this.buildTierBoardParentConflict(change, 'tierLane');
     }
 
-    const existing = await this.prisma.userTierLane.findUnique({
+    const existing = await client.userTierLane.findUnique({
       where: { id: change.entityId },
       include: { board: true },
     });
@@ -2169,7 +2335,7 @@ export class SyncService {
     }
 
     const record = existing
-      ? await this.prisma.userTierLane.update({
+      ? await client.userTierLane.update({
           where: { id: change.entityId },
           data: {
             title: normalizeString(payload.title) || payload.id,
@@ -2181,7 +2347,7 @@ export class SyncService {
             serverVersion: { increment: 1 },
           },
         })
-      : await this.prisma.userTierLane.create({
+      : await client.userTierLane.create({
           data: {
             id: payload.id,
             boardId: payload.boardId,
@@ -2208,13 +2374,14 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncTierBoardCardPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const validationError = await this.validateTierBoardCardParents(userId, payload);
+    const validationError = await this.validateTierBoardCardParents(userId, payload, client);
     if (validationError) {
       return this.buildTierBoardParentConflict(change, 'tierBoardCard', validationError);
     }
 
-    const existing = await this.prisma.userTierBoardCard.findUnique({
+    const existing = await client.userTierBoardCard.findUnique({
       where: { id: change.entityId },
       include: { board: true },
     });
@@ -2240,11 +2407,11 @@ export class SyncService {
       syncStatus: SERVER_SYNC_STATUS,
     };
     const record = existing
-      ? await this.prisma.userTierBoardCard.update({
+      ? await client.userTierBoardCard.update({
           where: { id: change.entityId },
           data: { ...data, serverVersion: { increment: 1 } },
         })
-      : await this.prisma.userTierBoardCard.create({
+      : await client.userTierBoardCard.create({
           data: {
             ...data,
             id: payload.id,
@@ -2266,13 +2433,14 @@ export class SyncService {
     userId: string,
     change: PushSyncChangeDto,
     payload: SyncTierBoardAssetPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const validationError = await this.validateTierBoardAssetParents(userId, payload);
+    const validationError = await this.validateTierBoardAssetParents(userId, payload, client);
     if (validationError) {
       return this.buildTierBoardParentConflict(change, 'tierBoardAsset', validationError);
     }
 
-    const existing = await this.prisma.userTierBoardAsset.findUnique({
+    const existing = await client.userTierBoardAsset.findUnique({
       where: { id: change.entityId },
       include: { board: true },
     });
@@ -2296,11 +2464,11 @@ export class SyncService {
       deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
     };
     const record = existing
-      ? await this.prisma.userTierBoardAsset.update({
+      ? await client.userTierBoardAsset.update({
           where: { id: change.entityId },
           data,
         })
-      : await this.prisma.userTierBoardAsset.create({
+      : await client.userTierBoardAsset.create({
           data: {
             ...data,
             id: payload.id,
@@ -2377,32 +2545,38 @@ export class SyncService {
   private async validateTierBoardCardParents(
     userId: string,
     payload: SyncTierBoardCardPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
-    const board = await this.prisma.userTierBoard.findUnique({
+    const board = await client.userTierBoard.findUnique({
       where: { id: payload.boardId },
     });
 
-    if (!board || board.userId !== userId) {
+    if (!board || board.userId !== userId || board.deletedAt !== null) {
       return 'Parent tier board is missing or belongs to another user.';
     }
 
     if (payload.laneId) {
-      const lane = await this.prisma.userTierLane.findUnique({
+      const lane = await client.userTierLane.findUnique({
         where: { id: payload.laneId },
         include: { board: true },
       });
 
-      if (!lane || lane.boardId !== payload.boardId || lane.board.userId !== userId) {
+      if (
+        !lane ||
+        lane.boardId !== payload.boardId ||
+        lane.board.userId !== userId ||
+        lane.deletedAt !== null
+      ) {
         return 'Parent tier board lane is missing or belongs to another user.';
       }
     }
 
     if (payload.workId) {
-      const work = await this.prisma.userWorkRecord.findUnique({
+      const work = await client.userWorkRecord.findUnique({
         where: { id: payload.workId },
       });
 
-      if (!work || work.userId !== userId) {
+      if (!work || work.userId !== userId || work.deletedAt !== null) {
         return 'Linked work is missing or belongs to another user.';
       }
     }
@@ -2413,22 +2587,28 @@ export class SyncService {
   private async validateTierBoardAssetParents(
     userId: string,
     payload: SyncTierBoardAssetPayloadDto,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
-    const board = await this.prisma.userTierBoard.findUnique({
+    const board = await client.userTierBoard.findUnique({
       where: { id: payload.boardId },
     });
 
-    if (!board || board.userId !== userId) {
+    if (!board || board.userId !== userId || board.deletedAt !== null) {
       return 'Parent tier board is missing or belongs to another user.';
     }
 
     if (payload.cardId) {
-      const card = await this.prisma.userTierBoardCard.findUnique({
+      const card = await client.userTierBoardCard.findUnique({
         where: { id: payload.cardId },
         include: { board: true },
       });
 
-      if (!card || card.boardId !== payload.boardId || card.board.userId !== userId) {
+      if (
+        !card ||
+        card.boardId !== payload.boardId ||
+        card.board.userId !== userId ||
+        card.deletedAt !== null
+      ) {
         return 'Parent tier board card is missing or belongs to another user.';
       }
     }

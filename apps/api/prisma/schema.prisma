@@ -202,6 +202,7 @@ model User {
   catalogSubmissions     CatalogSubmission[]     @relation("CatalogSubmissionSubmitter")
   reviewedSubmissions    CatalogSubmission[]     @relation("CatalogSubmissionReviewer")
   catalogAuditLogs       CatalogAuditLog[]
+  syncAppliedMutations   UserSyncAppliedMutation[]
   series                 UserSeries[]
   contributors           UserContributor[]
   workRelations          UserWorkRelation[]
@@ -482,6 +483,23 @@ model SecurityEvent {
   @@index([userId, createdAt])
   @@index([requestId])
   @@map("security_events")
+}
+
+model UserSyncAppliedMutation {
+  id               String   @id @default(uuid())
+  userId           String
+  clientMutationId String
+  queueId          String
+  entityType       String
+  entityId         String
+  result           Json
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientMutationId])
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@map("user_sync_applied_mutations")
 }
 
 model UserWorkRecord {
