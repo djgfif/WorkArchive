@@ -167,10 +167,7 @@ export class AuthController {
         this.getSessionMetadata(request),
       );
     } catch (loginError) {
-      this.logAuthGoogleFailed(
-        request,
-        loginError instanceof Error ? loginError.message : String(loginError),
-      );
+      this.logAuthGoogleFailed(request, this.describeAuthFailure(loginError));
       throw loginError;
     }
 
@@ -199,7 +196,7 @@ export class AuthController {
     this.logger.warn(
       JSON.stringify({
         count: null,
-        durationMs: null,
+        durationMs: 0,
         entityType: null,
         errorCode,
         event: 'auth.google.failed',
@@ -208,6 +205,10 @@ export class AuthController {
         userId: null,
       }),
     );
+  }
+
+  private describeAuthFailure(error: unknown) {
+    return error instanceof Error ? error.name : 'UnknownError';
   }
 
   @Post('refresh')

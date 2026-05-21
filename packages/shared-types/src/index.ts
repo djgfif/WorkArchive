@@ -141,6 +141,9 @@ export interface ImportCandidate {
 }
 
 export interface ImportProviderStatus {
+  circuitOpenedUntil?: ISODateString | null;
+  circuitReasonCode?: 'provider_failed' | null;
+  circuitState?: 'closed' | 'open';
   configured: boolean;
   credentialFields?: ImportProviderCredentialField[];
   credentialMode?: 'none' | 'server' | 'user';

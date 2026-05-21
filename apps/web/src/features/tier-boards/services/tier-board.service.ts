@@ -1194,6 +1194,20 @@ export class TierBoardService {
   }
 
   async importBoardJson(rawValue: string) {
+    const startedAt = Date.now();
+
+    try {
+      return await this.importBoardJsonUnsafe(rawValue);
+    } catch (error) {
+      this.logTierBoardEvent('tier_board.import.failed', {
+        durationMs: Date.now() - startedAt,
+        errorCode: error instanceof Error ? error.name : 'UnknownError',
+      });
+      throw error;
+    }
+  }
+
+  private async importBoardJsonUnsafe(rawValue: string) {
     const parsed = assertExportDocument(JSON.parse(rawValue));
     const now = nowIso();
     const maps: ImportIdMaps = {
@@ -1336,6 +1350,27 @@ export class TierBoardService {
     );
 
     return board;
+  }
+
+  private logTierBoardEvent(
+    event: string,
+    fields: {
+      durationMs?: number;
+      errorCode?: string;
+    } = {},
+  ) {
+    console.warn(
+      JSON.stringify({
+        count: null,
+        durationMs: fields.durationMs ?? null,
+        entityType: 'tier_board',
+        errorCode: fields.errorCode ?? null,
+        event,
+        provider: null,
+        requestId: null,
+        userId: null,
+      }),
+    );
   }
 
   async applyLaneTemplate(boardId: string, templateLabel: string) {

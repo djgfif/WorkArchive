@@ -12,6 +12,7 @@ export interface ProviderReadinessGroup {
 
 export interface ImportProviderReadiness {
   available: ProviderReadinessGroup;
+  circuitOpen: ProviderReadinessGroup;
   directFallback: ProviderReadinessGroup;
   serverSetupRequired: ProviderReadinessGroup;
   userActionRequired: ProviderReadinessGroup;
@@ -37,7 +38,16 @@ function createProviderReadiness(
   return {
     available: {
       label: '사용 가능',
-      providers: searchableProviders.filter((provider) => provider.configured),
+      providers: searchableProviders.filter(
+        (provider) =>
+          provider.configured && provider.circuitState !== 'open',
+      ),
+    },
+    circuitOpen: {
+      label: '일시 중단',
+      providers: searchableProviders.filter(
+        (provider) => provider.circuitState === 'open',
+      ),
     },
     directFallback: {
       label: '직접 추가',

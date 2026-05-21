@@ -198,6 +198,7 @@ function ProviderReadinessSummary({
         ) : (
           <Stack gap={6}>
             <ProviderGroupLine group={readiness.available} tone="success" />
+            <ProviderGroupLine group={readiness.circuitOpen} tone="warning" />
             <ProviderGroupLine
               group={readiness.userActionRequired}
               tone="warning"

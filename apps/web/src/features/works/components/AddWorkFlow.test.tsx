@@ -112,10 +112,12 @@ const providerStatuses = [
 function mockImportsFetch({
   candidates = [],
   provider = 'open_library',
+  providersBody = providerStatuses,
   responseOptions = {},
 }: {
   candidates?: ImportCandidate[];
   provider?: string;
+  providersBody?: Array<Record<string, unknown>>;
   responseOptions?: {
     body?: Record<string, unknown>;
     status?: number;
@@ -125,7 +127,7 @@ function mockImportsFetch({
     const url = String(input);
 
     if (url.includes('/imports/providers')) {
-      return Promise.resolve(jsonResponse(providerStatuses));
+      return Promise.resolve(jsonResponse(providersBody));
     }
 
     return Promise.resolve(
@@ -731,6 +733,29 @@ describe('AddWorkFlow', () => {
     expect(
       screen.queryByText(/검색은 로그인해야만 가능/),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows provider circuit breaker state in the search status panel', async () => {
+    mockImportsFetch({
+      providersBody: providerStatuses.map((provider) =>
+        provider.provider === 'open_library'
+          ? {
+              ...provider,
+              circuitOpenedUntil: '2026-05-21T01:00:00.000Z',
+              circuitReasonCode: 'provider_failed',
+              circuitState: 'open',
+            }
+          : provider,
+      ),
+    });
+    const user = userEvent.setup();
+
+    renderGuestAddWorkFlow();
+
+    await user.click(screen.getByLabelText('검색으로 채우기'));
+
+    expect(await screen.findByText('일시 중단')).toBeInTheDocument();
+    expect(screen.getByText('Open Library')).toBeInTheDocument();
   });
 
   it('shows readable provider diagnostics after a candidate search', async () => {

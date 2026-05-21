@@ -393,7 +393,9 @@ export class SyncService {
       });
 
       if (existing) {
-        return existing.result as unknown as PushSyncResultDto;
+        return this.buildIdempotentReplayResult(
+          existing.result as unknown as PushSyncResultDto,
+        );
       }
 
       const result = await this.applyChange(userId, change, tx);
@@ -440,6 +442,17 @@ export class SyncService {
 
   private toJsonValue(value: unknown): Prisma.InputJsonValue {
     return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  }
+
+  private buildIdempotentReplayResult(
+    result: PushSyncResultDto,
+  ): PushSyncResultDto {
+    return {
+      ...result,
+      code: SYNC_CODES.alreadyApplied,
+      message: 'Client mutation was already applied on the server.',
+      status: 'applied',
+    };
   }
 
   private async applyChange(
@@ -3848,7 +3861,7 @@ export class SyncService {
 
   private describeError(error: unknown) {
     if (error instanceof Error) {
-      return `${error.name}: ${error.message}`;
+      return error.name;
     }
 
     return 'UnknownError';

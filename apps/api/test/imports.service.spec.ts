@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   BadRequestException,
   ForbiddenException,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { WorkType } from '@prisma/client';
@@ -576,6 +577,81 @@ describe('ImportsService', () => {
       }),
     );
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
+  });
+
+  it('opens provider circuit breaker diagnostics after repeated failures', async () => {
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new Error('authorization cookie refresh_token access_token oauth_code api_key raw_image_data'));
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await service.search(null, {
+        providers: [OPEN_LIBRARY_PROVIDER, MANUAL_PROVIDER],
+        query: 'Dune',
+        type: WorkType.novel,
+      });
+    }
+
+    const result = await service.search(null, {
+      providers: [OPEN_LIBRARY_PROVIDER, MANUAL_PROVIDER],
+      query: 'Dune',
+      type: WorkType.novel,
+    });
+    const providers = await service.listProviders(null);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(result.diagnostics.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: OPEN_LIBRARY_PROVIDER,
+          reasonCode: 'circuit_open',
+          status: 'skipped',
+        }),
+      ]),
+    );
+    expect(providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: OPEN_LIBRARY_PROVIDER,
+          circuitState: 'open',
+          circuitReasonCode: 'provider_failed',
+          circuitOpenedUntil: expect.any(String),
+        }),
+      ]),
+    );
+  });
+
+  it('logs imports.provider.failed without provider secrets or raw image data', async () => {
+    const warnSpy = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new Error('authorization cookie set-cookie refresh_token access_token oauth_code api_key raw_image_data'));
+
+    await service.search(null, {
+      providers: [OPEN_LIBRARY_PROVIDER, MANUAL_PROVIDER],
+      query: 'Dune',
+      type: WorkType.novel,
+    });
+
+    const failedLog = warnSpy.mock.calls
+      .map(([message]) => String(message))
+      .find((message) => message.includes('"event":"imports.provider.failed"'));
+
+    expect(failedLog).toBeDefined();
+    expect(JSON.parse(failedLog!)).toEqual(
+      expect.objectContaining({
+        durationMs: expect.any(Number),
+        errorCode: 'BadGatewayException',
+        event: 'imports.provider.failed',
+        provider: OPEN_LIBRARY_PROVIDER,
+        requestId: null,
+      }),
+    );
+    expect(failedLog).not.toMatch(
+      /authorization|cookie|set-cookie|refresh_token|access_token|oauth_code|api_key|raw_image_data/i,
+    );
   });
 
   it('keeps manual Quick Add candidates visibly separate from external identity matches', async () => {

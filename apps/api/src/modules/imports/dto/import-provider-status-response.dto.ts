@@ -22,6 +22,24 @@ class ImportProviderCredentialFieldDto {
 
 export class ImportProviderStatusResponseDto {
   @ApiProperty({
+    enum: ['closed', 'open'],
+    required: false,
+  })
+  circuitState?: 'closed' | 'open';
+
+  @ApiProperty({
+    nullable: true,
+    required: false,
+  })
+  circuitReasonCode?: 'provider_failed' | null;
+
+  @ApiProperty({
+    nullable: true,
+    required: false,
+  })
+  circuitOpenedUntil?: string | null;
+
+  @ApiProperty({
     enum: IMPORT_PROVIDER_VALUES,
   })
   provider!: ImportProvider;

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import { SyncQueueRepository } from '../../sync/services/sync-queue.repository';
@@ -76,6 +76,35 @@ describe('TierBoardService', () => {
     expect(snapshot.board.id).toBe(board.id);
     expect(await service.getBoardById(board.id)).toBeNull();
     expect((await queueRepository.listAll()).some((card) => card.entityId === board.id)).toBe(false);
+  });
+
+  it('logs tier_board.import.failed without raw image data or secret material', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    await expect(
+      service.importBoardJson(
+        JSON.stringify({
+          token: 'refresh_token',
+          authorization: 'Bearer access_token',
+          dataUrl: 'data:image/png;base64,raw_image_data',
+        }),
+      ),
+    ).rejects.toThrow();
+
+    const logPayload = String(warnSpy.mock.calls.at(-1)?.[0] ?? '');
+
+    expect(JSON.parse(logPayload)).toEqual(
+      expect.objectContaining({
+        durationMs: expect.any(Number),
+        entityType: 'tier_board',
+        errorCode: expect.any(String),
+        event: 'tier_board.import.failed',
+        requestId: null,
+      }),
+    );
+    expect(logPayload).not.toMatch(
+      /authorization|cookie|set-cookie|refresh_token|access_token|oauth_code|api_key|raw_image_data|data:image/i,
+    );
   });
 
   it('keeps lane deletion and card movement independent from work records', async () => {

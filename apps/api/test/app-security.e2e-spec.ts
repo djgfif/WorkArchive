@@ -1,6 +1,6 @@
 import { type AddressInfo } from 'node:net';
 
-import { Body, Controller, Post, type INestApplication } from '@nestjs/common';
+import { Body, Controller, Get, Post, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import {
   afterEach,
@@ -21,6 +21,33 @@ class TestAuthController {
   login(@Body() body: Record<string, unknown>) {
     return {
       email: body.email,
+      ok: true,
+    };
+  }
+}
+
+@Controller('sync')
+class TestSyncController {
+  @Post('push')
+  push() {
+    return {
+      ok: true,
+    };
+  }
+}
+
+@Controller('imports')
+class TestImportsController {
+  @Get('search')
+  search() {
+    return {
+      ok: true,
+    };
+  }
+
+  @Post('resolve')
+  resolve() {
+    return {
       ok: true,
     };
   }
@@ -69,7 +96,7 @@ describe('app security middleware', () => {
     };
 
     const moduleRef = await Test.createTestingModule({
-      controllers: [TestAuthController],
+      controllers: [TestAuthController, TestImportsController, TestSyncController],
       providers: [
         {
           provide: SecurityAuditService,
@@ -164,6 +191,126 @@ describe('app security middleware', () => {
           severity: 'warning',
         }),
       );
+    });
+  });
+
+  describe('endpoint rate limit buckets', () => {
+    beforeEach(async () => {
+      await startApp({
+        ...baseConfig,
+        authRateLimitMax: 1,
+        importAuthenticatedRateLimitMax: 1,
+        importGuestRateLimitMax: 1,
+        syncRateLimitMax: 1,
+      });
+    });
+
+    it('keeps auth, sync, and provider search/import limits in separate buckets', async () => {
+      expect((await postLogin()).status).toBe(201);
+      expect((await postLogin()).status).toBe(429);
+
+      expect(
+        (
+          await fetch(`${baseUrl}/api/sync/push`, {
+            method: 'POST',
+          })
+        ).status,
+      ).toBe(201);
+      expect(
+        (
+          await fetch(`${baseUrl}/api/sync/push`, {
+            method: 'POST',
+          })
+        ).status,
+      ).toBe(429);
+
+      expect((await fetch(`${baseUrl}/api/imports/search?q=dune`)).status).toBe(
+        200,
+      );
+      expect((await fetch(`${baseUrl}/api/imports/search?q=dune`)).status).toBe(
+        429,
+      );
+
+      expect(
+        (
+          await fetch(`${baseUrl}/api/imports/resolve`, {
+            headers: {
+              authorization: 'Bearer test-token',
+            },
+            method: 'POST',
+          })
+        ).status,
+      ).toBe(201);
+      expect(
+        (
+          await fetch(`${baseUrl}/api/imports/resolve`, {
+            headers: {
+              authorization: 'Bearer test-token',
+            },
+            method: 'POST',
+          })
+        ).status,
+      ).toBe(429);
+
+      expect(securityAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'http.rate_limit_exceeded',
+          metadata: expect.objectContaining({
+            limiter: 'auth',
+          }),
+        }),
+      );
+      expect(securityAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'http.rate_limit_exceeded',
+          metadata: expect.objectContaining({
+            limiter: 'sync',
+          }),
+        }),
+      );
+      expect(securityAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'http.rate_limit_exceeded',
+          metadata: expect.objectContaining({
+            limiter: 'imports_guest',
+          }),
+        }),
+      );
+      expect(securityAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'http.rate_limit_exceeded',
+          metadata: expect.objectContaining({
+            limiter: 'imports_authenticated',
+          }),
+        }),
+      );
+    });
+
+    it('separates guest and authenticated provider search limits', async () => {
+      expect((await fetch(`${baseUrl}/api/imports/search?q=dune`)).status).toBe(
+        200,
+      );
+      expect((await fetch(`${baseUrl}/api/imports/search?q=dune`)).status).toBe(
+        429,
+      );
+      expect(
+        (
+          await fetch(`${baseUrl}/api/imports/search?q=dune`, {
+            headers: {
+              authorization: 'Bearer test-token',
+            },
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await fetch(`${baseUrl}/api/imports/search?q=dune`, {
+            headers: {
+              authorization: 'Bearer test-token',
+            },
+          })
+        ).status,
+      ).toBe(429);
     });
   });
 });

@@ -160,6 +160,7 @@ export class ImportsService {
         const metadata = PROVIDERS[provider];
 
         return {
+          ...this.getProviderCircuitStatus(provider),
           configured: await this.isProviderConfigured(userId, provider),
           credentialMode: metadata.credentialMode,
           label: metadata.label,
@@ -344,6 +345,8 @@ export class ImportsService {
         continue;
       }
 
+      const providerStartedAt = Date.now();
+
       try {
         const context: ProviderSearchContext = {
           limit,
@@ -377,6 +380,7 @@ export class ImportsService {
 
         failures.push(`${provider}:${this.describeError(error)}`);
         this.logEvent('imports.provider.failed', {
+          durationMs: Date.now() - providerStartedAt,
           errorCode: this.describeError(error),
           provider,
           userId: userId ?? undefined,
@@ -438,6 +442,24 @@ export class ImportsService {
     });
 
     return false;
+  }
+
+  private getProviderCircuitStatus(provider: ImportProvider) {
+    const state = this.providerCircuitState.get(provider);
+
+    if (!state?.openedUntil || Date.now() >= state.openedUntil) {
+      return {
+        circuitOpenedUntil: null,
+        circuitReasonCode: null,
+        circuitState: 'closed' as const,
+      };
+    }
+
+    return {
+      circuitOpenedUntil: new Date(state.openedUntil).toISOString(),
+      circuitReasonCode: state.reasonCode,
+      circuitState: 'open' as const,
+    };
   }
 
   private recordProviderSuccess(provider: ImportProvider) {
@@ -2613,6 +2635,7 @@ export class ImportsService {
     const metadata = PROVIDERS[provider];
 
     return {
+      ...this.getProviderCircuitStatus(provider),
       configured,
       credentialMode: metadata.credentialMode,
       label: metadata.label,

@@ -60,6 +60,10 @@ function getCredentialModeLabel(mode?: ImportProviderStatus['credentialMode']) {
 }
 
 function getProviderStatusLabel(status: ImportProviderStatus) {
+  if (status.circuitState === 'open') {
+    return '일시 중단';
+  }
+
   if (status.credentialMode === 'none') {
     return '사용 가능';
   }
@@ -72,6 +76,10 @@ function getProviderStatusLabel(status: ImportProviderStatus) {
 }
 
 function getProviderStatusTone(status: ImportProviderStatus) {
+  if (status.circuitState === 'open') {
+    return 'warning' as const;
+  }
+
   if (status.configured || status.credentialMode === 'none') {
     return 'success' as const;
   }
@@ -163,6 +171,11 @@ function PublicProviderCard({ status }: { status: ImportProviderStatus }) {
           {formatMediumTypes(status)}
         </Text>
       )}
+      {status.circuitState === 'open' && (
+        <Text className={css.providerInfoMeta ?? ''}>
+          반복 실패로 잠시 쉬는 중입니다.
+        </Text>
+      )}
     </Box>
   );
 }
@@ -193,6 +206,11 @@ function KeyProviderButton({
           <Text className={css.keyProviderMeta ?? ''}>
             {formatMediumTypes(status)}
           </Text>
+          {status.circuitState === 'open' && (
+            <Text className={css.keyProviderMeta ?? ''}>
+              반복 실패로 잠시 쉬는 중입니다.
+            </Text>
+          )}
         </Stack>
         <AppBadge tone={getProviderStatusTone(status)}>
           {getProviderStatusLabel(status)}

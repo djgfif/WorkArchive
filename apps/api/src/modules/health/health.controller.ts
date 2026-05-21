@@ -83,7 +83,7 @@ export class HealthController {
         count: null,
         durationMs: null,
         entityType: check,
-        errorCode: error instanceof Error ? error.message : String(error),
+        errorCode: error instanceof Error ? error.name : 'UnknownError',
         event: 'health.ready.failed',
         provider: null,
         requestId: null,

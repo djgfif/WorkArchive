@@ -116,6 +116,42 @@ describe('ImportsService', () => {
     expect(result.notice).toContain('일시 실패: Google Books');
   });
 
+  it('shows a friendly notice when a provider circuit is open', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        provider: 'open_library',
+        providers: ['open_library', 'google_books'],
+        query: 'Dune',
+        candidates: [],
+        diagnostics: {
+          providers: [
+            {
+              provider: 'open_library',
+              status: 'skipped',
+              credentialMode: 'none',
+              configured: true,
+              resultCount: 0,
+              reasonCode: 'circuit_open',
+              message: 'Open Library search is temporarily skipped after repeated failures.',
+            },
+          ],
+        },
+      }),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await new ImportsService().searchCandidates('Dune', {
+      providers: ['open_library', 'google_books'],
+      useExternal: true,
+    });
+
+    expect(result.notice).toContain(
+      '일부 검색 소스가 일시적으로 쉬는 중입니다. 잠시 후 다시 시도하거나 직접 추가하세요.',
+    );
+    expect(result.notice).not.toContain('제외됨: Open Library');
+  });
+
   it('uses a plain provider readiness request when no access token is stored', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse([

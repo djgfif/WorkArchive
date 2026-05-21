@@ -99,15 +99,24 @@ function buildSearchNotice(response: ImportSearchResponse) {
   const skipped = diagnostics.filter(
     (diagnostic) => diagnostic.status === 'skipped',
   );
+  const circuitOpen = skipped.filter(
+    (diagnostic) => diagnostic.reasonCode === 'circuit_open',
+  );
+  const skippedWithoutCircuitOpen = skipped.filter(
+    (diagnostic) => diagnostic.reasonCode !== 'circuit_open',
+  );
   const failed = diagnostics.filter(
     (diagnostic) => diagnostic.status === 'failed',
   );
   const segments = [
+    circuitOpen.length > 0
+      ? '일부 검색 소스가 일시적으로 쉬는 중입니다. 잠시 후 다시 시도하거나 직접 추가하세요.'
+      : null,
     searched.length > 0
       ? `검색 완료: ${searched.map(formatProviderResult).join(', ')}`
       : null,
-    skipped.length > 0
-      ? `제외됨: ${skipped.map(formatProviderResult).join(', ')}`
+    skippedWithoutCircuitOpen.length > 0
+      ? `제외됨: ${skippedWithoutCircuitOpen.map(formatProviderResult).join(', ')}`
       : null,
     failed.length > 0
       ? `일시 실패: ${failed.map(formatProviderResult).join(', ')}`

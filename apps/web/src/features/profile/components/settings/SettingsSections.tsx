@@ -127,6 +127,10 @@ function getCredentialModeLabel(mode?: ImportProviderStatus['credentialMode']) {
 }
 
 function getProviderStatusLabel(status: ImportProviderStatus) {
+  if (status.circuitState === 'open') {
+    return '일시 중단';
+  }
+
   if (status.credentialMode === 'none') {
     return '사용 가능';
   }
@@ -135,6 +139,10 @@ function getProviderStatusLabel(status: ImportProviderStatus) {
 }
 
 function getProviderStatusTone(status: ImportProviderStatus) {
+  if (status.circuitState === 'open') {
+    return 'warning';
+  }
+
   if (status.configured) {
     return 'success';
   }
@@ -384,6 +392,11 @@ function ProviderStatusCard({ status }: { status: ImportProviderStatus }) {
         {status.mediumTypes && status.mediumTypes.length > 0 && (
           <Text c="var(--mantine-color-dimmed)" size="sm">
             지원 매체: {status.mediumTypes.map(getWorkTypeLabel).join(', ')}
+          </Text>
+        )}
+        {status.circuitState === 'open' && (
+          <Text c="var(--mantine-color-dimmed)" size="sm">
+            반복 실패로 잠시 쉬는 중입니다. 잠시 후 다시 시도하세요.
           </Text>
         )}
       </Stack>
