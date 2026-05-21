@@ -25,17 +25,117 @@
 
 .sourcePanel,
 .canvas,
-.toolbar {
+.pool {
   background: var(--app-surface-card);
   border: 1px solid var(--app-border-subtle);
   border-radius: 8px;
   box-shadow: var(--wa-shadow-card);
 }
 
+.toolbar {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--app-surface-card) 94%, white), var(--app-surface-card));
+  border: 1px solid var(--app-border-subtle);
+  border-radius: 8px;
+  box-shadow: var(--wa-shadow-card);
+}
+
+.toolbarLayout {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.toolbarIdentity {
+  min-width: 0;
+}
+
+.toolbarTitle {
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  line-height: 1.08;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.toolbarActions {
+  justify-content: flex-end;
+}
+
+.toolbarSegment {
+  background: var(--app-surface-subtle);
+  border: 1px solid var(--app-border-subtle);
+  min-width: 118px;
+}
+
+.toolbarMenuButton,
+.toolbarIconButton {
+  border-color: var(--app-border-subtle);
+}
+
+.toolbarIconButton {
+  min-width: 32px;
+}
+
 .sourcePanel {
   align-self: start;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--app-surface-card) 96%, white), var(--app-surface-card));
   position: sticky;
   top: 86px;
+}
+
+.sourcePanelHeader {
+  border-bottom: 1px solid var(--app-border-subtle);
+  margin: -2px 0 0;
+  padding-bottom: 12px;
+}
+
+.sourcePanelEyebrow {
+  color: var(--app-text-muted);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.addTabs :global(.mantine-Tabs-list) {
+  background: var(--app-surface-subtle);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: 8px;
+  gap: 2px;
+  padding: 3px;
+}
+
+.addTabs :global(.mantine-Tabs-tab) {
+  border: 0;
+  border-radius: 6px;
+  color: var(--app-text-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  min-height: 30px;
+  padding-inline: 7px;
+}
+
+.addTabs :global(.mantine-Tabs-tab[data-active]) {
+  background: var(--app-surface-card);
+  color: var(--app-text-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.addForm {
+  min-width: 0;
+}
+
+.addFieldGroup :global(.mantine-InputWrapper-label) {
+  color: var(--app-text-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+}
+
+.addFieldGroup :global(.mantine-TextInput-input) {
+  background: color-mix(in srgb, var(--app-surface-subtle) 78%, transparent);
+  border-color: var(--app-border-subtle);
 }
 
 .canvas {
@@ -43,10 +143,14 @@
   overflow: hidden;
 }
 
+.boardWorkspace {
+  min-width: 0;
+}
+
 .lane {
   display: grid;
-  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
-  min-height: 132px;
+  grid-template-columns: minmax(112px, 154px) minmax(0, 1fr);
+  min-height: 112px;
   border-top: 1px solid var(--app-border-subtle);
 }
 
@@ -58,28 +162,76 @@
   border-right: 1px solid var(--app-border-subtle);
 }
 
+.laneDropZone {
+  min-height: 100%;
+}
+
 .laneLabel {
   border-radius: 6px;
-  min-height: 48px;
-  padding: 10px 12px;
+  min-height: 44px;
+  padding: 9px 10px;
+}
+
+.laneCount {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.24);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 800;
+  height: 22px;
+  justify-content: center;
+  min-width: 22px;
+  padding: 0 7px;
 }
 
 .itemGrid {
+  align-content: start;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-  gap: 10px;
-  min-height: 92px;
+  grid-template-columns: repeat(auto-fill, minmax(74px, 92px));
+  gap: 8px;
+  min-height: 84px;
 }
 
 .itemCard {
   background: var(--app-surface-subtle);
   border: 1px solid var(--app-border-subtle);
   border-radius: 8px;
+  min-width: 0;
   overflow: hidden;
+  position: relative;
+  transition:
+    box-shadow 140ms ease,
+    opacity 140ms ease,
+    transform 140ms ease;
+  will-change: transform;
+}
+
+.itemCard:hover {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
+}
+
+.itemDragHandle {
+  cursor: grab;
+  display: block;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+}
+
+.itemDragHandle:active {
+  cursor: grabbing;
+}
+
+.itemDragHandle:focus-visible {
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 2px var(--mantine-color-archive-4);
+  outline: 0;
 }
 
 .itemImage {
-  aspect-ratio: 16 / 11;
+  aspect-ratio: 1;
   background: var(--app-surface-muted);
   object-fit: cover;
   width: 100%;
@@ -87,20 +239,97 @@
 
 .itemFallback {
   align-items: center;
-  aspect-ratio: 16 / 11;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(20, 184, 166, 0.12));
+  aspect-ratio: 1;
+  background:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(20, 184, 166, 0.14)),
+    var(--app-surface-muted);
   display: flex;
   justify-content: center;
+}
+
+.itemTitleOverlay {
+  background: linear-gradient(180deg, rgba(16, 20, 25, 0), rgba(16, 20, 25, 0.88));
+  bottom: 0;
+  color: #fff;
+  left: 0;
+  padding: 18px 6px 6px;
+  position: absolute;
+  right: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
+}
+
+.itemMenuButton {
+  background: rgba(15, 23, 42, 0.76);
+  color: #fff;
+  opacity: 0;
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  transition:
+    background 140ms ease,
+    opacity 140ms ease;
+  z-index: 2;
+}
+
+.itemCard:hover .itemMenuButton,
+.itemCard:focus-within .itemMenuButton {
+  opacity: 1;
+}
+
+.itemMenuButton:hover {
+  background: rgba(15, 23, 42, 0.92);
+}
+
+.dragOverlayCard {
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.34);
+  pointer-events: none;
+  transform: scale(1.04);
+  width: 92px;
 }
 
 .pool {
   border: 1px dashed var(--app-border-default);
   border-radius: 8px;
-  min-height: 110px;
+  min-height: 132px;
+  overflow: hidden;
+}
+
+.poolDropZone {
+  min-height: 112px;
+}
+
+.itemBankGrid {
+  display: grid;
+  gap: 8px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(74px, 92px);
+  min-height: 94px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.emptyLane,
+.emptyPool {
+  align-items: center;
+  border: 1px dashed var(--app-border-subtle);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  min-height: 76px;
+  padding: 12px;
+}
+
+.emptyLane {
+  grid-column: 1 / -1;
+}
+
+.emptyPool {
+  min-width: 220px;
 }
 
 .dragging {
-  opacity: 0.55;
+  opacity: 0.18;
+  pointer-events: none;
 }
 
 .settingsGrid {
@@ -114,9 +343,73 @@
   border-radius: 8px;
 }
 
-.workResult {
-  background: var(--app-surface-subtle);
+.quickAddDropzone,
+.quickAddPreview,
+.quickTextPreview {
+  background: color-mix(in srgb, var(--app-surface-subtle) 82%, transparent);
+  border: 1px solid var(--app-border-subtle);
   border-radius: 8px;
+  overflow: hidden;
+}
+
+.quickAddDropzone {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  min-height: 156px;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.quickAddDropzone:hover,
+.quickAddDropzone:focus-visible {
+  border-color: var(--mantine-color-archive-4);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);
+  outline: 0;
+  transform: translateY(-1px);
+}
+
+.quickAddDropzone .itemImage,
+.quickAddDropzone .itemFallback,
+.quickAddPreview .itemImage,
+.quickAddPreview .itemFallback {
+  border-radius: 6px;
+}
+
+.quickAddPreview {
+  margin-inline: auto;
+  max-width: 164px;
+  width: 100%;
+}
+
+.quickTextPreview {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 112px;
+  text-align: center;
+}
+
+.workResult {
+  background: color-mix(in srgb, var(--app-surface-subtle) 84%, transparent);
+  border-radius: 8px;
+  transition:
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.workResult:hover {
+  border-color: var(--app-border-default);
+  transform: translateY(-1px);
+}
+
+.workResultList {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .workThumb {
@@ -194,6 +487,15 @@
 }
 
 @media (max-width: 860px) {
+  .toolbarLayout {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .toolbarActions {
+    justify-content: flex-start;
+  }
+
   .editorShell {
     grid-template-columns: 1fr;
   }

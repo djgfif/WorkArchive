@@ -44,6 +44,7 @@ describe('api-client', () => {
         return HttpResponse.json({
           accessToken: 'rotated-access-token',
           user: {
+            avatarUrl: '',
             email: 'user@example.com',
             id: 'user-1',
             nickname: '',

@@ -23,6 +23,7 @@ function sessionBody(accessToken = 'access-token') {
   return {
     accessToken,
     user: {
+      avatarUrl: '',
       authAccounts: [
         {
           email: 'frieren@example.com',

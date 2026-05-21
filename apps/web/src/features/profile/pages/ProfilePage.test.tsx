@@ -70,9 +70,22 @@ describe('ProfilePage', () => {
       </AuthProvider>,
     );
 
+    expect(await screen.findByText('내 취향 요약')).toBeInTheDocument();
+    expect(screen.getByText('최근 감상 흐름')).toBeInTheDocument();
+    expect(screen.getByText('상태 분포')).toBeInTheDocument();
+    expect(screen.getByText('자주 남긴 취향')).toBeInTheDocument();
+    expect(screen.getByText('선호 유형')).toBeInTheDocument();
+    expect(await screen.findByText(/(소설|영화) 1개/)).toBeInTheDocument();
+    expect(await screen.findByText('Drama · 1개 기록')).toBeInTheDocument();
+
+    const recentWorkLinks = await screen.findAllByRole('link', {
+      name: /Recent Profile Work/,
+    });
     expect(
-      await screen.findByRole('link', { name: /Recent Profile Work/ }),
-    ).toHaveAttribute('href', `/works/${recentWork.id}`);
+      recentWorkLinks.some(
+        (link) => link.getAttribute('href') === `/works/${recentWork.id}`,
+      ),
+    ).toBe(true);
     expect(screen.getByRole('link', { name: '이어 기록하기' })).toHaveAttribute(
       'href',
       `/works/${recentWork.id}`,

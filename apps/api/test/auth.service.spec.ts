@@ -12,6 +12,7 @@ const ORIGINAL_ENV = { ...process.env };
 
 interface MockUser {
   id: string;
+  avatarUrl: string;
   email: string;
   handle: string | null;
   passwordHash: string | null;
@@ -72,6 +73,7 @@ function createPrismaMock() {
         data: Partial<MockUser> & Pick<MockUser, 'email'>;
       }) => {
         const user = {
+          avatarUrl: data.avatarUrl ?? '',
           email: data.email,
           handle: data.handle ?? null,
           id: data.id ?? crypto.randomUUID(),
@@ -303,6 +305,7 @@ describe('AuthService', () => {
   it('tracks remember-me session intent without using the legacy user column', async () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
     const user = {
+      avatarUrl: '',
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
@@ -329,6 +332,7 @@ describe('AuthService', () => {
   it('keeps multiple refresh sessions independent until token reuse is detected', async () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
     const user = {
+      avatarUrl: '',
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
@@ -381,6 +385,7 @@ describe('AuthService', () => {
   it('rejects access tokens after their backing refresh session is revoked', async () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
     const user = {
+      avatarUrl: '',
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
@@ -412,6 +417,7 @@ describe('AuthService', () => {
     const { prisma, users } = createPrismaMock();
     users.push({
       email: 'frieren@example.com',
+      avatarUrl: '',
       handle: 'frieren',
       id: 'user-1',
       nickname: 'Frieren',
@@ -425,10 +431,12 @@ describe('AuthService', () => {
       authService.updateProfile('user-1', {
         handle: 'mage_frieren',
         nickname: 'Mage Frieren',
+        avatarUrl: 'https://example.com/frieren.jpg',
       }),
     ).resolves.toEqual(
       expect.objectContaining({
         email: 'frieren@example.com',
+        avatarUrl: 'https://example.com/frieren.jpg',
         handle: 'mage_frieren',
         nickname: 'Mage Frieren',
       }),
@@ -436,6 +444,7 @@ describe('AuthService', () => {
     expect(users[0]).toMatchObject({
       handle: 'mage_frieren',
       nickname: 'Mage Frieren',
+      avatarUrl: 'https://example.com/frieren.jpg',
     });
   });
 
@@ -443,6 +452,7 @@ describe('AuthService', () => {
     const { prisma, users } = createPrismaMock();
     users.push({
       email: 'frieren@example.com',
+      avatarUrl: '',
       handle: 'frieren',
       id: 'user-1',
       nickname: 'Frieren',
@@ -456,6 +466,7 @@ describe('AuthService', () => {
       authService.updateProfile('user-1', {
         handle: 'frieren',
         nickname: 'Frieren the Slayer',
+        avatarUrl: '',
       }),
     ).resolves.toEqual(
       expect.objectContaining({
@@ -468,6 +479,7 @@ describe('AuthService', () => {
       authService.updateProfile('user-1', {
         handle: null,
         nickname: 'Frieren',
+        avatarUrl: '',
       }),
     ).resolves.toEqual(
       expect.objectContaining({
@@ -482,6 +494,7 @@ describe('AuthService', () => {
     users.push(
       {
         email: 'frieren@example.com',
+        avatarUrl: '',
         handle: 'frieren',
         id: 'user-1',
         nickname: 'Frieren',
@@ -491,6 +504,7 @@ describe('AuthService', () => {
       },
       {
         email: 'fern@example.com',
+        avatarUrl: '',
         handle: 'fern',
         id: 'user-2',
         nickname: 'Fern',
@@ -505,12 +519,14 @@ describe('AuthService', () => {
       authService.updateProfile('user-1', {
         handle: 'admin',
         nickname: 'Frieren',
+        avatarUrl: '',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     await expect(
       authService.updateProfile('user-1', {
         handle: 'fern',
         nickname: 'Frieren',
+        avatarUrl: '',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
   });

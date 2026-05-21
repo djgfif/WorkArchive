@@ -11,7 +11,7 @@ import {
 import { useHotkeys } from '@mantine/hooks';
 import { useRef, useState } from 'react';
 
-import type { WorkStatus } from '@work-archive/shared-types';
+import type { WorkStatus, WorkType } from '@work-archive/shared-types';
 
 import { AppButton } from '../../../shared/components/AppPrimitives';
 import {
@@ -104,7 +104,146 @@ interface WorksToolbarProps {
   tagSuggestions:           string[];
   totalActiveCount:         number;
   totalDeletedCount:        number;
+  typeCounts:               Record<WorkType, number>;
   viewMode:                 WorksViewMode;
+}
+
+interface MediaTypeFilterProps {
+  onChange: (type: WorksListQuery['type']) => void;
+  totalCount: number;
+  typeCounts: Record<WorkType, number>;
+  value: WorksListQuery['type'];
+}
+
+function MediaTypeFilter({
+  onChange,
+  totalCount,
+  typeCounts,
+  value,
+}: MediaTypeFilterProps) {
+  const activeLabel =
+    value === 'all'
+      ? '전체 매체'
+      : (workTypeOptions.find((option) => option.value === value)?.label ?? value);
+  const options = [
+    { count: totalCount, label: '전체', value: 'all' as const },
+    ...workTypeOptions.map((option) => ({
+      count: typeCounts[option.value],
+      label: option.label,
+      value: option.value,
+    })),
+  ];
+
+  return (
+    <Box
+      style={{
+        background:
+          'linear-gradient(180deg, var(--app-surface-card), var(--app-surface-subtle))',
+        border: '1px solid var(--app-border-subtle)',
+        borderRadius: 'var(--mantine-radius-lg)',
+        boxShadow: '0 12px 34px rgba(0, 0, 0, 0.16)',
+        padding: '0.875rem',
+      }}
+    >
+      <Group align="center" justify="space-between" mb="xs" wrap="wrap">
+        <Stack gap={1}>
+          <Text c="dimmed" fw={800} size="xs" tt="uppercase">
+            매체
+          </Text>
+          <Text fw={800} size="sm">
+            작품 유형으로 빠르게 좁히기
+          </Text>
+        </Stack>
+        <Text
+          c="var(--app-text-secondary)"
+          fw={700}
+          size="xs"
+          style={{ fontVariantNumeric: 'tabular-nums' }}
+        >
+          {activeLabel} · {value === 'all' ? totalCount : typeCounts[value]}개
+        </Text>
+      </Group>
+
+      <Box
+        aria-label="매체 필터"
+        role="group"
+        style={{
+          display: 'grid',
+          gap: '0.45rem',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(5.9rem, 1fr))',
+        }}
+      >
+        {options.map((option) => {
+          const isActive = option.value === value;
+
+          return (
+            <Box
+              aria-label={option.label}
+              aria-pressed={isActive}
+              component="button"
+              key={option.value}
+              onClick={() => onChange(option.value)}
+              style={{
+                alignItems: 'center',
+                background: isActive
+                  ? 'linear-gradient(135deg, var(--app-accent-primary), color-mix(in srgb, var(--app-accent-primary) 78%, #ffffff 22%))'
+                  : 'color-mix(in srgb, var(--app-surface-card) 82%, transparent)',
+                border: isActive
+                  ? '1px solid color-mix(in srgb, var(--app-accent-primary) 65%, #ffffff 35%)'
+                  : '1px solid var(--app-border-subtle)',
+                borderRadius: 'var(--mantine-radius-md)',
+                boxShadow: isActive ? '0 10px 24px rgba(59, 130, 246, 0.24)' : 'none',
+                color: isActive ? '#ffffff' : 'var(--app-text-primary)',
+                cursor: 'pointer',
+                display: 'flex',
+                gap: '0.4rem',
+                justifyContent: 'space-between',
+                minHeight: 42,
+                padding: '0.55rem 0.7rem',
+                textAlign: 'left',
+                transition:
+                  'background var(--wa-motion-fast, 150ms), border-color var(--wa-motion-fast, 150ms), box-shadow var(--wa-motion-fast, 150ms), transform var(--wa-motion-fast, 150ms)',
+              }}
+              type="button"
+            >
+              <Text
+                fw={800}
+                size="sm"
+                style={{
+                  color: 'inherit',
+                  lineHeight: 1.1,
+                  minWidth: 0,
+                }}
+              >
+                {option.label}
+              </Text>
+              <Text
+                aria-hidden="true"
+                fw={800}
+                size="xs"
+                style={{
+                  background: isActive
+                    ? 'rgba(255, 255, 255, 0.22)'
+                    : 'var(--app-surface-subtle)',
+                  border: isActive
+                    ? '1px solid rgba(255, 255, 255, 0.25)'
+                    : '1px solid var(--app-border-subtle)',
+                  borderRadius: 999,
+                  color: 'inherit',
+                  flexShrink: 0,
+                  fontVariantNumeric: 'tabular-nums',
+                  lineHeight: 1,
+                  padding: '0.22rem 0.42rem',
+                }}
+              >
+                {option.count}
+              </Text>
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
 }
 
 export function WorksToolbar({
@@ -125,6 +264,7 @@ export function WorksToolbar({
   tagSuggestions,
   totalActiveCount,
   totalDeletedCount,
+  typeCounts,
   viewMode,
 }: WorksToolbarProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -462,22 +602,12 @@ export function WorksToolbar({
       </ArchiveHero>
 
       {collectionScope === 'active' && (
-        <Stack gap="sm">
-          <Stack gap={6}>
-            <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-              매체
-            </Text>
-            <FilterPillGroup
-              aria-label="매체 필터"
-              onChange={(type) => onQueryChange({ ...query, type })}
-              options={[
-                { label: '전체', value: 'all' as const },
-                ...workTypeOptions.map((o) => ({ label: o.label, value: o.value })),
-              ]}
-              value={query.type}
-            />
-          </Stack>
-        </Stack>
+        <MediaTypeFilter
+          onChange={(type) => onQueryChange({ ...query, type })}
+          totalCount={totalActiveCount}
+          typeCounts={typeCounts}
+          value={query.type}
+        />
       )}
 
       {/* ── 활성 필터 칩 ─────────────────────────────────────────────── */}

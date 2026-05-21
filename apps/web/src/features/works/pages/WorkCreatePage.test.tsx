@@ -168,6 +168,7 @@ function renderAuthenticatedCreatePage() {
           isLoading: false,
           mode: 'authenticated',
           user: {
+            avatarUrl: '',
             id: 'user-1',
             email: 'frieren@example.com',
             nickname: '',

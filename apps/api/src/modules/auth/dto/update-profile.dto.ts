@@ -2,6 +2,7 @@ import { Transform } from 'class-transformer';
 import {
   IsOptional,
   IsString,
+  IsUrl,
   Matches,
   MaxLength,
   MinLength,
@@ -10,6 +11,24 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateProfileDto {
+  @ApiProperty({
+    example: 'https://example.com/avatar.jpg',
+    required: false,
+  })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  @ValidateIf((_, value) => value !== '')
+  @IsUrl(
+    {
+      protocols: ['http', 'https'],
+      require_protocol: true,
+    },
+    { message: 'avatarUrl must be a valid URL.' },
+  )
+  avatarUrl?: string;
+
   @ApiProperty({
     example: 'Frieren',
     maxLength: 80,

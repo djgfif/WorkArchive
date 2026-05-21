@@ -8,6 +8,7 @@ import {
   ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
+import { getUserAvatarProfile } from '../../features/auth/utils/user-profile';
 
 /* ── 아이콘 ── */
 function IconHome({ size = 15 }: { size?: number }) {
@@ -67,10 +68,10 @@ export function AccountLayout() {
     navigate('/');
   }
 
-  const accountLabel   = isAuthenticated ? (user?.email ?? '계정') : '게스트';
-  const avatarInitial  = isAuthenticated
-    ? (accountLabel.split('@')[0]?.[0] ?? 'U').toUpperCase()
-    : 'G';
+  const avatarProfile = getUserAvatarProfile(isAuthenticated ? user : null);
+  const accountLabel = isAuthenticated ? avatarProfile.displayName : '게스트';
+  const avatarInitial = isAuthenticated ? avatarProfile.initial : 'G';
+  const avatarImageUrl = isAuthenticated ? avatarProfile.imageUrl : '';
 
   return (
     <main className="layout-shell layout-shell--account">
@@ -80,6 +81,7 @@ export function AccountLayout() {
           <Grid.Col hiddenFrom="lg" span={12}>
             <AccountSidebar
               accountLabel={accountLabel}
+              avatarImageUrl={avatarImageUrl}
               avatarInitial={avatarInitial}
               isAuthenticated={isAuthenticated}
               loginReturnTo={loginReturnTo}
@@ -93,6 +95,7 @@ export function AccountLayout() {
             <Box pos="sticky" top={88}>
               <AccountSidebar
                 accountLabel={accountLabel}
+                avatarImageUrl={avatarImageUrl}
                 avatarInitial={avatarInitial}
                 isAuthenticated={isAuthenticated}
                 loginReturnTo={loginReturnTo}
@@ -125,6 +128,7 @@ export function AccountLayout() {
 /* ── 사이드바 컴포넌트 ── */
 interface AccountSidebarProps {
   accountLabel:    string;
+  avatarImageUrl:  string;
   avatarInitial:   string;
   isAuthenticated: boolean;
   loginReturnTo:   string;
@@ -134,6 +138,7 @@ interface AccountSidebarProps {
 
 function AccountSidebar({
   accountLabel,
+  avatarImageUrl,
   avatarInitial,
   isAuthenticated,
   loginReturnTo,
@@ -164,6 +169,7 @@ function AccountSidebar({
             color={isAuthenticated ? 'archive' : 'gray'}
             radius="xl"
             size={44}
+            src={avatarImageUrl || null}
             variant="filled"
             style={{ fontWeight: 800, flexShrink: 0 }}
           >

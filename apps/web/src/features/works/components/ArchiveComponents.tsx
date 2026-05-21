@@ -1,4 +1,9 @@
-﻿import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+﻿import {
+  useEffect,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import {
   ActionIcon,
   Box,
@@ -7,7 +12,6 @@ import {
   NumberInput,
   Paper,
   Progress,
-  Rating,
   SimpleGrid,
   Skeleton,
   Stack,
@@ -15,7 +19,7 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, PointerEvent } from 'react';
 import {
   getDefaultProgressUnitForWorkType,
   type ProgressUnit,
@@ -441,43 +445,152 @@ export interface StarRatingInputProps {
   value: number | null;
 }
 
+function RatingStarIcon({ className }: { className: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      focusable="false"
+      viewBox="0 0 24 24"
+    >
+      <path d="M12 2.6 14.9 8.7l6.7.9-4.9 4.7 1.2 6.7L12 17.8 6.1 21l1.2-6.7-4.9-4.7 6.7-.9L12 2.6Z" />
+    </svg>
+  );
+}
+
 export function StarRatingInput({ label = '별점', onChange, value }: StarRatingInputProps) {
-  const scoreLabel = value !== null ? value.toFixed(1) : null;
+  const [hoverValue, setHoverValue] = useState<number | null>(null);
+  const displayValue = hoverValue ?? value ?? 0;
+  const displayLabel =
+    displayValue > 0
+      ? `${displayValue.toFixed(1)} · ${STAR_LABELS[displayValue.toFixed(1)] ?? '평가'}`
+      : '별점을 선택하세요';
+  const semanticLabel =
+    value === null ? '평가 안 함' : `${value.toFixed(1)}점`;
+
+  function getPointerRating(event: PointerEvent<HTMLButtonElement>) {
+    const starElements = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>('[data-rating-star-index]'),
+    );
+    const fallbackRect = event.currentTarget.getBoundingClientRect();
+
+    for (const starElement of starElements) {
+      const rect = starElement.getBoundingClientRect();
+
+      if (event.clientX < rect.left || event.clientX > rect.right) {
+        continue;
+      }
+
+      const starIndex = Number(starElement.dataset.ratingStarIndex ?? 0);
+      const isRightHalf = event.clientX >= rect.left + rect.width / 2;
+
+      return starIndex + (isRightHalf ? 1 : 0.5);
+    }
+
+    if (event.clientX <= fallbackRect.left) return 0.5;
+    if (event.clientX >= fallbackRect.right) return 5;
+
+    return value ?? 0.5;
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLButtonElement>) {
+    setHoverValue(getPointerRating(event));
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    onChange(getPointerRating(event));
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    const currentValue = value ?? 0;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      onChange(Math.min(5, currentValue + 0.5));
+      return;
+    }
+
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      const nextValue = Math.max(0, currentValue - 0.5);
+      onChange(nextValue === 0 ? null : nextValue);
+      return;
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault();
+      onChange(null);
+      return;
+    }
+
+    if (event.key === 'End') {
+      event.preventDefault();
+      onChange(5);
+    }
+  }
 
   return (
-    <Box aria-label={label} className={cn(css.starRatingInput)}>
-      <Rating
-        aria-label={label}
-        className={cn(css.starRatingControl)}
-        color="yellow"
-        count={5}
-        fractions={2}
-        getSymbolLabel={(rating) =>
-          rating === 0 ? '평가 안 함' : `${rating.toFixed(1)}점`
-        }
-        onChange={(nextValue) => onChange(nextValue <= 0 ? null : nextValue)}
-        size="xl"
-        value={value ?? 0}
-      />
-
-      <Group className={cn(css.starRatingMeta)} gap="xs" wrap="nowrap">
-        {scoreLabel && (
+    <Box className={cn(css.starRatingInput)}>
+      <Group align="center" justify="space-between" wrap="nowrap">
+        <Text c="var(--app-text-secondary)" fw={750} size="sm">
+          {label}
+        </Text>
+        <Group gap="xs" wrap="nowrap">
           <Text className={cn(css.starRatingScore)}>
-            {scoreLabel}
+            {displayLabel}
           </Text>
-        )}
-        {value !== null && (
-          <ActionIcon
-            aria-label="별점 초기화"
-            color="gray"
-            onClick={() => onChange(null)}
-            size="sm"
-            variant="subtle"
-          >
-            <Text size="xs">✕</Text>
-          </ActionIcon>
-        )}
+          {value !== null && (
+            <ActionIcon
+              aria-label="별점 초기화"
+              className={cn(css.starRatingReset)}
+              onClick={() => onChange(null)}
+              size="sm"
+              variant="subtle"
+            >
+              <Text size="xs">✕</Text>
+            </ActionIcon>
+          )}
+        </Group>
       </Group>
+
+      <button
+        aria-label={label}
+        aria-valuemax={5}
+        aria-valuemin={0}
+        aria-valuenow={value ?? 0}
+        aria-valuetext={semanticLabel}
+        className={cn(css.starRatingControl)}
+        onBlur={() => setHoverValue(null)}
+        onKeyDown={handleKeyDown}
+        onPointerDown={handlePointerDown}
+        onPointerLeave={() => setHoverValue(null)}
+        onPointerMove={handlePointerMove}
+        role="slider"
+        type="button"
+      >
+        {Array.from({ length: 5 }).map((_, index) => {
+          const fillPercent = Math.min(100, Math.max(0, (displayValue - index) * 100));
+
+          return (
+            <span
+              aria-hidden="true"
+              className={cn(css.starRatingSymbol)}
+              data-active={fillPercent > 0 ? 'true' : undefined}
+              data-rating-star-index={index}
+              key={index}
+            >
+              <RatingStarIcon className={cn(css.starRatingEmptyIcon)} />
+              <span
+                className={cn(css.starRatingFill)}
+                style={{ width: `${fillPercent}%` }}
+              >
+                <RatingStarIcon className={cn(css.starRatingFillIcon)} />
+              </span>
+            </span>
+          );
+        })}
+      </button>
     </Box>
   );
 }

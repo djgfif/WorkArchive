@@ -72,6 +72,7 @@ describe('auth.api', () => {
         jsonResponse({
           accessToken: 'rotated-access-token',
           user: {
+            avatarUrl: '',
             id: 'user-1',
             email: 'frieren@example.com',
             nickname: '',
@@ -136,6 +137,7 @@ describe('auth.api', () => {
       jsonResponse({
         accessToken: 'rotated-access-token',
         user: {
+          avatarUrl: '',
           id: 'user-1',
           email: 'frieren@example.com',
           nickname: '',
@@ -150,6 +152,7 @@ describe('auth.api', () => {
         accessToken: 'rotated-access-token',
       },
       user: {
+        avatarUrl: '',
         id: 'user-1',
         email: 'frieren@example.com',
         nickname: '',
@@ -249,6 +252,7 @@ describe('auth.api', () => {
           jsonResponse({
             accessToken: 'rotated-access-token',
             user: {
+              avatarUrl: '',
               id: 'user-1',
               email: 'frieren@example.com',
               nickname: '',
@@ -292,6 +296,7 @@ describe('auth.api', () => {
         return jsonResponse({
           accessToken: 'rotated-access-token',
           user: {
+            avatarUrl: '',
             id: 'user-1',
             email: 'frieren@example.com',
             nickname: '',

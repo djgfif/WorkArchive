@@ -33,6 +33,7 @@ describe('auth profile API (e2e)', () => {
     authService = {
       updateProfile: jest.fn<AuthService['updateProfile']>().mockResolvedValue({
         authAccounts: [],
+        avatarUrl: 'https://example.com/avatar.jpg',
         email: 'frieren@example.com',
         handle: 'mage_frieren',
         id: 'user-1',
@@ -82,6 +83,7 @@ describe('auth profile API (e2e)', () => {
   it('updates the authenticated profile', async () => {
     const response = await fetch(`${baseUrl}/api/auth/profile`, {
       body: JSON.stringify({
+        avatarUrl: 'https://example.com/avatar.jpg',
         handle: 'mage_frieren',
         nickname: 'Mage Frieren',
       }),
@@ -95,6 +97,7 @@ describe('auth profile API (e2e)', () => {
     await expect(response.json()).resolves.toEqual(
       expect.objectContaining({
         email: 'frieren@example.com',
+        avatarUrl: 'https://example.com/avatar.jpg',
         handle: 'mage_frieren',
         nickname: 'Mage Frieren',
       }),
@@ -103,12 +106,14 @@ describe('auth profile API (e2e)', () => {
     expect(authService.updateProfile).toHaveBeenCalledWith('user-1', {
       handle: 'mage_frieren',
       nickname: 'Mage Frieren',
+      avatarUrl: 'https://example.com/avatar.jpg',
     });
   });
 
   it('requires a bearer token and rejects invalid handles', async () => {
     const missingAuthResponse = await fetch(`${baseUrl}/api/auth/profile`, {
       body: JSON.stringify({
+        avatarUrl: '',
         handle: 'mage_frieren',
         nickname: 'Mage Frieren',
       }),
@@ -122,6 +127,7 @@ describe('auth profile API (e2e)', () => {
 
     const invalidHandleResponse = await fetch(`${baseUrl}/api/auth/profile`, {
       body: JSON.stringify({
+        avatarUrl: '',
         handle: 'Mage',
         nickname: 'Mage Frieren',
       }),
