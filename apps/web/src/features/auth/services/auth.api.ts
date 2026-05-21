@@ -1,7 +1,5 @@
 import type {
   AuthRefreshSessionsResponse,
-  PasswordResetConfirmResponse,
-  PasswordResetRequestResponse,
   AuthSessionResponse as SharedAuthSessionResponse,
   UpdateAuthProfileRequest,
   AuthUserResponse,
@@ -96,29 +94,6 @@ export async function fetchGoogleAuthStatus() {
   return requestApiJson<GoogleAuthStatusResponse>('/auth/google/status', {
     method: 'GET',
   });
-}
-
-export async function requestPasswordReset(email: string) {
-  return requestApiJson<PasswordResetRequestResponse>(
-    '/auth/password-reset/request',
-    {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    },
-  );
-}
-
-export async function confirmPasswordReset(input: {
-  password: string;
-  token: string;
-}) {
-  return requestApiJson<PasswordResetConfirmResponse>(
-    '/auth/password-reset/confirm',
-    {
-      method: 'POST',
-      body: JSON.stringify(input),
-    },
-  );
 }
 
 export async function restoreStoredSession(): Promise<RestoredSession | null> {

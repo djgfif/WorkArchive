@@ -273,15 +273,6 @@ export interface AuthRefreshSessionsResponse {
   sessions: AuthRefreshSessionResponse[];
 }
 
-export interface PasswordResetRequestResponse {
-  developmentResetUrl?: string;
-  message: string;
-}
-
-export interface PasswordResetConfirmResponse {
-  message: string;
-}
-
 export const CATALOG_VERIFICATION_STATUSES = [
   'draft',
   'pending',
