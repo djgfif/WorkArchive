@@ -21,6 +21,7 @@ const authenticatedContextValue: AuthContextValue = {
   isLoading: false,
   mode: 'authenticated',
   user: {
+    avatarUrl: '',
     email: 'user@example.com',
     id: 'test-user',
     nickname: 'Tester',

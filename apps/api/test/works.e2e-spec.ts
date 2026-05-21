@@ -177,6 +177,7 @@ function createPrismaServiceMock() {
     create: async ({ data }: { data: Record<string, unknown> }) => {
       const now = new Date();
       const user = {
+        avatarUrl: data.avatarUrl ?? '',
         id: data.id ?? crypto.randomUUID(),
         email: data.email,
         passwordHash: data.passwordHash,

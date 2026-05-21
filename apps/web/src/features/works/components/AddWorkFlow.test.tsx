@@ -260,6 +260,7 @@ function renderAuthenticatedAddWorkFlow(onSubmit = vi.fn()) {
           isLoading: false,
           mode: 'authenticated',
           user: {
+            avatarUrl: '',
             id: 'user-1',
             email: 'frieren@example.com',
             nickname: '',
@@ -377,6 +378,8 @@ async function openSearchPicker(
 async function selectManualProviderGroup(
   user: ReturnType<typeof userEvent.setup>,
 ) {
+  await user.click(await screen.findByRole('button', { name: '검색 설정' }));
+
   const manualProviderGroupButton = await waitFor(() => {
     const match = Array.from(document.querySelectorAll('button')).find(
       (button) =>
@@ -906,6 +909,7 @@ describe('AddWorkFlow', () => {
     renderAuthenticatedAddWorkFlow();
 
     await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(await screen.findByRole('button', { name: '검색 설정' }));
     await user.click(await screen.findByRole('button', { name: '도서' }));
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);

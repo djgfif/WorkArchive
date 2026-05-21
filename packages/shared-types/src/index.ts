@@ -234,6 +234,7 @@ export interface AuthUserResponse {
     pictureUrl: string;
     provider: string;
   }>;
+  avatarUrl: string;
   email: string;
   handle?: string | null;
   id: EntityId;
@@ -242,6 +243,7 @@ export interface AuthUserResponse {
 }
 
 export interface UpdateAuthProfileRequest {
+  avatarUrl: string;
   handle: string | null;
   nickname: string;
 }

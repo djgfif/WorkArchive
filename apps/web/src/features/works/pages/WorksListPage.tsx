@@ -291,6 +291,7 @@ export function WorksListPage() {
     tagSuggestions,
     totalActiveCount,
     totalDeletedCount,
+    typeCounts,
     works,
   } = useWorksList(query, collectionScope);
   const recentViewedWorks = useRecentWorkViews(8);
@@ -660,6 +661,7 @@ export function WorksListPage() {
         tagSuggestions={tagSuggestions}
         totalActiveCount={totalActiveCount}
         totalDeletedCount={totalDeletedCount}
+        typeCounts={typeCounts}
         viewMode={viewMode}
       />
 

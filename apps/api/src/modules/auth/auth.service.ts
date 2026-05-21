@@ -335,6 +335,7 @@ export class AuthService {
           id: userId,
         },
         data: {
+          avatarUrl: updateProfileDto.avatarUrl ?? '',
           handle,
           nickname: updateProfileDto.nickname,
         },
@@ -604,7 +605,7 @@ export class AuthService {
   }
 
   private toUserResponse(
-    user: Pick<User, 'id' | 'email' | 'handle' | 'nickname' | 'role'> & {
+    user: Pick<User, 'id' | 'avatarUrl' | 'email' | 'handle' | 'nickname' | 'role'> & {
       authAccounts?: Pick<
         UserAuthAccount,
         'email' | 'emailVerified' | 'name' | 'pictureUrl' | 'provider'
@@ -620,6 +621,7 @@ export class AuthService {
           pictureUrl: account.pictureUrl,
           provider: account.provider,
         })) ?? [],
+      avatarUrl: user.avatarUrl,
       id: user.id,
       email: user.email,
       handle: user.handle,

@@ -23,6 +23,11 @@ export class AuthUserResponseDto {
   }>;
 
   @ApiProperty({
+    example: 'https://example.com/avatar.jpg',
+  })
+  avatarUrl!: string;
+
+  @ApiProperty({
     format: 'uuid',
   })
   id!: string;

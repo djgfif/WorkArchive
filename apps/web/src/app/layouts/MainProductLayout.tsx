@@ -11,6 +11,7 @@ import {
   ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
+import { getUserAvatarProfile } from '../../features/auth/utils/user-profile';
 
 const primaryNavigationItems = [
   { label: '홈', to: '/' },
@@ -25,8 +26,13 @@ export function MainProductLayout() {
   const { isLoading, mode, signOut, user } = useAuthSession();
   const isAuthenticated = mode === 'authenticated';
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
-  const accountLabel = isAuthenticated ? (user?.email ?? '계정') : '게스트';
-  const avatarInitial = (accountLabel[0] ?? 'G').toUpperCase();
+  const avatarProfile = getUserAvatarProfile(isAuthenticated ? user : null);
+  const accountLabel = isAuthenticated ? avatarProfile.displayName : '게스트';
+  const avatarInitial = isAuthenticated ? avatarProfile.initial : 'G';
+  const avatarImageUrl = isAuthenticated ? avatarProfile.imageUrl : '';
+  const accountMenuLabel = isAuthenticated
+    ? `계정 메뉴: ${accountLabel}, ${avatarProfile.email}`
+    : `계정 메뉴: ${accountLabel}`;
 
   async function handleSignOut() {
     await signOut();
@@ -71,7 +77,7 @@ export function MainProductLayout() {
               <Menu position="bottom-end" shadow="xl" width={280}>
                 <Menu.Target>
                   <button
-                    aria-label={`계정 메뉴: ${accountLabel}`}
+                    aria-label={accountMenuLabel}
                     style={{
                       background: 'transparent',
                       border: 0,
@@ -80,13 +86,21 @@ export function MainProductLayout() {
                     }}
                     type="button"
                   >
-                    <Avatar color={isAuthenticated ? 'archive' : 'gray'} radius="xl" size={34}>
+                    <Avatar
+                      color={isAuthenticated ? 'archive' : 'gray'}
+                      radius="xl"
+                      size={34}
+                      src={avatarImageUrl || null}
+                    >
                       {avatarInitial}
                     </Avatar>
                   </button>
                 </Menu.Target>
                 <Menu.Dropdown>
                   <Menu.Label>{accountLabel}</Menu.Label>
+                  {isAuthenticated && (
+                    <Menu.Label>{avatarProfile.email}</Menu.Label>
+                  )}
                   <Menu.Item onClick={() => navigate('/account')}>계정 개요</Menu.Item>
                   <Menu.Item onClick={() => navigate('/account/settings')}>설정과 백업</Menu.Item>
                   {isAuthenticated ? (
@@ -151,7 +165,12 @@ export function MainProductLayout() {
             작품 추가
           </AppLinkButton>
           <Group gap="sm" wrap="nowrap">
-            <Avatar color={isAuthenticated ? 'archive' : 'gray'} radius="xl" size={40}>
+            <Avatar
+              color={isAuthenticated ? 'archive' : 'gray'}
+              radius="xl"
+              size={40}
+              src={avatarImageUrl || null}
+            >
               {avatarInitial}
             </Avatar>
             <Stack gap={2}>

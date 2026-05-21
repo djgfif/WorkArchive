@@ -203,7 +203,8 @@ describe('TierBoardEditorPage', () => {
 
     renderRoute(`/tier-boards/${state.board.id}`);
 
-    await user.click(await screen.findByRole('button', { name: 'PNG 이미지로 내보내기' }));
+    await user.click(await screen.findByRole('button', { name: '내보내기' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'PNG 이미지' }));
 
     expect(
       await screen.findByText('PNG 내보내기에 실패했습니다. 외부 이미지 CORS 때문에 실패했을 수 있습니다.'),

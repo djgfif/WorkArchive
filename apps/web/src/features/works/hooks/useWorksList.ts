@@ -10,7 +10,7 @@ import {
   worksService,
   type WorksCollectionScope,
 } from '../services/works.service';
-import type { WorkRecord, WorkStatus } from '@work-archive/shared-types';
+import type { WorkRecord, WorkStatus, WorkType } from '@work-archive/shared-types';
 
 interface WorksListState {
   contributorSuggestions: string[];
@@ -20,6 +20,7 @@ interface WorksListState {
   seriesSuggestions: string[];
   statusCounts: Record<WorkStatus, number>;
   tagSuggestions: string[];
+  typeCounts: Record<WorkType, number>;
   recentModifiedWorks: WorkRecord[];
   works: WorkRecord[];
   totalActiveCount: number;
@@ -37,6 +38,20 @@ function buildEmptyStatusCounts(): Record<WorkStatus, number> {
   };
 }
 
+function buildEmptyTypeCounts(): Record<WorkType, number> {
+  return {
+    anime: 0,
+    drama: 0,
+    light_novel: 0,
+    manga: 0,
+    movie: 0,
+    novel: 0,
+    other: 0,
+    web_novel: 0,
+    webtoon: 0,
+  };
+}
+
 const initialState: WorksListState = {
   contributorSuggestions: [],
   genreSuggestions: [],
@@ -45,6 +60,7 @@ const initialState: WorksListState = {
   seriesSuggestions: [],
   statusCounts: buildEmptyStatusCounts(),
   tagSuggestions: [],
+  typeCounts: buildEmptyTypeCounts(),
   recentModifiedWorks: [],
   works: [],
   totalActiveCount: 0,
@@ -79,6 +95,7 @@ export function useWorksList(
           seriesSuggestions,
           statusCounts,
           tagSuggestions,
+          typeCounts,
           totalActiveCount,
           totalDeletedCount,
           works,
@@ -92,6 +109,7 @@ export function useWorksList(
             seriesSuggestions,
             statusCounts,
             tagSuggestions,
+            typeCounts,
             works,
             totalActiveCount,
             totalDeletedCount,
@@ -109,6 +127,7 @@ export function useWorksList(
             seriesSuggestions: [],
             statusCounts: buildEmptyStatusCounts(),
             tagSuggestions: [],
+            typeCounts: buildEmptyTypeCounts(),
             works: [],
             totalActiveCount: 0,
             totalDeletedCount: 0,

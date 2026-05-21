@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Group, Image, Stack, Text, TextInput } from '@mantine/core';
+import { Avatar, Group, Stack, Text, TextInput } from '@mantine/core';
 import type { AuthUserResponse } from '@work-archive/shared-types';
 
 import {
@@ -14,6 +14,7 @@ import {
   ApiRequestError,
   updateAuthProfile,
 } from '../../../auth/services/auth.api';
+import { getUserAvatarProfile } from '../../../auth/utils/user-profile';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
 
@@ -79,29 +80,34 @@ export function AccountSettingsSection({
   const googleAccount = user?.authAccounts?.find(
     (account) => account.provider === 'google',
   );
-  const displayName =
-    googleAccount?.name || user?.nickname || user?.email || '게스트';
-  const email = googleAccount?.email ?? user?.email ?? '로그인되지 않음';
+  const avatarProfile = getUserAvatarProfile(user);
+  const displayName = avatarProfile.displayName;
+  const email = avatarProfile.email;
   const [nickname, setNickname] = useState(user?.nickname ?? '');
   const [handle, setHandle] = useState(user?.handle ?? '');
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? '');
   const [feedback, setFeedback] = useState<{
     message: string;
     tone: 'error' | 'success';
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const previewAvatarUrl = avatarUrl.trim() || googleAccount?.pictureUrl || '';
 
   useEffect(() => {
     setNickname(user?.nickname ?? '');
     setHandle(user?.handle ?? '');
+    setAvatarUrl(user?.avatarUrl ?? '');
     setFeedback(null);
-  }, [user?.handle, user?.id, user?.nickname]);
+  }, [user?.avatarUrl, user?.handle, user?.id, user?.nickname]);
 
   const handleValidationMessage = useMemo(
     () => getHandleValidationMessage(handle),
     [handle],
   );
   const hasChanges =
-    nickname !== (user?.nickname ?? '') || handle !== (user?.handle ?? '');
+    nickname !== (user?.nickname ?? '') ||
+    handle !== (user?.handle ?? '') ||
+    avatarUrl !== (user?.avatarUrl ?? '');
   const canSave = mode === 'authenticated' && Boolean(user) && hasChanges;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -125,6 +131,7 @@ export function AccountSettingsSection({
 
     try {
       const updatedUser = await updateAuthProfile({
+        avatarUrl,
         handle: handle || null,
         nickname,
       });
@@ -167,15 +174,14 @@ export function AccountSettingsSection({
       ) : (
         <Stack gap="lg">
           <Group align="center" gap="md" wrap="wrap">
-            {googleAccount?.pictureUrl && (
-              <Image
-                alt=""
-                h={56}
-                radius="xl"
-                src={googleAccount.pictureUrl}
-                w={56}
-              />
-            )}
+            <Avatar
+              color="archive"
+              radius="xl"
+              size={56}
+              src={previewAvatarUrl || null}
+            >
+              {avatarProfile.initial}
+            </Avatar>
             <Stack gap={2}>
               <Text fw={800}>{displayName}</Text>
               <Text c="dimmed" size="sm">
@@ -202,7 +208,7 @@ export function AccountSettingsSection({
                 <SectionIntro
                   description="표시 이름과 handle은 Work Archive 안에서 보이는 프로필 정보입니다. 로그인 방식은 Google 연결만 사용합니다."
                   eyebrow="프로필 편집"
-                  title="표시 이름과 handle"
+                  title="표시 이름과 프로필 사진"
                   titleOrder={3}
                 />
                 {feedback && (
@@ -216,6 +222,12 @@ export function AccountSettingsSection({
                     placeholder="표시 이름"
                     value={nickname}
                     onChange={(event) => setNickname(event.currentTarget.value)}
+                  />
+                  <TextInput
+                    label="프로필 사진 URL"
+                    placeholder="https://example.com/avatar.jpg"
+                    value={avatarUrl}
+                    onChange={(event) => setAvatarUrl(event.currentTarget.value)}
                   />
                   <TextInput
                     error={handleValidationMessage}

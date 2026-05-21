@@ -1,4 +1,5 @@
 import {
+  Collapse,
   Grid,
   Group,
   NativeSelect,
@@ -10,7 +11,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
-import type { FormEvent, ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 
 import {
   AppButton,
@@ -140,6 +141,11 @@ export function AddWorkSearchPanel({
 }: AddWorkSearchPanelProps) {
   const normalizedSearchTerm = searchTerm.trim();
   const isManualSearchGroup = isManualProviderGroup(providerGroup);
+  const [providerOptionsOpen, setProviderOptionsOpen] = useState(false);
+  const defaultProviderGroupOption = providerGroupOptions[0]!;
+  const selectedProviderGroupOption =
+    providerGroupOptions.find((option) => option.value === providerGroup) ??
+    defaultProviderGroupOption;
 
   return (
     <Stack gap="lg">
@@ -188,34 +194,65 @@ export function AddWorkSearchPanel({
               </AppButton>
             </Group>
 
-            <Stack gap={6}>
-              <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
-                검색 출처
-              </Text>
-              <Group gap="xs" role="group" aria-label="검색 출처" wrap="wrap">
-                {providerGroupOptions.map((option) => (
-                  <AppButton
-                    aria-pressed={providerGroup === option.value}
-                    key={option.value}
-                    onClick={() => onProviderGroupChange(option.value)}
-                    size="compact-sm"
-                    tone={
-                      providerGroup === option.value ? 'primary' : 'secondary'
-                    }
-                    type="button"
-                  >
-                    {option.label}
-                  </AppButton>
-                ))}
+            <Paper
+              p="xs"
+              radius="md"
+              style={{
+                background: 'color-mix(in srgb, var(--app-surface-subtle) 70%, transparent)',
+                borderColor: 'var(--app-border-subtle)',
+              }}
+              withBorder
+            >
+              <Group align="center" justify="space-between" wrap="wrap">
+                <Stack gap={1}>
+                  <Text fw={750} size="sm">
+                    검색은 자동 출처로 진행합니다
+                  </Text>
+                  <Text c="var(--mantine-color-dimmed)" size="xs">
+                    현재 {selectedProviderGroupOption.label}
+                    {providerGroup !== 'all'
+                      ? ` · ${selectedProviderGroupOption.description}`
+                      : ''}
+                  </Text>
+                </Stack>
+                <AppButton
+                  aria-expanded={providerOptionsOpen}
+                  onClick={() => setProviderOptionsOpen((opened) => !opened)}
+                  size="compact-sm"
+                  tone={providerGroup === 'all' ? 'quiet' : 'secondary'}
+                  type="button"
+                >
+                  검색 설정
+                </AppButton>
               </Group>
-              <Text c="var(--mantine-color-dimmed)" size="xs">
-                {
-                  providerGroupOptions.find(
-                    (option) => option.value === providerGroup,
-                  )?.description
-                }
-              </Text>
-            </Stack>
+
+              <Collapse in={providerOptionsOpen}>
+                <Stack gap={6} pt="sm">
+                  <Text c="var(--mantine-color-dimmed)" fw={700} size="xs">
+                    검색 출처 직접 선택
+                  </Text>
+                  <Group gap="xs" role="group" aria-label="검색 출처" wrap="wrap">
+                    {providerGroupOptions.map((option) => (
+                      <AppButton
+                        aria-pressed={providerGroup === option.value}
+                        key={option.value}
+                        onClick={() => onProviderGroupChange(option.value)}
+                        size="compact-sm"
+                        tone={
+                          providerGroup === option.value ? 'primary' : 'secondary'
+                        }
+                        type="button"
+                      >
+                        {option.label}
+                      </AppButton>
+                    ))}
+                  </Group>
+                  <Text c="var(--mantine-color-dimmed)" size="xs">
+                    검색 결과가 너무 넓거나 부족할 때만 출처를 좁혀 사용하세요.
+                  </Text>
+                </Stack>
+              </Collapse>
+            </Paper>
           </Stack>
         </form>
       </Paper>

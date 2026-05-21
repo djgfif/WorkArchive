@@ -1,8 +1,8 @@
 import {
   Button,
+  Avatar,
   Divider,
   Group,
-  Image,
   PasswordInput,
   SimpleGrid,
   Stack,
@@ -27,6 +27,7 @@ import type { LocalArchiveImportPreview } from '../../../archive/services/local-
 import type { ImportProviderStatus } from '../../../imports/services/imports.service';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import { getWorkTypeLabel } from '../../../works/utils/work-options';
+import { getUserAvatarProfile } from '../../../auth/utils/user-profile';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
 
@@ -42,8 +43,8 @@ export function AccountIdentitySection({
   const googleAccount = user?.authAccounts?.find(
     (account) => account.provider === 'google',
   );
-  const displayName =
-    googleAccount?.name || user?.nickname || user?.email || '게스트';
+  const avatarProfile = getUserAvatarProfile(user);
+  const displayName = avatarProfile.displayName;
   const handle = user?.handle ? `@${user.handle}` : '@handle 미설정';
 
   return (
@@ -68,15 +69,14 @@ export function AccountIdentitySection({
       ) : (
         <Stack gap="md">
           <Group align="center" gap="md" wrap="wrap">
-            {googleAccount?.pictureUrl && (
-              <Image
-                alt=""
-                h={48}
-                radius="xl"
-                src={googleAccount.pictureUrl}
-                w={48}
-              />
-            )}
+            <Avatar
+              color="archive"
+              radius="xl"
+              size={48}
+              src={avatarProfile.imageUrl || null}
+            >
+              {avatarProfile.initial}
+            </Avatar>
             <Stack gap={2}>
               <Text fw={700}>{displayName}</Text>
               <Text c="var(--mantine-color-dimmed)" size="sm">
@@ -768,4 +768,3 @@ export function LoginSessionsSection({
     </SectionCard>
   );
 }
-

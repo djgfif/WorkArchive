@@ -3,6 +3,7 @@ import type {
   ProgressUnit,
   WorkStatus,
   WorkSyncStatus,
+  WorkType,
 } from '@work-archive/shared-types';
 import type { WorksRepository } from './works.repository';
 
@@ -51,6 +52,7 @@ interface WorksListResult {
   seriesSuggestions: string[];
   statusCounts: Record<WorkStatus, number>;
   tagSuggestions: string[];
+  typeCounts: Record<WorkType, number>;
   recentModifiedWorks: WorkRecord[];
   totalActiveCount: number;
   totalDeletedCount: number;
@@ -81,6 +83,27 @@ function countStatuses(works: WorkRecord[]) {
 
     return counts;
   }, buildEmptyStatusCounts());
+}
+
+function countTypes(works: WorkRecord[]) {
+  return works.reduce(
+    (counts, work) => {
+      counts[work.type] += 1;
+
+      return counts;
+    },
+    {
+      anime: 0,
+      drama: 0,
+      light_novel: 0,
+      manga: 0,
+      movie: 0,
+      novel: 0,
+      other: 0,
+      web_novel: 0,
+      webtoon: 0,
+    } satisfies Record<WorkType, number>,
+  );
 }
 
 function buildGraphInputFromLegacyTags(tags: string[]): WorkGraphInput | null {
@@ -198,6 +221,7 @@ export class WorksService {
       tagSuggestions: Array.from(
         new Set(activeWorks.flatMap((work) => getPersonalTags(work.personalTags))),
       ).sort((left, right) => left.localeCompare(right)),
+      typeCounts: countTypes(activeWorks),
       recentModifiedWorks: [...activeWorks]
         .sort(
           (left, right) =>

@@ -176,6 +176,7 @@ function renderAuthenticatedSettings(signOut = vi.fn()) {
           isLoading: false,
           mode: 'authenticated',
           user: {
+            avatarUrl: '',
             id: 'user-1',
             email: 'frieren@example.com',
             handle: 'frieren',
@@ -348,6 +349,7 @@ describe('SettingsPage', () => {
       accessToken: 'access-token',
     });
     const updatedUser = {
+      avatarUrl: 'https://example.com/avatar.jpg',
       id: 'user-1',
       email: 'frieren@example.com',
       handle: 'mage_frieren',
@@ -384,6 +386,10 @@ describe('SettingsPage', () => {
 
     await user.clear(screen.getByLabelText('표시 이름'));
     await user.type(screen.getByLabelText('표시 이름'), 'Mage Frieren');
+    await user.type(
+      screen.getByLabelText('프로필 사진 URL'),
+      'https://example.com/avatar.jpg',
+    );
     await user.clear(screen.getByLabelText('handle'));
     await user.type(screen.getByLabelText('handle'), '@mage_frieren');
     await user.click(saveButton);
@@ -405,6 +411,7 @@ describe('SettingsPage', () => {
     expect(profileRequestInit.method).toBe('PATCH');
     expect(profileRequestInit.body).toBe(
       JSON.stringify({
+        avatarUrl: 'https://example.com/avatar.jpg',
         handle: 'mage_frieren',
         nickname: 'Mage Frieren',
       }),
