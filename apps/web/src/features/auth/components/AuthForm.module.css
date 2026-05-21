@@ -1,0 +1,62 @@
+.authStack {
+  width: 100%;
+}
+
+.googleCta {
+  min-height: 3rem;
+  border: 1px solid color-mix(in srgb, var(--app-border-default) 86%, white);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 247, 251, 0.92)),
+    #fff;
+  color: #1f2937;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
+  transition:
+    border-color var(--wa-motion-fast),
+    box-shadow var(--wa-motion-fast),
+    transform var(--wa-motion-fast);
+}
+
+.googleCta:hover {
+  border-color: color-mix(in srgb, #4285f4 62%, var(--app-border-default));
+  background:
+    linear-gradient(180deg, #fff, rgba(248, 250, 252, 0.98)),
+    #fff;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.22);
+  transform: translateY(-1px);
+}
+
+.googleCta:disabled,
+.googleCta[data-disabled] {
+  border-color: var(--app-border-subtle);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    var(--app-surface-subtle);
+  color: var(--app-text-muted);
+  box-shadow: none;
+  transform: none;
+}
+
+.googleIcon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.ctaHelper {
+  padding-inline: 0.125rem;
+  line-height: 1.55;
+}
+
+.guestPanel {
+  padding: 1rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+    var(--app-surface-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .googleCta {
+    transition: none;
+  }
+}

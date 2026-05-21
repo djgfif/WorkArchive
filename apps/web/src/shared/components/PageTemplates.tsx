@@ -7,6 +7,32 @@ import {
   SectionCard,
 } from './AppPrimitives';
 import { PageHero } from './PageHero';
+import styles from './PageTemplates.module.css';
+
+const css = {
+  authShell: styles.authShell ?? '',
+  authViewport: styles.authViewport ?? '',
+  brandCopy: styles.brandCopy ?? '',
+  brandDescription: styles.brandDescription ?? '',
+  brandHeader: styles.brandHeader ?? '',
+  brandKicker: styles.brandKicker ?? '',
+  brandMark: styles.brandMark ?? '',
+  brandName: styles.brandName ?? '',
+  brandPanel: styles.brandPanel ?? '',
+  brandTitle: styles.brandTitle ?? '',
+  eyebrow: styles.eyebrow ?? '',
+  featureDescription: styles.featureDescription ?? '',
+  featureIcon: styles.featureIcon ?? '',
+  featureList: styles.featureList ?? '',
+  featureTitle: styles.featureTitle ?? '',
+  footer: styles.footer ?? '',
+  formDescription: styles.formDescription ?? '',
+  formPanel: styles.formPanel ?? '',
+  formTitle: styles.formTitle ?? '',
+  trustCard: styles.trustCard ?? '',
+  trustDot: styles.trustDot ?? '',
+  trustItem: styles.trustItem ?? '',
+};
 
 interface PageFrameProps {
   children: ReactNode;
@@ -38,7 +64,13 @@ export const DetailPageTemplate = WorkDetailTemplate;
 export const FlowPageTemplate = FormFlowTemplate;
 
 /* ── 브랜드 패널 특징 아이템 ── */
-const AUTH_BRAND_FEATURES = [
+type AuthHighlight = {
+  description: string;
+  icon?: ReactNode;
+  title: string;
+};
+
+const AUTH_BRAND_FEATURES: AuthHighlight[] = [
   {
     icon: (
       <svg fill="none" height={15} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={15}>
@@ -67,13 +99,27 @@ const AUTH_BRAND_FEATURES = [
     title: '개인 기록 전용',
     description: '공개 프로필이나 커뮤니티 피드를 만들지 않습니다.',
   },
+];
+
+const AUTH_TRUST_NOTES = [
+  '로컬 기록은 이 기기에 먼저 저장됩니다.',
+  'Google 연결 후에도 기록은 비공개입니다.',
+  'API key와 토큰은 export 파일에 포함되지 않습니다.',
 ] as const;
+
+function DefaultHighlightIcon() {
+  return (
+    <svg fill="none" height={15} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24" width={15}>
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
 
 interface AuthPageTemplateProps {
   description?: string;
   footer?: ReactNode;
   form: ReactNode;
-  highlights?: Array<{ description: string; title: string }>;
+  highlights?: AuthHighlight[];
   eyebrow?: string;
   title: string;
 }
@@ -83,151 +129,54 @@ export function AuthPageTemplate({
   footer,
   form,
   eyebrow,
+  highlights,
   title,
 }: AuthPageTemplateProps) {
-  return (
-    <Box
-      style={{
-        minHeight:      'calc(100vh - 64px)',
-        display:        'flex',
-        alignItems:     'center',
-        justifyContent: 'center',
-        padding:        'clamp(1.5rem, 4vw, 3rem) var(--mantine-spacing-md)',
-      }}
-    >
-      <Box
-        style={{
-          display:             'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-          maxWidth:            860,
-          minWidth:            0,
-          width:               '100%',
-          borderRadius:        'var(--mantine-radius-xl)',
-          overflow:            'hidden',
-          border:              '1px solid var(--app-border-default)',
-          boxShadow:           '0 24px 64px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2)',
-        }}
-      >
-        {/* ── 좌측: 브랜드 패널 ── */}
-        <Box
-          style={{
-            background:    'linear-gradient(155deg, #3b82f6 0%, #1d4ed8 55%, #1e1b4b 100%)',
-            minWidth:      0,
-            padding:       'clamp(2rem, 5vw, 3rem)',
-            display:       'flex',
-            flexDirection: 'column',
-            gap:           '2rem',
-            position:      'relative',
-            overflow:      'hidden',
-          }}
-        >
-          {/* 배경 장식 원 */}
-          <Box
-            style={{
-              position:     'absolute',
-              top:          '-80px',
-              right:        '-80px',
-              width:        220,
-              height:       220,
-              borderRadius: '50%',
-              background:   'rgba(255,255,255,0.07)',
-              pointerEvents:'none',
-            }}
-          />
-          <Box
-            style={{
-              position:     'absolute',
-              bottom:       '-50px',
-              left:         '-50px',
-              width:        180,
-              height:       180,
-              borderRadius: '50%',
-              background:   'rgba(255,255,255,0.04)',
-              pointerEvents:'none',
-            }}
-          />
+  const brandFeatures = highlights?.length ? highlights : AUTH_BRAND_FEATURES;
 
+  return (
+    <Box className={css.authViewport}>
+      <Box className={css.authShell}>
+        {/* ── 좌측: 브랜드 패널 ── */}
+        <Box className={css.brandPanel}>
           {/* 브랜드 로고 */}
-          <Group gap="sm" wrap="nowrap" style={{ position: 'relative', zIndex: 1 }}>
-            <Box
-              style={{
-                width:         38,
-                height:        38,
-                borderRadius:  10,
-                background:    'rgba(255,255,255,0.18)',
-                backdropFilter:'blur(4px)',
-                display:       'flex',
-                alignItems:    'center',
-                justifyContent:'center',
-                fontWeight:    900,
-                fontSize:      '0.88rem',
-                color:         '#fff',
-                letterSpacing: '-0.02em',
-                flexShrink:    0,
-                border:        '1px solid rgba(255,255,255,0.25)',
-              }}
-            >
+          <Group className={css.brandHeader} gap="sm" wrap="nowrap">
+            <Box className={css.brandMark}>
               WA
             </Box>
             <Stack gap={0}>
-              <Text fw={800} size="sm" style={{ color: '#fff', letterSpacing: '-0.01em' }}>
+              <Text className={css.brandName} fw={800} size="sm">
                 Work Archive
               </Text>
-              <Text size="xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <Text className={css.brandKicker} size="xs">
                 개인 감상 서재
               </Text>
             </Stack>
           </Group>
 
           {/* 슬로건 */}
-          <Stack gap="sm" style={{ position: 'relative', zIndex: 1 }}>
-            <Title
-              order={2}
-              style={{
-                color:         '#fff',
-                fontWeight:    800,
-                fontSize:      'clamp(1.35rem, 3vw, 1.85rem)',
-                lineHeight:    1.25,
-                letterSpacing: '-0.025em',
-              }}
-            >
+          <Stack className={css.brandCopy} gap="sm">
+            <Title className={css.brandTitle} order={2}>
               감상한 모든 작품을,<br />한 곳에서 기록하세요.
             </Title>
-            <Text
-              size="sm"
-              style={{ color: 'rgba(255,255,255,0.72)', lineHeight: 1.65 }}
-            >
+            <Text className={css.brandDescription} size="sm">
               소설·애니·만화·드라마·영화 —<br />
               장르 불문, 나만의 아카이브를 만들어 보세요.
             </Text>
           </Stack>
 
           {/* 특징 목록 */}
-          <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
-            {AUTH_BRAND_FEATURES.map((feature) => (
+          <Stack className={css.featureList} gap="md">
+            {brandFeatures.map((feature) => (
               <Group key={feature.title} gap="sm" wrap="nowrap" align="flex-start">
-                <Box
-                  style={{
-                    width:         30,
-                    height:        30,
-                    borderRadius:  8,
-                    background:    'rgba(255,255,255,0.14)',
-                    border:        '1px solid rgba(255,255,255,0.18)',
-                    display:       'flex',
-                    alignItems:    'center',
-                    justifyContent:'center',
-                    color:         '#fff',
-                    flexShrink:    0,
-                    marginTop:     2,
-                  }}
-                >
-                  {feature.icon}
+                <Box className={css.featureIcon}>
+                  {feature.icon ?? <DefaultHighlightIcon />}
                 </Box>
                 <Stack gap={1}>
-                  <Text fw={700} size="sm" style={{ color: '#fff' }}>
+                  <Text className={css.featureTitle} fw={700} size="sm">
                     {feature.title}
                   </Text>
-                  <Text size="xs" style={{ color: 'rgba(255,255,255,0.62)', lineHeight: 1.5 }}>
+                  <Text className={css.featureDescription} size="xs">
                     {feature.description}
                   </Text>
                 </Stack>
@@ -237,45 +186,22 @@ export function AuthPageTemplate({
         </Box>
 
         {/* ── 우측: 폼 패널 ── */}
-        <Box
-          style={{
-            background:    'var(--app-surface-card)',
-            minWidth:      0,
-            padding:       'clamp(2rem, 5vw, 3rem)',
-            display:       'flex',
-            flexDirection: 'column',
-            justifyContent:'center',
-            gap:           '1.5rem',
-          }}
-        >
+        <Box className={css.formPanel}>
           {/* 폼 헤더 */}
           <Stack gap={6}>
             {eyebrow && (
               <Text
+                className={css.eyebrow}
                 size="xs"
-                fw={700}
-                style={{
-                  color:         'var(--app-accent-primary)',
-                  letterSpacing: '0.10em',
-                  textTransform: 'uppercase',
-                }}
               >
                 {eyebrow}
               </Text>
             )}
-            <Title
-              order={1}
-              style={{
-                fontSize:      'clamp(1.4rem, 3vw, 1.75rem)',
-                fontWeight:    800,
-                letterSpacing: '-0.025em',
-                color:         'var(--app-text-primary)',
-              }}
-            >
+            <Title className={css.formTitle} order={1}>
               {title}
             </Title>
             {description && (
-              <Text size="sm" c="dimmed" style={{ lineHeight: 1.65 }}>
+              <Text className={css.formDescription} size="sm" c="dimmed">
                 {description}
               </Text>
             )}
@@ -286,14 +212,18 @@ export function AuthPageTemplate({
           {/* 폼 */}
           {form}
 
+          <Stack className={css.trustCard} gap="xs">
+            {AUTH_TRUST_NOTES.map((note) => (
+              <Box className={css.trustItem} key={note}>
+                <span className={css.trustDot} />
+                <span>{note}</span>
+              </Box>
+            ))}
+          </Stack>
+
           {/* 푸터 링크 */}
           {footer && (
-            <Box
-              style={{
-                paddingTop: '0.75rem',
-                borderTop:  '1px solid var(--app-border-subtle)',
-              }}
-            >
+            <Box className={css.footer}>
               {footer}
             </Box>
           )}

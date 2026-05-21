@@ -1,0 +1,190 @@
+.authViewport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+  padding: clamp(1.5rem, 4vw, 3rem) var(--mantine-spacing-md);
+}
+
+.authShell {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+  width: 100%;
+  max-width: 960px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-xl);
+  background: var(--app-surface-card);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.34), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.brandPanel {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2rem;
+  padding: clamp(2rem, 5vw, 3rem);
+  overflow: hidden;
+  background:
+    linear-gradient(150deg, rgba(26, 82, 73, 0.88), rgba(24, 26, 37, 0.98) 52%, rgba(65, 42, 72, 0.92)),
+    var(--app-surface-hero);
+}
+
+.brandPanel::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 22%),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.035) 0,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 18px
+    );
+  opacity: 0.55;
+}
+
+.brandHeader,
+.brandCopy,
+.featureList {
+  position: relative;
+  z-index: 1;
+}
+
+.brandMark {
+  display: flex;
+  width: 2.375rem;
+  height: 2.375rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 0.625rem;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.brandName {
+  color: #fff;
+}
+
+.brandKicker {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.brandTitle {
+  color: #fff;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.brandDescription {
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.65;
+}
+
+.featureIcon {
+  display: flex;
+  width: 1.875rem;
+  height: 1.875rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.125rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+
+.featureTitle {
+  color: #fff;
+}
+
+.featureDescription {
+  color: rgba(255, 255, 255, 0.66);
+  line-height: 1.5;
+}
+
+.formPanel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: clamp(2rem, 5vw, 3rem);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+    var(--app-surface-card);
+}
+
+.eyebrow {
+  color: var(--app-accent-primary);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.formTitle {
+  color: var(--app-text-primary);
+  font-size: clamp(1.4rem, 3vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.formDescription {
+  line-height: 1.65;
+}
+
+.trustCard {
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+    var(--app-surface-subtle);
+}
+
+.trustItem {
+  display: grid;
+  grid-template-columns: 0.45rem 1fr;
+  gap: 0.55rem;
+  align-items: start;
+  color: var(--app-text-secondary);
+  font-size: var(--app-type-caption);
+  line-height: 1.5;
+}
+
+.trustDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-top: 0.45rem;
+  border-radius: 999px;
+  background: var(--app-accent-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent-primary) 16%, transparent);
+}
+
+.footer {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+@media (max-width: 760px) {
+  .authShell {
+    grid-template-columns: 1fr;
+  }
+
+  .brandPanel {
+    gap: 1.5rem;
+  }
+}

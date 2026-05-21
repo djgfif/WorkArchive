@@ -153,6 +153,7 @@ interface AppButtonProps {
   'aria-expanded'?: boolean;
   'aria-pressed'?: boolean;
   children?: ReactNode;
+  className?: string;
   disabled?: boolean;
   fullWidth?: boolean;
   leftSection?: ReactNode;

@@ -87,7 +87,7 @@ describe('Auth flow', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows Google-first login and hides email/password auth', async () => {
+  it('shows Google backup CTA and hides email/password auth', async () => {
     vi.stubGlobal('fetch', authStartupFetchMock());
 
     const user = userEvent.setup();
@@ -102,11 +102,17 @@ describe('Auth flow', () => {
     );
 
     expect(getLinkByHref('/')).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: 'Google로 계속하기' })).toBeInTheDocument();
+    const googleButton = await screen.findByRole('button', { name: 'Google로 백업 연결' });
+    expect(googleButton).toBeInTheDocument();
+    expect(googleButton).not.toBeDisabled();
+    expect(screen.getByText('비공개 백업 · 여러 기기 동기화 · 개인 API key vault')).toBeInTheDocument();
+    expect(screen.getByText('로그인 전 기록 가능')).toBeInTheDocument();
+    expect(screen.getByText('백업은 선택 사항')).toBeInTheDocument();
+    expect(screen.queryByText('Local-first')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/이메일/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/비밀번호/)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '게스트로 계속하기' }));
+    await user.click(screen.getByRole('button', { name: '로그인 없이 시작하기' }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/works');
@@ -133,9 +139,36 @@ describe('Auth flow', () => {
     );
 
     expect(await screen.findByText('Google OAuth 설정 필요')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Google로 계속하기' })).toBeDisabled();
+    expect(
+      screen.getAllByText('현재 이 환경에서는 Google 로그인을 사용할 수 없습니다. 로그인 없이 계속 사용할 수 있습니다.').length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Google로 백업 연결' })).toBeDisabled();
 
-    await user.click(screen.getByRole('button', { name: '게스트로 계속하기' }));
+    await user.click(screen.getByRole('button', { name: '로그인 없이 시작하기' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/works');
+    });
+  });
+
+  it('shows a short Google failure message and keeps local start available', async () => {
+    vi.stubGlobal('fetch', authStartupFetchMock());
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/login?google=failed'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('Google 로그인을 완료하지 못했습니다.')).toBeInTheDocument();
+    expect(screen.getByText('다시 시도하거나 로그인 없이 계속할 수 있습니다.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '로그인 없이 시작하기' }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/works');
@@ -155,7 +188,7 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByRole('button', { name: 'Google로 계속하기' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Google로 백업 연결' })).toBeInTheDocument();
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/auth/login');
