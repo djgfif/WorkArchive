@@ -3,7 +3,7 @@
 }
 
 .googleCta {
-  min-height: 3rem;
+  min-height: 3.1rem;
   border: 1px solid #dadce0;
   background: #fff;
   color: #1f2937;
@@ -39,11 +39,15 @@
 
 .ctaHelper {
   padding-inline: 0.125rem;
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 .guestPanel {
   padding-top: 0.125rem;
+}
+
+.guestPanel :global(.mantine-Button-root) {
+  min-height: 2.85rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

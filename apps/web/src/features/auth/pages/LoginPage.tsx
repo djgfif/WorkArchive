@@ -112,7 +112,13 @@ export function LoginPage() {
           title: '기록 이전 검토',
         },
       ]}
-      title="기록은 바로 시작하고, 백업은 Google로 연결하세요"
+      title={
+        <>
+          기록은 바로 시작,
+          <br />
+          백업은 Google로 연결
+        </>
+      }
     />
   );
 }

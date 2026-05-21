@@ -123,7 +123,7 @@ interface AuthPageTemplateProps {
   form: ReactNode;
   highlights?: AuthHighlight[];
   eyebrow?: string;
-  title: string;
+  title: ReactNode;
 }
 
 export function AuthPageTemplate({
