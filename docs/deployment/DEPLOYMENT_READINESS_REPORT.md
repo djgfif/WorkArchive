@@ -22,108 +22,110 @@ Notes:
 
 ## Automated Verification
 
-| Check | Result | Evidence / Notes |
-| --- | --- | --- |
-| `npm run typecheck --workspace @work-archive/shared-types` | Pending |  |
-| `npm run typecheck --workspace @work-archive/api` | Pending |  |
-| `npm run typecheck --workspace @work-archive/web` | Pending |  |
-| `npm run test --workspace @work-archive/api` | Pending |  |
-| `npm run test --workspace @work-archive/web` | Pending |  |
-| `npm run build` | Pending |  |
-| `docker compose -f compose.prod.yml --env-file .env.prod build` | Pending |  |
+| Check                                                           | Result  | Evidence / Notes |
+| --------------------------------------------------------------- | ------- | ---------------- |
+| `npm run typecheck --workspace @work-archive/shared-types`      | Pending |                  |
+| `npm run typecheck --workspace @work-archive/api`               | Pending |                  |
+| `npm run typecheck --workspace @work-archive/web`               | Pending |                  |
+| `npm run test --workspace @work-archive/api`                    | Pending |                  |
+| `npm run test --workspace @work-archive/web`                    | Pending |                  |
+| `npm run build`                                                 | Pending |                  |
+| `docker compose -f compose.prod.yml --env-file .env.prod build` | Pending |                  |
 
 ## Production Compose
 
-| Item | Result | Evidence / Notes |
-| --- | --- | --- |
-| `.env.prod` created from `.env.prod.example` | Pending | Do not paste secret values. |
-| `docker compose config` succeeds | Pending |  |
-| production images build | Pending |  |
-| stack starts with `up -d` | Pending |  |
-| `work-archive-postgres` healthy | Pending |  |
-| `work-archive-redis` healthy | Pending |  |
-| `work-archive-api` healthy | Pending |  |
-| `work-archive-web` running | Pending |  |
+| Item                                                                        | Result  | Evidence / Notes            |
+| --------------------------------------------------------------------------- | ------- | --------------------------- |
+| `.env.prod` created from `.env.prod.example`                                | Pending | Do not paste secret values. |
+| `docker compose config` succeeds                                            | Pending |                             |
+| production images build                                                     | Pending |                             |
+| stack starts with `up -d`                                                   | Pending |                             |
+| `/work-archive-config.js` loads before React bundle and contains no secrets | Pending |                             |
+| `work-archive-postgres` healthy                                             | Pending |                             |
+| `work-archive-redis` healthy                                                | Pending |                             |
+| `work-archive-api` healthy                                                  | Pending |                             |
+| `work-archive-web` running                                                  | Pending |                             |
 
 ## Health Smoke
 
-| Endpoint | Result | Evidence / Notes |
-| --- | --- | --- |
-| `/health` | Pending |  |
-| `/livez` | Pending |  |
-| `/readyz` | Pending |  |
+| Endpoint  | Result  | Evidence / Notes |
+| --------- | ------- | ---------------- |
+| `/health` | Pending |                  |
+| `/livez`  | Pending |                  |
+| `/readyz` | Pending |                  |
 
 ## Google OAuth
 
-| Check | Result | Evidence / Notes |
-| --- | --- | --- |
-| Google Console redirect URI exactly matches production callback | Pending |  |
-| `.env.prod` redirect URI exactly matches Google Console | Pending |  |
-| `/auth/login` shows Google-only login | Pending |  |
-| Google start endpoint redirects to Google | Pending |  |
-| callback returns to `/auth/google/complete` | Pending |  |
-| `/api/auth/me` returns authenticated user | Pending |  |
-| cookies are `HttpOnly` and `Secure` | Pending | Do not paste cookie values. |
-| email/password routes remain unavailable | Pending |  |
+| Check                                                           | Result  | Evidence / Notes            |
+| --------------------------------------------------------------- | ------- | --------------------------- |
+| Google Console redirect URI exactly matches production callback | Pending |                             |
+| `.env.prod` redirect URI exactly matches Google Console         | Pending |                             |
+| `/auth/login` shows Google-only login                           | Pending |                             |
+| Google start endpoint redirects to Google                       | Pending |                             |
+| callback returns to `/auth/google/complete`                     | Pending |                             |
+| `/api/auth/me` returns authenticated user                       | Pending |                             |
+| cookies are `HttpOnly` and `Secure`                             | Pending | Do not paste cookie values. |
+| email/password routes remain unavailable                        | Pending |                             |
 
 ## Backup And Restore Drill
 
-| Check | Result | Evidence / Notes |
-| --- | --- | --- |
-| pre-rehearsal backup created | Pending | Filename only; no secrets. |
-| backup copied off-host | Pending | Destination class only. |
-| restore into disposable target succeeds | Pending |  |
-| `/readyz` passes after restore | Pending |  |
-| Google login checked after restore | Pending |  |
-| sync checked after restore | Pending |  |
-| tier boards checked after restore | Pending |  |
+| Check                                   | Result  | Evidence / Notes           |
+| --------------------------------------- | ------- | -------------------------- |
+| pre-rehearsal backup created            | Pending | Filename only; no secrets. |
+| backup copied off-host                  | Pending | Destination class only.    |
+| restore into disposable target succeeds | Pending |                            |
+| `/readyz` passes after restore          | Pending |                            |
+| Google login checked after restore      | Pending |                            |
+| sync checked after restore              | Pending |                            |
+| tier boards checked after restore       | Pending |                            |
 
 ## Tier Board Smoke
 
-| Check | Result | Evidence / Notes |
-| --- | --- | --- |
-| `/tier-boards` opens | Pending |  |
-| board created | Pending |  |
-| text card added | Pending |  |
-| image URL card added | Pending |  |
-| uploaded image card added | Pending |  |
-| work snapshot card added | Pending |  |
-| pool-to-lane move works | Pending |  |
-| lane-to-pool move works | Pending |  |
-| JSON export/import works | Pending |  |
-| PNG export works or documented fallback appears | Pending |  |
-| linked WorkRecord not modified by movement | Pending |  |
-| public share/community remains disabled | Pending |  |
+| Check                                                                        | Result  | Evidence / Notes |
+| ---------------------------------------------------------------------------- | ------- | ---------------- |
+| `tierBoards` flag-off hides nav and redirects tier-board routes, if disabled | Pending |                  |
+| `/tier-boards` opens                                                         | Pending |                  |
+| board created                                                                | Pending |                  |
+| text card added                                                              | Pending |                  |
+| image URL card added                                                         | Pending |                  |
+| uploaded image card added                                                    | Pending |                  |
+| work snapshot card added                                                     | Pending |                  |
+| pool-to-lane move works                                                      | Pending |                  |
+| lane-to-pool move works                                                      | Pending |                  |
+| JSON export/import works                                                     | Pending |                  |
+| PNG export works or documented fallback appears                              | Pending |                  |
+| linked WorkRecord not modified by movement                                   | Pending |                  |
+| public share/community remains disabled                                      | Pending |                  |
 
 ## Sync Idempotency Smoke
 
-| Check | Result | Evidence / Notes |
-| --- | --- | --- |
-| duplicate work `clientMutationId` is already applied | Pending |  |
-| no duplicate work row | Pending |  |
-| duplicate tier board card `clientMutationId` is already applied | Pending |  |
-| no duplicate tier board card row | Pending |  |
-| no duplicate applied mutation row per user/mutation | Pending |  |
+| Check                                                           | Result  | Evidence / Notes |
+| --------------------------------------------------------------- | ------- | ---------------- |
+| duplicate work `clientMutationId` is already applied            | Pending |                  |
+| no duplicate work row                                           | Pending |                  |
+| duplicate tier board card `clientMutationId` is already applied | Pending |                  |
+| no duplicate tier board card row                                | Pending |                  |
+| no duplicate applied mutation row per user/mutation             | Pending |                  |
 
 ## Log Redaction Review
 
-| Check | Result | Evidence / Notes |
-| --- | --- | --- |
-| no OAuth code/token values | Pending |  |
-| no authorization header values | Pending |  |
-| no cookie or refresh token values | Pending |  |
-| no provider API key values | Pending |  |
-| no database password values | Pending |  |
-| no raw image data or full data URLs | Pending |  |
-| safe `errorCode` and `requestId` present where expected | Pending |  |
+| Check                                                   | Result  | Evidence / Notes |
+| ------------------------------------------------------- | ------- | ---------------- |
+| no OAuth code/token values                              | Pending |                  |
+| no authorization header values                          | Pending |                  |
+| no cookie or refresh token values                       | Pending |                  |
+| no provider API key values                              | Pending |                  |
+| no database password values                             | Pending |                  |
+| no raw image data or full data URLs                     | Pending |                  |
+| safe `errorCode` and `requestId` present where expected | Pending |                  |
 
 ## Open Risks
 
-- 
+-
 
 ## Follow-Up Before Closed Beta
 
-- 
+-
 
 ## Approval
 

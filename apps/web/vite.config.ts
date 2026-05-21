@@ -25,7 +25,28 @@ export default defineConfig({
             return 'dexie-vendor';
           }
 
-          return 'vendor';
+          if (normalizedId.includes('/@dnd-kit/')) {
+            return 'dnd-kit-vendor';
+          }
+
+          if (normalizedId.includes('/html-to-image/')) {
+            return 'html-to-image-vendor';
+          }
+
+          if (
+            normalizedId.includes('/react/') ||
+            normalizedId.includes('/react-dom/') ||
+            normalizedId.includes('/react-router') ||
+            normalizedId.includes('/@tanstack/react-query/')
+          ) {
+            return 'react-vendor';
+          }
+
+          if (normalizedId.includes('/@mantine/')) {
+            return 'mantine-vendor';
+          }
+
+          return undefined;
         },
       },
     },

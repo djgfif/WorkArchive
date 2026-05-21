@@ -9,6 +9,7 @@ Use this checklist before releases that touch auth, sync, imports, tier boards, 
 - Session cookies and refresh token identifiers are redacted in logs.
 - API keys are never exported in local archive JSON, tier board JSON, diagnostics, or logs.
 - Google OAuth is the only account login path.
+- `/work-archive-config.js` contains only non-secret runtime UI config such as feature flags.
 
 ## Ownership
 

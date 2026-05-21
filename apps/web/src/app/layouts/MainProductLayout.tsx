@@ -1,4 +1,14 @@
-import { Avatar, Box, Burger, Container, Drawer, Group, Menu, Stack, Text } from '@mantine/core';
+import {
+  Avatar,
+  Box,
+  Burger,
+  Container,
+  Drawer,
+  Group,
+  Menu,
+  Stack,
+  Text,
+} from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
@@ -10,15 +20,20 @@ import {
   StateMessage,
   ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
-import { featureFlags } from '../../shared/runtime/feature-flags';
+import {
+  featureFlags,
+  type FeatureFlags,
+} from '../../shared/runtime/feature-flags';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
 import { getUserAvatarProfile } from '../../features/auth/utils/user-profile';
 
-const primaryNavigationItems = [
-  { label: '홈', to: '/' },
-  { label: '작품', to: '/works' },
-  ...(featureFlags.tierBoards ? [{ label: '티어보드', to: '/tier-boards' }] : []),
-] as const;
+export function getPrimaryNavigationItems(flags: FeatureFlags = featureFlags) {
+  return [
+    { label: '홈', to: '/' },
+    { label: '작품', to: '/works' },
+    ...(flags.tierBoards ? [{ label: '티어보드', to: '/tier-boards' }] : []),
+  ] as const;
+}
 
 export function MainProductLayout() {
   const navigate = useNavigate();
@@ -34,6 +49,7 @@ export function MainProductLayout() {
   const accountMenuLabel = isAuthenticated
     ? `계정 메뉴: ${accountLabel}, ${avatarProfile.email}`
     : `계정 메뉴: ${accountLabel}`;
+  const primaryNavigationItems = getPrimaryNavigationItems();
 
   async function handleSignOut() {
     await signOut();
@@ -102,8 +118,12 @@ export function MainProductLayout() {
                   {isAuthenticated && (
                     <Menu.Label>{avatarProfile.email}</Menu.Label>
                   )}
-                  <Menu.Item onClick={() => navigate('/account')}>계정 개요</Menu.Item>
-                  <Menu.Item onClick={() => navigate('/account/settings')}>설정과 백업</Menu.Item>
+                  <Menu.Item onClick={() => navigate('/account')}>
+                    계정 개요
+                  </Menu.Item>
+                  <Menu.Item onClick={() => navigate('/account/settings')}>
+                    설정과 백업
+                  </Menu.Item>
                   {isAuthenticated ? (
                     <Menu.Item color="red" onClick={() => void handleSignOut()}>
                       로그아웃
@@ -162,7 +182,12 @@ export function MainProductLayout() {
               </AppNavLink>
             ))}
           </Stack>
-          <AppLinkButton fullWidth onClick={mobileMenu.close} to="/works/new" tone="primary">
+          <AppLinkButton
+            fullWidth
+            onClick={mobileMenu.close}
+            to="/works/new"
+            tone="primary"
+          >
             작품 추가
           </AppLinkButton>
           <Group gap="sm" wrap="nowrap">
@@ -186,13 +211,28 @@ export function MainProductLayout() {
           <ThemeToggleControl fullWidth />
           {isAuthenticated ? (
             <Stack gap="xs">
-              <AppLinkButton fullWidth onClick={mobileMenu.close} to="/account" tone="secondary">
+              <AppLinkButton
+                fullWidth
+                onClick={mobileMenu.close}
+                to="/account"
+                tone="secondary"
+              >
                 계정 개요
               </AppLinkButton>
-              <AppLinkButton fullWidth onClick={mobileMenu.close} to="/account/settings" tone="secondary">
+              <AppLinkButton
+                fullWidth
+                onClick={mobileMenu.close}
+                to="/account/settings"
+                tone="secondary"
+              >
                 설정과 백업
               </AppLinkButton>
-              <AppButton fullWidth onClick={() => void handleSignOut()} tone="quiet" type="button">
+              <AppButton
+                fullWidth
+                onClick={() => void handleSignOut()}
+                tone="quiet"
+                type="button"
+              >
                 로그아웃
               </AppButton>
             </Stack>

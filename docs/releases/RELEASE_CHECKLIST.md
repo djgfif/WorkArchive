@@ -6,6 +6,7 @@
 - Review migration notes and confirm rollback compatibility.
 - Confirm `.env.prod` values are present and production secrets are not defaults.
 - Confirm Google OAuth redirect URI exactly matches the deployed callback URL.
+- Confirm runtime feature flag overrides are in `/work-archive-config.js`, loaded before the React bundle, and contain no secrets.
 - Confirm public community/share flags remain disabled.
 
 ## Verification
@@ -19,6 +20,7 @@ npm run typecheck --workspace @work-archive/web
 npm run test --workspace @work-archive/api
 npm run test --workspace @work-archive/web
 npm run build
+docker compose -f compose.prod.yml --env-file .env.prod build
 ```
 
 ## Migration
@@ -41,6 +43,7 @@ npm run build
 - Google OAuth login and logout.
 - Guest/local archive create and JSON export.
 - Authenticated sync push and pull.
+- If `tierBoards` is disabled, confirm tier board navigation is hidden and tier board routes redirect to `/works`.
 - Tier board create, edit, JSON export/import, and PNG export if changed.
 - Import provider diagnostics page or API response.
 

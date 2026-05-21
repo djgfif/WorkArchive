@@ -40,6 +40,7 @@ Required checks:
 - `RATE_LIMIT_STORE=redis` and `REDIS_URL=redis://redis:6379`.
 - `IMPORT_SERVER_SEARCH_GUEST_ENABLED=false` unless explicitly approved.
 - No OAuth secret, API key, real DB password, token, or cookie value is copied into the readiness report.
+- Runtime web feature flag overrides, if needed, are placed in `/work-archive-config.js` and loaded before the React bundle. Do not place secrets in this file.
 
 Validate compose interpolation:
 
@@ -68,6 +69,7 @@ Expected:
 - `work-archive-redis` is healthy.
 - `work-archive-api` is healthy.
 - `work-archive-web` is running and exposes `${WEB_PORT:-8080}:80`.
+- `/work-archive-config.js` is served with `Cache-Control: no-store` and is loaded before the module script in `index.html`.
 
 If the API does not become healthy, check:
 
@@ -180,6 +182,7 @@ Post-restore smoke:
 
 ## 6. Tier Board Smoke Checklist
 
+- If tier boards are disabled for the closed beta cohort, set `window.__WORK_ARCHIVE_CONFIG__ = { featureFlags: { tierBoards: false } };` in `/work-archive-config.js` before opening the app, then confirm `/tier-boards`, `/tier-boards/:boardId`, and `/tier-boards/:boardId/view` redirect to `/works` and tier board navigation is hidden.
 - `/tier-boards` opens with `tierBoards` enabled.
 - New board can be created.
 - Text card can be added.
