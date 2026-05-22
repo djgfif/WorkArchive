@@ -27,6 +27,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Web import cycles
+        run: npm run check:web-import-cycles
+
       - name: Typecheck
         run: npm run typecheck
 

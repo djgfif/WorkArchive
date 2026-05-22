@@ -28,6 +28,7 @@
     "test:e2e": "npm run test:e2e --workspace @work-archive/api",
     "test:e2e:web": "playwright test",
     "test:integration": "npm run test:integration --workspace @work-archive/api",
+    "check:web-import-cycles": "node scripts/check-web-import-cycles.mjs",
     "api:generate": "orval --config orval.config.ts",
     "build": "npm run build --workspaces --if-present",
     "format": "prettier --check .",

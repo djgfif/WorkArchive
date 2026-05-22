@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getRouteErrorDescription } from './RouteErrorBoundary';
+import { getRouteErrorDescription } from './route-error-description';
 
 describe('RouteErrorBoundary', () => {
   it('keeps raw error messages visible in development', () => {

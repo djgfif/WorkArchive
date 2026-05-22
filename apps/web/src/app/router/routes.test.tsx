@@ -2,7 +2,7 @@ import { isValidElement } from 'react';
 import { Navigate } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
-import { getPrimaryNavigationItems } from '../layouts/MainProductLayout';
+import { getPrimaryNavigationItems } from '../layouts/navigation';
 import { createAppRoutes } from './routes';
 import { RouteErrorBoundary } from '../../shared/components/RouteErrorBoundary';
 import type { FeatureFlags } from '../../shared/runtime/feature-flags';

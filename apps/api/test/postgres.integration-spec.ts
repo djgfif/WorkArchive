@@ -16,6 +16,7 @@ import { AppModule } from '../src/app.module';
 import { readApiRuntimeConfig } from '../src/config/api-runtime-config';
 import { configureApp } from '../src/configure-app';
 import { AuthService } from '../src/modules/auth/auth.service';
+import { SYNC_SCHEMA_VERSION } from '../src/modules/sync/sync.constants';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { resetIntegrationDatabase } from './integration-db';
 import { createTestSession } from './test-auth-session';
@@ -455,7 +456,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 3,
+          schemaVersion: SYNC_SCHEMA_VERSION,
           changes: [
             {
               queueId: '6a8f8eb6-8317-4e8a-b8e7-530c5cc1db4d',
@@ -501,7 +502,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 3,
+          schemaVersion: SYNC_SCHEMA_VERSION,
           changes: [
             {
               queueId: 'ea483856-fafc-4aa9-ac6f-925f9c34d5ea',
@@ -541,7 +542,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 3,
+          schemaVersion: SYNC_SCHEMA_VERSION,
           changes: [
             {
               queueId: 'd125b784-6d75-429f-bfa1-04f0f491de14',
@@ -566,10 +567,11 @@ describe('API PostgreSQL integration', () => {
       expect.objectContaining({
         results: [
           expect.objectContaining({
-            status: 'applied',
+            status: 'conflict',
+            code: 'conflict_remote_newer',
             work: expect.objectContaining({
-              title: 'Children of Dune',
-              serverVersion: 3,
+              title: 'Dune Messiah',
+              serverVersion: 2,
             }),
           }),
         ],
@@ -581,7 +583,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 3,
+          schemaVersion: SYNC_SCHEMA_VERSION,
           since: '2026-04-17T00:00:00.000Z',
         }),
       },
@@ -597,8 +599,8 @@ describe('API PostgreSQL integration', () => {
             entityId: workId,
             operation: 'upsert',
             work: expect.objectContaining({
-              title: 'Children of Dune',
-              serverVersion: 3,
+              title: 'Dune Messiah',
+              serverVersion: 2,
             }),
           }),
         ]),
@@ -610,7 +612,7 @@ describe('API PostgreSQL integration', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 3,
+          schemaVersion: SYNC_SCHEMA_VERSION,
           changes: [
             {
               queueId: '5188f5b1-1c80-49fd-ba6d-6848b8f0f6a3',
@@ -619,11 +621,11 @@ describe('API PostgreSQL integration', () => {
               operation: 'delete',
               createdAt: '2026-04-18T00:04:00.000Z',
               payload: buildSyncWorkPayload(workId, {
-                title: 'Children of Dune',
+                title: 'Dune Messiah',
                 updatedAt: '2026-04-18T00:04:00.000Z',
                 deletedAt: '2026-04-18T00:04:00.000Z',
                 syncStatus: WorkSyncStatus.pending,
-                serverVersion: 3,
+                serverVersion: 2,
               }),
             },
           ],
@@ -640,7 +642,7 @@ describe('API PostgreSQL integration', () => {
             status: 'applied',
             work: expect.objectContaining({
               deletedAt: '2026-04-18T00:04:00.000Z',
-              serverVersion: 4,
+              serverVersion: 3,
             }),
           }),
         ],
@@ -656,14 +658,14 @@ describe('API PostgreSQL integration', () => {
     expect(deletedRecord.deletedAt?.toISOString()).toBe(
       '2026-04-18T00:04:00.000Z',
     );
-    expect(deletedRecord.serverVersion).toBe(4);
+    expect(deletedRecord.serverVersion).toBe(3);
 
     const pullDeletedResponse = await requestJson(
       '/api/sync/pull',
       {
         method: 'POST',
         body: JSON.stringify({
-          schemaVersion: 3,
+          schemaVersion: SYNC_SCHEMA_VERSION,
           since: pullResponse.body!.nextSince,
         }),
       },
@@ -678,7 +680,7 @@ describe('API PostgreSQL integration', () => {
             entityId: workId,
             operation: 'delete',
             work: expect.objectContaining({
-              serverVersion: 4,
+              serverVersion: 3,
             }),
           }),
         ],

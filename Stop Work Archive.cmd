@@ -9,23 +9,29 @@ if errorlevel 1 (
 )
 
 set "SCRIPT_DIR=%~dp0"
+pushd "%SCRIPT_DIR%" >nul 2>nul
 call :resolve_wsl_project_dir "%SCRIPT_DIR%"
 if "%PROJECT_DIR%"=="" (
   echo Failed to resolve this project directory for WSL:
   echo %SCRIPT_DIR%
+  popd >nul 2>nul
   pause
   exit /b 1
 )
 
-set "RUN_CMD=./stop-dev.sh; status=$?; echo; read -n 1 -s -r -p 'Press any key to close this window...'; exit $status"
+wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "./stop-dev.sh"
+set "DEV_EXIT=%ERRORLEVEL%"
 
-where wt.exe >nul 2>nul
-if "%ERRORLEVEL%"=="0" (
-  start "" wt.exe wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "%RUN_CMD%"
-  exit /b 0
+if not "%DEV_EXIT%"=="0" (
+  echo.
+  echo Work Archive stop failed. Exit code: %DEV_EXIT%
+  popd >nul 2>nul
+  pause
+  exit /b %DEV_EXIT%
 )
 
-start "" wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "%RUN_CMD%"
+popd >nul 2>nul
+pause
 exit /b 0
 
 :resolve_wsl_project_dir

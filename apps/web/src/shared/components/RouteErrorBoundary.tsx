@@ -2,22 +2,12 @@ import { useRouteError } from 'react-router-dom';
 import { useEffect } from 'react';
 
 import { AppButton, AppLinkButton, StateMessage } from './AppPrimitives';
+import { getRouteErrorDescription } from './route-error-description';
 
 interface RouteErrorBoundaryProps {
   fallbackPath: string;
   fallbackLabel: string;
   title: string;
-}
-
-export function getRouteErrorDescription(
-  error: unknown,
-  isDevelopment = import.meta.env.DEV,
-) {
-  if (isDevelopment && error instanceof Error && error.message.trim()) {
-    return `화면을 다시 그리는 중 오류가 발생했습니다. ${error.message}`;
-  }
-
-  return '화면을 다시 그리는 중 오류가 발생했습니다.';
 }
 
 export function RouteErrorBoundary({

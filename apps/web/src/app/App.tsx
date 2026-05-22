@@ -1,7 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 
-import { AuthProvider } from '../features/auth';
-import { AutoSyncRuntime } from '../features/sync';
+import { AuthProvider } from '../features/auth/context/AuthProvider';
+import { AutoSyncRuntime } from '../features/sync/components/AutoSyncRuntime';
 import { queryClient } from './query-client';
 import { AppRouter } from './router/AppRouter';
 

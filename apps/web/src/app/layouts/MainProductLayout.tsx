@@ -20,20 +20,9 @@ import {
   StateMessage,
   ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
-import {
-  featureFlags,
-  type FeatureFlags,
-} from '../../shared/runtime/feature-flags';
-import { useAuthSession } from '../../features/auth';
-import { getUserAvatarProfile } from '../../features/auth';
-
-export function getPrimaryNavigationItems(flags: FeatureFlags = featureFlags) {
-  return [
-    { label: '홈', to: '/' },
-    { label: '작품', to: '/works' },
-    ...(flags.tierBoards ? [{ label: '티어보드', to: '/tier-boards' }] : []),
-  ] as const;
-}
+import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
+import { getUserAvatarProfile } from '../../features/auth/utils/user-profile';
+import { getPrimaryNavigationItems } from './navigation';
 
 export function MainProductLayout() {
   const navigate = useNavigate();

@@ -43,6 +43,10 @@ wait_for_api_container() {
 open_url() {
   local url="$1"
 
+  if [ "${WORK_ARCHIVE_SKIP_OPEN:-}" = "1" ]; then
+    return 0
+  fi
+
   if command -v xdg-open >/dev/null 2>&1; then
     xdg-open "$url" >/dev/null 2>&1 || true
   elif command -v open >/dev/null 2>&1; then

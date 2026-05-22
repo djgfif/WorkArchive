@@ -4,7 +4,7 @@ import {
   clearStoredAuthTokens,
   readStoredAuthTokens,
   writeStoredAuthTokens,
-} from '../../features/auth';
+} from '../../features/auth/services/auth-storage';
 import { localizeApiErrorMessage } from '../utils/localize-message';
 
 const DEFAULT_API_BASE_URL = '/api';

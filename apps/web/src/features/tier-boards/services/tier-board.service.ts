@@ -15,7 +15,10 @@ import {
   syncQueueRepository,
   type SyncQueueRepository,
 } from '../../sync/queue';
-import { worksRepository, type WorksRepository } from '../../works';
+import {
+  worksRepository,
+  type WorksRepository,
+} from '../../works/services/works.repository';
 import {
   tierBoardRepository,
   type StoredTierBoardAssetRecord,

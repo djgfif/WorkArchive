@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActionIcon,
   Box,
@@ -627,7 +627,7 @@ export function TierBoardEditorPage() {
       .slice(0, 20);
   }, [workSearch, works]);
 
-  async function loadState() {
+  const loadState = useCallback(async () => {
     if (!boardId) return;
     const [nextState, nextWorks] = await Promise.all([
       tierBoardService.getBoardEditorState(boardId),
@@ -641,11 +641,11 @@ export function TierBoardEditorPage() {
 
     setState(nextState);
     setWorks(nextWorks);
-  }
+  }, [boardId, navigate]);
 
   useEffect(() => {
     void loadState();
-  }, [boardId]);
+  }, [loadState]);
 
   useEffect(
     () => () => {

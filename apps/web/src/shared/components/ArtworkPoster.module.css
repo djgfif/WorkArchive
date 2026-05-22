@@ -1,0 +1,224 @@
+.posterShell {
+  position: relative;
+  flex-shrink: 0;
+  width: var(--poster-width);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--app-border-strong) 72%, transparent);
+  border-radius: 0.85rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 32%),
+    radial-gradient(circle at 22% 18%, rgba(91, 140, 187, 0.22), transparent 28%),
+    radial-gradient(circle at 80% 72%, rgba(239, 181, 70, 0.12), transparent 32%),
+    linear-gradient(160deg, #222536, #0b0d13 72%);
+  box-shadow: var(--app-shadow-poster);
+}
+
+[data-mantine-color-scheme='light'] .posterShell {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.5), transparent 32%),
+    radial-gradient(circle at 22% 18%, rgba(61, 99, 144, 0.18), transparent 28%),
+    radial-gradient(circle at 80% 72%, rgba(201, 141, 36, 0.1), transparent 32%),
+    linear-gradient(160deg, #dce4ee, #c8d4e0 72%);
+}
+
+.posterShell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 58%, rgba(0, 0, 0, 0.28));
+}
+
+.posterGrid {
+  --poster-width: 100%;
+}
+
+.posterCard {
+  --poster-width: 7rem;
+}
+
+.posterRow {
+  --poster-width: 5.4rem;
+  border-radius: var(--mantine-radius-md);
+  box-shadow: var(--app-shadow-card);
+}
+
+.posterDetail {
+  --poster-width: clamp(13rem, 25vw, 19rem);
+  border-radius: var(--mantine-radius-xl);
+}
+
+.posterHero {
+  --poster-width: clamp(14rem, 26vw, 20rem);
+  border-radius: var(--mantine-radius-xl);
+}
+
+.posterForm {
+  --poster-width: min(100%, 15rem);
+}
+
+.posterImage,
+.posterFallback {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+}
+
+.posterImage {
+  object-fit: cover;
+  opacity: 0;
+  transition:
+    opacity var(--wa-motion-normal, 240ms) ease,
+    transform var(--wa-motion-normal, 240ms) cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.posterImageLoaded {
+  opacity: 1;
+}
+
+.posterImageSkeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  aspect-ratio: 3 / 4;
+  background:
+    linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(255, 255, 255, 0.13) 46%,
+      rgba(255, 255, 255, 0.04) 90%
+    ),
+    var(--app-surface-subtle);
+  background-size: 220% 100%;
+  animation: posterSkeleton 1.25s ease-in-out infinite;
+  pointer-events: none;
+}
+
+[data-mantine-color-scheme='light'] .posterImageSkeleton {
+  background:
+    linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0.45) 0%,
+      rgba(255, 255, 255, 0.9) 46%,
+      rgba(255, 255, 255, 0.45) 90%
+    ),
+    var(--app-surface-subtle);
+  background-size: 220% 100%;
+}
+
+@keyframes posterSkeleton {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+.posterFallback {
+  position: relative;
+  display: grid;
+  align-content: space-between;
+  padding: 0.9rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 34%),
+    radial-gradient(circle at 18% 20%, rgba(91, 140, 187, 0.2), transparent 36%),
+    radial-gradient(circle at 84% 78%, rgba(239, 181, 70, 0.1), transparent 32%),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.025) 0,
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    linear-gradient(160deg, #1d2232, #07080b 76%);
+}
+
+.posterFallback::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.14), transparent 0.55rem, transparent calc(100% - 0.55rem), rgba(0, 0, 0, 0.22)),
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.075), transparent 42%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.018) 0,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px,
+      transparent 5px
+    );
+  mix-blend-mode: screen;
+}
+
+.posterFallback::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0.38rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.posterFallback[data-cover-tone='0'] {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(91, 140, 187, 0.32), transparent 34%),
+    radial-gradient(circle at 80% 80%, rgba(239, 181, 70, 0.14), transparent 32%),
+    linear-gradient(160deg, #1e2c3d, #07080b 78%);
+}
+
+.posterFallback[data-cover-tone='1'] {
+  background:
+    radial-gradient(circle at 78% 18%, rgba(73, 156, 183, 0.3), transparent 36%),
+    radial-gradient(circle at 20% 82%, rgba(239, 181, 70, 0.1), transparent 30%),
+    linear-gradient(160deg, #172a33, #07080b 78%);
+}
+
+.posterFallback[data-cover-tone='2'] {
+  background:
+    radial-gradient(circle at 18% 76%, rgba(193, 88, 96, 0.28), transparent 34%),
+    radial-gradient(circle at 84% 18%, rgba(255, 219, 143, 0.12), transparent 31%),
+    linear-gradient(160deg, #301b24, #07080b 78%);
+}
+
+.posterFallback[data-cover-tone='3'] {
+  background:
+    radial-gradient(circle at 82% 74%, rgba(88, 151, 124, 0.28), transparent 34%),
+    radial-gradient(circle at 22% 18%, rgba(91, 140, 187, 0.14), transparent 31%),
+    linear-gradient(160deg, #1a2d28, #07080b 78%);
+}
+
+.posterFallback[data-cover-tone='4'] {
+  background:
+    radial-gradient(circle at 24% 18%, rgba(235, 159, 82, 0.24), transparent 34%),
+    radial-gradient(circle at 80% 82%, rgba(61, 99, 144, 0.18), transparent 31%),
+    linear-gradient(160deg, #2c2219, #07080b 78%);
+}
+
+.posterFallback[data-cover-tone='5'] {
+  background:
+    radial-gradient(circle at 72% 20%, rgba(217, 218, 191, 0.18), transparent 34%),
+    radial-gradient(circle at 18% 82%, rgba(91, 140, 187, 0.2), transparent 31%),
+    linear-gradient(160deg, #262a32, #07080b 78%);
+}
+
+.posterFallbackMark {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  color: var(--app-text-primary);
+  font-size: clamp(2.6rem, 7vw, 5.2rem);
+  font-weight: 850;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
+}
+
+.posterFallbackType {
+  position: relative;
+  z-index: 1;
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+  font-weight: 800;
+  letter-spacing: 0;
+}
