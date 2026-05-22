@@ -396,7 +396,7 @@ describe('SettingsPage', () => {
       role: 'user',
       authAccounts: [],
     };
-    const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+    const fetchMock = vi.fn((url: string | URL | Request, _init?: RequestInit) => {
       const requestUrl = String(url);
 
       if (requestUrl.includes('/auth/profile')) {
@@ -546,7 +546,7 @@ describe('SettingsPage', () => {
         mediumTypes: ['movie'],
       },
     ];
-    const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+    const fetchMock = vi.fn((url: string | URL | Request, _init?: RequestInit) => {
       const requestUrl = String(url);
 
       if (requestUrl.includes('/auth/sessions')) {

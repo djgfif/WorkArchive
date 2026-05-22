@@ -55,7 +55,6 @@ import {
 import {
   tierBoardRepository,
   type TierBoardRepository,
-  type StoredTierBoardAssetRecord,
 } from '../../tier-boards/services/tier-board.repository';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';

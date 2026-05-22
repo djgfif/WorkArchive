@@ -65,7 +65,7 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 | Area                    | Routes                                                                                                              | Current state                                                 |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/tier-boards`, `/insights`, `/community`, `/profile` | 홈/작품 흐름은 실제 구현, 확장 목적지는 placeholder 성격 혼재 |
-| Auth                    | `/auth/login`, `/auth/register`                                                                                     | 이메일/비밀번호 인증 구현                                     |
+| Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                                                    | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
 | Account                 | `/account`, `/account/sync`, `/account/transfer`, `/account/settings`                                               | 계정 개요, sync, guest review, 설정 흐름 구현                 |
 | Compatibility redirects | `/sync`, `/settings`, `/profile/sync`, `/profile/settings`                                                          | `/account/*`로 리다이렉트                                     |
 | Minimal                 | `*`                                                                                                                 | 404 처리                                                      |
@@ -76,7 +76,7 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 - Works: 목록/필터/정렬/리스트-그리드 전환/보기 모드 URL 유지/휴지통 관리
 - Works / Work Create: `/works`에서는 `AddWorkDialog`로 작품 추가를 열고, `/works/new`는 같은 `QuickAddWorkForm` 흐름을 page fallback으로 제공한다. `직접 입력 -> 저장`이 기본 경로이며, `검색 -> 후보 선택 -> 입력 채우기 -> 개인 기록 확인 -> 저장`은 같은 dialog/page 안의 보조 흐름이다.
 - Work Detail / Edit: 감상 기록 확인과 수정
-- Auth: 회원가입 / 로그인
+- Auth: Google OAuth 로그인 / 세션 복구. legacy 회원가입/이메일 로그인은 비활성화
 - Account: sync, 설정, guest 기록 검토/선택 import
 
 ### 3-4. Local Storage Model
@@ -134,7 +134,7 @@ Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
 
 ### 4-3. Runtime Behavior
 
-Production hardening baseline: production startup rejects development secrets (`change-me-*`, `local-compose-*`), short JWT/encryption secrets, localhost CORS, `postgres/postgres` database credentials, demo seed passwords, `SWAGGER_ENABLED=true`, `PASSWORD_RESET_DEV_LINKS_ENABLED=true`, and `COOKIE_SECURE=false`. Local `compose.yml` is development-only; production deployments use `compose.prod.yml` with required environment variables.
+Production hardening baseline: production startup rejects development secrets (`change-me-*`, `local-compose-*`), short JWT/encryption secrets, localhost or non-HTTPS public CORS/Web/OAuth URLs, `postgres/postgres` database credentials, demo seed passwords, `SWAGGER_ENABLED=true`, and `COOKIE_SECURE=false`. Local `compose.yml` is development-only; production deployments use `compose.prod.yml` with required environment variables.
 
 - 전역 prefix: `/api` (`/health`는 예외)
 - Swagger: `SWAGGER_ENABLED` 기반으로 `/docs` 노출 여부 제어
@@ -142,20 +142,20 @@ Production hardening baseline: production startup rejects development secrets (`
 - ValidationPipe: `transform + whitelist`
 - `cookie-parser` 적용
 - `helmet` 적용
-- `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh` rate limiting 적용
+- `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh` rate limiting 적용. 단, legacy login/register는 현재 `410 Gone`으로 비활성화
 - `/api/sync/push`, `/api/sync/pull` rate limiting 적용
 - CORS: `CORS_ORIGIN` 기반 explicit whitelist만 허용
 
 ### 4-4. Current Auth Session Shape
 
-Current session policy: refresh sessions are stored in `UserRefreshSession` / `user_refresh_sessions`. Login and register create a device-level refresh session, refresh rotates the hash in that session, and account settings can list sessions, revoke one session, or sign out all devices. The legacy nullable `users.refreshTokenHash` column remains for compatibility but new auth code does not write it. Refresh token reuse detection revokes all active sessions for the user.
+Current session policy: refresh sessions are stored in `UserRefreshSession` / `user_refresh_sessions`. Google OAuth login creates a device-level refresh session, refresh rotates the hash in that session, and account settings can list sessions, revoke one session, or sign out all devices. The legacy nullable `users.refreshTokenHash` column remains for compatibility but new auth code does not write it. Refresh token reuse detection revokes all active sessions for the user.
 
-- 로그인/회원가입/refresh 응답은 access token과 사용자 정보를 반환한다.
+- Google OAuth complete/refresh 응답은 access token과 사용자 정보를 반환한다. legacy email/password register/login/password-reset 엔드포인트는 `410 Gone`으로 비활성화되어 있다.
 - refresh token은 `HttpOnly` cookie로 저장된다.
 - 프론트는 access token을 브라우저 storage에 저장하지 않고 메모리에만 둔다.
 - 앱 부팅 시 기존 `work-archive.auth.tokens` local/session storage 값은 제거하고, refresh cookie로 access token을 재발급해 세션을 복구한다.
 - refresh 실패나 네트워크 실패 시 프론트는 guest/local-first 상태로 돌아간다.
-- AuthProvider는 startup refresh와 login/register가 겹치는 경우 늦게 도착한 startup 실패가 완료된 authenticated 세션을 guest로 되돌리지 않게 generation guard를 둔다.
+- AuthProvider는 startup refresh와 interactive auth completion이 겹치는 경우 늦게 도착한 startup 실패가 완료된 authenticated 세션을 guest로 되돌리지 않게 generation guard를 둔다.
 - API 요청은 `credentials: 'include'`를 사용해 refresh cookie를 함께 보낸다.
 
 ## 5. Current Product Capabilities
@@ -167,7 +167,8 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - Works 보기 모드 URL 유지 (`/works?view=list`)
 - 상태 / 별점 빠른 수정
 - 게스트 모드
-- 이메일/비밀번호 인증
+- Google OAuth 인증
+- legacy 이메일/비밀번호 register/login/password-reset disabled
 - memory-only access token + refresh cookie 세션 복구
 - 사용자별 로컬 아카이브 분리
 - 로그인 직후 guest 기록 검토 후 선택 import

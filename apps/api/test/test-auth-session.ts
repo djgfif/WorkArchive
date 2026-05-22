@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 
 import { REFRESH_TOKEN_COOKIE_NAME } from '../src/modules/auth/auth.cookies';
-import {
+import type {
   AuthService,
-  type IssuedAuthSession,
+  IssuedAuthSession,
 } from '../src/modules/auth/auth.service';
 import type { PrismaService } from '../src/prisma/prisma.service';
 

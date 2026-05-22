@@ -170,6 +170,52 @@ describe('api runtime config', () => {
     );
   });
 
+  it('requires HTTPS for production public web, OAuth redirect, and CORS origins', () => {
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      WEB_BASE_URL: 'http://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'WEB_BASE_URL must use https:// in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      PUBLIC_WEB_BASE_URL: 'http://workarchive.example.com',
+      WEB_BASE_URL: '',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'PUBLIC_WEB_BASE_URL must use https:// in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      GOOGLE_OAUTH_REDIRECT_URI:
+        'http://workarchive.example.com/api/auth/google/callback',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'GOOGLE_OAUTH_REDIRECT_URI must use https:// in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN:
+        'https://workarchive.example.com,http://app.workarchive.example.com',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'CORS_ORIGIN must use https:// in production.',
+    );
+  });
+
   it('blocks development database and seed defaults in production', () => {
     resetEnv({
       DATABASE_URL:

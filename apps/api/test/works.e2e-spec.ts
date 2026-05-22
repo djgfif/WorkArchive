@@ -28,6 +28,7 @@ function createPrismaServiceMock() {
   const userReleaseRecords: Array<Record<string, unknown>> = [];
   const userTimelineEntries: Array<Record<string, unknown>> = [];
   const userRefreshSessions: Array<Record<string, unknown>> = [];
+  const userSyncAppliedMutations: Array<Record<string, unknown>> = [];
   const externalApiCredentials: Array<Record<string, unknown>> = [];
   const securityEvents: Array<Record<string, unknown>> = [];
 
@@ -722,6 +723,39 @@ function createPrismaServiceMock() {
       return joinRecord(updatedRecord);
     },
   };
+  prismaMock.userSyncAppliedMutation = {
+    findUnique: async ({
+      where,
+    }: {
+      where: {
+        userId_clientMutationId: {
+          clientMutationId: string;
+          userId: string;
+        };
+      };
+    }) => {
+      const unique = where.userId_clientMutationId;
+
+      return (
+        userSyncAppliedMutations.find(
+          (record) =>
+            record.userId === unique.userId &&
+            record.clientMutationId === unique.clientMutationId,
+        ) ?? null
+      );
+    },
+    create: async ({ data }: { data: Record<string, unknown> }) => {
+      const record = {
+        id: crypto.randomUUID(),
+        appliedAt: new Date(),
+        ...data,
+      };
+
+      userSyncAppliedMutations.push(record);
+
+      return record;
+    },
+  };
   prismaMock.catalogExternalRef = {
     findUnique: async ({
       include,
@@ -1213,6 +1247,7 @@ describe('Auth, works, and sync API (e2e)', () => {
       title: 'Dune',
       author: 'Frank Herbert',
       genres: ['Science Fiction'],
+      personalTags: [],
       description: '',
       thumbnailUrl: '',
       status: WorkStatus.completed,
@@ -2129,10 +2164,11 @@ describe('Auth, works, and sync API (e2e)', () => {
       expect.objectContaining({
         results: [
           expect.objectContaining({
-            status: 'applied',
+            status: 'conflict',
+            code: 'conflict_remote_newer',
             work: expect.objectContaining({
-              title: 'Children of Dune',
-              serverVersion: 3,
+              title: 'Dune Messiah',
+              serverVersion: 2,
             }),
           }),
         ],
@@ -2159,8 +2195,8 @@ describe('Auth, works, and sync API (e2e)', () => {
             entityId: workId,
             operation: 'upsert',
             work: expect.objectContaining({
-              title: 'Children of Dune',
-              serverVersion: 3,
+              title: 'Dune Messiah',
+              serverVersion: 2,
             }),
           }),
         ]),
@@ -2186,10 +2222,10 @@ describe('Auth, works, and sync API (e2e)', () => {
               operation: 'delete',
               createdAt: '2026-04-18T00:04:00.000Z',
               payload: buildSyncPayload(workId, {
-                title: 'Children of Dune',
+                title: 'Dune Messiah',
                 updatedAt: '2026-04-18T00:04:00.000Z',
                 deletedAt: '2026-04-18T00:04:00.000Z',
-                serverVersion: 3,
+                serverVersion: 2,
               }),
             },
           ],
@@ -2206,7 +2242,7 @@ describe('Auth, works, and sync API (e2e)', () => {
             status: 'applied',
             work: expect.objectContaining({
               deletedAt: '2026-04-18T00:04:00.000Z',
-              serverVersion: 4,
+              serverVersion: 3,
             }),
           }),
         ],
@@ -2233,7 +2269,7 @@ describe('Auth, works, and sync API (e2e)', () => {
             operation: 'delete',
             work: expect.objectContaining({
               deletedAt: '2026-04-18T00:04:00.000Z',
-              serverVersion: 4,
+              serverVersion: 3,
             }),
           }),
         ],

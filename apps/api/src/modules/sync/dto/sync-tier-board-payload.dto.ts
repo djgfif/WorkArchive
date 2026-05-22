@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -74,6 +75,7 @@ export class SyncTierBoardPayloadDto {
   deletedAt!: string | null;
 
   @ApiProperty({ enum: WORK_SYNC_STATUS_VALUES })
+  @IsIn(WORK_SYNC_STATUS_VALUES)
   syncStatus!: WorkSyncStatusValue;
 
   @ApiProperty()
@@ -127,6 +129,7 @@ export class SyncTierLanePayloadDto {
   deletedAt!: string | null;
 
   @ApiProperty({ enum: WORK_SYNC_STATUS_VALUES })
+  @IsIn(WORK_SYNC_STATUS_VALUES)
   syncStatus!: WorkSyncStatusValue;
 
   @ApiProperty()
@@ -200,6 +203,7 @@ export class SyncTierBoardCardPayloadDto {
   deletedAt!: string | null;
 
   @ApiProperty({ enum: WORK_SYNC_STATUS_VALUES })
+  @IsIn(WORK_SYNC_STATUS_VALUES)
   syncStatus!: WorkSyncStatusValue;
 
   @ApiProperty()

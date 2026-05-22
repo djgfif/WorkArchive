@@ -42,6 +42,11 @@ import type {
 
 const USER_ID = '2c92b57e-e529-4344-bd62-0cff4de5dfe2';
 const OTHER_USER_ID = 'a3fba91f-71c3-46a2-b126-c4cbca6dd1a8';
+const CATALOG_TITLE_ID = '4fb2a50f-2807-46a2-af4f-f9709afe0a8e';
+const IMPORTED_CATALOG_TITLE_ID = 'db3d7b72-a7ef-4124-b09d-fb76fdf15fed';
+const MISSING_CATALOG_TITLE_ID = 'b7d5aadc-bb3d-4bb8-9726-569b8812dc25';
+const PAYLOAD_TITLE_CATALOG_TITLE_ID =
+  'a0c991ac-e88d-4f8e-81d7-f102519a913d';
 
 function createWorkAggregateFixture(
   overrides: Partial<WorkAggregate> = {},
@@ -49,7 +54,7 @@ function createWorkAggregateFixture(
   return {
     id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
     userId: USER_ID,
-    catalogTitleId: 'catalog-title-1',
+    catalogTitleId: CATALOG_TITLE_ID,
     catalogWorkId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
     status: WorkStatus.completed,
     rating: 5,
@@ -248,7 +253,7 @@ function createReleaseRecordAggregateFixture(
     serverVersion: 1,
     catalogRelease: {
       id: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
-      catalogTitleId: 'catalog-title-1',
+      catalogTitleId: CATALOG_TITLE_ID,
       releaseType: 'volume',
       displayLabel: 'Volume 1',
       title: 'Dune Volume 1',
@@ -263,7 +268,7 @@ function createReleaseRecordAggregateFixture(
     userWorkRecord: {
       id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
       userId: USER_ID,
-      catalogTitleId: 'catalog-title-1',
+      catalogTitleId: CATALOG_TITLE_ID,
       catalogWork: {
         type: WorkType.light_novel,
       },
@@ -495,17 +500,109 @@ describe('SyncService', () => {
     expect(userRecordsService.findByUserSince).not.toHaveBeenCalled();
   });
 
-  it('applies a queued work update even when the server version is newer', async () => {
-    userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
-    userRecordsService.update.mockResolvedValue(
-      createWorkAggregateFixture({
-        catalogWork: {
-          ...createWorkAggregateFixture().catalogWork,
-          title: 'The Dark Forest',
+  it('returns failed_validation for malformed work payloads before applying storage writes', async () => {
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: '95f2a1ca-f820-4126-9db4-c6ee3551ae51',
+          entityType: 'work',
+          entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          operation: 'update',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            ...createSyncPayload(),
+            rating: 9,
+            title: '',
+          },
         },
-        serverVersion: 4,
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('Invalid work sync payload'),
       }),
-    );
+    ]);
+    expect(userRecordsService.findById).not.toHaveBeenCalled();
+    expect(userRecordsService.update).not.toHaveBeenCalled();
+  });
+
+  it('returns failed_validation for malformed graph payloads', async () => {
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: '95f2a1ca-f820-4126-9db4-c6ee3551ae52',
+          entityType: 'series',
+          entityId: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+          operation: 'update',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            ...createSyncSeriesPayload(),
+            aliases: ['Fate', 123] as any,
+            kind: 'bad-kind',
+          } as any,
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('Invalid series sync payload'),
+      }),
+    ]);
+    expect(prisma.userSeries.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('returns failed_validation for unknown or mismatched entityType payloads', async () => {
+    const unknownEntityResult = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: '95f2a1ca-f820-4126-9db4-c6ee3551ae55',
+          entityType: 'unknown',
+          entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          operation: 'update',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: createSyncPayload(),
+        },
+      ],
+    } as any);
+    const mismatchedPayloadResult = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: '95f2a1ca-f820-4126-9db4-c6ee3551ae56',
+          entityType: 'series',
+          entityId: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+          operation: 'update',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: createSyncPayload({
+            id: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+          }),
+        },
+      ],
+    });
+
+    expect(unknownEntityResult.results).toEqual([
+      expect.objectContaining({
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('Unsupported sync entityType'),
+      }),
+    ]);
+    expect(mismatchedPayloadResult.results).toEqual([
+      expect.objectContaining({
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('Invalid series sync payload'),
+      }),
+    ]);
+  });
+
+  it('reports a remote-newer work conflict instead of overwriting stale changes', async () => {
+    userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
 
     const result = await service.push(USER_ID, {
       changes: [
@@ -527,29 +624,21 @@ describe('SyncService', () => {
 
     expect(result.results).toEqual([
       expect.objectContaining({
-        status: 'applied',
-        code: 'applied_change',
+        status: 'conflict',
+        code: 'conflict_remote_newer',
         work: expect.objectContaining({
-          title: 'The Dark Forest',
-          serverVersion: 4,
+          title: 'The Three-Body Problem',
+          serverVersion: 3,
         }),
       }),
     ]);
     expect(result.schemaVersion).toBe(5);
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(catalogService.update).not.toHaveBeenCalled();
+    expect(userRecordsService.update).not.toHaveBeenCalled();
   });
 
-  it('does not turn a lower local server version into a user-visible conflict', async () => {
+  it('treats a stale but equivalent work payload as already applied', async () => {
     userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
-    userRecordsService.update.mockResolvedValue(
-      createWorkAggregateFixture({
-        catalogWork: {
-          ...createWorkAggregateFixture().catalogWork,
-          title: 'Future Client Clock',
-        },
-        serverVersion: 4,
-      }),
-    );
 
     const result = await service.push(USER_ID, {
       changes: [
@@ -561,8 +650,6 @@ describe('SyncService', () => {
           createdAt: '2026-04-18T00:30:00.000Z',
           payload: {
             ...createSyncPayload(),
-            title: 'Future Client Clock',
-            updatedAt: '2099-01-01T00:00:00.000Z',
             serverVersion: 2,
           },
         },
@@ -572,14 +659,15 @@ describe('SyncService', () => {
     expect(result.results).toEqual([
       expect.objectContaining({
         status: 'applied',
-        code: 'applied_change',
+        code: 'already_applied',
         work: expect.objectContaining({
-          title: 'Future Client Clock',
-          serverVersion: 4,
+          title: 'The Three-Body Problem',
+          serverVersion: 3,
         }),
       }),
     ]);
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(catalogService.update).not.toHaveBeenCalled();
+    expect(userRecordsService.update).not.toHaveBeenCalled();
   });
 
   it('refuses to modify a record that belongs to another user', async () => {
@@ -1353,7 +1441,7 @@ describe('SyncService', () => {
 
     userRecordsService.findById.mockResolvedValue(null);
     prisma.catalogTitle.findUnique.mockResolvedValue({
-      id: 'catalog-title-1',
+      id: CATALOG_TITLE_ID,
       displayTitle: 'Dune',
       mediumType: WorkType.novel,
       summary: 'A desert saga.',
@@ -1369,7 +1457,7 @@ describe('SyncService', () => {
     userRecordsService.create.mockResolvedValue(
       createWorkAggregateFixture({
         id: importedId,
-        catalogTitleId: 'catalog-title-1',
+        catalogTitleId: CATALOG_TITLE_ID,
         catalogWorkId: importedId,
         serverVersion: 1,
         catalogWork: {
@@ -1391,7 +1479,7 @@ describe('SyncService', () => {
           createdAt: '2026-04-18T00:00:00.000Z',
           payload: createSyncPayload({
             id: importedId,
-            catalogTitleId: 'catalog-title-1',
+            catalogTitleId: CATALOG_TITLE_ID,
             title: 'Dune',
             author: '',
             description: '',
@@ -1408,7 +1496,7 @@ describe('SyncService', () => {
     expect(prisma.catalogTitle.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          id: 'catalog-title-1',
+          id: CATALOG_TITLE_ID,
         },
       }),
     );
@@ -1424,7 +1512,7 @@ describe('SyncService', () => {
     expect(userRecordsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         id: importedId,
-        catalogTitleId: 'catalog-title-1',
+        catalogTitleId: CATALOG_TITLE_ID,
         catalogWorkId: importedId,
         userId: USER_ID,
       }),
@@ -1435,7 +1523,7 @@ describe('SyncService', () => {
         status: 'applied',
         work: expect.objectContaining({
           id: importedId,
-          catalogTitleId: 'catalog-title-1',
+          catalogTitleId: CATALOG_TITLE_ID,
         }),
       }),
     ]);
@@ -1457,7 +1545,7 @@ describe('SyncService', () => {
           createdAt: '2026-04-18T00:00:00.000Z',
           payload: createSyncPayload({
             id: importedId,
-            catalogTitleId: 'missing-catalog-title',
+            catalogTitleId: MISSING_CATALOG_TITLE_ID,
             title: 'Missing Catalog Title',
             createdAt: '2026-04-18T00:00:00.000Z',
             updatedAt: '2026-04-18T00:00:00.000Z',
@@ -1472,7 +1560,7 @@ describe('SyncService', () => {
       expect.objectContaining({
         status: 'failed',
         code: 'failed_missing_catalog_title',
-        message: 'Catalog title with id "missing-catalog-title" was not found.',
+        message: `Catalog title with id "${MISSING_CATALOG_TITLE_ID}" was not found.`,
         work: null,
       }),
     ]);
@@ -1485,12 +1573,12 @@ describe('SyncService', () => {
 
     userRecordsService.findById.mockResolvedValue(null);
     catalogService.createTitleFromImportCandidate.mockResolvedValue({
-      id: 'catalog-title-imported',
+      id: IMPORTED_CATALOG_TITLE_ID,
     } as Awaited<ReturnType<CatalogService['createTitleFromImportCandidate']>>);
     userRecordsService.create.mockResolvedValue(
       createWorkAggregateFixture({
         id: importedId,
-        catalogTitleId: 'catalog-title-imported',
+        catalogTitleId: IMPORTED_CATALOG_TITLE_ID,
         catalogWorkId: importedId,
         serverVersion: 1,
         catalogWork: {
@@ -1618,7 +1706,7 @@ describe('SyncService', () => {
     expect(userRecordsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         id: importedId,
-        catalogTitleId: 'catalog-title-imported',
+        catalogTitleId: IMPORTED_CATALOG_TITLE_ID,
         catalogWorkId: importedId,
         userId: USER_ID,
       }),
@@ -1629,7 +1717,7 @@ describe('SyncService', () => {
         status: 'applied',
         work: expect.objectContaining({
           id: importedId,
-          catalogTitleId: 'catalog-title-imported',
+          catalogTitleId: IMPORTED_CATALOG_TITLE_ID,
         }),
       }),
     ]);
@@ -1640,12 +1728,12 @@ describe('SyncService', () => {
 
     userRecordsService.findById.mockResolvedValue(null);
     catalogService.createTitleFromImportCandidate.mockResolvedValue({
-      id: 'catalog-title-from-payload-title',
+      id: PAYLOAD_TITLE_CATALOG_TITLE_ID,
     } as Awaited<ReturnType<CatalogService['createTitleFromImportCandidate']>>);
     userRecordsService.create.mockResolvedValue(
       createWorkAggregateFixture({
         id: importedId,
-        catalogTitleId: 'catalog-title-from-payload-title',
+        catalogTitleId: PAYLOAD_TITLE_CATALOG_TITLE_ID,
         catalogWorkId: importedId,
         serverVersion: 1,
       }),
@@ -1696,7 +1784,7 @@ describe('SyncService', () => {
         status: 'applied',
         work: expect.objectContaining({
           id: importedId,
-          catalogTitleId: 'catalog-title-from-payload-title',
+          catalogTitleId: PAYLOAD_TITLE_CATALOG_TITLE_ID,
         }),
       }),
     ]);
@@ -1734,10 +1822,8 @@ describe('SyncService', () => {
     expect(result.results).toEqual([
       expect.objectContaining({
         status: 'failed',
-        code: 'failed_import_draft_unresolved',
-        message:
-          'Catalog title could not be resolved from importDraft.catalogTitle or payload.title.',
-        work: null,
+        code: 'failed_validation',
+        message: expect.stringContaining('Invalid work sync payload'),
       }),
     ]);
     expect(
@@ -1946,7 +2032,7 @@ describe('SyncService', () => {
           createdAt: '2026-04-18T00:30:00.000Z',
           payload: {
             id: '4a822eea-c1c9-40d3-b18c-b4d35a75b0f3',
-            workId: 'missing-work',
+            workId: '33333333-3333-4333-8333-333333333333',
             seriesId: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
             role: 'main',
             orderIndex: null,
@@ -1975,7 +2061,7 @@ describe('SyncService', () => {
 
   it('pushes a local release record for volume-recordable titles only', async () => {
     const parent = createWorkAggregateFixture({
-      catalogTitleId: 'catalog-title-1',
+      catalogTitleId: CATALOG_TITLE_ID,
       catalogWork: {
         ...createWorkAggregateFixture().catalogWork,
         type: WorkType.light_novel,
@@ -1992,7 +2078,7 @@ describe('SyncService', () => {
       );
     prisma.catalogRelease.findFirst.mockResolvedValue({
       id: '5f7ac03a-0679-4e63-a62d-0d04b5e72a23',
-      catalogTitleId: 'catalog-title-1',
+      catalogTitleId: CATALOG_TITLE_ID,
     });
     prisma.userReleaseRecord.create.mockResolvedValue({
       id: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
@@ -2067,7 +2153,7 @@ describe('SyncService', () => {
 
   it('rejects release-record sync for progress-only anime titles', async () => {
     const parent = createWorkAggregateFixture({
-      catalogTitleId: 'catalog-title-1',
+      catalogTitleId: CATALOG_TITLE_ID,
       catalogWork: {
         ...createWorkAggregateFixture().catalogWork,
         type: WorkType.anime,

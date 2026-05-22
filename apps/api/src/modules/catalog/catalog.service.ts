@@ -281,7 +281,12 @@ export class CatalogService {
     });
   }
 
-  listSubmissions(status?: CatalogSubmissionStatus) {
+  listSubmissions(
+    viewer: { role: UserRole; userId: string },
+    status?: CatalogSubmissionStatus,
+  ) {
+    this.assertCanModerate(viewer.role);
+
     const options: Prisma.CatalogSubmissionFindManyArgs = {
       orderBy: {
         createdAt: 'asc',
@@ -296,6 +301,19 @@ export class CatalogService {
     }
 
     return this.prisma.catalogSubmission.findMany(options);
+  }
+
+  listUserSubmissions(submitterId: string, status?: CatalogSubmissionStatus) {
+    return this.prisma.catalogSubmission.findMany({
+      where: {
+        submitterId,
+        ...(status ? { status } : {}),
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+      take: 100,
+    });
   }
 
   async approveSubmission(

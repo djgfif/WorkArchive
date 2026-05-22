@@ -226,6 +226,28 @@ function isLocalhostOrigin(origin: string) {
   }
 }
 
+function assertProductionHttpsUrl(
+  name: string,
+  value: string,
+  isProduction: boolean,
+) {
+  if (!isProduction) {
+    return;
+  }
+
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(value);
+  } catch {
+    throw new Error(`${name} must be a valid URL in production.`);
+  }
+
+  if (parsedUrl.protocol !== 'https:') {
+    throw new Error(`${name} must use https:// in production.`);
+  }
+}
+
 function readCorsOrigin(value: string | undefined, isProduction: boolean) {
   const normalizedValue = value?.trim();
 
@@ -254,14 +276,25 @@ function readCorsOrigin(value: string | undefined, isProduction: boolean) {
     throw new Error('CORS_ORIGIN must not use localhost in production.');
   }
 
+  for (const origin of origins) {
+    assertProductionHttpsUrl('CORS_ORIGIN', origin, isProduction);
+  }
+
   return origins;
 }
 
 function readWebBaseUrl(isProduction: boolean) {
-  const configuredValue =
-    process.env.WEB_BASE_URL?.trim() || process.env.PUBLIC_WEB_BASE_URL?.trim();
+  const webBaseUrl = process.env.WEB_BASE_URL?.trim();
+  const publicWebBaseUrl = process.env.PUBLIC_WEB_BASE_URL?.trim();
+  const configuredValue = webBaseUrl || publicWebBaseUrl;
 
   if (configuredValue) {
+    assertProductionHttpsUrl(
+      webBaseUrl ? 'WEB_BASE_URL' : 'PUBLIC_WEB_BASE_URL',
+      configuredValue,
+      isProduction,
+    );
+
     return configuredValue;
   }
 
@@ -276,6 +309,12 @@ function readGoogleOAuthRedirectUri(isProduction: boolean, port: number) {
   const configuredValue = process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim();
 
   if (configuredValue) {
+    assertProductionHttpsUrl(
+      'GOOGLE_OAUTH_REDIRECT_URI',
+      configuredValue,
+      isProduction,
+    );
+
     return configuredValue;
   }
 

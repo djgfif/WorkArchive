@@ -124,16 +124,20 @@ npm run dev:db
 npm run db:migrate:deploy
 ```
 
-4. 선택: 데모 계정과 샘플 데이터 시드
+4. 선택: 데모 사용자와 샘플 데이터 시드
 
 ```bash
 npm run db:seed
 ```
 
-기본 데모 계정:
+기본 데모 사용자:
 
 - email: `demo@workarchive.local`
-- password: `demo-password-123`
+
+참고: 현재 공개 인증 경로는 Google OAuth 중심이다. legacy email/password
+register/login/password-reset 엔드포인트는 코드에서 `410 Gone`으로 비활성화되어
+있으므로 위 seed password는 현재 로그인 경로로 사용할 수 있는 데모 비밀번호가
+아니다.
 
 5. 웹과 API 실행
 
@@ -249,7 +253,7 @@ Integration test note: `npm run test:integration` requires a migrated PostgreSQL
 - manual timeline entries는 Dexie v9 sync-ready 모델과 backend `UserTimelineEntry` private storage를 통해 optional account sync 대상에 포함된다.
 - JSON 백업은 schema/source/exclusion metadata와 timeline entries를 포함하고, 가져오기는 dry-run preview로 add/update/duplicate/skip/conflict 예상치를 먼저 보여준다.
 - `Tier Boards`, `Insights`, `Community`는 현재 placeholder 성격이 강하다.
-- 인증은 현재 이메일/비밀번호 + memory-only access token + `HttpOnly` refresh cookie 구조다. 앱 부팅 시 refresh cookie로 access token을 재발급하고, 실패하면 guest/local-first 상태로 돌아간다. 늦게 도착한 startup refresh 실패는 완료된 login/register 세션을 덮어쓰지 않는다.
+- 인증은 현재 Google OAuth + memory-only access token + `HttpOnly` refresh cookie 구조다. legacy email/password register/login/password-reset은 비활성화되어 `410 Gone`을 반환한다. 앱 부팅 시 refresh cookie로 access token을 재발급하고, 실패하면 guest/local-first 상태로 돌아간다. 늦게 도착한 startup refresh 실패는 완료된 Google OAuth 세션을 덮어쓰지 않는다.
 - 백엔드는 이미 `CatalogWork` + `UserWorkRecord` split model을 도입했고, 현재 `Works` API는 flat compatibility 계층으로 유지된다.
 - 현재 프론트 실행 대상은 `apps/web`이며, Tauri shell은 아직 저장소에 없다.
 

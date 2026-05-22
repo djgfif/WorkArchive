@@ -140,10 +140,30 @@ export class CatalogController {
 
   @Get('submissions')
   @ApiOkResponse({
-    description: 'List catalog change submissions.',
+    description: 'List all catalog change submissions for moderators.',
   })
-  listSubmissions(@Query() query: CatalogSubmissionsQueryDto) {
-    return this.catalogService.listSubmissions(query.status);
+  listSubmissions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: CatalogSubmissionsQueryDto,
+  ) {
+    return this.catalogService.listSubmissions(
+      {
+        role: user.role,
+        userId: user.userId,
+      },
+      query.status,
+    );
+  }
+
+  @Get('submissions/mine')
+  @ApiOkResponse({
+    description: 'List catalog change submissions created by the current user.',
+  })
+  listMySubmissions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: CatalogSubmissionsQueryDto,
+  ) {
+    return this.catalogService.listUserSubmissions(user.userId, query.status);
   }
 
   @Post('submissions/:id/approve')
