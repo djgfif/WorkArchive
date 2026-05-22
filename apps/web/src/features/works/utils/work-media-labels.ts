@@ -23,8 +23,8 @@ interface WorkMediaFieldLabels {
 
 const defaultLabels: WorkMediaFieldLabels = {
   authorEmptyLabel: '주요 제작자 미입력',
-  authorLabel: '대표 제작자',
-  authorPlaceholder: '대표 작가, 감독, 제작사',
+  authorLabel: '작가 / 제작자',
+  authorPlaceholder: '예: 작가, 감독, 제작사',
   creatorLabel: '주요 제작진',
   creatorPlaceholder: '작가, 원작자, 감독 등',
   platformLabel: '플랫폼 / 서비스',
@@ -45,7 +45,7 @@ const defaultLabels: WorkMediaFieldLabels = {
 const labelsByType: Partial<Record<WorkType, Partial<WorkMediaFieldLabels>>> = {
   anime: {
     authorEmptyLabel: '스튜디오/원작자 미입력',
-    authorLabel: '대표 원작자 / 스튜디오',
+    authorLabel: '원작자 / 스튜디오',
     authorPlaceholder: '예: Kanehito Yamada, Madhouse',
     creatorLabel: '원작자 / 감독 / 각본',
     creatorPlaceholder: '예: 원작자, 감독, 시리즈 구성',
@@ -59,7 +59,7 @@ const labelsByType: Partial<Record<WorkType, Partial<WorkMediaFieldLabels>>> = {
   },
   manga: {
     authorEmptyLabel: '작가 미입력',
-    authorLabel: '대표 작가',
+    authorLabel: '작가',
     authorPlaceholder: '예: 아라카와 히로무',
     creatorLabel: '글 / 그림 / 원작',
     creatorPlaceholder: '예: 스토리 작가, 작화가, 원작자',
@@ -72,10 +72,10 @@ const labelsByType: Partial<Record<WorkType, Partial<WorkMediaFieldLabels>>> = {
   },
   novel: {
     authorEmptyLabel: '저자 미입력',
-    authorLabel: '대표 저자',
+    authorLabel: '저자',
     authorPlaceholder: '예: Frank Herbert',
-    creatorLabel: '저자 / 번역가',
-    creatorPlaceholder: '예: 저자, 번역가',
+    creatorLabel: '저자',
+    creatorPlaceholder: '예: Frank Herbert',
     platformLabel: '판본 / 유통처',
     platformPlaceholder: '예: 민음사 세계문학, 리디북스',
     publisherLabel: '출판사',
@@ -85,10 +85,10 @@ const labelsByType: Partial<Record<WorkType, Partial<WorkMediaFieldLabels>>> = {
   },
   light_novel: {
     authorEmptyLabel: '작가 미입력',
-    authorLabel: '대표 작가 / 일러스트레이터',
-    authorPlaceholder: '예: 카마치 카즈마, 하이무라 키요타카',
-    creatorLabel: '작가 / 일러스트레이터 / 번역가',
-    creatorPlaceholder: '예: 작가, 삽화가, 번역가',
+    authorLabel: '작가',
+    authorPlaceholder: '예: 카마치 카즈마',
+    creatorLabel: '작가',
+    creatorPlaceholder: '예: 카마치 카즈마',
     platformLabel: '레이블 / 유통처',
     platformPlaceholder: '예: 전격문고, 리디북스',
     publisherLabel: '출판사',
@@ -98,7 +98,7 @@ const labelsByType: Partial<Record<WorkType, Partial<WorkMediaFieldLabels>>> = {
   },
   web_novel: {
     authorEmptyLabel: '작가 미입력',
-    authorLabel: '대표 작가',
+    authorLabel: '작가',
     authorPlaceholder: '예: 싱숑',
     creatorLabel: '작가',
     creatorPlaceholder: '예: 연재 작가',
@@ -111,7 +111,7 @@ const labelsByType: Partial<Record<WorkType, Partial<WorkMediaFieldLabels>>> = {
   },
   webtoon: {
     authorEmptyLabel: '작가 미입력',
-    authorLabel: '대표 작가',
+    authorLabel: '작가',
     authorPlaceholder: '예: 글 작가, 그림 작가',
     creatorLabel: '글 / 그림 / 원작',
     creatorPlaceholder: '예: 글 작가, 그림 작가, 원작자',
@@ -124,7 +124,7 @@ const labelsByType: Partial<Record<WorkType, Partial<WorkMediaFieldLabels>>> = {
   },
   movie: {
     authorEmptyLabel: '감독/제작사 미입력',
-    authorLabel: '대표 감독 / 제작사',
+    authorLabel: '감독 / 제작사',
     authorPlaceholder: '예: 봉준호, Barunson E&A',
     creatorLabel: '감독 / 각본 / 원작',
     creatorPlaceholder: '예: 감독, 각본가, 원작자',
@@ -138,7 +138,7 @@ const labelsByType: Partial<Record<WorkType, Partial<WorkMediaFieldLabels>>> = {
   },
   drama: {
     authorEmptyLabel: '방송사/제작사 미입력',
-    authorLabel: '대표 방송사 / 제작사',
+    authorLabel: '방송사 / 제작사',
     authorPlaceholder: '예: tvN, Studio Dragon',
     creatorLabel: '연출 / 극본 / 원작',
     creatorPlaceholder: '예: 연출, 극본, 원작자',

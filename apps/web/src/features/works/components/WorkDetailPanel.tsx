@@ -526,7 +526,7 @@ export function WorkDetailPanel({
           <Tabs.Tab value="overview">개요</Tabs.Tab>
           <Tabs.Tab value="review">감상</Tabs.Tab>
           <Tabs.Tab value="progress">진행도</Tabs.Tab>
-          <Tabs.Tab value="related">관련 작품</Tabs.Tab>
+          <Tabs.Tab value="related">연결된 작품</Tabs.Tab>
           <Tabs.Tab value="metadata">메타데이터</Tabs.Tab>
         </Tabs.List>
 
@@ -645,7 +645,7 @@ export function WorkDetailPanel({
           <Stack gap="md">
             <SectionCard padding="md" tone="subtle">
               <Text c="dimmed" size="sm">
-                로컬 시리즈/세계관 기록과 카탈로그 관계를 작품 기록과 분리해 확인합니다.
+                같은 시리즈, 제작진, 카탈로그 관계로 이어지는 작품을 나눠서 확인합니다.
               </Text>
             </SectionCard>
             {relatedSections}

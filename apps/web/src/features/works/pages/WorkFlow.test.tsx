@@ -127,7 +127,9 @@ describe('Works routed flow', () => {
     const createTitleInput = await screen.findByLabelText(/^제목$/);
     await user.clear(createTitleInput);
     await user.type(createTitleInput, 'Dune');
-    const authorInput = screen.getByLabelText(/대표 저자/);
+    await user.click(screen.getByRole('button', { name: '상세 정보' }));
+    const authorInput = document.getElementById('manualCreatorText') as HTMLInputElement;
+    expect(authorInput).not.toBeNull();
     await user.clear(authorInput);
     await user.type(authorInput, 'Frank Herbert');
     await user.click(screen.getByRole('button', { name: '완료' }));

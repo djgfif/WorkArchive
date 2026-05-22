@@ -1,7 +1,6 @@
 ﻿import {
   useEffect,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from 'react';
 import {
@@ -662,16 +661,8 @@ function getStatusBadgeTone(status: string): AppBadgeToneValue {
   }
 }
 
-const statusOverlayConfig: Record<string, { color: string; label: string }> = {
-  in_progress: { color: 'var(--app-accent-primary)',  label: '보는 중' },
-  completed:   { color: 'var(--app-accent-teal)',     label: '완료' },
-  planned:     { color: 'var(--app-text-muted)',      label: '볼 예정' },
-  dropped:     { color: 'var(--app-accent-rose)',     label: '하차' },
-};
-
 export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
-  const statusOverlay = statusOverlayConfig[work.status];
   return (
     <Link
       aria-label={`${work.title} 상세 보기`}
@@ -692,27 +683,6 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
         )}
         <WorkPoster
           coverSeed={work.id}
-          overlay={
-            statusOverlay ? (
-              <Box
-                aria-label={`상태: ${statusOverlay.label}`}
-                className={cn(css.statusOverlay)}
-                style={{ '--status-color': statusOverlay.color } as CSSProperties}
-              >
-                <Text
-                  fw={700}
-                  style={{
-                    color: 'var(--app-text-primary)',
-                    fontSize: 'var(--app-type-meta, 0.76rem)',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {statusOverlay.label}
-                </Text>
-              </Box>
-            ) : undefined
-          }
           thumbnailUrl={work.thumbnailUrl}
           title={work.title}
           typeLabel={typeLabel}

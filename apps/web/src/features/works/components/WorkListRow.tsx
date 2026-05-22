@@ -8,7 +8,6 @@
   Progress,
   Stack,
   Text,
-  TextInput,
   Title,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -91,12 +90,6 @@ const progressTotalLabels: Record<ProgressUnit, string> = {
   volume: '전체 권',
 };
 
-const lastPositionLabels: Record<ProgressUnit, string> = {
-  chapter: '마지막으로 읽은 위치',
-  episode: '마지막으로 본 위치',
-  volume: '마지막으로 읽은 위치',
-};
-
 function formatRatingLabel(value: number | null) {
   return value === null ? '미평가' : `★ ${value.toFixed(1)}`;
 }
@@ -152,20 +145,21 @@ export function WorkListRow({
     work.progressCurrent ?? null,
   );
   const [total, setTotal] = useState<number | null>(work.progressTotal ?? null);
-  const [lastLabel, setLastLabel] = useState(work.lastConsumedLabel ?? '');
 
   useEffect(() => {
     setCurrent(work.progressCurrent ?? null);
     setTotal(work.progressTotal ?? null);
-    setLastLabel(work.lastConsumedLabel ?? '');
-  }, [work.id, work.lastConsumedLabel, work.progressCurrent, work.progressTotal]);
+  }, [work.id, work.progressCurrent, work.progressTotal]);
 
   const hasProgressChanges =
     current !== (work.progressCurrent ?? null) ||
-    total !== (work.progressTotal ?? null) ||
-    lastLabel !== (work.lastConsumedLabel ?? '');
+    total !== (work.progressTotal ?? null);
   const hasInvalidProgress =
     current !== null && total !== null && current > total;
+  const nextLastConsumedLabel =
+    progressUnit && current !== null
+      ? `${current}${progressUnitLabels[progressUnit]}까지`
+      : '';
 
   return (
     <Paper
@@ -384,24 +378,13 @@ export function WorkListRow({
                   />
                 </Group>
 
-                <Group align="flex-end" gap="sm" wrap="wrap">
-                  <TextInput
-                    aria-label={`${work.title} ${lastPositionLabels[progressUnit]}`}
-                    disabled={isUpdating}
-                    flex={1}
-                    label={lastPositionLabels[progressUnit]}
-                    maxLength={120}
-                    onChange={(event) => setLastLabel(event.currentTarget.value)}
-                    placeholder={`예: ${current ?? 18}${progressUnitLabels[progressUnit]}까지`}
-                    style={{ minWidth: 'min(100%, 12rem)' }}
-                    value={lastLabel}
-                  />
+                <ActionRow justify="flex-end">
                   <AppButton
                     aria-label={`${work.title} 진행도 저장`}
                     disabled={isUpdating || !hasProgressChanges || hasInvalidProgress}
                     onClick={() =>
                       void onQuickProgressUpdate(work, {
-                        lastConsumedLabel: lastLabel,
+                        lastConsumedLabel: nextLastConsumedLabel,
                         progressCurrent: current,
                         progressTotal: total,
                         progressUnit,
@@ -411,9 +394,9 @@ export function WorkListRow({
                     tone="primary"
                     type="button"
                   >
-                    저장
+                    진행 저장
                   </AppButton>
-                </Group>
+                </ActionRow>
 
                 {hasInvalidProgress && (
                   <Text c="red" size="xs">

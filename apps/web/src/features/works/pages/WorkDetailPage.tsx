@@ -23,6 +23,7 @@ import {
   type TimelineEntryRecord,
   type TimelineEntryType,
   type UserReleaseRecord,
+  type WorkContributorRole,
   type WorkRecord,
   type WorkStatus,
 } from '@work-archive/shared-types';
@@ -84,6 +85,20 @@ const relationTypeLabels: Record<string, string> = {
   side_story: '외전',
   spin_off: '스핀오프',
 };
+
+const relatedContributorRoles = new Set<WorkContributorRole>([
+  'original_creator',
+  'studio',
+]);
+
+const contributorRoleLabels: Partial<Record<WorkContributorRole, string>> = {
+  original_creator: '저자/제작진',
+  studio: '스튜디오',
+};
+
+function getContributorRoleLabel(role: WorkContributorRole) {
+  return contributorRoleLabels[role] ?? role;
+}
 
 function getRouteFeedback(state: unknown) {
   if (!state || typeof state !== 'object' || !('feedback' in state)) {
@@ -556,9 +571,9 @@ function LocalSeriesSection({
 
   return (
     <PageSection
-      description="로컬 기록의 시리즈/세계관 태그로 묶은 작품입니다."
+      description="같은 시리즈명이나 세계관으로 묶인 내 기록입니다."
       eyebrow="시리즈"
-      title="이 시리즈 안에서"
+      title="같은 시리즈 / 세계관"
     >
       <Stack gap="md">
         {sameSeriesWorks.map((work) => (
@@ -569,6 +584,115 @@ function LocalSeriesSection({
                 <Text c="var(--mantine-color-dimmed)" size="sm">
                   {getWorkTypeLabel(work.type)}
                   {work.rating !== null ? ` · ★ ${work.rating.toFixed(1)}` : ''}
+                </Text>
+              </Stack>
+              <AppLinkButton to={`/works/${work.id}`} tone="quiet">
+                보기
+              </AppLinkButton>
+            </Group>
+          </SectionCard>
+        ))}
+      </Stack>
+    </PageSection>
+  );
+}
+
+function LocalContributorSection({
+  currentWork,
+  graph,
+  works,
+}: {
+  currentWork: WorkRecord;
+  graph: WorkGraphSnapshot | null;
+  works: WorkRecord[];
+}) {
+  if (!graph) {
+    return null;
+  }
+
+  const contributorsById = new Map(
+    graph.contributors.map((contributor) => [contributor.id, contributor]),
+  );
+  const currentContributorIds = new Set(
+    graph.workContributors
+      .filter((link) => link.workId === currentWork.id)
+      .filter((link) => relatedContributorRoles.has(link.role))
+      .map((link) => link.contributorId),
+  );
+
+  if (currentContributorIds.size === 0) {
+    return null;
+  }
+
+  const relatedWorks = works
+    .filter((work) => work.id !== currentWork.id)
+    .map((work) => {
+      const sharedLinks = graph.workContributors.filter(
+        (link) =>
+          link.workId === work.id &&
+          currentContributorIds.has(link.contributorId) &&
+          relatedContributorRoles.has(link.role),
+      );
+
+      if (sharedLinks.length === 0) {
+        return null;
+      }
+
+      const sharedContributorsById = new Map<string, string>();
+
+      for (const link of sharedLinks) {
+        const contributor = contributorsById.get(link.contributorId);
+
+        if (!contributor || sharedContributorsById.has(link.contributorId)) {
+          continue;
+        }
+
+        sharedContributorsById.set(
+          link.contributorId,
+          `${getContributorRoleLabel(link.role)}: ${contributor.name}`,
+        );
+      }
+
+      const sharedContributors = Array.from(sharedContributorsById.values());
+
+      return {
+        sharedContributors,
+        work,
+      };
+    })
+    .filter(
+      (
+        entry,
+      ): entry is {
+        sharedContributors: string[];
+        work: WorkRecord;
+      } => Boolean(entry),
+    )
+    .sort((left, right) => left.work.title.localeCompare(right.work.title))
+    .slice(0, 6);
+
+  if (relatedWorks.length === 0) {
+    return null;
+  }
+
+  return (
+    <PageSection
+      description="같은 저자, 작가, 감독, 원작자 또는 스튜디오로 연결된 내 기록입니다."
+      eyebrow="제작진"
+      title="같은 제작진"
+    >
+      <Stack gap="md">
+        {relatedWorks.map(({ sharedContributors, work }) => (
+          <SectionCard key={work.id} gap="xs" padding="lg" tone="subtle">
+            <Group justify="space-between">
+              <Stack gap={4}>
+                <Text fw={700}>{work.title}</Text>
+                <Text c="var(--mantine-color-dimmed)" size="sm">
+                  {getWorkTypeLabel(work.type)}
+                  {work.rating !== null ? ` · ★ ${work.rating.toFixed(1)}` : ''}
+                </Text>
+                <Text c="var(--mantine-color-dimmed)" size="sm">
+                  {sharedContributors.join(' · ')}
                 </Text>
               </Stack>
               <AppLinkButton to={`/works/${work.id}`} tone="quiet">
@@ -625,9 +749,9 @@ function RelatedTitlesSection({
 
   return (
     <PageSection
-      description="같은 Franchise 안의 후속작, 외전, 각색 작품은 별도 title-level 기록 대상으로 봅니다."
-      eyebrow="관련 작품"
-      title="관련 작품"
+      description="검색 카탈로그에서 같은 프랜차이즈나 원작, 후속작, 외전, 각색으로 연결된 작품입니다."
+      eyebrow="카탈로그"
+      title="카탈로그 연결"
     >
       <Stack gap="md">
         {relatedEntries.map((relation) => (
@@ -1015,6 +1139,11 @@ export function WorkDetailPage() {
         relatedSections={
           <>
             <LocalSeriesSection
+              currentWork={work}
+              graph={localGraph}
+              works={localWorks}
+            />
+            <LocalContributorSection
               currentWork={work}
               graph={localGraph}
               works={localWorks}

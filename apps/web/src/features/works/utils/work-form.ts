@@ -136,6 +136,16 @@ export function createWorkFormValuesFromRecord(
             return false;
           })
           .map((tag) => tag.value);
+  const creatorNames = getContributorNamesByRole('original_creator');
+  const studioNames = getContributorNamesByRole('studio');
+  const publisherNames = getContributorNamesByRole('publisher');
+  const platformNames = getContributorNamesByRole('platform');
+  const hasContributorValues =
+    creatorNames.length > 0 ||
+    studioNames.length > 0 ||
+    publisherNames.length > 0 ||
+    platformNames.length > 0;
+  const legacyAuthorFallback = work.author.trim() ? [work.author.trim()] : [];
 
   return {
     type: work.type,
@@ -145,10 +155,14 @@ export function createWorkFormValuesFromRecord(
     personalTagsText: migratedTags.personalTags.join(', '),
     seriesText: getSeriesTitlesByKind('series').join(', '),
     universeText: getSeriesTitlesByKind('universe').join(', '),
-    creatorText: getContributorNamesByRole('original_creator').join(', '),
-    studioText: getContributorNamesByRole('studio').join(', '),
-    publisherText: getContributorNamesByRole('publisher').join(', '),
-    platformText: getContributorNamesByRole('platform').join(', '),
+    creatorText: (
+      creatorNames.length > 0 || hasContributorValues
+        ? creatorNames
+        : legacyAuthorFallback
+    ).join(', '),
+    studioText: studioNames.join(', '),
+    publisherText: publisherNames.join(', '),
+    platformText: platformNames.join(', '),
     description: work.description,
     thumbnailUrl: work.thumbnailUrl,
     status: work.status,
@@ -203,6 +217,16 @@ export function formatTextListForWorkForm(values: string[]) {
   return Array.from(
     new Set(values.map((value) => value.trim()).filter(Boolean)),
   ).join(', ');
+}
+
+export function getDisplayAuthorFromWorkFormValues(values: WorkFormValues) {
+  return [
+    ...parseCommaSeparatedTextList(values.creatorText),
+    ...parseCommaSeparatedTextList(values.studioText),
+    ...parseCommaSeparatedTextList(values.publisherText),
+    ...parseCommaSeparatedTextList(values.platformText),
+    values.author.trim(),
+  ].find(Boolean) ?? '';
 }
 
 function parseOptionalDateInput(value: string, fieldLabel: string) {
@@ -285,7 +309,7 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
   return {
     type: values.type,
     title,
-    author: values.author.trim(),
+    author: getDisplayAuthorFromWorkFormValues(values),
     genres: normalizeWorkGenres(parseCommaSeparatedTextList(values.genresText)),
     personalTags,
     description: values.description.trim(),

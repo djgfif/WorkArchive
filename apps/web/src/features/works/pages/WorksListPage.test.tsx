@@ -595,13 +595,15 @@ describe('WorksListPage', () => {
     });
     await user.type(screen.getByLabelText('Frieren 읽은 권'), '3');
     await user.type(screen.getByLabelText('Frieren 전체 권'), '5');
-    await user.type(screen.getByLabelText('Frieren 마지막으로 읽은 위치'), '3권');
+    expect(
+      screen.queryByLabelText('Frieren 마지막으로 읽은 위치'),
+    ).not.toBeInTheDocument();
     await user.click(screen.getByLabelText('Frieren 진행도 저장'));
 
     await waitFor(async () => {
       expect(await worksService.getWorkById(work.id)).toEqual(
         expect.objectContaining({
-          lastConsumedLabel: '3권',
+          lastConsumedLabel: '3권까지',
           progressCurrent: 3,
           progressTotal: 5,
           progressUnit: 'volume',

@@ -38,6 +38,7 @@ import {
 import {
   createDefaultWorkFormValues,
   formatTextListForWorkForm,
+  getDisplayAuthorFromWorkFormValues,
   parseCommaSeparatedTextList,
   parseWorkFormValues,
   type UpsertWorkInput,
@@ -450,19 +451,7 @@ export function WorkForm({
                           />
                         </Grid.Col>
 
-                        <Grid.Col span={{ base: 12, md: 6 }}>
-                          <TextInput
-                            id="author"
-                            description="목록과 상세 상단에 가장 먼저 보일 대표 이름입니다."
-                            label={mediaLabels.authorLabel}
-                            name="author"
-                            onChange={handleInputChange}
-                            placeholder={mediaLabels.authorPlaceholder}
-                            value={values.author}
-                          />
-                        </Grid.Col>
-
-                        <Grid.Col span={{ base: 12, md: 6 }}>
+                        <Grid.Col span={12}>
                           <TextInput
                             aria-describedby="thumbnailUrlHint"
                             id="thumbnailUrl"
@@ -489,6 +478,17 @@ export function WorkForm({
                           options={workTypeOptions}
                           value={values.type}
                         />
+                        <WorkGenreSelector
+                          description="대표 장르는 최대 3개까지 선택합니다."
+                          id="genresText"
+                          onChange={(items) =>
+                            handleTextListChange('genresText', items)
+                          }
+                          value={genreValues}
+                        />
+                      </SimpleGrid>
+
+                      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                         <SegmentedChoiceGroup
                           aria-label="작품 상태"
                           label="상태"
@@ -541,14 +541,6 @@ export function WorkForm({
                           value={values.droppedAt}
                         />
                       </SimpleGrid>
-
-                      <WorkGenreSelector
-                        id="genresText"
-                        onChange={(items) =>
-                          handleTextListChange('genresText', items)
-                        }
-                        value={genreValues}
-                      />
 
                     </Stack>
                   </Stepper.Step>
@@ -741,7 +733,7 @@ export function WorkForm({
                         <Text fw={600} size="sm" style={{ color: 'var(--app-text-secondary)' }}>
                           개인 태그
                           <Text component="span" c="dimmed" fw={400} size="xs" ml={6}>
-                            나만의 감상 분류
+                            취향, 소재, 기억할 키워드
                           </Text>
                         </Text>
                         <TagsInput
@@ -892,7 +884,8 @@ export function WorkForm({
                 <div>
                   <Title order={3}>{previewTitle}</Title>
                   <Text c="dimmed">
-                    {values.author.trim() || '작가/제작자 미입력'}
+                    {getDisplayAuthorFromWorkFormValues(values) ||
+                      '작가/제작자 미입력'}
                   </Text>
                 </div>
 

@@ -469,6 +469,7 @@ describe('AddWorkFlow', () => {
 
     expect(screen.getByLabelText(/^제목$/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^유형$/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '장르' })).toBeInTheDocument();
     expect(screen.getByLabelText('표지 이미지 주소')).toBeInTheDocument();
     expect(screen.getByText('상태')).toBeInTheDocument();
     expect(screen.getByLabelText('한줄평')).toBeInTheDocument();
@@ -476,8 +477,7 @@ describe('AddWorkFlow', () => {
       'aria-expanded',
       'false',
     );
-    expect(screen.getByLabelText('대표 저자')).not.toBeVisible();
-    expect(getElementById<HTMLInputElement>('manualGenresText')).not.toBeVisible();
+    expect(getElementById<HTMLInputElement>('manualCreatorText')).not.toBeVisible();
 
     await user.click(screen.getByRole('button', { name: '상세 정보' }));
 
@@ -485,8 +485,7 @@ describe('AddWorkFlow', () => {
       'aria-expanded',
       'true',
     );
-    expect(screen.getByLabelText('대표 저자')).toBeInTheDocument();
-    expect(getElementById<HTMLInputElement>('manualGenresText')).toBeVisible();
+    expect(getElementById<HTMLInputElement>('manualCreatorText')).toBeInTheDocument();
     expect(
       getElementById<HTMLInputElement>('manualPersonalTagsText'),
     ).toBeVisible();
@@ -540,9 +539,7 @@ describe('AddWorkFlow', () => {
     expect(
       await waitFor(() => getElementById<HTMLInputElement>('manualTitle')),
     ).toHaveValue(candidate.title);
-    expect(getElementById<HTMLInputElement>('manualAuthor')).toHaveValue(
-      candidate.author,
-    );
+    expect(screen.getByText(candidate.author)).toBeInTheDocument();
   });
 
   it('shows structured loading while search candidates are loading', async () => {
@@ -587,7 +584,7 @@ describe('AddWorkFlow', () => {
     ).toBeInTheDocument();
   });
 
-  it('submits fixed genres and personal tags from chip inputs', async () => {
+  it('submits fixed genres from the genre dropdown and personal tags from tag input', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
 
@@ -598,16 +595,9 @@ describe('AddWorkFlow', () => {
     expect(
       screen.queryByPlaceholderText('SF, 로맨스, 스릴러'),
     ).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', {
-        name: '판타지',
-      }),
-    );
-    await user.click(
-      screen.getByRole('button', {
-        name: 'SF',
-      }),
-    );
+    await user.click(screen.getByRole('button', { name: '장르' }));
+    await user.click(screen.getByRole('option', { name: '판타지' }));
+    await user.click(screen.getByRole('option', { name: 'SF' }));
     await user.type(
       getElementById<HTMLInputElement>('manualPersonalTagsText'),
       'rewatch{Enter}quiet ending{Enter}',

@@ -91,7 +91,7 @@ describe('WorkDetailPage', () => {
     expect(screen.getByRole('tab', { name: /감상/ })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '진행도' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /타임라인/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: '관련 작품' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '연결된 작품' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '메타데이터' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', { name: '메타데이터' }));
@@ -101,9 +101,11 @@ describe('WorkDetailPage', () => {
     expect((await screen.findAllByText('ufotable')).length).toBeGreaterThan(0);
     expect(screen.getByText('제작 정보')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('tab', { name: '관련 작품' }));
-    expect(screen.getByText('이 시리즈 안에서')).toBeInTheDocument();
-    expect(await screen.findByText('Fate/Zero')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: '연결된 작품' }));
+    expect(screen.getByText('같은 시리즈 / 세계관')).toBeInTheDocument();
+    expect(screen.getByText('같은 제작진')).toBeInTheDocument();
+    expect((await screen.findAllByText('Fate/Zero')).length).toBeGreaterThan(0);
+    expect(screen.getByText('스튜디오: ufotable')).toBeInTheDocument();
   });
 
   it('renders short review and full review before metadata cards', async () => {
@@ -593,7 +595,8 @@ describe('WorkDetailPage', () => {
     );
 
     await screen.findByRole('heading', { name: 'Steins;Gate' });
-    await userEvent.click(screen.getByRole('tab', { name: '관련 작품' }));
+    await userEvent.click(screen.getByRole('tab', { name: '연결된 작품' }));
+    expect(screen.getByText('카탈로그 연결')).toBeInTheDocument();
     expect(await screen.findByText('Steins;Gate 0')).toBeInTheDocument();
     expect(screen.getByText('Steins;Gate Movie')).toBeInTheDocument();
   });

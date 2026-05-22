@@ -21,6 +21,8 @@ export const WORK_GENRES = [
   '기타',
 ] as const;
 
+export const MAX_WORK_GENRES = 3;
+
 export type WorkGenreValue = (typeof WORK_GENRES)[number];
 export type WorkGenreLabel = WorkGenreValue;
 
@@ -37,18 +39,25 @@ export function normalizeWorkGenres(values: string[]): WorkGenreValue[] {
         .map((value) => value.trim())
         .filter(isWorkGenre),
     ),
-  );
+  ).slice(0, MAX_WORK_GENRES);
 }
 
 export function moveUnknownGenresToPersonalTags(
   genres: string[],
   personalTags: string[] = [],
 ) {
-  const normalizedGenres = normalizeWorkGenres(genres);
-  const knownGenreSet = new Set(normalizedGenres);
+  const validGenres = Array.from(
+    new Set(
+      genres
+        .map((genre) => genre.trim())
+        .filter(isWorkGenre),
+    ),
+  );
+  const normalizedGenres = validGenres.slice(0, MAX_WORK_GENRES);
+  const normalizedGenreSet = new Set(normalizedGenres);
   const unknownGenres = genres
     .map((genre) => genre.trim())
-    .filter((genre) => genre && !knownGenreSet.has(genre as WorkGenreValue));
+    .filter((genre) => genre && !normalizedGenreSet.has(genre as WorkGenreValue));
 
   return {
     genres: normalizedGenres,

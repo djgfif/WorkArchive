@@ -9,7 +9,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 
 import type { WorkStatus, WorkType } from '@work-archive/shared-types';
 
@@ -243,6 +243,55 @@ function MediaTypeFilter({
           );
         })}
       </Box>
+    </Box>
+  );
+}
+
+interface FilterSectionProps {
+  children: ReactNode;
+  description?: string;
+  frame?: 'default' | 'quiet';
+  title: string;
+}
+
+function FilterSection({
+  children,
+  description,
+  frame = 'default',
+  title,
+}: FilterSectionProps) {
+  const isQuiet = frame === 'quiet';
+
+  return (
+    <Box
+      style={{
+        background: isQuiet
+          ? 'transparent'
+          : 'color-mix(in srgb, var(--app-surface-subtle) 64%, transparent)',
+        border: isQuiet ? 'none' : '1px solid var(--app-border-subtle)',
+        borderTop: isQuiet ? '1px solid var(--app-border-subtle)' : undefined,
+        borderRadius: 'var(--mantine-radius-lg)',
+        padding: isQuiet ? '0.9rem 0 0' : '0.8rem',
+      }}
+    >
+      <Stack gap="sm">
+        <Group align="baseline" gap="xs" wrap="wrap">
+          <Text
+            c="var(--app-text-primary)"
+            fw={800}
+            size="sm"
+            style={{ letterSpacing: 0, lineHeight: 1.1 }}
+          >
+            {title}
+          </Text>
+          {description ? (
+            <Text c="var(--app-text-muted)" size="xs">
+              {description}
+            </Text>
+          ) : null}
+        </Group>
+        {children}
+      </Stack>
     </Box>
   );
 }
@@ -699,10 +748,12 @@ export function WorksToolbar({
       <Collapse in={advancedOpen}>
         <Box
           style={{
-            background:   'var(--app-surface-card)',
+            background:
+              'linear-gradient(180deg, color-mix(in srgb, var(--app-surface-card) 96%, transparent), color-mix(in srgb, var(--app-surface-subtle) 86%, transparent))',
             border:       '1px solid var(--app-border-default)',
             borderRadius: 'var(--mantine-radius-xl)',
-            padding:      'clamp(1rem, 3vw, 1.5rem)',
+            boxShadow:    '0 18px 46px rgba(0, 0, 0, 0.2)',
+            padding:      'clamp(1rem, 3vw, 1.35rem)',
           }}
         >
           {/* 패널 헤더 */}
@@ -736,161 +787,149 @@ export function WorksToolbar({
             )}
           </Group>
 
-          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
-            {seriesSuggestions.length > 0 && (
-              <Stack gap="xs">
-                <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                  시리즈 / 세계관
-                </Text>
-                <FilterPillGroup
-                  aria-label="시리즈 필터"
-                  onChange={(series) => onQueryChange({ ...query, series })}
-                  options={[
-                    { label: '전체', value: '' },
-                    ...seriesSuggestions.slice(0, 12).map((series) => ({
-                      label: series,
-                      value: series,
-                    })),
-                  ]}
-                  value={query.series ?? ''}
-                />
-              </Stack>
+          <Stack gap="md">
+            {(seriesSuggestions.length > 0 ||
+              personContributorSuggestions.length > 0 ||
+              organizationContributorSuggestions.length > 0) && (
+              <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+                {seriesSuggestions.length > 0 && (
+                  <FilterSection title="시리즈 / 세계관">
+                    <FilterPillGroup
+                      aria-label="시리즈 필터"
+                      onChange={(series) => onQueryChange({ ...query, series })}
+                      options={[
+                        { label: '전체', value: '' },
+                        ...seriesSuggestions.slice(0, 12).map((series) => ({
+                          label: series,
+                          value: series,
+                        })),
+                      ]}
+                      value={query.series ?? ''}
+                    />
+                  </FilterSection>
+                )}
+
+                {personContributorSuggestions.length > 0 && (
+                  <FilterSection title="작가 / 제작진">
+                    <FilterPillGroup
+                      aria-label="작가 제작진 필터"
+                      onChange={(personContributor) =>
+                        onQueryChange({ ...query, personContributor })
+                      }
+                      options={[
+                        { label: '전체', value: '' },
+                        ...personContributorSuggestions.slice(0, 12).map((contributor) => ({
+                          label: contributor,
+                          value: contributor,
+                        })),
+                      ]}
+                      value={query.personContributor ?? ''}
+                    />
+                  </FilterSection>
+                )}
+
+                {organizationContributorSuggestions.length > 0 && (
+                  <FilterSection title="회사 / 플랫폼">
+                    <FilterPillGroup
+                      aria-label="회사 플랫폼 필터"
+                      onChange={(organizationContributor) =>
+                        onQueryChange({ ...query, organizationContributor })
+                      }
+                      options={[
+                        { label: '전체', value: '' },
+                        ...organizationContributorSuggestions.slice(0, 12).map((contributor) => ({
+                          label: contributor,
+                          value: contributor,
+                        })),
+                      ]}
+                      value={query.organizationContributor ?? ''}
+                    />
+                  </FilterSection>
+                )}
+              </SimpleGrid>
             )}
 
-            {personContributorSuggestions.length > 0 && (
-              <Stack gap="xs">
-                <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                  작가 / 제작진
-                </Text>
-                <FilterPillGroup
-                  aria-label="작가 제작진 필터"
-                  onChange={(personContributor) =>
-                    onQueryChange({ ...query, personContributor })
-                  }
-                  options={[
-                    { label: '전체', value: '' },
-                    ...personContributorSuggestions.slice(0, 12).map((contributor) => ({
-                      label: contributor,
-                      value: contributor,
-                    })),
-                  ]}
-                  value={query.personContributor ?? ''}
-                />
-              </Stack>
-            )}
-
-            {organizationContributorSuggestions.length > 0 && (
-              <Stack gap="xs">
-                <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                  회사 / 플랫폼
-                </Text>
-                <FilterPillGroup
-                  aria-label="회사 플랫폼 필터"
-                  onChange={(organizationContributor) =>
-                    onQueryChange({ ...query, organizationContributor })
-                  }
-                  options={[
-                    { label: '전체', value: '' },
-                    ...organizationContributorSuggestions.slice(0, 12).map((contributor) => ({
-                      label: contributor,
-                      value: contributor,
-                    })),
-                  ]}
-                  value={query.organizationContributor ?? ''}
-                />
-              </Stack>
-            )}
-
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                장르
-              </Text>
+            <FilterSection frame="quiet" title="장르">
               <FilterPillGroup
                 aria-label="장르 필터"
                 onChange={(genre) => onQueryChange({ ...query, genre })}
                 options={genreFilterOptions}
                 value={query.genre ?? ''}
               />
-            </Stack>
+            </FilterSection>
 
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                상태
-              </Text>
-              <FilterPillGroup
-                aria-label="상태 필터"
-                onChange={(status) => onQueryChange({ ...query, status })}
-                options={statusFilterOptions}
-                value={query.status}
-              />
-            </Stack>
-
-            {/* 태그 검색 */}
-            <Stack gap="xs">
-              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                개인 태그
-              </Text>
-              <Box style={{ position: 'relative' }}>
-                <Box
-                  component="input"
-                  list="worksTagFilterSuggestions"
-                  name="tag"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    onQueryChange({ ...query, tag: e.currentTarget.value })
-                  }
-                  placeholder="태그로 필터…"
-                  value={query.tag ?? ''}
-                  style={{
-                    width:        '100%',
-                    height:       36,
-                    padding:      '0 0.75rem',
-                    borderRadius: 'var(--mantine-radius-md)',
-                    border:       '1px solid var(--app-border-default)',
-                    background:   'var(--app-surface-subtle)',
-                    color:        'var(--app-text-primary)',
-                    fontSize:     '0.875rem',
-                    outline:      'none',
-                    transition:   'border-color var(--wa-motion-fast, 150ms)',
-                  }}
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+              <FilterSection title="상태">
+                <FilterPillGroup
+                  aria-label="상태 필터"
+                  onChange={(status) => onQueryChange({ ...query, status })}
+                  options={statusFilterOptions}
+                  value={query.status}
                 />
-                <datalist id="worksTagFilterSuggestions">
-                  {tagSuggestions.map((tag) => (
-                    <option key={tag} value={tag} />
-                  ))}
-                </datalist>
-              </Box>
-              {/* 태그 추천 칩 */}
-              {tagSuggestions.length > 0 && (
-                <Group gap={4} wrap="wrap">
-                  {tagSuggestions.slice(0, 8).map((tag) => (
-                    <Box
-                      key={tag}
-                      component="button"
-                      onClick={() => onQueryChange({ ...query, tag })}
-                      type="button"
-                      style={{
-                        padding:      '0.15rem 0.5rem',
-                        borderRadius: 999,
-                        border:       `1px solid ${query.tag === tag ? 'var(--app-accent-primary)' : 'var(--app-border-default)'}`,
-                        background:   query.tag === tag
-                          ? 'color-mix(in srgb, var(--app-accent-primary) 12%, transparent)'
-                          : 'var(--app-surface-subtle)',
-                        color:        query.tag === tag
-                          ? 'var(--app-accent-primary)'
-                          : 'var(--app-text-secondary)',
-                        fontSize:     '0.75rem',
-                        fontWeight:   500,
-                        cursor:       'pointer',
-                        transition:   'all var(--wa-motion-fast, 150ms)',
-                      }}
-                    >
-                      #{tag}
-                    </Box>
-                  ))}
-                </Group>
-              )}
-            </Stack>
-          </SimpleGrid>
+              </FilterSection>
+
+              <FilterSection title="개인 태그">
+                <Box style={{ position: 'relative' }}>
+                  <Box
+                    component="input"
+                    list="worksTagFilterSuggestions"
+                    name="tag"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      onQueryChange({ ...query, tag: e.currentTarget.value })
+                    }
+                    placeholder="태그로 필터…"
+                    value={query.tag ?? ''}
+                    style={{
+                      width:        '100%',
+                      height:       36,
+                      padding:      '0 0.75rem',
+                      borderRadius: 'var(--mantine-radius-md)',
+                      border:       '1px solid var(--app-border-default)',
+                      background:   'var(--app-surface-subtle)',
+                      color:        'var(--app-text-primary)',
+                      fontSize:     '0.875rem',
+                      outline:      'none',
+                      transition:   'border-color var(--wa-motion-fast, 150ms)',
+                    }}
+                  />
+                  <datalist id="worksTagFilterSuggestions">
+                    {tagSuggestions.map((tag) => (
+                      <option key={tag} value={tag} />
+                    ))}
+                  </datalist>
+                </Box>
+                {tagSuggestions.length > 0 && (
+                  <Group gap={4} wrap="wrap">
+                    {tagSuggestions.slice(0, 8).map((tag) => (
+                      <Box
+                        key={tag}
+                        component="button"
+                        onClick={() => onQueryChange({ ...query, tag })}
+                        type="button"
+                        style={{
+                          padding:      '0.15rem 0.5rem',
+                          borderRadius: 999,
+                          border:       `1px solid ${query.tag === tag ? 'var(--app-accent-primary)' : 'var(--app-border-default)'}`,
+                          background:   query.tag === tag
+                            ? 'color-mix(in srgb, var(--app-accent-primary) 12%, transparent)'
+                            : 'var(--app-surface-subtle)',
+                          color:        query.tag === tag
+                            ? 'var(--app-accent-primary)'
+                            : 'var(--app-text-secondary)',
+                          fontSize:     '0.75rem',
+                          fontWeight:   500,
+                          cursor:       'pointer',
+                          transition:   'all var(--wa-motion-fast, 150ms)',
+                        }}
+                      >
+                        #{tag}
+                      </Box>
+                    ))}
+                  </Group>
+                )}
+              </FilterSection>
+            </SimpleGrid>
+          </Stack>
         </Box>
       </Collapse>
     </Stack>

@@ -71,6 +71,7 @@ import { DEFAULT_WORKS_LIST_QUERY } from '../utils/query-works';
 import {
   createDefaultWorkFormValues,
   formatTextListForWorkForm,
+  getDisplayAuthorFromWorkFormValues,
   parseCommaSeparatedTextList,
   parseWorkFormValues,
   type UpsertWorkInput,
@@ -129,7 +130,7 @@ function getFieldId(idPrefix: string, fieldName: string) {
 function getCandidateFieldSummary(values: WorkFormValues) {
   const filled = [
     values.title.trim() ? '제목' : null,
-    values.author.trim() ? '작가·제작자' : null,
+    getDisplayAuthorFromWorkFormValues(values) ? '제작진' : null,
     values.thumbnailUrl.trim() ? '표지' : null,
     values.genresText.trim() ? '장르' : null,
     values.description.trim() ? '설명' : null,
@@ -251,6 +252,7 @@ interface CoreWorkFieldsProps {
   error?: string | null;
   idPrefix?: string;
   onChange: WorkFormInputChangeHandler;
+  onTextListChange: (name: WorkFormListFieldName, values: string[]) => void;
   titleInputRef?: RefObject<HTMLInputElement | null>;
   values: WorkFormValues;
 }
@@ -259,15 +261,20 @@ function CoreWorkFields({
   error,
   idPrefix = '',
   onChange,
+  onTextListChange,
   titleInputRef,
   values,
 }: CoreWorkFieldsProps) {
+  const genreValues = normalizeWorkGenres(
+    parseCommaSeparatedTextList(values.genresText),
+  );
+
   return (
     <Stack gap="md">
       <ActionRow>
         <AppBadge tone="accent">필수</AppBadge>
         <Text c="var(--mantine-color-dimmed)" size="sm">
-          제목과 유형만 입력하면 저장할 수 있습니다.
+          제목과 유형만 입력하면 저장할 수 있습니다. 장르는 핵심 분류만 선택하세요.
         </Text>
       </ActionRow>
 
@@ -285,19 +292,28 @@ function CoreWorkFields({
           withAsterisk
         />
 
-        <NativeSelect
-          id={getFieldId(idPrefix, 'type')}
-          label="유형"
-          name="type"
-          onChange={onChange}
-          value={values.type}
-        >
-          {workTypeOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          <NativeSelect
+            id={getFieldId(idPrefix, 'type')}
+            label="유형"
+            name="type"
+            onChange={onChange}
+            value={values.type}
+          >
+            {workTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+
+          <WorkGenreSelector
+            description="대표 장르는 최대 3개까지 선택합니다."
+            id={getFieldId(idPrefix, 'genresText')}
+            onChange={(items) => onTextListChange('genresText', items)}
+            value={genreValues}
+          />
+        </SimpleGrid>
 
         <TextInput
           description="비워두면 오른쪽 미리보기에 기본 표지를 사용합니다."
@@ -396,9 +412,6 @@ function AdvancedWorkFields({
   tagSuggestions = [],
   values,
 }: AdvancedWorkFieldsProps) {
-  const genreValues = normalizeWorkGenres(
-    parseCommaSeparatedTextList(values.genresText),
-  );
   const seriesValues = parseCommaSeparatedTextList(values.seriesText);
   const universeValues = parseCommaSeparatedTextList(values.universeText);
   const creatorValues = parseCommaSeparatedTextList(values.creatorText);
@@ -431,16 +444,6 @@ function AdvancedWorkFields({
         <Accordion.Control>상세 정보</Accordion.Control>
         <Accordion.Panel>
           <Stack gap="md" pt="sm">
-            <TextInput
-              id={getFieldId(idPrefix, 'author')}
-              description="목록과 상세 상단에 가장 먼저 보일 대표 이름입니다."
-              label={mediaLabels.authorLabel}
-              name="author"
-              onChange={onInputChange}
-              placeholder={mediaLabels.authorPlaceholder}
-              value={values.author}
-            />
-
             <Paper p="md" radius="md" withBorder>
               <Stack gap="sm">
                 <Checkbox
@@ -537,17 +540,10 @@ function AdvancedWorkFields({
               />
             </SimpleGrid>
 
-            <WorkGenreSelector
-              description="대표 분류만 선택합니다. 세부 소재와 클리셰는 개인 태그에 남겨주세요."
-              id={getFieldId(idPrefix, 'genresText')}
-              onChange={(items) => onTextListChange('genresText', items)}
-              value={genreValues}
-            />
-
             <TagsInput
               clearable
               data={uniqueTagSuggestions}
-              description="개인 태그는 장르와 분리된 내 감상 분류입니다."
+              description="취향, 소재, 기억할 키워드를 자유롭게 남깁니다."
               id={getFieldId(idPrefix, 'personalTagsText')}
               label="개인 태그"
               name="personalTagsText"
@@ -1105,6 +1101,7 @@ export function AddWorkFlow({
                       error={titleError}
                       idPrefix="manual"
                       onChange={handleInputChange}
+                      onTextListChange={handleTextListChange}
                       titleInputRef={titleInputRef}
                       values={values}
                     />
@@ -1145,6 +1142,7 @@ export function AddWorkFlow({
                   error={titleError}
                   idPrefix="manual"
                   onChange={handleInputChange}
+                  onTextListChange={handleTextListChange}
                   titleInputRef={titleInputRef}
                   values={values}
                 />

@@ -8,4 +8,10 @@ describe('work-genres', () => {
       normalizeWorkGenres([' 판타지 ', '판타지', '다크판타지', 'SF']),
     ).toEqual(['판타지', 'SF']);
   });
+
+  it('keeps at most three top-level genres', () => {
+    expect(
+      normalizeWorkGenres(['판타지', '로맨스', '드라마', '액션']),
+    ).toEqual(['판타지', '로맨스', '드라마']);
+  });
 });
