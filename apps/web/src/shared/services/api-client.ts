@@ -1,4 +1,7 @@
-import type { ApiErrorResponse, AuthSessionResponse } from '@work-archive/shared-types';
+import type {
+  ApiErrorResponse,
+  AuthSessionResponse,
+} from '@work-archive/shared-types';
 
 import {
   clearStoredAuthTokens,
@@ -7,7 +10,8 @@ import {
 } from '../../features/auth/services/auth-storage';
 import { localizeApiErrorMessage } from '../utils/localize-message';
 
-const DEFAULT_API_BASE_URL = '/api';
+const DEFAULT_DEVELOPMENT_API_BASE_URL = 'http://localhost:3000/api';
+const DEFAULT_PRODUCTION_API_BASE_URL = '/api';
 const LOOPBACK_API_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 
 type StoredAuthTokens = NonNullable<ReturnType<typeof readStoredAuthTokens>>;
@@ -30,16 +34,19 @@ export class ApiRequestError extends Error {
 
 export function getApiBaseUrl() {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  const defaultBaseUrl = import.meta.env.DEV
+    ? DEFAULT_DEVELOPMENT_API_BASE_URL
+    : DEFAULT_PRODUCTION_API_BASE_URL;
 
   if (
     import.meta.env.PROD &&
     configuredBaseUrl &&
     isLoopbackApiBaseUrl(configuredBaseUrl)
   ) {
-    return DEFAULT_API_BASE_URL;
+    return DEFAULT_PRODUCTION_API_BASE_URL;
   }
 
-  return (configuredBaseUrl || DEFAULT_API_BASE_URL).replace(/\/$/, '');
+  return (configuredBaseUrl || defaultBaseUrl).replace(/\/$/, '');
 }
 
 function isLoopbackApiBaseUrl(configuredBaseUrl: string) {
@@ -103,7 +110,9 @@ export async function requestApi<TResponse>(
       '네트워크 연결을 확인한 뒤 다시 시도해주세요.',
     );
   }
-  const responseBody = await readJsonBody<TResponse & ApiErrorResponse>(response);
+  const responseBody = await readJsonBody<TResponse & ApiErrorResponse>(
+    response,
+  );
 
   if (!response.ok) {
     throw new ApiRequestError(
@@ -188,7 +197,11 @@ export async function requestAuthenticatedApiJson<TResponse>(
   }
 
   try {
-    return await requestApiJson<TResponse>(path, init, storedTokens.accessToken);
+    return await requestApiJson<TResponse>(
+      path,
+      init,
+      storedTokens.accessToken,
+    );
   } catch (error) {
     if (!(error instanceof ApiRequestError) || error.status !== 401) {
       throw error;
@@ -198,7 +211,11 @@ export async function requestAuthenticatedApiJson<TResponse>(
   const refreshedTokens = await refreshStoredTokens();
 
   try {
-    return await requestApiJson<TResponse>(path, init, refreshedTokens.accessToken);
+    return await requestApiJson<TResponse>(
+      path,
+      init,
+      refreshedTokens.accessToken,
+    );
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) {
       clearStoredAuthTokens();

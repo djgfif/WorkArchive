@@ -1,5 +1,12 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -128,7 +135,8 @@ describe('HealthController', () => {
       NODE_ENV: 'production',
       RATE_LIMIT_STORE: 'redis',
       REDIS_URL: 'redis://127.0.0.1:6379',
-      SECURITY_EVENT_HASH_SECRET: 'production-security-event-secret-minimum-32-chars',
+      SECURITY_EVENT_HASH_SECRET:
+        'production-security-event-secret-minimum-32-chars',
       SEED_DEMO_PASSWORD: 'not-demo-password',
       SWAGGER_ENABLED: 'false',
       TRUST_PROXY_HOPS: '1',
@@ -170,13 +178,67 @@ describe('HealthController', () => {
     expect(compose).toContain('/readyz');
     expect(compose).toContain('/work-archive-config.js');
     expect(compose).toContain(
-      'CORS_ORIGIN: http://localhost:${WEB_PORT:-8080},http://127.0.0.1:${WEB_PORT:-8080}',
+      'CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080,http://127.0.0.1:8080,http://127.0.0.1:53173,http://localhost:53173}',
     );
-    expect(compose).toContain('WEB_BASE_URL: http://localhost:${WEB_PORT:-8080}');
+    expect(compose).toContain(
+      'WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:8080}',
+    );
     expect(compose).toContain('VITE_API_BASE_URL: /api');
-    expect(startDev).toContain('docker compose rm -f -s api-migrate');
     expect(startDev).toContain(
-      'docker compose up --build --force-recreate --no-deps api-migrate',
+      'COMPOSE_ENV_FILE="${WORK_ARCHIVE_COMPOSE_ENV_FILE:-.env.compose}"',
+    );
+    expect(startDev).toContain(
+      'HOST_ENV_FILE="${WORK_ARCHIVE_HOST_ENV_FILE:-.env.host}"',
+    );
+    expect(startDev).toContain('docker compose --env-file "$compose_env_file"');
+    expect(startDev).toContain('docker compose --env-file "$host_env_file"');
+    expect(startDev).toContain(
+      '"${docker_compose[@]}" rm -f -s api-migrate',
+    );
+    expect(startDev).toContain(
+      '"${docker_compose[@]}" up --build --force-recreate --no-deps api-migrate',
+    );
+  });
+
+  it('documents separate public origins for compose and host development env files', () => {
+    const rootEnvExample = readFileSync(
+      resolve(process.cwd(), '../../.env.example'),
+      'utf8',
+    );
+    const composeEnvExample = readFileSync(
+      resolve(process.cwd(), '../../.env.compose.example'),
+      'utf8',
+    );
+    const hostEnvExample = readFileSync(
+      resolve(process.cwd(), '../../.env.host.example'),
+      'utf8',
+    );
+    const apiEnvExample = readFileSync(
+      resolve(process.cwd(), '.env.example'),
+      'utf8',
+    );
+
+    expect(rootEnvExample).toContain('WEB_BASE_URL="http://localhost:8080"');
+    expect(rootEnvExample).toContain('VITE_API_BASE_URL="/api"');
+    expect(rootEnvExample).toContain(
+      'CORS_ORIGIN="http://localhost:8080,http://127.0.0.1:8080,http://127.0.0.1:53173,http://localhost:53173"',
+    );
+    expect(composeEnvExample).toContain(
+      'WEB_BASE_URL="http://localhost:8080"',
+    );
+    expect(composeEnvExample).toContain('VITE_API_BASE_URL="/api"');
+    expect(hostEnvExample).toContain(
+      'WEB_BASE_URL="http://127.0.0.1:53173"',
+    );
+    expect(hostEnvExample).toContain(
+      'VITE_API_BASE_URL="http://localhost:3000/api"',
+    );
+    expect(apiEnvExample).toContain('WEB_BASE_URL="http://127.0.0.1:53173"');
+    expect(apiEnvExample).toContain(
+      'PUBLIC_WEB_BASE_URL="http://127.0.0.1:53173"',
+    );
+    expect(apiEnvExample).toContain(
+      'GOOGLE_OAUTH_REDIRECT_URI="http://localhost:3000/api/auth/google/callback"',
     );
   });
 });

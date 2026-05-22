@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ApiRequestError,
+  getApiBaseUrl,
   requestApi,
   requestAuthenticatedApi,
   requestAuthenticatedApiJson,
@@ -15,10 +16,17 @@ import { API_BASE_URL, HttpResponse, http, server } from '../../test/msw';
 
 describe('api-client', () => {
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
     clearStoredAuthTokens();
     window.localStorage.clear();
     window.sessionStorage.clear();
+  });
+
+  it('defaults development API calls to the local API server', () => {
+    vi.stubEnv('VITE_API_BASE_URL', '');
+
+    expect(getApiBaseUrl()).toBe('http://localhost:3000/api');
   });
 
   it('retries a 401 protected request once after refresh succeeds', async () => {

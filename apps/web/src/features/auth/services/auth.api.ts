@@ -94,8 +94,17 @@ export async function revokeAllAuthSessions() {
   });
 }
 
-export function getGoogleLoginStartUrl() {
-  return `${getApiBaseUrl()}/auth/google/start`;
+export function getGoogleLoginStartUrl(returnOrigin?: string) {
+  const startUrl = new URL(
+    `${getApiBaseUrl()}/auth/google/start`,
+    window.location.origin,
+  );
+
+  if (returnOrigin) {
+    startUrl.searchParams.set('return_origin', returnOrigin);
+  }
+
+  return startUrl.toString();
 }
 
 export async function fetchGoogleAuthStatus() {
@@ -109,9 +118,7 @@ function getRefreshUnavailableUntil() {
     return 0;
   }
 
-  const rawValue = window.sessionStorage.getItem(
-    REFRESH_UNAVAILABLE_UNTIL_KEY,
-  );
+  const rawValue = window.sessionStorage.getItem(REFRESH_UNAVAILABLE_UNTIL_KEY);
   const parsedValue = Number.parseInt(rawValue ?? '', 10);
 
   return Number.isFinite(parsedValue) ? parsedValue : 0;

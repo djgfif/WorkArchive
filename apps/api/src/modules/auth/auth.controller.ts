@@ -51,6 +51,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 
 const GOOGLE_OAUTH_STATE_COOKIE = 'wa_google_oauth_state';
 const GOOGLE_OAUTH_NONCE_COOKIE = 'wa_google_oauth_nonce';
+const GOOGLE_OAUTH_RETURN_ORIGIN_COOKIE = 'wa_google_oauth_return_origin';
 const GOOGLE_OAUTH_COOKIE_MAX_AGE_MS = 1000 * 60 * 10;
 
 @ApiTags('auth')
@@ -84,18 +85,30 @@ export class AuthController {
   }
 
   @Get('google/start')
-  async startGoogleLogin(@Res() response: Response) {
+  async startGoogleLogin(
+    @Query('return_origin') returnOrigin: string | undefined,
+    @Res() response: Response,
+  ) {
     if (!this.authService.isGoogleOAuthConfigured()) {
-      response.redirect(this.getGoogleLoginFailureRedirectUrl('unconfigured'));
+      response.redirect(
+        this.getGoogleLoginFailureRedirectUrl('unconfigured', returnOrigin),
+      );
       return;
     }
 
     const state = this.generateOAuthSecret();
     const nonce = this.generateOAuthSecret();
+    const validatedReturnOrigin =
+      this.getAllowedOAuthReturnOrigin(returnOrigin);
     const cookieOptions = this.getOAuthCookieOptions();
 
     response.cookie(GOOGLE_OAUTH_STATE_COOKIE, state, cookieOptions);
     response.cookie(GOOGLE_OAUTH_NONCE_COOKIE, nonce, cookieOptions);
+    response.cookie(
+      GOOGLE_OAUTH_RETURN_ORIGIN_COOKIE,
+      validatedReturnOrigin,
+      cookieOptions,
+    );
 
     response.redirect(this.authService.getGoogleAuthorizationUrl(state, nonce));
   }
@@ -117,6 +130,7 @@ export class AuthController {
   ) {
     const expectedState = request.cookies?.[GOOGLE_OAUTH_STATE_COOKIE];
     const expectedNonce = request.cookies?.[GOOGLE_OAUTH_NONCE_COOKIE];
+    const returnOrigin = request.cookies?.[GOOGLE_OAUTH_RETURN_ORIGIN_COOKIE];
 
     this.clearOAuthCookies(response);
 
@@ -132,7 +146,9 @@ export class AuthController {
         severity: 'warning',
       });
 
-      response.redirect(this.getGoogleLoginFailureRedirectUrl('failed'));
+      response.redirect(
+        this.getGoogleLoginFailureRedirectUrl('failed', returnOrigin),
+      );
       return;
     }
 
@@ -189,7 +205,7 @@ export class AuthController {
         rememberMe: session.rememberMe,
       }),
     );
-    response.redirect(this.getGoogleLoginSuccessRedirectUrl());
+    response.redirect(this.getGoogleLoginSuccessRedirectUrl(returnOrigin));
   }
 
   private logAuthGoogleFailed(request: Request, errorCode: string) {
@@ -456,13 +472,65 @@ export class AuthController {
 
     response.clearCookie(GOOGLE_OAUTH_STATE_COOKIE, options);
     response.clearCookie(GOOGLE_OAUTH_NONCE_COOKIE, options);
+    response.clearCookie(GOOGLE_OAUTH_RETURN_ORIGIN_COOKIE, options);
   }
 
-  private getGoogleLoginSuccessRedirectUrl() {
-    return `${readApiRuntimeConfig().webBaseUrl.replace(/\/$/, '')}/auth/google/complete`;
+  private getGoogleLoginSuccessRedirectUrl(returnOrigin?: unknown) {
+    const origin = this.getAllowedOAuthReturnOrigin(returnOrigin).replace(
+      /\/$/,
+      '',
+    );
+
+    return `${origin}/auth/google/complete`;
   }
 
-  private getGoogleLoginFailureRedirectUrl(reason: 'failed' | 'unconfigured') {
-    return `${readApiRuntimeConfig().webBaseUrl.replace(/\/$/, '')}/auth/login?google=${reason}`;
+  private getGoogleLoginFailureRedirectUrl(
+    reason: 'failed' | 'unconfigured',
+    returnOrigin?: unknown,
+  ) {
+    const origin = this.getAllowedOAuthReturnOrigin(returnOrigin).replace(
+      /\/$/,
+      '',
+    );
+
+    return `${origin}/auth/login?google=${reason}`;
+  }
+
+  private getAllowedOAuthReturnOrigin(returnOrigin?: unknown) {
+    const config = readApiRuntimeConfig();
+    const fallbackOrigin = new URL(config.webBaseUrl).origin;
+
+    if (typeof returnOrigin !== 'string' || returnOrigin.trim() === '') {
+      return fallbackOrigin;
+    }
+
+    let requestedOrigin: string;
+
+    try {
+      const parsedOrigin = new URL(returnOrigin.trim());
+
+      if (!['http:', 'https:'].includes(parsedOrigin.protocol)) {
+        return fallbackOrigin;
+      }
+
+      requestedOrigin = parsedOrigin.origin;
+    } catch {
+      return fallbackOrigin;
+    }
+
+    const allowedOrigins = new Set([
+      fallbackOrigin,
+      ...config.corsOrigin.map((origin) => {
+        try {
+          return new URL(origin).origin;
+        } catch {
+          return '';
+        }
+      }),
+    ]);
+
+    return allowedOrigins.has(requestedOrigin)
+      ? requestedOrigin
+      : fallbackOrigin;
   }
 }

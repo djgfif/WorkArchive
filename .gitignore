@@ -8,6 +8,8 @@ coverage
 .env
 .env.*
 !.env.example
+!.env.compose.example
+!.env.host.example
 !.env.prod.example
 !**/.env.example
 *.log

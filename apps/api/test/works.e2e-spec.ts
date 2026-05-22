@@ -1281,6 +1281,30 @@ describe('Auth, works, and sync API (e2e)', () => {
       'http://127.0.0.1:53173/auth/login?google=unconfigured',
     );
 
+    const unconfiguredStartWithDevOrigin = await fetch(
+      `${baseUrl}/api/auth/google/start?return_origin=${encodeURIComponent('http://localhost:53173')}`,
+      {
+        redirect: 'manual',
+      },
+    );
+
+    expect(unconfiguredStartWithDevOrigin.status).toBe(302);
+    expect(unconfiguredStartWithDevOrigin.headers.get('location')).toBe(
+      'http://localhost:53173/auth/login?google=unconfigured',
+    );
+
+    const unconfiguredStartWithUntrustedOrigin = await fetch(
+      `${baseUrl}/api/auth/google/start?return_origin=${encodeURIComponent('https://evil.example')}`,
+      {
+        redirect: 'manual',
+      },
+    );
+
+    expect(unconfiguredStartWithUntrustedOrigin.status).toBe(302);
+    expect(unconfiguredStartWithUntrustedOrigin.headers.get('location')).toBe(
+      'http://127.0.0.1:53173/auth/login?google=unconfigured',
+    );
+
     process.env.GOOGLE_OAUTH_CLIENT_ID = 'google-client-id';
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google-client-secret';
 

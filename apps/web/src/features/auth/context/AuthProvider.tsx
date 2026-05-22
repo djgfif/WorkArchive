@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type PropsWithChildren,
-} from 'react';
+import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
 
 import {
   getGoogleLoginStartUrl,
@@ -97,7 +92,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   async function getPostGoogleSignInLocation(user: AuthUser) {
     const returnTo = consumeGoogleReturnTo();
-    const pendingGuestTransfer = await guestTransferService.getPendingReview(user.id);
+    const pendingGuestTransfer = await guestTransferService.getPendingReview(
+      user.id,
+    );
 
     return pendingGuestTransfer ? '/account/transfer' : (returnTo ?? '/');
   }
@@ -172,7 +169,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   function continueWithGoogle(returnTo?: string) {
     writeGoogleReturnTo(returnTo);
-    window.location.assign(getGoogleLoginStartUrl());
+    window.location.assign(getGoogleLoginStartUrl(window.location.origin));
   }
 
   async function completeGoogleSignIn() {
@@ -186,7 +183,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       throw new Error('Google sign-in session could not be restored.');
     }
 
-    return activateAuthenticatedSession(restoredSession.user, restoredSession.tokens);
+    return activateAuthenticatedSession(
+      restoredSession.user,
+      restoredSession.tokens,
+    );
   }
 
   async function signOut() {

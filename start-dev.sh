@@ -5,9 +5,37 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
 MODE="${1:-compose}"
-HOST_WEB_URL="http://127.0.0.1:53173"
-COMPOSE_WEB_URL="http://localhost:8080"
-API_URL="http://localhost:3000"
+COMPOSE_ENV_FILE="${WORK_ARCHIVE_COMPOSE_ENV_FILE:-.env.compose}"
+HOST_ENV_FILE="${WORK_ARCHIVE_HOST_ENV_FILE:-.env.host}"
+
+resolve_env_file() {
+  local preferred_file="$1"
+  local fallback_file="$2"
+  local example_file="$3"
+
+  if [ -f "$preferred_file" ]; then
+    printf '%s' "$preferred_file"
+    return 0
+  fi
+
+  if [ -f "$fallback_file" ]; then
+    printf '%s' "$fallback_file"
+    return 0
+  fi
+
+  echo "Missing environment file: $preferred_file" >&2
+  echo "Create it from $example_file before starting this mode." >&2
+  exit 1
+}
+
+load_env_file() {
+  local env_file="$1"
+
+  set -a
+  # shellcheck source=/dev/null
+  . "$env_file"
+  set +a
+}
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -64,22 +92,29 @@ open_url() {
 case "$MODE" in
   compose)
     require_command docker
+    compose_env_file="$(resolve_env_file "$COMPOSE_ENV_FILE" ".env" ".env.compose.example")"
+    load_env_file "$compose_env_file"
+
+    COMPOSE_WEB_URL="${WEB_BASE_URL:-http://localhost:${WEB_PORT:-8080}}"
+    API_URL="http://localhost:${API_PORT:-3000}"
+    docker_compose=(docker compose --env-file "$compose_env_file")
 
     echo "[1/6] Starting PostgreSQL..."
+    echo "Env: $compose_env_file"
     echo "Web: $COMPOSE_WEB_URL"
     echo "API readiness: $API_URL/readyz"
     echo
-    docker compose up -d postgres
+    "${docker_compose[@]}" up -d postgres
 
     echo "[2/6] Waiting for PostgreSQL readiness..."
     wait_for_container_health "work-archive-postgres" "PostgreSQL" "postgres"
 
     echo "[3/6] Applying Prisma migrations..."
-    docker compose rm -f -s api-migrate >/dev/null 2>&1 || true
-    docker compose up --build --force-recreate --no-deps api-migrate
+    "${docker_compose[@]}" rm -f -s api-migrate >/dev/null 2>&1 || true
+    "${docker_compose[@]}" up --build --force-recreate --no-deps api-migrate
 
     echo "[4/6] Starting API and web containers..."
-    docker compose up -d --build --force-recreate --no-deps api web
+    "${docker_compose[@]}" up -d --build --force-recreate --no-deps api web
 
     echo "[5/6] Waiting for API readiness..."
     wait_for_container_health "work-archive-api" "API" "api-migrate api"
@@ -99,9 +134,16 @@ case "$MODE" in
   host)
     require_command docker
     require_command npm
+    host_env_file="$(resolve_env_file "$HOST_ENV_FILE" "apps/api/.env" ".env.host.example")"
+    load_env_file "$host_env_file"
+
+    HOST_WEB_URL="${WEB_BASE_URL:-http://127.0.0.1:53173}"
+    API_URL="http://localhost:${PORT:-3000}"
+    docker_compose=(docker compose --env-file "$host_env_file")
 
     echo "[1/5] Starting PostgreSQL container..."
-    docker compose up -d postgres
+    echo "Env: $host_env_file"
+    "${docker_compose[@]}" up -d postgres
 
     echo "[2/5] Installing dependencies if needed..."
     if [ ! -d node_modules ] && [ -f package-lock.json ]; then

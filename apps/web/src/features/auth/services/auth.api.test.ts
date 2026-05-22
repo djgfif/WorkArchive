@@ -4,6 +4,7 @@ import {
   ApiRequestError,
   fetchAuthSessions,
   fetchGoogleAuthStatus,
+  getGoogleLoginStartUrl,
   requestAuthenticatedApiJson,
   revokeAllAuthSessions,
   revokeAuthSession,
@@ -50,6 +51,12 @@ describe('auth.api', () => {
       expect.objectContaining({
         method: 'GET',
       }),
+    );
+  });
+
+  it('adds the current web origin to Google OAuth starts', () => {
+    expect(getGoogleLoginStartUrl('http://127.0.0.1:53173')).toBe(
+      'http://localhost:3000/api/auth/google/start?return_origin=http%3A%2F%2F127.0.0.1%3A53173',
     );
   });
 
@@ -105,7 +112,8 @@ describe('auth.api', () => {
       accessToken: 'rotated-access-token',
     });
 
-    const firstAttemptHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
+    const firstAttemptHeaders = fetchMock.mock.calls[0]?.[1]
+      ?.headers as Headers;
     const retryHeaders = fetchMock.mock.calls[2]?.[1]?.headers as Headers;
 
     expect(fetchMock.mock.calls[1]?.[0]).toEqual(
@@ -165,7 +173,9 @@ describe('auth.api', () => {
       }),
     );
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
-    expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
+    expect(
+      window.sessionStorage.getItem('work-archive.auth.tokens'),
+    ).toBeNull();
     expect(readStoredAuthTokens()).toBeNull();
   });
 
@@ -232,7 +242,9 @@ describe('auth.api', () => {
   });
 
   it('temporarily skips startup refresh after the API reports no guest session', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -240,7 +252,9 @@ describe('auth.api', () => {
     await expect(restoreStoredSession()).resolves.toBeNull();
 
     expect(
-      fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth/refresh')),
+      fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes('/auth/refresh'),
+      ),
     ).toHaveLength(1);
   });
 
@@ -276,7 +290,9 @@ describe('auth.api', () => {
     });
 
     expect(
-      fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth/refresh')),
+      fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes('/auth/refresh'),
+      ),
     ).toHaveLength(2);
   });
 
@@ -325,7 +341,9 @@ describe('auth.api', () => {
     });
 
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
-    expect(window.sessionStorage.getItem('work-archive.auth.tokens')).toBeNull();
+    expect(
+      window.sessionStorage.getItem('work-archive.auth.tokens'),
+    ).toBeNull();
     expect(readStoredAuthTokens()).toEqual({
       accessToken: 'rotated-access-token',
     });
@@ -336,45 +354,47 @@ describe('auth.api', () => {
       accessToken: 'expired-access-token',
     });
 
-    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      const requestUrl = String(url);
-      const headers = init?.headers as Headers | undefined;
-      const authorizationHeader = headers?.get('authorization');
+    const fetchMock = vi.fn(
+      async (url: string | URL | Request, init?: RequestInit) => {
+        const requestUrl = String(url);
+        const headers = init?.headers as Headers | undefined;
+        const authorizationHeader = headers?.get('authorization');
 
-      if (requestUrl.includes('/auth/refresh')) {
-        return jsonResponse({
-          accessToken: 'rotated-access-token',
-          user: {
-            avatarUrl: '',
-            id: 'user-1',
-            email: 'frieren@example.com',
-            nickname: '',
-          },
-        });
-      }
+        if (requestUrl.includes('/auth/refresh')) {
+          return jsonResponse({
+            accessToken: 'rotated-access-token',
+            user: {
+              avatarUrl: '',
+              id: 'user-1',
+              email: 'frieren@example.com',
+              nickname: '',
+            },
+          });
+        }
 
-      if (authorizationHeader === 'Bearer expired-access-token') {
+        if (authorizationHeader === 'Bearer expired-access-token') {
+          return jsonResponse(
+            {
+              message: 'Invalid or expired token.',
+            },
+            401,
+          );
+        }
+
+        if (authorizationHeader === 'Bearer rotated-access-token') {
+          return jsonResponse({
+            ok: true,
+          });
+        }
+
         return jsonResponse(
           {
-            message: 'Invalid or expired token.',
+            message: 'Unauthorized.',
           },
           401,
         );
-      }
-
-      if (authorizationHeader === 'Bearer rotated-access-token') {
-        return jsonResponse({
-          ok: true,
-        });
-      }
-
-      return jsonResponse(
-        {
-          message: 'Unauthorized.',
-        },
-        401,
-      );
-    });
+      },
+    );
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -403,7 +423,9 @@ describe('auth.api', () => {
     ]);
 
     expect(
-      fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth/refresh')),
+      fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes('/auth/refresh'),
+      ),
     ).toHaveLength(1);
     expect(readStoredAuthTokens()).toEqual({
       accessToken: 'rotated-access-token',
@@ -415,33 +437,35 @@ describe('auth.api', () => {
       accessToken: 'expired-access-token',
     });
 
-    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      const requestUrl = String(url);
-      const headers = init?.headers as Headers | undefined;
-      const authorizationHeader = headers?.get('authorization');
+    const fetchMock = vi.fn(
+      async (url: string | URL | Request, init?: RequestInit) => {
+        const requestUrl = String(url);
+        const headers = init?.headers as Headers | undefined;
+        const authorizationHeader = headers?.get('authorization');
 
-      if (requestUrl.includes('/auth/refresh')) {
-        return jsonResponse(
-          {
-            message: 'Invalid or expired refresh token.',
-          },
-          401,
-        );
-      }
+        if (requestUrl.includes('/auth/refresh')) {
+          return jsonResponse(
+            {
+              message: 'Invalid or expired refresh token.',
+            },
+            401,
+          );
+        }
 
-      if (authorizationHeader === 'Bearer expired-access-token') {
-        return jsonResponse(
-          {
-            message: 'Invalid or expired token.',
-          },
-          401,
-        );
-      }
+        if (authorizationHeader === 'Bearer expired-access-token') {
+          return jsonResponse(
+            {
+              message: 'Invalid or expired token.',
+            },
+            401,
+          );
+        }
 
-      return jsonResponse({
-        ok: true,
-      });
-    });
+        return jsonResponse({
+          ok: true,
+        });
+      },
+    );
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -469,7 +493,9 @@ describe('auth.api', () => {
       }),
     ]);
     expect(
-      fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth/refresh')),
+      fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes('/auth/refresh'),
+      ),
     ).toHaveLength(1);
     expect(readStoredAuthTokens()).toBeNull();
   });
@@ -481,29 +507,32 @@ describe('auth.api', () => {
 
     const fetchMock = vi.fn(
       (url: string | URL | Request, _init?: RequestInit) => {
-      const requestUrl = String(url);
+        const requestUrl = String(url);
 
-      if (requestUrl.includes('/auth/sessions') && !requestUrl.includes('revoke-all')) {
-        return Promise.resolve(
-          jsonResponse({
-            sessions: [
-              {
-                id: 'session-1',
-                current: true,
-                rememberMe: true,
-                userAgent: 'Vitest',
-                ipAddress: '127.0.0.1',
-                createdAt: '2026-05-12T00:00:00.000Z',
-                lastUsedAt: null,
-                rotatedAt: null,
-                expiresAt: '2026-06-11T00:00:00.000Z',
-              },
-            ],
-          }),
-        );
-      }
+        if (
+          requestUrl.includes('/auth/sessions') &&
+          !requestUrl.includes('revoke-all')
+        ) {
+          return Promise.resolve(
+            jsonResponse({
+              sessions: [
+                {
+                  id: 'session-1',
+                  current: true,
+                  rememberMe: true,
+                  userAgent: 'Vitest',
+                  ipAddress: '127.0.0.1',
+                  createdAt: '2026-05-12T00:00:00.000Z',
+                  lastUsedAt: null,
+                  rotatedAt: null,
+                  expiresAt: '2026-06-11T00:00:00.000Z',
+                },
+              ],
+            }),
+          );
+        }
 
-      return Promise.resolve(new Response(null, { status: 204 }));
+        return Promise.resolve(new Response(null, { status: 204 }));
       },
     );
 

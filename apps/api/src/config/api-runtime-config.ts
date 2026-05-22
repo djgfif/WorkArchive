@@ -57,6 +57,13 @@ const DEFAULT_PRODUCTION_SECRET_VALUES = new Map([
 const MINIMUM_PRODUCTION_SECRET_LENGTH = 32;
 const DEVELOPMENT_SECURITY_EVENT_HASH_SECRET =
   'development-security-event-hash-secret';
+const DEVELOPMENT_WEB_ORIGINS = [
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:53173',
+  'http://localhost:53173',
+  'http://localhost:5173',
+];
 
 const apiEnvironmentSchema = z
   .object({
@@ -256,7 +263,7 @@ function readCorsOrigin(value: string | undefined, isProduction: boolean) {
       throw new Error('CORS_ORIGIN must be configured in production.');
     }
 
-    return ['http://localhost:8080', 'http://localhost:5173'];
+    return DEVELOPMENT_WEB_ORIGINS;
   }
 
   if (normalizedValue === '*') {
@@ -319,7 +326,9 @@ function readGoogleOAuthRedirectUri(isProduction: boolean, port: number) {
   }
 
   if (isProduction) {
-    throw new Error('GOOGLE_OAUTH_REDIRECT_URI must be configured in production.');
+    throw new Error(
+      'GOOGLE_OAUTH_REDIRECT_URI must be configured in production.',
+    );
   }
 
   return `http://localhost:${port}/api/auth/google/callback`;

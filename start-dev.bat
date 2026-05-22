@@ -8,6 +8,8 @@ set "DEV_MODE=%~1"
 set "HOST_WEB_URL=http://127.0.0.1:53173"
 set "COMPOSE_WEB_URL=http://localhost:8080"
 set "API_URL=http://localhost:3000"
+set "COMPOSE_ENV_FILE=.env.compose"
+set "HOST_ENV_FILE=.env.host"
 set "API_HEALTH_STARTUP_TIMEOUT_MS=120000"
 set "API_HEALTH_RESTART_GRACE_MS=30000"
 
@@ -31,14 +33,22 @@ pause
 exit /b 1
 
 :compose_mode
+if not exist "%COMPOSE_ENV_FILE%" set "COMPOSE_ENV_FILE=.env"
+if not exist "%COMPOSE_ENV_FILE%" (
+  echo Missing environment file: .env.compose
+  echo Create it from .env.compose.example before starting compose mode.
+  pause
+  exit /b 1
+)
 echo [1/4] Starting Docker Compose app stack...
+echo Env: %COMPOSE_ENV_FILE%
 echo Web: %COMPOSE_WEB_URL%
 echo API: %API_URL%/health
 echo Swagger: %API_URL%/docs
 echo.
 echo Note: This mode runs PostgreSQL, API, migrations, and web inside Docker.
 echo It does not depend on Windows reaching PostgreSQL at 127.0.0.1:5432.
-call docker compose up -d --build
+call docker compose --env-file "%COMPOSE_ENV_FILE%" up -d --build
 
 set "DEV_EXIT=%ERRORLEVEL%"
 
@@ -58,10 +68,10 @@ for /f "usebackq delims=" %%H in (`docker inspect -f "{{.State.Health.Status}}" 
 if /i "!API_HEALTH!"=="healthy" goto api_healthy
 if !WAIT_SECONDS! geq 120 (
   echo API did not become healthy within 120 seconds.
-  docker compose ps
+  docker compose --env-file "%COMPOSE_ENV_FILE%" ps
   echo.
   echo Recent API logs:
-  docker compose logs --tail=80 api
+  docker compose --env-file "%COMPOSE_ENV_FILE%" logs --tail=80 api
   pause
   exit /b 1
 )
@@ -109,6 +119,13 @@ endlocal
 exit /b 0
 
 :host_mode
+if not exist "%HOST_ENV_FILE%" set "HOST_ENV_FILE=apps\api\.env"
+if not exist "%HOST_ENV_FILE%" (
+  echo Missing environment file: .env.host
+  echo Create it from .env.host.example before starting host mode.
+  pause
+  exit /b 1
+)
 where npm >nul 2>nul
 if errorlevel 1 (
   echo npm was not found on PATH. Install Node.js and npm first.
@@ -117,7 +134,8 @@ if errorlevel 1 (
 )
 
 echo [1/5] Starting PostgreSQL container...
-docker compose up -d postgres
+echo Env: %HOST_ENV_FILE%
+docker compose --env-file "%HOST_ENV_FILE%" up -d postgres
 if errorlevel 1 (
   echo Failed to start PostgreSQL. Make sure Docker Desktop is running.
   pause

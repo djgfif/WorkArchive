@@ -51,15 +51,19 @@ Sync policy note: logged-in users can use the manual Sync page, and the web runt
 권장 초기화:
 
 ```bash
-cp .env.example .env
+cp .env.compose.example .env.compose
+cp .env.host.example .env.host
+cp .env.compose.example .env
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 ```
 
 메모:
 
-- 로컬 API 개발은 `apps/api/.env`의 `localhost` 기준 설정을 사용한다.
-- Compose는 루트 `.env`의 `postgres` 서비스 호스트명을 사용한다.
+- Compose 실행은 `.env.compose`를 우선 사용하고, 없으면 기존 루트 `.env`로
+  fallback한다.
+- Host/Vite 실행은 `.env.host`를 우선 사용하고, 없으면 `apps/api/.env`로
+  fallback한다.
 - 웹은 `apps/web/.env`가 없어도 `http://localhost:3000/api`를 기본 API URL로 사용한다.
 
 ## External Search Providers
@@ -222,7 +226,7 @@ mode.
 전체 스택을 컨테이너로 올릴 수 있다.
 
 ```bash
-docker compose up --build
+docker compose --env-file .env.compose up --build
 ```
 
 또는:

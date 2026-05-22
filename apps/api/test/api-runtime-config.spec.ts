@@ -59,6 +59,25 @@ describe('api runtime config', () => {
     );
   });
 
+  it('allows every supported local web origin when CORS_ORIGIN is omitted in development', () => {
+    resetEnv({
+      CORS_ORIGIN: '',
+      NODE_ENV: 'development',
+    });
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        corsOrigin: [
+          'http://localhost:8080',
+          'http://127.0.0.1:8080',
+          'http://127.0.0.1:53173',
+          'http://localhost:53173',
+          'http://localhost:5173',
+        ],
+      }),
+    );
+  });
+
   it('blocks the default access token secret in production', () => {
     resetEnv({
       JWT_ACCESS_SECRET: 'change-me-access-secret',
