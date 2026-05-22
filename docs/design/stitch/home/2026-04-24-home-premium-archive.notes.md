@@ -4,7 +4,7 @@
 | --- | --- |
 | Status | `reference-only` |
 | Role | `home screen visual exploration` |
-| Source of truth | Google Stitch output, root `DESIGN.md`, current `HomePage` implementation |
+| Source of truth | Google Stitch output, `docs/design/DESIGN.md`, current `HomePage` implementation |
 | Last reviewed | `2026-04-24` |
 | When to update | this Stitch draft is re-generated, implemented, superseded, or rejected |
 
@@ -73,7 +73,7 @@ Rebuild selected ideas with the existing Work Archive UI system:
 - `AppBadge`
 - `AppButton`
 - `AppLinkButton`
-- current design tokens from root `DESIGN.md`
+- current design tokens from `docs/design/DESIGN.md`
 
 Keep:
 

@@ -3,7 +3,7 @@ import { type AppMetaRecord } from '@work-archive/shared-types';
 import {
   getWorkArchiveDb,
   type WorkArchiveDatabase,
-} from '../../works/db/work-archive.db';
+} from '../../works/storage';
 
 type DatabaseResolver = () => WorkArchiveDatabase;
 

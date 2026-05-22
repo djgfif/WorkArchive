@@ -17,8 +17,8 @@ import {
   SectionCard,
   SectionIntro,
 } from '../../../../shared/components/AppPrimitives';
-import type { ImportProviderStatus } from '../../../imports/services/imports.service';
-import { getWorkTypeLabel } from '../../../works/utils/work-options';
+import type { ImportProviderStatus } from '../../../imports';
+import { getWorkTypeLabel } from '../../../works';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import styles from './SettingsControlCenter.module.css';
 

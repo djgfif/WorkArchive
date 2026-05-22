@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { appMetaRepository } from '../../sync/services/app-meta.repository';
+import { appMetaRepository } from '../../sync/queue';
 import { localArchiveService } from '../services/local-archive.service';
 import { LAST_JSON_EXPORT_AT_META_KEY } from '../utils/json-backup-reminder';
 

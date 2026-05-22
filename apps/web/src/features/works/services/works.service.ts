@@ -10,7 +10,7 @@ import type { WorksRepository } from './works.repository';
 import {
   syncQueueRepository,
   type SyncQueueRepository,
-} from '../../sync/services/sync-queue.repository';
+} from '../../sync/queue';
 import {
   SERIES_GRAPH_TAG_KINDS,
   getContributorSuggestionValues,

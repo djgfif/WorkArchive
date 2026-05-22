@@ -41,13 +41,13 @@ import {
 import {
   importsService,
   type ImportCandidate,
-} from '../../imports/services/imports.service';
+} from '../../imports';
 import {
   formatProviderNames,
   useImportProviderReadiness,
   type ProviderReadinessGroup,
-} from '../../imports/hooks/useImportProviderReadiness';
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
+} from '../../imports';
+import { useAuthSession } from '../../auth';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
 import { StarRatingInput, WorkPoster } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';

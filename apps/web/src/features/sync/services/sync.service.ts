@@ -27,15 +27,15 @@ import { requestAuthenticatedApiJson } from '../../../shared/services/api-client
 import {
   worksRepository,
   type WorksRepository,
-} from '../../works/services/works.repository';
+} from '../../works';
 import {
   releaseRecordsRepository,
   type ReleaseRecordsRepository,
-} from '../../works/services/release-records.repository';
+} from '../../works';
 import {
   timelineEntriesRepository,
   type TimelineEntriesRepository,
-} from '../../works/services/timeline-entries.repository';
+} from '../../works';
 import {
   appMetaRepository,
   type AppMetaRepository,
@@ -51,11 +51,11 @@ import {
 import {
   graphRepository,
   type GraphRepository,
-} from '../../works/services/graph.repository';
+} from '../../works';
 import {
   tierBoardRepository,
   type TierBoardRepository,
-} from '../../tier-boards/services/tier-board.repository';
+} from '../../tier-boards/data';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
 const PULL_PAGE_LIMIT = 500;

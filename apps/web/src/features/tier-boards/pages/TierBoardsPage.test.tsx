@@ -59,7 +59,7 @@ vi.mock('../services/tier-board.service', () => ({
 
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
-import { AuthProvider } from '../../auth/context/AuthProvider';
+import { AuthProvider } from '../../auth';
 import { tierBoardService } from '../services/tier-board.service';
 
 function buildBoard(overrides: Partial<TierBoardRecord> = {}): TierBoardRecord {

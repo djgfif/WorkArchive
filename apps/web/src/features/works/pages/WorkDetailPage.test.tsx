@@ -5,13 +5,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
-import { AuthProvider } from '../../auth/context/AuthProvider';
+import { AuthProvider } from '../../auth';
 import {
   AuthContext,
   type AuthContextValue,
-} from '../../auth/context/AuthContext';
+} from '../../auth';
 import * as userRecordsApi from '../services/user-records.api';
-import { syncQueueRepository } from '../../sync/services/sync-queue.repository';
+import { syncQueueRepository } from '../../sync';
 import { timelineEntriesRepository } from '../services/timeline-entries.repository';
 import { worksRepository } from '../services/works.repository';
 import { worksService } from '../services/works.service';

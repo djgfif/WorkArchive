@@ -23,11 +23,11 @@ import {
   SectionIntro,
   ThemeToggleControl,
 } from '../../../../shared/components/AppPrimitives';
-import type { LocalArchiveImportPreview } from '../../../archive/services/local-archive.service';
-import type { ImportProviderStatus } from '../../../imports/services/imports.service';
+import type { LocalArchiveImportPreview } from '../../../archive';
+import type { ImportProviderStatus } from '../../../imports';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
-import { getWorkTypeLabel } from '../../../works/utils/work-options';
-import { getUserAvatarProfile } from '../../../auth/utils/user-profile';
+import { getWorkTypeLabel } from '../../../works';
+import { getUserAvatarProfile } from '../../../auth';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
 

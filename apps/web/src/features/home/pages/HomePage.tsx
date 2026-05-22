@@ -20,21 +20,21 @@ import {
   LoadingRows,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
-import { JsonBackupReminderCard } from '../../archive/components/JsonBackupReminderCard';
-import { useJsonArchiveExport } from '../../archive/hooks/useJsonArchiveExport';
-import { useJsonBackupReminder } from '../../archive/hooks/useJsonBackupReminder';
+import { JsonBackupReminderCard } from '../../archive';
+import { useJsonArchiveExport } from '../../archive';
+import { useJsonBackupReminder } from '../../archive';
 import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { useAuthSession } from '../../auth';
 import {
   ArchiveHero,
   ArchiveSearchBar,
   ArchiveStarterShelf,
   WorkPoster,
   WorkShelf,
-} from '../../works/components/ArchiveComponents';
-import { useWorksOverview } from '../../works/hooks/useWorksOverview';
-import type { WorkCollectionSummary } from '../../works/utils/graph-tags';
-import { getWorkStatusLabel, getWorkTypeLabel } from '../../works/utils/work-options';
+} from '../../works';
+import { useWorksOverview } from '../../works';
+import type { WorkCollectionSummary } from '../../works';
+import { getWorkStatusLabel, getWorkTypeLabel } from '../../works';
 import styles from './HomePage.module.css';
 
 const css = styles as Record<string, string>;

@@ -39,7 +39,7 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
 import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { useAuthSession } from '../../auth';
 import { WorkDetailPanel } from '../components/WorkDetailPanel';
 import { QuickProgressControl } from '../components/ArchiveComponents';
 import { useWorkDetail } from '../hooks/useWorkDetail';

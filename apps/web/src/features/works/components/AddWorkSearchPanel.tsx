@@ -18,7 +18,7 @@ import {
   FeedbackMessage,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
-import type { ImportCandidate } from '../../imports/services/imports.service';
+import type { ImportCandidate } from '../../imports';
 import { CandidateListRow } from './CandidateListRow';
 import { CandidatePreviewPanel } from './CandidatePreviewPanel';
 import type { ProviderGroup } from './quick-add-helpers';

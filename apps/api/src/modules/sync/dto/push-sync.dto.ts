@@ -22,20 +22,20 @@ import {
   type SyncOperation,
 } from '../sync.constants';
 
-import type { SyncReleaseRecordPayloadDto } from './sync-release-record-payload.dto';
-import type { SyncSeriesPayloadDto } from './sync-series-payload.dto';
-import type { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
+import type { SyncReleaseRecordPayloadDto } from '../payloads/sync-release-record-payload.dto';
+import type { SyncSeriesPayloadDto } from '../payloads/sync-series-payload.dto';
+import type { SyncTimelineEntryPayloadDto } from '../payloads/sync-timeline-entry-payload.dto';
 import type {
   SyncTierBoardAssetPayloadDto,
   SyncTierBoardCardPayloadDto,
   SyncTierLanePayloadDto,
   SyncTierBoardPayloadDto,
-} from './sync-tier-board-payload.dto';
-import type { SyncContributorPayloadDto } from './sync-contributor-payload.dto';
-import type { SyncWorkContributorPayloadDto } from './sync-work-contributor-payload.dto';
-import type { SyncWorkPayloadDto } from './sync-work-payload.dto';
-import type { SyncWorkRelationPayloadDto } from './sync-work-relation-payload.dto';
-import type { SyncWorkSeriesLinkPayloadDto } from './sync-work-series-link-payload.dto';
+} from '../payloads/sync-tier-board-payload.dto';
+import type { SyncContributorPayloadDto } from '../payloads/sync-contributor-payload.dto';
+import type { SyncWorkContributorPayloadDto } from '../payloads/sync-work-contributor-payload.dto';
+import type { SyncWorkPayloadDto } from '../payloads/sync-work-payload.dto';
+import type { SyncWorkRelationPayloadDto } from '../payloads/sync-work-relation-payload.dto';
+import type { SyncWorkSeriesLinkPayloadDto } from '../payloads/sync-work-series-link-payload.dto';
 
 export class PushSyncChangeDto {
   @ApiProperty({

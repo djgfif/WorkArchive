@@ -2,7 +2,7 @@ import { WorkType } from '@prisma/client';
 import { describe, expect, it } from '@jest/globals';
 
 import type { ImportCandidateResponseDto } from '../src/modules/imports/dto/import-candidate-response.dto';
-import { mergeImportCandidates } from '../src/modules/imports/import-candidate-merge';
+import { mergeImportCandidates } from '../src/modules/imports/candidates/import-candidate-merge';
 
 function createCandidate(
   overrides: Partial<ImportCandidateResponseDto> = {},

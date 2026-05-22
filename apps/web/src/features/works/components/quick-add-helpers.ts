@@ -4,7 +4,7 @@ import type {
   WorkRecord,
 } from '@work-archive/shared-types';
 
-import type { ImportCandidate } from '../../imports/services/imports.service';
+import type { ImportCandidate } from '../../imports';
 import type { UpsertWorkInput, WorkFormValues } from '../utils/work-form';
 
 export interface CandidateSourceCoverage {

@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { ImportCandidate } from '../../imports/services/imports.service';
-import { AuthContext } from '../../auth/context/AuthContext';
+import type { ImportCandidate } from '../../imports';
+import { AuthContext } from '../../auth';
 import {
   clearStoredAuthTokens,
   writeStoredAuthTokens,
-} from '../../auth/services/auth-storage';
-import { syncQueueRepository } from '../../sync/services/sync-queue.repository';
+} from '../../auth';
+import { syncQueueRepository } from '../../sync';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { workArchiveDbManager } from '../db/work-archive.db';
 import { worksRepository } from '../services/works.repository';

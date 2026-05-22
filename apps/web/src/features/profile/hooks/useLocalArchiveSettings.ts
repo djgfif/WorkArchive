@@ -3,8 +3,8 @@ import { useState } from 'react';
 import {
   localArchiveService,
   type LocalArchiveImportPreview,
-} from '../../archive/services/local-archive.service';
-import { useJsonArchiveExport } from '../../archive/hooks/useJsonArchiveExport';
+} from '../../archive';
+import { useJsonArchiveExport } from '../../archive';
 import type { SettingsFeedback } from './useImportProviderSettings';
 
 function downloadTextFile(filename: string, type: string, content: string) {

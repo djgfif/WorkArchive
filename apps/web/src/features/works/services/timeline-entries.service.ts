@@ -5,7 +5,7 @@ import type {
   TimelineEntryType,
 } from '@work-archive/shared-types';
 
-import { syncQueueRepository } from '../../sync/services/sync-queue.repository';
+import { syncQueueRepository } from '../../sync/queue';
 import { timelineEntriesRepository } from './timeline-entries.repository';
 
 export interface CreateTimelineEntryInput {

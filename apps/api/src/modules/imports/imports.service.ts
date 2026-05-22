@@ -24,7 +24,7 @@ import type {
 import type { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
 import type { ImportSearchQueryDto } from './dto/import-search-query.dto';
 import type { ImportSearchResponseDto } from './dto/import-search-response.dto';
-import { mergeImportCandidates } from './import-candidate-merge';
+import { mergeImportCandidates } from './candidates/import-candidate-merge';
 import {
   normalizeImportCandidate,
   normalizeImportTitleSignal,
@@ -32,23 +32,23 @@ import {
   normalizeReleaseDate,
   parseNormalizedReleaseYear,
   stripHtml,
-} from './import-candidate-normalization';
-import { rankImportCandidates } from './import-candidate-ranking';
+} from './candidates/import-candidate-normalization';
+import { rankImportCandidates } from './candidates/import-candidate-ranking';
 import {
   PROVIDERS,
   type ProviderCredentialValues,
   type ProviderMetadata,
   type ProviderSearchContext,
-} from './import-provider-adapter';
+} from './providers/import-provider-adapter';
 import {
   addProviderDiagnostic,
   createImportSearchDiagnostics,
   type ImportSearchDiagnosticReasonCode,
   type ImportSearchDiagnosticStatus,
   type ImportSearchDiagnostics,
-} from './import-search-diagnostics';
-import { ImportsCredentialService } from './imports-credential.service';
-import { ProviderRuntimeStateService } from './provider-runtime-state.service';
+} from './diagnostics/import-search-diagnostics';
+import { ImportsCredentialService } from './credentials/imports-credential.service';
+import { ProviderRuntimeStateService } from './runtime/provider-runtime-state.service';
 import {
   ALADIN_PROVIDER,
   ANILIST_PROVIDER,

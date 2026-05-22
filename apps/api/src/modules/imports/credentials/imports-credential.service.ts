@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import {
   ExternalApiKeyCryptoService,
   type EncryptedExternalApiKey,
 } from './external-api-key-crypto.service';
-import type { ImportProvider } from './imports.constants';
+import type { ImportProvider } from '../imports.constants';
 
 @Injectable()
 export class ImportsCredentialService {

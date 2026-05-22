@@ -1,4 +1,4 @@
-import { WorkPoster } from '../../features/works/components/ArchiveComponents';
+import { WorkPoster } from '../../features/works';
 
 interface ArtworkPosterProps {
   className?: string;

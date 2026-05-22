@@ -57,7 +57,7 @@ import {
   AppButton,
   FeedbackMessage,
 } from '../../../shared/components/AppPrimitives';
-import { worksRepository } from '../../works/services/works.repository';
+import { worksRepository } from '../../works';
 import {
   TIER_BOARD_TEMPLATES,
   tierBoardService,

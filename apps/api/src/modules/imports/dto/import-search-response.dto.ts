@@ -7,7 +7,7 @@ import {
 import {
   IMPORT_SEARCH_DIAGNOSTIC_STATUSES,
   type ImportSearchDiagnostics,
-} from '../import-search-diagnostics';
+} from '../diagnostics/import-search-diagnostics';
 import { ImportCandidateResponseDto } from './import-candidate-response.dto';
 
 class ImportSearchProviderDiagnosticDto {

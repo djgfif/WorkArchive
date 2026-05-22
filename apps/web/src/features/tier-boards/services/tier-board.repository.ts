@@ -9,7 +9,7 @@ import type {
 import {
   getWorkArchiveDb,
   type WorkArchiveDatabase,
-} from '../../works/db/work-archive.db';
+} from '../../works/storage';
 
 type DatabaseResolver = () => WorkArchiveDatabase;
 

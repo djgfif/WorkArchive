@@ -23,10 +23,10 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import { LibraryTemplate } from '../../../shared/components/PageTemplates';
 import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
-import { JsonBackupReminderCard } from '../../archive/components/JsonBackupReminderCard';
-import { useJsonArchiveExport } from '../../archive/hooks/useJsonArchiveExport';
-import { useJsonBackupReminder } from '../../archive/hooks/useJsonBackupReminder';
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { JsonBackupReminderCard } from '../../archive';
+import { useJsonArchiveExport } from '../../archive';
+import { useJsonBackupReminder } from '../../archive';
+import { useAuthSession } from '../../auth';
 import {
   ArchiveEmptyState,
   ArchiveSkeleton,

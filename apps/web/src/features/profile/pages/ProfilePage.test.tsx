@@ -6,9 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { findLinkByHref, getLinkByHref } from '../../../test/ui-helpers';
-import { AuthProvider } from '../../auth/context/AuthProvider';
-import { worksRepository } from '../../works/services/works.repository';
-import { worksService } from '../../works/services/works.service';
+import { AuthProvider } from '../../auth';
+import { worksRepository } from '../../works';
+import { worksService } from '../../works';
 
 describe('ProfilePage', () => {
   afterEach(() => {

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   importsService,
   type ImportProviderStatus,
-} from '../../imports/services/imports.service';
+} from '../../imports';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
 

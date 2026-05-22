@@ -7,7 +7,7 @@ import {
   ThemeToggleControl,
 } from '../../../shared/components/AppPrimitives';
 import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { useAuthSession } from '../../auth';
 import { AccountSettingsSection } from '../components/settings/AccountSettingsSection';
 import { DangerZoneSection } from '../components/settings/DangerZoneSection';
 import { DataBackupSettingsSection } from '../components/settings/DataBackupSettingsSection';

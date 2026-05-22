@@ -15,14 +15,14 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import { PageHero } from '../../../shared/components/PageHero';
 import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
-import { useWorksOverview } from '../../works/hooks/useWorksOverview';
+import { useAuthSession } from '../../auth';
+import { useWorksOverview } from '../../works';
 import {
   formatWorkDateTime,
   formatWorkUpdatedAt,
   getWorkStatusLabel,
   getWorkTypeLabel,
-} from '../../works/utils/work-options';
+} from '../../works';
 
 function formatAverageRating(value: number | null) {
   return value === null ? '미평가' : `${value.toFixed(1)}점`;

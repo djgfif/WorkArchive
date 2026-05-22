@@ -1,9 +1,9 @@
 ﻿import { render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AuthContext, type AuthContextValue } from '../../auth/context/AuthContext';
-import { workArchiveDbManager } from '../../works/db/work-archive.db';
-import { worksService } from '../../works/services/works.service';
+import { AuthContext, type AuthContextValue } from '../../auth';
+import { workArchiveDbManager } from '../../works';
+import { worksService } from '../../works';
 import { syncService } from '../services/sync.service';
 import { useAutoSync } from './useAutoSync';
 

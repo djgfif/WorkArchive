@@ -2,7 +2,7 @@ import { Group, Stack, Text, Title } from '@mantine/core';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
 import { ActionRow, AppBadge } from '../../../shared/components/AppPrimitives';
-import type { ImportCandidate } from '../../imports/services/imports.service';
+import type { ImportCandidate } from '../../imports';
 import {
   getCandidateContributorText,
   getCandidateSourceCoverage,

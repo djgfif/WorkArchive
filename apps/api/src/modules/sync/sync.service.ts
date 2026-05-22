@@ -62,20 +62,20 @@ import type {
   PushSyncResponseDto,
   PushSyncResultDto,
 } from './dto/push-sync-response.dto';
-import { SyncContributorPayloadDto } from './dto/sync-contributor-payload.dto';
-import { SyncReleaseRecordPayloadDto } from './dto/sync-release-record-payload.dto';
-import { SyncSeriesPayloadDto } from './dto/sync-series-payload.dto';
-import { SyncTimelineEntryPayloadDto } from './dto/sync-timeline-entry-payload.dto';
+import { SyncContributorPayloadDto } from './payloads/sync-contributor-payload.dto';
+import { SyncReleaseRecordPayloadDto } from './payloads/sync-release-record-payload.dto';
+import { SyncSeriesPayloadDto } from './payloads/sync-series-payload.dto';
+import { SyncTimelineEntryPayloadDto } from './payloads/sync-timeline-entry-payload.dto';
 import {
   SyncTierBoardAssetPayloadDto,
   SyncTierBoardCardPayloadDto,
   SyncTierLanePayloadDto,
   SyncTierBoardPayloadDto,
-} from './dto/sync-tier-board-payload.dto';
-import { SyncWorkContributorPayloadDto } from './dto/sync-work-contributor-payload.dto';
-import { SyncWorkPayloadDto } from './dto/sync-work-payload.dto';
-import { SyncWorkRelationPayloadDto } from './dto/sync-work-relation-payload.dto';
-import { SyncWorkSeriesLinkPayloadDto } from './dto/sync-work-series-link-payload.dto';
+} from './payloads/sync-tier-board-payload.dto';
+import { SyncWorkContributorPayloadDto } from './payloads/sync-work-contributor-payload.dto';
+import { SyncWorkPayloadDto } from './payloads/sync-work-payload.dto';
+import { SyncWorkRelationPayloadDto } from './payloads/sync-work-relation-payload.dto';
+import { SyncWorkSeriesLinkPayloadDto } from './payloads/sync-work-series-link-payload.dto';
 import {
   SYNC_ENTITY_TYPES,
   SYNC_SCHEMA_VERSION,

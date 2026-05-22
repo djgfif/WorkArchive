@@ -1,8 +1,8 @@
 import type {
   CatalogExternalRefInput,
   CatalogReleaseCandidateInput,
-} from '../catalog/catalog-ingestion.service';
-import type { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
+} from '../../catalog/catalog-ingestion.service';
+import type { ImportCandidateResponseDto } from '../dto/import-candidate-response.dto';
 import {
   calculateSourceCoverage,
   getNormalizedExternalRefKey,

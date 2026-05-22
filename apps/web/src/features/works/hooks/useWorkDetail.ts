@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { useAuthSession } from '../../auth';
 import { worksService } from '../services/works.service';
 
 interface WorkDetailState {

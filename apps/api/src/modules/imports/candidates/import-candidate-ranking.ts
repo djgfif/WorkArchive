@@ -1,6 +1,6 @@
 import type { WorkType } from '@prisma/client';
 
-import type { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
+import type { ImportCandidateResponseDto } from '../dto/import-candidate-response.dto';
 import {
   normalizeDisplayText,
   normalizeImportTitleSignal,

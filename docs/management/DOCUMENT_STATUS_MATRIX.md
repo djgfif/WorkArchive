@@ -34,6 +34,7 @@
 | [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md) | `canonical` | `current frontend decisions` | 현재 프론트 UI/라우트/레이아웃 기준 | 미래 제품 비전 |
 | [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md) | `canonical` | `target frontend structure` | 남은 구조 과제와 다음 분해 기준 | 현재 구현 완료 상태 |
 | [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md) | `active` | `frontend roadmap` | 프론트 5단계 상세 실행 순서 | 현재 구현 설명, 제품 비전 |
+| [`../engineering/FEATURE_FIRST_STRUCTURE.md`](../engineering/FEATURE_FIRST_STRUCTURE.md) | `canonical` | `architecture boundary guide` | monorepo, web feature, API module 경계 | 세부 제품 비전 |
 | [`../backend/README.md`](../backend/README.md) | `active` | `navigation` | backend 폴더 읽기 순서 | 현재 API 세부 구현 |
 | [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md) | `canonical` | `target backend structure` | 백엔드 도메인 경계와 장기 구조 | 현재 구현 완료 상태 |
 | [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md) | `active` | `security roadmap` | 남은 공개 전/후 보안 backlog | 현재 코드가 이미 가진 baseline 전체 |

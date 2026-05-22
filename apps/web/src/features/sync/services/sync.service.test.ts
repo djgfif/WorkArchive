@@ -10,16 +10,16 @@ import type {
 import {
   clearStoredAuthTokens,
   writeStoredAuthTokens,
-} from '../../auth/services/auth-storage';
+} from '../../auth';
 import {
   createWorkArchiveDb,
   type WorkArchiveDatabase,
-} from '../../works/db/work-archive.db';
-import { WorksRepository } from '../../works/services/works.repository';
-import { WorksService } from '../../works/services/works.service';
-import { ReleaseRecordsRepository } from '../../works/services/release-records.repository';
-import { TimelineEntriesRepository } from '../../works/services/timeline-entries.repository';
-import { GraphRepository } from '../../works/services/graph.repository';
+} from '../../works';
+import { WorksRepository } from '../../works';
+import { WorksService } from '../../works';
+import { ReleaseRecordsRepository } from '../../works';
+import { TimelineEntriesRepository } from '../../works';
+import { GraphRepository } from '../../works';
 import { AppMetaRepository } from './app-meta.repository';
 import { SyncQueueRepository } from './sync-queue.repository';
 import { SyncService } from './sync.service';

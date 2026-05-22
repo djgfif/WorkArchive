@@ -4,7 +4,7 @@
 | --- | --- |
 | Status | `reference-only` |
 | Role | `works list visual exploration` |
-| Source of truth | Google Stitch output, root `DESIGN.md`, current `WorksListPage` implementation |
+| Source of truth | Google Stitch output, `docs/design/DESIGN.md`, current `WorksListPage` implementation |
 | Last reviewed | `2026-04-24` |
 | When to update | this Stitch draft is re-generated, implemented, superseded, or rejected |
 
@@ -74,7 +74,7 @@ Rebuild selected ideas with the existing Work Archive UI system:
 - `ArtworkPoster`
 - `AppBadge`
 - `AppButton`
-- current design tokens from root `DESIGN.md`
+- current design tokens from `docs/design/DESIGN.md`
 
 Keep:
 

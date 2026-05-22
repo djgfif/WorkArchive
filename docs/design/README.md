@@ -4,7 +4,7 @@
 | --- | --- |
 | Status | `active` |
 | Role | `design documentation index` |
-| Source of truth | [`../../DESIGN.md`](../../DESIGN.md), current `apps/web` implementation, Stitch reference drafts |
+| Source of truth | [`./DESIGN.md`](./DESIGN.md), current `apps/web` implementation, Stitch reference drafts |
 | Last verified against | `2026-04-24` working tree |
 | When to update | design token source, Stitch reference storage rules, or UI implementation guidance changes |
 
@@ -12,9 +12,9 @@ This directory stores design-system documentation and generated design reference
 
 ## Primary Design Contract
 
-- [`../../DESIGN.md`](../../DESIGN.md): root-level self-contained design-system contract for Stitch/design.md-compatible workflows.
+- [`./DESIGN.md`](./DESIGN.md): self-contained design-system contract for Stitch/design.md-compatible workflows.
 
-The root `DESIGN.md` is the canonical product design contract. It describes tokens, visual identity, interaction principles, local-first product language, and implementation boundaries. Keep it self-contained and do not reference internal code variables from inside that file.
+The `docs/design/DESIGN.md` is the canonical product design contract. It describes tokens, visual identity, interaction principles, local-first product language, and implementation boundaries. Keep it self-contained and do not reference internal code variables from inside that file.
 
 ## Stitch-to-Product Translation
 
@@ -25,6 +25,7 @@ Use this plan before implementing Stitch-inspired UI changes. Stitch drafts are 
 ## Stitch Reference Archive
 
 - [`stitch/`](./stitch/): Google Stitch-generated design drafts and review notes.
+- [`frontend-guide/`](./frontend-guide/): imported frontend redesign references and visual assets.
 
 Current references:
 
@@ -41,7 +42,7 @@ Stitch outputs are reference material, not implementation source. Do not paste T
 
 ## Usage Rules
 
-1. Use `DESIGN.md` as the official design contract.
+1. Use `docs/design/DESIGN.md` as the official design contract.
 2. Use `STITCH_TO_PRODUCT_EVOLUTION_PLAN.md` to decide what to extract from Stitch drafts.
 3. Store Stitch exports under `docs/design/stitch/{surface}/`.
 4. Pair each exported HTML draft with a `.notes.md` file explaining what to keep, what to ignore, and how to translate it into the actual codebase.
@@ -53,7 +54,9 @@ Stitch outputs are reference material, not implementation source. Do not paste T
 ```text
 docs/design/
   README.md
+  DESIGN.md
   STITCH_TO_PRODUCT_EVOLUTION_PLAN.md
+  frontend-guide/
   stitch/
     README.md
     home/

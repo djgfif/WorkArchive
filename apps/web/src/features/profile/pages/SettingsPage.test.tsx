@@ -5,16 +5,16 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '../../../test/render-with-providers';
-import { AuthContext } from '../../auth/context/AuthContext';
+import { AuthContext } from '../../auth';
 import {
   clearStoredAuthTokens,
   writeStoredAuthTokens,
-} from '../../auth/services/auth-storage';
+} from '../../auth';
 import {
   resetWorkArchiveStorage,
   workArchiveDbManager,
-} from '../../works/db/work-archive.db';
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../../archive/utils/json-backup-reminder';
+} from '../../works';
+import { LAST_JSON_EXPORT_AT_META_KEY } from '../../archive';
 import { SettingsPage } from './SettingsPage';
 
 function jsonResponse(body: unknown, status = 200) {

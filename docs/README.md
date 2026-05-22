@@ -26,6 +26,7 @@ Work Archive 문서의 공식 허브다. 루트 [`README.md`](../README.md)는 �
 | [`frontend/`](./frontend/README.md) | 현재 프론트 기준과 상세 실행 계획을 보고 싶을 때 | [`FRONTEND_BLUEPRINT_V1.md`](./frontend/FRONTEND_BLUEPRINT_V1.md) |
 | [`backend/`](./backend/README.md) | 백엔드 목표 구조와 남은 보안 backlog를 보고 싶을 때 | [`BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](./backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md) |
 | [`product/`](./product/README.md) | 제품 비전, 우선순위 요약, 확장 전략을 보고 싶을 때 | [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md) |
+| [`engineering/`](./engineering/FEATURE_FIRST_STRUCTURE.md) | monorepo 구조와 feature/module 경계를 확인할 때 | [`FEATURE_FIRST_STRUCTURE.md`](./engineering/FEATURE_FIRST_STRUCTURE.md) |
 | [`management/`](./management/README.md) | 문서 해석 규칙과 상태 분류가 필요할 때 | [`DOCUMENTATION_INDEX.md`](./management/DOCUMENTATION_INDEX.md) |
 | [`archive/`](./archive/README.md) | archive 운영 기준을 확인할 때 | [`archive/README.md`](./archive/README.md) |
 
@@ -36,6 +37,7 @@ Work Archive 문서의 공식 허브다. 루트 [`README.md`](../README.md)는 �
 - 현재 프론트 canonical: [`frontend/FRONTEND_BLUEPRINT_V1.md`](./frontend/FRONTEND_BLUEPRINT_V1.md)
 - 현재 프론트 목표 구조: [`frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](./frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
 - 프론트 상세 실행 계획: [`frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](./frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
+- feature-first 구조 기준: [`engineering/FEATURE_FIRST_STRUCTURE.md`](./engineering/FEATURE_FIRST_STRUCTURE.md)
 - 현재 백엔드 목표 구조: [`backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](./backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
 - 보안 로드맵: [`backend/SECURITY_HARDENING_ROADMAP.md`](./backend/SECURITY_HARDENING_ROADMAP.md)
 - 제품 우선순위 요약: [`product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)

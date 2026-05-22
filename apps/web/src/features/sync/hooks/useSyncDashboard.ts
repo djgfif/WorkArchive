@@ -19,8 +19,8 @@ import type {
   WorkSyncStatus,
 } from '@work-archive/shared-types';
 
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
-import { getWorkArchiveDb } from '../../works/db/work-archive.db';
+import { useAuthSession } from '../../auth';
+import { getWorkArchiveDb } from '../../works/storage';
 import { appMetaRepository } from '../services/app-meta.repository';
 import { syncQueueRepository } from '../services/sync-queue.repository';
 

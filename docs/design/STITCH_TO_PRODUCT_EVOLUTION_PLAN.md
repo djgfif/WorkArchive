@@ -4,7 +4,7 @@
 | --- | --- |
 | Status | `canonical` |
 | Role | `Stitch reference translation plan` |
-| Source of truth | root `DESIGN.md`, `docs/design/stitch/*`, current `apps/web` implementation |
+| Source of truth | `docs/design/DESIGN.md`, `docs/design/stitch/*`, current `apps/web` implementation |
 | Last verified against | `2026-04-27` IA v1 Stitch reference + modal-first Add implementation |
 | When to update | new Stitch drafts are added, design direction changes, or implementation scope changes |
 
@@ -13,7 +13,7 @@
 ## 1. Core Principle
 
 ```text
-Stitch는 시각 탐색 도구이고, DESIGN.md는 공식 디자인 계약이며, apps/web은 실제 구현이다.
+Stitch는 시각 탐색 도구이고, `docs/design/DESIGN.md`는 공식 디자인 계약이며, apps/web은 실제 구현이다.
 ```
 
 따라서 Stitch 시안은 다음 역할만 가진다.
@@ -146,7 +146,7 @@ Stitch가 준 장점은 어두운 shell, 포스터, 얇은 border, archive-blue 
 Stitch 시안을 실제 코드로 옮길 때는 아래 순서를 따른다.
 
 1. Stitch HTML에서 화면 목적과 정보 구조만 추출한다.
-2. 현재 `DESIGN.md`의 토큰과 원칙에 맞게 다시 해석한다.
+2. 현재 `docs/design/DESIGN.md`의 토큰과 원칙에 맞게 다시 해석한다.
 3. `apps/web`에서는 Mantine + shared primitives로 재구현한다.
 4. 기존 routing, state, local-first save, syncQueue 흐름은 건드리지 않는다.
 5. 테스트로 기존 기능이 깨지지 않았음을 확인한다.
@@ -293,7 +293,7 @@ Implementation target:
 6. Add status badge overlay to grid cards.
 7. Improve Home recent-record bento section.
 8. Add Home in-progress section.
-9. Review visual consistency against DESIGN.md.
+9. Review visual consistency against `docs/design/DESIGN.md`.
 ```
 
 ## 7. Codex Guardrails
@@ -306,7 +306,7 @@ Do not introduce sidebar navigation in this pass.
 Do not replace MainProductLayout.
 Do not change local-first save, Dexie, syncQueue, or backend sync behavior.
 Do not add Material Symbols as a product dependency.
-Use Mantine + AppPrimitives + DESIGN.md tokens.
+Use Mantine + AppPrimitives + `docs/design/DESIGN.md` tokens.
 Keep Korean copy and WorkArchive domain language.
 ```
 

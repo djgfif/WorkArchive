@@ -9,7 +9,7 @@ import type {
 import {
   createWorkArchiveDb,
   type WorkArchiveDatabase,
-} from '../../works/db/work-archive.db';
+} from '../../works';
 import { LocalArchiveService } from './local-archive.service';
 
 function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {

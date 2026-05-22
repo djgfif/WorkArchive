@@ -11,9 +11,9 @@ import {
   openAdvancedFilters,
   selectWorksView,
 } from '../../../test/ui-helpers';
-import { AuthProvider } from '../../auth/context/AuthProvider';
-import { appMetaRepository } from '../../sync/services/app-meta.repository';
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../../archive/utils/json-backup-reminder';
+import { AuthProvider } from '../../auth';
+import { appMetaRepository } from '../../sync';
+import { LAST_JSON_EXPORT_AT_META_KEY } from '../../archive';
 import { worksService } from '../services/works.service';
 
 describe('WorksListPage', () => {

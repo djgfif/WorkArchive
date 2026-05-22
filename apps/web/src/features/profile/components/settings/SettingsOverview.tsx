@@ -6,9 +6,9 @@ import {
   SectionCard,
   SectionIntro,
 } from '../../../../shared/components/AppPrimitives';
-import { JsonBackupReminderCard } from '../../../archive/components/JsonBackupReminderCard';
-import { getJsonBackupReminderStatus } from '../../../archive/utils/json-backup-reminder';
-import type { LocalArchiveImportPreview } from '../../../archive/services/local-archive.service';
+import { JsonBackupReminderCard } from '../../../archive';
+import { getJsonBackupReminderStatus } from '../../../archive';
+import type { LocalArchiveImportPreview } from '../../../archive';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import type { SettingsOverviewStats } from '../../hooks/useSettingsOverviewStats';
 import styles from './SettingsControlCenter.module.css';

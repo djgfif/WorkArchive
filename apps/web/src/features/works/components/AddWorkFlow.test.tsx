@@ -5,12 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
-import type { ImportCandidate } from '../../imports/services/imports.service';
-import { AuthContext } from '../../auth/context/AuthContext';
+import type { ImportCandidate } from '../../imports';
+import { AuthContext } from '../../auth';
 import {
   clearStoredAuthTokens,
   writeStoredAuthTokens,
-} from '../../auth/services/auth-storage';
+} from '../../auth';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { workArchiveDbManager } from '../db/work-archive.db';
 import { worksRepository } from '../services/works.repository';

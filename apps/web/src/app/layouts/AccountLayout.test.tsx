@@ -7,7 +7,7 @@ import { getLinkByHref } from '../../test/ui-helpers';
 import {
   AuthContext,
   type AuthContextValue,
-} from '../../features/auth/context/AuthContext';
+} from '../../features/auth';
 import { AccountLayout } from './AccountLayout';
 
 const guestContextValue: AuthContextValue = {

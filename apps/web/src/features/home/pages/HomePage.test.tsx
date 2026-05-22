@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
-import { AuthProvider } from '../../auth/context/AuthProvider';
-import { worksService } from '../../works/services/works.service';
+import { AuthProvider } from '../../auth';
+import { worksService } from '../../works';
 
 describe('HomePage', () => {
   it('shows series and contributor shelves before continue watching', async () => {

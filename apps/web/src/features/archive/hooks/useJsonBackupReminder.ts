@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { liveQuery } from 'dexie';
 
-import { appMetaRepository } from '../../sync/services/app-meta.repository';
+import { appMetaRepository } from '../../sync/queue';
 import {
   getJsonBackupReminderStatus,
   LAST_JSON_EXPORT_AT_META_KEY,

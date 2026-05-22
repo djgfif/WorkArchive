@@ -12,37 +12,39 @@ import {
   featureFlags,
   type FeatureFlags,
 } from '../../shared/runtime/feature-flags';
-import { GuestTransferReviewPage } from '../../features/auth/pages/GuestTransferReviewPage';
-import { GoogleAuthCompletePage } from '../../features/auth/pages/GoogleAuthCompletePage';
-import { LoginPage } from '../../features/auth/pages/LoginPage';
-import { HomePage } from '../../features/home/pages/HomePage';
-import { AccountOverviewPage } from '../../features/profile/pages/AccountOverviewPage';
-import { ProfilePage } from '../../features/profile/pages/ProfilePage';
-import { SettingsPage } from '../../features/profile/pages/SettingsPage';
-import { WorkCreatePage } from '../../features/works/pages/WorkCreatePage';
-import { WorkDetailPage } from '../../features/works/pages/WorkDetailPage';
-import { WorkEditPage } from '../../features/works/pages/WorkEditPage';
-import { WorksListPage } from '../../features/works/pages/WorksListPage';
+import {
+  GoogleAuthCompletePage,
+  GuestTransferReviewPage,
+  LoginPage,
+} from '../../features/auth';
+import { HomePage } from '../../features/home';
+import {
+  AccountOverviewPage,
+  ProfilePage,
+  SettingsPage,
+} from '../../features/profile';
+import {
+  WorkCreatePage,
+  WorkDetailPage,
+  WorkEditPage,
+  WorksListPage,
+} from '../../features/works';
 import { StateMessage } from '../../shared/components/AppPrimitives';
 
 const TierBoardsPage = lazy(() =>
-  import('../../features/tier-boards/pages/TierBoardsPage').then((module) => ({
+  import('../../features/tier-boards').then((module) => ({
     default: module.TierBoardsPage,
   })),
 );
 const TierBoardEditorPage = lazy(() =>
-  import('../../features/tier-boards/pages/TierBoardEditorPage').then(
-    (module) => ({
-      default: module.TierBoardEditorPage,
-    }),
-  ),
+  import('../../features/tier-boards').then((module) => ({
+    default: module.TierBoardEditorPage,
+  })),
 );
 const TierBoardViewPage = lazy(() =>
-  import('../../features/tier-boards/pages/TierBoardViewPage').then(
-    (module) => ({
-      default: module.TierBoardViewPage,
-    }),
-  ),
+  import('../../features/tier-boards').then((module) => ({
+    default: module.TierBoardViewPage,
+  })),
 );
 
 function lazyRoute(element: ReactNode) {

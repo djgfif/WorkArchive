@@ -15,17 +15,17 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import type { CatalogService } from '../src/modules/catalog/catalog.service';
 import { SyncService } from '../src/modules/sync/sync.service';
-import type { SyncReleaseRecordPayloadDto } from '../src/modules/sync/dto/sync-release-record-payload.dto';
-import type { SyncSeriesPayloadDto } from '../src/modules/sync/dto/sync-series-payload.dto';
-import type { SyncTimelineEntryPayloadDto } from '../src/modules/sync/dto/sync-timeline-entry-payload.dto';
+import type { SyncReleaseRecordPayloadDto } from '../src/modules/sync/payloads/sync-release-record-payload.dto';
+import type { SyncSeriesPayloadDto } from '../src/modules/sync/payloads/sync-series-payload.dto';
+import type { SyncTimelineEntryPayloadDto } from '../src/modules/sync/payloads/sync-timeline-entry-payload.dto';
 import type {
   SyncTierBoardAssetPayloadDto,
   SyncTierBoardCardPayloadDto,
   SyncTierBoardPayloadDto,
   SyncTierLanePayloadDto,
-} from '../src/modules/sync/dto/sync-tier-board-payload.dto';
-import type { SyncWorkSeriesLinkPayloadDto } from '../src/modules/sync/dto/sync-work-series-link-payload.dto';
-import type { SyncWorkPayloadDto } from '../src/modules/sync/dto/sync-work-payload.dto';
+} from '../src/modules/sync/payloads/sync-tier-board-payload.dto';
+import type { SyncWorkSeriesLinkPayloadDto } from '../src/modules/sync/payloads/sync-work-series-link-payload.dto';
+import type { SyncWorkPayloadDto } from '../src/modules/sync/payloads/sync-work-payload.dto';
 import { type PrismaService } from '../src/prisma/prisma.service';
 import type {
   UserReleaseRecordsService,

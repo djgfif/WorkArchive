@@ -10,7 +10,7 @@ import {
   SectionCard,
   SectionIntro,
 } from '../../../../shared/components/AppPrimitives';
-import type { LocalArchiveImportPreview } from '../../../archive/services/local-archive.service';
+import type { LocalArchiveImportPreview } from '../../../archive';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import styles from './SettingsControlCenter.module.css';
 

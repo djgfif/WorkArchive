@@ -3,11 +3,11 @@ import type { WorkRecord } from '@work-archive/shared-types';
 import {
   createWorkArchiveDb,
   getWorkArchiveDbName,
-} from '../../works/db/work-archive.db';
-import { AppMetaRepository } from '../../sync/services/app-meta.repository';
-import { WorksRepository } from '../../works/services/works.repository';
-import { worksService } from '../../works/services/works.service';
-import { createUpsertWorkInputFromRecord } from '../../works/utils/work-form';
+} from '../../works/storage';
+import { AppMetaRepository } from '../../sync/queue';
+import { WorksRepository } from '../../works';
+import { worksService } from '../../works';
+import { createUpsertWorkInputFromRecord } from '../../works';
 
 const REVIEWED_FINGERPRINT_KEY_PREFIX = 'auth.guestTransfer.reviewedFingerprint:';
 

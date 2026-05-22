@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkRecord } from '@work-archive/shared-types';
 
-import { SyncQueueRepository } from '../../sync/services/sync-queue.repository';
-import { createWorkArchiveDb, type WorkArchiveDatabase } from '../../works/db/work-archive.db';
-import { WorksRepository } from '../../works/services/works.repository';
+import { SyncQueueRepository } from '../../sync';
+import { createWorkArchiveDb, type WorkArchiveDatabase } from '../../works';
+import { WorksRepository } from '../../works';
 import { TierBoardRepository } from './tier-board.repository';
 import { TierBoardService } from './tier-board.service';
 

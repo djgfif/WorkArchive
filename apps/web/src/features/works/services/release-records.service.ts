@@ -8,7 +8,7 @@ import type {
 import {
   syncQueueRepository,
   type SyncQueueRepository,
-} from '../../sync/services/sync-queue.repository';
+} from '../../sync/queue';
 import {
   releaseRecordsRepository,
   type ReleaseRecordsRepository,

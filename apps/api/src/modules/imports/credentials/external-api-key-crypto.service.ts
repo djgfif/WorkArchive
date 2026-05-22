@@ -7,7 +7,7 @@ import {
 
 import { Injectable } from '@nestjs/common';
 
-import { readExternalApiKeyEncryptionSecret } from '../../config/api-runtime-config';
+import { readExternalApiKeyEncryptionSecret } from '../../../config/api-runtime-config';
 
 export interface EncryptedExternalApiKey {
   encryptedKey: string;

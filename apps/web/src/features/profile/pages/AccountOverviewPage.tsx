@@ -8,9 +8,9 @@ import {
   SectionIntro,
 } from '../../../shared/components/AppPrimitives';
 import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
-import { useSyncDashboard } from '../../sync/hooks/useSyncDashboard';
-import { useWorksOverview } from '../../works/hooks/useWorksOverview';
+import { useAuthSession } from '../../auth';
+import { useSyncDashboard } from '../../sync';
+import { useWorksOverview } from '../../works';
 import styles from './AccountOverviewPage.module.css';
 
 const css = styles as Record<string, string>;

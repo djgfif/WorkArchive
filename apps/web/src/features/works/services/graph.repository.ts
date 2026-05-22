@@ -21,7 +21,7 @@ import {
 import {
   syncQueueRepository,
   type SyncQueueRepository,
-} from '../../sync/services/sync-queue.repository';
+} from '../../sync/queue';
 
 type DatabaseResolver = () => WorkArchiveDatabase;
 

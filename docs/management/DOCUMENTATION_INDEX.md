@@ -51,6 +51,7 @@
 | [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md) | `canonical` | `current frontend decisions` | 현재 UI/라우트/레이아웃 기준을 잡을 때 |
 | [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md) | `canonical` | `target frontend structure` | 프론트의 다음 구조 작업 범위를 정할 때 |
 | [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md) | `canonical` | `target backend structure` | 백엔드 도메인 경계와 장기 구조를 판단할 때 |
+| [`../engineering/FEATURE_FIRST_STRUCTURE.md`](../engineering/FEATURE_FIRST_STRUCTURE.md) | `canonical` | `architecture boundary guide` | monorepo, web feature, API module 경계를 판단할 때 |
 | [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md) | `canonical` | `governance` | 문서를 새로 만들거나 이동하려고 할 때 |
 | [`DOCUMENTATION_INDEX.md`](./DOCUMENTATION_INDEX.md) | `canonical` | `navigation` | 어떤 문서를 먼저 읽을지 모를 때 |
 | [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md) | `canonical` | `status map` | active/reference/canonical 구분이 필요할 때 |

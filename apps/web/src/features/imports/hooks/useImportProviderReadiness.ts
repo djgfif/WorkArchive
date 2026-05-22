@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import type { ImportProviderStatus } from '@work-archive/shared-types';
 
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { useAuthSession } from '../../auth';
 import { importsService } from '../services/imports.service';
 
 export interface ProviderReadinessGroup {

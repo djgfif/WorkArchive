@@ -11,7 +11,7 @@ import {
 import {
   getWorkArchiveDb,
   type WorkArchiveDatabase,
-} from '../../works/db/work-archive.db';
+} from '../../works/storage';
 
 const ARCHIVE_FORMAT = 'work-archive.local-archive';
 const ARCHIVE_VERSION = 1;

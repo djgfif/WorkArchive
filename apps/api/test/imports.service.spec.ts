@@ -15,8 +15,8 @@ import {
   jest,
 } from '@jest/globals';
 
-import { ExternalApiKeyCryptoService } from '../src/modules/imports/external-api-key-crypto.service';
-import { ImportsCredentialService } from '../src/modules/imports/imports-credential.service';
+import { ExternalApiKeyCryptoService } from '../src/modules/imports/credentials/external-api-key-crypto.service';
+import { ImportsCredentialService } from '../src/modules/imports/credentials/imports-credential.service';
 import {
   ALADIN_PROVIDER,
   ANILIST_PROVIDER,

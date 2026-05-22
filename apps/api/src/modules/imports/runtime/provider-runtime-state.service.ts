@@ -1,8 +1,8 @@
 import { Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 
-import { readApiRuntimeConfig } from '../../config/api-runtime-config';
-import type { ImportProvider } from './imports.constants';
+import { readApiRuntimeConfig } from '../../../config/api-runtime-config';
+import type { ImportProvider } from '../imports.constants';
 
 export interface ProviderCircuitStatus {
   circuitOpenedUntil: string | null;

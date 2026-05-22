@@ -15,7 +15,7 @@ import {
   requestAuthenticatedApi,
   requestAuthenticatedApiJson,
 } from '../../../shared/services/api-client';
-import { readStoredAuthTokens } from '../../auth/services/auth-storage';
+import { readStoredAuthTokens } from '../../auth';
 
 export type { ImportCandidate, ImportProviderStatus };
 

@@ -1,4 +1,4 @@
-import type { ImportProvider } from './imports.constants';
+import type { ImportProvider } from '../imports.constants';
 
 export const IMPORT_SEARCH_DIAGNOSTIC_STATUSES = [
   'searched',

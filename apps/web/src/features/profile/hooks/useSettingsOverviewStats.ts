@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../../archive/utils/json-backup-reminder';
-import { getWorkArchiveDb } from '../../works/db/work-archive.db';
+import { LAST_JSON_EXPORT_AT_META_KEY } from '../../archive';
+import { getWorkArchiveDb } from '../../works/storage';
 
 export interface SettingsOverviewStats {
   activeWorkCount: number;

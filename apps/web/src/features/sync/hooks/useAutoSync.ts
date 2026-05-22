@@ -1,7 +1,7 @@
 import { liveQuery } from 'dexie';
 import { useEffect, useRef } from 'react';
 
-import { useAuthSession } from '../../auth/hooks/useAuthSession';
+import { useAuthSession } from '../../auth';
 import {
   syncQueueRepository,
   type SyncQueueRepository,

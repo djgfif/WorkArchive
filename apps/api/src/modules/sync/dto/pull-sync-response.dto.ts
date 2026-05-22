@@ -9,18 +9,18 @@ import {
 
 import { UserReleaseRecordResponseDto } from '../../user-records/dto/user-release-record.dto';
 import { WorkResponseDto } from '../../works/dto/work-response.dto';
-import { SyncContributorPayloadDto } from './sync-contributor-payload.dto';
-import { SyncSeriesPayloadDto } from './sync-series-payload.dto';
-import { SyncTimelineEntryPayloadDto } from './sync-timeline-entry-payload.dto';
+import { SyncContributorPayloadDto } from '../payloads/sync-contributor-payload.dto';
+import { SyncSeriesPayloadDto } from '../payloads/sync-series-payload.dto';
+import { SyncTimelineEntryPayloadDto } from '../payloads/sync-timeline-entry-payload.dto';
 import {
   SyncTierBoardAssetPayloadDto,
   SyncTierBoardCardPayloadDto,
   SyncTierLanePayloadDto,
   SyncTierBoardPayloadDto,
-} from './sync-tier-board-payload.dto';
-import { SyncWorkContributorPayloadDto } from './sync-work-contributor-payload.dto';
-import { SyncWorkRelationPayloadDto } from './sync-work-relation-payload.dto';
-import { SyncWorkSeriesLinkPayloadDto } from './sync-work-series-link-payload.dto';
+} from '../payloads/sync-tier-board-payload.dto';
+import { SyncWorkContributorPayloadDto } from '../payloads/sync-work-contributor-payload.dto';
+import { SyncWorkRelationPayloadDto } from '../payloads/sync-work-relation-payload.dto';
+import { SyncWorkSeriesLinkPayloadDto } from '../payloads/sync-work-series-link-payload.dto';
 
 export class PullSyncChangeDto {
   @ApiProperty({

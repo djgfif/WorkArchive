@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '../../../app/router/routes';
 import { renderWithProviders } from '../../../test/render-with-providers';
-import { AuthProvider } from '../../auth/context/AuthProvider';
-import type { ImportCandidate } from '../../imports/services/imports.service';
+import { AuthProvider } from '../../auth';
+import type { ImportCandidate } from '../../imports';
 import { worksService } from '../services/works.service';
 
 function jsonResponse(body: unknown, status = 200) {

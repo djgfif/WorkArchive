@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { renderWithProviders } from '../test/render-with-providers';
 import { findLinkByHref, getLinkByHref } from '../test/ui-helpers';
-import { worksRepository } from '../features/works/services/works.repository';
+import { worksRepository } from '../features/works';
 
 describe('App', () => {
   afterEach(() => {

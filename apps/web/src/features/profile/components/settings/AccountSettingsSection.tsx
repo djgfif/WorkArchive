@@ -13,8 +13,8 @@ import {
 import {
   ApiRequestError,
   updateAuthProfile,
-} from '../../../auth/services/auth.api';
-import { getUserAvatarProfile } from '../../../auth/utils/user-profile';
+} from '../../../auth';
+import { getUserAvatarProfile } from '../../../auth';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
 

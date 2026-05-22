@@ -1,6 +1,6 @@
 import { WorkType } from '@prisma/client';
 
-import type { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
+import type { ImportCandidateResponseDto } from '../dto/import-candidate-response.dto';
 import {
   ALADIN_PROVIDER,
   ANILIST_PROVIDER,
@@ -18,7 +18,7 @@ import {
   TVMAZE_PROVIDER,
   WIKIDATA_PROVIDER,
   type ImportProvider,
-} from './imports.constants';
+} from '../imports.constants';
 
 export interface ProviderCredentialField {
   description?: string;

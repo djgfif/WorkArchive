@@ -24,8 +24,8 @@ import {
   featureFlags,
   type FeatureFlags,
 } from '../../shared/runtime/feature-flags';
-import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
-import { getUserAvatarProfile } from '../../features/auth/utils/user-profile';
+import { useAuthSession } from '../../features/auth';
+import { getUserAvatarProfile } from '../../features/auth';
 
 export function getPrimaryNavigationItems(flags: FeatureFlags = featureFlags) {
   return [

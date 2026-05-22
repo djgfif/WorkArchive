@@ -4,7 +4,7 @@
 | --- | --- |
 | Status | `reference-only` |
 | Role | `login and register visual exploration` |
-| Source of truth | Google Stitch output, root `DESIGN.md`, current `LoginPage`, `RegisterPage`, `AuthPageTemplate`, and `AuthForm` implementation |
+| Source of truth | Google Stitch output, `docs/design/DESIGN.md`, current `LoginPage`, `RegisterPage`, `AuthPageTemplate`, and `AuthForm` implementation |
 | Last reviewed | `2026-04-24` |
 | When to update | this Stitch draft is re-generated, implemented, superseded, or rejected |
 
@@ -71,7 +71,7 @@ Rebuild selected ideas with the existing Work Archive UI system:
 - `SectionIntro`
 - `AppButton`
 - `FeedbackMessage`
-- root `DESIGN.md` tokens
+- `docs/design/DESIGN.md` tokens
 
 Keep:
 

@@ -17,7 +17,7 @@ import {
   subscribeToStoredAuthTokens,
   writeStoredAuthTokens,
 } from '../services/auth-storage';
-import { workArchiveDbManager } from '../../works/db/work-archive.db';
+import { workArchiveDbManager } from '../../works/storage';
 import { AuthContext, type AuthContextValue } from './AuthContext';
 
 const GOOGLE_RETURN_TO_STORAGE_KEY = 'work-archive.auth.googleReturnTo';
