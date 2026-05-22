@@ -66,10 +66,15 @@ cp apps/web/.env.example apps/web/.env
 
 Quick Add 외부 검색은 현재 아래 두 축으로 동작한다.
 
-- user-scoped: `Aladin`은 로그인한 계정 설정에서 TTBKey를 저장해 사용한다.
-- server-scoped: `TMDB_API_READ_TOKEN` 또는 `TMDB_API_KEY`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `KAKAO_REST_API_KEY`, `KOBIS_API_KEY`
+- user-scoped: `Aladin`, `TMDB`, `Naver Book`, `Naver Web`, `Kakao Book`,
+  `Kakao Web`, `Brave Search`, `Tavily Search`, `KOBIS`는 로그인한 계정
+  설정에서 provider key를 저장해 사용한다. 값은 서버 DB에 암호화 저장된다.
+- no-key: `AniList`, `Google Books`, `Open Library`, `TVmaze`, `Wikidata`,
+  `manual` provider는 별도 key 없이 검색에 참여할 수 있다.
 
-공개 키가 필요 없는 `AniList`, `Google Books`, `Open Library`, `TVmaze`, `manual` provider도 현재 코드에 연결돼 있다.
+현재 production 기본 정책은 user-scoped provider를 guest에게 공개하지 않는
+것이다. KOBIS는 upstream Open API가 HTTP endpoint와 query-string key를
+사용하므로 운영 네트워크 경계에서 허용 여부를 별도로 검토해야 한다.
 
 ## Local Development
 
@@ -207,6 +212,7 @@ npm run dev:api
 npm run dev:db
 npm run db:migrate:deploy
 npm run db:seed
+npm run ops:retention:cleanup --workspace @work-archive/api
 npm run lint
 npm run typecheck
 npm run test
@@ -219,6 +225,18 @@ API E2E note: `npm run test:e2e` runs the fast Nest contract suite with an in-me
 
 Integration test note: `npm run test:integration` requires a migrated PostgreSQL database and a `DATABASE_URL` that includes `test` or `integration`. Run `npm run db:migrate:deploy` against that database first. The reset helper refuses to truncate a generic local or production database.
 
+Production compose note: `compose.prod.yml` separates migration from API startup.
+Run the release profile migration job before rolling API/web:
+
+```bash
+docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
+docker compose -f compose.prod.yml --env-file .env.prod up -d api web
+```
+
+Retention cleanup defaults to dry-run. Production deletes require both
+`RETENTION_CLEANUP_DRY_RUN=false` and
+`RETENTION_CLEANUP_CONFIRM=delete-expired-operational-data`.
+
 ## Current Verification Status
 
 - `npm run lint`: `2026-05-05` 통과 확인
@@ -228,18 +246,37 @@ Integration test note: `npm run test:integration` requires a migrated PostgreSQL
 - GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 `.github/workflows/validate.yml`에 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe`도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
+확인한 것:
+
+- production Dockerfile/compose는 API/web non-root runtime, API migration
+  분리, read-only/tmpfs/resource guard, healthcheck를 반영한다.
+- retention cleanup은 `security_events`, `user_refresh_sessions`,
+  `password_reset_tokens`에만 cutoff predicate로 적용된다.
+- provider network 경계는 코드 기준 timeout/retry/circuit이 있고, KOBIS는
+  HTTP/query-key upstream으로 문서화돼 있다.
+
+미확인/운영환경 의존:
+
+- 실제 beta host의 Docker/cgroup 적용, reverse proxy/TLS, off-site backup
+  저장소, outbound provider egress 경로는 저장소 밖 운영환경에서 확인해야
+  한다.
+
 ## Current Product Reality
 
 - Sync policy: manual Sync page plus limited automatic sync for authenticated users. Automatic pull runs on account archive activation and browser focus/online events; automatic push runs after local `syncQueue` changes with debounce.
 - Conflict policy: automatic conflict merge is not implemented. Failed/conflict items are kept for SyncPage retry, remote-apply, local-keep, or field-level merge resolution.
 - Auth session policy: refresh sessions are stored in `user_refresh_sessions`, not the legacy `users.refreshTokenHash` column. The account settings screen can list active sessions, revoke one session, or sign out all devices. Refresh token reuse detection revokes every active session for that user.
+- Operational retention policy: expired/revoked `user_refresh_sessions`, old
+  `security_events`, and used/expired `password_reset_tokens` have a dedicated
+  cleanup command. Retention windows are env-controlled and production deletes
+  require explicit confirmation.
 
 - 게스트 모드는 항상 사용 가능하며 IndexedDB에만 저장된다.
 - 로그인 시 계정별 로컬 아카이브로 전환되고, 수동 Sync page와 로그인 상태의 제한적 자동 sync를 사용할 수 있다.
 - 로그인 직후 guest 기록이 감지되면 `/account/transfer`에서 중복 후보를 검토한 뒤 선택 import할 수 있다.
 - Quick Add의 기본 진입은 검색 없는 직접 추가이며, 수동 저장은 `catalogTitleId: null`, `importDraft: null`로 local-first 저장된다.
 - Quick Add 외부 검색은 `/imports/search` optional auth 경로를 사용한다. 토큰이 있으면 authenticated request를 보내고, 토큰이 없으면 plain request로 key가 필요 없는 provider를 검색한다.
-- 현재 `Aladin`, `AniList`, `Google Books`, `Open Library`, `TVmaze`, `TMDB`, `Naver Book`, `Kakao Book`, `KOBIS`, `manual` provider 구조가 연결돼 있다.
+- 현재 `Aladin`, `AniList`, `Google Books`, `Open Library`, `TVmaze`, `TMDB`, `Naver Book`, `Naver Web`, `Kakao Book`, `Kakao Web`, `Brave Search`, `Tavily Search`, `KOBIS`, `Wikidata`, `manual` provider 구조가 연결돼 있다.
 - Guest 검색은 현재 `credentialMode: none` provider 중심으로 허용된다. `Aladin` 같은 user-scoped provider는 로그인과 사용자 키가 필요하고, server-key provider의 guest 공개는 아직 정책 검토 대상이다.
 - Quick Add 저장은 현재 제품 기준에서 의도적으로 local-first 경로를 유지한다. 선택한 후보는 Dexie `works` 레코드와 `syncQueue`에 먼저 반영되고, authenticated 생성도 서버 direct create가 아니라 동기화 경로를 탄다.
 - Quick Add matched external candidate는 local record에 `catalogTitleId`를 저장하고 `importDraft`는 `null`로 둔다.

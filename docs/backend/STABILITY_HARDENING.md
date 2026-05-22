@@ -60,7 +60,42 @@ Import providers are isolated with a memory-based circuit breaker:
   `reasonCode: "circuit_open"`;
 - a successful provider response resets its circuit state.
 
-TODO: move circuit state to Redis if the API runs multiple instances.
+Provider network controls verified in code:
+
+- provider requests use `AbortController` with a default 5 second timeout;
+- HTTP 429 `Retry-After` is retried once only when a provider call explicitly
+  allows a small retry window;
+- provider credentials are sent via provider-required headers or query
+  parameters and are reduced to safe error classes before logging;
+- KOBIS is the known HTTP-only provider endpoint. Its key is user-scoped,
+  passed as the `key` query parameter, and must stay behind the production
+  egress boundary documented in the runbook.
+
+Current limitation: circuit state is process-local memory. It is safe for
+single-instance beta deployments because a failure in one provider cannot stop
+fallback providers, but it does not coordinate across multiple API instances.
+Redis backlog is concrete:
+
+1. replace the process map with Redis keys per provider;
+2. atomically increment consecutive failures and set cooldown TTL;
+3. read `/imports/providers` circuit status from Redis;
+4. add an operator command to clear a provider circuit without process restart.
+
+## Operational Retention
+
+The API has a dedicated retention command for append/accumulation tables:
+
+- `security_events`: default 180 days by `RETENTION_SECURITY_EVENT_DAYS`;
+- `user_refresh_sessions`: revoked and expired sessions default 30 days by
+  `RETENTION_REVOKED_REFRESH_SESSION_DAYS` and
+  `RETENTION_EXPIRED_REFRESH_SESSION_DAYS`;
+- `password_reset_tokens`: used and expired tokens default 7 days by
+  `RETENTION_USED_PASSWORD_RESET_TOKEN_DAYS` and
+  `RETENTION_EXPIRED_PASSWORD_RESET_TOKEN_DAYS`.
+
+`npm run ops:retention:cleanup --workspace @work-archive/api` dry-runs by
+default. Production delete mode requires
+`RETENTION_CLEANUP_CONFIRM=delete-expired-operational-data`.
 
 ## Rate Limits
 
@@ -102,3 +137,23 @@ Error details are reduced to safe error codes or error names before logging.
   rate-limit path.
 - Local-first Dexie remains the source of immediate user writes. Server sync is
   private backup/sync, not a replacement for local persistence.
+
+## Confirmed Vs Environment-Dependent
+
+Confirmed in this repository:
+
+- API/web Docker runtime definitions use non-root users.
+- API startup no longer runs Prisma migration; `api-migrate` is the release job.
+- Retention cleanup targets only `security_events`, `user_refresh_sessions`, and
+  `password_reset_tokens` with explicit cutoff predicates.
+- Provider requests have timeout handling, limited retry, and process-local
+  circuit state.
+
+Environment-dependent before beta:
+
+- Docker resource limits and read-only filesystem behavior must be tested on the
+  actual host/runtime.
+- PostgreSQL backup destination, encryption, and restore RTO/RPO depend on the
+  selected off-host storage.
+- Provider egress, especially KOBIS HTTP traffic, depends on network topology
+  and policy approval.

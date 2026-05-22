@@ -70,7 +70,41 @@ Redis is used for rate limiting only. It is not a durable data store and must no
 5. If one provider remains open, leave fallback providers enabled and communicate degraded search/import coverage.
 6. Release a parser or credential handling fix only after provider-specific smoke testing.
 
+Provider network facts verified in code:
+
+- all providers use `fetchJson` with `AbortController` timeout. Default timeout
+  is 5 seconds unless the provider call passes a narrower value.
+- HTTP 429 `Retry-After` is retried once only when the provider-specific
+  `retryAfterMaxMs` allows it.
+- repeated failures open a per-provider circuit after 3 failures for a 60 second
+  cooldown.
+- provider circuit state is in-memory per API process. A rolling restart resets
+  it, and multiple API instances do not share it.
+- KOBIS currently uses an upstream HTTP endpoint and sends the user-scoped API
+  key as the `key` query parameter. Do not route this over untrusted networks;
+  keep guest access disabled and prefer egress through a controlled host or
+  proxy if KOBIS is enabled for beta.
+
+Redis circuit backlog:
+
+1. Store `provider`, `consecutiveFailures`, `openedUntil`, and `reasonCode` in
+   Redis with a TTL slightly longer than the open window.
+2. Use atomic increment/expire for failure counts so concurrent API instances
+   share the same threshold.
+3. Expose circuit state in `/imports/providers` from Redis first, falling back
+   to process memory only when Redis is not configured.
+4. Add an operator command to clear one provider circuit without restarting API
+   instances.
+
 ## DB migration 실패
+
+Production migration policy: API startup must not run Prisma migrations.
+`apps/api/docker-entrypoint.sh` only starts the API. Run migrations as a release
+job before app rollout:
+
+```bash
+docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
+```
 
 1. Stop the rollout and keep the previous application version running if possible.
 2. Check whether the migration partially applied in `_prisma_migrations`.
@@ -78,6 +112,50 @@ Redis is used for rate limiting only. It is not a durable data store and must no
 4. Restore from the pre-deployment backup if the migration changed data destructively or left the schema unusable.
 5. For non-destructive failures, fix the migration in a new migration and re-run deploy after review.
 6. Record the failure and mitigation in release notes.
+
+The previous pattern of running migrations inside the API entrypoint couples
+schema changes to every replica start. That can cause concurrent migration
+attempts, crash loops before the app binds health endpoints, and ambiguous
+rollback behavior. Keep migration as a one-off release command.
+
+## Retention cleanup
+
+Long-lived operational tables are cleaned by an explicit command, not by request
+handlers:
+
+```bash
+npm run ops:retention:cleanup --workspace @work-archive/api
+```
+
+Production compose equivalent:
+
+```bash
+docker compose -f compose.prod.yml --env-file .env.prod --profile maintenance run --rm retention-cleanup
+```
+
+Default mode is dry-run. To delete in production:
+
+```bash
+RETENTION_CLEANUP_DRY_RUN=false
+RETENTION_CLEANUP_CONFIRM=delete-expired-operational-data
+```
+
+Retention env defaults:
+
+- `RETENTION_SECURITY_EVENT_DAYS=180`
+- `RETENTION_REVOKED_REFRESH_SESSION_DAYS=30`
+- `RETENTION_EXPIRED_REFRESH_SESSION_DAYS=30`
+- `RETENTION_USED_PASSWORD_RESET_TOKEN_DAYS=7`
+- `RETENTION_EXPIRED_PASSWORD_RESET_TOKEN_DAYS=7`
+
+Safety expectations:
+
+- the command logs matched and deleted counts per table;
+- every delete uses a cutoff predicate on `createdAt`, `revokedAt`, `expiresAt`,
+  or `usedAt`;
+- production delete mode refuses to run without the confirmation value above;
+- first run after a release should be dry-run and reviewed before enabling
+  deletion.
 
 ## Backup restore 절차
 

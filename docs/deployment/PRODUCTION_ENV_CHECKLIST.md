@@ -88,6 +88,40 @@ NODE_ENV=production
 `TRUST_PROXY_HOPS=1` assumes the API receives requests through the web/reverse
 proxy layer. Re-evaluate only if the proxy topology changes.
 
+Production compose runs API and web as non-root containers with read-only
+runtime filesystems and tmpfs scratch paths. Migrations are not run in the API
+entrypoint; run the release profile job before rolling the app:
+
+```bash
+docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
+```
+
+## Operational Retention
+
+Defaults:
+
+```bash
+RETENTION_SECURITY_EVENT_DAYS=180
+RETENTION_REVOKED_REFRESH_SESSION_DAYS=30
+RETENTION_EXPIRED_REFRESH_SESSION_DAYS=30
+RETENTION_USED_PASSWORD_RESET_TOKEN_DAYS=7
+RETENTION_EXPIRED_PASSWORD_RESET_TOKEN_DAYS=7
+RETENTION_CLEANUP_DRY_RUN=true
+```
+
+Production deletion requires:
+
+```bash
+RETENTION_CLEANUP_DRY_RUN=false
+RETENTION_CLEANUP_CONFIRM=delete-expired-operational-data
+```
+
+Run a dry-run first and review matched counts:
+
+```bash
+docker compose -f compose.prod.yml --env-file .env.prod --profile maintenance run --rm retention-cleanup
+```
+
 ## Search Provider Keys
 
 Cost-bearing import provider keys are user-scoped. Users enter Brave Search,
@@ -100,6 +134,11 @@ IMPORT_SERVER_SEARCH_GUEST_ENABLED=false
 
 `IMPORT_SERVER_SEARCH_GUEST_ENABLED` is reserved for future server-credential
 providers. It does not expose Brave Search or Tavily Search to guests.
+
+KOBIS upstream search is HTTP-only in the current provider implementation and
+uses a query parameter API key because the provider API requires it. Keep it
+user-scoped, avoid guest exposure, and deploy only where outbound traffic stays
+inside an acceptable network boundary.
 
 ## Final Preflight
 

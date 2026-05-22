@@ -81,6 +81,9 @@ const NAVER_WEB_SEARCH_URL = 'https://openapi.naver.com/v1/search/webkr.json';
 const KAKAO_WEB_SEARCH_URL = 'https://dapi.kakao.com/v2/search/web';
 const BRAVE_SEARCH_URL = 'https://api.search.brave.com/res/v1/web/search';
 const TAVILY_SEARCH_URL = 'https://api.tavily.com/search';
+// KOBIS still publishes this Open API over HTTP. The API key is user-scoped,
+// sent as a query parameter, and never exposed to guests; see the provider
+// hardening runbook before enabling it in production networks.
 const KOBIS_MOVIE_SEARCH_URL =
   'http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json';
 const WIKIDATA_API_URL = 'https://www.wikidata.org/w/api.php';

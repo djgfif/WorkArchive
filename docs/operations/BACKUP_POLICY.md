@@ -15,7 +15,18 @@ Run from an environment that can reach PostgreSQL and has `pg_dump` installed:
 pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges --file "backups/work_archive_$(date +%Y%m%d_%H%M%S).dump"
 ```
 
-For Docker Compose local operations, run the equivalent inside a PostgreSQL client container or host with access to the database network.
+For Docker Compose production operations with the named PostgreSQL volume:
+
+```bash
+mkdir -p backups
+docker exec work-archive-postgres sh -lc 'pg_dump \
+  -U "$POSTGRES_USER" \
+  -d "$POSTGRES_DB" \
+  --format=custom \
+  --no-owner \
+  --no-privileges' \
+  > "backups/work_archive_$(date -u +%Y%m%dT%H%M%SZ).dump"
+```
 
 ## Restore Command
 
@@ -28,9 +39,11 @@ pg_restore --clean --if-exists --no-owner --no-privileges --dbname "$DATABASE_UR
 After restore:
 
 ```bash
-npm run prisma:migrate:deploy --workspace @work-archive/api
+docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
 curl -fsS http://localhost:3000/readyz
 ```
+
+For host-based development, `npm run db:migrate:deploy` remains valid.
 
 ## Retention and Storage
 
@@ -38,6 +51,17 @@ curl -fsS http://localhost:3000/readyz
 - Do not keep the only backup on the same disk, VM, or container volume as PostgreSQL.
 - Protect backup files as sensitive data because they may contain personal archive data and account identifiers.
 - Keep enough historical backups to recover from delayed discovery of bad migrations or accidental deletion.
+
+Server DB backups and local-first JSON exports are different tools:
+
+- PostgreSQL backups are operational recovery artifacts. They restore accounts,
+  refresh sessions, encrypted provider credentials, sync state, catalog tables,
+  and private user records for the whole deployment.
+- IndexedDB JSON export/import is a user-controlled archive portability and
+  last-resort local recovery tool. It intentionally excludes secrets, cookies,
+  OAuth tokens, provider API keys, and server operational state.
+- A user JSON export cannot replace a PostgreSQL backup for incident recovery.
+  A PostgreSQL backup should not be handed to an end user as a personal export.
 
 ## Deployment Rules
 
@@ -54,4 +78,7 @@ Run a restore drill at least once per month:
 3. Start the API against the restored database.
 4. Check `/health`, `/livez`, and `/readyz`.
 5. Run sync and tier board smoke tests.
-6. Record date, operator, backup file, duration, and any gap found.
+6. Confirm a local-first JSON export from the restored web app still imports
+   into a clean browser profile without secrets.
+7. Record date, operator, backup file, duration, RPO/RTO observed, and any gap
+   found.

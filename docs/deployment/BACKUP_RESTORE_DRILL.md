@@ -47,6 +47,7 @@ docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis
 gunzip -c "$BACKUP_FILE" | docker exec -i work-archive-postgres sh -lc \
   'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 
+docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
 docker compose -f compose.prod.yml --env-file .env.prod up -d api web
 curl -i https://archive.example.com/readyz
 ```
@@ -56,6 +57,21 @@ Expected:
 - restore exits with status 0;
 - `/readyz` returns HTTP 200;
 - API logs do not show migration or Prisma startup errors.
+
+The API container must not run migrations from its entrypoint. Migration is a
+separate release job so app restarts and replica scaling cannot unexpectedly
+mutate schema.
+
+## Backup Scope Boundary
+
+PostgreSQL backup restores deployment state: users, encrypted provider
+credentials, refresh sessions, sync state, catalog data, and all server-side
+private records.
+
+IndexedDB JSON export/import restores a user's local-first archive data. It is
+for user portability and emergency client-side recovery. It does not include
+server secrets, OAuth state, cookies, provider API keys, refresh sessions, or
+deployment-wide catalog/operational tables.
 
 ## Post-Restore Smoke
 
@@ -72,6 +88,9 @@ Checklist:
 - Existing tier boards load.
 - Create a tier board text card and move it between pool and lane.
 - Existing linked WorkRecord is not modified by tier board movement.
+- From the restored web app, export JSON for one test account and import it into
+  a clean browser profile. Confirm the import preview shows archive records but
+  no secrets or provider keys.
 
 ## Production Restore Procedure
 
@@ -80,7 +99,7 @@ Only run this during an approved incident window:
 1. Stop web/API traffic.
 2. Snapshot the current failed volume if possible.
 3. Restore the selected backup into a clean PostgreSQL volume.
-4. Run `prisma migrate deploy`.
+4. Run the `api-migrate` release job.
 5. Start API and web.
 6. Check `/health`, `/livez`, `/readyz`.
 7. Run Google auth, sync idempotency, and tier board smoke tests.

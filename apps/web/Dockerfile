@@ -20,9 +20,9 @@ COPY packages/tsconfig packages/tsconfig
 
 RUN npm run build --workspace @work-archive/web
 
-FROM nginx:1.27-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
 
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /workspace/apps/web/dist /usr/share/nginx/html
+COPY --chown=nginx:nginx apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build --chown=nginx:nginx /workspace/apps/web/dist /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE 8080

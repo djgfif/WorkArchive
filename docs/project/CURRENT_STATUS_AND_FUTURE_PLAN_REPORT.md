@@ -145,6 +145,20 @@ Production hardening baseline: production startup rejects development secrets (`
 - `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh` rate limiting 적용. 단, legacy login/register는 현재 `410 Gone`으로 비활성화
 - `/api/sync/push`, `/api/sync/pull` rate limiting 적용
 - CORS: `CORS_ORIGIN` 기반 explicit whitelist만 허용
+- Production Docker runtime: API는 `node` user로 실행하고 runtime image는
+  pruned production dependencies, compiled `dist`, Prisma schema만 포함한다.
+  Web은 unprivileged nginx `8080`으로 실행한다.
+- Production compose: API/web은 read-only filesystem, tmpfs scratch path,
+  `no-new-privileges`, healthcheck, restart policy, CPU/memory/pid limits를
+  가진다.
+- Prisma migration은 API entrypoint에서 실행하지 않는다. 배포 전
+  `api-migrate` release profile job으로 실행한다.
+- Retention cleanup은 `security_events`, `user_refresh_sessions`,
+  `password_reset_tokens`를 대상으로 별도 운영 명령에서 실행한다. 기본은
+  dry-run이고 production delete는 명시 confirmation env가 필요하다.
+- Provider 검색은 fetch timeout, 제한적 429 retry, provider별 in-memory
+  circuit breaker로 격리한다. KOBIS는 HTTP/query-key upstream 경계를 운영
+  문서에 고정했다.
 
 ### 4-4. Current Auth Session Shape
 
@@ -201,17 +215,42 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - `importDraft.catalogTitle` optional legacy-compatible field와 누락 시 `payload.title` fallback
 - Quick Add 검색 ranking의 제목 exact/alias/token, 제작자, 발매연도, provider/source coverage, catalog match 반영
 - Quick Add 낮은 신뢰도 후보의 직접 추가 fallback 검토 안내
+- Production migration job과 retention cleanup command
+- Backup/restore drill 문서와 PostgreSQL backup vs IndexedDB JSON export/import
+  역할 분리 문서
 
 ### Not Yet Implemented
 
 - provider별 실제 검색어 QA와 ranking weight 튜닝
 - Sync conflict 자동 병합 판단과 고급 충돌 정책
 - guest 기록 자동 병합 정책과 다기기 이관 UX
-- 자동 동기화
+- 자동 동기화 고도화. 현재는 account archive activation, focus/online, local
+  syncQueue 변경 후 debounced push 중심의 제한적 자동 sync만 있다.
 - 공개 프로필 / 공개 기록 / 작품 집계
-- 실제 티어 보드 기능
+- 실제 티어 보드 기능 고도화
 - 커뮤니티 기능
 - timeline 자동 이벤트 기록
+- Provider circuit state Redis 전환. 현재는 process-local memory다.
+
+### 확인한 것
+
+- `apps/api/Dockerfile`, `apps/web/Dockerfile`, `compose.prod.yml` 기준으로
+  runtime non-root, API migration 분리, read-only/tmpfs/resource limit 정책을
+  반영했다.
+- Prisma schema 기준 장기 누적 대상은 `SecurityEvent`,
+  `UserRefreshSession`, `PasswordResetToken`이다.
+- Import provider 코드 기준 KOBIS가 HTTP endpoint와 query `key`를 사용한다.
+- Provider failure isolation은 process-local circuit breaker로 구현돼 있다.
+
+### 미확인 / 운영환경 의존
+
+- 실제 production host의 Docker engine, kernel cgroup limit 적용 방식, reverse
+  proxy/TLS termination, outbound egress path는 이 저장소만으로 검증할 수
+  없다.
+- KOBIS HTTP endpoint의 provider-side HTTPS 지원 여부와 약관/네트워크 허용
+  범위는 배포 시점 운영자가 재확인해야 한다.
+- Backup off-site 저장소, 암호화 키 보관, restore target 용량은 운영
+  인프라 선택에 의존한다.
 
 ## 6. Validation Surface
 
