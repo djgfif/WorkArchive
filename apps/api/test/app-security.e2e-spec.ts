@@ -13,6 +13,7 @@ import {
 
 import type { ApiRuntimeConfig } from '../src/config/api-runtime-config';
 import { configureApp } from '../src/configure-app';
+import { MetricsService } from '../src/observability/metrics.service';
 import { SecurityAuditService } from '../src/security/security-audit.service';
 
 @Controller('auth')
@@ -67,6 +68,7 @@ const baseConfig: ApiRuntimeConfig = {
   isProduction: false,
   jwtAccessSecret: 'test-access-secret',
   jwtRefreshSecret: 'test-refresh-secret',
+  metricsEnabled: false,
   port: 0,
   rateLimitPrefix: 'work-archive:test:',
   rateLimitStore: 'memory',
@@ -101,6 +103,12 @@ describe('app security middleware', () => {
         {
           provide: SecurityAuditService,
           useValue: securityAudit,
+        },
+        {
+          provide: MetricsService,
+          useValue: {
+            recordRequest: jest.fn(),
+          },
         },
       ],
     }).compile();

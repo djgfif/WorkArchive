@@ -87,7 +87,7 @@ Checklist:
 - `/tier-boards` opens.
 - Existing tier boards load.
 - Create a tier board text card and move it between pool and lane.
-- Existing linked WorkRecord is not modified by tier board movement.
+- Existing source WorkRecord is not modified by tier board snapshot card movement.
 - From the restored web app, export JSON for one test account and import it into
   a clean browser profile. Confirm the import preview shows archive records but
   no secrets or provider keys.

@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { WorkType } from '@prisma/client';
@@ -15,6 +16,7 @@ import {
   type CatalogReleaseCandidateInput,
 } from '../catalog/catalog-ingestion.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { MetricsService } from '../../observability/metrics.service';
 import type { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
 import type {
   ImportProviderKeyTestFailureReason,
@@ -200,6 +202,9 @@ export class ImportsService {
         findFirst: async () => null,
       },
     } as unknown as PrismaService,
+    @Inject(MetricsService)
+    @Optional()
+    private readonly metricsService?: MetricsService,
   ) {}
 
   async getAladinProviderStatus(
@@ -436,6 +441,10 @@ export class ImportsService {
         });
       } catch (error) {
         this.recordProviderFailure(provider);
+        this.metricsService?.recordImportsProviderFailure(
+          provider,
+          this.describeError(error),
+        );
         if (explicitSingleProvider) {
           throw error;
         }
@@ -536,14 +545,23 @@ export class ImportsService {
     };
     const consecutiveFailures = current.consecutiveFailures + 1;
 
+    const openedUntil =
+      consecutiveFailures >= PROVIDER_CIRCUIT_FAILURE_THRESHOLD
+        ? Date.now() + PROVIDER_CIRCUIT_OPEN_MS
+        : null;
+
     this.providerCircuitState.set(provider, {
       consecutiveFailures,
-      openedUntil:
-        consecutiveFailures >= PROVIDER_CIRCUIT_FAILURE_THRESHOLD
-          ? Date.now() + PROVIDER_CIRCUIT_OPEN_MS
-          : null,
+      openedUntil,
       reasonCode: 'provider_failed',
     });
+
+    if (openedUntil && !current.openedUntil) {
+      this.metricsService?.recordImportsProviderCircuitOpen(
+        provider,
+        'provider_failed',
+      );
+    }
   }
 
   private logEvent(

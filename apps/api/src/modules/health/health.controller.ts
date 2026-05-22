@@ -1,7 +1,8 @@
-import { Controller, Get, HttpCode, HttpStatus, Inject, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Inject, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
 import Redis from 'ioredis';
 
 import { readApiRuntimeConfig } from '../../config/api-runtime-config';
+import { MetricsService } from '../../observability/metrics.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
 interface HealthResponse {
@@ -13,7 +14,12 @@ interface HealthResponse {
 export class HealthController {
   private readonly logger = new Logger(HealthController.name);
 
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(MetricsService)
+    @Optional()
+    private readonly metricsService?: MetricsService,
+  ) {}
 
   @Get('health')
   getHealth(): HealthResponse {
@@ -78,6 +84,7 @@ export class HealthController {
   }
 
   private logReadyFailure(check: string, error: unknown) {
+    this.metricsService?.recordReadyzFailure(check);
     this.logger.warn(
       JSON.stringify({
         count: null,

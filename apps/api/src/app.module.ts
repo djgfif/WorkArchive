@@ -12,6 +12,7 @@ import { ImportsModule } from './modules/imports/imports.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { UserRecordsModule } from './modules/user-records/user-records.module';
 import { WorksModule } from './modules/works/works.module';
+import { ObservabilityModule } from './observability/observability.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SecurityModule } from './security/security.module';
 
@@ -37,6 +38,7 @@ import { SecurityModule } from './security/security.module';
         ],
       },
     }),
+    ObservabilityModule,
     PrismaModule,
     SecurityModule,
     AuthModule,

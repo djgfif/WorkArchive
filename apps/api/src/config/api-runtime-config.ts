@@ -14,6 +14,7 @@ export interface ApiRuntimeConfig {
   isProduction: boolean;
   jwtAccessSecret: string;
   jwtRefreshSecret: string;
+  metricsEnabled: boolean;
   port: number;
   rateLimitPrefix: string;
   rateLimitStore: 'memory' | 'redis';
@@ -73,6 +74,7 @@ const apiEnvironmentSchema = z
     IMPORT_GUEST_RATE_LIMIT_MAX: z.string().optional(),
     JWT_ACCESS_SECRET: z.string().optional(),
     JWT_REFRESH_SECRET: z.string().optional(),
+    METRICS_ENABLED: z.string().optional(),
     NODE_ENV: z.string().optional(),
     PORT: z.string().optional(),
     PUBLIC_WEB_BASE_URL: z.string().optional(),
@@ -485,6 +487,7 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     isProduction,
     jwtAccessSecret,
     jwtRefreshSecret,
+    metricsEnabled: readBoolean(process.env.METRICS_ENABLED, false),
     port,
     rateLimitPrefix:
       process.env.RATE_LIMIT_PREFIX?.trim() || 'work-archive:rate-limit:',

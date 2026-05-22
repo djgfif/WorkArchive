@@ -4,6 +4,8 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 
 import type { ApiRuntimeConfig } from './config/api-runtime-config';
+import { createMetricsMiddleware } from './observability/metrics.middleware';
+import { MetricsService } from './observability/metrics.service';
 import {
   createProductionOriginGuard,
   createRequestIdMiddleware,
@@ -24,6 +26,7 @@ export async function configureApp(
 ) {
   const expressInstance = app.getHttpAdapter().getInstance() as ExpressInstance;
   const securityAudit = app.get(SecurityAuditService, { strict: false });
+  const metricsService = getOptionalMetricsService(app);
 
   expressInstance.disable('x-powered-by');
 
@@ -32,7 +35,7 @@ export async function configureApp(
   }
 
   app.setGlobalPrefix('api', {
-    exclude: ['health', 'livez', 'readyz'],
+    exclude: ['health', 'livez', 'readyz', 'metrics'],
   });
   app.use(cookieParser());
   app.use(
@@ -43,6 +46,7 @@ export async function configureApp(
     }),
   );
   app.use(createRequestIdMiddleware());
+  app.use(createMetricsMiddleware(metricsService));
   app.use(createProductionOriginGuard(config, securityAudit));
 
   const rateLimiters = await createSecurityRateLimiters(config, securityAudit);
@@ -92,4 +96,14 @@ export async function configureApp(
   SwaggerModule.setup('docs', app, swaggerDocument, {
     jsonDocumentUrl: 'docs/openapi.json',
   });
+}
+
+function getOptionalMetricsService(app: INestApplication) {
+  try {
+    return app.get(MetricsService, { strict: false });
+  } catch {
+    return {
+      recordRequest: () => undefined,
+    };
+  }
 }

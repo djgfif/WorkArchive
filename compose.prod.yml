@@ -63,6 +63,7 @@ services:
       TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
       RATE_LIMIT_PREFIX: ${RATE_LIMIT_PREFIX:-work-archive:rate-limit:}
       COOKIE_SECURE: 'true'
+      METRICS_ENABLED: ${METRICS_ENABLED:-false}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?required}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?required}

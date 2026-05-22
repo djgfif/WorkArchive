@@ -2,6 +2,13 @@
 
 This runbook keeps the current runtime: local-first web app, NestJS API, PostgreSQL, Redis rate limit, and Dexie `syncQueue`.
 
+Commercial readiness references:
+
+- `docs/commercial/COMMERCIAL_LAUNCH_READINESS.md`
+- `docs/operations/OBSERVABILITY.md`
+- `docs/deployment/BETA_REHEARSAL.md`
+- `docs/security/SECURE_SDLC.md`
+
 ## API가 안 뜰 때
 
 1. Check container or process status.
@@ -24,6 +31,13 @@ This runbook keeps the current runtime: local-first web app, NestJS API, Postgre
    - `curl -fsS http://localhost:3000/health`
    - `curl -fsS http://localhost:3000/livez`
    - `curl -fsS http://localhost:3000/readyz`
+
+## Metrics and alerts
+
+`/metrics` is disabled by default with `METRICS_ENABLED=false`. Enable it only
+behind an internal network, reverse-proxy allowlist, or trusted monitoring
+collector. See `docs/operations/OBSERVABILITY.md` for metric names and alert
+drafts.
 
 ## PostgreSQL 장애
 
@@ -104,6 +118,12 @@ job before app rollout:
 
 ```bash
 docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
+```
+
+For public beta candidates, run the full rehearsal first:
+
+```bash
+scripts/deploy/commercial-beta-rehearsal.sh .env.prod
 ```
 
 1. Stop the rollout and keep the previous application version running if possible.
