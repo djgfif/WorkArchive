@@ -25,6 +25,11 @@ Do not add Kafka, Saga orchestration, an API Gateway, Redis general caching, pub
   - `scripts/deploy/prod-backup.sh`
   - `scripts/deploy/prod-restore.sh.example`
 - Readiness report template: `docs/deployment/DEPLOYMENT_READINESS_REPORT.md`
+- Closed beta host rehearsal runbook:
+  `docs/operations/BETA_HOST_REHEARSAL.md`
+- Closed beta host scripts:
+  - `scripts/deploy/beta-preflight.sh`
+  - `scripts/deploy/beta-smoke.sh`
 - Backup policy: `docs/operations/BACKUP_POLICY.md`
 - Runbook: `docs/operations/RUNBOOK.md`
 
@@ -65,10 +70,12 @@ Build the production images:
 scripts/deploy/prod-build.sh
 ```
 
-Start the stack:
+Start backing services, run migrations, then start the app:
 
 ```bash
-scripts/deploy/prod-up.sh
+docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis
+docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
+docker compose -f compose.prod.yml --env-file .env.prod up -d api web
 ```
 
 Expected:
@@ -76,7 +83,7 @@ Expected:
 - `work-archive-postgres` is healthy.
 - `work-archive-redis` is healthy.
 - `work-archive-api` is healthy.
-- `work-archive-web` is running and exposes `${WEB_PORT:-8080}:80`.
+- `work-archive-web` is running and exposes `${WEB_PORT:-8080}:8080`.
 - `/work-archive-config.js` is served with `Cache-Control: no-store` and is loaded before the module script in `index.html`.
 
 If the API does not become healthy, check:
@@ -166,7 +173,8 @@ docker compose -f compose.prod.yml --env-file .env.prod exec -T postgres sh -lc 
   --no-privileges \
   --dbname "$POSTGRES_DB"' < "$BACKUP_FILE"
 
-scripts/deploy/prod-up.sh api web
+docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
+docker compose -f compose.prod.yml --env-file .env.prod up -d api web
 HEALTHCHECK_BASE_URL="$DOMAIN" scripts/deploy/prod-healthcheck.sh
 ```
 

@@ -36,11 +36,10 @@ exit 1
 #        --no-privileges \
 #        --dbname "$POSTGRES_DB"' < "$BACKUP_FILE"
 #
-# 5. Apply any pending Prisma migrations for the checked-out release. The API
-#    container entrypoint runs `prisma migrate deploy` on startup. If you need to
-#    run it as an explicit reviewed step, use the same compose env file.
+# 5. Apply any pending Prisma migrations for the checked-out release through the
+#    release profile before API/web traffic starts.
 #
-#      docker compose -f compose.prod.yml --env-file .env.prod run --rm api ./node_modules/.bin/prisma migrate deploy --schema /workspace/apps/api/prisma/schema.prisma
+#      docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
 #
 # 6. Start the full stack and verify readiness.
 #
