@@ -24,6 +24,7 @@ import {
   getDefaultSortDirection,
   type WorksListQuery,
 } from '../utils/query-works';
+import { WORK_GENRES, isWorkGenre } from '../utils/work-genres';
 import {
   getWorkStatusLabel,
   visibleWorkStatusOptions,
@@ -326,6 +327,18 @@ export function WorksToolbar({
         o.value === 'dropped'
           ? statusCounts.dropped
           : statusCounts[o.value],
+    })),
+  ];
+  const genreFilterOptions = [
+    { label: '전체', value: '' },
+    ...Array.from(
+      new Set([
+        ...genreSuggestions.filter(isWorkGenre),
+        ...WORK_GENRES,
+      ]),
+    ).map((genre) => ({
+      label: genre,
+      value: genre,
     })),
   ];
 
@@ -788,25 +801,17 @@ export function WorksToolbar({
               </Stack>
             )}
 
-            {genreSuggestions.length > 0 && (
-              <Stack gap="xs">
-                <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
-                  장르
-                </Text>
-                <FilterPillGroup
-                  aria-label="장르 필터"
-                  onChange={(genre) => onQueryChange({ ...query, genre })}
-                  options={[
-                    { label: '전체', value: '' },
-                    ...genreSuggestions.slice(0, 12).map((genre) => ({
-                      label: genre,
-                      value: genre,
-                    })),
-                  ]}
-                  value={query.genre ?? ''}
-                />
-              </Stack>
-            )}
+            <Stack gap="xs">
+              <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>
+                장르
+              </Text>
+              <FilterPillGroup
+                aria-label="장르 필터"
+                onChange={(genre) => onQueryChange({ ...query, genre })}
+                options={genreFilterOptions}
+                value={query.genre ?? ''}
+              />
+            </Stack>
 
             <Stack gap="xs">
               <Text c="dimmed" fw={700} size="xs" tt="uppercase" style={{ letterSpacing: '0.08em' }}>

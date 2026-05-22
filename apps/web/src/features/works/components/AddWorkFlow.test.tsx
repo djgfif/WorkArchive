@@ -476,7 +476,7 @@ describe('AddWorkFlow', () => {
       'aria-expanded',
       'false',
     );
-    expect(screen.getByLabelText('작가·제작자')).not.toBeVisible();
+    expect(screen.getByLabelText('대표 저자')).not.toBeVisible();
     expect(getElementById<HTMLInputElement>('manualGenresText')).not.toBeVisible();
 
     await user.click(screen.getByRole('button', { name: '상세 정보' }));
@@ -485,7 +485,7 @@ describe('AddWorkFlow', () => {
       'aria-expanded',
       'true',
     );
-    expect(screen.getByLabelText('작가·제작자')).toBeInTheDocument();
+    expect(screen.getByLabelText('대표 저자')).toBeInTheDocument();
     expect(getElementById<HTMLInputElement>('manualGenresText')).toBeVisible();
     expect(
       getElementById<HTMLInputElement>('manualPersonalTagsText'),
@@ -587,7 +587,7 @@ describe('AddWorkFlow', () => {
     ).toBeInTheDocument();
   });
 
-  it('submits genres and personal tags from chip inputs', async () => {
+  it('submits fixed genres and personal tags from chip inputs', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
 
@@ -595,9 +595,18 @@ describe('AddWorkFlow', () => {
 
     await user.type(getElementById<HTMLInputElement>('manualTitle'), 'Dune');
     await user.click(screen.getByRole('button', { name: /감상 기록|상세/ }));
-    await user.type(
-      getElementById<HTMLInputElement>('manualGenresText'),
-      'Science Fiction{Enter}Adventure{Enter}',
+    expect(
+      screen.queryByPlaceholderText('SF, 로맨스, 스릴러'),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', {
+        name: '판타지',
+      }),
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: 'SF',
+      }),
     );
     await user.type(
       getElementById<HTMLInputElement>('manualPersonalTagsText'),
@@ -610,7 +619,7 @@ describe('AddWorkFlow', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
 
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({
-      genres: ['Science Fiction', 'Adventure'],
+      genres: ['판타지', 'SF'],
       personalTags: ['rewatch', 'quiet ending'],
       title: 'Dune',
     });

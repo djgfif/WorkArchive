@@ -50,6 +50,7 @@ import {
 import { useAuthSession } from '../../auth';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
 import { StarRatingInput, WorkPoster } from './ArchiveComponents';
+import { WorkGenreSelector } from './WorkGenreSelector';
 import styles from './ArchiveComponents.module.css';
 import {
   buildImportIdentity,
@@ -75,6 +76,8 @@ import {
   type UpsertWorkInput,
   type WorkFormValues,
 } from '../utils/work-form';
+import { normalizeWorkGenres } from '../utils/work-genres';
+import { getWorkMediaFieldLabels } from '../utils/work-media-labels';
 import { workStatusOptions, workTypeOptions } from '../utils/work-options';
 
 const css = styles as Record<string, string>;
@@ -393,7 +396,9 @@ function AdvancedWorkFields({
   tagSuggestions = [],
   values,
 }: AdvancedWorkFieldsProps) {
-  const genreValues = parseCommaSeparatedTextList(values.genresText);
+  const genreValues = normalizeWorkGenres(
+    parseCommaSeparatedTextList(values.genresText),
+  );
   const seriesValues = parseCommaSeparatedTextList(values.seriesText);
   const universeValues = parseCommaSeparatedTextList(values.universeText);
   const creatorValues = parseCommaSeparatedTextList(values.creatorText);
@@ -410,6 +415,9 @@ function AdvancedWorkFields({
   const hasSeriesRelation =
     values.seriesText.trim() !== '' || values.universeText.trim() !== '';
   const [isSeriesWork, setIsSeriesWork] = useState(hasSeriesRelation);
+  const mediaLabels = getWorkMediaFieldLabels(values.type);
+  const shouldShowStudioField =
+    mediaLabels.showStudioField || studioValues.length > 0;
 
   useEffect(() => {
     if (hasSeriesRelation) {
@@ -425,87 +433,94 @@ function AdvancedWorkFields({
           <Stack gap="md" pt="sm">
             <TextInput
               id={getFieldId(idPrefix, 'author')}
-              label="작가·제작자"
+              description="목록과 상세 상단에 가장 먼저 보일 대표 이름입니다."
+              label={mediaLabels.authorLabel}
               name="author"
               onChange={onInputChange}
-              placeholder="작가, 스튜디오, 제작자"
+              placeholder={mediaLabels.authorPlaceholder}
               value={values.author}
             />
 
-            <Stack gap="sm">
-              <Checkbox
-                checked={isSeriesWork}
-                description="시리즈나 세계관으로 묶이는 작품일 때만 관련 정보를 입력합니다."
-                label="시리즈 작품"
-                onChange={(event) => {
-                  const checked = event.currentTarget.checked;
-                  setIsSeriesWork(checked);
+            <Paper p="md" radius="md" withBorder>
+              <Stack gap="sm">
+                <Checkbox
+                  checked={isSeriesWork}
+                  description="후속작, 외전, 리메이크, 공유 세계관을 따로 묶어 탐색할 때 사용합니다."
+                  label="시리즈 / 세계관 연결"
+                  onChange={(event) => {
+                    const checked = event.currentTarget.checked;
+                    setIsSeriesWork(checked);
 
-                  if (!checked) {
-                    onSeriesFieldsClear();
-                  }
-                }}
-              />
+                    if (!checked) {
+                      onSeriesFieldsClear();
+                    }
+                  }}
+                />
 
-              {isSeriesWork && (
-                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                  <TagsInput
-                    clearable
-                    data={uniqueSeriesSuggestions}
-                    id={getFieldId(idPrefix, 'seriesText')}
-                    label="시리즈"
-                    name="seriesText"
-                    onChange={(items) => onTextListChange('seriesText', items)}
-                    placeholder="예: Fate, 해리포터"
-                    splitChars={[',']}
-                    value={seriesValues}
-                  />
-                  <TagsInput
-                    clearable
-                    data={uniqueSeriesSuggestions}
-                    id={getFieldId(idPrefix, 'universeText')}
-                    label="세계관 / 프랜차이즈"
-                    name="universeText"
-                    onChange={(items) => onTextListChange('universeText', items)}
-                    placeholder="예: TYPE-MOON, Wizarding World"
-                    splitChars={[',']}
-                    value={universeValues}
-                  />
-                </SimpleGrid>
-              )}
-            </Stack>
+                {isSeriesWork && (
+                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                    <TagsInput
+                      clearable
+                      data={uniqueSeriesSuggestions}
+                      description={mediaLabels.seriesDescription}
+                      id={getFieldId(idPrefix, 'seriesText')}
+                      label={mediaLabels.seriesLabel}
+                      name="seriesText"
+                      onChange={(items) => onTextListChange('seriesText', items)}
+                      placeholder={mediaLabels.seriesPlaceholder}
+                      splitChars={[',']}
+                      value={seriesValues}
+                    />
+                    <TagsInput
+                      clearable
+                      data={uniqueSeriesSuggestions}
+                      description={mediaLabels.universeDescription}
+                      id={getFieldId(idPrefix, 'universeText')}
+                      label={mediaLabels.universeLabel}
+                      name="universeText"
+                      onChange={(items) => onTextListChange('universeText', items)}
+                      placeholder={mediaLabels.universePlaceholder}
+                      splitChars={[',']}
+                      value={universeValues}
+                    />
+                  </SimpleGrid>
+                )}
+              </Stack>
+            </Paper>
 
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
               <TagsInput
                 clearable
                 data={uniquePersonSuggestions}
                 id={getFieldId(idPrefix, 'creatorText')}
-                label="작가 / 원작자 / 감독"
+                label={mediaLabels.creatorLabel}
                 name="creatorText"
                 onChange={(items) => onTextListChange('creatorText', items)}
-                placeholder="여러 명은 쉼표로 구분"
+                placeholder={mediaLabels.creatorPlaceholder}
                 splitChars={[',']}
                 value={creatorValues}
               />
-              <TagsInput
-                clearable
-                data={uniqueOrganizationSuggestions}
-                id={getFieldId(idPrefix, 'studioText')}
-                label="스튜디오 / 제작사"
-                name="studioText"
-                onChange={(items) => onTextListChange('studioText', items)}
-                placeholder="예: ufotable, MAPPA"
-                splitChars={[',']}
-                value={studioValues}
-              />
+              {shouldShowStudioField && (
+                <TagsInput
+                  clearable
+                  data={uniqueOrganizationSuggestions}
+                  id={getFieldId(idPrefix, 'studioText')}
+                  label={mediaLabels.studioLabel}
+                  name="studioText"
+                  onChange={(items) => onTextListChange('studioText', items)}
+                  placeholder={mediaLabels.studioPlaceholder}
+                  splitChars={[',']}
+                  value={studioValues}
+                />
+              )}
               <TagsInput
                 clearable
                 data={uniqueOrganizationSuggestions}
                 id={getFieldId(idPrefix, 'publisherText')}
-                label="출판사"
+                label={mediaLabels.publisherLabel}
                 name="publisherText"
                 onChange={(items) => onTextListChange('publisherText', items)}
-                placeholder="예: Shueisha, Bloomsbury"
+                placeholder={mediaLabels.publisherPlaceholder}
                 splitChars={[',']}
                 value={publisherValues}
               />
@@ -513,24 +528,19 @@ function AdvancedWorkFields({
                 clearable
                 data={uniqueOrganizationSuggestions}
                 id={getFieldId(idPrefix, 'platformText')}
-                label="플랫폼"
+                label={mediaLabels.platformLabel}
                 name="platformText"
                 onChange={(items) => onTextListChange('platformText', items)}
-                placeholder="예: 문피아, Netflix"
+                placeholder={mediaLabels.platformPlaceholder}
                 splitChars={[',']}
                 value={platformValues}
               />
             </SimpleGrid>
 
-            <TagsInput
-              clearable
-              description="쉼표나 Enter로 여러 장르를 나눠 입력할 수 있습니다."
+            <WorkGenreSelector
+              description="대표 분류만 선택합니다. 세부 소재와 클리셰는 개인 태그에 남겨주세요."
               id={getFieldId(idPrefix, 'genresText')}
-              label="장르"
-              name="genresText"
               onChange={(items) => onTextListChange('genresText', items)}
-              placeholder="SF, 로맨스, 스릴러"
-              splitChars={[',']}
               value={genreValues}
             />
 

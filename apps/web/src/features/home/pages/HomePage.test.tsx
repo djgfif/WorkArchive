@@ -8,7 +8,7 @@ import { AuthProvider } from '../../auth';
 import { worksService } from '../../works';
 
 describe('HomePage', () => {
-  it('shows series and contributor shelves before continue watching', async () => {
+  it('keeps the home focused on recent work and active records', async () => {
     await worksService.createWork({
       type: 'anime',
       title: 'Fate/stay night',
@@ -49,31 +49,19 @@ describe('HomePage', () => {
       </AuthProvider>,
     );
 
-    const seriesHeading = await screen.findByText('시리즈 컬렉션');
-    const contributorHeading = screen.getByText('제작진으로 보기');
-    const continueHeading = screen.getByText('보는 중인 작품');
-
-    expect(
-      seriesHeading.compareDocumentPosition(contributorHeading) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      contributorHeading.compareDocumentPosition(continueHeading) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(await screen.findByText('최근 작업한 기록')).toBeInTheDocument();
+    expect(screen.getByText('진행 중인 기록')).toBeInTheDocument();
+    expect(screen.queryByText('시리즈 컬렉션')).not.toBeInTheDocument();
+    expect(screen.queryByText('제작진으로 보기')).not.toBeInTheDocument();
+    expect(screen.queryByText('보는 중인 작품')).not.toBeInTheDocument();
+    expect(screen.queryByText('이어보기')).not.toBeInTheDocument();
 
     expect(
       screen
-        .getAllByRole('link')
-        .some((link) => link.getAttribute('href') === '/works?series=Fate'),
-    ).toBe(true);
-    expect(
-      screen
-        .getAllByRole('link')
-        .some(
-          (link) => link.getAttribute('href') === '/works?contributor=ufotable',
-        ),
-    ).toBe(true);
+        .getByText('최근 작업한 기록')
+        .compareDocumentPosition(screen.getByText('진행 중인 기록')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('shows the shared JSON backup reminder after 20 works without a backup', async () => {

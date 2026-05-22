@@ -66,6 +66,24 @@ const progressUnitLabels: Record<ProgressUnit, string> = {
   volume: '권',
 };
 
+const progressCurrentLabels: Record<ProgressUnit, string> = {
+  chapter: '읽은 화',
+  episode: '본 회차',
+  volume: '읽은 권',
+};
+
+const progressTotalLabels: Record<ProgressUnit, string> = {
+  chapter: '전체 화',
+  episode: '전체 회차',
+  volume: '전체 권',
+};
+
+const lastPositionLabels: Record<ProgressUnit, string> = {
+  chapter: '마지막으로 읽은 위치',
+  episode: '마지막으로 본 위치',
+  volume: '마지막으로 읽은 위치',
+};
+
 interface WorkPosterProps {
   className?: string;
   coverSeed?: string;
@@ -1031,6 +1049,9 @@ export function QuickProgressControl({
   const hasInvalidProgress =
     current !== null && total !== null && current > total;
   const unitLabel = progressUnitLabels[defaultUnit];
+  const currentLabel = progressCurrentLabels[defaultUnit];
+  const totalLabel = progressTotalLabels[defaultUnit];
+  const lastPositionLabel = lastPositionLabels[defaultUnit];
 
   async function handleSave() {
     if (!defaultUnit) return;
@@ -1056,7 +1077,7 @@ export function QuickProgressControl({
             allowDecimal={false}
             allowNegative={false}
             disabled={disabled || isSaving}
-            label={`현재 ${unitLabel}`}
+            label={currentLabel}
             min={0}
             onChange={(value) => setCurrent(coerceNumberInputValue(value))}
             value={current ?? ''}
@@ -1066,7 +1087,7 @@ export function QuickProgressControl({
             allowDecimal={false}
             allowNegative={false}
             disabled={disabled || isSaving}
-            label={`전체 ${unitLabel}`}
+            label={totalLabel}
             min={0}
             onChange={(value) => setTotal(coerceNumberInputValue(value))}
             value={total ?? ''}
@@ -1078,7 +1099,7 @@ export function QuickProgressControl({
             tone="secondary"
             type="button"
           >
-            +1
+            +1{unitLabel}
           </AppButton>
           <AppButton
             disabled={disabled || isSaving || total === null}
@@ -1086,17 +1107,17 @@ export function QuickProgressControl({
             tone="secondary"
             type="button"
           >
-            완료 처리
+            전체 분량까지 기록
           </AppButton>
         </Group>
         <Group align="flex-end" gap="sm" wrap="wrap">
           <TextInput
             disabled={disabled || isSaving}
             flex={1}
-            label="마지막 위치"
+            label={lastPositionLabel}
             miw={220}
             onChange={(event) => setLastLabel(event.currentTarget.value)}
-            placeholder={`예: ${current ?? 18}${unitLabel}`}
+            placeholder={`예: ${current ?? 18}${unitLabel}까지`}
             value={lastLabel}
           />
           <AppButton
@@ -1106,7 +1127,7 @@ export function QuickProgressControl({
             tone="primary"
             type="button"
           >
-            진행 저장
+            기록 저장
           </AppButton>
         </Group>
         {hasInvalidProgress && (

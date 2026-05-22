@@ -21,6 +21,7 @@ import { syncQueueRepository } from '../../sync';
 import { AddWorkFlow } from '../components/AddWorkFlow';
 import { buildWorkFormDraftKey } from '../services/work-form-draft.service';
 import { worksService } from '../services/works.service';
+import { getWorkMediaFieldLabels } from '../utils/work-media-labels';
 import type { UpsertWorkInput } from '../utils/work-form';
 import {
   getWorkStatusLabel,
@@ -40,6 +41,9 @@ export function WorkCreatePage() {
     focusArea: 'general',
     mode: 'create',
   });
+  const savedWorkMediaLabels = savedWork
+    ? getWorkMediaFieldLabels(savedWork.type)
+    : null;
 
   async function handleSubmit(input: UpsertWorkInput) {
     try {
@@ -105,7 +109,7 @@ export function WorkCreatePage() {
               <div>
                 <Title order={3}>{savedWork.title}</Title>
                 <Text c="var(--mantine-color-dimmed)">
-                  {savedWork.author || '작가·제작자 미입력'}
+                  {savedWork.author || savedWorkMediaLabels?.authorEmptyLabel}
                 </Text>
               </div>
             </Stack>

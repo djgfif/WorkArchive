@@ -90,11 +90,12 @@ describe('WorkDetailPage', () => {
     );
     expect(screen.getByRole('tab', { name: /감상/ })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '진행도' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /타임라인/ })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /타임라인/ })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '관련 작품' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '메타데이터' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', { name: '메타데이터' }));
+    expect(screen.getByRole('button', { name: '기록 내역' })).toBeInTheDocument();
     expect((await screen.findAllByText('Fate')).length).toBeGreaterThan(0);
     expect((await screen.findAllByText('TYPE-MOON')).length).toBeGreaterThan(0);
     expect((await screen.findAllByText('ufotable')).length).toBeGreaterThan(0);
@@ -233,26 +234,28 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Timeline Detail Work' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: /타임라인/ }));
+    await user.click(screen.getByRole('tab', { name: '메타데이터' }));
+    await user.click(screen.getByRole('button', { name: '기록 내역' }));
     expect(screen.getAllByText('감상 시작').length).toBeGreaterThan(0);
+    await user.click(screen.getByRole('button', { name: '고급 기록 추가' }));
 
     await user.selectOptions(
-      screen.getByLabelText('Timeline Detail Work 타임라인 유형'),
+      screen.getByLabelText('Timeline Detail Work 기록 내역 유형'),
       'rewatch',
     );
     await user.clear(
-      screen.getByLabelText('Timeline Detail Work 타임라인 날짜'),
+      screen.getByLabelText('Timeline Detail Work 기록 내역 날짜'),
     );
     await user.type(
-      screen.getByLabelText('Timeline Detail Work 타임라인 날짜'),
+      screen.getByLabelText('Timeline Detail Work 기록 내역 날짜'),
       '2026-02-04',
     );
     await user.type(
-      screen.getByLabelText('Timeline Detail Work 타임라인 메모'),
+      screen.getByLabelText('Timeline Detail Work 기록 내역 메모'),
       '두 번째 감상 시작',
     );
     await user.click(
-      screen.getByRole('button', { name: '타임라인 기록 추가' }),
+      screen.getByRole('button', { name: '기록 추가' }),
     );
 
     expect(await screen.findByText('두 번째 감상 시작')).toBeInTheDocument();
@@ -327,19 +330,30 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Dense Timeline Work' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: /타임라인/ }));
-    const timelineToggle = screen.getByRole('button', {
+    await user.click(screen.getByRole('tab', { name: '메타데이터' }));
+    const recordHistoryToggle = screen.getByRole('button', {
       expanded: false,
-      name: '전체 타임라인 보기',
+      name: '기록 내역',
     });
 
-    expect(timelineToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(recordHistoryToggle).toHaveAttribute('aria-expanded', 'false');
 
-    await user.click(timelineToggle);
+    await user.click(recordHistoryToggle);
 
-    expect(timelineToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(recordHistoryToggle).toHaveAttribute('aria-expanded', 'true');
+    const advancedRecordToggle = screen.getByRole('button', {
+      expanded: false,
+      name: '고급 기록 추가',
+    });
+    expect(advancedRecordToggle).toBeInTheDocument();
     expect(
-      screen.getByLabelText('Dense Timeline Work 타임라인 유형'),
+      screen.queryByLabelText('Dense Timeline Work 기록 내역 유형'),
+    ).not.toBeVisible();
+
+    await user.click(advancedRecordToggle);
+
+    expect(
+      screen.getByLabelText('Dense Timeline Work 기록 내역 유형'),
     ).toBeInTheDocument();
   });
 
@@ -614,9 +628,9 @@ describe('WorkDetailPage', () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', { name: '진행도' }));
     expect(
-      screen.getByRole('heading', { name: '애니 진행 상황' }),
+      screen.getByRole('heading', { name: '애니 진행 기록' }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('현재 회')).toBeInTheDocument();
+    expect(screen.getByLabelText('본 회차')).toBeInTheDocument();
     expect(screen.queryByText('권별 기록')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('권별 별점')).not.toBeInTheDocument();
   });

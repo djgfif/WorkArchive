@@ -1,59 +1,29 @@
-.heroPosterStack {
-  position: relative;
-  display: grid;
-  width: min(100%, 30rem);
-  min-height: clamp(14rem, 24vw, 19rem);
-  place-items: center;
+.homeHeader {
+  background:
+    radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--app-accent-primary) 12%, transparent), transparent 42%),
+    linear-gradient(180deg, var(--app-surface-hero), var(--app-surface-card));
+  border-color: var(--app-border-default);
+  box-shadow: var(--wa-shadow-card);
 }
 
-.heroPoster {
-  position: absolute;
-  width: clamp(8.5rem, 13vw, 12rem);
-  transform-origin: bottom center;
+.headerEyebrow {
+  color: var(--app-accent-primary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.heroPoster:first-child {
-  z-index: 1;
-  transform: translateX(-42%) translateY(8%) rotate(-4deg) scale(0.9);
-  opacity: 0.9;
+.summaryBar {
+  background: var(--app-surface-subtle);
+  border-color: var(--app-border-subtle);
 }
 
-.heroPoster:nth-child(2) {
-  z-index: 3;
-  transform: translateY(-2%) scale(1.08);
-}
-
-.heroPoster:nth-child(3) {
-  z-index: 2;
-  transform: translateX(46%) translateY(12%) rotate(4deg) scale(0.86);
-  opacity: 0.94;
-}
-
-.heroPoster::after {
-  content: '';
-  position: absolute;
-  right: -0.6rem;
-  bottom: 1.15rem;
-  left: -0.6rem;
-  height: 3.8rem;
-  border-radius: 0 0 1.05rem 1.05rem;
-  background: rgba(0, 0, 0, 0.86);
-  pointer-events: none;
-}
-
-.heroPosterRating {
-  position: absolute;
-  z-index: 4;
-  bottom: 1.85rem;
-  left: 0.75rem;
-  color: var(--app-accent-warm);
-  font-size: var(--app-type-caption);
-  font-weight: 850;
+.summaryItem {
+  color: var(--app-text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
-.statsGrid {
-  margin-top: -0.25rem;
+.summaryItem:first-child {
+  color: var(--app-text-primary);
 }
 
 .activityPanel {
@@ -85,14 +55,4 @@
   border-radius: 999px;
   background: var(--app-accent-primary);
   opacity: 0.75;
-}
-
-@media (max-width: 48rem) {
-  .heroPosterStack {
-    min-height: 12rem;
-  }
-
-  .heroPoster {
-    width: clamp(6.5rem, 28vw, 8.5rem);
-  }
 }

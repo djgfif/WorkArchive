@@ -985,6 +985,14 @@ export function TierBoardEditorPage() {
     await loadState();
   }
 
+  async function handleCreateLane() {
+    await tierBoardService.createLane(activeBoardId, {
+      colorToken: '#64748b',
+      title: '새 행',
+    });
+    await refreshWithSuccess('새 행을 추가했습니다.');
+  }
+
   async function saveLaneEditor() {
     if (!laneEditor) return;
     await tierBoardService.updateLane(laneEditor.id, laneEditor);
@@ -1038,6 +1046,9 @@ export function TierBoardEditorPage() {
               size="xs"
               value={cardTitleDisplay}
             />
+            <AppButton onClick={() => void handleCreateLane()} size="xs" tone="secondary" type="button">
+              행 추가
+            </AppButton>
             <AppButton aria-label="보드 설정" onClick={openSettings} size="xs" tone="secondary" type="button">
               설정
             </AppButton>
@@ -1334,70 +1345,94 @@ export function TierBoardEditorPage() {
 
       <Modal onClose={() => setSettingsOpen(false)} opened={settingsOpen} title="보드 설정">
         <Stack gap="md">
-          <TextInput
-            label="보드 제목"
-            onChange={(event) => {
-              const { value } = event.currentTarget;
-              setSettingsDraft((draft) => ({ ...draft, title: value }));
-            }}
-            value={settingsDraft.title}
-          />
-          <Textarea
-            autosize
-            label="설명"
-            minRows={2}
-            onChange={(event) => {
-              const { value } = event.currentTarget;
-              setSettingsDraft((draft) => ({ ...draft, description: value }));
-            }}
-            value={settingsDraft.description}
-          />
-          <Select
-            data={[
-              { label: 'Classic tier', value: 'classic_tier' },
-              { label: 'Ranking', value: 'ranking' },
-              { label: 'Freeform', value: 'freeform' },
-            ]}
-            label="Board type"
-            onChange={(value) => value && setSettingsDraft((draft) => ({ ...draft, boardType: value as TierBoardType }))}
-            value={settingsDraft.boardType}
-          />
-          <Select
-            data={[
-              { label: 'Private', value: 'private' },
-              { label: 'Link only', value: 'link_only' },
-              { label: 'Exported', value: 'exported' },
-            ]}
-            label="Visibility"
-            onChange={(value) => value && setSettingsDraft((draft) => ({ ...draft, visibility: value as TierBoardVisibility }))}
-            value={settingsDraft.visibility}
-          />
-          <Select
-            data={TIER_BOARD_TEMPLATES.map((template) => ({
-              label: template.title,
-              value: template.title,
-            }))}
-            label="기본 템플릿 적용"
-            onChange={(value) =>
-              value && void tierBoardService.applyLaneTemplate(activeBoardId, value).then(loadState)
-            }
-            placeholder="템플릿 선택"
-          />
+          <Paper p="md" radius="md" withBorder>
+            <Stack gap="md">
+              <Stack gap={2}>
+                <Text fw={800}>보드 정보</Text>
+                <Text c="dimmed" size="sm">
+                  제목, 설명, 보드 표시 방식을 정합니다.
+                </Text>
+              </Stack>
+              <TextInput
+                label="보드 제목"
+                onChange={(event) => {
+                  const { value } = event.currentTarget;
+                  setSettingsDraft((draft) => ({ ...draft, title: value }));
+                }}
+                value={settingsDraft.title}
+              />
+              <Textarea
+                autosize
+                label="보드 설명"
+                minRows={2}
+                onChange={(event) => {
+                  const { value } = event.currentTarget;
+                  setSettingsDraft((draft) => ({ ...draft, description: value }));
+                }}
+                placeholder="이 보드의 기준이나 용도를 적어두세요."
+                value={settingsDraft.description}
+              />
+              <Select
+                data={[
+                  { label: '티어형', value: 'classic_tier' },
+                  { label: '순위형', value: 'ranking' },
+                  { label: '자유 배치', value: 'freeform' },
+                ]}
+                label="보드 방식"
+                onChange={(value) => value && setSettingsDraft((draft) => ({ ...draft, boardType: value as TierBoardType }))}
+                value={settingsDraft.boardType}
+              />
+              <Select
+                data={[
+                  { label: '개인용', value: 'private' },
+                  { label: '링크 공유', value: 'link_only' },
+                  { label: '내보냄', value: 'exported' },
+                ]}
+                label="공개 범위"
+                onChange={(value) => value && setSettingsDraft((draft) => ({ ...draft, visibility: value as TierBoardVisibility }))}
+                value={settingsDraft.visibility}
+              />
+            </Stack>
+          </Paper>
+
+          <Paper p="md" radius="md" withBorder>
+            <Stack gap="md">
+              <Stack gap={2}>
+                <Text fw={800}>행 구성</Text>
+                <Text c="dimmed" size="sm">
+                  S/A/B 같은 티어 행을 추가하거나 기본 행 템플릿으로 바꿉니다.
+                </Text>
+              </Stack>
+              <Group justify="space-between" wrap="wrap">
+                <Stack gap={2}>
+                  <Text fw={700} size="sm">새 행 추가</Text>
+                  <Text c="dimmed" size="sm">
+                    추가한 행은 보드에서 이름과 색상을 바로 수정할 수 있습니다.
+                  </Text>
+                </Stack>
+                <AppButton onClick={() => void handleCreateLane()} tone="secondary" type="button">
+                  행 추가
+                </AppButton>
+              </Group>
+              <Select
+                data={TIER_BOARD_TEMPLATES.map((template) => ({
+                  label: template.title,
+                  value: template.title,
+                }))}
+                description="선택한 템플릿의 행 구성으로 보드를 다시 만듭니다."
+                label="행 템플릿 적용"
+                onChange={(value) =>
+                  value && void tierBoardService.applyLaneTemplate(activeBoardId, value).then(loadState)
+                }
+                placeholder="예: 기본 S/A/B/C/D"
+              />
+            </Stack>
+          </Paper>
+
           <Group justify="space-between">
-            <AppButton
-              onClick={() =>
-                void tierBoardService
-                  .createLane(activeBoardId, {
-                    colorToken: '#64748b',
-                    title: '새 행',
-                  })
-                  .then(loadState)
-              }
-              tone="secondary"
-              type="button"
-            >
-              Lane 추가
-            </AppButton>
+            <Text c="dimmed" size="sm">
+              행 이름과 색상은 각 행의 ✎ 버튼에서 수정합니다.
+            </Text>
             <Group gap="xs">
               <AppButton onClick={() => setSettingsOpen(false)} tone="quiet" type="button">
                 취소

@@ -25,6 +25,7 @@ import {
   type WorksGraphQueryIndex,
   type WorksListQuery,
 } from '../utils/query-works';
+import { WORK_GENRES } from '../utils/work-genres';
 import type { UpsertWorkInput } from '../utils/work-form';
 import {
   graphRepository,
@@ -202,9 +203,7 @@ export class WorksService {
         graphContributorSuggestions.length > 0
           ? graphContributorSuggestions
           : getContributorSuggestionValues(activeWorks),
-      genreSuggestions: Array.from(
-        new Set(activeWorks.flatMap((work) => work.genres)),
-      ).sort((left, right) => left.localeCompare(right)),
+      genreSuggestions: [...WORK_GENRES],
       organizationContributorSuggestions:
         graphOrganizationContributorSuggestions.length > 0
           ? graphOrganizationContributorSuggestions

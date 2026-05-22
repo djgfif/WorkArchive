@@ -1,16 +1,15 @@
 import { useState, type FormEvent } from 'react';
 import {
+  Accordion,
   Box,
   Divider,
   Group,
   Paper,
-  SimpleGrid,
   Stack,
   Text,
-  ThemeIcon,
   Title,
 } from '@mantine/core';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import {
@@ -26,15 +25,12 @@ import { useJsonBackupReminder } from '../../archive';
 import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth';
 import {
-  ArchiveHero,
   ArchiveSearchBar,
   ArchiveStarterShelf,
-  WorkPoster,
   WorkShelf,
 } from '../../works';
 import { useWorksOverview } from '../../works';
-import type { WorkCollectionSummary } from '../../works';
-import { getWorkStatusLabel, getWorkTypeLabel } from '../../works';
+import { getWorkStatusLabel } from '../../works';
 import styles from './HomePage.module.css';
 
 const css = styles as Record<string, string>;
@@ -131,124 +127,36 @@ function ActivityTimelineItem({ work }: { work: WorkRecord }) {
   );
 }
 
-function HeroPosterStack({ works }: { works: WorkRecord[] }) {
-  const displayWorks = works.slice(0, 3);
-  const fallbackWorks = [
-    {
-      id: 'starter-hero-1',
-      rating: null,
-      thumbnailUrl: '',
-      title: '체인소 맨',
-      type: 'manga' as const,
-    },
-    {
-      id: 'starter-hero-2',
-      rating: 4.5,
-      thumbnailUrl: '',
-      title: '은하철도의 밤',
-      type: 'novel' as const,
-    },
-    {
-      id: 'starter-hero-3',
-      rating: null,
-      thumbnailUrl: '',
-      title: '블루 피리어드',
-      type: 'anime' as const,
-    },
-  ];
-  const posters = displayWorks.length > 0 ? displayWorks : fallbackWorks;
+function SummaryBar({
+  averageRating,
+  completedCount,
+  inProgressCount,
+  totalCount,
+}: {
+  averageRating: number | null;
+  completedCount: number;
+  inProgressCount: number;
+  totalCount: number;
+}) {
+  if (totalCount === 0) {
+    return null;
+  }
 
   return (
-    <Box aria-hidden="true" className={cn(css.heroPosterStack)}>
-      {posters.map((work) => (
-        <Box className={cn(css.heroPoster)} key={work.id}>
-          <WorkPoster
-            coverSeed={work.id}
-            thumbnailUrl={work.thumbnailUrl}
-            title={work.title}
-            typeLabel={getWorkTypeLabel(work.type)}
-            variant="hero"
-          />
-          {work.rating !== null && (
-            <Text className={cn(css.heroPosterRating)}>★ {work.rating.toFixed(1)}</Text>
-          )}
-        </Box>
-      ))}
-    </Box>
-  );
-}
-
-interface QuickStatProps {
-  accent?: boolean;
-  icon: string;
-  label: string;
-  value: string;
-}
-
-function QuickStat({ accent = false, icon, label, value }: QuickStatProps) {
-  return (
-    <Paper
-      p="md"
-      radius="lg"
-      styles={{
-        root: {
-          background: accent
-            ? [
-                'radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--app-accent-primary) 16%, transparent), transparent 60%)',
-                'linear-gradient(135deg, var(--app-surface-hero), var(--app-surface-card))',
-              ].join(', ')
-            : 'var(--app-surface-subtle)',
-          borderColor: accent ? 'var(--app-border-default)' : 'var(--app-border-subtle)',
-          transition: [
-            'border-color var(--wa-motion-fast, 150ms)',
-            'box-shadow var(--wa-motion-normal, 240ms)',
-            'transform var(--wa-motion-normal, 240ms)',
-          ].join(', '),
-          '&:hover': {
-            borderColor: accent ? 'var(--app-accent-primary)' : 'var(--app-border-default)',
-            boxShadow: 'var(--wa-shadow-card)',
-            transform: 'translateY(-2px)',
-          },
-        },
-      }}
-      withBorder
-    >
-      <Group gap="sm" wrap="nowrap">
-        <ThemeIcon
-          color={accent ? 'archive' : 'gray'}
-          radius="md"
-          size={38}
-          variant={accent ? 'gradient' : 'light'}
-          {...(accent ? { gradient: { deg: 135, from: 'archive.4', to: 'archive.7' } } : {})}
-          style={accent ? { boxShadow: 'var(--wa-shadow-glow)' } : undefined}
-        >
-          <Text fw={900} size="sm">{icon}</Text>
-        </ThemeIcon>
-        <Stack gap={2} miw={0}>
-          <Text
-            fw={700}
-            size="xs"
-            tt="uppercase"
-            style={{
-              letterSpacing: '0.08em',
-              color: 'var(--app-text-muted)',
-              fontSize: 'var(--app-type-meta)',
-            }}
-          >
-            {label}
-          </Text>
-          <Text
-            fw={800}
-            size="lg"
-            style={{
-              color: 'var(--app-text-primary)',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-            }}
-          >
-            {value}
-          </Text>
-        </Stack>
+    <Paper className={cn(css.summaryBar)} p="sm" radius="md" withBorder>
+      <Group gap="sm" wrap="wrap">
+        <Text className={cn(css.summaryItem)} fw={800} size="sm">
+          전체 {totalCount}개
+        </Text>
+        <Text className={cn(css.summaryItem)} fw={700} size="sm">
+          완료 {completedCount}개
+        </Text>
+        <Text className={cn(css.summaryItem)} fw={700} size="sm">
+          진행 중 {inProgressCount}개
+        </Text>
+        <Text className={cn(css.summaryItem)} fw={700} size="sm">
+          평균 {formatAverageRating(averageRating)}
+        </Text>
       </Group>
     </Paper>
   );
@@ -303,85 +211,24 @@ function SectionHeader({ eyebrow, title, description, action }: SectionHeaderPro
   );
 }
 
-function formatCollectionRating(value: number | null) {
-  return value === null ? '미평가' : `★ ${value.toFixed(1)}`;
-}
-
-function CollectionShelf({
-  collections,
-}: {
-  collections: WorkCollectionSummary[];
-}) {
-  if (collections.length === 0) {
-    return null;
-  }
-
-  return (
-    <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="sm">
-      {collections.map((collection) => {
-        const mediaLabel = collection.mediaTypes
-          .slice(0, 3)
-          .map(getWorkTypeLabel)
-          .join(' · ');
-
-        return (
-          <Paper
-            component={Link}
-            key={collection.key}
-            p="md"
-            radius="lg"
-            style={{
-              background: 'var(--app-surface-subtle)',
-              borderColor: 'var(--app-border-subtle)',
-              color: 'inherit',
-              textDecoration: 'none',
-            }}
-            to={collection.href}
-            withBorder
-          >
-            <Stack gap="xs">
-              <Group justify="space-between" wrap="nowrap">
-                <Title lineClamp={1} order={3} size="h4">
-                  {collection.label}
-                </Title>
-                <AppBadge tone="accent">{collection.totalCount}</AppBadge>
-              </Group>
-              <Text c="dimmed" lineClamp={1} size="sm">
-                {mediaLabel || '매체 미지정'}
-              </Text>
-              <Text c="dimmed" size="xs">
-                완료 {collection.completedCount} · 보는 중{' '}
-                {collection.inProgressCount} ·{' '}
-                {formatCollectionRating(collection.averageRating)}
-              </Text>
-            </Stack>
-          </Paper>
-        );
-      })}
-    </SimpleGrid>
-  );
-}
-
 export function HomePage() {
   const navigate = useNavigate();
   const { archiveScopeKey, mode, user } = useAuthSession();
   const {
     averageRating,
     completedCount,
-    contributorCollections,
     error,
     inProgressCount,
     isLoading,
     recentWorks,
     retry,
-    seriesCollections,
     totalCount,
   } = useWorksOverview();
   const [searchTerm, setSearchTerm] = useState('');
   const isAuthenticated = mode === 'authenticated';
   const jsonArchiveExport = useJsonArchiveExport();
   const backupReminder = useJsonBackupReminder(totalCount, archiveScopeKey);
-  const continueWorks = recentWorks
+  const activeWorks = recentWorks
     .filter((work) => work.status === 'in_progress')
     .slice(0, 8);
 
@@ -397,38 +244,45 @@ export function HomePage() {
 
   return (
     <HomeHubPageTemplate>
-      {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <ArchiveHero
-        actions={
-          <AppLinkButton size="md" to="/works/new" tone="primary">
-            + 작품 추가
-          </AppLinkButton>
-        }
-        description={
-          isAuthenticated
-            ? `${user?.email ?? '내 계정'} · 개인 감상 기록 저장소`
-            : '이 기기에 먼저 저장되는 개인 감상 기록 저장소'
-        }
-        eyebrow="개인 감상 서재"
-        title="내 아카이브"
-        variant="landing"
-        visual={<HeroPosterStack works={recentWorks} />}
-      >
-        <form onSubmit={handleSearchSubmit}>
-          <Group align="center" gap="sm" wrap="wrap">
-            <ArchiveSearchBar
-              aria-label="아카이브 검색"
-              onChange={setSearchTerm}
-              onSubmit={() => handleSearchSubmit()}
-              placeholder="작품, 작가를 검색"
-              value={searchTerm}
-            />
-            <AppButton tone="primary" type="submit">
-              검색
-            </AppButton>
+      <Paper className={cn(css.homeHeader)} p="lg" radius="lg" withBorder>
+        <Stack gap="md">
+          <Group align="flex-start" justify="space-between" wrap="wrap">
+            <Stack gap={4}>
+              <Text className={cn(css.headerEyebrow)} fw={800} size="xs">
+                개인 기록 아카이브
+              </Text>
+              <Title order={1}>내 아카이브</Title>
+              <Text c="dimmed" size="sm">
+                {isAuthenticated
+                  ? `${user?.email ?? '내 계정'} · 최근 작업과 검색을 한곳에서 엽니다.`
+                  : '이 기기에 저장된 기록을 검색하고 빠르게 수정합니다.'}
+              </Text>
+            </Stack>
+            <Group gap="xs" wrap="wrap">
+              <AppLinkButton to="/works/new" tone="primary">
+                작품 추가
+              </AppLinkButton>
+              <AppLinkButton to="/works" tone="secondary">
+                작품 목록
+              </AppLinkButton>
+            </Group>
           </Group>
-        </form>
-      </ArchiveHero>
+          <form onSubmit={handleSearchSubmit}>
+            <Group align="center" gap="sm" wrap="wrap">
+              <ArchiveSearchBar
+                aria-label="아카이브 검색"
+                onChange={setSearchTerm}
+                onSubmit={() => handleSearchSubmit()}
+                placeholder="작품, 작가를 검색"
+                value={searchTerm}
+              />
+              <AppButton tone="primary" type="submit">
+                검색
+              </AppButton>
+            </Group>
+          </form>
+        </Stack>
+      </Paper>
 
       {/* ── Error ──────────────────────────────────────────────────────── */}
       {error && (
@@ -457,33 +311,13 @@ export function HomePage() {
 
       {/* ── Content ────────────────────────────────────────────────────── */}
       {!error && !isLoading && (
-        <Stack gap={64}>
-          {/* Quick stats — 데이터가 있을 때만 표시 */}
-          {totalCount > 0 && (
-            <SimpleGrid className={cn(css.statsGrid)} cols={{ base: 2, sm: 4 }} spacing="sm">
-              <QuickStat
-                accent
-                icon="📚"
-                label="전체 작품"
-                value={`${totalCount}개`}
-              />
-              <QuickStat
-                icon="▶"
-                label="보는 중"
-                value={`${inProgressCount}개`}
-              />
-              <QuickStat
-                icon="✓"
-                label="완료"
-                value={`${completedCount}개`}
-              />
-              <QuickStat
-                icon="★"
-                label="평균 별점"
-                value={formatAverageRating(averageRating)}
-              />
-            </SimpleGrid>
-          )}
+        <Stack gap={40}>
+          <SummaryBar
+            averageRating={averageRating}
+            completedCount={completedCount}
+            inProgressCount={inProgressCount}
+            totalCount={totalCount}
+          />
 
           <JsonBackupReminderCard
             feedback={jsonArchiveExport.feedback}
@@ -492,53 +326,7 @@ export function HomePage() {
             reminder={backupReminder}
           />
 
-          <Stack gap="lg">
-            <SectionHeader
-              action={
-                <AppLinkButton to="/works" tone="quiet">
-                  작품 서재
-                </AppLinkButton>
-              }
-              description="같은 시리즈와 세계관으로 묶인 기록을 먼저 봅니다."
-              eyebrow="시리즈"
-              title="시리즈 컬렉션"
-            />
-            <CollectionShelf collections={seriesCollections} />
-          </Stack>
-
-          <Stack gap="lg">
-            <SectionHeader
-              action={
-                <AppLinkButton to="/works" tone="quiet">
-                  전체 보기
-                </AppLinkButton>
-              }
-              description="작가, 감독, 스튜디오, 출판사, 플랫폼 기준으로 다시 찾습니다."
-              eyebrow="제작진"
-              title="제작진으로 보기"
-            />
-            <CollectionShelf collections={contributorCollections} />
-          </Stack>
-
-          {/* 이어보기 선반 */}
-          <Stack gap="lg">
-            <SectionHeader
-              action={
-                <AppLinkButton to="/works?status=in_progress" tone="quiet">
-                  모두 보기
-                </AppLinkButton>
-              }
-              description="진행 중인 기록만 조용히 모았습니다."
-              eyebrow="이어보기"
-              title="보는 중인 작품"
-            />
-            <WorkShelf
-              empty={<ArchiveStarterShelf />}
-              works={continueWorks}
-            />
-          </Stack>
-
-          {/* 최근 손본 작품 */}
+          {/* 최근 작업 */}
           <Stack gap="lg">
             <SectionHeader
               action={
@@ -546,9 +334,9 @@ export function HomePage() {
                   작품 목록 전체
                 </AppLinkButton>
               }
-              description="방금 손본 작품을 빠르게 다시 엽니다."
-              eyebrow="최근 활동"
-              title="최근 손본 작품"
+              description="최근에 추가하거나 수정한 기록을 빠르게 다시 엽니다."
+              eyebrow="최근 작업"
+              title="최근 작업한 기록"
             />
             {recentWorks.length > 0 ? (
               <WorkShelf works={recentWorks.slice(0, 8)} />
@@ -559,7 +347,7 @@ export function HomePage() {
                     첫 작품 추가
                   </AppLinkButton>
                 }
-                description="첫 기록을 만들면 홈에서 이어보기와 최근 수정 흐름이 시작됩니다."
+                description="첫 기록을 만들면 홈에서 최근 작업 흐름이 시작됩니다."
                 eyebrow="시작하기"
                 title="아직 기록이 없습니다"
                 tone="info"
@@ -567,68 +355,81 @@ export function HomePage() {
             )}
           </Stack>
 
-          {/* 활동 타임라인 */}
-          {recentWorks.length > 0 && (
+          {/* 진행 중인 기록 */}
+          {activeWorks.length > 0 && (
             <Stack gap="lg">
               <SectionHeader
                 action={
-                  <AppLinkButton to="/works" tone="quiet">
-                    전체 보기
+                  <AppLinkButton to="/works?status=in_progress" tone="quiet">
+                    모두 보기
                   </AppLinkButton>
                 }
-                description="날짜별로 정리된 최근 기록 흐름입니다."
-                eyebrow="타임라인"
-                title="활동 기록"
+                description="상태가 진행 중인 작품 기록만 모았습니다."
+                eyebrow="진행 중"
+                title="진행 중인 기록"
               />
-              <Paper
-                className={cn(css.activityPanel)}
-                p="md"
-                radius="lg"
-                withBorder
-              >
-                <Stack gap={0}>
-                  {groupWorksByDate(recentWorks.slice(0, 20)).map((group, groupIndex) => (
-                    <Box key={group.label}>
-                      {groupIndex > 0 && (
-                        <Divider
-                          color="var(--app-border-subtle)"
-                          my="xs"
-                        />
-                      )}
-                      {/* 날짜 레이블 */}
-                      <Group gap="sm" mb="xs" pl="xs">
-                        <Box
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            flexShrink: 0,
-                            background: 'var(--app-border-strong)',
-                          }}
-                        />
-                        <Text
-                          fw={700}
-                          size="xs"
-                          tt="uppercase"
-                          style={{
-                            letterSpacing: '0.08em',
-                            color: 'var(--app-text-muted)',
-                          }}
-                        >
-                          {group.label}
-                        </Text>
-                      </Group>
-                      {/* 해당 날짜의 작품들 */}
-                      <Stack gap={2}>
-                        {group.works.map((work) => (
-                          <ActivityTimelineItem key={work.id} work={work} />
-                        ))}
-                      </Stack>
-                    </Box>
-                  ))}
-                </Stack>
-              </Paper>
+              <WorkShelf
+                empty={<ArchiveStarterShelf />}
+                works={activeWorks}
+              />
             </Stack>
+          )}
+
+          {/* 활동 타임라인 */}
+          {recentWorks.length > 0 && (
+            <Accordion defaultValue={null} variant="separated">
+              <Accordion.Item value="recent-changes">
+                <Accordion.Control>최근 변경 내역</Accordion.Control>
+                <Accordion.Panel>
+                  <Paper
+                    className={cn(css.activityPanel)}
+                    p="md"
+                    radius="md"
+                    withBorder
+                  >
+                    <Stack gap={0}>
+                      {groupWorksByDate(recentWorks.slice(0, 20)).map((group, groupIndex) => (
+                        <Box key={group.label}>
+                          {groupIndex > 0 && (
+                            <Divider
+                              color="var(--app-border-subtle)"
+                              my="xs"
+                            />
+                          )}
+                          <Group gap="sm" mb="xs" pl="xs">
+                            <Box
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                flexShrink: 0,
+                                background: 'var(--app-border-strong)',
+                              }}
+                            />
+                            <Text
+                              fw={700}
+                              size="xs"
+                              tt="uppercase"
+                              style={{
+                                letterSpacing: '0.08em',
+                                color: 'var(--app-text-muted)',
+                              }}
+                            >
+                              {group.label}
+                            </Text>
+                          </Group>
+                          <Stack gap={2}>
+                            {group.works.map((work) => (
+                              <ActivityTimelineItem key={work.id} work={work} />
+                            ))}
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Paper>
+                </Accordion.Panel>
+              </Accordion.Item>
+            </Accordion>
           )}
         </Stack>
       )}

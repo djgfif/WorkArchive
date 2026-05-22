@@ -1,4 +1,4 @@
-﻿import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+﻿import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -12,8 +12,6 @@ import {
   selectWorksView,
 } from '../../../test/ui-helpers';
 import { AuthProvider } from '../../auth';
-import { appMetaRepository } from '../../sync';
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../../archive';
 import { worksService } from '../services/works.service';
 
 describe('WorksListPage', () => {
@@ -155,8 +153,8 @@ describe('WorksListPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows recently viewed works after opening a detail page', async () => {
-    const viewedWork = await worksService.createWork({
+  it('keeps recent shortcut shelves out of the library page', async () => {
+    await worksService.createWork({
       type: 'movie',
       title: 'Recently Viewed Movie',
       author: 'Director',
@@ -170,7 +168,7 @@ describe('WorksListPage', () => {
       favorite: false,
     });
     const router = createMemoryRouter(appRoutes, {
-      initialEntries: [`/works/${viewedWork.id}`],
+      initialEntries: ['/works'],
     });
 
     renderWithProviders(
@@ -179,176 +177,14 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
+    expect(await screen.findByLabelText('정렬 기준')).toHaveDisplayValue(
+      '최근 수정',
+    );
+    expect(screen.queryByText('최근 본 작품')).not.toBeInTheDocument();
+    expect(screen.queryByText('방금 열어본 기록')).not.toBeInTheDocument();
+    expect(screen.queryByText('최근 수정한 작품')).not.toBeInTheDocument();
+    expect(screen.queryByText('최근 손본 기록')).not.toBeInTheDocument();
     expect(await screen.findByText('Recently Viewed Movie')).toBeInTheDocument();
-
-    await router.navigate('/works');
-
-    expect(await screen.findByText('최근 본 작품')).toBeInTheDocument();
-    expect(screen.getByText('방금 열어본 기록')).toBeInTheDocument();
-    expect(screen.getAllByText('Recently Viewed Movie').length).toBeGreaterThan(0);
-  });
-
-  it('shows recently modified works as shortcuts', async () => {
-    await worksService.createWork({
-      type: 'novel',
-      title: 'Older Work',
-      author: 'Author',
-      genres: [],
-      description: '',
-      thumbnailUrl: '',
-      status: 'planned',
-      rating: null,
-      shortReview: '',
-      review: '',
-      favorite: false,
-    });
-    const modifiedWork = await worksService.createWork({
-      type: 'anime',
-      title: 'Freshly Edited Work',
-      author: 'Studio',
-      genres: [],
-      description: '',
-      thumbnailUrl: '',
-      status: 'planned',
-      rating: null,
-      shortReview: '',
-      review: '',
-      favorite: false,
-    });
-    await worksService.updateWork(modifiedWork.id, {
-      type: modifiedWork.type,
-      title: modifiedWork.title,
-      author: modifiedWork.author,
-      genres: modifiedWork.genres,
-      description: 'updated',
-      thumbnailUrl: modifiedWork.thumbnailUrl,
-      status: modifiedWork.status,
-      rating: modifiedWork.rating,
-      shortReview: modifiedWork.shortReview,
-      review: modifiedWork.review,
-      favorite: modifiedWork.favorite,
-      personalTags: modifiedWork.personalTags,
-      lastConsumedAt: modifiedWork.lastConsumedAt ?? null,
-      startedAt: modifiedWork.startedAt ?? null,
-      completedAt: modifiedWork.completedAt ?? null,
-      droppedAt: modifiedWork.droppedAt ?? null,
-    });
-    const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/works'],
-    });
-
-    renderWithProviders(
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>,
-    );
-
-    expect(await screen.findByText('최근 수정한 작품')).toBeInTheDocument();
-    expect(screen.getByText('최근 손본 기록')).toBeInTheDocument();
-    expect(screen.getAllByText('Freshly Edited Work').length).toBeGreaterThan(0);
-  });
-
-  it('shows the last JSON backup time and applies bulk management actions', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    await appMetaRepository.setValue(
-      LAST_JSON_EXPORT_AT_META_KEY,
-      '2026-05-20T03:00:00.000Z',
-    );
-    const firstWork = await worksService.createWork({
-      type: 'novel',
-      title: 'Bulk First',
-      author: 'Archive Author',
-      genres: [],
-      description: '',
-      thumbnailUrl: '',
-      status: 'planned',
-      rating: null,
-      shortReview: '',
-      review: '',
-      favorite: false,
-    });
-    const secondWork = await worksService.createWork({
-      type: 'movie',
-      title: 'Bulk Second',
-      author: 'Archive Author',
-      genres: [],
-      description: '',
-      thumbnailUrl: '',
-      status: 'planned',
-      rating: null,
-      shortReview: '',
-      review: '',
-      favorite: false,
-    });
-    const user = userEvent.setup();
-    const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/works'],
-    });
-
-    renderWithProviders(
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>,
-    );
-
-    expect(await screen.findByText(/마지막 JSON 백업:/)).toBeInTheDocument();
-    expect(await screen.findByText(/2026/)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: '일괄 선택' }));
-    await user.click(screen.getByLabelText('Bulk First 선택'));
-    await user.click(screen.getByLabelText('Bulk Second 선택'));
-
-    const bulkTagInput = screen
-      .getAllByLabelText('일괄 태그 추가')
-      .find((element) => element instanceof HTMLInputElement);
-    if (!bulkTagInput) {
-      throw new Error('Bulk tag input was not found.');
-    }
-    await user.type(bulkTagInput, '관리대상{enter}');
-    await user.click(screen.getByRole('button', { name: '선택 작품 태그 추가' }));
-
-    await waitFor(async () => {
-      await expect(worksService.getWorkById(firstWork.id)).resolves.toEqual(
-        expect.objectContaining({
-          personalTags: expect.arrayContaining(['관리대상']),
-        }),
-      );
-      await expect(worksService.getWorkById(secondWork.id)).resolves.toEqual(
-        expect.objectContaining({
-          personalTags: expect.arrayContaining(['관리대상']),
-        }),
-      );
-    });
-
-    const bulkStatusSelect = screen.getByLabelText('일괄 상태 변경');
-    await waitFor(() => expect(bulkStatusSelect).toBeEnabled());
-    fireEvent.change(bulkStatusSelect, { target: { value: 'completed' } });
-    const bulkStatusButton = screen.getByRole('button', {
-      name: '선택 작품 상태 변경',
-    });
-    await waitFor(() => expect(bulkStatusButton).toBeEnabled());
-    await user.click(bulkStatusButton);
-
-    await waitFor(async () => {
-      await expect(worksService.getWorkById(firstWork.id)).resolves.toEqual(
-        expect.objectContaining({ status: 'completed' }),
-      );
-      await expect(worksService.getWorkById(secondWork.id)).resolves.toEqual(
-        expect.objectContaining({ status: 'completed' }),
-      );
-    });
-
-    const bulkDeleteButton = screen.getByRole('button', {
-      name: '선택 작품 휴지통 이동',
-    });
-    await waitFor(() => expect(bulkDeleteButton).toBeEnabled());
-    await user.click(bulkDeleteButton);
-
-    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
-    await waitFor(async () => {
-      await expect(worksService.getWorkById(firstWork.id)).resolves.toBeNull();
-      await expect(worksService.getWorkById(secondWork.id)).resolves.toBeNull();
-    });
   });
 
   it('shows filtered and total active counts accurately', async () => {
@@ -519,7 +355,7 @@ describe('WorksListPage', () => {
       type: 'anime',
       title: 'Fate/stay night',
       author: 'TYPE-MOON',
-      genres: ['Fantasy'],
+      genres: ['판타지'],
       personalTags: ['series:Fate', 'universe:TYPE-MOON', 'studio:ufotable'],
       description: '',
       thumbnailUrl: '',
@@ -578,7 +414,7 @@ describe('WorksListPage', () => {
     await user.click(screen.getByRole('button', { name: '애니' }));
     await user.click(screen.getByRole('button', { name: 'Fate' }));
     await user.click(screen.getByRole('button', { name: 'ufotable' }));
-    await user.click(screen.getByRole('button', { name: 'Fantasy' }));
+    await user.click(screen.getByRole('button', { name: '판타지' }));
     await user.click(screen.getByRole('button', { name: /완료/ }));
 
     await waitFor(() => {
@@ -587,7 +423,7 @@ describe('WorksListPage', () => {
       expect(params.get('type')).toBe('anime');
       expect(params.get('series')).toBe('Fate');
       expect(params.get('organizationContributor')).toBe('ufotable');
-      expect(params.get('genre')).toBe('Fantasy');
+      expect(params.get('genre')).toBe('판타지');
       expect(params.get('status')).toBe('completed');
     });
     expect(screen.getByRole('heading', { name: 'Fate/stay night' })).toBeInTheDocument();
@@ -755,11 +591,11 @@ describe('WorksListPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Frieren 현재 권')).toBeEnabled();
+      expect(screen.getByLabelText('Frieren 읽은 권')).toBeEnabled();
     });
-    await user.type(screen.getByLabelText('Frieren 현재 권'), '3');
+    await user.type(screen.getByLabelText('Frieren 읽은 권'), '3');
     await user.type(screen.getByLabelText('Frieren 전체 권'), '5');
-    await user.type(screen.getByLabelText('Frieren 마지막 위치'), '3권');
+    await user.type(screen.getByLabelText('Frieren 마지막으로 읽은 위치'), '3권');
     await user.click(screen.getByLabelText('Frieren 진행도 저장'));
 
     await waitFor(async () => {

@@ -7,6 +7,7 @@ import {
   type WorkArchiveDatabase,
 } from '../db/work-archive.db';
 import { SyncQueueRepository } from '../../sync';
+import { WORK_GENRES } from '../utils/work-genres';
 import { WorksRepository } from './works.repository';
 import { WorksService } from './works.service';
 
@@ -279,7 +280,8 @@ describe('WorksService', () => {
 
     expect(result.seriesSuggestions).toEqual(['Fate', 'TYPE-MOON']);
     expect(result.contributorSuggestions).toEqual(['Frank Herbert', 'ufotable']);
-    expect(result.genreSuggestions).toEqual(['Fantasy', 'Science Fiction']);
+    expect(result.genreSuggestions).toEqual([...WORK_GENRES]);
+    expect(result.genreSuggestions).not.toContain('Science Fiction');
     expect(result.tagSuggestions).toEqual(['favorite prose', 'rewatch']);
   });
 

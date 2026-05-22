@@ -5,7 +5,12 @@ import type {
 } from '@work-archive/shared-types';
 
 import type { ImportCandidate } from '../../imports';
-import type { UpsertWorkInput, WorkFormValues } from '../utils/work-form';
+import {
+  parseCommaSeparatedTextList,
+  type UpsertWorkInput,
+  type WorkFormValues,
+} from '../utils/work-form';
+import { moveUnknownGenresToPersonalTags } from '../utils/work-genres';
 
 export interface CandidateSourceCoverage {
   externalIdentityCount: number;
@@ -312,17 +317,23 @@ export function createValuesFromCandidate(
   candidate: ImportCandidate,
   createDefaultWorkFormValues: () => WorkFormValues,
 ): WorkFormValues {
+  const defaults = createQuickAddDefaults(createDefaultWorkFormValues);
   const contributorNames = candidate.contributors
     .map((contributor) => contributor.name.trim())
     .filter(Boolean);
+  const migratedTags = moveUnknownGenresToPersonalTags(
+    parseCommaSeparatedTextList(candidate.genresText),
+    parseCommaSeparatedTextList(defaults.personalTagsText),
+  );
 
   return {
-    ...createQuickAddDefaults(createDefaultWorkFormValues),
+    ...defaults,
     author: candidate.author,
     creatorText: contributorNames.join(', '),
     description: candidate.description,
     seriesText: candidate.franchiseName ?? '',
-    genresText: candidate.genresText,
+    genresText: migratedTags.genres.join(', '),
+    personalTagsText: migratedTags.personalTags.join(', '),
     thumbnailUrl: candidate.thumbnailUrl,
     title: candidate.title,
     type: candidate.mediumType,

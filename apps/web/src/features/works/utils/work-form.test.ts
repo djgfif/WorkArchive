@@ -14,7 +14,7 @@ function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
     type: 'anime',
     title: 'Fate/stay night',
     author: 'TYPE-MOON',
-    genres: ['Fantasy'],
+    genres: ['판타지'],
     personalTags: [],
     description: '',
     thumbnailUrl: '',
@@ -40,7 +40,7 @@ describe('work-form graph fields', () => {
       ...values,
       title: 'Fate/stay night',
       type: 'anime',
-      genresText: 'Fantasy',
+      genresText: '판타지',
       personalTagsText: 'rewatch, favorite route',
       seriesText: 'Fate',
       universeText: 'TYPE-MOON',
@@ -51,6 +51,7 @@ describe('work-form graph fields', () => {
     });
 
     expect(parsed.personalTags).toEqual(['rewatch', 'favorite route']);
+    expect(parsed.genres).toEqual(['판타지']);
     expect(parsed.graph).toEqual({
       series: [
         { kind: 'series', role: 'main', title: 'Fate' },
@@ -133,5 +134,27 @@ describe('work-form graph fields', () => {
         },
       ],
     });
+  });
+
+  it('moves legacy non-standard genres into personal tags when restoring records', () => {
+    const values = createWorkFormValuesFromRecord(
+      buildWork({
+        genres: ['다크판타지', '판타지'],
+        personalTags: ['rewatch', '다크판타지'],
+      }),
+    );
+
+    expect(values.genresText).toBe('판타지');
+    expect(values.personalTagsText).toBe('rewatch, 다크판타지');
+  });
+
+  it('stores only fixed genres from parsed form values', () => {
+    const parsed = parseWorkFormValues({
+      ...createDefaultWorkFormValues(),
+      title: 'Fate/stay night',
+      genresText: ' 판타지, 판타지, 다크판타지, SF ',
+    });
+
+    expect(parsed.genres).toEqual(['판타지', 'SF']);
   });
 });

@@ -6,6 +6,10 @@ import type {
 } from '@work-archive/shared-types';
 
 import { getGraphTags, getPersonalTags } from './graph-tags';
+import {
+  moveUnknownGenresToPersonalTags,
+  normalizeWorkGenres,
+} from './work-genres';
 import type { WorkGraphInput, WorkGraphSnapshot } from '../services/graph.repository';
 
 export interface WorkFormValues {
@@ -90,6 +94,10 @@ export function createWorkFormValuesFromRecord(
   work: WorkRecord,
   graph?: WorkGraphSnapshot,
 ): WorkFormValues {
+  const migratedTags = moveUnknownGenresToPersonalTags(
+    work.genres,
+    getPersonalTags(work.personalTags),
+  );
   const getSeriesTitlesByKind = (kind: 'series' | 'universe') =>
     graph?.workSeriesLinks && graph.workSeriesLinks.length > 0
       ? graph.workSeriesLinks
@@ -133,8 +141,8 @@ export function createWorkFormValuesFromRecord(
     type: work.type,
     title: work.title,
     author: work.author,
-    genresText: work.genres.join(', '),
-    personalTagsText: getPersonalTags(work.personalTags).join(', '),
+    genresText: migratedTags.genres.join(', '),
+    personalTagsText: migratedTags.personalTags.join(', '),
     seriesText: getSeriesTitlesByKind('series').join(', '),
     universeText: getSeriesTitlesByKind('universe').join(', '),
     creatorText: getContributorNamesByRole('original_creator').join(', '),
@@ -278,7 +286,7 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
     type: values.type,
     title,
     author: values.author.trim(),
-    genres: parseCommaSeparatedTextList(values.genresText),
+    genres: normalizeWorkGenres(parseCommaSeparatedTextList(values.genresText)),
     personalTags,
     description: values.description.trim(),
     thumbnailUrl: values.thumbnailUrl.trim(),

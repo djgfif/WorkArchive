@@ -10,7 +10,6 @@ import {
 } from '@mantine/core';
 import {
   useLocation,
-  useNavigate,
   useParams,
   useSearchParams,
 } from 'react-router-dom';
@@ -38,7 +37,6 @@ import {
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
 import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
-import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
 import { useAuthSession } from '../../auth';
 import { WorkDetailPanel } from '../components/WorkDetailPanel';
 import { QuickProgressControl } from '../components/ArchiveComponents';
@@ -273,8 +271,8 @@ function ProgressOnlySection({
 
   return (
     <PageSection
-      eyebrow="진행도"
-      title={`${getWorkTypeLabel(work.type)} 진행 상황`}
+      eyebrow="진행 기록"
+      title={`${getWorkTypeLabel(work.type)} 진행 기록`}
     >
       <QuickProgressControl onSave={handleSave} work={work} />
     </PageSection>
@@ -667,7 +665,6 @@ function RelatedTitlesSection({
 export function WorkDetailPage() {
   const { id } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { archiveScopeKey, mode } = useAuthSession();
   const { error, isLoading, work } = useWorkDetail(id);
@@ -869,39 +866,6 @@ export function WorkDetailPage() {
     };
   }, [mode, workCatalogTitleId]);
 
-  async function handleDelete() {
-    if (!work) {
-      return;
-    }
-
-    const shouldDelete = await confirmDialogAdapter.confirm({
-      description:
-        '작품 목록에서는 숨겨지고 휴지통에서 복원할 수 있습니다.',
-      title: `"${work.title}"을 삭제할까요?`,
-    });
-
-    if (!shouldDelete) {
-      return;
-    }
-
-    try {
-      setActionError(null);
-      setActionSuccess(null);
-      await worksService.deleteWork(work.id);
-      navigate('/works', {
-        state: {
-          deletedWork: work,
-        },
-      });
-    } catch (deleteError) {
-      setActionError(
-        deleteError instanceof Error
-          ? deleteError.message
-          : '작품을 삭제하지 못했습니다.',
-      );
-    }
-  }
-
   async function handleCreateTimelineEntry(input: {
     note: string;
     occurredAt: string;
@@ -1061,30 +1025,6 @@ export function WorkDetailPage() {
         timelineEntries={timelineEntries}
         work={work}
       />
-
-      <PageSection
-        description="삭제하면 작품 목록에서는 숨겨지고, 휴지통에서 복원할 수 있습니다."
-        eyebrow="위험 작업"
-        title="기록 관리"
-      >
-        <SectionCard gap="md" padding="lg" tone="subtle">
-          <Group align="center" justify="space-between" wrap="wrap">
-            <Stack gap={4}>
-              <Text fw={700}>작품을 휴지통으로 이동</Text>
-              <Text c="var(--mantine-color-dimmed)" size="sm">
-                기록은 즉시 완전 삭제되지 않습니다. 작품의 휴지통 보기에서 다시 복원할 수 있습니다.
-              </Text>
-            </Stack>
-            <AppButton
-              onClick={() => void handleDelete()}
-              tone="danger"
-              type="button"
-            >
-              휴지통으로 이동
-            </AppButton>
-          </Group>
-        </SectionCard>
-      </PageSection>
     </DetailPageTemplate>
   );
 }

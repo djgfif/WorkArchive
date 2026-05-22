@@ -79,6 +79,24 @@ const progressUnitLabels: Record<ProgressUnit, string> = {
   volume: '권',
 };
 
+const progressCurrentLabels: Record<ProgressUnit, string> = {
+  chapter: '읽은 화',
+  episode: '본 회차',
+  volume: '읽은 권',
+};
+
+const progressTotalLabels: Record<ProgressUnit, string> = {
+  chapter: '전체 화',
+  episode: '전체 회차',
+  volume: '전체 권',
+};
+
+const lastPositionLabels: Record<ProgressUnit, string> = {
+  chapter: '마지막으로 읽은 위치',
+  episode: '마지막으로 본 위치',
+  volume: '마지막으로 읽은 위치',
+};
+
 function formatRatingLabel(value: number | null) {
   return value === null ? '미평가' : `★ ${value.toFixed(1)}`;
 }
@@ -347,9 +365,9 @@ export function WorkListRow({
                   <NumberInput
                     allowDecimal={false}
                     allowNegative={false}
-                    aria-label={`${work.title} 현재 ${progressUnitLabels[progressUnit]}`}
+                    aria-label={`${work.title} ${progressCurrentLabels[progressUnit]}`}
                     disabled={isUpdating}
-                    label={`현재 ${progressUnitLabels[progressUnit]}`}
+                    label={progressCurrentLabels[progressUnit]}
                     min={0}
                     onChange={(value) => setCurrent(coerceNumberInputValue(value))}
                     value={current ?? ''}
@@ -357,9 +375,9 @@ export function WorkListRow({
                   <NumberInput
                     allowDecimal={false}
                     allowNegative={false}
-                    aria-label={`${work.title} 전체 ${progressUnitLabels[progressUnit]}`}
+                    aria-label={`${work.title} ${progressTotalLabels[progressUnit]}`}
                     disabled={isUpdating}
-                    label={`전체 ${progressUnitLabels[progressUnit]}`}
+                    label={progressTotalLabels[progressUnit]}
                     min={0}
                     onChange={(value) => setTotal(coerceNumberInputValue(value))}
                     value={total ?? ''}
@@ -368,13 +386,13 @@ export function WorkListRow({
 
                 <Group align="flex-end" gap="sm" wrap="wrap">
                   <TextInput
-                    aria-label={`${work.title} 마지막 위치`}
+                    aria-label={`${work.title} ${lastPositionLabels[progressUnit]}`}
                     disabled={isUpdating}
                     flex={1}
-                    label="마지막 위치"
+                    label={lastPositionLabels[progressUnit]}
                     maxLength={120}
                     onChange={(event) => setLastLabel(event.currentTarget.value)}
-                    placeholder={`예: ${current ?? 18}${progressUnitLabels[progressUnit]}`}
+                    placeholder={`예: ${current ?? 18}${progressUnitLabels[progressUnit]}까지`}
                     style={{ minWidth: 'min(100%, 12rem)' }}
                     value={lastLabel}
                   />

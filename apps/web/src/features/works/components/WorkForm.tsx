@@ -43,6 +43,7 @@ import {
   type UpsertWorkInput,
   type WorkFormValues,
 } from '../utils/work-form';
+import { getWorkMediaFieldLabels } from '../utils/work-media-labels';
 import {
   getWorkStatusLabel,
   getWorkTypeLabel,
@@ -60,6 +61,8 @@ import { useDuplicateWorkCandidates } from '../hooks/useDuplicateWorkCandidates'
 import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
 import { useWorkFormDraft } from '../hooks/useWorkFormDraft';
 import styles from './ArchiveComponents.module.css';
+import { WorkGenreSelector } from './WorkGenreSelector';
+import { normalizeWorkGenres } from '../utils/work-genres';
 
 const REVIEW_FOCUS_DESCRIPTION_ID = 'work-form-review-focus-description';
 const css = styles as Record<string, string>;
@@ -172,6 +175,7 @@ export function WorkForm({
     ],
   });
   const values = form.values;
+  const mediaLabels = getWorkMediaFieldLabels(values.type);
   const hasSeriesRelation =
     values.seriesText.trim() !== '' || values.universeText.trim() !== '';
   const [activeStep, setActiveStep] = useState(
@@ -243,7 +247,9 @@ export function WorkForm({
   }, [focusArea]);
 
   const previewTitle = values.title.trim() || '제목 없는 작품';
-  const genreValues = parseCommaSeparatedTextList(values.genresText);
+  const genreValues = normalizeWorkGenres(
+    parseCommaSeparatedTextList(values.genresText),
+  );
   const personalTagValues = parseCommaSeparatedTextList(
     values.personalTagsText,
   );
@@ -274,6 +280,8 @@ export function WorkForm({
   const uniquePersonSuggestions = Array.from(new Set(personContributorSuggestions));
   const uniqueSeriesSuggestions = Array.from(new Set(seriesSuggestions));
   const uniqueTagSuggestions = Array.from(new Set(tagSuggestions));
+  const shouldShowStudioField =
+    mediaLabels.showStudioField || studioValues.length > 0;
   const previewTags = [...genreValues, ...personalTagValues].slice(0, 3);
   useEffect(() => {
     if (focusArea !== 'review' || hasFocusedReviewRef.current) {
@@ -445,10 +453,11 @@ export function WorkForm({
                         <Grid.Col span={{ base: 12, md: 6 }}>
                           <TextInput
                             id="author"
-                            label="작가/제작자"
+                            description="목록과 상세 상단에 가장 먼저 보일 대표 이름입니다."
+                            label={mediaLabels.authorLabel}
                             name="author"
                             onChange={handleInputChange}
-                            placeholder="작가, 스튜디오, 제작자"
+                            placeholder={mediaLabels.authorPlaceholder}
                             value={values.author}
                           />
                         </Grid.Col>
@@ -533,69 +542,13 @@ export function WorkForm({
                         />
                       </SimpleGrid>
 
-                      <Stack gap="xs">
-                        <Text fw={600} size="sm" style={{ color: 'var(--app-text-secondary)' }}>
-                          장르
-                        </Text>
-                        <TagsInput
-                          clearable
-                          id="genresText"
-                          name="genresText"
-                          onChange={(items) => handleTextListChange('genresText', items)}
-                          placeholder="Enter 또는 쉼표로 구분"
-                          splitChars={[',']}
-                          value={genreValues}
-                          styles={{
-                            input: {
-                              background: 'var(--app-surface-default)',
-                              border: '1.5px solid var(--app-border-default)',
-                              borderRadius: 10,
-                              fontSize: '0.875rem',
-                            },
-                            pill: {
-                              background: 'color-mix(in srgb, var(--app-accent-primary) 14%, transparent)',
-                              border: '1px solid color-mix(in srgb, var(--app-accent-primary) 30%, transparent)',
-                              color: 'var(--app-accent-primary)',
-                              fontWeight: 600,
-                              borderRadius: 6,
-                              fontSize: '0.8rem',
-                            },
-                          }}
-                        />
-                        <Group gap={4}>
-                          {(['SF', '판타지', '로맨스', '액션', '드라마', '스릴러', '호러', '코미디', '슬라이스 오브 라이프', '스포츠', '역사', '시대극'] as const).map((genre) => (
-                            <button
-                              aria-pressed={genreValues.includes(genre)}
-                              className={css.filterPill}
-                              key={genre}
-                              onClick={() => {
-                                if (!genreValues.includes(genre)) {
-                                  handleTextListChange('genresText', [...genreValues, genre]);
-                                }
-                              }}
-                              style={{
-                                background: genreValues.includes(genre)
-                                  ? 'color-mix(in srgb, var(--app-accent-primary) 18%, transparent)'
-                                  : 'var(--app-surface-subtle)',
-                                border: genreValues.includes(genre)
-                                  ? '1.5px solid color-mix(in srgb, var(--app-accent-primary) 40%, transparent)'
-                                  : '1.5px solid var(--app-border-default)',
-                                borderRadius: 20,
-                                color: genreValues.includes(genre)
-                                  ? 'var(--app-accent-primary)'
-                                  : 'var(--app-text-secondary)',
-                                cursor: 'pointer',
-                                fontSize: '0.78rem',
-                                fontWeight: 600,
-                                padding: '3px 10px',
-                              }}
-                              type="button"
-                            >
-                              {genreValues.includes(genre) ? '✓ ' : '+ '}{genre}
-                            </button>
-                          ))}
-                        </Group>
-                      </Stack>
+                      <WorkGenreSelector
+                        id="genresText"
+                        onChange={(items) =>
+                          handleTextListChange('genresText', items)
+                        }
+                        value={genreValues}
+                      />
 
                     </Stack>
                   </Stepper.Step>
@@ -605,52 +558,58 @@ export function WorkForm({
                     label="시리즈 / 관계"
                   >
                     <Stack gap="lg" pt="md">
-                      <Checkbox
-                        checked={isSeriesWork}
-                        description="시리즈나 세계관으로 묶이는 작품일 때만 관련 정보를 입력합니다."
-                        label="시리즈 작품"
-                        onChange={(event) => {
-                          const checked = event.currentTarget.checked;
-                          setIsSeriesWork(checked);
+                      <Paper p="md" radius="md" withBorder>
+                        <Stack gap="md">
+                          <Checkbox
+                            checked={isSeriesWork}
+                            description="후속작, 외전, 리메이크, 공유 세계관을 따로 묶어 탐색할 때 사용합니다."
+                            label="시리즈 / 세계관 연결"
+                            onChange={(event) => {
+                              const checked = event.currentTarget.checked;
+                              setIsSeriesWork(checked);
 
-                          if (!checked) {
-                            form.setFieldValue('seriesText', '');
-                            form.setFieldValue('universeText', '');
-                          }
-                        }}
-                      />
+                              if (!checked) {
+                                form.setFieldValue('seriesText', '');
+                                form.setFieldValue('universeText', '');
+                              }
+                            }}
+                          />
 
-                      {isSeriesWork && (
-                      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                        <TagsInput
-                          clearable
-                          data={uniqueSeriesSuggestions}
-                          id="seriesText"
-                          label="시리즈"
-                          name="seriesText"
-                          onChange={(items) => handleTextListChange('seriesText', items)}
-                          placeholder="예: Fate, 해리포터, 귀멸의 칼날"
-                          splitChars={[',']}
-                          value={seriesValues}
-                        />
-                        <TagsInput
-                          clearable
-                          data={uniqueSeriesSuggestions}
-                          id="universeText"
-                          label="세계관 / 프랜차이즈"
-                          name="universeText"
-                          onChange={(items) => handleTextListChange('universeText', items)}
-                          placeholder="예: TYPE-MOON, Wizarding World"
-                          splitChars={[',']}
-                          value={universeValues}
-                        />
-                      </SimpleGrid>
-                      )}
+                          {isSeriesWork && (
+                            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                              <TagsInput
+                                clearable
+                                data={uniqueSeriesSuggestions}
+                                description={mediaLabels.seriesDescription}
+                                id="seriesText"
+                                label={mediaLabels.seriesLabel}
+                                name="seriesText"
+                                onChange={(items) => handleTextListChange('seriesText', items)}
+                                placeholder={mediaLabels.seriesPlaceholder}
+                                splitChars={[',']}
+                                value={seriesValues}
+                              />
+                              <TagsInput
+                                clearable
+                                data={uniqueSeriesSuggestions}
+                                description={mediaLabels.universeDescription}
+                                id="universeText"
+                                label={mediaLabels.universeLabel}
+                                name="universeText"
+                                onChange={(items) => handleTextListChange('universeText', items)}
+                                placeholder={mediaLabels.universePlaceholder}
+                                splitChars={[',']}
+                                value={universeValues}
+                              />
+                            </SimpleGrid>
+                          )}
+                        </Stack>
+                      </Paper>
                     </Stack>
                   </Stepper.Step>
 
                   <Stepper.Step
-                    description="작가, 스튜디오, 출판사"
+                    description="매체별 제작 정보"
                     label="제작진"
                   >
                     <Stack gap="lg" pt="md">
@@ -659,32 +618,34 @@ export function WorkForm({
                           clearable
                           data={uniquePersonSuggestions}
                           id="creatorText"
-                          label="작가 / 원작자 / 감독"
+                          label={mediaLabels.creatorLabel}
                           name="creatorText"
                           onChange={(items) => handleTextListChange('creatorText', items)}
-                          placeholder="여러 명은 쉼표로 구분"
+                          placeholder={mediaLabels.creatorPlaceholder}
                           splitChars={[',']}
                           value={creatorValues}
                         />
-                        <TagsInput
-                          clearable
-                          data={uniqueOrganizationSuggestions}
-                          id="studioText"
-                          label="스튜디오 / 제작사"
-                          name="studioText"
-                          onChange={(items) => handleTextListChange('studioText', items)}
-                          placeholder="예: ufotable, MAPPA"
-                          splitChars={[',']}
-                          value={studioValues}
-                        />
+                        {shouldShowStudioField && (
+                          <TagsInput
+                            clearable
+                            data={uniqueOrganizationSuggestions}
+                            id="studioText"
+                            label={mediaLabels.studioLabel}
+                            name="studioText"
+                            onChange={(items) => handleTextListChange('studioText', items)}
+                            placeholder={mediaLabels.studioPlaceholder}
+                            splitChars={[',']}
+                            value={studioValues}
+                          />
+                        )}
                         <TagsInput
                           clearable
                           data={uniqueOrganizationSuggestions}
                           id="publisherText"
-                          label="출판사"
+                          label={mediaLabels.publisherLabel}
                           name="publisherText"
                           onChange={(items) => handleTextListChange('publisherText', items)}
-                          placeholder="예: Shueisha, Bloomsbury"
+                          placeholder={mediaLabels.publisherPlaceholder}
                           splitChars={[',']}
                           value={publisherValues}
                         />
@@ -692,10 +653,10 @@ export function WorkForm({
                           clearable
                           data={uniqueOrganizationSuggestions}
                           id="platformText"
-                          label="플랫폼"
+                          label={mediaLabels.platformLabel}
                           name="platformText"
                           onChange={(items) => handleTextListChange('platformText', items)}
-                          placeholder="예: 문피아, Netflix"
+                          placeholder={mediaLabels.platformPlaceholder}
                           splitChars={[',']}
                           value={platformValues}
                         />
