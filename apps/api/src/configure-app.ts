@@ -37,7 +37,16 @@ export async function configureApp(
   app.use(cookieParser());
   app.use(
     helmet({
-      contentSecurityPolicy: false,
+      contentSecurityPolicy: config.isProduction
+        ? {
+            directives: {
+              baseUri: ["'none'"],
+              defaultSrc: ["'none'"],
+              formAction: ["'none'"],
+              frameAncestors: ["'none'"],
+            },
+          }
+        : false,
       crossOriginEmbedderPolicy: false,
       hidePoweredBy: true,
     }),

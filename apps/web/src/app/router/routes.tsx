@@ -23,6 +23,7 @@ import { WorkCreatePage } from '../../features/works/pages/WorkCreatePage';
 import { WorkDetailPage } from '../../features/works/pages/WorkDetailPage';
 import { WorkEditPage } from '../../features/works/pages/WorkEditPage';
 import { WorksListPage } from '../../features/works/pages/WorksListPage';
+import { StateMessage } from '../../shared/components/AppPrimitives';
 
 const TierBoardsPage = lazy(() =>
   import('../../features/tier-boards/pages/TierBoardsPage').then((module) => ({
@@ -45,7 +46,34 @@ const TierBoardViewPage = lazy(() =>
 );
 
 function lazyRoute(element: ReactNode) {
-  return <Suspense fallback={null}>{element}</Suspense>;
+  return (
+    <Suspense
+      fallback={
+        <StateMessage
+          description="화면 데이터를 준비하는 중입니다."
+          eyebrow="Loading"
+          title="화면을 불러오고 있습니다"
+          tone="loading"
+        />
+      }
+    >
+      {element}
+    </Suspense>
+  );
+}
+
+function routeError(
+  title: string,
+  fallbackPath: string,
+  fallbackLabel: string,
+) {
+  return (
+    <RouteErrorBoundary
+      fallbackLabel={fallbackLabel}
+      fallbackPath={fallbackPath}
+      title={title}
+    />
+  );
 }
 
 function tierBoardElement(flags: FeatureFlags, element: ReactNode) {
@@ -66,6 +94,11 @@ export function createAppRoutes(
         {
           index: true,
           element: <HomePage />,
+          errorElement: routeError(
+            '홈 화면을 복구할 수 없습니다',
+            '/works',
+            '작품 목록으로 이동',
+          ),
         },
         {
           path: 'home',
@@ -74,48 +107,74 @@ export function createAppRoutes(
         {
           path: 'works',
           element: <WorksListPage />,
+          errorElement: routeError(
+            '작품 목록을 복구할 수 없습니다',
+            '/',
+            '홈으로 돌아가기',
+          ),
         },
         {
           path: 'works/new',
           element: <WorkCreatePage />,
-          errorElement: (
-            <RouteErrorBoundary
-              fallbackLabel="작품 목록으로 돌아가기"
-              fallbackPath="/works"
-              title="작품 추가 화면을 복구할 수 없습니다"
-            />
+          errorElement: routeError(
+            '작품 추가 화면을 복구할 수 없습니다',
+            '/works',
+            '작품 목록으로 돌아가기',
           ),
         },
         {
           path: 'works/:id',
           element: <WorkDetailPage />,
+          errorElement: routeError(
+            '작품 상세 화면을 복구할 수 없습니다',
+            '/works',
+            '작품 목록으로 돌아가기',
+          ),
         },
         {
           path: 'works/:id/edit',
           element: <WorkEditPage />,
+          errorElement: routeError(
+            '작품 편집 화면을 복구할 수 없습니다',
+            '/works',
+            '작품 목록으로 돌아가기',
+          ),
         },
         {
           path: 'tier-boards',
           element: tierBoardElement(flags, <TierBoardsPage />),
+          errorElement: routeError(
+            '티어보드 목록을 복구할 수 없습니다',
+            '/works',
+            '작품 목록으로 돌아가기',
+          ),
         },
         {
           path: 'tier-boards/:boardId',
           element: tierBoardElement(flags, <TierBoardEditorPage />),
-          errorElement: (
-            <RouteErrorBoundary
-              fallbackLabel="티어보드 목록으로 돌아가기"
-              fallbackPath="/tier-boards"
-              title="티어보드 편집 화면을 복구할 수 없습니다"
-            />
+          errorElement: routeError(
+            '티어보드 편집 화면을 복구할 수 없습니다',
+            '/tier-boards',
+            '티어보드 목록으로 돌아가기',
           ),
         },
         {
           path: 'tier-boards/:boardId/view',
           element: tierBoardElement(flags, <TierBoardViewPage />),
+          errorElement: routeError(
+            '티어보드 보기 화면을 복구할 수 없습니다',
+            '/tier-boards',
+            '티어보드 목록으로 돌아가기',
+          ),
         },
         {
           path: 'profile',
           element: <ProfilePage />,
+          errorElement: routeError(
+            '프로필 화면을 복구할 수 없습니다',
+            '/account',
+            '계정 개요로 돌아가기',
+          ),
         },
       ],
     },
@@ -126,6 +185,11 @@ export function createAppRoutes(
         {
           path: 'login',
           element: <LoginPage />,
+          errorElement: routeError(
+            '로그인 화면을 복구할 수 없습니다',
+            '/works',
+            '작품 목록으로 이동',
+          ),
         },
         {
           path: 'register',
@@ -134,6 +198,11 @@ export function createAppRoutes(
         {
           path: 'google/complete',
           element: <GoogleAuthCompletePage />,
+          errorElement: routeError(
+            'Google 로그인 완료 화면을 복구할 수 없습니다',
+            '/auth/login',
+            '로그인으로 돌아가기',
+          ),
         },
         {
           path: 'password-reset',
@@ -152,20 +221,28 @@ export function createAppRoutes(
         {
           index: true,
           element: <AccountOverviewPage />,
+          errorElement: routeError(
+            '계정 개요를 복구할 수 없습니다',
+            '/works',
+            '작품 목록으로 이동',
+          ),
         },
         {
           path: 'transfer',
           element: <GuestTransferReviewPage />,
+          errorElement: routeError(
+            '게스트 기록 이전 화면을 복구할 수 없습니다',
+            '/account',
+            '계정 개요로 돌아가기',
+          ),
         },
         {
           path: 'settings',
           element: <SettingsPage />,
-          errorElement: (
-            <RouteErrorBoundary
-              fallbackLabel="계정 개요로 돌아가기"
-              fallbackPath="/account"
-              title="설정 화면을 복구할 수 없습니다"
-            />
+          errorElement: routeError(
+            '설정 화면을 복구할 수 없습니다',
+            '/account',
+            '계정 개요로 돌아가기',
           ),
         },
       ],

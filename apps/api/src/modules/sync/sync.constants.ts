@@ -51,6 +51,7 @@ export const SYNC_RESULT_CODES = [
   'conflict_ownership_mismatch',
   'conflict_parent_changed',
   'failed_validation',
+  'failed_client_mutation_reused',
   'failed_missing_catalog_title',
   'failed_import_draft_unresolved',
   'pull_conflict_local_queue',

@@ -24,6 +24,11 @@ import type {
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 
 import { readApiRuntimeConfig } from '../../config/api-runtime-config';
+import {
+  ExternalFetchError,
+  fetchExternal,
+  readJsonWithLimit,
+} from '../../common/external-fetch';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SecurityAuditService } from '../../security/security-audit.service';
 import { hashSecret, verifySecret } from './auth-crypto';
@@ -47,6 +52,11 @@ const GOOGLE_AUTHORIZATION_URL =
   'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
+const GOOGLE_TOKEN_TIMEOUT_MS = 5_000;
+const GOOGLE_JWKS_TIMEOUT_MS = 4_000;
+const GOOGLE_JWKS_STALE_FALLBACK_MS = 24 * 60 * 60 * 1_000;
+const GOOGLE_OAUTH_JSON_MAX_BYTES = 64 * 1_024;
+const GOOGLE_JWKS_JSON_MAX_BYTES = 256 * 1_024;
 const GOOGLE_OIDC_ISSUERS: [string, string] = [
   'https://accounts.google.com',
   'accounts.google.com',
@@ -108,6 +118,7 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private googleSigningKeysCache: {
     expiresAt: number;
+    fetchedAt: number;
     keysByKid: Map<string, string>;
   } | null = null;
 
@@ -656,20 +667,44 @@ export class AuthService {
       redirect_uri: config.redirectUri,
     });
 
-    const response = await fetch(GOOGLE_TOKEN_URL, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded',
-      },
-      body,
-    });
+    let response: Response;
+
+    try {
+      response = await fetchExternal(GOOGLE_TOKEN_URL, {
+        body,
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+        },
+        method: 'POST',
+        timeoutMs: GOOGLE_TOKEN_TIMEOUT_MS,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Google token exchange failed reason=${
+          error instanceof ExternalFetchError ? error.code : 'unknown'
+        }`,
+      );
+      throw new UnauthorizedException('Google login could not be completed.');
+    }
 
     if (!response.ok) {
       this.logger.warn(`Google token exchange failed status=${response.status}`);
       throw new UnauthorizedException('Google login could not be completed.');
     }
 
-    return (await response.json()) as GoogleTokenResponse;
+    try {
+      return await readJsonWithLimit<GoogleTokenResponse>(
+        response,
+        GOOGLE_OAUTH_JSON_MAX_BYTES,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Google token exchange returned invalid body reason=${
+          error instanceof ExternalFetchError ? error.code : 'unknown'
+        }`,
+      );
+      throw new UnauthorizedException('Google login could not be completed.');
+    }
   }
 
   private async verifyGoogleIdToken(
@@ -722,13 +757,58 @@ export class AuthService {
       }
     }
 
-    const response = await fetch(GOOGLE_JWKS_URL);
+    let response: Response;
 
-    if (!response.ok) {
+    try {
+      response = await fetchExternal(GOOGLE_JWKS_URL, {
+        method: 'GET',
+        timeoutMs: GOOGLE_JWKS_TIMEOUT_MS,
+      });
+    } catch (error) {
+      const staleKey = this.getStaleGoogleSigningKey(kid);
+
+      if (staleKey) {
+        this.logger.warn(
+          `Google signing keys fetch failed; using stale cache reason=${
+            error instanceof ExternalFetchError ? error.code : 'unknown'
+          }`,
+        );
+        return staleKey;
+      }
+
       throw new UnauthorizedException('Google signing keys are unavailable.');
     }
 
-    const jwks = (await response.json()) as GoogleJwksResponse;
+    if (!response.ok) {
+      const staleKey = this.getStaleGoogleSigningKey(kid);
+
+      if (staleKey) {
+        this.logger.warn(
+          `Google signing keys returned status=${response.status}; using stale cache`,
+        );
+        return staleKey;
+      }
+
+      throw new UnauthorizedException('Google signing keys are unavailable.');
+    }
+
+    let jwks: GoogleJwksResponse;
+
+    try {
+      jwks = await readJsonWithLimit<GoogleJwksResponse>(
+        response,
+        GOOGLE_JWKS_JSON_MAX_BYTES,
+      );
+    } catch {
+      const staleKey = this.getStaleGoogleSigningKey(kid);
+
+      if (staleKey) {
+        this.logger.warn('Google signing keys body invalid; using stale cache');
+        return staleKey;
+      }
+
+      throw new UnauthorizedException('Google signing keys are unavailable.');
+    }
     const keysByKid = new Map<string, string>();
 
     for (const jwk of jwks.keys ?? []) {
@@ -757,6 +837,7 @@ export class AuthService {
 
     this.googleSigningKeysCache = {
       expiresAt: Date.now() + maxAgeSeconds * 1000,
+      fetchedAt: Date.now(),
       keysByKid,
     };
 
@@ -767,6 +848,21 @@ export class AuthService {
     }
 
     return signingKey;
+  }
+
+  private getStaleGoogleSigningKey(kid: string) {
+    if (!this.googleSigningKeysCache) {
+      return null;
+    }
+
+    if (
+      Date.now() - this.googleSigningKeysCache.fetchedAt >
+      GOOGLE_JWKS_STALE_FALLBACK_MS
+    ) {
+      return null;
+    }
+
+    return this.googleSigningKeysCache.keysByKid.get(kid) ?? null;
   }
 
   private async findOrCreateGoogleUser(profile: GoogleIdentityProfile) {

@@ -158,6 +158,35 @@ Check API logs for:
 - `tier_board.import.failed` with no raw image data;
 - no cookie, token, OAuth code, or authorization header values.
 
+## Evidence Ledger
+
+Record real beta/production smoke runs here. Do not paste secrets, cookies,
+OAuth codes, access tokens, API keys, backup contents, or personally identifying
+tester data.
+
+Required evidence per run:
+
+- Date and timezone:
+- Commit SHA:
+- Host or environment:
+- Operator:
+- `scripts/deploy/beta-preflight.sh` result:
+- Compose config validation result:
+- Migration command and result:
+- API/web startup result:
+- `GET /health` status:
+- `GET /livez` status:
+- `GET /readyz` status:
+- `GET /api/auth/google/status` result:
+- Redis rate-limit verification:
+- Google OAuth login/logout verification:
+- Authenticated sync push/pull verification:
+- Backup creation result:
+- Non-production restore drill result:
+- Rollback notes, if any:
+
+No production smoke evidence has been recorded in this repository yet.
+
 ## Shutdown After Rehearsal
 
 For a non-production rehearsal host:

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { getPrimaryNavigationItems } from '../layouts/MainProductLayout';
 import { createAppRoutes } from './routes';
+import { RouteErrorBoundary } from '../../shared/components/RouteErrorBoundary';
 import type { FeatureFlags } from '../../shared/runtime/feature-flags';
 
 const flagsWithTierBoardsOff: FeatureFlags = {
@@ -42,6 +43,34 @@ describe('app routes', () => {
         replace: true,
         to: '/works',
       });
+    }
+  });
+
+  it('adds route error boundaries to primary product, auth, and account routes', () => {
+    const routes = createAppRoutes();
+    const productRoutes = routes[0]?.children ?? [];
+    const authRoutes = routes.find((route) => route.path === '/auth')?.children ?? [];
+    const accountRoutes =
+      routes.find((route) => route.path === '/account')?.children ?? [];
+    const routePathsWithBoundaries = [
+      productRoutes.find((route) => route.index),
+      productRoutes.find((route) => route.path === 'works'),
+      productRoutes.find((route) => route.path === 'works/:id'),
+      productRoutes.find((route) => route.path === 'works/:id/edit'),
+      productRoutes.find((route) => route.path === 'tier-boards/:boardId/view'),
+      productRoutes.find((route) => route.path === 'profile'),
+      authRoutes.find((route) => route.path === 'login'),
+      authRoutes.find((route) => route.path === 'google/complete'),
+      accountRoutes.find((route) => route.index),
+      accountRoutes.find((route) => route.path === 'transfer'),
+    ];
+
+    for (const route of routePathsWithBoundaries) {
+      expect(route?.errorElement).toBeDefined();
+      expect(isValidElement(route?.errorElement)).toBe(true);
+      expect(isValidElement(route?.errorElement) && route.errorElement.type).toBe(
+        RouteErrorBoundary,
+      );
     }
   });
 });

@@ -492,13 +492,18 @@ model UserSyncAppliedMutation {
   queueId          String
   entityType       String
   entityId         String
+  payloadHash      String?
   result           Json
+  resultStatus     String   @default("applied")
+  expiresAt        DateTime?
   createdAt        DateTime @default(now())
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, clientMutationId])
   @@index([userId, createdAt])
+  @@index([expiresAt])
   @@index([entityType, entityId])
+  @@index([userId, resultStatus, createdAt])
   @@map("user_sync_applied_mutations")
 }
 

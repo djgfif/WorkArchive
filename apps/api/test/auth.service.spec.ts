@@ -1,5 +1,5 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { BadRequestException, ConflictException, Logger } from '@nestjs/common';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { getRefreshTokenCookieOptions } from '../src/modules/auth/auth.cookies';
 import {
@@ -9,6 +9,7 @@ import {
 import type { PrismaService } from '../src/prisma/prisma.service';
 
 const ORIGINAL_ENV = { ...process.env };
+const ORIGINAL_FETCH = globalThis.fetch;
 
 interface MockUser {
   id: string;
@@ -294,6 +295,12 @@ async function issueSession(
 }
 
 describe('AuthService', () => {
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+    globalThis.fetch = ORIGINAL_FETCH;
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
     process.env.DATABASE_URL =
       'postgresql://postgres:postgres@localhost:5432/work_archive';
@@ -529,6 +536,77 @@ describe('AuthService', () => {
         avatarUrl: '',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('fails Google token exchange quickly when the upstream request aborts', async () => {
+    process.env.GOOGLE_OAUTH_CLIENT_ID = 'google-client-id';
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google-client-secret';
+    process.env.GOOGLE_OAUTH_REDIRECT_URI =
+      'http://127.0.0.1:53173/api/auth/google/callback';
+    const { prisma } = createPrismaMock();
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const warnSpy = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new DOMException('aborted', 'AbortError'));
+
+    await expect(
+      (
+        authService as unknown as {
+          exchangeGoogleAuthorizationCode: (
+            code: string,
+          ) => Promise<unknown>;
+        }
+      ).exchangeGoogleAuthorizationCode('oauth-code-secret'),
+    ).rejects.toThrow('Google login could not be completed.');
+
+    expect(warnSpy.mock.calls.flat().join(' ')).not.toContain(
+      'oauth-code-secret',
+    );
+  });
+
+  it('uses stale Google JWKS cache only when the requested kid is cached', async () => {
+    process.env.GOOGLE_OAUTH_CLIENT_ID = 'google-client-id';
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google-client-secret';
+    process.env.GOOGLE_OAUTH_REDIRECT_URI =
+      'http://127.0.0.1:53173/api/auth/google/callback';
+    const { prisma } = createPrismaMock();
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    (
+      authService as unknown as {
+        googleSigningKeysCache: {
+          expiresAt: number;
+          fetchedAt: number;
+          keysByKid: Map<string, string>;
+        };
+      }
+    ).googleSigningKeysCache = {
+      expiresAt: Date.now() - 1,
+      fetchedAt: Date.now() - 1_000,
+      keysByKid: new Map([['cached-kid', 'cached-pem']]),
+    };
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new DOMException('aborted', 'AbortError'));
+
+    await expect(
+      (
+        authService as unknown as {
+          getGoogleSigningKey: (kid: string) => Promise<string>;
+        }
+      ).getGoogleSigningKey('cached-kid'),
+    ).resolves.toBe('cached-pem');
+
+    await expect(
+      (
+        authService as unknown as {
+          getGoogleSigningKey: (kid: string) => Promise<string>;
+        }
+      ).getGoogleSigningKey('missing-kid'),
+    ).rejects.toThrow('Google signing keys are unavailable.');
   });
 });
 

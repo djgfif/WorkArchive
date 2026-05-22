@@ -8,6 +8,7 @@
 - Confirm Google OAuth redirect URI exactly matches the deployed callback URL.
 - Confirm runtime feature flag overrides are in `/work-archive-config.js`, loaded before the React bundle, and contain no secrets.
 - Confirm public community/share flags remain disabled.
+- Confirm inactive placeholder-only features such as Community and Insights are not exposed in primary navigation.
 
 ## Verification
 
@@ -44,6 +45,7 @@ docker compose -f compose.prod.yml --env-file .env.prod build
 - Guest/local archive create and JSON export.
 - Authenticated sync push and pull.
 - If `tierBoards` is disabled, confirm tier board navigation is hidden and tier board routes redirect to `/works`.
+- Confirm disabled or placeholder-only routes such as `/community` and `/insights` do not appear in the visible navigation.
 - Tier board create, edit, JSON export/import, and PNG export if changed.
 - Import provider diagnostics page or API response.
 

@@ -988,6 +988,119 @@ describe('SyncService', () => {
     expect(idempotencyRecords.size).toBe(1);
   });
 
+  it('rejects reused clientMutationId values when the payload changes', async () => {
+    const idempotencyRecords = new Map<string, Record<string, unknown>>();
+    prisma.userSyncAppliedMutation.findUnique.mockImplementation(
+      async ({ where }: any) =>
+        idempotencyRecords.get(
+          `${where.userId_clientMutationId.userId}:${where.userId_clientMutationId.clientMutationId}`,
+        ) ?? null,
+    );
+    prisma.userSyncAppliedMutation.create.mockImplementation(
+      async ({ data }: any) => {
+        const record = { ...data };
+        idempotencyRecords.set(`${data.userId}:${data.clientMutationId}`, record);
+
+        return record;
+      },
+    );
+    userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
+    userRecordsService.update.mockResolvedValue(createWorkAggregateFixture());
+
+    const baseChange = {
+      queueId: 'de034913-d0d0-47fb-bf62-db2a662e4e68',
+      clientMutationId: '4f392746-389b-457f-8801-5c821b643bde',
+      entityType: 'work' as const,
+      entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      operation: 'update' as const,
+      createdAt: '2026-04-18T02:00:00.000Z',
+      payload: createSyncPayload({
+        shortReview: 'first',
+        updatedAt: '2026-04-18T02:00:00.000Z',
+      }),
+    };
+
+    const first = await service.push(USER_ID, { changes: [baseChange] });
+    const second = await service.push(USER_ID, {
+      changes: [
+        {
+          ...baseChange,
+          payload: createSyncPayload({
+            shortReview: 'changed',
+            updatedAt: '2026-04-18T02:00:00.000Z',
+          }),
+        },
+      ],
+    });
+
+    expect(first.results[0]).toEqual(
+      expect.objectContaining({
+        status: 'applied',
+      }),
+    );
+    expect(second.results[0]).toEqual(
+      expect.objectContaining({
+        code: 'failed_client_mutation_reused',
+        status: 'failed',
+      }),
+    );
+    expect(userRecordsService.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('stores deterministic validation failures for replay', async () => {
+    const idempotencyRecords = new Map<string, Record<string, unknown>>();
+    prisma.userSyncAppliedMutation.findUnique.mockImplementation(
+      async ({ where }: any) =>
+        idempotencyRecords.get(
+          `${where.userId_clientMutationId.userId}:${where.userId_clientMutationId.clientMutationId}`,
+        ) ?? null,
+    );
+    prisma.userSyncAppliedMutation.create.mockImplementation(
+      async ({ data }: any) => {
+        const record = { ...data };
+        idempotencyRecords.set(`${data.userId}:${data.clientMutationId}`, record);
+
+        return record;
+      },
+    );
+
+    const pushBody = {
+      changes: [
+        {
+          queueId: '26d60e20-4258-4480-a3ad-becf9ce0fe30',
+          clientMutationId: 'f55ebb17-62ff-4424-9f4e-67111b3c7936',
+          entityType: 'work' as const,
+          entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          operation: 'update' as const,
+          createdAt: '2026-04-18T02:00:00.000Z',
+          payload: {
+            ...createSyncPayload(),
+            id: '1f6055fa-0ac9-4ac8-a30a-6c957dc5b465',
+          },
+        },
+      ],
+    };
+
+    const first = await service.push(USER_ID, pushBody);
+    const second = await service.push(USER_ID, pushBody);
+
+    expect(first.results[0]).toEqual(
+      expect.objectContaining({
+        code: 'failed_validation',
+        status: 'failed',
+      }),
+    );
+    expect(second.results[0]).toEqual(first.results[0]);
+    expect(prisma.userSyncAppliedMutation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          expiresAt: expect.any(Date),
+          resultStatus: 'failed',
+        }),
+      }),
+    );
+  });
+
   it('handles lost network response retries by deduplicating the same tier_board clientMutationId', async () => {
     const idempotencyRecords = new Map<string, Record<string, unknown>>();
     prisma.userSyncAppliedMutation.findUnique.mockImplementation(
@@ -1258,7 +1371,14 @@ describe('SyncService', () => {
     }
 
     expect(prisma.userTierLane.create).not.toHaveBeenCalled();
-    expect(prisma.userSyncAppliedMutation.create).not.toHaveBeenCalled();
+    expect(prisma.userSyncAppliedMutation.create).toHaveBeenCalledTimes(2);
+    expect(prisma.userSyncAppliedMutation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          resultStatus: 'conflict',
+        }),
+      }),
+    );
   });
 
   it('syncs tier_board_card source work metadata without requiring active WorkRecord', async () => {
@@ -1369,7 +1489,14 @@ describe('SyncService', () => {
     }
 
     expect(prisma.userTierBoardAsset.create).not.toHaveBeenCalled();
-    expect(prisma.userSyncAppliedMutation.create).not.toHaveBeenCalled();
+    expect(prisma.userSyncAppliedMutation.create).toHaveBeenCalledTimes(2);
+    expect(prisma.userSyncAppliedMutation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          resultStatus: 'conflict',
+        }),
+      }),
+    );
   });
 
   it('creates a missing remote record for a local-only payload and assigns the authenticated owner', async () => {

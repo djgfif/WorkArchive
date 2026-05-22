@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { WorkType } from '@prisma/client';
@@ -47,6 +48,7 @@ import {
   type ImportSearchDiagnostics,
 } from './import-search-diagnostics';
 import { ImportsCredentialService } from './imports-credential.service';
+import { ProviderRuntimeStateService } from './provider-runtime-state.service';
 import {
   ALADIN_PROVIDER,
   ANILIST_PROVIDER,
@@ -167,22 +169,6 @@ const WIKIDATA_WORK_TYPE_QIDS: Partial<Record<WorkType, string[]>> = {
 @Injectable()
 export class ImportsService {
   private readonly logger = new Logger(ImportsService.name);
-  private readonly providerResponseCache = new Map<
-    string,
-    {
-      expiresAt: number;
-      value: unknown;
-    }
-  >();
-  // TODO: Move provider circuit state to Redis if this API runs multiple instances.
-  private readonly providerCircuitState = new Map<
-    ImportProvider,
-    {
-      consecutiveFailures: number;
-      openedUntil: number | null;
-      reasonCode: 'provider_failed';
-    }
-  >();
 
   constructor(
     @Inject(ImportsCredentialService)
@@ -200,6 +186,9 @@ export class ImportsService {
         findFirst: async () => null,
       },
     } as unknown as PrismaService,
+    @Inject(ProviderRuntimeStateService)
+    @Optional()
+    private readonly providerRuntimeState: ProviderRuntimeStateService = new ProviderRuntimeStateService(),
   ) {}
 
   async getAladinProviderStatus(
@@ -222,7 +211,7 @@ export class ImportsService {
         const metadata = PROVIDERS[provider];
 
         return {
-          ...this.getProviderCircuitStatus(provider),
+          ...(await this.providerRuntimeState.getCircuitStatus(provider)),
           configured: await this.isProviderConfigured(userId, provider),
           credentialMode: metadata.credentialMode,
           label: metadata.label,
@@ -396,7 +385,7 @@ export class ImportsService {
         continue;
       }
 
-      if (this.isProviderCircuitOpen(provider)) {
+      if (await this.providerRuntimeState.isCircuitOpen(provider)) {
         this.addSearchDiagnostic(diagnostics, provider, {
           configured,
           message: `${PROVIDERS[provider].label} search is temporarily skipped after repeated failures.`,
@@ -426,7 +415,7 @@ export class ImportsService {
         );
 
         candidates.push(...providerCandidates);
-        this.recordProviderSuccess(provider);
+        await this.providerRuntimeState.recordSuccess(provider);
         this.addSearchDiagnostic(diagnostics, provider, {
           configured,
           message: `${PROVIDERS[provider].label} search completed.`,
@@ -435,7 +424,11 @@ export class ImportsService {
           status: 'searched',
         });
       } catch (error) {
-        this.recordProviderFailure(provider);
+        await this.providerRuntimeState.recordFailure(
+          provider,
+          PROVIDER_CIRCUIT_FAILURE_THRESHOLD,
+          PROVIDER_CIRCUIT_OPEN_MS,
+        );
         if (explicitSingleProvider) {
           throw error;
         }
@@ -484,66 +477,6 @@ export class ImportsService {
       candidates: rankedCandidates,
       diagnostics,
     };
-  }
-
-  private isProviderCircuitOpen(provider: ImportProvider) {
-    const state = this.providerCircuitState.get(provider);
-
-    if (!state?.openedUntil) {
-      return false;
-    }
-
-    if (Date.now() < state.openedUntil) {
-      return true;
-    }
-
-    this.providerCircuitState.set(provider, {
-      consecutiveFailures: 0,
-      openedUntil: null,
-      reasonCode: 'provider_failed',
-    });
-
-    return false;
-  }
-
-  private getProviderCircuitStatus(provider: ImportProvider) {
-    const state = this.providerCircuitState.get(provider);
-
-    if (!state?.openedUntil || Date.now() >= state.openedUntil) {
-      return {
-        circuitOpenedUntil: null,
-        circuitReasonCode: null,
-        circuitState: 'closed' as const,
-      };
-    }
-
-    return {
-      circuitOpenedUntil: new Date(state.openedUntil).toISOString(),
-      circuitReasonCode: state.reasonCode,
-      circuitState: 'open' as const,
-    };
-  }
-
-  private recordProviderSuccess(provider: ImportProvider) {
-    this.providerCircuitState.delete(provider);
-  }
-
-  private recordProviderFailure(provider: ImportProvider) {
-    const current = this.providerCircuitState.get(provider) ?? {
-      consecutiveFailures: 0,
-      openedUntil: null,
-      reasonCode: 'provider_failed' as const,
-    };
-    const consecutiveFailures = current.consecutiveFailures + 1;
-
-    this.providerCircuitState.set(provider, {
-      consecutiveFailures,
-      openedUntil:
-        consecutiveFailures >= PROVIDER_CIRCUIT_FAILURE_THRESHOLD
-          ? Date.now() + PROVIDER_CIRCUIT_OPEN_MS
-          : null,
-      reasonCode: 'provider_failed',
-    });
   }
 
   private logEvent(
@@ -3469,14 +3402,14 @@ export class ImportsService {
     );
   }
 
-  private buildProviderStatus(
+  private async buildProviderStatus(
     provider: ImportProvider,
     configured: boolean,
-  ): ImportProviderStatusResponseDto {
+  ): Promise<ImportProviderStatusResponseDto> {
     const metadata = PROVIDERS[provider];
 
     return {
-      ...this.getProviderCircuitStatus(provider),
+      ...(await this.providerRuntimeState.getCircuitStatus(provider)),
       configured,
       credentialMode: metadata.credentialMode,
       label: metadata.label,
@@ -3633,7 +3566,9 @@ export class ImportsService {
     },
   ) {
     const url = rawUrl instanceof URL ? rawUrl : new URL(rawUrl);
-    const cachedResponse = this.readCachedProviderResponse(options.cacheKey);
+    const cachedResponse = await this.providerRuntimeState.readCache(
+      options.cacheKey,
+    );
 
     if (cachedResponse !== undefined) {
       return cachedResponse;
@@ -3705,10 +3640,10 @@ export class ImportsService {
     try {
       const responseBody = await response.json();
 
-      this.writeCachedProviderResponse(
+      await this.providerRuntimeState.writeCache(
         options.cacheKey,
         responseBody,
-        options.cacheTtlMs,
+        options.cacheTtlMs ?? PROVIDER_CACHE_TTL_MS,
       );
 
       return responseBody;
@@ -3789,40 +3724,6 @@ export class ImportsService {
       (input.variant ?? '').trim().toLowerCase(),
       input.query.normalize('NFKC').trim().toLowerCase(),
     ].join(':');
-  }
-
-  private readCachedProviderResponse(cacheKey: string | undefined) {
-    if (!cacheKey) {
-      return undefined;
-    }
-
-    const cached = this.providerResponseCache.get(cacheKey);
-
-    if (!cached) {
-      return undefined;
-    }
-
-    if (cached.expiresAt <= Date.now()) {
-      this.providerResponseCache.delete(cacheKey);
-      return undefined;
-    }
-
-    return cached.value;
-  }
-
-  private writeCachedProviderResponse(
-    cacheKey: string | undefined,
-    value: unknown,
-    ttlMs = PROVIDER_CACHE_TTL_MS,
-  ) {
-    if (!cacheKey || ttlMs <= 0) {
-      return;
-    }
-
-    this.providerResponseCache.set(cacheKey, {
-      expiresAt: Date.now() + ttlMs,
-      value,
-    });
   }
 
   private mapBookWorkType(categoryName: string, title = '') {

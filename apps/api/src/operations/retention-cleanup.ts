@@ -19,6 +19,7 @@ interface RetentionModelDelegate {
 export interface RetentionPrismaClient {
   passwordResetToken: RetentionModelDelegate;
   securityEvent: RetentionModelDelegate;
+  userSyncAppliedMutation: RetentionModelDelegate;
   userRefreshSession: RetentionModelDelegate;
 }
 
@@ -168,6 +169,17 @@ export function buildRetentionCleanupTargets(
             },
           },
         ],
+      },
+    },
+    {
+      description: `user_sync_applied_mutations replay rows expired before ${config.now.toISOString()}`,
+      model: 'userSyncAppliedMutation',
+      name: 'user_sync_applied_mutations',
+      where: {
+        expiresAt: {
+          lt: config.now,
+          not: null,
+        },
       },
     },
   ];

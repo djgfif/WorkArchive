@@ -6,6 +6,7 @@ import { ExternalApiKeyCryptoService } from './external-api-key-crypto.service';
 import { ImportsController } from './imports.controller';
 import { ImportsCredentialService } from './imports-credential.service';
 import { ImportsService } from './imports.service';
+import { ProviderRuntimeStateService } from './provider-runtime-state.service';
 
 @Module({
   imports: [AuthModule, CatalogModule],
@@ -14,6 +15,7 @@ import { ImportsService } from './imports.service';
     ExternalApiKeyCryptoService,
     ImportsCredentialService,
     ImportsService,
+    ProviderRuntimeStateService,
   ],
   exports: [ImportsService],
 })
