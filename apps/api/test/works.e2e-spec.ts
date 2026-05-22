@@ -1322,6 +1322,13 @@ describe('Auth, works, and sync API (e2e)', () => {
       service: 'work-archive-api',
       status: 'ok',
     });
+    const livezResponse = await fetch(`${baseUrl}/livez`);
+
+    expect(livezResponse.status).toBe(200);
+
+    const prefixedHealthResponse = await fetch(`${baseUrl}/api/health`);
+
+    expect(prefixedHealthResponse.status).toBe(404);
 
     const session = await createAuthenticatedUser('frieren@example.com');
     const staleRefreshCookie = cookieJar;
@@ -1375,7 +1382,7 @@ describe('Auth, works, and sync API (e2e)', () => {
       },
     });
 
-    expect(missingRefreshResponse.status).toBe(401);
+    expect(missingRefreshResponse.status).toBe(204);
   });
 
   it('logs out cleanly and rejects refresh attempts after logout', async () => {
@@ -1398,7 +1405,7 @@ describe('Auth, works, and sync API (e2e)', () => {
       method: 'POST',
     });
 
-    expect(refreshAfterLogoutResponse.status).toBe(401);
+    expect(refreshAfterLogoutResponse.status).toBe(204);
   });
 
   it('lists refresh sessions and supports device-level revoke and logout-all', async () => {

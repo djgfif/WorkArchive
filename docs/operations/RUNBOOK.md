@@ -14,13 +14,18 @@ This runbook keeps the current runtime: local-first web app, NestJS API, Postgre
 
 ## `/readyz` 503일 때
 
-`/readyz` checks runtime config, PostgreSQL, and Redis when `REDIS_URL` is configured.
+`/readyz` checks runtime config, PostgreSQL, Prisma migration state, and Redis
+when `REDIS_URL` is configured.
 
 1. Read the JSON response `checks` field.
 2. If `config` is listed, fix the missing or invalid environment variable and restart.
 3. If `postgres` is listed, follow the PostgreSQL 장애 section.
-4. If `redis` is listed, follow the Redis 장애 section.
-5. After mitigation, re-run:
+4. If `migrations` is listed, run the release/local migration job, confirm every
+   migration directory in the running API image exists in `_prisma_migrations`
+   with `finished_at` set, and inspect for failed rows before starting the API
+   again.
+5. If `redis` is listed, follow the Redis 장애 section.
+6. After mitigation, re-run:
    - `curl -fsS http://localhost:3000/health`
    - `curl -fsS http://localhost:3000/livez`
    - `curl -fsS http://localhost:3000/readyz`

@@ -2,7 +2,7 @@ import 'dotenv/config';
 
 import { randomUUID } from 'node:crypto';
 
-import { Module } from '@nestjs/common';
+import { Module, RequestMethod } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AuthModule } from './modules/auth';
@@ -36,6 +36,7 @@ import { SecurityModule } from './security/security.module';
           'res.headers["set-cookie"]',
         ],
       },
+      forRoutes: [{ path: '{*path}', method: RequestMethod.ALL }],
     }),
     PrismaModule,
     SecurityModule,

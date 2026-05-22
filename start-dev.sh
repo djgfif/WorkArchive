@@ -16,15 +16,18 @@ require_command() {
   fi
 }
 
-wait_for_api_container() {
+wait_for_container_health() {
+  local container_name="$1"
+  local label="$2"
+  local log_services="$3"
   local elapsed=0
   local status=""
 
   while [ "$elapsed" -lt 120 ]; do
-    status="$(docker inspect -f '{{.State.Health.Status}}' work-archive-api 2>/dev/null || true)"
+    status="$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null || true)"
 
     if [ "$status" = "healthy" ]; then
-      echo "API container is healthy."
+      echo "$label container is healthy."
       return 0
     fi
 
@@ -32,11 +35,15 @@ wait_for_api_container() {
     elapsed=$((elapsed + 2))
   done
 
-  echo "API did not become healthy within 120 seconds."
+  echo "$label did not become healthy within 120 seconds."
   docker compose ps
-  echo
-  echo "Recent API logs:"
-  docker compose logs --tail=80 api
+
+  for service in $log_services; do
+    echo
+    echo "Recent $service logs:"
+    docker compose logs --tail=80 "$service"
+  done
+
   exit 1
 }
 
@@ -58,20 +65,34 @@ case "$MODE" in
   compose)
     require_command docker
 
-    echo "[1/4] Starting Docker Compose app stack..."
+    echo "[1/6] Starting PostgreSQL..."
     echo "Web: $COMPOSE_WEB_URL"
-    echo "API: $API_URL/health"
+    echo "API readiness: $API_URL/readyz"
     echo
-    docker compose up -d --build
+    docker compose up -d postgres
 
-    echo "[2/4] Waiting for API health..."
-    wait_for_api_container
+    echo "[2/6] Waiting for PostgreSQL readiness..."
+    wait_for_container_health "work-archive-postgres" "PostgreSQL" "postgres"
 
-    echo "[3/4] Checking localhost access..."
+    echo "[3/6] Applying Prisma migrations..."
+    docker compose rm -f -s api-migrate >/dev/null 2>&1 || true
+    docker compose up --build --force-recreate --no-deps api-migrate
+
+    echo "[4/6] Starting API and web containers..."
+    docker compose up -d --build --force-recreate --no-deps api web
+
+    echo "[5/6] Waiting for API readiness..."
+    wait_for_container_health "work-archive-api" "API" "api-migrate api"
+
+    echo "[6/6] Waiting for web readiness..."
+    wait_for_container_health "work-archive-web" "Web" "web api"
+
+    echo "Checking localhost access..."
     curl -fsS --max-time 5 -o /dev/null "$COMPOSE_WEB_URL"
     curl -fsS --max-time 5 -o /dev/null "$API_URL/health"
+    curl -fsS --max-time 5 -o /dev/null "$API_URL/readyz"
 
-    echo "[4/4] Opening browser when supported..."
+    echo "Opening browser when supported..."
     open_url "$COMPOSE_WEB_URL"
     echo "Docker Compose app stack is running. Use ./stop-dev.sh to stop it."
     ;;

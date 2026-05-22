@@ -1,6 +1,6 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const mockRedisConnect = jest.fn<() => Promise<void>>();
@@ -24,8 +24,24 @@ describe('HealthController', () => {
     $queryRaw: jest.Mock<() => Promise<unknown>>;
   };
   let controller: HealthController;
+  let migrationNames: string[];
+
+  function mockReadyPostgresAndMigrations() {
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ '?column?': 1 }])
+      .mockResolvedValueOnce([{ failedCount: 0 }])
+      .mockResolvedValueOnce(
+        migrationNames.map((migrationName) => ({ migrationName })),
+      );
+  }
 
   beforeEach(() => {
+    migrationNames = readdirSync(resolve(process.cwd(), 'prisma/migrations'), {
+      withFileTypes: true,
+    })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
     process.env = {
       ...originalEnv,
       DATABASE_URL: 'postgresql://work:archive@localhost:5432/work_archive',
@@ -36,9 +52,7 @@ describe('HealthController', () => {
       SECURITY_EVENT_HASH_SECRET: 'test-security-event-hash-secret',
     };
     prisma = {
-      $queryRaw: jest
-        .fn<() => Promise<unknown>>()
-        .mockResolvedValue([{ '?column?': 1 }]),
+      $queryRaw: jest.fn<() => Promise<unknown>>(),
     };
     controller = new HealthController(prisma as unknown as PrismaService);
     mockRedisConnect.mockResolvedValue(undefined);
@@ -77,6 +91,29 @@ describe('HealthController', () => {
     );
   });
 
+  it('returns 503 readiness when Prisma migrations are unavailable or failed', async () => {
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ '?column?': 1 }])
+      .mockResolvedValueOnce([{ failedCount: 1 }]);
+
+    await expect(controller.getReadiness()).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
+  it('returns 503 readiness when local Prisma migrations are pending in PostgreSQL', async () => {
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ '?column?': 1 }])
+      .mockResolvedValueOnce([{ failedCount: 0 }])
+      .mockResolvedValueOnce(
+        migrationNames.slice(0, -1).map((migrationName) => ({ migrationName })),
+      );
+
+    await expect(controller.getReadiness()).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
   it('returns 503 readiness when production Redis rate limit store is unavailable', async () => {
     process.env = {
       ...process.env,
@@ -97,6 +134,7 @@ describe('HealthController', () => {
       TRUST_PROXY_HOPS: '1',
       WEB_BASE_URL: 'https://workarchive.example.com',
     };
+    mockReadyPostgresAndMigrations();
     mockRedisPing.mockRejectedValue(new Error('redis down'));
 
     await expect(controller.getReadiness()).rejects.toBeInstanceOf(
@@ -114,5 +152,31 @@ describe('HealthController', () => {
 
     expect(compose).toContain('/readyz');
     expect(compose).not.toContain('/health');
+  });
+
+  it('documents that local compose runs migrations before API readiness', () => {
+    const compose = readFileSync(
+      resolve(process.cwd(), '../../compose.yml'),
+      'utf8',
+    );
+    const startDev = readFileSync(
+      resolve(process.cwd(), '../../start-dev.sh'),
+      'utf8',
+    );
+
+    expect(compose).toContain('api-migrate:');
+    expect(compose).toContain('target: release');
+    expect(compose).toContain('service_completed_successfully');
+    expect(compose).toContain('/readyz');
+    expect(compose).toContain('/work-archive-config.js');
+    expect(compose).toContain(
+      'CORS_ORIGIN: http://localhost:${WEB_PORT:-8080},http://127.0.0.1:${WEB_PORT:-8080}',
+    );
+    expect(compose).toContain('WEB_BASE_URL: http://localhost:${WEB_PORT:-8080}');
+    expect(compose).toContain('VITE_API_BASE_URL: /api');
+    expect(startDev).toContain('docker compose rm -f -s api-migrate');
+    expect(startDev).toContain(
+      'docker compose up --build --force-recreate --no-deps api-migrate',
+    );
   });
 });

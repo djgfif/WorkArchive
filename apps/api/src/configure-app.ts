@@ -1,4 +1,8 @@
-import { ValidationPipe, type INestApplication } from '@nestjs/common';
+import {
+  RequestMethod,
+  ValidationPipe,
+  type INestApplication,
+} from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -32,7 +36,11 @@ export async function configureApp(
   }
 
   app.setGlobalPrefix('api', {
-    exclude: ['health', 'livez', 'readyz'],
+    exclude: [
+      { path: 'health', method: RequestMethod.GET },
+      { path: 'livez', method: RequestMethod.GET },
+      { path: 'readyz', method: RequestMethod.GET },
+    ],
   });
   app.use(cookieParser());
   app.use(

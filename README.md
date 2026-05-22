@@ -81,8 +81,9 @@ Quick Add 외부 검색은 현재 아래 두 축으로 동작한다.
 The default startup path is the Docker Compose app stack. This keeps
 PostgreSQL, Prisma migrations, API, and web inside the same Docker network, so
 startup does not depend on Windows reaching PostgreSQL at `127.0.0.1:5432`.
-The script starts Compose in detached mode, waits for API health, verifies that
-Windows can reach the published localhost ports, and only then opens the browser.
+The script starts Compose in detached mode, runs the local migration job, waits
+for API and web readiness, verifies that Windows can reach the published
+localhost ports, and only then opens the browser.
 
 Use the platform-specific launchers below. The title-cased `.cmd` files are
 Windows shortcuts for a WSL checkout and delegate to the shell scripts, so the
@@ -110,6 +111,7 @@ Default endpoints:
 
 - Web: [http://localhost:8080](http://localhost:8080)
 - Health: [http://localhost:3000/health](http://localhost:3000/health)
+- Readiness: [http://localhost:3000/readyz](http://localhost:3000/readyz)
 - Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
 
 To stop local Compose services:
@@ -213,7 +215,8 @@ Windows 메모:
 
 Production compose note: `compose.yml` is for local development only and must not be used for production. Production deployments must use [`compose.prod.yml`](./compose.prod.yml), which requires explicit secrets and production URLs with `${VAR:?required}` and locks `NODE_ENV=production`, `SWAGGER_ENABLED=false`, `PASSWORD_RESET_DEV_LINKS_ENABLED=false`, and `COOKIE_SECURE=true`. Production compose exposes only the web reverse proxy, routes `/api` internally to the API container, and requires Redis-backed rate limiting with `RATE_LIMIT_STORE=redis`, `REDIS_URL`, and `TRUST_PROXY_HOPS=1`. Set `SECURITY_EVENT_HASH_SECRET` to a unique 32+ character secret; it is used only to HMAC-hash audit IP and user-agent data before storage.
 
-Local Compose uses `NODE_ENV=development` and is the default `start-dev.bat`
+Local Compose uses `NODE_ENV=development`, reruns `api-migrate` before the API
+starts, waits on API and web healthchecks, and is the default `start-dev.bat`
 mode.
 
 전체 스택을 컨테이너로 올릴 수 있다.
@@ -232,14 +235,20 @@ npm run compose:up
 
 - Web: [http://localhost:8080](http://localhost:8080)
 - Health: [http://localhost:3000/health](http://localhost:3000/health)
+- Readiness: [http://localhost:3000/readyz](http://localhost:3000/readyz)
 - Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
 
 메모:
 
 - Compose 파일은 [`compose.yml`](./compose.yml)이다.
+- 로컬 Compose는 `api-migrate` 일회성 서비스를 매 시작마다 다시 실행해 Prisma
+  migration을 먼저 적용한 뒤 API/Web을 시작한다.
+- `/readyz`는 현재 이미지에 포함된 Prisma migration 디렉터리와 DB의
+  `_prisma_migrations` 적용 상태를 대조한다.
 - 기본 `API_PORT`는 `3000`, `WEB_PORT`는 `8080`이다.
-- `API_PORT`를 바꾸면 루트 `VITE_API_BASE_URL`도 맞춰야 한다.
-- `WEB_PORT`를 바꾸면 `CORS_ORIGIN`도 맞춰야 한다.
+- 로컬 Compose 웹은 항상 NGINX의 `/api` 프록시를 사용한다.
+- `WEB_PORT`를 바꾸면 API `CORS_ORIGIN`과 `WEB_BASE_URL`도 같은 포트로
+  자동 구성된다.
 
 ## Common Commands
 

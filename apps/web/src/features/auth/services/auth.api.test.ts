@@ -231,6 +231,55 @@ describe('auth.api', () => {
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });
 
+  it('temporarily skips startup refresh after the API reports no guest session', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(restoreStoredSession()).resolves.toBeNull();
+    await expect(restoreStoredSession()).resolves.toBeNull();
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth/refresh')),
+    ).toHaveLength(1);
+  });
+
+  it('forces refresh when completing a new Google session after a guest miss', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          accessToken: 'google-access-token',
+          user: {
+            avatarUrl: '',
+            id: 'user-1',
+            email: 'frieren@example.com',
+            nickname: '',
+          },
+        }),
+      );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(restoreStoredSession()).resolves.toBeNull();
+    await expect(restoreStoredSession({ force: true })).resolves.toEqual({
+      tokens: {
+        accessToken: 'google-access-token',
+      },
+      user: {
+        avatarUrl: '',
+        id: 'user-1',
+        email: 'frieren@example.com',
+        nickname: '',
+      },
+    });
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth/refresh')),
+    ).toHaveLength(2);
+  });
+
   it('keeps refreshed access tokens in memory instead of browser storage', async () => {
     writeStoredAuthTokens({
       accessToken: 'expired-access-token',

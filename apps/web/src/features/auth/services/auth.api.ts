@@ -23,8 +23,16 @@ interface RestoredSession {
   user: AuthUserResponse;
 }
 
+const REFRESH_UNAVAILABLE_UNTIL_KEY =
+  'work-archive.auth.refreshUnavailableUntil';
+const REFRESH_UNAVAILABLE_TTL_MS = 60_000;
+
 interface GoogleAuthStatusResponse {
   configured: boolean;
+}
+
+interface RestoreStoredSessionOptions {
+  force?: boolean;
 }
 
 export type AuthSessionResponse = SharedAuthSessionResponse;
@@ -96,14 +104,68 @@ export async function fetchGoogleAuthStatus() {
   });
 }
 
-export async function restoreStoredSession(): Promise<RestoredSession | null> {
+function getRefreshUnavailableUntil() {
+  if (typeof window === 'undefined') {
+    return 0;
+  }
+
+  const rawValue = window.sessionStorage.getItem(
+    REFRESH_UNAVAILABLE_UNTIL_KEY,
+  );
+  const parsedValue = Number.parseInt(rawValue ?? '', 10);
+
+  return Number.isFinite(parsedValue) ? parsedValue : 0;
+}
+
+function markRefreshUnavailable() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    REFRESH_UNAVAILABLE_UNTIL_KEY,
+    String(Date.now() + REFRESH_UNAVAILABLE_TTL_MS),
+  );
+}
+
+function clearRefreshUnavailable() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.removeItem(REFRESH_UNAVAILABLE_UNTIL_KEY);
+}
+
+export async function restoreStoredSession(
+  options: RestoreStoredSessionOptions = {},
+): Promise<RestoredSession | null> {
   clearLegacyStoredAuthTokens();
 
+  if (!options.force && Date.now() < getRefreshUnavailableUntil()) {
+    return null;
+  }
+
   try {
-    const session = await refreshSession();
+    const { response, responseBody: session } =
+      await requestApi<AuthSessionResponse>('/auth/refresh', {
+        method: 'POST',
+      });
+
+    if (response.status === 204) {
+      markRefreshUnavailable();
+      return null;
+    }
+
+    if (session === null) {
+      markRefreshUnavailable();
+      return null;
+    }
+
     const nextTokens = {
       accessToken: session.accessToken,
     };
+
+    clearRefreshUnavailable();
 
     return {
       tokens: nextTokens,
@@ -111,6 +173,7 @@ export async function restoreStoredSession(): Promise<RestoredSession | null> {
     };
   } catch {
     clearLegacyStoredAuthTokens();
+    markRefreshUnavailable();
     return null;
   }
 }

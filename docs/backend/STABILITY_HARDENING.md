@@ -44,6 +44,9 @@ can stay healthy during dependency outages while the process is still running.
 
 - runtime config can be read;
 - PostgreSQL responds to `SELECT 1`;
+- Prisma migration state is readable, has no failed unrolled-back migration
+  rows, and includes every migration directory shipped with the running API
+  image;
 - Redis responds to `PING` when `RATE_LIMIT_STORE=redis`.
 
 Readiness failures return HTTP 503. Production compose healthcheck uses

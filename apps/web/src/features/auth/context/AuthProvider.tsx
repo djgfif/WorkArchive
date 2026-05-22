@@ -180,7 +180,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return getPostGoogleSignInLocation(user);
     }
 
-    const restoredSession = await restoreStoredSession();
+    const restoredSession = await restoreStoredSession({ force: true });
 
     if (!restoredSession) {
       throw new Error('Google sign-in session could not be restored.');

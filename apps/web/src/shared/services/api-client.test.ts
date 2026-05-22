@@ -95,6 +95,35 @@ describe('api-client', () => {
     expect(readStoredAuthTokens()).toBeNull();
   });
 
+  it('treats a 204 refresh during authenticated retry as signed out', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'expired-access-token',
+    });
+
+    server.use(
+      http.post(`${API_BASE_URL}/sync/push`, () =>
+        HttpResponse.json({ message: 'expired' }, { status: 401 }),
+      ),
+      http.post(
+        `${API_BASE_URL}/auth/refresh`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
+    );
+
+    await expect(
+      requestAuthenticatedApiJson('/sync/push', {
+        method: 'POST',
+        body: JSON.stringify({
+          changes: [],
+        }),
+      }),
+    ).rejects.toMatchObject({
+      status: 401,
+    });
+
+    expect(readStoredAuthTokens()).toBeNull();
+  });
+
   it('normalizes non-JSON error responses', async () => {
     server.use(
       http.get(`${API_BASE_URL}/imports/search`, () =>

@@ -141,9 +141,15 @@ export async function requestApiJson<TResponse>(
 
 async function runRefreshStoredTokens() {
   try {
-    const refreshedSession = await requestApiJson<AuthSessionResponse>('/auth/refresh', {
-      method: 'POST',
-    });
+    const { response, responseBody: refreshedSession } =
+      await requestApi<AuthSessionResponse>('/auth/refresh', {
+        method: 'POST',
+      });
+
+    if (response.status === 204 || refreshedSession === null) {
+      throw new ApiRequestError(401, '로그인 후 이용해주세요.');
+    }
+
     const nextTokens = {
       accessToken: refreshedSession.accessToken,
     };

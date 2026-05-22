@@ -217,6 +217,9 @@ export class AuthController {
     description: 'Rotate the session using the refresh cookie.',
     type: AuthSessionResponseDto,
   })
+  @ApiNoContentResponse({
+    description: 'No refresh cookie is present; continue as a guest session.',
+  })
   @ApiUnauthorizedResponse({
     description: 'The refresh token is invalid or expired.',
   })
@@ -227,16 +230,8 @@ export class AuthController {
     const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
 
     if (typeof refreshToken !== 'string' || !refreshToken) {
-      this.logger.warn('Refresh rejected: missing refresh cookie.');
-      void this.securityAudit.record({
-        eventType: 'auth.refresh.failure',
-        metadata: {
-          reason: 'missing_refresh_cookie',
-        },
-        request,
-        severity: 'warning',
-      });
-      throw new UnauthorizedException('Invalid or expired refresh token.');
+      response.status(HttpStatus.NO_CONTENT);
+      return;
     }
 
     const session = await this.authService.refresh(

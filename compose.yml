@@ -21,6 +21,20 @@ services:
       timeout: 5s
       retries: 5
 
+  api-migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: release
+    container_name: work-archive-api-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/work_archive?schema=public}
+    restart: 'no'
+
   api:
     build:
       context: .
@@ -28,16 +42,16 @@ services:
     container_name: work-archive-api
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: development
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/work_archive?schema=public}
       HOST: ${HOST:-0.0.0.0}
       PORT: 3000
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
-      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:8080}
+      CORS_ORIGIN: http://localhost:${WEB_PORT:-8080},http://127.0.0.1:${WEB_PORT:-8080}
+      WEB_BASE_URL: http://localhost:${WEB_PORT:-8080}
       PASSWORD_RESET_DEV_LINKS_ENABLED: ${PASSWORD_RESET_DEV_LINKS_ENABLED:-true}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-local-compose-access-secret-minimum-32-chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-compose-refresh-secret-minimum-32-chars}
@@ -53,7 +67,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          "node -e \"fetch('http://127.0.0.1:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+          "node -e \"fetch('http://127.0.0.1:3000/readyz').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
         ]
       interval: 10s
       timeout: 5s
@@ -64,7 +78,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+        VITE_API_BASE_URL: /api
     container_name: work-archive-web
     restart: unless-stopped
     depends_on:
@@ -72,6 +86,15 @@ services:
         condition: service_healthy
     ports:
       - '${WEB_PORT:-8080}:8080'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q -O /dev/null http://127.0.0.1:8080/work-archive-config.js',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
   postgres-data:
