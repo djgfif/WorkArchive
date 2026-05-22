@@ -26,9 +26,10 @@ Contract tests protect the local-first sync boundary and import/export portabili
 
 ## Tier Board JSON Export/Import
 
-- Validate exported board metadata, lanes, cards, assets, and `work_ref` references.
+- Validate exported board metadata, lanes, cards, assets, and snapshot card fields.
 - Validate import rejects unknown schema versions and malformed card/asset payloads.
-- Verify imported `work_ref` values are resolved only to owned works.
+- Verify imported snapshot cards do not require or restore source work records.
+- Verify export excludes source `WorkRecord` private data and source work identifiers.
 - Verify export excludes API keys, cookies, OAuth tokens, and unrelated local archive data.
 
 ## Local Archive JSON Export/Import

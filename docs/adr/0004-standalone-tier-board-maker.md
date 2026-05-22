@@ -6,15 +6,24 @@ Accepted
 
 ## Context
 
-Tier boards are an archive companion feature. They reference local works, support JSON export/import, and should be usable without creating a public community surface. The public sharing/feed concept is intentionally disabled until ownership, moderation, abuse handling, and privacy controls are mature.
+Tier boards are an archive companion feature. They can create cards from local
+work snapshots, support JSON export/import, and should be usable without
+creating a public community surface. The public sharing/feed concept is
+intentionally disabled until ownership, moderation, abuse handling, and privacy
+controls are mature.
 
 ## Decision
 
 Keep Tier Board Maker as a standalone personal tool.
 
 - Tier boards remain enabled by default.
-- Tier board work references must be ownership-checked during sync/import/API handling.
-- JSON export/import remains a personal data portability path.
+- Cards created from the works list are snapshots. The source work id is
+  metadata only, not an automatic link.
+- Original work edits or soft deletes must not block tier-board card sync.
+- Tier board sync validates board/lane/card ownership, not source work
+  liveness.
+- JSON export/import remains a board portability path and must not include the
+  private source WorkRecord or require that source record to exist.
 - Public community/share feed remains behind a disabled feature flag.
 
 ## Alternatives
@@ -26,5 +35,6 @@ Keep Tier Board Maker as a standalone personal tool.
 ## Consequences
 
 - Release smoke tests must include creating and exporting a tier board.
-- Security review must include `work_ref` ownership.
+- Security review must confirm tier-board board/lane/card ownership while
+  treating source work ids as non-authoritative metadata.
 - Feature flags must allow the public share surface to stay disabled independently from tier board editing.

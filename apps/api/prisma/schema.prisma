@@ -535,7 +535,6 @@ model UserWorkRecord {
   contributorLinks  UserWorkContributor[]
   outgoingRelations UserWorkRelation[]  @relation("UserWorkRelationSource")
   incomingRelations UserWorkRelation[]  @relation("UserWorkRelationTarget")
-  tierBoardCards    UserTierBoardCard[]
 
   @@index([userId, deletedAt])
   @@index([userId, status, updatedAt])
@@ -767,7 +766,6 @@ model UserTierBoardCard {
   serverVersion  Int                     @default(1)
   board          UserTierBoard           @relation(fields: [boardId], references: [id], onDelete: Cascade)
   lane           UserTierLane?           @relation(fields: [laneId], references: [id], onDelete: SetNull)
-  linkedWork     UserWorkRecord?         @relation(fields: [userWorkId], references: [id], onDelete: SetNull)
   assets         UserTierBoardAsset[]
 
   @@index([boardId, laneId, orderIndex])

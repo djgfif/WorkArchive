@@ -1261,7 +1261,7 @@ describe('SyncService', () => {
     expect(prisma.userSyncAppliedMutation.create).not.toHaveBeenCalled();
   });
 
-  it('rejects tier_board_card linked work from another user without modifying WorkRecord', async () => {
+  it('syncs tier_board_card source work metadata without requiring active WorkRecord', async () => {
     prisma.userTierBoard.findUnique.mockResolvedValue({
       id: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
       userId: USER_ID,
@@ -1276,11 +1276,13 @@ describe('SyncService', () => {
         userId: USER_ID,
       },
     });
-    prisma.userWorkRecord.findUnique.mockResolvedValue({
-      id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
-      userId: OTHER_USER_ID,
-      deletedAt: null,
-    });
+    prisma.userTierBoardCard.create.mockImplementation(async ({ data }: any) => ({
+      ...data,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      deletedAt: data.deletedAt,
+      serverVersion: data.serverVersion,
+    }));
 
     const result = await service.push(USER_ID, {
       changes: [
@@ -1298,11 +1300,21 @@ describe('SyncService', () => {
 
     expect(result.results[0]).toEqual(
       expect.objectContaining({
-        code: 'conflict_parent_changed',
-        status: 'conflict',
+        code: 'created',
+        status: 'applied',
+        tierBoardCard: expect.objectContaining({
+          workId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+        }),
       }),
     );
-    expect(prisma.userTierBoardCard.create).not.toHaveBeenCalled();
+    expect(prisma.userTierBoardCard.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userWorkId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+        }),
+      }),
+    );
+    expect(prisma.userWorkRecord.findUnique).not.toHaveBeenCalled();
     expect(prisma.userWorkRecord.update).not.toHaveBeenCalled();
     expect(userRecordsService.update).not.toHaveBeenCalled();
   });

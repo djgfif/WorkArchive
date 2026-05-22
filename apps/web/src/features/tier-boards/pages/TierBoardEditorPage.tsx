@@ -763,7 +763,7 @@ export function TierBoardEditorPage() {
 
   async function handleImportWork(workId: string) {
     await tierBoardService.createCardFromWorkSnapshot(activeBoardId, workId);
-    await refreshWithSuccess('내 작품에서 snapshot card를 만들었습니다.');
+    await refreshWithSuccess('작품에서 가져온 snapshot 카드를 추가했습니다.');
   }
 
   async function handleMoveCard(id: string, laneId: string | null) {
@@ -1124,7 +1124,7 @@ export function TierBoardEditorPage() {
                   <Tabs.Tab value="upload">업로드</Tabs.Tab>
                   <Tabs.Tab value="url">이미지 URL</Tabs.Tab>
                   <Tabs.Tab value="text">텍스트</Tabs.Tab>
-                  <Tabs.Tab value="work">내 작품</Tabs.Tab>
+                  <Tabs.Tab value="work">작품에서 가져오기</Tabs.Tab>
                 </Tabs.List>
                 <Tabs.Panel pt="md" value="upload">
                   <Stack className={cn(css.addForm)} gap="sm">
@@ -1226,7 +1226,7 @@ export function TierBoardEditorPage() {
                   <Stack className={cn(css.addForm)} gap="sm">
                     <Stack className={cn(css.addFieldGroup)} gap={6}>
                       <TextInput
-                        label="작품 검색"
+                        label="작품에서 snapshot 추가"
                         onChange={(event) => {
                           const { value } = event.currentTarget;
                           setWorkSearch(value);
@@ -1247,13 +1247,13 @@ export function TierBoardEditorPage() {
                               <Text c="dimmed" lineClamp={1} size="xs">{createWorkSubtitle(work)}</Text>
                             </Stack>
                             <AppButton onClick={() => void handleImportWork(work.id)} tone="secondary" type="button">
-                              추가
+                              Snapshot 추가
                             </AppButton>
                           </Group>
                         </Paper>
                       ))}
                       {filteredWorks.length === 0 && (
-                        <Text c="dimmed" size="sm">가져올 작품이 없습니다.</Text>
+                        <Text c="dimmed" size="sm">snapshot으로 가져올 작품이 없습니다.</Text>
                       )}
                     </Stack>
                   </Stack>

@@ -116,7 +116,7 @@ Script execution notes:
 | lane-to-pool move works                                                      | Pending |                  |
 | JSON export/import works                                                     | Pending |                  |
 | PNG export works or documented fallback appears                              | Pending |                  |
-| linked WorkRecord not modified by movement                                   | Pending |                  |
+| source WorkRecord not modified by snapshot card movement                     | Pending |                  |
 | public share/community remains disabled                                      | Pending |                  |
 
 ## Sync Idempotency Smoke

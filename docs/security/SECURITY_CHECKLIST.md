@@ -14,7 +14,7 @@ Use this checklist before releases that touch auth, sync, imports, tier boards, 
 ## Ownership
 
 - Sync payloads are scoped to the authenticated user before create, update, delete, or conflict resolution.
-- Tier board `work_ref` values are verified against the board owner and work owner.
+- Tier board card sync verifies board/lane ownership while treating source work ids as non-authoritative metadata.
 - Import provider credentials are read only for the owning user.
 - Guest/local archive data is not attached to an authenticated account without explicit transfer.
 

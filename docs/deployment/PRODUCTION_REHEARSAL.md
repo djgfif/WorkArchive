@@ -204,7 +204,7 @@ Post-restore smoke:
 - JSON export succeeds.
 - JSON import creates a board without modifying unrelated works.
 - PNG export succeeds or shows the documented fallback.
-- Linked `WorkRecord` `updatedAt` and `serverVersion` do not change from card movement alone.
+- Source `WorkRecord` `updatedAt` and `serverVersion` do not change from snapshot card movement alone.
 - Public community/share feed remains disabled.
 
 ## 7. Sync Idempotency Smoke Checklist

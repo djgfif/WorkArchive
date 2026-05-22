@@ -297,4 +297,82 @@ describe('TierBoardService', () => {
 
     expect(await worksRepository.getById(work.id)).toEqual(original);
   });
+
+  it('keeps work snapshot card fields unchanged after the source work is edited', async () => {
+    const board = await service.createBoard({ title: 'Snapshot independence' });
+    const work = await worksRepository.create(buildWork());
+    const card = await service.createCardFromWorkSnapshot(board.id, work.id);
+
+    await worksRepository.update({
+      ...work,
+      title: 'Edited Work Title',
+      thumbnailUrl: 'https://example.com/edited.jpg',
+      shortReview: 'Edited note',
+      updatedAt: '2026-05-21T00:00:00.000Z',
+    });
+
+    expect(await repository.getCardById(card.id)).toEqual(
+      expect.objectContaining({
+        title: 'Snapshot Work',
+        imageUrl: 'https://example.com/poster.jpg',
+        note: 'Snapshot note',
+        workId: work.id,
+      }),
+    );
+  });
+
+  it('keeps and queues a work snapshot card after the source work is soft-deleted', async () => {
+    const board = await service.createBoard({ title: 'Deleted source work' });
+    const work = await worksRepository.create(buildWork());
+    const card = await service.createCardFromWorkSnapshot(board.id, work.id);
+
+    await worksRepository.softDelete(work.id, {
+      deletedAt: '2026-05-21T00:00:00.000Z',
+      syncStatus: 'pending',
+      updatedAt: '2026-05-21T00:00:00.000Z',
+    });
+    await service.moveCardToLane(card.id, (await service.getBoardEditorState(board.id))!.lanes[0]!.id);
+
+    expect(await repository.getCardById(card.id)).toEqual(
+      expect.objectContaining({
+        cardSourceType: 'library_work',
+        title: 'Snapshot Work',
+        workId: work.id,
+      }),
+    );
+    expect(await queueRepository.listAll()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entityId: card.id,
+          entityType: 'tier_board_card',
+          payload: expect.objectContaining({
+            title: 'Snapshot Work',
+            workId: work.id,
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it('exports work snapshot cards without the source WorkRecord or private work id', async () => {
+    const board = await service.createBoard({ title: 'Export boundary' });
+    const work = await worksRepository.create(buildWork());
+    const card = await service.createCardFromWorkSnapshot(board.id, work.id);
+    const exported = await service.exportBoardJson(board.id);
+    const exportedCard = exported.cards.find((candidate) => candidate.id === card.id);
+
+    expect(exportedCard).toEqual(
+      expect.objectContaining({
+        cardSourceType: 'library_work',
+        title: 'Snapshot Work',
+        subtitle: 'anime · Archive Studio · ★ 4.5',
+        imageUrl: 'https://example.com/poster.jpg',
+        note: 'Snapshot note',
+        workId: null,
+      }),
+    );
+    expect(JSON.stringify(exported)).not.toContain(work.id);
+    expect(JSON.stringify(exported)).not.toContain('personalTags');
+    expect(JSON.stringify(exported)).not.toContain('source-tag');
+  });
 });

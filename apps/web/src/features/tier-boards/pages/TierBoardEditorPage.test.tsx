@@ -148,7 +148,7 @@ describe('TierBoardEditorPage', () => {
     expect(screen.getByRole('tab', { name: '텍스트' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '이미지 URL' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '업로드' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: '내 작품' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '작품에서 가져오기' })).toBeInTheDocument();
     expect(screen.getByText('미배치 카드')).toBeInTheDocument();
     expect(screen.getByText('미배치 텍스트 카드')).toBeInTheDocument();
     for (const laneTitle of ['S', 'A', 'B', 'C', 'D']) {

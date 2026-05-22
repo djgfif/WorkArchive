@@ -122,7 +122,7 @@ Checklist:
 - Export board JSON.
 - Import that JSON as a new board.
 - Export PNG.
-- Confirm the linked `WorkRecord` was not modified by tier board movement.
+- Confirm the source `WorkRecord` was not modified by tier board card movement.
 
 Suggested read-only DB comparison:
 
@@ -131,7 +131,7 @@ docker exec -it work-archive-postgres sh -lc \
   'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c '\''select id, "updatedAt", "serverVersion" from user_work_records order by "updatedAt" desc limit 10;'\'''
 ```
 
-Run it before and after tier card movement for the linked work. Movement should
+Run it before and after tier card movement for the source work. Movement should
 not bump the work record.
 
 ## Provider Circuit Breaker Smoke
