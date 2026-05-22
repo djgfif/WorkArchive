@@ -31,6 +31,14 @@ else
   info "no runtime logs, browser artifacts, or local databases are tracked"
 fi
 
+tracked_tool_files="$(git ls-files | grep -E '(^|/)\.codex($|/)|(^|/)\.agents(/|$)|(^|/)\.idea(/|$)' || true)"
+if [ -n "$tracked_tool_files" ]; then
+  printf '%s\n' "$tracked_tool_files" >&2
+  fail "personal tool or IDE state files are tracked"
+else
+  info "no personal tool or IDE state files are tracked"
+fi
+
 secret_hits="$(git grep -n -I -E '(ghp_|github_pat_|AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-|AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----)' -- . ':!package-lock.json' ':!scripts/security/public-readiness-check.sh' || true)"
 if [ -n "$secret_hits" ]; then
   printf '%s\n' "$secret_hits" >&2

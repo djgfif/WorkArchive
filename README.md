@@ -84,8 +84,26 @@ startup does not depend on Windows reaching PostgreSQL at `127.0.0.1:5432`.
 The script starts Compose in detached mode, waits for API health, verifies that
 Windows can reach the published localhost ports, and only then opens the browser.
 
+Use the platform-specific launchers below. The title-cased `.cmd` files are
+Windows shortcuts for a WSL checkout and delegate to the shell scripts, so the
+startup behavior stays in one place.
+
+Windows checkout:
+
 ```bat
 start-dev.bat
+```
+
+WSL checkout from Windows Explorer:
+
+```bat
+Start Work Archive.cmd
+```
+
+macOS/Linux/WSL terminal:
+
+```bash
+./start-dev.sh
 ```
 
 Default endpoints:
@@ -96,8 +114,22 @@ Default endpoints:
 
 To stop local Compose services:
 
+Windows checkout:
+
 ```bat
 stop-dev.bat
+```
+
+WSL checkout from Windows Explorer:
+
+```bat
+Stop Work Archive.cmd
+```
+
+macOS/Linux/WSL terminal:
+
+```bash
+./stop-dev.sh
 ```
 
 ## Host-Based Development
@@ -109,6 +141,12 @@ startup instead.
 
 ```bat
 start-dev.bat host
+```
+
+For macOS/Linux/WSL:
+
+```bash
+./start-dev.sh host
 ```
 
 1. 의존성 설치

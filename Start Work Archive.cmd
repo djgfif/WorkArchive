@@ -1,19 +1,28 @@
 @echo off
 setlocal EnableExtensions
 
-pushd "%~dp0"
+where wsl.exe >nul 2>nul
 if errorlevel 1 (
-  echo Failed to enter project directory:
-  echo %~dp0
-  echo.
-  echo If this is a WSL path, open the project from Windows Terminal inside WSL and run:
-  echo   ./start-dev.sh
+  echo WSL was not found. Install WSL or run start-dev.bat from a Windows checkout.
   pause
   exit /b 1
 )
 
-call ".\start-dev.bat"
-set "EXIT_CODE=%ERRORLEVEL%"
-popd
-pause
-exit /b %EXIT_CODE%
+for /f "usebackq delims=" %%I in (`wsl.exe wslpath -a "%~dp0."`) do set "PROJECT_DIR=%%I"
+if "%PROJECT_DIR%"=="" (
+  echo Failed to resolve this project directory for WSL:
+  echo %~dp0
+  pause
+  exit /b 1
+)
+
+set "RUN_CMD=./start-dev.sh %*; status=$?; echo; read -n 1 -s -r -p 'Press any key to close this window...'; exit $status"
+
+where wt.exe >nul 2>nul
+if "%ERRORLEVEL%"=="0" (
+  start "" wt.exe wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "%RUN_CMD%"
+  exit /b 0
+)
+
+start "" wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "%RUN_CMD%"
+exit /b 0
