@@ -14,7 +14,7 @@ import {
   resetWorkArchiveStorage,
   workArchiveDbManager,
 } from '../../works/db/work-archive.db';
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../hooks/useSettingsOverviewStats';
+import { LAST_JSON_EXPORT_AT_META_KEY } from '../../archive/utils/json-backup-reminder';
 import { SettingsPage } from './SettingsPage';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -163,6 +163,16 @@ async function seedOverviewStats() {
     key: LAST_JSON_EXPORT_AT_META_KEY,
     value: '2026-05-20T12:30:00.000Z',
   });
+}
+
+async function seedActiveWorks(count: number) {
+  const db = workArchiveDbManager.getCurrentDb();
+
+  await db.works.bulkAdd(
+    Array.from({ length: count }, (_, index) =>
+      buildWorkRecord(`backup-reminder-work-${index + 1}`),
+    ),
+  );
 }
 
 function renderAuthenticatedSettings(signOut = vi.fn()) {
@@ -380,6 +390,23 @@ describe('SettingsPage', () => {
       screen.getByText(
         '게스트 모드입니다. 기록은 이 브라우저의 로컬 저장소에만 보관됩니다.',
       ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the shared JSON backup reminder in settings overview', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(jsonResponse([]))));
+    workArchiveDbManager.switchToUser('user-1');
+    await seedActiveWorks(20);
+
+    renderAuthenticatedSettings();
+    await openSettingsSection(user, 'overview');
+
+    expect(
+      await screen.findByText('첫 JSON 백업을 권장합니다'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
     ).toBeInTheDocument();
   });
 

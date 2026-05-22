@@ -106,7 +106,8 @@ interface WorkDetailPanelProps {
     type: TimelineEntryType;
   }) => Promise<void>;
   onDeleteTimelineEntry?: (id: string) => Promise<void>;
-  recordSections?: ReactNode;
+  overviewSections?: ReactNode;
+  progressSections?: ReactNode;
   relatedSections?: ReactNode;
   timelineEntries?: TimelineEntryRecord[];
   work: WorkRecord;
@@ -173,7 +174,8 @@ export function WorkDetailPanel({
   graph,
   onCreateTimelineEntry,
   onDeleteTimelineEntry,
-  recordSections,
+  overviewSections,
+  progressSections,
   relatedSections,
   timelineEntries = [],
   work,
@@ -187,7 +189,7 @@ export function WorkDetailPanel({
   const [deletingTimelineEntryId, setDeletingTimelineEntryId] = useState<
     string | null
   >(null);
-  const [activeTab, setActiveTab] = useState<string | null>('record');
+  const [activeTab, setActiveTab] = useState<string | null>('overview');
 
   const typeLabel = getWorkTypeLabel(work.type);
   const statusLabel = getWorkStatusLabel(work.status);
@@ -490,15 +492,17 @@ export function WorkDetailPanel({
         </Group>
       </SectionCard>
 
-      {/* ── 탭 기반 섹션 ── */}
       <Tabs
         value={activeTab}
         onChange={setActiveTab}
+        keepMounted={false}
         styles={{
           root: {
             '--tabs-color': 'var(--app-accent-primary)',
+            overflow: 'hidden',
           },
           tab: {
+            flex: '0 0 auto',
             fontWeight: 600,
             fontSize: '0.875rem',
             padding: '10px 18px',
@@ -514,12 +518,16 @@ export function WorkDetailPanel({
             borderBottom: '1.5px solid var(--app-border-default)',
             marginBottom: 'var(--mantine-spacing-lg)',
             gap: 4,
+            flexWrap: 'nowrap',
+            overflowX: 'auto',
+            overflowY: 'hidden',
           },
         }}
       >
         <Tabs.List>
-          <Tabs.Tab value="record">
-            내 기록
+          <Tabs.Tab value="overview">개요</Tabs.Tab>
+          <Tabs.Tab value="review">
+            감상
             {(shortReview || review) && (
               <Badge
                 circle
@@ -532,6 +540,7 @@ export function WorkDetailPanel({
               </Badge>
             )}
           </Tabs.Tab>
+          <Tabs.Tab value="progress">진행도</Tabs.Tab>
           <Tabs.Tab value="timeline">
             타임라인
             {timelineItems.length > 0 && (
@@ -546,13 +555,279 @@ export function WorkDetailPanel({
               </Badge>
             )}
           </Tabs.Tab>
-          <Tabs.Tab value="info">작품 정보</Tabs.Tab>
+          <Tabs.Tab value="related">관련 작품</Tabs.Tab>
+          <Tabs.Tab value="metadata">메타데이터</Tabs.Tab>
         </Tabs.List>
 
-        {/* ── 탭 1: 내 기록 ── */}
-        <Tabs.Panel value="record">
+        <Tabs.Panel value="overview">
           <Stack gap="md">
-            {/* 장르 태그 */}
+            <SectionCard padding="md" tone="default">
+              <KeyValueGrid
+                columns={2}
+                items={[
+                  { label: '유형', value: typeLabel },
+                  { label: '상태', value: statusLabel },
+                  {
+                    label: '별점',
+                    value:
+                      work.rating !== null
+                        ? `${work.rating.toFixed(1)} / 5.0`
+                        : '미평가',
+                  },
+                  { label: '진행도', value: progressLabel ?? '아직 없음' },
+                  {
+                    label: '마지막 감상',
+                    value: latestTimelineItem
+                      ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.label}`
+                      : '아직 감상 흐름이 없습니다.',
+                  },
+                  {
+                    label: '한줄평',
+                    value: shortReview || '아직 남긴 한줄평이 없습니다.',
+                  },
+                ]}
+              />
+            </SectionCard>
+
+            {overviewSections}
+          </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="review">
+          <Stack gap="md">
+            <ReviewNoteCard
+              emptyLabel="아직 남긴 한줄평이 없습니다."
+              label="한줄평"
+              value={shortReview}
+            />
+            <ReviewNoteCard
+              emptyLabel="아직 남긴 상세 감상이 없습니다."
+              label="상세 감상"
+              value={review}
+            />
+
+            {/* 개인 태그 */}
+            <SectionCard gap="sm" padding="md" tone="subtle">
+              <Text c="dimmed" fw={700} mb={6} size="sm">
+                개인 태그
+              </Text>
+              {personalTags.length > 0 ? (
+                <Group gap={6} wrap="wrap">
+                  {personalTags.map((tag) => (
+                    <span
+                      key={tag}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '3px 10px',
+                        borderRadius: 20,
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        background: 'color-mix(in srgb, var(--app-accent-secondary) 10%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--app-accent-secondary) 25%, transparent)',
+                        color: 'var(--app-accent-secondary)',
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </Group>
+              ) : (
+                <Text c="dimmed" size="sm">아직 개인 태그를 남기지 않았습니다.</Text>
+              )}
+            </SectionCard>
+
+            <ActionRow>
+              <AppLinkButton
+                to={`/works/${work.id}/edit?focus=review`}
+                tone="primary"
+              >
+                {shortReview || review ? '리뷰 수정' : '리뷰 쓰기'}
+              </AppLinkButton>
+              <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
+                기록 수정
+              </AppLinkButton>
+            </ActionRow>
+          </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="progress">
+          <Stack gap="md">
+            <SectionCard gap="md" padding="md" tone="subtle">
+              <KeyValueGrid
+                columns={2}
+                items={[
+                  { label: '현재 상태', value: statusLabel },
+                  { label: '진행도', value: progressLabel ?? '아직 없음' },
+                  { label: '시작일', value: formatWorkDate(work.startedAt) },
+                  { label: '완료일', value: formatWorkDate(work.completedAt) },
+                  { label: '하차일', value: formatWorkDate(work.droppedAt) },
+                  { label: '마지막 감상일', value: formatWorkDate(work.lastConsumedAt) },
+                ]}
+              />
+            </SectionCard>
+            {progressSections}
+          </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="timeline">
+          <Stack gap="md">
+            <SectionCard padding="md" tone="default">
+              <Group align="flex-start" justify="space-between" wrap="wrap">
+                <Stack gap={4}>
+                  <Text fw={700}>
+                    {latestTimelineItem
+                      ? `최근 흐름: ${latestTimelineItem.label}`
+                      : '아직 날짜 기록이 없습니다'}
+                  </Text>
+                  <Text c="dimmed" size="sm">
+                    {latestTimelineItem
+                      ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.description}`
+                      : '시작일이나 마지막 감상일을 남기면 이곳에 요약됩니다.'}
+                  </Text>
+                </Stack>
+                <AppBadge tone="accent">{timelineItems.length}개 기록</AppBadge>
+              </Group>
+            </SectionCard>
+
+            {timelineItems.length > 0 && (
+              <Accordion
+                defaultValue={shouldCollapseTimelineByDefault ? null : 'timeline-details'}
+                variant="separated"
+              >
+                <Accordion.Item value="timeline-details">
+                  <Accordion.Control>전체 타임라인 보기</Accordion.Control>
+                  <Accordion.Panel>
+                    <Stack gap="md">
+                      {timelineItems.map((item, index) => (
+                        <Box
+                          className={
+                            index === timelineItems.length - 1
+                              ? `${cn(css.timelineItem)} ${cn(css.timelineItemLast)}`
+                              : cn(css.timelineItem)
+                          }
+                          key={`${item.source}-${item.id}`}
+                        >
+                          <Box aria-hidden="true" className={cn(css.timelineDot)} />
+                          <Group align="flex-start" justify="space-between">
+                            <Stack gap={2}>
+                              <Group gap="xs">
+                                <Text fw={700}>{item.label}</Text>
+                                <AppBadge tone={item.source === 'manual' ? 'accent' : 'muted'}>
+                                  {item.source === 'manual' ? '직접 기록' : '날짜 기록'}
+                                </AppBadge>
+                              </Group>
+                              <Text c="dimmed" size="sm">{item.description}</Text>
+                            </Stack>
+                            <ActionRow>
+                              <AppBadge tone="accent">
+                                {formatWorkDate(item.value)}
+                              </AppBadge>
+                              {item.source === 'manual' && onDeleteTimelineEntry && (
+                                <AppButton
+                                  disabled={deletingTimelineEntryId === item.id}
+                                  loading={deletingTimelineEntryId === item.id}
+                                  onClick={() => void handleDeleteTimelineEntry(item.id)}
+                                  tone="danger"
+                                  type="button"
+                                >
+                                  삭제
+                                </AppButton>
+                              )}
+                            </ActionRow>
+                          </Group>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Accordion.Panel>
+                </Accordion.Item>
+              </Accordion>
+            )}
+
+            {onCreateTimelineEntry && (
+              <SectionCard padding="md" tone="subtle">
+                <Text fw={700} mb="md" size="sm" style={{ color: 'var(--app-text-secondary)' }}>
+                  기록 추가
+                </Text>
+                <Stack gap="md">
+                  <Group align="flex-end" grow>
+                    <NativeSelect
+                      aria-label={`${work.title} 타임라인 유형`}
+                      label="유형"
+                      onChange={(event) =>
+                        setTimelineType(event.currentTarget.value as TimelineEntryType)
+                      }
+                      value={timelineType}
+                    >
+                      {timelineTypeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                    <TextInput
+                      aria-label={`${work.title} 타임라인 날짜`}
+                      label="날짜"
+                      onChange={(event) => setTimelineDate(event.currentTarget.value)}
+                      type="date"
+                      value={timelineDate}
+                    />
+                  </Group>
+                  <Textarea
+                    aria-label={`${work.title} 타임라인 메모`}
+                    autosize
+                    label="메모"
+                    minRows={2}
+                    onChange={(event) => setTimelineNote(event.currentTarget.value)}
+                    placeholder="감상 중 남기고 싶은 변화를 기록하세요."
+                    value={timelineNote}
+                  />
+                  <ActionRow>
+                    <AppButton
+                      disabled={!timelineDate || isSavingTimelineEntry}
+                      loading={isSavingTimelineEntry}
+                      onClick={() => void handleCreateTimelineEntry()}
+                      tone="primary"
+                      type="button"
+                    >
+                      타임라인 기록 추가
+                    </AppButton>
+                  </ActionRow>
+                </Stack>
+              </SectionCard>
+            )}
+
+            <SectionCard gap="md" padding="md" tone="subtle">
+              <KeyValueGrid
+                columns={2}
+                items={[
+                  { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
+                  { label: '최근 수정', value: formatWorkDateTime(work.updatedAt) },
+                  { label: '시작일', value: formatWorkDate(work.startedAt) },
+                  { label: '완료일', value: formatWorkDate(work.completedAt) },
+                  { label: '하차일', value: formatWorkDate(work.droppedAt) },
+                  { label: '마지막 감상일', value: formatWorkDate(work.lastConsumedAt) },
+                  { label: '진행도', value: progressLabel ?? '아직 없음' },
+                  { label: '현재 상태', value: statusLabel },
+                ]}
+              />
+            </SectionCard>
+          </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="related">
+          <Stack gap="md">
+            <SectionCard padding="md" tone="subtle">
+              <Text c="dimmed" size="sm">
+                로컬 시리즈/세계관 기록과 카탈로그 관계를 작품 기록과 분리해 확인합니다.
+              </Text>
+            </SectionCard>
+            {relatedSections}
+          </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="metadata">
+          <Stack gap="md">
             {(seriesTags.length > 0 || contributorValues.length > 0) && (
               <Group gap={6} wrap="wrap">
                 {seriesTags.map((series) => (
@@ -617,46 +892,24 @@ export function WorkDetailPanel({
               </Group>
             )}
 
-            <ReviewNoteCard
-              emptyLabel="아직 남긴 한줄평이 없습니다."
-              label="한줄평"
-              value={shortReview}
-            />
-            <ReviewNoteCard
-              emptyLabel="아직 남긴 상세 감상이 없습니다."
-              label="상세 감상"
-              value={review}
-            />
-
-            {/* 개인 태그 */}
-            <SectionCard gap="sm" padding="md" tone="subtle">
-              <Text c="dimmed" fw={700} mb={6} size="sm">
-                개인 태그
-              </Text>
-              {personalTags.length > 0 ? (
-                <Group gap={6} wrap="wrap">
-                  {personalTags.map((tag) => (
-                    <span
-                      key={tag}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '3px 10px',
-                        borderRadius: 20,
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        background: 'color-mix(in srgb, var(--app-accent-secondary) 10%, transparent)',
-                        border: '1px solid color-mix(in srgb, var(--app-accent-secondary) 25%, transparent)',
-                        color: 'var(--app-accent-secondary)',
-                      }}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </Group>
-              ) : (
-                <Text c="dimmed" size="sm">아직 개인 태그를 남기지 않았습니다.</Text>
-              )}
+            <SectionCard gap="lg" padding="lg" tone="subtle">
+              <KeyValueGrid
+                columns={2}
+                items={[
+                  { label: '작가·제작자', value: work.author || '미입력' },
+                  {
+                    label: '장르',
+                    value: work.genres.length > 0 ? work.genres.join(', ') : '없음',
+                  },
+                  {
+                    label: '설명',
+                    value: work.description.trim() || '작품 소개가 아직 없습니다.',
+                  },
+                  { label: '식별 방식', value: sourceIdentityLabel },
+                  { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
+                  { label: '수정한 날', value: formatWorkDateTime(work.updatedAt) },
+                ]}
+              />
             </SectionCard>
 
             {(seriesTags.length > 0 ||
@@ -702,195 +955,6 @@ export function WorkDetailPanel({
             )}
 
             <ActionRow>
-              <AppLinkButton
-                to={`/works/${work.id}/edit?focus=review`}
-                tone="primary"
-              >
-                {shortReview || review ? '리뷰 수정' : '리뷰 쓰기'}
-              </AppLinkButton>
-              <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
-                기록 수정
-              </AppLinkButton>
-            </ActionRow>
-
-            {recordSections}
-          </Stack>
-        </Tabs.Panel>
-
-        {/* ── 탭 2: 타임라인 ── */}
-        <Tabs.Panel value="timeline">
-          <Stack gap="md">
-            {/* 최근 흐름 요약 */}
-            <SectionCard padding="md" tone="default">
-              <Group align="flex-start" justify="space-between" wrap="wrap">
-                <Stack gap={4}>
-                  <Text fw={700}>
-                    {latestTimelineItem
-                      ? `최근 흐름: ${latestTimelineItem.label}`
-                      : '아직 날짜 기록이 없습니다'}
-                  </Text>
-                  <Text c="dimmed" size="sm">
-                    {latestTimelineItem
-                      ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.description}`
-                      : '시작일이나 마지막 감상일을 남기면 이곳에 요약됩니다.'}
-                  </Text>
-                </Stack>
-                <AppBadge tone="accent">{timelineItems.length}개 기록</AppBadge>
-              </Group>
-            </SectionCard>
-
-            {/* 타임라인 항목 목록 */}
-            {timelineItems.length > 0 && (
-              <Accordion
-                defaultValue={shouldCollapseTimelineByDefault ? null : 'timeline-details'}
-                variant="separated"
-              >
-                <Accordion.Item value="timeline-details">
-                  <Accordion.Control>전체 타임라인 보기</Accordion.Control>
-                  <Accordion.Panel>
-                    <Stack gap="md">
-                      {timelineItems.map((item, index) => (
-                        <Box
-                          className={
-                            index === timelineItems.length - 1
-                              ? `${cn(css.timelineItem)} ${cn(css.timelineItemLast)}`
-                              : cn(css.timelineItem)
-                          }
-                          key={`${item.source}-${item.id}`}
-                        >
-                          <Box aria-hidden="true" className={cn(css.timelineDot)} />
-                          <Group align="flex-start" justify="space-between">
-                            <Stack gap={2}>
-                              <Group gap="xs">
-                                <Text fw={700}>{item.label}</Text>
-                                <AppBadge tone={item.source === 'manual' ? 'accent' : 'muted'}>
-                                  {item.source === 'manual' ? '직접 기록' : '날짜 기록'}
-                                </AppBadge>
-                              </Group>
-                              <Text c="dimmed" size="sm">{item.description}</Text>
-                            </Stack>
-                            <ActionRow>
-                              <AppBadge tone="accent">
-                                {formatWorkDate(item.value)}
-                              </AppBadge>
-                              {item.source === 'manual' && onDeleteTimelineEntry && (
-                                <AppButton
-                                  disabled={deletingTimelineEntryId === item.id}
-                                  loading={deletingTimelineEntryId === item.id}
-                                  onClick={() => void handleDeleteTimelineEntry(item.id)}
-                                  tone="danger"
-                                  type="button"
-                                >
-                                  삭제
-                                </AppButton>
-                              )}
-                            </ActionRow>
-                          </Group>
-                        </Box>
-                      ))}
-                    </Stack>
-                  </Accordion.Panel>
-                </Accordion.Item>
-              </Accordion>
-            )}
-
-            {/* 날짜 기록 추가 */}
-            {onCreateTimelineEntry && (
-              <SectionCard padding="md" tone="subtle">
-                <Text fw={700} mb="md" size="sm" style={{ color: 'var(--app-text-secondary)' }}>
-                  기록 추가
-                </Text>
-                <Stack gap="md">
-                  <Group align="flex-end" grow>
-                    <NativeSelect
-                      aria-label={`${work.title} 타임라인 유형`}
-                      label="유형"
-                      onChange={(event) =>
-                        setTimelineType(event.currentTarget.value as TimelineEntryType)
-                      }
-                      value={timelineType}
-                    >
-                      {timelineTypeOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                    <TextInput
-                      aria-label={`${work.title} 타임라인 날짜`}
-                      label="날짜"
-                      onChange={(event) => setTimelineDate(event.currentTarget.value)}
-                      type="date"
-                      value={timelineDate}
-                    />
-                  </Group>
-                  <Textarea
-                    aria-label={`${work.title} 타임라인 메모`}
-                    autosize
-                    label="메모"
-                    minRows={2}
-                    onChange={(event) => setTimelineNote(event.currentTarget.value)}
-                    placeholder="감상 중 남기고 싶은 변화를 기록하세요."
-                    value={timelineNote}
-                  />
-                  <ActionRow>
-                    <AppButton
-                      disabled={!timelineDate || isSavingTimelineEntry}
-                      loading={isSavingTimelineEntry}
-                      onClick={() => void handleCreateTimelineEntry()}
-                      tone="primary"
-                      type="button"
-                    >
-                      타임라인 기록 추가
-                    </AppButton>
-                  </ActionRow>
-                </Stack>
-              </SectionCard>
-            )}
-
-            {/* 날짜 요약 */}
-            <SectionCard gap="md" padding="md" tone="subtle">
-              <KeyValueGrid
-                columns={2}
-                items={[
-                  { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
-                  { label: '최근 수정', value: formatWorkDateTime(work.updatedAt) },
-                  { label: '시작일', value: formatWorkDate(work.startedAt) },
-                  { label: '완료일', value: formatWorkDate(work.completedAt) },
-                  { label: '하차일', value: formatWorkDate(work.droppedAt) },
-                  { label: '마지막 감상일', value: formatWorkDate(work.lastConsumedAt) },
-                  { label: '진행도', value: progressLabel ?? '아직 없음' },
-                  { label: '현재 상태', value: statusLabel },
-                ]}
-              />
-            </SectionCard>
-          </Stack>
-        </Tabs.Panel>
-
-        {/* ── 탭 3: 작품 정보 ── */}
-        <Tabs.Panel value="info">
-          <Stack gap="md">
-            <SectionCard gap="lg" padding="lg" tone="subtle">
-              <KeyValueGrid
-                columns={2}
-                items={[
-                  { label: '작가·제작자', value: work.author || '미입력' },
-                  {
-                    label: '장르',
-                    value: work.genres.length > 0 ? work.genres.join(', ') : '없음',
-                  },
-                  {
-                    label: '설명',
-                    value: work.description.trim() || '작품 소개가 아직 없습니다.',
-                  },
-                  { label: '식별 방식', value: sourceIdentityLabel },
-                  { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
-                  { label: '수정한 날', value: formatWorkDateTime(work.updatedAt) },
-                ]}
-              />
-            </SectionCard>
-
-            <ActionRow>
               <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
                 작품 정보 수정
               </AppLinkButton>
@@ -898,8 +962,6 @@ export function WorkDetailPanel({
           </Stack>
         </Tabs.Panel>
       </Tabs>
-
-      {relatedSections}
     </Stack>
   );
 }

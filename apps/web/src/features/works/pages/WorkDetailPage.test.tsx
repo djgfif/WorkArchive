@@ -84,10 +84,23 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Fate/stay night' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '개요' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('tab', { name: /감상/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '진행도' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /타임라인/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '관련 작품' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '메타데이터' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: '메타데이터' }));
     expect((await screen.findAllByText('Fate')).length).toBeGreaterThan(0);
     expect((await screen.findAllByText('TYPE-MOON')).length).toBeGreaterThan(0);
     expect((await screen.findAllByText('ufotable')).length).toBeGreaterThan(0);
     expect(screen.getByText('제작 정보')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: '관련 작품' }));
     expect(screen.getByText('이 시리즈 안에서')).toBeInTheDocument();
     expect(await screen.findByText('Fate/Zero')).toBeInTheDocument();
   });
@@ -127,6 +140,7 @@ describe('WorkDetailPage', () => {
     expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(screen.getAllByText('2권까지').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Dune 상세 진행도 67%')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /감상/ }));
     expect(
       screen.getByText('세계관의 밀도와 긴장감이 오래 남는다.'),
     ).toBeInTheDocument();
@@ -167,7 +181,7 @@ describe('WorkDetailPage', () => {
     expect(
       screen.getAllByRole('link', { name: '리뷰 쓰기' }).length,
     ).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: '기록 수정' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '수정' })).toBeInTheDocument();
     expect(screen.getByLabelText('Frieren 빠른 상태')).toBeInTheDocument();
     expect(screen.getByLabelText('Frieren 빠른 별점')).toBeInTheDocument();
 
@@ -453,6 +467,8 @@ describe('WorkDetailPage', () => {
       </AuthContext.Provider>,
     );
 
+    await screen.findByRole('heading', { name: 'Spice and Wolf' });
+    await userEvent.click(screen.getByRole('tab', { name: '진행도' }));
     expect(await screen.findByText('Vol. 1')).toBeInTheDocument();
   });
 
@@ -562,6 +578,8 @@ describe('WorkDetailPage', () => {
       </AuthContext.Provider>,
     );
 
+    await screen.findByRole('heading', { name: 'Steins;Gate' });
+    await userEvent.click(screen.getByRole('tab', { name: '관련 작품' }));
     expect(await screen.findByText('Steins;Gate 0')).toBeInTheDocument();
     expect(screen.getByText('Steins;Gate Movie')).toBeInTheDocument();
   });
@@ -594,6 +612,7 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'KonoSuba TV Anime' }),
     ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: '진행도' }));
     expect(
       screen.getByRole('heading', { name: '애니 진행 상황' }),
     ).toBeInTheDocument();

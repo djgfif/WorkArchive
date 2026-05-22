@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { liveQuery } from 'dexie';
 import {
   Group,
   NativeSelect,
@@ -24,8 +23,10 @@ import {
 } from '../../../shared/components/AppPrimitives';
 import { LibraryTemplate } from '../../../shared/components/PageTemplates';
 import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
-import { appMetaRepository } from '../../sync/services/app-meta.repository';
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../../profile/hooks/useSettingsOverviewStats';
+import { JsonBackupReminderCard } from '../../archive/components/JsonBackupReminderCard';
+import { useJsonArchiveExport } from '../../archive/hooks/useJsonArchiveExport';
+import { useJsonBackupReminder } from '../../archive/hooks/useJsonBackupReminder';
+import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import {
   ArchiveEmptyState,
   ArchiveSkeleton,
@@ -253,6 +254,7 @@ export function WorksListPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { archiveScopeKey } = useAuthSession();
   const [collectionScope, setCollectionScope] = useState<WorksCollectionScope>(
     () => getCollectionScopeFromSearchParams(searchParams),
   );
@@ -271,7 +273,6 @@ export function WorksListPage() {
     '',
   );
   const [bulkWorking, setBulkWorking] = useState(false);
-  const [lastJsonExportAt, setLastJsonExportAt] = useState<string | null>(null);
   const [selectedWorkIds, setSelectedWorkIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -295,6 +296,11 @@ export function WorksListPage() {
     works,
   } = useWorksList(query, collectionScope);
   const recentViewedWorks = useRecentWorkViews(8);
+  const jsonArchiveExport = useJsonArchiveExport();
+  const backupReminder = useJsonBackupReminder(
+    totalActiveCount,
+    archiveScopeKey,
+  );
   const hasActiveFilters =
     query.searchTerm.trim() !== '' ||
     (query.series?.trim() ?? '') !== '' ||
@@ -350,20 +356,7 @@ export function WorksListPage() {
       replace: true,
       state: null,
     });
-  }, [location.key]);
-
-  useEffect(() => {
-    const subscription = liveQuery(() =>
-      appMetaRepository.getValue(LAST_JSON_EXPORT_AT_META_KEY),
-    ).subscribe({
-      next: setLastJsonExportAt,
-      error: () => setLastJsonExportAt(null),
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  }, [location.key, location.pathname, location.search, location.state, navigate]);
 
   useEffect(() => {
     const visibleWorkIds = new Set(works.map((work) => work.id));
@@ -680,7 +673,10 @@ export function WorksListPage() {
               <Text c="dimmed" fw={800} size="xs" tt="uppercase">
                 관리
               </Text>
-              <Text fw={800}>마지막 JSON 백업: {formatLastJsonBackupLabel(lastJsonExportAt)}</Text>
+              <Text fw={800}>
+                마지막 JSON 백업:{' '}
+                {formatLastJsonBackupLabel(backupReminder.lastJsonExportAt)}
+              </Text>
             </Stack>
             {collectionScope === 'active' && totalActiveCount > 0 && (
               <ActionRow justify="flex-end">
@@ -792,6 +788,13 @@ export function WorksListPage() {
           )}
         </Stack>
       </Paper>
+
+      <JsonBackupReminderCard
+        feedback={jsonArchiveExport.feedback}
+        isExporting={jsonArchiveExport.isExporting}
+        onExportJson={jsonArchiveExport.exportJson}
+        reminder={backupReminder}
+      />
 
       {actionError && <FeedbackMessage tone="error">{actionError}</FeedbackMessage>}
       {actionSuccess && (

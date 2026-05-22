@@ -1025,16 +1025,25 @@ export function WorkDetailPage() {
         onCreateTimelineEntry={handleCreateTimelineEntry}
         onDeleteTimelineEntry={handleDeleteTimelineEntry}
         graph={currentWorkGraph}
-        recordSections={
+        overviewSections={
+          <WorkQuickRecordSection
+            onError={handleActionError}
+            onSuccess={handleActionSuccess}
+            work={work}
+          />
+        }
+        progressSections={
           <>
-            <WorkQuickRecordSection
+            <ProgressOnlySection
               onError={handleActionError}
               onSuccess={handleActionSuccess}
               work={work}
             />
-            <ProgressOnlySection
+            <VolumeRecordsSection
+              localRecords={localReleaseRecords}
               onError={handleActionError}
               onSuccess={handleActionSuccess}
+              releaseData={releaseData}
               work={work}
             />
           </>
@@ -1045,13 +1054,6 @@ export function WorkDetailPage() {
               currentWork={work}
               graph={localGraph}
               works={localWorks}
-            />
-            <VolumeRecordsSection
-              localRecords={localReleaseRecords}
-              onError={handleActionError}
-              onSuccess={handleActionSuccess}
-              releaseData={releaseData}
-              work={work}
             />
             <RelatedTitlesSection relatedData={relatedData} />
           </>

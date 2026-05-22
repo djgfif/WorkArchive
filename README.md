@@ -327,7 +327,7 @@ Retention cleanup defaults to dry-run. Production deletes require both
 - Works 목록 조회는 Dexie v7의 scope index를 사용해 active/trash 범위를 먼저 좁힌 뒤 필터와 정렬을 적용한다.
 - manual timeline entries는 Dexie v9 sync-ready 모델과 backend `UserTimelineEntry` private storage를 통해 optional account sync 대상에 포함된다.
 - JSON 백업은 schema/source/exclusion metadata와 timeline entries를 포함하고, 가져오기는 dry-run preview로 add/update/duplicate/skip/conflict 예상치를 먼저 보여준다.
-- `Tier Boards`, `Insights`, `Community`는 현재 placeholder 성격이 강하다.
+- `Tier Boards`는 독립 보드 기능으로 유지한다. `Insights`는 현재 노출하지 않고 계획 문서 기준으로만 관리한다. `Community`는 현재 구현/노출 범위 밖이며 `/community`는 호환 redirect만 유지한다.
 - 인증은 현재 Google OAuth + memory-only access token + `HttpOnly` refresh cookie 구조다. legacy email/password register/login/password-reset은 비활성화되어 `410 Gone`을 반환한다. 앱 부팅 시 refresh cookie로 access token을 재발급하고, 실패하면 guest/local-first 상태로 돌아간다. 늦게 도착한 startup refresh 실패는 완료된 Google OAuth 세션을 덮어쓰지 않는다.
 - 백엔드는 이미 `CatalogWork` + `UserWorkRecord` split model을 도입했고, 현재 `Works` API는 flat compatibility 계층으로 유지된다.
 - 현재 프론트 실행 대상은 `apps/web`이며, Tauri shell은 아직 저장소에 없다.

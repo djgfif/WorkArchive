@@ -462,6 +462,37 @@ describe('AddWorkFlow', () => {
     window.localStorage.clear();
   });
 
+  it('keeps the direct input screen lightweight and puts metadata in details', async () => {
+    const user = userEvent.setup();
+
+    renderGuestAddWorkFlow();
+
+    expect(screen.getByLabelText(/^제목$/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^유형$/)).toBeInTheDocument();
+    expect(screen.getByLabelText('표지 이미지 주소')).toBeInTheDocument();
+    expect(screen.getByText('상태')).toBeInTheDocument();
+    expect(screen.getByLabelText('한줄평')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '상세 정보' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    expect(screen.getByLabelText('작가·제작자')).not.toBeVisible();
+    expect(getElementById<HTMLInputElement>('manualGenresText')).not.toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: '상세 정보' }));
+
+    expect(screen.getByRole('button', { name: '상세 정보' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByLabelText('작가·제작자')).toBeInTheDocument();
+    expect(getElementById<HTMLInputElement>('manualGenresText')).toBeVisible();
+    expect(
+      getElementById<HTMLInputElement>('manualPersonalTagsText'),
+    ).toBeVisible();
+    expect(screen.getByLabelText('상세 감상')).toBeInTheDocument();
+  });
+
   it('uses authenticated search candidates to prefill the Add Work form', async () => {
     const candidate = buildCandidate({
       confidenceLabel: '신뢰도 높음',

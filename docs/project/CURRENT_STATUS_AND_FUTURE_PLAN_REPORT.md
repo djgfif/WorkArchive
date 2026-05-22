@@ -22,7 +22,7 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 - Quick Add matched/unmatched/manual 저장 규칙과 duplicate detection 우선순위는 테스트로 고정돼 있다.
 - Quick Add 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage를 갖추고 manual fallback을 일반 검색 결과에서 분리한다.
 - 현재 sync는 수동 Sync page와 로그인 상태의 제한적 자동 sync를 함께 지원한다.
-- `Tier Boards`, `Community`는 라우트는 존재하지만 현재 범위 밖/후속 기능 안내 성격이 강하다. `Insights`는 local-first 개인 기록 기반 요약 화면으로 시작했다.
+- `Tier Boards`는 작품 기록과 분리된 독립 보드 기능이다. `Community`는 현재 구현/노출 범위 밖이며 `/community`는 호환 redirect만 유지한다. `Insights`는 현재 화면으로 노출하지 않고 개인 기록 통계 계획 문서 기준으로 관리한다.
 
 ## 2. Verified Stack
 
@@ -64,10 +64,10 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 
 | Area                    | Routes                                                                                                              | Current state                                                 |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/tier-boards`, `/insights`, `/community`, `/profile` | 홈/작품 흐름은 실제 구현, 확장 목적지는 placeholder 성격 혼재 |
+| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/tier-boards`, `/profile` | 홈/작품 흐름과 독립 티어보드 기능 |
+| Compatibility redirects | `/insights`, `/community`, `/sync`, `/settings`, `/profile/sync`, `/profile/settings` | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트 |
 | Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                                                    | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
 | Account                 | `/account`, `/account/sync`, `/account/transfer`, `/account/settings`                                               | 계정 개요, sync, guest review, 설정 흐름 구현                 |
-| Compatibility redirects | `/sync`, `/settings`, `/profile/sync`, `/profile/settings`                                                          | `/account/*`로 리다이렉트                                     |
 | Minimal                 | `*`                                                                                                                 | 404 처리                                                      |
 
 ### 3-3. Current User Flows
@@ -323,7 +323,7 @@ Sync UX reality: sync is not manual-only anymore. The manual Sync page remains t
 - sync는 수동 Sync page를 기본 조작면으로 제공하고, 로그인 상태에서는 제한적 자동 pull/push도 수행한다.
 - SyncPage는 pending / failed / conflict queue item 단위 상태와 원인, 기록 보기, 재시도 CTA를 제공한다.
 - SyncPage는 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지, 원격 적용, 필드별 병합으로 해결할 수 있다. 자동 병합 판단은 후속 작업이다.
-- Profile / Tier Boards / Community / Insights는 장기 방향에 비해 현재 구현이 얕다.
+- Profile은 개인 기록 요약으로 제한한다. Tier Boards는 독립 기능으로 유지한다. Community와 Insights는 현재 visible surface가 아니며, Insights는 별도 계획 문서 기준으로 후속 구현한다.
 
 ### 7-3. Backend / Security
 

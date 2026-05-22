@@ -20,6 +20,9 @@ import {
   LoadingRows,
   StateMessage,
 } from '../../../shared/components/AppPrimitives';
+import { JsonBackupReminderCard } from '../../archive/components/JsonBackupReminderCard';
+import { useJsonArchiveExport } from '../../archive/hooks/useJsonArchiveExport';
+import { useJsonBackupReminder } from '../../archive/hooks/useJsonBackupReminder';
 import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
 import { useAuthSession } from '../../auth/hooks/useAuthSession';
 import {
@@ -361,7 +364,7 @@ function CollectionShelf({
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { mode, user } = useAuthSession();
+  const { archiveScopeKey, mode, user } = useAuthSession();
   const {
     averageRating,
     completedCount,
@@ -376,6 +379,8 @@ export function HomePage() {
   } = useWorksOverview();
   const [searchTerm, setSearchTerm] = useState('');
   const isAuthenticated = mode === 'authenticated';
+  const jsonArchiveExport = useJsonArchiveExport();
+  const backupReminder = useJsonBackupReminder(totalCount, archiveScopeKey);
   const continueWorks = recentWorks
     .filter((work) => work.status === 'in_progress')
     .slice(0, 8);
@@ -479,6 +484,13 @@ export function HomePage() {
               />
             </SimpleGrid>
           )}
+
+          <JsonBackupReminderCard
+            feedback={jsonArchiveExport.feedback}
+            isExporting={jsonArchiveExport.isExporting}
+            onExportJson={jsonArchiveExport.exportJson}
+            reminder={backupReminder}
+          />
 
           <Stack gap="lg">
             <SectionHeader

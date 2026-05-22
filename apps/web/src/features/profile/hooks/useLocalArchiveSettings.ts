@@ -4,9 +4,8 @@ import {
   localArchiveService,
   type LocalArchiveImportPreview,
 } from '../../archive/services/local-archive.service';
-import { appMetaRepository } from '../../sync/services/app-meta.repository';
+import { useJsonArchiveExport } from '../../archive/hooks/useJsonArchiveExport';
 import type { SettingsFeedback } from './useImportProviderSettings';
-import { LAST_JSON_EXPORT_AT_META_KEY } from './useSettingsOverviewStats';
 
 function downloadTextFile(filename: string, type: string, content: string) {
   const blob = new Blob([content], {
@@ -22,7 +21,8 @@ function downloadTextFile(filename: string, type: string, content: string) {
 }
 
 export function useLocalArchiveSettings() {
-  const [isExportingArchive, setIsExportingArchive] = useState(false);
+  const jsonArchiveExport = useJsonArchiveExport();
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
   const [isImportingArchive, setIsImportingArchive] = useState(false);
   const [archiveImportPreview, setArchiveImportPreview] =
     useState<LocalArchiveImportPreview | null>(null);
@@ -33,40 +33,14 @@ export function useLocalArchiveSettings() {
     useState<SettingsFeedback | null>(null);
 
   async function exportJson() {
-    try {
-      setIsExportingArchive(true);
-      setArchiveFeedback(null);
-      const content = await localArchiveService.createJsonExportText();
-
-      downloadTextFile(
-        `work-archive-backup-${new Date().toISOString().slice(0, 10)}.json`,
-        'application/json',
-        content,
-      );
-      await appMetaRepository.setValue(
-        LAST_JSON_EXPORT_AT_META_KEY,
-        new Date().toISOString(),
-      );
-      setArchiveFeedback({
-        tone: 'success',
-        message: 'JSON 백업 파일을 만들었습니다.',
-      });
-    } catch (error) {
-      setArchiveFeedback({
-        tone: 'error',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'JSON 백업 파일을 만들지 못했습니다.',
-      });
-    } finally {
-      setIsExportingArchive(false);
-    }
+    setArchiveFeedback(null);
+    await jsonArchiveExport.exportJson();
   }
 
   async function exportCsv() {
     try {
-      setIsExportingArchive(true);
+      setIsExportingCsv(true);
+      jsonArchiveExport.clearFeedback();
       setArchiveFeedback(null);
       const content = await localArchiveService.createCsvExportText();
 
@@ -88,12 +62,13 @@ export function useLocalArchiveSettings() {
             : 'CSV 파일을 만들지 못했습니다.',
       });
     } finally {
-      setIsExportingArchive(false);
+      setIsExportingCsv(false);
     }
   }
 
   async function previewImportFile(file: File) {
     try {
+      jsonArchiveExport.clearFeedback();
       const content = await file.text();
       const preview = await localArchiveService.previewImport(content);
 
@@ -148,16 +123,17 @@ export function useLocalArchiveSettings() {
     setPendingArchiveImport(null);
     setArchiveImportPreview(null);
     setArchiveFeedback(null);
+    jsonArchiveExport.clearFeedback();
   }
 
   return {
-    archiveFeedback,
+    archiveFeedback: archiveFeedback ?? jsonArchiveExport.feedback,
     archiveImportPreview,
     cancelImport,
     confirmImport,
     exportCsv,
     exportJson,
-    isExportingArchive,
+    isExportingArchive: isExportingCsv || jsonArchiveExport.isExporting,
     isImportingArchive,
     previewImportFile,
   };

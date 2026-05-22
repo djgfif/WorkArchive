@@ -53,7 +53,9 @@ export function SettingsPage() {
         <SettingsOverview
           archiveFeedback={localArchiveSettings.archiveFeedback}
           archiveImportPreview={localArchiveSettings.archiveImportPreview}
+          isExportingArchive={localArchiveSettings.isExportingArchive}
           mode={mode}
+          onExportJson={localArchiveSettings.exportJson}
           stats={overviewStats}
           user={user}
         />

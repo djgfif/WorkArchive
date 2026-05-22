@@ -32,9 +32,9 @@
 - `/works/:id`
 - `/works/:id/edit`
 - `/tier-boards`
-- `/insights`
-- `/community`
 - `/profile`
+
+`/insights`와 `/community`는 현재 visible surface가 아니며, 호환 redirect만 유지한다.
 
 역할:
 
@@ -97,11 +97,9 @@
 - 홈
 - 작품
 - 티어 보드
-- 인사이트
-- 커뮤니티
 - 프로필
 
-이 명칭은 현재 구현 기준이다. 제품 용어 변경은 roadmap 문서에서 다루고, 이 문서는 코드에 반영된 명칭을 따른다.
+이 명칭은 현재 visible navigation 기준이다. 제품 용어 변경은 roadmap 문서에서 다루고, 이 문서는 코드에 반영된 명칭을 따른다.
 
 ## 4. Current Page Roles
 
@@ -114,7 +112,9 @@
 | Work Edit | 기록 수정 플로우 |
 | Auth | 입력 집중형 인증 페이지 |
 | Account | overview / sync / settings / guest transfer review 중심 관리 페이지 |
-| Tier Boards / Insights / Community | 현재는 확장 목적지이며 placeholder 성격이 강함 |
+| Tier Boards | 작품 기록과 분리된 독립 보드 기능 |
+| Insights | 현재 미노출. 개인 기록 통계 계획 문서 기준으로 후속 구현 |
+| Community | 현재 범위 밖. visible navigation과 현재 기능 설명에서 제외 |
 
 ## 5. Current Data And Session Rules
 

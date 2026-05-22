@@ -27,7 +27,7 @@ Last updated: 2026-05-17
 - Auth 오류 메시지 localizer와 실패 로그인 화면 테스트를 추가해 API 원문이 그대로 노출되지 않도록 고정했다.
 - Guest transfer review는 로딩/이관/건너뛰기 실패 메시지를 관리 화면 맥락에 맞게 구분하고, 로딩 실패 시 `다시 확인`과 `Works에서 확인` action을 제공한다.
 - Settings provider readiness에 공개/사용 가능/key 필요 요약을 추가하고, 로그인 세션 영역을 한국어 보안 관리 패턴과 명확한 revoke action copy로 정리했다.
-- Tier Boards와 Community placeholder에 현재 가능한 대체 행동 CTA를 추가하고, placeholder가 구현 완료 기능처럼 보이지 않는지 테스트로 고정했다.
+- Tier Boards는 독립 보드 기능으로 유지하고, Community는 현재 기능처럼 노출하지 않는 방향으로 정리했다.
 
 ## 화면별 개선 내용
 
@@ -37,15 +37,14 @@ Last updated: 2026-05-17
 - Works: 60개를 넘는 grid 목록은 초기 DOM을 제한하고 현재 표시 수를 보여준 뒤 `더 보기`로 확장한다. 75개 fixture에서 마지막 항목이 초기 렌더에서 제외되고 action 후 표시되는지 테스트로 고정했다.
 - Work Create/Edit: 기존 title-only save, 검색 후보 적용, cover fallback 흐름은 유지했다. 장르/개인 태그 입력은 Mantine `TagsInput` 기반 chip 입력으로 전환해 쉼표 문자열 편집 부담을 줄였고, 저장 payload는 기존 배열 파싱 계약을 유지한다. 검색 후보 로딩은 목록과 미리보기 skeleton으로 구조화해 결과가 들어올 자리를 유지한다. 긴 편집 폼은 모바일 하단 고정 저장 action으로 저장/취소 접근성을 보강했다. 리뷰 집중 수정은 상태 안내를 노출하고 감상 입력에 초점을 이동한다. 편집 저장 후 상세 화면에 inline 성공 피드백이 남아 전환 후에도 저장 완료를 확인할 수 있다.
 - Work Detail: detail/edit loading을 구조화하고 danger zone 분리, 개인 기록 우선 구조를 유지했다. 빠른 기록과 진행도 저장은 성공 시 inline feedback을 보여주고 5초 뒤 자동 정리한다. 긴 타임라인은 최신 감상 흐름 요약을 먼저 보여준 뒤 전체 이력/추가 폼을 펼치게 했다.
-- Insights: 집계 loading을 dashboard skeleton으로 바꿨고 개인-only dashboard framing은 유지했다. 분포 row의 `보기` 링크로 Works filtered view에 진입할 수 있고, 오래 방치한 작품은 제목이 포함된 `이어 기록하기` 링크로 상세 화면에 바로 돌아갈 수 있다. 집계 로드 실패 시 `다시 불러오기`, `작품 목록 열기`, `작품 추가` action을 제공한다.
+- Insights: 현재 visible surface에서 제외하고, 개인 기록 통계 중심의 후속 구현 계획으로 관리한다.
 - Account/Sync/Settings: 모바일 계정 nav를 상단 section nav로 분리하고 빠른 작업을 별도 full-width 그룹으로 정리해 좁은 폭에서 로그인/로그아웃, 테마, 기록 요약 CTA가 눌리지 않게 했다. 계정 홈에서는 동기화 주의 상태를 badge와 CTA로 드러냈다. Profile route는 개인 기록 요약으로 제한해 공개/SNS 표면처럼 보이지 않게 했고, 최근 기록/이어가기 CTA로 실제 기록 흐름과 연결했다. 개인 기록 요약 로드 실패 시 재시도, 작품 목록, 작품 추가 action을 제공한다. Sync loading을 구조화했고 pending/failed/conflict/merge 관리 흐름은 유지했다. 수동 동기화 실패 run은 `확인 필요` summary, 실패/충돌/보류 metric, `다시 동기화` action으로 상단에서 다음 행동을 보여준다. 실패 항목은 인증 만료, 네트워크, 서버 검증, 서버 오류, 미분류로 진단하고 다음 행동 안내와 필요한 링크를 제공한다. 충돌 비교는 핵심 차이만 먼저 보여주고 전체 필드 비교는 접힌 상세 영역으로 낮춰 관리 화면 밀도를 보정했다.
 - Settings: provider readiness와 login sessions가 관리 콘솔처럼 상태 요약, 현재/다른 기기 구분, 위험 action copy를 제공한다.
 - Auth: focused form shell을 유지하면서 local-first/계정 동기화 안내, field helper text, submit loading, role 기반 feedback과 context-aware error copy를 보강했다. Guest transfer review의 실패/재시도 흐름도 테스트로 고정했다.
-- Placeholder: Tier Boards는 준비 중 상태로 낮은 위계에 두고 Community는 범위 밖 기능으로 유지했다. 두 placeholder 모두 지금 할 수 있는 대체 행동을 제공한다.
+- Community: 현재 범위 밖 기능으로 유지하며 visible navigation과 현재 기능 설명에서 제외한다.
 
 ## 남은 한계
 
-- Tier Boards는 여전히 production 기능이 아니라 준비 중 placeholder다.
 - Community는 의도적으로 이번 제품 범위 밖이다.
 
 ## 실행한 검증 명령과 결과

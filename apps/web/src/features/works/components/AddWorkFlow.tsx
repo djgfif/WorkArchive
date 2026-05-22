@@ -343,7 +343,7 @@ function PersonalRecordFields({
         <StatusButtonGroup onChange={onStatusChange} value={values.status} />
 
         <StarRatingInput
-          label="고급별점"
+          label="별점"
           onChange={onRatingChange}
           value={normalizedRating}
         />
@@ -420,7 +420,7 @@ function AdvancedWorkFields({
   return (
     <Accordion>
       <Accordion.Item value={itemValue}>
-        <Accordion.Control>장르, 개인 태그, 상세 감상</Accordion.Control>
+        <Accordion.Control>상세 정보</Accordion.Control>
         <Accordion.Panel>
           <Stack gap="md" pt="sm">
             <TextInput

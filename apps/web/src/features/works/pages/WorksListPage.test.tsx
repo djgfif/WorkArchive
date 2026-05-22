@@ -13,7 +13,7 @@ import {
 } from '../../../test/ui-helpers';
 import { AuthProvider } from '../../auth/context/AuthProvider';
 import { appMetaRepository } from '../../sync/services/app-meta.repository';
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../../profile/hooks/useSettingsOverviewStats';
+import { LAST_JSON_EXPORT_AT_META_KEY } from '../../archive/utils/json-backup-reminder';
 import { worksService } from '../services/works.service';
 
 describe('WorksListPage', () => {
@@ -119,6 +119,40 @@ describe('WorksListPage', () => {
     expect(
       screen.getByRole('link', { name: 'JSON 백업 가져오기' }),
     ).toHaveAttribute('href', '/account/settings');
+  });
+
+  it('shows the shared JSON backup reminder after 20 active works without a backup', async () => {
+    for (let index = 0; index < 20; index += 1) {
+      await worksService.createWork({
+        type: 'novel',
+        title: `Backup Reminder Work ${index + 1}`,
+        author: '',
+        genres: [],
+        description: '',
+        thumbnailUrl: '',
+        status: 'planned',
+        rating: null,
+        shortReview: '',
+        review: '',
+        favorite: false,
+      });
+    }
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByText('첫 JSON 백업을 권장합니다'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
+    ).toBeInTheDocument();
   });
 
   it('shows recently viewed works after opening a detail page', async () => {

@@ -6,6 +6,8 @@ import {
   SectionCard,
   SectionIntro,
 } from '../../../../shared/components/AppPrimitives';
+import { JsonBackupReminderCard } from '../../../archive/components/JsonBackupReminderCard';
+import { getJsonBackupReminderStatus } from '../../../archive/utils/json-backup-reminder';
 import type { LocalArchiveImportPreview } from '../../../archive/services/local-archive.service';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import type { SettingsOverviewStats } from '../../hooks/useSettingsOverviewStats';
@@ -18,7 +20,9 @@ type SummaryIconName = 'data' | 'google' | 'key' | 'security';
 interface SettingsOverviewProps {
   archiveFeedback: SettingsFeedback | null;
   archiveImportPreview: LocalArchiveImportPreview | null;
+  isExportingArchive: boolean;
   mode: SettingsAuthMode;
+  onExportJson: () => void;
   stats: SettingsOverviewStats;
   user: AuthUserResponse | null;
 }
@@ -84,7 +88,9 @@ function formatDateTime(value: string | null) {
 export function SettingsOverview({
   archiveFeedback,
   archiveImportPreview,
+  isExportingArchive,
   mode,
+  onExportJson,
   stats,
   user,
 }: SettingsOverviewProps) {
@@ -101,6 +107,10 @@ export function SettingsOverview({
       : stats.syncQueueItemCount > 0
         ? 'accent'
         : 'success';
+  const backupReminder = getJsonBackupReminderStatus({
+    activeWorkCount: stats.activeWorkCount,
+    lastJsonExportAt: stats.lastJsonExportAt,
+  });
 
   const cards = [
     {
@@ -185,6 +195,12 @@ export function SettingsOverview({
           </SectionCard>
         ))}
       </div>
+      <JsonBackupReminderCard
+        feedback={archiveFeedback}
+        isExporting={isExportingArchive}
+        onExportJson={onExportJson}
+        reminder={backupReminder}
+      />
     </Stack>
   );
 }
