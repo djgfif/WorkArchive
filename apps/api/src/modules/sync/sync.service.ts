@@ -2743,16 +2743,6 @@ export class SyncService {
       }
     }
 
-    if (payload.workId) {
-      const work = await client.userWorkRecord.findUnique({
-        where: { id: payload.workId },
-      });
-
-      if (!work || work.userId !== userId || work.deletedAt !== null) {
-        return 'Linked work is missing or belongs to another user.';
-      }
-    }
-
     return null;
   }
 

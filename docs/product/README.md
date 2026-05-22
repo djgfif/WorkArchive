@@ -84,9 +84,12 @@ Tier Board는 작품 상세의 보조 필드가 아니라, **가볍고 공유 �
 
 - `TierBoard`는 소유자, 제목, 설명, 공개 범위, 타입을 가진다.
 - `TierLane`은 순서와 제목을 가진다.
-- `TierBoardCard`는 board 안에서 lane 위치, 정렬 순서, source type, 이미지/제목 override를 가진다.
+- `TierBoardCard`는 board 안에서 lane 위치, 정렬 순서, source type, 이미지/제목/메모 snapshot을 가진다.
 
 #### Expansion Boundary
 
-- 작품 연동은 `workId` 참조 수준으로만 시작한다.
+- Tier Board는 작품 상세의 하위 기능이 아니라 독립 기능이다.
+- 작품 목록에서 가져온 카드는 생성 시점의 `title` / `subtitle` / `imageUrl` / `note` snapshot이다.
+- `workId`는 카드 생성 source metadata로만 취급하며, 원본 작품 수정/삭제가 티어보드 카드 sync나 export를 막으면 안 된다.
+- 작품 상세 화면에서 티어보드 역참조를 만들지 않는다.
 - 캐릭터/히로인/밈 보드는 custom card 중심으로 수용한다.

@@ -263,6 +263,13 @@ function createWorkSubtitle(work: WorkRecord) {
     .join(' · ');
 }
 
+function prepareCardForExport(card: TierBoardCardRecord): TierBoardCardRecord {
+  return {
+    ...card,
+    workId: null,
+  };
+}
+
 function assertExportDocument(value: unknown): TierBoardExportDocument {
   if (
     typeof value !== 'object' ||
@@ -1188,7 +1195,7 @@ export class TierBoardService {
       exportedAt: nowIso(),
       board: state.board,
       lanes: state.lanes,
-      cards: state.cards,
+      cards: state.cards.map(prepareCardForExport),
       assets,
     };
   }
@@ -1251,6 +1258,7 @@ export class TierBoardService {
         id,
         boardId: board.id,
         laneId: card.laneId ? (maps.laneIds.get(card.laneId) ?? null) : null,
+        workId: null,
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
