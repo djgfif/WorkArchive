@@ -7,6 +7,7 @@
 - Confirm `.env.prod` values are present and production secrets are not defaults.
 - Confirm Google OAuth redirect URI exactly matches the deployed callback URL.
 - Confirm runtime feature flag overrides are in `/work-archive-config.js`, loaded before the React bundle, and contain no secrets.
+- Before switching repository visibility to public, run `scripts/security/public-readiness-check.sh` and confirm no non-example `.env`, logs, high-confidence secrets, or personal machine paths are tracked.
 - Confirm public community/share flags remain disabled.
 - Confirm inactive placeholder-only features such as Community and Insights are not exposed in primary navigation.
 

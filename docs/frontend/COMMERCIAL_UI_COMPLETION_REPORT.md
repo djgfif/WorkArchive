@@ -67,10 +67,10 @@ Last updated: 2026-05-17
   - Web production build: 841 modules transformed.
 - Browser visual smoke:
   - Production build 정적 서버로 `Home` desktop 1360px, `Works` mobile 390px, `Account` mobile 390px, `Tier Boards` mobile 390px를 열어 ready state와 horizontal overflow 없음을 확인했다.
-  - Screenshots: `C:\Users\gkho0\AppData\Local\Temp\work-archive-ready-home-1360.png`, `C:\Users\gkho0\AppData\Local\Temp\work-archive-ready-works-390.png`, `C:\Users\gkho0\AppData\Local\Temp\work-archive-ready-account-390.png`, `C:\Users\gkho0\AppData\Local\Temp\work-archive-ready-tier-boards-390.png`.
+  - Screenshots were stored in the local OS temp directory and were not committed.
 - 320px Chrome CDP visual metrics:
   - Production build에서 `Work Create`, `Work Detail`, `Work Edit`, `Sync`를 320px viewport로 열고 `documentElement.scrollWidth === innerWidth === 320`을 확인했다.
-  - `Work Create`와 `Sync` ready-state screenshots: `C:\tmp\wa-create-320-ready.png`, `C:\tmp\wa-sync-320-ready.png`.
+  - `Work Create`와 `Sync` ready-state screenshots were stored locally and were not committed.
 
 ## 후속 조치
 

@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions
 
-set "PROJECT_DIR=/home/gkho0/code/WorkArchive"
+for /f "usebackq delims=" %%I in (`wsl.exe wslpath -a "%~dp0"`) do set "PROJECT_DIR=%%I"
 set "RUN_CMD=cd %PROJECT_DIR% && docker compose up -d --build && echo. && echo Work Archive is running: http://localhost:8080 && echo. && read -n 1 -s -r -p 'Press any key to close this window...'"
 
 where wt.exe >nul 2>nul

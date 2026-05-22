@@ -42,11 +42,11 @@ Sync policy note: logged-in users can use the manual Sync page, and the web runt
 
 ## Environment Files
 
-| Path                                                                     | Use                                     |
-| ------------------------------------------------------------------------ | --------------------------------------- |
-| [`.env.example`](/mnt/c/work/WorkArchive/.env.example)                   | `docker compose up --build`용 루트 설정 |
-| [`apps/api/.env.example`](/mnt/c/work/WorkArchive/apps/api/.env.example) | 호스트 기반 API 개발용 설정             |
-| [`apps/web/.env.example`](/mnt/c/work/WorkArchive/apps/web/.env.example) | 호스트 기반 웹 개발용 설정              |
+| Path                                                       | Use                                     |
+| ---------------------------------------------------------- | --------------------------------------- |
+| [`.env.example`](./.env.example)                           | `docker compose up --build`용 루트 설정 |
+| [`apps/api/.env.example`](./apps/api/.env.example)         | 호스트 기반 API 개발용 설정             |
+| [`apps/web/.env.example`](./apps/web/.env.example)         | 호스트 기반 웹 개발용 설정              |
 
 권장 초기화:
 
@@ -173,7 +173,7 @@ Windows 메모:
 
 ## Docker Compose
 
-Production compose note: `compose.yml` is for local development only and must not be used for production. Production deployments must use [`compose.prod.yml`](/mnt/c/work/WorkArchive/compose.prod.yml), which requires explicit secrets and production URLs with `${VAR:?required}` and locks `NODE_ENV=production`, `SWAGGER_ENABLED=false`, `PASSWORD_RESET_DEV_LINKS_ENABLED=false`, and `COOKIE_SECURE=true`. Production compose exposes only the web reverse proxy, routes `/api` internally to the API container, and requires Redis-backed rate limiting with `RATE_LIMIT_STORE=redis`, `REDIS_URL`, and `TRUST_PROXY_HOPS=1`. Set `SECURITY_EVENT_HASH_SECRET` to a unique 32+ character secret; it is used only to HMAC-hash audit IP and user-agent data before storage.
+Production compose note: `compose.yml` is for local development only and must not be used for production. Production deployments must use [`compose.prod.yml`](./compose.prod.yml), which requires explicit secrets and production URLs with `${VAR:?required}` and locks `NODE_ENV=production`, `SWAGGER_ENABLED=false`, `PASSWORD_RESET_DEV_LINKS_ENABLED=false`, and `COOKIE_SECURE=true`. Production compose exposes only the web reverse proxy, routes `/api` internally to the API container, and requires Redis-backed rate limiting with `RATE_LIMIT_STORE=redis`, `REDIS_URL`, and `TRUST_PROXY_HOPS=1`. Set `SECURITY_EVENT_HASH_SECRET` to a unique 32+ character secret; it is used only to HMAC-hash audit IP and user-agent data before storage.
 
 Local Compose uses `NODE_ENV=development` and is the default `start-dev.bat`
 mode.
@@ -198,7 +198,7 @@ npm run compose:up
 
 메모:
 
-- Compose 파일은 [`compose.yml`](/mnt/c/work/WorkArchive/compose.yml)이다.
+- Compose 파일은 [`compose.yml`](./compose.yml)이다.
 - 기본 `API_PORT`는 `3000`, `WEB_PORT`는 `8080`이다.
 - `API_PORT`를 바꾸면 루트 `VITE_API_BASE_URL`도 맞춰야 한다.
 - `WEB_PORT`를 바꾸면 `CORS_ORIGIN`도 맞춰야 한다.
