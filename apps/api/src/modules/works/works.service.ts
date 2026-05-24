@@ -17,6 +17,7 @@ import type { UpdateWorkDto } from './dto/update-work.dto';
 import {
   hasChanges,
   normalizeGenres,
+  normalizeGenresAndPersonalTags,
   normalizePersonalTags,
   normalizeString,
   toFlatWorkResponse,
@@ -103,11 +104,15 @@ export class WorksService {
     try {
       // 릴리스 1단계에서는 catalog와 user record를 1:1로 생성해 기존 flat 계약을 유지합니다.
       const workId = crypto.randomUUID();
+      const normalizedTaxonomy = normalizeGenresAndPersonalTags(
+        createWorkDto.genres,
+        createWorkDto.personalTags,
+      );
       const work = await this.prisma.$transaction(async (tx) => {
         await this.catalogService.create(
           {
             id: workId,
-            ...this.buildCatalogCreateData(createWorkDto),
+            ...this.buildCatalogCreateData(createWorkDto, normalizedTaxonomy.genres),
           },
           tx,
         );
@@ -115,7 +120,12 @@ export class WorksService {
         return this.userRecordsService.create(
           {
             id: workId,
-            ...this.buildUserRecordCreateData(userId, workId, createWorkDto),
+            ...this.buildUserRecordCreateData(
+              userId,
+              workId,
+              createWorkDto,
+              normalizedTaxonomy.personalTags,
+            ),
           },
           tx,
         );
@@ -131,8 +141,21 @@ export class WorksService {
   async update(userId: string, id: string, updateWorkDto: UpdateWorkDto) {
     try {
       const existingWork = await this.getActiveWorkOrThrow(userId, id);
-      const catalogUpdateData = this.buildCatalogUpdateData(updateWorkDto);
-      const recordUpdateData = this.buildUserRecordUpdateData(updateWorkDto);
+      const normalizedTaxonomy =
+        updateWorkDto.genres !== undefined || updateWorkDto.personalTags !== undefined
+          ? normalizeGenresAndPersonalTags(
+              updateWorkDto.genres ?? existingWork.catalogWork.genres,
+              updateWorkDto.personalTags ?? existingWork.personalTags,
+            )
+          : null;
+      const catalogUpdateData = this.buildCatalogUpdateData(
+        updateWorkDto,
+        normalizedTaxonomy?.genres,
+      );
+      const recordUpdateData = this.buildUserRecordUpdateData(
+        updateWorkDto,
+        normalizedTaxonomy?.personalTags,
+      );
 
       if (!hasChanges(catalogUpdateData) && !hasChanges(recordUpdateData)) {
         return toFlatWorkResponse(existingWork);
@@ -200,6 +223,7 @@ export class WorksService {
 
   private buildCatalogCreateData(
     createWorkDto: CreateWorkDto,
+    normalizedGenres: string[],
   ): Prisma.CatalogWorkUncheckedCreateInput {
     const title = createWorkDto.title.trim();
 
@@ -211,7 +235,7 @@ export class WorksService {
       type: createWorkDto.type ?? WorkType.novel,
       title,
       author: normalizeString(createWorkDto.author),
-      genres: normalizeGenres(createWorkDto.genres),
+      genres: normalizedGenres,
       description: normalizeString(createWorkDto.description),
       thumbnailUrl: normalizeString(createWorkDto.thumbnailUrl),
     };
@@ -221,6 +245,7 @@ export class WorksService {
     userId: string,
     catalogWorkId: string,
     createWorkDto: CreateWorkDto,
+    normalizedPersonalTags: string[],
   ): Prisma.UserWorkRecordUncheckedCreateInput {
     return {
       userId,
@@ -231,7 +256,7 @@ export class WorksService {
       rating: createWorkDto.rating ?? null,
       shortReview: normalizeString(createWorkDto.shortReview),
       review: normalizeString(createWorkDto.review),
-      personalTags: normalizePersonalTags(createWorkDto.personalTags),
+      personalTags: normalizedPersonalTags,
       favorite: createWorkDto.favorite ?? false,
       startedAt: parseOptionalDtoDate(createWorkDto.startedAt, 'startedAt'),
       completedAt: parseOptionalDtoDate(
@@ -250,6 +275,7 @@ export class WorksService {
 
   private buildCatalogUpdateData(
     updateWorkDto: UpdateWorkDto,
+    normalizedGenres?: string[],
   ): Prisma.CatalogWorkUpdateInput {
     const data: Prisma.CatalogWorkUpdateInput = {};
 
@@ -272,7 +298,7 @@ export class WorksService {
     }
 
     if (updateWorkDto.genres !== undefined) {
-      data.genres = normalizeGenres(updateWorkDto.genres);
+      data.genres = normalizedGenres ?? normalizeGenres(updateWorkDto.genres);
     }
 
     if (updateWorkDto.description !== undefined) {
@@ -288,6 +314,7 @@ export class WorksService {
 
   private buildUserRecordUpdateData(
     updateWorkDto: UpdateWorkDto,
+    normalizedPersonalTags?: string[],
   ): Prisma.UserWorkRecordUpdateInput {
     const data: Prisma.UserWorkRecordUpdateInput = {};
 
@@ -307,8 +334,12 @@ export class WorksService {
       data.review = normalizeString(updateWorkDto.review);
     }
 
-    if (updateWorkDto.personalTags !== undefined) {
-      data.personalTags = normalizePersonalTags(updateWorkDto.personalTags);
+    if (
+      updateWorkDto.personalTags !== undefined ||
+      normalizedPersonalTags !== undefined
+    ) {
+      data.personalTags =
+        normalizedPersonalTags ?? normalizePersonalTags(updateWorkDto.personalTags);
     }
 
     if (updateWorkDto.favorite !== undefined) {

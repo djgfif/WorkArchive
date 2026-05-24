@@ -6,11 +6,11 @@ import {
   getGraphTags,
   getPersonalTags,
   matchesGraphTagValue,
-  matchesPersonalTag,
   workOrganizationContributorValues,
   workPersonContributorValues,
   workContributorValues,
 } from './graph-tags';
+import { moveUnknownGenresToPersonalTags } from './work-genres';
 
 export type WorksSortDirection = 'asc' | 'desc';
 export type WorksSortOption =
@@ -146,6 +146,13 @@ function matchesGraphValue(values: string[], value: string | undefined) {
   return values.some((entry) => normalizeSearchText(entry) === normalizedValue);
 }
 
+function getWorkPersonalTagValues(work: WorkRecord) {
+  return moveUnknownGenresToPersonalTags(
+    work.genres,
+    getPersonalTags(work.personalTags),
+  ).personalTags;
+}
+
 function matchesSearch(
   work: WorkRecord,
   searchTerm: string,
@@ -162,7 +169,7 @@ function matchesSearch(
     work.title,
     work.author,
     work.genres.join(' '),
-    getPersonalTags(work.personalTags).join(' '),
+    getWorkPersonalTagValues(work).join(' '),
     getGraphTags(work.personalTags)
       .map((tag) => tag.value)
       .join(' '),
@@ -235,7 +242,13 @@ export function queryWorks(
       return work.rating === query.rating;
     }
 
-    if (!matchesPersonalTag(work.personalTags, query.tag)) {
+    if (
+      query.tag?.trim() &&
+      !getWorkPersonalTagValues(work).some(
+        (tag) =>
+          normalizeSearchText(tag) === normalizeSearchText(query.tag ?? ''),
+      )
+    ) {
       return false;
     }
 

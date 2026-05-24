@@ -25,7 +25,10 @@ import {
   type WorksGraphQueryIndex,
   type WorksListQuery,
 } from '../utils/query-works';
-import { WORK_GENRES } from '../utils/work-genres';
+import {
+  WORK_GENRES,
+  moveUnknownGenresToPersonalTags,
+} from '../utils/work-genres';
 import type { UpsertWorkInput } from '../utils/work-form';
 import {
   graphRepository,
@@ -218,7 +221,15 @@ export class WorksService {
           : getSuggestionValues(activeWorks, SERIES_GRAPH_TAG_KINDS),
       statusCounts: countStatuses(activeWorks),
       tagSuggestions: Array.from(
-        new Set(activeWorks.flatMap((work) => getPersonalTags(work.personalTags))),
+        new Set(
+          activeWorks.flatMap(
+            (work) =>
+              moveUnknownGenresToPersonalTags(
+                work.genres,
+                getPersonalTags(work.personalTags),
+              ).personalTags,
+          ),
+        ),
       ).sort((left, right) => left.localeCompare(right)),
       typeCounts: countTypes(activeWorks),
       recentModifiedWorks: [...activeWorks]
@@ -246,12 +257,17 @@ export class WorksService {
 
   async createWork(input: UpsertWorkInput) {
     const now = new Date().toISOString();
+    const normalizedTaxonomy = moveUnknownGenresToPersonalTags(
+      input.genres,
+      input.personalTags ?? [],
+    );
     const work: WorkRecord = {
       id: crypto.randomUUID(),
       ...input,
+      genres: normalizedTaxonomy.genres,
       catalogTitleId: input.catalogTitleId ?? null,
       importDraft: input.importDraft ?? null,
-      personalTags: getPersonalTags([...(input.personalTags ?? [])]),
+      personalTags: getPersonalTags(normalizedTaxonomy.personalTags),
       createdAt: now,
       updatedAt: now,
       progressCurrent: null,
@@ -290,9 +306,14 @@ export class WorksService {
       throw new Error('작품을 찾을 수 없습니다.');
     }
 
+    const normalizedTaxonomy = moveUnknownGenresToPersonalTags(
+      input.genres,
+      input.personalTags ?? existing.personalTags,
+    );
     const updated: WorkRecord = {
       ...existing,
       ...input,
+      genres: normalizedTaxonomy.genres,
       catalogTitleId:
         input.catalogTitleId === undefined
           ? (existing.catalogTitleId ?? null)
@@ -301,7 +322,7 @@ export class WorksService {
         input.importDraft === undefined
           ? (existing.importDraft ?? null)
           : input.importDraft,
-      personalTags: getPersonalTags([...(input.personalTags ?? existing.personalTags)]),
+      personalTags: getPersonalTags(normalizedTaxonomy.personalTags),
       startedAt: input.startedAt ?? null,
       completedAt: input.completedAt ?? null,
       droppedAt: input.droppedAt ?? null,

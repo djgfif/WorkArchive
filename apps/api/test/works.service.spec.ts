@@ -35,7 +35,7 @@ function createWorkAggregateFixture(
       type: WorkType.novel,
       title: 'The Three-Body Problem',
       author: 'Liu Cixin',
-      genres: ['Sci-Fi'],
+      genres: ['판타지'],
       description: '',
       thumbnailUrl: '',
       createdAt: new Date('2026-04-18T00:00:00.000Z'),
@@ -146,7 +146,7 @@ describe('WorksService', () => {
         type: WorkType.web_novel,
         title: 'Catalog Title',
         author: 'Catalog Author',
-        genres: ['Sci-Fi'],
+        genres: ['판타지'],
         description: 'Catalog summary',
         thumbnailUrl: 'https://example.com/catalog.jpg',
       }),
@@ -161,7 +161,7 @@ describe('WorksService', () => {
         ...createWorkAggregateFixture().catalogWork,
         title: 'Dune',
         author: 'Frank Herbert',
-        genres: ['Sci-Fi', 'Classic'],
+        genres: ['판타지'],
       },
     });
 
@@ -170,7 +170,8 @@ describe('WorksService', () => {
     await service.create(USER_ID, {
       title: '  Dune  ',
       author: '  Frank Herbert ',
-      genres: [' Sci-Fi ', 'Classic', 'Sci-Fi'],
+      genres: [' 회귀 ', '판타지', '빙의', '판타지'],
+      personalTags: ['완결까지'],
     });
 
     expect(prisma.$transaction).toHaveBeenCalled();
@@ -178,7 +179,7 @@ describe('WorksService', () => {
       expect.objectContaining({
         title: 'Dune',
         author: 'Frank Herbert',
-        genres: ['Sci-Fi', 'Classic'],
+        genres: ['판타지'],
         type: WorkType.novel,
       }),
       expect.any(Object),
@@ -189,6 +190,7 @@ describe('WorksService', () => {
         status: WorkStatus.planned,
         rating: null,
         favorite: false,
+        personalTags: ['완결까지', '회귀', '빙의'],
         syncStatus: WorkSyncStatus.synced,
         serverVersion: 1,
       }),
@@ -336,6 +338,45 @@ describe('WorksService', () => {
         personalTags: ['다시 볼 것', '여운 강함'],
         serverVersion: 2,
       }),
+    );
+  });
+
+  it('moves unknown update genres into personal tags without rejecting the request', async () => {
+    const existing = createWorkAggregateFixture({
+      personalTags: ['기존 태그'],
+      catalogWork: {
+        ...createWorkAggregateFixture().catalogWork,
+        genres: ['판타지'],
+      },
+    });
+    const updated = createWorkAggregateFixture({
+      personalTags: ['기존 태그', '회귀', '빙의'],
+      catalogWork: {
+        ...existing.catalogWork,
+        genres: ['판타지'],
+      },
+    });
+
+    userRecordsService.findActiveByUserAndId.mockResolvedValue(existing);
+    userRecordsService.update.mockResolvedValue(updated);
+
+    await service.update(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28', {
+      genres: ['회귀', '판타지', '빙의'],
+    });
+
+    expect(catalogService.update).toHaveBeenCalledWith(
+      existing.catalogWorkId,
+      expect.objectContaining({
+        genres: ['판타지'],
+      }),
+      expect.any(Object),
+    );
+    expect(userRecordsService.update).toHaveBeenCalledWith(
+      '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      expect.objectContaining({
+        personalTags: ['기존 태그', '회귀', '빙의'],
+      }),
+      expect.any(Object),
     );
   });
 

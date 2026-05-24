@@ -1,4 +1,8 @@
 import type { Prisma } from '@prisma/client';
+import {
+  moveUnknownGenresToPersonalTags,
+  normalizeStringList,
+} from '@work-archive/shared-types';
 
 import type { WorkResponseDto } from './dto/work-response.dto';
 import { toWorkSyncStatusValue } from './works.constants';
@@ -50,23 +54,18 @@ export function normalizeString(value?: string | null) {
 }
 
 export function normalizeGenres(genres?: string[] | null) {
-  if (!genres) {
-    return [];
-  }
-
-  return Array.from(
-    new Set(genres.map((genre) => genre.trim()).filter(Boolean)),
-  );
+  return moveUnknownGenresToPersonalTags(genres ?? []).genres;
 }
 
 export function normalizePersonalTags(personalTags?: string[] | null) {
-  if (!personalTags) {
-    return [];
-  }
+  return normalizeStringList(personalTags ?? []);
+}
 
-  return Array.from(
-    new Set(personalTags.map((tag) => tag.trim()).filter(Boolean)),
-  );
+export function normalizeGenresAndPersonalTags(
+  genres?: string[] | null,
+  personalTags?: string[] | null,
+) {
+  return moveUnknownGenresToPersonalTags(genres ?? [], personalTags ?? []);
 }
 
 export function hasChanges(

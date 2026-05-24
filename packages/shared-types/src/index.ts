@@ -49,6 +49,70 @@ export const CATALOG_SEARCH_MEDIUM_TYPES = ['all', ...WORK_TYPES] as const;
 export type CatalogSearchMediumType =
   (typeof CATALOG_SEARCH_MEDIUM_TYPES)[number];
 
+// Work genres are fixed top-level categories. Detailed 소재, 클리셰,
+// 분위기, and personal classifications belong in personalTags; media
+// distinctions such as 웹소설, 웹툰, 애니, and 만화 belong in WorkType.
+export const WORK_GENRES = [
+  '로맨스',
+  '로판',
+  '판타지',
+  '현판',
+  '무협',
+  '액션',
+  '드라마',
+  '미스터리',
+  '공포',
+  'SF',
+  '코미디',
+  '학원',
+  '스포츠',
+  '일상',
+  'BL',
+  'GL',
+  '기타',
+] as const;
+
+export const MAX_WORK_GENRES = 3;
+
+export type WorkGenreValue = (typeof WORK_GENRES)[number];
+export type WorkGenreLabel = WorkGenreValue;
+
+const WORK_GENRE_SET = new Set<string>(WORK_GENRES);
+
+export function isWorkGenre(value: string): value is WorkGenreValue {
+  return WORK_GENRE_SET.has(value.trim());
+}
+
+export function normalizeStringList(values: readonly string[] = []) {
+  return Array.from(
+    new Set(values.map((value) => value.trim()).filter(Boolean)),
+  );
+}
+
+export function normalizeWorkGenres(
+  values: readonly string[] = [],
+): WorkGenreValue[] {
+  return normalizeStringList(values)
+    .filter(isWorkGenre)
+    .slice(0, MAX_WORK_GENRES);
+}
+
+export function moveUnknownGenresToPersonalTags(
+  genres: readonly string[] = [],
+  personalTags: readonly string[] = [],
+) {
+  const normalizedGenres = normalizeWorkGenres(genres);
+  const normalizedGenreSet = new Set<string>(normalizedGenres);
+  const unknownGenres = normalizeStringList(genres).filter(
+    (genre) => !normalizedGenreSet.has(genre),
+  );
+
+  return {
+    genres: normalizedGenres,
+    personalTags: normalizeStringList([...personalTags, ...unknownGenres]),
+  };
+}
+
 export interface WorkImportContributor {
   name: string;
 }

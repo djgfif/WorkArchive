@@ -16,7 +16,7 @@ function buildInput(overrides: Partial<WorkRecord> = {}) {
     type: 'novel' as const,
     title: 'Dune',
     author: 'Frank Herbert',
-    genres: ['Science Fiction'],
+    genres: ['판타지'],
     personalTags: [],
     description: '',
     thumbnailUrl: '',
@@ -282,7 +282,15 @@ describe('WorksService', () => {
     expect(result.contributorSuggestions).toEqual(['Frank Herbert', 'ufotable']);
     expect(result.genreSuggestions).toEqual([...WORK_GENRES]);
     expect(result.genreSuggestions).not.toContain('Science Fiction');
-    expect(result.tagSuggestions).toEqual(['favorite prose', 'rewatch']);
+    expect(result.tagSuggestions).toEqual(
+      expect.arrayContaining([
+        'Fantasy',
+        'Science Fiction',
+        'favorite prose',
+        'rewatch',
+      ]),
+    );
+    expect(result.tagSuggestions).toHaveLength(4);
   });
 
   it('keeps list queries within the large local archive budget', async () => {
@@ -298,6 +306,7 @@ describe('WorksService', () => {
 
       return buildWork({
         deletedAt: isDeleted ? updatedAt : null,
+        genres: ['판타지'],
         id: `large-work-${index}`,
         personalTags: [`tag-${index % 500}`],
         status: statuses[index % statuses.length]!,

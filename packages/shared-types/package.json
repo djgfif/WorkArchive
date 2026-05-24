@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "import": "./src/index.ts",
       "default": "./dist/index.js"
     }
@@ -18,10 +18,12 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
     "build": "tsc -p tsconfig.build.json"
   },
   "devDependencies": {
     "@work-archive/eslint-config": "0.1.0",
-    "@work-archive/tsconfig": "0.1.0"
+    "@work-archive/tsconfig": "0.1.0",
+    "vitest": "^3.1.4"
   }
 }

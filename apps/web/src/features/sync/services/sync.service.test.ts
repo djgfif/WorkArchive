@@ -482,8 +482,8 @@ describe('SyncService', () => {
         conflict: null,
         payload: expect.objectContaining({
           favorite: true,
-          genres: ['Classic', 'Science Fiction'],
-          personalTags: ['remote', 'local'],
+          genres: [],
+          personalTags: ['remote', 'local', 'Science Fiction', 'Classic'],
           serverVersion: 3,
           syncStatus: 'pending',
         }),
@@ -492,8 +492,8 @@ describe('SyncService', () => {
     expect(await worksRepository.getById(localWork.id)).toEqual(
       expect.objectContaining({
         favorite: true,
-        genres: ['Classic', 'Science Fiction'],
-        personalTags: ['remote', 'local'],
+        genres: [],
+        personalTags: ['remote', 'local', 'Science Fiction', 'Classic'],
         serverVersion: 3,
         syncStatus: 'pending',
       }),

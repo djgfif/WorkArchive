@@ -48,7 +48,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   normalizeGenres,
-  normalizePersonalTags,
+  normalizeGenresAndPersonalTags,
   normalizeString,
   toFlatWorkResponse,
 } from '../works/work-aggregate';
@@ -2869,7 +2869,7 @@ export class SyncService {
       rating: payload.rating ?? null,
       shortReview: normalizeString(payload.shortReview),
       review: normalizeString(payload.review),
-      personalTags: normalizePersonalTags(payload.personalTags),
+      personalTags: this.normalizeWorkPayloadTaxonomy(payload).personalTags,
       favorite: payload.favorite,
       progressCurrent: payload.progressCurrent ?? null,
       progressTotal: payload.progressTotal ?? null,
@@ -3082,6 +3082,10 @@ export class SyncService {
     };
   }
 
+  private normalizeWorkPayloadTaxonomy(payload: SyncWorkPayloadDto) {
+    return normalizeGenresAndPersonalTags(payload.genres, payload.personalTags);
+  }
+
   private buildUserRecordUpdateData(
     payload: SyncWorkPayloadDto,
   ): Prisma.UserWorkRecordUpdateInput {
@@ -3090,7 +3094,7 @@ export class SyncService {
       rating: payload.rating ?? null,
       shortReview: normalizeString(payload.shortReview),
       review: normalizeString(payload.review),
-      personalTags: normalizePersonalTags(payload.personalTags),
+      personalTags: this.normalizeWorkPayloadTaxonomy(payload).personalTags,
       favorite: payload.favorite,
       progressCurrent: payload.progressCurrent ?? null,
       progressTotal: payload.progressTotal ?? null,
@@ -3124,6 +3128,8 @@ export class SyncService {
   }
 
   private areEquivalent(existing: WorkAggregate, payload: SyncWorkPayloadDto) {
+    const taxonomy = this.normalizeWorkPayloadTaxonomy(payload);
+
     return (
       (payload.catalogTitleId === undefined ||
         (payload.catalogTitleId ?? null) ===
@@ -3132,7 +3138,7 @@ export class SyncService {
       existing.catalogWork.title === payload.title.trim() &&
       existing.catalogWork.author === normalizeString(payload.author) &&
       JSON.stringify(existing.catalogWork.genres) ===
-        JSON.stringify(normalizeGenres(payload.genres)) &&
+        JSON.stringify(taxonomy.genres) &&
       existing.catalogWork.description ===
         normalizeString(payload.description) &&
       existing.catalogWork.thumbnailUrl ===
@@ -3142,7 +3148,7 @@ export class SyncService {
       existing.shortReview === normalizeString(payload.shortReview) &&
       existing.review === normalizeString(payload.review) &&
       JSON.stringify(existing.personalTags) ===
-        JSON.stringify(normalizePersonalTags(payload.personalTags)) &&
+        JSON.stringify(taxonomy.personalTags) &&
       existing.favorite === payload.favorite &&
       (existing.progressCurrent ?? null) ===
         (payload.progressCurrent ?? null) &&

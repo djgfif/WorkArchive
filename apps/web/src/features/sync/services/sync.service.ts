@@ -28,6 +28,7 @@ import {
   worksRepository,
   type WorksRepository,
 } from '../../works/services/works.repository';
+import { moveUnknownGenresToPersonalTags } from '../../works/utils/work-genres';
 import {
   releaseRecordsRepository,
   type ReleaseRecordsRepository,
@@ -241,13 +242,17 @@ function mergeWorkSnapshots(
   localPayload: WorkRecord,
 ): WorkRecord {
   const newer = getNewerRecord(localPayload, remote);
+  const taxonomy = moveUnknownGenresToPersonalTags(
+    mergeUniqueValues(remote.genres, localPayload.genres),
+    mergeUniqueValues(remote.personalTags, localPayload.personalTags),
+  );
   const merged: WorkRecord = {
     ...cloneWorkRecord(newer),
     createdAt: remote.createdAt,
     deletedAt: newer.deletedAt,
     favorite: localPayload.favorite || remote.favorite,
-    genres: mergeUniqueValues(remote.genres, localPayload.genres),
-    personalTags: mergeUniqueValues(remote.personalTags, localPayload.personalTags),
+    genres: taxonomy.genres,
+    personalTags: taxonomy.personalTags,
     serverVersion: remote.serverVersion,
     syncStatus: 'pending',
     updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),

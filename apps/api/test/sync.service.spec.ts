@@ -72,7 +72,7 @@ function createWorkAggregateFixture(
       type: WorkType.novel,
       title: 'The Three-Body Problem',
       author: 'Liu Cixin',
-      genres: ['Sci-Fi'],
+      genres: ['판타지'],
       description: '',
       thumbnailUrl: '',
       createdAt: new Date('2026-04-18T00:00:00.000Z'),
@@ -93,7 +93,7 @@ function createSyncPayload(
     type: WorkType.novel,
     title: 'The Three-Body Problem',
     author: 'Liu Cixin',
-    genres: ['Sci-Fi'],
+    genres: ['판타지'],
     personalTags: [],
     description: '',
     thumbnailUrl: '',
@@ -888,6 +888,60 @@ describe('SyncService', () => {
         }),
       }),
     ]);
+  });
+
+  it('moves legacy sync payload genres into personal tags before applying work updates', async () => {
+    userRecordsService.findById.mockResolvedValue(
+      createWorkAggregateFixture({
+        catalogWork: {
+          ...createWorkAggregateFixture().catalogWork,
+          genres: ['판타지'],
+        },
+      }),
+    );
+    userRecordsService.update.mockResolvedValue(
+      createWorkAggregateFixture({
+        personalTags: ['완결까지', '회귀', '빙의'],
+        catalogWork: {
+          ...createWorkAggregateFixture().catalogWork,
+          genres: ['판타지'],
+        },
+        serverVersion: 4,
+      }),
+    );
+
+    await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: '655b7fea-19c7-4a03-8d38-6b888943d552',
+          entityType: 'work',
+          entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          operation: 'update',
+          createdAt: '2026-04-18T02:00:00.000Z',
+          payload: createSyncPayload({
+            genres: ['회귀', '빙의', '판타지'],
+            personalTags: ['완결까지'],
+            updatedAt: '2026-04-18T02:00:00.000Z',
+            serverVersion: 3,
+          }),
+        },
+      ],
+    });
+
+    expect(catalogService.update).toHaveBeenCalledWith(
+      '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      expect.objectContaining({
+        genres: ['판타지'],
+      }),
+      expect.any(Object),
+    );
+    expect(userRecordsService.update).toHaveBeenCalledWith(
+      '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      expect.objectContaining({
+        personalTags: ['완결까지', '회귀', '빙의'],
+      }),
+      expect.any(Object),
+    );
   });
 
   it('returns applied with a stable already-applied message for duplicate push payloads', async () => {
