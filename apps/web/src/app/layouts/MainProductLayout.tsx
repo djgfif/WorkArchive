@@ -21,6 +21,7 @@ import {
   ThemeToggleControl,
 } from '../../shared/components/AppPrimitives';
 import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
+import { SyncSafetyBadge } from '../../features/sync';
 import { getUserAvatarProfile } from '../../features/auth/utils/user-profile';
 import { getPrimaryNavigationItems } from './navigation';
 
@@ -80,56 +81,64 @@ export function MainProductLayout() {
             </Group>
 
             <Box className="header-right">
-              <Menu position="bottom-end" shadow="xl" width={280}>
-                <Menu.Target>
-                  <button
-                    aria-label={accountMenuLabel}
-                    style={{
-                      background: 'transparent',
-                      border: 0,
-                      cursor: 'pointer',
-                      padding: 0,
-                    }}
-                    type="button"
-                  >
-                    <Avatar
-                      color={isAuthenticated ? 'archive' : 'gray'}
-                      radius="xl"
-                      size={34}
-                      src={avatarImageUrl || null}
+              <Group gap="xs" wrap="nowrap">
+                <Box visibleFrom="sm">
+                  <SyncSafetyBadge />
+                </Box>
+                <Menu position="bottom-end" shadow="xl" width={280}>
+                  <Menu.Target>
+                    <button
+                      aria-label={accountMenuLabel}
+                      style={{
+                        background: 'transparent',
+                        border: 0,
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                      type="button"
                     >
-                      {avatarInitial}
-                    </Avatar>
-                  </button>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Label>{accountLabel}</Menu.Label>
-                  {isAuthenticated && (
-                    <Menu.Label>{avatarProfile.email}</Menu.Label>
-                  )}
-                  <Menu.Item onClick={() => navigate('/account')}>
-                    계정 개요
-                  </Menu.Item>
-                  <Menu.Item onClick={() => navigate('/account/settings')}>
-                    설정과 백업
-                  </Menu.Item>
-                  {isAuthenticated ? (
-                    <Menu.Item color="red" onClick={() => void handleSignOut()}>
-                      로그아웃
+                      <Avatar
+                        color={isAuthenticated ? 'archive' : 'gray'}
+                        radius="xl"
+                        size={34}
+                        src={avatarImageUrl || null}
+                      >
+                        {avatarInitial}
+                      </Avatar>
+                    </button>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Label>{accountLabel}</Menu.Label>
+                    {isAuthenticated && (
+                      <Menu.Label>{avatarProfile.email}</Menu.Label>
+                    )}
+                    <Menu.Item onClick={() => navigate('/account')}>
+                      계정 개요
                     </Menu.Item>
-                  ) : (
-                    <Menu.Item
-                      onClick={() =>
-                        navigate('/auth/login', {
-                          state: { returnTo: loginReturnTo },
-                        })
-                      }
-                    >
-                      로그인
+                    <Menu.Item onClick={() => navigate('/account/settings')}>
+                      설정과 백업
                     </Menu.Item>
-                  )}
-                </Menu.Dropdown>
-              </Menu>
+                    {isAuthenticated ? (
+                      <Menu.Item
+                        color="red"
+                        onClick={() => void handleSignOut()}
+                      >
+                        로그아웃
+                      </Menu.Item>
+                    ) : (
+                      <Menu.Item
+                        onClick={() =>
+                          navigate('/auth/login', {
+                            state: { returnTo: loginReturnTo },
+                          })
+                        }
+                      >
+                        로그인
+                      </Menu.Item>
+                    )}
+                  </Menu.Dropdown>
+                </Menu>
+              </Group>
             </Box>
           </Box>
 
@@ -198,6 +207,7 @@ export function MainProductLayout() {
             </Stack>
           </Group>
           <ThemeToggleControl fullWidth />
+          <SyncSafetyBadge />
           {isAuthenticated ? (
             <Stack gap="xs">
               <AppLinkButton

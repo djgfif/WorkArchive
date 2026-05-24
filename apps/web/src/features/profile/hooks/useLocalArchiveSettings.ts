@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
   localArchiveService,
   type LocalArchiveImportPreview,
+  type LocalArchiveScope,
 } from '../../archive';
 import { useJsonArchiveExport } from '../../archive';
 import type { SettingsFeedback } from './useImportProviderSettings';
@@ -32,9 +33,9 @@ export function useLocalArchiveSettings() {
   const [archiveFeedback, setArchiveFeedback] =
     useState<SettingsFeedback | null>(null);
 
-  async function exportJson() {
+  async function exportJson(scope: LocalArchiveScope = 'simple') {
     setArchiveFeedback(null);
-    await jsonArchiveExport.exportJson();
+    await jsonArchiveExport.exportJson(scope);
   }
 
   async function exportCsv() {
@@ -133,6 +134,7 @@ export function useLocalArchiveSettings() {
     confirmImport,
     exportCsv,
     exportJson,
+    exportFullJson: () => exportJson('full'),
     isExportingArchive: isExportingCsv || jsonArchiveExport.isExporting,
     isImportingArchive,
     previewImportFile,

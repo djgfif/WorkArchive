@@ -34,6 +34,7 @@ interface DataBackupSettingsSectionProps {
   onCancelImport: () => void;
   onConfirmImport: () => void;
   onExportCsv: () => void;
+  onExportFullJson: () => void;
   onExportJson: () => void;
   onImportFileSelect: (file: File) => Promise<void>;
 }
@@ -75,6 +76,7 @@ export function DataBackupSettingsSection({
   onCancelImport,
   onConfirmImport,
   onExportCsv,
+  onExportFullJson,
   onExportJson,
   onImportFileSelect,
 }: DataBackupSettingsSectionProps) {
@@ -111,7 +113,7 @@ export function DataBackupSettingsSection({
         title="로컬 백업과 복구"
       />
 
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
         <ExportOptionCard
           buttonLabel="JSON 백업 내보내기"
           description="작품, 권별 기록, 타임라인 기록을 다시 가져올 수 있는 보관용 파일입니다."
@@ -120,6 +122,16 @@ export function DataBackupSettingsSection({
           onClick={() => void onExportJson()}
           title="JSON 백업"
           tone="primary"
+        />
+
+        <ExportOptionCard
+          buttonLabel="전체 JSON 내보내기"
+          description="작품 기록에 더해 시리즈, 제작진, 관계 그래프, 티어보드 메타데이터까지 포함합니다."
+          disabled={isExportingArchive}
+          eyebrow="전체 복구"
+          onClick={() => void onExportFullJson()}
+          title="전체 백업"
+          tone="secondary"
         />
 
         <ExportOptionCard
@@ -201,10 +213,42 @@ export function DataBackupSettingsSection({
               건너뜀{' '}
               {archiveImportPreview.skippedWorkCount +
                 archiveImportPreview.skippedReleaseRecordCount +
-                archiveImportPreview.skippedTimelineEntryCount}
+                archiveImportPreview.skippedTimelineEntryCount +
+                archiveImportPreview.skippedSeriesCount +
+                archiveImportPreview.skippedContributorCount +
+                archiveImportPreview.skippedWorkSeriesLinkCount +
+                archiveImportPreview.skippedWorkContributorCount +
+                archiveImportPreview.skippedWorkRelationCount +
+                archiveImportPreview.skippedTierBoardCount +
+                archiveImportPreview.skippedTierLaneCount +
+                archiveImportPreview.skippedTierBoardCardCount +
+                archiveImportPreview.skippedTierBoardAssetCount}
               개
             </AppBadge>
           </ActionRow>
+          {(archiveImportPreview.addSeriesCount > 0 ||
+            archiveImportPreview.addContributorCount > 0 ||
+            archiveImportPreview.addTierBoardCount > 0) && (
+            <ActionRow>
+              <AppBadge tone="accent">
+                추가 그래프{' '}
+                {archiveImportPreview.addSeriesCount +
+                  archiveImportPreview.addContributorCount +
+                  archiveImportPreview.addWorkSeriesLinkCount +
+                  archiveImportPreview.addWorkContributorCount +
+                  archiveImportPreview.addWorkRelationCount}
+                개
+              </AppBadge>
+              <AppBadge tone="accent">
+                추가 티어보드{' '}
+                {archiveImportPreview.addTierBoardCount +
+                  archiveImportPreview.addTierLaneCount +
+                  archiveImportPreview.addTierBoardCardCount +
+                  archiveImportPreview.addTierBoardAssetCount}
+                개
+              </AppBadge>
+            </ActionRow>
+          )}
           <ActionRow>
             <AppButton
               disabled={isImportingArchive}

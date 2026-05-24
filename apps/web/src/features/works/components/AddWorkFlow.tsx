@@ -38,10 +38,7 @@ import {
   ChipSummary,
   FeedbackMessage,
 } from '../../../shared/components/AppPrimitives';
-import {
-  importsService,
-  type ImportCandidate,
-} from '../../imports';
+import { importsService, type ImportCandidate } from '../../imports';
 import {
   formatProviderNames,
   useImportProviderReadiness,
@@ -219,6 +216,72 @@ function ProviderReadinessSummary({
   );
 }
 
+interface ImportedCandidateSummaryProps {
+  candidate: ImportCandidate;
+  fieldSummary: ReturnType<typeof getCandidateFieldSummary>;
+  onBackToSearch: () => void;
+  onReset: () => void;
+  sourceCoverage: NonNullable<ReturnType<typeof getCandidateSourceCoverage>>;
+}
+
+function ImportedCandidateSummary({
+  candidate,
+  fieldSummary,
+  onBackToSearch,
+  onReset,
+  sourceCoverage,
+}: ImportedCandidateSummaryProps) {
+  return (
+    <Alert color="blue" radius="lg" variant="light">
+      <Stack gap="sm">
+        <ActionRow justify="space-between">
+          <AppBadge tone="accent">검색으로 채운 정보</AppBadge>
+          <ActionRow>
+            <AppButton
+              onClick={onBackToSearch}
+              size="compact-sm"
+              tone="ghost"
+              type="button"
+            >
+              다시 검색
+            </AppButton>
+            <AppButton
+              onClick={onReset}
+              size="compact-sm"
+              tone="ghost"
+              type="button"
+            >
+              직접 입력으로 전환
+            </AppButton>
+          </ActionRow>
+        </ActionRow>
+        <Text c="inherit" fw={700}>
+          {candidate.title}
+        </Text>
+        <Text c="inherit" size="sm">
+          {candidate.reason}
+        </Text>
+        <ActionRow>
+          <AppBadge tone="muted">{candidate.sourceLabel}</AppBadge>
+          <AppBadge tone="muted">{sourceCoverage.summaryLabel}</AppBadge>
+        </ActionRow>
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+          <ChipSummary
+            emptyLabel="자동으로 채워진 필드가 없습니다."
+            label="채워진 정보"
+            values={fieldSummary.filled}
+          />
+          <ChipSummary
+            emptyLabel="지금 바로 추가 입력할 항목이 없습니다."
+            label="내가 채우면 좋은 정보"
+            values={fieldSummary.missing}
+          />
+        </SimpleGrid>
+      </Stack>
+    </Alert>
+  );
+}
+
 interface StatusButtonGroupProps {
   onChange: (status: WorkFormValues['status']) => void;
   value: WorkFormValues['status'];
@@ -274,7 +337,8 @@ function CoreWorkFields({
       <ActionRow>
         <AppBadge tone="accent">필수</AppBadge>
         <Text c="var(--mantine-color-dimmed)" size="sm">
-          제목과 유형만 입력하면 저장할 수 있습니다. 장르는 핵심 분류만 선택하세요.
+          제목과 유형만 입력하면 저장할 수 있습니다. 장르는 핵심 분류만
+          선택하세요.
         </Text>
       </ActionRow>
 
@@ -379,8 +443,13 @@ function PersonalRecordFields({
           />
         </div>
 
-        <Text c="var(--mantine-color-dimmed)" className={cn(css.gridSpanFull)} size="sm">
-          긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수 있습니다.
+        <Text
+          c="var(--mantine-color-dimmed)"
+          className={cn(css.gridSpanFull)}
+          size="sm"
+        >
+          긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수
+          있습니다.
         </Text>
       </SimpleGrid>
     </Stack>
@@ -418,11 +487,15 @@ function AdvancedWorkFields({
   const studioValues = parseCommaSeparatedTextList(values.studioText);
   const publisherValues = parseCommaSeparatedTextList(values.publisherText);
   const platformValues = parseCommaSeparatedTextList(values.platformText);
-  const personalTagValues = parseCommaSeparatedTextList(values.personalTagsText);
+  const personalTagValues = parseCommaSeparatedTextList(
+    values.personalTagsText,
+  );
   const uniqueOrganizationSuggestions = Array.from(
     new Set(organizationContributorSuggestions),
   );
-  const uniquePersonSuggestions = Array.from(new Set(personContributorSuggestions));
+  const uniquePersonSuggestions = Array.from(
+    new Set(personContributorSuggestions),
+  );
   const uniqueSeriesSuggestions = Array.from(new Set(seriesSuggestions));
   const uniqueTagSuggestions = Array.from(new Set(tagSuggestions));
   const hasSeriesRelation =
@@ -469,7 +542,9 @@ function AdvancedWorkFields({
                       id={getFieldId(idPrefix, 'seriesText')}
                       label={mediaLabels.seriesLabel}
                       name="seriesText"
-                      onChange={(items) => onTextListChange('seriesText', items)}
+                      onChange={(items) =>
+                        onTextListChange('seriesText', items)
+                      }
                       placeholder={mediaLabels.seriesPlaceholder}
                       splitChars={[',']}
                       value={seriesValues}
@@ -481,7 +556,9 @@ function AdvancedWorkFields({
                       id={getFieldId(idPrefix, 'universeText')}
                       label={mediaLabels.universeLabel}
                       name="universeText"
-                      onChange={(items) => onTextListChange('universeText', items)}
+                      onChange={(items) =>
+                        onTextListChange('universeText', items)
+                      }
                       placeholder={mediaLabels.universePlaceholder}
                       splitChars={[',']}
                       value={universeValues}
@@ -547,9 +624,7 @@ function AdvancedWorkFields({
               id={getFieldId(idPrefix, 'personalTagsText')}
               label="개인 태그"
               name="personalTagsText"
-              onChange={(items) =>
-                onTextListChange('personalTagsText', items)
-              }
+              onChange={(items) => onTextListChange('personalTagsText', items)}
               placeholder="시간여행, 다시 볼 것, 여운 강함"
               splitChars={[',']}
               value={personalTagValues}
@@ -615,7 +690,9 @@ function QuickCapturePreview({ values }: { values: WorkFormValues }) {
           <Title order={3}>{previewTitle}</Title>
           <Text c="var(--mantine-color-dimmed)" size="sm">
             {typeLabel} · {statusLabel}
-            {values.rating ? ` · ★ ${Number.parseFloat(values.rating).toFixed(1)}` : ''}
+            {values.rating
+              ? ` · ★ ${Number.parseFloat(values.rating).toFixed(1)}`
+              : ''}
           </Text>
           <Text c="var(--mantine-color-dimmed)" lineClamp={4}>
             {shortReview || '짧은 감상을 적지 않아도 먼저 저장할 수 있습니다.'}
@@ -783,10 +860,7 @@ export function AddWorkFlow({
     }));
   }
 
-  function handleTextListChange(
-    name: WorkFormListFieldName,
-    items: string[],
-  ) {
+  function handleTextListChange(name: WorkFormListFieldName, items: string[]) {
     setValues((currentValues) => ({
       ...currentValues,
       [name]: formatTextListForWorkForm(items),
@@ -976,11 +1050,16 @@ export function AddWorkFlow({
       <Stack gap="sm">
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <div>
-            <Text c="var(--mantine-color-text)" fw={800} size={variant === 'dialog' ? 'lg' : 'xl'}>
+            <Text
+              c="var(--mantine-color-text)"
+              fw={800}
+              size={variant === 'dialog' ? 'lg' : 'xl'}
+            >
               새 작품 기록
             </Text>
             <Text c="var(--mantine-color-dimmed)" size="sm">
-              직접 입력으로 바로 저장할 수 있고, 검색은 작품 정보를 채우는 선택 도구입니다.
+              직접 입력으로 바로 저장할 수 있고, 검색은 작품 정보를 채우는 선택
+              도구입니다.
             </Text>
           </div>
 
@@ -1040,57 +1119,13 @@ export function AddWorkFlow({
         <form onSubmit={handleSubmit}>
           <Stack gap={variant === 'dialog' ? 'lg' : 'xl'}>
             {selectedImportCandidate && importedSourceCoverage && (
-              <Alert color="blue" radius="lg" variant="light">
-                <Stack gap="sm">
-                  <ActionRow justify="space-between">
-                    <AppBadge tone="accent">검색으로 채운 정보</AppBadge>
-                    <ActionRow>
-                      <AppButton
-                        onClick={() => setMode('search')}
-                        size="compact-sm"
-                        tone="ghost"
-                        type="button"
-                      >
-                        다시 검색
-                      </AppButton>
-                      <AppButton
-                        onClick={resetImportedCandidate}
-                        size="compact-sm"
-                        tone="ghost"
-                        type="button"
-                      >
-                        직접 입력으로 전환
-                      </AppButton>
-                    </ActionRow>
-                  </ActionRow>
-                  <Text c="inherit" fw={700}>
-                    {selectedImportCandidate.title}
-                  </Text>
-                  <Text c="inherit" size="sm">
-                    {selectedImportCandidate.reason}
-                  </Text>
-                  <ActionRow>
-                    <AppBadge tone="muted">
-                      {selectedImportCandidate.sourceLabel}
-                    </AppBadge>
-                    <AppBadge tone="muted">
-                      {importedSourceCoverage.summaryLabel}
-                    </AppBadge>
-                  </ActionRow>
-                  <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-                    <ChipSummary
-                      emptyLabel="자동으로 채워진 필드가 없습니다."
-                      label="채워진 정보"
-                      values={importedFieldSummary.filled}
-                    />
-                    <ChipSummary
-                      emptyLabel="지금 바로 추가 입력할 항목이 없습니다."
-                      label="내가 채우면 좋은 정보"
-                      values={importedFieldSummary.missing}
-                    />
-                  </SimpleGrid>
-                </Stack>
-              </Alert>
+              <ImportedCandidateSummary
+                candidate={selectedImportCandidate}
+                fieldSummary={importedFieldSummary}
+                onBackToSearch={() => setMode('search')}
+                onReset={resetImportedCandidate}
+                sourceCoverage={importedSourceCoverage}
+              />
             )}
 
             {variant === 'page' ? (

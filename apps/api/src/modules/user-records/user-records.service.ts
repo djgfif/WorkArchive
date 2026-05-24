@@ -20,7 +20,7 @@ import {
 } from '../recording/recording-policy';
 import type { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
 import {
-  normalizeGenres,
+  normalizeGenresAndPersonalTags,
   normalizePersonalTags,
   normalizeString,
 } from '../works/work-aggregate';
@@ -594,15 +594,25 @@ export class UserRecordsService {
     }
 
     const recordId = crypto.randomUUID();
+    const taxonomy = normalizeGenresAndPersonalTags(
+      input.genres,
+      input.personalTags,
+    );
 
     return this.prisma.$transaction(async (tx) => {
       const catalogWorkId = input.catalogTitleId
         ? await this.createCompatibilityCatalogWorkFromTitle(
             recordId,
             input,
+            taxonomy.genres,
             tx,
           )
-        : await this.createDraftCatalogWork(recordId, input, tx);
+        : await this.createDraftCatalogWork(
+            recordId,
+            input,
+            taxonomy.genres,
+            tx,
+          );
 
       return this.create(
         {
@@ -612,7 +622,7 @@ export class UserRecordsService {
           id: recordId,
           rating: input.rating ?? null,
           review: normalizeString(input.review),
-          personalTags: normalizePersonalTags(input.personalTags),
+          personalTags: taxonomy.personalTags,
           startedAt: parseOptionalDtoDate(input.startedAt, 'startedAt'),
           completedAt: parseOptionalDtoDate(input.completedAt, 'completedAt'),
           droppedAt: parseOptionalDtoDate(input.droppedAt, 'droppedAt'),
@@ -634,6 +644,7 @@ export class UserRecordsService {
   private async createDraftCatalogWork(
     recordId: string,
     input: CreateUserRecordDto,
+    genres: string[],
     tx: Prisma.TransactionClient,
   ) {
     const title = input.title?.trim();
@@ -648,7 +659,7 @@ export class UserRecordsService {
       {
         author: normalizeString(input.author),
         description: normalizeString(input.description),
-        genres: normalizeGenres(input.genres),
+        genres,
         id: recordId,
         thumbnailUrl: normalizeString(input.thumbnailUrl),
         title,
@@ -663,6 +674,7 @@ export class UserRecordsService {
   private async createCompatibilityCatalogWorkFromTitle(
     recordId: string,
     input: CreateUserRecordDto,
+    genres: string[],
     tx: Prisma.TransactionClient,
   ) {
     const title = await this.catalogService.findTitleOrThrow(
@@ -680,7 +692,7 @@ export class UserRecordsService {
       data: {
         author,
         description: input.description?.trim() || title.summary,
-        genres: normalizeGenres(input.genres),
+        genres,
         id: recordId,
         thumbnailUrl: input.thumbnailUrl?.trim() || title.thumbnailUrl,
         title: input.title?.trim() || title.displayTitle,

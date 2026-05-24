@@ -14,6 +14,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { WorkStatus, WorkType } from '@prisma/client';
+import { MAX_WORK_GENRES, WORK_GENRES } from '@work-archive/shared-types';
 
 import { NormalizeStringArray, Trim } from './transformers';
 
@@ -48,7 +49,9 @@ export class CreateWorkDto {
 
   @ApiPropertyOptional({
     type: [String],
-    example: ['Fantasy', 'Adventure'],
+    enum: WORK_GENRES,
+    example: ['판타지', '드라마'],
+    description: `Legacy free-form input is accepted for compatibility, but stored and returned genres are normalized to known Work Archive genres only. Unknown or excess values are moved to personalTags; at most ${MAX_WORK_GENRES} genres remain in genres.`,
   })
   @NormalizeStringArray()
   @IsOptional()

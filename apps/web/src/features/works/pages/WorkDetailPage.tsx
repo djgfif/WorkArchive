@@ -8,11 +8,7 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
-import {
-  useLocation,
-  useParams,
-  useSearchParams,
-} from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 
 import {
   canUseProgressUnitForWorkType,
@@ -59,10 +55,7 @@ import {
 import { worksRepository } from '../services/works.repository';
 import { worksService } from '../services/works.service';
 import { getSeriesTagValues } from '../utils/graph-tags';
-import {
-  getWorkTypeLabel,
-  workStatusOptions,
-} from '../utils/work-options';
+import { getWorkTypeLabel, workStatusOptions } from '../utils/work-options';
 import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 
 const ratingOptions = Array.from({ length: 10 }, (_, index) => {
@@ -112,6 +105,183 @@ function getRouteFeedback(state: unknown) {
 
 function getSavedFeedback(value: string | null) {
   return value === 'edit' ? '로컬에 저장됨' : null;
+}
+
+function useWorkDetailPageData({
+  archiveScopeKey,
+  mode,
+  work,
+}: {
+  archiveScopeKey: string;
+  mode: 'authenticated' | 'guest';
+  work: WorkRecord | null;
+}) {
+  const [releaseData, setReleaseData] =
+    useState<UserRecordReleasesResponse | null>(null);
+  const [relatedData, setRelatedData] =
+    useState<RelatedCatalogTitlesResponse | null>(null);
+  const [localReleaseRecords, setLocalReleaseRecords] = useState<
+    UserReleaseRecord[]
+  >([]);
+  const [timelineEntries, setTimelineEntries] = useState<TimelineEntryRecord[]>(
+    [],
+  );
+  const [localWorks, setLocalWorks] = useState<WorkRecord[]>([]);
+  const [localGraph, setLocalGraph] = useState<WorkGraphSnapshot | null>(null);
+  const workCatalogTitleId = work?.catalogTitleId ?? null;
+  const workId = work?.id ?? null;
+  const workType = work?.type ?? null;
+
+  useEffect(() => {
+    if (!workId) {
+      return;
+    }
+
+    recentWorkViewsService.recordView(archiveScopeKey, workId);
+  }, [archiveScopeKey, workId]);
+
+  useEffect(() => {
+    if (!workId) {
+      setLocalReleaseRecords([]);
+
+      return undefined;
+    }
+
+    const subscription = liveQuery(() =>
+      releaseRecordsService.listByUserWorkRecord(workId),
+    ).subscribe({
+      next: setLocalReleaseRecords,
+      error: () => {
+        setLocalReleaseRecords([]);
+      },
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [archiveScopeKey, workId]);
+
+  useEffect(() => {
+    if (!workId) {
+      setTimelineEntries([]);
+
+      return undefined;
+    }
+
+    const subscription = liveQuery(() =>
+      timelineEntriesRepository.listByWorkId(workId),
+    ).subscribe({
+      next: setTimelineEntries,
+      error: () => {
+        setTimelineEntries([]);
+      },
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [archiveScopeKey, workId]);
+
+  useEffect(() => {
+    const subscription = liveQuery(() =>
+      worksRepository.listActive(),
+    ).subscribe({
+      next: setLocalWorks,
+      error: () => setLocalWorks([]),
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [archiveScopeKey]);
+
+  useEffect(() => {
+    const subscription = liveQuery(() =>
+      graphRepository.listActiveGraph(),
+    ).subscribe({
+      next: setLocalGraph,
+      error: () => setLocalGraph(null),
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [archiveScopeKey]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadReleaseData() {
+      if (
+        !workId ||
+        mode !== 'authenticated' ||
+        !workCatalogTitleId ||
+        !workType ||
+        !isVolumeRecordableWorkType(workType)
+      ) {
+        setReleaseData(null);
+
+        return;
+      }
+
+      try {
+        const response = await fetchUserRecordReleases(workId);
+
+        if (isActive) {
+          setReleaseData(response);
+        }
+      } catch {
+        if (isActive) {
+          setReleaseData(null);
+        }
+      }
+    }
+
+    void loadReleaseData();
+
+    return () => {
+      isActive = false;
+    };
+  }, [mode, workCatalogTitleId, workId, workType]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadRelatedTitles() {
+      if (!workCatalogTitleId || mode !== 'authenticated') {
+        setRelatedData(null);
+
+        return;
+      }
+
+      try {
+        const response = await fetchRelatedCatalogTitles(workCatalogTitleId);
+
+        if (isActive) {
+          setRelatedData(response);
+        }
+      } catch {
+        if (isActive) {
+          setRelatedData(null);
+        }
+      }
+    }
+
+    void loadRelatedTitles();
+
+    return () => {
+      isActive = false;
+    };
+  }, [mode, workCatalogTitleId]);
+
+  return {
+    localGraph,
+    localReleaseRecords,
+    localWorks,
+    relatedData,
+    releaseData,
+    timelineEntries,
+  };
 }
 
 function WorkQuickRecordSection({
@@ -794,25 +964,23 @@ export function WorkDetailPage() {
   const { error, isLoading, work } = useWorkDetail(id);
   const [actionError, setActionError] = useState<string | null>(null);
   const routeFeedback =
-    getRouteFeedback(location.state) ?? getSavedFeedback(searchParams.get('saved'));
+    getRouteFeedback(location.state) ??
+    getSavedFeedback(searchParams.get('saved'));
   const [actionSuccess, setActionSuccess] = useState<string | null>(
     () => routeFeedback,
   );
-  const [releaseData, setReleaseData] =
-    useState<UserRecordReleasesResponse | null>(null);
-  const [relatedData, setRelatedData] =
-    useState<RelatedCatalogTitlesResponse | null>(null);
-  const [localReleaseRecords, setLocalReleaseRecords] = useState<
-    UserReleaseRecord[]
-  >([]);
-  const [timelineEntries, setTimelineEntries] = useState<TimelineEntryRecord[]>(
-    [],
-  );
-  const [localWorks, setLocalWorks] = useState<WorkRecord[]>([]);
-  const [localGraph, setLocalGraph] = useState<WorkGraphSnapshot | null>(null);
-  const workCatalogTitleId = work?.catalogTitleId ?? null;
-  const workId = work?.id ?? null;
-  const workType = work?.type ?? null;
+  const {
+    localGraph,
+    localReleaseRecords,
+    localWorks,
+    relatedData,
+    releaseData,
+    timelineEntries,
+  } = useWorkDetailPageData({
+    archiveScopeKey,
+    mode,
+    work,
+  });
 
   function handleActionError(message: string | null) {
     setActionError(message);
@@ -826,14 +994,6 @@ export function WorkDetailPage() {
     setActionError(null);
     setActionSuccess(message);
   }
-
-  useEffect(() => {
-    if (!workId) {
-      return;
-    }
-
-    recentWorkViewsService.recordView(archiveScopeKey, workId);
-  }, [archiveScopeKey, workId]);
 
   useEffect(() => {
     if (!routeFeedback) {
@@ -857,138 +1017,6 @@ export function WorkDetailPage() {
       window.clearTimeout(timeoutId);
     };
   }, [actionSuccess]);
-
-  useEffect(() => {
-    if (!workId) {
-      setLocalReleaseRecords([]);
-
-      return undefined;
-    }
-
-    const subscription = liveQuery(() =>
-      releaseRecordsService.listByUserWorkRecord(workId),
-    ).subscribe({
-      next: setLocalReleaseRecords,
-      error: () => {
-        setLocalReleaseRecords([]);
-      },
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [archiveScopeKey, workId]);
-
-  useEffect(() => {
-    if (!workId) {
-      setTimelineEntries([]);
-
-      return undefined;
-    }
-
-    const subscription = liveQuery(() =>
-      timelineEntriesRepository.listByWorkId(workId),
-    ).subscribe({
-      next: setTimelineEntries,
-      error: () => {
-        setTimelineEntries([]);
-      },
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [archiveScopeKey, workId]);
-
-  useEffect(() => {
-    const subscription = liveQuery(() => worksRepository.listActive()).subscribe({
-      next: setLocalWorks,
-      error: () => setLocalWorks([]),
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [archiveScopeKey]);
-
-  useEffect(() => {
-    const subscription = liveQuery(() =>
-      graphRepository.listActiveGraph(),
-    ).subscribe({
-      next: setLocalGraph,
-      error: () => setLocalGraph(null),
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [archiveScopeKey]);
-
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadReleaseData() {
-      if (
-        !workId ||
-        mode !== 'authenticated' ||
-        !workCatalogTitleId ||
-        !workType ||
-        !isVolumeRecordableWorkType(workType)
-      ) {
-        setReleaseData(null);
-
-        return;
-      }
-
-      try {
-        const response = await fetchUserRecordReleases(workId);
-
-        if (isActive) {
-          setReleaseData(response);
-        }
-      } catch {
-        if (isActive) {
-          setReleaseData(null);
-        }
-      }
-    }
-
-    void loadReleaseData();
-
-    return () => {
-      isActive = false;
-    };
-  }, [mode, workCatalogTitleId, workId, workType]);
-
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadRelatedTitles() {
-      if (!workCatalogTitleId || mode !== 'authenticated') {
-        setRelatedData(null);
-
-        return;
-      }
-
-      try {
-        const response = await fetchRelatedCatalogTitles(workCatalogTitleId);
-
-        if (isActive) {
-          setRelatedData(response);
-        }
-      } catch {
-        if (isActive) {
-          setRelatedData(null);
-        }
-      }
-    }
-
-    void loadRelatedTitles();
-
-    return () => {
-      isActive = false;
-    };
-  }, [mode, workCatalogTitleId]);
 
   async function handleCreateTimelineEntry(input: {
     note: string;
@@ -1066,7 +1094,8 @@ export function WorkDetailPage() {
         contributors: localGraph.contributors,
         relations: localGraph.relations.filter(
           (relation) =>
-            relation.sourceWorkId === work.id || relation.targetWorkId === work.id,
+            relation.sourceWorkId === work.id ||
+            relation.targetWorkId === work.id,
         ),
         series: localGraph.series,
         workContributors: localGraph.workContributors.filter(
@@ -1074,7 +1103,8 @@ export function WorkDetailPage() {
         ),
         workRelations: localGraph.workRelations.filter(
           (relation) =>
-            relation.sourceWorkId === work.id || relation.targetWorkId === work.id,
+            relation.sourceWorkId === work.id ||
+            relation.targetWorkId === work.id,
         ),
         workSeriesLinks: localGraph.workSeriesLinks.filter(
           (link) => link.workId === work.id,

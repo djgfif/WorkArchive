@@ -5,6 +5,7 @@ export {
   LocalArchiveService,
   localArchiveService,
   type LocalArchiveImportPreview,
+  type LocalArchiveScope,
 } from './services/local-archive.service';
 export {
   LAST_JSON_EXPORT_AT_META_KEY,

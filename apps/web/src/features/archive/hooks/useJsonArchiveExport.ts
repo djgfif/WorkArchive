@@ -1,7 +1,10 @@
 import { useState } from 'react';
 
 import { appMetaRepository } from '../../sync/queue';
-import { localArchiveService } from '../services/local-archive.service';
+import {
+  localArchiveService,
+  type LocalArchiveScope,
+} from '../services/local-archive.service';
 import { LAST_JSON_EXPORT_AT_META_KEY } from '../utils/json-backup-reminder';
 
 export interface JsonArchiveExportFeedback {
@@ -22,12 +25,14 @@ function downloadTextFile(filename: string, type: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
-export async function exportJsonArchiveBackup() {
-  const content = await localArchiveService.createJsonExportText();
+export async function exportJsonArchiveBackup(
+  scope: LocalArchiveScope = 'simple',
+) {
+  const content = await localArchiveService.createJsonExportText(scope);
   const exportedAt = new Date().toISOString();
 
   downloadTextFile(
-    `work-archive-backup-${exportedAt.slice(0, 10)}.json`,
+    `work-archive-${scope}-backup-${exportedAt.slice(0, 10)}.json`,
     'application/json',
     content,
   );
@@ -42,14 +47,17 @@ export function useJsonArchiveExport() {
   );
   const [isExporting, setIsExporting] = useState(false);
 
-  async function exportJson() {
+  async function exportJson(scope: LocalArchiveScope = 'simple') {
     try {
       setIsExporting(true);
       setFeedback(null);
-      await exportJsonArchiveBackup();
+      await exportJsonArchiveBackup(scope);
       setFeedback({
         tone: 'success',
-        message: 'JSON 백업 파일을 만들었습니다.',
+        message:
+          scope === 'full'
+            ? '전체 JSON 백업 파일을 만들었습니다.'
+            : 'JSON 백업 파일을 만들었습니다.',
       });
     } catch (error) {
       setFeedback({

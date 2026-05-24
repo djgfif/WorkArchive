@@ -1,15 +1,21 @@
 ﻿import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type {
+  ContributorRecord,
+  SeriesRecord,
+  TierBoardAssetRecord,
+  TierBoardCardRecord,
+  TierBoardRecord,
+  TierLaneRecord,
   TimelineEntryRecord,
   UserReleaseRecord,
+  WorkContributorRecord,
+  WorkRelationRecord,
   WorkRecord,
+  WorkSeriesLinkRecord,
 } from '@work-archive/shared-types';
 
-import {
-  createWorkArchiveDb,
-  type WorkArchiveDatabase,
-} from '../../works';
+import { createWorkArchiveDb, type WorkArchiveDatabase } from '../../works';
 import { LocalArchiveService } from './local-archive.service';
 
 function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
@@ -81,6 +87,180 @@ function buildTimelineEntry(
     type: 'note',
     updatedAt: '2026-01-02T00:00:00.000Z',
     workId: 'work-1',
+    ...overrides,
+  };
+}
+
+function buildSeries(overrides: Partial<SeriesRecord> = {}): SeriesRecord {
+  return {
+    aliases: [],
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    description: '',
+    id: 'series-1',
+    kind: 'series',
+    normalizedTitle: 'dune',
+    parentId: null,
+    serverVersion: 0,
+    syncStatus: 'local-only',
+    thumbnailUrl: '',
+    title: 'Dune',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function buildContributor(
+  overrides: Partial<ContributorRecord> = {},
+): ContributorRecord {
+  return {
+    aliases: [],
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    entityType: 'person',
+    id: 'contributor-1',
+    name: 'Frank Herbert',
+    normalizedName: 'frank herbert',
+    serverVersion: 0,
+    syncStatus: 'local-only',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function buildWorkSeriesLink(
+  overrides: Partial<WorkSeriesLinkRecord> = {},
+): WorkSeriesLinkRecord {
+  return {
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    id: 'work-series-link-1',
+    orderIndex: null,
+    orderLabel: '',
+    role: 'main',
+    seriesId: 'series-1',
+    serverVersion: 0,
+    syncStatus: 'local-only',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    workId: 'work-1',
+    ...overrides,
+  };
+}
+
+function buildWorkContributor(
+  overrides: Partial<WorkContributorRecord> = {},
+): WorkContributorRecord {
+  return {
+    contributorId: 'contributor-1',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    displayOrder: 0,
+    id: 'work-contributor-1',
+    role: 'author',
+    serverVersion: 0,
+    syncStatus: 'local-only',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    workId: 'work-1',
+    ...overrides,
+  };
+}
+
+function buildWorkRelation(
+  overrides: Partial<WorkRelationRecord> = {},
+): WorkRelationRecord {
+  return {
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    id: 'work-relation-1',
+    note: '',
+    relationType: 'same_universe',
+    serverVersion: 0,
+    sourceWorkId: 'work-1',
+    syncStatus: 'local-only',
+    targetWorkId: 'work-2',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function buildTierBoard(
+  overrides: Partial<TierBoardRecord> = {},
+): TierBoardRecord {
+  return {
+    boardType: 'classic_tier',
+    coverImageUrl: '',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    description: '',
+    id: 'tier-board-1',
+    serverVersion: 0,
+    slug: 'dune-board',
+    syncStatus: 'local-only',
+    title: 'Dune Board',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    visibility: 'private',
+    ...overrides,
+  };
+}
+
+function buildTierLane(
+  overrides: Partial<TierLaneRecord> = {},
+): TierLaneRecord {
+  return {
+    boardId: 'tier-board-1',
+    colorToken: 'gray',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    description: '',
+    id: 'tier-lane-1',
+    orderIndex: 0,
+    serverVersion: 0,
+    syncStatus: 'local-only',
+    title: 'S',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function buildTierBoardCard(
+  overrides: Partial<TierBoardCardRecord> = {},
+): TierBoardCardRecord {
+  return {
+    boardId: 'tier-board-1',
+    cardSourceType: 'library_work',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    id: 'tier-card-1',
+    imageUrl: 'indexeddb://tier-board-assets/tier-asset-1',
+    laneId: 'tier-lane-1',
+    note: '',
+    orderIndex: 0,
+    serverVersion: 0,
+    subtitle: '',
+    syncStatus: 'local-only',
+    title: 'Dune',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    workId: 'work-1',
+    ...overrides,
+  };
+}
+
+function buildTierBoardAsset(
+  overrides: Partial<TierBoardAssetRecord> = {},
+): TierBoardAssetRecord {
+  return {
+    boardId: 'tier-board-1',
+    cardId: 'tier-card-1',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deletedAt: null,
+    id: 'tier-asset-1',
+    kind: 'image',
+    mimeType: 'image/png',
+    objectUrl: 'indexeddb://tier-board-assets/tier-asset-1',
+    originalName: 'cover.png',
+    sizeBytes: 12,
+    storageType: 'local_blob',
+    updatedAt: '2026-01-02T00:00:00.000Z',
     ...overrides,
   };
 }
@@ -160,6 +340,188 @@ describe('LocalArchiveService', () => {
     expect(jsonExportText).not.toContain('apiKey');
     expect(csvExport).toContain('title,type,status,rating');
     expect(csvExport).toContain('Dune,novel,completed,5,다시 볼 것; 여운 강함');
+  });
+
+  it('exports and imports the full local archive domain with remapped references', async () => {
+    await sourceDb.works.bulkAdd([
+      buildWork(),
+      buildWork({
+        id: 'work-2',
+        title: 'Dune Messiah',
+      }),
+    ]);
+    await sourceDb.releaseRecords.add(buildReleaseRecord());
+    await sourceDb.timelineEntries.add(buildTimelineEntry());
+    await sourceDb.series.add(buildSeries());
+    await sourceDb.contributors.add(buildContributor());
+    await sourceDb.workSeriesLinks.add(buildWorkSeriesLink());
+    await sourceDb.workContributors.add(buildWorkContributor());
+    await sourceDb.workRelations.add(buildWorkRelation());
+    await sourceDb.tierBoards.add(buildTierBoard());
+    await sourceDb.tierLanes.add(buildTierLane());
+    await sourceDb.tierBoardCards.add(buildTierBoardCard());
+    await sourceDb.tierBoardAssets.add({
+      ...buildTierBoardAsset(),
+      blob: new Blob(['image']),
+      dataUrl: 'data:image/png;base64,aW1hZ2U=',
+    } as TierBoardAssetRecord & { blob: Blob; dataUrl: string });
+    await targetDb.works.add(buildWork({ id: 'work-1' }));
+
+    const exported = await sourceService.createJsonExport('full');
+    const backup = JSON.stringify(exported);
+    const preview = await targetService.previewImport(backup);
+    const result = await targetService.importJson(backup);
+    const importedWork = (await targetDb.works.toArray()).find(
+      (work) => work.title === 'Dune',
+    );
+    const importedWork2 = (await targetDb.works.toArray()).find(
+      (work) => work.title === 'Dune Messiah',
+    );
+    const [workSeriesLink] = await targetDb.workSeriesLinks.toArray();
+    const [workContributor] = await targetDb.workContributors.toArray();
+    const [workRelation] = await targetDb.workRelations.toArray();
+    const [tierCard] = await targetDb.tierBoardCards.toArray();
+    const [tierAsset] = await targetDb.tierBoardAssets.toArray();
+    const queueItems = await targetDb.syncQueue.toArray();
+
+    expect(exported.scope).toBe('full');
+    expect(exported.series).toHaveLength(1);
+    expect(exported.tierBoardAssets?.[0]).not.toHaveProperty('blob');
+    expect(exported.tierBoardAssets?.[0]).not.toHaveProperty('dataUrl');
+    expect(preview).toMatchObject({
+      addContributorCount: 1,
+      addSeriesCount: 1,
+      addTierBoardAssetCount: 1,
+      addTierBoardCardCount: 1,
+      addTierBoardCount: 1,
+      addTierLaneCount: 1,
+      addWorkContributorCount: 1,
+      addWorkRelationCount: 1,
+      addWorkSeriesLinkCount: 1,
+      conflictWorkCount: 1,
+    });
+    expect(result).toMatchObject({
+      importedContributorCount: 1,
+      importedSeriesCount: 1,
+      importedTierBoardAssetCount: 1,
+      importedTierBoardCardCount: 1,
+      importedTierBoardCount: 1,
+      importedTierLaneCount: 1,
+      importedWorkContributorCount: 1,
+      importedWorkRelationCount: 1,
+      importedWorkSeriesLinkCount: 1,
+      importedWorkCount: 2,
+    });
+    expect(importedWork?.id).toBeDefined();
+    expect(importedWork?.id).not.toBe('work-1');
+    expect(importedWork2?.id).toBe('work-2');
+    expect(workSeriesLink?.workId).toBe(importedWork?.id);
+    expect(workContributor?.workId).toBe(importedWork?.id);
+    expect(workRelation?.sourceWorkId).toBe(importedWork?.id);
+    expect(workRelation?.targetWorkId).toBe(importedWork2?.id);
+    expect(tierCard?.workId).toBe(importedWork?.id);
+    expect(tierAsset?.cardId).toBe(tierCard?.id);
+    expect(tierAsset?.objectUrl).toBe(
+      `indexeddb://tier-board-assets/${tierAsset?.id}`,
+    );
+    expect(tierCard?.imageUrl).toBe(tierAsset?.objectUrl);
+    expect(queueItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ entityType: 'series' }),
+        expect.objectContaining({ entityType: 'contributor' }),
+        expect.objectContaining({ entityType: 'work_series_link' }),
+        expect.objectContaining({ entityType: 'work_contributor' }),
+        expect.objectContaining({ entityType: 'work_relation' }),
+        expect.objectContaining({ entityType: 'tier_board' }),
+        expect.objectContaining({ entityType: 'tier_lane' }),
+        expect.objectContaining({ entityType: 'tier_board_card' }),
+        expect.objectContaining({ entityType: 'tier_board_asset' }),
+      ]),
+    );
+  });
+
+  it('skips full archive graph and tier records with missing parents', async () => {
+    await sourceDb.works.add(buildWork());
+    await sourceDb.series.add(buildSeries());
+    await sourceDb.workSeriesLinks.bulkAdd([
+      buildWorkSeriesLink(),
+      buildWorkSeriesLink({
+        id: 'orphan-series-link',
+        workId: 'missing-work',
+      }),
+    ]);
+    await sourceDb.tierBoards.add(buildTierBoard());
+    await sourceDb.tierLanes.bulkAdd([
+      buildTierLane(),
+      buildTierLane({
+        boardId: 'missing-board',
+        id: 'orphan-lane',
+      }),
+    ]);
+    await sourceDb.tierBoardCards.bulkAdd([
+      buildTierBoardCard(),
+      buildTierBoardCard({
+        id: 'orphan-card',
+        workId: 'missing-work',
+      }),
+    ]);
+    await sourceDb.tierBoardAssets.bulkAdd([
+      buildTierBoardAsset(),
+      buildTierBoardAsset({
+        cardId: 'orphan-card',
+        id: 'asset-for-orphan-card',
+      }),
+      buildTierBoardAsset({
+        cardId: 'missing-card',
+        id: 'asset-for-missing-card',
+      }),
+    ]);
+
+    const backup = await sourceService.createJsonExportText('full');
+    const preview = await targetService.previewImport(backup);
+    const result = await targetService.importJson(backup);
+
+    expect(preview).toMatchObject({
+      skippedTierBoardAssetCount: 2,
+      skippedTierBoardCardCount: 1,
+      skippedTierLaneCount: 1,
+      skippedWorkSeriesLinkCount: 1,
+      tierBoardAssetCount: 1,
+      tierBoardCardCount: 1,
+      tierLaneCount: 1,
+      workSeriesLinkCount: 1,
+    });
+    expect(result.importedTierBoardAssetCount).toBe(1);
+    expect(result.importedTierBoardCardCount).toBe(1);
+    expect(result.importedTierLaneCount).toBe(1);
+    expect(result.importedWorkSeriesLinkCount).toBe(1);
+  });
+
+  it('treats missing archive scope as simple and ignores full archive arrays', async () => {
+    await sourceDb.works.add(buildWork());
+    await sourceDb.series.add(buildSeries());
+    await sourceDb.tierBoards.add(buildTierBoard());
+
+    const exported = await sourceService.createJsonExport('full');
+    const legacyBackup = JSON.stringify({
+      ...exported,
+      scope: undefined,
+    });
+    const preview = await targetService.previewImport(legacyBackup);
+    const result = await targetService.importJson(legacyBackup);
+
+    expect(preview).toMatchObject({
+      addSeriesCount: 0,
+      addTierBoardCount: 0,
+      addWorkCount: 1,
+    });
+    expect(result).toMatchObject({
+      importedSeriesCount: 0,
+      importedTierBoardCount: 0,
+      importedWorkCount: 1,
+    });
+    expect(await targetDb.series.count()).toBe(0);
+    expect(await targetDb.tierBoards.count()).toBe(0);
   });
 
   it('previews and imports without overwriting existing local records', async () => {

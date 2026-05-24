@@ -19,6 +19,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProgressUnit, WorkStatus, WorkType } from '@prisma/client';
+import { MAX_WORK_GENRES, WORK_GENRES } from '@work-archive/shared-types';
 
 import {
   WORK_SYNC_STATUS_VALUES,
@@ -152,6 +153,8 @@ export class SyncWorkPayloadDto {
 
   @ApiProperty({
     type: [String],
+    enum: WORK_GENRES,
+    description: `Legacy free-form sync values are accepted, but applied work payloads are normalized to known Work Archive genres only. Unknown or excess values are moved to personalTags; at most ${MAX_WORK_GENRES} genres remain in genres.`,
   })
   @NormalizeStringArray()
   @IsArray()

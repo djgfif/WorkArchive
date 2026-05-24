@@ -84,6 +84,7 @@ export function SettingsPage() {
           onCancelImport={localArchiveSettings.cancelImport}
           onConfirmImport={localArchiveSettings.confirmImport}
           onExportCsv={localArchiveSettings.exportCsv}
+          onExportFullJson={localArchiveSettings.exportFullJson}
           onExportJson={localArchiveSettings.exportJson}
           onImportFileSelect={localArchiveSettings.previewImportFile}
         />
@@ -154,7 +155,9 @@ export function SettingsPage() {
 
   return (
     <AccountPageTemplate
-      actions={<AppLinkButton to="/account">계정 개요로 돌아가기</AppLinkButton>}
+      actions={
+        <AppLinkButton to="/account">계정 개요로 돌아가기</AppLinkButton>
+      }
       description="계정 연결, 로컬 백업, 검색 provider, API key vault, 세션 보안을 한 곳에서 관리합니다."
       eyebrow="설정"
       title="Settings Control Center"

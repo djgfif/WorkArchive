@@ -12,6 +12,7 @@ import {
   type UserRole,
   type WorkType,
 } from '@prisma/client';
+import { normalizeWorkGenres } from '@work-archive/shared-types';
 
 import {
   CatalogIngestionService,
@@ -73,6 +74,21 @@ interface CreateTitleFromLegacyWorkInput {
   updatedAt?: Date | string;
 }
 
+function normalizeCatalogWorkGenres<T extends { genres?: unknown }>(
+  data: T,
+): T {
+  if (!Array.isArray(data.genres)) {
+    return data;
+  }
+
+  return {
+    ...data,
+    genres: normalizeWorkGenres(
+      data.genres.filter((value): value is string => typeof value === 'string'),
+    ),
+  };
+}
+
 @Injectable()
 export class CatalogService {
   constructor(
@@ -86,7 +102,7 @@ export class CatalogService {
     client: PrismaClientLike = this.prisma,
   ) {
     const catalogWork = await client.catalogWork.create({
-      data,
+      data: normalizeCatalogWorkGenres(data),
     });
 
     await this.ensureTitleForLegacyWork(catalogWork, client);
@@ -103,7 +119,7 @@ export class CatalogService {
       where: {
         id,
       },
-      data,
+      data: normalizeCatalogWorkGenres(data),
     });
 
     await this.ensureTitleForLegacyWork(catalogWork, client);
@@ -166,7 +182,9 @@ export class CatalogService {
     });
 
     if (!title) {
-      throw new NotFoundException(`Catalog title with id "${id}" was not found.`);
+      throw new NotFoundException(
+        `Catalog title with id "${id}" was not found.`,
+      );
     }
 
     return title;
@@ -326,7 +344,9 @@ export class CatalogService {
     const submission = await this.getSubmissionOrThrow(submissionId);
 
     if (submission.status !== CatalogSubmissionStatus.pending) {
-      throw new BadRequestException('Only pending submissions can be approved.');
+      throw new BadRequestException(
+        'Only pending submissions can be approved.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -366,7 +386,9 @@ export class CatalogService {
     const submission = await this.getSubmissionOrThrow(submissionId);
 
     if (submission.status !== CatalogSubmissionStatus.pending) {
-      throw new BadRequestException('Only pending submissions can be rejected.');
+      throw new BadRequestException(
+        'Only pending submissions can be rejected.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -404,7 +426,9 @@ export class CatalogService {
     this.assertCanModerate(actor.role);
 
     if (sourceTitleId === targetTitleId) {
-      throw new BadRequestException('sourceTitleId and targetTitleId must differ.');
+      throw new BadRequestException(
+        'sourceTitleId and targetTitleId must differ.',
+      );
     }
 
     const [source, target] = await Promise.all([
@@ -421,7 +445,9 @@ export class CatalogService {
     ]);
 
     if (!source || !target) {
-      throw new NotFoundException('Both source and target catalog titles must exist.');
+      throw new NotFoundException(
+        'Both source and target catalog titles must exist.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -534,7 +560,9 @@ export class CatalogService {
 
   private assertCanModerate(role: UserRole) {
     if (role !== 'moderator' && role !== 'admin') {
-      throw new ForbiddenException('Catalog moderation requires moderator access.');
+      throw new ForbiddenException(
+        'Catalog moderation requires moderator access.',
+      );
     }
   }
 }
