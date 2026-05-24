@@ -126,7 +126,7 @@ export function DataBackupSettingsSection({
 
         <ExportOptionCard
           buttonLabel="전체 JSON 내보내기"
-          description="작품 기록에 더해 시리즈, 제작진, 관계 그래프, 티어보드 메타데이터까지 포함합니다."
+          description="작품 기록에 더해 시리즈, 제작진, 관계 그래프, 티어보드 메타데이터까지 포함합니다. 로컬 업로드 이미지 원본은 제외될 수 있는 메타데이터 중심 백업입니다."
           disabled={isExportingArchive}
           eyebrow="전체 복구"
           onClick={() => void onExportFullJson()}

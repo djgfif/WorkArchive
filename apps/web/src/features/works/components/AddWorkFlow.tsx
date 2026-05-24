@@ -5,7 +5,6 @@ import type {
 } from '@work-archive/shared-types';
 import {
   Accordion,
-  Alert,
   Checkbox,
   Grid,
   Group,
@@ -35,7 +34,6 @@ import {
   AppBadge,
   AppButton,
   AppLinkButton,
-  ChipSummary,
   FeedbackMessage,
 } from '../../../shared/components/AppPrimitives';
 import { importsService, type ImportCandidate } from '../../imports';
@@ -47,6 +45,7 @@ import {
 import { useAuthSession } from '../../auth';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
 import { StarRatingInput, WorkPoster } from './ArchiveComponents';
+import { ImportedCandidateSummary } from './ImportedCandidateSummary';
 import { WorkGenreSelector } from './WorkGenreSelector';
 import styles from './ArchiveComponents.module.css';
 import {
@@ -213,72 +212,6 @@ function ProviderReadinessSummary({
         )}
       </Stack>
     </Paper>
-  );
-}
-
-interface ImportedCandidateSummaryProps {
-  candidate: ImportCandidate;
-  fieldSummary: ReturnType<typeof getCandidateFieldSummary>;
-  onBackToSearch: () => void;
-  onReset: () => void;
-  sourceCoverage: NonNullable<ReturnType<typeof getCandidateSourceCoverage>>;
-}
-
-function ImportedCandidateSummary({
-  candidate,
-  fieldSummary,
-  onBackToSearch,
-  onReset,
-  sourceCoverage,
-}: ImportedCandidateSummaryProps) {
-  return (
-    <Alert color="blue" radius="lg" variant="light">
-      <Stack gap="sm">
-        <ActionRow justify="space-between">
-          <AppBadge tone="accent">검색으로 채운 정보</AppBadge>
-          <ActionRow>
-            <AppButton
-              onClick={onBackToSearch}
-              size="compact-sm"
-              tone="ghost"
-              type="button"
-            >
-              다시 검색
-            </AppButton>
-            <AppButton
-              onClick={onReset}
-              size="compact-sm"
-              tone="ghost"
-              type="button"
-            >
-              직접 입력으로 전환
-            </AppButton>
-          </ActionRow>
-        </ActionRow>
-        <Text c="inherit" fw={700}>
-          {candidate.title}
-        </Text>
-        <Text c="inherit" size="sm">
-          {candidate.reason}
-        </Text>
-        <ActionRow>
-          <AppBadge tone="muted">{candidate.sourceLabel}</AppBadge>
-          <AppBadge tone="muted">{sourceCoverage.summaryLabel}</AppBadge>
-        </ActionRow>
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-          <ChipSummary
-            emptyLabel="자동으로 채워진 필드가 없습니다."
-            label="채워진 정보"
-            values={fieldSummary.filled}
-          />
-          <ChipSummary
-            emptyLabel="지금 바로 추가 입력할 항목이 없습니다."
-            label="내가 채우면 좋은 정보"
-            values={fieldSummary.missing}
-          />
-        </SimpleGrid>
-      </Stack>
-    </Alert>
   );
 }
 

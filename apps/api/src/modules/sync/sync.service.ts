@@ -2862,7 +2862,7 @@ export class SyncService {
     return {
       id: payload.id,
       userId,
-      // split-only 以묎컙 ?④퀎: payload.id瑜?catalogWorkId濡??ъ슜??1:1 留ㅽ븨??怨좎젙?⑸땲??
+      // Split-only compatibility: keep catalogWorkId mapped 1:1 to payload.id.
       catalogWorkId: payload.id,
       catalogTitleId,
       status: payload.status as WorkStatus,
