@@ -149,7 +149,7 @@ describe('Works routed flow', () => {
     expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(screen.getAllByText(/Frank Herbert/i).length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole('link', { name: '수정' }));
+    await user.click(screen.getByRole('link', { name: '전체 정보 수정' }));
 
     const titleInput = await screen.findByLabelText(/^제목$/);
 

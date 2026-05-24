@@ -1,4 +1,4 @@
-import { Alert, Anchor, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { Accordion, Alert, Anchor, Group, Paper, Stack, Text, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
@@ -17,6 +17,13 @@ import {
   isPreviewOrManualCandidate,
 } from './quick-add-helpers';
 import { getWorkTypeLabel } from '../utils/work-options';
+import styles from './ArchiveComponents.module.css';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 interface CandidatePreviewPanelProps {
   candidate: ImportCandidate;
@@ -55,7 +62,7 @@ export function CandidatePreviewPanel({
   const isManualCandidate = isPreviewOrManualCandidate(candidate);
   const scoreBreakdown = isManualCandidate
     ? []
-    : candidate.scoreBreakdown?.filter((entry) => entry.weight > 0).slice(0, 5);
+    : candidate.scoreBreakdown?.filter((entry) => entry.weight > 0).slice(0, 3);
   const titleAliases = candidate.titleAliases?.filter(
     (titleAlias) => titleAlias !== candidate.title,
   );
@@ -63,7 +70,10 @@ export function CandidatePreviewPanel({
   const wikidataIncluded = hasWikidataSource(candidate);
   const externalIdentityLabels = candidate.externalRefs
     .map(formatExternalIdentityLabel)
-    .slice(0, 4);
+    .slice(0, 3);
+  const providerLabels = sourceCoverage.providerLabels.slice(0, 3);
+  const hiddenProviderCount =
+    sourceCoverage.providerLabels.length - providerLabels.length;
 
   return (
     <Stack gap="lg">
@@ -155,21 +165,16 @@ export function CandidatePreviewPanel({
       </Group>
 
       <Paper
+        className={cn(css.searchEvidencePanel)}
         p="md"
         radius="md"
-        styles={{
-          root: {
-            backgroundColor: 'var(--mantine-color-default-hover)',
-            borderColor: 'var(--mantine-color-default-border)',
-          },
-        }}
         withBorder
       >
         <Stack gap="sm">
           <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
             {isManualCandidate ? '직접 추가 안내' : '검색 근거'}
           </Text>
-          <Text c="var(--mantine-color-text)" size="sm">
+          <Text c="var(--mantine-color-text)" lineClamp={3} size="sm">
             {isManualCandidate
               ? '외부 검색 결과가 아니라 입력한 제목으로 직접 기록합니다.'
               : candidate.reason}
@@ -196,26 +201,31 @@ export function CandidatePreviewPanel({
           </ActionRow>
           {!isManualCandidate && (
             <ActionRow>
-              {sourceCoverage.providerLabels.map((providerLabel) => (
+              {providerLabels.map((providerLabel) => (
                 <AppBadge key={providerLabel} tone="muted">
                   {providerLabel}
                 </AppBadge>
               ))}
+              {hiddenProviderCount > 0 && (
+                <AppBadge tone="muted">출처 {hiddenProviderCount}개 더 있음</AppBadge>
+              )}
             </ActionRow>
           )}
           {!isManualCandidate && externalIdentityLabels.length > 0 && (
-            <Stack gap={4}>
-              <Text c="var(--mantine-color-dimmed)" fw={700} size="xs">
-                외부 identity
-              </Text>
-              <ActionRow>
-                {externalIdentityLabels.map((identityLabel) => (
-                  <AppBadge key={identityLabel} tone="muted">
-                    {identityLabel}
-                  </AppBadge>
-                ))}
-              </ActionRow>
-            </Stack>
+            <Accordion className={cn(css.compactEvidenceAccordion)} variant="contained">
+              <Accordion.Item value="external-identity">
+                <Accordion.Control>외부 식별자 보기</Accordion.Control>
+                <Accordion.Panel>
+                  <ActionRow>
+                    {externalIdentityLabels.map((identityLabel) => (
+                      <AppBadge key={identityLabel} tone="muted">
+                        {identityLabel}
+                      </AppBadge>
+                    ))}
+                  </ActionRow>
+                </Accordion.Panel>
+              </Accordion.Item>
+            </Accordion>
           )}
           {scoreBreakdown && scoreBreakdown.length > 0 && (
             <ActionRow>
@@ -233,7 +243,7 @@ export function CandidatePreviewPanel({
                 rel="noreferrer"
                 target="_blank"
               >
-                source link
+                원본 페이지 열기
               </Anchor>
             </ActionRow>
           )}

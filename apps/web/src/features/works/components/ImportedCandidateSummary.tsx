@@ -1,4 +1,4 @@
-import { Alert, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Accordion, Alert, SimpleGrid, Stack, Text } from '@mantine/core';
 
 import {
   ActionRow,
@@ -56,7 +56,7 @@ export function ImportedCandidateSummary({
         <Text c="inherit" fw={700}>
           {candidate.title}
         </Text>
-        <Text c="inherit" size="sm">
+        <Text c="inherit" lineClamp={2} size="sm">
           {candidate.reason}
         </Text>
         <ActionRow>
@@ -64,19 +64,6 @@ export function ImportedCandidateSummary({
           <AppBadge tone="muted">{sourceCoverage.summaryLabel}</AppBadge>
           <AppBadge tone="muted">
             별칭 {candidate.titleAliases?.length ?? 0}개
-          </AppBadge>
-        </ActionRow>
-        <ActionRow>
-          {sourceCoverage.providerLabels.map((providerLabel) => (
-            <AppBadge key={providerLabel} tone="muted">
-              {providerLabel}
-            </AppBadge>
-          ))}
-          <AppBadge tone="muted">
-            {sourceCoverage.externalIdentityLabel}
-          </AppBadge>
-          <AppBadge tone="muted">
-            {sourceCoverage.releaseCandidateLabel}
           </AppBadge>
         </ActionRow>
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
@@ -91,6 +78,30 @@ export function ImportedCandidateSummary({
             values={fieldSummary.missing}
           />
         </SimpleGrid>
+        <Accordion variant="contained">
+          <Accordion.Item value="source-details">
+            <Accordion.Control>검색 출처 세부 정보</Accordion.Control>
+            <Accordion.Panel>
+              <Stack gap="xs">
+                <ActionRow>
+                  {sourceCoverage.providerLabels.map((providerLabel) => (
+                    <AppBadge key={providerLabel} tone="muted">
+                      {providerLabel}
+                    </AppBadge>
+                  ))}
+                </ActionRow>
+                <ActionRow>
+                  <AppBadge tone="muted">
+                    {sourceCoverage.externalIdentityLabel}
+                  </AppBadge>
+                  <AppBadge tone="muted">
+                    {sourceCoverage.releaseCandidateLabel}
+                  </AppBadge>
+                </ActionRow>
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
       </Stack>
     </Alert>
   );

@@ -19,9 +19,11 @@ const css = styles as Record<string, string>;
 interface ExportOptionCardProps {
   buttonLabel: string;
   description: string;
+  details: string[];
   disabled: boolean;
   eyebrow: string;
   onClick: () => void;
+  summary: string;
   title: string;
   tone: 'primary' | 'secondary';
 }
@@ -42,9 +44,11 @@ interface DataBackupSettingsSectionProps {
 function ExportOptionCard({
   buttonLabel,
   description,
+  details,
   disabled,
   eyebrow,
   onClick,
+  summary,
   title,
   tone,
 }: ExportOptionCardProps) {
@@ -56,6 +60,18 @@ function ExportOptionCard({
         title={title}
         titleOrder={3}
       />
+      <Stack gap="xs">
+        <Text fw={800} size="sm">
+          {summary}
+        </Text>
+        <ActionRow>
+          {details.map((detail) => (
+            <AppBadge key={detail} tone="muted">
+              {detail}
+            </AppBadge>
+          ))}
+        </ActionRow>
+      </Stack>
       <AppButton
         disabled={disabled}
         onClick={onClick}
@@ -116,30 +132,36 @@ export function DataBackupSettingsSection({
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
         <ExportOptionCard
           buttonLabel="JSON 백업 내보내기"
-          description="작품, 권별 기록, 타임라인 기록을 다시 가져올 수 있는 보관용 파일입니다."
+          description="가져오기로 복구할 때 가장 기본이 되는 보관용 파일입니다."
+          details={['작품', '권별 기록', '타임라인']}
           disabled={isExportingArchive}
           eyebrow="복구 가능"
           onClick={() => void onExportJson()}
+          summary="작품 기록 중심 백업"
           title="JSON 백업"
           tone="primary"
         />
 
         <ExportOptionCard
           buttonLabel="전체 JSON 내보내기"
-          description="작품 기록에 더해 시리즈, 제작진, 관계 그래프, 티어보드 메타데이터까지 포함합니다. 로컬 업로드 이미지 원본은 제외될 수 있는 메타데이터 중심 백업입니다."
+          description="시리즈, 제작진, 관계 그래프, 티어보드까지 포함합니다. 로컬 업로드 이미지 원본은 제외될 수 있습니다."
+          details={['메타데이터 중심', '관계 그래프', '티어보드']}
           disabled={isExportingArchive}
           eyebrow="전체 복구"
           onClick={() => void onExportFullJson()}
+          summary="아카이브 구조까지 보관"
           title="전체 백업"
           tone="secondary"
         />
 
         <ExportOptionCard
           buttonLabel="CSV 내보내기"
-          description="스프레드시트에서 읽기 위한 목록 파일입니다. 다시 가져오기용 형식은 아닙니다."
+          description="스프레드시트에서 목록을 확인하기 위한 파일입니다. 다시 가져오기용 형식은 아닙니다."
+          details={['목록 확인', '스프레드시트', '가져오기 불가']}
           disabled={isExportingArchive}
           eyebrow="검토용"
           onClick={() => void onExportCsv()}
+          summary="사람이 읽기 쉬운 목록"
           title="CSV 내보내기"
           tone="secondary"
         />

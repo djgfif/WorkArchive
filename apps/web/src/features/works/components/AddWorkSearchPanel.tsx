@@ -205,19 +205,15 @@ export function AddWorkSearchPanel({
             </Group>
 
             <Paper
+              className={cn(css.quickSearchOptionsPanel)}
               p="xs"
               radius="md"
-              style={{
-                background:
-                  'color-mix(in srgb, var(--app-surface-subtle) 70%, transparent)',
-                borderColor: 'var(--app-border-subtle)',
-              }}
               withBorder
             >
               <Group align="center" justify="space-between" wrap="wrap">
                 <Stack gap={1}>
                   <Text fw={750} size="sm">
-                    검색은 자동 출처로 진행합니다
+                    검색은 직접 입력을 돕는 보조 도구입니다
                   </Text>
                   <Text c="var(--mantine-color-dimmed)" size="xs">
                     현재 {selectedProviderGroupOption.label}
@@ -236,7 +232,7 @@ export function AddWorkSearchPanel({
                   tone={providerGroup === 'all' ? 'quiet' : 'secondary'}
                   type="button"
                 >
-                  검색 설정
+                  검색 설정 열기
                 </AppButton>
               </Group>
 
@@ -269,8 +265,8 @@ export function AddWorkSearchPanel({
                     ))}
                   </Group>
                   <Text c="var(--mantine-color-dimmed)" size="xs">
-                    결과가 없거나 후보가 부족할 때 도서, 애니·만화, 영상, 웹연재
-                    출처로 좁혀 다시 검색하세요.
+                    결과가 없거나 후보가 부족할 때 출처를 좁혀 다시 검색할 수
+                    있습니다. 검색 없이도 직접 추가로 계속할 수 있습니다.
                   </Text>
                 </Stack>
               </Collapse>
@@ -312,18 +308,18 @@ export function AddWorkSearchPanel({
                         <AppButton
                           aria-expanded={providerOptionsOpen}
                           onClick={() => setProviderOptionsOpen(true)}
-                          tone="secondary"
-                          type="button"
-                        >
-                          검색 출처를 바꿔보기
-                        </AppButton>
-                      )}
-                    </Group>
+                        tone="secondary"
+                        type="button"
+                      >
+                        검색 설정 열기
+                      </AppButton>
+                    )}
+                  </Group>
                   ) : undefined
                 }
                 description={
                   hasSearched
-                    ? '정확한 후보가 없으면 입력한 제목으로 저장 화면을 이어가고, 나중에 직접 세부 정보를 채우면 됩니다.'
+                    ? '정확한 후보가 없으면 입력한 제목으로 직접 추가를 이어가세요. 필요하면 검색 설정을 열어 출처를 바꿀 수 있습니다.'
                     : '검색은 선택 사항입니다. 제목을 입력해 후보를 찾거나 직접 추가로 돌아가 바로 저장할 수 있습니다.'
                 }
                 title={
@@ -383,7 +379,7 @@ export function AddWorkSearchPanel({
                           tone="quiet"
                           type="button"
                         >
-                          검색 출처를 바꿔보기
+                          검색 설정 열기
                         </AppButton>
                       )}
                     </Group>

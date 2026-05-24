@@ -344,13 +344,8 @@ export function WorkDetailPanel({
             {/* 제목 + 저자 */}
             <Stack gap={4}>
               <Title
+                className={cn(css.detailTitle)}
                 order={1}
-                style={{
-                  fontSize: 'clamp(1.5rem, 3.5vw, 2.4rem)',
-                  fontWeight: 800,
-                  letterSpacing: '-0.025em',
-                  lineHeight: 1.15,
-                }}
               >
                 {work.title}
               </Title>
@@ -368,9 +363,9 @@ export function WorkDetailPanel({
               {work.rating !== null ? (
                 <Stack gap={2}>
                   <Text
+                    className={cn(css.detailMetaLabel)}
                     c="dimmed"
                     size="xs"
-                    style={{ letterSpacing: '0.08em', textTransform: 'uppercase' }}
                   >
                     별점
                   </Text>
@@ -378,29 +373,25 @@ export function WorkDetailPanel({
                     <Text
                       className={cn(css.detailHeroRatingValue)}
                       component="span"
-                      style={{ fontVariantNumeric: 'tabular-nums' }}
                     >
                       {work.rating.toFixed(1)}
                     </Text>
                     <Text
                       className={cn(css.detailHeroRatingMax)}
                       component="span"
-                      style={{ fontVariantNumeric: 'tabular-nums' }}
                     >
                       / 5.0
                     </Text>
-                    {/* 별점 시각화 */}
-                    <Text component="span" style={{ fontSize: '1rem', letterSpacing: 1 }}>
+                    <Text className={cn(css.detailStars)} component="span">
                       {[1, 2, 3, 4, 5].map((star) => {
                         const filled = work.rating !== null && work.rating >= star;
                         const half = work.rating !== null && work.rating >= star - 0.5 && work.rating < star;
                         return (
                           <span
+                            className={cn(css.detailStar)}
+                            data-active={(filled || half) ? 'true' : 'false'}
+                            data-half={half ? 'true' : 'false'}
                             key={star}
-                            style={{
-                              color: (filled || half) ? 'var(--app-accent-warm, #f59e0b)' : 'var(--app-border-default)',
-                              opacity: half ? 0.65 : 1,
-                            }}
                           >
                             {(filled || half) ? '★' : '☆'}
                           </span>
@@ -412,9 +403,9 @@ export function WorkDetailPanel({
               ) : (
                 <Stack gap={2}>
                   <Text
+                    className={cn(css.detailMetaLabel)}
                     c="dimmed"
                     size="xs"
-                    style={{ letterSpacing: '0.08em', textTransform: 'uppercase' }}
                   >
                     별점
                   </Text>
@@ -424,16 +415,16 @@ export function WorkDetailPanel({
               {progressLabel && (
                 <Stack gap={2}>
                   <Text
+                    className={cn(css.detailMetaLabel)}
                     c="dimmed"
                     size="xs"
-                    style={{ letterSpacing: '0.08em', textTransform: 'uppercase' }}
                   >
                     진행도
                   </Text>
                   <Text
+                    className={cn(css.numericText)}
                     fw={700}
                     size="lg"
-                    style={{ fontVariantNumeric: 'tabular-nums' }}
                   >
                     {progressLabel}
                   </Text>
@@ -494,39 +485,18 @@ export function WorkDetailPanel({
         value={activeTab}
         onChange={setActiveTab}
         keepMounted={false}
-        styles={{
-          root: {
-            '--tabs-color': 'var(--app-accent-primary)',
-            overflow: 'hidden',
-          },
-          tab: {
-            flex: '0 0 auto',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            padding: '10px 18px',
-            color: 'var(--app-text-secondary)',
-            borderBottom: '2px solid transparent',
-            transition: 'color 150ms ease, border-color 150ms ease',
-            '&[dataActive]': {
-              color: 'var(--app-accent-primary)',
-              borderBottomColor: 'var(--app-accent-primary)',
-            },
-          },
-          list: {
-            borderBottom: '1.5px solid var(--app-border-default)',
-            marginBottom: 'var(--mantine-spacing-lg)',
-            gap: 4,
-            flexWrap: 'nowrap',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-          },
+        classNames={{
+          root: cn(css.detailTabs),
+          list: cn(css.detailTabsList),
+          tab: cn(css.detailTab),
         }}
       >
         <Tabs.List>
-          <Tabs.Tab value="overview">개요</Tabs.Tab>
+          <Tabs.Tab value="overview">내 기록</Tabs.Tab>
           <Tabs.Tab value="review">감상</Tabs.Tab>
           <Tabs.Tab value="progress">진행도</Tabs.Tab>
           <Tabs.Tab value="related">연결된 작품</Tabs.Tab>
+          <Tabs.Tab value="timeline">타임라인</Tabs.Tab>
           <Tabs.Tab value="metadata">메타데이터</Tabs.Tab>
         </Tabs.List>
 
@@ -585,22 +555,9 @@ export function WorkDetailPanel({
               {personalTags.length > 0 ? (
                 <Group gap={6} wrap="wrap">
                   {personalTags.map((tag) => (
-                    <span
-                      key={tag}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '3px 10px',
-                        borderRadius: 20,
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        background: 'color-mix(in srgb, var(--app-accent-secondary) 10%, transparent)',
-                        border: '1px solid color-mix(in srgb, var(--app-accent-secondary) 25%, transparent)',
-                        color: 'var(--app-accent-secondary)',
-                      }}
-                    >
+                    <AppBadge key={tag} tone="success">
                       {tag}
-                    </span>
+                    </AppBadge>
                   ))}
                 </Group>
               ) : (
@@ -652,45 +609,156 @@ export function WorkDetailPanel({
           </Stack>
         </Tabs.Panel>
 
+        <Tabs.Panel value="timeline">
+          <Stack gap="md">
+            <SectionCard padding="md" tone="subtle">
+              <Group align="flex-start" justify="space-between" wrap="wrap">
+                <Stack gap={4}>
+                  <Text fw={700}>
+                    {latestTimelineItem
+                      ? `최근 기록: ${latestTimelineItem.label}`
+                      : '아직 날짜 기록이 없습니다'}
+                  </Text>
+                  <Text c="dimmed" size="sm">
+                    {latestTimelineItem
+                      ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.description}`
+                      : '시작일이나 최근 기록일을 남기면 이곳에 요약됩니다.'}
+                  </Text>
+                </Stack>
+                <AppBadge tone="muted">{timelineItems.length}개</AppBadge>
+              </Group>
+            </SectionCard>
+
+            <SectionCard gap="md" padding="md" tone="subtle">
+              <KeyValueGrid
+                columns={2}
+                items={[
+                  { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
+                  { label: '최근 수정', value: formatWorkDateTime(work.updatedAt) },
+                  { label: '시작일', value: formatWorkDate(work.startedAt) },
+                  { label: '완료일', value: formatWorkDate(work.completedAt) },
+                  { label: '하차일', value: formatWorkDate(work.droppedAt) },
+                  { label: '최근 기록일', value: formatWorkDate(work.lastConsumedAt) },
+                  { label: '진행도', value: progressLabel ?? '아직 없음' },
+                  { label: '현재 상태', value: statusLabel },
+                ]}
+              />
+            </SectionCard>
+
+            {timelineItems.length > 0 && (
+              <Stack gap="md">
+                {timelineItems.map((item, index) => (
+                  <Box
+                    className={
+                      index === timelineItems.length - 1
+                        ? `${cn(css.timelineItem)} ${cn(css.timelineItemLast)}`
+                        : cn(css.timelineItem)
+                    }
+                    key={`${item.source}-${item.id}`}
+                  >
+                    <Box aria-hidden="true" className={cn(css.timelineDot)} />
+                    <Group align="flex-start" justify="space-between">
+                      <Stack gap={2}>
+                        <Group gap="xs">
+                          <Text fw={700}>{item.label}</Text>
+                          <AppBadge tone={item.source === 'manual' ? 'accent' : 'muted'}>
+                            {item.source === 'manual' ? '직접 기록' : '날짜 기록'}
+                          </AppBadge>
+                        </Group>
+                        <Text c="dimmed" size="sm">{item.description}</Text>
+                      </Stack>
+                      <ActionRow>
+                        <AppBadge tone="accent">
+                          {formatWorkDate(item.value)}
+                        </AppBadge>
+                        {item.source === 'manual' && onDeleteTimelineEntry && (
+                          <AppButton
+                            disabled={deletingTimelineEntryId === item.id}
+                            loading={deletingTimelineEntryId === item.id}
+                            onClick={() => void handleDeleteTimelineEntry(item.id)}
+                            tone="danger"
+                            type="button"
+                          >
+                            삭제
+                          </AppButton>
+                        )}
+                      </ActionRow>
+                    </Group>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+
+            {onCreateTimelineEntry && (
+              <Accordion defaultValue={null} variant="contained">
+                <Accordion.Item value="advanced-record-add">
+                  <Accordion.Control>고급 기록 추가</Accordion.Control>
+                  <Accordion.Panel>
+                    <Stack gap="md">
+                      <Group align="flex-end" grow>
+                        <NativeSelect
+                          aria-label={`${work.title} 기록 내역 유형`}
+                          label="유형"
+                          onChange={(event) =>
+                            setTimelineType(event.currentTarget.value as TimelineEntryType)
+                          }
+                          value={timelineType}
+                        >
+                          {timelineTypeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                        <TextInput
+                          aria-label={`${work.title} 기록 내역 날짜`}
+                          label="날짜"
+                          onChange={(event) => setTimelineDate(event.currentTarget.value)}
+                          type="date"
+                          value={timelineDate}
+                        />
+                      </Group>
+                      <Textarea
+                        aria-label={`${work.title} 기록 내역 메모`}
+                        autosize
+                        label="메모"
+                        minRows={2}
+                        onChange={(event) => setTimelineNote(event.currentTarget.value)}
+                        placeholder="필요할 때만 남기는 보조 기록입니다."
+                        value={timelineNote}
+                      />
+                      <ActionRow>
+                        <AppButton
+                          disabled={!timelineDate || isSavingTimelineEntry}
+                          loading={isSavingTimelineEntry}
+                          onClick={() => void handleCreateTimelineEntry()}
+                          tone="primary"
+                          type="button"
+                        >
+                          기록 추가
+                        </AppButton>
+                      </ActionRow>
+                    </Stack>
+                  </Accordion.Panel>
+                </Accordion.Item>
+              </Accordion>
+            )}
+          </Stack>
+        </Tabs.Panel>
+
         <Tabs.Panel value="metadata">
           <Stack gap="md">
             {(seriesTags.length > 0 || contributorValues.length > 0) && (
               <Group gap={6} wrap="wrap">
                 {seriesTags.map((series) => (
-                  <span
-                    key={`series-chip-${series}`}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '3px 10px',
-                      borderRadius: 20,
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      background: 'color-mix(in srgb, var(--app-accent-primary) 12%, transparent)',
-                      border: '1px solid color-mix(in srgb, var(--app-accent-primary) 30%, transparent)',
-                      color: 'var(--app-accent-primary)',
-                    }}
-                  >
+                  <AppBadge key={`series-chip-${series}`} tone="accent">
                     {series}
-                  </span>
+                  </AppBadge>
                 ))}
                 {contributorValues.map((contributor) => (
-                  <span
-                    key={`contributor-chip-${contributor}`}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '3px 10px',
-                      borderRadius: 20,
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      background: 'color-mix(in srgb, var(--app-accent-secondary) 12%, transparent)',
-                      border: '1px solid color-mix(in srgb, var(--app-accent-secondary) 30%, transparent)',
-                      color: 'var(--app-accent-secondary)',
-                    }}
-                  >
+                  <AppBadge key={`contributor-chip-${contributor}`} tone="success">
                     {contributor}
-                  </span>
+                  </AppBadge>
                 ))}
               </Group>
             )}
@@ -698,22 +766,9 @@ export function WorkDetailPanel({
             {work.genres.length > 0 && (
               <Group gap={6} wrap="wrap">
                 {work.genres.map((genre) => (
-                  <span
-                    key={genre}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '3px 10px',
-                      borderRadius: 20,
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      background: 'color-mix(in srgb, var(--app-accent-primary) 10%, transparent)',
-                      border: '1px solid color-mix(in srgb, var(--app-accent-primary) 25%, transparent)',
-                      color: 'var(--app-accent-primary)',
-                    }}
-                  >
+                  <AppBadge key={genre} tone="accent">
                     {genre}
-                  </span>
+                  </AppBadge>
                 ))}
               </Group>
             )}
@@ -737,148 +792,6 @@ export function WorkDetailPanel({
                 ]}
               />
             </SectionCard>
-
-            <Accordion defaultValue={null} variant="separated">
-              <Accordion.Item value="record-history">
-                <Accordion.Control>기록 내역</Accordion.Control>
-                <Accordion.Panel>
-                  <Stack gap="md">
-                    <SectionCard padding="md" tone="subtle">
-                      <Group align="flex-start" justify="space-between" wrap="wrap">
-                        <Stack gap={4}>
-                          <Text fw={700}>
-                            {latestTimelineItem
-                              ? `최근 기록: ${latestTimelineItem.label}`
-                              : '아직 날짜 기록이 없습니다'}
-                          </Text>
-                          <Text c="dimmed" size="sm">
-                            {latestTimelineItem
-                              ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.description}`
-                              : '시작일이나 최근 기록일을 남기면 이곳에 요약됩니다.'}
-                          </Text>
-                        </Stack>
-                        <AppBadge tone="muted">{timelineItems.length}개</AppBadge>
-                      </Group>
-                    </SectionCard>
-
-                    <SectionCard gap="md" padding="md" tone="subtle">
-                      <KeyValueGrid
-                        columns={2}
-                        items={[
-                          { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
-                          { label: '최근 수정', value: formatWorkDateTime(work.updatedAt) },
-                          { label: '시작일', value: formatWorkDate(work.startedAt) },
-                          { label: '완료일', value: formatWorkDate(work.completedAt) },
-                          { label: '하차일', value: formatWorkDate(work.droppedAt) },
-                          { label: '최근 기록일', value: formatWorkDate(work.lastConsumedAt) },
-                          { label: '진행도', value: progressLabel ?? '아직 없음' },
-                          { label: '현재 상태', value: statusLabel },
-                        ]}
-                      />
-                    </SectionCard>
-
-                    {timelineItems.length > 0 && (
-                      <Stack gap="md">
-                        {timelineItems.map((item, index) => (
-                          <Box
-                            className={
-                              index === timelineItems.length - 1
-                                ? `${cn(css.timelineItem)} ${cn(css.timelineItemLast)}`
-                                : cn(css.timelineItem)
-                            }
-                            key={`${item.source}-${item.id}`}
-                          >
-                            <Box aria-hidden="true" className={cn(css.timelineDot)} />
-                            <Group align="flex-start" justify="space-between">
-                              <Stack gap={2}>
-                                <Group gap="xs">
-                                  <Text fw={700}>{item.label}</Text>
-                                  <AppBadge tone={item.source === 'manual' ? 'accent' : 'muted'}>
-                                    {item.source === 'manual' ? '직접 기록' : '날짜 기록'}
-                                  </AppBadge>
-                                </Group>
-                                <Text c="dimmed" size="sm">{item.description}</Text>
-                              </Stack>
-                              <ActionRow>
-                                <AppBadge tone="accent">
-                                  {formatWorkDate(item.value)}
-                                </AppBadge>
-                                {item.source === 'manual' && onDeleteTimelineEntry && (
-                                  <AppButton
-                                    disabled={deletingTimelineEntryId === item.id}
-                                    loading={deletingTimelineEntryId === item.id}
-                                    onClick={() => void handleDeleteTimelineEntry(item.id)}
-                                    tone="danger"
-                                    type="button"
-                                  >
-                                    삭제
-                                  </AppButton>
-                                )}
-                              </ActionRow>
-                            </Group>
-                          </Box>
-                        ))}
-                      </Stack>
-                    )}
-
-                    {onCreateTimelineEntry && (
-                      <Accordion defaultValue={null} variant="contained">
-                        <Accordion.Item value="advanced-record-add">
-                          <Accordion.Control>고급 기록 추가</Accordion.Control>
-                          <Accordion.Panel>
-                            <Stack gap="md">
-                              <Group align="flex-end" grow>
-                                <NativeSelect
-                                  aria-label={`${work.title} 기록 내역 유형`}
-                                  label="유형"
-                                  onChange={(event) =>
-                                    setTimelineType(event.currentTarget.value as TimelineEntryType)
-                                  }
-                                  value={timelineType}
-                                >
-                                  {timelineTypeOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </NativeSelect>
-                                <TextInput
-                                  aria-label={`${work.title} 기록 내역 날짜`}
-                                  label="날짜"
-                                  onChange={(event) => setTimelineDate(event.currentTarget.value)}
-                                  type="date"
-                                  value={timelineDate}
-                                />
-                              </Group>
-                              <Textarea
-                                aria-label={`${work.title} 기록 내역 메모`}
-                                autosize
-                                label="메모"
-                                minRows={2}
-                                onChange={(event) => setTimelineNote(event.currentTarget.value)}
-                                placeholder="필요할 때만 남기는 보조 기록입니다."
-                                value={timelineNote}
-                              />
-                              <ActionRow>
-                                <AppButton
-                                  disabled={!timelineDate || isSavingTimelineEntry}
-                                  loading={isSavingTimelineEntry}
-                                  onClick={() => void handleCreateTimelineEntry()}
-                                  tone="primary"
-                                  type="button"
-                                >
-                                  기록 추가
-                                </AppButton>
-                              </ActionRow>
-                            </Stack>
-                          </Accordion.Panel>
-                        </Accordion.Item>
-                      </Accordion>
-                    )}
-                  </Stack>
-                </Accordion.Panel>
-              </Accordion.Item>
-            </Accordion>
 
             {(seriesTags.length > 0 ||
               contributorEntries.length > 0 ||

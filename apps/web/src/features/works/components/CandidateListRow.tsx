@@ -10,6 +10,13 @@ import {
   isPreviewOrManualCandidate,
 } from './quick-add-helpers';
 import { getWorkTypeLabel } from '../utils/work-options';
+import styles from './ArchiveComponents.module.css';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 interface CandidateListRowProps {
   active: boolean;
@@ -46,53 +53,9 @@ export function CandidateListRow({
     <button
       aria-label={`${candidate.title} ${getWorkTypeLabel(candidate.type)} 후보 선택`}
       aria-pressed={active}
+      className={cn(css.candidateRow)}
+      data-active={active ? 'true' : 'false'}
       onClick={onSelect}
-      style={{
-        /* ── 배경 / 테두리 ── */
-        background: active
-          ? 'var(--app-surface-card)'
-          : 'var(--app-surface-subtle)',
-        border: `1px solid ${active ? 'var(--app-accent-primary)' : 'var(--app-border-subtle)'}`,
-        borderRadius: 'var(--mantine-radius-lg)',
-
-        /* ── 활성 포커스 링 ── */
-        boxShadow: active
-          ? 'var(--wa-shadow-glow), var(--wa-shadow-card)'
-          : 'none',
-
-        /* ── 텍스트 / 레이아웃 ── */
-        color: 'var(--app-text-primary)',
-        cursor: 'pointer',
-        padding: '0.875rem',
-        textAlign: 'left',
-        width: '100%',
-
-        /* ── 전환 ── */
-        transition: [
-          'background var(--wa-motion-fast, 150ms) var(--wa-ease-spring)',
-          'border-color var(--wa-motion-fast, 150ms) var(--wa-ease-spring)',
-          'box-shadow var(--wa-motion-normal, 240ms) var(--wa-ease-spring)',
-          'transform var(--wa-motion-fast, 150ms) var(--wa-ease-spring)',
-        ].join(', '),
-      }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.background =
-            'var(--app-surface-card)';
-          (e.currentTarget as HTMLElement).style.borderColor =
-            'var(--app-border-default)';
-        }
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.background =
-            'var(--app-surface-subtle)';
-          (e.currentTarget as HTMLElement).style.borderColor =
-            'var(--app-border-subtle)';
-        }
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-      }}
       type="button"
     >
       <Group align="flex-start" gap="md" wrap="nowrap">
@@ -119,20 +82,13 @@ export function CandidateListRow({
           </ActionRow>
 
           <div>
-            <Title
-              order={4}
-              style={{
-                color: 'var(--app-text-primary)',
-                letterSpacing: '-0.015em',
-                lineHeight: 1.3,
-              }}
-            >
+            <Title className={cn(css.candidateRowTitle)} order={4}>
               {candidate.title}
             </Title>
             <Text
+              className={cn(css.candidateRowContributor)}
               lineClamp={1}
               size="sm"
-              style={{ color: 'var(--app-text-secondary)', marginTop: 2 }}
             >
               {getCandidateContributorText(candidate)}
             </Text>
@@ -170,9 +126,9 @@ export function CandidateListRow({
 
           {hasArchiveMatch && (
             <Text
+              className={cn(css.candidateRowWarning)}
               fw={700}
               size="xs"
-              style={{ color: 'var(--mantine-color-yellow-text)' }}
             >
               저장 전에 기존 기록과 같은 작품인지 확인하세요.
             </Text>
@@ -190,9 +146,9 @@ export function CandidateListRow({
 
           {visibleAliases && visibleAliases.length > 0 && (
             <Text
+              className={cn(css.candidateRowAlias)}
               lineClamp={1}
               size="xs"
-              style={{ color: 'var(--app-text-muted)', fontStyle: 'italic' }}
             >
               별칭 {visibleAliases.join(' · ')}
             </Text>

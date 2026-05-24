@@ -84,18 +84,19 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Fate/stay night' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: '개요' })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: '내 기록' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
     expect(screen.getByRole('tab', { name: /감상/ })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '진행도' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /타임라인/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '타임라인' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '연결된 작품' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '메타데이터' })).toBeInTheDocument();
 
+    await userEvent.click(screen.getByRole('tab', { name: '타임라인' }));
+    expect(screen.getByText(/최근 기록:|아직 날짜 기록이 없습니다/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', { name: '메타데이터' }));
-    expect(screen.getByRole('button', { name: '기록 내역' })).toBeInTheDocument();
     expect((await screen.findAllByText('Fate')).length).toBeGreaterThan(0);
     expect((await screen.findAllByText('TYPE-MOON')).length).toBeGreaterThan(0);
     expect((await screen.findAllByText('ufotable')).length).toBeGreaterThan(0);
@@ -184,7 +185,7 @@ describe('WorkDetailPage', () => {
     expect(
       screen.getAllByRole('link', { name: '리뷰 쓰기' }).length,
     ).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: '수정' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '전체 정보 수정' })).toBeInTheDocument();
     expect(screen.getByLabelText('Frieren 빠른 상태')).toBeInTheDocument();
     expect(screen.getByLabelText('Frieren 빠른 별점')).toBeInTheDocument();
 
@@ -236,8 +237,7 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Timeline Detail Work' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: '메타데이터' }));
-    await user.click(screen.getByRole('button', { name: '기록 내역' }));
+    await user.click(screen.getByRole('tab', { name: '타임라인' }));
     expect(screen.getAllByText('감상 시작').length).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: '고급 기록 추가' }));
 
@@ -332,17 +332,7 @@ describe('WorkDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Dense Timeline Work' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: '메타데이터' }));
-    const recordHistoryToggle = screen.getByRole('button', {
-      expanded: false,
-      name: '기록 내역',
-    });
-
-    expect(recordHistoryToggle).toHaveAttribute('aria-expanded', 'false');
-
-    await user.click(recordHistoryToggle);
-
-    expect(recordHistoryToggle).toHaveAttribute('aria-expanded', 'true');
+    await user.click(screen.getByRole('tab', { name: '타임라인' }));
     const advancedRecordToggle = screen.getByRole('button', {
       expanded: false,
       name: '고급 기록 추가',

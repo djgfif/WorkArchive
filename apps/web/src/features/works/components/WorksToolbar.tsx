@@ -19,6 +19,7 @@ import {
   ArchiveSearchBar,
   FilterPillGroup,
 } from './ArchiveComponents';
+import styles from './ArchiveComponents.module.css';
 import type { WorksCollectionScope } from '../services/works.service';
 import {
   getDefaultSortDirection,
@@ -32,6 +33,12 @@ import {
   workTypeOptions,
 } from '../utils/work-options';
 import type { WorksViewMode } from './WorksList';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 /* ── 아이콘 ── */
 function IconGrid({ size = 14 }: { size?: number }) {
@@ -136,16 +143,7 @@ function MediaTypeFilter({
   ];
 
   return (
-    <Box
-      style={{
-        background:
-          'linear-gradient(180deg, var(--app-surface-card), var(--app-surface-subtle))',
-        border: '1px solid var(--app-border-subtle)',
-        borderRadius: 'var(--mantine-radius-lg)',
-        boxShadow: '0 12px 34px rgba(0, 0, 0, 0.16)',
-        padding: '0.875rem',
-      }}
-    >
+    <Box className={cn(css.mediaTypeFilter)}>
       <Group align="center" justify="space-between" mb="xs" wrap="wrap">
         <Stack gap={1}>
           <Text c="dimmed" fw={800} size="xs" tt="uppercase">
@@ -156,10 +154,10 @@ function MediaTypeFilter({
           </Text>
         </Stack>
         <Text
+          className={cn(css.numericText)}
           c="var(--app-text-secondary)"
           fw={700}
           size="xs"
-          style={{ fontVariantNumeric: 'tabular-nums' }}
         >
           {activeLabel} · {value === 'all' ? totalCount : typeCounts[value]}개
         </Text>
@@ -167,12 +165,8 @@ function MediaTypeFilter({
 
       <Box
         aria-label="매체 필터"
+        className={cn(css.mediaTypeOptions)}
         role="group"
-        style={{
-          display: 'grid',
-          gap: '0.45rem',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(5.9rem, 1fr))',
-        }}
       >
         {options.map((option) => {
           const isActive = option.value === value;
@@ -181,61 +175,25 @@ function MediaTypeFilter({
             <Box
               aria-label={option.label}
               aria-pressed={isActive}
+              className={cn(css.mediaTypeOption)}
               component="button"
+              data-active={isActive ? 'true' : 'false'}
               key={option.value}
               onClick={() => onChange(option.value)}
-              style={{
-                alignItems: 'center',
-                background: isActive
-                  ? 'linear-gradient(135deg, var(--app-accent-primary), color-mix(in srgb, var(--app-accent-primary) 78%, #ffffff 22%))'
-                  : 'color-mix(in srgb, var(--app-surface-card) 82%, transparent)',
-                border: isActive
-                  ? '1px solid color-mix(in srgb, var(--app-accent-primary) 65%, #ffffff 35%)'
-                  : '1px solid var(--app-border-subtle)',
-                borderRadius: 'var(--mantine-radius-md)',
-                boxShadow: isActive ? '0 10px 24px rgba(59, 130, 246, 0.24)' : 'none',
-                color: isActive ? '#ffffff' : 'var(--app-text-primary)',
-                cursor: 'pointer',
-                display: 'flex',
-                gap: '0.4rem',
-                justifyContent: 'space-between',
-                minHeight: 42,
-                padding: '0.55rem 0.7rem',
-                textAlign: 'left',
-                transition:
-                  'background var(--wa-motion-fast, 150ms), border-color var(--wa-motion-fast, 150ms), box-shadow var(--wa-motion-fast, 150ms), transform var(--wa-motion-fast, 150ms)',
-              }}
               type="button"
             >
               <Text
+                className={cn(css.mediaTypeOptionLabel)}
                 fw={800}
                 size="sm"
-                style={{
-                  color: 'inherit',
-                  lineHeight: 1.1,
-                  minWidth: 0,
-                }}
               >
                 {option.label}
               </Text>
               <Text
                 aria-hidden="true"
+                className={cn(css.mediaTypeOptionCount)}
                 fw={800}
                 size="xs"
-                style={{
-                  background: isActive
-                    ? 'rgba(255, 255, 255, 0.22)'
-                    : 'var(--app-surface-subtle)',
-                  border: isActive
-                    ? '1px solid rgba(255, 255, 255, 0.25)'
-                    : '1px solid var(--app-border-subtle)',
-                  borderRadius: 999,
-                  color: 'inherit',
-                  flexShrink: 0,
-                  fontVariantNumeric: 'tabular-nums',
-                  lineHeight: 1,
-                  padding: '0.22rem 0.42rem',
-                }}
               >
                 {option.count}
               </Text>
@@ -263,24 +221,14 @@ function FilterSection({
   const isQuiet = frame === 'quiet';
 
   return (
-    <Box
-      style={{
-        background: isQuiet
-          ? 'transparent'
-          : 'color-mix(in srgb, var(--app-surface-subtle) 64%, transparent)',
-        border: isQuiet ? 'none' : '1px solid var(--app-border-subtle)',
-        borderTop: isQuiet ? '1px solid var(--app-border-subtle)' : undefined,
-        borderRadius: 'var(--mantine-radius-lg)',
-        padding: isQuiet ? '0.9rem 0 0' : '0.8rem',
-      }}
-    >
+    <Box className={cn(css.filterSection)} data-frame={isQuiet ? 'quiet' : 'default'}>
       <Stack gap="sm">
         <Group align="baseline" gap="xs" wrap="wrap">
           <Text
+            className={cn(css.filterSectionTitle)}
             c="var(--app-text-primary)"
             fw={800}
             size="sm"
-            style={{ letterSpacing: 0, lineHeight: 1.1 }}
           >
             {title}
           </Text>
@@ -451,16 +399,9 @@ export function WorksToolbar({
         variant="compact"
       >
         {/* ── 검색 + 컨트롤 바 ── */}
-        <Box
-          style={{
-            display:       'flex',
-            gap:           '0.625rem',
-            alignItems:    'center',
-            flexWrap:      'wrap',
-          }}
-        >
+        <Box className={cn(css.toolbarControls)}>
           {/* 검색 */}
-          <Box style={{ flex: '1 1 220px', minWidth: 0 }}>
+          <Box className={cn(css.toolbarSearch)}>
             <ArchiveSearchBar
               aria-label="작품 검색 (단축키: /)"
               inputRef={searchRef}
@@ -472,17 +413,7 @@ export function WorksToolbar({
 
           {/* 뷰 모드 토글 */}
           {collectionScope === 'active' && (
-            <Box
-              style={{
-                display:      'flex',
-                gap:          2,
-                background:   'var(--app-surface-subtle)',
-                border:       '1px solid var(--app-border-default)',
-                borderRadius: 'var(--mantine-radius-md)',
-                padding:      2,
-                flexShrink:   0,
-              }}
-            >
+            <Box className={cn(css.viewToggle)}>
               {(['grid', 'list'] as const).map((mode) => (
                 <Tooltip
                   key={mode}
@@ -494,28 +425,10 @@ export function WorksToolbar({
                     component="button"
                     aria-label={mode === 'grid' ? '포스터 뷰' : '리스트 뷰'}
                     aria-pressed={viewMode === mode}
+                    className={cn(css.viewToggleButton)}
+                    data-active={viewMode === mode ? 'true' : 'false'}
                     onClick={() => onViewModeChange(mode)}
                     type="button"
-                    style={{
-                      display:        'flex',
-                      alignItems:     'center',
-                      justifyContent: 'center',
-                      width:          32,
-                      height:         32,
-                      borderRadius:   'calc(var(--mantine-radius-md) - 2px)',
-                      border:         'none',
-                      cursor:         'pointer',
-                      transition:     'all var(--wa-motion-fast, 150ms) cubic-bezier(0.16,1,0.3,1)',
-                      background:     viewMode === mode
-                        ? 'var(--app-surface-card)'
-                        : 'transparent',
-                      color:          viewMode === mode
-                        ? 'var(--app-text-primary)'
-                        : 'var(--app-text-muted)',
-                      boxShadow:      viewMode === mode
-                        ? '0 1px 4px rgba(0,0,0,0.18)'
-                        : 'none',
-                    }}
                   >
                     {mode === 'grid' ? <IconGrid /> : <IconList />}
                   </Box>
@@ -541,7 +454,7 @@ export function WorksToolbar({
               })
             }
             size="sm"
-            style={{ flex: '0 1 10rem' }}
+            className={cn(css.toolbarSortSelect)}
             value={query.sortBy}
           />
 
@@ -561,6 +474,7 @@ export function WorksToolbar({
                   sortDirection === 'asc' ? '오름차순' : '내림차순'
                 }
                 aria-pressed={sortDirection === 'asc'}
+                className={cn(css.sortDirectionButton)}
                 onClick={() =>
                   onQueryChange({
                     ...query,
@@ -569,24 +483,6 @@ export function WorksToolbar({
                   })
                 }
                 type="button"
-                style={{
-                  display:        'flex',
-                  alignItems:     'center',
-                  gap:            4,
-                  padding:        '0 0.625rem',
-                  height:         36,
-                  borderRadius:   'var(--mantine-radius-md)',
-                  border:         '1px solid var(--app-border-default)',
-                  background:     'var(--app-surface-subtle)',
-                  color:          'var(--app-text-secondary)',
-                  fontSize:       '0.78rem',
-                  fontWeight:     600,
-                  cursor:         'pointer',
-                  transition:     'all var(--wa-motion-fast, 150ms)',
-                  flexShrink:     0,
-                  letterSpacing:  '0.02em',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
               >
                 {sortDirection === 'asc' ? <IconSortAsc /> : <IconSortDesc />}
                 {sortDirection === 'asc' ? 'ASC' : 'DESC'}
@@ -600,49 +496,16 @@ export function WorksToolbar({
               component="button"
               aria-expanded={advancedOpen}
               aria-label="고급 필터"
+              className={cn(css.advancedFilterButton)}
+              data-active={advancedOpen ? 'true' : 'false'}
               onClick={() => setAdvancedOpen((v) => !v)}
               type="button"
-              style={{
-                display:        'flex',
-                alignItems:     'center',
-                gap:            6,
-                padding:        '0 0.75rem',
-                height:         36,
-                borderRadius:   'var(--mantine-radius-md)',
-                border:         `1px solid ${advancedOpen ? 'var(--app-accent-primary)' : 'var(--app-border-default)'}`,
-                background:     advancedOpen
-                  ? 'color-mix(in srgb, var(--app-accent-primary) 10%, transparent)'
-                  : 'var(--app-surface-subtle)',
-                color:          advancedOpen
-                  ? 'var(--app-accent-primary)'
-                  : 'var(--app-text-secondary)',
-                fontSize:       '0.82rem',
-                fontWeight:     600,
-                cursor:         'pointer',
-                transition:     'all var(--wa-motion-fast, 150ms)',
-                flexShrink:     0,
-                position:       'relative',
-              }}
             >
               <IconFilter />
               필터
               {hasActiveFilters && (
                 <Box
-                  style={{
-                    position:       'absolute',
-                    top:            -5,
-                    right:          -5,
-                    width:          16,
-                    height:         16,
-                    borderRadius:   '50%',
-                    background:     'var(--app-accent-primary)',
-                    color:          '#fff',
-                    fontSize:       '0.62rem',
-                    fontWeight:     800,
-                    display:        'flex',
-                    alignItems:     'center',
-                    justifyContent: 'center',
-                  }}
+                  className={cn(css.advancedFilterCount)}
                 >
                   {activeFilterChips.length}
                 </Box>
@@ -676,68 +539,33 @@ export function WorksToolbar({
       {activeFilterChips.length > 0 && (
         <Group
           aria-label="적용된 필터"
+          className={cn(css.activeFilterGroup)}
           gap="xs"
           role="group"
           wrap="wrap"
-          style={{ paddingTop: 2 }}
         >
           {activeFilterChips.map((chip) => (
             <Box
+              className={cn(css.activeFilterChip)}
               key={chip.label}
-              style={{
-                display:      'inline-flex',
-                alignItems:   'center',
-                gap:          5,
-                padding:      '0.2rem 0.55rem 0.2rem 0.7rem',
-                borderRadius: 999,
-                background:   'color-mix(in srgb, var(--app-accent-primary) 12%, transparent)',
-                border:       '1px solid color-mix(in srgb, var(--app-accent-primary) 30%, transparent)',
-                color:        'var(--app-accent-primary)',
-                fontSize:     '0.78rem',
-                fontWeight:   600,
-              }}
             >
               {chip.label}
               <Box
                 component="button"
                 aria-label={`${chip.label} 필터 제거`}
+                className={cn(css.activeFilterRemove)}
                 onClick={chip.onRemove}
                 type="button"
-                style={{
-                  display:        'flex',
-                  alignItems:     'center',
-                  justifyContent: 'center',
-                  width:          16,
-                  height:         16,
-                  borderRadius:   '50%',
-                  border:         'none',
-                  background:     'color-mix(in srgb, var(--app-accent-primary) 20%, transparent)',
-                  color:          'var(--app-accent-primary)',
-                  cursor:         'pointer',
-                  padding:        0,
-                  transition:     'background var(--wa-motion-fast, 150ms)',
-                  flexShrink:     0,
-                }}
               >
                 <IconX />
               </Box>
             </Box>
           ))}
           <Box
+            className={cn(css.chipResetButton)}
             component="button"
             onClick={onClearFilters}
             type="button"
-            style={{
-              padding:      '0.2rem 0.6rem',
-              borderRadius: 999,
-              border:       '1px solid var(--app-border-default)',
-              background:   'transparent',
-              color:        'var(--app-text-muted)',
-              fontSize:     '0.78rem',
-              fontWeight:   500,
-              cursor:       'pointer',
-              transition:   'all var(--wa-motion-fast, 150ms)',
-            }}
           >
             모두 지우기
           </Box>
@@ -746,41 +574,23 @@ export function WorksToolbar({
 
       {/* ── 고급 필터 패널 ───────────────────────────────────────────── */}
       <Collapse in={advancedOpen}>
-        <Box
-          style={{
-            background:
-              'linear-gradient(180deg, color-mix(in srgb, var(--app-surface-card) 96%, transparent), color-mix(in srgb, var(--app-surface-subtle) 86%, transparent))',
-            border:       '1px solid var(--app-border-default)',
-            borderRadius: 'var(--mantine-radius-xl)',
-            boxShadow:    '0 18px 46px rgba(0, 0, 0, 0.2)',
-            padding:      'clamp(1rem, 3vw, 1.35rem)',
-          }}
-        >
+        <Box className={cn(css.advancedFilterPanel)}>
           {/* 패널 헤더 */}
           <Group justify="space-between" mb="md">
             <Group gap="xs">
-              <Box style={{ color: 'var(--app-accent-primary)', display: 'flex', alignItems: 'center' }}>
+              <Box className={cn(css.advancedFilterHeaderIcon)}>
                 <IconFilter size={13} />
               </Box>
-              <Text fw={700} size="sm" style={{ color: 'var(--app-text-primary)', letterSpacing: '-0.01em' }}>
-                고급 필터
+              <Text className={cn(css.advancedFilterTitle)} fw={700} size="sm">
+                세부 필터
               </Text>
             </Group>
             {hasActiveFilters && (
               <Box
+                className={cn(css.chipResetButton)}
                 component="button"
                 onClick={onClearFilters}
                 type="button"
-                style={{
-                  padding:      '0.2rem 0.6rem',
-                  borderRadius: 999,
-                  border:       '1px solid var(--app-border-default)',
-                  background:   'transparent',
-                  color:        'var(--app-text-muted)',
-                  fontSize:     '0.78rem',
-                  fontWeight:   500,
-                  cursor:       'pointer',
-                }}
               >
                 전체 초기화
               </Box>
@@ -869,7 +679,7 @@ export function WorksToolbar({
               </FilterSection>
 
               <FilterSection title="개인 태그">
-                <Box style={{ position: 'relative' }}>
+                <Box className={cn(css.tagFilterField)}>
                   <Box
                     component="input"
                     list="worksTagFilterSuggestions"
@@ -879,18 +689,7 @@ export function WorksToolbar({
                     }
                     placeholder="태그로 필터…"
                     value={query.tag ?? ''}
-                    style={{
-                      width:        '100%',
-                      height:       36,
-                      padding:      '0 0.75rem',
-                      borderRadius: 'var(--mantine-radius-md)',
-                      border:       '1px solid var(--app-border-default)',
-                      background:   'var(--app-surface-subtle)',
-                      color:        'var(--app-text-primary)',
-                      fontSize:     '0.875rem',
-                      outline:      'none',
-                      transition:   'border-color var(--wa-motion-fast, 150ms)',
-                    }}
+                    className={cn(css.tagFilterInput)}
                   />
                   <datalist id="worksTagFilterSuggestions">
                     {tagSuggestions.map((tag) => (
@@ -904,23 +703,10 @@ export function WorksToolbar({
                       <Box
                         key={tag}
                         component="button"
+                        className={cn(css.tagSuggestionChip)}
+                        data-active={query.tag === tag ? 'true' : 'false'}
                         onClick={() => onQueryChange({ ...query, tag })}
                         type="button"
-                        style={{
-                          padding:      '0.15rem 0.5rem',
-                          borderRadius: 999,
-                          border:       `1px solid ${query.tag === tag ? 'var(--app-accent-primary)' : 'var(--app-border-default)'}`,
-                          background:   query.tag === tag
-                            ? 'color-mix(in srgb, var(--app-accent-primary) 12%, transparent)'
-                            : 'var(--app-surface-subtle)',
-                          color:        query.tag === tag
-                            ? 'var(--app-accent-primary)'
-                            : 'var(--app-text-secondary)',
-                          fontSize:     '0.75rem',
-                          fontWeight:   500,
-                          cursor:       'pointer',
-                          transition:   'all var(--wa-motion-fast, 150ms)',
-                        }}
                       >
                         #{tag}
                       </Box>

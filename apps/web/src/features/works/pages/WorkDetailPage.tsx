@@ -153,7 +153,7 @@ function WorkQuickRecordSection({
 
   return (
     <PageSection
-      description="상태, 별점, 즐겨찾기, 한줄평만 빠르게 정리합니다."
+      description="상태, 별점, 즐겨찾기, 한줄평만 바로 저장합니다. 줄거리와 제작 정보는 전체 정보 수정에서 다룹니다."
       eyebrow="바로 수정"
       title="빠른 기록"
     >
@@ -950,7 +950,7 @@ export function WorkDetailPage() {
                 : '리뷰 쓰기'}
             </AppLinkButton>
             <AppLinkButton to={`/works/${work.id}/edit`} tone="ghost">
-              수정
+              전체 정보 수정
             </AppLinkButton>
           </>
         }
