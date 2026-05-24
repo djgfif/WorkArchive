@@ -48,6 +48,112 @@ function createCandidate(
 }
 
 describe('mergeImportCandidates', () => {
+  it('preserves external refs, release refs, aliases, and provider coverage when providers merge', () => {
+    const merged = mergeImportCandidates([
+      createCandidate({
+        id: 'anilist-frieren',
+        externalRefs: [
+          {
+            externalId: '154587',
+            provider: 'anilist',
+            rawType: 'anime',
+            url: 'https://anilist.co/anime/154587',
+          },
+        ],
+        mediumType: WorkType.anime,
+        releaseCandidates: [
+          {
+            externalRefs: [
+              {
+                externalId: '154587-tv',
+                provider: 'anilist',
+                rawType: 'season',
+                url: 'https://anilist.co/anime/154587',
+              },
+            ],
+            releaseDate: '2023',
+            releaseType: 'tv',
+            title: 'Sousou no Frieren',
+          },
+        ],
+        releaseYear: 2023,
+        sourceId: 'anilist',
+        sourceLabel: 'AniList',
+        title: 'Sousou no Frieren',
+        titleAliases: ['葬送のフリーレン'],
+        type: WorkType.anime,
+      }),
+      createCandidate({
+        id: 'wikidata-frieren',
+        externalRefs: [
+          {
+            externalId: 'Q112010603',
+            provider: 'wikidata',
+            rawType: 'entity',
+            url: 'https://www.wikidata.org/wiki/Q112010603',
+          },
+        ],
+        mediumType: WorkType.anime,
+        releaseYear: 2023,
+        sourceId: 'wikidata',
+        sourceLabel: 'Wikidata',
+        title: '葬送のフリーレン',
+        titleAliases: ['Sousou no Frieren', '장송의 프리렌'],
+        type: WorkType.anime,
+      }),
+    ]);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toEqual(
+      expect.objectContaining({
+        externalRefs: expect.arrayContaining([
+          expect.objectContaining({ provider: 'anilist' }),
+          expect.objectContaining({ provider: 'wikidata' }),
+        ]),
+        sourceCoverage: expect.objectContaining({
+          providerCount: 2,
+          providers: expect.arrayContaining(['anilist', 'wikidata']),
+          releaseCandidateCount: 1,
+        }),
+        titleAliases: expect.arrayContaining([
+          '葬送のフリーレン',
+          'Sousou no Frieren',
+          '장송의 프리렌',
+        ]),
+      }),
+    );
+    expect(merged[0]?.sourceCoverage.externalIdentityCount).toBe(3);
+  });
+
+  it('does not weak-merge same-title candidates with different media types', () => {
+    const merged = mergeImportCandidates([
+      createCandidate({
+        id: 'dune-novel',
+        author: 'Frank Herbert',
+        contributors: [{ name: 'Frank Herbert', role: 'author' }],
+        mediumType: WorkType.novel,
+        releaseYear: 1965,
+        title: 'Dune',
+        type: WorkType.novel,
+      }),
+      createCandidate({
+        id: 'dune-movie',
+        author: 'Denis Villeneuve',
+        contributors: [{ name: 'Denis Villeneuve', role: 'director' }],
+        mediumType: WorkType.movie,
+        releaseYear: 2021,
+        title: 'Dune',
+        type: WorkType.movie,
+      }),
+    ]);
+
+    expect(merged).toHaveLength(2);
+    expect(merged.map((candidate) => candidate.mediumType)).toEqual([
+      WorkType.novel,
+      WorkType.movie,
+    ]);
+  });
+
   it.each([
     ['subType', { subType: '외전' }],
     ['formatLabel', { formatLabel: '스핀오프' }],

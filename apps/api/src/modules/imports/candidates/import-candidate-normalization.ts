@@ -70,11 +70,18 @@ export function calculateSourceCoverage(input: {
   externalRefs: CatalogExternalRefInput[];
   releaseCandidates: CatalogReleaseCandidateInput[];
   sourceId: string;
+  sourceIds?: string[];
 }): ImportCandidateResponseDto['sourceCoverage'] {
   const providers = new Set<string>();
 
   if (input.sourceId) {
     providers.add(input.sourceId);
+  }
+
+  for (const sourceId of input.sourceIds ?? []) {
+    if (sourceId) {
+      providers.add(sourceId);
+    }
   }
 
   for (const externalRef of input.externalRefs) {

@@ -146,6 +146,12 @@ export function AddWorkSearchPanel({
   const selectedProviderGroupOption =
     providerGroupOptions.find((option) => option.value === providerGroup) ??
     defaultProviderGroupOption;
+  const shouldSuggestProviderChange =
+    hasSearched &&
+    !isSearching &&
+    !isManualSearchGroup &&
+    normalizedSearchTerm.length > 0 &&
+    candidates.length <= 2;
 
   return (
     <Stack gap="lg">
@@ -190,7 +196,11 @@ export function AddWorkSearchPanel({
               </div>
 
               <AppButton loading={isSearching} tone="primary" type="submit">
-                {isSearching ? '검색 중...' : hasSearched ? '다시 검색' : '검색'}
+                {isSearching
+                  ? '검색 중...'
+                  : hasSearched
+                    ? '다시 검색'
+                    : '검색'}
               </AppButton>
             </Group>
 
@@ -198,7 +208,8 @@ export function AddWorkSearchPanel({
               p="xs"
               radius="md"
               style={{
-                background: 'color-mix(in srgb, var(--app-surface-subtle) 70%, transparent)',
+                background:
+                  'color-mix(in srgb, var(--app-surface-subtle) 70%, transparent)',
                 borderColor: 'var(--app-border-subtle)',
               }}
               withBorder
@@ -212,6 +223,9 @@ export function AddWorkSearchPanel({
                     현재 {selectedProviderGroupOption.label}
                     {providerGroup !== 'all'
                       ? ` · ${selectedProviderGroupOption.description}`
+                      : ''}
+                    {shouldSuggestProviderChange
+                      ? ' · 결과가 부족하면 검색 출처를 바꿔볼 수 있습니다.'
                       : ''}
                   </Text>
                 </Stack>
@@ -231,7 +245,12 @@ export function AddWorkSearchPanel({
                   <Text c="var(--mantine-color-dimmed)" fw={700} size="xs">
                     검색 출처 직접 선택
                   </Text>
-                  <Group gap="xs" role="group" aria-label="검색 출처" wrap="wrap">
+                  <Group
+                    gap="xs"
+                    role="group"
+                    aria-label="검색 출처"
+                    wrap="wrap"
+                  >
                     {providerGroupOptions.map((option) => (
                       <AppButton
                         aria-pressed={providerGroup === option.value}
@@ -239,7 +258,9 @@ export function AddWorkSearchPanel({
                         onClick={() => onProviderGroupChange(option.value)}
                         size="compact-sm"
                         tone={
-                          providerGroup === option.value ? 'primary' : 'secondary'
+                          providerGroup === option.value
+                            ? 'primary'
+                            : 'secondary'
                         }
                         type="button"
                       >
@@ -248,7 +269,8 @@ export function AddWorkSearchPanel({
                     ))}
                   </Group>
                   <Text c="var(--mantine-color-dimmed)" size="xs">
-                    검색 결과가 너무 넓거나 부족할 때만 출처를 좁혀 사용하세요.
+                    결과가 없거나 후보가 부족할 때 도서, 애니·만화, 영상, 웹연재
+                    출처로 좁혀 다시 검색하세요.
                   </Text>
                 </Stack>
               </Collapse>
@@ -278,23 +300,35 @@ export function AddWorkSearchPanel({
               <StateMessage
                 actions={
                   normalizedSearchTerm ? (
-                    <AppButton
-                      onClick={onUseManualTitle}
-                      tone="primary"
-                      type="button"
-                    >
-                      직접 추가로 계속
-                    </AppButton>
+                    <Group gap="xs" justify="center">
+                      <AppButton
+                        onClick={onUseManualTitle}
+                        tone="primary"
+                        type="button"
+                      >
+                        직접 추가로 계속
+                      </AppButton>
+                      {!isManualSearchGroup && (
+                        <AppButton
+                          aria-expanded={providerOptionsOpen}
+                          onClick={() => setProviderOptionsOpen(true)}
+                          tone="secondary"
+                          type="button"
+                        >
+                          검색 출처를 바꿔보기
+                        </AppButton>
+                      )}
+                    </Group>
                   ) : undefined
                 }
                 description={
                   hasSearched
-                    ? '입력한 제목으로 직접 기록할 수 있습니다.'
+                    ? '정확한 후보가 없으면 입력한 제목으로 저장 화면을 이어가고, 나중에 직접 세부 정보를 채우면 됩니다.'
                     : '검색은 선택 사항입니다. 제목을 입력해 후보를 찾거나 직접 추가로 돌아가 바로 저장할 수 있습니다.'
                 }
                 title={
                   hasSearched
-                    ? '검색 결과가 없습니다.'
+                    ? '검색 결과가 없습니다'
                     : '검색어를 입력해 후보를 찾아보세요.'
                 }
                 tone="info"
@@ -318,21 +352,41 @@ export function AddWorkSearchPanel({
                   </Stack>
                 </ScrollArea.Autosize>
 
+                {shouldSuggestProviderChange && (
+                  <FeedbackMessage tone="info">
+                    원하는 작품이 보이지 않으면 검색 출처를 바꿔 다시 찾거나,
+                    아래 버튼으로 직접 추가를 이어갈 수 있습니다.
+                  </FeedbackMessage>
+                )}
+
                 {!isManualSearchGroup && normalizedSearchTerm && (
                   <Stack className={cn(css.searchManualFallback)} gap={6}>
                     <Text fw={700} size="sm">
-                      찾는 작품이 없나요?
+                      정확한 후보가 없나요?
                     </Text>
                     <Text c="var(--mantine-color-dimmed)" size="sm">
-                      "{normalizedSearchTerm}"를 직접 추가할 수 있습니다.
+                      "{normalizedSearchTerm}"를 제목으로 저장 화면을
+                      이어갑니다.
                     </Text>
-                    <AppButton
-                      onClick={onUseManualTitle}
-                      tone="secondary"
-                      type="button"
-                    >
-                      직접 추가로 계속
-                    </AppButton>
+                    <Group gap="xs">
+                      <AppButton
+                        onClick={onUseManualTitle}
+                        tone="secondary"
+                        type="button"
+                      >
+                        직접 추가로 계속
+                      </AppButton>
+                      {shouldSuggestProviderChange && (
+                        <AppButton
+                          aria-expanded={providerOptionsOpen}
+                          onClick={() => setProviderOptionsOpen(true)}
+                          tone="quiet"
+                          type="button"
+                        >
+                          검색 출처를 바꿔보기
+                        </AppButton>
+                      )}
+                    </Group>
                   </Stack>
                 )}
               </Stack>

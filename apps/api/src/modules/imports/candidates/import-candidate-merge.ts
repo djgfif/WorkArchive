@@ -107,6 +107,7 @@ function mergeCandidateGroup(members: CandidateGroupMember[]) {
         externalRefs: mergedExternalRefs,
         releaseCandidates: mergedReleaseCandidates,
         sourceId: representative.candidate.sourceId,
+        sourceIds: candidates.map((candidate) => candidate.sourceId),
       }),
       sourceLabel: firstFilled(
         candidates.map((candidate) => candidate.sourceLabel),

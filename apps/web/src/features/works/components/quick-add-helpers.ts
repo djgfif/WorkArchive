@@ -13,9 +13,12 @@ import {
 import { moveUnknownGenresToPersonalTags } from '../utils/work-genres';
 
 export interface CandidateSourceCoverage {
+  externalIdentityLabel: string;
   externalIdentityCount: number;
+  providerCount: number;
   providerCountLabel: string;
   providerLabels: string[];
+  releaseCandidateLabel: string;
   releaseCandidateCount: number;
   summaryLabel: string;
 }
@@ -472,9 +475,12 @@ export function getCandidateSourceCoverage(
 ): CandidateSourceCoverage {
   if (isPreviewOrManualCandidate(candidate)) {
     return {
+      externalIdentityLabel: '외부 식별자 없음',
       externalIdentityCount: 0,
+      providerCount: 0,
       providerCountLabel: '직접 추가',
       providerLabels: ['직접 추가'],
+      releaseCandidateLabel: '릴리스 후보 없음',
       releaseCandidateCount: 0,
       summaryLabel: '입력한 제목으로 직접 기록',
     };
@@ -486,9 +492,12 @@ export function getCandidateSourceCoverage(
     );
 
     return {
+      externalIdentityLabel: `외부 식별자 ${candidate.sourceCoverage.externalIdentityCount}개`,
       externalIdentityCount: candidate.sourceCoverage.externalIdentityCount,
+      providerCount: candidate.sourceCoverage.providerCount,
       providerCountLabel: `출처 ${candidate.sourceCoverage.providerCount}개`,
       providerLabels,
+      releaseCandidateLabel: `릴리스 후보 ${candidate.sourceCoverage.releaseCandidateCount}개`,
       releaseCandidateCount: candidate.sourceCoverage.releaseCandidateCount,
       summaryLabel: [
         `출처 ${candidate.sourceCoverage.providerCount}개`,
@@ -529,9 +538,12 @@ export function getCandidateSourceCoverage(
   const providerCount = providerLabels.size;
 
   return {
+    externalIdentityLabel: `외부 식별자 ${externalIdentityCount}개`,
     externalIdentityCount,
+    providerCount,
     providerCountLabel: `출처 ${providerCount}개`,
     providerLabels: [...providerLabels.values()],
+    releaseCandidateLabel: `릴리스 후보 ${releaseCandidateCount}개`,
     releaseCandidateCount,
     summaryLabel: [
       `출처 ${providerCount}개`,

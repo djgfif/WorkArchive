@@ -2,7 +2,10 @@ import { WorkType } from '@prisma/client';
 import { describe, expect, it } from '@jest/globals';
 
 import type { ImportCandidateResponseDto } from '../src/modules/imports/dto/import-candidate-response.dto';
-import { rankImportCandidates } from '../src/modules/imports/candidates/import-candidate-ranking';
+import {
+  rankImportCandidates,
+  scoreImportCandidate,
+} from '../src/modules/imports/candidates/import-candidate-ranking';
 
 interface KoreanRankingFixture {
   expectedType: WorkType;
@@ -16,9 +19,17 @@ const fixtures: KoreanRankingFixture[] = [
   { query: '채식주의자', expectedType: WorkType.novel, provider: 'aladin' },
   { query: '82년생 김지영', expectedType: WorkType.novel, provider: 'aladin' },
   { query: '아몬드', expectedType: WorkType.novel, provider: 'aladin' },
-  { query: '눈먼 자들의 도시', expectedType: WorkType.novel, provider: 'aladin' },
+  {
+    query: '눈먼 자들의 도시',
+    expectedType: WorkType.novel,
+    provider: 'aladin',
+  },
   { query: '파과', expectedType: WorkType.novel, provider: 'aladin' },
-  { query: '달러구트 꿈 백화점', expectedType: WorkType.novel, provider: 'aladin' },
+  {
+    query: '달러구트 꿈 백화점',
+    expectedType: WorkType.novel,
+    provider: 'aladin',
+  },
   { query: '드래곤 라자', expectedType: WorkType.novel, provider: 'aladin' },
   { query: '퇴마록', expectedType: WorkType.novel, provider: 'aladin' },
   { query: '원피스', expectedType: WorkType.manga, provider: 'anilist' },
@@ -29,38 +40,122 @@ const fixtures: KoreanRankingFixture[] = [
   { query: '나루토', expectedType: WorkType.manga, provider: 'anilist' },
   { query: '블리치', expectedType: WorkType.manga, provider: 'anilist' },
   { query: '명탐정 코난', expectedType: WorkType.manga, provider: 'anilist' },
-  { query: '강철의 연금술사', expectedType: WorkType.manga, provider: 'anilist' },
+  {
+    query: '강철의 연금술사',
+    expectedType: WorkType.manga,
+    provider: 'anilist',
+  },
   { query: '주술회전', expectedType: WorkType.manga, provider: 'anilist' },
   { query: '너의 이름은', expectedType: WorkType.anime, provider: 'anilist' },
-  { query: '스즈메의 문단속', expectedType: WorkType.anime, provider: 'anilist' },
-  { query: '센과 치히로의 행방불명', expectedType: WorkType.anime, provider: 'anilist' },
+  {
+    query: '스즈메의 문단속',
+    expectedType: WorkType.anime,
+    provider: 'anilist',
+  },
+  {
+    query: '센과 치히로의 행방불명',
+    expectedType: WorkType.anime,
+    provider: 'anilist',
+  },
   { query: '에반게리온', expectedType: WorkType.anime, provider: 'anilist' },
-  { query: '슈타인즈 게이트', expectedType: WorkType.anime, provider: 'anilist' },
-  { query: '진격의 거인 애니메이션', expectedType: WorkType.anime, provider: 'anilist' },
+  {
+    query: '슈타인즈 게이트',
+    expectedType: WorkType.anime,
+    provider: 'anilist',
+  },
+  {
+    query: '진격의 거인 애니메이션',
+    expectedType: WorkType.anime,
+    provider: 'anilist',
+  },
   { query: '너에게 닿기를', expectedType: WorkType.anime, provider: 'anilist' },
-  { query: '바이올렛 에버가든', expectedType: WorkType.anime, provider: 'anilist' },
-  { query: '소드 아트 온라인', expectedType: WorkType.light_novel, provider: 'aladin' },
-  { query: 'Re:제로부터 시작하는 이세계 생활', expectedType: WorkType.light_novel, provider: 'aladin' },
-  { query: '어떤 마술의 금서목록', expectedType: WorkType.light_novel, provider: 'aladin' },
-  { query: '스즈미야 하루히의 우울', expectedType: WorkType.light_novel, provider: 'aladin' },
-  { query: '전지적 독자 시점', expectedType: WorkType.web_novel, provider: 'kakao_book' },
-  { query: '나 혼자만 레벨업', expectedType: WorkType.web_novel, provider: 'kakao_book' },
-  { query: '화산귀환', expectedType: WorkType.web_novel, provider: 'kakao_book' },
-  { query: '재벌집 막내아들', expectedType: WorkType.web_novel, provider: 'kakao_book' },
-  { query: '상수리나무 아래', expectedType: WorkType.web_novel, provider: 'kakao_book' },
-  { query: '외모지상주의', expectedType: WorkType.webtoon, provider: 'naver_book' },
+  {
+    query: '바이올렛 에버가든',
+    expectedType: WorkType.anime,
+    provider: 'anilist',
+  },
+  {
+    query: '소드 아트 온라인',
+    expectedType: WorkType.light_novel,
+    provider: 'aladin',
+  },
+  {
+    query: 'Re:제로부터 시작하는 이세계 생활',
+    expectedType: WorkType.light_novel,
+    provider: 'aladin',
+  },
+  {
+    query: '어떤 마술의 금서목록',
+    expectedType: WorkType.light_novel,
+    provider: 'aladin',
+  },
+  {
+    query: '스즈미야 하루히의 우울',
+    expectedType: WorkType.light_novel,
+    provider: 'aladin',
+  },
+  {
+    query: '전지적 독자 시점',
+    expectedType: WorkType.web_novel,
+    provider: 'kakao_book',
+  },
+  {
+    query: '나 혼자만 레벨업',
+    expectedType: WorkType.web_novel,
+    provider: 'kakao_book',
+  },
+  {
+    query: '화산귀환',
+    expectedType: WorkType.web_novel,
+    provider: 'kakao_book',
+  },
+  {
+    query: '재벌집 막내아들',
+    expectedType: WorkType.web_novel,
+    provider: 'kakao_book',
+  },
+  {
+    query: '상수리나무 아래',
+    expectedType: WorkType.web_novel,
+    provider: 'kakao_book',
+  },
+  {
+    query: '외모지상주의',
+    expectedType: WorkType.webtoon,
+    provider: 'naver_book',
+  },
   { query: '신의 탑', expectedType: WorkType.webtoon, provider: 'naver_book' },
-  { query: '유미의 세포들', expectedType: WorkType.webtoon, provider: 'naver_book' },
-  { query: '이태원 클라쓰', expectedType: WorkType.webtoon, provider: 'naver_book' },
-  { query: '연의 편지', expectedType: WorkType.webtoon, provider: 'naver_book' },
+  {
+    query: '유미의 세포들',
+    expectedType: WorkType.webtoon,
+    provider: 'naver_book',
+  },
+  {
+    query: '이태원 클라쓰',
+    expectedType: WorkType.webtoon,
+    provider: 'naver_book',
+  },
+  {
+    query: '연의 편지',
+    expectedType: WorkType.webtoon,
+    provider: 'naver_book',
+  },
   { query: '기생충', expectedType: WorkType.movie, provider: 'tmdb' },
   { query: '헤어질 결심', expectedType: WorkType.movie, provider: 'tmdb' },
   { query: '올드보이', expectedType: WorkType.movie, provider: 'kobis' },
   { query: '부산행', expectedType: WorkType.movie, provider: 'kobis' },
   { query: '오징어 게임', expectedType: WorkType.drama, provider: 'tmdb' },
-  { query: '이상한 변호사 우영우', expectedType: WorkType.drama, provider: 'tmdb' },
+  {
+    query: '이상한 변호사 우영우',
+    expectedType: WorkType.drama,
+    provider: 'tmdb',
+  },
   { query: '미스터 션샤인', expectedType: WorkType.drama, provider: 'tmdb' },
-  { query: '슬기로운 의사생활', expectedType: WorkType.drama, provider: 'tmdb' },
+  {
+    query: '슬기로운 의사생활',
+    expectedType: WorkType.drama,
+    provider: 'tmdb',
+  },
 ];
 
 function createCandidate(
@@ -123,6 +218,533 @@ function createCandidate(
 }
 
 describe('Korean Quick Add ranking fixtures', () => {
+  const productFixtures = [
+    {
+      query: '나 혼자만 레벨업',
+      mediumType: WorkType.web_novel,
+      expectedId: 'solo-leveling-web-novel',
+      candidates: [
+        createCandidate(
+          {
+            query: '나 혼자만 레벨업',
+            expectedType: WorkType.web_novel,
+            provider: 'kakao_book',
+          },
+          {
+            id: 'solo-leveling-web-novel',
+            releaseYear: 2016,
+            titleAliases: ['Solo Leveling', 'Only I Level Up'],
+          },
+        ),
+        createCandidate(
+          {
+            query: '나 혼자만 레벨업',
+            expectedType: WorkType.webtoon,
+            provider: 'kakao_web',
+          },
+          {
+            id: 'solo-leveling-webtoon',
+            releaseYear: 2018,
+            titleAliases: ['Solo Leveling'],
+          },
+        ),
+        createCandidate(
+          {
+            query: '나 혼자만 레벨업 외전',
+            expectedType: WorkType.web_novel,
+            provider: 'kakao_book',
+          },
+          {
+            id: 'solo-leveling-side-story',
+            releaseYear: 2024,
+            title: '나 혼자만 레벨업 외전',
+          },
+        ),
+      ],
+    },
+    {
+      query: '전지적 독자 시점',
+      mediumType: WorkType.web_novel,
+      expectedId: 'orv-web-novel',
+      candidates: [
+        createCandidate(
+          {
+            query: "Omniscient Reader's Viewpoint",
+            expectedType: WorkType.web_novel,
+            provider: 'google_books',
+          },
+          {
+            id: 'orv-web-novel',
+            releaseYear: 2018,
+            titleAliases: ['전지적 독자 시점', 'Omniscient Reader'],
+          },
+        ),
+        createCandidate(
+          {
+            query: '전지적 독자 시점 외전',
+            expectedType: WorkType.web_novel,
+            provider: 'kakao_book',
+          },
+          {
+            id: 'orv-side-story',
+            releaseYear: 2024,
+            title: '전지적 독자 시점 외전',
+          },
+        ),
+        createCandidate(
+          {
+            query: '전지적 독자 시점',
+            expectedType: WorkType.webtoon,
+            provider: 'kakao_web',
+          },
+          {
+            id: 'orv-webtoon',
+            releaseYear: 2020,
+          },
+        ),
+      ],
+    },
+    {
+      query: '괴담동아리',
+      mediumType: WorkType.web_novel,
+      expectedId: 'ghost-story-club',
+      candidates: [
+        createCandidate(
+          {
+            query: '괴담동아리',
+            expectedType: WorkType.web_novel,
+            provider: 'naver_web',
+          },
+          {
+            id: 'ghost-story-club',
+            author: '오직재미',
+            contributors: [{ name: '오직재미', role: 'author' }],
+            releaseYear: 2020,
+            titleAliases: ['Ghost Story Club'],
+          },
+        ),
+        createCandidate(
+          {
+            query: '괴담 동아리',
+            expectedType: WorkType.webtoon,
+            provider: 'naver_web',
+          },
+          {
+            id: 'ghost-story-club-webtoon',
+            releaseYear: 2022,
+          },
+        ),
+      ],
+    },
+    {
+      query: '장송의 프리렌',
+      mediumType: WorkType.anime,
+      expectedId: 'frieren-anime-ko',
+      candidates: [
+        createCandidate(
+          {
+            query: '葬送のフリーレン',
+            expectedType: WorkType.anime,
+            provider: 'anilist',
+          },
+          {
+            id: 'frieren-anime-ko',
+            releaseYear: 2023,
+            titleAliases: ['장송의 프리렌', 'Sousou no Frieren'],
+          },
+        ),
+        createCandidate(
+          {
+            query: '葬送のフリーレン',
+            expectedType: WorkType.manga,
+            provider: 'anilist',
+          },
+          {
+            id: 'frieren-manga',
+            releaseYear: 2020,
+            titleAliases: ['장송의 프리렌', 'Sousou no Frieren'],
+          },
+        ),
+      ],
+    },
+    {
+      query: '葬送のフリーレン',
+      mediumType: WorkType.manga,
+      expectedId: 'frieren-manga-ja',
+      candidates: [
+        createCandidate(
+          {
+            query: '장송의 프리렌',
+            expectedType: WorkType.manga,
+            provider: 'anilist',
+          },
+          {
+            id: 'frieren-manga-ja',
+            releaseYear: 2020,
+            titleAliases: ['葬送のフリーレン', 'Sousou no Frieren'],
+          },
+        ),
+        createCandidate(
+          {
+            query: '장송의 프리렌',
+            expectedType: WorkType.anime,
+            provider: 'anilist',
+          },
+          {
+            id: 'frieren-anime-wrong-medium',
+            releaseYear: 2023,
+            titleAliases: ['葬送のフリーレン', 'Sousou no Frieren'],
+          },
+        ),
+      ],
+    },
+    {
+      query: 'Sousou no Frieren',
+      mediumType: WorkType.anime,
+      expectedId: 'frieren-anime-en',
+      candidates: [
+        createCandidate(
+          {
+            query: '葬送のフリーレン',
+            expectedType: WorkType.anime,
+            provider: 'anilist',
+          },
+          {
+            id: 'frieren-anime-en',
+            releaseYear: 2023,
+            titleAliases: ['장송의 프리렌', 'Sousou no Frieren'],
+          },
+        ),
+        createCandidate(
+          {
+            query: 'Frieren: Beyond Journey’s End Official Guide',
+            expectedType: WorkType.manga,
+            provider: 'google_books',
+          },
+          {
+            id: 'frieren-guidebook',
+            releaseYear: 2024,
+          },
+        ),
+      ],
+    },
+    {
+      query: 'Steins;Gate',
+      mediumType: WorkType.anime,
+      expectedId: 'steins-gate-anime',
+      candidates: [
+        createCandidate(
+          {
+            query: 'STEINS;GATE',
+            expectedType: WorkType.anime,
+            provider: 'anilist',
+          },
+          {
+            id: 'steins-gate-anime',
+            author: 'WHITE FOX',
+            contributors: [{ name: 'WHITE FOX', role: 'studio' }],
+            releaseYear: 2011,
+            titleAliases: ['シュタインズ・ゲート', '슈타인즈 게이트'],
+          },
+        ),
+        createCandidate(
+          {
+            query: 'Steins;Gate 0',
+            expectedType: WorkType.anime,
+            provider: 'anilist',
+          },
+          {
+            id: 'steins-gate-zero',
+            releaseYear: 2018,
+          },
+        ),
+      ],
+    },
+    {
+      query: 'Dune',
+      mediumType: WorkType.novel,
+      expectedId: 'dune-novel',
+      candidates: [
+        createCandidate(
+          {
+            query: 'Dune',
+            expectedType: WorkType.novel,
+            provider: 'google_books',
+          },
+          {
+            id: 'dune-novel',
+            author: 'Frank Herbert',
+            contributors: [{ name: 'Frank Herbert', role: 'author' }],
+            releaseYear: 1965,
+          },
+        ),
+        createCandidate(
+          {
+            query: 'Dune',
+            expectedType: WorkType.movie,
+            provider: 'tmdb',
+          },
+          {
+            id: 'dune-movie-2021',
+            author: 'Denis Villeneuve',
+            contributors: [{ name: 'Denis Villeneuve', role: 'director' }],
+            releaseYear: 2021,
+          },
+        ),
+        createCandidate(
+          {
+            query: 'Dune Messiah',
+            expectedType: WorkType.novel,
+            provider: 'google_books',
+          },
+          {
+            id: 'dune-messiah-distractor',
+            releaseYear: 1969,
+          },
+        ),
+      ],
+    },
+    {
+      query: 'Dune Messiah',
+      mediumType: WorkType.novel,
+      expectedId: 'dune-messiah',
+      candidates: [
+        createCandidate(
+          {
+            query: 'Dune Messiah',
+            expectedType: WorkType.novel,
+            provider: 'google_books',
+          },
+          {
+            id: 'dune-messiah',
+            author: 'Frank Herbert',
+            contributors: [{ name: 'Frank Herbert', role: 'author' }],
+            releaseYear: 1969,
+          },
+        ),
+        createCandidate(
+          {
+            query: 'Dune',
+            expectedType: WorkType.novel,
+            provider: 'google_books',
+          },
+          {
+            id: 'dune-base',
+            releaseYear: 1965,
+          },
+        ),
+      ],
+    },
+    {
+      query: '너의 이름은',
+      mediumType: WorkType.anime,
+      expectedId: 'your-name-anime-ko',
+      candidates: [
+        createCandidate(
+          {
+            query: '君の名は。',
+            expectedType: WorkType.anime,
+            provider: 'anilist',
+          },
+          {
+            id: 'your-name-anime-ko',
+            author: '신카이 마코토',
+            contributors: [{ name: '신카이 마코토', role: 'director' }],
+            releaseYear: 2016,
+            titleAliases: ['너의 이름은', 'Your Name.'],
+          },
+        ),
+        createCandidate(
+          {
+            query: '君の名は',
+            expectedType: WorkType.drama,
+            provider: 'tvmaze',
+          },
+          {
+            id: 'your-name-drama',
+            releaseYear: 1991,
+          },
+        ),
+      ],
+    },
+    {
+      query: '君の名は。',
+      mediumType: WorkType.anime,
+      expectedId: 'your-name-anime-ja',
+      candidates: [
+        createCandidate(
+          {
+            query: '너의 이름은',
+            expectedType: WorkType.anime,
+            provider: 'anilist',
+          },
+          {
+            id: 'your-name-anime-ja',
+            releaseYear: 2016,
+            titleAliases: ['君の名は。', 'Your Name.'],
+          },
+        ),
+        createCandidate(
+          {
+            query: '너의 이름은 드라마',
+            expectedType: WorkType.drama,
+            provider: 'tvmaze',
+          },
+          {
+            id: 'your-name-drama-ja',
+            releaseYear: 1991,
+            titleAliases: ['君の名は'],
+          },
+        ),
+      ],
+    },
+    {
+      query: '오징어 게임',
+      mediumType: WorkType.drama,
+      expectedId: 'squid-game-drama',
+      candidates: [
+        createCandidate(
+          {
+            query: 'Squid Game',
+            expectedType: WorkType.drama,
+            provider: 'tmdb',
+          },
+          {
+            id: 'squid-game-drama',
+            author: '황동혁',
+            contributors: [{ name: '황동혁', role: 'creator' }],
+            releaseYear: 2021,
+            titleAliases: ['오징어 게임'],
+          },
+        ),
+        createCandidate(
+          {
+            query: '오징어 게임 챌린지',
+            expectedType: WorkType.drama,
+            provider: 'tvmaze',
+          },
+          {
+            id: 'squid-game-challenge',
+            releaseYear: 2023,
+          },
+        ),
+      ],
+    },
+  ];
+
+  it('keeps deterministic Quick Add QA fixtures in the top 3 without external API calls', () => {
+    for (const fixture of productFixtures) {
+      const ranked = rankImportCandidates({
+        candidates: fixture.candidates,
+        mediumType: fixture.mediumType,
+        query: fixture.query,
+      });
+
+      expect(ranked.slice(0, 3).map((candidate) => candidate.id)).toContain(
+        fixture.expectedId,
+      );
+    }
+  });
+
+  it('scores exact, normalized, alias, contributor, release year, medium, and coverage signals', () => {
+    const exact = scoreImportCandidate({
+      candidate: createCandidate({
+        query: 'Dune',
+        expectedType: WorkType.novel,
+        provider: 'google_books',
+      }),
+      mediumType: WorkType.novel,
+      query: 'Dune',
+    });
+    const normalized = scoreImportCandidate({
+      candidate: createCandidate(
+        {
+          query: '君の名は。',
+          expectedType: WorkType.anime,
+          provider: 'anilist',
+        },
+        {
+          releaseYear: 2016,
+        },
+      ),
+      mediumType: WorkType.anime,
+      query: '君の名は',
+    });
+    const alias = scoreImportCandidate({
+      candidate: createCandidate(
+        {
+          query: '葬送のフリーレン',
+          expectedType: WorkType.anime,
+          provider: 'anilist',
+        },
+        {
+          titleAliases: ['장송의 프리렌', 'Sousou no Frieren'],
+        },
+      ),
+      mediumType: WorkType.anime,
+      query: 'Sousou no Frieren',
+    });
+    const detailed = scoreImportCandidate({
+      candidate: createCandidate(
+        {
+          query: 'Dune',
+          expectedType: WorkType.novel,
+          provider: 'google_books',
+        },
+        {
+          author: 'Frank Herbert',
+          contributors: [{ name: 'Frank Herbert', role: 'author' }],
+          releaseYear: 1965,
+          sourceCoverage: {
+            externalIdentityCount: 3,
+            providerCount: 2,
+            providers: ['google_books', 'open_library'],
+            releaseCandidateCount: 2,
+          },
+        },
+      ),
+      mediumType: WorkType.novel,
+      query: 'Dune Frank Herbert 1965',
+    });
+    const wrongMedium = scoreImportCandidate({
+      candidate: createCandidate(
+        {
+          query: 'Dune',
+          expectedType: WorkType.movie,
+          provider: 'tmdb',
+        },
+        {
+          releaseYear: 2021,
+        },
+      ),
+      mediumType: WorkType.novel,
+      query: 'Dune Frank Herbert 1965',
+    });
+
+    expect(exact.breakdown).toContainEqual(
+      expect.objectContaining({ label: '제목 정확히 일치' }),
+    );
+    expect(normalized.breakdown).toContainEqual(
+      expect.objectContaining({ label: '정규화 제목 일치' }),
+    );
+    expect(alias.breakdown).toContainEqual(
+      expect.objectContaining({ label: '별칭 제목 일치' }),
+    );
+    expect(detailed.breakdown).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: '제작자 일치' }),
+        expect.objectContaining({ label: '발매연도 근접' }),
+        expect.objectContaining({ label: '매체 유형 일치' }),
+        expect.objectContaining({ label: '출처 2개 확인' }),
+        expect.objectContaining({ label: '릴리스 후보 2개' }),
+      ]),
+    );
+    expect(wrongMedium.breakdown).toContainEqual(
+      expect.objectContaining({ label: '매체 유형 다름' }),
+    );
+    expect(detailed.totalScore).toBeGreaterThan(wrongMedium.totalScore);
+  });
+
   it('keeps Wikidata below domain providers when title quality is otherwise equal', () => {
     const fixture = {
       query: '듄',

@@ -27,6 +27,8 @@ export function CandidateListRow({
   const sourceCoverage = getCandidateSourceCoverage(candidate);
   const isManualCandidate = isPreviewOrManualCandidate(candidate);
   const wikidataIncluded = hasWikidataSource(candidate);
+  const hasArchiveMatch =
+    duplicateCount > 0 || Boolean(candidate.existingRecord);
   const positiveScoreReasons = isManualCandidate
     ? []
     : (candidate.scoreBreakdown
@@ -75,15 +77,19 @@ export function CandidateListRow({
       }}
       onMouseEnter={(e) => {
         if (!active) {
-          (e.currentTarget as HTMLElement).style.background = 'var(--app-surface-card)';
-          (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-border-default)';
+          (e.currentTarget as HTMLElement).style.background =
+            'var(--app-surface-card)';
+          (e.currentTarget as HTMLElement).style.borderColor =
+            'var(--app-border-default)';
         }
         (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
         if (!active) {
-          (e.currentTarget as HTMLElement).style.background = 'var(--app-surface-subtle)';
-          (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-border-subtle)';
+          (e.currentTarget as HTMLElement).style.background =
+            'var(--app-surface-subtle)';
+          (e.currentTarget as HTMLElement).style.borderColor =
+            'var(--app-border-subtle)';
         }
         (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
       }}
@@ -103,7 +109,9 @@ export function CandidateListRow({
               <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
               {yearLabel && <AppBadge tone="muted">{yearLabel}</AppBadge>}
             </Group>
-            {isManualCandidate ? (
+            {hasArchiveMatch ? (
+              <AppBadge tone="warning">내 아카이브 확인 필요</AppBadge>
+            ) : isManualCandidate ? (
               <AppBadge tone="accent">직접 추가 후보</AppBadge>
             ) : (
               <AppBadge tone="success">{candidate.confidenceLabel}</AppBadge>
@@ -151,10 +159,24 @@ export function CandidateListRow({
             {!isManualCandidate && (
               <AppBadge tone="muted">{candidate.formatLabel}</AppBadge>
             )}
-            {duplicateCount > 0 && (
-              <AppBadge tone="warning">비슷한 기록 {duplicateCount}</AppBadge>
+            {hasArchiveMatch && (
+              <AppBadge tone="warning">
+                {duplicateCount > 0
+                  ? `비슷한 기록 ${duplicateCount}개`
+                  : '이미 저장된 기록 가능성'}
+              </AppBadge>
             )}
           </ActionRow>
+
+          {hasArchiveMatch && (
+            <Text
+              fw={700}
+              size="xs"
+              style={{ color: 'var(--mantine-color-yellow-text)' }}
+            >
+              저장 전에 기존 기록과 같은 작품인지 확인하세요.
+            </Text>
+          )}
 
           {!isManualCandidate && positiveScoreReasons.length > 0 && (
             <ActionRow>

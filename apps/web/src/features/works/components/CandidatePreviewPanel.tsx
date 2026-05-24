@@ -24,6 +24,28 @@ interface CandidatePreviewPanelProps {
   onApply: () => void;
 }
 
+function formatExternalIdentityLabel(
+  ref: ImportCandidate['externalRefs'][number],
+) {
+  return [ref.provider, ref.rawType, ref.externalId]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+function getTitleSourceLabel(candidate: ImportCandidate) {
+  if (isPreviewOrManualCandidate(candidate)) {
+    return '입력한 제목';
+  }
+
+  const aliasCount = candidate.titleAliases?.filter(
+    (titleAlias) => titleAlias !== candidate.title,
+  ).length;
+
+  return aliasCount && aliasCount > 0
+    ? `대표 제목 + 별칭 ${aliasCount}개`
+    : '대표 제목만 확인';
+}
+
 export function CandidatePreviewPanel({
   candidate,
   duplicateMatches,
@@ -39,6 +61,9 @@ export function CandidatePreviewPanel({
   );
   const needsManualReview = !isManualCandidate && candidate.confidence < 0.62;
   const wikidataIncluded = hasWikidataSource(candidate);
+  const externalIdentityLabels = candidate.externalRefs
+    .map(formatExternalIdentityLabel)
+    .slice(0, 4);
 
   return (
     <Stack gap="lg">
@@ -98,6 +123,10 @@ export function CandidatePreviewPanel({
               }
             />
             <MetricPill label="형식" value={candidate.formatLabel} />
+            <MetricPill
+              label="제목 근거"
+              value={getTitleSourceLabel(candidate)}
+            />
           </ActionRow>
 
           {titleAliases && titleAliases.length > 0 && (
@@ -154,10 +183,10 @@ export function CandidatePreviewPanel({
             {!isManualCandidate && (
               <>
                 <AppBadge tone="muted">
-                  외부 식별자 {sourceCoverage.externalIdentityCount}개
+                  {sourceCoverage.externalIdentityLabel}
                 </AppBadge>
                 <AppBadge tone="muted">
-                  릴리스 후보 {sourceCoverage.releaseCandidateCount}개
+                  {sourceCoverage.releaseCandidateLabel}
                 </AppBadge>
               </>
             )}
@@ -173,6 +202,20 @@ export function CandidatePreviewPanel({
                 </AppBadge>
               ))}
             </ActionRow>
+          )}
+          {!isManualCandidate && externalIdentityLabels.length > 0 && (
+            <Stack gap={4}>
+              <Text c="var(--mantine-color-dimmed)" fw={700} size="xs">
+                외부 identity
+              </Text>
+              <ActionRow>
+                {externalIdentityLabels.map((identityLabel) => (
+                  <AppBadge key={identityLabel} tone="muted">
+                    {identityLabel}
+                  </AppBadge>
+                ))}
+              </ActionRow>
+            </Stack>
           )}
           {scoreBreakdown && scoreBreakdown.length > 0 && (
             <ActionRow>

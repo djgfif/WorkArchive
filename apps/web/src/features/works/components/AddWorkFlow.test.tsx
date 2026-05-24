@@ -7,10 +7,7 @@ import type { WorkRecord } from '@work-archive/shared-types';
 
 import type { ImportCandidate } from '../../imports';
 import { AuthContext } from '../../auth';
-import {
-  clearStoredAuthTokens,
-  writeStoredAuthTokens,
-} from '../../auth';
+import { clearStoredAuthTokens, writeStoredAuthTokens } from '../../auth';
 import { renderWithProviders } from '../../../test/render-with-providers';
 import { workArchiveDbManager } from '../db/work-archive.db';
 import { worksRepository } from '../services/works.repository';
@@ -477,7 +474,9 @@ describe('AddWorkFlow', () => {
       'aria-expanded',
       'false',
     );
-    expect(getElementById<HTMLInputElement>('manualCreatorText')).not.toBeVisible();
+    expect(
+      getElementById<HTMLInputElement>('manualCreatorText'),
+    ).not.toBeVisible();
 
     await user.click(screen.getByRole('button', { name: '상세 정보' }));
 
@@ -485,7 +484,9 @@ describe('AddWorkFlow', () => {
       'aria-expanded',
       'true',
     );
-    expect(getElementById<HTMLInputElement>('manualCreatorText')).toBeInTheDocument();
+    expect(
+      getElementById<HTMLInputElement>('manualCreatorText'),
+    ).toBeInTheDocument();
     expect(
       getElementById<HTMLInputElement>('manualPersonalTagsText'),
     ).toBeVisible();
@@ -565,8 +566,8 @@ describe('AddWorkFlow', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('candidate-search-loading')).toHaveAttribute(
-      'aria-busy',
-      'true',
+        'aria-busy',
+        'true',
       );
     });
 
@@ -668,6 +669,72 @@ describe('AddWorkFlow', () => {
 
     expect(screen.getAllByText('Google Books').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Open Library').length).toBeGreaterThan(0);
+  });
+
+  it('keeps candidate source coverage visible after applying a search result', async () => {
+    const candidate = buildCandidate({
+      confidenceLabel: '검토 추천',
+      externalId: 'frieren-anime',
+      externalRefs: [
+        {
+          externalId: '154587',
+          provider: 'anilist',
+          rawType: 'anime',
+          url: 'https://anilist.co/anime/154587',
+        },
+        {
+          externalId: 'Q112010603',
+          provider: 'wikidata',
+          rawType: 'entity',
+          url: 'https://www.wikidata.org/wiki/Q112010603',
+        },
+      ],
+      releaseCandidates: [
+        {
+          externalRefs: [
+            {
+              externalId: 'season-1',
+              provider: 'anilist',
+              rawType: 'season',
+              url: 'https://anilist.co/anime/154587',
+            },
+          ],
+          releaseDate: '2023',
+          releaseType: 'tv',
+          title: 'Sousou no Frieren',
+        },
+      ],
+      reason: '별칭 제목 일치 · 출처 2개 확인',
+      sourceCoverage: {
+        externalIdentityCount: 3,
+        providerCount: 2,
+        providers: ['anilist', 'wikidata'],
+        releaseCandidateCount: 1,
+      },
+      sourceId: 'anilist',
+      sourceLabel: 'AniList',
+      title: '葬送のフリーレン',
+      titleAliases: ['장송의 프리렌', 'Sousou no Frieren'],
+      type: 'anime',
+      mediumType: 'anime',
+    });
+
+    mockAuthenticatedSearchResponse([candidate]);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedAddWorkFlow();
+    await searchAndSelectCandidate(user, '장송의 프리렌', candidate.title);
+
+    expect(await screen.findByText('검색으로 채운 정보')).toBeInTheDocument();
+    expect(
+      screen.getAllByText('출처 2개 · 외부 식별자 3개 · 릴리스 후보 1개')
+        .length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText('AniList').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Wikidata').length).toBeGreaterThan(0);
+    expect(screen.getByText('외부 식별자 3개')).toBeInTheDocument();
+    expect(screen.getByText('릴리스 후보 1개')).toBeInTheDocument();
   });
 
   it('shows backend search aliases and score reasons in candidate preview', async () => {
@@ -1128,7 +1195,9 @@ describe('AddWorkFlow', () => {
     renderGuestAddWorkFlow();
     await openSearchPicker(user, 'No Match Title');
 
-    expect(await screen.findByRole('button', { name: '직접 추가로 계속' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: '직접 추가로 계속' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('No Match Title (만화)')).not.toBeInTheDocument();
   });
 
@@ -1341,6 +1410,35 @@ describe('AddWorkFlow', () => {
     expect(submittedInput.importDraft).not.toHaveProperty('description');
     expect(submittedInput.importDraft).not.toHaveProperty('thumbnailUrl');
     expect(submittedInput.importDraft).not.toHaveProperty('genres');
+  });
+
+  it('moves unknown candidate genres into personal tags after applying a search candidate', async () => {
+    const candidate = buildCandidate({
+      genresText: '회귀, 판타지, 빙의, 판타지',
+      mediumType: 'web_novel',
+      sourceId: 'kakao_book',
+      sourceLabel: 'Kakao Book',
+      title: '전지적 독자 시점',
+      type: 'web_novel',
+    });
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    mockAuthenticatedSearchResponse([candidate]);
+
+    const user = userEvent.setup();
+
+    renderAuthenticatedAddWorkFlow(onSubmit);
+    await searchAndSelectCandidate(user, '전지적 독자 시점', candidate.title);
+    await submitSelectedCandidate(user);
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({
+      genres: ['판타지'],
+      personalTags: ['회귀', '빙의'],
+      title: '전지적 독자 시점',
+      type: 'web_novel',
+    });
   });
 
   it.each(['preview-manual', 'manual'] as const)(

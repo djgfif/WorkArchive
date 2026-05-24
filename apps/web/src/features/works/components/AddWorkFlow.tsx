@@ -861,8 +861,11 @@ export function AddWorkFlow({
       setSearchNotice(result.notice);
       setSelectedSearchCandidate(visibleCandidates[0] ?? null);
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : '후보 검색에 실패했습니다.';
+
       setSearchError(
-        error instanceof Error ? error.message : '후보 검색에 실패했습니다.',
+        `${message} 검색 없이도 입력한 제목으로 직접 추가를 계속할 수 있습니다.`,
       );
       setSearchCandidates([]);
       setSelectedSearchCandidate(null);

@@ -62,6 +62,22 @@ export function ImportedCandidateSummary({
         <ActionRow>
           <AppBadge tone="muted">{candidate.sourceLabel}</AppBadge>
           <AppBadge tone="muted">{sourceCoverage.summaryLabel}</AppBadge>
+          <AppBadge tone="muted">
+            별칭 {candidate.titleAliases?.length ?? 0}개
+          </AppBadge>
+        </ActionRow>
+        <ActionRow>
+          {sourceCoverage.providerLabels.map((providerLabel) => (
+            <AppBadge key={providerLabel} tone="muted">
+              {providerLabel}
+            </AppBadge>
+          ))}
+          <AppBadge tone="muted">
+            {sourceCoverage.externalIdentityLabel}
+          </AppBadge>
+          <AppBadge tone="muted">
+            {sourceCoverage.releaseCandidateLabel}
+          </AppBadge>
         </ActionRow>
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
           <ChipSummary
