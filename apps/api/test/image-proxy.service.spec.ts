@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { ImageProxyService } from '../src/modules/image-proxy/image-proxy.service';
 
@@ -19,6 +19,11 @@ describe('ImageProxyService', () => {
   beforeEach(() => {
     service = new ImageProxyService();
     jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('fetches and caches allowed provider images with production cache headers', async () => {
@@ -77,5 +82,30 @@ describe('ImageProxyService', () => {
     await expect(
       service.getImage('https://books.google.com/books/content?id=dune'),
     ).rejects.toThrow('unsupported image type');
+  });
+
+  it('serves stale cached images when a provider fails after the fresh window', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-05-25T00:00:00.000Z'));
+
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(imageResponse('cached-image'))
+      .mockRejectedValueOnce(new Error('provider down'));
+
+    const first = await service.getImage(
+      'https://covers.openlibrary.org/b/id/123-L.jpg',
+    );
+
+    jest.setSystemTime(new Date('2026-05-27T00:00:00.000Z'));
+
+    const stale = await service.getImage(
+      'https://covers.openlibrary.org/b/id/123-L.jpg',
+    );
+
+    expect(first.body.toString()).toBe('cached-image');
+    expect(stale.body.toString()).toBe('cached-image');
+    expect(stale.etag).toBe(first.etag);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 });
