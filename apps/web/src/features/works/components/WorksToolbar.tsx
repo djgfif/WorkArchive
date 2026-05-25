@@ -1,6 +1,5 @@
 import {
   Box,
-  Collapse,
   Group,
   NativeSelect,
   SimpleGrid,
@@ -141,6 +140,53 @@ const smartFilterOptions: Array<{ label: string; value: WorksSmartFilter }> = [
   { label: '정리 필요', value: 'needsCuration' },
 ];
 
+type QuickCollectionOption =
+  | {
+      description: string;
+      label: string;
+      type: 'smart';
+      value: Exclude<WorksSmartFilter, 'all'>;
+    }
+  | {
+      description: string;
+      label: string;
+      sortBy: 'createdAt' | 'updatedAt';
+      type: 'sort';
+    };
+
+const quickCollectionOptions: QuickCollectionOption[] = [
+  {
+    description: '최근 손본 기록',
+    label: '최근 수정',
+    sortBy: 'updatedAt',
+    type: 'sort',
+  },
+  {
+    description: '새로 넣은 작품',
+    label: '최근 추가',
+    sortBy: 'createdAt',
+    type: 'sort',
+  },
+  {
+    description: '다시 찾을 작품',
+    label: '즐겨찾기',
+    type: 'smart',
+    value: 'favorites',
+  },
+  {
+    description: '별점 비어 있음',
+    label: '미평가',
+    type: 'smart',
+    value: 'unrated',
+  },
+  {
+    description: '표지·태그 보강',
+    label: '정리 필요',
+    type: 'smart',
+    value: 'needsCuration',
+  },
+];
+
 const identityPresetOptions: Array<{ label: string; value: WorksIdentityPreset }> = [
   { label: '전체', value: 'all' },
   { label: '직접 등록', value: 'manual' },
@@ -158,6 +204,43 @@ function getSmartFilterLabel(value: WorksSmartFilter | undefined) {
 
 function getIdentityPresetLabel(value: WorksIdentityPreset | undefined) {
   return identityPresetOptions.find((option) => option.value === value)?.label ?? '전체';
+}
+
+function isQuickCollectionActive(
+  option: QuickCollectionOption,
+  query: WorksListQuery,
+) {
+  if (option.type === 'smart') {
+    return (query.smartFilter ?? 'all') === option.value;
+  }
+
+  return (
+    (query.smartFilter ?? 'all') === 'all' &&
+    query.sortBy === option.sortBy &&
+    (query.sortDirection ?? getDefaultSortDirection(option.sortBy)) ===
+      getDefaultSortDirection(option.sortBy)
+  );
+}
+
+function getQuickCollectionQuery(
+  option: QuickCollectionOption,
+  query: WorksListQuery,
+): WorksListQuery {
+  const isActive = isQuickCollectionActive(option, query);
+
+  if (option.type === 'smart') {
+    return {
+      ...query,
+      smartFilter: isActive ? 'all' : option.value,
+    };
+  }
+
+  return {
+    ...query,
+    smartFilter: 'all',
+    sortBy: option.sortBy,
+    sortDirection: getDefaultSortDirection(option.sortBy),
+  };
 }
 
 function MediaTypeFilter({
@@ -202,41 +285,43 @@ function MediaTypeFilter({
 
       <Box
         aria-label="작품 유형으로 빠르게 좁히기"
-        className={cn(css.mediaTypeOptions)}
         role="group"
       >
-        {options.map((option) => {
-          const isActive = option.value === value;
+        <Box className={cn(css.mediaTypeOptions)}>
+          {options.map((option) => {
+            const isActive = option.value === value;
 
-          return (
-            <Box
-              aria-label={option.label}
-              aria-pressed={isActive}
-              className={cn(css.mediaTypeOption)}
-              component="button"
-              data-active={isActive ? 'true' : 'false'}
-              key={option.value}
-              onClick={() => onChange(option.value)}
-              type="button"
-            >
-              <Text
-                className={cn(css.mediaTypeOptionLabel)}
-                fw={800}
-                size="xs"
+            return (
+              <Box
+                aria-label={option.label}
+                aria-pressed={isActive}
+                className={cn(css.mediaTypeOption)}
+                component="button"
+                data-active={isActive ? 'true' : 'false'}
+                data-empty={option.count === 0 ? 'true' : 'false'}
+                key={option.value}
+                onClick={() => onChange(option.value)}
+                type="button"
               >
-                {option.label}
-              </Text>
-              <Text
-                aria-hidden="true"
-                className={cn(css.mediaTypeOptionCount)}
-                fw={800}
-                size="xs"
-              >
-                {option.count}
-              </Text>
-            </Box>
-          );
-        })}
+                <Text
+                  className={cn(css.mediaTypeOptionLabel)}
+                  fw={800}
+                  size="xs"
+                >
+                  {option.label}
+                </Text>
+                <Text
+                  aria-hidden="true"
+                  className={cn(css.mediaTypeOptionCount)}
+                  fw={800}
+                  size="xs"
+                >
+                  {option.count}
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
       </Box>
     </Box>
   );
@@ -346,18 +431,6 @@ export function WorksToolbar({
     query.sortBy !== 'updatedAt' ||
     sortDirection !== defaultSortDirection;
 
-  const countSummary = isLoading
-    ? '불러오는 중…'
-    : isTrashScope
-      ? totalDeletedCount === 0
-        ? '삭제한 작품이 없습니다.'
-        : `삭제한 작품 ${filteredCount}개를 관리 중입니다.`
-      : totalActiveCount === 0
-        ? '첫 작품을 추가해 보세요.'
-        : filteredCount === totalActiveCount
-          ? `작품 ${totalActiveCount}개`
-          : `${totalActiveCount}개 중 ${filteredCount}개 표시 중`;
-
   const genreFilterOptions = [
     { label: '전체', value: '' },
     ...Array.from(
@@ -427,6 +500,22 @@ export function WorksToolbar({
       : []),
   ];
 
+  const countSummary = isLoading
+    ? '불러오는 중…'
+    : isTrashScope
+      ? totalDeletedCount === 0
+        ? '삭제한 작품이 없습니다.'
+        : `삭제한 작품 ${filteredCount}개를 관리 중입니다.`
+      : totalActiveCount === 0
+        ? '첫 작품을 추가해 보세요.'
+        : filteredCount === totalActiveCount
+          ? `작품 ${totalActiveCount}개`
+          : `${totalActiveCount}개 중 ${filteredCount}개 표시 중`;
+  const heroDescription =
+    activeFilterChips.length > 0
+      ? `${countSummary} · 필터 ${activeFilterChips.length}개 적용`
+      : countSummary;
+
   return (
     <Stack gap="lg">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
@@ -444,7 +533,7 @@ export function WorksToolbar({
             </AppButton>
           ) : undefined
         }
-        description={countSummary}
+        description={heroDescription}
         eyebrow={isTrashScope ? '삭제 항목 관리' : '내 작품'}
         title={isTrashScope ? '휴지통' : '작품 서재'}
         variant="compact"
@@ -589,6 +678,48 @@ export function WorksToolbar({
             typeCounts={typeCounts}
             value={query.type}
           />
+          {totalActiveCount > 0 && (
+            <Box className={cn(css.quickCollectionRail)}>
+              <Group align="center" justify="space-between" wrap="wrap">
+                <Stack gap={1}>
+                  <Text c="var(--app-text-primary)" fw={800} size="sm">
+                    개인 섹션
+                  </Text>
+                  <Text c="var(--app-text-muted)" size="xs">
+                    최근 흐름과 정리할 기록을 빠르게 전환합니다.
+                  </Text>
+                </Stack>
+                <Group
+                  aria-label="개인 섹션"
+                  className={cn(css.quickCollectionOptions)}
+                  gap="xs"
+                  role="group"
+                  wrap="wrap"
+                >
+                  {quickCollectionOptions.map((option) => {
+                    const isActive = isQuickCollectionActive(option, query);
+
+                    return (
+                      <Box
+                        aria-pressed={isActive}
+                        className={cn(css.quickCollectionOption)}
+                        component="button"
+                        data-active={isActive ? 'true' : 'false'}
+                        key={option.label}
+                        onClick={() =>
+                          onQueryChange(getQuickCollectionQuery(option, query))
+                        }
+                        type="button"
+                      >
+                        <span>{option.label}</span>
+                        <span aria-hidden="true">{option.description}</span>
+                      </Box>
+                    );
+                  })}
+                </Group>
+              </Group>
+            </Box>
+          )}
         </Stack>
       )}
 
@@ -669,7 +800,11 @@ export function WorksToolbar({
       )}
 
       {/* ── 고급 필터 패널 ───────────────────────────────────────────── */}
-      <Collapse expanded={advancedOpen}>
+      <Box
+        className={cn(css.advancedFilterCollapse)}
+        data-open={advancedOpen ? 'true' : 'false'}
+        style={{ display: advancedOpen ? undefined : 'none' }}
+      >
         <Box className={cn(css.advancedFilterPanel)}>
           {/* 패널 헤더 */}
           <Group justify="space-between" mb="md">
@@ -868,7 +1003,7 @@ export function WorksToolbar({
             </FilterSection>
           </Stack>
         </Box>
-      </Collapse>
+      </Box>
     </Stack>
   );
 }

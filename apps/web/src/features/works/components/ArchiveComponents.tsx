@@ -37,6 +37,7 @@ import {
   getWorkStatusLabel,
   getWorkTypeLabel,
 } from '../utils/work-options';
+import { getPersonalTags } from '../utils/graph-tags';
 import {
   getWorkProgressLabel,
   getWorkProgressPercent,
@@ -210,12 +211,26 @@ function getPrimaryMetaLine(work: WorkRecord) {
     .join(' · ');
 }
 
+function getPosterAuthorLine(work: WorkRecord) {
+  return work.author.trim() || '작가·제작자 미입력';
+}
+
 function getQuietTagLabels(work: WorkRecord) {
   const personalTags = work.personalTags
     .filter((tag) => !tag.includes(':'))
     .map((tag) => `#${tag}`);
 
   return [...work.genres, ...personalTags].slice(0, 3);
+}
+
+function needsPosterCuration(work: WorkRecord) {
+  return (
+    work.rating === null ||
+    work.shortReview.trim() === '' ||
+    work.genres.length === 0 ||
+    work.thumbnailUrl.trim() === '' ||
+    getPersonalTags(work.personalTags).length === 0
+  );
 }
 
 function getCoverTone(seed: string) {
@@ -674,6 +689,7 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
   const typeLabel = getWorkTypeLabel(work.type);
   const quietTags = getQuietTagLabels(work);
   const shortReview = work.shortReview.trim();
+  const needsCuration = needsPosterCuration(work);
 
   return (
     <Link
@@ -700,10 +716,24 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
           typeLabel={typeLabel}
           variant="grid"
         />
-        <Stack className={cn(css.posterCardBody)} gap={6}>
-          <Title lineClamp={2} order={3} size="h4">
+        {needsCuration && (
+          <Box
+            aria-hidden="true"
+            className={cn(css.posterCurationMarker)}
+            title="정리 필요"
+          />
+        )}
+        <Stack className={cn(css.posterCardBody)} gap={5}>
+          <Title className={cn(css.posterCardTitle)} lineClamp={2} order={3} size="h4">
             {work.title}
           </Title>
+          <Text
+            className={cn(css.posterAuthorLine)}
+            lineClamp={1}
+            size="sm"
+          >
+            {getPosterAuthorLine(work)}
+          </Text>
           <Text
             c="dimmed"
             className={cn(css.posterMetaLine)}
@@ -714,7 +744,7 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
             {getPrimaryMetaLine(work)}
           </Text>
           <Text c="dimmed" className={cn(css.posterReviewLine)} lineClamp={2} size="sm">
-            {shortReview || work.author || '한줄평을 기다리는 작품'}
+            {shortReview || '한줄평을 기다리는 작품'}
           </Text>
           {quietTags.length > 0 && (
             <Group className={cn(css.posterTagRow)} gap={4} wrap="wrap">
