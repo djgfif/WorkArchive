@@ -11,12 +11,10 @@ describe('getDisplayImageUrl', () => {
     );
   });
 
-  it('routes http image URLs through the proxy to avoid production CSP blocks', () => {
+  it('does not route http image URLs through the hardened image proxy', () => {
     expect(
       getDisplayImageUrl('http://books.google.com/books/content?id=dune'),
-    ).toBe(
-      '/api/image-proxy?url=http%3A%2F%2Fbooks.google.com%2Fbooks%2Fcontent%3Fid%3Ddune',
-    );
+    ).toBe('http://books.google.com/books/content?id=dune');
   });
 
   it('keeps local and unknown https image URLs direct', () => {

@@ -1,7 +1,14 @@
 import { BadRequestException } from '@nestjs/common';
+import { lookup } from 'node:dns/promises';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { ImageProxyService } from '../src/modules/image-proxy/image-proxy.service';
+
+jest.mock('node:dns/promises', () => ({
+  lookup: jest.fn(),
+}));
+
+const lookupMock = lookup as unknown as jest.Mock;
 
 function imageResponse(body: string, headers: Record<string, string> = {}) {
   return new Response(body, {
@@ -28,8 +35,14 @@ describe('ImageProxyService', () => {
   let service: ImageProxyService;
 
   beforeEach(() => {
-    service = new ImageProxyService();
     jest.restoreAllMocks();
+    lookupMock.mockResolvedValue([
+      {
+        address: '93.184.216.34',
+        family: 4,
+      },
+    ] as never);
+    service = new ImageProxyService();
     jest.useRealTimers();
   });
 
@@ -89,6 +102,64 @@ describe('ImageProxyService', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('rejects http image URLs before fetching', async () => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
+
+    await expect(
+      service.getImage('http://books.google.com/books/content?id=dune'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'https://localhost/cover.jpg',
+    'https://127.0.0.1/cover.jpg',
+    'https://10.0.0.1/cover.jpg',
+    'https://172.16.0.1/cover.jpg',
+    'https://192.168.0.1/cover.jpg',
+    'https://169.254.169.254/cover.jpg',
+    'https://[::1]/cover.jpg',
+    'https://[fc00::1]/cover.jpg',
+    'https://[::ffff:192.168.0.1]/cover.jpg',
+  ])('rejects local or private image host %s before fetching', async (url) => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
+
+    await expect(service.getImage(url)).rejects.toBeInstanceOf(BadRequestException);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('rejects allowlisted hosts that resolve to private addresses', async () => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
+
+    lookupMock.mockResolvedValue([
+      {
+        address: '10.0.0.5',
+        family: 4,
+      },
+    ] as never);
+
+    await expect(
+      service.getImage('https://covers.openlibrary.org/b/id/123-L.jpg'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('rejects allowlisted hosts that resolve to IPv4-mapped private IPv6 addresses', async () => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
+
+    lookupMock.mockResolvedValue([
+      {
+        address: '::ffff:192.168.0.5',
+        family: 6,
+      },
+    ] as never);
+
+    await expect(
+      service.getImage('https://covers.openlibrary.org/b/id/123-L.jpg'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('validates redirect targets against the image host allowlist', async () => {
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(null, {
@@ -101,6 +172,34 @@ describe('ImageProxyService', () => {
 
     await expect(
       service.getImage('https://books.google.com/books/content?id=dune'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('validates redirect target DNS against private addresses', async () => {
+    lookupMock
+      .mockResolvedValueOnce([
+        {
+          address: '93.184.216.34',
+          family: 4,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          address: '192.168.0.5',
+          family: 4,
+        },
+      ] as never);
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(null, {
+        headers: {
+          location: 'https://covers.openlibrary.org/private.jpg',
+        },
+        status: 302,
+      }),
+    );
+
+    await expect(
+      service.getImage('https://covers.openlibrary.org/b/id/123-L.jpg'),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -117,6 +216,33 @@ describe('ImageProxyService', () => {
     await expect(
       service.getImage('https://books.google.com/books/content?id=dune'),
     ).rejects.toThrow('unsupported image type');
+  });
+
+  it('rejects SVG upstream responses', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<svg></svg>', {
+        headers: {
+          'content-type': 'image/svg+xml',
+        },
+        status: 200,
+      }),
+    );
+
+    await expect(
+      service.getImage('https://books.google.com/books/content?id=dune'),
+    ).rejects.toThrow('unsupported image type');
+  });
+
+  it('rejects oversized upstream responses by content length', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      imageResponse('', {
+        'content-length': String(8 * 1024 * 1024 + 1),
+      }),
+    );
+
+    await expect(
+      service.getImage('https://books.google.com/books/content?id=dune'),
+    ).rejects.toThrow('too large');
   });
 
   it('serves stale cached images immediately while refreshing in the background', async () => {

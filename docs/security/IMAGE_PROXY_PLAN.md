@@ -31,6 +31,9 @@ Current code evidence:
 Implemented now:
 
 - provider host suffix allowlist;
+- HTTPS-only upstream URLs;
+- DNS resolution with localhost, private, reserved, and IPv4-mapped private IPv6
+  address rejection before fetch and after redirects;
 - fetch timeout;
 - redirect target revalidation;
 - max body size;
@@ -40,8 +43,6 @@ Implemented now:
 
 Known hardening gaps before CSP narrowing:
 
-- upstream `http:` is still accepted for allowlisted providers;
-- private/reserved IP rejection is not proven after DNS resolution;
 - allowlist changes are code changes rather than runtime-configured operations;
 - report-only telemetry is needed to remove direct HTTPS image fallback safely.
 

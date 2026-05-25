@@ -46,14 +46,12 @@ export function getDisplayImageUrlCandidates(thumbnailUrl?: string | null) {
   try {
     const url = new URL(normalized);
 
-    if (isProxiedImageHost(url.hostname)) {
+    if (url.protocol === 'https:' && isProxiedImageHost(url.hostname)) {
       const proxiedUrl = `${getApiBaseUrl()}/image-proxy?url=${encodeURIComponent(
         normalized,
       )}`;
 
-      return url.protocol === 'https:'
-        ? [proxiedUrl, normalized]
-        : [proxiedUrl];
+      return [proxiedUrl, normalized];
     }
   } catch {
     return [normalized];
