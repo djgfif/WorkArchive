@@ -33,6 +33,7 @@
     "test:integration": "npm run test:integration --workspace @work-archive/api",
     "check:web-boundaries": "node scripts/check-web-feature-boundaries.mjs",
     "check:web-import-cycles": "node scripts/check-web-import-cycles.mjs",
+    "check:docs-links": "node scripts/check-doc-links.mjs",
     "security:public": "scripts/security/public-readiness-check.sh",
     "api:generate": "orval --config orval.config.ts",
     "build": "npm run build --workspace @work-archive/shared-types && npm run build --workspaces --if-present",

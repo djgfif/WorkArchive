@@ -20,12 +20,12 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 ```
 
-| Path | Use |
-| --- | --- |
-| [`.env.compose.example`](../../.env.compose.example) | Docker Compose local stack |
-| [`.env.host.example`](../../.env.host.example) | host-based API development |
-| [`apps/api/.env.example`](../../apps/api/.env.example) | API workspace defaults |
-| [`apps/web/.env.example`](../../apps/web/.env.example) | web workspace defaults |
+| Path                                                   | Use                        |
+| ------------------------------------------------------ | -------------------------- |
+| [`.env.compose.example`](../../.env.compose.example)   | Docker Compose local stack |
+| [`.env.host.example`](../../.env.host.example)         | host-based API development |
+| [`apps/api/.env.example`](../../apps/api/.env.example) | API workspace defaults     |
+| [`apps/web/.env.example`](../../apps/web/.env.example) | web workspace defaults     |
 
 ## Docker Compose Mode
 

@@ -14,12 +14,12 @@ archive through the API.
 
 ## Repository Layout
 
-| Path | Purpose |
-| --- | --- |
-| [`apps/web`](./apps/web) | React/Vite client |
-| [`apps/api`](./apps/api) | NestJS API and Prisma schema |
-| [`packages`](./packages) | shared types, ESLint config, TypeScript config |
-| [`scripts`](./scripts) | development, deployment, and security automation |
+| Path                       | Purpose                                                       |
+| -------------------------- | ------------------------------------------------------------- |
+| [`apps/web`](./apps/web)   | React/Vite client                                             |
+| [`apps/api`](./apps/api)   | NestJS API and Prisma schema                                  |
+| [`packages`](./packages)   | shared types, ESLint config, TypeScript config                |
+| [`scripts`](./scripts)     | development, deployment, and security automation              |
 | [`docs`](./docs/README.md) | architecture, operations, security, and project documentation |
 
 ## Start Locally

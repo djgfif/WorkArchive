@@ -1,12 +1,12 @@
 # DOCUMENTATION_GOVERNANCE.md
 
-| Field | Value |
-| --- | --- |
-| Status | `canonical` |
-| Role | `governance` |
-| Source of truth | 문서 운영 규칙과 현재 폴더 구조 |
-| Last verified against | `2026-05-25` working tree |
-| When to update | 문서 생성/이동/metadata/archive 규칙이 바뀔 때 |
+| Field                 | Value                                          |
+| --------------------- | ---------------------------------------------- |
+| Status                | `canonical`                                    |
+| Role                  | `governance`                                   |
+| Source of truth       | 문서 운영 규칙과 현재 폴더 구조                |
+| Last verified against | `2026-05-25` working tree                      |
+| When to update        | 문서 생성/이동/metadata/archive 규칙이 바뀔 때 |
 
 이 문서는 Work Archive 저장소의 문서를 어떻게 만들고, 어디에 두고, 어떤 상태로 해석할지 정하는 운영 규칙이다.
 
@@ -62,7 +62,8 @@
 다음 작업을 하면 함께 갱신한다.
 
 - 문서 생성/이동/이름 변경: [`DOCUMENTATION_INDEX.md`](./DOCUMENTATION_INDEX.md), [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md), 관련 폴더 `README.md`
-- 기준 문서 역할 변경: 필요 시 [`CODE_DOCUMENT_ALIGNMENT_REPORT.md`](./CODE_DOCUMENT_ALIGNMENT_REPORT.md)
+- 기준 문서 역할 변경: 필요 시 archived alignment report
+  [`CODE_DOCUMENT_ALIGNMENT_REPORT.md`](../archive/management/CODE_DOCUMENT_ALIGNMENT_REPORT.md)
 - archive 이동: [`../archive/README.md`](../archive/README.md) 기준 확인
 
 ## 7. Reference And Archive Rules

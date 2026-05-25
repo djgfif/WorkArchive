@@ -21,6 +21,9 @@ Last local audit: 2026-05-25.
 - The repository root must stay limited to public-facing project files. Runtime
   wrappers live under `scripts/dev/`; Windows convenience wrappers live under
   `scripts/windows/`.
+- The active documentation tree must stay limited to `getting-started`,
+  `architecture`, `operations`, `security`, `project`, and `management`.
+  Historical material belongs under `docs/archive/`.
 - Files already tracked by git must not match `.gitignore`; this catches
   accidentally tracked local state after ignore rules are tightened.
 - Large binary/media files require explicit review before publication. Design
@@ -38,6 +41,7 @@ Run from the repository root:
 ```bash
 scripts/security/public-readiness-check.sh
 git ls-files -ci --exclude-standard
+npm run check:docs-links
 git status --short --branch
 ```
 
@@ -58,9 +62,24 @@ The readiness script must end with `Public readiness check passed.`
 - Confirm the root does not contain development launcher wrappers or ad hoc
   execution notes. Official local entrypoints are `npm run dev:start`,
   `npm run dev:start:host`, and `npm run dev:stop`.
+- Confirm local Markdown links resolve after any file move.
 - Confirm historical commits do not contain real secrets. If a real secret was
   committed at any point, rotate the secret first; rewrite git history only with
   explicit approval because it requires a force push.
+
+## Root Allowlist
+
+Tracked files at repository root are limited to public project metadata,
+package/lock files, compose files, env examples, and standard config files:
+
+- `README.md`, `CONTRIBUTING.md`, `SECURITY.md`
+- `package.json`, `package-lock.json`
+- `compose.yml`, `compose.prod.yml`
+- `.env*.example`
+- `.gitignore`, `.dockerignore`, `.gitattributes`, `.nvmrc`, Prettier config,
+  Playwright config, and Orval config
+
+Anything else needs an explicit repository policy update before it is tracked.
 
 ## Visibility Switch
 

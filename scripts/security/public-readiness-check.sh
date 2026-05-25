@@ -31,6 +31,33 @@ else
   info "repository root contains only approved public-facing files"
 fi
 
+root_launcher_hits="$(git ls-files | grep -E '^(start-dev|stop-dev)\.(sh|bat)$' || true)"
+if [ -n "$root_launcher_hits" ]; then
+  print_hits "$root_launcher_hits"
+  fail "development launcher wrappers must not be tracked at the repository root"
+else
+  info "no development launcher wrappers are tracked at the repository root"
+fi
+
+docs_root_files="$(git ls-files docs | awk -F/ 'NF == 2 {print $2}' | sed '/^$/d')"
+docs_root_offenders="$(printf '%s\n' "$docs_root_files" | grep -Ev '^README\.md$' || true)"
+if [ -n "$docs_root_offenders" ]; then
+  print_hits "$docs_root_offenders"
+  fail "docs root should contain only README.md plus approved documentation folders"
+else
+  info "docs root contains only the documentation hub file"
+fi
+
+docs_dirs="$(git ls-files docs | awk -F/ 'NF > 2 {print $2}' | sort -u)"
+allowed_docs_dirs='^(archive|architecture|getting-started|management|operations|project|security)$'
+docs_dir_offenders="$(printf '%s\n' "$docs_dirs" | grep -Ev "$allowed_docs_dirs" || true)"
+if [ -n "$docs_dir_offenders" ]; then
+  print_hits "$docs_dir_offenders"
+  fail "unexpected top-level docs folders are tracked"
+else
+  info "top-level docs folders match the public information architecture"
+fi
+
 tracked_ignored_files="$(git ls-files -ci --exclude-standard || true)"
 if [ -n "$tracked_ignored_files" ]; then
   print_hits "$tracked_ignored_files"
