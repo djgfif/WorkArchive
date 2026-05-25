@@ -12,18 +12,114 @@
   text-transform: uppercase;
 }
 
-.summaryBar {
+.heroStats {
+  align-items: stretch;
+}
+
+.heroStat {
   background: var(--app-surface-subtle);
   border-color: var(--app-border-subtle);
 }
 
-.summaryItem {
+.heroStatLabel {
+  color: var(--app-text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.heroStatValue {
+  color: var(--app-text-primary);
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  line-height: 1.15;
+}
+
+.sectionHeader {
+  row-gap: var(--app-space-sm);
+}
+
+.sectionEyebrow {
+  color: var(--app-accent-primary);
+  font-size: var(--app-type-meta);
+  letter-spacing: 0.1em;
+}
+
+.sectionTitle {
+  color: var(--app-text-primary);
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.sectionDescription {
   color: var(--app-text-secondary);
+  max-width: 52ch;
+}
+
+.sectionAction {
+  align-self: flex-start;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.todayPanel {
+  padding-block: 0.25rem;
+}
+
+.continueCard,
+.insightCard,
+.emptyActionCard {
+  color: inherit;
+  text-decoration: none;
+}
+
+.continueCardSurface,
+.insightSurface,
+.emptyActionSurface,
+.todayEmpty,
+.activityPreviewPanel {
+  height: 100%;
+  background: var(--app-surface-card);
+  border-color: var(--app-border-subtle);
+  transition:
+    border-color var(--wa-motion-fast),
+    box-shadow var(--wa-motion-fast),
+    transform var(--wa-motion-fast);
+}
+
+.continueCard:hover .continueCardSurface,
+.continueCard:focus-visible .continueCardSurface,
+.insightCard:hover .insightSurface,
+.insightCard:focus-visible .insightSurface,
+.emptyActionCard:hover .emptyActionSurface,
+.emptyActionCard:focus-visible .emptyActionSurface {
+  border-color: var(--app-border-strong);
+  box-shadow: var(--wa-shadow-card);
+  transform: translateY(-1px);
+}
+
+.continueTitle {
+  color: var(--app-text-primary);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.continueMeta,
+.insightDescription {
+  color: var(--app-text-muted);
+}
+
+.continueCue,
+.continueRating,
+.insightLabel {
+  color: var(--app-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
-.summaryItem:first-child {
-  color: var(--app-text-primary);
+.todayBackupSlot {
+  max-width: 760px;
+}
+
+.emptyActionSurface {
+  min-height: 150px;
 }
 
 .activityPanel {
@@ -34,17 +130,53 @@
     var(--app-surface-subtle);
 }
 
+.activityPreviewPanel {
+  background: var(--app-surface-subtle);
+}
+
 .activityItem {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.75rem;
   padding: 0.6rem 0.75rem;
+  border: 0;
   border-radius: var(--mantine-radius-md);
+  background: transparent;
+  color: inherit;
   cursor: pointer;
+  text-align: left;
   transition: background var(--wa-motion-fast), transform var(--wa-motion-fast);
 }
 
 .activityItem:hover,
 .activityItem:focus-visible {
   background: color-mix(in srgb, var(--app-surface-card) 72%, transparent);
+  outline: 2px solid transparent;
   transform: translateX(2px);
+}
+
+.activityBody {
+  flex: 1;
+}
+
+.activityHeader {
+  min-width: 0;
+}
+
+.activityTitle {
+  flex: 1;
+  color: var(--app-text-primary);
+}
+
+.activityMeta {
+  color: var(--app-text-muted);
+}
+
+.activityRating {
+  flex-shrink: 0;
+  color: var(--app-accent-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .activityDot {
@@ -55,4 +187,17 @@
   border-radius: 999px;
   background: var(--app-accent-primary);
   opacity: 0.75;
+}
+
+.timelineGroupDot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--app-border-strong);
+}
+
+.timelineGroupLabel {
+  color: var(--app-text-muted);
+  letter-spacing: 0.08em;
 }
