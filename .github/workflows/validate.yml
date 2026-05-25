@@ -27,8 +27,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Public readiness
-        run: scripts/security/public-readiness-check.sh
+      - name: Public repository guardrails
+        run: npm run security:public
 
       - name: Web import cycles
         run: npm run check:web-import-cycles

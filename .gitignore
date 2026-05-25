@@ -3,6 +3,7 @@ node_modules/
 **/node_modules/
 .npm/
 .pnpm-store/
+.pnpm-debug.log*
 .yarn/
 !.yarn/patches/
 !.yarn/plugins/
@@ -21,6 +22,7 @@ build/
 **/.cache/
 .turbo/
 *.tsbuildinfo
+*.buildinfo
 
 # Test, coverage, and browser automation artifacts
 coverage/
@@ -30,8 +32,14 @@ coverage-final.json
 test-results/
 playwright-report/
 blob-report/
+playwright/.cache/
 *.har
 trace.zip
+*.trace
+*.webm
+*.mp4
+*.mov
+*.screenshots/
 
 # Local environment and secrets
 .env
@@ -42,6 +50,10 @@ trace.zip
 !.env.prod.example
 !**/.env.example
 !**/.env.*.example
+.envrc
+.direnv/
+secrets/
+**/secrets/
 *.pem
 *.key
 *.p12
@@ -49,6 +61,7 @@ trace.zip
 *.jks
 *.crt
 *.csr
+*.asc
 
 # Runtime data, logs, backups, and local databases
 *.log
@@ -63,6 +76,8 @@ backup/
 *.sqlite3
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 *.dump
 *.bak
 *.backup
@@ -71,6 +86,7 @@ backup/
 *.tgz
 *.tar.gz
 *.7z
+*.rar
 
 # OS, editor, and personal tool state
 .DS_Store
@@ -81,9 +97,14 @@ desktop.ini
 !.vscode/tasks.json
 .agents/
 .codex*
+.cursor/
+.history/
 
 # Local overrides
 *.local
 compose.override.yml
 compose.*.override.yml
 docker-compose.override.yml
+*.local.json
+*.local.yaml
+*.local.yml
