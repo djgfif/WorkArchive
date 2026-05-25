@@ -487,9 +487,9 @@ describe('AddWorkFlow', () => {
     expect(
       getElementById<HTMLInputElement>('manualCreatorText'),
     ).toBeInTheDocument();
-    expect(
-      getElementById<HTMLInputElement>('manualPersonalTagsText'),
-    ).toBeVisible();
+    await waitFor(() => {
+      expect(getElementById<HTMLInputElement>('manualPersonalTagsText')).toBeVisible();
+    });
     expect(screen.getByLabelText('상세 감상')).toBeInTheDocument();
   });
 

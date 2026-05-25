@@ -46,6 +46,16 @@ if (!window.ResizeObserver) {
   });
 }
 
+if (!document.fonts) {
+  Object.defineProperty(document, 'fonts', {
+    configurable: true,
+    value: {
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    },
+  });
+}
+
 beforeAll(() => {
   server.listen({
     onUnhandledRequest: 'error',

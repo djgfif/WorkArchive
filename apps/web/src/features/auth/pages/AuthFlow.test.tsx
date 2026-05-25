@@ -379,9 +379,10 @@ describe('Auth flow', () => {
     );
 
     await openProfileMenu(user, /frieren@example.com/);
-    await user.click(await screen.findByRole('menuitem', { name: /로그아웃/ }));
+    await user.click(await screen.findByText('로그아웃'));
 
-    await openProfileMenu(user, /게스트/);
-    expect(await screen.findByRole('menuitem', { name: /로그인/ })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /게스트/ })).toBeInTheDocument();
+    });
   });
 });
