@@ -573,7 +573,7 @@ export function WorksToolbar({
       )}
 
       {/* ── 고급 필터 패널 ───────────────────────────────────────────── */}
-      <Collapse in={advancedOpen}>
+      <Collapse expanded={advancedOpen}>
         <Box className={cn(css.advancedFilterPanel)}>
           {/* 패널 헤더 */}
           <Group justify="space-between" mb="md">

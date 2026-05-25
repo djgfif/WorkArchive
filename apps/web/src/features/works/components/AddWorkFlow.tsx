@@ -525,7 +525,7 @@ export function AddWorkFlow({
             )}
 
             {variant === 'page' ? (
-              <Grid align="start" gutter="xl">
+              <Grid align="start" gap="xl">
                 <Grid.Col span={{ base: 12, lg: 8 }}>
                   <Stack gap="xl">
                     <CoreWorkFields

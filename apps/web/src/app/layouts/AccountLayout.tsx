@@ -125,7 +125,7 @@ export function AccountLayout() {
   return (
     <main className="layout-shell layout-shell--account">
       <Container px="md" size={1360}>
-        <Grid align="start" gutter="xl">
+        <Grid align="start" gap="xl">
           {/* 모바일 — 상단 수평 nav */}
           <Grid.Col hiddenFrom="lg" span={12}>
             <AccountSidebar

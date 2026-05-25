@@ -237,7 +237,7 @@ export function AddWorkSearchPanel({
                 </AppButton>
               </Group>
 
-              <Collapse in={providerOptionsOpen}>
+              <Collapse expanded={providerOptionsOpen}>
                 <Stack gap={6} pt="sm">
                   <Text c="var(--mantine-color-dimmed)" fw={700} size="xs">
                     검색 출처 직접 선택
@@ -283,7 +283,7 @@ export function AddWorkSearchPanel({
         <FeedbackMessage tone="info">{searchNotice}</FeedbackMessage>
       )}
 
-      <Grid gutter="lg">
+      <Grid gap="lg">
         <Grid.Col span={{ base: 12, md: 5 }}>
           <Paper
             className={cn(css.searchResultPanel)}

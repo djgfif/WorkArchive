@@ -414,7 +414,7 @@ export function WorkForm({
           </ActionRow>
         </FeedbackMessage>
       )}
-      <Grid align="start" gutter="xl">
+      <Grid align="start" gap="xl">
         <Grid.Col span={{ base: 12, lg: 8 }}>
           <Stack gap="xl">
             <SectionCard gap="lg" padding="xl" tone="default">
@@ -435,7 +435,7 @@ export function WorkForm({
                     label="기본 정보"
                   >
                     <Stack gap="lg" pt="md">
-                      <Grid gutter="md">
+                      <Grid gap="md">
                         <Grid.Col span={12}>
                           <TextInput
                             aria-label="제목"

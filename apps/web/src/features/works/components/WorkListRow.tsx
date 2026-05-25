@@ -293,7 +293,7 @@ export function WorkListRow({
       </Group>
 
       {/* ── Collapsible quick-edit panel ─────────────────────────────── */}
-      <Collapse in={editOpen}>
+      <Collapse expanded={editOpen}>
         <Box
           mt="md"
           pt="md"
