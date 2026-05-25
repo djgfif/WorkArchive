@@ -319,6 +319,32 @@ function renderGuestAddWorkFlow(onSubmit = vi.fn()) {
   );
 }
 
+function renderGuestDialogAddWorkFlow(onSubmit = vi.fn()) {
+  workArchiveDbManager.switchToGuest();
+  clearStoredAuthTokens();
+
+  return renderWithProviders(
+    <MemoryRouter>
+      <AuthContext.Provider
+        value={{
+          archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
+          isLoading: false,
+          mode: 'guest',
+          user: null,
+          signOut: vi.fn(),
+        }}
+      >
+        <AddWorkFlow
+          isSubmitting={false}
+          onSubmit={onSubmit}
+          submitError={null}
+          variant="dialog"
+        />
+      </AuthContext.Provider>
+    </MemoryRouter>,
+  );
+}
+
 function buildExistingWork(overrides: Partial<WorkRecord> = {}): WorkRecord {
   const createdAt = overrides.createdAt ?? '2026-04-18T00:00:00.000Z';
   const updatedAt = overrides.updatedAt ?? createdAt;
@@ -491,6 +517,16 @@ describe('AddWorkFlow', () => {
       expect(getElementById<HTMLInputElement>('manualPersonalTagsText')).toBeVisible();
     });
     expect(screen.getByLabelText('상세 감상')).toBeInTheDocument();
+  });
+
+  it('shows the cover preview in the dialog manual flow', () => {
+    renderGuestDialogAddWorkFlow();
+
+    expect(
+      screen.getByLabelText('제목 없는 작품 포스터 대체 표지'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('저장 전 표지')).not.toBeInTheDocument();
+    expect(screen.queryByText('한줄평은 나중에 채워도 됩니다.')).not.toBeInTheDocument();
   });
 
   it('uses authenticated search candidates to prefill the Add Work form', async () => {

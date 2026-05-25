@@ -494,7 +494,7 @@ export function StarRatingInput({ label = '별점', onChange, value }: StarRatin
   const displayLabel =
     displayValue > 0
       ? `${displayValue.toFixed(1)} · ${STAR_LABELS[displayValue.toFixed(1)] ?? '평가'}`
-      : '별점을 선택하세요';
+      : '미평가';
   const semanticLabel =
     value === null ? '평가 안 함' : `${value.toFixed(1)}점`;
 
@@ -504,17 +504,20 @@ export function StarRatingInput({ label = '별점', onChange, value }: StarRatin
     );
     const fallbackRect = event.currentTarget.getBoundingClientRect();
 
-    for (const starElement of starElements) {
-      const rect = starElement.getBoundingClientRect();
+    if (starElements.length > 0) {
+      const firstRect = starElements[0]?.getBoundingClientRect();
+      const lastRect =
+        starElements[starElements.length - 1]?.getBoundingClientRect();
 
-      if (event.clientX < rect.left || event.clientX > rect.right) {
-        continue;
+      if (firstRect && lastRect && lastRect.right > firstRect.left) {
+        const clampedX = Math.min(
+          lastRect.right,
+          Math.max(firstRect.left, event.clientX),
+        );
+        const rawRating =
+          ((clampedX - firstRect.left) / (lastRect.right - firstRect.left)) * 5;
+        return Math.max(0.5, Math.min(5, Math.ceil(rawRating * 2) / 2));
       }
-
-      const starIndex = Number(starElement.dataset.ratingStarIndex ?? 0);
-      const isRightHalf = event.clientX >= rect.left + rect.width / 2;
-
-      return starIndex + (isRightHalf ? 1 : 0.5);
     }
 
     if (event.clientX <= fallbackRect.left) return 0.5;
@@ -561,7 +564,7 @@ export function StarRatingInput({ label = '별점', onChange, value }: StarRatin
   }
 
   return (
-    <Box className={cn(css.starRatingInput)}>
+    <Box className={cn(css.starRatingInput)} data-has-value={value !== null}>
       <Group align="center" justify="space-between" wrap="nowrap">
         <Text c="var(--app-text-secondary)" fw={750} size="sm">
           {label}
