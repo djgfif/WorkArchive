@@ -17,6 +17,7 @@ describe('UserRecordsService', () => {
     };
     userWorkRecord: {
       findFirst: jest.Mock;
+      updateMany: jest.Mock;
     };
   };
   let releaseRecordsService: jest.Mocked<
@@ -30,6 +31,7 @@ describe('UserRecordsService', () => {
       },
       userWorkRecord: {
         findFirst: jest.fn(),
+        updateMany: jest.fn(),
       },
     };
     releaseRecordsService = {
@@ -109,5 +111,128 @@ describe('UserRecordsService', () => {
         }),
       }),
     ]);
+  });
+
+  it('updates active records with user ownership and deletedAt scope in the mutation predicate', async () => {
+    prisma.userWorkRecord.updateMany.mockImplementation(async () => ({
+      count: 1,
+    }));
+    prisma.userWorkRecord.findFirst.mockResolvedValue({
+      catalogTitle: null,
+      catalogTitleId: 'record-1',
+      catalogWork: {
+        type: WorkType.novel,
+      },
+      deletedAt: null,
+      favorite: true,
+      id: 'record-1',
+      personalTags: [],
+      rating: 4,
+      review: '',
+      shortReview: '',
+      status: WorkStatus.completed,
+      syncStatus: WorkSyncStatus.synced,
+      userId: 'user-1',
+    } as never);
+
+    await expect(
+      service.updateActiveForUser('user-1', 'record-1', {
+        favorite: true,
+        serverVersion: {
+          increment: 1,
+        },
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: 'record-1',
+        userId: 'user-1',
+      }),
+    );
+
+    expect(prisma.userWorkRecord.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          deletedAt: null,
+          id: 'record-1',
+          userId: 'user-1',
+        },
+      }),
+    );
+    expect(prisma.userWorkRecord.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          deletedAt: null,
+          id: 'record-1',
+          userId: 'user-1',
+        },
+      }),
+    );
+  });
+
+  it('can return a just-deleted record after an owner-scoped active mutation', async () => {
+    prisma.userWorkRecord.updateMany.mockImplementation(async () => ({
+      count: 1,
+    }));
+    prisma.userWorkRecord.findFirst.mockResolvedValue({
+      catalogTitle: null,
+      catalogTitleId: 'record-1',
+      catalogWork: {
+        type: WorkType.novel,
+      },
+      deletedAt: new Date('2026-04-18T01:00:00.000Z'),
+      favorite: false,
+      id: 'record-1',
+      personalTags: [],
+      rating: null,
+      review: '',
+      shortReview: '',
+      status: WorkStatus.planned,
+      syncStatus: WorkSyncStatus.synced,
+      userId: 'user-1',
+    } as never);
+
+    await service.updateActiveForUser(
+      'user-1',
+      'record-1',
+      {
+        deletedAt: new Date('2026-04-18T01:00:00.000Z'),
+      },
+      undefined,
+      {
+        includeDeletedResult: true,
+      },
+    );
+
+    expect(prisma.userWorkRecord.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          deletedAt: null,
+          id: 'record-1',
+          userId: 'user-1',
+        },
+      }),
+    );
+    expect(prisma.userWorkRecord.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'record-1',
+          userId: 'user-1',
+        },
+      }),
+    );
+  });
+
+  it('rejects owner-scoped mutations when updateMany does not match the user record', async () => {
+    prisma.userWorkRecord.updateMany.mockImplementation(async () => ({
+      count: 0,
+    }));
+
+    await expect(
+      service.updateActiveForUser('user-1', 'foreign-record', {
+        favorite: true,
+      }),
+    ).rejects.toThrow('User record with id "foreign-record" was not found.');
+
+    expect(prisma.userWorkRecord.findFirst).not.toHaveBeenCalled();
   });
 });

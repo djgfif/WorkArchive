@@ -26,7 +26,6 @@ import {
   AppLinkButton,
 } from '@shared/components/AppPrimitives';
 import {
-  formatWorkUpdatedAt,
   getWorkStatusLabel,
   getWorkTypeLabel,
   workStatusOptions,
@@ -91,6 +90,10 @@ const progressTotalLabels: Record<ProgressUnit, string> = {
 
 function formatRatingLabel(value: number | null) {
   return value === null ? '미평가' : `★ ${value.toFixed(1)}`;
+}
+
+function getWorkListMetaLine(work: WorkRecord) {
+  return `${formatRatingLabel(work.rating)} · ${getWorkStatusLabel(work.status)}`;
 }
 
 function coerceNumberInputValue(value: number | string) {
@@ -203,17 +206,12 @@ export function WorkListRow({
             </Title>
 
             <Text c="dimmed" lineClamp={1} size="xs">
-              {typeLabel} · {getWorkStatusLabel(work.status)}
-              {work.rating !== null ? ` · ${formatRatingLabel(work.rating)}` : ''}
+              {work.author || '작가·제작자 미입력'}
+            </Text>
+
+            <Text c="dimmed" fw={700} lineClamp={1} size="xs" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {getWorkListMetaLine(work)}
               {isUpdating ? ' · 저장 중' : ''}
-            </Text>
-
-            <Text c="dimmed" lineClamp={1} size="xs">
-              {work.author || '작가·제작자 미입력'} · {formatWorkUpdatedAt(work.updatedAt)}
-            </Text>
-
-            <Text c="var(--app-text-secondary)" lineClamp={2} size="sm">
-              {work.shortReview.trim() || '아직 한줄평이 없습니다.'}
             </Text>
 
             {progressLabel && (
@@ -231,6 +229,11 @@ export function WorkListRow({
                 value={progressPercent}
               />
             )}
+
+            <Text c="dimmed" lineClamp={1} size="xs">
+              {typeLabel}
+              {work.shortReview.trim() ? ` · ${work.shortReview.trim()}` : ''}
+            </Text>
           </Stack>
         </Group>
 

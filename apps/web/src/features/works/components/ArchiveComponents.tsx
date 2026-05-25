@@ -204,23 +204,15 @@ function coerceNumberInputValue(value: number | string) {
 }
 
 function getPrimaryMetaLine(work: WorkRecord) {
-  const ratingLabel = work.rating === null ? null : `★ ${work.rating.toFixed(1)}`;
+  const ratingLabel = work.rating === null ? '미평가' : `★ ${work.rating.toFixed(1)}`;
 
-  return [getWorkTypeLabel(work.type), getWorkStatusLabel(work.status), ratingLabel]
+  return [ratingLabel, getWorkStatusLabel(work.status)]
     .filter(Boolean)
     .join(' · ');
 }
 
 function getPosterAuthorLine(work: WorkRecord) {
   return work.author.trim() || '작가·제작자 미입력';
-}
-
-function getQuietTagLabels(work: WorkRecord) {
-  const personalTags = work.personalTags
-    .filter((tag) => !tag.includes(':'))
-    .map((tag) => `#${tag}`);
-
-  return [...work.genres, ...personalTags].slice(0, 3);
 }
 
 function needsPosterCuration(work: WorkRecord) {
@@ -687,8 +679,6 @@ function getStatusBadgeTone(status: string): AppBadgeToneValue {
 
 export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
-  const quietTags = getQuietTagLabels(work);
-  const shortReview = work.shortReview.trim();
   const needsCuration = needsPosterCuration(work);
 
   return (
@@ -743,18 +733,6 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
           >
             {getPrimaryMetaLine(work)}
           </Text>
-          <Text c="dimmed" className={cn(css.posterReviewLine)} lineClamp={2} size="sm">
-            {shortReview || '한줄평을 기다리는 작품'}
-          </Text>
-          {quietTags.length > 0 && (
-            <Group className={cn(css.posterTagRow)} gap={4} wrap="wrap">
-              {quietTags.map((tag) => (
-                <Text className={cn(css.posterTagText)} key={tag} size="xs">
-                  {tag}
-                </Text>
-              ))}
-            </Group>
-          )}
           {isUpdating && <Text c="var(--app-accent-primary)" fw={800} size="xs">저장 중</Text>}
         </Stack>
       </Paper>
@@ -993,7 +971,7 @@ export function FilterPillGroup<T extends string>({
               borderRadius: 'calc(var(--mantine-radius-md) - 2px)',
               fontWeight: isActive ? 700 : 500,
               fontSize: 'var(--app-type-body)',
-              letterSpacing: isActive ? '-0.01em' : '0',
+              letterSpacing: '0',
               transition: [
                 'background var(--wa-motion-fast, 150ms)',
                 'color var(--wa-motion-fast, 150ms)',

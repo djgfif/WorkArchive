@@ -237,12 +237,15 @@ describe('WorksListPage', () => {
     expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Your Name' })).toBeInTheDocument();
     expect(
-      screen.getByText('모래 행성의 정치와 신화가 좋다.'),
-    ).toBeInTheDocument();
+      screen.queryByText('모래 행성의 정치와 신화가 좋다.'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('4권까지')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Dune 진행도 67%')).not.toBeInTheDocument();
 
     await selectWorksView(user, 'list');
+    expect(
+      screen.getByText(/모래 행성의 정치와 신화가 좋다./),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Dune 진행도 67%')).toBeInTheDocument();
 
     await openAdvancedFilters(user);
@@ -400,7 +403,7 @@ describe('WorksListPage', () => {
     expect(
       screen.queryByRole('group', { name: '감상 상태로 빠르게 좁히기' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('작가 / 제작진')).not.toBeVisible();
+    expect(screen.getByText('빠른 보기')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '고급 필터' }));
 
@@ -411,7 +414,7 @@ describe('WorksListPage', () => {
       '회사 / 플랫폼',
       '장르',
       '기록 상태',
-      'Smart Collection',
+      '추천 보기',
       '등록 방식',
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
@@ -437,6 +440,175 @@ describe('WorksListPage', () => {
     expect(
       screen.queryByRole('heading', { name: 'Dune' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps poster cards focused on cover, title, creator, rating, and status', async () => {
+    await worksService.createWork({
+      type: 'novel',
+      title: 'Minimal Poster Work',
+      author: 'Archive Creator',
+      genres: ['Fantasy'],
+      personalTags: ['quiet-tag'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'completed',
+      rating: 4.5,
+      shortReview: '기본 카드에는 보이지 않아야 하는 한줄평',
+      review: '',
+      favorite: true,
+    });
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Minimal Poster Work' }),
+    ).toBeInTheDocument();
+    const posterLink = screen
+      .getAllByRole('link', { name: 'Minimal Poster Work 상세 보기' })
+      .find((link) =>
+        within(link).queryByRole('heading', { name: 'Minimal Poster Work' }),
+      );
+
+    expect(posterLink).toBeDefined();
+
+    expect(within(posterLink!).getByText('Archive Creator')).toBeInTheDocument();
+    expect(within(posterLink!).getByText('★ 4.5 · 완료')).toBeInTheDocument();
+    expect(within(posterLink!).queryByText('Fantasy')).not.toBeInTheDocument();
+    expect(within(posterLink!).queryByText('#quiet-tag')).not.toBeInTheDocument();
+    expect(
+      within(posterLink!).queryByText('기본 카드에는 보이지 않아야 하는 한줄평'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows library rails only in active scope and keeps trash as a recovery workspace', async () => {
+    const deleted = await worksService.createWork({
+      type: 'novel',
+      title: 'Trash Rail Target',
+      author: 'Archive Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      favorite: false,
+    });
+
+    await worksService.deleteWork(deleted.id);
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works?scope=trash'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('Trash Rail Target')).toBeInTheDocument();
+    expect(screen.queryByText('빠른 보기')).not.toBeInTheDocument();
+    expect(screen.queryByText('매체 유형')).not.toBeInTheDocument();
+    expect(screen.getByText('복구가 기본 작업입니다.')).toBeInTheDocument();
+  });
+
+  it('uses result mode for needs-curation smart filters', async () => {
+    await worksService.createWork({
+      type: 'novel',
+      title: 'Needs Curation Result',
+      author: 'Archive Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'planned',
+      rating: null,
+      shortReview: '',
+      review: '',
+      favorite: false,
+    });
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works?smart=needsCuration'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Needs Curation Result' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('정리 필요').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('heading', { name: '전체 목록' })).not.toBeInTheDocument();
+  });
+
+  it('keeps active filter overflow markers for mobile chip collapsing', async () => {
+    await worksService.createWork({
+      type: 'novel',
+      title: 'Overflow Filter Work',
+      author: 'Archive Author',
+      genres: ['Fantasy'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'completed',
+      rating: 4.5,
+      shortReview: '',
+      review: '',
+      favorite: true,
+    });
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [
+        '/works?q=Overflow&type=novel&status=completed&rating=4.5&smart=favorites',
+      ],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('필터 2개 더 있음')).toBeInTheDocument();
+    expect(
+      document.querySelector('[data-mobile-overflow="true"]'),
+    ).toBeInTheDocument();
+  });
+
+  it('preserves works list URL query parameters for filters', async () => {
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [
+        '/works?q=Archive&type=novel&status=planned&smart=unrated&identity=manual&ratingPreset=unrated',
+      ],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await screen.findByLabelText('작품 검색 (단축키: /)');
+    const params = new URLSearchParams(router.state.location.search);
+
+    expect(params.get('q')).toBe('Archive');
+    expect(params.get('type')).toBe('novel');
+    expect(params.get('status')).toBe('planned');
+    expect(params.get('smart')).toBe('unrated');
+    expect(params.get('identity')).toBe('manual');
+    expect(params.get('ratingPreset')).toBe('unrated');
+    expect(screen.getByText('필터 3개 더 있음')).toBeInTheDocument();
   });
 
   it('renders large libraries progressively and lets users load more items', async () => {

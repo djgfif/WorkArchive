@@ -11,6 +11,7 @@ import type { ApiRuntimeConfig } from './config/api-runtime-config';
 import { createMetricsMiddleware } from './observability/metrics.middleware';
 import { MetricsService } from './observability/metrics.service';
 import {
+  createProductionFetchMetadataGuard,
   createProductionOriginGuard,
   createRequestIdMiddleware,
   createSecurityRateLimiters,
@@ -65,6 +66,7 @@ export async function configureApp(
   );
   app.use(createRequestIdMiddleware());
   app.use(createMetricsMiddleware(metricsService));
+  app.use(createProductionFetchMetadataGuard(config, securityAudit));
   app.use(createProductionOriginGuard(config, securityAudit));
 
   const rateLimiters = await createSecurityRateLimiters(config, securityAudit);

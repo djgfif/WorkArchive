@@ -266,15 +266,13 @@
 
 .posterCardLink:hover .posterCardSurface,
 .posterCardLink:focus-visible .posterCardSurface {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   border-color: var(--app-border-default);
-  box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.26),
-    0 0 0 1px var(--app-border-default);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
 }
 
 .posterCardLink:active .posterCardSurface {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .posterCardLink:hover .posterImage,
@@ -324,14 +322,14 @@
 
 .posterCurationMarker {
   position: absolute;
-  top: 0.62rem;
-  left: 0.62rem;
+  top: 0.56rem;
+  left: 0.56rem;
   z-index: 2;
-  width: 0.42rem;
-  height: 1.75rem;
+  width: 0.28rem;
+  height: 1.35rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--app-accent-warm) 78%, transparent);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22);
+  background: color-mix(in srgb, var(--app-accent-warm) 70%, transparent);
+  box-shadow: none;
   pointer-events: none;
 }
 
@@ -416,10 +414,10 @@
 }
 
 .rowCard:hover .rowSurface {
-  transform: translateY(-3px);
+  transform: translateY(-1px);
   border-color: var(--app-border-default);
   background: var(--app-bg-elevated);
-  box-shadow: var(--wa-shadow-card);
+  box-shadow: none;
 }
 
 .rowCard:active .rowSurface {
@@ -509,6 +507,85 @@
 
 .shelf > * {
   scroll-snap-align: start;
+}
+
+.homeSections {
+  padding-top: 0.2rem;
+}
+
+.homeShelf {
+  display: grid;
+  grid-auto-columns: minmax(7.8rem, 9.6rem);
+  grid-auto-flow: column;
+  gap: 0.85rem;
+  overflow-x: auto;
+  padding: 0.1rem 0.05rem 0.55rem;
+  scroll-snap-type: x proximity;
+  scrollbar-gutter: stable;
+}
+
+.homeShelfLink {
+  display: block;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  scroll-snap-align: start;
+}
+
+.homeShelfLink:focus-visible {
+  outline: 2px solid var(--app-accent-primary);
+  outline-offset: 4px;
+}
+
+.homeShelfCard {
+  height: 100%;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.homeShelfLink:hover .homeShelfCard,
+.homeShelfLink:focus-visible .homeShelfCard {
+  transform: translateY(-1px);
+}
+
+.homeShelfTitle,
+.homeShelfAuthor,
+.homeShelfMeta {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.homeShelfTitle::before,
+.homeShelfAuthor::before,
+.homeShelfMeta::before {
+  content: attr(data-title);
+}
+
+.homeShelfTitle {
+  color: var(--app-text-primary);
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.homeShelfAuthor {
+  color: var(--app-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.homeShelfMeta {
+  color: var(--app-text-muted);
+  font-size: var(--wa-type-caption);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1424,8 +1501,9 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--app-accent-primary);
-  color: #fff;
+  border: 1px solid var(--app-border-default);
+  background: var(--app-surface-card);
+  color: var(--app-text-secondary);
   font-size: 0.62rem;
   font-weight: 800;
 }
@@ -1526,10 +1604,11 @@
 }
 
 .quickCollectionRail {
-  padding: 0.62rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--app-border-subtle) 76%, transparent);
-  border-radius: var(--mantine-radius-md);
-  background: color-mix(in srgb, var(--app-surface-card) 46%, transparent);
+  padding: 0.25rem 0 0.45rem;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--app-border-subtle) 76%, transparent);
+  border-radius: 0;
+  background: transparent;
 }
 
 .quickCollectionOptions {
@@ -1538,11 +1617,12 @@
 
 .quickCollectionOption {
   display: inline-flex;
-  min-height: 2.2rem;
+  min-height: 2rem;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.2rem 0.72rem;
-  border: 1px solid var(--app-border-subtle);
+  padding: 0.15rem 0.58rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
   border-radius: 999px;
   background: transparent;
   color: var(--app-text-secondary);
@@ -1568,13 +1648,13 @@
 }
 
 .quickCollectionOption:hover {
-  border-color: var(--app-border-default);
+  border-color: color-mix(in srgb, var(--app-border-default) 68%, transparent);
   color: var(--app-text-primary);
 }
 
 .quickCollectionOption[data-active='true'] {
-  border-color: color-mix(in srgb, var(--app-accent-primary) 48%, transparent);
-  background: color-mix(in srgb, var(--app-accent-primary) 12%, transparent);
+  border-color: var(--app-accent-primary);
+  background: transparent;
   color: var(--app-text-primary);
 }
 
@@ -1593,7 +1673,7 @@
   padding: 0.2rem 0.55rem 0.2rem 0.7rem;
   border: 1px solid var(--app-border-subtle);
   border-radius: 999px;
-  background: var(--app-surface-subtle);
+  background: transparent;
   color: var(--app-text-secondary);
   font-size: 0.78rem;
   font-weight: 650;
@@ -1613,14 +1693,15 @@
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--app-accent-primary) 20%, transparent);
-  color: var(--app-accent-primary);
+  background: transparent;
+  color: var(--app-text-muted);
   cursor: pointer;
   transition: background var(--wa-motion-fast, 150ms);
 }
 
 .activeFilterRemove:hover {
-  background: color-mix(in srgb, var(--app-accent-primary) 30%, transparent);
+  background: var(--app-surface-subtle);
+  color: var(--app-text-secondary);
 }
 
 .chipResetButton {
@@ -1648,10 +1729,11 @@
 }
 
 .advancedFilterPanel {
-  padding: clamp(0.9rem, 2vw, 1.15rem);
-  border: 1px solid var(--app-border-subtle);
-  border-radius: var(--mantine-radius-lg);
-  background: color-mix(in srgb, var(--app-surface-card) 72%, transparent);
+  padding: clamp(0.75rem, 2vw, 1rem) 0 0;
+  border: 0;
+  border-top: 1px solid var(--app-border-subtle);
+  border-radius: 0;
+  background: transparent;
   box-shadow: none;
 }
 
@@ -1708,7 +1790,7 @@
 
 .tagFilterInput:focus {
   border-color: var(--app-accent-primary);
-  box-shadow: var(--app-shadow-glow);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent-primary) 24%, transparent);
 }
 
 .tagSuggestionChip {
@@ -1841,6 +1923,10 @@
   .quickCollectionOption {
     flex: 1 1 calc(50% - 0.5rem);
     justify-content: space-between;
+  }
+
+  .quickCollectionOption span:last-child {
+    display: none;
   }
 
   .activeFilterChip[data-mobile-overflow='true'] {

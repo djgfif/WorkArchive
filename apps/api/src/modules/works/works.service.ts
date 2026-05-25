@@ -171,7 +171,8 @@ export class WorksService {
           );
         }
 
-        return this.userRecordsService.update(
+        return this.userRecordsService.updateActiveForUser(
+          userId,
           id,
           {
             ...recordUpdateData,
@@ -193,15 +194,21 @@ export class WorksService {
 
   async remove(userId: string, id: string) {
     try {
-      await this.getActiveWorkOrThrow(userId, id);
-
-      await this.userRecordsService.update(id, {
-        deletedAt: new Date(),
-        syncStatus: DEFAULT_SYNC_STATUS,
-        serverVersion: {
-          increment: 1,
+      await this.userRecordsService.updateActiveForUser(
+        userId,
+        id,
+        {
+          deletedAt: new Date(),
+          syncStatus: DEFAULT_SYNC_STATUS,
+          serverVersion: {
+            increment: 1,
+          },
         },
-      });
+        undefined,
+        {
+          includeDeletedResult: true,
+        },
+      );
     } catch (error) {
       this.logMutationFailure('delete', userId, id, error);
       throw error;
@@ -315,8 +322,8 @@ export class WorksService {
   private buildUserRecordUpdateData(
     updateWorkDto: UpdateWorkDto,
     normalizedPersonalTags?: string[],
-  ): Prisma.UserWorkRecordUpdateInput {
-    const data: Prisma.UserWorkRecordUpdateInput = {};
+  ): Prisma.UserWorkRecordUpdateManyMutationInput {
+    const data: Prisma.UserWorkRecordUpdateManyMutationInput = {};
 
     if (updateWorkDto.status !== undefined) {
       data.status = updateWorkDto.status;

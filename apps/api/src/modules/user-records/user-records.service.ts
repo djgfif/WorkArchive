@@ -168,6 +168,49 @@ export class UserRecordsService {
     });
   }
 
+  async updateActiveForUser(
+    userId: string,
+    id: string,
+    data: Prisma.UserWorkRecordUpdateManyMutationInput,
+    client: PrismaClientLike = this.prisma,
+    options?: {
+      includeDeletedResult?: boolean;
+    },
+  ) {
+    const result = await client.userWorkRecord.updateMany({
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+      },
+      data,
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException(`User record with id "${id}" was not found.`);
+    }
+
+    const where: Prisma.UserWorkRecordWhereInput = {
+      id,
+      userId,
+    };
+
+    if (!options?.includeDeletedResult) {
+      where.deletedAt = null;
+    }
+
+    const record = await client.userWorkRecord.findFirst({
+      where,
+      include: WORK_AGGREGATE_INCLUDE,
+    });
+
+    if (!record) {
+      throw new NotFoundException(`User record with id "${id}" was not found.`);
+    }
+
+    return record;
+  }
+
   async listViews(userId: string) {
     const records = await this.findActiveByUser(userId);
 
@@ -290,7 +333,7 @@ export class UserRecordsService {
       );
     }
 
-    const updated = await this.update(id, {
+    const updated = await this.updateActiveForUser(userId, id, {
       lastConsumedLabel:
         input.lastConsumedLabel === undefined
           ? existing.lastConsumedLabel
@@ -409,7 +452,7 @@ export class UserRecordsService {
   ) {
     await this.getActiveRecordOrThrow(userId, id);
 
-    const data: Prisma.UserWorkRecordUpdateInput = {};
+    const data: Prisma.UserWorkRecordUpdateManyMutationInput = {};
 
     if (input.status !== undefined) {
       data.status = input.status;
@@ -454,7 +497,7 @@ export class UserRecordsService {
       );
     }
 
-    const updated = await this.update(id, {
+    const updated = await this.updateActiveForUser(userId, id, {
       ...data,
       serverVersion: {
         increment: 1,

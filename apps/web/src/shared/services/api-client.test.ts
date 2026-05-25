@@ -81,6 +81,12 @@ describe('api-client', () => {
     expect(protectedRequests[1]?.headers.get('authorization')).toBe(
       'Bearer rotated-access-token',
     );
+    expect(protectedRequests[1]?.headers.get('x-work-archive-client')).toBe(
+      'web',
+    );
+    expect(refreshRequests[0]?.headers.has('x-work-archive-client')).toBe(
+      false,
+    );
   });
 
   it('clears tokens when refresh fails after a protected 401', async () => {
@@ -205,6 +211,37 @@ describe('api-client', () => {
     });
 
     expect(requests[0]?.headers.has('authorization')).toBe(false);
+    expect(requests[0]?.headers.has('x-work-archive-client')).toBe(false);
+  });
+
+  it('adds the Work Archive client header only to authenticated unsafe requests', async () => {
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const requests: Request[] = [];
+
+    server.use(
+      http.get(`${API_BASE_URL}/auth/sessions`, ({ request }) => {
+        requests.push(request);
+
+        return HttpResponse.json({ sessions: [] });
+      }),
+      http.delete(`${API_BASE_URL}/auth/sessions/session-1`, ({ request }) => {
+        requests.push(request);
+
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    await requestAuthenticatedApiJson('/auth/sessions', {
+      method: 'GET',
+    });
+    await requestAuthenticatedApi('/auth/sessions/session-1', {
+      method: 'DELETE',
+    });
+
+    expect(requests[0]?.headers.has('x-work-archive-client')).toBe(false);
+    expect(requests[1]?.headers.get('x-work-archive-client')).toBe('web');
   });
 
   it('keeps non-JSON bodies under caller-owned content type', async () => {

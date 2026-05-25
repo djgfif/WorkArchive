@@ -17,6 +17,7 @@ import {
 
 import { ExternalApiKeyCryptoService } from '../src/modules/imports/credentials/external-api-key-crypto.service';
 import { ImportsCredentialService } from '../src/modules/imports/credentials/imports-credential.service';
+import type { ProviderRuntimeStateService } from '../src/modules/imports/runtime/provider-runtime-state.service';
 import {
   ALADIN_PROVIDER,
   ANILIST_PROVIDER,
@@ -151,6 +152,22 @@ function createCredentialPrismaMock() {
   };
 }
 
+function createProviderRuntimeStateMock() {
+  return {
+    getCircuitStatus: jest.fn(async () => ({
+      circuitState: 'closed',
+      consecutiveFailures: 0,
+      openedUntil: null,
+      reasonCode: null,
+    })),
+    isCircuitOpen: jest.fn(async () => false),
+    readCache: jest.fn(async () => null),
+    recordFailure: jest.fn(async () => undefined),
+    recordSuccess: jest.fn(async () => undefined),
+    writeCache: jest.fn(async () => undefined),
+  } as unknown as jest.Mocked<ProviderRuntimeStateService>;
+}
+
 describe('ExternalApiKeyCryptoService', () => {
   beforeEach(() => {
     process.env.EXTERNAL_API_KEY_ENCRYPTION_SECRET =
@@ -231,6 +248,8 @@ describe('ImportsService', () => {
 
   beforeEach(() => {
     delete process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED;
+    delete process.env.KOBIS_HTTP_PROVIDER_ENABLED;
+    delete process.env.NODE_ENV;
     credentialService = {
       deleteCredential: jest.fn(),
       getDecryptedCredential: jest.fn(),
@@ -244,6 +263,8 @@ describe('ImportsService', () => {
 
   afterEach(() => {
     delete process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED;
+    delete process.env.KOBIS_HTTP_PROVIDER_ENABLED;
+    delete process.env.NODE_ENV;
     jest.restoreAllMocks();
   });
 
@@ -2260,6 +2281,7 @@ describe('ImportsService', () => {
   });
 
   it('uses the authenticated user KOBIS credential for movie search', async () => {
+    process.env.KOBIS_HTTP_PROVIDER_ENABLED = 'true';
     credentialService.getDecryptedCredential.mockResolvedValue(
       JSON.stringify({
         apiKey: 'kobis-api-key',
@@ -2297,6 +2319,56 @@ describe('ImportsService', () => {
     const fetchUrl = new URL(String(fetchCall?.[0]));
 
     expect(fetchUrl.searchParams.get('key')).toBe('kobis-api-key');
+  });
+
+  it('blocks explicit KOBIS search in production unless the HTTP provider is enabled', async () => {
+    process.env.NODE_ENV = 'production';
+    credentialService.hasCredential.mockResolvedValue(true);
+
+    await expect(
+      service.search(USER_ID, {
+        provider: KOBIS_PROVIDER,
+        query: 'Dune',
+        type: WorkType.movie,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
+  });
+
+  it('skips default movie KOBIS search in production while preserving other providers', async () => {
+    process.env.NODE_ENV = 'production';
+    const providerRuntimeState = createProviderRuntimeStateMock();
+    const productionService = new ImportsService(
+      credentialService as unknown as ImportsCredentialService,
+      undefined,
+      undefined,
+      providerRuntimeState,
+    );
+
+    credentialService.hasCredential.mockResolvedValue(false);
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        query: {
+          search: [],
+        },
+      }),
+    );
+
+    const result = await productionService.search(USER_ID, {
+      query: 'Dune',
+      type: WorkType.movie,
+    });
+
+    expect(result.providers).toContain(KOBIS_PROVIDER);
+    expect(result.diagnostics.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: KOBIS_PROVIDER,
+          reasonCode: 'server_credential_missing',
+          status: 'skipped',
+        }),
+      ]),
+    );
   });
 
   it('dedupes repeated provider external refs while preserving merged identity', async () => {

@@ -41,11 +41,50 @@ Run from the repository root:
 ```bash
 scripts/security/public-readiness-check.sh
 git ls-files -ci --exclude-standard
+npm audit --omit=dev
+npm audit
+trivy fs .
+# If the release images are available locally or in the registry:
+trivy image work-archive-api
+trivy image work-archive-web
 npm run check:docs-links
 git status --short --branch
 ```
 
 The readiness script must end with `Public readiness check passed.`
+`trivy` commands require a local Trivy installation; document skipped scans in
+release notes when the tool or images are unavailable.
+
+Equivalent npm helpers are available for local release checks:
+
+```bash
+npm run security:audit:prod
+npm run security:audit
+npm run security:scan:fs
+npm run security:scan:images
+```
+
+## CSP Notes
+
+`apps/web/nginx.conf` currently keeps a conservative CSP for scripts and object
+embedding, but two directives are intentionally broad for the current React and
+media model:
+
+- `style-src 'self' 'unsafe-inline'`: Mantine and runtime component styles still
+  rely on inline style attributes and injected style blocks. Removing
+  `'unsafe-inline'` now would break production UI rendering. Risk: an HTML
+  injection bug would have more styling latitude. Future hardening should test
+  nonce/hash-based style handling or a build-time extraction path before
+  removing it.
+- `img-src 'self' data: https:`: imported catalog covers and user-entered image
+  URLs are loaded from multiple HTTPS provider domains, and placeholders may use
+  `data:`. Risk: broad HTTPS image loading can leak page views to arbitrary image
+  hosts supplied by records. Future hardening should proxy/cache remote covers
+  through a controlled image endpoint and narrow `img-src` to that origin plus
+  vetted providers.
+
+Do not tighten these directives in a release without browser coverage for the
+works list, add flow, detail page, and imported cover rendering.
 
 ## Manual Checks
 

@@ -10,7 +10,57 @@ import type { SecurityAuditService } from './security-audit.service';
 import { setRequestId } from './security-audit.service';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const FETCH_METADATA_SITE_VALUES = new Set([
+  'cross-site',
+  'none',
+  'same-origin',
+  'same-site',
+]);
 const redisClients: Redis[] = [];
+
+export function createProductionFetchMetadataGuard(
+  config: ApiRuntimeConfig,
+  securityAudit: SecurityAuditService,
+) {
+  return (request: Request, response: Response, next: NextFunction) => {
+    if (!config.isProduction || SAFE_METHODS.has(request.method)) {
+      next();
+
+      return;
+    }
+
+    const fetchSite = request.header('sec-fetch-site')?.trim().toLowerCase();
+
+    if (!fetchSite) {
+      next();
+
+      return;
+    }
+
+    if (fetchSite !== 'cross-site') {
+      next();
+
+      return;
+    }
+
+    void securityAudit.record({
+      eventType: 'http.fetch_metadata_blocked',
+      metadata: {
+        method: request.method,
+        path: request.path,
+        secFetchSite: fetchSite,
+      },
+      request,
+      severity: 'warning',
+    });
+
+    response.status(403).json({
+      message: 'Cross-site unsafe requests are not allowed.',
+      error: 'Forbidden',
+      statusCode: 403,
+    });
+  };
+}
 
 export function createProductionOriginGuard(
   config: ApiRuntimeConfig,
@@ -19,7 +69,13 @@ export function createProductionOriginGuard(
   const allowedOrigins = new Set(config.corsOrigin);
 
   return (request: Request, response: Response, next: NextFunction) => {
-    if (!config.isProduction || SAFE_METHODS.has(request.method)) {
+    const fetchSite = request.header('sec-fetch-site')?.trim().toLowerCase();
+
+    if (
+      !config.isProduction ||
+      SAFE_METHODS.has(request.method) ||
+      (fetchSite !== undefined && FETCH_METADATA_SITE_VALUES.has(fetchSite))
+    ) {
       next();
 
       return;

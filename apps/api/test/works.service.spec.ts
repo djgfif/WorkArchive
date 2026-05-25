@@ -55,7 +55,11 @@ describe('WorksService', () => {
   let userRecordsService: jest.Mocked<
     Pick<
       UserRecordsService,
-      'create' | 'findActiveByUser' | 'findActiveByUserAndId' | 'update'
+      | 'create'
+      | 'findActiveByUser'
+      | 'findActiveByUserAndId'
+      | 'update'
+      | 'updateActiveForUser'
     >
   >;
 
@@ -77,6 +81,7 @@ describe('WorksService', () => {
       findActiveByUser: jest.fn(),
       findActiveByUserAndId: jest.fn(),
       update: jest.fn(),
+      updateActiveForUser: jest.fn(),
     };
 
     service = new WorksService(
@@ -254,7 +259,7 @@ describe('WorksService', () => {
     userRecordsService.findActiveByUserAndId.mockResolvedValue(
       createWorkAggregateFixture(),
     );
-    userRecordsService.update.mockResolvedValue(
+    userRecordsService.updateActiveForUser.mockResolvedValue(
       createWorkAggregateFixture({
         deletedAt: new Date('2026-04-18T01:00:00.000Z'),
         serverVersion: 2,
@@ -263,7 +268,8 @@ describe('WorksService', () => {
 
     await service.remove(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28');
 
-    expect(userRecordsService.update).toHaveBeenCalledWith(
+    expect(userRecordsService.updateActiveForUser).toHaveBeenCalledWith(
+      USER_ID,
       '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
       {
         deletedAt: expect.any(Date),
@@ -271,6 +277,10 @@ describe('WorksService', () => {
         serverVersion: {
           increment: 1,
         },
+      },
+      undefined,
+      {
+        includeDeletedResult: true,
       },
     );
   });
@@ -293,7 +303,7 @@ describe('WorksService', () => {
       }),
     );
     expect(catalogService.update).not.toHaveBeenCalled();
-    expect(userRecordsService.update).not.toHaveBeenCalled();
+    expect(userRecordsService.updateActiveForUser).not.toHaveBeenCalled();
   });
 
   it('rejects blank titles on create and update', async () => {
@@ -327,7 +337,7 @@ describe('WorksService', () => {
     });
 
     userRecordsService.findActiveByUserAndId.mockResolvedValue(existing);
-    userRecordsService.update.mockResolvedValue(updated);
+    userRecordsService.updateActiveForUser.mockResolvedValue(updated);
 
     const result = await service.update(
       USER_ID,
@@ -347,7 +357,8 @@ describe('WorksService', () => {
       }),
       expect.any(Object),
     );
-    expect(userRecordsService.update).toHaveBeenCalledWith(
+    expect(userRecordsService.updateActiveForUser).toHaveBeenCalledWith(
+      USER_ID,
       '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
       expect.objectContaining({
         favorite: true,
@@ -386,7 +397,7 @@ describe('WorksService', () => {
     });
 
     userRecordsService.findActiveByUserAndId.mockResolvedValue(existing);
-    userRecordsService.update.mockResolvedValue(updated);
+    userRecordsService.updateActiveForUser.mockResolvedValue(updated);
 
     await service.update(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28', {
       genres: ['회귀', '판타지', '빙의'],
@@ -399,7 +410,8 @@ describe('WorksService', () => {
       }),
       expect.any(Object),
     );
-    expect(userRecordsService.update).toHaveBeenCalledWith(
+    expect(userRecordsService.updateActiveForUser).toHaveBeenCalledWith(
+      USER_ID,
       '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
       expect.objectContaining({
         personalTags: ['기존 태그', '회귀', '빙의'],
@@ -410,6 +422,11 @@ describe('WorksService', () => {
 
   it('rejects update and delete attempts for missing or foreign works', async () => {
     userRecordsService.findActiveByUserAndId.mockResolvedValue(null);
+    userRecordsService.updateActiveForUser.mockRejectedValue(
+      new NotFoundException(
+        'User record with id "9fcbf92f-6347-4d79-bdf8-9d0d18439c28" was not found.',
+      ),
+    );
 
     await expect(
       service.update(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28', {

@@ -101,9 +101,13 @@ Provider network facts verified in code:
 - provider circuit state is in-memory per API process. A rolling restart resets
   it, and multiple API instances do not share it.
 - KOBIS currently uses an upstream HTTP endpoint and sends the user-scoped API
-  key as the `key` query parameter. Do not route this over untrusted networks;
-  keep guest access disabled and prefer egress through a controlled host or
-  proxy if KOBIS is enabled for beta.
+  key as the `key` query parameter. Guest access remains disabled. In
+  production, KOBIS is disabled unless `KOBIS_HTTP_PROVIDER_ENABLED=true` is
+  explicitly set.
+- Enable KOBIS only when the deployment egress path is controlled and approved
+  for HTTP query-string credentials, for example through a trusted network or
+  sanitizing outbound proxy. If enabled, monitor provider failures and avoid
+  logging full upstream URLs because the query string contains the user key.
 
 Redis circuit backlog:
 

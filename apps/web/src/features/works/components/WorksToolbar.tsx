@@ -144,6 +144,12 @@ type QuickCollectionOption =
   | {
       description: string;
       label: string;
+      status: WorkStatus;
+      type: 'status';
+    }
+  | {
+      description: string;
+      label: string;
       type: 'smart';
       value: Exclude<WorksSmartFilter, 'all'>;
     }
@@ -156,7 +162,7 @@ type QuickCollectionOption =
 
 const quickCollectionOptions: QuickCollectionOption[] = [
   {
-    description: '최근 손본 기록',
+    description: '수정순',
     label: '최근 수정',
     sortBy: 'updatedAt',
     type: 'sort',
@@ -166,6 +172,12 @@ const quickCollectionOptions: QuickCollectionOption[] = [
     label: '최근 추가',
     sortBy: 'createdAt',
     type: 'sort',
+  },
+  {
+    description: '보는 중',
+    label: '이어보기',
+    status: 'in_progress',
+    type: 'status',
   },
   {
     description: '다시 찾을 작품',
@@ -211,11 +223,19 @@ function isQuickCollectionActive(
   query: WorksListQuery,
 ) {
   if (option.type === 'smart') {
-    return (query.smartFilter ?? 'all') === option.value;
+    return (query.smartFilter ?? 'all') === option.value && query.status === 'all';
+  }
+
+  if (option.type === 'status') {
+    return (
+      query.status === option.status &&
+      (query.smartFilter ?? 'all') === 'all'
+    );
   }
 
   return (
     (query.smartFilter ?? 'all') === 'all' &&
+    query.status === 'all' &&
     query.sortBy === option.sortBy &&
     (query.sortDirection ?? getDefaultSortDirection(option.sortBy)) ===
       getDefaultSortDirection(option.sortBy)
@@ -232,12 +252,22 @@ function getQuickCollectionQuery(
     return {
       ...query,
       smartFilter: isActive ? 'all' : option.value,
+      status: 'all',
+    };
+  }
+
+  if (option.type === 'status') {
+    return {
+      ...query,
+      smartFilter: 'all',
+      status: isActive ? 'all' : option.status,
     };
   }
 
   return {
     ...query,
     smartFilter: 'all',
+    status: 'all',
     sortBy: option.sortBy,
     sortDirection: getDefaultSortDirection(option.sortBy),
   };
@@ -537,160 +567,149 @@ export function WorksToolbar({
         eyebrow={isTrashScope ? '삭제 항목 관리' : '내 작품'}
         title={isTrashScope ? '휴지통' : '작품 서재'}
         variant="compact"
-      >
-        {/* ── 검색 + 컨트롤 바 ── */}
-        <Box className={cn(css.toolbarControls)}>
-          {/* 검색 */}
-          <Box className={cn(css.toolbarSearch)}>
-            <ArchiveSearchBar
-              aria-label="작품 검색 (단축키: /)"
-              inputRef={searchRef}
-              onChange={(searchTerm) => onQueryChange({ ...query, searchTerm })}
-              placeholder={
-                isTrashScope
-                  ? '삭제된 작품 검색  (/)'
-                  : '제목, 작가, 태그 검색  (/)'
-              }
-              value={query.searchTerm}
-            />
-          </Box>
+      />
 
-          {/* 뷰 모드 토글 */}
-          {collectionScope === 'active' && (
-            <Box className={cn(css.viewToggle)}>
-              {(['grid', 'list'] as const).map((mode) => (
-                <Tooltip
-                  key={mode}
-                  label={mode === 'grid' ? '포스터 뷰 (g)' : '리스트 뷰 (g)'}
-                  position="bottom"
-                  withArrow
-                >
-                  <Box
-                    component="button"
-                    aria-label={mode === 'grid' ? '포스터 뷰' : '리스트 뷰'}
-                    aria-pressed={viewMode === mode}
-                    className={cn(css.viewToggleButton)}
-                    data-active={viewMode === mode ? 'true' : 'false'}
-                    onClick={() => onViewModeChange(mode)}
-                    type="button"
-                  >
-                    {mode === 'grid' ? <IconGrid /> : <IconList />}
-                  </Box>
-                </Tooltip>
-              ))}
-            </Box>
-          )}
-
-          {/* 정렬 방향 */}
-          <NativeSelect
-            aria-label="정렬 기준"
-            data={workSortOptions.map((option) => ({
-              label: option.label,
-              value: option.value,
-            }))}
-            onChange={(event) =>
-              onQueryChange({
-                ...query,
-                sortBy: event.currentTarget.value as typeof query.sortBy,
-                sortDirection: getDefaultSortDirection(
-                  event.currentTarget.value as typeof query.sortBy,
-                ),
-              })
+      {/* ── 검색 + 컨트롤 바 ── */}
+      <Box className={cn(css.toolbarControls)}>
+        <Box className={cn(css.toolbarSearch)}>
+          <ArchiveSearchBar
+            aria-label="작품 검색 (단축키: /)"
+            inputRef={searchRef}
+            onChange={(searchTerm) => onQueryChange({ ...query, searchTerm })}
+            placeholder={
+              isTrashScope
+                ? '삭제된 작품 검색  (/)'
+                : '제목, 작가, 태그 검색  (/)'
             }
-            size="sm"
-            className={cn(css.toolbarSortSelect)}
-            value={query.sortBy}
-          />
-
-          {query.sortBy !== 'updatedAt' || sortDirection !== defaultSortDirection ? (
-            <Tooltip
-              label={
-                sortDirection === 'asc'
-                  ? '오름차순 — 클릭하면 내림차순'
-                  : '내림차순 — 클릭하면 오름차순'
-              }
-              position="bottom"
-              withArrow
-            >
-              <Box
-                component="button"
-                aria-label={
-                  sortDirection === 'asc' ? '오름차순' : '내림차순'
-                }
-                aria-pressed={sortDirection === 'asc'}
-                className={cn(css.sortDirectionButton)}
-                onClick={() =>
-                  onQueryChange({
-                    ...query,
-                    sortDirection:
-                      sortDirection === 'asc' ? 'desc' : 'asc',
-                  })
-                }
-                type="button"
-              >
-                {sortDirection === 'asc' ? <IconSortAsc /> : <IconSortDesc />}
-                {sortDirection === 'asc' ? 'ASC' : 'DESC'}
-              </Box>
-            </Tooltip>
-          ) : null}
-
-          {/* 고급 필터 버튼 */}
-          <Tooltip label="고급 필터 (f)" position="bottom" withArrow>
-            <Box
-              component="button"
-              aria-expanded={advancedOpen}
-              aria-label="고급 필터"
-              className={cn(css.advancedFilterButton)}
-              data-active={advancedOpen ? 'true' : 'false'}
-              onClick={() => setAdvancedOpen((v) => !v)}
-              type="button"
-            >
-              <IconFilter />
-              필터
-              {hasActiveFilters && (
-                <Box
-                  className={cn(css.advancedFilterCount)}
-                >
-                  {activeFilterChips.length}
-                </Box>
-              )}
-            </Box>
-          </Tooltip>
-
-          {/* 범위 전환 (활성/휴지통) */}
-          <FilterPillGroup
-            aria-label="작품 범위"
-            onChange={onCollectionScopeChange}
-            options={[
-              { label: '서재', value: 'active', count: totalActiveCount },
-              { label: '휴지통', value: 'trash', count: totalDeletedCount },
-            ]}
-            value={collectionScope}
+            value={query.searchTerm}
           />
         </Box>
-      </ArchiveHero>
+
+        <NativeSelect
+          aria-label="정렬 기준"
+          data={workSortOptions.map((option) => ({
+            label: option.label,
+            value: option.value,
+          }))}
+          onChange={(event) =>
+            onQueryChange({
+              ...query,
+              sortBy: event.currentTarget.value as typeof query.sortBy,
+              sortDirection: getDefaultSortDirection(
+                event.currentTarget.value as typeof query.sortBy,
+              ),
+            })
+          }
+          size="sm"
+          className={cn(css.toolbarSortSelect)}
+          value={query.sortBy}
+        />
+
+        {collectionScope === 'active' && (
+          <Box className={cn(css.viewToggle)}>
+            {(['grid', 'list'] as const).map((mode) => (
+              <Tooltip
+                key={mode}
+                label={mode === 'grid' ? '포스터 뷰 (g)' : '리스트 뷰 (g)'}
+                position="bottom"
+                withArrow
+              >
+                <Box
+                  component="button"
+                  aria-label={mode === 'grid' ? '포스터 뷰' : '리스트 뷰'}
+                  aria-pressed={viewMode === mode}
+                  className={cn(css.viewToggleButton)}
+                  data-active={viewMode === mode ? 'true' : 'false'}
+                  onClick={() => onViewModeChange(mode)}
+                  type="button"
+                >
+                  {mode === 'grid' ? <IconGrid /> : <IconList />}
+                </Box>
+              </Tooltip>
+            ))}
+          </Box>
+        )}
+
+        {query.sortBy !== 'updatedAt' || sortDirection !== defaultSortDirection ? (
+          <Tooltip
+            label={
+              sortDirection === 'asc'
+                ? '오름차순 — 클릭하면 내림차순'
+                : '내림차순 — 클릭하면 오름차순'
+            }
+            position="bottom"
+            withArrow
+          >
+            <Box
+              component="button"
+              aria-label={
+                sortDirection === 'asc' ? '오름차순' : '내림차순'
+              }
+              aria-pressed={sortDirection === 'asc'}
+              className={cn(css.sortDirectionButton)}
+              onClick={() =>
+                onQueryChange({
+                  ...query,
+                  sortDirection:
+                    sortDirection === 'asc' ? 'desc' : 'asc',
+                })
+              }
+              type="button"
+            >
+              {sortDirection === 'asc' ? <IconSortAsc /> : <IconSortDesc />}
+              {sortDirection === 'asc' ? 'ASC' : 'DESC'}
+            </Box>
+          </Tooltip>
+        ) : null}
+
+        <Tooltip label="고급 필터 (f)" position="bottom" withArrow>
+          <Box
+            component="button"
+            aria-expanded={advancedOpen}
+            aria-label="고급 필터"
+            className={cn(css.advancedFilterButton)}
+            data-active={advancedOpen ? 'true' : 'false'}
+            onClick={() => setAdvancedOpen((v) => !v)}
+            type="button"
+          >
+            <IconFilter />
+            필터
+            {hasActiveFilters && (
+              <Box
+                className={cn(css.advancedFilterCount)}
+              >
+                {activeFilterChips.length}
+              </Box>
+            )}
+          </Box>
+        </Tooltip>
+
+        <FilterPillGroup
+          aria-label="작품 범위"
+          onChange={onCollectionScopeChange}
+          options={[
+            { label: '서재', value: 'active', count: totalActiveCount },
+            { label: '휴지통', value: 'trash', count: totalDeletedCount },
+          ]}
+          value={collectionScope}
+        />
+      </Box>
 
       {collectionScope === 'active' && (
         <Stack gap="md">
-          <MediaTypeFilter
-            onChange={(type) => onQueryChange({ ...query, type })}
-            totalCount={totalActiveCount}
-            typeCounts={typeCounts}
-            value={query.type}
-          />
           {totalActiveCount > 0 && (
             <Box className={cn(css.quickCollectionRail)}>
               <Group align="center" justify="space-between" wrap="wrap">
                 <Stack gap={1}>
                   <Text c="var(--app-text-primary)" fw={800} size="sm">
-                    개인 섹션
+                    빠른 보기
                   </Text>
                   <Text c="var(--app-text-muted)" size="xs">
                     최근 흐름과 정리할 기록을 빠르게 전환합니다.
                   </Text>
                 </Stack>
                 <Group
-                  aria-label="개인 섹션"
+                  aria-label="빠른 보기"
                   className={cn(css.quickCollectionOptions)}
                   gap="xs"
                   role="group"
@@ -720,6 +739,12 @@ export function WorksToolbar({
               </Group>
             </Box>
           )}
+          <MediaTypeFilter
+            onChange={(type) => onQueryChange({ ...query, type })}
+            totalCount={totalActiveCount}
+            typeCounts={typeCounts}
+            value={query.type}
+          />
         </Stack>
       )}
 
@@ -803,7 +828,6 @@ export function WorksToolbar({
       <Box
         className={cn(css.advancedFilterCollapse)}
         data-open={advancedOpen ? 'true' : 'false'}
-        style={{ display: advancedOpen ? undefined : 'none' }}
       >
         <Box className={cn(css.advancedFilterPanel)}>
           {/* 패널 헤더 */}
@@ -977,10 +1001,10 @@ export function WorksToolbar({
 
                 <Stack gap="xs">
                   <Text c="var(--app-text-muted)" fw={700} size="xs">
-                    Smart Collection
+                    추천 보기
                   </Text>
                   <FilterPillGroup
-                    aria-label="스마트 필터"
+                    aria-label="추천 보기 필터"
                     onChange={(smartFilter) =>
                       onQueryChange({ ...query, smartFilter })
                     }

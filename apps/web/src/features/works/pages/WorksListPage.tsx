@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Box, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 
 import { WORK_STATUSES, WORK_TYPES } from '@work-archive/shared-types';
 import type { WorkRecord } from '@work-archive/shared-types';
@@ -20,6 +21,7 @@ import { useAuthSession } from '@features/auth';
 import {
   ArchiveEmptyState,
   ArchiveSkeleton,
+  WorkPoster,
 } from '../components/ArchiveComponents';
 import { AddWorkDialog } from '../components/AddWorkDialog';
 import { WorksList, type WorksViewMode } from '../components/WorksList';
@@ -39,7 +41,19 @@ import {
   type WorksRatingPreset,
   type WorksSmartFilter,
 } from '../utils/query-works';
+import { getPersonalTags } from '../utils/graph-tags';
 import { createUpsertWorkInputFromRecord } from '../utils/work-form';
+import {
+  getWorkStatusLabel,
+  getWorkTypeLabel,
+} from '../utils/work-options';
+import styles from '../components/ArchiveComponents.module.css';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined) {
+  return value ?? '';
+}
 
 function normalizeStatusQueryParam(
   value: string | null,
@@ -209,6 +223,176 @@ function buildSearchParams(
   return nextSearchParams;
 }
 
+function formatLibraryMeta(work: WorkRecord) {
+  const ratingLabel = work.rating === null ? '미평가' : `★ ${work.rating.toFixed(1)}`;
+
+  return `${ratingLabel} · ${getWorkStatusLabel(work.status)}`;
+}
+
+function needsLibraryCuration(work: WorkRecord) {
+  return (
+    work.rating === null ||
+    work.shortReview.trim() === '' ||
+    work.genres.length === 0 ||
+    work.thumbnailUrl.trim() === '' ||
+    getPersonalTags(work.personalTags).length === 0
+  );
+}
+
+function compareDateDesc(
+  leftValue: string | null | undefined,
+  rightValue: string | null | undefined,
+) {
+  return new Date(rightValue ?? 0).getTime() - new Date(leftValue ?? 0).getTime();
+}
+
+function getLibraryHomeSections(works: WorkRecord[]) {
+  return {
+    continueWorks: [...works]
+      .filter((work) => work.status === 'in_progress' || work.lastConsumedAt || work.lastConsumedLabel)
+      .sort((left, right) =>
+        compareDateDesc(
+          left.lastConsumedAt ?? left.updatedAt,
+          right.lastConsumedAt ?? right.updatedAt,
+        ),
+      )
+      .slice(0, 8),
+    highlyRatedWorks: [...works]
+      .filter((work) => work.rating !== null && work.rating >= 4)
+      .sort((left, right) => (right.rating ?? 0) - (left.rating ?? 0) || compareDateDesc(left.updatedAt, right.updatedAt))
+      .slice(0, 8),
+    needsCurationWorks: works.filter(needsLibraryCuration).slice(0, 8),
+    recentlyAddedWorks: [...works]
+      .sort((left, right) => compareDateDesc(left.createdAt, right.createdAt))
+      .slice(0, 8),
+  };
+}
+
+interface LibraryHomeShelfProps {
+  title: string;
+  works: WorkRecord[];
+}
+
+function LibraryHomeShelf({ title, works }: LibraryHomeShelfProps) {
+  if (works.length === 0) {
+    return null;
+  }
+
+  return (
+    <Stack component="section" gap="sm">
+      <Title order={2} size="h3">
+        {title}
+      </Title>
+      <Box className={cn(css.homeShelf)}>
+        {works.map((work) => {
+          const typeLabel = getWorkTypeLabel(work.type);
+
+          return (
+            <Link
+              aria-label={`${work.title} 상세 보기`}
+              className={cn(css.homeShelfLink)}
+              key={`${title}:${work.id}`}
+              to={`/works/${work.id}`}
+            >
+              <Paper className={cn(css.homeShelfCard)} withBorder>
+                <WorkPoster
+                  coverSeed={work.id}
+                  thumbnailUrl={work.thumbnailUrl}
+                  title={work.title}
+                  typeLabel={typeLabel}
+                  variant="grid"
+                />
+                <Stack gap={4} mt="xs">
+                  <span
+                    aria-hidden="true"
+                    className={cn(css.homeShelfTitle)}
+                    data-title={work.title}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={cn(css.homeShelfAuthor)}
+                    data-title={work.author.trim() || '작가·제작자 미입력'}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={cn(css.homeShelfMeta)}
+                    data-title={formatLibraryMeta(work)}
+                  />
+                </Stack>
+              </Paper>
+            </Link>
+          );
+        })}
+      </Box>
+    </Stack>
+  );
+}
+
+interface LibraryHomeProps {
+  onDelete: (work: WorkRecord) => Promise<void>;
+  onQuickProgressUpdate: (
+    work: WorkRecord,
+    update: WorkQuickProgressUpdate,
+  ) => Promise<void>;
+  onQuickUpdate: (
+    work: WorkRecord,
+    update: {
+      favorite?: boolean;
+      rating?: number | null;
+      status?: WorkRecord['status'];
+    },
+  ) => Promise<void>;
+  updatingWorkId: string | null;
+  viewMode: WorksViewMode;
+  works: WorkRecord[];
+}
+
+function LibraryHome({
+  onDelete,
+  onQuickProgressUpdate,
+  onQuickUpdate,
+  updatingWorkId,
+  viewMode,
+  works,
+}: LibraryHomeProps) {
+  const {
+    continueWorks,
+    highlyRatedWorks,
+    needsCurationWorks,
+    recentlyAddedWorks,
+  } = getLibraryHomeSections(works);
+
+  return (
+    <Stack className={cn(css.homeSections)} gap="xl">
+      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="xl">
+        <LibraryHomeShelf title="이어보기" works={continueWorks} />
+        <LibraryHomeShelf title="최근 추가한 작품" works={recentlyAddedWorks} />
+        <LibraryHomeShelf title="높게 평가한 작품" works={highlyRatedWorks} />
+        <LibraryHomeShelf title="정리 필요한 작품" works={needsCurationWorks} />
+      </SimpleGrid>
+
+      <Stack component="section" gap="md">
+        <Stack gap={2}>
+          <Title order={2} size="h3">
+            전체 목록
+          </Title>
+          <Text c="dimmed" size="sm">
+            모든 작품을 현재 정렬 기준으로 봅니다.
+          </Text>
+        </Stack>
+        <WorksList
+          onDelete={onDelete}
+          onQuickProgressUpdate={onQuickProgressUpdate}
+          onQuickUpdate={onQuickUpdate}
+          updatingWorkId={updatingWorkId}
+          viewMode={viewMode}
+          works={works}
+        />
+      </Stack>
+    </Stack>
+  );
+}
+
 export function WorksListPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -266,6 +450,7 @@ export function WorksListPage() {
     query.sortBy !== 'updatedAt' ||
     (query.sortDirection ?? getDefaultSortDirection(query.sortBy)) !==
       getDefaultSortDirection(query.sortBy);
+  const isLibraryHomeMode = collectionScope === 'active' && !hasActiveFilters;
   useEffect(() => {
     const nextQuery = getQueryFromSearchParams(searchParams);
     const nextScope = getCollectionScopeFromSearchParams(searchParams);
@@ -590,14 +775,25 @@ export function WorksListPage() {
             works={works}
           />
         ) : (
-          <WorksList
-            onDelete={handleDelete}
-            onQuickProgressUpdate={handleQuickProgressUpdate}
-            onQuickUpdate={handleQuickUpdate}
-            updatingWorkId={updatingWorkId}
-            viewMode={viewMode}
-            works={works}
-          />
+          isLibraryHomeMode ? (
+            <LibraryHome
+              onDelete={handleDelete}
+              onQuickProgressUpdate={handleQuickProgressUpdate}
+              onQuickUpdate={handleQuickUpdate}
+              updatingWorkId={updatingWorkId}
+              viewMode={viewMode}
+              works={works}
+            />
+          ) : (
+            <WorksList
+              onDelete={handleDelete}
+              onQuickProgressUpdate={handleQuickProgressUpdate}
+              onQuickUpdate={handleQuickUpdate}
+              updatingWorkId={updatingWorkId}
+              viewMode={viewMode}
+              works={works}
+            />
+          )
         ))}
 
       <AddWorkDialog

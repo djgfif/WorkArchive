@@ -13,6 +13,8 @@ import { localizeApiErrorMessage } from '../utils/localize-message';
 const DEFAULT_DEVELOPMENT_API_BASE_URL = '/api';
 const DEFAULT_PRODUCTION_API_BASE_URL = '/api';
 const LOOPBACK_API_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+const UNSAFE_METHODS = new Set(['DELETE', 'PATCH', 'POST', 'PUT']);
+const WORK_ARCHIVE_CLIENT_HEADER = 'X-Work-Archive-Client';
 
 type StoredAuthTokens = NonNullable<ReturnType<typeof readStoredAuthTokens>>;
 
@@ -77,6 +79,10 @@ function shouldSetJsonContentType(body: BodyInit | null | undefined) {
   return typeof body === 'string';
 }
 
+function isUnsafeMethod(method: string | undefined) {
+  return UNSAFE_METHODS.has((method ?? 'GET').toUpperCase());
+}
+
 export async function requestApi<TResponse>(
   path: string,
   init: RequestInit,
@@ -90,6 +96,10 @@ export async function requestApi<TResponse>(
 
   if (accessToken) {
     headers.set('authorization', `Bearer ${accessToken}`);
+  }
+
+  if (accessToken && isUnsafeMethod(init.method)) {
+    headers.set(WORK_ARCHIVE_CLIENT_HEADER, 'web');
   }
 
   let response: Response;

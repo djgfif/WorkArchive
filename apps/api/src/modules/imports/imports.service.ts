@@ -363,6 +363,21 @@ export class ImportsService {
 
       const configured = await this.isProviderConfigured(userId, provider);
 
+      if (provider === KOBIS_PROVIDER && !this.isKobisHttpProviderEnabled()) {
+        if (explicitSingleProvider) {
+          throw new ForbiddenException(this.getKobisDisabledMessage());
+        }
+
+        this.addSearchDiagnostic(diagnostics, provider, {
+          configured,
+          message: this.getKobisDisabledMessage(),
+          reasonCode: 'server_credential_missing',
+          resultCount: 0,
+          status: 'skipped',
+        });
+        continue;
+      }
+
       if (!configured && PROVIDERS[provider].credentialMode === 'server') {
         this.addSearchDiagnostic(diagnostics, provider, {
           configured,
@@ -783,6 +798,10 @@ export class ImportsService {
   ) {
     const metadata = PROVIDERS[provider];
 
+    if (provider === KOBIS_PROVIDER && !this.isKobisHttpProviderEnabled()) {
+      return false;
+    }
+
     if (metadata.credentialMode === 'none') {
       return true;
     }
@@ -818,6 +837,20 @@ export class ImportsService {
     }
 
     return false;
+  }
+
+  private isKobisHttpProviderEnabled() {
+    if (process.env.NODE_ENV?.trim() !== 'production') {
+      return true;
+    }
+
+    return (
+      process.env.KOBIS_HTTP_PROVIDER_ENABLED?.trim().toLowerCase() === 'true'
+    );
+  }
+
+  private getKobisDisabledMessage() {
+    return 'KOBIS HTTP provider is disabled in production unless KOBIS_HTTP_PROVIDER_ENABLED=true is explicitly configured.';
   }
 
   private buildProviderKeyTestResponse(input: {
@@ -858,6 +891,10 @@ export class ImportsService {
       case TAVILY_SEARCH_PROVIDER:
         return this.testTavilyProviderKey(credentials);
       case KOBIS_PROVIDER:
+        if (!this.isKobisHttpProviderEnabled()) {
+          throw new ForbiddenException(this.getKobisDisabledMessage());
+        }
+
         return this.testKobisProviderKey(credentials);
       default:
         throw new BadRequestException('Unsupported provider key test.');

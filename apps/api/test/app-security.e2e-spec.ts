@@ -1,6 +1,6 @@
 import { type AddressInfo } from 'node:net';
 
-import { Body, Controller, Get, Post, type INestApplication } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import {
   afterEach,
@@ -23,6 +23,14 @@ class TestAuthController {
     return {
       email: body.email,
       ok: true,
+    };
+  }
+
+  @Get('google/callback')
+  googleCallback(@Query('state') state: string | undefined) {
+    return {
+      ok: true,
+      state,
     };
   }
 }
@@ -176,6 +184,58 @@ describe('app security middleware', () => {
       ).resolves.toEqual(
         expect.objectContaining({
           status: 201,
+        }),
+      );
+    });
+
+    it('blocks cross-site unsafe requests with Fetch Metadata before Origin fallback', async () => {
+      const response = await postLogin({
+        origin: 'https://workarchive.example.com',
+        'sec-fetch-site': 'cross-site',
+      });
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual(
+        expect.objectContaining({
+          message: 'Cross-site unsafe requests are not allowed.',
+          statusCode: 403,
+        }),
+      );
+      expect(securityAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'http.fetch_metadata_blocked',
+          metadata: expect.objectContaining({
+            secFetchSite: 'cross-site',
+          }),
+          severity: 'warning',
+        }),
+      );
+    });
+
+    it('allows same-origin unsafe requests with Fetch Metadata even when Origin is absent', async () => {
+      await expect(
+        postLogin({
+          'sec-fetch-site': 'same-origin',
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          status: 201,
+        }),
+      );
+    });
+
+    it('keeps OAuth top-level GET callback flows outside unsafe CSRF blocking', async () => {
+      await expect(
+        fetch(`${baseUrl}/api/auth/google/callback?state=test-state`, {
+          headers: {
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'cross-site',
+          },
+          method: 'GET',
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          status: 200,
         }),
       );
     });
