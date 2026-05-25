@@ -1593,9 +1593,22 @@
 
   .addWorkSaveFooter {
     position: sticky;
-    bottom: max(0.75rem, env(safe-area-inset-bottom, 0));
-    z-index: 8;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+    z-index: 20;
+    margin-bottom: env(safe-area-inset-bottom, 0);
+    border-color: color-mix(in srgb, var(--app-border-default) 74%, transparent);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent),
+      color-mix(in srgb, var(--app-surface-card) 86%, transparent);
     box-shadow: var(--app-shadow-overlay);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  [data-mantine-color-scheme='light'] .addWorkSaveFooter {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.78), transparent),
+      color-mix(in srgb, var(--app-surface-card) 88%, transparent);
   }
 
   .shelf {
