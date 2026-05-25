@@ -31,7 +31,7 @@ import {
   AppButton,
   AppLinkButton,
 } from '@shared/components/AppPrimitives';
-import { getDisplayImageUrlCandidates } from '@shared/utils/image-proxy';
+import { usePosterImageSource } from '@shared/components/usePosterImageSource';
 import {
   formatWorkDate,
   getWorkStatusLabel,
@@ -337,47 +337,26 @@ export function WorkPoster({
   typeLabel,
   variant = 'card',
 }: WorkPosterProps & { overlay?: React.ReactNode }) {
-  const displayImageUrls = getDisplayImageUrlCandidates(thumbnailUrl);
-  const [imageUrlIndex, setImageUrlIndex] = useState(0);
-  const displayImageUrl = displayImageUrls[imageUrlIndex] ?? '';
-  const [imageFailed, setImageFailed] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const shouldLoadEagerly =
-    variant === 'detail' || variant === 'form' || variant === 'hero';
-  useEffect(() => {
-    setImageUrlIndex(0);
-    setImageFailed(false);
-    setImageLoaded(false);
-  }, [thumbnailUrl]);
+  const posterImage = usePosterImageSource(thumbnailUrl, variant);
+
   return (
     <Box className={cx(cn(css.posterShell), posterVariantClass[variant], className)}>
-      {displayImageUrl && !imageFailed ? (
+      {posterImage.src && !posterImage.failed ? (
         <>
-          {!imageLoaded && (
+          {!posterImage.loaded && (
             <Box aria-hidden="true" className={cn(css.posterImageSkeleton)} />
           )}
           <img
             alt={`${title} 포스터`}
             className={cx(
               cn(css.posterImage),
-              imageLoaded && cn(css.posterImageLoaded),
+              posterImage.loaded && cn(css.posterImageLoaded),
             )}
-            decoding="async"
-            loading={shouldLoadEagerly ? 'eager' : 'lazy'}
-            onError={() => {
-              const nextIndex = imageUrlIndex + 1;
-
-              if (nextIndex < displayImageUrls.length) {
-                setImageUrlIndex(nextIndex);
-                setImageLoaded(false);
-
-                return;
-              }
-
-              setImageFailed(true);
-            }}
-            onLoad={() => setImageLoaded(true)}
-            src={displayImageUrl}
+            decoding={posterImage.decoding}
+            loading={posterImage.loading}
+            onError={posterImage.onError}
+            onLoad={posterImage.onLoad}
+            src={posterImage.src}
           />
         </>
       ) : (

@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Box, Text } from '@mantine/core';
 
-import { getDisplayImageUrl } from '@shared/utils/image-proxy';
+import { usePosterImageSource, type PosterImageVariant } from './usePosterImageSource';
 import styles from './ArtworkPoster.module.css';
 
 interface ArtworkPosterProps {
@@ -11,7 +11,7 @@ interface ArtworkPosterProps {
   thumbnailUrl?: string;
   title: string;
   typeLabel?: string;
-  variant?: 'card' | 'detail' | 'form' | 'grid' | 'hero' | 'row';
+  variant?: PosterImageVariant;
 }
 
 const posterVariantClass: Record<NonNullable<ArtworkPosterProps['variant']>, string> = {
@@ -50,31 +50,26 @@ export function ArtworkPoster({
   typeLabel,
   variant = 'card',
 }: ArtworkPosterProps) {
-  const displayImageUrl = getDisplayImageUrl(thumbnailUrl);
-  const [imageFailed, setImageFailed] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-
-  useEffect(() => {
-    setImageFailed(false);
-    setImageLoaded(false);
-  }, [displayImageUrl]);
+  const posterImage = usePosterImageSource(thumbnailUrl, variant);
 
   return (
     <Box className={cx(cn(styles.posterShell), posterVariantClass[variant], className)}>
-      {displayImageUrl && !imageFailed ? (
+      {posterImage.src && !posterImage.failed ? (
         <>
-          {!imageLoaded && (
+          {!posterImage.loaded && (
             <Box aria-hidden="true" className={cn(styles.posterImageSkeleton)} />
           )}
           <img
             alt={`${title} 포스터`}
             className={cx(
               cn(styles.posterImage),
-              imageLoaded && cn(styles.posterImageLoaded),
+              posterImage.loaded && cn(styles.posterImageLoaded),
             )}
-            onError={() => setImageFailed(true)}
-            onLoad={() => setImageLoaded(true)}
-            src={displayImageUrl}
+            decoding={posterImage.decoding}
+            loading={posterImage.loading}
+            onError={posterImage.onError}
+            onLoad={posterImage.onLoad}
+            src={posterImage.src}
           />
         </>
       ) : (
