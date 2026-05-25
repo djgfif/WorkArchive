@@ -1,5 +1,8 @@
 node_modules/
 **/node_modules/
+.npm/
+.pnpm-store/
+.yarn/
 dist/
 **/dist/
 build/
@@ -12,13 +15,17 @@ coverage/
 **/.cache/
 .turbo/
 *.tsbuildinfo
+*.buildinfo
 
 .git/
 .github/
+docs/
 .agents/
 .codex*
 .idea/
 .vscode/
+.cursor/
+.history/
 
 .env
 .env.*
@@ -28,6 +35,10 @@ coverage/
 !/.env.prod.example
 !**/.env.example
 !**/.env.*.example
+.envrc
+.direnv/
+secrets/
+**/secrets/
 
 *.log
 logs/
@@ -45,6 +56,9 @@ trace.zip
 *.sqlite
 *.sqlite3
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 *.dump
 *.bak
 *.backup
@@ -53,6 +67,7 @@ trace.zip
 *.tgz
 *.tar.gz
 *.7z
+*.rar
 *.pem
 *.key
 *.p12
@@ -60,11 +75,15 @@ trace.zip
 *.jks
 *.crt
 *.csr
+*.asc
 
 .DS_Store
 Thumbs.db
 desktop.ini
 *.local
+*.local.json
+*.local.yaml
+*.local.yml
 compose.override.yml
 compose.*.override.yml
 docker-compose.override.yml

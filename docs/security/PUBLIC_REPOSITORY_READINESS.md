@@ -5,7 +5,7 @@ public.
 
 ## Current Audit Result
 
-Last local audit: 2026-05-22.
+Last local audit: 2026-05-25.
 
 - The current tree should not track local `.env` files. Commit only
   `.env*.example` templates such as `.env.example`, `.env.compose.example`,
@@ -18,6 +18,14 @@ Last local audit: 2026-05-22.
 - High-confidence token patterns such as GitHub tokens, Google API keys, OpenAI
   style keys, AWS access keys, Slack tokens, and private key PEM blocks should
   return no hits in tracked files.
+- The repository root must stay limited to public-facing project files. Runtime
+  wrappers live under `scripts/dev/`; Windows convenience wrappers live under
+  `scripts/windows/`.
+- Files already tracked by git must not match `.gitignore`; this catches
+  accidentally tracked local state after ignore rules are tightened.
+- Large binary/media files require explicit review before publication. Design
+  source assets should be archived intentionally, not left in the active docs
+  path by accident.
 - `apps/api/.env` previously existed in git history with local development
   placeholder values. No real provider key was found in the current high
   confidence scan, but rotate any secret that was ever copied into a committed
@@ -29,6 +37,7 @@ Run from the repository root:
 
 ```bash
 scripts/security/public-readiness-check.sh
+git ls-files -ci --exclude-standard
 git status --short --branch
 ```
 
@@ -45,11 +54,10 @@ The readiness script must end with `Public readiness check passed.`
   environment.
 - Confirm production OAuth redirect URIs point to the intended public domain.
 - Confirm screenshots, browser traces, Playwright reports, logs, database dumps,
-  and backup archives are not committed.
-- Confirm the root does not contain development launcher wrappers. Official
-  local entrypoints are `npm run dev:start`, `npm run dev:start:host`, and
-  `npm run dev:stop`; implementation wrappers live under `scripts/dev/` and
-  optional Windows WSL convenience wrappers live under `scripts/windows/`.
+  large unreviewed media files, and backup archives are not committed.
+- Confirm the root does not contain development launcher wrappers or ad hoc
+  execution notes. Official local entrypoints are `npm run dev:start`,
+  `npm run dev:start:host`, and `npm run dev:stop`.
 - Confirm historical commits do not contain real secrets. If a real secret was
   committed at any point, rotate the secret first; rewrite git history only with
   explicit approval because it requires a force push.
