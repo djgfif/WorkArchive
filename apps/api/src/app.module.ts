@@ -12,6 +12,7 @@ import { ImportsModule } from './modules/imports';
 import { SyncModule } from './modules/sync';
 import { UserRecordsModule } from './modules/user-records';
 import { WorksModule } from './modules/works';
+import { ObservabilityModule } from './observability/observability.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SecurityModule } from './security/security.module';
 
@@ -38,6 +39,7 @@ import { SecurityModule } from './security/security.module';
       },
       forRoutes: [{ path: '{*path}', method: RequestMethod.ALL }],
     }),
+    ObservabilityModule,
     PrismaModule,
     SecurityModule,
     AuthModule,

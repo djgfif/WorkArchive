@@ -16,6 +16,7 @@ import {
   type CatalogReleaseCandidateInput,
 } from '../catalog/catalog-ingestion.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { MetricsService } from '../../observability/metrics.service';
 import type { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
 import type {
   ImportProviderKeyTestFailureReason,
@@ -189,6 +190,9 @@ export class ImportsService {
     @Inject(ProviderRuntimeStateService)
     @Optional()
     private readonly providerRuntimeState: ProviderRuntimeStateService = new ProviderRuntimeStateService(),
+    @Inject(MetricsService)
+    @Optional()
+    private readonly metricsService?: MetricsService,
   ) {}
 
   async getAladinProviderStatus(
@@ -429,6 +433,19 @@ export class ImportsService {
           PROVIDER_CIRCUIT_FAILURE_THRESHOLD,
           PROVIDER_CIRCUIT_OPEN_MS,
         );
+        this.metricsService?.recordImportsProviderFailure(
+          provider,
+          this.describeError(error),
+        );
+        if (
+          (await this.providerRuntimeState.getCircuitStatus(provider))
+            .circuitState === 'open'
+        ) {
+          this.metricsService?.recordImportsProviderCircuitOpen(
+            provider,
+            'provider_failed',
+          );
+        }
         if (explicitSingleProvider) {
           throw error;
         }

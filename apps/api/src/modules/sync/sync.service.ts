@@ -7,6 +7,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { plainToInstance, type ClassConstructor } from 'class-transformer';
 import { validateSync, type ValidationError } from 'class-validator';
@@ -46,6 +47,7 @@ import {
   type UserTimelineEntryAggregate,
 } from '../user-records/user-timeline-entries.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { MetricsService } from '../../observability/metrics.service';
 import {
   normalizeGenres,
   normalizeGenresAndPersonalTags,
@@ -247,6 +249,9 @@ export class SyncService {
     private readonly releaseRecordsService: UserReleaseRecordsService,
     @Inject(UserTimelineEntriesService)
     private readonly timelineEntriesService: UserTimelineEntriesService,
+    @Inject(MetricsService)
+    @Optional()
+    private readonly metricsService?: MetricsService,
   ) {}
 
   async push(
@@ -279,6 +284,7 @@ export class SyncService {
       };
 
       this.logPushSummary(userId, changes.length, response);
+      this.metricsService?.recordSync('push', 'success');
       this.logEvent('sync.push.completed', {
         count: response.results.length,
         durationMs: Date.now() - startedAt,
@@ -288,6 +294,7 @@ export class SyncService {
 
       return response;
     } catch (error) {
+      this.metricsService?.recordSync('push', 'failure');
       this.logEvent('sync.push.failed', {
         count: changes.length,
         durationMs: Date.now() - startedAt,
@@ -389,6 +396,7 @@ export class SyncService {
       };
 
       this.logPullSummary(userId, since ?? null, response);
+      this.metricsService?.recordSync('pull', 'success');
       this.logEvent('sync.pull.completed', {
         count: response.changes.length,
         durationMs: Date.now() - startedAt,
@@ -398,6 +406,7 @@ export class SyncService {
 
       return response;
     } catch (error) {
+      this.metricsService?.recordSync('pull', 'failure');
       this.logEvent('sync.pull.failed', {
         durationMs: Date.now() - startedAt,
         errorCode: this.describeError(error),
@@ -442,6 +451,12 @@ export class SyncService {
       }
 
       const result = await this.applyChange(userId, change, tx);
+
+      this.metricsService?.recordSyncResult(
+        change.entityType,
+        result.status,
+        result.code ?? 'unknown',
+      );
 
       if (result.status === 'conflict') {
         this.logEvent('sync.conflict.detected', {

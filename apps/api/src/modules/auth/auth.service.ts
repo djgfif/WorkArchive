@@ -29,6 +29,7 @@ import {
   fetchExternal,
   readJsonWithLimit,
 } from '../../common/external-fetch';
+import { MetricsService } from '../../observability/metrics.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SecurityAuditService } from '../../security/security-audit.service';
 import { hashSecret, verifySecret } from './auth-crypto';
@@ -127,6 +128,9 @@ export class AuthService {
     @Inject(SecurityAuditService)
     @Optional()
     private readonly securityAudit?: SecurityAuditService,
+    @Inject(MetricsService)
+    @Optional()
+    private readonly metricsService?: MetricsService,
   ) {}
 
   getGoogleAuthorizationUrl(state: string, nonce: string) {
@@ -250,11 +254,15 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
-    return this.rotateSessionForUser(
+    const sessionResponse = await this.rotateSessionForUser(
       session.user,
       session,
       tokenPayload.rememberMe ?? session.rememberMe,
     );
+
+    this.metricsService?.recordAuthRefresh('success');
+
+    return sessionResponse;
   }
 
   async logout(refreshToken: string | null) {
@@ -986,6 +994,7 @@ export class AuthService {
     this.logger.warn(
       `Refresh failed reason=${reason}${userId ? ` userId=${userId}` : ''}`,
     );
+    this.metricsService?.recordAuthRefresh('failure', reason);
 
     void this.securityAudit?.record({
       eventType,

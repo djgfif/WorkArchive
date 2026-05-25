@@ -143,8 +143,12 @@ inside an acceptable network boundary.
 ## Final Preflight
 
 ```bash
+scripts/deploy/commercial-env-preflight.mjs .env.prod
 docker compose -f compose.prod.yml --env-file .env.prod config
 ```
 
 Confirm no secret values are pasted into issue trackers, deployment reports, or
 GitHub comments.
+
+`METRICS_ENABLED` defaults to `false`. Set it to `true` only when `/metrics` is
+restricted to an internal collector or allowlisted monitoring path.
