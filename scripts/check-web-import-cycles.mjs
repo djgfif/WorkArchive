@@ -5,6 +5,12 @@ import ts from 'typescript';
 const projectRoot = process.cwd();
 const sourceRoot = path.resolve(projectRoot, 'apps/web/src');
 const extensions = ['.ts', '.tsx'];
+const aliasRoots = new Map([
+  ['@app', path.resolve(sourceRoot, 'app')],
+  ['@features', path.resolve(sourceRoot, 'features')],
+  ['@shared', path.resolve(sourceRoot, 'shared')],
+  ['@test', path.resolve(sourceRoot, 'test')],
+]);
 
 function walk(directory, files = []) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -29,12 +35,32 @@ function walk(directory, files = []) {
 
 const files = new Set(walk(sourceRoot));
 
-function resolveRelativeModule(fromFile, moduleSpecifier) {
-  if (!moduleSpecifier.startsWith('.')) {
+function resolveModule(fromFile, moduleSpecifier) {
+  let basePath = null;
+
+  if (moduleSpecifier.startsWith('.')) {
+    basePath = path.resolve(path.dirname(fromFile), moduleSpecifier);
+  } else {
+    for (const [alias, aliasRoot] of aliasRoots) {
+      if (moduleSpecifier === alias) {
+        basePath = aliasRoot;
+        break;
+      }
+
+      if (moduleSpecifier.startsWith(`${alias}/`)) {
+        basePath = path.resolve(
+          aliasRoot,
+          moduleSpecifier.slice(alias.length + 1),
+        );
+        break;
+      }
+    }
+  }
+
+  if (!basePath) {
     return null;
   }
 
-  const basePath = path.resolve(path.dirname(fromFile), moduleSpecifier);
   const candidates = [
     basePath,
     ...extensions.map((extension) => `${basePath}${extension}`),
@@ -47,16 +73,16 @@ function resolveRelativeModule(fromFile, moduleSpecifier) {
 function isTypeOnlyNamedImports(bindings) {
   return Boolean(
     bindings &&
-      ts.isNamedImports(bindings) &&
-      bindings.elements.every((element) => element.isTypeOnly),
+    ts.isNamedImports(bindings) &&
+    bindings.elements.every((element) => element.isTypeOnly),
   );
 }
 
 function isTypeOnlyNamedExports(exportClause) {
   return Boolean(
     exportClause &&
-      ts.isNamedExports(exportClause) &&
-      exportClause.elements.every((element) => element.isTypeOnly),
+    ts.isNamedExports(exportClause) &&
+    exportClause.elements.every((element) => element.isTypeOnly),
   );
 }
 
@@ -94,10 +120,7 @@ for (const filePath of files) {
         continue;
       }
 
-      const target = resolveRelativeModule(
-        filePath,
-        statement.moduleSpecifier.text,
-      );
+      const target = resolveModule(filePath, statement.moduleSpecifier.text);
 
       if (target) {
         graph.get(filePath).push(target);
@@ -117,10 +140,7 @@ for (const filePath of files) {
         continue;
       }
 
-      const target = resolveRelativeModule(
-        filePath,
-        statement.moduleSpecifier.text,
-      );
+      const target = resolveModule(filePath, statement.moduleSpecifier.text);
 
       if (target) {
         graph.get(filePath).push(target);
@@ -197,7 +217,9 @@ if (cycleComponents.length === 0) {
 
 console.error(`Found ${cycleComponents.length} web import cycle component(s).`);
 
-for (const component of cycleComponents.sort((left, right) => right.length - left.length)) {
+for (const component of cycleComponents.sort(
+  (left, right) => right.length - left.length,
+)) {
   const componentSet = new Set(component);
 
   console.error('');

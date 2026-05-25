@@ -3,15 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { appRoutes } from '../../../app/router/routes';
-import { renderWithProviders } from '../../../test/render-with-providers';
+import { appRoutes } from '@app/router/routes';
+import { renderWithProviders } from '@test/render-with-providers';
 import {
   getActiveFilterControls,
   getAdvancedFiltersButton,
   openAdvancedFilters,
   selectWorksView,
-} from '../../../test/ui-helpers';
-import { AuthProvider } from '../../auth';
+} from '@test/ui-helpers';
+import { AuthProvider } from '@features/auth';
 import { worksService } from '../services/works.service';
 
 describe('WorksListPage', () => {

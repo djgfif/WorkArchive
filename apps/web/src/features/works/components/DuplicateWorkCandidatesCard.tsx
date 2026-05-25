@@ -6,7 +6,7 @@ import {
   AppBadge,
   AppLinkButton,
   SectionCard,
-} from '../../../shared/components/AppPrimitives';
+} from '@shared/components/AppPrimitives';
 import { getWorkTypeLabel } from '../utils/work-options';
 
 interface DuplicateWorkCandidatesCardProps {

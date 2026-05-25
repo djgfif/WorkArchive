@@ -6,7 +6,7 @@ import {
   AppButton,
   FeedbackMessage,
   SectionCard,
-} from '../../../shared/components/AppPrimitives';
+} from '@shared/components/AppPrimitives';
 import type { JsonArchiveExportFeedback } from '../hooks/useJsonArchiveExport';
 import type { JsonBackupReminderStatus } from '../utils/json-backup-reminder';
 

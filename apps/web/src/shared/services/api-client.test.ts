@@ -11,8 +11,8 @@ import {
   clearStoredAuthTokens,
   readStoredAuthTokens,
   writeStoredAuthTokens,
-} from '../../features/auth';
-import { API_BASE_URL, HttpResponse, http, server } from '../../test/msw';
+} from '@features/auth';
+import { API_BASE_URL, HttpResponse, http, server } from '@test/msw';
 
 describe('api-client', () => {
   afterEach(() => {

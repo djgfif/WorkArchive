@@ -1,10 +1,39 @@
-node_modules
-dist
-coverage
-.vite
-.agents/
-.codex*
-.idea/
+# Dependencies and package-manager state
+node_modules/
+**/node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+!.yarn/patches/
+!.yarn/plugins/
+!.yarn/releases/
+!.yarn/sdks/
+!.yarn/versions/
+
+# Build outputs and generated caches
+dist/
+**/dist/
+build/
+**/build/
+.vite/
+**/.vite/
+.cache/
+**/.cache/
+.turbo/
+*.tsbuildinfo
+
+# Test, coverage, and browser automation artifacts
+coverage/
+**/coverage/
+coverage-final.json
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+*.har
+trace.zip
+
+# Local environment and secrets
 .env
 .env.*
 !.env.example
@@ -12,5 +41,49 @@ coverage
 !.env.host.example
 !.env.prod.example
 !**/.env.example
+!**/.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.crt
+*.csr
+
+# Runtime data, logs, backups, and local databases
 *.log
-coverage-final.json
+logs/
+tmp/
+temp/
+.tmp/
+.temp/
+backups/
+backup/
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.dump
+*.bak
+*.backup
+*.zip
+*.tar
+*.tgz
+*.tar.gz
+*.7z
+
+# OS, editor, and personal tool state
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/tasks.json
+.agents/
+.codex*
+
+# Local overrides
+*.local
+compose.override.yml
+compose.*.override.yml
+docker-compose.override.yml

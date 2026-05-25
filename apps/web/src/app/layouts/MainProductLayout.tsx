@@ -19,10 +19,9 @@ import {
   BrandLink,
   StateMessage,
   ThemeToggleControl,
-} from '../../shared/components/AppPrimitives';
-import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
-import { SyncSafetyBadge } from '../../features/sync';
-import { getUserAvatarProfile } from '../../features/auth/utils/user-profile';
+} from '@shared/components/AppPrimitives';
+import { getUserAvatarProfile, useAuthSession } from '@features/auth';
+import { SyncSafetyBadge } from '@features/sync';
 import { getPrimaryNavigationItems } from './navigation';
 
 export function MainProductLayout() {

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
-import { AppLinkButton } from '../../../shared/components/AppPrimitives';
-import { useAuthSession } from '../../auth';
+import { AppLinkButton } from '@shared/components/AppPrimitives';
+import { useAuthSession } from '@features/auth';
 import { useSyncDashboard } from '../hooks/useSyncDashboard';
 import { getSyncSafetyBadgeState } from '../utils/sync-safety-state';
 

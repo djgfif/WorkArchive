@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { appRoutes } from '../../../app/router/routes';
-import { renderWithProviders } from '../../../test/render-with-providers';
-import { AuthProvider } from '../../auth';
-import type { ImportCandidate } from '../../imports';
+import { appRoutes } from '@app/router/routes';
+import { renderWithProviders } from '@test/render-with-providers';
+import { AuthProvider } from '@features/auth';
+import type { ImportCandidate } from '@features/imports';
 import { worksService } from '../services/works.service';
 
 function jsonResponse(body: unknown, status = 200) {

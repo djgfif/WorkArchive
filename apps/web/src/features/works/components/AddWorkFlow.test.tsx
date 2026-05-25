@@ -5,10 +5,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
-import type { ImportCandidate } from '../../imports';
-import { AuthContext } from '../../auth';
-import { clearStoredAuthTokens, writeStoredAuthTokens } from '../../auth';
-import { renderWithProviders } from '../../../test/render-with-providers';
+import type { ImportCandidate } from '@features/imports';
+import { AuthContext } from '@features/auth';
+import { clearStoredAuthTokens, writeStoredAuthTokens } from '@features/auth';
+import { renderWithProviders } from '@test/render-with-providers';
 import { workArchiveDbManager } from '../db/work-archive.db';
 import { worksRepository } from '../services/works.repository';
 import { AddWorkFlow } from './AddWorkFlow';

@@ -7,7 +7,7 @@ import {
   AppBadge,
   AppLinkButton,
   FeedbackMessage,
-} from '../../../shared/components/AppPrimitives';
+} from '@shared/components/AppPrimitives';
 import type { TierBoardEditorState } from '../services/tier-board.repository';
 import { tierBoardService } from '../services/tier-board.service';
 import styles from './TierBoardsPage.module.css';

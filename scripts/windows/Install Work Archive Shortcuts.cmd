@@ -2,7 +2,8 @@
 setlocal EnableExtensions
 
 set "SCRIPT_DIR=%~dp0"
-set "INSTALLER=%SCRIPT_DIR%scripts\windows\install-shortcuts.ps1"
+set "REPO_ROOT=%SCRIPT_DIR%..\..\"
+set "INSTALLER=%SCRIPT_DIR%install-shortcuts.ps1"
 
 where powershell.exe >nul 2>nul
 if errorlevel 1 (
@@ -18,7 +19,7 @@ if not exist "%INSTALLER%" (
   exit /b 1
 )
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%INSTALLER%" -ProjectRoot "%SCRIPT_DIR%"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%INSTALLER%" -ProjectRoot "%REPO_ROOT%"
 set "INSTALL_EXIT=%ERRORLEVEL%"
 
 echo.

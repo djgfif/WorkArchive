@@ -5,8 +5,8 @@ import {
   createWorkArchiveDb,
   getWorkArchiveDbName,
   workArchiveDbManager,
-} from '../../works';
-import { WorksRepository } from '../../works';
+} from '@features/works';
+import { WorksRepository } from '@features/works';
 import { GuestTransferService } from './guest-transfer.service';
 
 function createWorkRecord(

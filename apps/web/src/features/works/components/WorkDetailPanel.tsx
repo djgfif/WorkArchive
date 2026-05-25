@@ -26,7 +26,7 @@ import {
   AppLinkButton,
   KeyValueGrid,
   SectionCard,
-} from '../../../shared/components/AppPrimitives';
+} from '@shared/components/AppPrimitives';
 import {
   formatWorkDateTime,
   formatWorkDate,

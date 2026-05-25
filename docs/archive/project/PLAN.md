@@ -10,7 +10,7 @@
 
 > 이 문서는 historical reference다. 현재 roadmap으로 읽지 말고, 초기 milestone 흐름을 확인할 때만 사용한다.
 >
-> 현재 실행 기준은 루트 [`../../plan.md`](../../plan.md), 현재 코드 현실은 [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), 통합 실행 로드맵은 [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md)를 따른다.
+> 현재 실행 기준은 [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md), 현재 코드 현실은 [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), 통합 실행 로드맵은 [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md)를 따른다.
 
 ## 운영 원칙
 - 이 문서가 구현 범위의 단일 기준이다.

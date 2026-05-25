@@ -7,11 +7,11 @@ import {
   LoadingState,
   MetricPill,
   StateMessage,
-} from '../../../shared/components/AppPrimitives';
-import { PageHero } from '../../../shared/components/PageHero';
-import { FlowPageTemplate } from '../../../shared/components/PageTemplates';
-import { useAuthSession } from '../../auth';
-import { syncQueueRepository } from '../../sync';
+} from '@shared/components/AppPrimitives';
+import { PageHero } from '@shared/components/PageHero';
+import { FlowPageTemplate } from '@shared/components/PageTemplates';
+import { useAuthSession } from '@features/auth';
+import { syncQueueRepository } from '@features/sync';
 import { WorkForm } from '../components/WorkForm';
 import { useWorkDetail } from '../hooks/useWorkDetail';
 import {

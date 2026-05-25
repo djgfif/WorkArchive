@@ -35,14 +35,14 @@ import {
   AppButton,
   AppLinkButton,
   FeedbackMessage,
-} from '../../../shared/components/AppPrimitives';
-import { importsService, type ImportCandidate } from '../../imports';
+} from '@shared/components/AppPrimitives';
+import { importsService, type ImportCandidate } from '@features/imports';
 import {
   formatProviderNames,
   useImportProviderReadiness,
   type ProviderReadinessGroup,
-} from '../../imports';
-import { useAuthSession } from '../../auth';
+} from '@features/imports';
+import { useAuthSession } from '@features/auth';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
 import { StarRatingInput, WorkPoster } from './ArchiveComponents';
 import { ImportedCandidateSummary } from './ImportedCandidateSummary';

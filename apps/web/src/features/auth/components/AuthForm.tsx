@@ -5,7 +5,7 @@ import {
   ActionRow,
   AppButton,
   FeedbackMessage,
-} from '../../../shared/components/AppPrimitives';
+} from '@shared/components/AppPrimitives';
 
 import styles from './AuthForm.module.css';
 

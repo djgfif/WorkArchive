@@ -8,16 +8,16 @@
 | Last verified against | `2026-04-25` local `master` working tree                                                                                                       |
 | When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                    |
 
-이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`docs/project/PLAN.md`](./docs/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
+이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`../archive/project/PLAN.md`](../archive/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
 
 ## Read First
 
-1. [`README.md`](./README.md): 실행 명령, 환경 변수, 검증 상태
-2. [`docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md): 현재 코드 현실
-3. [`docs/project/EXECUTION_ROADMAP.md`](./docs/project/EXECUTION_ROADMAP.md): 통합 실행 순서
+1. [`README.md`](../../README.md): 실행 명령, 환경 변수, 검증 상태
+2. [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md): 현재 코드 현실
+3. [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md): 통합 실행 순서
 4. 작업 영역별 문서:
-   - Frontend: [`docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](./docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
-   - Backend: [`docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](./docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
+   - Frontend: [`docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
+   - Backend: [`docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
 
 ## Workspace Setup
 

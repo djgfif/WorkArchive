@@ -12,17 +12,17 @@ import {
   SectionIntro,
   StateMessage,
   SurfaceLinkCard,
-} from '../../../shared/components/AppPrimitives';
-import { PageHero } from '../../../shared/components/PageHero';
-import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
-import { useAuthSession } from '../../auth';
-import { useWorksOverview } from '../../works';
+} from '@shared/components/AppPrimitives';
+import { PageHero } from '@shared/components/PageHero';
+import { DetailPageTemplate } from '@shared/components/PageTemplates';
+import { useAuthSession } from '@features/auth';
+import { useWorksOverview } from '@features/works';
 import {
   formatWorkDateTime,
   formatWorkUpdatedAt,
   getWorkStatusLabel,
   getWorkTypeLabel,
-} from '../../works';
+} from '@features/works';
 
 function formatAverageRating(value: number | null) {
   return value === null ? '미평가' : `${value.toFixed(1)}점`;

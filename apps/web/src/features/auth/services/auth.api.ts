@@ -12,7 +12,7 @@ import {
   requestApiJson,
   requestAuthenticatedApi,
   requestAuthenticatedApiJson,
-} from '../../../shared/services/api-client';
+} from '@shared/services/api-client';
 import {
   clearLegacyStoredAuthTokens,
   type MemoryAuthTokens,

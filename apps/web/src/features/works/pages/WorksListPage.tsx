@@ -10,13 +10,13 @@ import {
   AppLinkButton,
   FeedbackMessage,
   StateMessage,
-} from '../../../shared/components/AppPrimitives';
-import { LibraryTemplate } from '../../../shared/components/PageTemplates';
-import { confirmDialogAdapter } from '../../../shared/runtime/dialog-adapter';
-import { JsonBackupReminderCard } from '../../archive';
-import { useJsonArchiveExport } from '../../archive';
-import { useJsonBackupReminder } from '../../archive';
-import { useAuthSession } from '../../auth';
+} from '@shared/components/AppPrimitives';
+import { LibraryTemplate } from '@shared/components/PageTemplates';
+import { confirmDialogAdapter } from '@shared/runtime/dialog-adapter';
+import { JsonBackupReminderCard } from '@features/archive';
+import { useJsonArchiveExport } from '@features/archive';
+import { useJsonBackupReminder } from '@features/archive';
+import { useAuthSession } from '@features/auth';
 import {
   ArchiveEmptyState,
   ArchiveSkeleton,

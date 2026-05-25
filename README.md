@@ -30,7 +30,7 @@ Sync policy note: logged-in users can use the manual Sync page, and the web runt
 ## Read This Next
 
 1. [`docs/README.md`](./docs/README.md)
-2. [`plan.md`](./plan.md)
+2. [`docs/project/CURRENT_EXECUTION_PLAN.md`](./docs/project/CURRENT_EXECUTION_PLAN.md)
 3. [`docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 4. 작업 영역에 따라 [`docs/frontend/README.md`](./docs/frontend/README.md), [`docs/backend/README.md`](./docs/backend/README.md), [`docs/product/README.md`](./docs/product/README.md)
 
@@ -42,11 +42,11 @@ Sync policy note: logged-in users can use the manual Sync page, and the web runt
 
 ## Environment Files
 
-| Path                                                       | Use                                     |
-| ---------------------------------------------------------- | --------------------------------------- |
-| [`.env.example`](./.env.example)                           | `docker compose up --build`용 루트 설정 |
-| [`apps/api/.env.example`](./apps/api/.env.example)         | 호스트 기반 API 개발용 설정             |
-| [`apps/web/.env.example`](./apps/web/.env.example)         | 호스트 기반 웹 개발용 설정              |
+| Path                                               | Use                                     |
+| -------------------------------------------------- | --------------------------------------- |
+| [`.env.example`](./.env.example)                   | `docker compose up --build`용 루트 설정 |
+| [`apps/api/.env.example`](./apps/api/.env.example) | 호스트 기반 API 개발용 설정             |
+| [`apps/web/.env.example`](./apps/web/.env.example) | 호스트 기반 웹 개발용 설정              |
 
 권장 초기화:
 
@@ -89,9 +89,9 @@ The script starts Compose in detached mode, runs the local migration job, waits
 for API and web readiness, verifies that Windows can reach the published
 localhost ports, and only then opens the browser.
 
-Use the platform-specific launchers below. The title-cased `.cmd` files are
-Windows shortcuts for a WSL checkout and delegate to the shell scripts, so the
-startup behavior stays in one place.
+Use the platform-specific launchers below. The optional title-cased `.cmd`
+files live under `scripts/windows/` for a WSL checkout and delegate to the
+shell scripts, so the startup behavior stays in one place.
 
 Windows checkout:
 
@@ -102,7 +102,7 @@ start-dev.bat
 WSL checkout from Windows Explorer:
 
 ```bat
-Start Work Archive.cmd
+scripts\windows\Start Work Archive.cmd
 ```
 
 macOS/Linux/WSL terminal:
@@ -129,7 +129,7 @@ stop-dev.bat
 WSL checkout from Windows Explorer:
 
 ```bat
-Stop Work Archive.cmd
+scripts\windows\Stop Work Archive.cmd
 ```
 
 macOS/Linux/WSL terminal:
@@ -357,7 +357,7 @@ Retention cleanup defaults to dry-run. Production deletes require both
 ## Documentation
 
 - 문서 허브: [`docs/README.md`](./docs/README.md)
-- 현재 실행 기준: [`plan.md`](./plan.md)
+- 현재 실행 기준: [`docs/project/CURRENT_EXECUTION_PLAN.md`](./docs/project/CURRENT_EXECUTION_PLAN.md)
 - 현재 코드 현실: [`docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
 - 프론트 기준: [`docs/frontend/FRONTEND_BLUEPRINT_V1.md`](./docs/frontend/FRONTEND_BLUEPRINT_V1.md)
 - 프론트 상세 실행 계획: [`docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](./docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)

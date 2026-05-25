@@ -2,7 +2,7 @@ import { Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
-import { AuthPageTemplate } from '../../../shared/components/PageTemplates';
+import { AuthPageTemplate } from '@shared/components/PageTemplates';
 import { AuthForm } from '../components/AuthForm';
 import { useAuthSession } from '../hooks/useAuthSession';
 import { fetchGoogleAuthStatus } from '../services/auth.api';

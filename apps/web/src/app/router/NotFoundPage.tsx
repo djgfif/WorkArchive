@@ -1,5 +1,5 @@
-import { AppLinkButton } from '../../shared/components/AppPrimitives';
-import { MinimalPageTemplate } from '../../shared/components/PageTemplates';
+import { AppLinkButton } from '@shared/components/AppPrimitives';
+import { MinimalPageTemplate } from '@shared/components/PageTemplates';
 
 export function NotFoundPage() {
   return (

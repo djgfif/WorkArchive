@@ -16,9 +16,9 @@ import {
   FeedbackMessage,
   SectionCard,
   SectionIntro,
-} from '../../../../shared/components/AppPrimitives';
-import type { ImportProviderStatus } from '../../../imports';
-import { getWorkTypeLabel } from '../../../works';
+} from '@shared/components/AppPrimitives';
+import type { ImportProviderStatus } from '@features/imports';
+import { getWorkTypeLabel } from '@features/works';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import styles from './SettingsControlCenter.module.css';
 

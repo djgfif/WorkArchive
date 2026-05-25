@@ -9,12 +9,12 @@ import {
   FeedbackMessage,
   SectionCard,
   SectionIntro,
-} from '../../../../shared/components/AppPrimitives';
+} from '@shared/components/AppPrimitives';
 import {
   ApiRequestError,
   updateAuthProfile,
-} from '../../../auth';
-import { getUserAvatarProfile } from '../../../auth';
+} from '@features/auth';
+import { getUserAvatarProfile } from '@features/auth';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
 

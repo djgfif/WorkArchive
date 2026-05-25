@@ -2,7 +2,7 @@ import type { WorkRecord } from '@work-archive/shared-types';
 import { Box, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 
-import { AppButton } from '../../../shared/components/AppPrimitives';
+import { AppButton } from '@shared/components/AppPrimitives';
 import { WorkPosterCard } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
 import {

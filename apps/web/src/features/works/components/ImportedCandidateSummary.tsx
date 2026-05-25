@@ -5,8 +5,8 @@ import {
   AppBadge,
   AppButton,
   ChipSummary,
-} from '../../../shared/components/AppPrimitives';
-import type { ImportCandidate } from '../../imports';
+} from '@shared/components/AppPrimitives';
+import type { ImportCandidate } from '@features/imports';
 import type { CandidateSourceCoverage } from './quick-add-helpers';
 
 interface CandidateFieldSummary {

@@ -17,8 +17,8 @@ import {
   AppButton,
   FeedbackMessage,
   StateMessage,
-} from '../../../shared/components/AppPrimitives';
-import type { ImportCandidate } from '../../imports';
+} from '@shared/components/AppPrimitives';
+import type { ImportCandidate } from '@features/imports';
 import { CandidateListRow } from './CandidateListRow';
 import { CandidatePreviewPanel } from './CandidatePreviewPanel';
 import type { ProviderGroup } from './quick-add-helpers';

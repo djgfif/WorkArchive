@@ -15,7 +15,7 @@ info() {
   printf '%s\n' "OK: $1"
 }
 
-tracked_env_files="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -Ev '(^|/)\.env(\.prod)?\.example$|(^|/)apps/[^/]+/\.env\.example$' || true)"
+tracked_env_files="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -Ev '(^|/)\.env(\.[^/]+)*\.example$' || true)"
 if [ -n "$tracked_env_files" ]; then
   printf '%s\n' "$tracked_env_files" >&2
   fail "non-example .env files are tracked"
@@ -47,7 +47,21 @@ else
   info "no high-confidence secret patterns found in tracked files"
 fi
 
-personal_path_hits="$(git grep -n -I -E '(/home/gkho0|/mnt/c/work/WorkArchive|C:\\Users\\gkho0|DESKTOP-K0ETFG7)' -- . ':!package-lock.json' ':!scripts/security/public-readiness-check.sh' || true)"
+current_user="$(id -un 2>/dev/null || true)"
+current_host="$(hostname 2>/dev/null || true)"
+personal_path_pattern='(/home/gkho0|/mnt/c/work/WorkArchive|C:\\Users\\gkho0|DESKTOP-K0ETFG7)'
+
+if [ -n "$current_user" ]; then
+  escaped_user="$(printf '%s' "$current_user" | sed 's/[][\/.^$*+?{}()|]/\\&/g')"
+  personal_path_pattern="${personal_path_pattern}|(/home/${escaped_user}|C:\\\\Users\\\\${escaped_user})"
+fi
+
+if [ -n "$current_host" ]; then
+  escaped_host="$(printf '%s' "$current_host" | sed 's/[][\/.^$*+?{}()|]/\\&/g')"
+  personal_path_pattern="${personal_path_pattern}|${escaped_host}"
+fi
+
+personal_path_hits="$(git grep -n -I -E "$personal_path_pattern" -- . ':!package-lock.json' ':!scripts/security/public-readiness-check.sh' || true)"
 if [ -n "$personal_path_hits" ]; then
   printf '%s\n' "$personal_path_hits" >&2
   fail "personal machine paths were found in tracked files"

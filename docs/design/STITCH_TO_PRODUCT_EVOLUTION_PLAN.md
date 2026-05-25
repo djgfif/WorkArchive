@@ -1,12 +1,12 @@
 # STITCH_TO_PRODUCT_EVOLUTION_PLAN.md
 
-| Field | Value |
-| --- | --- |
-| Status | `canonical` |
-| Role | `Stitch reference translation plan` |
-| Source of truth | `docs/design/DESIGN.md`, `docs/design/stitch/*`, current `apps/web` implementation |
-| Last verified against | `2026-04-27` IA v1 Stitch reference + modal-first Add implementation |
-| When to update | new Stitch drafts are added, design direction changes, or implementation scope changes |
+| Field                 | Value                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------ |
+| Status                | `canonical`                                                                                |
+| Role                  | `Stitch reference translation plan`                                                        |
+| Source of truth       | `docs/design/DESIGN.md`, `docs/archive/design/stitch/*`, current `apps/web` implementation |
+| Last verified against | `2026-04-27` IA v1 Stitch reference + modal-first Add implementation                       |
+| When to update        | new Stitch drafts are added, design direction changes, or implementation scope changes     |
 
 이 문서는 Google Stitch로 만든 시안을 Work Archive 실제 웹 UI에 반영할 때의 기준 문서다. Stitch 결과물을 그대로 붙여 넣는 것이 아니라, **장점만 추출해서 현재 Mantine + AppPrimitives 기반 디자인 시스템으로 재구현**하는 것이 목적이다.
 
@@ -169,8 +169,8 @@ Stitch 시안을 실제 코드로 옮길 때는 아래 순서를 따른다.
 
 Reference:
 
-- `docs/design/stitch/home/2026-04-24-home-premium-archive.html`
-- `docs/design/stitch/home/2026-04-24-home-premium-archive.notes.md`
+- `docs/archive/design/stitch/home/2026-04-24-home-premium-archive.html`
+- `docs/archive/design/stitch/home/2026-04-24-home-premium-archive.notes.md`
 
 Extract:
 
@@ -198,8 +198,8 @@ Implementation target:
 
 Reference:
 
-- `docs/design/stitch/works/2026-04-24-works-list-premium-grid.html`
-- `docs/design/stitch/works/2026-04-24-works-list-premium-grid.notes.md`
+- `docs/archive/design/stitch/works/2026-04-24-works-list-premium-grid.html`
+- `docs/archive/design/stitch/works/2026-04-24-works-list-premium-grid.notes.md`
 
 Extract:
 
@@ -228,8 +228,8 @@ Implementation target:
 
 Reference:
 
-- `docs/design/stitch/quick-add/2026-04-24-quick-add-split-flow.html`
-- `docs/design/stitch/quick-add/2026-04-24-quick-add-split-flow.notes.md`
+- `docs/archive/design/stitch/quick-add/2026-04-24-quick-add-split-flow.html`
+- `docs/archive/design/stitch/quick-add/2026-04-24-quick-add-split-flow.notes.md`
 
 Extract:
 
@@ -261,8 +261,8 @@ Implementation target:
 
 Reference:
 
-- `docs/design/stitch/auth/2026-04-24-auth-clean-archive-card.html`
-- `docs/design/stitch/auth/2026-04-24-auth-clean-archive-card.notes.md`
+- `docs/archive/design/stitch/auth/2026-04-24-auth-clean-archive-card.html`
+- `docs/archive/design/stitch/auth/2026-04-24-auth-clean-archive-card.notes.md`
 
 Extract:
 

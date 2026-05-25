@@ -7,36 +7,42 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { MainProductLayout } from '../layouts/MainProductLayout';
 import { MinimalLayout } from '../layouts/MinimalLayout';
 import { NotFoundPage } from './NotFoundPage';
-import { RouteErrorBoundary } from '../../shared/components/RouteErrorBoundary';
+import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
 import {
   featureFlags,
   type FeatureFlags,
-} from '../../shared/runtime/feature-flags';
-import { GoogleAuthCompletePage } from '../../features/auth/pages/GoogleAuthCompletePage';
-import { GuestTransferReviewPage } from '../../features/auth/pages/GuestTransferReviewPage';
-import { LoginPage } from '../../features/auth/pages/LoginPage';
-import { HomePage } from '../../features/home/pages/HomePage';
-import { AccountOverviewPage } from '../../features/profile/pages/AccountOverviewPage';
-import { ProfilePage } from '../../features/profile/pages/ProfilePage';
-import { SettingsPage } from '../../features/profile/pages/SettingsPage';
-import { WorkCreatePage } from '../../features/works/pages/WorkCreatePage';
-import { WorkDetailPage } from '../../features/works/pages/WorkDetailPage';
-import { WorkEditPage } from '../../features/works/pages/WorkEditPage';
-import { WorksListPage } from '../../features/works/pages/WorksListPage';
-import { StateMessage } from '../../shared/components/AppPrimitives';
+} from '@shared/runtime/feature-flags';
+import {
+  GoogleAuthCompletePage,
+  GuestTransferReviewPage,
+  LoginPage,
+} from '@features/auth';
+import { HomePage } from '@features/home';
+import {
+  AccountOverviewPage,
+  ProfilePage,
+  SettingsPage,
+} from '@features/profile';
+import {
+  WorkCreatePage,
+  WorkDetailPage,
+  WorkEditPage,
+  WorksListPage,
+} from '@features/works';
+import { StateMessage } from '@shared/components/AppPrimitives';
 
 const TierBoardsPage = lazy(() =>
-  import('../../features/tier-boards/pages/TierBoardsPage').then((module) => ({
+  import('@features/tier-boards').then((module) => ({
     default: module.TierBoardsPage,
   })),
 );
 const TierBoardEditorPage = lazy(() =>
-  import('../../features/tier-boards/pages/TierBoardEditorPage').then((module) => ({
+  import('@features/tier-boards').then((module) => ({
     default: module.TierBoardEditorPage,
   })),
 );
 const TierBoardViewPage = lazy(() =>
-  import('../../features/tier-boards/pages/TierBoardViewPage').then((module) => ({
+  import('@features/tier-boards').then((module) => ({
     default: module.TierBoardViewPage,
   })),
 );

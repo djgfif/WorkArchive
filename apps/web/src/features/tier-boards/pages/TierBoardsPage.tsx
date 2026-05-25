@@ -20,8 +20,8 @@ import {
   AppButton,
   AppLinkButton,
   FeedbackMessage,
-} from '../../../shared/components/AppPrimitives';
-import { ArchiveEmptyState, ArchiveHero } from '../../works';
+} from '@shared/components/AppPrimitives';
+import { ArchiveEmptyState, ArchiveHero } from '@features/works';
 import { TIER_BOARD_TEMPLATES, tierBoardService } from '../services/tier-board.service';
 import styles from './TierBoardsPage.module.css';
 

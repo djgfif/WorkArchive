@@ -5,7 +5,7 @@ import {
   fetchAuthSessions,
   revokeAllAuthSessions,
   revokeAuthSession,
-} from '../../auth';
+} from '@features/auth';
 import type { SettingsFeedback } from './useImportProviderSettings';
 
 type SettingsAuthMode = 'authenticated' | 'guest';

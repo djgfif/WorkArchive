@@ -6,8 +6,8 @@ import {
   AppButton,
   SectionCard,
   SectionIntro,
-} from '../../../../shared/components/AppPrimitives';
-import { confirmDialogAdapter } from '../../../../shared/runtime/dialog-adapter';
+} from '@shared/components/AppPrimitives';
+import { confirmDialogAdapter } from '@shared/runtime/dialog-adapter';
 import styles from './SettingsControlCenter.module.css';
 
 type SettingsAuthMode = 'authenticated' | 'guest';

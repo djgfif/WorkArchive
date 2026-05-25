@@ -13,7 +13,7 @@ import { useRef, useState, type ReactNode } from 'react';
 
 import type { WorkStatus, WorkType } from '@work-archive/shared-types';
 
-import { AppButton } from '../../../shared/components/AppPrimitives';
+import { AppButton } from '@shared/components/AppPrimitives';
 import {
   ArchiveHero,
   ArchiveSearchBar,

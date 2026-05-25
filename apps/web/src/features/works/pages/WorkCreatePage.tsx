@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
-import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import { ArtworkPoster } from '@shared/components/ArtworkPoster';
 import {
   ActionRow,
   AppBadge,
@@ -13,11 +13,11 @@ import {
   FeedbackMessage,
   SectionCard,
   SectionIntro,
-} from '../../../shared/components/AppPrimitives';
-import { PageHero } from '../../../shared/components/PageHero';
-import { FlowPageTemplate } from '../../../shared/components/PageTemplates';
-import { useAuthSession } from '../../auth';
-import { syncQueueRepository } from '../../sync';
+} from '@shared/components/AppPrimitives';
+import { PageHero } from '@shared/components/PageHero';
+import { FlowPageTemplate } from '@shared/components/PageTemplates';
+import { useAuthSession } from '@features/auth';
+import { syncQueueRepository } from '@features/sync';
 import { AddWorkFlow } from '../components/AddWorkFlow';
 import { buildWorkFormDraftKey } from '../services/work-form-draft.service';
 import { worksService } from '../services/works.service';

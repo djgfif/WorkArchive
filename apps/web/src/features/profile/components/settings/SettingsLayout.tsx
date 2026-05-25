@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
-import { SectionCard } from '../../../../shared/components/AppPrimitives';
+import { SectionCard } from '@shared/components/AppPrimitives';
 import styles from './SettingsControlCenter.module.css';
 
 const css = styles as Record<string, string>;

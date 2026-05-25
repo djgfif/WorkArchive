@@ -2,8 +2,8 @@ import { screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { renderWithProviders } from '../../../test/render-with-providers';
-import { AuthContext, type AuthContextValue } from '../../auth';
+import { renderWithProviders } from '@test/render-with-providers';
+import { AuthContext, type AuthContextValue } from '@features/auth';
 import { useSyncDashboard } from '../hooks/useSyncDashboard';
 import { getSyncSafetyBadgeState } from '../utils/sync-safety-state';
 import { SyncSafetyBadge } from './SyncSafetyBadge';

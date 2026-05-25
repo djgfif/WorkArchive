@@ -9,12 +9,11 @@ if errorlevel 1 (
 )
 
 set "SCRIPT_DIR=%~dp0"
-pushd "%SCRIPT_DIR%" >nul 2>nul
-call :resolve_wsl_project_dir "%SCRIPT_DIR%"
+set "REPO_ROOT=%SCRIPT_DIR%..\..\"
+call :resolve_wsl_project_dir "%REPO_ROOT%"
 if "%PROJECT_DIR%"=="" (
   echo Failed to resolve this project directory for WSL:
-  echo %SCRIPT_DIR%
-  popd >nul 2>nul
+  echo %REPO_ROOT%
   pause
   exit /b 1
 )
@@ -25,12 +24,10 @@ set "DEV_EXIT=%ERRORLEVEL%"
 if not "%DEV_EXIT%"=="0" (
   echo.
   echo Work Archive stop failed. Exit code: %DEV_EXIT%
-  popd >nul 2>nul
   pause
   exit /b %DEV_EXIT%
 )
 
-popd >nul 2>nul
 pause
 exit /b 0
 

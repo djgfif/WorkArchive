@@ -1,7 +1,7 @@
 import {
   featureFlags,
   type FeatureFlags,
-} from '../../shared/runtime/feature-flags';
+} from '@shared/runtime/feature-flags';
 
 export function getPrimaryNavigationItems(flags: FeatureFlags = featureFlags) {
   return [

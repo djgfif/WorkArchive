@@ -23,20 +23,18 @@ import type {
 } from '@work-archive/shared-types';
 import { SYNC_SCHEMA_VERSION } from '@work-archive/shared-types';
 
-import { requestAuthenticatedApiJson } from '../../../shared/services/api-client';
+import { requestAuthenticatedApiJson } from '@shared/services/api-client';
 import {
-  worksRepository,
-  type WorksRepository,
-} from '../../works/services/works.repository';
-import { moveUnknownGenresToPersonalTags } from '../../works/utils/work-genres';
-import {
+  graphRepository,
+  moveUnknownGenresToPersonalTags,
   releaseRecordsRepository,
-  type ReleaseRecordsRepository,
-} from '../../works/services/release-records.repository';
-import {
   timelineEntriesRepository,
+  worksRepository,
+  type GraphRepository,
+  type ReleaseRecordsRepository,
   type TimelineEntriesRepository,
-} from '../../works/services/timeline-entries.repository';
+  type WorksRepository,
+} from '@features/works/data';
 import {
   appMetaRepository,
   type AppMetaRepository,
@@ -48,15 +46,11 @@ import {
 import {
   localizeServerMessage,
   localizeSyncResultCode,
-} from '../../../shared/utils/localize-message';
-import {
-  graphRepository,
-  type GraphRepository,
-} from '../../works/services/graph.repository';
+} from '@shared/utils/localize-message';
 import {
   tierBoardRepository,
   type TierBoardRepository,
-} from '../../tier-boards/services/tier-board.repository';
+} from '@features/tier-boards/data';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
 const PULL_PAGE_LIMIT = 500;

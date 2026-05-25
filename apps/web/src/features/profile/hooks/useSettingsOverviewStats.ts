@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../../archive';
+import { LAST_JSON_EXPORT_AT_META_KEY } from '@features/archive';
 import { getWorkArchiveDb } from '../../works/storage';
 
 export interface SettingsOverviewStats {

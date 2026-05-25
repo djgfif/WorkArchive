@@ -56,8 +56,8 @@ import {
   AppBadge,
   AppButton,
   FeedbackMessage,
-} from '../../../shared/components/AppPrimitives';
-import { worksRepository } from '../../works';
+} from '@shared/components/AppPrimitives';
+import { worksRepository } from '@features/works';
 import {
   TIER_BOARD_TEMPLATES,
   tierBoardService,

@@ -4,7 +4,7 @@ import type {
   WorkRecord,
 } from '@work-archive/shared-types';
 
-import type { ImportCandidate } from '../../imports';
+import type { ImportCandidate } from '@features/imports';
 import {
   parseCommaSeparatedTextList,
   type UpsertWorkInput,

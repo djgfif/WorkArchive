@@ -7,9 +7,10 @@ public.
 
 Last local audit: 2026-05-22.
 
-- The current tree should not track local `.env` files. Use only
-  `.env.example`, `.env.prod.example`, `apps/api/.env.example`, and
-  `apps/web/.env.example` as committed templates.
+- The current tree should not track local `.env` files. Commit only
+  `.env*.example` templates such as `.env.example`, `.env.compose.example`,
+  `.env.host.example`, `.env.prod.example`, `apps/api/.env.example`, and
+  `apps/web/.env.example`.
 - Local secret-bearing files such as `.env`, `.env.prod`, `apps/api/.env`, and
   `apps/web/.env` must stay ignored and uncommitted.
 - Personal tool and IDE state such as `.codex`, `.agents/`, and `.idea/` must
@@ -45,8 +46,9 @@ The readiness script must end with `Public readiness check passed.`
 - Confirm production OAuth redirect URIs point to the intended public domain.
 - Confirm screenshots, browser traces, Playwright reports, logs, database dumps,
   and backup archives are not committed.
-- Confirm development entrypoints are limited to the documented launchers:
-  `start-dev.bat`, `stop-dev.bat`, `start-dev.sh`, and `stop-dev.sh`.
+- Confirm root development entrypoints are limited to the documented launchers:
+  `start-dev.bat`, `stop-dev.bat`, `start-dev.sh`, and `stop-dev.sh`. Optional
+  Windows WSL convenience wrappers live under `scripts/windows/`.
 - Confirm historical commits do not contain real secrets. If a real secret was
   committed at any point, rotate the secret first; rewrite git history only with
   explicit approval because it requires a force push.

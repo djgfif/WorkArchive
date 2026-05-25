@@ -5,7 +5,7 @@ import {
   DEFAULT_WORKS_LIST_QUERY,
   type WorksListQuery,
 } from '../utils/query-works';
-import { useAuthSession } from '../../auth';
+import { useAuthSession } from '@features/auth';
 import {
   worksService,
   type WorksCollectionScope,

@@ -9,8 +9,8 @@ import {
   FeedbackMessage,
   SectionCard,
   SectionIntro,
-} from '../../../../shared/components/AppPrimitives';
-import type { LocalArchiveImportPreview } from '../../../archive';
+} from '@shared/components/AppPrimitives';
+import type { LocalArchiveImportPreview } from '@features/archive';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import styles from './SettingsControlCenter.module.css';
 

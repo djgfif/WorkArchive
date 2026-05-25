@@ -1,8 +1,8 @@
 import { Group, Stack, Text, Title } from '@mantine/core';
 
-import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
-import { ActionRow, AppBadge } from '../../../shared/components/AppPrimitives';
-import type { ImportCandidate } from '../../imports';
+import { ArtworkPoster } from '@shared/components/ArtworkPoster';
+import { ActionRow, AppBadge } from '@shared/components/AppPrimitives';
+import type { ImportCandidate } from '@features/imports';
 import {
   getCandidateContributorText,
   getCandidateSourceCoverage,

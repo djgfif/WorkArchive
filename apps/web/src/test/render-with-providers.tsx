@@ -6,7 +6,7 @@ import {
   appColorSchemeManager,
   appCssVariablesResolver,
   appTheme,
-} from '../app/mantine-theme';
+} from '@app/mantine-theme';
 
 export function renderWithProviders(ui: ReactNode) {
   return render(

@@ -5,9 +5,11 @@ import {
   getWorkArchiveDbName,
 } from '../../works/storage';
 import { AppMetaRepository } from '../../sync/queue';
-import { WorksRepository } from '../../works/services/works.repository';
-import { worksService } from '../../works/services/works.service';
-import { createUpsertWorkInputFromRecord } from '../../works/utils/work-form';
+import {
+  createUpsertWorkInputFromRecord,
+  WorksRepository,
+  worksService,
+} from '@features/works/data';
 
 const REVIEWED_FINGERPRINT_KEY_PREFIX = 'auth.guestTransfer.reviewedFingerprint:';
 

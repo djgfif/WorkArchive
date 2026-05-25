@@ -12,8 +12,8 @@ import {
   SectionCard,
   SectionIntro,
   StateMessage,
-} from '../../../shared/components/AppPrimitives';
-import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
+} from '@shared/components/AppPrimitives';
+import { AccountPageTemplate } from '@shared/components/PageTemplates';
 import { useAuthSession } from '../hooks/useAuthSession';
 import {
   guestTransferService,

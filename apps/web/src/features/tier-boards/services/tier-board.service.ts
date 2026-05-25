@@ -18,7 +18,7 @@ import {
 import {
   worksRepository,
   type WorksRepository,
-} from '../../works/services/works.repository';
+} from '@features/works/data';
 import {
   tierBoardRepository,
   type StoredTierBoardAssetRecord,

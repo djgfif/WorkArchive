@@ -30,7 +30,7 @@ import {
   AppBadge,
   AppButton,
   AppLinkButton,
-} from '../../../shared/components/AppPrimitives';
+} from '@shared/components/AppPrimitives';
 import {
   formatWorkDate,
   getWorkStatusLabel,

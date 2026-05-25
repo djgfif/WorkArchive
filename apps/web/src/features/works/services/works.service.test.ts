@@ -6,7 +6,7 @@ import {
   createWorkArchiveDb,
   type WorkArchiveDatabase,
 } from '../db/work-archive.db';
-import { SyncQueueRepository } from '../../sync';
+import { SyncQueueRepository } from '@features/sync';
 import { WORK_GENRES } from '../utils/work-genres';
 import { WorksRepository } from './works.repository';
 import { WorksService } from './works.service';

@@ -8,7 +8,7 @@ import {
   FeedbackMessage,
   SectionCard,
   SectionIntro,
-} from '../../../../shared/components/AppPrimitives';
+} from '@shared/components/AppPrimitives';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 
 type SettingsAuthMode = 'authenticated' | 'guest';

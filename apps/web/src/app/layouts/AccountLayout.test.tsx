@@ -2,12 +2,12 @@ import { screen } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { renderWithProviders } from '../../test/render-with-providers';
-import { getLinkByHref } from '../../test/ui-helpers';
+import { renderWithProviders } from '@test/render-with-providers';
+import { getLinkByHref } from '@test/ui-helpers';
 import {
   AuthContext,
   type AuthContextValue,
-} from '../../features/auth';
+} from '@features/auth';
 import { AccountLayout } from './AccountLayout';
 
 const guestContextValue: AuthContextValue = {

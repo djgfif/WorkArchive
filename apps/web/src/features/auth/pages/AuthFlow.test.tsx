@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { appRoutes } from '../../../app/router/routes';
-import { renderWithProviders } from '../../../test/render-with-providers';
-import { getLinkByHref, openProfileMenu } from '../../../test/ui-helpers';
+import { appRoutes } from '@app/router/routes';
+import { renderWithProviders } from '@test/render-with-providers';
+import { getLinkByHref, openProfileMenu } from '@test/ui-helpers';
 import { AuthProvider } from '../context/AuthProvider';
 import { readStoredAuthTokens } from '../services/auth-storage';
 import { guestTransferService } from '../services/guest-transfer.service';

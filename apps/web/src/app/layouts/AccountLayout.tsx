@@ -16,9 +16,8 @@ import {
   BrandLink,
   LoadingState,
   ThemeToggleControl,
-} from '../../shared/components/AppPrimitives';
-import { useAuthSession } from '../../features/auth/hooks/useAuthSession';
-import { getUserAvatarProfile } from '../../features/auth/utils/user-profile';
+} from '@shared/components/AppPrimitives';
+import { getUserAvatarProfile, useAuthSession } from '@features/auth';
 
 /* ── 아이콘 ── */
 function IconHome({ size = 15 }: { size?: number }) {

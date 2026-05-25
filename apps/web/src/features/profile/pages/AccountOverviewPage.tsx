@@ -6,11 +6,11 @@ import {
   AppLinkButton,
   SectionCard,
   SectionIntro,
-} from '../../../shared/components/AppPrimitives';
-import { AccountPageTemplate } from '../../../shared/components/PageTemplates';
-import { useAuthSession } from '../../auth';
-import { useSyncDashboard } from '../../sync';
-import { useWorksOverview } from '../../works';
+} from '@shared/components/AppPrimitives';
+import { AccountPageTemplate } from '@shared/components/PageTemplates';
+import { useAuthSession } from '@features/auth';
+import { useSyncDashboard } from '@features/sync';
+import { useWorksOverview } from '@features/works';
 import styles from './AccountOverviewPage.module.css';
 
 const css = styles as Record<string, string>;

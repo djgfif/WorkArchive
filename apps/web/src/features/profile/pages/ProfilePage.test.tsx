@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { appRoutes } from '../../../app/router/routes';
-import { renderWithProviders } from '../../../test/render-with-providers';
-import { findLinkByHref, getLinkByHref } from '../../../test/ui-helpers';
-import { AuthProvider } from '../../auth';
-import { worksRepository } from '../../works';
-import { worksService } from '../../works';
+import { appRoutes } from '@app/router/routes';
+import { renderWithProviders } from '@test/render-with-providers';
+import { findLinkByHref, getLinkByHref } from '@test/ui-helpers';
+import { AuthProvider } from '@features/auth';
+import { worksRepository } from '@features/works';
+import { worksService } from '@features/works';
 
 describe('ProfilePage', () => {
   afterEach(() => {

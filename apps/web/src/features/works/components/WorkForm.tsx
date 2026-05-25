@@ -34,7 +34,7 @@ import {
   FeedbackMessage,
   MetricPill,
   SectionCard,
-} from '../../../shared/components/AppPrimitives';
+} from '@shared/components/AppPrimitives';
 import {
   createDefaultWorkFormValues,
   formatTextListForWorkForm,

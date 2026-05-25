@@ -27,8 +27,14 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Public readiness
+        run: scripts/security/public-readiness-check.sh
+
       - name: Web import cycles
         run: npm run check:web-import-cycles
+
+      - name: Web feature boundaries
+        run: npm run check:web-boundaries
 
       - name: Typecheck
         run: npm run typecheck

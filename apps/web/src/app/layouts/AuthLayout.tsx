@@ -2,7 +2,7 @@ import { Container, Group, Stack, Text, ThemeIcon } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
-import { AppBadge } from '../../shared/components/AppPrimitives';
+import { AppBadge } from '@shared/components/AppPrimitives';
 
 type AuthLayoutProps = {
   children?: ReactNode;

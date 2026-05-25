@@ -22,12 +22,12 @@ import {
   SectionCard,
   SectionIntro,
   ThemeToggleControl,
-} from '../../../../shared/components/AppPrimitives';
-import type { LocalArchiveImportPreview } from '../../../archive';
-import type { ImportProviderStatus } from '../../../imports';
+} from '@shared/components/AppPrimitives';
+import type { LocalArchiveImportPreview } from '@features/archive';
+import type { ImportProviderStatus } from '@features/imports';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
-import { getWorkTypeLabel } from '../../../works';
-import { getUserAvatarProfile } from '../../../auth';
+import { getWorkTypeLabel } from '@features/works';
+import { getUserAvatarProfile } from '@features/auth';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
 

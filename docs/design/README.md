@@ -1,14 +1,14 @@
 # Design Documentation
 
-| Field | Value |
-| --- | --- |
-| Status | `active` |
-| Role | `design documentation index` |
-| Source of truth | [`./DESIGN.md`](./DESIGN.md), current `apps/web` implementation, Stitch reference drafts |
-| Last verified against | `2026-04-24` working tree |
-| When to update | design token source, Stitch reference storage rules, or UI implementation guidance changes |
+| Field                 | Value                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| Status                | `active`                                                                                          |
+| Role                  | `design documentation index`                                                                      |
+| Source of truth       | [`./DESIGN.md`](./DESIGN.md), current `apps/web` implementation, archived Stitch reference drafts |
+| Last verified against | `2026-04-24` working tree                                                                         |
+| When to update        | design token source, Stitch reference storage rules, or UI implementation guidance changes        |
 
-This directory stores design-system documentation and generated design references for Work Archive.
+This directory stores the active design-system documentation for Work Archive.
 
 ## Primary Design Contract
 
@@ -22,21 +22,21 @@ The `docs/design/DESIGN.md` is the canonical product design contract. It describ
 
 Use this plan before implementing Stitch-inspired UI changes. Stitch drafts are visual references; actual implementation should preserve Mantine, shared primitives, current routing, local-first product language, and sync boundaries.
 
-## Stitch Reference Archive
+## Reference Archives
 
-- [`stitch/`](./stitch/): Google Stitch-generated design drafts and review notes.
+- [`../archive/design/stitch/`](../archive/design/stitch/): Google Stitch-generated design drafts and review notes.
 - [`frontend-guide/`](./frontend-guide/): imported frontend redesign references and visual assets.
 
-Current references:
+Archived Stitch references:
 
-- [`stitch/home/2026-04-24-home-premium-archive.html`](./stitch/home/2026-04-24-home-premium-archive.html)
-- [`stitch/home/2026-04-24-home-premium-archive.notes.md`](./stitch/home/2026-04-24-home-premium-archive.notes.md)
-- [`stitch/works/2026-04-24-works-list-premium-grid.html`](./stitch/works/2026-04-24-works-list-premium-grid.html)
-- [`stitch/works/2026-04-24-works-list-premium-grid.notes.md`](./stitch/works/2026-04-24-works-list-premium-grid.notes.md)
-- [`stitch/auth/2026-04-24-auth-clean-archive-card.html`](./stitch/auth/2026-04-24-auth-clean-archive-card.html)
-- [`stitch/auth/2026-04-24-auth-clean-archive-card.notes.md`](./stitch/auth/2026-04-24-auth-clean-archive-card.notes.md)
-- [`stitch/add-work/2026-04-24-add-work-quick-add-flow.html`](./stitch/add-work/2026-04-24-add-work-quick-add-flow.html)
-- [`stitch/add-work/2026-04-24-add-work-quick-add-flow.notes.md`](./stitch/add-work/2026-04-24-add-work-quick-add-flow.notes.md)
+- [`../archive/design/stitch/home/2026-04-24-home-premium-archive.html`](../archive/design/stitch/home/2026-04-24-home-premium-archive.html)
+- [`../archive/design/stitch/home/2026-04-24-home-premium-archive.notes.md`](../archive/design/stitch/home/2026-04-24-home-premium-archive.notes.md)
+- [`../archive/design/stitch/works/2026-04-24-works-list-premium-grid.html`](../archive/design/stitch/works/2026-04-24-works-list-premium-grid.html)
+- [`../archive/design/stitch/works/2026-04-24-works-list-premium-grid.notes.md`](../archive/design/stitch/works/2026-04-24-works-list-premium-grid.notes.md)
+- [`../archive/design/stitch/auth/2026-04-24-auth-clean-archive-card.html`](../archive/design/stitch/auth/2026-04-24-auth-clean-archive-card.html)
+- [`../archive/design/stitch/auth/2026-04-24-auth-clean-archive-card.notes.md`](../archive/design/stitch/auth/2026-04-24-auth-clean-archive-card.notes.md)
+- [`../archive/design/stitch/add-work/2026-04-24-add-work-quick-add-flow.html`](../archive/design/stitch/add-work/2026-04-24-add-work-quick-add-flow.html)
+- [`../archive/design/stitch/add-work/2026-04-24-add-work-quick-add-flow.notes.md`](../archive/design/stitch/add-work/2026-04-24-add-work-quick-add-flow.notes.md)
 
 Stitch outputs are reference material, not implementation source. Do not paste Tailwind HTML directly into `apps/web`. Rebuild selected ideas with Mantine, shared primitives, and the existing Work Archive design tokens.
 
@@ -44,7 +44,7 @@ Stitch outputs are reference material, not implementation source. Do not paste T
 
 1. Use `docs/design/DESIGN.md` as the official design contract.
 2. Use `STITCH_TO_PRODUCT_EVOLUTION_PLAN.md` to decide what to extract from Stitch drafts.
-3. Store Stitch exports under `docs/design/stitch/{surface}/`.
+3. Store Stitch exports under `docs/archive/design/stitch/{surface}/`.
 4. Pair each exported HTML draft with a `.notes.md` file explaining what to keep, what to ignore, and how to translate it into the actual codebase.
 5. Keep actual implementation in `apps/web` using Mantine and shared UI primitives.
 6. Do not let Stitch reference material redefine routing, product behavior, local-first sync, or community/public-data boundaries.
@@ -57,6 +57,7 @@ docs/design/
   DESIGN.md
   STITCH_TO_PRODUCT_EVOLUTION_PLAN.md
   frontend-guide/
+docs/archive/design/
   stitch/
     README.md
     home/

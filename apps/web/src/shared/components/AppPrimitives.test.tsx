@@ -7,7 +7,7 @@ import {
   appColorSchemeManager,
   appCssVariablesResolver,
   appTheme,
-} from '../../app/mantine-theme';
+} from '@app/mantine-theme';
 import {
   AppNavLink,
   FeedbackMessage,

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
-import { StateMessage } from '../../../shared/components/AppPrimitives';
+import { StateMessage } from '@shared/components/AppPrimitives';
 import { useAuthSession } from '../hooks/useAuthSession';
 
 export function GoogleAuthCompletePage() {

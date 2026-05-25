@@ -4,8 +4,8 @@ import {
   localArchiveService,
   type LocalArchiveImportPreview,
   type LocalArchiveScope,
-} from '../../archive';
-import { useJsonArchiveExport } from '../../archive';
+} from '@features/archive';
+import { useJsonArchiveExport } from '@features/archive';
 import type { SettingsFeedback } from './useImportProviderSettings';
 
 function downloadTextFile(filename: string, type: string, content: string) {

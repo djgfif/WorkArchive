@@ -3,7 +3,7 @@ import type {
   UserRecordReleasesResponse,
 } from '@work-archive/shared-types';
 
-import { requestAuthenticatedApiJson } from '../../../shared/services/api-client';
+import { requestAuthenticatedApiJson } from '@shared/services/api-client';
 
 export type { RelatedCatalogTitlesResponse, UserRecordReleasesResponse };
 

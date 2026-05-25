@@ -30,9 +30,9 @@ import {
   PageSection,
   SectionCard,
   StateMessage,
-} from '../../../shared/components/AppPrimitives';
-import { DetailPageTemplate } from '../../../shared/components/PageTemplates';
-import { useAuthSession } from '../../auth';
+} from '@shared/components/AppPrimitives';
+import { DetailPageTemplate } from '@shared/components/PageTemplates';
+import { useAuthSession } from '@features/auth';
 import { WorkDetailPanel } from '../components/WorkDetailPanel';
 import { QuickProgressControl } from '../components/ArchiveComponents';
 import { useWorkDetail } from '../hooks/useWorkDetail';

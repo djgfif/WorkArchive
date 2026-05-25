@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   clearStoredAuthTokens,
   writeStoredAuthTokens,
-} from '../../auth';
+} from '@features/auth';
 import { ImportsService } from './imports.service';
 
 function jsonResponse(body: unknown, status = 200) {

@@ -15,7 +15,7 @@ import type {
   WorkSeriesLinkRecord,
 } from '@work-archive/shared-types';
 
-import { createWorkArchiveDb, type WorkArchiveDatabase } from '../../works';
+import { createWorkArchiveDb, type WorkArchiveDatabase } from '@features/works';
 import { LocalArchiveService } from './local-archive.service';
 
 function buildWork(overrides: Partial<WorkRecord> = {}): WorkRecord {

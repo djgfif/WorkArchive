@@ -18,19 +18,19 @@ import {
   AppLinkButton,
   LoadingRows,
   StateMessage,
-} from '../../../shared/components/AppPrimitives';
-import { JsonBackupReminderCard } from '../../archive';
-import { useJsonArchiveExport } from '../../archive';
-import { useJsonBackupReminder } from '../../archive';
-import { HomeHubPageTemplate } from '../../../shared/components/PageTemplates';
-import { useAuthSession } from '../../auth';
+} from '@shared/components/AppPrimitives';
+import { JsonBackupReminderCard } from '@features/archive';
+import { useJsonArchiveExport } from '@features/archive';
+import { useJsonBackupReminder } from '@features/archive';
+import { HomeHubPageTemplate } from '@shared/components/PageTemplates';
+import { useAuthSession } from '@features/auth';
 import {
   ArchiveSearchBar,
   ArchiveStarterShelf,
   WorkShelf,
-} from '../../works';
-import { useWorksOverview } from '../../works';
-import { getWorkStatusLabel } from '../../works';
+} from '@features/works';
+import { useWorksOverview } from '@features/works';
+import { getWorkStatusLabel } from '@features/works';
 import styles from './HomePage.module.css';
 
 const css = styles as Record<string, string>;

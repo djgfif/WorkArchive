@@ -7,7 +7,7 @@ import {
   clearStoredAuthTokens,
   readStoredAuthTokens,
   writeStoredAuthTokens,
-} from '../../features/auth/services/auth-storage';
+} from './auth-token-store';
 import { localizeApiErrorMessage } from '../utils/localize-message';
 
 const DEFAULT_DEVELOPMENT_API_BASE_URL = 'http://localhost:3000/api';

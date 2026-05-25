@@ -1,15 +1,15 @@
 import { Accordion, Alert, Anchor, Group, Paper, Stack, Text, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 
-import { ArtworkPoster } from '../../../shared/components/ArtworkPoster';
+import { ArtworkPoster } from '@shared/components/ArtworkPoster';
 import {
   ActionRow,
   AppBadge,
   AppButton,
   AppLinkButton,
   MetricPill,
-} from '../../../shared/components/AppPrimitives';
-import type { ImportCandidate } from '../../imports';
+} from '@shared/components/AppPrimitives';
+import type { ImportCandidate } from '@features/imports';
 import {
   getCandidateContributorText,
   getCandidateSourceCoverage,

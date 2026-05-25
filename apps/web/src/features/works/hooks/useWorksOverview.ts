@@ -2,7 +2,7 @@ import type { WorkRecord, WorkStatus, WorkType } from '@work-archive/shared-type
 import { liveQuery } from 'dexie';
 import { useEffect, useState } from 'react';
 
-import { useAuthSession } from '../../auth';
+import { useAuthSession } from '@features/auth';
 import { graphRepository } from '../services/graph.repository';
 import { worksRepository } from '../services/works.repository';
 import {

@@ -2,10 +2,10 @@
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
-import { appRoutes } from '../../../app/router/routes';
-import { renderWithProviders } from '../../../test/render-with-providers';
-import { AuthProvider } from '../../auth';
-import { worksService } from '../../works';
+import { appRoutes } from '@app/router/routes';
+import { renderWithProviders } from '@test/render-with-providers';
+import { AuthProvider } from '@features/auth';
+import { worksService } from '@features/works';
 
 describe('HomePage', () => {
   it('keeps the home focused on recent work and active records', async () => {

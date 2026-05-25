@@ -5,10 +5,10 @@ import {
   AppBadge,
   SectionCard,
   SectionIntro,
-} from '../../../../shared/components/AppPrimitives';
-import { JsonBackupReminderCard } from '../../../archive';
-import { getJsonBackupReminderStatus } from '../../../archive';
-import type { LocalArchiveImportPreview } from '../../../archive';
+} from '@shared/components/AppPrimitives';
+import { JsonBackupReminderCard } from '@features/archive';
+import { getJsonBackupReminderStatus } from '@features/archive';
+import type { LocalArchiveImportPreview } from '@features/archive';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import type { SettingsOverviewStats } from '../../hooks/useSettingsOverviewStats';
 import styles from './SettingsControlCenter.module.css';
