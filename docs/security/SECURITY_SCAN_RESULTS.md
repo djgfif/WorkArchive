@@ -1,6 +1,6 @@
 # Security Scan Results
 
-Last local run: 2026-05-25 20:44:47 KST.
+Last local update: 2026-05-25.
 
 This file is the release artifact for dependency and container security scans.
 Update it for every beta or production release candidate.
@@ -43,6 +43,53 @@ release gate.
 - `npm run security:scan:images`: not run locally by design; run on the official
   release runner with exact API/Web release image refs.
 
+## Result Template
+
+Copy this block for each beta or production release candidate.
+
+```text
+Release candidate:
+Commit:
+Runner:
+Timestamp:
+
+npm run security:audit:prod
+- status:
+- npm version:
+- summary:
+- action:
+
+npm run security:audit
+- status:
+- npm version:
+- summary:
+- action:
+
+npm run security:scan:fs
+- status:
+- trivy version:
+- database timestamp:
+- summary:
+- action:
+
+WORK_ARCHIVE_API_IMAGE=<api-image-tag-or-digest>
+WORK_ARCHIVE_WEB_IMAGE=<web-image-tag-or-digest>
+npm run security:scan:images
+- status:
+- trivy version:
+- database timestamp:
+- api image:
+- web image:
+- summary:
+- action:
+
+Skipped or failed scans:
+- command:
+- reason:
+- next environment:
+- owner:
+```
+
 ## Recording Rules
 
 - Paste only the command status, timestamp, tool version, and summary counts.
@@ -51,3 +98,6 @@ release gate.
   run next.
 - For image scans, record the exact image tag or digest. Do not scan a moving
   `latest` tag as the release artifact.
+- If `trivy` is missing locally, record that as a skipped local scan rather than
+  installing it ad hoc. The release CI/runner must have Trivy available and must
+  fail closed if the vulnerability database cannot be updated.

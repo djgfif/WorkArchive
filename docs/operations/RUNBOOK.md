@@ -45,6 +45,67 @@ behind an internal network, reverse-proxy allowlist, or trusted monitoring
 collector. See `docs/operations/OBSERVABILITY.md` for metric names and alert
 drafts.
 
+## Client header guard audit to enforce
+
+`WORK_ARCHIVE_CLIENT_HEADER_GUARD` controls the production bearer-token client
+header guard in `apps/api/src/security/security-middleware.ts`.
+
+Modes:
+
+- `off`: do not check `x-work-archive-client`.
+- `audit`: record missing or invalid headers, but allow the request.
+- `enforce`: reject unsafe authenticated requests missing
+  `x-work-archive-client: web` with `403`.
+
+Production compose intentionally defaults to audit:
+
+```bash
+WORK_ARCHIVE_CLIENT_HEADER_GUARD=${WORK_ARCHIVE_CLIENT_HEADER_GUARD:-audit}
+```
+
+Do not switch directly from unset/off to enforce. Use this promotion sequence:
+
+1. Deploy with `WORK_ARCHIVE_CLIENT_HEADER_GUARD=audit`.
+2. Confirm the current web build sends `x-work-archive-client: web` on
+   authenticated unsafe API calls.
+3. Observe security audit logs for `http.client_header_missing`.
+4. Classify every event by source:
+   - expected legacy client or stale tab;
+   - manual API/script integration;
+   - likely CSRF-style or untrusted caller;
+   - unknown.
+5. Keep audit mode until legitimate web traffic produces zero
+   `http.client_header_missing` events for one full release observation window.
+6. Announce the cutoff for scripts or integrations that use bearer tokens.
+7. Set `WORK_ARCHIVE_CLIENT_HEADER_GUARD=enforce` in staging first and run auth,
+   works mutation, sync push, import credential, and logout smoke tests.
+8. Promote enforce to production only after staging has no legitimate missing
+   header events.
+9. After production promotion, monitor `http.client_header_missing` and `403`
+   rates. Roll back to `audit` if legitimate first-party traffic is blocked.
+
+Expected log event:
+
+```json
+{
+  "eventType": "http.client_header_missing",
+  "metadata": {
+    "hasAuthorization": true,
+    "headerValue": "missing",
+    "method": "POST",
+    "mode": "audit",
+    "path": "/api/..."
+  }
+}
+```
+
+Enforce readiness criteria:
+
+- no legitimate first-party web requests emit `http.client_header_missing`;
+- remaining events are malicious, unknown, stale clients, or approved blocked
+  scripts;
+- deploy notes include the audit window, count, and decision owner.
+
 ## PostgreSQL 장애
 
 1. Confirm the database process is running: `docker compose ps postgres`.
@@ -205,3 +266,13 @@ See `docs/operations/BACKUP_POLICY.md` for exact backup and restore commands.
 3. If a destructive or irreversible migration was approved and applied, restore from the pre-deployment backup.
 4. Re-check Google OAuth redirect, env values, `/readyz`, sync smoke, and tier board smoke after rollback.
 5. Leave public community/share feature flags disabled.
+
+## Pending hardening items
+
+- Stateful services in `compose.prod.yml` (`postgres`, `redis`) still need a
+  separate rehearsal before adding explicit `user:` or `cap_drop: [ALL]`.
+  Official images may perform entrypoint ownership or permission setup that can
+  break when privileges are removed without testing.
+- Application services (`api`, `api-migrate`, `retention-cleanup`, `web`) run as
+  non-root users in their images and now drop Linux capabilities in compose.
+  Keep `read_only`, `tmpfs`, and `no-new-privileges` enabled.

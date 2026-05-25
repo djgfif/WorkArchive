@@ -40,6 +40,8 @@ services:
     pids_limit: 256
     read_only: true
     restart: unless-stopped
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true
     tmpfs:
@@ -98,6 +100,8 @@ services:
       DATABASE_URL: ${DATABASE_URL:?required}
       NODE_ENV: production
     restart: 'no'
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true
     tmpfs:
@@ -125,6 +129,8 @@ services:
       RETENTION_USED_PASSWORD_RESET_TOKEN_DAYS: ${RETENTION_USED_PASSWORD_RESET_TOKEN_DAYS:-7}
     read_only: true
     restart: 'no'
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true
     tmpfs:
@@ -142,6 +148,8 @@ services:
     pids_limit: 128
     read_only: true
     restart: unless-stopped
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true
     tmpfs:

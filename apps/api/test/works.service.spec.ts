@@ -433,9 +433,22 @@ describe('WorksService', () => {
         favorite: true,
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
+    expect(catalogService.update).not.toHaveBeenCalled();
+    expect(userRecordsService.updateActiveForUser).not.toHaveBeenCalled();
 
     await expect(
       service.remove(USER_ID, '9fcbf92f-6347-4d79-bdf8-9d0d18439c28'),
     ).rejects.toBeInstanceOf(NotFoundException);
+    expect(userRecordsService.updateActiveForUser).toHaveBeenCalledWith(
+      USER_ID,
+      '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      expect.objectContaining({
+        deletedAt: expect.any(Date),
+      }),
+      undefined,
+      {
+        includeDeletedResult: true,
+      },
+    );
   });
 });

@@ -722,6 +722,48 @@ function createPrismaServiceMock() {
 
       return joinRecord(updatedRecord);
     },
+    updateMany: async ({
+      where,
+      data,
+    }: {
+      where: {
+        deletedAt?: null;
+        id?: string;
+        userId?: string;
+      };
+      data: Record<string, unknown>;
+    }) => {
+      let count = 0;
+
+      for (let index = 0; index < userWorkRecords.length; index += 1) {
+        const current = userWorkRecords[index]!;
+
+        if (where.id && current.id !== where.id) {
+          continue;
+        }
+
+        if (where.userId && current.userId !== where.userId) {
+          continue;
+        }
+
+        if (where.deletedAt === null && current.deletedAt !== null) {
+          continue;
+        }
+
+        userWorkRecords[index] = {
+          ...current,
+          ...data,
+          serverVersion: buildServerVersion(
+            Number(current.serverVersion),
+            data.serverVersion,
+          ),
+          updatedAt: data.updatedAt ?? new Date(),
+        };
+        count += 1;
+      }
+
+      return { count };
+    },
   };
   prismaMock.userSyncAppliedMutation = {
     findUnique: async ({
