@@ -18,6 +18,7 @@ COPY apps/web apps/web
 COPY packages/shared-types packages/shared-types
 COPY packages/tsconfig packages/tsconfig
 
+RUN npm run build --workspace @work-archive/shared-types
 RUN npm run build --workspace @work-archive/web
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime

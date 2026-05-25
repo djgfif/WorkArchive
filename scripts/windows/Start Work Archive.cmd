@@ -3,7 +3,7 @@ setlocal EnableExtensions
 
 where wsl.exe >nul 2>nul
 if errorlevel 1 (
-  echo WSL was not found. Install WSL or run start-dev.bat from a Windows checkout.
+  echo WSL was not found. Install WSL or run npm run dev:start from a Windows checkout.
   pause
   exit /b 1
 )
@@ -33,7 +33,7 @@ exit /b 1
 
 :run_compose
 echo Starting Work Archive through WSL...
-wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "WORK_ARCHIVE_SKIP_OPEN=1 ./start-dev.sh compose"
+wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "WORK_ARCHIVE_SKIP_OPEN=1 scripts/dev/start-dev.sh compose"
 set "DEV_EXIT=%ERRORLEVEL%"
 if not "%DEV_EXIT%"=="0" goto failed
 
@@ -66,7 +66,7 @@ exit /b 1
 :run_host
 echo Starting host dev mode through WSL...
 start "" "http://127.0.0.1:53173"
-wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "./start-dev.sh host"
+wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "scripts/dev/start-dev.sh host"
 set "DEV_EXIT=%ERRORLEVEL%"
 if not "%DEV_EXIT%"=="0" goto failed
 

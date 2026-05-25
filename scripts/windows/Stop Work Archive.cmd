@@ -3,7 +3,7 @@ setlocal EnableExtensions
 
 where wsl.exe >nul 2>nul
 if errorlevel 1 (
-  echo WSL was not found. Install WSL or run stop-dev.bat from a Windows checkout.
+  echo WSL was not found. Install WSL or run npm run dev:stop from a Windows checkout.
   pause
   exit /b 1
 )
@@ -18,7 +18,7 @@ if "%PROJECT_DIR%"=="" (
   exit /b 1
 )
 
-wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "./stop-dev.sh"
+wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "scripts/dev/stop-dev.sh"
 set "DEV_EXIT=%ERRORLEVEL%"
 
 if not "%DEV_EXIT%"=="0" (

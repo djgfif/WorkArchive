@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 
 set "ComSpec=%SystemRoot%\System32\cmd.exe"
 set "PATH=%SystemRoot%\System32;%PATH%"
@@ -27,8 +27,8 @@ if /i "%DEV_MODE%"=="host" goto host_mode
 
 echo Unknown dev mode "%DEV_MODE%".
 echo Usage:
-echo   start-dev.bat       Starts the full Docker Compose app stack.
-echo   start-dev.bat host  Starts host-based Vite/API dev servers, requiring 127.0.0.1:5432.
+echo   npm run dev:start       Starts the full Docker Compose app stack.
+echo   npm run dev:start:host  Starts host-based Vite/API dev servers, requiring 127.0.0.1:5432.
 pause
 exit /b 1
 
@@ -104,7 +104,7 @@ echo System-level fix to consider:
 echo   Change %%USERPROFILE%%\.wslconfig from networkingMode=mirrored to networkingMode=nat,
 echo   add localhostForwarding=true, then run wsl --shutdown and restart Docker Desktop.
 echo.
-echo Services are still running. Use stop-dev.bat to stop them.
+echo Services are still running. Use npm run dev:stop to stop them.
 pause
 endlocal
 exit /b 1
@@ -113,7 +113,7 @@ exit /b 1
 echo [4/4] Opening browser...
 start "" "%COMPOSE_WEB_URL%"
 echo Docker Compose app stack is running.
-echo Use stop-dev.bat to stop it.
+echo Use npm run dev:stop to stop it.
 pause
 endlocal
 exit /b 0
@@ -147,7 +147,7 @@ echo [2/5] Checking PostgreSQL host port...
 if errorlevel 1 (
   echo This Windows session cannot reach PostgreSQL at 127.0.0.1:5432.
   echo Host dev mode requires Docker Desktop localhost port forwarding to work.
-  echo Run start-dev.bat without arguments to use the Docker Compose app stack instead.
+  echo Run npm run dev:start to use the Docker Compose app stack instead.
   pause
   exit /b 1
 )

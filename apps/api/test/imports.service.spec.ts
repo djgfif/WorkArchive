@@ -1538,7 +1538,7 @@ describe('ImportsService', () => {
 
     const result = await service.search(USER_ID, {
       query: '전지적 독자 시점',
-      limit: 5,
+      limit: 10,
       type: WorkType.web_novel,
     });
 

@@ -46,9 +46,10 @@ The readiness script must end with `Public readiness check passed.`
 - Confirm production OAuth redirect URIs point to the intended public domain.
 - Confirm screenshots, browser traces, Playwright reports, logs, database dumps,
   and backup archives are not committed.
-- Confirm root development entrypoints are limited to the documented launchers:
-  `start-dev.bat`, `stop-dev.bat`, `start-dev.sh`, and `stop-dev.sh`. Optional
-  Windows WSL convenience wrappers live under `scripts/windows/`.
+- Confirm the root does not contain development launcher wrappers. Official
+  local entrypoints are `npm run dev:start`, `npm run dev:start:host`, and
+  `npm run dev:stop`; implementation wrappers live under `scripts/dev/` and
+  optional Windows WSL convenience wrappers live under `scripts/windows/`.
 - Confirm historical commits do not contain real secrets. If a real secret was
   committed at any point, rotate the secret first; rewrite git history only with
   explicit approval because it requires a force push.
