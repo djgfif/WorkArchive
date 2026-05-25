@@ -19,6 +19,8 @@ It performs:
 - web static health via `/work-archive-config.js`
 - `/api/auth/google/status`
 - `/api/imports/providers`
+- `/metrics` exposure check, expecting `404` unless
+  `EXPECT_METRICS_STATUS=200` is explicitly set for an internal monitoring path
 - retention cleanup dry-run
 
 The script does not print secret values. Review Docker logs separately if a
@@ -36,3 +38,16 @@ scripts/deploy/commercial-env-preflight.mjs .env.prod
 Required checks include production mode, Redis rate limiting, secure cookies,
 Swagger disabled, HTTPS CORS/web/OAuth URLs, and non-default 32+ character JWT,
 security-event, and provider-key encryption secrets.
+
+If `METRICS_ENABLED=true`, the preflight requires
+`METRICS_INTERNAL_ACCESS_REVIEWED=true`. That flag is an operator assertion that
+the endpoint is reachable only by an internal collector or allowlisted
+reverse-proxy path.
+
+## Evidence
+
+Record each public beta release candidate in
+[`../../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`](../../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md).
+The release is not Gate 1 complete until repository gates, GitHub controls,
+host smoke, restore drill, metrics exposure, and smoke-level latency baseline
+are all recorded.

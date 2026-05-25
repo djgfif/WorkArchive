@@ -14,15 +14,16 @@ docs stay here, older plans and raw design material stay in
 
 ## Current Areas
 
-| Area | Purpose |
-| --- | --- |
-| [`getting-started/`](./getting-started/) | local setup and developer onboarding |
-| [`architecture/`](./architecture/) | ADRs and current codebase structure boundaries |
-| [`operations/`](./operations/) | runbooks, deployment, release, migration, and backup procedures |
-| [`security/`](./security/) | public readiness and security checklists |
-| [`project/`](./project/README.md) | current execution status and roadmap |
-| [`management/`](./management/) | documentation governance and status tracking |
-| [`archive/`](./archive/README.md) | historical plans, completed audits, raw design sources, and reference material |
+| Area                                     | Purpose                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| [`getting-started/`](./getting-started/) | local setup and developer onboarding                                           |
+| [`architecture/`](./architecture/)       | ADRs and current codebase structure boundaries                                 |
+| [`commercial/`](./commercial/)           | public beta and commercial launch readiness gates                              |
+| [`operations/`](./operations/)           | runbooks, deployment, release, migration, and backup procedures                |
+| [`security/`](./security/)               | public readiness and security checklists                                       |
+| [`project/`](./project/README.md)        | current execution status and roadmap                                           |
+| [`management/`](./management/)           | documentation governance and status tracking                                   |
+| [`archive/`](./archive/README.md)        | historical plans, completed audits, raw design sources, and reference material |
 
 ## Documentation Rules
 

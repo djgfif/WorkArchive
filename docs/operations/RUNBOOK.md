@@ -5,6 +5,7 @@ This runbook keeps the current runtime: local-first web app, NestJS API, Postgre
 Commercial readiness references:
 
 - `docs/commercial/COMMERCIAL_LAUNCH_READINESS.md`
+- `docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`
 - `docs/operations/OBSERVABILITY.md`
 - `docs/operations/deployment/BETA_REHEARSAL.md`
 - `docs/security/SECURE_SDLC.md`

@@ -82,3 +82,7 @@ Run a restore drill at least once per month:
    into a clean browser profile without secrets.
 7. Record date, operator, backup file, duration, RPO/RTO observed, and any gap
    found.
+
+For public beta Gate 1, record the drill in
+[`../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`](../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md)
+before approving the release candidate.

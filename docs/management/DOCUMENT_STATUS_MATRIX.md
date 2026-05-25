@@ -17,6 +17,8 @@ This table separates current docs from archived reference material.
 | [`../getting-started/LOCAL_DEVELOPMENT.md`](../getting-started/LOCAL_DEVELOPMENT.md)                         | `active`    | local setup                     |
 | [`../architecture/FEATURE_FIRST_STRUCTURE.md`](../architecture/FEATURE_FIRST_STRUCTURE.md)                   | `canonical` | codebase boundary guide         |
 | [`../architecture/adr/`](../architecture/adr/)                                                               | `canonical` | accepted architecture decisions |
+| [`../commercial/COMMERCIAL_LAUNCH_READINESS.md`](../commercial/COMMERCIAL_LAUNCH_READINESS.md)               | `canonical` | public beta readiness gate      |
+| [`../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`](../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md)               | `active`    | beta release evidence ledger    |
 | [`../operations/RUNBOOK.md`](../operations/RUNBOOK.md)                                                       | `active`    | operations runbook              |
 | [`../operations/RELEASE_CHECKLIST.md`](../operations/RELEASE_CHECKLIST.md)                                   | `active`    | release procedure               |
 | [`../security/PUBLIC_REPOSITORY_READINESS.md`](../security/PUBLIC_REPOSITORY_READINESS.md)                   | `canonical` | public repository readiness     |

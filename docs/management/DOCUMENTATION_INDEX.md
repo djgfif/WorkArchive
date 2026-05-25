@@ -9,6 +9,7 @@ documentation navigation and maintenance rules.
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | [`getting-started/`](../getting-started/) | [`LOCAL_DEVELOPMENT.md`](../getting-started/LOCAL_DEVELOPMENT.md)                                 | setting up the project locally                       |
 | [`architecture/`](../architecture/)       | [`FEATURE_FIRST_STRUCTURE.md`](../architecture/FEATURE_FIRST_STRUCTURE.md)                        | checking web/API/package boundaries                  |
+| [`commercial/`](../commercial/)           | [`COMMERCIAL_LAUNCH_READINESS.md`](../commercial/COMMERCIAL_LAUNCH_READINESS.md)                  | checking public beta and launch readiness gates      |
 | [`operations/`](../operations/)           | [`RUNBOOK.md`](../operations/RUNBOOK.md)                                                          | running, deploying, recovering, or releasing the app |
 | [`security/`](../security/)               | [`PUBLIC_REPOSITORY_READINESS.md`](../security/PUBLIC_REPOSITORY_READINESS.md)                    | preparing for public GitHub visibility               |
 | [`project/`](../project/README.md)        | [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | checking current implementation state                |

@@ -37,6 +37,10 @@ expectPresent('REDIS_URL');
 expectExact('TRUST_PROXY_HOPS', '1');
 expectExact('COOKIE_SECURE', 'true');
 expectExact('SWAGGER_ENABLED', 'false');
+expectBoolean('METRICS_ENABLED');
+if (env.METRICS_ENABLED === 'true') {
+  expectExact('METRICS_INTERNAL_ACCESS_REVIEWED', 'true');
+}
 expectHttpsUrl('CORS_ORIGIN');
 expectHttpsUrl('WEB_BASE_URL');
 expectHttpsUrl('GOOGLE_OAUTH_REDIRECT_URI');
@@ -59,10 +63,7 @@ for (const name of SECRET_NAMES) {
 }
 
 for (const [name, value] of Object.entries(env).sort()) {
-  const printableValue =
-    SECRET_NAMES.has(name) || name.includes('SECRET') || name.includes('PASSWORD')
-      ? mask(value)
-      : value;
+  const printableValue = isSensitiveEnvName(name) ? mask(value) : value;
 
   console.log(`${name}=${printableValue}`);
 }
@@ -126,6 +127,25 @@ function expectExact(name, expected) {
   if (actual !== expected) {
     errors.push(`${name} must be ${expected}.`);
   }
+}
+
+function expectBoolean(name) {
+  const actual = env[name]?.trim();
+
+  if (actual && actual !== 'true' && actual !== 'false') {
+    errors.push(`${name} must be true or false when set.`);
+  }
+}
+
+function isSensitiveEnvName(name) {
+  return (
+    SECRET_NAMES.has(name) ||
+    name.includes('SECRET') ||
+    name.includes('PASSWORD') ||
+    name.includes('TOKEN') ||
+    name.includes('API_KEY') ||
+    name === 'DATABASE_URL'
+  );
 }
 
 function expectHttpsUrl(name) {

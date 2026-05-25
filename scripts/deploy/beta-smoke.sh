@@ -6,6 +6,7 @@ ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env.prod}"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/compose.prod.yml}"
 RUN_CONTAINER_FS_SMOKE="${RUN_CONTAINER_FS_SMOKE:-1}"
 EXPECT_GOOGLE_OAUTH_CONFIGURED="${EXPECT_GOOGLE_OAUTH_CONFIGURED:-true}"
+EXPECT_METRICS_STATUS="${EXPECT_METRICS_STATUS:-404}"
 
 failures=()
 warnings=()
@@ -260,6 +261,13 @@ if grep -qi '^set-cookie:' "$LAST_HEADER_FILE"; then
   fail "POST /api/auth/refresh without OAuth must not set a refresh cookie."
 else
   echo "OK refresh endpoint rejects missing cookie without setting a cookie"
+fi
+
+expect_status GET /metrics "$EXPECT_METRICS_STATUS"
+if [[ "$EXPECT_METRICS_STATUS" == "200" ]]; then
+  body_contains 'work_archive_api_request_total' "metrics endpoint exposes Work Archive counters"
+else
+  echo "OK metrics endpoint is not publicly exposed with expected HTTP $EXPECT_METRICS_STATUS"
 fi
 
 run_operator_sync_smoke

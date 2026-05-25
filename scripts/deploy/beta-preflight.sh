@@ -132,6 +132,21 @@ require_exact RATE_LIMIT_STORE redis
 require_exact REDIS_URL redis://redis:6379
 require_exact TRUST_PROXY_HOPS 1
 
+metrics_enabled="$(read_env_value METRICS_ENABLED)"
+metrics_access_reviewed="$(read_env_value METRICS_INTERNAL_ACCESS_REVIEWED)"
+
+if [[ -z "$metrics_enabled" ]]; then
+  metrics_enabled="false"
+fi
+
+if [[ "$metrics_enabled" != "false" && "$metrics_enabled" != "true" ]]; then
+  fail "METRICS_ENABLED must be true or false when set."
+fi
+
+if [[ "$metrics_enabled" == "true" && "$metrics_access_reviewed" != "true" ]]; then
+  fail "METRICS_INTERNAL_ACCESS_REVIEWED must be true when METRICS_ENABLED=true."
+fi
+
 web_base_url="$(read_env_value WEB_BASE_URL)"
 cors_origin="$(read_env_value CORS_ORIGIN)"
 google_redirect_uri="$(read_env_value GOOGLE_OAUTH_REDIRECT_URI)"

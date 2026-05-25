@@ -33,6 +33,9 @@ scale. Revisit once public beta traffic and dependency churn stabilize.
 ## Secret Scanning Checklist
 
 - Enable GitHub secret scanning and push protection in repository settings.
+- For public beta, record branch protection, secret scanning, push protection,
+  CodeQL, and Dependabot status in
+  `docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`.
 - Do not commit `.env.prod`, provider API keys, Google OAuth secrets, JWT
   secrets, database URLs with real passwords, or backup files.
 - Confirm logs and metrics do not contain tokens, cookies, request bodies,
