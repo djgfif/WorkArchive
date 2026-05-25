@@ -4,7 +4,7 @@
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Status                | `canonical`                                                                                                                                                                                                                                      |
 | Role                  | `integrated execution roadmap`                                                                                                                                                                                                                   |
-| Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
+| Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
 | Last verified against | `2026-04-30` sync conflict resolution working tree                                                                                                                                                                                               |
 | When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                     |
 
@@ -25,7 +25,7 @@
 
 우선 읽을 기준 문서:
 
-- [`../product/PRODUCT_DIRECTION_LOCK.md`](../product/PRODUCT_DIRECTION_LOCK.md)
+- [`../archive/product/PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md)
 
 핵심 원칙:
 

@@ -1,46 +1,34 @@
-# docs/
+# Work Archive Docs
 
-| Field                 | Value                                                                                                                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Status                | `active`                                                                                                                                                                             |
-| Role                  | `documentation hub`                                                                                                                                                                  |
-| Source of truth       | [`project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), [`management/DOCUMENTATION_INDEX.md`](./management/DOCUMENTATION_INDEX.md) |
-| Last verified against | `2026-04-24` working tree                                                                                                                                                            |
-| When to update        | 폴더 구조, 문서 역할, 첫 읽기 순서가 바뀔 때                                                                                                                                         |
+This is the public documentation hub. Keep this level small: current operating
+docs stay here, older plans and raw design material stay in
+[`archive/`](./archive/).
 
-Work Archive 문서의 공식 허브다. 루트 [`README.md`](../README.md)는 실행과 운영을, `docs/`는 현재 상태·설계·로드맵·거버넌스를 담당한다.
-
-## Read In This Order
+## Read First
 
 1. [`../README.md`](../README.md)
-2. [`project/CURRENT_EXECUTION_PLAN.md`](./project/CURRENT_EXECUTION_PLAN.md)
-3. [`management/DOCUMENTATION_INDEX.md`](./management/DOCUMENTATION_INDEX.md)
-4. [`project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
-5. [`project/EXECUTION_ROADMAP.md`](./project/EXECUTION_ROADMAP.md)
-6. 작업 영역별 README
+2. [`getting-started/LOCAL_DEVELOPMENT.md`](./getting-started/LOCAL_DEVELOPMENT.md)
+3. [`security/PUBLIC_REPOSITORY_READINESS.md`](./security/PUBLIC_REPOSITORY_READINESS.md)
+4. [`architecture/FEATURE_FIRST_STRUCTURE.md`](./architecture/FEATURE_FIRST_STRUCTURE.md)
+5. [`operations/RUNBOOK.md`](./operations/RUNBOOK.md)
 
-## Folders
+## Current Areas
 
-| Folder                                                     | Read it when                                        | Primary document                                                                                         |
-| ---------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| [`project/`](./project/README.md)                          | 현재 구현 상태와 reference 문서를 함께 보고 싶을 때 | [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)         |
-| [`frontend/`](./frontend/README.md)                        | 현재 프론트 기준과 상세 실행 계획을 보고 싶을 때    | [`FRONTEND_BLUEPRINT_V1.md`](./frontend/FRONTEND_BLUEPRINT_V1.md)                                        |
-| [`backend/`](./backend/README.md)                          | 백엔드 목표 구조와 남은 보안 backlog를 보고 싶을 때 | [`BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](./backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)             |
-| [`product/`](./product/README.md)                          | 제품 비전, 우선순위 요약, 확장 전략을 보고 싶을 때  | [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md) |
-| [`engineering/`](./engineering/FEATURE_FIRST_STRUCTURE.md) | monorepo 구조와 feature/module 경계를 확인할 때     | [`FEATURE_FIRST_STRUCTURE.md`](./engineering/FEATURE_FIRST_STRUCTURE.md)                                 |
-| [`management/`](./management/README.md)                    | 문서 해석 규칙과 상태 분류가 필요할 때              | [`DOCUMENTATION_INDEX.md`](./management/DOCUMENTATION_INDEX.md)                                          |
-| [`archive/`](./archive/README.md)                          | archive 운영 기준을 확인할 때                       | [`archive/README.md`](./archive/README.md)                                                               |
+| Area | Purpose |
+| --- | --- |
+| [`getting-started/`](./getting-started/) | local setup and developer onboarding |
+| [`architecture/`](./architecture/) | ADRs and current codebase structure boundaries |
+| [`operations/`](./operations/) | runbooks, deployment, release, migration, and backup procedures |
+| [`security/`](./security/) | public readiness and security checklists |
+| [`project/`](./project/README.md) | current execution status and roadmap |
+| [`management/`](./management/) | documentation governance and status tracking |
+| [`archive/`](./archive/README.md) | historical plans, completed audits, raw design sources, and reference material |
 
-## Source Of Truth Summary
+## Documentation Rules
 
-- 현재 실행 기준: [`project/CURRENT_EXECUTION_PLAN.md`](./project/CURRENT_EXECUTION_PLAN.md)
-- 현재 코드 현실: [`project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)
-- 통합 실행 순서: [`project/EXECUTION_ROADMAP.md`](./project/EXECUTION_ROADMAP.md)
-- 현재 프론트 canonical: [`frontend/FRONTEND_BLUEPRINT_V1.md`](./frontend/FRONTEND_BLUEPRINT_V1.md)
-- 현재 프론트 목표 구조: [`frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](./frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
-- 프론트 상세 실행 계획: [`frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](./frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
-- feature-first 구조 기준: [`engineering/FEATURE_FIRST_STRUCTURE.md`](./engineering/FEATURE_FIRST_STRUCTURE.md)
-- 현재 백엔드 목표 구조: [`backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](./backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
-- 보안 로드맵: [`backend/SECURITY_HARDENING_ROADMAP.md`](./backend/SECURITY_HARDENING_ROADMAP.md)
-- 제품 우선순위 요약: [`product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
-- 제품 비전: [`product/FINAL_WEB_DESIGN.md`](./product/FINAL_WEB_DESIGN.md)
+- Put current procedures in the smallest matching active area.
+- Move completed plans, old audits, raw design exports, and superseded strategy
+  documents to `archive/`.
+- Update this file and
+  [`management/DOCUMENTATION_INDEX.md`](./management/DOCUMENTATION_INDEX.md)
+  whenever top-level docs move.

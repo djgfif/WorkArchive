@@ -5,7 +5,7 @@
 | Status | `canonical` |
 | Role | `governance` |
 | Source of truth | 문서 운영 규칙과 현재 폴더 구조 |
-| Last verified against | `2026-04-21` working tree |
+| Last verified against | `2026-05-25` working tree |
 | When to update | 문서 생성/이동/metadata/archive 규칙이 바뀔 때 |
 
 이 문서는 Work Archive 저장소의 문서를 어떻게 만들고, 어디에 두고, 어떤 상태로 해석할지 정하는 운영 규칙이다.
@@ -13,7 +13,7 @@
 ## 1. Core Rules
 
 1. 문서는 역할이 겹치지 않게 만든다.
-2. 루트에는 실행/운영 문서만 두고 설계/로드맵 문서는 `docs/` 아래에 둔다.
+2. 루트에는 public entrypoint 문서와 표준 설정만 둔다.
 3. 현재 상태와 목표 구조와 역사 문맥을 명확히 분리한다.
 4. 새 문서를 만들기 전에 기존 문서 확장으로 해결 가능한지 먼저 확인한다.
 5. 문서 이동과 이름 변경은 index, matrix, 관련 README 갱신과 함께 처리한다.
@@ -39,12 +39,13 @@
 
 ## 4. Folder Responsibilities
 
-- `docs/project`: 현재 상태와 historical reference
-- `docs/frontend`: 현재 프론트 기준과 프론트 구조/실행 계획
-- `docs/backend`: 백엔드 목표 구조와 보안 로드맵
-- `docs/product`: 제품 비전, near-term 로드맵, 확장 전략
+- `docs/getting-started`: local setup과 developer onboarding
+- `docs/architecture`: ADR과 현재 코드 구조 경계
+- `docs/operations`: runbook, deployment, release, migration, backup 절차
+- `docs/security`: 공개 저장소와 보안 기준
+- `docs/project`: 현재 상태와 실행 로드맵
 - `docs/management`: 해석 규칙과 상태 관리
-- `docs/archive`: 명확히 내려간 문서
+- `docs/archive`: 과거 계획, 완료된 감사, raw design/reference 자료
 
 ## 5. How To Add Or Change Documents
 

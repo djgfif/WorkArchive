@@ -1,7 +1,7 @@
 # Local Development
 
 This guide covers local setup only. Production deployment and incident response
-live under [`../operations/`](../operations/) and [`../deployment/`](../deployment/).
+live under [`../operations/`](../operations/).
 
 ## Prerequisites
 
