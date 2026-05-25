@@ -1,6 +1,12 @@
 import type { WorkAggregate } from './user-records.types';
 import { toWorkSyncStatusValue } from '../works/works.constants';
 
+function getDisplayThumbnailUrl(work: WorkAggregate) {
+  return (
+    work.catalogTitle?.thumbnailUrl.trim() || work.catalogWork.thumbnailUrl
+  );
+}
+
 export function toUserWorkRecordView(work: WorkAggregate) {
   const title = work.catalogTitle;
 
@@ -37,7 +43,7 @@ export function toUserWorkRecordView(work: WorkAggregate) {
           releaseYear: title.releaseYear,
           status: title.status,
           summary: title.summary,
-          thumbnailUrl: title.thumbnailUrl,
+          thumbnailUrl: getDisplayThumbnailUrl(work),
           verificationStatus: title.verificationStatus,
           franchise: title.franchise
             ? {

@@ -153,6 +153,34 @@ describe('WorksService', () => {
     ]);
   });
 
+  it('falls back to catalog work thumbnails when catalog title thumbnails are blank', async () => {
+    userRecordsService.findActiveByUser.mockResolvedValue([
+      createWorkAggregateFixture({
+        catalogTitleId: 'catalog-title-1',
+        catalogWork: {
+          ...createWorkAggregateFixture().catalogWork,
+          thumbnailUrl: 'https://example.com/legacy-cover.jpg',
+        },
+        catalogTitle: {
+          id: 'catalog-title-1',
+          mediumType: WorkType.novel,
+          displayTitle: 'Catalog Title',
+          summary: 'Catalog summary',
+          thumbnailUrl: '',
+          contributors: [],
+        } as never,
+      }),
+    ]);
+
+    const result = await service.findAll(USER_ID);
+
+    expect(result[0]).toEqual(
+      expect.objectContaining({
+        thumbnailUrl: 'https://example.com/legacy-cover.jpg',
+      }),
+    );
+  });
+
   it('creates catalog metadata and a user record inside one transaction', async () => {
     const created = createWorkAggregateFixture({
       status: WorkStatus.planned,

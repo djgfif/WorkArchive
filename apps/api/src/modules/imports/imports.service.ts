@@ -2225,6 +2225,7 @@ export class ImportsService {
 
     const key = this.readString(item.key);
     const sourceUrl = key ? `https://openlibrary.org${key}` : '';
+    const thumbnailUrl = this.readOpenLibraryThumbnailUrl(item);
     const titleAliases = [
       title,
       ...this.readStringArray(item.alternative_title),
@@ -2250,6 +2251,7 @@ export class ImportsService {
         provider: OPEN_LIBRARY_PROVIDER,
         releaseDate:
           this.readNumber(item.first_publish_year)?.toString() ?? null,
+        thumbnailUrl,
         title,
         url: sourceUrl,
       }),
@@ -2257,6 +2259,7 @@ export class ImportsService {
       releaseYear: this.readNumber(item.first_publish_year),
       sourceLabel: 'Open Library',
       sourceUrl,
+      thumbnailUrl,
       title,
       titleAliases,
       type: WorkType.novel,
@@ -4049,6 +4052,26 @@ export class ImportsService {
     }
 
     return null;
+  }
+
+  private readOpenLibraryThumbnailUrl(item: Record<string, unknown>) {
+    const coverId = this.readNumber(item.cover_i);
+
+    if (coverId !== null) {
+      return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`;
+    }
+
+    const editionKey =
+      this.readString(item.cover_edition_key) ||
+      this.readStringArray(item.cover_edition_key)[0];
+
+    if (editionKey) {
+      return `https://covers.openlibrary.org/b/olid/${encodeURIComponent(editionKey)}-L.jpg`;
+    }
+
+    const isbn = this.readOpenLibraryIsbn(item.isbn);
+
+    return isbn ? `https://covers.openlibrary.org/isbn/${isbn}-L.jpg` : '';
   }
 
   private extractVolumeSequence(title: string) {

@@ -1385,6 +1385,45 @@ describe('ImportsService', () => {
     expect(secondUrl.searchParams.get('q')).toBe('나 혼자만 레벨업');
   });
 
+  it('normalizes Google Books http thumbnails to https for browser CSP', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        items: [
+          {
+            id: 'google-dune',
+            volumeInfo: {
+              imageLinks: {
+                thumbnail:
+                  'http://books.google.com/books/content?id=dune&printsec=frontcover',
+              },
+              title: 'Dune',
+            },
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: GOOGLE_BOOKS_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        thumbnailUrl:
+          'https://books.google.com/books/content?id=dune&printsec=frontcover',
+      }),
+    );
+    expect(result.candidates[0]?.releaseCandidates[0]).toEqual(
+      expect.objectContaining({
+        thumbnailUrl:
+          'https://books.google.com/books/content?id=dune&printsec=frontcover',
+      }),
+    );
+  });
+
   it('uses official book providers as auxiliary web novel search without removing manual fallback', async () => {
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
@@ -1965,10 +2004,12 @@ describe('ImportsService', () => {
       jsonResponse({
         docs: [
           {
+            cover_i: 12345,
             key: '/works/OL123W',
             title: 'Dune',
           },
           {
+            cover_i: 12345,
             key: '/works/OL123W',
             title: 'Dune',
           },
@@ -1985,6 +2026,9 @@ describe('ImportsService', () => {
 
     expect(result.candidates).toHaveLength(1);
     expect(result.candidates[0]?.id).toBe('open_library:/works/OL123W');
+    expect(result.candidates[0]?.thumbnailUrl).toBe(
+      'https://covers.openlibrary.org/b/id/12345-L.jpg',
+    );
   });
 
   it('merges Google Books and Open Library candidates that share an ISBN', async () => {

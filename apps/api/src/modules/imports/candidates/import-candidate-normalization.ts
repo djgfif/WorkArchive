@@ -54,7 +54,7 @@ export function normalizeImportCandidate(
     sourceId,
     sourceLabel: normalizeDisplayText(candidate.sourceLabel),
     sourceUrl: normalizeUrl(candidate.sourceUrl),
-    thumbnailUrl: normalizeUrl(candidate.thumbnailUrl),
+    thumbnailUrl: normalizeThumbnailUrl(candidate.thumbnailUrl),
     title: normalizeDisplayText(stripHtml(candidate.title)),
     titleAliases: dedupeTitleAliases([
       candidate.title,
@@ -222,7 +222,9 @@ function normalizeReleaseCandidate(
   const displayLabel = normalizeOptionalText(releaseCandidate.displayLabel);
   const releaseType = normalizeOptionalText(releaseCandidate.releaseType);
   const summary = normalizeOptionalText(releaseCandidate.summary);
-  const thumbnailUrl = normalizeOptionalUrl(releaseCandidate.thumbnailUrl);
+  const thumbnailUrl = normalizeOptionalThumbnailUrl(
+    releaseCandidate.thumbnailUrl,
+  );
   const title = normalizeOptionalText(releaseCandidate.title);
 
   return {
@@ -377,14 +379,28 @@ function normalizeOptionalText(value: string | null | undefined) {
   return normalized || undefined;
 }
 
-function normalizeOptionalUrl(value: string | null | undefined) {
-  const normalized = normalizeUrl(value ?? '');
+function normalizeOptionalThumbnailUrl(value: string | null | undefined) {
+  const normalized = normalizeThumbnailUrl(value ?? '');
 
   return normalized || undefined;
 }
 
 function normalizeUrl(value: string) {
   return normalizeDisplayText(value);
+}
+
+function normalizeThumbnailUrl(value: string) {
+  const normalized = normalizeUrl(value);
+
+  if (normalized.startsWith('//')) {
+    return `https:${normalized}`;
+  }
+
+  if (normalized.startsWith('http://')) {
+    return `https://${normalized.slice('http://'.length)}`;
+  }
+
+  return normalized;
 }
 
 function normalizeSequence(value: number | null | undefined) {

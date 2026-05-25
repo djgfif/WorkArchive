@@ -15,6 +15,12 @@ function getCatalogTitleContributorName(work: WorkAggregate) {
   return (author ?? contributors[0])?.contributor.displayName ?? null;
 }
 
+function getDisplayThumbnailUrl(work: WorkAggregate) {
+  return (
+    work.catalogTitle?.thumbnailUrl.trim() || work.catalogWork.thumbnailUrl
+  );
+}
+
 export function toFlatWorkResponse(work: WorkAggregate): WorkResponseDto {
   const catalogTitle = work.catalogTitle;
 
@@ -26,7 +32,7 @@ export function toFlatWorkResponse(work: WorkAggregate): WorkResponseDto {
     author: getCatalogTitleContributorName(work) ?? work.catalogWork.author,
     genres: work.catalogWork.genres,
     description: catalogTitle?.summary ?? work.catalogWork.description,
-    thumbnailUrl: catalogTitle?.thumbnailUrl ?? work.catalogWork.thumbnailUrl,
+    thumbnailUrl: getDisplayThumbnailUrl(work),
     status: work.status,
     rating: work.rating,
     personalTags: work.personalTags,
