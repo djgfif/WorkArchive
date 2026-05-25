@@ -9,7 +9,7 @@
 | When to update        | project 폴더의 주요 문서 구성과 읽기 순서가 바뀔 때                                                                                                                                                    |
 
 이 폴더는 현재 실행 기준, 현재 구현 상태, 통합 실행 로드맵만 둔다.
-운영 배포 절차와 장애 대응은 `docs/operations`와 `docs/deployment`를 우선한다.
+운영 배포 절차와 장애 대응은 `docs/operations`를 우선한다.
 
 ## Read In This Order
 

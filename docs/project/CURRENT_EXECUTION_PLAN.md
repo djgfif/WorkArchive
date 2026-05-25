@@ -16,8 +16,8 @@
 2. [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md): 현재 코드 현실
 3. [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md): 통합 실행 순서
 4. 작업 영역별 문서:
-   - Frontend: [`docs/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
-   - Backend: [`docs/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
+   - Frontend archive: [`docs/archive/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../archive/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
+   - Backend archive: [`docs/archive/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../archive/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
 
 ## Workspace Setup
 

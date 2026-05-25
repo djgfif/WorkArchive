@@ -336,11 +336,9 @@ Sync UX reality: sync is not manual-only anymore. The manual Sync page remains t
 
 ## 8. Where To Read Next
 
-- 프론트 현재 기준: [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md)
-- 프론트 목표 구조: [`../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
-- 프론트 상세 실행 로드맵: [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
-- 제품 near-term 우선순위: [`../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
-- 제품 비전: [`../product/FINAL_WEB_DESIGN.md`](../product/FINAL_WEB_DESIGN.md)
-- 인증/게스트 전략: [`../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](../product/AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)
-- 백엔드 목표 구조: [`../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
-- 보안 로드맵: [`../backend/SECURITY_HARDENING_ROADMAP.md`](../backend/SECURITY_HARDENING_ROADMAP.md)
+- 현재 구조 기준: [`../architecture/FEATURE_FIRST_STRUCTURE.md`](../architecture/FEATURE_FIRST_STRUCTURE.md)
+- 프론트 reference: [`../archive/frontend/FRONTEND_BLUEPRINT_V1.md`](../archive/frontend/FRONTEND_BLUEPRINT_V1.md)
+- 프론트 구조 reference: [`../archive/frontend/FRONTEND_FOUNDATION_MASTERPLAN.md`](../archive/frontend/FRONTEND_FOUNDATION_MASTERPLAN.md)
+- 제품 reference: [`../archive/product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](../archive/product/COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)
+- 백엔드 reference: [`../archive/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../archive/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
+- 공개 준비: [`../security/PUBLIC_REPOSITORY_READINESS.md`](../security/PUBLIC_REPOSITORY_READINESS.md)

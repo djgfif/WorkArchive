@@ -24,7 +24,7 @@ Do not add Kafka, Saga orchestration, an API Gateway, Redis general caching, pub
   - `scripts/deploy/prod-healthcheck.sh`
   - `scripts/deploy/prod-backup.sh`
   - `scripts/deploy/prod-restore.sh.example`
-- Readiness report template: `docs/deployment/DEPLOYMENT_READINESS_REPORT.md`
+- Readiness report template: `docs/operations/deployment/DEPLOYMENT_READINESS_REPORT.md`
 - Closed beta host rehearsal runbook:
   `docs/operations/BETA_HOST_REHEARSAL.md`
 - Closed beta host scripts:

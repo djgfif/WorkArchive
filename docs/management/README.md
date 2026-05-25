@@ -1,29 +1,14 @@
-# docs/management/
+# Management Docs
 
-| Field | Value |
-| --- | --- |
-| Status | `active` |
-| Role | `documentation operations` |
-| Source of truth | [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md) |
-| Last verified against | `2026-04-22` working tree |
-| When to update | 문서 운영 규칙, 인덱스 방식, 상태 체계가 바뀔 때 |
+This folder keeps documentation navigation and governance rules.
 
-이 폴더는 문서 자체를 어떻게 읽고 유지할지 정하는 관리 영역이다.
-
-## Read In This Order
-
-1. [`DOCUMENTATION_INDEX.md`](./DOCUMENTATION_INDEX.md)
-2. [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md)
-3. [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md)
-4. [`CODEX_FRONTEND_FOUNDATION_PROMPT.md`](./CODEX_FRONTEND_FOUNDATION_PROMPT.md)
-5. [`CODE_DOCUMENT_ALIGNMENT_REPORT.md`](./CODE_DOCUMENT_ALIGNMENT_REPORT.md)
-
-## What Each File Does
+## Files
 
 | Document | Purpose |
 | --- | --- |
-| [`DOCUMENTATION_INDEX.md`](./DOCUMENTATION_INDEX.md) | 어떤 문서를 먼저 읽을지 결정하는 탐색 진입점 |
-| [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md) | 현재 모든 주요 문서의 status와 역할 확인 |
-| [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md) | 문서 생성, 이동, archive, metadata 규칙 |
-| [`CODEX_FRONTEND_FOUNDATION_PROMPT.md`](./CODEX_FRONTEND_FOUNDATION_PROMPT.md) | 프론트 foundation refactor를 Codex에 위임할 때 붙여 넣는 실행 프롬프트 |
-| [`CODE_DOCUMENT_ALIGNMENT_REPORT.md`](./CODE_DOCUMENT_ALIGNMENT_REPORT.md) | 현재 코드와 문서 사이에 의도적으로 남은 간격 설명 |
+| [`DOCUMENTATION_INDEX.md`](./DOCUMENTATION_INDEX.md) | canonical docs navigation |
+| [`DOCUMENT_STATUS_MATRIX.md`](./DOCUMENT_STATUS_MATRIX.md) | current vs archived status map |
+| [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md) | rules for creating, moving, and archiving docs |
+
+Old management reports and execution prompts live in
+[`../archive/management/`](../archive/management/).

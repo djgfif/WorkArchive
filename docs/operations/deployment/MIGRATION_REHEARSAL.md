@@ -106,5 +106,5 @@ separate database recovery plan has been reviewed.
 ## Script
 
 An operator skeleton is available at
-`docs/deployment/scripts/migration-rehearsal.sh`. It requires a real `.env.prod`
+`docs/operations/deployment/scripts/migration-rehearsal.sh`. It requires a real `.env.prod`
 on the host and does not include secrets.

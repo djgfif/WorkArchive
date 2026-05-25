@@ -64,7 +64,7 @@ for the full checklist.
 ## Documentation
 
 - [`docs/README.md`](./docs/README.md) is the documentation index.
-- [`docs/engineering/FEATURE_FIRST_STRUCTURE.md`](./docs/engineering/FEATURE_FIRST_STRUCTURE.md)
+- [`docs/architecture/FEATURE_FIRST_STRUCTURE.md`](./docs/architecture/FEATURE_FIRST_STRUCTURE.md)
   defines the web/API structure boundaries.
 - [`docs/operations/RUNBOOK.md`](./docs/operations/RUNBOOK.md) covers runtime
   operations and incident response.
