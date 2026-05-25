@@ -168,7 +168,7 @@ describe('HealthController', () => {
       'utf8',
     );
     const startDev = readFileSync(
-      resolve(process.cwd(), '../../start-dev.sh'),
+      resolve(process.cwd(), '../../scripts/dev/start-dev.sh'),
       'utf8',
     );
 

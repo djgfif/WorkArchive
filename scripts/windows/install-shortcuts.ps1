@@ -43,7 +43,7 @@ function Write-Launcher {
 `$projectRoot = '$escapedRoot'
 
 Write-Host "Starting Work Archive through WSL..."
-& wsl.exe --cd "`$projectRoot" -- bash -lc "WORK_ARCHIVE_SKIP_OPEN=1 ./start-dev.sh compose"
+& wsl.exe --cd "`$projectRoot" -- bash -lc "WORK_ARCHIVE_SKIP_OPEN=1 scripts/dev/start-dev.sh compose"
 `$devExit = `$LASTEXITCODE
 if (`$devExit -ne 0) {
   Write-Host ""
@@ -80,7 +80,7 @@ exit 1
 `$projectRoot = '$escapedRoot'
 
 Write-Host "Stopping Work Archive through WSL..."
-& wsl.exe --cd "`$projectRoot" -- bash -lc "./stop-dev.sh"
+& wsl.exe --cd "`$projectRoot" -- bash -lc "scripts/dev/stop-dev.sh"
 `$devExit = `$LASTEXITCODE
 if (`$devExit -ne 0) {
   Write-Host ""

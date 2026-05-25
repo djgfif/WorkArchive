@@ -18,6 +18,7 @@ COPY packages/shared-types packages/shared-types
 COPY packages/tsconfig packages/tsconfig
 
 RUN npm run prisma:generate --workspace @work-archive/api
+RUN npm run build --workspace @work-archive/shared-types
 RUN npm run build --workspace @work-archive/api
 
 FROM build AS release
@@ -39,6 +40,7 @@ WORKDIR /workspace
 ENV NODE_ENV=production
 
 COPY --from=prod-deps --chown=node:node /workspace/node_modules ./node_modules
+COPY --from=build --chown=node:node /workspace/packages/shared-types ./packages/shared-types
 COPY --from=build --chown=node:node /workspace/apps/api/dist ./apps/api/dist
 COPY --from=build --chown=node:node /workspace/apps/api/prisma ./apps/api/prisma
 COPY --from=build --chown=node:node /workspace/apps/api/docker-entrypoint.sh ./apps/api/docker-entrypoint.sh

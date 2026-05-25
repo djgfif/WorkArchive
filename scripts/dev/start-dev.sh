@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
 MODE="${1:-compose}"
@@ -129,7 +129,7 @@ case "$MODE" in
 
     echo "Opening browser when supported..."
     open_url "$COMPOSE_WEB_URL"
-    echo "Docker Compose app stack is running. Use ./stop-dev.sh to stop it."
+    echo "Docker Compose app stack is running. Use npm run dev:stop to stop it."
     ;;
   host)
     require_command docker
@@ -166,8 +166,8 @@ case "$MODE" in
   *)
     echo "Unknown dev mode: $MODE"
     echo "Usage:"
-    echo "  ./start-dev.sh       Starts the full Docker Compose app stack."
-    echo "  ./start-dev.sh host  Starts host-based Vite/API dev servers."
+    echo "  npm run dev:start       Starts the full Docker Compose app stack."
+    echo "  npm run dev:start:host  Starts host-based Vite/API dev servers."
     exit 1
     ;;
 esac
