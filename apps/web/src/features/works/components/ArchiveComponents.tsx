@@ -31,6 +31,7 @@ import {
   AppButton,
   AppLinkButton,
 } from '@shared/components/AppPrimitives';
+import { getDisplayImageUrl } from '@shared/utils/image-proxy';
 import {
   formatWorkDate,
   getWorkStatusLabel,
@@ -322,15 +323,16 @@ export function WorkPoster({
   typeLabel,
   variant = 'card',
 }: WorkPosterProps & { overlay?: React.ReactNode }) {
+  const displayImageUrl = getDisplayImageUrl(thumbnailUrl);
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   useEffect(() => {
     setImageFailed(false);
     setImageLoaded(false);
-  }, [thumbnailUrl]);
+  }, [displayImageUrl]);
   return (
     <Box className={cx(cn(css.posterShell), posterVariantClass[variant], className)}>
-      {thumbnailUrl && !imageFailed ? (
+      {displayImageUrl && !imageFailed ? (
         <>
           {!imageLoaded && (
             <Box aria-hidden="true" className={cn(css.posterImageSkeleton)} />
@@ -343,7 +345,7 @@ export function WorkPoster({
             )}
             onError={() => setImageFailed(true)}
             onLoad={() => setImageLoaded(true)}
-            src={thumbnailUrl}
+            src={displayImageUrl}
           />
         </>
       ) : (

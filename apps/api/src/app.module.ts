@@ -8,6 +8,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './modules/auth';
 import { CatalogModule } from './modules/catalog';
 import { HealthModule } from './modules/health';
+import { ImageProxyModule } from './modules/image-proxy';
 import { ImportsModule } from './modules/imports';
 import { SyncModule } from './modules/sync';
 import { UserRecordsModule } from './modules/user-records';
@@ -44,6 +45,7 @@ import { SecurityModule } from './security/security.module';
     SecurityModule,
     AuthModule,
     HealthModule,
+    ImageProxyModule,
     CatalogModule,
     UserRecordsModule,
     ImportsModule,

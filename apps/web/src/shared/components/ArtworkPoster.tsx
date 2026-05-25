@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Box, Text } from '@mantine/core';
 
+import { getDisplayImageUrl } from '@shared/utils/image-proxy';
 import styles from './ArtworkPoster.module.css';
 
 interface ArtworkPosterProps {
@@ -49,17 +50,18 @@ export function ArtworkPoster({
   typeLabel,
   variant = 'card',
 }: ArtworkPosterProps) {
+  const displayImageUrl = getDisplayImageUrl(thumbnailUrl);
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     setImageFailed(false);
     setImageLoaded(false);
-  }, [thumbnailUrl]);
+  }, [displayImageUrl]);
 
   return (
     <Box className={cx(cn(styles.posterShell), posterVariantClass[variant], className)}>
-      {thumbnailUrl && !imageFailed ? (
+      {displayImageUrl && !imageFailed ? (
         <>
           {!imageLoaded && (
             <Box aria-hidden="true" className={cn(styles.posterImageSkeleton)} />
@@ -72,7 +74,7 @@ export function ArtworkPoster({
             )}
             onError={() => setImageFailed(true)}
             onLoad={() => setImageLoaded(true)}
-            src={thumbnailUrl}
+            src={displayImageUrl}
           />
         </>
       ) : (

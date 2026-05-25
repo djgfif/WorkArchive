@@ -3,7 +3,7 @@ import { toWorkSyncStatusValue } from '../works/works.constants';
 
 function getDisplayThumbnailUrl(work: WorkAggregate) {
   return (
-    work.catalogTitle?.thumbnailUrl.trim() || work.catalogWork.thumbnailUrl
+    work.catalogTitle?.thumbnailUrl?.trim() || work.catalogWork.thumbnailUrl
   );
 }
 

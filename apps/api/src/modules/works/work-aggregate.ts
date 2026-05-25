@@ -17,7 +17,7 @@ function getCatalogTitleContributorName(work: WorkAggregate) {
 
 function getDisplayThumbnailUrl(work: WorkAggregate) {
   return (
-    work.catalogTitle?.thumbnailUrl.trim() || work.catalogWork.thumbnailUrl
+    work.catalogTitle?.thumbnailUrl?.trim() || work.catalogWork.thumbnailUrl
   );
 }
 
