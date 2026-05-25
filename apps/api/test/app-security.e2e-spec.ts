@@ -1,6 +1,13 @@
 import { type AddressInfo } from 'node:net';
 
-import { Body, Controller, Get, Post, Query, type INestApplication } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  type INestApplication,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import {
   afterEach,
@@ -31,6 +38,20 @@ class TestAuthController {
     return {
       ok: true,
       state,
+    };
+  }
+
+  @Post('refresh')
+  refresh() {
+    return {
+      ok: true,
+    };
+  }
+
+  @Post('logout')
+  logout() {
+    return {
+      ok: true,
     };
   }
 }
@@ -64,6 +85,7 @@ class TestImportsController {
 
 const baseConfig: ApiRuntimeConfig = {
   authRateLimitMax: 10,
+  clientHeaderGuardMode: 'off',
   cookieSecure: false,
   corsOrigin: ['https://workarchive.example.com'],
   databaseUrl: 'postgresql://work:archive@localhost:5432/work_archive',
@@ -106,7 +128,11 @@ describe('app security middleware', () => {
     };
 
     const moduleRef = await Test.createTestingModule({
-      controllers: [TestAuthController, TestImportsController, TestSyncController],
+      controllers: [
+        TestAuthController,
+        TestImportsController,
+        TestSyncController,
+      ],
       providers: [
         {
           provide: SecurityAuditService,
@@ -229,6 +255,138 @@ describe('app security middleware', () => {
         fetch(`${baseUrl}/api/auth/google/callback?state=test-state`, {
           headers: {
             'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'cross-site',
+          },
+          method: 'GET',
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          status: 200,
+        }),
+      );
+    });
+  });
+
+  describe('production client header guard', () => {
+    async function postSyncPush(headers: Record<string, string> = {}) {
+      return fetch(`${baseUrl}/api/sync/push`, {
+        headers: {
+          authorization: 'Bearer test-token',
+          'sec-fetch-site': 'same-origin',
+          ...headers,
+        },
+        method: 'POST',
+      });
+    }
+
+    it('audits authenticated unsafe requests with a missing client header in audit mode', async () => {
+      await startApp({
+        ...baseConfig,
+        clientHeaderGuardMode: 'audit',
+        isProduction: true,
+        trustProxyHops: 1,
+      });
+
+      await expect(postSyncPush()).resolves.toEqual(
+        expect.objectContaining({
+          status: 201,
+        }),
+      );
+      expect(securityAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'http.client_header_missing',
+          metadata: expect.objectContaining({
+            hasAuthorization: true,
+            headerValue: 'missing',
+            mode: 'audit',
+          }),
+          severity: 'warning',
+        }),
+      );
+    });
+
+    it('blocks authenticated unsafe requests with a missing client header in enforce mode', async () => {
+      await startApp({
+        ...baseConfig,
+        clientHeaderGuardMode: 'enforce',
+        isProduction: true,
+        trustProxyHops: 1,
+      });
+
+      const response = await postSyncPush();
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual(
+        expect.objectContaining({
+          message: 'Required client header is missing.',
+          statusCode: 403,
+        }),
+      );
+      expect(securityAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'http.client_header_missing',
+          metadata: expect.objectContaining({
+            mode: 'enforce',
+          }),
+          severity: 'warning',
+        }),
+      );
+    });
+
+    it('allows authenticated unsafe requests with the expected client header in enforce mode', async () => {
+      await startApp({
+        ...baseConfig,
+        clientHeaderGuardMode: 'enforce',
+        isProduction: true,
+        trustProxyHops: 1,
+      });
+
+      await expect(
+        postSyncPush({
+          'x-work-archive-client': 'web',
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          status: 201,
+        }),
+      );
+    });
+
+    it('does not require the client header for refresh, OAuth callback, or bearerless logout flows', async () => {
+      await startApp({
+        ...baseConfig,
+        clientHeaderGuardMode: 'enforce',
+        isProduction: true,
+        trustProxyHops: 1,
+      });
+
+      await expect(
+        fetch(`${baseUrl}/api/auth/refresh`, {
+          headers: {
+            'sec-fetch-site': 'same-origin',
+          },
+          method: 'POST',
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          status: 201,
+        }),
+      );
+      await expect(
+        fetch(`${baseUrl}/api/auth/logout`, {
+          headers: {
+            'sec-fetch-site': 'same-origin',
+          },
+          method: 'POST',
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          status: 201,
+        }),
+      );
+      await expect(
+        fetch(`${baseUrl}/api/auth/google/callback?state=test-state`, {
+          headers: {
             'sec-fetch-site': 'cross-site',
           },
           method: 'GET',

@@ -44,16 +44,17 @@ git ls-files -ci --exclude-standard
 npm audit --omit=dev
 npm audit
 trivy fs .
-# If the release images are available locally or in the registry:
-trivy image work-archive-api
-trivy image work-archive-web
+WORK_ARCHIVE_API_IMAGE=<api-release-tag-or-digest> \
+WORK_ARCHIVE_WEB_IMAGE=<web-release-tag-or-digest> \
+npm run security:scan:images
 npm run check:docs-links
 git status --short --branch
 ```
 
 The readiness script must end with `Public readiness check passed.`
-`trivy` commands require a local Trivy installation; document skipped scans in
-release notes when the tool or images are unavailable.
+`trivy` commands run on the official release CI/runner, not ordinary local WSL
+development. Document skipped scans in release notes when the runner, Trivy
+database update, or release images are unavailable.
 
 Equivalent npm helpers are available for local release checks:
 
@@ -61,6 +62,8 @@ Equivalent npm helpers are available for local release checks:
 npm run security:audit:prod
 npm run security:audit
 npm run security:scan:fs
+WORK_ARCHIVE_API_IMAGE=<api-release-tag-or-digest> \
+WORK_ARCHIVE_WEB_IMAGE=<web-release-tag-or-digest> \
 npm run security:scan:images
 ```
 
@@ -78,10 +81,12 @@ media model:
   removing it.
 - `img-src 'self' data: https:`: imported catalog covers and user-entered image
   URLs are loaded from multiple HTTPS provider domains, and placeholders may use
-  `data:`. Risk: broad HTTPS image loading can leak page views to arbitrary image
-  hosts supplied by records. Future hardening should proxy/cache remote covers
-  through a controlled image endpoint and narrow `img-src` to that origin plus
-  vetted providers.
+  `data:`. Known provider hosts already route through `/api/image-proxy` in the
+  web client, including HTTP cover URLs that would otherwise violate production
+  CSP. Risk: broad HTTPS image loading can still leak page views to arbitrary
+  image hosts supplied by records. Future hardening should measure image proxy
+  coverage first, then narrow `img-src` toward `'self' data:` plus any explicitly
+  retained provider exceptions.
 
 Do not tighten these directives in a release without browser coverage for the
 works list, add flow, detail page, and imported cover rendering.

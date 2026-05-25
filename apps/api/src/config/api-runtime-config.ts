@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export interface ApiRuntimeConfig {
   authRateLimitMax: number;
+  clientHeaderGuardMode: 'audit' | 'enforce' | 'off';
   cookieSecure: boolean;
   corsOrigin: string[];
   databaseUrl: string;
@@ -91,6 +92,7 @@ const apiEnvironmentSchema = z
     SYNC_RATE_LIMIT_MAX: z.string().optional(),
     TRUST_PROXY_HOPS: z.string().optional(),
     WEB_BASE_URL: z.string().optional(),
+    WORK_ARCHIVE_CLIENT_HEADER_GUARD: z.string().optional(),
   })
   .passthrough();
 
@@ -216,6 +218,27 @@ function readBoolean(value: string | undefined, fallback: boolean) {
 
   throw new Error(
     'Boolean environment values must be either "true" or "false".',
+  );
+}
+
+function readClientHeaderGuardMode(isProduction: boolean) {
+  const normalizedValue = process.env.WORK_ARCHIVE_CLIENT_HEADER_GUARD?.trim()
+    .toLowerCase();
+
+  if (!normalizedValue) {
+    return isProduction ? ('audit' as const) : ('off' as const);
+  }
+
+  if (
+    normalizedValue === 'off' ||
+    normalizedValue === 'audit' ||
+    normalizedValue === 'enforce'
+  ) {
+    return normalizedValue;
+  }
+
+  throw new Error(
+    'WORK_ARCHIVE_CLIENT_HEADER_GUARD must be one of "off", "audit", or "enforce".',
   );
 }
 
@@ -475,6 +498,7 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
       process.env.AUTH_RATE_LIMIT_MAX,
       10,
     ),
+    clientHeaderGuardMode: readClientHeaderGuardMode(isProduction),
     cookieSecure,
     corsOrigin,
     databaseUrl,

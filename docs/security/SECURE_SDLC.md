@@ -6,6 +6,9 @@
   compose config.
 - `validate / integration`: PostgreSQL-backed integration tests.
 - `CodeQL`: JavaScript/TypeScript CodeQL analysis.
+- `release security scan`: Trivy filesystem and image scans on the official
+  release CI/runner. The runner must have Trivy installed and cache the Trivy
+  vulnerability database between release candidates.
 - Dependabot: weekly npm and GitHub Actions update PRs.
 
 Operators must configure GitHub branch protection in GitHub Settings. Repository
@@ -15,6 +18,7 @@ settings cannot be guaranteed by files in this repository. Required checks:
 - `validate / integration`
 - `CodeQL / Analyze JavaScript and TypeScript`
 - build as part of `validate / verify`
+- release security scan before production or public beta promotion
 
 ## npm Audit Policy
 
@@ -29,6 +33,21 @@ Current policy for Gate 1:
 
 This avoids noisy CI failure while the project is still below commercial launch
 scale. Revisit once public beta traffic and dependency churn stabilize.
+
+## Trivy Policy
+
+Current policy for release candidates:
+
+- run Trivy on the official release CI/runner, not ordinary local WSL
+  development;
+- run `npm run security:scan:fs` against the repository checkout;
+- run `npm run security:scan:images` with exact API/Web image tags or digests in
+  `WORK_ARCHIVE_API_IMAGE` and `WORK_ARCHIVE_WEB_IMAGE`;
+- do not use `latest` as a release image scan artifact;
+- fail the release gate if Trivy cannot update or read its vulnerability
+  database;
+- record only runner name, Trivy version, image refs, and summary counts in
+  `docs/security/SECURITY_SCAN_RESULTS.md`.
 
 ## Secret Scanning Checklist
 

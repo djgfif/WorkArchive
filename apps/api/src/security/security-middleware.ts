@@ -16,6 +16,8 @@ const FETCH_METADATA_SITE_VALUES = new Set([
   'same-origin',
   'same-site',
 ]);
+const WORK_ARCHIVE_CLIENT_HEADER = 'x-work-archive-client';
+const WORK_ARCHIVE_CLIENT_HEADER_VALUE = 'web';
 const redisClients: Redis[] = [];
 
 export function createProductionFetchMetadataGuard(
@@ -106,6 +108,66 @@ export function createProductionOriginGuard(
       statusCode: 403,
     });
   };
+}
+
+export function createProductionClientHeaderGuard(
+  config: ApiRuntimeConfig,
+  securityAudit: SecurityAuditService,
+) {
+  return (request: Request, response: Response, next: NextFunction) => {
+    if (
+      !config.isProduction ||
+      config.clientHeaderGuardMode === 'off' ||
+      SAFE_METHODS.has(request.method) ||
+      !hasBearerAuthorization(request)
+    ) {
+      next();
+
+      return;
+    }
+
+    const headerValue = request
+      .header(WORK_ARCHIVE_CLIENT_HEADER)
+      ?.trim()
+      .toLowerCase();
+
+    if (headerValue === WORK_ARCHIVE_CLIENT_HEADER_VALUE) {
+      next();
+
+      return;
+    }
+
+    void securityAudit.record({
+      eventType: 'http.client_header_missing',
+      metadata: {
+        hasAuthorization: true,
+        headerValue: headerValue || 'missing',
+        method: request.method,
+        mode: config.clientHeaderGuardMode,
+        path: request.path,
+      },
+      request,
+      severity: 'warning',
+    });
+
+    if (config.clientHeaderGuardMode === 'audit') {
+      next();
+
+      return;
+    }
+
+    response.status(403).json({
+      message: 'Required client header is missing.',
+      error: 'Forbidden',
+      statusCode: 403,
+    });
+  };
+}
+
+function hasBearerAuthorization(request: Request) {
+  const authorization = request.header('authorization')?.trim();
+
+  return /^Bearer\s+\S+$/i.test(authorization ?? '');
 }
 
 export function createRequestIdMiddleware() {

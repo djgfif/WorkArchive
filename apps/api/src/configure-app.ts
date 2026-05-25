@@ -11,14 +11,13 @@ import type { ApiRuntimeConfig } from './config/api-runtime-config';
 import { createMetricsMiddleware } from './observability/metrics.middleware';
 import { MetricsService } from './observability/metrics.service';
 import {
+  createProductionClientHeaderGuard,
   createProductionFetchMetadataGuard,
   createProductionOriginGuard,
   createRequestIdMiddleware,
   createSecurityRateLimiters,
 } from './security/security-middleware';
-import {
-  SecurityAuditService,
-} from './security/security-audit.service';
+import { SecurityAuditService } from './security/security-audit.service';
 
 interface ExpressInstance {
   disable(name: string): void;
@@ -68,6 +67,7 @@ export async function configureApp(
   app.use(createMetricsMiddleware(metricsService));
   app.use(createProductionFetchMetadataGuard(config, securityAudit));
   app.use(createProductionOriginGuard(config, securityAudit));
+  app.use(createProductionClientHeaderGuard(config, securityAudit));
 
   const rateLimiters = await createSecurityRateLimiters(config, securityAudit);
   app.use(

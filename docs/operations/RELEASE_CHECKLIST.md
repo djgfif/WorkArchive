@@ -32,6 +32,21 @@ npm run build
 docker compose -f compose.prod.yml --env-file .env.prod build
 ```
 
+Security scan gate, run on the official release CI/runner with Trivy installed:
+
+```bash
+npm run security:audit:prod
+npm run security:audit
+npm run security:scan:fs
+WORK_ARCHIVE_API_IMAGE=<api-release-tag-or-digest> \
+WORK_ARCHIVE_WEB_IMAGE=<web-release-tag-or-digest> \
+npm run security:scan:images
+```
+
+Record Trivy version, runner name, image tag/digest, and summary counts in
+`docs/security/SECURITY_SCAN_RESULTS.md`. Do not use `latest` as an image scan
+artifact.
+
 Public beta host checks:
 
 ```bash

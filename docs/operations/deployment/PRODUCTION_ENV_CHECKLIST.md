@@ -83,10 +83,14 @@ TRUST_PROXY_HOPS=1
 COOKIE_SECURE=true
 SWAGGER_ENABLED=false
 NODE_ENV=production
+WORK_ARCHIVE_CLIENT_HEADER_GUARD=audit
 ```
 
 `TRUST_PROXY_HOPS=1` assumes the API receives requests through the web/reverse
 proxy layer. Re-evaluate only if the proxy topology changes.
+Keep `WORK_ARCHIVE_CLIENT_HEADER_GUARD=audit` for the first production rollout;
+switch it to `enforce` only after security events show no legitimate
+authenticated unsafe requests are missing `X-Work-Archive-Client: web`.
 
 Production compose runs API and web as non-root containers with read-only
 runtime filesystems and tmpfs scratch paths. Migrations are not run in the API

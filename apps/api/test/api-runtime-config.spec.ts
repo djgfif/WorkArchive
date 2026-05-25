@@ -67,8 +67,54 @@ describe('api runtime config', () => {
 
     expect(readApiRuntimeConfig()).toEqual(
       expect.objectContaining({
+        clientHeaderGuardMode: 'off',
         corsOrigin: ['http://localhost:18730'],
       }),
+    );
+  });
+
+  it('defaults the client header guard to audit in production and off elsewhere', () => {
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        clientHeaderGuardMode: 'audit',
+      }),
+    );
+
+    resetEnv({
+      NODE_ENV: 'test',
+      WORK_ARCHIVE_CLIENT_HEADER_GUARD: '',
+    });
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        clientHeaderGuardMode: 'off',
+      }),
+    );
+  });
+
+  it('reads explicit client header guard modes and rejects invalid values', () => {
+    resetEnv({
+      WORK_ARCHIVE_CLIENT_HEADER_GUARD: 'enforce',
+    });
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        clientHeaderGuardMode: 'enforce',
+      }),
+    );
+
+    resetEnv({
+      WORK_ARCHIVE_CLIENT_HEADER_GUARD: 'block',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'WORK_ARCHIVE_CLIENT_HEADER_GUARD must be one of "off", "audit", or "enforce".',
     );
   });
 

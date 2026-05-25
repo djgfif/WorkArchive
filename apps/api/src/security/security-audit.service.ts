@@ -17,6 +17,7 @@ export type SecurityEventType =
   | 'auth.refresh.reuse_detected'
   | 'auth.session.revoke'
   | 'auth.session.revoke_all'
+  | 'http.client_header_missing'
   | 'http.fetch_metadata_blocked'
   | 'http.origin_blocked'
   | 'http.rate_limit_exceeded';
