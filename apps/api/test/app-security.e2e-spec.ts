@@ -61,7 +61,7 @@ const baseConfig: ApiRuntimeConfig = {
   databaseUrl: 'postgresql://work:archive@localhost:5432/work_archive',
   googleOAuthClientId: null,
   googleOAuthClientSecret: null,
-  googleOAuthRedirectUri: 'http://localhost:3000/api/auth/google/callback',
+  googleOAuthRedirectUri: 'http://localhost:18730/api/auth/google/callback',
   host: '127.0.0.1',
   importAuthenticatedRateLimitMax: 60,
   importGuestRateLimitMax: 20,

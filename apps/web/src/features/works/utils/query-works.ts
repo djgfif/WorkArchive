@@ -21,15 +21,25 @@ export type WorksSortOption =
   | 'startedAt'
   | 'title'
   | 'updatedAt';
+export type WorksRatingPreset = 'all' | 'gte3' | 'gte4' | 'lte2' | 'unrated';
+export type WorksSmartFilter = 'all' | 'favorites' | 'needsCuration' | 'unrated';
+export type WorksIdentityPreset =
+  | 'all'
+  | 'catalogLinked'
+  | 'imported'
+  | 'manual';
 
 export interface WorksListQuery {
   contributor?: string;
   genre?: string;
+  identityPreset?: WorksIdentityPreset;
   organizationContributor?: string;
   personContributor?: string;
   rating: number | null;
+  ratingPreset?: WorksRatingPreset;
   searchTerm: string;
   series?: string;
+  smartFilter?: WorksSmartFilter;
   tag?: string;
   type: WorkType | 'all';
   status: WorkStatus | 'all';
@@ -47,11 +57,14 @@ export interface WorksGraphQueryIndex {
 export const DEFAULT_WORKS_LIST_QUERY: WorksListQuery = {
   contributor: '',
   genre: '',
+  identityPreset: 'all',
   organizationContributor: '',
   personContributor: '',
   rating: null,
+  ratingPreset: 'all',
   searchTerm: '',
   series: '',
+  smartFilter: 'all',
   tag: '',
   type: 'all',
   status: 'all',
@@ -190,6 +203,66 @@ function matchesStatus(work: WorkRecord, status: WorkStatus | 'all') {
   return work.status === status;
 }
 
+function matchesRatingPreset(
+  work: WorkRecord,
+  ratingPreset: WorksRatingPreset,
+) {
+  switch (ratingPreset) {
+    case 'unrated':
+      return work.rating === null;
+    case 'gte4':
+      return work.rating !== null && work.rating >= 4;
+    case 'gte3':
+      return work.rating !== null && work.rating >= 3;
+    case 'lte2':
+      return work.rating !== null && work.rating <= 2;
+    case 'all':
+    default:
+      return true;
+  }
+}
+
+function needsCuration(work: WorkRecord) {
+  return (
+    work.rating === null ||
+    work.shortReview.trim() === '' ||
+    work.genres.length === 0 ||
+    work.thumbnailUrl.trim() === '' ||
+    getWorkPersonalTagValues(work).length === 0
+  );
+}
+
+function matchesSmartFilter(work: WorkRecord, smartFilter: WorksSmartFilter) {
+  switch (smartFilter) {
+    case 'favorites':
+      return work.favorite;
+    case 'unrated':
+      return work.rating === null;
+    case 'needsCuration':
+      return needsCuration(work);
+    case 'all':
+    default:
+      return true;
+  }
+}
+
+function matchesIdentityPreset(
+  work: WorkRecord,
+  identityPreset: WorksIdentityPreset,
+) {
+  switch (identityPreset) {
+    case 'manual':
+      return !work.catalogTitleId && !work.importDraft;
+    case 'imported':
+      return Boolean(work.importDraft);
+    case 'catalogLinked':
+      return Boolean(work.catalogTitleId);
+    case 'all':
+    default:
+      return true;
+  }
+}
+
 function compareUpdatedAtDescending(a: WorkRecord, b: WorkRecord) {
   return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
 }
@@ -238,8 +311,23 @@ export function queryWorks(
       return false;
     }
 
-    if (query.rating !== null) {
-      return work.rating === query.rating;
+    if (query.rating !== null && work.rating !== query.rating) {
+      return false;
+    }
+
+    if (
+      query.rating === null &&
+      !matchesRatingPreset(work, query.ratingPreset ?? 'all')
+    ) {
+      return false;
+    }
+
+    if (!matchesSmartFilter(work, query.smartFilter ?? 'all')) {
+      return false;
+    }
+
+    if (!matchesIdentityPreset(work, query.identityPreset ?? 'all')) {
+      return false;
     }
 
     if (

@@ -34,8 +34,8 @@ npm run dev
 기본 엔드포인트:
 
 - Web: http://localhost:5173
-- API health: http://localhost:3000/health
-- Swagger: http://localhost:3000/docs
+- API health: http://localhost:18731/health
+- Swagger: http://localhost:18731/docs
 
 Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에서 실제 실행 검증하지 않았다. 실행하지 않은 Compose 검증은 통과로 기록하지 않는다.
 

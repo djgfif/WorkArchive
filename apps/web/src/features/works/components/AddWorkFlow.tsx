@@ -454,8 +454,7 @@ export function AddWorkFlow({
               새 작품 기록
             </Text>
             <Text c="var(--mantine-color-dimmed)" size="sm">
-              직접 입력으로 바로 저장할 수 있고, 검색은 작품 정보를 채우는 선택
-              도구입니다.
+              제목만으로 시작하고, 필요할 때 검색 후보로 표지와 기본 정보를 채웁니다.
             </Text>
           </div>
 

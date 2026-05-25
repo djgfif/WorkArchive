@@ -1,24 +1,19 @@
 .sectionCard {
   overflow: hidden;
   border-color: var(--app-border-subtle);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
-    var(--app-surface-card);
+  background: var(--app-surface-card);
   box-shadow: none;
 }
 
 .sectionCardHero {
-  border-color: var(--app-border-strong);
-  background:
-    radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--app-accent-primary) 18%, transparent), transparent 34%),
-    radial-gradient(circle at 14% 85%, color-mix(in srgb, var(--app-accent-warm) 8%, transparent), transparent 30%),
-    linear-gradient(145deg, var(--app-surface-hero), var(--app-surface-card));
-  box-shadow: var(--app-shadow-card);
+  border-color: var(--app-border-default);
+  background: linear-gradient(145deg, var(--app-surface-hero), var(--app-surface-card));
+  box-shadow: none;
 }
 
 .sectionCardSubtle {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.008)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.004)),
     var(--app-surface-subtle);
 }
 
@@ -36,8 +31,8 @@
 .surfaceLink:hover,
 .surfaceLink:focus-visible {
   border-color: var(--app-border-default);
-  box-shadow: var(--app-shadow-card);
-  transform: translateY(-3px);
+  box-shadow: none;
+  transform: translateY(-1px);
 }
 
 .brandLink {
@@ -105,9 +100,7 @@
 .metricPill,
 .statCard {
   border-color: var(--app-border-subtle);
-  background:
-    radial-gradient(circle at 82% 12%, color-mix(in srgb, var(--app-accent-primary) 10%, transparent), transparent 48%),
-    var(--app-surface-subtle);
+  background: var(--app-surface-subtle);
   transition:
     transform var(--wa-motion-normal),
     border-color var(--wa-motion-fast),
@@ -117,8 +110,8 @@
 .metricPill:hover,
 .statCard:hover {
   border-color: var(--app-border-default);
-  box-shadow: var(--app-shadow-card);
-  transform: translateY(-2px);
+  box-shadow: none;
+  transform: translateY(-1px);
 }
 
 .feedback {

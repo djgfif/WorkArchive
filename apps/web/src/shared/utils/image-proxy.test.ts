@@ -7,7 +7,7 @@ describe('getDisplayImageUrl', () => {
     expect(
       getDisplayImageUrl('https://covers.openlibrary.org/b/id/123-L.jpg'),
     ).toBe(
-      'http://localhost:3000/api/image-proxy?url=https%3A%2F%2Fcovers.openlibrary.org%2Fb%2Fid%2F123-L.jpg',
+      '/api/image-proxy?url=https%3A%2F%2Fcovers.openlibrary.org%2Fb%2Fid%2F123-L.jpg',
     );
   });
 
@@ -15,7 +15,7 @@ describe('getDisplayImageUrl', () => {
     expect(
       getDisplayImageUrl('http://books.google.com/books/content?id=dune'),
     ).toBe(
-      'http://localhost:3000/api/image-proxy?url=http%3A%2F%2Fbooks.google.com%2Fbooks%2Fcontent%3Fid%3Ddune',
+      '/api/image-proxy?url=http%3A%2F%2Fbooks.google.com%2Fbooks%2Fcontent%3Fid%3Ddune',
     );
   });
 

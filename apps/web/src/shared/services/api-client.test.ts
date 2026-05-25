@@ -26,7 +26,13 @@ describe('api-client', () => {
   it('defaults development API calls to the local API server', () => {
     vi.stubEnv('VITE_API_BASE_URL', '');
 
-    expect(getApiBaseUrl()).toBe('http://localhost:3000/api');
+    expect(getApiBaseUrl()).toBe('/api');
+  });
+
+  it('normalizes loopback development API overrides to the same-origin proxy', () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:3000/api');
+
+    expect(getApiBaseUrl()).toBe('/api');
   });
 
   it('retries a 401 protected request once after refresh succeeds', async () => {

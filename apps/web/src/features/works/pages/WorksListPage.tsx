@@ -34,7 +34,10 @@ import {
 import {
   DEFAULT_WORKS_LIST_QUERY,
   getDefaultSortDirection,
+  type WorksIdentityPreset,
   type WorksListQuery,
+  type WorksRatingPreset,
+  type WorksSmartFilter,
 } from '../utils/query-works';
 import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 
@@ -45,6 +48,37 @@ function normalizeStatusQueryParam(
     WORK_STATUSES.includes(value as (typeof WORK_STATUSES)[number])
     ? (value as WorksListQuery['status'])
     : DEFAULT_WORKS_LIST_QUERY.status;
+}
+
+function normalizeRatingPresetQueryParam(
+  value: string | null,
+): WorksRatingPreset {
+  return value === 'unrated' ||
+    value === 'gte4' ||
+    value === 'gte3' ||
+    value === 'lte2'
+    ? value
+    : (DEFAULT_WORKS_LIST_QUERY.ratingPreset ?? 'all');
+}
+
+function normalizeSmartFilterQueryParam(
+  value: string | null,
+): WorksSmartFilter {
+  return value === 'favorites' ||
+    value === 'unrated' ||
+    value === 'needsCuration'
+    ? value
+    : (DEFAULT_WORKS_LIST_QUERY.smartFilter ?? 'all');
+}
+
+function normalizeIdentityPresetQueryParam(
+  value: string | null,
+): WorksIdentityPreset {
+  return value === 'manual' ||
+    value === 'imported' ||
+    value === 'catalogLinked'
+    ? value
+    : (DEFAULT_WORKS_LIST_QUERY.identityPreset ?? 'all');
 }
 
 function getCollectionScopeFromSearchParams(
@@ -97,12 +131,20 @@ function getQueryFromSearchParams(
     genre: searchParams.get('genre') ?? '',
     organizationContributor: searchParams.get('organizationContributor') ?? '',
     personContributor: searchParams.get('personContributor') ?? '',
+    identityPreset: normalizeIdentityPresetQueryParam(
+      searchParams.get('identity'),
+    ),
     rating:
       Number.isFinite(ratingFromUrl) && ratingFromUrl >= 0 && ratingFromUrl <= 5
         ? ratingFromUrl
         : DEFAULT_WORKS_LIST_QUERY.rating,
+    ratingPreset:
+      Number.isFinite(ratingFromUrl) && ratingFromUrl >= 0 && ratingFromUrl <= 5
+        ? 'all'
+        : normalizeRatingPresetQueryParam(searchParams.get('ratingPreset')),
     searchTerm: searchParams.get('q') ?? '',
     series: searchParams.get('series') ?? '',
+    smartFilter: normalizeSmartFilterQueryParam(searchParams.get('smart')),
     tag: searchParams.get('tag') ?? '',
     sortBy,
     sortDirection:
@@ -142,6 +184,15 @@ function buildSearchParams(
   if (query.genre?.trim()) nextSearchParams.set('genre', query.genre.trim());
   if (query.status !== 'all') nextSearchParams.set('status', query.status);
   if (query.rating !== null) nextSearchParams.set('rating', query.rating.toString());
+  if (query.rating === null && (query.ratingPreset ?? 'all') !== 'all') {
+    nextSearchParams.set('ratingPreset', query.ratingPreset ?? 'all');
+  }
+  if ((query.smartFilter ?? 'all') !== 'all') {
+    nextSearchParams.set('smart', query.smartFilter ?? 'all');
+  }
+  if ((query.identityPreset ?? 'all') !== 'all') {
+    nextSearchParams.set('identity', query.identityPreset ?? 'all');
+  }
   if (query.tag?.trim()) nextSearchParams.set('tag', query.tag.trim());
   if (query.type !== 'all') nextSearchParams.set('type', query.type);
   if (query.sortBy !== DEFAULT_WORKS_LIST_QUERY.sortBy) {
@@ -207,6 +258,9 @@ export function WorksListPage() {
     (query.genre?.trim() ?? '') !== '' ||
     (query.tag?.trim() ?? '') !== '' ||
     query.rating !== null ||
+    (query.ratingPreset ?? 'all') !== 'all' ||
+    (query.smartFilter ?? 'all') !== 'all' ||
+    (query.identityPreset ?? 'all') !== 'all' ||
     query.type !== 'all' ||
     query.status !== 'all' ||
     query.sortBy !== 'updatedAt' ||
@@ -277,7 +331,7 @@ export function WorksListPage() {
 
   async function handleDelete(work: WorkRecord) {
     const shouldDelete = await confirmDialogAdapter.confirm({
-      description: '목록에서는 숨겨지고 휴지통에서 다시 복원할 수 있습니다.',
+      description: '서재에서는 숨겨지고 휴지통에서 다시 복원할 수 있습니다.',
       title: `"${work.title}"을 휴지통으로 이동할까요?`,
     });
 
@@ -472,7 +526,7 @@ export function WorksListPage() {
             <>
               {collectionScope === 'trash' ? (
                 <AppButton onClick={() => handleCollectionScopeChange('active')} type="button">
-                  작품 목록
+                  서재로 돌아가기
                 </AppButton>
               ) : hasActiveFilters ? (
                 <>
@@ -504,7 +558,7 @@ export function WorksListPage() {
           }
           description={
             collectionScope === 'trash'
-              ? '숨긴 작품은 이곳에서 다시 확인하거나 복원할 수 있습니다.'
+              ? '삭제한 작품은 이곳에서 다시 확인하거나 복원할 수 있습니다.'
               : hasActiveFilters
                 ? '검색어나 필터를 바꿔 다시 찾아보세요.'
                 : '제목만 직접 남기거나, 검색으로 기본 정보를 불러오거나, 기존 JSON 백업에서 다시 시작할 수 있습니다.'

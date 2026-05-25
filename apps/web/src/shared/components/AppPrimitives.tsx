@@ -195,9 +195,7 @@ interface AppNavLinkProps {
 function getSurfaceBackground(tone: SurfaceTone) {
   if (tone === 'hero') {
     return [
-      'radial-gradient(circle at 82% 12%, color-mix(in srgb, var(--app-accent-primary) 14%, transparent), transparent 38%)',
-      'radial-gradient(circle at 12% 85%, color-mix(in srgb, var(--app-accent-warm) 7%, transparent), transparent 32%)',
-      'linear-gradient(145deg, var(--app-surface-hero), var(--app-surface-card))',
+      'linear-gradient(145deg, color-mix(in srgb, var(--app-surface-hero) 92%, transparent), var(--app-surface-card))',
     ].join(', ');
   }
 
@@ -353,15 +351,15 @@ export function SurfaceLinkCard({
           transition: [
             'transform var(--wa-motion-normal, 240ms)',
             'border-color var(--wa-motion-fast, 150ms)',
-            'box-shadow var(--wa-motion-normal, 240ms)',
+            'background var(--wa-motion-fast, 150ms)',
           ].join(', '),
           '&:hover': {
-            transform: 'translateY(-3px)',
+            transform: 'translateY(-1px)',
             borderColor: 'var(--app-border-default)',
-            boxShadow: 'var(--wa-shadow-card)',
+            background: tone === 'subtle' ? 'var(--app-surface-subtle)' : 'var(--app-surface-card)',
           },
           '&:active': {
-            transform: 'translateY(-1px)',
+            transform: 'translateY(0)',
           },
         },
       }}

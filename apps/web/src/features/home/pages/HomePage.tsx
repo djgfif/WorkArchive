@@ -28,6 +28,7 @@ import { useAuthSession } from '@features/auth';
 import {
   ArchiveSearchBar,
   ArchiveStarterShelf,
+  WorkPoster,
   WorkShelf,
 } from '@features/works';
 import { useWorksOverview } from '@features/works';
@@ -151,19 +152,16 @@ function ActivityTimelineItem({ work }: { work: WorkRecord }) {
 
 function HeroSummary({
   averageRating,
-  completedCount,
   inProgressCount,
   totalCount,
 }: {
   averageRating: number | null;
-  completedCount: number;
   inProgressCount: number;
   totalCount: number;
 }) {
   return (
-    <SimpleGrid className={cn(css.heroStats)} cols={{ base: 2, sm: 4 }} spacing="sm">
-      <HeroStat label="전체 기록" value={`${totalCount}개`} />
-      <HeroStat label="완료" value={`${completedCount}개`} />
+    <SimpleGrid className={cn(css.heroStats)} cols={{ base: 1, sm: 3 }} spacing="sm">
+      <HeroStat label="작품" value={`${totalCount}개`} />
       <HeroStat label="진행 중" value={`${inProgressCount}개`} />
       <HeroStat label="평균 별점" value={formatAverageRating(averageRating)} />
     </SimpleGrid>
@@ -217,29 +215,44 @@ function ContinueWorkCard({ work }: { work: WorkRecord }) {
       to={`/works/${work.id}`}
     >
       <Paper className={cn(css.continueCardSurface)} p="md" radius="md" withBorder>
-        <Stack gap="xs">
-          <Group gap="xs" justify="space-between" wrap="nowrap">
-            <AppBadge tone={getStatusTone(work.status)}>
-              {getWorkStatusLabel(work.status)}
-            </AppBadge>
-            {work.rating !== null && (
-              <Text className={cn(css.continueRating)} fw={800} size="xs">
-                ★ {work.rating.toFixed(1)}
+        <Group align="flex-start" gap="md" wrap="nowrap">
+          <WorkPoster
+            className={cn(css.continuePoster)}
+            coverSeed={work.id}
+            thumbnailUrl={work.thumbnailUrl}
+            title={work.title}
+            typeLabel={getWorkTypeLabel(work.type)}
+            variant="row"
+          />
+          <Stack flex={1} gap="xs" miw={0}>
+            <Group gap="xs" justify="space-between" wrap="nowrap">
+              <Text className={cn(css.continueMeta)} lineClamp={1} size="xs">
+                {getWorkStatusLabel(work.status)}
+              </Text>
+              {work.rating !== null && (
+                <Text className={cn(css.continueRating)} fw={800} size="xs">
+                  ★ {work.rating.toFixed(1)}
+                </Text>
+              )}
+            </Group>
+            <Stack gap={3}>
+              <Title className={cn(css.continueTitle)} lineClamp={2} order={3}>
+                {work.title}
+              </Title>
+              <Text className={cn(css.continueMeta)} lineClamp={1} size="xs">
+                {getWorkSupportLine(work)}
+              </Text>
+            </Stack>
+            {work.shortReview.trim() && (
+              <Text className={cn(css.continueReview)} lineClamp={2} size="sm">
+                {work.shortReview.trim()}
               </Text>
             )}
-          </Group>
-          <Stack gap={3}>
-            <Title className={cn(css.continueTitle)} lineClamp={2} order={3}>
-              {work.title}
-            </Title>
-            <Text className={cn(css.continueMeta)} lineClamp={1} size="xs">
-              {getWorkSupportLine(work)}
+            <Text className={cn(css.continueCue)} fw={700} size="sm">
+              {getContinueLine(work)}
             </Text>
           </Stack>
-          <Text className={cn(css.continueCue)} fw={700} size="sm">
-            {getContinueLine(work)}
-          </Text>
-        </Stack>
+        </Group>
       </Paper>
     </Link>
   );
@@ -273,8 +286,8 @@ function TodayPanel({
           ) : undefined
         }
         description="최근 감상 위치와 진행 중인 기록을 먼저 모아 오늘 바로 이어갈 수 있게 했습니다."
-        eyebrow="오늘"
-        title="오늘 이어서 볼 기록"
+        eyebrow="이어보기"
+        title="이어볼 작품"
       />
       {continueWorks.length > 0 ? (
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
@@ -288,7 +301,7 @@ function TodayPanel({
             <Stack gap={4}>
               <Text fw={800}>오늘 이어갈 작품을 고르세요</Text>
               <Text c="dimmed" size="sm">
-                진행 상태나 최근 감상 위치가 남으면 이곳에 최대 3개가 표시됩니다.
+                진행 상태나 최근 감상 위치가 남으면 이 선반에 먼저 올라옵니다.
               </Text>
             </Stack>
             <AppLinkButton to="/works" tone="secondary">
@@ -377,9 +390,9 @@ function ArchiveInsights({ items }: { items: InsightItem[] }) {
   return (
     <Stack gap="lg">
       <SectionHeader
-        description="태그, 유형, 시리즈, 제작진 묶음에서 눈에 띄는 것만 작게 보여줍니다."
-        eyebrow="인사이트"
-        title="내 아카이브 인사이트"
+        description="자주 고른 매체와 태그만 작게 남깁니다."
+        eyebrow="취향 단서"
+        title="작은 취향 단서"
       />
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
         {items.map((item) => (
@@ -393,7 +406,9 @@ function ArchiveInsights({ items }: { items: InsightItem[] }) {
                   <Text className={cn(css.insightLabel)} fw={800} lineClamp={1}>
                     {item.label}
                   </Text>
-                  <AppBadge tone="accent">{item.value}</AppBadge>
+                  <Text className={cn(css.insightCount)} fw={800} size="xs">
+                    {item.value}
+                  </Text>
                 </Group>
               </Stack>
             </Paper>
@@ -407,18 +422,18 @@ function ArchiveInsights({ items }: { items: InsightItem[] }) {
 function EmptyArchiveGuide() {
   const actions = [
     {
-      description: '작품 추가 화면에서 외부 검색으로 후보를 불러옵니다.',
+      description: '제목 하나와 짧은 감상으로 첫 선반을 채웁니다.',
+      label: '첫 작품 추가',
+      to: '/works/new',
+    },
+    {
+      description: '외부 검색 후보에서 표지와 기본 정보를 가져옵니다.',
       label: '검색으로 추가',
       to: '/works/new',
     },
     {
-      description: '제목과 상태만으로도 바로 개인 기록을 시작합니다.',
-      label: '직접 입력',
-      to: '/works/new',
-    },
-    {
-      description: '설정의 데이터 백업 영역에서 기존 JSON 파일을 가져옵니다.',
-      label: 'JSON 백업 가져오기',
+      description: '이전에 내보낸 JSON 기록을 다시 불러옵니다.',
+      label: '백업 가져오기',
       to: '/account/settings#data-backup',
     },
   ];
@@ -426,9 +441,9 @@ function EmptyArchiveGuide() {
   return (
     <Stack gap="lg">
       <SectionHeader
-        description="처음에는 검색, 직접 입력, 백업 가져오기 중 편한 흐름으로 시작하면 됩니다."
-        eyebrow="시작하기"
-        title="첫 기록을 채우는 방법"
+        description="새 작품을 직접 남기거나 검색으로 표지를 채우고, 기존 백업도 이어받을 수 있습니다."
+        eyebrow="첫 선반"
+        title="첫 작품을 놓는 방법"
       />
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
         {actions.map((action) => (
@@ -453,7 +468,6 @@ export function HomePage() {
   const { archiveScopeKey, mode, user } = useAuthSession();
   const {
     averageRating,
-    completedCount,
     contributorCollections,
     error,
     highlyRatedWorks,
@@ -476,9 +490,6 @@ export function HomePage() {
     .filter((work) => work.status === 'in_progress')
     .slice(0, 8);
   const continueWorks = pickContinueWorks(recentlyConsumedWorks, activeWorks);
-  const activeWorksOutsideToday = activeWorks.filter(
-    (work) => !continueWorks.some((continueWork) => continueWork.id === work.id),
-  );
   const insightItems = buildInsightItems({
     contributorCollections,
     seriesCollections,
@@ -503,13 +514,13 @@ export function HomePage() {
           <Group align="flex-start" justify="space-between" wrap="wrap">
             <Stack gap={4}>
               <Text className={cn(css.headerEyebrow)} fw={800} size="xs">
-                오늘 이어서 쓰는 개인 아카이브 허브
+                오늘 펼쳐볼 감상 선반
               </Text>
-              <Title order={1}>내 아카이브</Title>
+              <Title order={1}>내 개인 서재</Title>
               <Text c="dimmed" size="sm">
                 {isAuthenticated
-                  ? `${user?.email ?? '내 계정'} · 오늘 이어갈 기록과 최근 작업을 한곳에서 엽니다.`
-                  : '이 기기에 저장된 기록을 검색하고 오늘 이어갈 작품을 빠르게 엽니다.'}
+                  ? `${user?.email ?? '내 계정'} · 이어볼 작품과 남겨둔 감상을 조용히 모았습니다.`
+                  : '이 기기에 저장된 작품과 감상을 조용히 모았습니다.'}
               </Text>
             </Stack>
             <Group gap="xs" wrap="wrap">
@@ -542,7 +553,6 @@ export function HomePage() {
           </form>
           <HeroSummary
             averageRating={averageRating}
-            completedCount={completedCount}
             inProgressCount={inProgressCount}
             totalCount={totalCount}
           />
@@ -587,63 +597,6 @@ export function HomePage() {
 
           {totalCount === 0 && <EmptyArchiveGuide />}
 
-          {/* 최근 작업 */}
-          <Stack gap="lg">
-            <SectionHeader
-              action={
-                <AppLinkButton to="/works" tone="quiet">
-                  작품 목록 전체
-                </AppLinkButton>
-              }
-              description="최근에 추가하거나 수정한 기록을 빠르게 다시 엽니다."
-              eyebrow="최근 작업"
-              title="최근 작업한 기록"
-            />
-            {recentWorks.length > 0 ? (
-              <WorkShelf works={recentWorks.slice(0, 8)} />
-            ) : (
-              <StateMessage
-                actions={
-                  <Group gap="xs" wrap="wrap">
-                    <AppLinkButton to="/works/new" tone="primary">
-                      검색으로 추가
-                    </AppLinkButton>
-                    <AppLinkButton to="/works/new" tone="secondary">
-                      직접 입력
-                    </AppLinkButton>
-                    <AppLinkButton to="/account/settings#data-backup" tone="quiet">
-                      JSON 백업 가져오기
-                    </AppLinkButton>
-                  </Group>
-                }
-                description="첫 기록을 만들거나 기존 JSON 백업을 가져오면 홈에서 오늘 이어갈 흐름이 시작됩니다."
-                eyebrow="시작하기"
-                title="아직 기록이 없습니다"
-                tone="info"
-              />
-            )}
-          </Stack>
-
-          {/* 진행 중인 기록 */}
-          {activeWorksOutsideToday.length > 0 && (
-            <Stack gap="lg">
-              <SectionHeader
-                action={
-                  <AppLinkButton to="/works?status=in_progress" tone="quiet">
-                    모두 보기
-                  </AppLinkButton>
-                }
-                description="상태가 진행 중인 작품 기록만 모았습니다."
-                eyebrow="진행 중"
-                title="진행 중인 기록"
-              />
-              <WorkShelf
-                empty={<ArchiveStarterShelf />}
-                works={activeWorksOutsideToday.slice(0, 6)}
-              />
-            </Stack>
-          )}
-
           {highlyRatedWorks.length > 0 && (
             <Stack gap="lg">
               <SectionHeader
@@ -660,14 +613,33 @@ export function HomePage() {
             </Stack>
           )}
 
+          {recentlyConsumedWorks.length > 0 && (
+            <Stack gap="lg">
+              <SectionHeader
+                action={
+                  <AppLinkButton to="/works" tone="quiet">
+                    서재 전체
+                  </AppLinkButton>
+                }
+                description="최근 감상 위치가 남은 작품을 다시 꺼내기 쉽게 모았습니다."
+                eyebrow="최근 감상"
+                title="최근 감상한 작품"
+              />
+              <WorkShelf
+                empty={<ArchiveStarterShelf />}
+                works={recentlyConsumedWorks.slice(0, 8)}
+              />
+            </Stack>
+          )}
+
           <ArchiveInsights items={insightItems} />
 
           {recentWorks.length > 0 && (
             <Stack gap="lg">
               <SectionHeader
                 description="최근 바뀐 기록 3개만 먼저 보여주고, 전체 변경 흐름은 아래에서 펼쳐봅니다."
-                eyebrow="활동"
-                title="최근 활동"
+                eyebrow="정리 기록"
+                title="최근 정리한 감상"
               />
               <Paper className={cn(css.activityPreviewPanel)} p="md" radius="md" withBorder>
                 <Stack gap={2}>
@@ -683,7 +655,7 @@ export function HomePage() {
           {recentWorks.length > 0 && (
             <Accordion defaultValue={null} variant="separated">
               <Accordion.Item value="recent-changes">
-                <Accordion.Control>최근 변경 내역</Accordion.Control>
+                <Accordion.Control>최근 변경 기록</Accordion.Control>
                 <Accordion.Panel>
                   <Paper
                     className={cn(css.activityPanel)}

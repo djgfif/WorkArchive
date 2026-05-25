@@ -16,4 +16,4 @@ process.env.NODE_ENV ??= 'test';
 process.env.SECURITY_EVENT_HASH_SECRET ??=
   'test-security-event-secret-minimum-32-chars';
 process.env.SWAGGER_ENABLED ??= 'false';
-process.env.WEB_BASE_URL ??= 'http://localhost:8080';
+process.env.WEB_BASE_URL ??= 'http://localhost:18730';

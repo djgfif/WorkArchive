@@ -67,13 +67,7 @@ describe('api runtime config', () => {
 
     expect(readApiRuntimeConfig()).toEqual(
       expect.objectContaining({
-        corsOrigin: [
-          'http://localhost:8080',
-          'http://127.0.0.1:8080',
-          'http://127.0.0.1:53173',
-          'http://localhost:53173',
-          'http://localhost:5173',
-        ],
+        corsOrigin: ['http://localhost:18730'],
       }),
     );
   });
@@ -169,7 +163,7 @@ describe('api runtime config', () => {
   it('blocks localhost CORS and missing web base url in production', () => {
     resetEnv({
       NODE_ENV: 'production',
-      CORS_ORIGIN: 'http://localhost:8080',
+      CORS_ORIGIN: 'http://localhost:18730',
       WEB_BASE_URL: 'https://workarchive.example.com',
     });
 

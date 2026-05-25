@@ -203,12 +203,19 @@ function coerceNumberInputValue(value: number | string) {
 }
 
 function getPrimaryMetaLine(work: WorkRecord) {
-  const progressLabel = getWorkProgressLabel(work);
   const ratingLabel = work.rating === null ? null : `★ ${work.rating.toFixed(1)}`;
 
-  return [getWorkStatusLabel(work.status), progressLabel, ratingLabel]
+  return [getWorkTypeLabel(work.type), getWorkStatusLabel(work.status), ratingLabel]
     .filter(Boolean)
     .join(' · ');
+}
+
+function getQuietTagLabels(work: WorkRecord) {
+  const personalTags = work.personalTags
+    .filter((tag) => !tag.includes(':'))
+    .map((tag) => `#${tag}`);
+
+  return [...work.genres, ...personalTags].slice(0, 3);
 }
 
 function getCoverTone(seed: string) {
@@ -665,6 +672,9 @@ function getStatusBadgeTone(status: string): AppBadgeToneValue {
 
 export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps) {
   const typeLabel = getWorkTypeLabel(work.type);
+  const quietTags = getQuietTagLabels(work);
+  const shortReview = work.shortReview.trim();
+
   return (
     <Link
       aria-label={`${work.title} 상세 보기`}
@@ -703,7 +713,19 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
           >
             {getPrimaryMetaLine(work)}
           </Text>
-          {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
+          <Text c="dimmed" className={cn(css.posterReviewLine)} lineClamp={2} size="sm">
+            {shortReview || work.author || '한줄평을 기다리는 작품'}
+          </Text>
+          {quietTags.length > 0 && (
+            <Group className={cn(css.posterTagRow)} gap={4} wrap="wrap">
+              {quietTags.map((tag) => (
+                <Text className={cn(css.posterTagText)} key={tag} size="xs">
+                  {tag}
+                </Text>
+              ))}
+            </Group>
+          )}
+          {isUpdating && <Text c="var(--app-accent-primary)" fw={800} size="xs">저장 중</Text>}
         </Stack>
       </Paper>
     </Link>

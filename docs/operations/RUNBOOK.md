@@ -34,9 +34,9 @@ when `REDIS_URL` is configured.
    again.
 5. If `redis` is listed, follow the Redis 장애 section.
 6. After mitigation, re-run:
-   - `curl -fsS http://localhost:3000/health`
-   - `curl -fsS http://localhost:3000/livez`
-   - `curl -fsS http://localhost:3000/readyz`
+   - `curl -fsS http://localhost:18731/health`
+   - `curl -fsS http://localhost:18731/livez`
+   - `curl -fsS http://localhost:18731/readyz`
 
 ## Metrics and alerts
 

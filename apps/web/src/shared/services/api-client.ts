@@ -10,7 +10,7 @@ import {
 } from './auth-token-store';
 import { localizeApiErrorMessage } from '../utils/localize-message';
 
-const DEFAULT_DEVELOPMENT_API_BASE_URL = 'http://localhost:3000/api';
+const DEFAULT_DEVELOPMENT_API_BASE_URL = '/api';
 const DEFAULT_PRODUCTION_API_BASE_URL = '/api';
 const LOOPBACK_API_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 
@@ -38,12 +38,8 @@ export function getApiBaseUrl() {
     ? DEFAULT_DEVELOPMENT_API_BASE_URL
     : DEFAULT_PRODUCTION_API_BASE_URL;
 
-  if (
-    import.meta.env.PROD &&
-    configuredBaseUrl &&
-    isLoopbackApiBaseUrl(configuredBaseUrl)
-  ) {
-    return DEFAULT_PRODUCTION_API_BASE_URL;
+  if (configuredBaseUrl && isLoopbackApiBaseUrl(configuredBaseUrl)) {
+    return defaultBaseUrl;
   }
 
   return (configuredBaseUrl || defaultBaseUrl).replace(/\/$/, '');

@@ -32,9 +32,9 @@ npm run dev:start
 
 Default local endpoints:
 
-- Web: [http://localhost:8080](http://localhost:8080)
-- API health: [http://localhost:3000/health](http://localhost:3000/health)
-- API docs: [http://localhost:3000/docs](http://localhost:3000/docs)
+- Web: [http://localhost:18730](http://localhost:18730)
+- API health: [http://localhost:18731/health](http://localhost:18731/health)
+- API docs: [http://localhost:18731/docs](http://localhost:18731/docs)
 
 Stop the local stack:
 

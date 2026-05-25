@@ -53,23 +53,23 @@ if (`$devExit -ne 0) {
 
 Write-Host ""
 Write-Host "Checking Windows localhost access..."
-& curl.exe -fsS --max-time 5 -o NUL "http://localhost:8080"
+& curl.exe -fsS --max-time 5 -o NUL "http://localhost:18730"
 `$webExit = `$LASTEXITCODE
-& curl.exe -fsS --max-time 5 -o NUL "http://localhost:3000/health"
+& curl.exe -fsS --max-time 5 -o NUL "http://localhost:18731/health"
 `$apiExit = `$LASTEXITCODE
 
 if (`$webExit -eq 0 -and `$apiExit -eq 0) {
-  Start-Process "http://localhost:8080"
+  Start-Process "http://localhost:18730"
   Write-Host "Work Archive is running."
-  Write-Host "Web: http://localhost:8080"
-  Write-Host "API: http://localhost:3000/health"
+  Write-Host "Web: http://localhost:18730"
+  Write-Host "API: http://localhost:18731/health"
   return
 }
 
 Write-Host "Work Archive started in WSL, but Windows cannot reach one or more localhost ports."
 Write-Host "Checked endpoints:"
-Write-Host "  http://localhost:8080 result=`$webExit"
-Write-Host "  http://localhost:3000/health result=`$apiExit"
+Write-Host "  http://localhost:18730 result=`$webExit"
+Write-Host "  http://localhost:18731/health result=`$apiExit"
 Write-Host ""
 Write-Host "Services may still be running. Use Stop Work Archive to stop them."
 exit 1

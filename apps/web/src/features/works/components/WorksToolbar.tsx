@@ -23,7 +23,10 @@ import styles from './ArchiveComponents.module.css';
 import type { WorksCollectionScope } from '../services/works.service';
 import {
   getDefaultSortDirection,
+  type WorksIdentityPreset,
   type WorksListQuery,
+  type WorksRatingPreset,
+  type WorksSmartFilter,
 } from '../utils/query-works';
 import { WORK_GENRES, isWorkGenre } from '../utils/work-genres';
 import {
@@ -123,6 +126,123 @@ interface MediaTypeFilterProps {
   value: WorksListQuery['type'];
 }
 
+interface StatusQuickFilterProps {
+  onChange: (status: WorksListQuery['status']) => void;
+  statusCounts: Record<WorkStatus, number>;
+  totalCount: number;
+  value: WorksListQuery['status'];
+}
+
+const ratingPresetOptions: Array<{ label: string; value: WorksRatingPreset }> = [
+  { label: '전체', value: 'all' },
+  { label: '미평가', value: 'unrated' },
+  { label: '4점 이상', value: 'gte4' },
+  { label: '3점 이상', value: 'gte3' },
+  { label: '2점 이하', value: 'lte2' },
+];
+
+const smartFilterOptions: Array<{ label: string; value: WorksSmartFilter }> = [
+  { label: '전체', value: 'all' },
+  { label: '즐겨찾기', value: 'favorites' },
+  { label: '미평가', value: 'unrated' },
+  { label: '정리 필요', value: 'needsCuration' },
+];
+
+const identityPresetOptions: Array<{ label: string; value: WorksIdentityPreset }> = [
+  { label: '전체', value: 'all' },
+  { label: '직접 등록', value: 'manual' },
+  { label: '가져오기', value: 'imported' },
+  { label: '카탈로그 연결', value: 'catalogLinked' },
+];
+
+function getRatingPresetLabel(value: WorksRatingPreset | undefined) {
+  return ratingPresetOptions.find((option) => option.value === value)?.label ?? '전체';
+}
+
+function getSmartFilterLabel(value: WorksSmartFilter | undefined) {
+  return smartFilterOptions.find((option) => option.value === value)?.label ?? '전체';
+}
+
+function getIdentityPresetLabel(value: WorksIdentityPreset | undefined) {
+  return identityPresetOptions.find((option) => option.value === value)?.label ?? '전체';
+}
+
+function StatusQuickFilter({
+  onChange,
+  statusCounts,
+  totalCount,
+  value,
+}: StatusQuickFilterProps) {
+  const activeLabel =
+    value === 'all' ? '전체 상태' : getWorkStatusLabel(value);
+  const options = [
+    { count: totalCount, label: '전체', value: 'all' as const },
+    ...visibleWorkStatusOptions.map((option) => ({
+      count: statusCounts[option.value],
+      label: option.label,
+      value: option.value,
+    })),
+  ];
+
+  return (
+    <Box className={cn(css.mediaTypeFilter)}>
+      <Group
+        align="center"
+        className={cn(css.mediaTypeFilterHeader)}
+        justify="space-between"
+        wrap="nowrap"
+      >
+        <Text c="var(--app-text-primary)" fw={800} size="sm">
+          감상 상태
+        </Text>
+        <Text
+          className={cn(css.numericText)}
+          c="var(--app-text-secondary)"
+          fw={700}
+          size="xs"
+        >
+          {activeLabel} · {value === 'all' ? totalCount : statusCounts[value]}개
+        </Text>
+      </Group>
+
+      <Box
+        aria-label="감상 상태로 빠르게 좁히기"
+        className={cn(css.mediaTypeOptions)}
+        role="group"
+      >
+        {options.map((option) => {
+          const isActive = option.value === value;
+
+          return (
+            <Box
+              aria-label={option.label}
+              aria-pressed={isActive}
+              className={cn(css.mediaTypeOption)}
+              component="button"
+              data-active={isActive ? 'true' : 'false'}
+              key={option.value}
+              onClick={() => onChange(option.value)}
+              type="button"
+            >
+              <Text className={cn(css.mediaTypeOptionLabel)} fw={800} size="xs">
+                {option.label}
+              </Text>
+              <Text
+                aria-hidden="true"
+                className={cn(css.mediaTypeOptionCount)}
+                fw={800}
+                size="xs"
+              >
+                {option.count}
+              </Text>
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+}
+
 function MediaTypeFilter({
   onChange,
   totalCount,
@@ -144,15 +264,15 @@ function MediaTypeFilter({
 
   return (
     <Box className={cn(css.mediaTypeFilter)}>
-      <Group align="center" justify="space-between" mb="xs" wrap="wrap">
-        <Stack gap={1}>
-          <Text c="dimmed" fw={800} size="xs" tt="uppercase">
-            매체
-          </Text>
-          <Text fw={800} size="sm">
-            작품 유형으로 빠르게 좁히기
-          </Text>
-        </Stack>
+      <Group
+        align="center"
+        className={cn(css.mediaTypeFilterHeader)}
+        justify="space-between"
+        wrap="nowrap"
+      >
+        <Text c="var(--app-text-primary)" fw={800} size="sm">
+          매체 유형
+        </Text>
         <Text
           className={cn(css.numericText)}
           c="var(--app-text-secondary)"
@@ -164,7 +284,7 @@ function MediaTypeFilter({
       </Group>
 
       <Box
-        aria-label="매체 필터"
+        aria-label="작품 유형으로 빠르게 좁히기"
         className={cn(css.mediaTypeOptions)}
         role="group"
       >
@@ -185,7 +305,7 @@ function MediaTypeFilter({
               <Text
                 className={cn(css.mediaTypeOptionLabel)}
                 fw={800}
-                size="sm"
+                size="xs"
               >
                 {option.label}
               </Text>
@@ -269,6 +389,7 @@ export function WorksToolbar({
   const searchRef = useRef<HTMLInputElement>(null);
   const defaultSortDirection = getDefaultSortDirection(query.sortBy);
   const sortDirection = query.sortDirection ?? defaultSortDirection;
+  const isTrashScope = collectionScope === 'trash';
 
   /* ── 키보드 단축키 ── */
   useHotkeys([
@@ -300,6 +421,9 @@ export function WorksToolbar({
     (query.genre?.trim() ?? '') !== '' ||
     (query.tag?.trim() ?? '') !== '' ||
     query.rating !== null ||
+    (query.ratingPreset ?? 'all') !== 'all' ||
+    (query.smartFilter ?? 'all') !== 'all' ||
+    (query.identityPreset ?? 'all') !== 'all' ||
     query.status !== 'all' ||
     query.type !== 'all' ||
     query.sortBy !== 'updatedAt' ||
@@ -307,25 +431,16 @@ export function WorksToolbar({
 
   const countSummary = isLoading
     ? '불러오는 중…'
-    : collectionScope === 'trash'
-      ? totalDeletedCount === 0 ? '휴지통이 비어 있습니다.' : `숨겨둔 작품 ${filteredCount}개`
+    : isTrashScope
+      ? totalDeletedCount === 0
+        ? '삭제한 작품이 없습니다.'
+        : `삭제한 작품 ${filteredCount}개를 관리 중입니다.`
       : totalActiveCount === 0
         ? '첫 작품을 추가해 보세요.'
         : filteredCount === totalActiveCount
           ? `작품 ${totalActiveCount}개`
           : `${totalActiveCount}개 중 ${filteredCount}개 표시 중`;
 
-  const statusFilterOptions = [
-    { label: '전체', value: 'all' as const, count: totalActiveCount },
-    ...visibleWorkStatusOptions.map((o) => ({
-      label: getWorkStatusLabel(o.value),
-      value: o.value,
-      count:
-        o.value === 'dropped'
-          ? statusCounts.dropped
-          : statusCounts[o.value],
-    })),
-  ];
   const genreFilterOptions = [
     { label: '전체', value: '' },
     ...Array.from(
@@ -367,6 +482,15 @@ export function WorksToolbar({
     ...(query.rating !== null
       ? [{ label: `★ ${query.rating.toFixed(1)}`, onRemove: () => onQueryChange({ ...query, rating: null }) }]
       : []),
+    ...(query.rating === null && (query.ratingPreset ?? 'all') !== 'all'
+      ? [{ label: `별점: ${getRatingPresetLabel(query.ratingPreset)}`, onRemove: () => onQueryChange({ ...query, ratingPreset: 'all' }) }]
+      : []),
+    ...((query.smartFilter ?? 'all') !== 'all'
+      ? [{ label: getSmartFilterLabel(query.smartFilter), onRemove: () => onQueryChange({ ...query, smartFilter: 'all' }) }]
+      : []),
+    ...((query.identityPreset ?? 'all') !== 'all'
+      ? [{ label: `등록: ${getIdentityPresetLabel(query.identityPreset)}`, onRemove: () => onQueryChange({ ...query, identityPreset: 'all' }) }]
+      : []),
     ...(query.type !== 'all'
       ? [{ label: workTypeOptions.find((o) => o.value === query.type)?.label ?? query.type, onRemove: () => onQueryChange({ ...query, type: 'all' }) }]
       : []),
@@ -383,19 +507,21 @@ export function WorksToolbar({
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <ArchiveHero
         actions={
-          <AppButton
-            leftSection={<IconPlus />}
-            onClick={onCreateWork}
-            size="md"
-            tone="primary"
-            type="button"
-          >
-            작품 추가
-          </AppButton>
+          !isTrashScope ? (
+            <AppButton
+              leftSection={<IconPlus />}
+              onClick={onCreateWork}
+              size="md"
+              tone="primary"
+              type="button"
+            >
+              작품 추가
+            </AppButton>
+          ) : undefined
         }
         description={countSummary}
-        eyebrow="내 작품"
-        title="작품 서재"
+        eyebrow={isTrashScope ? '삭제 항목 관리' : '내 작품'}
+        title={isTrashScope ? '휴지통' : '작품 서재'}
         variant="compact"
       >
         {/* ── 검색 + 컨트롤 바 ── */}
@@ -406,7 +532,11 @@ export function WorksToolbar({
               aria-label="작품 검색 (단축키: /)"
               inputRef={searchRef}
               onChange={(searchTerm) => onQueryChange({ ...query, searchTerm })}
-              placeholder="제목, 작가, 태그 검색  (/)"
+              placeholder={
+                isTrashScope
+                  ? '삭제된 작품 검색  (/)'
+                  : '제목, 작가, 태그 검색  (/)'
+              }
               value={query.searchTerm}
             />
           </Box>
@@ -519,7 +649,7 @@ export function WorksToolbar({
             onChange={onCollectionScopeChange}
             options={[
               { label: '서재', value: 'active', count: totalActiveCount },
-              { label: '휴지통', value: 'trash', count: totalDeletedCount },
+              { label: '삭제됨', value: 'trash', count: totalDeletedCount },
             ]}
             value={collectionScope}
           />
@@ -527,12 +657,53 @@ export function WorksToolbar({
       </ArchiveHero>
 
       {collectionScope === 'active' && (
-        <MediaTypeFilter
-          onChange={(type) => onQueryChange({ ...query, type })}
-          totalCount={totalActiveCount}
-          typeCounts={typeCounts}
-          value={query.type}
-        />
+        <Stack gap="md">
+          <StatusQuickFilter
+            onChange={(status) => onQueryChange({ ...query, status })}
+            statusCounts={statusCounts}
+            totalCount={totalActiveCount}
+            value={query.status}
+          />
+          <MediaTypeFilter
+            onChange={(type) => onQueryChange({ ...query, type })}
+            totalCount={totalActiveCount}
+            typeCounts={typeCounts}
+            value={query.type}
+          />
+        </Stack>
+      )}
+
+      {isTrashScope && (
+        <Box className={cn(css.trashScopeBar)}>
+          <Stack gap={2} miw={0}>
+            <Text c="var(--app-text-primary)" fw={800} size="sm">
+              복구가 기본 작업입니다.
+            </Text>
+            <Text c="var(--app-text-muted)" size="xs">
+              삭제한 작품은 서재에서 숨겨진 상태입니다. 복구하면 원래 서재로 돌아갑니다.
+            </Text>
+          </Stack>
+          <Group gap="xs" justify="flex-end" wrap="wrap">
+            {hasActiveFilters && (
+              <AppButton
+                onClick={onClearFilters}
+                size="compact-sm"
+                tone="secondary"
+                type="button"
+              >
+                필터 초기화
+              </AppButton>
+            )}
+            <AppButton
+              onClick={() => onCollectionScopeChange('active')}
+              size="compact-sm"
+              tone="quiet"
+              type="button"
+            >
+              서재 보기
+            </AppButton>
+          </Group>
+        </Box>
       )}
 
       {/* ── 활성 필터 칩 ─────────────────────────────────────────────── */}
@@ -544,9 +715,10 @@ export function WorksToolbar({
           role="group"
           wrap="wrap"
         >
-          {activeFilterChips.map((chip) => (
+          {activeFilterChips.map((chip, index) => (
             <Box
               className={cn(css.activeFilterChip)}
+              data-mobile-overflow={index >= 3 ? 'true' : 'false'}
               key={chip.label}
             >
               {chip.label}
@@ -561,6 +733,11 @@ export function WorksToolbar({
               </Box>
             </Box>
           ))}
+          {activeFilterChips.length > 3 && (
+            <Box className={`${cn(css.activeFilterChip)} ${cn(css.activeFilterMoreChip)}`}>
+              필터 {activeFilterChips.length - 3}개 더 있음
+            </Box>
+          )}
           <Box
             className={cn(css.chipResetButton)}
             component="button"
@@ -598,123 +775,166 @@ export function WorksToolbar({
           </Group>
 
           <Stack gap="md">
-            {(seriesSuggestions.length > 0 ||
-              personContributorSuggestions.length > 0 ||
-              organizationContributorSuggestions.length > 0) && (
-              <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
-                {seriesSuggestions.length > 0 && (
-                  <FilterSection title="시리즈 / 세계관">
-                    <FilterPillGroup
-                      aria-label="시리즈 필터"
-                      onChange={(series) => onQueryChange({ ...query, series })}
-                      options={[
-                        { label: '전체', value: '' },
-                        ...seriesSuggestions.slice(0, 12).map((series) => ({
-                          label: series,
-                          value: series,
-                        })),
-                      ]}
-                      value={query.series ?? ''}
-                    />
-                  </FilterSection>
-                )}
+            <FilterSection title="분류">
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <Stack gap="xs">
+                  <Text c="var(--app-text-muted)" fw={700} size="xs">
+                    장르
+                  </Text>
+                  <FilterPillGroup
+                    aria-label="장르 필터"
+                    onChange={(genre) => onQueryChange({ ...query, genre })}
+                    options={genreFilterOptions}
+                    value={query.genre ?? ''}
+                  />
+                </Stack>
 
-                {personContributorSuggestions.length > 0 && (
-                  <FilterSection title="작가 / 제작진">
-                    <FilterPillGroup
-                      aria-label="작가 제작진 필터"
-                      onChange={(personContributor) =>
-                        onQueryChange({ ...query, personContributor })
+                <Stack gap="xs">
+                  <Text c="var(--app-text-muted)" fw={700} size="xs">
+                    개인 태그
+                  </Text>
+                  <Box className={cn(css.tagFilterField)}>
+                    <Box
+                      component="input"
+                      list="worksTagFilterSuggestions"
+                      name="tag"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        onQueryChange({ ...query, tag: e.currentTarget.value })
                       }
-                      options={[
-                        { label: '전체', value: '' },
-                        ...personContributorSuggestions.slice(0, 12).map((contributor) => ({
-                          label: contributor,
-                          value: contributor,
-                        })),
-                      ]}
-                      value={query.personContributor ?? ''}
+                      placeholder="태그로 필터…"
+                      value={query.tag ?? ''}
+                      className={cn(css.tagFilterInput)}
                     />
-                  </FilterSection>
-                )}
-
-                {organizationContributorSuggestions.length > 0 && (
-                  <FilterSection title="회사 / 플랫폼">
-                    <FilterPillGroup
-                      aria-label="회사 플랫폼 필터"
-                      onChange={(organizationContributor) =>
-                        onQueryChange({ ...query, organizationContributor })
-                      }
-                      options={[
-                        { label: '전체', value: '' },
-                        ...organizationContributorSuggestions.slice(0, 12).map((contributor) => ({
-                          label: contributor,
-                          value: contributor,
-                        })),
-                      ]}
-                      value={query.organizationContributor ?? ''}
-                    />
-                  </FilterSection>
-                )}
+                    <datalist id="worksTagFilterSuggestions">
+                      {tagSuggestions.map((tag) => (
+                        <option key={tag} value={tag} />
+                      ))}
+                    </datalist>
+                  </Box>
+                  {tagSuggestions.length > 0 && (
+                    <Group gap={4} wrap="wrap">
+                      {tagSuggestions.slice(0, 8).map((tag) => (
+                        <Box
+                          key={tag}
+                          component="button"
+                          className={cn(css.tagSuggestionChip)}
+                          data-active={query.tag === tag ? 'true' : 'false'}
+                          onClick={() => onQueryChange({ ...query, tag })}
+                          type="button"
+                        >
+                          #{tag}
+                        </Box>
+                      ))}
+                    </Group>
+                  )}
+                </Stack>
               </SimpleGrid>
-            )}
-
-            <FilterSection frame="quiet" title="장르">
-              <FilterPillGroup
-                aria-label="장르 필터"
-                onChange={(genre) => onQueryChange({ ...query, genre })}
-                options={genreFilterOptions}
-                value={query.genre ?? ''}
-              />
             </FilterSection>
 
-            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-              <FilterSection title="상태">
-                <FilterPillGroup
-                  aria-label="상태 필터"
-                  onChange={(status) => onQueryChange({ ...query, status })}
-                  options={statusFilterOptions}
-                  value={query.status}
-                />
-              </FilterSection>
-
-              <FilterSection title="개인 태그">
-                <Box className={cn(css.tagFilterField)}>
-                  <Box
-                    component="input"
-                    list="worksTagFilterSuggestions"
-                    name="tag"
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      onQueryChange({ ...query, tag: e.currentTarget.value })
-                    }
-                    placeholder="태그로 필터…"
-                    value={query.tag ?? ''}
-                    className={cn(css.tagFilterInput)}
+            <FilterSection title="관계">
+              <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+                <Stack gap="xs">
+                  <Text c="var(--app-text-muted)" fw={700} size="xs">
+                    시리즈 / 세계관
+                  </Text>
+                  <FilterPillGroup
+                    aria-label="시리즈 필터"
+                    onChange={(series) => onQueryChange({ ...query, series })}
+                    options={[
+                      { label: '전체', value: '' },
+                      ...seriesSuggestions.slice(0, 12).map((series) => ({
+                        label: series,
+                        value: series,
+                      })),
+                    ]}
+                    value={query.series ?? ''}
                   />
-                  <datalist id="worksTagFilterSuggestions">
-                    {tagSuggestions.map((tag) => (
-                      <option key={tag} value={tag} />
-                    ))}
-                  </datalist>
-                </Box>
-                {tagSuggestions.length > 0 && (
-                  <Group gap={4} wrap="wrap">
-                    {tagSuggestions.slice(0, 8).map((tag) => (
-                      <Box
-                        key={tag}
-                        component="button"
-                        className={cn(css.tagSuggestionChip)}
-                        data-active={query.tag === tag ? 'true' : 'false'}
-                        onClick={() => onQueryChange({ ...query, tag })}
-                        type="button"
-                      >
-                        #{tag}
-                      </Box>
-                    ))}
-                  </Group>
-                )}
-              </FilterSection>
-            </SimpleGrid>
+                </Stack>
+
+                <Stack gap="xs">
+                  <Text c="var(--app-text-muted)" fw={700} size="xs">
+                    작가 / 제작진
+                  </Text>
+                  <FilterPillGroup
+                    aria-label="작가 제작진 필터"
+                    onChange={(personContributor) =>
+                      onQueryChange({ ...query, personContributor })
+                    }
+                    options={[
+                      { label: '전체', value: '' },
+                      ...personContributorSuggestions.slice(0, 12).map((contributor) => ({
+                        label: contributor,
+                        value: contributor,
+                      })),
+                    ]}
+                    value={query.personContributor ?? ''}
+                  />
+                </Stack>
+
+                <Stack gap="xs">
+                  <Text c="var(--app-text-muted)" fw={700} size="xs">
+                    회사 / 플랫폼
+                  </Text>
+                  <FilterPillGroup
+                    aria-label="회사 플랫폼 필터"
+                    onChange={(organizationContributor) =>
+                      onQueryChange({ ...query, organizationContributor })
+                    }
+                    options={[
+                      { label: '전체', value: '' },
+                      ...organizationContributorSuggestions.slice(0, 12).map((contributor) => ({
+                        label: contributor,
+                        value: contributor,
+                      })),
+                    ]}
+                    value={query.organizationContributor ?? ''}
+                  />
+                </Stack>
+              </SimpleGrid>
+            </FilterSection>
+
+            <FilterSection title="기록 상태">
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <Stack gap="xs">
+                  <Text c="var(--app-text-muted)" fw={700} size="xs">
+                    별점
+                  </Text>
+                  <FilterPillGroup
+                    aria-label="별점 프리셋 필터"
+                    onChange={(ratingPreset) =>
+                      onQueryChange({ ...query, rating: null, ratingPreset })
+                    }
+                    options={ratingPresetOptions}
+                    value={query.ratingPreset ?? 'all'}
+                  />
+                </Stack>
+
+                <Stack gap="xs">
+                  <Text c="var(--app-text-muted)" fw={700} size="xs">
+                    Smart Collection
+                  </Text>
+                  <FilterPillGroup
+                    aria-label="스마트 필터"
+                    onChange={(smartFilter) =>
+                      onQueryChange({ ...query, smartFilter })
+                    }
+                    options={smartFilterOptions}
+                    value={query.smartFilter ?? 'all'}
+                  />
+                </Stack>
+              </SimpleGrid>
+            </FilterSection>
+
+            <FilterSection title="등록 방식">
+              <FilterPillGroup
+                aria-label="등록 방식 필터"
+                onChange={(identityPreset) =>
+                  onQueryChange({ ...query, identityPreset })
+                }
+                options={identityPresetOptions}
+                value={query.identityPreset ?? 'all'}
+              />
+            </FilterSection>
           </Stack>
         </Box>
       </Collapse>

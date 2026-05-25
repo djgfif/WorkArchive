@@ -329,6 +329,136 @@ describe('queryWorks', () => {
     ).toEqual(['Dune']);
   });
 
+  it('filters by rating presets', () => {
+    expect(
+      queryWorks(works, {
+        rating: null,
+        ratingPreset: 'gte4',
+        searchTerm: '',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Bleach', 'Dune']);
+
+    expect(
+      queryWorks([...works, buildWork({ title: 'Unrated Work', rating: null })], {
+        rating: null,
+        ratingPreset: 'unrated',
+        searchTerm: '',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Unrated Work']);
+  });
+
+  it('keeps exact rating compatible when ratingPreset is also present', () => {
+    expect(
+      queryWorks(works, {
+        rating: 5,
+        ratingPreset: 'gte4',
+        searchTerm: '',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Dune']);
+  });
+
+  it('filters smart collections that need curation', () => {
+    const curatedWorks = [
+      buildWork({
+        title: 'Complete Record',
+        genres: ['판타지'],
+        personalTags: ['favorite arc'],
+        rating: 4,
+        shortReview: 'good',
+        thumbnailUrl: 'https://example.com/cover.jpg',
+      }),
+      buildWork({
+        title: 'Missing Rating',
+        genres: ['판타지'],
+        personalTags: ['favorite arc'],
+        rating: null,
+        shortReview: 'good',
+        thumbnailUrl: 'https://example.com/cover.jpg',
+      }),
+      buildWork({
+        title: 'Missing Tags',
+        genres: ['판타지'],
+        personalTags: [],
+        rating: 4,
+        shortReview: 'good',
+        thumbnailUrl: 'https://example.com/cover.jpg',
+      }),
+    ];
+
+    expect(
+      queryWorks(curatedWorks, {
+        rating: null,
+        smartFilter: 'needsCuration',
+        searchTerm: '',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Missing Rating', 'Missing Tags']);
+  });
+
+  it('filters by identity presets', () => {
+    const identityWorks = [
+      buildWork({
+        title: 'Manual Work',
+        catalogTitleId: null,
+        importDraft: null,
+      }),
+      buildWork({
+        title: 'Imported Work',
+        catalogTitleId: null,
+        importDraft: { mediumType: 'novel' },
+      }),
+      buildWork({
+        title: 'Catalog Work',
+        catalogTitleId: 'catalog-title-1',
+        importDraft: null,
+      }),
+    ];
+
+    expect(
+      queryWorks(identityWorks, {
+        identityPreset: 'manual',
+        rating: null,
+        searchTerm: '',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Manual Work']);
+
+    expect(
+      queryWorks(identityWorks, {
+        identityPreset: 'imported',
+        rating: null,
+        searchTerm: '',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Imported Work']);
+
+    expect(
+      queryWorks(identityWorks, {
+        identityPreset: 'catalogLinked',
+        rating: null,
+        searchTerm: '',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Catalog Work']);
+  });
+
   it('sorts by rating, title, and updatedAt', () => {
     expect(
       queryWorks(works, {

@@ -237,8 +237,8 @@ describe('WorksListPage', () => {
     expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Your Name' })).toBeInTheDocument();
     expect(
-      screen.queryByText('모래 행성의 정치와 신화가 좋다.'),
-    ).not.toBeInTheDocument();
+      screen.getByText('모래 행성의 정치와 신화가 좋다.'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('4권까지')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Dune 진행도 67%')).not.toBeInTheDocument();
 
@@ -396,17 +396,26 @@ describe('WorksListPage', () => {
       await screen.findByRole('heading', { name: 'Fate/stay night' }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText('매체')).toBeInTheDocument();
+    expect(screen.getByText('매체 유형')).toBeInTheDocument();
+    const statusQuickFilter = screen.getByRole('group', {
+      name: '감상 상태로 빠르게 좁히기',
+    });
+    expect(
+      within(statusQuickFilter).getByRole('button', { name: '보는 중' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('작가 / 제작진')).not.toBeVisible();
 
     await user.click(screen.getByRole('button', { name: '고급 필터' }));
 
     for (const label of [
+      '분류',
       '시리즈 / 세계관',
       '작가 / 제작진',
       '회사 / 플랫폼',
       '장르',
-      '상태',
+      '기록 상태',
+      'Smart Collection',
+      '등록 방식',
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
@@ -696,7 +705,7 @@ describe('WorksListPage', () => {
       expect(screen.queryByText('Spice & Wolf')).not.toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: '작품 목록' }));
+    await user.click(screen.getByRole('button', { name: '서재로 돌아가기' }));
     await waitFor(() => {
       expect(screen.getAllByText('Spice & Wolf').length).toBeGreaterThan(0);
     });

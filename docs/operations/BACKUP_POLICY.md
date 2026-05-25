@@ -40,7 +40,7 @@ After restore:
 
 ```bash
 docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
-curl -fsS http://localhost:3000/readyz
+curl -fsS http://localhost:18731/readyz
 ```
 
 For host-based development, `npm run db:migrate:deploy` remains valid.

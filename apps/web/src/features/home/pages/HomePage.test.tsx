@@ -19,15 +19,15 @@ describe('HomePage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('첫 기록을 채우는 방법')).toBeInTheDocument();
+    expect(await screen.findByText('첫 작품을 놓는 방법')).toBeInTheDocument();
+    expect(screen.getAllByText('첫 작품 추가').length).toBeGreaterThan(0);
     expect(screen.getAllByText('검색으로 추가').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('직접 입력').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('JSON 백업 가져오기').length).toBeGreaterThan(0);
-    expect(screen.getByText('전체 기록')).toBeInTheDocument();
+    expect(screen.getAllByText('백업 가져오기').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('작품').length).toBeGreaterThan(0);
     expect(screen.getAllByText('0개').length).toBeGreaterThan(0);
   });
 
-  it('keeps the home focused on summary, today, recent work, and search', async () => {
+  it('keeps the home focused on the personal shelf, continue flow, and search', async () => {
     await worksService.createWork({
       type: 'anime',
       title: 'Fate/stay night',
@@ -69,9 +69,8 @@ describe('HomePage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('오늘 이어서 볼 기록')).toBeInTheDocument();
-    expect(screen.getByText('전체 기록')).toBeInTheDocument();
-    expect(screen.getAllByText('완료').length).toBeGreaterThan(0);
+    expect(await screen.findByText('이어볼 작품')).toBeInTheDocument();
+    expect(screen.getAllByText('작품').length).toBeGreaterThan(0);
     expect(screen.getAllByText('진행 중').length).toBeGreaterThan(0);
     expect(screen.getByText('평균 별점')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '검색' })).toBeInTheDocument();
@@ -79,15 +78,15 @@ describe('HomePage', () => {
     expect(
       screen.getByRole('link', { name: '평가 안 한 작품 1개' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('최근 작업한 기록')).toBeInTheDocument();
-    expect(screen.getByText('최근 활동')).toBeInTheDocument();
+    expect(screen.getByText('최근 감상한 작품')).toBeInTheDocument();
+    expect(screen.getByText('최근 정리한 감상')).toBeInTheDocument();
     expect(screen.queryByText('시리즈 컬렉션')).not.toBeInTheDocument();
     expect(screen.queryByText('제작진으로 보기')).not.toBeInTheDocument();
 
     expect(
       screen
-        .getByText('최근 작업한 기록')
-        .compareDocumentPosition(screen.getByText('최근 활동')) &
+        .getByText('이어볼 작품')
+        .compareDocumentPosition(screen.getByText('최근 정리한 감상')) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
@@ -134,8 +133,8 @@ describe('HomePage', () => {
     );
 
     expect(await screen.findByText('높게 평가한 작품')).toBeInTheDocument();
-    expect(screen.getByText('내 아카이브 인사이트')).toBeInTheDocument();
-    expect(screen.getByText('#Mystery')).toBeInTheDocument();
+    expect(screen.getByText('작은 취향 단서')).toBeInTheDocument();
+    expect(screen.getAllByText('#Mystery').length).toBeGreaterThan(0);
   });
 
   it('shows the shared JSON backup reminder after 20 works without a backup', async () => {

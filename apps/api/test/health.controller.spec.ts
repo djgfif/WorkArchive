@@ -178,10 +178,10 @@ describe('HealthController', () => {
     expect(compose).toContain('/readyz');
     expect(compose).toContain('/work-archive-config.js');
     expect(compose).toContain(
-      'CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080,http://127.0.0.1:8080,http://127.0.0.1:53173,http://localhost:53173}',
+      'CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:18730}',
     );
     expect(compose).toContain(
-      'WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:8080}',
+      'WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:18730}',
     );
     expect(compose).toContain('VITE_API_BASE_URL: /api');
     expect(startDev).toContain(
@@ -200,7 +200,7 @@ describe('HealthController', () => {
     );
   });
 
-  it('documents separate public origins for compose and host development env files', () => {
+  it('documents one public origin for compose and host development env files', () => {
     const rootEnvExample = readFileSync(
       resolve(process.cwd(), '../../.env.example'),
       'utf8',
@@ -218,27 +218,25 @@ describe('HealthController', () => {
       'utf8',
     );
 
-    expect(rootEnvExample).toContain('WEB_BASE_URL="http://localhost:8080"');
+    expect(rootEnvExample).toContain('WEB_BASE_URL="http://localhost:18730"');
     expect(rootEnvExample).toContain('VITE_API_BASE_URL="/api"');
     expect(rootEnvExample).toContain(
-      'CORS_ORIGIN="http://localhost:8080,http://127.0.0.1:8080,http://127.0.0.1:53173,http://localhost:53173"',
+      'CORS_ORIGIN="http://localhost:18730"',
     );
     expect(composeEnvExample).toContain(
-      'WEB_BASE_URL="http://localhost:8080"',
+      'WEB_BASE_URL="http://localhost:18730"',
     );
     expect(composeEnvExample).toContain('VITE_API_BASE_URL="/api"');
     expect(hostEnvExample).toContain(
-      'WEB_BASE_URL="http://127.0.0.1:53173"',
+      'WEB_BASE_URL="http://localhost:18730"',
     );
-    expect(hostEnvExample).toContain(
-      'VITE_API_BASE_URL="http://localhost:3000/api"',
-    );
-    expect(apiEnvExample).toContain('WEB_BASE_URL="http://127.0.0.1:53173"');
+    expect(hostEnvExample).toContain('VITE_API_BASE_URL="/api"');
+    expect(apiEnvExample).toContain('WEB_BASE_URL="http://localhost:18730"');
     expect(apiEnvExample).toContain(
-      'PUBLIC_WEB_BASE_URL="http://127.0.0.1:53173"',
+      'PUBLIC_WEB_BASE_URL="http://localhost:18730"',
     );
     expect(apiEnvExample).toContain(
-      'GOOGLE_OAUTH_REDIRECT_URI="http://localhost:3000/api/auth/google/callback"',
+      'GOOGLE_OAUTH_REDIRECT_URI="http://localhost:18730/api/auth/google/callback"',
     );
   });
 });

@@ -1,9 +1,8 @@
 .homeHeader {
   background:
-    radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--app-accent-primary) 12%, transparent), transparent 42%),
-    linear-gradient(180deg, var(--app-surface-hero), var(--app-surface-card));
-  border-color: var(--app-border-default);
-  box-shadow: var(--wa-shadow-card);
+    linear-gradient(180deg, color-mix(in srgb, var(--app-surface-hero) 96%, transparent), var(--app-surface-card));
+  border-color: var(--app-border-subtle);
+  box-shadow: none;
 }
 
 .headerEyebrow {
@@ -91,9 +90,13 @@
 .insightCard:focus-visible .insightSurface,
 .emptyActionCard:hover .emptyActionSurface,
 .emptyActionCard:focus-visible .emptyActionSurface {
-  border-color: var(--app-border-strong);
-  box-shadow: var(--wa-shadow-card);
+  border-color: var(--app-border-default);
+  box-shadow: none;
   transform: translateY(-1px);
+}
+
+.continuePoster {
+  --poster-width: 4.6rem;
 }
 
 .continueTitle {
@@ -103,13 +106,15 @@
 }
 
 .continueMeta,
+.continueReview,
 .insightDescription {
   color: var(--app-text-muted);
 }
 
 .continueCue,
 .continueRating,
-.insightLabel {
+.insightLabel,
+.insightCount {
   color: var(--app-text-primary);
   font-variant-numeric: tabular-nums;
 }
@@ -125,7 +130,6 @@
 .activityPanel {
   border-color: var(--app-border-default);
   background:
-    radial-gradient(circle at 90% 12%, color-mix(in srgb, var(--app-accent-primary) 12%, transparent), transparent 42%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
     var(--app-surface-subtle);
 }

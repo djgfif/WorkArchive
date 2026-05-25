@@ -27,6 +27,7 @@ function jsonResponse(body: unknown, status = 200) {
 
 describe('auth.api', () => {
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     clearStoredAuthTokens();
@@ -55,8 +56,10 @@ describe('auth.api', () => {
   });
 
   it('adds the current web origin to Google OAuth starts', () => {
-    expect(getGoogleLoginStartUrl('http://127.0.0.1:53173')).toBe(
-      'http://localhost:3000/api/auth/google/start?return_origin=http%3A%2F%2F127.0.0.1%3A53173',
+    vi.stubEnv('VITE_API_BASE_URL', '/api');
+
+    expect(getGoogleLoginStartUrl('http://localhost:18730')).toBe(
+      'http://localhost:18730/api/auth/google/start?return_origin=http%3A%2F%2Flocalhost%3A18730',
     );
   });
 

@@ -38,7 +38,7 @@ let prisma: PrismaService;
 
 function configureIntegrationEnvironment() {
   process.env.NODE_ENV = 'test';
-  process.env.CORS_ORIGIN ??= 'http://localhost:8080';
+process.env.CORS_ORIGIN ??= 'http://localhost:18730';
   process.env.EXTERNAL_API_KEY_ENCRYPTION_SECRET ??=
     'integration-external-api-key-secret-minimum-32-chars';
   process.env.JWT_ACCESS_SECRET ??=
@@ -46,7 +46,7 @@ function configureIntegrationEnvironment() {
   process.env.JWT_REFRESH_SECRET ??=
     'integration-refresh-secret-minimum-32-chars';
   process.env.SWAGGER_ENABLED ??= 'false';
-  process.env.WEB_BASE_URL ??= 'http://localhost:8080';
+process.env.WEB_BASE_URL ??= 'http://localhost:18730';
 
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL must be set for API integration tests.');

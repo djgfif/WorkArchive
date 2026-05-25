@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:-18732}:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -50,19 +50,19 @@ services:
       HOST: ${HOST:-0.0.0.0}
       PORT: 3000
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080,http://127.0.0.1:8080,http://127.0.0.1:53173,http://localhost:53173}
-      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:8080}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:18730}
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:18730}
       PASSWORD_RESET_DEV_LINKS_ENABLED: ${PASSWORD_RESET_DEV_LINKS_ENABLED:-true}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-local-compose-access-secret-minimum-32-chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-compose-refresh-secret-minimum-32-chars}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
-      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:3000/api/auth/google/callback}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:18730/api/auth/google/callback}
       EXTERNAL_API_KEY_ENCRYPTION_SECRET: ${EXTERNAL_API_KEY_ENCRYPTION_SECRET:-local-compose-external-api-key-secret-32-chars}
       SEED_DEMO_EMAIL: ${SEED_DEMO_EMAIL:-demo@workarchive.local}
       SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-demo-password-123}
     ports:
-      - '${API_PORT:-3000}:3000'
+      - '${API_PORT:-18731}:3000'
     healthcheck:
       test:
         [
@@ -85,7 +85,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - '${WEB_PORT:-8080}:8080'
+      - '${WEB_PORT:-18730}:8080'
     healthcheck:
       test:
         [

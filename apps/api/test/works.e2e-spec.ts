@@ -1125,7 +1125,7 @@ describe('Auth, works, and sync API (e2e)', () => {
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
     process.env.EXTERNAL_API_KEY_ENCRYPTION_SECRET =
       'test-external-api-key-encryption-secret';
-    process.env.WEB_BASE_URL = 'http://127.0.0.1:53173';
+    process.env.WEB_BASE_URL = 'http://localhost:18730';
     delete process.env.GOOGLE_OAUTH_CLIENT_ID;
     delete process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 
@@ -1278,11 +1278,11 @@ describe('Auth, works, and sync API (e2e)', () => {
 
     expect(unconfiguredStart.status).toBe(302);
     expect(unconfiguredStart.headers.get('location')).toBe(
-      'http://127.0.0.1:53173/auth/login?google=unconfigured',
+      'http://localhost:18730/auth/login?google=unconfigured',
     );
 
     const unconfiguredStartWithDevOrigin = await fetch(
-      `${baseUrl}/api/auth/google/start?return_origin=${encodeURIComponent('http://localhost:53173')}`,
+      `${baseUrl}/api/auth/google/start?return_origin=${encodeURIComponent('http://localhost:18730')}`,
       {
         redirect: 'manual',
       },
@@ -1290,7 +1290,7 @@ describe('Auth, works, and sync API (e2e)', () => {
 
     expect(unconfiguredStartWithDevOrigin.status).toBe(302);
     expect(unconfiguredStartWithDevOrigin.headers.get('location')).toBe(
-      'http://localhost:53173/auth/login?google=unconfigured',
+      'http://localhost:18730/auth/login?google=unconfigured',
     );
 
     const unconfiguredStartWithUntrustedOrigin = await fetch(
@@ -1302,7 +1302,7 @@ describe('Auth, works, and sync API (e2e)', () => {
 
     expect(unconfiguredStartWithUntrustedOrigin.status).toBe(302);
     expect(unconfiguredStartWithUntrustedOrigin.headers.get('location')).toBe(
-      'http://127.0.0.1:53173/auth/login?google=unconfigured',
+      'http://localhost:18730/auth/login?google=unconfigured',
     );
 
     process.env.GOOGLE_OAUTH_CLIENT_ID = 'google-client-id';

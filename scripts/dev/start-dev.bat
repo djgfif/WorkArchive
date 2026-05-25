@@ -5,9 +5,9 @@ cd /d "%~dp0..\.."
 set "ComSpec=%SystemRoot%\System32\cmd.exe"
 set "PATH=%SystemRoot%\System32;%PATH%"
 set "DEV_MODE=%~1"
-set "HOST_WEB_URL=http://127.0.0.1:53173"
-set "COMPOSE_WEB_URL=http://localhost:8080"
-set "API_URL=http://localhost:3000"
+set "HOST_WEB_URL=http://localhost:18730"
+set "COMPOSE_WEB_URL=http://localhost:18730"
+set "API_URL=http://localhost:18731"
 set "COMPOSE_ENV_FILE=.env.compose"
 set "HOST_ENV_FILE=.env.host"
 set "API_HEALTH_STARTUP_TIMEOUT_MS=120000"
@@ -28,7 +28,7 @@ if /i "%DEV_MODE%"=="host" goto host_mode
 echo Unknown dev mode "%DEV_MODE%".
 echo Usage:
 echo   npm run dev:start       Starts the full Docker Compose app stack.
-echo   npm run dev:start:host  Starts host-based Vite/API dev servers, requiring 127.0.0.1:5432.
+echo   npm run dev:start:host  Starts host-based Vite/API dev servers, requiring 127.0.0.1:18732.
 pause
 exit /b 1
 
@@ -47,7 +47,7 @@ echo API: %API_URL%/health
 echo Swagger: %API_URL%/docs
 echo.
 echo Note: This mode runs PostgreSQL, API, migrations, and web inside Docker.
-echo It does not depend on Windows reaching PostgreSQL at 127.0.0.1:5432.
+echo It does not depend on Windows reaching PostgreSQL at 127.0.0.1:18732.
 call docker compose --env-file "%COMPOSE_ENV_FILE%" up -d --build
 
 set "DEV_EXIT=%ERRORLEVEL%"
@@ -135,6 +135,7 @@ if errorlevel 1 (
 
 echo [1/5] Starting PostgreSQL container...
 echo Env: %HOST_ENV_FILE%
+docker compose --env-file "%HOST_ENV_FILE%" stop api web >nul 2>nul
 docker compose --env-file "%HOST_ENV_FILE%" up -d postgres
 if errorlevel 1 (
   echo Failed to start PostgreSQL. Make sure Docker Desktop is running.
@@ -143,9 +144,9 @@ if errorlevel 1 (
 )
 
 echo [2/5] Checking PostgreSQL host port...
-"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "$client = [Net.Sockets.TcpClient]::new(); $async = $client.BeginConnect('127.0.0.1', 5432, $null, $null); if (-not $async.AsyncWaitHandle.WaitOne(3000)) { $client.Close(); exit 1 }; try { $client.EndConnect($async); $client.Close(); exit 0 } catch { $client.Close(); exit 1 }"
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "$client = [Net.Sockets.TcpClient]::new(); $async = $client.BeginConnect('127.0.0.1', 18732, $null, $null); if (-not $async.AsyncWaitHandle.WaitOne(3000)) { $client.Close(); exit 1 }; try { $client.EndConnect($async); $client.Close(); exit 0 } catch { $client.Close(); exit 1 }"
 if errorlevel 1 (
-  echo This Windows session cannot reach PostgreSQL at 127.0.0.1:5432.
+  echo This Windows session cannot reach PostgreSQL at 127.0.0.1:18732.
   echo Host dev mode requires Docker Desktop localhost port forwarding to work.
   echo Run npm run dev:start to use the Docker Compose app stack instead.
   pause

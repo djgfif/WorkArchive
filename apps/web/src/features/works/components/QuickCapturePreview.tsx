@@ -22,23 +22,20 @@ interface QuickCapturePreviewProps {
   values: WorkFormValues;
 }
 
-function getPreviewChips(values: WorkFormValues, sourceLabel?: string | null) {
+function getPreviewChips(values: WorkFormValues) {
   const genres = parseCommaSeparatedTextList(values.genresText);
   const personalTags = parseCommaSeparatedTextList(values.personalTagsText);
   const relations = [
     ...parseCommaSeparatedTextList(values.seriesText),
     ...parseCommaSeparatedTextList(values.universeText),
   ];
-  const creatorSummary = getDisplayAuthorFromWorkFormValues(values);
   const chips = [
-    genres[0] ? `대표 장르 ${genres[0]}` : null,
-    personalTags[0] ? `개인 태그 ${personalTags[0]}` : null,
-    relations[0] ? `관계 ${relations[0]}` : null,
-    creatorSummary ? `제작 ${creatorSummary}` : null,
-    sourceLabel ? `검색 출처 ${sourceLabel}` : '직접 입력',
+    genres[0] ? genres[0] : null,
+    personalTags[0] ? `#${personalTags[0]}` : null,
+    relations[0] ? relations[0] : null,
   ].filter(Boolean) as string[];
 
-  return chips.slice(0, 5);
+  return chips.slice(0, 3);
 }
 
 export function QuickCapturePreview({
@@ -54,7 +51,8 @@ export function QuickCapturePreview({
     workStatusOptions.find((option) => option.value === values.status)?.label ??
     '기록';
   const shortReview = values.shortReview.trim();
-  const chips = getPreviewChips(values, sourceLabel);
+  const creatorSummary = getDisplayAuthorFromWorkFormValues(values);
+  const chips = getPreviewChips(values);
 
   return (
     <Paper className={cn(css.quickCapturePreview)} withBorder>
@@ -69,7 +67,7 @@ export function QuickCapturePreview({
         <Stack gap="sm">
           <ActionRow justify="space-between">
             <Text c="var(--mantine-color-dimmed)" fw={800} size="xs">
-              저장 전 미리보기
+              저장 전 표지
             </Text>
             {duplicateCount > 0 && (
               <AppBadge tone="warning">기존 기록 확인 필요</AppBadge>
@@ -82,6 +80,13 @@ export function QuickCapturePreview({
               ? ` · ★ ${Number.parseFloat(values.rating).toFixed(1)}`
               : ''}
           </Text>
+          {(creatorSummary || sourceLabel) && (
+            <Text c="var(--mantine-color-dimmed)" lineClamp={1} size="xs">
+              {[creatorSummary, sourceLabel ? `검색 ${sourceLabel}` : null]
+                .filter(Boolean)
+                .join(' · ')}
+            </Text>
+          )}
           <ActionRow className={cn(css.previewChipRow)}>
             {chips.map((chip) => (
               <AppBadge key={chip} tone="muted">
@@ -96,7 +101,7 @@ export function QuickCapturePreview({
             </Text>
           )}
           <Text c="var(--mantine-color-dimmed)" lineClamp={4}>
-            {shortReview || '짧은 감상을 적지 않아도 먼저 저장할 수 있습니다.'}
+            {shortReview || '한줄평은 나중에 채워도 됩니다.'}
           </Text>
         </Stack>
       </Stack>

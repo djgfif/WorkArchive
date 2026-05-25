@@ -22,7 +22,7 @@ METRICS_ENABLED=true
 The endpoint is outside the API prefix:
 
 ```bash
-curl -fsS http://localhost:3000/metrics
+curl -fsS http://localhost:18731/metrics
 ```
 
 ## Metrics

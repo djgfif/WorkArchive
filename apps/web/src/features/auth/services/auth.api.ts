@@ -95,9 +95,10 @@ export async function revokeAllAuthSessions() {
 }
 
 export function getGoogleLoginStartUrl(returnOrigin?: string) {
+  const baseOrigin = getGoogleLoginStartBaseOrigin(returnOrigin);
   const startUrl = new URL(
     `${getApiBaseUrl()}/auth/google/start`,
-    window.location.origin,
+    baseOrigin,
   );
 
   if (returnOrigin) {
@@ -105,6 +106,18 @@ export function getGoogleLoginStartUrl(returnOrigin?: string) {
   }
 
   return startUrl.toString();
+}
+
+function getGoogleLoginStartBaseOrigin(returnOrigin?: string) {
+  if (!returnOrigin) {
+    return window.location.origin;
+  }
+
+  try {
+    return new URL(returnOrigin).origin;
+  } catch {
+    return window.location.origin;
+  }
 }
 
 export async function fetchGoogleAuthStatus() {

@@ -45,15 +45,15 @@ npm run dev:stop
 
 Default endpoints:
 
-- Web: [http://localhost:8080](http://localhost:8080)
-- API health: [http://localhost:3000/health](http://localhost:3000/health)
-- API readiness: [http://localhost:3000/readyz](http://localhost:3000/readyz)
-- Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
+- Web: [http://localhost:18730](http://localhost:18730)
+- API health: [http://localhost:18731/health](http://localhost:18731/health)
+- API readiness: [http://localhost:18731/readyz](http://localhost:18731/readyz)
+- Swagger UI: [http://localhost:18731/docs](http://localhost:18731/docs)
 
 ## Host Watch Mode
 
 Host mode is optional and is intended for Vite/API watch-mode development. It
-requires PostgreSQL from Docker Compose to be reachable at `127.0.0.1:5432`.
+requires PostgreSQL from Docker Compose to be reachable at `127.0.0.1:18732`.
 
 ```bash
 npm run dev:start:host
@@ -70,9 +70,9 @@ npm run dev
 
 Host mode endpoints:
 
-- Web: [http://127.0.0.1:53173](http://127.0.0.1:53173)
-- API health: [http://localhost:3000/health](http://localhost:3000/health)
-- Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
+- Web: [http://localhost:18730](http://localhost:18730)
+- API health: [http://localhost:18731/health](http://localhost:18731/health)
+- Swagger UI: [http://localhost:18731/docs](http://localhost:18731/docs)
 
 ## Windows Helpers
 

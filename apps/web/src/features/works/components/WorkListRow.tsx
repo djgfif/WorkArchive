@@ -22,7 +22,6 @@ import { Link } from 'react-router-dom';
 
 import {
   ActionRow,
-  AppBadge,
   AppButton,
   AppLinkButton,
 } from '@shared/components/AppPrimitives';
@@ -194,26 +193,6 @@ export function WorkListRow({
           </Link>
 
           <Stack flex={1} gap={5} miw={0} pt={2}>
-            {/* Type / Status badges */}
-            <Group gap={6} wrap="nowrap">
-              <AppBadge tone="muted">{typeLabel}</AppBadge>
-              <AppBadge
-                tone={
-                  work.status === 'completed'
-                    ? 'success'
-                    : work.status === 'in_progress'
-                      ? 'accent'
-                      : work.status === 'dropped'
-                        ? 'danger'
-                        : 'default'
-                }
-              >
-                {getWorkStatusLabel(work.status)}
-              </AppBadge>
-              {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
-            </Group>
-
-            {/* Title */}
             <Title lineClamp={1} order={3} size="h4">
               <Link
                 style={{ color: 'inherit', textDecoration: 'none' }}
@@ -223,25 +202,26 @@ export function WorkListRow({
               </Link>
             </Title>
 
-            {/* Author + updated */}
             <Text c="dimmed" lineClamp={1} size="xs">
-              {work.author || '작가·제작자 미입력'}
-              {' · '}
-              {formatWorkUpdatedAt(work.updatedAt)}
+              {typeLabel} · {getWorkStatusLabel(work.status)}
+              {work.rating !== null ? ` · ${formatRatingLabel(work.rating)}` : ''}
+              {isUpdating ? ' · 저장 중' : ''}
             </Text>
 
-            {/* Progress + rating inline summary */}
-            <Group gap="xs" wrap="wrap">
-              {progressLabel && (
-                <AppBadge tone="muted">진행 {progressLabel}</AppBadge>
-              )}
-              <AppBadge tone={work.rating !== null ? 'warning' : 'muted'}>
-                {formatRatingLabel(work.rating)}
-              </AppBadge>
-              {work.favorite && <AppBadge tone="accent">★ 즐겨찾기</AppBadge>}
-            </Group>
+            <Text c="dimmed" lineClamp={1} size="xs">
+              {work.author || '작가·제작자 미입력'} · {formatWorkUpdatedAt(work.updatedAt)}
+            </Text>
 
-            {/* Progress bar */}
+            <Text c="var(--app-text-secondary)" lineClamp={2} size="sm">
+              {work.shortReview.trim() || '아직 한줄평이 없습니다.'}
+            </Text>
+
+            {progressLabel && (
+              <Text c="dimmed" fw={700} lineClamp={1} size="xs">
+                이어보기 {progressLabel}
+              </Text>
+            )}
+
             {progressPercent !== null && (
               <Progress
                 aria-label={`${work.title} 진행도 ${progressPercent}%`}
@@ -257,32 +237,11 @@ export function WorkListRow({
         {/* Right: compact action buttons */}
         <Stack className={cn(css.listRowControls)} gap="xs" style={{ minWidth: 'min(100%, 10rem)' }}>
           <ActionRow justify="flex-end">
-            <AppLinkButton size="compact-sm" to={`/works/${work.id}`} tone="quiet">
-              보기
-            </AppLinkButton>
-            <AppLinkButton size="compact-sm" to={`/works/${work.id}/edit`} tone="ghost">
-              수정
-            </AppLinkButton>
-            <AppButton
-              aria-label={work.favorite ? `${work.title} 즐겨찾기 해제` : `${work.title} 즐겨찾기`}
-              aria-pressed={work.favorite}
-              disabled={isUpdating}
-              onClick={() => void onQuickUpdate(work, { favorite: !work.favorite })}
-              size="compact-sm"
-              tone={work.favorite ? 'primary' : 'secondary'}
-              type="button"
-            >
-              {work.favorite ? '★' : '☆'}
-            </AppButton>
-          </ActionRow>
-
-          {/* Quick edit toggle */}
-          <ActionRow justify="flex-end">
             <AppButton
               aria-expanded={editOpen}
               aria-label="빠른 수정 패널 열기"
               onClick={toggleEdit}
-              size="compact-xs"
+              size="compact-sm"
               tone="ghost"
               type="button"
             >
@@ -307,6 +266,26 @@ export function WorkListRow({
           }}
         >
           <Stack gap="md">
+            <ActionRow justify="flex-end">
+              <AppLinkButton size="compact-sm" to={`/works/${work.id}`} tone="quiet">
+                보기
+              </AppLinkButton>
+              <AppLinkButton size="compact-sm" to={`/works/${work.id}/edit`} tone="ghost">
+                수정
+              </AppLinkButton>
+              <AppButton
+                aria-label={work.favorite ? `${work.title} 즐겨찾기 해제` : `${work.title} 즐겨찾기`}
+                aria-pressed={work.favorite}
+                disabled={isUpdating}
+                onClick={() => void onQuickUpdate(work, { favorite: !work.favorite })}
+                size="compact-sm"
+                tone={work.favorite ? 'primary' : 'secondary'}
+                type="button"
+              >
+                {work.favorite ? '★ 즐겨찾기' : '☆ 즐겨찾기'}
+              </AppButton>
+            </ActionRow>
+
             {/* Status + Rating row */}
             <Group align="flex-end" gap="sm" grow wrap="wrap">
               <NativeSelect

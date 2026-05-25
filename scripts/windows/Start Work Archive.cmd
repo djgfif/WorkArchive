@@ -39,25 +39,25 @@ if not "%DEV_EXIT%"=="0" goto failed
 
 echo.
 echo Checking Windows localhost access...
-curl.exe -fsS --max-time 5 -o NUL "http://localhost:8080"
+curl.exe -fsS --max-time 5 -o NUL "http://localhost:18730"
 set "WEB_URL_OK=%ERRORLEVEL%"
-curl.exe -fsS --max-time 5 -o NUL "http://localhost:3000/health"
+curl.exe -fsS --max-time 5 -o NUL "http://localhost:18731/health"
 set "API_URL_OK=%ERRORLEVEL%"
 
 if "%WEB_URL_OK%"=="0" if "%API_URL_OK%"=="0" (
   echo Opening Work Archive...
-  start "" "http://localhost:8080"
+  start "" "http://localhost:18730"
   echo Work Archive is running.
-  echo Web: http://localhost:8080
-  echo API: http://localhost:3000/health
+  echo Web: http://localhost:18730
+  echo API: http://localhost:18731/health
   pause
   exit /b 0
 )
 
 echo Work Archive started in WSL, but Windows cannot reach one or more localhost ports.
 echo Checked endpoints:
-echo   http://localhost:8080 result=%WEB_URL_OK%
-echo   http://localhost:3000/health result=%API_URL_OK%
+echo   http://localhost:18730 result=%WEB_URL_OK%
+echo   http://localhost:18731/health result=%API_URL_OK%
 echo.
 echo Services may still be running. Use Stop Work Archive.cmd to stop them.
 pause
@@ -65,7 +65,7 @@ exit /b 1
 
 :run_host
 echo Starting host dev mode through WSL...
-start "" "http://127.0.0.1:53173"
+start "" "http://localhost:18730"
 wsl.exe --cd "%PROJECT_DIR%" -- bash -lc "scripts/dev/start-dev.sh host"
 set "DEV_EXIT=%ERRORLEVEL%"
 if not "%DEV_EXIT%"=="0" goto failed

@@ -44,7 +44,7 @@ export function WorksTrashList({
 
           return (
             <Paper
-              className={cn(css.listRowSurface)}
+              className={`${cn(css.listRowSurface)} ${cn(css.trashRowSurface)}`}
               key={work.id}
               radius="lg"
               style={{
@@ -75,6 +75,7 @@ export function WorksTrashList({
 
                   <Stack flex={1} gap={6} miw={0} pt={2}>
                     <Group gap={6} wrap="wrap">
+                      <AppBadge tone="warning">삭제됨</AppBadge>
                       <AppBadge tone="muted">{typeLabel}</AppBadge>
                       <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
                       <AppBadge>{getWorkSyncStatusLabel(work.syncStatus)}</AppBadge>
@@ -90,10 +91,17 @@ export function WorksTrashList({
                       </Link>
                     </Title>
 
-                    <Text c="dimmed" lineClamp={1} size="xs">
+                    <Text
+                      className={cn(css.trashDeletedMeta)}
+                      c="dimmed"
+                      lineClamp={1}
+                      size="xs"
+                    >
                       {work.author || '작가·제작자 미입력'}
-                      {' · 삭제한 날 '}
+                      {' · 삭제됨 '}
                       {formatWorkDateTime(work.deletedAt ?? work.updatedAt)}
+                      {' · 마지막 수정 '}
+                      {formatWorkDateTime(work.updatedAt)}
                     </Text>
 
                     <Text c="var(--mantine-color-text)" lineClamp={2}>
@@ -115,14 +123,19 @@ export function WorksTrashList({
                     </AppButton>
                     <AppLinkButton
                       size="compact-sm"
-                      to={`/works?q=${encodeURIComponent(work.title)}`}
+                      to={`/works/${work.id}`}
                       tone="quiet"
                     >
-                      비슷한 기록 보기
+                      상세 보기
                     </AppLinkButton>
                   </ActionRow>
-                  <Text c="dimmed" size="xs" ta="right">
-                    복원하면 작품 목록으로 돌아갑니다.
+                  <Text
+                    className={cn(css.trashRiskText)}
+                    c="dimmed"
+                    size="xs"
+                    ta="right"
+                  >
+                    복원하면 서재에 다시 표시됩니다.
                   </Text>
                 </Stack>
               </Group>

@@ -59,11 +59,7 @@ const MINIMUM_PRODUCTION_SECRET_LENGTH = 32;
 const DEVELOPMENT_SECURITY_EVENT_HASH_SECRET =
   'development-security-event-hash-secret';
 const DEVELOPMENT_WEB_ORIGINS = [
-  'http://localhost:8080',
-  'http://127.0.0.1:8080',
-  'http://127.0.0.1:53173',
-  'http://localhost:53173',
-  'http://localhost:5173',
+  'http://localhost:18730',
 ];
 
 const apiEnvironmentSchema = z
@@ -311,10 +307,10 @@ function readWebBaseUrl(isProduction: boolean) {
     throw new Error('WEB_BASE_URL must be configured in production.');
   }
 
-  return 'http://127.0.0.1:53173';
+  return 'http://localhost:18730';
 }
 
-function readGoogleOAuthRedirectUri(isProduction: boolean, port: number) {
+function readGoogleOAuthRedirectUri(isProduction: boolean, webBaseUrl: string) {
   const configuredValue = process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim();
 
   if (configuredValue) {
@@ -333,7 +329,7 @@ function readGoogleOAuthRedirectUri(isProduction: boolean, port: number) {
     );
   }
 
-  return `http://localhost:${port}/api/auth/google/callback`;
+  return `${webBaseUrl.replace(/\/$/, '')}/api/auth/google/callback`;
 }
 
 function readRateLimitStore(isProduction: boolean) {
@@ -440,7 +436,7 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
   const isProduction = isProductionEnvironment();
   const cookieSecure = readBoolean(process.env.COOKIE_SECURE, isProduction);
   const databaseUrl = readRequiredEnvString('DATABASE_URL');
-  const port = readPort(process.env.PORT, 3000);
+  const port = readPort(process.env.PORT, 18731);
   const swaggerEnabled = readBoolean(
     process.env.SWAGGER_ENABLED,
     !isProduction,
@@ -451,7 +447,10 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     process.env.GOOGLE_OAUTH_CLIENT_ID?.trim() || null;
   const googleOAuthClientSecret =
     process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim() || null;
-  const googleOAuthRedirectUri = readGoogleOAuthRedirectUri(isProduction, port);
+  const googleOAuthRedirectUri = readGoogleOAuthRedirectUri(
+    isProduction,
+    webBaseUrl,
+  );
   const jwtAccessSecret = readProductionSafeSecret('JWT_ACCESS_SECRET');
   const jwtRefreshSecret = readProductionSafeSecret('JWT_REFRESH_SECRET');
   const securityEventHashSecret = readSecurityEventHashSecret(isProduction);

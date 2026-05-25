@@ -42,12 +42,12 @@ function getPort() {
   const normalizedPort = process.env.PORT?.trim();
 
   if (!normalizedPort) {
-    return 3000;
+    return 18731;
   }
 
   const parsedPort = Number.parseInt(normalizedPort, 10);
 
-  return Number.isInteger(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
+  return Number.isInteger(parsedPort) && parsedPort > 0 ? parsedPort : 18731;
 }
 
 async function checkUrl(url) {

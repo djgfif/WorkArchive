@@ -28,7 +28,7 @@ describe('auth profile API (e2e)', () => {
   beforeEach(async () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-    process.env.WEB_BASE_URL = 'http://127.0.0.1:53173';
+    process.env.WEB_BASE_URL = 'http://localhost:18730';
 
     authService = {
       updateProfile: jest.fn<AuthService['updateProfile']>().mockResolvedValue({

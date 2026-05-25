@@ -180,11 +180,11 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--wa-accent-rose':     '#fb7185',   // 드롭 상태
 
     '--wa-shadow-xs':     '0 1px 2px rgba(0, 0, 0, 0.5)',
-    '--wa-shadow-card':   '0 10px 32px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(148, 163, 184, 0.06)',
-    '--wa-shadow-poster': '0 18px 44px rgba(0, 0, 0, 0.58), 0 5px 14px rgba(0, 0, 0, 0.34)',
-    '--wa-shadow-hero':   '0 32px 80px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(148, 163, 184, 0.09)',
-    '--wa-shadow-overlay':'0 28px 92px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(148, 163, 184, 0.12)',
-    '--wa-shadow-glow':   '0 0 0 3px rgba(96, 165, 250, 0.25)',
+    '--wa-shadow-card':   '0 8px 24px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(148, 163, 184, 0.05)',
+    '--wa-shadow-poster': '0 14px 34px rgba(0, 0, 0, 0.46), 0 4px 10px rgba(0, 0, 0, 0.26)',
+    '--wa-shadow-hero':   '0 22px 58px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(148, 163, 184, 0.08)',
+    '--wa-shadow-overlay':'0 22px 68px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(148, 163, 184, 0.10)',
+    '--wa-shadow-glow':   '0 0 0 3px rgba(96, 165, 250, 0.16)',
 
     '--mantine-color-body':           '#05070d',
     '--mantine-color-text':           '#e8f0fe',

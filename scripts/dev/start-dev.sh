@@ -95,8 +95,8 @@ case "$MODE" in
     compose_env_file="$(resolve_env_file "$COMPOSE_ENV_FILE" ".env" ".env.compose.example")"
     load_env_file "$compose_env_file"
 
-    COMPOSE_WEB_URL="${WEB_BASE_URL:-http://localhost:${WEB_PORT:-8080}}"
-    API_URL="http://localhost:${API_PORT:-3000}"
+    COMPOSE_WEB_URL="${WEB_BASE_URL:-http://localhost:${WEB_PORT:-18730}}"
+    API_URL="http://localhost:${API_PORT:-18731}"
     docker_compose=(docker compose --env-file "$compose_env_file")
 
     echo "[1/6] Starting PostgreSQL..."
@@ -137,12 +137,13 @@ case "$MODE" in
     host_env_file="$(resolve_env_file "$HOST_ENV_FILE" "apps/api/.env" ".env.host.example")"
     load_env_file "$host_env_file"
 
-    HOST_WEB_URL="${WEB_BASE_URL:-http://127.0.0.1:53173}"
-    API_URL="http://localhost:${PORT:-3000}"
+    HOST_WEB_URL="${WEB_BASE_URL:-http://localhost:18730}"
+    API_URL="http://localhost:${PORT:-18731}"
     docker_compose=(docker compose --env-file "$host_env_file")
 
     echo "[1/5] Starting PostgreSQL container..."
     echo "Env: $host_env_file"
+    "${docker_compose[@]}" stop api web >/dev/null 2>&1 || true
     "${docker_compose[@]}" up -d postgres
 
     echo "[2/5] Installing dependencies if needed..."

@@ -309,35 +309,29 @@ export function WorkDetailPanel({
           </Box>
 
           <Stack className={cn(css.detailHeroBody)} flex={1} gap="md" miw={0}>
-            {/* 메타 행 */}
-            <Group gap={6} wrap="wrap">
-              <AppBadge tone="muted">{typeLabel}</AppBadge>
-              {seriesTags.slice(0, 2).map((series) => (
-                <AppBadge key={`series-${series}`} tone="accent">
-                  {series}
-                </AppBadge>
-              ))}
-              {contributorValues.slice(0, 2).map((contributor) => (
-                <AppBadge key={`contributor-${contributor}`} tone="muted">
-                  {contributor}
-                </AppBadge>
-              ))}
+            <Group className={cn(css.detailHeroMeta)} gap="xs" wrap="wrap">
+              <Text fw={800} size="sm">
+                {typeLabel}
+              </Text>
               <Box
                 aria-hidden="true"
                 className={cn(css.detailHeroMetaDivider)}
                 component="span"
               />
-              <AppBadge
-                tone={
-                  work.status === 'completed' ? 'accent'
-                  : work.status === 'in_progress' ? 'info'
-                  : 'muted'
-                }
-              >
+              <Text fw={800} size="sm">
                 {statusLabel}
-              </AppBadge>
+              </Text>
               {work.favorite && (
-                <AppBadge tone="accent">★ 즐겨찾기</AppBadge>
+                <>
+                  <Box
+                    aria-hidden="true"
+                    className={cn(css.detailHeroMetaDivider)}
+                    component="span"
+                  />
+                  <Text c="var(--app-accent-warm)" fw={800} size="sm">
+                    ★ 즐겨찾기
+                  </Text>
+                </>
               )}
             </Group>
 
@@ -357,6 +351,10 @@ export function WorkDetailPanel({
                 </Text>
               </Text>
             </Stack>
+
+            <Text className={cn(css.detailHeroShortReview)} lh={1.65}>
+              {shortReview ? `“${shortReview}”` : '아직 남긴 한줄평이 없습니다.'}
+            </Text>
 
             {/* 별점 + 진행도 */}
             <Group align="flex-end" gap="xl" wrap="wrap">
@@ -443,18 +441,6 @@ export function WorkDetailPanel({
 
           <Box className={cn(css.detailSummary)}>
             <Stack gap="lg">
-              <Stack gap={4}>
-                <Text c="var(--app-accent-primary)" fw={800} size="sm">
-                  개인 기록 요약
-                </Text>
-                <Text c="dimmed" fw={700} size="xs">
-                  한줄평
-                </Text>
-                <Text fw={800} lh={1.5}>
-                  {shortReview ? `“${shortReview}”` : '아직 한줄평이 없습니다.'}
-                </Text>
-              </Stack>
-
               <Stack gap={6}>
                 <Text c="dimmed" fw={700} size="xs">
                   개인 태그
@@ -750,12 +736,12 @@ export function WorkDetailPanel({
           <Stack gap="md">
             {(seriesTags.length > 0 || contributorValues.length > 0) && (
               <Group gap={6} wrap="wrap">
-                {seriesTags.map((series) => (
+                {seriesTags.slice(0, 12).map((series) => (
                   <AppBadge key={`series-chip-${series}`} tone="accent">
                     {series}
                   </AppBadge>
                 ))}
-                {contributorValues.map((contributor) => (
+                {contributorValues.slice(0, 12).map((contributor) => (
                   <AppBadge key={`contributor-chip-${contributor}`} tone="success">
                     {contributor}
                   </AppBadge>

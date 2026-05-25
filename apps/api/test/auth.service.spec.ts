@@ -306,7 +306,7 @@ describe('AuthService', () => {
       'postgresql://postgres:postgres@localhost:5432/work_archive';
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-    process.env.WEB_BASE_URL = 'http://127.0.0.1:53173';
+    process.env.WEB_BASE_URL = 'http://localhost:18730';
   });
 
   it('tracks remember-me session intent without using the legacy user column', async () => {
@@ -542,7 +542,7 @@ describe('AuthService', () => {
     process.env.GOOGLE_OAUTH_CLIENT_ID = 'google-client-id';
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google-client-secret';
     process.env.GOOGLE_OAUTH_REDIRECT_URI =
-      'http://127.0.0.1:53173/api/auth/google/callback';
+      'http://localhost:18730/api/auth/google/callback';
     const { prisma } = createPrismaMock();
     const authService = new AuthService(prisma as unknown as PrismaService);
     const warnSpy = jest
@@ -571,7 +571,7 @@ describe('AuthService', () => {
     process.env.GOOGLE_OAUTH_CLIENT_ID = 'google-client-id';
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google-client-secret';
     process.env.GOOGLE_OAUTH_REDIRECT_URI =
-      'http://127.0.0.1:53173/api/auth/google/callback';
+      'http://localhost:18730/api/auth/google/callback';
     const { prisma } = createPrismaMock();
     const authService = new AuthService(prisma as unknown as PrismaService);
     (
