@@ -391,9 +391,9 @@ describe('WorkCreatePage', () => {
 
     await user.type(getElementById<HTMLInputElement>('manualTitle'), 'Dune');
 
-    expect(
-      await screen.findByText('비슷한 기록이 있습니다'),
-    ).toBeInTheDocument();
+    expect(await screen.findAllByText('기존 기록 확인 필요')).not.toHaveLength(
+      0,
+    );
     expect(screen.getAllByText(/Frank Herbert/).length).toBeGreaterThan(0);
     expect(
       screen.getByRole('link', { name: '기존 작품 보기' }),

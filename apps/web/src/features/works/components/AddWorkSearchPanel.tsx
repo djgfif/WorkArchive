@@ -223,6 +223,7 @@ export function AddWorkSearchPanel({
                     {shouldSuggestProviderChange
                       ? ' · 결과가 부족하면 검색 출처를 바꿔볼 수 있습니다.'
                       : ''}
+                    {' · 후보를 적용해도 바로 저장되지 않고 입력칸만 채웁니다.'}
                   </Text>
                 </Stack>
                 <AppButton

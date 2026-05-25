@@ -23,9 +23,9 @@ export function DuplicateWorkCandidatesCard({
   return (
     <SectionCard gap="sm" padding="md" tone="subtle">
       <Stack gap="xs">
-        <AppBadge tone="warning">비슷한 기록이 있습니다</AppBadge>
+        <AppBadge tone="warning">기존 기록 확인 필요</AppBadge>
         <Text c="dimmed" size="sm">
-          같은 작품을 다시 만들기 전에 기존 기록을 확인할 수 있습니다. 저장은
+          같은 작품을 다시 만들기 전에 기존 기록을 확인하세요. 필요하면 저장은
           계속 진행할 수 있습니다.
         </Text>
         <Stack gap="xs">

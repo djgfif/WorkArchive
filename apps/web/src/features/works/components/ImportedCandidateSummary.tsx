@@ -59,12 +59,12 @@ export function ImportedCandidateSummary({
         <Text c="inherit" lineClamp={2} size="sm">
           {candidate.reason}
         </Text>
+        <Text c="inherit" size="sm">
+          검색 결과를 골라도 바로 저장되지 않고 입력칸만 채웁니다. 저장 전
+          미리보기에서 한 번 더 확인하세요.
+        </Text>
         <ActionRow>
-          <AppBadge tone="muted">{candidate.sourceLabel}</AppBadge>
           <AppBadge tone="muted">{sourceCoverage.summaryLabel}</AppBadge>
-          <AppBadge tone="muted">
-            별칭 {candidate.titleAliases?.length ?? 0}개
-          </AppBadge>
         </ActionRow>
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
           <ChipSummary
@@ -83,6 +83,12 @@ export function ImportedCandidateSummary({
             <Accordion.Control>검색 출처 세부 정보</Accordion.Control>
             <Accordion.Panel>
               <Stack gap="xs">
+                <ActionRow>
+                  <AppBadge tone="muted">{candidate.sourceLabel}</AppBadge>
+                  <AppBadge tone="muted">
+                    별칭 {candidate.titleAliases?.length ?? 0}개
+                  </AppBadge>
+                </ActionRow>
                 <ActionRow>
                   {sourceCoverage.providerLabels.map((providerLabel) => (
                     <AppBadge key={providerLabel} tone="muted">

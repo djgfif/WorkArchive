@@ -1520,6 +1520,14 @@ describe('AddWorkFlow', () => {
         ),
       ).toBe(true);
     });
+
+    await user.click(
+      screen.getByRole('button', { name: '이 후보로 입력 채우기' }),
+    );
+
+    expect(
+      await screen.findAllByText('기존 기록 확인 필요'),
+    ).not.toHaveLength(0);
   });
 
   it('shows a duplicate warning when external identity matches an existing importDraft', async () => {

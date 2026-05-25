@@ -1099,6 +1099,24 @@
   margin-inline: auto;
 }
 
+.previewChipRow {
+  gap: 0.4rem;
+}
+
+.genreTagGuide {
+  min-width: 0;
+}
+
+.advancedFieldGroup {
+  border-color: var(--app-border-subtle);
+  background: var(--app-surface-card);
+}
+
+.addWorkSaveFooter {
+  border-color: var(--app-border-subtle);
+  background: var(--app-surface-card);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Quick search fields
 ───────────────────────────────────────────────────────────────────────────── */
@@ -1571,6 +1589,13 @@
 @media (max-width: 48rem) {
   .quickCapturePreview {
     position: static;
+  }
+
+  .addWorkSaveFooter {
+    position: sticky;
+    bottom: max(0.75rem, env(safe-area-inset-bottom, 0));
+    z-index: 8;
+    box-shadow: var(--app-shadow-overlay);
   }
 
   .shelf {

@@ -3,22 +3,7 @@ import type {
   CatalogSearchMediumType,
   WorkRecord,
 } from '@work-archive/shared-types';
-import {
-  Accordion,
-  Checkbox,
-  Grid,
-  Group,
-  NativeSelect,
-  Paper,
-  SegmentedControl,
-  SimpleGrid,
-  Stack,
-  TagsInput,
-  Text,
-  TextInput,
-  Textarea,
-  Title,
-} from '@mantine/core';
+import { Grid, Group, Paper, SegmentedControl, Stack, Text } from '@mantine/core';
 import {
   useEffect,
   useMemo,
@@ -26,7 +11,6 @@ import {
   useState,
   type ChangeEvent,
   type FormEvent,
-  type RefObject,
 } from 'react';
 
 import {
@@ -37,17 +21,17 @@ import {
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
 import { importsService, type ImportCandidate } from '@features/imports';
-import {
-  formatProviderNames,
-  useImportProviderReadiness,
-  type ProviderReadinessGroup,
-} from '@features/imports';
+import { useImportProviderReadiness } from '@features/imports';
 import { useAuthSession } from '@features/auth';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
-import { StarRatingInput, WorkPoster } from './ArchiveComponents';
+import { AdvancedWorkFields } from './AdvancedWorkFields';
+import { CoreWorkFields } from './CoreWorkFields';
+import { PersonalRecordFields } from './PersonalRecordFields';
+import { ProviderReadinessSummary } from './ProviderReadinessSummary';
+import { QuickCapturePreview } from './QuickCapturePreview';
 import { ImportedCandidateSummary } from './ImportedCandidateSummary';
-import { WorkGenreSelector } from './WorkGenreSelector';
 import styles from './ArchiveComponents.module.css';
+import type { WorkFormListFieldName } from './add-work-form.types';
 import {
   buildImportIdentity,
   createValuesFromCandidate,
@@ -68,14 +52,10 @@ import {
   createDefaultWorkFormValues,
   formatTextListForWorkForm,
   getDisplayAuthorFromWorkFormValues,
-  parseCommaSeparatedTextList,
   parseWorkFormValues,
   type UpsertWorkInput,
   type WorkFormValues,
 } from '../utils/work-form';
-import { normalizeWorkGenres } from '../utils/work-genres';
-import { getWorkMediaFieldLabels } from '../utils/work-media-labels';
-import { workStatusOptions, workTypeOptions } from '../utils/work-options';
 
 const css = styles as Record<string, string>;
 
@@ -99,30 +79,6 @@ function createFormDefaults(title = ''): WorkFormValues {
   };
 }
 
-type WorkFormInputChangeHandler = (
-  event: ChangeEvent<
-    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-  >,
-) => void;
-
-type WorkFormListFieldName =
-  | 'creatorText'
-  | 'genresText'
-  | 'personalTagsText'
-  | 'platformText'
-  | 'publisherText'
-  | 'seriesText'
-  | 'studioText'
-  | 'universeText';
-
-function getFieldId(idPrefix: string, fieldName: string) {
-  if (!idPrefix) {
-    return fieldName;
-  }
-
-  return `${idPrefix}${fieldName.charAt(0).toUpperCase()}${fieldName.slice(1)}`;
-}
-
 function getCandidateFieldSummary(values: WorkFormValues) {
   const filled = [
     values.title.trim() ? '제목' : null,
@@ -138,502 +94,6 @@ function getCandidateFieldSummary(values: WorkFormValues) {
   ].filter(Boolean) as string[];
 
   return { filled, missing };
-}
-
-interface ProviderGroupLineProps {
-  group: ProviderReadinessGroup;
-  tone?: 'accent' | 'muted' | 'success' | 'warning';
-}
-
-function ProviderGroupLine({ group, tone = 'muted' }: ProviderGroupLineProps) {
-  if (group.providers.length === 0) {
-    return null;
-  }
-
-  return (
-    <ActionRow>
-      <AppBadge tone={tone}>{group.label}</AppBadge>
-      <Text c="var(--mantine-color-dimmed)" size="sm">
-        {formatProviderNames(group.providers)}
-      </Text>
-    </ActionRow>
-  );
-}
-
-interface ProviderReadinessSummaryProps {
-  error: string | null;
-  isLoading: boolean;
-  readiness: ReturnType<typeof useImportProviderReadiness>['readiness'];
-}
-
-function ProviderReadinessSummary({
-  error,
-  isLoading,
-  readiness,
-}: ProviderReadinessSummaryProps) {
-  return (
-    <Paper
-      className={cn(css.providerStatusPanel)}
-      p="sm"
-      radius="md"
-      withBorder
-    >
-      <Stack gap="xs">
-        <ActionRow justify="space-between">
-          <Text c="var(--mantine-color-text)" fw={700} size="sm">
-            검색 출처 상태
-          </Text>
-          {isLoading && (
-            <Text c="var(--mantine-color-dimmed)" size="xs">
-              상태 확인 중
-            </Text>
-          )}
-        </ActionRow>
-
-        {error ? (
-          <Text c="var(--mantine-color-dimmed)" size="sm">
-            지금은 일부 검색 출처 상태를 확인하지 못했습니다. 검색과 직접 추가는
-            계속 사용할 수 있습니다.
-          </Text>
-        ) : (
-          <Stack gap={6}>
-            <ProviderGroupLine group={readiness.available} tone="success" />
-            <ProviderGroupLine group={readiness.circuitOpen} tone="warning" />
-            <ProviderGroupLine
-              group={readiness.userActionRequired}
-              tone="warning"
-            />
-            <ProviderGroupLine
-              group={readiness.serverSetupRequired}
-              tone="muted"
-            />
-            <ProviderGroupLine group={readiness.directFallback} tone="accent" />
-          </Stack>
-        )}
-      </Stack>
-    </Paper>
-  );
-}
-
-interface StatusButtonGroupProps {
-  onChange: (status: WorkFormValues['status']) => void;
-  value: WorkFormValues['status'];
-}
-
-function StatusButtonGroup({ onChange, value }: StatusButtonGroupProps) {
-  return (
-    <Stack gap={6}>
-      <Text c="var(--mantine-color-dimmed)" fw={600} size="sm">
-        상태
-      </Text>
-      <Group gap="xs" wrap="wrap">
-        {workStatusOptions.map((option) => (
-          <AppButton
-            aria-pressed={value === option.value}
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            size="compact-sm"
-            tone={value === option.value ? 'primary' : 'secondary'}
-            type="button"
-          >
-            {option.label}
-          </AppButton>
-        ))}
-      </Group>
-    </Stack>
-  );
-}
-
-interface CoreWorkFieldsProps {
-  error?: string | null;
-  idPrefix?: string;
-  onChange: WorkFormInputChangeHandler;
-  onTextListChange: (name: WorkFormListFieldName, values: string[]) => void;
-  titleInputRef?: RefObject<HTMLInputElement | null>;
-  values: WorkFormValues;
-}
-
-function CoreWorkFields({
-  error,
-  idPrefix = '',
-  onChange,
-  onTextListChange,
-  titleInputRef,
-  values,
-}: CoreWorkFieldsProps) {
-  const genreValues = normalizeWorkGenres(
-    parseCommaSeparatedTextList(values.genresText),
-  );
-
-  return (
-    <Stack gap="md">
-      <ActionRow>
-        <AppBadge tone="accent">필수</AppBadge>
-        <Text c="var(--mantine-color-dimmed)" size="sm">
-          제목과 유형만 입력하면 저장할 수 있습니다. 장르는 핵심 분류만
-          선택하세요.
-        </Text>
-      </ActionRow>
-
-      <Stack gap="md">
-        <TextInput
-          aria-label="제목"
-          error={error}
-          id={getFieldId(idPrefix, 'title')}
-          label="제목"
-          name="title"
-          onChange={onChange}
-          placeholder="작품 제목"
-          ref={titleInputRef}
-          value={values.title}
-          withAsterisk
-        />
-
-        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-          <NativeSelect
-            id={getFieldId(idPrefix, 'type')}
-            label="유형"
-            name="type"
-            onChange={onChange}
-            value={values.type}
-          >
-            {workTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </NativeSelect>
-
-          <WorkGenreSelector
-            description="대표 장르는 최대 3개까지 선택합니다."
-            id={getFieldId(idPrefix, 'genresText')}
-            onChange={(items) => onTextListChange('genresText', items)}
-            value={genreValues}
-          />
-        </SimpleGrid>
-
-        <TextInput
-          description="비워두면 오른쪽 미리보기에 기본 표지를 사용합니다."
-          id={getFieldId(idPrefix, 'thumbnailUrl')}
-          label="표지 이미지 주소"
-          name="thumbnailUrl"
-          onChange={onChange}
-          placeholder="https://example.com/cover.jpg"
-          value={values.thumbnailUrl}
-        />
-      </Stack>
-    </Stack>
-  );
-}
-
-interface PersonalRecordFieldsProps {
-  idPrefix?: string;
-  onInputChange: WorkFormInputChangeHandler;
-  onRatingChange: (rating: number | null) => void;
-  onStatusChange: (status: WorkFormValues['status']) => void;
-  values: WorkFormValues;
-}
-
-function PersonalRecordFields({
-  idPrefix = '',
-  onInputChange,
-  onRatingChange,
-  onStatusChange,
-  values,
-}: PersonalRecordFieldsProps) {
-  const ratingValue =
-    values.rating.trim() === '' ? null : Number.parseFloat(values.rating);
-  const normalizedRating =
-    ratingValue !== null && Number.isFinite(ratingValue) ? ratingValue : null;
-
-  return (
-    <Stack gap="md">
-      <ActionRow>
-        <AppBadge tone="accent">내 기록</AppBadge>
-        <Text c="var(--mantine-color-dimmed)" size="sm">
-          상태, 별점, 한줄평만 먼저 남겨도 충분합니다.
-        </Text>
-      </ActionRow>
-
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-        <StatusButtonGroup onChange={onStatusChange} value={values.status} />
-
-        <StarRatingInput
-          label="별점"
-          onChange={onRatingChange}
-          value={normalizedRating}
-        />
-
-        <div className={cn(css.gridSpanFull)}>
-          <Textarea
-            id={getFieldId(idPrefix, 'shortReview')}
-            label="한줄평"
-            name="shortReview"
-            onChange={onInputChange}
-            placeholder="짧게 남길 감상을 적어보세요"
-            rows={2}
-            value={values.shortReview}
-          />
-        </div>
-
-        <Text
-          c="var(--mantine-color-dimmed)"
-          className={cn(css.gridSpanFull)}
-          size="sm"
-        >
-          긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수
-          있습니다.
-        </Text>
-      </SimpleGrid>
-    </Stack>
-  );
-}
-
-interface AdvancedWorkFieldsProps {
-  idPrefix?: string;
-  itemValue: string;
-  onInputChange: WorkFormInputChangeHandler;
-  onSeriesFieldsClear: () => void;
-  onTextListChange: (name: WorkFormListFieldName, values: string[]) => void;
-  organizationContributorSuggestions?: string[];
-  personContributorSuggestions?: string[];
-  seriesSuggestions?: string[];
-  tagSuggestions?: string[];
-  values: WorkFormValues;
-}
-
-function AdvancedWorkFields({
-  idPrefix = '',
-  itemValue,
-  onInputChange,
-  onSeriesFieldsClear,
-  onTextListChange,
-  organizationContributorSuggestions = [],
-  personContributorSuggestions = [],
-  seriesSuggestions = [],
-  tagSuggestions = [],
-  values,
-}: AdvancedWorkFieldsProps) {
-  const seriesValues = parseCommaSeparatedTextList(values.seriesText);
-  const universeValues = parseCommaSeparatedTextList(values.universeText);
-  const creatorValues = parseCommaSeparatedTextList(values.creatorText);
-  const studioValues = parseCommaSeparatedTextList(values.studioText);
-  const publisherValues = parseCommaSeparatedTextList(values.publisherText);
-  const platformValues = parseCommaSeparatedTextList(values.platformText);
-  const personalTagValues = parseCommaSeparatedTextList(
-    values.personalTagsText,
-  );
-  const uniqueOrganizationSuggestions = Array.from(
-    new Set(organizationContributorSuggestions),
-  );
-  const uniquePersonSuggestions = Array.from(
-    new Set(personContributorSuggestions),
-  );
-  const uniqueSeriesSuggestions = Array.from(new Set(seriesSuggestions));
-  const uniqueTagSuggestions = Array.from(new Set(tagSuggestions));
-  const hasSeriesRelation =
-    values.seriesText.trim() !== '' || values.universeText.trim() !== '';
-  const [isSeriesWork, setIsSeriesWork] = useState(hasSeriesRelation);
-  const mediaLabels = getWorkMediaFieldLabels(values.type);
-  const shouldShowStudioField =
-    mediaLabels.showStudioField || studioValues.length > 0;
-
-  useEffect(() => {
-    if (hasSeriesRelation) {
-      setIsSeriesWork(true);
-    }
-  }, [hasSeriesRelation]);
-
-  return (
-    <Accordion>
-      <Accordion.Item value={itemValue}>
-        <Accordion.Control>상세 정보</Accordion.Control>
-        <Accordion.Panel>
-          <Stack gap="md" pt="sm">
-            <Paper p="md" radius="md" withBorder>
-              <Stack gap="sm">
-                <Checkbox
-                  checked={isSeriesWork}
-                  description="후속작, 외전, 리메이크, 공유 세계관을 따로 묶어 탐색할 때 사용합니다."
-                  label="시리즈 / 세계관 연결"
-                  onChange={(event) => {
-                    const checked = event.currentTarget.checked;
-                    setIsSeriesWork(checked);
-
-                    if (!checked) {
-                      onSeriesFieldsClear();
-                    }
-                  }}
-                />
-
-                {isSeriesWork && (
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                    <TagsInput
-                      clearable
-                      data={uniqueSeriesSuggestions}
-                      description={mediaLabels.seriesDescription}
-                      id={getFieldId(idPrefix, 'seriesText')}
-                      label={mediaLabels.seriesLabel}
-                      name="seriesText"
-                      onChange={(items) =>
-                        onTextListChange('seriesText', items)
-                      }
-                      placeholder={mediaLabels.seriesPlaceholder}
-                      splitChars={[',']}
-                      value={seriesValues}
-                    />
-                    <TagsInput
-                      clearable
-                      data={uniqueSeriesSuggestions}
-                      description={mediaLabels.universeDescription}
-                      id={getFieldId(idPrefix, 'universeText')}
-                      label={mediaLabels.universeLabel}
-                      name="universeText"
-                      onChange={(items) =>
-                        onTextListChange('universeText', items)
-                      }
-                      placeholder={mediaLabels.universePlaceholder}
-                      splitChars={[',']}
-                      value={universeValues}
-                    />
-                  </SimpleGrid>
-                )}
-              </Stack>
-            </Paper>
-
-            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-              <TagsInput
-                clearable
-                data={uniquePersonSuggestions}
-                id={getFieldId(idPrefix, 'creatorText')}
-                label={mediaLabels.creatorLabel}
-                name="creatorText"
-                onChange={(items) => onTextListChange('creatorText', items)}
-                placeholder={mediaLabels.creatorPlaceholder}
-                splitChars={[',']}
-                value={creatorValues}
-              />
-              {shouldShowStudioField && (
-                <TagsInput
-                  clearable
-                  data={uniqueOrganizationSuggestions}
-                  id={getFieldId(idPrefix, 'studioText')}
-                  label={mediaLabels.studioLabel}
-                  name="studioText"
-                  onChange={(items) => onTextListChange('studioText', items)}
-                  placeholder={mediaLabels.studioPlaceholder}
-                  splitChars={[',']}
-                  value={studioValues}
-                />
-              )}
-              <TagsInput
-                clearable
-                data={uniqueOrganizationSuggestions}
-                id={getFieldId(idPrefix, 'publisherText')}
-                label={mediaLabels.publisherLabel}
-                name="publisherText"
-                onChange={(items) => onTextListChange('publisherText', items)}
-                placeholder={mediaLabels.publisherPlaceholder}
-                splitChars={[',']}
-                value={publisherValues}
-              />
-              <TagsInput
-                clearable
-                data={uniqueOrganizationSuggestions}
-                id={getFieldId(idPrefix, 'platformText')}
-                label={mediaLabels.platformLabel}
-                name="platformText"
-                onChange={(items) => onTextListChange('platformText', items)}
-                placeholder={mediaLabels.platformPlaceholder}
-                splitChars={[',']}
-                value={platformValues}
-              />
-            </SimpleGrid>
-
-            <TagsInput
-              clearable
-              data={uniqueTagSuggestions}
-              description="취향, 소재, 기억할 키워드를 자유롭게 남깁니다."
-              id={getFieldId(idPrefix, 'personalTagsText')}
-              label="개인 태그"
-              name="personalTagsText"
-              onChange={(items) => onTextListChange('personalTagsText', items)}
-              placeholder="시간여행, 다시 볼 것, 여운 강함"
-              splitChars={[',']}
-              value={personalTagValues}
-            />
-
-            <Textarea
-              id={getFieldId(idPrefix, 'review')}
-              label="상세 감상"
-              name="review"
-              onChange={onInputChange}
-              placeholder="긴 감상은 저장 후 상세 화면에서 이어서 다듬을 수 있습니다"
-              rows={4}
-              value={values.review}
-            />
-
-            <Textarea
-              id={getFieldId(idPrefix, 'description')}
-              label="설명"
-              name="description"
-              onChange={onInputChange}
-              placeholder="작품 소개나 줄거리, 기록해두고 싶은 배경을 적어보세요"
-              rows={4}
-              value={values.description}
-            />
-
-            <Checkbox
-              checked={values.favorite}
-              label="즐겨찾기로 표시"
-              name="favorite"
-              onChange={onInputChange}
-            />
-          </Stack>
-        </Accordion.Panel>
-      </Accordion.Item>
-    </Accordion>
-  );
-}
-
-function QuickCapturePreview({ values }: { values: WorkFormValues }) {
-  const previewTitle = values.title.trim() || '제목 없는 작품';
-  const typeLabel =
-    workTypeOptions.find((option) => option.value === values.type)?.label ??
-    '작품';
-  const statusLabel =
-    workStatusOptions.find((option) => option.value === values.status)?.label ??
-    '기록';
-  const shortReview = values.shortReview.trim();
-
-  return (
-    <Paper className={cn(css.quickCapturePreview)} withBorder>
-      <Stack gap="lg">
-        <WorkPoster
-          coverSeed={`quick:${values.type}:${previewTitle}`}
-          thumbnailUrl={values.thumbnailUrl}
-          title={previewTitle}
-          typeLabel={typeLabel}
-          variant="form"
-        />
-        <Stack gap="sm">
-          <Text c="var(--mantine-color-dimmed)" fw={800} size="xs">
-            저장될 기록
-          </Text>
-          <Title order={3}>{previewTitle}</Title>
-          <Text c="var(--mantine-color-dimmed)" size="sm">
-            {typeLabel} · {statusLabel}
-            {values.rating
-              ? ` · ★ ${Number.parseFloat(values.rating).toFixed(1)}`
-              : ''}
-          </Text>
-          <Text c="var(--mantine-color-dimmed)" lineClamp={4}>
-            {shortReview || '짧은 감상을 적지 않아도 먼저 저장할 수 있습니다.'}
-          </Text>
-        </Stack>
-      </Stack>
-    </Paper>
-  );
 }
 
 export function AddWorkFlow({
@@ -1104,7 +564,11 @@ export function AddWorkFlow({
                   </Stack>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, lg: 4 }}>
-                  <QuickCapturePreview values={values} />
+                  <QuickCapturePreview
+                    duplicateCount={duplicateCandidates.length}
+                    sourceLabel={selectedImportCandidate?.sourceLabel ?? null}
+                    values={values}
+                  />
                 </Grid.Col>
               </Grid>
             ) : (
@@ -1153,35 +617,53 @@ export function AddWorkFlow({
               </FeedbackMessage>
             )}
 
-            <ActionRow>
-              <AppButton
-                disabled={isSubmitting}
-                fullWidth
-                size="lg"
-                tone="primary"
-                type="submit"
-              >
-                {isSubmitting ? '저장 중...' : '내 아카이브에 저장'}
-              </AppButton>
-              {onCancel ? (
-                <AppButton onClick={onCancel} tone="quiet" type="button">
-                  취소
-                </AppButton>
-              ) : (
-                <AppLinkButton to="/works" tone="quiet">
-                  취소
-                </AppLinkButton>
-              )}
-              {draft.saveStatus === 'saving' && (
-                <AppBadge tone="muted">임시저장 중</AppBadge>
-              )}
-              {draft.saveStatus === 'saved' && (
-                <AppBadge tone="success">임시저장됨</AppBadge>
-              )}
-              {draft.saveStatus === 'restored' && (
-                <AppBadge tone="accent">임시작성 복구됨</AppBadge>
-              )}
-            </ActionRow>
+            <Paper
+              className={cn(css.addWorkSaveFooter)}
+              p="sm"
+              radius="lg"
+              withBorder
+            >
+              <Stack gap="xs">
+                {duplicateCandidates.length > 0 && (
+                  <ActionRow>
+                    <AppBadge tone="warning">기존 기록 확인 필요</AppBadge>
+                    <Text c="var(--mantine-color-dimmed)" size="sm">
+                      비슷한 기록 {duplicateCandidates.length}개를 확인한 뒤
+                      저장하세요.
+                    </Text>
+                  </ActionRow>
+                )}
+                <ActionRow>
+                  <AppButton
+                    disabled={isSubmitting}
+                    fullWidth
+                    size="lg"
+                    tone="primary"
+                    type="submit"
+                  >
+                    {isSubmitting ? '저장 중...' : '내 아카이브에 저장'}
+                  </AppButton>
+                  {onCancel ? (
+                    <AppButton onClick={onCancel} tone="quiet" type="button">
+                      취소
+                    </AppButton>
+                  ) : (
+                    <AppLinkButton to="/works" tone="quiet">
+                      취소
+                    </AppLinkButton>
+                  )}
+                  {draft.saveStatus === 'saving' && (
+                    <AppBadge tone="muted">임시저장 중</AppBadge>
+                  )}
+                  {draft.saveStatus === 'saved' && (
+                    <AppBadge tone="success">임시저장됨</AppBadge>
+                  )}
+                  {draft.saveStatus === 'restored' && (
+                    <AppBadge tone="accent">임시작성 복구됨</AppBadge>
+                  )}
+                </ActionRow>
+              </Stack>
+            </Paper>
           </Stack>
         </form>
       )}
