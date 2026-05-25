@@ -10,12 +10,6 @@ import type { SecurityAuditService } from './security-audit.service';
 import { setRequestId } from './security-audit.service';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const FETCH_METADATA_SITE_VALUES = new Set([
-  'cross-site',
-  'none',
-  'same-origin',
-  'same-site',
-]);
 const WORK_ARCHIVE_CLIENT_HEADER = 'x-work-archive-client';
 const WORK_ARCHIVE_CLIENT_HEADER_VALUE = 'web';
 const redisClients: Redis[] = [];
@@ -73,15 +67,22 @@ export function createProductionOriginGuard(
   return (request: Request, response: Response, next: NextFunction) => {
     const fetchSite = request.header('sec-fetch-site')?.trim().toLowerCase();
 
-    if (
-      !config.isProduction ||
-      SAFE_METHODS.has(request.method) ||
-      (fetchSite !== undefined && FETCH_METADATA_SITE_VALUES.has(fetchSite))
-    ) {
+    if (!config.isProduction || SAFE_METHODS.has(request.method)) {
       next();
 
       return;
     }
+
+    if (fetchSite === 'same-origin') {
+      next();
+
+      return;
+    }
+
+    // same-site and none still need an Origin allowlist check when present.
+    // If Origin is absent, keep the conservative fallback and block the unsafe
+    // request; same-origin browser API calls should carry Sec-Fetch-Site:
+    // same-origin and are handled above.
 
     const origin = request.header('origin');
 

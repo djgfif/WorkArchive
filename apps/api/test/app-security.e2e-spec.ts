@@ -250,6 +250,75 @@ describe('app security middleware', () => {
       );
     });
 
+    it('checks same-site unsafe request origins when Fetch Metadata is present', async () => {
+      await expect(
+        postLogin({
+          origin: 'https://workarchive.example.com',
+          'sec-fetch-site': 'same-site',
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          status: 201,
+        }),
+      );
+
+      const response = await postLogin({
+        origin: 'https://evil.example.com',
+        'sec-fetch-site': 'same-site',
+      });
+
+      expect(response.status).toBe(403);
+      expect(securityAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'http.origin_blocked',
+          metadata: expect.objectContaining({
+            origin: 'https://evil.example.com',
+          }),
+          severity: 'warning',
+        }),
+      );
+    });
+
+    it('blocks same-site unsafe requests without Origin instead of trusting Fetch Metadata alone', async () => {
+      const response = await postLogin({
+        'sec-fetch-site': 'same-site',
+      });
+
+      expect(response.status).toBe(403);
+      expect(securityAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'http.origin_blocked',
+          metadata: expect.objectContaining({
+            origin: 'missing',
+          }),
+          severity: 'warning',
+        }),
+      );
+    });
+
+    it('checks user-initiated none unsafe request origins and blocks missing Origin', async () => {
+      await expect(
+        postLogin({
+          origin: 'https://workarchive.example.com',
+          'sec-fetch-site': 'none',
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          status: 201,
+        }),
+      );
+
+      await expect(
+        postLogin({
+          'sec-fetch-site': 'none',
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          status: 403,
+        }),
+      );
+    });
+
     it('keeps OAuth top-level GET callback flows outside unsafe CSRF blocking', async () => {
       await expect(
         fetch(`${baseUrl}/api/auth/google/callback?state=test-state`, {
