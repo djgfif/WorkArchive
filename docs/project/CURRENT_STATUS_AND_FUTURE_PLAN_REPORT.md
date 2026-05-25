@@ -62,13 +62,13 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 
 ### 3-2. Current Routes
 
-| Area                    | Routes                                                                                                              | Current state                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/tier-boards`, `/profile` | 홈/작품 흐름과 독립 티어보드 기능 |
-| Compatibility redirects | `/insights`, `/community`, `/sync`, `/settings`, `/profile/sync`, `/profile/settings` | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트 |
-| Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                                                    | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
-| Account                 | `/account`, `/account/sync`, `/account/transfer`, `/account/settings`                                               | 계정 개요, sync, guest review, 설정 흐름 구현                 |
-| Minimal                 | `*`                                                                                                                 | 404 처리                                                      |
+| Area                    | Routes                                                                                   | Current state                                                       |
+| ----------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/tier-boards`, `/profile` | 홈/작품 흐름과 독립 티어보드 기능                                   |
+| Compatibility redirects | `/insights`, `/community`, `/sync`, `/settings`, `/profile/sync`, `/profile/settings`    | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트             |
+| Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                        | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
+| Account                 | `/account`, `/account/sync`, `/account/transfer`, `/account/settings`                    | 계정 개요, sync, guest review, 설정 흐름 구현                       |
+| Minimal                 | `*`                                                                                      | 404 처리                                                            |
 
 ### 3-3. Current User Flows
 

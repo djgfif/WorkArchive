@@ -30,6 +30,9 @@ jobs:
       - name: Public repository guardrails
         run: npm run security:public
 
+      - name: Documentation links
+        run: npm run check:docs-links
+
       - name: Web import cycles
         run: npm run check:web-import-cycles
 

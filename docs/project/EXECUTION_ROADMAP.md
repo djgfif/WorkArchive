@@ -1,12 +1,12 @@
 # EXECUTION_ROADMAP.md
 
-| Field                 | Value                                                                                                                                                                                                                                            |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Status                | `canonical`                                                                                                                                                                                                                                      |
-| Role                  | `integrated execution roadmap`                                                                                                                                                                                                                   |
+| Field                 | Value                                                                                                                                                                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `canonical`                                                                                                                                                                                                                                              |
+| Role                  | `integrated execution roadmap`                                                                                                                                                                                                                           |
 | Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
-| Last verified against | `2026-04-30` sync conflict resolution working tree                                                                                                                                                                                               |
-| When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                     |
+| Last verified against | `2026-04-30` sync conflict resolution working tree                                                                                                                                                                                                       |
+| When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                             |
 
 이 문서는 Work Archive의 **단일 통합 실행 로드맵**이다. current reality 문서를 대체하지 않고, 지금 무엇을 어떤 순서로 고정해야 하는지만 정리한다.
 

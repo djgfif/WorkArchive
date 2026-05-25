@@ -95,7 +95,7 @@ Work Archive는 단순한 기록 폼 모음이 아니라, **내 취향을 빠르
 
 ## 9. Relationship To Other Docs
 
-- 현재 구현 상태는 [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)에서 본다.
+- 현재 구현 상태는 [`../../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)에서 본다.
 - 근거리 제품 우선순위는 [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)에서 본다.
 - 프론트 상세 실행 계획은 [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)에서 본다.
 - UI 시스템 규칙은 [`CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](./CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)에서 본다.

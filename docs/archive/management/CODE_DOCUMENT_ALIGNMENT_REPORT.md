@@ -49,7 +49,7 @@
 
 ## 3. Reading Rule
 
-- 현재 코드 현실이 필요하면 [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)를 먼저 본다.
+- 현재 코드 현실이 필요하면 [`../../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)를 먼저 본다.
 - 현재 프론트 판단이 필요하면 [`../frontend/FRONTEND_BLUEPRINT_V1.md`](../frontend/FRONTEND_BLUEPRINT_V1.md)를 먼저 본다.
 - 프론트 상세 실행 단계가 필요하면 [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)를 본다.
 - 제품 비전이나 확장 전략이 필요하면 product 문서를 본다.
