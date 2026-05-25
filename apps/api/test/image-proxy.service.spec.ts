@@ -13,6 +13,17 @@ function imageResponse(body: string, headers: Record<string, string> = {}) {
   });
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, reject, resolve };
+}
+
 describe('ImageProxyService', () => {
   let service: ImageProxyService;
 
@@ -42,6 +53,30 @@ describe('ImageProxyService', () => {
     expect(first.cacheControl).toContain('max-age=86400');
     expect(first.body.toString()).toBe('image-body');
     expect(second.etag).toBe(first.etag);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('deduplicates concurrent fetches for the same image URL', async () => {
+    const deferred = createDeferred<Response>();
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockReturnValue(deferred.promise);
+
+    const first = service.getImage(
+      'https://covers.openlibrary.org/b/id/123-L.jpg',
+    );
+    const second = service.getImage(
+      'https://covers.openlibrary.org/b/id/123-L.jpg',
+    );
+
+    deferred.resolve(imageResponse('shared-image'));
+
+    await expect(first).resolves.toMatchObject({
+      contentType: 'image/jpeg',
+    });
+    await expect(second).resolves.toMatchObject({
+      contentType: 'image/jpeg',
+    });
+    expect((await first).body.toString()).toBe('shared-image');
+    expect((await second).body.toString()).toBe('shared-image');
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -84,14 +119,15 @@ describe('ImageProxyService', () => {
     ).rejects.toThrow('unsupported image type');
   });
 
-  it('serves stale cached images when a provider fails after the fresh window', async () => {
+  it('serves stale cached images immediately while refreshing in the background', async () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-05-25T00:00:00.000Z'));
 
+    const refresh = createDeferred<Response>();
     const fetchSpy = jest
       .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(imageResponse('cached-image'))
-      .mockRejectedValueOnce(new Error('provider down'));
+      .mockReturnValueOnce(refresh.promise);
 
     const first = await service.getImage(
       'https://covers.openlibrary.org/b/id/123-L.jpg',
@@ -102,10 +138,53 @@ describe('ImageProxyService', () => {
     const stale = await service.getImage(
       'https://covers.openlibrary.org/b/id/123-L.jpg',
     );
+    const duplicateStale = await service.getImage(
+      'https://covers.openlibrary.org/b/id/123-L.jpg',
+    );
 
     expect(first.body.toString()).toBe('cached-image');
     expect(stale.body.toString()).toBe('cached-image');
+    expect(duplicateStale.body.toString()).toBe('cached-image');
     expect(stale.etag).toBe(first.etag);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    refresh.resolve(imageResponse('refreshed-image'));
+    await jest.runAllTimersAsync();
+
+    const refreshed = await service.getImage(
+      'https://covers.openlibrary.org/b/id/123-L.jpg',
+    );
+
+    expect(refreshed.body.toString()).toBe('refreshed-image');
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('backs off failed stale refresh attempts', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-05-25T00:00:00.000Z'));
+
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(imageResponse('cached-image'))
+      .mockRejectedValueOnce(new Error('provider down'))
+      .mockResolvedValueOnce(imageResponse('refreshed-image'));
+
+    await service.getImage('https://covers.openlibrary.org/b/id/123-L.jpg');
+
+    jest.setSystemTime(new Date('2026-05-27T00:00:00.000Z'));
+
+    await service.getImage('https://covers.openlibrary.org/b/id/123-L.jpg');
+    await jest.runAllTimersAsync();
+
+    await service.getImage('https://covers.openlibrary.org/b/id/123-L.jpg');
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    jest.setSystemTime(new Date('2026-05-27T00:06:00.000Z'));
+
+    await service.getImage('https://covers.openlibrary.org/b/id/123-L.jpg');
+    await jest.runAllTimersAsync();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 });

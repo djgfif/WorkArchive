@@ -18,6 +18,7 @@ const REDIS_CACHE_TTL_MS = FRESH_CACHE_TTL_MS + STALE_CACHE_TTL_MS;
 const MAX_MEMORY_CACHE_ENTRIES = 500;
 const MAX_REDIRECTS = 3;
 const FETCH_TIMEOUT_MS = 5000;
+const STALE_REFRESH_FAILURE_COOLDOWN_MS = 5 * 60 * 1000;
 const REDIS_KEY_PREFIX = 'work-archive:image-proxy:';
 const ALLOWED_IMAGE_HOST_SUFFIXES = [
   'anilist.co',
@@ -66,6 +67,8 @@ export interface ProxiedImage {
 @Injectable()
 export class ImageProxyService implements OnModuleDestroy {
   private readonly cache = new Map<string, CachedImage>();
+  private readonly failedStaleRefreshUntil = new Map<string, number>();
+  private readonly inFlightFetches = new Map<string, Promise<CachedImage>>();
   private readonly logger = new Logger(ImageProxyService.name);
   private redis: Redis | null = null;
   private redisConnectPromise: Promise<Redis | null> | null = null;
@@ -87,12 +90,18 @@ export class ImageProxyService implements OnModuleDestroy {
       return this.toProxiedImage(cached);
     }
 
+    if (cached && cached.staleUntil > now) {
+      this.refreshStaleCacheInBackground(url, cacheKey, now);
+
+      return this.toProxiedImage(cached);
+    }
+
     if (cached && cached.staleUntil <= now) {
       this.cache.delete(cacheKey);
     }
 
     try {
-      return this.toProxiedImage(await this.fetchAndCacheImage(url, cacheKey));
+      return this.toProxiedImage(await this.fetchAndCacheImageOnce(url, cacheKey));
     } catch (error) {
       if (cached && cached.staleUntil > now) {
         this.logStaleCacheFallback(url, error);
@@ -101,6 +110,43 @@ export class ImageProxyService implements OnModuleDestroy {
       }
 
       throw error;
+    }
+  }
+
+  private refreshStaleCacheInBackground(url: URL, cacheKey: string, now: number) {
+    const retryAfter = this.failedStaleRefreshUntil.get(cacheKey);
+
+    if (retryAfter && retryAfter > now) {
+      return;
+    }
+
+    void this.fetchAndCacheImageOnce(url, cacheKey)
+      .then(() => {
+        this.failedStaleRefreshUntil.delete(cacheKey);
+      })
+      .catch((error) => {
+        this.failedStaleRefreshUntil.set(
+          cacheKey,
+          Date.now() + STALE_REFRESH_FAILURE_COOLDOWN_MS,
+        );
+        this.logStaleCacheRefreshFailure(url, error);
+      });
+  }
+
+  private async fetchAndCacheImageOnce(url: URL, cacheKey: string) {
+    const existingFetch = this.inFlightFetches.get(cacheKey);
+
+    if (existingFetch) {
+      return existingFetch;
+    }
+
+    const fetchPromise = this.fetchAndCacheImage(url, cacheKey);
+    this.inFlightFetches.set(cacheKey, fetchPromise);
+
+    try {
+      return await fetchPromise;
+    } finally {
+      this.inFlightFetches.delete(cacheKey);
     }
   }
 
@@ -118,6 +164,7 @@ export class ImageProxyService implements OnModuleDestroy {
     };
 
     await this.writeCache(cacheKey, nextCached);
+    this.failedStaleRefreshUntil.delete(cacheKey);
 
     return nextCached;
   }
@@ -438,6 +485,14 @@ export class ImageProxyService implements OnModuleDestroy {
     this.logger.warn({
       errorCode: error instanceof Error ? error.name : 'UnknownError',
       event: 'image_proxy.stale_cache_served',
+      host: url.hostname,
+    });
+  }
+
+  private logStaleCacheRefreshFailure(url: URL, error: unknown) {
+    this.logger.warn({
+      errorCode: error instanceof Error ? error.name : 'UnknownError',
+      event: 'image_proxy.stale_cache_refresh_failed',
       host: url.hostname,
     });
   }

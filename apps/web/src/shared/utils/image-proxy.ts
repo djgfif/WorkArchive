@@ -25,10 +25,14 @@ function isProxiedImageHost(hostname: string) {
 }
 
 export function getDisplayImageUrl(thumbnailUrl?: string | null) {
+  return getDisplayImageUrlCandidates(thumbnailUrl)[0] ?? '';
+}
+
+export function getDisplayImageUrlCandidates(thumbnailUrl?: string | null) {
   const normalized = thumbnailUrl?.trim();
 
   if (!normalized) {
-    return '';
+    return [];
   }
 
   if (
@@ -36,23 +40,24 @@ export function getDisplayImageUrl(thumbnailUrl?: string | null) {
     normalized.startsWith('blob:') ||
     normalized.startsWith('/')
   ) {
-    return normalized;
+    return [normalized];
   }
 
   try {
     const url = new URL(normalized);
 
-    if (
-      url.protocol === 'http:' ||
-      (url.protocol === 'https:' && isProxiedImageHost(url.hostname))
-    ) {
-      return `${getApiBaseUrl()}/image-proxy?url=${encodeURIComponent(
+    if (isProxiedImageHost(url.hostname)) {
+      const proxiedUrl = `${getApiBaseUrl()}/image-proxy?url=${encodeURIComponent(
         normalized,
       )}`;
+
+      return url.protocol === 'https:'
+        ? [proxiedUrl, normalized]
+        : [proxiedUrl];
     }
   } catch {
-    return normalized;
+    return [normalized];
   }
 
-  return normalized;
+  return [normalized];
 }

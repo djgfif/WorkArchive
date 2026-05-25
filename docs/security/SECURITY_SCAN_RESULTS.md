@@ -1,6 +1,6 @@
 # Security Scan Results
 
-Last local run: 2026-05-25 20:24:39 KST.
+Last local run: 2026-05-25 20:44:47 KST.
 
 This file is the release artifact for dependency and container security scans.
 Update it for every beta or production release candidate.
@@ -33,12 +33,11 @@ release gate.
 ## Latest Result
 
 - `npm run security:audit:prod`: not completed locally. The sandboxed run could
-  not resolve `registry.npmjs.org`; the escalated run was blocked because npm
-  audit sends dependency graph metadata to the external npm registry.
-- `npm run security:audit`: completed and returned 1 moderate vulnerability:
-  `qs@6.15.1` via `@nestjs/platform-express -> express -> body-parser/qs`
-  (`GHSA-q8mj-m7cp-5q26`). `npm audit fix` is the suggested remediation, but no
-  dependency update was applied in this hardening pass.
+  not resolve `registry.npmjs.org`; run on the approved release runner because
+  npm audit sends dependency graph metadata to the external npm registry.
+- `npm run security:audit`: completed after updating the lockfile-only
+  remediation for `qs` from `6.15.1` to `6.15.2`
+  (`GHSA-q8mj-m7cp-5q26`). Result: 0 vulnerabilities.
 - `npm run security:scan:fs`: not run locally by design; run on the official
   release runner where Trivy is installed.
 - `npm run security:scan:images`: not run locally by design; run on the official

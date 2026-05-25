@@ -31,7 +31,7 @@ import {
   AppButton,
   AppLinkButton,
 } from '@shared/components/AppPrimitives';
-import { getDisplayImageUrl } from '@shared/utils/image-proxy';
+import { getDisplayImageUrlCandidates } from '@shared/utils/image-proxy';
 import {
   formatWorkDate,
   getWorkStatusLabel,
@@ -337,13 +337,18 @@ export function WorkPoster({
   typeLabel,
   variant = 'card',
 }: WorkPosterProps & { overlay?: React.ReactNode }) {
-  const displayImageUrl = getDisplayImageUrl(thumbnailUrl);
+  const displayImageUrls = getDisplayImageUrlCandidates(thumbnailUrl);
+  const [imageUrlIndex, setImageUrlIndex] = useState(0);
+  const displayImageUrl = displayImageUrls[imageUrlIndex] ?? '';
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const shouldLoadEagerly =
+    variant === 'detail' || variant === 'form' || variant === 'hero';
   useEffect(() => {
+    setImageUrlIndex(0);
     setImageFailed(false);
     setImageLoaded(false);
-  }, [displayImageUrl]);
+  }, [thumbnailUrl]);
   return (
     <Box className={cx(cn(css.posterShell), posterVariantClass[variant], className)}>
       {displayImageUrl && !imageFailed ? (
@@ -357,7 +362,20 @@ export function WorkPoster({
               cn(css.posterImage),
               imageLoaded && cn(css.posterImageLoaded),
             )}
-            onError={() => setImageFailed(true)}
+            decoding="async"
+            loading={shouldLoadEagerly ? 'eager' : 'lazy'}
+            onError={() => {
+              const nextIndex = imageUrlIndex + 1;
+
+              if (nextIndex < displayImageUrls.length) {
+                setImageUrlIndex(nextIndex);
+                setImageLoaded(false);
+
+                return;
+              }
+
+              setImageFailed(true);
+            }}
             onLoad={() => setImageLoaded(true)}
             src={displayImageUrl}
           />
