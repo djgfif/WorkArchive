@@ -397,12 +397,9 @@ describe('WorksListPage', () => {
     ).toBeInTheDocument();
 
     expect(screen.getByText('매체 유형')).toBeInTheDocument();
-    const statusQuickFilter = screen.getByRole('group', {
-      name: '감상 상태로 빠르게 좁히기',
-    });
     expect(
-      within(statusQuickFilter).getByRole('button', { name: '보는 중' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('group', { name: '감상 상태로 빠르게 좁히기' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('작가 / 제작진')).not.toBeVisible();
 
     await user.click(screen.getByRole('button', { name: '고급 필터' }));
@@ -419,6 +416,7 @@ describe('WorksListPage', () => {
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
+    expect(screen.getByRole('button', { name: /보는 중/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '애니' }));
     await user.click(screen.getByRole('button', { name: 'Fate' }));

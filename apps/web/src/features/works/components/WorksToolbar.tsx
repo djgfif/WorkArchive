@@ -126,13 +126,6 @@ interface MediaTypeFilterProps {
   value: WorksListQuery['type'];
 }
 
-interface StatusQuickFilterProps {
-  onChange: (status: WorksListQuery['status']) => void;
-  statusCounts: Record<WorkStatus, number>;
-  totalCount: number;
-  value: WorksListQuery['status'];
-}
-
 const ratingPresetOptions: Array<{ label: string; value: WorksRatingPreset }> = [
   { label: '전체', value: 'all' },
   { label: '미평가', value: 'unrated' },
@@ -165,82 +158,6 @@ function getSmartFilterLabel(value: WorksSmartFilter | undefined) {
 
 function getIdentityPresetLabel(value: WorksIdentityPreset | undefined) {
   return identityPresetOptions.find((option) => option.value === value)?.label ?? '전체';
-}
-
-function StatusQuickFilter({
-  onChange,
-  statusCounts,
-  totalCount,
-  value,
-}: StatusQuickFilterProps) {
-  const activeLabel =
-    value === 'all' ? '전체 상태' : getWorkStatusLabel(value);
-  const options = [
-    { count: totalCount, label: '전체', value: 'all' as const },
-    ...visibleWorkStatusOptions.map((option) => ({
-      count: statusCounts[option.value],
-      label: option.label,
-      value: option.value,
-    })),
-  ];
-
-  return (
-    <Box className={cn(css.mediaTypeFilter)}>
-      <Group
-        align="center"
-        className={cn(css.mediaTypeFilterHeader)}
-        justify="space-between"
-        wrap="nowrap"
-      >
-        <Text c="var(--app-text-primary)" fw={800} size="sm">
-          감상 상태
-        </Text>
-        <Text
-          className={cn(css.numericText)}
-          c="var(--app-text-secondary)"
-          fw={700}
-          size="xs"
-        >
-          {activeLabel} · {value === 'all' ? totalCount : statusCounts[value]}개
-        </Text>
-      </Group>
-
-      <Box
-        aria-label="감상 상태로 빠르게 좁히기"
-        className={cn(css.mediaTypeOptions)}
-        role="group"
-      >
-        {options.map((option) => {
-          const isActive = option.value === value;
-
-          return (
-            <Box
-              aria-label={option.label}
-              aria-pressed={isActive}
-              className={cn(css.mediaTypeOption)}
-              component="button"
-              data-active={isActive ? 'true' : 'false'}
-              key={option.value}
-              onClick={() => onChange(option.value)}
-              type="button"
-            >
-              <Text className={cn(css.mediaTypeOptionLabel)} fw={800} size="xs">
-                {option.label}
-              </Text>
-              <Text
-                aria-hidden="true"
-                className={cn(css.mediaTypeOptionCount)}
-                fw={800}
-                size="xs"
-              >
-                {option.count}
-              </Text>
-            </Box>
-          );
-        })}
-      </Box>
-    </Box>
-  );
 }
 
 function MediaTypeFilter({
@@ -453,6 +370,14 @@ export function WorksToolbar({
       value: genre,
     })),
   ];
+  const statusFilterOptions = [
+    { label: '전체', value: 'all' as const, count: totalActiveCount },
+    ...visibleWorkStatusOptions.map((option) => ({
+      count: statusCounts[option.value],
+      label: option.label,
+      value: option.value,
+    })),
+  ];
 
   const activeFilterChips = [
     ...(query.searchTerm.trim()
@@ -649,7 +574,7 @@ export function WorksToolbar({
             onChange={onCollectionScopeChange}
             options={[
               { label: '서재', value: 'active', count: totalActiveCount },
-              { label: '삭제됨', value: 'trash', count: totalDeletedCount },
+              { label: '휴지통', value: 'trash', count: totalDeletedCount },
             ]}
             value={collectionScope}
           />
@@ -658,12 +583,6 @@ export function WorksToolbar({
 
       {collectionScope === 'active' && (
         <Stack gap="md">
-          <StatusQuickFilter
-            onChange={(status) => onQueryChange({ ...query, status })}
-            statusCounts={statusCounts}
-            totalCount={totalActiveCount}
-            value={query.status}
-          />
           <MediaTypeFilter
             onChange={(type) => onQueryChange({ ...query, type })}
             totalCount={totalActiveCount}
@@ -894,7 +813,19 @@ export function WorksToolbar({
             </FilterSection>
 
             <FilterSection title="기록 상태">
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+              <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+                <Stack gap="xs">
+                  <Text c="var(--app-text-muted)" fw={700} size="xs">
+                    감상 상태
+                  </Text>
+                  <FilterPillGroup
+                    aria-label="상태 필터"
+                    onChange={(status) => onQueryChange({ ...query, status })}
+                    options={statusFilterOptions}
+                    value={query.status}
+                  />
+                </Stack>
+
                 <Stack gap="xs">
                   <Text c="var(--app-text-muted)" fw={700} size="xs">
                     별점
