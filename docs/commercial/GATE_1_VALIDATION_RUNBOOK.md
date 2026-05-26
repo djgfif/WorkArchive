@@ -5,6 +5,28 @@ Last updated: 2026-05-26
 Gate 1 evidence must be copied from commands that actually ran. Leave an item
 `not run`, `blocked`, or `manual` when the required environment is unavailable.
 
+## Operator Checklist
+
+- Release runner security scans: run `npm run security:audit:prod`,
+  `npm run security:audit`, `npm run security:scan:fs`, and
+  `npm run security:scan:images` with immutable image refs; record only tool
+  versions, timestamps, image refs, status, and summary counts.
+- Beta host preflight/smoke: run `scripts/deploy/beta-preflight.sh` with real
+  `.env.prod`, then `BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh`;
+  verify public unauthenticated `/metrics` returns `404`.
+- Live provider QA: run `IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search`
+  against beta/staging with an explicit base URL and disposable test account
+  token; do not commit raw provider responses.
+- Live sync load: run `SYNC_LOAD_DRY_RUN=false npm run qa:sync-load` only
+  against a disposable authenticated account with
+  `SYNC_LOAD_DISPOSABLE_ACCOUNT_ACK=true`; do not commit raw sync payloads.
+- Backup/restore drill: create a production-sized PostgreSQL backup, copy it
+  off-host, restore once into a non-production target, and record observed
+  RPO/RTO plus post-restore `/readyz` and sync smoke.
+- GitHub Settings controls: verify branch protection, required checks, CodeQL,
+  Dependabot, secret scanning, push protection, and any waivers in GitHub
+  Settings for the release commit.
+
 ## Execution Order
 
 1. Start from a clean release-candidate commit.
