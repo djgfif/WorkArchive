@@ -9,6 +9,7 @@ import {
 import { syncService, type SyncService } from '../services/sync.service';
 
 const AUTO_SYNC_DEBOUNCE_MS = 1_200;
+const AUTO_PULL_MIN_INTERVAL_MS = 30_000;
 
 function isBrowserOffline() {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
@@ -20,12 +21,14 @@ function isDocumentHidden() {
 
 interface UseAutoSyncOptions {
   debounceMs?: number;
+  pullMinIntervalMs?: number;
   queueRepository?: SyncQueueRepository;
   service?: SyncService;
 }
 
 export function useAutoSync({
   debounceMs = AUTO_SYNC_DEBOUNCE_MS,
+  pullMinIntervalMs = AUTO_PULL_MIN_INTERVAL_MS,
   queueRepository = syncQueueRepository,
   service = syncService,
 }: UseAutoSyncOptions = {}) {
@@ -34,6 +37,8 @@ export function useAutoSync({
   const isPushRunningRef = useRef(false);
   const isPullRunningRef = useRef(false);
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pullTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPullAttemptAtRef = useRef(0);
 
   activeScopeRef.current = archiveScopeKey;
 
@@ -45,17 +50,26 @@ export function useAutoSync({
     let isDisposed = false;
     const scopeKey = archiveScopeKey;
 
+    function clearPullTimer() {
+      if (pullTimerRef.current !== null) {
+        clearTimeout(pullTimerRef.current);
+        pullTimerRef.current = null;
+      }
+    }
+
     async function runPull() {
       if (
         isDisposed ||
         activeScopeRef.current !== scopeKey ||
         isPullRunningRef.current ||
-        isBrowserOffline()
+        isBrowserOffline() ||
+        isDocumentHidden()
       ) {
         return;
       }
 
       isPullRunningRef.current = true;
+      lastPullAttemptAtRef.current = Date.now();
 
       try {
         await service.pullRemoteChanges();
@@ -66,21 +80,44 @@ export function useAutoSync({
       }
     }
 
-    void runPull();
+    function schedulePull() {
+      clearPullTimer();
+
+      const elapsedMs = Date.now() - lastPullAttemptAtRef.current;
+      const delayMs =
+        elapsedMs >= pullMinIntervalMs
+          ? 0
+          : pullMinIntervalMs - elapsedMs;
+
+      pullTimerRef.current = setTimeout(() => {
+        void runPull();
+      }, delayMs);
+    }
+
+    schedulePull();
 
     const handleReconnectOrFocus = () => {
-      void runPull();
+      schedulePull();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!isDocumentHidden()) {
+        schedulePull();
+      }
     };
 
     window.addEventListener('focus', handleReconnectOrFocus);
     window.addEventListener('online', handleReconnectOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       isDisposed = true;
+      clearPullTimer();
       window.removeEventListener('focus', handleReconnectOrFocus);
       window.removeEventListener('online', handleReconnectOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [archiveScopeKey, isLoading, mode, service]);
+  }, [archiveScopeKey, isLoading, mode, pullMinIntervalMs, service]);
 
   useEffect(() => {
     if (isLoading || mode !== 'authenticated') {
@@ -123,13 +160,35 @@ export function useAutoSync({
       next: (queueItems) => {
         clearPushTimer();
 
-        if (queueItems.length === 0) {
+        const pushableItems = queueItems.filter((item) => !item.conflict);
+
+        if (pushableItems.length === 0) {
           return;
         }
 
+        const nowMs = Date.now();
+        const hasReadyItem = pushableItems.some((item) => {
+          if (!item.nextRetryAt) {
+            return true;
+          }
+
+          const nextRetryAtMs = Date.parse(item.nextRetryAt);
+
+          return !Number.isFinite(nextRetryAtMs) || nextRetryAtMs <= nowMs;
+        });
+        const nextRetryAtTimes = pushableItems
+          .map((item) =>
+            item.nextRetryAt ? Date.parse(item.nextRetryAt) : Number.NaN,
+          )
+          .filter(Number.isFinite);
+        const earliestRetryAt =
+          nextRetryAtTimes.length > 0 ? Math.min(...nextRetryAtTimes) : 0;
+        const retryDelayMs =
+          !hasReadyItem && earliestRetryAt > nowMs ? earliestRetryAt - nowMs : 0;
+
         pushTimerRef.current = setTimeout(() => {
           void runPush();
-        }, debounceMs);
+        }, Math.max(debounceMs, retryDelayMs));
       },
       error: () => {
         clearPushTimer();

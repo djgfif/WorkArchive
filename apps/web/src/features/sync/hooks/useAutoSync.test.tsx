@@ -23,6 +23,7 @@ const authValue: AuthContextValue = {
 function AutoSyncProbe() {
   useAutoSync({
     debounceMs: 10,
+    pullMinIntervalMs: 0,
   });
 
   return null;

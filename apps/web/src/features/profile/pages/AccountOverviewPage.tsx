@@ -126,8 +126,13 @@ export function AccountOverviewPage() {
   const location = useLocation();
   const { mode, user } = useAuthSession();
   const { averageRating, completedCount, totalCount } = useWorksOverview();
-  const { conflictItems, failedItems, lastSuccessfulPullAt, pendingItems } =
-    useSyncDashboard();
+  const {
+    conflictItems,
+    failedItems,
+    lastSuccessfulPullAt,
+    pendingItems,
+    staleStatusAt,
+  } = useSyncDashboard();
   const isAuthenticated = mode === 'authenticated';
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
   const backupAttentionCount = conflictItems.length + failedItems.length;
@@ -155,6 +160,14 @@ export function AccountOverviewPage() {
             tone: 'info' as const,
             value: '재시도 대기',
           }
+        : staleStatusAt
+          ? {
+              badge: '원격 확인 필요',
+              description:
+                '오래된 원격 상태 위에 로컬 변경을 덮어쓰지 않도록 최신 변경 확인을 기다립니다.',
+              tone: 'warning' as const,
+              value: '확인 대기',
+            }
         : backupPendingCount > 0
           ? {
               badge: '대기 중',

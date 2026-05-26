@@ -943,6 +943,7 @@ export interface PushSyncChangeRequest<TPayload = SyncQueuePayload> {
 
 export interface PushSyncRequest {
   changes: PushSyncChangeRequest[];
+  clientId?: EntityId;
   schemaVersion: SyncSchemaVersion;
 }
 
@@ -974,6 +975,7 @@ export interface PushSyncResponse {
 }
 
 export interface PullSyncRequest {
+  clientId?: EntityId;
   cursor?: string | null;
   limit?: number;
   schemaVersion: SyncSchemaVersion;
@@ -1033,6 +1035,7 @@ export interface SyncQueueItemRecord<TPayload = SyncQueuePayload> {
   source?: SyncQueueSource;
   createdAt: ISODateString;
   retryCount: number;
+  nextRetryAt?: ISODateString | null;
   lastError: string | null;
   autoMerge?: SyncAutoMergeSnapshot | null;
   conflict?: SyncConflictSnapshot<TPayload> | null;

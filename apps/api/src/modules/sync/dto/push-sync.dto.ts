@@ -9,6 +9,7 @@ import {
   IsIn,
   IsInt,
   IsObject,
+  IsOptional,
   IsUUID,
   ValidateIf,
   ValidateNested,
@@ -109,6 +110,15 @@ export class PushSyncChangeDto {
 }
 
 export class PushSyncDto {
+  @ApiPropertyOptional({
+    description:
+      'Stable local client identifier used by clients for sync coordination telemetry.',
+    format: 'uuid',
+  })
+  @IsOptional()
+  @IsUUID()
+  clientId?: string;
+
   @ApiPropertyOptional({
     default: SYNC_SCHEMA_VERSION,
     description: 'Sync contract version. Missing values are treated as v2.',

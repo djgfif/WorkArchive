@@ -28,6 +28,10 @@ import { useAuthSession } from '@features/auth';
 import { getWorkArchiveDb } from '../../works/storage';
 import { appMetaRepository } from '../services/app-meta.repository';
 import { syncQueueRepository } from '../services/sync-queue.repository';
+import {
+  SYNC_STALE_STATUS_AT_KEY,
+  SYNC_STALE_STATUS_REASON_KEY,
+} from '../services/sync.service';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
 
@@ -60,6 +64,8 @@ interface SyncDashboardState {
   lastSuccessfulPullAt: string | null;
   pendingItems: SyncDashboardItem[];
   queueItems: SyncQueueItemRecord[];
+  staleStatusAt: string | null;
+  staleStatusReason: string | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -71,6 +77,8 @@ const initialState: SyncDashboardState = {
   lastSuccessfulPullAt: null,
   pendingItems: [],
   queueItems: [],
+  staleStatusAt: null,
+  staleStatusReason: null,
   isLoading: true,
   error: null,
 };
@@ -571,6 +579,8 @@ export function useSyncDashboard() {
           tierBoardCards,
           tierBoardAssets,
           lastSuccessfulPullAt,
+          staleStatusAt,
+          staleStatusReason,
         ] = await Promise.all([
           syncQueueRepository.listAll(),
           db.works.toArray(),
@@ -583,6 +593,8 @@ export function useSyncDashboard() {
           db.tierBoardCards.toArray(),
           db.tierBoardAssets.toArray(),
           appMetaRepository.getValue(LAST_SUCCESSFUL_PULL_AT_KEY),
+          appMetaRepository.getValue(SYNC_STALE_STATUS_AT_KEY),
+          appMetaRepository.getValue(SYNC_STALE_STATUS_REASON_KEY),
         ]);
         const worksById = new Map(works.map((work) => [work.id, work]));
         const releaseRecordsById = new Map(
@@ -638,6 +650,8 @@ export function useSyncDashboard() {
             (item) => item.state === 'pending' || item.state === 'requeued',
           ),
           queueItems,
+          staleStatusAt,
+          staleStatusReason,
         };
       } catch (error) {
         if (isDatabaseClosedError(error)) {
@@ -648,6 +662,8 @@ export function useSyncDashboard() {
             lastSuccessfulPullAt: null,
             pendingItems: [],
             queueItems: [],
+            staleStatusAt: null,
+            staleStatusReason: null,
           };
         }
 
@@ -661,6 +677,8 @@ export function useSyncDashboard() {
         lastSuccessfulPullAt,
         pendingItems,
         queueItems,
+        staleStatusAt,
+        staleStatusReason,
       }) => {
         setState({
           conflictWorks,
@@ -669,6 +687,8 @@ export function useSyncDashboard() {
           lastSuccessfulPullAt,
           pendingItems,
           queueItems,
+          staleStatusAt,
+          staleStatusReason,
           isLoading: false,
           error: null,
         });
@@ -681,6 +701,8 @@ export function useSyncDashboard() {
           lastSuccessfulPullAt: null,
           pendingItems: [],
           queueItems: [],
+          staleStatusAt: null,
+          staleStatusReason: null,
           isLoading: false,
           error:
             error instanceof Error

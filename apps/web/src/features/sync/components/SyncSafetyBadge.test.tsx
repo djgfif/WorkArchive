@@ -24,6 +24,8 @@ function mockSyncDashboard(
     lastSuccessfulPullAt: null,
     pendingItems: [],
     queueItems: [],
+    staleStatusAt: null,
+    staleStatusReason: null,
     ...overrides,
   });
 }
@@ -91,6 +93,19 @@ describe('SyncSafetyBadge', () => {
         pendingCount: 1,
       }).label,
     ).toBe('백업 대기 1');
+  });
+
+  it('shows stale remote check state before pending backup state', () => {
+    expect(
+      getSyncSafetyBadgeState({
+        conflictCount: 0,
+        failedCount: 0,
+        lastSuccessfulPullAt: '2026-05-24T00:00:00.000Z',
+        mode: 'authenticated',
+        pendingCount: 1,
+        staleStatusAt: '2026-05-26T00:00:00.000Z',
+      }).label,
+    ).toBe('원격 확인 필요');
   });
 
   it('shows recent backup state when the queue is clean', () => {

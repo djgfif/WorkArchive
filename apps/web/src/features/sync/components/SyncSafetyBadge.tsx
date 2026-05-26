@@ -7,8 +7,13 @@ import { getSyncSafetyBadgeState } from '../utils/sync-safety-state';
 
 export function SyncSafetyBadge() {
   const { mode } = useAuthSession();
-  const { conflictItems, failedItems, lastSuccessfulPullAt, pendingItems } =
-    useSyncDashboard();
+  const {
+    conflictItems,
+    failedItems,
+    lastSuccessfulPullAt,
+    pendingItems,
+    staleStatusAt,
+  } = useSyncDashboard();
   const requeuedCount = pendingItems.filter(
     (item) => item.state === 'requeued',
   ).length;
@@ -20,6 +25,7 @@ export function SyncSafetyBadge() {
       mode,
       pendingCount: pendingItems.length,
       requeuedCount,
+      staleStatusAt,
     });
   }, [
     conflictItems.length,
@@ -28,6 +34,7 @@ export function SyncSafetyBadge() {
     mode,
     pendingItems.length,
     requeuedCount,
+    staleStatusAt,
   ]);
 
   return (

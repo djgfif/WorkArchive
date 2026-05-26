@@ -18,6 +18,7 @@ export function getSyncSafetyBadgeState({
   mode,
   pendingCount,
   requeuedCount = 0,
+  staleStatusAt = null,
 }: {
   conflictCount: number;
   failedCount: number;
@@ -25,6 +26,7 @@ export function getSyncSafetyBadgeState({
   mode: 'authenticated' | 'guest';
   pendingCount: number;
   requeuedCount?: number;
+  staleStatusAt?: string | null;
 }) {
   if (mode !== 'authenticated') {
     return {
@@ -37,6 +39,14 @@ export function getSyncSafetyBadgeState({
   if (conflictCount > 0 || failedCount > 0) {
     return {
       label: `직접 확인 ${conflictCount + failedCount}`,
+      tone: 'secondary' as const,
+      to: '/account',
+    };
+  }
+
+  if (staleStatusAt) {
+    return {
+      label: '원격 확인 필요',
       tone: 'secondary' as const,
       to: '/account',
     };

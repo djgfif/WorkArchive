@@ -371,6 +371,10 @@ describe('SyncService', () => {
     const [queueItem] = await queueRepository.listAll();
 
     await queueRepository.markFailed(queueItem!.id, 'Network request failed.');
+    await db.syncQueue.put({
+      ...(await queueRepository.getById(queueItem!.id))!,
+      nextRetryAt: '2000-01-01T00:00:00.000Z',
+    });
     writeStoredAuthTokens({
       accessToken: 'access-token',
     });
@@ -415,6 +419,70 @@ describe('SyncService', () => {
         serverVersion: 1,
       }),
     );
+  });
+
+  it('does not retry failed queue items before their backoff expires', async () => {
+    const localWork = await worksService.createWork(buildInput());
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markFailed(queueItem!.id, 'Network request failed.');
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const fetchSpy = vi.fn();
+
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await syncService.pushQueuedChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        attemptedCount: 0,
+        appliedCount: 0,
+        conflictCount: 0,
+        failedCount: 0,
+        requestFailed: false,
+        messages: ['실패한 항목은 다음 자동 재시도 시간까지 기다립니다.'],
+      }),
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        entityId: localWork.id,
+        lastError: 'Network request failed.',
+        nextRetryAt: expect.any(String),
+      }),
+    );
+  });
+
+  it('skips push when another tab holds the scope sync lease', async () => {
+    await worksService.createWork(buildInput());
+    await appMetaRepository.setValue(
+      'sync.activeLease',
+      JSON.stringify({
+        acquiredAt: '2026-05-26T00:00:00.000Z',
+        expiresAt: '9999-01-01T00:00:00.000Z',
+        ownerId: 'other-client:other-tab',
+        token: 'push:other',
+      }),
+    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const fetchSpy = vi.fn();
+
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await syncService.pushQueuedChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        attemptedCount: 0,
+        requestFailed: false,
+        messages: ['다른 탭에서 동기화 중이라 이번 백업을 건너뛰었습니다.'],
+      }),
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('auto-merges safe array-only push conflicts and keeps the work queued for backup retry', async () => {
@@ -1246,5 +1314,109 @@ describe('SyncService', () => {
         }),
       }),
     );
+  });
+
+  it('pulls before pushing stale remote-backed local payloads and blocks unsafe overwrite', async () => {
+    const created = await worksService.createWork(
+      buildInput({
+        title: 'Synced Dune',
+        personalTags: ['local'],
+      }),
+    );
+
+    await queueRepository.removeMany(
+      (await queueRepository.listAll()).map((item) => item.id),
+    );
+
+    const syncedWork: WorkRecord = {
+      ...created,
+      syncStatus: 'synced',
+      serverVersion: 1,
+      updatedAt: '2026-04-18T00:00:00.000Z',
+    };
+    const localEdit: WorkRecord = {
+      ...syncedWork,
+      title: 'Local Dune',
+      syncStatus: 'pending',
+      updatedAt: '2026-04-18T01:00:00.000Z',
+    };
+
+    await worksRepository.update(localEdit);
+    const queueItem = await queueRepository.enqueueWorkChange(
+      localEdit,
+      'update',
+      'edit_form',
+    );
+    await appMetaRepository.setValue(
+      'sync.lastSuccessfulPullAt',
+      '2026-04-18T00:00:00.000Z',
+    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    const fetchSpy = vi.fn().mockResolvedValue(
+      jsonResponse({
+        schemaVersion: 5,
+        pulledAt: '2026-04-18T02:00:00.000Z',
+        nextSince: '2026-04-18T02:00:00.000Z',
+        changes: [
+          {
+            entityType: 'work',
+            entityId: created.id,
+            operation: 'upsert',
+            work: {
+              ...syncedWork,
+              title: 'Remote Dune',
+              personalTags: ['remote'],
+              syncStatus: 'synced',
+              serverVersion: 2,
+              updatedAt: '2026-04-18T02:00:00.000Z',
+            },
+          },
+        ],
+      }),
+    );
+
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await syncService.pushQueuedChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        attemptedCount: 0,
+        appliedCount: 0,
+        conflictCount: 1,
+        failedCount: 0,
+        requestFailed: false,
+      }),
+    );
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toBe('/api/sync/pull');
+    expect(await worksRepository.getById(created.id)).toEqual(
+      expect.objectContaining({
+        title: 'Local Dune',
+        syncStatus: 'conflict',
+        serverVersion: 1,
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: expect.objectContaining({
+          code: 'pull_conflict_local_queue',
+          remote: expect.objectContaining({
+            title: 'Remote Dune',
+            serverVersion: 2,
+          }),
+        }),
+        payload: expect.objectContaining({
+          title: 'Local Dune',
+          serverVersion: 1,
+        }),
+      }),
+    );
+    await expect(
+      appMetaRepository.getValue('sync.staleStatusAt'),
+    ).resolves.toEqual(expect.any(String));
   });
 });

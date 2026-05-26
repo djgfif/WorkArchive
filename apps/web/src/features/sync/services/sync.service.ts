@@ -54,7 +54,14 @@ import {
 } from '@features/tier-boards/data';
 
 const LAST_SUCCESSFUL_PULL_AT_KEY = 'sync.lastSuccessfulPullAt';
+export const SYNC_STALE_STATUS_AT_KEY = 'sync.staleStatusAt';
+export const SYNC_STALE_STATUS_REASON_KEY = 'sync.staleStatusReason';
+const SYNC_CLIENT_ID_KEY = 'sync.clientId';
+const SYNC_LEASE_KEY = 'sync.activeLease';
+const SYNC_LEASE_TTL_MS = 25_000;
+const SYNC_FRESH_PULL_WINDOW_MS = 2 * 60_000;
 const PULL_PAGE_LIMIT = 500;
+const TAB_SESSION_ID = crypto.randomUUID();
 
 const WORK_MERGE_FIELDS = [
   'title',
@@ -133,6 +140,13 @@ interface PullCycleResult {
   nextSince: string | null;
   messages: string[];
   requestFailed: boolean;
+}
+
+type SyncLeaseOperation = 'pull' | 'push';
+
+interface SyncClientIdentity {
+  clientId: string;
+  ownerId: string;
 }
 
 export interface ManualSyncResult {
@@ -217,6 +231,10 @@ function getNowIso() {
   return new Date().toISOString();
 }
 
+function addMilliseconds(value: string, milliseconds: number) {
+  return new Date(Date.parse(value) + milliseconds).toISOString();
+}
+
 function getLatestIso(left: string, right: string) {
   return Date.parse(left) >= Date.parse(right) ? left : right;
 }
@@ -257,6 +275,46 @@ function createAutoMergeSnapshot(
 
 function canAutoMergePushResult(result: PushSyncResult) {
   return result.code === 'conflict_remote_newer';
+}
+
+function getPayloadServerVersion(payload: SyncQueuePayload) {
+  return 'serverVersion' in payload ? payload.serverVersion : 0;
+}
+
+function isRemoteBackedQueueItem(item: SyncQueueItemRecord) {
+  return getPayloadServerVersion(item.payload) > 0;
+}
+
+function shouldWaitForQueueBackoff(
+  item: SyncQueueItemRecord,
+  nowMs = Date.now(),
+) {
+  if (!item.nextRetryAt) {
+    return false;
+  }
+
+  const nextRetryAtMs = Date.parse(item.nextRetryAt);
+
+  return Number.isFinite(nextRetryAtMs) && nextRetryAtMs > nowMs;
+}
+
+function isFreshPull(lastSuccessfulPullAt: string | null) {
+  if (!lastSuccessfulPullAt) {
+    return false;
+  }
+
+  const pulledAtMs = Date.parse(lastSuccessfulPullAt);
+
+  return (
+    Number.isFinite(pulledAtMs) &&
+    Date.now() - pulledAtMs <= SYNC_FRESH_PULL_WINDOW_MS
+  );
+}
+
+function getRunnableQueueItems(queueItems: SyncQueueItemRecord[]) {
+  return queueItems.filter(
+    (item) => !item.conflict && !shouldWaitForQueueBackoff(item),
+  );
 }
 
 function mergeWorkSafely(
@@ -649,6 +707,81 @@ export class SyncService {
     private readonly tierBoardRepo: TierBoardRepository = tierBoardRepository,
   ) {}
 
+  private async getClientIdentity(): Promise<SyncClientIdentity> {
+    const clientId = await this.metaRepo.getOrCreateValue(
+      SYNC_CLIENT_ID_KEY,
+      () => crypto.randomUUID(),
+    );
+
+    return {
+      clientId,
+      ownerId: `${clientId}:${TAB_SESSION_ID}`,
+    };
+  }
+
+  private async withSyncLease<T>(
+    operation: SyncLeaseOperation,
+    onBusy: () => T,
+    run: (identity: SyncClientIdentity) => Promise<T>,
+  ): Promise<T> {
+    const identity = await this.getClientIdentity();
+    const acquiredAt = getNowIso();
+    const lease = await this.metaRepo.acquireLease(SYNC_LEASE_KEY, {
+      acquiredAt,
+      expiresAt: addMilliseconds(acquiredAt, SYNC_LEASE_TTL_MS),
+      ownerId: identity.ownerId,
+      token: `${operation}:${crypto.randomUUID()}`,
+    });
+
+    if (!lease) {
+      return onBusy();
+    }
+
+    try {
+      return await run(identity);
+    } finally {
+      await this.metaRepo.releaseLease(SYNC_LEASE_KEY, lease.token);
+    }
+  }
+
+  private async setStaleStatus(reason: string) {
+    await Promise.all([
+      this.metaRepo.setValue(SYNC_STALE_STATUS_AT_KEY, getNowIso()),
+      this.metaRepo.setValue(SYNC_STALE_STATUS_REASON_KEY, reason),
+    ]);
+  }
+
+  private async clearStaleStatus() {
+    await Promise.all([
+      this.metaRepo.removeValue(SYNC_STALE_STATUS_AT_KEY),
+      this.metaRepo.removeValue(SYNC_STALE_STATUS_REASON_KEY),
+    ]);
+  }
+
+  private buildPushLeaseBusyResult(): PushCycleResult {
+    return {
+      attemptedCount: 0,
+      appliedCount: 0,
+      conflictCount: 0,
+      failedCount: 0,
+      processedAt: null,
+      messages: ['다른 탭에서 동기화 중이라 이번 백업을 건너뛰었습니다.'],
+      requestFailed: false,
+    };
+  }
+
+  private buildPullLeaseBusyResult(): PullCycleResult {
+    return {
+      pulledCount: 0,
+      appliedCount: 0,
+      skippedCount: 0,
+      pulledAt: null,
+      nextSince: null,
+      messages: ['다른 탭에서 동기화 중이라 이번 가져오기를 건너뛰었습니다.'],
+      requestFailed: false,
+    };
+  }
+
   async runManualSync(): Promise<ManualSyncResult> {
     const push = await this.pushQueuedChanges();
 
@@ -685,6 +818,16 @@ export class SyncService {
   }
 
   async pushQueuedChanges(): Promise<PushCycleResult> {
+    return this.withSyncLease(
+      'push',
+      () => this.buildPushLeaseBusyResult(),
+      (identity) => this.pushQueuedChangesWithLease(identity),
+    );
+  }
+
+  private async pushQueuedChangesWithLease(
+    identity: SyncClientIdentity,
+  ): Promise<PushCycleResult> {
     const queueItems = await this.queueRepo.listAll();
 
     if (queueItems.length === 0) {
@@ -699,13 +842,70 @@ export class SyncService {
       };
     }
 
-    const queueItemIds = queueItems.map((item) => item.id);
-    const queueItemsById = new Map(queueItems.map((item) => [item.id, item]));
+    const runnableQueueItems = getRunnableQueueItems(queueItems);
+    const manualReviewCount = queueItems.filter((item) => item.conflict).length;
+    const backoffCount = queueItems.length - manualReviewCount - runnableQueueItems.length;
+
+    if (runnableQueueItems.length === 0) {
+      const messages = [];
+
+      if (manualReviewCount > 0) {
+        messages.push('직접 확인이 필요한 항목은 자동 백업하지 않습니다.');
+      }
+
+      if (backoffCount > 0) {
+        messages.push('실패한 항목은 다음 자동 재시도 시간까지 기다립니다.');
+      }
+
+      return {
+        attemptedCount: 0,
+        appliedCount: 0,
+        conflictCount: manualReviewCount,
+        failedCount: 0,
+        processedAt: null,
+        messages,
+        requestFailed: false,
+      };
+    }
+
+    const freshnessResult = await this.ensureFreshPullBeforePush(
+      runnableQueueItems,
+      identity,
+    );
+
+    if (freshnessResult) {
+      if (freshnessResult.requestFailed || freshnessResult.skippedCount > 0) {
+        return {
+          attemptedCount: 0,
+          appliedCount: 0,
+          conflictCount: freshnessResult.skippedCount,
+          failedCount: freshnessResult.requestFailed
+            ? runnableQueueItems.length
+            : 0,
+          processedAt: null,
+          messages: [
+            ...freshnessResult.messages,
+            freshnessResult.requestFailed
+              ? '최신 원격 변경을 확인하지 못해 자동 백업을 중단했습니다.'
+              : '직접 확인이 필요한 항목이 있어 자동 백업을 중단했습니다.',
+          ],
+          requestFailed: freshnessResult.requestFailed,
+        };
+      }
+
+      return this.pushQueuedChangesWithLease(identity);
+    }
+
+    const queueItemIds = runnableQueueItems.map((item) => item.id);
+    const queueItemsById = new Map(
+      runnableQueueItems.map((item) => [item.id, item]),
+    );
 
     try {
       const response = await postJson<PushSyncResponse>('/sync/push', {
+        clientId: identity.clientId,
         schemaVersion: SYNC_SCHEMA_VERSION,
-        changes: queueItems.map((item) => ({
+        changes: runnableQueueItems.map((item) => ({
           queueId: item.id,
           clientMutationId: item.clientMutationId ?? item.id,
           entityType: item.entityType,
@@ -817,7 +1017,7 @@ export class SyncService {
       await this.queueRepo.removeMany(appliedQueueIds);
 
       return {
-        attemptedCount: queueItems.length,
+        attemptedCount: runnableQueueItems.length,
         appliedCount,
         conflictCount,
         failedCount,
@@ -840,10 +1040,10 @@ export class SyncService {
       }
 
       return {
-        attemptedCount: queueItems.length,
+        attemptedCount: runnableQueueItems.length,
         appliedCount: 0,
         conflictCount: 0,
-        failedCount: queueItems.length,
+        failedCount: runnableQueueItems.length,
         processedAt: null,
         messages: [message],
         requestFailed: true,
@@ -852,6 +1052,51 @@ export class SyncService {
   }
 
   async pullRemoteChanges(): Promise<PullCycleResult> {
+    return this.withSyncLease(
+      'pull',
+      () => this.buildPullLeaseBusyResult(),
+      (identity) => this.pullRemoteChangesWithLease(identity),
+    );
+  }
+
+  private async ensureFreshPullBeforePush(
+    queueItems: SyncQueueItemRecord[],
+    identity: SyncClientIdentity,
+  ): Promise<PullCycleResult | null> {
+    if (!queueItems.some(isRemoteBackedQueueItem)) {
+      return null;
+    }
+
+    const lastSuccessfulPullAt = await this.metaRepo.getValue(
+      LAST_SUCCESSFUL_PULL_AT_KEY,
+    );
+
+    if (isFreshPull(lastSuccessfulPullAt)) {
+      return null;
+    }
+
+    await this.setStaleStatus('remote_check_required_before_push');
+
+    const pull = await this.pullRemoteChangesWithLease(identity);
+
+    if (pull.requestFailed) {
+      await this.setStaleStatus('remote_check_failed_before_push');
+      return pull;
+    }
+
+    if (pull.skippedCount > 0) {
+      await this.setStaleStatus('manual_review_required_after_pull');
+      return pull;
+    }
+
+    await this.clearStaleStatus();
+
+    return pull;
+  }
+
+  private async pullRemoteChangesWithLease(
+    identity: SyncClientIdentity,
+  ): Promise<PullCycleResult> {
     const since = await this.metaRepo.getValue(LAST_SUCCESSFUL_PULL_AT_KEY);
 
     try {
@@ -888,6 +1133,7 @@ export class SyncService {
         const response: PullSyncResponse = await postJson<PullSyncResponse>(
           '/sync/pull',
           {
+            clientId: identity.clientId,
             cursor,
             limit: PULL_PAGE_LIMIT,
             schemaVersion: SYNC_SCHEMA_VERSION,
@@ -1031,6 +1277,7 @@ export class SyncService {
 
       if (nextSince !== null) {
         await this.metaRepo.setValue(LAST_SUCCESSFUL_PULL_AT_KEY, nextSince);
+        await this.clearStaleStatus();
       }
 
       if (pulledCount === 0) {

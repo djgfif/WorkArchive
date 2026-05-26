@@ -20,6 +20,8 @@ import {
 const WORK_ENTITY_TYPE = 'work';
 const RELEASE_RECORD_ENTITY_TYPE = 'release_record';
 const TIMELINE_ENTRY_ENTITY_TYPE = 'timeline_entry';
+const SYNC_RETRY_BASE_DELAY_MS = 15_000;
+const SYNC_RETRY_MAX_DELAY_MS = 5 * 60_000;
 
 const SYNC_PUSH_ORDER: Record<SyncEntityType, number> = {
   work: 0,
@@ -40,6 +42,15 @@ type DatabaseResolver = () => WorkArchiveDatabase;
 
 function getPayloadServerVersion(payload: SyncQueuePayload) {
   return 'serverVersion' in payload ? payload.serverVersion : 0;
+}
+
+function getNextRetryAt(retryCount: number) {
+  const retryDelayMs = Math.min(
+    SYNC_RETRY_BASE_DELAY_MS * 2 ** Math.max(0, retryCount - 1),
+    SYNC_RETRY_MAX_DELAY_MS,
+  );
+
+  return new Date(Date.now() + retryDelayMs).toISOString();
 }
 
 export class SyncQueueRepository {
@@ -142,6 +153,7 @@ export class SyncQueueRepository {
         source,
         createdAt: new Date().toISOString(),
         retryCount: 0,
+        nextRetryAt: null,
         lastError: null,
         autoMerge: null,
         conflict: null,
@@ -162,6 +174,7 @@ export class SyncQueueRepository {
       await db.transaction('rw', db.syncQueue, async () => {
         for (const item of missingMutationIds) {
           item.clientMutationId = crypto.randomUUID();
+          item.nextRetryAt ??= null;
           await db.syncQueue.put(item);
         }
       });
@@ -171,6 +184,7 @@ export class SyncQueueRepository {
       .map((item) => ({
         ...item,
         source: item.source ?? 'unknown',
+        nextRetryAt: item.nextRetryAt ?? null,
       }))
       .sort(
         (left, right) =>
@@ -205,6 +219,7 @@ export class SyncQueueRepository {
     const updated: SyncQueueItemRecord = {
       ...existing,
       retryCount: existing.retryCount + 1,
+      nextRetryAt: getNextRetryAt(existing.retryCount + 1),
       lastError,
       autoMerge: null,
       conflict: null,
@@ -225,6 +240,7 @@ export class SyncQueueRepository {
     const updated: SyncQueueItemRecord = {
       ...existing,
       lastError,
+      nextRetryAt: null,
     };
 
     await this.getDb().syncQueue.put(updated);
@@ -252,6 +268,7 @@ export class SyncQueueRepository {
         const updated: SyncQueueItemRecord = {
           ...item,
           retryCount: item.retryCount + 1,
+          nextRetryAt: getNextRetryAt(item.retryCount + 1),
           lastError,
           autoMerge: null,
           conflict: null,
@@ -321,6 +338,7 @@ export class SyncQueueRepository {
       source,
       createdAt: new Date().toISOString(),
       retryCount: 0,
+      nextRetryAt: null,
       lastError: null,
       autoMerge: null,
       conflict: null,
@@ -382,6 +400,7 @@ export class SyncQueueRepository {
     const updated: SyncQueueItemRecord = {
       ...existing,
       retryCount: existing.retryCount + 1,
+      nextRetryAt: null,
       lastError,
       autoMerge: null,
       conflict: {
@@ -412,6 +431,7 @@ export class SyncQueueRepository {
     const updated: SyncQueueItemRecord = {
       ...existing,
       lastError,
+      nextRetryAt: null,
       autoMerge: null,
       conflict: {
         ...(code ? { code } : {}),
@@ -449,6 +469,7 @@ export class SyncQueueRepository {
           : {}),
       payload,
       retryCount: 0,
+      nextRetryAt: null,
       lastError: null,
       autoMerge: options.autoMerge ?? null,
       conflict: null,

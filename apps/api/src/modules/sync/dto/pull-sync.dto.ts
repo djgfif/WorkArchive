@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   Min,
   ValidateIf,
@@ -13,6 +14,15 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { SYNC_SCHEMA_VERSION } from '../sync.constants';
 
 export class PullSyncDto {
+  @ApiPropertyOptional({
+    description:
+      'Stable local client identifier used by clients for sync coordination telemetry.',
+    format: 'uuid',
+  })
+  @IsOptional()
+  @IsUUID()
+  clientId?: string;
+
   @ApiPropertyOptional({
     default: SYNC_SCHEMA_VERSION,
     description: 'Sync contract version. Missing values are treated as v2.',

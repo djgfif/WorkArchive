@@ -460,6 +460,7 @@ function createQueueItem<TPayload extends SyncQueuePayload>(
     source: 'archive_migration',
     createdAt,
     retryCount: 0,
+    nextRetryAt: null,
     lastError: null,
     conflict: null,
   };
