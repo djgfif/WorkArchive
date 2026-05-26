@@ -7,14 +7,28 @@ STAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
 REPORT_FILE="$REPORT_DIR/gate1-local-$STAMP.md"
 TMP_DIR="$(mktemp -d)"
 FAIL_COUNT=0
+CURRENT_HOST="$(hostname 2>/dev/null || true)"
 
 mkdir -p "$REPORT_DIR"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 cd "$ROOT_DIR"
 
+escape_sed_regex() {
+  sed -E 's/[][\/.^$*+?{}()|]/\\&/g'
+}
+
 redact() {
+  local root_regex host_regex
+  root_regex="$(printf '%s' "$ROOT_DIR" | escape_sed_regex)"
+  host_regex="$(printf '%s' "$CURRENT_HOST" | escape_sed_regex)"
+  if [[ -z "$host_regex" ]]; then
+    host_regex='__WORK_ARCHIVE_NO_HOST_MATCH__'
+  fi
+
   sed -E \
+    -e "s#${root_regex}#[workspace]#g" \
+    -e "s#${host_regex}#[redacted]#g" \
     -e 's/([A-Za-z0-9_]*(SECRET|TOKEN|PASSWORD|API_KEY|COOKIE|OAUTH|DATABASE_URL)[A-Za-z0-9_]*=)[^[:space:]]+/\1[REDACTED]/gI' \
     -e 's/(Bearer )[A-Za-z0-9._~+\/=-]+/\1[REDACTED]/gI' \
     -e 's#(postgresql://)[^[:space:]@]+@#\1[REDACTED]@#gI'
