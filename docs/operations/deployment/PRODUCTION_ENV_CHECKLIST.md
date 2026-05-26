@@ -155,4 +155,6 @@ Confirm no secret values are pasted into issue trackers, deployment reports, or
 GitHub comments.
 
 `METRICS_ENABLED` defaults to `false`. Set it to `true` only when `/metrics` is
-restricted to an internal collector or allowlisted monitoring path.
+restricted to an internal collector or allowlisted monitoring path and
+`METRICS_BEARER_TOKEN` is configured for that collector. Public unauthenticated
+smoke should still observe `/metrics` as `404`.

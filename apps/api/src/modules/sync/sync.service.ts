@@ -1,6 +1,4 @@
-﻿import {
-  createHash,
-} from 'node:crypto';
+﻿import { createHash } from 'node:crypto';
 
 import {
   BadRequestException,
@@ -41,8 +39,10 @@ import {
   UserRecordsService,
   type WorkAggregate,
 } from '../user-records/user-records.service';
+import { WORK_AGGREGATE_INCLUDE } from '../user-records/user-records.types';
 import {
   toUserTimelineEntryResponse,
+  USER_TIMELINE_ENTRY_INCLUDE,
   UserTimelineEntriesService,
   type UserTimelineEntryAggregate,
 } from '../user-records/user-timeline-entries.service';
@@ -109,6 +109,8 @@ const SYNC_CODES = {
   missingRemoteDeleteNoop: 'missing_remote_delete_noop',
 } as const;
 const SYNC_REPLAY_TTL_MS = 24 * 60 * 60 * 1_000;
+const DEFAULT_PULL_PAGE_LIMIT = 500;
+const MAX_PULL_PAGE_LIMIT = 1000;
 
 const SYNC_CREATE_TITLE_INCLUDE = {
   contributors: {
@@ -330,25 +332,37 @@ export class SyncService {
           ? null
           : this.parseIsoDate(since, 'since');
       const parsedCursor = this.parsePullCursor(pullSyncDto.cursor ?? null);
-      const works = await this.userRecordsService.findByUserSince(
+      const pageLimit = this.resolvePullLimit(pullSyncDto.limit);
+      const queryLimit = pageLimit + 1;
+      const works = await this.findWorkRecordsForPullPage(
         userId,
         parsedSince,
+        parsedCursor,
+        queryLimit,
       );
-      const releaseRecords = await this.releaseRecordsService.findByUserSince(
+      const releaseRecords = await this.findReleaseRecordsForPullPage(
         userId,
         parsedSince,
+        parsedCursor,
+        queryLimit,
       );
-      const timelineEntries = await this.timelineEntriesService.findByUserSince(
+      const timelineEntries = await this.findTimelineEntriesForPullPage(
         userId,
         parsedSince,
+        parsedCursor,
+        queryLimit,
       );
-      const graphRecords = await this.findGraphRecordsByUserSince(
+      const graphRecords = await this.findGraphRecordsForPullPage(
         userId,
         parsedSince,
+        parsedCursor,
+        queryLimit,
       );
-      const tierBoardRecords = await this.findTierBoardRecordsByUserSince(
+      const tierBoardRecords = await this.findTierBoardRecordsForPullPage(
         userId,
         parsedSince,
+        parsedCursor,
+        queryLimit,
       );
       const pulledAt = new Date().toISOString();
       const orderedChanges = this.buildOrderedPullChanges({
@@ -357,12 +371,9 @@ export class SyncService {
         releaseRecords,
         timelineEntries,
         works,
-      }).filter((entry) => this.isAfterPullCursor(entry.cursor, parsedCursor));
-      const pageLimit = pullSyncDto.limit ?? null;
-      const pagedChanges =
-        pageLimit === null ? orderedChanges : orderedChanges.slice(0, pageLimit);
-      const hasMore =
-        pageLimit !== null && orderedChanges.length > pagedChanges.length;
+      });
+      const pagedChanges = orderedChanges.slice(0, pageLimit);
+      const hasMore = orderedChanges.length > pagedChanges.length;
       const lastPagedChange = pagedChanges.at(-1) ?? null;
       const changes = pagedChanges.map((entry) => entry.change);
       const changedRecords = [
@@ -439,7 +450,9 @@ export class SyncService {
 
       if (existing) {
         const existingPayloadHash =
-          typeof existing.payloadHash === 'string' ? existing.payloadHash : null;
+          typeof existing.payloadHash === 'string'
+            ? existing.payloadHash
+            : null;
 
         if (existingPayloadHash && existingPayloadHash !== payloadHash) {
           return this.buildClientMutationReusedFailure(change);
@@ -549,12 +562,14 @@ export class SyncService {
 
   private hashChangePayload(change: PushSyncChangeDto) {
     return createHash('sha256')
-      .update(this.stableStringify({
-        entityId: change.entityId,
-        entityType: change.entityType,
-        operation: change.operation,
-        payload: change.payload,
-      }))
+      .update(
+        this.stableStringify({
+          entityId: change.entityId,
+          entityType: change.entityType,
+          operation: change.operation,
+          payload: change.payload,
+        }),
+      )
       .digest('hex');
   }
 
@@ -568,7 +583,10 @@ export class SyncService {
 
       return `{${Object.keys(record)
         .sort()
-        .map((key) => `${JSON.stringify(key)}:${this.stableStringify(record[key])}`)
+        .map(
+          (key) =>
+            `${JSON.stringify(key)}:${this.stableStringify(record[key])}`,
+        )
         .join(',')}}`;
     }
 
@@ -856,7 +874,9 @@ export class SyncService {
     };
   }
 
-  private isObjectPayload(payload: unknown): payload is Record<string, unknown> {
+  private isObjectPayload(
+    payload: unknown,
+  ): payload is Record<string, unknown> {
     return (
       typeof payload === 'object' && payload !== null && !Array.isArray(payload)
     );
@@ -1010,7 +1030,10 @@ export class SyncService {
         client,
       );
     } else {
-      await this.catalogService.create(this.buildCatalogCreateData(payload), client);
+      await this.catalogService.create(
+        this.buildCatalogCreateData(payload),
+        client,
+      );
 
       created = await this.userRecordsService.create(
         this.buildUserRecordCreateData(userId, payload),
@@ -1403,18 +1426,32 @@ export class SyncService {
     });
 
     if (!existing) {
-      return this.applyMissingRemoteSeriesChange(userId, change, payload, client);
+      return this.applyMissingRemoteSeriesChange(
+        userId,
+        change,
+        payload,
+        client,
+      );
     }
 
     if (existing.userId !== userId) {
       return this.buildGraphOwnershipConflict(change, 'series');
     }
 
-    const validationError = await this.validateSeriesParent(userId, payload, client);
+    const validationError = await this.validateSeriesParent(
+      userId,
+      payload,
+      client,
+    );
     if (validationError) {
-      return this.buildGraphValidationFailure(change, 'series', validationError, {
-        series: this.toSyncSeriesPayload(existing),
-      });
+      return this.buildGraphValidationFailure(
+        change,
+        'series',
+        validationError,
+        {
+          series: this.toSyncSeriesPayload(existing),
+        },
+      );
     }
 
     if (
@@ -1461,11 +1498,20 @@ export class SyncService {
     const missingResult = this.getMissingRemoteGraphResult(change, payload);
     if (missingResult) return missingResult;
 
-    const validationError = await this.validateSeriesParent(userId, payload, client);
+    const validationError = await this.validateSeriesParent(
+      userId,
+      payload,
+      client,
+    );
     if (validationError) {
-      return this.buildGraphValidationFailure(change, 'series', validationError, {
-        series: null,
-      });
+      return this.buildGraphValidationFailure(
+        change,
+        'series',
+        validationError,
+        {
+          series: null,
+        },
+      );
     }
 
     const created = await client.userSeries.create({
@@ -1490,7 +1536,12 @@ export class SyncService {
     });
 
     if (!existing) {
-      return this.applyMissingRemoteContributorChange(userId, change, payload, client);
+      return this.applyMissingRemoteContributorChange(
+        userId,
+        change,
+        payload,
+        client,
+      );
     }
 
     if (existing.userId !== userId) {
@@ -1564,7 +1615,12 @@ export class SyncService {
     });
 
     if (!existing) {
-      return this.applyMissingRemoteWorkSeriesLinkChange(userId, change, payload, client);
+      return this.applyMissingRemoteWorkSeriesLinkChange(
+        userId,
+        change,
+        payload,
+        client,
+      );
     }
 
     if (
@@ -1680,7 +1736,12 @@ export class SyncService {
     });
 
     if (!existing) {
-      return this.applyMissingRemoteWorkContributorChange(userId, change, payload, client);
+      return this.applyMissingRemoteWorkContributorChange(
+        userId,
+        change,
+        payload,
+        client,
+      );
     }
 
     if (
@@ -1796,7 +1857,12 @@ export class SyncService {
     });
 
     if (!existing) {
-      return this.applyMissingRemoteWorkRelationChange(userId, change, payload, client);
+      return this.applyMissingRemoteWorkRelationChange(
+        userId,
+        change,
+        payload,
+        client,
+      );
     }
 
     if (
@@ -1995,7 +2061,9 @@ export class SyncService {
       },
     });
 
-    return parent ? null : 'Series parent is missing or belongs to a different user.';
+    return parent
+      ? null
+      : 'Series parent is missing or belongs to a different user.';
   }
 
   private async validateWorkSeriesLinkTarget(
@@ -2079,8 +2147,10 @@ export class SyncService {
     change: PushSyncChangeDto,
     payload: { deletedAt: string | null; serverVersion: number },
   ): PushSyncResultDto | null {
-    const isDelete = change.operation === 'delete' || payload.deletedAt !== null;
-    const canCreate = change.operation === 'create' && payload.serverVersion === 0;
+    const isDelete =
+      change.operation === 'delete' || payload.deletedAt !== null;
+    const canCreate =
+      change.operation === 'create' && payload.serverVersion === 0;
 
     if (isDelete) {
       return {
@@ -2536,7 +2606,10 @@ export class SyncService {
             boardType: payload.boardType,
             visibility: payload.visibility,
             coverImageUrl: normalizeString(payload.coverImageUrl),
-            deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
+            deletedAt: this.parseOptionalIsoDate(
+              payload.deletedAt,
+              'payload.deletedAt',
+            ),
             syncStatus: SERVER_SYNC_STATUS,
             serverVersion: { increment: 1 },
           },
@@ -2551,9 +2624,18 @@ export class SyncService {
             boardType: payload.boardType,
             visibility: payload.visibility,
             coverImageUrl: normalizeString(payload.coverImageUrl),
-            createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
-            updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
-            deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
+            createdAt: this.parseIsoDate(
+              payload.createdAt,
+              'payload.createdAt',
+            ),
+            updatedAt: this.parseIsoDate(
+              payload.updatedAt,
+              'payload.updatedAt',
+            ),
+            deletedAt: this.parseOptionalIsoDate(
+              payload.deletedAt,
+              'payload.deletedAt',
+            ),
             syncStatus: SERVER_SYNC_STATUS,
             serverVersion: 1,
           },
@@ -2605,7 +2687,10 @@ export class SyncService {
             description: normalizeString(payload.description),
             colorToken: normalizeString(payload.colorToken) || '#64748b',
             orderIndex: payload.orderIndex,
-            deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
+            deletedAt: this.parseOptionalIsoDate(
+              payload.deletedAt,
+              'payload.deletedAt',
+            ),
             syncStatus: SERVER_SYNC_STATUS,
             serverVersion: { increment: 1 },
           },
@@ -2618,9 +2703,18 @@ export class SyncService {
             description: normalizeString(payload.description),
             colorToken: normalizeString(payload.colorToken) || '#64748b',
             orderIndex: payload.orderIndex,
-            createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
-            updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
-            deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
+            createdAt: this.parseIsoDate(
+              payload.createdAt,
+              'payload.createdAt',
+            ),
+            updatedAt: this.parseIsoDate(
+              payload.updatedAt,
+              'payload.updatedAt',
+            ),
+            deletedAt: this.parseOptionalIsoDate(
+              payload.deletedAt,
+              'payload.deletedAt',
+            ),
             syncStatus: SERVER_SYNC_STATUS,
             serverVersion: 1,
           },
@@ -2639,9 +2733,17 @@ export class SyncService {
     payload: SyncTierBoardCardPayloadDto,
     client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const validationError = await this.validateTierBoardCardParents(userId, payload, client);
+    const validationError = await this.validateTierBoardCardParents(
+      userId,
+      payload,
+      client,
+    );
     if (validationError) {
-      return this.buildTierBoardParentConflict(change, 'tierBoardCard', validationError);
+      return this.buildTierBoardParentConflict(
+        change,
+        'tierBoardCard',
+        validationError,
+      );
     }
 
     const existing = await client.userTierBoardCard.findUnique({
@@ -2666,7 +2768,10 @@ export class SyncService {
       laneId: payload.laneId,
       userWorkId: payload.workId,
       orderIndex: payload.orderIndex,
-      deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
       syncStatus: SERVER_SYNC_STATUS,
     };
     const record = existing
@@ -2679,8 +2784,14 @@ export class SyncService {
             ...data,
             id: payload.id,
             boardId: payload.boardId,
-            createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
-            updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+            createdAt: this.parseIsoDate(
+              payload.createdAt,
+              'payload.createdAt',
+            ),
+            updatedAt: this.parseIsoDate(
+              payload.updatedAt,
+              'payload.updatedAt',
+            ),
             serverVersion: 1,
           },
         });
@@ -2698,9 +2809,17 @@ export class SyncService {
     payload: SyncTierBoardAssetPayloadDto,
     client: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<PushSyncResultDto> {
-    const validationError = await this.validateTierBoardAssetParents(userId, payload, client);
+    const validationError = await this.validateTierBoardAssetParents(
+      userId,
+      payload,
+      client,
+    );
     if (validationError) {
-      return this.buildTierBoardParentConflict(change, 'tierBoardAsset', validationError);
+      return this.buildTierBoardParentConflict(
+        change,
+        'tierBoardAsset',
+        validationError,
+      );
     }
 
     const existing = await client.userTierBoardAsset.findUnique({
@@ -2724,7 +2843,10 @@ export class SyncService {
       mimeType: normalizeString(payload.mimeType),
       sizeBytes: payload.sizeBytes,
       cardId: payload.cardId,
-      deletedAt: this.parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
+      deletedAt: this.parseOptionalIsoDate(
+        payload.deletedAt,
+        'payload.deletedAt',
+      ),
     };
     const record = existing
       ? await client.userTierBoardAsset.update({
@@ -2736,8 +2858,14 @@ export class SyncService {
             ...data,
             id: payload.id,
             boardId: payload.boardId,
-            createdAt: this.parseIsoDate(payload.createdAt, 'payload.createdAt'),
-            updatedAt: this.parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+            createdAt: this.parseIsoDate(
+              payload.createdAt,
+              'payload.createdAt',
+            ),
+            updatedAt: this.parseIsoDate(
+              payload.updatedAt,
+              'payload.updatedAt',
+            ),
           },
         });
 
@@ -2748,14 +2876,17 @@ export class SyncService {
     });
   }
 
-  private buildTierBoardOwnershipConflict(change: PushSyncChangeDto): PushSyncResultDto {
+  private buildTierBoardOwnershipConflict(
+    change: PushSyncChangeDto,
+  ): PushSyncResultDto {
     return {
       queueId: change.queueId,
       entityId: change.entityId,
       entityType: change.entityType,
       status: 'conflict',
       code: SYNC_CODES.conflictOwnershipMismatch,
-      message: 'Server mismatch: the tier board entity belongs to another user.',
+      message:
+        'Server mismatch: the tier board entity belongs to another user.',
     };
   }
 
@@ -3295,7 +3426,9 @@ export class SyncService {
     );
   }
 
-  private toSyncSeriesPayload(series: UserSeriesSyncView): SyncSeriesPayloadDto {
+  private toSyncSeriesPayload(
+    series: UserSeriesSyncView,
+  ): SyncSeriesPayloadDto {
     return {
       id: series.id,
       title: series.title,
@@ -3382,14 +3515,132 @@ export class SyncService {
     };
   }
 
-  private async findGraphRecordsByUserSince(userId: string, since: Date | null) {
-    const updatedAtFilter = since
-      ? {
+  private findPullPageCursorFilter(
+    entityType: SyncEntityType,
+    since: Date | null,
+    cursor: PullCursor | null,
+  ) {
+    const filters: Array<Record<string, unknown>> = [];
+
+    if (since) {
+      filters.push({
+        updatedAt: {
+          gt: since,
+        },
+      });
+    }
+
+    if (cursor) {
+      const cursorUpdatedAt = this.parseIsoDate(
+        cursor.updatedAt,
+        'cursor.updatedAt',
+      );
+      const entityTypeDelta = entityType.localeCompare(cursor.entityType);
+
+      if (entityTypeDelta < 0) {
+        filters.push({
           updatedAt: {
-            gt: since,
+            gt: cursorUpdatedAt,
           },
-        }
-      : {};
+        });
+      } else if (entityTypeDelta === 0) {
+        filters.push({
+          OR: [
+            {
+              updatedAt: {
+                gt: cursorUpdatedAt,
+              },
+            },
+            {
+              id: {
+                gt: cursor.entityId,
+              },
+              updatedAt: {
+                equals: cursorUpdatedAt,
+              },
+            },
+          ],
+        });
+      } else {
+        filters.push({
+          OR: [
+            {
+              updatedAt: {
+                gt: cursorUpdatedAt,
+              },
+            },
+            {
+              updatedAt: {
+                equals: cursorUpdatedAt,
+              },
+            },
+          ],
+        });
+      }
+    }
+
+    return filters.length > 0 ? { AND: filters } : {};
+  }
+
+  private findWorkRecordsForPullPage(
+    userId: string,
+    since: Date | null,
+    cursor: PullCursor | null,
+    take: number,
+  ) {
+    return this.prisma.userWorkRecord.findMany({
+      where: {
+        userId,
+        ...this.findPullPageCursorFilter('work', since, cursor),
+      },
+      include: WORK_AGGREGATE_INCLUDE,
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      take,
+    });
+  }
+
+  private findReleaseRecordsForPullPage(
+    userId: string,
+    since: Date | null,
+    cursor: PullCursor | null,
+    take: number,
+  ) {
+    return this.prisma.userReleaseRecord.findMany({
+      where: {
+        userWorkRecord: {
+          userId,
+        },
+        ...this.findPullPageCursorFilter('release_record', since, cursor),
+      },
+      include: USER_RELEASE_RECORD_INCLUDE,
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      take,
+    });
+  }
+
+  private findTimelineEntriesForPullPage(
+    userId: string,
+    since: Date | null,
+    cursor: PullCursor | null,
+    take: number,
+  ) {
+    return this.prisma.userTimelineEntry.findMany({
+      where: {
+        userId,
+        ...this.findPullPageCursorFilter('timeline_entry', since, cursor),
+      },
+      include: USER_TIMELINE_ENTRY_INCLUDE,
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      take,
+    });
+  }
+
+  private async findGraphRecordsForPullPage(
+    userId: string,
+    since: Date | null,
+    cursor: PullCursor | null,
+    take: number,
+  ) {
     const [
       series,
       contributors,
@@ -3400,44 +3651,49 @@ export class SyncService {
       this.prisma.userSeries.findMany({
         where: {
           userId,
-          ...updatedAtFilter,
+          ...this.findPullPageCursorFilter('series', since, cursor),
         },
         orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+        take,
       }),
       this.prisma.userContributor.findMany({
         where: {
           userId,
-          ...updatedAtFilter,
+          ...this.findPullPageCursorFilter('contributor', since, cursor),
         },
         orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+        take,
       }),
       this.prisma.userWorkSeriesLink.findMany({
         where: {
           userWork: {
             userId,
           },
-          ...updatedAtFilter,
+          ...this.findPullPageCursorFilter('work_series_link', since, cursor),
         },
         include: USER_WORK_SERIES_LINK_INCLUDE,
         orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+        take,
       }),
       this.prisma.userWorkContributor.findMany({
         where: {
           userWork: {
             userId,
           },
-          ...updatedAtFilter,
+          ...this.findPullPageCursorFilter('work_contributor', since, cursor),
         },
         include: USER_WORK_CONTRIBUTOR_INCLUDE,
         orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+        take,
       }),
       this.prisma.userWorkRelation.findMany({
         where: {
           userId,
-          ...updatedAtFilter,
+          ...this.findPullPageCursorFilter('work_relation', since, cursor),
         },
         include: USER_WORK_RELATION_INCLUDE,
         orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+        take,
       }),
     ]);
 
@@ -3450,34 +3706,45 @@ export class SyncService {
     };
   }
 
-  private async findTierBoardRecordsByUserSince(
+  private async findTierBoardRecordsForPullPage(
     userId: string,
     since: Date | null,
+    cursor: PullCursor | null,
+    take: number,
   ) {
-    const updatedAtFilter = since
-      ? {
-          updatedAt: {
-            gt: since,
-          },
-        }
-      : {};
     const [tierBoards, tierLanes, tierBoardCards, tierBoardAssets] =
       await Promise.all([
         this.prisma.userTierBoard.findMany({
-          where: { userId, ...updatedAtFilter },
+          where: {
+            userId,
+            ...this.findPullPageCursorFilter('tier_board', since, cursor),
+          },
           orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+          take,
         }),
         this.prisma.userTierLane.findMany({
-          where: { board: { userId }, ...updatedAtFilter },
+          where: {
+            board: { userId },
+            ...this.findPullPageCursorFilter('tier_lane', since, cursor),
+          },
           orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+          take,
         }),
         this.prisma.userTierBoardCard.findMany({
-          where: { board: { userId }, ...updatedAtFilter },
+          where: {
+            board: { userId },
+            ...this.findPullPageCursorFilter('tier_board_card', since, cursor),
+          },
           orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+          take,
         }),
         this.prisma.userTierBoardAsset.findMany({
-          where: { board: { userId }, ...updatedAtFilter },
+          where: {
+            board: { userId },
+            ...this.findPullPageCursorFilter('tier_board_asset', since, cursor),
+          },
           orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+          take,
         }),
       ]);
 
@@ -3565,7 +3832,8 @@ export class SyncService {
       id: card.id,
       boardId: card.boardId,
       laneId: card.laneId,
-      cardSourceType: card.cardSourceType as SyncTierBoardCardPayloadDto['cardSourceType'],
+      cardSourceType:
+        card.cardSourceType as SyncTierBoardCardPayloadDto['cardSourceType'],
       title: card.title,
       subtitle: card.subtitle,
       imageUrl: card.imageUrl,
@@ -3875,7 +4143,11 @@ export class SyncService {
             operation: entry.deletedAt === null ? 'upsert' : 'delete',
             tierBoardCard: this.toSyncTierBoardCardPayload(entry),
           },
-          cursor: { entityId: entry.id, entityType: 'tier_board_card', updatedAt },
+          cursor: {
+            entityId: entry.id,
+            entityType: 'tier_board_card',
+            updatedAt,
+          },
           updatedAtMs: entry.updatedAt.getTime(),
         };
       }),
@@ -3889,7 +4161,11 @@ export class SyncService {
             operation: entry.deletedAt === null ? 'upsert' : 'delete',
             tierBoardAsset: this.toSyncTierBoardAssetPayload(entry),
           },
-          cursor: { entityId: entry.id, entityType: 'tier_board_asset', updatedAt },
+          cursor: {
+            entityId: entry.id,
+            entityType: 'tier_board_asset',
+            updatedAt,
+          },
           updatedAtMs: entry.updatedAt.getTime(),
         };
       }),
@@ -3930,7 +4206,9 @@ export class SyncService {
         typeof decoded.updatedAt !== 'string' ||
         typeof decoded.entityType !== 'string' ||
         typeof decoded.entityId !== 'string' ||
-          !(SYNC_ENTITY_TYPES as readonly string[]).includes(decoded.entityType) ||
+        !(SYNC_ENTITY_TYPES as readonly string[]).includes(
+          decoded.entityType,
+        ) ||
         Number.isNaN(Date.parse(decoded.updatedAt))
       ) {
         throw new Error('Invalid cursor shape.');
@@ -3946,27 +4224,12 @@ export class SyncService {
     }
   }
 
-  private isAfterPullCursor(cursor: PullCursor, previous: PullCursor | null) {
-    if (!previous) {
-      return true;
+  private resolvePullLimit(limit: number | undefined) {
+    if (limit === undefined) {
+      return DEFAULT_PULL_PAGE_LIMIT;
     }
 
-    const updatedAtDelta =
-      Date.parse(cursor.updatedAt) - Date.parse(previous.updatedAt);
-
-    if (updatedAtDelta !== 0) {
-      return updatedAtDelta > 0;
-    }
-
-    const entityTypeDelta = cursor.entityType.localeCompare(
-      previous.entityType,
-    );
-
-    if (entityTypeDelta !== 0) {
-      return entityTypeDelta > 0;
-    }
-
-    return cursor.entityId.localeCompare(previous.entityId) > 0;
+    return Math.min(limit, MAX_PULL_PAGE_LIMIT);
   }
 
   private getPullChangeUpdatedAt(change: PullSyncChangeDto) {

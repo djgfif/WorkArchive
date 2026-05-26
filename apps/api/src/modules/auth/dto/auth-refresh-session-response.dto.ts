@@ -13,11 +13,14 @@ export class AuthRefreshSessionResponseDto {
   rememberMe!: boolean;
 
   @ApiProperty({
+    description:
+      'Coarse device/browser summary. Raw User-Agent is not returned.',
     nullable: true,
   })
   userAgent!: string | null;
 
   @ApiProperty({
+    description: 'Masked client IP address. Raw IP address is not returned.',
     nullable: true,
   })
   ipAddress!: string | null;

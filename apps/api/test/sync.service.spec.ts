@@ -45,8 +45,7 @@ const OTHER_USER_ID = 'a3fba91f-71c3-46a2-b126-c4cbca6dd1a8';
 const CATALOG_TITLE_ID = '4fb2a50f-2807-46a2-af4f-f9709afe0a8e';
 const IMPORTED_CATALOG_TITLE_ID = 'db3d7b72-a7ef-4124-b09d-fb76fdf15fed';
 const MISSING_CATALOG_TITLE_ID = 'b7d5aadc-bb3d-4bb8-9726-569b8812dc25';
-const PAYLOAD_TITLE_CATALOG_TITLE_ID =
-  'a0c991ac-e88d-4f8e-81d7-f102519a913d';
+const PAYLOAD_TITLE_CATALOG_TITLE_ID = 'a0c991ac-e88d-4f8e-81d7-f102519a913d';
 
 function createWorkAggregateFixture(
   overrides: Partial<WorkAggregate> = {},
@@ -371,6 +370,7 @@ describe('SyncService', () => {
       },
       userReleaseRecord: {
         create: jest.fn(),
+        findMany: jest.fn(async () => []),
       },
       userSeries: {
         create: jest.fn(),
@@ -433,8 +433,12 @@ describe('SyncService', () => {
         update: jest.fn(),
       },
       userWorkRecord: {
+        findMany: jest.fn(async () => []),
         findUnique: jest.fn(),
         update: jest.fn(),
+      },
+      userTimelineEntry: {
+        findMany: jest.fn(async () => []),
       },
       userSyncAppliedMutation: {
         create: jest.fn(),
@@ -442,8 +446,7 @@ describe('SyncService', () => {
       },
     };
     prisma.$transaction.mockImplementation(
-      async (callback: (client: any) => Promise<any>) =>
-        callback(prisma),
+      async (callback: (client: any) => Promise<any>) => callback(prisma),
     );
 
     catalogService = {
@@ -706,7 +709,7 @@ describe('SyncService', () => {
   });
 
   it('pulls tombstones for the current user and uses updatedAt as the next cursor', async () => {
-    userRecordsService.findByUserSince.mockResolvedValue([
+    prisma.userWorkRecord.findMany.mockResolvedValue([
       createWorkAggregateFixture({
         deletedAt: new Date('2026-04-18T02:00:00.000Z'),
         updatedAt: new Date('2026-04-18T02:00:00.000Z'),
@@ -717,9 +720,13 @@ describe('SyncService', () => {
       since: '2026-04-18T00:00:00.000Z',
     });
 
-    expect(userRecordsService.findByUserSince).toHaveBeenCalledWith(
-      USER_ID,
-      new Date('2026-04-18T00:00:00.000Z'),
+    expect(prisma.userWorkRecord.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 501,
+        where: expect.objectContaining({
+          userId: USER_ID,
+        }),
+      }),
     );
     expect(result).toEqual(
       expect.objectContaining({
@@ -735,32 +742,76 @@ describe('SyncService', () => {
     );
   });
 
+  it('uses the default pull page size when limit is omitted', async () => {
+    prisma.userWorkRecord.findMany.mockResolvedValue(
+      Array.from({ length: 501 }, (_, index) =>
+        createWorkAggregateFixture({
+          id: `${String(index).padStart(8, '0')}-0000-4000-8000-000000000000`,
+          catalogWorkId: `${String(index).padStart(8, '0')}-0000-4000-8000-000000000000`,
+          updatedAt: new Date(
+            `2026-04-18T02:${String(index % 60).padStart(2, '0')}:00.000Z`,
+          ),
+        }),
+      ),
+    );
+
+    const result = await service.pull(USER_ID, {
+      since: '2026-04-18T00:00:00.000Z',
+    });
+
+    expect(prisma.userWorkRecord.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 501,
+      }),
+    );
+    expect(result.changes).toHaveLength(500);
+    expect(result.hasMore).toBe(true);
+    expect(result.nextCursor).toEqual(expect.any(String));
+  });
+
   it('paginates pull changes with a stable cursor across same-timestamp entity types', async () => {
     const sharedUpdatedAt = new Date('2026-04-18T02:00:00.000Z');
-    userRecordsService.findByUserSince.mockResolvedValue([
-      createWorkAggregateFixture({
-        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-        catalogWorkId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-        updatedAt: sharedUpdatedAt,
-        catalogWork: {
-          ...createWorkAggregateFixture().catalogWork,
+    prisma.userWorkRecord.findMany
+      .mockResolvedValueOnce([
+        createWorkAggregateFixture({
           id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          catalogWorkId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
           updatedAt: sharedUpdatedAt,
-        },
-      }),
-    ]);
-    releaseRecordsService.findByUserSince.mockResolvedValue([
-      createReleaseRecordAggregateFixture({
-        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        updatedAt: sharedUpdatedAt,
-      }),
-    ]);
-    timelineEntriesService.findByUserSince.mockResolvedValue([
-      createTimelineEntryAggregateFixture({
-        id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-        updatedAt: sharedUpdatedAt,
-      }),
-    ]);
+          catalogWork: {
+            ...createWorkAggregateFixture().catalogWork,
+            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            updatedAt: sharedUpdatedAt,
+          },
+        }),
+      ])
+      .mockResolvedValueOnce([
+        createWorkAggregateFixture({
+          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          catalogWorkId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          updatedAt: sharedUpdatedAt,
+          catalogWork: {
+            ...createWorkAggregateFixture().catalogWork,
+            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            updatedAt: sharedUpdatedAt,
+          },
+        }),
+      ]);
+    prisma.userReleaseRecord.findMany
+      .mockResolvedValueOnce([
+        createReleaseRecordAggregateFixture({
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          updatedAt: sharedUpdatedAt,
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+    prisma.userTimelineEntry.findMany
+      .mockResolvedValueOnce([
+        createTimelineEntryAggregateFixture({
+          id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          updatedAt: sharedUpdatedAt,
+        }),
+      ])
+      .mockResolvedValueOnce([]);
 
     const firstPage = await service.pull(USER_ID, {
       limit: 2,
@@ -985,7 +1036,10 @@ describe('SyncService', () => {
     prisma.userSyncAppliedMutation.create.mockImplementation(
       async ({ data }: any) => {
         const record = { ...data };
-        idempotencyRecords.set(`${data.userId}:${data.clientMutationId}`, record);
+        idempotencyRecords.set(
+          `${data.userId}:${data.clientMutationId}`,
+          record,
+        );
 
         return record;
       },
@@ -1053,7 +1107,10 @@ describe('SyncService', () => {
     prisma.userSyncAppliedMutation.create.mockImplementation(
       async ({ data }: any) => {
         const record = { ...data };
-        idempotencyRecords.set(`${data.userId}:${data.clientMutationId}`, record);
+        idempotencyRecords.set(
+          `${data.userId}:${data.clientMutationId}`,
+          record,
+        );
 
         return record;
       },
@@ -1112,7 +1169,10 @@ describe('SyncService', () => {
     prisma.userSyncAppliedMutation.create.mockImplementation(
       async ({ data }: any) => {
         const record = { ...data };
-        idempotencyRecords.set(`${data.userId}:${data.clientMutationId}`, record);
+        idempotencyRecords.set(
+          `${data.userId}:${data.clientMutationId}`,
+          record,
+        );
 
         return record;
       },
@@ -1166,7 +1226,10 @@ describe('SyncService', () => {
     prisma.userSyncAppliedMutation.create.mockImplementation(
       async ({ data }: any) => {
         const record = { ...data };
-        idempotencyRecords.set(`${data.userId}:${data.clientMutationId}`, record);
+        idempotencyRecords.set(
+          `${data.userId}:${data.clientMutationId}`,
+          record,
+        );
 
         return record;
       },
@@ -1223,37 +1286,41 @@ describe('SyncService', () => {
     };
     const entityCreate = jest.fn(async ({ data }: any) => data);
 
-    prisma.$transaction.mockImplementation(async (callback: (client: any) => Promise<any>) => {
-      const pending = {
-        boards: [] as Record<string, unknown>[],
-        idempotencyRecords: [] as Record<string, unknown>[],
-      };
-      const tx = {
-        ...prisma,
-        userSyncAppliedMutation: {
-          findUnique: jest.fn(async () => null),
-          create: jest.fn(async ({ data }: any) => {
-            pending.idempotencyRecords.push(data);
-            throw new Error('refresh_token access_token api_key raw_image_data');
-          }),
-        },
-        userTierBoard: {
-          ...prisma.userTierBoard,
-          findUnique: jest.fn(async () => null),
-          create: jest.fn(async ({ data }: any) => {
-            pending.boards.push(data);
+    prisma.$transaction.mockImplementation(
+      async (callback: (client: any) => Promise<any>) => {
+        const pending = {
+          boards: [] as Record<string, unknown>[],
+          idempotencyRecords: [] as Record<string, unknown>[],
+        };
+        const tx = {
+          ...prisma,
+          userSyncAppliedMutation: {
+            findUnique: jest.fn(async () => null),
+            create: jest.fn(async ({ data }: any) => {
+              pending.idempotencyRecords.push(data);
+              throw new Error(
+                'refresh_token access_token api_key raw_image_data',
+              );
+            }),
+          },
+          userTierBoard: {
+            ...prisma.userTierBoard,
+            findUnique: jest.fn(async () => null),
+            create: jest.fn(async ({ data }: any) => {
+              pending.boards.push(data);
 
-            return entityCreate({ data });
-          }),
-        },
-      };
+              return entityCreate({ data });
+            }),
+          },
+        };
 
-      const result = await callback(tx);
-      committed.boards.push(...pending.boards);
-      committed.idempotencyRecords.push(...pending.idempotencyRecords);
+        const result = await callback(tx);
+        committed.boards.push(...pending.boards);
+        committed.idempotencyRecords.push(...pending.idempotencyRecords);
 
-      return result;
-    });
+        return result;
+      },
+    );
 
     await expect(
       service.push(USER_ID, {
@@ -1283,36 +1350,40 @@ describe('SyncService', () => {
     };
     const idempotencyCreate = jest.fn(async ({ data }: any) => data);
 
-    prisma.$transaction.mockImplementation(async (callback: (client: any) => Promise<any>) => {
-      const pending = {
-        boards: [] as Record<string, unknown>[],
-        idempotencyRecords: [] as Record<string, unknown>[],
-      };
-      const tx = {
-        ...prisma,
-        userSyncAppliedMutation: {
-          findUnique: jest.fn(async () => null),
-          create: jest.fn(async ({ data }: any) => {
-            pending.idempotencyRecords.push(data);
+    prisma.$transaction.mockImplementation(
+      async (callback: (client: any) => Promise<any>) => {
+        const pending = {
+          boards: [] as Record<string, unknown>[],
+          idempotencyRecords: [] as Record<string, unknown>[],
+        };
+        const tx = {
+          ...prisma,
+          userSyncAppliedMutation: {
+            findUnique: jest.fn(async () => null),
+            create: jest.fn(async ({ data }: any) => {
+              pending.idempotencyRecords.push(data);
 
-            return idempotencyCreate({ data });
-          }),
-        },
-        userTierBoard: {
-          ...prisma.userTierBoard,
-          findUnique: jest.fn(async () => null),
-          create: jest.fn(async () => {
-            throw new Error('authorization cookie set-cookie oauth_code api_key');
-          }),
-        },
-      };
+              return idempotencyCreate({ data });
+            }),
+          },
+          userTierBoard: {
+            ...prisma.userTierBoard,
+            findUnique: jest.fn(async () => null),
+            create: jest.fn(async () => {
+              throw new Error(
+                'authorization cookie set-cookie oauth_code api_key',
+              );
+            }),
+          },
+        };
 
-      const result = await callback(tx);
-      committed.boards.push(...pending.boards);
-      committed.idempotencyRecords.push(...pending.idempotencyRecords);
+        const result = await callback(tx);
+        committed.boards.push(...pending.boards);
+        committed.idempotencyRecords.push(...pending.idempotencyRecords);
 
-      return result;
-    });
+        return result;
+      },
+    );
 
     await expect(
       service.push(USER_ID, {
@@ -1343,7 +1414,9 @@ describe('SyncService', () => {
       .spyOn(Logger.prototype, 'warn')
       .mockImplementation(() => undefined);
     prisma.$transaction.mockRejectedValue(
-      new Error('authorization cookie set-cookie refresh_token access_token oauth_code api_key raw_image_data'),
+      new Error(
+        'authorization cookie set-cookie refresh_token access_token oauth_code api_key raw_image_data',
+      ),
     );
 
     await expect(
@@ -1368,7 +1441,9 @@ describe('SyncService', () => {
 
     const failedLog = logSpy.mock.calls
       .map((call: unknown[]) => String(call[0]))
-      .find((message: string) => message.includes('"event":"sync.push.failed"'));
+      .find((message: string) =>
+        message.includes('"event":"sync.push.failed"'),
+      );
 
     expect(failedLog).toBeDefined();
     expect(JSON.parse(failedLog!)).toEqual(
@@ -1450,13 +1525,15 @@ describe('SyncService', () => {
         userId: USER_ID,
       },
     });
-    prisma.userTierBoardCard.create.mockImplementation(async ({ data }: any) => ({
-      ...data,
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
-      deletedAt: data.deletedAt,
-      serverVersion: data.serverVersion,
-    }));
+    prisma.userTierBoardCard.create.mockImplementation(
+      async ({ data }: any) => ({
+        ...data,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+        deletedAt: data.deletedAt,
+        serverVersion: data.serverVersion,
+      }),
+    );
 
     const result = await service.push(USER_ID, {
       changes: [
@@ -2079,8 +2156,6 @@ describe('SyncService', () => {
   });
 
   it('keeps the incoming pull cursor when there are no newer records', async () => {
-    userRecordsService.findByUserSince.mockResolvedValue([]);
-
     const result = await service.pull(USER_ID, {
       since: '2026-04-18T00:00:00.000Z',
     });
@@ -2459,9 +2534,7 @@ describe('SyncService', () => {
   });
 
   it('pulls timeline entry changes with the other private sync records', async () => {
-    userRecordsService.findByUserSince.mockResolvedValue([]);
-    releaseRecordsService.findByUserSince.mockResolvedValue([]);
-    timelineEntriesService.findByUserSince.mockResolvedValue([
+    prisma.userTimelineEntry.findMany.mockResolvedValue([
       createTimelineEntryAggregateFixture({
         updatedAt: new Date('2026-04-18T03:00:00.000Z'),
       }),
@@ -2471,9 +2544,13 @@ describe('SyncService', () => {
       since: '2026-04-18T00:00:00.000Z',
     });
 
-    expect(timelineEntriesService.findByUserSince).toHaveBeenCalledWith(
-      USER_ID,
-      new Date('2026-04-18T00:00:00.000Z'),
+    expect(prisma.userTimelineEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 501,
+        where: expect.objectContaining({
+          userId: USER_ID,
+        }),
+      }),
     );
     expect(result).toEqual(
       expect.objectContaining({

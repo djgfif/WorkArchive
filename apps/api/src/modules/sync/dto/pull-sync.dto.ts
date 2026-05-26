@@ -43,7 +43,7 @@ export class PullSyncDto {
   @ApiPropertyOptional({
     default: 500,
     description:
-      'Maximum number of changes to return. Omit for the legacy unpaged pull response.',
+      'Maximum number of changes to return. Missing values use the server default page size.',
     maximum: 1000,
     minimum: 1,
   })

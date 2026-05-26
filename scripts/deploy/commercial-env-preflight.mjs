@@ -40,6 +40,11 @@ expectExact('SWAGGER_ENABLED', 'false');
 expectBoolean('METRICS_ENABLED');
 if (env.METRICS_ENABLED === 'true') {
   expectExact('METRICS_INTERNAL_ACCESS_REVIEWED', 'true');
+  expectPresent('METRICS_BEARER_TOKEN');
+
+  if ((env.METRICS_BEARER_TOKEN?.trim() ?? '').length < 32) {
+    errors.push('METRICS_BEARER_TOKEN must be at least 32 characters.');
+  }
 }
 expectHttpsUrl('CORS_ORIGIN');
 expectHttpsUrl('WEB_BASE_URL');

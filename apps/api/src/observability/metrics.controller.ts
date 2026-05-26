@@ -4,8 +4,10 @@ import {
   Header,
   Inject,
   NotFoundException,
+  Req,
   Res,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import type { Response } from 'express';
 
 import { MetricsService } from './metrics.service';
@@ -18,8 +20,8 @@ export class MetricsController {
 
   @Get()
   @Header('Cache-Control', 'no-store')
-  async getMetrics(@Res() response: Response) {
-    if (!this.metricsService.isEnabled()) {
+  async getMetrics(@Req() request: Request, @Res() response: Response) {
+    if (!this.metricsService.canReadMetrics(request.header('authorization'))) {
       throw new NotFoundException();
     }
 

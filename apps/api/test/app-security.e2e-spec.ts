@@ -98,6 +98,7 @@ const baseConfig: ApiRuntimeConfig = {
   isProduction: false,
   jwtAccessSecret: 'test-access-secret',
   jwtRefreshSecret: 'test-refresh-secret',
+  metricsBearerToken: null,
   metricsEnabled: false,
   port: 0,
   rateLimitPrefix: 'work-archive:test:',

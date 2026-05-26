@@ -54,7 +54,8 @@ Readiness failures return HTTP 503. Production compose healthcheck uses
 
 ## Provider Circuit Breaker
 
-Import providers are isolated with a memory-based circuit breaker:
+Import providers are isolated with Redis-backed runtime state when `REDIS_URL`
+is configured, with memory fallback outside production:
 
 - consecutive failures are counted per provider;
 - after the threshold is reached, the provider moves to OPEN for a short
@@ -74,15 +75,10 @@ Provider network controls verified in code:
   passed as the `key` query parameter, and must stay behind the production
   egress boundary documented in the runbook.
 
-Current limitation: circuit state is process-local memory. It is safe for
-single-instance beta deployments because a failure in one provider cannot stop
-fallback providers, but it does not coordinate across multiple API instances.
-Redis backlog is concrete:
-
-1. replace the process map with Redis keys per provider;
-2. atomically increment consecutive failures and set cooldown TTL;
-3. read `/imports/providers` circuit status from Redis;
-4. add an operator command to clear a provider circuit without process restart.
+Current limitation: Redis operations are simple key reads/writes rather than a
+single Lua-backed atomic state transition. This is acceptable for beta fallback
+behavior, but high-concurrency commercial traffic should add an atomic increment
+path and an operator circuit-clear command. 4. add an operator command to clear a provider circuit without process restart.
 
 ## Operational Retention
 

@@ -134,6 +134,7 @@ require_exact TRUST_PROXY_HOPS 1
 
 metrics_enabled="$(read_env_value METRICS_ENABLED)"
 metrics_access_reviewed="$(read_env_value METRICS_INTERNAL_ACCESS_REVIEWED)"
+metrics_bearer_token="$(read_env_value METRICS_BEARER_TOKEN)"
 
 if [[ -z "$metrics_enabled" ]]; then
   metrics_enabled="false"
@@ -145,6 +146,14 @@ fi
 
 if [[ "$metrics_enabled" == "true" && "$metrics_access_reviewed" != "true" ]]; then
   fail "METRICS_INTERNAL_ACCESS_REVIEWED must be true when METRICS_ENABLED=true."
+fi
+
+if [[ "$metrics_enabled" == "true" ]]; then
+  if [[ -z "$metrics_bearer_token" ]]; then
+    fail "METRICS_BEARER_TOKEN must be set when METRICS_ENABLED=true."
+  elif [[ ${#metrics_bearer_token} -lt 32 ]]; then
+    fail "METRICS_BEARER_TOKEN must be at least 32 characters when metrics are enabled."
+  fi
 fi
 
 web_base_url="$(read_env_value WEB_BASE_URL)"

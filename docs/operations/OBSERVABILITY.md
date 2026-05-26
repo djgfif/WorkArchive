@@ -9,7 +9,10 @@ Production rule:
 
 - keep `METRICS_ENABLED=false` unless the endpoint is reachable only from an
   internal network, reverse-proxy allowlist, or trusted monitoring collector;
-- never expose `/metrics` publicly without access control;
+- set `METRICS_BEARER_TOKEN` to a unique 32+ character collector token before
+  enabling metrics in production;
+- never expose `/metrics` publicly; unauthenticated requests should return 404
+  even when metrics are enabled;
 - do not put user IDs, emails, tokens, request bodies, raw entity IDs, or raw
   path IDs in metric labels.
 
@@ -17,12 +20,15 @@ Enable for an internal deployment:
 
 ```bash
 METRICS_ENABLED=true
+METRICS_INTERNAL_ACCESS_REVIEWED=true
+METRICS_BEARER_TOKEN=<unique-collector-token>
 ```
 
 The endpoint is outside the API prefix:
 
 ```bash
-curl -fsS http://localhost:18731/metrics
+curl -fsS -H "Authorization: Bearer $METRICS_BEARER_TOKEN" \
+  http://localhost:18731/metrics
 ```
 
 ## Metrics

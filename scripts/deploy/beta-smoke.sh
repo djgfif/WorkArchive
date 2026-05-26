@@ -7,6 +7,7 @@ COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/compose.prod.yml}"
 RUN_CONTAINER_FS_SMOKE="${RUN_CONTAINER_FS_SMOKE:-1}"
 EXPECT_GOOGLE_OAUTH_CONFIGURED="${EXPECT_GOOGLE_OAUTH_CONFIGURED:-true}"
 EXPECT_METRICS_STATUS="${EXPECT_METRICS_STATUS:-404}"
+SMOKE_METRICS_BEARER_TOKEN="${SMOKE_METRICS_BEARER_TOKEN:-}"
 
 failures=()
 warnings=()
@@ -268,6 +269,12 @@ if [[ "$EXPECT_METRICS_STATUS" == "200" ]]; then
   body_contains 'work_archive_api_request_total' "metrics endpoint exposes Work Archive counters"
 else
   echo "OK metrics endpoint is not publicly exposed with expected HTTP $EXPECT_METRICS_STATUS"
+fi
+
+if [[ -n "$SMOKE_METRICS_BEARER_TOKEN" ]]; then
+  expect_status GET /metrics 200 \
+    -H "Authorization: Bearer ${SMOKE_METRICS_BEARER_TOKEN}"
+  body_contains 'work_archive_api_request_total' "metrics endpoint exposes Work Archive counters to the internal collector token"
 fi
 
 run_operator_sync_smoke

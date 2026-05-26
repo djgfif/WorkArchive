@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { timingSafeEqual } from 'node:crypto';
 import {
   collectDefaultMetrics,
   Counter,
@@ -16,7 +17,8 @@ type RequestLabels = {
 
 @Injectable()
 export class MetricsService {
-  private readonly enabled = readApiRuntimeConfig().metricsEnabled;
+  private readonly config = readApiRuntimeConfig();
+  private readonly enabled = this.config.metricsEnabled;
   private readonly registry = new Registry();
   private readonly requestCount: Counter<string>;
   private readonly requestDuration: Histogram<string>;
@@ -97,6 +99,30 @@ export class MetricsService {
 
   isEnabled() {
     return this.enabled;
+  }
+
+  canReadMetrics(authorizationHeader: string | undefined) {
+    if (!this.enabled) {
+      return false;
+    }
+
+    if (!this.config.metricsBearerToken) {
+      return !this.config.isProduction;
+    }
+
+    const prefix = 'Bearer ';
+
+    if (!authorizationHeader?.startsWith(prefix)) {
+      return false;
+    }
+
+    const token = authorizationHeader.slice(prefix.length);
+    const expected = Buffer.from(this.config.metricsBearerToken);
+    const actual = Buffer.from(token);
+
+    return (
+      actual.length === expected.length && timingSafeEqual(actual, expected)
+    );
   }
 
   contentType() {

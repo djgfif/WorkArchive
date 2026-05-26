@@ -20,9 +20,9 @@ RETENTION_CLEANUP_CONFIRM=delete-expired-operational-data
 - Provider API keys are stored through the credential service and encrypted with
   `EXTERNAL_API_KEY_ENCRYPTION_SECRET`.
 - `SecurityEvent` stores hashed IP and user-agent values.
-- `UserRefreshSession` currently stores raw `ipAddress` and `userAgent` for
-  session management display and audit context. Minimizing or hashing these is a
-  remaining commercial-launch privacy improvement.
+- `UserRefreshSession` stores masked IP addresses and coarse device/browser
+  summaries for session management display. Raw request IP and User-Agent values
+  are not returned by the session management API.
 - PostgreSQL backups include private user records, account identifiers, refresh
   session metadata, encrypted provider credentials, security events, sync
   mutation results, and catalog data.
@@ -38,6 +38,7 @@ RETENTION_CLEANUP_CONFIRM=delete-expired-operational-data
 ## Remaining Improvements
 
 - Add account deletion and user data export policy before commercial launch.
-- Minimize raw refresh-session client metadata.
+- Add a migration to rename legacy `user_refresh_sessions.ip_address` and
+  `user_agent` columns to explicit masked/summary names.
 - Define backup encryption, storage location, access review, and deletion
   procedure in the hosting environment.

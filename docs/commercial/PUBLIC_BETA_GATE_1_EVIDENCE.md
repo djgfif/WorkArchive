@@ -46,7 +46,8 @@ tester data.
 - `/health`:
 - `/livez`:
 - `/readyz`:
-- `/metrics` exposure result:
+- `/metrics` public unauthenticated exposure result:
+- `/metrics` internal collector bearer-token result:
 - Google OAuth login/logout:
 - Guest JSON export/import:
 - Guest-to-account transfer review:

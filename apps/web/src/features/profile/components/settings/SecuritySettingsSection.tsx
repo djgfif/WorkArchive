@@ -39,28 +39,30 @@ function formatUserAgent(value: string | null) {
     return '정보 없음';
   }
 
-  const browser =
-    value.includes('Edg/')
-      ? 'Edge'
-      : value.includes('Chrome/')
-        ? 'Chrome'
-        : value.includes('Firefox/')
-          ? 'Firefox'
-          : value.includes('Safari/')
-            ? 'Safari'
-            : '브라우저';
-  const os =
-    value.includes('Windows')
-      ? 'Windows'
-      : value.includes('Mac OS X')
-        ? 'macOS'
-        : value.includes('Android')
-          ? 'Android'
-          : value.includes('iPhone') || value.includes('iPad')
-            ? 'iOS'
-            : value.includes('Linux')
-              ? 'Linux'
-              : null;
+  if (!/[()/]/.test(value)) {
+    return value.slice(0, 80);
+  }
+
+  const browser = value.includes('Edg/')
+    ? 'Edge'
+    : value.includes('Chrome/')
+      ? 'Chrome'
+      : value.includes('Firefox/')
+        ? 'Firefox'
+        : value.includes('Safari/')
+          ? 'Safari'
+          : '브라우저';
+  const os = value.includes('Windows')
+    ? 'Windows'
+    : value.includes('Mac OS X')
+      ? 'macOS'
+      : value.includes('Android')
+        ? 'Android'
+        : value.includes('iPhone') || value.includes('iPad')
+          ? 'iOS'
+          : value.includes('Linux')
+            ? 'Linux'
+            : null;
   const label = [browser, os].filter(Boolean).join(' · ');
 
   return label || value.slice(0, 80);
@@ -116,7 +118,9 @@ export function SecuritySettingsSection({
         />
         <ActionRow>
           <AppBadge tone={mode === 'authenticated' ? 'success' : 'muted'}>
-            {mode === 'authenticated' ? 'Google-only auth' : 'Local-first guest'}
+            {mode === 'authenticated'
+              ? 'Google-only auth'
+              : 'Local-first guest'}
           </AppBadge>
           <AppBadge tone="muted">이메일/비밀번호 로그인 없음</AppBadge>
         </ActionRow>
@@ -138,8 +142,8 @@ export function SecuritySettingsSection({
           <ActionRow>
             <AppBadge tone="success">활성 세션 {sessions.length}개</AppBadge>
             <AppBadge tone="accent">
-              로그인 유지 {sessions.filter((session) => session.rememberMe).length}
-              개
+              로그인 유지{' '}
+              {sessions.filter((session) => session.rememberMe).length}개
             </AppBadge>
             <AppBadge tone="muted">
               현재 기기 {sessions.filter((session) => session.current).length}개
@@ -199,7 +203,9 @@ export function SecuritySettingsSection({
       )}
 
       {feedback && (
-        <FeedbackMessage tone={feedback.tone}>{feedback.message}</FeedbackMessage>
+        <FeedbackMessage tone={feedback.tone}>
+          {feedback.message}
+        </FeedbackMessage>
       )}
     </SectionCard>
   );

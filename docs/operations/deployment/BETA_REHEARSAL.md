@@ -42,7 +42,9 @@ security-event, and provider-key encryption secrets.
 If `METRICS_ENABLED=true`, the preflight requires
 `METRICS_INTERNAL_ACCESS_REVIEWED=true`. That flag is an operator assertion that
 the endpoint is reachable only by an internal collector or allowlisted
-reverse-proxy path.
+reverse-proxy path. Production metrics also require `METRICS_BEARER_TOKEN`;
+public smoke should keep expecting `/metrics` to return `404`, and collector
+smoke can set `SMOKE_METRICS_BEARER_TOKEN` to verify the internal `200` path.
 
 ## Evidence
 

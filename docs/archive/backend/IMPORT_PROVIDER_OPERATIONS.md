@@ -8,15 +8,16 @@
   inside the allowed retry window.
 - Repeated provider failures open a provider circuit after 3 consecutive
   failures for 60 seconds.
-- Circuit state is process-local in `ImportsService`.
+- Circuit state and provider cache use Redis when `REDIS_URL` is configured;
+  non-production environments fall back to process memory when Redis is absent.
 - KOBIS uses an HTTP upstream endpoint and sends the user-scoped key as a query
   parameter because the provider API requires it.
 
 ## Operational Risk
 
-Process-local circuits do not coordinate across multiple API instances. A
-rolling restart clears circuit state, and parallel instances can continue
-calling a degraded provider until each instance opens its own circuit.
+Memory fallback circuits do not coordinate across multiple API instances. Keep
+production on Redis-backed provider runtime state so rolling restarts and
+parallel instances share cooldowns.
 
 KOBIS should remain disabled for guest access and only be used where outbound
 traffic is within an acceptable network boundary. Prefer an egress proxy or
@@ -33,7 +34,6 @@ Labels are `provider` and bounded reason code only.
 
 ## Backlog
 
-- Move circuit state to Redis with atomic increments and TTL.
 - Add an operator command to clear one provider circuit.
 - Add per-provider latency histograms after traffic patterns are known.
 - Document provider-specific quota and cost limits before commercial launch.

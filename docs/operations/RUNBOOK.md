@@ -42,8 +42,9 @@ when `REDIS_URL` is configured.
 
 `/metrics` is disabled by default with `METRICS_ENABLED=false`. Enable it only
 behind an internal network, reverse-proxy allowlist, or trusted monitoring
-collector. See `docs/operations/OBSERVABILITY.md` for metric names and alert
-drafts.
+collector, and set `METRICS_BEARER_TOKEN` for the collector. Unauthenticated
+public requests should return `404` even when the collector path returns `200`.
+See `docs/operations/OBSERVABILITY.md` for metric names and alert drafts.
 
 ## Client header guard audit to enforce
 

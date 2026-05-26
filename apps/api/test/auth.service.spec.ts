@@ -1,5 +1,12 @@
 import { BadRequestException, ConflictException, Logger } from '@nestjs/common';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 
 import { getRefreshTokenCookieOptions } from '../src/modules/auth/auth.cookies';
 import {
@@ -283,15 +290,17 @@ async function issueSession(
   authService: AuthService,
   user: MockUser,
   rememberMe = true,
+  metadata: { ipAddress?: string | null; userAgent?: string | null } = {},
 ): Promise<IssuedAuthSession> {
   return (
     authService as unknown as {
       createSessionForUser: (
         user: MockUser,
         rememberMe?: boolean,
+        metadata?: { ipAddress?: string | null; userAgent?: string | null },
       ) => Promise<IssuedAuthSession>;
     }
-  ).createSessionForUser(user, rememberMe);
+  ).createSessionForUser(user, rememberMe, metadata);
 }
 
 describe('AuthService', () => {
@@ -324,9 +333,11 @@ describe('AuthService', () => {
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
 
-    await expect(issueSession(authService, user, false)).resolves.toMatchObject({
-      rememberMe: false,
-    });
+    await expect(issueSession(authService, user, false)).resolves.toMatchObject(
+      {
+        rememberMe: false,
+      },
+    );
     expect(users[0]?.refreshTokenHash).toBeNull();
     expect(userRefreshSessions).toHaveLength(1);
     expect(userRefreshSessions[0]).toMatchObject({
@@ -334,6 +345,33 @@ describe('AuthService', () => {
       userId: 'user-1',
     });
     expect(userRefreshSessions[0]?.tokenHash).toEqual(expect.any(String));
+  });
+
+  it('stores only masked session network metadata', async () => {
+    const { prisma, userRefreshSessions, users } = createPrismaMock();
+    const user = {
+      avatarUrl: '',
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: '',
+      passwordHash: null,
+      refreshTokenHash: null,
+      role: 'user',
+    } satisfies MockUser;
+    users.push(user);
+    const authService = new AuthService(prisma as unknown as PrismaService);
+
+    await issueSession(authService, user, true, {
+      ipAddress: '203.0.113.42',
+      userAgent:
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    });
+
+    expect(userRefreshSessions[0]).toMatchObject({
+      ipAddress: '203.0.113.x',
+      userAgent: 'Chrome on macOS',
+    });
   });
 
   it('keeps multiple refresh sessions independent until token reuse is detected', async () => {
@@ -555,9 +593,7 @@ describe('AuthService', () => {
     await expect(
       (
         authService as unknown as {
-          exchangeGoogleAuthorizationCode: (
-            code: string,
-          ) => Promise<unknown>;
+          exchangeGoogleAuthorizationCode: (code: string) => Promise<unknown>;
         }
       ).exchangeGoogleAuthorizationCode('oauth-code-secret'),
     ).rejects.toThrow('Google login could not be completed.');

@@ -15,6 +15,7 @@ export interface ApiRuntimeConfig {
   isProduction: boolean;
   jwtAccessSecret: string;
   jwtRefreshSecret: string;
+  metricsBearerToken: string | null;
   metricsEnabled: boolean;
   port: number;
   rateLimitPrefix: string;
@@ -59,9 +60,7 @@ const DEFAULT_PRODUCTION_SECRET_VALUES = new Map([
 const MINIMUM_PRODUCTION_SECRET_LENGTH = 32;
 const DEVELOPMENT_SECURITY_EVENT_HASH_SECRET =
   'development-security-event-hash-secret';
-const DEVELOPMENT_WEB_ORIGINS = [
-  'http://localhost:18730',
-];
+const DEVELOPMENT_WEB_ORIGINS = ['http://localhost:18730'];
 
 const apiEnvironmentSchema = z
   .object({
@@ -78,6 +77,7 @@ const apiEnvironmentSchema = z
     IMPORT_GUEST_RATE_LIMIT_MAX: z.string().optional(),
     JWT_ACCESS_SECRET: z.string().optional(),
     JWT_REFRESH_SECRET: z.string().optional(),
+    METRICS_BEARER_TOKEN: z.string().optional(),
     METRICS_ENABLED: z.string().optional(),
     NODE_ENV: z.string().optional(),
     PORT: z.string().optional(),
@@ -222,8 +222,8 @@ function readBoolean(value: string | undefined, fallback: boolean) {
 }
 
 function readClientHeaderGuardMode(isProduction: boolean) {
-  const normalizedValue = process.env.WORK_ARCHIVE_CLIENT_HEADER_GUARD?.trim()
-    .toLowerCase();
+  const normalizedValue =
+    process.env.WORK_ARCHIVE_CLIENT_HEADER_GUARD?.trim().toLowerCase();
 
   if (!normalizedValue) {
     return isProduction ? ('audit' as const) : ('off' as const);
@@ -492,6 +492,15 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     throw new Error('SWAGGER_ENABLED must not be true in production.');
   }
 
+  const metricsEnabled = readBoolean(process.env.METRICS_ENABLED, false);
+  const metricsBearerToken = process.env.METRICS_BEARER_TOKEN?.trim() || null;
+
+  if (isProduction && metricsEnabled && !metricsBearerToken) {
+    throw new Error(
+      'METRICS_BEARER_TOKEN must be configured when METRICS_ENABLED=true in production.',
+    );
+  }
+
   return {
     authRateLimitMax: readPositiveInteger(
       'AUTH_RATE_LIMIT_MAX',
@@ -519,7 +528,8 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     isProduction,
     jwtAccessSecret,
     jwtRefreshSecret,
-    metricsEnabled: readBoolean(process.env.METRICS_ENABLED, false),
+    metricsBearerToken,
+    metricsEnabled,
     port,
     rateLimitPrefix:
       process.env.RATE_LIMIT_PREFIX?.trim() || 'work-archive:rate-limit:',

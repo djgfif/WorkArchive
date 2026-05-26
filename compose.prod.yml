@@ -66,6 +66,7 @@ services:
       RATE_LIMIT_PREFIX: ${RATE_LIMIT_PREFIX:-work-archive:rate-limit:}
       COOKIE_SECURE: 'true'
       METRICS_ENABLED: ${METRICS_ENABLED:-false}
+      METRICS_BEARER_TOKEN: ${METRICS_BEARER_TOKEN:-}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?required}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?required}
@@ -112,7 +113,8 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: work-archive-retention-cleanup
-    entrypoint: ['node', '/workspace/apps/api/dist/operations/retention-cleanup.js']
+    entrypoint:
+      ['node', '/workspace/apps/api/dist/operations/retention-cleanup.js']
     profiles: ['maintenance']
     depends_on:
       postgres:

@@ -49,8 +49,7 @@ import type {
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const GOOGLE_AUTH_PROVIDER = 'google';
-const GOOGLE_AUTHORIZATION_URL =
-  'https://accounts.google.com/o/oauth2/v2/auth';
+const GOOGLE_AUTHORIZATION_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
 const GOOGLE_TOKEN_TIMEOUT_MS = 5_000;
@@ -151,7 +150,9 @@ export class AuthService {
   isGoogleOAuthConfigured() {
     const config = readApiRuntimeConfig();
 
-    return Boolean(config.googleOAuthClientId && config.googleOAuthClientSecret);
+    return Boolean(
+      config.googleOAuthClientId && config.googleOAuthClientSecret,
+    );
   }
 
   async loginWithGoogleAuthorizationCode(
@@ -161,7 +162,9 @@ export class AuthService {
   ): Promise<IssuedAuthSession> {
     const tokenResponse = await this.exchangeGoogleAuthorizationCode(code);
     const idToken =
-      typeof tokenResponse.id_token === 'string' ? tokenResponse.id_token : null;
+      typeof tokenResponse.id_token === 'string'
+        ? tokenResponse.id_token
+        : null;
 
     if (!idToken) {
       throw new UnauthorizedException('Google did not return an id_token.');
@@ -486,11 +489,11 @@ export class AuthService {
       data: {
         id: sessionId,
         expiresAt,
-        ipAddress: metadata.ipAddress ?? null,
+        ipAddress: this.maskIpAddress(metadata.ipAddress ?? null),
         lastUsedAt: new Date(),
         rememberMe,
         tokenHash: await hashSecret(refreshToken),
-        userAgent: metadata.userAgent ?? null,
+        userAgent: this.summarizeUserAgent(metadata.userAgent ?? null),
         userId: user.id,
       },
     });
@@ -624,7 +627,10 @@ export class AuthService {
   }
 
   private toUserResponse(
-    user: Pick<User, 'id' | 'avatarUrl' | 'email' | 'handle' | 'nickname' | 'role'> & {
+    user: Pick<
+      User,
+      'id' | 'avatarUrl' | 'email' | 'handle' | 'nickname' | 'role'
+    > & {
       authAccounts?: Pick<
         UserAuthAccount,
         'email' | 'emailVerified' | 'name' | 'pictureUrl' | 'provider'
@@ -696,7 +702,9 @@ export class AuthService {
     }
 
     if (!response.ok) {
-      this.logger.warn(`Google token exchange failed status=${response.status}`);
+      this.logger.warn(
+        `Google token exchange failed status=${response.status}`,
+      );
       throw new UnauthorizedException('Google login could not be completed.');
     }
 
@@ -852,7 +860,9 @@ export class AuthService {
     const signingKey = keysByKid.get(kid);
 
     if (!signingKey) {
-      throw new UnauthorizedException('Google id_token signing key is unknown.');
+      throw new UnauthorizedException(
+        'Google id_token signing key is unknown.',
+      );
     }
 
     return signingKey;
@@ -962,13 +972,68 @@ export class AuthService {
       id: session.id,
       current,
       rememberMe: session.rememberMe,
-      userAgent: session.userAgent,
-      ipAddress: session.ipAddress,
+      userAgent: this.summarizeUserAgent(session.userAgent),
+      ipAddress: this.maskIpAddress(session.ipAddress),
       createdAt: session.createdAt.toISOString(),
       lastUsedAt: session.lastUsedAt?.toISOString() ?? null,
       rotatedAt: session.rotatedAt?.toISOString() ?? null,
       expiresAt: session.expiresAt.toISOString(),
     };
+  }
+
+  private summarizeUserAgent(value: string | null) {
+    if (!value) {
+      return null;
+    }
+
+    if (!/[()/]/.test(value) && value.length <= 80) {
+      return value;
+    }
+
+    const browser = value.includes('Edg/')
+      ? 'Edge'
+      : value.includes('Chrome/')
+        ? 'Chrome'
+        : value.includes('Firefox/')
+          ? 'Firefox'
+          : value.includes('Safari/')
+            ? 'Safari'
+            : 'Browser';
+    const os = value.includes('Windows')
+      ? 'Windows'
+      : value.includes('Mac OS X')
+        ? 'macOS'
+        : value.includes('Android')
+          ? 'Android'
+          : value.includes('iPhone') || value.includes('iPad')
+            ? 'iOS'
+            : value.includes('Linux')
+              ? 'Linux'
+              : null;
+
+    return [browser, os].filter(Boolean).join(' on ');
+  }
+
+  private maskIpAddress(value: string | null) {
+    if (!value) {
+      return null;
+    }
+
+    if (value.includes(':')) {
+      const segments = value.split(':').filter(Boolean);
+
+      return segments.length > 1
+        ? `${segments.slice(0, 2).join(':')}:...`
+        : `${value.slice(0, 6)}...`;
+    }
+
+    const parts = value.split('.');
+
+    if (parts.length === 4) {
+      return `${parts.slice(0, 3).join('.')}.x`;
+    }
+
+    return 'masked';
   }
 
   private async revokeAllUserSessions(userId: string) {

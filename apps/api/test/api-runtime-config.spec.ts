@@ -408,4 +408,33 @@ describe('api runtime config', () => {
       'SECURITY_EVENT_HASH_SECRET must be at least 32 characters in production.',
     );
   });
+
+  it('requires a collector bearer token when production metrics are enabled', () => {
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      METRICS_ENABLED: 'true',
+      METRICS_BEARER_TOKEN: '',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'METRICS_BEARER_TOKEN must be configured when METRICS_ENABLED=true in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      METRICS_BEARER_TOKEN: 'metrics-collector-token-minimum-32-chars',
+      METRICS_ENABLED: 'true',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        metricsBearerToken: 'metrics-collector-token-minimum-32-chars',
+        metricsEnabled: true,
+      }),
+    );
+  });
 });
