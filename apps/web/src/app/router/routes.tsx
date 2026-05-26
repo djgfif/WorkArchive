@@ -1,12 +1,17 @@
 import type { RouteObject } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
-import { lazy, Suspense, type ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
 import { AccountLayout } from '../layouts/AccountLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { MainProductLayout } from '../layouts/MainProductLayout';
 import { MinimalLayout } from '../layouts/MinimalLayout';
 import { NotFoundPage } from './NotFoundPage';
+import {
+  TierBoardEditorPage,
+  TierBoardsPage,
+  TierBoardViewPage,
+} from './tier-board-route-components';
 import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
 import {
   featureFlags,
@@ -30,22 +35,6 @@ import {
   WorksListPage,
 } from '@features/works';
 import { StateMessage } from '@shared/components/AppPrimitives';
-
-const TierBoardsPage = lazy(() =>
-  import('@features/tier-boards').then((module) => ({
-    default: module.TierBoardsPage,
-  })),
-);
-const TierBoardEditorPage = lazy(() =>
-  import('@features/tier-boards').then((module) => ({
-    default: module.TierBoardEditorPage,
-  })),
-);
-const TierBoardViewPage = lazy(() =>
-  import('@features/tier-boards').then((module) => ({
-    default: module.TierBoardViewPage,
-  })),
-);
 
 function lazyRoute(element: ReactNode) {
   return (
