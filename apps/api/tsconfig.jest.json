@@ -1,6 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "declaration": false,
+    "noEmitOnError": false,
+    "outDir": "dist-jest",
     "rootDir": "../.."
   }
 }

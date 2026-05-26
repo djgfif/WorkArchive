@@ -55,6 +55,13 @@ const DEFAULT_PRODUCTION_SECRET_VALUES = new Map([
       'local-compose-security-event-secret-32-chars',
     ],
   ],
+  [
+    'METRICS_BEARER_TOKEN',
+    [
+      'change-me-metrics-bearer-token',
+      'local-compose-metrics-bearer-token-minimum-32-chars',
+    ],
+  ],
 ]);
 
 const MINIMUM_PRODUCTION_SECRET_LENGTH = 32;
@@ -499,6 +506,10 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     throw new Error(
       'METRICS_BEARER_TOKEN must be configured when METRICS_ENABLED=true in production.',
     );
+  }
+
+  if (isProduction && metricsEnabled && metricsBearerToken) {
+    rejectDefaultProductionSecret('METRICS_BEARER_TOKEN', metricsBearerToken);
   }
 
   return {

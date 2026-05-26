@@ -6,7 +6,6 @@ ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env.prod}"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/compose.prod.yml}"
 RUN_CONTAINER_FS_SMOKE="${RUN_CONTAINER_FS_SMOKE:-1}"
 EXPECT_GOOGLE_OAUTH_CONFIGURED="${EXPECT_GOOGLE_OAUTH_CONFIGURED:-true}"
-EXPECT_METRICS_STATUS="${EXPECT_METRICS_STATUS:-404}"
 SMOKE_METRICS_BEARER_TOKEN="${SMOKE_METRICS_BEARER_TOKEN:-}"
 
 failures=()
@@ -46,13 +45,13 @@ read_env_value() {
 }
 
 resolve_base_url() {
-  local base_url="${BETA_BASE_URL:-${HEALTHCHECK_BASE_URL:-}}"
+  local base_url="${BETA_BASE_URL:-${HEALTHCHECK_BASE_URL:-${BASE_URL:-}}}"
 
   if [[ -z "$base_url" && -f "$ENV_FILE" ]]; then
     base_url="$(read_env_value WEB_BASE_URL)"
   fi
 
-  if [[ -z "$base_url" || "$base_url" == *"archive.example.com"* ]]; then
+  if [[ -z "$base_url" ]]; then
     local web_port="${WEB_PORT:-}"
     if [[ -z "$web_port" && -f "$ENV_FILE" ]]; then
       web_port="$(read_env_value WEB_PORT)"
@@ -61,6 +60,38 @@ resolve_base_url() {
   fi
 
   echo "${base_url%/}"
+}
+
+resolve_allowed_origin() {
+  local allowed_origin="${SMOKE_ALLOWED_ORIGIN:-${WEB_BASE_URL:-}}"
+
+  if [[ -z "$allowed_origin" && -f "$ENV_FILE" ]]; then
+    allowed_origin="$(read_env_value WEB_BASE_URL)"
+  fi
+
+  if [[ -z "$allowed_origin" && -f "$ENV_FILE" ]]; then
+    allowed_origin="$(read_env_value BASE_URL)"
+  fi
+
+  if [[ -z "$allowed_origin" ]]; then
+    allowed_origin="$BASE_URL"
+  fi
+
+  echo "${allowed_origin%/}"
+}
+
+expected_refresh_guard_status() {
+  local node_env="${NODE_ENV:-}"
+
+  if [[ -z "$node_env" && -f "$ENV_FILE" ]]; then
+    node_env="$(read_env_value NODE_ENV)"
+  fi
+
+  if [[ "$node_env" == "production" ]]; then
+    echo "403"
+  else
+    echo "204"
+  fi
 }
 
 request() {
@@ -233,6 +264,7 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 BASE_URL="$(resolve_base_url)"
+ALLOWED_ORIGIN="$(resolve_allowed_origin)"
 echo "Running beta smoke tests against $BASE_URL"
 
 expect_status GET /health 200
@@ -257,19 +289,23 @@ expect_status GET /work-archive-config.js 200
 body_contains '__WORK_ARCHIVE_CONFIG__' "runtime web config is served"
 header_contains '^cache-control:.*no-store' "runtime web config is not cached"
 
-expect_status POST /api/auth/refresh 401
+expect_status POST /api/auth/refresh "$(expected_refresh_guard_status)"
 if grep -qi '^set-cookie:' "$LAST_HEADER_FILE"; then
-  fail "POST /api/auth/refresh without OAuth must not set a refresh cookie."
+  fail "POST /api/auth/refresh without a valid Origin must not set a refresh cookie."
 else
-  echo "OK refresh endpoint rejects missing cookie without setting a cookie"
+  echo "OK refresh endpoint handles missing Origin without setting a cookie"
 fi
 
-expect_status GET /metrics "$EXPECT_METRICS_STATUS"
-if [[ "$EXPECT_METRICS_STATUS" == "200" ]]; then
-  body_contains 'work_archive_api_request_total' "metrics endpoint exposes Work Archive counters"
+expect_status POST /api/auth/refresh 204 \
+  -H "Origin: ${ALLOWED_ORIGIN}"
+if grep -qi '^set-cookie:' "$LAST_HEADER_FILE"; then
+  fail "POST /api/auth/refresh from allowed Origin without a refresh cookie must not set a refresh cookie."
 else
-  echo "OK metrics endpoint is not publicly exposed with expected HTTP $EXPECT_METRICS_STATUS"
+  echo "OK refresh endpoint returns guest continuation without setting a cookie"
 fi
+
+expect_status GET /metrics 404
+echo "OK metrics endpoint is hidden from unauthenticated public access"
 
 if [[ -n "$SMOKE_METRICS_BEARER_TOKEN" ]]; then
   expect_status GET /metrics 200 \

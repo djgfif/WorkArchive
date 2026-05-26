@@ -425,6 +425,54 @@ describe('api runtime config', () => {
     resetEnv({
       NODE_ENV: 'production',
       CORS_ORIGIN: 'https://workarchive.example.com',
+      METRICS_BEARER_TOKEN: 'short-metrics-token',
+      METRICS_ENABLED: 'true',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'METRICS_BEARER_TOKEN must be at least 32 characters in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      METRICS_BEARER_TOKEN: 'change-me-metrics-bearer-token',
+      METRICS_ENABLED: 'true',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'METRICS_BEARER_TOKEN must be changed from the development default in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      METRICS_BEARER_TOKEN: 'local-compose-metrics-bearer-token-minimum-32-chars',
+      METRICS_ENABLED: 'true',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'METRICS_BEARER_TOKEN must be changed from the development default in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      METRICS_BEARER_TOKEN: 'demo-password-metrics-token-minimum-32-chars',
+      METRICS_ENABLED: 'true',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'METRICS_BEARER_TOKEN must be changed from the development default in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
       METRICS_BEARER_TOKEN: 'metrics-collector-token-minimum-32-chars',
       METRICS_ENABLED: 'true',
       WEB_BASE_URL: 'https://workarchive.example.com',
@@ -434,6 +482,23 @@ describe('api runtime config', () => {
       expect.objectContaining({
         metricsBearerToken: 'metrics-collector-token-minimum-32-chars',
         metricsEnabled: true,
+      }),
+    );
+  });
+
+  it('allows production metrics to stay disabled without a collector bearer token', () => {
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      METRICS_BEARER_TOKEN: '',
+      METRICS_ENABLED: 'false',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        metricsBearerToken: null,
+        metricsEnabled: false,
       }),
     );
   });

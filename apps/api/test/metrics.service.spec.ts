@@ -32,13 +32,18 @@ describe('MetricsService', () => {
     );
   });
 
-  it('hides enabled metrics when the collector token is missing', () => {
+  it('hides enabled metrics when the bearer token is missing or invalid', () => {
     resetEnv({
       METRICS_BEARER_TOKEN: 'collector-token-minimum-32-characters',
       METRICS_ENABLED: 'true',
     });
 
-    expect(new MetricsService().canReadMetrics(undefined)).toBe(false);
+    const service = new MetricsService();
+
+    expect(service.canReadMetrics(undefined)).toBe(false);
+    expect(service.canReadMetrics('Bearer wrong-token-minimum-32-chars')).toBe(
+      false,
+    );
   });
 
   it('allows enabled metrics with the configured collector bearer token', () => {
@@ -52,5 +57,17 @@ describe('MetricsService', () => {
         'Bearer collector-token-minimum-32-characters',
       ),
     ).toBe(true);
+  });
+
+  it('does not throw when the presented bearer token has the wrong length', () => {
+    resetEnv({
+      METRICS_BEARER_TOKEN: 'collector-token-minimum-32-characters',
+      METRICS_ENABLED: 'true',
+    });
+
+    expect(() =>
+      new MetricsService().canReadMetrics('Bearer short'),
+    ).not.toThrow();
+    expect(new MetricsService().canReadMetrics('Bearer short')).toBe(false);
   });
 });
