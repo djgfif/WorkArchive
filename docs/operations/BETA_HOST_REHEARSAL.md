@@ -97,12 +97,12 @@ Expected profile order:
 Use the public beta origin:
 
 ```bash
-BETA_BASE_URL=https://archive.example.com scripts/deploy/beta-smoke.sh
+BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 ```
 
 For a local rehearsal host that still uses the compose port, omit
-`BETA_BASE_URL`; the script falls back to `http://127.0.0.1:${WEB_PORT:-8080}`
-when `.env.prod` still contains the example domain.
+`BETA_BASE_URL`; the script uses `WEB_BASE_URL` from `.env.prod` when present,
+then falls back to `http://127.0.0.1:${WEB_PORT:-8080}`.
 
 The default smoke checks:
 
@@ -112,8 +112,13 @@ The default smoke checks:
 - `GET /api/auth/google/status` returns `{ configured: true }` by default;
 - `GET /` serves the web static app;
 - `GET /work-archive-config.js` is served with `Cache-Control: no-store`;
-- `POST /api/auth/refresh` without OAuth cookies returns `401` and does not set
-  a refresh cookie;
+- `POST /api/auth/refresh` without a valid Origin returns the production origin
+  guard result and does not set a refresh cookie;
+- browser-like `POST /api/auth/refresh` from the allowed Origin with no refresh
+  cookie returns `204` and does not set a refresh cookie;
+- public unauthenticated `GET /metrics` returns `404`;
+- if `SMOKE_METRICS_BEARER_TOKEN` is set, the internal collector `GET /metrics`
+  path returns `200` with Work Archive metrics content;
 - the `/api` reverse proxy path works through the web service;
 - when Docker is available, API, web, and retention containers can write to
   expected tmpfs paths and cannot write to read-only runtime paths.
@@ -129,7 +134,7 @@ Operator-only/dev authenticated sync validation is optional because it needs an
 access token from a beta tester session. Do not paste the token into logs:
 
 ```bash
-SMOKE_ACCESS_TOKEN=<access-token> BETA_BASE_URL=https://archive.example.com scripts/deploy/beta-smoke.sh
+SMOKE_ACCESS_TOKEN=<access-token> BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 ```
 
 That extra check sends a structurally valid `/api/sync/push` request with a

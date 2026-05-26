@@ -19,8 +19,9 @@ It performs:
 - web static health via `/work-archive-config.js`
 - `/api/auth/google/status`
 - `/api/imports/providers`
-- `/metrics` exposure check, expecting `404` unless
-  `EXPECT_METRICS_STATUS=200` is explicitly set for an internal monitoring path
+- public unauthenticated `/metrics` exposure check, always expecting `404`
+- optional internal collector `/metrics` check with `SMOKE_METRICS_BEARER_TOKEN`,
+  expecting `200` and Work Archive metrics content
 - retention cleanup dry-run
 
 The script does not print secret values. Review Docker logs separately if a

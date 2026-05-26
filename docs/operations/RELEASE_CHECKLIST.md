@@ -51,7 +51,7 @@ Public beta host checks:
 
 ```bash
 scripts/deploy/beta-preflight.sh
-BETA_BASE_URL=https://archive.example.com scripts/deploy/beta-smoke.sh
+BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 ```
 
 ## Migration
@@ -72,8 +72,9 @@ BETA_BASE_URL=https://archive.example.com scripts/deploy/beta-smoke.sh
 - Deploy API and web from the same approved release.
 - Check `/health`, `/livez`, and `/readyz`.
 - Confirm Redis rate limiting is connected when `REDIS_URL` is configured.
-- Confirm `/metrics` is either inaccessible from the public route or returns
-  metrics only from the reviewed internal monitoring path.
+- Confirm public unauthenticated `/metrics` returns `404`.
+- If metrics are enabled, confirm the reviewed internal collector path returns
+  `200` only with `SMOKE_METRICS_BEARER_TOKEN`.
 
 ## Smoke Tests
 
