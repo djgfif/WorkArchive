@@ -711,6 +711,61 @@ describe('ImportsService', () => {
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
   });
 
+  it('marks import candidates that duplicate an existing catalog-backed user record', async () => {
+    const catalogMatch = {
+      id: 'catalog-dune',
+      title: 'Dune',
+      verificationStatus: 'verified',
+    };
+    const duplicateAwareService = new ImportsService(
+      credentialService as unknown as ImportsCredentialService,
+      {
+        findCatalogMatchForImportCandidate: jest.fn(async () => catalogMatch),
+      } as unknown as CatalogIngestionService,
+      {
+        catalogExternalRef: {
+          findUnique: jest.fn(async () => null),
+        },
+        userWorkRecord: {
+          findFirst: jest.fn(async () => ({
+            id: 'user-work-dune',
+            status: 'completed',
+          })),
+        },
+      } as unknown as PrismaService,
+    );
+
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        docs: [
+          {
+            key: '/works/OL123W',
+            title: 'Dune',
+            author_name: ['Frank Herbert'],
+            first_publish_year: 1965,
+          },
+        ],
+      }),
+    );
+
+    const result = await duplicateAwareService.search(USER_ID, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune Frank Herbert',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        catalogMatch,
+        existingRecord: {
+          id: 'user-work-dune',
+          status: 'completed',
+        },
+      }),
+    );
+  });
+
   it('uses Wikidata for guest enrichment without user credentials', async () => {
     const fetchSpy = jest
       .spyOn(globalThis, 'fetch')

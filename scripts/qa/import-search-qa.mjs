@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -14,65 +14,14 @@ const reportPath = resolve(reportDir, `import-search-qa-${stamp}.md`);
 const jsonReportPath = resolve(reportDir, `import-search-qa-${stamp}.json`);
 const accessToken = process.env.IMPORT_QA_ACCESS_TOKEN ?? '';
 const fullMatrixLive = process.env.IMPORT_SEARCH_QA_FULL_MATRIX === 'true';
+const matrixPath = resolve(rootDir, 'docs/qa/IMPORT_SEARCH_QA_CASES.json');
+const matrixDocPath = resolve(rootDir, 'docs/qa/IMPORT_SEARCH_QA_MATRIX.md');
 
-const matrix = [
-  {
-    id: 'novel-ko-title',
-    query: '채식주의자 한강',
-    mediumType: 'novel',
-    expect: 'novel candidate in top results; author signal improves confidence',
-  },
-  {
-    id: 'light-novel-alias',
-    query: 'Sword Art Online 카와하라 레키',
-    mediumType: 'light_novel',
-    expect: 'light novel exact or alias match outranks weak anime/manga token matches',
-  },
-  {
-    id: 'manga-original-title',
-    query: '進撃の巨人',
-    mediumType: 'manga',
-    expect: 'manga candidate can expose Japanese/original title aliases',
-  },
-  {
-    id: 'webtoon-ko-title',
-    query: '유미의 세포들',
-    mediumType: 'webtoon',
-    expect: 'webtoon candidate appears; book/movie candidates stay below stronger type matches',
-  },
-  {
-    id: 'anime-ambiguous-title',
-    query: '너의 이름은',
-    mediumType: 'anime',
-    expect: 'anime candidate appears in top N with provider/source coverage when available',
-  },
-  {
-    id: 'movie-wrong-medium-guard',
-    query: 'Dune 2021',
-    mediumType: 'movie',
-    expect: 'movie candidate ranks above novel candidates for the same title/year query',
-  },
-  {
-    id: 'drama-spacing-variant',
-    query: '이상한 변호사 우 영우',
-    mediumType: 'drama',
-    expect: 'spacing variant still produces a drama candidate or manual fallback',
-  },
-  {
-    id: 'low-confidence-fallback',
-    query: 'Gate1 Search QA Unlikely Synthetic Title',
-    mediumType: 'novel',
-    expect: 'manual fallback remains available when provider quality is low or providers fail',
-  },
-];
-
-const liveSmokeCaseIds = new Set([
-  'novel-ko-title',
-  'manga-original-title',
-  'anime-ambiguous-title',
-  'movie-wrong-medium-guard',
-  'low-confidence-fallback',
-]);
+const matrixData = loadMatrix();
+const matrix = matrixData.cases;
+const liveSmokeCaseIds = new Set(
+  matrix.filter((item) => item.liveSmoke).map((item) => item.id),
+);
 const liveProviderQualityMinimumDistinctTypes = 3;
 
 const sensitiveNames = [
@@ -162,10 +111,22 @@ function writeReports(report) {
 
   lines.push('## Matrix Coverage', '');
   for (const item of matrix) {
-    lines.push(`- ${item.id}: ${item.mediumType}, "${item.query}" -> ${item.expect}`);
+    lines.push(
+      `- ${item.id}: ${item.mediumType}, "${item.query}" -> ${item.expectedAssertion}`,
+    );
   }
 
   writeFileSync(reportPath, `${lines.join('\n')}\n`);
+}
+
+function loadMatrix() {
+  const parsed = JSON.parse(readFileSync(matrixPath, 'utf8'));
+
+  if (!Array.isArray(parsed.cases)) {
+    throw new Error(`${relativePath(matrixPath)} must define a cases array.`);
+  }
+
+  return parsed;
 }
 
 function gitValue(args, fallback = 'unknown') {
@@ -186,7 +147,9 @@ function offlineChecks() {
     '@work-archive/api',
     '--',
     '--runTestsByPath',
+    'test/import-search-qa-matrix.spec.ts',
     'test/import-candidate-ranking.ko-fixtures.spec.ts',
+    'test/import-search-qa-contract.spec.ts',
     'test/import-candidate-merge.spec.ts',
     'test/imports.service.spec.ts',
   ];
@@ -207,15 +170,67 @@ function offlineChecks() {
   });
 
   checks.push({
-    name: 'golden matrix shape',
-    status:
-      new Set(matrix.map((item) => item.mediumType)).size >= 7 ? 'PASS' : 'FAIL',
-    summary: `${matrix.length} cases cover ${[
-      ...new Set(matrix.map((item) => item.mediumType)),
-    ].join(', ')}.`,
+    name: 'canonical matrix shape',
+    status: validateMatrixShape().status,
+    summary: validateMatrixShape().summary,
+  });
+
+  checks.push({
+    name: 'matrix runbook linkage',
+    status: validateMatrixDoc().status,
+    summary: validateMatrixDoc().summary,
   });
 
   return checks;
+}
+
+function validateMatrixShape() {
+  const mediumTypes = new Set(matrix.map((item) => item.mediumType));
+  const tags = new Set(matrix.flatMap((item) => item.tags ?? []));
+  const missingMedia = (matrixData.requiredMediaTypes ?? []).filter(
+    (mediumType) => !mediumTypes.has(mediumType),
+  );
+  const missingTags = (matrixData.requiredCoverageTags ?? []).filter(
+    (tag) => !tags.has(tag),
+  );
+  const duplicateIds = matrix
+    .map((item) => item.id)
+    .filter((id, index, ids) => ids.indexOf(id) !== index);
+
+  if (
+    missingMedia.length > 0 ||
+    missingTags.length > 0 ||
+    duplicateIds.length > 0
+  ) {
+    return {
+      status: 'FAIL',
+      summary: `Missing media: ${missingMedia.join(', ') || 'none'}; missing tags: ${missingTags.join(', ') || 'none'}; duplicate IDs: ${duplicateIds.join(', ') || 'none'}.`,
+    };
+  }
+
+  return {
+    status: 'PASS',
+    summary: `${matrix.length} cases cover ${[...mediumTypes].join(', ')} and ${tags.size} assertion tags from ${relativePath(matrixPath)}.`,
+  };
+}
+
+function validateMatrixDoc() {
+  const doc = readFileSync(matrixDocPath, 'utf8');
+  const missingIds = matrix
+    .map((item) => item.id)
+    .filter((id) => !doc.includes(id));
+
+  if (!doc.includes('IMPORT_SEARCH_QA_CASES.json') || missingIds.length > 0) {
+    return {
+      status: 'FAIL',
+      summary: `Runbook must link ${relativePath(matrixPath)} and mention every case ID. Missing IDs: ${missingIds.join(', ') || 'none'}.`,
+    };
+  }
+
+  return {
+    status: 'PASS',
+    summary: `${relativePath(matrixDocPath)} references the canonical matrix and all ${matrix.length} case IDs.`,
+  };
 }
 
 async function liveChecks() {

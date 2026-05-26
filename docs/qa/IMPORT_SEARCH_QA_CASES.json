@@ -1,0 +1,945 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-05-26",
+  "requiredMediaTypes": [
+    "novel",
+    "light_novel",
+    "manga",
+    "webtoon",
+    "anime",
+    "movie",
+    "drama"
+  ],
+  "requiredCoverageTags": [
+    "korean_title",
+    "english_title",
+    "original_title",
+    "alias",
+    "ambiguous_title",
+    "typo_spacing",
+    "creator_boost",
+    "wrong_medium_guard",
+    "source_coverage",
+    "merge_dedupe",
+    "duplicate_detection",
+    "manual_fallback"
+  ],
+  "cases": [
+    {
+      "id": "novel-ko-title",
+      "mediumType": "novel",
+      "dimension": "Korean title + author",
+      "query": "채식주의자 한강",
+      "expectedAssertion": "Novel candidate appears in top results; author/creator signal strengthens confidence.",
+      "tags": ["korean_title", "creator_boost"],
+      "liveSmoke": true,
+      "expectedTopId": "vegetarian-novel-ko",
+      "expectedCandidate": {
+        "id": "vegetarian-novel-ko",
+        "sourceId": "aladin",
+        "title": "채식주의자",
+        "titleAliases": ["The Vegetarian"],
+        "author": "한강",
+        "contributors": [{ "name": "한강", "role": "author" }],
+        "releaseYear": 2007,
+        "externalRefs": [
+          {
+            "externalId": "isbn-9788936433598",
+            "provider": "aladin",
+            "rawType": "book",
+            "url": "https://example.test/aladin/vegetarian"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "vegetarian-film-token",
+          "sourceId": "tmdb",
+          "mediumType": "movie",
+          "title": "채식주의자",
+          "titleAliases": ["Vegetarian"],
+          "author": "임우성",
+          "contributors": [{ "name": "임우성", "role": "director" }],
+          "releaseYear": 2009,
+          "externalRefs": [
+            {
+              "externalId": "tmdb-vegetarian",
+              "provider": "tmdb",
+              "rawType": "movie",
+              "url": "https://example.test/tmdb/vegetarian"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "novel-en-title",
+      "mediumType": "novel",
+      "dimension": "English title",
+      "query": "The Vegetarian Han Kang",
+      "expectedAssertion": "English title or alias can match the same novel; manual fallback remains available if providers are weak.",
+      "tags": ["english_title", "alias", "creator_boost"],
+      "expectedTopId": "vegetarian-novel-en",
+      "expectedCandidate": {
+        "id": "vegetarian-novel-en",
+        "sourceId": "google_books",
+        "title": "채식주의자",
+        "titleAliases": ["The Vegetarian"],
+        "author": "Han Kang",
+        "contributors": [{ "name": "Han Kang", "role": "author" }],
+        "releaseYear": 2007,
+        "externalRefs": [
+          {
+            "externalId": "google-books-vegetarian",
+            "provider": "google_books",
+            "rawType": "volume",
+            "url": "https://example.test/google-books/vegetarian"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "vegetarian-weak-token",
+          "sourceId": "open_library",
+          "title": "The Vegetarian Cookbook",
+          "author": "Market Test",
+          "contributors": [{ "name": "Market Test", "role": "author" }],
+          "releaseYear": 2012,
+          "externalRefs": [
+            {
+              "externalId": "ol-vegetarian-cookbook",
+              "provider": "open_library",
+              "rawType": "work",
+              "url": "https://example.test/open-library/vegetarian-cookbook"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "novel-ambiguous",
+      "mediumType": "novel",
+      "dimension": "Ambiguous title",
+      "query": "Dune Frank Herbert",
+      "expectedAssertion": "Novel result ranks above movie result when author and requested medium indicate novel.",
+      "tags": ["ambiguous_title", "creator_boost", "wrong_medium_guard"],
+      "expectedTopId": "dune-novel",
+      "expectedCandidate": {
+        "id": "dune-novel",
+        "sourceId": "google_books",
+        "title": "Dune",
+        "titleAliases": ["듄"],
+        "author": "Frank Herbert",
+        "contributors": [{ "name": "Frank Herbert", "role": "author" }],
+        "releaseYear": 1965,
+        "externalRefs": [
+          {
+            "externalId": "google-books-dune",
+            "provider": "google_books",
+            "rawType": "volume",
+            "url": "https://example.test/google-books/dune"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "dune-movie-2021-token",
+          "sourceId": "tmdb",
+          "mediumType": "movie",
+          "title": "Dune",
+          "author": "Denis Villeneuve",
+          "contributors": [{ "name": "Denis Villeneuve", "role": "director" }],
+          "releaseYear": 2021,
+          "externalRefs": [
+            {
+              "externalId": "tmdb-438631",
+              "provider": "tmdb",
+              "rawType": "movie",
+              "url": "https://example.test/tmdb/438631"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "light-novel-ko-title",
+      "mediumType": "light_novel",
+      "dimension": "Korean title",
+      "query": "소드 아트 온라인",
+      "expectedAssertion": "Light novel candidate appears; anime/manga adaptations are not merged into the book identity.",
+      "tags": ["korean_title", "wrong_medium_guard"],
+      "expectedTopId": "sao-light-novel-ko",
+      "expectedCandidate": {
+        "id": "sao-light-novel-ko",
+        "sourceId": "aladin",
+        "title": "소드 아트 온라인",
+        "titleAliases": ["Sword Art Online", "ソードアート・オンライン"],
+        "author": "카와하라 레키",
+        "contributors": [{ "name": "카와하라 레키", "role": "author" }],
+        "releaseYear": 2009,
+        "externalRefs": [
+          {
+            "externalId": "aladin-sao-ln",
+            "provider": "aladin",
+            "rawType": "book",
+            "url": "https://example.test/aladin/sao-ln"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "sao-anime-token",
+          "sourceId": "anilist",
+          "mediumType": "anime",
+          "title": "Sword Art Online",
+          "titleAliases": ["소드 아트 온라인"],
+          "author": "A-1 Pictures",
+          "contributors": [{ "name": "A-1 Pictures", "role": "studio" }],
+          "releaseYear": 2012,
+          "externalRefs": [
+            {
+              "externalId": "anilist-sao-anime",
+              "provider": "anilist",
+              "rawType": "anime",
+              "url": "https://example.test/anilist/sao-anime"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "light-novel-original",
+      "mediumType": "light_novel",
+      "dimension": "Japanese/original title",
+      "query": "ソードアート・オンライン 川原礫",
+      "expectedAssertion": "Original title/creator alias can match; creator signal ranks above weak token matches.",
+      "tags": ["original_title", "alias", "creator_boost"],
+      "expectedTopId": "sao-light-novel-ja",
+      "expectedCandidate": {
+        "id": "sao-light-novel-ja",
+        "sourceId": "aladin",
+        "title": "소드 아트 온라인",
+        "titleAliases": ["Sword Art Online", "ソードアート・オンライン"],
+        "author": "川原礫",
+        "contributors": [{ "name": "川原礫", "role": "author" }],
+        "releaseYear": 2009,
+        "externalRefs": [
+          {
+            "externalId": "aladin-sao-ln-ja",
+            "provider": "aladin",
+            "rawType": "book",
+            "url": "https://example.test/aladin/sao-ln-ja"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "sao-progressive-weak-token",
+          "sourceId": "google_books",
+          "title": "Sword Art Online Progressive",
+          "titleAliases": ["ソードアート・オンライン プログレッシブ"],
+          "author": "川原礫",
+          "contributors": [{ "name": "川原礫", "role": "author" }],
+          "releaseYear": 2012,
+          "externalRefs": [
+            {
+              "externalId": "google-books-sao-progressive",
+              "provider": "google_books",
+              "rawType": "volume",
+              "url": "https://example.test/google-books/sao-progressive"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "light-novel-typo",
+      "mediumType": "light_novel",
+      "dimension": "Typo/spacing variant",
+      "query": "Re 제로부터 시작하는 이세계 생활",
+      "expectedAssertion": "Normalization tolerates punctuation/spacing drift; manual fallback remains visible.",
+      "tags": ["typo_spacing", "manual_fallback"],
+      "expectedTopId": "rezero-light-novel",
+      "expectedCandidate": {
+        "id": "rezero-light-novel",
+        "sourceId": "aladin",
+        "title": "Re:제로부터 시작하는 이세계 생활",
+        "titleAliases": ["Re:Zero - Starting Life in Another World", "Re:ゼロから始める異世界生活"],
+        "author": "나가츠키 탓페이",
+        "contributors": [{ "name": "나가츠키 탓페이", "role": "author" }],
+        "releaseYear": 2012,
+        "externalRefs": [
+          {
+            "externalId": "aladin-rezero-ln",
+            "provider": "aladin",
+            "rawType": "book",
+            "url": "https://example.test/aladin/rezero-ln"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "rezero-anime-token",
+          "sourceId": "anilist",
+          "mediumType": "anime",
+          "title": "Re:제로부터 시작하는 이세계 생활",
+          "releaseYear": 2016,
+          "externalRefs": [
+            {
+              "externalId": "anilist-rezero-anime",
+              "provider": "anilist",
+              "rawType": "anime",
+              "url": "https://example.test/anilist/rezero-anime"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manga-ko-title",
+      "mediumType": "manga",
+      "dimension": "Korean title",
+      "query": "진격의 거인",
+      "expectedAssertion": "Manga candidate appears in top N; anime candidate is guarded when medium is manga.",
+      "tags": ["korean_title", "wrong_medium_guard"],
+      "expectedTopId": "aot-manga-ko",
+      "expectedCandidate": {
+        "id": "aot-manga-ko",
+        "sourceId": "anilist",
+        "title": "진격의 거인",
+        "titleAliases": ["進撃の巨人", "Attack on Titan"],
+        "author": "이사야마 하지메",
+        "contributors": [{ "name": "이사야마 하지메", "role": "author" }],
+        "releaseYear": 2009,
+        "externalRefs": [
+          {
+            "externalId": "anilist-aot-manga",
+            "provider": "anilist",
+            "rawType": "manga",
+            "url": "https://example.test/anilist/aot-manga"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "aot-anime-token",
+          "sourceId": "anilist",
+          "mediumType": "anime",
+          "title": "진격의 거인",
+          "titleAliases": ["進撃の巨人", "Attack on Titan"],
+          "releaseYear": 2013,
+          "externalRefs": [
+            {
+              "externalId": "anilist-aot-anime",
+              "provider": "anilist",
+              "rawType": "anime",
+              "url": "https://example.test/anilist/aot-anime"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manga-original-title",
+      "mediumType": "manga",
+      "dimension": "Japanese/original title",
+      "query": "進撃の巨人",
+      "expectedAssertion": "Original title alias can match manga candidates and expose provider refs when available.",
+      "tags": ["original_title", "alias", "source_coverage", "merge_dedupe"],
+      "liveSmoke": true,
+      "expectedTopId": "aot-manga-ja",
+      "expectedMergedProviders": ["anilist", "wikidata"],
+      "expectedCandidate": {
+        "id": "aot-manga-ja",
+        "sourceId": "anilist",
+        "title": "진격의 거인",
+        "titleAliases": ["進撃の巨人", "Attack on Titan"],
+        "author": "諫山創",
+        "contributors": [{ "name": "諫山創", "role": "author" }],
+        "releaseYear": 2009,
+        "catalogMatch": {
+          "id": "catalog-aot-manga",
+          "title": "진격의 거인",
+          "verificationStatus": "verified"
+        },
+        "externalRefs": [
+          {
+            "externalId": "anilist-aot-manga-ja",
+            "provider": "anilist",
+            "rawType": "manga",
+            "url": "https://example.test/anilist/aot-manga-ja"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "aot-manga-wikidata",
+          "sourceId": "wikidata",
+          "title": "進撃の巨人",
+          "titleAliases": ["진격의 거인", "Attack on Titan"],
+          "author": "諫山創",
+          "contributors": [{ "name": "諫山創", "role": "author" }],
+          "releaseYear": 2009,
+          "catalogMatch": {
+            "id": "catalog-aot-manga",
+            "title": "진격의 거인",
+            "verificationStatus": "verified"
+          },
+          "externalRefs": [
+            {
+              "externalId": "wikidata-aot-manga",
+              "provider": "wikidata",
+              "rawType": "entity",
+              "url": "https://example.test/wikidata/aot-manga"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manga-author",
+      "mediumType": "manga",
+      "dimension": "Creator included",
+      "query": "원피스 오다 에이치로",
+      "expectedAssertion": "Creator included query improves ranking over weak same-title matches.",
+      "tags": ["korean_title", "creator_boost"],
+      "expectedTopId": "one-piece-manga",
+      "expectedCandidate": {
+        "id": "one-piece-manga",
+        "sourceId": "anilist",
+        "title": "원피스",
+        "titleAliases": ["One Piece"],
+        "author": "오다 에이치로",
+        "contributors": [{ "name": "오다 에이치로", "role": "author" }],
+        "releaseYear": 1997,
+        "externalRefs": [
+          {
+            "externalId": "anilist-one-piece-manga",
+            "provider": "anilist",
+            "rawType": "manga",
+            "url": "https://example.test/anilist/one-piece-manga"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "one-piece-film-token",
+          "sourceId": "tmdb",
+          "mediumType": "movie",
+          "title": "One Piece Film: Red",
+          "titleAliases": ["원피스 필름 레드"],
+          "releaseYear": 2022,
+          "externalRefs": [
+            {
+              "externalId": "tmdb-one-piece-red",
+              "provider": "tmdb",
+              "rawType": "movie",
+              "url": "https://example.test/tmdb/one-piece-red"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "webtoon-ko-title",
+      "mediumType": "webtoon",
+      "dimension": "Korean title",
+      "query": "유미의 세포들",
+      "expectedAssertion": "Webtoon candidate appears; book/movie/drama candidates stay below stronger webtoon matches.",
+      "tags": ["korean_title", "wrong_medium_guard"],
+      "expectedTopId": "yumi-webtoon",
+      "expectedCandidate": {
+        "id": "yumi-webtoon",
+        "sourceId": "naver_book",
+        "title": "유미의 세포들",
+        "titleAliases": ["Yumi's Cells"],
+        "author": "이동건",
+        "contributors": [{ "name": "이동건", "role": "creator" }],
+        "releaseYear": 2015,
+        "externalRefs": [
+          {
+            "externalId": "naver-yumi-webtoon",
+            "provider": "naver_book",
+            "rawType": "webtoon",
+            "url": "https://example.test/naver/yumi-webtoon"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "yumi-drama-token",
+          "sourceId": "tmdb",
+          "mediumType": "drama",
+          "title": "유미의 세포들",
+          "releaseYear": 2021,
+          "externalRefs": [
+            {
+              "externalId": "tmdb-yumi-drama",
+              "provider": "tmdb",
+              "rawType": "tv",
+              "url": "https://example.test/tmdb/yumi-drama"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "webtoon-spacing",
+      "mediumType": "webtoon",
+      "dimension": "Typo/spacing variant",
+      "query": "외모 지상 주의",
+      "expectedAssertion": "Spacing normalization should not remove manual fallback or provider diagnostics.",
+      "tags": ["typo_spacing", "manual_fallback"],
+      "expectedTopId": "lookism-webtoon",
+      "expectedCandidate": {
+        "id": "lookism-webtoon",
+        "sourceId": "naver_web",
+        "title": "외모지상주의",
+        "titleAliases": ["Lookism"],
+        "author": "박태준",
+        "contributors": [{ "name": "박태준", "role": "creator" }],
+        "releaseYear": 2014,
+        "externalRefs": [
+          {
+            "externalId": "naver-lookism-webtoon",
+            "provider": "naver_web",
+            "rawType": "webtoon",
+            "url": "https://example.test/naver/lookism-webtoon"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "lookism-anime-token",
+          "sourceId": "tmdb",
+          "mediumType": "anime",
+          "title": "Lookism",
+          "titleAliases": ["외모지상주의"],
+          "releaseYear": 2022,
+          "externalRefs": [
+            {
+              "externalId": "tmdb-lookism-anime",
+              "provider": "tmdb",
+              "rawType": "tv",
+              "url": "https://example.test/tmdb/lookism-anime"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "webtoon-low-confidence",
+      "mediumType": "webtoon",
+      "dimension": "Low-confidence fallback",
+      "query": "Gate1 Search QA Webtoon Synthetic",
+      "expectedAssertion": "Manual fallback remains available when provider quality is low.",
+      "tags": ["manual_fallback"],
+      "expectedTopId": "manual-webtoon-low-confidence"
+    },
+    {
+      "id": "anime-ko-title",
+      "mediumType": "anime",
+      "dimension": "Korean title",
+      "query": "너의 이름은",
+      "expectedAssertion": "Anime candidate appears in top N and movie/book variants do not outrank it solely by tokens.",
+      "tags": ["korean_title", "ambiguous_title", "wrong_medium_guard"],
+      "liveSmoke": true,
+      "expectedTopId": "your-name-anime-ko",
+      "expectedCandidate": {
+        "id": "your-name-anime-ko",
+        "sourceId": "anilist",
+        "title": "너의 이름은",
+        "titleAliases": ["君の名は。", "Your Name."],
+        "author": "신카이 마코토",
+        "contributors": [{ "name": "신카이 마코토", "role": "director" }],
+        "releaseYear": 2016,
+        "externalRefs": [
+          {
+            "externalId": "anilist-your-name",
+            "provider": "anilist",
+            "rawType": "anime",
+            "url": "https://example.test/anilist/your-name"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "your-name-drama-token",
+          "sourceId": "tvmaze",
+          "mediumType": "drama",
+          "title": "너의 이름은",
+          "titleAliases": ["君の名は"],
+          "releaseYear": 1991,
+          "externalRefs": [
+            {
+              "externalId": "tvmaze-your-name-drama",
+              "provider": "tvmaze",
+              "rawType": "show",
+              "url": "https://example.test/tvmaze/your-name-drama"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anime-original-title",
+      "mediumType": "anime",
+      "dimension": "Japanese/original title",
+      "query": "君の名は。 新海誠",
+      "expectedAssertion": "Original title and creator/director signal should rank exact/alias match above weak matches.",
+      "tags": ["original_title", "alias", "creator_boost", "source_coverage", "merge_dedupe"],
+      "expectedTopId": "your-name-anime-ja",
+      "expectedMergedProviders": ["anilist", "wikidata"],
+      "expectedCandidate": {
+        "id": "your-name-anime-ja",
+        "sourceId": "anilist",
+        "title": "君の名は。",
+        "titleAliases": ["너의 이름은", "Your Name."],
+        "author": "新海誠",
+        "contributors": [{ "name": "新海誠", "role": "director" }],
+        "releaseYear": 2016,
+        "catalogMatch": {
+          "id": "catalog-your-name-anime",
+          "title": "君の名は。",
+          "verificationStatus": "verified"
+        },
+        "externalRefs": [
+          {
+            "externalId": "anilist-your-name-ja",
+            "provider": "anilist",
+            "rawType": "anime",
+            "url": "https://example.test/anilist/your-name-ja"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "your-name-wikidata",
+          "sourceId": "wikidata",
+          "title": "Your Name.",
+          "titleAliases": ["君の名は。", "너의 이름은"],
+          "author": "新海誠",
+          "contributors": [{ "name": "新海誠", "role": "director" }],
+          "releaseYear": 2016,
+          "catalogMatch": {
+            "id": "catalog-your-name-anime",
+            "title": "君の名は。",
+            "verificationStatus": "verified"
+          },
+          "externalRefs": [
+            {
+              "externalId": "wikidata-your-name",
+              "provider": "wikidata",
+              "rawType": "entity",
+              "url": "https://example.test/wikidata/your-name"
+            }
+          ]
+        },
+        {
+          "id": "your-name-drama-ja-token",
+          "sourceId": "tvmaze",
+          "mediumType": "drama",
+          "title": "君の名は",
+          "releaseYear": 1991,
+          "externalRefs": [
+            {
+              "externalId": "tvmaze-your-name-ja-drama",
+              "provider": "tvmaze",
+              "rawType": "show",
+              "url": "https://example.test/tvmaze/your-name-ja-drama"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anime-wrong-medium",
+      "mediumType": "anime",
+      "dimension": "Wrong medium guard",
+      "query": "진격의 거인 애니메이션",
+      "expectedAssertion": "Anime result ranks above manga when query and requested medium indicate anime.",
+      "tags": ["wrong_medium_guard", "ambiguous_title"],
+      "expectedTopId": "aot-anime",
+      "expectedCandidate": {
+        "id": "aot-anime",
+        "sourceId": "anilist",
+        "title": "진격의 거인",
+        "titleAliases": ["進撃の巨人", "Attack on Titan"],
+        "author": "WIT Studio",
+        "contributors": [{ "name": "WIT Studio", "role": "studio" }],
+        "releaseYear": 2013,
+        "externalRefs": [
+          {
+            "externalId": "anilist-aot-anime-guard",
+            "provider": "anilist",
+            "rawType": "anime",
+            "url": "https://example.test/anilist/aot-anime-guard"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "aot-manga-wrong-medium",
+          "sourceId": "anilist",
+          "mediumType": "manga",
+          "title": "진격의 거인",
+          "releaseYear": 2009,
+          "externalRefs": [
+            {
+              "externalId": "anilist-aot-manga-guard",
+              "provider": "anilist",
+              "rawType": "manga",
+              "url": "https://example.test/anilist/aot-manga-guard"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "movie-ko-title",
+      "mediumType": "movie",
+      "dimension": "Korean title",
+      "query": "기생충 봉준호",
+      "expectedAssertion": "Movie candidate appears; director signal helps; source coverage is shown when available.",
+      "tags": ["korean_title", "creator_boost", "source_coverage", "duplicate_detection"],
+      "expectedTopId": "parasite-movie-ko",
+      "expectedCandidate": {
+        "id": "parasite-movie-ko",
+        "sourceId": "tmdb",
+        "title": "기생충",
+        "titleAliases": ["Parasite"],
+        "author": "봉준호",
+        "contributors": [{ "name": "봉준호", "role": "director" }],
+        "releaseYear": 2019,
+        "catalogMatch": {
+          "id": "catalog-parasite-movie",
+          "title": "기생충",
+          "verificationStatus": "verified"
+        },
+        "existingRecord": {
+          "id": "user-record-parasite",
+          "status": "completed"
+        },
+        "externalRefs": [
+          {
+            "externalId": "tmdb-parasite",
+            "provider": "tmdb",
+            "rawType": "movie",
+            "url": "https://example.test/tmdb/parasite"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "parasite-book-token",
+          "sourceId": "google_books",
+          "mediumType": "novel",
+          "title": "Parasite",
+          "releaseYear": 2020,
+          "externalRefs": [
+            {
+              "externalId": "google-books-parasite",
+              "provider": "google_books",
+              "rawType": "volume",
+              "url": "https://example.test/google-books/parasite"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "movie-en-title",
+      "mediumType": "movie",
+      "dimension": "English title",
+      "query": "Parasite Bong Joon-ho",
+      "expectedAssertion": "English title alias should connect to the movie candidate.",
+      "tags": ["english_title", "alias", "creator_boost"],
+      "expectedTopId": "parasite-movie-en",
+      "expectedCandidate": {
+        "id": "parasite-movie-en",
+        "sourceId": "tmdb",
+        "title": "기생충",
+        "titleAliases": ["Parasite"],
+        "author": "Bong Joon-ho",
+        "contributors": [{ "name": "Bong Joon-ho", "role": "director" }],
+        "releaseYear": 2019,
+        "externalRefs": [
+          {
+            "externalId": "tmdb-parasite-en",
+            "provider": "tmdb",
+            "rawType": "movie",
+            "url": "https://example.test/tmdb/parasite-en"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "parasite-anime-token",
+          "sourceId": "anilist",
+          "mediumType": "anime",
+          "title": "Parasyte",
+          "titleAliases": ["寄生獣"],
+          "releaseYear": 2014,
+          "externalRefs": [
+            {
+              "externalId": "anilist-parasyte",
+              "provider": "anilist",
+              "rawType": "anime",
+              "url": "https://example.test/anilist/parasyte"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "movie-ambiguous",
+      "mediumType": "movie",
+      "dimension": "Ambiguous title",
+      "query": "Dune 2021",
+      "expectedAssertion": "Movie candidate ranks above novel candidates for the same title/year.",
+      "tags": ["ambiguous_title", "wrong_medium_guard"],
+      "liveSmoke": true,
+      "expectedTopId": "dune-movie-2021",
+      "expectedCandidate": {
+        "id": "dune-movie-2021",
+        "sourceId": "tmdb",
+        "title": "Dune",
+        "titleAliases": ["듄"],
+        "author": "Denis Villeneuve",
+        "contributors": [{ "name": "Denis Villeneuve", "role": "director" }],
+        "releaseYear": 2021,
+        "externalRefs": [
+          {
+            "externalId": "tmdb-438631",
+            "provider": "tmdb",
+            "rawType": "movie",
+            "url": "https://example.test/tmdb/438631"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "dune-novel-wrong-medium",
+          "sourceId": "google_books",
+          "mediumType": "novel",
+          "title": "Dune",
+          "author": "Frank Herbert",
+          "contributors": [{ "name": "Frank Herbert", "role": "author" }],
+          "releaseYear": 1965,
+          "externalRefs": [
+            {
+              "externalId": "google-books-dune-wrong-medium",
+              "provider": "google_books",
+              "rawType": "volume",
+              "url": "https://example.test/google-books/dune-wrong-medium"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "drama-ko-title",
+      "mediumType": "drama",
+      "dimension": "Korean title",
+      "query": "오징어 게임",
+      "expectedAssertion": "Drama candidate appears; movie or game token matches should not outrank it.",
+      "tags": ["korean_title", "wrong_medium_guard"],
+      "expectedTopId": "squid-game-drama",
+      "expectedCandidate": {
+        "id": "squid-game-drama",
+        "sourceId": "tmdb",
+        "title": "오징어 게임",
+        "titleAliases": ["Squid Game"],
+        "author": "황동혁",
+        "contributors": [{ "name": "황동혁", "role": "creator" }],
+        "releaseYear": 2021,
+        "externalRefs": [
+          {
+            "externalId": "tmdb-squid-game",
+            "provider": "tmdb",
+            "rawType": "tv",
+            "url": "https://example.test/tmdb/squid-game"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "squid-game-challenge-token",
+          "sourceId": "tvmaze",
+          "title": "오징어 게임: 더 챌린지",
+          "releaseYear": 2023,
+          "externalRefs": [
+            {
+              "externalId": "tvmaze-squid-game-challenge",
+              "provider": "tvmaze",
+              "rawType": "show",
+              "url": "https://example.test/tvmaze/squid-game-challenge"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "drama-spacing",
+      "mediumType": "drama",
+      "dimension": "Typo/spacing variant",
+      "query": "이상한 변호사 우 영우",
+      "expectedAssertion": "Spacing variant still gives a drama candidate or manual fallback.",
+      "tags": ["typo_spacing", "manual_fallback"],
+      "expectedTopId": "extraordinary-attorney-woo-drama",
+      "expectedCandidate": {
+        "id": "extraordinary-attorney-woo-drama",
+        "sourceId": "tmdb",
+        "title": "이상한 변호사 우영우",
+        "titleAliases": ["Extraordinary Attorney Woo"],
+        "author": "문지원",
+        "contributors": [{ "name": "문지원", "role": "creator" }],
+        "releaseYear": 2022,
+        "externalRefs": [
+          {
+            "externalId": "tmdb-attorney-woo",
+            "provider": "tmdb",
+            "rawType": "tv",
+            "url": "https://example.test/tmdb/attorney-woo"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "attorney-woo-book-token",
+          "sourceId": "google_books",
+          "mediumType": "novel",
+          "title": "이상한 변호사 우영우 대본집",
+          "releaseYear": 2022,
+          "externalRefs": [
+            {
+              "externalId": "google-books-attorney-woo",
+              "provider": "google_books",
+              "rawType": "volume",
+              "url": "https://example.test/google-books/attorney-woo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "drama-low-confidence",
+      "mediumType": "drama",
+      "dimension": "Low-confidence fallback",
+      "query": "Gate1 Search QA Drama Synthetic",
+      "expectedAssertion": "Manual fallback remains available and provider failures are diagnostics, not blockers.",
+      "tags": ["manual_fallback"],
+      "expectedTopId": "manual-drama-low-confidence"
+    },
+    {
+      "id": "low-confidence-fallback",
+      "mediumType": "novel",
+      "dimension": "Low-confidence fallback",
+      "query": "Gate1 Search QA Unlikely Synthetic Title",
+      "expectedAssertion": "Manual fallback remains available when provider quality is low or providers fail.",
+      "tags": ["manual_fallback"],
+      "liveSmoke": true,
+      "expectedTopId": "manual-low-confidence-fallback"
+    }
+  ]
+}
