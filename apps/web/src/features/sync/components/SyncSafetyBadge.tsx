@@ -9,6 +9,9 @@ export function SyncSafetyBadge() {
   const { mode } = useAuthSession();
   const { conflictItems, failedItems, lastSuccessfulPullAt, pendingItems } =
     useSyncDashboard();
+  const requeuedCount = pendingItems.filter(
+    (item) => item.state === 'requeued',
+  ).length;
   const state = useMemo(() => {
     return getSyncSafetyBadgeState({
       conflictCount: conflictItems.length,
@@ -16,6 +19,7 @@ export function SyncSafetyBadge() {
       lastSuccessfulPullAt,
       mode,
       pendingCount: pendingItems.length,
+      requeuedCount,
     });
   }, [
     conflictItems.length,
@@ -23,6 +27,7 @@ export function SyncSafetyBadge() {
     lastSuccessfulPullAt,
     mode,
     pendingItems.length,
+    requeuedCount,
   ]);
 
   return (

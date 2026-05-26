@@ -65,7 +65,20 @@ describe('SyncSafetyBadge', () => {
         mode: 'authenticated',
         pendingCount: 1,
       }).label,
-    ).toBe('충돌/실패 있음 2');
+    ).toBe('직접 확인 2');
+  });
+
+  it('shows requeued state after a safe automatic merge', () => {
+    expect(
+      getSyncSafetyBadgeState({
+        conflictCount: 0,
+        failedCount: 0,
+        lastSuccessfulPullAt: null,
+        mode: 'authenticated',
+        pendingCount: 1,
+        requeuedCount: 1,
+      }).label,
+    ).toBe('자동 병합 후 재시도 1');
   });
 
   it('shows pending backup state before recent backup state', () => {

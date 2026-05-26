@@ -17,12 +17,14 @@ export function getSyncSafetyBadgeState({
   lastSuccessfulPullAt,
   mode,
   pendingCount,
+  requeuedCount = 0,
 }: {
   conflictCount: number;
   failedCount: number;
   lastSuccessfulPullAt: string | null;
   mode: 'authenticated' | 'guest';
   pendingCount: number;
+  requeuedCount?: number;
 }) {
   if (mode !== 'authenticated') {
     return {
@@ -34,7 +36,15 @@ export function getSyncSafetyBadgeState({
 
   if (conflictCount > 0 || failedCount > 0) {
     return {
-      label: `충돌/실패 있음 ${conflictCount + failedCount}`,
+      label: `직접 확인 ${conflictCount + failedCount}`,
+      tone: 'secondary' as const,
+      to: '/account',
+    };
+  }
+
+  if (requeuedCount > 0) {
+    return {
+      label: `자동 병합 후 재시도 ${requeuedCount}`,
       tone: 'secondary' as const,
       to: '/account',
     };

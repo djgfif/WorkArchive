@@ -6,14 +6,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '@test/render-with-providers';
 import { AuthContext } from '@features/auth';
-import {
-  clearStoredAuthTokens,
-  writeStoredAuthTokens,
-} from '@features/auth';
-import {
-  resetWorkArchiveStorage,
-  workArchiveDbManager,
-} from '@features/works';
+import { clearStoredAuthTokens, writeStoredAuthTokens } from '@features/auth';
+import { resetWorkArchiveStorage, workArchiveDbManager } from '@features/works';
 import { LAST_JSON_EXPORT_AT_META_KEY } from '@features/archive';
 import { SettingsPage } from './SettingsPage';
 
@@ -233,9 +227,7 @@ async function openSettingsSection(
   user: ReturnType<typeof userEvent.setup>,
   sectionId: string,
 ) {
-  const sectionTab = document.querySelector(
-    `[data-section-id="${sectionId}"]`,
-  );
+  const sectionTab = document.querySelector(`[data-section-id="${sectionId}"]`);
 
   if (!(sectionTab instanceof HTMLElement)) {
     throw new Error(`Settings section tab not found: ${sectionId}`);
@@ -258,55 +250,55 @@ describe('SettingsPage', () => {
       accessToken: 'access-token',
     });
     const providerStatuses = [
-        {
-          provider: 'manual',
-          label: 'Manual',
-          credentialMode: 'none',
-          configured: true,
-          mediumTypes: ['novel', 'anime'],
-        },
-        {
-          provider: 'wikidata',
-          label: 'Wikidata',
-          credentialMode: 'none',
-          configured: true,
-          mediumTypes: ['novel', 'anime', 'movie', 'drama'],
-        },
-        {
-          provider: 'aladin',
-          label: 'Aladin Book',
-          credentialMode: 'user',
-          configured: false,
-          credentialFields: [{ name: 'ttbKey', label: 'TTBKey', secret: true }],
-          mediumTypes: ['novel', 'light_novel', 'manga'],
-        },
-        {
-          provider: 'tmdb',
-          label: 'TMDB',
-          credentialMode: 'user',
-          configured: false,
-          credentialFields: [
-            { name: 'readToken', label: 'Read Access Token', secret: true },
-          ],
-          mediumTypes: ['movie', 'drama'],
-        },
-        {
-          provider: 'brave_search',
-          label: 'Brave Search',
-          credentialMode: 'user',
-          configured: false,
-          credentialFields: [{ name: 'apiKey', label: 'API Key', secret: true }],
-          mediumTypes: ['web_novel', 'webtoon', 'anime'],
-        },
-        {
-          provider: 'tavily_search',
-          label: 'Tavily Search',
-          credentialMode: 'user',
-          configured: false,
-          credentialFields: [{ name: 'apiKey', label: 'API Key', secret: true }],
-          mediumTypes: ['web_novel', 'webtoon'],
-        },
-      ];
+      {
+        provider: 'manual',
+        label: 'Manual',
+        credentialMode: 'none',
+        configured: true,
+        mediumTypes: ['novel', 'anime'],
+      },
+      {
+        provider: 'wikidata',
+        label: 'Wikidata',
+        credentialMode: 'none',
+        configured: true,
+        mediumTypes: ['novel', 'anime', 'movie', 'drama'],
+      },
+      {
+        provider: 'aladin',
+        label: 'Aladin Book',
+        credentialMode: 'user',
+        configured: false,
+        credentialFields: [{ name: 'ttbKey', label: 'TTBKey', secret: true }],
+        mediumTypes: ['novel', 'light_novel', 'manga'],
+      },
+      {
+        provider: 'tmdb',
+        label: 'TMDB',
+        credentialMode: 'user',
+        configured: false,
+        credentialFields: [
+          { name: 'readToken', label: 'Read Access Token', secret: true },
+        ],
+        mediumTypes: ['movie', 'drama'],
+      },
+      {
+        provider: 'brave_search',
+        label: 'Brave Search',
+        credentialMode: 'user',
+        configured: false,
+        credentialFields: [{ name: 'apiKey', label: 'API Key', secret: true }],
+        mediumTypes: ['web_novel', 'webtoon', 'anime'],
+      },
+      {
+        provider: 'tavily_search',
+        label: 'Tavily Search',
+        credentialMode: 'user',
+        configured: false,
+        credentialFields: [{ name: 'apiKey', label: 'API Key', secret: true }],
+        mediumTypes: ['web_novel', 'webtoon'],
+      },
+    ];
     const fetchMock = vi.fn((url: string | URL | Request) => {
       const requestUrl = String(url);
 
@@ -374,7 +366,11 @@ describe('SettingsPage', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText('백업 대기 3개')).toBeInTheDocument();
-    expect(screen.getByText('전체 3개 · 충돌 1개 · 실패 1개')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '전체 3개 · 직접 확인 1개 · 실패 1개 · 자동 병합 후 재시도 0개',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 
@@ -395,7 +391,10 @@ describe('SettingsPage', () => {
 
   it('shows the shared JSON backup reminder in settings overview', async () => {
     const user = userEvent.setup();
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(jsonResponse([]))));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(jsonResponse([]))),
+    );
     workArchiveDbManager.switchToUser('user-1');
     await seedActiveWorks(20);
 
@@ -423,19 +422,21 @@ describe('SettingsPage', () => {
       role: 'user',
       authAccounts: [],
     };
-    const fetchMock = vi.fn((url: string | URL | Request, _init?: RequestInit) => {
-      const requestUrl = String(url);
+    const fetchMock = vi.fn(
+      (url: string | URL | Request, _init?: RequestInit) => {
+        const requestUrl = String(url);
 
-      if (requestUrl.includes('/auth/profile')) {
-        return Promise.resolve(jsonResponse(updatedUser));
-      }
+        if (requestUrl.includes('/auth/profile')) {
+          return Promise.resolve(jsonResponse(updatedUser));
+        }
 
-      if (requestUrl.includes('/auth/sessions')) {
-        return Promise.resolve(jsonResponse(authSessionsResponse()));
-      }
+        if (requestUrl.includes('/auth/sessions')) {
+          return Promise.resolve(jsonResponse(authSessionsResponse()));
+        }
 
-      return Promise.resolve(jsonResponse([]));
-    });
+        return Promise.resolve(jsonResponse([]));
+      },
+    );
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -491,26 +492,28 @@ describe('SettingsPage', () => {
     writeStoredAuthTokens({
       accessToken: 'access-token',
     });
-    const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const requestUrl = String(url);
+    const fetchMock = vi.fn(
+      (url: string | URL | Request, init?: RequestInit) => {
+        const requestUrl = String(url);
 
-      if (requestUrl.includes('/auth/profile') && init?.method === 'PATCH') {
-        return Promise.resolve(
-          jsonResponse(
-            {
-              message: 'Handle is already in use.',
-            },
-            409,
-          ),
-        );
-      }
+        if (requestUrl.includes('/auth/profile') && init?.method === 'PATCH') {
+          return Promise.resolve(
+            jsonResponse(
+              {
+                message: 'Handle is already in use.',
+              },
+              409,
+            ),
+          );
+        }
 
-      if (requestUrl.includes('/auth/sessions')) {
-        return Promise.resolve(jsonResponse(authSessionsResponse()));
-      }
+        if (requestUrl.includes('/auth/sessions')) {
+          return Promise.resolve(jsonResponse(authSessionsResponse()));
+        }
 
-      return Promise.resolve(jsonResponse([]));
-    });
+        return Promise.resolve(jsonResponse([]));
+      },
+    );
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -573,43 +576,45 @@ describe('SettingsPage', () => {
         mediumTypes: ['movie'],
       },
     ];
-    const fetchMock = vi.fn((url: string | URL | Request, _init?: RequestInit) => {
-      const requestUrl = String(url);
+    const fetchMock = vi.fn(
+      (url: string | URL | Request, _init?: RequestInit) => {
+        const requestUrl = String(url);
 
-      if (requestUrl.includes('/auth/sessions')) {
-        return Promise.resolve(jsonResponse(authSessionsResponse()));
-      }
+        if (requestUrl.includes('/auth/sessions')) {
+          return Promise.resolve(jsonResponse(authSessionsResponse()));
+        }
 
-      if (requestUrl.includes('/imports/providers/tmdb/test')) {
-        return Promise.resolve(
-          jsonResponse({
-            provider: 'tmdb',
-            ok: true,
-            message: 'TMDB API key connection test succeeded.',
-            reason: null,
-            checkedAt: '2026-05-20T00:00:00.000Z',
-          }),
-        );
-      }
+        if (requestUrl.includes('/imports/providers/tmdb/test')) {
+          return Promise.resolve(
+            jsonResponse({
+              provider: 'tmdb',
+              ok: true,
+              message: 'TMDB API key connection test succeeded.',
+              reason: null,
+              checkedAt: '2026-05-20T00:00:00.000Z',
+            }),
+          );
+        }
 
-      if (requestUrl.includes('/imports/providers/kobis/test')) {
-        return Promise.resolve(
-          jsonResponse({
-            provider: 'kobis',
-            ok: false,
-            message: 'KOBIS API key was rejected by the provider.',
-            reason: 'unauthorized',
-            checkedAt: '2026-05-20T00:00:00.000Z',
-          }),
-        );
-      }
+        if (requestUrl.includes('/imports/providers/kobis/test')) {
+          return Promise.resolve(
+            jsonResponse({
+              provider: 'kobis',
+              ok: false,
+              message: 'KOBIS API key was rejected by the provider.',
+              reason: 'unauthorized',
+              checkedAt: '2026-05-20T00:00:00.000Z',
+            }),
+          );
+        }
 
-      if (requestUrl.includes('/imports/providers')) {
-        return Promise.resolve(jsonResponse(providerStatuses));
-      }
+        if (requestUrl.includes('/imports/providers')) {
+          return Promise.resolve(jsonResponse(providerStatuses));
+        }
 
-      return Promise.resolve(jsonResponse([]));
-    });
+        return Promise.resolve(jsonResponse([]));
+      },
+    );
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -729,9 +734,7 @@ describe('SettingsPage', () => {
           label: 'Aladin Book',
           credentialMode: 'user',
           configured: false,
-          credentialFields: [
-            { name: 'ttbKey', label: 'TTBKey', secret: true },
-          ],
+          credentialFields: [{ name: 'ttbKey', label: 'TTBKey', secret: true }],
           mediumTypes: ['novel', 'light_novel', 'manga'],
         },
         {
@@ -796,30 +799,32 @@ describe('SettingsPage', () => {
           mediumTypes: ['web_novel', 'webtoon'],
         },
       ];
-      const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
-        const requestUrl = String(url);
+      const fetchMock = vi.fn(
+        (url: string | URL | Request, init?: RequestInit) => {
+          const requestUrl = String(url);
 
-        if (requestUrl.includes('/auth/sessions')) {
-          return Promise.resolve(jsonResponse(authSessionsResponse()));
-        }
-
-        if (requestUrl.includes(`/imports/providers/${provider}/key`)) {
-          if (init?.method === 'PUT') {
-            return Promise.resolve(
-              jsonResponse({
-                provider,
-                configured: true,
-              }),
-            );
+          if (requestUrl.includes('/auth/sessions')) {
+            return Promise.resolve(jsonResponse(authSessionsResponse()));
           }
 
-          if (init?.method === 'DELETE') {
-            return Promise.resolve(noContentResponse());
-          }
-        }
+          if (requestUrl.includes(`/imports/providers/${provider}/key`)) {
+            if (init?.method === 'PUT') {
+              return Promise.resolve(
+                jsonResponse({
+                  provider,
+                  configured: true,
+                }),
+              );
+            }
 
-        return Promise.resolve(jsonResponse(providerStatuses));
-      });
+            if (init?.method === 'DELETE') {
+              return Promise.resolve(noContentResponse());
+            }
+          }
+
+          return Promise.resolve(jsonResponse(providerStatuses));
+        },
+      );
 
       vi.stubGlobal('fetch', fetchMock);
 
@@ -828,7 +833,9 @@ describe('SettingsPage', () => {
       renderAuthenticatedSettings();
       await openSettingsSection(user, 'search-providers');
 
-      expect(await screen.findByText('Search provider 관리')).toBeInTheDocument();
+      expect(
+        await screen.findByText('Search provider 관리'),
+      ).toBeInTheDocument();
       if (provider !== 'aladin') {
         await user.click(
           await screen.findByRole('button', {
@@ -842,7 +849,9 @@ describe('SettingsPage', () => {
       }
       await user.click(screen.getByRole('button', { name: /키 저장/ }));
 
-      expect(await screen.findByText(/API key를 저장했습니다/)).toBeInTheDocument();
+      expect(
+        await screen.findByText(/API key를 저장했습니다/),
+      ).toBeInTheDocument();
       for (const field of fields) {
         expect(screen.getByLabelText(field.label)).toHaveValue('');
       }
@@ -876,7 +885,9 @@ describe('SettingsPage', () => {
 
       await user.click(screen.getByRole('button', { name: /키 삭제/ }));
 
-      expect(await screen.findByText(/API key를 삭제했습니다/)).toBeInTheDocument();
+      expect(
+        await screen.findByText(/API key를 삭제했습니다/),
+      ).toBeInTheDocument();
       const deleteRequest = fetchMock.mock.calls.find(
         ([url, init]) =>
           String(url).includes(`/imports/providers/${provider}/key`) &&
@@ -893,19 +904,21 @@ describe('SettingsPage', () => {
     writeStoredAuthTokens({
       accessToken: 'access-token',
     });
-    const fetchMock = vi.fn((url: string | URL | Request, _init?: RequestInit) => {
-      const requestUrl = String(url);
+    const fetchMock = vi.fn(
+      (url: string | URL | Request, _init?: RequestInit) => {
+        const requestUrl = String(url);
 
-      if (requestUrl.includes('/auth/sessions/session-1')) {
-        return Promise.resolve(noContentResponse());
-      }
+        if (requestUrl.includes('/auth/sessions/session-1')) {
+          return Promise.resolve(noContentResponse());
+        }
 
-      if (requestUrl.includes('/auth/sessions')) {
-        return Promise.resolve(jsonResponse(authSessionsResponse()));
-      }
+        if (requestUrl.includes('/auth/sessions')) {
+          return Promise.resolve(jsonResponse(authSessionsResponse()));
+        }
 
-      return Promise.resolve(jsonResponse([]));
-    });
+        return Promise.resolve(jsonResponse([]));
+      },
+    );
     const signOut = vi.fn().mockResolvedValue(undefined);
 
     vi.stubGlobal('fetch', fetchMock);

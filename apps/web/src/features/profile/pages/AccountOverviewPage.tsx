@@ -77,7 +77,12 @@ interface StatusLineProps {
 
 function StatusLine({ label, tone, value }: StatusLineProps) {
   return (
-    <Group className={cn(css.statusLine)} gap="sm" justify="space-between" wrap="nowrap">
+    <Group
+      className={cn(css.statusLine)}
+      gap="sm"
+      justify="space-between"
+      wrap="nowrap"
+    >
       <Group gap="xs" miw={0} wrap="nowrap">
         <span className={cx(css.statusDot, css[`statusDot_${tone}`])} />
         <Text className={cn(css.statusLabel)}>{label}</Text>
@@ -126,6 +131,9 @@ export function AccountOverviewPage() {
   const isAuthenticated = mode === 'authenticated';
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
   const backupAttentionCount = conflictItems.length + failedItems.length;
+  const backupRequeuedCount = pendingItems.filter(
+    (item) => item.state === 'requeued',
+  ).length;
   const backupPendingCount = pendingItems.length;
   const accountLabel = isAuthenticated
     ? (user?.email ?? '연결된 계정')
@@ -133,27 +141,35 @@ export function AccountOverviewPage() {
   const backupStatus =
     backupAttentionCount > 0
       ? {
-          badge: '확인 필요',
+          badge: '직접 확인 필요',
           description:
-            '일부 백업 항목에 충돌이나 오류가 있습니다. 기록은 계속 작성할 수 있습니다.',
+            '자동 병합하기 위험한 백업 항목은 로컬 기록을 유지한 채 직접 확인을 기다립니다.',
           tone: 'warning' as const,
-          value: '검토 필요',
+          value: '수동 확인',
         }
-      : backupPendingCount > 0
+      : backupRequeuedCount > 0
         ? {
-            badge: '대기 중',
+            badge: '자동 병합됨',
             description:
-              '최근 변경 사항을 동기화하는 중입니다. 오프라인에서도 기록은 유지됩니다.',
+              '안전한 변경만 자동 병합했고, 새 백업 요청으로 다시 보내는 중입니다.',
             tone: 'info' as const,
-            value: '백업 대기',
+            value: '재시도 대기',
           }
-        : {
-            badge: '정상',
-            description:
-              '로컬 기록을 기준으로 안전하게 보관 중입니다. 로그인하면 자동 백업을 사용할 수 있습니다.',
-            tone: 'success' as const,
-            value: isAuthenticated ? '보호됨' : '로컬 저장',
-          };
+        : backupPendingCount > 0
+          ? {
+              badge: '대기 중',
+              description:
+                '최근 변경 사항을 동기화하는 중입니다. 오프라인에서도 기록은 유지됩니다.',
+              tone: 'info' as const,
+              value: '백업 대기',
+            }
+          : {
+              badge: '정상',
+              description:
+                '로컬 기록을 기준으로 안전하게 보관 중입니다. 로그인하면 자동 백업을 사용할 수 있습니다.',
+              tone: 'success' as const,
+              value: isAuthenticated ? '보호됨' : '로컬 저장',
+            };
 
   return (
     <AccountPageTemplate
@@ -168,7 +184,12 @@ export function AccountOverviewPage() {
     >
       <Stack gap="md">
         <Box className={cn(css.accountHero)}>
-          <Group align="flex-start" justify="space-between" gap="xl" wrap="wrap">
+          <Group
+            align="flex-start"
+            justify="space-between"
+            gap="xl"
+            wrap="wrap"
+          >
             <Stack gap="md" className={cn(css.heroCopy)}>
               <Group gap="sm" wrap="nowrap">
                 <Box className={cn(css.accountMark)} aria-hidden>
@@ -192,7 +213,9 @@ export function AccountOverviewPage() {
                 <AppBadge tone={isAuthenticated ? 'success' : 'muted'}>
                   {isAuthenticated ? '로그인됨' : '게스트'}
                 </AppBadge>
-                <AppBadge tone={backupStatus.tone}>{backupStatus.badge}</AppBadge>
+                <AppBadge tone={backupStatus.tone}>
+                  {backupStatus.badge}
+                </AppBadge>
               </Group>
             </Stack>
 
@@ -239,7 +262,9 @@ export function AccountOverviewPage() {
               <Box className={cn(css.statusGroup)}>
                 <Group gap="xs" justify="space-between" wrap="nowrap">
                   <Text className={cn(css.statusGroupTitle)}>백업</Text>
-                  <AppBadge tone={backupStatus.tone}>{backupStatus.badge}</AppBadge>
+                  <AppBadge tone={backupStatus.tone}>
+                    {backupStatus.badge}
+                  </AppBadge>
                 </Group>
                 <Text className={cn(css.statusDescription)}>
                   {backupStatus.description}

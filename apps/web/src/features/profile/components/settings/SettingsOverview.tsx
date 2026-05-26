@@ -140,8 +140,9 @@ export function SettingsOverview({
         mode === 'authenticated'
           ? [
               `전체 ${stats.syncQueueItemCount}개`,
-              `충돌 ${stats.conflictQueueItemCount}개`,
+              `직접 확인 ${stats.conflictQueueItemCount}개`,
               `실패 ${stats.failedQueueItemCount}개`,
+              `자동 병합 후 재시도 ${stats.autoMergedQueueItemCount}개`,
             ].join(' · ')
           : '게스트 모드에서는 서버 동기화 대기열을 사용하지 않습니다.',
       icon: 'key',

@@ -4,6 +4,7 @@ import type {
   PullSyncChange,
   PushSyncResponse,
   PushSyncResult,
+  SyncAutoMergeSnapshot,
   SeriesRecord,
   SyncEntityType,
   SyncQueuePayload,
@@ -101,6 +102,16 @@ type TierBoardEntityRecord =
   | TierLaneRecord
   | TierBoardCardRecord
   | TierBoardAssetRecord;
+type AutoMergeOutcome<TPayload extends SyncQueuePayload> =
+  | {
+      merged: TPayload;
+      mergedFields: string[];
+      ok: true;
+    }
+  | {
+      ok: false;
+      reason: string;
+    };
 
 export type SyncRunState = 'idle' | 'syncing' | 'success' | 'failed';
 
@@ -210,138 +221,371 @@ function getLatestIso(left: string, right: string) {
   return Date.parse(left) >= Date.parse(right) ? left : right;
 }
 
-function getRecordChangeTime(record: { deletedAt: string | null; updatedAt: string }) {
-  if (!record.deletedAt) {
-    return Date.parse(record.updatedAt);
-  }
-
-  return Math.max(Date.parse(record.updatedAt), Date.parse(record.deletedAt));
-}
-
-function getNewerRecord<TRecord extends { deletedAt: string | null; updatedAt: string }>(
-  local: TRecord,
-  remote: TRecord,
-) {
-  return getRecordChangeTime(local) >= getRecordChangeTime(remote)
-    ? local
-    : remote;
-}
-
 function mergeUniqueValues(left: readonly string[], right: readonly string[]) {
   return Array.from(new Set([...left, ...right]));
 }
 
-function mergeWorkSnapshots(
+function areEqual(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function haveSameFieldValues<TRecord extends object>(
+  remote: TRecord,
+  localPayload: TRecord,
+  fields: readonly (keyof TRecord)[],
+) {
+  return fields.every((field) => areEqual(remote[field], localPayload[field]));
+}
+
+function hasDeleteUpdateCollision(
+  remote: { deletedAt: string | null },
+  localPayload: { deletedAt: string | null },
+) {
+  return remote.deletedAt !== null || localPayload.deletedAt !== null;
+}
+
+function createAutoMergeSnapshot(
+  mergedFields: readonly string[],
+): SyncAutoMergeSnapshot {
+  return {
+    fields: [...mergedFields],
+    mergedAt: getNowIso(),
+    message: '안전한 필드만 자동 병합되어 다시 백업 대기 중입니다.',
+    status: 'requeued',
+  };
+}
+
+function canAutoMergePushResult(result: PushSyncResult) {
+  return result.code === 'conflict_remote_newer';
+}
+
+function mergeWorkSafely(
   remote: WorkRecord,
   localPayload: WorkRecord,
-): WorkRecord {
-  const newer = getNewerRecord(localPayload, remote);
+): AutoMergeOutcome<WorkRecord> {
+  if (remote.id !== localPayload.id) {
+    return { ok: false, reason: 'entity_mismatch' };
+  }
+
+  if (hasDeleteUpdateCollision(remote, localPayload)) {
+    return { ok: false, reason: 'delete_update_collision' };
+  }
+
+  const scalarFields = [
+    'catalogTitleId',
+    'importDraft',
+    'type',
+    'title',
+    'author',
+    'description',
+    'thumbnailUrl',
+    'status',
+    'rating',
+    'shortReview',
+    'review',
+    'favorite',
+    'progressCurrent',
+    'progressTotal',
+    'progressUnit',
+    'lastConsumedLabel',
+    'startedAt',
+    'completedAt',
+    'droppedAt',
+    'lastConsumedAt',
+  ] as const satisfies readonly (keyof WorkRecord)[];
+
+  if (!haveSameFieldValues(remote, localPayload, scalarFields)) {
+    return { ok: false, reason: 'overlapping_field_change' };
+  }
+
   const taxonomy = moveUnknownGenresToPersonalTags(
     mergeUniqueValues(remote.genres, localPayload.genres),
     mergeUniqueValues(remote.personalTags, localPayload.personalTags),
   );
-  const merged: WorkRecord = {
-    ...cloneWorkRecord(newer),
-    createdAt: remote.createdAt,
-    deletedAt: newer.deletedAt,
-    favorite: localPayload.favorite || remote.favorite,
-    genres: taxonomy.genres,
-    personalTags: taxonomy.personalTags,
-    serverVersion: remote.serverVersion,
-    syncStatus: 'pending',
-    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
-  };
 
-  return merged;
+  return {
+    ok: true,
+    merged: {
+      ...cloneWorkRecord(localPayload),
+      createdAt: remote.createdAt,
+      deletedAt: null,
+      genres: taxonomy.genres,
+      personalTags: taxonomy.personalTags,
+      serverVersion: remote.serverVersion,
+      syncStatus: 'pending',
+      updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+    },
+    mergedFields: ['genres', 'personalTags'],
+  };
 }
 
-function mergeReleaseRecordSnapshots(
+function mergeReleaseRecordSafely(
   remote: UserReleaseRecord,
   localPayload: UserReleaseRecord,
-): UserReleaseRecord {
-  const newer = getNewerRecord(localPayload, remote);
+): AutoMergeOutcome<UserReleaseRecord> {
+  if (
+    remote.id !== localPayload.id ||
+    remote.userWorkRecordId !== localPayload.userWorkRecordId ||
+    remote.catalogReleaseId !== localPayload.catalogReleaseId
+  ) {
+    return { ok: false, reason: 'parent_mismatch' };
+  }
+
+  if (hasDeleteUpdateCollision(remote, localPayload)) {
+    return { ok: false, reason: 'delete_update_collision' };
+  }
+
+  const fields = [
+    'status',
+    'rating',
+    'shortReview',
+    'review',
+    'favorite',
+  ] as const satisfies readonly (keyof UserReleaseRecord)[];
+
+  if (!haveSameFieldValues(remote, localPayload, fields)) {
+    return { ok: false, reason: 'overlapping_field_change' };
+  }
 
   return {
-    ...cloneReleaseRecord(newer),
-    createdAt: remote.createdAt,
-    favorite: localPayload.favorite || remote.favorite,
-    serverVersion: remote.serverVersion,
-    syncStatus: 'pending',
-    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+    ok: true,
+    merged: {
+      ...cloneReleaseRecord(localPayload),
+      createdAt: remote.createdAt,
+      serverVersion: remote.serverVersion,
+      syncStatus: 'pending',
+      updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+    },
+    mergedFields: [],
   };
 }
 
-function mergeTimelineEntrySnapshots(
+function mergeTimelineEntrySafely(
   remote: TimelineEntryRecord,
   localPayload: TimelineEntryRecord,
-): TimelineEntryRecord {
-  const newer = getNewerRecord(localPayload, remote);
+): AutoMergeOutcome<TimelineEntryRecord> {
+  if (remote.id !== localPayload.id || remote.workId !== localPayload.workId) {
+    return { ok: false, reason: 'parent_mismatch' };
+  }
+
+  if (hasDeleteUpdateCollision(remote, localPayload)) {
+    return { ok: false, reason: 'delete_update_collision' };
+  }
+
+  const fields = [
+    'type',
+    'occurredAt',
+    'note',
+  ] as const satisfies readonly (keyof TimelineEntryRecord)[];
+
+  if (!haveSameFieldValues(remote, localPayload, fields)) {
+    return { ok: false, reason: 'overlapping_field_change' };
+  }
 
   return {
-    ...cloneTimelineEntry(newer),
-    createdAt: remote.createdAt,
-    serverVersion: remote.serverVersion,
-    syncStatus: 'pending',
-    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+    ok: true,
+    merged: {
+      ...cloneTimelineEntry(localPayload),
+      createdAt: remote.createdAt,
+      serverVersion: remote.serverVersion,
+      syncStatus: 'pending',
+      updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+    },
+    mergedFields: [],
   };
 }
 
-function mergeGraphEntitySnapshots<TRecord extends GraphEntityRecord>(
+function mergeGraphEntitySafely<TRecord extends GraphEntityRecord>(
   remote: TRecord,
   localPayload: TRecord,
-): TRecord {
-  const newer = getNewerRecord(localPayload, remote);
+): AutoMergeOutcome<TRecord> {
+  if (remote.id !== localPayload.id) {
+    return { ok: false, reason: 'entity_mismatch' };
+  }
 
-  return {
-    ...cloneGraphEntity(newer),
+  if (hasDeleteUpdateCollision(remote, localPayload)) {
+    return { ok: false, reason: 'delete_update_collision' };
+  }
+
+  if (
+    'parentId' in remote &&
+    remote.parentId !== (localPayload as SeriesRecord).parentId
+  ) {
+    return { ok: false, reason: 'parent_mismatch' };
+  }
+
+  if (
+    'workId' in remote &&
+    remote.workId !==
+      (localPayload as WorkSeriesLinkRecord | WorkContributorRecord).workId
+  ) {
+    return { ok: false, reason: 'parent_mismatch' };
+  }
+
+  if (
+    'sourceWorkId' in remote &&
+    (remote.sourceWorkId !==
+      (localPayload as WorkRelationRecord).sourceWorkId ||
+      remote.targetWorkId !== (localPayload as WorkRelationRecord).targetWorkId)
+  ) {
+    return { ok: false, reason: 'parent_mismatch' };
+  }
+
+  const mergedFields: string[] = [];
+  let scalarFields: readonly string[];
+
+  if ('aliases' in remote) {
+    scalarFields =
+      'kind' in remote
+        ? [
+            'title',
+            'normalizedTitle',
+            'kind',
+            'parentId',
+            'description',
+            'thumbnailUrl',
+          ]
+        : ['name', 'normalizedName', 'entityType'];
+    mergedFields.push('aliases');
+  } else if ('seriesId' in remote) {
+    scalarFields = ['workId', 'seriesId', 'role', 'orderIndex', 'orderLabel'];
+  } else if ('contributorId' in remote) {
+    scalarFields = ['workId', 'contributorId', 'role', 'displayOrder'];
+  } else {
+    scalarFields = ['sourceWorkId', 'targetWorkId', 'relationType', 'note'];
+  }
+
+  if (
+    !scalarFields.every((field) =>
+      areEqual(
+        (remote as unknown as Record<string, unknown>)[field],
+        (localPayload as unknown as Record<string, unknown>)[field],
+      ),
+    )
+  ) {
+    return { ok: false, reason: 'overlapping_field_change' };
+  }
+
+  const merged = {
+    ...cloneGraphEntity(localPayload),
     createdAt: remote.createdAt,
     serverVersion: remote.serverVersion,
     syncStatus: 'pending',
     updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
-  } as TRecord;
-}
-
-function mergeTierBoardEntitySnapshots<TRecord extends TierBoardEntityRecord>(
-  remote: TRecord,
-  localPayload: TRecord,
-): TRecord {
-  const newer =
-    'serverVersion' in localPayload && 'serverVersion' in remote
-      ? getNewerRecord(
-          localPayload as TRecord & { deletedAt: string | null; updatedAt: string },
-          remote as TRecord & { deletedAt: string | null; updatedAt: string },
-        )
-      : localPayload;
-
-  return {
-    ...newer,
-    createdAt: remote.createdAt,
-    ...(remote && 'serverVersion' in remote
-      ? { serverVersion: remote.serverVersion, syncStatus: 'pending' }
+    ...('aliases' in remote
+      ? {
+          aliases: mergeUniqueValues(
+            remote.aliases,
+            (localPayload as ContributorRecord | SeriesRecord).aliases,
+          ),
+        }
       : {}),
-    updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
   } as TRecord;
+
+  return {
+    ok: true,
+    merged,
+    mergedFields,
+  };
 }
 
-function mergePulledWorkWithQueuedPayload(
-  remote: WorkRecord,
-  localPayload: WorkRecord,
-): WorkRecord {
-  return mergeWorkSnapshots(remote, localPayload);
-}
+function mergeTierBoardEntitySafely<TRecord extends TierBoardEntityRecord>(
+  remote: TRecord,
+  localPayload: TRecord,
+): AutoMergeOutcome<TRecord> {
+  if (remote.id !== localPayload.id) {
+    return { ok: false, reason: 'entity_mismatch' };
+  }
 
-function mergePulledReleaseRecordWithQueuedPayload(
-  remote: UserReleaseRecord,
-  localPayload: UserReleaseRecord,
-): UserReleaseRecord {
-  return mergeReleaseRecordSnapshots(remote, localPayload);
-}
+  if (hasDeleteUpdateCollision(remote, localPayload)) {
+    return { ok: false, reason: 'delete_update_collision' };
+  }
 
-function mergePulledTimelineEntryWithQueuedPayload(
-  remote: TimelineEntryRecord,
-  localPayload: TimelineEntryRecord,
-): TimelineEntryRecord {
-  return mergeTimelineEntrySnapshots(remote, localPayload);
+  if (
+    'boardId' in remote &&
+    remote.boardId !==
+      (
+        localPayload as
+          | TierLaneRecord
+          | TierBoardCardRecord
+          | TierBoardAssetRecord
+      ).boardId
+  ) {
+    return { ok: false, reason: 'parent_mismatch' };
+  }
+
+  if (
+    'laneId' in remote &&
+    remote.laneId !== (localPayload as TierBoardCardRecord).laneId
+  ) {
+    return { ok: false, reason: 'parent_mismatch' };
+  }
+
+  if (
+    'cardId' in remote &&
+    remote.cardId !== (localPayload as TierBoardAssetRecord).cardId
+  ) {
+    return { ok: false, reason: 'parent_mismatch' };
+  }
+
+  const scalarFields =
+    'slug' in remote
+      ? [
+          'title',
+          'description',
+          'slug',
+          'boardType',
+          'visibility',
+          'coverImageUrl',
+        ]
+      : 'colorToken' in remote
+        ? ['boardId', 'title', 'description', 'colorToken', 'orderIndex']
+        : 'cardSourceType' in remote
+          ? [
+              'boardId',
+              'laneId',
+              'cardSourceType',
+              'workId',
+              'orderIndex',
+              'title',
+              'subtitle',
+              'imageUrl',
+              'note',
+            ]
+          : [
+              'boardId',
+              'cardId',
+              'kind',
+              'storageType',
+              'objectUrl',
+              'originalName',
+              'mimeType',
+              'sizeBytes',
+            ];
+
+  if (
+    !scalarFields.every((field) =>
+      areEqual(
+        (remote as unknown as Record<string, unknown>)[field],
+        (localPayload as unknown as Record<string, unknown>)[field],
+      ),
+    )
+  ) {
+    return { ok: false, reason: 'overlapping_field_change' };
+  }
+
+  return {
+    ok: true,
+    merged: {
+      ...localPayload,
+      createdAt: remote.createdAt,
+      ...('serverVersion' in remote
+        ? { serverVersion: remote.serverVersion, syncStatus: 'pending' }
+        : {}),
+      updatedAt: getLatestIso(remote.updatedAt, localPayload.updatedAt),
+    } as TRecord,
+    mergedFields: [],
+  };
 }
 
 function isGraphEntityType(entityType: SyncEntityType) {
@@ -625,7 +869,7 @@ export class SyncService {
       const tierLanesToMerge: TierLaneRecord[] = [];
       const tierBoardCardsToMerge: TierBoardCardRecord[] = [];
       const tierBoardAssetsToMerge: TierBoardAssetRecord[] = [];
-      const skippedCount = 0;
+      let skippedCount = 0;
       const messages: string[] = [];
       let cursor: string | null = null;
       let nextSince = since;
@@ -664,10 +908,36 @@ export class SyncService {
           const hasLocalQueue = relatedQueueItems.length > 0;
 
           if (hasLocalQueue) {
-            await this.autoMergePullChangeWithQueuedPayload(
+            const autoMerged = await this.autoMergePullChangeWithQueuedPayload(
               change,
               relatedQueueItems,
             );
+
+            if (!autoMerged) {
+              skippedCount += relatedQueueItems.length;
+              const remote = this.getRemotePullConflictPayload(change);
+              const conflictMessage =
+                '원격 변경과 로컬 대기열을 자동 병합할 수 없어 직접 확인이 필요합니다.';
+
+              for (const queueItem of relatedQueueItems) {
+                await this.queueRepo.markConflict(
+                  queueItem.id,
+                  conflictMessage,
+                  remote,
+                  'pull_conflict_local_queue',
+                );
+                await this.markEntitySyncStatus(
+                  queueItem.entityType,
+                  queueItem.entityId,
+                  'conflict',
+                );
+              }
+            } else {
+              messages.push(
+                '안전한 원격 변경을 자동 병합해 다시 백업 대기 중입니다.',
+              );
+            }
+
             continue;
           }
 
@@ -732,7 +1002,10 @@ export class SyncService {
             continue;
           }
 
-          if (change.entityType === 'tier_board_asset' && change.tierBoardAsset) {
+          if (
+            change.entityType === 'tier_board_asset' &&
+            change.tierBoardAsset
+          ) {
             tierBoardAssetsToMerge.push(change.tierBoardAsset);
           }
         }
@@ -829,7 +1102,9 @@ export class SyncService {
       };
 
       await this.releaseRecordsRepo.update(nextReleaseRecord);
-      await this.queueRepo.resetForRetry(queueItem.id, nextReleaseRecord);
+      await this.queueRepo.resetForRetry(queueItem.id, nextReleaseRecord, {
+        rotateClientMutationId: true,
+      });
 
       return nextReleaseRecord;
     }
@@ -845,7 +1120,9 @@ export class SyncService {
       };
 
       await this.timelineEntriesRepo.update(nextTimelineEntry);
-      await this.queueRepo.resetForRetry(queueItem.id, nextTimelineEntry);
+      await this.queueRepo.resetForRetry(queueItem.id, nextTimelineEntry, {
+        rotateClientMutationId: true,
+      });
 
       return nextTimelineEntry;
     }
@@ -855,7 +1132,8 @@ export class SyncService {
         ((await this.graphRepo.getEntity(
           queueItem.entityType,
           queueItem.entityId,
-        )) as GraphEntityRecord | null) ?? (queueItem.payload as GraphEntityRecord);
+        )) as GraphEntityRecord | null) ??
+        (queueItem.payload as GraphEntityRecord);
       const nextGraphEntity = {
         ...cloneGraphEntity(localGraphEntity),
         syncStatus: 'pending',
@@ -863,7 +1141,9 @@ export class SyncService {
       } as GraphEntityRecord;
 
       await this.graphRepo.putEntity(nextGraphEntity);
-      await this.queueRepo.resetForRetry(queueItem.id, nextGraphEntity);
+      await this.queueRepo.resetForRetry(queueItem.id, nextGraphEntity, {
+        rotateClientMutationId: true,
+      });
 
       return nextGraphEntity;
     }
@@ -884,7 +1164,9 @@ export class SyncService {
       } as TierBoardEntityRecord;
 
       await this.tierBoardRepo.putEntity(nextTierBoardEntity);
-      await this.queueRepo.resetForRetry(queueItem.id, nextTierBoardEntity);
+      await this.queueRepo.resetForRetry(queueItem.id, nextTierBoardEntity, {
+        rotateClientMutationId: true,
+      });
 
       return nextTierBoardEntity;
     }
@@ -899,7 +1181,9 @@ export class SyncService {
     };
 
     await this.worksRepo.update(nextWork);
-    await this.queueRepo.resetForRetry(queueItem.id, nextWork);
+    await this.queueRepo.resetForRetry(queueItem.id, nextWork, {
+      rotateClientMutationId: true,
+    });
 
     return nextWork;
   }
@@ -1016,7 +1300,9 @@ export class SyncService {
       nextReleaseRecord.updatedAt = now;
 
       await this.releaseRecordsRepo.update(nextReleaseRecord);
-      await this.queueRepo.resetForRetry(queueItem.id, nextReleaseRecord);
+      await this.queueRepo.resetForRetry(queueItem.id, nextReleaseRecord, {
+        rotateClientMutationId: true,
+      });
 
       return nextReleaseRecord;
     }
@@ -1052,7 +1338,9 @@ export class SyncService {
     nextWork.updatedAt = now;
 
     await this.worksRepo.update(nextWork);
-    await this.queueRepo.resetForRetry(queueItem.id, nextWork);
+    await this.queueRepo.resetForRetry(queueItem.id, nextWork, {
+      rotateClientMutationId: true,
+    });
 
     return nextWork;
   }
@@ -1191,6 +1479,10 @@ export class SyncService {
     queueItem: SyncQueueItemRecord,
     result: PushSyncResult,
   ) {
+    if (!canAutoMergePushResult(result)) {
+      return false;
+    }
+
     const remote = this.getRemoteConflictPayload(result);
 
     if (!remote) {
@@ -1203,14 +1495,22 @@ export class SyncService {
           ((await this.graphRepo.getEntity(
             queueItem.entityType,
             queueItem.entityId,
-          )) as GraphEntityRecord | null) ?? (queueItem.payload as GraphEntityRecord);
-        const merged = mergeGraphEntitySnapshots(
+          )) as GraphEntityRecord | null) ??
+          (queueItem.payload as GraphEntityRecord);
+        const outcome = mergeGraphEntitySafely(
           remote as GraphEntityRecord,
           localGraphEntity,
         );
 
-        await this.graphRepo.putEntity(merged);
-        await this.queueRepo.resetForRetry(queueItem.id, merged);
+        if (!outcome.ok) {
+          return false;
+        }
+
+        await this.graphRepo.putEntity(outcome.merged);
+        await this.queueRepo.resetForRetry(queueItem.id, outcome.merged, {
+          autoMerge: createAutoMergeSnapshot(outcome.mergedFields),
+          rotateClientMutationId: true,
+        });
 
         return true;
       }
@@ -1222,13 +1522,20 @@ export class SyncService {
             queueItem.entityId,
           )) as TierBoardEntityRecord | null) ??
           (queueItem.payload as TierBoardEntityRecord);
-        const merged = mergeTierBoardEntitySnapshots(
+        const outcome = mergeTierBoardEntitySafely(
           remote as TierBoardEntityRecord,
           localTierBoardEntity,
         );
 
-        await this.tierBoardRepo.putEntity(merged);
-        await this.queueRepo.resetForRetry(queueItem.id, merged);
+        if (!outcome.ok) {
+          return false;
+        }
+
+        await this.tierBoardRepo.putEntity(outcome.merged);
+        await this.queueRepo.resetForRetry(queueItem.id, outcome.merged, {
+          autoMerge: createAutoMergeSnapshot(outcome.mergedFields),
+          rotateClientMutationId: true,
+        });
 
         return true;
       }
@@ -1237,13 +1544,20 @@ export class SyncService {
         const localReleaseRecord =
           (await this.releaseRecordsRepo.getById(queueItem.entityId)) ??
           (queueItem.payload as UserReleaseRecord);
-        const merged = mergeReleaseRecordSnapshots(
+        const outcome = mergeReleaseRecordSafely(
           remote as UserReleaseRecord,
           localReleaseRecord,
         );
 
-        await this.releaseRecordsRepo.update(merged);
-        await this.queueRepo.resetForRetry(queueItem.id, merged);
+        if (!outcome.ok) {
+          return false;
+        }
+
+        await this.releaseRecordsRepo.update(outcome.merged);
+        await this.queueRepo.resetForRetry(queueItem.id, outcome.merged, {
+          autoMerge: createAutoMergeSnapshot(outcome.mergedFields),
+          rotateClientMutationId: true,
+        });
 
         return true;
       }
@@ -1252,13 +1566,20 @@ export class SyncService {
         const localTimelineEntry =
           (await this.timelineEntriesRepo.getById(queueItem.entityId)) ??
           (queueItem.payload as TimelineEntryRecord);
-        const merged = mergeTimelineEntrySnapshots(
+        const outcome = mergeTimelineEntrySafely(
           remote as TimelineEntryRecord,
           localTimelineEntry,
         );
 
-        await this.timelineEntriesRepo.update(merged);
-        await this.queueRepo.resetForRetry(queueItem.id, merged);
+        if (!outcome.ok) {
+          return false;
+        }
+
+        await this.timelineEntriesRepo.update(outcome.merged);
+        await this.queueRepo.resetForRetry(queueItem.id, outcome.merged, {
+          autoMerge: createAutoMergeSnapshot(outcome.mergedFields),
+          rotateClientMutationId: true,
+        });
 
         return true;
       }
@@ -1266,10 +1587,17 @@ export class SyncService {
       const localWork =
         (await this.worksRepo.getById(queueItem.entityId)) ??
         (queueItem.payload as WorkRecord);
-      const merged = mergeWorkSnapshots(remote as WorkRecord, localWork);
+      const outcome = mergeWorkSafely(remote as WorkRecord, localWork);
 
-      await this.worksRepo.update(merged);
-      await this.queueRepo.resetForRetry(queueItem.id, merged);
+      if (!outcome.ok) {
+        return false;
+      }
+
+      await this.worksRepo.update(outcome.merged);
+      await this.queueRepo.resetForRetry(queueItem.id, outcome.merged, {
+        autoMerge: createAutoMergeSnapshot(outcome.mergedFields),
+        rotateClientMutationId: true,
+      });
 
       return true;
     } catch {
@@ -1449,47 +1777,72 @@ export class SyncService {
   private async autoMergePullChangeWithQueuedPayload(
     change: PullSyncChange,
     queueItems: SyncQueueItemRecord[],
-  ) {
+  ): Promise<boolean> {
+    if (change.operation === 'delete') {
+      return false;
+    }
+
     if (change.entityType === 'work' && change.work) {
       for (const queueItem of queueItems) {
-        const merged = mergePulledWorkWithQueuedPayload(
+        const outcome = mergeWorkSafely(
           change.work,
           queueItem.payload as WorkRecord,
         );
 
-        await this.worksRepo.update(merged);
-        await this.queueRepo.resetForRetry(queueItem.id, merged);
+        if (!outcome.ok) {
+          return false;
+        }
+
+        await this.worksRepo.update(outcome.merged);
+        await this.queueRepo.resetForRetry(queueItem.id, outcome.merged, {
+          autoMerge: createAutoMergeSnapshot(outcome.mergedFields),
+          rotateClientMutationId: true,
+        });
       }
 
-      return;
+      return true;
     }
 
     if (change.entityType === 'release_record' && change.releaseRecord) {
       for (const queueItem of queueItems) {
-        const merged = mergePulledReleaseRecordWithQueuedPayload(
+        const outcome = mergeReleaseRecordSafely(
           change.releaseRecord,
           queueItem.payload as UserReleaseRecord,
         );
 
-        await this.releaseRecordsRepo.update(merged);
-        await this.queueRepo.resetForRetry(queueItem.id, merged);
+        if (!outcome.ok) {
+          return false;
+        }
+
+        await this.releaseRecordsRepo.update(outcome.merged);
+        await this.queueRepo.resetForRetry(queueItem.id, outcome.merged, {
+          autoMerge: createAutoMergeSnapshot(outcome.mergedFields),
+          rotateClientMutationId: true,
+        });
       }
 
-      return;
+      return true;
     }
 
     if (change.entityType === 'timeline_entry' && change.timelineEntry) {
       for (const queueItem of queueItems) {
-        const merged = mergePulledTimelineEntryWithQueuedPayload(
+        const outcome = mergeTimelineEntrySafely(
           change.timelineEntry,
           queueItem.payload as TimelineEntryRecord,
         );
 
-      await this.timelineEntriesRepo.update(merged);
-      await this.queueRepo.resetForRetry(queueItem.id, merged);
+        if (!outcome.ok) {
+          return false;
+        }
+
+        await this.timelineEntriesRepo.update(outcome.merged);
+        await this.queueRepo.resetForRetry(queueItem.id, outcome.merged, {
+          autoMerge: createAutoMergeSnapshot(outcome.mergedFields),
+          rotateClientMutationId: true,
+        });
       }
 
-      return;
+      return true;
     }
 
     if (isGraphEntityType(change.entityType)) {
@@ -1498,18 +1851,27 @@ export class SyncService {
       ) as GraphEntityRecord | null;
 
       if (!remoteGraphEntity) {
-        return;
+        return false;
       }
 
       for (const queueItem of queueItems) {
-        const merged = mergeGraphEntitySnapshots(
+        const outcome = mergeGraphEntitySafely(
           remoteGraphEntity,
           queueItem.payload as GraphEntityRecord,
         );
 
-        await this.graphRepo.putEntity(merged);
-        await this.queueRepo.resetForRetry(queueItem.id, merged);
+        if (!outcome.ok) {
+          return false;
+        }
+
+        await this.graphRepo.putEntity(outcome.merged);
+        await this.queueRepo.resetForRetry(queueItem.id, outcome.merged, {
+          autoMerge: createAutoMergeSnapshot(outcome.mergedFields),
+          rotateClientMutationId: true,
+        });
       }
+
+      return true;
     }
 
     if (isTierBoardEntityType(change.entityType)) {
@@ -1518,19 +1880,30 @@ export class SyncService {
       ) as TierBoardEntityRecord | null;
 
       if (!remoteTierBoardEntity) {
-        return;
+        return false;
       }
 
       for (const queueItem of queueItems) {
-        const merged = mergeTierBoardEntitySnapshots(
+        const outcome = mergeTierBoardEntitySafely(
           remoteTierBoardEntity,
           queueItem.payload as TierBoardEntityRecord,
         );
 
-        await this.tierBoardRepo.putEntity(merged);
-        await this.queueRepo.resetForRetry(queueItem.id, merged);
+        if (!outcome.ok) {
+          return false;
+        }
+
+        await this.tierBoardRepo.putEntity(outcome.merged);
+        await this.queueRepo.resetForRetry(queueItem.id, outcome.merged, {
+          autoMerge: createAutoMergeSnapshot(outcome.mergedFields),
+          rotateClientMutationId: true,
+        });
       }
+
+      return true;
     }
+
+    return false;
   }
 
   private localizeSyncResult(

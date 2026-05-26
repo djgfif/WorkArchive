@@ -7,14 +7,8 @@ import type {
   WorkRecord,
 } from '@work-archive/shared-types';
 
-import {
-  clearStoredAuthTokens,
-  writeStoredAuthTokens,
-} from '@features/auth';
-import {
-  createWorkArchiveDb,
-  type WorkArchiveDatabase,
-} from '@features/works';
+import { clearStoredAuthTokens, writeStoredAuthTokens } from '@features/auth';
+import { createWorkArchiveDb, type WorkArchiveDatabase } from '@features/works';
 import { WorksRepository } from '@features/works';
 import { WorksService } from '@features/works';
 import { ReleaseRecordsRepository } from '@features/works';
@@ -423,15 +417,15 @@ describe('SyncService', () => {
     );
   });
 
-  it('auto-merges a push conflict and keeps the work queued for backup retry', async () => {
+  it('auto-merges safe array-only push conflicts and keeps the work queued for backup retry', async () => {
     const localWork = await worksService.createWork(
       buildInput({
-        favorite: true,
         genres: ['Science Fiction'],
         personalTags: ['local'],
       }),
     );
     const queueItems = await queueRepository.listAll();
+    const originalClientMutationId = queueItems[0]!.clientMutationId;
     writeStoredAuthTokens({
       accessToken: 'access-token',
     });
@@ -448,11 +442,11 @@ describe('SyncService', () => {
               entityId: localWork.id,
               entityType: 'work',
               status: 'conflict',
+              code: 'conflict_remote_newer',
               message:
                 'Conflict: server version 3 updated at 2026-06-18T01:00:00.000Z won.',
               work: {
                 ...localWork,
-                favorite: false,
                 genres: ['Classic'],
                 personalTags: ['remote'],
                 syncStatus: 'synced',
@@ -474,14 +468,19 @@ describe('SyncService', () => {
         failedCount: 0,
       }),
     );
-    expect(await queueRepository.listAll()).toEqual([
+    const queuedAfterAutoMerge = await queueRepository.listAll();
+
+    expect(queuedAfterAutoMerge).toEqual([
       expect.objectContaining({
         entityId: localWork.id,
         retryCount: 0,
         lastError: null,
         conflict: null,
+        autoMerge: expect.objectContaining({
+          status: 'requeued',
+        }),
+        clientMutationId: expect.any(String),
         payload: expect.objectContaining({
-          favorite: true,
           genres: [],
           personalTags: ['remote', 'local', 'Science Fiction', 'Classic'],
           serverVersion: 3,
@@ -489,13 +488,145 @@ describe('SyncService', () => {
         }),
       }),
     ]);
+    expect(queuedAfterAutoMerge[0]?.clientMutationId).not.toBe(
+      originalClientMutationId,
+    );
     expect(await worksRepository.getById(localWork.id)).toEqual(
       expect.objectContaining({
-        favorite: true,
         genres: [],
         personalTags: ['remote', 'local', 'Science Fiction', 'Classic'],
         serverVersion: 3,
         syncStatus: 'pending',
+      }),
+    );
+  });
+
+  it('keeps scalar push conflicts manual so local field data is not discarded', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Local Dune',
+        personalTags: ['local'],
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 5,
+          processedAt: '2026-04-18T01:00:00.000Z',
+          results: [
+            {
+              queueId: queueItem!.id,
+              entityId: localWork.id,
+              entityType: 'work',
+              status: 'conflict',
+              code: 'conflict_remote_newer',
+              message:
+                'Server mismatch: the work record has a newer remote version.',
+              work: {
+                ...localWork,
+                title: 'Remote Dune',
+                personalTags: ['remote'],
+                syncStatus: 'synced',
+                serverVersion: 3,
+                updatedAt: '2026-06-18T01:00:00.000Z',
+              },
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pushQueuedChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        appliedCount: 0,
+        conflictCount: 1,
+        failedCount: 0,
+      }),
+    );
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        title: 'Local Dune',
+        personalTags: ['local', 'Science Fiction'],
+        syncStatus: 'conflict',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: expect.objectContaining({
+          code: 'conflict_remote_newer',
+          remote: expect.objectContaining({
+            title: 'Remote Dune',
+          }),
+        }),
+        payload: expect.objectContaining({
+          title: 'Local Dune',
+          personalTags: ['local', 'Science Fiction'],
+        }),
+      }),
+    );
+  });
+
+  it('does not auto-merge delete/update push collisions', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Local Dune',
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 5,
+          processedAt: '2026-04-18T01:00:00.000Z',
+          results: [
+            {
+              queueId: queueItem!.id,
+              entityId: localWork.id,
+              entityType: 'work',
+              status: 'conflict',
+              code: 'conflict_remote_newer',
+              message:
+                'Server mismatch: the work record has a newer remote version.',
+              work: {
+                ...localWork,
+                deletedAt: '2026-06-18T01:00:00.000Z',
+                syncStatus: 'synced',
+                serverVersion: 3,
+                updatedAt: '2026-06-18T01:00:00.000Z',
+              },
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pushQueuedChanges();
+
+    expect(result.conflictCount).toBe(1);
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        deletedAt: null,
+        syncStatus: 'conflict',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: expect.objectContaining({
+          code: 'conflict_remote_newer',
+        }),
       }),
     );
   });
@@ -953,10 +1084,11 @@ describe('SyncService', () => {
     ).resolves.toBe('2026-04-18T00:00:00.000Z');
   });
 
-  it('auto-merges pulled work into queued local work without marking a conflict', async () => {
+  it('auto-merges safe pulled work arrays into queued local work without marking a conflict', async () => {
     const existing = await worksService.createWork(
       buildInput({
         title: 'Dune',
+        personalTags: ['local'],
       }),
     );
     const [queueItem] = await queueRepository.listAll();
@@ -984,7 +1116,8 @@ describe('SyncService', () => {
               operation: 'upsert',
               work: {
                 ...existing,
-                title: 'Dune Messiah',
+                genres: ['Classic'],
+                personalTags: ['remote'],
                 updatedAt: '2026-06-18T01:30:00.000Z',
                 syncStatus: 'synced',
                 serverVersion: 2,
@@ -1012,9 +1145,14 @@ describe('SyncService', () => {
         retryCount: 0,
         lastError: null,
         conflict: null,
+        autoMerge: expect.objectContaining({
+          status: 'requeued',
+        }),
         payload: expect.objectContaining({
           id: existing.id,
-          title: 'Dune Messiah',
+          title: 'Dune',
+          genres: [],
+          personalTags: ['remote', 'local', 'Science Fiction', 'Classic'],
           syncStatus: 'pending',
           serverVersion: 2,
         }),
@@ -1022,7 +1160,9 @@ describe('SyncService', () => {
     );
     expect(await worksRepository.getById(existing.id)).toEqual(
       expect.objectContaining({
-        title: 'Dune Messiah',
+        title: 'Dune',
+        genres: [],
+        personalTags: ['remote', 'local', 'Science Fiction', 'Classic'],
         syncStatus: 'pending',
         serverVersion: 2,
       }),
@@ -1030,5 +1170,81 @@ describe('SyncService', () => {
     await expect(
       appMetaRepository.getValue('sync.lastSuccessfulPullAt'),
     ).resolves.toBe('2026-04-18T01:30:00.000Z');
+  });
+
+  it('marks unsafe pulled work conflicts as manual-required without changing local data', async () => {
+    const existing = await worksService.createWork(
+      buildInput({
+        title: 'Local Dune',
+        personalTags: ['local'],
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    await appMetaRepository.setValue(
+      'sync.lastSuccessfulPullAt',
+      '2026-04-18T00:00:00.000Z',
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 5,
+          pulledAt: '2026-04-18T02:00:00.000Z',
+          nextSince: '2026-04-18T01:30:00.000Z',
+          changes: [
+            {
+              entityType: 'work',
+              entityId: existing.id,
+              operation: 'upsert',
+              work: {
+                ...existing,
+                title: 'Remote Dune',
+                personalTags: ['remote'],
+                updatedAt: '2026-06-18T01:30:00.000Z',
+                syncStatus: 'synced',
+                serverVersion: 2,
+              },
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pullRemoteChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        pulledCount: 1,
+        appliedCount: 0,
+        skippedCount: 1,
+        requestFailed: false,
+      }),
+    );
+    expect(await worksRepository.getById(existing.id)).toEqual(
+      expect.objectContaining({
+        title: 'Local Dune',
+        personalTags: ['local', 'Science Fiction'],
+        syncStatus: 'conflict',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: expect.objectContaining({
+          code: 'pull_conflict_local_queue',
+          remote: expect.objectContaining({
+            title: 'Remote Dune',
+          }),
+        }),
+        payload: expect.objectContaining({
+          title: 'Local Dune',
+          personalTags: ['local', 'Science Fiction'],
+        }),
+      }),
+    );
   });
 });

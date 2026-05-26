@@ -5,6 +5,7 @@ import { getWorkArchiveDb } from '../../works/storage';
 
 export interface SettingsOverviewStats {
   activeWorkCount: number;
+  autoMergedQueueItemCount: number;
   conflictQueueItemCount: number;
   deletedWorkCount: number;
   failedQueueItemCount: number;
@@ -16,6 +17,7 @@ export interface SettingsOverviewStats {
 
 const EMPTY_STATS: SettingsOverviewStats = {
   activeWorkCount: 0,
+  autoMergedQueueItemCount: 0,
   conflictQueueItemCount: 0,
   deletedWorkCount: 0,
   failedQueueItemCount: 0,
@@ -54,9 +56,13 @@ export function useSettingsOverviewStats(archiveScopeKey: string) {
             Boolean(item.lastError) &&
             (item.conflict === null || item.conflict === undefined),
         ).length;
+        const autoMergedQueueItemCount = syncQueueItems.filter(
+          (item) => item.autoMerge?.status === 'requeued',
+        ).length;
 
         return {
           activeWorkCount,
+          autoMergedQueueItemCount,
           conflictQueueItemCount,
           deletedWorkCount,
           failedQueueItemCount,

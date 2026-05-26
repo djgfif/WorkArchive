@@ -1,4 +1,5 @@
 import type {
+  SyncAutoMergeSnapshot,
   SyncConflictSnapshot,
   SyncEntityType,
   SyncOperation,
@@ -132,8 +133,8 @@ export class SyncQueueRepository {
       const queueItem: SyncQueueItemRecord<TPayload> = {
         id: crypto.randomUUID(),
         clientMutationId:
-          existingItems.find((item) => item.clientMutationId)?.clientMutationId ??
-          crypto.randomUUID(),
+          existingItems.find((item) => item.clientMutationId)
+            ?.clientMutationId ?? crypto.randomUUID(),
         entityType,
         entityId: entity.id,
         operation: nextOperation,
@@ -142,6 +143,7 @@ export class SyncQueueRepository {
         createdAt: new Date().toISOString(),
         retryCount: 0,
         lastError: null,
+        autoMerge: null,
         conflict: null,
       };
 
@@ -172,7 +174,8 @@ export class SyncQueueRepository {
       }))
       .sort(
         (left, right) =>
-          SYNC_PUSH_ORDER[left.entityType] - SYNC_PUSH_ORDER[right.entityType] ||
+          SYNC_PUSH_ORDER[left.entityType] -
+            SYNC_PUSH_ORDER[right.entityType] ||
           left.createdAt.localeCompare(right.createdAt) ||
           left.id.localeCompare(right.id),
       );
@@ -203,6 +206,7 @@ export class SyncQueueRepository {
       ...existing,
       retryCount: existing.retryCount + 1,
       lastError,
+      autoMerge: null,
       conflict: null,
     };
 
@@ -249,6 +253,7 @@ export class SyncQueueRepository {
           ...item,
           retryCount: item.retryCount + 1,
           lastError,
+          autoMerge: null,
           conflict: null,
         };
 
@@ -317,6 +322,7 @@ export class SyncQueueRepository {
       createdAt: new Date().toISOString(),
       retryCount: 0,
       lastError: null,
+      autoMerge: null,
       conflict: null,
     };
 
@@ -377,6 +383,7 @@ export class SyncQueueRepository {
       ...existing,
       retryCount: existing.retryCount + 1,
       lastError,
+      autoMerge: null,
       conflict: {
         ...(code ? { code } : {}),
         detectedAt: new Date().toISOString(),
@@ -405,6 +412,7 @@ export class SyncQueueRepository {
     const updated: SyncQueueItemRecord = {
       ...existing,
       lastError,
+      autoMerge: null,
       conflict: {
         ...(code ? { code } : {}),
         detectedAt: new Date().toISOString(),
@@ -421,6 +429,10 @@ export class SyncQueueRepository {
   async resetForRetry<TPayload extends SyncQueuePayload>(
     id: string,
     payload: TPayload,
+    options: {
+      autoMerge?: SyncAutoMergeSnapshot | null;
+      rotateClientMutationId?: boolean;
+    } = {},
   ) {
     const existing = await this.getDb().syncQueue.get(id);
 
@@ -430,9 +442,15 @@ export class SyncQueueRepository {
 
     const updated: SyncQueueItemRecord<TPayload> = {
       ...existing,
+      ...(options.rotateClientMutationId
+        ? { clientMutationId: crypto.randomUUID() }
+        : existing.clientMutationId
+          ? { clientMutationId: existing.clientMutationId }
+          : {}),
       payload,
       retryCount: 0,
       lastError: null,
+      autoMerge: options.autoMerge ?? null,
       conflict: null,
     };
 

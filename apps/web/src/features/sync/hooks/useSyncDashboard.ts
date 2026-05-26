@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type {
   ContributorRecord,
   SeriesRecord,
+  SyncAutoMergeSnapshot,
   SyncEntityType,
   SyncOperation,
   SyncQueueItemRecord,
@@ -40,7 +41,7 @@ export interface SyncDashboardItem {
   operation: SyncOperation;
   retryCount: number;
   serverVersion: number;
-  state: 'conflict' | 'failed' | 'pending';
+  state: 'conflict' | 'failed' | 'pending' | 'requeued';
   syncStatus: WorkSyncStatus;
   title: string;
   updatedAt: string;
@@ -48,6 +49,7 @@ export interface SyncDashboardItem {
   conflictRemote: SyncQueuePayload | null;
   conflictMessage: string | null;
   conflictCode: SyncResultCode | null;
+  autoMerge: SyncAutoMergeSnapshot | null;
   source: SyncQueueSource;
 }
 
@@ -242,6 +244,10 @@ function getQueueItemState(
     return 'conflict';
   }
 
+  if (queueItem.autoMerge?.status === 'requeued') {
+    return 'requeued';
+  }
+
   return queueItem.lastError ? 'failed' : 'pending';
 }
 
@@ -280,6 +286,7 @@ function buildSyncDashboardItem(
       conflictRemote: queueItem.conflict?.remote ?? null,
       conflictMessage: queueItem.conflict?.message ?? null,
       conflictCode: queueItem.conflict?.code ?? null,
+      autoMerge: queueItem.autoMerge ?? null,
       source: queueItem.source ?? 'unknown',
     };
   }
@@ -309,6 +316,7 @@ function buildSyncDashboardItem(
       conflictRemote: queueItem.conflict?.remote ?? null,
       conflictMessage: queueItem.conflict?.message ?? null,
       conflictCode: queueItem.conflict?.code ?? null,
+      autoMerge: queueItem.autoMerge ?? null,
       source: queueItem.source ?? 'unknown',
     };
   }
@@ -352,6 +360,7 @@ function buildSyncDashboardItem(
       conflictRemote: queueItem.conflict?.remote ?? null,
       conflictMessage: queueItem.conflict?.message ?? null,
       conflictCode: queueItem.conflict?.code ?? null,
+      autoMerge: queueItem.autoMerge ?? null,
       source: queueItem.source ?? 'unknown',
     };
   }
@@ -380,6 +389,7 @@ function buildSyncDashboardItem(
       conflictRemote: queueItem.conflict?.remote ?? null,
       conflictMessage: queueItem.conflict?.message ?? null,
       conflictCode: queueItem.conflict?.code ?? null,
+      autoMerge: queueItem.autoMerge ?? null,
       source: queueItem.source ?? 'unknown',
     };
   }
@@ -409,6 +419,7 @@ function buildSyncDashboardItem(
       conflictRemote: queueItem.conflict?.remote ?? null,
       conflictMessage: queueItem.conflict?.message ?? null,
       conflictCode: queueItem.conflict?.code ?? null,
+      autoMerge: queueItem.autoMerge ?? null,
       source: queueItem.source ?? 'unknown',
     };
   }
@@ -440,6 +451,7 @@ function buildSyncDashboardItem(
       conflictRemote: queueItem.conflict?.remote ?? null,
       conflictMessage: queueItem.conflict?.message ?? null,
       conflictCode: queueItem.conflict?.code ?? null,
+      autoMerge: queueItem.autoMerge ?? null,
       source: queueItem.source ?? 'unknown',
     };
   }
@@ -473,6 +485,7 @@ function buildSyncDashboardItem(
       conflictRemote: queueItem.conflict?.remote ?? null,
       conflictMessage: queueItem.conflict?.message ?? null,
       conflictCode: queueItem.conflict?.code ?? null,
+      autoMerge: queueItem.autoMerge ?? null,
       source: queueItem.source ?? 'unknown',
     };
   }
@@ -502,6 +515,7 @@ function buildSyncDashboardItem(
       conflictRemote: queueItem.conflict?.remote ?? null,
       conflictMessage: queueItem.conflict?.message ?? null,
       conflictCode: queueItem.conflict?.code ?? null,
+      autoMerge: queueItem.autoMerge ?? null,
       source: queueItem.source ?? 'unknown',
     };
   }
@@ -532,6 +546,7 @@ function buildSyncDashboardItem(
     conflictRemote: queueItem.conflict?.remote ?? null,
     conflictMessage: queueItem.conflict?.message ?? null,
     conflictCode: queueItem.conflict?.code ?? null,
+    autoMerge: queueItem.autoMerge ?? null,
     source: queueItem.source ?? 'unknown',
   };
 }
@@ -620,7 +635,7 @@ export function useSyncDashboard() {
           failedItems: dashboardItems.filter((item) => item.state === 'failed'),
           lastSuccessfulPullAt,
           pendingItems: dashboardItems.filter(
-            (item) => item.state === 'pending',
+            (item) => item.state === 'pending' || item.state === 'requeued',
           ),
           queueItems,
         };

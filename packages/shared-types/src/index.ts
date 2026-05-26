@@ -1014,6 +1014,15 @@ export interface SyncConflictSnapshot<TPayload = SyncQueuePayload> {
   remote: TPayload | null;
 }
 
+export type SyncAutoMergeStatus = 'requeued';
+
+export interface SyncAutoMergeSnapshot {
+  fields: string[];
+  mergedAt: ISODateString;
+  message: string;
+  status: SyncAutoMergeStatus;
+}
+
 export interface SyncQueueItemRecord<TPayload = SyncQueuePayload> {
   id: EntityId;
   clientMutationId?: EntityId;
@@ -1025,6 +1034,7 @@ export interface SyncQueueItemRecord<TPayload = SyncQueuePayload> {
   createdAt: ISODateString;
   retryCount: number;
   lastError: string | null;
+  autoMerge?: SyncAutoMergeSnapshot | null;
   conflict?: SyncConflictSnapshot<TPayload> | null;
 }
 
