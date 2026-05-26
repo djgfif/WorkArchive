@@ -149,6 +149,10 @@ interface SyncClientIdentity {
   ownerId: string;
 }
 
+interface SyncLeaseContext extends SyncClientIdentity {
+  leaseToken: string;
+}
+
 export interface ManualSyncResult {
   completedAt: string;
   state: Exclude<SyncRunState, 'idle' | 'syncing'>;
@@ -722,7 +726,7 @@ export class SyncService {
   private async withSyncLease<T>(
     operation: SyncLeaseOperation,
     onBusy: () => T,
-    run: (identity: SyncClientIdentity) => Promise<T>,
+    run: (context: SyncLeaseContext) => Promise<T>,
   ): Promise<T> {
     const identity = await this.getClientIdentity();
     const acquiredAt = getNowIso();
@@ -738,10 +742,21 @@ export class SyncService {
     }
 
     try {
-      return await run(identity);
+      return await run({
+        ...identity,
+        leaseToken: lease.token,
+      });
     } finally {
       await this.metaRepo.releaseLease(SYNC_LEASE_KEY, lease.token);
     }
+  }
+
+  private extendActiveSyncLease(context: SyncLeaseContext) {
+    return this.metaRepo.extendLease(
+      SYNC_LEASE_KEY,
+      context.leaseToken,
+      addMilliseconds(getNowIso(), SYNC_LEASE_TTL_MS),
+    );
   }
 
   private async setStaleStatus(reason: string) {
@@ -826,7 +841,7 @@ export class SyncService {
   }
 
   private async pushQueuedChangesWithLease(
-    identity: SyncClientIdentity,
+    identity: SyncLeaseContext,
   ): Promise<PushCycleResult> {
     const queueItems = await this.queueRepo.listAll();
 
@@ -902,6 +917,7 @@ export class SyncService {
     );
 
     try {
+      await this.extendActiveSyncLease(identity);
       const response = await postJson<PushSyncResponse>('/sync/push', {
         clientId: identity.clientId,
         schemaVersion: SYNC_SCHEMA_VERSION,
@@ -917,6 +933,7 @@ export class SyncService {
       });
 
       assertSupportedResponseSchemaVersion(response.schemaVersion, 'push');
+      await this.extendActiveSyncLease(identity);
 
       const appliedQueueIds: string[] = [];
       let appliedCount = 0;
@@ -925,6 +942,7 @@ export class SyncService {
       const messages: string[] = [];
 
       for (const result of response.results) {
+        await this.extendActiveSyncLease(identity);
         const queueItem = queueItemsById.get(result.queueId);
 
         if (!queueItem) {
@@ -1061,7 +1079,7 @@ export class SyncService {
 
   private async ensureFreshPullBeforePush(
     queueItems: SyncQueueItemRecord[],
-    identity: SyncClientIdentity,
+    identity: SyncLeaseContext,
   ): Promise<PullCycleResult | null> {
     if (!queueItems.some(isRemoteBackedQueueItem)) {
       return null;
@@ -1095,7 +1113,7 @@ export class SyncService {
   }
 
   private async pullRemoteChangesWithLease(
-    identity: SyncClientIdentity,
+    identity: SyncLeaseContext,
   ): Promise<PullCycleResult> {
     const since = await this.metaRepo.getValue(LAST_SUCCESSFUL_PULL_AT_KEY);
 
@@ -1130,6 +1148,7 @@ export class SyncService {
       }
 
       do {
+        await this.extendActiveSyncLease(identity);
         const response: PullSyncResponse = await postJson<PullSyncResponse>(
           '/sync/pull',
           {
@@ -1142,6 +1161,7 @@ export class SyncService {
         );
 
         assertSupportedResponseSchemaVersion(response.schemaVersion, 'pull');
+        await this.extendActiveSyncLease(identity);
         pulledAt = response.pulledAt;
         pulledCount += response.changes.length;
         nextSince = response.nextSince;
@@ -2030,12 +2050,20 @@ export class SyncService {
     }
 
     if (change.entityType === 'work' && change.work) {
-      for (const queueItem of queueItems) {
-        const outcome = mergeWorkSafely(
-          change.work,
+      const remoteWork = change.work;
+      const outcomes = queueItems.map((queueItem) => ({
+        queueItem,
+        outcome: mergeWorkSafely(
+          remoteWork,
           queueItem.payload as WorkRecord,
-        );
+        ),
+      }));
 
+      if (outcomes.some(({ outcome }) => !outcome.ok)) {
+        return false;
+      }
+
+      for (const { queueItem, outcome } of outcomes) {
         if (!outcome.ok) {
           return false;
         }
@@ -2051,12 +2079,20 @@ export class SyncService {
     }
 
     if (change.entityType === 'release_record' && change.releaseRecord) {
-      for (const queueItem of queueItems) {
-        const outcome = mergeReleaseRecordSafely(
-          change.releaseRecord,
+      const remoteReleaseRecord = change.releaseRecord;
+      const outcomes = queueItems.map((queueItem) => ({
+        queueItem,
+        outcome: mergeReleaseRecordSafely(
+          remoteReleaseRecord,
           queueItem.payload as UserReleaseRecord,
-        );
+        ),
+      }));
 
+      if (outcomes.some(({ outcome }) => !outcome.ok)) {
+        return false;
+      }
+
+      for (const { queueItem, outcome } of outcomes) {
         if (!outcome.ok) {
           return false;
         }
@@ -2072,12 +2108,20 @@ export class SyncService {
     }
 
     if (change.entityType === 'timeline_entry' && change.timelineEntry) {
-      for (const queueItem of queueItems) {
-        const outcome = mergeTimelineEntrySafely(
-          change.timelineEntry,
+      const remoteTimelineEntry = change.timelineEntry;
+      const outcomes = queueItems.map((queueItem) => ({
+        queueItem,
+        outcome: mergeTimelineEntrySafely(
+          remoteTimelineEntry,
           queueItem.payload as TimelineEntryRecord,
-        );
+        ),
+      }));
 
+      if (outcomes.some(({ outcome }) => !outcome.ok)) {
+        return false;
+      }
+
+      for (const { queueItem, outcome } of outcomes) {
         if (!outcome.ok) {
           return false;
         }
@@ -2101,12 +2145,19 @@ export class SyncService {
         return false;
       }
 
-      for (const queueItem of queueItems) {
-        const outcome = mergeGraphEntitySafely(
+      const outcomes = queueItems.map((queueItem) => ({
+        queueItem,
+        outcome: mergeGraphEntitySafely(
           remoteGraphEntity,
           queueItem.payload as GraphEntityRecord,
-        );
+        ),
+      }));
 
+      if (outcomes.some(({ outcome }) => !outcome.ok)) {
+        return false;
+      }
+
+      for (const { queueItem, outcome } of outcomes) {
         if (!outcome.ok) {
           return false;
         }
@@ -2130,12 +2181,19 @@ export class SyncService {
         return false;
       }
 
-      for (const queueItem of queueItems) {
-        const outcome = mergeTierBoardEntitySafely(
+      const outcomes = queueItems.map((queueItem) => ({
+        queueItem,
+        outcome: mergeTierBoardEntitySafely(
           remoteTierBoardEntity,
           queueItem.payload as TierBoardEntityRecord,
-        );
+        ),
+      }));
 
+      if (outcomes.some(({ outcome }) => !outcome.ok)) {
+        return false;
+      }
+
+      for (const { queueItem, outcome } of outcomes) {
         if (!outcome.ok) {
           return false;
         }

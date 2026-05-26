@@ -2,6 +2,7 @@
 
 import type {
   SeriesRecord,
+  SyncQueueItemRecord,
   TimelineEntryRecord,
   UserReleaseRecord,
   WorkRecord,
@@ -483,6 +484,62 @@ describe('SyncService', () => {
       }),
     );
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('acquires expired leases and only extends the active token', async () => {
+    const key = 'sync.activeLease';
+
+    await appMetaRepository.acquireLease(key, {
+      acquiredAt: '2026-04-18T00:00:00.000Z',
+      expiresAt: '2026-04-18T00:00:01.000Z',
+      ownerId: 'owner:old',
+      token: 'token:old',
+    });
+
+    const currentLease = await appMetaRepository.acquireLease(key, {
+      acquiredAt: '2026-04-18T00:00:02.000Z',
+      expiresAt: '2026-04-18T00:00:27.000Z',
+      ownerId: 'owner:current',
+      token: 'token:current',
+    });
+
+    expect(currentLease).toEqual(
+      expect.objectContaining({
+        token: 'token:current',
+      }),
+    );
+    await expect(
+      appMetaRepository.extendLease(
+        key,
+        'token:old',
+        '2026-04-18T00:01:00.000Z',
+      ),
+    ).resolves.toBeNull();
+    await expect(appMetaRepository.getValue(key)).resolves.toContain(
+      '"expiresAt":"2026-04-18T00:00:27.000Z"',
+    );
+
+    await expect(
+      appMetaRepository.extendLease(
+        key,
+        'token:current',
+        '2026-04-18T00:01:00.000Z',
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        expiresAt: '2026-04-18T00:01:00.000Z',
+        token: 'token:current',
+      }),
+    );
+
+    await appMetaRepository.releaseLease(key, 'token:current');
+    await expect(
+      appMetaRepository.extendLease(
+        key,
+        'token:current',
+        '2026-04-18T00:02:00.000Z',
+      ),
+    ).resolves.toBeNull();
   });
 
   it('auto-merges safe array-only push conflicts and keeps the work queued for backup retry', async () => {
@@ -1312,6 +1369,139 @@ describe('SyncService', () => {
           title: 'Local Dune',
           personalTags: ['local', 'Science Fiction'],
         }),
+      }),
+    );
+  });
+
+  it('does not partially reset safe queue items when a later pulled item is unsafe', async () => {
+    const existing = await worksService.createWork(
+      buildInput({
+        title: 'Dune',
+      }),
+    );
+    await queueRepository.removeMany(
+      (await queueRepository.listAll()).map((item) => item.id),
+    );
+
+    const safePayload: WorkRecord = {
+      ...existing,
+      personalTags: ['local-safe'],
+      syncStatus: 'pending',
+      updatedAt: '2026-04-18T01:00:00.000Z',
+    };
+    const unsafePayload: WorkRecord = {
+      ...existing,
+      title: 'Local Dune',
+      personalTags: ['local-unsafe'],
+      syncStatus: 'pending',
+      updatedAt: '2026-04-18T01:01:00.000Z',
+    };
+    const safeQueueItem: SyncQueueItemRecord<WorkRecord> = {
+      id: crypto.randomUUID(),
+      clientMutationId: crypto.randomUUID(),
+      entityType: 'work',
+      entityId: existing.id,
+      operation: 'update',
+      payload: safePayload,
+      source: 'edit_form',
+      createdAt: '2026-04-18T01:00:00.000Z',
+      retryCount: 0,
+      nextRetryAt: null,
+      lastError: null,
+      autoMerge: null,
+      conflict: null,
+    };
+    const unsafeQueueItem: SyncQueueItemRecord<WorkRecord> = {
+      ...safeQueueItem,
+      id: crypto.randomUUID(),
+      clientMutationId: crypto.randomUUID(),
+      payload: unsafePayload,
+      createdAt: '2026-04-18T01:01:00.000Z',
+    };
+
+    await db.syncQueue.bulkAdd([safeQueueItem, unsafeQueueItem]);
+    await appMetaRepository.setValue(
+      'sync.lastSuccessfulPullAt',
+      '2026-04-18T00:00:00.000Z',
+    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          schemaVersion: 5,
+          pulledAt: '2026-04-18T02:00:00.000Z',
+          nextSince: '2026-04-18T01:30:00.000Z',
+          changes: [
+            {
+              entityType: 'work',
+              entityId: existing.id,
+              operation: 'upsert',
+              work: {
+                ...existing,
+                genres: ['Classic'],
+                personalTags: ['remote'],
+                updatedAt: '2026-04-18T01:30:00.000Z',
+                syncStatus: 'synced',
+                serverVersion: 2,
+              },
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await syncService.pullRemoteChanges();
+    const safeQueueAfterPull = await queueRepository.getById(safeQueueItem.id);
+    const unsafeQueueAfterPull = await queueRepository.getById(
+      unsafeQueueItem.id,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        pulledCount: 1,
+        appliedCount: 0,
+        skippedCount: 2,
+        requestFailed: false,
+      }),
+    );
+    expect(await worksRepository.getById(existing.id)).toEqual(
+      expect.objectContaining({
+        title: 'Dune',
+        personalTags: ['Science Fiction'],
+        serverVersion: 0,
+        syncStatus: 'conflict',
+      }),
+    );
+    expect(safeQueueAfterPull).toEqual(
+      expect.objectContaining({
+        autoMerge: null,
+        conflict: expect.objectContaining({
+          code: 'pull_conflict_local_queue',
+        }),
+        payload: expect.objectContaining({
+          title: 'Dune',
+          personalTags: ['local-safe'],
+          serverVersion: 0,
+        }),
+        retryCount: 1,
+      }),
+    );
+    expect(unsafeQueueAfterPull).toEqual(
+      expect.objectContaining({
+        autoMerge: null,
+        conflict: expect.objectContaining({
+          code: 'pull_conflict_local_queue',
+        }),
+        payload: expect.objectContaining({
+          title: 'Local Dune',
+          personalTags: ['local-unsafe'],
+          serverVersion: 0,
+        }),
+        retryCount: 1,
       }),
     );
   });

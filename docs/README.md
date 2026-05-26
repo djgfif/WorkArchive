@@ -20,6 +20,7 @@ docs stay here, older plans and raw design material stay in
 | [`architecture/`](./architecture/)       | ADRs and current codebase structure boundaries                                 |
 | [`commercial/`](./commercial/)           | public beta and commercial launch readiness gates                              |
 | [`operations/`](./operations/)           | runbooks, deployment, release, migration, and backup procedures                |
+| [`sync/`](./sync/)                       | sync correctness and local-first merge policies                                |
 | [`security/`](./security/)               | public readiness and security checklists                                       |
 | [`project/`](./project/README.md)        | current execution status and roadmap                                           |
 | [`management/`](./management/)           | documentation governance and status tracking                                   |

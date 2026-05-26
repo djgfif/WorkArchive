@@ -119,6 +119,46 @@ export class AppMetaRepository {
       }
     });
   }
+
+  async extendLease(key: string, token: string, nextExpiresAt: string) {
+    const db = this.getDb();
+
+    return db.transaction('rw', db.appMeta, async () => {
+      const existing = await db.appMeta.get(key);
+
+      if (!existing) {
+        return null;
+      }
+
+      try {
+        const parsed = JSON.parse(existing.value) as {
+          acquiredAt?: string;
+          expiresAt?: string;
+          ownerId?: string;
+          token?: string;
+        };
+
+        if (parsed.token !== token) {
+          return null;
+        }
+
+        const extended = {
+          ...parsed,
+          expiresAt: nextExpiresAt,
+          token,
+        };
+
+        await db.appMeta.put({
+          key,
+          value: JSON.stringify(extended),
+        });
+
+        return extended;
+      } catch {
+        return null;
+      }
+    });
+  }
 }
 
 export const appMetaRepository = new AppMetaRepository();

@@ -22,7 +22,30 @@ const matrix = matrixData.cases;
 const liveSmokeCaseIds = new Set(
   matrix.filter((item) => item.liveSmoke).map((item) => item.id),
 );
-const liveProviderQualityMinimumDistinctTypes = 3;
+
+function readIntegerEnv(name, fallback, { min = 0 } = {}) {
+  const rawValue = process.env[name];
+
+  if (rawValue === undefined || rawValue === '') {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(rawValue, 10);
+
+  if (!Number.isFinite(parsed) || parsed < min) {
+    throw new Error(`${name} must be an integer greater than or equal to ${min}.`);
+  }
+
+  return parsed;
+}
+
+const liveProviderQualityMinimumDistinctTypes = readIntegerEnv(
+  'IMPORT_SEARCH_QA_MIN_PROVIDER_TYPES',
+  3,
+);
+const liveProviderQualityTopN = readIntegerEnv('IMPORT_SEARCH_QA_TOP_N', 5, {
+  min: 1,
+});
 
 const sensitiveNames = [
   'ACCESS_TOKEN',
@@ -260,7 +283,7 @@ async function liveChecks() {
     const url = apiPath(baseUrl, '/imports/search');
     url.searchParams.set('query', item.query);
     url.searchParams.set('mediumType', item.mediumType);
-    url.searchParams.set('limit', '5');
+    url.searchParams.set('limit', String(liveProviderQualityTopN));
 
     try {
       const startedAt = performance.now();
@@ -276,9 +299,9 @@ async function liveChecks() {
         ['manual', 'preview-manual', 'preview_manual'].includes(candidate.sourceId),
       );
       const hasExpectedType = candidates
-        .slice(0, 5)
+        .slice(0, liveProviderQualityTopN)
         .some((candidate) => candidate.mediumType === item.mediumType || candidate.type === item.mediumType);
-      const hasExpectedProviderCandidate = candidates.slice(0, 5).some((candidate) => {
+      const hasExpectedProviderCandidate = candidates.slice(0, liveProviderQualityTopN).some((candidate) => {
         const sourceId = candidate.sourceId ?? '';
         const isManual = ['manual', 'preview-manual', 'preview_manual'].includes(sourceId);
         return (
@@ -321,7 +344,7 @@ async function liveChecks() {
         fallbackSafetyStatus,
         providerQualityStatus,
         status,
-        topCandidates: candidates.slice(0, 5).map((candidate) => {
+        topCandidates: candidates.slice(0, liveProviderQualityTopN).map((candidate) => {
           const providers = candidate.sourceCoverage?.providers?.join('+') || candidate.sourceId;
           return `${candidate.title} [${candidate.mediumType ?? candidate.type}; ${providers}]`;
         }),
@@ -362,7 +385,7 @@ async function liveChecks() {
   checks.push({
     name: 'live import/search provider quality',
     status: providerQualityPass ? 'PASS' : 'FAIL',
-    summary: `${providerQualityTypes.size}/${liveProviderQualityMinimumDistinctTypes} required distinct medium types had non-manual expected-type provider candidates in top 5: ${[...providerQualityTypes].join(', ') || 'none'}.`,
+    summary: `${providerQualityTypes.size}/${liveProviderQualityMinimumDistinctTypes} required distinct medium types had non-manual expected-type provider candidates in top ${liveProviderQualityTopN}: ${[...providerQualityTypes].join(', ') || 'none'}.`,
   });
 
   return { checks, liveResults };

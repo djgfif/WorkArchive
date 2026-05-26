@@ -21,6 +21,7 @@ This table separates current docs from archived reference material.
 | [`../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`](../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md)               | `active`    | beta release evidence ledger    |
 | [`../operations/RUNBOOK.md`](../operations/RUNBOOK.md)                                                       | `active`    | operations runbook              |
 | [`../operations/RELEASE_CHECKLIST.md`](../operations/RELEASE_CHECKLIST.md)                                   | `active`    | release procedure               |
+| [`../sync/SYNC_AUTO_MERGE_POLICY.md`](../sync/SYNC_AUTO_MERGE_POLICY.md)                                     | `active`    | sync merge policy               |
 | [`../security/PUBLIC_REPOSITORY_READINESS.md`](../security/PUBLIC_REPOSITORY_READINESS.md)                   | `canonical` | public repository readiness     |
 | [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | `canonical` | current implementation state    |
 | [`../project/EXECUTION_ROADMAP.md`](../project/EXECUTION_ROADMAP.md)                                         | `active`    | current execution sequencing    |
