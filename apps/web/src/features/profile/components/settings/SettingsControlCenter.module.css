@@ -300,6 +300,52 @@
   background: color-mix(in srgb, var(--app-accent-teal) 8%, transparent);
 }
 
+.duplicateGroupCard {
+  padding: 1rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-bg-elevated) 58%, transparent);
+}
+
+.duplicateReasonList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.duplicateReason {
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--app-surface-subtle);
+}
+
+.duplicateWorkGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 0.65rem;
+}
+
+.duplicateWorkCard {
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-card);
+}
+
+.duplicateWorkCardTarget {
+  border-color: color-mix(in srgb, var(--app-accent-primary) 54%, var(--app-border-default));
+  background: color-mix(in srgb, var(--app-accent-primary) 10%, var(--app-surface-card));
+}
+
+.duplicateMergeSummary {
+  padding: 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--app-accent-teal) 32%, var(--app-border-subtle));
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-accent-teal) 8%, transparent);
+}
+
 .fileDropzone {
   display: flex;
   min-height: 8.75rem;

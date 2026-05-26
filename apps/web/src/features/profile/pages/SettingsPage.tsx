@@ -11,6 +11,7 @@ import { useAuthSession } from '@features/auth';
 import { AccountSettingsSection } from '../components/settings/AccountSettingsSection';
 import { DangerZoneSection } from '../components/settings/DangerZoneSection';
 import { DataBackupSettingsSection } from '../components/settings/DataBackupSettingsSection';
+import { DuplicateCleanupSettingsSection } from '../components/settings/DuplicateCleanupSettingsSection';
 import { SearchProviderSettingsSection } from '../components/settings/SearchProviderSettingsSection';
 import { SecuritySettingsSection } from '../components/settings/SecuritySettingsSection';
 import { SettingsLayout } from '../components/settings/SettingsLayout';
@@ -88,6 +89,13 @@ export function SettingsPage() {
           onExportJson={localArchiveSettings.exportJson}
           onImportFileSelect={localArchiveSettings.previewImportFile}
         />
+      ),
+    },
+    {
+      id: 'duplicate-cleanup',
+      label: '중복 정리',
+      content: (
+        <DuplicateCleanupSettingsSection archiveScopeKey={archiveScopeKey} />
       ),
     },
     {
