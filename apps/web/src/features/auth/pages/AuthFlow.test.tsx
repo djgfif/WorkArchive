@@ -354,6 +354,9 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
+    await waitFor(() => {
+      expect(screen.queryByText('Work Archive를 준비하고 있습니다')).not.toBeInTheDocument();
+    });
     await openProfileMenu(user, /게스트/);
     expect(await screen.findByRole('menuitem', { name: /로그인/ })).toBeInTheDocument();
   });
