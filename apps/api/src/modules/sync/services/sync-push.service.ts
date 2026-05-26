@@ -35,10 +35,8 @@ import {
   UserRecordsService,
   type WorkAggregate,
 } from '../../user-records/user-records.service';
-import { WORK_AGGREGATE_INCLUDE } from '../../user-records/user-records.types';
 import {
   toUserTimelineEntryResponse,
-  USER_TIMELINE_ENTRY_INCLUDE,
   UserTimelineEntriesService,
   type UserTimelineEntryAggregate,
 } from '../../user-records/user-timeline-entries.service';
@@ -50,11 +48,6 @@ import {
   normalizeString,
   toFlatWorkResponse,
 } from '../../works/work-aggregate';
-import type { PullSyncDto } from '../dto/pull-sync.dto';
-import type {
-  PullSyncChangeDto,
-  PullSyncResponseDto,
-} from '../dto/pull-sync-response.dto';
 import type { PushSyncChangeDto, PushSyncDto } from '../dto/push-sync.dto';
 import type {
   PushSyncResponseDto,
@@ -74,11 +67,7 @@ import type { SyncWorkContributorPayloadDto } from '../payloads/sync-work-contri
 import type { SyncWorkPayloadDto } from '../payloads/sync-work-payload.dto';
 import type { SyncWorkRelationPayloadDto } from '../payloads/sync-work-relation-payload.dto';
 import type { SyncWorkSeriesLinkPayloadDto } from '../payloads/sync-work-series-link-payload.dto';
-import {
-  SYNC_SCHEMA_VERSION,
-  type SyncEntityType,
-} from '../sync.constants';
-import { SyncCursorService } from './sync-cursor.service';
+import { SYNC_SCHEMA_VERSION } from '../sync.constants';
 import { SyncIdempotencyService } from './sync-idempotency.service';
 import { SyncPayloadValidationService } from './sync-payload-validation.service';
 
@@ -192,22 +181,9 @@ type StructuredLogFields = {
   userId?: string;
 };
 
-interface PullCursor {
-  entityId: string;
-  entityType: SyncEntityType;
-  updatedAt: string;
-}
-
-interface OrderedPullChange {
-  change: PullSyncChangeDto;
-  cursor: PullCursor;
-  updatedAtMs: number;
-}
-
 @Injectable()
 export class SyncPushService {
   private readonly logger = new Logger(SyncPushService.name);
-  private readonly cursorService: SyncCursorService;
   private readonly idempotencyService: SyncIdempotencyService;
   private readonly payloadValidationService: SyncPayloadValidationService;
 
@@ -223,9 +199,6 @@ export class SyncPushService {
     @Inject(MetricsService)
     @Optional()
     private readonly metricsService?: MetricsService,
-    @Inject(SyncCursorService)
-    @Optional()
-    cursorService?: SyncCursorService,
     @Inject(SyncIdempotencyService)
     @Optional()
     idempotencyService?: SyncIdempotencyService,
@@ -233,7 +206,6 @@ export class SyncPushService {
     @Optional()
     payloadValidationService?: SyncPayloadValidationService,
   ) {
-    this.cursorService = cursorService ?? new SyncCursorService();
     this.idempotencyService =
       idempotencyService ?? new SyncIdempotencyService(this.prisma);
     this.payloadValidationService =
@@ -290,132 +262,6 @@ export class SyncPushService {
       });
       this.logger.warn(
         `Sync push failed userId=${userId} requested=${changes.length} reason=${this.describeError(error)}`,
-      );
-      throw error;
-    }
-  }
-
-  async pull(
-    userId: string,
-    pullSyncDto: PullSyncDto,
-    requestId?: string,
-  ): Promise<PullSyncResponseDto> {
-    this.assertSupportedSchemaVersion(pullSyncDto);
-
-    const { since } = pullSyncDto;
-    const startedAt = Date.now();
-
-    this.logEvent('sync.pull.started', {
-      requestId,
-      userId,
-    });
-
-    try {
-      const parsedSince =
-        since === undefined || since === null
-          ? null
-          : this.parseIsoDate(since, 'since');
-      const parsedCursor = this.cursorService.parsePullCursor(
-        pullSyncDto.cursor ?? null,
-      );
-      const pageLimit = this.cursorService.resolvePullLimit(pullSyncDto.limit);
-      const queryLimit = pageLimit + 1;
-      const works = await this.findWorkRecordsForPullPage(
-        userId,
-        parsedSince,
-        parsedCursor,
-        queryLimit,
-      );
-      const releaseRecords = await this.findReleaseRecordsForPullPage(
-        userId,
-        parsedSince,
-        parsedCursor,
-        queryLimit,
-      );
-      const timelineEntries = await this.findTimelineEntriesForPullPage(
-        userId,
-        parsedSince,
-        parsedCursor,
-        queryLimit,
-      );
-      const graphRecords = await this.findGraphRecordsForPullPage(
-        userId,
-        parsedSince,
-        parsedCursor,
-        queryLimit,
-      );
-      const tierBoardRecords = await this.findTierBoardRecordsForPullPage(
-        userId,
-        parsedSince,
-        parsedCursor,
-        queryLimit,
-      );
-      const pulledAt = new Date().toISOString();
-      const orderedChanges = this.buildOrderedPullChanges({
-        ...graphRecords,
-        ...tierBoardRecords,
-        releaseRecords,
-        timelineEntries,
-        works,
-      });
-      const pagedChanges = orderedChanges.slice(0, pageLimit);
-      const hasMore = orderedChanges.length > pagedChanges.length;
-      const lastPagedChange = pagedChanges.at(-1) ?? null;
-      const changes = pagedChanges.map((entry) => entry.change);
-      const changedRecords = [
-        ...works,
-        ...releaseRecords,
-        ...timelineEntries,
-        ...graphRecords.series,
-        ...graphRecords.contributors,
-        ...graphRecords.workSeriesLinks,
-        ...graphRecords.workContributors,
-        ...graphRecords.workRelations,
-        ...tierBoardRecords.tierBoards,
-        ...tierBoardRecords.tierLanes,
-        ...tierBoardRecords.tierBoardCards,
-        ...tierBoardRecords.tierBoardAssets,
-      ].sort(
-        (left, right) => left.updatedAt.getTime() - right.updatedAt.getTime(),
-      );
-      const response: PullSyncResponseDto = {
-        schemaVersion: SYNC_SCHEMA_VERSION,
-        pulledAt,
-        nextSince: hasMore
-          ? (since ?? pulledAt)
-          : this.cursorService.buildNextSince(
-              since ?? null,
-              pulledAt,
-              changedRecords,
-            ),
-        nextCursor:
-          hasMore && lastPagedChange
-            ? this.cursorService.encodePullCursor(lastPagedChange.cursor)
-            : null,
-        hasMore,
-        changes,
-      };
-
-      this.logPullSummary(userId, since ?? null, response);
-      this.metricsService?.recordSync('pull', 'success');
-      this.logEvent('sync.pull.completed', {
-        count: response.changes.length,
-        durationMs: Date.now() - startedAt,
-        requestId,
-        userId,
-      });
-
-      return response;
-    } catch (error) {
-      this.metricsService?.recordSync('pull', 'failure');
-      this.logEvent('sync.pull.failed', {
-        durationMs: Date.now() - startedAt,
-        errorCode: this.describeError(error),
-        requestId,
-        userId,
-      });
-      this.logger.warn(
-        `Sync pull failed userId=${userId} since=${since ?? 'null'} reason=${this.describeError(error)}`,
       );
       throw error;
     }
@@ -1205,7 +1051,7 @@ export class SyncPushService {
         'series',
         validationError,
         {
-          series: this.toSyncSeriesPayload(existing),
+          series: this.toPushSyncSeriesPayload(existing),
         },
       );
     }
@@ -1215,7 +1061,7 @@ export class SyncPushService {
       !this.areSeriesEquivalent(existing, payload)
     ) {
       return this.buildGraphRemoteNewerConflict(change, 'series', {
-        series: this.toSyncSeriesPayload(existing),
+        series: this.toPushSyncSeriesPayload(existing),
       });
     }
 
@@ -1223,7 +1069,7 @@ export class SyncPushService {
       return this.buildGraphAppliedResult(change, 'series', {
         code: SYNC_CODES.alreadyApplied,
         message: ALREADY_APPLIED_MESSAGE,
-        series: this.toSyncSeriesPayload(existing),
+        series: this.toPushSyncSeriesPayload(existing),
       });
     }
 
@@ -1241,7 +1087,7 @@ export class SyncPushService {
         payload.deletedAt === null
           ? APPLIED_CHANGE_MESSAGE
           : APPLIED_TOMBSTONE_MESSAGE,
-      series: this.toSyncSeriesPayload(updated),
+      series: this.toPushSyncSeriesPayload(updated),
     });
   }
 
@@ -1277,7 +1123,7 @@ export class SyncPushService {
     return this.buildGraphAppliedResult(change, 'series', {
       code: SYNC_CODES.created,
       message: CREATED_MESSAGE,
-      series: this.toSyncSeriesPayload(created),
+      series: this.toPushSyncSeriesPayload(created),
     });
   }
 
@@ -1309,14 +1155,14 @@ export class SyncPushService {
       !this.areContributorsEquivalent(existing, payload)
     ) {
       return this.buildGraphRemoteNewerConflict(change, 'contributor', {
-        contributor: this.toSyncContributorPayload(existing),
+        contributor: this.toPushSyncContributorPayload(existing),
       });
     }
 
     if (this.areContributorsEquivalent(existing, payload)) {
       return this.buildGraphAppliedResult(change, 'contributor', {
         code: SYNC_CODES.alreadyApplied,
-        contributor: this.toSyncContributorPayload(existing),
+        contributor: this.toPushSyncContributorPayload(existing),
         message: ALREADY_APPLIED_MESSAGE,
       });
     }
@@ -1331,7 +1177,7 @@ export class SyncPushService {
         payload.deletedAt === null
           ? SYNC_CODES.appliedChange
           : SYNC_CODES.appliedTombstone,
-      contributor: this.toSyncContributorPayload(updated),
+      contributor: this.toPushSyncContributorPayload(updated),
       message:
         payload.deletedAt === null
           ? APPLIED_CHANGE_MESSAGE
@@ -1354,7 +1200,7 @@ export class SyncPushService {
 
     return this.buildGraphAppliedResult(change, 'contributor', {
       code: SYNC_CODES.created,
-      contributor: this.toSyncContributorPayload(created),
+      contributor: this.toPushSyncContributorPayload(created),
       message: CREATED_MESSAGE,
     });
   }
@@ -1391,7 +1237,7 @@ export class SyncPushService {
       existing.userSeriesId !== payload.seriesId
     ) {
       return this.buildGraphParentChangedConflict(change, 'workSeriesLink', {
-        workSeriesLink: this.toSyncWorkSeriesLinkPayload(existing),
+        workSeriesLink: this.toPushSyncWorkSeriesLinkPayload(existing),
       });
     }
 
@@ -1405,7 +1251,7 @@ export class SyncPushService {
         change,
         'workSeriesLink',
         validationError,
-        { workSeriesLink: this.toSyncWorkSeriesLinkPayload(existing) },
+        { workSeriesLink: this.toPushSyncWorkSeriesLinkPayload(existing) },
       );
     }
 
@@ -1414,7 +1260,7 @@ export class SyncPushService {
       !this.areWorkSeriesLinksEquivalent(existing, payload)
     ) {
       return this.buildGraphRemoteNewerConflict(change, 'workSeriesLink', {
-        workSeriesLink: this.toSyncWorkSeriesLinkPayload(existing),
+        workSeriesLink: this.toPushSyncWorkSeriesLinkPayload(existing),
       });
     }
 
@@ -1422,7 +1268,7 @@ export class SyncPushService {
       return this.buildGraphAppliedResult(change, 'workSeriesLink', {
         code: SYNC_CODES.alreadyApplied,
         message: ALREADY_APPLIED_MESSAGE,
-        workSeriesLink: this.toSyncWorkSeriesLinkPayload(existing),
+        workSeriesLink: this.toPushSyncWorkSeriesLinkPayload(existing),
       });
     }
 
@@ -1441,7 +1287,7 @@ export class SyncPushService {
         payload.deletedAt === null
           ? APPLIED_CHANGE_MESSAGE
           : APPLIED_TOMBSTONE_MESSAGE,
-      workSeriesLink: this.toSyncWorkSeriesLinkPayload(updated),
+      workSeriesLink: this.toPushSyncWorkSeriesLinkPayload(updated),
     });
   }
 
@@ -1476,7 +1322,7 @@ export class SyncPushService {
     return this.buildGraphAppliedResult(change, 'workSeriesLink', {
       code: SYNC_CODES.created,
       message: CREATED_MESSAGE,
-      workSeriesLink: this.toSyncWorkSeriesLinkPayload(created),
+      workSeriesLink: this.toPushSyncWorkSeriesLinkPayload(created),
     });
   }
 
@@ -1512,7 +1358,7 @@ export class SyncPushService {
       existing.userContributorId !== payload.contributorId
     ) {
       return this.buildGraphParentChangedConflict(change, 'workContributor', {
-        workContributor: this.toSyncWorkContributorPayload(existing),
+        workContributor: this.toPushSyncWorkContributorPayload(existing),
       });
     }
 
@@ -1526,7 +1372,7 @@ export class SyncPushService {
         change,
         'workContributor',
         validationError,
-        { workContributor: this.toSyncWorkContributorPayload(existing) },
+        { workContributor: this.toPushSyncWorkContributorPayload(existing) },
       );
     }
 
@@ -1535,7 +1381,7 @@ export class SyncPushService {
       !this.areWorkContributorsEquivalent(existing, payload)
     ) {
       return this.buildGraphRemoteNewerConflict(change, 'workContributor', {
-        workContributor: this.toSyncWorkContributorPayload(existing),
+        workContributor: this.toPushSyncWorkContributorPayload(existing),
       });
     }
 
@@ -1543,7 +1389,7 @@ export class SyncPushService {
       return this.buildGraphAppliedResult(change, 'workContributor', {
         code: SYNC_CODES.alreadyApplied,
         message: ALREADY_APPLIED_MESSAGE,
-        workContributor: this.toSyncWorkContributorPayload(existing),
+        workContributor: this.toPushSyncWorkContributorPayload(existing),
       });
     }
 
@@ -1562,7 +1408,7 @@ export class SyncPushService {
         payload.deletedAt === null
           ? APPLIED_CHANGE_MESSAGE
           : APPLIED_TOMBSTONE_MESSAGE,
-      workContributor: this.toSyncWorkContributorPayload(updated),
+      workContributor: this.toPushSyncWorkContributorPayload(updated),
     });
   }
 
@@ -1597,7 +1443,7 @@ export class SyncPushService {
     return this.buildGraphAppliedResult(change, 'workContributor', {
       code: SYNC_CODES.created,
       message: CREATED_MESSAGE,
-      workContributor: this.toSyncWorkContributorPayload(created),
+      workContributor: this.toPushSyncWorkContributorPayload(created),
     });
   }
 
@@ -1634,7 +1480,7 @@ export class SyncPushService {
       existing.targetWorkId !== payload.targetWorkId
     ) {
       return this.buildGraphParentChangedConflict(change, 'workRelation', {
-        workRelation: this.toSyncWorkRelationPayload(existing),
+        workRelation: this.toPushSyncWorkRelationPayload(existing),
       });
     }
 
@@ -1648,7 +1494,7 @@ export class SyncPushService {
         change,
         'workRelation',
         validationError,
-        { workRelation: this.toSyncWorkRelationPayload(existing) },
+        { workRelation: this.toPushSyncWorkRelationPayload(existing) },
       );
     }
 
@@ -1657,7 +1503,7 @@ export class SyncPushService {
       !this.areWorkRelationsEquivalent(existing, payload)
     ) {
       return this.buildGraphRemoteNewerConflict(change, 'workRelation', {
-        workRelation: this.toSyncWorkRelationPayload(existing),
+        workRelation: this.toPushSyncWorkRelationPayload(existing),
       });
     }
 
@@ -1665,7 +1511,7 @@ export class SyncPushService {
       return this.buildGraphAppliedResult(change, 'workRelation', {
         code: SYNC_CODES.alreadyApplied,
         message: ALREADY_APPLIED_MESSAGE,
-        workRelation: this.toSyncWorkRelationPayload(existing),
+        workRelation: this.toPushSyncWorkRelationPayload(existing),
       });
     }
 
@@ -1684,7 +1530,7 @@ export class SyncPushService {
         payload.deletedAt === null
           ? APPLIED_CHANGE_MESSAGE
           : APPLIED_TOMBSTONE_MESSAGE,
-      workRelation: this.toSyncWorkRelationPayload(updated),
+      workRelation: this.toPushSyncWorkRelationPayload(updated),
     });
   }
 
@@ -1719,7 +1565,7 @@ export class SyncPushService {
     return this.buildGraphAppliedResult(change, 'workRelation', {
       code: SYNC_CODES.created,
       message: CREATED_MESSAGE,
-      workRelation: this.toSyncWorkRelationPayload(created),
+      workRelation: this.toPushSyncWorkRelationPayload(created),
     });
   }
 
@@ -2348,7 +2194,7 @@ export class SyncPushService {
         status: 'conflict',
         code: SYNC_CODES.conflictRemoteNewer,
         message: 'Remote tier board is newer than the queued change.',
-        tierBoard: this.toSyncTierBoardPayload(existing),
+        tierBoard: this.toPushSyncTierBoardPayload(existing),
       };
     }
 
@@ -2404,7 +2250,7 @@ export class SyncPushService {
       status: 'applied',
       code: existing ? SYNC_CODES.appliedChange : SYNC_CODES.created,
       message: existing ? APPLIED_CHANGE_MESSAGE : CREATED_MESSAGE,
-      tierBoard: this.toSyncTierBoardPayload(record),
+      tierBoard: this.toPushSyncTierBoardPayload(record),
     };
   }
 
@@ -2477,7 +2323,7 @@ export class SyncPushService {
         });
 
     return this.buildTierBoardAppliedResult(change, 'tierLane', {
-      tierLane: this.toSyncTierLanePayload(record),
+      tierLane: this.toPushSyncTierLanePayload(record),
       code: existing ? SYNC_CODES.appliedChange : SYNC_CODES.created,
       message: existing ? APPLIED_CHANGE_MESSAGE : CREATED_MESSAGE,
     });
@@ -2553,7 +2399,7 @@ export class SyncPushService {
         });
 
     return this.buildTierBoardAppliedResult(change, 'tierBoardCard', {
-      tierBoardCard: this.toSyncTierBoardCardPayload(record),
+      tierBoardCard: this.toPushSyncTierBoardCardPayload(record),
       code: existing ? SYNC_CODES.appliedChange : SYNC_CODES.created,
       message: existing ? APPLIED_CHANGE_MESSAGE : CREATED_MESSAGE,
     });
@@ -2626,7 +2472,7 @@ export class SyncPushService {
         });
 
     return this.buildTierBoardAppliedResult(change, 'tierBoardAsset', {
-      tierBoardAsset: this.toSyncTierBoardAssetPayload(record),
+      tierBoardAsset: this.toPushSyncTierBoardAssetPayload(record),
       code: existing ? SYNC_CODES.appliedChange : SYNC_CODES.created,
       message: existing ? APPLIED_CHANGE_MESSAGE : CREATED_MESSAGE,
     });
@@ -3182,7 +3028,7 @@ export class SyncPushService {
     );
   }
 
-  private toSyncSeriesPayload(
+  private toPushSyncSeriesPayload(
     series: UserSeriesSyncView,
   ): SyncSeriesPayloadDto {
     return {
@@ -3202,7 +3048,7 @@ export class SyncPushService {
     };
   }
 
-  private toSyncContributorPayload(
+  private toPushSyncContributorPayload(
     contributor: UserContributorSyncView,
   ): SyncContributorPayloadDto {
     return {
@@ -3219,7 +3065,7 @@ export class SyncPushService {
     };
   }
 
-  private toSyncWorkSeriesLinkPayload(
+  private toPushSyncWorkSeriesLinkPayload(
     link: UserWorkSeriesLinkSyncView,
   ): SyncWorkSeriesLinkPayloadDto {
     return {
@@ -3237,7 +3083,7 @@ export class SyncPushService {
     };
   }
 
-  private toSyncWorkContributorPayload(
+  private toPushSyncWorkContributorPayload(
     link: UserWorkContributorSyncView,
   ): SyncWorkContributorPayloadDto {
     return {
@@ -3254,7 +3100,7 @@ export class SyncPushService {
     };
   }
 
-  private toSyncWorkRelationPayload(
+  private toPushSyncWorkRelationPayload(
     relation: UserWorkRelationSyncView,
   ): SyncWorkRelationPayloadDto {
     return {
@@ -3271,225 +3117,7 @@ export class SyncPushService {
     };
   }
 
-  private findWorkRecordsForPullPage(
-    userId: string,
-    since: Date | null,
-    cursor: PullCursor | null,
-    take: number,
-  ) {
-    return this.prisma.userWorkRecord.findMany({
-      where: {
-        userId,
-        ...this.cursorService.findPullPageCursorFilter('work', since, cursor),
-      },
-      include: WORK_AGGREGATE_INCLUDE,
-      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-      take,
-    });
-  }
-
-  private findReleaseRecordsForPullPage(
-    userId: string,
-    since: Date | null,
-    cursor: PullCursor | null,
-    take: number,
-  ) {
-    return this.prisma.userReleaseRecord.findMany({
-      where: {
-        userWorkRecord: {
-          userId,
-        },
-        ...this.cursorService.findPullPageCursorFilter(
-          'release_record',
-          since,
-          cursor,
-        ),
-      },
-      include: USER_RELEASE_RECORD_INCLUDE,
-      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-      take,
-    });
-  }
-
-  private findTimelineEntriesForPullPage(
-    userId: string,
-    since: Date | null,
-    cursor: PullCursor | null,
-    take: number,
-  ) {
-    return this.prisma.userTimelineEntry.findMany({
-      where: {
-        userId,
-        ...this.cursorService.findPullPageCursorFilter(
-          'timeline_entry',
-          since,
-          cursor,
-        ),
-      },
-      include: USER_TIMELINE_ENTRY_INCLUDE,
-      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-      take,
-    });
-  }
-
-  private async findGraphRecordsForPullPage(
-    userId: string,
-    since: Date | null,
-    cursor: PullCursor | null,
-    take: number,
-  ) {
-    const [
-      series,
-      contributors,
-      workSeriesLinks,
-      workContributors,
-      workRelations,
-    ] = await Promise.all([
-      this.prisma.userSeries.findMany({
-        where: {
-          userId,
-          ...this.cursorService.findPullPageCursorFilter(
-            'series',
-            since,
-            cursor,
-          ),
-        },
-        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-        take,
-      }),
-      this.prisma.userContributor.findMany({
-        where: {
-          userId,
-          ...this.cursorService.findPullPageCursorFilter(
-            'contributor',
-            since,
-            cursor,
-          ),
-        },
-        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-        take,
-      }),
-      this.prisma.userWorkSeriesLink.findMany({
-        where: {
-          userWork: {
-            userId,
-          },
-          ...this.cursorService.findPullPageCursorFilter(
-            'work_series_link',
-            since,
-            cursor,
-          ),
-        },
-        include: USER_WORK_SERIES_LINK_INCLUDE,
-        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-        take,
-      }),
-      this.prisma.userWorkContributor.findMany({
-        where: {
-          userWork: {
-            userId,
-          },
-          ...this.cursorService.findPullPageCursorFilter(
-            'work_contributor',
-            since,
-            cursor,
-          ),
-        },
-        include: USER_WORK_CONTRIBUTOR_INCLUDE,
-        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-        take,
-      }),
-      this.prisma.userWorkRelation.findMany({
-        where: {
-          userId,
-          ...this.cursorService.findPullPageCursorFilter(
-            'work_relation',
-            since,
-            cursor,
-          ),
-        },
-        include: USER_WORK_RELATION_INCLUDE,
-        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-        take,
-      }),
-    ]);
-
-    return {
-      contributors,
-      series,
-      workContributors,
-      workRelations,
-      workSeriesLinks,
-    };
-  }
-
-  private async findTierBoardRecordsForPullPage(
-    userId: string,
-    since: Date | null,
-    cursor: PullCursor | null,
-    take: number,
-  ) {
-    const [tierBoards, tierLanes, tierBoardCards, tierBoardAssets] =
-      await Promise.all([
-        this.prisma.userTierBoard.findMany({
-          where: {
-            userId,
-            ...this.cursorService.findPullPageCursorFilter(
-              'tier_board',
-              since,
-              cursor,
-            ),
-          },
-          orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-          take,
-        }),
-        this.prisma.userTierLane.findMany({
-          where: {
-            board: { userId },
-            ...this.cursorService.findPullPageCursorFilter(
-              'tier_lane',
-              since,
-              cursor,
-            ),
-          },
-          orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-          take,
-        }),
-        this.prisma.userTierBoardCard.findMany({
-          where: {
-            board: { userId },
-            ...this.cursorService.findPullPageCursorFilter(
-              'tier_board_card',
-              since,
-              cursor,
-            ),
-          },
-          orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-          take,
-        }),
-        this.prisma.userTierBoardAsset.findMany({
-          where: {
-            board: { userId },
-            ...this.cursorService.findPullPageCursorFilter(
-              'tier_board_asset',
-              since,
-              cursor,
-            ),
-          },
-          orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-          take,
-        }),
-      ]);
-
-    return {
-      tierBoardAssets,
-      tierBoardCards,
-      tierLanes,
-      tierBoards,
-    };
-  }
-
-  private toSyncTierBoardPayload(board: {
+  private toPushSyncTierBoardPayload(board: {
     id: string;
     slug: string;
     title: string;
@@ -3518,7 +3146,7 @@ export class SyncPushService {
     };
   }
 
-  private toSyncTierLanePayload(lane: {
+  private toPushSyncTierLanePayload(lane: {
     id: string;
     boardId: string;
     title: string;
@@ -3545,7 +3173,7 @@ export class SyncPushService {
     };
   }
 
-  private toSyncTierBoardCardPayload(card: {
+  private toPushSyncTierBoardCardPayload(card: {
     id: string;
     boardId: string;
     laneId: string | null;
@@ -3581,7 +3209,7 @@ export class SyncPushService {
     };
   }
 
-  private toSyncTierBoardAssetPayload(asset: {
+  private toPushSyncTierBoardAssetPayload(asset: {
     id: string;
     boardId: string;
     cardId: string | null;
@@ -3610,315 +3238,6 @@ export class SyncPushService {
       updatedAt: asset.updatedAt.toISOString(),
       deletedAt: asset.deletedAt?.toISOString() ?? null,
     };
-  }
-
-  private buildOrderedPullChanges({
-    contributors,
-    releaseRecords,
-    series,
-    tierBoardAssets,
-    tierBoardCards,
-    tierLanes,
-    tierBoards,
-    timelineEntries,
-    workContributors,
-    workRelations,
-    workSeriesLinks,
-    works,
-  }: {
-    contributors: UserContributorSyncView[];
-    releaseRecords: UserReleaseRecordAggregate[];
-    series: UserSeriesSyncView[];
-    tierBoardAssets: Array<{
-      id: string;
-      boardId: string;
-      cardId: string | null;
-      kind: string;
-      storageType: string;
-      objectUrl: string;
-      originalName: string;
-      mimeType: string;
-      sizeBytes: number;
-      createdAt: Date;
-      updatedAt: Date;
-      deletedAt: Date | null;
-    }>;
-    tierBoardCards: Array<{
-      id: string;
-      boardId: string;
-      laneId: string | null;
-      cardSourceType: string;
-      title: string;
-      subtitle: string;
-      imageUrl: string;
-      note: string;
-      userWorkId: string | null;
-      orderIndex: number;
-      createdAt: Date;
-      updatedAt: Date;
-      deletedAt: Date | null;
-      syncStatus: WorkSyncStatus;
-      serverVersion: number;
-    }>;
-    tierLanes: Array<{
-      id: string;
-      boardId: string;
-      title: string;
-      description: string;
-      colorToken: string;
-      orderIndex: number;
-      createdAt: Date;
-      updatedAt: Date;
-      deletedAt: Date | null;
-      syncStatus: WorkSyncStatus;
-      serverVersion: number;
-    }>;
-    tierBoards: Array<{
-      id: string;
-      slug: string;
-      title: string;
-      description: string;
-      boardType: string;
-      visibility: string;
-      coverImageUrl: string;
-      createdAt: Date;
-      updatedAt: Date;
-      deletedAt: Date | null;
-      syncStatus: WorkSyncStatus;
-      serverVersion: number;
-    }>;
-    timelineEntries: UserTimelineEntryAggregate[];
-    workContributors: UserWorkContributorSyncView[];
-    workRelations: UserWorkRelationSyncView[];
-    workSeriesLinks: UserWorkSeriesLinkSyncView[];
-    works: WorkAggregate[];
-  }) {
-    return [
-      ...works.map<OrderedPullChange>((work) => {
-        const updatedAt = work.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'work',
-            entityId: work.id,
-            operation: work.deletedAt === null ? 'upsert' : 'delete',
-            work: toFlatWorkResponse(work),
-          },
-          cursor: {
-            entityId: work.id,
-            entityType: 'work',
-            updatedAt,
-          },
-          updatedAtMs: work.updatedAt.getTime(),
-        };
-      }),
-      ...releaseRecords.map<OrderedPullChange>((releaseRecord) => {
-        const updatedAt = releaseRecord.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'release_record',
-            entityId: releaseRecord.id,
-            operation: releaseRecord.deletedAt === null ? 'upsert' : 'delete',
-            releaseRecord: toUserReleaseRecordResponse(releaseRecord),
-          },
-          cursor: {
-            entityId: releaseRecord.id,
-            entityType: 'release_record',
-            updatedAt,
-          },
-          updatedAtMs: releaseRecord.updatedAt.getTime(),
-        };
-      }),
-      ...timelineEntries.map<OrderedPullChange>((timelineEntry) => {
-        const updatedAt = timelineEntry.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'timeline_entry',
-            entityId: timelineEntry.id,
-            operation: timelineEntry.deletedAt === null ? 'upsert' : 'delete',
-            timelineEntry: toUserTimelineEntryResponse(timelineEntry),
-          },
-          cursor: {
-            entityId: timelineEntry.id,
-            entityType: 'timeline_entry',
-            updatedAt,
-          },
-          updatedAtMs: timelineEntry.updatedAt.getTime(),
-        };
-      }),
-      ...series.map<OrderedPullChange>((entry) => {
-        const updatedAt = entry.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'series',
-            entityId: entry.id,
-            operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            series: this.toSyncSeriesPayload(entry),
-          },
-          cursor: {
-            entityId: entry.id,
-            entityType: 'series',
-            updatedAt,
-          },
-          updatedAtMs: entry.updatedAt.getTime(),
-        };
-      }),
-      ...contributors.map<OrderedPullChange>((entry) => {
-        const updatedAt = entry.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'contributor',
-            entityId: entry.id,
-            operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            contributor: this.toSyncContributorPayload(entry),
-          },
-          cursor: {
-            entityId: entry.id,
-            entityType: 'contributor',
-            updatedAt,
-          },
-          updatedAtMs: entry.updatedAt.getTime(),
-        };
-      }),
-      ...workSeriesLinks.map<OrderedPullChange>((entry) => {
-        const updatedAt = entry.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'work_series_link',
-            entityId: entry.id,
-            operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            workSeriesLink: this.toSyncWorkSeriesLinkPayload(entry),
-          },
-          cursor: {
-            entityId: entry.id,
-            entityType: 'work_series_link',
-            updatedAt,
-          },
-          updatedAtMs: entry.updatedAt.getTime(),
-        };
-      }),
-      ...workContributors.map<OrderedPullChange>((entry) => {
-        const updatedAt = entry.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'work_contributor',
-            entityId: entry.id,
-            operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            workContributor: this.toSyncWorkContributorPayload(entry),
-          },
-          cursor: {
-            entityId: entry.id,
-            entityType: 'work_contributor',
-            updatedAt,
-          },
-          updatedAtMs: entry.updatedAt.getTime(),
-        };
-      }),
-      ...workRelations.map<OrderedPullChange>((entry) => {
-        const updatedAt = entry.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'work_relation',
-            entityId: entry.id,
-            operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            workRelation: this.toSyncWorkRelationPayload(entry),
-          },
-          cursor: {
-            entityId: entry.id,
-            entityType: 'work_relation',
-            updatedAt,
-          },
-          updatedAtMs: entry.updatedAt.getTime(),
-        };
-      }),
-      ...tierBoards.map<OrderedPullChange>((entry) => {
-        const updatedAt = entry.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'tier_board',
-            entityId: entry.id,
-            operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            tierBoard: this.toSyncTierBoardPayload(entry),
-          },
-          cursor: { entityId: entry.id, entityType: 'tier_board', updatedAt },
-          updatedAtMs: entry.updatedAt.getTime(),
-        };
-      }),
-      ...tierLanes.map<OrderedPullChange>((entry) => {
-        const updatedAt = entry.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'tier_lane',
-            entityId: entry.id,
-            operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            tierLane: this.toSyncTierLanePayload(entry),
-          },
-          cursor: { entityId: entry.id, entityType: 'tier_lane', updatedAt },
-          updatedAtMs: entry.updatedAt.getTime(),
-        };
-      }),
-      ...tierBoardCards.map<OrderedPullChange>((entry) => {
-        const updatedAt = entry.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'tier_board_card',
-            entityId: entry.id,
-            operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            tierBoardCard: this.toSyncTierBoardCardPayload(entry),
-          },
-          cursor: {
-            entityId: entry.id,
-            entityType: 'tier_board_card',
-            updatedAt,
-          },
-          updatedAtMs: entry.updatedAt.getTime(),
-        };
-      }),
-      ...tierBoardAssets.map<OrderedPullChange>((entry) => {
-        const updatedAt = entry.updatedAt.toISOString();
-
-        return {
-          change: {
-            entityType: 'tier_board_asset',
-            entityId: entry.id,
-            operation: entry.deletedAt === null ? 'upsert' : 'delete',
-            tierBoardAsset: this.toSyncTierBoardAssetPayload(entry),
-          },
-          cursor: {
-            entityId: entry.id,
-            entityType: 'tier_board_asset',
-            updatedAt,
-          },
-          updatedAtMs: entry.updatedAt.getTime(),
-        };
-      }),
-    ].sort((left, right) => {
-      const updatedAtDelta = left.updatedAtMs - right.updatedAtMs;
-
-      if (updatedAtDelta !== 0) {
-        return updatedAtDelta;
-      }
-
-      const entityTypeDelta = left.cursor.entityType.localeCompare(
-        right.cursor.entityType,
-      );
-
-      if (entityTypeDelta !== 0) {
-        return entityTypeDelta;
-      }
-
-      return left.cursor.entityId.localeCompare(right.cursor.entityId);
-    });
   }
 
   private parseIsoDate(value: string, fieldName: string) {
@@ -3977,23 +3296,6 @@ export class SyncPushService {
 
     this.logger.log(
       `Sync push summary userId=${userId} requested=${requestedCount} applied=${appliedCount} conflict=${conflictCount} failed=${failedCount}`,
-    );
-  }
-
-  private logPullSummary(
-    userId: string,
-    since: string | null,
-    response: PullSyncResponseDto,
-  ) {
-    const upsertCount = response.changes.filter(
-      (change) => change.operation === 'upsert',
-    ).length;
-    const deleteCount = response.changes.filter(
-      (change) => change.operation === 'delete',
-    ).length;
-
-    this.logger.log(
-      `Sync pull summary userId=${userId} since=${since ?? 'null'} changes=${response.changes.length} upsert=${upsertCount} delete=${deleteCount} nextSince=${response.nextSince}`,
     );
   }
 

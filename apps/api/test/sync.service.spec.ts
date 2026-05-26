@@ -15,6 +15,9 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import type { CatalogService } from '../src/modules/catalog/catalog.service';
 import { SyncService } from '../src/modules/sync/sync.service';
+import { SyncCursorService } from '../src/modules/sync/services/sync-cursor.service';
+import { SyncPullService } from '../src/modules/sync/services/sync-pull.service';
+import { SyncPushService } from '../src/modules/sync/services/sync-push.service';
 import type { SyncReleaseRecordPayloadDto } from '../src/modules/sync/payloads/sync-release-record-payload.dto';
 import type { SyncSeriesPayloadDto } from '../src/modules/sync/payloads/sync-series-payload.dto';
 import type { SyncTimelineEntryPayloadDto } from '../src/modules/sync/payloads/sync-timeline-entry-payload.dto';
@@ -472,13 +475,19 @@ describe('SyncService', () => {
       update: jest.fn(),
     };
 
-    service = new SyncService(
+    const pushService = new SyncPushService(
       prisma as unknown as PrismaService,
       catalogService as unknown as CatalogService,
       userRecordsService as unknown as UserRecordsService,
       releaseRecordsService as unknown as UserReleaseRecordsService,
       timelineEntriesService as unknown as UserTimelineEntriesService,
     );
+    const pullService = new SyncPullService(
+      prisma as unknown as PrismaService,
+      new SyncCursorService(),
+    );
+
+    service = new SyncService(pushService, pullService);
   });
 
   it('rejects unsupported push schema versions at the service boundary', async () => {

@@ -29,9 +29,10 @@ export class SyncCursorService {
         typeof decoded.updatedAt !== 'string' ||
         typeof decoded.entityType !== 'string' ||
         typeof decoded.entityId !== 'string' ||
-        !SYNC_ENTITY_TYPES.includes(decoded.entityType as SyncEntityType)
+        !SYNC_ENTITY_TYPES.includes(decoded.entityType as SyncEntityType) ||
+        Number.isNaN(Date.parse(decoded.updatedAt))
       ) {
-        throw new Error('Invalid cursor payload');
+        throw new Error('Invalid cursor shape.');
       }
 
       return {
@@ -40,7 +41,7 @@ export class SyncCursorService {
         updatedAt: decoded.updatedAt,
       };
     } catch {
-      throw new BadRequestException('Invalid sync pull cursor.');
+      throw new BadRequestException('cursor must be a valid sync pull cursor.');
     }
   }
 
@@ -169,11 +170,11 @@ export class SyncCursorService {
     );
   }
 
-  private parseIsoDate(value: string, fieldName: string) {
+  private parseIsoDate(value: string, _fieldName: string) {
     const parsed = new Date(value);
 
     if (Number.isNaN(parsed.getTime())) {
-      throw new BadRequestException(`Invalid ${fieldName}: expected ISO date.`);
+      throw new BadRequestException('cursor must be a valid sync pull cursor.');
     }
 
     return parsed;
