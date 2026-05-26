@@ -8,6 +8,11 @@ Update it for every beta or production release candidate.
 Official Trivy runner: release CI/runner with Trivy installed. Do not install
 Trivy as part of ordinary local WSL development.
 
+For Gate 1 sequencing, see
+[`../commercial/GATE_1_VALIDATION_RUNBOOK.md`](../commercial/GATE_1_VALIDATION_RUNBOOK.md).
+Do not record Trivy or npm audit results in this file unless the command ran and
+the summary was directly observed.
+
 ## Required Commands
 
 Run from the repository root on the official release runner:

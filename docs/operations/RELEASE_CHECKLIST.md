@@ -6,6 +6,10 @@
 - For public beta candidates, confirm
   `docs/commercial/COMMERCIAL_LAUNCH_READINESS.md` is the active gate and update
   `docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md` with real run results.
+- For public beta candidates, follow
+  `docs/commercial/GATE_1_VALIDATION_RUNBOOK.md` and keep generated local QA
+  reports separate from the operator evidence ledger until an operator copies
+  observed summaries.
 - Review migration notes and confirm rollback compatibility.
 - Confirm `.env.prod` values are present and production secrets are not defaults.
 - Confirm Google OAuth redirect URI exactly matches the deployed callback URL.
@@ -29,6 +33,8 @@ npm run typecheck --workspace @work-archive/web
 npm run test --workspace @work-archive/api
 npm run test --workspace @work-archive/web
 npm run build
+npm run qa:import-search
+npm run qa:sync-load
 docker compose -f compose.prod.yml --env-file .env.prod build
 ```
 

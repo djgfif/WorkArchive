@@ -1,0 +1,24 @@
+{
+  "batchSize": 200,
+  "gitCommit": "3d3c3fcfa9ba44e15e1949e23ee58c2cf72a0163",
+  "mode": "dry-run",
+  "pullLimit": 500,
+  "recordCount": 1000,
+  "runId": "20260526T035124Z-cea9b265",
+  "status": "PASS",
+  "timestamp": "2026-05-26T03:51:24.949Z",
+  "workingTree": "dirty",
+  "metrics": {
+    "conflicts": [],
+    "duplicateCount": 0,
+    "failures": [],
+    "maxResponseBytes": 0,
+    "missingCount": 0,
+    "observedSyntheticCount": 0,
+    "pullPageCount": 0,
+    "pushBatchCount": 5,
+    "requestP50Ms": 0,
+    "requestP95Ms": 0,
+    "totalDurationMs": 0
+  }
+}

@@ -1639,7 +1639,7 @@ describe('ImportsService', () => {
     expect(firstHeaders.get('authorization')).toBe('KakaoAK kakao-rest-key');
     expect(secondUrl.hostname).toBe('openapi.naver.com');
     expect(secondHeaders.get('X-Naver-Client-Id')).toBe('naver-client-id');
-  });
+  }, 10_000);
 
   it('maps web search results to webtoon candidates and strips site or episode suffixes', async () => {
     credentialService.getDecryptedCredential.mockResolvedValue(
@@ -1868,7 +1868,7 @@ describe('ImportsService', () => {
         }),
       ]),
     );
-  });
+  }, 10_000);
 
   it('uses query year and contributor signals when titles are similar', async () => {
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(

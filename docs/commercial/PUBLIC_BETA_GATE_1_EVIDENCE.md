@@ -7,6 +7,15 @@ candidate. Do not paste secrets, cookies, OAuth codes, access tokens, API keys,
 database dumps, backup contents, raw sync payloads, or personally identifying
 tester data.
 
+For repeatable collection, follow
+[`GATE_1_VALIDATION_RUNBOOK.md`](./GATE_1_VALIDATION_RUNBOOK.md). Local helper
+reports can be generated with `npm run qa:gate1:local`, import/search QA with
+`npm run qa:import-search`, and sync load dry-run validation with
+`npm run qa:sync-load`. Copy only observed summary results into this ledger;
+leave environment-only items blank, `blocked`, or `not run` until they are run
+on the required release runner, beta host, GitHub Settings page, restore target,
+or disposable authenticated test account.
+
 ## Release Candidate
 
 - Date and timezone:

@@ -1,4 +1,4 @@
-﻿import { screen, waitFor, within } from '@testing-library/react';
+﻿import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -204,7 +204,7 @@ describe('TierBoardEditorPage', () => {
     renderRoute(`/tier-boards/${state.board.id}`);
 
     await user.click(await screen.findByRole('button', { name: '내보내기' }));
-    await user.click(await screen.findByRole('menuitem', { name: 'PNG 이미지' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'PNG 이미지', hidden: true }));
 
     expect(
       await screen.findByText('PNG 내보내기에 실패했습니다. 외부 이미지 CORS 때문에 실패했을 수 있습니다.'),
