@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REPORT_DIR="${GATE1_EVIDENCE_DIR:-$ROOT_DIR/docs/commercial/evidence}"
+REPORT_DIR="${GATE1_EVIDENCE_DIR:-$ROOT_DIR/tmp/gate1-evidence}"
 STAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
 REPORT_FILE="$REPORT_DIR/gate1-local-$STAMP.md"
 TMP_DIR="$(mktemp -d)"
@@ -20,6 +20,15 @@ redact() {
     -e 's#(postgresql://)[^[:space:]@]+@#\1[REDACTED]@#gI'
 }
 
+relative_path() {
+  local path="$1"
+  if [[ "$path" == "$ROOT_DIR/"* ]]; then
+    printf '%s' "${path#"$ROOT_DIR"/}"
+  else
+    printf '[outside-workspace]'
+  fi
+}
+
 append_header() {
   local commit dirty
   commit="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
@@ -35,8 +44,8 @@ append_header() {
     echo "- Timestamp UTC: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "- Git commit: $commit"
     echo "- Working tree: $dirty"
-    echo "- Hostname: $(hostname 2>/dev/null | redact)"
-    echo "- Report path: $REPORT_FILE"
+    echo "- Hostname: [redacted]"
+    echo "- Report path: $(relative_path "$REPORT_FILE")"
     echo
     echo "This generated report contains only local/repository-verifiable checks. Beta host checks, GitHub Settings controls, restore drills, and release-runner-only scans remain manual or blocked unless run in the proper environment."
     echo
@@ -161,7 +170,7 @@ append_manual_blockers
   fi
 } >>"$REPORT_FILE"
 
-echo "Gate 1 local evidence report: $REPORT_FILE"
+echo "Gate 1 local evidence report: $(relative_path "$REPORT_FILE")"
 
 if [[ "$FAIL_COUNT" -gt 0 ]]; then
   exit 1

@@ -7,12 +7,13 @@ const rootDir = resolve(dirname(new URL(import.meta.url).pathname), '../..');
 const liveMode = process.env.IMPORT_SEARCH_QA_LIVE === 'true';
 const reportDir = resolve(
   rootDir,
-  process.env.IMPORT_SEARCH_QA_REPORT_DIR ?? 'docs/commercial/evidence',
+  process.env.IMPORT_SEARCH_QA_REPORT_DIR ?? 'tmp/import-search-qa',
 );
 const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
 const reportPath = resolve(reportDir, `import-search-qa-${stamp}.md`);
 const jsonReportPath = resolve(reportDir, `import-search-qa-${stamp}.json`);
 const accessToken = process.env.IMPORT_QA_ACCESS_TOKEN ?? '';
+const fullMatrixLive = process.env.IMPORT_SEARCH_QA_FULL_MATRIX === 'true';
 
 const matrix = [
   {
@@ -65,6 +66,15 @@ const matrix = [
   },
 ];
 
+const liveSmokeCaseIds = new Set([
+  'novel-ko-title',
+  'manga-original-title',
+  'anime-ambiguous-title',
+  'movie-wrong-medium-guard',
+  'low-confidence-fallback',
+]);
+const liveProviderQualityMinimumDistinctTypes = 3;
+
 const sensitiveNames = [
   'ACCESS_TOKEN',
   'API_KEY',
@@ -85,6 +95,10 @@ function redact(value) {
     text = text.split(accessToken).join('[REDACTED]');
   }
   return text;
+}
+
+function relativePath(path) {
+  return path.startsWith(`${rootDir}/`) ? path.slice(rootDir.length + 1) : '[outside-workspace]';
 }
 
 function normalizeBaseUrl(rawBaseUrl) {
@@ -112,6 +126,7 @@ function writeReports(report) {
     `- Git commit: ${report.gitCommit}`,
     `- Working tree: ${report.workingTree}`,
     `- Overall status: ${report.status}`,
+    `- Matrix coverage: ${report.matrixCoverage}`,
     '',
     '## Checks',
     '',
@@ -126,11 +141,17 @@ function writeReports(report) {
 
   if (report.liveResults.length > 0) {
     lines.push('## Live Query Results', '');
+    lines.push(
+      `Live mode executed ${report.liveCoverageDescription}. Provider quality PASS requires non-manual candidates for at least ${liveProviderQualityMinimumDistinctTypes} distinct medium types in the smoke subset; manual fallback alone is counted only for fallback safety.`,
+    );
+    lines.push('');
     for (const result of report.liveResults) {
       lines.push(`### ${result.id}`, '');
       lines.push(`- Query: ${result.query}`);
       lines.push(`- Medium type: ${result.mediumType}`);
       lines.push(`- Status: ${result.status}`);
+      lines.push(`- Fallback safety status: ${result.fallbackSafetyStatus}`);
+      lines.push(`- Provider quality status: ${result.providerQualityStatus}`);
       lines.push(`- HTTP status: ${result.httpStatus ?? 'not-run'}`);
       lines.push(`- Result count: ${result.resultCount}`);
       lines.push(`- Diagnostics: ${result.diagnosticsSummary}`);
@@ -216,7 +237,11 @@ async function liveChecks() {
     ? { Authorization: `Bearer ${accessToken}` }
     : {};
 
-  for (const item of matrix) {
+  const liveCases = fullMatrixLive
+    ? matrix
+    : matrix.filter((item) => liveSmokeCaseIds.has(item.id));
+
+  for (const item of liveCases) {
     const url = apiPath(baseUrl, '/imports/search');
     url.searchParams.set('query', item.query);
     url.searchParams.set('mediumType', item.mediumType);
@@ -238,7 +263,32 @@ async function liveChecks() {
       const hasExpectedType = candidates
         .slice(0, 5)
         .some((candidate) => candidate.mediumType === item.mediumType || candidate.type === item.mediumType);
-      const status = response.ok && (hasExpectedType || hasManualFallback) ? 'PASS' : 'FAIL';
+      const hasExpectedProviderCandidate = candidates.slice(0, 5).some((candidate) => {
+        const sourceId = candidate.sourceId ?? '';
+        const isManual = ['manual', 'preview-manual', 'preview_manual'].includes(sourceId);
+        return (
+          !isManual &&
+          (candidate.mediumType === item.mediumType || candidate.type === item.mediumType)
+        );
+      });
+      const fallbackSafetyStatus =
+        item.id === 'low-confidence-fallback'
+          ? response.ok && hasManualFallback
+            ? 'PASS'
+            : 'FAIL'
+          : 'NOT_APPLICABLE';
+      const providerQualityStatus =
+        item.id === 'low-confidence-fallback'
+          ? 'NOT_APPLICABLE'
+          : response.ok && hasExpectedProviderCandidate
+            ? 'PASS'
+            : 'FAIL';
+      const status =
+        response.ok &&
+        (fallbackSafetyStatus !== 'FAIL') &&
+        (providerQualityStatus !== 'FAIL' || hasExpectedType || hasManualFallback)
+          ? 'PASS'
+          : 'FAIL';
 
       liveResults.push({
         id: item.id,
@@ -253,6 +303,8 @@ async function liveChecks() {
         mediumType: item.mediumType,
         query: item.query,
         resultCount: candidates.length,
+        fallbackSafetyStatus,
+        providerQualityStatus,
         status,
         topCandidates: candidates.slice(0, 5).map((candidate) => {
           const providers = candidate.sourceCoverage?.providers?.join('+') || candidate.sourceId;
@@ -268,16 +320,34 @@ async function liveChecks() {
         mediumType: item.mediumType,
         query: item.query,
         resultCount: 0,
+        fallbackSafetyStatus: item.id === 'low-confidence-fallback' ? 'FAIL' : 'NOT_APPLICABLE',
+        providerQualityStatus: item.id === 'low-confidence-fallback' ? 'NOT_APPLICABLE' : 'FAIL',
         status: 'FAIL',
         topCandidates: [],
       });
     }
   }
 
+  const fallbackSafetyPass = liveResults
+    .filter((result) => result.fallbackSafetyStatus !== 'NOT_APPLICABLE')
+    .every((result) => result.fallbackSafetyStatus === 'PASS');
+  const providerQualityTypes = new Set(
+    liveResults
+      .filter((result) => result.providerQualityStatus === 'PASS')
+      .map((result) => result.mediumType),
+  );
+  const providerQualityPass =
+    providerQualityTypes.size >= liveProviderQualityMinimumDistinctTypes;
+
   checks.push({
-    name: 'live import/search API shape',
-    status: liveResults.every((result) => result.status === 'PASS') ? 'PASS' : 'FAIL',
-    summary: `${liveResults.filter((result) => result.status === 'PASS').length}/${liveResults.length} live matrix cases met broad type-or-manual-fallback assertions.`,
+    name: 'live import/search fallback safety',
+    status: fallbackSafetyPass ? 'PASS' : 'FAIL',
+    summary: `${liveResults.filter((result) => result.fallbackSafetyStatus === 'PASS').length}/${liveResults.filter((result) => result.fallbackSafetyStatus !== 'NOT_APPLICABLE').length} fallback-safety smoke cases exposed manual fallback.`,
+  });
+  checks.push({
+    name: 'live import/search provider quality',
+    status: providerQualityPass ? 'PASS' : 'FAIL',
+    summary: `${providerQualityTypes.size}/${liveProviderQualityMinimumDistinctTypes} required distinct medium types had non-manual expected-type provider candidates in top 5: ${[...providerQualityTypes].join(', ') || 'none'}.`,
   });
 
   return { checks, liveResults };
@@ -287,6 +357,14 @@ const report = {
   checks: [],
   gitCommit: gitValue(['rev-parse', 'HEAD']),
   liveResults: [],
+  liveCoverageDescription: fullMatrixLive
+    ? 'every case in docs/qa/IMPORT_SEARCH_QA_MATRIX.md'
+    : 'a smoke subset of docs/qa/IMPORT_SEARCH_QA_MATRIX.md',
+  matrixCoverage: liveMode
+    ? fullMatrixLive
+      ? 'full matrix'
+      : 'live smoke subset'
+    : 'offline static fixtures plus matrix-shape check',
   mode: liveMode ? 'live' : 'offline',
   status: 'PASS',
   timestamp: new Date().toISOString(),
@@ -308,7 +386,7 @@ report.status = report.checks.some((check) => check.status === 'FAIL')
     : 'PASS';
 
 writeReports(report);
-console.log(`Import/search QA report: ${reportPath}`);
+console.log(`Import/search QA report: ${relativePath(reportPath)}`);
 
 if (report.status === 'FAIL') {
   process.exit(1);

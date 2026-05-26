@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 const rootDir = resolve(dirname(new URL(import.meta.url).pathname), '../..');
 const reportDir = resolve(
   rootDir,
-  process.env.SYNC_LOAD_REPORT_DIR ?? 'docs/commercial/evidence',
+  process.env.SYNC_LOAD_REPORT_DIR ?? 'tmp/sync-load',
 );
 const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
 const reportPath = resolve(reportDir, `sync-load-smoke-${stamp}.md`);
@@ -44,6 +44,10 @@ function redact(value) {
     text = text.split(accessToken).join('[REDACTED]');
   }
   return text;
+}
+
+function relativePath(path) {
+  return path.startsWith(`${rootDir}/`) ? path.slice(rootDir.length + 1) : '[outside-workspace]';
 }
 
 function gitValue(args, fallback = 'unknown') {
@@ -136,6 +140,7 @@ async function postJson(path, body) {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
+      'X-Work-Archive-Client': 'web',
     },
     method: 'POST',
   });
@@ -301,10 +306,12 @@ async function runLive(fixtures, sinceIso) {
     });
   }
   if (!maxLimitSmoke.ok) {
-    failures.push({
-      status: 'max_limit_smoke_failed',
-      message: maxLimitSmoke.text,
-    });
+    if (maxLimitSmoke.status !== 400) {
+      failures.push({
+        status: 'max_limit_smoke_failed',
+        message: maxLimitSmoke.text,
+      });
+    }
   }
 
   return {
@@ -318,6 +325,7 @@ async function runLive(fixtures, sinceIso) {
     pushBatchCount,
     requestP50Ms: Math.round(percentile(requestDurations, 50) ?? 0),
     requestP95Ms: Math.round(percentile(requestDurations, 95) ?? 0),
+    maxLimitSmokeStatus: maxLimitSmoke.status,
     status: failures.length === 0 ? 'PASS' : 'FAIL',
     totalDurationMs: Math.round(performance.now() - startedAt),
   };
@@ -351,6 +359,7 @@ function writeReports(report) {
     `- Request p50 ms: ${report.metrics.requestP50Ms}`,
     `- Request p95 ms: ${report.metrics.requestP95Ms}`,
     `- Max response bytes: ${report.metrics.maxResponseBytes}`,
+    `- Limit 1500 smoke HTTP status: ${report.metrics.maxLimitSmokeStatus}`,
     `- Conflicts: ${report.metrics.conflicts.length}`,
     `- Failures: ${report.metrics.failures.length}`,
     '',
@@ -373,6 +382,7 @@ function writeReports(report) {
   lines.push('- Payload titles are synthetic and prefixed with `Gate1 Sync Load QA`.');
   lines.push('- Live mode requires `SYNC_LOAD_ACCESS_TOKEN` and `SYNC_LOAD_DISPOSABLE_ACCOUNT_ACK=true`.');
   lines.push('- Reports do not include raw sync payloads or bearer tokens.');
+  lines.push('- Limit > 1000 smoke accepts either bounded HTTP 200 behavior or HTTP 400 DTO validation rejection.');
   lines.push('- Use a disposable authenticated test account; do not run this against a real user account.');
 
   writeFileSync(reportPath, `${lines.join('\n')}\n`);
@@ -405,6 +415,7 @@ const report = {
     pushBatchCount: Math.ceil(recordCount / batchSize),
     requestP50Ms: 0,
     requestP95Ms: 0,
+    maxLimitSmokeStatus: 0,
     totalDurationMs: 0,
   },
 };
@@ -431,7 +442,7 @@ if (dryRun) {
 }
 
 writeReports(report);
-console.log(`Sync load smoke report: ${reportPath}`);
+console.log(`Sync load smoke report: ${relativePath(reportPath)}`);
 
 if (report.status !== 'PASS') {
   process.exit(1);

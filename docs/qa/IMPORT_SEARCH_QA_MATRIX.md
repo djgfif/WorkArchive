@@ -63,7 +63,9 @@ IMPORT_QA_ACCESS_TOKEN=<disposable-test-account-token> \
 npm run qa:import-search
 ```
 
-Reports are written to `docs/commercial/evidence/` by default. Do not commit
-reports containing raw user data, provider secrets, access tokens, cookies, or
-raw provider payloads. The runner records only redacted summaries, diagnostics,
-result counts, and top candidate labels.
+Reports are written to `tmp/import-search-qa/` by default. Do not commit
+generated reports wholesale. The runner records only redacted summaries,
+diagnostics, result counts, and top candidate labels, but live outputs are still
+operator artifacts. By default, live QA executes a smoke subset of this matrix;
+set `IMPORT_SEARCH_QA_FULL_MATRIX=true` only when intentionally covering every
+case.

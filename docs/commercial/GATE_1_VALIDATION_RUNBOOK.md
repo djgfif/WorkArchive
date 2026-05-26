@@ -52,8 +52,17 @@ script syntax checks, and Docker compose config only when Docker and `.env.prod`
 are available. It does not run beta host, GitHub Settings, restore drill, Trivy
 image, or live provider checks.
 
-Generated reports are written to `docs/commercial/evidence/` unless
-`GATE1_EVIDENCE_DIR` is set.
+Generated reports are written to `tmp/gate1-evidence/` unless
+`GATE1_EVIDENCE_DIR` is set. For a faster rerun that keeps the existing
+dependency install, use:
+
+```bash
+GATE1_RUN_NPM_CI=0 npm run qa:gate1:local
+```
+
+Generated reports are operator artifacts. Do not commit them wholesale; copy
+only curated, redacted summary lines into the evidence ledger when the run is
+part of a real release-candidate validation.
 
 ## Release Runner Checks
 
@@ -119,7 +128,10 @@ npm run qa:import-search
 ```
 
 The golden matrix is in `docs/qa/IMPORT_SEARCH_QA_MATRIX.md`. Live provider
-results are observations for that run, not permanent truth.
+results are observations for that run, not permanent truth. By default, the
+runner executes a smoke subset of that matrix and writes reports to
+`tmp/import-search-qa/`; set `IMPORT_SEARCH_QA_FULL_MATRIX=true` only when the
+operator intends to run every matrix case.
 
 ## Sync Load Validation
 
@@ -128,6 +140,9 @@ Dry-run mode validates synthetic payload generation without API calls:
 ```bash
 npm run qa:sync-load
 ```
+
+Dry-run and live reports are written to `tmp/sync-load/` unless
+`SYNC_LOAD_REPORT_DIR` is set.
 
 Live mode requires a disposable authenticated test account:
 
