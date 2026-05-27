@@ -6,10 +6,10 @@ import type {
 
 import { WORK_STATUSES, WORK_TYPES } from '@work-archive/shared-types';
 import {
+  getPersonalTags,
   worksRepository,
   type WorksRepository,
 } from '@features/works';
-import { getPersonalTags } from '../../works/utils/graph-tags';
 
 const RECENT_WINDOW_DAYS = 30;
 
