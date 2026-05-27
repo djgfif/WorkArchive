@@ -12,7 +12,7 @@ import {
   WorksService,
   type WorkArchiveDatabase,
 } from '@features/works';
-import { TierBoardRepository } from '@features/tier-boards/services/tier-board.repository';
+import type { TierBoardRepository } from '@features/tier-boards/data';
 import { AppMetaRepository } from './app-meta.repository';
 import { SyncAutoMergeService } from './sync-auto-merge.service';
 import { SyncConflictResolutionService } from './sync-conflict-resolution.service';
@@ -68,6 +68,18 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function createTierBoardRepositoryTestDouble() {
+  return {
+    bulkPutAssets: vi.fn().mockImplementation(async (records) => records),
+    bulkPutBoards: vi.fn().mockImplementation(async (records) => records),
+    bulkPutCards: vi.fn().mockImplementation(async (records) => records),
+    bulkPutLanes: vi.fn().mockImplementation(async (records) => records),
+    getEntity: vi.fn().mockResolvedValue(null),
+    markSyncStatus: vi.fn(),
+    putEntity: vi.fn().mockImplementation(async (record) => record),
+  } as unknown as TierBoardRepository;
+}
+
 describe('extracted sync services', () => {
   let db: WorkArchiveDatabase;
   let worksRepository: WorksRepository;
@@ -92,7 +104,7 @@ describe('extracted sync services', () => {
     timelineEntriesRepository = new TimelineEntriesRepository(() => db);
     queueRepository = new SyncQueueRepository(() => db);
     graphRepository = new GraphRepository(() => db, queueRepository);
-    tierBoardRepository = new TierBoardRepository(() => db);
+    tierBoardRepository = createTierBoardRepositoryTestDouble();
     appMetaRepository = new AppMetaRepository(() => db);
     worksService = new WorksService(worksRepository, queueRepository);
     leaseService = new SyncLeaseService(appMetaRepository);
