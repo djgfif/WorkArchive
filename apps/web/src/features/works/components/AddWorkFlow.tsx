@@ -524,9 +524,9 @@ export function AddWorkFlow({
             )}
 
             {variant === 'page' ? (
-              <Grid align="start" gap="xl">
-                <Grid.Col span={{ base: 12, lg: 8 }}>
-                  <Stack gap="xl">
+              <Stack gap="xl">
+                <Grid align="start" gap="xl">
+                  <Grid.Col span={{ base: 12, md: 8 }}>
                     <CoreWorkFields
                       error={titleError}
                       idPrefix="manual"
@@ -535,41 +535,41 @@ export function AddWorkFlow({
                       titleInputRef={titleInputRef}
                       values={values}
                     />
-
-                    <PersonalRecordFields
-                      idPrefix="manual"
-                      onInputChange={handleInputChange}
-                      onRatingChange={handleRatingChange}
-                      onStatusChange={handleStatusChange}
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, md: 4 }}>
+                    <QuickCapturePreview
+                      duplicateCount={duplicateCandidates.length}
+                      sourceLabel={selectedImportCandidate?.sourceLabel ?? null}
                       values={values}
                     />
+                  </Grid.Col>
+                </Grid>
 
-                    <AdvancedWorkFields
-                      idPrefix="manual"
-                      itemValue="manual-advanced-fields"
-                      onInputChange={handleInputChange}
-                      onSeriesFieldsClear={handleSeriesFieldsClear}
-                      onTextListChange={handleTextListChange}
-                      organizationContributorSuggestions={
-                        workSuggestions.organizationContributorSuggestions
-                      }
-                      personContributorSuggestions={
-                        workSuggestions.personContributorSuggestions
-                      }
-                      seriesSuggestions={workSuggestions.seriesSuggestions}
-                      tagSuggestions={workSuggestions.tagSuggestions}
-                      values={values}
-                    />
-                  </Stack>
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, lg: 4 }}>
-                  <QuickCapturePreview
-                    duplicateCount={duplicateCandidates.length}
-                    sourceLabel={selectedImportCandidate?.sourceLabel ?? null}
-                    values={values}
-                  />
-                </Grid.Col>
-              </Grid>
+                <PersonalRecordFields
+                  idPrefix="manual"
+                  onInputChange={handleInputChange}
+                  onRatingChange={handleRatingChange}
+                  onStatusChange={handleStatusChange}
+                  values={values}
+                />
+
+                <AdvancedWorkFields
+                  idPrefix="manual"
+                  itemValue="manual-advanced-fields"
+                  onInputChange={handleInputChange}
+                  onSeriesFieldsClear={handleSeriesFieldsClear}
+                  onTextListChange={handleTextListChange}
+                  organizationContributorSuggestions={
+                    workSuggestions.organizationContributorSuggestions
+                  }
+                  personContributorSuggestions={
+                    workSuggestions.personContributorSuggestions
+                  }
+                  seriesSuggestions={workSuggestions.seriesSuggestions}
+                  tagSuggestions={workSuggestions.tagSuggestions}
+                  values={values}
+                />
+              </Stack>
             ) : (
               <Grid align="start" gap="md">
                 <Grid.Col span={{ base: 12, md: 8 }}>

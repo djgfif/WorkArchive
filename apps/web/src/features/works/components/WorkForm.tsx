@@ -479,7 +479,6 @@ export function WorkForm({
                           value={values.type}
                         />
                         <WorkGenreSelector
-                          description="대표 장르는 최대 3개까지 선택합니다."
                           id="genresText"
                           onChange={(items) =>
                             handleTextListChange('genresText', items)

@@ -10,15 +10,13 @@ import {
   SectionIntro,
 } from '@shared/components/AppPrimitives';
 import {
-  duplicateCleanupService,
   type DuplicateCandidateGroup,
-  type DuplicateMergePreview,
-  type DuplicateMergeScalarField,
-} from '@features/works/services/duplicate-cleanup.service';
-import {
+  duplicateCleanupService,
   formatWorkUpdatedAt,
   getWorkStatusLabel,
   getWorkTypeLabel,
+  type DuplicateMergePreview,
+  type DuplicateMergeScalarField,
 } from '@features/works';
 import styles from './SettingsControlCenter.module.css';
 

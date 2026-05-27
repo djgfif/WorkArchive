@@ -24,6 +24,13 @@ export { useWorkDetail } from './hooks/useWorkDetail';
 export { useWorksList } from './hooks/useWorksList';
 export { useWorksOverview } from './hooks/useWorksOverview';
 export {
+  duplicateCleanupService,
+  DuplicateCleanupService,
+  type DuplicateCandidateGroup,
+  type DuplicateMergePreview,
+  type DuplicateMergeScalarField,
+} from './services/duplicate-cleanup.service';
+export {
   GraphRepository,
   graphRepository,
 } from './services/graph.repository';

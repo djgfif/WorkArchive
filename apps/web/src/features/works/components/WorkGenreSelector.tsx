@@ -32,12 +32,12 @@ export function WorkGenreSelector({
   const [isOpen, setIsOpen] = useState(false);
   const selectedGenres = new Set(value);
   const labelId = `${id}Label`;
-  const descriptionId = description ? `${id}Description` : undefined;
   const selectedLabel = value.length > 0 ? value.join(', ') : '장르 선택';
   const helperText =
     value.length >= MAX_WORK_GENRES
       ? '장르는 최대 3개까지 선택할 수 있습니다. 세부 키워드는 개인 태그에 남겨주세요.'
       : description;
+  const descriptionId = helperText ? `${id}Description` : undefined;
 
   function toggleGenre(genre: WorkGenreValue) {
     if (!selectedGenres.has(genre) && value.length >= MAX_WORK_GENRES) {

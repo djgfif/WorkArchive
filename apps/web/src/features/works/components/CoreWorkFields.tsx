@@ -82,15 +82,10 @@ export function CoreWorkFields({
 
           <Stack className={cn(css.genreTagGuide)} gap={6}>
             <WorkGenreSelector
-              description="대표 장르: 판타지, 로맨스처럼 작품의 큰 분류를 3개까지 고릅니다."
               id={getFieldId(idPrefix, 'genresText')}
               onChange={(items) => onTextListChange('genresText', items)}
               value={genreValues}
             />
-            <Text c="var(--mantine-color-dimmed)" size="xs">
-              개인 태그: 회귀, 빙의, 이세계처럼 내 기준 키워드는 상세 정보의
-              내 메모에서 남깁니다.
-            </Text>
           </Stack>
         </SimpleGrid>
 
