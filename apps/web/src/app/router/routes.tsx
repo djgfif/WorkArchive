@@ -28,6 +28,7 @@ import {
   ProfilePage,
   SettingsPage,
 } from '@features/profile';
+import { PersonalInsightsPage } from '@features/insights';
 import {
   WorkCreatePage,
   WorkDetailPage,
@@ -127,6 +128,15 @@ export function createAppRoutes(
           element: <WorkEditPage />,
           errorElement: routeError(
             '작품 편집 화면을 복구할 수 없습니다',
+            '/works',
+            '작품 목록으로 돌아가기',
+          ),
+        },
+        {
+          path: 'insights',
+          element: <PersonalInsightsPage />,
+          errorElement: routeError(
+            '개인 인사이트 화면을 복구할 수 없습니다',
             '/works',
             '작품 목록으로 돌아가기',
           ),
@@ -240,10 +250,6 @@ export function createAppRoutes(
     },
     {
       path: '/community',
-      element: <Navigate replace to="/works" />,
-    },
-    {
-      path: '/insights',
       element: <Navigate replace to="/works" />,
     },
     {

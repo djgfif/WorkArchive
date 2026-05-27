@@ -54,4 +54,7 @@ export {
   getWorkStatusLabel,
   getWorkTypeLabel,
 } from './utils/work-options';
-export type { WorkCollectionSummary } from './utils/graph-tags';
+export {
+  getPersonalTags,
+  type WorkCollectionSummary,
+} from './utils/graph-tags';

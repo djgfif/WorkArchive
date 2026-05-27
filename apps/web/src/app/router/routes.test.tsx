@@ -6,6 +6,7 @@ import { getPrimaryNavigationItems } from '../layouts/navigation';
 import { createAppRoutes } from './routes';
 import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
 import type { FeatureFlags } from '@shared/runtime/feature-flags';
+import { PersonalInsightsPage } from '@features/insights';
 
 const flagsWithTierBoardsOff: FeatureFlags = {
   diagnostics: false,
@@ -19,6 +20,7 @@ describe('app routes', () => {
     expect(getPrimaryNavigationItems(flagsWithTierBoardsOff)).toEqual([
       { label: '홈', to: '/' },
       { label: '작품', to: '/works' },
+      { label: '인사이트', to: '/insights' },
     ]);
 
     const productRoute = createAppRoutes(flagsWithTierBoardsOff)[0];
@@ -46,6 +48,26 @@ describe('app routes', () => {
     }
   });
 
+  it('keeps /insights in the product layout instead of redirecting to /works', () => {
+    const routes = createAppRoutes();
+    const productRoutes = routes[0]?.children ?? [];
+    const insightsRoute = productRoutes.find((route) => route.path === 'insights');
+
+    expect(insightsRoute).toBeDefined();
+    expect(isValidElement(insightsRoute?.element)).toBe(true);
+    expect(
+      isValidElement(insightsRoute?.element) && insightsRoute.element.type,
+    ).toBe(PersonalInsightsPage);
+    expect(
+      routes.some(
+        (route) =>
+          route.path === '/insights' &&
+          isValidElement(route.element) &&
+          route.element.type === Navigate,
+      ),
+    ).toBe(false);
+  });
+
   it('adds route error boundaries to primary product, auth, and account routes', () => {
     const routes = createAppRoutes();
     const productRoutes = routes[0]?.children ?? [];
@@ -57,6 +79,7 @@ describe('app routes', () => {
       productRoutes.find((route) => route.path === 'works'),
       productRoutes.find((route) => route.path === 'works/:id'),
       productRoutes.find((route) => route.path === 'works/:id/edit'),
+      productRoutes.find((route) => route.path === 'insights'),
       productRoutes.find((route) => route.path === 'tier-boards/:boardId/view'),
       productRoutes.find((route) => route.path === 'profile'),
       authRoutes.find((route) => route.path === 'login'),
