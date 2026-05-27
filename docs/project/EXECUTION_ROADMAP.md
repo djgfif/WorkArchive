@@ -189,6 +189,13 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 
 ## Track 6. Minimal Personal Insights
 
+현재 구현:
+
+- `/insights`는 MainProductLayout 아래 private local-first 화면으로 제공된다.
+- guest와 로그인 사용자 모두 현재 활성 IndexedDB 아카이브에서만 통계를 계산한다.
+- 총 기록 수, 매체/상태/별점 분포, 올해 완료, 최근 추가/수정, 개인 태그/장르, 즐겨찾기, 감상 공백 요약을 제공한다.
+- public/community/share 기능과 연결하지 않는다.
+
 목표:
 
 - 커뮤니티가 없어도 개인 아카이브의 가치를 높이는 최소 통계를 제공한다.

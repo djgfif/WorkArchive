@@ -1,0 +1,47 @@
+.metricCard {
+  min-height: 128px;
+}
+
+.metricValue {
+  color: var(--app-text-primary);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.chartPanel {
+  background: var(--app-surface-card);
+  border-color: var(--app-border-subtle);
+}
+
+.barTrack {
+  background: var(--app-surface-subtle);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.barFill {
+  background: linear-gradient(90deg, var(--app-accent-primary), #38bdf8);
+  border-radius: inherit;
+  height: 100%;
+  min-width: 3px;
+}
+
+.rowLink {
+  color: inherit;
+  display: block;
+  text-decoration: none;
+}
+
+.rowLink:hover {
+  color: var(--app-accent-primary);
+}
+
+.workLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.workLink:hover {
+  color: var(--app-accent-primary);
+}

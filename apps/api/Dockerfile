@@ -26,6 +26,16 @@ FROM build AS release
 WORKDIR /workspace
 ENV NODE_ENV=production
 
+RUN chmod -R a+rX \
+  package.json \
+  package-lock.json \
+  apps/api/package.json \
+  apps/api/prisma \
+  apps/web/package.json \
+  packages/shared-types/package.json \
+  packages/eslint-config/package.json \
+  packages/tsconfig/package.json
+
 USER node
 
 CMD ["npm", "run", "prisma:migrate:deploy", "--workspace", "@work-archive/api"]
