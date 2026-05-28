@@ -104,6 +104,7 @@ export function AddWorkFlow({
   submitError,
   variant = 'page',
 }: AddWorkFlowProps) {
+  const isDialog = variant === 'dialog';
   const { archiveScopeKey } = useAuthSession();
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [mode, setMode] = useState<'manual' | 'search'>('manual');
@@ -417,7 +418,7 @@ export function AddWorkFlow({
   }
 
   return (
-    <Stack gap={variant === 'dialog' ? 'md' : 'lg'}>
+    <Stack gap={isDialog ? 'md' : 'lg'}>
       {draft.pendingDraft && (
         <FeedbackMessage title="임시작성 있음" tone="info">
           <ActionRow justify="space-between">
@@ -446,13 +447,11 @@ export function AddWorkFlow({
       <Stack gap="sm">
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <div>
-            <Text
-              c="var(--mantine-color-text)"
-              fw={800}
-              size={variant === 'dialog' ? 'lg' : 'xl'}
-            >
-              새 작품 기록
-            </Text>
+            {!isDialog && (
+              <Text c="var(--mantine-color-text)" fw={800} size="xl">
+                새 작품 기록
+              </Text>
+            )}
             <Text c="var(--mantine-color-dimmed)" size="sm">
               제목만으로 시작하고, 필요할 때 검색 후보로 표지와 기본 정보를 채웁니다.
             </Text>
@@ -512,7 +511,7 @@ export function AddWorkFlow({
         />
       ) : (
         <form onSubmit={handleSubmit}>
-          <Stack gap={variant === 'dialog' ? 'lg' : 'xl'}>
+          <Stack gap={isDialog ? 'lg' : 'xl'}>
             {selectedImportCandidate && importedSourceCoverage && (
               <ImportedCandidateSummary
                 candidate={selectedImportCandidate}
