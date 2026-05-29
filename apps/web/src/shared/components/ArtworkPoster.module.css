@@ -3,22 +3,23 @@
   flex-shrink: 0;
   width: var(--poster-width);
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--app-border-strong) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--app-border-strong) 65%, transparent);
   border-radius: 0.85rem;
+  /* 따뜻한 흑갈 + 앰버 광원 — 넷플릭스 스타일 폴백 배경 */
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 32%),
-    radial-gradient(circle at 22% 18%, rgba(91, 140, 187, 0.22), transparent 28%),
-    radial-gradient(circle at 80% 72%, rgba(239, 181, 70, 0.12), transparent 32%),
-    linear-gradient(160deg, #222536, #0b0d13 72%);
+    linear-gradient(145deg, rgba(255, 220, 150, 0.07), transparent 34%),
+    radial-gradient(circle at 22% 18%, rgba(180, 120, 40, 0.20), transparent 30%),
+    radial-gradient(circle at 80% 72%, rgba(120, 60, 20, 0.14), transparent 34%),
+    linear-gradient(160deg, #201c18, #0c0b0a 74%);
   box-shadow: var(--app-shadow-poster);
 }
 
 [data-mantine-color-scheme='light'] .posterShell {
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.5), transparent 32%),
-    radial-gradient(circle at 22% 18%, rgba(61, 99, 144, 0.18), transparent 28%),
-    radial-gradient(circle at 80% 72%, rgba(201, 141, 36, 0.1), transparent 32%),
-    linear-gradient(160deg, #dce4ee, #c8d4e0 72%);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.55), transparent 34%),
+    radial-gradient(circle at 22% 18%, rgba(180, 120, 40, 0.14), transparent 28%),
+    radial-gradient(circle at 80% 72%, rgba(180, 100, 40, 0.08), transparent 34%),
+    linear-gradient(160deg, #e8dfd4, #d4c8bc 74%);
 }
 
 .posterShell::after {
@@ -160,58 +161,68 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* 폴백 포스터 6가지 톤 — 따뜻한 영화 포스터 팔레트 */
 .posterFallback[data-cover-tone='0'] {
+  /* 딥 앰버 — 무협·판타지 느낌 */
   background:
-    radial-gradient(circle at 18% 18%, rgba(91, 140, 187, 0.32), transparent 34%),
-    radial-gradient(circle at 80% 80%, rgba(239, 181, 70, 0.14), transparent 32%),
-    linear-gradient(160deg, #1e2c3d, #07080b 78%);
+    radial-gradient(circle at 20% 18%, rgba(212, 140, 40, 0.34), transparent 36%),
+    radial-gradient(circle at 78% 80%, rgba(100, 50, 10, 0.20), transparent 34%),
+    linear-gradient(160deg, #231808, #0c0b0a 80%);
 }
 
 .posterFallback[data-cover-tone='1'] {
+  /* 크림슨 딥 — 로맨스·드라마 */
   background:
-    radial-gradient(circle at 78% 18%, rgba(73, 156, 183, 0.3), transparent 36%),
-    radial-gradient(circle at 20% 82%, rgba(239, 181, 70, 0.1), transparent 30%),
-    linear-gradient(160deg, #172a33, #07080b 78%);
+    radial-gradient(circle at 76% 18%, rgba(180, 60, 60, 0.30), transparent 38%),
+    radial-gradient(circle at 22% 82%, rgba(212, 140, 40, 0.14), transparent 32%),
+    linear-gradient(160deg, #2a1010, #0c0b0a 80%);
 }
 
 .posterFallback[data-cover-tone='2'] {
+  /* 포레스트 다크 — SF·스릴러 */
   background:
-    radial-gradient(circle at 18% 76%, rgba(193, 88, 96, 0.28), transparent 34%),
-    radial-gradient(circle at 84% 18%, rgba(255, 219, 143, 0.12), transparent 31%),
-    linear-gradient(160deg, #301b24, #07080b 78%);
+    radial-gradient(circle at 18% 76%, rgba(40, 130, 90, 0.26), transparent 36%),
+    radial-gradient(circle at 82% 18%, rgba(200, 180, 100, 0.12), transparent 33%),
+    linear-gradient(160deg, #0e2018, #0c0b0a 80%);
 }
 
 .posterFallback[data-cover-tone='3'] {
+  /* 슬레이트 블루 — 미스터리·공포 */
   background:
-    radial-gradient(circle at 82% 74%, rgba(88, 151, 124, 0.28), transparent 34%),
-    radial-gradient(circle at 22% 18%, rgba(91, 140, 187, 0.14), transparent 31%),
-    linear-gradient(160deg, #1a2d28, #07080b 78%);
+    radial-gradient(circle at 80% 74%, rgba(60, 80, 140, 0.28), transparent 36%),
+    radial-gradient(circle at 24% 20%, rgba(180, 150, 80, 0.12), transparent 33%),
+    linear-gradient(160deg, #101422, #0c0b0a 80%);
 }
 
 .posterFallback[data-cover-tone='4'] {
+  /* 골드 오커 — 역사·에세이 */
   background:
-    radial-gradient(circle at 24% 18%, rgba(235, 159, 82, 0.24), transparent 34%),
-    radial-gradient(circle at 80% 82%, rgba(61, 99, 144, 0.18), transparent 31%),
-    linear-gradient(160deg, #2c2219, #07080b 78%);
+    radial-gradient(circle at 26% 18%, rgba(200, 150, 40, 0.28), transparent 36%),
+    radial-gradient(circle at 78% 84%, rgba(100, 60, 10, 0.16), transparent 33%),
+    linear-gradient(160deg, #201a08, #0c0b0a 80%);
 }
 
 .posterFallback[data-cover-tone='5'] {
+  /* 라벤더 다크 — 라이트노벨·만화 */
   background:
-    radial-gradient(circle at 72% 20%, rgba(217, 218, 191, 0.18), transparent 34%),
-    radial-gradient(circle at 18% 82%, rgba(91, 140, 187, 0.2), transparent 31%),
-    linear-gradient(160deg, #262a32, #07080b 78%);
+    radial-gradient(circle at 70% 22%, rgba(130, 90, 180, 0.26), transparent 36%),
+    radial-gradient(circle at 20% 80%, rgba(212, 140, 40, 0.14), transparent 33%),
+    linear-gradient(160deg, #1a1228, #0c0b0a 80%);
 }
 
 .posterFallbackMark {
   position: relative;
   z-index: 1;
   align-self: center;
-  color: var(--app-text-primary);
-  font-size: clamp(2.6rem, 7vw, 5.2rem);
-  font-weight: 850;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(2.8rem, 50%, 6rem);
+  font-weight: 820;
   line-height: 1;
   text-align: center;
-  text-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
+  letter-spacing: -0.04em;
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
 .posterFallbackType {

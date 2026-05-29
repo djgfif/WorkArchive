@@ -2,7 +2,6 @@ import {
   Avatar,
   Box,
   Burger,
-  Container,
   Drawer,
   Group,
   Menu,
@@ -10,19 +9,25 @@ import {
   Text,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import {
   AppButton,
   AppLinkButton,
   AppNavLink,
-  BrandLink,
   StateMessage,
   ThemeToggleControl,
 } from '@shared/components/AppPrimitives';
 import { getUserAvatarProfile, useAuthSession } from '@features/auth';
 import { SyncSafetyBadge } from '@features/sync';
 import { getPrimaryNavigationItems } from './navigation';
+import styles from './MainProductLayout.module.css';
+
+const css = styles as Record<string, string>;
+
+function cn(value: string | undefined): string {
+  return value ?? '';
+}
 
 export function MainProductLayout() {
   const navigate = useNavigate();
@@ -47,115 +52,178 @@ export function MainProductLayout() {
   }
 
   return (
-    <main className="layout-shell layout-shell--product">
-      <Container px="md" size={1360}>
-        <Stack gap={0}>
-          <Box className="product-header" component="header">
-            <Box className="header-left">
-              <Group gap="sm" wrap="nowrap">
-                <Burger
-                  aria-label="메뉴 열기"
-                  hiddenFrom="md"
-                  onClick={mobileMenu.open}
-                  opened={mobileMenuOpened}
-                  size="sm"
-                />
-                <BrandLink heading="Work Archive" kicker="개인 감상 아카이브" />
-              </Group>
+    <div className="app-frame">
+      {/* ── TopNav ── */}
+      <header className={cn(css.topnav)} role="banner">
+        <div className={cn(css.topnavInner)}>
+          {/* 브랜드 */}
+          <Link aria-label="Work Archive 홈" className={cn(css.topnavBrand)} to="/">
+            <div className={cn(css.topnavMark)} aria-hidden="true">WA</div>
+            <span className={cn(css.topnavName)}>Work Archive</span>
+          </Link>
+
+          {/* 데스크탑 네비게이션 — sm(768px) 이상에서만 표시 */}
+          <Group
+            aria-label="주요 탐색"
+            className={cn(css.topnavLinks)}
+            component="nav"
+            gap={2}
+            visibleFrom="sm"
+            wrap="nowrap"
+          >
+            {primaryNavigationItems.map((item) => (
+              <AppNavLink end={item.to === '/'} key={item.to} to={item.to}>
+                {item.label}
+              </AppNavLink>
+            ))}
+          </Group>
+
+          {/* 우측 액션 */}
+          <div className={cn(css.topnavActions)}>
+            <Box visibleFrom="sm">
+              <SyncSafetyBadge />
             </Box>
 
-            <Group
-              aria-label="주요 탐색"
-              className="header-center"
-              component="nav"
-              gap={2}
-              visibleFrom="md"
-              wrap="nowrap"
+            {/* 작품 추가 — 모바일: 아이콘, 데스크탑: 텍스트 포함 */}
+            <Link
+              aria-label="새 작품 추가"
+              className={cn(css.addWorkLink)}
+              to="/works/new"
             >
-              {primaryNavigationItems.map((item) => (
-                <AppNavLink end={item.to === '/'} key={item.to} to={item.to}>
-                  {item.label}
-                </AppNavLink>
-              ))}
-            </Group>
+              <span aria-hidden="true">+</span>
+              <Box component="span" visibleFrom="sm"> 작품 추가</Box>
+            </Link>
 
-            <Box className="header-right">
-              <Group gap="xs" wrap="nowrap">
-                <Box visibleFrom="sm">
-                  <SyncSafetyBadge />
-                </Box>
-                <Menu position="bottom-end" shadow="xl" width={280}>
-                  <Menu.Target>
-                    <button
-                      aria-label={accountMenuLabel}
-                      style={{
-                        background: 'transparent',
-                        border: 0,
-                        cursor: 'pointer',
-                        padding: 0,
-                      }}
-                      type="button"
+            {/* 아바타 메뉴 */}
+            <Menu position="bottom-end" shadow="xl" width={260}>
+              <Menu.Target>
+                <button
+                  aria-label={accountMenuLabel}
+                  className={cn(css.avatarButton)}
+                  type="button"
+                >
+                  <Avatar
+                    color={isAuthenticated ? 'archive' : 'gray'}
+                    radius="xl"
+                    size={32}
+                    src={avatarImageUrl || null}
+                  >
+                    {avatarInitial}
+                  </Avatar>
+                </button>
+              </Menu.Target>
+
+              <Menu.Dropdown className={cn(css.accountMenuDropdown)}>
+                <Box className={cn(css.menuHeader)}>
+                  <Group gap="sm" wrap="nowrap">
+                    <Avatar
+                      color={isAuthenticated ? 'archive' : 'gray'}
+                      radius="xl"
+                      size={36}
+                      src={avatarImageUrl || null}
                     >
-                      <Avatar
-                        color={isAuthenticated ? 'archive' : 'gray'}
-                        radius="xl"
-                        size={34}
-                        src={avatarImageUrl || null}
-                      >
-                        {avatarInitial}
-                      </Avatar>
-                    </button>
-                  </Menu.Target>
-                  <Menu.Dropdown>
-                    <Menu.Label>{accountLabel}</Menu.Label>
-                    {isAuthenticated && (
-                      <Menu.Label>{avatarProfile.email}</Menu.Label>
-                    )}
-                    <Menu.Item onClick={() => navigate('/account')}>
-                      계정 개요
-                    </Menu.Item>
-                    <Menu.Item onClick={() => navigate('/account/settings')}>
-                      설정과 백업
-                    </Menu.Item>
-                    {isAuthenticated ? (
-                      <Menu.Item
-                        color="red"
-                        onClick={() => void handleSignOut()}
-                      >
-                        로그아웃
-                      </Menu.Item>
-                    ) : (
-                      <Menu.Item
-                        onClick={() =>
-                          navigate('/auth/login', {
-                            state: { returnTo: loginReturnTo },
-                          })
-                        }
-                      >
-                        로그인
-                      </Menu.Item>
-                    )}
-                  </Menu.Dropdown>
-                </Menu>
-              </Group>
-            </Box>
-          </Box>
+                      {avatarInitial}
+                    </Avatar>
+                    <Stack gap={1} miw={0}>
+                      <Text fw={750} size="sm" truncate>
+                        {accountLabel}
+                      </Text>
+                      {isAuthenticated && (
+                        <Text c="dimmed" size="xs" truncate>
+                          {avatarProfile.email}
+                        </Text>
+                      )}
+                      <Group gap={5} align="center">
+                        <Box
+                          className={cn(
+                            isAuthenticated
+                              ? `${cn(css.statusDot)} ${cn(css.statusDotAuthenticated)}`
+                              : cn(css.statusDot)
+                          )}
+                        />
+                        <Text c="dimmed" size="xs">
+                          {isAuthenticated ? '로그인됨' : '게스트 모드'}
+                        </Text>
+                      </Group>
+                    </Stack>
+                  </Group>
+                </Box>
 
-          <Box className="page-transition">
-            {isLoading ? (
-              <StateMessage
-                description="개인 기록을 불러오는 동안 잠시만 기다려 주세요."
-                eyebrow="Loading"
-                title="Work Archive를 준비하고 있습니다"
-                tone="loading"
-              />
-            ) : (
-              <Outlet />
-            )}
-          </Box>
-        </Stack>
-      </Container>
+                <Menu.Item
+                  className={cn(css.accountMenuItem)}
+                  onClick={() => navigate('/account')}
+                >
+                  계정 개요
+                </Menu.Item>
+                <Menu.Item
+                  className={cn(css.accountMenuItem)}
+                  onClick={() => navigate('/account/settings')}
+                >
+                  설정과 백업
+                </Menu.Item>
 
+                <Menu.Divider />
+
+                <Box px="xs" pb="xs">
+                  <Box className={cn(css.themeToggleWrap)}>
+                    <ThemeToggleControl fullWidth />
+                  </Box>
+                </Box>
+
+                <Menu.Divider />
+
+                {isAuthenticated ? (
+                  <Menu.Item
+                    className={cn(css.accountMenuItem)}
+                    color="red"
+                    onClick={() => void handleSignOut()}
+                  >
+                    로그아웃
+                  </Menu.Item>
+                ) : (
+                  <Menu.Item
+                    className={cn(css.accountMenuItem)}
+                    onClick={() =>
+                      navigate('/auth/login', {
+                        state: { returnTo: loginReturnTo },
+                      })
+                    }
+                  >
+                    로그인
+                  </Menu.Item>
+                )}
+              </Menu.Dropdown>
+            </Menu>
+
+            {/* 모바일 버거 */}
+            <Burger
+              aria-label="메뉴 열기"
+              hiddenFrom="md"
+              onClick={mobileMenu.open}
+              opened={mobileMenuOpened}
+              size="sm"
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* ── 콘텐츠 영역 ── */}
+      <main className={`app-content ${css.pageTransition}`}>
+        {isLoading ? (
+          <Box p="xl">
+            <StateMessage
+              description="개인 기록을 불러오는 동안 잠시만 기다려 주세요."
+              eyebrow="Loading"
+              title="Work Archive를 준비하고 있습니다"
+              tone="loading"
+            />
+          </Box>
+        ) : (
+          <Outlet />
+        )}
+      </main>
+
+      {/* ── 모바일 드로어 ── */}
       <Drawer
         hiddenFrom="md"
         onClose={mobileMenu.close}
@@ -163,7 +231,14 @@ export function MainProductLayout() {
         padding="md"
         position="left"
         size="xs"
-        title={<BrandLink heading="Work Archive" kicker="개인 감상 아카이브" />}
+        title={
+          <Group gap="sm" wrap="nowrap">
+            <div className={cn(css.topnavMark)} aria-hidden="true">WA</div>
+            <Text fw={800} size="sm" style={{ letterSpacing: '-0.02em' }}>
+              Work Archive
+            </Text>
+          </Group>
+        }
       >
         <Stack gap="lg" h="100%">
           <Stack aria-label="모바일 탐색" component="nav" gap={4}>
@@ -179,34 +254,43 @@ export function MainProductLayout() {
               </AppNavLink>
             ))}
           </Stack>
+
           <AppLinkButton
             fullWidth
             onClick={mobileMenu.close}
             to="/works/new"
             tone="primary"
           >
-            작품 추가
+            + 작품 추가
           </AppLinkButton>
-          <Group gap="sm" wrap="nowrap">
-            <Avatar
-              color={isAuthenticated ? 'archive' : 'gray'}
-              radius="xl"
-              size={40}
-              src={avatarImageUrl || null}
-            >
-              {avatarInitial}
-            </Avatar>
-            <Stack gap={2}>
-              <Text fw={700} size="sm">
-                {accountLabel}
-              </Text>
-              <Text c="dimmed" size="xs">
-                {isAuthenticated ? '로그인됨' : '게스트 모드'}
-              </Text>
-            </Stack>
-          </Group>
-          <ThemeToggleControl fullWidth />
+
+          <Box className={cn(css.mobileAccountCard)}>
+            <Group gap="sm" wrap="nowrap">
+              <Avatar
+                color={isAuthenticated ? 'archive' : 'gray'}
+                radius="xl"
+                size={40}
+                src={avatarImageUrl || null}
+              >
+                {avatarInitial}
+              </Avatar>
+              <Stack gap={2} miw={0}>
+                <Text fw={750} size="sm" truncate>
+                  {accountLabel}
+                </Text>
+                <Text c="dimmed" size="xs">
+                  {isAuthenticated ? '로그인됨' : '게스트 모드'}
+                </Text>
+              </Stack>
+            </Group>
+          </Box>
+
+          <Box className={cn(css.themeToggleWrap)}>
+            <ThemeToggleControl fullWidth />
+          </Box>
+
           <SyncSafetyBadge />
+
           {isAuthenticated ? (
             <Stack gap="xs">
               <AppLinkButton
@@ -247,6 +331,6 @@ export function MainProductLayout() {
           )}
         </Stack>
       </Drawer>
-    </main>
+    </div>
   );
 }

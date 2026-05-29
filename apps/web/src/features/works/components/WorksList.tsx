@@ -94,8 +94,8 @@ export function WorksList({
       <Stack aria-label="작품 포스터 목록" component="section" gap="xl">
         <SimpleGrid
           cols={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }}
-          spacing={{ base: 'md', md: 'lg' }}
-          verticalSpacing="lg"
+          spacing={{ base: 'sm', md: 'md' }}
+          verticalSpacing={{ base: 'md', md: 'lg' }}
         >
           {visibleWorks.map((work) => (
             <Box key={work.id} style={{ position: 'relative' }}>
@@ -112,21 +112,19 @@ export function WorksList({
   }
 
   return (
-    <section aria-label="작품 리스트">
-      <Stack gap="sm">
+    <section aria-label="작품 리스트" style={{ borderTop: '1px solid var(--app-border-subtle)' }}>
+      <Stack gap={0}>
         {visibleWorks.map((work, index) => (
-          <Group align="flex-start" gap="sm" key={work.id} wrap="nowrap">
-            <Box flex={1} miw={0}>
-              <WorkListRow
-                isLast={index === visibleWorks.length - 1}
-                isUpdating={updatingWorkId === work.id}
-                onDelete={onDelete}
-                onQuickProgressUpdate={onQuickProgressUpdate}
-                onQuickUpdate={onQuickUpdate}
-                work={work}
-              />
-            </Box>
-          </Group>
+          <Box key={work.id}>
+            <WorkListRow
+              isLast={index === visibleWorks.length - 1}
+              isUpdating={updatingWorkId === work.id}
+              onDelete={onDelete}
+              onQuickProgressUpdate={onQuickProgressUpdate}
+              onQuickUpdate={onQuickUpdate}
+              work={work}
+            />
+          </Box>
         ))}
       </Stack>
       {renderProgress}

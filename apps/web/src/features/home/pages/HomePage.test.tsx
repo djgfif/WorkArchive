@@ -74,7 +74,6 @@ describe('HomePage', () => {
     expect(screen.getAllByText('진행 중').length).toBeGreaterThan(0);
     expect(screen.getByText('평균 별점')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '검색' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '이어보기' })).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: '평가 안 한 작품 1개' }),
     ).toBeInTheDocument();

@@ -706,6 +706,20 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
           typeLabel={typeLabel}
           variant="grid"
         />
+        {/* 호버 오버레이 — Netflix 스타일 */}
+        <div aria-hidden="true" className={cn(css.posterCardOverlay)}>
+          <p className={cn(css.posterCardOverlayTitle)}>{work.title}</p>
+          <div className={cn(css.posterCardOverlayMeta)}>
+            <span className={cn(css.posterCardOverlayStatus)}>
+              {getWorkStatusLabel(work.status)}
+            </span>
+            {work.rating !== null && (
+              <span className={cn(css.posterCardOverlayRating)}>
+                ★ {work.rating.toFixed(1)}
+              </span>
+            )}
+          </div>
+        </div>
         {needsCuration && (
           <Box
             aria-hidden="true"
@@ -713,26 +727,30 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
             title="정리 필요"
           />
         )}
-        <Stack className={cn(css.posterCardBody)} gap={5}>
+        <Stack className={cn(css.posterCardBody)} gap={3}>
           <Title className={cn(css.posterCardTitle)} lineClamp={2} order={3} size="h4">
             {work.title}
           </Title>
-          <Text
-            className={cn(css.posterAuthorLine)}
-            lineClamp={1}
-            size="sm"
-          >
-            {getPosterAuthorLine(work)}
-          </Text>
-          <Text
-            c="dimmed"
-            className={cn(css.posterMetaLine)}
-            lineClamp={1}
-            size="sm"
-            style={{ fontVariantNumeric: 'tabular-nums' }}
-          >
-            {getPrimaryMetaLine(work)}
-          </Text>
+          {work.author.trim() && (
+            <Text
+              className={cn(css.posterAuthorLine)}
+              lineClamp={1}
+              size="sm"
+            >
+              {work.author.trim()}
+            </Text>
+          )}
+          {(work.rating !== null || work.status !== 'planned') && (
+            <Text
+              c="dimmed"
+              className={cn(css.posterMetaLine)}
+              lineClamp={1}
+              size="sm"
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {getPrimaryMetaLine(work)}
+            </Text>
+          )}
           {isUpdating && <Text c="var(--app-accent-primary)" fw={800} size="xs">저장 중</Text>}
         </Stack>
       </Paper>

@@ -93,7 +93,9 @@ function formatRatingLabel(value: number | null) {
 }
 
 function getWorkListMetaLine(work: WorkRecord) {
-  return `${formatRatingLabel(work.rating)} · ${getWorkStatusLabel(work.status)}`;
+  const rating = work.rating !== null ? `★ ${work.rating.toFixed(1)}` : null;
+  const status = getWorkStatusLabel(work.status);
+  return [rating, status].filter(Boolean).join(' · ');
 }
 
 function coerceNumberInputValue(value: number | string) {
@@ -166,11 +168,7 @@ export function WorkListRow({
   return (
     <Paper
       className={cn(css.listRowSurface)}
-      radius="lg"
-      style={{
-        transition: 'border-color var(--wa-motion-fast, 140ms ease), box-shadow var(--wa-motion-fast, 140ms ease)',
-      }}
-      withBorder
+      radius={0}
     >
       {/* ── Main row ─────────────────────────────────────────────────── */}
       <Group align="flex-start" gap="md" justify="space-between" wrap="wrap">
@@ -205,9 +203,11 @@ export function WorkListRow({
               </Link>
             </Title>
 
-            <Text c="dimmed" lineClamp={1} size="xs">
-              {work.author || '작가·제작자 미입력'}
-            </Text>
+            {work.author.trim() && (
+              <Text c="dimmed" lineClamp={1} size="xs">
+                {work.author.trim()}
+              </Text>
+            )}
 
             <Text c="dimmed" fw={700} lineClamp={1} size="xs" style={{ fontVariantNumeric: 'tabular-nums' }}>
               {getWorkListMetaLine(work)}
@@ -245,10 +245,10 @@ export function WorkListRow({
               aria-label="빠른 수정 패널 열기"
               onClick={toggleEdit}
               size="compact-sm"
-              tone="ghost"
+              tone="secondary"
               type="button"
             >
-              {editOpen ? '빠른 수정 닫기 ↑' : '빠른 수정 ↓'}
+              {editOpen ? '닫기' : '수정'}
             </AppButton>
           </ActionRow>
         </Stack>

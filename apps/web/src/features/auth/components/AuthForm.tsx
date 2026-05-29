@@ -23,6 +23,7 @@ interface AuthFormProps {
   isSubmitting?: boolean;
   onContinueAsGuest?: () => void;
   onContinueWithGoogle: () => void;
+  onRetryWithGoogle?: () => void;
   submitError?: ReactNode;
   submitErrorTitle?: ReactNode;
 }
@@ -63,6 +64,7 @@ export function AuthForm({
   isSubmitting = false,
   onContinueAsGuest,
   onContinueWithGoogle,
+  onRetryWithGoogle,
   submitError = null,
   submitErrorTitle = '로그인을 완료하지 못했습니다',
 }: AuthFormProps) {
@@ -118,6 +120,17 @@ export function AuthForm({
       {submitError && (
         <FeedbackMessage title={submitErrorTitle} tone="error">
           {submitError}
+          {onRetryWithGoogle && (
+            <AppButton
+              onClick={onRetryWithGoogle}
+              size="xs"
+              style={{ marginTop: '0.5rem' }}
+              tone="secondary"
+              type="button"
+            >
+              Google로 다시 시도
+            </AppButton>
+          )}
         </FeedbackMessage>
       )}
     </Stack>

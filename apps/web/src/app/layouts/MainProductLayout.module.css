@@ -1,13 +1,137 @@
-.pageTransition {
-  animation: pageEnter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+/* ═══════════════════════════════════════════════════════════════════════════
+   Main Product Layout — TopNav v4.0
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── TopNav 바 ───────────────────────────────────────────────────────────── */
+.topnav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  height: var(--topnav-height, 56px);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  background: color-mix(in srgb, var(--app-bg-shell) 86%, transparent);
+  border-bottom: 1px solid var(--app-border-subtle);
 }
 
+[data-mantine-color-scheme='light'] .topnav {
+  box-shadow: 0 1px 0 rgba(60, 40, 20, 0.06);
+}
+
+/* ── Inner — max-width 컨테이너 ──────────────────────────────────────────── */
+.topnavInner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 2.5vw, 2rem);
+  gap: 0;
+}
+
+/* ── Brand ───────────────────────────────────────────────────────────────── */
+.topnavBrand {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-right: 1.75rem;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--mantine-radius-md);
+  padding: 0.3rem 0.4rem;
+  transition: opacity var(--wa-motion-fast);
+}
+
+.topnavBrand:hover {
+  opacity: 0.82;
+}
+
+.topnavMark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--app-accent-primary);
+  color: #0c0b0a;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.topnavName {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--app-text-primary);
+  letter-spacing: -0.022em;
+  white-space: nowrap;
+}
+
+/* ── Nav links ───────────────────────────────────────────────────────────── */
+.topnavLinks {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  flex: 1;
+}
+
+/* ── Right actions ───────────────────────────────────────────────────────── */
+.topnavActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* ── 작품 추가 버튼 — 골드 아웃라인 ─────────────────────────────────────── */
+.addWorkLink {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.32rem 0.8rem;
+  border: 1px solid var(--app-accent-primary);
+  border-radius: var(--mantine-radius-md);
+  background: transparent;
+  color: var(--app-accent-primary);
+  font-size: var(--app-type-caption);
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--wa-motion-fast),
+    color var(--wa-motion-fast),
+    transform var(--wa-motion-fast);
+}
+
+.addWorkLink:hover {
+  background: var(--app-accent-primary);
+  color: #0c0b0a;
+}
+
+.addWorkLink:active {
+  transform: scale(0.97);
+}
+
+[data-mantine-color-scheme='light'] .addWorkLink:hover {
+  color: #1c1512;
+}
+
+/* ── Avatar 버튼 ─────────────────────────────────────────────────────────── */
 .avatarButton {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2px;
+  border: none;
+  background: transparent;
   border-radius: 999px;
+  cursor: pointer;
   outline: none;
   transition: box-shadow var(--wa-motion-fast), transform var(--wa-motion-fast);
 }
@@ -18,9 +142,10 @@
 }
 
 .avatarButton:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
+/* ── Avatar 드롭다운 ─────────────────────────────────────────────────────── */
 .accountMenuDropdown {
   overflow: hidden;
   border: 1px solid var(--app-border-default);
@@ -28,37 +153,24 @@
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--app-surface-card) 96%, var(--app-accent-primary) 4%),
-      color-mix(in srgb, var(--app-surface-subtle) 84%, var(--app-surface-card) 16%)
+      var(--app-surface-subtle)
     );
   box-shadow: var(--app-shadow-overlay);
-  backdrop-filter: blur(18px) saturate(1.25);
-}
-
-.menuHeader,
-.mobileAccountCard {
-  border: 1px solid var(--app-border-subtle);
-  background:
-    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--app-accent-primary) 9%, transparent), transparent 42%),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--app-surface-card) 82%, transparent),
-      color-mix(in srgb, var(--app-surface-subtle) 92%, var(--app-surface-card) 8%)
-    );
+  backdrop-filter: blur(20px) saturate(1.3);
 }
 
 .menuHeader {
   margin-bottom: 0.35rem;
   padding: 0.75rem;
+  border: 1px solid var(--app-border-subtle);
   border-radius: var(--mantine-radius-md);
-}
-
-.mobileAccountCard {
-  padding: 0.75rem;
-  border-radius: var(--mantine-radius-lg);
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--app-accent-primary) 8%, transparent), transparent 42%),
+    color-mix(in srgb, var(--app-surface-card) 80%, transparent);
 }
 
 .accountMenuItem {
-  min-height: 2.35rem;
+  min-height: 2.3rem;
   margin-block: 2px;
   border: 1px solid transparent;
   color: var(--app-text-secondary);
@@ -68,27 +180,7 @@
 .accountMenuItem:hover,
 .accountMenuItem[data-hovered] {
   border-color: var(--app-border-subtle);
-  background: color-mix(in srgb, var(--app-accent-primary) 9%, var(--app-surface-card));
-  color: var(--app-text-primary);
-}
-
-.themeToggleWrap :global(.mantine-Button-root) {
-  min-height: 2.35rem;
-  justify-content: flex-start;
-  border: 1px solid transparent;
-  border-radius: var(--mantine-radius-md);
-  color: var(--app-text-secondary);
-  font-weight: 650;
-  transition:
-    background var(--wa-motion-fast),
-    border-color var(--wa-motion-fast),
-    color var(--wa-motion-fast);
-}
-
-.themeToggleWrap :global(.mantine-Button-root:hover),
-.themeToggleWrap :global(.mantine-Button-root:focus-visible) {
-  border-color: var(--app-border-subtle);
-  background: color-mix(in srgb, var(--app-accent-primary) 9%, var(--app-surface-card));
+  background: color-mix(in srgb, var(--app-accent-primary) 8%, var(--app-surface-card));
   color: var(--app-text-primary);
 }
 
@@ -104,10 +196,56 @@
   background: var(--app-accent-teal);
 }
 
+/* ── 모바일 드로어 내부 ───────────────────────────────────────────────────── */
+.mobileAccountCard {
+  padding: 0.75rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-lg);
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--app-accent-primary) 8%, transparent), transparent 42%),
+    color-mix(in srgb, var(--app-surface-card) 80%, transparent);
+}
+
+.themeToggleWrap :global(.mantine-Button-root) {
+  min-height: 2.3rem;
+  justify-content: flex-start;
+  border: 1px solid transparent;
+  border-radius: var(--mantine-radius-md);
+  color: var(--app-text-secondary);
+  font-weight: 650;
+  transition:
+    background var(--wa-motion-fast),
+    border-color var(--wa-motion-fast),
+    color var(--wa-motion-fast);
+}
+
+.themeToggleWrap :global(.mantine-Button-root:hover) {
+  border-color: var(--app-border-subtle);
+  background: color-mix(in srgb, var(--app-accent-primary) 8%, var(--app-surface-card));
+  color: var(--app-text-primary);
+}
+
+/* ── 페이지 전환 ─────────────────────────────────────────────────────────── */
+.pageTransition {
+  animation: pageEnter 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pageTransition,
-  .avatarButton {
+  .topnav,
+  .avatarButton,
+  .addWorkLink,
+  .pageTransition {
     animation: none;
     transition: none;
+  }
+}
+
+@media (max-width: 48rem) {
+  .topnavBrand {
+    margin-right: auto;
+  }
+
+  .addWorkLink {
+    padding: 0.32rem 0.55rem;
   }
 }

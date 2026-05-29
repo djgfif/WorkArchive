@@ -14,7 +14,6 @@ import type { WorkStatus, WorkType } from '@work-archive/shared-types';
 
 import { AppButton } from '@shared/components/AppPrimitives';
 import {
-  ArchiveHero,
   ArchiveSearchBar,
   FilterPillGroup,
 } from './ArchiveComponents';
@@ -88,23 +87,14 @@ function IconSortDesc({ size = 13 }: { size?: number }) {
     </svg>
   );
 }
-function IconPlus({ size = 14 }: { size?: number }) {
-  return (
-    <svg fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeWidth={2.5} viewBox="0 0 24 24" width={size}>
-      <line x1="12" x2="12" y1="5" y2="19" /><line x1="5" x2="19" y1="12" y2="12" />
-    </svg>
-  );
-}
 
 interface WorksToolbarProps {
   collectionScope:          WorksCollectionScope;
   filteredCount:            number;
   genreSuggestions:         string[];
-  isLoading:                boolean;
   organizationContributorSuggestions: string[];
   onClearFilters:           () => void;
   onCollectionScopeChange:  (scope: WorksCollectionScope) => void;
-  onCreateWork:             () => void;
   onQueryChange:            (query: WorksListQuery) => void;
   onViewModeChange:         (viewMode: WorksViewMode) => void;
   personContributorSuggestions: string[];
@@ -140,64 +130,6 @@ const smartFilterOptions: Array<{ label: string; value: WorksSmartFilter }> = [
   { label: '정리 필요', value: 'needsCuration' },
 ];
 
-type QuickCollectionOption =
-  | {
-      description: string;
-      label: string;
-      status: WorkStatus;
-      type: 'status';
-    }
-  | {
-      description: string;
-      label: string;
-      type: 'smart';
-      value: Exclude<WorksSmartFilter, 'all'>;
-    }
-  | {
-      description: string;
-      label: string;
-      sortBy: 'createdAt' | 'updatedAt';
-      type: 'sort';
-    };
-
-const quickCollectionOptions: QuickCollectionOption[] = [
-  {
-    description: '수정순',
-    label: '최근 수정',
-    sortBy: 'updatedAt',
-    type: 'sort',
-  },
-  {
-    description: '새로 넣은 작품',
-    label: '최근 추가',
-    sortBy: 'createdAt',
-    type: 'sort',
-  },
-  {
-    description: '보는 중',
-    label: '이어보기',
-    status: 'in_progress',
-    type: 'status',
-  },
-  {
-    description: '다시 찾을 작품',
-    label: '즐겨찾기',
-    type: 'smart',
-    value: 'favorites',
-  },
-  {
-    description: '별점 비어 있음',
-    label: '미평가',
-    type: 'smart',
-    value: 'unrated',
-  },
-  {
-    description: '표지·태그 보강',
-    label: '정리 필요',
-    type: 'smart',
-    value: 'needsCuration',
-  },
-];
 
 const identityPresetOptions: Array<{ label: string; value: WorksIdentityPreset }> = [
   { label: '전체', value: 'all' },
@@ -218,60 +150,6 @@ function getIdentityPresetLabel(value: WorksIdentityPreset | undefined) {
   return identityPresetOptions.find((option) => option.value === value)?.label ?? '전체';
 }
 
-function isQuickCollectionActive(
-  option: QuickCollectionOption,
-  query: WorksListQuery,
-) {
-  if (option.type === 'smart') {
-    return (query.smartFilter ?? 'all') === option.value && query.status === 'all';
-  }
-
-  if (option.type === 'status') {
-    return (
-      query.status === option.status &&
-      (query.smartFilter ?? 'all') === 'all'
-    );
-  }
-
-  return (
-    (query.smartFilter ?? 'all') === 'all' &&
-    query.status === 'all' &&
-    query.sortBy === option.sortBy &&
-    (query.sortDirection ?? getDefaultSortDirection(option.sortBy)) ===
-      getDefaultSortDirection(option.sortBy)
-  );
-}
-
-function getQuickCollectionQuery(
-  option: QuickCollectionOption,
-  query: WorksListQuery,
-): WorksListQuery {
-  const isActive = isQuickCollectionActive(option, query);
-
-  if (option.type === 'smart') {
-    return {
-      ...query,
-      smartFilter: isActive ? 'all' : option.value,
-      status: 'all',
-    };
-  }
-
-  if (option.type === 'status') {
-    return {
-      ...query,
-      smartFilter: 'all',
-      status: isActive ? 'all' : option.status,
-    };
-  }
-
-  return {
-    ...query,
-    smartFilter: 'all',
-    status: 'all',
-    sortBy: option.sortBy,
-    sortDirection: getDefaultSortDirection(option.sortBy),
-  };
-}
 
 function MediaTypeFilter({
   onChange,
@@ -279,10 +157,6 @@ function MediaTypeFilter({
   typeCounts,
   value,
 }: MediaTypeFilterProps) {
-  const activeLabel =
-    value === 'all'
-      ? '전체 매체'
-      : (workTypeOptions.find((option) => option.value === value)?.label ?? value);
   const options = [
     { count: totalCount, label: '전체', value: 'all' as const },
     ...workTypeOptions.map((option) => ({
@@ -294,27 +168,8 @@ function MediaTypeFilter({
 
   return (
     <Box className={cn(css.mediaTypeFilter)}>
-      <Group
-        align="center"
-        className={cn(css.mediaTypeFilterHeader)}
-        justify="space-between"
-        wrap="nowrap"
-      >
-        <Text c="var(--app-text-primary)" fw={800} size="sm">
-          매체 유형
-        </Text>
-        <Text
-          className={cn(css.numericText)}
-          c="var(--app-text-secondary)"
-          fw={700}
-          size="xs"
-        >
-          {activeLabel} · {value === 'all' ? totalCount : typeCounts[value]}개
-        </Text>
-      </Group>
-
       <Box
-        aria-label="작품 유형으로 빠르게 좁히기"
+        aria-label="매체 유형으로 빠르게 좁히기"
         role="group"
       >
         <Box className={cn(css.mediaTypeOptions)}>
@@ -398,13 +253,11 @@ function FilterSection({
 
 export function WorksToolbar({
   collectionScope,
-  filteredCount,
+  filteredCount: _filteredCount,
   genreSuggestions,
-  isLoading,
   organizationContributorSuggestions,
   onClearFilters,
   onCollectionScopeChange,
-  onCreateWork,
   onQueryChange,
   onViewModeChange,
   personContributorSuggestions,
@@ -530,45 +383,8 @@ export function WorksToolbar({
       : []),
   ];
 
-  const countSummary = isLoading
-    ? '불러오는 중…'
-    : isTrashScope
-      ? totalDeletedCount === 0
-        ? '삭제한 작품이 없습니다.'
-        : `삭제한 작품 ${filteredCount}개를 관리 중입니다.`
-      : totalActiveCount === 0
-        ? '첫 작품을 추가해 보세요.'
-        : filteredCount === totalActiveCount
-          ? `작품 ${totalActiveCount}개`
-          : `${totalActiveCount}개 중 ${filteredCount}개 표시 중`;
-  const heroDescription =
-    activeFilterChips.length > 0
-      ? `${countSummary} · 필터 ${activeFilterChips.length}개 적용`
-      : countSummary;
-
   return (
-    <Stack gap="lg">
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <ArchiveHero
-        actions={
-          !isTrashScope ? (
-            <AppButton
-              leftSection={<IconPlus />}
-              onClick={onCreateWork}
-              size="md"
-              tone="primary"
-              type="button"
-            >
-              작품 추가
-            </AppButton>
-          ) : undefined
-        }
-        description={heroDescription}
-        eyebrow={isTrashScope ? '삭제 항목 관리' : '내 작품'}
-        title={isTrashScope ? '휴지통' : '작품 서재'}
-        variant="compact"
-      />
-
+    <Stack gap="sm">
       {/* ── 검색 + 컨트롤 바 ── */}
       <Box className={cn(css.toolbarControls)}>
         <Box className={cn(css.toolbarSearch)}>
@@ -696,56 +512,12 @@ export function WorksToolbar({
       </Box>
 
       {collectionScope === 'active' && (
-        <Stack gap="md">
-          {totalActiveCount > 0 && (
-            <Box className={cn(css.quickCollectionRail)}>
-              <Group align="center" justify="space-between" wrap="wrap">
-                <Stack gap={1}>
-                  <Text c="var(--app-text-primary)" fw={800} size="sm">
-                    빠른 보기
-                  </Text>
-                  <Text c="var(--app-text-muted)" size="xs">
-                    최근 흐름과 정리할 기록을 빠르게 전환합니다.
-                  </Text>
-                </Stack>
-                <Group
-                  aria-label="빠른 보기"
-                  className={cn(css.quickCollectionOptions)}
-                  gap="xs"
-                  role="group"
-                  wrap="wrap"
-                >
-                  {quickCollectionOptions.map((option) => {
-                    const isActive = isQuickCollectionActive(option, query);
-
-                    return (
-                      <Box
-                        aria-pressed={isActive}
-                        className={cn(css.quickCollectionOption)}
-                        component="button"
-                        data-active={isActive ? 'true' : 'false'}
-                        key={option.label}
-                        onClick={() =>
-                          onQueryChange(getQuickCollectionQuery(option, query))
-                        }
-                        type="button"
-                      >
-                        <span>{option.label}</span>
-                        <span aria-hidden="true">{option.description}</span>
-                      </Box>
-                    );
-                  })}
-                </Group>
-              </Group>
-            </Box>
-          )}
-          <MediaTypeFilter
-            onChange={(type) => onQueryChange({ ...query, type })}
-            totalCount={totalActiveCount}
-            typeCounts={typeCounts}
-            value={query.type}
-          />
-        </Stack>
+        <MediaTypeFilter
+          onChange={(type) => onQueryChange({ ...query, type })}
+          totalCount={totalActiveCount}
+          typeCounts={typeCounts}
+          value={query.type}
+        />
       )}
 
       {isTrashScope && (

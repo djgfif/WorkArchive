@@ -89,7 +89,7 @@ describe('WorksListPage', () => {
       },
       { timeout: 5_000 },
     );
-    expect(await screen.findByText('Modal First Work')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Modal First Work' })).toBeInTheDocument();
   });
 
   it('shows empty-state actions for direct add, search add, and JSON backup import', async () => {
@@ -184,7 +184,7 @@ describe('WorksListPage', () => {
     expect(screen.queryByText('방금 열어본 기록')).not.toBeInTheDocument();
     expect(screen.queryByText('최근 수정한 작품')).not.toBeInTheDocument();
     expect(screen.queryByText('최근 손본 기록')).not.toBeInTheDocument();
-    expect(await screen.findByText('Recently Viewed Movie')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Recently Viewed Movie' })).toBeInTheDocument();
   });
 
   it('shows filtered and total active counts accurately', async () => {
@@ -399,11 +399,8 @@ describe('WorksListPage', () => {
       await screen.findByRole('heading', { name: 'Fate/stay night' }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText('매체 유형')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('group', { name: '감상 상태로 빠르게 좁히기' }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText('빠른 보기')).toBeInTheDocument();
+    // 매체 유형 탭이 렌더됨
+    expect(screen.getByRole('button', { name: '애니' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '고급 필터' }));
 

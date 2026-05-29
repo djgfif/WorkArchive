@@ -1,148 +1,379 @@
-.homeHeader {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--app-surface-hero) 96%, transparent), var(--app-surface-card));
-  border-color: var(--app-border-subtle);
-  box-shadow: none;
+/* ═══════════════════════════════════════════════════════════════════════════
+   Home Page — Cinema Shelf v4.0
+   Netflix × Letterboxd × Ridi 스타일 콘텐츠 우선 레이아웃
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 페이지 래퍼 — 풀 와이드 ─────────────────────────────────────────────── */
+.homePage {
+  width: 100%;
+  min-height: calc(100vh - var(--topnav-height, 56px));
+  padding-bottom: 4rem;
 }
 
-.headerEyebrow {
-  color: var(--app-accent-primary);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+/* ── Greeting 섹션 ────────────────────────────────────────────────────────
+   콘텐츠 직접 노출. Paper 카드 제거 — 배경이 곧 표면
+   ─────────────────────────────────────────────────────────────────────────── */
+.homeGreeting {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: clamp(1.75rem, 3.5vw, 2.8rem) clamp(1rem, 2.5vw, 2rem) clamp(0.75rem, 1.5vw, 1.25rem);
+  max-width: 1440px;
+  margin: 0 auto;
+  flex-wrap: wrap;
 }
 
-.heroStats {
-  align-items: stretch;
+.homeGreetingText {
+  flex: 1;
+  min-width: 0;
 }
 
-.heroStat {
-  background: var(--app-surface-subtle);
-  border-color: var(--app-border-subtle);
-}
-
-.heroStatLabel {
-  color: var(--app-text-muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.heroStatValue {
-  color: var(--app-text-primary);
-  font-size: clamp(1.25rem, 2vw, 1.75rem);
-  line-height: 1.15;
-}
-
-.sectionHeader {
-  row-gap: var(--app-space-sm);
-}
-
-.sectionEyebrow {
-  color: var(--app-accent-primary);
+.homeEyebrow {
+  display: block;
   font-size: var(--app-type-meta);
-  letter-spacing: 0.1em;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--app-accent-primary);
+  margin-bottom: 0.5rem;
 }
 
-.sectionTitle {
+.homeTitle {
+  font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+  font-weight: 860;
+  letter-spacing: -0.04em;
   color: var(--app-text-primary);
-  letter-spacing: 0;
-  line-height: 1.25;
+  line-height: 1.04;
+  margin: 0 0 0.6rem;
 }
 
-.sectionDescription {
-  color: var(--app-text-secondary);
-  max-width: 52ch;
-}
-
-.sectionAction {
-  align-self: flex-start;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.todayPanel {
-  padding-block: 0.25rem;
-}
-
-.continueCard,
-.insightCard,
-.emptyActionCard {
-  color: inherit;
-  text-decoration: none;
-}
-
-.continueCardSurface,
-.insightSurface,
-.emptyActionSurface,
-.todayEmpty,
-.activityPreviewPanel {
-  height: 100%;
-  background: var(--app-surface-card);
-  border-color: var(--app-border-subtle);
-  transition:
-    border-color var(--wa-motion-fast),
-    box-shadow var(--wa-motion-fast),
-    transform var(--wa-motion-fast);
-}
-
-.continueCard:hover .continueCardSurface,
-.continueCard:focus-visible .continueCardSurface,
-.insightCard:hover .insightSurface,
-.insightCard:focus-visible .insightSurface,
-.emptyActionCard:hover .emptyActionSurface,
-.emptyActionCard:focus-visible .emptyActionSurface {
-  border-color: var(--app-border-default);
-  box-shadow: none;
-  transform: translateY(-1px);
-}
-
-.continuePoster {
-  --poster-width: 4.6rem;
-}
-
-.continueTitle {
-  color: var(--app-text-primary);
-  font-size: 1rem;
-  line-height: 1.3;
-}
-
-.continueMeta,
-.continueReview,
-.insightDescription {
+.homeStatStrip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--app-text-muted);
-}
-
-.continueCue,
-.continueRating,
-.insightLabel,
-.insightCount {
-  color: var(--app-text-primary);
+  font-size: var(--app-type-caption);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.todayBackupSlot {
-  max-width: 760px;
+.homeStatDot {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--app-border-strong);
+  flex-shrink: 0;
 }
 
-.emptyActionSurface {
-  min-height: 150px;
+.homeStatValue {
+  color: var(--app-text-secondary);
+  font-weight: 750;
 }
 
-.activityPanel {
+.homeActions {
+  display: flex;
+  gap: 0.65rem;
+  flex-shrink: 0;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Search 영역 ─────────────────────────────────────────────────────────── */
+.homeSearchRow {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 2.5vw, 2rem) 0.75rem;
+}
+
+.homeSearchForm {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  max-width: 640px;
+}
+
+/* ── 선반(Shelf) 섹션 ────────────────────────────────────────────────────
+   Netflix 스타일 가로 스크롤 선반
+   ─────────────────────────────────────────────────────────────────────────── */
+.shelf {
+  padding-block: clamp(1rem, 2vw, 1.5rem) 0;
+}
+
+.shelfHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 2.5vw, 2rem) 0.75rem;
+}
+
+.shelfTitle {
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--app-text-primary);
+  line-height: 1.2;
+}
+
+.shelfTitleEyebrow {
+  font-size: var(--app-type-meta);
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--app-accent-primary);
+  margin-bottom: 0.2rem;
+  display: block;
+}
+
+.shelfViewAll {
+  font-size: var(--app-type-caption);
+  font-weight: 680;
+  color: var(--app-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--wa-motion-fast);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.shelfViewAll:hover {
+  color: var(--app-accent-primary);
+}
+
+/* ── 선반 트랙 — 가로 스크롤, 스크롤바 숨김 ─────────────────────────────── */
+.shelfTrack {
+  display: flex;
+  gap: clamp(0.6rem, 1vw, 0.85rem);
+  /* padding-top: hover scale 위로 올라오는 공간 확보 (scale 1.08 * ~213px / 2 + translateY 5px ≈ 14px) */
+  padding: 0.75rem clamp(1rem, 2.5vw, 2rem) 1.5rem;
+  overflow-x: auto;
+  /* overflow-y: clip — auto와 달리 스크롤 컨텍스트를 생성하지 않아 coercion 없음.
+     visible 대신 clip을 써야 overflow-x:auto와 공존할 때 auto로 강제 전환되지 않음. */
+  overflow-y: clip;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.shelfTrack::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── 선반 아이템 슬롯 ─────────────────────────────────────────────────────── */
+.shelfItem {
+  flex: none;
+  width: clamp(7rem, 10vw, 10rem);
+  scroll-snap-align: start;
+}
+
+/* ── 선반 포스터 카드 — Netflix 호버 스케일 ─────────────────────────────── */
+.shelfCard {
+  position: relative;
+  display: block;
+  width: 100%;
+  border-radius: 0.75rem;
+  overflow: visible;
+  text-decoration: none;
+  color: inherit;
+  transform-origin: center bottom;
+}
+
+.shelfCardInner {
+  position: relative;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition:
+    transform var(--wa-motion-normal) cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow var(--wa-motion-normal) cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.shelfCard:hover .shelfCardInner,
+.shelfCard:focus-visible .shelfCardInner {
+  transform: scale(1.08) translateY(-5px);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.58), 0 6px 14px rgba(0, 0, 0, 0.36);
+  z-index: 3;
+}
+
+.shelfCard:active .shelfCardInner {
+  transform: scale(1.04) translateY(-2px);
+}
+
+/* ── 호버 오버레이 — 하단 그라디언트 + 메타 ─────────────────────────────── */
+.shelfCardOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0.65rem 0.6rem 0.55rem;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.92) 0%,
+    rgba(0, 0, 0, 0.52) 42%,
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity var(--wa-motion-fast);
+  border-radius: inherit;
+}
+
+.shelfCard:hover .shelfCardOverlay,
+.shelfCard:focus-visible .shelfCardOverlay {
+  opacity: 1;
+}
+
+.shelfCardTitle {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0.3rem;
+}
+
+.shelfCardMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.shelfCardStatus {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shelfCardRating {
+  font-size: 0.72rem;
+  font-weight: 850;
+  color: var(--app-accent-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 섹션 구분 ────────────────────────────────────────────────────────────── */
+.shelfDivider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--app-border-subtle) 10%,
+    var(--app-border-subtle) 90%,
+    transparent
+  );
+  margin: 0 clamp(1rem, 2.5vw, 2rem);
+  max-width: calc(1440px - clamp(2rem, 5vw, 4rem));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 인사이트 스트립 — 취향 단서 ─────────────────────────────────────────── */
+.insightStrip {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 2.5vw, 2rem) clamp(1rem, 2.5vw, 2rem) 0;
+}
+
+.insightStripHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.insightGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.65rem;
+}
+
+.insightCard {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--mantine-radius-lg);
+  border: 1px solid var(--app-border-subtle);
+  background: var(--app-surface-card);
+  padding: 0.85rem 1rem;
+  transition:
+    border-color var(--wa-motion-fast),
+    transform var(--wa-motion-fast),
+    background var(--wa-motion-fast);
+}
+
+.insightCard:hover {
   border-color: var(--app-border-default);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
-    var(--app-surface-subtle);
+  background: var(--app-surface-hero);
+  transform: translateY(-1px);
 }
 
-.activityPreviewPanel {
-  background: var(--app-surface-subtle);
+.insightLabel {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--app-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.insightValue {
+  font-size: var(--app-type-meta);
+  font-weight: 750;
+  color: var(--app-accent-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.insightDesc {
+  font-size: var(--app-type-meta);
+  color: var(--app-text-muted);
+  margin-top: 0.2rem;
+}
+
+/* ── 최근 기록 스트립 ─────────────────────────────────────────────────────── */
+.activitySection {
+  max-width: 1440px;
+  margin: clamp(1.5rem, 2.5vw, 2rem) auto 0;
+  padding: 0 clamp(1rem, 2.5vw, 2rem);
+}
+
+.activityHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+
+.activityTitle {
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--app-text-primary);
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .activityItem {
   display: flex;
   width: 100%;
-  align-items: flex-start;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 0.85rem;
   padding: 0.6rem 0.75rem;
   border: 0;
   border-radius: var(--mantine-radius-md);
@@ -155,53 +386,153 @@
 
 .activityItem:hover,
 .activityItem:focus-visible {
-  background: color-mix(in srgb, var(--app-surface-card) 72%, transparent);
-  outline: 2px solid transparent;
+  background: var(--app-surface-card);
+  outline: none;
   transform: translateX(2px);
+}
+
+.activityDot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--app-accent-primary);
+  opacity: 0.7;
 }
 
 .activityBody {
   flex: 1;
-}
-
-.activityHeader {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.activityTitle {
+.activityItemTitle {
   flex: 1;
+  font-size: var(--app-type-body);
+  font-weight: 650;
   color: var(--app-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .activityMeta {
+  font-size: var(--app-type-caption);
   color: var(--app-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .activityRating {
   flex-shrink: 0;
+  font-size: var(--app-type-caption);
+  font-weight: 800;
   color: var(--app-accent-primary);
   font-variant-numeric: tabular-nums;
 }
 
-.activityDot {
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  margin-top: 2px;
-  border-radius: 999px;
-  background: var(--app-accent-primary);
-  opacity: 0.75;
+/* ── 빈 상태 가이드 ────────────────────────────────────────────────────────── */
+.emptyGuide {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 2.5vw, 2rem);
 }
 
-.timelineGroupDot {
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: var(--app-border-strong);
+.emptyGuideTitle {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 820;
+  letter-spacing: -0.03em;
+  color: var(--app-text-primary);
+  margin-bottom: 0.5rem;
 }
 
-.timelineGroupLabel {
+.emptyGuideDesc {
   color: var(--app-text-muted);
-  letter-spacing: 0.08em;
+  font-size: var(--app-type-body);
+  margin-bottom: 2rem;
+}
+
+.emptyGuideGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.85rem;
+}
+
+.emptyGuideCard {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  padding: 1.5rem;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-xl);
+  background: var(--app-surface-card);
+  transition:
+    border-color var(--wa-motion-fast),
+    transform var(--wa-motion-fast),
+    box-shadow var(--wa-motion-fast);
+}
+
+.emptyGuideCard:hover {
+  border-color: var(--app-accent-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.emptyGuideCardIcon {
+  font-size: 1.6rem;
+  margin-bottom: 0.85rem;
+  line-height: 1;
+}
+
+.emptyGuideCardTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--app-text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.emptyGuideCardDesc {
+  font-size: var(--app-type-caption);
+  color: var(--app-text-muted);
+  line-height: 1.5;
+}
+
+/* ── 백업 알림 슬롯 ──────────────────────────────────────────────────────── */
+.backupSlot {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 2.5vw, 2rem);
+}
+
+/* ── 반응형 ──────────────────────────────────────────────────────────────── */
+@media (max-width: 48rem) {
+  .homeGreeting {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .homeActions {
+    width: 100%;
+  }
+
+  .shelfItem {
+    width: clamp(6rem, 30vw, 8rem);
+  }
+
+  .insightGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shelfCard:hover .shelfCardInner,
+  .shelfCard:focus-visible .shelfCardInner,
+  .insightCard,
+  .activityItem,
+  .emptyGuideCard {
+    transform: none !important;
+    transition: none !important;
+  }
 }

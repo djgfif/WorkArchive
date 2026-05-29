@@ -24,7 +24,7 @@ function cx(...classes: Array<string | undefined>) {
 }
 
 function formatAverageRating(value: number | null) {
-  return value === null ? '없음' : `${value.toFixed(1)}점`;
+  return value === null ? '—' : `★ ${value.toFixed(1)}`;
 }
 
 function formatRelativeBackupTime(value: string | null) {

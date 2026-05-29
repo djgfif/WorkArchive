@@ -1,14 +1,14 @@
 /**
- * Work Archive — Mantine Theme v3.0.0
- * "Calm Premium Dark" — Linear·Vercel·Apple TV+ 수준의 프리미엄 다크 UI
+ * Work Archive — Mantine Theme v4.0.0
+ * "Archive Cinema" — Netflix · Letterboxd · Ridi 수준의 콘텐츠 플랫폼 다크 UI
  *
  * 설계 원칙
  * ─────────────────────────────────────────────────────────────────────────────
- * 1. 색상 계층: Shell(최하) → Elevated → Card → Overlay(최상)
- * 2. 텍스트 계층: Primary → Secondary → Muted → Disabled
- * 3. 테두리 계층: Subtle → Default → Strong → Focus(accent)
- * 4. 모션: spring(0.16,1,0.3,1) — 빠른 응답 + 자연스러운 감속
- * 5. 그림자: 색상 있는 그림자(tinted shadow) — 순수 검정 피하기
+ * 1. 콘텐츠 우선: 포스터·커버가 주인공, UI는 프레임
+ * 2. 따뜻한 다크: 차가운 네이비 → 따뜻한 흑갈 (영화관·고급 서점 야경)
+ * 3. 골드 정체성: 기술 블루 → 에디토리얼 골드 (책 표지, 별점, 품질 감각)
+ * 4. 강한 위계: 제목과 본문의 명확한 무게 대비
+ * 5. 모션: spring 곡선 — 빠른 응답, 자연스러운 감속
  */
 
 import {
@@ -20,26 +20,26 @@ import {
 
 /* ── 폰트 ─────────────────────────────────────────────────────────────────── */
 const appFontFamily =
-  '"Pretendard Variable", Pretendard, "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  '"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
-/* ── Archive Blue 팔레트 (Tailwind Blue 기반, 다크 모드 최적화) ─────────────── */
+/* ── Archive Gold 팔레트 — 에디토리얼 골드, 별점·CTA 강조 ───────────────── */
 const archiveColors: MantineColorsTuple = [
-  '#eff6ff', // 0 — 라이트 배경
-  '#dbeafe', // 1 — 라이트 표면
-  '#bfdbfe', // 2 — 라이트 강조
-  '#93c5fd', // 3 — 다크 모드 텍스트 강조
-  '#60a5fa', // 4 — 다크 모드 링크
-  '#3b82f6', // 5 — Primary (다크 모드 기본)
-  '#2563eb', // 6 — Primary (라이트 모드 기본)
-  '#1d4ed8', // 7 — Hover
-  '#1e40af', // 8 — Active / Pressed
-  '#1e3a8a', // 9 — 깊은 배경 강조
+  '#fefbf0', // 0 — 크림 배경
+  '#fef3d0', // 1 — 연한 앰버
+  '#fde68a', // 2 — 밝은 골드
+  '#fcd34d', // 3 — 라이트 골드
+  '#f5c842', // 4 — 메인 골드 (호버)
+  '#d4a843', // 5 — Primary 골드 (다크 모드)
+  '#b8872a', // 6 — Primary 골드 (라이트 모드)
+  '#9a6d1e', // 7 — 깊은 골드
+  '#7c5616', // 8 — 진한 골드
+  '#5e3f0d', // 9 — 최심 골드
 ];
 
-/* ── Ember (Warm Amber) 팔레트 — 별점·즐겨찾기 강조 ────────────────────────── */
-const emberColors: MantineColorsTuple = [
-  '#fffbeb', '#fef3c7', '#fde68a', '#fcd34d', '#fbbf24',
-  '#f59e0b', '#d97706', '#b45309', '#92400e', '#78350f',
+/* ── Archive Ink 팔레트 — 보조 블루, 싱크·상태 표시 ───────────────────────── */
+const inkColors: MantineColorsTuple = [
+  '#eff6ff', '#dbeafe', '#bfdbfe', '#93c5fd', '#6fb3f7',
+  '#5b9cf6', '#3b82f6', '#2563eb', '#1d4ed8', '#1e3a8a',
 ];
 
 /* ── Color Scheme Manager ─────────────────────────────────────────────────── */
@@ -50,25 +50,23 @@ export const appColorSchemeManager = localStorageColorSchemeManager({
 /* ── CSS 변수 리졸버 ─────────────────────────────────────────────────────── */
 export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
   variables: {
-    /* ── 모션 시스템 — spring 곡선 전면 적용 ── */
+    /* ── 모션 시스템 ── */
     '--wa-motion-instant':  '80ms cubic-bezier(0.16, 1, 0.3, 1)',
     '--wa-motion-fast':     '150ms cubic-bezier(0.16, 1, 0.3, 1)',
     '--wa-motion-normal':   '240ms cubic-bezier(0.16, 1, 0.3, 1)',
     '--wa-motion-slow':     '380ms cubic-bezier(0.16, 1, 0.3, 1)',
     '--wa-motion-enter':    '300ms cubic-bezier(0.16, 1, 0.3, 1)',
     '--wa-motion-exit':     '180ms cubic-bezier(0.4, 0, 1, 1)',
-    /* 하위 호환 alias */
     '--wa-motion-spring':   '300ms cubic-bezier(0.16, 1, 0.3, 1)',
 
     /* ── 타이포그래피 스케일 ── */
-    '--wa-type-display': 'clamp(2.4rem, 7vw, 5.2rem)',
-    '--wa-type-h1':      'clamp(1.9rem, 4.5vw, 3.6rem)',
-    '--wa-type-h2':      'clamp(1.35rem, 2.8vw, 2rem)',
-    '--wa-type-h3':      '1.08rem',
+    '--wa-type-display': 'clamp(2.6rem, 7.5vw, 5.6rem)',
+    '--wa-type-h1':      'clamp(2rem, 4.8vw, 3.8rem)',
+    '--wa-type-h2':      'clamp(1.4rem, 3vw, 2.1rem)',
+    '--wa-type-h3':      '1.1rem',
     '--wa-type-body':    '1rem',
-    '--wa-type-caption': '0.84rem',
-    '--wa-type-meta':    '0.76rem',
-    /* aliases */
+    '--wa-type-caption': '0.85rem',
+    '--wa-type-meta':    '0.75rem',
     '--app-type-display': 'var(--wa-type-display)',
     '--app-type-h1':      'var(--wa-type-h1)',
     '--app-type-h2':      'var(--wa-type-h2)',
@@ -79,50 +77,56 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
 
     /* ── 여백 스케일 ── */
     '--app-space-page':    'clamp(1.25rem, 3vw, 2.5rem)',
-    '--app-space-section': 'clamp(2rem, 5vw, 4rem)',
+    '--app-space-section': 'clamp(2.5rem, 5.5vw, 4.5rem)',
     '--app-space-card':    'clamp(1rem, 2.4vw, 1.5rem)',
     '--app-space-control': '0.75rem',
   },
 
-  /* ── 라이트 모드 ── */
-  light: {
-    '--wa-bg-shell':        '#f8fafc',
-    '--wa-bg-base':         '#f1f5f9',
-    '--wa-bg-elevated':     '#e8edf3',
-    '--wa-surface-subtle':  '#eef1f5',
-    '--wa-surface-card':    '#ffffff',
-    '--wa-surface-hero':    '#f7f9fb',
-    '--wa-surface-overlay': '#ffffff',
+  /* ── 다크 모드 — 따뜻한 시네마 다크 ── */
+  dark: {
+    /* 배경 — 따뜻한 흑갈, 차가운 네이비 제거 */
+    '--wa-bg-shell':        '#0c0b0a',
+    '--wa-bg-base':         '#111110',
+    '--wa-bg-elevated':     '#181716',
+    '--wa-surface-subtle':  '#1e1d1c',
+    '--wa-surface-card':    '#242220',
+    '--wa-surface-hero':    '#1a1917',
+    '--wa-surface-overlay': '#2a2826',
 
-    '--wa-border-subtle':   'rgba(15, 23, 42, 0.07)',
-    '--wa-border-default':  'rgba(15, 23, 42, 0.12)',
-    '--wa-border-strong':   'rgba(15, 23, 42, 0.20)',
+    /* 테두리 — 따뜻한 톤 */
+    '--wa-border-subtle':   'rgba(255, 235, 200, 0.06)',
+    '--wa-border-default':  'rgba(255, 235, 200, 0.11)',
+    '--wa-border-strong':   'rgba(255, 235, 200, 0.20)',
 
-    '--wa-text-primary':    '#0f172a',
-    '--wa-text-secondary':  '#334155',
-    '--wa-text-muted':      '#64748b',
-    '--wa-text-disabled':   '#cbd5e1',
+    /* 텍스트 — 따뜻한 화이트 */
+    '--wa-text-primary':    '#f5f0e8',
+    '--wa-text-secondary':  '#a09080',
+    '--wa-text-muted':      '#5c5048',
+    '--wa-text-disabled':   '#302a24',
 
-    '--wa-accent-primary':  '#2563eb',
-    '--wa-accent-strong':   '#1d4ed8',
-    '--wa-accent-warm':     '#d97706',
-    '--wa-accent-teal':     '#0d9488',
-    '--wa-accent-rose':     '#e11d48',
+    /* 악센트 — 골드 주도, 블루 보조 */
+    '--wa-accent-primary':  '#d4a843',
+    '--wa-accent-strong':   '#f5c842',
+    '--wa-accent-ink':      '#5b9cf6',
+    '--wa-accent-teal':     '#2dd4bf',
+    '--wa-accent-rose':     '#fb7185',
 
-    '--wa-shadow-xs':     '0 1px 2px rgba(15, 23, 42, 0.06)',
-    '--wa-shadow-card':   '0 1px 4px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.05)',
-    '--wa-shadow-poster': '0 4px 16px rgba(15, 23, 42, 0.12), 0 1px 4px rgba(15, 23, 42, 0.06)',
-    '--wa-shadow-hero':   '0 8px 32px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06)',
-    '--wa-shadow-overlay':'0 16px 48px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(15, 23, 42, 0.07)',
-    '--wa-shadow-glow':   '0 0 0 3px rgba(37, 99, 235, 0.20)',
+    /* 그림자 — 따뜻한 톤 */
+    '--wa-shadow-xs':     '0 1px 2px rgba(0, 0, 0, 0.55)',
+    '--wa-shadow-card':   '0 4px 16px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 235, 200, 0.05)',
+    '--wa-shadow-poster': '0 12px 36px rgba(0, 0, 0, 0.52), 0 3px 8px rgba(0, 0, 0, 0.30)',
+    '--wa-shadow-hero':   '0 20px 56px rgba(0, 0, 0, 0.56), 0 0 0 1px rgba(255, 235, 200, 0.07)',
+    '--wa-shadow-overlay':'0 24px 72px rgba(0, 0, 0, 0.64), 0 0 0 1px rgba(255, 235, 200, 0.09)',
+    '--wa-shadow-glow':   '0 0 0 3px rgba(212, 168, 67, 0.22)',
 
-    '--mantine-color-body':           '#f8fafc',
-    '--mantine-color-text':           '#0f172a',
-    '--mantine-color-dimmed':         '#64748b',
-    '--mantine-color-default':        '#ffffff',
-    '--mantine-color-default-hover':  '#f1f5f9',
-    '--mantine-color-default-border': 'rgba(15, 23, 42, 0.12)',
+    '--mantine-color-body':           '#0c0b0a',
+    '--mantine-color-text':           '#f5f0e8',
+    '--mantine-color-dimmed':         '#a09080',
+    '--mantine-color-default':        '#242220',
+    '--mantine-color-default-hover':  '#2a2826',
+    '--mantine-color-default-border': 'rgba(255, 235, 200, 0.09)',
 
+    /* app alias */
     '--app-bg-shell':        'var(--wa-bg-shell)',
     '--app-bg-base':         'var(--wa-bg-base)',
     '--app-bg-elevated':     'var(--wa-bg-elevated)',
@@ -140,58 +144,58 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-text-disabled':   'var(--wa-text-disabled)',
     '--app-accent-primary':  'var(--wa-accent-primary)',
     '--app-accent-strong':   'var(--wa-accent-strong)',
-    '--app-accent-secondary':'var(--wa-accent-teal)',
-    '--app-accent-warm':     'var(--wa-accent-warm)',
+    '--app-accent-secondary':'var(--wa-accent-ink)',
+    '--app-accent-warm':     'var(--wa-accent-strong)',
     '--app-accent-teal':     'var(--wa-accent-teal)',
     '--app-accent-rose':     'var(--wa-accent-rose)',
-    '--app-state-success':   '#0f766e',
-    '--app-state-warning':   '#d97706',
-    '--app-state-danger':    '#dc2626',
-    '--app-state-info':      '#2563eb',
+    '--app-state-success':   '#2dd4bf',
+    '--app-state-warning':   '#f5c842',
+    '--app-state-danger':    '#f87171',
+    '--app-state-info':      '#5b9cf6',
     '--app-shadow-card':     'var(--wa-shadow-card)',
     '--app-shadow-poster':   'var(--wa-shadow-poster)',
     '--app-shadow-overlay':  'var(--wa-shadow-overlay)',
     '--app-shadow-glow':     'var(--wa-shadow-glow)',
   },
 
-  /* ── 다크 모드 ── */
-  dark: {
-    '--wa-bg-shell':        '#05070d',
-    '--wa-bg-base':         '#080c16',
-    '--wa-bg-elevated':     '#0d1424',
-    '--wa-surface-subtle':  '#111a2e',
-    '--wa-surface-card':    '#16213a',
-    '--wa-surface-hero':    '#10192d',
-    '--wa-surface-overlay': '#111827',
+  /* ── 라이트 모드 — 따뜻한 크림 */
+  light: {
+    '--wa-bg-shell':        '#faf7f2',
+    '--wa-bg-base':         '#f2ede6',
+    '--wa-bg-elevated':     '#ece5db',
+    '--wa-surface-subtle':  '#f5f0e8',
+    '--wa-surface-card':    '#ffffff',
+    '--wa-surface-hero':    '#f8f4ef',
+    '--wa-surface-overlay': '#ffffff',
 
-    '--wa-border-subtle':   'rgba(148, 163, 184, 0.08)',
-    '--wa-border-default':  'rgba(148, 163, 184, 0.16)',
-    '--wa-border-strong':   'rgba(148, 163, 184, 0.28)',
+    '--wa-border-subtle':   'rgba(60, 40, 20, 0.07)',
+    '--wa-border-default':  'rgba(60, 40, 20, 0.12)',
+    '--wa-border-strong':   'rgba(60, 40, 20, 0.22)',
 
-    '--wa-text-primary':    '#e8f0fe',   // 제목 — 따뜻한 화이트
-    '--wa-text-secondary':  '#94a3b8',   // 본문
-    '--wa-text-muted':      '#52647f',   // 보조
-    '--wa-text-disabled':   '#2d3a52',   // 비활성
+    '--wa-text-primary':    '#1c1512',
+    '--wa-text-secondary':  '#4a3c32',
+    '--wa-text-muted':      '#8c7a6e',
+    '--wa-text-disabled':   '#c9bdb5',
 
-    '--wa-accent-primary':  '#60a5fa',   // Archive Blue 4
-    '--wa-accent-strong':   '#2563eb',
-    '--wa-accent-warm':     '#fbbf24',   // Ember 4
-    '--wa-accent-teal':     '#2dd4bf',   // 완료 상태
-    '--wa-accent-rose':     '#fb7185',   // 드롭 상태
+    '--wa-accent-primary':  '#b8872a',
+    '--wa-accent-strong':   '#9a6d1e',
+    '--wa-accent-ink':      '#2563eb',
+    '--wa-accent-teal':     '#0d9488',
+    '--wa-accent-rose':     '#e11d48',
 
-    '--wa-shadow-xs':     '0 1px 2px rgba(0, 0, 0, 0.5)',
-    '--wa-shadow-card':   '0 8px 24px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(148, 163, 184, 0.05)',
-    '--wa-shadow-poster': '0 14px 34px rgba(0, 0, 0, 0.46), 0 4px 10px rgba(0, 0, 0, 0.26)',
-    '--wa-shadow-hero':   '0 22px 58px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(148, 163, 184, 0.08)',
-    '--wa-shadow-overlay':'0 22px 68px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(148, 163, 184, 0.10)',
-    '--wa-shadow-glow':   '0 0 0 3px rgba(96, 165, 250, 0.16)',
+    '--wa-shadow-xs':     '0 1px 2px rgba(60, 40, 20, 0.07)',
+    '--wa-shadow-card':   '0 1px 6px rgba(60, 40, 20, 0.09), 0 0 0 1px rgba(60, 40, 20, 0.05)',
+    '--wa-shadow-poster': '0 4px 18px rgba(60, 40, 20, 0.14), 0 1px 4px rgba(60, 40, 20, 0.07)',
+    '--wa-shadow-hero':   '0 8px 36px rgba(60, 40, 20, 0.16), 0 2px 8px rgba(60, 40, 20, 0.07)',
+    '--wa-shadow-overlay':'0 16px 52px rgba(60, 40, 20, 0.18), 0 0 0 1px rgba(60, 40, 20, 0.07)',
+    '--wa-shadow-glow':   '0 0 0 3px rgba(184, 135, 42, 0.22)',
 
-    '--mantine-color-body':           '#05070d',
-    '--mantine-color-text':           '#e8f0fe',
-    '--mantine-color-dimmed':         '#94a3b8',
-    '--mantine-color-default':        '#1a2540',
-    '--mantine-color-default-hover':  '#1e2d4a',
-    '--mantine-color-default-border': 'rgba(148, 163, 184, 0.10)',
+    '--mantine-color-body':           '#faf7f2',
+    '--mantine-color-text':           '#1c1512',
+    '--mantine-color-dimmed':         '#8c7a6e',
+    '--mantine-color-default':        '#ffffff',
+    '--mantine-color-default-hover':  '#f5f0e8',
+    '--mantine-color-default-border': 'rgba(60, 40, 20, 0.12)',
 
     '--app-bg-shell':        'var(--wa-bg-shell)',
     '--app-bg-base':         'var(--wa-bg-base)',
@@ -210,14 +214,14 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-text-disabled':   'var(--wa-text-disabled)',
     '--app-accent-primary':  'var(--wa-accent-primary)',
     '--app-accent-strong':   'var(--wa-accent-strong)',
-    '--app-accent-secondary':'var(--wa-accent-teal)',
-    '--app-accent-warm':     'var(--wa-accent-warm)',
+    '--app-accent-secondary':'var(--wa-accent-ink)',
+    '--app-accent-warm':     'var(--wa-accent-strong)',
     '--app-accent-teal':     'var(--wa-accent-teal)',
     '--app-accent-rose':     'var(--wa-accent-rose)',
-    '--app-state-success':   '#2dd4bf',
-    '--app-state-warning':   '#fbbf24',
-    '--app-state-danger':    '#f87171',
-    '--app-state-info':      '#60a5fa',
+    '--app-state-success':   '#0f766e',
+    '--app-state-warning':   '#b8872a',
+    '--app-state-danger':    '#dc2626',
+    '--app-state-info':      '#2563eb',
     '--app-shadow-card':     'var(--wa-shadow-card)',
     '--app-shadow-poster':   'var(--wa-shadow-poster)',
     '--app-shadow-overlay':  'var(--wa-shadow-overlay)',
@@ -227,13 +231,13 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
 
 /* ── Mantine 테마 ─────────────────────────────────────────────────────────── */
 export const appTheme = createTheme({
-  black: '#0c0e12',
+  black: '#0c0b0a',
   colors: {
     archive: archiveColors,
-    ember: emberColors,
+    ink: inkColors,
   },
   cursorType: 'pointer',
-  defaultGradient: { deg: 135, from: 'archive.5', to: 'archive.7' },
+  defaultGradient: { deg: 135, from: 'archive.4', to: 'archive.6' },
   defaultRadius: 'md',
   focusRing: 'auto',
   fontFamily: appFontFamily,
@@ -242,24 +246,24 @@ export const appTheme = createTheme({
     xs: 'var(--app-type-meta)',
     sm: 'var(--app-type-caption)',
     md: 'var(--app-type-body)',
-    lg: '1.06rem',
-    xl: '1.22rem',
+    lg: '1.08rem',
+    xl: '1.25rem',
   },
   headings: {
     fontFamily: appFontFamily,
-    fontWeight: '760',
+    fontWeight: '780',
     sizes: {
-      h1: { fontSize: 'var(--app-type-h1)', lineHeight: '1.06' },
-      h2: { fontSize: 'var(--app-type-h2)', lineHeight: '1.14' },
-      h3: { fontSize: 'var(--app-type-h3)', lineHeight: '1.25' },
+      h1: { fontSize: 'var(--app-type-h1)', lineHeight: '1.05' },
+      h2: { fontSize: 'var(--app-type-h2)', lineHeight: '1.12' },
+      h3: { fontSize: 'var(--app-type-h3)', lineHeight: '1.22' },
       h4: { fontSize: '1rem',               lineHeight: '1.28' },
-      h5: { fontSize: '0.92rem',            lineHeight: '1.32' },
-      h6: { fontSize: '0.84rem',            lineHeight: '1.36' },
+      h5: { fontSize: '0.9rem',             lineHeight: '1.32' },
+      h6: { fontSize: '0.82rem',            lineHeight: '1.38' },
     },
     textWrap: 'balance',
   },
   lineHeights: {
-    xs: '1.35', sm: '1.45', md: '1.55', lg: '1.65', xl: '1.75',
+    xs: '1.35', sm: '1.45', md: '1.58', lg: '1.68', xl: '1.78',
   },
   other: {
     captionSize:        'var(--app-type-caption)',
@@ -271,13 +275,13 @@ export const appTheme = createTheme({
     shellWidth:         1360,
   },
   primaryColor: 'archive',
-  primaryShade: { dark: 4, light: 6 },
+  primaryShade: { dark: 5, light: 6 },
   radius: {
     xs: '0.25rem',
     sm: '0.45rem',
-    md: '0.65rem',
-    lg: '1rem',
-    xl: '1.5rem',
+    md: '0.7rem',
+    lg: '1.1rem',
+    xl: '1.6rem',
   },
   respectReducedMotion: true,
   shadows: {
@@ -300,8 +304,8 @@ export const appTheme = createTheme({
       defaultProps: { radius: 'md', variant: 'subtle' },
       styles: {
         root: {
-          color:       'var(--app-text-secondary)',
-          transition:  'color var(--wa-motion-fast), background var(--wa-motion-fast)',
+          color:      'var(--app-text-secondary)',
+          transition: 'color var(--wa-motion-fast), background var(--wa-motion-fast)',
         },
       },
     },
@@ -312,10 +316,10 @@ export const appTheme = createTheme({
         root: {
           border:        '1px solid transparent',
           fontSize:      'var(--app-type-meta)',
-          fontWeight:    700,
-          letterSpacing: '0.01em',
-          paddingInline: '0.55rem',
-          paddingBlock:  '0.18rem',
+          fontWeight:    750,
+          letterSpacing: '0.02em',
+          paddingInline: '0.5rem',
+          paddingBlock:  '0.16rem',
           textTransform: 'none',
           lineHeight:    '1.5',
         },
@@ -326,9 +330,9 @@ export const appTheme = createTheme({
       defaultProps: { radius: 'md', size: 'sm' },
       styles: {
         root: {
-          fontWeight:    650,
-          letterSpacing: '-0.01em',
-          paddingInline: '1rem',
+          fontWeight:    680,
+          letterSpacing: '-0.008em',
+          paddingInline: '1.1rem',
           transition: [
             'transform var(--wa-motion-fast)',
             'background var(--wa-motion-fast)',
@@ -354,12 +358,12 @@ export const appTheme = createTheme({
     InputWrapper: {
       styles: {
         description: {
-          color:     'var(--app-text-muted)',
-          fontSize:  'var(--app-type-caption)',
+          color:    'var(--app-text-muted)',
+          fontSize: 'var(--app-type-caption)',
         },
         label: {
           color:         'var(--app-text-secondary)',
-          fontWeight:    650,
+          fontWeight:    680,
           fontSize:      'var(--app-type-caption)',
           letterSpacing: '0.01em',
           marginBottom:  '0.35rem',
@@ -374,7 +378,7 @@ export const appTheme = createTheme({
           backgroundColor: 'var(--app-surface-overlay)',
           borderColor:     'var(--app-border-default)',
           border:          '1px solid var(--app-border-default)',
-          backdropFilter:  'blur(20px) saturate(1.4)',
+          backdropFilter:  'blur(24px) saturate(1.3)',
           padding:         '0.35rem',
         },
         item: {
@@ -387,7 +391,7 @@ export const appTheme = createTheme({
         label: {
           color:         'var(--app-text-muted)',
           fontSize:      'var(--app-type-meta)',
-          fontWeight:    700,
+          fontWeight:    750,
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
           padding:       '0.5rem 0.75rem 0.25rem',
@@ -402,7 +406,7 @@ export const appTheme = createTheme({
     Modal: {
       defaultProps: {
         radius: 'xl',
-        overlayProps: { blur: 6, backgroundOpacity: 0.55 },
+        overlayProps: { blur: 8, backgroundOpacity: 0.65 },
       },
       styles: {
         content: {
@@ -415,7 +419,7 @@ export const appTheme = createTheme({
           paddingBottom:   '0.75rem',
         },
         title: {
-          fontWeight: 760,
+          fontWeight: 780,
           fontSize:   'var(--app-type-h3)',
           color:      'var(--app-text-primary)',
         },
@@ -452,16 +456,16 @@ export const appTheme = createTheme({
           borderRadius:    'var(--mantine-radius-sm)',
         },
         label: {
-          fontSize:    'var(--app-type-caption)',
-          fontWeight:  650,
-          color:       'var(--app-text-secondary)',
-          transition:  'color var(--wa-motion-fast)',
+          fontSize:     'var(--app-type-caption)',
+          fontWeight:   680,
+          color:        'var(--app-text-secondary)',
+          transition:   'color var(--wa-motion-fast)',
           paddingBlock: '0.3rem',
         },
       },
     },
 
-    Select:   { defaultProps: { radius: 'md', size: 'md' } },
+    Select:    { defaultProps: { radius: 'md', size: 'md' } },
     TextInput: { defaultProps: { radius: 'md', size: 'md' } },
 
     Textarea: {
@@ -472,7 +476,7 @@ export const appTheme = createTheme({
       styles: {
         root: {
           color:               'var(--app-text-primary)',
-          letterSpacing:       '-0.025em',
+          letterSpacing:       '-0.03em',
           fontFeatureSettings: '"ss01", "cv01"',
         },
       },
@@ -486,8 +490,8 @@ export const appTheme = createTheme({
           border:          '1px solid var(--app-border-default)',
           color:           'var(--app-text-primary)',
           fontSize:        'var(--app-type-caption)',
-          fontWeight:      600,
-          backdropFilter:  'blur(8px)',
+          fontWeight:      620,
+          backdropFilter:  'blur(10px)',
         },
       },
     },

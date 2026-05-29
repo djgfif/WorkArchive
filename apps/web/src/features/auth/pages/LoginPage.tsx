@@ -1,5 +1,5 @@
 import { Text } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { AuthPageTemplate } from '@shared/components/PageTemplates';
@@ -25,11 +25,31 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { continueWithGoogle, isLoading, mode } = useAuthSession();
   const [googleConfigured, setGoogleConfigured] = useState(true);
+  const didCleanUrlRef = useRef(false);
+
   const returnTo = getReturnToFromLocationState(location.state);
-  const googleStatus = new URLSearchParams(location.search).get('google');
-  const googleFailed = googleStatus === 'failed';
-  const googleUnconfigured = googleStatus === 'unconfigured';
+
+  // 마운트 시점에 URL 파라미터를 읽어 state로 올림
+  // → URL을 클린업한 뒤에도 에러 표시가 사라지지 않도록
+  const initialParams = useRef(new URLSearchParams(location.search));
+  const initialGoogleStatus = initialParams.current.get('google');
+  const [googleFailed, setGoogleFailed] = useState(initialGoogleStatus === 'failed');
+  const googleUnconfigured = initialGoogleStatus === 'unconfigured';
   const googleAvailable = googleConfigured && !googleUnconfigured;
+
+  // 실패 파라미터를 URL에서 제거 — 새로고침 시 에러 재표시 방지, 뒤로가기 히스토리 오염 방지
+  useEffect(() => {
+    if (initialGoogleStatus && !didCleanUrlRef.current) {
+      didCleanUrlRef.current = true;
+      const cleanParams = new URLSearchParams(location.search);
+      cleanParams.delete('google');
+      const cleanSearch = cleanParams.toString();
+      navigate(
+        { search: cleanSearch ? `?${cleanSearch}` : '' },
+        { replace: true, state: location.state },
+      );
+    }
+  }, [initialGoogleStatus, location.search, location.state, navigate]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -37,26 +57,23 @@ export function LoginPage() {
     async function loadGoogleStatus() {
       try {
         const status = await fetchGoogleAuthStatus();
-
-        if (!isCancelled) {
-          setGoogleConfigured(status.configured);
-        }
+        if (!isCancelled) setGoogleConfigured(status.configured);
       } catch {
-        if (!isCancelled) {
-          setGoogleConfigured(true);
-        }
+        if (!isCancelled) setGoogleConfigured(true);
       }
     }
 
     void loadGoogleStatus();
-
-    return () => {
-      isCancelled = true;
-    };
+    return () => { isCancelled = true; };
   }, []);
 
   if (!isLoading && mode === 'authenticated') {
-    return <Navigate replace to="/" />;
+    return <Navigate replace to={returnTo ?? '/'} />;
+  }
+
+  function handleRetryWithGoogle() {
+    setGoogleFailed(false);
+    continueWithGoogle?.(returnTo);
   }
 
   return (
@@ -83,16 +100,15 @@ export function LoginPage() {
           }
           onContinueAsGuest={() => navigate('/works')}
           onContinueWithGoogle={() => continueWithGoogle?.(returnTo)}
+          {...(googleFailed ? { onRetryWithGoogle: handleRetryWithGoogle } : {})}
           submitError={
             googleFailed
               ? '다시 시도하거나 로그인 없이 계속할 수 있습니다.'
-                : null
+              : null
           }
-          submitErrorTitle={
-            googleFailed
-              ? 'Google 로그인을 완료하지 못했습니다.'
-                : undefined
-          }
+          {...(googleFailed
+            ? { submitErrorTitle: 'Google 로그인을 완료하지 못했습니다.' }
+            : {})}
         />
       }
       highlights={[
