@@ -211,10 +211,6 @@ function getPrimaryMetaLine(work: WorkRecord) {
     .join(' · ');
 }
 
-function getPosterAuthorLine(work: WorkRecord) {
-  return work.author.trim() || '작가·제작자 미입력';
-}
-
 function needsPosterCuration(work: WorkRecord) {
   return (
     work.rating === null ||

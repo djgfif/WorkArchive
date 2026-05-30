@@ -90,10 +90,11 @@
 .brandTitle {
   max-width: 19ch;
   color: var(--app-text-primary);
-  font-size: clamp(1.35rem, 2vw, 1.65rem) !important;
-  font-weight: 800 !important;
-  letter-spacing: 0 !important;
-  line-height: 1.22 !important;
+  font-family: var(--app-font-display) !important;
+  font-size: clamp(1.5rem, 2.2vw, 1.85rem) !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.18 !important;
 }
 
 .brandDescription {

@@ -22,6 +22,13 @@ import {
 const appFontFamily =
   '"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
+// Vellum Index — 에디토리얼 디스플레이 세리프(기념비적 제목)와 본문 세리프 악센트.
+// 라틴 글리프는 Gloock/Lora, 한글은 Pretendard로 자연스럽게 폴백된다.
+const appDisplayFamily =
+  `Gloock, "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Georgia, serif`;
+const appSerifFamily =
+  `Lora, "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Georgia, serif`;
+
 /* ── Archive Gold 팔레트 — 에디토리얼 골드, 별점·CTA 강조 ───────────────── */
 const archiveColors: MantineColorsTuple = [
   '#fefbf0', // 0 — 크림 배경
@@ -74,6 +81,11 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-type-body':    'var(--wa-type-body)',
     '--app-type-caption': 'var(--wa-type-caption)',
     '--app-type-meta':    'var(--wa-type-meta)',
+
+    /* ── 폰트 패밀리 — Vellum Index ── */
+    '--app-font-display': appDisplayFamily,
+    '--app-font-serif':   appSerifFamily,
+    '--app-font-mono':    '"JetBrains Mono", "GeistMono", ui-monospace, monospace',
 
     /* ── 여백 스케일 ── */
     '--app-space-page':    'clamp(1.25rem, 3vw, 2.5rem)',

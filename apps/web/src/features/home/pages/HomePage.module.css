@@ -40,12 +40,13 @@
 }
 
 .homeTitle {
-  font-size: clamp(2.2rem, 4.5vw, 3.6rem);
-  font-weight: 860;
-  letter-spacing: -0.04em;
+  font-family: var(--app-font-display);
+  font-size: clamp(2.4rem, 4.8vw, 3.9rem);
+  font-weight: 400; /* Gloock는 단일 웨이트의 고대비 디스플레이 세리프 */
+  letter-spacing: -0.015em;
   color: var(--app-text-primary);
-  line-height: 1.04;
-  margin: 0 0 0.6rem;
+  line-height: 1.02;
+  margin: 0 0 0.7rem;
 }
 
 .homeStatStrip {

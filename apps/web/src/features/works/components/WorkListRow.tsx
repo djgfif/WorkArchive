@@ -88,10 +88,6 @@ const progressTotalLabels: Record<ProgressUnit, string> = {
   volume: '전체 권',
 };
 
-function formatRatingLabel(value: number | null) {
-  return value === null ? '미평가' : `★ ${value.toFixed(1)}`;
-}
-
 function getWorkListMetaLine(work: WorkRecord) {
   const rating = work.rating !== null ? `★ ${work.rating.toFixed(1)}` : null;
   const status = getWorkStatusLabel(work.status);

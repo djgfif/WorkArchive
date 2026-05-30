@@ -1545,12 +1545,13 @@
 }
 
 .libraryPageTitle {
-  margin: 0 0 0.35rem;
-  font-size: clamp(1.75rem, 3.2vw, 2.6rem);
-  font-weight: 820;
-  letter-spacing: -0.035em;
+  margin: 0 0 0.4rem;
+  font-family: var(--app-font-display);
+  font-size: clamp(1.9rem, 3.4vw, 2.8rem);
+  font-weight: 400;
+  letter-spacing: -0.012em;
   color: var(--app-text-primary);
-  line-height: 1.06;
+  line-height: 1.04;
 }
 
 .libraryPageMeta {
