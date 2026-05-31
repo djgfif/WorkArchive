@@ -17,7 +17,7 @@ import {
   UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import {
   ApiBody,
   ApiBearerAuth,
@@ -48,6 +48,10 @@ import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import {
+  isOAuthVerificationValueMatch,
+  signOAuthVerificationValue,
+} from './oauth-verification';
 
 const GOOGLE_OAUTH_STATE_COOKIE = 'wa_google_oauth_state';
 const GOOGLE_OAUTH_NONCE_COOKIE = 'wa_google_oauth_nonce';
@@ -100,17 +104,25 @@ export class AuthController {
       this.getAllowedOAuthReturnOrigin(returnOrigin);
     const state = this.generateOAuthState(validatedReturnOrigin);
     const nonce = this.generateOAuthSecret();
-    const cookieOptions = this.getOAuthCookieOptions();
-
     response.cookie(
       GOOGLE_OAUTH_STATE_COOKIE,
-      this.hashOAuthSecret(state),
-      cookieOptions,
+      signOAuthVerificationValue(state),
+      {
+        httpOnly: true,
+        maxAge: GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
+        sameSite: 'lax',
+        secure: true,
+      },
     );
     response.cookie(
       GOOGLE_OAUTH_NONCE_COOKIE,
-      this.hashOAuthSecret(nonce),
-      cookieOptions,
+      signOAuthVerificationValue(nonce),
+      {
+        httpOnly: true,
+        maxAge: GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
+        sameSite: 'lax',
+        secure: true,
+      },
     );
 
     response.redirect(this.authService.getGoogleAuthorizationUrl(state, nonce));
@@ -160,7 +172,7 @@ export class AuthController {
       typeof state !== 'string' ||
       typeof expectedStateHash !== 'string' ||
       typeof expectedNonceHash !== 'string' ||
-      !this.isOAuthSecretHashMatch(state, expectedStateHash)
+      !isOAuthVerificationValueMatch(state, expectedStateHash)
     ) {
       this.logAuthGoogleFailed(request, 'invalid_oauth_state');
       void this.securityAudit.record({
@@ -480,35 +492,11 @@ export class AuthController {
     }
   }
 
-  private hashOAuthSecret(secret: string) {
-    return createHash('sha256').update(secret).digest('base64url');
-  }
-
-  private isOAuthSecretHashMatch(secret: string, expectedHash: string) {
-    const actualHash = this.hashOAuthSecret(secret);
-    const actual = Buffer.from(actualHash, 'base64url');
-    const expected = Buffer.from(expectedHash, 'base64url');
-
-    return actual.length === expected.length && timingSafeEqual(actual, expected);
-  }
-
-  private getOAuthCookieOptions() {
-    const config = readApiRuntimeConfig();
-
-    return {
-      httpOnly: true,
-      maxAge: GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
-      sameSite: 'lax' as const,
-      secure: config.cookieSecure,
-    };
-  }
-
   private clearOAuthCookies(response: Response) {
-    const config = readApiRuntimeConfig();
     const options = {
       httpOnly: true,
       sameSite: 'lax' as const,
-      secure: config.cookieSecure,
+      secure: true,
     };
 
     response.clearCookie(GOOGLE_OAUTH_STATE_COOKIE, options);

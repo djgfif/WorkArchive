@@ -1,9 +1,7 @@
 import {
-  createHash,
   createPublicKey,
   randomBytes,
   randomUUID,
-  timingSafeEqual,
   type JsonWebKey,
 } from 'node:crypto';
 
@@ -47,6 +45,7 @@ import type {
   AuthTokenPayload,
   AuthenticatedUser,
 } from './auth.types';
+import { isOAuthVerificationValueMatch } from './oauth-verification';
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
@@ -751,7 +750,7 @@ export class AuthService {
       typeof payload.sub !== 'string' ||
       typeof payload.email !== 'string' ||
       typeof payload.nonce !== 'string' ||
-      !this.isOAuthSecretHashMatch(payload.nonce, expectedNonceHash)
+      !isOAuthVerificationValueMatch(payload.nonce, expectedNonceHash)
     ) {
       throw new UnauthorizedException('Google id_token is invalid.');
     }
@@ -763,14 +762,6 @@ export class AuthService {
       pictureUrl: typeof payload.picture === 'string' ? payload.picture : '',
       providerAccountId: payload.sub,
     };
-  }
-
-  private isOAuthSecretHashMatch(secret: string, expectedHash: string) {
-    const actualHash = createHash('sha256').update(secret).digest('base64url');
-    const actual = Buffer.from(actualHash, 'base64url');
-    const expected = Buffer.from(expectedHash, 'base64url');
-
-    return actual.length === expected.length && timingSafeEqual(actual, expected);
   }
 
   private async getGoogleSigningKey(kid: string) {

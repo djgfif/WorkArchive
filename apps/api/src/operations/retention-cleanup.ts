@@ -291,10 +291,10 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch((error: unknown) => {
+  main().catch(() => {
     console.error(
       JSON.stringify({
-        errorCode: error instanceof Error ? error.name : 'UnknownError',
+        errorCode: 'RetentionCleanupFailed',
         event: 'operations.retention_cleanup.failed',
         message: 'Retention cleanup failed.',
       }),

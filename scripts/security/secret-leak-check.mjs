@@ -191,7 +191,15 @@ function isEnvFile(filePath) {
 }
 
 function isEnvExample(filePath) {
-  return /(^|\/)\.env(?:\.[^/]+)*\.example$/.test(filePath);
+  return filePath.split('/').some((segment) => {
+    if (!segment.startsWith('.env.')) {
+      return false;
+    }
+
+    const parts = segment.split('.');
+
+    return parts.length >= 3 && parts[parts.length - 1] === 'example';
+  });
 }
 
 function isAllowedSensitiveValue(rawValue) {

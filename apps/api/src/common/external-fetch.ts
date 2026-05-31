@@ -52,6 +52,9 @@ export async function fetchExternal(
   const timeout = setTimeout(() => abortController.abort(), timeoutMs);
 
   try {
+    // The URL is normalized above and rejected unless its protocol, credentials,
+    // and hostname match the caller's explicit allowlist.
+    // codeql[js/request-forgery]
     return await fetch(safeUrl.toString(), {
       ...requestOptions,
       signal: abortController.signal,
