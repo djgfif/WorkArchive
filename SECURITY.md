@@ -24,8 +24,11 @@ longer exploitable.
 - Real `.env` files, production secrets, provider keys, database dumps, logs,
   browser traces, backup archives, and local IDE/tool state must not be tracked.
 - Example files may document variable names but must use placeholder values.
-- Run `scripts/security/public-readiness-check.sh` before changing repository
-  visibility or merging release branches.
+- Run `npm run security:install-hooks` on local clones. The installed
+  `pre-commit` and `pre-push` hooks block staged non-example `.env` files and
+  high-confidence secret patterns before they reach GitHub.
+- Run `npm run security:secrets` and `npm run security:public` before changing
+  repository visibility or merging release branches.
 - If a real secret was ever committed, rotate the secret first. Git history
   rewriting requires explicit approval because it changes published history.
 
