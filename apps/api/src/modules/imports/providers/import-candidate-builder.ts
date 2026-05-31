@@ -396,10 +396,10 @@ export function inferWebSearchWorkType(input: {
   if (
     hostname === 'series.naver.com' ||
     hostname === 'page.kakao.com' ||
-    hostname.endsWith('ridibooks.com') ||
-    hostname.endsWith('munpia.com') ||
-    hostname.endsWith('novelpia.com') ||
-    hostname.endsWith('joara.com') ||
+    isHostnameInDomain(hostname, 'ridibooks.com') ||
+    isHostnameInDomain(hostname, 'munpia.com') ||
+    isHostnameInDomain(hostname, 'novelpia.com') ||
+    isHostnameInDomain(hostname, 'joara.com') ||
     searchable.includes('웹소설')
   ) {
     return WorkType.web_novel;
@@ -427,19 +427,19 @@ export function getWebSourceLabel(url: string) {
     return 'Kakao Webtoon';
   }
 
-  if (hostname.endsWith('ridibooks.com')) {
+  if (isHostnameInDomain(hostname, 'ridibooks.com')) {
     return 'Ridi';
   }
 
-  if (hostname.endsWith('munpia.com')) {
+  if (isHostnameInDomain(hostname, 'munpia.com')) {
     return 'Munpia';
   }
 
-  if (hostname.endsWith('novelpia.com')) {
+  if (isHostnameInDomain(hostname, 'novelpia.com')) {
     return 'Novelpia';
   }
 
-  if (hostname.endsWith('joara.com')) {
+  if (isHostnameInDomain(hostname, 'joara.com')) {
     return 'Joara';
   }
 
@@ -452,6 +452,21 @@ export function readHostname(url: string) {
   } catch {
     return '';
   }
+}
+
+function isHostnameInDomain(hostname: string, domain: string) {
+  const hostnameLabels = hostname.split('.');
+  const domainLabels = domain.split('.');
+
+  if (hostnameLabels.length < domainLabels.length) {
+    return false;
+  }
+
+  const offset = hostnameLabels.length - domainLabels.length;
+
+  return domainLabels.every(
+    (label, index) => hostnameLabels[offset + index] === label,
+  );
 }
 
 export function stripHtml(value: string) {

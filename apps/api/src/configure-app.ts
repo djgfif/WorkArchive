@@ -49,16 +49,22 @@ export async function configureApp(
   app.use(cookieParser());
   app.use(
     helmet({
-      contentSecurityPolicy: config.isProduction
-        ? {
-            directives: {
-              baseUri: ["'none'"],
-              defaultSrc: ["'none'"],
-              formAction: ["'none'"],
-              frameAncestors: ["'none'"],
-            },
-          }
-        : false,
+      contentSecurityPolicy: {
+        directives: {
+          baseUri: ["'none'"],
+          defaultSrc: ["'none'"],
+          formAction: ["'none'"],
+          frameAncestors: ["'none'"],
+          imgSrc: ["'self'", 'data:'],
+          objectSrc: ["'none'"],
+          scriptSrc: config.isProduction
+            ? ["'none'"]
+            : ["'self'", "'unsafe-inline'"],
+          styleSrc: config.isProduction
+            ? ["'none'"]
+            : ["'self'", "'unsafe-inline'"],
+        },
+      },
       crossOriginEmbedderPolicy: false,
       hidePoweredBy: true,
     }),

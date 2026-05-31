@@ -3,7 +3,12 @@ import { BadGatewayException } from '@nestjs/common';
 export class ExternalFetchError extends Error {
   constructor(
     message: string,
-    readonly code: 'timeout' | 'network' | 'body_too_large' | 'invalid_json',
+    readonly code:
+      | 'body_too_large'
+      | 'forbidden_url'
+      | 'invalid_json'
+      | 'network'
+      | 'timeout',
     readonly status?: number,
   ) {
     super(message);
@@ -12,19 +17,43 @@ export class ExternalFetchError extends Error {
 }
 
 export interface ExternalFetchOptions extends RequestInit {
+  allowedHostnameSuffixes?: readonly string[];
+  allowedHostnames?: readonly string[];
   timeoutMs: number;
+}
+
+interface ExternalFetchAllowlist {
+  allowedHostnameSuffixes?: readonly string[];
+  allowedHostnames?: readonly string[];
 }
 
 export async function fetchExternal(
   url: URL | string,
   options: ExternalFetchOptions,
 ) {
+  const {
+    allowedHostnameSuffixes,
+    allowedHostnames,
+    timeoutMs,
+    ...requestOptions
+  } = options;
+  const allowlist: ExternalFetchAllowlist = {};
+
+  if (allowedHostnameSuffixes !== undefined) {
+    allowlist.allowedHostnameSuffixes = allowedHostnameSuffixes;
+  }
+
+  if (allowedHostnames !== undefined) {
+    allowlist.allowedHostnames = allowedHostnames;
+  }
+
+  const safeUrl = assertAllowedExternalFetchUrl(url, allowlist);
   const abortController = new AbortController();
-  const timeout = setTimeout(() => abortController.abort(), options.timeoutMs);
+  const timeout = setTimeout(() => abortController.abort(), timeoutMs);
 
   try {
-    return await fetch(url, {
-      ...options,
+    return await fetch(safeUrl.toString(), {
+      ...requestOptions,
       signal: abortController.signal,
     });
   } catch (error) {
@@ -36,6 +65,72 @@ export async function fetchExternal(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function assertAllowedExternalFetchUrl(
+  rawUrl: URL | string,
+  options: ExternalFetchAllowlist,
+) {
+  const url = rawUrl instanceof URL ? new URL(rawUrl) : new URL(rawUrl);
+
+  if (url.protocol !== 'https:') {
+    throw new ExternalFetchError(
+      'External request URL must use HTTPS.',
+      'forbidden_url',
+    );
+  }
+
+  if (url.username || url.password) {
+    throw new ExternalFetchError(
+      'External request URL must not include credentials.',
+      'forbidden_url',
+    );
+  }
+
+  const hostname = url.hostname.toLowerCase();
+  const exactHostnames = options.allowedHostnames ?? [];
+  const hostnameSuffixes = options.allowedHostnameSuffixes ?? [];
+
+  if (
+    exactHostnames.length === 0 &&
+    hostnameSuffixes.length === 0
+  ) {
+    throw new ExternalFetchError(
+      'External request URL requires an explicit hostname allowlist.',
+      'forbidden_url',
+    );
+  }
+
+  const exactAllowed = exactHostnames.some(
+    (allowedHostname) => hostname === allowedHostname.toLowerCase(),
+  );
+  const suffixAllowed = hostnameSuffixes.some((allowedSuffix) =>
+    isHostnameInDomain(hostname, allowedSuffix),
+  );
+
+  if (!exactAllowed && !suffixAllowed) {
+    throw new ExternalFetchError(
+      'External request hostname is not allowed.',
+      'forbidden_url',
+    );
+  }
+
+  return url;
+}
+
+function isHostnameInDomain(hostname: string, domain: string) {
+  const hostnameLabels = hostname.toLowerCase().split('.');
+  const domainLabels = domain.toLowerCase().split('.');
+
+  if (hostnameLabels.length < domainLabels.length) {
+    return false;
+  }
+
+  const offset = hostnameLabels.length - domainLabels.length;
+
+  return domainLabels.every(
+    (label, index) => hostnameLabels[offset + index] === label,
+  );
 }
 
 export async function readJsonWithLimit<T>(

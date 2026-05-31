@@ -296,7 +296,7 @@ if (require.main === module) {
       JSON.stringify({
         errorCode: error instanceof Error ? error.name : 'UnknownError',
         event: 'operations.retention_cleanup.failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Retention cleanup failed.',
       }),
     );
     process.exitCode = 1;

@@ -200,7 +200,30 @@ export function normalizeDisplayText(value: string) {
 }
 
 export function stripHtml(value: string) {
-  return value.replace(/<[^>]*>/g, '');
+  let output = '';
+  let index = 0;
+
+  while (index < value.length) {
+    const tagStart = value.indexOf('<', index);
+
+    if (tagStart === -1) {
+      output += value.slice(index);
+      break;
+    }
+
+    output += value.slice(index, tagStart);
+
+    const tagEnd = value.indexOf('>', tagStart + 1);
+
+    if (tagEnd === -1) {
+      output += value.slice(tagStart);
+      break;
+    }
+
+    index = tagEnd + 1;
+  }
+
+  return output;
 }
 
 export function normalizeImportTitleSignal(value: string) {
@@ -392,15 +415,23 @@ function normalizeUrl(value: string) {
 function normalizeThumbnailUrl(value: string) {
   const normalized = normalizeUrl(value);
 
-  if (normalized.startsWith('//')) {
-    return `https:${normalized}`;
+  if (!normalized) {
+    return '';
   }
 
-  if (normalized.startsWith('http://')) {
-    return `https://${normalized.slice('http://'.length)}`;
-  }
+  try {
+    const url = new URL(
+      normalized.startsWith('//') ? `https:${normalized}` : normalized,
+    );
 
-  return normalized;
+    if (url.protocol === 'http:') {
+      url.protocol = 'https:';
+    }
+
+    return url.toString();
+  } catch {
+    return normalized;
+  }
 }
 
 function normalizeSequence(value: number | null | undefined) {
@@ -411,11 +442,17 @@ function formatAuthor(contributors: Contributor[]) {
   return contributors.map((entry) => entry.name).join(', ');
 }
 
-function decodeBasicHtmlEntities(value: string) {
-  return value
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
+export function decodeBasicHtmlEntities(value: string) {
+  const entities: Record<string, string> = {
+    '&#39;': "'",
+    '&amp;': '&',
+    '&gt;': '>',
+    '&lt;': '<',
+    '&quot;': '"',
+  };
+
+  return value.replace(
+    /&(quot|#39|amp|lt|gt);/g,
+    (entity) => entities[entity] ?? entity,
+  );
 }

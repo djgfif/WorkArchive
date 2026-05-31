@@ -69,6 +69,22 @@ function redact(value) {
   return text;
 }
 
+function escapeMarkdownTableCell(value) {
+  let escaped = '';
+
+  for (const char of String(value ?? '')) {
+    if (char === '|') {
+      escaped += '\\|';
+    } else if (char === '\r' || char === '\n') {
+      escaped += '<br>';
+    } else {
+      escaped += char;
+    }
+  }
+
+  return escaped;
+}
+
 function relativePath(path) {
   return path.startsWith(`${rootDir}/`) ? path.slice(rootDir.length + 1) : '[outside-workspace]';
 }
@@ -106,7 +122,7 @@ function writeReports(report) {
     '| --- | --- | --- |',
     ...report.checks.map(
       (check) =>
-        `| ${check.name} | ${check.status} | ${redact(check.summary).replace(/\|/g, '\\|')} |`,
+        `| ${check.name} | ${check.status} | ${escapeMarkdownTableCell(redact(check.summary))} |`,
     ),
     '',
   ];

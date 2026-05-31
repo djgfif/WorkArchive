@@ -8,6 +8,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 import type { ProviderSearchContext } from '../src/modules/imports/providers/import-provider-adapter';
 import type { ImportProviderSearchRuntime } from '../src/modules/imports/providers/import-provider-search-runtime';
+import { getWebSourceLabel } from '../src/modules/imports/providers/import-candidate-builder';
 import {
   searchAladin,
   searchGoogleBooks,
@@ -199,5 +200,15 @@ describe('import provider search modules', () => {
       });
 
     await expect(searchWikidata(createContext(), runtime)).resolves.toEqual([]);
+  });
+
+  it('matches web source hostnames on DNS label boundaries', () => {
+    expect(getWebSourceLabel('https://ridibooks.com/books/1')).toBe('Ridi');
+    expect(getWebSourceLabel('https://library.ridibooks.com/books/1')).toBe(
+      'Ridi',
+    );
+    expect(getWebSourceLabel('https://evilridibooks.com/books/1')).toBe(
+      'evilridibooks.com',
+    );
   });
 });

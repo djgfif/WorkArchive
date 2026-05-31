@@ -17,7 +17,7 @@ import {
   UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import {
   ApiBody,
   ApiBearerAuth,
@@ -96,17 +96,20 @@ export class AuthController {
       return;
     }
 
-    const state = this.generateOAuthSecret();
-    const nonce = this.generateOAuthSecret();
     const validatedReturnOrigin =
       this.getAllowedOAuthReturnOrigin(returnOrigin);
+    const state = this.generateOAuthState(validatedReturnOrigin);
+    const nonce = this.generateOAuthSecret();
     const cookieOptions = this.getOAuthCookieOptions();
 
-    response.cookie(GOOGLE_OAUTH_STATE_COOKIE, state, cookieOptions);
-    response.cookie(GOOGLE_OAUTH_NONCE_COOKIE, nonce, cookieOptions);
     response.cookie(
-      GOOGLE_OAUTH_RETURN_ORIGIN_COOKIE,
-      validatedReturnOrigin,
+      GOOGLE_OAUTH_STATE_COOKIE,
+      this.hashOAuthSecret(state),
+      cookieOptions,
+    );
+    response.cookie(
+      GOOGLE_OAUTH_NONCE_COOKIE,
+      this.hashOAuthSecret(nonce),
       cookieOptions,
     );
 
@@ -128,9 +131,9 @@ export class AuthController {
     @Req() request: Request,
     @Res() response: Response,
   ) {
-    const expectedState = request.cookies?.[GOOGLE_OAUTH_STATE_COOKIE];
-    const expectedNonce = request.cookies?.[GOOGLE_OAUTH_NONCE_COOKIE];
-    const returnOrigin = request.cookies?.[GOOGLE_OAUTH_RETURN_ORIGIN_COOKIE];
+    const expectedStateHash = request.cookies?.[GOOGLE_OAUTH_STATE_COOKIE];
+    const expectedNonceHash = request.cookies?.[GOOGLE_OAUTH_NONCE_COOKIE];
+    const returnOrigin = this.readReturnOriginFromOAuthState(state);
 
     this.clearOAuthCookies(response);
 
@@ -155,9 +158,9 @@ export class AuthController {
     if (
       typeof code !== 'string' ||
       typeof state !== 'string' ||
-      typeof expectedState !== 'string' ||
-      typeof expectedNonce !== 'string' ||
-      state !== expectedState
+      typeof expectedStateHash !== 'string' ||
+      typeof expectedNonceHash !== 'string' ||
+      !this.isOAuthSecretHashMatch(state, expectedStateHash)
     ) {
       this.logAuthGoogleFailed(request, 'invalid_oauth_state');
       void this.securityAudit.record({
@@ -179,7 +182,7 @@ export class AuthController {
     try {
       session = await this.authService.loginWithGoogleAuthorizationCode(
         code,
-        expectedNonce,
+        expectedNonceHash,
         this.getSessionMetadata(request),
       );
     } catch (loginError) {
@@ -449,6 +452,44 @@ export class AuthController {
 
   private generateOAuthSecret() {
     return randomBytes(32).toString('base64url');
+  }
+
+  private generateOAuthState(returnOrigin: string) {
+    const encodedReturnOrigin = Buffer.from(returnOrigin, 'utf8').toString(
+      'base64url',
+    );
+
+    return `${this.generateOAuthSecret()}.${encodedReturnOrigin}`;
+  }
+
+  private readReturnOriginFromOAuthState(state: unknown) {
+    if (typeof state !== 'string') {
+      return undefined;
+    }
+
+    const encodedReturnOrigin = state.split('.', 2)[1];
+
+    if (!encodedReturnOrigin) {
+      return undefined;
+    }
+
+    try {
+      return Buffer.from(encodedReturnOrigin, 'base64url').toString('utf8');
+    } catch {
+      return undefined;
+    }
+  }
+
+  private hashOAuthSecret(secret: string) {
+    return createHash('sha256').update(secret).digest('base64url');
+  }
+
+  private isOAuthSecretHashMatch(secret: string, expectedHash: string) {
+    const actualHash = this.hashOAuthSecret(secret);
+    const actual = Buffer.from(actualHash, 'base64url');
+    const expected = Buffer.from(expectedHash, 'base64url');
+
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
   }
 
   private getOAuthCookieOptions() {

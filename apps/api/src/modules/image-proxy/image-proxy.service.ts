@@ -229,6 +229,7 @@ export class ImageProxyService implements OnModuleDestroy {
 
     try {
       response = await fetchExternal(url, {
+        allowedHostnameSuffixes: ALLOWED_IMAGE_HOST_SUFFIXES,
         headers: {
           accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif,*/*;q=0.5',
           'user-agent': 'WorkArchiveImageProxy/1.0',

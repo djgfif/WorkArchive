@@ -1356,6 +1356,28 @@ describe('Auth, works, and sync API (e2e)', () => {
     expect(configuredStatus.body).toEqual({
       configured: true,
     });
+
+    const configuredStart = await fetch(
+      `${baseUrl}/api/auth/google/start?return_origin=${encodeURIComponent('http://localhost:18730')}`,
+      {
+        redirect: 'manual',
+      },
+    );
+    const googleLocation = configuredStart.headers.get('location');
+    const setCookie = configuredStart.headers.get('set-cookie') ?? '';
+    const googleAuthUrl =
+      typeof googleLocation === 'string' ? new URL(googleLocation) : null;
+    const state = googleAuthUrl?.searchParams.get('state') ?? '';
+    const nonce = googleAuthUrl?.searchParams.get('nonce') ?? '';
+
+    expect(configuredStart.status).toBe(302);
+    expect(state).toBeTruthy();
+    expect(nonce).toBeTruthy();
+    expect(setCookie).toContain('wa_google_oauth_state=');
+    expect(setCookie).toContain('wa_google_oauth_nonce=');
+    expect(setCookie).not.toContain('wa_google_oauth_return_origin=');
+    expect(setCookie).not.toContain(state);
+    expect(setCookie).not.toContain(nonce);
   });
 
   it('keeps legacy email/password auth endpoints disabled with 410 Gone', async () => {

@@ -1,7 +1,9 @@
 import {
+  createHash,
   createPublicKey,
   randomBytes,
   randomUUID,
+  timingSafeEqual,
   type JsonWebKey,
 } from 'node:crypto';
 
@@ -157,7 +159,7 @@ export class AuthService {
 
   async loginWithGoogleAuthorizationCode(
     code: string,
-    expectedNonce: string,
+    expectedNonceHash: string,
     metadata: AuthSessionMetadata = {},
   ): Promise<IssuedAuthSession> {
     const tokenResponse = await this.exchangeGoogleAuthorizationCode(code);
@@ -170,7 +172,7 @@ export class AuthService {
       throw new UnauthorizedException('Google did not return an id_token.');
     }
 
-    const profile = await this.verifyGoogleIdToken(idToken, expectedNonce);
+    const profile = await this.verifyGoogleIdToken(idToken, expectedNonceHash);
 
     if (!profile.emailVerified) {
       throw new UnauthorizedException('Google account email is not verified.');
@@ -685,6 +687,7 @@ export class AuthService {
 
     try {
       response = await fetchExternal(GOOGLE_TOKEN_URL, {
+        allowedHostnames: ['oauth2.googleapis.com'],
         body,
         headers: {
           'content-type': 'application/x-www-form-urlencoded',
@@ -725,7 +728,7 @@ export class AuthService {
 
   private async verifyGoogleIdToken(
     idToken: string,
-    expectedNonce: string,
+    expectedNonceHash: string,
   ): Promise<GoogleIdentityProfile> {
     const config = this.requireGoogleOAuthConfig();
     const decodedHeader = jwt.decode(idToken, {
@@ -747,7 +750,8 @@ export class AuthService {
     if (
       typeof payload.sub !== 'string' ||
       typeof payload.email !== 'string' ||
-      payload.nonce !== expectedNonce
+      typeof payload.nonce !== 'string' ||
+      !this.isOAuthSecretHashMatch(payload.nonce, expectedNonceHash)
     ) {
       throw new UnauthorizedException('Google id_token is invalid.');
     }
@@ -759,6 +763,14 @@ export class AuthService {
       pictureUrl: typeof payload.picture === 'string' ? payload.picture : '',
       providerAccountId: payload.sub,
     };
+  }
+
+  private isOAuthSecretHashMatch(secret: string, expectedHash: string) {
+    const actualHash = createHash('sha256').update(secret).digest('base64url');
+    const actual = Buffer.from(actualHash, 'base64url');
+    const expected = Buffer.from(expectedHash, 'base64url');
+
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
   }
 
   private async getGoogleSigningKey(kid: string) {
@@ -777,6 +789,7 @@ export class AuthService {
 
     try {
       response = await fetchExternal(GOOGLE_JWKS_URL, {
+        allowedHostnames: ['www.googleapis.com'],
         method: 'GET',
         timeoutMs: GOOGLE_JWKS_TIMEOUT_MS,
       });

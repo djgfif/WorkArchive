@@ -1,6 +1,7 @@
 import type { WorkType } from '@prisma/client';
 
 import type { ImportCandidateResponseDto } from '../dto/import-candidate-response.dto';
+import { decodeBasicHtmlEntities } from './import-candidate-normalization';
 import {
   normalizeDisplayText,
   normalizeImportTitleSignal,
@@ -457,13 +458,4 @@ function toConfidenceLabel(confidence: number) {
 
 function clampScore(score: number) {
   return Math.min(100, Math.max(0, score));
-}
-
-function decodeBasicHtmlEntities(value: string) {
-  return value
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
 }
