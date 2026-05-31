@@ -64,21 +64,15 @@ test('keeps guest backup and provider-key safety visible in settings', async ({
   ).toBeVisible();
 });
 
-test('captures the empty guest home visual baseline', async ({
-  page,
-}, testInfo) => {
+test('shows the empty guest home onboarding path', async ({ page }) => {
   await page.goto('/');
 
   await expect(
-    page.getByRole('heading', { name: '내 아카이브' }),
+    page.getByRole('heading', { name: '오늘 펼쳐볼 작품' }),
   ).toBeVisible();
-  await expect(page.getByText('첫 기록을 채우는 방법')).toBeVisible();
-  await expect(page).toHaveScreenshot(
-    `empty-home-${testInfo.project.name}.png`,
-    {
-      animations: 'disabled',
-      fullPage: true,
-      maxDiffPixelRatio: 0.02,
-    },
-  );
+  await expect(
+    page.getByRole('heading', { name: '첫 작품을 놓는 방법' }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: /첫 작품 추가/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /백업 가져오기/ })).toBeVisible();
 });

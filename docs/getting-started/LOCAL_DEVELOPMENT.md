@@ -74,6 +74,22 @@ Host mode endpoints:
 - API health: [http://localhost:18731/health](http://localhost:18731/health)
 - Swagger UI: [http://localhost:18731/docs](http://localhost:18731/docs)
 
+## Integration Tests
+
+PostgreSQL-backed API integration tests must never reset the normal development
+database. `npm run test:integration` prepares and uses a separate
+`work_archive_integration` database on the local Compose PostgreSQL port
+(`127.0.0.1:18732`) when `DATABASE_URL` is unset or points at the ordinary
+development database.
+
+```bash
+npm run dev:db
+npm run test:integration
+```
+
+If `DATABASE_URL` is set explicitly, it must include `test` or `integration` in
+the database name. The test reset guard refuses any other target.
+
 ## Windows Helpers
 
 The official cross-platform entrypoints are npm scripts:

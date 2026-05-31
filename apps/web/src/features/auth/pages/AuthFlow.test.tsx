@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '@app/router/routes';
 import { renderWithProviders } from '@test/render-with-providers';
-import { getLinkByHref, openProfileMenu } from '@test/ui-helpers';
+import { findLinkByHref, getLinkByHref, openProfileMenu } from '@test/ui-helpers';
 import { AuthProvider } from '../context/AuthProvider';
 import { readStoredAuthTokens } from '../services/auth-storage';
 import { guestTransferService } from '../services/guest-transfer.service';
@@ -357,8 +357,20 @@ describe('Auth flow', () => {
     await waitFor(() => {
       expect(screen.queryByText('Work Archive를 준비하고 있습니다')).not.toBeInTheDocument();
     });
-    await openProfileMenu(user, /게스트/);
-    expect(await screen.findByRole('menuitem', { name: /로그인/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /계정 메뉴: 게스트/ }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('link', {
+        name: /동기화 상태: 게스트 로컬 전용/,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/account');
+    });
+    expect(await findLinkByHref('/auth/login', /로그인/)).toBeInTheDocument();
   });
 
   it('logs out by clearing the refresh cookie session and returning to guest mode', async () => {

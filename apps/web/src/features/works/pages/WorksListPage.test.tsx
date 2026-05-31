@@ -21,9 +21,10 @@ describe('WorksListPage', () => {
 
   it('offers recovery actions when the works list cannot load', async () => {
     const user = userEvent.setup();
+    const originalListWorks = worksService.listWorks.bind(worksService);
     const listWorksSpy = vi
       .spyOn(worksService, 'listWorks')
-      .mockRejectedValueOnce(new Error('IndexedDB 연결 실패'));
+      .mockRejectedValue(new Error('IndexedDB 연결 실패'));
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/works'],
     });
@@ -44,13 +45,19 @@ describe('WorksListPage', () => {
       screen.getByRole('button', { name: '목록 오류 상태에서 작품 추가' }),
     ).toBeInTheDocument();
 
+    listWorksSpy.mockImplementation(originalListWorks);
+
     await user.click(screen.getByRole('button', { name: '다시 불러오기' }));
 
     await waitFor(() => {
       expect(listWorksSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
     expect(screen.queryByText('IndexedDB 연결 실패')).not.toBeInTheDocument();
-    expect(listWorksSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(
+      await screen.findByRole('heading', {
+        name: '아직 기록한 작품이 없습니다.',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('opens the modal-first add flow from the library page', async () => {

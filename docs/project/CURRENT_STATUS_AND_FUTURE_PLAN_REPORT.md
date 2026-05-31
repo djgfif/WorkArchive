@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                                                                                                                                                                               |
 | Role                  | `current reality`                                                                                                                                                                                                                                                         |
 | Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-05-03` Works view URL persistence working tree                                                                                                                                                                                                                      |
+| Last verified against | `2026-05-31` root verification, route/dependency cleanup, and service decomposition                                                                                                                                                                                       |
 | When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -22,16 +22,16 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 - Quick Add matched/unmatched/manual 저장 규칙과 duplicate detection 우선순위는 테스트로 고정돼 있다.
 - Quick Add 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage를 갖추고 manual fallback을 일반 검색 결과에서 분리한다.
 - 현재 sync는 수동 Sync page와 로그인 상태의 제한적 자동 sync를 함께 지원한다.
-- `Tier Boards`는 작품 기록과 분리된 독립 보드 기능이다. `Community`는 현재 구현/노출 범위 밖이며 `/community`는 호환 redirect만 유지한다. `Insights`는 현재 화면으로 노출하지 않고 개인 기록 통계 계획 문서 기준으로 관리한다.
+- `Tier Boards`는 작품 기록과 분리된 독립 보드 기능이다. `Insights`는 개인 기록 기반의 비공개 통계 화면으로 노출한다. `Community`는 현재 구현/노출 범위 밖이며 `/community`는 호환 redirect만 유지한다.
 
 ## 2. Verified Stack
 
 ### Frontend
 
-- React `19.1`
-- Vite `6.3`
-- TypeScript `5.8`
-- Mantine `7`
+- React `19.2`
+- Vite `6.4`
+- TypeScript `6.0`
+- Mantine `9.2`
 - Dexie
 - React Router `7`
 - Vitest + Testing Library
@@ -64,10 +64,10 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 
 | Area                    | Routes                                                                                   | Current state                                                       |
 | ----------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/tier-boards`, `/profile` | 홈/작품 흐름과 독립 티어보드 기능                                   |
-| Compatibility redirects | `/insights`, `/community`, `/sync`, `/settings`, `/profile/sync`, `/profile/settings`    | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트             |
+| Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/insights`, `/tier-boards`, `/tier-boards/:boardId`, `/tier-boards/:boardId/view`, `/profile` | 홈/작품/개인 인사이트 흐름과 독립 티어보드 기능                     |
+| Compatibility redirects | `/community`, `/sync`, `/settings`, `/profile/sync`, `/profile/settings`, `/account/sync` | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트             |
 | Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                        | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
-| Account                 | `/account`, `/account/sync`, `/account/transfer`, `/account/settings`                    | 계정 개요, sync, guest review, 설정 흐름 구현                       |
+| Account                 | `/account`, `/account/transfer`, `/account/settings`                                      | 계정 개요, guest review, 설정 흐름 구현                             |
 | Minimal                 | `*`                                                                                      | 404 처리                                                            |
 
 ### 3-3. Current User Flows
@@ -85,8 +85,22 @@ Dexie DB는 현재 아래 테이블을 사용한다.
 
 - `works`
 - `releaseRecords`
+- `timelineEntries`
+- `series`
+- `workSeriesLinks`
+- `contributors`
+- `workContributors`
+- `workRelations`
+- `tierBoards`
+- `tierLanes`
+- `tierBoardCards`
+- `tierBoardAssets`
 - `syncQueue`
 - `appMeta`
+
+초기 tier board draft migration에서 쓰던 `tierBoardLanes` / `tierBoardItems`
+스토어는 migration 호환 목적으로만 남아 있으며 현재 런타임 도메인은
+`tierLanes` / `tierBoardCards`를 사용한다.
 
 아카이브 스코프는 다음 두 종류다.
 
@@ -297,10 +311,11 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 ### Current Verification Status
 
-- `npm run lint`: `2026-05-05` 통과 확인
-- `npm run typecheck`: `2026-05-05` 통과 확인
-- `env TMPDIR=/tmp npm run test`: `2026-05-05` 기준 API `13` suites / `102` tests, web `23` files / `141` tests 통과 확인
-- `npm run build`: `2026-05-05` 통과 확인. Vite manual chunk 순환 경고는 있으나 빌드는 성공한다.
+- `npm run lint`: `2026-05-31` 통과 확인
+- `npm run typecheck`: `2026-05-31` 통과 확인
+- `npm run test`: `2026-05-31` 기준 API `23` suites / `271` tests,
+  web `42` files / `295` tests, shared-types `1` file / `3` tests 통과 확인
+- `npm run build`: `2026-05-31` 통과 확인
 - GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 `.github/workflows/validate.yml`에 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 
@@ -323,7 +338,7 @@ Sync UX reality: sync is not manual-only anymore. The manual Sync page remains t
 - sync는 수동 Sync page를 기본 조작면으로 제공하고, 로그인 상태에서는 제한적 자동 pull/push도 수행한다.
 - SyncPage는 pending / failed / conflict queue item 단위 상태와 원인, 기록 보기, 재시도 CTA를 제공한다.
 - SyncPage는 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지, 원격 적용, 필드별 병합으로 해결할 수 있다. 자동 병합 판단은 후속 작업이다.
-- Profile은 개인 기록 요약으로 제한한다. Tier Boards는 독립 기능으로 유지한다. Community와 Insights는 현재 visible surface가 아니며, Insights는 별도 계획 문서 기준으로 후속 구현한다.
+- Profile과 Insights는 개인 기록 요약/통계로 제한한다. Tier Boards는 독립 기능으로 유지한다. Community는 현재 visible surface가 아니며 `/community`는 작품 목록으로 리다이렉트한다.
 
 ### 7-3. Backend / Security
 

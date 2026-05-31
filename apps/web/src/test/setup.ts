@@ -64,6 +64,9 @@ beforeAll(() => {
 
 afterEach(async () => {
   cleanup();
+  document
+    .querySelectorAll('[data-mantine-shared-portal-node]')
+    .forEach((node) => node.remove());
   server.resetHandlers();
   clearStoredAuthTokens();
   window.localStorage.clear();

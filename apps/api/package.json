@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --config jest.config.mjs --runInBand",
     "test:e2e": "jest --config jest.e2e.config.mjs --runInBand",
-    "test:integration": "jest --config jest.integration.config.mjs --runInBand",
+    "test:integration": "node scripts/run-integration-tests.mjs",
     "ops:migrate-legacy-genres": "tsx src/operations/migrate-legacy-genres-to-tags.ts",
     "ops:retention:cleanup": "tsx src/operations/retention-cleanup.ts",
     "prisma:generate": "prisma generate",

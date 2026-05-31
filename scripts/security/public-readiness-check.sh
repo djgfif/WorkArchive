@@ -22,7 +22,7 @@ print_hits() {
 }
 
 tracked_root_files="$(git ls-files | awk 'index($0, "/") == 0 {print}' | sed '/^$/d')"
-allowed_root_regex='^(\.dockerignore|\.env\.compose\.example|\.env\.example|\.env\.host\.example|\.env\.prod\.example|\.gitattributes|\.gitignore|\.nvmrc|\.prettierignore|\.prettierrc\.json|CONTRIBUTING\.md|README\.md|SECURITY\.md|compose\.prod\.yml|compose\.yml|orval\.config\.ts|package-lock\.json|package\.json|playwright\.config\.ts)$'
+allowed_root_regex='^(\.dockerignore|\.env\.compose\.example|\.env\.example|\.env\.host\.example|\.env\.prod\.example|\.gitattributes|\.gitignore|\.nvmrc|\.prettierignore|\.prettierrc\.json|AGENTS\.md|CONTRIBUTING\.md|README\.md|SECURITY\.md|compose\.prod\.yml|compose\.yml|orval\.config\.ts|package-lock\.json|package\.json|playwright\.config\.ts)$'
 root_offenders="$(printf '%s\n' "$tracked_root_files" | grep -Ev "$allowed_root_regex" || true)"
 if [ -n "$root_offenders" ]; then
   print_hits "$root_offenders"
@@ -49,7 +49,7 @@ else
 fi
 
 docs_dirs="$(git ls-files docs | awk -F/ 'NF > 2 {print $2}' | sort -u)"
-allowed_docs_dirs='^(archive|architecture|commercial|getting-started|management|operations|project|qa|security|sync)$'
+allowed_docs_dirs='^(archive|architecture|commercial|design|getting-started|management|operations|project|qa|security|sync)$'
 docs_dir_offenders="$(printf '%s\n' "$docs_dirs" | grep -Ev "$allowed_docs_dirs" || true)"
 if [ -n "$docs_dir_offenders" ]; then
   print_hits "$docs_dir_offenders"
