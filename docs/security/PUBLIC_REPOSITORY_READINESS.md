@@ -5,7 +5,7 @@ public.
 
 ## Current Audit Result
 
-Last local audit: 2026-05-25.
+Last local audit: 2026-05-31.
 
 - The current tree should not track local `.env` files. Commit only
   `.env*.example` templates such as `.env.example`, `.env.compose.example`,
@@ -26,6 +26,13 @@ Last local audit: 2026-05-25.
   Historical material belongs under `docs/archive/`.
 - Files already tracked by git must not match `.gitignore`; this catches
   accidentally tracked local state after ignore rules are tightened.
+- Local clones should install the repository security hooks with
+  `npm run security:install-hooks`. The `pre-commit` hook blocks staged
+  non-example `.env` files and high-confidence secret patterns; the `pre-push`
+  hook runs the full public repository guardrail.
+- The redacted secret scanner must report only path, line, detector, and key
+  names. It must not print secret values from `.env`, API keys, or token-like
+  strings.
 - Large binary/media files require explicit review before publication. Design
   source assets should be archived intentionally, not left in the active docs
   path by accident.
@@ -39,7 +46,9 @@ Last local audit: 2026-05-25.
 Run from the repository root:
 
 ```bash
-scripts/security/public-readiness-check.sh
+npm run security:install-hooks
+npm run security:secrets
+npm run security:public
 git ls-files -ci --exclude-standard
 npm audit --omit=dev
 npm audit
@@ -51,7 +60,8 @@ npm run check:docs-links
 git status --short --branch
 ```
 
-The readiness script must end with `Public readiness check passed.`
+The secret scanner must end with `Secret leak check passed.` The readiness
+script must end with `Public readiness check passed.`
 `trivy` commands run on the official release CI/runner, not ordinary local WSL
 development. Document skipped scans in release notes when the runner, Trivy
 database update, or release images are unavailable.
@@ -59,6 +69,8 @@ database update, or release images are unavailable.
 Equivalent npm helpers are available for local release checks:
 
 ```bash
+npm run security:secrets
+npm run security:public
 npm run security:audit:prod
 npm run security:audit
 npm run security:scan:fs
@@ -112,6 +124,8 @@ works list, add flow, detail page, and imported cover rendering.
   execution notes. Official local entrypoints are `npm run dev:start`,
   `npm run dev:start:host`, and `npm run dev:stop`.
 - Confirm local Markdown links resolve after any file move.
+- Confirm local hooks are installed and not bypassed for security-sensitive
+  commits or pushes.
 - Confirm historical commits do not contain real secrets. If a real secret was
   committed at any point, rotate the secret first; rewrite git history only with
   explicit approval because it requires a force push.

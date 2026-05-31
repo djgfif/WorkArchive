@@ -82,6 +82,12 @@ else
   info "example env files contain no high-confidence real secret values"
 fi
 
+if npm run -s security:secrets; then
+  info "redacted secret leak scanner passed"
+else
+  fail "redacted secret leak scanner found tracked or staged secret risk"
+fi
+
 tracked_artifacts="$(git ls-files | grep -E '(^|/)(test-results|playwright-report|blob-report|coverage|dist|build|\.vite|\.cache|\.turbo|logs|tmp|temp|backups|backup)(/|$)|\.(log|har|sqlite|sqlite3|db|db-journal|db-wal|db-shm|dump|bak|backup|zip|tar|tgz|tar\.gz|7z|rar|trace|webm|mp4|mov)$' || true)"
 if [ -n "$tracked_artifacts" ]; then
   print_hits "$tracked_artifacts"
@@ -98,7 +104,7 @@ else
   info "no personal tool or IDE state files are tracked"
 fi
 
-secret_hits="$(git grep -n -I -E '(ghp_|github_pat_|AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-|AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----)' -- . ':(exclude)package-lock.json' ':(exclude)scripts/security/public-readiness-check.sh' || true)"
+secret_hits="$(git grep -n -I -E '(ghp_|github_pat_|AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9]{20,}|xox[baprs]-|AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----)' -- . ':(exclude)package-lock.json' ':(exclude)scripts/security/public-readiness-check.sh' ':(exclude)scripts/security/secret-leak-check.mjs' || true)"
 if [ -n "$secret_hits" ]; then
   print_hits "$secret_hits"
   fail "high-confidence secret patterns were found in tracked files"

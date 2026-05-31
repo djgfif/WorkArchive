@@ -14,6 +14,8 @@ live under [`../operations/`](../operations/).
 Copy only example files. Do not commit real `.env` files.
 
 ```bash
+npm install
+npm run security:install-hooks
 cp .env.compose.example .env.compose
 cp .env.host.example .env.host
 cp apps/api/.env.example apps/api/.env
@@ -26,6 +28,11 @@ cp apps/web/.env.example apps/web/.env
 | [`.env.host.example`](../../.env.host.example)         | host-based API development |
 | [`apps/api/.env.example`](../../apps/api/.env.example) | API workspace defaults     |
 | [`apps/web/.env.example`](../../apps/web/.env.example) | web workspace defaults     |
+
+The installed `pre-commit` hook runs `npm run security:secrets`; the installed
+`pre-push` hook runs `npm run security:public`. Both checks redact findings and
+must not print secret values. Re-run `npm run security:install-hooks` after
+cloning or after replacing `.git/hooks`.
 
 ## Docker Compose Mode
 

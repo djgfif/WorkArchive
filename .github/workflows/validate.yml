@@ -27,6 +27,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Secret leak scan
+        run: npm run security:secrets
+
       - name: Public repository guardrails
         run: npm run security:public
 

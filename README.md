@@ -51,13 +51,16 @@ are documented in
 Before making or keeping this repository public, run:
 
 ```bash
-scripts/security/public-readiness-check.sh
+npm run security:install-hooks
+npm run security:secrets
+npm run security:public
 git ls-files -ci --exclude-standard
 ```
 
 The repository must not track real `.env` files, provider keys, database dumps,
 logs, browser traces, backup archives, local IDE state, or machine-specific
-paths. See
+paths. The secret scanner prints only redacted path/line findings; it must not
+print secret values. See
 [`docs/security/PUBLIC_REPOSITORY_READINESS.md`](./docs/security/PUBLIC_REPOSITORY_READINESS.md)
 for the full checklist.
 
