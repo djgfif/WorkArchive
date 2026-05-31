@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                  |
 | Role                  | `architecture boundary guide`                                                |
 | Source of truth       | Current `apps/web`, `apps/api`, and `packages/*` layout                      |
-| Last verified against | `2026-05-22` working tree                                                    |
+| Last verified against | `2026-05-31` sync/import service decomposition                               |
 | When to update        | Feature folders, module boundaries, or cross-feature dependency rules change |
 
 Work Archive uses a feature-first monorepo layout. The root keeps operational
@@ -73,7 +73,17 @@ Large modules are split by responsibility:
 
 - `imports`: candidate normalization/ranking, provider contracts, diagnostics,
   credential storage, and runtime provider state.
+- Import provider search is intentionally grouped by provider family:
+  `import-provider-search.ts` is the dispatcher/fallback entrypoint, while
+  `*-books`, `*-media`, `*-web`, `*-wikidata`, and `*-manual` hold provider
+  execution details. Keep credential checks and provider-specific response
+  parsing inside those family files instead of returning them to the service.
 - `sync`: request/response DTOs, entity payload DTOs, controller, and service.
+  `sync-push.service.ts` coordinates push execution; entity handlers own
+  work/release/timeline/tier-board/graph behavior. Graph sync is split again
+  into entity handlers, link handlers, validation helpers, result builders, and
+  Prisma data builders so relationship ownership and parent validation stay
+  isolated.
 - `common`, `config`, `prisma`, and `security` are platform layers and may be
   used by feature modules.
 
