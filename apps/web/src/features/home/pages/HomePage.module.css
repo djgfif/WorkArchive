@@ -52,11 +52,19 @@
 .homeStatStrip {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   color: var(--app-text-muted);
   font-size: var(--app-type-caption);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  row-gap: 0.25rem;
+}
+
+.homeStatStrip > span,
+.homeStatStrip > a {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .homeStatDot {
@@ -512,6 +520,10 @@
   .homeGreeting {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .homeGreetingText {
+    width: 100%;
   }
 
   .homeActions {

@@ -79,6 +79,11 @@ media model:
   injection bug would have more styling latitude. Future hardening should test
   nonce/hash-based style handling or a build-time extraction path before
   removing it.
+- `style-src https://cdn.jsdelivr.net https://fonts.googleapis.com` and
+  `font-src https://cdn.jsdelivr.net https://fonts.gstatic.com`: the production
+  HTML currently loads Pretendard from jsDelivr and display/mono fonts from
+  Google Fonts. Future hardening should self-host these assets before removing
+  the third-party font hosts from CSP.
 - `img-src 'self' data: https:`: imported catalog covers and user-entered image
   URLs are loaded from multiple HTTPS provider domains, and placeholders may use
   `data:`. Known provider hosts already route through `/api/image-proxy` in the

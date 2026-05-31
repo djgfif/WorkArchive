@@ -1,6 +1,6 @@
 # CSP Hardening Plan
 
-Last reviewed: 2026-05-25.
+Last reviewed: 2026-05-31.
 
 The enforced production CSP in `apps/web/nginx.conf` must not be tightened until
 report-only telemetry and browser coverage show that the UI and imported images
@@ -9,7 +9,7 @@ continue to work.
 Current enforced header:
 
 ```text
-default-src 'self'; connect-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'
+default-src 'self'; connect-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'
 ```
 
 ## Current Exceptions
@@ -17,6 +17,7 @@ default-src 'self'; connect-src 'self'; img-src 'self' data: https:; script-src 
 | Directive | Why it remains | Risk |
 | --- | --- | --- |
 | `style-src 'self' 'unsafe-inline'` | The current React/Mantine UI still depends on runtime inline style attributes and injected style blocks. Removing it now can break layouts, modals, and component styling. | If an HTML injection bug appears, inline style execution gives an attacker more presentation control and can assist UI redress or data exfiltration through CSS side channels. |
+| `style-src https://cdn.jsdelivr.net https://fonts.googleapis.com`; `font-src https://cdn.jsdelivr.net https://fonts.gstatic.com` | The production HTML loads Pretendard from jsDelivr and display/mono fonts from Google Fonts. These hosts must match `apps/web/index.html` until fonts are self-hosted. | Third-party font styles and font files reveal page-load metadata to those providers and add external availability dependencies. |
 | `img-src 'self' data: https:` | The app displays imported catalog covers and user-entered poster URLs from multiple external HTTPS providers. Placeholders may use `data:`. | Arbitrary HTTPS image hosts can receive request metadata and can be abused for tracking; SVG or mislabeled images can increase parser attack surface if not proxied and type-checked. |
 
 ## Report-Only Rollout
@@ -71,6 +72,15 @@ Fallback during staging:
    policy.
 5. Remove `'unsafe-inline'` from report-only first, then enforced CSP in a later
    release.
+
+## Self-Hosting Fonts
+
+1. Add license-compatible font assets to the web build or a documented asset
+   package.
+2. Replace external stylesheet links in `apps/web/index.html` with local
+   `@font-face` declarations.
+3. Remove `cdn.jsdelivr.net`, `fonts.googleapis.com`, and `fonts.gstatic.com`
+   from the enforced CSP after Playwright visual checks pass in production mode.
 
 ## Image Proxy / Allowlist Transition
 

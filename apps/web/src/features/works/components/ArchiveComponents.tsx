@@ -685,15 +685,14 @@ export function WorkPosterCard({ isUpdating = false, work }: WorkPosterCardProps
     >
       <Paper className={cn(css.posterCardSurface)} withBorder>
         {work.favorite && (
-          <ActionIcon
-            aria-label={`${work.title} 즐겨찾기`}
+          <Box
+            aria-hidden="true"
             className={cn(css.favoriteMark)}
             component="span"
-            size="sm"
-            variant="default"
+            title="즐겨찾기"
           >
             ★
-          </ActionIcon>
+          </Box>
         )}
         <WorkPoster
           coverSeed={work.id}
