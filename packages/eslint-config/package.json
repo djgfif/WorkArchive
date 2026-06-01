@@ -9,7 +9,7 @@
     "./web": "./web.mjs"
   },
   "dependencies": {
-    "@eslint/js": "^9.25.1",
+    "@eslint/js": "^10.0.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",

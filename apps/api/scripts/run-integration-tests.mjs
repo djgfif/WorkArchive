@@ -73,6 +73,7 @@ async function ensureDatabase(databaseUrl) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(
       `Could not prepare PostgreSQL integration database "${databaseName}". Start Docker Compose or set DATABASE_URL to an existing test/integration database. ${message}`,
+      { cause: error },
     );
   } finally {
     await prisma.$disconnect();
