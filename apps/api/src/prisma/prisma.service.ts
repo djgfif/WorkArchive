@@ -4,9 +4,12 @@ import {
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
+const DEFAULT_LOCAL_DATABASE_URL =
+  'postgresql://postgres:postgres@127.0.0.1:18732/work_archive?schema=public';
 
 function readConnectTimeoutMs() {
   const value = process.env.PRISMA_CONNECT_TIMEOUT_MS?.trim();
@@ -36,12 +39,24 @@ function rejectAfterTimeout(timeoutMs: number) {
   });
 }
 
+function readPrismaDatabaseUrl() {
+  return process.env.DATABASE_URL?.trim() || DEFAULT_LOCAL_DATABASE_URL;
+}
+
 @Injectable()
 export class PrismaService
   extends PrismaClient
   implements OnModuleDestroy, OnModuleInit
 {
   private readonly logger = new Logger(PrismaService.name);
+
+  constructor() {
+    super({
+      adapter: new PrismaPg({
+        connectionString: readPrismaDatabaseUrl(),
+      }),
+    });
+  }
 
   async onModuleInit() {
     try {

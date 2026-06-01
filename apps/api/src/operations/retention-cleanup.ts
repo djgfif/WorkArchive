@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 const DEFAULT_SECURITY_EVENT_RETENTION_DAYS = 180;
@@ -46,6 +47,18 @@ export interface RetentionCleanupResult {
   dryRun: boolean;
   matched: number;
   name: string;
+}
+
+function createPrismaClient() {
+  const connectionString = process.env.DATABASE_URL?.trim();
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL must be configured before running retention cleanup.');
+  }
+
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString }),
+  });
 }
 
 export function readRetentionCleanupConfig(
@@ -280,7 +293,7 @@ function logRetentionEvent(
 }
 
 async function main() {
-  const prisma = new PrismaClient();
+  const prisma = createPrismaClient();
   const config = readRetentionCleanupConfig();
 
   try {
