@@ -1,11 +1,13 @@
 import 'fake-indexeddb/auto';
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 
 import { clearStoredAuthTokens } from '@features/auth';
 import { resetWorkArchiveStorage } from '@features/works';
 import { server } from './msw';
+
+configure({ asyncUtilTimeout: 5_000 });
 
 if (!window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
