@@ -45,7 +45,6 @@ import type {
   AuthTokenPayload,
   AuthenticatedUser,
 } from './auth.types';
-import { isOAuthVerificationValueMatch } from './oauth-verification';
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
@@ -692,6 +691,7 @@ export class AuthService {
           'content-type': 'application/x-www-form-urlencoded',
         },
         method: 'POST',
+        maxResponseBytes: GOOGLE_OAUTH_JSON_MAX_BYTES,
         timeoutMs: GOOGLE_TOKEN_TIMEOUT_MS,
       });
     } catch (error) {
@@ -749,9 +749,12 @@ export class AuthService {
     if (
       typeof payload.sub !== 'string' ||
       typeof payload.email !== 'string' ||
-      typeof payload.nonce !== 'string' ||
-      !isOAuthVerificationValueMatch(payload.nonce, expectedNonceHash)
+      typeof payload.nonce !== 'string'
     ) {
+      throw new UnauthorizedException('Google id_token is invalid.');
+    }
+
+    if (!(await verifySecret(payload.nonce, expectedNonceHash))) {
       throw new UnauthorizedException('Google id_token is invalid.');
     }
 
@@ -782,6 +785,7 @@ export class AuthService {
       response = await fetchExternal(GOOGLE_JWKS_URL, {
         allowedHostnames: ['www.googleapis.com'],
         method: 'GET',
+        maxResponseBytes: GOOGLE_JWKS_JSON_MAX_BYTES,
         timeoutMs: GOOGLE_JWKS_TIMEOUT_MS,
       });
     } catch (error) {

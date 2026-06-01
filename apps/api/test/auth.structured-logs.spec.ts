@@ -4,6 +4,7 @@ import type { Request } from 'express';
 
 import { AuthController } from '../src/modules/auth/auth.controller';
 import type { AuthService } from '../src/modules/auth/auth.service';
+import type { GoogleOAuthFlowStoreService } from '../src/modules/auth/google-oauth-flow-store.service';
 import type { SecurityAuditService } from '../src/security/security-audit.service';
 
 describe('auth structured logs', () => {
@@ -17,6 +18,7 @@ describe('auth structured logs', () => {
       .mockImplementation(() => undefined);
     const controller = new AuthController(
       {} as AuthService,
+      {} as GoogleOAuthFlowStoreService,
       {} as SecurityAuditService,
     );
     const request = {

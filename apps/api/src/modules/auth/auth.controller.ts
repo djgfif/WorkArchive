@@ -17,7 +17,7 @@ import {
   UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import {
   ApiBody,
   ApiBearerAuth,
@@ -48,14 +48,10 @@ import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import {
-  isOAuthVerificationValueMatch,
-  signOAuthVerificationValue,
-} from './oauth-verification';
+import { hashSecret, verifySecret } from './auth-crypto';
+import { GoogleOAuthFlowStoreService } from './google-oauth-flow-store.service';
 
-const GOOGLE_OAUTH_STATE_COOKIE = 'wa_google_oauth_state';
-const GOOGLE_OAUTH_NONCE_COOKIE = 'wa_google_oauth_nonce';
-const GOOGLE_OAUTH_RETURN_ORIGIN_COOKIE = 'wa_google_oauth_return_origin';
+const GOOGLE_OAUTH_FLOW_COOKIE = 'wa_google_oauth_flow';
 const GOOGLE_OAUTH_COOKIE_MAX_AGE_MS = 1000 * 60 * 10;
 
 @ApiTags('auth')
@@ -65,6 +61,8 @@ export class AuthController {
 
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
+    @Inject(GoogleOAuthFlowStoreService)
+    private readonly googleOAuthFlowStore: GoogleOAuthFlowStoreService,
     @Inject(SecurityAuditService)
     private readonly securityAudit: SecurityAuditService,
   ) {}
@@ -102,28 +100,31 @@ export class AuthController {
 
     const validatedReturnOrigin =
       this.getAllowedOAuthReturnOrigin(returnOrigin);
-    const state = this.generateOAuthState(validatedReturnOrigin);
+    const flowId = randomUUID();
+    const state = this.generateOAuthSecret();
     const nonce = this.generateOAuthSecret();
-    response.cookie(
-      GOOGLE_OAUTH_STATE_COOKIE,
-      signOAuthVerificationValue(state),
+    const [stateHash, nonceHash] = await Promise.all([
+      hashSecret(state),
+      hashSecret(nonce),
+    ]);
+
+    await this.googleOAuthFlowStore.store(
+      flowId,
       {
-        httpOnly: true,
-        maxAge: GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
-        sameSite: 'lax',
-        secure: true,
+        expiresAt: Date.now() + GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
+        nonceHash,
+        returnOrigin: validatedReturnOrigin,
+        stateHash,
       },
+      GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
     );
-    response.cookie(
-      GOOGLE_OAUTH_NONCE_COOKIE,
-      signOAuthVerificationValue(nonce),
-      {
-        httpOnly: true,
-        maxAge: GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
-        sameSite: 'lax',
-        secure: true,
-      },
-    );
+
+    response.cookie(GOOGLE_OAUTH_FLOW_COOKIE, flowId, {
+      httpOnly: true,
+      maxAge: GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
+      sameSite: 'lax',
+      secure: true,
+    });
 
     response.redirect(this.authService.getGoogleAuthorizationUrl(state, nonce));
   }
@@ -143,9 +144,29 @@ export class AuthController {
     @Req() request: Request,
     @Res() response: Response,
   ) {
-    const expectedStateHash = request.cookies?.[GOOGLE_OAUTH_STATE_COOKIE];
-    const expectedNonceHash = request.cookies?.[GOOGLE_OAUTH_NONCE_COOKIE];
-    const returnOrigin = this.readReturnOriginFromOAuthState(state);
+    const flowId = request.cookies?.[GOOGLE_OAUTH_FLOW_COOKIE];
+    let flow: Awaited<ReturnType<typeof this.consumeOAuthFlow>>;
+
+    try {
+      flow = await this.consumeOAuthFlow(flowId, state);
+    } catch (flowError) {
+      this.clearOAuthCookies(response);
+      this.logAuthGoogleFailed(request, this.describeAuthFailure(flowError));
+      void this.securityAudit.record({
+        eventType: 'auth.login.failure',
+        metadata: {
+          provider: 'google',
+          reason: 'oauth_flow_store_unavailable',
+        },
+        request,
+        severity: 'critical',
+      });
+
+      response.redirect(this.getGoogleLoginFailureRedirectUrl('failed'));
+      return;
+    }
+
+    const returnOrigin = flow?.returnOrigin;
 
     this.clearOAuthCookies(response);
 
@@ -167,13 +188,7 @@ export class AuthController {
       return;
     }
 
-    if (
-      typeof code !== 'string' ||
-      typeof state !== 'string' ||
-      typeof expectedStateHash !== 'string' ||
-      typeof expectedNonceHash !== 'string' ||
-      !isOAuthVerificationValueMatch(state, expectedStateHash)
-    ) {
+    if (typeof code !== 'string' || !flow) {
       this.logAuthGoogleFailed(request, 'invalid_oauth_state');
       void this.securityAudit.record({
         eventType: 'auth.login.failure',
@@ -194,7 +209,7 @@ export class AuthController {
     try {
       session = await this.authService.loginWithGoogleAuthorizationCode(
         code,
-        expectedNonceHash,
+        flow.nonceHash,
         this.getSessionMetadata(request),
       );
     } catch (loginError) {
@@ -466,30 +481,18 @@ export class AuthController {
     return randomBytes(32).toString('base64url');
   }
 
-  private generateOAuthState(returnOrigin: string) {
-    const encodedReturnOrigin = Buffer.from(returnOrigin, 'utf8').toString(
-      'base64url',
-    );
-
-    return `${this.generateOAuthSecret()}.${encodedReturnOrigin}`;
-  }
-
-  private readReturnOriginFromOAuthState(state: unknown) {
-    if (typeof state !== 'string') {
-      return undefined;
+  private async consumeOAuthFlow(flowId: unknown, state: unknown) {
+    if (typeof flowId !== 'string' || typeof state !== 'string') {
+      return null;
     }
 
-    const encodedReturnOrigin = state.split('.', 2)[1];
+    const flow = await this.googleOAuthFlowStore.consume(flowId);
 
-    if (!encodedReturnOrigin) {
-      return undefined;
+    if (!flow || !(await verifySecret(state, flow.stateHash))) {
+      return null;
     }
 
-    try {
-      return Buffer.from(encodedReturnOrigin, 'base64url').toString('utf8');
-    } catch {
-      return undefined;
-    }
+    return flow;
   }
 
   private clearOAuthCookies(response: Response) {
@@ -499,9 +502,7 @@ export class AuthController {
       secure: true,
     };
 
-    response.clearCookie(GOOGLE_OAUTH_STATE_COOKIE, options);
-    response.clearCookie(GOOGLE_OAUTH_NONCE_COOKIE, options);
-    response.clearCookie(GOOGLE_OAUTH_RETURN_ORIGIN_COOKIE, options);
+    response.clearCookie(GOOGLE_OAUTH_FLOW_COOKIE, options);
   }
 
   private getGoogleLoginSuccessRedirectUrl(returnOrigin?: unknown) {

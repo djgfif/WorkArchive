@@ -13,10 +13,10 @@ import {
   AuthService,
   type IssuedAuthSession,
 } from '../src/modules/auth/auth.service';
+import { setExternalFetchTransportForTest } from '../src/common/external-fetch';
 import type { PrismaService } from '../src/prisma/prisma.service';
 
 const ORIGINAL_ENV = { ...process.env };
-const ORIGINAL_FETCH = globalThis.fetch;
 
 interface MockUser {
   id: string;
@@ -305,8 +305,8 @@ async function issueSession(
 
 describe('AuthService', () => {
   afterEach(() => {
+    setExternalFetchTransportForTest(null);
     process.env = { ...ORIGINAL_ENV };
-    globalThis.fetch = ORIGINAL_FETCH;
     jest.restoreAllMocks();
   });
 
@@ -316,6 +316,7 @@ describe('AuthService', () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
     process.env.WEB_BASE_URL = 'http://localhost:18730';
+    setExternalFetchTransportForTest(async () => new Response('{}'));
   });
 
   it('tracks remember-me session intent without using the legacy user column', async () => {
@@ -586,9 +587,9 @@ describe('AuthService', () => {
     const warnSpy = jest
       .spyOn(Logger.prototype, 'warn')
       .mockImplementation(() => undefined);
-    jest
-      .spyOn(globalThis, 'fetch')
-      .mockRejectedValue(new DOMException('aborted', 'AbortError'));
+    setExternalFetchTransportForTest(async () => {
+      throw new DOMException('aborted', 'AbortError');
+    });
 
     await expect(
       (
@@ -624,9 +625,9 @@ describe('AuthService', () => {
       keysByKid: new Map([['cached-kid', 'cached-pem']]),
     };
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
-    jest
-      .spyOn(globalThis, 'fetch')
-      .mockRejectedValue(new DOMException('aborted', 'AbortError'));
+    setExternalFetchTransportForTest(async () => {
+      throw new DOMException('aborted', 'AbortError');
+    });
 
     await expect(
       (

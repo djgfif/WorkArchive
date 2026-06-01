@@ -1373,9 +1373,9 @@ describe('Auth, works, and sync API (e2e)', () => {
     expect(configuredStart.status).toBe(302);
     expect(state).toBeTruthy();
     expect(nonce).toBeTruthy();
-    expect(setCookie).toContain('wa_google_oauth_state=');
-    expect(setCookie).toContain('wa_google_oauth_nonce=');
-    expect(setCookie).not.toContain('wa_google_oauth_return_origin=');
+    expect(setCookie).toContain('wa_google_oauth_flow=');
+    expect(setCookie).not.toContain('wa_google_oauth_state=');
+    expect(setCookie).not.toContain('wa_google_oauth_nonce=');
     expect(setCookie).not.toContain(state);
     expect(setCookie).not.toContain(nonce);
   });
