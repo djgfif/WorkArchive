@@ -2,7 +2,7 @@ import {
   createPublicKey,
   randomBytes,
   randomUUID,
-  type JsonWebKey,
+  type webcrypto,
 } from 'node:crypto';
 
 import {
@@ -38,6 +38,8 @@ import type {
   AuthRefreshSessionResponseDto,
   AuthRefreshSessionsResponseDto,
 } from './dto/auth-refresh-session-response.dto';
+
+type JsonWebKey = webcrypto.JsonWebKey;
 import type { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import type { UpdateProfileDto } from './dto/update-profile.dto';
 import type {
