@@ -18,6 +18,13 @@ export type WorkFormListFieldName =
   | 'studioText'
   | 'universeText';
 
+export interface AddWorkSuggestions {
+  organizationContributorSuggestions: string[];
+  personContributorSuggestions: string[];
+  seriesSuggestions: string[];
+  tagSuggestions: string[];
+}
+
 export function getFieldId(idPrefix: string, fieldName: string) {
   if (!idPrefix) {
     return fieldName;
