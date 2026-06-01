@@ -17,14 +17,16 @@ import {
   buildImportCandidate,
   dedupeRawExternalRefs,
   getFormatLabel,
-  isRecord,
   parseYear,
+  uniqueNonEmpty,
+} from './import-candidate-builder';
+import {
+  isRecord,
   readNumber,
   readPath,
   readString,
-  uniqueNonEmpty,
   type UnknownRecord,
-} from './import-candidate-builder';
+} from './import-candidate-readers';
 
 export function getWikidataHeaders() {
   return {

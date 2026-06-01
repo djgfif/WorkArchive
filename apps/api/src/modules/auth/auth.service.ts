@@ -1,8 +1,6 @@
 import {
-  createPublicKey,
   randomBytes,
   randomUUID,
-  type webcrypto,
 } from 'node:crypto';
 
 import {
@@ -12,7 +10,6 @@ import {
   Injectable,
   Logger,
   Optional,
-  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import type {
@@ -24,11 +21,6 @@ import type {
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 
 import { readApiRuntimeConfig } from '../../config/api-runtime-config';
-import {
-  ExternalFetchError,
-  fetchExternal,
-  readJsonWithLimit,
-} from '../../common/external-fetch';
 import { MetricsService } from '../../observability/metrics.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SecurityAuditService } from '../../security/security-audit.service';
@@ -38,8 +30,6 @@ import type {
   AuthRefreshSessionResponseDto,
   AuthRefreshSessionsResponseDto,
 } from './dto/auth-refresh-session-response.dto';
-
-type JsonWebKey = webcrypto.JsonWebKey;
 import type { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import type { UpdateProfileDto } from './dto/update-profile.dto';
 import type {
@@ -47,22 +37,14 @@ import type {
   AuthTokenPayload,
   AuthenticatedUser,
 } from './auth.types';
+import {
+  GOOGLE_AUTH_PROVIDER,
+  GoogleOAuthClient,
+  type GoogleIdentityProfile,
+} from './google-oauth-client';
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
-const GOOGLE_AUTH_PROVIDER = 'google';
-const GOOGLE_AUTHORIZATION_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
-const GOOGLE_TOKEN_TIMEOUT_MS = 5_000;
-const GOOGLE_JWKS_TIMEOUT_MS = 4_000;
-const GOOGLE_JWKS_STALE_FALLBACK_MS = 24 * 60 * 60 * 1_000;
-const GOOGLE_OAUTH_JSON_MAX_BYTES = 64 * 1_024;
-const GOOGLE_JWKS_JSON_MAX_BYTES = 256 * 1_024;
-const GOOGLE_OIDC_ISSUERS: [string, string] = [
-  'https://accounts.google.com',
-  'accounts.google.com',
-];
 const RESERVED_HANDLES = new Set([
   'admin',
   'api',
@@ -91,38 +73,10 @@ type UserWithAuthAccounts = User & {
   authAccounts?: UserAuthAccount[];
 };
 
-interface GoogleTokenResponse {
-  id_token?: unknown;
-}
-
-interface GoogleJwksResponse {
-  keys?: Array<JsonWebKey & { kid?: string }>;
-}
-
-interface GoogleIdentityProfile {
-  providerAccountId: string;
-  email: string;
-  emailVerified: boolean;
-  name: string;
-  pictureUrl: string;
-}
-
-type GoogleIdTokenPayload = JwtPayload & {
-  email?: unknown;
-  email_verified?: unknown;
-  name?: unknown;
-  nonce?: unknown;
-  picture?: unknown;
-};
-
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private googleSigningKeysCache: {
-    expiresAt: number;
-    fetchedAt: number;
-    keysByKid: Map<string, string>;
-  } | null = null;
+  private readonly googleOAuth: GoogleOAuthClient;
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -132,29 +86,19 @@ export class AuthService {
     @Inject(MetricsService)
     @Optional()
     private readonly metricsService?: MetricsService,
-  ) {}
+    @Inject(GoogleOAuthClient)
+    @Optional()
+    googleOAuth?: GoogleOAuthClient,
+  ) {
+    this.googleOAuth = googleOAuth ?? new GoogleOAuthClient();
+  }
 
   getGoogleAuthorizationUrl(state: string, nonce: string) {
-    const config = this.requireGoogleOAuthConfig();
-    const authorizationUrl = new URL(GOOGLE_AUTHORIZATION_URL);
-
-    authorizationUrl.searchParams.set('client_id', config.clientId);
-    authorizationUrl.searchParams.set('redirect_uri', config.redirectUri);
-    authorizationUrl.searchParams.set('response_type', 'code');
-    authorizationUrl.searchParams.set('scope', 'openid email profile');
-    authorizationUrl.searchParams.set('state', state);
-    authorizationUrl.searchParams.set('nonce', nonce);
-    authorizationUrl.searchParams.set('prompt', 'select_account');
-
-    return authorizationUrl.toString();
+    return this.googleOAuth.getAuthorizationUrl(state, nonce);
   }
 
   isGoogleOAuthConfigured() {
-    const config = readApiRuntimeConfig();
-
-    return Boolean(
-      config.googleOAuthClientId && config.googleOAuthClientSecret,
-    );
+    return this.googleOAuth.isConfigured();
   }
 
   async loginWithGoogleAuthorizationCode(
@@ -162,17 +106,10 @@ export class AuthService {
     expectedNonceHash: string,
     metadata: AuthSessionMetadata = {},
   ): Promise<IssuedAuthSession> {
-    const tokenResponse = await this.exchangeGoogleAuthorizationCode(code);
-    const idToken =
-      typeof tokenResponse.id_token === 'string'
-        ? tokenResponse.id_token
-        : null;
-
-    if (!idToken) {
-      throw new UnauthorizedException('Google did not return an id_token.');
-    }
-
-    const profile = await this.verifyGoogleIdToken(idToken, expectedNonceHash);
+    const profile = await this.googleOAuth.getIdentityProfileForAuthorizationCode(
+      code,
+      expectedNonceHash,
+    );
 
     if (!profile.emailVerified) {
       throw new UnauthorizedException('Google account email is not verified.');
@@ -615,10 +552,6 @@ export class AuthService {
     return type === 'access' ? config.jwtAccessSecret : config.jwtRefreshSecret;
   }
 
-  private normalizeEmail(email: string) {
-    return email.trim().toLowerCase();
-  }
-
   private isUniqueConstraintError(error: unknown) {
     return (
       typeof error === 'object' &&
@@ -655,242 +588,6 @@ export class AuthService {
       nickname: user.nickname,
       role: user.role,
     };
-  }
-
-  private requireGoogleOAuthConfig() {
-    const config = readApiRuntimeConfig();
-
-    if (!config.googleOAuthClientId || !config.googleOAuthClientSecret) {
-      throw new ServiceUnavailableException(
-        'Google OAuth is not configured for this environment.',
-      );
-    }
-
-    return {
-      clientId: config.googleOAuthClientId,
-      clientSecret: config.googleOAuthClientSecret,
-      redirectUri: config.googleOAuthRedirectUri,
-    };
-  }
-
-  private async exchangeGoogleAuthorizationCode(code: string) {
-    const config = this.requireGoogleOAuthConfig();
-    const body = new URLSearchParams({
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
-      code,
-      grant_type: 'authorization_code',
-      redirect_uri: config.redirectUri,
-    });
-
-    let response: Response;
-
-    try {
-      response = await fetchExternal(GOOGLE_TOKEN_URL, {
-        allowedHostnames: ['oauth2.googleapis.com'],
-        body,
-        headers: {
-          'content-type': 'application/x-www-form-urlencoded',
-        },
-        method: 'POST',
-        maxResponseBytes: GOOGLE_OAUTH_JSON_MAX_BYTES,
-        timeoutMs: GOOGLE_TOKEN_TIMEOUT_MS,
-      });
-    } catch (error) {
-      this.logger.warn(
-        `Google token exchange failed reason=${
-          error instanceof ExternalFetchError ? error.code : 'unknown'
-        }`,
-      );
-      throw new UnauthorizedException('Google login could not be completed.');
-    }
-
-    if (!response.ok) {
-      this.logger.warn(
-        `Google token exchange failed status=${response.status}`,
-      );
-      throw new UnauthorizedException('Google login could not be completed.');
-    }
-
-    try {
-      return await readJsonWithLimit<GoogleTokenResponse>(
-        response,
-        GOOGLE_OAUTH_JSON_MAX_BYTES,
-      );
-    } catch (error) {
-      this.logger.warn(
-        `Google token exchange returned invalid body reason=${
-          error instanceof ExternalFetchError ? error.code : 'unknown'
-        }`,
-      );
-      throw new UnauthorizedException('Google login could not be completed.');
-    }
-  }
-
-  private async verifyGoogleIdToken(
-    idToken: string,
-    expectedNonceHash: string,
-  ): Promise<GoogleIdentityProfile> {
-    const config = this.requireGoogleOAuthConfig();
-    const decodedHeader = jwt.decode(idToken, {
-      complete: true,
-    });
-    const kid = decodedHeader?.header.kid;
-
-    if (!kid || decodedHeader.header.alg !== 'RS256') {
-      throw new UnauthorizedException('Google id_token is not trusted.');
-    }
-
-    const publicKey = await this.getGoogleSigningKey(kid);
-    const payload = jwt.verify(idToken, publicKey, {
-      algorithms: ['RS256'],
-      audience: config.clientId,
-      issuer: GOOGLE_OIDC_ISSUERS,
-    }) as GoogleIdTokenPayload;
-
-    if (
-      typeof payload.sub !== 'string' ||
-      typeof payload.email !== 'string' ||
-      typeof payload.nonce !== 'string'
-    ) {
-      throw new UnauthorizedException('Google id_token is invalid.');
-    }
-
-    if (!(await verifySecret(payload.nonce, expectedNonceHash))) {
-      throw new UnauthorizedException('Google id_token is invalid.');
-    }
-
-    return {
-      email: this.normalizeEmail(payload.email),
-      emailVerified: payload.email_verified === true,
-      name: typeof payload.name === 'string' ? payload.name : '',
-      pictureUrl: typeof payload.picture === 'string' ? payload.picture : '',
-      providerAccountId: payload.sub,
-    };
-  }
-
-  private async getGoogleSigningKey(kid: string) {
-    if (
-      this.googleSigningKeysCache &&
-      this.googleSigningKeysCache.expiresAt > Date.now()
-    ) {
-      const cachedKey = this.googleSigningKeysCache.keysByKid.get(kid);
-
-      if (cachedKey) {
-        return cachedKey;
-      }
-    }
-
-    let response: Response;
-
-    try {
-      response = await fetchExternal(GOOGLE_JWKS_URL, {
-        allowedHostnames: ['www.googleapis.com'],
-        method: 'GET',
-        maxResponseBytes: GOOGLE_JWKS_JSON_MAX_BYTES,
-        timeoutMs: GOOGLE_JWKS_TIMEOUT_MS,
-      });
-    } catch (error) {
-      const staleKey = this.getStaleGoogleSigningKey(kid);
-
-      if (staleKey) {
-        this.logger.warn(
-          `Google signing keys fetch failed; using stale cache reason=${
-            error instanceof ExternalFetchError ? error.code : 'unknown'
-          }`,
-        );
-        return staleKey;
-      }
-
-      throw new UnauthorizedException('Google signing keys are unavailable.');
-    }
-
-    if (!response.ok) {
-      const staleKey = this.getStaleGoogleSigningKey(kid);
-
-      if (staleKey) {
-        this.logger.warn(
-          `Google signing keys returned status=${response.status}; using stale cache`,
-        );
-        return staleKey;
-      }
-
-      throw new UnauthorizedException('Google signing keys are unavailable.');
-    }
-
-    let jwks: GoogleJwksResponse;
-
-    try {
-      jwks = await readJsonWithLimit<GoogleJwksResponse>(
-        response,
-        GOOGLE_JWKS_JSON_MAX_BYTES,
-      );
-    } catch {
-      const staleKey = this.getStaleGoogleSigningKey(kid);
-
-      if (staleKey) {
-        this.logger.warn('Google signing keys body invalid; using stale cache');
-        return staleKey;
-      }
-
-      throw new UnauthorizedException('Google signing keys are unavailable.');
-    }
-    const keysByKid = new Map<string, string>();
-
-    for (const jwk of jwks.keys ?? []) {
-      if (!jwk.kid) {
-        continue;
-      }
-
-      keysByKid.set(
-        jwk.kid,
-        createPublicKey({
-          format: 'jwk',
-          key: jwk,
-        })
-          .export({
-            format: 'pem',
-            type: 'spki',
-          })
-          .toString(),
-      );
-    }
-
-    const maxAgeMatch = response.headers
-      .get('cache-control')
-      ?.match(/max-age=(\d+)/);
-    const maxAgeSeconds = maxAgeMatch ? Number(maxAgeMatch[1]) : 3600;
-
-    this.googleSigningKeysCache = {
-      expiresAt: Date.now() + maxAgeSeconds * 1000,
-      fetchedAt: Date.now(),
-      keysByKid,
-    };
-
-    const signingKey = keysByKid.get(kid);
-
-    if (!signingKey) {
-      throw new UnauthorizedException(
-        'Google id_token signing key is unknown.',
-      );
-    }
-
-    return signingKey;
-  }
-
-  private getStaleGoogleSigningKey(kid: string) {
-    if (!this.googleSigningKeysCache) {
-      return null;
-    }
-
-    if (
-      Date.now() - this.googleSigningKeysCache.fetchedAt >
-      GOOGLE_JWKS_STALE_FALLBACK_MS
-    ) {
-      return null;
-    }
-
-    return this.googleSigningKeysCache.keysByKid.get(kid) ?? null;
   }
 
   private async findOrCreateGoogleUser(profile: GoogleIdentityProfile) {

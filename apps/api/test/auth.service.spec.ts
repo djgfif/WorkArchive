@@ -13,6 +13,7 @@ import {
   AuthService,
   type IssuedAuthSession,
 } from '../src/modules/auth/auth.service';
+import { GoogleOAuthClient } from '../src/modules/auth/google-oauth-client';
 import { setExternalFetchTransportForTest } from '../src/common/external-fetch';
 import type { PrismaService } from '../src/prisma/prisma.service';
 
@@ -582,8 +583,7 @@ describe('AuthService', () => {
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google-client-secret';
     process.env.GOOGLE_OAUTH_REDIRECT_URI =
       'http://localhost:18730/api/auth/google/callback';
-    const { prisma } = createPrismaMock();
-    const authService = new AuthService(prisma as unknown as PrismaService);
+    const googleOAuthClient = new GoogleOAuthClient();
     const warnSpy = jest
       .spyOn(Logger.prototype, 'warn')
       .mockImplementation(() => undefined);
@@ -592,11 +592,7 @@ describe('AuthService', () => {
     });
 
     await expect(
-      (
-        authService as unknown as {
-          exchangeGoogleAuthorizationCode: (code: string) => Promise<unknown>;
-        }
-      ).exchangeGoogleAuthorizationCode('oauth-code-secret'),
+      googleOAuthClient.exchangeAuthorizationCode('oauth-code-secret'),
     ).rejects.toThrow('Google login could not be completed.');
 
     expect(warnSpy.mock.calls.flat().join(' ')).not.toContain(
@@ -609,17 +605,9 @@ describe('AuthService', () => {
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google-client-secret';
     process.env.GOOGLE_OAUTH_REDIRECT_URI =
       'http://localhost:18730/api/auth/google/callback';
-    const { prisma } = createPrismaMock();
-    const authService = new AuthService(prisma as unknown as PrismaService);
-    (
-      authService as unknown as {
-        googleSigningKeysCache: {
-          expiresAt: number;
-          fetchedAt: number;
-          keysByKid: Map<string, string>;
-        };
-      }
-    ).googleSigningKeysCache = {
+    const googleOAuthClient = new GoogleOAuthClient();
+
+    googleOAuthClient.googleSigningKeysCache = {
       expiresAt: Date.now() - 1,
       fetchedAt: Date.now() - 1_000,
       keysByKid: new Map([['cached-kid', 'cached-pem']]),
@@ -630,19 +618,11 @@ describe('AuthService', () => {
     });
 
     await expect(
-      (
-        authService as unknown as {
-          getGoogleSigningKey: (kid: string) => Promise<string>;
-        }
-      ).getGoogleSigningKey('cached-kid'),
+      googleOAuthClient.getSigningKey('cached-kid'),
     ).resolves.toBe('cached-pem');
 
     await expect(
-      (
-        authService as unknown as {
-          getGoogleSigningKey: (kid: string) => Promise<string>;
-        }
-      ).getGoogleSigningKey('missing-kid'),
+      googleOAuthClient.getSigningKey('missing-kid'),
     ).rejects.toThrow('Google signing keys are unavailable.');
   });
 });

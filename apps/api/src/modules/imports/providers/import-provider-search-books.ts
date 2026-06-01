@@ -14,14 +14,16 @@ import {
 } from '../imports.constants';
 import type { ProviderSearchContext } from './import-provider-adapter';
 import {
-  isRecord,
   mapAladinItem,
   mapGoogleBookItem,
   mapKakaoBookItem,
   mapNaverBookItem,
   mapOpenLibraryItem,
+} from './import-candidate-book-mappers';
+import {
+  isRecord,
   readPathArray,
-} from './import-candidate-builder';
+} from './import-candidate-readers';
 import {
   ALADIN_ITEM_SEARCH_URL,
   GOOGLE_BOOKS_SEARCH_URL,

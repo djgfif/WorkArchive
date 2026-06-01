@@ -67,13 +67,15 @@ import {
 } from './providers/import-provider-config';
 import {
   getFormatLabel,
-  isRecord,
   normalizeWhitespace,
   parseYear,
+} from './providers/import-candidate-builder';
+import {
+  isRecord,
   readNumber,
   readString,
   readStringArray,
-} from './providers/import-candidate-builder';
+} from './providers/import-candidate-readers';
 import {
   fetchImportProviderJson,
   type ImportProviderFetchOptions,

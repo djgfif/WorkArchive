@@ -38,7 +38,7 @@ body {
   min-width: 320px;
   background:
     /* 좌상단 — 따뜻한 앰버 광원 (책 조명 느낌) */
-    radial-gradient(ellipse at 8% -6%, rgba(212, 168, 67, 0.13), transparent 40rem),
+    radial-gradient(ellipse at 8% -6%, rgba(200, 146, 46, 0.12), transparent 40rem),
     /* 우하단 — 아주 은은한 로즈 역광 */
     radial-gradient(ellipse at 94% 98%, rgba(180, 80, 60, 0.07), transparent 38rem),
     /* 중앙 하단 — 깊이감 다크 */
@@ -51,7 +51,7 @@ body {
 /* 라이트 모드 배경 — 따뜻한 크림 */
 [data-mantine-color-scheme='light'] body {
   background:
-    radial-gradient(ellipse at 10% -8%, rgba(184, 135, 42, 0.07), transparent 36rem),
+    radial-gradient(ellipse at 10% -8%, rgba(138, 83, 21, 0.07), transparent 36rem),
     radial-gradient(ellipse at 92% 96%, rgba(180, 80, 60, 0.04), transparent 28rem),
     var(--app-bg-shell, var(--mantine-color-body));
   background-attachment: fixed;
@@ -84,12 +84,12 @@ textarea {
 
 /* ── Selection ───────────────────────────────────────────────────────────── */
 ::selection {
-  background: rgba(212, 168, 67, 0.24);
+  background: rgba(200, 146, 46, 0.24);
   color: var(--app-text-primary, var(--mantine-color-text));
 }
 
 [data-mantine-color-scheme='light'] ::selection {
-  background: rgba(184, 135, 42, 0.18);
+  background: rgba(138, 83, 21, 0.18);
 }
 
 /* ── Focus ───────────────────────────────────────────────────────────────── */
@@ -151,7 +151,7 @@ textarea {
   -webkit-backdrop-filter: blur(22px) saturate(1.5);
   background:
     /* 미세한 골드 광택 */
-    linear-gradient(180deg, rgba(212, 168, 67, 0.04), rgba(212, 168, 67, 0.01)),
+    linear-gradient(180deg, rgba(200, 146, 46, 0.04), rgba(200, 146, 46, 0.01)),
     color-mix(in srgb, var(--app-bg-shell, var(--mantine-color-body)) 80%, transparent);
   border: 1px solid var(--app-border-default, var(--mantine-color-default-border));
   border-radius: 999px;
@@ -161,13 +161,13 @@ textarea {
   box-shadow:
     0 12px 42px rgba(0, 0, 0, 0.28),
     /* 상단 내부 골드 광택 라인 */
-    0 1px 0 rgba(212, 168, 67, 0.10) inset;
+    0 1px 0 rgba(200, 146, 46, 0.10) inset;
 }
 
 [data-mantine-color-scheme='light'] .product-header {
   box-shadow:
     0 4px 18px rgba(60, 40, 20, 0.10),
-    0 1px 0 rgba(184, 135, 42, 0.12) inset;
+    0 1px 0 rgba(138, 83, 21, 0.12) inset;
 }
 
 /* Left: 브랜드 로고 */
@@ -205,12 +205,12 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--app-border-strong, rgba(212, 168, 67, 0.18));
+  background: var(--app-border-strong, rgba(200, 146, 46, 0.18));
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--app-accent-primary, rgba(212, 168, 67, 0.45));
+  background: var(--app-accent-primary, rgba(200, 146, 46, 0.45));
 }
 
 /* ── Mantine 컴포넌트 오버라이드 ─────────────────────────────────────────── */

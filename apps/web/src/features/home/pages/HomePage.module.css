@@ -157,6 +157,9 @@
 .shelfTrack {
   display: flex;
   gap: clamp(0.6rem, 1vw, 0.85rem);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
   /* padding-top: hover scale 위로 올라오는 공간 확보 (scale 1.08 * ~213px / 2 + translateY 5px ≈ 14px) */
   padding: 0.75rem clamp(1rem, 2.5vw, 2rem) 1.5rem;
   overflow-x: auto;

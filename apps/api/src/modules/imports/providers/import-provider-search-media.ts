@@ -14,8 +14,8 @@ import {
   mapKobisMovieItem,
   mapTmdbItem,
   mapTvMazeItem,
-  readPathArray,
-} from './import-candidate-builder';
+} from './import-candidate-media-mappers';
+import { readPathArray } from './import-candidate-readers';
 import {
   ANILIST_GRAPHQL_URL,
   KOBIS_MOVIE_SEARCH_URL,

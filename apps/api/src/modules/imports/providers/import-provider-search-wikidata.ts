@@ -9,7 +9,7 @@ import {
   readPathArray,
   readString,
   type UnknownRecord,
-} from './import-candidate-builder';
+} from './import-candidate-readers';
 import {
   PROVIDER_CACHE_TTL_MS,
   WIKIDATA_API_URL,

@@ -19,8 +19,8 @@ import {
   mapKakaoWebItem,
   mapNaverWebItem,
   mapTavilySearchItem,
-  readPathArray,
-} from './import-candidate-builder';
+} from './import-candidate-web-mappers';
+import { readPathArray } from './import-candidate-readers';
 import {
   BRAVE_SEARCH_URL,
   KAKAO_WEB_SEARCH_URL,

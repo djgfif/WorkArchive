@@ -29,18 +29,18 @@ const appDisplayFamily =
 const appSerifFamily =
   `Lora, "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Georgia, serif`;
 
-/* ── Archive Gold 팔레트 — 에디토리얼 골드, 별점·CTA 강조 ───────────────── */
+/* ── Archive Gold 팔레트 — 앤틱 브라스 골드, 별점·CTA 강조 ──────────────── */
 const archiveColors: MantineColorsTuple = [
-  '#fefbf0', // 0 — 크림 배경
-  '#fef3d0', // 1 — 연한 앰버
-  '#fde68a', // 2 — 밝은 골드
-  '#fcd34d', // 3 — 라이트 골드
-  '#f5c842', // 4 — 메인 골드 (호버)
-  '#d4a843', // 5 — Primary 골드 (다크 모드)
-  '#b8872a', // 6 — Primary 골드 (라이트 모드)
-  '#9a6d1e', // 7 — 깊은 골드
-  '#7c5616', // 8 — 진한 골드
-  '#5e3f0d', // 9 — 최심 골드
+  '#fff8e7', // 0 — 크림 골드
+  '#f6e5bd', // 1 — 연한 브라스
+  '#e8c878', // 2 — 밝은 앤틱 골드
+  '#ddb35b', // 3 — 라이트 골드
+  '#e0b85a', // 4 — 하이라이트 골드
+  '#c8922e', // 5 — Primary 골드 (다크 모드)
+  '#8a5315', // 6 — Primary 골드 (라이트 모드)
+  '#704112', // 7 — 깊은 브라스
+  '#57310e', // 8 — 진한 브라스
+  '#3f230a', // 9 — 최심 브라스
 ];
 
 /* ── Archive Ink 팔레트 — 보조 블루, 싱크·상태 표시 ───────────────────────── */
@@ -117,8 +117,8 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--wa-text-disabled':   '#302a24',
 
     /* 악센트 — 골드 주도, 블루 보조 */
-    '--wa-accent-primary':  '#d4a843',
-    '--wa-accent-strong':   '#f5c842',
+    '--wa-accent-primary':  '#c8922e',
+    '--wa-accent-strong':   '#e0b85a',
     '--wa-accent-ink':      '#5b9cf6',
     '--wa-accent-teal':     '#2dd4bf',
     '--wa-accent-rose':     '#fb7185',
@@ -129,7 +129,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--wa-shadow-poster': '0 12px 36px rgba(0, 0, 0, 0.52), 0 3px 8px rgba(0, 0, 0, 0.30)',
     '--wa-shadow-hero':   '0 20px 56px rgba(0, 0, 0, 0.56), 0 0 0 1px rgba(255, 235, 200, 0.07)',
     '--wa-shadow-overlay':'0 24px 72px rgba(0, 0, 0, 0.64), 0 0 0 1px rgba(255, 235, 200, 0.09)',
-    '--wa-shadow-glow':   '0 0 0 3px rgba(212, 168, 67, 0.22)',
+    '--wa-shadow-glow':   '0 0 0 3px rgba(200, 146, 46, 0.24)',
 
     '--mantine-color-body':           '#0c0b0a',
     '--mantine-color-text':           '#f5f0e8',
@@ -161,7 +161,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-accent-teal':     'var(--wa-accent-teal)',
     '--app-accent-rose':     'var(--wa-accent-rose)',
     '--app-state-success':   '#2dd4bf',
-    '--app-state-warning':   '#f5c842',
+    '--app-state-warning':   '#e0b85a',
     '--app-state-danger':    '#f87171',
     '--app-state-info':      '#5b9cf6',
     '--app-shadow-card':     'var(--wa-shadow-card)',
@@ -189,8 +189,8 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--wa-text-muted':      '#8c7a6e',
     '--wa-text-disabled':   '#c9bdb5',
 
-    '--wa-accent-primary':  '#b8872a',
-    '--wa-accent-strong':   '#9a6d1e',
+    '--wa-accent-primary':  '#8a5315',
+    '--wa-accent-strong':   '#704112',
     '--wa-accent-ink':      '#2563eb',
     '--wa-accent-teal':     '#0d9488',
     '--wa-accent-rose':     '#e11d48',
@@ -200,7 +200,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--wa-shadow-poster': '0 4px 18px rgba(60, 40, 20, 0.14), 0 1px 4px rgba(60, 40, 20, 0.07)',
     '--wa-shadow-hero':   '0 8px 36px rgba(60, 40, 20, 0.16), 0 2px 8px rgba(60, 40, 20, 0.07)',
     '--wa-shadow-overlay':'0 16px 52px rgba(60, 40, 20, 0.18), 0 0 0 1px rgba(60, 40, 20, 0.07)',
-    '--wa-shadow-glow':   '0 0 0 3px rgba(184, 135, 42, 0.22)',
+    '--wa-shadow-glow':   '0 0 0 3px rgba(138, 83, 21, 0.22)',
 
     '--mantine-color-body':           '#faf7f2',
     '--mantine-color-text':           '#1c1512',
@@ -231,7 +231,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-accent-teal':     'var(--wa-accent-teal)',
     '--app-accent-rose':     'var(--wa-accent-rose)',
     '--app-state-success':   '#0f766e',
-    '--app-state-warning':   '#b8872a',
+    '--app-state-warning':   '#8a5315',
     '--app-state-danger':    '#dc2626',
     '--app-state-info':      '#2563eb',
     '--app-shadow-card':     'var(--wa-shadow-card)',

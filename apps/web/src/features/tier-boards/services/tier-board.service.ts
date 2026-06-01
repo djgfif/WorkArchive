@@ -29,21 +29,31 @@ import {
 } from './tier-board-portability';
 import {
   assertExportDocument,
-  cloneBoard,
   createBoardRecord,
   createCardRecord,
   createLaneRecord,
   createWorkSubtitle,
   getNextOrderIndex,
   getNextSyncStatus,
-  getRestoredSyncStatus,
-  getRestoreOperation,
   nowIso,
   prepareCardForExport,
   touchTierBoard,
 } from './tier-board-records';
+import {
+  buildDeletedBoardRecordSet,
+  buildDuplicatedBoardRecordSet,
+  buildDuplicatedCardRecordSet,
+  buildLaneDeleteRecordSet,
+  buildLaneRestoreRecordSet,
+  buildMovedCardRecordSet,
+  buildReorderedCardsRecordSet,
+  buildRestoredBoardRecordSet,
+  buildRestoredCardRecordSet,
+  buildTierBoardTemplateApplication,
+} from './tier-board-record-sets';
 import { getTierBoardTemplate } from './tier-board.templates';
 import { TierBoardSyncQueueWriter } from './tier-board-sync-queue';
+import { TierBoardTransactionWriter } from './tier-board-transaction-writer';
 import type {
   CreateBoardInput,
   CreateCardInput,
@@ -68,14 +78,19 @@ export type {
 } from './tier-board.types';
 
 export class TierBoardService {
-  private readonly syncQueue: TierBoardSyncQueueWriter;
+  private readonly writer: TierBoardTransactionWriter;
 
   constructor(
     private readonly repository: TierBoardRepository = tierBoardRepository,
     queueRepository: SyncQueueRepository = syncQueueRepository,
     private readonly worksRepo: WorksRepository = worksRepository,
   ) {
-    this.syncQueue = new TierBoardSyncQueueWriter(queueRepository);
+    const syncQueue = new TierBoardSyncQueueWriter(queueRepository);
+
+    this.writer = new TierBoardTransactionWriter(
+      () => this.repository.getDbInstance(),
+      syncQueue,
+    );
   }
 
   listBoards() {
@@ -97,30 +112,8 @@ export class TierBoardService {
     const lanes = template.lanes.map((lane, index) =>
       createLaneRecord(board.id, lane, index, now),
     );
-    const db = this.repository.getDbInstance();
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierLanes,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.add(board);
-        await db.tierLanes.bulkAdd(lanes);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          board,
-          'create',
-          'tier_board_create',
-        );
-        for (const lane of lanes) {
-          await this.syncQueue.enqueueLaneInOpenTransaction(
-            lane,
-            'create',
-            'tier_board_create',
-          );
-        }
-      },
-    );
+    await this.writer.createBoard(board, lanes);
 
     return board;
   }
@@ -137,8 +130,7 @@ export class TierBoardService {
       syncStatus: getNextSyncStatus(board.serverVersion),
     };
 
-    await this.repository.putBoard(updated);
-    await this.syncQueue.enqueueBoard(updated, 'update');
+    await this.writer.updateBoard(updated);
 
     return updated;
   }
@@ -146,123 +138,24 @@ export class TierBoardService {
   async deleteBoard(id: string) {
     const state = await this.requireEditorState(id);
     const now = nowIso();
-    const board: TierBoardRecord = {
-      ...state.board,
-      deletedAt: now,
-      updatedAt: now,
-      syncStatus: getNextSyncStatus(state.board.serverVersion),
-    };
-    const lanes = state.lanes.map<TierLaneRecord>((lane) => ({
-      ...lane,
-      deletedAt: now,
-      updatedAt: now,
-      syncStatus: getNextSyncStatus(lane.serverVersion),
-    }));
-    const cards = state.cards.map<TierBoardCardRecord>((card) => ({
-      ...card,
-      deletedAt: now,
-      updatedAt: now,
-      syncStatus: getNextSyncStatus(card.serverVersion),
-    }));
-    const assets = state.assets.map<StoredTierBoardAssetRecord>((asset) => ({
-      ...asset,
-      deletedAt: now,
-      updatedAt: now,
-    }));
-    const db = this.repository.getDbInstance();
-
-    await db.transaction(
-      'rw',
-      [
-        db.tierBoards,
-        db.tierLanes,
-        db.tierBoardCards,
-        db.tierBoardAssets,
-        db.syncQueue,
-      ],
-      async () => {
-        await db.tierBoards.put(board);
-        await db.tierLanes.bulkPut(lanes);
-        await db.tierBoardCards.bulkPut(cards);
-        await db.tierBoardAssets.bulkPut(assets);
-        await this.syncQueue.enqueueBoardInOpenTransaction(board, 'delete');
-        for (const lane of lanes) {
-          await this.syncQueue.enqueueLaneInOpenTransaction(lane, 'delete');
-        }
-        for (const card of cards) {
-          await this.syncQueue.enqueueCardInOpenTransaction(card, 'delete');
-        }
-        for (const asset of assets) {
-          await this.syncQueue.enqueueAssetInOpenTransaction(asset, 'delete');
-        }
-      },
+    const { assets, board, cards, lanes } = buildDeletedBoardRecordSet(
+      state,
+      now,
     );
+
+    await this.writer.deleteRecordSet({ assets, board, cards, lanes });
 
     return state;
   }
 
   async restoreBoardSnapshot(state: TierBoardEditorState) {
-    const db = this.repository.getDbInstance();
     const now = nowIso();
-    const board: TierBoardRecord = {
-      ...state.board,
-      deletedAt: null,
-      updatedAt: now,
-      syncStatus: getRestoredSyncStatus(state.board),
-    };
-    const lanes = state.lanes.map<TierLaneRecord>((lane) => ({
-      ...lane,
-      deletedAt: null,
-      updatedAt: now,
-      syncStatus: getRestoredSyncStatus(lane),
-    }));
-    const cards = state.cards.map<TierBoardCardRecord>((card) => ({
-      ...card,
-      deletedAt: null,
-      updatedAt: now,
-      syncStatus: getRestoredSyncStatus(card),
-    }));
-    const assets = state.assets.map<StoredTierBoardAssetRecord>((asset) => ({
-      ...asset,
-      deletedAt: null,
-      updatedAt: now,
-    }));
-
-    await db.transaction(
-      'rw',
-      [
-        db.tierBoards,
-        db.tierLanes,
-        db.tierBoardCards,
-        db.tierBoardAssets,
-        db.syncQueue,
-      ],
-      async () => {
-        await db.tierBoards.put(board);
-        await db.tierLanes.bulkPut(lanes);
-        await db.tierBoardCards.bulkPut(cards);
-        await db.tierBoardAssets.bulkPut(assets);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          board,
-          getRestoreOperation(board),
-        );
-        for (const lane of lanes) {
-          await this.syncQueue.enqueueLaneInOpenTransaction(
-            lane,
-            getRestoreOperation(lane),
-          );
-        }
-        for (const card of cards) {
-          await this.syncQueue.enqueueCardInOpenTransaction(
-            card,
-            getRestoreOperation(card),
-          );
-        }
-        for (const asset of assets) {
-          await this.syncQueue.enqueueAssetInOpenTransaction(asset, 'create');
-        }
-      },
+    const { assets, board, cards, lanes } = buildRestoredBoardRecordSet(
+      state,
+      now,
     );
+
+    await this.writer.restoreRecordSet({ assets, board, cards, lanes });
 
     return { assets, board, cards, lanes };
   }
@@ -270,93 +163,12 @@ export class TierBoardService {
   async duplicateBoard(id: string) {
     const state = await this.requireEditorState(id);
     const now = nowIso();
-    const board = cloneBoard(state.board, now);
-    const laneIdMap = new Map<string, string>();
-    const cardIdMap = new Map<string, string>();
-    const assetObjectUrlMap = new Map<string, string>();
-    const lanes = state.lanes.map<TierLaneRecord>((lane) => {
-      const nextId = crypto.randomUUID();
-      laneIdMap.set(lane.id, nextId);
-
-      return {
-        ...lane,
-        id: nextId,
-        boardId: board.id,
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-        syncStatus: 'local-only',
-        serverVersion: 0,
-      };
-    });
-    const cards = state.cards.map<TierBoardCardRecord>((card) => {
-      const nextId = crypto.randomUUID();
-      cardIdMap.set(card.id, nextId);
-
-      return {
-        ...card,
-        id: nextId,
-        boardId: board.id,
-        laneId: card.laneId ? (laneIdMap.get(card.laneId) ?? null) : null,
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-        syncStatus: 'local-only',
-        serverVersion: 0,
-      };
-    });
-    const assets = state.assets.map<StoredTierBoardAssetRecord>((asset) => {
-      const id = crypto.randomUUID();
-      const objectUrl =
-        asset.storageType === 'local_blob'
-          ? createLocalTierBoardAssetUrl(id)
-          : asset.objectUrl;
-
-      assetObjectUrlMap.set(asset.objectUrl, objectUrl);
-
-      return {
-        ...asset,
-        id,
-        boardId: board.id,
-        cardId: asset.cardId ? (cardIdMap.get(asset.cardId) ?? null) : null,
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-        objectUrl,
-      };
-    });
-    const normalizedCards = cards.map<TierBoardCardRecord>((card) => ({
-      ...card,
-      imageUrl: assetObjectUrlMap.get(card.imageUrl) ?? card.imageUrl,
-    }));
-    const db = this.repository.getDbInstance();
-
-    await db.transaction(
-      'rw',
-      [
-        db.tierBoards,
-        db.tierLanes,
-        db.tierBoardCards,
-        db.tierBoardAssets,
-        db.syncQueue,
-      ],
-      async () => {
-        await db.tierBoards.add(board);
-        await db.tierLanes.bulkAdd(lanes);
-        await db.tierBoardCards.bulkAdd(normalizedCards);
-        await db.tierBoardAssets.bulkAdd(assets);
-        await this.syncQueue.enqueueBoardInOpenTransaction(board, 'create');
-        for (const lane of lanes) {
-          await this.syncQueue.enqueueLaneInOpenTransaction(lane, 'create');
-        }
-        for (const card of normalizedCards) {
-          await this.syncQueue.enqueueCardInOpenTransaction(card, 'create');
-        }
-        for (const asset of assets) {
-          await this.syncQueue.enqueueAssetInOpenTransaction(asset, 'create');
-        }
-      },
+    const { assets, board, cards, lanes } = buildDuplicatedBoardRecordSet(
+      state,
+      now,
     );
+
+    await this.writer.createRecordSet({ assets, board, cards, lanes });
 
     return board;
   }
@@ -371,23 +183,12 @@ export class TierBoardService {
       now,
     );
     const touchedBoard = touchTierBoard(state.board, now);
-    const db = this.repository.getDbInstance();
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierLanes,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierLanes.put(lane);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueLaneInOpenTransaction(lane, 'create');
-      },
-    );
+    await this.writer.saveLaneChange({
+      lane,
+      operation: 'create',
+      touchedBoard,
+    });
 
     return lane;
   }
@@ -405,23 +206,12 @@ export class TierBoardService {
       syncStatus: getNextSyncStatus(lane.serverVersion),
     };
     const touchedBoard = touchTierBoard(state.board, now);
-    const db = this.repository.getDbInstance();
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierLanes,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierLanes.put(updated);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueLaneInOpenTransaction(updated, 'update');
-      },
-    );
+    await this.writer.saveLaneChange({
+      lane: updated,
+      operation: 'update',
+      touchedBoard,
+    });
 
     return updated;
   }
@@ -446,25 +236,7 @@ export class TierBoardService {
         : [];
     });
 
-    const db = this.repository.getDbInstance();
-
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierLanes,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierLanes.bulkPut(lanes);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        for (const lane of lanes) {
-          await this.syncQueue.enqueueLaneInOpenTransaction(lane, 'update');
-        }
-      },
-    );
+    await this.writer.reorderLanes({ lanes, touchedBoard });
 
     return lanes;
   }
@@ -473,97 +245,28 @@ export class TierBoardService {
     const lane = await this.requireLane(id);
     const state = await this.requireEditorState(lane.boardId);
     const now = nowIso();
-    const touchedBoard = touchTierBoard(state.board, now);
-    const deletedLane: TierLaneRecord = {
-      ...lane,
-      deletedAt: now,
-      updatedAt: now,
-      syncStatus: getNextSyncStatus(lane.serverVersion),
-    };
-    const laneCards = state.cards.filter((card) => card.laneId === id);
-    const movedCards = laneCards.map<TierBoardCardRecord>((card, index) => ({
-      ...card,
-      laneId: null,
-      orderIndex:
-        getNextOrderIndex(
-          state.cards.filter((candidate) => candidate.laneId === null),
-        ) + index,
-      updatedAt: now,
-      syncStatus: getNextSyncStatus(card.serverVersion),
-    }));
-    const db = this.repository.getDbInstance();
+    const { deletedLane, movedCards, snapshot, touchedBoard } =
+      buildLaneDeleteRecordSet({
+        lane,
+        now,
+        state,
+      });
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierLanes,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierLanes.put(deletedLane);
-        await db.tierBoardCards.bulkPut(movedCards);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueLaneInOpenTransaction(
-          deletedLane,
-          'delete',
-        );
-        for (const card of movedCards) {
-          await this.syncQueue.enqueueCardInOpenTransaction(card, 'update');
-        }
-      },
-    );
+    await this.writer.deleteLane({ deletedLane, movedCards, touchedBoard });
 
-    return { cards: laneCards, lane } satisfies TierLaneDeleteSnapshot;
+    return snapshot;
   }
 
   async restoreLaneDeleteSnapshot(snapshot: TierLaneDeleteSnapshot) {
     const now = nowIso();
     const state = await this.requireEditorState(snapshot.lane.boardId);
-    const touchedBoard = touchTierBoard(state.board, now);
-    const lane: TierLaneRecord = {
-      ...snapshot.lane,
-      deletedAt: null,
-      updatedAt: now,
-      syncStatus: getRestoredSyncStatus(snapshot.lane),
-    };
-    const cards = snapshot.cards.map<TierBoardCardRecord>((card) => ({
-      ...card,
-      deletedAt: null,
-      updatedAt: now,
-      syncStatus: getRestoredSyncStatus(card),
-    }));
-    const db = this.repository.getDbInstance();
+    const { cards, lane, touchedBoard } = buildLaneRestoreRecordSet({
+      now,
+      snapshot,
+      state,
+    });
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierLanes,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierLanes.put(lane);
-        await db.tierBoardCards.bulkPut(cards);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueLaneInOpenTransaction(
-          lane,
-          getRestoreOperation(lane),
-        );
-        for (const card of cards) {
-          await this.syncQueue.enqueueCardInOpenTransaction(
-            card,
-            getRestoreOperation(card),
-          );
-        }
-      },
-    );
+    await this.writer.restoreLane({ cards, lane, touchedBoard });
 
     return { cards, lane };
   }
@@ -582,23 +285,12 @@ export class TierBoardService {
       now,
     );
     const touchedBoard = touchTierBoard(state.board, now);
-    const db = this.repository.getDbInstance();
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierBoardCards.put(card);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueCardInOpenTransaction(card, 'create');
-      },
-    );
+    await this.writer.saveCardChange({
+      card,
+      operation: 'create',
+      touchedBoard,
+    });
 
     return card;
   }
@@ -629,23 +321,12 @@ export class TierBoardService {
       syncStatus: getNextSyncStatus(card.serverVersion),
     };
     const touchedBoard = touchTierBoard(state.board, now);
-    const db = this.repository.getDbInstance();
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierBoardCards.put(updated);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueCardInOpenTransaction(updated, 'update');
-      },
-    );
+    await this.writer.saveCardChange({
+      card: updated,
+      operation: 'update',
+      touchedBoard,
+    });
 
     return updated;
   }
@@ -661,23 +342,12 @@ export class TierBoardService {
       updatedAt: now,
     };
     const touchedBoard = touchTierBoard(state.board, now);
-    const db = this.repository.getDbInstance();
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierBoardCards.put(deleted);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueCardInOpenTransaction(deleted, 'delete');
-      },
-    );
+    await this.writer.saveCardChange({
+      card: deleted,
+      operation: 'delete',
+      touchedBoard,
+    });
 
     return card;
   }
@@ -686,37 +356,17 @@ export class TierBoardService {
     const source = await this.requireCard(id);
     const state = await this.requireEditorState(source.boardId);
     const now = nowIso();
-    const touchedBoard = touchTierBoard(state.board, now);
-    const card: TierBoardCardRecord = {
-      ...source,
-      id: crypto.randomUUID(),
-      title: `${source.title} 복사본`,
-      orderIndex: getNextOrderIndex(
-        state.cards.filter((candidate) => candidate.laneId === source.laneId),
-      ),
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
-      syncStatus: 'local-only',
-      serverVersion: 0,
-    };
-    const db = this.repository.getDbInstance();
+    const { card, touchedBoard } = buildDuplicatedCardRecordSet({
+      now,
+      source,
+      state,
+    });
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierBoardCards.put(card);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueCardInOpenTransaction(card, 'create');
-      },
-    );
+    await this.writer.saveCardChange({
+      card,
+      operation: 'create',
+      touchedBoard,
+    });
 
     return card;
   }
@@ -724,33 +374,16 @@ export class TierBoardService {
   async restoreCardSnapshot(card: TierBoardCardRecord) {
     const state = await this.requireEditorState(card.boardId);
     const now = nowIso();
-    const restored: TierBoardCardRecord = {
-      ...card,
-      deletedAt: null,
-      updatedAt: now,
-      syncStatus: getRestoredSyncStatus(card),
-    };
-    const touchedBoard = touchTierBoard(state.board, now);
-    const db = this.repository.getDbInstance();
+    const { card: restored, touchedBoard } = buildRestoredCardRecordSet({
+      card,
+      now,
+      state,
+    });
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierBoardCards.put(restored);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueCardInOpenTransaction(
-          restored,
-          getRestoreOperation(restored),
-        );
-      },
-    );
+    await this.writer.restoreCard({
+      card: restored,
+      touchedBoard,
+    });
 
     return restored;
   }
@@ -765,44 +398,15 @@ export class TierBoardService {
 
   async reorderCard(boardId: string, laneId: string | null, cardIds: string[]) {
     const state = await this.requireEditorState(boardId);
-    const cardsById = new Map(state.cards.map((card) => [card.id, card]));
     const now = nowIso();
-    const touchedBoard = touchTierBoard(state.board, now);
-    const cards = cardIds.flatMap((id, index) => {
-      const card = cardsById.get(id);
-
-      return card
-        ? [
-            {
-              ...card,
-              laneId,
-              orderIndex: index,
-              updatedAt: now,
-              syncStatus: getNextSyncStatus(card.serverVersion),
-            },
-          ]
-        : [];
+    const { cards, touchedBoard } = buildReorderedCardsRecordSet({
+      cardIds,
+      laneId,
+      now,
+      state,
     });
 
-    const db = this.repository.getDbInstance();
-
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierBoardCards.bulkPut(cards);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        for (const card of cards) {
-          await this.syncQueue.enqueueCardInOpenTransaction(card, 'update');
-        }
-      },
-    );
+    await this.writer.reorderCards({ cards, touchedBoard });
 
     return cards;
   }
@@ -839,23 +443,12 @@ export class TierBoardService {
       ),
       workId: work.id,
     };
-    const db = this.repository.getDbInstance();
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierBoardCards.put(card);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueCardInOpenTransaction(card, 'create');
-      },
-    );
+    await this.writer.saveCardChange({
+      card,
+      operation: 'create',
+      touchedBoard,
+    });
 
     return card;
   }
@@ -921,26 +514,8 @@ export class TierBoardService {
       dataUrl,
     };
     const touchedBoard = touchTierBoard(state.board, now);
-    const db = this.repository.getDbInstance();
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierBoardCards,
-      db.tierBoardAssets,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierBoardCards.add(card);
-        await db.tierBoardAssets.add(asset);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueCardInOpenTransaction(card, 'create');
-        await this.syncQueue.enqueueAssetInOpenTransaction(asset, 'create');
-      },
-    );
+    await this.writer.saveUploadedCard({ asset, card, touchedBoard });
 
     return { asset, card };
   }
@@ -981,49 +556,10 @@ export class TierBoardService {
       parsed,
       now,
     );
-    const db = this.repository.getDbInstance();
 
-    await db.transaction(
-      'rw',
-      [
-        db.tierBoards,
-        db.tierLanes,
-        db.tierBoardCards,
-        db.tierBoardAssets,
-        db.syncQueue,
-      ],
-      async () => {
-        await db.tierBoards.add(board);
-        await db.tierLanes.bulkAdd(lanes);
-        await db.tierBoardCards.bulkAdd(cards);
-        await db.tierBoardAssets.bulkAdd(assets);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          board,
-          'create',
-          'tier_board_import',
-        );
-        for (const lane of lanes) {
-          await this.syncQueue.enqueueLaneInOpenTransaction(
-            lane,
-            'create',
-            'tier_board_import',
-          );
-        }
-        for (const card of cards) {
-          await this.syncQueue.enqueueCardInOpenTransaction(
-            card,
-            'create',
-            'tier_board_import',
-          );
-        }
-        for (const asset of assets) {
-          await this.syncQueue.enqueueAssetInOpenTransaction(
-            asset,
-            'create',
-            'tier_board_import',
-          );
-        }
-      },
+    await this.writer.createRecordSet(
+      { assets, board, cards, lanes },
+      'tier_board_import',
     );
 
     return board;
@@ -1054,49 +590,20 @@ export class TierBoardService {
     const template = getTierBoardTemplate(templateLabel);
     const state = await this.requireEditorState(boardId);
     const now = nowIso();
-    const touchedBoard = touchTierBoard(state.board, now);
-    const deletedLanes = state.lanes.map<TierLaneRecord>((lane) => ({
-      ...lane,
-      deletedAt: now,
-      updatedAt: now,
-      syncStatus: getNextSyncStatus(lane.serverVersion),
-    }));
-    const lanes = template.lanes.map((lane, index) =>
-      createLaneRecord(boardId, lane, index, now),
-    );
-    const cards = state.cards.map<TierBoardCardRecord>((card) => ({
-      ...card,
-      laneId: null,
-      updatedAt: now,
-      syncStatus: getNextSyncStatus(card.serverVersion),
-    }));
-    const db = this.repository.getDbInstance();
+    const { cards, deletedLanes, lanes, touchedBoard } =
+      buildTierBoardTemplateApplication({
+        boardId,
+        now,
+        state,
+        templateLanes: template.lanes,
+      });
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierLanes,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierLanes.bulkPut([...deletedLanes, ...lanes]);
-        await db.tierBoardCards.bulkPut(cards);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        for (const lane of deletedLanes) {
-          await this.syncQueue.enqueueLaneInOpenTransaction(lane, 'delete');
-        }
-        for (const lane of lanes) {
-          await this.syncQueue.enqueueLaneInOpenTransaction(lane, 'create');
-        }
-        for (const card of cards) {
-          await this.syncQueue.enqueueCardInOpenTransaction(card, 'update');
-        }
-      },
-    );
+    await this.writer.applyTemplate({
+      cards,
+      deletedLanes,
+      lanes,
+      touchedBoard,
+    });
 
     return lanes;
   }
@@ -1105,35 +612,18 @@ export class TierBoardService {
     const card = await this.requireCard(id);
     const state = await this.requireEditorState(card.boardId);
     const now = nowIso();
-    const moved: TierBoardCardRecord = {
-      ...card,
+    const { card: moved, touchedBoard } = buildMovedCardRecordSet({
+      card,
       laneId,
-      orderIndex: getNextOrderIndex(
-        state.cards.filter(
-          (record) => record.laneId === laneId && record.id !== id,
-        ),
-      ),
-      updatedAt: now,
-      syncStatus: getNextSyncStatus(card.serverVersion),
-    };
-    const touchedBoard = touchTierBoard(state.board, now);
-    const db = this.repository.getDbInstance();
+      now,
+      state,
+    });
 
-    await db.transaction(
-      'rw',
-      db.tierBoards,
-      db.tierBoardCards,
-      db.syncQueue,
-      async () => {
-        await db.tierBoards.put(touchedBoard);
-        await db.tierBoardCards.put(moved);
-        await this.syncQueue.enqueueBoardInOpenTransaction(
-          touchedBoard,
-          'update',
-        );
-        await this.syncQueue.enqueueCardInOpenTransaction(moved, 'update');
-      },
-    );
+    await this.writer.saveCardChange({
+      card: moved,
+      operation: 'update',
+      touchedBoard,
+    });
 
     return moved;
   }

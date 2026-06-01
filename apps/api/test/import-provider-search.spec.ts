@@ -8,7 +8,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 import type { ProviderSearchContext } from '../src/modules/imports/providers/import-provider-adapter';
 import type { ImportProviderSearchRuntime } from '../src/modules/imports/providers/import-provider-search-runtime';
-import { getWebSourceLabel } from '../src/modules/imports/providers/import-candidate-builder';
+import { getWebSourceLabel } from '../src/modules/imports/providers/import-candidate-web-mappers';
 import {
   searchAladin,
   searchGoogleBooks,

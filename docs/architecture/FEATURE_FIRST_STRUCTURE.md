@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                  |
 | Role                  | `architecture boundary guide`                                                |
 | Source of truth       | Current `apps/web`, `apps/api`, and `packages/*` layout                      |
-| Last verified against | `2026-05-31` sync/import service decomposition                               |
+| Last verified against | `2026-06-01` auth/import/archive/tier-board service decomposition             |
 | When to update        | Feature folders, module boundaries, or cross-feature dependency rules change |
 
 Work Archive uses a feature-first monorepo layout. The root keeps operational
@@ -58,6 +58,16 @@ Current dependency direction:
   depend on feature implementation details unless the dependency is an explicit
   adapter boundary.
 
+Large web services are split by responsibility when pure transformation logic
+would otherwise obscure IndexedDB orchestration. For example, `archive` keeps
+JSON archive types, parser/normalizer helpers, CSV serialization, import clone
+helpers, preview counting, and ID remap plan generation outside
+`local-archive.service.ts`, so the service remains focused on database reads,
+writes, and transactions. `tier-boards` follows the same rule for board/lane/card
+record-set builders used by delete, restore, duplicate, reorder, and template
+application flows, with IndexedDB transaction and sync queue writes isolated in a
+transaction writer outside `tier-board.service.ts`.
+
 ## API Boundaries
 
 API features live under `apps/api/src/modules/{module}`. Each module has an
@@ -71,6 +81,11 @@ at the same time. The API currently compiles with `tsc` and runs
 
 Large modules are split by responsibility:
 
+- `auth`: `AuthService` owns user sessions, refresh-token rotation, profile
+  updates, and auth account persistence. Provider-specific Google OAuth URL
+  construction, token exchange, OIDC verification, and JWKS cache fallback live
+  in `google-oauth-client.ts` so external-provider protocol details do not
+  crowd session orchestration.
 - `imports`: candidate normalization/ranking, provider contracts, diagnostics,
   credential storage, and runtime provider state.
 - Import provider search is intentionally grouped by provider family:
