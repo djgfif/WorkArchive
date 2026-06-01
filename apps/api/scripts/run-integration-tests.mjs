@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 const appRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -53,11 +54,9 @@ async function ensureDatabase(databaseUrl) {
   const databaseName = getDatabaseName(databaseUrl);
   const maintenanceUrl = createMaintenanceUrl(databaseUrl);
   const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: maintenanceUrl,
-      },
-    },
+    adapter: new PrismaPg({
+      connectionString: maintenanceUrl,
+    }),
   });
 
   try {

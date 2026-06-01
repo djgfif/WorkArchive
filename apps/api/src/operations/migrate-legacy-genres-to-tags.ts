@@ -1,3 +1,6 @@
+import 'dotenv/config';
+
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, type Prisma } from '@prisma/client';
 import { moveUnknownGenresToPersonalTags } from '@work-archive/shared-types';
 
@@ -16,6 +19,18 @@ export interface LegacyGenreMigrationResult {
 
 type MigrationPrismaClient = Pick<PrismaClient, '$transaction' | 'catalogWork'>;
 type MigrationTransactionClient = Pick<Prisma.TransactionClient, 'catalogWork' | 'userWorkRecord'>;
+
+function createPrismaClient() {
+  const connectionString = process.env.DATABASE_URL?.trim();
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL must be configured before running this operation.');
+  }
+
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString }),
+  });
+}
 
 function arraysEqual(left: string[], right: string[]) {
   return (
@@ -119,7 +134,7 @@ export async function runLegacyGenreMigration(
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
-  const prisma = new PrismaClient();
+  const prisma = createPrismaClient();
 
   try {
     const result = await runLegacyGenreMigration(prisma, options);

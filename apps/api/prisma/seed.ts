@@ -1,8 +1,23 @@
+import 'dotenv/config';
+
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
 
 import { hashSecret } from '../src/modules/auth/auth-crypto';
 
-const prisma = new PrismaClient();
+function createPrismaClient() {
+  const connectionString = process.env.DATABASE_URL?.trim();
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL must be configured before seeding.');
+  }
+
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString }),
+  });
+}
+
+const prisma = createPrismaClient();
 
 const DEMO_EMAIL = process.env.SEED_DEMO_EMAIL?.trim() || 'demo@workarchive.local';
 const DEMO_PASSWORD =
