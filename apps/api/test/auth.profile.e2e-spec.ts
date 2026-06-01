@@ -13,6 +13,7 @@ import {
 
 import { AuthController } from '../src/modules/auth/auth.controller';
 import { AuthService } from '../src/modules/auth/auth.service';
+import { GoogleOAuthFlowStoreService } from '../src/modules/auth/google-oauth-flow-store.service';
 import { readApiRuntimeConfig } from '../src/config/api-runtime-config';
 import { configureApp } from '../src/configure-app';
 import { SecurityAuditService } from '../src/security/security-audit.service';
@@ -61,6 +62,20 @@ describe('auth profile API (e2e)', () => {
           provide: SecurityAuditService,
           useValue: {
             record: jest.fn<SecurityAuditService['record']>().mockResolvedValue(),
+          },
+        },
+        {
+          provide: GoogleOAuthFlowStoreService,
+          useValue: {
+            consume: jest
+              .fn<GoogleOAuthFlowStoreService['consume']>()
+              .mockResolvedValue(null),
+            onModuleDestroy: jest
+              .fn<GoogleOAuthFlowStoreService['onModuleDestroy']>()
+              .mockResolvedValue(),
+            store: jest
+              .fn<GoogleOAuthFlowStoreService['store']>()
+              .mockResolvedValue(),
           },
         },
       ],

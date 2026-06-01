@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { lookup } from 'node:dns/promises';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+import { setExternalFetchTransportForTest } from '../src/common/external-fetch';
 import { ImageProxyService } from '../src/modules/image-proxy/image-proxy.service';
 
 jest.mock('node:dns/promises', () => ({
@@ -9,6 +10,7 @@ jest.mock('node:dns/promises', () => ({
 }));
 
 const lookupMock = lookup as unknown as jest.Mock;
+let upstreamFetchMock: jest.MockedFunction<() => Promise<Response>>;
 
 function imageResponse(body: string, headers: Record<string, string> = {}) {
   return new Response(body, {
@@ -36,6 +38,8 @@ describe('ImageProxyService', () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
+    upstreamFetchMock = jest.fn(async () => imageResponse('image-body'));
+    setExternalFetchTransportForTest(() => upstreamFetchMock());
     lookupMock.mockResolvedValue([
       {
         address: '93.184.216.34',
@@ -47,13 +51,14 @@ describe('ImageProxyService', () => {
   });
 
   afterEach(() => {
+    setExternalFetchTransportForTest(null);
     jest.useRealTimers();
   });
 
   it('fetches and caches allowed provider images with production cache headers', async () => {
-    const fetchSpy = jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(imageResponse('image-body'));
+    const fetchSpy = upstreamFetchMock.mockResolvedValue(
+      imageResponse('image-body'),
+    );
 
     const first = await service.getImage(
       'https://covers.openlibrary.org/b/id/123-L.jpg',
@@ -71,7 +76,7 @@ describe('ImageProxyService', () => {
 
   it('deduplicates concurrent fetches for the same image URL', async () => {
     const deferred = createDeferred<Response>();
-    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockReturnValue(deferred.promise);
+    const fetchSpy = upstreamFetchMock.mockReturnValue(deferred.promise);
 
     const first = service.getImage(
       'https://covers.openlibrary.org/b/id/123-L.jpg',
@@ -94,21 +99,17 @@ describe('ImageProxyService', () => {
   });
 
   it('rejects untrusted hosts before fetching', async () => {
-    const fetchSpy = jest.spyOn(globalThis, 'fetch');
-
     await expect(
       service.getImage('https://internal.example.test/cover.jpg'),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(upstreamFetchMock).not.toHaveBeenCalled();
   });
 
   it('rejects http image URLs before fetching', async () => {
-    const fetchSpy = jest.spyOn(globalThis, 'fetch');
-
     await expect(
       service.getImage('http://books.google.com/books/content?id=dune'),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(upstreamFetchMock).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -122,15 +123,11 @@ describe('ImageProxyService', () => {
     'https://[fc00::1]/cover.jpg',
     'https://[::ffff:192.168.0.1]/cover.jpg',
   ])('rejects local or private image host %s before fetching', async (url) => {
-    const fetchSpy = jest.spyOn(globalThis, 'fetch');
-
     await expect(service.getImage(url)).rejects.toBeInstanceOf(BadRequestException);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(upstreamFetchMock).not.toHaveBeenCalled();
   });
 
   it('rejects allowlisted hosts that resolve to private addresses', async () => {
-    const fetchSpy = jest.spyOn(globalThis, 'fetch');
-
     lookupMock.mockResolvedValue([
       {
         address: '10.0.0.5',
@@ -141,12 +138,10 @@ describe('ImageProxyService', () => {
     await expect(
       service.getImage('https://covers.openlibrary.org/b/id/123-L.jpg'),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(upstreamFetchMock).not.toHaveBeenCalled();
   });
 
   it('rejects allowlisted hosts that resolve to IPv4-mapped private IPv6 addresses', async () => {
-    const fetchSpy = jest.spyOn(globalThis, 'fetch');
-
     lookupMock.mockResolvedValue([
       {
         address: '::ffff:192.168.0.5',
@@ -157,11 +152,11 @@ describe('ImageProxyService', () => {
     await expect(
       service.getImage('https://covers.openlibrary.org/b/id/123-L.jpg'),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(upstreamFetchMock).not.toHaveBeenCalled();
   });
 
   it('validates redirect targets against the image host allowlist', async () => {
-    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+    upstreamFetchMock.mockResolvedValue(
       new Response(null, {
         headers: {
           location: 'https://internal.example.test/cover.jpg',
@@ -189,7 +184,7 @@ describe('ImageProxyService', () => {
           family: 4,
         },
       ] as never);
-    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+    upstreamFetchMock.mockResolvedValue(
       new Response(null, {
         headers: {
           location: 'https://covers.openlibrary.org/private.jpg',
@@ -204,7 +199,7 @@ describe('ImageProxyService', () => {
   });
 
   it('rejects non-image upstream responses', async () => {
-    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+    upstreamFetchMock.mockResolvedValue(
       new Response('<html></html>', {
         headers: {
           'content-type': 'text/html',
@@ -219,7 +214,7 @@ describe('ImageProxyService', () => {
   });
 
   it('rejects SVG upstream responses', async () => {
-    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+    upstreamFetchMock.mockResolvedValue(
       new Response('<svg></svg>', {
         headers: {
           'content-type': 'image/svg+xml',
@@ -234,7 +229,7 @@ describe('ImageProxyService', () => {
   });
 
   it('rejects oversized upstream responses by content length', async () => {
-    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+    upstreamFetchMock.mockResolvedValue(
       imageResponse('', {
         'content-length': String(8 * 1024 * 1024 + 1),
       }),
@@ -250,8 +245,7 @@ describe('ImageProxyService', () => {
     jest.setSystemTime(new Date('2026-05-25T00:00:00.000Z'));
 
     const refresh = createDeferred<Response>();
-    const fetchSpy = jest
-      .spyOn(globalThis, 'fetch')
+    const fetchSpy = upstreamFetchMock
       .mockResolvedValueOnce(imageResponse('cached-image'))
       .mockReturnValueOnce(refresh.promise);
 
@@ -289,8 +283,7 @@ describe('ImageProxyService', () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-05-25T00:00:00.000Z'));
 
-    const fetchSpy = jest
-      .spyOn(globalThis, 'fetch')
+    const fetchSpy = upstreamFetchMock
       .mockResolvedValueOnce(imageResponse('cached-image'))
       .mockRejectedValueOnce(new Error('provider down'))
       .mockResolvedValueOnce(imageResponse('refreshed-image'));

@@ -5,12 +5,14 @@ import {
   Logger,
   type OnModuleDestroy,
 } from '@nestjs/common';
-import * as dns from 'node:dns/promises';
 import { createHash } from 'node:crypto';
-import { isIP } from 'node:net';
 import Redis from 'ioredis';
 
 import { fetchExternal } from '../../common/external-fetch';
+import {
+  PublicAddressResolutionError,
+  resolvePublicNetworkAddress,
+} from '../../common/network-address-policy';
 import { readApiRuntimeConfig } from '../../config/api-runtime-config';
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -235,6 +237,7 @@ export class ImageProxyService implements OnModuleDestroy {
           'user-agent': 'WorkArchiveImageProxy/1.0',
         },
         method: 'GET',
+        maxResponseBytes: MAX_IMAGE_BYTES,
         redirect: 'manual',
         timeoutMs: FETCH_TIMEOUT_MS,
       });
@@ -268,161 +271,19 @@ export class ImageProxyService implements OnModuleDestroy {
   }
 
   private async assertPublicNetworkTarget(url: URL) {
-    const hostname = url.hostname.trim().toLowerCase();
+    try {
+      await resolvePublicNetworkAddress(url.hostname);
+    } catch (error) {
+      if (error instanceof PublicAddressResolutionError) {
+        if (error.code === 'private_address') {
+          throw new BadRequestException('Image host resolved to a private address.');
+        }
 
-    if (!hostname || hostname === 'localhost') {
-      throw new BadRequestException('Image host is not allowed.');
-    }
-
-    const literalIpVersion = isIP(hostname);
-
-    if (literalIpVersion !== 0) {
-      if (!this.isPublicIpAddress(hostname, literalIpVersion)) {
-        throw new BadRequestException('Image host resolved to a private address.');
+        throw new BadGatewayException('Image host could not be resolved.');
       }
 
-      return;
+      throw error;
     }
-
-    let addresses: Array<{ address: string; family: number }>;
-
-    try {
-      addresses = await dns.lookup(hostname, {
-        all: true,
-      });
-    } catch {
-      throw new BadGatewayException('Image host could not be resolved.');
-    }
-
-    if (
-      addresses.length === 0 ||
-      addresses.some(
-        ({ address, family }) =>
-          !this.isPublicIpAddress(address, family === 6 ? 6 : 4),
-      )
-    ) {
-      throw new BadRequestException('Image host resolved to a private address.');
-    }
-  }
-
-  private isPublicIpAddress(address: string, family: number) {
-    if (family === 4) {
-      return this.isPublicIpv4Address(address);
-    }
-
-    if (family === 6) {
-      return this.isPublicIpv6Address(address);
-    }
-
-    return false;
-  }
-
-  private isPublicIpv4Address(address: string) {
-    const octets = address.split('.').map((part) => Number(part));
-
-    if (
-      octets.length !== 4 ||
-      octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
-    ) {
-      return false;
-    }
-
-    const [first, second, third] = octets as [number, number, number, number];
-
-    return !(
-      first === 0 ||
-      first === 10 ||
-      first === 127 ||
-      first >= 224 ||
-      (first === 100 && second >= 64 && second <= 127) ||
-      (first === 169 && second === 254) ||
-      (first === 172 && second >= 16 && second <= 31) ||
-      (first === 192 && second === 0) ||
-      (first === 192 && second === 168) ||
-      (first === 198 && (second === 18 || second === 19)) ||
-      (first === 192 && second === 0 && third === 2) ||
-      (first === 198 && second === 51 && third === 100) ||
-      (first === 203 && second === 0 && third === 113)
-    );
-  }
-
-  private isPublicIpv6Address(address: string) {
-    const normalizedAddress = address.toLowerCase();
-    const mappedIpv4 = this.readIpv4MappedIpv6Address(normalizedAddress);
-
-    if (mappedIpv4) {
-      return this.isPublicIpv4Address(mappedIpv4);
-    }
-
-    const expanded = this.expandIpv6Address(normalizedAddress);
-
-    if (!expanded) {
-      return false;
-    }
-
-    const firstGroup = Number.parseInt(expanded[0]!, 16);
-    const secondGroup = Number.parseInt(expanded[1]!, 16);
-
-    return !(
-      expanded.every((group) => group === '0000') ||
-      expanded.slice(0, 7).every((group) => group === '0000') &&
-        expanded[7] === '0001' ||
-      (firstGroup & 0xfe00) === 0xfc00 ||
-      (firstGroup & 0xffc0) === 0xfe80 ||
-      (firstGroup & 0xff00) === 0xff00 ||
-      (firstGroup === 0x2001 && secondGroup === 0x0db8)
-    );
-  }
-
-  private readIpv4MappedIpv6Address(address: string) {
-    const marker = '::ffff:';
-
-    if (!address.startsWith(marker)) {
-      return null;
-    }
-
-    const mappedAddress = address.slice(marker.length);
-
-    return isIP(mappedAddress) === 4 ? mappedAddress : null;
-  }
-
-  private expandIpv6Address(address: string) {
-    if (!address.includes(':') || address.includes('.')) {
-      return null;
-    }
-
-    const doubleColonParts = address.split('::');
-
-    if (doubleColonParts.length > 2) {
-      return null;
-    }
-
-    const left = doubleColonParts[0]
-      ? doubleColonParts[0].split(':').filter(Boolean)
-      : [];
-    const right = doubleColonParts[1]
-      ? doubleColonParts[1].split(':').filter(Boolean)
-      : [];
-    const missingGroups = 8 - left.length - right.length;
-
-    if (missingGroups < 0 || (doubleColonParts.length === 1 && missingGroups !== 0)) {
-      return null;
-    }
-
-    const groups = [
-      ...left,
-      ...Array.from({ length: missingGroups }, () => '0'),
-      ...right,
-    ];
-
-    if (
-      groups.length !== 8 ||
-      groups.some((group) => !/^[0-9a-f]{1,4}$/i.test(group))
-    ) {
-      return null;
-    }
-
-    return groups.map((group) => group.padStart(4, '0'));
   }
 
   private isRedirect(status: number) {

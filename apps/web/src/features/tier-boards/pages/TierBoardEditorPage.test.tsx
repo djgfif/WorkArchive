@@ -52,9 +52,9 @@ vi.mock('../services/tier-board.service', () => ({
 
 vi.mock('html-to-image', () => htmlToImageMocks);
 
-import { appRoutes } from '@app/router/routes';
 import { renderWithProviders } from '@test/render-with-providers';
-import { AuthProvider } from '@features/auth';
+import { TierBoardViewPage } from './TierBoardViewPage';
+import { TierBoardEditorPage } from './TierBoardEditorPage';
 import { tierBoardService } from '../services/tier-board.service';
 
 function buildEditorState(): TierBoardEditorState {
@@ -113,15 +113,23 @@ function buildEditorState(): TierBoardEditorState {
 }
 
 function renderRoute(path: string) {
-  const router = createMemoryRouter(appRoutes, {
-    initialEntries: [path],
-  });
-
-  renderWithProviders(
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>,
+  const router = createMemoryRouter(
+    [
+      {
+        element: <TierBoardEditorPage />,
+        path: '/tier-boards/:boardId',
+      },
+      {
+        element: <TierBoardViewPage />,
+        path: '/tier-boards/:boardId/view',
+      },
+    ],
+    {
+      initialEntries: [path],
+    },
   );
+
+  renderWithProviders(<RouterProvider router={router} />);
 
   return router;
 }

@@ -3,8 +3,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
+const projectRoot = resolve(scriptDir, '../..');
 const isWindows = process.platform === 'win32';
-const launcher = resolve(scriptDir, isWindows ? 'start-dev.bat' : 'start-dev.sh');
 const mode = process.argv[2] ?? 'compose';
 
 if (!['compose', 'host'].includes(mode)) {
@@ -13,13 +13,17 @@ if (!['compose', 'host'].includes(mode)) {
 }
 
 const spawnOptions = {
-  cwd: resolve(scriptDir, '../..'),
+  cwd: projectRoot,
   stdio: 'inherit',
   shell: false,
 };
 
 const result = isWindows
-  ? spawnSync('cmd.exe', ['/d', '/s', '/c', 'call', launcher, mode], spawnOptions)
-  : spawnSync('bash', [launcher, mode], spawnOptions);
+  ? spawnSync(
+      'cmd.exe',
+      ['/d', '/s', '/c', 'call', 'scripts\\dev\\start-dev.bat', mode],
+      spawnOptions,
+    )
+  : spawnSync('bash', ['scripts/dev/start-dev.sh', mode], spawnOptions);
 
 process.exit(result.status ?? 1);
