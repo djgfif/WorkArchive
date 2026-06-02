@@ -17,12 +17,9 @@ import {
 } from '../utils/work-options';
 import { WorkPoster } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface WorksTrashListProps {
   onRestore: (work: WorkRecord) => Promise<void>;
@@ -52,7 +49,12 @@ export function WorksTrashList({
               }}
               withBorder
             >
-              <Group align="flex-start" gap="md" justify="space-between" wrap="wrap">
+              <Group
+                align="flex-start"
+                gap="md"
+                justify="space-between"
+                wrap="wrap"
+              >
                 <Group
                   align="flex-start"
                   className={cn(css.listRowMain)}
@@ -78,8 +80,12 @@ export function WorksTrashList({
                       <AppBadge tone="warning">삭제됨</AppBadge>
                       <AppBadge tone="muted">{typeLabel}</AppBadge>
                       <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
-                      <AppBadge>{getWorkSyncStatusLabel(work.syncStatus)}</AppBadge>
-                      {isRestoring && <AppBadge tone="accent">복원 중</AppBadge>}
+                      <AppBadge>
+                        {getWorkSyncStatusLabel(work.syncStatus)}
+                      </AppBadge>
+                      {isRestoring && (
+                        <AppBadge tone="accent">복원 중</AppBadge>
+                      )}
                     </Group>
 
                     <Title lineClamp={1} order={3} size="h4">
@@ -105,7 +111,9 @@ export function WorksTrashList({
                     </Text>
 
                     <Text c="var(--mantine-color-text)" lineClamp={2}>
-                      {work.shortReview || work.description || '남겨둔 메모가 없습니다.'}
+                      {work.shortReview ||
+                        work.description ||
+                        '남겨둔 메모가 없습니다.'}
                     </Text>
                   </Stack>
                 </Group>

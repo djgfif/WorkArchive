@@ -1,4 +1,10 @@
-import { NativeSelect, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import {
+  NativeSelect,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
 
 import { ActionRow, AppBadge } from '@shared/components/AppPrimitives';
 import { WorkGenreSelector } from './WorkGenreSelector';
@@ -13,16 +19,12 @@ import styles from './ArchiveComponents.module.css';
 import { parseCommaSeparatedTextList } from '../utils/work-form';
 import { normalizeWorkGenres } from '../utils/work-genres';
 import { workTypeOptions } from '../utils/work-options';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface CoreWorkFieldsProps
-  extends WorkFormTitleRefProps,
-    WorkFormValuesProps {
+  extends WorkFormTitleRefProps, WorkFormValuesProps {
   error?: string | null;
   idPrefix?: string;
   onChange: WorkFormInputChangeHandler;

@@ -1,5 +1,13 @@
 import type { RefObject } from 'react';
-import { Box, Group, SimpleGrid, Stack, TagsInput, Text, Textarea } from '@mantine/core';
+import {
+  Box,
+  Group,
+  SimpleGrid,
+  Stack,
+  TagsInput,
+  Text,
+  Textarea,
+} from '@mantine/core';
 
 import { FeedbackMessage } from '@shared/components/AppPrimitives';
 import { StarRatingInput } from './ArchiveComponents';
@@ -11,7 +19,7 @@ import {
 import type { WorkFormValues } from '../utils/work-form';
 
 const REVIEW_FOCUS_DESCRIPTION_ID = 'work-form-review-focus-description';
-const css = styles as Record<string, string>;
+const css = styles;
 
 interface WorkFormReviewStepProps {
   focusArea: 'general' | 'review';
@@ -107,7 +115,11 @@ export function WorkFormReviewStep({
         </SimpleGrid>
 
         <Stack gap="xs">
-          <Text fw={600} size="sm" style={{ color: 'var(--app-text-secondary)' }}>
+          <Text
+            fw={600}
+            size="sm"
+            style={{ color: 'var(--app-text-secondary)' }}
+          >
             개인 태그
             <Text component="span" c="dimmed" fw={400} size="xs" ml={6}>
               취향, 소재, 기억할 키워드

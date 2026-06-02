@@ -1,16 +1,17 @@
 import { Grid, Group, Paper, ScrollArea, Stack, Text } from '@mantine/core';
 
-import { AppButton, FeedbackMessage, StateMessage } from '@shared/components/AppPrimitives';
+import {
+  AppButton,
+  FeedbackMessage,
+  StateMessage,
+} from '@shared/components/AppPrimitives';
 import type { ImportCandidate } from '@features/imports';
 import { CandidateListRow } from './CandidateListRow';
 import { SearchCandidateLoadingList } from './AddWorkSearchLoading';
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface AddWorkSearchResultsProps {
   candidates: ImportCandidate[];

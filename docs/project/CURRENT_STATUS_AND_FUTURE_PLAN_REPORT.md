@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                                                                                                                                                                               |
 | Role                  | `current reality`                                                                                                                                                                                                                                                         |
 | Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-05-31` root verification, route/dependency cleanup, and service decomposition                                                                                                                                                                                       |
+| Last verified against | `2026-06-02` root verification, Prisma 7 migration, route/dependency cleanup, and service decomposition                                                                                                                                                                   |
 | When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -29,7 +29,7 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 ### Frontend
 
 - React `19.2`
-- Vite `6.4`
+- Vite `6.3`
 - TypeScript `6.0`
 - Mantine `9.2`
 - Dexie
@@ -39,7 +39,7 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 ### Backend
 
 - NestJS `11`
-- Prisma `6.6`
+- Prisma `7.8`
 - PostgreSQL
 - Swagger
 - Jest
@@ -286,7 +286,8 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 - `src/app/App.test.tsx`
 - `src/features/auth/pages/AuthFlow.test.tsx`
-- `src/features/sync/pages/SyncPage.test.tsx`
+- `src/features/profile/pages/SettingsPage.test.tsx`
+- `src/features/sync/services/sync.service.test.ts`
 - `src/features/works/pages/WorkDetailPage.test.tsx`
 - `src/features/works/pages/WorkFlow.test.tsx`
 - `src/features/works/pages/WorksListPage.test.tsx`
@@ -311,11 +312,11 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 ### Current Verification Status
 
-- `npm run lint`: `2026-05-31` 통과 확인
-- `npm run typecheck`: `2026-05-31` 통과 확인
-- `npm run test`: `2026-05-31` 기준 API `23` suites / `271` tests,
-  web `42` files / `295` tests, shared-types `1` file / `3` tests 통과 확인
-- `npm run build`: `2026-05-31` 통과 확인
+- `npm run lint`: `2026-06-02` 통과 확인
+- `npm run typecheck`: `2026-06-02` 통과 확인
+- `npm run test`: `2026-06-02` 기준 API `31` suites / `327` tests,
+  web `43` files / `299` tests, shared-types `1` file / `3` tests 통과 확인
+- `npm run build`: `2026-06-02` 통과 확인
 - GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 `.github/workflows/validate.yml`에 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 

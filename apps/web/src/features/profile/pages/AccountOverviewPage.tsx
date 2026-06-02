@@ -12,16 +12,9 @@ import { useAuthSession } from '@features/auth';
 import { useSyncDashboard } from '@features/sync';
 import { useWorksOverview } from '@features/works';
 import styles from './AccountOverviewPage.module.css';
+import { cn, cx } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
-
-function cx(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(' ');
-}
+const css = styles;
 
 function formatAverageRating(value: number | null) {
   return value === null ? '—' : `★ ${value.toFixed(1)}`;
@@ -168,21 +161,21 @@ export function AccountOverviewPage() {
               tone: 'warning' as const,
               value: '확인 대기',
             }
-        : backupPendingCount > 0
-          ? {
-              badge: '대기 중',
-              description:
-                '최근 변경 사항을 동기화하는 중입니다. 오프라인에서도 기록은 유지됩니다.',
-              tone: 'info' as const,
-              value: '백업 대기',
-            }
-          : {
-              badge: '정상',
-              description:
-                '로컬 기록을 기준으로 안전하게 보관 중입니다. 로그인하면 자동 백업을 사용할 수 있습니다.',
-              tone: 'success' as const,
-              value: isAuthenticated ? '보호됨' : '로컬 저장',
-            };
+          : backupPendingCount > 0
+            ? {
+                badge: '대기 중',
+                description:
+                  '최근 변경 사항을 동기화하는 중입니다. 오프라인에서도 기록은 유지됩니다.',
+                tone: 'info' as const,
+                value: '백업 대기',
+              }
+            : {
+                badge: '정상',
+                description:
+                  '로컬 기록을 기준으로 안전하게 보관 중입니다. 로그인하면 자동 백업을 사용할 수 있습니다.',
+                tone: 'success' as const,
+                value: isAuthenticated ? '보호됨' : '로컬 저장',
+              };
 
   return (
     <AccountPageTemplate

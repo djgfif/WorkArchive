@@ -11,12 +11,9 @@ import {
 } from './quick-add-helpers';
 import { getWorkTypeLabel } from '../utils/work-options';
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface CandidateListRowProps {
   active: boolean;
@@ -125,11 +122,7 @@ export function CandidateListRow({
           </ActionRow>
 
           {hasArchiveMatch && (
-            <Text
-              className={cn(css.candidateRowWarning)}
-              fw={700}
-              size="xs"
-            >
+            <Text className={cn(css.candidateRowWarning)} fw={700} size="xs">
               저장 전에 기존 기록과 같은 작품인지 확인하세요.
             </Text>
           )}
@@ -145,11 +138,7 @@ export function CandidateListRow({
           )}
 
           {visibleAliases && visibleAliases.length > 0 && (
-            <Text
-              className={cn(css.candidateRowAlias)}
-              lineClamp={1}
-              size="xs"
-            >
+            <Text className={cn(css.candidateRowAlias)} lineClamp={1} size="xs">
               별칭 {visibleAliases.join(' · ')}
             </Text>
           )}

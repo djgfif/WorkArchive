@@ -16,7 +16,7 @@ export type WorksViewMode = 'grid' | 'list';
 const GRID_RENDER_LIMIT = 60;
 const LIST_RENDER_LIMIT = 40;
 const RENDER_INCREMENT = 40;
-const css = styles as Record<string, string>;
+const css = styles;
 
 interface WorksListProps {
   onDelete: (work: WorkRecord) => Promise<void>;
@@ -38,7 +38,8 @@ export function WorksList({
   viewMode,
   works,
 }: WorksListProps) {
-  const renderLimit = viewMode === 'grid' ? GRID_RENDER_LIMIT : LIST_RENDER_LIMIT;
+  const renderLimit =
+    viewMode === 'grid' ? GRID_RENDER_LIMIT : LIST_RENDER_LIMIT;
   const workListSignature = useMemo(
     () => works.map((work) => work.id).join('|'),
     [works],
@@ -112,7 +113,10 @@ export function WorksList({
   }
 
   return (
-    <section aria-label="작품 리스트" style={{ borderTop: '1px solid var(--app-border-subtle)' }}>
+    <section
+      aria-label="작품 리스트"
+      style={{ borderTop: '1px solid var(--app-border-subtle)' }}
+    >
       <Stack gap={0}>
         {visibleWorks.map((work, index) => (
           <Box key={work.id}>

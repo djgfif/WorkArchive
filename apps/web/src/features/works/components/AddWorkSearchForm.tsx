@@ -11,17 +11,11 @@ import type { FormEvent } from 'react';
 
 import { AppButton } from '@shared/components/AppPrimitives';
 import type { ProviderGroup } from './quick-add-helpers';
-import {
-  providerGroupOptions,
-  quickAddTypeOptions,
-} from './quick-add-helpers';
+import { providerGroupOptions, quickAddTypeOptions } from './quick-add-helpers';
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface AddWorkSearchFormProps {
   hasSearched: boolean;
@@ -142,9 +136,7 @@ export function AddWorkSearchForm({
                       onClick={() => onProviderGroupChange(option.value)}
                       size="compact-sm"
                       tone={
-                        providerGroup === option.value
-                          ? 'primary'
-                          : 'secondary'
+                        providerGroup === option.value ? 'primary' : 'secondary'
                       }
                       type="button"
                     >

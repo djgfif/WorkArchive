@@ -19,21 +19,22 @@ import {
 import { Link, NavLink } from 'react-router-dom';
 
 import styles from './AppPrimitives.module.css';
+import { cn, cx } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cx(...classes: Array<string | false | undefined>) {
-  return classes.filter(Boolean).join(' ');
-}
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 type SurfaceTone = 'default' | 'hero' | 'subtle';
 type MessageTone = 'error' | 'info' | 'loading' | 'success';
 type AppActionTone = 'danger' | 'ghost' | 'primary' | 'quiet' | 'secondary';
-type AppBadgeTone = 'accent' | 'danger' | 'default' | 'error' | 'info' | 'muted' | 'success' | 'warning';
+type AppBadgeTone =
+  | 'accent'
+  | 'danger'
+  | 'default'
+  | 'error'
+  | 'info'
+  | 'muted'
+  | 'success'
+  | 'warning';
 
 interface PageShellProps {
   children: ReactNode;
@@ -160,7 +161,15 @@ interface AppButtonProps {
   loading?: boolean;
   onClick?: ComponentPropsWithoutRef<'button'>['onClick'];
   rightSection?: ReactNode;
-  size?: 'compact-md' | 'compact-sm' | 'compact-xs' | 'lg' | 'md' | 'sm' | 'xl' | 'xs';
+  size?:
+    | 'compact-md'
+    | 'compact-sm'
+    | 'compact-xs'
+    | 'lg'
+    | 'md'
+    | 'sm'
+    | 'xl'
+    | 'xs';
   style?: React.CSSProperties;
   tone?: AppActionTone;
   type?: ComponentPropsWithoutRef<'button'>['type'];
@@ -198,7 +207,9 @@ function getSurfaceBackground(tone: SurfaceTone) {
     return 'var(--app-surface-hero)';
   }
 
-  return tone === 'subtle' ? 'var(--app-surface-subtle)' : 'var(--app-surface-card)';
+  return tone === 'subtle'
+    ? 'var(--app-surface-subtle)'
+    : 'var(--app-surface-card)';
 }
 
 function getActionToneProps(tone: AppActionTone) {
@@ -276,7 +287,11 @@ function getResponsiveColumns(columns: 1 | 2 | 3) {
   return { base: 1, sm: 2 };
 }
 
-export function PageShell({ children, gap = 'xl', size = 1240 }: PageShellProps) {
+export function PageShell({
+  children,
+  gap = 'xl',
+  size = 1240,
+}: PageShellProps) {
   return (
     <Container px="md" size={size} w="100%">
       <Stack gap={gap}>{children}</Stack>
@@ -304,7 +319,10 @@ export function SectionCard({
       styles={{
         root: {
           background: getSurfaceBackground(tone),
-          borderColor: tone === 'hero' ? 'var(--app-border-strong)' : 'var(--app-border-subtle)',
+          borderColor:
+            tone === 'hero'
+              ? 'var(--app-border-strong)'
+              : 'var(--app-border-subtle)',
           boxShadow: tone === 'hero' ? 'var(--app-shadow-card)' : 'none',
           overflow: 'hidden',
         },
@@ -355,7 +373,10 @@ export function SurfaceLinkCard({
           '&:hover': {
             transform: 'translateY(-1px)',
             borderColor: 'var(--app-border-default)',
-            background: tone === 'subtle' ? 'var(--app-surface-subtle)' : 'var(--app-surface-card)',
+            background:
+              tone === 'subtle'
+                ? 'var(--app-surface-subtle)'
+                : 'var(--app-surface-card)',
           },
           '&:active': {
             transform: 'translateY(0)',
@@ -370,9 +391,18 @@ export function SurfaceLinkCard({
   );
 }
 
-export function ActionRow({ children, className, justify = 'flex-start' }: ActionRowProps) {
+export function ActionRow({
+  children,
+  className,
+  justify = 'flex-start',
+}: ActionRowProps) {
   return (
-    <Group gap="sm" justify={justify} wrap="wrap" {...(className ? { className } : {})}>
+    <Group
+      gap="sm"
+      justify={justify}
+      wrap="wrap"
+      {...(className ? { className } : {})}
+    >
       {children}
     </Group>
   );
@@ -502,7 +532,9 @@ export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
   );
 }
 
-export function ThemeToggleControl({ fullWidth = false }: ThemeToggleControlProps) {
+export function ThemeToggleControl({
+  fullWidth = false,
+}: ThemeToggleControlProps) {
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const nextColorScheme = colorScheme === 'dark' ? 'light' : 'dark';
 
@@ -597,7 +629,9 @@ export function PageSection({
     <Stack
       gap="md"
       pt={divider ? 'xl' : 0}
-      {...(divider ? { style: { borderTop: '1px solid var(--app-border-subtle)' } } : {})}
+      {...(divider
+        ? { style: { borderTop: '1px solid var(--app-border-subtle)' } }
+        : {})}
     >
       {(hasIntro || actions) && (
         <Flex
@@ -607,10 +641,19 @@ export function PageSection({
           justify="space-between"
         >
           {hasIntro && title ? (
-            <SectionIntro description={description} eyebrow={eyebrow} title={title} titleOrder={titleOrder} />
+            <SectionIntro
+              description={description}
+              eyebrow={eyebrow}
+              title={title}
+              titleOrder={titleOrder}
+            />
           ) : (
             <Stack gap={6}>
-              {eyebrow && <Text c="dimmed" fw={800} size="xs" tt="uppercase">{eyebrow}</Text>}
+              {eyebrow && (
+                <Text c="dimmed" fw={800} size="xs" tt="uppercase">
+                  {eyebrow}
+                </Text>
+              )}
               {description && <Text c="dimmed">{description}</Text>}
             </Stack>
           )}
@@ -672,24 +715,40 @@ export function MetricPill({ label, value }: MetricPillProps) {
   );
 }
 
-export function ChipSummary({ emptyLabel = '없음', label, values }: ChipSummaryProps) {
+export function ChipSummary({
+  emptyLabel = '없음',
+  label,
+  values,
+}: ChipSummaryProps) {
   return (
     <Stack gap={6}>
-      <Text c="dimmed" fw={800} size="xs">{label}</Text>
+      <Text c="dimmed" fw={800} size="xs">
+        {label}
+      </Text>
       {values.length > 0 ? (
         <ActionRow>
           {values.map((value, index) => (
-            <AppBadge key={`${String(value)}-${index}`} tone="muted">{value}</AppBadge>
+            <AppBadge key={`${String(value)}-${index}`} tone="muted">
+              {value}
+            </AppBadge>
           ))}
         </ActionRow>
       ) : (
-        <Text c="dimmed" size="sm">{emptyLabel}</Text>
+        <Text c="dimmed" size="sm">
+          {emptyLabel}
+        </Text>
       )}
     </Stack>
   );
 }
 
-export function StatCard({ accent = false, description, label, to, value }: StatCardProps) {
+export function StatCard({
+  accent = false,
+  description,
+  label,
+  to,
+  value,
+}: StatCardProps) {
   const content = (
     <Stack gap={6}>
       <Text
@@ -719,9 +778,13 @@ export function StatCard({ accent = false, description, label, to, value }: Stat
   );
 
   return to ? (
-    <SurfaceLinkCard padding="lg" to={to} tone={accent ? 'hero' : 'subtle'}>{content}</SurfaceLinkCard>
+    <SurfaceLinkCard padding="lg" to={to} tone={accent ? 'hero' : 'subtle'}>
+      {content}
+    </SurfaceLinkCard>
   ) : (
-    <SectionCard gap={6} padding="lg" tone={accent ? 'hero' : 'subtle'}>{content}</SectionCard>
+    <SectionCard gap={6} padding="lg" tone={accent ? 'hero' : 'subtle'}>
+      {content}
+    </SectionCard>
   );
 }
 
@@ -743,8 +806,12 @@ export function KeyValueGrid({ columns = 2, items }: KeyValueGridProps) {
             pb="sm"
             style={{ borderBottom: '1px solid var(--app-border-subtle)' }}
           >
-            <Text c="dimmed" component="dt" fw={700} size="xs">{item.label}</Text>
-            <Text component="dd" fw={700} m={0}>{item.value}</Text>
+            <Text c="dimmed" component="dt" fw={700} size="xs">
+              {item.label}
+            </Text>
+            <Text component="dd" fw={700} m={0}>
+              {item.value}
+            </Text>
           </Stack>
         ))}
       </SimpleGrid>
@@ -752,7 +819,13 @@ export function KeyValueGrid({ columns = 2, items }: KeyValueGridProps) {
   );
 }
 
-export function ActionBar({ actions, children, description, eyebrow, title }: ActionBarProps) {
+export function ActionBar({
+  actions,
+  children,
+  description,
+  eyebrow,
+  title,
+}: ActionBarProps) {
   return (
     <SectionCard padding="lg" tone="subtle">
       <PageSection
@@ -769,7 +842,11 @@ export function ActionBar({ actions, children, description, eyebrow, title }: Ac
   );
 }
 
-export function FeedbackMessage({ children, title, tone = 'error' }: FeedbackMessageProps) {
+export function FeedbackMessage({
+  children,
+  title,
+  tone = 'error',
+}: FeedbackMessageProps) {
   const color = getMessageColor(tone);
 
   return (
@@ -789,8 +866,16 @@ export function FeedbackMessage({ children, title, tone = 'error' }: FeedbackMes
       withBorder
     >
       <Stack gap={4}>
-        {title && <Text c="inherit" fw={800}>{title}</Text>}
-        {typeof children === 'string' ? <Text c="inherit">{children}</Text> : children}
+        {title && (
+          <Text c="inherit" fw={800}>
+            {title}
+          </Text>
+        )}
+        {typeof children === 'string' ? (
+          <Text c="inherit">{children}</Text>
+        ) : (
+          children
+        )}
       </Stack>
     </Paper>
   );
@@ -806,11 +891,21 @@ export function StateMessage({
   return (
     <SectionCard className={cn(css.stateMessage)} padding="xl" tone="subtle">
       <Stack gap="md">
-        <AppBadge tone={tone === 'error' ? 'danger' : tone === 'success' ? 'success' : 'accent'}>
+        <AppBadge
+          tone={
+            tone === 'error'
+              ? 'danger'
+              : tone === 'success'
+                ? 'success'
+                : 'accent'
+          }
+        >
           {eyebrow ?? getMessageLabel(tone)}
         </AppBadge>
         <Title order={2}>{title}</Title>
-        <Text c="dimmed" maw="58ch">{description}</Text>
+        <Text c="dimmed" maw="58ch">
+          {description}
+        </Text>
         {actions && <ActionRow>{actions}</ActionRow>}
       </Stack>
     </SectionCard>
@@ -828,9 +923,16 @@ export function LoadingState({
         <Group justify="space-between" wrap="nowrap">
           <Stack flex={1} gap={8} miw={0}>
             <Skeleton height={12} radius="sm" width={96} />
-            <Text c="dimmed" fw={800}>{title}</Text>
+            <Text c="dimmed" fw={800}>
+              {title}
+            </Text>
           </Stack>
-          <Skeleton height={36} radius="sm" visibleFrom="sm" width={actionWidth} />
+          <Skeleton
+            height={36}
+            radius="sm"
+            visibleFrom="sm"
+            width={actionWidth}
+          />
         </Group>
         <LoadingRows rows={rows} />
       </Stack>
@@ -875,10 +977,7 @@ export function PageHeader({
   titleOrder = 2,
 }: PageHeaderProps) {
   return (
-    <Stack
-      className={cx(css.pageHeader, className)}
-      gap="lg"
-    >
+    <Stack className={cx(css.pageHeader, className)} gap="lg">
       <Flex
         align={{ base: 'stretch', md: 'flex-start' }}
         direction={{ base: 'column', md: 'row' }}
@@ -892,7 +991,11 @@ export function PageHeader({
             title={title}
             titleOrder={titleOrder}
           />
-          {meta && <Group align="stretch" gap="xl" wrap="wrap">{meta}</Group>}
+          {meta && (
+            <Group align="stretch" gap="xl" wrap="wrap">
+              {meta}
+            </Group>
+          )}
         </Stack>
         {(aside || actions) && (
           <Stack gap="md" maw={360} miw={0}>

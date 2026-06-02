@@ -9,10 +9,7 @@ import {
   Textarea,
   TextInput,
 } from '@mantine/core';
-import type {
-  TimelineEntryType,
-  WorkRecord,
-} from '@work-archive/shared-types';
+import type { TimelineEntryType, WorkRecord } from '@work-archive/shared-types';
 
 import {
   ActionRow,
@@ -21,21 +18,15 @@ import {
   KeyValueGrid,
   SectionCard,
 } from '@shared/components/AppPrimitives';
-import {
-  formatWorkDate,
-  formatWorkDateTime,
-} from '../utils/work-options';
+import { formatWorkDate, formatWorkDateTime } from '../utils/work-options';
 import {
   timelineTypeOptions,
   type WorkDetailTimelineItem,
 } from '../utils/work-detail-timeline';
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface WorkDetailTimelineTabProps {
   onCreateTimelineEntry?: (input: {
@@ -129,7 +120,10 @@ export function WorkDetailTimelineTab({
             { label: '시작일', value: formatWorkDate(work.startedAt) },
             { label: '완료일', value: formatWorkDate(work.completedAt) },
             { label: '하차일', value: formatWorkDate(work.droppedAt) },
-            { label: '최근 기록일', value: formatWorkDate(work.lastConsumedAt) },
+            {
+              label: '최근 기록일',
+              value: formatWorkDate(work.lastConsumedAt),
+            },
             { label: '진행도', value: progressLabel ?? '아직 없음' },
             { label: '현재 상태', value: statusLabel },
           ]}

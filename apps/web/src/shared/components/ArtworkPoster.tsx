@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react';
 import { Box, Text } from '@mantine/core';
 
-import { usePosterImageSource, type PosterImageVariant } from './usePosterImageSource';
+import {
+  usePosterImageSource,
+  type PosterImageVariant,
+} from './usePosterImageSource';
 import styles from './ArtworkPoster.module.css';
+import { cn, cx } from '@shared/utils/class-names';
 
 interface ArtworkPosterProps {
   className?: string;
@@ -14,7 +18,10 @@ interface ArtworkPosterProps {
   variant?: PosterImageVariant;
 }
 
-const posterVariantClass: Record<NonNullable<ArtworkPosterProps['variant']>, string> = {
+const posterVariantClass: Record<
+  NonNullable<ArtworkPosterProps['variant']>,
+  string
+> = {
   card: cn(styles.posterCard),
   detail: cn(styles.posterDetail),
   form: cn(styles.posterForm),
@@ -22,10 +29,6 @@ const posterVariantClass: Record<NonNullable<ArtworkPosterProps['variant']>, str
   hero: cn(styles.posterHero),
   row: cn(styles.posterRow),
 };
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
 
 function getCoverTone(seed: string) {
   let hash = 0;
@@ -35,10 +38,6 @@ function getCoverTone(seed: string) {
   }
 
   return String(hash % 6);
-}
-
-function cx(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(' ');
 }
 
 export function ArtworkPoster({
@@ -53,11 +52,20 @@ export function ArtworkPoster({
   const posterImage = usePosterImageSource(thumbnailUrl, variant);
 
   return (
-    <Box className={cx(cn(styles.posterShell), posterVariantClass[variant], className)}>
+    <Box
+      className={cx(
+        cn(styles.posterShell),
+        posterVariantClass[variant],
+        className,
+      )}
+    >
       {posterImage.src && !posterImage.failed ? (
         <>
           {!posterImage.loaded && (
-            <Box aria-hidden="true" className={cn(styles.posterImageSkeleton)} />
+            <Box
+              aria-hidden="true"
+              className={cn(styles.posterImageSkeleton)}
+            />
           )}
           <img
             alt={`${title} 포스터`}
@@ -76,9 +84,13 @@ export function ArtworkPoster({
         <Box
           aria-label={`${title} 포스터 대체 표지`}
           className={cn(styles.posterFallback)}
-          data-cover-tone={getCoverTone(coverSeed ?? `${typeLabel ?? ''}:${title}`)}
+          data-cover-tone={getCoverTone(
+            coverSeed ?? `${typeLabel ?? ''}:${title}`,
+          )}
         >
-          <Text className={cn(styles.posterFallbackType)}>{typeLabel ?? '기록'}</Text>
+          <Text className={cn(styles.posterFallbackType)}>
+            {typeLabel ?? '기록'}
+          </Text>
           <Text className={cn(styles.posterFallbackMark)}>
             {(title.trim()[0] ?? 'W').toUpperCase()}
           </Text>

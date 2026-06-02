@@ -12,12 +12,9 @@ import {
   buildStatusFilterOptions,
   identityPresetOptions,
 } from '../utils/works-toolbar-state';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface FilterSectionProps {
   children: ReactNode;
@@ -150,7 +147,10 @@ export function AdvancedFiltersPanel({
                     list="worksTagFilterSuggestions"
                     name="tag"
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      onQueryChange({ ...query, tag: event.currentTarget.value })
+                      onQueryChange({
+                        ...query,
+                        tag: event.currentTarget.value,
+                      })
                     }
                     placeholder="태그로 필터…"
                     value={query.tag ?? ''}

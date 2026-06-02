@@ -7,12 +7,9 @@ import {
   type useImportProviderReadiness,
 } from '@features/imports';
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface ProviderGroupLineProps {
   group: ProviderReadinessGroup;

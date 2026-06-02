@@ -8,16 +8,9 @@ import {
   ratingPresetOptions,
   smartFilterOptions,
 } from '../utils/works-toolbar-state';
+import { cn, cx } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
-
-function cx(...classes: Array<string | false | undefined>) {
-  return classes.filter(Boolean).join(' ');
-}
+const css = styles;
 
 /* 감상 상태별 의미 색 — 점으로 빠르게 구분 */
 const statusDotColor: Record<WorkStatus, string> = {
@@ -42,7 +35,14 @@ interface StateChipProps {
   onClick: () => void;
 }
 
-function StateChip({ active, count, dotColor, label, leading, onClick }: StateChipProps) {
+function StateChip({
+  active,
+  count,
+  dotColor,
+  label,
+  leading,
+  onClick,
+}: StateChipProps) {
   return (
     <button
       aria-pressed={active}
@@ -51,7 +51,10 @@ function StateChip({ active, count, dotColor, label, leading, onClick }: StateCh
       type="button"
     >
       {dotColor ? (
-        <span className={cn(css.filterChipDot)} style={{ background: dotColor }} />
+        <span
+          className={cn(css.filterChipDot)}
+          style={{ background: dotColor }}
+        />
       ) : null}
       {leading}
       <span>{label}</span>
@@ -66,7 +69,10 @@ function StarGlyph({ muted = false }: { muted?: boolean }) {
   return (
     <svg
       aria-hidden="true"
-      className={cx(cn(css.filterChipStar), muted && cn(css.filterChipStarMuted))}
+      className={cx(
+        cn(css.filterChipStar),
+        muted && cn(css.filterChipStarMuted),
+      )}
       height={13}
       viewBox="0 0 24 24"
       width={13}
@@ -82,7 +88,11 @@ function StarGlyph({ muted = false }: { muted?: boolean }) {
   );
 }
 
-function SmartIcon({ name }: { name: 'favorites' | 'needsCuration' | 'unrated' }) {
+function SmartIcon({
+  name,
+}: {
+  name: 'favorites' | 'needsCuration' | 'unrated';
+}) {
   const common = {
     'aria-hidden': true as const,
     className: cn(css.filterChipIcon),

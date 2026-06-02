@@ -20,18 +20,15 @@ import { AppButton } from '@shared/components/AppPrimitives';
 import { TIER_BOARD_TEMPLATES } from '../services/tier-board.service';
 import { LANE_COLORS } from '../utils/tier-board-editor-helpers';
 import styles from '../pages/TierBoardsPage.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
+const css = styles;
 
 export interface TierBoardSettingsDraft {
   boardType: TierBoardType;
   description: string;
   title: string;
   visibility: TierBoardVisibility;
-}
-
-function cn(value: string | undefined) {
-  return value ?? '';
 }
 
 export function TierBoardSettingsModal({

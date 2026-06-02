@@ -14,7 +14,7 @@ import type { LocalArchiveImportPreview } from '@features/archive';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import styles from './SettingsControlCenter.module.css';
 
-const css = styles as Record<string, string>;
+const css = styles;
 
 interface ExportOptionCardProps {
   buttonLabel: string;

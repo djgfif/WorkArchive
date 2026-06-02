@@ -28,12 +28,9 @@ import {
   getLaneSortableId,
 } from '../utils/tier-board-editor-helpers';
 import styles from '../pages/TierBoardsPage.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 export function DroppableZone({
   children,

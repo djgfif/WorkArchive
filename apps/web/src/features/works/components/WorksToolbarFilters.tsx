@@ -10,12 +10,9 @@ import {
   buildMediaTypeOptions,
   type WorksToolbarFilterChip,
 } from '../utils/works-toolbar-state';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface MediaTypeFilterProps {
   onChange: (type: WorksListQuery['type']) => void;
@@ -153,7 +150,8 @@ export function TrashScopeBar({
           복구가 기본 작업입니다.
         </Text>
         <Text c="var(--app-text-muted)" size="xs">
-          삭제한 작품은 서재에서 숨겨진 상태입니다. 복구하면 원래 서재로 돌아갑니다.
+          삭제한 작품은 서재에서 숨겨진 상태입니다. 복구하면 원래 서재로
+          돌아갑니다.
         </Text>
       </Stack>
       <Group gap="xs" justify="flex-end" wrap="wrap">

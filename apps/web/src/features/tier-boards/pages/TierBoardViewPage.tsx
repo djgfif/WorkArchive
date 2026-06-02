@@ -11,12 +11,9 @@ import {
 import type { TierBoardEditorState } from '../services/tier-board.repository';
 import { tierBoardService } from '../services/tier-board.service';
 import styles from './TierBoardsPage.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 function getCardsForLane(cards: TierBoardCardRecord[], laneId: string | null) {
   return cards
@@ -59,7 +56,11 @@ export function TierBoardViewPage() {
   );
 
   if (!boardId || !state) {
-    return <FeedbackMessage tone="info">티어보드를 불러오는 중입니다.</FeedbackMessage>;
+    return (
+      <FeedbackMessage tone="info">
+        티어보드를 불러오는 중입니다.
+      </FeedbackMessage>
+    );
   }
 
   return (
@@ -104,10 +105,15 @@ export function TierBoardViewPage() {
             <Box p="md">
               <div className={cn(css.itemGrid)}>
                 {getCardsForLane(state.cards, lane.id).map((card) => {
-                  const imageUrl = assetUrls.get(card.imageUrl) ?? card.imageUrl;
+                  const imageUrl =
+                    assetUrls.get(card.imageUrl) ?? card.imageUrl;
 
                   return (
-                    <Paper className={cn(css.itemCard)} key={card.id} withBorder>
+                    <Paper
+                      className={cn(css.itemCard)}
+                      key={card.id}
+                      withBorder
+                    >
                       {imageUrl ? (
                         <img
                           alt={card.title}
@@ -117,7 +123,9 @@ export function TierBoardViewPage() {
                         />
                       ) : (
                         <Box className={cn(css.itemFallback)}>
-                          <Text fw={800}>{card.title.slice(0, 1).toUpperCase()}</Text>
+                          <Text fw={800}>
+                            {card.title.slice(0, 1).toUpperCase()}
+                          </Text>
                         </Box>
                       )}
                       <Stack gap={4} p="xs">

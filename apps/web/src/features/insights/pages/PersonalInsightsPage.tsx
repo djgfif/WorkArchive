@@ -1,6 +1,18 @@
-import { Box, Group, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import {
+  Box,
+  Group,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { Link } from 'react-router-dom';
-import type { WorkRecord, WorkStatus, WorkType } from '@work-archive/shared-types';
+import type {
+  WorkRecord,
+  WorkStatus,
+  WorkType,
+} from '@work-archive/shared-types';
 
 import {
   AppBadge,
@@ -13,19 +25,13 @@ import {
   StateMessage,
 } from '@shared/components/AppPrimitives';
 import { useAuthSession } from '@features/auth';
-import {
-  getWorkStatusLabel,
-  getWorkTypeLabel,
-} from '@features/works';
+import { getWorkStatusLabel, getWorkTypeLabel } from '@features/works';
 import { usePersonalInsights } from '../hooks/usePersonalInsights';
 import type { PersonalInsights } from '../services/personal-insights.service';
 import styles from './PersonalInsightsPage.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 function formatCount(value: number) {
   return new Intl.NumberFormat('ko-KR').format(value);
@@ -111,12 +117,7 @@ function MetricCard({
   }
 
   return (
-    <Paper
-      className={cn(css.chartPanel)}
-      p="lg"
-      radius="md"
-      withBorder
-    >
+    <Paper className={cn(css.chartPanel)} p="lg" radius="md" withBorder>
       {content}
     </Paper>
   );
@@ -253,11 +254,13 @@ function RecentWorksList({
 }
 
 function InsightsContent({ insights }: { insights: PersonalInsights }) {
-  const typeItems = Object.entries(insights.typeCounts).map(([type, count]) => ({
-    count,
-    label: getWorkTypeLabel(type as WorkType),
-    to: buildTypeHref(type as WorkType),
-  }));
+  const typeItems = Object.entries(insights.typeCounts).map(
+    ([type, count]) => ({
+      count,
+      label: getWorkTypeLabel(type as WorkType),
+      to: buildTypeHref(type as WorkType),
+    }),
+  );
   const statusItems = Object.entries(insights.statusCounts).map(
     ([status, count]) => ({
       count,
@@ -381,7 +384,8 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
             볼 예정 {formatCount(insights.plannedCount)}개
           </AppBadge>
           <AppBadge tone="muted">
-            감상 공백 {formatPercent(insights.reviewEmptyCount, insights.totalWorks)}
+            감상 공백{' '}
+            {formatPercent(insights.reviewEmptyCount, insights.totalWorks)}
           </AppBadge>
         </Group>
       </Paper>

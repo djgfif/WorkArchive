@@ -21,9 +21,10 @@ import type { ImportProviderStatus } from '@features/imports';
 import { getWorkTypeLabel } from '@features/works';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import styles from './SettingsControlCenter.module.css';
+import { cx } from '@shared/utils/class-names';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
-const css = styles as Record<string, string>;
+const css = styles;
 
 interface SearchProviderSettingsSectionProps {
   credentialDraft: Record<string, string>;
@@ -41,10 +42,6 @@ interface SearchProviderSettingsSectionProps {
   selectedProvider: ImportProviderStatus | null;
   selectedProviderId: string | null;
   testingProviderId: string | null;
-}
-
-function cx(...classes: Array<string | false | undefined>) {
-  return classes.filter(Boolean).join(' ');
 }
 
 function getCredentialModeLabel(mode?: ImportProviderStatus['credentialMode']) {
@@ -84,7 +81,9 @@ function getProviderStatusTone(status: ImportProviderStatus) {
     return 'success' as const;
   }
 
-  return status.credentialMode === 'user' ? 'warning' as const : 'muted' as const;
+  return status.credentialMode === 'user'
+    ? ('warning' as const)
+    : ('muted' as const);
 }
 
 function getProviderBenefit(status: ImportProviderStatus) {
@@ -266,7 +265,8 @@ export function SearchProviderSettingsSection({
     selectedProvider !== null &&
     deletingProviderId === selectedProvider.provider;
   const isTestingSelected =
-    selectedProvider !== null && testingProviderId === selectedProvider.provider;
+    selectedProvider !== null &&
+    testingProviderId === selectedProvider.provider;
 
   return (
     <SectionCard>
@@ -279,7 +279,8 @@ export function SearchProviderSettingsSection({
       {mode !== 'authenticated' ? (
         <Stack gap="sm">
           <Text c="dimmed">
-            공개 검색 소스는 계속 사용할 수 있습니다. 개인 API 키는 로그인한 계정의 보안 저장소에서만 관리됩니다.
+            공개 검색 소스는 계속 사용할 수 있습니다. 개인 API 키는 로그인한
+            계정의 보안 저장소에서만 관리됩니다.
           </Text>
           <ActionRow>
             <AppBadge tone="success">키 없이 검색 가능</AppBadge>
@@ -332,7 +333,6 @@ export function SearchProviderSettingsSection({
                   </div>
                 </Stack>
               </SectionCard>
-
             </Stack>
 
             <SectionCard
@@ -346,7 +346,9 @@ export function SearchProviderSettingsSection({
                     <ActionRow>
                       <Text fw={850}>{selectedLabel}</Text>
                       <AppBadge
-                        tone={selectedProvider.configured ? 'success' : 'warning'}
+                        tone={
+                          selectedProvider.configured ? 'success' : 'warning'
+                        }
                       >
                         {getProviderStatusLabel(selectedProvider)}
                       </AppBadge>
@@ -364,8 +366,9 @@ export function SearchProviderSettingsSection({
                       보안 저장 방식
                     </Text>
                     <Text c="dimmed" size="sm">
-                      저장된 키 값은 다시 표시하지 않습니다. 검색 요청에만 사용하며
-                      JSON/CSV 백업 파일에는 포함하지 않습니다. 필요하면 언제든 삭제할 수 있습니다.
+                      저장된 키 값은 다시 표시하지 않습니다. 검색 요청에만
+                      사용하며 JSON/CSV 백업 파일에는 포함하지 않습니다.
+                      필요하면 언제든 삭제할 수 있습니다.
                     </Text>
                   </Box>
 
@@ -373,25 +376,27 @@ export function SearchProviderSettingsSection({
 
                   <form onSubmit={handleSubmit}>
                     <Stack gap="sm">
-                      {(selectedProvider.credentialFields ?? []).map((field) => (
-                        <PasswordInput
-                          autoComplete="new-password"
-                          description={
-                            field.description ??
-                            '저장 후에는 값이 화면에 다시 표시되지 않습니다.'
-                          }
-                          key={field.name}
-                          label={field.label}
-                          onChange={(event) =>
-                            onUpdateCredentialField(
-                              field.name,
-                              event.currentTarget.value,
-                            )
-                          }
-                          placeholder={`${field.label} 입력`}
-                          value={credentialDraft[field.name] ?? ''}
-                        />
-                      ))}
+                      {(selectedProvider.credentialFields ?? []).map(
+                        (field) => (
+                          <PasswordInput
+                            autoComplete="new-password"
+                            description={
+                              field.description ??
+                              '저장 후에는 값이 화면에 다시 표시되지 않습니다.'
+                            }
+                            key={field.name}
+                            label={field.label}
+                            onChange={(event) =>
+                              onUpdateCredentialField(
+                                field.name,
+                                event.currentTarget.value,
+                              )
+                            }
+                            placeholder={`${field.label} 입력`}
+                            value={credentialDraft[field.name] ?? ''}
+                          />
+                        ),
+                      )}
 
                       <ActionRow>
                         <AppButton
@@ -453,11 +458,14 @@ export function SearchProviderSettingsSection({
                   키 없이 사용 중인 기본 검색 소스
                 </Text>
                 <Text className={css.publicProviderSummaryDescription ?? ''}>
-                  별도 관리가 필요 없는 소스입니다. 필요할 때만 펼쳐서 확인합니다.
+                  별도 관리가 필요 없는 소스입니다. 필요할 때만 펼쳐서
+                  확인합니다.
                 </Text>
               </Stack>
               <Group gap="xs" wrap="nowrap">
-                <AppBadge tone="success">{noKeyProviders.length}개 사용 가능</AppBadge>
+                <AppBadge tone="success">
+                  {noKeyProviders.length}개 사용 가능
+                </AppBadge>
                 <span className={css.publicProviderChevron ?? ''} aria-hidden>
                   ↓
                 </span>

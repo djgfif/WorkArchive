@@ -10,7 +10,11 @@ import {
   LoadingRows,
   StateMessage,
 } from '@shared/components/AppPrimitives';
-import { JsonBackupReminderCard, useJsonArchiveExport, useJsonBackupReminder } from '@features/archive';
+import {
+  JsonBackupReminderCard,
+  useJsonArchiveExport,
+  useJsonBackupReminder,
+} from '@features/archive';
 import { useAuthSession } from '@features/auth';
 import {
   ArchiveSearchBar,
@@ -21,7 +25,7 @@ import {
 } from '@features/works';
 import styles from './HomePage.module.css';
 
-const css = styles as Record<string, string>;
+const css = styles;
 
 /* ── 유틸 ─────────────────────────────────────────────────────────────────── */
 
@@ -107,7 +111,11 @@ function ShelfSection({ eyebrow, href, title, works }: ShelfSectionProps) {
           {eyebrow && <span className={css.shelfTitleEyebrow}>{eyebrow}</span>}
           <h2 className={css.shelfTitle}>{title}</h2>
         </div>
-        <Link aria-label={`${title} 전체 보기`} className={css.shelfViewAll} to={href}>
+        <Link
+          aria-label={`${title} 전체 보기`}
+          className={css.shelfViewAll}
+          to={href}
+        >
           전체 보기 →
         </Link>
       </div>
@@ -247,7 +255,9 @@ function ActivityStrip({ works }: { works: WorkRecord[] }) {
               {formatRelativeDate(work.updatedAt)}
             </span>
             {work.rating !== null && (
-              <span className={css.activityRating}>★ {work.rating.toFixed(1)}</span>
+              <span className={css.activityRating}>
+                ★ {work.rating.toFixed(1)}
+              </span>
             )}
           </button>
         ))}
@@ -316,7 +326,8 @@ function EmptyGuide() {
     <div className={css.emptyGuide}>
       <h2 className={css.emptyGuideTitle}>첫 작품을 놓는 방법</h2>
       <p className={css.emptyGuideDesc}>
-        새 작품을 직접 남기거나 검색으로 표지를 채우고, 기존 백업도 이어받을 수 있습니다.
+        새 작품을 직접 남기거나 검색으로 표지를 채우고, 기존 백업도 이어받을 수
+        있습니다.
       </p>
       <div className={css.emptyGuideGrid}>
         {cards.map((card) => (
@@ -385,7 +396,7 @@ export function HomePage() {
       <div className={css.homeGreeting}>
         <div className={css.homeGreetingText}>
           <span className={css.homeEyebrow}>
-            {isAuthenticated ? user?.email ?? '내 서재' : '내 서재'}
+            {isAuthenticated ? (user?.email ?? '내 서재') : '내 서재'}
           </span>
           <h1 className={css.homeTitle}>오늘 펼쳐볼 작품</h1>
           <div className={css.homeStatStrip}>

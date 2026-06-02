@@ -4,12 +4,9 @@ import { WorkPoster } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
 import type { WorkFormValues } from '../utils/work-form';
 import { workTypeOptions } from '../utils/work-options';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface QuickCapturePreviewProps {
   duplicateCount?: number;
@@ -17,9 +14,7 @@ interface QuickCapturePreviewProps {
   values: WorkFormValues;
 }
 
-export function QuickCapturePreview({
-  values,
-}: QuickCapturePreviewProps) {
+export function QuickCapturePreview({ values }: QuickCapturePreviewProps) {
   const previewTitle = values.title.trim() || '제목 없는 작품';
   const typeLabel =
     workTypeOptions.find((option) => option.value === values.type)?.label ??
