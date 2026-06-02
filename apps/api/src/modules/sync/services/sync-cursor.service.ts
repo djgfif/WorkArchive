@@ -66,24 +66,25 @@ export class SyncCursorService {
     return Math.min(Math.max(limit, 1), MAX_PULL_PAGE_LIMIT);
   }
 
-  isAfterCursor(
-    cursor: PullCursor | null,
-    entityType: SyncEntityType,
-    entityId: string,
-    updatedAt: Date,
-  ) {
-    if (!cursor) {
-      return true;
+  /**
+   * Compares two entity ids by Unicode code point so the in-memory pull page
+   * ordering matches the database ordering used by the cursor filter
+   * (`id > cursor.entityId`) and `orderBy id asc`. The id columns are pinned to
+   * `COLLATE "C"` (byte order), which equals JS code-point order for the ASCII
+   * UUIDs we store. `localeCompare` uses ICU collation and can disagree with the
+   * database, silently dropping records that share an `updatedAt` at a page
+   * boundary.
+   */
+  compareEntityIds(left: string, right: string) {
+    if (left < right) {
+      return -1;
     }
 
-    const updatedAtIso = updatedAt.toISOString();
+    if (left > right) {
+      return 1;
+    }
 
-    return (
-      updatedAtIso > cursor.updatedAt ||
-      (updatedAtIso === cursor.updatedAt &&
-        (entityType > cursor.entityType ||
-          (entityType === cursor.entityType && entityId > cursor.entityId)))
-    );
+    return 0;
   }
 
   findPullPageCursorFilter(
@@ -133,19 +134,12 @@ export class SyncCursorService {
           ],
         });
       } else {
+        // This entity type sorts after the cursor's at the same timestamp, so
+        // every record at or after the cursor timestamp is still pending.
         filters.push({
-          OR: [
-            {
-              updatedAt: {
-                gt: cursorUpdatedAt,
-              },
-            },
-            {
-              updatedAt: {
-                equals: cursorUpdatedAt,
-              },
-            },
-          ],
+          updatedAt: {
+            gte: cursorUpdatedAt,
+          },
         });
       }
     }

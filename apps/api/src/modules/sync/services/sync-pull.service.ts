@@ -773,7 +773,10 @@ export class SyncPullService {
         return entityTypeDelta;
       }
 
-      return left.cursor.entityId.localeCompare(right.cursor.entityId);
+      return this.cursorService.compareEntityIds(
+        left.cursor.entityId,
+        right.cursor.entityId,
+      );
     });
   }
 
