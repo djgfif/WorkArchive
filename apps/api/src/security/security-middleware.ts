@@ -6,6 +6,7 @@ import { RedisStore, type RedisReply } from 'rate-limit-redis';
 import { randomUUID } from 'node:crypto';
 
 import type { ApiRuntimeConfig } from '../config/api-runtime-config';
+import { normalizeRequestId } from './request-id';
 import type { SecurityAuditService } from './security-audit.service';
 import { setRequestId } from './security-audit.service';
 
@@ -173,15 +174,12 @@ function hasBearerAuthorization(request: Request) {
 
 export function createRequestIdMiddleware() {
   return (request: Request, response: Response, next: NextFunction) => {
-    const headerRequestId = request.header('x-request-id');
     const requestWithLoggerId = request as Request & {
       id?: string;
     };
     const requestId =
-      headerRequestId?.trim() ||
-      (typeof requestWithLoggerId.id === 'string'
-        ? requestWithLoggerId.id
-        : null) ||
+      normalizeRequestId(request.header('x-request-id')) ||
+      normalizeRequestId(requestWithLoggerId.id) ||
       randomUUID();
 
     setRequestId(request, requestId);

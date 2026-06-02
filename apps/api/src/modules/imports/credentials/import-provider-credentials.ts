@@ -17,6 +17,7 @@ import {
   PROVIDERS,
   type ProviderCredentialValues,
 } from '../providers/import-provider-adapter';
+import { assertProviderCredentialValuesInput } from './provider-credential-values';
 
 export function buildProviderKeyTestResponse(input: {
   checkedAt: string;
@@ -55,6 +56,8 @@ export function normalizeCredentialValues(
   provider: ImportProvider,
   values: ProviderCredentialValues,
 ) {
+  assertProviderCredentialValuesInput(values);
+
   const fields = PROVIDERS[provider].credentialFields ?? [];
   const normalized: ProviderCredentialValues = {};
 

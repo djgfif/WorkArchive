@@ -12,8 +12,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBody,
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiExtraModels,
   ApiOkResponse,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -22,14 +24,14 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
-import type {
+import { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
+import {
   CreateUserRecordDto,
   CreateUserRecordFromImportDto,
   UpdateUserRecordDto,
   UpdateProgressDto,
 } from './dto/user-record.dto';
-import type { UpsertUserReleaseRecordDto } from './dto/user-release-record.dto';
+import { UpsertUserReleaseRecordDto } from './dto/user-release-record.dto';
 import { UserRecordsService } from './user-records.service';
 
 @ApiTags('user-records')
@@ -54,6 +56,7 @@ export class UserRecordsController {
   }
 
   @Get('grouped')
+  @ApiExtraModels(GroupedWorksQueryDto)
   @ApiOkResponse({
     description: 'List active user records grouped by catalog metadata.',
   })
@@ -77,6 +80,9 @@ export class UserRecordsController {
   }
 
   @Put(':id/progress')
+  @ApiBody({
+    type: UpdateProgressDto,
+  })
   @ApiOkResponse({
     description: 'Update title-level progress fields only.',
   })
@@ -89,6 +95,9 @@ export class UserRecordsController {
   }
 
   @Post(':id/releases/:catalogReleaseId')
+  @ApiBody({
+    type: UpsertUserReleaseRecordDto,
+  })
   @ApiCreatedResponse({
     description: 'Create or restore an optional volume-level user release record.',
   })
@@ -118,6 +127,9 @@ export class UserRecordsController {
   }
 
   @Post()
+  @ApiBody({
+    type: CreateUserRecordDto,
+  })
   @ApiCreatedResponse({
     description: 'Create a user record against an existing or draft catalog title.',
   })
@@ -129,6 +141,9 @@ export class UserRecordsController {
   }
 
   @Patch(':id')
+  @ApiBody({
+    type: UpdateUserRecordDto,
+  })
   @ApiOkResponse({
     description: 'Update only personal record fields.',
   })
@@ -141,6 +156,9 @@ export class UserRecordsController {
   }
 
   @Post('from-import')
+  @ApiBody({
+    type: CreateUserRecordFromImportDto,
+  })
   @ApiCreatedResponse({
     description: 'Resolve a normalized import candidate into a catalog title and user record.',
   })

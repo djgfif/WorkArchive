@@ -5,12 +5,15 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Max,
+  MaxLength,
   Min,
   ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { MAX_PULL_CURSOR_LENGTH } from '../sync-internal.types';
 import { SYNC_SCHEMA_VERSION } from '../sync.constants';
 
 export class PullSyncDto {
@@ -48,6 +51,8 @@ export class PullSyncDto {
   })
   @IsOptional()
   @IsString()
+  @MaxLength(MAX_PULL_CURSOR_LENGTH)
+  @Matches(/^[A-Za-z0-9_-]+$/)
   cursor?: string | null;
 
   @ApiPropertyOptional({

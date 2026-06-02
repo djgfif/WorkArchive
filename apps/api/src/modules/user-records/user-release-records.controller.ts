@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBody,
   ApiBearerAuth,
   ApiOkResponse,
   ApiTags,
@@ -19,9 +20,8 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type {
-  UpsertUserReleaseRecordDto} from './dto/user-release-record.dto';
 import {
+  UpsertUserReleaseRecordDto,
   UserReleaseRecordResponseDto,
 } from './dto/user-release-record.dto';
 import {
@@ -40,6 +40,9 @@ export class UserReleaseRecordsController {
   ) {}
 
   @Patch(':id')
+  @ApiBody({
+    type: UpsertUserReleaseRecordDto,
+  })
   @ApiOkResponse({
     description: 'Update a volume-level personal release record.',
     type: UserReleaseRecordResponseDto,

@@ -33,6 +33,7 @@ import { ImportProviderKeyTestResponseDto } from './dto/import-provider-key-test
 import { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
 import { ImportSearchQueryDto } from './dto/import-search-query.dto';
 import { ImportSearchResponseDto } from './dto/import-search-response.dto';
+import { ResolveImportCandidateDto } from './dto/resolve-import-candidate.dto';
 import { UpsertAladinKeyDto } from './dto/upsert-aladin-key.dto';
 import { UpsertProviderKeyDto } from './dto/upsert-provider-key.dto';
 import { ImportsService } from './imports.service';
@@ -196,12 +197,15 @@ export class ImportsController {
     description: 'Return a normalized import candidate payload for client review.',
     type: ImportCandidateResponseDto,
   })
+  @ApiBody({
+    type: ResolveImportCandidateDto,
+  })
   @ApiUnauthorizedResponse({
     description: 'The access token is missing, invalid, or expired.',
   })
   resolve(
     @CurrentUser() user: AuthenticatedUser,
-    @Body() candidate: Record<string, unknown>,
+    @Body() candidate: ResolveImportCandidateDto,
   ) {
     return this.importsService.resolveCandidate(user.userId, candidate);
   }

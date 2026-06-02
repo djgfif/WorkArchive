@@ -15,6 +15,7 @@ import { UserRecordsModule } from './modules/user-records';
 import { WorksModule } from './modules/works';
 import { ObservabilityModule } from './observability/observability.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { normalizeRequestId } from './security/request-id';
 import { SecurityModule } from './security/security.module';
 
 @Module({
@@ -25,11 +26,9 @@ import { SecurityModule } from './security/security.module';
           ignore: (request) => request.url === '/health',
         },
         genReqId: (request) => {
-          const headerRequestId = request.headers['x-request-id'];
-
-          return Array.isArray(headerRequestId)
-            ? (headerRequestId[0] ?? randomUUID())
-            : (headerRequestId ?? randomUUID());
+          return (
+            normalizeRequestId(request.headers['x-request-id']) ?? randomUUID()
+          );
         },
         level: process.env.LOG_LEVEL?.trim() || 'info',
         redact: [

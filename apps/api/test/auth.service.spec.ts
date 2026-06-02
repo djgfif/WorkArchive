@@ -247,8 +247,12 @@ function createPrismaMock() {
       }: {
         data: Partial<MockUserRefreshSession>;
         where: {
+          expiresAt?: {
+            gt: Date;
+          };
           id?: string;
           revokedAt?: null;
+          tokenHash?: string;
           userId?: string;
         };
       }) => {
@@ -263,7 +267,18 @@ function createPrismaMock() {
             continue;
           }
 
+          if (where.tokenHash && session.tokenHash !== where.tokenHash) {
+            continue;
+          }
+
           if ('revokedAt' in where && session.revokedAt !== where.revokedAt) {
+            continue;
+          }
+
+          if (
+            where.expiresAt?.gt &&
+            session.expiresAt.getTime() <= where.expiresAt.gt.getTime()
+          ) {
             continue;
           }
 
@@ -425,6 +440,50 @@ describe('AuthService', () => {
       authService.refresh(firstSession.refreshToken),
     ).rejects.toThrow('Invalid or expired refresh token.');
     expect(userRefreshSessions.every((session) => session.revokedAt)).toBe(
+      true,
+    );
+  });
+
+  it('treats a lost refresh rotation race as token reuse', async () => {
+    const { prisma, userRefreshSessions, users } = createPrismaMock();
+    const user = {
+      avatarUrl: '',
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: '',
+      passwordHash: null,
+      refreshTokenHash: null,
+      role: 'user',
+    } satisfies MockUser;
+    users.push(user);
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const session = await issueSession(authService, user);
+    const originalTokenHash = userRefreshSessions[0]?.tokenHash;
+    const originalUpdateMany = prisma.userRefreshSession.updateMany;
+    let blockRotationUpdate = true;
+
+    prisma.userRefreshSession.updateMany = async (input) => {
+      if (
+        blockRotationUpdate &&
+        input.where.id === session.sessionId &&
+        input.where.tokenHash === originalTokenHash &&
+        input.data.tokenHash
+      ) {
+        blockRotationUpdate = false;
+
+        return {
+          count: 0,
+        };
+      }
+
+      return originalUpdateMany(input);
+    };
+
+    await expect(authService.refresh(session.refreshToken)).rejects.toThrow(
+      'Invalid or expired refresh token.',
+    );
+    expect(userRefreshSessions.every((candidate) => candidate.revokedAt)).toBe(
       true,
     );
   });

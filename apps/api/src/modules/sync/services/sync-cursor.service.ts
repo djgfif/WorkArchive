@@ -3,10 +3,15 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import type { PullSyncChangeDto } from '../dto/pull-sync-response.dto';
 import {
   DEFAULT_PULL_PAGE_LIMIT,
+  MAX_PULL_CURSOR_LENGTH,
   MAX_PULL_PAGE_LIMIT,
   type PullCursor,
 } from '../sync-internal.types';
 import { SYNC_ENTITY_TYPES, type SyncEntityType } from '../sync.constants';
+
+const PULL_CURSOR_PATTERN = /^[A-Za-z0-9_-]+$/;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class SyncCursorService {
@@ -17,6 +22,13 @@ export class SyncCursorService {
   parsePullCursor(value: string | null): PullCursor | null {
     if (!value) {
       return null;
+    }
+
+    if (
+      value.length > MAX_PULL_CURSOR_LENGTH ||
+      !PULL_CURSOR_PATTERN.test(value)
+    ) {
+      throw new BadRequestException('cursor must be a valid sync pull cursor.');
     }
 
     try {
@@ -30,6 +42,7 @@ export class SyncCursorService {
         typeof decoded.entityType !== 'string' ||
         typeof decoded.entityId !== 'string' ||
         !SYNC_ENTITY_TYPES.includes(decoded.entityType as SyncEntityType) ||
+        !UUID_PATTERN.test(decoded.entityId) ||
         Number.isNaN(Date.parse(decoded.updatedAt))
       ) {
         throw new Error('Invalid cursor shape.');

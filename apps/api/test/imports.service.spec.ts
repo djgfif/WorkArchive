@@ -472,6 +472,23 @@ describe('ImportsService', () => {
     );
   });
 
+  it('rejects malformed provider-generic credential records before saving', async () => {
+    await expect(
+      service.saveProviderKey(
+        USER_ID,
+        NAVER_BOOK_PROVIDER,
+        {
+          clientId: {
+            nested: 'not-a-string',
+          },
+          clientSecret: 'naver-client-secret',
+        } as unknown as Record<string, string>,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(credentialService.saveCredential).not.toHaveBeenCalled();
+  });
+
   it('returns a clear provider key test result when no key is stored', async () => {
     credentialService.getDecryptedCredential.mockResolvedValue(null);
     const fetchSpy = jest.spyOn(globalThis, 'fetch');

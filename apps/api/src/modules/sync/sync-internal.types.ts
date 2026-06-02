@@ -5,6 +5,7 @@ import type {
 
 export const DEFAULT_PULL_PAGE_LIMIT = 500;
 export const MAX_PULL_PAGE_LIMIT = 1000;
+export const MAX_PULL_CURSOR_LENGTH = 512;
 
 export interface PullCursor {
   entityId: string;

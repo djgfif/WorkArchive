@@ -10,8 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBody,
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiExtraModels,
   ApiOkResponse,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -26,13 +28,13 @@ import {
   toCatalogTitleView,
 } from './catalog.presenter';
 import { CatalogService } from './catalog.service';
-import type { CatalogSearchQueryDto } from './dto/catalog-search-query.dto';
-import type {
+import { CatalogSearchQueryDto } from './dto/catalog-search-query.dto';
+import {
   CreateCatalogSubmissionDto,
   MergeCatalogTitleDto,
   ReviewCatalogSubmissionDto,
 } from './dto/catalog-submission.dto';
-import type { CatalogSubmissionsQueryDto } from './dto/catalog-submissions-query.dto';
+import { CatalogSubmissionsQueryDto } from './dto/catalog-submissions-query.dto';
 
 @ApiTags('catalog')
 @ApiBearerAuth()
@@ -42,6 +44,7 @@ export class CatalogController {
   constructor(@Inject(CatalogService) private readonly catalogService: CatalogService) {}
 
   @Get('search')
+  @ApiExtraModels(CatalogSearchQueryDto)
   @ApiOkResponse({
     description: 'Search normalized catalog titles.',
   })
@@ -125,6 +128,9 @@ export class CatalogController {
   }
 
   @Post('submissions')
+  @ApiBody({
+    type: CreateCatalogSubmissionDto,
+  })
   @ApiCreatedResponse({
     description: 'Create a public catalog change submission.',
   })
@@ -139,6 +145,7 @@ export class CatalogController {
   }
 
   @Get('submissions')
+  @ApiExtraModels(CatalogSubmissionsQueryDto)
   @ApiOkResponse({
     description: 'List all catalog change submissions for moderators.',
   })
@@ -156,6 +163,7 @@ export class CatalogController {
   }
 
   @Get('submissions/mine')
+  @ApiExtraModels(CatalogSubmissionsQueryDto)
   @ApiOkResponse({
     description: 'List catalog change submissions created by the current user.',
   })
@@ -167,6 +175,9 @@ export class CatalogController {
   }
 
   @Post('submissions/:id/approve')
+  @ApiBody({
+    type: ReviewCatalogSubmissionDto,
+  })
   @ApiOkResponse({
     description: 'Approve a catalog change submission.',
   })
@@ -186,6 +197,9 @@ export class CatalogController {
   }
 
   @Post('submissions/:id/reject')
+  @ApiBody({
+    type: ReviewCatalogSubmissionDto,
+  })
   @ApiOkResponse({
     description: 'Reject a catalog change submission.',
   })
@@ -205,6 +219,9 @@ export class CatalogController {
   }
 
   @Post('titles/:id/merge')
+  @ApiBody({
+    type: MergeCatalogTitleDto,
+  })
   @ApiOkResponse({
     description: 'Merge a duplicate catalog title into another title.',
   })

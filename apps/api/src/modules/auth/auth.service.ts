@@ -202,6 +202,17 @@ export class AuthService {
       tokenPayload.rememberMe ?? session.rememberMe,
     );
 
+    if (!sessionResponse) {
+      await this.revokeAllUserSessions(session.userId);
+      this.recordRefreshFailure(
+        'refresh_token_reuse_detected',
+        session.userId,
+        metadata,
+        'auth.refresh.reuse_detected',
+      );
+      throw new UnauthorizedException('Invalid or expired refresh token.');
+    }
+
     this.metricsService?.recordAuthRefresh('success');
 
     return sessionResponse;
@@ -450,7 +461,7 @@ export class AuthService {
     user: UserWithAuthAccounts,
     session: UserRefreshSession,
     rememberMe = true,
-  ): Promise<IssuedAuthSession> {
+  ): Promise<IssuedAuthSession | null> {
     const accessToken = this.signToken(
       user,
       session.id,
@@ -466,9 +477,15 @@ export class AuthService {
     );
     const now = new Date();
 
-    await this.prisma.userRefreshSession.update({
+    const updatedSession = await this.prisma.userRefreshSession.updateMany({
       where: {
         id: session.id,
+        userId: session.userId,
+        tokenHash: session.tokenHash,
+        revokedAt: null,
+        expiresAt: {
+          gt: now,
+        },
       },
       data: {
         lastUsedAt: now,
@@ -477,6 +494,10 @@ export class AuthService {
         tokenHash: await hashSecret(refreshToken),
       },
     });
+
+    if (updatedSession.count !== 1) {
+      return null;
+    }
 
     return {
       accessToken,

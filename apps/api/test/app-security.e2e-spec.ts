@@ -170,6 +170,32 @@ describe('app security middleware', () => {
     });
   }
 
+  describe('request id middleware', () => {
+    beforeEach(async () => {
+      await startApp(baseConfig);
+    });
+
+    it('echoes a valid client request id', async () => {
+      const response = await postLogin({
+        'x-request-id': 'req_123-abc.def:456',
+      });
+
+      expect(response.headers.get('x-request-id')).toBe('req_123-abc.def:456');
+    });
+
+    it('replaces an invalid client request id with a generated UUID', async () => {
+      const response = await postLogin({
+        'x-request-id': 'invalid request id',
+      });
+      const requestId = response.headers.get('x-request-id');
+
+      expect(requestId).not.toBe('invalid request id');
+      expect(requestId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+    });
+  });
+
   describe('production origin guard', () => {
     beforeEach(async () => {
       await startApp({

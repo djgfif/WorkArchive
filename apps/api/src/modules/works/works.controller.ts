@@ -17,6 +17,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
+  ApiExtraModels,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -29,7 +30,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateWorkDto } from './dto/create-work.dto';
-import type { GroupedWorksQueryDto } from './dto/grouped-works-query.dto';
+import { GroupedWorksQueryDto } from './dto/grouped-works-query.dto';
 import { UpdateWorkDto } from './dto/update-work.dto';
 import { WorkResponseDto } from './dto/work-response.dto';
 import { WorksService } from './works.service';
@@ -55,6 +56,7 @@ export class WorksController {
   }
 
   @Get('grouped')
+  @ApiExtraModels(GroupedWorksQueryDto)
   @ApiOkResponse({
     description: 'List active works grouped by franchise, medium, contributor, or status.',
   })

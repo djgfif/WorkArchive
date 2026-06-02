@@ -10,6 +10,7 @@ import {
   Logger,
   Param,
   Patch,
+  ParseUUIDPipe,
   Post,
   Query,
   Req,
@@ -24,6 +25,7 @@ import {
   ApiConflictResponse,
   ApiNoContentResponse,
   ApiOkResponse,
+  ApiParam,
   ApiResponse,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -401,12 +403,16 @@ export class AuthController {
   @ApiNoContentResponse({
     description: 'Revoke one active refresh session owned by the user.',
   })
+  @ApiParam({
+    name: 'sessionId',
+    format: 'uuid',
+  })
   @ApiUnauthorizedResponse({
     description: 'The access token is missing, invalid, or expired.',
   })
   async revokeSession(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('sessionId') sessionId: string,
+    @Param('sessionId', new ParseUUIDPipe()) sessionId: string,
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {

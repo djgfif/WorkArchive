@@ -22,6 +22,7 @@ describe('auth profile API (e2e)', () => {
   let app: INestApplication;
   let baseUrl: string;
   let authService: {
+    revokeRefreshSession: jest.MockedFunction<AuthService['revokeRefreshSession']>;
     updateProfile: jest.MockedFunction<AuthService['updateProfile']>;
     validateAccessToken: jest.MockedFunction<AuthService['validateAccessToken']>;
   };
@@ -32,6 +33,11 @@ describe('auth profile API (e2e)', () => {
     process.env.WEB_BASE_URL = 'http://localhost:18730';
 
     authService = {
+      revokeRefreshSession: jest
+        .fn<AuthService['revokeRefreshSession']>()
+        .mockResolvedValue({
+          revokedCurrent: false,
+        }),
       updateProfile: jest.fn<AuthService['updateProfile']>().mockResolvedValue({
         authAccounts: [],
         avatarUrl: 'https://example.com/avatar.jpg',
@@ -123,6 +129,21 @@ describe('auth profile API (e2e)', () => {
       nickname: 'Mage Frieren',
       avatarUrl: 'https://example.com/avatar.jpg',
     });
+  });
+
+  it('rejects malformed refresh session ids before revocation service calls', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/auth/sessions/not-a-session-id`,
+      {
+        headers: {
+          authorization: 'Bearer access-token',
+        },
+        method: 'DELETE',
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(authService.revokeRefreshSession).not.toHaveBeenCalled();
   });
 
   it('requires a bearer token and rejects invalid handles', async () => {
