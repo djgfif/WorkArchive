@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "wsl",
+      "runtimeArgs": [
+        "-d",
+        "ubuntu",
+        "--",
+        "bash",
+        "-lc",
+        "cd /home/gkho/code/WorkArchive/apps/web && exec ../../node_modules/.bin/vite --host localhost --port 18730 --strictPort"
+      ],
+      "port": 18730
+    }
+  ]
+}

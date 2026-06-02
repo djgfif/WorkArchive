@@ -193,10 +193,9 @@ interface AppNavLinkProps {
 }
 
 function getSurfaceBackground(tone: SurfaceTone) {
+  // 가이드 5.1: 그라데이션 카드 장식 대신 surface 명도 차로 강조 영역을 표현한다.
   if (tone === 'hero') {
-    return [
-      'linear-gradient(145deg, color-mix(in srgb, var(--app-surface-hero) 92%, transparent), var(--app-surface-card))',
-    ].join(', ');
+    return 'var(--app-surface-hero)';
   }
 
   return tone === 'subtle' ? 'var(--app-surface-subtle)' : 'var(--app-surface-card)';
@@ -205,10 +204,10 @@ function getSurfaceBackground(tone: SurfaceTone) {
 function getActionToneProps(tone: AppActionTone) {
   switch (tone) {
     case 'primary':
+      // 가이드 6/5.1: 절제된 단색 accent. 그라데이션 CTA 제거.
       return {
         color: 'archive',
-        gradient: { deg: 135, from: 'archive.4', to: 'archive.7' },
-        variant: 'gradient',
+        variant: 'filled',
       } as const;
     case 'quiet':
       return { color: 'gray', variant: 'subtle' } as const;
@@ -464,9 +463,8 @@ export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
           color="archive"
           radius="md"
           size={36}
-          variant="gradient"
+          variant="filled"
           className={cn(css.brandMark)}
-          gradient={{ deg: 135, from: 'archive.4', to: 'archive.7' }}
         >
           <Text
             c="white"

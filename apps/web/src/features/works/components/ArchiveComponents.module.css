@@ -9,19 +9,19 @@
   border: 1px solid color-mix(in srgb, var(--app-border-strong) 72%, transparent);
   border-radius: 0.85rem;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 32%),
-    radial-gradient(circle at 22% 18%, rgba(91, 140, 187, 0.22), transparent 28%),
-    radial-gradient(circle at 80% 72%, rgba(239, 181, 70, 0.12), transparent 32%),
-    linear-gradient(160deg, #222536, #0b0d13 72%);
+    linear-gradient(145deg, rgba(255, 220, 150, 0.07), transparent 34%),
+    radial-gradient(circle at 22% 18%, rgba(180, 120, 40, 0.20), transparent 30%),
+    radial-gradient(circle at 80% 72%, rgba(120, 60, 20, 0.14), transparent 34%),
+    linear-gradient(160deg, #201c18, #0c0b0a 74%);
   box-shadow: var(--app-shadow-poster);
 }
 
 [data-mantine-color-scheme='light'] .posterShell {
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.5), transparent 32%),
-    radial-gradient(circle at 22% 18%, rgba(61, 99, 144, 0.18), transparent 28%),
-    radial-gradient(circle at 80% 72%, rgba(201, 141, 36, 0.10), transparent 32%),
-    linear-gradient(160deg, #dce4ee, #c8d4e0 72%);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.55), transparent 34%),
+    radial-gradient(circle at 22% 18%, rgba(180, 120, 40, 0.14), transparent 28%),
+    radial-gradient(circle at 80% 72%, rgba(180, 100, 40, 0.08), transparent 34%),
+    linear-gradient(160deg, #e8dfd4, #d4c8bc 74%);
 }
 
 .posterShell::after {
@@ -123,17 +123,17 @@
   align-content: space-between;
   padding: 0.9rem;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 34%),
-    radial-gradient(circle at 18% 20%, rgba(91, 140, 187, 0.2), transparent 36%),
-    radial-gradient(circle at 84% 78%, rgba(239, 181, 70, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(255, 220, 150, 0.06), transparent 34%),
+    radial-gradient(circle at 18% 20%, rgba(180, 120, 40, 0.18), transparent 36%),
+    radial-gradient(circle at 84% 78%, rgba(120, 60, 20, 0.12), transparent 32%),
     repeating-linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.025) 0,
-      rgba(255, 255, 255, 0.025) 1px,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
       transparent 1px,
       transparent 7px
     ),
-    linear-gradient(160deg, #1d2232, #07080b 76%);
+    linear-gradient(160deg, #201c18, #0c0b0a 76%);
 }
 
 .posterFallback::before {
@@ -165,47 +165,53 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* ── Cover tones ────────────────────────────────────────────────────────── */
+/* ── Cover tones — 따뜻한 영화 포스터 팔레트 (ArtworkPoster와 통일) ──────── */
 .posterFallback[data-cover-tone='0'] {
+  /* 딥 앰버 — 무협·판타지 */
   background:
-    radial-gradient(circle at 18% 18%, rgba(91, 140, 187, 0.32), transparent 34%),
-    radial-gradient(circle at 80% 80%, rgba(239, 181, 70, 0.14), transparent 32%),
-    linear-gradient(160deg, #1e2c3d, #07080b 78%);
+    radial-gradient(circle at 20% 18%, rgba(212, 140, 40, 0.34), transparent 36%),
+    radial-gradient(circle at 78% 80%, rgba(100, 50, 10, 0.20), transparent 34%),
+    linear-gradient(160deg, #231808, #0c0b0a 80%);
 }
 
 .posterFallback[data-cover-tone='1'] {
+  /* 크림슨 딥 — 로맨스·드라마 */
   background:
-    radial-gradient(circle at 78% 18%, rgba(73, 156, 183, 0.3), transparent 36%),
-    radial-gradient(circle at 20% 82%, rgba(239, 181, 70, 0.1), transparent 30%),
-    linear-gradient(160deg, #172a33, #07080b 78%);
+    radial-gradient(circle at 76% 18%, rgba(180, 60, 60, 0.30), transparent 38%),
+    radial-gradient(circle at 22% 82%, rgba(212, 140, 40, 0.14), transparent 32%),
+    linear-gradient(160deg, #2a1010, #0c0b0a 80%);
 }
 
 .posterFallback[data-cover-tone='2'] {
+  /* 포레스트 다크 — SF·스릴러 */
   background:
-    radial-gradient(circle at 18% 76%, rgba(193, 88, 96, 0.28), transparent 34%),
-    radial-gradient(circle at 84% 18%, rgba(255, 219, 143, 0.12), transparent 31%),
-    linear-gradient(160deg, #301b24, #07080b 78%);
+    radial-gradient(circle at 18% 76%, rgba(40, 130, 90, 0.26), transparent 36%),
+    radial-gradient(circle at 82% 18%, rgba(200, 180, 100, 0.12), transparent 33%),
+    linear-gradient(160deg, #0e2018, #0c0b0a 80%);
 }
 
 .posterFallback[data-cover-tone='3'] {
+  /* 슬레이트 블루 — 미스터리·공포 */
   background:
-    radial-gradient(circle at 82% 74%, rgba(88, 151, 124, 0.28), transparent 34%),
-    radial-gradient(circle at 22% 18%, rgba(91, 140, 187, 0.14), transparent 31%),
-    linear-gradient(160deg, #1a2d28, #07080b 78%);
+    radial-gradient(circle at 80% 74%, rgba(60, 80, 140, 0.28), transparent 36%),
+    radial-gradient(circle at 24% 20%, rgba(180, 150, 80, 0.12), transparent 33%),
+    linear-gradient(160deg, #101422, #0c0b0a 80%);
 }
 
 .posterFallback[data-cover-tone='4'] {
+  /* 골드 오커 — 역사·에세이 */
   background:
-    radial-gradient(circle at 24% 18%, rgba(235, 159, 82, 0.24), transparent 34%),
-    radial-gradient(circle at 80% 82%, rgba(61, 99, 144, 0.18), transparent 31%),
-    linear-gradient(160deg, #2c2219, #07080b 78%);
+    radial-gradient(circle at 26% 18%, rgba(200, 150, 40, 0.28), transparent 36%),
+    radial-gradient(circle at 78% 84%, rgba(100, 60, 10, 0.16), transparent 33%),
+    linear-gradient(160deg, #201a08, #0c0b0a 80%);
 }
 
 .posterFallback[data-cover-tone='5'] {
+  /* 라벤더 다크 — 라이트노벨·만화 */
   background:
-    radial-gradient(circle at 72% 20%, rgba(217, 218, 191, 0.18), transparent 34%),
-    radial-gradient(circle at 18% 82%, rgba(91, 140, 187, 0.2), transparent 31%),
-    linear-gradient(160deg, #262a32, #07080b 78%);
+    radial-gradient(circle at 70% 22%, rgba(130, 90, 180, 0.26), transparent 36%),
+    radial-gradient(circle at 20% 80%, rgba(212, 140, 40, 0.14), transparent 33%),
+    linear-gradient(160deg, #1a1228, #0c0b0a 80%);
 }
 
 .posterFallbackMark {
@@ -522,19 +528,15 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.8rem 0.9rem;
-  border: 1px solid color-mix(in srgb, var(--app-border-subtle) 82%, transparent);
+  border: 1px solid var(--app-border-subtle);
   border-radius: var(--mantine-radius-md);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 62%),
-    color-mix(in srgb, var(--app-surface-card) 72%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  background: var(--app-surface-card);
+  box-shadow: none;
 }
 
 .trashRowSurface {
   border-color: color-mix(in srgb, var(--app-border-subtle) 74%, rgba(245, 158, 11, 0.28));
-  background:
-    linear-gradient(90deg, rgba(245, 158, 11, 0.055), transparent 22%),
-    var(--app-surface-card);
+  background: color-mix(in srgb, rgba(245, 158, 11, 1) 5%, var(--app-surface-card));
 }
 
 .trashRowSurface:hover {
@@ -655,20 +657,14 @@
   position: relative;
   overflow: hidden;
   padding: clamp(1.55rem, 4.2vw, 3.55rem);
-  border: 1px solid color-mix(in srgb, var(--app-border-strong) 82%, transparent);
+  border: 1px solid var(--app-border-default);
   border-radius: var(--mantine-radius-xl);
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--app-surface-hero) 94%, black), rgba(5, 7, 13, 0.98));
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
-    var(--app-shadow-card);
+  background: var(--app-surface-hero);
+  box-shadow: var(--app-shadow-card);
 }
 
 [data-mantine-color-scheme='light'] .hero {
-  background:
-    radial-gradient(circle at 82% 14%, rgba(59, 130, 246, 0.08), transparent 32%),
-    radial-gradient(circle at 18% 82%, rgba(99, 102, 241, 0.06), transparent 28%),
-    linear-gradient(135deg, rgba(241, 245, 249, 0.99), rgba(226, 232, 240, 0.97));
+  background: var(--app-surface-hero);
 }
 
 .heroCompact {
@@ -742,21 +738,13 @@
   position: relative;
   overflow: hidden;
   padding: clamp(1.5rem, 4vw, 3rem);
-  border: 1px solid var(--app-border-strong);
+  border: 1px solid var(--app-border-default);
   border-radius: var(--mantine-radius-xl);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 60%),
-    linear-gradient(145deg, rgba(18, 21, 32, 0.97), rgba(8, 9, 13, 0.99));
-  box-shadow:
-    var(--app-shadow-card),
-    inset 0 1px 0 rgba(255,255,255,0.06);
+  background: var(--app-surface-hero);
+  box-shadow: var(--app-shadow-card);
 }
 [data-mantine-color-scheme='light'] .detailHero {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.8) 0%, transparent 60%),
-    radial-gradient(ellipse at 18% 50%, rgba(37, 99, 235, 0.06), transparent 50%),
-    radial-gradient(circle at 22% 18%, rgba(201, 141, 36, 0.06), transparent 34%),
-    linear-gradient(145deg, rgba(240, 244, 250, 0.98), rgba(220, 228, 238, 0.96));
+  background: var(--app-surface-hero);
 }
 .detailHeroPoster {
   flex: 0 0 clamp(11rem, 22vw, 16rem);
@@ -777,9 +765,7 @@
   padding: clamp(1rem, 2.5vw, 1.35rem);
   border: 1px solid var(--app-border-default);
   border-radius: var(--mantine-radius-xl);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.006)),
-    rgba(5, 7, 13, 0.48);
+  background: var(--app-surface-card);
   box-shadow: none;
 }
 /* 상세 히어로 메타 구분선 */
@@ -1275,9 +1261,7 @@
   padding: clamp(1.1rem, 3vw, 1.8rem);
   border: 1px solid var(--app-border-subtle);
   border-radius: var(--mantine-radius-xl);
-  background:
-    radial-gradient(circle at 82% 18%, rgba(239, 181, 70, 0.07), transparent 28%),
-    linear-gradient(180deg, var(--app-surface-subtle), var(--app-bg-elevated));
+  background: var(--app-surface-subtle);
 }
 
 .starterCovers {
@@ -1318,19 +1302,9 @@
 
 .mobileSaveAffix {
   margin-bottom: env(safe-area-inset-bottom, 0);
-  border-color: color-mix(in srgb, var(--app-border-default) 74%, transparent);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent),
-    color-mix(in srgb, var(--app-surface-card) 86%, transparent);
+  border-color: var(--app-border-default);
+  background: var(--app-surface-card);
   box-shadow: var(--app-shadow-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-[data-mantine-color-scheme='light'] .mobileSaveAffix {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78), transparent),
-    color-mix(in srgb, var(--app-surface-card) 88%, transparent);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1340,9 +1314,7 @@
   padding: 0.9rem 1rem;
   border-color: var(--app-border-subtle);
   border-radius: var(--mantine-radius-lg);
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--app-accent-primary) 8%, transparent), transparent 42%),
-    var(--app-surface-subtle);
+  background: var(--app-surface-subtle);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1409,24 +1381,18 @@
   position: sticky;
   top: 0.75rem;
   z-index: 5;
-  border-color: color-mix(in srgb, var(--app-border-default) 78%, transparent);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent),
-    color-mix(in srgb, var(--app-surface-card) 92%, transparent);
-  box-shadow: none;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  border-color: var(--app-border-default);
+  background: var(--app-surface-card);
+  box-shadow: var(--app-shadow-card);
 }
 
 .quickSearchOptionsPanel {
   border-color: var(--app-border-subtle);
-  background: color-mix(in srgb, var(--app-surface-subtle) 70%, transparent);
+  background: var(--app-surface-subtle);
 }
 
 [data-mantine-color-scheme='light'] .quickSearchSticky {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent),
-    color-mix(in srgb, var(--app-surface-card) 92%, transparent);
+  background: var(--app-surface-card);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1443,21 +1409,13 @@
 
 .searchResultPanel {
   border-color: var(--mantine-color-default-border);
-  background: linear-gradient(
-    180deg,
-    var(--mantine-color-body),
-    var(--mantine-color-default-hover)
-  );
+  background: var(--app-surface-subtle);
 }
 
 .searchPreviewPanel {
   min-height: 34rem;
   border-color: var(--mantine-color-default-border);
-  background: linear-gradient(
-    180deg,
-    var(--mantine-color-default),
-    var(--mantine-color-default-hover)
-  );
+  background: var(--app-surface-card);
 }
 
 .searchManualFallback {
@@ -2011,19 +1969,13 @@
     bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
     z-index: 20;
     margin-bottom: env(safe-area-inset-bottom, 0);
-    border-color: color-mix(in srgb, var(--app-border-default) 74%, transparent);
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent),
-      color-mix(in srgb, var(--app-surface-card) 86%, transparent);
+    border-color: var(--app-border-default);
+    background: var(--app-surface-card);
     box-shadow: var(--app-shadow-card);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
   }
 
   [data-mantine-color-scheme='light'] .addWorkSaveFooter {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.78), transparent),
-      color-mix(in srgb, var(--app-surface-card) 88%, transparent);
+    background: var(--app-surface-card);
   }
 
   .shelf {

@@ -206,13 +206,13 @@
 
 .shelfCard:hover .shelfCardInner,
 .shelfCard:focus-visible .shelfCardInner {
-  transform: scale(1.08) translateY(-5px);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.58), 0 6px 14px rgba(0, 0, 0, 0.36);
+  transform: translateY(-3px);
+  box-shadow: var(--wa-shadow-poster);
   z-index: 3;
 }
 
 .shelfCard:active .shelfCardInner {
-  transform: scale(1.04) translateY(-2px);
+  transform: translateY(-1px);
 }
 
 /* ── 호버 오버레이 — 하단 그라디언트 + 메타 ─────────────────────────────── */
@@ -489,13 +489,20 @@
 .emptyGuideCard:hover {
   border-color: var(--app-accent-primary);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--wa-shadow-card);
 }
 
 .emptyGuideCardIcon {
-  font-size: 1.6rem;
-  margin-bottom: 0.85rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 1rem;
+  border-radius: var(--mantine-radius-md);
+  border: 1px solid color-mix(in srgb, var(--app-accent-primary) 28%, var(--app-border-subtle));
+  background: var(--app-accent-soft);
+  color: var(--app-accent-primary);
 }
 
 .emptyGuideCardTitle {

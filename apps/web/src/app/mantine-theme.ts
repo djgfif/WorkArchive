@@ -116,20 +116,22 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--wa-text-muted':      '#5c5048',
     '--wa-text-disabled':   '#302a24',
 
-    /* 악센트 — 골드 주도, 블루 보조 */
+    /* 악센트 — 골드 주도, 블루 보조 (가이드 5.1 절제된 accent) */
     '--wa-accent-primary':  '#c8922e',
     '--wa-accent-strong':   '#e0b85a',
+    '--wa-accent-soft':     'rgba(200, 146, 46, 0.16)',
     '--wa-accent-ink':      '#5b9cf6',
     '--wa-accent-teal':     '#2dd4bf',
     '--wa-accent-rose':     '#fb7185',
 
-    /* 그림자 — 따뜻한 톤 */
-    '--wa-shadow-xs':     '0 1px 2px rgba(0, 0, 0, 0.55)',
-    '--wa-shadow-card':   '0 4px 16px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 235, 200, 0.05)',
-    '--wa-shadow-poster': '0 12px 36px rgba(0, 0, 0, 0.52), 0 3px 8px rgba(0, 0, 0, 0.30)',
-    '--wa-shadow-hero':   '0 20px 56px rgba(0, 0, 0, 0.56), 0 0 0 1px rgba(255, 235, 200, 0.07)',
-    '--wa-shadow-overlay':'0 24px 72px rgba(0, 0, 0, 0.64), 0 0 0 1px rgba(255, 235, 200, 0.09)',
-    '--wa-shadow-glow':   '0 0 0 3px rgba(200, 146, 46, 0.24)',
+    /* 그림자 — 절제. depth 는 border + surface 명도로 표현하고
+       그림자는 카드 분리·overlay 에만 가볍게 사용한다 (가이드 5.4) */
+    '--wa-shadow-xs':     '0 1px 2px rgba(0, 0, 0, 0.40)',
+    '--wa-shadow-card':   '0 1px 3px rgba(0, 0, 0, 0.28)',
+    '--wa-shadow-poster': '0 6px 20px rgba(0, 0, 0, 0.38)',
+    '--wa-shadow-hero':   '0 8px 28px rgba(0, 0, 0, 0.34)',
+    '--wa-shadow-overlay':'0 16px 44px rgba(0, 0, 0, 0.48)',
+    '--wa-shadow-glow':   '0 0 0 2px rgba(200, 146, 46, 0.16)',
 
     '--mantine-color-body':           '#0c0b0a',
     '--mantine-color-text':           '#f5f0e8',
@@ -156,6 +158,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-text-disabled':   'var(--wa-text-disabled)',
     '--app-accent-primary':  'var(--wa-accent-primary)',
     '--app-accent-strong':   'var(--wa-accent-strong)',
+    '--app-accent-soft':     'var(--wa-accent-soft)',
     '--app-accent-secondary':'var(--wa-accent-ink)',
     '--app-accent-warm':     'var(--wa-accent-strong)',
     '--app-accent-teal':     'var(--wa-accent-teal)',
@@ -191,16 +194,17 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
 
     '--wa-accent-primary':  '#8a5315',
     '--wa-accent-strong':   '#704112',
+    '--wa-accent-soft':     'rgba(138, 83, 21, 0.12)',
     '--wa-accent-ink':      '#2563eb',
     '--wa-accent-teal':     '#0d9488',
     '--wa-accent-rose':     '#e11d48',
 
-    '--wa-shadow-xs':     '0 1px 2px rgba(60, 40, 20, 0.07)',
-    '--wa-shadow-card':   '0 1px 6px rgba(60, 40, 20, 0.09), 0 0 0 1px rgba(60, 40, 20, 0.05)',
-    '--wa-shadow-poster': '0 4px 18px rgba(60, 40, 20, 0.14), 0 1px 4px rgba(60, 40, 20, 0.07)',
-    '--wa-shadow-hero':   '0 8px 36px rgba(60, 40, 20, 0.16), 0 2px 8px rgba(60, 40, 20, 0.07)',
-    '--wa-shadow-overlay':'0 16px 52px rgba(60, 40, 20, 0.18), 0 0 0 1px rgba(60, 40, 20, 0.07)',
-    '--wa-shadow-glow':   '0 0 0 3px rgba(138, 83, 21, 0.22)',
+    '--wa-shadow-xs':     '0 1px 2px rgba(60, 40, 20, 0.06)',
+    '--wa-shadow-card':   '0 1px 2px rgba(60, 40, 20, 0.06)',
+    '--wa-shadow-poster': '0 4px 14px rgba(60, 40, 20, 0.12)',
+    '--wa-shadow-hero':   '0 6px 22px rgba(60, 40, 20, 0.12)',
+    '--wa-shadow-overlay':'0 14px 40px rgba(60, 40, 20, 0.16)',
+    '--wa-shadow-glow':   '0 0 0 2px rgba(138, 83, 21, 0.16)',
 
     '--mantine-color-body':           '#faf7f2',
     '--mantine-color-text':           '#1c1512',
@@ -226,6 +230,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-text-disabled':   'var(--wa-text-disabled)',
     '--app-accent-primary':  'var(--wa-accent-primary)',
     '--app-accent-strong':   'var(--wa-accent-strong)',
+    '--app-accent-soft':     'var(--wa-accent-soft)',
     '--app-accent-secondary':'var(--wa-accent-ink)',
     '--app-accent-warm':     'var(--wa-accent-strong)',
     '--app-accent-teal':     'var(--wa-accent-teal)',
@@ -390,7 +395,7 @@ export const appTheme = createTheme({
           backgroundColor: 'var(--app-surface-overlay)',
           borderColor:     'var(--app-border-default)',
           border:          '1px solid var(--app-border-default)',
-          backdropFilter:  'blur(24px) saturate(1.3)',
+          boxShadow:       'var(--app-shadow-overlay)',
           padding:         '0.35rem',
         },
         item: {
@@ -418,7 +423,7 @@ export const appTheme = createTheme({
     Modal: {
       defaultProps: {
         radius: 'xl',
-        overlayProps: { blur: 8, backgroundOpacity: 0.65 },
+        overlayProps: { blur: 2, backgroundOpacity: 0.6 },
       },
       styles: {
         content: {
@@ -503,7 +508,6 @@ export const appTheme = createTheme({
           color:           'var(--app-text-primary)',
           fontSize:        'var(--app-type-caption)',
           fontWeight:      620,
-          backdropFilter:  'blur(10px)',
         },
       },
     },

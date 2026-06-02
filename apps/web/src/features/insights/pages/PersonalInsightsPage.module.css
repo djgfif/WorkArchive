@@ -21,7 +21,7 @@
 }
 
 .barFill {
-  background: linear-gradient(90deg, var(--app-accent-primary), #38bdf8);
+  background: var(--app-accent-primary);
   border-radius: inherit;
   height: 100%;
   min-width: 3px;

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, type ReactNode, useState } from 'react';
 import { Box, Group } from '@mantine/core';
 import { Link, useNavigate } from 'react-router-dom';
 import type { WorkRecord } from '@work-archive/shared-types';
@@ -257,22 +257,55 @@ function ActivityStrip({ works }: { works: WorkRecord[] }) {
 }
 
 /* ── 빈 상태 가이드 ────────────────────────────────────────────────────────── */
+function GuideIcon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height={22}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+      viewBox="0 0 24 24"
+      width={22}
+    >
+      {children}
+    </svg>
+  );
+}
+
 function EmptyGuide() {
   const cards = [
     {
-      icon: '✍️',
+      icon: (
+        <GuideIcon>
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+        </GuideIcon>
+      ),
       title: '첫 작품 추가',
       description: '제목과 짧은 감상으로 첫 선반을 채웁니다.',
       to: '/works/new',
     },
     {
-      icon: '🔍',
+      icon: (
+        <GuideIcon>
+          <circle cx="11" cy="11" r="7" />
+          <path d="M21 21l-4.3-4.3" />
+        </GuideIcon>
+      ),
       title: '검색으로 추가',
       description: '외부 검색 후보에서 표지와 정보를 가져옵니다.',
       to: '/works/new',
     },
     {
-      icon: '📦',
+      icon: (
+        <GuideIcon>
+          <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z" />
+          <path d="M3 7.5 12 12l9-4.5M12 12v9" />
+        </GuideIcon>
+      ),
       title: '백업 가져오기',
       description: '이전에 내보낸 JSON 기록을 다시 불러옵니다.',
       to: '/account/settings#data-backup',

@@ -2,9 +2,8 @@
   padding: clamp(1.15rem, 2.5vw, 1.7rem);
   border: 1px solid var(--app-border-subtle);
   border-radius: var(--mantine-radius-lg);
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--app-surface-card) 88%, transparent), color-mix(in srgb, var(--app-surface-subtle) 94%, transparent));
-  box-shadow: inset 0 1px 0 color-mix(in srgb, white 7%, transparent);
+  background: var(--app-surface-hero);
+  box-shadow: none;
 }
 
 .heroCopy {
@@ -21,12 +20,11 @@
   justify-content: center;
   border: 1px solid color-mix(in srgb, var(--app-accent-primary) 36%, var(--app-border-default));
   border-radius: var(--mantine-radius-md);
-  background: linear-gradient(135deg, var(--app-accent-primary), color-mix(in srgb, var(--app-accent-primary) 54%, black));
+  background: var(--app-accent-primary);
   color: white;
   font-size: 0.9rem;
   font-weight: 900;
   letter-spacing: -0.04em;
-  box-shadow: 0 10px 26px color-mix(in srgb, var(--app-accent-primary) 24%, transparent);
 }
 
 .heroEyebrow {

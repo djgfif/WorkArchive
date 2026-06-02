@@ -1,6 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Work Archive — Global CSS v4.0.0
-   "Archive Cinema" — 따뜻한 콘텐츠 플랫폼 다크 UI
+   Work Archive — Global CSS v5.0.0
+   "Quiet Archive" — Calm · Dense · Professional 개인 기록 아카이브 UI
+
+   설계 기준 (디자인 가이드 v1.0)
+   - 배경 장식 최소화: radial 광원 오브젝트 제거, surface 명도 차로 depth 표현
+   - glass blur 남발 금지, 네온 glow 금지
+   - depth는 강한 그림자보다 border + surface 명도로 표현
+   - global.css는 reset · focus · media fallback 으로 축소, 토큰은 mantine-theme.ts
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── 기본 설정 ────────────────────────────────────────────────────────────── */
@@ -28,33 +34,17 @@ html {
   scroll-behavior: smooth;
 }
 
-/* ── Body — 따뜻한 시네마 다크 ───────────────────────────────────────────
-   차가운 네이비 블루 광원 제거.
-   대신 따뜻한 앰버·골드 광원: 영화관·고급 서점 야경 느낌.
+/* ── Body — 차분한 단색 surface ──────────────────────────────────────────
+   가이드 5.1 "의미 없는 오브젝트 배경" 금지.
+   radial 광원 오브젝트를 제거하고 단색 shell surface를 사용한다.
+   depth는 배경 효과가 아니라 카드 surface 명도 차와 border로 표현한다.
    ─────────────────────────────────────────────────────────────────────────── */
 body {
   margin: 0;
   min-height: 100vh;
   min-width: 320px;
-  background:
-    /* 좌상단 — 따뜻한 앰버 광원 (책 조명 느낌) */
-    radial-gradient(ellipse at 8% -6%, rgba(200, 146, 46, 0.12), transparent 40rem),
-    /* 우하단 — 아주 은은한 로즈 역광 */
-    radial-gradient(ellipse at 94% 98%, rgba(180, 80, 60, 0.07), transparent 38rem),
-    /* 중앙 하단 — 깊이감 다크 */
-    radial-gradient(ellipse at 50% 110%, rgba(100, 60, 10, 0.08), transparent 50rem),
-    var(--app-bg-shell, var(--mantine-color-body));
+  background: var(--app-bg-shell, var(--mantine-color-body));
   color: var(--app-text-secondary, var(--mantine-color-text));
-  background-attachment: fixed;
-}
-
-/* 라이트 모드 배경 — 따뜻한 크림 */
-[data-mantine-color-scheme='light'] body {
-  background:
-    radial-gradient(ellipse at 10% -8%, rgba(138, 83, 21, 0.07), transparent 36rem),
-    radial-gradient(ellipse at 92% 96%, rgba(180, 80, 60, 0.04), transparent 28rem),
-    var(--app-bg-shell, var(--mantine-color-body));
-  background-attachment: fixed;
 }
 
 body,
@@ -132,42 +122,23 @@ textarea {
 }
 
 /* ── Product header ───────────────────────────────────────────────────────
-   따뜻한 블러 헤더: 앰버 미세 광원 + 따뜻한 어두운 배경
-   네이비 블루 완전 제거, 골드·앰버 기반 시네마 헤더
+   차분한 관리 도구 헤더: 단색 surface + 얇은 하단 border.
+   glass blur·골드 광택·pill 형태를 제거하고 안정적인 bar 로 통일한다.
    ─────────────────────────────────────────────────────────────────────────── */
 .product-header {
   position: sticky;
-  top: clamp(0.45rem, 1vw, 0.8rem);
+  top: 0;
   z-index: 200;
-  height: 60px;
+  height: var(--topnav-height);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 1rem;
-  padding: 0 0.85rem;
-  margin-bottom: clamp(1.5rem, 3vw, 2.6rem);
-  /* 따뜻한 블러 */
-  backdrop-filter: blur(22px) saturate(1.5);
-  -webkit-backdrop-filter: blur(22px) saturate(1.5);
-  background:
-    /* 미세한 골드 광택 */
-    linear-gradient(180deg, rgba(200, 146, 46, 0.04), rgba(200, 146, 46, 0.01)),
-    color-mix(in srgb, var(--app-bg-shell, var(--mantine-color-body)) 80%, transparent);
-  border: 1px solid var(--app-border-default, var(--mantine-color-default-border));
-  border-radius: 999px;
-  transition:
-    background var(--wa-motion-fast, 150ms),
-    border-color var(--wa-motion-fast, 150ms);
-  box-shadow:
-    0 12px 42px rgba(0, 0, 0, 0.28),
-    /* 상단 내부 골드 광택 라인 */
-    0 1px 0 rgba(200, 146, 46, 0.10) inset;
-}
-
-[data-mantine-color-scheme='light'] .product-header {
-  box-shadow:
-    0 4px 18px rgba(60, 40, 20, 0.10),
-    0 1px 0 rgba(138, 83, 21, 0.12) inset;
+  padding: 0 clamp(0.75rem, 2vw, 1.25rem);
+  margin-bottom: clamp(1.25rem, 2.5vw, 2rem);
+  background: var(--app-bg-base, var(--mantine-color-body));
+  border-bottom: 1px solid var(--app-border-subtle, var(--mantine-color-default-border));
+  transition: border-color var(--wa-motion-fast, 150ms);
 }
 
 /* Left: 브랜드 로고 */
@@ -217,7 +188,7 @@ textarea {
 .mantine-Input-input:focus,
 .mantine-Input-input:focus-within {
   border-color: var(--app-accent-primary) !important;
-  box-shadow: var(--app-shadow-glow, var(--wa-shadow-glow)) !important;
+  box-shadow: 0 0 0 2px var(--app-accent-soft, rgba(200, 146, 46, 0.18)) !important;
 }
 
 .mantine-Button-root:active {
@@ -230,19 +201,14 @@ textarea {
 
 /* ── 유틸리티 클래스 ─────────────────────────────────────────────────────── */
 
-/* 골드 그라디언트 텍스트 */
+/* accent 텍스트 — 그라디언트 대신 단색 accent (가이드 5.1 절제된 accent) */
 .text-gradient {
-  background: linear-gradient(135deg, var(--app-text-primary) 30%, var(--app-accent-primary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--app-accent-primary);
 }
 
-/* 글래스 카드 */
+/* 카드 surface — glass blur 제거, 단색 surface + border */
 .glass-card {
-  background: color-mix(in srgb, var(--app-surface-card) 82%, transparent);
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  background: var(--app-surface-card);
   border: 1px solid var(--app-border-subtle);
 }
 
@@ -266,10 +232,8 @@ textarea {
   }
 
   .product-header {
-    top: 0;
     height: 54px;
     margin-bottom: 1rem;
-    border-radius: 1rem;
     grid-template-columns: 1fr auto;
   }
 
@@ -334,13 +298,13 @@ body {
   }
 }
 
-/* ── 포스터 hover 스케일 — 넷플릭스 스타일 ──────────────────────────────── */
+/* ── 포스터 hover — 절제된 표면 반응 (시네마 스케일 대신 차분한 lift) ──── */
 .poster-hover-scale {
-  transition: transform var(--wa-motion-normal), box-shadow var(--wa-motion-normal);
+  transition: transform var(--wa-motion-fast), box-shadow var(--wa-motion-fast);
 }
 
 .poster-hover-scale:hover {
-  transform: scale(1.04);
+  transform: translateY(-2px);
   box-shadow: var(--wa-shadow-poster);
 }
 

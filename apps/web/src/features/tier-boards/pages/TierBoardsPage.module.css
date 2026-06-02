@@ -33,8 +33,7 @@
 }
 
 .toolbar {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--app-surface-card) 94%, white), var(--app-surface-card));
+  background: var(--app-surface-card);
   border: 1px solid var(--app-border-subtle);
   border-radius: 8px;
   box-shadow: var(--wa-shadow-card);
@@ -79,8 +78,7 @@
 
 .sourcePanel {
   align-self: start;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--app-surface-card) 96%, white), var(--app-surface-card));
+  background: var(--app-surface-card);
   position: sticky;
   top: 86px;
 }
@@ -208,7 +206,7 @@
 }
 
 .itemCard:hover {
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--wa-shadow-card);
   transform: translateY(-1px);
 }
 
@@ -240,9 +238,7 @@
 .itemFallback {
   align-items: center;
   aspect-ratio: 1;
-  background:
-    linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(20, 184, 166, 0.14)),
-    var(--app-surface-muted);
+  background: var(--app-surface-subtle);
   display: flex;
   justify-content: center;
 }
@@ -367,7 +363,7 @@
 .quickAddDropzone:hover,
 .quickAddDropzone:focus-visible {
   border-color: var(--mantine-color-archive-4);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);
+  box-shadow: var(--wa-shadow-card);
   outline: 0;
   transform: translateY(-1px);
 }
