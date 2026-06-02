@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Checkbox, Divider, Group, Radio, Select, Stack, Text } from '@mantine/core';
+import {
+  Checkbox,
+  Divider,
+  Group,
+  Radio,
+  Select,
+  Stack,
+  Text,
+} from '@mantine/core';
 
 import {
   ActionRow,
@@ -19,8 +27,9 @@ import {
   type DuplicateMergeScalarField,
 } from '@features/works';
 import styles from './SettingsControlCenter.module.css';
+import { cx } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
+const css = styles;
 
 interface DuplicateCleanupSettingsSectionProps {
   archiveScopeKey: string;
@@ -29,10 +38,6 @@ interface DuplicateCleanupSettingsSectionProps {
 interface DuplicateGroupCardProps {
   group: DuplicateCandidateGroup;
   onChanged: () => Promise<void>;
-}
-
-function cx(...classes: Array<string | false | undefined>) {
-  return classes.filter(Boolean).join(' ');
 }
 
 function formatMergeValue(value: unknown): string {
@@ -104,7 +109,9 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
     label: `${work.title} · ${formatWorkUpdatedAt(work.updatedAt)}`,
     value: work.id,
   }));
-  const sourceCandidates = group.works.filter((work) => work.id !== targetWorkId);
+  const sourceCandidates = group.works.filter(
+    (work) => work.id !== targetWorkId,
+  );
   const selectedSourceSet = useMemo(
     () => new Set(sourceWorkIds),
     [sourceWorkIds],
@@ -244,7 +251,10 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
 
         <div className={css.duplicateReasonList ?? ''}>
           {group.reasons.map((reason) => (
-            <div key={`${reason.rule}:${reason.evidence}`} className={css.duplicateReason ?? ''}>
+            <div
+              key={`${reason.rule}:${reason.evidence}`}
+              className={css.duplicateReason ?? ''}
+            >
               <Text fw={750} size="sm">
                 {reason.label}
               </Text>
@@ -344,7 +354,9 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
         )}
 
         {feedback && (
-          <FeedbackMessage tone={feedback.tone}>{feedback.message}</FeedbackMessage>
+          <FeedbackMessage tone={feedback.tone}>
+            {feedback.message}
+          </FeedbackMessage>
         )}
 
         <ActionRow justify="space-between">

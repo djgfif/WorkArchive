@@ -1,11 +1,5 @@
 import styles from '../ArchiveComponents.module.css';
 
-export const css = styles as Record<string, string>;
+export { cn, cx } from '@shared/utils/class-names';
 
-export function cn(value: string | undefined) {
-  return value ?? '';
-}
-
-export function cx(...classes: Array<string | false | undefined>): string {
-  return classes.filter(Boolean).join(' ');
-}
+export const css = styles;

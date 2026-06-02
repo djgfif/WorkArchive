@@ -7,12 +7,9 @@ import {
   type WorkGenreValue,
 } from '../utils/work-genres';
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface WorkGenreSelectorProps {
   description?: string;
@@ -58,7 +55,12 @@ export function WorkGenreSelector({
   return (
     <Stack gap={6}>
       <Group align="baseline" justify="space-between" wrap="nowrap">
-        <Text fw={600} id={labelId} size="sm" style={{ color: 'var(--app-text-secondary)' }}>
+        <Text
+          fw={600}
+          id={labelId}
+          size="sm"
+          style={{ color: 'var(--app-text-secondary)' }}
+        >
           {label}
         </Text>
         <Text c="dimmed" size="xs">
@@ -102,7 +104,10 @@ export function WorkGenreSelector({
           >
             {selectedLabel}
           </span>
-          <span aria-hidden="true" className={cn(css.segmentedChoiceDescription)}>
+          <span
+            aria-hidden="true"
+            className={cn(css.segmentedChoiceDescription)}
+          >
             {isOpen ? '접기' : '선택'}
           </span>
         </button>

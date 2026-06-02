@@ -3,12 +3,9 @@ import { useEffect, useState } from 'react';
 
 import { SectionCard } from '@shared/components/AppPrimitives';
 import styles from './SettingsControlCenter.module.css';
+import { cx } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cx(...classes: Array<string | false | undefined>) {
-  return classes.filter(Boolean).join(' ');
-}
+const css = styles;
 
 interface SettingsSectionItem {
   id: string;

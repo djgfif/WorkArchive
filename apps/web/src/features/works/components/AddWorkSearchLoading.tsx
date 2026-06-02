@@ -1,12 +1,9 @@
 import { Group, Skeleton, Stack, Text } from '@mantine/core';
 
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 export function SearchCandidateLoadingList() {
   return (

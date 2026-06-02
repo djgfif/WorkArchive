@@ -11,7 +11,7 @@ import { confirmDialogAdapter } from '@shared/runtime/dialog-adapter';
 import styles from './SettingsControlCenter.module.css';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
-const css = styles as Record<string, string>;
+const css = styles;
 
 interface DangerZoneSectionProps {
   mode: SettingsAuthMode;

@@ -22,12 +22,9 @@ import { getUserAvatarProfile, useAuthSession } from '@features/auth';
 import { SyncSafetyBadge } from '@features/sync';
 import { getPrimaryNavigationItems } from './navigation';
 import styles from './MainProductLayout.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined): string {
-  return value ?? '';
-}
+const css = styles;
 
 export function MainProductLayout() {
   const navigate = useNavigate();
@@ -57,8 +54,14 @@ export function MainProductLayout() {
       <header className={cn(css.topnav)} role="banner">
         <div className={cn(css.topnavInner)}>
           {/* 브랜드 */}
-          <Link aria-label="Work Archive 홈" className={cn(css.topnavBrand)} to="/">
-            <div className={cn(css.topnavMark)} aria-hidden="true">WA</div>
+          <Link
+            aria-label="Work Archive 홈"
+            className={cn(css.topnavBrand)}
+            to="/"
+          >
+            <div className={cn(css.topnavMark)} aria-hidden="true">
+              WA
+            </div>
             <span className={cn(css.topnavName)}>Work Archive</span>
           </Link>
 
@@ -91,7 +94,10 @@ export function MainProductLayout() {
               to="/works/new"
             >
               <span aria-hidden="true">+</span>
-              <Box component="span" visibleFrom="sm"> 작품 추가</Box>
+              <Box component="span" visibleFrom="sm">
+                {' '}
+                작품 추가
+              </Box>
             </Link>
 
             {/* 아바타 메뉴 */}
@@ -138,7 +144,7 @@ export function MainProductLayout() {
                           className={cn(
                             isAuthenticated
                               ? `${cn(css.statusDot)} ${cn(css.statusDotAuthenticated)}`
-                              : cn(css.statusDot)
+                              : cn(css.statusDot),
                           )}
                         />
                         <Text c="dimmed" size="xs">
@@ -233,7 +239,9 @@ export function MainProductLayout() {
         size="xs"
         title={
           <Group gap="sm" wrap="nowrap">
-            <div className={cn(css.topnavMark)} aria-hidden="true">WA</div>
+            <div className={cn(css.topnavMark)} aria-hidden="true">
+              WA
+            </div>
             <Text fw={800} size="sm" style={{ letterSpacing: '-0.02em' }}>
               Work Archive
             </Text>

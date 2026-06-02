@@ -6,12 +6,9 @@ import { ActionRow, AppButton } from '@shared/components/AppPrimitives';
 import { WorkPoster } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
 import { getWorkListMetaLine } from '../utils/work-list-row-state';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface WorkListRowSummaryProps {
   editOpen: boolean;

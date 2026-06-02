@@ -1,4 +1,13 @@
-import { Accordion, Alert, Anchor, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import {
+  Accordion,
+  Alert,
+  Anchor,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import { ArtworkPoster } from '@shared/components/ArtworkPoster';
@@ -18,12 +27,9 @@ import {
 } from './quick-add-helpers';
 import { getWorkTypeLabel } from '../utils/work-options';
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface CandidatePreviewPanelProps {
   candidate: ImportCandidate;
@@ -207,12 +213,17 @@ export function CandidatePreviewPanel({
                 </AppBadge>
               ))}
               {hiddenProviderCount > 0 && (
-                <AppBadge tone="muted">출처 {hiddenProviderCount}개 더 있음</AppBadge>
+                <AppBadge tone="muted">
+                  출처 {hiddenProviderCount}개 더 있음
+                </AppBadge>
               )}
             </ActionRow>
           )}
           {!isManualCandidate && externalIdentityLabels.length > 0 && (
-            <Accordion className={cn(css.compactEvidenceAccordion)} variant="contained">
+            <Accordion
+              className={cn(css.compactEvidenceAccordion)}
+              variant="contained"
+            >
               <Accordion.Item value="external-identity">
                 <Accordion.Control>외부 식별자 보기</Accordion.Control>
                 <Accordion.Panel>

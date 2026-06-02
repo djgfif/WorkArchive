@@ -1,6 +1,10 @@
 import { Group, SimpleGrid, Stack, Text, Textarea } from '@mantine/core';
 
-import { ActionRow, AppBadge, AppButton } from '@shared/components/AppPrimitives';
+import {
+  ActionRow,
+  AppBadge,
+  AppButton,
+} from '@shared/components/AppPrimitives';
 import { StarRatingInput } from './ArchiveComponents';
 import {
   getFieldId,
@@ -10,12 +14,9 @@ import {
 import styles from './ArchiveComponents.module.css';
 import type { WorkFormValues } from '../utils/work-form';
 import { workStatusOptions } from '../utils/work-options';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface StatusButtonGroupProps {
   onChange: (status: WorkFormValues['status']) => void;

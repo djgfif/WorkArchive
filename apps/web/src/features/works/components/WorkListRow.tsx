@@ -1,4 +1,5 @@
-﻿import { Paper } from '@mantine/core';
+import { cn } from '@shared/utils/class-names';
+import { Paper } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 
 import { getWorkTypeLabel } from '../utils/work-options';
@@ -16,11 +17,7 @@ export type {
   WorkQuickUpdate,
 } from './work-list-row.types';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 export function WorkListRow({
   isUpdating,

@@ -20,16 +20,12 @@ import {
 import styles from './ArchiveComponents.module.css';
 import { parseCommaSeparatedTextList } from '../utils/work-form';
 import { getWorkMediaFieldLabels } from '../utils/work-media-labels';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface AdvancedWorkFieldsProps
-  extends WorkFormSuggestionProps,
-    WorkFormValuesProps {
+  extends WorkFormSuggestionProps, WorkFormValuesProps {
   idPrefix?: string;
   itemValue: string;
   onInputChange: WorkFormInputChangeHandler;

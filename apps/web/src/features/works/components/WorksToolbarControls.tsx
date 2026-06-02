@@ -17,12 +17,9 @@ import {
 } from '../utils/query-works';
 import { workSortOptions } from '../utils/work-options';
 import type { WorksViewMode } from './WorksList';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface WorksToolbarControlsProps {
   activeFilterCount: number;
@@ -69,7 +66,9 @@ export function WorksToolbarControls({
           inputRef={searchRef}
           onChange={(searchTerm) => onQueryChange({ ...query, searchTerm })}
           placeholder={
-            isTrashScope ? '삭제된 작품 검색  (/)' : '제목, 작가, 태그 검색  (/)'
+            isTrashScope
+              ? '삭제된 작품 검색  (/)'
+              : '제목, 작가, 태그 검색  (/)'
           }
           value={query.searchTerm}
         />
@@ -120,7 +119,8 @@ export function WorksToolbarControls({
         </Box>
       )}
 
-      {query.sortBy !== 'updatedAt' || sortDirection !== defaultSortDirection ? (
+      {query.sortBy !== 'updatedAt' ||
+      sortDirection !== defaultSortDirection ? (
         <Tooltip
           label={
             sortDirection === 'asc'

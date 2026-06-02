@@ -18,8 +18,9 @@ import {
 } from '@shared/components/AppPrimitives';
 import { CardImage } from './TierBoardCanvas';
 import styles from '../pages/TierBoardsPage.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
+const css = styles;
 
 interface CardDraft {
   note: string;
@@ -51,10 +52,6 @@ interface TierBoardSourcePanelProps {
   uploadPreviewUrl: string;
   urlDraft: UrlCardDraft;
   workSearch: string;
-}
-
-function cn(value: string | undefined) {
-  return value ?? '';
 }
 
 function createWorkSubtitle(work: WorkRecord) {

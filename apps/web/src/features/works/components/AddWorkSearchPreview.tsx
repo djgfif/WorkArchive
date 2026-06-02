@@ -6,12 +6,9 @@ import type { ImportCandidate } from '@features/imports';
 import { CandidatePreviewPanel } from './CandidatePreviewPanel';
 import { SearchPreviewLoading } from './AddWorkSearchLoading';
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface AddWorkSearchPreviewProps {
   duplicateMatches: WorkRecord[];

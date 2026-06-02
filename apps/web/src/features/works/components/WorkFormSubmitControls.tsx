@@ -9,14 +9,11 @@ import {
   SectionCard,
 } from '@shared/components/AppPrimitives';
 import styles from './ArchiveComponents.module.css';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
+const css = styles;
 
 type WorkFormDraftSaveStatus = 'idle' | 'saving' | 'saved' | 'restored';
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
 
 interface WorkFormDraftNoticeProps {
   onApplyDraft: () => void;

@@ -1,4 +1,5 @@
-﻿import {
+import { cn } from '@shared/utils/class-names';
+import {
   ActionIcon,
   Box,
   Button,
@@ -46,7 +47,7 @@ import {
 } from '../utils/tier-board-editor-helpers';
 import styles from './TierBoardsPage.module.css';
 
-const css = styles as Record<string, string>;
+const css = styles;
 const CARD_DROP_ANIMATION = {
   duration: 180,
   easing: 'cubic-bezier(0.2, 0, 0, 1)',
@@ -58,10 +59,6 @@ const CARD_DROP_ANIMATION = {
     },
   }),
 };
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
 
 export function TierBoardEditorPage() {
   const { boardId } = useParams();

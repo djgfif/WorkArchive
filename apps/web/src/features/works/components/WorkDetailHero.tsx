@@ -3,22 +3,13 @@ import { Box, Group, Stack, Text, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import { ActionRow, SectionCard } from '@shared/components/AppPrimitives';
-import {
-  formatWorkDate,
-  formatWorkUpdatedAt,
-} from '../utils/work-options';
-import {
-  ProgressDisplay,
-  WorkPoster,
-} from './ArchiveComponents';
+import { formatWorkDate, formatWorkUpdatedAt } from '../utils/work-options';
+import { ProgressDisplay, WorkPoster } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
 import type { WorkDetailTimelineItem } from '../utils/work-detail-timeline';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 interface WorkDetailHeroProps {
   actions?: ReactNode;
@@ -125,7 +116,8 @@ export function WorkDetailHero({
                   </Text>
                   <Text className={cn(css.detailStars)} component="span">
                     {[1, 2, 3, 4, 5].map((star) => {
-                      const filled = work.rating !== null && work.rating >= star;
+                      const filled =
+                        work.rating !== null && work.rating >= star;
                       const half =
                         work.rating !== null &&
                         work.rating >= star - 0.5 &&

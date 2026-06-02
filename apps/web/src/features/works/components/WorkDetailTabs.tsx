@@ -9,19 +9,13 @@ import {
   KeyValueGrid,
   SectionCard,
 } from '@shared/components/AppPrimitives';
-import {
-  formatWorkDate,
-  formatWorkDateTime,
-} from '../utils/work-options';
+import { formatWorkDate, formatWorkDateTime } from '../utils/work-options';
 import { ReviewNoteCard } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
 import type { WorkDetailTimelineItem } from '../utils/work-detail-timeline';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 export interface WorkDetailContributorEntry {
   key: string;
@@ -194,7 +188,8 @@ export function WorkDetailTabs({
         <Stack gap="md">
           <SectionCard padding="md" tone="subtle">
             <Text c="dimmed" size="sm">
-              같은 시리즈, 제작진, 카탈로그 관계로 이어지는 작품을 나눠서 확인합니다.
+              같은 시리즈, 제작진, 카탈로그 관계로 이어지는 작품을 나눠서
+              확인합니다.
             </Text>
           </SectionCard>
           {relatedSections}
@@ -213,7 +208,10 @@ export function WorkDetailTabs({
                 </AppBadge>
               ))}
               {contributorValues.slice(0, 12).map((contributor) => (
-                <AppBadge key={`contributor-chip-${contributor}`} tone="success">
+                <AppBadge
+                  key={`contributor-chip-${contributor}`}
+                  tone="success"
+                >
                   {contributor}
                 </AppBadge>
               ))}
@@ -237,15 +235,23 @@ export function WorkDetailTabs({
                 { label: '작가·제작자', value: work.author || '미입력' },
                 {
                   label: '장르',
-                  value: work.genres.length > 0 ? work.genres.join(', ') : '없음',
+                  value:
+                    work.genres.length > 0 ? work.genres.join(', ') : '없음',
                 },
                 {
                   label: '작품 소개',
-                  value: work.description.trim() || '작품 소개가 아직 없습니다.',
+                  value:
+                    work.description.trim() || '작품 소개가 아직 없습니다.',
                 },
                 { label: '식별 방식', value: sourceIdentityLabel },
-                { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
-                { label: '수정한 날', value: formatWorkDateTime(work.updatedAt) },
+                {
+                  label: '추가한 날',
+                  value: formatWorkDateTime(work.createdAt),
+                },
+                {
+                  label: '수정한 날',
+                  value: formatWorkDateTime(work.updatedAt),
+                },
               ]}
             />
           </SectionCard>

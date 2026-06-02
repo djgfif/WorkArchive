@@ -12,17 +12,11 @@ import {
   getDisplayAuthorFromWorkFormValues,
   parseCommaSeparatedTextList,
 } from '../utils/work-form';
-import {
-  getWorkStatusLabel,
-  getWorkTypeLabel,
-} from '../utils/work-options';
+import { getWorkStatusLabel, getWorkTypeLabel } from '../utils/work-options';
 import { normalizeWorkGenres } from '../utils/work-genres';
+import { cn } from '@shared/utils/class-names';
 
-const css = styles as Record<string, string>;
-
-function cn(value: string | undefined) {
-  return value ?? '';
-}
+const css = styles;
 
 export function WorkFormPreview({ values }: WorkFormValuesProps) {
   const previewTitle = values.title.trim() || '제목 없는 작품';
@@ -67,7 +61,8 @@ export function WorkFormPreview({ values }: WorkFormValuesProps) {
           <div>
             <Title order={3}>{previewTitle}</Title>
             <Text c="dimmed">
-              {getDisplayAuthorFromWorkFormValues(values) || '작가/제작자 미입력'}
+              {getDisplayAuthorFromWorkFormValues(values) ||
+                '작가/제작자 미입력'}
             </Text>
           </div>
 
