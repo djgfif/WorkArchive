@@ -1168,6 +1168,7 @@ describe('Auth, works, and sync API (e2e)', () => {
     process.env.EXTERNAL_API_KEY_ENCRYPTION_SECRET =
       'test-external-api-key-encryption-secret';
     process.env.WEB_BASE_URL = 'http://localhost:18730';
+    delete process.env.COOKIE_SECURE;
     delete process.env.GOOGLE_OAUTH_CLIENT_ID;
     delete process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 
@@ -1374,10 +1375,27 @@ describe('Auth, works, and sync API (e2e)', () => {
     expect(state).toBeTruthy();
     expect(nonce).toBeTruthy();
     expect(setCookie).toContain('wa_google_oauth_flow=');
+    expect(setCookie).toContain('Path=/api/auth/google');
+    expect(setCookie).not.toMatch(/;\s*Secure/i);
     expect(setCookie).not.toContain('wa_google_oauth_state=');
     expect(setCookie).not.toContain('wa_google_oauth_nonce=');
     expect(setCookie).not.toContain(state);
     expect(setCookie).not.toContain(nonce);
+
+    process.env.COOKIE_SECURE = 'true';
+
+    const secureConfiguredStart = await fetch(
+      `${baseUrl}/api/auth/google/start?return_origin=${encodeURIComponent('http://localhost:18730')}`,
+      {
+        redirect: 'manual',
+      },
+    );
+    const secureSetCookie =
+      secureConfiguredStart.headers.get('set-cookie') ?? '';
+
+    expect(secureConfiguredStart.status).toBe(302);
+    expect(secureSetCookie).toContain('wa_google_oauth_flow=');
+    expect(secureSetCookie).toMatch(/;\s*Secure/i);
   });
 
   it('keeps legacy email/password auth endpoints disabled with 410 Gone', async () => {

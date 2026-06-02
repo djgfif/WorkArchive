@@ -16,7 +16,6 @@ import {
   Req,
   Res,
   UseGuards,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { randomBytes, randomUUID } from 'node:crypto';
 import {
@@ -124,8 +123,9 @@ export class AuthController {
     response.cookie(GOOGLE_OAUTH_FLOW_COOKIE, flowId, {
       httpOnly: true,
       maxAge: GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
+      path: '/api/auth/google',
       sameSite: 'lax',
-      secure: true,
+      secure: readApiRuntimeConfig().cookieSecure,
     });
 
     response.redirect(this.authService.getGoogleAuthorizationUrl(state, nonce));
@@ -201,7 +201,10 @@ export class AuthController {
         request,
         severity: 'warning',
       });
-      throw new UnauthorizedException('Invalid Google OAuth state.');
+      response.redirect(
+        this.getGoogleLoginFailureRedirectUrl('failed', returnOrigin),
+      );
+      return;
     }
 
     let session: Awaited<
@@ -504,8 +507,9 @@ export class AuthController {
   private clearOAuthCookies(response: Response) {
     const options = {
       httpOnly: true,
+      path: '/api/auth/google',
       sameSite: 'lax' as const,
-      secure: true,
+      secure: readApiRuntimeConfig().cookieSecure,
     };
 
     response.clearCookie(GOOGLE_OAUTH_FLOW_COOKIE, options);

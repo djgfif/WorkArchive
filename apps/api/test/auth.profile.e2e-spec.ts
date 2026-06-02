@@ -146,6 +146,20 @@ describe('auth profile API (e2e)', () => {
     expect(authService.revokeRefreshSession).not.toHaveBeenCalled();
   });
 
+  it('redirects Google callbacks with missing OAuth flow cookies to login failure', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/auth/google/callback?code=oauth-code&state=oauth-state`,
+      {
+        redirect: 'manual',
+      },
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:18730/auth/login?google=failed',
+    );
+  });
+
   it('requires a bearer token and rejects invalid handles', async () => {
     const missingAuthResponse = await fetch(`${baseUrl}/api/auth/profile`, {
       body: JSON.stringify({
