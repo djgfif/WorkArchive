@@ -139,29 +139,20 @@ describe('sync pull cursor limits', () => {
     expect(cursorService.resolvePullLimit(1500)).toBe(1000);
   });
 
-  it('orders same-timestamp cursor continuity by entity type and id', () => {
-    const cursor = {
-      entityId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-      entityType: 'release_record' as const,
-      updatedAt: '2026-04-18T02:00:00.000Z',
-    };
-    const sameTimestamp = new Date('2026-04-18T02:00:00.000Z');
+  it('compares entity ids by code point to match the database C collation', () => {
+    // Must follow Unicode code-point order (matching Postgres `COLLATE "C"`),
+    // not ICU collation. A hyphen (U+002D) sorts before a letter by code point;
+    // if the in-memory ordering diverged from the cursor filter here, records
+    // sharing an updatedAt could be silently dropped at a page boundary.
+    expect(cursorService.compareEntityIds('a-b', 'ab')).toBeLessThan(0);
+    expect(cursorService.compareEntityIds('ab', 'a-b')).toBeGreaterThan(0);
 
     expect(
-      cursorService.isAfterCursor(
-        cursor,
-        'timeline_entry',
+      cursorService.compareEntityIds(
         'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        sameTimestamp,
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       ),
-    ).toBe(true);
-    expect(
-      cursorService.isAfterCursor(
-        cursor,
-        'release_record',
-        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        sameTimestamp,
-      ),
-    ).toBe(false);
+    ).toBeLessThan(0);
+    expect(cursorService.compareEntityIds('same', 'same')).toBe(0);
   });
 });
