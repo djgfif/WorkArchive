@@ -22,9 +22,15 @@ describe('auth profile API (e2e)', () => {
   let app: INestApplication;
   let baseUrl: string;
   let authService: {
+    loginWithGoogleAuthorizationCode: jest.MockedFunction<
+      AuthService['loginWithGoogleAuthorizationCode']
+    >;
     revokeRefreshSession: jest.MockedFunction<AuthService['revokeRefreshSession']>;
     updateProfile: jest.MockedFunction<AuthService['updateProfile']>;
     validateAccessToken: jest.MockedFunction<AuthService['validateAccessToken']>;
+  };
+  let securityAudit: {
+    record: jest.MockedFunction<SecurityAuditService['record']>;
   };
 
   beforeEach(async () => {
@@ -33,6 +39,9 @@ describe('auth profile API (e2e)', () => {
     process.env.WEB_BASE_URL = 'http://localhost:18730';
 
     authService = {
+      loginWithGoogleAuthorizationCode: jest.fn<
+        AuthService['loginWithGoogleAuthorizationCode']
+      >(),
       revokeRefreshSession: jest
         .fn<AuthService['revokeRefreshSession']>()
         .mockResolvedValue({
@@ -56,6 +65,9 @@ describe('auth profile API (e2e)', () => {
           userId: 'user-1',
         }),
     };
+    securityAudit = {
+      record: jest.fn<SecurityAuditService['record']>().mockResolvedValue(),
+    };
 
     const moduleRef = await Test.createTestingModule({
       controllers: [AuthController],
@@ -66,9 +78,7 @@ describe('auth profile API (e2e)', () => {
         },
         {
           provide: SecurityAuditService,
-          useValue: {
-            record: jest.fn<SecurityAuditService['record']>().mockResolvedValue(),
-          },
+          useValue: securityAudit,
         },
         {
           provide: GoogleOAuthFlowStoreService,
@@ -157,6 +167,17 @@ describe('auth profile API (e2e)', () => {
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe(
       'http://localhost:18730/auth/login?google=failed',
+    );
+    expect(authService.loginWithGoogleAuthorizationCode).not.toHaveBeenCalled();
+    expect(securityAudit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'auth.login.failure',
+        metadata: {
+          provider: 'google',
+          reason: 'missing_oauth_flow_cookie',
+        },
+        severity: 'warning',
+      }),
     );
   });
 

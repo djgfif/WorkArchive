@@ -50,10 +50,30 @@ import { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { hashSecret, verifySecret } from './auth-crypto';
-import { GoogleOAuthFlowStoreService } from './google-oauth-flow-store.service';
+import {
+  GoogleOAuthFlowStoreService,
+  type GoogleOAuthFlowRecord,
+} from './google-oauth-flow-store.service';
 
 const GOOGLE_OAUTH_FLOW_COOKIE = 'wa_google_oauth_flow';
 const GOOGLE_OAUTH_COOKIE_MAX_AGE_MS = 1000 * 60 * 10;
+
+type GoogleOAuthFailureReason =
+  | 'invalid_oauth_state'
+  | 'missing_oauth_code'
+  | 'missing_oauth_flow_cookie'
+  | 'missing_oauth_state'
+  | 'oauth_flow_not_found';
+
+type GoogleOAuthFlowConsumeResult =
+  | {
+      failureReason: null;
+      flow: GoogleOAuthFlowRecord;
+    }
+  | {
+      failureReason: GoogleOAuthFailureReason;
+      flow: null;
+    };
 
 @ApiTags('auth')
 @Controller('auth')
@@ -147,10 +167,10 @@ export class AuthController {
     @Res() response: Response,
   ) {
     const flowId = request.cookies?.[GOOGLE_OAUTH_FLOW_COOKIE];
-    let flow: Awaited<ReturnType<typeof this.consumeOAuthFlow>>;
+    let flowResult: GoogleOAuthFlowConsumeResult;
 
     try {
-      flow = await this.consumeOAuthFlow(flowId, state);
+      flowResult = await this.consumeOAuthFlow(flowId, state);
     } catch (flowError) {
       this.clearOAuthCookies(response);
       this.logAuthGoogleFailed(request, this.describeAuthFailure(flowError));
@@ -168,6 +188,7 @@ export class AuthController {
       return;
     }
 
+    const flow = flowResult.flow;
     const returnOrigin = flow?.returnOrigin;
 
     this.clearOAuthCookies(response);
@@ -191,12 +212,17 @@ export class AuthController {
     }
 
     if (typeof code !== 'string' || !flow) {
-      this.logAuthGoogleFailed(request, 'invalid_oauth_state');
+      const reason =
+        typeof code !== 'string'
+          ? 'missing_oauth_code'
+          : flowResult.failureReason ?? 'invalid_oauth_state';
+
+      this.logAuthGoogleFailed(request, reason);
       void this.securityAudit.record({
         eventType: 'auth.login.failure',
         metadata: {
           provider: 'google',
-          reason: 'invalid_oauth_state',
+          reason,
         },
         request,
         severity: 'warning',
@@ -491,17 +517,40 @@ export class AuthController {
   }
 
   private async consumeOAuthFlow(flowId: unknown, state: unknown) {
-    if (typeof flowId !== 'string' || typeof state !== 'string') {
-      return null;
+    if (typeof flowId !== 'string' || flowId.trim() === '') {
+      return {
+        failureReason: 'missing_oauth_flow_cookie',
+        flow: null,
+      } satisfies GoogleOAuthFlowConsumeResult;
+    }
+
+    if (typeof state !== 'string' || state.trim() === '') {
+      return {
+        failureReason: 'missing_oauth_state',
+        flow: null,
+      } satisfies GoogleOAuthFlowConsumeResult;
     }
 
     const flow = await this.googleOAuthFlowStore.consume(flowId);
 
-    if (!flow || !(await verifySecret(state, flow.stateHash))) {
-      return null;
+    if (!flow) {
+      return {
+        failureReason: 'oauth_flow_not_found',
+        flow: null,
+      } satisfies GoogleOAuthFlowConsumeResult;
     }
 
-    return flow;
+    if (!(await verifySecret(state, flow.stateHash))) {
+      return {
+        failureReason: 'invalid_oauth_state',
+        flow: null,
+      } satisfies GoogleOAuthFlowConsumeResult;
+    }
+
+    return {
+      failureReason: null,
+      flow,
+    } satisfies GoogleOAuthFlowConsumeResult;
   }
 
   private clearOAuthCookies(response: Response) {
