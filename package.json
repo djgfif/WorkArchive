@@ -60,5 +60,8 @@
     "orval": "^8.14.0",
     "prettier": "^3.5.3",
     "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "@hono/node-server": "1.19.13"
   }
 }
