@@ -14,6 +14,11 @@ interface FilterPillGroupProps<T extends string> {
   onChange: (value: T) => void;
   options: Array<FilterPillOption<T>>;
   value: T;
+  /**
+   * `segmented` (default): 적고 순서가 있는 집합 — 한 박스 안의 세그먼트.
+   * `chips`: 많고 개방적인 집합(장르·작가 등) — 자유 흐름 칩 세트.
+   */
+  variant?: 'chips' | 'segmented';
 }
 
 interface SegmentedChoiceOption<T extends string> {
@@ -137,7 +142,32 @@ export function FilterPillGroup<T extends string>({
   onChange,
   options,
   value,
+  variant = 'segmented',
 }: FilterPillGroupProps<T>) {
+  if (variant === 'chips') {
+    return (
+      <Group aria-label={ariaLabel} gap={6} role="group" wrap="wrap">
+        {options.map((option) => {
+          const isActive = option.value === value;
+          return (
+            <button
+              aria-pressed={isActive}
+              className={cx(cn(css.filterChip), isActive && cn(css.filterChipActive))}
+              key={option.value}
+              onClick={() => onChange(option.value)}
+              type="button"
+            >
+              <span>{option.label}</span>
+              {option.count !== undefined && (
+                <span className={cn(css.filterChipCount)}>{option.count}</span>
+              )}
+            </button>
+          );
+        })}
+      </Group>
+    );
+  }
+
   return (
     <Group
       aria-label={ariaLabel}

@@ -1628,19 +1628,21 @@
 
 .advancedFilterCount {
   position: absolute;
-  top: -0.32rem;
-  right: -0.32rem;
+  top: -0.34rem;
+  right: -0.34rem;
   display: flex;
-  width: 1rem;
-  height: 1rem;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding: 0 0.2rem;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  border: 1px solid var(--app-border-default);
-  background: var(--app-surface-card);
-  color: var(--app-text-secondary);
-  font-size: 0.62rem;
-  font-weight: 800;
+  border: 1px solid var(--app-bg-base);
+  background: var(--app-accent-primary);
+  color: #1a120a;
+  font-size: 0.64rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 매체 유형 필터 — 탭 스타일 */
@@ -1947,6 +1949,105 @@
   border-color: var(--app-accent-primary);
   background: color-mix(in srgb, var(--app-accent-primary) 12%, transparent);
   color: var(--app-accent-primary);
+}
+
+/* ── Filter chips — 많고 개방적인 집합(장르·작가 등)용 자유 흐름 칩 ─────── */
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 1.95rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--app-border-default);
+  border-radius: 999px;
+  background: var(--app-surface-subtle);
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--app-type-caption);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    background var(--wa-motion-fast, 150ms),
+    border-color var(--wa-motion-fast, 150ms),
+    color var(--wa-motion-fast, 150ms);
+}
+
+.filterChip:hover {
+  border-color: var(--app-border-strong);
+  color: var(--app-text-primary);
+}
+
+.filterChip:focus-visible {
+  outline: 2px solid var(--app-accent-primary);
+  outline-offset: 2px;
+}
+
+.filterChipActive,
+.filterChipActive:hover {
+  border-color: color-mix(in srgb, var(--app-accent-primary) 60%, transparent);
+  background: var(--app-accent-soft);
+  color: var(--app-accent-primary);
+}
+
+.filterChipCount {
+  min-width: 1.05rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-text-muted) 16%, transparent);
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.filterChipActive .filterChipCount {
+  background: color-mix(in srgb, var(--app-accent-primary) 22%, transparent);
+  color: var(--app-accent-primary);
+}
+
+/* 상태 색 점 — 감상 상태 칩의 의미 인코딩 */
+.filterChipDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--app-text-muted);
+}
+
+/* 골드 별 — 별점 칩 */
+.filterChipStar {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--app-accent-strong);
+}
+
+.filterChipStarMuted {
+  color: var(--app-text-muted);
+}
+
+/* 추천 보기 아이콘 */
+.filterChipIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+/* 기록 상태 — 라벨 + 칩 행 */
+.recordStateBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.recordStateLabel {
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

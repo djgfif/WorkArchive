@@ -3,6 +3,7 @@ import { Box, Group, SimpleGrid, Stack, Text } from '@mantine/core';
 import type { WorkStatus } from '@work-archive/shared-types';
 
 import { FilterPillGroup } from './ArchiveComponents';
+import { RecordStateFilters } from './RecordStateFilters';
 import { IconFilter } from './WorksToolbarIcons';
 import styles from './ArchiveComponents.module.css';
 import type { WorksListQuery } from '../utils/query-works';
@@ -10,8 +11,6 @@ import {
   buildGenreFilterOptions,
   buildStatusFilterOptions,
   identityPresetOptions,
-  ratingPresetOptions,
-  smartFilterOptions,
 } from '../utils/works-toolbar-state';
 
 const css = styles as Record<string, string>;
@@ -136,6 +135,7 @@ export function AdvancedFiltersPanel({
                   onChange={(genre) => onQueryChange({ ...query, genre })}
                   options={genreFilterOptions}
                   value={query.genre ?? ''}
+                  variant="chips"
                 />
               </Stack>
 
@@ -198,6 +198,7 @@ export function AdvancedFiltersPanel({
                     })),
                   ]}
                   value={query.series ?? ''}
+                  variant="chips"
                 />
               </Stack>
 
@@ -220,6 +221,7 @@ export function AdvancedFiltersPanel({
                       })),
                   ]}
                   value={query.personContributor ?? ''}
+                  variant="chips"
                 />
               </Stack>
 
@@ -242,53 +244,18 @@ export function AdvancedFiltersPanel({
                       })),
                   ]}
                   value={query.organizationContributor ?? ''}
+                  variant="chips"
                 />
               </Stack>
             </SimpleGrid>
           </FilterSection>
 
           <FilterSection title="기록 상태">
-            <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
-              <Stack gap="xs">
-                <Text c="var(--app-text-muted)" fw={700} size="xs">
-                  감상 상태
-                </Text>
-                <FilterPillGroup
-                  aria-label="상태 필터"
-                  onChange={(status) => onQueryChange({ ...query, status })}
-                  options={statusFilterOptions}
-                  value={query.status}
-                />
-              </Stack>
-
-              <Stack gap="xs">
-                <Text c="var(--app-text-muted)" fw={700} size="xs">
-                  별점
-                </Text>
-                <FilterPillGroup
-                  aria-label="별점 프리셋 필터"
-                  onChange={(ratingPreset) =>
-                    onQueryChange({ ...query, rating: null, ratingPreset })
-                  }
-                  options={ratingPresetOptions}
-                  value={query.ratingPreset ?? 'all'}
-                />
-              </Stack>
-
-              <Stack gap="xs">
-                <Text c="var(--app-text-muted)" fw={700} size="xs">
-                  추천 보기
-                </Text>
-                <FilterPillGroup
-                  aria-label="추천 보기 필터"
-                  onChange={(smartFilter) =>
-                    onQueryChange({ ...query, smartFilter })
-                  }
-                  options={smartFilterOptions}
-                  value={query.smartFilter ?? 'all'}
-                />
-              </Stack>
-            </SimpleGrid>
+            <RecordStateFilters
+              onQueryChange={onQueryChange}
+              query={query}
+              statusOptions={statusFilterOptions}
+            />
           </FilterSection>
 
           <FilterSection title="등록 방식">
