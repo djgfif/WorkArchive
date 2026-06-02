@@ -101,8 +101,8 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(getLinkByHref('/')).toBeInTheDocument();
     const googleButton = await screen.findByRole('button', { name: 'Google로 백업 연결' });
+    expect(getLinkByHref('/')).toBeInTheDocument();
     expect(googleButton).toBeInTheDocument();
     expect(googleButton).not.toBeDisabled();
     expect(screen.getByText('비공개 백업 · 여러 기기 동기화 · 개인 API key vault')).toBeInTheDocument();

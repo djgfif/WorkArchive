@@ -1,4 +1,4 @@
-import { isValidElement } from 'react';
+import { Suspense, isValidElement } from 'react';
 import { Navigate } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
@@ -6,7 +6,6 @@ import { getPrimaryNavigationItems } from '../layouts/navigation';
 import { createAppRoutes } from './routes';
 import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
 import type { FeatureFlags } from '@shared/runtime/feature-flags';
-import { PersonalInsightsPage } from '@features/insights';
 
 const flagsWithTierBoardsOff: FeatureFlags = {
   diagnostics: false,
@@ -51,13 +50,16 @@ describe('app routes', () => {
   it('keeps /insights in the product layout instead of redirecting to /works', () => {
     const routes = createAppRoutes();
     const productRoutes = routes[0]?.children ?? [];
-    const insightsRoute = productRoutes.find((route) => route.path === 'insights');
+    const insightsRoute = productRoutes.find(
+      (route) => route.path === 'insights',
+    );
 
     expect(insightsRoute).toBeDefined();
     expect(isValidElement(insightsRoute?.element)).toBe(true);
+    // 페이지는 lazy 로드되므로 Suspense 경계로 감싸 product 레이아웃에 둔다.
     expect(
       isValidElement(insightsRoute?.element) && insightsRoute.element.type,
-    ).toBe(PersonalInsightsPage);
+    ).toBe(Suspense);
     expect(
       routes.some(
         (route) =>
@@ -71,7 +73,8 @@ describe('app routes', () => {
   it('adds route error boundaries to primary product, auth, and account routes', () => {
     const routes = createAppRoutes();
     const productRoutes = routes[0]?.children ?? [];
-    const authRoutes = routes.find((route) => route.path === '/auth')?.children ?? [];
+    const authRoutes =
+      routes.find((route) => route.path === '/auth')?.children ?? [];
     const accountRoutes =
       routes.find((route) => route.path === '/account')?.children ?? [];
     const routePathsWithBoundaries = [
@@ -91,9 +94,9 @@ describe('app routes', () => {
     for (const route of routePathsWithBoundaries) {
       expect(route?.errorElement).toBeDefined();
       expect(isValidElement(route?.errorElement)).toBe(true);
-      expect(isValidElement(route?.errorElement) && route.errorElement.type).toBe(
-        RouteErrorBoundary,
-      );
+      expect(
+        isValidElement(route?.errorElement) && route.errorElement.type,
+      ).toBe(RouteErrorBoundary);
     }
   });
 });

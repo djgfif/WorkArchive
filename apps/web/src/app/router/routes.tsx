@@ -12,29 +12,22 @@ import {
   TierBoardsPage,
   TierBoardViewPage,
 } from './tier-board-route-components';
-import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
 import {
-  featureFlags,
-  type FeatureFlags,
-} from '@shared/runtime/feature-flags';
-import {
+  AccountOverviewPage,
   GoogleAuthCompletePage,
   GuestTransferReviewPage,
   LoginPage,
-} from '@features/auth';
-import { HomePage } from '@features/home';
-import {
-  AccountOverviewPage,
+  PersonalInsightsPage,
   ProfilePage,
   SettingsPage,
-} from '@features/profile';
-import { PersonalInsightsPage } from '@features/insights';
-import {
   WorkCreatePage,
   WorkDetailPage,
   WorkEditPage,
   WorksListPage,
-} from '@features/works';
+} from './page-route-components';
+import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
+import { featureFlags, type FeatureFlags } from '@shared/runtime/feature-flags';
+import { HomePage } from '@features/home';
 import { StateMessage } from '@shared/components/AppPrimitives';
 
 function lazyRoute(element: ReactNode) {
@@ -98,7 +91,7 @@ export function createAppRoutes(
         },
         {
           path: 'works',
-          element: <WorksListPage />,
+          element: lazyRoute(<WorksListPage />),
           errorElement: routeError(
             '작품 목록을 복구할 수 없습니다',
             '/',
@@ -107,7 +100,7 @@ export function createAppRoutes(
         },
         {
           path: 'works/new',
-          element: <WorkCreatePage />,
+          element: lazyRoute(<WorkCreatePage />),
           errorElement: routeError(
             '작품 추가 화면을 복구할 수 없습니다',
             '/works',
@@ -116,7 +109,7 @@ export function createAppRoutes(
         },
         {
           path: 'works/:id',
-          element: <WorkDetailPage />,
+          element: lazyRoute(<WorkDetailPage />),
           errorElement: routeError(
             '작품 상세 화면을 복구할 수 없습니다',
             '/works',
@@ -125,7 +118,7 @@ export function createAppRoutes(
         },
         {
           path: 'works/:id/edit',
-          element: <WorkEditPage />,
+          element: lazyRoute(<WorkEditPage />),
           errorElement: routeError(
             '작품 편집 화면을 복구할 수 없습니다',
             '/works',
@@ -134,7 +127,7 @@ export function createAppRoutes(
         },
         {
           path: 'insights',
-          element: <PersonalInsightsPage />,
+          element: lazyRoute(<PersonalInsightsPage />),
           errorElement: routeError(
             '개인 인사이트 화면을 복구할 수 없습니다',
             '/works',
@@ -170,7 +163,7 @@ export function createAppRoutes(
         },
         {
           path: 'profile',
-          element: <ProfilePage />,
+          element: lazyRoute(<ProfilePage />),
           errorElement: routeError(
             '프로필 화면을 복구할 수 없습니다',
             '/account',
@@ -185,7 +178,7 @@ export function createAppRoutes(
       children: [
         {
           path: 'login',
-          element: <LoginPage />,
+          element: lazyRoute(<LoginPage />),
           errorElement: routeError(
             '로그인 화면을 복구할 수 없습니다',
             '/works',
@@ -198,7 +191,7 @@ export function createAppRoutes(
         },
         {
           path: 'google/complete',
-          element: <GoogleAuthCompletePage />,
+          element: lazyRoute(<GoogleAuthCompletePage />),
           errorElement: routeError(
             'Google 로그인 완료 화면을 복구할 수 없습니다',
             '/auth/login',
@@ -221,7 +214,7 @@ export function createAppRoutes(
       children: [
         {
           index: true,
-          element: <AccountOverviewPage />,
+          element: lazyRoute(<AccountOverviewPage />),
           errorElement: routeError(
             '계정 개요를 복구할 수 없습니다',
             '/works',
@@ -230,7 +223,7 @@ export function createAppRoutes(
         },
         {
           path: 'transfer',
-          element: <GuestTransferReviewPage />,
+          element: lazyRoute(<GuestTransferReviewPage />),
           errorElement: routeError(
             '게스트 기록 이전 화면을 복구할 수 없습니다',
             '/account',
@@ -239,7 +232,7 @@ export function createAppRoutes(
         },
         {
           path: 'settings',
-          element: <SettingsPage />,
+          element: lazyRoute(<SettingsPage />),
           errorElement: routeError(
             '설정 화면을 복구할 수 없습니다',
             '/account',
