@@ -1,12 +1,9 @@
 import {
-  BadRequestException,
   Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
-import type { Prisma } from '@prisma/client';
 
 import { CatalogService } from '../catalog/catalog.service';
 import { UserRecordsService } from '../user-records/user-records.service';
@@ -15,35 +12,19 @@ import type { CreateWorkDto } from './dto/create-work.dto';
 import type { WORK_GROUP_FIELDS } from './dto/grouped-works-query.dto';
 import type { UpdateWorkDto } from './dto/update-work.dto';
 import {
+  buildCatalogCreateData,
+  buildCatalogUpdateData,
+  buildUserRecordCreateData,
+  buildUserRecordUpdateData,
+  withSyncedRecordMutationVersion,
+} from './work-compatibility.mapper';
+import {
   hasChanges,
-  normalizeGenres,
   normalizeGenresAndPersonalTags,
-  normalizePersonalTags,
-  normalizeString,
   toFlatWorkResponse,
 } from './work-aggregate';
 
-const DEFAULT_SYNC_STATUS = WorkSyncStatus.synced;
 type WorkGroupField = (typeof WORK_GROUP_FIELDS)[number];
-
-function parseOptionalDtoDate(
-  value: string | null | undefined,
-  fieldName: string,
-) {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) {
-    throw new BadRequestException(
-      `${fieldName} must be a valid ISO 8601 date string.`,
-    );
-  }
-
-  return parsed;
-}
 
 @Injectable()
 export class WorksService {
@@ -112,7 +93,10 @@ export class WorksService {
         await this.catalogService.create(
           {
             id: workId,
-            ...this.buildCatalogCreateData(createWorkDto, normalizedTaxonomy.genres),
+            ...buildCatalogCreateData(
+              createWorkDto,
+              normalizedTaxonomy.genres,
+            ),
           },
           tx,
         );
@@ -120,7 +104,7 @@ export class WorksService {
         return this.userRecordsService.create(
           {
             id: workId,
-            ...this.buildUserRecordCreateData(
+            ...buildUserRecordCreateData(
               userId,
               workId,
               createWorkDto,
@@ -148,11 +132,11 @@ export class WorksService {
               updateWorkDto.personalTags ?? existingWork.personalTags,
             )
           : null;
-      const catalogUpdateData = this.buildCatalogUpdateData(
+      const catalogUpdateData = buildCatalogUpdateData(
         updateWorkDto,
         normalizedTaxonomy?.genres,
       );
-      const recordUpdateData = this.buildUserRecordUpdateData(
+      const recordUpdateData = buildUserRecordUpdateData(
         updateWorkDto,
         normalizedTaxonomy?.personalTags,
       );
@@ -174,13 +158,7 @@ export class WorksService {
         return this.userRecordsService.updateActiveForUser(
           userId,
           id,
-          {
-            ...recordUpdateData,
-            syncStatus: DEFAULT_SYNC_STATUS,
-            serverVersion: {
-              increment: 1,
-            },
-          },
+          withSyncedRecordMutationVersion(recordUpdateData),
           tx,
         );
       });
@@ -197,13 +175,9 @@ export class WorksService {
       await this.userRecordsService.updateActiveForUser(
         userId,
         id,
-        {
+        withSyncedRecordMutationVersion({
           deletedAt: new Date(),
-          syncStatus: DEFAULT_SYNC_STATUS,
-          serverVersion: {
-            increment: 1,
-          },
-        },
+        }),
         undefined,
         {
           includeDeletedResult: true,
@@ -226,162 +200,6 @@ export class WorksService {
     }
 
     return work;
-  }
-
-  private buildCatalogCreateData(
-    createWorkDto: CreateWorkDto,
-    normalizedGenres: string[],
-  ): Prisma.CatalogWorkUncheckedCreateInput {
-    const title = createWorkDto.title.trim();
-
-    if (!title) {
-      throw new BadRequestException('title must not be empty');
-    }
-
-    return {
-      type: createWorkDto.type ?? WorkType.novel,
-      title,
-      author: normalizeString(createWorkDto.author),
-      genres: normalizedGenres,
-      description: normalizeString(createWorkDto.description),
-      thumbnailUrl: normalizeString(createWorkDto.thumbnailUrl),
-    };
-  }
-
-  private buildUserRecordCreateData(
-    userId: string,
-    catalogWorkId: string,
-    createWorkDto: CreateWorkDto,
-    normalizedPersonalTags: string[],
-  ): Prisma.UserWorkRecordUncheckedCreateInput {
-    return {
-      userId,
-      // split-only 중간 단계: catalogWorkId는 user record id와 동일하게 유지합니다.
-      catalogWorkId,
-      catalogTitleId: catalogWorkId,
-      status: createWorkDto.status ?? WorkStatus.planned,
-      rating: createWorkDto.rating ?? null,
-      shortReview: normalizeString(createWorkDto.shortReview),
-      review: normalizeString(createWorkDto.review),
-      personalTags: normalizedPersonalTags,
-      favorite: createWorkDto.favorite ?? false,
-      startedAt: parseOptionalDtoDate(createWorkDto.startedAt, 'startedAt'),
-      completedAt: parseOptionalDtoDate(
-        createWorkDto.completedAt,
-        'completedAt',
-      ),
-      droppedAt: parseOptionalDtoDate(createWorkDto.droppedAt, 'droppedAt'),
-      lastConsumedAt: parseOptionalDtoDate(
-        createWorkDto.lastConsumedAt,
-        'lastConsumedAt',
-      ),
-      syncStatus: DEFAULT_SYNC_STATUS,
-      serverVersion: 1,
-    };
-  }
-
-  private buildCatalogUpdateData(
-    updateWorkDto: UpdateWorkDto,
-    normalizedGenres?: string[],
-  ): Prisma.CatalogWorkUpdateInput {
-    const data: Prisma.CatalogWorkUpdateInput = {};
-
-    if (updateWorkDto.type !== undefined) {
-      data.type = updateWorkDto.type;
-    }
-
-    if (updateWorkDto.title !== undefined) {
-      const title = updateWorkDto.title.trim();
-
-      if (!title) {
-        throw new BadRequestException('title must not be empty');
-      }
-
-      data.title = title;
-    }
-
-    if (updateWorkDto.author !== undefined) {
-      data.author = normalizeString(updateWorkDto.author);
-    }
-
-    if (updateWorkDto.genres !== undefined) {
-      data.genres = normalizedGenres ?? normalizeGenres(updateWorkDto.genres);
-    }
-
-    if (updateWorkDto.description !== undefined) {
-      data.description = normalizeString(updateWorkDto.description);
-    }
-
-    if (updateWorkDto.thumbnailUrl !== undefined) {
-      data.thumbnailUrl = normalizeString(updateWorkDto.thumbnailUrl);
-    }
-
-    return data;
-  }
-
-  private buildUserRecordUpdateData(
-    updateWorkDto: UpdateWorkDto,
-    normalizedPersonalTags?: string[],
-  ): Prisma.UserWorkRecordUpdateManyMutationInput {
-    const data: Prisma.UserWorkRecordUpdateManyMutationInput = {};
-
-    if (updateWorkDto.status !== undefined) {
-      data.status = updateWorkDto.status;
-    }
-
-    if (updateWorkDto.rating !== undefined) {
-      data.rating = updateWorkDto.rating;
-    }
-
-    if (updateWorkDto.shortReview !== undefined) {
-      data.shortReview = normalizeString(updateWorkDto.shortReview);
-    }
-
-    if (updateWorkDto.review !== undefined) {
-      data.review = normalizeString(updateWorkDto.review);
-    }
-
-    if (
-      updateWorkDto.personalTags !== undefined ||
-      normalizedPersonalTags !== undefined
-    ) {
-      data.personalTags =
-        normalizedPersonalTags ?? normalizePersonalTags(updateWorkDto.personalTags);
-    }
-
-    if (updateWorkDto.favorite !== undefined) {
-      data.favorite = updateWorkDto.favorite;
-    }
-
-    if (updateWorkDto.startedAt !== undefined) {
-      data.startedAt = parseOptionalDtoDate(
-        updateWorkDto.startedAt,
-        'startedAt',
-      );
-    }
-
-    if (updateWorkDto.completedAt !== undefined) {
-      data.completedAt = parseOptionalDtoDate(
-        updateWorkDto.completedAt,
-        'completedAt',
-      );
-    }
-
-    if (updateWorkDto.droppedAt !== undefined) {
-      data.droppedAt = parseOptionalDtoDate(
-        updateWorkDto.droppedAt,
-        'droppedAt',
-      );
-    }
-
-    if (updateWorkDto.lastConsumedAt !== undefined) {
-      data.lastConsumedAt = parseOptionalDtoDate(
-        updateWorkDto.lastConsumedAt,
-        'lastConsumedAt',
-      );
-    }
-
-    return data;
   }
 
   private logMutationFailure(
