@@ -8,7 +8,24 @@
     "webtoon",
     "anime",
     "movie",
-    "drama"
+    "drama",
+    "web_novel"
+  ],
+  "requiredProviders": [
+    "aladin",
+    "anilist",
+    "brave_search",
+    "google_books",
+    "kakao_book",
+    "kakao_web",
+    "kobis",
+    "naver_book",
+    "naver_web",
+    "open_library",
+    "tavily_search",
+    "tmdb",
+    "tvmaze",
+    "wikidata"
   ],
   "requiredCoverageTags": [
     "korean_title",
@@ -930,6 +947,148 @@
       "expectedAssertion": "Manual fallback remains available and provider failures are diagnostics, not blockers.",
       "tags": ["manual_fallback"],
       "expectedTopId": "manual-drama-low-confidence"
+    },
+    {
+      "id": "web-novel-brave-search",
+      "mediumType": "web_novel",
+      "dimension": "Web serialization provider coverage",
+      "query": "전지적 독자 시점 싱숑",
+      "expectedAssertion": "Web search candidates with creator signal can satisfy web novel QA without being hidden behind manual fallback.",
+      "tags": ["korean_title", "creator_boost", "source_coverage"],
+      "expectedTopId": "omniscient-reader-web-novel-brave",
+      "expectedCandidate": {
+        "id": "omniscient-reader-web-novel-brave",
+        "sourceId": "brave_search",
+        "title": "전지적 독자 시점",
+        "titleAliases": ["Omniscient Reader's Viewpoint"],
+        "author": "싱숑",
+        "contributors": [{ "name": "싱숑", "role": "author" }],
+        "releaseYear": 2018,
+        "externalRefs": [
+          {
+            "externalId": "brave-orv-web-novel",
+            "provider": "brave_search",
+            "rawType": "web",
+            "url": "https://example.test/brave/orv"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "orv-webtoon-token",
+          "sourceId": "naver_web",
+          "mediumType": "webtoon",
+          "title": "전지적 독자 시점",
+          "author": "슬리피-C",
+          "contributors": [{ "name": "슬리피-C", "role": "artist" }],
+          "releaseYear": 2020,
+          "externalRefs": [
+            {
+              "externalId": "naver-web-orv-webtoon",
+              "provider": "naver_web",
+              "rawType": "web",
+              "url": "https://example.test/naver/orv-webtoon"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "webtoon-kakao-web",
+      "mediumType": "webtoon",
+      "dimension": "Kakao web provider coverage",
+      "query": "나 혼자만 레벨업 장성락",
+      "expectedAssertion": "Kakao web candidates rank webtoon adaptations above same-title web novel or manual fallback candidates.",
+      "tags": ["korean_title", "creator_boost", "wrong_medium_guard"],
+      "expectedTopId": "solo-leveling-webtoon-kakao-web",
+      "expectedCandidate": {
+        "id": "solo-leveling-webtoon-kakao-web",
+        "sourceId": "kakao_web",
+        "title": "나 혼자만 레벨업",
+        "titleAliases": ["Solo Leveling"],
+        "author": "장성락",
+        "contributors": [{ "name": "장성락", "role": "artist" }],
+        "releaseYear": 2018,
+        "externalRefs": [
+          {
+            "externalId": "kakao-web-solo-leveling",
+            "provider": "kakao_web",
+            "rawType": "web",
+            "url": "https://example.test/kakao/solo-leveling"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "solo-leveling-web-novel-token",
+          "sourceId": "tavily_search",
+          "mediumType": "web_novel",
+          "title": "나 혼자만 레벨업",
+          "author": "추공",
+          "contributors": [{ "name": "추공", "role": "author" }],
+          "releaseYear": 2016,
+          "externalRefs": [
+            {
+              "externalId": "tavily-solo-leveling-novel",
+              "provider": "tavily_search",
+              "rawType": "web",
+              "url": "https://example.test/tavily/solo-leveling-novel"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "book-kakao-book",
+      "mediumType": "novel",
+      "dimension": "Kakao book provider coverage",
+      "query": "아몬드 손원평",
+      "expectedAssertion": "Kakao Book candidates participate in book ranking with title and creator signals.",
+      "tags": ["korean_title", "creator_boost", "source_coverage"],
+      "expectedTopId": "almond-novel-kakao-book",
+      "expectedCandidate": {
+        "id": "almond-novel-kakao-book",
+        "sourceId": "kakao_book",
+        "title": "아몬드",
+        "titleAliases": ["Almond"],
+        "author": "손원평",
+        "contributors": [{ "name": "손원평", "role": "author" }],
+        "releaseYear": 2017,
+        "externalRefs": [
+          {
+            "externalId": "kakao-book-almond",
+            "provider": "kakao_book",
+            "rawType": "book",
+            "url": "https://example.test/kakao-book/almond"
+          }
+        ]
+      }
+    },
+    {
+      "id": "movie-kobis",
+      "mediumType": "movie",
+      "dimension": "KOBIS provider coverage",
+      "query": "헤어질 결심 박찬욱",
+      "expectedAssertion": "KOBIS candidates participate in Korean film ranking with director signal.",
+      "tags": ["korean_title", "creator_boost", "source_coverage"],
+      "expectedTopId": "decision-to-leave-kobis",
+      "expectedCandidate": {
+        "id": "decision-to-leave-kobis",
+        "sourceId": "kobis",
+        "title": "헤어질 결심",
+        "titleAliases": ["Decision to Leave"],
+        "author": "박찬욱",
+        "contributors": [{ "name": "박찬욱", "role": "director" }],
+        "releaseYear": 2022,
+        "externalRefs": [
+          {
+            "externalId": "kobis-decision-to-leave",
+            "provider": "kobis",
+            "rawType": "movie",
+            "url": "https://example.test/kobis/decision-to-leave"
+          }
+        ]
+      }
     },
     {
       "id": "low-confidence-fallback",

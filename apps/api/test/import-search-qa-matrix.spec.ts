@@ -7,6 +7,10 @@ import { describe, expect, it } from '@jest/globals';
 import type { ImportCandidateResponseDto } from '../src/modules/imports/dto/import-candidate-response.dto';
 import { mergeImportCandidates } from '../src/modules/imports/candidates/import-candidate-merge';
 import { rankImportCandidates } from '../src/modules/imports/candidates/import-candidate-ranking';
+import {
+  IMPORT_PROVIDER_VALUES,
+  MANUAL_PROVIDER,
+} from '../src/modules/imports/imports.constants';
 
 interface MatrixCandidateFixture {
   author?: string;
@@ -39,6 +43,7 @@ interface ImportSearchQaMatrix {
   cases: MatrixCaseFixture[];
   requiredCoverageTags: string[];
   requiredMediaTypes: string[];
+  requiredProviders: string[];
   version: number;
 }
 
@@ -137,14 +142,30 @@ function createManualFallback(
 }
 
 describe('import/search QA canonical matrix', () => {
-  it('covers every required medium type, assertion tag, and unique case id', () => {
+  it('covers every required medium type, provider, assertion tag, and unique case id', () => {
     const caseIds = matrix.cases.map((testCase) => testCase.id);
-    const mediumTypes = new Set(matrix.cases.map((testCase) => testCase.mediumType));
+    const mediumTypes = new Set(
+      matrix.cases.map((testCase) => testCase.mediumType),
+    );
+    const providers = new Set(
+      matrix.cases.flatMap((testCase) =>
+        [
+          testCase.expectedCandidate,
+          ...(testCase.otherCandidates ?? []),
+        ].flatMap((candidate) => (candidate ? [candidate.sourceId] : [])),
+      ),
+    );
     const tags = new Set(matrix.cases.flatMap((testCase) => testCase.tags));
 
     expect(new Set(caseIds).size).toBe(caseIds.length);
     expect([...mediumTypes].sort()).toEqual(
       [...matrix.requiredMediaTypes].sort(),
+    );
+    expect([...providers].sort()).toEqual([...matrix.requiredProviders].sort());
+    expect([...matrix.requiredProviders].sort()).toEqual(
+      IMPORT_PROVIDER_VALUES.filter(
+        (provider) => provider !== MANUAL_PROVIDER,
+      ).sort(),
     );
     expect([...tags].sort()).toEqual([...matrix.requiredCoverageTags].sort());
   });
