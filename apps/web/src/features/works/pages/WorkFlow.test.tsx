@@ -1,4 +1,4 @@
-﻿import { screen } from '@testing-library/react';
+﻿import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +8,7 @@ import { renderWithProviders } from '@test/render-with-providers';
 import { AuthProvider } from '@features/auth';
 import type { ImportCandidate } from '@features/imports';
 import { worksService } from '../services/works.service';
+import { DEFAULT_WORKS_LIST_QUERY } from '../utils/query-works';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -102,7 +103,10 @@ describe('Works routed flow', () => {
   });
 
   it('creates and edits a work through the UI', async () => {
-    mockSearch();
+    const title = `Dune routed ${crypto.randomUUID()}`;
+    const updatedTitle = `${title} Messiah`;
+
+    mockSearch(buildCandidate(title));
 
     const user = userEvent.setup();
     const router = createMemoryRouter(appRoutes, {
@@ -116,7 +120,7 @@ describe('Works routed flow', () => {
     );
 
     await user.click(await screen.findByLabelText('검색으로 채우기'));
-    await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
+    await user.type(await screen.findByLabelText(/^작품 검색$/), title);
     await user.click(screen.getByRole('button', { name: '검색' }));
     await user.click((await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!);
     expect(
@@ -126,7 +130,7 @@ describe('Works routed flow', () => {
 
     const createTitleInput = await screen.findByLabelText(/^제목$/);
     await user.clear(createTitleInput);
-    await user.type(createTitleInput, 'Dune');
+    await user.type(createTitleInput, title);
     await user.click(screen.getByRole('button', { name: '상세 정보' }));
     const authorInput = document.getElementById('manualCreatorText') as HTMLInputElement;
     expect(authorInput).not.toBeNull();
@@ -136,31 +140,49 @@ describe('Works routed flow', () => {
 
     await user.click(screen.getByRole('button', { name: '내 아카이브에 저장' }));
     expect(
-      await screen.findByText(/Dune을\(를\) 등록했습니다/, {}, { timeout: 10_000 }),
-    ).toBeInTheDocument();
-    await user.click(
-      await screen.findByRole(
-        'button',
-        { name: '방금 등록한 작품 보기' },
+      await screen.findByText(
+        `${title}을(를) 등록했습니다`,
+        {},
         { timeout: 10_000 },
       ),
-    );
+    ).toBeInTheDocument();
+    const createdWork = (
+      await worksService.listWorks(DEFAULT_WORKS_LIST_QUERY, 'active')
+    ).works.find((work) => work.title === title);
 
-    expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
+    expect(createdWork).toEqual(expect.objectContaining({ title }));
+    await act(async () => {
+      await router.navigate(`/works/${createdWork!.id}`);
+    });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(`/works/${createdWork!.id}`);
+    });
+
+    expect(
+      await screen.findByRole('heading', { name: title }, { timeout: 10_000 }),
+    ).toBeInTheDocument();
     expect(screen.getAllByText(/Frank Herbert/i).length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole('link', { name: '전체 정보 수정' }));
+    await user.click(
+      await screen.findByRole('link', { name: '전체 정보 수정' }, { timeout: 10_000 }),
+    );
 
     const titleInput = await screen.findByLabelText(/^제목$/);
 
     await user.clear(titleInput);
-    await user.type(titleInput, 'Dune Messiah');
+    await user.type(titleInput, updatedTitle);
     expect(
       screen.getByRole('button', { name: '저장 하단 고정 저장' }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '저장' }));
 
-    expect(await screen.findByRole('heading', { name: 'Dune Messiah' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole(
+        'heading',
+        { name: updatedTitle },
+        { timeout: 10_000 },
+      ),
+    ).toBeInTheDocument();
   }, 20_000);
 
   it('keeps manual create local and shows field feedback before save', async () => {

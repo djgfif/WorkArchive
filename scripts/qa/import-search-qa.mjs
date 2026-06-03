@@ -225,9 +225,19 @@ function offlineChecks() {
 
 function validateMatrixShape() {
   const mediumTypes = new Set(matrix.map((item) => item.mediumType));
+  const providers = new Set(
+    matrix.flatMap((item) =>
+      [item.expectedCandidate, ...(item.otherCandidates ?? [])].flatMap(
+        (candidate) => (candidate ? [candidate.sourceId] : []),
+      ),
+    ),
+  );
   const tags = new Set(matrix.flatMap((item) => item.tags ?? []));
   const missingMedia = (matrixData.requiredMediaTypes ?? []).filter(
     (mediumType) => !mediumTypes.has(mediumType),
+  );
+  const missingProviders = (matrixData.requiredProviders ?? []).filter(
+    (provider) => !providers.has(provider),
   );
   const missingTags = (matrixData.requiredCoverageTags ?? []).filter(
     (tag) => !tags.has(tag),
@@ -238,18 +248,19 @@ function validateMatrixShape() {
 
   if (
     missingMedia.length > 0 ||
+    missingProviders.length > 0 ||
     missingTags.length > 0 ||
     duplicateIds.length > 0
   ) {
     return {
       status: 'FAIL',
-      summary: `Missing media: ${missingMedia.join(', ') || 'none'}; missing tags: ${missingTags.join(', ') || 'none'}; duplicate IDs: ${duplicateIds.join(', ') || 'none'}.`,
+      summary: `Missing media: ${missingMedia.join(', ') || 'none'}; missing providers: ${missingProviders.join(', ') || 'none'}; missing tags: ${missingTags.join(', ') || 'none'}; duplicate IDs: ${duplicateIds.join(', ') || 'none'}.`,
     };
   }
 
   return {
     status: 'PASS',
-    summary: `${matrix.length} cases cover ${[...mediumTypes].join(', ')} and ${tags.size} assertion tags from ${relativePath(matrixPath)}.`,
+    summary: `${matrix.length} cases cover ${[...mediumTypes].join(', ')}, ${providers.size} providers, and ${tags.size} assertion tags from ${relativePath(matrixPath)}.`,
   };
 }
 

@@ -175,10 +175,15 @@ export function cloneQueuePayload<TPayload extends SyncQueuePayload>(
 export function createAutoMergeSnapshot(
   mergedFields: readonly string[],
 ): SyncAutoMergeSnapshot {
+  const fields = [...mergedFields];
+
   return {
-    fields: [...mergedFields],
+    fields,
     mergedAt: getNowIso(),
-    message: '안전한 필드만 자동 병합되어 다시 백업 대기 중입니다.',
+    message:
+      fields.length > 0
+        ? '안전한 필드만 자동 병합되어 다시 백업 대기 중입니다.'
+        : '원격 버전 정보만 맞춰 다시 백업 대기 중입니다.',
     status: 'requeued',
   };
 }

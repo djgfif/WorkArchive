@@ -1,6 +1,6 @@
 # Import/Search QA Matrix
 
-Last updated: 2026-05-26
+Last updated: 2026-06-03
 
 The canonical import/search QA matrix is
 [`IMPORT_SEARCH_QA_CASES.json`](./IMPORT_SEARCH_QA_CASES.json). The QA runner
@@ -36,6 +36,25 @@ The source file currently covers these required media types:
 - `anime`
 - `movie`
 - `drama`
+- `web_novel`
+
+The source file also covers every non-manual provider currently exposed by the
+import provider contract:
+
+- `aladin`
+- `anilist`
+- `brave_search`
+- `google_books`
+- `kakao_book`
+- `kakao_web`
+- `kobis`
+- `naver_book`
+- `naver_web`
+- `open_library`
+- `tavily_search`
+- `tmdb`
+- `tvmaze`
+- `wikidata`
 
 The source file also covers these required assertion dimensions:
 
@@ -77,6 +96,10 @@ The source file also covers these required assertion dimensions:
 | drama-ko-title | drama | Korean title | `오징어 게임` |
 | drama-spacing | drama | Typo/spacing variant | `이상한 변호사 우 영우` |
 | drama-low-confidence | drama | Low-confidence fallback | `Gate1 Search QA Drama Synthetic` |
+| web-novel-brave-search | web_novel | Web serialization provider coverage | `전지적 독자 시점 싱숑` |
+| webtoon-kakao-web | webtoon | Kakao web provider coverage | `나 혼자만 레벨업 장성락` |
+| book-kakao-book | novel | Kakao book provider coverage | `아몬드 손원평` |
+| movie-kobis | movie | KOBIS provider coverage | `헤어질 결심 박찬욱` |
 | low-confidence-fallback | novel | Low-confidence fallback | `Gate1 Search QA Unlikely Synthetic Title` |
 
 ## How To Run

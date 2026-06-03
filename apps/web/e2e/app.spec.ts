@@ -76,3 +76,39 @@ test('shows the empty guest home onboarding path', async ({ page }) => {
   await expect(page.getByRole('link', { name: /첫 작품 추가/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /백업 가져오기/ })).toBeVisible();
 });
+
+test('lets a guest create a local-first tier board and open the editor', async ({
+  page,
+}) => {
+  const title = `Playwright Tier Board ${Date.now()}`;
+
+  await page.goto('/tier-boards');
+
+  await expect(
+    page.getByRole('heading', { name: '자유형 티어보드' }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: '새 티어보드 만들기' })
+    .first()
+    .click();
+  await expect(
+    page.getByRole('dialog', { name: '새 티어보드 만들기' }),
+  ).toBeVisible();
+  const createDialog = page.getByRole('dialog', {
+    name: '새 티어보드 만들기',
+  });
+
+  await page.getByLabel('새 티어보드 제목').fill(title);
+  await page.getByLabel('새 티어보드 설명').fill('e2e 로컬 티어보드');
+  await createDialog
+    .getByRole('button', { name: /최애\/좋음\/무난\/아쉬움/ })
+    .click();
+  await createDialog.getByRole('button', { exact: true, name: '만들기' }).click();
+
+  await expect(page).toHaveURL(/\/tier-boards\/[^/]+$/);
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
+  await expect(page.getByRole('button', { name: '행 추가' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '보드 설정' })).toBeVisible();
+  await expect(page.getByText('최애')).toBeVisible();
+  await expect(page.getByText('아쉬움')).toBeVisible();
+});

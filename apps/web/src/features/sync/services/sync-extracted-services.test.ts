@@ -14,7 +14,10 @@ import {
 } from '@features/works';
 import type { TierBoardRepository } from '@features/tier-boards/data';
 import { AppMetaRepository } from './app-meta.repository';
-import { SyncAutoMergeService } from './sync-auto-merge.service';
+import {
+  createAutoMergeSnapshot,
+  SyncAutoMergeService,
+} from './sync-auto-merge.service';
 import { SyncConflictResolutionService } from './sync-conflict-resolution.service';
 import { SyncLeaseService } from './sync-lease.service';
 import { SyncPullService } from './sync-pull.service';
@@ -154,6 +157,23 @@ describe('extracted sync services', () => {
   });
 
   describe('SyncAutoMergeService', () => {
+    it('describes metadata-only auto merges separately from field merges', () => {
+      expect(createAutoMergeSnapshot([])).toEqual(
+        expect.objectContaining({
+          fields: [],
+          message: '원격 버전 정보만 맞춰 다시 백업 대기 중입니다.',
+          status: 'requeued',
+        }),
+      );
+      expect(createAutoMergeSnapshot(['genres'])).toEqual(
+        expect.objectContaining({
+          fields: ['genres'],
+          message: '안전한 필드만 자동 병합되어 다시 백업 대기 중입니다.',
+          status: 'requeued',
+        }),
+      );
+    });
+
     it('auto-merges safe work taxonomy changes only', () => {
       const remote = buildWork({
         genres: ['Classic'],
