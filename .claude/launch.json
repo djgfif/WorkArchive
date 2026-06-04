@@ -10,7 +10,7 @@
         "--",
         "bash",
         "-lc",
-        "cd /home/gkho/code/WorkArchive/apps/web && exec ../../node_modules/.bin/vite --host localhost --port 18730 --strictPort"
+        "cd apps/web && exec ../../node_modules/.bin/vite --host localhost --port 18730 --strictPort"
       ],
       "port": 18730
     }

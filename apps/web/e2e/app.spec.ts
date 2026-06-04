@@ -1,7 +1,11 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+function gotoApp(page: Page, path: string) {
+  return page.goto(path, { waitUntil: 'domcontentloaded' });
+}
 
 test('renders the product shell', async ({ page }) => {
-  await page.goto('/');
+  await gotoApp(page, '/');
 
   await expect(page.getByRole('link', { name: /Work Archive/i })).toBeVisible();
 });
@@ -11,7 +15,7 @@ test('lets a guest create a local-first work and find it in the library', async 
 }) => {
   const title = `Playwright Beta Work ${Date.now()}`;
 
-  await page.goto('/works/new');
+  await gotoApp(page, '/works/new');
 
   await expect(page.getByRole('heading', { name: '작품 추가' })).toBeVisible();
   await page.getByRole('textbox', { name: '제목' }).fill(title);
@@ -30,7 +34,7 @@ test('lets a guest create a local-first work and find it in the library', async 
     page.getByText('공개 베타 스모크 기록', { exact: true }),
   ).toBeVisible();
 
-  await page.goto('/works?view=list');
+  await gotoApp(page, '/works?view=list');
   await expect(
     page.getByRole('link', { name: `${title} 상세 보기` }),
   ).toBeVisible();
@@ -40,7 +44,7 @@ test('lets a guest create a local-first work and find it in the library', async 
 test('keeps guest backup and provider-key safety visible in settings', async ({
   page,
 }) => {
-  await page.goto('/account/settings#data-backup');
+  await gotoApp(page, '/account/settings#data-backup');
 
   await expect(
     page.getByRole('heading', { name: 'Settings Control Center' }),
@@ -65,7 +69,7 @@ test('keeps guest backup and provider-key safety visible in settings', async ({
 });
 
 test('shows the empty guest home onboarding path', async ({ page }) => {
-  await page.goto('/');
+  await gotoApp(page, '/');
 
   await expect(
     page.getByRole('heading', { name: '오늘 펼쳐볼 작품' }),
@@ -82,7 +86,7 @@ test('lets a guest create a local-first tier board and open the editor', async (
 }) => {
   const title = `Playwright Tier Board ${Date.now()}`;
 
-  await page.goto('/tier-boards');
+  await gotoApp(page, '/tier-boards');
 
   await expect(
     page.getByRole('heading', { name: '자유형 티어보드' }),

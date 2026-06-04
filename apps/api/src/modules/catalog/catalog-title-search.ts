@@ -1,7 +1,9 @@
 import { Prisma, type WorkType } from '@prisma/client';
 
 interface CatalogTitleSearchClient {
-  $queryRaw?: <T = unknown>(query: TemplateStringsArray | Prisma.Sql) => Promise<T>;
+  $queryRaw?: <T = unknown>(
+    query: TemplateStringsArray | Prisma.Sql,
+  ) => Promise<T>;
 }
 
 interface SearchCatalogTitleIdsInput {
@@ -46,12 +48,11 @@ export async function searchCatalogTitleIds(
           ts_rank_cd(
             to_tsvector(
               'simple',
-              concat_ws(
-                ' ',
+              catalog_title_search_text(
                 t."canonicalTitle",
                 t."displayTitle",
-                coalesce(t."originalTitle", ''),
-                array_to_string(t."aliases", ' ')
+                t."originalTitle",
+                t."aliases"
               )
             ),
             plainto_tsquery('simple', ${normalizedQuery})
@@ -68,22 +69,16 @@ export async function searchCatalogTitleIds(
                 CASE
                   WHEN lower(c."displayName") = lower(${normalizedQuery}) THEN 260
                   WHEN lower(c."displayName") LIKE lower(${normalizedQuery}) || '%' THEN 180
-                  WHEN lower(
-                    concat_ws(
-                      ' ',
-                      c."canonicalName",
-                      c."displayName",
-                      array_to_string(c."aliases", ' ')
-                    )
+                  WHEN contributor_search_text(
+                    c."canonicalName",
+                    c."displayName",
+                    c."aliases"
                   ) LIKE '%' || lower(${normalizedQuery}) || '%' THEN 120
                   ELSE similarity(
-                    lower(
-                      concat_ws(
-                        ' ',
-                        c."canonicalName",
-                        c."displayName",
-                        array_to_string(c."aliases", ' ')
-                      )
+                    contributor_search_text(
+                      c."canonicalName",
+                      c."displayName",
+                      c."aliases"
                     ),
                     lower(${normalizedQuery})
                   ) * 80
@@ -102,22 +97,18 @@ export async function searchCatalogTitleIds(
         (
           to_tsvector(
             'simple',
-            concat_ws(
-              ' ',
+            catalog_title_search_text(
               t."canonicalTitle",
               t."displayTitle",
-              coalesce(t."originalTitle", ''),
-              array_to_string(t."aliases", ' ')
+              t."originalTitle",
+              t."aliases"
             )
           ) @@ plainto_tsquery('simple', ${normalizedQuery})
-          OR lower(
-            concat_ws(
-              ' ',
-              t."canonicalTitle",
-              t."displayTitle",
-              coalesce(t."originalTitle", ''),
-              array_to_string(t."aliases", ' ')
-            )
+          OR catalog_title_search_text(
+            t."canonicalTitle",
+            t."displayTitle",
+            t."originalTitle",
+            t."aliases"
           ) LIKE '%' || lower(${normalizedQuery}) || '%'
           OR greatest(
             similarity(lower(t."displayTitle"), lower(${normalizedQuery})),
@@ -134,29 +125,22 @@ export async function searchCatalogTitleIds(
               AND (
                 to_tsvector(
                   'simple',
-                  concat_ws(
-                    ' ',
+                  contributor_search_text(
                     c."canonicalName",
                     c."displayName",
-                    array_to_string(c."aliases", ' ')
+                    c."aliases"
                   )
                 ) @@ plainto_tsquery('simple', ${normalizedQuery})
-                OR lower(
-                  concat_ws(
-                    ' ',
-                    c."canonicalName",
-                    c."displayName",
-                    array_to_string(c."aliases", ' ')
-                  )
+                OR contributor_search_text(
+                  c."canonicalName",
+                  c."displayName",
+                  c."aliases"
                 ) LIKE '%' || lower(${normalizedQuery}) || '%'
                 OR similarity(
-                  lower(
-                    concat_ws(
-                      ' ',
-                      c."canonicalName",
-                      c."displayName",
-                      array_to_string(c."aliases", ' ')
-                    )
+                  contributor_search_text(
+                    c."canonicalName",
+                    c."displayName",
+                    c."aliases"
                   ),
                   lower(${normalizedQuery})
                 ) >= 0.18
