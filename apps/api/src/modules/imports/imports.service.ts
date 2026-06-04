@@ -6,12 +6,14 @@ import {
   Logger,
   Optional,
 } from '@nestjs/common';
-import { WorkType } from '@prisma/client';
+import { createHash } from 'node:crypto';
+import { WorkType, type Prisma } from '@prisma/client';
 
 import {
   CatalogIngestionService,
   type CatalogReleaseCandidateInput,
 } from '../catalog/catalog-ingestion.service';
+import { searchCatalogTitleIds } from '../catalog/catalog-title-search';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MetricsService } from '../../observability/metrics.service';
 import type { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
@@ -88,6 +90,85 @@ import {
 } from './providers/import-provider-selection';
 import { searchImportProviderWithFallback } from './providers/import-provider-search';
 
+const IMPORT_SEARCH_STAGE_CACHE_TTL_MS = 60_000;
+const INTERNAL_CATALOG_SOURCE_ID = 'catalog';
+
+const IMPORT_CATALOG_TITLE_INCLUDE = {
+  contributors: {
+    include: {
+      contributor: true,
+    },
+    orderBy: {
+      displayOrder: 'asc',
+    },
+  },
+  externalRefs: true,
+  franchise: true,
+  releases: {
+    include: {
+      externalRefs: true,
+    },
+    orderBy: {
+      sequence: 'asc',
+    },
+    take: 5,
+  },
+} satisfies Prisma.CatalogTitleInclude;
+
+type ImportCatalogTitleCandidate = Prisma.CatalogTitleGetPayload<{
+  include: typeof IMPORT_CATALOG_TITLE_INCLUDE;
+}>;
+
+interface ImportProviderSearchResult {
+  candidates: ImportCandidateResponseDto[];
+  diagnostic: {
+    configured: boolean;
+    message: string;
+    reasonCode: ImportSearchDiagnosticReasonCode | null;
+    resultCount: number;
+    status: ImportSearchDiagnosticStatus;
+  };
+  failure: string | null;
+  provider: ImportProvider;
+}
+
+interface CachedImportSearchStage {
+  providerResults: ImportProviderSearchResult[];
+}
+
+function isImportProviderSearchResult(
+  value: unknown,
+): value is ImportProviderSearchResult {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const diagnostic = value.diagnostic;
+
+  return (
+    typeof value.provider === 'string' &&
+    Array.isArray(value.candidates) &&
+    (value.failure === null || typeof value.failure === 'string') &&
+    isRecord(diagnostic) &&
+    typeof diagnostic.configured === 'boolean' &&
+    typeof diagnostic.message === 'string' &&
+    (diagnostic.reasonCode === null ||
+      typeof diagnostic.reasonCode === 'string') &&
+    typeof diagnostic.resultCount === 'number' &&
+    typeof diagnostic.status === 'string'
+  );
+}
+
+function isCachedImportSearchStage(
+  value: unknown,
+): value is CachedImportSearchStage {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.providerResults) &&
+    value.providerResults.every(isImportProviderSearchResult)
+  );
+}
+
 @Injectable()
 export class ImportsService {
   private readonly logger = new Logger(ImportsService.name);
@@ -103,6 +184,9 @@ export class ImportsService {
     private readonly prisma: PrismaService = {
       catalogExternalRef: {
         findUnique: async () => null,
+      },
+      catalogTitle: {
+        findMany: async () => [],
       },
       userWorkRecord: {
         findFirst: async () => null,
@@ -255,193 +339,117 @@ export class ImportsService {
       throw new BadRequestException('query must not be empty');
     }
 
-    const candidates: ImportCandidateResponseDto[] = [];
-    const failures: string[] = [];
-    const diagnostics = createImportSearchDiagnostics();
+    const startedAt = process.hrtime.bigint();
 
-    for (const provider of resolvedProviders) {
-      if (!importProviderSupportsMedium(provider, mediumType)) {
-        this.addSearchDiagnostic(diagnostics, provider, {
-          configured: await this.isProviderConfigured(userId, provider),
-          message: `${PROVIDERS[provider].label} does not support the selected work type.`,
-          reasonCode: 'unsupported_medium',
-          resultCount: 0,
-          status: 'skipped',
-        });
-        continue;
-      }
+    try {
+      const candidates: ImportCandidateResponseDto[] = [];
+      const failures: string[] = [];
+      const diagnostics = createImportSearchDiagnostics();
+      const catalogCandidates =
+        explicitSingleProvider || searchQuery.providers !== undefined
+          ? []
+          : await this.searchInternalCatalogCandidates({
+              limit,
+              mediumType,
+              query,
+            });
 
-      if (!providers.includes(provider)) {
-        const metadata = PROVIDERS[provider];
+      candidates.push(...catalogCandidates);
 
-        this.addSearchDiagnostic(diagnostics, provider, {
-          configured: await this.isProviderConfigured(userId, provider),
-          message:
-            metadata.credentialMode === 'user'
-              ? `${metadata.label} search requires a signed-in account.`
-              : `${metadata.label} search is not available for guest search.`,
-          reasonCode: 'guest_provider_not_allowed',
-          resultCount: 0,
-          status: 'skipped',
-        });
-        continue;
-      }
-
-      const configured = await this.isProviderConfigured(userId, provider);
-
-      if (provider === KOBIS_PROVIDER && !isKobisHttpProviderEnabled()) {
-        if (explicitSingleProvider) {
-          throw new ForbiddenException(getKobisDisabledMessage());
-        }
-
-        this.addSearchDiagnostic(diagnostics, provider, {
-          configured,
-          message: getKobisDisabledMessage(),
-          reasonCode: 'server_credential_missing',
-          resultCount: 0,
-          status: 'skipped',
-        });
-        continue;
-      }
-
-      if (!configured && PROVIDERS[provider].credentialMode === 'server') {
-        this.addSearchDiagnostic(diagnostics, provider, {
-          configured,
-          message: `${PROVIDERS[provider].label} search is not configured on this server.`,
-          reasonCode: 'server_credential_missing',
-          resultCount: 0,
-          status: 'skipped',
-        });
-        continue;
-      }
+      const cacheKey = explicitSingleProvider
+        ? null
+        : this.buildImportSearchStageCacheKey({
+            limit,
+            mediumType,
+            providers: resolvedProviders,
+            query,
+            userId,
+          });
+      const cachedSearchStage = cacheKey
+        ? await this.readCachedImportSearchStage(cacheKey)
+        : null;
+      const providerResults =
+        cachedSearchStage?.providerResults ??
+        (await Promise.all(
+          resolvedProviders.map((provider) =>
+            this.searchImportProviderForQuery(provider, {
+              explicitSingleProvider,
+              limit,
+              mediumType,
+              providers,
+              query,
+              userId,
+            }),
+          ),
+        ));
 
       if (
-        !configured &&
-        PROVIDERS[provider].credentialMode === 'user' &&
-        !explicitSingleProvider
+        cacheKey &&
+        !cachedSearchStage &&
+        this.canCacheImportSearchStage(providerResults)
       ) {
-        this.addSearchDiagnostic(diagnostics, provider, {
-          configured,
-          message: `${PROVIDERS[provider].label} search requires a configured user key.`,
-          reasonCode: 'user_credential_missing',
-          resultCount: 0,
-          status: 'skipped',
-        });
-        continue;
+        await this.providerRuntimeState.writeCache(
+          cacheKey,
+          { providerResults } satisfies CachedImportSearchStage,
+          IMPORT_SEARCH_STAGE_CACHE_TTL_MS,
+        );
       }
 
-      if (await this.providerRuntimeState.isCircuitOpen(provider)) {
-        this.addSearchDiagnostic(diagnostics, provider, {
-          configured,
-          message: `${PROVIDERS[provider].label} search is temporarily skipped after repeated failures.`,
-          reasonCode: 'circuit_open',
-          resultCount: 0,
-          status: 'skipped',
-        });
-        continue;
+      for (const result of providerResults) {
+        candidates.push(...result.candidates);
+
+        if (result.failure) {
+          failures.push(result.failure);
+        }
+
+        this.addSearchDiagnostic(diagnostics, result.provider, result.diagnostic);
       }
 
-      const providerStartedAt = Date.now();
+      const decoratedCandidates = await this.decorateCandidates(
+        userId,
+        mergeImportCandidates(candidates),
+      );
+      const decoratedMergedCandidates =
+        mergeImportCandidates(decoratedCandidates);
+      const rankedCandidates = rankImportCandidates({
+        candidates: decoratedMergedCandidates,
+        ...(mediumType === undefined ? {} : { mediumType }),
+        query,
+      }).slice(0, limit);
+      const resultStatus = failures.length > 0 ? 'partial' : 'ok';
 
-      try {
-        const context: ProviderSearchContext = {
-          limit,
-          query,
-          userId,
-        };
+      this.logSearchSummary(
+        userId,
+        providers.join(','),
+        query,
+        rankedCandidates.length,
+        failures.length > 0 ? `partial:${failures.join('|')}` : 'ok',
+      );
+      this.recordImportSearchMetric(
+        userId,
+        mediumType,
+        providers.length,
+        resultStatus,
+        startedAt,
+      );
 
-        if (mediumType !== undefined) {
-          context.mediumType = mediumType;
-        }
-
-        const providerCandidates = await searchImportProviderWithFallback(
-          provider,
-          context,
-          {
-            fetchJson: this.fetchJson.bind(this),
-            getProviderCredentialValues:
-              this.getProviderCredentialValues.bind(this),
-            getProviderCredentialValuesWithFallback:
-              this.getProviderCredentialValuesWithFallback.bind(this),
-          },
-        );
-
-        candidates.push(...providerCandidates);
-        await this.providerRuntimeState.recordSuccess(provider);
-        this.addSearchDiagnostic(diagnostics, provider, {
-          configured,
-          message: `${PROVIDERS[provider].label} search completed.`,
-          reasonCode: null,
-          resultCount: providerCandidates.length,
-          status: 'searched',
-        });
-      } catch (error) {
-        await this.providerRuntimeState.recordFailure(
-          provider,
-          PROVIDER_CIRCUIT_FAILURE_THRESHOLD,
-          PROVIDER_CIRCUIT_OPEN_MS,
-        );
-        this.metricsService?.recordImportsProviderFailure(
-          provider,
-          this.describeError(error),
-        );
-        if (
-          (await this.providerRuntimeState.getCircuitStatus(provider))
-            .circuitState === 'open'
-        ) {
-          this.metricsService?.recordImportsProviderCircuitOpen(
-            provider,
-            'provider_failed',
-          );
-        }
-        if (explicitSingleProvider) {
-          throw error;
-        }
-
-        failures.push(`${provider}:${this.describeError(error)}`);
-        this.logEvent('imports.provider.failed', {
-          durationMs: Date.now() - providerStartedAt,
-          errorCode: this.describeError(error),
-          provider,
-          userId: userId ?? undefined,
-        });
-        this.addSearchDiagnostic(diagnostics, provider, {
-          configured,
-          message: `${PROVIDERS[provider].label} search is temporarily unavailable.`,
-          reasonCode: 'provider_failed',
-          resultCount: 0,
-          status: 'failed',
-        });
-      }
+      return {
+        provider: searchQuery.provider ?? providers[0] ?? ALADIN_PROVIDER,
+        providers,
+        query,
+        candidates: rankedCandidates,
+        diagnostics,
+      };
+    } catch (error) {
+      this.recordImportSearchMetric(
+        userId,
+        mediumType,
+        providers.length,
+        'failure',
+        startedAt,
+      );
+      throw error;
     }
-
-    const decoratedCandidates = await this.decorateCandidates(
-      userId,
-      mergeImportCandidates(candidates),
-    );
-    const decoratedMergedCandidates =
-      mergeImportCandidates(decoratedCandidates);
-    const rankedCandidates = rankImportCandidates({
-      candidates: decoratedMergedCandidates,
-      ...(mediumType === undefined ? {} : { mediumType }),
-      query,
-    }).slice(0, limit);
-
-    this.logSearchSummary(
-      userId,
-      providers.join(','),
-      query,
-      rankedCandidates.length,
-      failures.length > 0 ? `partial:${failures.join('|')}` : 'ok',
-    );
-
-    return {
-      provider: searchQuery.provider ?? providers[0] ?? ALADIN_PROVIDER,
-      providers,
-      query,
-      candidates: rankedCandidates,
-      diagnostics,
-    };
   }
 
   private logEvent(
@@ -467,6 +475,24 @@ export class ImportsService {
         requestId: fields.requestId ?? null,
         userId: fields.userId ?? null,
       }),
+    );
+  }
+
+  private recordImportSearchMetric(
+    userId: string | null,
+    mediumType: WorkType | undefined,
+    providerCount: number,
+    result: string,
+    startedAt: bigint,
+  ) {
+    this.metricsService?.recordImportsSearch(
+      {
+        auth_scope: userId ? 'user' : 'guest',
+        medium_type: mediumType ?? 'all',
+        provider_count: providerCount.toString(),
+        result,
+      },
+      Number(process.hrtime.bigint() - startedAt) / 1_000_000_000,
     );
   }
 
@@ -609,6 +635,429 @@ export class ImportsService {
     return false;
   }
 
+  private async searchImportProviderForQuery(
+    provider: ImportProvider,
+    input: {
+      explicitSingleProvider: boolean;
+      limit: number;
+      mediumType: WorkType | undefined;
+      providers: ImportProvider[];
+      query: string;
+      userId: string | null;
+    },
+  ): Promise<ImportProviderSearchResult> {
+    if (!importProviderSupportsMedium(provider, input.mediumType)) {
+      return {
+        candidates: [],
+        diagnostic: {
+          configured: await this.isProviderConfigured(input.userId, provider),
+          message: `${PROVIDERS[provider].label} does not support the selected work type.`,
+          reasonCode: 'unsupported_medium',
+          resultCount: 0,
+          status: 'skipped',
+        },
+        failure: null,
+        provider,
+      };
+    }
+
+    if (!input.providers.includes(provider)) {
+      const metadata = PROVIDERS[provider];
+
+      return {
+        candidates: [],
+        diagnostic: {
+          configured: await this.isProviderConfigured(input.userId, provider),
+          message:
+            metadata.credentialMode === 'user'
+              ? `${metadata.label} search requires a signed-in account.`
+              : `${metadata.label} search is not available for guest search.`,
+          reasonCode: 'guest_provider_not_allowed',
+          resultCount: 0,
+          status: 'skipped',
+        },
+        failure: null,
+        provider,
+      };
+    }
+
+    const configured = await this.isProviderConfigured(input.userId, provider);
+
+    if (provider === KOBIS_PROVIDER && !isKobisHttpProviderEnabled()) {
+      if (input.explicitSingleProvider) {
+        throw new ForbiddenException(getKobisDisabledMessage());
+      }
+
+      return {
+        candidates: [],
+        diagnostic: {
+          configured,
+          message: getKobisDisabledMessage(),
+          reasonCode: 'server_credential_missing',
+          resultCount: 0,
+          status: 'skipped',
+        },
+        failure: null,
+        provider,
+      };
+    }
+
+    if (!configured && PROVIDERS[provider].credentialMode === 'server') {
+      return {
+        candidates: [],
+        diagnostic: {
+          configured,
+          message: `${PROVIDERS[provider].label} search is not configured on this server.`,
+          reasonCode: 'server_credential_missing',
+          resultCount: 0,
+          status: 'skipped',
+        },
+        failure: null,
+        provider,
+      };
+    }
+
+    if (
+      !configured &&
+      PROVIDERS[provider].credentialMode === 'user' &&
+      !input.explicitSingleProvider
+    ) {
+      return {
+        candidates: [],
+        diagnostic: {
+          configured,
+          message: `${PROVIDERS[provider].label} search requires a configured user key.`,
+          reasonCode: 'user_credential_missing',
+          resultCount: 0,
+          status: 'skipped',
+        },
+        failure: null,
+        provider,
+      };
+    }
+
+    if (await this.providerRuntimeState.isCircuitOpen(provider)) {
+      return {
+        candidates: [],
+        diagnostic: {
+          configured,
+          message: `${PROVIDERS[provider].label} search is temporarily skipped after repeated failures.`,
+          reasonCode: 'circuit_open',
+          resultCount: 0,
+          status: 'skipped',
+        },
+        failure: null,
+        provider,
+      };
+    }
+
+    const providerStartedAt = Date.now();
+
+    try {
+      const context: ProviderSearchContext = {
+        limit: input.limit,
+        query: input.query,
+        userId: input.userId,
+      };
+
+      if (input.mediumType !== undefined) {
+        context.mediumType = input.mediumType;
+      }
+
+      const providerCandidates = await searchImportProviderWithFallback(
+        provider,
+        context,
+        {
+          fetchJson: this.fetchJson.bind(this),
+          getProviderCredentialValues:
+            this.getProviderCredentialValues.bind(this),
+          getProviderCredentialValuesWithFallback:
+            this.getProviderCredentialValuesWithFallback.bind(this),
+        },
+      );
+
+      await this.providerRuntimeState.recordSuccess(provider);
+
+      return {
+        candidates: providerCandidates,
+        diagnostic: {
+          configured,
+          message: `${PROVIDERS[provider].label} search completed.`,
+          reasonCode: null,
+          resultCount: providerCandidates.length,
+          status: 'searched',
+        },
+        failure: null,
+        provider,
+      };
+    } catch (error) {
+      await this.providerRuntimeState.recordFailure(
+        provider,
+        PROVIDER_CIRCUIT_FAILURE_THRESHOLD,
+        PROVIDER_CIRCUIT_OPEN_MS,
+      );
+      this.metricsService?.recordImportsProviderFailure(
+        provider,
+        this.describeError(error),
+      );
+      if (
+        (await this.providerRuntimeState.getCircuitStatus(provider))
+          .circuitState === 'open'
+      ) {
+        this.metricsService?.recordImportsProviderCircuitOpen(
+          provider,
+          'provider_failed',
+        );
+      }
+      if (input.explicitSingleProvider) {
+        throw error;
+      }
+
+      this.logEvent('imports.provider.failed', {
+        durationMs: Date.now() - providerStartedAt,
+        errorCode: this.describeError(error),
+        provider,
+        userId: input.userId ?? undefined,
+      });
+
+      return {
+        candidates: [],
+        diagnostic: {
+          configured,
+          message: `${PROVIDERS[provider].label} search is temporarily unavailable.`,
+          reasonCode: 'provider_failed',
+          resultCount: 0,
+          status: 'failed',
+        },
+        failure: `${provider}:${this.describeError(error)}`,
+        provider,
+      };
+    }
+  }
+
+  private async searchInternalCatalogCandidates(input: {
+    limit: number;
+    mediumType: WorkType | undefined;
+    query: string;
+  }) {
+    const catalogTitle = this.getCatalogTitleSearchDelegate();
+
+    if (!catalogTitle) {
+      return [];
+    }
+
+    const rankedIds = await searchCatalogTitleIds(this.prisma, {
+      limit: Math.min(input.limit, 10),
+      query: input.query,
+      ...(input.mediumType ? { mediumType: input.mediumType } : {}),
+    });
+
+    if (rankedIds) {
+      if (rankedIds.length === 0) {
+        return [];
+      }
+
+      const catalogTitles = await catalogTitle.findMany({
+        where: {
+          id: {
+            in: rankedIds,
+          },
+        },
+        include: IMPORT_CATALOG_TITLE_INCLUDE,
+      });
+      const titleById = new Map(
+        catalogTitles.map((title) => [title.id, title]),
+      );
+
+      return rankedIds
+        .flatMap((id) => {
+          const title = titleById.get(id);
+
+          return title ? [title] : [];
+        })
+        .map((title) => this.toInternalCatalogImportCandidate(title));
+    }
+
+    const catalogTitles = await catalogTitle.findMany({
+      where: {
+        ...(input.mediumType
+          ? {
+              mediumType: input.mediumType,
+            }
+          : {}),
+        OR: [
+          {
+            canonicalTitle: {
+              contains: input.query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            displayTitle: {
+              contains: input.query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            originalTitle: {
+              contains: input.query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            aliases: {
+              has: input.query,
+            },
+          },
+          {
+            contributors: {
+              some: {
+                contributor: {
+                  displayName: {
+                    contains: input.query,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: IMPORT_CATALOG_TITLE_INCLUDE,
+      orderBy: [{ verificationStatus: 'desc' }, { updatedAt: 'desc' }],
+      take: Math.min(input.limit, 10),
+    });
+
+    return catalogTitles.map((title) =>
+      this.toInternalCatalogImportCandidate(title),
+    );
+  }
+
+  private getCatalogTitleSearchDelegate() {
+    const prisma = this.prisma as PrismaService & {
+      catalogTitle?: {
+        findMany?: PrismaService['catalogTitle']['findMany'];
+      };
+    };
+
+    return typeof prisma.catalogTitle?.findMany === 'function'
+      ? {
+          findMany: prisma.catalogTitle.findMany.bind(prisma.catalogTitle),
+        }
+      : null;
+  }
+
+  private toInternalCatalogImportCandidate(
+    title: ImportCatalogTitleCandidate,
+  ): ImportCandidateResponseDto {
+    const contributors = title.contributors.map((entry) => ({
+      name: entry.contributor.displayName,
+      role: entry.role,
+    }));
+    const releaseCandidates: CatalogReleaseCandidateInput[] =
+      title.releases.map((release) => ({
+        displayLabel: release.displayLabel,
+        externalRefs: release.externalRefs.map((ref) => ({
+          externalId: ref.externalId,
+          provider: ref.provider,
+          rawType: ref.rawType,
+          url: ref.url,
+        })),
+        isbn: release.isbn,
+        releaseDate: release.releaseDate,
+        releaseType: release.releaseType,
+        sequence: release.sequence,
+        summary: release.summary,
+        thumbnailUrl: release.thumbnailUrl,
+        title: release.title,
+      }));
+
+    return normalizeImportCandidate({
+      author: contributors.map((contributor) => contributor.name).join(', '),
+      catalogMatch: {
+        id: title.id,
+        title: title.displayTitle,
+        verificationStatus: title.verificationStatus,
+      },
+      confidence: 0.95,
+      confidenceLabel: '카탈로그 일치',
+      contributors,
+      countLabel: title.releaseYear
+        ? `${title.releaseYear}년 카탈로그`
+        : '카탈로그 등록',
+      description: title.summary,
+      existingRecord: null,
+      externalId: title.id,
+      externalRefs: title.externalRefs.map((ref) => ({
+        externalId: ref.externalId,
+        provider: ref.provider,
+        rawType: ref.rawType,
+        url: ref.url,
+      })),
+      formatLabel: getFormatLabel(title.mediumType),
+      franchiseName: title.franchise?.displayName ?? null,
+      genresText: '',
+      id: `${INTERNAL_CATALOG_SOURCE_ID}:${title.id}`,
+      mediumType: title.mediumType,
+      note: '이미 정규화된 내부 카탈로그 후보입니다.',
+      reason: '내부 카탈로그 일치',
+      relationsHint: [],
+      releaseCandidates,
+      releaseYear: title.releaseYear,
+      scoreBreakdown: [],
+      sourceCoverage: {
+        externalIdentityCount: 0,
+        providerCount: 0,
+        providers: [],
+        releaseCandidateCount: 0,
+      },
+      sourceId: INTERNAL_CATALOG_SOURCE_ID,
+      sourceLabel: '내부 카탈로그',
+      sourceUrl: '',
+      subType: title.subType,
+      thumbnailUrl: title.thumbnailUrl,
+      title: title.displayTitle,
+      titleAliases: [
+        title.canonicalTitle,
+        title.originalTitle ?? '',
+        ...title.aliases,
+      ],
+      type: title.mediumType,
+    });
+  }
+
+  private canCacheImportSearchStage(results: ImportProviderSearchResult[]) {
+    return results.every((result) => result.diagnostic.status === 'searched');
+  }
+
+  private async readCachedImportSearchStage(cacheKey: string) {
+    const cached = await this.providerRuntimeState.readCache(cacheKey);
+
+    return isCachedImportSearchStage(cached) ? cached : null;
+  }
+
+  private buildImportSearchStageCacheKey(input: {
+    limit: number;
+    mediumType: WorkType | undefined;
+    providers: ImportProvider[];
+    query: string;
+    userId: string | null;
+  }) {
+    const hash = createHash('sha256')
+      .update(
+        JSON.stringify({
+          limit: input.limit,
+          mediumType: input.mediumType ?? 'all',
+          providers: input.providers,
+          query: input.query.normalize('NFKC').trim().toLowerCase(),
+          userScope: input.userId ?? 'guest',
+        }),
+      )
+      .digest('base64url');
+
+    return `imports:search-stage:${hash}`;
+  }
+
   private async decorateCandidates(
     userId: string | null,
     candidates: ImportCandidateResponseDto[],
@@ -616,19 +1065,20 @@ export class ImportsService {
     return Promise.all(
       candidates.map(async (candidate) => {
         const catalogMatch =
-          await this.catalogIngestionService.findCatalogMatchForImportCandidate(
-            {
-              contributorNames: candidate.contributors.map(
-                (contributor) => contributor.name,
-              ),
-              externalRefs: candidate.externalRefs,
-              franchiseName: candidate.franchiseName,
-              mediumType: candidate.mediumType,
-              releaseCandidates: candidate.releaseCandidates,
-              releaseYear: candidate.releaseYear,
-              title: candidate.title,
-            },
-          );
+          candidate.catalogMatch ??
+          (await this.catalogIngestionService.findCatalogMatchForImportCandidate(
+              {
+                contributorNames: candidate.contributors.map(
+                  (contributor) => contributor.name,
+                ),
+                externalRefs: candidate.externalRefs,
+                franchiseName: candidate.franchiseName,
+                mediumType: candidate.mediumType,
+                releaseCandidates: candidate.releaseCandidates,
+                releaseYear: candidate.releaseYear,
+                title: candidate.title,
+              },
+            ));
         const existingRecord =
           catalogMatch && userId
             ? await this.prisma.userWorkRecord.findFirst({

@@ -59,6 +59,21 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return {
+    promise,
+    reject,
+    resolve,
+  };
+}
+
 function createCredentialPrismaMock() {
   const records: StoredCredential[] = [];
   const externalApiCredential = {
@@ -726,6 +741,249 @@ describe('ImportsService', () => {
       }),
     );
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
+  });
+
+  it('starts independent provider searches in parallel', async () => {
+    const googleResponse = createDeferred<Response>();
+    const googleStarted = createDeferred<void>();
+    const openLibraryStarted = createDeferred<void>();
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation((input) => {
+        const url = new URL(String(input));
+
+        if (url.hostname === 'www.googleapis.com') {
+          googleStarted.resolve();
+
+          return googleResponse.promise;
+        }
+
+        if (url.hostname === 'openlibrary.org') {
+          openLibraryStarted.resolve();
+
+          return Promise.resolve(
+            jsonResponse({
+              docs: [],
+            }),
+          );
+        }
+
+        return Promise.resolve(jsonResponse({}));
+      });
+
+    const searchPromise = service.search(null, {
+      providers: [GOOGLE_BOOKS_PROVIDER, OPEN_LIBRARY_PROVIDER],
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    await googleStarted.promise;
+
+    await expect(
+      Promise.race([
+        openLibraryStarted.promise.then(() => true),
+        new Promise<boolean>((resolve) => {
+          setTimeout(() => resolve(false), 20);
+        }),
+      ]),
+    ).resolves.toBe(true);
+
+    googleResponse.resolve(
+      jsonResponse({
+        items: [],
+      }),
+    );
+
+    await searchPromise;
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('caches successful provider-stage search results while decorating per request', async () => {
+    const cache = new Map<string, unknown>();
+    const providerRuntimeState = createProviderRuntimeStateMock();
+
+    providerRuntimeState.readCache.mockImplementation(async (cacheKey) =>
+      cacheKey ? cache.get(cacheKey) : undefined,
+    );
+    providerRuntimeState.writeCache.mockImplementation(
+      async (cacheKey, value) => {
+        if (cacheKey) {
+          cache.set(cacheKey, value);
+        }
+      },
+    );
+
+    const catalogIngestionService = {
+      findCatalogMatchForImportCandidate: jest.fn(async () => ({
+        id: 'catalog-dune',
+        title: 'Dune',
+        verificationStatus: 'verified',
+      })),
+    };
+    const prisma = {
+      catalogExternalRef: {
+        findUnique: jest.fn(async () => null),
+      },
+      userWorkRecord: {
+        findFirst: jest
+          .fn<() => Promise<{ id: string; status: string } | null>>()
+          .mockResolvedValueOnce({
+            id: 'user-work-first',
+            status: 'planned',
+          })
+          .mockResolvedValueOnce({
+            id: 'user-work-second',
+            status: 'completed',
+          }),
+      },
+    };
+
+    const cachedService = new ImportsService(
+      credentialService as unknown as ImportsCredentialService,
+      catalogIngestionService as unknown as CatalogIngestionService,
+      prisma as unknown as PrismaService,
+      providerRuntimeState,
+    );
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        docs: [
+          {
+            key: '/works/OL123W',
+            title: 'Dune',
+            author_name: ['Frank Herbert'],
+            first_publish_year: 1965,
+          },
+        ],
+      }),
+    );
+
+    const first = await cachedService.search(USER_ID, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+    const second = await cachedService.search(USER_ID, {
+      provider: OPEN_LIBRARY_PROVIDER,
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(first.candidates[0]?.existingRecord).toEqual({
+      id: 'user-work-first',
+      status: 'planned',
+    });
+    expect(second.candidates[0]?.existingRecord).toEqual({
+      id: 'user-work-second',
+      status: 'completed',
+    });
+  });
+
+  it('adds internal catalog candidates to automatic search before external provider ranking', async () => {
+    const catalogTitle = {
+      aliases: ['듄'],
+      canonicalTitle: 'Dune',
+      contributors: [
+        {
+          contributor: {
+            displayName: 'Frank Herbert',
+          },
+          displayOrder: 0,
+          role: 'author',
+        },
+      ],
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      displayTitle: 'Dune',
+      endDate: null,
+      externalRefs: [
+        {
+          externalId: '/works/OL123W',
+          provider: OPEN_LIBRARY_PROVIDER,
+          rawType: 'work',
+          url: 'https://openlibrary.org/works/OL123W',
+        },
+      ],
+      franchise: null,
+      franchiseId: null,
+      id: 'catalog-dune',
+      mediumType: WorkType.novel,
+      originalTitle: null,
+      releaseYear: 1965,
+      releases: [],
+      startDate: null,
+      status: 'completed',
+      subType: null,
+      summary: 'A desert saga.',
+      thumbnailUrl: 'https://img.example.test/dune.jpg',
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      verificationStatus: 'verified',
+    };
+    const catalogIngestionService = {
+      findCatalogMatchForImportCandidate: jest.fn(async () => null),
+    };
+    const prisma = {
+      catalogExternalRef: {
+        findUnique: jest.fn(async () => null),
+      },
+      catalogTitle: {
+        findMany: jest.fn(async () => [catalogTitle]),
+      },
+      userWorkRecord: {
+        findFirst: jest.fn(async () => null),
+      },
+    };
+    const catalogAwareService = new ImportsService(
+      credentialService as unknown as ImportsCredentialService,
+      catalogIngestionService as unknown as CatalogIngestionService,
+      prisma as unknown as PrismaService,
+    );
+
+    jest.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = new URL(String(input));
+
+      if (url.hostname === 'www.googleapis.com') {
+        return Promise.resolve(jsonResponse({ items: [] }));
+      }
+
+      if (url.hostname === 'openlibrary.org') {
+        return Promise.resolve(jsonResponse({ docs: [] }));
+      }
+
+      if (url.hostname === 'www.wikidata.org') {
+        return Promise.resolve(jsonResponse({ search: [] }));
+      }
+
+      return Promise.resolve(jsonResponse({}));
+    });
+
+    const result = await catalogAwareService.search(null, {
+      query: 'Dune',
+      limit: 5,
+      type: WorkType.novel,
+    });
+
+    expect(prisma.catalogTitle.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 5,
+      }),
+    );
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        catalogMatch: {
+          id: 'catalog-dune',
+          title: 'Dune',
+          verificationStatus: 'verified',
+        },
+        sourceId: 'catalog',
+        sourceLabel: '내부 카탈로그',
+        title: 'Dune',
+      }),
+    );
+    expect(result.candidates[0]?.reason).toContain('카탈로그 매칭됨');
   });
 
   it('marks import candidates that duplicate an existing catalog-backed user record', async () => {
@@ -1641,32 +1899,62 @@ describe('ImportsService', () => {
     );
     const fetchSpy = jest
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        jsonResponse({
-          documents: [
-            {
-              contents: '웹소설 연재 작품',
-              datetime: '2018-01-01T00:00:00.000+09:00',
-              title: '<b>전지적 독자 시점</b> 외전 - 카카오페이지',
-              url: 'https://page.kakao.com/content/12345',
-            },
-          ],
-        }),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          items: [
-            {
-              description: '네이버 시리즈 웹소설',
-              link: 'https://series.naver.com/novel/detail.series?productNo=1',
-              title: '<b>전지적 독자 시점</b> 1권 - 네이버 시리즈',
-            },
-          ],
-        }),
-      )
-      .mockResolvedValueOnce(jsonResponse({ documents: [] }))
-      .mockResolvedValueOnce(jsonResponse({ items: [] }))
-      .mockResolvedValueOnce(jsonResponse({ items: [] }));
+      .mockImplementation((input) => {
+        const url = new URL(String(input));
+
+        if (
+          url.hostname === 'dapi.kakao.com' &&
+          url.pathname === '/v2/search/web'
+        ) {
+          return Promise.resolve(
+            jsonResponse({
+              documents: [
+                {
+                  contents: '웹소설 연재 작품',
+                  datetime: '2018-01-01T00:00:00.000+09:00',
+                  title: '<b>전지적 독자 시점</b> 외전 - 카카오페이지',
+                  url: 'https://page.kakao.com/content/12345',
+                },
+              ],
+            }),
+          );
+        }
+
+        if (
+          url.hostname === 'openapi.naver.com' &&
+          url.pathname === '/v1/search/webkr.json'
+        ) {
+          return Promise.resolve(
+            jsonResponse({
+              items: [
+                {
+                  description: '네이버 시리즈 웹소설',
+                  link: 'https://series.naver.com/novel/detail.series?productNo=1',
+                  title: '<b>전지적 독자 시점</b> 1권 - 네이버 시리즈',
+                },
+              ],
+            }),
+          );
+        }
+
+        if (url.hostname === 'dapi.kakao.com') {
+          return Promise.resolve(jsonResponse({ documents: [] }));
+        }
+
+        if (url.hostname === 'openapi.naver.com') {
+          return Promise.resolve(jsonResponse({ items: [] }));
+        }
+
+        if (url.hostname === 'www.googleapis.com') {
+          return Promise.resolve(jsonResponse({ items: [] }));
+        }
+
+        if (url.hostname === 'www.wikidata.org') {
+          return Promise.resolve(jsonResponse({ search: [] }));
+        }
+
+        return Promise.resolve(jsonResponse({}));
+      });
 
     const result = await service.search(USER_ID, {
       query: '전지적 독자 시점',
@@ -1702,15 +1990,31 @@ describe('ImportsService', () => {
       ]),
     );
 
-    const firstUrl = new URL(String(fetchSpy.mock.calls[0]?.[0]));
-    const firstHeaders = new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
-    const secondUrl = new URL(String(fetchSpy.mock.calls[1]?.[0]));
-    const secondHeaders = new Headers(fetchSpy.mock.calls[1]?.[1]?.headers);
+    const kakaoWebCall = fetchSpy.mock.calls.find(([input]) => {
+      const url = new URL(String(input));
 
-    expect(firstUrl.hostname).toBe('dapi.kakao.com');
-    expect(firstHeaders.get('authorization')).toBe('KakaoAK kakao-rest-key');
-    expect(secondUrl.hostname).toBe('openapi.naver.com');
-    expect(secondHeaders.get('X-Naver-Client-Id')).toBe('naver-client-id');
+      return (
+        url.hostname === 'dapi.kakao.com' &&
+        url.pathname === '/v2/search/web'
+      );
+    });
+    const naverWebCall = fetchSpy.mock.calls.find(([input]) => {
+      const url = new URL(String(input));
+
+      return (
+        url.hostname === 'openapi.naver.com' &&
+        url.pathname === '/v1/search/webkr.json'
+      );
+    });
+
+    expect(kakaoWebCall).toBeDefined();
+    expect(new Headers(kakaoWebCall?.[1]?.headers).get('authorization')).toBe(
+      'KakaoAK kakao-rest-key',
+    );
+    expect(naverWebCall).toBeDefined();
+    expect(new Headers(naverWebCall?.[1]?.headers).get('X-Naver-Client-Id')).toBe(
+      'naver-client-id',
+    );
   }, 10_000);
 
   it('maps web search results to webtoon candidates and strips site or episode suffixes', async () => {
@@ -2395,6 +2699,7 @@ describe('ImportsService', () => {
 
   it('blocks explicit KOBIS search in production unless the HTTP provider is enabled', async () => {
     process.env.NODE_ENV = 'production';
+    process.env.KOBIS_HTTP_PROVIDER_ENABLED = 'false';
     credentialService.hasCredential.mockResolvedValue(true);
 
     await expect(
@@ -2403,7 +2708,11 @@ describe('ImportsService', () => {
         query: 'Dune',
         type: WorkType.movie,
       }),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toMatchObject({
+      message:
+        'KOBIS HTTP provider is disabled in production unless KOBIS_HTTP_PROVIDER_ENABLED=true is explicitly configured.',
+      status: 403,
+    });
     expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
   });
 

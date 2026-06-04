@@ -239,6 +239,60 @@ describe('queryWorks', () => {
     ).toEqual(['나 혼자만 레벨업 (외전)']);
   });
 
+  it('ranks exact title matches above lower-field matches during search', () => {
+    const rankedWorks = [
+      buildWork({
+        title: 'Study Notes',
+        author: 'Archive Editor',
+        personalTags: ['dune'],
+        updatedAt: '2026-01-08T00:00:00.000Z',
+      }),
+      buildWork({
+        title: 'Dune',
+        author: 'Frank Herbert',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      }),
+      buildWork({
+        title: 'Dune Messiah',
+        author: 'Frank Herbert',
+        updatedAt: '2026-01-06T00:00:00.000Z',
+      }),
+    ];
+
+    expect(
+      queryWorks(rankedWorks, {
+        rating: null,
+        searchTerm: 'dune',
+        type: 'all',
+        status: 'all',
+        sortBy: 'updatedAt',
+      }).map((work) => work.title),
+    ).toEqual(['Dune', 'Dune Messiah', 'Study Notes']);
+  });
+
+  it('matches multi-token searches across title and contributor fields', () => {
+    const multiTokenWorks = [
+      buildWork({
+        title: 'Dune',
+        author: 'Frank Herbert',
+      }),
+      buildWork({
+        title: 'Foundation',
+        author: 'Isaac Asimov',
+      }),
+    ];
+
+    expect(
+      queryWorks(multiTokenWorks, {
+        rating: null,
+        searchTerm: 'frank dune',
+        type: 'all',
+        status: 'all',
+        sortBy: 'title',
+      }).map((work) => work.title),
+    ).toEqual(['Dune']);
+  });
+
   it('filters by type and status', () => {
     const filtered = queryWorks(works, {
       rating: null,

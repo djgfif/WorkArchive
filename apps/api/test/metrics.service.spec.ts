@@ -70,4 +70,31 @@ describe('MetricsService', () => {
     ).not.toThrow();
     expect(new MetricsService().canReadMetrics('Bearer short')).toBe(false);
   });
+
+  it('records import search counters and duration labels', async () => {
+    resetEnv({
+      METRICS_ENABLED: 'true',
+    });
+
+    const service = new MetricsService();
+
+    service.recordImportsSearch(
+      {
+        auth_scope: 'user',
+        medium_type: 'novel',
+        provider_count: '3',
+        result: 'partial',
+      },
+      0.25,
+    );
+
+    const metrics = await service.metrics();
+
+    expect(metrics).toContain(
+      'work_archive_imports_search_total{auth_scope="user",medium_type="novel",provider_count="3",result="partial",service="work_archive_api"} 1',
+    );
+    expect(metrics).toContain(
+      'work_archive_imports_search_duration_seconds_count{service="work_archive_api",auth_scope="user",medium_type="novel",provider_count="3",result="partial"} 1',
+    );
+  });
 });

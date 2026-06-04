@@ -15,6 +15,13 @@ type RequestLabels = {
   status_class: string;
 };
 
+type ImportSearchLabels = {
+  auth_scope: string;
+  medium_type: string;
+  provider_count: string;
+  result: string;
+};
+
 @Injectable()
 export class MetricsService {
   private readonly config = readApiRuntimeConfig();
@@ -28,6 +35,8 @@ export class MetricsService {
   private readonly syncFailedValidationCount: Counter<string>;
   private readonly importsProviderFailureCount: Counter<string>;
   private readonly importsProviderCircuitOpenCount: Counter<string>;
+  private readonly importsSearchCount: Counter<string>;
+  private readonly importsSearchDuration: Histogram<string>;
   private readonly readyzFailureCount: Counter<string>;
 
   constructor() {
@@ -87,6 +96,19 @@ export class MetricsService {
       help: 'Import provider circuit openings by provider and reason.',
       labelNames: ['provider', 'reason'],
       name: 'work_archive_imports_provider_circuit_open_total',
+      registers: [this.registry],
+    });
+    this.importsSearchCount = new Counter({
+      help: 'Import search requests by auth scope, medium, provider count, and result.',
+      labelNames: ['auth_scope', 'medium_type', 'provider_count', 'result'],
+      name: 'work_archive_imports_search_total',
+      registers: [this.registry],
+    });
+    this.importsSearchDuration = new Histogram({
+      buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 20],
+      help: 'Import search duration in seconds.',
+      labelNames: ['auth_scope', 'medium_type', 'provider_count', 'result'],
+      name: 'work_archive_imports_search_duration_seconds',
       registers: [this.registry],
     });
     this.readyzFailureCount = new Counter({
@@ -189,6 +211,22 @@ export class MetricsService {
         reason: normalizeLabel(reason),
       });
     }
+  }
+
+  recordImportsSearch(labels: ImportSearchLabels, durationSeconds: number) {
+    if (!this.enabled) {
+      return;
+    }
+
+    const normalizedLabels = {
+      auth_scope: normalizeLabel(labels.auth_scope),
+      medium_type: normalizeLabel(labels.medium_type),
+      provider_count: normalizeLabel(labels.provider_count),
+      result: normalizeLabel(labels.result),
+    };
+
+    this.importsSearchCount.inc(normalizedLabels);
+    this.importsSearchDuration.observe(normalizedLabels, durationSeconds);
   }
 
   recordReadyzFailure(check: string) {

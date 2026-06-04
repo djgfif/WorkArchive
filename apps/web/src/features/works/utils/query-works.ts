@@ -98,6 +98,100 @@ function createSearchSignals(value: string) {
   );
 }
 
+function createSearchQuerySignals(searchTerm: string) {
+  const normalized = normalizeSearchText(searchTerm);
+  const signals = createSearchSignals(searchTerm);
+  const tokenSignals = Array.from(
+    new Set(
+      normalized
+        .split(' ')
+        .flatMap(createSearchSignals)
+        .filter((signal) => signal.length >= 2),
+    ),
+  );
+
+  return {
+    normalized,
+    signals,
+    tokenSignals,
+  };
+}
+
+interface SearchField {
+  values: string[];
+  weight: number;
+}
+
+function scoreSearchField(field: SearchField, searchSignals: string[]) {
+  let score = 0;
+
+  for (const value of field.values) {
+    const valueSignals = createSearchSignals(value);
+
+    for (const searchSignal of searchSignals) {
+      for (const valueSignal of valueSignals) {
+        if (valueSignal === searchSignal) {
+          score = Math.max(score, field.weight * 4);
+          continue;
+        }
+
+        if (valueSignal.startsWith(searchSignal)) {
+          score = Math.max(score, field.weight * 3);
+          continue;
+        }
+
+        if (valueSignal.includes(searchSignal)) {
+          score = Math.max(score, field.weight);
+        }
+      }
+    }
+  }
+
+  return score;
+}
+
+function searchFieldIncludes(field: SearchField, searchSignal: string) {
+  return field.values
+    .flatMap(createSearchSignals)
+    .some((valueSignal) => valueSignal.includes(searchSignal));
+}
+
+function createWorkSearchFields(
+  work: WorkRecord,
+  graphIndex?: WorksGraphQueryIndex,
+): SearchField[] {
+  return [
+    {
+      values: [work.title],
+      weight: 100,
+    },
+    {
+      values: [work.author],
+      weight: 72,
+    },
+    {
+      values: getWorkSeriesValues(work, graphIndex),
+      weight: 64,
+    },
+    {
+      values: getWorkContributorValues(work, graphIndex),
+      weight: 58,
+    },
+    {
+      values: getWorkPersonalTagValues(work),
+      weight: 46,
+    },
+    {
+      values: work.genres,
+      weight: 36,
+    },
+    {
+      values: getGraphTags(work.personalTags).map((tag) => tag.value),
+      weight: 32,
+    },
+  ];
+}
+
 function getWorkSeriesValues(
   work: WorkRecord,
   graphIndex?: WorksGraphQueryIndex,
@@ -166,33 +260,35 @@ function getWorkPersonalTagValues(work: WorkRecord) {
   ).personalTags;
 }
 
-function matchesSearch(
+function getWorkSearchScore(
   work: WorkRecord,
   searchTerm: string,
   graphIndex?: WorksGraphQueryIndex,
 ) {
-  const normalizedSearch = normalizeSearchText(searchTerm);
+  const searchQuery = createSearchQuerySignals(searchTerm);
 
-  if (!normalizedSearch) {
-    return true;
+  if (!searchQuery.normalized) {
+    return 1;
   }
 
-  const searchSignals = createSearchSignals(searchTerm);
-  const workSignals = [
-    work.title,
-    work.author,
-    work.genres.join(' '),
-    getWorkPersonalTagValues(work).join(' '),
-    getGraphTags(work.personalTags)
-      .map((tag) => tag.value)
-      .join(' '),
-    getWorkSeriesValues(work, graphIndex).join(' '),
-    getWorkContributorValues(work, graphIndex).join(' '),
-  ].flatMap(createSearchSignals);
-
-  return searchSignals.some((searchSignal) =>
-    workSignals.some((workSignal) => workSignal.includes(searchSignal)),
+  const fields = createWorkSearchFields(work, graphIndex);
+  const fieldScores = fields.map((field) =>
+    scoreSearchField(field, searchQuery.signals),
   );
+  const strongestFieldScore = Math.max(...fieldScores);
+  const supportingFieldScore = fieldScores.reduce((total, score) => total + score, 0);
+  const score = strongestFieldScore * 10 + supportingFieldScore;
+  const tokenMatched =
+    searchQuery.tokenSignals.length > 1 &&
+    searchQuery.tokenSignals.every((tokenSignal) =>
+      fields.some((field) => searchFieldIncludes(field, tokenSignal)),
+    );
+
+  if (score > 0) {
+    return score;
+  }
+
+  return tokenMatched ? 1 : 0;
 }
 
 function matchesStatus(work: WorkRecord, status: WorkStatus | 'all') {
@@ -297,37 +393,89 @@ function compareNumericValues(
   return direction === 'asc' ? baseComparison : -baseComparison;
 }
 
+function compareWorks(
+  a: WorkRecord,
+  b: WorkRecord,
+  sortBy: WorksSortOption,
+  sortDirection: WorksSortDirection,
+) {
+  switch (sortBy) {
+    case 'title':
+      return (
+        (sortDirection === 'asc'
+          ? a.title.localeCompare(b.title)
+          : b.title.localeCompare(a.title)) || compareUpdatedAtDescending(a, b)
+      );
+    case 'rating':
+      return (
+        compareNumericValues(a.rating, b.rating, sortDirection) ||
+        compareUpdatedAtDescending(a, b)
+      );
+    case 'createdAt':
+      return (
+        compareIsoDateValues(a.createdAt, b.createdAt, sortDirection) ||
+        compareUpdatedAtDescending(a, b)
+      );
+    case 'lastConsumedAt':
+      return (
+        compareIsoDateValues(
+          a.lastConsumedAt,
+          b.lastConsumedAt,
+          sortDirection,
+        ) || compareUpdatedAtDescending(a, b)
+      );
+    case 'startedAt':
+      return (
+        compareIsoDateValues(a.startedAt, b.startedAt, sortDirection) ||
+        compareUpdatedAtDescending(a, b)
+      );
+    case 'completedAt':
+      return (
+        compareIsoDateValues(a.completedAt, b.completedAt, sortDirection) ||
+        compareUpdatedAtDescending(a, b)
+      );
+    case 'updatedAt':
+    default:
+      return (
+        compareIsoDateValues(a.updatedAt, b.updatedAt, sortDirection) ||
+        compareUpdatedAtDescending(a, b)
+      );
+  }
+}
+
 export function queryWorks(
   works: WorkRecord[],
   query: WorksListQuery,
   graphIndex?: WorksGraphQueryIndex,
 ) {
-  const filtered = works.filter((work) => {
+  const searchTerm = query.searchTerm.trim();
+  const hasSearchTerm = normalizeSearchText(searchTerm).length > 0;
+  const filtered = works.flatMap((work) => {
     if (query.type !== 'all' && work.type !== query.type) {
-      return false;
+      return [];
     }
 
     if (!matchesStatus(work, query.status)) {
-      return false;
+      return [];
     }
 
     if (query.rating !== null && work.rating !== query.rating) {
-      return false;
+      return [];
     }
 
     if (
       query.rating === null &&
       !matchesRatingPreset(work, query.ratingPreset ?? 'all')
     ) {
-      return false;
+      return [];
     }
 
     if (!matchesSmartFilter(work, query.smartFilter ?? 'all')) {
-      return false;
+      return [];
     }
 
     if (!matchesIdentityPreset(work, query.identityPreset ?? 'all')) {
-      return false;
+      return [];
     }
 
     if (
@@ -337,7 +485,7 @@ export function queryWorks(
           normalizeSearchText(tag) === normalizeSearchText(query.tag ?? ''),
       )
     ) {
-      return false;
+      return [];
     }
 
     if (
@@ -348,7 +496,7 @@ export function queryWorks(
       ) &&
       !matchesGraphValue(getWorkSeriesValues(work, graphIndex), query.series)
     ) {
-      return false;
+      return [];
     }
 
     if (
@@ -364,7 +512,7 @@ export function queryWorks(
           normalizeSearchText(query.contributor ?? ''),
       )
     ) {
-      return false;
+      return [];
     }
 
     if (
@@ -375,7 +523,7 @@ export function queryWorks(
           normalizeSearchText(query.personContributor ?? ''),
       )
     ) {
-      return false;
+      return [];
     }
 
     if (
@@ -386,7 +534,7 @@ export function queryWorks(
           normalizeSearchText(query.organizationContributor ?? ''),
       )
     ) {
-      return false;
+      return [];
     }
 
     if (
@@ -396,56 +544,27 @@ export function queryWorks(
           normalizeSearchText(genre) === normalizeSearchText(query.genre ?? ''),
       )
     ) {
-      return false;
+      return [];
     }
 
-    return matchesSearch(work, query.searchTerm, graphIndex);
+    const searchScore = getWorkSearchScore(work, searchTerm, graphIndex);
+
+    if (hasSearchTerm && searchScore === 0) {
+      return [];
+    }
+
+    return [{ searchScore, work }];
   });
 
   const sortDirection = query.sortDirection ?? getDefaultSortDirection(query.sortBy);
 
-  return filtered.sort((a, b) => {
-    switch (query.sortBy) {
-      case 'title':
-        return (
-          (sortDirection === 'asc'
-            ? a.title.localeCompare(b.title)
-            : b.title.localeCompare(a.title)) || compareUpdatedAtDescending(a, b)
-        );
-      case 'rating':
-        return (
-          compareNumericValues(a.rating, b.rating, sortDirection) ||
-          compareUpdatedAtDescending(a, b)
-        );
-      case 'createdAt':
-        return (
-          compareIsoDateValues(a.createdAt, b.createdAt, sortDirection) ||
-          compareUpdatedAtDescending(a, b)
-        );
-      case 'lastConsumedAt':
-        return (
-          compareIsoDateValues(
-            a.lastConsumedAt,
-            b.lastConsumedAt,
-            sortDirection,
-          ) || compareUpdatedAtDescending(a, b)
-        );
-      case 'startedAt':
-        return (
-          compareIsoDateValues(a.startedAt, b.startedAt, sortDirection) ||
-          compareUpdatedAtDescending(a, b)
-        );
-      case 'completedAt':
-        return (
-          compareIsoDateValues(a.completedAt, b.completedAt, sortDirection) ||
-          compareUpdatedAtDescending(a, b)
-        );
-      case 'updatedAt':
-      default:
-        return (
-          compareIsoDateValues(a.updatedAt, b.updatedAt, sortDirection) ||
-          compareUpdatedAtDescending(a, b)
-        );
-    }
-  });
+  return filtered
+    .sort((a, b) => {
+      if (hasSearchTerm && a.searchScore !== b.searchScore) {
+        return b.searchScore - a.searchScore;
+      }
+
+      return compareWorks(a.work, b.work, query.sortBy, sortDirection);
+    })
+    .map(({ work }) => work);
 }

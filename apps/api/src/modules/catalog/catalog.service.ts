@@ -19,6 +19,7 @@ import {
   type CreateCatalogTitleInput,
   type CatalogReleaseCandidateInput,
 } from './catalog-ingestion.service';
+import { searchCatalogTitleIds } from './catalog-title-search';
 import { PrismaService } from '../../prisma/prisma.service';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
@@ -132,6 +133,34 @@ export class CatalogService {
 
     if (!normalizedQuery) {
       throw new BadRequestException('query must not be empty');
+    }
+
+    const rankedIds = await searchCatalogTitleIds(this.prisma, {
+      limit: 25,
+      query: normalizedQuery,
+      ...(mediumType ? { mediumType } : {}),
+    });
+
+    if (rankedIds) {
+      if (rankedIds.length === 0) {
+        return [];
+      }
+
+      const titles = await this.prisma.catalogTitle.findMany({
+        where: {
+          id: {
+            in: rankedIds,
+          },
+        },
+        include: CATALOG_TITLE_INCLUDE,
+      });
+      const titleById = new Map(titles.map((title) => [title.id, title]));
+
+      return rankedIds.flatMap((id) => {
+        const title = titleById.get(id);
+
+        return title ? [title] : [];
+      });
     }
 
     return this.prisma.catalogTitle.findMany({

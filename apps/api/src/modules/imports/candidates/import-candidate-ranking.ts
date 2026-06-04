@@ -32,6 +32,7 @@ const PROVIDER_RELIABILITY_WEIGHTS: Record<string, number> = {
   aladin: 8,
   anilist: 8,
   brave_search: 7,
+  catalog: 10,
   google_books: 5,
   kakao_book: 6,
   kobis: 7,
