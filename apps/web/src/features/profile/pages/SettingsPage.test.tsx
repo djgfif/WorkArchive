@@ -335,6 +335,16 @@ describe('SettingsPage', () => {
         /사용자 개인 Tavily API key가 필요합니다\. 서버 운영자 키를 사용하지 않습니다\./,
       ),
     ).toBeInTheDocument();
+    const providerKeyInput = screen.getByLabelText('TTBKey');
+
+    expect(providerKeyInput).toHaveAttribute('type', 'text');
+    expect(providerKeyInput).toHaveAttribute('autocomplete', 'off');
+    expect(providerKeyInput).toHaveAttribute(
+      'name',
+      'provider-credential-aladin-ttbKey',
+    );
+    expect(providerKeyInput).toHaveAttribute('data-lpignore', 'true');
+    expect(providerKeyInput).toHaveAttribute('data-1p-ignore', 'true');
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(
       expect.arrayContaining([

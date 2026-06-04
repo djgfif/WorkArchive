@@ -2,10 +2,10 @@ import {
   Box,
   Divider,
   Group,
-  PasswordInput,
   SimpleGrid,
   Stack,
   Text,
+  TextInput,
 } from '@mantine/core';
 import type { FormEvent } from 'react';
 
@@ -378,14 +378,20 @@ export function SearchProviderSettingsSection({
                     <Stack gap="sm">
                       {(selectedProvider.credentialFields ?? []).map(
                         (field) => (
-                          <PasswordInput
-                            autoComplete="new-password"
+                          <TextInput
+                            autoCapitalize="none"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            data-1p-ignore="true"
+                            data-lpignore="true"
                             description={
                               field.description ??
                               '저장 후에는 값이 화면에 다시 표시되지 않습니다.'
                             }
+                            inputMode="text"
                             key={field.name}
                             label={field.label}
+                            name={`provider-credential-${selectedProvider.provider}-${field.name}`}
                             onChange={(event) =>
                               onUpdateCredentialField(
                                 field.name,
@@ -393,6 +399,8 @@ export function SearchProviderSettingsSection({
                               )
                             }
                             placeholder={`${field.label} 입력`}
+                            spellCheck={false}
+                            type="text"
                             value={credentialDraft[field.name] ?? ''}
                           />
                         ),

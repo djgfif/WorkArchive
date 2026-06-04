@@ -82,6 +82,7 @@ function authStartupFetchMock({
 
 describe('Auth flow', () => {
   afterEach(() => {
+    window.history.pushState(null, '', '/');
     window.sessionStorage.clear();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -261,6 +262,32 @@ describe('Auth flow', () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(window.sessionStorage.getItem('work-archive.auth.googleReturnTo')).toBeNull();
+  });
+
+  it('starts Google completion immediately on the browser callback path', async () => {
+    window.history.pushState(null, '', '/auth/google/complete');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>(() => {
+            // Keep refresh pending so the assertion proves completion started.
+          }),
+      ),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/google/complete'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('세션 복원 중')).toBeInTheDocument();
   });
 
   it.each([

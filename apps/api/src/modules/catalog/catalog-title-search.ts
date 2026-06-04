@@ -16,6 +16,10 @@ interface CatalogTitleSearchRow {
   id: string;
 }
 
+function escapeLikePattern(value: string) {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
 export async function searchCatalogTitleIds(
   client: CatalogTitleSearchClient,
   input: SearchCatalogTitleIdsInput,
@@ -31,6 +35,10 @@ export async function searchCatalogTitleIds(
   }
 
   const limit = Math.max(1, Math.min(input.limit, 50));
+  const escapedLowerQuery = escapeLikePattern(normalizedQuery.toLowerCase());
+  const prefixLikeQuery = `${escapedLowerQuery}%`;
+  const containsLikeQuery = `%${escapedLowerQuery}%`;
+  const likeEscape = '\\';
   const mediumFilter = input.mediumType
     ? Prisma.sql`t."mediumType" = ${input.mediumType}::"WorkType" AND`
     : Prisma.empty;
@@ -43,8 +51,8 @@ export async function searchCatalogTitleIds(
           CASE WHEN lower(t."displayTitle") = lower(${normalizedQuery}) THEN 1200 ELSE 0 END +
           CASE WHEN lower(t."canonicalTitle") = lower(${normalizedQuery}) THEN 1000 ELSE 0 END +
           CASE WHEN lower(coalesce(t."originalTitle", '')) = lower(${normalizedQuery}) THEN 900 ELSE 0 END +
-          CASE WHEN lower(t."displayTitle") LIKE lower(${normalizedQuery}) || '%' THEN 360 ELSE 0 END +
-          CASE WHEN lower(t."canonicalTitle") LIKE lower(${normalizedQuery}) || '%' THEN 320 ELSE 0 END +
+          CASE WHEN lower(t."displayTitle") LIKE ${prefixLikeQuery} ESCAPE ${likeEscape} THEN 360 ELSE 0 END +
+          CASE WHEN lower(t."canonicalTitle") LIKE ${prefixLikeQuery} ESCAPE ${likeEscape} THEN 320 ELSE 0 END +
           ts_rank_cd(
             to_tsvector(
               'simple',
@@ -68,12 +76,12 @@ export async function searchCatalogTitleIds(
               SELECT max(
                 CASE
                   WHEN lower(c."displayName") = lower(${normalizedQuery}) THEN 260
-                  WHEN lower(c."displayName") LIKE lower(${normalizedQuery}) || '%' THEN 180
+                  WHEN lower(c."displayName") LIKE ${prefixLikeQuery} ESCAPE ${likeEscape} THEN 180
                   WHEN contributor_search_text(
                     c."canonicalName",
                     c."displayName",
                     c."aliases"
-                  ) LIKE '%' || lower(${normalizedQuery}) || '%' THEN 120
+                  ) LIKE ${containsLikeQuery} ESCAPE ${likeEscape} THEN 120
                   ELSE similarity(
                     contributor_search_text(
                       c."canonicalName",
@@ -109,7 +117,7 @@ export async function searchCatalogTitleIds(
             t."displayTitle",
             t."originalTitle",
             t."aliases"
-          ) LIKE '%' || lower(${normalizedQuery}) || '%'
+          ) LIKE ${containsLikeQuery} ESCAPE ${likeEscape}
           OR greatest(
             similarity(lower(t."displayTitle"), lower(${normalizedQuery})),
             similarity(lower(t."canonicalTitle"), lower(${normalizedQuery})),
@@ -135,7 +143,7 @@ export async function searchCatalogTitleIds(
                   c."canonicalName",
                   c."displayName",
                   c."aliases"
-                ) LIKE '%' || lower(${normalizedQuery}) || '%'
+                ) LIKE ${containsLikeQuery} ESCAPE ${likeEscape}
                 OR similarity(
                   contributor_search_text(
                     c."canonicalName",

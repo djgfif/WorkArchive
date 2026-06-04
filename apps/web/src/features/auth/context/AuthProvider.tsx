@@ -16,6 +16,11 @@ import { workArchiveDbManager } from '../../works/storage';
 import { AuthContext, type AuthContextValue } from './AuthContext';
 
 const GOOGLE_RETURN_TO_STORAGE_KEY = 'work-archive.auth.googleReturnTo';
+const GOOGLE_AUTH_COMPLETE_PATH = '/auth/google/complete';
+
+function isGoogleAuthCompletePath() {
+  return window.location.pathname === GOOGLE_AUTH_COMPLETE_PATH;
+}
 
 function normalizeGoogleReturnTo(returnTo?: string | null) {
   if (!returnTo || !returnTo.startsWith('/') || returnTo.startsWith('//')) {
@@ -102,6 +107,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let isCancelled = false;
     const restoreGeneration = sessionGenerationRef.current;
+
+    if (isGoogleAuthCompletePath()) {
+      startupRestoreGenerationRef.current = null;
+      setIsLoading(false);
+
+      return () => {
+        isCancelled = true;
+      };
+    }
 
     startupRestoreGenerationRef.current = restoreGeneration;
     const unsubscribe = subscribeToStoredAuthTokens((tokens) => {

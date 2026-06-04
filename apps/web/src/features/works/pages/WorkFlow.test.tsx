@@ -63,13 +63,20 @@ function buildCandidate(title = 'Dune'): ImportCandidate {
   };
 }
 
+function getMockApiPath(input: RequestInfo | URL) {
+  const rawUrl = input instanceof Request ? input.url : String(input);
+  const url = new URL(rawUrl, 'http://work-archive.test');
+
+  return url.pathname.replace(/^\/api(?=\/|$)/, '');
+}
+
 function mockSearch(candidate = buildCandidate()) {
   vi.stubGlobal(
     'fetch',
     vi.fn((input: RequestInfo | URL) => {
-      const url = String(input);
+      const apiPath = getMockApiPath(input);
 
-      if (url.includes('/auth/refresh')) {
+      if (apiPath === '/auth/refresh') {
         return Promise.resolve(
           jsonResponse(
             {
@@ -80,18 +87,22 @@ function mockSearch(candidate = buildCandidate()) {
         );
       }
 
-      if (url.includes('/imports/providers')) {
+      if (apiPath === '/imports/providers') {
         return Promise.resolve(jsonResponse([]));
       }
 
-      return Promise.resolve(
-        jsonResponse({
-          provider: 'open_library',
-          providers: ['open_library'],
-          query: candidate.title,
-          candidates: [candidate],
-        }),
-      );
+      if (apiPath === '/imports/search') {
+        return Promise.resolve(
+          jsonResponse({
+            provider: 'open_library',
+            providers: ['open_library'],
+            query: candidate.title,
+            candidates: [candidate],
+          }),
+        );
+      }
+
+      throw new Error(`Unexpected fetch request in WorkFlow test: ${apiPath}`);
     }),
   );
 }
@@ -120,9 +131,7 @@ describe('Works routed flow', () => {
     );
 
     await user.click(await screen.findByLabelText('검색으로 채우기'));
-    fireEvent.change(await screen.findByLabelText(/^작품 검색$/), {
-      target: { value: title },
-    });
+    await user.type(await screen.findByLabelText(/^작품 검색$/), title);
     await user.click(screen.getByRole('button', { name: '검색' }));
     await user.click(
       (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
