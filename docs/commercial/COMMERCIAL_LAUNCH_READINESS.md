@@ -1,6 +1,6 @@
 # Commercial Launch Readiness Gate 1
 
-Last reviewed: 2026-05-25
+Last reviewed: 2026-06-04
 
 Scope: Work Archive public-service candidate readiness after the closed beta
 hardening baseline. This gate does not approve a commercial launch by itself; it
@@ -17,6 +17,26 @@ required evidence in
 [`PUBLIC_BETA_GATE_1_EVIDENCE.md`](./PUBLIC_BETA_GATE_1_EVIDENCE.md). Do not
 raise the score based on unrun checks.
 
+## 2026-06-04 Expert Feedback Disposition
+
+Accepted as Gate 1 work:
+
+- provider/search QA expansion and ranking regression coverage;
+- sync reliability evidence before broader auto-merge changes;
+- API boundary documentation that keeps `Works` as compatibility rather than a
+  growth surface;
+- operational evidence for GitHub Settings, beta smoke, restore drill, and
+  release-runner scans.
+
+Corrected or deferred:
+
+- License is not missing; README explicitly states that no open-source license
+  has been granted and all rights are reserved.
+- CI is present; the remaining E2E question is when web Playwright is stable
+  enough to add to the validate workflow or release gate.
+- Public/community/social/recommendation, mobile, Tauri, and i18n are not Gate
+  1 implementation scope.
+
 | Area                               |   Points | Current                                                                                                                                                                                                                                                                           | Gap                                                                              | Required before public beta                                                         | Required before commercial launch                                 |
 | ---------------------------------- | -------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Security                           | 90 / 110 | Production config rejects weak secrets, insecure cookies, wildcard CORS, localhost production URLs, Swagger in production, and dev DB credentials. Containers are read-only with no-new-privileges. Public repo guardrails now allow the commercial readiness docs intentionally. | No WAF/edge policy, no hosted secret scanning proof.                             | Enable GitHub secret scanning, keep production env preflight mandatory, run CodeQL. | Formal threat model, incident drills, edge abuse controls.        |
@@ -30,6 +50,22 @@ raise the score based on unrun checks.
 | Privacy/data retention             |  60 / 90 | Retention cleanup covers SecurityEvent, refresh sessions, reset tokens; provider keys are encrypted; refresh sessions store masked IP and coarse browser/OS summaries.                                                                                                             | Retention proof and migration/backfill policy for any previously stored raw client metadata remain open. | Publish data retention and backup sensitivity policy.                               | Data deletion/export policy and historical raw metadata handling. |
 | Secure SDLC                        |  55 / 70 | Existing validate workflow has lint/type/test/e2e/build/integration. Dependabot and CodeQL workflows are present in the repository.                                                                                                                                               | Branch protection and secret scanning are GitHub Settings proof, not repo proof. | Dependabot, CodeQL, branch protection documented.                                   | Vulnerability triage SLA and release blocking policy.             |
 | Public feature permission boundary | 45 / 130 | Product docs state public/community is out of scope; tier board visibility has `private`, `link_only`, `exported`.                                                                                                                                                                | No public permission boundary document before Gate 1.                            | Default-private boundary documented before any public feature.                      | Implemented permission checks, moderation tools, abuse reporting. |
+
+## Gate 1 Implementation Checklist
+
+- Search quality: `npm run qa:import-search` passes after any ranking/provider
+  change; live provider QA is recorded only from beta/staging.
+- Sync reliability: `npm run qa:sync-load` dry-run passes locally; live sync
+  load uses a disposable authenticated account before public beta approval.
+- API boundary: new backend behavior is reviewed against the `Catalog`,
+  `Imports`, `UserRecords`, `Sync`, and `Works` compatibility split documented
+  in the architecture guide.
+- Web E2E: `npm run test:e2e:web` may be run locally or in a dedicated release
+  validation job, but do not add it to `validate` until browser dependency and
+  runtime stability are documented.
+- GitHub controls: branch protection, required checks, CodeQL, Dependabot,
+  secret scanning, and push protection require operator evidence from GitHub
+  Settings; repository files alone are not proof.
 
 ## Public Beta Gate 1 Release Blockers
 

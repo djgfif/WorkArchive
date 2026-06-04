@@ -3,6 +3,21 @@
 This policy documents the current local-first sync merge behavior. It does not
 enable public, community, share, or social sync surfaces.
 
+## 2026-06-04 Expert Feedback Scope
+
+The accepted sync improvement scope is reliability validation, not broader
+automatic conflict resolution. Before adding new merge rules, keep these gates
+green:
+
+- large-archive sync load dry-run and, for release candidates, live disposable
+  account sync load;
+- stale pull-before-push regression coverage for both stale and fresh pull
+  windows;
+- manual conflict resolution regression coverage for local keep, remote apply,
+  and selected-field merge;
+- guest-to-account transfer review remains a deliberate selected import flow,
+  not an automatic guest/account archive merge.
+
 ## Safe Auto-Merge Cases
 
 Auto-merge is allowed only when the remote snapshot and the queued local payload
@@ -97,3 +112,6 @@ server does not treat the merged push as a replay of the pre-merge mutation.
   cross-device, or server-side distributed lock.
 - Live sync load testing is still required. Unit and local QA checks do not
   replace the sync load smoke.
+- Expanding auto-merge to overlapping scalar edits requires a separate product
+  decision and new tests for data loss, rollback, and user-visible conflict
+  recovery.

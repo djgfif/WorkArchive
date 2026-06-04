@@ -1,12 +1,15 @@
 # Gate 1 Validation Runbook
 
-Last updated: 2026-05-26
+Last updated: 2026-06-04
 
 Gate 1 evidence must be copied from commands that actually ran. Leave an item
 `not run`, `blocked`, or `manual` when the required environment is unavailable.
 
 ## Operator Checklist
 
+- Expert feedback scope: run the accepted search, sync, API-boundary, and
+  operational evidence gates below. Do not treat mobile, Tauri, i18n, public
+  community, social recommendation, or open-source licensing as Gate 1 blockers.
 - Release runner security scans: run `npm run security:audit:prod`,
   `npm run security:audit`, `npm run security:scan:fs`, and
   `npm run security:scan:images` with immutable image refs; record only tool
@@ -48,15 +51,28 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
    npm run qa:sync-load
    ```
 
-5. On the release runner, run dependency/container security scans.
-6. On the beta host, run production env preflight and beta smoke.
-7. With GitHub Settings access, verify branch protection, required checks,
+5. Run web Playwright E2E only when the local/browser runtime is available:
+
+   ```bash
+   npm run test:e2e:web
+   ```
+
+   If browser dependencies are unavailable, record `not run` with the missing
+   runtime reason. Do not infer failure of the product from a missing local
+   Playwright browser dependency. In Codex sandboxed sessions, Vite may fail
+   before tests start with `listen EPERM: operation not permitted
+   127.0.0.1:18730`; rerun outside the sandbox before recording product
+   failure.
+
+6. On the release runner, run dependency/container security scans.
+7. On the beta host, run production env preflight and beta smoke.
+8. With GitHub Settings access, verify branch protection, required checks,
    CodeQL, Dependabot, secret scanning, and push protection.
-8. With backup/restore access, perform the restore drill into a non-production
+9. With backup/restore access, perform the restore drill into a non-production
    target.
-9. With a disposable authenticated test account, run live import/search QA and
+10. With a disposable authenticated test account, run live import/search QA and
    live sync load validation.
-10. Copy only summary results into
+11. Copy only summary results into
     `docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`.
 
 ## Local Checks
@@ -149,11 +165,24 @@ IMPORT_QA_ACCESS_TOKEN=<disposable-test-account-token> \
 npm run qa:import-search
 ```
 
+To isolate one provider family during beta triage, filter the live matrix by
+fixture provider IDs:
+
+```bash
+IMPORT_SEARCH_QA_LIVE=true \
+IMPORT_QA_BASE_URL=https://beta.example.com \
+IMPORT_QA_ACCESS_TOKEN=<disposable-test-account-token> \
+IMPORT_SEARCH_QA_PROVIDERS=aladin,kakao_book,naver_book \
+npm run qa:import-search
+```
+
 The golden matrix is in `docs/qa/IMPORT_SEARCH_QA_MATRIX.md`. Live provider
 results are observations for that run, not permanent truth. By default, the
 runner executes a smoke subset of that matrix and writes reports to
 `tmp/import-search-qa/`; set `IMPORT_SEARCH_QA_FULL_MATRIX=true` only when the
-operator intends to run every matrix case.
+operator intends to run every matrix case. `IMPORT_SEARCH_QA_PROVIDERS` filters
+the selected matrix to cases whose fixture providers match the comma-separated
+list.
 
 ## Sync Load Validation
 
@@ -181,6 +210,37 @@ npm run qa:sync-load
 
 The script creates only synthetic records with titles prefixed
 `Gate1 Sync Load QA`. Do not run it against a real user account.
+
+### Sync Load Acceptance Criteria
+
+Default Gate 1 dry-run and live parameters:
+
+- `SYNC_LOAD_RECORDS=1000`
+- `SYNC_LOAD_BATCH_SIZE=200` (the script caps batches at 200)
+- `SYNC_LOAD_PULL_LIMIT=500`
+
+Dry-run PASS proves only payload generation, report creation, and local script
+shape. It does not prove API capacity.
+
+Live PASS on a disposable authenticated beta/staging account requires:
+
+- every push batch receives a successful response;
+- every synthetic mutation result is `applied`;
+- conflicts are `0`;
+- bounded pull observes every synthetic record exactly once;
+- missing synthetic records are `0`;
+- duplicate synthetic records are `0`;
+- pull pagination does not repeat cursors and does not return `hasMore=true`
+  without `nextCursor`;
+- default pull limit smoke succeeds;
+- `limit=1500` smoke either succeeds with bounded behavior or returns DTO
+  validation `400`.
+
+Record observed `requestP50Ms`, `requestP95Ms`, `totalDurationMs`,
+`maxResponseBytes`, push batch count, pull page count, conflict count, failure
+count, and the run ID in the evidence ledger. p50/p95 are release observations
+for Gate 1, not hard pass/fail thresholds until a production latency budget is
+approved.
 
 ## Backup And Restore Drill
 

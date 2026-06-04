@@ -152,6 +152,7 @@ describe('extracted sync services', () => {
   afterEach(async () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    vi.useRealTimers();
     clearStoredAuthTokens();
     await db.delete();
   });
@@ -269,6 +270,42 @@ describe('extracted sync services', () => {
   });
 
   describe('SyncStalePolicyService', () => {
+    it('does not pull before push when a remote-backed payload already has a fresh pull', async () => {
+      const localWork = await worksService.createWork(buildInput());
+      const syncedWork = {
+        ...localWork,
+        syncStatus: 'pending' as const,
+        serverVersion: 1,
+      };
+
+      await worksRepository.update(syncedWork);
+      await queueRepository.removeMany(
+        (await queueRepository.listAll()).map((item) => item.id),
+      );
+      await queueRepository.enqueueWorkChange(syncedWork, 'update', 'edit_form');
+      await appMetaRepository.setValue(
+        LAST_SUCCESSFUL_PULL_AT_KEY,
+        new Date().toISOString(),
+      );
+
+      const pullRemoteChangesWithLease = vi.fn();
+      const result = await stalePolicyService.ensureFreshPullBeforePush(
+        await queueRepository.listAll(),
+        {
+          clientId: 'client-1',
+          ownerId: 'owner-1',
+          leaseToken: 'lease-1',
+        },
+        pullRemoteChangesWithLease,
+      );
+
+      expect(result).toBeNull();
+      expect(pullRemoteChangesWithLease).not.toHaveBeenCalled();
+      await expect(
+        appMetaRepository.getValue(SYNC_STALE_STATUS_AT_KEY),
+      ).resolves.toBeNull();
+    });
+
     it('pulls stale remote-backed queued payloads before push and clears stale status on success', async () => {
       const localWork = await worksService.createWork(buildInput());
       const syncedWork = {

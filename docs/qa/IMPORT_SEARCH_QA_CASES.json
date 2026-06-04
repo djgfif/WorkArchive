@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-05-26",
+  "lastUpdated": "2026-06-04",
   "requiredMediaTypes": [
     "novel",
     "light_novel",
@@ -1063,6 +1063,149 @@
           }
         ]
       }
+    },
+    {
+      "id": "book-korean-provider-merge",
+      "mediumType": "novel",
+      "dimension": "Korean book provider merge/dedupe",
+      "query": "불편한 편의점 김호연",
+      "expectedAssertion": "Korean book providers that identify the same title are merged and ranked above weak same-token candidates without hiding manual fallback.",
+      "tags": ["korean_title", "creator_boost", "source_coverage", "merge_dedupe"],
+      "expectedTopId": "inconvenient-store-aladin",
+      "expectedMergedProviders": ["aladin", "naver_book", "kakao_book"],
+      "expectedCandidate": {
+        "id": "inconvenient-store-aladin",
+        "sourceId": "aladin",
+        "title": "불편한 편의점",
+        "titleAliases": ["The Inconvenient Convenience Store"],
+        "author": "김호연",
+        "contributors": [{ "name": "김호연", "role": "author" }],
+        "releaseYear": 2021,
+        "externalRefs": [
+          {
+            "externalId": "isbn-9791161571188",
+            "provider": "aladin",
+            "rawType": "book",
+            "url": "https://example.test/aladin/inconvenient-store"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "inconvenient-store-naver-book",
+          "sourceId": "naver_book",
+          "title": "불편한 편의점",
+          "titleAliases": ["The Inconvenient Convenience Store"],
+          "author": "김호연",
+          "contributors": [{ "name": "김호연", "role": "author" }],
+          "releaseYear": 2021,
+          "externalRefs": [
+            {
+              "externalId": "isbn-9791161571188",
+              "provider": "naver_book",
+              "rawType": "book",
+              "url": "https://example.test/naver-book/inconvenient-store"
+            }
+          ]
+        },
+        {
+          "id": "inconvenient-store-kakao-book",
+          "sourceId": "kakao_book",
+          "title": "불편한 편의점",
+          "titleAliases": ["The Inconvenient Convenience Store"],
+          "author": "김호연",
+          "contributors": [{ "name": "김호연", "role": "author" }],
+          "releaseYear": 2021,
+          "externalRefs": [
+            {
+              "externalId": "isbn-9791161571188",
+              "provider": "kakao_book",
+              "rawType": "book",
+              "url": "https://example.test/kakao-book/inconvenient-store"
+            }
+          ]
+        },
+        {
+          "id": "inconvenient-store-essay-token",
+          "sourceId": "open_library",
+          "title": "편의점 사회학",
+          "author": "Market Test",
+          "contributors": [{ "name": "Market Test", "role": "author" }],
+          "releaseYear": 2021,
+          "externalRefs": [
+            {
+              "externalId": "ol-convenience-store-token",
+              "provider": "open_library",
+              "rawType": "work",
+              "url": "https://example.test/open-library/convenience-token"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anime-season-variant-demotion",
+      "mediumType": "anime",
+      "dimension": "Season or variant title demotion",
+      "query": "스파이 패밀리",
+      "expectedAssertion": "Base anime title ranks above later season or variant titles unless the query asks for that season/variant.",
+      "tags": ["korean_title", "alias", "wrong_medium_guard"],
+      "expectedTopId": "spy-family-anime-base",
+      "expectedCandidate": {
+        "id": "spy-family-anime-base",
+        "sourceId": "anilist",
+        "title": "SPY×FAMILY",
+        "titleAliases": ["스파이 패밀리", "Spy x Family"],
+        "author": "WIT Studio",
+        "contributors": [{ "name": "WIT Studio", "role": "studio" }],
+        "releaseYear": 2022,
+        "externalRefs": [
+          {
+            "externalId": "anilist-spy-family-base",
+            "provider": "anilist",
+            "rawType": "anime",
+            "url": "https://example.test/anilist/spy-family-base"
+          }
+        ]
+      },
+      "otherCandidates": [
+        {
+          "id": "spy-family-season-2-token",
+          "sourceId": "anilist",
+          "mediumType": "anime",
+          "title": "SPY×FAMILY Season 2",
+          "titleAliases": ["스파이 패밀리 시즌 2"],
+          "author": "WIT Studio",
+          "contributors": [{ "name": "WIT Studio", "role": "studio" }],
+          "releaseYear": 2023,
+          "externalRefs": [
+            {
+              "externalId": "anilist-spy-family-season-2",
+              "provider": "anilist",
+              "rawType": "anime",
+              "url": "https://example.test/anilist/spy-family-season-2"
+            }
+          ]
+        },
+        {
+          "id": "spy-family-manga-token",
+          "sourceId": "wikidata",
+          "mediumType": "manga",
+          "title": "SPY×FAMILY",
+          "titleAliases": ["스파이 패밀리"],
+          "author": "엔도 타츠야",
+          "contributors": [{ "name": "엔도 타츠야", "role": "author" }],
+          "releaseYear": 2019,
+          "externalRefs": [
+            {
+              "externalId": "wikidata-spy-family-manga",
+              "provider": "wikidata",
+              "rawType": "entity",
+              "url": "https://example.test/wikidata/spy-family-manga"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "movie-kobis",

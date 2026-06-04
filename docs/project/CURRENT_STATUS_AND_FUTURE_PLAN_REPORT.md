@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                                                                                                                                                                               |
 | Role                  | `current reality`                                                                                                                                                                                                                                                         |
 | Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-06-02` root verification, Prisma 7 migration, route/dependency cleanup, and service decomposition                                                                                                                                                                   |
+| Last verified against | `2026-06-04` root lint/typecheck/test/build, import-search QA, sync-load dry-run, expert feedback roadmap alignment, Prisma 7 migration, route/dependency cleanup, and service decomposition                                                                               |
 | When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -312,11 +312,19 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 ### Current Verification Status
 
-- `npm run lint`: `2026-06-02` 통과 확인
-- `npm run typecheck`: `2026-06-02` 통과 확인
-- `npm run test`: `2026-06-02` 기준 API `31` suites / `327` tests,
-  web `43` files / `299` tests, shared-types `1` file / `3` tests 통과 확인
-- `npm run build`: `2026-06-02` 통과 확인
+- `npm run lint`: `2026-06-04` 통과 확인
+- `npm run typecheck`: `2026-06-04` 통과 확인
+- `npm run test`: `2026-06-04` 기준 API `32` suites / `366` tests,
+  web `43` files / `304` tests, shared-types `1` file / `3` tests 통과 확인
+- `npm run build`: `2026-06-04` 통과 확인
+- `npm run test:e2e:web`: `2026-06-04` 기준 chromium/mobile-chrome
+  Playwright `10` tests 통과 확인. 이 Codex sandbox 안에서는 Vite가
+  `127.0.0.1:18730` listen 시 `EPERM`으로 실패하므로, 실제 확인은
+  sandbox 밖 실행으로 수행했다.
+- `npm run qa:import-search`: `2026-06-04` 기준 offline matrix `28` cases,
+  focused import/search tests, canonical matrix shape, runbook linkage 통과 확인
+- `npm run qa:sync-load`: `2026-06-04` 기준 dry-run synthetic payload
+  validation 통과 확인
 - GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 `.github/workflows/validate.yml`에 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
 - `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
 

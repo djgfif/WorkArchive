@@ -14,6 +14,9 @@ const reportPath = resolve(reportDir, `import-search-qa-${stamp}.md`);
 const jsonReportPath = resolve(reportDir, `import-search-qa-${stamp}.json`);
 const accessToken = process.env.IMPORT_QA_ACCESS_TOKEN ?? '';
 const fullMatrixLive = process.env.IMPORT_SEARCH_QA_FULL_MATRIX === 'true';
+const liveProviderFilter = parseProviderFilter(
+  process.env.IMPORT_SEARCH_QA_PROVIDERS,
+);
 const matrixPath = resolve(rootDir, 'docs/qa/IMPORT_SEARCH_QA_CASES.json');
 const matrixDocPath = resolve(rootDir, 'docs/qa/IMPORT_SEARCH_QA_MATRIX.md');
 
@@ -56,6 +59,21 @@ const sensitiveNames = [
   'SECRET',
   'TOKEN',
 ];
+
+function parseProviderFilter(rawValue) {
+  if (!rawValue) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      rawValue
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  );
+}
 
 function redact(value) {
   let text = String(value ?? '');
@@ -115,6 +133,7 @@ function writeReports(report) {
     `- Working tree: ${report.workingTree}`,
     `- Overall status: ${report.status}`,
     `- Matrix coverage: ${report.matrixCoverage}`,
+    `- Provider filter: ${report.liveProviderFilter.length > 0 ? report.liveProviderFilter.join(', ') : 'none'}`,
     '',
     '## Checks',
     '',
@@ -283,6 +302,13 @@ function validateMatrixDoc() {
   };
 }
 
+function getCaseProviderIds(item) {
+  return [
+    item.expectedCandidate,
+    ...(item.otherCandidates ?? []),
+  ].flatMap((candidate) => (candidate ? [candidate.sourceId] : []));
+}
+
 async function liveChecks() {
   const rawBaseUrl = process.env.IMPORT_QA_BASE_URL ?? process.env.VITE_API_BASE_URL;
   const checks = [];
@@ -302,9 +328,26 @@ async function liveChecks() {
     ? { Authorization: `Bearer ${accessToken}` }
     : {};
 
-  const liveCases = fullMatrixLive
+  const liveBaseCases = fullMatrixLive
     ? matrix
     : matrix.filter((item) => liveSmokeCaseIds.has(item.id));
+  const liveCases =
+    liveProviderFilter.length === 0
+      ? liveBaseCases
+      : liveBaseCases.filter((item) =>
+          getCaseProviderIds(item).some((provider) =>
+            liveProviderFilter.includes(provider),
+          ),
+        );
+
+  if (liveCases.length === 0) {
+    checks.push({
+      name: 'live import/search provider filter',
+      status: 'BLOCKED',
+      summary: `IMPORT_SEARCH_QA_PROVIDERS=${liveProviderFilter.join(',')} matched no ${fullMatrixLive ? 'full-matrix' : 'live-smoke'} cases.`,
+    });
+    return { checks, liveResults };
+  }
 
   for (const item of liveCases) {
     const url = apiPath(baseUrl, '/imports/search');
@@ -425,6 +468,7 @@ const report = {
   liveCoverageDescription: fullMatrixLive
     ? 'every case in docs/qa/IMPORT_SEARCH_QA_MATRIX.md'
     : 'a smoke subset of docs/qa/IMPORT_SEARCH_QA_MATRIX.md',
+  liveProviderFilter,
   matrixCoverage: liveMode
     ? fullMatrixLive
       ? 'full matrix'

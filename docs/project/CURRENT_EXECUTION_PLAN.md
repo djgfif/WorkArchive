@@ -5,7 +5,7 @@
 | Status                | `active`                                                                                                                                       |
 | Role                  | `developer execution entrypoint`                                                                                                               |
 | Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, current local `master` working tree |
-| Last verified against | `2026-04-25` local `master` working tree                                                                                                       |
+| Last verified against | `2026-06-04` local working tree after expert feedback roadmap alignment, root lint/typecheck/test/build, import-search QA, and sync-load dry-run |
 | When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                    |
 
 이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`../archive/project/PLAN.md`](../archive/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
@@ -69,6 +69,32 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - 로그인 직후 pull 자동화 검토
 - `Works` compatibility layer 축소와 `Catalog` / `Imports` / `UserRecords` 경계 정리
 - 공개 레이어 권한 분리와 production cookie/origin/secret 운영 검증
+
+## 2026-06-04 Expert Feedback Implementation
+
+첨부 전문가 피드백은 아래처럼 현재 제품 방향에 맞춰 수용한다.
+
+- 수용: 검색 품질 QA, sync 신뢰성 검증, API 도메인 경계 정리, Gate 1 운영
+  증적 보강.
+- 정정: 라이선스는 누락이 아니라 README 기준 all-rights-reserved 정책이다.
+- 정정: CI/E2E는 부재가 아니라 web Playwright E2E의 validate 포함 여부가
+  아직 별도 안정화 과제다.
+- 제외: public/community/social/recommendation, mobile, Tauri, i18n은 현재
+  실행계획 범위 밖이다.
+
+구현 기준:
+
+- 검색 품질은 `docs/qa/IMPORT_SEARCH_QA_CASES.json`을 golden matrix로 삼고,
+  provider QA 케이스와 ranking 회귀 테스트를 먼저 늘린다.
+- sync는 새 자동 병합 규칙보다 `SYNC_AUTO_MERGE_POLICY.md`의 좁은 정책,
+  stale pull-before-push, manual conflict resolution, sync load smoke를 먼저
+  고정한다.
+- API 개선은 flat `Works` 응답을 즉시 제거하지 않는다. 신규 기능은 가능한
+  한 `Catalog`, `Imports`, `UserRecords`, `Sync` 경계에 두고, `Works`는
+  compatibility façade로만 유지한다.
+- Gate 1은 로컬 저장소 파일만으로 증명 가능한 항목과 GitHub Settings,
+  beta host, restore drill처럼 운영자가 직접 증적을 남겨야 하는 항목을
+  분리한다.
 
 ## Documentation Sync Checklist
 

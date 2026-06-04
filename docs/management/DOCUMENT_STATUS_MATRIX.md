@@ -16,6 +16,7 @@ This table separates current docs from archived reference material.
 | [`../README.md`](../README.md)                                                                               | `active`    | docs hub                        |
 | [`../getting-started/LOCAL_DEVELOPMENT.md`](../getting-started/LOCAL_DEVELOPMENT.md)                         | `active`    | local setup                     |
 | [`../architecture/FEATURE_FIRST_STRUCTURE.md`](../architecture/FEATURE_FIRST_STRUCTURE.md)                   | `canonical` | codebase boundary guide         |
+| [`../architecture/API_BOUNDARY_GUIDE.md`](../architecture/API_BOUNDARY_GUIDE.md)                             | `active`    | API boundary guide              |
 | [`../architecture/adr/`](../architecture/adr/)                                                               | `canonical` | accepted architecture decisions |
 | [`../commercial/COMMERCIAL_LAUNCH_READINESS.md`](../commercial/COMMERCIAL_LAUNCH_READINESS.md)               | `canonical` | public beta readiness gate      |
 | [`../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`](../commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md)               | `active`    | beta release evidence ledger    |

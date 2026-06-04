@@ -199,6 +199,25 @@ describe('import/search QA canonical matrix', () => {
   );
 
   it.each(
+    matrix.cases.filter((testCase) => testCase.expectedCandidate),
+  )('keeps manual fallback below usable provider candidates for $id', (testCase) => {
+    const ranked = rankImportCandidates({
+      candidates: mergeImportCandidates(buildCandidates(testCase)),
+      mediumType: toWorkType(testCase.mediumType),
+      query: testCase.query,
+    });
+    const expectedIndex = ranked.findIndex(
+      (candidate) => candidate.id === testCase.expectedTopId,
+    );
+    const manualIndex = ranked.findIndex(
+      (candidate) => candidate.sourceId === 'manual',
+    );
+
+    expect(expectedIndex).toBeGreaterThanOrEqual(0);
+    expect(manualIndex).toBeGreaterThan(expectedIndex);
+  });
+
+  it.each(
     matrix.cases.filter((testCase) =>
       testCase.tags.includes('wrong_medium_guard'),
     ),

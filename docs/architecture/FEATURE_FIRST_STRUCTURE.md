@@ -102,6 +102,24 @@ Large modules are split by responsibility:
 - `common`, `config`, `prisma`, and `security` are platform layers and may be
   used by feature modules.
 
+### Works Compatibility Boundary
+
+`WorksModule` is a compatibility façade over the split catalog/user-record
+model. Keep it for existing flat `Work` response compatibility, but do not make
+it the default home for new domain behavior.
+
+- Put catalog identity, title/release metadata, and catalog submissions in
+  `Catalog`.
+- Put personal record mutations and user-owned record reads in `UserRecords`.
+- Put provider search, candidate normalization, ranking, and credential
+  readiness in `Imports`.
+- Put local-first backup/pull/push contracts in `Sync`.
+
+Flat `Works` responses are a deprecation candidate, not an immediate removal
+target. Any deprecation must preserve sync create order
+`catalogTitleId -> importDraft -> legacy fallback` until replacement clients
+and tests are in place.
+
 ## Public Repository Layout
 
 Keep root files focused on running and operating the project. Design references,

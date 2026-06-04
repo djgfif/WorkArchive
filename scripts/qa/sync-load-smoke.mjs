@@ -326,7 +326,7 @@ async function runLive(fixtures, sinceIso) {
     requestP50Ms: Math.round(percentile(requestDurations, 50) ?? 0),
     requestP95Ms: Math.round(percentile(requestDurations, 95) ?? 0),
     maxLimitSmokeStatus: maxLimitSmoke.status,
-    status: failures.length === 0 ? 'PASS' : 'FAIL',
+    status: failures.length === 0 && conflicts.length === 0 ? 'PASS' : 'FAIL',
     totalDurationMs: Math.round(performance.now() - startedAt),
   };
 }
@@ -382,6 +382,7 @@ function writeReports(report) {
   lines.push('- Payload titles are synthetic and prefixed with `Gate1 Sync Load QA`.');
   lines.push('- Live mode requires `SYNC_LOAD_ACCESS_TOKEN` and `SYNC_LOAD_DISPOSABLE_ACCOUNT_ACK=true`.');
   lines.push('- Reports do not include raw sync payloads or bearer tokens.');
+  lines.push('- PASS requires zero failures, zero conflicts, zero missing synthetic records, and zero duplicate synthetic records.');
   lines.push('- Limit > 1000 smoke accepts either bounded HTTP 200 behavior or HTTP 400 DTO validation rejection.');
   lines.push('- Use a disposable authenticated test account; do not run this against a real user account.');
 

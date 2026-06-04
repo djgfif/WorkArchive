@@ -1,6 +1,6 @@
 # Import/Search QA Matrix
 
-Last updated: 2026-06-03
+Last updated: 2026-06-04
 
 The canonical import/search QA matrix is
 [`IMPORT_SEARCH_QA_CASES.json`](./IMPORT_SEARCH_QA_CASES.json). The QA runner
@@ -10,6 +10,14 @@ human runbook and coverage index.
 This QA scope is provider import/search only. It must not change sync behavior
 or add public features. Live provider QA is optional, redacted, and separate
 from CI because live provider output changes over time.
+
+## Expert Feedback Implementation Lock
+
+Expert feedback from 2026-06-04 maps to this matrix as an executable search
+quality contract. The accepted scope is provider search QA, ranking weight
+tuning, source merge/dedupe visibility, and manual fallback safety. Do not use
+this track to add public catalog promotion, community, social recommendation,
+mobile/Tauri, or i18n work.
 
 ## Assertions Used For Every Case
 
@@ -99,6 +107,8 @@ The source file also covers these required assertion dimensions:
 | web-novel-brave-search | web_novel | Web serialization provider coverage | `전지적 독자 시점 싱숑` |
 | webtoon-kakao-web | webtoon | Kakao web provider coverage | `나 혼자만 레벨업 장성락` |
 | book-kakao-book | novel | Kakao book provider coverage | `아몬드 손원평` |
+| book-korean-provider-merge | novel | Korean book provider merge/dedupe | `불편한 편의점 김호연` |
+| anime-season-variant-demotion | anime | Season or variant title demotion | `스파이 패밀리` |
 | movie-kobis | movie | KOBIS provider coverage | `헤어질 결심 박찬욱` |
 | low-confidence-fallback | novel | Low-confidence fallback | `Gate1 Search QA Unlikely Synthetic Title` |
 
@@ -119,9 +129,21 @@ IMPORT_QA_ACCESS_TOKEN=<disposable-test-account-token> \
 npm run qa:import-search
 ```
 
+Provider-focused live QA, for isolating a provider family or credential mode:
+
+```bash
+IMPORT_SEARCH_QA_LIVE=true \
+IMPORT_QA_BASE_URL=https://beta.example.com \
+IMPORT_QA_ACCESS_TOKEN=<disposable-test-account-token> \
+IMPORT_SEARCH_QA_PROVIDERS=aladin,kakao_book,naver_book \
+npm run qa:import-search
+```
+
 Reports are written to `tmp/import-search-qa/` by default. Do not commit
 generated reports wholesale. The runner records only redacted summaries,
 diagnostics, result counts, and top candidate labels, but live outputs are still
 operator artifacts. By default, live QA executes the `liveSmoke` subset from the
 canonical matrix; set `IMPORT_SEARCH_QA_FULL_MATRIX=true` only when
-intentionally covering every case.
+intentionally covering every case. `IMPORT_SEARCH_QA_PROVIDERS` accepts a
+comma-separated list of fixture provider IDs and filters either the smoke subset
+or full matrix to matching cases.
