@@ -30,6 +30,7 @@ RUN chmod -R a+rX \
   package.json \
   package-lock.json \
   apps/api/package.json \
+  apps/api/prisma.config.ts \
   apps/api/prisma \
   apps/web/package.json \
   packages/shared-types/package.json \

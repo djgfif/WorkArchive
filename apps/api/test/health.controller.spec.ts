@@ -167,6 +167,10 @@ describe('HealthController', () => {
       resolve(process.cwd(), '../../compose.yml'),
       'utf8',
     );
+    const dockerfile = readFileSync(
+      resolve(process.cwd(), 'Dockerfile'),
+      'utf8',
+    );
     const startDev = readFileSync(
       resolve(process.cwd(), '../../scripts/dev/start-dev.sh'),
       'utf8',
@@ -177,6 +181,7 @@ describe('HealthController', () => {
     expect(compose).toContain('service_completed_successfully');
     expect(compose).toContain('/readyz');
     expect(compose).toContain('/work-archive-config.js');
+    expect(dockerfile).toContain('apps/api/prisma.config.ts');
     expect(compose).toContain(
       'CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:18730}',
     );
