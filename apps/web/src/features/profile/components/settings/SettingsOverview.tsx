@@ -3,6 +3,7 @@ import type { AuthUserResponse } from '@work-archive/shared-types';
 
 import {
   AppBadge,
+  KeyValueGrid,
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
@@ -101,6 +102,9 @@ export function SettingsOverview({
     stats.syncQueueItemCount === 0
       ? '백업 대기 없음'
       : `백업 대기 ${stats.syncQueueItemCount}개`;
+  const hasStorageOriginWarning = stats.isNonStandardLocalOrigin;
+  const hasLocalOnlyWarning =
+    mode === 'authenticated' && stats.localOnlyWorkCount > 0;
   const dataSafetyTone =
     stats.conflictQueueItemCount > 0 || stats.failedQueueItemCount > 0
       ? 'warning'
@@ -116,11 +120,15 @@ export function SettingsOverview({
     {
       description:
         mode === 'authenticated'
-          ? `${googleAccount?.email ?? user?.email ?? 'Google 계정'}에 연결된 로컬 아카이브입니다. 동기화 상태는 이 브라우저의 로컬 대기열 기준으로 표시됩니다.`
+          ? `${googleAccount?.email ?? user?.email ?? 'Google 계정'}에 연결된 로컬 아카이브입니다. 현재 저장소는 ${stats.databaseName || '확인 중'}입니다.`
           : '게스트 모드입니다. 기록은 이 브라우저의 로컬 저장소에만 보관됩니다.',
       icon: 'google',
       label: '저장 범위',
-      tone: mode === 'authenticated' ? 'success' : 'muted',
+      tone: hasStorageOriginWarning
+        ? 'warning'
+        : mode === 'authenticated'
+          ? 'success'
+          : 'muted',
       value: mode === 'authenticated' ? 'Google 연결' : '로컬 전용',
     },
     {
@@ -143,11 +151,17 @@ export function SettingsOverview({
               `직접 확인 ${stats.conflictQueueItemCount}개`,
               `실패 ${stats.failedQueueItemCount}개`,
               `자동 병합 후 재시도 ${stats.autoMergedQueueItemCount}개`,
+              `로컬 전용 작품 ${stats.localOnlyWorkCount}개`,
             ].join(' · ')
           : '게스트 모드에서는 서버 동기화 대기열을 사용하지 않습니다.',
       icon: 'key',
       label: '백업 대기열',
-      tone: mode === 'authenticated' ? dataSafetyTone : 'muted',
+      tone:
+        mode === 'authenticated' && hasLocalOnlyWarning
+          ? 'warning'
+          : mode === 'authenticated'
+            ? dataSafetyTone
+            : 'muted',
       value: mode === 'authenticated' ? backupQueueLabel : '로컬 전용',
     },
     {
@@ -196,6 +210,60 @@ export function SettingsOverview({
           </SectionCard>
         ))}
       </div>
+      {(hasStorageOriginWarning || hasLocalOnlyWarning) && (
+        <SectionCard padding="lg" tone="subtle">
+          <Group justify="space-between" wrap="wrap">
+            <Stack gap={4}>
+              <Text fw={850}>스토리지 진단</Text>
+              <Text c="dimmed" size="sm">
+                작품 데이터는 브라우저 origin과 사용자 DB별로 분리됩니다.
+                표준 로컬 주소는 http://localhost:18730입니다.
+              </Text>
+            </Stack>
+            <Group gap="xs">
+              {hasStorageOriginWarning && (
+                <AppBadge tone="warning">비표준 origin</AppBadge>
+              )}
+              {hasLocalOnlyWarning && (
+                <AppBadge tone="warning">백업 전 작품 있음</AppBadge>
+              )}
+            </Group>
+          </Group>
+          <KeyValueGrid
+            columns={2}
+            items={[
+              {
+                label: '현재 origin',
+                value: stats.currentOrigin || '확인 중',
+              },
+              {
+                label: '현재 DB',
+                value: stats.databaseName || '확인 중',
+              },
+              {
+                label: '저장 범위 키',
+                value: stats.archiveScopeKey || '확인 중',
+              },
+              {
+                label: '로컬 전용 작품',
+                value: `${stats.localOnlyWorkCount}개`,
+              },
+            ]}
+          />
+          {hasStorageOriginWarning && (
+            <Text c="var(--app-state-warning)" size="sm">
+              이 주소에서 만든 기록은 localhost:18730의 기록과 같은 목록에
+              보이지 않습니다. JSON 백업으로 옮긴 뒤 표준 주소만 사용하세요.
+            </Text>
+          )}
+          {hasLocalOnlyWarning && (
+            <Text c="var(--app-state-warning)" size="sm">
+              로컬 전용 작품은 아직 서버 백업이 완료되지 않았습니다. JSON
+              백업을 만들고 백업 대기열을 처리하세요.
+            </Text>
+          )}
+        </SectionCard>
+      )}
       <JsonBackupReminderCard
         feedback={archiveFeedback}
         isExporting={isExportingArchive}

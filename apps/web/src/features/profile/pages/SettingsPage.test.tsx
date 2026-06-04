@@ -378,9 +378,13 @@ describe('SettingsPage', () => {
     expect(screen.getByText('백업 대기 3개')).toBeInTheDocument();
     expect(
       screen.getByText(
-        '전체 3개 · 직접 확인 1개 · 실패 1개 · 자동 병합 후 재시도 0개',
+        '전체 3개 · 직접 확인 1개 · 실패 1개 · 자동 병합 후 재시도 0개 · 로컬 전용 작품 3개',
       ),
     ).toBeInTheDocument();
+    expect(screen.getByText('스토리지 진단')).toBeInTheDocument();
+    expect(screen.getByText('백업 전 작품 있음')).toBeInTheDocument();
+    expect(screen.getAllByText('work-archive-db-user-user-1')).toHaveLength(2);
+    expect(screen.getByText('3개')).toBeInTheDocument();
     expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 

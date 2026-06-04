@@ -33,7 +33,7 @@ npm run dev
 
 기본 엔드포인트:
 
-- Web: http://localhost:5173
+- Web: http://localhost:18730
 - API health: http://localhost:18731/health
 - Swagger: http://localhost:18731/docs
 
