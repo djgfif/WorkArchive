@@ -1,5 +1,13 @@
 import type { ReactNode, RefObject } from 'react';
-import { Checkbox, Grid, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import {
+  Checkbox,
+  Grid,
+  NativeSelect,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
 
 import { SegmentedChoiceGroup } from './ArchiveComponents';
 import {
@@ -8,7 +16,11 @@ import {
 } from './add-work-form.types';
 import { WorkGenreSelector } from './WorkGenreSelector';
 import type { WorkFormValues } from '../utils/work-form';
-import { workStatusOptions, workTypeOptions } from '../utils/work-options';
+import {
+  serialStatusOptions,
+  workStatusOptions,
+  workTypeOptions,
+} from '../utils/work-options';
 
 interface WorkFormBasicInfoStepProps {
   genreValues: string[];
@@ -88,6 +100,15 @@ export function WorkFormBasicInfoStep({
           onChange={onStatusChange}
           options={workStatusOptions}
           value={values.status}
+        />
+        <NativeSelect
+          aria-label="연재 상태"
+          data={[{ value: '', label: '미정' }, ...serialStatusOptions]}
+          description="작품 자체의 공급 상태 (완결/연재 중/휴재)"
+          label="연재 상태"
+          name="serialStatus"
+          onChange={onInputChange}
+          value={values.serialStatus}
         />
       </SimpleGrid>
 

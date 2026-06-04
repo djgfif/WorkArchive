@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { toPng } from 'html-to-image';
 import { useParams } from 'react-router-dom';
 
 import type { TierBoardCardRecord } from '@work-archive/shared-types';
 import {
   AppBadge,
+  AppButton,
   AppLinkButton,
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
@@ -15,6 +17,12 @@ import { cn } from '@shared/utils/class-names';
 
 const css = styles;
 
+const visibilityLabels: Record<string, string> = {
+  private: '비공개',
+  link_only: '링크 공유',
+  exported: '내보냄',
+};
+
 function getCardsForLane(cards: TierBoardCardRecord[], laneId: string | null) {
   return cards
     .filter((card) => card.laneId === laneId)
@@ -24,6 +32,35 @@ function getCardsForLane(cards: TierBoardCardRecord[], laneId: string | null) {
 export function TierBoardViewPage() {
   const { boardId } = useParams();
   const [state, setState] = useState<TierBoardEditorState | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  async function handleExport() {
+    if (!canvasRef.current) {
+      return;
+    }
+
+    try {
+      setExporting(true);
+      setExportError(null);
+      const dataUrl = await toPng(canvasRef.current, {
+        backgroundColor: '#0c0b0a',
+        cacheBust: true,
+        pixelRatio: 2,
+      });
+      const link = document.createElement('a');
+      link.download = `${state?.board.title ?? 'tier-board'}-티어표.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch {
+      setExportError(
+        '이미지 내보내기에 실패했습니다. 외부 표지 이미지가 포함된 경우 보안 정책으로 일부가 빠질 수 있습니다.',
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
 
   useEffect(() => {
     if (!boardId) return;
@@ -71,7 +108,10 @@ export function TierBoardViewPage() {
             <Title order={1} size="h2">
               {state.board.title}
             </Title>
-            <AppBadge tone="muted">{state.board.visibility}</AppBadge>
+            <AppBadge tone="muted">
+              {visibilityLabels[state.board.visibility] ??
+                state.board.visibility}
+            </AppBadge>
           </Group>
           {state.board.description && (
             <Text c="dimmed" size="sm">
@@ -79,12 +119,26 @@ export function TierBoardViewPage() {
             </Text>
           )}
         </Stack>
-        <AppLinkButton to={`/tier-boards/${boardId}`} tone="secondary">
-          편집
-        </AppLinkButton>
+        <Group gap="xs">
+          <AppButton
+            loading={exporting}
+            onClick={() => void handleExport()}
+            tone="primary"
+            type="button"
+          >
+            이미지로 내보내기
+          </AppButton>
+          <AppLinkButton to={`/tier-boards/${boardId}`} tone="secondary">
+            편집
+          </AppLinkButton>
+        </Group>
       </Group>
 
-      <Paper className={cn(css.canvas)} p={0}>
+      {exportError && (
+        <FeedbackMessage tone="error">{exportError}</FeedbackMessage>
+      )}
+
+      <Paper className={cn(css.canvas)} p={0} ref={canvasRef}>
         {state.lanes.map((lane) => (
           <div className={cn(css.lane)} key={lane.id}>
             <Stack className={cn(css.laneHeader)} gap="sm" p="md">

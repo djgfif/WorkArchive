@@ -11,6 +11,7 @@ import {
   buildGenreFilterOptions,
   buildStatusFilterOptions,
   identityPresetOptions,
+  serialStatusFilterOptions,
 } from '../utils/works-toolbar-state';
 import { cn } from '@shared/utils/class-names';
 
@@ -251,11 +252,26 @@ export function AdvancedFiltersPanel({
           </FilterSection>
 
           <FilterSection title="기록 상태">
-            <RecordStateFilters
-              onQueryChange={onQueryChange}
-              query={query}
-              statusOptions={statusFilterOptions}
-            />
+            <Stack gap="md">
+              <RecordStateFilters
+                onQueryChange={onQueryChange}
+                query={query}
+                statusOptions={statusFilterOptions}
+              />
+              <Stack gap="xs">
+                <Text c="var(--app-text-muted)" fw={700} size="xs">
+                  연재 상태
+                </Text>
+                <FilterPillGroup
+                  aria-label="연재 상태 필터"
+                  onChange={(serialStatus) =>
+                    onQueryChange({ ...query, serialStatus })
+                  }
+                  options={serialStatusFilterOptions}
+                  value={query.serialStatus ?? 'all'}
+                />
+              </Stack>
+            </Stack>
           </FilterSection>
 
           <FilterSection title="등록 방식">

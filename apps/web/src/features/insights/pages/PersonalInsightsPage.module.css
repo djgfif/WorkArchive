@@ -45,3 +45,131 @@
 .workLink:hover {
   color: var(--app-accent-primary);
 }
+
+/* ── 별점 히스토그램 ─────────────────────────────────────────────────────── */
+.histogram {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(4px, 1vw, 10px);
+  height: 168px;
+  padding-top: 0.5rem;
+}
+
+.histColumn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  border-radius: var(--mantine-radius-sm);
+  transition: background var(--wa-motion-fast);
+}
+
+.histColumn:hover {
+  background: var(--app-surface-hero);
+}
+
+.histCount {
+  height: 1.1em;
+  line-height: 1;
+  font-size: var(--app-type-meta);
+  font-weight: 800;
+  color: var(--app-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.histBarWrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.histBar {
+  width: min(72%, 26px);
+  min-height: 3px;
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(
+    180deg,
+    var(--app-accent-strong),
+    var(--app-accent-primary)
+  );
+  transition: height var(--wa-motion-slow) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.histBar[data-empty='true'] {
+  background: var(--app-border-subtle);
+}
+
+.histLabel {
+  font-size: var(--app-type-meta);
+  color: var(--app-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 매체 도넛 ───────────────────────────────────────────────────────────── */
+.donutWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.donutCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.donutTotal {
+  font-size: 1.5rem;
+  font-weight: 850;
+  line-height: 1;
+  color: var(--app-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.donutTotalLabel {
+  font-size: var(--app-type-meta);
+  color: var(--app-text-muted);
+}
+
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.3rem;
+  border-radius: var(--mantine-radius-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--wa-motion-fast);
+}
+
+.legendRow:hover {
+  background: var(--app-surface-hero);
+}
+
+.legendSwatch {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.legendLabel {
+  flex: 1;
+  font-size: var(--app-type-caption);
+  font-weight: 700;
+  color: var(--app-text-secondary);
+}
+
+.legendValue {
+  font-size: var(--app-type-meta);
+  color: var(--app-text-muted);
+  font-variant-numeric: tabular-nums;
+}

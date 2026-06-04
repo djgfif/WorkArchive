@@ -20,6 +20,11 @@ import {
 } from '@shared/components/AppPrimitives';
 import { getUserAvatarProfile, useAuthSession } from '@features/auth';
 import { SyncSafetyBadge } from '@features/sync';
+import {
+  CommandPalette,
+  COMMAND_PALETTE_EVENT,
+} from '@shared/components/CommandPalette';
+import { useWorkLinkKeyboardNav } from '@shared/components/useWorkLinkKeyboardNav';
 import { getPrimaryNavigationItems } from './navigation';
 import styles from './MainProductLayout.module.css';
 import { cn } from '@shared/utils/class-names';
@@ -30,6 +35,7 @@ export function MainProductLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpened, mobileMenu] = useDisclosure(false);
+  useWorkLinkKeyboardNav();
   const { isLoading, mode, signOut, user } = useAuthSession();
   const isAuthenticated = mode === 'authenticated';
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
@@ -83,6 +89,31 @@ export function MainProductLayout() {
 
           {/* 우측 액션 */}
           <div className={cn(css.topnavActions)}>
+            <Box
+              aria-label="명령 팔레트 열기 (Ctrl+K)"
+              component="button"
+              onClick={() =>
+                window.dispatchEvent(new Event(COMMAND_PALETTE_EVENT))
+              }
+              type="button"
+              visibleFrom="sm"
+              style={{
+                alignItems: 'center',
+                background: 'transparent',
+                border: '1px solid var(--app-border-default)',
+                borderRadius: 'var(--mantine-radius-md)',
+                color: 'var(--app-text-secondary)',
+                cursor: 'pointer',
+                display: 'flex',
+                fontSize: 'var(--app-type-meta)',
+                fontWeight: 750,
+                gap: '0.3rem',
+                letterSpacing: '0.02em',
+                padding: '0.32rem 0.55rem',
+              }}
+            >
+              <span aria-hidden="true">⌘K</span>
+            </Box>
             <Box visibleFrom="sm">
               <SyncSafetyBadge />
             </Box>
@@ -339,6 +370,8 @@ export function MainProductLayout() {
           )}
         </Stack>
       </Drawer>
+
+      <CommandPalette />
     </div>
   );
 }

@@ -58,3 +58,7 @@ export {
   getPersonalTags,
   type WorkCollectionSummary,
 } from './utils/graph-tags';
+export {
+  getProgressPercent,
+  getWorkContinueLabel,
+} from './utils/work-list-row-state';

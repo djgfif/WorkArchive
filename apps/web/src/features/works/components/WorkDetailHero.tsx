@@ -5,6 +5,7 @@ import type { WorkRecord } from '@work-archive/shared-types';
 import { ActionRow, SectionCard } from '@shared/components/AppPrimitives';
 import { formatWorkDate, formatWorkUpdatedAt } from '../utils/work-options';
 import { ProgressDisplay, WorkPoster } from './ArchiveComponents';
+import { SerialStatusBadge } from './SerialStatusBadge';
 import styles from './ArchiveComponents.module.css';
 import type { WorkDetailTimelineItem } from '../utils/work-detail-timeline';
 import { cn } from '@shared/utils/class-names';
@@ -64,6 +65,16 @@ export function WorkDetailHero({
             <Text fw={800} size="sm">
               {statusLabel}
             </Text>
+            {work.serialStatus && (
+              <>
+                <Box
+                  aria-hidden="true"
+                  className={cn(css.detailHeroMetaDivider)}
+                  component="span"
+                />
+                <SerialStatusBadge serialStatus={work.serialStatus} />
+              </>
+            )}
             {work.favorite && (
               <>
                 <Box

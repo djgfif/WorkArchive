@@ -1,4 +1,5 @@
 import type {
+  SerialStatus,
   WorkImportDraft,
   WorkRecord,
   WorkStatus,
@@ -27,6 +28,7 @@ export interface WorkFormValues {
   description: string;
   thumbnailUrl: string;
   status: WorkStatus;
+  serialStatus: string;
   rating: string;
   shortReview: string;
   review: string;
@@ -48,6 +50,7 @@ export interface UpsertWorkInput {
   description: string;
   thumbnailUrl: string;
   status: WorkStatus;
+  serialStatus?: SerialStatus | null;
   rating: number | null;
   shortReview: string;
   review: string;
@@ -75,6 +78,7 @@ export function createDefaultWorkFormValues(): WorkFormValues {
     description: '',
     thumbnailUrl: '',
     status: 'planned',
+    serialStatus: '',
     rating: '',
     shortReview: '',
     review: '',
@@ -166,6 +170,7 @@ export function createWorkFormValuesFromRecord(
     description: work.description,
     thumbnailUrl: work.thumbnailUrl,
     status: work.status,
+    serialStatus: work.serialStatus ?? '',
     rating: work.rating?.toString() ?? '',
     shortReview: work.shortReview,
     review: work.review,
@@ -191,6 +196,7 @@ export function createUpsertWorkInputFromRecord(
     description: work.description,
     thumbnailUrl: work.thumbnailUrl,
     status: work.status,
+    serialStatus: work.serialStatus ?? null,
     rating: work.rating,
     shortReview: work.shortReview,
     review: work.review,
@@ -315,6 +321,9 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
     description: values.description.trim(),
     thumbnailUrl: values.thumbnailUrl.trim(),
     status: values.status,
+    serialStatus: values.serialStatus
+      ? (values.serialStatus as SerialStatus)
+      : null,
     rating: parsedRating,
     shortReview: values.shortReview.trim(),
     review: values.review.trim(),

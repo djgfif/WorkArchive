@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 
 import { ActionRow, AppButton } from '@shared/components/AppPrimitives';
 import { WorkPoster } from './ArchiveComponents';
+import { SerialStatusBadge } from './SerialStatusBadge';
 import styles from './ArchiveComponents.module.css';
 import { getWorkListMetaLine } from '../utils/work-list-row-state';
 import { cn } from '@shared/utils/class-names';
@@ -65,6 +66,12 @@ export function WorkListRowSummary({
             <Text c="dimmed" lineClamp={1} size="xs">
               {work.author.trim()}
             </Text>
+          )}
+
+          {work.serialStatus && (
+            <Group gap={6}>
+              <SerialStatusBadge serialStatus={work.serialStatus} />
+            </Group>
           )}
 
           <Text

@@ -1,14 +1,16 @@
 /**
- * Work Archive — Mantine Theme v4.0.0
- * "Archive Cinema" — Netflix · Letterboxd · Ridi 수준의 콘텐츠 플랫폼 다크 UI
+ * Work Archive — Mantine Theme v5.0.0
+ * "Vellum Index" — 조용한 개인 기록 보관소(Quiet Archive): 차분하고 밀도 있고 전문적인 다크 UI
+ * 디자인 철학: docs/design/VELLUM_INDEX_PHILOSOPHY.md
  *
  * 설계 원칙
  * ─────────────────────────────────────────────────────────────────────────────
- * 1. 콘텐츠 우선: 포스터·커버가 주인공, UI는 프레임
- * 2. 따뜻한 다크: 차가운 네이비 → 따뜻한 흑갈 (영화관·고급 서점 야경)
- * 3. 골드 정체성: 기술 블루 → 에디토리얼 골드 (책 표지, 별점, 품질 감각)
- * 4. 강한 위계: 제목과 본문의 명확한 무게 대비
- * 5. 모션: spring 곡선 — 빠른 응답, 자연스러운 감속
+ * 1. 콘텐츠 우선: 표지·기록이 주인공, UI는 카드함의 서랍처럼 물러난다
+ * 2. 따뜻한 다크: 차가운 네이비 → 따뜻한 흑갈 (등불 아래 서가·황동 카드함)
+ * 3. 골드 정체성: 기술 블루 → 에디토리얼 골드 (책등의 금박, 별점, 품질 감각) — 귀금속처럼 절제
+ * 4. 강한 위계: 기념비적 제목 → 작고 정밀한 라벨·참조 코드, 그 사이의 침묵
+ * 5. 절제된 깊이: 그림자가 아니라 surface 명도 + hairline 테두리로 깊이를 만든다
+ * 6. 모션: spring 곡선 — 빠른 응답, 자연스러운 감속
  */
 
 import {
@@ -23,11 +25,12 @@ const appFontFamily =
   '"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
 // Vellum Index — 에디토리얼 디스플레이 세리프(기념비적 제목)와 본문 세리프 악센트.
-// 라틴 글리프는 Gloock/Lora, 한글은 Pretendard로 자연스럽게 폴백된다.
+// 라틴 글리프는 Gloock/Lora가, 한글 글리프는 Noto Serif KR(명조)이 받는다.
+// 한글이 주 콘텐츠이므로 명조 폴백이 고딕(Pretendard)보다 앞서야 세리프 정체성이 한국어에서도 살아난다.
 const appDisplayFamily =
-  `Gloock, "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Georgia, serif`;
+  `Gloock, "Noto Serif KR", "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Georgia, serif`;
 const appSerifFamily =
-  `Lora, "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Georgia, serif`;
+  `Lora, "Noto Serif KR", "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Georgia, serif`;
 
 /* ── Archive Gold 팔레트 — 앤틱 브라스 골드, 별점·CTA 강조 ──────────────── */
 const archiveColors: MantineColorsTuple = [
@@ -94,7 +97,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-space-control': '0.75rem',
   },
 
-  /* ── 다크 모드 — 따뜻한 시네마 다크 ── */
+  /* ── 다크 모드 — 따뜻한 서가 다크(등불 아래 원장) ── */
   dark: {
     /* 배경 — 따뜻한 흑갈, 차가운 네이비 제거 */
     '--wa-bg-shell':        '#0c0b0a',

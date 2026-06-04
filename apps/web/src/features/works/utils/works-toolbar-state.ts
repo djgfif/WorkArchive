@@ -1,4 +1,8 @@
-import type { WorkStatus, WorkType } from '@work-archive/shared-types';
+import type {
+  SerialStatus,
+  WorkStatus,
+  WorkType,
+} from '@work-archive/shared-types';
 
 import type {
   WorksIdentityPreset,
@@ -7,7 +11,9 @@ import type {
   WorksSmartFilter,
 } from './query-works';
 import {
+  getSerialStatusLabel,
   getWorkStatusLabel,
+  serialStatusOptions,
   visibleWorkStatusOptions,
   workSortOptions,
   workTypeOptions,
@@ -49,6 +55,11 @@ export const identityPresetOptions: Array<{
   { label: '가져오기', value: 'imported' },
   { label: '카탈로그 연결', value: 'catalogLinked' },
 ];
+
+export const serialStatusFilterOptions: Array<{
+  label: string;
+  value: SerialStatus | 'all';
+}> = [{ label: '전체', value: 'all' }, ...serialStatusOptions];
 
 function getRatingPresetLabel(value: WorksRatingPreset | undefined) {
   return (
@@ -192,6 +203,14 @@ export function buildActiveFilterChips({
           {
             label: getWorkStatusLabel(query.status),
             onRemove: () => onQueryChange({ ...query, status: 'all' }),
+          },
+        ]
+      : []),
+    ...(query.serialStatus && query.serialStatus !== 'all'
+      ? [
+          {
+            label: `연재: ${getSerialStatusLabel(query.serialStatus)}`,
+            onRemove: () => onQueryChange({ ...query, serialStatus: 'all' }),
           },
         ]
       : []),

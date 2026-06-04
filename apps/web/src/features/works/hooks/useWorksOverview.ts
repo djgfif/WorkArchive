@@ -56,6 +56,7 @@ const initialState: WorksOverviewState = {
   statusCounts: {
     planned: 0,
     in_progress: 0,
+    on_hold: 0,
     completed: 0,
     dropped: 0,
   },

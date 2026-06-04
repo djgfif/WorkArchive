@@ -271,11 +271,18 @@ export interface ImportSearchResponse {
 export const WORK_STATUSES = [
   'planned',
   'in_progress',
+  'on_hold',
   'completed',
   'dropped',
 ] as const;
 
 export type WorkStatus = (typeof WORK_STATUSES)[number];
+
+// 작품 자체의 연재(공급) 상태 — 내 진행(WorkStatus)과 직교한 축.
+// 리디/시리즈의 "완결" 뱃지처럼 작품 선택의 핵심 정보다. null = 미정.
+export const SERIAL_STATUSES = ['ongoing', 'completed', 'hiatus'] as const;
+
+export type SerialStatus = (typeof SERIAL_STATUSES)[number];
 
 export const WORK_SYNC_STATUSES = [
   'local-only',
@@ -523,6 +530,7 @@ export interface WorkRecord extends AuditFields {
   description: string;
   thumbnailUrl: string;
   status: WorkStatus;
+  serialStatus?: SerialStatus | null;
   rating: number | null;
   shortReview: string;
   review: string;

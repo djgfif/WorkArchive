@@ -16,6 +16,7 @@ const css = styles;
 const statusDotColor: Record<WorkStatus, string> = {
   planned: 'var(--app-text-muted)',
   in_progress: 'var(--app-accent-secondary)',
+  on_hold: 'var(--app-state-warning)',
   completed: 'var(--app-state-success)',
   dropped: 'var(--app-accent-rose)',
 };

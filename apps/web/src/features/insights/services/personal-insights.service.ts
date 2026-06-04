@@ -163,7 +163,7 @@ export function calculatePersonalInsights(
         ),
       )
       .slice(0, 10),
-    onHoldCount: 0,
+    onHoldCount: statusCounts.on_hold,
     plannedCount: statusCounts.planned,
     ratingDistribution: [...ratingBuckets.entries()]
       .map(([rating, count]) => ({

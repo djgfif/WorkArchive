@@ -1,0 +1,126 @@
+.card {
+  position: relative;
+  padding: 2rem 1.75rem 1.5rem;
+  border-radius: 1.1rem;
+  border: 1px solid var(--app-border-default);
+  background:
+    radial-gradient(
+      130% 80% at 50% -10%,
+      rgba(200, 146, 46, 0.2),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #1a1714, #0c0b0a);
+  overflow: hidden;
+}
+
+.eyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--app-accent-primary);
+}
+
+.year {
+  font-family: var(--app-font-display);
+  font-size: 3.4rem;
+  line-height: 1;
+  color: var(--app-text-primary);
+  margin-top: 0.2rem;
+}
+
+.heroStat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.heroNumber {
+  font-family: var(--app-font-display);
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--app-accent-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.heroLabel {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--app-text-secondary);
+}
+
+.subStats {
+  margin-top: 1.25rem;
+}
+
+.statValue {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--app-text-primary);
+}
+
+.statLabel {
+  font-size: 0.72rem;
+  color: var(--app-text-muted);
+}
+
+.section {
+  margin-top: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--app-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.rank {
+  font-family: var(--app-font-mono);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--app-accent-primary);
+  width: 1.2rem;
+  flex-shrink: 0;
+}
+
+.workTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--app-text-primary);
+}
+
+.workRating {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--app-accent-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.typeRow {
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.typeChip {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--app-text-secondary);
+  background: var(--app-surface-subtle);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}
+
+.brand {
+  margin-top: 1.5rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.32em;
+  font-weight: 800;
+  color: var(--app-text-muted);
+  text-align: center;
+}

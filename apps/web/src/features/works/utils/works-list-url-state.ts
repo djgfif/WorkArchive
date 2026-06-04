@@ -1,5 +1,9 @@
-import { WORK_STATUSES, WORK_TYPES } from '@work-archive/shared-types';
-import type { WorkRecord } from '@work-archive/shared-types';
+import {
+  SERIAL_STATUSES,
+  WORK_STATUSES,
+  WORK_TYPES,
+} from '@work-archive/shared-types';
+import type { SerialStatus, WorkRecord } from '@work-archive/shared-types';
 
 import {
   DEFAULT_WORKS_LIST_QUERY,
@@ -20,6 +24,15 @@ function normalizeStatusQueryParam(
     WORK_STATUSES.includes(value as (typeof WORK_STATUSES)[number])
     ? (value as WorksListQuery['status'])
     : DEFAULT_WORKS_LIST_QUERY.status;
+}
+
+function normalizeSerialStatusQueryParam(
+  value: string | null,
+): SerialStatus | 'all' {
+  return value &&
+    SERIAL_STATUSES.includes(value as (typeof SERIAL_STATUSES)[number])
+    ? (value as SerialStatus)
+    : 'all';
 }
 
 function normalizeRatingPresetQueryParam(
@@ -124,6 +137,7 @@ export function getQueryFromSearchParams(
         ? sortDirectionFromUrl
         : getDefaultSortDirection(sortBy),
     status: normalizeStatusQueryParam(statusFromUrl),
+    serialStatus: normalizeSerialStatusQueryParam(searchParams.get('serial')),
     type:
       typeFromUrl &&
       WORK_TYPES.includes(typeFromUrl as (typeof WORK_TYPES)[number])
@@ -155,6 +169,9 @@ export function buildSearchParams(
   }
   if (query.genre?.trim()) nextSearchParams.set('genre', query.genre.trim());
   if (query.status !== 'all') nextSearchParams.set('status', query.status);
+  if ((query.serialStatus ?? 'all') !== 'all') {
+    nextSearchParams.set('serial', query.serialStatus ?? 'all');
+  }
   if (query.rating !== null) nextSearchParams.set('rating', query.rating.toString());
   if (query.rating === null && (query.ratingPreset ?? 'all') !== 'all') {
     nextSearchParams.set('ratingPreset', query.ratingPreset ?? 'all');
@@ -196,6 +213,7 @@ export function hasActiveWorksListFilters(query: WorksListQuery) {
     (query.identityPreset ?? 'all') !== 'all' ||
     query.type !== 'all' ||
     query.status !== 'all' ||
+    (query.serialStatus ?? 'all') !== 'all' ||
     query.sortBy !== 'updatedAt' ||
     (query.sortDirection ?? getDefaultSortDirection(query.sortBy)) !==
       getDefaultSortDirection(query.sortBy)

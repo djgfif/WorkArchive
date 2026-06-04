@@ -1,7 +1,9 @@
 import {
+  type SerialStatus,
   type WorkStatus,
   type WorkSyncStatus,
   type WorkType,
+  SERIAL_STATUSES,
   WORK_TYPES,
 } from '@work-archive/shared-types';
 
@@ -22,6 +24,7 @@ const workTypeLabels: Record<WorkType, string> = {
 const workStatusLabels: Record<WorkStatus, string> = {
   planned: '볼 예정',
   in_progress: '보는 중',
+  on_hold: '보류',
   completed: '완료',
   dropped: '하차',
 };
@@ -29,6 +32,7 @@ const workStatusLabels: Record<WorkStatus, string> = {
 export const visibleWorkStatuses = [
   'planned',
   'in_progress',
+  'on_hold',
   'completed',
   'dropped',
 ] as const satisfies readonly WorkStatus[];
@@ -71,6 +75,21 @@ export function getWorkTypeLabel(value: WorkType) {
 
 export function getWorkStatusLabel(value: WorkStatus) {
   return workStatusLabels[value];
+}
+
+const serialStatusLabels: Record<SerialStatus, string> = {
+  ongoing: '연재 중',
+  completed: '완결',
+  hiatus: '휴재',
+};
+
+export const serialStatusOptions = SERIAL_STATUSES.map((value) => ({
+  value,
+  label: serialStatusLabels[value],
+}));
+
+export function getSerialStatusLabel(value: SerialStatus) {
+  return serialStatusLabels[value];
 }
 
 export function getWorkSyncStatusLabel(value: WorkSyncStatus) {

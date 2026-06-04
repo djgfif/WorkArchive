@@ -77,6 +77,7 @@ function buildEmptyStatusCounts(): Record<WorkStatus, number> {
     completed: 0,
     dropped: 0,
     in_progress: 0,
+    on_hold: 0,
     planned: 0,
   };
 }
@@ -267,6 +268,7 @@ export class WorksService {
       genres: normalizedTaxonomy.genres,
       catalogTitleId: input.catalogTitleId ?? null,
       importDraft: input.importDraft ?? null,
+      serialStatus: input.serialStatus ?? null,
       personalTags: getPersonalTags(normalizedTaxonomy.personalTags),
       createdAt: now,
       updatedAt: now,
@@ -327,6 +329,7 @@ export class WorksService {
       completedAt: input.completedAt ?? null,
       droppedAt: input.droppedAt ?? null,
       lastConsumedAt: input.lastConsumedAt ?? null,
+      serialStatus: input.serialStatus ?? existing.serialStatus ?? null,
       updatedAt: new Date().toISOString(),
       syncStatus: getNextSyncStatus(existing.serverVersion),
     };

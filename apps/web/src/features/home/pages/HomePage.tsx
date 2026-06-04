@@ -20,6 +20,8 @@ import {
   ArchiveSearchBar,
   WorkPoster,
   useWorksOverview,
+  getProgressPercent,
+  getWorkContinueLabel,
   getWorkStatusLabel,
   getWorkTypeLabel,
 } from '@features/works';
@@ -57,11 +59,29 @@ function pickContinueWorks(
 }
 
 /* ── 선반 포스터 카드 ──────────────────────────────────────────────────────── */
-function ShelfPosterCard({ work }: { work: WorkRecord }) {
+function ShelfPosterCard({
+  showProgress = false,
+  work,
+}: {
+  showProgress?: boolean;
+  work: WorkRecord;
+}) {
+  const continueLabel = showProgress ? getWorkContinueLabel(work) : null;
+  const progressPercent = showProgress ? getProgressPercent(work) : null;
+  const footerPrefix =
+    work.status === 'in_progress'
+      ? '이어보기'
+      : getWorkStatusLabel(work.status);
+  const footerText = continueLabel
+    ? `${footerPrefix} · ${continueLabel}`
+    : footerPrefix;
+
   return (
     <div className={css.shelfItem}>
       <Link
-        aria-label={`${work.title} 열기`}
+        aria-label={
+          showProgress ? `${work.title} — ${footerText}` : `${work.title} 열기`
+        }
         className={css.shelfCard}
         to={`/works/${work.id}`}
       >
@@ -88,6 +108,24 @@ function ShelfPosterCard({ work }: { work: WorkRecord }) {
             </div>
           </div>
         </div>
+        {showProgress && (
+          <div className={css.shelfProgress}>
+            {progressPercent !== null && (
+              <div className={css.shelfProgressTrack} aria-hidden="true">
+                <div
+                  className={css.shelfProgressFill}
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            )}
+            <span className={css.shelfProgressLabel}>
+              <span className={css.shelfProgressGlyph} aria-hidden="true">
+                ▸
+              </span>
+              {footerText}
+            </span>
+          </div>
+        )}
       </Link>
     </div>
   );
@@ -97,11 +135,18 @@ function ShelfPosterCard({ work }: { work: WorkRecord }) {
 interface ShelfSectionProps {
   eyebrow?: string;
   href: string;
+  showProgress?: boolean;
   title: string;
   works: WorkRecord[];
 }
 
-function ShelfSection({ eyebrow, href, title, works }: ShelfSectionProps) {
+function ShelfSection({
+  eyebrow,
+  href,
+  showProgress = false,
+  title,
+  works,
+}: ShelfSectionProps) {
   if (works.length === 0) return null;
 
   return (
@@ -122,7 +167,7 @@ function ShelfSection({ eyebrow, href, title, works }: ShelfSectionProps) {
       <div className={css.shelfTrack} role="list" aria-label={`${title} 선반`}>
         {works.map((work) => (
           <div key={work.id} role="listitem">
-            <ShelfPosterCard work={work} />
+            <ShelfPosterCard showProgress={showProgress} work={work} />
           </div>
         ))}
       </div>
@@ -243,9 +288,11 @@ function ActivityStrip({ works }: { works: WorkRecord[] }) {
                     ? 'success'
                     : work.status === 'in_progress'
                       ? 'info'
-                      : work.status === 'dropped'
-                        ? 'error'
-                        : 'muted'
+                      : work.status === 'on_hold'
+                        ? 'warning'
+                        : work.status === 'dropped'
+                          ? 'error'
+                          : 'muted'
                 }
               >
                 {getWorkStatusLabel(work.status)}
@@ -497,6 +544,7 @@ export function HomePage() {
             <ShelfSection
               eyebrow="이어보기"
               href="/works?status=in_progress"
+              showProgress
               title="이어볼 작품"
               works={continueWorks}
             />

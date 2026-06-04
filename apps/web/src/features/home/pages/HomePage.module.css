@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Home Page — Cinema Shelf v4.0
-   Netflix × Letterboxd × Ridi 스타일 콘텐츠 우선 레이아웃
+   Home Page — Quiet Archive 홈 (Vellum Index)
+   조용한 서가: 이어볼 한 줄(절제된 가로 선반)과 세로 인덱스로 회고하는 레이아웃
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── 페이지 래퍼 — 풀 와이드 ─────────────────────────────────────────────── */
@@ -103,7 +103,7 @@
 }
 
 /* ── 선반(Shelf) 섹션 ────────────────────────────────────────────────────
-   Netflix 스타일 가로 스크롤 선반
+   "이어볼 작품"을 위한 절제된 가로 스크롤 선반 (등불 아래 책등을 훑듯)
    ─────────────────────────────────────────────────────────────────────────── */
 .shelf {
   padding-block: clamp(1rem, 2vw, 1.5rem) 0;
@@ -182,7 +182,7 @@
   scroll-snap-align: start;
 }
 
-/* ── 선반 포스터 카드 — Netflix 호버 스케일 ─────────────────────────────── */
+/* ── 선반 포스터 카드 — 절제된 호버 lift ─────────────────────────────────── */
 .shelfCard {
   position: relative;
   display: block;
@@ -274,6 +274,47 @@
   white-space: nowrap;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
+}
+
+/* ── 이어보기 푸터 — "이어볼 작품" 선반에서만 노출(up-next) ───────────────── */
+.shelfProgress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  margin-top: 0.5rem;
+  padding-inline: 0.1rem;
+}
+
+.shelfProgressTrack {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--app-border-subtle);
+  overflow: hidden;
+}
+
+.shelfProgressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--app-accent-primary);
+  transition: width var(--wa-motion-normal);
+}
+
+.shelfProgressLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--app-type-meta);
+  font-weight: 700;
+  color: var(--app-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shelfProgressGlyph {
+  flex-shrink: 0;
+  color: var(--app-accent-primary);
 }
 
 /* ── 섹션 구분 ────────────────────────────────────────────────────────────── */

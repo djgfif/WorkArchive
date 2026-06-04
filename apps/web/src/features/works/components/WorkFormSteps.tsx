@@ -20,6 +20,7 @@ import { WorkFormSeriesRelationStep } from './WorkFormSeriesRelationStep';
 import { parseCommaSeparatedTextList } from '../utils/work-form';
 import { getWorkMediaFieldLabels } from '../utils/work-media-labels';
 import { normalizeWorkGenres } from '../utils/work-genres';
+import { WEB_NOVEL_KEYWORDS } from '../utils/web-novel-keywords';
 
 interface WorkFormStepNavigationProps {
   activeStep: number;
@@ -100,7 +101,9 @@ export function WorkFormSteps({
     new Set(personContributorSuggestions),
   );
   const uniqueSeriesSuggestions = Array.from(new Set(seriesSuggestions));
-  const uniqueTagSuggestions = Array.from(new Set(tagSuggestions));
+  const uniqueTagSuggestions = Array.from(
+    new Set([...tagSuggestions, ...WEB_NOVEL_KEYWORDS]),
+  );
   const shouldShowStudioField =
     mediaLabels.showStudioField || studioValues.length > 0;
 

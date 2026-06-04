@@ -16,6 +16,7 @@ import { WorksListEmptyState } from '../components/WorksListEmptyState';
 import { WorksListErrorState } from '../components/WorksListErrorState';
 import { WorksListFeedback } from '../components/WorksListFeedback';
 import { WorksListPageHeader } from '../components/WorksListPageHeader';
+import { SavedWorksViews } from '../components/SavedWorksViews';
 import type { WorkQuickProgressUpdate } from '../components/WorkListRow';
 import { WorksToolbar } from '../components/WorksToolbar';
 import { WorksTrashList } from '../components/WorksTrashList';
@@ -206,6 +207,8 @@ export function WorksListPage() {
           totalDeletedCount={totalDeletedCount}
         />
       )}
+
+      {!error && !isTrashScope && <SavedWorksViews />}
 
       <WorksToolbar
         collectionScope={collectionScope}

@@ -34,6 +34,7 @@ function buildEmptyStatusCounts(): Record<WorkStatus, number> {
     completed: 0,
     dropped: 0,
     in_progress: 0,
+    on_hold: 0,
     planned: 0,
   };
 }

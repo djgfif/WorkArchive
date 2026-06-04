@@ -21,6 +21,7 @@ enum WorkType {
 enum WorkStatus {
   planned
   in_progress
+  on_hold
   completed
   dropped
 }

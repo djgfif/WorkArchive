@@ -17,6 +17,7 @@ import { ProgressDisplay } from './ProgressWidgets';
 import { RatingDisplay } from './RatingControls';
 import { cn, css } from './styles';
 import { WorkPoster } from './WorkPoster';
+import { SerialStatusBadge } from '../SerialStatusBadge';
 
 interface WorkPosterCardProps {
   isUpdating?: boolean;
@@ -67,6 +68,8 @@ function getStatusBadgeTone(status: string): AppBadgeToneValue {
   switch (status) {
     case 'in_progress':
       return 'info';
+    case 'on_hold':
+      return 'warning';
     case 'completed':
       return 'success';
     case 'planned':
@@ -138,6 +141,11 @@ export function WorkPosterCard({
               {work.author.trim()}
             </Text>
           )}
+          {work.serialStatus && (
+            <Group gap={6}>
+              <SerialStatusBadge serialStatus={work.serialStatus} />
+            </Group>
+          )}
           {(work.rating !== null || work.status !== 'planned') && (
             <Text
               c="dimmed"
@@ -180,6 +188,7 @@ export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
               <AppBadge tone={getStatusBadgeTone(work.status)}>
                 {getWorkStatusLabel(work.status)}
               </AppBadge>
+              <SerialStatusBadge serialStatus={work.serialStatus} />
               {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
             </Group>
             <Title lineClamp={1} order={3} size="h4">

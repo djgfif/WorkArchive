@@ -7,12 +7,9 @@ import {
   Text,
   Title,
 } from '@mantine/core';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import type {
-  WorkRecord,
-  WorkStatus,
-  WorkType,
-} from '@work-archive/shared-types';
+import type { WorkRecord, WorkStatus } from '@work-archive/shared-types';
 
 import {
   AppBadge,
@@ -29,6 +26,8 @@ import { getWorkStatusLabel, getWorkTypeLabel } from '@features/works';
 import { usePersonalInsights } from '../hooks/usePersonalInsights';
 import type { PersonalInsights } from '../services/personal-insights.service';
 import styles from './PersonalInsightsPage.module.css';
+import { MediaTypePanel, RatingHistogramPanel } from './InsightsCharts';
+import { YearInReviewModal } from './YearInReviewModal';
 import { cn } from '@shared/utils/class-names';
 
 const css = styles;
@@ -53,16 +52,8 @@ function metricLabel(value: string, count: number) {
   return `${value} ${formatCount(count)}개`;
 }
 
-function buildTypeHref(type: WorkType) {
-  return `/works?type=${encodeURIComponent(type)}`;
-}
-
 function buildStatusHref(status: WorkStatus) {
   return `/works?status=${encodeURIComponent(status)}`;
-}
-
-function buildRatingHref(rating: number) {
-  return `/works?rating=${encodeURIComponent(String(rating))}`;
 }
 
 function buildTagHref(tag: string) {
@@ -254,13 +245,6 @@ function RecentWorksList({
 }
 
 function InsightsContent({ insights }: { insights: PersonalInsights }) {
-  const typeItems = Object.entries(insights.typeCounts).map(
-    ([type, count]) => ({
-      count,
-      label: getWorkTypeLabel(type as WorkType),
-      to: buildTypeHref(type as WorkType),
-    }),
-  );
   const statusItems = Object.entries(insights.statusCounts).map(
     ([status, count]) => ({
       count,
@@ -313,17 +297,17 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
           value={formatCount(insights.reviewEmptyCount)}
         />
         <MetricCard
-          description="현재 상태 모델에는 별도 보류 상태가 없습니다."
-          label="보류 상태"
+          description="잠시 멈춰 둔(보류) 작품입니다. 다시 볼 때 이어서 기록하세요."
+          label="보류"
+          to="/works?status=on_hold"
           value={formatCount(insights.onHoldCount)}
         />
       </SimpleGrid>
 
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
-        <CountPanel
-          emptyLabel="아직 매체별 통계를 만들 작품이 없습니다."
-          items={typeItems}
-          title="매체별 작품"
+        <MediaTypePanel
+          total={insights.totalWorks}
+          typeCounts={insights.typeCounts}
         />
         <CountPanel
           emptyLabel="아직 상태별 통계를 만들 작품이 없습니다."
@@ -332,16 +316,9 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
         />
       </SimpleGrid>
 
-      <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md">
-        <CountPanel
-          emptyLabel="아직 별점을 남긴 작품이 없습니다."
-          items={insights.ratingDistribution.map(({ count, rating }) => ({
-            count,
-            label: `★ ${rating.toFixed(1)}`,
-            to: buildRatingHref(rating),
-          }))}
-          title="별점 분포"
-        />
+      <RatingHistogramPanel distribution={insights.ratingDistribution} />
+
+      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
         <CountPanel
           emptyLabel="아직 개인 태그가 없습니다."
           items={insights.tagCounts.map(({ count, tag }) => ({
@@ -396,6 +373,7 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
 export function PersonalInsightsPage() {
   const { mode } = useAuthSession();
   const { error, insights, isLoading, retry } = usePersonalInsights();
+  const [yearOpen, setYearOpen] = useState(false);
   const archiveModeLabel =
     mode === 'authenticated' ? '인증된 로컬 아카이브' : '게스트 로컬 아카이브';
 
@@ -450,15 +428,29 @@ export function PersonalInsightsPage() {
     <PageShell>
       <PageHeader
         actions={
-          <AppLinkButton to="/works" tone="secondary">
-            작품 목록으로
-          </AppLinkButton>
+          <>
+            <AppButton
+              onClick={() => setYearOpen(true)}
+              tone="primary"
+              type="button"
+            >
+              ✦ 올해의 결산
+            </AppButton>
+            <AppLinkButton to="/works" tone="secondary">
+              작품 목록으로
+            </AppLinkButton>
+          </>
         }
         description="외부 provider를 호출하지 않고 현재 활성 IndexedDB 아카이브에서만 계산한 개인 통계입니다."
         eyebrow={archiveModeLabel}
         meta={<AppBadge tone="accent">Private local-first</AppBadge>}
         title="개인 인사이트"
         titleOrder={1}
+      />
+
+      <YearInReviewModal
+        onClose={() => setYearOpen(false)}
+        opened={yearOpen}
       />
 
       <PageSection

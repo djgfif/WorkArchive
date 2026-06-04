@@ -76,3 +76,28 @@ export function getProgressLabel(work: WorkRecord) {
 export function getWorkListProgressUnit(work: WorkRecord) {
   return work.progressUnit ?? getDefaultProgressUnitForWorkType(work.type);
 }
+
+/**
+ * "이어보기" 칩에 쓰는 짧은 진행 지점 라벨 (유닛 포함).
+ * 예) "127/200화", "12권", 또는 사용자가 적은 마지막 위치.
+ */
+export function getWorkContinueLabel(work: WorkRecord): string | null {
+  const unit = getWorkListProgressUnit(work);
+  const unitLabel = unit ? progressUnitLabels[unit] : '';
+  const current = work.progressCurrent ?? null;
+  const total = work.progressTotal ?? null;
+
+  if (current !== null && total !== null) {
+    return `${current}/${total}${unitLabel}`;
+  }
+
+  if (current !== null) {
+    return `${current}${unitLabel}`;
+  }
+
+  if (work.lastConsumedLabel) {
+    return work.lastConsumedLabel;
+  }
+
+  return null;
+}

@@ -1,6 +1,8 @@
 import {
   Accordion,
+  Box,
   Checkbox,
+  Group,
   Paper,
   SimpleGrid,
   Stack,
@@ -20,6 +22,10 @@ import {
 import styles from './ArchiveComponents.module.css';
 import { parseCommaSeparatedTextList } from '../utils/work-form';
 import { getWorkMediaFieldLabels } from '../utils/work-media-labels';
+import {
+  POPULAR_WEB_NOVEL_KEYWORDS,
+  WEB_NOVEL_KEYWORDS,
+} from '../utils/web-novel-keywords';
 import { cn } from '@shared/utils/class-names';
 
 const css = styles;
@@ -61,7 +67,12 @@ export function AdvancedWorkFields({
     new Set(personContributorSuggestions),
   );
   const uniqueSeriesSuggestions = Array.from(new Set(seriesSuggestions));
-  const uniqueTagSuggestions = Array.from(new Set(tagSuggestions));
+  const uniqueTagSuggestions = Array.from(
+    new Set([...tagSuggestions, ...WEB_NOVEL_KEYWORDS]),
+  );
+  const remainingPopularKeywords = POPULAR_WEB_NOVEL_KEYWORDS.filter(
+    (keyword) => !personalTagValues.includes(keyword),
+  );
   const hasSeriesRelation =
     values.seriesText.trim() !== '' || values.universeText.trim() !== '';
   const [isSeriesWork, setIsSeriesWork] = useState(hasSeriesRelation);
@@ -245,6 +256,30 @@ export function AdvancedWorkFields({
                   splitChars={[',']}
                   value={personalTagValues}
                 />
+
+                {remainingPopularKeywords.length > 0 && (
+                  <Group gap={6} wrap="wrap">
+                    <Text c="dimmed" fw={700} size="xs">
+                      추천 키워드
+                    </Text>
+                    {remainingPopularKeywords.map((keyword) => (
+                      <Box
+                        className={cn(css.tagSuggestionChip)}
+                        component="button"
+                        key={keyword}
+                        onClick={() =>
+                          onTextListChange('personalTagsText', [
+                            ...personalTagValues,
+                            keyword,
+                          ])
+                        }
+                        type="button"
+                      >
+                        + {keyword}
+                      </Box>
+                    ))}
+                  </Group>
+                )}
 
                 <Textarea
                   id={getFieldId(idPrefix, 'review')}

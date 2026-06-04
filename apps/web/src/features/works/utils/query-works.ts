@@ -1,4 +1,9 @@
-import type { WorkRecord, WorkStatus, WorkType } from '@work-archive/shared-types';
+import type {
+  SerialStatus,
+  WorkRecord,
+  WorkStatus,
+  WorkType,
+} from '@work-archive/shared-types';
 
 import {
   CONTRIBUTOR_GRAPH_TAG_KINDS,
@@ -43,6 +48,7 @@ export interface WorksListQuery {
   tag?: string;
   type: WorkType | 'all';
   status: WorkStatus | 'all';
+  serialStatus?: SerialStatus | 'all';
   sortBy: WorksSortOption;
   sortDirection?: WorksSortDirection;
 }
@@ -68,6 +74,7 @@ export const DEFAULT_WORKS_LIST_QUERY: WorksListQuery = {
   tag: '',
   type: 'all',
   status: 'all',
+  serialStatus: 'all',
   sortBy: 'updatedAt',
   sortDirection: 'desc',
 };
@@ -299,6 +306,17 @@ function matchesStatus(work: WorkRecord, status: WorkStatus | 'all') {
   return work.status === status;
 }
 
+function matchesSerialStatus(
+  work: WorkRecord,
+  serialStatus: SerialStatus | 'all' | undefined,
+) {
+  if (!serialStatus || serialStatus === 'all') {
+    return true;
+  }
+
+  return work.serialStatus === serialStatus;
+}
+
 function matchesRatingPreset(
   work: WorkRecord,
   ratingPreset: WorksRatingPreset,
@@ -456,6 +474,10 @@ export function queryWorks(
     }
 
     if (!matchesStatus(work, query.status)) {
+      return [];
+    }
+
+    if (!matchesSerialStatus(work, query.serialStatus)) {
       return [];
     }
 
