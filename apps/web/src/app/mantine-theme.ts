@@ -116,7 +116,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     /* 텍스트 — 따뜻한 화이트 */
     '--wa-text-primary':    '#f5f0e8',
     '--wa-text-secondary':  '#a09080',
-    '--wa-text-muted':      '#5c5048',
+    '--wa-text-muted':      '#8f7d6d', /* 셸 대비 ≈5:1 (이전 #5c5048 ≈2.7:1, AA 미달) */
     '--wa-text-disabled':   '#302a24',
 
     /* 악센트 — 골드 주도, 블루 보조 (가이드 5.1 절제된 accent) */
@@ -192,7 +192,7 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
 
     '--wa-text-primary':    '#1c1512',
     '--wa-text-secondary':  '#4a3c32',
-    '--wa-text-muted':      '#8c7a6e',
+    '--wa-text-muted':      '#756354', /* 셸 대비 ≈5.4:1 (이전 #8c7a6e ≈3.9:1, AA 미달) */
     '--wa-text-disabled':   '#c9bdb5',
 
     '--wa-accent-primary':  '#8a5315',
@@ -251,6 +251,9 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
 
 /* ── Mantine 테마 ─────────────────────────────────────────────────────────── */
 export const appTheme = createTheme({
+  // 골드(archive)는 명도가 높아 채움 버튼에 흰 텍스트를 쓰면 대비가 부족하다(다크 ≈2.8:1).
+  // autoContrast 로 배경 명도에 따라 텍스트 색을 자동 선택해 골드 위에는 잉크 텍스트가 오게 한다.
+  autoContrast: true,
   black: '#0c0b0a',
   colors: {
     archive: archiveColors,

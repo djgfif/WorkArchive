@@ -287,67 +287,8 @@
   transform: scale(1.04);
 }
 
-/* ── 그리드 카드 — 호버 오버레이 ── */
-.posterCardOverlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 0.6rem;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.90) 0%,
-    rgba(0, 0, 0, 0.42) 42%,
-    transparent 68%
-  );
-  opacity: 0;
-  transition: opacity var(--wa-motion-fast);
-  pointer-events: none;
-  border-radius: inherit;
-  z-index: 4;
-}
-
-.posterCardLink:hover .posterCardOverlay,
-.posterCardLink:focus-visible .posterCardOverlay {
-  opacity: 1;
-}
-
-.posterCardOverlayTitle {
-  font-size: 0.78rem;
-  font-weight: 800;
-  color: #fff;
-  line-height: 1.2;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin-bottom: 0.28rem;
-}
-
-.posterCardOverlayMeta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.35rem;
-}
-
-.posterCardOverlayStatus {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.65);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.posterCardOverlayRating {
-  font-size: 0.7rem;
-  font-weight: 850;
-  color: var(--app-accent-primary);
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
+/* 그리드 카드 호버 오버레이는 공용 컴포넌트로 이동:
+   shared/components/PosterHoverOverlay (.posterCardLink에 .poster-card-hover 부여). */
 
 .favoriteMark {
   position: absolute;
@@ -514,6 +455,22 @@
 
 .listRowMain {
   flex: 1 1 32rem;
+}
+
+/* 카탈로그 일련번호 — register처럼 행 앞에 모노스페이스 숫자를 정렬한다(Vellum Index). */
+.listRowIndex {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding-top: 0.55rem;
+  min-width: 2.25ch;
+  font-family: var(--app-font-mono);
+  font-size: var(--app-type-meta);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--app-text-muted);
+  text-align: right;
+  user-select: none;
 }
 
 .listRowControls {
@@ -1498,7 +1455,6 @@
   gap: 1rem;
   padding: clamp(1.5rem, 3vw, 2.5rem) 0 clamp(1rem, 2vw, 1.5rem);
   border-bottom: 1px solid var(--app-border-subtle);
-  margin-bottom: clamp(0.75rem, 1.5vw, 1.25rem);
   flex-wrap: wrap;
 }
 
@@ -1525,6 +1481,34 @@
 .libraryPageMeta strong {
   color: var(--app-text-secondary);
   font-weight: 780;
+}
+
+/* 카운트 세그먼트 버튼 — 클릭 시 상태 필터 적용(홈 stat strip과 일관) */
+.libraryPageMetaButton {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: color var(--wa-motion-fast, 150ms);
+}
+
+.libraryPageMetaButton:hover,
+.libraryPageMetaButton:hover strong,
+.libraryPageMetaButton[data-active='true'],
+.libraryPageMetaButton[data-active='true'] strong {
+  color: var(--app-accent-primary);
+}
+
+.libraryPageMetaButton:focus-visible {
+  outline: 2px solid var(--app-accent-primary);
+  outline-offset: 2px;
 }
 
 .libraryPageDot {

@@ -71,6 +71,24 @@ export function IconX({ size = 12 }: { size?: number }) {
   );
 }
 
+export function IconSort({ size = 13 }: { size?: number }) {
+  return (
+    <svg
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <path d="M7 4v16M7 4 4 7M7 4l3 3" />
+      <path d="M17 20V4M17 20l-3-3M17 20l3 3" />
+    </svg>
+  );
+}
+
 export function IconSortAsc({ size = 13 }: { size?: number }) {
   return (
     <svg

@@ -81,6 +81,25 @@ Host mode endpoints:
 - API health: [http://localhost:18731/health](http://localhost:18731/health)
 - Swagger UI: [http://localhost:18731/docs](http://localhost:18731/docs)
 
+## Local Browser Storage Origin
+
+Use [http://localhost:18730](http://localhost:18730) as the only local web
+origin. IndexedDB is scoped by browser origin, so records created on a different
+port, such as `http://localhost:5173`, do not appear in the `18730` archive.
+
+If old data exists on a legacy local port, export it from that origin and import
+it into the standard app:
+
+```bash
+npm run storage:export-legacy-origin
+```
+
+Then open [http://localhost:5173](http://localhost:5173) in the same browser
+profile that contains the old records, download the JSON backup, and import that
+file from [http://localhost:18730/account/settings](http://localhost:18730/account/settings)
+under **데이터와 백업**. If port `5173` is already occupied, stop the old dev
+server before running the export bridge.
+
 ## Integration Tests
 
 PostgreSQL-backed API integration tests must never reset the normal development

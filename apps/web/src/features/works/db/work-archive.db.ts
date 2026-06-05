@@ -15,6 +15,7 @@ import type {
   WorkSeriesLinkRecord,
   WorkRelationRecord,
 } from '@work-archive/shared-types';
+import { clearPosterImageCache } from '@shared/services/poster-image-cache';
 
 import {
   migratePausedStatusToDropped,
@@ -488,4 +489,5 @@ export async function resetWorkArchiveStorage() {
   knownDatabaseNames.clear();
   knownDatabaseInstances.clear();
   workArchiveDbManager.reset();
+  await clearPosterImageCache();
 }

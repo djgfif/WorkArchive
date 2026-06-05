@@ -1853,6 +1853,39 @@ describe('Auth, works, and sync API (e2e)', () => {
 
     expect(deleteKeyResponse.status).toBe(204);
 
+    const compatibleSaveKeyResponse = await requestJson(
+      '/api/imports/providers/aladin/key',
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          values: {
+            ttbKey: '  test-ttb-key  ',
+          },
+        }),
+      },
+      session.accessToken,
+    );
+
+    expect(compatibleSaveKeyResponse.status).toBe(200);
+    expect(compatibleSaveKeyResponse.body).toEqual({
+      provider: 'aladin',
+      configured: true,
+    });
+
+    await expect(
+      requestJson(
+        '/api/imports/providers/aladin/key',
+        {
+          method: 'DELETE',
+        },
+        session.accessToken,
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        status: 204,
+      }),
+    );
+
     const searchAfterDeleteResponse = await requestJson(
       '/api/imports/search?provider=aladin&query=Dune&type=novel',
       undefined,

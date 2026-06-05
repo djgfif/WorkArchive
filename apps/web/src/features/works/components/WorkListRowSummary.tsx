@@ -13,6 +13,7 @@ const css = styles;
 
 interface WorkListRowSummaryProps {
   editOpen: boolean;
+  index?: number;
   isUpdating: boolean;
   onToggleEdit: () => void;
   progressLabel: string | null;
@@ -23,6 +24,7 @@ interface WorkListRowSummaryProps {
 
 export function WorkListRowSummary({
   editOpen,
+  index,
   isUpdating,
   onToggleEdit,
   progressLabel,
@@ -39,6 +41,11 @@ export function WorkListRowSummary({
         miw={0}
         wrap="nowrap"
       >
+        {typeof index === 'number' && (
+          <span aria-hidden="true" className={cn(css.listRowIndex)}>
+            {String(index + 1).padStart(2, '0')}
+          </span>
+        )}
         <Link
           aria-label={`${work.title} 상세 보기`}
           style={{ flexShrink: 0, display: 'block' }}

@@ -11,6 +11,10 @@ import {
   StateMessage,
 } from '@shared/components/AppPrimitives';
 import {
+  PosterHoverOverlay,
+  POSTER_CARD_HOVER_CLASS,
+} from '@shared/components/PosterHoverOverlay';
+import {
   JsonBackupReminderCard,
   useJsonArchiveExport,
   useJsonBackupReminder,
@@ -82,7 +86,7 @@ function ShelfPosterCard({
         aria-label={
           showProgress ? `${work.title} — ${footerText}` : `${work.title} 열기`
         }
-        className={css.shelfCard}
+        className={`${css.shelfCard} ${POSTER_CARD_HOVER_CLASS}`}
         to={`/works/${work.id}`}
       >
         <div className={css.shelfCardInner}>
@@ -93,20 +97,12 @@ function ShelfPosterCard({
             typeLabel={getWorkTypeLabel(work.type)}
             variant="grid"
           />
-          {/* 호버 오버레이 */}
-          <div className={css.shelfCardOverlay} aria-hidden="true">
-            <p className={css.shelfCardTitle}>{work.title}</p>
-            <div className={css.shelfCardMeta}>
-              <span className={css.shelfCardStatus}>
-                {getWorkStatusLabel(work.status)}
-              </span>
-              {work.rating !== null && (
-                <span className={css.shelfCardRating}>
-                  ★ {work.rating.toFixed(1)}
-                </span>
-              )}
-            </div>
-          </div>
+          {/* 호버 오버레이 — 그리드 카드와 공용 */}
+          <PosterHoverOverlay
+            rating={work.rating}
+            statusLabel={getWorkStatusLabel(work.status)}
+            title={work.title}
+          />
         </div>
         {showProgress && (
           <div className={css.shelfProgress}>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box } from '@mantine/core';
+import { Box, Stack } from '@mantine/core';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
@@ -28,7 +28,6 @@ import {
   getDeletedWorkFromRouteState,
   hasActiveWorksListFilters,
 } from '../utils/works-list-url-state';
-
 
 export function WorksListPage() {
   const location = useLocation();
@@ -85,7 +84,13 @@ export function WorksListPage() {
       replace: true,
       state: null,
     });
-  }, [location.key, location.pathname, location.search, location.state, navigate]);
+  }, [
+    location.key,
+    location.pathname,
+    location.search,
+    location.state,
+    navigate,
+  ]);
 
   async function handleDelete(work: WorkRecord) {
     const shouldDelete = await confirmDialogAdapter.confirm({
@@ -191,103 +196,106 @@ export function WorksListPage() {
   const isTrashScope = collectionScope === 'trash';
 
   return (
-    <Box
-      maw={1440}
-      mx="auto"
-      px={{ base: 'md', sm: 'xl', lg: '2rem' }}
-      pb="xl"
-    >
-      {!error && (
-        <WorksListPageHeader
-          isLoading={isLoading}
-          isTrashScope={isTrashScope}
-          onAddWork={() => setAddDialogOpened(true)}
+    <Box maw={1440} mx="auto" px={{ base: 'md', sm: 'xl', lg: '2rem' }} pb="xl">
+      <Stack gap="md">
+        {!error && (
+          <WorksListPageHeader
+            activeStatus={query.status}
+            isLoading={isLoading}
+            isTrashScope={isTrashScope}
+            onAddWork={() => setAddDialogOpened(true)}
+            onSelectStatus={(status) => handleQueryChange({ ...query, status })}
+            statusCounts={statusCounts}
+            totalActiveCount={totalActiveCount}
+            totalDeletedCount={totalDeletedCount}
+          />
+        )}
+
+        {!error && !isTrashScope && <SavedWorksViews />}
+
+        <WorksToolbar
+          collectionScope={collectionScope}
+          filteredCount={works.length}
+          onClearFilters={handleClearFilters}
+          onCollectionScopeChange={handleCollectionScopeChange}
+          onQueryChange={handleQueryChange}
+          onViewModeChange={handleViewModeChange}
+          query={query}
+          genreSuggestions={genreSuggestions}
+          organizationContributorSuggestions={
+            organizationContributorSuggestions
+          }
+          personContributorSuggestions={personContributorSuggestions}
+          seriesSuggestions={seriesSuggestions}
           statusCounts={statusCounts}
+          tagSuggestions={tagSuggestions}
           totalActiveCount={totalActiveCount}
           totalDeletedCount={totalDeletedCount}
+          typeCounts={typeCounts}
+          viewMode={viewMode}
         />
-      )}
 
-      {!error && !isTrashScope && <SavedWorksViews />}
-
-      <WorksToolbar
-        collectionScope={collectionScope}
-        filteredCount={works.length}
-        onClearFilters={handleClearFilters}
-        onCollectionScopeChange={handleCollectionScopeChange}
-        onQueryChange={handleQueryChange}
-        onViewModeChange={handleViewModeChange}
-        query={query}
-        genreSuggestions={genreSuggestions}
-        organizationContributorSuggestions={organizationContributorSuggestions}
-        personContributorSuggestions={personContributorSuggestions}
-        seriesSuggestions={seriesSuggestions}
-        statusCounts={statusCounts}
-        tagSuggestions={tagSuggestions}
-        totalActiveCount={totalActiveCount}
-        totalDeletedCount={totalDeletedCount}
-        typeCounts={typeCounts}
-        viewMode={viewMode}
-      />
-
-      <JsonBackupReminderCard
-        feedback={jsonArchiveExport.feedback}
-        isExporting={jsonArchiveExport.isExporting}
-        onExportJson={jsonArchiveExport.exportJson}
-        reminder={backupReminder}
-      />
-
-      <WorksListFeedback
-        actionError={actionError}
-        actionSuccess={actionSuccess}
-        deletedNotice={deletedNotice}
-        onDismissDeletedNotice={() => setDeletedNotice(null)}
-        onRestoreDeletedNotice={(work) => void handleRestore(work)}
-        restoringWorkId={restoringWorkId}
-        showDeletedNotice={collectionScope === 'active'}
-      />
-
-      {error && (
-        <WorksListErrorState
-          error={error}
-          onOpenAddDialog={() => setAddDialogOpened(true)}
-          onRetry={retry}
+        <JsonBackupReminderCard
+          feedback={jsonArchiveExport.feedback}
+          isExporting={jsonArchiveExport.isExporting}
+          onExportJson={jsonArchiveExport.exportJson}
+          reminder={backupReminder}
         />
-      )}
 
-      {!error && isLoading && (
-        <ArchiveSkeleton count={collectionScope === 'trash' ? 4 : 10} />
-      )}
-
-      {!error && !isLoading && works.length === 0 && (
-        <WorksListEmptyState
-          collectionScope={collectionScope}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={handleClearFilters}
-          onOpenAddDialog={() => setAddDialogOpened(true)}
-          onReturnToActiveCollection={() => handleCollectionScopeChange('active')}
+        <WorksListFeedback
+          actionError={actionError}
+          actionSuccess={actionSuccess}
+          deletedNotice={deletedNotice}
+          onDismissDeletedNotice={() => setDeletedNotice(null)}
+          onRestoreDeletedNotice={(work) => void handleRestore(work)}
+          restoringWorkId={restoringWorkId}
+          showDeletedNotice={collectionScope === 'active'}
         />
-      )}
 
-      {!error &&
-        !isLoading &&
-        works.length > 0 &&
-        (collectionScope === 'trash' ? (
-          <WorksTrashList
-            onRestore={handleRestore}
-            restoringWorkId={restoringWorkId}
-            works={works}
+        {error && (
+          <WorksListErrorState
+            error={error}
+            onOpenAddDialog={() => setAddDialogOpened(true)}
+            onRetry={retry}
           />
-        ) : (
-          <WorksList
-            onDelete={handleDelete}
-            onQuickProgressUpdate={handleQuickProgressUpdate}
-            onQuickUpdate={handleQuickUpdate}
-            updatingWorkId={updatingWorkId}
-            viewMode={viewMode}
-            works={works}
+        )}
+
+        {!error && isLoading && (
+          <ArchiveSkeleton count={collectionScope === 'trash' ? 4 : 10} />
+        )}
+
+        {!error && !isLoading && works.length === 0 && (
+          <WorksListEmptyState
+            collectionScope={collectionScope}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={handleClearFilters}
+            onOpenAddDialog={() => setAddDialogOpened(true)}
+            onReturnToActiveCollection={() =>
+              handleCollectionScopeChange('active')
+            }
           />
-        ))}
+        )}
+
+        {!error &&
+          !isLoading &&
+          works.length > 0 &&
+          (collectionScope === 'trash' ? (
+            <WorksTrashList
+              onRestore={handleRestore}
+              restoringWorkId={restoringWorkId}
+              works={works}
+            />
+          ) : (
+            <WorksList
+              onDelete={handleDelete}
+              onQuickProgressUpdate={handleQuickProgressUpdate}
+              onQuickUpdate={handleQuickUpdate}
+              updatingWorkId={updatingWorkId}
+              viewMode={viewMode}
+              works={works}
+            />
+          ))}
+      </Stack>
 
       <AddWorkDialog
         onClose={() => setAddDialogOpened(false)}

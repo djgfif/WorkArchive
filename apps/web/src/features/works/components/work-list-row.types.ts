@@ -18,6 +18,8 @@ export interface WorkQuickProgressUpdate {
 }
 
 export interface WorkListRowProps {
+  /** 카탈로그 일련번호(0-based). register처럼 행 앞에 모노스페이스로 표기. */
+  index?: number;
   isLast?: boolean;
   isUpdating: boolean;
   onDelete: (work: WorkRecord) => Promise<void>;

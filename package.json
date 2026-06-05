@@ -20,6 +20,7 @@
     "dev:api": "npm run dev --workspace @work-archive/api",
     "dev:db": "docker compose up -d postgres",
     "dev:db:down": "docker compose stop postgres",
+    "storage:export-legacy-origin": "node scripts/dev/export-legacy-origin.mjs",
     "db:migrate:dev": "npm run prisma:migrate:dev --workspace @work-archive/api",
     "db:migrate:deploy": "npm run prisma:migrate:deploy --workspace @work-archive/api",
     "db:seed": "npm run prisma:seed --workspace @work-archive/api",

@@ -1,0 +1,71 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Poster hover overlay — 그리드/선반 포스터 카드 공용 (Vellum Index)
+   부모 카드(Link 등)에 전역 클래스 `.poster-card-hover` 를 부여하면
+   hover/focus-visible 시 하단 그라디언트 + 메타가 페이드 인 한다.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0.6rem;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.42) 42%,
+    transparent 68%
+  );
+  opacity: 0;
+  transition: opacity var(--wa-motion-fast);
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 4;
+}
+
+:global(.poster-card-hover):hover .overlay,
+:global(.poster-card-hover):focus-visible .overlay {
+  opacity: 1;
+}
+
+.title {
+  margin: 0 0 0.28rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.status {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.65);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rating {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 850;
+  color: var(--app-accent-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    transition: none;
+  }
+}

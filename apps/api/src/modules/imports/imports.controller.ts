@@ -28,6 +28,9 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ALADIN_PROVIDER } from './imports.constants';
+import { assertUserCredentialProvider } from './credentials/import-provider-credentials';
+import { resolveProviderCredentialValuesFromPayload } from './credentials/provider-credential-payload';
 import { ImportCandidateResponseDto } from './dto/import-candidate-response.dto';
 import { ImportProviderKeyTestResponseDto } from './dto/import-provider-key-test-response.dto';
 import { ImportProviderStatusResponseDto } from './dto/import-provider-status-response.dto';
@@ -90,11 +93,16 @@ export class ImportsController {
   })
   saveAladinKey(
     @CurrentUser() user: AuthenticatedUser,
-    @Body() upsertAladinKeyDto: UpsertAladinKeyDto,
+    @Body() upsertAladinKeyDto: unknown,
   ) {
+    const credentialValues = resolveProviderCredentialValuesFromPayload(
+      ALADIN_PROVIDER,
+      upsertAladinKeyDto,
+    );
+
     return this.importsService.saveAladinKey(
       user.userId,
-      upsertAladinKeyDto.ttbKey,
+      credentialValues.ttbKey ?? '',
     );
   }
 
@@ -127,13 +135,19 @@ export class ImportsController {
   })
   saveProviderKey(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('provider') provider: string,
-    @Body() upsertProviderKeyDto: UpsertProviderKeyDto,
+    @Param('provider') providerInput: string,
+    @Body() upsertProviderKeyDto: unknown,
   ) {
+    const provider = assertUserCredentialProvider(providerInput);
+    const credentialValues = resolveProviderCredentialValuesFromPayload(
+      provider,
+      upsertProviderKeyDto,
+    );
+
     return this.importsService.saveProviderKey(
       user.userId,
       provider,
-      upsertProviderKeyDto.values,
+      credentialValues,
     );
   }
 

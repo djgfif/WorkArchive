@@ -1,10 +1,30 @@
-import { fireEvent, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '@test/render-with-providers';
+import { API_BASE_URL, http, HttpResponse, server } from '@test/msw';
+import { getCachedPosterImageObjectUrl } from '@shared/services/poster-image-cache';
 import { ArtworkPoster } from './ArtworkPoster';
 
+const createObjectUrl = vi.fn(() => 'blob:cached-dune');
+const revokeObjectUrl = vi.fn();
+
+Object.defineProperty(URL, 'createObjectURL', {
+  configurable: true,
+  value: createObjectUrl,
+});
+
+Object.defineProperty(URL, 'revokeObjectURL', {
+  configurable: true,
+  value: revokeObjectUrl,
+});
+
 describe('ArtworkPoster', () => {
+  afterEach(() => {
+    createObjectUrl.mockClear();
+    revokeObjectUrl.mockClear();
+  });
+
   it('uses lazy async loading for compact poster variants', () => {
     renderWithProviders(
       <ArtworkPoster
@@ -72,5 +92,54 @@ describe('ArtworkPoster', () => {
     fireEvent.error(screen.getByAltText('Dune 포스터'));
 
     expect(screen.getByLabelText('Dune 포스터 대체 표지')).toBeInTheDocument();
+  });
+
+  it('reuses a locally cached proxy image before trying the external source again', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/image-proxy`, () =>
+        new HttpResponse(new Blob(['poster'], { type: 'image/png' }), {
+          headers: {
+            'content-type': 'image/png',
+          },
+          status: 200,
+        }),
+      ),
+    );
+
+    const { unmount } = renderWithProviders(
+      <ArtworkPoster
+        thumbnailUrl="https://covers.openlibrary.org/b/id/123-L.jpg"
+        title="Dune"
+        variant="row"
+      />,
+    );
+
+    fireEvent.load(screen.getByAltText('Dune 포스터'));
+
+    await waitFor(async () => {
+      await expect(
+        getCachedPosterImageObjectUrl(
+          'https://covers.openlibrary.org/b/id/123-L.jpg',
+        ),
+      ).resolves.toBe('blob:cached-dune');
+    });
+
+    createObjectUrl.mockClear();
+    unmount();
+    renderWithProviders(
+      <ArtworkPoster
+        thumbnailUrl="https://covers.openlibrary.org/b/id/123-L.jpg"
+        title="Dune"
+        variant="row"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Dune 포스터')).toHaveAttribute(
+        'src',
+        'blob:cached-dune',
+      );
+    });
+    expect(createObjectUrl).toHaveBeenCalledTimes(1);
   });
 });

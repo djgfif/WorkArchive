@@ -8,6 +8,10 @@ import {
   AppLinkButton,
 } from '@shared/components/AppPrimitives';
 import {
+  PosterHoverOverlay,
+  POSTER_CARD_HOVER_CLASS,
+} from '@shared/components/PosterHoverOverlay';
+import {
   formatWorkDate,
   getWorkStatusLabel,
   getWorkTypeLabel,
@@ -15,7 +19,7 @@ import {
 import { getPersonalTags } from '../../utils/graph-tags';
 import { ProgressDisplay } from './ProgressWidgets';
 import { RatingDisplay } from './RatingControls';
-import { cn, css } from './styles';
+import { cn, css, cx } from './styles';
 import { WorkPoster } from './WorkPoster';
 import { SerialStatusBadge } from '../SerialStatusBadge';
 
@@ -91,7 +95,7 @@ export function WorkPosterCard({
   return (
     <Link
       aria-label={`${work.title} 상세 보기`}
-      className={cn(css.posterCardLink)}
+      className={cx(cn(css.posterCardLink), POSTER_CARD_HOVER_CLASS)}
       to={`/works/${work.id}`}
     >
       <Paper className={cn(css.posterCardSurface)} withBorder>
@@ -112,19 +116,11 @@ export function WorkPosterCard({
           typeLabel={typeLabel}
           variant="grid"
         />
-        <div aria-hidden="true" className={cn(css.posterCardOverlay)}>
-          <p className={cn(css.posterCardOverlayTitle)}>{work.title}</p>
-          <div className={cn(css.posterCardOverlayMeta)}>
-            <span className={cn(css.posterCardOverlayStatus)}>
-              {getWorkStatusLabel(work.status)}
-            </span>
-            {work.rating !== null && (
-              <span className={cn(css.posterCardOverlayRating)}>
-                ★ {work.rating.toFixed(1)}
-              </span>
-            )}
-          </div>
-        </div>
+        <PosterHoverOverlay
+          rating={work.rating}
+          statusLabel={getWorkStatusLabel(work.status)}
+          title={work.title}
+        />
         {needsCuration && (
           <Box
             aria-hidden="true"

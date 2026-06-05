@@ -8,22 +8,60 @@ import { cn } from '@shared/utils/class-names';
 const css = styles;
 
 interface WorksListPageHeaderProps {
+  activeStatus?: WorkStatus | 'all';
   isLoading: boolean;
   isTrashScope: boolean;
   onAddWork: () => void;
+  onSelectStatus?: (status: WorkStatus | 'all') => void;
   statusCounts: Record<WorkStatus, number>;
   totalActiveCount: number;
   totalDeletedCount: number;
 }
 
 export function WorksListPageHeader({
+  activeStatus,
   isLoading,
   isTrashScope,
   onAddWork,
+  onSelectStatus,
   statusCounts,
   totalActiveCount,
   totalDeletedCount,
 }: WorksListPageHeaderProps) {
+  // 카운트 세그먼트 — onSelectStatus가 있으면 클릭 시 상태 필터를 적용하는 버튼,
+  // 없으면 정적 텍스트. (홈 화면 stat strip과 일관)
+  const renderCount = (
+    label: string,
+    count: number,
+    status: WorkStatus | 'all',
+  ) => {
+    const inner = (
+      <>
+        {label} <strong>{count}개</strong>
+      </>
+    );
+
+    if (!onSelectStatus) {
+      return <span>{inner}</span>;
+    }
+
+    const active = activeStatus === status;
+
+    return (
+      <Box
+        aria-label={`${label} ${count}개로 좁히기`}
+        aria-pressed={active}
+        className={cn(css.libraryPageMetaButton)}
+        component="button"
+        data-active={active ? 'true' : 'false'}
+        onClick={() => onSelectStatus(status)}
+        type="button"
+      >
+        {inner}
+      </Box>
+    );
+  };
+
   return (
     <Box className={cn(css.libraryPageHeader)}>
       <Box>
@@ -32,23 +70,21 @@ export function WorksListPageHeader({
         </Box>
         {!isLoading && !isTrashScope && totalActiveCount > 0 && (
           <Box className={cn(css.libraryPageMeta)}>
-            <span>
-              작품 <strong>{totalActiveCount}개</strong>
-            </span>
+            {renderCount('작품', totalActiveCount, 'all')}
             {statusCounts.in_progress > 0 && (
               <>
                 <span className={cn(css.libraryPageDot)} />
-                <span>
-                  진행 중 <strong>{statusCounts.in_progress}개</strong>
-                </span>
+                {renderCount(
+                  '진행 중',
+                  statusCounts.in_progress,
+                  'in_progress',
+                )}
               </>
             )}
             {statusCounts.completed > 0 && (
               <>
                 <span className={cn(css.libraryPageDot)} />
-                <span>
-                  완료 <strong>{statusCounts.completed}개</strong>
-                </span>
+                {renderCount('완료', statusCounts.completed, 'completed')}
               </>
             )}
             {statusCounts.planned > 0 &&
@@ -56,9 +92,7 @@ export function WorksListPageHeader({
               statusCounts.completed === 0 && (
                 <>
                   <span className={cn(css.libraryPageDot)} />
-                  <span>
-                    볼 예정 <strong>{statusCounts.planned}개</strong>
-                  </span>
+                  {renderCount('볼 예정', statusCounts.planned, 'planned')}
                 </>
               )}
           </Box>

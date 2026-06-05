@@ -121,49 +121,8 @@ textarea {
   align-content: center;
 }
 
-/* ── Product header ───────────────────────────────────────────────────────
-   차분한 관리 도구 헤더: 단색 surface + 얇은 하단 border.
-   glass blur·골드 광택·pill 형태를 제거하고 안정적인 bar 로 통일한다.
-   ─────────────────────────────────────────────────────────────────────────── */
-.product-header {
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  height: var(--topnav-height);
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 1rem;
-  padding: 0 clamp(0.75rem, 2vw, 1.25rem);
-  margin-bottom: clamp(1.25rem, 2.5vw, 2rem);
-  background: var(--app-bg-base, var(--mantine-color-body));
-  border-bottom: 1px solid var(--app-border-subtle, var(--mantine-color-default-border));
-  transition: border-color var(--wa-motion-fast, 150ms);
-}
-
-/* Left: 브랜드 로고 */
-.header-left {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  min-width: 0;
-}
-
-/* Center: 네비게이션 */
-.header-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Right: 프로필 */
-.header-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  min-width: 0;
-}
+/* 실제 제품 헤더는 MainProductLayout.module.css 의 .topnav 가 담당한다.
+   과거 .product-header / .header-* 전역 클래스는 더 이상 참조되지 않아 제거됨. */
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
@@ -230,16 +189,6 @@ textarea {
   .layout-shell {
     padding: 0.75rem;
   }
-
-  .product-header {
-    height: 54px;
-    margin-bottom: 1rem;
-    grid-template-columns: 1fr auto;
-  }
-
-  .header-center {
-    display: none;
-  }
 }
 
 /* ── Reduced motion ──────────────────────────────────────────────────────── */
@@ -256,11 +205,6 @@ textarea {
 
 /* ── 인쇄 ────────────────────────────────────────────────────────────────── */
 @media print {
-  .product-header {
-    position: static;
-    backdrop-filter: none;
-  }
-
   body {
     background: white;
     color: black;
@@ -284,6 +228,19 @@ body {
 .numeric {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
+}
+
+/* ── 에디토리얼 디스플레이 제목 — Vellum Index ──────────────────────────────
+   철학(VELLUM_INDEX_PHILOSOPHY.md): "하나의 기념비적 제목". 기념비급 위계인
+   h1·h2(Mantine <Title order={1|2}>)만 디스플레이 세리프(Gloock / 한글 명조)로
+   세운다. h3 이하 작은 라벨·참조 코드는 본문 고딕을 유지해 위계의 도약을 만든다.
+   ─────────────────────────────────────────────────────────────────────────── */
+h1.mantine-Title-root,
+h2.mantine-Title-root {
+  font-family: var(--app-font-display);
+  /* Gloock는 단일 웨이트(400)이라 무시되고, 한글 명조는 500로 렌더된다.
+     테마 기본 heading weight(780)을 덮어 에디토리얼 톤을 맞춘다. */
+  font-weight: 500 !important;
 }
 
 /* ── 페이지 전환 ──────────────────────────────────────────────────────────── */

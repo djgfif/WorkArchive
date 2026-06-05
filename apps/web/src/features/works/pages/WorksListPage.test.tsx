@@ -96,7 +96,9 @@ describe('WorksListPage', () => {
       },
       { timeout: 5_000 },
     );
-    expect(await screen.findByRole('heading', { name: 'Modal First Work' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Modal First Work' }),
+    ).toBeInTheDocument();
   });
 
   it('shows empty-state actions for direct add, search add, and JSON backup import', async () => {
@@ -115,9 +117,10 @@ describe('WorksListPage', () => {
         name: '아직 기록한 작품이 없습니다.',
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: '직접 추가' }),
-    ).toHaveAttribute('href', '/works/new');
+    expect(screen.getByRole('link', { name: '직접 추가' })).toHaveAttribute(
+      'href',
+      '/works/new',
+    );
     expect(
       screen.getByRole('button', { name: '검색으로 추가' }),
     ).toBeInTheDocument();
@@ -191,7 +194,9 @@ describe('WorksListPage', () => {
     expect(screen.queryByText('방금 열어본 기록')).not.toBeInTheDocument();
     expect(screen.queryByText('최근 수정한 작품')).not.toBeInTheDocument();
     expect(screen.queryByText('최근 손본 기록')).not.toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: 'Recently Viewed Movie' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Recently Viewed Movie' }),
+    ).toBeInTheDocument();
   });
 
   it('shows filtered and total active counts accurately', async () => {
@@ -241,8 +246,12 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Your Name' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Dune' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Your Name' }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText('모래 행성의 정치와 신화가 좋다.'),
     ).not.toBeInTheDocument();
@@ -259,9 +268,9 @@ describe('WorksListPage', () => {
     await user.click(screen.getByRole('button', { name: '소설' }));
 
     await waitFor(() => {
-      expect(new URLSearchParams(router.state.location.search).get('type')).toBe(
-        'novel',
-      );
+      expect(
+        new URLSearchParams(router.state.location.search).get('type'),
+      ).toBe('novel');
     });
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     await waitFor(() => {
@@ -313,9 +322,14 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Dune' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Dune' }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('작품 검색 (단축키: /)')).toHaveValue('Dune');
-    expect(getAdvancedFiltersButton()).toHaveAttribute('aria-expanded', 'false');
+    expect(getAdvancedFiltersButton()).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
     expect(getActiveFilterControls()).toHaveLength(5);
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
     expect(
@@ -357,7 +371,9 @@ describe('WorksListPage', () => {
       expect(router.state.location.search).toBe('');
     });
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Your Name' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Your Name' }),
+    ).toBeInTheDocument();
   });
 
   it('shows graph filters before status and syncs them with the URL', async () => {
@@ -429,7 +445,13 @@ describe('WorksListPage', () => {
     await user.click(screen.getByRole('button', { name: 'Fate' }));
     await user.click(screen.getByRole('button', { name: 'ufotable' }));
     await user.click(screen.getByRole('button', { name: '판타지' }));
-    await user.click(screen.getByRole('button', { name: /완료/ }));
+    // 헤더 카운트 단축 버튼('완료 N개로 좁히기')과 구분해 고급 필터의 상태 칩만 선택
+    await user.click(
+      screen.getByRole('button', {
+        name: (accessibleName) =>
+          accessibleName.includes('완료') && !accessibleName.includes('좁히기'),
+      }),
+    );
 
     await waitFor(() => {
       const params = new URLSearchParams(router.state.location.search);
@@ -440,7 +462,9 @@ describe('WorksListPage', () => {
       expect(params.get('genre')).toBe('판타지');
       expect(params.get('status')).toBe('completed');
     });
-    expect(screen.getByRole('heading', { name: 'Fate/stay night' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Fate/stay night' }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: 'Dune' }),
     ).not.toBeInTheDocument();
@@ -483,12 +507,18 @@ describe('WorksListPage', () => {
 
     expect(posterLink).toBeDefined();
 
-    expect(within(posterLink!).getByText('Archive Creator')).toBeInTheDocument();
+    expect(
+      within(posterLink!).getByText('Archive Creator'),
+    ).toBeInTheDocument();
     expect(within(posterLink!).getByText('★ 4.5 · 완료')).toBeInTheDocument();
     expect(within(posterLink!).queryByText('Fantasy')).not.toBeInTheDocument();
-    expect(within(posterLink!).queryByText('#quiet-tag')).not.toBeInTheDocument();
     expect(
-      within(posterLink!).queryByText('기본 카드에는 보이지 않아야 하는 한줄평'),
+      within(posterLink!).queryByText('#quiet-tag'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(posterLink!).queryByText(
+        '기본 카드에는 보이지 않아야 하는 한줄평',
+      ),
     ).not.toBeInTheDocument();
   });
 
@@ -554,7 +584,9 @@ describe('WorksListPage', () => {
       await screen.findByRole('heading', { name: 'Needs Curation Result' }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('정리 필요').length).toBeGreaterThan(0);
-    expect(screen.queryByRole('heading', { name: '전체 목록' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: '전체 목록' }),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps active filter overflow markers for mobile chip collapsing', async () => {
@@ -646,19 +678,21 @@ describe('WorksListPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Work 001' }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: /^Work \d{3}$/ })).toHaveLength(60);
+    expect(
+      screen.getAllByRole('heading', { name: /^Work \d{3}$/ }),
+    ).toHaveLength(60);
     expect(
       screen.queryByRole('heading', { name: 'Work 075' }),
     ).not.toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: '작품 15개 더 보기' }),
-    );
+    await user.click(screen.getByRole('button', { name: '작품 15개 더 보기' }));
 
     expect(
       await screen.findByRole('heading', { name: 'Work 075' }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: /^Work \d{3}$/ })).toHaveLength(75);
+    expect(
+      screen.getAllByRole('heading', { name: /^Work \d{3}$/ }),
+    ).toHaveLength(75);
   });
 
   it('keeps the selected works view in the URL', async () => {
@@ -828,7 +862,9 @@ describe('WorksListPage', () => {
     expect(
       await screen.findByText('휴지통으로 이동했습니다.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Undo Target 기록을 되돌릴 수 있습니다.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Undo Target 기록을 되돌릴 수 있습니다.'),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '되돌리기' }));
 

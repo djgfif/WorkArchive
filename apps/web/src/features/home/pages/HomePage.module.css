@@ -215,66 +215,8 @@
   transform: translateY(-1px);
 }
 
-/* ── 호버 오버레이 — 하단 그라디언트 + 메타 ─────────────────────────────── */
-.shelfCardOverlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 0.65rem 0.6rem 0.55rem;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.92) 0%,
-    rgba(0, 0, 0, 0.52) 42%,
-    transparent 72%
-  );
-  opacity: 0;
-  transition: opacity var(--wa-motion-fast);
-  border-radius: inherit;
-}
-
-.shelfCard:hover .shelfCardOverlay,
-.shelfCard:focus-visible .shelfCardOverlay {
-  opacity: 1;
-}
-
-.shelfCardTitle {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: #fff;
-  line-height: 1.2;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin-bottom: 0.3rem;
-}
-
-.shelfCardMeta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
-}
-
-.shelfCardStatus {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.65);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.shelfCardRating {
-  font-size: 0.72rem;
-  font-weight: 850;
-  color: var(--app-accent-primary);
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
+/* 호버 오버레이는 공용 컴포넌트로 이동:
+   shared/components/PosterHoverOverlay (선반 .shelfCard에 .poster-card-hover 부여). */
 
 /* ── 이어보기 푸터 — "이어볼 작품" 선반에서만 노출(up-next) ───────────────── */
 .shelfProgress {

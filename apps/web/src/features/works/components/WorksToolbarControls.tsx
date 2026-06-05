@@ -6,6 +6,7 @@ import {
   IconFilter,
   IconGrid,
   IconList,
+  IconSort,
   IconSortAsc,
   IconSortDesc,
 } from './WorksToolbarIcons';
@@ -56,10 +57,18 @@ export function WorksToolbarControls({
   totalDeletedCount,
   viewMode,
 }: WorksToolbarControlsProps) {
-  const defaultSortDirection = getDefaultSortDirection(query.sortBy);
-
   return (
     <Box className={cn(css.toolbarControls)}>
+      <FilterPillGroup
+        aria-label="작품 범위"
+        onChange={onCollectionScopeChange}
+        options={[
+          { label: '서재', value: 'active', count: totalActiveCount },
+          { label: '휴지통', value: 'trash', count: totalDeletedCount },
+        ]}
+        value={collectionScope}
+      />
+
       <Box className={cn(css.toolbarSearch)}>
         <ArchiveSearchBar
           aria-label="작품 검색 (단축키: /)"
@@ -81,6 +90,8 @@ export function WorksToolbarControls({
           label: option.label,
           value: option.value,
         }))}
+        leftSection={<IconSort />}
+        leftSectionPointerEvents="none"
         onChange={(event) =>
           onQueryChange({
             ...query,
@@ -119,35 +130,32 @@ export function WorksToolbarControls({
         </Box>
       )}
 
-      {query.sortBy !== 'updatedAt' ||
-      sortDirection !== defaultSortDirection ? (
-        <Tooltip
-          label={
-            sortDirection === 'asc'
-              ? '오름차순 — 클릭하면 내림차순'
-              : '내림차순 — 클릭하면 오름차순'
+      <Tooltip
+        label={
+          sortDirection === 'asc'
+            ? '오름차순 — 클릭하면 내림차순'
+            : '내림차순 — 클릭하면 오름차순'
+        }
+        position="bottom"
+        withArrow
+      >
+        <Box
+          aria-label={sortDirection === 'asc' ? '오름차순' : '내림차순'}
+          aria-pressed={sortDirection === 'asc'}
+          className={cn(css.sortDirectionButton)}
+          component="button"
+          onClick={() =>
+            onQueryChange({
+              ...query,
+              sortDirection: sortDirection === 'asc' ? 'desc' : 'asc',
+            })
           }
-          position="bottom"
-          withArrow
+          type="button"
         >
-          <Box
-            aria-label={sortDirection === 'asc' ? '오름차순' : '내림차순'}
-            aria-pressed={sortDirection === 'asc'}
-            className={cn(css.sortDirectionButton)}
-            component="button"
-            onClick={() =>
-              onQueryChange({
-                ...query,
-                sortDirection: sortDirection === 'asc' ? 'desc' : 'asc',
-              })
-            }
-            type="button"
-          >
-            {sortDirection === 'asc' ? <IconSortAsc /> : <IconSortDesc />}
-            {sortDirection === 'asc' ? 'ASC' : 'DESC'}
-          </Box>
-        </Tooltip>
-      ) : null}
+          {sortDirection === 'asc' ? <IconSortAsc /> : <IconSortDesc />}
+          {sortDirection === 'asc' ? 'ASC' : 'DESC'}
+        </Box>
+      </Tooltip>
 
       <Tooltip label="고급 필터 (f)" position="bottom" withArrow>
         <Box
@@ -168,16 +176,6 @@ export function WorksToolbarControls({
           )}
         </Box>
       </Tooltip>
-
-      <FilterPillGroup
-        aria-label="작품 범위"
-        onChange={onCollectionScopeChange}
-        options={[
-          { label: '서재', value: 'active', count: totalActiveCount },
-          { label: '휴지통', value: 'trash', count: totalDeletedCount },
-        ]}
-        value={collectionScope}
-      />
     </Box>
   );
 }

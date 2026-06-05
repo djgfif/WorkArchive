@@ -121,6 +121,7 @@ export function WorksList({
         {visibleWorks.map((work, index) => (
           <Box key={work.id}>
             <WorkListRow
+              index={index}
               isLast={index === visibleWorks.length - 1}
               isUpdating={updatingWorkId === work.id}
               onDelete={onDelete}

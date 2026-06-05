@@ -1,6 +1,8 @@
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+export const ALADIN_TTBKEY_MAX_LENGTH = 300;
 
 function Trim() {
   return Transform(({ value }) =>
@@ -11,11 +13,23 @@ function Trim() {
 export class UpsertAladinKeyDto {
   @ApiProperty({
     description: 'Aladin OpenAPI TTBKey.',
-    maxLength: 300,
+    maxLength: ALADIN_TTBKEY_MAX_LENGTH,
+    required: false,
   })
   @Trim()
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(300)
-  ttbKey!: string;
+  @MaxLength(ALADIN_TTBKEY_MAX_LENGTH)
+  ttbKey?: string;
+
+  @ApiProperty({
+    description:
+      'Compatibility shape used by the generic provider credential endpoint.',
+    required: false,
+  })
+  @IsOptional()
+  @IsObject()
+  values?: {
+    ttbKey?: string;
+  };
 }

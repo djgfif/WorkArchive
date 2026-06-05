@@ -12,8 +12,6 @@ import {
 import { CatalogSubmissionsQueryDto } from '../src/modules/catalog/dto/catalog-submissions-query.dto';
 import { ImportSearchQueryDto } from '../src/modules/imports/dto/import-search-query.dto';
 import { ResolveImportCandidateDto } from '../src/modules/imports/dto/resolve-import-candidate.dto';
-import { UpsertAladinKeyDto } from '../src/modules/imports/dto/upsert-aladin-key.dto';
-import { UpsertProviderKeyDto } from '../src/modules/imports/dto/upsert-provider-key.dto';
 import { ImportsController } from '../src/modules/imports/imports.controller';
 import { UserReleaseRecordsController } from '../src/modules/user-records/user-release-records.controller';
 import { UserRecordsController } from '../src/modules/user-records/user-records.controller';
@@ -134,13 +132,13 @@ const dtoMetadataCases: DtoMetadataCase[] = [
     controller: ImportsController,
     methodName: 'saveAladinKey',
     parameterIndex: 1,
-    expectedType: UpsertAladinKeyDto,
+    expectedType: Object,
   },
   {
     controller: ImportsController,
     methodName: 'saveProviderKey',
     parameterIndex: 2,
-    expectedType: UpsertProviderKeyDto,
+    expectedType: Object,
   },
   {
     controller: ImportsController,

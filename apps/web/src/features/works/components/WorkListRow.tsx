@@ -20,6 +20,7 @@ export type {
 const css = styles;
 
 export function WorkListRow({
+  index,
   isUpdating,
   onDelete,
   onQuickProgressUpdate,
@@ -35,6 +36,7 @@ export function WorkListRow({
     <Paper className={cn(css.listRowSurface)} radius={0}>
       <WorkListRowSummary
         editOpen={editOpen}
+        {...(index !== undefined ? { index } : {})}
         isUpdating={isUpdating}
         onToggleEdit={toggleEdit}
         progressLabel={progressLabel}

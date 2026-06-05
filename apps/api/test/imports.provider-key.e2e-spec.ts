@@ -14,6 +14,7 @@ import {
 import { readApiRuntimeConfig } from '../src/config/api-runtime-config';
 import { configureApp } from '../src/configure-app';
 import { AuthService } from '../src/modules/auth/auth.service';
+import type { ImportProvider } from '../src/modules/imports/imports.constants';
 import { ImportsController } from '../src/modules/imports/imports.controller';
 import { ImportsService } from '../src/modules/imports/imports.service';
 import { SecurityAuditService } from '../src/security/security-audit.service';
@@ -22,6 +23,7 @@ describe('imports provider key test API (e2e)', () => {
   let app: INestApplication;
   let baseUrl: string;
   let importsService: {
+    saveProviderKey: jest.MockedFunction<ImportsService['saveProviderKey']>;
     testProviderKey: jest.MockedFunction<ImportsService['testProviderKey']>;
   };
 
@@ -31,6 +33,14 @@ describe('imports provider key test API (e2e)', () => {
     process.env.WEB_BASE_URL = 'http://localhost:18730';
 
     importsService = {
+      saveProviderKey: jest
+        .fn<ImportsService['saveProviderKey']>()
+        .mockImplementation(async (_userId, provider) => ({
+          configured: true,
+          credentialMode: 'user',
+          label: provider,
+          provider: provider as ImportProvider,
+        })),
       testProviderKey: jest
         .fn<ImportsService['testProviderKey']>()
         .mockResolvedValue({
@@ -113,6 +123,56 @@ describe('imports provider key test API (e2e)', () => {
     expect(importsService.testProviderKey).toHaveBeenCalledWith(
       'user-1',
       'tmdb',
+    );
+  });
+
+  it('normalizes wrapped and flat provider key payloads before saving', async () => {
+    const wrappedResponse = await fetch(
+      `${baseUrl}/api/imports/providers/tmdb/key`,
+      {
+        body: JSON.stringify({
+          values: {
+            readToken: ' tmdb-read-token ',
+          },
+        }),
+        headers: {
+          authorization: 'Bearer access-token',
+          'content-type': 'application/json',
+        },
+        method: 'PUT',
+      },
+    );
+
+    expect(wrappedResponse.status).toBe(200);
+    expect(importsService.saveProviderKey).toHaveBeenCalledWith(
+      'user-1',
+      'tmdb',
+      {
+        readToken: 'tmdb-read-token',
+      },
+    );
+
+    const flatResponse = await fetch(
+      `${baseUrl}/api/imports/providers/brave_search/key`,
+      {
+        body: JSON.stringify({
+          apiKey: ' brave-user-key ',
+        }),
+        headers: {
+          authorization: 'Bearer access-token',
+          'content-type': 'application/json',
+        },
+        method: 'PUT',
+      },
+    );
+
+    expect(flatResponse.status).toBe(200);
+    expect(importsService.saveProviderKey).toHaveBeenCalledWith(
+      'user-1',
+      'brave_search',
+      {
+        apiKey: 'brave-user-key',
+      },
     );
   });
 });

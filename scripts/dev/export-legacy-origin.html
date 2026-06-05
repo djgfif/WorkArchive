@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Work Archive legacy origin export</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          Pretendard,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: #0c0b0a;
+        color: #f5f0e8;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(180deg, rgba(212, 168, 67, 0.08), transparent 16rem),
+          #0c0b0a;
+      }
+
+      main {
+        width: min(58rem, calc(100vw - 2rem));
+        margin: 0 auto;
+        padding: 3rem 0;
+      }
+
+      h1 {
+        margin: 0 0 0.75rem;
+        font-size: clamp(1.8rem, 4vw, 3rem);
+        letter-spacing: 0;
+      }
+
+      p,
+      li {
+        color: #cfc3b5;
+        line-height: 1.65;
+      }
+
+      code {
+        color: #f5c842;
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid rgba(245, 200, 66, 0.55);
+        border-radius: 0.5rem;
+        background: #d4a843;
+        color: #17120b;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 800;
+        min-height: 2.75rem;
+        padding: 0.65rem 1rem;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      .panel {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.25rem;
+        padding: 1rem;
+        border: 1px solid rgba(245, 240, 232, 0.14);
+        border-radius: 0.5rem;
+        background: rgba(32, 27, 22, 0.9);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .status {
+        min-height: 1.5rem;
+        color: #f5c842;
+        font-weight: 750;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 0.5rem;
+      }
+
+      th,
+      td {
+        padding: 0.7rem;
+        border-bottom: 1px solid rgba(245, 240, 232, 0.12);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: #f5c842;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Legacy origin JSON export</h1>
+      <p>
+        이 페이지는 현재 origin의 Work Archive IndexedDB만 읽습니다. 지금
+        주소가 <code>http://localhost:5173</code>이면 과거 dev 포트에 남은
+        데이터를 JSON으로 내보낼 수 있습니다. 내보낸 파일은
+        <code>http://localhost:18730</code>의 설정에서 가져오세요.
+      </p>
+      <div class="panel">
+        <div class="actions">
+          <button id="refresh" type="button">스토리지 다시 확인</button>
+          <button id="download" disabled type="button">
+            JSON 백업 다운로드
+          </button>
+        </div>
+        <div id="status" class="status" role="status"></div>
+        <div id="summary"></div>
+      </div>
+    </main>
+    <script>
+      const ARCHIVE_FORMAT = 'work-archive.local-archive';
+      const ARCHIVE_VERSION = 1;
+      const ARCHIVE_SCHEMA_VERSION = 2;
+      const ARCHIVE_SOURCE = 'work-archive-web';
+      const BACKUP_EXCLUSIONS = [
+        'syncQueue',
+        'authTokens',
+        'refreshCookie',
+        'providerApiKeys',
+      ];
+      const FULL_STORES = [
+        'series',
+        'contributors',
+        'workSeriesLinks',
+        'workContributors',
+        'workRelations',
+        'tierBoards',
+        'tierLanes',
+        'tierBoardCards',
+        'tierBoardAssets',
+      ];
+
+      const state = {
+        databases: [],
+      };
+
+      const statusEl = document.querySelector('#status');
+      const summaryEl = document.querySelector('#summary');
+      const refreshButton = document.querySelector('#refresh');
+      const downloadButton = document.querySelector('#download');
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function openDb(name) {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(name);
+
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve(request.result);
+        });
+      }
+
+      function readAll(db, storeName) {
+        if (!db.objectStoreNames.contains(storeName)) {
+          return Promise.resolve([]);
+        }
+
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(storeName, 'readonly');
+          const request = transaction.objectStore(storeName).getAll();
+
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve(request.result);
+        });
+      }
+
+      function stripLocalFields(work) {
+        const { _deletedAtScope, ...archiveWork } = work;
+
+        return {
+          ...archiveWork,
+          genres: Array.isArray(archiveWork.genres) ? archiveWork.genres : [],
+          personalTags: Array.isArray(archiveWork.personalTags)
+            ? archiveWork.personalTags
+            : [],
+          startedAt: archiveWork.startedAt ?? null,
+          completedAt: archiveWork.completedAt ?? null,
+          droppedAt: archiveWork.droppedAt ?? null,
+          lastConsumedAt: archiveWork.lastConsumedAt ?? null,
+        };
+      }
+
+      function stripAssetFields(asset) {
+        const { blob, dataUrl, ...archiveAsset } = asset;
+
+        return archiveAsset;
+      }
+
+      async function inspectDb(name) {
+        const db = await openDb(name);
+
+        try {
+          const works = await readAll(db, 'works');
+          const syncQueue = await readAll(db, 'syncQueue');
+
+          return {
+            name,
+            version: db.version,
+            stores: Array.from(db.objectStoreNames),
+            works,
+            syncQueue,
+            activeWorkCount: works.filter((work) => work?.deletedAt === null)
+              .length,
+            deletedWorkCount: works.filter((work) => work?.deletedAt !== null)
+              .length,
+            conflictQueueItemCount: syncQueue.filter((item) => item?.conflict)
+              .length,
+          };
+        } finally {
+          db.close();
+        }
+      }
+
+      async function refreshSummary() {
+        setStatus('IndexedDB를 확인하는 중입니다.');
+        downloadButton.disabled = true;
+
+        const databaseInfos =
+          typeof indexedDB.databases === 'function'
+            ? await indexedDB.databases()
+            : [];
+        const names = databaseInfos
+          .map((database) => database.name ?? '')
+          .filter((name) => name.startsWith('work-archive-db'))
+          .sort();
+
+        state.databases = [];
+
+        for (const name of names) {
+          state.databases.push(await inspectDb(name));
+        }
+
+        renderSummary();
+        downloadButton.disabled =
+          state.databases.reduce(
+            (sum, database) => sum + database.works.length,
+            0,
+          ) === 0;
+        setStatus(
+          state.databases.length === 0
+            ? 'Work Archive IndexedDB가 없습니다.'
+            : '확인 완료. 작품이 있으면 JSON 백업을 다운로드하세요.',
+        );
+      }
+
+      function renderSummary() {
+        if (state.databases.length === 0) {
+          summaryEl.innerHTML = '<p>이 origin에는 Work Archive DB가 없습니다.</p>';
+          return;
+        }
+
+        const rows = state.databases
+          .map(
+            (database) => `
+              <tr>
+                <td><code>${database.name}</code></td>
+                <td>${database.works.length}</td>
+                <td>${database.activeWorkCount}</td>
+                <td>${database.deletedWorkCount}</td>
+                <td>${database.syncQueue.length}</td>
+                <td>${database.conflictQueueItemCount}</td>
+              </tr>
+            `,
+          )
+          .join('');
+
+        summaryEl.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>DB</th>
+                <th>작품</th>
+                <th>활성</th>
+                <th>휴지통</th>
+                <th>백업 대기</th>
+                <th>충돌</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      }
+
+      async function createArchive() {
+        const exportedAt = new Date().toISOString();
+        const mergedArchive = {
+          appMeta: [],
+          backupExclusions: [...BACKUP_EXCLUSIONS],
+          contributors: [],
+          exportedAt,
+          format: ARCHIVE_FORMAT,
+          releaseRecords: [],
+          schemaVersion: ARCHIVE_SCHEMA_VERSION,
+          scope: 'full',
+          series: [],
+          source: ARCHIVE_SOURCE,
+          tierBoardAssets: [],
+          tierBoardCards: [],
+          tierBoards: [],
+          tierLanes: [],
+          timelineEntries: [],
+          version: ARCHIVE_VERSION,
+          workContributors: [],
+          workRelations: [],
+          works: [],
+          workSeriesLinks: [],
+        };
+
+        for (const databaseSummary of state.databases) {
+          const db = await openDb(databaseSummary.name);
+
+          try {
+            mergedArchive.appMeta.push(...(await readAll(db, 'appMeta')));
+            mergedArchive.works.push(
+              ...(await readAll(db, 'works')).map(stripLocalFields),
+            );
+            mergedArchive.releaseRecords.push(
+              ...(await readAll(db, 'releaseRecords')),
+            );
+            mergedArchive.timelineEntries.push(
+              ...(await readAll(db, 'timelineEntries')).map((entry) => ({
+                ...entry,
+                deletedAt: entry.deletedAt ?? null,
+                note: typeof entry.note === 'string' ? entry.note : '',
+                serverVersion: Number.isInteger(entry.serverVersion)
+                  ? entry.serverVersion
+                  : 0,
+                syncStatus: entry.syncStatus ?? 'local-only',
+              })),
+            );
+
+            for (const storeName of FULL_STORES) {
+              const rows = await readAll(db, storeName);
+
+              if (storeName === 'tierBoardAssets') {
+                mergedArchive[storeName].push(...rows.map(stripAssetFields));
+              } else {
+                mergedArchive[storeName].push(...rows);
+              }
+            }
+          } finally {
+            db.close();
+          }
+        }
+
+        return mergedArchive;
+      }
+
+      async function downloadArchive() {
+        try {
+          setStatus('JSON 백업을 만드는 중입니다.');
+          const archive = await createArchive();
+          const text = JSON.stringify(archive, null, 2);
+          const blob = new Blob([text], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+
+          link.href = url;
+          link.download = `work-archive-legacy-origin-${location.port || 'default'}-${new Date()
+            .toISOString()
+            .replace(/[:.]/g, '-')}.json`;
+          document.body.append(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+          setStatus(
+            '다운로드 완료. 표준 앱의 설정 > 데이터와 백업에서 이 JSON을 가져오세요.',
+          );
+        } catch (error) {
+          setStatus(
+            error instanceof Error
+              ? `다운로드 실패: ${error.message}`
+              : '다운로드 실패',
+          );
+        }
+      }
+
+      refreshButton.addEventListener('click', () => void refreshSummary());
+      downloadButton.addEventListener('click', () => void downloadArchive());
+      void refreshSummary();
+    </script>
+  </body>
+</html>

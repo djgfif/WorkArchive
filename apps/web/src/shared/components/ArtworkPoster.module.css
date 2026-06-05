@@ -5,7 +5,9 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--app-border-strong) 65%, transparent);
   border-radius: 0.85rem;
-  /* 따뜻한 흑갈 + 앰버 광원 — 넷플릭스 스타일 폴백 배경 */
+  /* 따뜻한 흑갈 + 앰버 광원 — 표지 없는 작품의 폴백 표지.
+     global.css 가이드의 "radial 광원 금지"는 의미 없는 UI chrome 장식을 막기 위한 것으로,
+     여기 radial은 콘텐츠(표지) 자체의 머티리얼이므로 의도적 예외다. */
   background:
     linear-gradient(145deg, rgba(255, 220, 150, 0.07), transparent 34%),
     radial-gradient(circle at 22% 18%, rgba(180, 120, 40, 0.20), transparent 30%),

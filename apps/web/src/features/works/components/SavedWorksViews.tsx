@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ActionIcon, Button, Group, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Group, Text, TextInput } from '@mantine/core';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { AppButton } from '@shared/components/AppPrimitives';
 import { useSavedWorksViews } from '../hooks/useSavedWorksViews';
 
 /**
@@ -28,7 +29,7 @@ export function SavedWorksViews() {
   }
 
   return (
-    <Group gap="xs" mb="md" wrap="wrap">
+    <Group gap="xs" wrap="wrap">
       <Text
         c="dimmed"
         fw={750}
@@ -44,13 +45,13 @@ export function SavedWorksViews() {
 
         return (
           <Group gap={2} key={view.id} wrap="nowrap">
-            <Button
+            <AppButton
               onClick={() => navigate(`/works${view.search}`)}
               size="compact-xs"
-              variant={active ? 'light' : 'default'}
+              tone={active ? 'primary' : 'secondary'}
             >
               {view.name}
-            </Button>
+            </AppButton>
             <ActionIcon
               aria-label={`${view.name} 스마트뷰 삭제`}
               color="gray"
@@ -65,13 +66,13 @@ export function SavedWorksViews() {
       })}
 
       {hasFilters && !naming && (
-        <Button
+        <AppButton
           onClick={() => setNaming(true)}
           size="compact-xs"
-          variant="subtle"
+          tone="quiet"
         >
           + 현재 필터 저장
-        </Button>
+        </AppButton>
       )}
 
       {naming && (
@@ -94,20 +95,24 @@ export function SavedWorksViews() {
             value={name}
             w={170}
           />
-          <Button disabled={!name.trim()} onClick={handleSave} size="compact-xs">
+          <AppButton
+            disabled={!name.trim()}
+            onClick={handleSave}
+            size="compact-xs"
+            tone="primary"
+          >
             저장
-          </Button>
-          <Button
-            color="gray"
+          </AppButton>
+          <AppButton
             onClick={() => {
               setNaming(false);
               setName('');
             }}
             size="compact-xs"
-            variant="subtle"
+            tone="quiet"
           >
             취소
-          </Button>
+          </AppButton>
         </Group>
       )}
     </Group>
