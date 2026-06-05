@@ -49,6 +49,14 @@ const liveProviderQualityMinimumDistinctTypes = readIntegerEnv(
 const liveProviderQualityTopN = readIntegerEnv('IMPORT_SEARCH_QA_TOP_N', 5, {
   min: 1,
 });
+const liveRequestDelayMs = readIntegerEnv(
+  'IMPORT_SEARCH_QA_DELAY_MS',
+  fullMatrixLive ? (accessToken ? 1_100 : 3_100) : 0,
+);
+const liveRateLimitRetries = readIntegerEnv(
+  'IMPORT_SEARCH_QA_RATE_LIMIT_RETRIES',
+  1,
+);
 
 const sensitiveNames = [
   'ACCESS_TOKEN',
@@ -120,6 +128,60 @@ function apiPath(baseUrl, path) {
   return url;
 }
 
+function delay(ms) {
+  return new Promise((resolveDelay) => {
+    setTimeout(resolveDelay, ms);
+  });
+}
+
+function parseRetryDelayMs(response) {
+  const retryAfter = response.headers.get('retry-after');
+
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return Math.ceil(seconds * 1_000);
+    }
+
+    const retryAtMs = Date.parse(retryAfter);
+
+    if (Number.isFinite(retryAtMs)) {
+      return Math.max(0, retryAtMs - Date.now());
+    }
+  }
+
+  const rateLimitReset = response.headers.get('ratelimit-reset');
+  const resetSeconds = rateLimitReset ? Number(rateLimitReset) : NaN;
+
+  if (Number.isFinite(resetSeconds) && resetSeconds >= 0) {
+    return Math.ceil(resetSeconds * 1_000);
+  }
+
+  return liveRequestDelayMs > 0 ? liveRequestDelayMs : 1_000;
+}
+
+async function fetchLiveSearch(url, options) {
+  let retryCount = 0;
+  let rateLimitWaitMs = 0;
+  let response = await fetch(url, options);
+
+  while (response.status === 429 && retryCount < liveRateLimitRetries) {
+    const retryDelayMs = parseRetryDelayMs(response);
+
+    rateLimitWaitMs += retryDelayMs;
+    retryCount += 1;
+    await delay(retryDelayMs);
+    response = await fetch(url, options);
+  }
+
+  return {
+    rateLimitWaitMs,
+    response,
+    retryCount,
+  };
+}
+
 function writeReports(report) {
   mkdirSync(reportDir, { recursive: true });
   writeFileSync(jsonReportPath, `${JSON.stringify(report, null, 2)}\n`);
@@ -160,6 +222,7 @@ function writeReports(report) {
       lines.push(`- Fallback safety status: ${result.fallbackSafetyStatus}`);
       lines.push(`- Provider quality status: ${result.providerQualityStatus}`);
       lines.push(`- HTTP status: ${result.httpStatus ?? 'not-run'}`);
+      lines.push(`- Retries: ${result.retryCount ?? 0}`);
       lines.push(`- Result count: ${result.resultCount}`);
       lines.push(`- Diagnostics: ${result.diagnosticsSummary}`);
       lines.push(`- Top candidates: ${result.topCandidates.join('; ') || 'none'}`);
@@ -349,15 +412,22 @@ async function liveChecks() {
     return { checks, liveResults };
   }
 
-  for (const item of liveCases) {
+  for (const [index, item] of liveCases.entries()) {
     const url = apiPath(baseUrl, '/imports/search');
     url.searchParams.set('query', item.query);
     url.searchParams.set('mediumType', item.mediumType);
     url.searchParams.set('limit', String(liveProviderQualityTopN));
 
     try {
+      if (index > 0 && liveRequestDelayMs > 0) {
+        await delay(liveRequestDelayMs);
+      }
+
       const startedAt = performance.now();
-      const response = await fetch(url, { headers });
+      const { rateLimitWaitMs, response, retryCount } = await fetchLiveSearch(
+        url,
+        { headers },
+      );
       const durationMs = Math.round(performance.now() - startedAt);
       const text = await response.text();
       const data = text ? JSON.parse(text) : {};
@@ -410,7 +480,9 @@ async function liveChecks() {
         httpStatus: response.status,
         mediumType: item.mediumType,
         query: item.query,
+        rateLimitWaitMs,
         resultCount: candidates.length,
+        retryCount,
         fallbackSafetyStatus,
         providerQualityStatus,
         status,
@@ -427,7 +499,9 @@ async function liveChecks() {
         httpStatus: null,
         mediumType: item.mediumType,
         query: item.query,
+        rateLimitWaitMs: 0,
         resultCount: 0,
+        retryCount: 0,
         fallbackSafetyStatus: item.id === 'low-confidence-fallback' ? 'FAIL' : 'NOT_APPLICABLE',
         providerQualityStatus: item.id === 'low-confidence-fallback' ? 'NOT_APPLICABLE' : 'FAIL',
         status: 'FAIL',

@@ -16,17 +16,79 @@ export function getProviderSearchQueryVariants(query: string) {
   const withoutNumericSuffix = normalizeProviderSearchQuery(
     withoutVolumeSuffix.replace(/\s+\d+\s*$/u, ''),
   );
+  const baseVariants = [
+    normalized,
+    withoutBracketSuffix,
+    withoutVolumeSuffix,
+    withoutNumericSuffix,
+  ].filter(Boolean);
+  const fallbackVariants = baseVariants.flatMap((variant) => {
+    return [
+      stripTrailingMediumHint(variant),
+      ...getTrailingTokenStrippedVariants(variant),
+      getCompactHangulVariant(variant),
+    ];
+  });
 
   return Array.from(
-    new Set(
-      [
-        normalized,
-        withoutBracketSuffix,
-        withoutVolumeSuffix,
-        withoutNumericSuffix,
-      ].filter(Boolean),
+    new Set([...baseVariants, ...fallbackVariants].filter(Boolean)),
+  );
+}
+
+function stripTrailingMediumHint(query: string) {
+  return normalizeProviderSearchQuery(
+    query.replace(
+      /\s*(?:애니메이션|애니|만화|웹툰|드라마|영화|소설|라노벨|light\s*novel|manga|anime|animation|movie|film|drama|series)\s*$/iu,
+      '',
     ),
   );
+}
+
+function getTrailingTokenStrippedVariants(query: string) {
+  const tokens = query.split(/\s+/u).filter(Boolean);
+
+  if (tokens.length < 2) {
+    return [];
+  }
+
+  const variants: string[] = [];
+  const maxRemoveCount = Math.min(2, tokens.length - 1);
+
+  for (let removeCount = 1; removeCount <= maxRemoveCount; removeCount += 1) {
+    const removedTokens = tokens.slice(tokens.length - removeCount);
+    const removedText = removedTokens.join('');
+
+    if (!isLikelyTrailingCreatorOrHint(removedText)) {
+      continue;
+    }
+
+    variants.push(
+      normalizeProviderSearchQuery(tokens.slice(0, -removeCount).join(' ')),
+    );
+  }
+
+  return variants;
+}
+
+function isLikelyTrailingCreatorOrHint(value: string) {
+  return (
+    /^[\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]{2,12}$/u.test(
+      value,
+    ) || /^(?:author|director|creator|writer)$/iu.test(value)
+  );
+}
+
+function getCompactHangulVariant(query: string) {
+  const tokens = query.split(/\s+/u).filter(Boolean);
+
+  if (
+    tokens.length < 2 ||
+    !tokens.every((token) => /^[\p{Script=Hangul}]+$/u.test(token))
+  ) {
+    return '';
+  }
+
+  return normalizeProviderSearchQuery(tokens.join(''));
 }
 
 export function shouldTrySearchFallback(

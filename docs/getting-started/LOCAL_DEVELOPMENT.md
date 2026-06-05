@@ -142,6 +142,19 @@ Kakao, Brave Search, Tavily Search, and KOBIS. Values are encrypted in the
 server database. AniList, Google Books, Open Library, TVmaze, Wikidata, and the
 manual provider can run without user keys.
 
+The API can also use operator-managed server keys for high-impact free search
+providers:
+
+- `TMDB_API_READ_TOKEN` or `TMDB_API_KEY` for TMDB movie/drama search.
+- `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET` for Naver Book/Web search.
+- `KAKAO_REST_API_KEY` for Kakao Book/Web search.
+- `KOBIS_API_KEY` for KOBIS movie search.
+
+Set `IMPORT_SERVER_SEARCH_GUEST_ENABLED=true` to make configured server-key
+providers available to guest Quick Add search. Signed-in users can use the same
+server defaults and still store personal keys for user-key providers.
+
 Do not expose user-scoped provider keys to guest traffic. KOBIS uses an upstream
 HTTP endpoint with a query-string key, so enable it only behind a reviewed
-network boundary.
+network boundary and keep `KOBIS_HTTP_PROVIDER_ENABLED=true` explicit in
+production.

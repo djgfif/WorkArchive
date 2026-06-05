@@ -64,6 +64,8 @@ import {
   PROVIDER_CIRCUIT_OPEN_MS,
   getKobisDisabledMessage,
   getServerProviderApiKey,
+  getServerProviderCredentialValues,
+  hasServerProviderCredential,
   isKobisHttpProviderEnabled,
   isServerSearchGuestEnabled,
 } from './providers/import-provider-config';
@@ -606,12 +608,17 @@ export class ImportsService {
       return Boolean(getServerProviderApiKey(provider));
     }
 
+    if (hasServerProviderCredential(provider)) {
+      return true;
+    }
+
     if (!userId) {
       return false;
     }
 
     if (provider === NAVER_WEB_PROVIDER) {
       return (
+        hasServerProviderCredential(NAVER_BOOK_PROVIDER) ||
         (await this.credentialService.hasCredential(
           userId,
           NAVER_WEB_PROVIDER,
@@ -621,6 +628,7 @@ export class ImportsService {
 
     if (provider === KAKAO_WEB_PROVIDER) {
       return (
+        hasServerProviderCredential(KAKAO_BOOK_PROVIDER) ||
         (await this.credentialService.hasCredential(
           userId,
           KAKAO_WEB_PROVIDER,
@@ -773,6 +781,10 @@ export class ImportsService {
             this.getProviderCredentialValues.bind(this),
           getProviderCredentialValuesWithFallback:
             this.getProviderCredentialValuesWithFallback.bind(this),
+          getSearchProviderCredentialValues:
+            this.getSearchProviderCredentialValues.bind(this),
+          getSearchProviderCredentialValuesWithFallback:
+            this.getSearchProviderCredentialValuesWithFallback.bind(this),
         },
       );
 
@@ -1146,6 +1158,30 @@ export class ImportsService {
     return (
       (await this.getProviderCredentialValues(userId, provider)) ??
       this.getProviderCredentialValues(userId, fallbackProvider)
+    );
+  }
+
+  private async getSearchProviderCredentialValues(
+    userId: string | null,
+    provider: ImportProvider,
+  ) {
+    const serverCredential = getServerProviderCredentialValues(provider);
+
+    if (serverCredential) {
+      return serverCredential;
+    }
+
+    return userId ? this.getProviderCredentialValues(userId, provider) : null;
+  }
+
+  private async getSearchProviderCredentialValuesWithFallback(
+    userId: string | null,
+    provider: ImportProvider,
+    fallbackProvider: ImportProvider,
+  ) {
+    return (
+      (await this.getSearchProviderCredentialValues(userId, provider)) ??
+      this.getSearchProviderCredentialValues(userId, fallbackProvider)
     );
   }
 

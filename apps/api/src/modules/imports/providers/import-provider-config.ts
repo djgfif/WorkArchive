@@ -1,5 +1,14 @@
 import { WorkType } from '@prisma/client';
 
+import {
+  KAKAO_BOOK_PROVIDER,
+  KAKAO_WEB_PROVIDER,
+  KOBIS_PROVIDER,
+  NAVER_BOOK_PROVIDER,
+  NAVER_WEB_PROVIDER,
+  TMDB_PROVIDER,
+} from '../imports.constants';
+
 export const ALADIN_ITEM_SEARCH_URL =
   'https://www.aladin.co.kr/ttb/api/ItemSearch.aspx';
 export const ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co';
@@ -122,6 +131,56 @@ export function isServerSearchGuestEnabled() {
 }
 
 export function getServerProviderApiKey(provider: string) {
-  void provider;
-  return '';
+  const credential = getServerProviderCredentialValues(provider);
+
+  return credential ? Object.values(credential)[0] ?? '' : '';
+}
+
+export function hasServerProviderCredential(provider: string) {
+  return getServerProviderCredentialValues(provider) !== null;
+}
+
+export function getServerProviderCredentialValues(provider: string) {
+  switch (provider) {
+    case TMDB_PROVIDER: {
+      const readToken = readOptionalEnv('TMDB_API_READ_TOKEN');
+      const apiKey = readOptionalEnv('TMDB_API_KEY');
+
+      if (readToken) {
+        return { readToken };
+      }
+
+      return apiKey ? { apiKey } : null;
+    }
+
+    case NAVER_BOOK_PROVIDER:
+    case NAVER_WEB_PROVIDER: {
+      const clientId = readOptionalEnv('NAVER_CLIENT_ID');
+      const clientSecret = readOptionalEnv('NAVER_CLIENT_SECRET');
+
+      return clientId && clientSecret ? { clientId, clientSecret } : null;
+    }
+
+    case KAKAO_BOOK_PROVIDER:
+    case KAKAO_WEB_PROVIDER: {
+      const restApiKey = readOptionalEnv('KAKAO_REST_API_KEY');
+
+      return restApiKey ? { restApiKey } : null;
+    }
+
+    case KOBIS_PROVIDER: {
+      const apiKey = readOptionalEnv('KOBIS_API_KEY');
+
+      return apiKey ? { apiKey } : null;
+    }
+
+    default:
+      return null;
+  }
+}
+
+function readOptionalEnv(name: string) {
+  const value = process.env[name]?.trim();
+
+  return value ? value : null;
 }

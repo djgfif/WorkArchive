@@ -263,8 +263,14 @@ describe('ImportsService', () => {
 
   beforeEach(() => {
     delete process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED;
+    delete process.env.KAKAO_REST_API_KEY;
     delete process.env.KOBIS_HTTP_PROVIDER_ENABLED;
+    delete process.env.KOBIS_API_KEY;
+    delete process.env.NAVER_CLIENT_ID;
+    delete process.env.NAVER_CLIENT_SECRET;
     delete process.env.NODE_ENV;
+    delete process.env.TMDB_API_KEY;
+    delete process.env.TMDB_API_READ_TOKEN;
     credentialService = {
       deleteCredential: jest.fn(),
       getDecryptedCredential: jest.fn(),
@@ -278,8 +284,14 @@ describe('ImportsService', () => {
 
   afterEach(() => {
     delete process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED;
+    delete process.env.KAKAO_REST_API_KEY;
     delete process.env.KOBIS_HTTP_PROVIDER_ENABLED;
+    delete process.env.KOBIS_API_KEY;
+    delete process.env.NAVER_CLIENT_ID;
+    delete process.env.NAVER_CLIENT_SECRET;
     delete process.env.NODE_ENV;
+    delete process.env.TMDB_API_KEY;
+    delete process.env.TMDB_API_READ_TOKEN;
     jest.restoreAllMocks();
   });
 
@@ -412,6 +424,30 @@ describe('ImportsService', () => {
               secret: true,
             },
           ],
+        }),
+      ]),
+    );
+    expect(credentialService.hasCredential).not.toHaveBeenCalled();
+  });
+
+  it('reports server-configured free provider readiness without reading user credentials', async () => {
+    process.env.TMDB_API_READ_TOKEN = 'server-tmdb-read-token';
+    process.env.KOBIS_API_KEY = 'server-kobis-key';
+    process.env.KOBIS_HTTP_PROVIDER_ENABLED = 'true';
+
+    const providers = await service.listProviders(null);
+
+    expect(providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: TMDB_PROVIDER,
+          credentialMode: 'user',
+          configured: true,
+        }),
+        expect.objectContaining({
+          provider: KOBIS_PROVIDER,
+          credentialMode: 'user',
+          configured: true,
         }),
       ]),
     );
@@ -2577,6 +2613,52 @@ describe('ImportsService', () => {
     );
   });
 
+  it('uses server Naver credentials for guest book search when enabled', async () => {
+    process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED = 'true';
+    process.env.NAVER_CLIENT_ID = 'server-naver-client-id';
+    process.env.NAVER_CLIENT_SECRET = 'server-naver-client-secret';
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        items: [
+          {
+            author: 'Frank Herbert',
+            description: 'Desert planet.',
+            image: 'https://image.example.test/dune.jpg',
+            isbn: '9780441172719',
+            link: 'https://book.example.test/dune',
+            pubdate: '19650801',
+            publisher: 'Ace',
+            title: 'Dune',
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: NAVER_BOOK_PROVIDER,
+      query: 'Dune',
+      type: WorkType.novel,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: NAVER_BOOK_PROVIDER,
+        title: 'Dune',
+      }),
+    );
+    expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
+
+    const fetchCall = jest.mocked(globalThis.fetch).mock.calls[0];
+    const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
+
+    expect(fetchHeaders.get('X-Naver-Client-Id')).toBe(
+      'server-naver-client-id',
+    );
+    expect(fetchHeaders.get('X-Naver-Client-Secret')).toBe(
+      'server-naver-client-secret',
+    );
+  });
+
   it('uses the authenticated user TMDB credential for movie search', async () => {
     credentialService.getDecryptedCredential.mockResolvedValue(
       JSON.stringify({
@@ -2614,6 +2696,74 @@ describe('ImportsService', () => {
     const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
 
     expect(fetchHeaders.get('authorization')).toBe('Bearer tmdb-read-token');
+  });
+
+  it('uses the server TMDB read token for guest movie search when enabled', async () => {
+    process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED = 'true';
+    process.env.TMDB_API_READ_TOKEN = 'server-tmdb-read-token';
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        results: [
+          {
+            id: 123,
+            overview: 'Desert planet.',
+            poster_path: '/dune.jpg',
+            release_date: '2021-10-22',
+            title: 'Dune',
+          },
+        ],
+      }),
+    );
+
+    const result = await service.search(null, {
+      provider: TMDB_PROVIDER,
+      query: 'Dune',
+      type: WorkType.movie,
+    });
+
+    expect(result.candidates[0]).toEqual(
+      expect.objectContaining({
+        sourceId: TMDB_PROVIDER,
+        title: 'Dune',
+      }),
+    );
+    expect(credentialService.getDecryptedCredential).not.toHaveBeenCalled();
+
+    const fetchCall = jest.mocked(globalThis.fetch).mock.calls[0];
+    const fetchHeaders = new Headers(fetchCall?.[1]?.headers);
+
+    expect(fetchHeaders.get('authorization')).toBe(
+      'Bearer server-tmdb-read-token',
+    );
+  });
+
+  it('uses the server TMDB v3 API key when no read token is configured', async () => {
+    process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED = 'true';
+    process.env.TMDB_API_KEY = 'server-tmdb-v3-key';
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        results: [
+          {
+            id: 123,
+            overview: 'Desert planet.',
+            poster_path: '/dune.jpg',
+            release_date: '2021-10-22',
+            title: 'Dune',
+          },
+        ],
+      }),
+    );
+
+    await service.search(null, {
+      provider: TMDB_PROVIDER,
+      query: 'Dune',
+      type: WorkType.movie,
+    });
+
+    const fetchCall = jest.mocked(globalThis.fetch).mock.calls[0];
+    const fetchUrl = new URL(String(fetchCall?.[0]));
+
+    expect(fetchUrl.searchParams.get('api_key')).toBe('server-tmdb-v3-key');
   });
 
   it('uses the authenticated user Kakao credential for book search', async () => {

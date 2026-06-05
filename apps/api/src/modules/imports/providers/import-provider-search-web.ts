@@ -144,19 +144,17 @@ export async function searchNaverWeb(
   { limit, mediumType, query, userId }: ProviderSearchContext,
   runtime: ImportProviderSearchRuntime,
 ): Promise<ImportCandidateResponseDto[]> {
-  const credential = userId
-    ? await runtime.getProviderCredentialValuesWithFallback(
-        userId,
-        NAVER_WEB_PROVIDER,
-        NAVER_BOOK_PROVIDER,
-      )
-    : null;
+  const credential = await runtime.getSearchProviderCredentialValuesWithFallback(
+    userId,
+    NAVER_WEB_PROVIDER,
+    NAVER_BOOK_PROVIDER,
+  );
   const clientId = credential?.clientId;
   const clientSecret = credential?.clientSecret;
 
   if (!clientId || !clientSecret) {
     throw new ForbiddenException(
-      'Naver Web API key is not configured for this user.',
+      'Naver Web API key is not configured.',
     );
   }
 
@@ -193,18 +191,16 @@ export async function searchKakaoWeb(
   { limit, mediumType, query, userId }: ProviderSearchContext,
   runtime: ImportProviderSearchRuntime,
 ): Promise<ImportCandidateResponseDto[]> {
-  const credential = userId
-    ? await runtime.getProviderCredentialValuesWithFallback(
-        userId,
-        KAKAO_WEB_PROVIDER,
-        KAKAO_BOOK_PROVIDER,
-      )
-    : null;
+  const credential = await runtime.getSearchProviderCredentialValuesWithFallback(
+    userId,
+    KAKAO_WEB_PROVIDER,
+    KAKAO_BOOK_PROVIDER,
+  );
   const restApiKey = credential?.restApiKey;
 
   if (!restApiKey) {
     throw new ForbiddenException(
-      'Kakao Web API key is not configured for this user.',
+      'Kakao Web API key is not configured.',
     );
   }
 

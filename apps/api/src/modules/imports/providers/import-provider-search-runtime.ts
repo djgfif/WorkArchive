@@ -16,4 +16,13 @@ export interface ImportProviderSearchRuntime {
     provider: ImportProvider,
     fallbackProvider: ImportProvider,
   ): Promise<ProviderCredentialValues | null>;
+  getSearchProviderCredentialValues(
+    userId: string | null,
+    provider: ImportProvider,
+  ): Promise<ProviderCredentialValues | null>;
+  getSearchProviderCredentialValuesWithFallback(
+    userId: string | null,
+    provider: ImportProvider,
+    fallbackProvider: ImportProvider,
+  ): Promise<ProviderCredentialValues | null>;
 }

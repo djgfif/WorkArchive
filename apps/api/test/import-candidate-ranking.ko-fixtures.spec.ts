@@ -836,6 +836,86 @@ describe('Korean Quick Add ranking fixtures', () => {
     );
   });
 
+  it('uses explicit medium hints when imported web entities share the same mapped type', () => {
+    const fixture = {
+      query: '유미의 세포들',
+      expectedType: WorkType.webtoon,
+      provider: 'wikidata',
+    };
+    const dramaAdaptation = createCandidate(fixture, {
+      id: 'yumi-drama',
+      title: '유미의 세포들 (드라마)',
+    });
+    const webtoonOriginal = createCandidate(fixture, {
+      id: 'yumi-webtoon',
+      title: '유미의 세포들 (웹툰)',
+    });
+
+    const ranked = rankImportCandidates({
+      candidates: [dramaAdaptation, webtoonOriginal],
+      mediumType: WorkType.webtoon,
+      query: '유미의 세포들',
+    });
+
+    expect(ranked[0]).toEqual(
+      expect.objectContaining({
+        id: 'yumi-webtoon',
+        scoreBreakdown: expect.arrayContaining([
+          expect.objectContaining({ label: '매체 단서 일치' }),
+        ]),
+      }),
+    );
+    expect(ranked[1]).toEqual(
+      expect.objectContaining({
+        id: 'yumi-drama',
+        scoreBreakdown: expect.arrayContaining([
+          expect.objectContaining({ label: '매체 단서 충돌' }),
+        ]),
+      }),
+    );
+  });
+
+  it('demotes cour and season variants when the query asks for the base title', () => {
+    const fixture = {
+      query: 'SPY x FAMILY',
+      expectedType: WorkType.anime,
+      provider: 'anilist',
+    };
+    const base = createCandidate(fixture, {
+      id: 'spy-family-base',
+      title: 'SPY x FAMILY',
+    });
+    const courVariant = createCandidate(fixture, {
+      confidence: 0.99,
+      id: 'spy-family-cour-2',
+      title: 'SPY x FAMILY Cour 2',
+    });
+    const seasonVariant = createCandidate(fixture, {
+      confidence: 0.98,
+      id: 'spy-family-season-2',
+      title: 'SPY x FAMILY Season 2',
+    });
+
+    const ranked = rankImportCandidates({
+      candidates: [courVariant, seasonVariant, base],
+      mediumType: WorkType.anime,
+      query: 'SPY x FAMILY',
+    });
+
+    expect(ranked.map((candidate) => candidate.id)).toEqual([
+      'spy-family-base',
+      'spy-family-cour-2',
+      'spy-family-season-2',
+    ]);
+    expect(ranked[1]).toEqual(
+      expect.objectContaining({
+        scoreBreakdown: expect.arrayContaining([
+          expect.objectContaining({ label: '변형판 제목 신호' }),
+        ]),
+      }),
+    );
+  });
+
   it('uses Korean aliases and avoids over-promoting volume or subtitle variants', () => {
     const fixture = {
       query: '나 혼자만 레벨업',

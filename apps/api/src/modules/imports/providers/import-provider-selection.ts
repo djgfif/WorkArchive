@@ -21,7 +21,11 @@ import {
   WIKIDATA_PROVIDER,
   type ImportProvider,
 } from '../imports.constants';
-import { DEFAULT_LIMIT, MAX_LIMIT } from './import-provider-config';
+import {
+  DEFAULT_LIMIT,
+  hasServerProviderCredential,
+  MAX_LIMIT,
+} from './import-provider-config';
 import { PROVIDERS } from './import-provider-adapter';
 
 export function normalizeImportSearchLimit(limit: number | undefined) {
@@ -163,7 +167,7 @@ export function resolveGuestSearchProviders(input: {
 
     return (
       credentialMode === 'none' ||
-      (credentialMode === 'server' && input.serverSearchGuestEnabled)
+      (input.serverSearchGuestEnabled && hasServerProviderCredential(provider))
     );
   });
   const requestedProviders = [
@@ -171,13 +175,16 @@ export function resolveGuestSearchProviders(input: {
     ...(input.searchQuery.providers ?? []),
   ];
   const blockedRequestedProvider = requestedProviders.find((provider) => {
-    return PROVIDERS[provider].credentialMode !== 'none';
+    return !allowedProviders.includes(provider);
   });
 
   if (blockedRequestedProvider) {
     const metadata = PROVIDERS[blockedRequestedProvider];
 
-    if (metadata.credentialMode === 'user') {
+    if (
+      metadata.credentialMode === 'user' &&
+      !hasServerProviderCredential(blockedRequestedProvider)
+    ) {
       throw new UnauthorizedException(
         `${metadata.label} search requires a signed-in account.`,
       );

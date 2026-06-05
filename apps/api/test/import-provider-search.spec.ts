@@ -19,6 +19,7 @@ import {
   searchTvMaze,
 } from '../src/modules/imports/providers/import-provider-search-media';
 import { searchManual } from '../src/modules/imports/providers/import-provider-search-manual';
+import { getProviderSearchQueryVariants } from '../src/modules/imports/providers/import-provider-search-fallback';
 import { searchBrave } from '../src/modules/imports/providers/import-provider-search-web';
 import { searchWikidata } from '../src/modules/imports/providers/import-provider-search-wikidata';
 
@@ -44,6 +45,14 @@ function createRuntime(
       jest.fn<
         ImportProviderSearchRuntime['getProviderCredentialValuesWithFallback']
       >(),
+    getSearchProviderCredentialValues:
+      jest.fn<
+        ImportProviderSearchRuntime['getSearchProviderCredentialValues']
+      >(),
+    getSearchProviderCredentialValuesWithFallback:
+      jest.fn<
+        ImportProviderSearchRuntime['getSearchProviderCredentialValuesWithFallback']
+      >(),
     ...overrides,
   } as unknown as jest.Mocked<ImportProviderSearchRuntime>;
 }
@@ -64,7 +73,7 @@ describe('import provider search modules', () => {
   it('rejects credentialed book providers before making an external request', async () => {
     const runtime = createRuntime();
 
-    runtime.getProviderCredentialValues.mockResolvedValue(null);
+    runtime.getSearchProviderCredentialValues.mockResolvedValue(null);
 
     await expect(
       searchNaverBook(
@@ -209,6 +218,21 @@ describe('import provider search modules', () => {
     );
     expect(getWebSourceLabel('https://evilridibooks.com/books/1')).toBe(
       'evilridibooks.com',
+    );
+  });
+
+  it('builds conservative fallback query variants for creator and medium hints', () => {
+    expect(getProviderSearchQueryVariants('君の名は。 新海誠')).toEqual(
+      expect.arrayContaining(['君の名は。']),
+    );
+    expect(
+      getProviderSearchQueryVariants('진격의 거인 애니메이션'),
+    ).toEqual(expect.arrayContaining(['진격의 거인']));
+    expect(getProviderSearchQueryVariants('원피스 오다 에이치로')).toEqual(
+      expect.arrayContaining(['원피스']),
+    );
+    expect(getProviderSearchQueryVariants('외모 지상 주의')).toEqual(
+      expect.arrayContaining(['외모지상주의']),
     );
   });
 });

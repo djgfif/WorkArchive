@@ -139,6 +139,21 @@ IMPORT_SEARCH_QA_PROVIDERS=aladin,kakao_book,naver_book \
 npm run qa:import-search
 ```
 
+Full live matrix runs are intentionally paced to avoid exercising the guest
+import-search rate limit instead of search quality. The runner defaults to a
+longer delay for unauthenticated full-matrix runs and retries one `429` response
+after the server-provided reset window. Override only for controlled staging
+checks:
+
+```bash
+IMPORT_SEARCH_QA_LIVE=true \
+IMPORT_SEARCH_QA_FULL_MATRIX=true \
+IMPORT_QA_BASE_URL=https://beta.example.com \
+IMPORT_SEARCH_QA_DELAY_MS=3100 \
+IMPORT_SEARCH_QA_RATE_LIMIT_RETRIES=1 \
+npm run qa:import-search
+```
+
 Reports are written to `tmp/import-search-qa/` by default. Do not commit
 generated reports wholesale. The runner records only redacted summaries,
 diagnostics, result counts, and top candidate labels, but live outputs are still

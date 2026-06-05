@@ -133,15 +133,15 @@ export async function searchTmdb(
   { limit, mediumType, query, userId }: ProviderSearchContext,
   runtime: ImportProviderSearchRuntime,
 ): Promise<ImportCandidateResponseDto[]> {
-  const credential = userId
-    ? await runtime.getProviderCredentialValues(userId, TMDB_PROVIDER)
-    : null;
+  const credential = await runtime.getSearchProviderCredentialValues(
+    userId,
+    TMDB_PROVIDER,
+  );
   const readToken = credential?.readToken;
+  const apiKey = credential?.apiKey;
 
-  if (!readToken) {
-    throw new ForbiddenException(
-      'TMDB API key is not configured for this user.',
-    );
+  if (!readToken && !apiKey) {
+    throw new ForbiddenException('TMDB API key is not configured.');
   }
 
   const urls: Array<{ rawType: 'movie' | 'tv'; url: URL }> = [];
@@ -180,7 +180,11 @@ export async function searchTmdb(
       cacheTtlMs: PROVIDER_CACHE_TTL_MS,
     };
 
-    fetchOptions.bearerToken = readToken;
+    if (readToken) {
+      fetchOptions.bearerToken = readToken;
+    } else if (apiKey) {
+      fetchOptions.queryApiKey = apiKey;
+    }
 
     const responseBody = await runtime.fetchJson(url, fetchOptions);
     const results = readPathArray(responseBody, ['results']);
@@ -203,15 +207,14 @@ export async function searchKobis(
   { limit, mediumType, query, userId }: ProviderSearchContext,
   runtime: ImportProviderSearchRuntime,
 ): Promise<ImportCandidateResponseDto[]> {
-  const credential = userId
-    ? await runtime.getProviderCredentialValues(userId, KOBIS_PROVIDER)
-    : null;
+  const credential = await runtime.getSearchProviderCredentialValues(
+    userId,
+    KOBIS_PROVIDER,
+  );
   const apiKey = credential?.apiKey;
 
   if (!apiKey) {
-    throw new ForbiddenException(
-      'KOBIS API key is not configured for this user.',
-    );
+    throw new ForbiddenException('KOBIS API key is not configured.');
   }
 
   const searchUrl = new URL(KOBIS_MOVIE_SEARCH_URL);

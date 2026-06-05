@@ -165,15 +165,16 @@ export async function searchNaverBook(
   { limit, mediumType, query, userId }: ProviderSearchContext,
   runtime: ImportProviderSearchRuntime,
 ): Promise<ImportCandidateResponseDto[]> {
-  const credential = userId
-    ? await runtime.getProviderCredentialValues(userId, NAVER_BOOK_PROVIDER)
-    : null;
+  const credential = await runtime.getSearchProviderCredentialValues(
+    userId,
+    NAVER_BOOK_PROVIDER,
+  );
   const clientId = credential?.clientId;
   const clientSecret = credential?.clientSecret;
 
   if (!clientId || !clientSecret) {
     throw new ForbiddenException(
-      'Naver Book API key is not configured for this user.',
+      'Naver Book API key is not configured.',
     );
   }
 
@@ -212,14 +213,15 @@ export async function searchKakaoBook(
   { limit, mediumType, query, userId }: ProviderSearchContext,
   runtime: ImportProviderSearchRuntime,
 ): Promise<ImportCandidateResponseDto[]> {
-  const credential = userId
-    ? await runtime.getProviderCredentialValues(userId, KAKAO_BOOK_PROVIDER)
-    : null;
+  const credential = await runtime.getSearchProviderCredentialValues(
+    userId,
+    KAKAO_BOOK_PROVIDER,
+  );
   const restApiKey = credential?.restApiKey;
 
   if (!restApiKey) {
     throw new ForbiddenException(
-      'Kakao Book API key is not configured for this user.',
+      'Kakao Book API key is not configured.',
     );
   }
 

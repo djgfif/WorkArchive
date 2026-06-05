@@ -53,10 +53,45 @@ const VARIANT_TITLE_PATTERNS = [
   /\b(collector'?s|deluxe|director'?s|extended|limited|omnibus|special|theatrical)\s+edition\b/i,
   /\b(box\s*set|complete\s+collection|director'?s\s+cut|special\s+edition)\b/i,
   /\b(vol\.?|volume|book)\s*\d+\b/i,
+  /\bcour\s*\d+\b/i,
+  /\bpart\s*\d+\b/i,
   /\bseason\s*\d+\b/i,
+  /(?:파트)\s*\d+/u,
   /(?:외전|특별편|개정판|완전판|번외편|후일담|시즌)/u,
   /(감독판|개정판|극장판|번외편|스핀오프|시즌|외전|완전판|특별판|합본|한정판)/u,
 ];
+
+const MEDIUM_SIGNAL_RULES: Partial<
+  Record<WorkType, { conflicts: RegExp[]; matches: RegExp[] }>
+> = {
+  anime: {
+    matches: [/\b(anime|animation)\b/i, /애니(?:메이션)?/u],
+    conflicts: [
+      /\b(manga|comic|webtoon|movie|film|drama|tv|television)\b/i,
+      /만화|웹툰|영화|드라마/u,
+    ],
+  },
+  drama: {
+    matches: [/\b(drama|tv|television|series)\b/i, /드라마/u],
+    conflicts: [/\b(movie|film|webtoon|manga|anime)\b/i, /영화|웹툰|만화|애니/u],
+  },
+  manga: {
+    matches: [/\b(manga|comic)\b/i, /만화/u],
+    conflicts: [/\b(anime|animation|webtoon|drama|movie|film)\b/i, /애니|웹툰|드라마|영화/u],
+  },
+  movie: {
+    matches: [/\b(movie|film|theatrical)\b/i, /영화|극장판/u],
+    conflicts: [/\b(drama|tv|television|series|webtoon|manga|anime)\b/i, /드라마|웹툰|만화|애니/u],
+  },
+  web_novel: {
+    matches: [/\bweb\s*novel\b/i, /웹소설|웹\s*노벨/u],
+    conflicts: [/\b(webtoon|manga|comic|anime|drama|movie|film)\b/i, /웹툰|만화|애니|드라마|영화/u],
+  },
+  webtoon: {
+    matches: [/\b(webtoon|webcomic)\b/i, /웹툰/u],
+    conflicts: [/\b(drama|tv|television|series|movie|film|anime|manga)\b/i, /드라마|영화|애니|만화/u],
+  },
+};
 
 export function normalizeImportTitle(value: string) {
   return normalizeImportTitleSignal(value);
@@ -156,6 +191,11 @@ export function scoreImportCandidate({
     } else {
       totalScore -= 20;
       breakdown.push({ label: '매체 유형 다름', weight: -20 });
+    }
+
+    for (const signal of getMediumSignalScore(candidate, mediumType)) {
+      totalScore += signal.weight;
+      breakdown.push(signal);
     }
   }
 
@@ -410,6 +450,51 @@ function getVariantTitlePenalty(
   );
 
   return candidateHasVariantSignal && !queryHasVariantSignal ? -24 : 0;
+}
+
+function getMediumSignalScore(
+  candidate: ImportCandidateResponseDto,
+  mediumType: WorkType,
+) {
+  const rules = MEDIUM_SIGNAL_RULES[mediumType];
+
+  if (!rules) {
+    return [];
+  }
+
+  const candidateSignals = [
+    candidate.title,
+    candidate.subType ?? '',
+    candidate.formatLabel,
+    candidate.countLabel,
+    ...candidate.titleAliases,
+    ...candidate.externalRefs.map((ref) => ref.rawType ?? ''),
+    ...candidate.releaseCandidates.flatMap((releaseCandidate) => {
+      return [
+        releaseCandidate.displayLabel ?? '',
+        releaseCandidate.releaseType ?? '',
+        releaseCandidate.title ?? '',
+        ...(releaseCandidate.externalRefs ?? []).map((ref) => ref.rawType ?? ''),
+      ];
+    }),
+  ]
+    .map((value) => decodeBasicHtmlEntities(value).normalize('NFKC'))
+    .join(' ');
+
+  const scores: Array<{
+    label: string;
+    weight: number;
+  }> = [];
+
+  if (rules.matches.some((pattern) => pattern.test(candidateSignals))) {
+    scores.push({ label: '매체 단서 일치', weight: 10 });
+  }
+
+  if (rules.conflicts.some((pattern) => pattern.test(candidateSignals))) {
+    scores.push({ label: '매체 단서 충돌', weight: -14 });
+  }
+
+  return scores;
 }
 
 function isWeakTitleOnlyCandidate(candidate: ImportCandidateResponseDto) {
