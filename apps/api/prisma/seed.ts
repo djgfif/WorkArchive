@@ -3,8 +3,6 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
 
-import { hashSecret } from '../src/modules/auth/auth-crypto';
-
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL?.trim();
 
@@ -20,8 +18,6 @@ function createPrismaClient() {
 const prisma = createPrismaClient();
 
 const DEMO_EMAIL = process.env.SEED_DEMO_EMAIL?.trim() || 'demo@workarchive.local';
-const DEMO_PASSWORD =
-  process.env.SEED_DEMO_PASSWORD?.trim() || 'demo-password-123';
 
 const demoWorkSeeds = [
   {
@@ -49,20 +45,16 @@ const demoWorkSeeds = [
 ] as const;
 
 async function seed() {
-  const passwordHash = await hashSecret(DEMO_PASSWORD);
   const demoUser = await prisma.user.upsert({
     where: {
       email: DEMO_EMAIL,
     },
     update: {
       nickname: 'Demo User',
-      passwordHash,
-      refreshTokenHash: null,
     },
     create: {
       email: DEMO_EMAIL,
       nickname: 'Demo User',
-      passwordHash,
     },
   });
 
@@ -148,7 +140,6 @@ async function seed() {
     [
       'Seed complete.',
       `Demo email: ${DEMO_EMAIL}`,
-      `Demo password: ${DEMO_PASSWORD}`,
       `Demo works: ${demoWorkSeeds.length}`,
     ].join('\n'),
   );

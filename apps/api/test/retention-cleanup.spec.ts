@@ -31,7 +31,7 @@ describe('retention cleanup', () => {
 
     const targets = buildRetentionCleanupTargets(config);
 
-    expect(targets).toHaveLength(4);
+    expect(targets).toHaveLength(3);
     expect(targets).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -55,24 +55,6 @@ describe('retention cleanup', () => {
               {
                 expiresAt: {
                   lt: new Date('2026-05-08T00:00:00.000Z'),
-                },
-              },
-            ],
-          },
-        }),
-        expect.objectContaining({
-          name: 'password_reset_tokens',
-          where: {
-            OR: [
-              {
-                usedAt: {
-                  lt: new Date('2026-05-17T00:00:00.000Z'),
-                  not: null,
-                },
-              },
-              {
-                expiresAt: {
-                  lt: new Date('2026-05-19T00:00:00.000Z'),
                 },
               },
             ],
@@ -118,19 +100,12 @@ describe('retention cleanup', () => {
         deleted: 0,
         dryRun: true,
         matched: 12,
-        name: 'password_reset_tokens',
-      },
-      {
-        deleted: 0,
-        dryRun: true,
-        matched: 12,
         name: 'user_sync_applied_mutations',
       },
     ]);
     expect(calls).toEqual([
       'securityEvent.count',
       'userRefreshSession.count',
-      'passwordResetToken.count',
       'userSyncAppliedMutation.count',
     ]);
   });
@@ -153,7 +128,6 @@ function createRetentionPrismaMock(
   matched: number,
 ): RetentionPrismaClient {
   return {
-    passwordResetToken: createDelegate('passwordResetToken', calls, matched),
     securityEvent: createDelegate('securityEvent', calls, matched),
     userSyncAppliedMutation: createDelegate(
       'userSyncAppliedMutation',

@@ -84,8 +84,6 @@ export async function configureApp(
       '/api/auth/google/start',
       '/api/auth/google/callback',
       '/api/auth/refresh',
-      '/api/auth/password-reset/request',
-      '/api/auth/password-reset/confirm',
     ],
     rateLimiters.auth,
   );

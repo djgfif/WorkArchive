@@ -6,8 +6,6 @@ import { PrismaClient } from '@prisma/client';
 const DEFAULT_SECURITY_EVENT_RETENTION_DAYS = 180;
 const DEFAULT_REVOKED_REFRESH_SESSION_RETENTION_DAYS = 30;
 const DEFAULT_EXPIRED_REFRESH_SESSION_RETENTION_DAYS = 30;
-const DEFAULT_USED_PASSWORD_RESET_TOKEN_RETENTION_DAYS = 7;
-const DEFAULT_EXPIRED_PASSWORD_RESET_TOKEN_RETENTION_DAYS = 7;
 const PRODUCTION_CONFIRMATION = 'delete-expired-operational-data';
 
 type RetentionWhere = Record<string, unknown>;
@@ -18,7 +16,6 @@ interface RetentionModelDelegate {
 }
 
 export interface RetentionPrismaClient {
-  passwordResetToken: RetentionModelDelegate;
   securityEvent: RetentionModelDelegate;
   userSyncAppliedMutation: RetentionModelDelegate;
   userRefreshSession: RetentionModelDelegate;
@@ -26,13 +23,11 @@ export interface RetentionPrismaClient {
 
 export interface RetentionCleanupConfig {
   dryRun: boolean;
-  expiredPasswordResetTokenRetentionDays: number;
   expiredRefreshSessionRetentionDays: number;
   now: Date;
   productionConfirmation: string | null;
   revokedRefreshSessionRetentionDays: number;
   securityEventRetentionDays: number;
-  usedPasswordResetTokenRetentionDays: number;
 }
 
 export interface RetentionCleanupTarget {
@@ -67,10 +62,6 @@ export function readRetentionCleanupConfig(
 ): RetentionCleanupConfig {
   return {
     dryRun: readBoolean(env.RETENTION_CLEANUP_DRY_RUN, true),
-    expiredPasswordResetTokenRetentionDays: readPositiveInteger(
-      env.RETENTION_EXPIRED_PASSWORD_RESET_TOKEN_DAYS,
-      DEFAULT_EXPIRED_PASSWORD_RESET_TOKEN_RETENTION_DAYS,
-    ),
     expiredRefreshSessionRetentionDays: readPositiveInteger(
       env.RETENTION_EXPIRED_REFRESH_SESSION_DAYS,
       DEFAULT_EXPIRED_REFRESH_SESSION_RETENTION_DAYS,
@@ -84,10 +75,6 @@ export function readRetentionCleanupConfig(
     securityEventRetentionDays: readPositiveInteger(
       env.RETENTION_SECURITY_EVENT_DAYS,
       DEFAULT_SECURITY_EVENT_RETENTION_DAYS,
-    ),
-    usedPasswordResetTokenRetentionDays: readPositiveInteger(
-      env.RETENTION_USED_PASSWORD_RESET_TOKEN_DAYS,
-      DEFAULT_USED_PASSWORD_RESET_TOKEN_RETENTION_DAYS,
     ),
   };
 }
@@ -122,14 +109,6 @@ export function buildRetentionCleanupTargets(
     config.now,
     config.expiredRefreshSessionRetentionDays,
   );
-  const usedPasswordResetTokenCutoff = subtractDays(
-    config.now,
-    config.usedPasswordResetTokenRetentionDays,
-  );
-  const expiredPasswordResetTokenCutoff = subtractDays(
-    config.now,
-    config.expiredPasswordResetTokenRetentionDays,
-  );
 
   return [
     {
@@ -158,27 +137,6 @@ export function buildRetentionCleanupTargets(
           {
             expiresAt: {
               lt: expiredSessionCutoff,
-            },
-          },
-        ],
-      },
-    },
-    {
-      description:
-        'password_reset_tokens used or expired beyond retention cutoffs',
-      model: 'passwordResetToken',
-      name: 'password_reset_tokens',
-      where: {
-        OR: [
-          {
-            usedAt: {
-              lt: usedPasswordResetTokenCutoff,
-              not: null,
-            },
-          },
-          {
-            expiresAt: {
-              lt: expiredPasswordResetTokenCutoff,
             },
           },
         ],

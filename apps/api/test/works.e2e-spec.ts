@@ -181,8 +181,6 @@ function createPrismaServiceMock() {
         avatarUrl: data.avatarUrl ?? '',
         id: data.id ?? crypto.randomUUID(),
         email: data.email,
-        passwordHash: data.passwordHash,
-        refreshTokenHash: data.refreshTokenHash ?? null,
         nickname: data.nickname ?? '',
         role: data.role ?? 'user',
         createdAt: now,
@@ -1398,13 +1396,8 @@ describe('Auth, works, and sync API (e2e)', () => {
     expect(secureSetCookie).toMatch(/;\s*Secure/i);
   });
 
-  it('keeps legacy email/password auth endpoints disabled with 410 Gone', async () => {
-    for (const path of [
-      '/api/auth/register',
-      '/api/auth/login',
-      '/api/auth/password-reset/request',
-      '/api/auth/password-reset/confirm',
-    ]) {
+  it('keeps legacy email/password login and registration disabled with 410 Gone', async () => {
+    for (const path of ['/api/auth/register', '/api/auth/login']) {
       const response = await requestJson(path, {
         method: 'POST',
         body: JSON.stringify({}),
@@ -1417,6 +1410,20 @@ describe('Auth, works, and sync API (e2e)', () => {
             'Email/password authentication is disabled. Continue with Google or use Work Archive as a guest.',
         }),
       );
+    }
+  });
+
+  it('removes the legacy password-reset endpoints entirely', async () => {
+    for (const path of [
+      '/api/auth/password-reset/request',
+      '/api/auth/password-reset/confirm',
+    ]) {
+      const response = await requestJson(path, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+
+      expect(response.status).toBe(404);
     }
   });
 

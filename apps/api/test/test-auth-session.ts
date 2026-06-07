@@ -49,7 +49,6 @@ export async function createTestSession({
       data: {
         email: normalizedEmail,
         nickname,
-        passwordHash: null,
         authAccounts: {
           create: {
             email: normalizedEmail,

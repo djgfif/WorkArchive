@@ -156,7 +156,7 @@ Production hardening baseline: production startup rejects development secrets (`
 - ValidationPipe: `transform + whitelist`
 - `cookie-parser` 적용
 - `helmet` 적용
-- `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh` rate limiting 적용. 단, legacy login/register는 현재 `410 Gone`으로 비활성화
+- `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh` rate limiting 적용. 단, legacy login/register는 현재 `410 Gone`으로 비활성화. legacy `password-reset/*` 라우트와 rate limiter는 제거됨(이제 `404`)
 - `/api/sync/push`, `/api/sync/pull` rate limiting 적용
 - CORS: `CORS_ORIGIN` 기반 explicit whitelist만 허용
 - Production Docker runtime: API는 `node` user로 실행하고 runtime image는
@@ -176,7 +176,7 @@ Production hardening baseline: production startup rejects development secrets (`
 
 ### 4-4. Current Auth Session Shape
 
-Current session policy: refresh sessions are stored in `UserRefreshSession` / `user_refresh_sessions`. Google OAuth login creates a device-level refresh session, refresh rotates the hash in that session, and account settings can list sessions, revoke one session, or sign out all devices. The legacy nullable `users.refreshTokenHash` column remains for compatibility but new auth code does not write it. Refresh token reuse detection revokes all active sessions for the user.
+Current session policy: refresh sessions are stored in `UserRefreshSession` / `user_refresh_sessions`. Google OAuth login creates a device-level refresh session, refresh rotates the hash in that session, and account settings can list sessions, revoke one session, or sign out all devices. The legacy `users.passwordHash` / `users.refreshTokenHash` columns and the `PasswordResetToken` model were removed in migration `20260606120000_drop_legacy_password_auth`; Google OAuth is the only supported provider. Refresh token reuse detection revokes all active sessions for the user.
 
 - Google OAuth complete/refresh 응답은 access token과 사용자 정보를 반환한다. legacy email/password register/login/password-reset 엔드포인트는 `410 Gone`으로 비활성화되어 있다.
 - refresh token은 `HttpOnly` cookie로 저장된다.
@@ -196,7 +196,7 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - 상태 / 별점 빠른 수정
 - 게스트 모드
 - Google OAuth 인증
-- legacy 이메일/비밀번호 register/login/password-reset disabled
+- legacy 이메일/비밀번호 register/login `410 Gone` 비활성화, password-reset 라우트·컬럼·모델 완전 제거
 - memory-only access token + refresh cookie 세션 복구
 - 사용자별 로컬 아카이브 분리
 - 로그인 직후 guest 기록 검토 후 선택 import
@@ -252,7 +252,8 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
   runtime non-root, API migration 분리, read-only/tmpfs/resource limit 정책을
   반영했다.
 - Prisma schema 기준 장기 누적 대상은 `SecurityEvent`,
-  `UserRefreshSession`, `PasswordResetToken`이다.
+  `UserRefreshSession`, `UserSyncAppliedMutation`이다. (`PasswordResetToken`
+  retention 타깃은 모델 제거와 함께 삭제됨)
 - Import provider 코드 기준 KOBIS가 HTTP endpoint와 query `key`를 사용한다.
 - Provider failure isolation은 process-local circuit breaker로 구현돼 있다.
 

@@ -185,10 +185,8 @@ enum CatalogSubmissionStatus {
 model User {
   id                     String                  @id @default(uuid())
   email                  String                  @unique
-  passwordHash           String?                 @db.Text
   handle                 String?                 @unique
   avatarUrl              String                  @default("") @db.Text
-  refreshTokenHash       String?                 @db.Text
   nickname               String                  @default("")
   role                   UserRole                @default(user)
   createdAt              DateTime                @default(now())
@@ -197,7 +195,6 @@ model User {
   workRecords            UserWorkRecord[]
   timelineEntries        UserTimelineEntry[]
   externalApiCredentials ExternalApiCredential[]
-  passwordResetTokens    PasswordResetToken[]
   refreshSessions        UserRefreshSession[]
   catalogSubmissions     CatalogSubmission[]     @relation("CatalogSubmissionSubmitter")
   reviewedSubmissions    CatalogSubmission[]     @relation("CatalogSubmissionReviewer")
@@ -248,20 +245,6 @@ model UserRefreshSession {
   @@index([userId, revokedAt])
   @@index([expiresAt])
   @@map("user_refresh_sessions")
-}
-
-model PasswordResetToken {
-  id        String    @id @default(uuid())
-  userId    String
-  tokenHash String    @db.Text
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-  @@index([expiresAt])
-  @@map("password_reset_tokens")
 }
 
 model CatalogWork {

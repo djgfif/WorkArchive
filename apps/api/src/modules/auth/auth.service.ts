@@ -654,7 +654,6 @@ export class AuthService {
           data: {
             email: profile.email,
             nickname: profile.name,
-            passwordHash: null,
           },
         }));
 

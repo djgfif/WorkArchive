@@ -354,26 +354,6 @@ export class AuthController {
     );
   }
 
-  @Post('password-reset/request')
-  @HttpCode(HttpStatus.OK)
-  @ApiResponse({
-    status: HttpStatus.GONE,
-    description: 'Email/password password reset is disabled.',
-  })
-  requestPasswordReset() {
-    throw this.createLegacyAuthDisabledException();
-  }
-
-  @Post('password-reset/confirm')
-  @HttpCode(HttpStatus.OK)
-  @ApiResponse({
-    status: HttpStatus.GONE,
-    description: 'Email/password password reset is disabled.',
-  })
-  confirmPasswordReset() {
-    throw this.createLegacyAuthDisabledException();
-  }
-
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

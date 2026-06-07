@@ -191,7 +191,6 @@ describe('API PostgreSQL integration', () => {
       },
     });
 
-    expect(createdUser?.refreshTokenHash).toBeNull();
     expect(createdSessions).toHaveLength(1);
     expect(createdSessions[0]?.tokenHash).toEqual(expect.any(String));
 

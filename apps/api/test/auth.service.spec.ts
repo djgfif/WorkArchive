@@ -24,8 +24,6 @@ interface MockUser {
   avatarUrl: string;
   email: string;
   handle: string | null;
-  passwordHash: string | null;
-  refreshTokenHash: string | null;
   nickname: string;
   role: 'user';
 }
@@ -87,8 +85,6 @@ function createPrismaMock() {
           handle: data.handle ?? null,
           id: data.id ?? crypto.randomUUID(),
           nickname: data.nickname ?? '',
-          passwordHash: data.passwordHash ?? null,
-          refreshTokenHash: data.refreshTokenHash ?? null,
           role: data.role ?? 'user',
         } satisfies MockUser;
 
@@ -342,10 +338,7 @@ describe('AuthService', () => {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
-      nickname: '',
-      passwordHash: null,
-      refreshTokenHash: null,
-      role: 'user',
+      nickname: '',      role: 'user',
     } satisfies MockUser;
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -355,7 +348,6 @@ describe('AuthService', () => {
         rememberMe: false,
       },
     );
-    expect(users[0]?.refreshTokenHash).toBeNull();
     expect(userRefreshSessions).toHaveLength(1);
     expect(userRefreshSessions[0]).toMatchObject({
       rememberMe: false,
@@ -371,10 +363,7 @@ describe('AuthService', () => {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
-      nickname: '',
-      passwordHash: null,
-      refreshTokenHash: null,
-      role: 'user',
+      nickname: '',      role: 'user',
     } satisfies MockUser;
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -398,10 +387,7 @@ describe('AuthService', () => {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
-      nickname: '',
-      passwordHash: null,
-      refreshTokenHash: null,
-      role: 'user',
+      nickname: '',      role: 'user',
     } satisfies MockUser;
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -451,10 +437,7 @@ describe('AuthService', () => {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
-      nickname: '',
-      passwordHash: null,
-      refreshTokenHash: null,
-      role: 'user',
+      nickname: '',      role: 'user',
     } satisfies MockUser;
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -495,10 +478,7 @@ describe('AuthService', () => {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
-      nickname: '',
-      passwordHash: null,
-      refreshTokenHash: null,
-      role: 'user',
+      nickname: '',      role: 'user',
     } satisfies MockUser;
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -526,10 +506,7 @@ describe('AuthService', () => {
       avatarUrl: '',
       handle: 'frieren',
       id: 'user-1',
-      nickname: 'Frieren',
-      passwordHash: null,
-      refreshTokenHash: null,
-      role: 'user',
+      nickname: 'Frieren',      role: 'user',
     });
     const authService = new AuthService(prisma as unknown as PrismaService);
 
@@ -561,10 +538,7 @@ describe('AuthService', () => {
       avatarUrl: '',
       handle: 'frieren',
       id: 'user-1',
-      nickname: 'Frieren',
-      passwordHash: null,
-      refreshTokenHash: null,
-      role: 'user',
+      nickname: 'Frieren',      role: 'user',
     });
     const authService = new AuthService(prisma as unknown as PrismaService);
 
@@ -603,20 +577,14 @@ describe('AuthService', () => {
         avatarUrl: '',
         handle: 'frieren',
         id: 'user-1',
-        nickname: 'Frieren',
-        passwordHash: null,
-        refreshTokenHash: null,
-        role: 'user',
+        nickname: 'Frieren',        role: 'user',
       },
       {
         email: 'fern@example.com',
         avatarUrl: '',
         handle: 'fern',
         id: 'user-2',
-        nickname: 'Fern',
-        passwordHash: null,
-        refreshTokenHash: null,
-        role: 'user',
+        nickname: 'Fern',        role: 'user',
       },
     );
     const authService = new AuthService(prisma as unknown as PrismaService);

@@ -4,7 +4,6 @@ const RESET_TABLES = [
   'catalog_audit_logs',
   'catalog_submissions',
   'external_api_credentials',
-  'password_reset_tokens',
   'user_refresh_sessions',
   'user_release_records',
   'user_timeline_entries',

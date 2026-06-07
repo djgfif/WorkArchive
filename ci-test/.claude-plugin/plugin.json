@@ -1,0 +1,9 @@
+{
+  "name": "ci-test",
+  "version": "0.1.0",
+  "description": "A minimal plugin used to verify Cowork plugin installation in CI.",
+  "author": {
+    "name": "Seungmin Lee"
+  },
+  "keywords": ["ci", "test", "internal"]
+}
