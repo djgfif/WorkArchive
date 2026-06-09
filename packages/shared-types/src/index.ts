@@ -237,6 +237,89 @@ export interface ImportProviderCredentialField {
   secret?: boolean;
 }
 
+export interface NotionStatusResponse {
+  configured: boolean;
+  dataSourceId: string | null;
+  lastSyncedAt: ISODateString | null;
+  mappedCount: number;
+  requiredProperties: string[];
+}
+
+export interface NotionConnectionRequest {
+  dataSourceId: string;
+  token: string;
+}
+
+export interface NotionConnectionTestResponse {
+  checkedAt: ISODateString;
+  dataSourceId: string;
+  message: string;
+  ok: boolean;
+  reason: string | null;
+}
+
+export interface NotionPushResponse {
+  created: number;
+  errors: Array<{
+    message: string;
+    workId: EntityId;
+  }>;
+  pushedAt: ISODateString;
+  skipped: number;
+  total: number;
+  updated: number;
+}
+
+export type NotionSafeField =
+  | 'completedAt'
+  | 'droppedAt'
+  | 'favorite'
+  | 'personalTags'
+  | 'progressCurrent'
+  | 'progressTotal'
+  | 'progressUnit'
+  | 'rating'
+  | 'review'
+  | 'shortReview'
+  | 'startedAt'
+  | 'status';
+
+export interface NotionChangePreview {
+  changes: Array<{
+    field: NotionSafeField;
+    localValue: unknown;
+    notionValue: unknown;
+  }>;
+  lastNotionEditedAt: ISODateString | null;
+  notionPageId: string;
+  title: string;
+  workId: EntityId;
+}
+
+export interface NotionPreviewResponse {
+  changes: NotionChangePreview[];
+  errors: Array<{
+    message: string;
+    notionPageId: string;
+    workId: EntityId;
+  }>;
+  previewedAt: ISODateString;
+  total: number;
+}
+
+export interface NotionApplyRequest {
+  workIds?: EntityId[];
+}
+
+export interface NotionApplyResponse {
+  applied: number;
+  errors: Array<{
+    message: string;
+    workId: EntityId;
+  }>;
+  previewedCount: number;
+}
+
 export type ImportSearchDiagnosticStatus = 'searched' | 'skipped' | 'failed';
 
 export interface ImportSearchProviderDiagnostic {

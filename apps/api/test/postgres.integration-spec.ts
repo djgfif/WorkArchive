@@ -191,6 +191,7 @@ describe('API PostgreSQL integration', () => {
       },
     });
 
+    expect(createdUser?.email).toBe('auth-db@example.com');
     expect(createdSessions).toHaveLength(1);
     expect(createdSessions[0]?.tokenHash).toEqual(expect.any(String));
 

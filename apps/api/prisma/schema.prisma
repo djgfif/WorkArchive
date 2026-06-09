@@ -200,6 +200,7 @@ model User {
   reviewedSubmissions    CatalogSubmission[]     @relation("CatalogSubmissionReviewer")
   catalogAuditLogs       CatalogAuditLog[]
   syncAppliedMutations   UserSyncAppliedMutation[]
+  notionSyncMappings     NotionSyncMapping[]
   series                 UserSeries[]
   contributors           UserContributor[]
   workRelations          UserWorkRelation[]
@@ -519,6 +520,7 @@ model UserWorkRecord {
   user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
   releaseRecords    UserReleaseRecord[]
   timelineEntries   UserTimelineEntry[]
+  notionSyncMappings NotionSyncMapping[]
   seriesLinks       UserWorkSeriesLink[]
   contributorLinks  UserWorkContributor[]
   outgoingRelations UserWorkRelation[]  @relation("UserWorkRelationSource")
@@ -531,6 +533,28 @@ model UserWorkRecord {
   @@index([catalogWorkId])
   @@index([catalogTitleId])
   @@map("user_work_records")
+}
+
+model NotionSyncMapping {
+  id                 String         @id @default(uuid())
+  userId             String
+  workId             String
+  notionPageId       String
+  notionDataSourceId String
+  lastPushedAt       DateTime?
+  lastPulledAt       DateTime?
+  lastNotionEditedAt DateTime?
+  lastLocalUpdatedAt DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  work               UserWorkRecord @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workId])
+  @@unique([userId, notionPageId])
+  @@index([userId, notionDataSourceId])
+  @@index([workId])
+  @@map("notion_sync_mappings")
 }
 
 model UserTimelineEntry {

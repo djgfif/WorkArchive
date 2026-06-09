@@ -44,6 +44,16 @@ function authSessionsResponse() {
   };
 }
 
+function notionStatusResponse() {
+  return {
+    configured: false,
+    dataSourceId: null,
+    lastSyncedAt: null,
+    mappedCount: 0,
+    requiredProperties: [],
+  };
+}
+
 function buildWorkRecord(
   id: string,
   overrides: Partial<WorkRecord> = {},
@@ -306,6 +316,10 @@ describe('SettingsPage', () => {
         return Promise.resolve(jsonResponse(authSessionsResponse()));
       }
 
+      if (requestUrl.includes('/notion/status')) {
+        return Promise.resolve(jsonResponse(notionStatusResponse()));
+      }
+
       return Promise.resolve(jsonResponse(providerStatuses));
     });
 
@@ -345,10 +359,11 @@ describe('SettingsPage', () => {
     );
     expect(providerKeyInput).toHaveAttribute('data-lpignore', 'true');
     expect(providerKeyInput).toHaveAttribute('data-1p-ignore', 'true');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(
       expect.arrayContaining([
         expect.stringContaining('/imports/providers'),
+        expect.stringContaining('/notion/status'),
         expect.stringContaining('/auth/sessions'),
       ]),
     );

@@ -12,6 +12,7 @@ import { AccountSettingsSection } from '../components/settings/AccountSettingsSe
 import { DangerZoneSection } from '../components/settings/DangerZoneSection';
 import { DataBackupSettingsSection } from '../components/settings/DataBackupSettingsSection';
 import { DuplicateCleanupSettingsSection } from '../components/settings/DuplicateCleanupSettingsSection';
+import { NotionSyncSettingsSection } from '../components/settings/NotionSyncSettingsSection';
 import { SearchProviderSettingsSection } from '../components/settings/SearchProviderSettingsSection';
 import { SecuritySettingsSection } from '../components/settings/SecuritySettingsSection';
 import { SettingsLayout } from '../components/settings/SettingsLayout';
@@ -19,6 +20,7 @@ import { SettingsOverview } from '../components/settings/SettingsOverview';
 import { useAuthSessionSettings } from '../hooks/useAuthSessionSettings';
 import { useImportProviderSettings } from '../hooks/useImportProviderSettings';
 import { useLocalArchiveSettings } from '../hooks/useLocalArchiveSettings';
+import { useNotionSettings } from '../hooks/useNotionSettings';
 import { useSettingsOverviewStats } from '../hooks/useSettingsOverviewStats';
 
 function DisplaySettingsSection() {
@@ -43,6 +45,7 @@ export function SettingsPage() {
   const { archiveScopeKey, mode, signOut, updateUser, user } = useAuthSession();
   const importProviderSettings = useImportProviderSettings(mode);
   const localArchiveSettings = useLocalArchiveSettings();
+  const notionSettings = useNotionSettings(mode);
   const authSessionSettings = useAuthSessionSettings(mode, signOut);
   const overviewStats = useSettingsOverviewStats(archiveScopeKey);
 
@@ -120,6 +123,33 @@ export function SettingsPage() {
           selectedProvider={importProviderSettings.selectedProvider}
           selectedProviderId={importProviderSettings.selectedProviderId}
           testingProviderId={importProviderSettings.testingProviderId}
+        />
+      ),
+    },
+    {
+      id: 'notion-sync',
+      label: 'Notion 동기화',
+      content: (
+        <NotionSyncSettingsSection
+          connectionDraft={notionSettings.connectionDraft}
+          feedback={notionSettings.feedback}
+          isApplyingPull={notionSettings.isApplyingPull}
+          isDeletingConnection={notionSettings.isDeletingConnection}
+          isLoadingStatus={notionSettings.isLoadingStatus}
+          isPreviewingPull={notionSettings.isPreviewingPull}
+          isPushing={notionSettings.isPushing}
+          isSavingConnection={notionSettings.isSavingConnection}
+          isTestingConnection={notionSettings.isTestingConnection}
+          mode={mode}
+          onApplyPull={notionSettings.applyPull}
+          onDeleteConnection={notionSettings.deleteConnection}
+          onPreviewPull={notionSettings.previewPull}
+          onPushToNotion={notionSettings.pushToNotion}
+          onSaveConnection={notionSettings.saveConnection}
+          onTestConnection={notionSettings.testConnection}
+          onUpdateConnectionDraft={notionSettings.updateConnectionDraft}
+          pullPreview={notionSettings.pullPreview}
+          status={notionSettings.status}
         />
       ),
     },

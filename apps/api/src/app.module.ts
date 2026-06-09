@@ -10,6 +10,7 @@ import { CatalogModule } from './modules/catalog';
 import { HealthModule } from './modules/health';
 import { ImageProxyModule } from './modules/image-proxy';
 import { ImportsModule } from './modules/imports';
+import { NotionModule } from './modules/notion';
 import { SyncModule } from './modules/sync';
 import { UserRecordsModule } from './modules/user-records';
 import { WorksModule } from './modules/works';
@@ -48,6 +49,7 @@ import { SecurityModule } from './security/security.module';
     CatalogModule,
     UserRecordsModule,
     ImportsModule,
+    NotionModule,
     WorksModule,
     SyncModule,
   ],
