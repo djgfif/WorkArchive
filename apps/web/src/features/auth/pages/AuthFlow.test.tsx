@@ -290,6 +290,49 @@ describe('Auth flow', () => {
     expect(await screen.findByText('세션 복원 중')).toBeInTheDocument();
   });
 
+  it('shows configuration guidance when Google callback reports an OAuth setup issue', async () => {
+    window.history.pushState(null, '', '/auth/google/complete?google=unconfigured');
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/google/complete?google=unconfigured'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('Google OAuth 설정이 필요합니다')).toBeInTheDocument();
+    expect(screen.getByText(/현재 이 환경에서는 Google 로그인을 사용할 수 없습니다/)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('shows a network-specific error when Google completion cannot reach the API', async () => {
+    window.history.pushState(null, '', '/auth/google/complete');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch')),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/google/complete'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('네트워크에 연결할 수 없습니다')).toBeInTheDocument();
+    expect(screen.getByText('인터넷 연결을 확인한 뒤 다시 시도해 주세요.')).toBeInTheDocument();
+  });
+
   it.each([
     '/auth/login',
     '/auth?google=failed',

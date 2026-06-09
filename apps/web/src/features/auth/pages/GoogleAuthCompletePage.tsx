@@ -4,6 +4,7 @@ import { Box, Stack, Text, Title } from '@mantine/core';
 
 import { AppButton, AppLinkButton } from '@shared/components/AppPrimitives';
 import { useAuthSession } from '../hooks/useAuthSession';
+import { ApiRequestError } from '../services/auth.api';
 
 /* ── 에러 유형 ─────────────────────────────────────────────────────────────── */
 
@@ -12,18 +13,32 @@ type AuthCompleteError =
   | { kind: 'network' }
   | { kind: 'session' }
   | { kind: 'oauth_denied' }
+  | { kind: 'oauth_unconfigured' }
   | { kind: 'unknown'; message: string };
 
 function classifyError(error: unknown): AuthCompleteError {
+  if (error instanceof ApiRequestError) {
+    if (error.status === 0) {
+      return { kind: 'network' };
+    }
+
+    if (error.status === 401 || error.status === 403) {
+      return { kind: 'session' };
+    }
+  }
+
   if (error instanceof Error) {
+    const normalizedMessage = error.message.toLowerCase();
+
     if (error.name === 'AbortError' || error.message === 'timeout') {
       return { kind: 'timeout' };
     }
     if (
-      error.message.includes('fetch') ||
-      error.message.includes('network') ||
+      normalizedMessage.includes('fetch') ||
+      normalizedMessage.includes('network') ||
       error.message.includes('Failed to fetch') ||
-      error.message.includes('NetworkError')
+      error.message.includes('NetworkError') ||
+      error.message.includes('네트워크')
     ) {
       return { kind: 'network' };
     }
@@ -51,6 +66,10 @@ const ERROR_COPY: Record<AuthCompleteError['kind'], { title: string; detail: str
     title: 'Google 로그인이 취소됐습니다',
     detail: '로그인을 취소했거나 Google에서 권한을 거부했습니다.',
   },
+  oauth_unconfigured: {
+    title: 'Google OAuth 설정이 필요합니다',
+    detail: '현재 이 환경에서는 Google 로그인을 사용할 수 없습니다. 로그인 없이 계속 사용할 수 있습니다.',
+  },
   unknown: {
     title: '알 수 없는 오류가 발생했습니다',
     detail: '다시 시도하거나 게스트로 계속하세요.',
@@ -58,6 +77,23 @@ const ERROR_COPY: Record<AuthCompleteError['kind'], { title: string; detail: str
 };
 
 const COMPLETE_TIMEOUT_MS = 12_000;
+
+type OAuthCallbackErrorKind = Extract<
+  AuthCompleteError['kind'],
+  'oauth_denied' | 'oauth_unconfigured'
+>;
+
+function getOAuthErrorKind(param: string | null): OAuthCallbackErrorKind | null {
+  if (param === 'failed' || param === 'denied' || param === 'cancelled') {
+    return 'oauth_denied';
+  }
+
+  if (param === 'unconfigured') {
+    return 'oauth_unconfigured';
+  }
+
+  return null;
+}
 
 /* ── 로딩 단계 표시 ─────────────────────────────────────────────────────────── */
 
@@ -171,28 +207,32 @@ export function GoogleAuthCompletePage() {
   const { completeGoogleSignIn, continueWithGoogle, isLoading } = useAuthSession();
 
   const hasStartedRef = useRef(false);
+  const didSettleRef = useRef(false);
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('verifying');
   const [error, setError] = useState<AuthCompleteError | null>(null);
 
   // API가 실패를 쿼리 파라미터로 알려준 경우 (Google callback에서 거부됨)
   const oauthParam = searchParams.get('google');
+  const oauthErrorKind = getOAuthErrorKind(oauthParam);
 
   useEffect(() => {
-    if (oauthParam === 'failed') {
-      setError({ kind: 'oauth_denied' });
+    if (oauthErrorKind !== null) {
+      didSettleRef.current = true;
+      setError({ kind: oauthErrorKind });
     }
-  }, [oauthParam]);
+  }, [oauthErrorKind]);
 
   useEffect(() => {
     if (error !== null) return;
-    if (oauthParam === 'failed') return;
+    if (oauthErrorKind !== null) return;
     if (isLoading || hasStartedRef.current) return;
 
     let isCancelled = false;
     hasStartedRef.current = true;
 
     const timeoutId = setTimeout(() => {
-      if (!isCancelled) {
+      if (!isCancelled && !didSettleRef.current) {
+        didSettleRef.current = true;
         setError({ kind: 'timeout' });
       }
     }, COMPLETE_TIMEOUT_MS);
@@ -206,7 +246,8 @@ export function GoogleAuthCompletePage() {
         setLoadingStep('restoring');
         const nextLocation = await completeGoogleSignIn();
 
-        if (isCancelled) return;
+        if (isCancelled || didSettleRef.current) return;
+        didSettleRef.current = true;
         clearTimeout(timeoutId);
 
         setLoadingStep('redirecting');
@@ -217,7 +258,8 @@ export function GoogleAuthCompletePage() {
           navigate(nextLocation, { replace: true });
         }
       } catch (err: unknown) {
-        if (isCancelled) return;
+        if (isCancelled || didSettleRef.current) return;
+        didSettleRef.current = true;
         clearTimeout(timeoutId);
         setError(classifyError(err));
       }
@@ -229,11 +271,20 @@ export function GoogleAuthCompletePage() {
       isCancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [completeGoogleSignIn, error, isLoading, navigate, oauthParam]);
+  }, [completeGoogleSignIn, error, isLoading, navigate, oauthErrorKind]);
 
   function handleRetry() {
     // sessionStorage에 저장된 returnTo를 그대로 사용해 Google 로그인 재시작
-    continueWithGoogle?.();
+    setError(null);
+    didSettleRef.current = false;
+    hasStartedRef.current = false;
+
+    if (continueWithGoogle) {
+      continueWithGoogle();
+      return;
+    }
+
+    navigate('/auth/login', { replace: true });
   }
 
   if (error) {

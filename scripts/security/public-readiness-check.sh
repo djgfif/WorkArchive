@@ -21,7 +21,15 @@ print_hits() {
   fi
 }
 
-tracked_root_files="$(git ls-files | awk 'index($0, "/") == 0 {print}' | sed '/^$/d')"
+tracked_existing_files() {
+  git ls-files "$@" | while IFS= read -r path; do
+    if [ -e "$path" ]; then
+      printf '%s\n' "$path"
+    fi
+  done
+}
+
+tracked_root_files="$(tracked_existing_files | awk 'index($0, "/") == 0 {print}' | sed '/^$/d')"
 allowed_root_regex='^(\.dockerignore|\.env\.compose\.example|\.env\.example|\.env\.host\.example|\.env\.prod\.example|\.gitattributes|\.gitignore|\.nvmrc|\.prettierignore|\.prettierrc\.json|AGENTS\.md|CONTRIBUTING\.md|README\.md|SECURITY\.md|compose\.prod\.yml|compose\.yml|orval\.config\.ts|package-lock\.json|package\.json|playwright\.config\.ts)$'
 root_offenders="$(printf '%s\n' "$tracked_root_files" | grep -Ev "$allowed_root_regex" || true)"
 if [ -n "$root_offenders" ]; then
@@ -39,7 +47,7 @@ else
   info "no development launcher wrappers are tracked at the repository root"
 fi
 
-docs_root_files="$(git ls-files docs | awk -F/ 'NF == 2 {print $2}' | sed '/^$/d')"
+docs_root_files="$(tracked_existing_files docs | awk -F/ 'NF == 2 {print $2}' | sed '/^$/d')"
 docs_root_offenders="$(printf '%s\n' "$docs_root_files" | grep -Ev '^README\.md$' || true)"
 if [ -n "$docs_root_offenders" ]; then
   print_hits "$docs_root_offenders"
@@ -48,7 +56,7 @@ else
   info "docs root contains only the documentation hub file"
 fi
 
-docs_dirs="$(git ls-files docs | awk -F/ 'NF > 2 {print $2}' | sort -u)"
+docs_dirs="$(tracked_existing_files docs | awk -F/ 'NF > 2 {print $2}' | sort -u)"
 allowed_docs_dirs='^(archive|architecture|commercial|design|getting-started|management|operations|project|qa|security|sync)$'
 docs_dir_offenders="$(printf '%s\n' "$docs_dirs" | grep -Ev "$allowed_docs_dirs" || true)"
 if [ -n "$docs_dir_offenders" ]; then
@@ -66,7 +74,7 @@ else
   info "no tracked files are hidden by .gitignore"
 fi
 
-tracked_env_files="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -Ev '(^|/)\.env(\.[^/]+)*\.example$' || true)"
+tracked_env_files="$(tracked_existing_files | grep -E '(^|/)\.env($|\.)' | grep -Ev '(^|/)\.env(\.[^/]+)*\.example$' || true)"
 if [ -n "$tracked_env_files" ]; then
   print_hits "$tracked_env_files"
   fail "non-example .env files are tracked"
@@ -88,7 +96,7 @@ else
   fail "redacted secret leak scanner found tracked or staged secret risk"
 fi
 
-tracked_artifacts="$(git ls-files | grep -E '(^|/)(test-results|playwright-report|blob-report|coverage|dist|build|\.vite|\.cache|\.turbo|logs|tmp|temp|backups|backup)(/|$)|\.(log|har|sqlite|sqlite3|db|db-journal|db-wal|db-shm|dump|bak|backup|zip|tar|tgz|tar\.gz|7z|rar|trace|webm|mp4|mov)$' || true)"
+tracked_artifacts="$(tracked_existing_files | grep -E '(^|/)(test-results|playwright-report|blob-report|coverage|dist|build|\.vite|\.cache|\.turbo|logs|tmp|temp|backups|backup)(/|$)|\.(log|har|sqlite|sqlite3|db|db-journal|db-wal|db-shm|dump|bak|backup|zip|tar|tgz|tar\.gz|7z|rar|trace|webm|mp4|mov)$' || true)"
 if [ -n "$tracked_artifacts" ]; then
   print_hits "$tracked_artifacts"
   fail "runtime logs, browser artifacts, local databases, or archives are tracked"
@@ -96,7 +104,7 @@ else
   info "no runtime logs, browser artifacts, local databases, or archives are tracked"
 fi
 
-tracked_tool_files="$(git ls-files | grep -E '(^|/)\.codex($|/)|(^|/)\.agents(/|$)|(^|/)\.idea(/|$)|(^|/)\.cursor(/|$)|(^|/)\.history(/|$)|(^|/)\.vscode(/|$)' | grep -Ev '^\.vscode/tasks\.json$' || true)"
+tracked_tool_files="$(tracked_existing_files | grep -E '(^|/)\.codex($|/)|(^|/)\.agents(/|$)|(^|/)\.idea(/|$)|(^|/)\.cursor(/|$)|(^|/)\.history(/|$)|(^|/)\.vscode(/|$)' | grep -Ev '^\.vscode/tasks\.json$' || true)"
 if [ -n "$tracked_tool_files" ]; then
   print_hits "$tracked_tool_files"
   fail "personal tool or IDE state files are tracked"
@@ -135,7 +143,7 @@ else
 fi
 
 large_media_hits="$(
-  git ls-files | while IFS= read -r path; do
+  tracked_existing_files | while IFS= read -r path; do
     case "$path" in
       *.png|*.jpg|*.jpeg|*.gif|*.webp|*.svg|*.pdf|*.mp4|*.mov|*.webm)
         if [ -f "$path" ]; then

@@ -191,9 +191,14 @@ export async function restoreStoredSession(
       tokens: nextTokens,
       user: session.user,
     };
-  } catch {
+  } catch (error) {
     clearLegacyStoredAuthTokens();
     markRefreshUnavailable();
+
+    if (options.force) {
+      throw error;
+    }
+
     return null;
   }
 }
