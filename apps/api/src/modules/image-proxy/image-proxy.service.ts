@@ -6,8 +6,11 @@ import {
   type OnModuleDestroy,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import Redis from 'ioredis';
 
+import {
+  connectRedisClient,
+  type RedisClient,
+} from '../../common/redis-client';
 import { fetchExternal } from '../../common/external-fetch';
 import {
   PublicAddressResolutionError,
@@ -74,8 +77,8 @@ export class ImageProxyService implements OnModuleDestroy {
   private readonly failedStaleRefreshUntil = new Map<string, number>();
   private readonly inFlightFetches = new Map<string, Promise<CachedImage>>();
   private readonly logger = new Logger(ImageProxyService.name);
-  private redis: Redis | null = null;
-  private redisConnectPromise: Promise<Redis | null> | null = null;
+  private redis: RedisClient | null = null;
+  private redisConnectPromise: Promise<RedisClient | null> | null = null;
 
   async onModuleDestroy() {
     if (this.redis) {
@@ -458,22 +461,13 @@ export class ImageProxyService implements OnModuleDestroy {
     }
 
     if (!this.redisConnectPromise) {
-      const redis = new Redis(config.redisUrl, {
-        enableOfflineQueue: false,
-        lazyConnect: true,
-        maxRetriesPerRequest: 1,
-      });
-
-      this.redisConnectPromise = redis
-        .connect()
-        .then(async () => {
-          await redis.ping();
+      this.redisConnectPromise = connectRedisClient(config.redisUrl)
+        .then((redis) => {
           this.redis = redis;
 
           return redis;
         })
         .catch((error) => {
-          redis.disconnect();
           this.redisConnectPromise = null;
           this.logCacheFailure('connect', error);
 

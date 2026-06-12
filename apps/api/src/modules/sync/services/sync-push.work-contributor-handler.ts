@@ -9,11 +9,10 @@ import {
 import { areWorkContributorsEquivalent } from './sync-push.equivalence';
 import {
   ALREADY_APPLIED_MESSAGE,
-  APPLIED_CHANGE_MESSAGE,
-  APPLIED_TOMBSTONE_MESSAGE,
   CREATED_MESSAGE,
   SYNC_CODES,
   USER_WORK_CONTRIBUTOR_INCLUDE,
+  getAppliedMutationResult,
 } from './sync-push.shared';
 import { toPushSyncWorkContributorPayload } from './sync-push.payload-mappers';
 import type { SyncPushClient } from './sync-push.client';
@@ -104,14 +103,7 @@ export async function applyWorkContributorChange(
   });
 
   return buildGraphAppliedResult(change, 'workContributor', {
-    code:
-      payload.deletedAt === null
-        ? SYNC_CODES.appliedChange
-        : SYNC_CODES.appliedTombstone,
-    message:
-      payload.deletedAt === null
-        ? APPLIED_CHANGE_MESSAGE
-        : APPLIED_TOMBSTONE_MESSAGE,
+    ...getAppliedMutationResult(payload.deletedAt),
     workContributor: toPushSyncWorkContributorPayload(updated),
   });
 }
@@ -123,7 +115,11 @@ async function applyMissingRemoteWorkContributorChange(
   client: SyncPushClient,
   userRecordsService: UserRecordsService,
 ): Promise<PushSyncResultDto> {
-  const missingResult = getMissingRemoteGraphResult(change, payload);
+  const missingResult = getMissingRemoteGraphResult(
+    change,
+    'workContributor',
+    payload,
+  );
   if (missingResult) return missingResult;
 
   const validationError = await validateWorkContributorTarget(

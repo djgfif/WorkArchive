@@ -4,8 +4,8 @@
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Status                | `active`                                                                                                                                       |
 | Role                  | `developer execution entrypoint`                                                                                                               |
-| Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, current local `master` working tree |
-| Last verified against | `2026-06-04` local working tree after expert feedback roadmap alignment, root lint/typecheck/test/build, import-search QA, and sync-load dry-run |
+| Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, `docs/project/ROADMAP_FEEDBACK_2026-06.md`, current local `master` working tree |
+| Last verified against | `2026-06-12` documentation alignment plus root `check:docs-links`, `lint`, `typecheck`, and `test` after API service decomposition, including sync, import resolve, internal catalog import candidate, import search stage cache, import provider readiness, import candidate decoration, import provider search runner, import provider credential runtime, import provider search stage, import search observability, import provider key management, import search context/result extraction, Bearer access token parsing extraction, auth session metadata extraction, and user records helper/payload builder extraction. Build, import-search QA, sync-load dry-run, and web E2E remain last verified on `2026-06-04` |
 | When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                    |
 
 이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`../archive/project/PLAN.md`](../archive/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
@@ -15,7 +15,8 @@
 1. [`README.md`](../../README.md): 실행 명령, 환경 변수, 검증 상태
 2. [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md): 현재 코드 현실
 3. [`EXECUTION_ROADMAP.md`](./EXECUTION_ROADMAP.md): 통합 실행 순서
-4. 작업 영역별 문서:
+4. [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md): 구조적 부채 상환과 확장 대비 보조 로드맵
+5. 작업 영역별 문서:
    - Frontend archive: [`docs/archive/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../archive/frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md)
    - Backend archive: [`docs/archive/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md`](../archive/backend/BACKEND_SERVICE_REDESIGN_MASTERPLAN.md)
 
@@ -60,6 +61,22 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - 낮은 신뢰도 검색 후보는 직접 추가 fallback을 방해하지 않도록 후보 UI에서 검토 안내를 표시한다.
 - access token은 브라우저 storage에 저장하지 않고 메모리에만 둔다. 앱 부팅은 `HttpOnly` refresh cookie로 세션을 복구하며, 실패하면 guest archive로 돌아간다.
 - GitHub Actions `validate` workflow는 이미 존재한다. 이 문서 기준 required checks는 repository setting에서 별도 관리한다.
+- Provider cache/circuit state는 `REDIS_URL`이 구성되면 Redis를 사용한다. Redis가 없는 비프로덕션 환경에서는 process-local memory fallback을 사용한다.
+- API sync orchestration은 push/pull service에서 page loading, payload mapping, change building, entity handler, validation/result helper로 분해되어 있다. 외부 sync API 계약은 그대로 유지한다.
+- import 후보 resolve payload 정규화는 `ImportsService` 내부 helper가 아니라 `resolve-import-candidate` 순수 함수가 담당한다.
+- 내부 catalog 후보 검색과 import candidate 변환은 `internal-catalog-import-candidates`가 담당한다.
+- import 검색 단계 캐시 key 생성, 캐시 가능성 판정, cached payload guard는 `import-search-stage-cache`가 담당한다.
+- import provider readiness/status 계산은 `import-provider-readiness`가 담당한다.
+- import 후보의 catalog match와 기존 user record 보강은 `import-candidate-decoration`이 담당한다.
+- provider별 검색 실행, skip/failure diagnostic, circuit side effect는 `import-provider-search-runner`가 담당한다.
+- stored/server provider credential lookup과 provider search runtime 구성은 `import-provider-credential-runtime`이 담당한다.
+- provider search stage의 cache read/write와 provider별 runner 병렬 실행은 `import-provider-search-stage`가 담당한다.
+- provider 결과 diagnostics/summary/metric 조립은 `import-search-observability`가 담당한다.
+- provider key 저장/삭제/연결 테스트는 `import-provider-key-management`가 담당한다.
+- 검색 request context 확정은 `import-search-context`, 검색 후보 merge/ranking과 response assembly는 `import-search-result`가 담당한다.
+- Bearer access token header 파싱은 `auth/bearer-token` helper가 담당하며, required guard 경로와 optional-auth import 검색 경로가 같은 규칙을 공유한다.
+- refresh session user agent 요약과 IP address 마스킹은 `auth-session-metadata` helper가 담당한다.
+- user records의 DTO date parsing, record medium/policy view, grouped key 산출, update/create/import payload builder는 `user-records.helpers`가 담당한다.
 
 ## Current Follow-Up Work
 
@@ -69,6 +86,7 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - 로그인 직후 pull 자동화 검토
 - `Works` compatibility layer 축소와 `Catalog` / `Imports` / `UserRecords` 경계 정리
 - 공개 레이어 권한 분리와 production cookie/origin/secret 운영 검증
+- provider runtime Redis 경로의 beta/production 운영 증적 확보
 
 ## 2026-06-04 Expert Feedback Implementation
 

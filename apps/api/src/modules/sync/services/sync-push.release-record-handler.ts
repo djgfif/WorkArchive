@@ -1,6 +1,5 @@
 import type { Prisma } from '@prisma/client';
 
-import { canCreateReleaseRecord } from '../../recording/recording-policy';
 import {
   USER_RELEASE_RECORD_INCLUDE,
   toUserReleaseRecordResponse,
@@ -18,12 +17,18 @@ import {
 import { areReleaseRecordsEquivalent } from './sync-push.equivalence';
 import {
   ALREADY_APPLIED_MESSAGE,
-  APPLIED_CHANGE_MESSAGE,
-  APPLIED_TOMBSTONE_MESSAGE,
   CREATED_MESSAGE,
-  MISSING_REMOTE_DELETE_NOOP_MESSAGE,
   SYNC_CODES,
+  getAppliedMutationResult,
 } from './sync-push.shared';
+import {
+  buildRecordAppliedResult,
+  buildRecordOwnershipConflict,
+  buildRecordParentConflict,
+  buildRecordValidationFailure,
+  getMissingRemoteRecordResult,
+} from './sync-push.record-results';
+import { validateReleaseRecordTarget } from './sync-push.record-validation';
 
 type SyncPushClient = Prisma.TransactionClient | PrismaService;
 
@@ -54,30 +59,25 @@ export async function applyReleaseRecordChange(
   }
 
   if (existing.userWorkRecord.userId !== userId) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'release_record',
-      status: 'conflict',
-      code: SYNC_CODES.conflictOwnershipMismatch,
-      message: 'Server mismatch: the release record cannot be modified remotely.',
-      releaseRecord: null,
-    };
+    return buildRecordOwnershipConflict(
+      change,
+      'releaseRecord',
+      'Server mismatch: the release record cannot be modified remotely.',
+    );
   }
 
   if (
     existing.userWorkRecordId !== payload.userWorkRecordId ||
     existing.catalogReleaseId !== payload.catalogReleaseId
   ) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'release_record',
-      status: 'conflict',
-      code: SYNC_CODES.conflictParentChanged,
-      message: 'Server mismatch: release record parent or release changed.',
-      releaseRecord: toUserReleaseRecordResponse(existing),
-    };
+    return buildRecordParentConflict(
+      change,
+      'releaseRecord',
+      'Server mismatch: release record parent or release changed.',
+      {
+        releaseRecord: toUserReleaseRecordResponse(existing),
+      },
+    );
   }
 
   const validationError = await validateReleaseRecordTarget(
@@ -88,27 +88,22 @@ export async function applyReleaseRecordChange(
   );
 
   if (validationError) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'release_record',
-      status: 'failed',
-      code: SYNC_CODES.failedValidation,
-      message: validationError,
-      releaseRecord: toUserReleaseRecordResponse(existing),
-    };
+    return buildRecordValidationFailure(
+      change,
+      'releaseRecord',
+      validationError,
+      {
+        releaseRecord: toUserReleaseRecordResponse(existing),
+      },
+    );
   }
 
   if (areReleaseRecordsEquivalent(existing, payload)) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'release_record',
-      status: 'applied',
+    return buildRecordAppliedResult(change, 'releaseRecord', {
       code: SYNC_CODES.alreadyApplied,
       message: ALREADY_APPLIED_MESSAGE,
       releaseRecord: toUserReleaseRecordResponse(existing),
-    };
+    });
   }
 
   const updated = await dependencies.releaseRecordsService.update(
@@ -117,21 +112,10 @@ export async function applyReleaseRecordChange(
     client,
   );
 
-  return {
-    queueId: change.queueId,
-    entityId: change.entityId,
-    entityType: 'release_record',
-    status: 'applied',
-    code:
-      payload.deletedAt === null
-        ? SYNC_CODES.appliedChange
-        : SYNC_CODES.appliedTombstone,
-    message:
-      payload.deletedAt === null
-        ? APPLIED_CHANGE_MESSAGE
-        : APPLIED_TOMBSTONE_MESSAGE,
+  return buildRecordAppliedResult(change, 'releaseRecord', {
+    ...getAppliedMutationResult(payload.deletedAt),
     releaseRecord: toUserReleaseRecordResponse(updated),
-  };
+  });
 }
 
 async function applyMissingRemoteReleaseRecordChange(
@@ -141,43 +125,20 @@ async function applyMissingRemoteReleaseRecordChange(
   client: SyncPushClient,
   dependencies: SyncPushReleaseRecordDependencies,
 ): Promise<PushSyncResultDto> {
-  const isDelete = change.operation === 'delete' || payload.deletedAt !== null;
-  const canCreate = change.operation === 'create' && payload.serverVersion === 0;
+  const missingRemoteResult = getMissingRemoteRecordResult(
+    change,
+    'releaseRecord',
+    payload,
+    {
+      deletedSyncedConflict:
+        'Server mismatch: the release record was already missing remotely.',
+      missingConflict:
+        'Server mismatch: the release record does not exist remotely.',
+    },
+  );
 
-  if (isDelete) {
-    if (payload.serverVersion > 0) {
-      return {
-        queueId: change.queueId,
-        entityId: change.entityId,
-        entityType: 'release_record',
-        status: 'conflict',
-        code: SYNC_CODES.conflictRemoteMissing,
-        message: 'Server mismatch: the release record was already missing remotely.',
-        releaseRecord: null,
-      };
-    }
-
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'release_record',
-      status: 'applied',
-      code: SYNC_CODES.missingRemoteDeleteNoop,
-      message: MISSING_REMOTE_DELETE_NOOP_MESSAGE,
-      releaseRecord: null,
-    };
-  }
-
-  if (!canCreate) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'release_record',
-      status: 'conflict',
-      code: SYNC_CODES.conflictRemoteMissing,
-      message: 'Server mismatch: the release record does not exist remotely.',
-      releaseRecord: null,
-    };
+  if (missingRemoteResult) {
+    return missingRemoteResult;
   }
 
   const validationError = await validateReleaseRecordTarget(
@@ -188,15 +149,12 @@ async function applyMissingRemoteReleaseRecordChange(
   );
 
   if (validationError) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'release_record',
-      status: 'failed',
-      code: SYNC_CODES.failedValidation,
-      message: validationError,
-      releaseRecord: null,
-    };
+    return buildRecordValidationFailure(
+      change,
+      'releaseRecord',
+      validationError,
+      {},
+    );
   }
 
   const created = await client.userReleaseRecord.create({
@@ -208,51 +166,9 @@ async function applyMissingRemoteReleaseRecordChange(
       ? created
       : await dependencies.releaseRecordsService.findById(created.id);
 
-  return {
-    queueId: change.queueId,
-    entityId: change.entityId,
-    entityType: 'release_record',
-    status: 'applied',
+  return buildRecordAppliedResult(change, 'releaseRecord', {
     code: SYNC_CODES.created,
     message: CREATED_MESSAGE,
     releaseRecord: hydrated ? toUserReleaseRecordResponse(hydrated) : null,
-  };
-}
-
-async function validateReleaseRecordTarget(
-  userId: string,
-  payload: SyncReleaseRecordPayloadDto,
-  client: SyncPushClient,
-  dependencies: Pick<SyncPushReleaseRecordDependencies, 'userRecordsService'>,
-) {
-  const parent = await dependencies.userRecordsService.findById(
-    payload.userWorkRecordId,
-  );
-
-  if (!parent || parent.userId !== userId) {
-    return 'Release record parent is missing or belongs to a different user.';
-  }
-
-  const mediumType = parent.catalogTitle?.mediumType ?? parent.catalogWork.type;
-
-  if (!canCreateReleaseRecord(mediumType)) {
-    return `Release-level records are not supported for medium type "${mediumType}".`;
-  }
-
-  if (!parent.catalogTitleId) {
-    return 'Release-level records require a catalog title bridge.';
-  }
-
-  const release = await client.catalogRelease.findFirst({
-    where: {
-      id: payload.catalogReleaseId,
-      catalogTitleId: parent.catalogTitleId,
-    },
   });
-
-  if (!release) {
-    return 'Catalog release does not belong to the parent catalog title.';
-  }
-
-  return null;
 }

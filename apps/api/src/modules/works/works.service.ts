@@ -9,22 +9,14 @@ import { CatalogService } from '../catalog/catalog.service';
 import { UserRecordsService } from '../user-records/user-records.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateWorkDto } from './dto/create-work.dto';
-import type { WORK_GROUP_FIELDS } from './dto/grouped-works-query.dto';
 import type { UpdateWorkDto } from './dto/update-work.dto';
 import {
-  buildCatalogCreateData,
-  buildCatalogUpdateData,
-  buildUserRecordCreateData,
-  buildUserRecordUpdateData,
+  buildWorkCreateCompatibilityPlan,
+  buildWorkUpdateCompatibilityPlan,
   withSyncedRecordMutationVersion,
 } from './work-compatibility.mapper';
-import {
-  hasChanges,
-  normalizeGenresAndPersonalTags,
-  toFlatWorkResponse,
-} from './work-aggregate';
-
-type WorkGroupField = (typeof WORK_GROUP_FIELDS)[number];
+import { toFlatWorkResponse } from './work-aggregate';
+import { groupWorksBy, type WorkGroupField } from './work-grouping';
 
 @Injectable()
 export class WorksService {
@@ -51,52 +43,24 @@ export class WorksService {
 
   async findGrouped(userId: string, by: WorkGroupField) {
     const works = await this.userRecordsService.findGroupedSourceByUser(userId);
-    const groups = new Map<
-      string,
-      {
-        key: string;
-        label: string;
-        works: ReturnType<typeof toFlatWorkResponse>[];
-      }
-    >();
 
-    for (const work of works) {
-      const group = this.getGroupKey(work, by);
-      const existing = groups.get(group.key);
-
-      if (existing) {
-        existing.works.push(toFlatWorkResponse(work));
-        continue;
-      }
-
-      groups.set(group.key, {
-        ...group,
-        works: [toFlatWorkResponse(work)],
-      });
-    }
-
-    return [...groups.values()].map((group) => ({
-      ...group,
-      count: group.works.length,
-    }));
+    return groupWorksBy(works, by);
   }
 
   async create(userId: string, createWorkDto: CreateWorkDto) {
     try {
       // 릴리스 1단계에서는 catalog와 user record를 1:1로 생성해 기존 flat 계약을 유지합니다.
       const workId = crypto.randomUUID();
-      const normalizedTaxonomy = normalizeGenresAndPersonalTags(
-        createWorkDto.genres,
-        createWorkDto.personalTags,
+      const compatibilityPlan = buildWorkCreateCompatibilityPlan(
+        userId,
+        workId,
+        createWorkDto,
       );
       const work = await this.prisma.$transaction(async (tx) => {
         await this.catalogService.create(
           {
             id: workId,
-            ...buildCatalogCreateData(
-              createWorkDto,
-              normalizedTaxonomy.genres,
-            ),
+            ...compatibilityPlan.catalogCreateData,
           },
           tx,
         );
@@ -104,12 +68,7 @@ export class WorksService {
         return this.userRecordsService.create(
           {
             id: workId,
-            ...buildUserRecordCreateData(
-              userId,
-              workId,
-              createWorkDto,
-              normalizedTaxonomy.personalTags,
-            ),
+            ...compatibilityPlan.userRecordCreateData,
           },
           tx,
         );
@@ -125,32 +84,24 @@ export class WorksService {
   async update(userId: string, id: string, updateWorkDto: UpdateWorkDto) {
     try {
       const existingWork = await this.getActiveWorkOrThrow(userId, id);
-      const normalizedTaxonomy =
-        updateWorkDto.genres !== undefined || updateWorkDto.personalTags !== undefined
-          ? normalizeGenresAndPersonalTags(
-              updateWorkDto.genres ?? existingWork.catalogWork.genres,
-              updateWorkDto.personalTags ?? existingWork.personalTags,
-            )
-          : null;
-      const catalogUpdateData = buildCatalogUpdateData(
+      const compatibilityPlan = buildWorkUpdateCompatibilityPlan(
+        existingWork,
         updateWorkDto,
-        normalizedTaxonomy?.genres,
-      );
-      const recordUpdateData = buildUserRecordUpdateData(
-        updateWorkDto,
-        normalizedTaxonomy?.personalTags,
       );
 
-      if (!hasChanges(catalogUpdateData) && !hasChanges(recordUpdateData)) {
+      if (
+        !compatibilityPlan.hasCatalogChanges &&
+        !compatibilityPlan.hasUserRecordChanges
+      ) {
         return toFlatWorkResponse(existingWork);
       }
 
       const work = await this.prisma.$transaction(async (tx) => {
-        if (hasChanges(catalogUpdateData)) {
+        if (compatibilityPlan.hasCatalogChanges) {
           // 현재는 shared catalog가 아니라 user record와 결합된 1:1 catalog 항목을 함께 갱신합니다.
           await this.catalogService.update(
             existingWork.catalogWorkId,
-            catalogUpdateData,
+            compatibilityPlan.catalogUpdateData,
             tx,
           );
         }
@@ -158,7 +109,9 @@ export class WorksService {
         return this.userRecordsService.updateActiveForUser(
           userId,
           id,
-          withSyncedRecordMutationVersion(recordUpdateData),
+          withSyncedRecordMutationVersion(
+            compatibilityPlan.userRecordUpdateData,
+          ),
           tx,
         );
       });
@@ -217,44 +170,4 @@ export class WorksService {
     );
   }
 
-  private getGroupKey(
-    work: Awaited<
-      ReturnType<UserRecordsService['findGroupedSourceByUser']>
-    >[number],
-    by: WorkGroupField,
-  ) {
-    if (by === 'status') {
-      return {
-        key: work.status,
-        label: work.status,
-      };
-    }
-
-    if (by === 'medium') {
-      const mediumType = work.catalogTitle?.mediumType ?? work.catalogWork.type;
-
-      return {
-        key: mediumType,
-        label: mediumType,
-      };
-    }
-
-    if (by === 'franchise') {
-      const franchise = work.catalogTitle?.franchise;
-
-      return {
-        key: franchise?.id ?? 'unfranchised',
-        label: franchise?.displayName ?? '프랜차이즈 미지정',
-      };
-    }
-
-    const contributor = work.catalogTitle?.contributors[0]?.contributor;
-
-    return {
-      key: contributor?.id ?? 'unknown-contributor',
-      label:
-        contributor?.displayName ??
-        (work.catalogWork.author || '기여자 미지정'),
-    };
-  }
 }

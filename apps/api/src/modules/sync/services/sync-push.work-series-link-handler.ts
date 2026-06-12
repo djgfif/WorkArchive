@@ -9,11 +9,10 @@ import {
 import { areWorkSeriesLinksEquivalent } from './sync-push.equivalence';
 import {
   ALREADY_APPLIED_MESSAGE,
-  APPLIED_CHANGE_MESSAGE,
-  APPLIED_TOMBSTONE_MESSAGE,
   CREATED_MESSAGE,
   SYNC_CODES,
   USER_WORK_SERIES_LINK_INCLUDE,
+  getAppliedMutationResult,
 } from './sync-push.shared';
 import { toPushSyncWorkSeriesLinkPayload } from './sync-push.payload-mappers';
 import type { SyncPushClient } from './sync-push.client';
@@ -104,14 +103,7 @@ export async function applyWorkSeriesLinkChange(
   });
 
   return buildGraphAppliedResult(change, 'workSeriesLink', {
-    code:
-      payload.deletedAt === null
-        ? SYNC_CODES.appliedChange
-        : SYNC_CODES.appliedTombstone,
-    message:
-      payload.deletedAt === null
-        ? APPLIED_CHANGE_MESSAGE
-        : APPLIED_TOMBSTONE_MESSAGE,
+    ...getAppliedMutationResult(payload.deletedAt),
     workSeriesLink: toPushSyncWorkSeriesLinkPayload(updated),
   });
 }
@@ -123,7 +115,11 @@ async function applyMissingRemoteWorkSeriesLinkChange(
   client: SyncPushClient,
   userRecordsService: UserRecordsService,
 ): Promise<PushSyncResultDto> {
-  const missingResult = getMissingRemoteGraphResult(change, payload);
+  const missingResult = getMissingRemoteGraphResult(
+    change,
+    'workSeriesLink',
+    payload,
+  );
   if (missingResult) return missingResult;
 
   const validationError = await validateWorkSeriesLinkTarget(

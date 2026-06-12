@@ -11,10 +11,9 @@ import {
 import { areContributorsEquivalent, areSeriesEquivalent } from './sync-push.equivalence';
 import {
   ALREADY_APPLIED_MESSAGE,
-  APPLIED_CHANGE_MESSAGE,
-  APPLIED_TOMBSTONE_MESSAGE,
   CREATED_MESSAGE,
   SYNC_CODES,
+  getAppliedMutationResult,
 } from './sync-push.shared';
 import {
   toPushSyncContributorPayload,
@@ -78,14 +77,7 @@ export async function applySeriesChange(
   });
 
   return buildGraphAppliedResult(change, 'series', {
-    code:
-      payload.deletedAt === null
-        ? SYNC_CODES.appliedChange
-        : SYNC_CODES.appliedTombstone,
-    message:
-      payload.deletedAt === null
-        ? APPLIED_CHANGE_MESSAGE
-        : APPLIED_TOMBSTONE_MESSAGE,
+    ...getAppliedMutationResult(payload.deletedAt),
     series: toPushSyncSeriesPayload(updated),
   });
 }
@@ -131,15 +123,8 @@ export async function applyContributorChange(
   });
 
   return buildGraphAppliedResult(change, 'contributor', {
-    code:
-      payload.deletedAt === null
-        ? SYNC_CODES.appliedChange
-        : SYNC_CODES.appliedTombstone,
+    ...getAppliedMutationResult(payload.deletedAt),
     contributor: toPushSyncContributorPayload(updated),
-    message:
-      payload.deletedAt === null
-        ? APPLIED_CHANGE_MESSAGE
-        : APPLIED_TOMBSTONE_MESSAGE,
   });
 }
 
@@ -149,7 +134,7 @@ async function applyMissingRemoteSeriesChange(
   payload: SyncSeriesPayloadDto,
   client: SyncPushClient,
 ): Promise<PushSyncResultDto> {
-  const missingResult = getMissingRemoteGraphResult(change, payload);
+  const missingResult = getMissingRemoteGraphResult(change, 'series', payload);
   if (missingResult) return missingResult;
 
   const validationError = await validateSeriesParent(userId, payload, client);
@@ -176,7 +161,11 @@ async function applyMissingRemoteContributorChange(
   payload: SyncContributorPayloadDto,
   client: SyncPushClient,
 ): Promise<PushSyncResultDto> {
-  const missingResult = getMissingRemoteGraphResult(change, payload);
+  const missingResult = getMissingRemoteGraphResult(
+    change,
+    'contributor',
+    payload,
+  );
   if (missingResult) return missingResult;
 
   const created = await client.userContributor.create({

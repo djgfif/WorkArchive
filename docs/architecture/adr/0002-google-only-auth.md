@@ -13,7 +13,8 @@ Work Archive previously carried routes and concepts for email/password auth, but
 Use Google OAuth as the only login and account creation path.
 
 - Do not restore email/password login.
-- Keep legacy password reset and registration routes redirected to Google login.
+- Keep legacy email/password entry points disabled. Server password-reset APIs
+  stay removed; compatibility UI routes should guide users to Google OAuth.
 - Treat OAuth code, OAuth token, refresh token, and session cookie values as secrets.
 - Maintain guest/local archive mode separately from authenticated Google accounts.
 

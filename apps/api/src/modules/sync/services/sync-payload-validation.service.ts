@@ -20,7 +20,7 @@ import { SyncWorkRelationPayloadDto } from '../payloads/sync-work-relation-paylo
 import { SyncWorkSeriesLinkPayloadDto } from '../payloads/sync-work-series-link-payload.dto';
 import type { SyncEntityType } from '../sync.constants';
 
-type SyncPayloadDto =
+export type SyncPayloadDto =
   | SyncWorkPayloadDto
   | SyncReleaseRecordPayloadDto
   | SyncTimelineEntryPayloadDto

@@ -8,10 +8,13 @@ import {
   Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import Redis from 'ioredis';
 import { existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import {
+  connectRedisClient,
+  type RedisClient,
+} from '../../common/redis-client';
 import { readApiRuntimeConfig } from '../../config/api-runtime-config';
 import { MetricsService } from '../../observability/metrics.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -86,20 +89,15 @@ export class HealthController {
     }
 
     if (config?.redisUrl) {
-      const redis = new Redis(config.redisUrl, {
-        enableOfflineQueue: false,
-        lazyConnect: true,
-        maxRetriesPerRequest: 1,
-      });
+      let redis: RedisClient | null = null;
 
       try {
-        await redis.connect();
-        await redis.ping();
+        redis = await connectRedisClient(config.redisUrl);
       } catch (error) {
         failures.push('redis');
         this.logReadyFailure('redis', error);
       } finally {
-        redis.disconnect();
+        redis?.disconnect();
       }
     }
 

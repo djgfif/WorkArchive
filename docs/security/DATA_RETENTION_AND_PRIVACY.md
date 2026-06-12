@@ -6,7 +6,8 @@
 
 - `SecurityEvent`: default retention is 180 days.
 - `UserRefreshSession`: revoked and expired sessions default to 30 days.
-- `PasswordResetToken`: used and expired tokens default to 7 days.
+- `UserSyncAppliedMutation`: expired sync idempotency rows are removed after
+  their `expiresAt` timestamp.
 
 Production deletion requires:
 

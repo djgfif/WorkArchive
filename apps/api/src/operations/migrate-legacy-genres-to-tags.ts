@@ -2,7 +2,8 @@ import 'dotenv/config';
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, type Prisma } from '@prisma/client';
-import { moveUnknownGenresToPersonalTags } from '@work-archive/shared-types';
+
+import { buildLegacyGenreMigrationWorkPlan } from './legacy-genre-migration-plan';
 
 export interface LegacyGenreMigrationOptions {
   apply: boolean;
@@ -30,13 +31,6 @@ function createPrismaClient() {
   return new PrismaClient({
     adapter: new PrismaPg({ connectionString }),
   });
-}
-
-function arraysEqual(left: string[], right: string[]) {
-  return (
-    left.length === right.length &&
-    left.every((value, index) => value === right[index])
-  );
 }
 
 function parseOptions(argv: string[]): LegacyGenreMigrationOptions {
@@ -72,35 +66,21 @@ export async function runLegacyGenreMigration(
   };
 
   for (const work of catalogWorks) {
-    const normalizedCatalog = moveUnknownGenresToPersonalTags(work.genres);
-    const movedTags = normalizedCatalog.personalTags;
+    const plan = buildLegacyGenreMigrationWorkPlan(work);
 
-    if (movedTags.length === 0 && arraysEqual(work.genres, normalizedCatalog.genres)) {
+    if (!plan.changedCatalogWork) {
       continue;
     }
 
     result.changedCatalogWorks += 1;
 
-    for (const tag of movedTags) {
+    for (const tag of plan.movedTags) {
       if (result.movedTagSamples.length < sampleLimit) {
         result.movedTagSamples.push(tag);
       }
     }
 
-    const nextUserRecords = work.userRecords.map((record) => ({
-      id: record.id,
-      personalTags: moveUnknownGenresToPersonalTags(
-        work.genres,
-        record.personalTags,
-      ).personalTags,
-    }));
-    const changedUserRecords = nextUserRecords.filter((record) => {
-      const current = work.userRecords.find((entry) => entry.id === record.id);
-
-      return current ? !arraysEqual(current.personalTags, record.personalTags) : false;
-    });
-
-    result.changedUserRecords += changedUserRecords.length;
+    result.changedUserRecords += plan.changedUserRecords.length;
 
     if (!options.apply) {
       continue;
@@ -112,11 +92,11 @@ export async function runLegacyGenreMigration(
           id: work.id,
         },
         data: {
-          genres: normalizedCatalog.genres,
+          genres: plan.genres,
         },
       });
 
-      for (const record of changedUserRecords) {
+      for (const record of plan.changedUserRecords) {
         await tx.userWorkRecord.update({
           where: {
             id: record.id,

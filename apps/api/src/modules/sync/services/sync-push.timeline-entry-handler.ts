@@ -16,12 +16,18 @@ import {
 import { areTimelineEntriesEquivalent } from './sync-push.equivalence';
 import {
   ALREADY_APPLIED_MESSAGE,
-  APPLIED_CHANGE_MESSAGE,
-  APPLIED_TOMBSTONE_MESSAGE,
   CREATED_MESSAGE,
-  MISSING_REMOTE_DELETE_NOOP_MESSAGE,
   SYNC_CODES,
+  getAppliedMutationResult,
 } from './sync-push.shared';
+import {
+  buildRecordAppliedResult,
+  buildRecordOwnershipConflict,
+  buildRecordParentConflict,
+  buildRecordValidationFailure,
+  getMissingRemoteRecordResult,
+} from './sync-push.record-results';
+import { validateTimelineEntryTarget } from './sync-push.record-validation';
 
 type SyncPushClient = Prisma.TransactionClient | PrismaService;
 
@@ -52,27 +58,22 @@ export async function applyTimelineEntryChange(
   }
 
   if (existing.userId !== userId) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'timeline_entry',
-      status: 'conflict',
-      code: SYNC_CODES.conflictOwnershipMismatch,
-      message: 'Server mismatch: the timeline entry cannot be modified remotely.',
-      timelineEntry: null,
-    };
+    return buildRecordOwnershipConflict(
+      change,
+      'timelineEntry',
+      'Server mismatch: the timeline entry cannot be modified remotely.',
+    );
   }
 
   if (existing.userWorkRecordId !== payload.workId) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'timeline_entry',
-      status: 'conflict',
-      code: SYNC_CODES.conflictParentChanged,
-      message: 'Server mismatch: timeline entry parent changed.',
-      timelineEntry: toUserTimelineEntryResponse(existing),
-    };
+    return buildRecordParentConflict(
+      change,
+      'timelineEntry',
+      'Server mismatch: timeline entry parent changed.',
+      {
+        timelineEntry: toUserTimelineEntryResponse(existing),
+      },
+    );
   }
 
   const validationError = await validateTimelineEntryTarget(
@@ -82,27 +83,22 @@ export async function applyTimelineEntryChange(
   );
 
   if (validationError) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'timeline_entry',
-      status: 'failed',
-      code: SYNC_CODES.failedValidation,
-      message: validationError,
-      timelineEntry: toUserTimelineEntryResponse(existing),
-    };
+    return buildRecordValidationFailure(
+      change,
+      'timelineEntry',
+      validationError,
+      {
+        timelineEntry: toUserTimelineEntryResponse(existing),
+      },
+    );
   }
 
   if (areTimelineEntriesEquivalent(existing, payload)) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'timeline_entry',
-      status: 'applied',
+    return buildRecordAppliedResult(change, 'timelineEntry', {
       code: SYNC_CODES.alreadyApplied,
       message: ALREADY_APPLIED_MESSAGE,
       timelineEntry: toUserTimelineEntryResponse(existing),
-    };
+    });
   }
 
   const updated = await dependencies.timelineEntriesService.update(
@@ -111,21 +107,10 @@ export async function applyTimelineEntryChange(
     client,
   );
 
-  return {
-    queueId: change.queueId,
-    entityId: change.entityId,
-    entityType: 'timeline_entry',
-    status: 'applied',
-    code:
-      payload.deletedAt === null
-        ? SYNC_CODES.appliedChange
-        : SYNC_CODES.appliedTombstone,
-    message:
-      payload.deletedAt === null
-        ? APPLIED_CHANGE_MESSAGE
-        : APPLIED_TOMBSTONE_MESSAGE,
+  return buildRecordAppliedResult(change, 'timelineEntry', {
+    ...getAppliedMutationResult(payload.deletedAt),
     timelineEntry: toUserTimelineEntryResponse(updated),
-  };
+  });
 }
 
 async function applyMissingRemoteTimelineEntryChange(
@@ -135,43 +120,20 @@ async function applyMissingRemoteTimelineEntryChange(
   client: SyncPushClient,
   dependencies: SyncPushTimelineEntryDependencies,
 ): Promise<PushSyncResultDto> {
-  const isDelete = change.operation === 'delete' || payload.deletedAt !== null;
-  const canCreate = change.operation === 'create' && payload.serverVersion === 0;
+  const missingRemoteResult = getMissingRemoteRecordResult(
+    change,
+    'timelineEntry',
+    payload,
+    {
+      deletedSyncedConflict:
+        'Server mismatch: the timeline entry was already missing remotely.',
+      missingConflict:
+        'Server mismatch: the timeline entry does not exist remotely.',
+    },
+  );
 
-  if (isDelete) {
-    if (payload.serverVersion > 0) {
-      return {
-        queueId: change.queueId,
-        entityId: change.entityId,
-        entityType: 'timeline_entry',
-        status: 'conflict',
-        code: SYNC_CODES.conflictRemoteMissing,
-        message: 'Server mismatch: the timeline entry was already missing remotely.',
-        timelineEntry: null,
-      };
-    }
-
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'timeline_entry',
-      status: 'applied',
-      code: SYNC_CODES.missingRemoteDeleteNoop,
-      message: MISSING_REMOTE_DELETE_NOOP_MESSAGE,
-      timelineEntry: null,
-    };
-  }
-
-  if (!canCreate) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'timeline_entry',
-      status: 'conflict',
-      code: SYNC_CODES.conflictRemoteMissing,
-      message: 'Server mismatch: the timeline entry does not exist remotely.',
-      timelineEntry: null,
-    };
+  if (missingRemoteResult) {
+    return missingRemoteResult;
   }
 
   const validationError = await validateTimelineEntryTarget(
@@ -181,15 +143,12 @@ async function applyMissingRemoteTimelineEntryChange(
   );
 
   if (validationError) {
-    return {
-      queueId: change.queueId,
-      entityId: change.entityId,
-      entityType: 'timeline_entry',
-      status: 'failed',
-      code: SYNC_CODES.failedValidation,
-      message: validationError,
-      timelineEntry: null,
-    };
+    return buildRecordValidationFailure(
+      change,
+      'timelineEntry',
+      validationError,
+      {},
+    );
   }
 
   const created = await dependencies.timelineEntriesService.create(
@@ -197,27 +156,9 @@ async function applyMissingRemoteTimelineEntryChange(
     client,
   );
 
-  return {
-    queueId: change.queueId,
-    entityId: change.entityId,
-    entityType: 'timeline_entry',
-    status: 'applied',
+  return buildRecordAppliedResult(change, 'timelineEntry', {
     code: SYNC_CODES.created,
     message: CREATED_MESSAGE,
     timelineEntry: toUserTimelineEntryResponse(created),
-  };
-}
-
-async function validateTimelineEntryTarget(
-  userId: string,
-  payload: SyncTimelineEntryPayloadDto,
-  dependencies: Pick<SyncPushTimelineEntryDependencies, 'userRecordsService'>,
-) {
-  const parent = await dependencies.userRecordsService.findById(payload.workId);
-
-  if (!parent || parent.userId !== userId) {
-    return 'Timeline entry parent is missing or belongs to a different user.';
-  }
-
-  return null;
+  });
 }

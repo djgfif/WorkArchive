@@ -20,11 +20,9 @@ describe('retention cleanup', () => {
   it('builds explicit delete predicates for long-lived operational tables', () => {
     const config = readRetentionCleanupConfig(
       {
-        RETENTION_EXPIRED_PASSWORD_RESET_TOKEN_DAYS: '3',
         RETENTION_EXPIRED_REFRESH_SESSION_DAYS: '14',
         RETENTION_REVOKED_REFRESH_SESSION_DAYS: '21',
         RETENTION_SECURITY_EVENT_DAYS: '90',
-        RETENTION_USED_PASSWORD_RESET_TOKEN_DAYS: '5',
       },
       new Date('2026-05-22T00:00:00.000Z'),
     );
@@ -120,6 +118,27 @@ describe('retention cleanup', () => {
         NODE_ENV: 'production',
       }),
     ).toThrow(/RETENTION_CLEANUP_CONFIRM/);
+  });
+
+  it('allows production deletes only with the explicit confirmation phrase', () => {
+    const config = readRetentionCleanupConfig({
+      RETENTION_CLEANUP_CONFIRM: 'delete-expired-operational-data',
+      RETENTION_CLEANUP_DRY_RUN: 'false',
+    });
+
+    expect(() =>
+      assertRetentionCleanupCanRun(config, {
+        NODE_ENV: 'production',
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects non-positive retention day values', () => {
+    expect(() =>
+      readRetentionCleanupConfig({
+        RETENTION_SECURITY_EVENT_DAYS: '0',
+      }),
+    ).toThrow(/positive integer/);
   });
 });
 

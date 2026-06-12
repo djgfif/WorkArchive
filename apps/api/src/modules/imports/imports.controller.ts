@@ -8,7 +8,6 @@ import {
   HttpStatus,
   Inject,
   Param,
-  UnauthorizedException,
   Post,
   Put,
   Query,
@@ -27,6 +26,7 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
+import { extractOptionalBearerAccessToken } from '../auth/bearer-token';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ALADIN_PROVIDER } from './imports.constants';
 import { assertUserCredentialProvider } from './credentials/import-provider-credentials';
@@ -225,16 +225,12 @@ export class ImportsController {
   }
 
   private async getOptionalUser(authorizationHeader?: string) {
-    if (!authorizationHeader) {
+    const accessToken = extractOptionalBearerAccessToken(authorizationHeader);
+
+    if (!accessToken) {
       return null;
     }
 
-    const [scheme, token] = authorizationHeader.split(' ');
-
-    if (scheme !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Malformed Bearer access token.');
-    }
-
-    return this.authService.validateAccessToken(token);
+    return this.authService.validateAccessToken(accessToken);
   }
 }

@@ -27,6 +27,18 @@ export const SYNC_CODES = {
   missingRemoteDeleteNoop: 'missing_remote_delete_noop',
 } as const;
 
+export function getAppliedMutationResult(deletedAt: string | null) {
+  return deletedAt === null
+    ? {
+        code: SYNC_CODES.appliedChange,
+        message: APPLIED_CHANGE_MESSAGE,
+      }
+    : {
+        code: SYNC_CODES.appliedTombstone,
+        message: APPLIED_TOMBSTONE_MESSAGE,
+      };
+}
+
 export const SYNC_CREATE_TITLE_INCLUDE = {
   contributors: {
     include: {
@@ -104,12 +116,3 @@ export type GraphPayloadKey =
   | 'workContributor'
   | 'workRelation'
   | 'workSeriesLink';
-export type StructuredLogFields = {
-  count?: number;
-  durationMs?: number;
-  entityType?: string;
-  errorCode?: string | undefined;
-  provider?: string;
-  requestId?: string | undefined;
-  userId?: string;
-};

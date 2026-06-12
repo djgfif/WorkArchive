@@ -2,13 +2,13 @@
 
 | Field                 | Value                                                                                                                                                                                                                                                    |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status                | `canonical`                                                                                                                                                                                                                                              |
+| Status                | `active`                                                                                                                                                                                                                                                 |
 | Role                  | `integrated execution roadmap`                                                                                                                                                                                                                           |
 | Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
-| Last verified against | `2026-04-30` sync conflict resolution working tree                                                                                                                                                                                                       |
+| Last verified against | `2026-06-12` documentation alignment plus root `check:docs-links`, `lint`, `typecheck`, and `test` after API service decomposition, including sync, import resolve, internal catalog import candidate, import search stage cache, import provider readiness, import candidate decoration, import provider search runner, import provider credential runtime, import provider search stage, import search observability, import provider key management, import search context/result extraction, Bearer access token parsing extraction, auth session metadata extraction, and user records helper/payload builder extraction. Build, import-search QA, sync-load dry-run, and web E2E remain last verified on `2026-06-04` |
 | When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                             |
 
-이 문서는 Work Archive의 **단일 통합 실행 로드맵**이다. current reality 문서를 대체하지 않고, 지금 무엇을 어떤 순서로 고정해야 하는지만 정리한다.
+이 문서는 Work Archive의 **통합 실행 로드맵**이다. current reality 문서를 대체하지 않고, 지금 무엇을 어떤 순서로 고정해야 하는지만 정리한다. 최신 구현 현실은 [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), 개발 진입점은 [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md), 2026-06 구조 부채 보조 로드맵은 [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md)를 따른다.
 
 ## Summary
 
@@ -146,7 +146,7 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 근거리 순서:
 
 1. conflict 해결 UX polish와 자동 병합 정책 검토
-2. 로그인 직후 pull 자동화 검토
+2. 로그인/account archive activation 자동 pull 검증과 확장 검토
 3. sync 상태 polish와 실패 복구 UX 개선
 4. guest -> account 선택 import UX 정리
 5. 백업/동기화가 꺼져 있어도 로컬 기록이 안전하다는 안내
@@ -241,10 +241,12 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 
 Phase 1+ 게이트:
 
+- `npm run lint`
 - `npm run typecheck`
-- `npm run test --workspace @work-archive/web`
-- `npm run test --workspace @work-archive/api`
+- `npm run test`
 - `npm run build`
+- 검색/ranking 변경 시 `npm run qa:import-search`
+- sync 변경 시 `npm run qa:sync-load`
 - `docker compose up --build`: 현재 문서 기준 미검증이면 미검증으로 유지한다.
 
 문서에는 마지막 확인 날짜와 결과를 남긴다.

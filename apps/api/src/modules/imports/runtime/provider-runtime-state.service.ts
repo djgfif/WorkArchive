@@ -1,6 +1,9 @@
 import { Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
-import Redis from 'ioredis';
 
+import {
+  connectRedisClient,
+  type RedisClient,
+} from '../../../common/redis-client';
 import { readApiRuntimeConfig } from '../../../config/api-runtime-config';
 import type { ImportProvider } from '../imports.constants';
 
@@ -26,8 +29,8 @@ export class ProviderRuntimeStateService implements OnModuleDestroy {
   private readonly logger = new Logger(ProviderRuntimeStateService.name);
   private readonly cache = new Map<string, ProviderCacheEntry>();
   private readonly circuitState = new Map<ImportProvider, ProviderCircuitState>();
-  private redis: Redis | null = null;
-  private redisConnectPromise: Promise<Redis | null> | null = null;
+  private redis: RedisClient | null = null;
+  private redisConnectPromise: Promise<RedisClient | null> | null = null;
 
   async onModuleDestroy() {
     if (this.redis) {
@@ -212,22 +215,13 @@ export class ProviderRuntimeStateService implements OnModuleDestroy {
     }
 
     if (!this.redisConnectPromise) {
-      const redis = new Redis(config.redisUrl, {
-        enableOfflineQueue: false,
-        lazyConnect: true,
-        maxRetriesPerRequest: 1,
-      });
-
-      this.redisConnectPromise = redis
-        .connect()
-        .then(async () => {
-          await redis.ping();
+      this.redisConnectPromise = connectRedisClient(config.redisUrl)
+        .then((redis) => {
           this.redis = redis;
 
           return redis;
         })
         .catch((error) => {
-          redis.disconnect();
           this.redisConnectPromise = null;
 
           if (config.isProduction) {

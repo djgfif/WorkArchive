@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                                                                                                                                                                               |
 | Role                  | `current reality`                                                                                                                                                                                                                                                         |
 | Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-06-04` root lint/typecheck/test/build, import-search QA, sync-load dry-run, expert feedback roadmap alignment, Prisma 7 migration, route/dependency cleanup, and service decomposition                                                                               |
+| Last verified against | `2026-06-12` documentation alignment plus root `check:docs-links`, `lint`, `typecheck`, and `test` after API service decomposition, including sync, import resolve, internal catalog import candidate, import search stage cache, import provider readiness, import candidate decoration, import provider search runner, import provider credential runtime, import provider search stage, import search observability, import provider key management, import search context/result extraction, Bearer access token parsing extraction, auth session metadata extraction, and user records helper/payload builder extraction. Build, import-search QA, sync-load dry-run, and web E2E remain last verified on `2026-06-04` |
 | When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -122,6 +122,43 @@ Dexie DB는 현재 아래 테이블을 사용한다.
 - `WorksModule`
 - `SyncModule`
 
+`SyncModule`은 현재 push/pull orchestration을 작은 서비스 유틸리티와
+handler로 분해한 상태다. Pull 경로는 page loader, record/include 정의,
+payload mapper, ordered change builder, summary utility로 나뉘고, Push 경로는
+entity handler, validation/data builder, result/summary helper, dispatcher로
+나뉜다. 외부 sync API 계약은 이 분해로 변경되지 않았다.
+
+`ImportsModule`은 provider adapter/search/runtime/credential helper를 이미
+별도 모듈로 두고 있으며, import 후보 resolve payload 정규화는
+`resolve-import-candidate`, 내부 catalog 후보 검색/변환은
+`internal-catalog-import-candidates`, 검색 단계 cache key/guard/cacheability는
+`import-search-stage-cache`, provider readiness/status 계산은
+`import-provider-readiness`, catalog match/existing record 후보 보강은
+`import-candidate-decoration`, provider별 검색 실행/skip/failure/circuit side
+effect는 `import-provider-search-runner`, stored/server credential lookup runtime은
+`import-provider-credential-runtime`, cache를 포함한 provider search stage 실행은
+`import-provider-search-stage`, provider 결과 diagnostics/summary/metric 조립은
+`import-search-observability`, provider key 저장/삭제/연결 테스트는
+`import-provider-key-management`, 검색 request context 확정은
+`import-search-context`, 검색 후보 merge/ranking과 response assembly는
+`import-search-result`로 분리했다. `ImportsService`는 여전히 검색 요청 전체
+orchestration을 조율하지만, resolve payload 파싱, 내부 catalog 후보 변환, 검색
+단계 캐시 판정과 provider stage 실행, provider readiness/status 계산, 후보 보강,
+provider별 검색 실행, provider credential runtime 구성, 검색 관측 조립, provider
+key management, 검색 context/result 조립 책임은 서비스 밖으로 이동했다.
+
+Bearer access token header parsing은 `auth/bearer-token` helper가 담당한다.
+`JwtAuthGuard`는 required token 추출을, optional-auth import 검색 경로는 optional
+token 추출을 같은 helper로 공유한다.
+
+Refresh session에 저장/표시하는 user agent 요약과 IP address 마스킹은
+`auth-session-metadata` helper가 담당한다. 이 helper는 raw user agent 저장을
+피하고, iPhone/iPad user agent를 macOS보다 iOS로 우선 판정한다.
+
+`UserRecordsService`의 DTO date parsing, record medium 판정, recording policy
+view 조립, grouped record key 산출, update/create/import payload builder는
+`user-records.helpers`가 담당한다.
+
 ### 4-2. Current Domain Model
 
 Prisma 기준 핵심 모델은 현재 최소 아래 구조를 포함한다.
@@ -168,17 +205,19 @@ Production hardening baseline: production startup rejects development secrets (`
 - Prisma migration은 API entrypoint에서 실행하지 않는다. 배포 전
   `api-migrate` release profile job으로 실행한다.
 - Retention cleanup은 `security_events`, `user_refresh_sessions`,
-  `password_reset_tokens`를 대상으로 별도 운영 명령에서 실행한다. 기본은
-  dry-run이고 production delete는 명시 confirmation env가 필요하다.
-- Provider 검색은 fetch timeout, 제한적 429 retry, provider별 in-memory
-  circuit breaker로 격리한다. KOBIS는 HTTP/query-key upstream 경계를 운영
+  `user_sync_applied_mutations`를 대상으로 별도 운영 명령에서 실행한다.
+  기본은 dry-run이고 production delete는 명시 confirmation env가 필요하다.
+- Provider 검색은 fetch timeout, 제한적 429 retry, provider별 cache/circuit
+  state로 격리한다. `REDIS_URL`이 구성되면 provider cache/circuit state는
+  Redis를 사용하고, Redis가 없는 비프로덕션 환경에서는 process-local
+  memory로 fallback한다. KOBIS는 HTTP/query-key upstream 경계를 운영
   문서에 고정했다.
 
 ### 4-4. Current Auth Session Shape
 
 Current session policy: refresh sessions are stored in `UserRefreshSession` / `user_refresh_sessions`. Google OAuth login creates a device-level refresh session, refresh rotates the hash in that session, and account settings can list sessions, revoke one session, or sign out all devices. The legacy `users.passwordHash` / `users.refreshTokenHash` columns and the `PasswordResetToken` model were removed in migration `20260606120000_drop_legacy_password_auth`; Google OAuth is the only supported provider. Refresh token reuse detection revokes all active sessions for the user.
 
-- Google OAuth complete/refresh 응답은 access token과 사용자 정보를 반환한다. legacy email/password register/login/password-reset 엔드포인트는 `410 Gone`으로 비활성화되어 있다.
+- Google OAuth complete/refresh 응답은 access token과 사용자 정보를 반환한다. legacy email/password register/login 엔드포인트는 `410 Gone`으로 비활성화되어 있고, legacy API password-reset 라우트는 제거되어 `404`로 닫힌다.
 - refresh token은 `HttpOnly` cookie로 저장된다.
 - 프론트는 access token을 브라우저 storage에 저장하지 않고 메모리에만 둔다.
 - 앱 부팅 시 기존 `work-archive.auth.tokens` local/session storage 값은 제거하고, refresh cookie로 access token을 재발급해 세션을 복구한다.
@@ -244,7 +283,7 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - 실제 티어 보드 기능 고도화
 - 커뮤니티 기능
 - timeline 자동 이벤트 기록
-- Provider circuit state Redis 전환. 현재는 process-local memory다.
+- Provider cache/circuit state의 Redis 경로 운영 증적과 다중 인스턴스 검증. 현재 코드는 `REDIS_URL` 구성 시 Redis를 사용하고, Redis가 없는 비프로덕션 환경에서는 process-local memory로 fallback한다.
 
 ### 확인한 것
 
@@ -255,7 +294,9 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
   `UserRefreshSession`, `UserSyncAppliedMutation`이다. (`PasswordResetToken`
   retention 타깃은 모델 제거와 함께 삭제됨)
 - Import provider 코드 기준 KOBIS가 HTTP endpoint와 query `key`를 사용한다.
-- Provider failure isolation은 process-local circuit breaker로 구현돼 있다.
+- Provider failure isolation은 `REDIS_URL` 구성 시 Redis-backed provider
+  cache/circuit state로 동작한다. Redis가 없는 비프로덕션 환경에서는
+  process-local memory fallback을 사용한다.
 
 ### 미확인 / 운영환경 의존
 
@@ -313,10 +354,11 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 ### Current Verification Status
 
-- `npm run lint`: `2026-06-04` 통과 확인
-- `npm run typecheck`: `2026-06-04` 통과 확인
-- `npm run test`: `2026-06-04` 기준 API `32` suites / `366` tests,
-  web `43` files / `304` tests, shared-types `1` file / `3` tests 통과 확인
+- `npm run check:docs-links`: `2026-06-12` 통과 확인
+- `npm run lint`: `2026-06-12` 통과 확인
+- `npm run typecheck`: `2026-06-12` 통과 확인
+- `npm run test`: `2026-06-12` 기준 API `70` suites / `536` tests,
+  web `44` files / `309` tests, shared-types `1` file / `3` tests 통과 확인
 - `npm run build`: `2026-06-04` 통과 확인
 - `npm run test:e2e:web`: `2026-06-04` 기준 chromium/mobile-chrome
   Playwright `10` tests 통과 확인. 이 Codex sandbox 안에서는 Vite가

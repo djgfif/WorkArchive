@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The product runs as a local-first web app, a NestJS API, PostgreSQL, and Redis rate limiting. The current risk profile is migration safety, backup/restore, sync correctness, provider failure isolation, and release discipline. Kafka, Saga orchestration, and an API Gateway would add distributed-system operations before the product has a need for them.
+The product runs as a local-first web app, a NestJS API, PostgreSQL, and Redis for rate limiting plus bounded ephemeral operational state. The current risk profile is migration safety, backup/restore, sync correctness, provider failure isolation, and release discipline. Kafka, Saga orchestration, and an API Gateway would add distributed-system operations before the product has a need for them.
 
 ## Decision
 
@@ -17,7 +17,7 @@ The runtime remains:
 - Web app with Dexie local data and `syncQueue`
 - NestJS API
 - PostgreSQL
-- Redis for rate limiting only
+- Redis for rate limiting and bounded ephemeral operational state
 
 ## Alternatives
 

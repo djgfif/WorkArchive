@@ -4,8 +4,11 @@ import {
   ServiceUnavailableException,
   type OnModuleDestroy,
 } from '@nestjs/common';
-import Redis from 'ioredis';
 
+import {
+  connectRedisClient,
+  type RedisClient,
+} from '../../common/redis-client';
 import { readApiRuntimeConfig } from '../../config/api-runtime-config';
 
 const GOOGLE_OAUTH_FLOW_KEY_PREFIX = 'work-archive:auth:google-oauth-flow:';
@@ -22,8 +25,8 @@ export interface GoogleOAuthFlowRecord {
 export class GoogleOAuthFlowStoreService implements OnModuleDestroy {
   private readonly logger = new Logger(GoogleOAuthFlowStoreService.name);
   private readonly memoryFlows = new Map<string, GoogleOAuthFlowRecord>();
-  private redis: Redis | null = null;
-  private redisConnectPromise: Promise<Redis | null> | null = null;
+  private redis: RedisClient | null = null;
+  private redisConnectPromise: Promise<RedisClient | null> | null = null;
 
   async onModuleDestroy() {
     if (this.redis) {
@@ -87,7 +90,7 @@ export class GoogleOAuthFlowStoreService implements OnModuleDestroy {
     }
   }
 
-  private async consumeRedisKey(redis: Redis, key: string) {
+  private async consumeRedisKey(redis: RedisClient, key: string) {
     const result = await redis.multi().get(key).del(key).exec();
     const value = result?.[0]?.[1];
 
@@ -140,22 +143,13 @@ export class GoogleOAuthFlowStoreService implements OnModuleDestroy {
     }
 
     if (!this.redisConnectPromise) {
-      const redis = new Redis(config.redisUrl, {
-        enableOfflineQueue: false,
-        lazyConnect: true,
-        maxRetriesPerRequest: 1,
-      });
-
-      this.redisConnectPromise = redis
-        .connect()
-        .then(async () => {
-          await redis.ping();
+      this.redisConnectPromise = connectRedisClient(config.redisUrl)
+        .then((redis) => {
           this.redis = redis;
 
           return redis;
         })
         .catch((error) => {
-          redis.disconnect();
           this.redisConnectPromise = null;
 
           if (config.isProduction) {

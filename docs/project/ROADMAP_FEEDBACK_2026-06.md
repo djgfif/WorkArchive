@@ -2,12 +2,15 @@
 
 | 항목 | 내용 |
 | --- | --- |
+| 상태 | `active advisory` |
+| 역할 | 구조적 부채 상환과 확장 대비 보조 로드맵 |
 | 작성일 | 2026-06-06 |
-| 기준 | 정적 코드 리딩 기반 평가 (빌드/테스트 재현은 미수행) |
+| 최근 재검토 | 2026-06-12 문서/코드 정합성 재검토. 빌드/테스트 신규 재현은 미수행 |
+| 기준 | 정적 코드 리딩 기반 평가 + 현재 canonical 상태 문서와 실제 migration/provider runtime 대조 |
 | 범위 | 신기능이 아닌 **구조적 부채 상환 + 확장 대비** 중심 |
 | 공수 표기 | S = 1~3일, M = 1~2주, L = 2주+ (1인 기준 추정) |
 
-이 로드맵은 부채를 "방치 시 비용이 커지는 순서"로 배열했다. 각 단계는 앞 단계가 끝나야 시작 가능한 게 아니라, **우선순위와 의존성**으로 묶여 있다.
+이 로드맵은 부채를 "방치 시 비용이 커지는 순서"로 배열했다. 각 단계는 앞 단계가 끝나야 시작 가능한 게 아니라, **우선순위와 의존성**으로 묶여 있다. 현재 구현 현실은 [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md)를 우선한다.
 
 ---
 
@@ -15,13 +18,11 @@
 
 레거시 흔적 제거로 의도를 명확히 하고 공격 표면을 줄이는 단계. 기능 변화 없음.
 
-### 0-1. 비밀번호 인증 레거시 제거 — `P1` · `S`
+### 0-1. 비밀번호 인증 레거시 제거 — `DONE` · 2026-06-12 확인
 
-- **대상**: `users.passwordHash`, `users.refreshTokenHash`, `PasswordResetToken` 모델, `/auth/password-reset/*` 라우트(현재 `410 Gone`)
-- **이유**: Google OAuth 전용으로 전환 완료. 남은 컬럼/모델은 혼동과 공격 표면.
-- **작업**: 미사용 최종 확인 → Prisma migration으로 drop → rate limiter 목록·configure-app에서 password-reset 경로 제거
-- **완료 기준**: 스키마에 비밀번호 관련 흔적 0개, 전체 테스트 통과, BOLA/ASVS 문서 동기화
-- **위험**: 낮음 (이미 비활성 경로). 단, 마이그레이션 롤백 플랜 준비
+- **결과**: migration `20260606120000_drop_legacy_password_auth`가 `users.passwordHash`, `users.refreshTokenHash`, `password_reset_tokens`를 제거했다.
+- **현재 API 상태**: legacy email/password register/login은 `410 Gone`, legacy API password-reset route는 제거되어 `404`다.
+- **남은 작업**: 기능 구현이 아니라 문서 잔재 정리와 release artifact에 검증 결과를 남기는 일이다.
 
 ### 0-2. 스타일 토큰 단일 소스화 — `P2` · `M`
 
@@ -61,12 +62,12 @@
 
 단일 인스턴스에서는 동작하지만, 스케일아웃 시 무력화되는 항목들.
 
-### 2-1. Circuit breaker Redis 전환 — `P1` · `M`
+### 2-1. Provider runtime Redis 운영 검증 — `P2` · `S/M`
 
-- **현재 문제**: provider 장애 격리가 process-local memory → 다중 인스턴스에서 격리 효과 소실
-- **작업**: in-memory circuit state → Redis 공유 상태 (이미 `REDIS_URL` 런타임 의존성 존재)
-- **완료 기준**: 인스턴스 간 circuit 상태 공유, 부하 테스트(`qa:sync-load`) 확장 검증
-- **트리거**: **수평 확장 배포의 선결 조건**. 단일 인스턴스 운영 중이면 P2로 유보 가능
+- **현재 상태**: `ProviderRuntimeStateService`는 `REDIS_URL`이 구성되면 provider cache/circuit state를 Redis에 저장하고, Redis가 없는 비프로덕션 환경에서는 memory fallback을 사용한다.
+- **작업**: 신규 구현이 아니라 production/beta 환경에서 `REDIS_URL` 구성, circuit state 공유, Redis 장애 시 production failure mode, provider failure smoke를 검증한다.
+- **완료 기준**: beta host에서 provider cache/circuit state가 Redis를 사용한다는 운영 증적, 멀티 인스턴스 또는 동등한 smoke 증적, `qa:import-search`/provider failure fallback 결과 기록
+- **트리거**: 수평 확장 배포 전 필수. 단일 인스턴스 운영 중이면 Gate 1 운영 증적 항목으로 관리 가능
 
 ### 2-2. Rate limiter 분산 백엔드 확인 — `P2` · `S`
 
@@ -108,13 +109,13 @@
 
 | 우선순위 | 즉시 착수 | 비고 |
 | --- | --- | --- |
-| **지금 (P1)** | 0-1 레거시 제거, 1-1 API v2 분리, 4-1 CI 강제, 4-2 환경 재현 | 부채/위험 최대 |
-| **다음 (P2)** | 0-2 스타일 토큰, 1-2 카탈로그 분리, 2-1 circuit breaker, 3-1 자동 병합 | 확장·일관성 |
+| **지금 (P1)** | 1-1 API v2 분리, 4-1 CI 강제, 4-2 환경 재현 | 부채/위험 최대. 0-1은 완료 |
+| **다음 (P2)** | 0-2 스타일 토큰, 1-2 카탈로그 분리, 2-1 provider runtime Redis 운영 검증, 3-1 자동 병합 | 확장·일관성 |
 | **이후 (P3)** | 3-2 게스트 병합/이관 | 사용 패턴 의존 |
 
 ## 권장 실행 순서
 
-1. **Sprint 1 (2주)**: 0-1 + 4-1 + 4-2 → 빠른 정리·검증으로 기반 확보
+1. **Sprint 1 (2주)**: 문서 잔재 정리 + 4-1 + 4-2 → 빠른 정리·검증으로 기반 확보
 2. **Sprint 2~3 (4주)**: 1-1 API v2 (중심 부채) + 0-2 스타일 병행
-3. **Sprint 4 (2주)**: 2-1 circuit breaker (스케일아웃 계획 있으면 앞당김)
+3. **Sprint 4 (2주)**: 2-1 provider runtime Redis 운영 검증 (스케일아웃 계획 있으면 앞당김)
 4. **Sprint 5+**: 1-2 카탈로그 분리, 3-1 자동 병합 (사용 신호 보며)

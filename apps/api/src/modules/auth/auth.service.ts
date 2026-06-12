@@ -38,6 +38,10 @@ import type {
   AuthenticatedUser,
 } from './auth.types';
 import {
+  maskAuthSessionIpAddress,
+  summarizeAuthSessionUserAgent,
+} from './auth-session-metadata';
+import {
   GOOGLE_AUTH_PROVIDER,
   GoogleOAuthClient,
   type GoogleIdentityProfile,
@@ -439,11 +443,11 @@ export class AuthService {
       data: {
         id: sessionId,
         expiresAt,
-        ipAddress: this.maskIpAddress(metadata.ipAddress ?? null),
+        ipAddress: maskAuthSessionIpAddress(metadata.ipAddress ?? null),
         lastUsedAt: new Date(),
         rememberMe,
         tokenHash: await hashSecret(refreshToken),
-        userAgent: this.summarizeUserAgent(metadata.userAgent ?? null),
+        userAgent: summarizeAuthSessionUserAgent(metadata.userAgent ?? null),
         userId: user.id,
       },
     });
@@ -699,68 +703,13 @@ export class AuthService {
       id: session.id,
       current,
       rememberMe: session.rememberMe,
-      userAgent: this.summarizeUserAgent(session.userAgent),
-      ipAddress: this.maskIpAddress(session.ipAddress),
+      userAgent: summarizeAuthSessionUserAgent(session.userAgent),
+      ipAddress: maskAuthSessionIpAddress(session.ipAddress),
       createdAt: session.createdAt.toISOString(),
       lastUsedAt: session.lastUsedAt?.toISOString() ?? null,
       rotatedAt: session.rotatedAt?.toISOString() ?? null,
       expiresAt: session.expiresAt.toISOString(),
     };
-  }
-
-  private summarizeUserAgent(value: string | null) {
-    if (!value) {
-      return null;
-    }
-
-    if (!/[()/]/.test(value) && value.length <= 80) {
-      return value;
-    }
-
-    const browser = value.includes('Edg/')
-      ? 'Edge'
-      : value.includes('Chrome/')
-        ? 'Chrome'
-        : value.includes('Firefox/')
-          ? 'Firefox'
-          : value.includes('Safari/')
-            ? 'Safari'
-            : 'Browser';
-    const os = value.includes('Windows')
-      ? 'Windows'
-      : value.includes('Mac OS X')
-        ? 'macOS'
-        : value.includes('Android')
-          ? 'Android'
-          : value.includes('iPhone') || value.includes('iPad')
-            ? 'iOS'
-            : value.includes('Linux')
-              ? 'Linux'
-              : null;
-
-    return [browser, os].filter(Boolean).join(' on ');
-  }
-
-  private maskIpAddress(value: string | null) {
-    if (!value) {
-      return null;
-    }
-
-    if (value.includes(':')) {
-      const segments = value.split(':').filter(Boolean);
-
-      return segments.length > 1
-        ? `${segments.slice(0, 2).join(':')}:...`
-        : `${value.slice(0, 6)}...`;
-    }
-
-    const parts = value.split('.');
-
-    if (parts.length === 4) {
-      return `${parts.slice(0, 3).join('.')}.x`;
-    }
-
-    return 'masked';
   }
 
   private async revokeAllUserSessions(userId: string) {

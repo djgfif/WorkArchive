@@ -8,6 +8,7 @@ import {
 
 export function getMissingRemoteGraphResult(
   change: PushSyncChangeDto,
+  key: GraphPayloadKey,
   payload: { deletedAt: string | null; serverVersion: number },
 ): PushSyncResultDto | null {
   const isDelete = change.operation === 'delete' || payload.deletedAt !== null;
@@ -27,6 +28,7 @@ export function getMissingRemoteGraphResult(
         payload.serverVersion > 0
           ? 'Server mismatch: the graph record was already missing remotely.'
           : MISSING_REMOTE_DELETE_NOOP_MESSAGE,
+      [key]: null,
     };
   }
 
@@ -38,6 +40,7 @@ export function getMissingRemoteGraphResult(
       status: 'conflict',
       code: SYNC_CODES.conflictRemoteMissing,
       message: 'Server mismatch: the graph record does not exist remotely.',
+      [key]: null,
     };
   }
 

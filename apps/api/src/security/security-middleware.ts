@@ -1,10 +1,10 @@
 import { Logger } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import rateLimit, { type Options, type Store } from 'express-rate-limit';
-import Redis from 'ioredis';
 import { RedisStore, type RedisReply } from 'rate-limit-redis';
 import { randomUUID } from 'node:crypto';
 
+import { connectRedisClient, type RedisClient } from '../common/redis-client';
 import type { ApiRuntimeConfig } from '../config/api-runtime-config';
 import { normalizeRequestId } from './request-id';
 import type { SecurityAuditService } from './security-audit.service';
@@ -13,7 +13,7 @@ import { setRequestId } from './security-audit.service';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const WORK_ARCHIVE_CLIENT_HEADER = 'x-work-archive-client';
 const WORK_ARCHIVE_CLIENT_HEADER_VALUE = 'web';
-const redisClients: Redis[] = [];
+const redisClients: RedisClient[] = [];
 
 export function createProductionFetchMetadataGuard(
   config: ApiRuntimeConfig,
@@ -298,19 +298,12 @@ async function createRateLimitStore(
   }
 
   const logger = new Logger('RedisRateLimit');
-  const redis = new Redis(config.redisUrl, {
-    enableOfflineQueue: false,
-    lazyConnect: true,
-    maxRetriesPerRequest: 1,
-  });
+  let redis: RedisClient;
 
   try {
-    await redis.connect();
-    await redis.ping();
+    redis = await connectRedisClient(config.redisUrl);
     redisClients.push(redis);
   } catch (error) {
-    redis.disconnect();
-
     if (config.isProduction) {
       throw error;
     }

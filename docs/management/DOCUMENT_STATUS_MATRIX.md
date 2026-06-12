@@ -26,6 +26,7 @@ This table separates current docs from archived reference material.
 | [`../security/PUBLIC_REPOSITORY_READINESS.md`](../security/PUBLIC_REPOSITORY_READINESS.md)                   | `canonical` | public repository readiness     |
 | [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | `canonical` | current implementation state    |
 | [`../project/EXECUTION_ROADMAP.md`](../project/EXECUTION_ROADMAP.md)                                         | `active`    | current execution sequencing    |
+| [`../project/ROADMAP_FEEDBACK_2026-06.md`](../project/ROADMAP_FEEDBACK_2026-06.md)                           | `active`    | structural debt advisory roadmap |
 | [`../archive/`](../archive/README.md)                                                                        | `archived`  | historical reference material   |
 | [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md)                                               | `canonical` | documentation rules             |
 | [`DOCUMENTATION_INDEX.md`](./DOCUMENTATION_INDEX.md)                                                         | `canonical` | navigation                      |

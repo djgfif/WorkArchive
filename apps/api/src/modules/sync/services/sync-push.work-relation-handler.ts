@@ -9,11 +9,10 @@ import {
 import { areWorkRelationsEquivalent } from './sync-push.equivalence';
 import {
   ALREADY_APPLIED_MESSAGE,
-  APPLIED_CHANGE_MESSAGE,
-  APPLIED_TOMBSTONE_MESSAGE,
   CREATED_MESSAGE,
   SYNC_CODES,
   USER_WORK_RELATION_INCLUDE,
+  getAppliedMutationResult,
 } from './sync-push.shared';
 import { toPushSyncWorkRelationPayload } from './sync-push.payload-mappers';
 import type { SyncPushClient } from './sync-push.client';
@@ -104,14 +103,7 @@ export async function applyWorkRelationChange(
   });
 
   return buildGraphAppliedResult(change, 'workRelation', {
-    code:
-      payload.deletedAt === null
-        ? SYNC_CODES.appliedChange
-        : SYNC_CODES.appliedTombstone,
-    message:
-      payload.deletedAt === null
-        ? APPLIED_CHANGE_MESSAGE
-        : APPLIED_TOMBSTONE_MESSAGE,
+    ...getAppliedMutationResult(payload.deletedAt),
     workRelation: toPushSyncWorkRelationPayload(updated),
   });
 }
@@ -123,7 +115,11 @@ async function applyMissingRemoteWorkRelationChange(
   client: SyncPushClient,
   userRecordsService: UserRecordsService,
 ): Promise<PushSyncResultDto> {
-  const missingResult = getMissingRemoteGraphResult(change, payload);
+  const missingResult = getMissingRemoteGraphResult(
+    change,
+    'workRelation',
+    payload,
+  );
   if (missingResult) return missingResult;
 
   const validationError = await validateWorkRelationTarget(

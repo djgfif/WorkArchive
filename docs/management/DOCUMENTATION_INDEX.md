@@ -16,6 +16,8 @@ documentation navigation and maintenance rules.
 | [`security/`](../security/)               | [`PUBLIC_REPOSITORY_READINESS.md`](../security/PUBLIC_REPOSITORY_READINESS.md)                    | preparing for public GitHub visibility               |
 | [`security/`](../security/)               | [`GITHUB_SECURITY_SETTINGS_CHECKLIST.md`](../security/GITHUB_SECURITY_SETTINGS_CHECKLIST.md)      | enabling GitHub branch protection, CodeQL, Dependabot, secret scanning |
 | [`project/`](../project/README.md)        | [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | checking current implementation state                |
+| [`project/`](../project/README.md)        | [`EXECUTION_ROADMAP.md`](../project/EXECUTION_ROADMAP.md)                                         | checking current execution sequencing                |
+| [`project/`](../project/README.md)        | [`ROADMAP_FEEDBACK_2026-06.md`](../project/ROADMAP_FEEDBACK_2026-06.md)                           | checking structural debt advisory sequencing         |
 
 ## Archived References
 

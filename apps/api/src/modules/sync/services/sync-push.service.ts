@@ -1,11 +1,4 @@
-﻿import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Logger,
-  Optional,
-} from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
 import { CatalogService } from '../../catalog/catalog.service';
 import { UserReleaseRecordsService } from '../../user-records/user-release-records.service';
@@ -18,42 +11,24 @@ import type {
   PushSyncResponseDto,
   PushSyncResultDto,
 } from '../dto/push-sync-response.dto';
-import type { SyncContributorPayloadDto } from '../payloads/sync-contributor-payload.dto';
-import type { SyncReleaseRecordPayloadDto } from '../payloads/sync-release-record-payload.dto';
-import type { SyncSeriesPayloadDto } from '../payloads/sync-series-payload.dto';
-import type { SyncTimelineEntryPayloadDto } from '../payloads/sync-timeline-entry-payload.dto';
-import type {
-  SyncTierBoardAssetPayloadDto,
-  SyncTierBoardCardPayloadDto,
-  SyncTierLanePayloadDto,
-  SyncTierBoardPayloadDto,
-} from '../payloads/sync-tier-board-payload.dto';
-import type { SyncWorkContributorPayloadDto } from '../payloads/sync-work-contributor-payload.dto';
-import type { SyncWorkPayloadDto } from '../payloads/sync-work-payload.dto';
-import type { SyncWorkRelationPayloadDto } from '../payloads/sync-work-relation-payload.dto';
-import type { SyncWorkSeriesLinkPayloadDto } from '../payloads/sync-work-series-link-payload.dto';
 import { SYNC_SCHEMA_VERSION } from '../sync.constants';
 import { SyncIdempotencyService } from './sync-idempotency.service';
 import { SyncPayloadValidationService } from './sync-payload-validation.service';
 import {
-  applyContributorChange,
-  applySeriesChange,
-  applyWorkContributorChange,
-  applyWorkRelationChange,
-  applyWorkSeriesLinkChange,
-} from './sync-push.graph-handler';
+  applyValidatedPushChange,
+  type SyncPushChangeDependencies,
+} from './sync-push.change-dispatcher';
+import type { SyncPushClient } from './sync-push.client';
 import {
-  applyTierBoardAssetChange,
-  applyTierBoardCardChange,
-  applyTierBoardChange,
-  applyTierLaneChange,
-} from './sync-push.tier-board-handler';
-import { applyReleaseRecordChange } from './sync-push.release-record-handler';
-import { applyTimelineEntryChange } from './sync-push.timeline-entry-handler';
-import { applyWorkChange } from './sync-push.work-handler';
-import {
+  assertSupportedSyncSchemaVersion,
+  describeError,
+  logStructuredSyncEvent,
   type StructuredLogFields,
-} from './sync-push.shared';
+} from './sync-service-utils';
+import {
+  countPushResultStatuses,
+  sortPushChangesByCreatedAt,
+} from './sync-summary-utils';
 
 @Injectable()
 export class SyncPushService {
@@ -91,10 +66,10 @@ export class SyncPushService {
     pushSyncDto: PushSyncDto,
     requestId?: string,
   ): Promise<PushSyncResponseDto> {
-    this.assertSupportedSchemaVersion(pushSyncDto);
+    assertSupportedSyncSchemaVersion(pushSyncDto);
 
     const { changes } = pushSyncDto;
-    const sortedChanges = this.sortChangesByCreatedAt(changes);
+    const sortedChanges = sortPushChangesByCreatedAt(changes);
     const results: PushSyncResultDto[] = [];
     const startedAt = Date.now();
 
@@ -130,12 +105,12 @@ export class SyncPushService {
       this.logEvent('sync.push.failed', {
         count: changes.length,
         durationMs: Date.now() - startedAt,
-        errorCode: this.describeError(error),
+        errorCode: describeError(error),
         requestId,
         userId,
       });
       this.logger.warn(
-        `Sync push failed userId=${userId} requested=${changes.length} reason=${this.describeError(error)}`,
+        `Sync push failed userId=${userId} requested=${changes.length} reason=${describeError(error)}`,
       );
       throw error;
     }
@@ -168,24 +143,13 @@ export class SyncPushService {
   }
 
   private logEvent(event: string, fields: StructuredLogFields) {
-    this.logger.log(
-      JSON.stringify({
-        count: fields.count ?? null,
-        durationMs: fields.durationMs ?? null,
-        entityType: fields.entityType ?? null,
-        errorCode: fields.errorCode ?? null,
-        event,
-        provider: fields.provider ?? null,
-        requestId: fields.requestId ?? null,
-        userId: fields.userId ?? null,
-      }),
-    );
+    logStructuredSyncEvent(this.logger, event, fields);
   }
 
   private async applyChange(
     userId: string,
     change: PushSyncChangeDto,
-    client: Prisma.TransactionClient | PrismaService = this.prisma,
+    client: SyncPushClient = this.prisma,
   ): Promise<PushSyncResultDto> {
     const payloadValidation =
       this.payloadValidationService.validateChangePayload(change);
@@ -194,161 +158,22 @@ export class SyncPushService {
       return payloadValidation.result;
     }
 
-    if (change.entityType === 'series') {
-      return applySeriesChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncSeriesPayloadDto,
-        client,
-      );
-    }
-
-    if (change.entityType === 'contributor') {
-      return applyContributorChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncContributorPayloadDto,
-        client,
-      );
-    }
-
-    if (change.entityType === 'work_series_link') {
-      return applyWorkSeriesLinkChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncWorkSeriesLinkPayloadDto,
-        client,
-        this.userRecordsService,
-      );
-    }
-
-    if (change.entityType === 'work_contributor') {
-      return applyWorkContributorChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncWorkContributorPayloadDto,
-        client,
-        this.userRecordsService,
-      );
-    }
-
-    if (change.entityType === 'work_relation') {
-      return applyWorkRelationChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncWorkRelationPayloadDto,
-        client,
-        this.userRecordsService,
-      );
-    }
-
-    if (change.entityType === 'tier_board') {
-      return applyTierBoardChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncTierBoardPayloadDto,
-        client,
-      );
-    }
-
-    if (change.entityType === 'tier_lane') {
-      return applyTierLaneChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncTierLanePayloadDto,
-        client,
-      );
-    }
-
-    if (change.entityType === 'tier_board_card') {
-      return applyTierBoardCardChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncTierBoardCardPayloadDto,
-        client,
-      );
-    }
-
-    if (change.entityType === 'tier_board_asset') {
-      return applyTierBoardAssetChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncTierBoardAssetPayloadDto,
-        client,
-      );
-    }
-
-    if (change.entityType === 'timeline_entry') {
-      return applyTimelineEntryChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncTimelineEntryPayloadDto,
-        client,
-        {
-          timelineEntriesService: this.timelineEntriesService,
-          userRecordsService: this.userRecordsService,
-        },
-      );
-    }
-
-    if (change.entityType === 'release_record') {
-      return applyReleaseRecordChange(
-        userId,
-        change,
-        payloadValidation.payload as SyncReleaseRecordPayloadDto,
-        client,
-        {
-          releaseRecordsService: this.releaseRecordsService,
-          userRecordsService: this.userRecordsService,
-        },
-      );
-    }
-
-    return applyWorkChange(
+    return applyValidatedPushChange(
       userId,
       change,
-      payloadValidation.payload as SyncWorkPayloadDto,
+      payloadValidation.payload,
       client,
-      {
-        catalogService: this.catalogService,
-        userRecordsService: this.userRecordsService,
-      },
+      this.getChangeDependencies(),
     );
   }
 
-  private assertSupportedSchemaVersion({
-    schemaVersion,
-  }: {
-    schemaVersion?: unknown;
-  }) {
-    if (schemaVersion === undefined) {
-      return;
-    }
-
-    if (schemaVersion !== SYNC_SCHEMA_VERSION) {
-      throw new BadRequestException(
-        `Unsupported sync schema version "${String(schemaVersion)}". Supported version is ${SYNC_SCHEMA_VERSION}.`,
-      );
-    }
-  }
-
-  private sortChangesByCreatedAt(changes: PushSyncChangeDto[]) {
-    return changes
-      .map((change, index) => ({
-        change,
-        index,
-        timestamp: Date.parse(change.createdAt),
-      }))
-      .sort((left, right) => {
-        const timestampDelta = left.timestamp - right.timestamp;
-
-        if (timestampDelta !== 0) {
-          return timestampDelta;
-        }
-
-        return left.index - right.index;
-      })
-      .map(({ change }) => change);
+  private getChangeDependencies(): SyncPushChangeDependencies {
+    return {
+      catalogService: this.catalogService,
+      releaseRecordsService: this.releaseRecordsService,
+      timelineEntriesService: this.timelineEntriesService,
+      userRecordsService: this.userRecordsService,
+    };
   }
 
   private logPushSummary(
@@ -356,26 +181,11 @@ export class SyncPushService {
     requestedCount: number,
     response: PushSyncResponseDto,
   ) {
-    const appliedCount = response.results.filter(
-      (result) => result.status === 'applied',
-    ).length;
-    const conflictCount = response.results.filter(
-      (result) => result.status === 'conflict',
-    ).length;
-    const failedCount = response.results.filter(
-      (result) => result.status === 'failed',
-    ).length;
+    const { appliedCount, conflictCount, failedCount } =
+      countPushResultStatuses(response.results);
 
     this.logger.log(
       `Sync push summary userId=${userId} requested=${requestedCount} applied=${appliedCount} conflict=${conflictCount} failed=${failedCount}`,
     );
-  }
-
-  private describeError(error: unknown) {
-    if (error instanceof Error) {
-      return error.name;
-    }
-
-    return 'UnknownError';
   }
 }
