@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { AuthPageTemplate } from '@shared/components/PageTemplates';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { AuthForm } from '../components/AuthForm';
 import { useAuthSession } from '../hooks/useAuthSession';
 import { fetchGoogleAuthStatus } from '../services/auth.api';
@@ -21,6 +22,7 @@ function getReturnToFromLocationState(state: unknown) {
 }
 
 export function LoginPage() {
+  usePageTitle('로그인');
   const location = useLocation();
   const navigate = useNavigate();
   const { continueWithGoogle, isLoading, mode } = useAuthSession();
@@ -78,7 +80,7 @@ export function LoginPage() {
 
   return (
     <AuthPageTemplate
-      description="로그인은 필수가 아닙니다. Google은 비공개 백업, 여러 기기 동기화, 개인 API key vault를 위해 사용하며 기록은 먼저 이 기기에 저장됩니다."
+      description="로그인은 필수가 아닙니다. Google은 비공개 백업, 여러 기기 동기화, 검색 키 안전 보관을 위해 사용하며 기록은 먼저 이 기기에 저장됩니다."
       footer={
         <Text c="var(--mantine-color-dimmed)" ta="center">
           Work Archive는 사용자의 비밀번호를 저장하지 않습니다. Google 계정은 백업 연결에만 사용됩니다.
@@ -124,7 +126,7 @@ export function LoginPage() {
         },
         {
           description:
-            '나중에 연결해도 기존 게스트 기록은 transfer review에서 옮길 항목을 검토합니다.',
+            '나중에 연결해도 기존 게스트 기록은 이전 검토 화면에서 옮길 항목을 고를 수 있습니다.',
           title: '기록 이전 검토',
         },
       ]}

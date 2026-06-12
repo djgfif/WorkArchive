@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                                                                                                                                                                               |
 | Role                  | `current reality`                                                                                                                                                                                                                                                         |
 | Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-06-12` documentation alignment plus root `check:docs-links`, `lint`, `typecheck`, and `test` after API service decomposition, including sync, import resolve, internal catalog import candidate, import search stage cache, import provider readiness, import candidate decoration, import provider search runner, import provider credential runtime, import provider search stage, import search observability, import provider key management, import search context/result extraction, Bearer access token parsing extraction, auth session metadata extraction, and user records helper/payload builder extraction. Build, import-search QA, sync-load dry-run, and web E2E remain last verified on `2026-06-04` |
+| Last verified against | `2026-06-12` documentation alignment plus root `check:docs-links`, `lint`, and `typecheck`, with API/shared tests after API service decomposition, including sync, import resolve, internal catalog import candidate, import search stage cache, import provider readiness, import candidate decoration, import provider search runner, import provider credential runtime, import provider search stage, import search observability, import provider key management, import search context/result extraction, Bearer access token parsing extraction, auth session metadata extraction, auth response mapper extraction, Google OAuth controller helper extraction, image proxy policy/cache helper extraction, user records helper/progress/release payload builder extraction, catalog legacy work helper extraction, catalog ingestion normalization/payload extraction, catalog title matching/submission helper extraction, and Notion sync mapper extraction. Root `npm run test` is currently blocked by dirty frontend `WorksListPage.test.tsx` failures; build, import-search QA, sync-load dry-run, and web E2E remain last verified on `2026-06-04` |
 | When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -155,9 +155,27 @@ Refresh session에 저장/표시하는 user agent 요약과 IP address 마스킹
 `auth-session-metadata` helper가 담당한다. 이 helper는 raw user agent 저장을
 피하고, iPhone/iPad user agent를 macOS보다 iOS로 우선 판정한다.
 
+Auth user response, Google auth account persistence payload, refresh session
+response mapping은 `auth-response-mappers` helper가 담당한다.
+
 `UserRecordsService`의 DTO date parsing, record medium 판정, recording policy
-view 조립, grouped record key 산출, update/create/import payload builder는
+view 조립, grouped record key 산출, update/create/import/progress/release payload builder는
 `user-records.helpers`가 담당한다.
+
+`CatalogService`의 legacy `CatalogWork` genre 정규화와 legacy work 기반
+`CatalogTitle` upsert payload 조립은 `catalog-legacy-work` helper가 담당한다.
+
+`CatalogIngestionService`의 external ref/release candidate 정규화와 release
+identity 판정은 `catalog-ingestion-normalization` helper가 담당한다.
+`CatalogIngestionService`의 title/release update payload와 match view 변환은
+`catalog-ingestion-payloads` helper가 담당한다.
+
+`CatalogIngestionService`의 title/contributor/release-year match scoring과
+catalog match 문자열 정규화는 `catalog-title-matching` helper가 담당한다.
+
+`CatalogService`의 catalog submission 생성 payload, list query args,
+moderation access guard, pending review guard는 `catalog-submissions` helper가
+담당한다.
 
 ### 4-2. Current Domain Model
 
@@ -357,8 +375,13 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - `npm run check:docs-links`: `2026-06-12` 통과 확인
 - `npm run lint`: `2026-06-12` 통과 확인
 - `npm run typecheck`: `2026-06-12` 통과 확인
-- `npm run test`: `2026-06-12` 기준 API `70` suites / `536` tests,
-  web `44` files / `309` tests, shared-types `1` file / `3` tests 통과 확인
+- `npm run test --workspace @work-archive/api`: `2026-06-12` 기준 API
+  `79` suites / `582` tests 통과 확인
+- `npm run test --workspace @work-archive/shared-types`: `2026-06-12` 기준
+  `1` file / `3` tests 통과 확인
+- `npm run test`: `2026-06-12` 기준 현재 dirty frontend 작업의
+  `apps/web/src/features/works/pages/WorksListPage.test.tsx` 4개 실패로
+  root 전체 통과 미확인. API와 shared-types 구간은 통과했다.
 - `npm run build`: `2026-06-04` 통과 확인
 - `npm run test:e2e:web`: `2026-06-04` 기준 chromium/mobile-chrome
   Playwright `10` tests 통과 확인. 이 Codex sandbox 안에서는 Vite가

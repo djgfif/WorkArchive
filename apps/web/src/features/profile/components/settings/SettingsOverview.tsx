@@ -153,9 +153,9 @@ export function SettingsOverview({
               `자동 병합 후 재시도 ${stats.autoMergedQueueItemCount}개`,
               `로컬 전용 작품 ${stats.localOnlyWorkCount}개`,
             ].join(' · ')
-          : '게스트 모드에서는 서버 동기화 대기열을 사용하지 않습니다.',
+          : '게스트 모드에서는 서버 백업을 사용하지 않습니다.',
       icon: 'key',
-      label: '백업 대기열',
+      label: '백업 대기 중인 기록',
       tone:
         mode === 'authenticated' && hasLocalOnlyWarning
           ? 'warning'
@@ -169,7 +169,7 @@ export function SettingsOverview({
         ? 'JSON 가져오기 미리보기를 확인 중입니다.'
         : archiveFeedback?.tone === 'success'
           ? archiveFeedback.message
-          : 'JSON export 시각은 브라우저 로컬 메타데이터에만 기록됩니다.',
+          : '마지막 내보내기 시각은 이 브라우저에만 기록됩니다.',
       icon: 'security',
       label: '마지막 JSON 백업',
       tone: archiveImportPreview
@@ -184,8 +184,8 @@ export function SettingsOverview({
   return (
     <Stack gap="md">
       <SectionIntro
-        description="현재 브라우저에 저장된 로컬 아카이브, 백업 대기열, 마지막 JSON 백업 시각을 즉시 확인합니다."
-        eyebrow="Settings Control Center"
+        description="현재 브라우저에 저장된 기록, 백업 대기 상태, 마지막 JSON 백업 시각을 즉시 확인합니다."
+        eyebrow="설정과 백업"
         title="설정 개요"
       />
       <div className={css.overviewGrid ?? ''}>
@@ -259,7 +259,7 @@ export function SettingsOverview({
           {hasLocalOnlyWarning && (
             <Text c="var(--app-state-warning)" size="sm">
               로컬 전용 작품은 아직 서버 백업이 완료되지 않았습니다. JSON
-              백업을 만들고 백업 대기열을 처리하세요.
+              백업을 만들고 대기 중인 기록을 처리하세요.
             </Text>
           )}
         </SectionCard>

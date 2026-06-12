@@ -27,7 +27,11 @@ export function MediaTypeFilter({
   typeCounts,
   value,
 }: MediaTypeFilterProps) {
-  const options = buildMediaTypeOptions({ totalCount, typeCounts });
+  const options = buildMediaTypeOptions({
+    activeValue: value,
+    totalCount,
+    typeCounts,
+  });
 
   return (
     <Box className={cn(css.mediaTypeFilter)}>

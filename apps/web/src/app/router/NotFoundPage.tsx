@@ -1,7 +1,10 @@
 import { AppLinkButton } from '@shared/components/AppPrimitives';
 import { MinimalPageTemplate } from '@shared/components/PageTemplates';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 
 export function NotFoundPage() {
+  usePageTitle('페이지를 찾을 수 없습니다');
+
   return (
     <MinimalPageTemplate
       actions={

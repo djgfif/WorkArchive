@@ -17,7 +17,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import {
   ApiBody,
   ApiBearerAuth,
@@ -31,11 +31,23 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
-import { readApiRuntimeConfig } from '../../config/api-runtime-config';
 import {
   getRequestId,
   SecurityAuditService,
 } from '../../security/security-audit.service';
+import {
+  consumeGoogleOAuthFlow,
+  generateOAuthSecret,
+  getAllowedOAuthReturnOrigin,
+  getAuthSessionMetadata,
+  getGoogleLoginFailureRedirectUrl,
+  getGoogleLoginSuccessRedirectUrl,
+  getGoogleOAuthCookieOptions,
+  getGoogleOAuthFlowCookieOptions,
+  GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
+  GOOGLE_OAUTH_FLOW_COOKIE,
+  type GoogleOAuthFlowConsumeResult,
+} from './auth-google-oauth';
 import { AuthService } from './auth.service';
 import {
   getRefreshTokenClearCookieOptions,
@@ -49,31 +61,8 @@ import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { hashSecret, verifySecret } from './auth-crypto';
-import {
-  GoogleOAuthFlowStoreService,
-  type GoogleOAuthFlowRecord,
-} from './google-oauth-flow-store.service';
-
-const GOOGLE_OAUTH_FLOW_COOKIE = 'wa_google_oauth_flow';
-const GOOGLE_OAUTH_COOKIE_MAX_AGE_MS = 1000 * 60 * 10;
-
-type GoogleOAuthFailureReason =
-  | 'invalid_oauth_state'
-  | 'missing_oauth_code'
-  | 'missing_oauth_flow_cookie'
-  | 'missing_oauth_state'
-  | 'oauth_flow_not_found';
-
-type GoogleOAuthFlowConsumeResult =
-  | {
-      failureReason: null;
-      flow: GoogleOAuthFlowRecord;
-    }
-  | {
-      failureReason: GoogleOAuthFailureReason;
-      flow: null;
-    };
+import { hashSecret } from './auth-crypto';
+import { GoogleOAuthFlowStoreService } from './google-oauth-flow-store.service';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -114,16 +103,16 @@ export class AuthController {
   ) {
     if (!this.authService.isGoogleOAuthConfigured()) {
       response.redirect(
-        this.getGoogleLoginFailureRedirectUrl('unconfigured', returnOrigin),
+        getGoogleLoginFailureRedirectUrl('unconfigured', returnOrigin),
       );
       return;
     }
 
     const validatedReturnOrigin =
-      this.getAllowedOAuthReturnOrigin(returnOrigin);
+      getAllowedOAuthReturnOrigin(returnOrigin);
     const flowId = randomUUID();
-    const state = this.generateOAuthSecret();
-    const nonce = this.generateOAuthSecret();
+    const state = generateOAuthSecret();
+    const nonce = generateOAuthSecret();
     const [stateHash, nonceHash] = await Promise.all([
       hashSecret(state),
       hashSecret(nonce),
@@ -140,13 +129,11 @@ export class AuthController {
       GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
     );
 
-    response.cookie(GOOGLE_OAUTH_FLOW_COOKIE, flowId, {
-      httpOnly: true,
-      maxAge: GOOGLE_OAUTH_COOKIE_MAX_AGE_MS,
-      path: '/api/auth/google',
-      sameSite: 'lax',
-      secure: readApiRuntimeConfig().cookieSecure,
-    });
+    response.cookie(
+      GOOGLE_OAUTH_FLOW_COOKIE,
+      flowId,
+      getGoogleOAuthFlowCookieOptions(),
+    );
 
     response.redirect(this.authService.getGoogleAuthorizationUrl(state, nonce));
   }
@@ -170,7 +157,9 @@ export class AuthController {
     let flowResult: GoogleOAuthFlowConsumeResult;
 
     try {
-      flowResult = await this.consumeOAuthFlow(flowId, state);
+      flowResult = await consumeGoogleOAuthFlow(flowId, state, (flowId) =>
+        this.googleOAuthFlowStore.consume(flowId),
+      );
     } catch (flowError) {
       this.clearOAuthCookies(response);
       this.logAuthGoogleFailed(request, this.describeAuthFailure(flowError));
@@ -184,7 +173,7 @@ export class AuthController {
         severity: 'critical',
       });
 
-      response.redirect(this.getGoogleLoginFailureRedirectUrl('failed'));
+      response.redirect(getGoogleLoginFailureRedirectUrl('failed'));
       return;
     }
 
@@ -206,7 +195,7 @@ export class AuthController {
       });
 
       response.redirect(
-        this.getGoogleLoginFailureRedirectUrl('failed', returnOrigin),
+        getGoogleLoginFailureRedirectUrl('failed', returnOrigin),
       );
       return;
     }
@@ -228,7 +217,7 @@ export class AuthController {
         severity: 'warning',
       });
       response.redirect(
-        this.getGoogleLoginFailureRedirectUrl('failed', returnOrigin),
+        getGoogleLoginFailureRedirectUrl('failed', returnOrigin),
       );
       return;
     }
@@ -241,7 +230,7 @@ export class AuthController {
       session = await this.authService.loginWithGoogleAuthorizationCode(
         code,
         flow.nonceHash,
-        this.getSessionMetadata(request),
+        getAuthSessionMetadata(request),
       );
     } catch (loginError) {
       this.logAuthGoogleFailed(request, this.describeAuthFailure(loginError));
@@ -266,7 +255,7 @@ export class AuthController {
         rememberMe: session.rememberMe,
       }),
     );
-    response.redirect(this.getGoogleLoginSuccessRedirectUrl(returnOrigin));
+    response.redirect(getGoogleLoginSuccessRedirectUrl(returnOrigin));
   }
 
   private logAuthGoogleFailed(request: Request, errorCode: string) {
@@ -313,7 +302,7 @@ export class AuthController {
 
     const session = await this.authService.refresh(
       refreshToken,
-      this.getSessionMetadata(request),
+      getAuthSessionMetadata(request),
     );
 
     response.cookie(
@@ -473,18 +462,6 @@ export class AuthController {
     );
   }
 
-  private getSessionMetadata(request: Request) {
-    const rawUserAgent = request.headers['user-agent'];
-
-    return {
-      ipAddress: request.ip ?? null,
-      requestId: getRequestId(request),
-      userAgent: Array.isArray(rawUserAgent)
-        ? rawUserAgent.join(' ')
-        : (rawUserAgent ?? null),
-    };
-  }
-
   private createLegacyAuthDisabledException() {
     return new HttpException(
       'Email/password authentication is disabled. Continue with Google or use Work Archive as a guest.',
@@ -492,114 +469,10 @@ export class AuthController {
     );
   }
 
-  private generateOAuthSecret() {
-    return randomBytes(32).toString('base64url');
-  }
-
-  private async consumeOAuthFlow(flowId: unknown, state: unknown) {
-    if (typeof flowId !== 'string' || flowId.trim() === '') {
-      return {
-        failureReason: 'missing_oauth_flow_cookie',
-        flow: null,
-      } satisfies GoogleOAuthFlowConsumeResult;
-    }
-
-    if (typeof state !== 'string' || state.trim() === '') {
-      return {
-        failureReason: 'missing_oauth_state',
-        flow: null,
-      } satisfies GoogleOAuthFlowConsumeResult;
-    }
-
-    const flow = await this.googleOAuthFlowStore.consume(flowId);
-
-    if (!flow) {
-      return {
-        failureReason: 'oauth_flow_not_found',
-        flow: null,
-      } satisfies GoogleOAuthFlowConsumeResult;
-    }
-
-    if (!(await verifySecret(state, flow.stateHash))) {
-      return {
-        failureReason: 'invalid_oauth_state',
-        flow: null,
-      } satisfies GoogleOAuthFlowConsumeResult;
-    }
-
-    return {
-      failureReason: null,
-      flow,
-    } satisfies GoogleOAuthFlowConsumeResult;
-  }
-
   private clearOAuthCookies(response: Response) {
-    const options = {
-      httpOnly: true,
-      path: '/api/auth/google',
-      sameSite: 'lax' as const,
-      secure: readApiRuntimeConfig().cookieSecure,
-    };
-
-    response.clearCookie(GOOGLE_OAUTH_FLOW_COOKIE, options);
-  }
-
-  private getGoogleLoginSuccessRedirectUrl(returnOrigin?: unknown) {
-    const origin = this.getAllowedOAuthReturnOrigin(returnOrigin).replace(
-      /\/$/,
-      '',
+    response.clearCookie(
+      GOOGLE_OAUTH_FLOW_COOKIE,
+      getGoogleOAuthCookieOptions(),
     );
-
-    return `${origin}/auth/google/complete`;
-  }
-
-  private getGoogleLoginFailureRedirectUrl(
-    reason: 'failed' | 'unconfigured',
-    returnOrigin?: unknown,
-  ) {
-    const origin = this.getAllowedOAuthReturnOrigin(returnOrigin).replace(
-      /\/$/,
-      '',
-    );
-
-    return `${origin}/auth/login?google=${reason}`;
-  }
-
-  private getAllowedOAuthReturnOrigin(returnOrigin?: unknown) {
-    const config = readApiRuntimeConfig();
-    const fallbackOrigin = new URL(config.webBaseUrl).origin;
-
-    if (typeof returnOrigin !== 'string' || returnOrigin.trim() === '') {
-      return fallbackOrigin;
-    }
-
-    let requestedOrigin: string;
-
-    try {
-      const parsedOrigin = new URL(returnOrigin.trim());
-
-      if (!['http:', 'https:'].includes(parsedOrigin.protocol)) {
-        return fallbackOrigin;
-      }
-
-      requestedOrigin = parsedOrigin.origin;
-    } catch {
-      return fallbackOrigin;
-    }
-
-    const allowedOrigins = new Set([
-      fallbackOrigin,
-      ...config.corsOrigin.map((origin) => {
-        try {
-          return new URL(origin).origin;
-        } catch {
-          return '';
-        }
-      }),
-    ]);
-
-    return allowedOrigins.has(requestedOrigin)
-      ? requestedOrigin
-      : fallbackOrigin;
   }
 }

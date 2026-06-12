@@ -251,7 +251,9 @@ export function useTierBoardEditorController(boardId: string | undefined) {
   async function handleImportWork(workId: string) {
     if (!activeBoardId) return;
     await tierBoardService.createCardFromWorkSnapshot(activeBoardId, workId);
-    await refreshWithSuccess('작품에서 가져온 snapshot 카드를 추가했습니다.');
+    await refreshWithSuccess(
+      '작품 카드를 미배치 목록에 추가했습니다. 원하는 행으로 끌어다 놓으세요.',
+    );
   }
 
   async function handleMoveCard(id: string, laneId: string | null) {

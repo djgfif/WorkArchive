@@ -10,6 +10,7 @@ import {
   AppLinkButton,
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import type { TierBoardEditorState } from '../services/tier-board.repository';
 import { tierBoardService } from '../services/tier-board.service';
 import styles from './TierBoardsPage.module.css';
@@ -32,6 +33,7 @@ function getCardsForLane(cards: TierBoardCardRecord[], laneId: string | null) {
 export function TierBoardViewPage() {
   const { boardId } = useParams();
   const [state, setState] = useState<TierBoardEditorState | null>(null);
+  usePageTitle(state?.board.title ?? '티어보드 보기');
   const canvasRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);

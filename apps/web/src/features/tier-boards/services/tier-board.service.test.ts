@@ -365,7 +365,7 @@ describe('TierBoardService', () => {
       expect.objectContaining({
         cardSourceType: 'library_work',
         title: 'Snapshot Work',
-        subtitle: 'anime · Archive Studio · ★ 4.5',
+        subtitle: '애니 · Archive Studio · ★ 4.5',
         imageUrl: 'https://example.com/poster.jpg',
         note: 'Snapshot note',
         workId: null,

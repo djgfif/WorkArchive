@@ -12,6 +12,26 @@ import {
 } from '@prisma/client';
 
 import { canCreateReleaseRecord } from '../recording/recording-policy';
+import {
+  hasCatalogReleaseIdentity,
+  normalizeCatalogExternalRef,
+  normalizeCatalogReleaseCandidate,
+  type CatalogExternalRefInput,
+  type CatalogReleaseCandidateInput,
+  type NormalizedExternalRef,
+  type NormalizedReleaseCandidate,
+} from './catalog-ingestion-normalization';
+import {
+  normalizeForCatalogMatch,
+  pickBestCatalogTitleMatch,
+} from './catalog-title-matching';
+import {
+  buildCatalogReleaseCreateData,
+  buildCatalogReleaseUpdateData,
+  buildCatalogTitleUpdateData,
+  toCatalogMatchView,
+  type CatalogMatchView,
+} from './catalog-ingestion-payloads';
 import { PrismaService } from '../../prisma/prisma.service';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
@@ -42,28 +62,11 @@ const EXTERNAL_REF_MATCH_INCLUDE = {
   },
 } satisfies Prisma.CatalogExternalRefInclude;
 
-interface ContributorMatchInput {
-  name: string;
-}
-
-export interface CatalogExternalRefInput {
-  externalId: string;
-  provider: string;
-  rawType?: string;
-  url?: string;
-}
-
-export interface CatalogReleaseCandidateInput {
-  displayLabel?: string;
-  externalRefs?: CatalogExternalRefInput[];
-  isbn?: string | null;
-  releaseDate?: Date | string | null;
-  releaseType?: string;
-  sequence?: number | null;
-  summary?: string;
-  thumbnailUrl?: string;
-  title?: string;
-}
+export type {
+  CatalogExternalRefInput,
+  CatalogReleaseCandidateInput,
+} from './catalog-ingestion-normalization';
+export type { CatalogMatchView } from './catalog-ingestion-payloads';
 
 export interface CreateCatalogTitleInput {
   canonicalTitle: string;
@@ -79,30 +82,6 @@ export interface CreateCatalogTitleInput {
   summary?: string;
   thumbnailUrl?: string;
 }
-
-export interface CatalogMatchView {
-  id: string;
-  title: string;
-  verificationStatus: CatalogVerificationStatus;
-}
-
-type CatalogTitleMatch = Prisma.CatalogTitleGetPayload<{
-  include: typeof TITLE_MATCH_INCLUDE;
-}>;
-
-type NormalizedExternalRef = Required<CatalogExternalRefInput>;
-
-type NormalizedReleaseCandidate = {
-  displayLabel: string;
-  externalRefs: NormalizedExternalRef[];
-  isbn: string | null;
-  releaseDate: Date | null;
-  releaseType: string;
-  sequence: number | null;
-  summary: string;
-  thumbnailUrl: string;
-  title: string;
-};
 
 @Injectable()
 export class CatalogIngestionService {
@@ -140,7 +119,7 @@ export class CatalogIngestionService {
           where: {
             id: existing.id,
           },
-          data: this.buildCatalogTitleUpdateData(existing, {
+          data: buildCatalogTitleUpdateData(existing, {
             country: input.country ?? null,
             franchiseId,
             releaseYear: input.releaseYear ?? null,
@@ -169,7 +148,7 @@ export class CatalogIngestionService {
     }
 
     for (const ref of input.externalRefs ?? []) {
-      const normalizedRef = this.normalizeExternalRef(ref);
+      const normalizedRef = normalizeCatalogExternalRef(ref);
 
       if (!normalizedRef) {
         continue;
@@ -266,50 +245,7 @@ export class CatalogIngestionService {
       releaseYear: input.releaseYear ?? null,
     });
 
-    return match ? this.toCatalogMatchView(match) : null;
-  }
-
-  private buildCatalogTitleUpdateData(
-    existing: Pick<
-      CatalogTitleMatch,
-      'country' | 'franchiseId' | 'releaseYear' | 'subType' | 'summary' | 'thumbnailUrl'
-    >,
-    input: {
-      country: string | null;
-      franchiseId: string | null;
-      releaseYear: number | null;
-      subType: string | null;
-      summary: string;
-      thumbnailUrl: string;
-    },
-  ): Prisma.CatalogTitleUncheckedUpdateInput {
-    const data: Prisma.CatalogTitleUncheckedUpdateInput = {};
-
-    if (!existing.franchiseId && input.franchiseId) {
-      data.franchiseId = input.franchiseId;
-    }
-
-    if (!existing.country && input.country) {
-      data.country = input.country;
-    }
-
-    if (existing.releaseYear === null && input.releaseYear !== null) {
-      data.releaseYear = input.releaseYear;
-    }
-
-    if (!existing.subType && input.subType) {
-      data.subType = input.subType;
-    }
-
-    if (!existing.summary.trim() && input.summary) {
-      data.summary = input.summary;
-    }
-
-    if (!existing.thumbnailUrl.trim() && input.thumbnailUrl) {
-      data.thumbnailUrl = input.thumbnailUrl;
-    }
-
-    return data;
+    return match ? toCatalogMatchView(match) : null;
   }
 
   private async upsertCatalogRelease(
@@ -317,9 +253,9 @@ export class CatalogIngestionService {
     candidate: CatalogReleaseCandidateInput,
     client: PrismaClientLike,
   ) {
-    const normalizedCandidate = this.normalizeReleaseCandidate(candidate);
+    const normalizedCandidate = normalizeCatalogReleaseCandidate(candidate);
 
-    if (!this.hasReleaseIdentity(normalizedCandidate)) {
+    if (!hasCatalogReleaseIdentity(normalizedCandidate)) {
       return null;
     }
 
@@ -333,12 +269,12 @@ export class CatalogIngestionService {
           where: {
             id: existing.id,
           },
-          data: this.buildCatalogReleaseUpdateData(existing, normalizedCandidate),
+          data: buildCatalogReleaseUpdateData(existing, normalizedCandidate),
         })
       : await client.catalogRelease.create({
           data: {
             catalogTitleId,
-            ...this.buildCatalogReleaseCreateData(normalizedCandidate),
+            ...buildCatalogReleaseCreateData(normalizedCandidate),
           },
         });
 
@@ -368,37 +304,6 @@ export class CatalogIngestionService {
     }
 
     return release;
-  }
-
-  private buildCatalogReleaseCreateData(
-    candidate: Omit<NormalizedReleaseCandidate, 'externalRefs'>,
-  ) {
-    return {
-      displayLabel: candidate.displayLabel,
-      isbn: candidate.isbn,
-      releaseDate: candidate.releaseDate,
-      releaseType: candidate.releaseType,
-      sequence: candidate.sequence,
-      summary: candidate.summary,
-      thumbnailUrl: candidate.thumbnailUrl,
-      title: candidate.title,
-    };
-  }
-
-  private buildCatalogReleaseUpdateData(
-    existing: CatalogRelease,
-    candidate: Omit<NormalizedReleaseCandidate, 'externalRefs'>,
-  ) {
-    return {
-      displayLabel: candidate.displayLabel || existing.displayLabel,
-      isbn: candidate.isbn ?? existing.isbn,
-      releaseDate: candidate.releaseDate ?? existing.releaseDate,
-      releaseType: candidate.releaseType || existing.releaseType,
-      sequence: candidate.sequence ?? existing.sequence,
-      summary: candidate.summary || existing.summary,
-      thumbnailUrl: candidate.thumbnailUrl || existing.thumbnailUrl,
-      title: candidate.title || existing.title,
-    };
   }
 
   private async findExistingCatalogRelease(
@@ -482,7 +387,7 @@ export class CatalogIngestionService {
     ];
 
     for (const ref of externalRefs) {
-      const normalizedRef = this.normalizeExternalRef(ref);
+      const normalizedRef = normalizeCatalogExternalRef(ref);
 
       if (!normalizedRef) {
         continue;
@@ -508,7 +413,7 @@ export class CatalogIngestionService {
         orderBy: [{ updatedAt: 'desc' }],
         take: 25,
       });
-      const bestFranchiseMatch = this.pickBestTitleMatch(
+      const bestFranchiseMatch = pickBestCatalogTitleMatch(
         franchiseMatches,
         input.displayTitle,
         input.releaseYear,
@@ -532,7 +437,7 @@ export class CatalogIngestionService {
         orderBy: [{ updatedAt: 'desc' }],
         take: 50,
       });
-      const bestContributorMatch = this.pickBestTitleMatch(
+      const bestContributorMatch = pickBestCatalogTitleMatch(
         contributorMatches,
         input.displayTitle,
         input.releaseYear,
@@ -547,92 +452,6 @@ export class CatalogIngestionService {
     }
 
     return null;
-  }
-
-  private pickBestTitleMatch(
-    titles: CatalogTitleMatch[],
-    displayTitle: string,
-    releaseYear: number | null,
-    contributorHints: ContributorMatchInput[],
-  ) {
-    const normalizedTitle = this.normalizeForMatch(displayTitle);
-    const normalizedContributorHints = contributorHints
-      .map((entry) => this.normalizeForMatch(entry.name))
-      .filter(Boolean);
-    let bestMatch: CatalogTitleMatch | null = null;
-    let bestScore = -1;
-
-    for (const title of titles) {
-      if (!this.hasMatchingTitleName(title, normalizedTitle)) {
-        continue;
-      }
-
-      if (
-        releaseYear !== null &&
-        title.releaseYear !== null &&
-        Math.abs(title.releaseYear - releaseYear) > 1
-      ) {
-        continue;
-      }
-
-      let score = 10 + this.getVerificationScore(title.verificationStatus);
-
-      if (releaseYear !== null && title.releaseYear === releaseYear) {
-        score += 4;
-      }
-
-      if (normalizedContributorHints.length > 0) {
-        const contributorNames = title.contributors
-          .map((entry) => this.normalizeForMatch(entry.contributor.displayName))
-          .filter(Boolean);
-        const overlapCount = normalizedContributorHints.filter((hint) =>
-          contributorNames.includes(hint),
-        ).length;
-
-        if (overlapCount === 0) {
-          continue;
-        }
-
-        score += overlapCount * 3;
-      }
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestMatch = title;
-      }
-    }
-
-    return bestMatch;
-  }
-
-  private hasMatchingTitleName(title: CatalogTitleMatch, normalizedTitle: string) {
-    if (!normalizedTitle) {
-      return false;
-    }
-
-    const candidates = [
-      title.canonicalTitle,
-      title.displayTitle,
-      title.originalTitle ?? '',
-      ...title.aliases,
-    ];
-
-    return candidates.some(
-      (candidate) => this.normalizeForMatch(candidate) === normalizedTitle,
-    );
-  }
-
-  private getVerificationScore(status: CatalogVerificationStatus) {
-    switch (status) {
-      case CatalogVerificationStatus.verified:
-        return 4;
-      case CatalogVerificationStatus.pending:
-        return 2;
-      case CatalogVerificationStatus.draft:
-        return 1;
-      default:
-        return 0;
-    }
   }
 
   private async findTitleByExternalRef(
@@ -662,7 +481,7 @@ export class CatalogIngestionService {
     client: PrismaClientLike = this.prisma,
   ) {
     const displayName = name.trim();
-    const normalizedName = this.normalizeForMatch(displayName);
+    const normalizedName = normalizeForCatalogMatch(displayName);
 
     if (!normalizedName) {
       return null;
@@ -712,7 +531,7 @@ export class CatalogIngestionService {
         candidate.displayName,
         candidate.originalName ?? '',
         ...candidate.aliases,
-      ].some((entry) => this.normalizeForMatch(entry) === normalizedName);
+      ].some((entry) => normalizeForCatalogMatch(entry) === normalizedName);
     });
 
     return match?.id ?? null;
@@ -796,118 +615,4 @@ export class CatalogIngestionService {
     });
   }
 
-  private normalizeReleaseCandidate(
-    candidate: CatalogReleaseCandidateInput,
-  ): NormalizedReleaseCandidate {
-    const sequence =
-      candidate.sequence !== undefined &&
-      candidate.sequence !== null &&
-      Number.isFinite(candidate.sequence)
-        ? candidate.sequence
-        : null;
-    const title = candidate.title?.trim() ?? '';
-    const displayLabel =
-      candidate.displayLabel?.trim() || (sequence !== null ? `Vol. ${sequence}` : title);
-
-    return {
-      displayLabel,
-      externalRefs: (candidate.externalRefs ?? [])
-        .map((ref) => this.normalizeExternalRef(ref))
-        .filter((ref): ref is NormalizedExternalRef => ref !== null),
-      isbn: this.normalizeIsbn(candidate.isbn ?? null),
-      releaseDate: this.normalizeDate(candidate.releaseDate ?? null),
-      releaseType: candidate.releaseType?.trim() || 'volume',
-      sequence,
-      summary: candidate.summary?.trim() ?? '',
-      thumbnailUrl: candidate.thumbnailUrl?.trim() ?? '',
-      title,
-    };
-  }
-
-  private hasReleaseIdentity(
-    candidate: Pick<
-      NormalizedReleaseCandidate,
-      'displayLabel' | 'externalRefs' | 'isbn' | 'sequence'
-    >,
-  ) {
-    return (
-      candidate.externalRefs.length > 0 ||
-      candidate.isbn !== null ||
-      (candidate.sequence !== null && candidate.displayLabel.length > 0)
-    );
-  }
-
-  private normalizeExternalRef(input: CatalogExternalRefInput) {
-    const provider = input.provider.trim();
-    const externalId = input.externalId.trim();
-
-    if (!provider || !externalId) {
-      return null;
-    }
-
-    return {
-      externalId,
-      provider,
-      rawType: input.rawType?.trim() ?? '',
-      url: input.url?.trim() ?? '',
-    };
-  }
-
-  private normalizeDate(value: Date | string | null) {
-    if (!value) {
-      return null;
-    }
-
-    if (value instanceof Date) {
-      return Number.isNaN(value.getTime()) ? null : value;
-    }
-
-    const trimmedValue = value.trim();
-
-    if (!trimmedValue) {
-      return null;
-    }
-
-    if (/^\d{4}$/.test(trimmedValue)) {
-      return new Date(`${trimmedValue}-01-01T00:00:00.000Z`);
-    }
-
-    if (/^\d{4}-\d{2}$/.test(trimmedValue)) {
-      return new Date(`${trimmedValue}-01T00:00:00.000Z`);
-    }
-
-    const parsed = new Date(trimmedValue);
-
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-
-  private normalizeIsbn(value: string | null) {
-    if (!value) {
-      return null;
-    }
-
-    const normalized = value.replace(/[^0-9Xx]/g, '').toUpperCase();
-
-    return normalized.length >= 10 ? normalized : null;
-  }
-
-  private normalizeForMatch(value: string) {
-    return value
-      .toLowerCase()
-      .normalize('NFKC')
-      .replace(/\([^)]*\)/g, ' ')
-      .replace(/[^\p{L}\p{N}]+/gu, ' ')
-      .trim()
-      .replace(/\s+/g, ' ');
-  }
-
-  private toCatalogMatchView(
-    title: Pick<CatalogTitleMatch, 'displayTitle' | 'id' | 'verificationStatus'>,
-  ): CatalogMatchView {
-    return {
-      id: title.id,
-      title: title.displayTitle,
-      verificationStatus: title.verificationStatus,
-    };
-  }
 }

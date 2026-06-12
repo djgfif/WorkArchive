@@ -10,6 +10,7 @@ import {
 } from '@shared/components/AppPrimitives';
 import { PageHero } from '@shared/components/PageHero';
 import { FlowPageTemplate } from '@shared/components/PageTemplates';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAuthSession } from '@features/auth';
 import { syncQueueRepository } from '@features/sync';
 import { WorkForm } from '../components/WorkForm';
@@ -27,6 +28,7 @@ import {
 } from '../utils/work-form';
 
 export function WorkEditPage() {
+  usePageTitle('작품 편집');
   const { id } = useParams();
   const navigate = useNavigate();
   const { archiveScopeKey, mode } = useAuthSession();

@@ -153,7 +153,7 @@ export function WorksToolbarControls({
           type="button"
         >
           {sortDirection === 'asc' ? <IconSortAsc /> : <IconSortDesc />}
-          {sortDirection === 'asc' ? 'ASC' : 'DESC'}
+          {sortDirection === 'asc' ? '오름차순' : '내림차순'}
         </Box>
       </Tooltip>
 

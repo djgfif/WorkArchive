@@ -10,9 +10,9 @@
         "--",
         "bash",
         "-lc",
-        "cd apps/web && exec ../../node_modules/.bin/vite --host localhost --port 18730 --strictPort"
+        "export PATH=\"$HOME/.nvm/versions/node/v22.22.3/bin:$PATH\" && cd apps/web && exec ../../node_modules/.bin/vite --host localhost --port 18760 --strictPort"
       ],
-      "port": 18730
+      "port": 18760
     }
   ]
 }

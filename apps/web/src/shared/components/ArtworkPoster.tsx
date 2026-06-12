@@ -94,7 +94,7 @@ export function ArtworkPoster({
           <Text className={cn(styles.posterFallbackMark)}>
             {(title.trim()[0] ?? 'W').toUpperCase()}
           </Text>
-          <Text className={cn(styles.posterFallbackType)}>표지 없음</Text>
+          <span aria-hidden="true" />
         </Box>
       )}
       {overlay}

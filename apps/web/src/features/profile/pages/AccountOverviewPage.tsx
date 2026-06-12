@@ -8,6 +8,7 @@ import {
   SectionIntro,
 } from '@shared/components/AppPrimitives';
 import { AccountPageTemplate } from '@shared/components/PageTemplates';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAuthSession } from '@features/auth';
 import { useSyncDashboard } from '@features/sync';
 import { useWorksOverview } from '@features/works';
@@ -116,6 +117,7 @@ function ActionItem({
 }
 
 export function AccountOverviewPage() {
+  usePageTitle('계정 개요');
   const location = useLocation();
   const { mode, user } = useAuthSession();
   const { averageRating, completedCount, totalCount } = useWorksOverview();

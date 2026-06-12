@@ -671,7 +671,7 @@ describe('SettingsPage', () => {
 
     expect(
       await screen.findByText(
-        'KOBIS API key가 provider에서 거부되었습니다. key 값을 다시 확인해 주세요.',
+        'KOBIS에서 API 키를 거부했습니다. 키 값을 다시 확인해 주세요.',
       ),
     ).toBeInTheDocument();
 
@@ -863,7 +863,7 @@ describe('SettingsPage', () => {
       await openSettingsSection(user, 'search-providers');
 
       expect(
-        await screen.findByText('Search provider 관리'),
+        await screen.findByText('검색 소스 관리'),
       ).toBeInTheDocument();
       if (provider !== 'aladin') {
         await user.click(

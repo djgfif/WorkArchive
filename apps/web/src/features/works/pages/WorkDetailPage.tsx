@@ -10,6 +10,7 @@ import {
   StateMessage,
 } from '@shared/components/AppPrimitives';
 import { DetailPageTemplate } from '@shared/components/PageTemplates';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAuthSession } from '@features/auth';
 import { WorkDetailPanel } from '../components/WorkDetailPanel';
 import {
@@ -47,6 +48,7 @@ export function WorkDetailPage() {
   const [searchParams] = useSearchParams();
   const { archiveScopeKey, mode } = useAuthSession();
   const { error, isLoading, work } = useWorkDetail(id);
+  usePageTitle(work?.title ?? '작품 상세');
   const [actionError, setActionError] = useState<string | null>(null);
   const routeFeedback =
     getRouteFeedback(location.state) ??

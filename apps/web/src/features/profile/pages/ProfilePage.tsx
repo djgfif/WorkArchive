@@ -15,6 +15,7 @@ import {
 } from '@shared/components/AppPrimitives';
 import { PageHero } from '@shared/components/PageHero';
 import { DetailPageTemplate } from '@shared/components/PageTemplates';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAuthSession } from '@features/auth';
 import { useWorksOverview } from '@features/works';
 import {
@@ -64,6 +65,7 @@ function RecentRecordLink({ accent = false, work }: { accent?: boolean; work: Wo
 }
 
 export function ProfilePage() {
+  usePageTitle('프로필');
   const { mode } = useAuthSession();
   const {
     averageRating,

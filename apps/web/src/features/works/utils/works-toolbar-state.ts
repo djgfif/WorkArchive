@@ -112,19 +112,24 @@ export function buildStatusFilterOptions({
 }
 
 export function buildMediaTypeOptions({
+  activeValue,
   totalCount,
   typeCounts,
 }: {
+  activeValue?: WorksListQuery['type'];
   totalCount: number;
   typeCounts: Record<WorkType, number>;
 }) {
   return [
     { count: totalCount, label: '전체', value: 'all' as const },
-    ...workTypeOptions.map((option) => ({
-      count: typeCounts[option.value],
-      label: option.label,
-      value: option.value,
-    })),
+    ...workTypeOptions
+      .map((option) => ({
+        count: typeCounts[option.value],
+        label: option.label,
+        value: option.value,
+      }))
+      // 기록이 없는 유형은 숨긴다. 단, 현재 선택된 유형은 해제할 수 있도록 남긴다.
+      .filter((option) => option.count > 0 || option.value === activeValue),
   ];
 }
 

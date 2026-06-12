@@ -7,6 +7,8 @@ import type {
   WorkSyncStatus,
 } from '@work-archive/shared-types';
 
+import { getWorkTypeLabel } from '@features/works';
+
 import type {
   CreateBoardInput,
   CreateCardInput,
@@ -139,7 +141,7 @@ export function createCardRecord(
 
 export function createWorkSubtitle(work: WorkRecord) {
   return [
-    work.type,
+    getWorkTypeLabel(work.type),
     work.author,
     work.rating === null ? null : `★ ${work.rating.toFixed(1)}`,
   ]

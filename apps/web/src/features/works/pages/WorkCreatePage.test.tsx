@@ -433,7 +433,7 @@ describe('WorkCreatePage', () => {
       serverVersion: 0,
     });
     expect(
-      await screen.findByText('게스트 직접 추가을(를) 등록했습니다'),
+      await screen.findByText('게스트 직접 추가를 등록했습니다'),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: '방금 등록한 작품 보기' }),

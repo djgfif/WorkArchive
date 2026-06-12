@@ -14,6 +14,7 @@ import {
   StateMessage,
 } from '@shared/components/AppPrimitives';
 import { AccountPageTemplate } from '@shared/components/PageTemplates';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAuthSession } from '../hooks/useAuthSession';
 import {
   guestTransferService,
@@ -34,7 +35,7 @@ function getGuestTransferErrorMessage(
   }
 
   if (context === 'load') {
-    return '게스트 기록 검토 상태를 불러오지 못했습니다. 네트워크나 IndexedDB 상태를 확인한 뒤 다시 시도해주세요.';
+    return '게스트 기록 검토 상태를 불러오지 못했습니다. 네트워크나 브라우저 저장 공간 상태를 확인한 뒤 다시 시도해주세요.';
   }
 
   if (context === 'skip') {
@@ -45,6 +46,7 @@ function getGuestTransferErrorMessage(
 }
 
 export function GuestTransferReviewPage() {
+  usePageTitle('게스트 기록 이전');
   const { mode, user } = useAuthSession();
   const [review, setReview] = useState<GuestTransferReviewData | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

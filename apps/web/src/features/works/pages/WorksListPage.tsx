@@ -5,6 +5,7 @@ import { Box, Stack } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 
 import { confirmDialogAdapter } from '@shared/runtime/dialog-adapter';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { JsonBackupReminderCard } from '@features/archive';
 import { useJsonArchiveExport } from '@features/archive';
 import { useJsonBackupReminder } from '@features/archive';
@@ -30,6 +31,7 @@ import {
 } from '../utils/works-list-url-state';
 
 export function WorksListPage() {
+  usePageTitle('작품 서재');
   const location = useLocation();
   const navigate = useNavigate();
   const { archiveScopeKey } = useAuthSession();

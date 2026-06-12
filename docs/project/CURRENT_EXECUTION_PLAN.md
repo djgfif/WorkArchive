@@ -5,7 +5,7 @@
 | Status                | `active`                                                                                                                                       |
 | Role                  | `developer execution entrypoint`                                                                                                               |
 | Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, `docs/project/ROADMAP_FEEDBACK_2026-06.md`, current local `master` working tree |
-| Last verified against | `2026-06-12` documentation alignment plus root `check:docs-links`, `lint`, `typecheck`, and `test` after API service decomposition, including sync, import resolve, internal catalog import candidate, import search stage cache, import provider readiness, import candidate decoration, import provider search runner, import provider credential runtime, import provider search stage, import search observability, import provider key management, import search context/result extraction, Bearer access token parsing extraction, auth session metadata extraction, and user records helper/payload builder extraction. Build, import-search QA, sync-load dry-run, and web E2E remain last verified on `2026-06-04` |
+| Last verified against | `2026-06-12` documentation alignment plus root `check:docs-links`, `lint`, and `typecheck`, with API/shared tests after API service decomposition, including sync, import resolve, internal catalog import candidate, import search stage cache, import provider readiness, import candidate decoration, import provider search runner, import provider credential runtime, import provider search stage, import search observability, import provider key management, import search context/result extraction, Bearer access token parsing extraction, auth session metadata extraction, auth response mapper extraction, Google OAuth controller helper extraction, image proxy policy/cache helper extraction, user records helper/progress/release payload builder extraction, catalog legacy work helper extraction, catalog ingestion normalization/payload extraction, catalog title matching/submission helper extraction, and Notion sync mapper extraction. Root `npm run test` is currently blocked by dirty frontend `WorksListPage.test.tsx` failures; build, import-search QA, sync-load dry-run, and web E2E remain last verified on `2026-06-04` |
 | When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                    |
 
 이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`../archive/project/PLAN.md`](../archive/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
@@ -76,7 +76,16 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - 검색 request context 확정은 `import-search-context`, 검색 후보 merge/ranking과 response assembly는 `import-search-result`가 담당한다.
 - Bearer access token header 파싱은 `auth/bearer-token` helper가 담당하며, required guard 경로와 optional-auth import 검색 경로가 같은 규칙을 공유한다.
 - refresh session user agent 요약과 IP address 마스킹은 `auth-session-metadata` helper가 담당한다.
-- user records의 DTO date parsing, record medium/policy view, grouped key 산출, update/create/import payload builder는 `user-records.helpers`가 담당한다.
+- auth user response, Google auth account persistence payload, refresh session response mapping은 `auth-response-mappers` helper가 담당한다.
+- Google OAuth return origin allowlist, redirect URL, OAuth flow cookie options, request session metadata, stored flow consume/state verification은 `auth-google-oauth` helper가 담당한다.
+- image proxy URL allowlist, redirect/content-type/body size policy, cache entry/Redis key serialization, proxied response mapping은 `image-proxy-policy` helper가 담당한다.
+- user records의 DTO date parsing, record medium/policy view, grouped key 산출, update/create/import/progress/release payload builder는 `user-records.helpers`가 담당한다.
+- legacy `CatalogWork` genre 정규화와 legacy work 기반 `CatalogTitle` upsert payload 조립은 `catalog-legacy-work` helper가 담당한다.
+- import candidate 기반 catalog ingestion의 external ref/release candidate 정규화와 release identity 판정은 `catalog-ingestion-normalization` helper가 담당한다.
+- import candidate 기반 catalog ingestion의 title/release update payload와 match view 변환은 `catalog-ingestion-payloads` helper가 담당한다.
+- import candidate 기반 catalog title matching의 문자열 정규화, title/contributor/year scoring은 `catalog-title-matching` helper가 담당한다.
+- catalog submission 생성 payload, list query args, moderation access guard, pending review guard는 `catalog-submissions` helper가 담당한다.
+- Notion sync의 schema/property mapping, Notion page safe value read, diff, pull update payload 조립은 `notion-sync-mappers` helper가 담당한다.
 
 ## Current Follow-Up Work
 

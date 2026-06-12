@@ -5,8 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  WorkStatus,
-  WorkSyncStatus,
   WorkType,
   type Prisma,
 } from '@prisma/client';
@@ -14,8 +12,6 @@ import {
 import { CatalogService } from '../catalog/catalog.service';
 import {
   canCreateReleaseRecord,
-  canUseProgressUnit,
-  getDefaultProgressUnit,
 } from '../recording/recording-policy';
 import type { GroupedWorksQueryDto } from '../works/dto/grouped-works-query.dto';
 import {
@@ -37,7 +33,9 @@ import {
 import {
   buildCatalogTitleInputFromImport,
   buildCreateUserRecordData,
+  buildSyncedProgressUpdateData,
   buildSyncedUserRecordUpdateData,
+  buildSyncedUserReleaseRecordBaseData,
   buildUserRecordInputFromImport,
   buildUserRecordRecordingPolicy,
   getUserRecordGroupKey,
@@ -294,49 +292,15 @@ export class UserRecordsService {
   ) {
     const existing = await this.getActiveRecordOrThrow(userId, id);
     const mediumType = getUserRecordMedium(existing);
-    const progressUnit =
-      input.progressUnit ?? getDefaultProgressUnit(mediumType);
-
-    if (
-      progressUnit === null ||
-      !canUseProgressUnit(mediumType, progressUnit)
-    ) {
-      throw new BadRequestException(
-        `Progress unit is not supported for medium type "${mediumType}".`,
-      );
-    }
-
-    if (
-      input.progressCurrent !== undefined &&
-      input.progressTotal !== undefined &&
-      input.progressCurrent !== null &&
-      input.progressTotal !== null &&
-      input.progressCurrent > input.progressTotal
-    ) {
-      throw new BadRequestException(
-        'progressCurrent cannot exceed progressTotal.',
-      );
-    }
-
-    const updated = await this.updateActiveForUser(userId, id, {
-      lastConsumedLabel:
-        input.lastConsumedLabel === undefined
-          ? existing.lastConsumedLabel
-          : (input.lastConsumedLabel?.trim() ?? null),
-      progressCurrent:
-        input.progressCurrent === undefined
-          ? existing.progressCurrent
-          : input.progressCurrent,
-      progressTotal:
-        input.progressTotal === undefined
-          ? existing.progressTotal
-          : input.progressTotal,
-      progressUnit,
-      serverVersion: {
-        increment: 1,
-      },
-      syncStatus: WorkSyncStatus.synced,
-    });
+    const updated = await this.updateActiveForUser(
+      userId,
+      id,
+      buildSyncedProgressUpdateData({
+        existing,
+        input,
+        mediumType,
+      }),
+    );
 
     return toUserWorkRecordView(updated);
   }
@@ -383,14 +347,7 @@ export class UserRecordsService {
         },
       },
     });
-    const baseData = {
-      favorite: input.favorite ?? false,
-      rating: input.rating ?? null,
-      review: normalizeString(input.review),
-      shortReview: normalizeString(input.shortReview),
-      status: input.status ?? WorkStatus.planned,
-      syncStatus: WorkSyncStatus.synced,
-    };
+    const baseData = buildSyncedUserReleaseRecordBaseData(input);
     const releaseRecord = existing
       ? await this.releaseRecordsService.update(existing.id, {
           ...baseData,

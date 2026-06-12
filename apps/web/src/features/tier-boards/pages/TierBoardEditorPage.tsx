@@ -25,6 +25,7 @@ import {
   AppButton,
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import {
   TierBoardCardEditorModal,
   TierBoardLaneEditorModal,
@@ -63,6 +64,7 @@ const CARD_DROP_ANIMATION = {
 export function TierBoardEditorPage() {
   const { boardId } = useParams();
   const controller = useTierBoardEditorController(boardId);
+  usePageTitle(controller.editorState?.board.title ?? '티어보드 편집');
 
   if (!boardId || !controller.editorState) {
     return (

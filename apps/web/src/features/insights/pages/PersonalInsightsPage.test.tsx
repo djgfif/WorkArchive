@@ -62,7 +62,7 @@ describe('PersonalInsightsPage', () => {
       await screen.findByRole('heading', { name: '개인 인사이트' }),
     ).toBeInTheDocument();
     expect(screen.getByText('게스트 로컬 아카이브')).toBeInTheDocument();
-    expect(screen.getByText('Private local-first')).toBeInTheDocument();
+    expect(screen.getByText('내 기기에서만 계산')).toBeInTheDocument();
     expect(screen.getByText('총 작품')).toBeInTheDocument();
     expect(screen.getAllByText('1')[0]).toBeInTheDocument();
     expect(screen.getByLabelText('소설 1개')).toHaveAttribute(

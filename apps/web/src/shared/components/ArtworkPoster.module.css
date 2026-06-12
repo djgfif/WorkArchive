@@ -230,8 +230,10 @@
 .posterFallbackType {
   position: relative;
   z-index: 1;
-  color: var(--app-text-muted);
+  /* 폴백 표지는 라이트 모드에서도 다크 장정을 유지하므로 테마 변수 대신 고정 웜화이트 */
+  color: rgba(245, 240, 232, 0.58);
   font-size: var(--app-type-meta);
   font-weight: 800;
   letter-spacing: 0;
 }
+

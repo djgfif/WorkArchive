@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -12,13 +11,24 @@ import {
   type UserRole,
   type WorkType,
 } from '@prisma/client';
-import { normalizeWorkGenres } from '@work-archive/shared-types';
 
 import {
   CatalogIngestionService,
   type CreateCatalogTitleInput,
   type CatalogReleaseCandidateInput,
 } from './catalog-ingestion.service';
+import {
+  buildLegacyCatalogTitleUpsertData,
+  normalizeCatalogWorkGenres,
+  type CreateTitleFromLegacyWorkInput,
+} from './catalog-legacy-work';
+import {
+  assertCatalogModerationAccess,
+  assertPendingCatalogSubmission,
+  buildCatalogSubmissionCreateData,
+  buildCatalogSubmissionListArgs,
+  buildUserCatalogSubmissionListArgs,
+} from './catalog-submissions';
 import { searchCatalogTitleIds } from './catalog-title-search';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -61,33 +71,6 @@ export type CatalogRelatedRelationView = Prisma.CatalogRelationGetPayload<{
 interface SearchCatalogOptions {
   mediumType?: WorkType;
   query: string;
-}
-
-interface CreateTitleFromLegacyWorkInput {
-  id: string;
-  type?: WorkType;
-  title: string;
-  author?: string;
-  genres?: string[];
-  description?: string;
-  thumbnailUrl?: string;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
-}
-
-function normalizeCatalogWorkGenres<T extends { genres?: unknown }>(
-  data: T,
-): T {
-  if (!Array.isArray(data.genres)) {
-    return data;
-  }
-
-  return {
-    ...data,
-    genres: normalizeWorkGenres(
-      data.genres.filter((value): value is string => typeof value === 'string'),
-    ),
-  };
 }
 
 @Injectable()
@@ -317,14 +300,7 @@ export class CatalogService {
     },
   ) {
     return this.prisma.catalogSubmission.create({
-      data: {
-        action: input.action,
-        entityId: input.entityId ?? null,
-        entityType: input.entityType,
-        note: input.note?.trim() ?? '',
-        payload: input.payload as Prisma.InputJsonObject,
-        submitterId,
-      },
+      data: buildCatalogSubmissionCreateData(submitterId, input),
     });
   }
 
@@ -332,35 +308,17 @@ export class CatalogService {
     viewer: { role: UserRole; userId: string },
     status?: CatalogSubmissionStatus,
   ) {
-    this.assertCanModerate(viewer.role);
+    assertCatalogModerationAccess(viewer.role);
 
-    const options: Prisma.CatalogSubmissionFindManyArgs = {
-      orderBy: {
-        createdAt: 'asc',
-      },
-      take: 100,
-    };
-
-    if (status) {
-      options.where = {
-        status,
-      };
-    }
-
-    return this.prisma.catalogSubmission.findMany(options);
+    return this.prisma.catalogSubmission.findMany(
+      buildCatalogSubmissionListArgs(status),
+    );
   }
 
   listUserSubmissions(submitterId: string, status?: CatalogSubmissionStatus) {
-    return this.prisma.catalogSubmission.findMany({
-      where: {
-        submitterId,
-        ...(status ? { status } : {}),
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-      take: 100,
-    });
+    return this.prisma.catalogSubmission.findMany(
+      buildUserCatalogSubmissionListArgs(submitterId, status),
+    );
   }
 
   async approveSubmission(
@@ -368,15 +326,10 @@ export class CatalogService {
     submissionId: string,
     reviewNote = '',
   ) {
-    this.assertCanModerate(reviewer.role);
+    assertCatalogModerationAccess(reviewer.role);
 
     const submission = await this.getSubmissionOrThrow(submissionId);
-
-    if (submission.status !== CatalogSubmissionStatus.pending) {
-      throw new BadRequestException(
-        'Only pending submissions can be approved.',
-      );
-    }
+    assertPendingCatalogSubmission(submission.status, 'approved');
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.catalogSubmission.update({
@@ -410,15 +363,10 @@ export class CatalogService {
     submissionId: string,
     reviewNote = '',
   ) {
-    this.assertCanModerate(reviewer.role);
+    assertCatalogModerationAccess(reviewer.role);
 
     const submission = await this.getSubmissionOrThrow(submissionId);
-
-    if (submission.status !== CatalogSubmissionStatus.pending) {
-      throw new BadRequestException(
-        'Only pending submissions can be rejected.',
-      );
-    }
+    assertPendingCatalogSubmission(submission.status, 'rejected');
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.catalogSubmission.update({
@@ -452,7 +400,7 @@ export class CatalogService {
     sourceTitleId: string,
     targetTitleId: string,
   ) {
-    this.assertCanModerate(actor.role);
+    assertCatalogModerationAccess(actor.role);
 
     if (sourceTitleId === targetTitleId) {
       throw new BadRequestException(
@@ -529,45 +477,18 @@ export class CatalogService {
     work: CreateTitleFromLegacyWorkInput,
     client: PrismaClientLike = this.prisma,
   ) {
-    const displayTitle = work.title.trim();
+    const upsertData = buildLegacyCatalogTitleUpsertData(work);
 
-    if (!displayTitle) {
+    if (!upsertData) {
       return null;
-    }
-
-    const createData: Prisma.CatalogTitleUncheckedCreateInput = {
-      canonicalTitle: displayTitle,
-      displayTitle,
-      id: work.id,
-      mediumType: work.type ?? 'other',
-      summary: work.description?.trim() ?? '',
-      thumbnailUrl: work.thumbnailUrl?.trim() ?? '',
-    };
-    const updateData: Prisma.CatalogTitleUncheckedUpdateInput = {
-      canonicalTitle: displayTitle,
-      displayTitle,
-      summary: work.description?.trim() ?? '',
-      thumbnailUrl: work.thumbnailUrl?.trim() ?? '',
-    };
-
-    if (work.createdAt !== undefined) {
-      createData.createdAt = work.createdAt;
-    }
-
-    if (work.updatedAt !== undefined) {
-      createData.updatedAt = work.updatedAt;
-    }
-
-    if (work.type !== undefined) {
-      updateData.mediumType = work.type;
     }
 
     return client.catalogTitle.upsert({
       where: {
         id: work.id,
       },
-      create: createData,
-      update: updateData,
+      create: upsertData.create,
+      update: upsertData.update,
     });
   }
 
@@ -585,13 +506,5 @@ export class CatalogService {
     }
 
     return submission;
-  }
-
-  private assertCanModerate(role: UserRole) {
-    if (role !== 'moderator' && role !== 'admin') {
-      throw new ForbiddenException(
-        'Catalog moderation requires moderator access.',
-      );
-    }
   }
 }

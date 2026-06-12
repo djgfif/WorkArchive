@@ -36,7 +36,7 @@ export function RouteErrorBoundary({
           </AppLinkButton>
         </>
       }
-      description={`${getRouteErrorDescription(error)} 로컬 IndexedDB 데이터는 이 오류만으로 삭제되지 않습니다. 필요한 경우 설정의 JSON export로 현재 로컬 데이터를 먼저 보관한 뒤 다시 시도하세요.`}
+      description={`${getRouteErrorDescription(error)} 이 기기에 저장된 기록은 이 오류만으로 삭제되지 않습니다. 필요한 경우 설정의 JSON 내보내기로 현재 기록을 먼저 보관한 뒤 다시 시도하세요.`}
       eyebrow="화면 오류"
       title={title}
       tone="error"

@@ -307,4 +307,75 @@ describe('ImportsService', () => {
     );
     expect(result.notice).toContain('일부 검색 출처');
   });
+
+  it('uses AniList direct candidates before preview when the API cannot be reached', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+    );
+
+    const directCandidate = {
+      sourceId: 'anilist',
+      title: '귀멸의 칼날',
+      thumbnailUrl: 'https://s4.anilist.co/cover.jpg',
+    };
+    const searchPublicDirect = vi
+      .fn()
+      .mockResolvedValue([directCandidate]);
+
+    const result = await new ImportsService(
+      undefined,
+      searchPublicDirect,
+    ).searchCandidates('귀멸의 칼날', {
+      useExternal: true,
+    });
+
+    expect(searchPublicDirect).toHaveBeenCalledWith('귀멸의 칼날', {
+      mediumType: 'all',
+    });
+    expect(result.source).toBe('external');
+    expect(result.candidates).toEqual([directCandidate]);
+    expect(result.notice).toContain('AniList 공개 검색');
+  });
+
+  it('skips AniList direct search for medium types it cannot serve', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+    );
+
+    const searchPublicDirect = vi.fn().mockResolvedValue([]);
+
+    const result = await new ImportsService(
+      undefined,
+      searchPublicDirect,
+    ).searchCandidates('미스터리 영화', {
+      mediumType: 'movie',
+      useExternal: true,
+    });
+
+    expect(searchPublicDirect).not.toHaveBeenCalled();
+    expect(result.source).toBe('preview-manual');
+  });
+
+  it('falls back to preview when AniList direct search also fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+    );
+
+    const searchPublicDirect = vi
+      .fn()
+      .mockRejectedValue(new Error('AniList unavailable'));
+
+    const result = await new ImportsService(
+      undefined,
+      searchPublicDirect,
+    ).searchCandidates('Dune', {
+      useExternal: true,
+    });
+
+    expect(result.source).toBe('preview-manual');
+    expect(result.notice).toContain('일부 검색 출처');
+  });
 });

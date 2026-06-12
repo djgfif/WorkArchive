@@ -25,6 +25,7 @@ import {
   AppLinkButton,
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { ArchiveEmptyState, ArchiveHero } from '@features/works';
 import {
   TIER_BOARD_TEMPLATES,
@@ -72,6 +73,7 @@ function TemplatePreview({ templateTitle }: { templateTitle: string }) {
 }
 
 export function TierBoardsPage() {
+  usePageTitle('티어보드');
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [boards, setBoards] = useState<TierBoardRecord[]>([]);

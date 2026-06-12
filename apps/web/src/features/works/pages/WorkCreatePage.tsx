@@ -16,6 +16,8 @@ import {
 } from '@shared/components/AppPrimitives';
 import { PageHero } from '@shared/components/PageHero';
 import { FlowPageTemplate } from '@shared/components/PageTemplates';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { withKoreanParticle } from '@shared/utils/korean-particle';
 import { useAuthSession } from '@features/auth';
 import { syncQueueRepository } from '@features/sync';
 import { AddWorkFlow } from '../components/AddWorkFlow';
@@ -29,6 +31,7 @@ import {
 } from '../utils/work-options';
 
 export function WorkCreatePage() {
+  usePageTitle('작품 추가');
   const navigate = useNavigate();
   const { archiveScopeKey, mode } = useAuthSession();
   const [formVersion, setFormVersion] = useState(0);
@@ -82,7 +85,7 @@ export function WorkCreatePage() {
           <SectionIntro
             description="방금 저장한 기록을 바로 확인하거나, 같은 흐름에서 다음 작품을 계속 추가할 수 있습니다."
             eyebrow="저장 완료"
-            title={`${savedWork.title}을(를) 등록했습니다`}
+            title={`${withKoreanParticle(savedWork.title, '을/를')} 등록했습니다`}
           />
 
           {saveFeedback && (

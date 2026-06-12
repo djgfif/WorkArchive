@@ -7,11 +7,13 @@ import {
   ThemeToggleControl,
 } from '@shared/components/AppPrimitives';
 import { AccountPageTemplate } from '@shared/components/PageTemplates';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAuthSession } from '@features/auth';
 import { AccountSettingsSection } from '../components/settings/AccountSettingsSection';
 import { DangerZoneSection } from '../components/settings/DangerZoneSection';
 import { DataBackupSettingsSection } from '../components/settings/DataBackupSettingsSection';
 import { DuplicateCleanupSettingsSection } from '../components/settings/DuplicateCleanupSettingsSection';
+import { ExternalImportSettingsSection } from '../components/settings/ExternalImportSettingsSection';
 import { NotionSyncSettingsSection } from '../components/settings/NotionSyncSettingsSection';
 import { SearchProviderSettingsSection } from '../components/settings/SearchProviderSettingsSection';
 import { SecuritySettingsSection } from '../components/settings/SecuritySettingsSection';
@@ -42,6 +44,7 @@ function DisplaySettingsSection() {
 }
 
 export function SettingsPage() {
+  usePageTitle('설정과 백업');
   const { archiveScopeKey, mode, signOut, updateUser, user } = useAuthSession();
   const importProviderSettings = useImportProviderSettings(mode);
   const localArchiveSettings = useLocalArchiveSettings();
@@ -93,6 +96,11 @@ export function SettingsPage() {
           onImportFileSelect={localArchiveSettings.previewImportFile}
         />
       ),
+    },
+    {
+      id: 'external-import',
+      label: '외부 기록 가져오기',
+      content: <ExternalImportSettingsSection />,
     },
     {
       id: 'duplicate-cleanup',
@@ -196,9 +204,9 @@ export function SettingsPage() {
       actions={
         <AppLinkButton to="/account">계정 개요로 돌아가기</AppLinkButton>
       }
-      description="계정 연결, 로컬 백업, 검색 provider, API key vault, 세션 보안을 한 곳에서 관리합니다."
+      description="계정 연결, 로컬 백업, 검색 소스, API 키, 세션 보안을 한 곳에서 관리합니다."
       eyebrow="설정"
-      title="Settings Control Center"
+      title="설정과 백업"
     >
       <SettingsLayout sections={sections} />
     </AccountPageTemplate>

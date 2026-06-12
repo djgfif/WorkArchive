@@ -253,11 +253,11 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
 function getProviderKeyTestFailureMessage(reason: string | null, label: string) {
   switch (reason) {
     case 'missing_key':
-      return `${label}에 저장된 API key가 없습니다.`;
+      return `${label}에 저장된 API 키가 없습니다.`;
     case 'unauthorized':
-      return `${label} API key가 provider에서 거부되었습니다. key 값을 다시 확인해 주세요.`;
+      return `${label}에서 API 키를 거부했습니다. 키 값을 다시 확인해 주세요.`;
     case 'provider_unavailable':
-      return `${label} provider에 일시적으로 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.`;
+      return `${label}에 일시적으로 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.`;
     case 'unknown':
     default:
       return `${label} 연결 테스트에 실패했습니다.`;

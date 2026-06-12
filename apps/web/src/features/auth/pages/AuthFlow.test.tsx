@@ -106,7 +106,7 @@ describe('Auth flow', () => {
     expect(getLinkByHref('/')).toBeInTheDocument();
     expect(googleButton).toBeInTheDocument();
     expect(googleButton).not.toBeDisabled();
-    expect(screen.getByText('비공개 백업 · 여러 기기 동기화 · 개인 API key vault')).toBeInTheDocument();
+    expect(screen.getByText('비공개 백업 · 여러 기기 동기화 · 검색 키 안전 보관')).toBeInTheDocument();
     expect(screen.getByText('로그인 전 기록 가능')).toBeInTheDocument();
     expect(screen.getByText('백업은 선택 사항')).toBeInTheDocument();
     expect(screen.queryByText('Local-first')).not.toBeInTheDocument();

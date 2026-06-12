@@ -16,6 +16,11 @@ import {
   requestAuthenticatedApiJson,
 } from '@shared/services/api-client';
 import { readStoredAuthTokens } from '@shared/services/auth-token-store';
+import {
+  isAniListSearchableMediumType,
+  searchAniListDirectCandidates,
+  type AniListDirectSearchOptions,
+} from './anilist-direct.service';
 
 export type { ImportCandidate, ImportProviderStatus };
 
@@ -44,6 +49,8 @@ const ALADIN_PROVIDER_KEY_PATH = '/imports/providers/aladin/key';
 const IMPORT_PROVIDERS_PATH = '/imports/providers';
 const EXTERNAL_SEARCH_UNAVAILABLE_NOTICE =
   '일부 검색 출처를 사용할 수 없어 직접 추가 후보를 표시합니다. 로그인 없이 사용할 수 있는 출처는 계속 지원되며, 개인 키가 필요한 출처만 로그인 후 설정할 수 있습니다.';
+const PUBLIC_DIRECT_SEARCH_NOTICE =
+  '서버 검색을 잠시 사용할 수 없어 AniList 공개 검색 결과를 표시합니다.';
 
 const providerDisplayLabels: Record<string, string> = {
   aladin: 'Aladin Book',
@@ -250,6 +257,10 @@ export class ImportsService {
     private readonly adapters: ImportSourceAdapter[] = [
       new PreviewImportsAdapter(),
     ],
+    private readonly searchPublicDirect: (
+      query: string,
+      options: AniListDirectSearchOptions,
+    ) => Promise<ImportCandidate[]> = searchAniListDirectCandidates,
   ) {}
 
   async getAladinProviderStatus() {
@@ -410,6 +421,21 @@ export class ImportsService {
           throw error;
         }
 
+        // 서버 검색이 불가능하면 키 없는 공개 출처(AniList)를 브라우저에서
+        // 직접 호출해 실제 표지·메타데이터 후보를 우선 시도한다.
+        const directCandidates = await this.searchPublicDirectSafely(
+          normalizedQuery,
+          options,
+        );
+
+        if (directCandidates.length > 0) {
+          return {
+            candidates: directCandidates,
+            notice: PUBLIC_DIRECT_SEARCH_NOTICE,
+            source: 'external',
+          };
+        }
+
         return this.searchPreviewCandidates(
           normalizedQuery,
           EXTERNAL_SEARCH_UNAVAILABLE_NOTICE,
@@ -423,6 +449,27 @@ export class ImportsService {
       '외부 검색을 건너뛰고 로컬 preview 후보를 표시합니다.',
       options.mediumType,
     );
+  }
+
+  private async searchPublicDirectSafely(
+    query: string,
+    options: SearchCandidatesOptions,
+  ): Promise<ImportCandidate[]> {
+    const mediumType = options.mediumType ?? options.type ?? 'all';
+
+    if (!isAniListSearchableMediumType(mediumType)) {
+      return [];
+    }
+
+    try {
+      return await this.searchPublicDirect(query, {
+        ...(options.limit !== undefined ? { limit: options.limit } : {}),
+        mediumType,
+      });
+    } catch {
+      // 공개 출처 실패는 조용히 무시하고 preview 후보로 이어간다.
+      return [];
+    }
   }
 
   private searchPreviewCandidates(

@@ -17,6 +17,7 @@ import {
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
 import { CardImage } from './TierBoardCanvas';
+import { createWorkSubtitle } from '../services/tier-board-records';
 import styles from '../pages/TierBoardsPage.module.css';
 import { cn } from '@shared/utils/class-names';
 
@@ -54,15 +55,6 @@ interface TierBoardSourcePanelProps {
   workSearch: string;
 }
 
-function createWorkSubtitle(work: WorkRecord) {
-  return [
-    work.type,
-    work.author,
-    work.rating === null ? null : `★ ${work.rating.toFixed(1)}`,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-}
 
 export function TierBoardSourcePanel({
   cardCount,
@@ -254,7 +246,7 @@ export function TierBoardSourcePanel({
             <Stack className={cn(css.addForm)} gap="sm">
               <Stack className={cn(css.addFieldGroup)} gap={6}>
                 <TextInput
-                  label="작품에서 snapshot 추가"
+                  label="작품에서 카드 추가"
                   onChange={(event) => {
                     const { value } = event.currentTarget;
                     setWorkSearch(value);
@@ -291,14 +283,14 @@ export function TierBoardSourcePanel({
                         tone="secondary"
                         type="button"
                       >
-                        Snapshot 추가
+                        카드로 추가
                       </AppButton>
                     </Group>
                   </Paper>
                 ))}
                 {filteredWorks.length === 0 && (
                   <Text c="dimmed" size="sm">
-                    snapshot으로 가져올 작품이 없습니다.
+                    가져올 작품이 없습니다.
                   </Text>
                 )}
               </Stack>

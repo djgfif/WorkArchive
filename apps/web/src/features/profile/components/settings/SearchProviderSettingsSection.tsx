@@ -273,7 +273,7 @@ export function SearchProviderSettingsSection({
       <SectionIntro
         description="API 키가 필요한 검색 소스와 키 없이 바로 쓰는 소스를 분리했습니다. 키를 등록하면 작품 추가에서 더 정확한 후보, 표지, 공개일, 국내 검색 결과를 보강할 수 있습니다."
         eyebrow="검색 소스와 API 키"
-        title="Search provider 관리"
+        title="검색 소스 관리"
       />
 
       {mode !== 'authenticated' ? (
@@ -289,7 +289,7 @@ export function SearchProviderSettingsSection({
         </Stack>
       ) : isLoadingProviderStatuses ? (
         <Text aria-busy="true" c="dimmed">
-          검색 provider 상태를 불러오는 중입니다.
+          검색 소스 상태를 불러오는 중입니다.
         </Text>
       ) : (
         <Stack gap="lg">

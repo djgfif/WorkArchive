@@ -13,7 +13,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type {
-  Prisma,
   User,
   UserAuthAccount,
   UserRefreshSession,
@@ -27,7 +26,6 @@ import { SecurityAuditService } from '../../security/security-audit.service';
 import { hashSecret, verifySecret } from './auth-crypto';
 import type { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import type {
-  AuthRefreshSessionResponseDto,
   AuthRefreshSessionsResponseDto,
 } from './dto/auth-refresh-session-response.dto';
 import type { AuthUserResponseDto } from './dto/auth-user-response.dto';
@@ -41,6 +39,11 @@ import {
   maskAuthSessionIpAddress,
   summarizeAuthSessionUserAgent,
 } from './auth-session-metadata';
+import {
+  toAuthRefreshSessionResponse,
+  toAuthUserResponse,
+  toGoogleAuthAccountData,
+} from './auth-response-mappers';
 import {
   GOOGLE_AUTH_PROVIDER,
   GoogleOAuthClient,
@@ -280,7 +283,7 @@ export class AuthService {
       throw new UnauthorizedException('Session is no longer valid.');
     }
 
-    return this.toUserResponse(user);
+    return toAuthUserResponse(user);
   }
 
   async updateProfile(
@@ -320,7 +323,7 @@ export class AuthService {
         },
       });
 
-      return this.toUserResponse(user);
+      return toAuthUserResponse(user);
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
         throw new ConflictException('Handle is already in use.');
@@ -348,7 +351,7 @@ export class AuthService {
 
     return {
       sessions: sessions.map((session) =>
-        this.toRefreshSessionResponse(session, session.id === user.sessionId),
+        toAuthRefreshSessionResponse(session, session.id === user.sessionId),
       ),
     };
   }
@@ -457,7 +460,7 @@ export class AuthService {
       refreshToken,
       rememberMe,
       sessionId,
-      user: this.toUserResponse(user),
+      user: toAuthUserResponse(user),
     };
   }
 
@@ -508,7 +511,7 @@ export class AuthService {
       refreshToken,
       rememberMe,
       sessionId: session.id,
-      user: this.toUserResponse(user),
+      user: toAuthUserResponse(user),
     };
   }
 
@@ -586,35 +589,6 @@ export class AuthService {
     );
   }
 
-  private toUserResponse(
-    user: Pick<
-      User,
-      'id' | 'avatarUrl' | 'email' | 'handle' | 'nickname' | 'role'
-    > & {
-      authAccounts?: Pick<
-        UserAuthAccount,
-        'email' | 'emailVerified' | 'name' | 'pictureUrl' | 'provider'
-      >[];
-    },
-  ): AuthUserResponseDto {
-    return {
-      authAccounts:
-        user.authAccounts?.map((account) => ({
-          email: account.email,
-          emailVerified: account.emailVerified,
-          name: account.name,
-          pictureUrl: account.pictureUrl,
-          provider: account.provider,
-        })) ?? [],
-      avatarUrl: user.avatarUrl,
-      id: user.id,
-      email: user.email,
-      handle: user.handle,
-      nickname: user.nickname,
-      role: user.role,
-    };
-  }
-
   private async findOrCreateGoogleUser(profile: GoogleIdentityProfile) {
     return this.prisma.$transaction(async (tx) => {
       const existingAccount = await tx.userAuthAccount.findUnique({
@@ -634,7 +608,7 @@ export class AuthService {
           where: {
             id: existingAccount.id,
           },
-          data: this.toGoogleAuthAccountData(profile),
+          data: toGoogleAuthAccountData(profile),
         });
 
         return tx.user.findUniqueOrThrow({
@@ -663,7 +637,7 @@ export class AuthService {
 
       await tx.userAuthAccount.create({
         data: {
-          ...this.toGoogleAuthAccountData(profile),
+          ...toGoogleAuthAccountData(profile),
           provider: GOOGLE_AUTH_PROVIDER,
           providerAccountId: profile.providerAccountId,
           userId: user.id,
@@ -679,37 +653,6 @@ export class AuthService {
         },
       });
     });
-  }
-
-  private toGoogleAuthAccountData(
-    profile: GoogleIdentityProfile,
-  ): Pick<
-    Prisma.UserAuthAccountUncheckedCreateInput,
-    'email' | 'emailVerified' | 'name' | 'pictureUrl'
-  > {
-    return {
-      email: profile.email,
-      emailVerified: profile.emailVerified,
-      name: profile.name,
-      pictureUrl: profile.pictureUrl,
-    };
-  }
-
-  private toRefreshSessionResponse(
-    session: UserRefreshSession,
-    current: boolean,
-  ): AuthRefreshSessionResponseDto {
-    return {
-      id: session.id,
-      current,
-      rememberMe: session.rememberMe,
-      userAgent: summarizeAuthSessionUserAgent(session.userAgent),
-      ipAddress: maskAuthSessionIpAddress(session.ipAddress),
-      createdAt: session.createdAt.toISOString(),
-      lastUsedAt: session.lastUsedAt?.toISOString() ?? null,
-      rotatedAt: session.rotatedAt?.toISOString() ?? null,
-      expiresAt: session.expiresAt.toISOString(),
-    };
   }
 
   private async revokeAllUserSessions(userId: string) {

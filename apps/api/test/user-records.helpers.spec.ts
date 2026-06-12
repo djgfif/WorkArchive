@@ -1,11 +1,18 @@
 import { BadRequestException } from '@nestjs/common';
-import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
+import {
+  ProgressUnit,
+  WorkStatus,
+  WorkSyncStatus,
+  WorkType,
+} from '@prisma/client';
 import { describe, expect, it } from '@jest/globals';
 
 import {
   buildCatalogTitleInputFromImport,
   buildCreateUserRecordData,
+  buildSyncedProgressUpdateData,
   buildSyncedUserRecordUpdateData,
+  buildSyncedUserReleaseRecordBaseData,
   buildUserRecordInputFromImport,
   buildUserRecordRecordingPolicy,
   getUserRecordGroupKey,
@@ -154,6 +161,91 @@ describe('user record helpers', () => {
       },
       shortReview: 'short review',
       status: WorkStatus.completed,
+      syncStatus: WorkSyncStatus.synced,
+    });
+  });
+
+  it('builds synced progress update data with default units and existing fallbacks', () => {
+    const existing = createWorkAggregate({
+      lastConsumedLabel: '1권',
+      progressCurrent: 1,
+      progressTotal: 10,
+    } as Partial<WorkAggregate>);
+
+    expect(
+      buildSyncedProgressUpdateData({
+        existing,
+        input: {
+          lastConsumedLabel: ' 2권 ',
+          progressCurrent: 2,
+        },
+        mediumType: WorkType.novel,
+      }),
+    ).toMatchObject({
+      lastConsumedLabel: '2권',
+      progressCurrent: 2,
+      progressTotal: 10,
+      progressUnit: ProgressUnit.volume,
+      serverVersion: {
+        increment: 1,
+      },
+      syncStatus: WorkSyncStatus.synced,
+    });
+  });
+
+  it('rejects unsupported progress units and impossible progress totals', () => {
+    const existing = createWorkAggregate();
+
+    expect(() =>
+      buildSyncedProgressUpdateData({
+        existing,
+        input: {
+          progressUnit: ProgressUnit.episode,
+        },
+        mediumType: WorkType.novel,
+      }),
+    ).toThrow(
+      new BadRequestException(
+        'Progress unit is not supported for medium type "novel".',
+      ),
+    );
+
+    expect(() =>
+      buildSyncedProgressUpdateData({
+        existing,
+        input: {
+          progressCurrent: 3,
+          progressTotal: 2,
+        },
+        mediumType: WorkType.anime,
+      }),
+    ).toThrow(
+      new BadRequestException('progressCurrent cannot exceed progressTotal.'),
+    );
+  });
+
+  it('builds synced release record base data with normalized review fields', () => {
+    expect(
+      buildSyncedUserReleaseRecordBaseData({
+        favorite: true,
+        rating: 4,
+        review: '  release review  ',
+        shortReview: '  short  ',
+        status: WorkStatus.completed,
+      }),
+    ).toEqual({
+      favorite: true,
+      rating: 4,
+      review: 'release review',
+      shortReview: 'short',
+      status: WorkStatus.completed,
+      syncStatus: WorkSyncStatus.synced,
+    });
+
+    expect(buildSyncedUserReleaseRecordBaseData({})).toMatchObject({
+      favorite: false,
+      rating: null,
+      status: WorkStatus.planned,
       syncStatus: WorkSyncStatus.synced,
     });
   });

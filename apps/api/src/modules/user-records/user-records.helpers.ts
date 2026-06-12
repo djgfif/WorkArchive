@@ -7,6 +7,7 @@ import {
 } from '@prisma/client';
 
 import {
+  canUseProgressUnit,
   canCreateReleaseRecord,
   getDefaultProgressUnit,
   RECORDING_UNIT,
@@ -20,8 +21,10 @@ import type { CatalogService } from '../catalog/catalog.service';
 import type {
   CreateUserRecordDto,
   CreateUserRecordFromImportDto,
+  UpdateProgressDto,
   UpdateUserRecordDto,
 } from './dto/user-record.dto';
+import type { UpsertUserReleaseRecordDto } from './dto/user-release-record.dto';
 import type { WorkAggregate } from './user-records.types';
 
 type CatalogTitleImportInput = Parameters<
@@ -168,6 +171,78 @@ export function buildSyncedUserRecordUpdateData(
     serverVersion: {
       increment: 1,
     },
+    syncStatus: WorkSyncStatus.synced,
+  };
+}
+
+export function buildSyncedProgressUpdateData({
+  existing,
+  input,
+  mediumType,
+}: {
+  existing: Pick<
+    WorkAggregate,
+    'lastConsumedLabel' | 'progressCurrent' | 'progressTotal'
+  >;
+  input: UpdateProgressDto;
+  mediumType: WorkType;
+}): Prisma.UserWorkRecordUpdateManyMutationInput {
+  const progressUnit = input.progressUnit ?? getDefaultProgressUnit(mediumType);
+
+  if (
+    progressUnit === null ||
+    !canUseProgressUnit(mediumType, progressUnit)
+  ) {
+    throw new BadRequestException(
+      `Progress unit is not supported for medium type "${mediumType}".`,
+    );
+  }
+
+  if (
+    input.progressCurrent !== undefined &&
+    input.progressTotal !== undefined &&
+    input.progressCurrent !== null &&
+    input.progressTotal !== null &&
+    input.progressCurrent > input.progressTotal
+  ) {
+    throw new BadRequestException(
+      'progressCurrent cannot exceed progressTotal.',
+    );
+  }
+
+  return {
+    lastConsumedLabel:
+      input.lastConsumedLabel === undefined
+        ? existing.lastConsumedLabel
+        : (input.lastConsumedLabel?.trim() ?? null),
+    progressCurrent:
+      input.progressCurrent === undefined
+        ? existing.progressCurrent
+        : input.progressCurrent,
+    progressTotal:
+      input.progressTotal === undefined
+        ? existing.progressTotal
+        : input.progressTotal,
+    progressUnit,
+    serverVersion: {
+      increment: 1,
+    },
+    syncStatus: WorkSyncStatus.synced,
+  };
+}
+
+export function buildSyncedUserReleaseRecordBaseData(
+  input: UpsertUserReleaseRecordDto,
+): Pick<
+  Prisma.UserReleaseRecordUncheckedCreateInput,
+  'favorite' | 'rating' | 'review' | 'shortReview' | 'status' | 'syncStatus'
+> {
+  return {
+    favorite: input.favorite ?? false,
+    rating: input.rating ?? null,
+    review: normalizeString(input.review),
+    shortReview: normalizeString(input.shortReview),
+    status: input.status ?? WorkStatus.planned,
     syncStatus: WorkSyncStatus.synced,
   };
 }

@@ -21,6 +21,7 @@ import {
   PageShell,
   StateMessage,
 } from '@shared/components/AppPrimitives';
+import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAuthSession } from '@features/auth';
 import { getWorkStatusLabel, getWorkTypeLabel } from '@features/works';
 import { usePersonalInsights } from '../hooks/usePersonalInsights';
@@ -371,6 +372,7 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
 }
 
 export function PersonalInsightsPage() {
+  usePageTitle('개인 인사이트');
   const { mode } = useAuthSession();
   const { error, insights, isLoading, retry } = usePersonalInsights();
   const [yearOpen, setYearOpen] = useState(false);
@@ -441,9 +443,9 @@ export function PersonalInsightsPage() {
             </AppLinkButton>
           </>
         }
-        description="외부 provider를 호출하지 않고 현재 활성 IndexedDB 아카이브에서만 계산한 개인 통계입니다."
+        description="외부 서버를 거치지 않고 이 기기에 저장된 기록만으로 계산한 개인 통계입니다."
         eyebrow={archiveModeLabel}
-        meta={<AppBadge tone="accent">Private local-first</AppBadge>}
+        meta={<AppBadge tone="accent">내 기기에서만 계산</AppBadge>}
         title="개인 인사이트"
         titleOrder={1}
       />
@@ -456,7 +458,7 @@ export function PersonalInsightsPage() {
       <PageSection
         description="작품 수, 상태, 별점, 태그 흐름을 한 화면에서 확인합니다."
         divider={false}
-        title="로컬 아카이브 요약"
+        title="내 서재 요약"
       >
         <InsightsContent insights={insights} />
       </PageSection>

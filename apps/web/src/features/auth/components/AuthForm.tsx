@@ -86,7 +86,7 @@ export function AuthForm({
       </AppButton>
 
       <Text c="var(--mantine-color-dimmed)" className={css.ctaHelper} size="sm">
-        비공개 백업 · 여러 기기 동기화 · 개인 API key vault
+        비공개 백업 · 여러 기기 동기화 · 검색 키 안전 보관
       </Text>
 
       {!googleConfigured && (
