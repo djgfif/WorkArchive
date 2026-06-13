@@ -47,21 +47,6 @@ function formatRelativeDate(isoString: string): string {
   return `${Math.floor(diffDays / 365)}년 전`;
 }
 
-function pickContinueWorks(
-  recentlyConsumed: WorkRecord[],
-  active: WorkRecord[],
-): WorkRecord[] {
-  const seen = new Set<string>();
-  const result: WorkRecord[] = [];
-  for (const work of [...recentlyConsumed, ...active]) {
-    if (!seen.has(work.id)) {
-      seen.add(work.id);
-      result.push(work);
-    }
-  }
-  return result.slice(0, 12);
-}
-
 /* ── 선반 포스터 카드 ──────────────────────────────────────────────────────── */
 function ShelfPosterCard({
   showProgress = false,
@@ -396,6 +381,7 @@ export function HomePage() {
   const { archiveScopeKey, mode, user } = useAuthSession();
   const {
     averageRating,
+    continueWorks,
     contributorCollections,
     error,
     highlyRatedWorks,
@@ -416,10 +402,6 @@ export function HomePage() {
   const jsonArchiveExport = useJsonArchiveExport();
   const backupReminder = useJsonBackupReminder(totalCount, archiveScopeKey);
 
-  const activeWorks = recentWorks
-    .filter((w) => w.status === 'in_progress')
-    .slice(0, 12);
-  const continueWorks = pickContinueWorks(recentlyConsumedWorks, activeWorks);
   const insightItems = buildInsightItems({
     contributorCollections,
     seriesCollections,

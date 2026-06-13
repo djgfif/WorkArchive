@@ -17,6 +17,30 @@ export function IconGrid({ size = 14 }: { size?: number }) {
   );
 }
 
+export function IconGridCompact({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <rect height="4.5" width="4.5" x="3" y="3" />
+      <rect height="4.5" width="4.5" x="9.75" y="3" />
+      <rect height="4.5" width="4.5" x="16.5" y="3" />
+      <rect height="4.5" width="4.5" x="3" y="9.75" />
+      <rect height="4.5" width="4.5" x="9.75" y="9.75" />
+      <rect height="4.5" width="4.5" x="16.5" y="9.75" />
+      <rect height="4.5" width="4.5" x="3" y="16.5" />
+      <rect height="4.5" width="4.5" x="9.75" y="16.5" />
+      <rect height="4.5" width="4.5" x="16.5" y="16.5" />
+    </svg>
+  );
+}
+
 export function IconList({ size = 14 }: { size?: number }) {
   return (
     <svg

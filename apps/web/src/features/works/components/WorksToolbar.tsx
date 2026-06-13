@@ -12,6 +12,7 @@ import {
 import {
   buildActiveFilterChips,
 } from '../utils/works-toolbar-state';
+import type { LibraryDensity } from '../hooks/useLibraryDensity';
 import type { WorksViewMode } from './WorksList';
 import { WorksToolbarControls } from './WorksToolbarControls';
 import { AdvancedFiltersPanel } from './WorksAdvancedFiltersPanel';
@@ -23,10 +24,12 @@ import {
 
 interface WorksToolbarProps {
   collectionScope: WorksCollectionScope;
+  density: LibraryDensity;
   filteredCount: number;
   genreSuggestions: string[];
   onClearFilters: () => void;
   onCollectionScopeChange: (scope: WorksCollectionScope) => void;
+  onDensityChange: (density: LibraryDensity) => void;
   onQueryChange: (query: WorksListQuery) => void;
   onViewModeChange: (viewMode: WorksViewMode) => void;
   organizationContributorSuggestions: string[];
@@ -51,10 +54,12 @@ function isEditableElement(target: EventTarget | null) {
 
 export function WorksToolbar({
   collectionScope,
+  density,
   filteredCount: _filteredCount,
   genreSuggestions,
   onClearFilters,
   onCollectionScopeChange,
+  onDensityChange,
   onQueryChange,
   onViewModeChange,
   organizationContributorSuggestions,
@@ -120,9 +125,11 @@ export function WorksToolbar({
         activeFilterCount={activeFilterChips.length}
         advancedOpen={advancedOpen}
         collectionScope={collectionScope}
+        density={density}
         hasActiveFilters={hasActiveFilters}
         isTrashScope={isTrashScope}
         onCollectionScopeChange={onCollectionScopeChange}
+        onDensityChange={onDensityChange}
         onQueryChange={onQueryChange}
         onToggleAdvanced={() => setAdvancedOpen((opened) => !opened)}
         onViewModeChange={onViewModeChange}

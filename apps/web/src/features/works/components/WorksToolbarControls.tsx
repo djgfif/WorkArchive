@@ -5,6 +5,7 @@ import { FilterPillGroup, ArchiveSearchBar } from './ArchiveComponents';
 import {
   IconFilter,
   IconGrid,
+  IconGridCompact,
   IconList,
   IconSort,
   IconSortAsc,
@@ -17,6 +18,7 @@ import {
   type WorksListQuery,
 } from '../utils/query-works';
 import { workSortOptions } from '../utils/work-options';
+import type { LibraryDensity } from '../hooks/useLibraryDensity';
 import type { WorksViewMode } from './WorksList';
 import { cn } from '@shared/utils/class-names';
 
@@ -26,9 +28,11 @@ interface WorksToolbarControlsProps {
   activeFilterCount: number;
   advancedOpen: boolean;
   collectionScope: WorksCollectionScope;
+  density: LibraryDensity;
   hasActiveFilters: boolean;
   isTrashScope: boolean;
   onCollectionScopeChange: (scope: WorksCollectionScope) => void;
+  onDensityChange: (density: LibraryDensity) => void;
   onQueryChange: (query: WorksListQuery) => void;
   onToggleAdvanced: () => void;
   onViewModeChange: (viewMode: WorksViewMode) => void;
@@ -44,9 +48,11 @@ export function WorksToolbarControls({
   activeFilterCount,
   advancedOpen,
   collectionScope,
+  density,
   hasActiveFilters,
   isTrashScope,
   onCollectionScopeChange,
+  onDensityChange,
   onQueryChange,
   onToggleAdvanced,
   onViewModeChange,
@@ -124,6 +130,40 @@ export function WorksToolbarControls({
                 type="button"
               >
                 {mode === 'grid' ? <IconGrid /> : <IconList />}
+              </Box>
+            </Tooltip>
+          ))}
+        </Box>
+      )}
+
+      {collectionScope === 'active' && viewMode === 'grid' && (
+        <Box className={cn(css.viewToggle)}>
+          {(
+            [
+              { density: 'comfortable', icon: <IconGrid />, label: '넓게 보기' },
+              {
+                density: 'compact',
+                icon: <IconGridCompact />,
+                label: '촘촘히 보기',
+              },
+            ] as const
+          ).map((option) => (
+            <Tooltip
+              key={option.density}
+              label={option.label}
+              position="bottom"
+              withArrow
+            >
+              <Box
+                aria-label={option.label}
+                aria-pressed={density === option.density}
+                className={cn(css.viewToggleButton)}
+                component="button"
+                data-active={density === option.density ? 'true' : 'false'}
+                onClick={() => onDensityChange(option.density)}
+                type="button"
+              >
+                {option.icon}
               </Box>
             </Tooltip>
           ))}

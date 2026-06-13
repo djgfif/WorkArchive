@@ -21,6 +21,7 @@ import { SavedWorksViews } from '../components/SavedWorksViews';
 import type { WorkQuickProgressUpdate } from '../components/WorkListRow';
 import { WorksToolbar } from '../components/WorksToolbar';
 import { WorksTrashList } from '../components/WorksTrashList';
+import { useLibraryDensity } from '../hooks/useLibraryDensity';
 import { useWorksList } from '../hooks/useWorksList';
 import { useWorksListUrlState } from '../hooks/useWorksListUrlState';
 import { worksService } from '../services/works.service';
@@ -44,6 +45,7 @@ export function WorksListPage() {
     query,
     viewMode,
   } = useWorksListUrlState();
+  const [density, setDensity] = useLibraryDensity();
   const [addDialogOpened, setAddDialogOpened] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -217,9 +219,11 @@ export function WorksListPage() {
 
         <WorksToolbar
           collectionScope={collectionScope}
+          density={density}
           filteredCount={works.length}
           onClearFilters={handleClearFilters}
           onCollectionScopeChange={handleCollectionScopeChange}
+          onDensityChange={setDensity}
           onQueryChange={handleQueryChange}
           onViewModeChange={handleViewModeChange}
           query={query}
@@ -289,6 +293,7 @@ export function WorksListPage() {
             />
           ) : (
             <WorksList
+              density={density}
               onDelete={handleDelete}
               onQuickProgressUpdate={handleQuickProgressUpdate}
               onQuickUpdate={handleQuickUpdate}

@@ -23,6 +23,7 @@ interface CountSummary<T extends string = string> {
 interface WorksOverviewState {
   averageRating: number | null;
   completedCount: number;
+  continueWorks: WorkRecord[];
   contributorCollections: WorkCollectionSummary[];
   deletedCount: number;
   error: string | null;
@@ -43,6 +44,7 @@ interface WorksOverviewState {
 const initialState: WorksOverviewState = {
   averageRating: null,
   completedCount: 0,
+  continueWorks: [],
   contributorCollections: [],
   deletedCount: 0,
   error: null,
@@ -155,6 +157,10 @@ export function useWorksOverview() {
         averageRating:
           ratedWorks.length > 0 ? totalRating / ratedWorks.length : null,
         completedCount: works.filter((work) => work.status === 'completed').length,
+        continueWorks: works
+          .filter((work) => work.status === 'in_progress')
+          .sort(compareLastConsumedAtDescending)
+          .slice(0, 12),
         contributorCollections:
           graph.workContributors.length > 0
             ? buildContributorCollectionSummariesFromGraph(works, graph)
@@ -182,6 +188,7 @@ export function useWorksOverview() {
       next: ({
         averageRating,
         completedCount,
+        continueWorks,
         contributorCollections,
         deletedCount,
         highlyRatedWorks,
@@ -199,6 +206,7 @@ export function useWorksOverview() {
         setState({
           averageRating,
           completedCount,
+          continueWorks,
           contributorCollections,
           deletedCount,
           error: null,

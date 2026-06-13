@@ -3,6 +3,7 @@ import { Box, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AppButton } from '@shared/components/AppPrimitives';
+import type { LibraryDensity } from '../hooks/useLibraryDensity';
 import { WorkPosterCard } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
 import {
@@ -13,12 +14,21 @@ import {
 
 export type WorksViewMode = 'grid' | 'list';
 
+const GRID_COLS: Record<
+  LibraryDensity,
+  { base: number; sm: number; md: number; lg: number; xl: number }
+> = {
+  comfortable: { base: 2, sm: 3, md: 4, lg: 5, xl: 6 },
+  compact: { base: 3, sm: 4, md: 6, lg: 8, xl: 10 },
+};
+
 const GRID_RENDER_LIMIT = 60;
 const LIST_RENDER_LIMIT = 40;
 const RENDER_INCREMENT = 40;
 const css = styles;
 
 interface WorksListProps {
+  density?: LibraryDensity;
   onDelete: (work: WorkRecord) => Promise<void>;
   onQuickProgressUpdate: (
     work: WorkRecord,
@@ -31,6 +41,7 @@ interface WorksListProps {
 }
 
 export function WorksList({
+  density = 'comfortable',
   onDelete,
   onQuickProgressUpdate,
   onQuickUpdate,
@@ -94,7 +105,7 @@ export function WorksList({
     return (
       <Stack aria-label="작품 포스터 목록" component="section" gap="xl">
         <SimpleGrid
-          cols={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }}
+          cols={GRID_COLS[density]}
           spacing={{ base: 'sm', md: 'md' }}
           verticalSpacing={{ base: 'md', md: 'lg' }}
         >
