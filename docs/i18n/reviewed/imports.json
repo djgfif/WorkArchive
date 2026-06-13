@@ -1,0 +1,321 @@
+{
+  "description": "Reviewed external import copy: AniList direct/user-list search, MAL export, CSV import, preview candidates, provider settings, source readiness, and search notices.",
+  "scope": ["imports"],
+  "translations": {
+    "en": {
+      "imports": {
+        "anilist": {
+          "candidate": "AniList candidate",
+          "countChapters": "{{count}} ch.",
+          "countEpisodes": "{{count}} ep.",
+          "countVolumes": "{{count}} vol.",
+          "directNote": "AniList public search",
+          "fetchError": "AniList search request failed (HTTP {{status}})",
+          "format": {
+            "MANGA": "Volume",
+            "MOVIE": "Movie",
+            "MUSIC": "Music video",
+            "NOVEL": "Light novel",
+            "ONE_SHOT": "One-shot",
+            "SPECIAL": "Special",
+            "TV": "TV anime",
+            "TV_SHORT": "TV short"
+          },
+          "missingChapters": "Volume count TBD",
+          "missingEpisodes": "Episode count TBD",
+          "topCandidate": "Top match",
+          "userListFetchError": "Could not fetch the AniList list (HTTP {{status}}).",
+          "userListNotFound": "That username was not found on AniList. Please check the spelling.",
+          "userListPrivate": "That AniList list is private. Make the list public in your AniList settings and try again."
+        },
+        "csv": {
+          "missingTitleColumn": "Could not find a title column in the CSV. The header row needs a \"title\" column.",
+          "templateHeader": "title,type,status,rating,author,tags,shortReview,cover",
+          "templateRowAnime": "Demon Slayer,anime,completed,4.5,Koyoharu Gotouge,,A must-watch movie arc,",
+          "templateRowNovel": "Omniscient Reader,web_novel,in_progress,4.5,Sing Shong,regression; catharsis,Outstanding meta storytelling,"
+        },
+        "mal": {
+          "anilistMatchError": "AniList matching request failed (HTTP {{status}})",
+          "invalidXml": "This is not a MyAnimeList export XML. Please select a MAL list export (.xml) file."
+        },
+        "preview": {
+          "animeTitle": "{{title}} (anime)",
+          "authorReviewRequired": "Author info needs review",
+          "candidate": "Preview candidate",
+          "countReviewRequired": "Needs your review",
+          "descriptionCore": "The current public version offers title-based candidates first. Once external sources are connected, this card will be filled with real metadata.",
+          "descriptionScreen": "This slot distinguishes screen adaptations with the same title. Until external sources are connected, only the type, production info, and note structure are provided.",
+          "descriptionSerial": "Organizes volume count, serialization status, and platform notes so serialized works can be told apart.",
+          "formatCore": "Original work candidate",
+          "formatManual": "Manual candidate",
+          "formatScreen": "Screen candidate",
+          "formatSerial": "Serialized candidate",
+          "genresCore": "Drama, viewing log",
+          "genresScreen": "Anime, adaptation",
+          "genresSerial": "Web novel, serialized",
+          "mostLikely": "Most likely",
+          "noExternalSearch": "Not an external search",
+          "screenAuthorReviewRequired": "Studio info needs review",
+          "screenConfidence": "Media mix",
+          "screenCountReviewRequired": "Estimated TV series",
+          "serialAuthorReviewRequired": "Serialization info needs review",
+          "serialConfidence": "Serialized",
+          "serialCountReviewRequired": "Serialization status TBD",
+          "serialTitle": "{{title}} (serialized)",
+          "sourceLabel": "Preview/manual",
+          "volumeCountReviewRequired": "Final volume count TBD"
+        },
+        "providerSettings": {
+          "deleteError": "Could not delete the {{label}} API key.",
+          "deleteSuccess": "Deleted the {{label}} API key.",
+          "fieldRequired": "Please enter {{label}}.",
+          "keyRequiredForTest": "Only sources with a saved API key can run a connection test.",
+          "saveError": "Could not save the {{label}} API key.",
+          "saveSuccess": "Saved the {{label}} API key.",
+          "testError": "{{label}} connection test failed.",
+          "testMissingKey": "No API key is saved for {{label}}.",
+          "testProviderUnavailable": "Cannot reach {{label}} right now. Please try again shortly.",
+          "testSuccess": "{{label}} connection test succeeded.",
+          "testUnauthorized": "{{label}} rejected the API key. Please double-check the key."
+        },
+        "readiness": {
+          "available": "Available",
+          "circuitOpen": "Paused",
+          "directFallback": "Add manually",
+          "loadError": "Could not load search source status.",
+          "loginRequired": "Sign in to use",
+          "serverSetupRequired": "Server setup required",
+          "userKeyRequired": "User key required"
+        },
+        "search": {
+          "aladinLoginRequired": "Please sign in to configure Aladin search.",
+          "count": "{{label}} {{count}}",
+          "excluded": "Excluded: {{providers}}",
+          "externalKeyLoginRequired": "Please sign in to configure external search API keys.",
+          "externalSearchGuestReadable": "External search works without signing in.",
+          "externalSettingsGuestReadable": "You can view external search settings without signing in.",
+          "externalUnavailable": "Some search sources are unavailable, so manual-add candidates are shown. Sources usable without signing in stay supported; only sources that need a personal key require signing in.",
+          "failed": "Temporarily failed: {{providers}}",
+          "localPreviewNotice": "Skipping external search and showing local preview candidates.",
+          "manualProvider": "Manual add",
+          "missingUserCredential": "Register a personal API key in settings to enable this.",
+          "providerCircuitOpen": "Some search sources are resting for now. Try again shortly or add manually.",
+          "providerSource": "Search sources: {{providers}}",
+          "publicDirectNotice": "Server search is briefly unavailable, so AniList public search results are shown.",
+          "searched": "Searched: {{providers}}",
+          "testLoginRequired": "Connection tests for search sources are available after signing in."
+        }
+      }
+    },
+    "ja": {
+      "imports": {
+        "anilist": {
+          "candidate": "AniList候補",
+          "countChapters": "{{count}}話",
+          "countEpisodes": "{{count}}話",
+          "countVolumes": "{{count}}巻",
+          "directNote": "AniList公開検索",
+          "fetchError": "AniList検索リクエストが失敗しました (HTTP {{status}})",
+          "format": {
+            "MANGA": "単行本",
+            "MOVIE": "劇場版",
+            "MUSIC": "ミュージックビデオ",
+            "NOVEL": "ライトノベル",
+            "ONE_SHOT": "読み切り",
+            "SPECIAL": "スペシャル",
+            "TV": "TVアニメ",
+            "TV_SHORT": "TVショート"
+          },
+          "missingChapters": "巻数の確認が必要",
+          "missingEpisodes": "話数の確認が必要",
+          "topCandidate": "最有力",
+          "userListFetchError": "AniListのリストを取得できませんでした (HTTP {{status}})。",
+          "userListNotFound": "AniListでそのユーザー名が見つかりませんでした。スペルをご確認ください。",
+          "userListPrivate": "そのAniListリストは非公開です。AniListの設定でリストを公開に変更してから再試行してください。"
+        },
+        "csv": {
+          "missingTitleColumn": "CSVにタイトル列が見つかりません。先頭行のヘッダーに「title」列が必要です。",
+          "templateHeader": "title,type,status,rating,author,tags,shortReview,cover",
+          "templateRowAnime": "鬼滅の刃,anime,completed,4.5,吾峠呼世晴,,劇場版は必見,",
+          "templateRowNovel": "全知的な読者の視点,web_novel,in_progress,4.5,シンソン,回帰; カタルシス,メタ的な面白さが圧倒的,"
+        },
+        "mal": {
+          "anilistMatchError": "AniListマッチングのリクエストが失敗しました (HTTP {{status}})",
+          "invalidXml": "MyAnimeListのエクスポートXML形式ではありません。MALのリストエクスポート(.xml)ファイルを選択してください。"
+        },
+        "preview": {
+          "animeTitle": "{{title}}（アニメ）",
+          "authorReviewRequired": "作者情報の確認が必要",
+          "candidate": "プレビュー候補",
+          "countReviewRequired": "ユーザー確認が必要",
+          "descriptionCore": "現在の公開版ではまずタイトルベースの候補を提供します。外部ソースが接続されると、このカードに実際のメタデータが入ります。",
+          "descriptionScreen": "同じタイトルの映像化候補を区別する枠です。外部ソースの接続前は、タイプ・制作情報・メモ構造のみを提供します。",
+          "descriptionSerial": "連載型の作品を区別できるよう、巻数・連載状況・プラットフォームのメモをまとめます。",
+          "formatCore": "原作候補",
+          "formatManual": "手動候補",
+          "formatScreen": "映像候補",
+          "formatSerial": "連載候補",
+          "genresCore": "ドラマ、鑑賞記録",
+          "genresScreen": "アニメ、アダプテーション",
+          "genresSerial": "ウェブ小説、連載",
+          "mostLikely": "最有力",
+          "noExternalSearch": "外部検索ではありません",
+          "screenAuthorReviewRequired": "スタジオ情報の確認が必要",
+          "screenConfidence": "メディアミックス",
+          "screenCountReviewRequired": "TVシリーズと推定",
+          "serialAuthorReviewRequired": "連載情報の確認が必要",
+          "serialConfidence": "連載型",
+          "serialCountReviewRequired": "連載状況の確認が必要",
+          "serialTitle": "{{title}}（連載版）",
+          "sourceLabel": "Preview/manual",
+          "volumeCountReviewRequired": "完結巻数の確認が必要"
+        },
+        "providerSettings": {
+          "deleteError": "{{label}}のAPIキーを削除できませんでした。",
+          "deleteSuccess": "{{label}}のAPIキーを削除しました。",
+          "fieldRequired": "{{label}}を入力してください。",
+          "keyRequiredForTest": "保存済みのAPIキーがあるソースのみ接続テストを実行できます。",
+          "saveError": "{{label}}のAPIキーを保存できませんでした。",
+          "saveSuccess": "{{label}}のAPIキーを保存しました。",
+          "testError": "{{label}}の接続テストに失敗しました。",
+          "testMissingKey": "{{label}}に保存されたAPIキーがありません。",
+          "testProviderUnavailable": "現在{{label}}に接続できません。しばらくしてから再試行してください。",
+          "testSuccess": "{{label}}の接続テストに成功しました。",
+          "testUnauthorized": "{{label}}がAPIキーを拒否しました。キーの値を再確認してください。"
+        },
+        "readiness": {
+          "available": "利用可能",
+          "circuitOpen": "一時停止",
+          "directFallback": "手動で追加",
+          "loadError": "検索ソースの状態を読み込めませんでした。",
+          "loginRequired": "ログイン後に利用",
+          "serverSetupRequired": "サーバー設定が必要",
+          "userKeyRequired": "ユーザーキーが必要"
+        },
+        "search": {
+          "aladinLoginRequired": "Aladin検索の設定はログイン後にご利用ください。",
+          "count": "{{label}} {{count}}件",
+          "excluded": "除外: {{providers}}",
+          "externalKeyLoginRequired": "外部検索のAPIキー設定はログイン後にご利用ください。",
+          "externalSearchGuestReadable": "外部検索はログインなしでも利用できます。",
+          "externalSettingsGuestReadable": "外部検索の設定はログインなしでも確認できます。",
+          "externalUnavailable": "一部の検索ソースが利用できないため、手動追加の候補を表示します。ログインなしで使えるソースは引き続き利用でき、個人キーが必要なソースのみログイン後に設定できます。",
+          "failed": "一時的に失敗: {{providers}}",
+          "localPreviewNotice": "外部検索をスキップし、ローカルのプレビュー候補を表示します。",
+          "manualProvider": "手動追加",
+          "missingUserCredential": "設定で個人のAPIキーを登録すると利用できます。",
+          "providerCircuitOpen": "一部の検索ソースが一時的に停止中です。しばらくして再試行するか、手動で追加してください。",
+          "providerSource": "検索ソース: {{providers}}",
+          "publicDirectNotice": "サーバー検索が一時的に利用できないため、AniListの公開検索結果を表示します。",
+          "searched": "検索完了: {{providers}}",
+          "testLoginRequired": "検索ソースの接続テストはログイン後に利用できます。"
+        }
+      }
+    },
+    "zh-CN": {
+      "imports": {
+        "anilist": {
+          "candidate": "AniList 候选",
+          "countChapters": "{{count}}话",
+          "countEpisodes": "{{count}}集",
+          "countVolumes": "{{count}}卷",
+          "directNote": "AniList 公开搜索",
+          "fetchError": "AniList 搜索请求失败 (HTTP {{status}})",
+          "format": {
+            "MANGA": "单行本",
+            "MOVIE": "剧场版",
+            "MUSIC": "音乐视频",
+            "NOVEL": "轻小说",
+            "ONE_SHOT": "短篇",
+            "SPECIAL": "特别篇",
+            "TV": "TV动画",
+            "TV_SHORT": "TV短片"
+          },
+          "missingChapters": "卷数待确认",
+          "missingEpisodes": "集数待确认",
+          "topCandidate": "最匹配",
+          "userListFetchError": "无法获取 AniList 列表 (HTTP {{status}})。",
+          "userListNotFound": "在 AniList 上找不到该用户名，请检查拼写。",
+          "userListPrivate": "该 AniList 列表为私密。请在 AniList 设置中将列表设为公开后重试。"
+        },
+        "csv": {
+          "missingTitleColumn": "在 CSV 中找不到标题列。表头需要包含 \"title\" 列。",
+          "templateHeader": "title,type,status,rating,author,tags,shortReview,cover",
+          "templateRowAnime": "鬼灭之刃,anime,completed,4.5,吾峠呼世晴,,剧场版必看,",
+          "templateRowNovel": "全知读者视角,web_novel,in_progress,4.5,Sing Shong,回归; 爽,元叙事趣味极强,"
+        },
+        "mal": {
+          "anilistMatchError": "AniList 匹配请求失败 (HTTP {{status}})",
+          "invalidXml": "这不是 MyAnimeList 导出 XML。请选择 MAL 的列表导出 (.xml) 文件。"
+        },
+        "preview": {
+          "animeTitle": "{{title}}（动画）",
+          "authorReviewRequired": "需核对作者信息",
+          "candidate": "预览候选",
+          "countReviewRequired": "需用户核对",
+          "descriptionCore": "当前公开版本先提供基于标题的候选。接入外部来源后，此卡片将填入真实的元数据。",
+          "descriptionScreen": "此处用于区分同名的影视化候选。在接入外部来源之前，仅提供类型、制作信息和备注结构。",
+          "descriptionSerial": "整理卷数、连载状态和平台备注，以便区分连载型作品。",
+          "formatCore": "原作候选",
+          "formatManual": "手动候选",
+          "formatScreen": "影视候选",
+          "formatSerial": "连载候选",
+          "genresCore": "剧情、观赏记录",
+          "genresScreen": "动画、改编",
+          "genresSerial": "网络小说、连载",
+          "mostLikely": "最可能",
+          "noExternalSearch": "非外部搜索",
+          "screenAuthorReviewRequired": "需核对工作室信息",
+          "screenConfidence": "媒体组合",
+          "screenCountReviewRequired": "估为 TV 系列",
+          "serialAuthorReviewRequired": "需核对连载信息",
+          "serialConfidence": "连载型",
+          "serialCountReviewRequired": "需确认连载状态",
+          "serialTitle": "{{title}}（连载版）",
+          "sourceLabel": "Preview/manual",
+          "volumeCountReviewRequired": "需确认完结卷数"
+        },
+        "providerSettings": {
+          "deleteError": "无法删除 {{label}} API 密钥。",
+          "deleteSuccess": "已删除 {{label}} API 密钥。",
+          "fieldRequired": "请输入 {{label}}。",
+          "keyRequiredForTest": "只有已保存 API 密钥的来源才能运行连接测试。",
+          "saveError": "无法保存 {{label}} API 密钥。",
+          "saveSuccess": "已保存 {{label}} API 密钥。",
+          "testError": "{{label}} 连接测试失败。",
+          "testMissingKey": "{{label}} 没有已保存的 API 密钥。",
+          "testProviderUnavailable": "暂时无法连接 {{label}}。请稍后重试。",
+          "testSuccess": "{{label}} 连接测试成功。",
+          "testUnauthorized": "{{label}} 拒绝了该 API 密钥。请重新核对密钥。"
+        },
+        "readiness": {
+          "available": "可用",
+          "circuitOpen": "暂停",
+          "directFallback": "手动添加",
+          "loadError": "无法加载搜索来源状态。",
+          "loginRequired": "登录后使用",
+          "serverSetupRequired": "需服务器配置",
+          "userKeyRequired": "需用户密钥"
+        },
+        "search": {
+          "aladinLoginRequired": "请登录后配置 Aladin 搜索。",
+          "count": "{{label}} {{count}}个",
+          "excluded": "已排除：{{providers}}",
+          "externalKeyLoginRequired": "请登录后配置外部搜索 API 密钥。",
+          "externalSearchGuestReadable": "无需登录即可使用外部搜索。",
+          "externalSettingsGuestReadable": "无需登录即可查看外部搜索设置。",
+          "externalUnavailable": "部分搜索来源不可用，因此显示手动添加候选。无需登录即可使用的来源仍受支持，只有需要个人密钥的来源才需登录后配置。",
+          "failed": "暂时失败：{{providers}}",
+          "localPreviewNotice": "跳过外部搜索，显示本地预览候选。",
+          "manualProvider": "手动添加",
+          "missingUserCredential": "在设置中注册个人 API 密钥后即可使用。",
+          "providerCircuitOpen": "部分搜索来源暂时休息中。请稍后重试或手动添加。",
+          "providerSource": "搜索来源：{{providers}}",
+          "publicDirectNotice": "服务器搜索暂时不可用，因此显示 AniList 公开搜索结果。",
+          "searched": "已搜索：{{providers}}",
+          "testLoginRequired": "搜索来源的连接测试需登录后使用。"
+        }
+      }
+    }
+  }
+}
