@@ -15,8 +15,11 @@ import {
   type ExternalImportPreview,
 } from '@features/archive';
 import {
+  createCsvImportTemplate,
+  enrichMalEntriesWithAniList,
   fetchAniListUserEntries,
   parseMyAnimeListExportXml,
+  parseRecordsCsv,
   type ExternalImportEntry,
 } from '@features/imports';
 import { getWorkStatusLabel, getWorkTypeLabel } from '@features/works';
@@ -44,6 +47,7 @@ function formatCountEntries(
 
 export function ExternalImportSettingsSection() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const csvFileInputRef = useRef<HTMLInputElement | null>(null);
   const [aniListUserName, setAniListUserName] = useState('');
   const [loaded, setLoaded] = useState<LoadedExternalImport | null>(null);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
@@ -98,10 +102,47 @@ export function ExternalImportSettingsSection() {
 
     const xmlText = await file.text();
 
+    // MAL 내보내기에는 표지가 없으므로 AniList 매칭으로 표지·작가를 채운다.
     await loadEntries(
-      Promise.resolve().then(() => parseMyAnimeListExportXml(xmlText)),
+      Promise.resolve()
+        .then(() => parseMyAnimeListExportXml(xmlText))
+        .then(async (entries) => {
+          const enriched = await enrichMalEntriesWithAniList(entries);
+
+          return enriched.entries;
+        }),
       `MyAnimeList 파일(${file.name})`,
     );
+  }
+
+  async function handleCsvFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0] ?? null;
+    event.currentTarget.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    const csvText = await file.text();
+
+    await loadEntries(
+      Promise.resolve().then(() => parseRecordsCsv(csvText)),
+      `CSV 파일(${file.name})`,
+    );
+  }
+
+  function handleDownloadCsvTemplate() {
+    // BOM을 붙여야 Excel이 UTF-8 한글을 올바르게 연다.
+    const blob = new Blob([String.fromCharCode(0xfeff), createCsvImportTemplate()], {
+      type: 'text/csv;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = url;
+    anchor.download = 'work-archive-import-template.csv';
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   async function handleImport() {
@@ -163,7 +204,7 @@ export function ExternalImportSettingsSection() {
         title="다른 서비스에서 옮겨오기"
       />
 
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
         <SectionCard padding="lg" tone="subtle">
           <SectionIntro
             description="공개 설정된 AniList 리스트를 사용자명만으로 가져옵니다. 표지와 별점, 진행도까지 함께 옮겨집니다."
@@ -203,13 +244,14 @@ export function ExternalImportSettingsSection() {
 
         <SectionCard padding="lg" tone="subtle">
           <SectionIntro
-            description="MyAnimeList의 목록 내보내기(.xml) 파일을 선택하세요. MAL 내보내기에는 표지가 없어 표지는 비워진 채 들어옵니다."
+            description="MyAnimeList의 목록 내보내기(.xml) 파일을 선택하세요. 표지와 작가는 AniList 매칭으로 자동으로 채웁니다."
             eyebrow="MyAnimeList"
             title="MAL 내보내기 파일로 가져오기"
             titleOrder={3}
           />
           <AppButton
             disabled={isLoading}
+            loading={isLoading}
             onClick={() => fileInputRef.current?.click()}
             tone="secondary"
             type="button"
@@ -227,7 +269,46 @@ export function ExternalImportSettingsSection() {
           <ActionRow>
             <AppBadge tone="muted">애니·만화 목록</AppBadge>
             <AppBadge tone="muted">별점·진행도 포함</AppBadge>
-            <AppBadge tone="muted">표지 없음</AppBadge>
+            <AppBadge tone="muted">표지 자동 매칭</AppBadge>
+          </ActionRow>
+        </SectionCard>
+
+        <SectionCard padding="lg" tone="subtle">
+          <SectionIntro
+            description="스프레드시트로 정리한 목록을 가져옵니다. 첫 줄 헤더의 제목·유형·상태·별점 열을 자동으로 인식하고, 이 앱의 CSV 내보내기 파일도 그대로 읽습니다."
+            eyebrow="CSV"
+            title="CSV 파일로 가져오기"
+            titleOrder={3}
+          />
+          <ActionRow>
+            <AppButton
+              disabled={isLoading}
+              onClick={() => csvFileInputRef.current?.click()}
+              tone="secondary"
+              type="button"
+            >
+              CSV 파일 선택
+            </AppButton>
+            <AppButton
+              onClick={handleDownloadCsvTemplate}
+              tone="quiet"
+              type="button"
+            >
+              빈 양식 내려받기
+            </AppButton>
+          </ActionRow>
+          <input
+            accept=".csv,text/csv"
+            aria-label="CSV 파일 선택"
+            className={css.visuallyHiddenInput ?? ''}
+            onChange={(event) => void handleCsvFileChange(event)}
+            ref={csvFileInputRef}
+            type="file"
+          />
+          <ActionRow>
+            <AppBadge tone="muted">한국어·영어 헤더</AppBadge>
+            <AppBadge tone="muted">태그·한줄평 포함</AppBadge>
+            <AppBadge tone="muted">내보내기 재가져오기</AppBadge>
           </ActionRow>
         </SectionCard>
       </SimpleGrid>

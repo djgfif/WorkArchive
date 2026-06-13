@@ -156,8 +156,8 @@ export function DataBackupSettingsSection({
 
         <ExportOptionCard
           buttonLabel="CSV 내보내기"
-          description="스프레드시트에서 목록을 확인하기 위한 파일입니다. 다시 가져오기용 형식은 아닙니다."
-          details={['목록 확인', '스프레드시트', '가져오기 불가']}
+          description="스프레드시트에서 목록을 확인하기 위한 파일입니다. 외부 기록 가져오기에서 다시 불러올 수 있습니다."
+          details={['목록 확인', '스프레드시트', '재가져오기 가능']}
           disabled={isExportingArchive}
           eyebrow="검토용"
           onClick={() => void onExportCsv()}

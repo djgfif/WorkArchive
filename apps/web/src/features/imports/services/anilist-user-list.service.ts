@@ -92,11 +92,14 @@ export interface ExternalImportEntry {
   completedAt: string | null;
   description: string;
   externalKey: string;
+  favorite?: boolean;
+  personalTags?: string[];
   progressCurrent: number | null;
   progressTotal: number | null;
   progressUnit: 'chapter' | 'episode' | 'volume' | null;
   rating: number | null;
   review: string;
+  shortReview?: string;
   sourceLabel: string;
   sourceUrl: string;
   startedAt: string | null;

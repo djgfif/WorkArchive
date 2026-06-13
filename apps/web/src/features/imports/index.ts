@@ -14,3 +14,8 @@ export {
   type ExternalImportEntry,
 } from './services/anilist-user-list.service';
 export { parseMyAnimeListExportXml } from './services/mal-export.service';
+export { enrichMalEntriesWithAniList } from './services/anilist-mal-enrichment.service';
+export {
+  createCsvImportTemplate,
+  parseRecordsCsv,
+} from './services/csv-import.service';
