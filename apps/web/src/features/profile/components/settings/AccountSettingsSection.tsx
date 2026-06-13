@@ -10,6 +10,7 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
+import { appI18n, useAppTranslation } from '@app/i18n';
 import {
   ApiRequestError,
   updateAuthProfile,
@@ -46,11 +47,11 @@ function getHandleValidationMessage(handle: string) {
     handle.length > 24 ||
     !HANDLE_PATTERN.test(handle)
   ) {
-    return 'handle은 3~24자의 영문 소문자, 숫자, 밑줄만 사용할 수 있고 앞뒤 밑줄은 사용할 수 없습니다.';
+    return appI18n.t('settings.account.handleInvalid');
   }
 
   if (RESERVED_HANDLES.has(handle)) {
-    return '예약된 handle입니다. 다른 handle을 입력해 주세요.';
+    return appI18n.t('settings.account.handleReserved');
   }
 
   return null;
@@ -59,17 +60,17 @@ function getHandleValidationMessage(handle: string) {
 function getProfileUpdateErrorMessage(error: unknown) {
   if (error instanceof ApiRequestError) {
     if (error.status === 409) {
-      return '이미 사용 중인 handle입니다.';
+      return appI18n.t('settings.account.handleTaken');
     }
 
     if (error.status === 400) {
-      return 'handle 형식을 다시 확인해 주세요. 3~24자의 영문 소문자, 숫자, 밑줄만 사용할 수 있습니다.';
+      return appI18n.t('settings.account.handleFormatInvalid');
     }
   }
 
   return error instanceof Error
     ? error.message
-    : '프로필을 저장하지 못했습니다.';
+    : appI18n.t('settings.account.saveError');
 }
 
 export function AccountSettingsSection({
@@ -77,6 +78,7 @@ export function AccountSettingsSection({
   onUserUpdated,
   user,
 }: AccountSettingsSectionProps) {
+  const { t } = useAppTranslation();
   const googleAccount = user?.authAccounts?.find(
     (account) => account.provider === 'google',
   );
@@ -138,7 +140,7 @@ export function AccountSettingsSection({
 
       onUserUpdated(updatedUser);
       setFeedback({
-        message: '프로필 변경 사항을 저장했습니다.',
+        message: t('settings.account.saveSuccess'),
         tone: 'success',
       });
     } catch (error) {
@@ -154,21 +156,23 @@ export function AccountSettingsSection({
   return (
     <SectionCard>
       <SectionIntro
-        description="Work Archive의 계정 표기와 Google 연결 상태를 확인합니다. 로그인 방식은 Google 전용 정책을 유지합니다."
-        eyebrow="계정"
-        title="계정 프로필"
+        description={t('settings.account.description')}
+        eyebrow={t('settings.account.eyebrow')}
+        title={t('settings.account.title')}
       />
 
       {mode !== 'authenticated' || !user ? (
         <Stack gap="sm">
           <Text c="dimmed">
-            게스트 모드에서는 기록 작성, 수정, JSON/CSV 백업을 계속 사용할 수
-            있습니다. 자동 백업과 개인 API key vault가 필요하면 Google 계정으로
-            연결하세요.
+            {t('settings.account.guestDescription')}
           </Text>
           <ActionRow>
-            <AppBadge tone="muted">로컬 기록 사용 가능</AppBadge>
-            <AppBadge tone="muted">Google 연결 선택 사항</AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.account.badgeLocalRecords')}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.account.badgeGoogleOptional')}
+            </AppBadge>
           </ActionRow>
         </Stack>
       ) : (
@@ -189,14 +193,16 @@ export function AccountSettingsSection({
               </Text>
               <ActionRow>
                 <AppBadge tone={googleAccount ? 'success' : 'warning'}>
-                  {googleAccount ? 'Google 연결됨' : 'Google 연결 필요'}
+                  {googleAccount
+                    ? t('settings.account.googleConnected')
+                    : t('settings.account.googleRequired')}
                 </AppBadge>
                 <AppBadge
                   tone={googleAccount?.emailVerified ? 'success' : 'muted'}
                 >
                   {googleAccount?.emailVerified
-                    ? '이메일 검증됨'
-                    : '검증 정보 없음'}
+                    ? t('settings.account.emailVerified')
+                    : t('settings.account.emailUnknown')}
                 </AppBadge>
               </ActionRow>
             </Stack>
@@ -206,9 +212,9 @@ export function AccountSettingsSection({
             <form onSubmit={handleSubmit}>
               <Stack gap="md">
                 <SectionIntro
-                  description="표시 이름과 handle은 Work Archive 안에서 보이는 프로필 정보입니다. 로그인 방식은 Google 연결만 사용합니다."
-                  eyebrow="프로필 편집"
-                  title="표시 이름과 프로필 사진"
+                  description={t('settings.account.editDescription')}
+                  eyebrow={t('settings.account.editEyebrow')}
+                  title={t('settings.account.editTitle')}
                   titleOrder={3}
                 />
                 {feedback && (
@@ -218,13 +224,13 @@ export function AccountSettingsSection({
                 )}
                 <Group align="flex-end" grow>
                   <TextInput
-                    label="표시 이름"
-                    placeholder="표시 이름"
+                    label={t('settings.account.displayName')}
+                    placeholder={t('settings.account.displayName')}
                     value={nickname}
                     onChange={(event) => setNickname(event.currentTarget.value)}
                   />
                   <TextInput
-                    label="프로필 사진 URL"
+                    label={t('settings.account.avatarUrl')}
                     placeholder="https://example.com/avatar.jpg"
                     value={avatarUrl}
                     onChange={(event) => setAvatarUrl(event.currentTarget.value)}
@@ -252,7 +258,7 @@ export function AccountSettingsSection({
                     tone="primary"
                     type="submit"
                   >
-                    프로필 변경 저장
+                    {t('settings.account.saveProfile')}
                   </AppButton>
                 </ActionRow>
               </Stack>

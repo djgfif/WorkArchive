@@ -9,6 +9,7 @@ import { SerialStatusBadge } from './SerialStatusBadge';
 import styles from './ArchiveComponents.module.css';
 import type { WorkDetailTimelineItem } from '../utils/work-detail-timeline';
 import { cn } from '@shared/utils/class-names';
+import { useAppTranslation } from '@app/i18n';
 
 const css = styles;
 
@@ -35,6 +36,8 @@ export function WorkDetailHero({
   typeLabel,
   work,
 }: WorkDetailHeroProps) {
+  const { t } = useAppTranslation();
+
   return (
     <SectionCard
       className={cn(css.detailHero)}
@@ -83,7 +86,7 @@ export function WorkDetailHero({
                   component="span"
                 />
                 <Text c="var(--app-accent-warm)" fw={800} size="sm">
-                  ★ 즐겨찾기
+                  {t('works.detail.favoriteBadge')}
                 </Text>
               </>
             )}
@@ -94,23 +97,27 @@ export function WorkDetailHero({
               {work.title}
             </Title>
             <Text c="dimmed" size="sm">
-              {work.author || '작가·제작자 미입력'}
+              {work.author || t('works.detail.authorMissing')}
               {' · '}
               <Text c="dimmed" component="span" size="xs">
-                최근 수정 {formatWorkUpdatedAt(work.updatedAt)}
+                {t('works.detail.recentUpdated', {
+                  date: formatWorkUpdatedAt(work.updatedAt),
+                })}
               </Text>
             </Text>
           </Stack>
 
           <Text className={cn(css.detailHeroShortReview)} lh={1.65}>
-            {shortReview ? `“${shortReview}”` : '아직 남긴 한줄평이 없습니다.'}
+            {shortReview
+              ? t('works.detail.shortReviewQuoted', { review: shortReview })
+              : t('works.detail.heroShortReviewEmpty')}
           </Text>
 
           <Group align="flex-end" gap="xl" wrap="wrap">
             {work.rating !== null ? (
               <Stack gap={2}>
                 <Text className={cn(css.detailMetaLabel)} c="dimmed" size="xs">
-                  별점
+                  {t('works.detail.rating')}
                 </Text>
                 <Group align="baseline" gap={4}>
                   <Text
@@ -151,17 +158,17 @@ export function WorkDetailHero({
             ) : (
               <Stack gap={2}>
                 <Text className={cn(css.detailMetaLabel)} c="dimmed" size="xs">
-                  별점
+                  {t('works.detail.rating')}
                 </Text>
                 <Text c="dimmed" size="sm">
-                  미평가
+                  {t('works.detail.ratingMissing')}
                 </Text>
               </Stack>
             )}
             {progressLabel && (
               <Stack gap={2}>
                 <Text className={cn(css.detailMetaLabel)} c="dimmed" size="xs">
-                  진행도
+                  {t('works.detail.progress')}
                 </Text>
                 <Text className={cn(css.numericText)} fw={700} size="lg">
                   {progressLabel}
@@ -179,23 +186,23 @@ export function WorkDetailHero({
           <Stack gap="lg">
             <Stack gap={6}>
               <Text c="dimmed" fw={700} size="xs">
-                개인 태그
+                {t('works.detail.personalTags')}
               </Text>
               <Text fw={800} lh={1.5}>
                 {personalTags.length > 0
                   ? personalTags.map((tag) => `#${tag}`).join(' ')
-                  : '아직 개인 태그가 없습니다.'}
+                  : t('works.detail.personalTagsHeroEmpty')}
               </Text>
             </Stack>
 
             <Stack gap={6}>
               <Text c="dimmed" fw={700} size="xs">
-                최근 기록
+                {t('works.detail.latestRecord')}
               </Text>
               <Text fw={800} lh={1.5}>
                 {latestTimelineItem
                   ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.label}`
-                  : '아직 남긴 진행 기록이 없습니다.'}
+                  : t('works.detail.timelineHeroEmpty')}
               </Text>
             </Stack>
           </Stack>

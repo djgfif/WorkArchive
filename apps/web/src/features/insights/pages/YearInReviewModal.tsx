@@ -2,10 +2,11 @@ import { useRef, useState } from 'react';
 import { Box, Button, Group, Modal, Stack, Text } from '@mantine/core';
 import { toPng } from 'html-to-image';
 
+import { useAppTranslation } from '@app/i18n';
 import { getWorkTypeLabel } from '@features/works';
+import { cn } from '@shared/utils/class-names';
 import { useYearInReview } from '../hooks/useYearInReview';
 import styles from './YearInReviewModal.module.css';
-import { cn } from '@shared/utils/class-names';
 
 const css = styles;
 
@@ -29,6 +30,7 @@ export function YearInReviewModal({
   opened,
   year = new Date().getFullYear(),
 }: YearInReviewModalProps) {
+  const { t } = useAppTranslation();
   const { data, isLoading } = useYearInReview(year);
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
@@ -46,7 +48,7 @@ export function YearInReviewModal({
         pixelRatio: 2,
       });
       const link = document.createElement('a');
-      link.download = `work-archive-${year}-결산.png`;
+      link.download = t('insights.year.exportFileName', { year });
       link.href = dataUrl;
       link.click();
     } finally {
@@ -60,16 +62,15 @@ export function YearInReviewModal({
       opened={opened}
       radius="lg"
       size="md"
-      title={`${year} 연말 결산`}
+      title={t('insights.year.modalTitle', { year })}
     >
       {isLoading || !data ? (
         <Text c="dimmed" p="md" size="sm">
-          결산을 계산하는 중입니다…
+          {t('insights.year.loading')}
         </Text>
       ) : data.completedCount === 0 ? (
         <Text c="dimmed" p="md" size="sm">
-          {year}년에 완료한 작품이 아직 없습니다. 작품을 완료로 표시하면 결산이
-          채워집니다.
+          {t('insights.year.empty', { year })}
         </Text>
       ) : (
         <Stack gap="md">
@@ -79,12 +80,14 @@ export function YearInReviewModal({
 
             <Box className={cn(css.heroStat)}>
               <Text className={cn(css.heroNumber)}>{data.completedCount}</Text>
-              <Text className={cn(css.heroLabel)}>편 완료</Text>
+              <Text className={cn(css.heroLabel)}>
+                {t('insights.year.completed')}
+              </Text>
             </Box>
 
             <Group className={cn(css.subStats)} gap="xl">
               <Stat
-                label="평균 별점"
+                label={t('insights.year.averageRating')}
                 value={
                   data.averageRating !== null
                     ? `★ ${data.averageRating.toFixed(1)}`
@@ -92,19 +95,26 @@ export function YearInReviewModal({
                 }
               />
               {data.topGenre && (
-                <Stat label="최애 장르" value={data.topGenre.genre} />
+                <Stat
+                  label={t('insights.year.topGenre')}
+                  value={data.topGenre.genre}
+                />
               )}
               {data.busiestMonth && (
                 <Stat
-                  label="가장 바빴던 달"
-                  value={`${data.busiestMonth.month}월`}
+                  label={t('insights.year.busiestMonth')}
+                  value={t('insights.year.month', {
+                    month: data.busiestMonth.month,
+                  })}
                 />
               )}
             </Group>
 
             {data.topWorks.length > 0 && (
               <Box className={cn(css.section)}>
-                <Text className={cn(css.sectionTitle)}>올해의 작품</Text>
+                <Text className={cn(css.sectionTitle)}>
+                  {t('insights.year.topWorks')}
+                </Text>
                 <Stack gap={7}>
                   {data.topWorks.map((work, index) => (
                     <Group justify="space-between" key={work.id} wrap="nowrap">
@@ -140,10 +150,10 @@ export function YearInReviewModal({
 
           <Group justify="flex-end">
             <Button color="gray" onClick={onClose} variant="default">
-              닫기
+              {t('insights.year.close')}
             </Button>
             <Button loading={exporting} onClick={() => void handleExport()}>
-              이미지로 저장
+              {t('insights.year.download')}
             </Button>
           </Group>
         </Stack>

@@ -7,6 +7,7 @@ import {
   FeedbackMessage,
   SectionCard,
 } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 import type { JsonArchiveExportFeedback } from '../hooks/useJsonArchiveExport';
 import type { JsonBackupReminderStatus } from '../utils/json-backup-reminder';
 
@@ -23,6 +24,8 @@ export function JsonBackupReminderCard({
   onExportJson,
   reminder,
 }: JsonBackupReminderCardProps) {
+  const { t } = useAppTranslation();
+
   if (!reminder.shouldShow) {
     return null;
   }
@@ -33,8 +36,10 @@ export function JsonBackupReminderCard({
         <ActionRow justify="space-between">
           <Stack gap={4}>
             <ActionRow>
-              <AppBadge tone="warning">백업 권장</AppBadge>
-              <AppBadge tone="muted">JSON</AppBadge>
+              <AppBadge tone="warning">
+                {t('archive.backup.warningBadge')}
+              </AppBadge>
+              <AppBadge tone="muted">{t('archive.backup.mutedBadge')}</AppBadge>
             </ActionRow>
             <Text fw={800}>{reminder.title}</Text>
           </Stack>
@@ -45,7 +50,7 @@ export function JsonBackupReminderCard({
             tone="primary"
             type="button"
           >
-            JSON 백업 내보내기
+            {t('archive.backup.exportJson')}
           </AppButton>
         </ActionRow>
         <Text c="dimmed" size="sm">

@@ -1,15 +1,10 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-} from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useForm } from '@mantine/form';
 import { Grid, Stack } from '@mantine/core';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod/v4';
 
+import { useAppTranslation } from '@app/i18n';
 import { FeedbackMessage } from '@shared/components/AppPrimitives';
 import {
   createDefaultWorkFormValues,
@@ -66,9 +61,7 @@ const workFormSchema = z
       const parsedRating = Number.parseFloat(trimmed);
 
       return (
-        Number.isFinite(parsedRating) &&
-        parsedRating >= 0 &&
-        parsedRating <= 5
+        Number.isFinite(parsedRating) && parsedRating >= 0 && parsedRating <= 5
       );
     }, RATING_RANGE_MESSAGE),
     startedAt: optionalDateInputSchema('startedAt'),
@@ -114,6 +107,7 @@ export function WorkForm({
   submitLabel,
   tagSuggestions = [],
 }: WorkFormProps) {
+  const { t } = useAppTranslation();
   const form = useForm<WorkFormValues>({
     clearInputErrorOnChange: true,
     initialValues: initialValues ?? createDefaultWorkFormValues(),
@@ -176,7 +170,8 @@ export function WorkForm({
     setTitleError(null);
     setValidationError(null);
     setIsSeriesWork(
-      nextValues.seriesText.trim() !== '' || nextValues.universeText.trim() !== '',
+      nextValues.seriesText.trim() !== '' ||
+        nextValues.universeText.trim() !== '',
     );
     // The Mantine form instance is intentionally excluded; this effect only
     // reconciles external initialValues changes into the existing form.
@@ -203,10 +198,10 @@ export function WorkForm({
   }
   const shortReviewLength = values.shortReview.trim().length;
   const reviewLength = values.review.trim().length;
-  const submitButtonLabel = isSubmitting ? '저장 중...' : submitLabel;
+  const submitButtonLabel = isSubmitting ? t('works.form.saving') : submitLabel;
   const mobileActionSummary = values.title.trim()
-    ? `${values.title.trim()} 저장 준비`
-    : '제목을 입력하면 저장할 수 있습니다.';
+    ? t('works.form.mobileReady', { title: values.title.trim() })
+    : t('works.form.mobileTitleMissing');
   useEffect(() => {
     if (focusArea !== 'review' || hasFocusedReviewRef.current) {
       return;
@@ -267,10 +262,7 @@ export function WorkForm({
     }
   }
 
-  function handleTextListChange(
-    name: WorkFormListFieldName,
-    items: string[],
-  ) {
+  function handleTextListChange(name: WorkFormListFieldName, items: string[]) {
     form.setFieldValue(name, formatTextListForWorkForm(items));
   }
 
@@ -296,9 +288,7 @@ export function WorkForm({
         const firstError = Object.values(validation.errors).find(Boolean);
 
         setValidationError(
-          typeof firstError === 'string'
-            ? firstError
-            : REQUIRED_TITLE_MESSAGE,
+          typeof firstError === 'string' ? firstError : REQUIRED_TITLE_MESSAGE,
         );
 
         if (validation.errors.title) {
@@ -308,7 +298,7 @@ export function WorkForm({
       }
 
       if (!values.title.trim()) {
-        const message = '제목을 입력해주세요.';
+        const message = t('works.form.titleRequired');
 
         setTitleError(message);
         setValidationError(message);
@@ -320,7 +310,7 @@ export function WorkForm({
       draft.clearDraft();
     } catch (error) {
       setValidationError(
-        error instanceof Error ? error.message : '작품을 저장하지 못했습니다.',
+        error instanceof Error ? error.message : t('works.form.saveError'),
       );
     }
   }
@@ -350,7 +340,9 @@ export function WorkForm({
               onStepClick={setActiveStep}
               onTextListChange={handleTextListChange}
               onTypeChange={handleTypeChange}
-              organizationContributorSuggestions={organizationContributorSuggestions}
+              organizationContributorSuggestions={
+                organizationContributorSuggestions
+              }
               personContributorSuggestions={personContributorSuggestions}
               reviewInputRef={reviewInputRef}
               reviewSectionRef={reviewSectionRef}

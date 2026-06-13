@@ -8,6 +8,56 @@ import { getDisplayImageUrlCandidates } from '@shared/utils/image-proxy';
 
 export type PosterImageVariant = 'card' | 'detail' | 'form' | 'grid' | 'hero' | 'row';
 
+const FAILED_IMAGE_SOURCE_COOLDOWN_MS = 5 * 60 * 1000;
+const failedImageSourceUntil = new Map<string, number>();
+
+function getFailedImageSourceKey(cacheKey: string, sourceUrl: string) {
+  return `${cacheKey}\n${sourceUrl}`;
+}
+
+function rememberFailedImageSource(cacheKey: string, sourceUrl: string) {
+  if (!cacheKey || !sourceUrl) {
+    return;
+  }
+
+  failedImageSourceUntil.set(
+    getFailedImageSourceKey(cacheKey, sourceUrl),
+    Date.now() + FAILED_IMAGE_SOURCE_COOLDOWN_MS,
+  );
+}
+
+function hasRecentlyFailedImageSource(cacheKey: string, sourceUrl: string) {
+  if (!cacheKey || !sourceUrl) {
+    return false;
+  }
+
+  const failureUntil = failedImageSourceUntil.get(
+    getFailedImageSourceKey(cacheKey, sourceUrl),
+  );
+
+  if (!failureUntil) {
+    return false;
+  }
+
+  if (failureUntil <= Date.now()) {
+    failedImageSourceUntil.delete(getFailedImageSourceKey(cacheKey, sourceUrl));
+
+    return false;
+  }
+
+  return true;
+}
+
+function getUsableImageUrlCandidates(cacheKey: string, imageUrls: string[]) {
+  return imageUrls.filter(
+    (imageUrl) => !hasRecentlyFailedImageSource(cacheKey, imageUrl),
+  );
+}
+
+export function clearPosterImageSourceFailuresForTest() {
+  failedImageSourceUntil.clear();
+}
+
 export function usePosterImageSource(
   thumbnailUrl: string | null | undefined,
   variant: PosterImageVariant,
@@ -23,9 +73,14 @@ export function usePosterImageSource(
   } | null>(null);
   const cachedImageSrc =
     cachedImage && cachedImage.cacheKey === cacheKey ? cachedImage.src : null;
+  const usableImageUrls = useMemo(
+    () => getUsableImageUrlCandidates(cacheKey, imageUrls),
+    [cacheKey, imageUrls],
+  );
   const imageUrlCandidates = useMemo(
-    () => (cachedImageSrc ? [cachedImageSrc, ...imageUrls] : imageUrls),
-    [cachedImageSrc, imageUrls],
+    () =>
+      cachedImageSrc ? [cachedImageSrc, ...usableImageUrls] : usableImageUrls,
+    [cachedImageSrc, usableImageUrls],
   );
   const [imageUrlIndex, setImageUrlIndex] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -86,6 +141,8 @@ export function usePosterImageSource(
     loaded,
     loading,
     onError: () => {
+      rememberFailedImageSource(cacheKey, src);
+
       const nextIndex = imageUrlIndex + 1;
 
       if (nextIndex < imageUrlCandidates.length) {

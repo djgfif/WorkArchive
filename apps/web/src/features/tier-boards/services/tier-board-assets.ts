@@ -1,3 +1,5 @@
+import { appI18n } from '@app/i18n';
+
 export const MAX_TIER_BOARD_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 export const SUPPORTED_TIER_BOARD_UPLOAD_MIME_TYPES = new Set([
@@ -35,10 +37,12 @@ export function blobToDataUrl(blob: Blob) {
     const reader = new FileReader();
 
     reader.onerror = () =>
-      reject(reader.error ?? new Error('이미지 데이터를 읽지 못했습니다.'));
+      reject(
+        reader.error ?? new Error(appI18n.t('tierBoards.errors.imageDataRead')),
+      );
     reader.onload = () => {
       if (typeof reader.result !== 'string') {
-        reject(new Error('이미지 데이터를 읽지 못했습니다.'));
+        reject(new Error(appI18n.t('tierBoards.errors.imageDataRead')));
         return;
       }
       resolve(reader.result);
@@ -94,7 +98,7 @@ export function dataUrlToBlob(dataUrl: string) {
   const match = /^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
 
   if (!match) {
-    throw new Error('지원하지 않는 이미지 데이터 형식입니다.');
+    throw new Error(appI18n.t('tierBoards.errors.unsupportedImageData'));
   }
 
   const mimeType = match[1];
@@ -105,13 +109,13 @@ export function dataUrlToBlob(dataUrl: string) {
     !base64 ||
     !SUPPORTED_TIER_BOARD_UPLOAD_MIME_TYPES.has(mimeType)
   ) {
-    throw new Error('지원하지 않는 이미지 MIME 타입입니다.');
+    throw new Error(appI18n.t('tierBoards.errors.unsupportedImageMime'));
   }
 
   const bytes = base64ToBytes(base64);
 
   if (bytes.byteLength > MAX_TIER_BOARD_UPLOAD_BYTES) {
-    throw new Error('이미지 파일은 5MB 이하만 가져올 수 있습니다.');
+    throw new Error(appI18n.t('tierBoards.errors.importTooLarge'));
   }
 
   return new Blob([bytes], { type: mimeType });
@@ -126,10 +130,12 @@ export async function fileToBlob(file: File) {
     const reader = new FileReader();
 
     reader.onerror = () =>
-      reject(reader.error ?? new Error('이미지 파일을 읽지 못했습니다.'));
+      reject(
+        reader.error ?? new Error(appI18n.t('tierBoards.errors.imageFileRead')),
+      );
     reader.onload = () => {
       if (!(reader.result instanceof ArrayBuffer)) {
-        reject(new Error('이미지 파일을 읽지 못했습니다.'));
+        reject(new Error(appI18n.t('tierBoards.errors.imageFileRead')));
         return;
       }
       resolve(new Blob([reader.result], { type: file.type }));

@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { StrictMode } from 'react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -86,6 +87,7 @@ describe('Auth flow', () => {
     window.sessionStorage.clear();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('shows Google backup CTA and hides email/password auth', async () => {
@@ -264,6 +266,41 @@ describe('Auth flow', () => {
     expect(window.sessionStorage.getItem('work-archive.auth.googleReturnTo')).toBeNull();
   });
 
+  it('completes Google login under StrictMode without starting a duplicate refresh', async () => {
+    vi.spyOn(guestTransferService, 'getPendingReview').mockResolvedValue(null);
+    window.sessionStorage.setItem(
+      'work-archive.auth.googleReturnTo',
+      '/works?view=list',
+    );
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(sessionBody('strict-mode-access-token')));
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/google/complete'],
+    });
+
+    renderWithProviders(
+      <StrictMode>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </StrictMode>,
+    );
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/works');
+      expect(router.state.location.search).toBe('?view=list');
+    });
+    expect(readStoredAuthTokens()).toEqual({
+      accessToken: 'strict-mode-access-token',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('starts Google completion immediately on the browser callback path', async () => {
     window.history.pushState(null, '', '/auth/google/complete');
 
@@ -331,6 +368,42 @@ describe('Auth flow', () => {
 
     expect(await screen.findByText('네트워크에 연결할 수 없습니다')).toBeInTheDocument();
     expect(screen.getByText('인터넷 연결을 확인한 뒤 다시 시도해 주세요.')).toBeInTheDocument();
+  });
+
+  it('shows a timeout error when Google completion refresh stalls', async () => {
+    vi.useFakeTimers();
+    window.history.pushState(null, '', '/auth/google/complete');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string | URL | Request, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              'abort',
+              () => reject(init.signal?.reason ?? new Error('aborted')),
+              { once: true },
+            );
+          }),
+      ),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/auth/google/complete'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await vi.advanceTimersByTimeAsync(12_000);
+
+    expect(screen.getByText('응답 시간이 초과됐습니다')).toBeInTheDocument();
+    expect(
+      screen.getByText('서버가 응답하지 않습니다. 잠시 후 다시 시도하거나 게스트로 계속하세요.'),
+    ).toBeInTheDocument();
   });
 
   it.each([

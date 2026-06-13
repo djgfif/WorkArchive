@@ -5,6 +5,7 @@ import type {
 } from '@work-archive/shared-types';
 
 import type { ImportCandidate } from '@features/imports';
+import { appI18n } from '@app/i18n';
 import {
   parseCommaSeparatedTextList,
   type UpsertWorkInput,
@@ -36,39 +37,39 @@ export const quickAddTypeOptions: Array<{
   value: CatalogSearchMediumType;
 }> = [
   {
-    label: '자동 선택',
+    label: appI18n.t('works.add.quickAdd.typeAll'),
     value: 'all',
   },
   {
-    label: '라이트노벨',
+    label: appI18n.t('works.type.light_novel'),
     value: 'light_novel',
   },
   {
-    label: '소설',
+    label: appI18n.t('works.type.novel'),
     value: 'novel',
   },
   {
-    label: '만화',
+    label: appI18n.t('works.type.manga'),
     value: 'manga',
   },
   {
-    label: '애니',
+    label: appI18n.t('works.type.anime'),
     value: 'anime',
   },
   {
-    label: '영화',
+    label: appI18n.t('works.type.movie'),
     value: 'movie',
   },
   {
-    label: '드라마',
+    label: appI18n.t('works.type.drama'),
     value: 'drama',
   },
   {
-    label: '웹소설',
+    label: appI18n.t('works.type.web_novel'),
     value: 'web_novel',
   },
   {
-    label: '웹툰',
+    label: appI18n.t('works.type.webtoon'),
     value: 'webtoon',
   },
 ];
@@ -80,15 +81,14 @@ export const providerGroupOptions: Array<{
   value: ProviderGroup;
 }> = [
   {
-    description: '사용 가능한 검색 출처를 자동으로 조합합니다.',
-    label: '자동 선택',
+    description: appI18n.t('works.add.quickAdd.providerAllDescription'),
+    label: appI18n.t('works.add.quickAdd.providerAllLabel'),
     providers: null,
     value: 'all',
   },
   {
-    description:
-      'Google Books, Open Library와 국내 도서 출처를 우선 사용합니다.',
-    label: '도서',
+    description: appI18n.t('works.add.quickAdd.providerBooksDescription'),
+    label: appI18n.t('works.add.quickAdd.providerBooksLabel'),
     providers: [
       'google_books',
       'open_library',
@@ -100,15 +100,16 @@ export const providerGroupOptions: Array<{
     value: 'books',
   },
   {
-    description: 'AniList와 도서 기반 만화 후보를 함께 확인합니다.',
-    label: '애니·만화',
+    description: appI18n.t(
+      'works.add.quickAdd.providerAnimationComicsDescription',
+    ),
+    label: appI18n.t('works.add.quickAdd.providerAnimationComicsLabel'),
     providers: ['anilist', 'google_books', 'open_library', 'wikidata'],
     value: 'animation_comics',
   },
   {
-    description:
-      'Brave Search, Naver/Kakao 웹문서와 국내 도서 출처로 웹소설·웹툰 후보를 확인합니다.',
-    label: '웹연재',
+    description: appI18n.t('works.add.quickAdd.providerWebSerialDescription'),
+    label: appI18n.t('works.add.quickAdd.providerWebSerialLabel'),
     providers: [
       'brave_search',
       'naver_web',
@@ -122,14 +123,14 @@ export const providerGroupOptions: Array<{
     value: 'web_serial',
   },
   {
-    description: '영상 출처 중심으로 후보를 모읍니다.',
-    label: '영상',
+    description: appI18n.t('works.add.quickAdd.providerScreenDescription'),
+    label: appI18n.t('works.add.quickAdd.providerScreenLabel'),
     providers: ['tmdb', 'tvmaze', 'kobis', 'wikidata'],
     value: 'screen',
   },
   {
-    description: '검색 실패 시 수동 초안 후보만 확인합니다.',
-    label: '직접 추가',
+    description: appI18n.t('works.add.quickAdd.providerManualDescription'),
+    label: appI18n.t('works.add.quickAdd.providerManualLabel'),
     providers: ['manual'],
     value: 'manual',
   },
@@ -486,7 +487,7 @@ export function getCandidateContributorText(candidate: ImportCandidate) {
       .join(', ');
   }
 
-  return candidate.author || '작가·제작자 미입력';
+  return candidate.author || appI18n.t('works.add.quickAdd.authorMissing');
 }
 
 function getCandidateExternalIdentityCount(candidate: ImportCandidate) {
@@ -506,12 +507,12 @@ const providerDisplayLabels: Record<string, string> = {
   kakao_book: 'Kakao Book',
   kakao_web: 'Kakao Web',
   kobis: 'KOBIS',
-  manual: '직접 추가',
+  manual: appI18n.t('works.add.quickAdd.manualProvider'),
   naver_book: 'Naver Book',
   naver_web: 'Naver Web',
   open_library: 'Open Library',
-  preview_manual: '직접 추가',
-  'preview-manual': '직접 추가',
+  preview_manual: appI18n.t('works.add.quickAdd.manualProvider'),
+  'preview-manual': appI18n.t('works.add.quickAdd.manualProvider'),
   tavily_search: 'Tavily Search',
   tmdb: 'TMDB',
   tvmaze: 'TVmaze',
@@ -538,14 +539,18 @@ export function getCandidateSourceCoverage(
 ): CandidateSourceCoverage {
   if (isPreviewOrManualCandidate(candidate)) {
     return {
-      externalIdentityLabel: '외부 식별자 없음',
+      externalIdentityLabel: appI18n.t(
+        'works.add.quickAdd.externalIdentityNone',
+      ),
       externalIdentityCount: 0,
       providerCount: 0,
-      providerCountLabel: '직접 추가',
-      providerLabels: ['직접 추가'],
-      releaseCandidateLabel: '릴리스 후보 없음',
+      providerCountLabel: appI18n.t('works.add.quickAdd.manualProvider'),
+      providerLabels: [appI18n.t('works.add.quickAdd.manualProvider')],
+      releaseCandidateLabel: appI18n.t(
+        'works.add.quickAdd.releaseCandidateNone',
+      ),
       releaseCandidateCount: 0,
-      summaryLabel: '입력한 제목으로 직접 기록',
+      summaryLabel: appI18n.t('works.add.quickAdd.summaryManual'),
     };
   }
 
@@ -555,17 +560,31 @@ export function getCandidateSourceCoverage(
     );
 
     return {
-      externalIdentityLabel: `외부 식별자 ${candidate.sourceCoverage.externalIdentityCount}개`,
+      externalIdentityLabel: appI18n.t(
+        'works.add.quickAdd.externalIdentityCount',
+        { count: candidate.sourceCoverage.externalIdentityCount },
+      ),
       externalIdentityCount: candidate.sourceCoverage.externalIdentityCount,
       providerCount: candidate.sourceCoverage.providerCount,
-      providerCountLabel: `출처 ${candidate.sourceCoverage.providerCount}개`,
+      providerCountLabel: appI18n.t('works.add.quickAdd.providerCount', {
+        count: candidate.sourceCoverage.providerCount,
+      }),
       providerLabels,
-      releaseCandidateLabel: `릴리스 후보 ${candidate.sourceCoverage.releaseCandidateCount}개`,
+      releaseCandidateLabel: appI18n.t(
+        'works.add.quickAdd.releaseCandidateCount',
+        { count: candidate.sourceCoverage.releaseCandidateCount },
+      ),
       releaseCandidateCount: candidate.sourceCoverage.releaseCandidateCount,
       summaryLabel: [
-        `출처 ${candidate.sourceCoverage.providerCount}개`,
-        `외부 식별자 ${candidate.sourceCoverage.externalIdentityCount}개`,
-        `릴리스 후보 ${candidate.sourceCoverage.releaseCandidateCount}개`,
+        appI18n.t('works.add.quickAdd.providerCount', {
+          count: candidate.sourceCoverage.providerCount,
+        }),
+        appI18n.t('works.add.quickAdd.externalIdentityCount', {
+          count: candidate.sourceCoverage.externalIdentityCount,
+        }),
+        appI18n.t('works.add.quickAdd.releaseCandidateCount', {
+          count: candidate.sourceCoverage.releaseCandidateCount,
+        }),
       ].join(' · '),
     };
   }
@@ -601,17 +620,29 @@ export function getCandidateSourceCoverage(
   const providerCount = providerLabels.size;
 
   return {
-    externalIdentityLabel: `외부 식별자 ${externalIdentityCount}개`,
+    externalIdentityLabel: appI18n.t(
+      'works.add.quickAdd.externalIdentityCount',
+      { count: externalIdentityCount },
+    ),
     externalIdentityCount,
     providerCount,
-    providerCountLabel: `출처 ${providerCount}개`,
+    providerCountLabel: appI18n.t('works.add.quickAdd.providerCount', {
+      count: providerCount,
+    }),
     providerLabels: [...providerLabels.values()],
-    releaseCandidateLabel: `릴리스 후보 ${releaseCandidateCount}개`,
+    releaseCandidateLabel: appI18n.t(
+      'works.add.quickAdd.releaseCandidateCount',
+      { count: releaseCandidateCount },
+    ),
     releaseCandidateCount,
     summaryLabel: [
-      `출처 ${providerCount}개`,
-      `외부 식별자 ${externalIdentityCount}개`,
-      `릴리스 후보 ${releaseCandidateCount}개`,
+      appI18n.t('works.add.quickAdd.providerCount', { count: providerCount }),
+      appI18n.t('works.add.quickAdd.externalIdentityCount', {
+        count: externalIdentityCount,
+      }),
+      appI18n.t('works.add.quickAdd.releaseCandidateCount', {
+        count: releaseCandidateCount,
+      }),
     ].join(' · '),
   };
 }

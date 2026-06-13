@@ -1,3 +1,5 @@
+import { appI18n, formatAppNumber } from '@app/i18n';
+
 export const LAST_JSON_EXPORT_AT_META_KEY = 'archive.lastJsonExportAt';
 export const JSON_BACKUP_REMINDER_WORK_THRESHOLD = 20;
 export const JSON_BACKUP_STALE_DAYS = 30;
@@ -49,11 +51,13 @@ export function getJsonBackupReminderStatus({
     return {
       activeWorkCount,
       daysSinceLastBackup,
-      description: `작품이 ${activeWorkCount}개 쌓였습니다. 브라우저 로컬 데이터 보호를 위해 JSON 백업 파일을 만들어 두세요.`,
+      description: appI18n.t('archive.backup.missingDescription', {
+        count: formatAppNumber(activeWorkCount),
+      }),
       lastJsonExportAt,
       reason: 'missing',
       shouldShow: true,
-      title: '첫 JSON 백업을 권장합니다',
+      title: appI18n.t('archive.backup.missingTitle'),
     };
   }
 
@@ -65,11 +69,13 @@ export function getJsonBackupReminderStatus({
     return {
       activeWorkCount,
       daysSinceLastBackup,
-      description: `마지막 JSON 백업 후 ${daysSinceLastBackup}일이 지났습니다. 최근 기록을 새 파일로 보관하세요.`,
+      description: appI18n.t('archive.backup.staleDescription', {
+        count: formatAppNumber(daysSinceLastBackup),
+      }),
       lastJsonExportAt,
       reason: 'stale',
       shouldShow: true,
-      title: 'JSON 백업을 갱신할 때입니다',
+      title: appI18n.t('archive.backup.staleTitle'),
     };
   }
 
@@ -77,11 +83,11 @@ export function getJsonBackupReminderStatus({
     activeWorkCount,
     daysSinceLastBackup,
     description: backupDate
-      ? '최근 JSON 백업 상태가 양호합니다.'
-      : '작품이 더 쌓이면 JSON 백업을 안내합니다.',
+      ? appI18n.t('archive.backup.healthyDescription')
+      : appI18n.t('archive.backup.pendingDescription'),
     lastJsonExportAt,
     reason: 'none',
     shouldShow: false,
-    title: 'JSON 백업 상태 양호',
+    title: appI18n.t('archive.backup.healthyTitle'),
   };
 }

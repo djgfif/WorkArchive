@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { worksService } from '../services/works.service';
 
@@ -27,7 +28,7 @@ export function useWorkDetail(id: string | undefined) {
       setState({
         work: null,
         isLoading: false,
-        error: '작품 정보를 찾을 수 없습니다.',
+        error: appI18n.t('works.errors.detailMissing'),
       });
 
       return undefined;
@@ -54,7 +55,7 @@ export function useWorkDetail(id: string | undefined) {
           error:
             error instanceof Error
               ? error.message
-              : '작품 정보를 불러오지 못했습니다.',
+              : appI18n.t('works.errors.detailLoad'),
         });
       },
     });

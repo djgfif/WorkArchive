@@ -13,17 +13,18 @@ import type { WorkGraphSnapshot } from '../services/graph.repository';
 import type { RelatedCatalogTitlesResponse } from '../services/user-records.api';
 import { getSeriesTagValues } from '../utils/graph-tags';
 import { getWorkTypeLabel } from '../utils/work-options';
+import { useAppTranslation, appI18n } from '@app/i18n';
 
 const relationTypeLabels: Record<string, string> = {
-  adaptation: '각색',
-  alternate_version: '다른 버전',
-  compilation: '합본',
-  original: '원작',
-  prequel: '이전 이야기',
-  remake: '리메이크',
-  sequel: '후속작',
-  side_story: '외전',
-  spin_off: '스핀오프',
+  adaptation: appI18n.t('works.detail.relationAdaptation'),
+  alternate_version: appI18n.t('works.detail.relationAlternateVersion'),
+  compilation: appI18n.t('works.detail.relationCompilation'),
+  original: appI18n.t('works.detail.relationOriginal'),
+  prequel: appI18n.t('works.detail.relationPrequel'),
+  remake: appI18n.t('works.detail.relationRemake'),
+  sequel: appI18n.t('works.detail.relationSequel'),
+  side_story: appI18n.t('works.detail.relationSideStory'),
+  spin_off: appI18n.t('works.detail.relationSpinOff'),
 };
 
 const relatedContributorRoles = new Set<WorkContributorRole>([
@@ -32,8 +33,8 @@ const relatedContributorRoles = new Set<WorkContributorRole>([
 ]);
 
 const contributorRoleLabels: Partial<Record<WorkContributorRole, string>> = {
-  original_creator: '저자/제작진',
-  studio: '스튜디오',
+  original_creator: appI18n.t('works.detail.contributorOriginalCreator'),
+  studio: appI18n.t('works.detail.contributorStudio'),
 };
 
 function getContributorRoleLabel(role: WorkContributorRole) {
@@ -49,6 +50,7 @@ export function LocalSeriesSection({
   graph: WorkGraphSnapshot | null;
   works: WorkRecord[];
 }) {
+  const { t } = useAppTranslation();
   const seriesById = new Map(
     graph?.series.map((series) => [series.id, series]) ?? [],
   );
@@ -102,9 +104,9 @@ export function LocalSeriesSection({
 
   return (
     <PageSection
-      description="같은 시리즈명이나 세계관으로 묶인 내 기록입니다."
-      eyebrow="시리즈"
-      title="같은 시리즈 / 세계관"
+      description={t('works.detail.relatedSeriesDescription')}
+      eyebrow={t('works.detail.relatedSeriesEyebrow')}
+      title={t('works.detail.relatedSeriesTitle')}
     >
       <Stack gap="md">
         {sameSeriesWorks.map((work) => (
@@ -118,7 +120,7 @@ export function LocalSeriesSection({
                 </Text>
               </Stack>
               <AppLinkButton to={`/works/${work.id}`} tone="quiet">
-                보기
+                {t('works.detail.relatedView')}
               </AppLinkButton>
             </Group>
           </SectionCard>
@@ -137,6 +139,7 @@ export function LocalContributorSection({
   graph: WorkGraphSnapshot | null;
   works: WorkRecord[];
 }) {
+  const { t } = useAppTranslation();
   if (!graph) {
     return null;
   }
@@ -208,9 +211,9 @@ export function LocalContributorSection({
 
   return (
     <PageSection
-      description="같은 저자, 작가, 감독, 원작자 또는 스튜디오로 연결된 내 기록입니다."
-      eyebrow="제작진"
-      title="같은 제작진"
+      description={t('works.detail.relatedContributorsDescription')}
+      eyebrow={t('works.detail.relatedContributorsEyebrow')}
+      title={t('works.detail.relatedContributorsTitle')}
     >
       <Stack gap="md">
         {relatedWorks.map(({ sharedContributors, work }) => (
@@ -227,7 +230,7 @@ export function LocalContributorSection({
                 </Text>
               </Stack>
               <AppLinkButton to={`/works/${work.id}`} tone="quiet">
-                보기
+                {t('works.detail.relatedView')}
               </AppLinkButton>
             </Group>
           </SectionCard>
@@ -242,6 +245,7 @@ export function RelatedTitlesSection({
 }: {
   relatedData: RelatedCatalogTitlesResponse | null;
 }) {
+  const { t } = useAppTranslation();
   if (!relatedData) {
     return null;
   }
@@ -280,9 +284,9 @@ export function RelatedTitlesSection({
 
   return (
     <PageSection
-      description="검색 카탈로그에서 같은 프랜차이즈나 원작, 후속작, 외전, 각색으로 연결된 작품입니다."
-      eyebrow="카탈로그"
-      title="카탈로그 연결"
+      description={t('works.detail.relatedCatalogDescription')}
+      eyebrow={t('works.detail.relatedCatalogEyebrow')}
+      title={t('works.detail.relatedCatalogTitle')}
     >
       <Stack gap="md">
         {relatedEntries.map((relation) => (

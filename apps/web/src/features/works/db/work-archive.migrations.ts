@@ -18,6 +18,8 @@ import type {
   WorkSeriesLinkRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
+
 type GraphTagKind =
   | 'series'
   | 'universe'
@@ -246,8 +248,8 @@ export async function migrateTierBoards(transaction: Transaction) {
   );
   const now = new Date().toISOString();
   const defaultBoard = createTierBoardRecord(
-    '내 첫 티어보드',
-    '자유롭게 카드를 추가하고 원하는 기준으로 정리하세요.',
+    appI18n.t('tierBoards.migration.defaultBoardTitle'),
+    appI18n.t('tierBoards.migration.defaultBoardDescription'),
     now,
   );
   const defaultLanes = createDefaultTierBoardLanes(defaultBoard.id, now);
@@ -273,8 +275,8 @@ export async function migrateTierBoards(transaction: Transaction) {
 
   if (tieredWorks.length > 0) {
     const legacyBoard = createTierBoardRecord(
-      'Legacy 작품 티어보드',
-      '기존 작품 tier 값을 독립 티어보드 카드 snapshot으로 변환했습니다.',
+      appI18n.t('tierBoards.migration.legacyBoardTitle'),
+      appI18n.t('tierBoards.migration.legacyBoardDescription'),
       now,
     );
     const legacyLabels = Array.from(
@@ -365,7 +367,8 @@ function normalizeTierBoardRecord(
     layout?: string;
   },
 ): TierBoardRecord {
-  const title = board.title?.trim() || '티어보드';
+  const title =
+    board.title?.trim() || appI18n.t('tierBoards.migration.fallbackTitle');
 
   return {
     id: board.id,

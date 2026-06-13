@@ -18,6 +18,7 @@ import {
   type WorkSeriesLinkRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import {
   ARCHIVE_FORMAT,
   ARCHIVE_SCHEMA_VERSION,
@@ -185,7 +186,7 @@ export function parseArchive(rawValue: string): LocalArchiveExport {
   try {
     parsedValue = JSON.parse(rawValue);
   } catch {
-    throw new Error('JSON 백업 파일을 읽지 못했습니다.');
+    throw new Error(appI18n.t('archive.backup.parseError'));
   }
 
   if (
@@ -195,7 +196,7 @@ export function parseArchive(rawValue: string): LocalArchiveExport {
     !Array.isArray(parsedValue.works) ||
     !Array.isArray(parsedValue.releaseRecords)
   ) {
-    throw new Error('Work Archive JSON 백업 파일 형식이 아닙니다.');
+    throw new Error(appI18n.t('archive.backup.invalidFormat'));
   }
 
   const scope = normalizeArchiveScope(parsedValue.scope);

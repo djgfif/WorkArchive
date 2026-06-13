@@ -10,6 +10,7 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
+import { formatAppNumber, useAppTranslation } from '@app/i18n';
 import {
   externalRecordsImportService,
   type ExternalImportPreview,
@@ -29,6 +30,10 @@ import styles from './SettingsControlCenter.module.css';
 
 const css = styles;
 
+function formatCount(value: number) {
+  return formatAppNumber(value);
+}
+
 interface LoadedExternalImport {
   entries: ExternalImportEntry[];
   preview: ExternalImportPreview;
@@ -38,14 +43,16 @@ interface LoadedExternalImport {
 function formatCountEntries(
   counts: Partial<Record<string, number>>,
   formatLabel: (value: string) => string,
+  formatCountLabel: (label: string, count: number) => string,
 ) {
   return Object.entries(counts)
     .filter((pair): pair is [string, number] => Boolean(pair[1]))
     .sort((left, right) => right[1] - left[1])
-    .map(([value, count]) => `${formatLabel(value)} ${count}개`);
+    .map(([value, count]) => formatCountLabel(formatLabel(value), count));
 }
 
 export function ExternalImportSettingsSection() {
+  const { t } = useAppTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const csvFileInputRef = useRef<HTMLInputElement | null>(null);
   const [aniListUserName, setAniListUserName] = useState('');
@@ -68,7 +75,9 @@ export function ExternalImportSettingsSection() {
       if (entries.length === 0) {
         setLoaded(null);
         setFeedback({
-          message: `${sourceDescription}에서 가져올 기록을 찾지 못했습니다.`,
+          message: t('settings.externalImport.emptySource', {
+            source: sourceDescription,
+          }),
           tone: 'info',
         });
         return;
@@ -84,7 +93,7 @@ export function ExternalImportSettingsSection() {
         message:
           error instanceof Error
             ? error.message
-            : '외부 기록을 불러오지 못했습니다.',
+            : t('settings.externalImport.loadError'),
         tone: 'error',
       });
     } finally {
@@ -111,7 +120,7 @@ export function ExternalImportSettingsSection() {
 
           return enriched.entries;
         }),
-      `MyAnimeList 파일(${file.name})`,
+      t('settings.externalImport.mal.sourceDescription', { fileName: file.name }),
     );
   }
 
@@ -127,7 +136,7 @@ export function ExternalImportSettingsSection() {
 
     await loadEntries(
       Promise.resolve().then(() => parseRecordsCsv(csvText)),
-      `CSV 파일(${file.name})`,
+      t('settings.externalImport.csv.sourceDescription', { fileName: file.name }),
     );
   }
 
@@ -163,8 +172,13 @@ export function ExternalImportSettingsSection() {
       setFeedback({
         message:
           result.skippedDuplicateCount > 0
-            ? `${result.importedCount}개 작품을 가져왔고, 이미 있는 ${result.skippedDuplicateCount}개는 건너뛰었습니다.`
-            : `${result.importedCount}개 작품을 가져왔습니다.`,
+            ? t('settings.externalImport.importSuccessWithSkipped', {
+                importedCount: formatCount(result.importedCount),
+                skippedCount: formatCount(result.skippedDuplicateCount),
+              })
+            : t('settings.externalImport.importSuccess', {
+                count: formatCount(result.importedCount),
+              }),
         tone: 'success',
       });
     } catch (error) {
@@ -172,7 +186,7 @@ export function ExternalImportSettingsSection() {
         message:
           error instanceof Error
             ? error.message
-            : '외부 기록 가져오기에 실패했습니다.',
+            : t('settings.externalImport.importError'),
         tone: 'error',
       });
     } finally {
@@ -183,11 +197,21 @@ export function ExternalImportSettingsSection() {
   const previewTypeBadges = loaded
     ? formatCountEntries(loaded.preview.typeCounts, (value) =>
         getWorkTypeLabel(value as WorkType),
+        (label, count) =>
+          t('settings.externalImport.countLabel', {
+            count: formatCount(count),
+            label,
+          }),
       )
     : [];
   const previewStatusBadges = loaded
     ? formatCountEntries(loaded.preview.statusCounts, (value) =>
         getWorkStatusLabel(value as WorkStatus),
+        (label, count) =>
+          t('settings.externalImport.countLabel', {
+            count: formatCount(count),
+            label,
+          }),
       )
     : [];
   const importCount = loaded
@@ -199,24 +223,24 @@ export function ExternalImportSettingsSection() {
   return (
     <SectionCard>
       <SectionIntro
-        description="다른 서비스에 쌓아 둔 감상 기록을 한 번에 옮겨 옵니다. 기존 기록은 지워지지 않고, 같은 제목·유형의 작품은 건너뛸 수 있습니다."
-        eyebrow="외부 기록 가져오기"
-        title="다른 서비스에서 옮겨오기"
+        description={t('settings.externalImport.description')}
+        eyebrow={t('settings.externalImport.eyebrow')}
+        title={t('settings.externalImport.title')}
       />
 
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
         <SectionCard padding="lg" tone="subtle">
           <SectionIntro
-            description="공개 설정된 AniList 리스트를 사용자명만으로 가져옵니다. 표지와 별점, 진행도까지 함께 옮겨집니다."
+            description={t('settings.externalImport.aniList.description')}
             eyebrow="AniList"
-            title="AniList 사용자명으로 가져오기"
+            title={t('settings.externalImport.aniList.title')}
             titleOrder={3}
           />
           <Group align="flex-end" gap="sm" wrap="wrap">
             <TextInput
-              label="AniList 사용자명"
+              label={t('settings.externalImport.aniList.userName')}
               onChange={(event) => setAniListUserName(event.currentTarget.value)}
-              placeholder="예: AniListUser123"
+              placeholder={t('settings.externalImport.aniList.placeholder')}
               style={{ flex: 1, minWidth: '12rem' }}
               value={aniListUserName}
             />
@@ -232,21 +256,27 @@ export function ExternalImportSettingsSection() {
               tone="primary"
               type="button"
             >
-              미리보기
+              {t('settings.externalImport.preview')}
             </AppButton>
           </Group>
           <ActionRow>
-            <AppBadge tone="muted">표지 포함</AppBadge>
-            <AppBadge tone="muted">별점·진행도 포함</AppBadge>
-            <AppBadge tone="muted">공개 리스트만</AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.externalImport.badgeCovers')}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.externalImport.badgeRatingProgress')}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.externalImport.aniList.badgePublicOnly')}
+            </AppBadge>
           </ActionRow>
         </SectionCard>
 
         <SectionCard padding="lg" tone="subtle">
           <SectionIntro
-            description="MyAnimeList의 목록 내보내기(.xml) 파일을 선택하세요. 표지와 작가는 AniList 매칭으로 자동으로 채웁니다."
+            description={t('settings.externalImport.mal.description')}
             eyebrow="MyAnimeList"
-            title="MAL 내보내기 파일로 가져오기"
+            title={t('settings.externalImport.mal.title')}
             titleOrder={3}
           />
           <AppButton
@@ -256,28 +286,34 @@ export function ExternalImportSettingsSection() {
             tone="secondary"
             type="button"
           >
-            MAL XML 파일 선택
+            {t('settings.externalImport.mal.selectFile')}
           </AppButton>
           <input
             accept=".xml,text/xml,application/xml"
-            aria-label="MyAnimeList 내보내기 XML 파일 선택"
+            aria-label={t('settings.externalImport.mal.selectFileAria')}
             className={css.visuallyHiddenInput ?? ''}
             onChange={(event) => void handleMalFileChange(event)}
             ref={fileInputRef}
             type="file"
           />
           <ActionRow>
-            <AppBadge tone="muted">애니·만화 목록</AppBadge>
-            <AppBadge tone="muted">별점·진행도 포함</AppBadge>
-            <AppBadge tone="muted">표지 자동 매칭</AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.externalImport.mal.badgeAnimeManga')}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.externalImport.badgeRatingProgress')}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.externalImport.mal.badgeCoverMatching')}
+            </AppBadge>
           </ActionRow>
         </SectionCard>
 
         <SectionCard padding="lg" tone="subtle">
           <SectionIntro
-            description="스프레드시트로 정리한 목록을 가져옵니다. 첫 줄 헤더의 제목·유형·상태·별점 열을 자동으로 인식하고, 이 앱의 CSV 내보내기 파일도 그대로 읽습니다."
+            description={t('settings.externalImport.csv.description')}
             eyebrow="CSV"
-            title="CSV 파일로 가져오기"
+            title={t('settings.externalImport.csv.title')}
             titleOrder={3}
           />
           <ActionRow>
@@ -287,28 +323,34 @@ export function ExternalImportSettingsSection() {
               tone="secondary"
               type="button"
             >
-              CSV 파일 선택
+              {t('settings.externalImport.csv.selectFile')}
             </AppButton>
             <AppButton
               onClick={handleDownloadCsvTemplate}
               tone="quiet"
               type="button"
             >
-              빈 양식 내려받기
+              {t('settings.externalImport.csv.downloadTemplate')}
             </AppButton>
           </ActionRow>
           <input
             accept=".csv,text/csv"
-            aria-label="CSV 파일 선택"
+            aria-label={t('settings.externalImport.csv.selectFileAria')}
             className={css.visuallyHiddenInput ?? ''}
             onChange={(event) => void handleCsvFileChange(event)}
             ref={csvFileInputRef}
             type="file"
           />
           <ActionRow>
-            <AppBadge tone="muted">한국어·영어 헤더</AppBadge>
-            <AppBadge tone="muted">태그·한줄평 포함</AppBadge>
-            <AppBadge tone="muted">내보내기 재가져오기</AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.externalImport.csv.badgeKoEnHeaders')}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.externalImport.csv.badgeTagsReviews')}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.externalImport.csv.badgeReimport')}
+            </AppBadge>
           </ActionRow>
         </SectionCard>
       </SimpleGrid>
@@ -316,20 +358,29 @@ export function ExternalImportSettingsSection() {
       {loaded && (
         <SectionCard padding="lg" tone="subtle">
           <SectionIntro
-            description={`${loaded.sourceDescription}에서 ${loaded.preview.totalCount}개 기록을 찾았습니다.`}
-            eyebrow="가져오기 미리보기"
-            title="가져올 기록 확인"
+            description={t('settings.externalImport.previewDescription', {
+              count: formatCount(loaded.preview.totalCount),
+              source: loaded.sourceDescription,
+            })}
+            eyebrow={t('settings.externalImport.previewEyebrow')}
+            title={t('settings.externalImport.previewTitle')}
             titleOrder={3}
           />
           <ActionRow>
             <AppBadge tone="accent">
-              새 작품 {loaded.preview.newCount}개
+              {t('settings.externalImport.previewNewWorks', {
+                count: formatCount(loaded.preview.newCount),
+              })}
             </AppBadge>
             <AppBadge tone={loaded.preview.duplicateCount > 0 ? 'warning' : 'muted'}>
-              이미 있는 제목 {loaded.preview.duplicateCount}개
+              {t('settings.externalImport.previewDuplicates', {
+                count: formatCount(loaded.preview.duplicateCount),
+              })}
             </AppBadge>
             <AppBadge tone="muted">
-              표지 포함 {loaded.preview.withCoverCount}개
+              {t('settings.externalImport.previewWithCovers', {
+                count: formatCount(loaded.preview.withCoverCount),
+              })}
             </AppBadge>
           </ActionRow>
           {previewTypeBadges.length > 0 && (
@@ -352,7 +403,7 @@ export function ExternalImportSettingsSection() {
           )}
           <Checkbox
             checked={skipDuplicates}
-            label="이미 있는 제목은 건너뛰기"
+            label={t('settings.externalImport.skipDuplicates')}
             onChange={(event) => setSkipDuplicates(event.currentTarget.checked)}
           />
           <ActionRow>
@@ -363,7 +414,9 @@ export function ExternalImportSettingsSection() {
               tone="primary"
               type="button"
             >
-              {importCount}개 가져오기
+              {t('settings.externalImport.importCount', {
+                count: formatCount(importCount),
+              })}
             </AppButton>
             <AppButton
               disabled={isImporting}
@@ -374,7 +427,7 @@ export function ExternalImportSettingsSection() {
               tone="quiet"
               type="button"
             >
-              취소
+              {t('common.cancel')}
             </AppButton>
           </ActionRow>
         </SectionCard>
@@ -388,8 +441,7 @@ export function ExternalImportSettingsSection() {
 
       <Stack gap={4}>
         <Text c="dimmed" size="sm">
-          가져온 작품은 이 기기에 먼저 저장되고, 로그인 상태라면 서버 백업
-          대기열에도 함께 올라갑니다.
+          {t('settings.externalImport.footer')}
         </Text>
       </Stack>
     </SectionCard>

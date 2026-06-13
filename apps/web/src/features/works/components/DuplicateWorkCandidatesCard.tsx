@@ -1,6 +1,7 @@
 import { Stack, Text } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   ActionRow,
   AppBadge,
@@ -16,6 +17,8 @@ interface DuplicateWorkCandidatesCardProps {
 export function DuplicateWorkCandidatesCard({
   candidates,
 }: DuplicateWorkCandidatesCardProps) {
+  const { t } = useAppTranslation();
+
   if (candidates.length === 0) {
     return null;
   }
@@ -23,10 +26,9 @@ export function DuplicateWorkCandidatesCard({
   return (
     <SectionCard gap="sm" padding="md" tone="subtle">
       <Stack gap="xs">
-        <AppBadge tone="warning">기존 기록 확인 필요</AppBadge>
+        <AppBadge tone="warning">{t('works.add.duplicate.title')}</AppBadge>
         <Text c="dimmed" size="sm">
-          같은 작품을 다시 만들기 전에 기존 기록을 확인하세요. 필요하면 저장은
-          계속 진행할 수 있습니다.
+          {t('works.add.duplicate.description')}
         </Text>
         <Stack gap="xs">
           {candidates.map((candidate) => (
@@ -43,7 +45,7 @@ export function DuplicateWorkCandidatesCard({
                 to={`/works/${candidate.id}`}
                 tone="secondary"
               >
-                기존 작품 보기
+                {t('works.add.duplicate.action')}
               </AppLinkButton>
             </ActionRow>
           ))}

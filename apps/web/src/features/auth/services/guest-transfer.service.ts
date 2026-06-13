@@ -1,5 +1,6 @@
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import {
   createWorkArchiveDb,
   getWorkArchiveDbName,
@@ -125,7 +126,7 @@ export class GuestTransferService {
     const pendingReview = await this.getPendingReview(userId);
 
     if (!pendingReview || pendingReview.fingerprint !== fingerprint) {
-      throw new Error('게스트 기록 상태가 바뀌었습니다. 다시 검토해주세요.');
+      throw new Error(appI18n.t('auth.guestTransfer.errorChangedMatch'));
     }
 
     const selectedIds = new Set(workIds);

@@ -20,6 +20,7 @@ import { Link, NavLink } from 'react-router-dom';
 
 import styles from './AppPrimitives.module.css';
 import { cn, cx } from '@shared/utils/class-names';
+import { appI18n, useAppTranslation } from '@app/i18n';
 
 const css = styles;
 
@@ -256,14 +257,14 @@ function getBadgeToneProps(tone: AppBadgeTone) {
 function getMessageLabel(tone: MessageTone) {
   switch (tone) {
     case 'success':
-      return '완료';
+      return appI18n.t('common.completed');
     case 'loading':
-      return '불러오는 중';
+      return appI18n.t('common.loading');
     case 'error':
-      return '문제 발생';
+      return appI18n.t('common.error');
     case 'info':
     default:
-      return '안내';
+      return appI18n.t('common.guide');
   }
 }
 
@@ -535,19 +536,24 @@ export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
 export function ThemeToggleControl({
   fullWidth = false,
 }: ThemeToggleControlProps) {
+  const { t } = useAppTranslation();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const nextColorScheme = colorScheme === 'dark' ? 'light' : 'dark';
 
   return (
     <AppButton
-      aria-label={`${nextColorScheme === 'dark' ? '다크' : '라이트'} 모드로 전환`}
+      aria-label={
+        nextColorScheme === 'dark'
+          ? t('theme.switchToDark')
+          : t('theme.switchToLight')
+      }
       fullWidth={fullWidth}
       onClick={() => setColorScheme(nextColorScheme)}
       size="compact-md"
       tone="ghost"
       type="button"
     >
-      {colorScheme === 'dark' ? '☀ 라이트 모드' : '◑ 다크 모드'}
+      {colorScheme === 'dark' ? t('theme.lightMode') : t('theme.darkMode')}
     </AppButton>
   );
 }
@@ -716,7 +722,7 @@ export function MetricPill({ label, value }: MetricPillProps) {
 }
 
 export function ChipSummary({
-  emptyLabel = '없음',
+  emptyLabel = appI18n.t('common.none'),
   label,
   values,
 }: ChipSummaryProps) {
@@ -915,7 +921,7 @@ export function StateMessage({
 export function LoadingState({
   actionWidth = 136,
   rows = 3,
-  title = '콘텐츠를 불러오는 중입니다',
+  title = appI18n.t('shared.loadingContent'),
 }: LoadingStateProps) {
   return (
     <SectionCard padding="xl" tone="subtle">

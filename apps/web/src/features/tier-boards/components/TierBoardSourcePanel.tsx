@@ -16,6 +16,7 @@ import {
   AppButton,
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
+import { formatAppNumber, useAppTranslation } from '@app/i18n';
 import { CardImage } from './TierBoardCanvas';
 import { createWorkSubtitle } from '../services/tier-board-records';
 import styles from '../pages/TierBoardsPage.module.css';
@@ -77,6 +78,8 @@ export function TierBoardSourcePanel({
   urlDraft,
   workSearch,
 }: TierBoardSourcePanelProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Paper className={cn(css.sourcePanel)} p="md">
       <Stack gap="md">
@@ -90,17 +93,21 @@ export function TierBoardSourcePanel({
               Quick add
             </Text>
             <Title order={2} size="h4">
-              카드 추가
+              {t('tierBoards.source.title')}
             </Title>
           </Stack>
-          <AppBadge tone="muted">{cardCount}개</AppBadge>
+          <AppBadge tone="muted">
+            {t('tierBoards.source.cardCount', {
+              count: formatAppNumber(cardCount),
+            })}
+          </AppBadge>
         </Group>
         <Tabs className={cn(css.addTabs)} defaultValue="upload">
           <Tabs.List className={cn(css.addTabsList)} grow>
-            <Tabs.Tab value="upload">업로드</Tabs.Tab>
-            <Tabs.Tab value="url">이미지 URL</Tabs.Tab>
-            <Tabs.Tab value="text">텍스트</Tabs.Tab>
-            <Tabs.Tab value="work">작품에서 가져오기</Tabs.Tab>
+            <Tabs.Tab value="upload">{t('tierBoards.source.upload')}</Tabs.Tab>
+            <Tabs.Tab value="url">{t('tierBoards.source.imageUrl')}</Tabs.Tab>
+            <Tabs.Tab value="text">{t('tierBoards.source.text')}</Tabs.Tab>
+            <Tabs.Tab value="work">{t('tierBoards.source.fromWork')}</Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel pt="md" value="upload">
             <Stack className={cn(css.addForm)} gap="sm">
@@ -134,10 +141,10 @@ export function TierBoardSourcePanel({
                 ) : (
                   <Stack align="center" gap={4}>
                     <Text fw={800} size="sm">
-                      이미지 선택
+                      {t('tierBoards.source.selectImage')}
                     </Text>
                     <Text c="dimmed" size="xs">
-                      jpg, png, webp · 5MB 이하
+                      {t('tierBoards.source.imageHelp')}
                     </Text>
                   </Stack>
                 )}
@@ -147,7 +154,7 @@ export function TierBoardSourcePanel({
               )}
               <Stack className={cn(css.addFieldGroup)} gap={6}>
                 <TextInput
-                  label="제목"
+                  label={t('tierBoards.titleLabel')}
                   onChange={(event) => {
                     const { value } = event.currentTarget;
                     setUploadDraft((draft) => ({
@@ -155,7 +162,7 @@ export function TierBoardSourcePanel({
                       title: value,
                     }));
                   }}
-                  placeholder="카드 제목"
+                  placeholder={t('tierBoards.source.cardTitlePlaceholder')}
                   value={uploadDraft.title}
                 />
               </Stack>
@@ -166,7 +173,7 @@ export function TierBoardSourcePanel({
                 tone="primary"
                 type="button"
               >
-                카드 추가
+                {t('tierBoards.source.addCard')}
               </AppButton>
             </Stack>
           </Tabs.Panel>
@@ -174,7 +181,7 @@ export function TierBoardSourcePanel({
             <Stack className={cn(css.addForm)} gap="sm">
               <Stack className={cn(css.addFieldGroup)} gap={6}>
                 <TextInput
-                  label="이미지 URL"
+                  label={t('tierBoards.source.imageUrl')}
                   onChange={(event) => {
                     const { value } = event.currentTarget;
                     setUrlDraft((draft) => ({
@@ -189,17 +196,17 @@ export function TierBoardSourcePanel({
               <Paper className={cn(css.quickAddPreview)} p="xs">
                 <CardImage
                   imageUrl={urlDraft.imageUrl}
-                  title={urlDraft.title || '이미지 URL 미리보기'}
+                  title={urlDraft.title || t('tierBoards.source.imagePreview')}
                 />
               </Paper>
               <Stack className={cn(css.addFieldGroup)} gap={6}>
                 <TextInput
-                  label="제목"
+                  label={t('tierBoards.titleLabel')}
                   onChange={(event) => {
                     const { value } = event.currentTarget;
                     setUrlDraft((draft) => ({ ...draft, title: value }));
                   }}
-                  placeholder="카드 제목"
+                  placeholder={t('tierBoards.source.cardTitlePlaceholder')}
                   value={urlDraft.title}
                 />
               </Stack>
@@ -210,7 +217,7 @@ export function TierBoardSourcePanel({
                 tone="primary"
                 type="button"
               >
-                카드 추가
+                {t('tierBoards.source.addCard')}
               </AppButton>
             </Stack>
           </Tabs.Panel>
@@ -218,18 +225,18 @@ export function TierBoardSourcePanel({
             <Stack className={cn(css.addForm)} gap="sm">
               <Stack className={cn(css.addFieldGroup)} gap={6}>
                 <TextInput
-                  label="제목"
+                  label={t('tierBoards.titleLabel')}
                   onChange={(event) => {
                     const { value } = event.currentTarget;
                     setTextDraft((draft) => ({ ...draft, title: value }));
                   }}
-                  placeholder="텍스트 카드 제목"
+                  placeholder={t('tierBoards.source.textTitlePlaceholder')}
                   value={textDraft.title}
                 />
               </Stack>
               <Paper className={cn(css.quickTextPreview)} p="md">
                 <Text fw={800} lineClamp={2} size="sm">
-                  {textDraft.title || '텍스트 카드'}
+                  {textDraft.title || t('tierBoards.source.textCard')}
                 </Text>
               </Paper>
               <AppButton
@@ -238,7 +245,7 @@ export function TierBoardSourcePanel({
                 tone="primary"
                 type="button"
               >
-                카드 추가
+                {t('tierBoards.source.addCard')}
               </AppButton>
             </Stack>
           </Tabs.Panel>
@@ -246,12 +253,12 @@ export function TierBoardSourcePanel({
             <Stack className={cn(css.addForm)} gap="sm">
               <Stack className={cn(css.addFieldGroup)} gap={6}>
                 <TextInput
-                  label="작품에서 카드 추가"
+                  label={t('tierBoards.source.fromWorkLabel')}
                   onChange={(event) => {
                     const { value } = event.currentTarget;
                     setWorkSearch(value);
                   }}
-                  placeholder="제목, 작가, 유형"
+                  placeholder={t('tierBoards.source.workSearchPlaceholder')}
                   value={workSearch}
                 />
               </Stack>
@@ -283,14 +290,14 @@ export function TierBoardSourcePanel({
                         tone="secondary"
                         type="button"
                       >
-                        카드로 추가
+                        {t('tierBoards.source.addAsCard')}
                       </AppButton>
                     </Group>
                   </Paper>
                 ))}
                 {filteredWorks.length === 0 && (
                   <Text c="dimmed" size="sm">
-                    가져올 작품이 없습니다.
+                    {t('tierBoards.source.noWorks')}
                   </Text>
                 )}
               </Stack>

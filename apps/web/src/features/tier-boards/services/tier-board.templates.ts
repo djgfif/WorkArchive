@@ -1,3 +1,4 @@
+import type { AppTranslationKey } from '@app/i18n';
 import type { CreateLaneInput } from './tier-board.types';
 
 export const DEFAULT_TIER_BOARD_LANES = [
@@ -9,16 +10,22 @@ export const DEFAULT_TIER_BOARD_LANES = [
 ] as const satisfies readonly CreateLaneInput[];
 
 export interface TierBoardTemplate {
+  id?: string;
+  titleKey?: AppTranslationKey;
   title: string;
   lanes: readonly CreateLaneInput[];
 }
 
 export const TIER_BOARD_TEMPLATES = [
   {
+    id: 'standard',
+    titleKey: 'tierBoards.templates.standard.title',
     title: 'S/A/B/C/D',
     lanes: DEFAULT_TIER_BOARD_LANES,
   },
   {
+    id: 'expanded',
+    titleKey: 'tierBoards.templates.expanded.title',
     title: 'SS/S/A/B/C/D/F',
     lanes: [
       { title: 'SS', colorToken: '#f43f5e' },
@@ -31,25 +38,49 @@ export const TIER_BOARD_TEMPLATES = [
     ],
   },
   {
-    title: '최애/좋음/무난/아쉬움',
+    id: 'preference',
+    titleKey: 'tierBoards.templates.preference.title',
+    title: 'preference',
     lanes: [
-      { title: '최애', colorToken: '#ec4899' },
-      { title: '좋음', colorToken: '#22c55e' },
-      { title: '무난', colorToken: '#38bdf8' },
-      { title: '아쉬움', colorToken: '#94a3b8' },
+      {
+        title: 'tierBoards.templates.preference.lanes.favorite',
+        colorToken: '#ec4899',
+      },
+      {
+        title: 'tierBoards.templates.preference.lanes.good',
+        colorToken: '#22c55e',
+      },
+      {
+        title: 'tierBoards.templates.preference.lanes.neutral',
+        colorToken: '#38bdf8',
+      },
+      {
+        title: 'tierBoards.templates.preference.lanes.low',
+        colorToken: '#94a3b8',
+      },
     ],
   },
   {
-    title: '최강/상위/중위/하위',
+    id: 'power',
+    titleKey: 'tierBoards.templates.power.title',
+    title: 'power',
     lanes: [
-      { title: '최강', colorToken: '#a855f7' },
-      { title: '상위', colorToken: '#f97316' },
-      { title: '중위', colorToken: '#22c55e' },
-      { title: '하위', colorToken: '#64748b' },
+      { title: 'tierBoards.templates.power.lanes.top', colorToken: '#a855f7' },
+      {
+        title: 'tierBoards.templates.power.lanes.high',
+        colorToken: '#f97316',
+      },
+      {
+        title: 'tierBoards.templates.power.lanes.middle',
+        colorToken: '#22c55e',
+      },
+      { title: 'tierBoards.templates.power.lanes.low', colorToken: '#64748b' },
     ],
   },
   {
-    title: '빈 보드',
+    id: 'empty',
+    titleKey: 'tierBoards.templates.empty.title',
+    title: 'empty',
     lanes: [],
   },
 ] as const satisfies readonly TierBoardTemplate[];
@@ -57,7 +88,10 @@ export const TIER_BOARD_TEMPLATES = [
 export function getTierBoardTemplate(templateTitle?: string) {
   return (
     TIER_BOARD_TEMPLATES.find(
-      (candidate) => candidate.title === templateTitle,
+      (candidate) =>
+        candidate.id === templateTitle ||
+        candidate.title === templateTitle ||
+        candidate.titleKey === templateTitle,
     ) ?? TIER_BOARD_TEMPLATES[0]!
   );
 }

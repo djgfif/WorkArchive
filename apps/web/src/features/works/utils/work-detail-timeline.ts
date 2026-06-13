@@ -4,6 +4,8 @@ import type {
   WorkRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
+
 export interface WorkDetailTimelineItem {
   description: string;
   id: string;
@@ -16,12 +18,15 @@ export const timelineTypeOptions: Array<{
   label: string;
   value: TimelineEntryType;
 }> = [
-  { label: '메모', value: 'note' },
-  { label: '감상 시작', value: 'started' },
-  { label: '완료', value: 'completed' },
-  { label: '하차', value: 'dropped' },
-  { label: '재감상', value: 'rewatch' },
-  { label: '진행', value: 'progress' },
+  { label: appI18n.t('works.detail.timelineTypeNote'), value: 'note' },
+  { label: appI18n.t('works.detail.timelineTypeStarted'), value: 'started' },
+  {
+    label: appI18n.t('works.detail.timelineTypeCompleted'),
+    value: 'completed',
+  },
+  { label: appI18n.t('works.detail.timelineTypeDropped'), value: 'dropped' },
+  { label: appI18n.t('works.detail.timelineTypeRewatch'), value: 'rewatch' },
+  { label: appI18n.t('works.detail.timelineTypeProgress'), value: 'progress' },
 ];
 
 const timelineTypeLabels: Record<TimelineEntryType, string> =
@@ -43,32 +48,34 @@ function createTimelineItems(work: WorkRecord): WorkDetailTimelineItem[] {
   const items: MaybeTimelineItem[] = [
     {
       id: 'system-started-at',
-      label: '감상 시작',
+      label: appI18n.t('works.detail.timelineTypeStarted'),
       value: work.startedAt,
-      description: '작품을 보기 시작한 날입니다.',
+      description: appI18n.t('works.detail.timelineStartedDescription'),
       source: 'system',
     },
     {
       id: 'system-last-consumed-at',
-      label: '최근 기록',
+      label: appI18n.t('works.detail.latestRecord'),
       value: work.lastConsumedAt,
       description: work.lastConsumedLabel
-        ? `마지막으로 남긴 위치: ${work.lastConsumedLabel}`
-        : '마지막으로 진행을 기록한 날입니다.',
+        ? appI18n.t('works.detail.timelineLastConsumedWithLabel', {
+            label: work.lastConsumedLabel,
+          })
+        : appI18n.t('works.detail.timelineLastConsumedDescription'),
       source: 'system',
     },
     {
       id: 'system-completed-at',
-      label: '완료',
+      label: appI18n.t('works.detail.timelineTypeCompleted'),
       value: work.completedAt,
-      description: '끝까지 본 날입니다.',
+      description: appI18n.t('works.detail.timelineCompletedDescription'),
       source: 'system',
     },
     {
       id: 'system-dropped-at',
-      label: '하차',
+      label: appI18n.t('works.detail.timelineTypeDropped'),
       value: work.droppedAt,
-      description: '하차한 날입니다.',
+      description: appI18n.t('works.detail.timelineDroppedDescription'),
       source: 'system',
     },
   ];
@@ -88,7 +95,8 @@ export function buildWorkDetailTimelineItems(
   return [
     ...createTimelineItems(work),
     ...timelineEntries.map((entry) => ({
-      description: entry.note.trim() || '직접 남긴 기록입니다.',
+      description:
+        entry.note.trim() || appI18n.t('works.detail.timelineManualDescription'),
       id: entry.id,
       label: timelineTypeLabels[entry.type],
       source: 'manual' as const,

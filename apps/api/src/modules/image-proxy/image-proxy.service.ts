@@ -22,6 +22,7 @@ import {
   buildCachedImage,
   deserializeCachedImage,
   FETCH_TIMEOUT_MS,
+  FETCH_FAILURE_COOLDOWN_MS,
   getAllowedImageContentType,
   imageRedisKey,
   isRedirectStatus,
@@ -40,6 +41,7 @@ import {
 @Injectable()
 export class ImageProxyService implements OnModuleDestroy {
   private readonly cache = new Map<string, CachedImage>();
+  private readonly failedFetchUntil = new Map<string, number>();
   private readonly failedStaleRefreshUntil = new Map<string, number>();
   private readonly inFlightFetches = new Map<string, Promise<CachedImage>>();
   private readonly logger = new Logger(ImageProxyService.name);
@@ -73,6 +75,16 @@ export class ImageProxyService implements OnModuleDestroy {
       this.cache.delete(cacheKey);
     }
 
+    const retryAfter = this.failedFetchUntil.get(cacheKey);
+
+    if (retryAfter && retryAfter > now) {
+      throw new BadGatewayException('Image provider is temporarily unavailable.');
+    }
+
+    if (retryAfter) {
+      this.failedFetchUntil.delete(cacheKey);
+    }
+
     try {
       return toProxiedImage(await this.fetchAndCacheImageOnce(url, cacheKey));
     } catch (error) {
@@ -80,6 +92,13 @@ export class ImageProxyService implements OnModuleDestroy {
         this.logStaleCacheFallback(url, error);
 
         return toProxiedImage(cached);
+      }
+
+      if (!(error instanceof BadRequestException)) {
+        this.failedFetchUntil.set(
+          cacheKey,
+          Date.now() + FETCH_FAILURE_COOLDOWN_MS,
+        );
       }
 
       throw error;
@@ -130,6 +149,7 @@ export class ImageProxyService implements OnModuleDestroy {
     const nextCached = buildCachedImage(body, contentType, Date.now());
 
     await this.writeCache(cacheKey, nextCached);
+    this.failedFetchUntil.delete(cacheKey);
     this.failedStaleRefreshUntil.delete(cacheKey);
 
     return nextCached;

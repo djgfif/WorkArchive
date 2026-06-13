@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { appI18n, formatAppNumber } from '@app/i18n';
 import {
   notionService,
   type NotionPreviewResponse,
@@ -57,7 +58,7 @@ export function useNotionSettings(mode: SettingsAuthMode) {
             message:
               error instanceof Error
                 ? error.message
-                : 'Notion 연결 상태를 불러오지 못했습니다.',
+                : appI18n.t('settings.notion.loadStatusError'),
           });
         }
       } finally {
@@ -85,7 +86,7 @@ export function useNotionSettings(mode: SettingsAuthMode) {
     if (!connectionDraft.token.trim() || !connectionDraft.dataSourceId.trim()) {
       setFeedback({
         tone: 'error',
-        message: 'Notion token과 data source ID를 모두 입력해 주세요.',
+        message: appI18n.t('settings.notion.requiredConnectionFields'),
       });
 
       return;
@@ -101,7 +102,7 @@ export function useNotionSettings(mode: SettingsAuthMode) {
       }));
       setFeedback({
         tone: 'success',
-        message: 'Notion 연결을 저장했습니다.',
+        message: appI18n.t('settings.notion.saveConnectionSuccess'),
       });
     } catch (error) {
       setFeedback({
@@ -109,7 +110,7 @@ export function useNotionSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : 'Notion 연결을 저장하지 못했습니다.',
+            : appI18n.t('settings.notion.saveConnectionError'),
       });
     } finally {
       setIsSavingConnection(false);
@@ -130,7 +131,7 @@ export function useNotionSettings(mode: SettingsAuthMode) {
       setPullPreview(null);
       setFeedback({
         tone: 'success',
-        message: 'Notion 연결과 매핑을 삭제했습니다.',
+        message: appI18n.t('settings.notion.deleteConnectionSuccess'),
       });
     } catch (error) {
       setFeedback({
@@ -138,7 +139,7 @@ export function useNotionSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : 'Notion 연결을 삭제하지 못했습니다.',
+            : appI18n.t('settings.notion.deleteConnectionError'),
       });
     } finally {
       setIsDeletingConnection(false);
@@ -159,7 +160,7 @@ export function useNotionSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : 'Notion 연결 테스트에 실패했습니다.',
+            : appI18n.t('settings.notion.testConnectionError'),
       });
     } finally {
       setIsTestingConnection(false);
@@ -174,7 +175,11 @@ export function useNotionSettings(mode: SettingsAuthMode) {
       setStatus(nextStatus);
       setFeedback({
         tone: result.errors.length > 0 ? 'info' : 'success',
-        message: `Notion으로 ${result.created}개 생성, ${result.updated}개 업데이트했습니다. 실패 ${result.errors.length}개.`,
+        message: appI18n.t('settings.notion.pushSuccess', {
+          created: formatAppNumber(result.created),
+          errors: formatAppNumber(result.errors.length),
+          updated: formatAppNumber(result.updated),
+        }),
       });
     } catch (error) {
       setFeedback({
@@ -182,7 +187,7 @@ export function useNotionSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : 'Notion으로 내보내지 못했습니다.',
+            : appI18n.t('settings.notion.pushError'),
       });
     } finally {
       setIsPushing(false);
@@ -198,8 +203,10 @@ export function useNotionSettings(mode: SettingsAuthMode) {
         tone: preview.total > 0 ? 'info' : 'success',
         message:
           preview.total > 0
-            ? `Notion에서 적용 가능한 변경 ${preview.total}건을 찾았습니다.`
-            : 'Notion에서 적용할 새 변경이 없습니다.',
+            ? appI18n.t('settings.notion.previewFound', {
+                count: formatAppNumber(preview.total),
+              })
+            : appI18n.t('settings.notion.previewEmpty'),
       });
     } catch (error) {
       setFeedback({
@@ -207,7 +214,7 @@ export function useNotionSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : 'Notion 변경사항을 확인하지 못했습니다.',
+            : appI18n.t('settings.notion.previewError'),
       });
     } finally {
       setIsPreviewingPull(false);
@@ -224,7 +231,10 @@ export function useNotionSettings(mode: SettingsAuthMode) {
       setPullPreview(null);
       setFeedback({
         tone: result.errors.length > 0 ? 'info' : 'success',
-        message: `Notion 변경사항 ${result.applied}건을 Work Archive에 적용했습니다. 실패 ${result.errors.length}건.`,
+        message: appI18n.t('settings.notion.applySuccess', {
+          applied: formatAppNumber(result.applied),
+          errors: formatAppNumber(result.errors.length),
+        }),
       });
     } catch (error) {
       setFeedback({
@@ -232,7 +242,7 @@ export function useNotionSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : 'Notion 변경사항을 적용하지 못했습니다.',
+            : appI18n.t('settings.notion.applyError'),
       });
     } finally {
       setIsApplyingPull(false);

@@ -7,6 +7,7 @@ import type {
   WorkSyncStatus,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { getWorkTypeLabel } from '@features/works';
 
 import type {
@@ -47,11 +48,13 @@ export function cloneBoard(
   board: TierBoardRecord,
   now: string,
 ): TierBoardRecord {
+  const title = appI18n.t('tierBoards.copyTitle', { title: board.title });
+
   return {
     ...board,
     id: crypto.randomUUID(),
-    slug: createSlug(`${board.title} 복사본`),
-    title: `${board.title} 복사본`,
+    slug: createSlug(title),
+    title,
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
@@ -75,7 +78,7 @@ export function createBoardRecord(
   input: CreateBoardInput,
   now: string,
 ): TierBoardRecord {
-  const title = input.title?.trim() || '새 티어보드';
+  const title = input.title?.trim() || appI18n.t('tierBoards.newTitle');
 
   return {
     id: crypto.randomUUID(),
@@ -165,7 +168,7 @@ export function assertExportDocument(value: unknown): TierBoardExportDocument {
     Array.isArray(value) ||
     (value as { format?: unknown }).format !== 'work-archive.tier-board'
   ) {
-    throw new Error('티어보드 JSON 형식이 아닙니다.');
+    throw new Error(appI18n.t('tierBoards.errors.invalidJson'));
   }
 
   return value as TierBoardExportDocument;

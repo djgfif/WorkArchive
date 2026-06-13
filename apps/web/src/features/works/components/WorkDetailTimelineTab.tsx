@@ -19,6 +19,7 @@ import {
   SectionCard,
 } from '@shared/components/AppPrimitives';
 import { formatWorkDate, formatWorkDateTime } from '../utils/work-options';
+import { useAppTranslation } from '@app/i18n';
 import {
   timelineTypeOptions,
   type WorkDetailTimelineItem,
@@ -49,6 +50,7 @@ export function WorkDetailTimelineTab({
   timelineItems,
   work,
 }: WorkDetailTimelineTabProps) {
+  const { t } = useAppTranslation();
   const [timelineDate, setTimelineDate] = useState(() =>
     new Date().toISOString().slice(0, 10),
   );
@@ -98,16 +100,20 @@ export function WorkDetailTimelineTab({
           <Stack gap={4}>
             <Text fw={700}>
               {latestTimelineItem
-                ? `최근 기록: ${latestTimelineItem.label}`
-                : '아직 날짜 기록이 없습니다'}
+                ? t('works.detail.timelineSummaryPrefix', {
+                    label: latestTimelineItem.label,
+                  })
+                : t('works.detail.timelineNoDate')}
             </Text>
             <Text c="dimmed" size="sm">
               {latestTimelineItem
                 ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.description}`
-                : '시작일이나 최근 기록일을 남기면 이곳에 요약됩니다.'}
+                : t('works.detail.timelineNoDateDescription')}
             </Text>
           </Stack>
-          <AppBadge tone="muted">{timelineItems.length}개</AppBadge>
+          <AppBadge tone="muted">
+            {t('works.detail.timelineCount', { count: timelineItems.length })}
+          </AppBadge>
         </Group>
       </SectionCard>
 
@@ -115,17 +121,35 @@ export function WorkDetailTimelineTab({
         <KeyValueGrid
           columns={2}
           items={[
-            { label: '추가한 날', value: formatWorkDateTime(work.createdAt) },
-            { label: '최근 수정', value: formatWorkDateTime(work.updatedAt) },
-            { label: '시작일', value: formatWorkDate(work.startedAt) },
-            { label: '완료일', value: formatWorkDate(work.completedAt) },
-            { label: '하차일', value: formatWorkDate(work.droppedAt) },
             {
-              label: '최근 기록일',
+              label: t('works.detail.createdAt'),
+              value: formatWorkDateTime(work.createdAt),
+            },
+            {
+              label: t('works.detail.updatedAt'),
+              value: formatWorkDateTime(work.updatedAt),
+            },
+            {
+              label: t('works.form.startedAtLabel'),
+              value: formatWorkDate(work.startedAt),
+            },
+            {
+              label: t('works.form.completedAtLabel'),
+              value: formatWorkDate(work.completedAt),
+            },
+            {
+              label: t('works.detail.droppedAt'),
+              value: formatWorkDate(work.droppedAt),
+            },
+            {
+              label: t('works.detail.latestRecordDate'),
               value: formatWorkDate(work.lastConsumedAt),
             },
-            { label: '진행도', value: progressLabel ?? '아직 없음' },
-            { label: '현재 상태', value: statusLabel },
+            {
+              label: t('works.detail.progress'),
+              value: progressLabel ?? t('works.detail.noProgress'),
+            },
+            { label: t('works.detail.currentStatus'), value: statusLabel },
           ]}
         />
       </SectionCard>
@@ -149,7 +173,9 @@ export function WorkDetailTimelineTab({
                     <AppBadge
                       tone={item.source === 'manual' ? 'accent' : 'muted'}
                     >
-                      {item.source === 'manual' ? '직접 기록' : '날짜 기록'}
+                      {item.source === 'manual'
+                        ? t('works.detail.timelineSourceManual')
+                        : t('works.detail.timelineSourceSystem')}
                     </AppBadge>
                   </Group>
                   <Text c="dimmed" size="sm">
@@ -168,7 +194,7 @@ export function WorkDetailTimelineTab({
                       tone="danger"
                       type="button"
                     >
-                      삭제
+                      {t('works.detail.timelineDelete')}
                     </AppButton>
                   )}
                 </ActionRow>
@@ -181,13 +207,17 @@ export function WorkDetailTimelineTab({
       {onCreateTimelineEntry && (
         <Accordion defaultValue={null} variant="contained">
           <Accordion.Item value="advanced-record-add">
-            <Accordion.Control>고급 기록 추가</Accordion.Control>
+            <Accordion.Control>
+              {t('works.detail.timelineAdvancedAdd')}
+            </Accordion.Control>
             <Accordion.Panel>
               <Stack gap="md">
                 <Group align="flex-end" grow>
                   <NativeSelect
-                    aria-label={`${work.title} 기록 내역 유형`}
-                    label="유형"
+                    aria-label={t('works.detail.timelineTypeAria', {
+                      title: work.title,
+                    })}
+                    label={t('works.detail.timelineTypeLabel')}
                     onChange={(event) =>
                       setTimelineType(
                         event.currentTarget.value as TimelineEntryType,
@@ -202,8 +232,10 @@ export function WorkDetailTimelineTab({
                     ))}
                   </NativeSelect>
                   <TextInput
-                    aria-label={`${work.title} 기록 내역 날짜`}
-                    label="날짜"
+                    aria-label={t('works.detail.timelineDateAria', {
+                      title: work.title,
+                    })}
+                    label={t('works.detail.timelineDateLabel')}
                     onChange={(event) =>
                       setTimelineDate(event.currentTarget.value)
                     }
@@ -212,14 +244,16 @@ export function WorkDetailTimelineTab({
                   />
                 </Group>
                 <Textarea
-                  aria-label={`${work.title} 기록 내역 메모`}
+                  aria-label={t('works.detail.timelineMemoAria', {
+                    title: work.title,
+                  })}
                   autosize
-                  label="메모"
+                  label={t('works.detail.timelineMemoLabel')}
                   minRows={2}
                   onChange={(event) =>
                     setTimelineNote(event.currentTarget.value)
                   }
-                  placeholder="필요할 때만 남기는 보조 기록입니다."
+                  placeholder={t('works.detail.timelineMemoPlaceholder')}
                   value={timelineNote}
                 />
                 <ActionRow>
@@ -230,7 +264,7 @@ export function WorkDetailTimelineTab({
                     tone="primary"
                     type="button"
                   >
-                    기록 추가
+                    {t('works.detail.timelineAdd')}
                   </AppButton>
                 </ActionRow>
               </Stack>

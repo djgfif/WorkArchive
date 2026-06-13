@@ -1,5 +1,6 @@
 import { Group, Paper, Stack, Text, Title } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   ActionRow,
   AppBadge,
@@ -19,7 +20,8 @@ import { cn } from '@shared/utils/class-names';
 const css = styles;
 
 export function WorkFormPreview({ values }: WorkFormValuesProps) {
-  const previewTitle = values.title.trim() || '제목 없는 작품';
+  const { t } = useAppTranslation();
+  const previewTitle = values.title.trim() || t('works.form.previewUntitled');
   const posterUrl = values.thumbnailUrl.trim();
   const ratingValue =
     values.rating.trim() === '' ? null : Number.parseFloat(values.rating);
@@ -55,14 +57,16 @@ export function WorkFormPreview({ values }: WorkFormValuesProps) {
           <Group gap="xs">
             <AppBadge>{getWorkTypeLabel(values.type)}</AppBadge>
             <AppBadge>{getWorkStatusLabel(values.status)}</AppBadge>
-            {values.favorite && <AppBadge tone="accent">즐겨찾기</AppBadge>}
+            {values.favorite && (
+              <AppBadge tone="accent">{t('works.form.favorite')}</AppBadge>
+            )}
           </Group>
 
           <div>
             <Title order={3}>{previewTitle}</Title>
             <Text c="dimmed">
               {getDisplayAuthorFromWorkFormValues(values) ||
-                '작가/제작자 미입력'}
+                t('works.form.creatorMissing')}
             </Text>
           </div>
 
@@ -71,25 +75,29 @@ export function WorkFormPreview({ values }: WorkFormValuesProps) {
           <Text c="dimmed">
             {values.shortReview.trim() ||
               values.description.trim() ||
-              '지금 남긴 감상은 목록과 상세 화면에서 다시 읽기 쉽게 보입니다.'}
+              t('works.form.previewDescriptionFallback')}
           </Text>
 
           <ActionRow>
             {previewTags.length > 0 ? (
               previewTags.map((tag) => <AppBadge key={tag}>{tag}</AppBadge>)
             ) : (
-              <AppBadge tone="muted">분류 없음</AppBadge>
+              <AppBadge tone="muted">{t('works.form.noCategory')}</AppBadge>
             )}
           </ActionRow>
 
           <MetricPill
-            label="감상 길이"
+            label={t('works.form.previewReviewLengthLabel')}
             value={
               reviewLength > 0
-                ? `상세 ${reviewLength}자`
+                ? t('works.form.previewReviewLengthDetail', {
+                    count: reviewLength,
+                  })
                 : shortReviewLength > 0
-                  ? `한줄평 ${shortReviewLength}자`
-                  : '아직 없음'
+                  ? t('works.form.previewReviewLengthShort', {
+                      count: shortReviewLength,
+                    })
+                  : t('works.form.previewReviewLengthEmpty')
             }
           />
         </Stack>

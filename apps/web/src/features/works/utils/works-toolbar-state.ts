@@ -10,6 +10,7 @@ import type {
   WorksRatingPreset,
   WorksSmartFilter,
 } from './query-works';
+import { appI18n } from '@app/i18n';
 import {
   getSerialStatusLabel,
   getWorkStatusLabel,
@@ -29,62 +30,71 @@ export const ratingPresetOptions: Array<{
   label: string;
   value: WorksRatingPreset;
 }> = [
-  { label: '전체', value: 'all' },
-  { label: '미평가', value: 'unrated' },
-  { label: '4점 이상', value: 'gte4' },
-  { label: '3점 이상', value: 'gte3' },
-  { label: '2점 이하', value: 'lte2' },
+  { label: appI18n.t('works.list.filterAll'), value: 'all' },
+  { label: appI18n.t('works.list.filterUnrated'), value: 'unrated' },
+  { label: appI18n.t('works.list.ratingGte4'), value: 'gte4' },
+  { label: appI18n.t('works.list.ratingGte3'), value: 'gte3' },
+  { label: appI18n.t('works.list.ratingLte2'), value: 'lte2' },
 ];
 
 export const smartFilterOptions: Array<{
   label: string;
   value: WorksSmartFilter;
 }> = [
-  { label: '전체', value: 'all' },
-  { label: '즐겨찾기', value: 'favorites' },
-  { label: '미평가', value: 'unrated' },
-  { label: '정리 필요', value: 'needsCuration' },
+  { label: appI18n.t('works.list.filterAll'), value: 'all' },
+  { label: appI18n.t('works.list.smartFavorites'), value: 'favorites' },
+  { label: appI18n.t('works.list.filterUnrated'), value: 'unrated' },
+  {
+    label: appI18n.t('works.list.smartNeedsCuration'),
+    value: 'needsCuration',
+  },
 ];
 
 export const identityPresetOptions: Array<{
   label: string;
   value: WorksIdentityPreset;
 }> = [
-  { label: '전체', value: 'all' },
-  { label: '직접 등록', value: 'manual' },
-  { label: '가져오기', value: 'imported' },
-  { label: '카탈로그 연결', value: 'catalogLinked' },
+  { label: appI18n.t('works.list.filterAll'), value: 'all' },
+  { label: appI18n.t('works.list.filterManual'), value: 'manual' },
+  { label: appI18n.t('works.list.filterImported'), value: 'imported' },
+  {
+    label: appI18n.t('works.list.filterCatalogLinked'),
+    value: 'catalogLinked',
+  },
 ];
 
 export const serialStatusFilterOptions: Array<{
   label: string;
   value: SerialStatus | 'all';
-}> = [{ label: '전체', value: 'all' }, ...serialStatusOptions];
+}> = [
+  { label: appI18n.t('works.list.filterAll'), value: 'all' },
+  ...serialStatusOptions,
+];
 
 function getRatingPresetLabel(value: WorksRatingPreset | undefined) {
   return (
     ratingPresetOptions.find((option) => option.value === value)?.label ??
-    '전체'
+    appI18n.t('works.list.filterAll')
   );
 }
 
 function getSmartFilterLabel(value: WorksSmartFilter | undefined) {
   return (
     smartFilterOptions.find((option) => option.value === value)?.label ??
-    '전체'
+    appI18n.t('works.list.filterAll')
   );
 }
 
 function getIdentityPresetLabel(value: WorksIdentityPreset | undefined) {
   return (
     identityPresetOptions.find((option) => option.value === value)?.label ??
-    '전체'
+    appI18n.t('works.list.filterAll')
   );
 }
 
 export function buildGenreFilterOptions(genreSuggestions: string[]) {
   return [
-    { label: '전체', value: '' },
+    { label: appI18n.t('works.list.filterAll'), value: '' },
     ...Array.from(
       new Set([...genreSuggestions.filter(isWorkGenre), ...WORK_GENRES]),
     ).map((genre) => ({
@@ -102,7 +112,11 @@ export function buildStatusFilterOptions({
   totalActiveCount: number;
 }) {
   return [
-    { label: '전체', value: 'all' as const, count: totalActiveCount },
+    {
+      label: appI18n.t('works.list.filterAll'),
+      value: 'all' as const,
+      count: totalActiveCount,
+    },
     ...visibleWorkStatusOptions.map((option) => ({
       count: statusCounts[option.value],
       label: option.label,
@@ -121,7 +135,11 @@ export function buildMediaTypeOptions({
   typeCounts: Record<WorkType, number>;
 }) {
   return [
-    { count: totalCount, label: '전체', value: 'all' as const },
+    {
+      count: totalCount,
+      label: appI18n.t('works.list.filterAll'),
+      value: 'all' as const,
+    },
     ...workTypeOptions
       .map((option) => ({
         count: typeCounts[option.value],
@@ -156,7 +174,9 @@ export function buildActiveFilterChips({
     ...(query.series?.trim()
       ? [
           {
-            label: `시리즈: ${query.series.trim()}`,
+            label: appI18n.t('works.list.filterSeries', {
+              value: query.series.trim(),
+            }),
             onRemove: () => onQueryChange({ ...query, series: '' }),
           },
         ]
@@ -164,7 +184,9 @@ export function buildActiveFilterChips({
     ...(query.contributor?.trim()
       ? [
           {
-            label: `제작진: ${query.contributor.trim()}`,
+            label: appI18n.t('works.list.filterContributor', {
+              value: query.contributor.trim(),
+            }),
             onRemove: () => onQueryChange({ ...query, contributor: '' }),
           },
         ]
@@ -172,16 +194,19 @@ export function buildActiveFilterChips({
     ...(query.personContributor?.trim()
       ? [
           {
-            label: `작가/제작진: ${query.personContributor.trim()}`,
-            onRemove: () =>
-              onQueryChange({ ...query, personContributor: '' }),
+            label: appI18n.t('works.list.filterPersonContributor', {
+              value: query.personContributor.trim(),
+            }),
+            onRemove: () => onQueryChange({ ...query, personContributor: '' }),
           },
         ]
       : []),
     ...(query.organizationContributor?.trim()
       ? [
           {
-            label: `회사/플랫폼: ${query.organizationContributor.trim()}`,
+            label: appI18n.t('works.list.filterOrganizationContributor', {
+              value: query.organizationContributor.trim(),
+            }),
             onRemove: () =>
               onQueryChange({ ...query, organizationContributor: '' }),
           },
@@ -190,7 +215,9 @@ export function buildActiveFilterChips({
     ...(query.genre?.trim()
       ? [
           {
-            label: `장르: ${query.genre.trim()}`,
+            label: appI18n.t('works.list.filterGenre', {
+              value: query.genre.trim(),
+            }),
             onRemove: () => onQueryChange({ ...query, genre: '' }),
           },
         ]
@@ -214,7 +241,9 @@ export function buildActiveFilterChips({
     ...(query.serialStatus && query.serialStatus !== 'all'
       ? [
           {
-            label: `연재: ${getSerialStatusLabel(query.serialStatus)}`,
+            label: appI18n.t('works.list.filterSerial', {
+              value: getSerialStatusLabel(query.serialStatus),
+            }),
             onRemove: () => onQueryChange({ ...query, serialStatus: 'all' }),
           },
         ]
@@ -230,9 +259,10 @@ export function buildActiveFilterChips({
     ...(query.rating === null && (query.ratingPreset ?? 'all') !== 'all'
       ? [
           {
-            label: `별점: ${getRatingPresetLabel(query.ratingPreset)}`,
-            onRemove: () =>
-              onQueryChange({ ...query, ratingPreset: 'all' }),
+            label: appI18n.t('works.list.filterRating', {
+              value: getRatingPresetLabel(query.ratingPreset),
+            }),
+            onRemove: () => onQueryChange({ ...query, ratingPreset: 'all' }),
           },
         ]
       : []),
@@ -247,9 +277,10 @@ export function buildActiveFilterChips({
     ...((query.identityPreset ?? 'all') !== 'all'
       ? [
           {
-            label: `등록: ${getIdentityPresetLabel(query.identityPreset)}`,
-            onRemove: () =>
-              onQueryChange({ ...query, identityPreset: 'all' }),
+            label: appI18n.t('works.list.filterIdentity', {
+              value: getIdentityPresetLabel(query.identityPreset),
+            }),
+            onRemove: () => onQueryChange({ ...query, identityPreset: 'all' }),
           },
         ]
       : []),
@@ -266,10 +297,11 @@ export function buildActiveFilterChips({
     ...(query.sortBy !== 'updatedAt'
       ? [
           {
-            label: `정렬: ${
-              workSortOptions.find((option) => option.value === query.sortBy)
-                ?.label ?? query.sortBy
-            }`,
+            label: appI18n.t('works.list.filterSort', {
+              value:
+                workSortOptions.find((option) => option.value === query.sortBy)
+                  ?.label ?? query.sortBy,
+            }),
             onRemove: () => onQueryChange({ ...query, sortBy: 'updatedAt' }),
           },
         ]
@@ -277,7 +309,10 @@ export function buildActiveFilterChips({
     ...(sortDirection !== defaultSortDirection
       ? [
           {
-            label: sortDirection === 'asc' ? '오름차순' : '내림차순',
+            label:
+              sortDirection === 'asc'
+                ? appI18n.t('works.list.sortAsc')
+                : appI18n.t('works.list.sortDesc'),
             onRemove: () =>
               onQueryChange({ ...query, sortDirection: defaultSortDirection }),
           },

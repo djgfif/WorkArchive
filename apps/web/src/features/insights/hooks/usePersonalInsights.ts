@@ -1,6 +1,7 @@
 import { liveQuery } from 'dexie';
 import { useEffect, useState } from 'react';
 
+import { appI18n } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import {
   personalInsightsService,
@@ -46,7 +47,7 @@ export function usePersonalInsights() {
           error:
             error instanceof Error
               ? error.message
-              : '인사이트를 불러오지 못했습니다.',
+              : appI18n.t('insights.loadErrorTitle'),
           insights: null,
           isLoading: false,
         });

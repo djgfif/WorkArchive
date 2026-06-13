@@ -2,6 +2,7 @@ import type { WorkRecord } from '@work-archive/shared-types';
 import { Box, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 
+import { useAppTranslation } from '@app/i18n';
 import { AppButton } from '@shared/components/AppPrimitives';
 import type { LibraryDensity } from '../hooks/useLibraryDensity';
 import { WorkPosterCard } from './ArchiveComponents';
@@ -49,6 +50,7 @@ export function WorksList({
   viewMode,
   works,
 }: WorksListProps) {
+  const { t } = useAppTranslation();
   const renderLimit =
     viewMode === 'grid' ? GRID_RENDER_LIMIT : LIST_RENDER_LIMIT;
   const workListSignature = useMemo(
@@ -78,23 +80,28 @@ export function WorksList({
         <Group justify="space-between" wrap="wrap">
           <Stack gap={4}>
             <Text fw={800}>
-              {visibleWorks.length} / {works.length}개
+              {t('works.list.loadMoreProgress', {
+                total: works.length,
+                visible: visibleWorks.length,
+              })}
             </Text>
             <Text c="dimmed" size="sm">
-              포스터 목록은 필요한 만큼만 나누어 보여줍니다.
+              {t('works.list.loadMoreDescription')}
             </Text>
           </Stack>
           {hasHiddenWorks && (
             <AppButton
-              aria-label={`작품 ${Math.min(
-                RENDER_INCREMENT,
-                works.length - visibleWorks.length,
-              )}개 더 보기`}
+              aria-label={t('works.list.loadMoreAria', {
+                count: Math.min(
+                  RENDER_INCREMENT,
+                  works.length - visibleWorks.length,
+                ),
+              })}
               onClick={handleShowMore}
               tone="secondary"
               type="button"
             >
-              더 보기
+              {t('works.list.loadMore')}
             </AppButton>
           )}
         </Group>
@@ -103,7 +110,11 @@ export function WorksList({
 
   if (viewMode === 'grid') {
     return (
-      <Stack aria-label="작품 포스터 목록" component="section" gap="xl">
+      <Stack
+        aria-label={t('works.list.sectionPosterAria')}
+        component="section"
+        gap="xl"
+      >
         <SimpleGrid
           cols={GRID_COLS[density]}
           spacing={{ base: 'sm', md: 'md' }}
@@ -125,7 +136,7 @@ export function WorksList({
 
   return (
     <section
-      aria-label="작품 리스트"
+      aria-label={t('works.list.sectionListAria')}
       style={{ borderTop: '1px solid var(--app-border-subtle)' }}
     >
       <Stack gap={0}>

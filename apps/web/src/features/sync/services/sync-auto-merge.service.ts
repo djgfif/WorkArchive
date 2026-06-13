@@ -18,6 +18,7 @@ import type {
   WorkSeriesLinkRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { moveUnknownGenresToPersonalTags } from '@features/works/data';
 
 export const WORK_MERGE_FIELDS = [
@@ -182,8 +183,8 @@ export function createAutoMergeSnapshot(
     mergedAt: getNowIso(),
     message:
       fields.length > 0
-        ? '안전한 필드만 자동 병합되어 다시 백업 대기 중입니다.'
-        : '원격 버전 정보만 맞춰 다시 백업 대기 중입니다.',
+        ? appI18n.t('sync.autoMergeFields')
+        : appI18n.t('sync.autoMergeVersionOnly'),
     status: 'requeued',
   };
 }

@@ -173,8 +173,8 @@ describe('TierBoardsPage', () => {
 
     expect(await screen.findByText('상용화 테스트 보드')).toBeInTheDocument();
     expect(screen.getByText('로컬 전용 테스트 보드')).toBeInTheDocument();
-    expect(screen.getByText('5 lanes')).toBeInTheDocument();
-    expect(screen.getByText('1 cards')).toBeInTheDocument();
+    expect(screen.getByText('행 5개')).toBeInTheDocument();
+    expect(screen.getByText('카드 1개')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '열기' })).toHaveAttribute(
       'href',
       `/tier-boards/${board.id}`,

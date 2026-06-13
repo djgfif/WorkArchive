@@ -4,6 +4,7 @@ import {
   type WorkRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { getWorkStatusLabel } from './work-options';
 
 export const workListRowRatingOptions = Array.from(
@@ -16,21 +17,21 @@ export const workListRowRatingOptions = Array.from(
 );
 
 export const progressUnitLabels: Record<ProgressUnit, string> = {
-  chapter: '화',
-  episode: '회',
-  volume: '권',
+  chapter: appI18n.t('works.record.progressControl.unitChapter'),
+  episode: appI18n.t('works.record.progressControl.unitEpisode'),
+  volume: appI18n.t('works.record.progressControl.unitVolume'),
 };
 
 export const progressCurrentLabels: Record<ProgressUnit, string> = {
-  chapter: '읽은 화',
-  episode: '본 회차',
-  volume: '읽은 권',
+  chapter: appI18n.t('works.record.progressControl.currentChapter'),
+  episode: appI18n.t('works.record.progressControl.currentEpisode'),
+  volume: appI18n.t('works.record.progressControl.currentVolume'),
 };
 
 export const progressTotalLabels: Record<ProgressUnit, string> = {
-  chapter: '전체 화',
-  episode: '전체 회차',
-  volume: '전체 권',
+  chapter: appI18n.t('works.record.progressControl.totalChapter'),
+  episode: appI18n.t('works.record.progressControl.totalEpisode'),
+  volume: appI18n.t('works.record.progressControl.totalVolume'),
 };
 
 export function getWorkListMetaLine(work: WorkRecord) {
@@ -68,7 +69,9 @@ export function getProgressLabel(work: WorkRecord) {
   const total = work.progressTotal ?? null;
 
   if (current !== null && total !== null) return `${current}/${total}`;
-  if (current !== null) return `${current}까지`;
+  if (current !== null) {
+    return appI18n.t('works.list.progressUntil', { current });
+  }
 
   return null;
 }

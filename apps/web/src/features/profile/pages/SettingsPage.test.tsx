@@ -261,6 +261,21 @@ describe('SettingsPage', () => {
     await resetWorkArchiveStorage();
   });
 
+  it('shows only the reviewed Korean locale in settings', async () => {
+    const user = userEvent.setup();
+
+    renderGuestSettings();
+    await openSettingsSection(user, 'language');
+
+    expect(screen.getByText('언어 설정')).toBeInTheDocument();
+    expect(screen.getByText('현재 언어')).toBeInTheDocument();
+    expect(screen.getByText('한국어')).toBeInTheDocument();
+    expect(screen.getByText('한국어만 사용 가능')).toBeInTheDocument();
+    expect(screen.queryByText('English')).not.toBeInTheDocument();
+    expect(screen.queryByText('日本語')).not.toBeInTheDocument();
+    expect(screen.queryByText('简体中文')).not.toBeInTheDocument();
+  });
+
   it('renders provider readiness cards for public and user-key credential modes', async () => {
     writeStoredAuthTokens({
       accessToken: 'access-token',
@@ -405,7 +420,7 @@ describe('SettingsPage', () => {
     expect(screen.getByText('스토리지 진단')).toBeInTheDocument();
     expect(screen.getByText('백업 전 작품 있음')).toBeInTheDocument();
     expect(screen.getAllByText('work-archive-db-user-user-1')).toHaveLength(2);
-    expect(screen.getByText('3개')).toBeInTheDocument();
+    expect(screen.getByText('3개 작품')).toBeInTheDocument();
     expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 
@@ -505,7 +520,9 @@ describe('SettingsPage', () => {
 
     expect(persist).toHaveBeenCalled();
     expect(
-      await screen.findByText('이 브라우저에서 로컬 저장소 보호를 확보했습니다.'),
+      await screen.findByText(
+        '이 브라우저에서 로컬 저장소 보호를 확보했습니다.',
+      ),
     ).toBeInTheDocument();
 
     await user.click(
@@ -520,10 +537,14 @@ describe('SettingsPage', () => {
     expect(screen.getByText('허용됨')).toBeInTheDocument();
     expect(screen.getByText('이번 세션 연결됨')).toBeInTheDocument();
     expect(getFileHandle).toHaveBeenCalledWith(
-      expect.stringMatching(/^work-archive-full-backup-\d{4}-\d{2}-\d{2}\.json$/),
+      expect.stringMatching(
+        /^work-archive-full-backup-\d{4}-\d{2}-\d{2}\.json$/,
+      ),
       { create: true },
     );
-    expect(write).toHaveBeenCalledWith(expect.stringContaining('"scope": "full"'));
+    expect(write).toHaveBeenCalledWith(
+      expect.stringContaining('"scope": "full"'),
+    );
   });
 
   it('saves account profile changes and updates the auth user', async () => {
@@ -950,9 +971,7 @@ describe('SettingsPage', () => {
       renderAuthenticatedSettings();
       await openSettingsSection(user, 'search-providers');
 
-      expect(
-        await screen.findByText('검색 소스 관리'),
-      ).toBeInTheDocument();
+      expect(await screen.findByText('검색 소스 관리')).toBeInTheDocument();
       if (provider !== 'aladin') {
         await user.click(
           await screen.findByRole('button', {

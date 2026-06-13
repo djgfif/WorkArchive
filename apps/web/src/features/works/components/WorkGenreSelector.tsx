@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Box, Group, SimpleGrid, Stack, Text } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   MAX_WORK_GENRES,
   WORK_GENRES,
@@ -22,17 +23,20 @@ interface WorkGenreSelectorProps {
 export function WorkGenreSelector({
   description,
   id = 'workGenreSelector',
-  label = '장르',
+  label,
   onChange,
   value,
 }: WorkGenreSelectorProps) {
+  const { t } = useAppTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const selectedGenres = new Set(value);
   const labelId = `${id}Label`;
-  const selectedLabel = value.length > 0 ? value.join(', ') : '장르 선택';
+  const fieldLabel = label ?? t('works.detail.genre');
+  const selectedLabel =
+    value.length > 0 ? value.join(', ') : t('works.form.genreSelect');
   const helperText =
     value.length >= MAX_WORK_GENRES
-      ? '장르는 최대 3개까지 선택할 수 있습니다. 세부 키워드는 개인 태그에 남겨주세요.'
+      ? t('works.form.genreLimitDescription')
       : description;
   const descriptionId = helperText ? `${id}Description` : undefined;
 
@@ -61,7 +65,7 @@ export function WorkGenreSelector({
           size="sm"
           style={{ color: 'var(--app-text-secondary)' }}
         >
-          {label}
+          {fieldLabel}
         </Text>
         <Text c="dimmed" size="xs">
           {value.length} / {MAX_WORK_GENRES}
@@ -108,7 +112,9 @@ export function WorkGenreSelector({
             aria-hidden="true"
             className={cn(css.segmentedChoiceDescription)}
           >
-            {isOpen ? '접기' : '선택'}
+            {isOpen
+              ? t('works.form.genreToggleClose')
+              : t('works.form.genreToggleOpen')}
           </span>
         </button>
 

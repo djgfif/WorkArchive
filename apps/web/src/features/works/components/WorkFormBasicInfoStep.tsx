@@ -9,6 +9,7 @@ import {
   TextInput,
 } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import { SegmentedChoiceGroup } from './ArchiveComponents';
 import {
   type WorkFormInputChangeHandler,
@@ -43,18 +44,20 @@ export function WorkFormBasicInfoStep({
   titleInputRef,
   values,
 }: WorkFormBasicInfoStepProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Stack gap="lg" pt="md">
       <Grid gap="md">
         <Grid.Col span={12}>
           <TextInput
-            aria-label="제목"
+            aria-label={t('works.form.titleAria')}
             error={titleError}
             id="title"
-            label="제목"
+            label={t('works.form.titleLabel')}
             name="title"
             onChange={onInputChange}
-            placeholder="작품 제목"
+            placeholder={t('works.form.titlePlaceholder')}
             ref={titleInputRef}
             value={values.title}
             withAsterisk
@@ -65,7 +68,7 @@ export function WorkFormBasicInfoStep({
           <TextInput
             aria-describedby="thumbnailUrlHint"
             id="thumbnailUrl"
-            label="표지 이미지 주소"
+            label={t('works.form.thumbnailLabel')}
             name="thumbnailUrl"
             onChange={onInputChange}
             placeholder="https://example.com/cover.jpg"
@@ -73,15 +76,15 @@ export function WorkFormBasicInfoStep({
             value={values.thumbnailUrl}
           />
           <Text c="dimmed" id="thumbnailUrlHint" mt={4} size="xs">
-            표지가 없으면 fallback 커버로 표시됩니다.
+            {t('works.form.thumbnailFallbackDescription')}
           </Text>
         </Grid.Col>
       </Grid>
 
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         <SegmentedChoiceGroup
-          aria-label="작품 유형"
-          label="유형"
+          aria-label={t('works.form.typeLabel')}
+          label={t('works.form.typeLabel')}
           onChange={onTypeChange}
           options={workTypeOptions}
           value={values.type}
@@ -95,17 +98,20 @@ export function WorkFormBasicInfoStep({
 
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         <SegmentedChoiceGroup
-          aria-label="작품 상태"
-          label="상태"
+          aria-label={t('works.form.statusLabel')}
+          label={t('works.form.statusLabel')}
           onChange={onStatusChange}
           options={workStatusOptions}
           value={values.status}
         />
         <NativeSelect
-          aria-label="연재 상태"
-          data={[{ value: '', label: '미정' }, ...serialStatusOptions]}
-          description="작품 자체의 공급 상태 (완결/연재 중/휴재)"
-          label="연재 상태"
+          aria-label={t('works.form.serialStatusLabel')}
+          data={[
+            { value: '', label: t('works.form.serialStatusUnknown') },
+            ...serialStatusOptions,
+          ]}
+          description={t('works.form.serialStatusDescription')}
+          label={t('works.form.serialStatusLabel')}
           name="serialStatus"
           onChange={onInputChange}
           value={values.serialStatus}
@@ -114,14 +120,14 @@ export function WorkFormBasicInfoStep({
 
       <Checkbox
         checked={values.favorite}
-        label="즐겨찾기로 표시"
+        label={t('works.form.favoriteLabel')}
         name="favorite"
         onChange={onInputChange}
       />
 
       <TextInput
         id="startedAt"
-        label="시작일"
+        label={t('works.form.startedAtLabel')}
         name="startedAt"
         onChange={onInputChange}
         type="date"
@@ -130,7 +136,7 @@ export function WorkFormBasicInfoStep({
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
         <TextInput
           id="lastConsumedAt"
-          label="마지막 감상일"
+          label={t('works.form.lastConsumedAtLabel')}
           name="lastConsumedAt"
           onChange={onInputChange}
           type="date"
@@ -138,7 +144,7 @@ export function WorkFormBasicInfoStep({
         />
         <TextInput
           id="completedAt"
-          label="완료일"
+          label={t('works.form.completedAtLabel')}
           name="completedAt"
           onChange={onInputChange}
           type="date"
@@ -146,7 +152,7 @@ export function WorkFormBasicInfoStep({
         />
         <TextInput
           id="droppedAt"
-          label="하차일"
+          label={t('works.form.droppedAtLabel')}
           name="droppedAt"
           onChange={onInputChange}
           type="date"

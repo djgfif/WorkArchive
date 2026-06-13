@@ -6,6 +6,7 @@ import {
   type ProviderReadinessGroup,
   type useImportProviderReadiness,
 } from '@features/imports';
+import { useAppTranslation } from '@app/i18n';
 import styles from './ArchiveComponents.module.css';
 import { cn } from '@shared/utils/class-names';
 
@@ -42,6 +43,8 @@ export function ProviderReadinessSummary({
   isLoading,
   readiness,
 }: ProviderReadinessSummaryProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Paper
       className={cn(css.providerStatusPanel)}
@@ -52,19 +55,18 @@ export function ProviderReadinessSummary({
       <Stack gap="xs">
         <ActionRow justify="space-between">
           <Text c="var(--mantine-color-text)" fw={700} size="sm">
-            검색 출처 상태
+            {t('works.providerReadiness.title')}
           </Text>
           {isLoading && (
             <Text c="var(--mantine-color-dimmed)" size="xs">
-              상태 확인 중
+              {t('works.providerReadiness.loading')}
             </Text>
           )}
         </ActionRow>
 
         {error ? (
           <Text c="var(--mantine-color-dimmed)" size="sm">
-            지금은 일부 검색 출처 상태를 확인하지 못했습니다. 검색과 직접 추가는
-            계속 사용할 수 있습니다.
+            {t('works.providerReadiness.error')}
           </Text>
         ) : (
           <Stack gap={6}>

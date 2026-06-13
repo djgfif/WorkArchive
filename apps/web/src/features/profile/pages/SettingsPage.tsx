@@ -1,4 +1,4 @@
-import { Stack, Text } from '@mantine/core';
+import { Select, Stack, Text } from '@mantine/core';
 
 import {
   AppLinkButton,
@@ -8,6 +8,7 @@ import {
 } from '@shared/components/AppPrimitives';
 import { AccountPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { useAppLocale, useAppTranslation, type AppLocale } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { AccountSettingsSection } from '../components/settings/AccountSettingsSection';
 import { DangerZoneSection } from '../components/settings/DangerZoneSection';
@@ -28,25 +29,60 @@ import { useNotionSettings } from '../hooks/useNotionSettings';
 import { useSettingsOverviewStats } from '../hooks/useSettingsOverviewStats';
 
 function DisplaySettingsSection() {
+  const { t } = useAppTranslation();
+
   return (
     <SectionCard>
       <SectionIntro
-        description="아카이브를 읽기 편한 화면 모드로 전환합니다. 선택한 모드는 이 브라우저에 저장됩니다."
-        eyebrow="표시 설정"
-        title="라이트/다크 모드"
+        description={t('settings.displayDescription')}
+        eyebrow={t('settings.displayEyebrow')}
+        title={t('settings.displayTitle')}
       />
 
-      <Text c="dimmed">
-        메인 레이아웃과 계정 화면에 동일하게 적용되는 표시 설정입니다.
-      </Text>
+      <Text c="dimmed">{t('settings.displayHelp')}</Text>
 
       <ThemeToggleControl />
     </SectionCard>
   );
 }
 
+function LanguageSettingsSection() {
+  const { enabledLocales, locale, setLocale } = useAppLocale();
+  const { t } = useAppTranslation();
+
+  return (
+    <SectionCard>
+      <SectionIntro
+        description={t('locale.description')}
+        eyebrow={t('locale.eyebrow')}
+        title={t('locale.title')}
+      />
+
+      <Select
+        data={enabledLocales.map((option) => ({
+          label: option.nativeLabel,
+          value: option.locale,
+        }))}
+        description={t('locale.currentDescription')}
+        label={t('locale.currentLabel')}
+        onChange={(value) => {
+          if (!value) return;
+          void setLocale(value as AppLocale);
+        }}
+        value={locale}
+      />
+
+      <Text c="dimmed" size="sm">
+        {t('locale.onlyKoreanReady')}
+      </Text>
+    </SectionCard>
+  );
+}
+
 export function SettingsPage() {
-  usePageTitle('설정과 백업');
+  const { t } = useAppTranslation();
+
+  usePageTitle(t('settings.pageTitle'));
   const { archiveScopeKey, mode, signOut, updateUser, user } = useAuthSession();
   const importProviderSettings = useImportProviderSettings(mode);
   const localArchiveSettings = useLocalArchiveSettings();
@@ -58,7 +94,7 @@ export function SettingsPage() {
   const sections = [
     {
       id: 'overview',
-      label: '개요',
+      label: t('settings.sections.overview'),
       content: (
         <SettingsOverview
           archiveFeedback={localArchiveSettings.archiveFeedback}
@@ -73,7 +109,7 @@ export function SettingsPage() {
     },
     {
       id: 'account',
-      label: '계정',
+      label: t('settings.sections.account'),
       content: (
         <AccountSettingsSection
           mode={mode}
@@ -84,7 +120,7 @@ export function SettingsPage() {
     },
     {
       id: 'data-backup',
-      label: '데이터와 백업',
+      label: t('settings.sections.dataBackup'),
       content: (
         <Stack gap="md">
           <LocalDataSafetySettingsSection
@@ -121,19 +157,19 @@ export function SettingsPage() {
     },
     {
       id: 'external-import',
-      label: '외부 기록 가져오기',
+      label: t('settings.sections.externalImport'),
       content: <ExternalImportSettingsSection />,
     },
     {
       id: 'duplicate-cleanup',
-      label: '중복 정리',
+      label: t('settings.sections.duplicateCleanup'),
       content: (
         <DuplicateCleanupSettingsSection archiveScopeKey={archiveScopeKey} />
       ),
     },
     {
       id: 'search-providers',
-      label: '검색 소스와 API 키',
+      label: t('settings.sections.searchProviders'),
       content: (
         <SearchProviderSettingsSection
           credentialDraft={importProviderSettings.credentialDraft}
@@ -158,7 +194,7 @@ export function SettingsPage() {
     },
     {
       id: 'notion-sync',
-      label: 'Notion 동기화',
+      label: t('settings.sections.notionSync'),
       content: (
         <NotionSyncSettingsSection
           connectionDraft={notionSettings.connectionDraft}
@@ -184,13 +220,18 @@ export function SettingsPage() {
       ),
     },
     {
+      id: 'language',
+      label: t('settings.sections.language'),
+      content: <LanguageSettingsSection />,
+    },
+    {
       id: 'display',
-      label: '표시 설정',
+      label: t('settings.sections.display'),
       content: <DisplaySettingsSection />,
     },
     {
       id: 'security',
-      label: '보안',
+      label: t('settings.sections.security'),
       content: (
         <SecuritySettingsSection
           feedback={authSessionSettings.sessionFeedback}
@@ -207,7 +248,7 @@ export function SettingsPage() {
     },
     {
       id: 'danger-zone',
-      label: '위험 작업',
+      label: t('settings.sections.dangerZone'),
       content: (
         <DangerZoneSection
           mode={mode}
@@ -224,11 +265,13 @@ export function SettingsPage() {
   return (
     <AccountPageTemplate
       actions={
-        <AppLinkButton to="/account">계정 개요로 돌아가기</AppLinkButton>
+        <AppLinkButton to="/account">
+          {t('settings.backToAccountOverview')}
+        </AppLinkButton>
       }
-      description="계정 연결, 로컬 백업, 검색 소스, API 키, 세션 보안을 한 곳에서 관리합니다."
-      eyebrow="설정"
-      title="설정과 백업"
+      description={t('settings.pageDescription')}
+      eyebrow={t('settings.pageEyebrow')}
+      title={t('settings.pageTitle')}
     >
       <SettingsLayout sections={sections} />
     </AccountPageTemplate>

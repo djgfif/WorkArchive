@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
 import { SectionCard } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 import styles from './SettingsControlCenter.module.css';
 import { cx } from '@shared/utils/class-names';
 
@@ -18,6 +19,7 @@ interface SettingsLayoutProps {
 }
 
 export function SettingsLayout({ sections }: SettingsLayoutProps) {
+  const { t } = useAppTranslation();
   const defaultSectionId = sections[0]?.id ?? '';
   const [activeSectionId, setActiveSectionId] = useState(defaultSectionId);
   const activeSection =
@@ -63,7 +65,10 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
 
   return (
     <div className={css.layout ?? ''}>
-      <nav aria-label="설정 사이드 섹션 탐색" className={css.sideNav ?? ''}>
+      <nav
+        aria-label={t('settings.layout.sideNavAria')}
+        className={css.sideNav ?? ''}
+      >
         <SectionCard padding="sm" tone="subtle">
           <div className={css.navList ?? ''} role="tablist">
             {sections.map((section) => (
@@ -76,7 +81,7 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
       </nav>
 
       <nav
-        aria-label="설정 모바일 섹션 탐색"
+        aria-label={t('settings.layout.mobileNavAria')}
         className={css.mobileNav ?? ''}
         role="tablist"
       >

@@ -6,6 +6,7 @@ import {
   type PosterImageVariant,
 } from './usePosterImageSource';
 import styles from './ArtworkPoster.module.css';
+import { useAppTranslation } from '@app/i18n';
 import { cn, cx } from '@shared/utils/class-names';
 
 interface ArtworkPosterProps {
@@ -49,6 +50,7 @@ export function ArtworkPoster({
   typeLabel,
   variant = 'card',
 }: ArtworkPosterProps) {
+  const { t } = useAppTranslation();
   const posterImage = usePosterImageSource(thumbnailUrl, variant);
 
   return (
@@ -68,7 +70,7 @@ export function ArtworkPoster({
             />
           )}
           <img
-            alt={`${title} 포스터`}
+            alt={t('shared.posterAlt', { title })}
             className={cx(
               cn(styles.posterImage),
               posterImage.loaded && cn(styles.posterImageLoaded),
@@ -82,14 +84,14 @@ export function ArtworkPoster({
         </>
       ) : (
         <Box
-          aria-label={`${title} 포스터 대체 표지`}
+          aria-label={t('shared.posterFallbackAlt', { title })}
           className={cn(styles.posterFallback)}
           data-cover-tone={getCoverTone(
             coverSeed ?? `${typeLabel ?? ''}:${title}`,
           )}
         >
           <Text className={cn(styles.posterFallbackType)}>
-            {typeLabel ?? '기록'}
+            {typeLabel ?? t('shared.posterFallbackType')}
           </Text>
           <Text className={cn(styles.posterFallbackMark)}>
             {(title.trim()[0] ?? 'W').toUpperCase()}

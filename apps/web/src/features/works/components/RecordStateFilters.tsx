@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Group, Stack } from '@mantine/core';
 import type { WorkStatus } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import styles from './ArchiveComponents.module.css';
 import type { WorksListQuery } from '../utils/query-works';
 import {
@@ -138,14 +139,22 @@ export function RecordStateFilters({
   query,
   statusOptions,
 }: RecordStateFiltersProps) {
+  const { t } = useAppTranslation();
   const ratingValue = query.ratingPreset ?? 'all';
   const smartValue = query.smartFilter ?? 'all';
 
   return (
     <Stack gap="md">
       <div className={cn(css.recordStateBlock)}>
-        <span className={cn(css.recordStateLabel)}>감상 상태</span>
-        <Group aria-label="감상 상태 필터" gap={6} role="group" wrap="wrap">
+        <span className={cn(css.recordStateLabel)}>
+          {t('works.list.recordStatusLabel')}
+        </span>
+        <Group
+          aria-label={t('works.list.recordStatusAria')}
+          gap={6}
+          role="group"
+          wrap="wrap"
+        >
           {statusOptions.map((option) => (
             <StateChip
               active={query.status === option.value}
@@ -164,8 +173,15 @@ export function RecordStateFilters({
       </div>
 
       <div className={cn(css.recordStateBlock)}>
-        <span className={cn(css.recordStateLabel)}>별점</span>
-        <Group aria-label="별점 필터" gap={6} role="group" wrap="wrap">
+        <span className={cn(css.recordStateLabel)}>
+          {t('works.form.ratingLabel')}
+        </span>
+        <Group
+          aria-label={t('works.list.ratingFilterAria')}
+          gap={6}
+          role="group"
+          wrap="wrap"
+        >
           {ratingPresetOptions.map((option) => (
             <StateChip
               active={ratingValue === option.value}
@@ -189,8 +205,15 @@ export function RecordStateFilters({
       </div>
 
       <div className={cn(css.recordStateBlock)}>
-        <span className={cn(css.recordStateLabel)}>추천 보기</span>
-        <Group aria-label="추천 보기 필터" gap={6} role="group" wrap="wrap">
+        <span className={cn(css.recordStateLabel)}>
+          {t('works.list.smartFilterLabel')}
+        </span>
+        <Group
+          aria-label={t('works.list.smartFilterAria')}
+          gap={6}
+          role="group"
+          wrap="wrap"
+        >
           {smartFilterOptions.map((option) => (
             <StateChip
               active={smartValue === option.value}

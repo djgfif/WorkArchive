@@ -8,6 +8,7 @@ import {
   type TimelineEntriesRepository,
   type WorksRepository,
 } from '@features/works/data';
+import { appI18n } from '@app/i18n';
 import {
   tierBoardRepository,
   type TierBoardRepository,
@@ -111,7 +112,7 @@ export class SyncService {
           skippedCount: 0,
           pulledAt: null,
           nextSince: null,
-          messages: ['보내기에 실패해 가져오기를 건너뛰었습니다.'],
+          messages: [appI18n.t('sync.manualPullSkippedAfterPushFailure')],
           requestFailed: true,
         },
       };

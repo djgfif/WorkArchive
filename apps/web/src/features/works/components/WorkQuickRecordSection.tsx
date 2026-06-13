@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Group, NativeSelect, TextInput } from '@mantine/core';
 import type { WorkRecord, WorkStatus } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   AppButton,
   PageSection,
@@ -23,6 +24,7 @@ export function WorkQuickRecordSection({
   onSuccess,
   work,
 }: WorkQuickRecordSectionProps) {
+  const { t } = useAppTranslation();
   const [status, setStatus] = useState<WorkStatus>(work.status);
   const [rating, setRating] = useState(work.rating?.toString() ?? '');
   const [favorite, setFavorite] = useState(work.favorite);
@@ -55,12 +57,12 @@ export function WorkQuickRecordSection({
         shortReview,
         status,
       });
-      onSuccess('빠른 기록을 저장했습니다.');
+      onSuccess(t('works.record.quick.saved'));
     } catch (error) {
       onError(
         error instanceof Error
           ? error.message
-          : '빠른 기록을 저장하지 못했습니다.',
+          : t('works.record.quick.saveError'),
       );
     } finally {
       setIsSaving(false);
@@ -69,15 +71,17 @@ export function WorkQuickRecordSection({
 
   return (
     <PageSection
-      description="상태, 별점, 즐겨찾기, 한줄평만 바로 저장합니다. 줄거리와 제작 정보는 전체 정보 수정에서 다룹니다."
-      eyebrow="바로 수정"
-      title="빠른 기록"
+      description={t('works.record.quick.description')}
+      eyebrow={t('works.record.quick.eyebrow')}
+      title={t('works.record.quick.title')}
     >
       <SectionCard gap="md" padding="lg" tone="default">
         <Group align="flex-end" grow>
           <NativeSelect
-            aria-label={`${work.title} 빠른 상태`}
-            label="상태"
+            aria-label={t('works.record.quick.statusAria', {
+              title: work.title,
+            })}
+            label={t('works.form.statusLabel')}
             onChange={(event) =>
               setStatus(event.currentTarget.value as WorkStatus)
             }
@@ -90,12 +94,14 @@ export function WorkQuickRecordSection({
             ))}
           </NativeSelect>
           <NativeSelect
-            aria-label={`${work.title} 빠른 별점`}
-            label="별점"
+            aria-label={t('works.record.quick.ratingAria', {
+              title: work.title,
+            })}
+            label={t('works.form.ratingLabel')}
             onChange={(event) => setRating(event.currentTarget.value)}
             value={rating}
           >
-            <option value="">미평가</option>
+            <option value="">{t('works.ratingMissing')}</option>
             {workRecordRatingOptions.map((option) => (
               <option key={option.value} value={option.value.toString()}>
                 {option.label}
@@ -104,11 +110,13 @@ export function WorkQuickRecordSection({
           </NativeSelect>
         </Group>
         <TextInput
-          aria-label={`${work.title} 빠른 한줄평`}
-          label="한줄평"
+          aria-label={t('works.record.quick.shortReviewAria', {
+            title: work.title,
+          })}
+          label={t('works.form.shortReviewLabel')}
           maxLength={500}
           onChange={(event) => setShortReview(event.currentTarget.value)}
-          placeholder="짧게 남겨두기"
+          placeholder={t('works.record.quick.shortReviewPlaceholder')}
           value={shortReview}
         />
         <Group justify="space-between">
@@ -118,7 +126,9 @@ export function WorkQuickRecordSection({
             tone={favorite ? 'primary' : 'secondary'}
             type="button"
           >
-            {favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+            {favorite
+              ? t('works.record.quick.favoriteRemove')
+              : t('works.record.quick.favoriteAdd')}
           </AppButton>
           <AppButton
             disabled={!hasChanges || isSaving}
@@ -126,7 +136,7 @@ export function WorkQuickRecordSection({
             tone="primary"
             type="button"
           >
-            빠른 기록 저장
+            {t('works.record.quick.save')}
           </AppButton>
         </Group>
       </SectionCard>

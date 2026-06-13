@@ -1,5 +1,7 @@
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
+
 export function getWorkProgressLabel(work: WorkRecord) {
   if (work.lastConsumedLabel) {
     return work.lastConsumedLabel;
@@ -13,7 +15,7 @@ export function getWorkProgressLabel(work: WorkRecord) {
   }
 
   if (current !== null) {
-    return `${current}까지`;
+    return appI18n.t('works.list.progressUntil', { current });
   }
 
   return null;

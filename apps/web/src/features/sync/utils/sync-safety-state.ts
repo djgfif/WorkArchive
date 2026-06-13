@@ -1,14 +1,16 @@
+import { appI18n, formatAppDateTime, formatAppNumber } from '@app/i18n';
+
 function formatShortDateTime(value: string | null) {
   if (!value) {
     return '';
   }
 
-  return new Intl.DateTimeFormat('ko-KR', {
+  return formatAppDateTime(new Date(value), {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(value));
+  });
 }
 
 export function getSyncSafetyBadgeState({
@@ -30,7 +32,7 @@ export function getSyncSafetyBadgeState({
 }) {
   if (mode !== 'authenticated') {
     return {
-      label: '게스트 로컬 전용',
+      label: appI18n.t('sync.badgeGuest'),
       tone: 'quiet' as const,
       to: '/account',
     };
@@ -38,7 +40,9 @@ export function getSyncSafetyBadgeState({
 
   if (conflictCount > 0 || failedCount > 0) {
     return {
-      label: `직접 확인 ${conflictCount + failedCount}`,
+      label: appI18n.t('sync.badgeConflictReview', {
+        count: formatAppNumber(conflictCount + failedCount),
+      }),
       tone: 'secondary' as const,
       to: '/account',
     };
@@ -46,7 +50,7 @@ export function getSyncSafetyBadgeState({
 
   if (staleStatusAt) {
     return {
-      label: '원격 확인 필요',
+      label: appI18n.t('sync.badgeStale'),
       tone: 'secondary' as const,
       to: '/account',
     };
@@ -54,7 +58,9 @@ export function getSyncSafetyBadgeState({
 
   if (requeuedCount > 0) {
     return {
-      label: `자동 병합 후 재시도 ${requeuedCount}`,
+      label: appI18n.t('sync.badgeRequeued', {
+        count: formatAppNumber(requeuedCount),
+      }),
       tone: 'secondary' as const,
       to: '/account',
     };
@@ -62,7 +68,9 @@ export function getSyncSafetyBadgeState({
 
   if (pendingCount > 0) {
     return {
-      label: `백업 대기 중인 기록 ${pendingCount}`,
+      label: appI18n.t('sync.badgePending', {
+        count: formatAppNumber(pendingCount),
+      }),
       tone: 'secondary' as const,
       to: '/account',
     };
@@ -70,8 +78,10 @@ export function getSyncSafetyBadgeState({
 
   return {
     label: lastSuccessfulPullAt
-      ? `최근 백업됨 ${formatShortDateTime(lastSuccessfulPullAt)}`
-      : '최근 백업됨',
+      ? appI18n.t('sync.badgeRecentAt', {
+          date: formatShortDateTime(lastSuccessfulPullAt),
+        })
+      : appI18n.t('sync.badgeRecent'),
     tone: 'quiet' as const,
     to: '/account',
   };

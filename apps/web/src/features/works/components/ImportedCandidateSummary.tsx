@@ -1,5 +1,6 @@
 import { Accordion, Alert, SimpleGrid, Stack, Text } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   ActionRow,
   AppBadge,
@@ -29,11 +30,13 @@ export function ImportedCandidateSummary({
   onReset,
   sourceCoverage,
 }: ImportedCandidateSummaryProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Alert color="blue" radius="lg" variant="light">
       <Stack gap="sm">
         <ActionRow justify="space-between">
-          <AppBadge tone="accent">검색으로 채운 정보</AppBadge>
+          <AppBadge tone="accent">{t('works.add.imported.title')}</AppBadge>
           <ActionRow>
             <AppButton
               onClick={onBackToSearch}
@@ -41,7 +44,7 @@ export function ImportedCandidateSummary({
               tone="ghost"
               type="button"
             >
-              다시 검색
+              {t('works.add.imported.backToSearch')}
             </AppButton>
             <AppButton
               onClick={onReset}
@@ -49,7 +52,7 @@ export function ImportedCandidateSummary({
               tone="ghost"
               type="button"
             >
-              직접 입력으로 전환
+              {t('works.add.imported.switchToManual')}
             </AppButton>
           </ActionRow>
         </ActionRow>
@@ -60,33 +63,36 @@ export function ImportedCandidateSummary({
           {candidate.reason}
         </Text>
         <Text c="inherit" size="sm">
-          검색 결과를 골라도 바로 저장되지 않고 입력칸만 채웁니다. 저장 전
-          미리보기에서 한 번 더 확인하세요.
+          {t('works.add.imported.description')}
         </Text>
         <ActionRow>
           <AppBadge tone="muted">{sourceCoverage.summaryLabel}</AppBadge>
         </ActionRow>
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
           <ChipSummary
-            emptyLabel="자동으로 채워진 필드가 없습니다."
-            label="채워진 정보"
+            emptyLabel={t('works.add.imported.emptyFilled')}
+            label={t('works.add.imported.filledLabel')}
             values={fieldSummary.filled}
           />
           <ChipSummary
-            emptyLabel="지금 바로 추가 입력할 항목이 없습니다."
-            label="내가 채우면 좋은 정보"
+            emptyLabel={t('works.add.imported.emptyMissing')}
+            label={t('works.add.imported.missingLabel')}
             values={fieldSummary.missing}
           />
         </SimpleGrid>
         <Accordion variant="contained">
           <Accordion.Item value="source-details">
-            <Accordion.Control>검색 출처 세부 정보</Accordion.Control>
+            <Accordion.Control>
+              {t('works.add.imported.sourceDetails')}
+            </Accordion.Control>
             <Accordion.Panel>
               <Stack gap="xs">
                 <ActionRow>
                   <AppBadge tone="muted">{candidate.sourceLabel}</AppBadge>
                   <AppBadge tone="muted">
-                    별칭 {candidate.titleAliases?.length ?? 0}개
+                    {t('works.add.imported.aliasCount', {
+                      count: candidate.titleAliases?.length ?? 0,
+                    })}
                   </AppBadge>
                 </ActionRow>
                 <ActionRow>

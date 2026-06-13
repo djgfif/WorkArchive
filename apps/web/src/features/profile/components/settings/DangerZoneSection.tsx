@@ -7,6 +7,7 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
+import { formatAppNumber, useAppTranslation } from '@app/i18n';
 import { confirmDialogAdapter } from '@shared/runtime/dialog-adapter';
 import styles from './SettingsControlCenter.module.css';
 
@@ -26,11 +27,12 @@ export function DangerZoneSection({
   revokingSessionId,
   sessionCount,
 }: DangerZoneSectionProps) {
+  const { t } = useAppTranslation();
+
   async function handleRevokeAllSessions() {
     const shouldRevoke = await confirmDialogAdapter.confirm({
-      title: '모든 기기에서 로그아웃할까요?',
-      description:
-        '현재 기기를 포함한 모든 로그인 세션이 해제되고, 이 브라우저는 게스트 모드로 전환됩니다.',
+      title: t('settings.danger.confirmLogoutAllTitle'),
+      description: t('settings.danger.confirmLogoutAllDescription'),
     });
 
     if (!shouldRevoke) {
@@ -43,24 +45,25 @@ export function DangerZoneSection({
   return (
     <SectionCard className={css.dangerCard ?? ''}>
       <SectionIntro
-        description="계정 접근 상태에 영향을 주는 작업입니다. 로컬 백업 파일에는 API key와 로그인 세션이 포함되지 않습니다."
-        eyebrow="위험 작업"
-        title="Danger area"
+        description={t('settings.danger.description')}
+        eyebrow={t('settings.danger.eyebrow')}
+        title={t('settings.danger.title')}
       />
 
       <SectionCard padding="lg" tone="subtle">
         <Stack gap="sm">
           <ActionRow>
-            <Text fw={800}>모든 기기 로그아웃</Text>
+            <Text fw={800}>{t('settings.danger.logoutAllTitle')}</Text>
             <AppBadge tone={mode === 'authenticated' ? 'danger' : 'muted'}>
               {mode === 'authenticated'
-                ? `활성 세션 ${sessionCount}개`
-                : '로그인 필요'}
+                ? t('settings.danger.activeSessionCount', {
+                    count: formatAppNumber(sessionCount),
+                  })
+                : t('settings.danger.loginRequired')}
             </AppBadge>
           </ActionRow>
           <Text c="dimmed" size="sm">
-            현재 기기를 포함한 모든 refresh session을 해제하고 이 브라우저도
-            즉시 게스트 모드로 전환합니다.
+            {t('settings.danger.logoutAllDescription')}
           </Text>
           <ActionRow>
             <AppButton
@@ -70,7 +73,7 @@ export function DangerZoneSection({
               tone="danger"
               type="button"
             >
-              모든 기기 로그아웃
+              {t('settings.danger.logoutAllTitle')}
             </AppButton>
           </ActionRow>
         </Stack>

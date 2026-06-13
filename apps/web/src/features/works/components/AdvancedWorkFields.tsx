@@ -12,6 +12,7 @@ import {
 } from '@mantine/core';
 import { useEffect, useState } from 'react';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   getFieldId,
   type WorkFormInputChangeHandler,
@@ -23,8 +24,8 @@ import styles from './ArchiveComponents.module.css';
 import { parseCommaSeparatedTextList } from '../utils/work-form';
 import { getWorkMediaFieldLabels } from '../utils/work-media-labels';
 import {
-  POPULAR_WEB_NOVEL_KEYWORDS,
-  WEB_NOVEL_KEYWORDS,
+  getPopularWebNovelKeywords,
+  getWebNovelKeywords,
 } from '../utils/web-novel-keywords';
 import { cn } from '@shared/utils/class-names';
 
@@ -51,6 +52,7 @@ export function AdvancedWorkFields({
   tagSuggestions = [],
   values,
 }: AdvancedWorkFieldsProps) {
+  const { t } = useAppTranslation();
   const seriesValues = parseCommaSeparatedTextList(values.seriesText);
   const universeValues = parseCommaSeparatedTextList(values.universeText);
   const creatorValues = parseCommaSeparatedTextList(values.creatorText);
@@ -67,10 +69,12 @@ export function AdvancedWorkFields({
     new Set(personContributorSuggestions),
   );
   const uniqueSeriesSuggestions = Array.from(new Set(seriesSuggestions));
+  const webNovelKeywords = getWebNovelKeywords();
+  const popularWebNovelKeywords = getPopularWebNovelKeywords();
   const uniqueTagSuggestions = Array.from(
-    new Set([...tagSuggestions, ...WEB_NOVEL_KEYWORDS]),
+    new Set([...tagSuggestions, ...webNovelKeywords]),
   );
-  const remainingPopularKeywords = POPULAR_WEB_NOVEL_KEYWORDS.filter(
+  const remainingPopularKeywords = popularWebNovelKeywords.filter(
     (keyword) => !personalTagValues.includes(keyword),
   );
   const hasSeriesRelation =
@@ -89,7 +93,7 @@ export function AdvancedWorkFields({
   return (
     <Accordion>
       <Accordion.Item value={itemValue}>
-        <Accordion.Control>상세 정보</Accordion.Control>
+        <Accordion.Control>{t('works.form.advancedTitle')}</Accordion.Control>
         <Accordion.Panel>
           <Stack gap="md" pt="sm">
             <Paper
@@ -100,16 +104,16 @@ export function AdvancedWorkFields({
             >
               <Stack gap="sm">
                 <Stack gap={2}>
-                  <Text fw={750}>관계 정보</Text>
+                  <Text fw={750}>{t('works.form.relationTitle')}</Text>
                   <Text c="var(--mantine-color-dimmed)" size="sm">
-                    시리즈, 세계관처럼 나중에 함께 묶어 볼 연결만 남깁니다.
+                    {t('works.form.relationDescription')}
                   </Text>
                 </Stack>
 
                 <Checkbox
                   checked={isSeriesWork}
-                  description="후속작, 외전, 리메이크, 공유 세계관을 따로 묶어 탐색할 때 사용합니다."
-                  label="시리즈 / 세계관 연결"
+                  description={t('works.form.relationCheckboxDescription')}
+                  label={t('works.form.relationCheckboxLabel')}
                   onChange={(event) => {
                     const checked = event.currentTarget.checked;
                     setIsSeriesWork(checked);
@@ -163,10 +167,9 @@ export function AdvancedWorkFields({
             >
               <Stack gap="sm">
                 <Stack gap={2}>
-                  <Text fw={750}>제작 정보</Text>
+                  <Text fw={750}>{t('works.form.creatorSectionTitle')}</Text>
                   <Text c="var(--mantine-color-dimmed)" size="sm">
-                    작가/제작진과 플랫폼처럼 작품 자체를 찾는 데 필요한 정보를
-                    정리합니다.
+                    {t('works.form.creatorSectionDescription')}
                   </Text>
                 </Stack>
 
@@ -235,24 +238,23 @@ export function AdvancedWorkFields({
             >
               <Stack gap="md">
                 <Stack gap={2}>
-                  <Text fw={750}>내 메모</Text>
+                  <Text fw={750}>{t('works.form.personalMemoTitle')}</Text>
                   <Text c="var(--mantine-color-dimmed)" size="sm">
-                    개인 태그, 긴 감상, 설명처럼 내 기준으로 다시 찾을 정보를
-                    남깁니다.
+                    {t('works.form.personalMemoDescription')}
                   </Text>
                 </Stack>
 
                 <TagsInput
                   clearable
                   data={uniqueTagSuggestions}
-                  description="개인 태그: 회귀, 빙의, 이세계처럼 대표 장르에 넣기 어려운 소재와 취향 키워드입니다."
+                  description={t('works.form.personalTagsDescription')}
                   id={getFieldId(idPrefix, 'personalTagsText')}
-                  label="개인 태그"
+                  label={t('works.form.personalTagsLabel')}
                   name="personalTagsText"
                   onChange={(items) =>
                     onTextListChange('personalTagsText', items)
                   }
-                  placeholder="시간여행, 다시 볼 것, 여운 강함"
+                  placeholder={t('works.form.personalTagsPlaceholder')}
                   splitChars={[',']}
                   value={personalTagValues}
                 />
@@ -260,7 +262,7 @@ export function AdvancedWorkFields({
                 {remainingPopularKeywords.length > 0 && (
                   <Group gap={6} wrap="wrap">
                     <Text c="dimmed" fw={700} size="xs">
-                      추천 키워드
+                      {t('works.form.recommendedKeywords')}
                     </Text>
                     {remainingPopularKeywords.map((keyword) => (
                       <Box
@@ -283,27 +285,27 @@ export function AdvancedWorkFields({
 
                 <Textarea
                   id={getFieldId(idPrefix, 'review')}
-                  label="상세 감상"
+                  label={t('works.form.reviewInputLabel')}
                   name="review"
                   onChange={onInputChange}
-                  placeholder="긴 감상은 저장 후 상세 화면에서 이어서 다듬을 수 있습니다"
+                  placeholder={t('works.form.detailedReviewPlaceholder')}
                   rows={4}
                   value={values.review}
                 />
 
                 <Textarea
                   id={getFieldId(idPrefix, 'description')}
-                  label="설명"
+                  label={t('works.form.workDescriptionLabel')}
                   name="description"
                   onChange={onInputChange}
-                  placeholder="작품 소개나 줄거리, 기록해두고 싶은 배경을 적어보세요"
+                  placeholder={t('works.form.workDescriptionPlaceholder')}
                   rows={4}
                   value={values.description}
                 />
 
                 <Checkbox
                   checked={values.favorite}
-                  label="즐겨찾기로 표시"
+                  label={t('works.form.favoriteLabel')}
                   name="favorite"
                   onChange={onInputChange}
                 />

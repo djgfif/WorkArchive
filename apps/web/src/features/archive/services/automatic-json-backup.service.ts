@@ -1,3 +1,5 @@
+import { appI18n } from '@app/i18n';
+
 import { appMetaRepository } from '../../sync/queue';
 import { localArchiveService } from './local-archive.service';
 import { LAST_JSON_EXPORT_AT_META_KEY } from '../utils/json-backup-reminder';
@@ -62,6 +64,12 @@ const DEFAULT_AUTO_BACKUP_SETTINGS: AutomaticJsonBackupSettings = {
   lastObservedChangeAt: null,
   lastSucceededAt: null,
 };
+
+function getAutomaticBackupMessage(
+  key: 'createError' | 'folderPermissionRequired' | 'folderReselectRequired' | 'unsupported',
+) {
+  return appI18n.t(`archive.backup.automatic.${key}`);
+}
 
 let sessionDirectoryHandle: FileSystemDirectoryHandleLike | null = null;
 
@@ -222,7 +230,7 @@ export async function chooseAutomaticJsonBackupDirectory(
   const fileSystemWindow = getFileSystemWindow();
 
   if (typeof fileSystemWindow?.showDirectoryPicker !== 'function') {
-    throw new Error('이 브라우저에서는 자동 폴더 백업을 사용할 수 없습니다.');
+    throw new Error(getAutomaticBackupMessage('unsupported'));
   }
 
   sessionDirectoryHandle = await fileSystemWindow.showDirectoryPicker({
@@ -233,7 +241,7 @@ export async function chooseAutomaticJsonBackupDirectory(
 
   if (permission !== 'granted') {
     sessionDirectoryHandle = null;
-    throw new Error('백업 폴더 쓰기 권한이 필요합니다.');
+    throw new Error(getAutomaticBackupMessage('folderPermissionRequired'));
   }
 
   const existing = await getAutomaticJsonBackupSettings();
@@ -267,32 +275,35 @@ export async function runAutomaticJsonBackupNow(
   const attemptedAt = toIso(now);
 
   if (!isAutomaticJsonBackupSupported()) {
+    const message = getAutomaticBackupMessage('unsupported');
     await saveSettings({
       ...settings,
       lastAttemptAt: attemptedAt,
-      lastError: '이 브라우저에서는 자동 폴더 백업을 사용할 수 없습니다.',
+      lastError: message,
     });
-    throw new Error('이 브라우저에서는 자동 폴더 백업을 사용할 수 없습니다.');
+    throw new Error(message);
   }
 
   if (!sessionDirectoryHandle) {
+    const message = getAutomaticBackupMessage('folderReselectRequired');
     await saveSettings({
       ...settings,
       lastAttemptAt: attemptedAt,
-      lastError: '이번 세션에서 백업 폴더를 다시 선택해야 합니다.',
+      lastError: message,
     });
-    throw new Error('이번 세션에서 백업 폴더를 다시 선택해야 합니다.');
+    throw new Error(message);
   }
 
   const permission = await requestSessionPermission();
 
   if (permission !== 'granted') {
+    const message = getAutomaticBackupMessage('folderPermissionRequired');
     await saveSettings({
       ...settings,
       lastAttemptAt: attemptedAt,
-      lastError: '백업 폴더 쓰기 권한이 필요합니다.',
+      lastError: message,
     });
-    throw new Error('백업 폴더 쓰기 권한이 필요합니다.');
+    throw new Error(message);
   }
 
   try {
@@ -326,7 +337,7 @@ export async function runAutomaticJsonBackupNow(
       lastError:
         error instanceof Error
           ? error.message
-          : '자동 백업 파일을 만들지 못했습니다.',
+          : getAutomaticBackupMessage('createError'),
     });
     throw error;
   }

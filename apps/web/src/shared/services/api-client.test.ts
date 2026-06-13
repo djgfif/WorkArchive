@@ -17,7 +17,9 @@ import { API_BASE_URL, HttpResponse, http, server } from '@test/msw';
 describe('api-client', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    vi.useRealTimers();
     clearStoredAuthTokens();
     window.localStorage.clear();
     window.sessionStorage.clear();
@@ -162,6 +164,31 @@ describe('api-client', () => {
     });
   });
 
+  it('preserves retry-after timing from rate limited responses', async () => {
+    server.use(
+      http.post(`${API_BASE_URL}/sync/pull`, () =>
+        HttpResponse.json(
+          { message: 'Too many requests' },
+          {
+            headers: {
+              'retry-after': '42',
+            },
+            status: 429,
+          },
+        ),
+      ),
+    );
+
+    await expect(
+      requestApi('/sync/pull', {
+        method: 'POST',
+      }),
+    ).rejects.toMatchObject({
+      retryAfterMs: 42_000,
+      status: 429,
+    });
+  });
+
   it('accepts empty 204 responses for void authenticated requests', async () => {
     writeStoredAuthTokens({
       accessToken: 'access-token',
@@ -193,6 +220,35 @@ describe('api-client', () => {
     ).rejects.toMatchObject({
       status: 0,
     });
+  });
+
+  it('aborts timed out requests as timeout failures', async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = vi.fn(
+      (_url: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            'abort',
+            () => reject(init.signal?.reason ?? new Error('aborted')),
+            { once: true },
+          );
+        }),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const requestPromise = requestApi('/imports/providers', {
+      method: 'GET',
+      timeoutMs: 100,
+    });
+    const assertion = expect(requestPromise).rejects.toMatchObject({
+      failureKind: 'timeout',
+      status: 0,
+    });
+
+    await vi.advanceTimersByTimeAsync(100);
+    await assertion;
   });
 
   it('sends guest plain requests without authorization', async () => {

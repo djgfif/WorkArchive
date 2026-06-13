@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import type { ImportProviderStatus } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { importsService } from '../services/imports.service';
 
@@ -37,31 +38,34 @@ function createProviderReadiness(
 
   return {
     available: {
-      label: '사용 가능',
+      label: appI18n.t('imports.readiness.available'),
       providers: searchableProviders.filter(
         (provider) =>
           provider.configured && provider.circuitState !== 'open',
       ),
     },
     circuitOpen: {
-      label: '일시 중단',
+      label: appI18n.t('imports.readiness.circuitOpen'),
       providers: searchableProviders.filter(
         (provider) => provider.circuitState === 'open',
       ),
     },
     directFallback: {
-      label: '직접 추가',
+      label: appI18n.t('imports.readiness.directFallback'),
       providers: directFallbackProviders,
     },
     serverSetupRequired: {
-      label: '서버 설정 필요',
+      label: appI18n.t('imports.readiness.serverSetupRequired'),
       providers: searchableProviders.filter(
         (provider) =>
           provider.credentialMode === 'server' && provider.configured === false,
       ),
     },
     userActionRequired: {
-      label: authMode === 'guest' ? '로그인 후 사용' : '사용자 키 필요',
+      label:
+        authMode === 'guest'
+          ? appI18n.t('imports.readiness.loginRequired')
+          : appI18n.t('imports.readiness.userKeyRequired'),
       providers: searchableProviders.filter(
         (provider) =>
           provider.credentialMode === 'user' && provider.configured === false,
@@ -108,7 +112,7 @@ export function useImportProviderReadiness(enabled: boolean) {
         setError(
           nextError instanceof Error
             ? nextError.message
-            : '검색 provider 상태를 불러오지 못했습니다.',
+            : appI18n.t('imports.readiness.loadError'),
         );
       })
       .finally(() => {

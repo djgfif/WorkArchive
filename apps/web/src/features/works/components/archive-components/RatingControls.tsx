@@ -1,20 +1,12 @@
 import { ActionIcon, Box, Group, Text } from '@mantine/core';
 import { useState, type KeyboardEvent, type PointerEvent } from 'react';
 
+import { useAppTranslation, type AppTranslationKey } from '@app/i18n';
 import { cn, css } from './styles';
 
-const STAR_LABELS: Record<string, string> = {
-  '0.5': '최악',
-  '1.0': '별로',
-  '1.5': '그저 그럼',
-  '2.0': '보통',
-  '2.5': '괜찮음',
-  '3.0': '좋음',
-  '3.5': '꽤 좋음',
-  '4.0': '훌륭함',
-  '4.5': '거의 완벽',
-  '5.0': '완벽',
-};
+function getStarLabelKey(value: number) {
+  return `works.rating.star${value.toFixed(1).replace('.', '_')}` as AppTranslationKey;
+}
 
 interface RatingDisplayProps {
   compact?: boolean;
@@ -28,10 +20,12 @@ export interface StarRatingInputProps {
 }
 
 export function RatingDisplay({ compact = false, value }: RatingDisplayProps) {
+  const { t } = useAppTranslation();
+
   if (value === null) {
     return (
       <Text c="dimmed" size={compact ? 'xs' : 'sm'}>
-        미평가
+        {t('works.rating.missing')}
       </Text>
     );
   }
@@ -39,7 +33,7 @@ export function RatingDisplay({ compact = false, value }: RatingDisplayProps) {
   const filled = Math.floor(value);
   const half = value % 1 >= 0.5 ? 1 : 0;
   const empty = 5 - filled - half;
-  const label = STAR_LABELS[value.toFixed(1)] ?? '';
+  const label = t(getStarLabelKey(value));
 
   return (
     <Group align="center" gap={compact ? 3 : 5} wrap="nowrap">
@@ -123,17 +117,24 @@ function RatingStarIcon({ className }: { className: string }) {
 }
 
 export function StarRatingInput({
-  label = '별점',
+  label,
   onChange,
   value,
 }: StarRatingInputProps) {
+  const { t } = useAppTranslation();
+  const resolvedLabel = label ?? t('works.rating.defaultLabel');
   const [hoverValue, setHoverValue] = useState<number | null>(null);
   const displayValue = hoverValue ?? value ?? 0;
   const displayLabel =
     displayValue > 0
-      ? `${displayValue.toFixed(1)} · ${STAR_LABELS[displayValue.toFixed(1)] ?? '평가'}`
-      : '미평가';
-  const semanticLabel = value === null ? '평가 안 함' : `${value.toFixed(1)}점`;
+      ? `${displayValue.toFixed(1)} · ${t(getStarLabelKey(displayValue), {
+          defaultValue: t('works.rating.fallback'),
+        })}`
+      : t('works.rating.missing');
+  const semanticLabel =
+    value === null
+      ? t('works.rating.semanticEmpty')
+      : t('works.rating.semanticValue', { value: value.toFixed(1) });
 
   function getPointerRating(event: PointerEvent<HTMLButtonElement>) {
     const starElements = Array.from(
@@ -204,13 +205,13 @@ export function StarRatingInput({
     <Box className={cn(css.starRatingInput)} data-has-value={value !== null}>
       <Group align="center" justify="space-between" wrap="nowrap">
         <Text c="var(--app-text-secondary)" fw={750} size="sm">
-          {label}
+          {resolvedLabel}
         </Text>
         <Group gap="xs" wrap="nowrap">
           <Text className={cn(css.starRatingScore)}>{displayLabel}</Text>
           {value !== null && (
             <ActionIcon
-              aria-label="별점 초기화"
+              aria-label={t('works.rating.clearAria')}
               className={cn(css.starRatingReset)}
               onClick={() => onChange(null)}
               size="sm"
@@ -223,7 +224,7 @@ export function StarRatingInput({
       </Group>
 
       <button
-        aria-label={label}
+        aria-label={resolvedLabel}
         aria-valuemax={5}
         aria-valuemin={0}
         aria-valuenow={value ?? 0}

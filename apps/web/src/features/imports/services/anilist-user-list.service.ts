@@ -1,5 +1,7 @@
 import type { WorkStatus, WorkType } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
+
 /**
  * AniList 공개 사용자 리스트를 키 없이 가져온다.
  * 비공개 리스트는 AniList 쪽에서 거부하며, 그 경우 사용자에게 안내한다.
@@ -275,19 +277,17 @@ async function fetchUserListPage(userName: string, type: 'ANIME' | 'MANGA') {
     const firstError = payload?.errors?.[0];
 
     if (response.status === 404 || firstError?.status === 404) {
-      throw new Error(
-        'AniList에서 해당 사용자명을 찾지 못했습니다. 철자를 확인해 주세요.',
-      );
+      throw new Error(appI18n.t('imports.anilist.userListNotFound'));
     }
 
     if (firstError?.message?.toLowerCase().includes('private')) {
-      throw new Error(
-        '해당 AniList 리스트가 비공개입니다. AniList 설정에서 리스트를 공개로 바꾼 뒤 다시 시도해 주세요.',
-      );
+      throw new Error(appI18n.t('imports.anilist.userListPrivate'));
     }
 
     throw new Error(
-      `AniList 리스트를 가져오지 못했습니다 (HTTP ${response.status}).`,
+      appI18n.t('imports.anilist.userListFetchError', {
+        status: response.status,
+      }),
     );
   }
 

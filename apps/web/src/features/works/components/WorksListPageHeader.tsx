@@ -2,6 +2,7 @@ import { Box } from '@mantine/core';
 import type { WorkStatus } from '@work-archive/shared-types';
 
 import { AppButton } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 import styles from './ArchiveComponents.module.css';
 import { cn } from '@shared/utils/class-names';
 
@@ -28,6 +29,7 @@ export function WorksListPageHeader({
   totalActiveCount,
   totalDeletedCount,
 }: WorksListPageHeaderProps) {
+  const { t } = useAppTranslation();
   // 카운트 세그먼트 — onSelectStatus가 있으면 클릭 시 상태 필터를 적용하는 버튼,
   // 없으면 정적 텍스트. (홈 화면 stat strip과 일관)
   const renderCount = (
@@ -37,7 +39,7 @@ export function WorksListPageHeader({
   ) => {
     const inner = (
       <>
-        {label} <strong>{count}개</strong>
+        {label} <strong>{t('works.list.count', { count })}</strong>
       </>
     );
 
@@ -49,7 +51,7 @@ export function WorksListPageHeader({
 
     return (
       <Box
-        aria-label={`${label} ${count}개로 좁히기`}
+        aria-label={t('works.list.scopeLabel', { count, label })}
         aria-pressed={active}
         className={cn(css.libraryPageMetaButton)}
         component="button"
@@ -66,16 +68,22 @@ export function WorksListPageHeader({
     <Box className={cn(css.libraryPageHeader)}>
       <Box>
         <Box component="h1" className={cn(css.libraryPageTitle)}>
-          {isTrashScope ? '휴지통' : '작품 서재'}
+          {isTrashScope
+            ? t('works.list.titleTrash')
+            : t('works.list.pageTitle')}
         </Box>
         {!isLoading && !isTrashScope && totalActiveCount > 0 && (
           <Box className={cn(css.libraryPageMeta)}>
-            {renderCount('작품', totalActiveCount, 'all')}
+            {renderCount(
+              t('works.list.allWorksLabel'),
+              totalActiveCount,
+              'all',
+            )}
             {statusCounts.in_progress > 0 && (
               <>
                 <span className={cn(css.libraryPageDot)} />
                 {renderCount(
-                  '진행 중',
+                  t('works.status.in_progress'),
                   statusCounts.in_progress,
                   'in_progress',
                 )}
@@ -84,7 +92,11 @@ export function WorksListPageHeader({
             {statusCounts.completed > 0 && (
               <>
                 <span className={cn(css.libraryPageDot)} />
-                {renderCount('완료', statusCounts.completed, 'completed')}
+                {renderCount(
+                  t('works.status.completed'),
+                  statusCounts.completed,
+                  'completed',
+                )}
               </>
             )}
             {statusCounts.planned > 0 &&
@@ -92,7 +104,11 @@ export function WorksListPageHeader({
               statusCounts.completed === 0 && (
                 <>
                   <span className={cn(css.libraryPageDot)} />
-                  {renderCount('볼 예정', statusCounts.planned, 'planned')}
+                  {renderCount(
+                    t('works.status.planned'),
+                    statusCounts.planned,
+                    'planned',
+                  )}
                 </>
               )}
           </Box>
@@ -100,7 +116,10 @@ export function WorksListPageHeader({
         {!isLoading && isTrashScope && totalDeletedCount > 0 && (
           <Box className={cn(css.libraryPageMeta)}>
             <span>
-              삭제된 작품 <strong>{totalDeletedCount}개</strong>
+              {t('works.list.deletedWorks')}{' '}
+              <strong>
+                {t('works.list.count', { count: totalDeletedCount })}
+              </strong>
             </span>
           </Box>
         )}
@@ -112,7 +131,7 @@ export function WorksListPageHeader({
           tone="primary"
           type="button"
         >
-          작품 추가
+          {t('navigation.addWork')}
         </AppButton>
       )}
     </Box>

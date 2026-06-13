@@ -17,7 +17,11 @@ import type {
 } from '@work-archive/shared-types';
 import { SYNC_SCHEMA_VERSION } from '@work-archive/shared-types';
 
-import { requestAuthenticatedApiJson } from '@shared/services/api-client';
+import { appI18n } from '@app/i18n';
+import {
+  ApiRequestError,
+  requestAuthenticatedApiJson,
+} from '@shared/services/api-client';
 import { localizeServerMessage } from '@shared/utils/localize-message';
 import {
   graphRepository,
@@ -76,6 +80,7 @@ export interface PullCycleResult {
   nextSince: string | null;
   messages: string[];
   requestFailed: boolean;
+  retryAfterMs?: number;
 }
 
 function assertSupportedResponseSchemaVersion(schemaVersion: unknown) {
@@ -83,9 +88,7 @@ function assertSupportedResponseSchemaVersion(schemaVersion: unknown) {
     return;
   }
 
-  throw new Error(
-    '가져오기 응답의 동기화 계약 버전을 지원하지 않습니다. 앱을 새로고침하거나 업데이트해주세요.',
-  );
+  throw new Error(appI18n.t('sync.schemaPullUnsupported'));
 }
 
 async function postJson<TResponse>(
@@ -99,7 +102,7 @@ async function postJson<TResponse>(
       body: JSON.stringify(body),
     },
     {
-      missingTokenMessage: '동기화하려면 로그인해주세요.',
+      missingTokenMessage: appI18n.t('sync.loginRequired'),
     },
   );
 }
@@ -138,7 +141,7 @@ export class SyncPullService {
       skippedCount: 0,
       pulledAt: null,
       nextSince: null,
-      messages: ['다른 탭에서 동기화 중이라 이번 가져오기를 건너뛰었습니다.'],
+      messages: [appI18n.t('sync.pullLeaseBusy')],
       requestFailed: false,
     };
   }
@@ -213,8 +216,7 @@ export class SyncPullService {
             if (!autoMerged) {
               skippedCount += relatedQueueItems.length;
               const remote = getRemotePullConflictPayload(change);
-              const conflictMessage =
-                '원격 변경과 로컬 대기열을 자동 병합할 수 없어 직접 확인이 필요합니다.';
+              const conflictMessage = appI18n.t('sync.conflictLocalQueue');
 
               for (const queueItem of relatedQueueItems) {
                 await this.queueRepo.markConflict(
@@ -230,9 +232,7 @@ export class SyncPullService {
                 );
               }
             } else {
-              messages.push(
-                '안전한 원격 변경을 자동 병합해 다시 백업 대기 중입니다.',
-              );
+              messages.push(appI18n.t('sync.autoMergedRemoteQueued'));
             }
 
             continue;
@@ -279,11 +279,9 @@ export class SyncPullService {
       }
 
       if (pulledCount === 0) {
-        messages.push('가져올 변경 사항이 없습니다.');
+        messages.push(appI18n.t('sync.noChangesToPull'));
       } else if (skippedCount > 0) {
-        messages.push(
-          '확인이 필요한 항목이 있어 일부 내용은 자동으로 가져오지 않았습니다.',
-        );
+        messages.push(appI18n.t('sync.pullSkippedForConflicts'));
       }
 
       return {
@@ -308,6 +306,9 @@ export class SyncPullService {
         requestFailed: false,
       };
     } catch (error) {
+      const retryAfterMs =
+        error instanceof ApiRequestError ? error.retryAfterMs : null;
+
       return {
         pulledCount: 0,
         appliedCount: 0,
@@ -318,11 +319,12 @@ export class SyncPullService {
           error instanceof Error
             ? localizeServerMessage(
                 error.message,
-                '가져오기 요청에 실패했습니다.',
+                appI18n.t('sync.failedPull'),
               )
-            : '가져오기 요청에 실패했습니다.',
+            : appI18n.t('sync.failedPull'),
         ],
         requestFailed: true,
+        ...(retryAfterMs !== null ? { retryAfterMs } : {}),
       };
     }
   }

@@ -8,25 +8,26 @@ import {
 } from '@work-archive/shared-types';
 
 import type { WorksSortOption } from './query-works';
+import { appI18n, formatAppDate, formatAppDateTime } from '@app/i18n';
 
 const workTypeLabels: Record<WorkType, string> = {
-  novel: '소설',
-  anime: '애니',
-  manga: '만화',
-  light_novel: '라이트노벨',
-  web_novel: '웹소설',
-  webtoon: '웹툰',
-  movie: '영화',
-  drama: '드라마',
-  other: '기타',
+  novel: appI18n.t('works.type.novel'),
+  anime: appI18n.t('works.type.anime'),
+  manga: appI18n.t('works.type.manga'),
+  light_novel: appI18n.t('works.type.light_novel'),
+  web_novel: appI18n.t('works.type.web_novel'),
+  webtoon: appI18n.t('works.type.webtoon'),
+  movie: appI18n.t('works.type.movie'),
+  drama: appI18n.t('works.type.drama'),
+  other: appI18n.t('works.type.other'),
 };
 
 const workStatusLabels: Record<WorkStatus, string> = {
-  planned: '볼 예정',
-  in_progress: '보는 중',
-  on_hold: '보류',
-  completed: '완료',
-  dropped: '하차',
+  planned: appI18n.t('works.status.planned'),
+  in_progress: appI18n.t('works.status.in_progress'),
+  on_hold: appI18n.t('works.status.on_hold'),
+  completed: appI18n.t('works.status.completed'),
+  dropped: appI18n.t('works.status.dropped'),
 };
 
 export const visibleWorkStatuses = [
@@ -38,10 +39,10 @@ export const visibleWorkStatuses = [
 ] as const satisfies readonly WorkStatus[];
 
 const workSyncStatusLabels: Record<WorkSyncStatus, string> = {
-  'local-only': '기기에 저장됨',
-  pending: '자동 백업 중',
-  synced: '백업됨',
-  conflict: '확인 필요',
+  'local-only': appI18n.t('works.syncStatus.localOnly'),
+  pending: appI18n.t('works.syncStatus.pending'),
+  synced: appI18n.t('works.syncStatus.synced'),
+  conflict: appI18n.t('works.syncStatus.conflict'),
 };
 
 export const workTypeOptions = WORK_TYPES.map((value) => ({
@@ -59,15 +60,16 @@ export const visibleWorkStatusOptions = visibleWorkStatuses.map((value) => ({
   label: workStatusLabels[value],
 }));
 
-export const workSortOptions: Array<{ value: WorksSortOption; label: string }> = [
-  { value: 'updatedAt', label: '최근 수정' },
-  { value: 'createdAt', label: '추가일' },
-  { value: 'lastConsumedAt', label: '마지막 감상' },
-  { value: 'startedAt', label: '시작일' },
-  { value: 'completedAt', label: '완료일' },
-  { value: 'title', label: '제목순' },
-  { value: 'rating', label: '별점순' },
-];
+export const workSortOptions: Array<{ value: WorksSortOption; label: string }> =
+  [
+    { value: 'updatedAt', label: appI18n.t('works.sort.updatedAt') },
+    { value: 'createdAt', label: appI18n.t('works.sort.createdAt') },
+    { value: 'lastConsumedAt', label: appI18n.t('works.sort.lastConsumedAt') },
+    { value: 'startedAt', label: appI18n.t('works.sort.startedAt') },
+    { value: 'completedAt', label: appI18n.t('works.sort.completedAt') },
+    { value: 'title', label: appI18n.t('works.sort.title') },
+    { value: 'rating', label: appI18n.t('works.sort.rating') },
+  ];
 
 export function getWorkTypeLabel(value: WorkType) {
   return workTypeLabels[value];
@@ -78,9 +80,9 @@ export function getWorkStatusLabel(value: WorkStatus) {
 }
 
 const serialStatusLabels: Record<SerialStatus, string> = {
-  ongoing: '연재 중',
-  completed: '완결',
-  hiatus: '휴재',
+  ongoing: appI18n.t('works.serialStatus.ongoing'),
+  completed: appI18n.t('works.serialStatus.completed'),
+  hiatus: appI18n.t('works.serialStatus.hiatus'),
 };
 
 export const serialStatusOptions = SERIAL_STATUSES.map((value) => ({
@@ -97,10 +99,10 @@ export function getWorkSyncStatusLabel(value: WorkSyncStatus) {
 }
 
 export function formatWorkDateTime(value: string) {
-  return new Intl.DateTimeFormat('ko-KR', {
+  return formatAppDateTime(value, {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(value));
+  });
 }
 
 export function formatWorkUpdatedAt(value: string) {
@@ -109,10 +111,10 @@ export function formatWorkUpdatedAt(value: string) {
 
 export function formatWorkDate(value?: string | null) {
   if (!value) {
-    return '미기록';
+    return appI18n.t('works.dateMissing');
   }
 
-  return new Intl.DateTimeFormat('ko-KR', {
+  return formatAppDate(value, {
     dateStyle: 'medium',
-  }).format(new Date(value));
+  });
 }

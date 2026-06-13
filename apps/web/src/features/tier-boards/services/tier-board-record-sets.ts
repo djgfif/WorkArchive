@@ -4,6 +4,7 @@ import type {
   TierLaneRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { createLocalTierBoardAssetUrl } from './tier-board-assets';
 import type {
   StoredTierBoardAssetRecord,
@@ -285,7 +286,7 @@ export function buildDuplicatedCardRecordSet(input: {
     card: {
       ...source,
       id: crypto.randomUUID(),
-      title: `${source.title} 복사본`,
+      title: appI18n.t('tierBoards.copyTitle', { title: source.title }),
       orderIndex: getNextOrderIndex(
         state.cards.filter((candidate) => candidate.laneId === source.laneId),
       ),

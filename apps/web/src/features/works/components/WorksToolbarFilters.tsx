@@ -1,6 +1,7 @@
 import { Box, Group, Stack, Text } from '@mantine/core';
 import type { WorkType } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import { AppButton } from '@shared/components/AppPrimitives';
 import { IconX } from './WorksToolbarIcons';
 import styles from './ArchiveComponents.module.css';
@@ -27,6 +28,7 @@ export function MediaTypeFilter({
   typeCounts,
   value,
 }: MediaTypeFilterProps) {
+  const { t } = useAppTranslation();
   const options = buildMediaTypeOptions({
     activeValue: value,
     totalCount,
@@ -35,7 +37,7 @@ export function MediaTypeFilter({
 
   return (
     <Box className={cn(css.mediaTypeFilter)}>
-      <Box aria-label="매체 유형으로 빠르게 좁히기" role="group">
+      <Box aria-label={t('works.list.mediaTypeFilterAria')} role="group">
         <Box className={cn(css.mediaTypeOptions)}>
           {options.map((option) => {
             const isActive = option.value === value;
@@ -85,13 +87,15 @@ export function ActiveFilterChips({
   chips,
   onClearFilters,
 }: ActiveFilterChipsProps) {
+  const { t } = useAppTranslation();
+
   if (chips.length === 0) {
     return null;
   }
 
   return (
     <Group
-      aria-label="적용된 필터"
+      aria-label={t('works.list.activeFilterAria')}
       className={cn(css.activeFilterGroup)}
       gap="xs"
       role="group"
@@ -105,7 +109,9 @@ export function ActiveFilterChips({
         >
           {chip.label}
           <Box
-            aria-label={`${chip.label} 필터 제거`}
+            aria-label={t('works.list.activeFilterRemoveAria', {
+              label: chip.label,
+            })}
             className={cn(css.activeFilterRemove)}
             component="button"
             onClick={chip.onRemove}
@@ -121,7 +127,7 @@ export function ActiveFilterChips({
             css.activeFilterMoreChip,
           )}`}
         >
-          필터 {chips.length - 3}개 더 있음
+          {t('works.list.activeFilterMore', { count: chips.length - 3 })}
         </Box>
       )}
       <Box
@@ -130,7 +136,7 @@ export function ActiveFilterChips({
         onClick={onClearFilters}
         type="button"
       >
-        모두 지우기
+        {t('works.list.clearAll')}
       </Box>
     </Group>
   );
@@ -147,15 +153,16 @@ export function TrashScopeBar({
   onClearFilters,
   onCollectionScopeChange,
 }: TrashScopeBarProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Box className={cn(css.trashScopeBar)}>
       <Stack gap={2} miw={0}>
         <Text c="var(--app-text-primary)" fw={800} size="sm">
-          복구가 기본 작업입니다.
+          {t('works.list.trashScopeTitle')}
         </Text>
         <Text c="var(--app-text-muted)" size="xs">
-          삭제한 작품은 서재에서 숨겨진 상태입니다. 복구하면 원래 서재로
-          돌아갑니다.
+          {t('works.list.trashScopeDescription')}
         </Text>
       </Stack>
       <Group gap="xs" justify="flex-end" wrap="wrap">
@@ -166,7 +173,7 @@ export function TrashScopeBar({
             tone="secondary"
             type="button"
           >
-            필터 초기화
+            {t('works.list.resetFilters')}
           </AppButton>
         )}
         <AppButton
@@ -175,7 +182,7 @@ export function TrashScopeBar({
           tone="quiet"
           type="button"
         >
-          서재 보기
+          {t('works.list.viewLibrary')}
         </AppButton>
       </Group>
     </Box>

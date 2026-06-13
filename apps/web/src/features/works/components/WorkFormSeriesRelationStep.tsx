@@ -1,5 +1,6 @@
 import { Checkbox, Paper, SimpleGrid, Stack, TagsInput } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import type { WorkFormListFieldName } from './add-work-form.types';
 import type { getWorkMediaFieldLabels } from '../utils/work-media-labels';
 
@@ -22,14 +23,16 @@ export function WorkFormSeriesRelationStep({
   uniqueSeriesSuggestions,
   universeValues,
 }: WorkFormSeriesRelationStepProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Stack gap="lg" pt="md">
       <Paper p="md" radius="md" withBorder>
         <Stack gap="md">
           <Checkbox
             checked={isSeriesWork}
-            description="후속작, 외전, 리메이크, 공유 세계관을 따로 묶어 탐색할 때 사용합니다."
-            label="시리즈 / 세계관 연결"
+            description={t('works.form.relationCheckboxDescription')}
+            label={t('works.form.relationCheckboxLabel')}
             onChange={(event) =>
               onSeriesWorkChange(event.currentTarget.checked)
             }

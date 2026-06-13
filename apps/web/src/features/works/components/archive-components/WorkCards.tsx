@@ -3,10 +3,8 @@ import type { ReactNode } from 'react';
 import type { WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
-import {
-  AppBadge,
-  AppLinkButton,
-} from '@shared/components/AppPrimitives';
+import { appI18n, useAppTranslation } from '@app/i18n';
+import { AppBadge, AppLinkButton } from '@shared/components/AppPrimitives';
 import {
   PosterHoverOverlay,
   POSTER_CARD_HOVER_CLASS,
@@ -51,7 +49,9 @@ type AppBadgeToneValue =
 
 function getPrimaryMetaLine(work: WorkRecord) {
   const ratingLabel =
-    work.rating === null ? '미평가' : `★ ${work.rating.toFixed(1)}`;
+    work.rating === null
+      ? appI18n.t('works.ratingMissing')
+      : `★ ${work.rating.toFixed(1)}`;
 
   return [ratingLabel, getWorkStatusLabel(work.status)]
     .filter(Boolean)
@@ -89,12 +89,13 @@ export function WorkPosterCard({
   isUpdating = false,
   work,
 }: WorkPosterCardProps) {
+  const { t } = useAppTranslation();
   const typeLabel = getWorkTypeLabel(work.type);
   const needsCuration = needsPosterCuration(work);
 
   return (
     <Link
-      aria-label={`${work.title} 상세 보기`}
+      aria-label={t('works.list.trashDetailAria', { title: work.title })}
       className={cx(cn(css.posterCardLink), POSTER_CARD_HOVER_CLASS)}
       to={`/works/${work.id}`}
     >
@@ -104,7 +105,7 @@ export function WorkPosterCard({
             aria-hidden="true"
             className={cn(css.favoriteMark)}
             component="span"
-            title="즐겨찾기"
+            title={t('works.list.favorite')}
           >
             ★
           </Box>
@@ -125,11 +126,16 @@ export function WorkPosterCard({
           <Box
             aria-hidden="true"
             className={cn(css.posterCurationMarker)}
-            title="정리 필요"
+            title={t('works.list.needsCuration')}
           />
         )}
         <Stack className={cn(css.posterCardBody)} gap={3}>
-          <Title className={cn(css.posterCardTitle)} lineClamp={2} order={3} size="h4">
+          <Title
+            className={cn(css.posterCardTitle)}
+            lineClamp={2}
+            order={3}
+            size="h4"
+          >
             {work.title}
           </Title>
           {work.author.trim() && (
@@ -155,7 +161,7 @@ export function WorkPosterCard({
           )}
           {isUpdating && (
             <Text c="var(--app-accent-primary)" fw={800} size="xs">
-              저장 중
+              {t('works.list.saving')}
             </Text>
           )}
         </Stack>
@@ -165,6 +171,7 @@ export function WorkPosterCard({
 }
 
 export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
+  const { t } = useAppTranslation();
   const typeLabel = getWorkTypeLabel(work.type);
 
   return (
@@ -185,7 +192,9 @@ export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
                 {getWorkStatusLabel(work.status)}
               </AppBadge>
               <SerialStatusBadge serialStatus={work.serialStatus} />
-              {isUpdating && <AppBadge tone="accent">저장 중</AppBadge>}
+              {isUpdating && (
+                <AppBadge tone="accent">{t('works.list.saving')}</AppBadge>
+              )}
             </Group>
             <Title lineClamp={1} order={3} size="h4">
               {work.title}
@@ -221,11 +230,24 @@ export function WorkShelf({ empty, title, works }: WorkShelfProps) {
 }
 
 export function ArchiveStarterShelf() {
+  const { t } = useAppTranslation();
   const starterCovers = [
-    { title: '첫 기록', typeLabel: '소설' },
-    { title: '이어보기', typeLabel: '애니' },
-    { title: '다시 보고 싶은 장면', typeLabel: '영화' },
-    { title: '한줄 감상', typeLabel: '만화' },
+    {
+      title: t('works.list.starterCoverFirst'),
+      typeLabel: getWorkTypeLabel('novel'),
+    },
+    {
+      title: t('works.list.starterCoverContinue'),
+      typeLabel: getWorkTypeLabel('anime'),
+    },
+    {
+      title: t('works.list.starterCoverScene'),
+      typeLabel: getWorkTypeLabel('movie'),
+    },
+    {
+      title: t('works.list.starterCoverReview'),
+      typeLabel: getWorkTypeLabel('manga'),
+    },
   ];
 
   return (
@@ -239,15 +261,15 @@ export function ArchiveStarterShelf() {
             tt="uppercase"
             style={{ letterSpacing: '0.06em' }}
           >
-            시작하기
+            {t('works.list.starterEyebrow')}
           </Text>
-          <Title order={2}>처음 채울 선반</Title>
+          <Title order={2}>{t('works.list.starterTitle')}</Title>
           <Text c="dimmed" size="sm">
-            제목 하나만 남겨도 포스터처럼 정리됩니다.
+            {t('works.list.starterDescription')}
           </Text>
         </Stack>
         <AppLinkButton to="/works/new" tone="primary">
-          첫 작품 기록
+          {t('works.list.starterAction')}
         </AppLinkButton>
       </Group>
       <Box aria-hidden="true" className={cn(css.starterCovers)}>
@@ -266,9 +288,13 @@ export function ArchiveStarterShelf() {
 }
 
 export function WorkUpdatedMeta({ work }: { work: WorkRecord }) {
+  const { t } = useAppTranslation();
+
   return (
     <Text c="dimmed" lineClamp={1} size="sm">
-      마지막 감상 {formatWorkDate(work.lastConsumedAt)}
+      {t('works.list.updatedMeta', {
+        date: formatWorkDate(work.lastConsumedAt),
+      })}
     </Text>
   );
 }

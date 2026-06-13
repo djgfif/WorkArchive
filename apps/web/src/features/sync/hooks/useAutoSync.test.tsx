@@ -32,7 +32,7 @@ function AutoSyncProbe() {
 function AutoSyncBackoffProbe() {
   useAutoSync({
     debounceMs: 10,
-    pullFailureBackoffMs: 50,
+    pullFailureBackoffMs: 30,
     pullMinIntervalMs: 0,
   });
 
@@ -86,6 +86,7 @@ describe('useAutoSync', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -102,6 +103,7 @@ describe('useAutoSync', () => {
     await waitFor(() => {
       expect(pullSpy).toHaveBeenCalledTimes(1);
     });
+    await pullSpy.mock.results[0]?.value;
 
     window.dispatchEvent(new Event('focus'));
 
@@ -111,12 +113,14 @@ describe('useAutoSync', () => {
   });
 
   it('backs off automatic pull after a failed request before retrying on focus', async () => {
+    vi.useFakeTimers();
     const pullSpy = vi
       .spyOn(syncService, 'pullRemoteChanges')
       .mockResolvedValueOnce(
         buildPullResult({
           messages: ['요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'],
           requestFailed: true,
+          retryAfterMs: 80,
         }),
       )
       .mockResolvedValue(buildPullResult());
@@ -126,17 +130,20 @@ describe('useAutoSync', () => {
 
     renderAutoSyncBackoff();
 
-    await waitFor(() => {
-      expect(pullSpy).toHaveBeenCalledTimes(1);
-    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(pullSpy).toHaveBeenCalledTimes(1);
+    await pullSpy.mock.results[0]?.value;
 
     window.dispatchEvent(new Event('focus'));
     window.dispatchEvent(new Event('focus'));
     expect(pullSpy).toHaveBeenCalledTimes(1);
 
-    await waitFor(() => {
-      expect(pullSpy).toHaveBeenCalledTimes(2);
-    });
+    await vi.advanceTimersByTimeAsync(79);
+    expect(pullSpy).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(pullSpy).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 
   it('debounces a push when local-first writes add sync queue items', async () => {

@@ -1,6 +1,7 @@
 import { Grid, Paper } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import { StateMessage } from '@shared/components/AppPrimitives';
 import type { ImportCandidate } from '@features/imports';
 import { CandidatePreviewPanel } from './CandidatePreviewPanel';
@@ -29,6 +30,8 @@ export function AddWorkSearchPreview({
   onApplyCandidate,
   selectedCandidate,
 }: AddWorkSearchPreviewProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Grid.Col span={{ base: 12, md: 7 }}>
       <Paper
@@ -50,17 +53,17 @@ export function AddWorkSearchPreview({
           <StateMessage
             description={
               isManualSearchGroup
-                ? '직접 추가 후보를 고르면 입력한 제목으로 기록을 시작할 수 있습니다.'
+                ? t('works.add.search.previewManualDescription')
                 : hasSearched
-                  ? '왼쪽 후보를 고르면 큰 포스터와 검색 근거를 여기서 바로 비교할 수 있습니다.'
-                  : '검색 결과가 생기면 후보 정보와 내 기록 중복 가능성을 여기에서 확인합니다.'
+                  ? t('works.add.search.previewHasSearchedDescription')
+                  : t('works.add.search.noDescription')
             }
             title={
               isManualSearchGroup
-                ? '직접 추가 후보를 먼저 선택하세요'
+                ? t('works.add.search.previewManualTitle')
                 : hasSearched
-                  ? '후보를 먼저 선택하세요'
-                  : '검색 후보 미리보기'
+                  ? t('works.add.search.previewHasSearchedTitle')
+                  : t('works.add.search.previewInitialTitle')
             }
             tone="info"
           />

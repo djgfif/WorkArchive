@@ -8,6 +8,7 @@ export const REDIS_CACHE_TTL_MS = FRESH_CACHE_TTL_MS + STALE_CACHE_TTL_MS;
 export const MAX_MEMORY_CACHE_ENTRIES = 500;
 export const MAX_REDIRECTS = 3;
 export const FETCH_TIMEOUT_MS = 5000;
+export const FETCH_FAILURE_COOLDOWN_MS = 60 * 1000;
 export const STALE_REFRESH_FAILURE_COOLDOWN_MS = 5 * 60 * 1000;
 export const REDIS_KEY_PREFIX = 'work-archive:image-proxy:';
 

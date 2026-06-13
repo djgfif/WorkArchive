@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import { Box, NativeSelect, Tooltip } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import { FilterPillGroup, ArchiveSearchBar } from './ArchiveComponents';
 import {
   IconFilter,
@@ -63,34 +64,44 @@ export function WorksToolbarControls({
   totalDeletedCount,
   viewMode,
 }: WorksToolbarControlsProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Box className={cn(css.toolbarControls)}>
       <FilterPillGroup
-        aria-label="작품 범위"
+        aria-label={t('works.list.collectionScope')}
         onChange={onCollectionScopeChange}
         options={[
-          { label: '서재', value: 'active', count: totalActiveCount },
-          { label: '휴지통', value: 'trash', count: totalDeletedCount },
+          {
+            label: t('works.list.library'),
+            value: 'active',
+            count: totalActiveCount,
+          },
+          {
+            label: t('works.list.trash'),
+            value: 'trash',
+            count: totalDeletedCount,
+          },
         ]}
         value={collectionScope}
       />
 
       <Box className={cn(css.toolbarSearch)}>
         <ArchiveSearchBar
-          aria-label="작품 검색 (단축키: /)"
+          aria-label={t('works.list.search')}
           inputRef={searchRef}
           onChange={(searchTerm) => onQueryChange({ ...query, searchTerm })}
           placeholder={
             isTrashScope
-              ? '삭제된 작품 검색  (/)'
-              : '제목, 작가, 태그 검색  (/)'
+              ? t('works.list.searchTrashPlaceholder')
+              : t('works.list.searchActivePlaceholder')
           }
           value={query.searchTerm}
         />
       </Box>
 
       <NativeSelect
-        aria-label="정렬 기준"
+        aria-label={t('works.list.sortLabel')}
         className={cn(css.toolbarSortSelect)}
         data={workSortOptions.map((option) => ({
           label: option.label,
@@ -116,12 +127,20 @@ export function WorksToolbarControls({
           {(['grid', 'list'] as const).map((mode) => (
             <Tooltip
               key={mode}
-              label={mode === 'grid' ? '포스터 뷰 (g)' : '리스트 뷰 (g)'}
+              label={
+                mode === 'grid'
+                  ? t('works.list.gridViewShortcut')
+                  : t('works.list.listViewShortcut')
+              }
               position="bottom"
               withArrow
             >
               <Box
-                aria-label={mode === 'grid' ? '포스터 뷰' : '리스트 뷰'}
+                aria-label={
+                  mode === 'grid'
+                    ? t('works.list.gridView')
+                    : t('works.list.listView')
+                }
                 aria-pressed={viewMode === mode}
                 className={cn(css.viewToggleButton)}
                 component="button"
@@ -140,11 +159,15 @@ export function WorksToolbarControls({
         <Box className={cn(css.viewToggle)}>
           {(
             [
-              { density: 'comfortable', icon: <IconGrid />, label: '넓게 보기' },
+              {
+                density: 'comfortable',
+                icon: <IconGrid />,
+                label: t('works.list.comfortableView'),
+              },
               {
                 density: 'compact',
                 icon: <IconGridCompact />,
-                label: '촘촘히 보기',
+                label: t('works.list.compactView'),
               },
             ] as const
           ).map((option) => (
@@ -173,14 +196,18 @@ export function WorksToolbarControls({
       <Tooltip
         label={
           sortDirection === 'asc'
-            ? '오름차순 — 클릭하면 내림차순'
-            : '내림차순 — 클릭하면 오름차순'
+            ? t('works.list.sortAscToggle')
+            : t('works.list.sortDescToggle')
         }
         position="bottom"
         withArrow
       >
         <Box
-          aria-label={sortDirection === 'asc' ? '오름차순' : '내림차순'}
+          aria-label={
+            sortDirection === 'asc'
+              ? t('works.list.sortAsc')
+              : t('works.list.sortDesc')
+          }
           aria-pressed={sortDirection === 'asc'}
           className={cn(css.sortDirectionButton)}
           component="button"
@@ -193,14 +220,20 @@ export function WorksToolbarControls({
           type="button"
         >
           {sortDirection === 'asc' ? <IconSortAsc /> : <IconSortDesc />}
-          {sortDirection === 'asc' ? '오름차순' : '내림차순'}
+          {sortDirection === 'asc'
+            ? t('works.list.sortAsc')
+            : t('works.list.sortDesc')}
         </Box>
       </Tooltip>
 
-      <Tooltip label="고급 필터 (f)" position="bottom" withArrow>
+      <Tooltip
+        label={t('works.list.advancedFilterShortcut')}
+        position="bottom"
+        withArrow
+      >
         <Box
           aria-expanded={advancedOpen}
-          aria-label="고급 필터"
+          aria-label={t('works.list.advancedFilter')}
           className={cn(css.advancedFilterButton)}
           component="button"
           data-active={advancedOpen ? 'true' : 'false'}
@@ -208,7 +241,7 @@ export function WorksToolbarControls({
           type="button"
         >
           <IconFilter />
-          필터
+          {t('works.list.filter')}
           {hasActiveFilters && (
             <Box className={cn(css.advancedFilterCount)}>
               {activeFilterCount}

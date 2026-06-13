@@ -4,6 +4,8 @@ import type {
   WorkType,
 } from '@work-archive/shared-types';
 
+import { appI18n, formatAppNumber } from '@app/i18n';
+
 /**
  * AniList 공개 GraphQL API를 브라우저에서 직접 호출하는 폴백 검색.
  *
@@ -160,21 +162,21 @@ function resolveWorkType(media: AniListMedia, isAnimePage: boolean): WorkType {
 }
 
 const formatLabels: Record<string, string> = {
-  MANGA: '단행본',
-  MOVIE: '극장판',
-  MUSIC: '뮤직 비디오',
-  NOVEL: '라이트노벨',
+  MANGA: appI18n.t('imports.anilist.format.MANGA'),
+  MOVIE: appI18n.t('imports.anilist.format.MOVIE'),
+  MUSIC: appI18n.t('imports.anilist.format.MUSIC'),
+  NOVEL: appI18n.t('imports.anilist.format.NOVEL'),
   ONA: 'ONA',
-  ONE_SHOT: '단편',
+  ONE_SHOT: appI18n.t('imports.anilist.format.ONE_SHOT'),
   OVA: 'OVA',
-  SPECIAL: '스페셜',
-  TV: 'TV 애니',
-  TV_SHORT: 'TV 단편',
+  SPECIAL: appI18n.t('imports.anilist.format.SPECIAL'),
+  TV: appI18n.t('imports.anilist.format.TV'),
+  TV_SHORT: appI18n.t('imports.anilist.format.TV_SHORT'),
 };
 
 function resolveFormatLabel(media: AniListMedia) {
   if (!media.format) {
-    return 'AniList 후보';
+    return appI18n.t('imports.anilist.candidate');
   }
 
   return formatLabels[media.format] ?? media.format;
@@ -182,14 +184,24 @@ function resolveFormatLabel(media: AniListMedia) {
 
 function resolveCountLabel(media: AniListMedia, isAnimePage: boolean) {
   if (isAnimePage) {
-    return media.episodes ? `${media.episodes}화` : '화수 확인 필요';
+    return media.episodes
+      ? appI18n.t('imports.anilist.countEpisodes', {
+          count: formatAppNumber(media.episodes),
+        })
+      : appI18n.t('imports.anilist.missingEpisodes');
   }
 
   if (media.volumes) {
-    return `${media.volumes}권`;
+    return appI18n.t('imports.anilist.countVolumes', {
+      count: formatAppNumber(media.volumes),
+    });
   }
 
-  return media.chapters ? `${media.chapters}화` : '권수 확인 필요';
+  return media.chapters
+    ? appI18n.t('imports.anilist.countChapters', {
+        count: formatAppNumber(media.chapters),
+      })
+    : appI18n.t('imports.anilist.missingChapters');
 }
 
 function stripDescription(description: string | null | undefined) {
@@ -250,7 +262,10 @@ function toImportCandidate(
     author: contributors[0]?.name ?? '',
     catalogMatch: null,
     confidence,
-    confidenceLabel: rankIndex === 0 ? '가장 유력' : 'AniList 후보',
+    confidenceLabel:
+      rankIndex === 0
+        ? appI18n.t('imports.anilist.topCandidate')
+        : appI18n.t('imports.anilist.candidate'),
     contributors,
     countLabel: resolveCountLabel(media, isAnimePage),
     description: stripDescription(media.description),
@@ -264,7 +279,7 @@ function toImportCandidate(
       .join(', '),
     id: `anilist-${isAnimePage ? 'anime' : 'manga'}-${media.id}`,
     mediumType: workType,
-    note: 'AniList 공개 검색',
+    note: appI18n.t('imports.anilist.directNote'),
     reason: 'anilist-direct',
     relationsHint: [],
     releaseCandidates: [],
@@ -320,7 +335,11 @@ export async function searchAniListDirectCandidates(
   });
 
   if (!response.ok) {
-    throw new Error(`AniList 검색 요청이 실패했습니다 (HTTP ${response.status})`);
+    throw new Error(
+      appI18n.t('imports.anilist.fetchError', {
+        status: response.status,
+      }),
+    );
   }
 
   const payload = (await response.json()) as { data?: AniListSearchData };

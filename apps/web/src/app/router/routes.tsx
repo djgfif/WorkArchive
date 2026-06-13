@@ -29,15 +29,16 @@ import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
 import { featureFlags, type FeatureFlags } from '@shared/runtime/feature-flags';
 import { HomePage } from '@features/home';
 import { StateMessage } from '@shared/components/AppPrimitives';
+import { appI18n } from '@app/i18n';
 
 function lazyRoute(element: ReactNode) {
   return (
     <Suspense
       fallback={
         <StateMessage
-          description="화면 데이터를 준비하는 중입니다."
-          eyebrow="Loading"
-          title="화면을 불러오고 있습니다"
+          description={appI18n.t('routes.loadingDescription')}
+          eyebrow={appI18n.t('routes.loadingEyebrow')}
+          title={appI18n.t('routes.loadingTitle')}
           tone="loading"
         />
       }
@@ -80,9 +81,9 @@ export function createAppRoutes(
           index: true,
           element: <HomePage />,
           errorElement: routeError(
-            '홈 화면을 복구할 수 없습니다',
+            appI18n.t('routes.homeError'),
             '/works',
-            '작품 목록으로 이동',
+            appI18n.t('routes.fallbackWorksMove'),
           ),
         },
         {
@@ -93,81 +94,81 @@ export function createAppRoutes(
           path: 'works',
           element: lazyRoute(<WorksListPage />),
           errorElement: routeError(
-            '작품 목록을 복구할 수 없습니다',
+            appI18n.t('routes.worksError'),
             '/',
-            '홈으로 돌아가기',
+            appI18n.t('routes.fallbackHome'),
           ),
         },
         {
           path: 'works/new',
           element: lazyRoute(<WorkCreatePage />),
           errorElement: routeError(
-            '작품 추가 화면을 복구할 수 없습니다',
+            appI18n.t('routes.workCreateError'),
             '/works',
-            '작품 목록으로 돌아가기',
+            appI18n.t('routes.fallbackWorks'),
           ),
         },
         {
           path: 'works/:id',
           element: lazyRoute(<WorkDetailPage />),
           errorElement: routeError(
-            '작품 상세 화면을 복구할 수 없습니다',
+            appI18n.t('routes.workDetailError'),
             '/works',
-            '작품 목록으로 돌아가기',
+            appI18n.t('routes.fallbackWorks'),
           ),
         },
         {
           path: 'works/:id/edit',
           element: lazyRoute(<WorkEditPage />),
           errorElement: routeError(
-            '작품 편집 화면을 복구할 수 없습니다',
+            appI18n.t('routes.workEditError'),
             '/works',
-            '작품 목록으로 돌아가기',
+            appI18n.t('routes.fallbackWorks'),
           ),
         },
         {
           path: 'insights',
           element: lazyRoute(<PersonalInsightsPage />),
           errorElement: routeError(
-            '개인 인사이트 화면을 복구할 수 없습니다',
+            appI18n.t('routes.insightsError'),
             '/works',
-            '작품 목록으로 돌아가기',
+            appI18n.t('routes.fallbackWorks'),
           ),
         },
         {
           path: 'tier-boards',
           element: tierBoardElement(flags, <TierBoardsPage />),
           errorElement: routeError(
-            '티어보드 목록을 복구할 수 없습니다',
+            appI18n.t('routes.tierBoardsError'),
             '/works',
-            '작품 목록으로 돌아가기',
+            appI18n.t('routes.fallbackWorks'),
           ),
         },
         {
           path: 'tier-boards/:boardId',
           element: tierBoardElement(flags, <TierBoardEditorPage />),
           errorElement: routeError(
-            '티어보드 편집 화면을 복구할 수 없습니다',
+            appI18n.t('routes.tierBoardEditorError'),
             '/tier-boards',
-            '티어보드 목록으로 돌아가기',
+            appI18n.t('routes.fallbackTierBoards'),
           ),
         },
         {
           path: 'tier-boards/:boardId/view',
           element: tierBoardElement(flags, <TierBoardViewPage />),
           errorElement: routeError(
-            '티어보드 보기 화면을 복구할 수 없습니다',
+            appI18n.t('routes.tierBoardViewError'),
             '/tier-boards',
-            '티어보드 목록으로 돌아가기',
+            appI18n.t('routes.fallbackTierBoards'),
           ),
         },
         {
           path: 'profile',
           element: lazyRoute(<ProfilePage />),
           errorElement: routeError(
-            '프로필 화면을 복구할 수 없습니다',
+            appI18n.t('routes.profileError'),
             '/account',
-            '계정 개요로 돌아가기',
+            appI18n.t('routes.fallbackAccount'),
           ),
         },
       ],
@@ -180,9 +181,9 @@ export function createAppRoutes(
           path: 'login',
           element: lazyRoute(<LoginPage />),
           errorElement: routeError(
-            '로그인 화면을 복구할 수 없습니다',
+            appI18n.t('routes.loginError'),
             '/works',
-            '작품 목록으로 이동',
+            appI18n.t('routes.fallbackWorksMove'),
           ),
         },
         {
@@ -193,9 +194,9 @@ export function createAppRoutes(
           path: 'google/complete',
           element: lazyRoute(<GoogleAuthCompletePage />),
           errorElement: routeError(
-            'Google 로그인 완료 화면을 복구할 수 없습니다',
+            appI18n.t('routes.googleCompleteError'),
             '/auth/login',
-            '로그인으로 돌아가기',
+            appI18n.t('routes.fallbackLogin'),
           ),
         },
         {
@@ -216,27 +217,27 @@ export function createAppRoutes(
           index: true,
           element: lazyRoute(<AccountOverviewPage />),
           errorElement: routeError(
-            '계정 개요를 복구할 수 없습니다',
+            appI18n.t('routes.accountOverviewError'),
             '/works',
-            '작품 목록으로 이동',
+            appI18n.t('routes.fallbackWorksMove'),
           ),
         },
         {
           path: 'transfer',
           element: lazyRoute(<GuestTransferReviewPage />),
           errorElement: routeError(
-            '게스트 기록 이전 화면을 복구할 수 없습니다',
+            appI18n.t('routes.transferError'),
             '/account',
-            '계정 개요로 돌아가기',
+            appI18n.t('routes.fallbackAccount'),
           ),
         },
         {
           path: 'settings',
           element: lazyRoute(<SettingsPage />),
           errorElement: routeError(
-            '설정 화면을 복구할 수 없습니다',
+            appI18n.t('routes.settingsError'),
             '/account',
-            '계정 개요로 돌아가기',
+            appI18n.t('routes.fallbackAccount'),
           ),
         },
       ],

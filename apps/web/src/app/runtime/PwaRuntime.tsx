@@ -2,12 +2,14 @@ import { Group, Paper, Stack, Text } from '@mantine/core';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import { AppButton } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 import { cn } from '@shared/utils/class-names';
 import styles from './PwaRuntime.module.css';
 
 const css = styles;
 
 export function PwaRuntime() {
+  const { t } = useAppTranslation();
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     offlineReady: [offlineReady, setOfflineReady],
@@ -20,12 +22,10 @@ export function PwaRuntime() {
     return null;
   }
 
-  const title = needRefresh
-    ? '새 버전이 준비됐습니다'
-    : '오프라인에서도 열 수 있습니다';
+  const title = needRefresh ? t('pwa.refreshTitle') : t('pwa.offlineTitle');
   const description = needRefresh
-    ? '지금 적용하면 최신 화면으로 다시 열립니다. 기록은 이 기기에 그대로 남아 있습니다.'
-    : '앱 기본 화면을 저장했습니다. 인터넷이 끊겨도 이 기기의 기록을 계속 확인하고 수정할 수 있습니다.';
+    ? t('pwa.refreshDescription')
+    : t('pwa.offlineDescription');
 
   return (
     <Paper
@@ -52,7 +52,7 @@ export function PwaRuntime() {
                 tone="primary"
                 type="button"
               >
-                새 버전 적용
+                {t('pwa.refreshAction')}
               </AppButton>
               <AppButton
                 onClick={() => setNeedRefresh(false)}
@@ -60,7 +60,7 @@ export function PwaRuntime() {
                 tone="quiet"
                 type="button"
               >
-                나중에
+                {t('pwa.later')}
               </AppButton>
             </>
           ) : (
@@ -70,7 +70,7 @@ export function PwaRuntime() {
               tone="quiet"
               type="button"
             >
-              확인
+              {t('pwa.confirm')}
             </AppButton>
           )}
         </Group>

@@ -6,6 +6,7 @@ import type {
   WorkType,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { getGraphTags, getPersonalTags } from './graph-tags';
 import {
   moveUnknownGenresToPersonalTags,
@@ -245,7 +246,7 @@ function parseOptionalDateInput(value: string, fieldLabel: string) {
   const parsed = new Date(`${trimmed}T00:00:00.000Z`);
 
   if (Number.isNaN(parsed.getTime())) {
-    throw new Error(`${fieldLabel}을 올바른 날짜로 입력해주세요.`);
+    throw new Error(appI18n.t('works.errors.invalidDate', { field: fieldLabel }));
   }
 
   return parsed.toISOString();
@@ -255,7 +256,7 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
   const title = values.title.trim();
 
   if (!title) {
-    throw new Error('제목을 입력해주세요.');
+    throw new Error(appI18n.t('works.errors.titleRequired'));
   }
 
   const parsedRating =
@@ -265,7 +266,7 @@ export function parseWorkFormValues(values: WorkFormValues): UpsertWorkInput {
     parsedRating !== null &&
     (Number.isNaN(parsedRating) || parsedRating < 0 || parsedRating > 5)
   ) {
-    throw new Error('별점은 0점부터 5점 사이로 입력해주세요.');
+    throw new Error(appI18n.t('works.errors.invalidRating'));
   }
 
   const personalTags = getPersonalTags(

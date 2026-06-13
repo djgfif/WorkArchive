@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { appI18n } from '@app/i18n';
 import {
   localArchiveService,
   type LocalArchiveImportPreview,
@@ -52,7 +53,7 @@ export function useLocalArchiveSettings() {
       );
       setArchiveFeedback({
         tone: 'success',
-        message: 'CSV 내보내기 파일을 만들었습니다.',
+        message: appI18n.t('localArchive.csvCreated'),
       });
     } catch (error) {
       setArchiveFeedback({
@@ -60,7 +61,7 @@ export function useLocalArchiveSettings() {
         message:
           error instanceof Error
             ? error.message
-            : 'CSV 파일을 만들지 못했습니다.',
+            : appI18n.t('localArchive.csvCreateError'),
       });
     } finally {
       setIsExportingCsv(false);
@@ -77,7 +78,7 @@ export function useLocalArchiveSettings() {
       setArchiveImportPreview(preview);
       setArchiveFeedback({
         tone: 'info',
-        message: '가져오기 전 미리보기를 확인하세요.',
+        message: appI18n.t('localArchive.importPreview'),
       });
     } catch (error) {
       setPendingArchiveImport(null);
@@ -87,7 +88,7 @@ export function useLocalArchiveSettings() {
         message:
           error instanceof Error
             ? error.message
-            : 'JSON 백업 파일을 읽지 못했습니다.',
+            : appI18n.t('localArchive.jsonReadError'),
       });
     }
   }
@@ -105,7 +106,10 @@ export function useLocalArchiveSettings() {
       setArchiveImportPreview(null);
       setArchiveFeedback({
         tone: 'success',
-        message: `작품 ${result.importedWorkCount}개와 권별 기록 ${result.importedReleaseRecordCount}개를 현재 로컬 아카이브로 가져왔습니다.`,
+        message: appI18n.t('localArchive.importConfirm', {
+          releaseRecordCount: result.importedReleaseRecordCount,
+          workCount: result.importedWorkCount,
+        }),
       });
     } catch (error) {
       setArchiveFeedback({
@@ -113,7 +117,7 @@ export function useLocalArchiveSettings() {
         message:
           error instanceof Error
             ? error.message
-            : 'JSON 백업 파일을 가져오지 못했습니다.',
+            : appI18n.t('localArchive.jsonImportError'),
       });
     } finally {
       setIsImportingArchive(false);

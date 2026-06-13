@@ -6,6 +6,8 @@ import type {
   WorkSeriesLinkRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
+
 export const GRAPH_TAG_KINDS = [
   'series',
   'universe',
@@ -58,12 +60,12 @@ export interface WorkCollectionSummary {
 const GRAPH_TAG_PREFIXES = new Set<string>(GRAPH_TAG_KINDS);
 
 const GRAPH_TAG_KIND_LABELS: Record<GraphTagKind, string> = {
-  creator: '제작자',
-  platform: '플랫폼',
-  publisher: '출판사',
-  series: '시리즈',
-  studio: '스튜디오',
-  universe: '세계관',
+  creator: appI18n.t('works.graphTag.creator'),
+  platform: appI18n.t('works.graphTag.platform'),
+  publisher: appI18n.t('works.graphTag.publisher'),
+  series: appI18n.t('works.graphTag.series'),
+  studio: appI18n.t('works.graphTag.studio'),
+  universe: appI18n.t('works.graphTag.universe'),
 };
 
 function normalizeTagValue(value: string) {

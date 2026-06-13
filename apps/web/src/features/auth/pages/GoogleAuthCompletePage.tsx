@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, Stack, Text, Title } from '@mantine/core';
 
+import { useAppTranslation, type AppTranslationKey } from '@app/i18n';
 import { AppButton, AppLinkButton } from '@shared/components/AppPrimitives';
 import { useAuthSession } from '../hooks/useAuthSession';
 import { ApiRequestError } from '../services/auth.api';
@@ -18,6 +19,10 @@ type AuthCompleteError =
 
 function classifyError(error: unknown): AuthCompleteError {
   if (error instanceof ApiRequestError) {
+    if (error.failureKind === 'timeout') {
+      return { kind: 'timeout' };
+    }
+
     if (error.status === 0) {
       return { kind: 'network' };
     }
@@ -37,8 +42,7 @@ function classifyError(error: unknown): AuthCompleteError {
       normalizedMessage.includes('fetch') ||
       normalizedMessage.includes('network') ||
       error.message.includes('Failed to fetch') ||
-      error.message.includes('NetworkError') ||
-      error.message.includes('네트워크')
+      error.message.includes('NetworkError')
     ) {
       return { kind: 'network' };
     }
@@ -49,30 +53,33 @@ function classifyError(error: unknown): AuthCompleteError {
   return { kind: 'unknown', message: error instanceof Error ? error.message : String(error) };
 }
 
-const ERROR_COPY: Record<AuthCompleteError['kind'], { title: string; detail: string }> = {
+const ERROR_COPY_KEYS: Record<
+  AuthCompleteError['kind'],
+  { title: AppTranslationKey; detail: AppTranslationKey }
+> = {
   timeout: {
-    title: '응답 시간이 초과됐습니다',
-    detail: '서버가 응답하지 않습니다. 잠시 후 다시 시도하거나 게스트로 계속하세요.',
+    title: 'auth.googleComplete.errorTimeoutTitle',
+    detail: 'auth.googleComplete.errorTimeoutDetail',
   },
   network: {
-    title: '네트워크에 연결할 수 없습니다',
-    detail: '인터넷 연결을 확인한 뒤 다시 시도해 주세요.',
+    title: 'auth.googleComplete.errorNetworkTitle',
+    detail: 'auth.googleComplete.errorNetworkDetail',
   },
   session: {
-    title: 'Google 인증은 됐지만 세션을 불러오지 못했습니다',
-    detail: '다시 로그인하면 해결되는 경우가 많습니다.',
+    title: 'auth.googleComplete.errorSessionTitle',
+    detail: 'auth.googleComplete.errorSessionDetail',
   },
   oauth_denied: {
-    title: 'Google 로그인이 취소됐습니다',
-    detail: '로그인을 취소했거나 Google에서 권한을 거부했습니다.',
+    title: 'auth.googleComplete.errorOauthDeniedTitle',
+    detail: 'auth.googleComplete.errorOauthDeniedDetail',
   },
   oauth_unconfigured: {
-    title: 'Google OAuth 설정이 필요합니다',
-    detail: '현재 이 환경에서는 Google 로그인을 사용할 수 없습니다. 로그인 없이 계속 사용할 수 있습니다.',
+    title: 'auth.googleComplete.errorOauthUnconfiguredTitle',
+    detail: 'auth.googleComplete.errorOauthUnconfiguredDetail',
   },
   unknown: {
-    title: '알 수 없는 오류가 발생했습니다',
-    detail: '다시 시도하거나 게스트로 계속하세요.',
+    title: 'auth.googleComplete.errorUnknownTitle',
+    detail: 'auth.googleComplete.errorUnknownDetail',
   },
 };
 
@@ -99,13 +106,14 @@ function getOAuthErrorKind(param: string | null): OAuthCallbackErrorKind | null 
 
 type LoadingStep = 'verifying' | 'restoring' | 'redirecting';
 
-const STEP_LABELS: Record<LoadingStep, string> = {
-  verifying:   'Google 인증 확인 중',
-  restoring:   '세션 복원 중',
-  redirecting: '이동 준비 중',
+const STEP_LABEL_KEYS: Record<LoadingStep, AppTranslationKey> = {
+  verifying: 'auth.googleComplete.stepVerifying',
+  restoring: 'auth.googleComplete.stepRestoring',
+  redirecting: 'auth.googleComplete.stepRedirecting',
 };
 
 function StepDots({ step }: { step: LoadingStep }) {
+  const { t } = useAppTranslation();
   const steps: LoadingStep[] = ['verifying', 'restoring', 'redirecting'];
   const currentIndex = steps.indexOf(step);
 
@@ -129,7 +137,7 @@ function StepDots({ step }: { step: LoadingStep }) {
         ))}
       </Box>
       <Text c="dimmed" size="sm" ta="center">
-        {STEP_LABELS[step]}
+        {t(STEP_LABEL_KEYS[step])}
       </Text>
     </Stack>
   );
@@ -143,7 +151,8 @@ interface ErrorPanelProps {
 }
 
 function ErrorPanel({ error, onRetry }: ErrorPanelProps) {
-  const { title, detail } = ERROR_COPY[error.kind];
+  const { t } = useAppTranslation();
+  const { title, detail } = ERROR_COPY_KEYS[error.kind];
 
   return (
     <Stack gap="xl" align="center" maw={400} mx="auto">
@@ -167,10 +176,10 @@ function ErrorPanel({ error, onRetry }: ErrorPanelProps) {
 
       <Stack gap={6} ta="center">
         <Title order={2} size="h3" style={{ letterSpacing: '-0.02em' }}>
-          {title}
+          {t(title)}
         </Title>
         <Text c="dimmed" size="sm" maw="34ch" mx="auto" style={{ lineHeight: 1.65 }}>
-          {detail}
+          {t(detail)}
         </Text>
         {error.kind === 'unknown' && import.meta.env.DEV && (
           <Text
@@ -186,13 +195,13 @@ function ErrorPanel({ error, onRetry }: ErrorPanelProps) {
 
       <Stack gap="sm" w="100%">
         <AppButton fullWidth onClick={onRetry} tone="primary" type="button">
-          다시 로그인
+          {t('auth.googleComplete.retry')}
         </AppButton>
         <AppLinkButton fullWidth to="/auth/login" tone="secondary">
-          로그인 화면으로
+          {t('auth.googleComplete.loginPage')}
         </AppLinkButton>
         <AppLinkButton fullWidth to="/works" tone="quiet">
-          로그인 없이 계속하기
+          {t('auth.googleComplete.guestContinue')}
         </AppLinkButton>
       </Stack>
     </Stack>
@@ -202,11 +211,12 @@ function ErrorPanel({ error, onRetry }: ErrorPanelProps) {
 /* ── 메인 컴포넌트 ──────────────────────────────────────────────────────────── */
 
 export function GoogleAuthCompletePage() {
+  const { t } = useAppTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { completeGoogleSignIn, continueWithGoogle, isLoading } = useAuthSession();
 
-  const hasStartedRef = useRef(false);
+  const completionPromiseRef = useRef<Promise<string> | null>(null);
   const didSettleRef = useRef(false);
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('verifying');
   const [error, setError] = useState<AuthCompleteError | null>(null);
@@ -225,10 +235,9 @@ export function GoogleAuthCompletePage() {
   useEffect(() => {
     if (error !== null) return;
     if (oauthErrorKind !== null) return;
-    if (isLoading || hasStartedRef.current) return;
+    if (isLoading) return;
 
     let isCancelled = false;
-    hasStartedRef.current = true;
 
     const timeoutId = setTimeout(() => {
       if (!isCancelled && !didSettleRef.current) {
@@ -237,15 +246,30 @@ export function GoogleAuthCompletePage() {
       }
     }, COMPLETE_TIMEOUT_MS);
 
-    async function complete() {
+    async function getCompletionPromise() {
+      if (completionPromiseRef.current) {
+        return completionPromiseRef.current;
+      }
+
       try {
         if (!completeGoogleSignIn) {
           throw new Error('Google sign-in completion is unavailable.');
         }
 
         setLoadingStep('restoring');
-        const nextLocation = await completeGoogleSignIn();
+        completionPromiseRef.current = completeGoogleSignIn();
 
+        return await completionPromiseRef.current;
+      } catch (err) {
+        completionPromiseRef.current = null;
+        throw err;
+      }
+    }
+
+    async function complete() {
+      try {
+        setLoadingStep('restoring');
+        const nextLocation = await getCompletionPromise();
         if (isCancelled || didSettleRef.current) return;
         didSettleRef.current = true;
         clearTimeout(timeoutId);
@@ -277,7 +301,7 @@ export function GoogleAuthCompletePage() {
     // sessionStorage에 저장된 returnTo를 그대로 사용해 Google 로그인 재시작
     setError(null);
     didSettleRef.current = false;
-    hasStartedRef.current = false;
+    completionPromiseRef.current = null;
 
     if (continueWithGoogle) {
       continueWithGoogle();
@@ -321,7 +345,7 @@ export function GoogleAuthCompletePage() {
       <Box
         aria-hidden="true"
         role="status"
-        aria-label="로그인 처리 중"
+        aria-label={t('auth.googleComplete.loadingAria')}
         style={{
           width: 42,
           height: 42,
@@ -335,10 +359,10 @@ export function GoogleAuthCompletePage() {
       <Stack gap="lg" align="center">
         <Stack gap={6} align="center">
           <Title order={2} size="h3" style={{ letterSpacing: '-0.02em' }}>
-            계정 연결 중
+            {t('auth.googleComplete.loadingTitle')}
           </Title>
           <Text c="dimmed" size="sm" ta="center">
-            잠시만 기다려 주세요.
+            {t('auth.googleComplete.loadingDescription')}
           </Text>
         </Stack>
 

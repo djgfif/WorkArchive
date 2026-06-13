@@ -6,6 +6,7 @@ import {
   AppButton,
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 
 import styles from './AuthForm.module.css';
 
@@ -60,14 +61,15 @@ function GoogleIcon() {
 
 export function AuthForm({
   googleConfigured = true,
-  googleUnavailableDetail = '현재 이 환경에서는 Google 로그인을 사용할 수 없습니다. 로그인 없이 계속 사용할 수 있습니다.',
+  googleUnavailableDetail,
   isSubmitting = false,
   onContinueAsGuest,
   onContinueWithGoogle,
   onRetryWithGoogle,
   submitError = null,
-  submitErrorTitle = '로그인을 완료하지 못했습니다',
+  submitErrorTitle,
 }: AuthFormProps) {
+  const { t } = useAppTranslation();
   const googleDisabled = isSubmitting || !googleConfigured;
 
   return (
@@ -82,25 +84,28 @@ export function AuthForm({
         tone="secondary"
         type="button"
       >
-        Google로 백업 연결
+        {t('auth.form.googleCta')}
       </AppButton>
 
       <Text c="var(--mantine-color-dimmed)" className={css.ctaHelper} size="sm">
-        비공개 백업 · 여러 기기 동기화 · 검색 키 안전 보관
+        {t('auth.form.googleHelper')}
       </Text>
 
       {!googleConfigured && (
-        <FeedbackMessage title="Google OAuth 설정 필요" tone="info">
-          {googleUnavailableDetail}
+        <FeedbackMessage
+          title={t('auth.form.googleUnavailableTitle')}
+          tone="info"
+        >
+          {googleUnavailableDetail ?? t('auth.form.googleUnavailableDetail')}
         </FeedbackMessage>
       )}
 
       <Divider color="var(--app-border-subtle)" />
 
       <Stack className={css.guestPanel} gap="xs">
-        <Text fw={700}>로컬 기록으로 바로 시작</Text>
+        <Text fw={700}>{t('auth.form.guestTitle')}</Text>
         <Text c="var(--mantine-color-dimmed)" size="sm">
-          이 기기에 먼저 저장하고, 나중에 Google로 백업을 연결할 수 있습니다.
+          {t('auth.form.guestDescription')}
         </Text>
         {onContinueAsGuest && (
           <ActionRow>
@@ -111,14 +116,17 @@ export function AuthForm({
               tone="secondary"
               type="button"
             >
-              로그인 없이 시작하기
+              {t('auth.form.guestStart')}
             </AppButton>
           </ActionRow>
         )}
       </Stack>
 
       {submitError && (
-        <FeedbackMessage title={submitErrorTitle} tone="error">
+        <FeedbackMessage
+          title={submitErrorTitle ?? t('auth.form.submitErrorTitle')}
+          tone="error"
+        >
           {submitError}
           {onRetryWithGoogle && (
             <AppButton
@@ -128,7 +136,7 @@ export function AuthForm({
               tone="secondary"
               type="button"
             >
-              Google로 다시 시도
+              {t('auth.form.googleRetry')}
             </AppButton>
           )}
         </FeedbackMessage>

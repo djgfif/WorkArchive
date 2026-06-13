@@ -10,11 +10,16 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
+import { formatAppNumber, useAppTranslation } from '@app/i18n';
 import type { LocalArchiveImportPreview } from '@features/archive';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import styles from './SettingsControlCenter.module.css';
 
 const css = styles;
+
+function formatCount(value: number) {
+  return formatAppNumber(value);
+}
 
 interface ExportOptionCardProps {
   buttonLabel: string;
@@ -96,6 +101,7 @@ export function DataBackupSettingsSection({
   onExportJson,
   onImportFileSelect,
 }: DataBackupSettingsSectionProps) {
+  const { t } = useAppTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function handleImportFile(file: File | null) {
@@ -124,45 +130,57 @@ export function DataBackupSettingsSection({
   return (
     <SectionCard>
       <SectionIntro
-        description="현재 브라우저의 로컬 아카이브를 파일로 보관하고, 이전 JSON 백업을 기존 기록 위에 안전하게 병합합니다."
-        eyebrow="데이터와 백업"
-        title="로컬 백업과 복구"
+        description={t('settings.dataBackup.description')}
+        eyebrow={t('settings.dataBackup.eyebrow')}
+        title={t('settings.dataBackup.title')}
       />
 
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
         <ExportOptionCard
-          buttonLabel="JSON 백업 내보내기"
-          description="가져오기로 복구할 때 가장 기본이 되는 보관용 파일입니다."
-          details={['작품', '권별 기록', '타임라인']}
+          buttonLabel={t('settings.dataBackup.json.button')}
+          description={t('settings.dataBackup.json.description')}
+          details={[
+            t('settings.dataBackup.details.works'),
+            t('settings.dataBackup.details.releaseRecords'),
+            t('settings.dataBackup.details.timeline'),
+          ]}
           disabled={isExportingArchive}
-          eyebrow="복구 가능"
+          eyebrow={t('settings.dataBackup.json.eyebrow')}
           onClick={() => void onExportJson()}
-          summary="작품 기록 중심 백업"
-          title="JSON 백업"
+          summary={t('settings.dataBackup.json.summary')}
+          title={t('settings.dataBackup.json.title')}
           tone="primary"
         />
 
         <ExportOptionCard
-          buttonLabel="전체 JSON 내보내기"
-          description="시리즈, 제작진, 관계 그래프, 티어보드까지 포함합니다. 로컬 업로드 이미지 원본은 제외될 수 있습니다."
-          details={['메타데이터 중심', '관계 그래프', '티어보드']}
+          buttonLabel={t('settings.dataBackup.fullJson.button')}
+          description={t('settings.dataBackup.fullJson.description')}
+          details={[
+            t('settings.dataBackup.details.metadata'),
+            t('settings.dataBackup.details.relationGraph'),
+            t('settings.dataBackup.details.tierBoards'),
+          ]}
           disabled={isExportingArchive}
-          eyebrow="전체 복구"
+          eyebrow={t('settings.dataBackup.fullJson.eyebrow')}
           onClick={() => void onExportFullJson()}
-          summary="아카이브 구조까지 보관"
-          title="전체 백업"
+          summary={t('settings.dataBackup.fullJson.summary')}
+          title={t('settings.dataBackup.fullJson.title')}
           tone="secondary"
         />
 
         <ExportOptionCard
-          buttonLabel="CSV 내보내기"
-          description="스프레드시트에서 목록을 확인하기 위한 파일입니다. 외부 기록 가져오기에서 다시 불러올 수 있습니다."
-          details={['목록 확인', '스프레드시트', '재가져오기 가능']}
+          buttonLabel={t('settings.dataBackup.csv.button')}
+          description={t('settings.dataBackup.csv.description')}
+          details={[
+            t('settings.dataBackup.details.listReview'),
+            t('settings.dataBackup.details.spreadsheet'),
+            t('settings.dataBackup.details.reimportable'),
+          ]}
           disabled={isExportingArchive}
-          eyebrow="검토용"
+          eyebrow={t('settings.dataBackup.csv.eyebrow')}
           onClick={() => void onExportCsv()}
-          summary="사람이 읽기 쉬운 목록"
-          title="CSV 내보내기"
+          summary={t('settings.dataBackup.csv.summary')}
+          title={t('settings.dataBackup.csv.title')}
           tone="secondary"
         />
       </SimpleGrid>
@@ -173,15 +191,20 @@ export function DataBackupSettingsSection({
         onDrop={handleDrop}
       >
         <Stack gap="xs">
-          <Text fw={800}>JSON 백업 가져오기</Text>
+          <Text fw={800}>{t('settings.dataBackup.importTitle')}</Text>
           <Text c="dimmed" size="sm">
-            백업 파일을 여기에 놓거나 파일 선택 버튼을 사용하세요. API key와
-            로그인 세션 정보는 백업 파일에 포함되지 않습니다.
+            {t('settings.dataBackup.importDescription')}
           </Text>
           <ActionRow>
-            <AppBadge tone="muted">기존 기록 유지</AppBadge>
-            <AppBadge tone="muted">중복 미리보기</AppBadge>
-            <AppBadge tone="muted">API key 제외</AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.dataBackup.badgeKeepExisting')}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.dataBackup.badgeDuplicatePreview')}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('settings.dataBackup.badgeExcludeApiKey')}
+            </AppBadge>
           </ActionRow>
         </Stack>
         <AppButton
@@ -189,11 +212,11 @@ export function DataBackupSettingsSection({
           tone="secondary"
           type="button"
         >
-          JSON 백업 선택
+          {t('settings.dataBackup.selectJson')}
         </AppButton>
         <input
           accept="application/json,.json"
-          aria-label="JSON 백업 파일 선택"
+          aria-label={t('settings.dataBackup.selectJsonAria')}
           className={css.visuallyHiddenInput ?? ''}
           onChange={(event) => void handleImportFileChange(event)}
           ref={fileInputRef}
@@ -204,48 +227,62 @@ export function DataBackupSettingsSection({
       {archiveImportPreview && (
         <SectionCard padding="lg" tone="subtle">
           <SectionIntro
-            description="기존 기록은 보존하고, 제목이 비슷한 후보를 미리 보여준 뒤 새 기록으로 추가합니다."
-            eyebrow="가져오기 미리보기"
-            title="가져올 기록 확인"
+            description={t('settings.dataBackup.previewDescription')}
+            eyebrow={t('settings.dataBackup.previewEyebrow')}
+            title={t('settings.dataBackup.previewTitle')}
             titleOrder={3}
           />
           <ActionRow>
             <AppBadge tone="accent">
-              추가 작품 {archiveImportPreview.addWorkCount}개
+              {t('settings.dataBackup.previewAddWorks', {
+                count: formatCount(archiveImportPreview.addWorkCount),
+              })}
             </AppBadge>
             <AppBadge tone="accent">
-              추가 권별 기록 {archiveImportPreview.addReleaseRecordCount}개
+              {t('settings.dataBackup.previewAddReleaseRecords', {
+                count: formatCount(archiveImportPreview.addReleaseRecordCount),
+              })}
             </AppBadge>
             <AppBadge tone="accent">
-              추가 타임라인 {archiveImportPreview.addTimelineEntryCount}개
+              {t('settings.dataBackup.previewAddTimeline', {
+                count: formatCount(archiveImportPreview.addTimelineEntryCount),
+              })}
             </AppBadge>
             <AppBadge tone="muted">
-              수정 작품 {archiveImportPreview.updateWorkCount}개
+              {t('settings.dataBackup.previewUpdateWorks', {
+                count: formatCount(archiveImportPreview.updateWorkCount),
+              })}
             </AppBadge>
             <AppBadge tone="warning">
-              중복 후보{' '}
-              {archiveImportPreview.duplicateWorkCount +
-                archiveImportPreview.duplicateTimelineEntryCount}
-              개
+              {t('settings.dataBackup.previewDuplicates', {
+                count: formatCount(
+                  archiveImportPreview.duplicateWorkCount +
+                    archiveImportPreview.duplicateTimelineEntryCount,
+                ),
+              })}
             </AppBadge>
             <AppBadge tone="muted">
-              직접 확인 {archiveImportPreview.conflictWorkCount}개
+              {t('settings.dataBackup.previewConflicts', {
+                count: formatCount(archiveImportPreview.conflictWorkCount),
+              })}
             </AppBadge>
             <AppBadge tone="muted">
-              건너뜀{' '}
-              {archiveImportPreview.skippedWorkCount +
-                archiveImportPreview.skippedReleaseRecordCount +
-                archiveImportPreview.skippedTimelineEntryCount +
-                archiveImportPreview.skippedSeriesCount +
-                archiveImportPreview.skippedContributorCount +
-                archiveImportPreview.skippedWorkSeriesLinkCount +
-                archiveImportPreview.skippedWorkContributorCount +
-                archiveImportPreview.skippedWorkRelationCount +
-                archiveImportPreview.skippedTierBoardCount +
-                archiveImportPreview.skippedTierLaneCount +
-                archiveImportPreview.skippedTierBoardCardCount +
-                archiveImportPreview.skippedTierBoardAssetCount}
-              개
+              {t('settings.dataBackup.previewSkipped', {
+                count: formatCount(
+                  archiveImportPreview.skippedWorkCount +
+                    archiveImportPreview.skippedReleaseRecordCount +
+                    archiveImportPreview.skippedTimelineEntryCount +
+                    archiveImportPreview.skippedSeriesCount +
+                    archiveImportPreview.skippedContributorCount +
+                    archiveImportPreview.skippedWorkSeriesLinkCount +
+                    archiveImportPreview.skippedWorkContributorCount +
+                    archiveImportPreview.skippedWorkRelationCount +
+                    archiveImportPreview.skippedTierBoardCount +
+                    archiveImportPreview.skippedTierLaneCount +
+                    archiveImportPreview.skippedTierBoardCardCount +
+                    archiveImportPreview.skippedTierBoardAssetCount,
+                ),
+              })}
             </AppBadge>
           </ActionRow>
           {(archiveImportPreview.addSeriesCount > 0 ||
@@ -253,21 +290,25 @@ export function DataBackupSettingsSection({
             archiveImportPreview.addTierBoardCount > 0) && (
             <ActionRow>
               <AppBadge tone="accent">
-                추가 그래프{' '}
-                {archiveImportPreview.addSeriesCount +
-                  archiveImportPreview.addContributorCount +
-                  archiveImportPreview.addWorkSeriesLinkCount +
-                  archiveImportPreview.addWorkContributorCount +
-                  archiveImportPreview.addWorkRelationCount}
-                개
+                {t('settings.dataBackup.previewAddGraph', {
+                  count: formatCount(
+                    archiveImportPreview.addSeriesCount +
+                      archiveImportPreview.addContributorCount +
+                      archiveImportPreview.addWorkSeriesLinkCount +
+                      archiveImportPreview.addWorkContributorCount +
+                      archiveImportPreview.addWorkRelationCount,
+                  ),
+                })}
               </AppBadge>
               <AppBadge tone="accent">
-                추가 티어보드{' '}
-                {archiveImportPreview.addTierBoardCount +
-                  archiveImportPreview.addTierLaneCount +
-                  archiveImportPreview.addTierBoardCardCount +
-                  archiveImportPreview.addTierBoardAssetCount}
-                개
+                {t('settings.dataBackup.previewAddTierBoards', {
+                  count: formatCount(
+                    archiveImportPreview.addTierBoardCount +
+                      archiveImportPreview.addTierLaneCount +
+                      archiveImportPreview.addTierBoardCardCount +
+                      archiveImportPreview.addTierBoardAssetCount,
+                  ),
+                })}
               </AppBadge>
             </ActionRow>
           )}
@@ -279,7 +320,7 @@ export function DataBackupSettingsSection({
               tone="primary"
               type="button"
             >
-              현재 아카이브로 가져오기
+              {t('settings.dataBackup.confirmImport')}
             </AppButton>
             <AppButton
               disabled={isImportingArchive}
@@ -287,7 +328,7 @@ export function DataBackupSettingsSection({
               tone="quiet"
               type="button"
             >
-              취소
+              {t('common.cancel')}
             </AppButton>
           </ActionRow>
         </SectionCard>
@@ -300,9 +341,15 @@ export function DataBackupSettingsSection({
       )}
 
       <Group gap="xs">
-        <AppBadge tone="muted">작품 기록 중심</AppBadge>
-        <AppBadge tone="muted">로그인 정보 제외</AppBadge>
-        <AppBadge tone="muted">검색 key 제외</AppBadge>
+        <AppBadge tone="muted">
+          {t('settings.dataBackup.badgeWorkRecords')}
+        </AppBadge>
+        <AppBadge tone="muted">
+          {t('settings.dataBackup.badgeExcludeLogin')}
+        </AppBadge>
+        <AppBadge tone="muted">
+          {t('settings.dataBackup.badgeExcludeSearchKey')}
+        </AppBadge>
       </Group>
     </SectionCard>
   );

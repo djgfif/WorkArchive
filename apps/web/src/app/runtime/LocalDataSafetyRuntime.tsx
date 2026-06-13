@@ -9,6 +9,7 @@ import {
 import { useAuthSession } from '@features/auth';
 import { getWorkArchiveDb } from '@features/works';
 import { AppButton } from '@shared/components/AppPrimitives';
+import { appI18n, useAppTranslation } from '@app/i18n';
 import { ensurePersistentStorage } from '@shared/runtime/persistent-storage';
 import { cn, cx } from '@shared/utils/class-names';
 import styles from './PwaRuntime.module.css';
@@ -53,6 +54,7 @@ async function getLatestLocalChangeFingerprint() {
 }
 
 export function LocalDataSafetyRuntime() {
+  const { t } = useAppTranslation();
   const { archiveScopeKey, isLoading } = useAuthSession();
   const changeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [backupNotice, setBackupNotice] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export function LocalDataSafetyRuntime() {
         setBackupNotice(
           error instanceof Error
             ? error.message
-            : '자동 백업을 완료하지 못했습니다.',
+            : appI18n.t('pwa.backupNoticeFallback'),
         );
       }
     }
@@ -125,7 +127,7 @@ export function LocalDataSafetyRuntime() {
         setBackupNotice(
           error instanceof Error
             ? error.message
-            : '자동 백업을 완료하지 못했습니다.',
+            : appI18n.t('pwa.backupNoticeFallback'),
         );
       }
     }
@@ -188,7 +190,7 @@ export function LocalDataSafetyRuntime() {
       <Stack gap="sm">
         <Stack gap={3}>
           <Text className={cn(css.noticeTitle)}>
-            자동 폴더 백업 확인이 필요합니다
+            {t('pwa.backupNoticeTitle')}
           </Text>
           <Text c="dimmed" size="sm">
             {backupNotice}
@@ -203,7 +205,7 @@ export function LocalDataSafetyRuntime() {
             tone="primary"
             type="button"
           >
-            백업 설정 열기
+            {t('pwa.backupNoticeAction')}
           </AppButton>
           <AppButton
             onClick={() => setBackupNotice(null)}
@@ -211,7 +213,7 @@ export function LocalDataSafetyRuntime() {
             tone="quiet"
             type="button"
           >
-            닫기
+            {t('pwa.backupNoticeClose')}
           </AppButton>
         </Group>
       </Stack>

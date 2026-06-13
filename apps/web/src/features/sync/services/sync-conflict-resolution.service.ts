@@ -6,6 +6,7 @@ import type {
   TimelineEntryRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import {
   graphRepository,
   releaseRecordsRepository,
@@ -58,7 +59,7 @@ export class SyncConflictResolutionService {
     const queueItem = await this.queueRepo.getById(queueItemId);
 
     if (!queueItem) {
-      throw new Error('해결할 동기화 항목을 찾지 못했습니다.');
+      throw new Error(appI18n.t('sync.conflictQueueMissing'));
     }
 
     const now = getNowIso();
@@ -164,13 +165,13 @@ export class SyncConflictResolutionService {
     const queueItem = await this.queueRepo.getById(queueItemId);
 
     if (!queueItem) {
-      throw new Error('해결할 동기화 항목을 찾지 못했습니다.');
+      throw new Error(appI18n.t('sync.conflictQueueMissing'));
     }
 
     const remote = queueItem.conflict?.remote ?? null;
 
     if (!remote) {
-      throw new Error('원격 스냅샷이 없어 원격 기록을 적용할 수 없습니다.');
+      throw new Error(appI18n.t('sync.remoteSnapshotMissing'));
     }
 
     if (queueItem.entityType === 'release_record') {
@@ -241,13 +242,13 @@ export class SyncConflictResolutionService {
     const queueItem = await this.queueRepo.getById(queueItemId);
 
     if (!queueItem) {
-      throw new Error('해결할 동기화 항목을 찾지 못했습니다.');
+      throw new Error(appI18n.t('sync.conflictQueueMissing'));
     }
 
     const remote = queueItem.conflict?.remote ?? null;
 
     if (!remote) {
-      throw new Error('원격 스냅샷이 없어 필드별 병합을 할 수 없습니다.');
+      throw new Error(appI18n.t('sync.remoteSnapshotMissingForMerge'));
     }
 
     const now = getNowIso();

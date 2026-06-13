@@ -6,6 +6,7 @@ import {
   TextInput,
 } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import { ActionRow, AppBadge } from '@shared/components/AppPrimitives';
 import { WorkGenreSelector } from './WorkGenreSelector';
 import {
@@ -39,6 +40,7 @@ export function CoreWorkFields({
   titleInputRef,
   values,
 }: CoreWorkFieldsProps) {
+  const { t } = useAppTranslation();
   const genreValues = normalizeWorkGenres(
     parseCommaSeparatedTextList(values.genresText),
   );
@@ -46,22 +48,21 @@ export function CoreWorkFields({
   return (
     <Stack gap="md">
       <ActionRow>
-        <AppBadge tone="accent">필수</AppBadge>
+        <AppBadge tone="accent">{t('works.form.basicRequiredBadge')}</AppBadge>
         <Text c="var(--mantine-color-dimmed)" size="sm">
-          제목과 유형만 입력하면 저장할 수 있습니다. 장르는 핵심 분류만
-          선택하세요.
+          {t('works.form.basicDescription')}
         </Text>
       </ActionRow>
 
       <Stack gap="md">
         <TextInput
-          aria-label="제목"
+          aria-label={t('works.form.titleAria')}
           error={error}
           id={getFieldId(idPrefix, 'title')}
-          label="제목"
+          label={t('works.form.titleLabel')}
           name="title"
           onChange={onChange}
-          placeholder="작품 제목"
+          placeholder={t('works.form.titlePlaceholder')}
           ref={titleInputRef}
           value={values.title}
           withAsterisk
@@ -70,7 +71,7 @@ export function CoreWorkFields({
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
           <NativeSelect
             id={getFieldId(idPrefix, 'type')}
-            label="유형"
+            label={t('works.form.typeLabel')}
             name="type"
             onChange={onChange}
             value={values.type}
@@ -92,9 +93,9 @@ export function CoreWorkFields({
         </SimpleGrid>
 
         <TextInput
-          description="비워두면 오른쪽 미리보기에 기본 표지를 사용합니다."
+          description={t('works.form.thumbnailDescription')}
           id={getFieldId(idPrefix, 'thumbnailUrl')}
-          label="표지 이미지 주소"
+          label={t('works.form.thumbnailLabel')}
           name="thumbnailUrl"
           onChange={onChange}
           placeholder="https://example.com/cover.jpg"

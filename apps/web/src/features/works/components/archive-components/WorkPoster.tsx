@@ -1,6 +1,7 @@
 import { Box, Text } from '@mantine/core';
 import type { ReactNode } from 'react';
 
+import { useAppTranslation } from '@app/i18n';
 import { usePosterImageSource } from '@shared/components/usePosterImageSource';
 import { cn, css, cx } from './styles';
 
@@ -44,17 +45,24 @@ export function WorkPoster({
   typeLabel,
   variant = 'card',
 }: WorkPosterProps) {
+  const { t } = useAppTranslation();
   const posterImage = usePosterImageSource(thumbnailUrl, variant);
 
   return (
-    <Box className={cx(cn(css.posterShell), posterVariantClass[variant], className)}>
+    <Box
+      className={cx(
+        cn(css.posterShell),
+        posterVariantClass[variant],
+        className,
+      )}
+    >
       {posterImage.src && !posterImage.failed ? (
         <>
           {!posterImage.loaded && (
             <Box aria-hidden="true" className={cn(css.posterImageSkeleton)} />
           )}
           <img
-            alt={`${title} 포스터`}
+            alt={t('works.list.posterAlt', { title })}
             className={cx(
               cn(css.posterImage),
               posterImage.loaded && cn(css.posterImageLoaded),
@@ -68,16 +76,19 @@ export function WorkPoster({
         </>
       ) : (
         <Box
-          aria-label={`${title} 포스터 대체 표지`}
+          aria-label={t('works.list.posterFallbackAria', { title })}
           className={cn(css.posterFallback)}
-          data-cover-tone={getCoverTone(coverSeed ?? `${typeLabel ?? ''}:${title}`)}
+          data-cover-tone={getCoverTone(
+            coverSeed ?? `${typeLabel ?? ''}:${title}`,
+          )}
         >
-          <Text className={cn(css.posterFallbackType)}>{typeLabel ?? '기록'}</Text>
+          <Text className={cn(css.posterFallbackType)}>
+            {typeLabel ?? t('works.list.posterFallbackType')}
+          </Text>
           <Text className={cn(css.posterFallbackMark)}>
             {(title.trim()[0] ?? 'W').toUpperCase()}
           </Text>
           <span aria-hidden="true" />
-
         </Box>
       )}
       {overlay}

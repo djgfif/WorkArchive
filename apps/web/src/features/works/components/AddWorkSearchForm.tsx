@@ -9,6 +9,7 @@ import {
 } from '@mantine/core';
 import type { FormEvent } from 'react';
 
+import { useAppTranslation } from '@app/i18n';
 import { AppButton } from '@shared/components/AppPrimitives';
 import type { ProviderGroup } from './quick-add-helpers';
 import { providerGroupOptions, quickAddTypeOptions } from './quick-add-helpers';
@@ -46,6 +47,7 @@ export function AddWorkSearchForm({
   searchType,
   shouldSuggestProviderChange,
 }: AddWorkSearchFormProps) {
+  const { t } = useAppTranslation();
   const defaultProviderGroupOption = providerGroupOptions[0]!;
   const selectedProviderGroupOption =
     providerGroupOptions.find((option) => option.value === providerGroup) ??
@@ -59,11 +61,11 @@ export function AddWorkSearchForm({
             <div className={cn(css.quickSearchField)}>
               <TextInput
                 id="quickAddSearch"
-                label="작품 검색"
+                label={t('works.add.search.searchLabel')}
                 onChange={(event) =>
                   onSearchTermChange(event.currentTarget.value)
                 }
-                placeholder="제목, 작가, 스튜디오를 입력하세요"
+                placeholder={t('works.add.search.searchPlaceholder')}
                 value={searchTerm}
               />
             </div>
@@ -71,7 +73,7 @@ export function AddWorkSearchForm({
             <div className={cn(css.quickSearchType)}>
               <NativeSelect
                 id="quickAddType"
-                label="작품 유형"
+                label={t('works.add.search.typeLabel')}
                 onChange={(event) =>
                   onSearchTypeChange(event.currentTarget.value)
                 }
@@ -87,10 +89,10 @@ export function AddWorkSearchForm({
 
             <AppButton loading={isSearching} tone="primary" type="submit">
               {isSearching
-                ? '검색 중...'
+                ? t('works.add.search.searching')
                 : hasSearched
-                  ? '후보 다시 검색'
-                  : '후보 검색'}
+                  ? t('works.add.search.searchAgain')
+                  : t('works.add.search.searchSubmit')}
             </AppButton>
           </Group>
 
@@ -103,17 +105,20 @@ export function AddWorkSearchForm({
             <Group align="center" justify="space-between" wrap="wrap">
               <Stack gap={1}>
                 <Text fw={750} size="sm">
-                  검색은 직접 입력을 돕는 보조 도구입니다
+                  {t('works.add.search.helperTitle')}
                 </Text>
                 <Text c="var(--mantine-color-dimmed)" size="xs">
-                  현재 {selectedProviderGroupOption.label}
-                  {providerGroup !== 'all'
-                    ? ` · ${selectedProviderGroupOption.description}`
-                    : ''}
+                  {t('works.add.search.helperProviderDescription', {
+                    description:
+                      providerGroup !== 'all'
+                        ? ` · ${selectedProviderGroupOption.description}`
+                        : '',
+                    label: selectedProviderGroupOption.label,
+                  })}
                   {shouldSuggestProviderChange
-                    ? ' · 결과가 부족하면 검색 출처를 바꿔볼 수 있습니다.'
+                    ? ` · ${t('works.add.search.helperProviderChange')}`
                     : ''}
-                  {' · 후보를 적용해도 바로 저장되지 않고 입력칸만 채웁니다.'}
+                  {` · ${t('works.add.search.helperApplyNote')}`}
                 </Text>
               </Stack>
               <AppButton
@@ -123,16 +128,21 @@ export function AddWorkSearchForm({
                 tone={providerGroup === 'all' ? 'quiet' : 'secondary'}
                 type="button"
               >
-                검색 설정 열기
+                {t('works.add.search.providerSettingsOpen')}
               </AppButton>
             </Group>
 
             <Collapse expanded={providerOptionsOpen}>
               <Stack gap={6} pt="sm">
                 <Text c="var(--mantine-color-dimmed)" fw={700} size="xs">
-                  검색 출처 직접 선택
+                  {t('works.add.search.providerSelectionLabel')}
                 </Text>
-                <Group gap="xs" role="group" aria-label="검색 출처" wrap="wrap">
+                <Group
+                  gap="xs"
+                  role="group"
+                  aria-label={t('works.add.search.providerSelectionAria')}
+                  wrap="wrap"
+                >
                   {providerGroupOptions.map((option) => (
                     <AppButton
                       aria-pressed={providerGroup === option.value}
@@ -149,8 +159,7 @@ export function AddWorkSearchForm({
                   ))}
                 </Group>
                 <Text c="var(--mantine-color-dimmed)" size="xs">
-                  결과가 없거나 후보가 부족할 때 출처를 좁혀 다시 검색할 수
-                  있습니다. 검색 없이도 직접 추가로 계속할 수 있습니다.
+                  {t('works.add.search.providerSelectionDescription')}
                 </Text>
               </Stack>
             </Collapse>

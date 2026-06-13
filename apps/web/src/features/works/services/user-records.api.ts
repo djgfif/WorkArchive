@@ -3,6 +3,7 @@ import type {
   UserRecordReleasesResponse,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { requestAuthenticatedApiJson } from '@shared/services/api-client';
 
 export type { RelatedCatalogTitlesResponse, UserRecordReleasesResponse };
@@ -14,7 +15,7 @@ export function fetchUserRecordReleases(recordId: string) {
       method: 'GET',
     },
     {
-      missingTokenMessage: '권별 기록을 불러오려면 로그인해주세요.',
+      missingTokenMessage: appI18n.t('works.errors.releasesLoginRequired'),
     },
   );
 }
@@ -26,7 +27,7 @@ export function fetchRelatedCatalogTitles(catalogTitleId: string) {
       method: 'GET',
     },
     {
-      missingTokenMessage: '관련 작품을 불러오려면 로그인해주세요.',
+      missingTokenMessage: appI18n.t('works.errors.relatedLoginRequired'),
     },
   );
 }

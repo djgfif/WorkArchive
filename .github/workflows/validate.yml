@@ -42,6 +42,15 @@ jobs:
       - name: Web feature boundaries
         run: npm run check:web-boundaries
 
+      - name: Web i18n hardcoded copy
+        run: npm run check:web-i18n
+
+      - name: Web i18n resource parity
+        run: npm run check:web-i18n-resources
+
+      - name: Web i18n translation packs
+        run: npm run check:web-i18n-packs
+
       - name: Typecheck
         run: npm run typecheck
 

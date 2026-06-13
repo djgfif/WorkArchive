@@ -4,6 +4,7 @@ import type {
   TierBoardRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n, type AppTranslationKey } from '@app/i18n';
 import {
   syncQueueRepository,
   type SyncQueueRepository,
@@ -109,7 +110,7 @@ export class TierBoardService {
     const now = nowIso();
     const board = createBoardRecord(input, now);
     const template = getTierBoardTemplate(input.templateTitle);
-    const lanes = template.lanes.map((lane, index) =>
+    const lanes = getLocalizedTemplateLanes(template.lanes).map((lane, index) =>
       createLaneRecord(board.id, lane, index, now),
     );
 
@@ -419,7 +420,7 @@ export class TierBoardService {
     const work = await this.worksRepo.getById(workId);
 
     if (!work || work.deletedAt !== null) {
-      throw new Error('가져올 작품을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('tierBoards.errors.workNotFound'));
     }
 
     const state = await this.requireEditorState(boardId);
@@ -469,11 +470,11 @@ export class TierBoardService {
     input: Omit<CreateCardInput, 'imageUrl' | 'cardSourceType'>,
   ) {
     if (!SUPPORTED_TIER_BOARD_UPLOAD_MIME_TYPES.has(file.type)) {
-      throw new Error('jpg, jpeg, png, webp 이미지만 업로드할 수 있습니다.');
+      throw new Error(appI18n.t('tierBoards.errors.invalidUploadType'));
     }
 
     if (file.size > MAX_TIER_BOARD_UPLOAD_BYTES) {
-      throw new Error('이미지 파일은 5MB 이하만 업로드할 수 있습니다.');
+      throw new Error(appI18n.t('tierBoards.errors.uploadTooLarge'));
     }
 
     const state = await this.requireEditorState(boardId);
@@ -595,7 +596,7 @@ export class TierBoardService {
         boardId,
         now,
         state,
-        templateLanes: template.lanes,
+        templateLanes: getLocalizedTemplateLanes(template.lanes),
       });
 
     await this.writer.applyTemplate({
@@ -632,7 +633,7 @@ export class TierBoardService {
     const board = await this.repository.getBoardById(id);
 
     if (!board) {
-      throw new Error('티어보드를 찾을 수 없습니다.');
+      throw new Error(appI18n.t('tierBoards.errors.boardNotFound'));
     }
 
     return board;
@@ -642,7 +643,7 @@ export class TierBoardService {
     const state = await this.repository.getBoardEditorState(id);
 
     if (!state) {
-      throw new Error('티어보드를 찾을 수 없습니다.');
+      throw new Error(appI18n.t('tierBoards.errors.boardNotFound'));
     }
 
     return state;
@@ -652,7 +653,7 @@ export class TierBoardService {
     const lane = await this.repository.getLaneById(id);
 
     if (!lane) {
-      throw new Error('티어 행을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('tierBoards.errors.laneNotFound'));
     }
 
     return lane;
@@ -662,7 +663,7 @@ export class TierBoardService {
     const card = await this.repository.getCardById(id);
 
     if (!card) {
-      throw new Error('티어보드 항목을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('tierBoards.errors.cardNotFound'));
     }
 
     return card;
@@ -670,3 +671,18 @@ export class TierBoardService {
 }
 
 export const tierBoardService = new TierBoardService();
+
+function getLocalizedTemplateLanes(
+  lanes: readonly CreateLaneInput[],
+): CreateLaneInput[] {
+  return lanes.map((lane) => ({
+    ...lane,
+    title: getLocalizedTemplateText(lane.title),
+  }));
+}
+
+function getLocalizedTemplateText(value: string) {
+  return value.startsWith('tierBoards.templates.')
+    ? appI18n.t(value as AppTranslationKey)
+    : value;
+}

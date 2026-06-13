@@ -16,6 +16,7 @@ import {
 import { PageHero } from '@shared/components/PageHero';
 import { FlowPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { useAppTranslation } from '@app/i18n';
 import { withKoreanParticle } from '@shared/utils/korean-particle';
 import { useAuthSession } from '@features/auth';
 import { syncQueueRepository } from '@features/sync';
@@ -24,13 +25,13 @@ import { buildWorkFormDraftKey } from '../services/work-form-draft.service';
 import { worksService } from '../services/works.service';
 import { getWorkMediaFieldLabels } from '../utils/work-media-labels';
 import type { UpsertWorkInput } from '../utils/work-form';
-import {
-  getWorkStatusLabel,
-  getWorkTypeLabel,
-} from '../utils/work-options';
+import { getWorkStatusLabel, getWorkTypeLabel } from '../utils/work-options';
+
+type KoreanParticlePair = Parameters<typeof withKoreanParticle>[1];
 
 export function WorkCreatePage() {
-  usePageTitle('작품 추가');
+  const { t } = useAppTranslation();
+  usePageTitle(t('works.add.title'));
   const { archiveScopeKey, mode } = useAuthSession();
   const [formVersion, setFormVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,11 +59,13 @@ export function WorkCreatePage() {
 
       setSavedWork(work);
       setSaveFeedback(
-        hasQueuedWork ? '로컬에 저장됨 · 백업 대기 중' : '로컬에 저장됨',
+        hasQueuedWork
+          ? t('works.feedback.localSavedSyncPending')
+          : t('works.feedback.localSaved'),
       );
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : '작품을 추가하지 못했습니다.',
+        error instanceof Error ? error.message : t('works.add.error'),
       );
     } finally {
       setIsSubmitting(false);
@@ -72,18 +75,25 @@ export function WorkCreatePage() {
   return (
     <FlowPageTemplate>
       <PageHero
-        actions={<AppLinkButton to="/works">작품으로 돌아가기</AppLinkButton>}
-        description="제목만 입력해도 바로 저장할 수 있습니다. 검색은 필요할 때만 작품 정보를 채우는 보조 도구입니다."
-        eyebrow="빠른 기록"
-        title="작품 추가"
+        actions={
+          <AppLinkButton to="/works">{t('works.backToWork')}</AppLinkButton>
+        }
+        description={t('works.add.description')}
+        eyebrow={t('works.add.eyebrow')}
+        title={t('works.add.title')}
       />
 
       {savedWork ? (
         <SectionCard gap="lg" padding="xl" tone="default">
           <SectionIntro
-            description="방금 저장한 기록을 바로 확인하거나, 같은 흐름에서 다음 작품을 계속 추가할 수 있습니다."
-            eyebrow="저장 완료"
-            title={`${withKoreanParticle(savedWork.title, '을/를')} 등록했습니다`}
+            description={t('works.add.savedDescription')}
+            eyebrow={t('works.add.savedEyebrow')}
+            title={t('works.add.savedTitle', {
+              title: withKoreanParticle(
+                savedWork.title,
+                t('works.add.savedTitleParticle') as KoreanParticlePair,
+              ),
+            })}
           />
 
           {saveFeedback && (
@@ -103,7 +113,11 @@ export function WorkCreatePage() {
                 <AppBadge>{getWorkTypeLabel(savedWork.type)}</AppBadge>
                 <AppBadge>{getWorkStatusLabel(savedWork.status)}</AppBadge>
                 <AppBadge>
-                  {savedWork.rating === null ? '미평가' : `${savedWork.rating.toFixed(1)}점`}
+                  {savedWork.rating === null
+                    ? t('works.ratingMissing')
+                    : t('works.rating.semanticValue', {
+                        value: savedWork.rating.toFixed(1),
+                      })}
                 </AppBadge>
               </ActionRow>
 
@@ -127,13 +141,13 @@ export function WorkCreatePage() {
               tone="primary"
               type="button"
             >
-              계속 추가
+              {t('works.add.continueAdding')}
             </AppButton>
             <AppLinkButton to={`/works/${savedWork.id}`}>
-              방금 등록한 작품 보기
+              {t('works.add.showCreatedWork')}
             </AppLinkButton>
             <AppLinkButton to="/works" tone="quiet">
-              작품 목록 보기
+              {t('works.add.showWorksList')}
             </AppLinkButton>
           </ActionRow>
         </SectionCard>

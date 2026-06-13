@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import { worksService } from '../services/works.service';
 import type { UpsertWorkInput } from '../utils/work-form';
 import { AddWorkFlow } from './AddWorkFlow';
@@ -19,6 +20,7 @@ export function AddWorkDialog({
   onCreated,
   opened,
 }: AddWorkDialogProps) {
+  const { t } = useAppTranslation();
   const isMobile = useMediaQuery('(max-width: 48em)');
   const [formVersion, setFormVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,7 +38,7 @@ export function AddWorkDialog({
       onClose();
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : '작품을 추가하지 못했습니다.',
+        error instanceof Error ? error.message : t('works.add.error'),
       );
     } finally {
       setIsSubmitting(false);
@@ -52,7 +54,7 @@ export function AddWorkDialog({
       padding="lg"
       radius="lg"
       size="min(72rem, 100vw - 2rem)"
-      title="새 작품 기록"
+      title={t('works.add.dialogTitle')}
     >
       <AddWorkFlow
         isSubmitting={isSubmitting}

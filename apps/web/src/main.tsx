@@ -9,6 +9,7 @@ import {
   appCssVariablesResolver,
   appTheme,
 } from './app/mantine-theme';
+import './app/styles/fonts';
 import '@mantine/core/styles.css';
 import './app/styles/global.css';
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   ActionRow,
   AppBadge,
@@ -32,8 +33,10 @@ export function WorksTrashList({
   restoringWorkId,
   works,
 }: WorksTrashListProps) {
+  const { t } = useAppTranslation();
+
   return (
-    <section aria-label="휴지통 작품 목록">
+    <section aria-label={t('works.list.trashListAria')}>
       <Stack gap="md">
         {works.map((work) => {
           const isRestoring = restoringWorkId === work.id;
@@ -63,7 +66,9 @@ export function WorksTrashList({
                   wrap="nowrap"
                 >
                   <Link
-                    aria-label={`${work.title} 상세 보기`}
+                    aria-label={t('works.list.trashDetailAria', {
+                      title: work.title,
+                    })}
                     style={{ flexShrink: 0, display: 'block' }}
                     to={`/works/${work.id}`}
                   >
@@ -77,14 +82,18 @@ export function WorksTrashList({
 
                   <Stack flex={1} gap={6} miw={0} pt={2}>
                     <Group gap={6} wrap="wrap">
-                      <AppBadge tone="warning">삭제됨</AppBadge>
+                      <AppBadge tone="warning">
+                        {t('works.list.trashDeleted')}
+                      </AppBadge>
                       <AppBadge tone="muted">{typeLabel}</AppBadge>
                       <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
                       <AppBadge>
                         {getWorkSyncStatusLabel(work.syncStatus)}
                       </AppBadge>
                       {isRestoring && (
-                        <AppBadge tone="accent">복원 중</AppBadge>
+                        <AppBadge tone="accent">
+                          {t('works.list.restoring')}
+                        </AppBadge>
                       )}
                     </Group>
 
@@ -103,17 +112,17 @@ export function WorksTrashList({
                       lineClamp={1}
                       size="xs"
                     >
-                      {work.author || '작가·제작자 미입력'}
-                      {' · 삭제됨 '}
+                      {work.author || t('works.form.creatorMissing')}
+                      {t('works.list.trashDeletedDate')}
                       {formatWorkDateTime(work.deletedAt ?? work.updatedAt)}
-                      {' · 마지막 수정 '}
+                      {t('works.list.trashUpdatedDate')}
                       {formatWorkDateTime(work.updatedAt)}
                     </Text>
 
                     <Text c="var(--mantine-color-text)" lineClamp={2}>
                       {work.shortReview ||
                         work.description ||
-                        '남겨둔 메모가 없습니다.'}
+                        t('works.list.noMemo')}
                     </Text>
                   </Stack>
                 </Group>
@@ -127,14 +136,16 @@ export function WorksTrashList({
                       tone="primary"
                       type="button"
                     >
-                      {isRestoring ? '복원 중...' : '복원'}
+                      {isRestoring
+                        ? t('works.list.restoringProgress')
+                        : t('works.list.restoreAction')}
                     </AppButton>
                     <AppLinkButton
                       size="compact-sm"
                       to={`/works/${work.id}`}
                       tone="quiet"
                     >
-                      상세 보기
+                      {t('works.list.viewDetail')}
                     </AppLinkButton>
                   </ActionRow>
                   <Text
@@ -143,7 +154,7 @@ export function WorksTrashList({
                     size="xs"
                     ta="right"
                   >
-                    복원하면 서재에 다시 표시됩니다.
+                    {t('works.list.trashRestoreDescription')}
                   </Text>
                 </Stack>
               </Group>

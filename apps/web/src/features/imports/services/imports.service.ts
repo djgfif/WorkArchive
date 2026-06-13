@@ -9,6 +9,7 @@ import type {
   WorkType,
 } from '@work-archive/shared-types';
 
+import { appI18n, formatAppNumber } from '@app/i18n';
 import {
   ApiRequestError,
   requestApiJson,
@@ -47,10 +48,6 @@ export interface SearchCandidatesResult {
 const ALADIN_PROVIDER_STATUS_PATH = '/imports/providers/aladin/status';
 const ALADIN_PROVIDER_KEY_PATH = '/imports/providers/aladin/key';
 const IMPORT_PROVIDERS_PATH = '/imports/providers';
-const EXTERNAL_SEARCH_UNAVAILABLE_NOTICE =
-  '일부 검색 출처를 사용할 수 없어 직접 추가 후보를 표시합니다. 로그인 없이 사용할 수 있는 출처는 계속 지원되며, 개인 키가 필요한 출처만 로그인 후 설정할 수 있습니다.';
-const PUBLIC_DIRECT_SEARCH_NOTICE =
-  '서버 검색을 잠시 사용할 수 없어 AniList 공개 검색 결과를 표시합니다.';
 
 const providerDisplayLabels: Record<string, string> = {
   aladin: 'Aladin Book',
@@ -60,7 +57,7 @@ const providerDisplayLabels: Record<string, string> = {
   kakao_book: 'Kakao Book',
   kakao_web: 'Kakao Web',
   kobis: 'KOBIS',
-  manual: '직접 추가',
+  manual: appI18n.t('imports.search.manualProvider'),
   naver_book: 'Naver Book',
   naver_web: 'Naver Web',
   open_library: 'Open Library',
@@ -86,14 +83,19 @@ function formatProviderResult(diagnostic: ImportSearchProviderDiagnostic) {
   const label = formatProviderLabel(diagnostic.provider);
 
   return diagnostic.status === 'searched'
-    ? `${label} ${diagnostic.resultCount}개`
+    ? appI18n.t('imports.search.count', {
+        count: formatAppNumber(diagnostic.resultCount),
+        label,
+      })
     : label;
 }
 
 function buildSearchNotice(response: ImportSearchResponse) {
   const baseNotice =
     response.providers.length > 0
-      ? `검색 출처: ${response.providers.map(formatProviderLabel).join(', ')}`
+      ? appI18n.t('imports.search.providerSource', {
+          providers: response.providers.map(formatProviderLabel).join(', '),
+        })
       : null;
   const diagnostics = response.diagnostics?.providers ?? [];
 
@@ -121,21 +123,29 @@ function buildSearchNotice(response: ImportSearchResponse) {
   );
   const segments = [
     circuitOpen.length > 0
-      ? '일부 검색 소스가 일시적으로 쉬는 중입니다. 잠시 후 다시 시도하거나 직접 추가하세요.'
+      ? appI18n.t('imports.search.providerCircuitOpen')
       : null,
     hasMissingUserCredential
-      ? '설정에서 개인 API key를 등록하면 사용할 수 있습니다.'
+      ? appI18n.t('imports.search.missingUserCredential')
       : null,
     searched.length > 0
-      ? `검색 완료: ${searched.map(formatProviderResult).join(', ')}`
+      ? appI18n.t('imports.search.searched', {
+          providers: searched.map(formatProviderResult).join(', '),
+        })
       : null,
     skippedWithoutCircuitOpen.length > 0
-      ? `제외됨: ${skippedWithoutCircuitOpen.map(formatProviderResult).join(', ')}`
+      ? appI18n.t('imports.search.excluded', {
+          providers: skippedWithoutCircuitOpen
+            .map(formatProviderResult)
+            .join(', '),
+        })
       : null,
     failed.length > 0
-      ? `일시 실패: ${failed.map(formatProviderResult).join(', ')}`
+      ? appI18n.t('imports.search.failed', {
+          providers: failed.map(formatProviderResult).join(', '),
+        })
       : null,
-  ].filter((segment): segment is string => Boolean(segment));
+  ].flatMap((segment) => (segment ? [segment] : []));
 
   if (segments.length === 0) {
     return baseNotice;
@@ -156,7 +166,8 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
     author: overrides.author ?? '',
     catalogMatch: null,
     confidence: overrides.confidence ?? 0.45,
-    confidenceLabel: overrides.confidenceLabel ?? 'Preview 후보',
+    confidenceLabel:
+      overrides.confidenceLabel ?? appI18n.t('imports.preview.candidate'),
     contributors: overrides.author
       ? [
           {
@@ -165,23 +176,25 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
           },
         ]
       : [],
-    countLabel: overrides.countLabel ?? '사용자 검토 필요',
+    countLabel:
+      overrides.countLabel ?? appI18n.t('imports.preview.countReviewRequired'),
     description: overrides.description ?? '',
     externalId: overrides.externalId ?? overrides.id,
     existingRecord: null,
     externalRefs: [],
-    formatLabel: overrides.formatLabel ?? '수동 후보',
+    formatLabel:
+      overrides.formatLabel ?? appI18n.t('imports.preview.formatManual'),
     franchiseName: overrides.franchiseName ?? null,
     genresText: overrides.genresText ?? '',
     id: overrides.id,
     mediumType: overrides.type,
-    note: overrides.note ?? '외부 검색 아님',
+    note: overrides.note ?? appI18n.t('imports.preview.noExternalSearch'),
     reason: overrides.reason ?? 'preview fallback',
     releaseCandidates: overrides.releaseCandidates ?? [],
     relationsHint: overrides.relationsHint ?? [],
     releaseYear: overrides.releaseYear ?? null,
     sourceId: overrides.sourceId ?? 'preview-manual',
-    sourceLabel: overrides.sourceLabel ?? 'Preview/manual',
+    sourceLabel: overrides.sourceLabel ?? appI18n.t('imports.preview.sourceLabel'),
     sourceUrl: overrides.sourceUrl ?? '',
     subType: overrides.subType ?? null,
     thumbnailUrl: overrides.thumbnailUrl ?? '',
@@ -191,54 +204,58 @@ function buildPreviewCandidates(searchTerm: string): ImportCandidate[] {
 
   return [
     buildCandidate({
-      author: '작가 정보 검토 필요',
-      confidenceLabel: '가장 유력',
-      countLabel: '완결권수 확인 필요',
+      author: appI18n.t('imports.preview.authorReviewRequired'),
+      confidenceLabel: appI18n.t('imports.preview.mostLikely'),
+      countLabel: appI18n.t('imports.preview.volumeCountReviewRequired'),
       description:
-        '현재 공개 버전에서는 제목 기반 후보를 먼저 제공합니다. 이후 외부 출처가 연결되면 이 카드에 실제 메타데이터가 채워집니다.',
-      formatLabel: '원작 후보',
-      genresText: '드라마, 감상 기록',
+        appI18n.t('imports.preview.descriptionCore'),
+      formatLabel: appI18n.t('imports.preview.formatCore'),
+      genresText: appI18n.t('imports.preview.genresCore'),
       id: `${normalizedSearchTerm}-core`,
-      note: '외부 검색 아님',
+      note: appI18n.t('imports.preview.noExternalSearch'),
       sourceId: 'preview-manual',
-      sourceLabel: 'Preview/manual',
+      sourceLabel: appI18n.t('imports.preview.sourceLabel'),
       sourceUrl: '',
       thumbnailUrl: '',
       title: normalizedSearchTerm,
       type: 'novel',
     }),
     buildCandidate({
-      author: '스튜디오 정보 검토 필요',
-      confidenceLabel: '미디어믹스',
-      countLabel: 'TV 시리즈 추정',
+      author: appI18n.t('imports.preview.screenAuthorReviewRequired'),
+      confidenceLabel: appI18n.t('imports.preview.screenConfidence'),
+      countLabel: appI18n.t('imports.preview.screenCountReviewRequired'),
       description:
-        '같은 제목의 영상화 후보를 구분하는 자리입니다. 실제 외부 출처 연결 전까지는 타입, 제작 정보, 메모 구조만 제공합니다.',
-      formatLabel: '영상 후보',
-      genresText: '애니, 어댑테이션',
+        appI18n.t('imports.preview.descriptionScreen'),
+      formatLabel: appI18n.t('imports.preview.formatScreen'),
+      genresText: appI18n.t('imports.preview.genresScreen'),
       id: `${normalizedSearchTerm}-screen`,
-      note: '외부 검색 아님',
+      note: appI18n.t('imports.preview.noExternalSearch'),
       sourceId: 'preview-manual',
-      sourceLabel: 'Preview/manual',
+      sourceLabel: appI18n.t('imports.preview.sourceLabel'),
       sourceUrl: '',
       thumbnailUrl: '',
-      title: `${normalizedSearchTerm} (애니)`,
+      title: appI18n.t('imports.preview.animeTitle', {
+        title: normalizedSearchTerm,
+      }),
       type: 'anime',
     }),
     buildCandidate({
-      author: '연재 정보 검토 필요',
-      confidenceLabel: '연재형',
-      countLabel: '연재 상태 확인 필요',
+      author: appI18n.t('imports.preview.serialAuthorReviewRequired'),
+      confidenceLabel: appI18n.t('imports.preview.serialConfidence'),
+      countLabel: appI18n.t('imports.preview.serialCountReviewRequired'),
       description:
-        '연재형 작품을 구분할 수 있도록 권수, 연재 상태, 플랫폼 메모를 함께 정리합니다.',
-      formatLabel: '연재 후보',
-      genresText: '웹소설, 연재',
+        appI18n.t('imports.preview.descriptionSerial'),
+      formatLabel: appI18n.t('imports.preview.formatSerial'),
+      genresText: appI18n.t('imports.preview.genresSerial'),
       id: `${normalizedSearchTerm}-serial`,
-      note: '외부 검색 아님',
+      note: appI18n.t('imports.preview.noExternalSearch'),
       sourceId: 'preview-manual',
-      sourceLabel: 'Preview/manual',
+      sourceLabel: appI18n.t('imports.preview.sourceLabel'),
       sourceUrl: '',
       thumbnailUrl: '',
-      title: `${normalizedSearchTerm} (연재판)`,
+      title: appI18n.t('imports.preview.serialTitle', {
+        title: normalizedSearchTerm,
+      }),
       type: 'web_novel',
     }),
   ];
@@ -270,7 +287,7 @@ export class ImportsService {
         method: 'GET',
       },
       {
-        missingTokenMessage: 'Aladin 검색 설정은 로그인 후 이용해주세요.',
+        missingTokenMessage: appI18n.t('imports.search.aladinLoginRequired'),
       },
     );
   }
@@ -285,8 +302,9 @@ export class ImportsService {
             method: 'GET',
           },
           {
-            missingTokenMessage:
-              '외부 검색 설정은 로그인 없이도 확인할 수 있습니다.',
+            missingTokenMessage: appI18n.t(
+              'imports.search.externalSettingsGuestReadable',
+            ),
           },
         )
       : requestApiJson<ImportProviderStatus[]>(IMPORT_PROVIDERS_PATH, {
@@ -304,7 +322,7 @@ export class ImportsService {
         }),
       },
       {
-        missingTokenMessage: 'Aladin 검색 설정은 로그인 후 이용해주세요.',
+        missingTokenMessage: appI18n.t('imports.search.aladinLoginRequired'),
       },
     );
   }
@@ -316,7 +334,7 @@ export class ImportsService {
         method: 'DELETE',
       },
       {
-        missingTokenMessage: 'Aladin 검색 설정은 로그인 후 이용해주세요.',
+        missingTokenMessage: appI18n.t('imports.search.aladinLoginRequired'),
       },
     );
   }
@@ -331,7 +349,9 @@ export class ImportsService {
         }),
       },
       {
-        missingTokenMessage: '외부 검색 API Key 설정은 로그인 후 이용해주세요.',
+        missingTokenMessage: appI18n.t(
+          'imports.search.externalKeyLoginRequired',
+        ),
       },
     );
   }
@@ -343,7 +363,9 @@ export class ImportsService {
         method: 'DELETE',
       },
       {
-        missingTokenMessage: '외부 검색 API Key 설정은 로그인 후 이용해주세요.',
+        missingTokenMessage: appI18n.t(
+          'imports.search.externalKeyLoginRequired',
+        ),
       },
     );
   }
@@ -355,7 +377,7 @@ export class ImportsService {
         method: 'POST',
       },
       {
-        missingTokenMessage: '검색 provider 연결 테스트는 로그인 후 사용할 수 있습니다.',
+        missingTokenMessage: appI18n.t('imports.search.testLoginRequired'),
       },
     );
   }
@@ -401,7 +423,7 @@ export class ImportsService {
               },
               {
                 missingTokenMessage:
-                  '외부 검색은 로그인 없이도 사용할 수 있습니다.',
+                  appI18n.t('imports.search.externalSearchGuestReadable'),
               },
             )
           : await requestApiJson<ImportSearchResponse>(path, {
@@ -431,14 +453,14 @@ export class ImportsService {
         if (directCandidates.length > 0) {
           return {
             candidates: directCandidates,
-            notice: PUBLIC_DIRECT_SEARCH_NOTICE,
+            notice: appI18n.t('imports.search.publicDirectNotice'),
             source: 'external',
           };
         }
 
         return this.searchPreviewCandidates(
           normalizedQuery,
-          EXTERNAL_SEARCH_UNAVAILABLE_NOTICE,
+          appI18n.t('imports.search.externalUnavailable'),
           options.mediumType,
         );
       }
@@ -446,7 +468,7 @@ export class ImportsService {
 
     return this.searchPreviewCandidates(
       normalizedQuery,
-      '외부 검색을 건너뛰고 로컬 preview 후보를 표시합니다.',
+      appI18n.t('imports.search.localPreviewNotice'),
       options.mediumType,
     );
   }

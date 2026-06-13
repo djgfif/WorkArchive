@@ -1,5 +1,6 @@
 import { Paper } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import { WorkPoster } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
 import type { WorkFormValues } from '../utils/work-form';
@@ -15,10 +16,11 @@ interface QuickCapturePreviewProps {
 }
 
 export function QuickCapturePreview({ values }: QuickCapturePreviewProps) {
-  const previewTitle = values.title.trim() || '제목 없는 작품';
+  const { t } = useAppTranslation();
+  const previewTitle = values.title.trim() || t('works.form.previewUntitled');
   const typeLabel =
     workTypeOptions.find((option) => option.value === values.type)?.label ??
-    '작품';
+    t('works.add.title');
 
   return (
     <Paper className={cn(css.quickCapturePreview)} withBorder>

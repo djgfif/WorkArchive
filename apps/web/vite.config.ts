@@ -44,10 +44,27 @@ export default defineConfig({
         // SPA 라우트는 오프라인에서도 index.html 로 폴백한다(API 제외).
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/health/],
-        globPatterns: ['**/*.{js,css,html,svg,woff,woff2}'],
+        // 자체 호스팅 한글 폰트는 unicode-range 서브셋이 수백 개라 precache 에서
+        // 제외하고, 실제 요청되는 글리프 청크만 런타임 CacheFirst 로 보관한다.
+        globPatterns: ['**/*.{js,css,html,svg}'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         runtimeCaching: [
+          {
+            // 자체 호스팅 웹폰트 — 요청된 서브셋만 캐시 우선으로 보관
+            urlPattern: ({ request, url }) =>
+              request.destination === 'font' ||
+              /\.(?:woff2?|ttf|otf)$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'wa-fonts',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             // 표지 프록시 — 이미지이므로 캐시 우선
             urlPattern: ({ url }) => url.pathname.startsWith('/api/image-proxy'),
@@ -117,6 +134,9 @@ export default defineConfig({
   },
 
   build: {
+    // 폰트는 service worker 런타임 CacheFirst 정책으로 다룬다. 작은 woff/woff2도
+    // CSS에 data: URL로 인라인하지 않아 precache CSS가 비대해지지 않게 한다.
+    assetsInlineLimit: 0,
     chunkSizeWarningLimit: 650,
     rollupOptions: {
       output: {

@@ -22,6 +22,7 @@ import {
   StateMessage,
 } from '@shared/components/AppPrimitives';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { appI18n, formatAppNumber, useAppTranslation } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { getWorkStatusLabel, getWorkTypeLabel } from '@features/works';
 import { usePersonalInsights } from '../hooks/usePersonalInsights';
@@ -34,11 +35,13 @@ import { cn } from '@shared/utils/class-names';
 const css = styles;
 
 function formatCount(value: number) {
-  return new Intl.NumberFormat('ko-KR').format(value);
+  return formatAppNumber(value);
 }
 
 function formatAverageRating(value: number | null) {
-  return value === null ? '미평가' : value.toFixed(1);
+  return value === null
+    ? appI18n.t('insights.noAverageRating')
+    : value.toFixed(1);
 }
 
 function formatPercent(count: number, total: number) {
@@ -50,7 +53,10 @@ function formatPercent(count: number, total: number) {
 }
 
 function metricLabel(value: string, count: number) {
-  return `${value} ${formatCount(count)}개`;
+  return appI18n.t('insights.countLabel', {
+    count: formatCount(count),
+    value,
+  });
 }
 
 function buildStatusHref(status: WorkStatus) {
@@ -246,6 +252,7 @@ function RecentWorksList({
 }
 
 function InsightsContent({ insights }: { insights: PersonalInsights }) {
+  const { t } = useAppTranslation();
   const statusItems = Object.entries(insights.statusCounts).map(
     ([status, count]) => ({
       count,
@@ -258,24 +265,24 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
     <>
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
         <MetricCard
-          description="현재 로컬 아카이브의 활성 작품입니다."
-          label="총 작품"
+          description={t('insights.totalWorksDescription')}
+          label={t('insights.totalWorksLabel')}
           to="/works"
           value={formatCount(insights.totalWorks)}
         />
         <MetricCard
-          description="별점을 남긴 작품만 평균에 포함합니다."
-          label="평균 별점"
+          description={t('insights.averageRatingDescription')}
+          label={t('insights.averageRatingLabel')}
           value={formatAverageRating(insights.averageRating)}
         />
         <MetricCard
-          description="완료일 기준, 오래된 기록은 수정일로 보정합니다."
-          label="올해 완료"
+          description={t('insights.completedThisYearDescription')}
+          label={t('insights.completedThisYearLabel')}
           value={formatCount(insights.completedThisYearCount)}
         />
         <MetricCard
-          description="즐겨찾기 필터로 바로 확인할 수 있습니다."
-          label="즐겨찾기"
+          description={t('insights.favoriteDescription')}
+          label={t('insights.favoriteLabel')}
           to="/works?smart=favorites"
           value={formatCount(insights.favoriteCount)}
         />
@@ -283,23 +290,23 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
         <MetricCard
-          description="최근 30일 안에 추가한 작품입니다."
-          label="최근 추가"
+          description={t('insights.addedRecentlyDescription')}
+          label={t('insights.addedRecentlyLabel')}
           value={formatCount(insights.addedRecentlyCount)}
         />
         <MetricCard
-          description="최근 30일 안에 수정한 작품입니다."
-          label="최근 수정"
+          description={t('insights.updatedRecentlyDescription')}
+          label={t('insights.updatedRecentlyLabel')}
           value={formatCount(insights.updatedRecentlyCount)}
         />
         <MetricCard
-          description="한줄평과 긴 감상이 모두 비어 있는 작품입니다."
-          label="감상 비어 있음"
+          description={t('insights.ratingEmptyDescription')}
+          label={t('insights.ratingEmptyLabel')}
           value={formatCount(insights.reviewEmptyCount)}
         />
         <MetricCard
-          description="잠시 멈춰 둔(보류) 작품입니다. 다시 볼 때 이어서 기록하세요."
-          label="보류"
+          description={t('insights.statusOnHoldDescription')}
+          label={t('insights.statusOnHoldLabel')}
           to="/works?status=on_hold"
           value={formatCount(insights.onHoldCount)}
         />
@@ -311,9 +318,9 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
           typeCounts={insights.typeCounts}
         />
         <CountPanel
-          emptyLabel="아직 상태별 통계를 만들 작품이 없습니다."
+          emptyLabel={t('insights.statusEmpty')}
           items={statusItems}
-          title="상태별 작품"
+          title={t('insights.statusTitle')}
         />
       </SimpleGrid>
 
@@ -321,34 +328,34 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
 
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
         <CountPanel
-          emptyLabel="아직 개인 태그가 없습니다."
+          emptyLabel={t('insights.tagsEmpty')}
           items={insights.tagCounts.map(({ count, tag }) => ({
             count,
             label: tag,
             to: buildTagHref(tag),
           }))}
-          title="상위 개인 태그"
+          title={t('insights.tagsTitle')}
         />
         <CountPanel
-          emptyLabel="아직 장르가 없습니다."
+          emptyLabel={t('insights.topGenresEmpty')}
           items={insights.genreCounts.map(({ count, genre }) => ({
             count,
             label: genre,
             to: buildGenreHref(genre),
           }))}
-          title="상위 장르"
+          title={t('insights.topGenresTitle')}
         />
       </SimpleGrid>
 
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
         <RecentWorksList
-          emptyLabel="최근 30일 안에 추가된 작품이 없습니다."
-          title="최근 추가한 작품"
+          emptyLabel={t('insights.recentAddedEmpty')}
+          title={t('insights.recentAddedTitle')}
           works={insights.recentlyAddedWorks}
         />
         <RecentWorksList
-          emptyLabel="최근 30일 안에 수정된 작품이 없습니다."
-          title="최근 수정한 작품"
+          emptyLabel={t('insights.recentUpdatedEmpty')}
+          title={t('insights.recentUpdatedTitle')}
           works={insights.recentlyUpdatedWorks}
         />
       </SimpleGrid>
@@ -356,14 +363,22 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
       <Paper className={cn(css.chartPanel)} p="lg" radius="md" withBorder>
         <Group gap="sm" wrap="wrap">
           <AppBadge tone="muted">
-            하차 {formatCount(insights.droppedCount)}개
+            {t('insights.droppedBadge', {
+              count: formatCount(insights.droppedCount),
+            })}
           </AppBadge>
           <AppBadge tone="muted">
-            볼 예정 {formatCount(insights.plannedCount)}개
+            {t('insights.statusPlannedBadge', {
+              count: formatCount(insights.plannedCount),
+            })}
           </AppBadge>
           <AppBadge tone="muted">
-            감상 공백{' '}
-            {formatPercent(insights.reviewEmptyCount, insights.totalWorks)}
+            {t('insights.gapBadge', {
+              percent: formatPercent(
+                insights.reviewEmptyCount,
+                insights.totalWorks,
+              ),
+            })}
           </AppBadge>
         </Group>
       </Paper>
@@ -372,17 +387,20 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
 }
 
 export function PersonalInsightsPage() {
-  usePageTitle('개인 인사이트');
+  const { t } = useAppTranslation();
+  usePageTitle(t('insights.pageTitle'));
   const { mode } = useAuthSession();
   const { error, insights, isLoading, retry } = usePersonalInsights();
   const [yearOpen, setYearOpen] = useState(false);
   const archiveModeLabel =
-    mode === 'authenticated' ? '인증된 로컬 아카이브' : '게스트 로컬 아카이브';
+    mode === 'authenticated'
+      ? t('insights.archiveModeAuthenticated')
+      : t('insights.archiveModeGuest');
 
   if (isLoading) {
     return (
       <PageShell>
-        <LoadingState title="개인 인사이트를 계산하는 중입니다" />
+        <LoadingState title={t('insights.loadingTitle')} />
       </PageShell>
     );
   }
@@ -393,11 +411,11 @@ export function PersonalInsightsPage() {
         <StateMessage
           actions={
             <AppButton onClick={retry} tone="primary" type="button">
-              다시 계산
+              {t('insights.retry')}
             </AppButton>
           }
           description={error}
-          title="인사이트를 불러오지 못했습니다."
+          title={t('insights.loadErrorTitle')}
           tone="error"
         />
       </PageShell>
@@ -411,16 +429,16 @@ export function PersonalInsightsPage() {
           actions={
             <>
               <AppLinkButton to="/works/new" tone="primary">
-                작품 추가
+                {t('insights.addWork')}
               </AppLinkButton>
               <AppLinkButton to="/works" tone="secondary">
-                작품 목록
+                {t('insights.viewWorks')}
               </AppLinkButton>
             </>
           }
-          description="작품을 추가하면 이 기기에 저장된 로컬 기록만 사용해 매체, 상태, 별점, 태그 요약을 계산합니다."
+          description={t('insights.emptyDescription')}
           eyebrow="Private Insights"
-          title="아직 인사이트를 만들 기록이 없습니다."
+          title={t('insights.emptyTitle')}
         />
       </PageShell>
     );
@@ -436,17 +454,17 @@ export function PersonalInsightsPage() {
               tone="primary"
               type="button"
             >
-              ✦ 올해의 결산
+              {t('insights.yearInReview')}
             </AppButton>
             <AppLinkButton to="/works" tone="secondary">
-              작품 목록으로
+              {t('insights.viewWorksBack')}
             </AppLinkButton>
           </>
         }
-        description="외부 서버를 거치지 않고 이 기기에 저장된 기록만으로 계산한 개인 통계입니다."
+        description={t('insights.pageDescription')}
         eyebrow={archiveModeLabel}
-        meta={<AppBadge tone="accent">내 기기에서만 계산</AppBadge>}
-        title="개인 인사이트"
+        meta={<AppBadge tone="accent">{t('insights.metaLocalOnly')}</AppBadge>}
+        title={t('insights.pageTitle')}
         titleOrder={1}
       />
 
@@ -456,9 +474,9 @@ export function PersonalInsightsPage() {
       />
 
       <PageSection
-        description="작품 수, 상태, 별점, 태그 흐름을 한 화면에서 확인합니다."
+        description={t('insights.summaryDescription')}
         divider={false}
-        title="내 서재 요약"
+        title={t('insights.summaryTitle')}
       >
         <InsightsContent insights={insights} />
       </PageSection>

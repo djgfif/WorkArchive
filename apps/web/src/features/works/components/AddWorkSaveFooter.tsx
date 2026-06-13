@@ -1,5 +1,6 @@
 import { Paper, Stack, Text } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   ActionRow,
   AppBadge,
@@ -26,14 +27,20 @@ export function AddWorkSaveFooter({
   onCancel,
   saveStatus,
 }: AddWorkSaveFooterProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Paper className={cn(css.addWorkSaveFooter)} p="sm" radius="lg" withBorder>
       <Stack gap="xs">
         {duplicateCount > 0 && (
           <ActionRow>
-            <AppBadge tone="warning">기존 기록 확인 필요</AppBadge>
+            <AppBadge tone="warning">
+              {t('works.add.save.duplicateTitle')}
+            </AppBadge>
             <Text c="var(--mantine-color-dimmed)" size="sm">
-              비슷한 기록 {duplicateCount}개를 확인한 뒤 저장하세요.
+              {t('works.add.save.duplicateDescription', {
+                count: duplicateCount,
+              })}
             </Text>
           </ActionRow>
         )}
@@ -45,25 +52,25 @@ export function AddWorkSaveFooter({
             tone="primary"
             type="submit"
           >
-            {isSubmitting ? '저장 중...' : '내 아카이브에 저장'}
+            {isSubmitting ? t('works.form.saving') : t('works.add.save.submit')}
           </AppButton>
           {onCancel ? (
             <AppButton onClick={onCancel} tone="quiet" type="button">
-              취소
+              {t('works.form.cancel')}
             </AppButton>
           ) : (
             <AppLinkButton to="/works" tone="quiet">
-              취소
+              {t('works.form.cancel')}
             </AppLinkButton>
           )}
           {saveStatus === 'saving' && (
-            <AppBadge tone="muted">임시저장 중</AppBadge>
+            <AppBadge tone="muted">{t('works.form.draftSaving')}</AppBadge>
           )}
           {saveStatus === 'saved' && (
-            <AppBadge tone="success">임시저장됨</AppBadge>
+            <AppBadge tone="success">{t('works.form.draftSaved')}</AppBadge>
           )}
           {saveStatus === 'restored' && (
-            <AppBadge tone="accent">임시작성 복구됨</AppBadge>
+            <AppBadge tone="accent">{t('works.form.draftRestored')}</AppBadge>
           )}
         </ActionRow>
       </Stack>

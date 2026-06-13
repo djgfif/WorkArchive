@@ -9,7 +9,11 @@ import type {
 } from '@work-archive/shared-types';
 import { SYNC_SCHEMA_VERSION } from '@work-archive/shared-types';
 
-import { requestAuthenticatedApiJson } from '@shared/services/api-client';
+import { appI18n } from '@app/i18n';
+import {
+  ApiRequestError,
+  requestAuthenticatedApiJson,
+} from '@shared/services/api-client';
 import {
   localizeServerMessage,
   localizeSyncResultCode,
@@ -70,6 +74,7 @@ export interface PushCycleResult {
   processedAt: string | null;
   messages: string[];
   requestFailed: boolean;
+  retryAfterMs?: number;
 }
 
 function isDatabaseClosedError(error: unknown) {
@@ -104,9 +109,7 @@ function assertSupportedResponseSchemaVersion(schemaVersion: unknown) {
     return;
   }
 
-  throw new Error(
-    '보내기 응답의 동기화 계약 버전을 지원하지 않습니다. 앱을 새로고침하거나 업데이트해주세요.',
-  );
+  throw new Error(appI18n.t('sync.schemaPushUnsupported'));
 }
 
 async function postJson<TResponse>(
@@ -120,7 +123,7 @@ async function postJson<TResponse>(
       body: JSON.stringify(body),
     },
     {
-      missingTokenMessage: '동기화하려면 로그인해주세요.',
+      missingTokenMessage: appI18n.t('sync.loginRequired'),
     },
   );
 }
@@ -155,7 +158,7 @@ export class SyncPushService {
       conflictCount: 0,
       failedCount: 0,
       processedAt: null,
-      messages: ['다른 탭에서 동기화 중이라 이번 백업을 건너뛰었습니다.'],
+      messages: [appI18n.t('sync.pushLeaseBusy')],
       requestFailed: false,
     };
   }
@@ -172,7 +175,7 @@ export class SyncPushService {
         conflictCount: 0,
         failedCount: 0,
         processedAt: null,
-        messages: ['동기화할 변경 사항이 없습니다.'],
+        messages: [appI18n.t('sync.noChangesToPush')],
         requestFailed: false,
       };
     }
@@ -186,11 +189,11 @@ export class SyncPushService {
       const messages = [];
 
       if (manualReviewCount > 0) {
-        messages.push('직접 확인이 필요한 항목은 자동 백업하지 않습니다.');
+        messages.push(appI18n.t('sync.pushManualReviewRequired'));
       }
 
       if (backoffCount > 0) {
-        messages.push('실패한 항목은 다음 자동 재시도 시간까지 기다립니다.');
+        messages.push(appI18n.t('sync.pushBackoffWaiting'));
       }
 
       return {
@@ -260,7 +263,7 @@ export class SyncPushService {
           this.localizeSyncResult(
             result.code,
             result.message,
-            '동기화 결과를 확인하지 못했습니다.',
+            appI18n.t('sync.resultUnknown'),
           ),
         );
 
@@ -287,14 +290,14 @@ export class SyncPushService {
           );
 
           if (autoMerged) {
-            messages.push('자동 백업 내용을 정리해 다시 시도합니다.');
+            messages.push(appI18n.t('sync.pushRetryAfterAutoMerge'));
             continue;
           }
 
           const conflictMessage = this.localizeSyncResult(
             result.code,
             result.message,
-            '자동 백업 중 일부 항목 확인이 필요합니다.',
+            appI18n.t('sync.pushConflictReviewRequired'),
           );
 
           conflictCount += 1;
@@ -316,7 +319,7 @@ export class SyncPushService {
             this.localizeSyncResult(
               result.code,
               result.message,
-              '동기화에 실패했습니다.',
+              appI18n.t('sync.failedSync'),
             ),
           );
         }
@@ -351,13 +354,15 @@ export class SyncPushService {
         requestFailed: false,
       };
     } catch (error) {
+      const retryAfterMs =
+        error instanceof ApiRequestError ? error.retryAfterMs : null;
       const message =
         error instanceof Error
-          ? localizeServerMessage(error.message, '업로드 요청에 실패했습니다.')
-          : '업로드 요청에 실패했습니다.';
+          ? localizeServerMessage(error.message, appI18n.t('sync.failedPush'))
+          : appI18n.t('sync.failedPush');
 
       try {
-        await this.queueRepo.markManyFailed(queueItemIds, message);
+        await this.queueRepo.markManyFailed(queueItemIds, message, retryAfterMs);
       } catch (markError) {
         if (!isDatabaseClosedError(markError)) {
           throw markError;
@@ -372,6 +377,7 @@ export class SyncPushService {
         processedAt: null,
         messages: [message],
         requestFailed: true,
+        ...(retryAfterMs !== null ? { retryAfterMs } : {}),
       };
     }
   }
@@ -393,10 +399,13 @@ export class SyncPushService {
         messages: [
           ...freshnessResult.messages,
           freshnessResult.requestFailed
-            ? '최신 원격 변경을 확인하지 못해 자동 백업을 중단했습니다.'
-            : '직접 확인이 필요한 항목이 있어 자동 백업을 중단했습니다.',
+            ? appI18n.t('sync.stalePullFailed')
+            : appI18n.t('sync.stalePullNeedsReview'),
         ],
         requestFailed: freshnessResult.requestFailed,
+        ...(freshnessResult.retryAfterMs !== undefined
+          ? { retryAfterMs: freshnessResult.retryAfterMs }
+          : {}),
       };
     }
 
@@ -522,11 +531,13 @@ export class SyncPushService {
       await this.queueRepo.markFailed(
         queueItem.id,
         error instanceof Error
-          ? `동기화 후 화면에 반영하지 못했습니다: ${localizeServerMessage(
-              error.message,
-              '화면을 업데이트하는 중 문제가 발생했습니다.',
-            )}`
-          : '동기화 후 화면에 반영하지 못했습니다.',
+          ? appI18n.t('sync.failedApplyAfterSyncWithReason', {
+              reason: localizeServerMessage(
+                error.message,
+                appI18n.t('sync.failedUpdateView'),
+              ),
+            })
+          : appI18n.t('sync.failedApplyAfterSync'),
       );
 
       return false;

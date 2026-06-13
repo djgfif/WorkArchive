@@ -25,6 +25,12 @@ import {
   AppLinkButton,
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
+import {
+  formatAppDateTime,
+  formatAppNumber,
+  useAppTranslation,
+  type AppTranslationKey,
+} from '@app/i18n';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { ArchiveEmptyState, ArchiveHero } from '@features/works';
 import {
@@ -36,22 +42,25 @@ import styles from './TierBoardsPage.module.css';
 const css = styles;
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('ko-KR', {
+  return formatAppDateTime(new Date(value), {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(value));
+  });
 }
 
 function TemplatePreview({ templateTitle }: { templateTitle: string }) {
+  const { t } = useAppTranslation();
   const template = TIER_BOARD_TEMPLATES.find(
-    (candidate) => candidate.title === templateTitle,
+    (candidate) =>
+      getTemplateValue(candidate) === templateTitle ||
+      candidate.title === templateTitle,
   );
 
   if (!template || template.lanes.length === 0) {
     return (
       <Box className={cn(css.templatePreview)}>
         <Text c="dimmed" size="xs">
-          빈 보드
+          {t('tierBoards.emptyBoard')}
         </Text>
       </Box>
     );
@@ -65,7 +74,7 @@ function TemplatePreview({ templateTitle }: { templateTitle: string }) {
           key={`${template.title}-${lane.title}`}
           style={{ backgroundColor: lane.colorToken }}
         >
-          {lane.title}
+          {getTemplateText(lane.title, t)}
         </Box>
       ))}
     </Group>
@@ -73,7 +82,8 @@ function TemplatePreview({ templateTitle }: { templateTitle: string }) {
 }
 
 export function TierBoardsPage() {
-  usePageTitle('티어보드');
+  const { t } = useAppTranslation();
+  usePageTitle(t('tierBoards.pageTitle'));
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [boards, setBoards] = useState<TierBoardRecord[]>([]);
@@ -81,10 +91,10 @@ export function TierBoardsPage() {
     Record<string, { cards: number; lanes: number }>
   >({});
   const [createOpen, setCreateOpen] = useState(false);
-  const [title, setTitle] = useState('새 티어보드');
+  const [title, setTitle] = useState<string>(t('tierBoards.newTitle'));
   const [description, setDescription] = useState('');
   const [templateTitle, setTemplateTitle] = useState<string>(
-    TIER_BOARD_TEMPLATES[0]!.title,
+    getTemplateValue(TIER_BOARD_TEMPLATES[0]!),
   );
   const [boardType, setBoardType] = useState<TierBoardType>('classic_tier');
   const [feedback, setFeedback] = useState<{
@@ -124,10 +134,10 @@ export function TierBoardsPage() {
         templateTitle,
         title,
       });
-      setFeedback({ message: '티어보드를 만들었습니다.', tone: 'success' });
-      setTitle('새 티어보드');
+      setFeedback({ message: t('tierBoards.createSuccess'), tone: 'success' });
+      setTitle(t('tierBoards.newTitle'));
       setDescription('');
-      setTemplateTitle(TIER_BOARD_TEMPLATES[0]!.title);
+      setTemplateTitle(getTemplateValue(TIER_BOARD_TEMPLATES[0]!));
       setBoardType('classic_tier');
       setCreateOpen(false);
       await loadBoards();
@@ -137,7 +147,7 @@ export function TierBoardsPage() {
         message:
           error instanceof Error
             ? error.message
-            : '티어보드를 만들지 못했습니다.',
+            : t('tierBoards.createError'),
         tone: 'error',
       });
     }
@@ -145,7 +155,7 @@ export function TierBoardsPage() {
 
   async function handleDuplicateBoard(id: string) {
     const board = await tierBoardService.duplicateBoard(id);
-    setFeedback({ message: '티어보드를 복제했습니다.', tone: 'success' });
+    setFeedback({ message: t('tierBoards.duplicateSuccess'), tone: 'success' });
     await loadBoards();
     navigate(`/tier-boards/${board.id}`);
   }
@@ -155,7 +165,9 @@ export function TierBoardsPage() {
 
     if (
       !window.confirm(
-        `"${board?.title ?? '선택한 보드'}" 티어보드를 삭제할까요? 삭제 후 되돌릴 수 있습니다.`,
+        t('tierBoards.deleteConfirm', {
+          title: board?.title ?? t('tierBoards.selectedBoard'),
+        }),
       )
     ) {
       return;
@@ -163,7 +175,7 @@ export function TierBoardsPage() {
 
     const snapshot = await tierBoardService.deleteBoard(id);
     setDeletedSnapshot(snapshot);
-    setFeedback({ message: '티어보드를 삭제했습니다.', tone: 'success' });
+    setFeedback({ message: t('tierBoards.deleteSuccess'), tone: 'success' });
     await loadBoards();
   }
 
@@ -171,7 +183,7 @@ export function TierBoardsPage() {
     if (!deletedSnapshot) return;
     await tierBoardService.restoreBoardSnapshot(deletedSnapshot);
     setDeletedSnapshot(null);
-    setFeedback({ message: '티어보드를 복원했습니다.', tone: 'success' });
+    setFeedback({ message: t('tierBoards.restoreSuccess'), tone: 'success' });
     await loadBoards();
   }
 
@@ -181,7 +193,7 @@ export function TierBoardsPage() {
     try {
       const board = await tierBoardService.importBoardJson(await file.text());
       setFeedback({
-        message: 'JSON 티어보드를 가져왔습니다.',
+        message: t('tierBoards.importSuccess'),
         tone: 'success',
       });
       await loadBoards();
@@ -191,7 +203,7 @@ export function TierBoardsPage() {
         message:
           error instanceof Error
             ? error.message
-            : 'JSON을 가져오지 못했습니다.',
+            : t('tierBoards.importError'),
         tone: 'error',
       });
     } finally {
@@ -211,14 +223,14 @@ export function TierBoardsPage() {
               tone="primary"
               type="button"
             >
-              새 티어보드 만들기
+              {t('tierBoards.create')}
             </AppButton>
             <AppButton
               onClick={() => fileInputRef.current?.click()}
               tone="secondary"
               type="button"
             >
-              JSON 보드 가져오기
+              {t('tierBoards.importJson')}
             </AppButton>
             <input
               accept="application/json,.json"
@@ -231,9 +243,9 @@ export function TierBoardsPage() {
             />
           </Group>
         }
-        description="작품 기록과 분리된 자유형 보드를 만들고, 작품/캐릭터/이미지/텍스트 항목을 원하는 행에 배치하세요."
+        description={t('tierBoards.heroDescription')}
         eyebrow="Tier Board Maker"
-        title="자유형 티어보드"
+        title={t('tierBoards.heroTitle')}
         variant="compact"
       />
 
@@ -247,7 +259,7 @@ export function TierBoardsPage() {
                 tone="secondary"
                 type="button"
               >
-                되돌리기
+                {t('tierBoards.undo')}
               </AppButton>
             )}
           </Group>
@@ -263,20 +275,20 @@ export function TierBoardsPage() {
                 tone="primary"
                 type="button"
               >
-                새 티어보드 만들기
+                {t('tierBoards.create')}
               </AppButton>
               <AppButton
                 onClick={() => fileInputRef.current?.click()}
                 tone="secondary"
                 type="button"
               >
-                JSON 보드 가져오기
+                {t('tierBoards.importJson')}
               </AppButton>
             </Group>
           }
-          description="작품 목록과 별개로 원하는 기준의 티어보드를 만들 수 있습니다."
-          eyebrow="티어보드"
-          title="아직 만든 티어보드가 없습니다."
+          description={t('tierBoards.emptyDescription')}
+          eyebrow={t('tierBoards.pageTitle')}
+          title={t('tierBoards.emptyTitle')}
         />
       ) : (
         <div className={cn(css.grid)}>
@@ -306,43 +318,49 @@ export function TierBoardsPage() {
                     </AppBadge>
                   </Group>
                   <Text c="dimmed" lineClamp={3} size="sm">
-                    {board.description || '설명 없음'}
+                    {board.description || t('tierBoards.noDescription')}
                   </Text>
                   <Group gap="xs">
                     <AppBadge tone="accent">
-                      {counts[board.id]?.lanes ?? 0} lanes
+                      {t('tierBoards.laneCount', {
+                        count: formatAppNumber(counts[board.id]?.lanes ?? 0),
+                      })}
                     </AppBadge>
                     <AppBadge tone="muted">
-                      {counts[board.id]?.cards ?? 0} cards
+                      {t('tierBoards.cardCount', {
+                        count: formatAppNumber(counts[board.id]?.cards ?? 0),
+                      })}
                     </AppBadge>
                   </Group>
                   <Text c="dimmed" size="xs">
-                    마지막 수정 {formatDate(board.updatedAt)}
+                    {t('tierBoards.lastUpdated', {
+                      date: formatDate(board.updatedAt),
+                    })}
                   </Text>
                 </Stack>
                 <Group gap="xs">
                   <AppLinkButton to={`/tier-boards/${board.id}`} tone="primary">
-                    열기
+                    {t('tierBoards.open')}
                   </AppLinkButton>
                   <AppLinkButton
                     to={`/tier-boards/${board.id}/view`}
                     tone="secondary"
                   >
-                    보기
+                    {t('tierBoards.view')}
                   </AppLinkButton>
                   <AppButton
                     onClick={() => void handleDuplicateBoard(board.id)}
                     tone="secondary"
                     type="button"
                   >
-                    복제
+                    {t('tierBoards.duplicate')}
                   </AppButton>
                   <AppButton
                     onClick={() => void handleDeleteBoard(board.id)}
                     tone="quiet"
                     type="button"
                   >
-                    삭제
+                    {t('tierBoards.delete')}
                   </AppButton>
                 </Group>
               </Stack>
@@ -355,49 +373,52 @@ export function TierBoardsPage() {
         onClose={() => setCreateOpen(false)}
         opened={createOpen}
         size="lg"
-        title="새 티어보드 만들기"
+        title={t('tierBoards.createModalTitle')}
       >
         <Stack gap="md">
           <TextInput
-            aria-label="새 티어보드 제목"
-            label="제목"
+            aria-label={t('tierBoards.createTitleAria')}
+            label={t('tierBoards.titleLabel')}
             onChange={(event) => setTitle(event.currentTarget.value)}
             value={title}
           />
           <Textarea
-            aria-label="새 티어보드 설명"
+            aria-label={t('tierBoards.createDescriptionAria')}
             autosize
-            label="설명"
+            label={t('tierBoards.descriptionLabel')}
             minRows={2}
             onChange={(event) => setDescription(event.currentTarget.value)}
             value={description}
           />
           <Select
             data={[
-              { label: 'Classic tier', value: 'classic_tier' },
-              { label: 'Ranking', value: 'ranking' },
-              { label: 'Freeform', value: 'freeform' },
+              {
+                label: t('tierBoards.boardType.classic_tier'),
+                value: 'classic_tier',
+              },
+              { label: t('tierBoards.boardType.ranking'), value: 'ranking' },
+              { label: t('tierBoards.boardType.freeform'), value: 'freeform' },
             ]}
-            label="보드 타입"
+            label={t('tierBoards.boardTypeLabel')}
             onChange={(value) => value && setBoardType(value as TierBoardType)}
             value={boardType}
           />
           <Stack gap="xs">
             <Text fw={700} size="sm">
-              템플릿
+              {t('tierBoards.templateLabel')}
             </Text>
             <SimpleGrid cols={{ base: 1, sm: 2 }}>
               {TIER_BOARD_TEMPLATES.map((template) => (
                 <button
-                  className={`${cn(css.templateCard)} ${templateTitle === template.title ? cn(css.templateCardSelected) : ''}`}
-                  key={template.title}
-                  onClick={() => setTemplateTitle(template.title)}
+                  className={`${cn(css.templateCard)} ${templateTitle === getTemplateValue(template) ? cn(css.templateCardSelected) : ''}`}
+                  key={getTemplateValue(template)}
+                  onClick={() => setTemplateTitle(getTemplateValue(template))}
                   type="button"
                 >
                   <Text fw={700} size="sm">
-                    {template.title}
+                    {getTemplateLabel(template, t)}
                   </Text>
-                  <TemplatePreview templateTitle={template.title} />
+                  <TemplatePreview templateTitle={getTemplateValue(template)} />
                 </button>
               ))}
             </SimpleGrid>
@@ -408,18 +429,35 @@ export function TierBoardsPage() {
               tone="quiet"
               type="button"
             >
-              취소
+              {t('common.cancel')}
             </AppButton>
             <AppButton
               onClick={() => void handleCreateBoard()}
               tone="primary"
               type="button"
             >
-              만들기
+              {t('tierBoards.createSubmit')}
             </AppButton>
           </Group>
         </Stack>
       </Modal>
     </Stack>
   );
+}
+
+function getTemplateValue(template: { id?: string; title: string }) {
+  return template.id ?? template.title;
+}
+
+function getTemplateLabel(
+  template: { title: string; titleKey?: AppTranslationKey },
+  t: (key: AppTranslationKey) => string,
+) {
+  return getTemplateText(template.titleKey ?? template.title, t);
+}
+
+function getTemplateText(value: string, t: (key: AppTranslationKey) => string) {
+  return value.startsWith('tierBoards.templates.')
+    ? t(value as AppTranslationKey)
+    : value;
 }

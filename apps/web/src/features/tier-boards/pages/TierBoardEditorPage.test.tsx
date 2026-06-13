@@ -234,7 +234,7 @@ describe('TierBoardEditorPage', () => {
     expect(
       await screen.findByRole('heading', { name: '읽기 전용 보드' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '편집' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '수정' })).toHaveAttribute(
       'href',
       `/tier-boards/${state.board.id}`,
     );

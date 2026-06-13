@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 
-const UNSAVED_CHANGES_MESSAGE =
-  '저장되지 않은 변경 사항이 있습니다. 이 페이지를 떠나시겠습니까?';
+import { appI18n } from '@app/i18n';
+
+const UNSAVED_CHANGES_MESSAGE = appI18n.t('works.errors.unsavedChanges');
 
 function isPlainLeftClick(event: MouseEvent) {
   return (

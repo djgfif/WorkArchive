@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActionIcon, Group, Text, TextInput } from '@mantine/core';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { useAppTranslation } from '@app/i18n';
 import { AppButton } from '@shared/components/AppPrimitives';
 import { useSavedWorksViews } from '../hooks/useSavedWorksViews';
 
@@ -9,6 +10,7 @@ import { useSavedWorksViews } from '../hooks/useSavedWorksViews';
  * 작품 페이지 상단의 스마트뷰 스트립 — 저장된 필터 조합을 칩으로 빠르게 적용/관리한다.
  */
 export function SavedWorksViews() {
+  const { t } = useAppTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { views, saveView, removeView } = useSavedWorksViews();
@@ -37,7 +39,7 @@ export function SavedWorksViews() {
         style={{ letterSpacing: '0.08em' }}
         tt="uppercase"
       >
-        스마트뷰
+        {t('works.list.smartViews')}
       </Text>
 
       {views.map((view) => {
@@ -53,7 +55,9 @@ export function SavedWorksViews() {
               {view.name}
             </AppButton>
             <ActionIcon
-              aria-label={`${view.name} 스마트뷰 삭제`}
+              aria-label={t('works.list.smartViewDeleteAria', {
+                name: view.name,
+              })}
               color="gray"
               onClick={() => removeView(view.id)}
               size="sm"
@@ -71,7 +75,7 @@ export function SavedWorksViews() {
           size="compact-xs"
           tone="quiet"
         >
-          + 현재 필터 저장
+          {t('works.list.smartViewSaveCurrent')}
         </AppButton>
       )}
 
@@ -90,7 +94,7 @@ export function SavedWorksViews() {
                 setName('');
               }
             }}
-            placeholder="뷰 이름 (예: 연재중 4★)"
+            placeholder={t('works.list.smartViewNamePlaceholder')}
             size="xs"
             value={name}
             w={170}
@@ -101,7 +105,7 @@ export function SavedWorksViews() {
             size="compact-xs"
             tone="primary"
           >
-            저장
+            {t('common.save')}
           </AppButton>
           <AppButton
             onClick={() => {
@@ -111,7 +115,7 @@ export function SavedWorksViews() {
             size="compact-xs"
             tone="quiet"
           >
-            취소
+            {t('common.cancel')}
           </AppButton>
         </Group>
       )}

@@ -18,11 +18,18 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
+import {
+  formatAppDateTime,
+  formatAppNumber,
+  useAppTranslation,
+  type AppTranslationKey,
+} from '@app/i18n';
 import type { NotionChangePreview } from '../../services/notion.service';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import styles from './SettingsControlCenter.module.css';
 
 const css = styles;
+type TranslationFn = ReturnType<typeof useAppTranslation>['t'];
 
 interface NotionSyncSettingsSectionProps {
   connectionDraft: {
@@ -60,56 +67,74 @@ interface NotionSyncSettingsSectionProps {
   } | null;
 }
 
-const fieldLabels: Record<string, string> = {
-  completedAt: '완료일',
-  droppedAt: '중단일',
-  favorite: '즐겨찾기',
-  personalTags: '개인 태그',
-  progressCurrent: '현재 진행도',
-  progressTotal: '전체 진행도',
-  progressUnit: '진행 단위',
-  rating: '별점',
-  review: '긴 리뷰',
-  shortReview: '짧은 리뷰',
-  startedAt: '시작일',
-  status: '감상 상태',
+const fieldLabelKeys: Record<string, AppTranslationKey> = {
+  completedAt: 'settings.notion.fields.completedAt',
+  droppedAt: 'settings.notion.fields.droppedAt',
+  favorite: 'settings.notion.fields.favorite',
+  personalTags: 'settings.notion.fields.personalTags',
+  progressCurrent: 'settings.notion.fields.progressCurrent',
+  progressTotal: 'settings.notion.fields.progressTotal',
+  progressUnit: 'settings.notion.fields.progressUnit',
+  rating: 'settings.notion.fields.rating',
+  review: 'settings.notion.fields.review',
+  shortReview: 'settings.notion.fields.shortReview',
+  startedAt: 'settings.notion.fields.startedAt',
+  status: 'settings.notion.fields.status',
 };
 
-function formatValue(value: unknown) {
+function formatCount(value: number) {
+  return formatAppNumber(value);
+}
+
+function formatValue(value: unknown, t: TranslationFn) {
   if (Array.isArray(value)) {
-    return value.length > 0 ? value.join(', ') : '비어 있음';
+    return value.length > 0 ? value.join(', ') : t('settings.notion.emptyValue');
   }
 
   if (typeof value === 'boolean') {
-    return value ? '예' : '아니오';
+    return value ? t('settings.notion.yes') : t('settings.notion.no');
   }
 
   if (value === null || value === undefined || value === '') {
-    return '비어 있음';
+    return t('settings.notion.emptyValue');
   }
 
   return String(value);
 }
 
 function PreviewChangeCard({ change }: { change: NotionChangePreview }) {
+  const { t } = useAppTranslation();
+
   return (
     <Box className={css.providerInfoCard ?? ''}>
       <Stack gap="xs">
         <Group gap="xs" justify="space-between" wrap="nowrap">
           <Text className={css.providerInfoTitle ?? ''}>{change.title}</Text>
-          <AppBadge tone="info">{change.changes.length}개 변경</AppBadge>
+          <AppBadge tone="info">
+            {t('settings.notion.changeCount', {
+              count: formatCount(change.changes.length),
+            })}
+          </AppBadge>
         </Group>
         <Stack gap={4}>
-          {change.changes.slice(0, 4).map((entry) => (
-            <Text className={css.providerInfoMeta ?? ''} key={entry.field}>
-              {fieldLabels[entry.field] ?? entry.field}: 로컬{' '}
-              {formatValue(entry.localValue)} → Notion{' '}
-              {formatValue(entry.notionValue)}
-            </Text>
-          ))}
+          {change.changes.slice(0, 4).map((entry) => {
+            const fieldLabelKey = fieldLabelKeys[entry.field];
+
+            return (
+              <Text className={css.providerInfoMeta ?? ''} key={entry.field}>
+                {t('settings.notion.changeLine', {
+                  field: fieldLabelKey ? t(fieldLabelKey) : entry.field,
+                  localValue: formatValue(entry.localValue, t),
+                  notionValue: formatValue(entry.notionValue, t),
+                })}
+              </Text>
+            );
+          })}
           {change.changes.length > 4 && (
             <Text className={css.providerInfoMeta ?? ''}>
-              외 {change.changes.length - 4}개 필드
+              {t('settings.notion.moreFields', {
+                count: formatCount(change.changes.length - 4),
+              })}
             </Text>
           )}
         </Stack>
@@ -139,28 +164,36 @@ export function NotionSyncSettingsSection({
   pullPreview,
   status,
 }: NotionSyncSettingsSectionProps) {
+  const { t } = useAppTranslation();
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void onSaveConnection();
   }
 
   const configured = Boolean(status?.configured);
+  const lastSyncedAt = status?.lastSyncedAt
+    ? formatAppDateTime(new Date(status.lastSyncedAt), {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : t('settings.notion.noSyncRecord');
 
   return (
     <SectionCard>
       <SectionIntro
-        description="Work Archive를 원장으로 유지하면서 Notion 데이터소스를 외부 편집/백업 미러로 사용합니다. Notion에서 바꾼 안전 필드는 미리보기 후 적용합니다."
-        eyebrow="Notion 동기화"
-        title="Notion 편집 미러"
+        description={t('settings.notion.description')}
+        eyebrow={t('settings.notion.eyebrow')}
+        title={t('settings.notion.title')}
       />
 
       {mode !== 'authenticated' ? (
         <Text c="dimmed">
-          Notion 연결은 로그인한 계정의 서버 보안 저장소에서만 관리됩니다.
+          {t('settings.notion.guestDescription')}
         </Text>
       ) : isLoadingStatus ? (
         <Text aria-busy="true" c="dimmed">
-          Notion 연결 상태를 불러오는 중입니다.
+          {t('settings.notion.loadingStatus')}
         </Text>
       ) : (
         <Stack gap="lg">
@@ -168,10 +201,14 @@ export function NotionSyncSettingsSection({
             <SectionCard padding="md" tone="subtle">
               <Stack gap={4}>
                 <Text c="dimmed" fw={760} size="xs">
-                  연결 상태
+                  {t('settings.notion.connectionStatus')}
                 </Text>
                 <Group gap="xs">
-                  <Text fw={900}>{configured ? '연결됨' : '미연결'}</Text>
+                  <Text fw={900}>
+                    {configured
+                      ? t('settings.notion.connected')
+                      : t('settings.notion.disconnected')}
+                  </Text>
                   <AppBadge tone={configured ? 'success' : 'warning'}>
                     Notion
                   </AppBadge>
@@ -181,20 +218,18 @@ export function NotionSyncSettingsSection({
             <SectionCard padding="md" tone="subtle">
               <Stack gap={4}>
                 <Text c="dimmed" fw={760} size="xs">
-                  매핑된 작품
+                  {t('settings.notion.mappedWorks')}
                 </Text>
-                <Text fw={900}>{status?.mappedCount ?? 0}</Text>
+                <Text fw={900}>{formatCount(status?.mappedCount ?? 0)}</Text>
               </Stack>
             </SectionCard>
             <SectionCard padding="md" tone="subtle">
               <Stack gap={4}>
                 <Text c="dimmed" fw={760} size="xs">
-                  마지막 동기화
+                  {t('settings.notion.lastSync')}
                 </Text>
                 <Text fw={900} size="sm">
-                  {status?.lastSyncedAt
-                    ? new Date(status.lastSyncedAt).toLocaleString()
-                    : '기록 없음'}
+                  {lastSyncedAt}
                 </Text>
               </Stack>
             </SectionCard>
@@ -208,7 +243,7 @@ export function NotionSyncSettingsSection({
                 autoCorrect="off"
                 data-1p-ignore="true"
                 data-lpignore="true"
-                description="Notion 데이터베이스의 Manage data sources 메뉴에서 복사한 data source ID를 입력합니다."
+                description={t('settings.notion.dataSourceDescription')}
                 label="Notion data source ID"
                 onChange={(event) =>
                   onUpdateConnectionDraft(
@@ -216,7 +251,7 @@ export function NotionSyncSettingsSection({
                     event.currentTarget.value,
                   )
                 }
-                placeholder="예: 1a44be1209534631b4989e5817518db8"
+                placeholder={t('settings.notion.dataSourcePlaceholder')}
                 spellCheck={false}
                 value={connectionDraft.dataSourceId}
               />
@@ -224,7 +259,7 @@ export function NotionSyncSettingsSection({
                 autoComplete="off"
                 data-1p-ignore="true"
                 data-lpignore="true"
-                description="저장 후에는 값이 다시 표시되지 않습니다. Notion integration을 데이터소스에 공유해야 합니다."
+                description={t('settings.notion.tokenDescription')}
                 label="Notion token"
                 onChange={(event) =>
                   onUpdateConnectionDraft('token', event.currentTarget.value)
@@ -239,7 +274,7 @@ export function NotionSyncSettingsSection({
                   tone="primary"
                   type="submit"
                 >
-                  Notion 연결 저장
+                  {t('settings.notion.saveConnection')}
                 </AppButton>
                 <AppButton
                   disabled={!configured || isSavingConnection}
@@ -248,7 +283,7 @@ export function NotionSyncSettingsSection({
                   tone="secondary"
                   type="button"
                 >
-                  연결 테스트
+                  {t('settings.notion.testConnection')}
                 </AppButton>
                 <AppButton
                   disabled={!configured || isSavingConnection}
@@ -257,7 +292,7 @@ export function NotionSyncSettingsSection({
                   tone="danger"
                   type="button"
                 >
-                  연결 삭제
+                  {t('settings.notion.deleteConnection')}
                 </AppButton>
               </ActionRow>
             </Stack>
@@ -268,8 +303,8 @@ export function NotionSyncSettingsSection({
           <SectionCard padding="md" tone="subtle">
             <Stack gap="md">
               <SectionIntro
-                description="빠른 내부 동기화와 분리해 수동으로 실행합니다. Notion rate limit을 피하기 위해 대량 변경은 천천히 처리됩니다."
-                eyebrow="수동 동기화"
+                description={t('settings.notion.manualSyncDescription')}
+                eyebrow={t('settings.notion.manualSyncEyebrow')}
                 title="Push / Pull"
                 titleOrder={3}
               />
@@ -290,7 +325,7 @@ export function NotionSyncSettingsSection({
                   tone="secondary"
                   type="button"
                 >
-                  Notion 변경 미리보기
+                  {t('settings.notion.previewPull')}
                 </AppButton>
                 <AppButton
                   disabled={!pullPreview || pullPreview.total === 0 || isPushing}
@@ -299,7 +334,7 @@ export function NotionSyncSettingsSection({
                   tone="secondary"
                   type="button"
                 >
-                  미리보기 적용
+                  {t('settings.notion.applyPreview')}
                 </AppButton>
               </ActionRow>
             </Stack>
@@ -308,8 +343,12 @@ export function NotionSyncSettingsSection({
           {pullPreview && pullPreview.changes.length > 0 && (
             <Stack gap="sm">
               <Group gap="xs" justify="space-between">
-                <Text fw={850}>Notion 변경 미리보기</Text>
-                <AppBadge tone="info">{pullPreview.total}건</AppBadge>
+                <Text fw={850}>{t('settings.notion.previewTitle')}</Text>
+                <AppBadge tone="info">
+                  {t('settings.notion.itemCount', {
+                    count: formatCount(pullPreview.total),
+                  })}
+                </AppBadge>
               </Group>
               <div className={css.publicProviderGrid ?? ''}>
                 {pullPreview.changes.slice(0, 6).map((change) => (

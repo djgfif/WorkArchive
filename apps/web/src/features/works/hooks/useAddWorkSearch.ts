@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type { CatalogSearchMediumType } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import { importsService, type ImportCandidate } from '@features/imports';
 import { useImportProviderReadiness } from '@features/imports';
 import {
@@ -20,9 +21,9 @@ export function useAddWorkSearch({
   onApplyCandidate,
   onUseManualTitle,
 }: UseAddWorkSearchOptions) {
+  const { t } = useAppTranslation();
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchType, setSearchType] =
-    useState<CatalogSearchMediumType>('all');
+  const [searchType, setSearchType] = useState<CatalogSearchMediumType>('all');
   const [providerGroup, setProviderGroup] = useState<ProviderGroup>('all');
   const [searchCandidates, setSearchCandidates] = useState<ImportCandidate[]>(
     [],
@@ -51,7 +52,7 @@ export function useAddWorkSearch({
     const normalizedSearchTerm = searchTerm.trim();
 
     if (!normalizedSearchTerm) {
-      setSearchError('먼저 작품 제목이나 작가를 검색해주세요.');
+      setSearchError(t('works.add.search.searchMissingInput'));
       return;
     }
 
@@ -86,11 +87,11 @@ export function useAddWorkSearch({
       setSelectedSearchCandidate(visibleCandidates[0] ?? null);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : '후보 검색에 실패했습니다.';
+        error instanceof Error
+          ? error.message
+          : t('works.add.search.searchFailed');
 
-      setSearchError(
-        `${message} 검색 없이도 입력한 제목으로 직접 추가를 계속할 수 있습니다.`,
-      );
+      setSearchError(`${message} ${t('works.add.search.searchFallback')}`);
       setSearchCandidates([]);
       setSelectedSearchCandidate(null);
       setSearchNotice(null);
@@ -101,7 +102,7 @@ export function useAddWorkSearch({
 
   function applyCandidateToForm() {
     if (!selectedSearchCandidate) {
-      setSearchError('검색 결과에서 먼저 작품을 선택해주세요.');
+      setSearchError(t('works.add.search.selectCandidateFirst'));
       return;
     }
 

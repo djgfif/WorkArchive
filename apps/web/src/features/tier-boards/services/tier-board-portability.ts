@@ -4,6 +4,7 @@ import type {
   TierBoardRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import {
   blobToDataUrl,
   cacheTierBoardAssetDataUrl,
@@ -61,6 +62,7 @@ export function buildTierBoardImportRecords(
   parsed: TierBoardExportDocument,
   now: string,
 ) {
+  const title = parsed.board.title || appI18n.t('tierBoards.importedTitle');
   const maps: ImportIdMaps = {
     boardIds: new Map([[parsed.board.id, crypto.randomUUID()]]),
     laneIds: new Map(),
@@ -69,8 +71,8 @@ export function buildTierBoardImportRecords(
   const board: TierBoardRecord = {
     ...parsed.board,
     id: maps.boardIds.get(parsed.board.id)!,
-    title: parsed.board.title || '가져온 티어보드',
-    slug: createSlug(parsed.board.title || '가져온 티어보드'),
+    title,
+    slug: createSlug(title),
     visibility: 'private',
     createdAt: now,
     updatedAt: now,

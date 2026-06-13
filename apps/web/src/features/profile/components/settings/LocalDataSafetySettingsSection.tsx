@@ -8,6 +8,7 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
+import { appI18n, formatAppDateTime, formatAppNumber, useAppTranslation } from '@app/i18n';
 import type { AutomaticJsonBackupStatus } from '@features/archive';
 import type { StoragePersistenceState } from '@shared/runtime/persistent-storage';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
@@ -28,26 +29,29 @@ interface LocalDataSafetySettingsSectionProps {
 
 function formatBytes(value: number | null) {
   if (value === null) {
-    return '확인 중';
+    return appI18n.t('settings.localDataSafety.checking');
   }
 
-  return new Intl.NumberFormat('ko-KR', {
-    maximumFractionDigits: 1,
-    style: 'unit',
-    unit: value >= 1_073_741_824 ? 'gigabyte' : 'megabyte',
-    unitDisplay: 'short',
-  }).format(value / (value >= 1_073_741_824 ? 1_073_741_824 : 1_048_576));
+  return formatAppNumber(
+    value / (value >= 1_073_741_824 ? 1_073_741_824 : 1_048_576),
+    {
+      maximumFractionDigits: 1,
+      style: 'unit',
+      unit: value >= 1_073_741_824 ? 'gigabyte' : 'megabyte',
+      unitDisplay: 'short',
+    },
+  );
 }
 
 function formatDateTime(value: string | null) {
   if (!value) {
-    return '아직 없음';
+    return appI18n.t('settings.localDataSafety.noneYet');
   }
 
-  return new Intl.DateTimeFormat('ko-KR', {
+  return formatAppDateTime(new Date(value), {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(value));
+  });
 }
 
 function getStorageBadgeTone(state: StoragePersistenceState) {
@@ -60,26 +64,28 @@ function getStorageBadgeTone(state: StoragePersistenceState) {
 
 function getStorageLabel(state: StoragePersistenceState) {
   if (!state.supported) {
-    return '브라우저 미지원';
+    return appI18n.t('settings.localDataSafety.browserUnsupported');
   }
 
-  return state.persisted ? '보호됨' : '보호 요청 가능';
+  return state.persisted
+    ? appI18n.t('settings.localDataSafety.protected')
+    : appI18n.t('settings.localDataSafety.protectionAvailable');
 }
 
 function getAutoBackupLabel(status: AutomaticJsonBackupStatus) {
   if (!status.supported) {
-    return '수동 백업 필요';
+    return appI18n.t('settings.localDataSafety.manualBackupRequired');
   }
 
   if (!status.enabled) {
-    return '꺼짐';
+    return appI18n.t('settings.localDataSafety.off');
   }
 
   if (!status.hasSessionFolder) {
-    return '폴더 다시 선택 필요';
+    return appI18n.t('settings.localDataSafety.folderReselectRequired');
   }
 
-  return '켜짐';
+  return appI18n.t('settings.localDataSafety.on');
 }
 
 function getAutoBackupTone(status: AutomaticJsonBackupStatus) {
@@ -95,15 +101,15 @@ function getAutoBackupPermissionLabel(
 ) {
   switch (permission) {
     case 'denied':
-      return '거부됨';
+      return appI18n.t('settings.localDataSafety.permissionDenied');
     case 'granted':
-      return '허용됨';
+      return appI18n.t('settings.localDataSafety.permissionGranted');
     case 'prompt':
-      return '다시 확인 필요';
+      return appI18n.t('settings.localDataSafety.permissionPrompt');
     case 'unsupported':
-      return '브라우저 미지원';
+      return appI18n.t('settings.localDataSafety.browserUnsupported');
     case 'unknown':
-      return '확인 중';
+      return appI18n.t('settings.localDataSafety.checking');
   }
 }
 
@@ -120,6 +126,7 @@ export function LocalDataSafetySettingsSection({
   onRunBackupNow,
   storageState,
 }: LocalDataSafetySettingsSectionProps) {
+  const { t } = useAppTranslation();
   const canRunBackupNow =
     autoBackupStatus.supported &&
     autoBackupStatus.enabled &&
@@ -128,19 +135,20 @@ export function LocalDataSafetySettingsSection({
   return (
     <SectionCard>
       <SectionIntro
-        description="로컬 기록이 브라우저에서 오래 보존되도록 요청하고, 앱을 열어 둔 동안 선택한 폴더에 전체 백업 파일을 씁니다."
-        eyebrow="데이터 안전"
-        title="저장소 보호와 자동 폴더 백업"
+        description={t('settings.localDataSafety.description')}
+        eyebrow={t('settings.localDataSafety.eyebrow')}
+        title={t('settings.localDataSafety.title')}
       />
 
       <Stack gap="md">
         <SectionCard padding="lg" tone="subtle">
           <Group justify="space-between" wrap="wrap">
             <Stack gap={4}>
-              <Text fw={850}>브라우저 로컬 저장소 보호</Text>
+              <Text fw={850}>
+                {t('settings.localDataSafety.storageTitle')}
+              </Text>
               <Text c="dimmed" size="sm">
-                승인되면 브라우저가 공간 정리 중에도 IndexedDB 기록을 임의로
-                지우지 않도록 더 강하게 보관합니다.
+                {t('settings.localDataSafety.storageDescription')}
               </Text>
             </Stack>
             <AppBadge tone={getStorageBadgeTone(storageState)}>
@@ -150,8 +158,14 @@ export function LocalDataSafetySettingsSection({
           <KeyValueGrid
             columns={2}
             items={[
-              { label: '사용 중인 저장공간', value: formatBytes(storageState.usageBytes) },
-              { label: '브라우저 할당량', value: formatBytes(storageState.quotaBytes) },
+              {
+                label: t('settings.localDataSafety.storageUsage'),
+                value: formatBytes(storageState.usageBytes),
+              },
+              {
+                label: t('settings.localDataSafety.storageQuota'),
+                value: formatBytes(storageState.quotaBytes),
+              },
             ]}
           />
           <Group gap="xs">
@@ -162,13 +176,12 @@ export function LocalDataSafetySettingsSection({
               tone="primary"
               type="button"
             >
-              저장소 보호 다시 요청
+              {t('settings.localDataSafety.requestStorage')}
             </AppButton>
           </Group>
           {!storageState.supported && (
             <Text c="dimmed" size="sm">
-              이 브라우저는 저장소 보호 요청을 제공하지 않습니다. 기록은 계속
-              이 기기에 저장되며, JSON 백업으로 별도 보관할 수 있습니다.
+              {t('settings.localDataSafety.storageUnsupportedDescription')}
             </Text>
           )}
         </SectionCard>
@@ -176,11 +189,11 @@ export function LocalDataSafetySettingsSection({
         <SectionCard padding="lg" tone="subtle">
           <Group justify="space-between" wrap="wrap">
             <Stack gap={4}>
-              <Text fw={850}>앱을 열어 둔 동안 자동 폴더 백업</Text>
+              <Text fw={850}>
+                {t('settings.localDataSafety.autoBackupTitle')}
+              </Text>
               <Text c="dimmed" size="sm">
-                Chrome 계열 브라우저에서 폴더를 한 번 선택하면, 앱이 열려
-                있는 동안 하루 한 번 또는 기록 변경 후 전체 JSON 백업을
-                갱신합니다.
+                {t('settings.localDataSafety.autoBackupDescription')}
               </Text>
             </Stack>
             <AppBadge tone={getAutoBackupTone(autoBackupStatus)}>
@@ -191,23 +204,25 @@ export function LocalDataSafetySettingsSection({
             columns={2}
             items={[
               {
-                label: '마지막 자동 백업',
+                label: t('settings.localDataSafety.lastAutoBackup'),
                 value: formatDateTime(autoBackupStatus.lastSucceededAt),
               },
               {
-                label: '마지막 파일',
-                value: autoBackupStatus.lastFileName ?? '아직 없음',
+                label: t('settings.localDataSafety.lastFile'),
+                value:
+                  autoBackupStatus.lastFileName ??
+                  t('settings.localDataSafety.noneYet'),
               },
               {
-                label: '폴더 연결',
+                label: t('settings.localDataSafety.folderConnection'),
                 value: autoBackupStatus.hasSessionFolder
-                  ? '이번 세션 연결됨'
+                  ? t('settings.localDataSafety.folderConnectedThisSession')
                   : autoBackupStatus.enabled
-                    ? '다시 선택 필요'
-                    : '아직 선택되지 않음',
+                    ? t('settings.localDataSafety.folderReselectRequired')
+                    : t('settings.localDataSafety.folderNotSelected'),
               },
               {
-                label: '권한 상태',
+                label: t('settings.localDataSafety.permissionStatus'),
                 value: getAutoBackupPermissionLabel(
                   autoBackupStatus.permission,
                 ),
@@ -222,7 +237,7 @@ export function LocalDataSafetySettingsSection({
               tone="primary"
               type="button"
             >
-              자동 백업 폴더 선택
+              {t('settings.localDataSafety.chooseBackupFolder')}
             </AppButton>
             <AppButton
               disabled={isLoading || !canRunBackupNow}
@@ -230,7 +245,7 @@ export function LocalDataSafetySettingsSection({
               onClick={() => void onRunBackupNow()}
               type="button"
             >
-              지금 전체 백업
+              {t('settings.localDataSafety.runBackupNow')}
             </AppButton>
             {autoBackupStatus.enabled && (
               <AppButton
@@ -239,19 +254,20 @@ export function LocalDataSafetySettingsSection({
                 tone="quiet"
                 type="button"
               >
-                자동 백업 끄기
+                {t('settings.localDataSafety.disableBackup')}
               </AppButton>
             )}
           </Group>
           {!autoBackupStatus.supported && (
             <Text c="dimmed" size="sm">
-              이 브라우저는 폴더 자동 저장을 제공하지 않습니다. 아래의 JSON
-              백업 내보내기로 수동 백업을 만들 수 있습니다.
+              {t('settings.localDataSafety.autoBackupUnsupportedDescription')}
             </Text>
           )}
           {autoBackupStatus.lastError && (
             <Text c="var(--app-state-warning)" size="sm">
-              마지막 자동 백업 오류: {autoBackupStatus.lastError}
+              {t('settings.localDataSafety.lastAutoBackupError', {
+                error: autoBackupStatus.lastError,
+              })}
             </Text>
           )}
         </SectionCard>

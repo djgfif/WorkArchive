@@ -1,6 +1,7 @@
 import type { ReactNode, RefObject } from 'react';
 import { Stack, Stepper, Text, Title } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   ActionRow,
   AppButton,
@@ -20,7 +21,7 @@ import { WorkFormSeriesRelationStep } from './WorkFormSeriesRelationStep';
 import { parseCommaSeparatedTextList } from '../utils/work-form';
 import { getWorkMediaFieldLabels } from '../utils/work-media-labels';
 import { normalizeWorkGenres } from '../utils/work-genres';
-import { WEB_NOVEL_KEYWORDS } from '../utils/web-novel-keywords';
+import { getWebNovelKeywords } from '../utils/web-novel-keywords';
 
 interface WorkFormStepNavigationProps {
   activeStep: number;
@@ -31,9 +32,7 @@ interface WorkFormStepNavigationProps {
 }
 
 interface WorkFormStepFieldsProps
-  extends WorkFormSuggestionProps,
-    WorkFormTitleRefProps,
-    WorkFormValuesProps {
+  extends WorkFormSuggestionProps, WorkFormTitleRefProps, WorkFormValuesProps {
   focusArea: 'general' | 'review';
   isSeriesWork: boolean;
   onInputChange: WorkFormInputChangeHandler;
@@ -49,8 +48,7 @@ interface WorkFormStepFieldsProps
 }
 
 interface WorkFormStepsProps
-  extends WorkFormStepFieldsProps,
-    WorkFormStepNavigationProps {}
+  extends WorkFormStepFieldsProps, WorkFormStepNavigationProps {}
 
 export function WorkFormSteps({
   activeStep,
@@ -77,6 +75,7 @@ export function WorkFormSteps({
   titleInputRef,
   values,
 }: WorkFormStepsProps) {
+  const { t } = useAppTranslation();
   const mediaLabels = getWorkMediaFieldLabels(values.type);
   const genreValues = normalizeWorkGenres(
     parseCommaSeparatedTextList(values.genresText),
@@ -101,8 +100,9 @@ export function WorkFormSteps({
     new Set(personContributorSuggestions),
   );
   const uniqueSeriesSuggestions = Array.from(new Set(seriesSuggestions));
+  const webNovelKeywords = getWebNovelKeywords();
   const uniqueTagSuggestions = Array.from(
-    new Set([...tagSuggestions, ...WEB_NOVEL_KEYWORDS]),
+    new Set([...tagSuggestions, ...webNovelKeywords]),
   );
   const shouldShowStudioField =
     mediaLabels.showStudioField || studioValues.length > 0;
@@ -112,17 +112,17 @@ export function WorkFormSteps({
       <Stack gap="lg">
         <Stack gap={6}>
           <Text c="archive.2" fw={800} size="xs" tt="uppercase">
-            단계별 기록
+            {t('works.form.stepEyebrow')}
           </Text>
-          <Title order={2}>작품을 바로 남기기</Title>
-          <Text c="dimmed">
-            기본 정보를 먼저 잡고, 감상 기록은 다음 단계에서 편하게
-            정리합니다.
-          </Text>
+          <Title order={2}>{t('works.form.stepTitle')}</Title>
+          <Text c="dimmed">{t('works.form.stepDescription')}</Text>
         </Stack>
 
         <Stepper active={activeStep} onStepClick={onStepClick}>
-          <Stepper.Step description="제목, 표지, 분류" label="기본 정보">
+          <Stepper.Step
+            description={t('works.form.stepBasicDescription')}
+            label={t('works.form.stepBasicLabel')}
+          >
             <WorkFormBasicInfoStep
               genreValues={genreValues}
               onInputChange={onInputChange}
@@ -135,7 +135,10 @@ export function WorkFormSteps({
             />
           </Stepper.Step>
 
-          <Stepper.Step description="시리즈, 세계관" label="시리즈 / 관계">
+          <Stepper.Step
+            description={t('works.form.stepRelationDescription')}
+            label={t('works.form.stepRelationLabel')}
+          >
             <WorkFormSeriesRelationStep
               isSeriesWork={isSeriesWork}
               mediaLabels={mediaLabels}
@@ -147,7 +150,10 @@ export function WorkFormSteps({
             />
           </Stepper.Step>
 
-          <Stepper.Step description="매체별 제작 정보" label="제작진">
+          <Stepper.Step
+            description={t('works.form.stepContributorDescription')}
+            label={t('works.form.stepContributorLabel')}
+          >
             <WorkFormContributorStep
               creatorValues={creatorValues}
               mediaLabels={mediaLabels}
@@ -161,7 +167,10 @@ export function WorkFormSteps({
             />
           </Stepper.Step>
 
-          <Stepper.Step description="평점과 감상" label="감상 기록">
+          <Stepper.Step
+            description={t('works.form.stepReviewDescription')}
+            label={t('works.form.stepReviewLabel')}
+          >
             <WorkFormReviewStep
               focusArea={focusArea}
               normalizedRating={normalizedRating}
@@ -185,10 +194,10 @@ export function WorkFormSteps({
             tone="secondary"
             type="button"
           >
-            이전
+            {t('works.form.previousStep')}
           </AppButton>
           <AppButton onClick={onNextStep} tone="secondary" type="button">
-            {isLastStep ? '처음으로' : '다음'}
+            {isLastStep ? t('works.form.firstStep') : t('works.form.nextStep')}
           </AppButton>
         </ActionRow>
       </Stack>

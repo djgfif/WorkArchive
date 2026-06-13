@@ -1,5 +1,6 @@
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   ActionRow,
   AppButton,
@@ -25,6 +26,8 @@ export function WorksListFeedback({
   restoringWorkId,
   showDeletedNotice,
 }: WorksListFeedbackProps) {
+  const { t } = useAppTranslation();
+
   return (
     <>
       {actionError && (
@@ -35,9 +38,16 @@ export function WorksListFeedback({
       )}
 
       {deletedNotice && showDeletedNotice && (
-        <FeedbackMessage title="휴지통으로 이동했습니다." tone="success">
+        <FeedbackMessage
+          title={t('works.list.deletedNoticeTitle')}
+          tone="success"
+        >
           <ActionRow justify="space-between">
-            <span>{deletedNotice.title} 기록을 되돌릴 수 있습니다.</span>
+            <span>
+              {t('works.list.deletedNoticeDescription', {
+                title: deletedNotice.title,
+              })}
+            </span>
             <ActionRow justify="flex-end">
               <AppButton
                 disabled={restoringWorkId === deletedNotice.id}
@@ -46,7 +56,7 @@ export function WorksListFeedback({
                 tone="secondary"
                 type="button"
               >
-                되돌리기
+                {t('works.list.restore')}
               </AppButton>
               <AppButton
                 onClick={onDismissDeletedNotice}
@@ -54,7 +64,7 @@ export function WorksListFeedback({
                 tone="ghost"
                 type="button"
               >
-                닫기
+                {t('works.list.close')}
               </AppButton>
             </ActionRow>
           </ActionRow>

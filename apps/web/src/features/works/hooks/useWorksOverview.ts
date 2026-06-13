@@ -2,6 +2,7 @@ import type { WorkRecord, WorkStatus, WorkType } from '@work-archive/shared-type
 import { liveQuery } from 'dexie';
 import { useEffect, useState } from 'react';
 
+import { appI18n } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { graphRepository } from '../services/graph.repository';
 import { worksRepository } from '../services/works.repository';
@@ -230,7 +231,7 @@ export function useWorksOverview() {
           error:
             error instanceof Error
               ? error.message
-              : '요약 정보를 불러오지 못했습니다.',
+              : appI18n.t('works.errors.overviewLoad'),
           isLoading: false,
         });
       },

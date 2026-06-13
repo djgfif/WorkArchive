@@ -10,6 +10,7 @@ import {
   AppLinkButton,
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
 import type { TierBoardEditorState } from '../services/tier-board.repository';
 import { tierBoardService } from '../services/tier-board.service';
@@ -18,12 +19,6 @@ import { cn } from '@shared/utils/class-names';
 
 const css = styles;
 
-const visibilityLabels: Record<string, string> = {
-  private: '비공개',
-  link_only: '링크 공유',
-  exported: '내보냄',
-};
-
 function getCardsForLane(cards: TierBoardCardRecord[], laneId: string | null) {
   return cards
     .filter((card) => card.laneId === laneId)
@@ -31,9 +26,10 @@ function getCardsForLane(cards: TierBoardCardRecord[], laneId: string | null) {
 }
 
 export function TierBoardViewPage() {
+  const { t } = useAppTranslation();
   const { boardId } = useParams();
   const [state, setState] = useState<TierBoardEditorState | null>(null);
-  usePageTitle(state?.board.title ?? '티어보드 보기');
+  usePageTitle(state?.board.title ?? t('tierBoards.viewPageTitle'));
   const canvasRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -52,12 +48,14 @@ export function TierBoardViewPage() {
         pixelRatio: 2,
       });
       const link = document.createElement('a');
-      link.download = `${state?.board.title ?? 'tier-board'}-티어표.png`;
+      link.download = t('tierBoards.viewExportFileName', {
+        title: state?.board.title ?? 'tier-board',
+      });
       link.href = dataUrl;
       link.click();
     } catch {
       setExportError(
-        '이미지 내보내기에 실패했습니다. 외부 표지 이미지가 포함된 경우 보안 정책으로 일부가 빠질 수 있습니다.',
+        t('tierBoards.viewExportError'),
       );
     } finally {
       setExporting(false);
@@ -97,7 +95,7 @@ export function TierBoardViewPage() {
   if (!boardId || !state) {
     return (
       <FeedbackMessage tone="info">
-        티어보드를 불러오는 중입니다.
+        {t('tierBoards.loading')}
       </FeedbackMessage>
     );
   }
@@ -111,8 +109,7 @@ export function TierBoardViewPage() {
               {state.board.title}
             </Title>
             <AppBadge tone="muted">
-              {visibilityLabels[state.board.visibility] ??
-                state.board.visibility}
+              {t(`tierBoards.visibility.${state.board.visibility}`)}
             </AppBadge>
           </Group>
           {state.board.description && (
@@ -128,10 +125,10 @@ export function TierBoardViewPage() {
             tone="primary"
             type="button"
           >
-            이미지로 내보내기
+            {t('tierBoards.exportImage')}
           </AppButton>
           <AppLinkButton to={`/tier-boards/${boardId}`} tone="secondary">
-            편집
+            {t('common.edit')}
           </AppLinkButton>
         </Group>
       </Group>

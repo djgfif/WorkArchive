@@ -149,6 +149,9 @@ fi
 
 run_check "npm run security:public" npm run security:public
 run_check "npm run check:docs-links" npm run check:docs-links
+run_check "npm run check:web-i18n" npm run check:web-i18n
+run_check "npm run check:web-i18n-resources" npm run check:web-i18n-resources
+run_check "npm run check:web-i18n-packs" npm run check:web-i18n-packs
 run_check "npm run lint" npm run lint
 run_check "npm run typecheck" npm run typecheck
 run_check "npm run test" npm run test

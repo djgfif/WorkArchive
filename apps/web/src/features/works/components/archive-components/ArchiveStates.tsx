@@ -9,6 +9,7 @@ import {
 } from '@mantine/core';
 import type { ReactNode } from 'react';
 
+import { useAppTranslation } from '@app/i18n';
 import { AppBadge } from '@shared/components/AppPrimitives';
 import { cn, css } from './styles';
 
@@ -26,11 +27,13 @@ interface ArchiveEmptyStateProps {
 }
 
 export function ReviewNoteCard({
-  emptyLabel = '아직 남긴 기록이 없습니다.',
+  emptyLabel,
   label,
   value,
 }: ReviewNoteCardProps) {
+  const { t } = useAppTranslation();
   const isEmpty = typeof value === 'string' && value.trim() === '';
+  const resolvedEmptyLabel = emptyLabel ?? t('works.archiveState.emptyNote');
 
   return (
     <Paper className={cn(css.noteCard)} withBorder>
@@ -40,7 +43,7 @@ export function ReviewNoteCard({
         </Text>
         {isEmpty ? (
           <Text c="dimmed" lh={1.8}>
-            {emptyLabel}
+            {resolvedEmptyLabel}
           </Text>
         ) : (
           <Text lh={1.8}>{value}</Text>
@@ -109,13 +112,16 @@ function EmptyStateIllustration() {
 export function ArchiveEmptyState({
   actions,
   description,
-  eyebrow = '빈 선반',
+  eyebrow,
   title,
 }: ArchiveEmptyStateProps) {
+  const { t } = useAppTranslation();
+  const resolvedEyebrow = eyebrow ?? t('works.archiveState.emptyShelf');
+
   return (
     <Stack align="flex-start" className={cn(css.emptyState)} gap="md">
       <EmptyStateIllustration />
-      <AppBadge tone="accent">{eyebrow}</AppBadge>
+      <AppBadge tone="accent">{resolvedEyebrow}</AppBadge>
       <Title order={2}>{title}</Title>
       <Text c="dimmed" maw="58ch">
         {description}

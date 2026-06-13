@@ -5,6 +5,7 @@ import {
   DEFAULT_WORKS_LIST_QUERY,
   type WorksListQuery,
 } from '../utils/query-works';
+import { appI18n } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import {
   worksService,
@@ -136,7 +137,7 @@ export function useWorksList(
             error:
               error instanceof Error
                 ? error.message
-                : '작품 목록을 불러오지 못했습니다.',
+                : appI18n.t('works.errors.listLoad'),
           });
         },
       },

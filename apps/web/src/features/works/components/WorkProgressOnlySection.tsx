@@ -6,6 +6,7 @@ import {
   type WorkRecord,
 } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import { PageSection } from '@shared/components/AppPrimitives';
 import { QuickProgressControl } from './ArchiveComponents';
 import { worksService } from '../services/works.service';
@@ -22,6 +23,7 @@ export function ProgressOnlySection({
   onSuccess,
   work,
 }: ProgressOnlySectionProps) {
+  const { t } = useAppTranslation();
   const defaultUnit = getDefaultProgressUnitForWorkType(work.type);
   if (!isProgressOnlyWorkType(work.type) || defaultUnit === null) {
     return null;
@@ -35,7 +37,7 @@ export function ProgressOnlySection({
     progressUnit: ProgressUnit;
   }) {
     if (!canUseProgressUnitForWorkType(work.type, progressUnit)) {
-      onError('이 작품 유형에는 진행도 기록을 사용할 수 없습니다.');
+      onError(t('works.record.progressOnly.unsupported'));
 
       return;
     }
@@ -45,7 +47,7 @@ export function ProgressOnlySection({
       nextValues.progressTotal !== null &&
       nextValues.progressCurrent > nextValues.progressTotal
     ) {
-      onError('현재 진행도가 전체 진행도보다 클 수 없습니다.');
+      onError(t('works.record.progressOnly.invalidRange'));
 
       return;
     }
@@ -53,20 +55,22 @@ export function ProgressOnlySection({
     try {
       onError(null);
       await worksService.updateProgress(work.id, nextValues);
-      onSuccess('진행도를 저장했습니다.');
+      onSuccess(t('works.record.progressOnly.saved'));
     } catch (error) {
       onError(
         error instanceof Error
           ? error.message
-          : '진행도를 저장하지 못했습니다.',
+          : t('works.record.progressOnly.saveError'),
       );
     }
   }
 
   return (
     <PageSection
-      eyebrow="진행 기록"
-      title={`${getWorkTypeLabel(work.type)} 진행 기록`}
+      eyebrow={t('works.detail.progress')}
+      title={t('works.record.progressOnly.title', {
+        type: getWorkTypeLabel(work.type),
+      })}
     >
       <QuickProgressControl onSave={handleSave} work={work} />
     </PageSection>

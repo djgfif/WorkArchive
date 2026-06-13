@@ -16,6 +16,7 @@ import {
 import { PageHero } from '@shared/components/PageHero';
 import { DetailPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { formatAppNumber, useAppTranslation } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { useWorksOverview } from '@features/works';
 import {
@@ -25,21 +26,39 @@ import {
   getWorkTypeLabel,
 } from '@features/works';
 
-function formatAverageRating(value: number | null) {
-  return value === null ? '미평가' : `${value.toFixed(1)}점`;
+type TranslationFn = ReturnType<typeof useAppTranslation>['t'];
+
+function formatAverageRating(
+  value: number | null,
+  t: TranslationFn,
+) {
+  return value === null
+    ? t('profile.noRating')
+    : t('profile.ratingValue', { value: value.toFixed(1) });
 }
 
 function formatPercent(value: number) {
   return `${Math.round(value)}%`;
 }
 
-function formatConsumedSummary(work: WorkRecord) {
+function formatConsumedSummary(
+  work: WorkRecord,
+  t: TranslationFn,
+) {
   if (work.lastConsumedLabel) return work.lastConsumedLabel;
-  if (work.lastConsumedAt) return `마지막 감상 ${formatWorkDateTime(work.lastConsumedAt)}`;
-  return `최근 수정 ${formatWorkUpdatedAt(work.updatedAt)}`;
+  if (work.lastConsumedAt) {
+    return t('profile.lastConsumedAt', {
+      date: formatWorkDateTime(work.lastConsumedAt),
+    });
+  }
+  return t('profile.recentUpdatedAt', {
+    date: formatWorkUpdatedAt(work.updatedAt),
+  });
 }
 
 function RecentRecordLink({ accent = false, work }: { accent?: boolean; work: WorkRecord }) {
+  const { t } = useAppTranslation();
+
   return (
     <SurfaceLinkCard padding="md" to={`/works/${work.id}`} tone={accent ? 'hero' : 'subtle'}>
       <Group align="flex-start" justify="space-between" wrap="nowrap">
@@ -48,7 +67,7 @@ function RecentRecordLink({ accent = false, work }: { accent?: boolean; work: Wo
             {work.title}
           </Text>
           <Text c="var(--mantine-color-dimmed)" lineClamp={1} size="sm">
-            {work.author || '작가·제작자 미입력'}
+            {work.author || t('profile.authorMissing')}
           </Text>
         </Stack>
         <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
@@ -56,16 +75,23 @@ function RecentRecordLink({ accent = false, work }: { accent?: boolean; work: Wo
       <Group gap="xs" wrap="wrap">
         <AppBadge tone="muted">{getWorkTypeLabel(work.type)}</AppBadge>
         <AppBadge tone="muted">
-          {work.rating === null ? '미평가' : `${work.rating}점`}
+          {work.rating === null
+            ? t('profile.noRating')
+            : t('profile.ratingValue', { value: work.rating.toFixed(1) })}
         </AppBadge>
-        <AppBadge tone="muted">최근 수정 {formatWorkUpdatedAt(work.updatedAt)}</AppBadge>
+        <AppBadge tone="muted">
+          {t('profile.recentUpdatedAt', {
+            date: formatWorkUpdatedAt(work.updatedAt),
+          })}
+        </AppBadge>
       </Group>
     </SurfaceLinkCard>
   );
 }
 
 export function ProfilePage() {
-  usePageTitle('프로필');
+  const { t } = useAppTranslation();
+  usePageTitle(t('profile.pageTitle'));
   const { mode } = useAuthSession();
   const {
     averageRating,
@@ -98,17 +124,21 @@ export function ProfilePage() {
     ...topTags.map((tag) => ({
       href: `/works?tag=${encodeURIComponent(tag.label)}`,
       label: tag.label,
-      meta: `${tag.count}개 기록`,
+      meta: t('profile.recordCount', { count: formatAppNumber(tag.count) }),
     })),
     ...seriesCollections.slice(0, 2).map((collection) => ({
       href: collection.href,
       label: collection.label,
-      meta: `시리즈 ${collection.totalCount}개`,
+      meta: t('profile.seriesCount', {
+        count: formatAppNumber(collection.totalCount),
+      }),
     })),
     ...contributorCollections.slice(0, 2).map((collection) => ({
       href: collection.href,
       label: collection.label,
-      meta: `${collection.totalCount}개 기록`,
+      meta: t('profile.recordCount', {
+        count: formatAppNumber(collection.totalCount),
+      }),
     })),
   ].slice(0, 6);
 
@@ -119,28 +149,45 @@ export function ProfilePage() {
           <>
             {leadRecentWork && (
               <AppLinkButton to={`/works/${leadRecentWork.id}`} tone="primary">
-                이어 기록하기
+                {t('profile.actionResume')}
               </AppLinkButton>
             )}
-            <AppLinkButton to="/account">계정 센터</AppLinkButton>
-            <AppLinkButton to="/works">작품 보기</AppLinkButton>
+            <AppLinkButton to="/account">
+              {t('profile.actionAccountCenter')}
+            </AppLinkButton>
+            <AppLinkButton to="/works">
+              {t('profile.actionViewWorks')}
+            </AppLinkButton>
           </>
         }
         description={
           isAuthenticated
-            ? '내 작품 기록의 규모와 감상 흐름을 개인용으로 요약합니다. 계정 관리와 백업은 별도 계정 센터에서 처리합니다.'
-            : '지금은 게스트 모드입니다. 이 화면은 외부에 노출되지 않는 현재 기기의 개인 기록 요약입니다.'
+            ? t('profile.heroDescriptionAuthenticated')
+            : t('profile.heroDescriptionGuest')
         }
-        eyebrow="개인 기록"
+        eyebrow={t('profile.heroEyebrow')}
         meta={
           <>
-            <MetricPill label="총 기록" value={totalCount} />
-            <MetricPill label="평균 별점" value={formatAverageRating(averageRating)} />
-            <MetricPill label="완료" value={completedCount} />
-            <MetricPill label="보는 중" value={inProgressCount} />
+            <MetricPill label={t('profile.metricTotal')} value={totalCount} />
+            <MetricPill
+              label={t('profile.metricAverageRating')}
+              value={formatAverageRating(averageRating, t)}
+            />
+            <MetricPill
+              label={t('profile.metricCompleted')}
+              value={completedCount}
+            />
+            <MetricPill
+              label={t('profile.metricInProgress')}
+              value={inProgressCount}
+            />
           </>
         }
-        title={isAuthenticated ? '내 기록 요약' : '게스트 기록 요약'}
+        title={
+          isAuthenticated
+            ? t('profile.titleAuthenticated')
+            : t('profile.titleGuest')
+        }
       />
 
       <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
@@ -148,39 +195,58 @@ export function ProfilePage() {
           <SectionIntro
             description={
               favoriteType
-                ? `${getWorkTypeLabel(favoriteType.value)} 기록이 가장 많고, ${unratedCount}개 작품은 아직 별점을 기다리고 있습니다.`
-                : '첫 기록을 남기면 선호 유형, 높은 별점 작품, 미평가 항목이 이곳에 정리됩니다.'
+                ? t('profile.tasteDescription', {
+                    count: formatAppNumber(unratedCount),
+                    type: getWorkTypeLabel(favoriteType.value),
+                  })
+                : t('profile.tasteEmptyDescription')
             }
-            eyebrow="취향 요약"
-            title="내 취향 요약"
+            eyebrow={t('profile.tasteEyebrow')}
+            title={t('profile.tasteTitle')}
           />
 
           <KeyValueGrid
             columns={2}
             items={[
-              { label: '평균 별점', value: formatAverageRating(averageRating) },
               {
-                label: '선호 유형',
+                label: t('profile.metricAverageRating'),
+                value: formatAverageRating(averageRating, t),
+              },
+              {
+                label: t('profile.favoriteType'),
                 value: favoriteType
-                  ? `${getWorkTypeLabel(favoriteType.value)} ${favoriteType.count}개`
-                  : '아직 없음',
+                  ? t('profile.typeCount', {
+                      count: formatAppNumber(favoriteType.count),
+                      type: getWorkTypeLabel(favoriteType.value),
+                    })
+                  : t('profile.noneYet'),
               },
               {
-                label: '높은 별점',
+                label: t('profile.highRating'),
                 value: topRatedWork
-                  ? `${topRatedWork.title} · ${topRatedWork.rating?.toFixed(1)}점`
-                  : '아직 없음',
+                  ? t('profile.topRatedWork', {
+                      rating: t('profile.ratingValue', {
+                        value: topRatedWork.rating?.toFixed(1),
+                      }),
+                      title: topRatedWork.title,
+                    })
+                  : t('profile.noneYet'),
               },
-              { label: '미평가', value: `${unratedCount}개` },
+              {
+                label: t('profile.noRating'),
+                value: t('profile.workCount', {
+                  count: formatAppNumber(unratedCount),
+                }),
+              },
             ]}
           />
         </SectionCard>
 
         <SectionCard>
           <SectionIntro
-            description="마지막으로 본 위치나 최근 수정한 작품을 기준으로 다시 이어갈 항목을 보여줍니다."
-            eyebrow="감상 흐름"
-            title="최근 감상 흐름"
+            description={t('profile.flowDescription')}
+            eyebrow={t('profile.flowEyebrow')}
+            title={t('profile.flowTitle')}
           />
 
           {flowWorks.length > 0 ? (
@@ -191,16 +257,19 @@ export function ProfilePage() {
             </Stack>
           ) : (
             <Text c="var(--mantine-color-dimmed)">
-              최근 감상 흐름이 없습니다. 작품을 추가하거나 감상 위치를 남기면 이곳에 표시됩니다.
+              {t('profile.flowEmpty')}
             </Text>
           )}
         </SectionCard>
 
         <SectionCard>
           <SectionIntro
-            description={`완료율 ${formatPercent(completedRate)}, 진행 중 비율 ${formatPercent(inProgressRate)}입니다.`}
-            eyebrow="기록 상태"
-            title="상태 분포"
+            description={t('profile.statusDescription', {
+              completedRate: formatPercent(completedRate),
+              inProgressRate: formatPercent(inProgressRate),
+            })}
+            eyebrow={t('profile.statusEyebrow')}
+            title={t('profile.statusTitle')}
           />
 
           <Stack gap="sm">
@@ -222,9 +291,9 @@ export function ProfilePage() {
 
         <SectionCard>
           <SectionIntro
-            description="장르, 개인 태그, 시리즈, 제작자 단위로 자주 남긴 취향을 묶어 보여줍니다."
-            eyebrow="취향 클러스터"
-            title="자주 남긴 취향"
+            description={t('profile.clusterDescription')}
+            eyebrow={t('profile.clusterEyebrow')}
+            title={t('profile.clusterTitle')}
           />
 
           {clusterItems.length > 0 ? (
@@ -242,16 +311,16 @@ export function ProfilePage() {
             </Group>
           ) : (
             <Text c="var(--mantine-color-dimmed)">
-              장르나 태그를 남기면 취향 묶음이 이곳에 표시됩니다.
+              {t('profile.clusterEmpty')}
             </Text>
           )}
         </SectionCard>
 
         <SectionCard>
           <SectionIntro
-            description="공개 피드나 팔로우 없이, 내 기록을 다시 열고 이어 쓰기 위한 다음 행동만 제공합니다."
-            eyebrow="이어 기록하기"
-            title="다음에 이어갈 기록"
+            description={t('profile.nextDescription')}
+            eyebrow={t('profile.nextEyebrow')}
+            title={t('profile.nextTitle')}
           />
 
           {error && (
@@ -259,22 +328,22 @@ export function ProfilePage() {
               actions={
                 <>
                   <AppButton onClick={retry} tone="primary" type="button">
-                    다시 불러오기
+                    {t('profile.retry')}
                   </AppButton>
                   <AppLinkButton to="/works" tone="secondary">
-                    작품 목록 열기
+                    {t('profile.openWorks')}
                   </AppLinkButton>
                   <AppLinkButton
-                    aria-label="개인 기록 오류 상태에서 작품 추가"
+                    aria-label={t('profile.addWorkFromErrorAria')}
                     to="/works/new"
                     tone="quiet"
                   >
-                    작품 추가
+                    {t('profile.addWork')}
                   </AppLinkButton>
                 </>
               }
               description={error}
-              title="개인 기록 요약을 불러오지 못했습니다."
+              title={t('profile.loadError')}
               tone="error"
             />
           )}
@@ -283,9 +352,9 @@ export function ProfilePage() {
 
           {!error && !isLoading && !hasRecentWorks && (
             <Stack gap="sm">
-              <AppBadge tone="accent">첫 기록 대기</AppBadge>
+              <AppBadge tone="accent">{t('profile.firstRecordPending')}</AppBadge>
               <Text c="var(--mantine-color-dimmed)">
-                첫 작품을 등록하면 이곳에서 최근 기록으로 바로 돌아갈 수 있습니다.
+                {t('profile.firstRecordDescription')}
               </Text>
             </Stack>
           )}
@@ -305,7 +374,7 @@ export function ProfilePage() {
                         {work.title}
                       </Text>
                       <Text c="var(--mantine-color-dimmed)" lineClamp={1} size="sm">
-                        {formatConsumedSummary(work)}
+                        {formatConsumedSummary(work, t)}
                       </Text>
                     </Stack>
                     <AppBadge>{getWorkStatusLabel(work.status)}</AppBadge>
@@ -316,10 +385,10 @@ export function ProfilePage() {
           )}
 
           <Group gap="sm" wrap="wrap">
-            <AppLinkButton to="/works/new">작품 추가</AppLinkButton>
-            <AppLinkButton to="/works">작품 보기</AppLinkButton>
+            <AppLinkButton to="/works/new">{t('profile.addWork')}</AppLinkButton>
+            <AppLinkButton to="/works">{t('profile.actionViewWorks')}</AppLinkButton>
             <AppLinkButton to="/account" tone="quiet">
-              계정 센터
+              {t('profile.actionAccountCenter')}
             </AppLinkButton>
           </Group>
         </SectionCard>

@@ -14,36 +14,13 @@ import {
   type WorkRecord,
 } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import { AppButton } from '@shared/components/AppPrimitives';
 import {
   getWorkProgressLabel,
   getWorkProgressPercent,
 } from '../archive-display';
 import { cn, css } from './styles';
-
-const progressUnitLabels: Record<ProgressUnit, string> = {
-  chapter: '화',
-  episode: '회',
-  volume: '권',
-};
-
-const progressCurrentLabels: Record<ProgressUnit, string> = {
-  chapter: '읽은 화',
-  episode: '본 회차',
-  volume: '읽은 권',
-};
-
-const progressTotalLabels: Record<ProgressUnit, string> = {
-  chapter: '전체 화',
-  episode: '전체 회차',
-  volume: '전체 권',
-};
-
-const lastPositionLabels: Record<ProgressUnit, string> = {
-  chapter: '마지막으로 읽은 위치',
-  episode: '마지막으로 본 위치',
-  volume: '마지막으로 읽은 위치',
-};
 
 interface ProgressDisplayProps {
   work: WorkRecord;
@@ -71,13 +48,14 @@ function coerceNumberInputValue(value: number | string) {
 }
 
 export function ProgressDisplay({ work }: ProgressDisplayProps) {
+  const { t } = useAppTranslation();
   const progressLabel = getWorkProgressLabel(work);
   const progressPercent = getWorkProgressPercent(work);
 
   if (!progressLabel) {
     return (
       <Text c="dimmed" size="sm">
-        진행 기록 없음
+        {t('works.record.progressControl.noProgress')}
       </Text>
     );
   }
@@ -89,14 +67,21 @@ export function ProgressDisplay({ work }: ProgressDisplayProps) {
           {progressLabel}
         </Text>
         {progressPercent !== null && (
-          <Text c="dimmed" size="xs" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <Text
+            c="dimmed"
+            size="xs"
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
             {progressPercent}%
           </Text>
         )}
       </Group>
       {progressPercent !== null && (
         <Progress
-          aria-label={`${work.title} 상세 진행도 ${progressPercent}%`}
+          aria-label={t('works.record.progressControl.aria', {
+            percent: progressPercent,
+            title: work.title,
+          })}
           color="archive"
           radius="xl"
           size={5}
@@ -112,6 +97,7 @@ export function QuickProgressControl({
   onSave,
   work,
 }: QuickProgressControlProps) {
+  const { t } = useAppTranslation();
   const defaultUnit =
     work.progressUnit ?? getDefaultProgressUnitForWorkType(work.type);
   const [current, setCurrent] = useState<number | null>(
@@ -125,7 +111,12 @@ export function QuickProgressControl({
     setCurrent(work.progressCurrent ?? null);
     setTotal(work.progressTotal ?? null);
     setLastLabel(work.lastConsumedLabel ?? '');
-  }, [work.id, work.lastConsumedLabel, work.progressCurrent, work.progressTotal]);
+  }, [
+    work.id,
+    work.lastConsumedLabel,
+    work.progressCurrent,
+    work.progressTotal,
+  ]);
 
   if (!defaultUnit) {
     return null;
@@ -137,10 +128,26 @@ export function QuickProgressControl({
     lastLabel !== (work.lastConsumedLabel ?? '');
   const hasInvalidProgress =
     current !== null && total !== null && current > total;
-  const unitLabel = progressUnitLabels[defaultUnit];
-  const currentLabel = progressCurrentLabels[defaultUnit];
-  const totalLabel = progressTotalLabels[defaultUnit];
-  const lastPositionLabel = lastPositionLabels[defaultUnit];
+  const unitLabel = {
+    chapter: t('works.record.progressControl.unitChapter'),
+    episode: t('works.record.progressControl.unitEpisode'),
+    volume: t('works.record.progressControl.unitVolume'),
+  } satisfies Record<ProgressUnit, string>;
+  const currentLabel = {
+    chapter: t('works.record.progressControl.currentChapter'),
+    episode: t('works.record.progressControl.currentEpisode'),
+    volume: t('works.record.progressControl.currentVolume'),
+  } satisfies Record<ProgressUnit, string>;
+  const totalLabel = {
+    chapter: t('works.record.progressControl.totalChapter'),
+    episode: t('works.record.progressControl.totalEpisode'),
+    volume: t('works.record.progressControl.totalVolume'),
+  } satisfies Record<ProgressUnit, string>;
+  const lastPositionLabel = {
+    chapter: t('works.record.progressControl.lastChapter'),
+    episode: t('works.record.progressControl.lastEpisode'),
+    volume: t('works.record.progressControl.lastVolume'),
+  } satisfies Record<ProgressUnit, string>;
 
   async function handleSave() {
     if (!defaultUnit) return;
@@ -166,7 +173,7 @@ export function QuickProgressControl({
             allowDecimal={false}
             allowNegative={false}
             disabled={disabled || isSaving}
-            label={currentLabel}
+            label={currentLabel[defaultUnit]}
             min={0}
             onChange={(value) => setCurrent(coerceNumberInputValue(value))}
             value={current ?? ''}
@@ -176,7 +183,7 @@ export function QuickProgressControl({
             allowDecimal={false}
             allowNegative={false}
             disabled={disabled || isSaving}
-            label={totalLabel}
+            label={totalLabel[defaultUnit]}
             min={0}
             onChange={(value) => setTotal(coerceNumberInputValue(value))}
             value={total ?? ''}
@@ -184,11 +191,13 @@ export function QuickProgressControl({
           />
           <AppButton
             disabled={disabled || isSaving}
-            onClick={() => setCurrent((value) => (value === null ? 1 : value + 1))}
+            onClick={() =>
+              setCurrent((value) => (value === null ? 1 : value + 1))
+            }
             tone="secondary"
             type="button"
           >
-            +1{unitLabel}
+            +1{unitLabel[defaultUnit]}
           </AppButton>
           <AppButton
             disabled={disabled || isSaving || total === null}
@@ -196,17 +205,20 @@ export function QuickProgressControl({
             tone="secondary"
             type="button"
           >
-            전체 분량까지 기록
+            {t('works.record.progressControl.fullProgress')}
           </AppButton>
         </Group>
         <Group align="flex-end" gap="sm" wrap="wrap">
           <TextInput
             disabled={disabled || isSaving}
             flex={1}
-            label={lastPositionLabel}
+            label={lastPositionLabel[defaultUnit]}
             miw={220}
             onChange={(event) => setLastLabel(event.currentTarget.value)}
-            placeholder={`예: ${current ?? 18}${unitLabel}까지`}
+            placeholder={t('works.record.progressControl.placeholder', {
+              current: current ?? 18,
+              unit: unitLabel[defaultUnit],
+            })}
             value={lastLabel}
           />
           <AppButton
@@ -216,12 +228,12 @@ export function QuickProgressControl({
             tone="primary"
             type="button"
           >
-            기록 저장
+            {t('works.record.progressControl.save')}
           </AppButton>
         </Group>
         {hasInvalidProgress && (
           <Text c="red" size="sm">
-            현재 진행량이 전체보다 클 수 없습니다.
+            {t('works.record.progressControl.invalidRange')}
           </Text>
         )}
       </Stack>

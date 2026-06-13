@@ -1,12 +1,8 @@
 import { Group, SegmentedControl, Stack, Text } from '@mantine/core';
-import {
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-} from 'react';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
 
 import type { ImportCandidate } from '@features/imports';
+import { useAppTranslation } from '@app/i18n';
 import { AddWorkManualForm } from './AddWorkManualForm';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
 import { ProviderReadinessSummary } from './ProviderReadinessSummary';
@@ -51,18 +47,23 @@ function createFormDefaults(title = ''): WorkFormValues {
   };
 }
 
-function getCandidateFieldSummary(values: WorkFormValues) {
+function getCandidateFieldSummary(
+  values: WorkFormValues,
+  t: ReturnType<typeof useAppTranslation>['t'],
+) {
   const filled = [
-    values.title.trim() ? '제목' : null,
-    getDisplayAuthorFromWorkFormValues(values) ? '제작진' : null,
-    values.thumbnailUrl.trim() ? '표지' : null,
-    values.genresText.trim() ? '장르' : null,
-    values.description.trim() ? '설명' : null,
+    values.title.trim() ? t('works.add.fieldTitle') : null,
+    getDisplayAuthorFromWorkFormValues(values)
+      ? t('works.add.fieldContributor')
+      : null,
+    values.thumbnailUrl.trim() ? t('works.add.fieldCover') : null,
+    values.genresText.trim() ? t('works.add.fieldGenre') : null,
+    values.description.trim() ? t('works.add.fieldDescription') : null,
   ].filter(Boolean) as string[];
   const missing = [
-    values.shortReview.trim() ? null : '한줄평',
-    values.rating ? null : '별점',
-    values.personalTagsText.trim() ? null : '개인 태그',
+    values.shortReview.trim() ? null : t('works.add.fieldShortReview'),
+    values.rating ? null : t('works.add.fieldRating'),
+    values.personalTagsText.trim() ? null : t('works.add.fieldPersonalTags'),
   ].filter(Boolean) as string[];
 
   return { filled, missing };
@@ -76,6 +77,7 @@ export function AddWorkFlow({
   submitError,
   variant = 'page',
 }: AddWorkFlowProps) {
+  const { t } = useAppTranslation();
   const isDialog = variant === 'dialog';
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [mode, setMode] = useState<'manual' | 'search'>('manual');
@@ -167,7 +169,7 @@ export function AddWorkFlow({
   const importedSourceCoverage = selectedImportCandidate
     ? getCandidateSourceCoverage(selectedImportCandidate)
     : null;
-  const importedFieldSummary = getCandidateFieldSummary(values);
+  const importedFieldSummary = getCandidateFieldSummary(values, t);
   const handleInputChange: WorkFormInputChangeHandler = (event) => {
     const { name, type } = event.target;
 
@@ -233,7 +235,7 @@ export function AddWorkFlow({
       setTitleError(null);
 
       if (!values.title.trim()) {
-        const message = '제목을 입력해주세요.';
+        const message = t('works.form.titleRequired');
 
         setTitleError(message);
         setValidationError(message);
@@ -255,7 +257,7 @@ export function AddWorkFlow({
       draft.clearDraft();
     } catch (error) {
       setValidationError(
-        error instanceof Error ? error.message : '작품을 저장하지 못했습니다.',
+        error instanceof Error ? error.message : t('works.form.saveError'),
       );
     }
   }
@@ -273,19 +275,19 @@ export function AddWorkFlow({
           <div>
             {!isDialog && (
               <Text c="var(--mantine-color-text)" fw={800} size="xl">
-                새 작품 기록
+                {t('works.add.flowTitle')}
               </Text>
             )}
             <Text c="var(--mantine-color-dimmed)" size="sm">
-              제목만으로 시작하고, 필요할 때 검색 후보로 표지와 기본 정보를 채웁니다.
+              {t('works.add.flowDescription')}
             </Text>
           </div>
 
           <SegmentedControl
-            aria-label="추가 방식"
+            aria-label={t('works.add.modeLabel')}
             data={[
-              { label: '직접 입력', value: 'manual' },
-              { label: '검색으로 채우기', value: 'search' },
+              { label: t('works.add.modeManual'), value: 'manual' },
+              { label: t('works.add.modeSearch'), value: 'search' },
             ]}
             onChange={(value) => {
               const nextMode = value as 'manual' | 'search';

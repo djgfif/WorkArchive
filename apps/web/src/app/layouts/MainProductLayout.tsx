@@ -28,10 +28,12 @@ import { useWorkLinkKeyboardNav } from '@shared/components/useWorkLinkKeyboardNa
 import { getPrimaryNavigationItems } from './navigation';
 import styles from './MainProductLayout.module.css';
 import { cn } from '@shared/utils/class-names';
+import { useAppTranslation } from '@app/i18n';
 
 const css = styles;
 
 export function MainProductLayout() {
+  const { t } = useAppTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpened, mobileMenu] = useDisclosure(false);
@@ -40,12 +42,14 @@ export function MainProductLayout() {
   const isAuthenticated = mode === 'authenticated';
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
   const avatarProfile = getUserAvatarProfile(isAuthenticated ? user : null);
-  const accountLabel = isAuthenticated ? avatarProfile.displayName : '게스트';
+  const accountLabel = isAuthenticated
+    ? avatarProfile.displayName
+    : t('navigation.guest');
   const avatarInitial = isAuthenticated ? avatarProfile.initial : 'G';
   const avatarImageUrl = isAuthenticated ? avatarProfile.imageUrl : '';
   const accountMenuLabel = isAuthenticated
-    ? `계정 메뉴: ${accountLabel}, ${avatarProfile.email}`
-    : `계정 메뉴: ${accountLabel}`;
+    ? `${t('navigation.accountMenu')}: ${accountLabel}, ${avatarProfile.email}`
+    : `${t('navigation.accountMenu')}: ${accountLabel}`;
   const primaryNavigationItems = getPrimaryNavigationItems();
 
   async function handleSignOut() {
@@ -61,7 +65,7 @@ export function MainProductLayout() {
         <div className={cn(css.topnavInner)}>
           {/* 브랜드 */}
           <Link
-            aria-label="Work Archive 홈"
+            aria-label={t('navigation.workArchiveHome')}
             className={cn(css.topnavBrand)}
             to="/"
           >
@@ -73,7 +77,7 @@ export function MainProductLayout() {
 
           {/* 데스크탑 네비게이션 — sm(768px) 이상에서만 표시 */}
           <Group
-            aria-label="주요 탐색"
+            aria-label={t('navigation.primaryNavigation')}
             className={cn(css.topnavLinks)}
             component="nav"
             gap={2}
@@ -90,7 +94,7 @@ export function MainProductLayout() {
           {/* 우측 액션 */}
           <div className={cn(css.topnavActions)}>
             <Box
-              aria-label="명령 팔레트 열기 (Ctrl+K)"
+              aria-label={t('navigation.commandPalette')}
               component="button"
               onClick={() =>
                 window.dispatchEvent(new Event(COMMAND_PALETTE_EVENT))
@@ -120,14 +124,14 @@ export function MainProductLayout() {
 
             {/* 작품 추가 — 모바일: 아이콘, 데스크탑: 텍스트 포함 */}
             <Link
-              aria-label="새 작품 추가"
+              aria-label={t('navigation.addNewWork')}
               className={cn(css.addWorkLink)}
               to="/works/new"
             >
               <span aria-hidden="true">+</span>
               <Box component="span" visibleFrom="sm">
                 {' '}
-                작품 추가
+                {t('navigation.addWork')}
               </Box>
             </Link>
 
@@ -179,7 +183,9 @@ export function MainProductLayout() {
                           )}
                         />
                         <Text c="dimmed" size="xs">
-                          {isAuthenticated ? '로그인됨' : '게스트 모드'}
+                          {isAuthenticated
+                            ? t('navigation.signedIn')
+                            : t('navigation.guestMode')}
                         </Text>
                       </Group>
                     </Stack>
@@ -190,13 +196,13 @@ export function MainProductLayout() {
                   className={cn(css.accountMenuItem)}
                   onClick={() => navigate('/account')}
                 >
-                  계정 개요
+                  {t('navigation.accountOverview')}
                 </Menu.Item>
                 <Menu.Item
                   className={cn(css.accountMenuItem)}
                   onClick={() => navigate('/account/settings')}
                 >
-                  설정과 백업
+                  {t('navigation.settingsBackup')}
                 </Menu.Item>
 
                 <Menu.Divider />
@@ -215,7 +221,7 @@ export function MainProductLayout() {
                     color="red"
                     onClick={() => void handleSignOut()}
                   >
-                    로그아웃
+                    {t('navigation.logout')}
                   </Menu.Item>
                 ) : (
                   <Menu.Item
@@ -226,7 +232,7 @@ export function MainProductLayout() {
                       })
                     }
                   >
-                    로그인
+                    {t('navigation.login')}
                   </Menu.Item>
                 )}
               </Menu.Dropdown>
@@ -234,7 +240,7 @@ export function MainProductLayout() {
 
             {/* 모바일 버거 */}
             <Burger
-              aria-label="메뉴 열기"
+              aria-label={t('navigation.openMenu')}
               hiddenFrom="md"
               onClick={mobileMenu.open}
               opened={mobileMenuOpened}
@@ -249,9 +255,9 @@ export function MainProductLayout() {
         {isLoading ? (
           <Box p="xl">
             <StateMessage
-              description="개인 기록을 불러오는 동안 잠시만 기다려 주세요."
+              description={t('navigation.syncPreparingDescription')}
               eyebrow="Loading"
-              title="Work Archive를 준비하고 있습니다"
+              title={t('navigation.syncPreparingTitle')}
               tone="loading"
             />
           </Box>
@@ -280,7 +286,11 @@ export function MainProductLayout() {
         }
       >
         <Stack gap="lg" h="100%">
-          <Stack aria-label="모바일 탐색" component="nav" gap={4}>
+          <Stack
+            aria-label={t('navigation.mobileNavigation')}
+            component="nav"
+            gap={4}
+          >
             {primaryNavigationItems.map((item) => (
               <AppNavLink
                 end={item.to === '/'}
@@ -300,7 +310,7 @@ export function MainProductLayout() {
             to="/works/new"
             tone="primary"
           >
-            + 작품 추가
+            + {t('navigation.addWork')}
           </AppLinkButton>
 
           <Box className={cn(css.mobileAccountCard)}>
@@ -318,7 +328,9 @@ export function MainProductLayout() {
                   {accountLabel}
                 </Text>
                 <Text c="dimmed" size="xs">
-                  {isAuthenticated ? '로그인됨' : '게스트 모드'}
+                  {isAuthenticated
+                    ? t('navigation.signedIn')
+                    : t('navigation.guestMode')}
                 </Text>
               </Stack>
             </Group>
@@ -338,7 +350,7 @@ export function MainProductLayout() {
                 to="/account"
                 tone="secondary"
               >
-                계정 개요
+                {t('navigation.accountOverview')}
               </AppLinkButton>
               <AppLinkButton
                 fullWidth
@@ -346,7 +358,7 @@ export function MainProductLayout() {
                 to="/account/settings"
                 tone="secondary"
               >
-                설정과 백업
+                {t('navigation.settingsBackup')}
               </AppLinkButton>
               <AppButton
                 fullWidth
@@ -354,7 +366,7 @@ export function MainProductLayout() {
                 tone="quiet"
                 type="button"
               >
-                로그아웃
+                {t('navigation.logout')}
               </AppButton>
             </Stack>
           ) : (
@@ -365,7 +377,7 @@ export function MainProductLayout() {
               to="/auth/login"
               tone="primary"
             >
-              로그인
+              {t('navigation.login')}
             </AppLinkButton>
           )}
         </Stack>

@@ -2,6 +2,7 @@ import { Container, Group, Stack, Text, ThemeIcon } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
+import { useAppTranslation } from '@app/i18n';
 import { AppBadge } from '@shared/components/AppPrimitives';
 
 type AuthLayoutProps = {
@@ -9,6 +10,7 @@ type AuthLayoutProps = {
 };
 
 export function AuthLayout({ children }: AuthLayoutProps) {
+  const { t } = useAppTranslation();
   const location = useLocation();
   const content = children ?? <Outlet />;
 
@@ -32,7 +34,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
                 </Text>
               </ThemeIcon>
               <Text c="var(--mantine-color-text)" fw={700}>
-                워크 아카이브
+                {t('auth.layout.brand')}
               </Text>
             </Group>
           </Link>
@@ -41,13 +43,18 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
           <Stack align="center" gap="xs">
             <Group gap="xs" justify="center" wrap="wrap">
-              <AppBadge tone="accent">로컬 우선 저장</AppBadge>
-              <AppBadge tone="muted">선택적 계정 동기화</AppBadge>
-              <AppBadge tone="muted">공개 피드 없음</AppBadge>
+              <AppBadge tone="accent">
+                {t('auth.layout.badgeLocalFirst')}
+              </AppBadge>
+              <AppBadge tone="muted">
+                {t('auth.layout.badgeOptionalSync')}
+              </AppBadge>
+              <AppBadge tone="muted">
+                {t('auth.layout.badgeNoPublicFeed')}
+              </AppBadge>
             </Group>
             <Text c="var(--mantine-color-dimmed)" maw={420} size="sm" ta="center">
-              로그인 전에도 기록은 이 기기에 저장됩니다. 계정은 백업과 제한적
-              동기화를 위한 선택 경로입니다.
+              {t('auth.layout.description')}
             </Text>
           </Stack>
         </Stack>

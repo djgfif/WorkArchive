@@ -80,7 +80,8 @@ export function useAutoSync({
         const result = await service.pullRemoteChanges();
 
         pullFailureBackoffUntilRef.current = result.requestFailed
-          ? Date.now() + pullFailureBackoffMs
+          ? Date.now() +
+            Math.max(result.retryAfterMs ?? 0, pullFailureBackoffMs)
           : 0;
       } catch {
         // Pull failures stay quiet; the next focus or reconnect attempts the background pull again.

@@ -6,6 +6,7 @@ import type {
 } from '@work-archive/shared-types';
 
 import {
+  AUTH_REFRESH_TIMEOUT_MS,
   ApiRequestError,
   getApiBaseUrl,
   requestApi,
@@ -50,6 +51,7 @@ export {
 export async function refreshSession() {
   return requestApiJson<AuthSessionResponse>('/auth/refresh', {
     method: 'POST',
+    timeoutMs: AUTH_REFRESH_TIMEOUT_MS,
   });
 }
 
@@ -169,6 +171,7 @@ export async function restoreStoredSession(
     const { response, responseBody: session } =
       await requestApi<AuthSessionResponse>('/auth/refresh', {
         method: 'POST',
+        timeoutMs: AUTH_REFRESH_TIMEOUT_MS,
       });
 
     if (response.status === 204) {

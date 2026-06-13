@@ -9,6 +9,7 @@ import {
   KeyValueGrid,
   SectionCard,
 } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 import { formatWorkDate, formatWorkDateTime } from '../utils/work-options';
 import { ReviewNoteCard } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
@@ -60,6 +61,7 @@ export function WorkDetailTabs({
   typeLabel,
   work,
 }: WorkDetailTabsProps) {
+  const { t } = useAppTranslation();
   const [activeTab, setActiveTab] = useState<string | null>('overview');
 
   return (
@@ -74,12 +76,12 @@ export function WorkDetailTabs({
       value={activeTab}
     >
       <Tabs.List>
-        <Tabs.Tab value="overview">내 기록</Tabs.Tab>
-        <Tabs.Tab value="review">감상</Tabs.Tab>
-        <Tabs.Tab value="progress">진행도</Tabs.Tab>
-        <Tabs.Tab value="related">연결된 작품</Tabs.Tab>
-        <Tabs.Tab value="timeline">타임라인</Tabs.Tab>
-        <Tabs.Tab value="metadata">메타데이터</Tabs.Tab>
+        <Tabs.Tab value="overview">{t('works.detail.workRecordTab')}</Tabs.Tab>
+        <Tabs.Tab value="review">{t('works.detail.reviewTab')}</Tabs.Tab>
+        <Tabs.Tab value="progress">{t('works.detail.progressTab')}</Tabs.Tab>
+        <Tabs.Tab value="related">{t('works.detail.relatedTab')}</Tabs.Tab>
+        <Tabs.Tab value="timeline">{t('works.detail.timelineTab')}</Tabs.Tab>
+        <Tabs.Tab value="metadata">{t('works.detail.metadataTab')}</Tabs.Tab>
       </Tabs.List>
 
       <Tabs.Panel value="overview">
@@ -88,25 +90,28 @@ export function WorkDetailTabs({
             <KeyValueGrid
               columns={2}
               items={[
-                { label: '유형', value: typeLabel },
-                { label: '상태', value: statusLabel },
+                { label: t('works.detail.type'), value: typeLabel },
+                { label: t('works.detail.status'), value: statusLabel },
                 {
-                  label: '별점',
+                  label: t('works.detail.rating'),
                   value:
                     work.rating !== null
                       ? `${work.rating.toFixed(1)} / 5.0`
-                      : '미평가',
+                      : t('works.ratingMissing'),
                 },
-                { label: '진행도', value: progressLabel ?? '아직 없음' },
                 {
-                  label: '최근 기록',
+                  label: t('works.detail.progress'),
+                  value: progressLabel ?? t('works.detail.noProgress'),
+                },
+                {
+                  label: t('works.detail.latestRecord'),
                   value: latestTimelineItem
                     ? `${formatWorkDate(latestTimelineItem.value)} · ${latestTimelineItem.label}`
-                    : '아직 남긴 진행 기록이 없습니다.',
+                    : t('works.detail.timelineEmpty'),
                 },
                 {
-                  label: '한줄평',
-                  value: shortReview || '아직 남긴 한줄평이 없습니다.',
+                  label: t('works.detail.shortReviewLabel'),
+                  value: shortReview || t('works.detail.shortReviewEmpty'),
                 },
               ]}
             />
@@ -119,19 +124,19 @@ export function WorkDetailTabs({
       <Tabs.Panel value="review">
         <Stack gap="md">
           <ReviewNoteCard
-            emptyLabel="아직 남긴 한줄평이 없습니다."
-            label="한줄평"
+            emptyLabel={t('works.detail.shortReviewEmpty')}
+            label={t('works.detail.shortReviewLabel')}
             value={shortReview}
           />
           <ReviewNoteCard
-            emptyLabel="아직 남긴 상세 감상이 없습니다."
-            label="상세 감상"
+            emptyLabel={t('works.detail.detailReviewEmpty')}
+            label={t('works.detail.detailReviewLabel')}
             value={review}
           />
 
           <SectionCard gap="sm" padding="md" tone="subtle">
             <Text c="dimmed" fw={700} mb={6} size="sm">
-              개인 태그
+              {t('works.detail.personalTags')}
             </Text>
             {personalTags.length > 0 ? (
               <Group gap={6} wrap="wrap">
@@ -143,7 +148,7 @@ export function WorkDetailTabs({
               </Group>
             ) : (
               <Text c="dimmed" size="sm">
-                아직 개인 태그를 남기지 않았습니다.
+                {t('works.detail.personalTagsEmpty')}
               </Text>
             )}
           </SectionCard>
@@ -153,10 +158,12 @@ export function WorkDetailTabs({
               to={`/works/${work.id}/edit?focus=review`}
               tone="primary"
             >
-              {shortReview || review ? '리뷰 수정' : '리뷰 쓰기'}
+              {shortReview || review
+                ? t('works.detail.editReview')
+                : t('works.detail.writeReview')}
             </AppLinkButton>
             <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
-              기록 수정
+              {t('works.detail.editRecord')}
             </AppLinkButton>
           </ActionRow>
         </Stack>
@@ -168,13 +175,25 @@ export function WorkDetailTabs({
             <KeyValueGrid
               columns={2}
               items={[
-                { label: '현재 상태', value: statusLabel },
-                { label: '진행도', value: progressLabel ?? '아직 없음' },
-                { label: '시작일', value: formatWorkDate(work.startedAt) },
-                { label: '완료일', value: formatWorkDate(work.completedAt) },
-                { label: '하차일', value: formatWorkDate(work.droppedAt) },
+                { label: t('works.detail.currentStatus'), value: statusLabel },
                 {
-                  label: '최근 기록일',
+                  label: t('works.detail.progress'),
+                  value: progressLabel ?? t('works.detail.noProgress'),
+                },
+                {
+                  label: t('works.sort.startedAt'),
+                  value: formatWorkDate(work.startedAt),
+                },
+                {
+                  label: t('works.sort.completedAt'),
+                  value: formatWorkDate(work.completedAt),
+                },
+                {
+                  label: t('works.detail.droppedAt'),
+                  value: formatWorkDate(work.droppedAt),
+                },
+                {
+                  label: t('works.detail.latestRecordDate'),
                   value: formatWorkDate(work.lastConsumedAt),
                 },
               ]}
@@ -188,8 +207,7 @@ export function WorkDetailTabs({
         <Stack gap="md">
           <SectionCard padding="md" tone="subtle">
             <Text c="dimmed" size="sm">
-              같은 시리즈, 제작진, 카탈로그 관계로 이어지는 작품을 나눠서
-              확인합니다.
+              {t('works.detail.relatedDescription')}
             </Text>
           </SectionCard>
           {relatedSections}
@@ -232,24 +250,33 @@ export function WorkDetailTabs({
             <KeyValueGrid
               columns={2}
               items={[
-                { label: '작가·제작자', value: work.author || '미입력' },
                 {
-                  label: '장르',
-                  value:
-                    work.genres.length > 0 ? work.genres.join(', ') : '없음',
+                  label: t('works.detail.authorContributor'),
+                  value: work.author || t('works.detail.creatorMissing'),
                 },
                 {
-                  label: '작품 소개',
+                  label: t('works.detail.genre'),
                   value:
-                    work.description.trim() || '작품 소개가 아직 없습니다.',
+                    work.genres.length > 0
+                      ? work.genres.join(', ')
+                      : t('works.detail.genreEmpty'),
                 },
-                { label: '식별 방식', value: sourceIdentityLabel },
                 {
-                  label: '추가한 날',
+                  label: t('works.detail.workDescription'),
+                  value:
+                    work.description.trim() ||
+                    t('works.detail.workDescriptionEmpty'),
+                },
+                {
+                  label: t('works.detail.identitySource'),
+                  value: sourceIdentityLabel,
+                },
+                {
+                  label: t('works.detail.createdAt'),
                   value: formatWorkDateTime(work.createdAt),
                 },
                 {
-                  label: '수정한 날',
+                  label: t('works.detail.updatedAt'),
                   value: formatWorkDateTime(work.updatedAt),
                 },
               ]}
@@ -262,13 +289,13 @@ export function WorkDetailTabs({
             <SectionCard gap="md" padding="lg" tone="subtle">
               <Stack gap="sm">
                 <Text c="dimmed" fw={800} size="sm">
-                  제작 정보
+                  {t('works.detail.workInfo')}
                 </Text>
                 {seriesTags.length > 0 && (
                   <Group gap={6} wrap="wrap">
                     {seriesTags.map((series) => (
                       <AppBadge key={`info-series-${series}`} tone="accent">
-                        시리즈: {series}
+                        {t('works.detail.seriesPrefix', { series })}
                       </AppBadge>
                     ))}
                   </Group>
@@ -288,10 +315,10 @@ export function WorkDetailTabs({
                 ) : (
                   <Text size="sm">
                     <Text c="dimmed" component="span" fw={700}>
-                      제작진
+                      {t('works.detail.creator')}
                     </Text>
                     {': '}
-                    {work.author.trim() || '미입력'}
+                    {work.author.trim() || t('works.detail.creatorMissing')}
                   </Text>
                 )}
               </Stack>
@@ -300,7 +327,7 @@ export function WorkDetailTabs({
 
           <ActionRow>
             <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
-              작품 정보 수정
+              {t('works.detail.editWorkInfo')}
             </AppLinkButton>
           </ActionRow>
         </Stack>

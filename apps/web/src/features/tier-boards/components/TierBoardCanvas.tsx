@@ -29,6 +29,7 @@ import {
 } from '../utils/tier-board-editor-helpers';
 import styles from '../pages/TierBoardsPage.module.css';
 import { cn } from '@shared/utils/class-names';
+import { useAppTranslation } from '@app/i18n';
 
 const css = styles;
 
@@ -103,6 +104,7 @@ export function CardTile({
   showTitle?: boolean;
   style?: CSSProperties;
 }) {
+  const { t } = useAppTranslation();
   const imageUrl = assetUrls.get(card.imageUrl) ?? card.imageUrl;
   const details = [card.subtitle, card.note].filter(Boolean).join(' · ');
 
@@ -122,7 +124,7 @@ export function CardTile({
     >
       <Box
         {...dragHandleProps}
-        aria-label={`${card.title} 이동`}
+        aria-label={t('tierBoards.canvas.cardMoveAria', { title: card.title })}
         className={cn(css.itemDragHandle)}
         role="button"
         tabIndex={0}
@@ -156,11 +158,13 @@ function CardMenu({
   onEdit: (card: TierBoardCardRecord) => void;
   onMove: (id: string, laneId: string | null) => void;
 }) {
+  const { t } = useAppTranslation();
+
   return (
     <Menu position="bottom-end">
       <Menu.Target>
         <ActionIcon
-          aria-label={`${card.title} 메뉴`}
+          aria-label={t('tierBoards.canvas.cardMenuAria', { title: card.title })}
           className={cn(css.itemMenuButton)}
           size="sm"
           variant="filled"
@@ -169,20 +173,24 @@ function CardMenu({
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Label>이동</Menu.Label>
+        <Menu.Label>{t('tierBoards.canvas.move')}</Menu.Label>
         <Menu.Item onClick={() => onMove(card.id, null)}>
-          미배치로 이동
+          {t('tierBoards.canvas.moveToPool')}
         </Menu.Item>
         {lanes.map((lane) => (
           <Menu.Item key={lane.id} onClick={() => onMove(card.id, lane.id)}>
-            {lane.title}로 이동
+            {t('tierBoards.canvas.moveToLane', { title: lane.title })}
           </Menu.Item>
         ))}
         <Menu.Divider />
-        <Menu.Item onClick={() => onEdit(card)}>카드 수정</Menu.Item>
-        <Menu.Item onClick={() => onDuplicate(card.id)}>카드 복제</Menu.Item>
+        <Menu.Item onClick={() => onEdit(card)}>
+          {t('tierBoards.canvas.editCard')}
+        </Menu.Item>
+        <Menu.Item onClick={() => onDuplicate(card.id)}>
+          {t('tierBoards.canvas.duplicateCard')}
+        </Menu.Item>
         <Menu.Item color="red" onClick={() => onDelete(card.id)}>
-          카드 삭제
+          {t('tierBoards.canvas.deleteCard')}
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>
@@ -270,6 +278,7 @@ export function SortableLane({
   onUpdateLane: (lane: TierLaneRecord) => void;
   showCardTitles: boolean;
 }) {
+  const { t } = useAppTranslation();
   const {
     attributes,
     listeners,
@@ -315,7 +324,9 @@ export function SortableLane({
             <ActionIcon
               {...attributes}
               {...listeners}
-              aria-label={`${lane.title} 행 이동`}
+              aria-label={t('tierBoards.canvas.laneMoveAria', {
+                title: lane.title,
+              })}
               color="gray"
               size="sm"
               variant="subtle"
@@ -331,7 +342,9 @@ export function SortableLane({
         )}
         <Group gap={4}>
           <ActionIcon
-            aria-label={`${lane.title} 위로`}
+            aria-label={t('tierBoards.canvas.laneUpAria', {
+              title: lane.title,
+            })}
             onClick={() => onMoveLane(lane.id, -1)}
             size="sm"
             variant="subtle"
@@ -339,7 +352,9 @@ export function SortableLane({
             ↑
           </ActionIcon>
           <ActionIcon
-            aria-label={`${lane.title} 아래로`}
+            aria-label={t('tierBoards.canvas.laneDownAria', {
+              title: lane.title,
+            })}
             onClick={() => onMoveLane(lane.id, 1)}
             size="sm"
             variant="subtle"
@@ -347,7 +362,9 @@ export function SortableLane({
             ↓
           </ActionIcon>
           <ActionIcon
-            aria-label={`${lane.title} 수정`}
+            aria-label={t('tierBoards.canvas.laneEditAria', {
+              title: lane.title,
+            })}
             onClick={() => onUpdateLane(lane)}
             size="sm"
             variant="subtle"
@@ -355,7 +372,9 @@ export function SortableLane({
             ✎
           </ActionIcon>
           <ActionIcon
-            aria-label={`${lane.title} 삭제`}
+            aria-label={t('tierBoards.canvas.laneDeleteAria', {
+              title: lane.title,
+            })}
             color="red"
             onClick={() => onDeleteLane(lane.id)}
             size="sm"
@@ -388,7 +407,7 @@ export function SortableLane({
               {cards.length === 0 && (
                 <Box className={cn(css.emptyLane)}>
                   <Text c="dimmed" size="sm">
-                    여기에 카드를 놓으세요.
+                    {t('tierBoards.canvas.emptyLane')}
                   </Text>
                 </Box>
               )}

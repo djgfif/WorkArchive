@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 
 import { AppLinkButton } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { useSyncDashboard } from '../hooks/useSyncDashboard';
 import { getSyncSafetyBadgeState } from '../utils/sync-safety-state';
 
 export function SyncSafetyBadge() {
+  const { t } = useAppTranslation();
   const { mode } = useAuthSession();
   const {
     conflictItems,
@@ -39,7 +41,7 @@ export function SyncSafetyBadge() {
 
   return (
     <AppLinkButton
-      aria-label={`동기화 상태: ${state.label}`}
+      aria-label={t('sync.badgeAria', { label: state.label })}
       size="compact-xs"
       to={state.to}
       tone={state.tone}

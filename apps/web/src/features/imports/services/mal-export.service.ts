@@ -1,5 +1,6 @@
 import type { WorkStatus, WorkType } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import type { ExternalImportEntry } from './anilist-user-list.service';
 
 /**
@@ -141,9 +142,7 @@ export function parseMyAnimeListExportXml(
     parsed.querySelector('parsererror') ||
     !parsed.querySelector('myanimelist')
   ) {
-    throw new Error(
-      'MyAnimeList 내보내기 XML 형식이 아닙니다. MAL의 목록 내보내기(.xml) 파일을 선택해 주세요.',
-    );
+    throw new Error(appI18n.t('imports.mal.invalidXml'));
   }
 
   const entries: ExternalImportEntry[] = [];

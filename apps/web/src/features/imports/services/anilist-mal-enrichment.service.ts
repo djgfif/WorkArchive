@@ -1,4 +1,5 @@
 import type { ExternalImportEntry } from './anilist-user-list.service';
+import { appI18n } from '@app/i18n';
 
 /**
  * MAL 내보내기에는 표지가 없으므로, MAL id 를 AniList 의 idMal 매칭으로
@@ -103,7 +104,11 @@ async function fetchEnrichmentChunk(
   });
 
   if (!response.ok) {
-    throw new Error(`AniList 매칭 요청이 실패했습니다 (HTTP ${response.status})`);
+    throw new Error(
+      appI18n.t('imports.mal.anilistMatchError', {
+        status: response.status,
+      }),
+    );
   }
 
   const payload = (await response.json()) as {

@@ -1,7 +1,5 @@
-import {
-  AppButton,
-  StateMessage,
-} from '@shared/components/AppPrimitives';
+import { AppButton, StateMessage } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 
 interface WorksListErrorStateProps {
   error: string;
@@ -14,25 +12,27 @@ export function WorksListErrorState({
   onOpenAddDialog,
   onRetry,
 }: WorksListErrorStateProps) {
+  const { t } = useAppTranslation();
+
   return (
     <StateMessage
       actions={
         <>
           <AppButton onClick={onRetry} tone="primary" type="button">
-            다시 불러오기
+            {t('works.list.retry')}
           </AppButton>
           <AppButton
-            aria-label="목록 오류 상태에서 작품 추가"
+            aria-label={t('works.list.addWorkFromError')}
             onClick={onOpenAddDialog}
             tone="secondary"
             type="button"
           >
-            작품 추가
+            {t('navigation.addWork')}
           </AppButton>
         </>
       }
       description={error}
-      title="작품 목록을 불러오지 못했습니다."
+      title={t('works.list.errorTitle')}
       tone="error"
     />
   );

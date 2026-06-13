@@ -44,7 +44,16 @@ function getPayloadServerVersion(payload: SyncQueuePayload) {
   return 'serverVersion' in payload ? payload.serverVersion : 0;
 }
 
-function getNextRetryAt(retryCount: number) {
+function getNextRetryAt(retryCount: number, retryAfterMs?: number | null) {
+  if (
+    retryAfterMs !== null &&
+    retryAfterMs !== undefined &&
+    Number.isFinite(retryAfterMs) &&
+    retryAfterMs > 0
+  ) {
+    return new Date(Date.now() + retryAfterMs).toISOString();
+  }
+
   const retryDelayMs = Math.min(
     SYNC_RETRY_BASE_DELAY_MS * 2 ** Math.max(0, retryCount - 1),
     SYNC_RETRY_MAX_DELAY_MS,
@@ -209,7 +218,11 @@ export class SyncQueueRepository {
     await this.getDb().syncQueue.bulkDelete(ids);
   }
 
-  async markFailed(id: string, lastError: string) {
+  async markFailed(
+    id: string,
+    lastError: string,
+    retryAfterMs?: number | null,
+  ) {
     const existing = await this.getDb().syncQueue.get(id);
 
     if (!existing) {
@@ -219,7 +232,7 @@ export class SyncQueueRepository {
     const updated: SyncQueueItemRecord = {
       ...existing,
       retryCount: existing.retryCount + 1,
-      nextRetryAt: getNextRetryAt(existing.retryCount + 1),
+      nextRetryAt: getNextRetryAt(existing.retryCount + 1, retryAfterMs),
       lastError,
       autoMerge: null,
       conflict: null,
@@ -248,7 +261,11 @@ export class SyncQueueRepository {
     return updated;
   }
 
-  async markManyFailed(ids: string[], lastError: string) {
+  async markManyFailed(
+    ids: string[],
+    lastError: string,
+    retryAfterMs?: number | null,
+  ) {
     if (ids.length === 0) {
       return [];
     }
@@ -268,7 +285,7 @@ export class SyncQueueRepository {
         const updated: SyncQueueItemRecord = {
           ...item,
           retryCount: item.retryCount + 1,
-          nextRetryAt: getNextRetryAt(item.retryCount + 1),
+          nextRetryAt: getNextRetryAt(item.retryCount + 1, retryAfterMs),
           lastError,
           autoMerge: null,
           conflict: null,

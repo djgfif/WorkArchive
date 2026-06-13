@@ -98,6 +98,22 @@ describe('ImageProxyService', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('cools down repeated failed fetches for the same image URL', async () => {
+    upstreamFetchMock.mockResolvedValue(
+      new Response(null, {
+        status: 502,
+      }),
+    );
+
+    await expect(
+      service.getImage('https://covers.openlibrary.org/b/id/missing-L.jpg'),
+    ).rejects.toThrow('Image provider returned an error.');
+    await expect(
+      service.getImage('https://covers.openlibrary.org/b/id/missing-L.jpg'),
+    ).rejects.toThrow('temporarily unavailable');
+    expect(upstreamFetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects untrusted hosts before fetching', async () => {
     await expect(
       service.getImage('https://internal.example.test/cover.jpg'),

@@ -11,6 +11,7 @@ import {
 import { PageHero } from '@shared/components/PageHero';
 import { FlowPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { useAppTranslation } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { syncQueueRepository } from '@features/sync';
 import { WorkForm } from '../components/WorkForm';
@@ -28,7 +29,8 @@ import {
 } from '../utils/work-form';
 
 export function WorkEditPage() {
-  usePageTitle('작품 편집');
+  const { t } = useAppTranslation();
+  usePageTitle(t('works.edit.pageTitle'));
   const { id } = useParams();
   const navigate = useNavigate();
   const { archiveScopeKey, mode } = useAuthSession();
@@ -43,7 +45,8 @@ export function WorkEditPage() {
     tagSuggestions: [] as string[],
   });
   const [workGraph, setWorkGraph] = useState<WorkGraphSnapshot | null>(null);
-  const focusArea = searchParams.get('focus') === 'review' ? 'review' : 'general';
+  const focusArea =
+    searchParams.get('focus') === 'review' ? 'review' : 'general';
   const draftKey = id
     ? buildWorkFormDraftKey({
         archiveScopeKey,
@@ -54,7 +57,9 @@ export function WorkEditPage() {
     : null;
   const formInitialValues = useMemo(
     () =>
-      work ? createWorkFormValuesFromRecord(work, workGraph ?? undefined) : undefined,
+      work
+        ? createWorkFormValuesFromRecord(work, workGraph ?? undefined)
+        : undefined,
     [work, workGraph],
   );
 
@@ -111,7 +116,7 @@ export function WorkEditPage() {
 
   async function handleSubmit(input: UpsertWorkInput) {
     if (!id) {
-      setSubmitError('수정할 작품을 찾을 수 없습니다.');
+      setSubmitError(t('works.edit.missingTitle'));
       return;
     }
 
@@ -127,13 +132,13 @@ export function WorkEditPage() {
       navigate(`/works/${id}?saved=edit`, {
         state: {
           feedback: hasQueuedWork
-            ? '로컬에 저장됨 · 백업 대기 중'
-            : '로컬에 저장됨',
+            ? t('works.feedback.localSavedSyncPending')
+            : t('works.feedback.localSaved'),
         },
       });
     } catch (saveError) {
       setSubmitError(
-        saveError instanceof Error ? saveError.message : '작품을 수정하지 못했습니다.',
+        saveError instanceof Error ? saveError.message : t('works.edit.error'),
       );
     } finally {
       setIsSubmitting(false);
@@ -144,14 +149,14 @@ export function WorkEditPage() {
     return (
       <StateMessage
         description={error}
-        title="작품 정보를 불러오지 못했습니다."
+        title={t('works.list.loadError')}
         tone="error"
       />
     );
   }
 
   if (isLoading) {
-    return <LoadingState rows={3} title="작품 정보를 불러오는 중입니다" />;
+    return <LoadingState rows={3} title={t('works.edit.loadingTitle')} />;
   }
 
   if (!work) {
@@ -159,11 +164,11 @@ export function WorkEditPage() {
       <StateMessage
         actions={
           <AppLinkButton to="/works" tone="primary">
-            작품으로 돌아가기
+            {t('works.backToWork')}
           </AppLinkButton>
         }
-        description="삭제되었거나 주소가 올바르지 않을 수 있습니다."
-        title="수정할 작품을 찾을 수 없습니다."
+        description={t('works.edit.missingDescription')}
+        title={t('works.edit.missingTitle')}
         tone="info"
       />
     );
@@ -174,30 +179,43 @@ export function WorkEditPage() {
       <PageHero
         actions={
           <>
-            <AppLinkButton to={`/works/${work.id}`}>작품으로 돌아가기</AppLinkButton>
+            <AppLinkButton to={`/works/${work.id}`}>
+              {t('works.backToWork')}
+            </AppLinkButton>
             {focusArea === 'review' && (
               <AppLinkButton to={`/works/${work.id}/edit`} tone="quiet">
-                전체 수정 모드
+                {t('works.edit.fullMode')}
               </AppLinkButton>
             )}
           </>
         }
         description={
           focusArea === 'review'
-            ? '이번에는 감상 기록에만 집중합니다. 한줄평과 상세 감상만 정리해도 충분합니다.'
-            : '제목, 상태, 감상을 필요한 만큼만 다듬어보세요.'
+            ? t('works.edit.reviewDescription')
+            : t('works.edit.description')
         }
-        eyebrow="수정"
+        eyebrow={t('common.edit')}
         meta={
           <>
-            <MetricPill label="현재 제목" value={work.title} />
             <MetricPill
-              label="작업 방식"
-              value={focusArea === 'review' ? '리뷰 집중 모드' : '전체 수정'}
+              label={t('works.edit.workTitleLabel')}
+              value={work.title}
+            />
+            <MetricPill
+              label={t('works.edit.workModeLabel')}
+              value={
+                focusArea === 'review'
+                  ? t('works.edit.reviewMode')
+                  : t('works.edit.fullMode')
+              }
             />
           </>
         }
-        title={focusArea === 'review' ? `${work.title} 감상 수정` : `${work.title} 수정`}
+        title={
+          focusArea === 'review'
+            ? t('works.edit.reviewTitle', { title: work.title })
+            : t('works.edit.title', { title: work.title })
+        }
       />
 
       <WorkForm
@@ -211,10 +229,12 @@ export function WorkEditPage() {
         organizationContributorSuggestions={
           workSuggestions.organizationContributorSuggestions
         }
-        personContributorSuggestions={workSuggestions.personContributorSuggestions}
+        personContributorSuggestions={
+          workSuggestions.personContributorSuggestions
+        }
         seriesSuggestions={workSuggestions.seriesSuggestions}
         submitError={submitError}
-        submitLabel="저장"
+        submitLabel={t('works.edit.submitLabel')}
         tagSuggestions={workSuggestions.tagSuggestions}
         {...(formInitialValues ? { initialValues: formInitialValues } : {})}
       />

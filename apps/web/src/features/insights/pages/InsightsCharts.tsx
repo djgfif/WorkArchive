@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { WorkType } from '@work-archive/shared-types';
 
 import { getWorkTypeLabel } from '@features/works';
+import { formatAppNumber, useAppTranslation } from '@app/i18n';
 import styles from './PersonalInsightsPage.module.css';
 import { cn } from '@shared/utils/class-names';
 
@@ -16,6 +17,7 @@ export function RatingHistogramPanel({
 }: {
   distribution: Array<{ count: number; rating: number }>;
 }) {
+  const { t } = useAppTranslation();
   const countByRating = new Map(
     distribution.map((entry) => [entry.rating, entry.count]),
   );
@@ -25,7 +27,7 @@ export function RatingHistogramPanel({
   return (
     <Paper className={cn(css.chartPanel)} p="lg" radius="md" withBorder>
       <Stack gap="md">
-        <Title order={3}>별점 분포</Title>
+        <Title order={3}>{t('insights.charts.ratingTitle')}</Title>
         {hasData ? (
           <Box className={cn(css.histogram)}>
             {RATING_BUCKETS.map((rating) => {
@@ -34,7 +36,10 @@ export function RatingHistogramPanel({
 
               return (
                 <Link
-                  aria-label={`★ ${rating.toFixed(1)} ${count}개`}
+                  aria-label={t('insights.charts.ratingAria', {
+                    count: formatAppNumber(count),
+                    rating: rating.toFixed(1),
+                  })}
                   className={cn(css.histColumn)}
                   key={rating}
                   to={`/works?rating=${encodeURIComponent(String(rating))}`}
@@ -56,7 +61,7 @@ export function RatingHistogramPanel({
           </Box>
         ) : (
           <Text c="dimmed" size="sm">
-            아직 별점을 남긴 작품이 없습니다.
+            {t('insights.charts.ratingEmpty')}
           </Text>
         )}
       </Stack>
@@ -84,6 +89,7 @@ export function MediaTypePanel({
   total: number;
   typeCounts: Record<WorkType, number>;
 }) {
+  const { t } = useAppTranslation();
   const entries = (Object.entries(typeCounts) as Array<[WorkType, number]>)
     .filter(([, count]) => count > 0)
     .sort((left, right) => right[1] - left[1]);
@@ -96,12 +102,15 @@ export function MediaTypePanel({
   return (
     <Paper className={cn(css.chartPanel)} p="lg" radius="md" withBorder>
       <Stack gap="md">
-        <Title order={3}>매체 비율</Title>
+        <Title order={3}>{t('insights.charts.mediaTitle')}</Title>
         {total > 0 ? (
           <Group align="center" gap="xl" wrap="wrap">
-            <Box className={cn(css.donutWrap)} style={{ height: size, width: size }}>
+            <Box
+              className={cn(css.donutWrap)}
+              style={{ height: size, width: size }}
+            >
               <svg
-                aria-label="매체별 작품 비율"
+                aria-label={t('insights.charts.mediaAria')}
                 height={size}
                 role="img"
                 viewBox={`0 0 ${size} ${size}`}
@@ -137,14 +146,21 @@ export function MediaTypePanel({
                 })}
               </svg>
               <Box className={cn(css.donutCenter)}>
-                <Text className={cn(css.donutTotal)}>{total}</Text>
-                <Text className={cn(css.donutTotalLabel)}>작품</Text>
+                <Text className={cn(css.donutTotal)}>
+                  {formatAppNumber(total)}
+                </Text>
+                <Text className={cn(css.donutTotalLabel)}>
+                  {t('insights.charts.workCountLabel')}
+                </Text>
               </Box>
             </Box>
             <Stack flex={1} gap={4} miw={140}>
               {entries.map(([type, count]) => (
                 <Link
-                  aria-label={`${getWorkTypeLabel(type)} ${count}개`}
+                  aria-label={t('insights.countLabel', {
+                    count: formatAppNumber(count),
+                    value: getWorkTypeLabel(type),
+                  })}
                   className={cn(css.legendRow)}
                   key={type}
                   to={`/works?type=${encodeURIComponent(type)}`}
@@ -158,7 +174,8 @@ export function MediaTypePanel({
                     {getWorkTypeLabel(type)}
                   </Text>
                   <Text className={cn(css.legendValue)}>
-                    {count} · {Math.round((count / total) * 100)}%
+                    {formatAppNumber(count)} ·{' '}
+                    {Math.round((count / total) * 100)}%
                   </Text>
                 </Link>
               ))}
@@ -166,7 +183,7 @@ export function MediaTypePanel({
           </Group>
         ) : (
           <Text c="dimmed" size="sm">
-            아직 매체별 통계를 만들 작품이 없습니다.
+            {t('insights.charts.mediaEmpty')}
           </Text>
         )}
       </Stack>

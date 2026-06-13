@@ -4,6 +4,7 @@ import {
   importsService,
   type ImportProviderStatus,
 } from '@features/imports';
+import { appI18n } from '@app/i18n';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
 
@@ -82,7 +83,7 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
             message:
               error instanceof Error
                 ? error.message
-                : '검색 provider 상태를 불러오지 못했습니다.',
+                : appI18n.t('imports.readiness.loadError'),
           });
         }
       } finally {
@@ -124,7 +125,9 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
     if (missingField) {
       setProviderFeedback({
         tone: 'error',
-        message: `${missingField.label}를 입력해 주세요.`,
+        message: appI18n.t('imports.providerSettings.fieldRequired', {
+          label: missingField.label,
+        }),
       });
 
       return;
@@ -147,7 +150,9 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
       setCredentialDraft({});
       setProviderFeedback({
         tone: 'success',
-        message: `${selectedProvider.label ?? selectedProvider.provider} API key를 저장했습니다.`,
+        message: appI18n.t('imports.providerSettings.saveSuccess', {
+          label: selectedProvider.label ?? selectedProvider.provider,
+        }),
       });
     } catch (error) {
       setProviderFeedback({
@@ -155,7 +160,9 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : `${selectedProvider.label ?? selectedProvider.provider} API key를 저장하지 못했습니다.`,
+            : appI18n.t('imports.providerSettings.saveError', {
+                label: selectedProvider.label ?? selectedProvider.provider,
+              }),
       });
     } finally {
       setSavingProviderId(null);
@@ -180,7 +187,9 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
       setCredentialDraft({});
       setProviderFeedback({
         tone: 'success',
-        message: `${selectedProvider.label ?? selectedProvider.provider} API key를 삭제했습니다.`,
+        message: appI18n.t('imports.providerSettings.deleteSuccess', {
+          label: selectedProvider.label ?? selectedProvider.provider,
+        }),
       });
     } catch (error) {
       setProviderFeedback({
@@ -188,7 +197,9 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : `${selectedProvider.label ?? selectedProvider.provider} API key를 삭제하지 못했습니다.`,
+            : appI18n.t('imports.providerSettings.deleteError', {
+                label: selectedProvider.label ?? selectedProvider.provider,
+              }),
       });
     } finally {
       setDeletingProviderId(null);
@@ -199,7 +210,7 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
     if (!selectedProvider || !selectedProvider.configured) {
       setProviderFeedback({
         tone: 'error',
-        message: '저장된 API key가 있는 provider만 연결 테스트를 실행할 수 있습니다.',
+        message: appI18n.t('imports.providerSettings.keyRequiredForTest'),
       });
 
       return;
@@ -215,7 +226,7 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
       setProviderFeedback({
         tone: result.ok ? 'success' : 'error',
         message: result.ok
-          ? `${label} 연결 테스트에 성공했습니다.`
+          ? appI18n.t('imports.providerSettings.testSuccess', { label })
           : getProviderKeyTestFailureMessage(result.reason, label),
       });
     } catch (error) {
@@ -224,7 +235,9 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
         message:
           error instanceof Error
             ? error.message
-            : `${selectedProvider.label ?? selectedProvider.provider} 연결 테스트에 실패했습니다.`,
+            : appI18n.t('imports.providerSettings.testError', {
+                label: selectedProvider.label ?? selectedProvider.provider,
+              }),
       });
     } finally {
       setTestingProviderId(null);
@@ -253,13 +266,15 @@ export function useImportProviderSettings(mode: SettingsAuthMode) {
 function getProviderKeyTestFailureMessage(reason: string | null, label: string) {
   switch (reason) {
     case 'missing_key':
-      return `${label}에 저장된 API 키가 없습니다.`;
+      return appI18n.t('imports.providerSettings.testMissingKey', { label });
     case 'unauthorized':
-      return `${label}에서 API 키를 거부했습니다. 키 값을 다시 확인해 주세요.`;
+      return appI18n.t('imports.providerSettings.testUnauthorized', { label });
     case 'provider_unavailable':
-      return `${label}에 일시적으로 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.`;
+      return appI18n.t('imports.providerSettings.testProviderUnavailable', {
+        label,
+      });
     case 'unknown':
     default:
-      return `${label} 연결 테스트에 실패했습니다.`;
+      return appI18n.t('imports.providerSettings.testError', { label });
   }
 }

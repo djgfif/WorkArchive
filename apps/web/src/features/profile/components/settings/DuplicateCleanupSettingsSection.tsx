@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Checkbox,
   Divider,
@@ -17,6 +17,7 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
+import { appI18n, formatAppNumber, useAppTranslation } from '@app/i18n';
 import {
   type DuplicateCandidateGroup,
   duplicateCleanupService,
@@ -31,6 +32,10 @@ import { cx } from '@shared/utils/class-names';
 
 const css = styles;
 
+function formatCount(value: number) {
+  return formatAppNumber(value);
+}
+
 interface DuplicateCleanupSettingsSectionProps {
   archiveScopeKey: string;
 }
@@ -42,11 +47,13 @@ interface DuplicateGroupCardProps {
 
 function formatMergeValue(value: unknown): string {
   if (value === null || value === undefined || value === '') {
-    return '비어 있음';
+    return appI18n.t('settings.duplicateCleanup.emptyValue');
   }
 
   if (typeof value === 'boolean') {
-    return value ? '예' : '아니요';
+    return value
+      ? appI18n.t('settings.duplicateCleanup.yes')
+      : appI18n.t('settings.duplicateCleanup.no');
   }
 
   if (typeof value === 'number') {
@@ -74,14 +81,19 @@ function formatMergeValue(value: unknown): string {
       )
       .filter(Boolean);
 
-    return refs.length > 0 ? refs.join(', ') : '가져오기 원본 있음';
+    return refs.length > 0
+      ? refs.join(', ')
+      : appI18n.t('settings.duplicateCleanup.hasImportSource');
   }
 
   return JSON.stringify(value);
 }
 
 function formatWorkSummary(work: DuplicateCandidateGroup['works'][number]) {
-  const rating = work.rating === null ? '미평가' : `★ ${work.rating}`;
+  const rating =
+    work.rating === null
+      ? appI18n.t('settings.duplicateCleanup.noRating')
+      : `★ ${work.rating}`;
 
   return [
     getWorkTypeLabel(work.type),
@@ -92,6 +104,7 @@ function formatWorkSummary(work: DuplicateCandidateGroup['works'][number]) {
 }
 
 function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
+  const { t } = useAppTranslation();
   const [targetWorkId, setTargetWorkId] = useState(group.works[0]?.id ?? '');
   const [sourceWorkIds, setSourceWorkIds] = useState<string[]>(
     group.works.slice(1).map((work) => work.id),
@@ -173,7 +186,7 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
         message:
           error instanceof Error
             ? error.message
-            : '중복 제외 결정을 저장하지 못했습니다.',
+            : t('settings.duplicateCleanup.ignoreError'),
         tone: 'error',
       });
     } finally {
@@ -198,7 +211,7 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
         message:
           error instanceof Error
             ? error.message
-            : '병합 미리보기를 만들지 못했습니다.',
+            : t('settings.duplicateCleanup.previewError'),
         tone: 'error',
       });
     } finally {
@@ -217,7 +230,7 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
         targetWorkId,
       });
       setFeedback({
-        message: '선택한 중복 작품을 병합했습니다.',
+        message: t('settings.duplicateCleanup.mergeSuccess'),
         tone: 'success',
       });
       await onChanged();
@@ -226,7 +239,7 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
         message:
           error instanceof Error
             ? error.message
-            : '선택한 중복 작품을 병합하지 못했습니다.',
+            : t('settings.duplicateCleanup.mergeError'),
         tone: 'error',
       });
     } finally {
@@ -239,9 +252,14 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
       <Stack gap="md">
         <Group align="flex-start" justify="space-between">
           <Stack gap={4}>
-            <Text fw={850}>{group.works[0]?.title ?? '중복 후보'}</Text>
+            <Text fw={850}>
+              {group.works[0]?.title ?? t('settings.duplicateCleanup.candidate')}
+            </Text>
             <Text c="dimmed" size="sm">
-              {group.works.length}개 기록 · {group.reasons[0]?.label}
+              {t('settings.duplicateCleanup.groupSummary', {
+                count: formatCount(group.works.length),
+                reason: group.reasons[0]?.label,
+              })}
             </Text>
           </Stack>
           <AppBadge tone="warning">
@@ -278,7 +296,7 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
                 {work.title}
               </Text>
               <Text c="dimmed" lineClamp={1} size="sm">
-                {work.author.trim() || '작가 미입력'}
+                {work.author.trim() || t('settings.duplicateCleanup.authorMissing')}
               </Text>
               <Text c="dimmed" size="xs">
                 {formatWorkSummary(work)}
@@ -292,14 +310,14 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
         <Stack gap="sm">
           <Select
             data={targetOptions}
-            label="남길 기준 기록"
+            label={t('settings.duplicateCleanup.targetLabel')}
             onChange={changeTarget}
             value={targetWorkId}
           />
 
           <Stack gap={6}>
             <Text fw={750} size="sm">
-              병합할 중복 기록
+              {t('settings.duplicateCleanup.sourceLabel')}
             </Text>
             {sourceCandidates.map((work) => (
               <Checkbox
@@ -318,17 +336,21 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
           <Stack gap="md">
             <div className={css.duplicateMergeSummary ?? ''}>
               <Text size="sm">
-                태그 {preview.unionPersonalTags.length}개, 장르{' '}
-                {preview.unionGenres.length}개를 합치고 타임라인{' '}
-                {preview.timelineEntryCopies}개, 릴리스 기록{' '}
-                {preview.releaseRecordCopies}개를 기준 기록으로 복사합니다.
+                {t('settings.duplicateCleanup.mergeSummary', {
+                  genres: formatCount(preview.unionGenres.length),
+                  releaseRecords: formatCount(preview.releaseRecordCopies),
+                  tags: formatCount(preview.unionPersonalTags.length),
+                  timelineEntries: formatCount(preview.timelineEntryCopies),
+                })}
               </Text>
             </div>
 
             {preview.conflicts.map((conflict) => (
               <Radio.Group
                 key={conflict.field}
-                label={`${conflict.label} 선택`}
+                label={t('settings.duplicateCleanup.conflictLabel', {
+                  label: conflict.label,
+                })}
                 onChange={(value) =>
                   setScalarSelections((current) => ({
                     ...current,
@@ -341,9 +363,13 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
                   {conflict.options.map((option) => (
                     <Radio
                       key={`${conflict.field}:${option.workId}`}
-                      label={`${formatMergeValue(option.value)}${
-                        option.isSuggested ? ' · 최신 수정 기준' : ''
-                      }`}
+                      label={
+                        option.isSuggested
+                          ? t('settings.duplicateCleanup.suggestedOption', {
+                              value: formatMergeValue(option.value),
+                            })
+                          : formatMergeValue(option.value)
+                      }
                       value={option.workId}
                     />
                   ))}
@@ -366,7 +392,7 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
             tone="quiet"
             type="button"
           >
-            중복 아님
+            {t('settings.duplicateCleanup.notDuplicate')}
           </AppButton>
           <Group gap="sm">
             <AppButton
@@ -375,7 +401,7 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
               onClick={() => void prepareMerge()}
               type="button"
             >
-              병합 검토
+              {t('settings.duplicateCleanup.reviewMerge')}
             </AppButton>
             <AppButton
               disabled={
@@ -389,7 +415,7 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
               tone="primary"
               type="button"
             >
-              선택 기록 병합
+              {t('settings.duplicateCleanup.mergeSelected')}
             </AppButton>
           </Group>
         </ActionRow>
@@ -401,11 +427,12 @@ function DuplicateGroupCard({ group, onChanged }: DuplicateGroupCardProps) {
 export function DuplicateCleanupSettingsSection({
   archiveScopeKey,
 }: DuplicateCleanupSettingsSectionProps) {
+  const { t } = useAppTranslation();
   const [groups, setGroups] = useState<DuplicateCandidateGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  async function loadGroups() {
+  const loadGroups = useCallback(async () => {
     setIsLoading(true);
     setFeedback(null);
 
@@ -415,32 +442,34 @@ export function DuplicateCleanupSettingsSection({
       setFeedback(
         error instanceof Error
           ? error.message
-          : '중복 후보를 불러오지 못했습니다.',
+          : t('settings.duplicateCleanup.loadError'),
       );
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [t]);
 
   useEffect(() => {
     void loadGroups();
-  }, [archiveScopeKey]);
+  }, [archiveScopeKey, loadGroups]);
 
   return (
     <SectionCard>
       <SectionIntro
-        description="현재 브라우저의 로컬 아카이브 안에서만 중복 후보를 찾고 병합합니다. 제외 결정도 로컬에만 저장됩니다."
-        eyebrow="데이터 안전"
-        title="중복 정리"
+        description={t('settings.duplicateCleanup.description')}
+        eyebrow={t('settings.duplicateCleanup.eyebrow')}
+        title={t('settings.duplicateCleanup.title')}
       />
 
       <ActionRow justify="space-between">
         <Group gap="sm">
           <AppBadge tone={groups.length > 0 ? 'warning' : 'success'}>
-            {groups.length}개 후보 그룹
+            {t('settings.duplicateCleanup.groupCount', {
+              count: formatCount(groups.length),
+            })}
           </AppBadge>
           <Text c="dimmed" size="sm">
-            카탈로그 ID, 가져오기 원본, 제목/유형/작가를 보수적으로 비교합니다.
+            {t('settings.duplicateCleanup.compareDescription')}
           </Text>
         </Group>
         <AppButton
@@ -449,7 +478,7 @@ export function DuplicateCleanupSettingsSection({
           onClick={() => void loadGroups()}
           type="button"
         >
-          다시 검사
+          {t('settings.duplicateCleanup.retry')}
         </AppButton>
       </ActionRow>
 
@@ -457,7 +486,7 @@ export function DuplicateCleanupSettingsSection({
 
       {!isLoading && groups.length === 0 && !feedback && (
         <FeedbackMessage tone="success">
-          현재 확인할 중복 후보가 없습니다.
+          {t('settings.duplicateCleanup.empty')}
         </FeedbackMessage>
       )}
 

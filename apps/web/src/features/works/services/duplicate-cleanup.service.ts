@@ -9,6 +9,7 @@ import type {
   WorkRecord,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import {
   getWorkArchiveDb,
   type WorkArchiveDatabase,
@@ -114,26 +115,26 @@ export interface DuplicateMergeResult extends DuplicateMergePreview {
 }
 
 const SCALAR_FIELD_LABELS: Record<DuplicateMergeScalarField, string> = {
-  author: '작가/제작자',
-  catalogTitleId: '카탈로그 연결',
-  completedAt: '완료일',
-  description: '설명',
-  droppedAt: '하차일',
-  favorite: '즐겨찾기',
-  importDraft: '가져오기 원본',
-  lastConsumedAt: '마지막 감상일',
-  lastConsumedLabel: '마지막 감상 위치',
-  progressCurrent: '현재 진행도',
-  progressTotal: '전체 진행도',
-  progressUnit: '진행 단위',
-  rating: '평점',
-  review: '리뷰',
-  shortReview: '한줄평',
-  startedAt: '시작일',
-  status: '상태',
-  thumbnailUrl: '이미지',
-  title: '제목',
-  type: '유형',
+  author: appI18n.t('works.duplicateCleanup.fieldAuthor'),
+  catalogTitleId: appI18n.t('works.duplicateCleanup.fieldCatalogTitleId'),
+  completedAt: appI18n.t('works.duplicateCleanup.fieldCompletedAt'),
+  description: appI18n.t('works.duplicateCleanup.fieldDescription'),
+  droppedAt: appI18n.t('works.duplicateCleanup.fieldDroppedAt'),
+  favorite: appI18n.t('works.duplicateCleanup.fieldFavorite'),
+  importDraft: appI18n.t('works.duplicateCleanup.fieldImportDraft'),
+  lastConsumedAt: appI18n.t('works.duplicateCleanup.fieldLastConsumedAt'),
+  lastConsumedLabel: appI18n.t('works.duplicateCleanup.fieldLastConsumedLabel'),
+  progressCurrent: appI18n.t('works.duplicateCleanup.fieldProgressCurrent'),
+  progressTotal: appI18n.t('works.duplicateCleanup.fieldProgressTotal'),
+  progressUnit: appI18n.t('works.duplicateCleanup.fieldProgressUnit'),
+  rating: appI18n.t('works.duplicateCleanup.fieldRating'),
+  review: appI18n.t('works.duplicateCleanup.fieldReview'),
+  shortReview: appI18n.t('works.duplicateCleanup.fieldShortReview'),
+  startedAt: appI18n.t('works.duplicateCleanup.fieldStartedAt'),
+  status: appI18n.t('works.duplicateCleanup.fieldStatus'),
+  thumbnailUrl: appI18n.t('works.duplicateCleanup.fieldThumbnailUrl'),
+  title: appI18n.t('works.duplicateCleanup.fieldTitle'),
+  type: appI18n.t('works.duplicateCleanup.fieldType'),
 };
 
 function getPayloadServerVersion(payload: SyncQueuePayload) {
@@ -396,7 +397,7 @@ function createMergePreview(
   const selectedWorks = works.filter((work) => selectedIds.has(work.id));
 
   if (selectedWorks.length !== selectedIds.size || sourceWorkIds.length === 0) {
-    throw new Error('병합할 중복 작품을 찾을 수 없습니다.');
+    throw new Error(appI18n.t('works.duplicateCleanup.errorMergeMissing'));
   }
 
   const conflicts = DUPLICATE_MERGE_SCALAR_FIELDS.flatMap((field) => {
@@ -679,7 +680,9 @@ export class DuplicateCleanupService {
             !conflict.options.some((option) => option.workId === selectedWorkId)
           ) {
             throw new Error(
-              `${conflict.label} 값이 서로 달라 직접 선택해야 합니다.`,
+              appI18n.t('works.duplicateCleanup.conflictSelectionRequired', {
+                label: conflict.label,
+              }),
             );
           }
         }
@@ -692,7 +695,7 @@ export class DuplicateCleanupService {
         const target = selectedWorks.find((work) => work.id === input.targetWorkId);
 
         if (!target || target.deletedAt !== null) {
-          throw new Error('병합 대상 작품을 찾을 수 없습니다.');
+          throw new Error(appI18n.t('works.duplicateCleanup.errorTargetMissing'));
         }
 
         const now = new Date().toISOString();
@@ -908,7 +911,7 @@ export class DuplicateCleanupService {
       addGroupEdges(ids, () => ({
         confidence: 1,
         evidence: catalogTitleId,
-        label: '같은 카탈로그 작품 ID',
+        label: appI18n.t('works.duplicateCleanup.reasonCatalogTitleId'),
         rule: 'catalogTitleId',
       }));
     }
@@ -917,7 +920,7 @@ export class DuplicateCleanupService {
       addGroupEdges(ids, () => ({
         confidence: 0.98,
         evidence: externalRefKey,
-        label: '같은 가져오기 원본 ID',
+        label: appI18n.t('works.duplicateCleanup.reasonExternalRef'),
         rule: 'externalRef',
       }));
     }
@@ -926,7 +929,7 @@ export class DuplicateCleanupService {
       addGroupEdges(ids, () => ({
         confidence: 0.93,
         evidence: titleAuthorKey,
-        label: '제목, 유형, 작가 일치',
+        label: appI18n.t('works.duplicateCleanup.reasonTitleAuthor'),
         rule: 'normalizedTitleAuthor',
       }));
     }
@@ -951,7 +954,7 @@ export class DuplicateCleanupService {
             evidence: `${left.type}:${normalizeText(left.title)}~${normalizeText(
               right.title,
             )}:${normalizeAuthor(left.author)}`,
-            label: '높은 신뢰도의 제목 유사도',
+            label: appI18n.t('works.duplicateCleanup.reasonFuzzyTitleAuthor'),
             rule: 'fuzzyTitleAuthor',
           },
           rightId: right.id,

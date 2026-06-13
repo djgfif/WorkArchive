@@ -8,6 +8,7 @@ import {
   SectionCard,
 } from './AppPrimitives';
 import { PageHero } from './PageHero';
+import { useAppTranslation } from '@app/i18n';
 import styles from './PageTemplates.module.css';
 
 const css = {
@@ -65,49 +66,11 @@ export const WorkspacePageTemplate = LibraryTemplate;
 export const DetailPageTemplate = WorkDetailTemplate;
 export const FlowPageTemplate = FormFlowTemplate;
 
-/* ── 브랜드 패널 특징 아이템 ── */
 type AuthHighlight = {
   description: string;
   icon?: ReactNode;
   title: string;
 };
-
-const AUTH_BRAND_FEATURES: AuthHighlight[] = [
-  {
-    icon: (
-      <svg fill="none" height={15} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={15}>
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-      </svg>
-    ),
-    title: 'Local-first',
-    description: '모든 기록은 이 기기에 먼저 저장됩니다.',
-  },
-  {
-    icon: (
-      <svg fill="none" height={15} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={15}>
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-      </svg>
-    ),
-    title: '자동 백업',
-    description: '계정 연결 시 변경 사항이 자동으로 동기화됩니다.',
-  },
-  {
-    icon: (
-      <svg fill="none" height={15} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={15}>
-        <rect height="11" rx="2" ry="2" width="18" x="3" y="11" />
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-      </svg>
-    ),
-    title: '개인 기록 전용',
-    description: '공개 프로필이나 커뮤니티 피드를 만들지 않습니다.',
-  },
-];
-
-const AUTH_TRUST_NOTES = [
-  '로컬 기록은 이 기기에 먼저 저장됩니다.',
-  'Google 연결 후에도 기록은 비공개입니다.',
-  'API key와 토큰은 export 파일에 포함되지 않습니다.',
-] as const;
 
 function DefaultHighlightIcon() {
   return (
@@ -134,7 +97,43 @@ export function AuthPageTemplate({
   highlights,
   title,
 }: AuthPageTemplateProps) {
-  const brandFeatures = highlights?.length ? highlights : AUTH_BRAND_FEATURES;
+  const { t } = useAppTranslation();
+  const defaultBrandFeatures: AuthHighlight[] = [
+    {
+      icon: (
+        <svg fill="none" height={15} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={15}>
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+        </svg>
+      ),
+      title: 'Local-first',
+      description: t('shared.authTemplate.localFirstDescription'),
+    },
+    {
+      icon: (
+        <svg fill="none" height={15} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={15}>
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+        </svg>
+      ),
+      title: t('shared.authTemplate.backupTitle'),
+      description: t('shared.authTemplate.backupDescription'),
+    },
+    {
+      icon: (
+        <svg fill="none" height={15} stroke="currentColor" strokeLinecap="round" strokeWidth={2} viewBox="0 0 24 24" width={15}>
+          <rect height="11" rx="2" ry="2" width="18" x="3" y="11" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      ),
+      title: t('shared.authTemplate.noPublicTitle'),
+      description: t('shared.authTemplate.noPublicDescription'),
+    },
+  ];
+  const trustNotes = [
+    t('shared.authTemplate.trustLocal'),
+    t('shared.authTemplate.trustPrivate'),
+    t('shared.authTemplate.trustApiKeys'),
+  ];
+  const brandFeatures = highlights?.length ? highlights : defaultBrandFeatures;
 
   return (
     <Box className={css.authViewport}>
@@ -152,7 +151,7 @@ export function AuthPageTemplate({
                   Work Archive
                 </Text>
                 <Text className={css.brandKicker} size="xs">
-                  개인 감상 서재
+                  {t('shared.authTemplate.brandKicker')}
                 </Text>
               </Stack>
             </Group>
@@ -161,10 +160,12 @@ export function AuthPageTemplate({
           {/* 슬로건 */}
           <Stack className={css.brandCopy} gap="sm">
             <Title className={css.brandTitle} order={2}>
-              로컬 기록으로 시작하고,<br />필요할 때 백업하세요.
+              {t('shared.authTemplate.titleLine1')}
+              <br />
+              {t('shared.authTemplate.titleLine2')}
             </Title>
             <Text className={css.brandDescription} size="sm">
-              로그인은 선택 사항입니다. 계정 연결 전에도 내 기록은 이 기기에 먼저 저장됩니다.
+              {t('shared.authTemplate.description')}
             </Text>
           </Stack>
 
@@ -216,7 +217,7 @@ export function AuthPageTemplate({
           {form}
 
           <Stack className={css.trustCard} gap="xs">
-            {AUTH_TRUST_NOTES.map((note) => (
+            {trustNotes.map((note) => (
               <Box className={css.trustItem} key={note}>
                 <span className={css.trustDot} />
                 <span>{note}</span>

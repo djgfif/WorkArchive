@@ -15,6 +15,7 @@ import {
 } from '@shared/components/AppPrimitives';
 import { AccountPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { appI18n, useAppTranslation } from '@app/i18n';
 import { useAuthSession } from '../hooks/useAuthSession';
 import {
   guestTransferService,
@@ -29,24 +30,25 @@ function getGuestTransferErrorMessage(
 ) {
   if (
     error instanceof Error &&
-    error.message.includes('게스트 기록 상태가 바뀌었습니다')
+    error.message.includes(appI18n.t('auth.guestTransfer.errorChangedMatch'))
   ) {
-    return '게스트 기록 상태가 바뀌었습니다. 다시 확인한 뒤 최신 목록에서 가져올 항목을 선택해주세요.';
+    return appI18n.t('auth.guestTransfer.errorChanged');
   }
 
   if (context === 'load') {
-    return '게스트 기록 검토 상태를 불러오지 못했습니다. 네트워크나 브라우저 저장 공간 상태를 확인한 뒤 다시 시도해주세요.';
+    return appI18n.t('auth.guestTransfer.errorLoad');
   }
 
   if (context === 'skip') {
-    return '검토 완료 상태를 저장하지 못했습니다. 다시 시도하거나 작품 목록에서 기록 상태를 먼저 확인해주세요.';
+    return appI18n.t('auth.guestTransfer.errorSkip');
   }
 
-  return '선택한 guest 기록을 가져오지 못했습니다. 목록을 다시 확인한 뒤 다시 시도해주세요.';
+  return appI18n.t('auth.guestTransfer.errorGeneric');
 }
 
 export function GuestTransferReviewPage() {
-  usePageTitle('게스트 기록 이전');
+  const { t } = useAppTranslation();
+  usePageTitle(t('auth.guestTransfer.pageTitle'));
   const { mode, user } = useAuthSession();
   const [review, setReview] = useState<GuestTransferReviewData | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -110,9 +112,11 @@ export function GuestTransferReviewPage() {
   const duplicateSummary = useMemo(
     () =>
       review
-        ? `${review.duplicateCount}개 항목에서 제목·타입 기준 중복 후보가 감지되었습니다.`
+        ? t('auth.guestTransfer.duplicateSummary', {
+            count: review.duplicateCount,
+          })
         : null,
-    [review],
+    [review, t],
   );
 
   if (mode !== 'authenticated' || !user) {
@@ -135,7 +139,7 @@ export function GuestTransferReviewPage() {
         review.fingerprint,
       );
       setResultMessage(
-        '이번 guest 기록은 건너뛰었습니다. 나중에 새 기록이 생기면 다시 검토할 수 있습니다.',
+        t('auth.guestTransfer.skipSuccess'),
       );
       setReview(null);
       setSelectedIds([]);
@@ -162,7 +166,9 @@ export function GuestTransferReviewPage() {
       );
 
       setResultMessage(
-        `선택한 ${result.importedCount}개 기록을 계정 로컬 아카이브로 가져왔습니다. 작품 화면에서 바로 이어서 정리할 수 있습니다.`,
+        t('auth.guestTransfer.importSuccess', {
+          count: result.importedCount,
+        }),
       );
       setReview(null);
       setSelectedIds([]);
@@ -185,34 +191,50 @@ export function GuestTransferReviewPage() {
     <AccountPageTemplate
       actions={
         <>
-          <AppLinkButton to="/works">작품으로 이동</AppLinkButton>
-          <AppLinkButton to="/account">계정 홈</AppLinkButton>
+          <AppLinkButton to="/works">
+            {t('auth.guestTransfer.actionWorks')}
+          </AppLinkButton>
+          <AppLinkButton to="/account">
+            {t('auth.guestTransfer.actionAccount')}
+          </AppLinkButton>
         </>
       }
-      description="로그인 직후 guest 기록이 감지되면, 바로 계정 아카이브에 섞지 않고 먼저 중복 후보를 검토합니다."
-      eyebrow="기록 이관"
+      description={t('auth.guestTransfer.description')}
+      eyebrow={t('auth.guestTransfer.eyebrow')}
       meta={
         review && (
           <>
-            <MetricPill label="guest 기록" value={review.totalActiveCount} />
-            <MetricPill label="중복 후보" value={review.duplicateCount} />
-            <MetricPill label="선택됨" value={selectedCount} />
+            <MetricPill
+              label={t('auth.guestTransfer.metricGuestRecords')}
+              value={review.totalActiveCount}
+            />
+            <MetricPill
+              label={t('auth.guestTransfer.metricDuplicates')}
+              value={review.duplicateCount}
+            />
+            <MetricPill
+              label={t('auth.guestTransfer.metricSelected')}
+              value={selectedCount}
+            />
           </>
         )
       }
-      title="게스트 기록 검토"
+      title={t('auth.guestTransfer.title')}
     >
       {isLoading && (
         <StateMessage
-          description="잠시만 기다려주세요."
-          eyebrow="불러오는 중"
-          title="guest 기록을 확인하고 있습니다"
+          description={t('auth.guestTransfer.loadingDescription')}
+          eyebrow={t('auth.guestTransfer.loadingEyebrow')}
+          title={t('auth.guestTransfer.loadingTitle')}
           tone="loading"
         />
       )}
 
       {submitError && (
-        <FeedbackMessage title="게스트 기록을 처리하지 못했습니다" tone="error">
+        <FeedbackMessage
+          title={t('auth.guestTransfer.errorTitle')}
+          tone="error"
+        >
           <Stack gap="sm">
             <Text>{submitError}</Text>
             {!isLoading && review === null && !resultMessage && (
@@ -223,10 +245,10 @@ export function GuestTransferReviewPage() {
                   tone="primary"
                   type="button"
                 >
-                  다시 확인
+                  {t('auth.guestTransfer.actionRetry')}
                 </AppButton>
                 <AppLinkButton to="/works" tone="quiet">
-                  작품에서 확인
+                  {t('auth.guestTransfer.actionViewInWorks')}
                 </AppLinkButton>
               </ActionRow>
             )}
@@ -236,11 +258,13 @@ export function GuestTransferReviewPage() {
 
       {resultMessage && (
         <SectionCard tone="subtle">
-          <AppBadge tone="accent">반영 완료</AppBadge>
+          <AppBadge tone="accent">
+            {t('auth.guestTransfer.resultBadge')}
+          </AppBadge>
           <Text c="var(--mantine-color-dimmed)">{resultMessage}</Text>
           <ActionRow>
             <AppLinkButton to="/works" tone="primary">
-              작품 열기
+              {t('auth.guestTransfer.resultOpenWorks')}
             </AppLinkButton>
           </ActionRow>
         </SectionCard>
@@ -248,10 +272,12 @@ export function GuestTransferReviewPage() {
 
       {!isLoading && review === null && !resultMessage && (
         <SectionCard tone="subtle">
-          <AppBadge tone="accent">정리됨</AppBadge>
-          <Title order={2}>지금 검토할 guest 기록이 없습니다</Title>
+          <AppBadge tone="accent">
+            {t('auth.guestTransfer.reviewedBadge')}
+          </AppBadge>
+          <Title order={2}>{t('auth.guestTransfer.emptyTitle')}</Title>
           <Text c="var(--mantine-color-dimmed)">
-            새 guest 기록이 생기면 다시 검토 화면을 열 수 있습니다. 지금은 계정 아카이브를 바로 사용하면 됩니다.
+            {t('auth.guestTransfer.emptyDescription')}
           </Text>
         </SectionCard>
       )}
@@ -260,9 +286,9 @@ export function GuestTransferReviewPage() {
         <Stack gap="md">
           <SectionCard>
             <SectionIntro
-              description="제목과 타입이 같은 항목은 기본 선택에서 제외했습니다. 가져올 항목만 체크하면 계정 로컬 아카이브로 복사됩니다."
-              eyebrow="검토 원칙"
-              title="중복 후보를 먼저 확인한 뒤 선택적으로 가져옵니다"
+              description={t('auth.guestTransfer.ruleDescription')}
+              eyebrow={t('auth.guestTransfer.ruleEyebrow')}
+              title={t('auth.guestTransfer.ruleTitle')}
             />
 
             {duplicateSummary && (
@@ -276,7 +302,11 @@ export function GuestTransferReviewPage() {
                 tone="primary"
                 type="button"
               >
-                {isSubmitting ? '가져오는 중...' : `선택한 ${selectedCount}개 가져오기`}
+                {isSubmitting
+                  ? t('auth.guestTransfer.actionImporting')
+                  : t('auth.guestTransfer.actionImportSelected', {
+                      count: selectedCount,
+                    })}
               </AppButton>
               <AppButton
                 disabled={isSubmitting}
@@ -286,7 +316,7 @@ export function GuestTransferReviewPage() {
                 tone="quiet"
                 type="button"
               >
-                이번 guest 기록은 건너뛰기
+                {t('auth.guestTransfer.actionSkip')}
               </AppButton>
             </ActionRow>
           </SectionCard>
@@ -305,29 +335,41 @@ export function GuestTransferReviewPage() {
                 >
                   <Stack gap="sm" style={{ flex: '1 1 20rem' }}>
                     <ActionRow>
-                      <AppBadge>{item.guestWork.type}</AppBadge>
-                      <AppBadge>{item.guestWork.status}</AppBadge>
+                      <AppBadge>
+                        {t(`works.type.${item.guestWork.type}`)}
+                      </AppBadge>
+                      <AppBadge>
+                        {t(`works.status.${item.guestWork.status}`)}
+                      </AppBadge>
                       {item.hasDuplicates ? (
-                        <AppBadge tone="warning">중복 후보 있음</AppBadge>
+                        <AppBadge tone="warning">
+                          {t('auth.guestTransfer.duplicateBadge')}
+                        </AppBadge>
                       ) : (
-                        <AppBadge tone="muted">중복 후보 없음</AppBadge>
+                        <AppBadge tone="muted">
+                          {t('auth.guestTransfer.duplicateNoneBadge')}
+                        </AppBadge>
                       )}
                     </ActionRow>
 
                     <div>
                       <Title order={3}>{item.guestWork.title}</Title>
                       <Text c="var(--mantine-color-dimmed)">
-                        {item.guestWork.author || '작가 미입력'} · 별점{' '}
+                        {item.guestWork.author ||
+                          t('auth.guestTransfer.authorMissing')}{' '}
+                        · {t('auth.guestTransfer.ratingLabel')}{' '}
                         {item.guestWork.rating === null
-                          ? '미평가'
-                          : `${item.guestWork.rating.toFixed(1)}점`}
+                          ? t('auth.guestTransfer.noRating')
+                          : t('works.rating.semanticValue', {
+                              value: item.guestWork.rating.toFixed(1),
+                            })}
                       </Text>
                     </div>
                   </Stack>
 
                   <Checkbox
                     checked={selectedIds.includes(item.guestWork.id)}
-                    label="이 항목 가져오기"
+                    label={t('auth.guestTransfer.itemCheckbox')}
                     onChange={() => toggleSelection(item.guestWork.id)}
                   />
                 </div>
@@ -336,7 +378,9 @@ export function GuestTransferReviewPage() {
                   <Stack gap="xs">
                     {item.duplicateCandidates.map((candidate) => (
                       <Text c="var(--mantine-color-dimmed)" key={candidate.id}>
-                        기존 계정 기록 후보: {candidate.title} / {candidate.type} / {candidate.status}
+                        {t('auth.guestTransfer.candidatePrefix')}{' '}
+                        {candidate.title} / {t(`works.type.${candidate.type}`)} /{' '}
+                        {t(`works.status.${candidate.status}`)}
                       </Text>
                     ))}
                   </Stack>

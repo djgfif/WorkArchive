@@ -25,6 +25,7 @@ import {
   AppButton,
   FeedbackMessage,
 } from '@shared/components/AppPrimitives';
+import { formatAppNumber, useAppTranslation } from '@app/i18n';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
 import {
   TierBoardCardEditorModal,
@@ -62,14 +63,15 @@ const CARD_DROP_ANIMATION = {
 };
 
 export function TierBoardEditorPage() {
+  const { t } = useAppTranslation();
   const { boardId } = useParams();
   const controller = useTierBoardEditorController(boardId);
-  usePageTitle(controller.editorState?.board.title ?? '티어보드 편집');
+  usePageTitle(controller.editorState?.board.title ?? t('tierBoards.editor.pageTitle'));
 
   if (!boardId || !controller.editorState) {
     return (
       <FeedbackMessage tone="info">
-        티어보드를 불러오는 중입니다.
+        {t('tierBoards.loading')}
       </FeedbackMessage>
     );
   }
@@ -156,20 +158,20 @@ export function TierBoardEditorPage() {
             </Group>
             <Text c="dimmed" size="sm">
               {editorState.board.syncStatus === 'synced'
-                ? '로컬 저장됨'
+                ? t('tierBoards.editor.syncSaved')
                 : editorState.board.syncStatus === 'conflict'
-                  ? '저장 실패'
-                  : '백업 대기'}
+                  ? t('tierBoards.editor.syncFailed')
+                  : t('tierBoards.editor.syncPending')}
             </Text>
           </Stack>
 
           <Group className={cn(css.toolbarActions)} gap="xs" wrap="wrap">
             <SegmentedControl
-              aria-label="카드 제목 표시"
+              aria-label={t('tierBoards.editor.titleDisplayAria')}
               className={cn(css.toolbarSegment)}
               data={[
-                { label: '제목', value: 'visible' },
-                { label: '이미지', value: 'hidden' },
+                { label: t('tierBoards.editor.titleVisible'), value: 'visible' },
+                { label: t('tierBoards.editor.titleHidden'), value: 'hidden' },
               ]}
               onChange={(value) =>
                 setCardTitleDisplay(value as 'visible' | 'hidden')
@@ -183,16 +185,16 @@ export function TierBoardEditorPage() {
               tone="secondary"
               type="button"
             >
-              행 추가
+              {t('tierBoards.addLane')}
             </AppButton>
             <AppButton
-              aria-label="보드 설정"
+              aria-label={t('tierBoards.editor.settingsAria')}
               onClick={openSettings}
               size="xs"
               tone="secondary"
               type="button"
             >
-              설정
+              {t('tierBoards.editor.settings')}
             </AppButton>
             <Menu position="bottom-end" shadow="md">
               <Menu.Target>
@@ -201,26 +203,28 @@ export function TierBoardEditorPage() {
                   size="xs"
                   variant="default"
                 >
-                  내보내기
+                  {t('tierBoards.editor.export')}
                 </Button>
               </Menu.Target>
               <Menu.Dropdown>
                 <Menu.Item onClick={() => void handleExportPng()}>
-                  {isExportingPng ? 'PNG 생성 중' : 'PNG 이미지'}
+                  {isExportingPng
+                    ? t('tierBoards.editor.pngGenerating')
+                    : t('tierBoards.editor.pngImage')}
                 </Menu.Item>
                 <Menu.Item onClick={() => void handleCopyPng()}>
-                  클립보드 복사
+                  {t('tierBoards.editor.copyClipboard')}
                 </Menu.Item>
                 <Menu.Divider />
                 <Menu.Item onClick={() => void handleExportJson()}>
-                  JSON 파일
+                  {t('tierBoards.editor.jsonFile')}
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>
             <Menu position="bottom-end" shadow="md">
               <Menu.Target>
                 <ActionIcon
-                  aria-label="보드 작업 더보기"
+                  aria-label={t('tierBoards.editor.moreActionsAria')}
                   className={cn(css.toolbarIconButton)}
                   size="sm"
                   variant="default"
@@ -230,9 +234,11 @@ export function TierBoardEditorPage() {
               </Menu.Target>
               <Menu.Dropdown>
                 <Menu.Item onClick={() => void handleDuplicateBoard()}>
-                  보드 복제
+                  {t('tierBoards.duplicateBoard')}
                 </Menu.Item>
-                <Menu.Item onClick={navigateToBoards}>목록으로 이동</Menu.Item>
+                <Menu.Item onClick={navigateToBoards}>
+                  {t('tierBoards.editor.backToList')}
+                </Menu.Item>
               </Menu.Dropdown>
             </Menu>
           </Group>
@@ -250,7 +256,7 @@ export function TierBoardEditorPage() {
                   tone="secondary"
                   type="button"
                 >
-                  카드 되돌리기
+                  {t('tierBoards.editor.undoCard')}
                 </AppButton>
               )}
               {deletedLane && (
@@ -259,7 +265,7 @@ export function TierBoardEditorPage() {
                   tone="secondary"
                   type="button"
                 >
-                  행 되돌리기
+                  {t('tierBoards.editor.undoLane')}
                 </AppButton>
               )}
             </Group>
@@ -340,9 +346,13 @@ export function TierBoardEditorPage() {
                 <Stack gap="xs">
                   <Group justify="space-between" wrap="nowrap">
                     <Text fw={800} size="sm">
-                      미배치 카드
+                      {t('tierBoards.editor.poolTitle')}
                     </Text>
-                    <AppBadge tone="muted">{poolCards.length}개</AppBadge>
+                    <AppBadge tone="muted">
+                      {t('tierBoards.source.cardCount', {
+                        count: formatAppNumber(poolCards.length),
+                      })}
+                    </AppBadge>
                   </Group>
                   <SortableContext
                     items={poolCards.map((card) => getCardSortableId(card.id))}
@@ -367,7 +377,7 @@ export function TierBoardEditorPage() {
                       {poolCards.length === 0 && (
                         <Box className={cn(css.emptyPool)}>
                           <Text c="dimmed" size="sm">
-                            모든 카드가 배치되었습니다.
+                            {t('tierBoards.editor.poolEmpty')}
                           </Text>
                         </Box>
                       )}

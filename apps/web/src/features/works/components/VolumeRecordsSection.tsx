@@ -5,6 +5,7 @@ import {
   type WorkRecord,
 } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import { PageSection } from '@shared/components/AppPrimitives';
 import type { UserRecordReleasesResponse } from '../services/user-records.api';
 import { WorkReleaseRecordRow } from './WorkReleaseRecordRow';
@@ -24,6 +25,8 @@ export function VolumeRecordsSection({
   releaseData,
   work,
 }: VolumeRecordsSectionProps) {
+  const { t } = useAppTranslation();
+
   if (!isVolumeRecordableWorkType(work.type) || !releaseData) {
     return null;
   }
@@ -41,13 +44,15 @@ export function VolumeRecordsSection({
 
   return (
     <PageSection
-      description="작품 등록은 항상 title-level로 유지하고, 권별 기록은 필요할 때만 접어서 남깁니다."
-      eyebrow="선택 기록"
-      title="권별 기록"
+      description={t('works.record.release.description')}
+      eyebrow={t('works.record.release.eyebrow')}
+      title={t('works.record.release.title')}
     >
       <Accordion variant="separated">
         <Accordion.Item value="volume-records">
-          <Accordion.Control>권별 별점과 짧은 감상 남기기</Accordion.Control>
+          <Accordion.Control>
+            {t('works.record.release.control')}
+          </Accordion.Control>
           <Accordion.Panel>
             <Stack gap="md">
               {releaseData.releases.map((release) => (

@@ -10,6 +10,8 @@ import {
 } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 
+import { useAppTranslation } from '@app/i18n';
+
 export const COMMAND_PALETTE_EVENT = 'work-archive:open-command-palette';
 
 interface Command {
@@ -29,6 +31,7 @@ export function CommandPalette() {
   const [queryText, setQueryText] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const navigate = useNavigate();
+  const { t } = useAppTranslation();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   function close() {
@@ -63,70 +66,73 @@ export function CommandPalette() {
     const list: Command[] = [
       {
         id: 'add',
-        label: '작품 추가',
-        hint: '새 기록',
-        keywords: 'add new 추가 등록 기록',
+        label: t('navigation.addWork'),
+        hint: t('commandPalette.newRecordHint'),
+        keywords: t('commandPalette.keywords.add'),
         run: () => navigate('/works/new'),
       },
       {
         id: 'home',
-        label: '홈으로',
-        keywords: 'home 홈',
+        label: t('routes.fallbackHome'),
+        keywords: t('commandPalette.keywords.home'),
         run: () => navigate('/'),
       },
       {
         id: 'works',
-        label: '작품 서재',
-        keywords: 'works library 서재 목록',
+        label: t('navigation.worksLibrary'),
+        keywords: t('commandPalette.keywords.works'),
         run: () => navigate('/works'),
       },
       {
         id: 'insights',
-        label: '인사이트',
-        keywords: 'insights stats 통계 분석',
+        label: t('navigation.insights'),
+        keywords: t('commandPalette.keywords.insights'),
         run: () => navigate('/insights'),
       },
       {
         id: 'tier',
-        label: '티어보드',
-        keywords: 'tier board 티어',
+        label: t('navigation.tierBoards'),
+        keywords: t('commandPalette.keywords.tier'),
         run: () => navigate('/tier-boards'),
       },
       {
         id: 'continue',
-        label: '이어볼 작품',
-        hint: '진행 중',
-        keywords: '이어보기 진행 in progress 보는중',
+        label: t('commandPalette.showInProgress'),
+        hint: t('commandPalette.showInProgressHint'),
+        keywords: t('commandPalette.keywords.continue'),
         run: () => navigate('/works?status=in_progress'),
       },
       {
         id: 'completed-serial',
-        label: '완결작만 보기',
-        keywords: '완결 completed serial 연재',
+        label: t('commandPalette.showCompletedSerial'),
+        keywords: t('commandPalette.keywords.completedSerial'),
         run: () => navigate('/works?serial=completed'),
       },
       {
         id: 'favorites',
-        label: '즐겨찾기',
-        keywords: 'favorite 즐겨찾기 좋아요',
+        label: t('commandPalette.showFavorites'),
+        keywords: t('commandPalette.keywords.favorites'),
         run: () => navigate('/works?smart=favorites'),
       },
       {
         id: 'unrated',
-        label: '평가 안 한 작품',
-        keywords: 'unrated 미평가 별점',
+        label: t('commandPalette.noRating'),
+        keywords: t('commandPalette.keywords.unrated'),
         run: () => navigate('/works?sort=rating&dir=asc'),
       },
       {
         id: 'settings',
-        label: '설정과 백업',
-        keywords: 'settings backup 설정 백업 내보내기',
+        label: t('navigation.settingsBackup'),
+        keywords: t('commandPalette.keywords.settings'),
         run: () => navigate('/account/settings'),
       },
       {
         id: 'theme',
-        label: colorScheme === 'dark' ? '라이트 모드로' : '다크 모드로',
-        keywords: 'theme dark light 테마 모드',
+        label:
+          colorScheme === 'dark'
+            ? t('theme.switchToLight')
+            : t('theme.switchToDark'),
+        keywords: t('commandPalette.keywords.theme'),
         run: () => setColorScheme(colorScheme === 'dark' ? 'light' : 'dark'),
       },
     ];
@@ -134,14 +140,14 @@ export function CommandPalette() {
     if (trimmed) {
       list.unshift({
         id: 'search',
-        label: `"${trimmed}" 검색`,
-        hint: '제목·작가',
+        label: t('commandPalette.searchLabel', { query: trimmed }),
+        hint: t('commandPalette.searchHint'),
         run: () => navigate(`/works?q=${encodeURIComponent(trimmed)}`),
       });
     }
 
     return list;
-  }, [queryText, navigate, colorScheme, setColorScheme]);
+  }, [queryText, navigate, colorScheme, setColorScheme, t]);
 
   const filtered = useMemo(() => {
     const needle = queryText.trim().toLowerCase();
@@ -183,7 +189,7 @@ export function CommandPalette() {
     >
       <Box p="sm">
         <TextInput
-          aria-label="명령 검색"
+          aria-label={t('commandPalette.inputLabel')}
           data-autofocus
           onChange={(event) => setQueryText(event.currentTarget.value)}
           onKeyDown={(event) => {
@@ -200,7 +206,7 @@ export function CommandPalette() {
               execute(filtered[activeIndex]);
             }
           }}
-          placeholder="명령 또는 검색…"
+          placeholder={t('commandPalette.placeholder')}
           size="md"
           value={queryText}
           variant="unstyled"
@@ -217,7 +223,7 @@ export function CommandPalette() {
       >
         {filtered.length === 0 ? (
           <Text c="dimmed" p="md" size="sm">
-            일치하는 명령이 없습니다.
+            {t('commandPalette.empty')}
           </Text>
         ) : (
           <Stack gap={2}>
@@ -264,8 +270,9 @@ export function CommandPalette() {
         style={{ borderTop: '1px solid var(--app-border-subtle)' }}
       >
         <Text c="dimmed" size="xs">
-          <Kbd>↑</Kbd> <Kbd>↓</Kbd> 이동 · <Kbd>Enter</Kbd> 실행 ·{' '}
-          <Kbd>Esc</Kbd> 닫기
+          <Kbd>↑</Kbd> <Kbd>↓</Kbd> {t('commandPalette.move')} ·{' '}
+          <Kbd>Enter</Kbd> {t('commandPalette.execute')} · <Kbd>Esc</Kbd>{' '}
+          {t('commandPalette.close')}
         </Text>
       </Box>
     </Modal>

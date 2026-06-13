@@ -10,6 +10,7 @@ import {
 import type { WorkRecord, WorkStatus } from '@work-archive/shared-types';
 import { useEffect, useState } from 'react';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   ActionRow,
   AppButton,
@@ -49,6 +50,7 @@ export function WorkListRowQuickEditPanel({
   onQuickUpdate,
   work,
 }: WorkListRowQuickEditPanelProps) {
+  const { t } = useAppTranslation();
   const progressUnit = getWorkListProgressUnit(work);
   const [current, setCurrent] = useState<number | null>(
     work.progressCurrent ?? null,
@@ -67,7 +69,10 @@ export function WorkListRowQuickEditPanel({
     current !== null && total !== null && current > total;
   const nextLastConsumedLabel =
     progressUnit && current !== null
-      ? `${current}${progressUnitLabels[progressUnit]}까지`
+      ? t('works.list.progressConsumedLabel', {
+          current,
+          unit: progressUnitLabels[progressUnit],
+        })
       : '';
 
   return (
@@ -86,21 +91,25 @@ export function WorkListRowQuickEditPanel({
       >
         <Stack gap="md">
           <ActionRow justify="flex-end">
-            <AppLinkButton size="compact-sm" to={`/works/${work.id}`} tone="quiet">
-              보기
+            <AppLinkButton
+              size="compact-sm"
+              to={`/works/${work.id}`}
+              tone="quiet"
+            >
+              {t('works.list.viewDetail')}
             </AppLinkButton>
             <AppLinkButton
               size="compact-sm"
               to={`/works/${work.id}/edit`}
               tone="ghost"
             >
-              수정
+              {t('works.list.edit')}
             </AppLinkButton>
             <AppButton
               aria-label={
                 work.favorite
-                  ? `${work.title} 즐겨찾기 해제`
-                  : `${work.title} 즐겨찾기`
+                  ? t('works.list.favoriteRemoveAria', { title: work.title })
+                  : t('works.list.favoriteAddAria', { title: work.title })
               }
               aria-pressed={work.favorite}
               disabled={isUpdating}
@@ -111,15 +120,17 @@ export function WorkListRowQuickEditPanel({
               tone={work.favorite ? 'primary' : 'secondary'}
               type="button"
             >
-              {work.favorite ? '★ 즐겨찾기' : '☆ 즐겨찾기'}
+              {work.favorite
+                ? t('works.list.favoriteOn')
+                : t('works.list.favoriteOff')}
             </AppButton>
           </ActionRow>
 
           <Group align="flex-end" gap="sm" grow wrap="wrap">
             <NativeSelect
-              aria-label={`${work.title} 별점`}
+              aria-label={t('works.list.ratingAria', { title: work.title })}
               disabled={isUpdating}
-              label="별점"
+              label={t('works.form.ratingLabel')}
               onChange={(event) => {
                 const nextValue =
                   event.currentTarget.value === ''
@@ -132,7 +143,7 @@ export function WorkListRowQuickEditPanel({
               }}
               value={work.rating?.toString() ?? ''}
             >
-              <option value="">미평가</option>
+              <option value="">{t('works.ratingMissing')}</option>
               {workListRowRatingOptions.map((option) => (
                 <option key={option.value} value={option.value.toString()}>
                   {option.label}
@@ -141,9 +152,9 @@ export function WorkListRowQuickEditPanel({
             </NativeSelect>
 
             <NativeSelect
-              aria-label={`${work.title} 상태`}
+              aria-label={t('works.list.statusAria', { title: work.title })}
               disabled={isUpdating}
-              label="상태"
+              label={t('works.form.statusLabel')}
               onChange={(event) =>
                 void onQuickUpdate(work, {
                   status: event.currentTarget.value as WorkStatus,
@@ -188,7 +199,9 @@ export function WorkListRowQuickEditPanel({
 
               <ActionRow justify="flex-end">
                 <AppButton
-                  aria-label={`${work.title} 진행도 저장`}
+                  aria-label={t('works.list.progressSaveAria', {
+                    title: work.title,
+                  })}
                   disabled={
                     isUpdating || !hasProgressChanges || hasInvalidProgress
                   }
@@ -204,13 +217,13 @@ export function WorkListRowQuickEditPanel({
                   tone="primary"
                   type="button"
                 >
-                  진행 저장
+                  {t('works.list.progressSave')}
                 </AppButton>
               </ActionRow>
 
               {hasInvalidProgress && (
                 <Text c="red" size="xs">
-                  현재 진행량이 전체보다 클 수 없습니다.
+                  {t('works.record.progressControl.invalidRange')}
                 </Text>
               )}
             </Stack>
@@ -218,14 +231,14 @@ export function WorkListRowQuickEditPanel({
 
           <ActionRow justify="flex-end">
             <AppButton
-              aria-label={`${work.title} 삭제`}
+              aria-label={t('works.list.deleteAria', { title: work.title })}
               disabled={isUpdating}
               onClick={() => void onDelete(work)}
               size="compact-sm"
               tone="danger"
               type="button"
             >
-              휴지통으로 이동
+              {t('works.list.trashMove')}
             </AppButton>
           </ActionRow>
         </Stack>

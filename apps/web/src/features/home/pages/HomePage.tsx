@@ -1,8 +1,10 @@
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { Box, Group } from '@mantine/core';
+import type { TFunction } from 'i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { formatAppNumber, useAppTranslation } from '@app/i18n';
 import {
   AppBadge,
   AppButton,
@@ -33,18 +35,32 @@ import styles from './HomePage.module.css';
 
 const css = styles;
 
-/* ── 유틸 ─────────────────────────────────────────────────────────────────── */
+function formatCount(count: number) {
+  return formatAppNumber(count);
+}
 
-function formatRelativeDate(isoString: string): string {
+function formatRelativeDate(isoString: string, t: TFunction): string {
   const date = new Date(isoString);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - date.getTime()) / 86_400_000);
-  if (diffDays === 0) return '오늘';
-  if (diffDays === 1) return '어제';
-  if (diffDays < 7) return `${diffDays}일 전`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)}개월 전`;
-  return `${Math.floor(diffDays / 365)}년 전`;
+  if (diffDays === 0) return t('home.relative.today');
+  if (diffDays === 1) return t('home.relative.yesterday');
+  if (diffDays < 7) {
+    return t('home.relative.daysAgo', { count: formatCount(diffDays) });
+  }
+  if (diffDays < 30) {
+    return t('home.relative.weeksAgo', {
+      count: formatCount(Math.floor(diffDays / 7)),
+    });
+  }
+  if (diffDays < 365) {
+    return t('home.relative.monthsAgo', {
+      count: formatCount(Math.floor(diffDays / 30)),
+    });
+  }
+  return t('home.relative.yearsAgo', {
+    count: formatCount(Math.floor(diffDays / 365)),
+  });
 }
 
 /* ── 선반 포스터 카드 ──────────────────────────────────────────────────────── */
@@ -55,11 +71,12 @@ function ShelfPosterCard({
   showProgress?: boolean;
   work: WorkRecord;
 }) {
+  const { t } = useAppTranslation();
   const continueLabel = showProgress ? getWorkContinueLabel(work) : null;
   const progressPercent = showProgress ? getProgressPercent(work) : null;
   const footerPrefix =
     work.status === 'in_progress'
-      ? '이어보기'
+      ? t('home.shelf.continuePrefix')
       : getWorkStatusLabel(work.status);
   const footerText = continueLabel
     ? `${footerPrefix} · ${continueLabel}`
@@ -69,7 +86,12 @@ function ShelfPosterCard({
     <div className={css.shelfItem}>
       <Link
         aria-label={
-          showProgress ? `${work.title} — ${footerText}` : `${work.title} 열기`
+          showProgress
+            ? t('home.shelf.openWithMetaAria', {
+                meta: footerText,
+                title: work.title,
+              })
+            : t('home.shelf.openAria', { title: work.title })
         }
         className={`${css.shelfCard} ${POSTER_CARD_HOVER_CLASS}`}
         to={`/works/${work.id}`}
@@ -128,6 +150,7 @@ function ShelfSection({
   title,
   works,
 }: ShelfSectionProps) {
+  const { t } = useAppTranslation();
   if (works.length === 0) return null;
 
   return (
@@ -138,14 +161,18 @@ function ShelfSection({
           <h2 className={css.shelfTitle}>{title}</h2>
         </div>
         <Link
-          aria-label={`${title} 전체 보기`}
+          aria-label={t('home.shelf.viewAllAria', { title })}
           className={css.shelfViewAll}
           to={href}
         >
-          전체 보기 →
+          {t('home.shelf.viewAll')}
         </Link>
       </div>
-      <div className={css.shelfTrack} role="list" aria-label={`${title} 선반`}>
+      <div
+        className={css.shelfTrack}
+        role="list"
+        aria-label={t('home.shelf.trackAria', { title })}
+      >
         {works.map((work) => (
           <div key={work.id} role="listitem">
             <ShelfPosterCard showProgress={showProgress} work={work} />
@@ -167,59 +194,65 @@ interface InsightItem {
 function buildInsightItems({
   contributorCollections,
   seriesCollections,
+  t,
   topTags,
   typeCounts,
 }: Pick<
   ReturnType<typeof useWorksOverview>,
   'contributorCollections' | 'seriesCollections' | 'topTags' | 'typeCounts'
->): InsightItem[] {
+> & {
+  t: TFunction;
+}): InsightItem[] {
   const items: InsightItem[] = [];
   const topType = typeCounts[0];
   if (topType) {
     items.push({
-      description: '가장 많이 쌓인 유형',
+      description: t('home.insights.topTypeDescription'),
       label: getWorkTypeLabel(topType.value),
       to: `/works?type=${encodeURIComponent(topType.value)}`,
-      value: `${topType.count}개`,
+      value: t('home.countValue', { count: formatCount(topType.count) }),
     });
   }
   for (const tag of topTags.slice(0, 2)) {
     items.push({
-      description: '자주 붙인 태그',
+      description: t('home.insights.topTagDescription'),
       label: `#${tag.label}`,
       to: `/works?tag=${encodeURIComponent(tag.value)}`,
-      value: `${tag.count}개`,
+      value: t('home.countValue', { count: formatCount(tag.count) }),
     });
   }
   const topSeries = seriesCollections[0];
   if (topSeries) {
     items.push({
-      description: '가장 큰 시리즈 묶음',
+      description: t('home.insights.topSeriesDescription'),
       label: topSeries.label,
       to: topSeries.href,
-      value: `${topSeries.totalCount}개`,
+      value: t('home.countValue', { count: formatCount(topSeries.totalCount) }),
     });
   }
   const topContributor = contributorCollections[0];
   if (topContributor) {
     items.push({
-      description: '자주 만나는 제작진',
+      description: t('home.insights.topContributorDescription'),
       label: topContributor.label,
       to: topContributor.href,
-      value: `${topContributor.totalCount}개`,
+      value: t('home.countValue', {
+        count: formatCount(topContributor.totalCount),
+      }),
     });
   }
   return items.slice(0, 6);
 }
 
 function InsightStrip({ items }: { items: InsightItem[] }) {
+  const { t } = useAppTranslation();
   if (items.length < 2) return null;
   return (
     <section className={css.insightStrip}>
       <div className={css.insightStripHeader}>
-        <h2 className={css.shelfTitle}>작은 취향 단서</h2>
+        <h2 className={css.shelfTitle}>{t('home.insights.title')}</h2>
         <Link className={css.shelfViewAll} to="/insights">
-          인사이트 →
+          {t('home.insights.link')}
         </Link>
       </div>
       <div className={css.insightGrid}>
@@ -242,14 +275,15 @@ function InsightStrip({ items }: { items: InsightItem[] }) {
 /* ── 최근 기록 스트립 ──────────────────────────────────────────────────────── */
 function ActivityStrip({ works }: { works: WorkRecord[] }) {
   const navigate = useNavigate();
+  const { t } = useAppTranslation();
   if (works.length === 0) return null;
 
   return (
     <section className={css.activitySection}>
       <div className={css.activityHeader}>
-        <h2 className={css.activityTitle}>최근 정리한 감상</h2>
+        <h2 className={css.activityTitle}>{t('home.activity.title')}</h2>
         <Link className={css.shelfViewAll} to="/works">
-          서재 전체 →
+          {t('home.activity.link')}
         </Link>
       </div>
       <div className={css.activityList}>
@@ -280,7 +314,7 @@ function ActivityStrip({ works }: { works: WorkRecord[] }) {
               </AppBadge>
             </div>
             <span className={css.activityMeta}>
-              {formatRelativeDate(work.updatedAt)}
+              {formatRelativeDate(work.updatedAt, t)}
             </span>
             {work.rating !== null && (
               <span className={css.activityRating}>
@@ -314,6 +348,7 @@ function GuideIcon({ children }: { children: ReactNode }) {
 }
 
 function EmptyGuide() {
+  const { t } = useAppTranslation();
   const cards = [
     {
       icon: (
@@ -322,8 +357,8 @@ function EmptyGuide() {
           <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
         </GuideIcon>
       ),
-      title: '첫 작품 추가',
-      description: '제목과 짧은 감상으로 첫 선반을 채웁니다.',
+      title: t('home.empty.manualTitle'),
+      description: t('home.empty.manualDescription'),
       to: '/works/new',
     },
     {
@@ -333,8 +368,8 @@ function EmptyGuide() {
           <path d="M21 21l-4.3-4.3" />
         </GuideIcon>
       ),
-      title: '검색으로 추가',
-      description: '외부 검색 후보에서 표지와 정보를 가져옵니다.',
+      title: t('home.empty.searchTitle'),
+      description: t('home.empty.searchDescription'),
       to: '/works/new',
     },
     {
@@ -344,19 +379,16 @@ function EmptyGuide() {
           <path d="M3 7.5 12 12l9-4.5M12 12v9" />
         </GuideIcon>
       ),
-      title: '백업 가져오기',
-      description: '이전에 내보낸 JSON 기록을 다시 불러옵니다.',
+      title: t('home.empty.backupTitle'),
+      description: t('home.empty.backupDescription'),
       to: '/account/settings#data-backup',
     },
   ];
 
   return (
     <div className={css.emptyGuide}>
-      <h2 className={css.emptyGuideTitle}>첫 작품을 놓는 방법</h2>
-      <p className={css.emptyGuideDesc}>
-        새 작품을 직접 남기거나 검색으로 표지를 채우고, 기존 백업도 이어받을 수
-        있습니다.
-      </p>
+      <h2 className={css.emptyGuideTitle}>{t('home.empty.title')}</h2>
+      <p className={css.emptyGuideDesc}>{t('home.empty.description')}</p>
       <div className={css.emptyGuideGrid}>
         {cards.map((card) => (
           <Link className={css.emptyGuideCard} key={card.title} to={card.to}>
@@ -378,6 +410,7 @@ function ShelfDivider() {
 /* ── 메인 페이지 ────────────────────────────────────────────────────────────── */
 export function HomePage() {
   const navigate = useNavigate();
+  const { t } = useAppTranslation();
   const { archiveScopeKey, mode, user } = useAuthSession();
   const {
     averageRating,
@@ -405,6 +438,7 @@ export function HomePage() {
   const insightItems = buildInsightItems({
     contributorCollections,
     seriesCollections,
+    t,
     topTags,
     typeCounts,
   });
@@ -421,23 +455,29 @@ export function HomePage() {
       <div className={css.homeGreeting}>
         <div className={css.homeGreetingText}>
           <span className={css.homeEyebrow}>
-            {isAuthenticated ? (user?.email ?? '내 서재') : '내 서재'}
+            {isAuthenticated
+              ? (user?.email ?? t('home.hero.myLibrary'))
+              : t('home.hero.myLibrary')}
           </span>
-          <h1 className={css.homeTitle}>오늘 펼쳐볼 작품</h1>
+          <h1 className={css.homeTitle}>{t('home.hero.title')}</h1>
           <div className={css.homeStatStrip}>
-            <span>작품</span>
-            <span className={css.homeStatValue}>{totalCount}개</span>
+            <span>{t('home.hero.totalWorks')}</span>
+            <span className={css.homeStatValue}>
+              {t('home.countValue', { count: formatCount(totalCount) })}
+            </span>
             {inProgressCount > 0 && (
               <>
                 <span className={css.homeStatDot} />
-                <span>진행 중</span>
-                <span className={css.homeStatValue}>{inProgressCount}개</span>
+                <span>{t('home.hero.inProgress')}</span>
+                <span className={css.homeStatValue}>
+                  {t('home.countValue', { count: formatCount(inProgressCount) })}
+                </span>
               </>
             )}
             {averageRating !== null && (
               <>
                 <span className={css.homeStatDot} />
-                <span>평균 별점</span>
+                <span>{t('home.hero.averageRating')}</span>
                 <span className={css.homeStatValue}>
                   ★ {averageRating.toFixed(1)}
                 </span>
@@ -451,7 +491,9 @@ export function HomePage() {
                   to="/works?sort=rating&dir=asc"
                   style={{ marginBottom: 0 }}
                 >
-                  평가 안 한 작품 {unratedCount}개
+                  {t('home.hero.unratedWorks', {
+                    count: formatCount(unratedCount),
+                  })}
                 </Link>
               </>
             )}
@@ -459,10 +501,10 @@ export function HomePage() {
         </div>
         <div className={css.homeActions}>
           <AppLinkButton to="/works/new" tone="primary">
-            + 작품 추가
+            {t('home.actions.addWork')}
           </AppLinkButton>
           <AppLinkButton to="/works" tone="secondary">
-            서재 전체
+            {t('home.actions.allWorks')}
           </AppLinkButton>
         </div>
       </div>
@@ -471,14 +513,14 @@ export function HomePage() {
       <div className={css.homeSearchRow}>
         <form className={css.homeSearchForm} onSubmit={handleSearchSubmit}>
           <ArchiveSearchBar
-            aria-label="아카이브 검색"
+            aria-label={t('home.search.aria')}
             onChange={setSearchTerm}
             onSubmit={() => handleSearchSubmit()}
-            placeholder="작품, 작가를 검색"
+            placeholder={t('home.search.placeholder')}
             value={searchTerm}
           />
           <AppButton tone="primary" type="submit">
-            검색
+            {t('home.search.submit')}
           </AppButton>
         </form>
       </div>
@@ -490,15 +532,15 @@ export function HomePage() {
             actions={
               <Group gap="sm">
                 <AppButton onClick={retry} tone="primary" type="button">
-                  다시 불러오기
+                  {t('home.error.retry')}
                 </AppButton>
                 <AppLinkButton to="/works" tone="secondary">
-                  작품 목록
+                  {t('home.error.works')}
                 </AppLinkButton>
               </Group>
             }
             description={error}
-            title="최근 기록을 불러오지 못했습니다."
+            title={t('home.error.title')}
             tone="error"
           />
         </Box>
@@ -520,10 +562,10 @@ export function HomePage() {
           {/* 이어보기 선반 */}
           {continueWorks.length > 0 && (
             <ShelfSection
-              eyebrow="이어보기"
+              eyebrow={t('home.shelves.continueEyebrow')}
               href="/works?status=in_progress"
               showProgress
-              title="이어볼 작품"
+              title={t('home.shelves.continueTitle')}
               works={continueWorks}
             />
           )}
@@ -535,9 +577,9 @@ export function HomePage() {
           {/* 높게 평가한 작품 */}
           {highlyRatedWorks.length > 0 && (
             <ShelfSection
-              eyebrow="추천 선반"
+              eyebrow={t('home.shelves.recommendedEyebrow')}
               href="/works?sort=rating&dir=desc"
-              title="높게 평가한 작품"
+              title={t('home.shelves.highlyRatedTitle')}
               works={highlyRatedWorks}
             />
           )}
@@ -549,9 +591,9 @@ export function HomePage() {
           {/* 최근 감상 */}
           {recentlyConsumedWorks.length > 0 && (
             <ShelfSection
-              eyebrow="최근 감상"
+              eyebrow={t('home.shelves.recentConsumedEyebrow')}
               href="/works"
-              title="최근 감상한 작품"
+              title={t('home.shelves.recentConsumedTitle')}
               works={recentlyConsumedWorks.slice(0, 12)}
             />
           )}
@@ -561,9 +603,9 @@ export function HomePage() {
             recentlyConsumedWorks.length === 0 &&
             totalCount > 0 && (
               <ShelfSection
-                eyebrow="최근 추가"
+                eyebrow={t('home.shelves.recentAddedEyebrow')}
                 href="/works"
-                title="최근 추가한 작품"
+                title={t('home.shelves.recentAddedTitle')}
                 works={recentWorks.slice(0, 12)}
               />
             )}

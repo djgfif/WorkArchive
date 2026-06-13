@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Box, Group, SimpleGrid, Stack, Text } from '@mantine/core';
 import type { WorkStatus } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import { FilterPillGroup } from './ArchiveComponents';
 import { RecordStateFilters } from './RecordStateFilters';
 import { IconFilter } from './WorksToolbarIcons';
@@ -88,6 +89,7 @@ export function AdvancedFiltersPanel({
   tagSuggestions,
   totalActiveCount,
 }: AdvancedFiltersPanelProps) {
+  const { t } = useAppTranslation();
   const genreFilterOptions = buildGenreFilterOptions(genreSuggestions);
   const statusFilterOptions = buildStatusFilterOptions({
     statusCounts,
@@ -106,7 +108,7 @@ export function AdvancedFiltersPanel({
               <IconFilter size={13} />
             </Box>
             <Text className={cn(css.advancedFilterTitle)} fw={700} size="sm">
-              세부 필터
+              {t('works.list.advancedFilterTitle')}
             </Text>
           </Group>
           {hasActiveFilters && (
@@ -116,20 +118,20 @@ export function AdvancedFiltersPanel({
               onClick={onClearFilters}
               type="button"
             >
-              전체 초기화
+              {t('works.list.resetAll')}
             </Box>
           )}
         </Group>
 
         <Stack gap="md">
-          <FilterSection title="분류">
+          <FilterSection title={t('works.list.filterCategory')}>
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
               <Stack gap="xs">
                 <Text c="var(--app-text-muted)" fw={700} size="xs">
-                  장르
+                  {t('works.detail.genre')}
                 </Text>
                 <FilterPillGroup
-                  aria-label="장르 필터"
+                  aria-label={t('works.list.filterGenreAria')}
                   onChange={(genre) => onQueryChange({ ...query, genre })}
                   options={genreFilterOptions}
                   value={query.genre ?? ''}
@@ -139,7 +141,7 @@ export function AdvancedFiltersPanel({
 
               <Stack gap="xs">
                 <Text c="var(--app-text-muted)" fw={700} size="xs">
-                  개인 태그
+                  {t('works.list.filterPersonalTag')}
                 </Text>
                 <Box className={cn(css.tagFilterField)}>
                   <Box
@@ -153,7 +155,7 @@ export function AdvancedFiltersPanel({
                         tag: event.currentTarget.value,
                       })
                     }
-                    placeholder="태그로 필터…"
+                    placeholder={t('works.list.filterTagPlaceholder')}
                     value={query.tag ?? ''}
                   />
                   <datalist id="worksTagFilterSuggestions">
@@ -182,17 +184,17 @@ export function AdvancedFiltersPanel({
             </SimpleGrid>
           </FilterSection>
 
-          <FilterSection title="관계">
+          <FilterSection title={t('works.list.filterRelation')}>
             <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
               <Stack gap="xs">
                 <Text c="var(--app-text-muted)" fw={700} size="xs">
-                  시리즈 / 세계관
+                  {t('works.list.filterSeriesLabel')}
                 </Text>
                 <FilterPillGroup
-                  aria-label="시리즈 필터"
+                  aria-label={t('works.list.filterSeriesAria')}
                   onChange={(series) => onQueryChange({ ...query, series })}
                   options={[
-                    { label: '전체', value: '' },
+                    { label: t('works.list.filterAll'), value: '' },
                     ...seriesSuggestions.slice(0, 12).map((series) => ({
                       label: series,
                       value: series,
@@ -205,15 +207,15 @@ export function AdvancedFiltersPanel({
 
               <Stack gap="xs">
                 <Text c="var(--app-text-muted)" fw={700} size="xs">
-                  작가 / 제작진
+                  {t('works.list.filterPersonContributorLabel')}
                 </Text>
                 <FilterPillGroup
-                  aria-label="작가 제작진 필터"
+                  aria-label={t('works.list.filterPersonContributorAria')}
                   onChange={(personContributor) =>
                     onQueryChange({ ...query, personContributor })
                   }
                   options={[
-                    { label: '전체', value: '' },
+                    { label: t('works.list.filterAll'), value: '' },
                     ...personContributorSuggestions
                       .slice(0, 12)
                       .map((contributor) => ({
@@ -228,15 +230,15 @@ export function AdvancedFiltersPanel({
 
               <Stack gap="xs">
                 <Text c="var(--app-text-muted)" fw={700} size="xs">
-                  회사 / 플랫폼
+                  {t('works.list.filterOrganizationContributorLabel')}
                 </Text>
                 <FilterPillGroup
-                  aria-label="회사 플랫폼 필터"
+                  aria-label={t('works.list.filterOrganizationContributorAria')}
                   onChange={(organizationContributor) =>
                     onQueryChange({ ...query, organizationContributor })
                   }
                   options={[
-                    { label: '전체', value: '' },
+                    { label: t('works.list.filterAll'), value: '' },
                     ...organizationContributorSuggestions
                       .slice(0, 12)
                       .map((contributor) => ({
@@ -251,7 +253,7 @@ export function AdvancedFiltersPanel({
             </SimpleGrid>
           </FilterSection>
 
-          <FilterSection title="기록 상태">
+          <FilterSection title={t('works.list.filterRecordStatus')}>
             <Stack gap="md">
               <RecordStateFilters
                 onQueryChange={onQueryChange}
@@ -260,10 +262,10 @@ export function AdvancedFiltersPanel({
               />
               <Stack gap="xs">
                 <Text c="var(--app-text-muted)" fw={700} size="xs">
-                  연재 상태
+                  {t('works.list.filterSerialStatus')}
                 </Text>
                 <FilterPillGroup
-                  aria-label="연재 상태 필터"
+                  aria-label={t('works.list.filterSerialStatusAria')}
                   onChange={(serialStatus) =>
                     onQueryChange({ ...query, serialStatus })
                   }
@@ -274,9 +276,9 @@ export function AdvancedFiltersPanel({
             </Stack>
           </FilterSection>
 
-          <FilterSection title="등록 방식">
+          <FilterSection title={t('works.list.filterIdentitySection')}>
             <FilterPillGroup
-              aria-label="등록 방식 필터"
+              aria-label={t('works.list.filterIdentityAria')}
               onChange={(identityPreset) =>
                 onQueryChange({ ...query, identityPreset })
               }

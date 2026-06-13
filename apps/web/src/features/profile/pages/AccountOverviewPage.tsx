@@ -9,6 +9,7 @@ import {
 } from '@shared/components/AppPrimitives';
 import { AccountPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { useAppTranslation } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { useSyncDashboard } from '@features/sync';
 import { useWorksOverview } from '@features/works';
@@ -17,36 +18,49 @@ import { cn, cx } from '@shared/utils/class-names';
 
 const css = styles;
 
-function formatAverageRating(value: number | null) {
-  return value === null ? '—' : `★ ${value.toFixed(1)}`;
+function formatAverageRating(value: number | null, fallback: string) {
+  return value === null ? fallback : `★ ${value.toFixed(1)}`;
 }
 
-function formatRelativeBackupTime(value: string | null) {
+function formatRelativeBackupTime(
+  value: string | null,
+  t: ReturnType<typeof useAppTranslation>['t'],
+) {
   if (!value) {
-    return '아직 없음';
+    return t('accountOverview.emptyBackupTime');
   }
 
   const backupTime = new Date(value).getTime();
   if (Number.isNaN(backupTime)) {
-    return '확인 필요';
+    return t('accountOverview.invalidBackupTime');
   }
 
   const diffMs = Date.now() - backupTime;
   const diffMinutes = Math.max(0, Math.floor(diffMs / 60_000));
 
-  if (diffMinutes < 1) return '방금 전';
-  if (diffMinutes < 60) return `${diffMinutes}분 전`;
+  if (diffMinutes < 1) return t('accountOverview.recentJustNow');
+  if (diffMinutes < 60) {
+    return t('accountOverview.recentMinutes', { count: diffMinutes });
+  }
 
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}시간 전`;
+  if (diffHours < 24) {
+    return t('accountOverview.recentHours', { count: diffHours });
+  }
 
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return `${diffDays}일 전`;
+  if (diffDays < 30) {
+    return t('accountOverview.recentDays', { count: diffDays });
+  }
 
   const diffMonths = Math.floor(diffDays / 30);
-  if (diffMonths < 12) return `${diffMonths}개월 전`;
+  if (diffMonths < 12) {
+    return t('accountOverview.recentMonths', { count: diffMonths });
+  }
 
-  return `${Math.floor(diffMonths / 12)}년 전`;
+  return t('accountOverview.recentYears', {
+    count: Math.floor(diffMonths / 12),
+  });
 }
 
 interface OverviewMetricProps {
@@ -117,7 +131,8 @@ function ActionItem({
 }
 
 export function AccountOverviewPage() {
-  usePageTitle('계정 개요');
+  const { t } = useAppTranslation();
+  usePageTitle(t('accountOverview.pageTitle'));
   const location = useLocation();
   const { mode, user } = useAuthSession();
   const { averageRating, completedCount, totalCount } = useWorksOverview();
@@ -136,59 +151,64 @@ export function AccountOverviewPage() {
   ).length;
   const backupPendingCount = pendingItems.length;
   const accountLabel = isAuthenticated
-    ? (user?.email ?? '연결된 계정')
-    : '게스트 모드';
+    ? (user?.email ?? t('accountOverview.connectedAccount'))
+    : t('accountOverview.guestMode');
   const backupStatus =
     backupAttentionCount > 0
       ? {
-          badge: '직접 확인 필요',
-          description:
-            '자동 병합하기 위험한 백업 항목은 로컬 기록을 유지한 채 직접 확인을 기다립니다.',
+          badge: t('accountOverview.backupNeedsManualCheck'),
+          description: t('accountOverview.backupAttentionDescription'),
           tone: 'warning' as const,
-          value: '수동 확인',
+          value: t('accountOverview.backupManualCheck'),
         }
       : backupRequeuedCount > 0
         ? {
-            badge: '자동 병합됨',
-            description:
-              '안전한 변경만 자동 병합했고, 새 백업 요청으로 다시 보내는 중입니다.',
+            badge: t('accountOverview.backupAutoMerged'),
+            description: t('accountOverview.backupRequeuedDescription'),
             tone: 'info' as const,
-            value: '재시도 대기',
+            value: t('accountOverview.backupRetryWaiting'),
           }
         : staleStatusAt
           ? {
-              badge: '원격 확인 필요',
-              description:
-                '오래된 원격 상태 위에 로컬 변경을 덮어쓰지 않도록 최신 변경 확인을 기다립니다.',
+              badge: t('accountOverview.statusRemoteCheckNeeded'),
+              description: t('accountOverview.backupStaleDescription'),
               tone: 'warning' as const,
-              value: '확인 대기',
+              value: t('accountOverview.backupCheckWaiting'),
             }
           : backupPendingCount > 0
             ? {
-                badge: '대기 중',
-                description:
-                  '최근 변경 사항을 동기화하는 중입니다. 오프라인에서도 기록은 유지됩니다.',
+                badge: t('accountOverview.backupPendingBadge'),
+                description: t('accountOverview.backupPendingDescription'),
                 tone: 'info' as const,
-                value: '백업 대기',
+                value: t('accountOverview.backupPending'),
               }
             : {
-                badge: '정상',
-                description:
-                  '로컬 기록을 기준으로 안전하게 보관 중입니다. 로그인하면 자동 백업을 사용할 수 있습니다.',
+                badge: t('accountOverview.statusNormal'),
+                description: t('accountOverview.backupDescription'),
                 tone: 'success' as const,
-                value: isAuthenticated ? '보호됨' : '로컬 저장',
+                value: isAuthenticated
+                  ? t('accountOverview.backupProtected')
+                  : t('accountOverview.localSaved'),
               };
 
   return (
     <AccountPageTemplate
-      actions={<AppLinkButton to="/profile">기록 요약 보기</AppLinkButton>}
+      actions={
+        <AppLinkButton to="/profile">
+          {t('accountOverview.summaryAction')}
+        </AppLinkButton>
+      }
       description={
         isAuthenticated
-          ? '계정 상태, 자동 백업, 로컬 백업 설정을 한 곳에서 확인합니다.'
-          : '현재 기기에 저장된 개인 기록과 계정 연결 상태를 확인합니다.'
+          ? t('accountOverview.descriptionAuthenticated')
+          : t('accountOverview.descriptionGuest')
       }
-      eyebrow="계정"
-      title={isAuthenticated ? '계정 센터' : '개인 기록 센터'}
+      eyebrow={t('accountOverview.eyebrow')}
+      title={
+        isAuthenticated
+          ? t('accountOverview.titleAuthenticated')
+          : t('accountOverview.titleGuest')
+      }
     >
       <Stack gap="md">
         <Box className={cn(css.accountHero)}>
@@ -205,7 +225,9 @@ export function AccountOverviewPage() {
                 </Box>
                 <Stack gap={2} miw={0}>
                   <Text className={cn(css.heroEyebrow)}>
-                    {isAuthenticated ? '연결된 계정' : '로컬 계정'}
+                    {isAuthenticated
+                      ? t('accountOverview.connectedAccount')
+                      : t('accountOverview.localAccount')}
                   </Text>
                   <Title className={cn(css.heroTitle)} order={2}>
                     {accountLabel}
@@ -214,12 +236,14 @@ export function AccountOverviewPage() {
               </Group>
               <Text className={cn(css.heroDescription)}>
                 {isAuthenticated
-                  ? '작품 기록은 이 기기에 먼저 저장되고, 계정 백업으로 이어집니다.'
-                  : '로그인 전까지 기록은 이 기기에만 저장됩니다. 필요할 때 계정 연결과 백업을 켤 수 있습니다.'}
+                  ? t('accountOverview.workBackupDescriptionAuthenticated')
+                  : t('accountOverview.workBackupDescriptionGuest')}
               </Text>
               <Group gap="xs" wrap="wrap">
                 <AppBadge tone={isAuthenticated ? 'success' : 'muted'}>
-                  {isAuthenticated ? '로그인됨' : '게스트'}
+                  {isAuthenticated
+                    ? t('navigation.signedIn')
+                    : t('accountOverview.guest')}
                 </AppBadge>
                 <AppBadge tone={backupStatus.tone}>
                   {backupStatus.badge}
@@ -227,12 +251,24 @@ export function AccountOverviewPage() {
               </Group>
             </Stack>
 
-            <Box className={cn(css.metricStrip)} aria-label="기록 지표">
-              <OverviewMetric label="기록한 작품" value={totalCount} />
-              <OverviewMetric label="완료" value={completedCount} />
+            <Box
+              className={cn(css.metricStrip)}
+              aria-label={t('accountOverview.metricsLabel')}
+            >
               <OverviewMetric
-                label="평균 별점"
-                value={formatAverageRating(averageRating)}
+                label={t('accountOverview.metricsTotalWorks')}
+                value={totalCount}
+              />
+              <OverviewMetric
+                label={t('accountOverview.metricsCompleted')}
+                value={completedCount}
+              />
+              <OverviewMetric
+                label={t('accountOverview.metricsAverageRating')}
+                value={formatAverageRating(
+                  averageRating,
+                  t('accountOverview.noRating'),
+                )}
               />
             </Box>
           </Group>
@@ -241,35 +277,49 @@ export function AccountOverviewPage() {
         <div className={cn(css.managementGrid)}>
           <SectionCard className={cn(css.statusPanel)}>
             <SectionIntro
-              description="계정 연결과 백업 상태를 한 곳에서 확인합니다."
-              eyebrow="상태"
-              title="현재 상태"
+              description={t('accountOverview.currentStatusDescription')}
+              eyebrow={t('accountOverview.status')}
+              title={t('accountOverview.currentStatusTitle')}
               titleOrder={3}
             />
 
             <Stack gap="lg">
               <Box className={cn(css.statusGroup)}>
                 <Group gap="xs" justify="space-between" wrap="nowrap">
-                  <Text className={cn(css.statusGroupTitle)}>계정</Text>
+                  <Text className={cn(css.statusGroupTitle)}>
+                    {t('accountOverview.statusAccount')}
+                  </Text>
                   <AppBadge tone={isAuthenticated ? 'success' : 'muted'}>
-                    {isAuthenticated ? '활성' : '게스트'}
+                    {isAuthenticated
+                      ? t('accountOverview.statusActive')
+                      : t('accountOverview.guest')}
                   </AppBadge>
                 </Group>
                 <StatusLine
-                  label="연결 상태"
+                  label={t('accountOverview.statusConnection')}
                   tone={isAuthenticated ? 'success' : 'default'}
-                  value={isAuthenticated ? '로그인됨' : '로컬 전용'}
+                  value={
+                    isAuthenticated
+                      ? t('navigation.signedIn')
+                      : t('accountOverview.localOnly')
+                  }
                 />
                 <StatusLine
-                  label="저장 위치"
+                  label={t('accountOverview.statusStorageLocation')}
                   tone="success"
-                  value={isAuthenticated ? '로컬 + 계정' : '이 기기'}
+                  value={
+                    isAuthenticated
+                      ? t('accountOverview.localPlusAccount')
+                      : t('accountOverview.deviceOnly')
+                  }
                 />
               </Box>
 
               <Box className={cn(css.statusGroup)}>
                 <Group gap="xs" justify="space-between" wrap="nowrap">
-                  <Text className={cn(css.statusGroupTitle)}>백업</Text>
+                  <Text className={cn(css.statusGroupTitle)}>
+                    {t('accountOverview.backup')}
+                  </Text>
                   <AppBadge tone={backupStatus.tone}>
                     {backupStatus.badge}
                   </AppBadge>
@@ -278,62 +328,66 @@ export function AccountOverviewPage() {
                   {backupStatus.description}
                 </Text>
                 <StatusLine
-                  label="백업 상태"
+                  label={t('accountOverview.backupStatus')}
                   tone={backupStatus.tone === 'warning' ? 'warning' : 'success'}
                   value={backupStatus.value}
                 />
                 <StatusLine
-                  label="최근 백업"
+                  label={t('accountOverview.lastBackup')}
                   tone="default"
-                  value={formatRelativeBackupTime(lastSuccessfulPullAt)}
+                  value={formatRelativeBackupTime(lastSuccessfulPullAt, t)}
                 />
-                <StatusLine label="오프라인 기록" tone="success" value="가능" />
+                <StatusLine
+                  label={t('accountOverview.offlineRecording')}
+                  tone="success"
+                  value={t('accountOverview.offlineRecordingAvailable')}
+                />
               </Box>
             </Stack>
           </SectionCard>
 
           <SectionCard className={cn(css.workPanel)} tone="subtle">
             <SectionIntro
-              description="필요한 작업만 바로 실행할 수 있게 정리했습니다."
-              eyebrow="작업"
-              title="빠른 작업"
+              description={t('accountOverview.quickActionsDescription')}
+              eyebrow={t('accountOverview.quickActionsEyebrow')}
+              title={t('accountOverview.quickActionsTitle')}
               titleOrder={3}
             />
 
             <div className={cn(css.actionList)}>
               {isAuthenticated ? (
                 <ActionItem
-                  action="계정 설정"
-                  description="계정 정보와 로그인 상태를 확인합니다."
-                  title="계정 관리"
+                  action={t('accountOverview.actionAccountSettings')}
+                  description={t('accountOverview.actionAccountDescription')}
+                  title={t('accountOverview.actionAccountTitle')}
                   to="/account/settings#account"
                 />
               ) : (
                 <ActionItem
-                  action="로그인"
-                  description="자동 백업과 세션 관리를 활성화합니다."
+                  action={t('accountOverview.actionLogin')}
+                  description={t('accountOverview.actionLoginDescription')}
                   state={{ returnTo: loginReturnTo }}
-                  title="계정 연결"
+                  title={t('accountOverview.actionLoginTitle')}
                   to="/auth/login"
                   tone="primary"
                 />
               )}
               <ActionItem
-                action="백업 설정"
-                description="JSON/CSV 백업과 가져오기를 관리합니다."
-                title="데이터와 백업"
+                action={t('accountOverview.actionBackupSettings')}
+                description={t('accountOverview.actionBackupDescription')}
+                title={t('settings.sections.dataBackup')}
                 to="/account/settings#data-backup"
               />
               <ActionItem
-                action="설정 열기"
-                description="테마, 검색 소스, API 키, 보안 설정을 조정합니다."
-                title="환경 설정"
+                action={t('accountOverview.actionOpenSettings')}
+                description={t('accountOverview.actionEnvironmentDescription')}
+                title={t('accountOverview.actionEnvironmentTitle')}
                 to="/account/settings"
               />
               <ActionItem
-                action="요약 보기"
-                description="작품 수, 완료 수, 평균 별점과 최근 기록을 봅니다."
-                title="기록 요약"
+                action={t('accountOverview.actionProfileView')}
+                description={t('accountOverview.actionProfileDescription')}
+                title={t('accountOverview.actionProfileTitle')}
                 to="/profile"
               />
             </div>

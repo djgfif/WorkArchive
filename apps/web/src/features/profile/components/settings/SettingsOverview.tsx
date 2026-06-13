@@ -7,6 +7,7 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
+import { formatAppDateTime, formatAppNumber, useAppTranslation } from '@app/i18n';
 import { JsonBackupReminderCard } from '@features/archive';
 import { getJsonBackupReminderStatus } from '@features/archive';
 import type { LocalArchiveImportPreview } from '@features/archive';
@@ -75,15 +76,21 @@ function MiniIcon({ name }: { name: SummaryIconName }) {
   );
 }
 
-function formatDateTime(value: string | null) {
+type TranslationFn = ReturnType<typeof useAppTranslation>['t'];
+
+function formatCount(value: number) {
+  return formatAppNumber(value);
+}
+
+function formatDateTime(value: string | null, t: TranslationFn) {
   if (!value) {
-    return '아직 없음';
+    return t('settings.overview.noneYet');
   }
 
-  return new Intl.DateTimeFormat('ko-KR', {
+  return formatAppDateTime(new Date(value), {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(value));
+  });
 }
 
 export function SettingsOverview({
@@ -95,13 +102,16 @@ export function SettingsOverview({
   stats,
   user,
 }: SettingsOverviewProps) {
+  const { t } = useAppTranslation();
   const googleAccount = user?.authAccounts?.find(
     (account) => account.provider === 'google',
   );
   const backupQueueLabel =
     stats.syncQueueItemCount === 0
-      ? '백업 대기 중인 기록 없음'
-      : `백업 대기 중인 기록 ${stats.syncQueueItemCount}개`;
+      ? t('settings.overview.noBackupQueue')
+      : t('settings.overview.backupQueueCount', {
+          count: formatCount(stats.syncQueueItemCount),
+        });
   const hasStorageOriginWarning = stats.isNonStandardLocalOrigin;
   const hasLocalOnlyWarning =
     mode === 'authenticated' && stats.localOnlyWorkCount > 0;
@@ -120,73 +130,106 @@ export function SettingsOverview({
     {
       description:
         mode === 'authenticated'
-          ? `${googleAccount?.email ?? user?.email ?? 'Google 계정'}에 연결된 로컬 아카이브입니다. 현재 저장소는 ${stats.databaseName || '확인 중'}입니다.`
-          : '게스트 모드입니다. 기록은 이 브라우저의 로컬 저장소에만 보관됩니다.',
+          ? t('settings.overview.scopeAuthenticatedDescription', {
+              account:
+                googleAccount?.email ??
+                user?.email ??
+                t('settings.overview.googleAccount'),
+              databaseName:
+                stats.databaseName ?? t('settings.overview.checking'),
+            })
+          : t('settings.overview.scopeGuestDescription'),
       icon: 'google',
-      label: '저장 범위',
+      label: t('settings.overview.scopeLabel'),
       tone: hasStorageOriginWarning
         ? 'warning'
         : mode === 'authenticated'
           ? 'success'
           : 'muted',
-      value: mode === 'authenticated' ? 'Google 연결' : '로컬 전용',
+      value:
+        mode === 'authenticated'
+          ? t('settings.overview.googleConnected')
+          : t('settings.overview.localOnly'),
     },
     {
       description: [
-        `활성 작품 ${stats.activeWorkCount}개`,
-        `휴지통 ${stats.deletedWorkCount}개`,
-        `타임라인 ${stats.timelineEntryCount}개`,
-        `릴리스 기록 ${stats.releaseRecordCount}개`,
+        t('settings.overview.activeWorks', {
+          count: formatCount(stats.activeWorkCount),
+        }),
+        t('settings.overview.deletedWorks', {
+          count: formatCount(stats.deletedWorkCount),
+        }),
+        t('settings.overview.timelineEntries', {
+          count: formatCount(stats.timelineEntryCount),
+        }),
+        t('settings.overview.releaseRecords', {
+          count: formatCount(stats.releaseRecordCount),
+        }),
       ].join(' · '),
       icon: 'data',
-      label: '로컬 데이터',
+      label: t('settings.overview.localDataLabel'),
       tone: 'success',
-      value: `${stats.activeWorkCount}개 작품`,
+      value: t('settings.overview.workCount', {
+        count: formatCount(stats.activeWorkCount),
+      }),
     },
     {
       description:
         mode === 'authenticated'
           ? [
-              `전체 ${stats.syncQueueItemCount}개`,
-              `직접 확인 ${stats.conflictQueueItemCount}개`,
-              `실패 ${stats.failedQueueItemCount}개`,
-              `자동 병합 후 재시도 ${stats.autoMergedQueueItemCount}개`,
-              `로컬 전용 작품 ${stats.localOnlyWorkCount}개`,
+              t('settings.overview.queueTotal', {
+                count: formatCount(stats.syncQueueItemCount),
+              }),
+              t('settings.overview.queueConflict', {
+                count: formatCount(stats.conflictQueueItemCount),
+              }),
+              t('settings.overview.queueFailed', {
+                count: formatCount(stats.failedQueueItemCount),
+              }),
+              t('settings.overview.queueAutoMerged', {
+                count: formatCount(stats.autoMergedQueueItemCount),
+              }),
+              t('settings.overview.localOnlyWorks', {
+                count: formatCount(stats.localOnlyWorkCount),
+              }),
             ].join(' · ')
-          : '게스트 모드에서는 서버 백업을 사용하지 않습니다.',
+          : t('settings.overview.backupGuestDescription'),
       icon: 'key',
-      label: '백업 대기 중인 기록',
+      label: t('settings.overview.backupQueueLabel'),
       tone:
         mode === 'authenticated' && hasLocalOnlyWarning
           ? 'warning'
           : mode === 'authenticated'
             ? dataSafetyTone
             : 'muted',
-      value: mode === 'authenticated' ? backupQueueLabel : '로컬 전용',
+      value:
+        mode === 'authenticated'
+          ? backupQueueLabel
+          : t('settings.overview.localOnly'),
     },
     {
       description: archiveImportPreview
-        ? 'JSON 가져오기 미리보기를 확인 중입니다.'
+        ? t('settings.overview.importPreviewActive')
         : archiveFeedback?.tone === 'success'
           ? archiveFeedback.message
-          : '마지막 내보내기 시각은 이 브라우저에만 기록됩니다.',
+          : t('settings.overview.lastBackupDescription'),
       icon: 'security',
-      label: '마지막 JSON 백업',
+      label: t('settings.overview.lastJsonBackupLabel'),
       tone: archiveImportPreview
         ? 'warning'
         : stats.lastJsonExportAt
           ? 'success'
           : 'muted',
-      value: formatDateTime(stats.lastJsonExportAt),
+      value: formatDateTime(stats.lastJsonExportAt, t),
     },
   ] as const;
 
   return (
     <Stack gap="md">
       <SectionIntro
-        description="현재 브라우저에 저장된 기록, 백업 대기 중인 기록, 마지막 JSON 백업 시각을 즉시 확인합니다."
-        eyebrow="설정과 백업"
-        title="설정 개요"
+        description={t('settings.overview.description')}
+        eyebrow={t('settings.overview.eyebrow')}
+        title={t('settings.overview.title')}
       />
       <div className={css.overviewGrid ?? ''}>
         {cards.map((card) => (
@@ -214,18 +257,21 @@ export function SettingsOverview({
         <SectionCard padding="lg" tone="subtle">
           <Group justify="space-between" wrap="wrap">
             <Stack gap={4}>
-              <Text fw={850}>스토리지 진단</Text>
+              <Text fw={850}>{t('settings.overview.storageTitle')}</Text>
               <Text c="dimmed" size="sm">
-                작품 데이터는 브라우저 origin과 사용자 DB별로 분리됩니다.
-                표준 로컬 주소는 http://localhost:18730입니다.
+                {t('settings.overview.storageDescription')}
               </Text>
             </Stack>
             <Group gap="xs">
               {hasStorageOriginWarning && (
-                <AppBadge tone="warning">비표준 origin</AppBadge>
+                <AppBadge tone="warning">
+                  {t('settings.overview.nonStandardOrigin')}
+                </AppBadge>
               )}
               {hasLocalOnlyWarning && (
-                <AppBadge tone="warning">백업 전 작품 있음</AppBadge>
+                <AppBadge tone="warning">
+                  {t('settings.overview.localOnlyWorkWarning')}
+                </AppBadge>
               )}
             </Group>
           </Group>
@@ -233,33 +279,33 @@ export function SettingsOverview({
             columns={2}
             items={[
               {
-                label: '현재 origin',
-                value: stats.currentOrigin || '확인 중',
+                label: t('settings.overview.currentOrigin'),
+                value: stats.currentOrigin || t('settings.overview.checking'),
               },
               {
-                label: '현재 DB',
-                value: stats.databaseName || '확인 중',
+                label: t('settings.overview.currentDatabase'),
+                value: stats.databaseName || t('settings.overview.checking'),
               },
               {
-                label: '저장 범위 키',
-                value: stats.archiveScopeKey || '확인 중',
+                label: t('settings.overview.scopeKey'),
+                value: stats.archiveScopeKey || t('settings.overview.checking'),
               },
               {
-                label: '로컬 전용 작품',
-                value: `${stats.localOnlyWorkCount}개`,
+                label: t('settings.overview.localOnlyWorkLabel'),
+                value: t('settings.overview.workCount', {
+                  count: formatCount(stats.localOnlyWorkCount),
+                }),
               },
             ]}
           />
           {hasStorageOriginWarning && (
             <Text c="var(--app-state-warning)" size="sm">
-              이 주소에서 만든 기록은 localhost:18730의 기록과 같은 목록에
-              보이지 않습니다. JSON 백업으로 옮긴 뒤 표준 주소만 사용하세요.
+              {t('settings.overview.originWarningDescription')}
             </Text>
           )}
           {hasLocalOnlyWarning && (
             <Text c="var(--app-state-warning)" size="sm">
-              로컬 전용 작품은 아직 서버 백업이 완료되지 않았습니다. JSON
-              백업을 만들고 대기 중인 기록을 처리하세요.
+              {t('settings.overview.localOnlyWarningDescription')}
             </Text>
           )}
         </SectionCard>

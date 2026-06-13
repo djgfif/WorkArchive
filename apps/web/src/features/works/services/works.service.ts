@@ -7,6 +7,7 @@ import type {
 } from '@work-archive/shared-types';
 import type { WorksRepository } from './works.repository';
 
+import { appI18n } from '@app/i18n';
 import {
   syncQueueRepository,
   type SyncQueueRepository,
@@ -305,7 +306,7 @@ export class WorksService {
     const existing = await this.repository.getById(id);
 
     if (!existing || existing.deletedAt !== null) {
-      throw new Error('작품을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('works.errors.workMissing'));
     }
 
     const normalizedTaxonomy = moveUnknownGenresToPersonalTags(
@@ -350,7 +351,7 @@ export class WorksService {
     const existing = await this.repository.getById(id);
 
     if (!existing || existing.deletedAt !== null) {
-      throw new Error('작품을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('works.errors.workMissing'));
     }
 
     const updated: WorkRecord = {
@@ -390,7 +391,7 @@ export class WorksService {
     const existing = await this.repository.getById(id);
 
     if (!existing || existing.deletedAt !== null) {
-      throw new Error('작품을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('works.errors.workMissing'));
     }
 
     const deletedAt = new Date().toISOString();
@@ -401,7 +402,7 @@ export class WorksService {
     });
 
     if (!deleted) {
-      throw new Error('작품을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('works.errors.workMissing'));
     }
 
     await this.queueRepository.enqueueWorkChange(deleted, 'delete', 'edit_form');
@@ -413,7 +414,7 @@ export class WorksService {
     const existing = await this.repository.getById(id);
 
     if (!existing || existing.deletedAt === null) {
-      throw new Error('복원할 작품을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('works.errors.restoreWorkMissing'));
     }
 
     const restoredAt = new Date().toISOString();
@@ -424,7 +425,7 @@ export class WorksService {
     });
 
     if (!restored) {
-      throw new Error('복원할 작품을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('works.errors.restoreWorkMissing'));
     }
 
     await this.queueRepository.enqueueWorkChange(restored, 'update', 'restore');

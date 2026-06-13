@@ -24,6 +24,7 @@ import type {
   WorkSyncStatus,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { getWorkArchiveDb } from '../../works/storage';
 import { appMetaRepository } from '../services/app-meta.repository';
@@ -110,7 +111,7 @@ function getReleaseRecordTitle(
   queueItem: SyncQueueItemRecord,
 ) {
   if (parentWork) {
-    return `${parentWork.title} · 권별 기록`;
+    return appI18n.t('sync.titleRelease', { title: parentWork.title });
   }
 
   const payload = queueItem.payload as UserReleaseRecord;
@@ -119,7 +120,9 @@ function getReleaseRecordTitle(
     payload.catalogReleaseId ??
     queueItem.entityId;
 
-  return `권별 기록 ${catalogReleaseId.slice(0, 8)}`;
+  return appI18n.t('sync.titleReleaseFallback', {
+    id: catalogReleaseId.slice(0, 8),
+  });
 }
 
 function getTimelineEntryTitle(
@@ -128,13 +131,15 @@ function getTimelineEntryTitle(
   queueItem: SyncQueueItemRecord,
 ) {
   if (parentWork) {
-    return `${parentWork.title} · 타임라인 기록`;
+    return appI18n.t('sync.titleTimeline', { title: parentWork.title });
   }
 
   const payload = queueItem.payload as TimelineEntryRecord;
   const entryId = timelineEntry?.id ?? payload.id ?? queueItem.entityId;
 
-  return `타임라인 기록 ${entryId.slice(0, 8)}`;
+  return appI18n.t('sync.titleTimelineFallback', {
+    id: entryId.slice(0, 8),
+  });
 }
 
 function getGraphEntityTitle(
@@ -147,7 +152,7 @@ function getGraphEntityTitle(
     const series =
       seriesById.get(queueItem.entityId) ?? (queueItem.payload as SeriesRecord);
 
-    return `${series.title} · 시리즈`;
+    return appI18n.t('sync.titleSeries', { title: series.title });
   }
 
   if (queueItem.entityType === 'contributor') {
@@ -155,7 +160,7 @@ function getGraphEntityTitle(
       contributorsById.get(queueItem.entityId) ??
       (queueItem.payload as ContributorRecord);
 
-    return `${contributor.name} · 제작진`;
+    return appI18n.t('sync.titleContributor', { name: contributor.name });
   }
 
   if (queueItem.entityType === 'work_series_link') {
@@ -163,7 +168,10 @@ function getGraphEntityTitle(
     const work = worksById.get(link.workId);
     const series = seriesById.get(link.seriesId);
 
-    return `${work?.title ?? '작품'} · ${series?.title ?? '시리즈'} 연결`;
+    return appI18n.t('sync.titleWorkSeriesLink', {
+      series: series?.title ?? appI18n.t('sync.titleFallbackSeries'),
+      work: work?.title ?? appI18n.t('sync.titleFallbackWork'),
+    });
   }
 
   if (queueItem.entityType === 'work_contributor') {
@@ -171,14 +179,21 @@ function getGraphEntityTitle(
     const work = worksById.get(link.workId);
     const contributor = contributorsById.get(link.contributorId);
 
-    return `${work?.title ?? '작품'} · ${contributor?.name ?? '제작진'} 연결`;
+    return appI18n.t('sync.titleWorkContributorLink', {
+      contributor:
+        contributor?.name ?? appI18n.t('sync.titleFallbackContributor'),
+      work: work?.title ?? appI18n.t('sync.titleFallbackWork'),
+    });
   }
 
   const relation = queueItem.payload as WorkRelationRecord;
   const sourceWork = worksById.get(relation.sourceWorkId);
   const targetWork = worksById.get(relation.targetWorkId);
 
-  return `${sourceWork?.title ?? '작품'} · ${targetWork?.title ?? '관련 작품'}`;
+  return appI18n.t('sync.titleRelation', {
+    source: sourceWork?.title ?? appI18n.t('sync.titleFallbackWork'),
+    target: targetWork?.title ?? appI18n.t('sync.titleFallbackRelatedWork'),
+  });
 }
 
 function getGraphSnapshot(queueItem: SyncQueueItemRecord) {
@@ -198,8 +213,10 @@ function getTierBoardTitle(
   const title = tierBoard?.title ?? payload.title;
 
   return title
-    ? `${title} · 티어보드`
-    : `티어보드 ${queueItem.entityId.slice(0, 8)}`;
+    ? appI18n.t('sync.titleTierBoard', { title })
+    : appI18n.t('sync.titleTierBoardFallback', {
+        id: queueItem.entityId.slice(0, 8),
+      });
 }
 
 function getTierLaneTitle(
@@ -209,11 +226,14 @@ function getTierLaneTitle(
 ) {
   const payload = queueItem.payload as TierLaneRecord;
   const title = lane?.title ?? payload.title;
-  const boardTitle = board?.title ?? '티어보드';
+  const boardTitle = board?.title ?? appI18n.t('sync.titleFallbackTierBoard');
 
   return title
-    ? `${boardTitle} · 티어 레인 ${title}`
-    : `${boardTitle} · 티어 레인 ${queueItem.entityId.slice(0, 8)}`;
+    ? appI18n.t('sync.titleTierLane', { boardTitle, title })
+    : appI18n.t('sync.titleTierLaneFallback', {
+        boardTitle,
+        id: queueItem.entityId.slice(0, 8),
+      });
 }
 
 function getTierBoardCardTitle(
@@ -223,11 +243,14 @@ function getTierBoardCardTitle(
 ) {
   const payload = queueItem.payload as TierBoardCardRecord;
   const title = card?.title ?? payload.title;
-  const boardTitle = board?.title ?? '티어보드';
+  const boardTitle = board?.title ?? appI18n.t('sync.titleFallbackTierBoard');
 
   return title
-    ? `${boardTitle} · 티어 카드 ${title}`
-    : `${boardTitle} · 티어 카드 ${queueItem.entityId.slice(0, 8)}`;
+    ? appI18n.t('sync.titleTierBoardCard', { boardTitle, title })
+    : appI18n.t('sync.titleTierBoardCardFallback', {
+        boardTitle,
+        id: queueItem.entityId.slice(0, 8),
+      });
 }
 
 function getTierBoardAssetTitle(
@@ -237,11 +260,14 @@ function getTierBoardAssetTitle(
 ) {
   const payload = queueItem.payload as TierBoardAssetRecord;
   const name = asset?.originalName ?? payload.originalName;
-  const boardTitle = board?.title ?? '티어보드';
+  const boardTitle = board?.title ?? appI18n.t('sync.titleFallbackTierBoard');
 
   return name
-    ? `${boardTitle} · 티어보드 이미지 ${name}`
-    : `${boardTitle} · 티어보드 이미지 ${queueItem.entityId.slice(0, 8)}`;
+    ? appI18n.t('sync.titleTierBoardAsset', { boardTitle, name })
+    : appI18n.t('sync.titleTierBoardAssetFallback', {
+        boardTitle,
+        id: queueItem.entityId.slice(0, 8),
+      });
 }
 
 function getQueueItemState(
@@ -548,7 +574,9 @@ function buildSyncDashboardItem(
     serverVersion: snapshot.serverVersion ?? 0,
     state: getQueueItemState(syncStatus, queueItem),
     syncStatus,
-    title: `동기화 항목 ${queueItem.entityId.slice(0, 8)}`,
+    title: appI18n.t('sync.titleGeneric', {
+      id: queueItem.entityId.slice(0, 8),
+    }),
     updatedAt: snapshot.updatedAt ?? queueItem.createdAt,
     localSnapshot: queueItem.payload,
     conflictRemote: queueItem.conflict?.remote ?? null,
@@ -707,7 +735,7 @@ export function useSyncDashboard() {
           error:
             error instanceof Error
               ? error.message
-              : '동기화 정보를 불러오지 못했습니다.',
+              : appI18n.t('sync.dashboardLoadError'),
         });
       },
     });

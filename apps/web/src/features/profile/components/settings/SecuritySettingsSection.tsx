@@ -9,6 +9,7 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
+import { appI18n, formatAppDateTime, formatAppNumber, useAppTranslation } from '@app/i18n';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 
 type SettingsAuthMode = 'authenticated' | 'guest';
@@ -23,20 +24,22 @@ interface SecuritySettingsSectionProps {
   sessions: AuthRefreshSessionResponse[];
 }
 
-function formatSessionDate(value: string | null) {
+type TranslationFn = ReturnType<typeof useAppTranslation>['t'];
+
+function formatSessionDate(value: string | null, t: TranslationFn) {
   if (!value) {
-    return 'Never';
+    return t('settings.security.never');
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return formatAppDateTime(new Date(value), {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(value));
+  });
 }
 
 function formatUserAgent(value: string | null) {
   if (!value) {
-    return '정보 없음';
+    return appI18n.t('settings.security.noInfo');
   }
 
   if (!/[()/]/.test(value)) {
@@ -51,7 +54,7 @@ function formatUserAgent(value: string | null) {
         ? 'Firefox'
         : value.includes('Safari/')
           ? 'Safari'
-          : '브라우저';
+          : appI18n.t('settings.security.browser');
   const os = value.includes('Windows')
     ? 'Windows'
     : value.includes('Mac OS X')
@@ -70,7 +73,7 @@ function formatUserAgent(value: string | null) {
 
 function maskIpAddress(value: string | null) {
   if (!value) {
-    return '정보 없음';
+    return appI18n.t('settings.security.noInfo');
   }
 
   if (value.includes(':')) {
@@ -95,25 +98,30 @@ export function SecuritySettingsSection({
   revokingSessionId,
   sessions,
 }: SecuritySettingsSectionProps) {
+  const { t } = useAppTranslation();
   const hasSessions = sessions.length > 0;
 
   return (
     <SectionCard>
       <SectionIntro
-        description="현재 로그인 방식과 활성 세션을 확인합니다. Work Archive는 이메일/비밀번호 로그인 없이 Google 계정 연결만 사용합니다."
-        eyebrow="보안"
-        title="로그인과 세션"
+        description={t('settings.security.description')}
+        eyebrow={t('settings.security.eyebrow')}
+        title={t('settings.security.title')}
       />
 
       <SectionCard padding="lg" tone="subtle">
         <SectionIntro
           description={
             mode === 'authenticated'
-              ? 'Google OAuth 기반으로 로그인되어 있습니다.'
-              : '현재 게스트 모드입니다. 로컬 기록은 이 브라우저에 먼저 저장됩니다.'
+              ? t('settings.security.methodAuthenticated')
+              : t('settings.security.methodGuest')
           }
-          eyebrow="현재 로그인 방식"
-          title={mode === 'authenticated' ? 'Google 계정' : '게스트 모드'}
+          eyebrow={t('settings.security.methodEyebrow')}
+          title={
+            mode === 'authenticated'
+              ? t('settings.security.googleAccount')
+              : t('settings.security.guestMode')
+          }
           titleOrder={3}
         />
         <ActionRow>
@@ -122,31 +130,43 @@ export function SecuritySettingsSection({
               ? 'Google-only auth'
               : 'Local-first guest'}
           </AppBadge>
-          <AppBadge tone="muted">이메일/비밀번호 로그인 없음</AppBadge>
+          <AppBadge tone="muted">
+            {t('settings.security.noPasswordLogin')}
+          </AppBadge>
         </ActionRow>
       </SectionCard>
 
       {mode !== 'authenticated' ? (
         <Text c="dimmed">
-          로그인하면 계정 세션을 확인하고 더 이상 사용하지 않는 기기의 로그인
-          상태를 해제할 수 있습니다.
+          {t('settings.security.guestSessionDescription')}
         </Text>
       ) : isLoadingSessions ? (
         <Text aria-busy="true" c="dimmed">
-          세션 목록을 불러오는 중입니다.
+          {t('settings.security.loadingSessions')}
         </Text>
       ) : !hasSessions ? (
-        <Text c="dimmed">현재 확인된 활성 세션이 없습니다.</Text>
+        <Text c="dimmed">{t('settings.security.emptySessions')}</Text>
       ) : (
         <Stack gap="sm">
           <ActionRow>
-            <AppBadge tone="success">활성 세션 {sessions.length}개</AppBadge>
+            <AppBadge tone="success">
+              {t('settings.security.activeSessions', {
+                count: formatAppNumber(sessions.length),
+              })}
+            </AppBadge>
             <AppBadge tone="accent">
-              로그인 유지{' '}
-              {sessions.filter((session) => session.rememberMe).length}개
+              {t('settings.security.rememberSessions', {
+                count: formatAppNumber(
+                  sessions.filter((session) => session.rememberMe).length,
+                ),
+              })}
             </AppBadge>
             <AppBadge tone="muted">
-              현재 기기 {sessions.filter((session) => session.current).length}개
+              {t('settings.security.currentDeviceSessions', {
+                count: formatAppNumber(
+                  sessions.filter((session) => session.current).length,
+                ),
+              })}
             </AppBadge>
           </ActionRow>
 
@@ -155,24 +175,34 @@ export function SecuritySettingsSection({
               <Stack gap="xs">
                 <ActionRow>
                   <Text fw={800}>
-                    {session.current ? '현재 기기' : '다른 기기'}
+                    {session.current
+                      ? t('settings.security.currentDevice')
+                      : t('settings.security.otherDevice')}
                   </Text>
                   <AppBadge tone={session.current ? 'success' : 'muted'}>
-                    {session.current ? '이 기기' : '활성'}
+                    {session.current
+                      ? t('settings.security.thisDevice')
+                      : t('settings.security.active')}
                   </AppBadge>
                   <AppBadge tone={session.rememberMe ? 'accent' : 'muted'}>
-                    {session.rememberMe ? '로그인 유지' : '브라우저 세션'}
+                    {session.rememberMe
+                      ? t('settings.security.rememberLogin')
+                      : t('settings.security.browserSession')}
                   </AppBadge>
                 </ActionRow>
 
                 <Text c="dimmed" size="sm">
-                  마지막 사용: {formatSessionDate(session.lastUsedAt)} | 생성:{' '}
-                  {formatSessionDate(session.createdAt)} | 만료:{' '}
-                  {formatSessionDate(session.expiresAt)}
+                  {t('settings.security.sessionDates', {
+                    createdAt: formatSessionDate(session.createdAt, t),
+                    expiresAt: formatSessionDate(session.expiresAt, t),
+                    lastUsedAt: formatSessionDate(session.lastUsedAt, t),
+                  })}
                 </Text>
                 <Text c="dimmed" lineClamp={1} size="sm">
-                  기기: {formatUserAgent(session.userAgent)} · IP:{' '}
-                  {maskIpAddress(session.ipAddress)}
+                  {t('settings.security.sessionDevice', {
+                    ip: maskIpAddress(session.ipAddress),
+                    userAgent: formatUserAgent(session.userAgent),
+                  })}
                 </Text>
 
                 <ActionRow>
@@ -182,7 +212,9 @@ export function SecuritySettingsSection({
                     tone={session.current ? 'danger' : 'secondary'}
                     type="button"
                   >
-                    {session.current ? '이 기기 로그아웃' : '세션 해제'}
+                    {session.current
+                      ? t('settings.security.logoutThisDevice')
+                      : t('settings.security.revokeSession')}
                   </AppButton>
                 </ActionRow>
               </Stack>
@@ -196,7 +228,7 @@ export function SecuritySettingsSection({
               tone="quiet"
               type="button"
             >
-              다시 불러오기
+              {t('settings.security.retry')}
             </AppButton>
           </ActionRow>
         </Stack>

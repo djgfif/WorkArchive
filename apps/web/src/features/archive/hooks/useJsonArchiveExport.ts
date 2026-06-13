@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { appI18n } from '@app/i18n';
 import { appMetaRepository } from '../../sync/queue';
 import {
   localArchiveService,
@@ -56,8 +57,8 @@ export function useJsonArchiveExport() {
         tone: 'success',
         message:
           scope === 'full'
-            ? '전체 JSON 백업 파일을 만들었습니다.'
-            : 'JSON 백업 파일을 만들었습니다.',
+            ? appI18n.t('archive.backup.exportFullSuccess')
+            : appI18n.t('archive.backup.exportSimpleSuccess'),
       });
     } catch (error) {
       setFeedback({
@@ -65,7 +66,7 @@ export function useJsonArchiveExport() {
         message:
           error instanceof Error
             ? error.message
-            : 'JSON 백업 파일을 만들지 못했습니다.',
+            : appI18n.t('archive.backup.exportError'),
       });
     } finally {
       setIsExporting(false);

@@ -1,4 +1,4 @@
-import { Suspense, isValidElement } from 'react';
+import { Suspense, isValidElement, type ReactElement } from 'react';
 import { Navigate } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
@@ -6,6 +6,7 @@ import { getPrimaryNavigationItems } from '../layouts/navigation';
 import { createAppRoutes } from './routes';
 import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
 import type { FeatureFlags } from '@shared/runtime/feature-flags';
+import { StateMessage } from '@shared/components/AppPrimitives';
 
 const flagsWithTierBoardsOff: FeatureFlags = {
   diagnostics: false,
@@ -13,6 +14,10 @@ const flagsWithTierBoardsOff: FeatureFlags = {
   pwaInstall: false,
   tierBoards: false,
 };
+
+interface SuspenseElementProps {
+  fallback: unknown;
+}
 
 describe('app routes', () => {
   it('hides tier board navigation and redirects tier board routes when the flag is off', () => {
@@ -68,6 +73,30 @@ describe('app routes', () => {
           route.element.type === Navigate,
       ),
     ).toBe(false);
+  });
+
+  it('renders lazy route loading fallback from translation resources', () => {
+    const routes = createAppRoutes();
+    const productRoutes = routes[0]?.children ?? [];
+    const worksRoute = productRoutes.find((route) => route.path === 'works');
+
+    expect(isValidElement(worksRoute?.element)).toBe(true);
+    if (!isValidElement(worksRoute?.element)) {
+      throw new Error('Expected works route element to be valid.');
+    }
+
+    expect(worksRoute.element.type).toBe(Suspense);
+    const fallback = (worksRoute.element as ReactElement<SuspenseElementProps>)
+      .props.fallback;
+
+    expect(isValidElement(fallback)).toBe(true);
+    expect(isValidElement(fallback) && fallback.type).toBe(StateMessage);
+    expect(isValidElement(fallback) && fallback.props).toMatchObject({
+      description: '화면 데이터를 준비하는 중입니다.',
+      eyebrow: '불러오는 중',
+      title: '화면을 불러오고 있습니다',
+      tone: 'loading',
+    });
   });
 
   it('adds route error boundaries to primary product, auth, and account routes', () => {

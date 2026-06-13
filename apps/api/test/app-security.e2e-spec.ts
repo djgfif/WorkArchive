@@ -17,6 +17,7 @@ import {
   it,
   jest,
 } from '@jest/globals';
+import jwt from 'jsonwebtoken';
 
 import type { ApiRuntimeConfig } from '../src/config/api-runtime-config';
 import { configureApp } from '../src/configure-app';
@@ -168,6 +169,18 @@ describe('app security middleware', () => {
       },
       method: 'POST',
     });
+  }
+
+  function buildAccessToken(userId: string, sessionId: string) {
+    return jwt.sign(
+      {
+        email: `${userId}@example.com`,
+        sid: sessionId,
+        sub: userId,
+        type: 'access',
+      },
+      baseConfig.jwtAccessSecret,
+    );
   }
 
   describe('request id middleware', () => {
@@ -606,6 +619,42 @@ describe('app security middleware', () => {
           }),
         }),
       );
+    });
+
+    it('keys authenticated sync limits by verified user session instead of shared IP', async () => {
+      const firstUserToken = buildAccessToken('user-1', 'session-1');
+      const secondUserToken = buildAccessToken('user-2', 'session-2');
+
+      expect(
+        (
+          await fetch(`${baseUrl}/api/sync/push`, {
+            headers: {
+              authorization: `Bearer ${firstUserToken}`,
+            },
+            method: 'POST',
+          })
+        ).status,
+      ).toBe(201);
+      expect(
+        (
+          await fetch(`${baseUrl}/api/sync/push`, {
+            headers: {
+              authorization: `Bearer ${firstUserToken}`,
+            },
+            method: 'POST',
+          })
+        ).status,
+      ).toBe(429);
+      expect(
+        (
+          await fetch(`${baseUrl}/api/sync/push`, {
+            headers: {
+              authorization: `Bearer ${secondUserToken}`,
+            },
+            method: 'POST',
+          })
+        ).status,
+      ).toBe(201);
     });
 
     it('separates guest and authenticated provider search limits', async () => {

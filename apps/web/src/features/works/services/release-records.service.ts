@@ -5,6 +5,7 @@ import type {
   WorkSyncStatus,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import {
   syncQueueRepository,
   type SyncQueueRepository,
@@ -105,7 +106,7 @@ export class ReleaseRecordsService {
     const existing = await this.repository.getById(id);
 
     if (!existing) {
-      throw new Error('권별 기록을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('works.errors.releaseMissing'));
     }
 
     const updated: UserReleaseRecord = {
@@ -130,7 +131,7 @@ export class ReleaseRecordsService {
     const existing = await this.repository.getById(id);
 
     if (!existing || existing.deletedAt !== null) {
-      throw new Error('삭제할 권별 기록을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('works.errors.releaseDeleteMissing'));
     }
 
     const deletedAt = new Date().toISOString();
@@ -151,7 +152,7 @@ export class ReleaseRecordsService {
     const existing = await this.repository.getById(id);
 
     if (!existing || existing.deletedAt === null) {
-      throw new Error('복원할 권별 기록을 찾을 수 없습니다.');
+      throw new Error(appI18n.t('works.errors.releaseRestoreMissing'));
     }
 
     const restored: UserReleaseRecord = {

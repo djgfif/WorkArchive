@@ -9,6 +9,7 @@ import {
   Textarea,
 } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import { FeedbackMessage } from '@shared/components/AppPrimitives';
 import { StarRatingInput } from './ArchiveComponents';
 import styles from './ArchiveComponents.module.css';
@@ -48,14 +49,15 @@ export function WorkFormReviewStep({
   uniqueTagSuggestions,
   values,
 }: WorkFormReviewStepProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Box ref={reviewSectionRef}>
       <Stack gap="md" pt="md">
         {focusArea === 'review' && (
-          <FeedbackMessage title="리뷰 집중 모드" tone="info">
+          <FeedbackMessage title={t('works.form.reviewFocusTitle')} tone="info">
             <span id={REVIEW_FOCUS_DESCRIPTION_ID}>
-              한줄평과 상세 감상 입력으로 바로 이동했습니다. 저장하면 상세
-              화면의 개인 감상 기록으로 돌아갑니다.
+              {t('works.form.reviewFocusDescription')}
             </span>
           </FeedbackMessage>
         )}
@@ -66,14 +68,14 @@ export function WorkFormReviewStep({
           }
           description={
             focusArea === 'review'
-              ? '상세 화면에서 이어 온 리뷰 집중 수정 입력입니다.'
+              ? t('works.form.shortReviewDescription')
               : undefined
           }
           id="shortReview"
-          label="한 줄 감상"
+          label={t('works.form.reviewShortLabel')}
           name="shortReview"
           onChange={onInputChange}
-          placeholder="목록과 상세 상단에 남길 짧은 감상"
+          placeholder={t('works.form.reviewShortPlaceholder')}
           ref={shortReviewInputRef}
           rows={3}
           value={values.shortReview}
@@ -85,30 +87,30 @@ export function WorkFormReviewStep({
           }
           description={
             focusArea === 'review'
-              ? '한줄평보다 길게 남기는 개인 감상 입력입니다.'
+              ? t('works.form.reviewInputDescription')
               : undefined
           }
           id="review"
-          label="상세 감상"
+          label={t('works.form.reviewInputLabel')}
           name="review"
           onChange={onInputChange}
-          placeholder="길게 남기고 싶은 장면, 인상, 생각"
+          placeholder={t('works.form.reviewInputPlaceholder')}
           ref={reviewInputRef}
           rows={8}
           value={values.review}
         />
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
           <StarRatingInput
-            label="고급별점"
+            label={t('works.form.advancedRatingLabel')}
             onChange={onRatingChange}
             value={normalizedRating}
           />
           <Textarea
             id="description"
-            label="작품 메모"
+            label={t('works.form.workMemoLabel')}
             name="description"
             onChange={onInputChange}
-            placeholder="줄거리나 기억해둘 배경"
+            placeholder={t('works.form.workMemoPlaceholder')}
             rows={4}
             value={values.description}
           />
@@ -120,9 +122,9 @@ export function WorkFormReviewStep({
             size="sm"
             style={{ color: 'var(--app-text-secondary)' }}
           >
-            개인 태그
+            {t('works.form.personalTagsLabel')}
             <Text component="span" c="dimmed" fw={400} size="xs" ml={6}>
-              취향, 소재, 기억할 키워드
+              {t('works.form.personalTagsHint')}
             </Text>
           </Text>
           <TagsInput
@@ -131,7 +133,7 @@ export function WorkFormReviewStep({
             id="personalTagsText"
             name="personalTagsText"
             onChange={(items) => onTextListChange('personalTagsText', items)}
-            placeholder="여운, 다시 볼 것, 시간여행"
+            placeholder={t('works.form.personalTagsPlaceholder')}
             splitChars={[',']}
             value={personalTagValues}
             styles={{

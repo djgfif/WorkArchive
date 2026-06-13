@@ -12,6 +12,7 @@ import {
   requestPersistentStorage,
   type StoragePersistenceState,
 } from '@shared/runtime/persistent-storage';
+import { appI18n } from '@app/i18n';
 import type { SettingsFeedback } from './useImportProviderSettings';
 
 const EMPTY_STORAGE_STATE: StoragePersistenceState = {
@@ -96,8 +97,8 @@ export function useLocalDataSafetySettings() {
       setFeedback({
         tone: approved ? 'success' : 'info',
         message: approved
-          ? '이 브라우저에서 로컬 저장소 보호를 확보했습니다.'
-          : '브라우저가 저장소 보호 요청을 승인하지 않았습니다. 기록은 계속 이 기기에 저장됩니다.',
+          ? appI18n.t('localDataSafety.storageSecured')
+          : appI18n.t('localDataSafety.storageDenied'),
       });
     } catch (error) {
       setFeedback({
@@ -105,7 +106,7 @@ export function useLocalDataSafetySettings() {
         message:
           error instanceof Error
             ? error.message
-            : '저장소 보호 상태를 확인하지 못했습니다.',
+            : appI18n.t('localDataSafety.storageError'),
       });
     } finally {
       setIsRequestingStorage(false);
@@ -121,7 +122,7 @@ export function useLocalDataSafetySettings() {
       await refresh();
       setFeedback({
         tone: 'success',
-        message: '자동 백업 폴더를 연결하고 전체 JSON 백업을 만들었습니다.',
+        message: appI18n.t('localDataSafety.autoBackupFolderReady'),
       });
     } catch (error) {
       await refresh();
@@ -130,7 +131,7 @@ export function useLocalDataSafetySettings() {
         message:
           error instanceof Error
             ? error.message
-            : '자동 백업 폴더를 연결하지 못했습니다.',
+            : appI18n.t('localDataSafety.autoBackupFolderError'),
       });
     } finally {
       setIsChoosingBackupFolder(false);
@@ -145,7 +146,7 @@ export function useLocalDataSafetySettings() {
       await refresh();
       setFeedback({
         tone: 'success',
-        message: '자동 백업 폴더에 전체 JSON 백업을 만들었습니다.',
+        message: appI18n.t('localDataSafety.autoBackupNowReady'),
       });
     } catch (error) {
       await refresh();
@@ -154,7 +155,7 @@ export function useLocalDataSafetySettings() {
         message:
           error instanceof Error
             ? error.message
-            : '자동 백업 파일을 만들지 못했습니다.',
+            : appI18n.t('localDataSafety.autoBackupFileError'),
       });
     } finally {
       setIsRunningBackup(false);
@@ -168,7 +169,7 @@ export function useLocalDataSafetySettings() {
       await refresh();
       setFeedback({
         tone: 'info',
-        message: '자동 폴더 백업을 껐습니다. 수동 JSON 백업은 계속 사용할 수 있습니다.',
+        message: appI18n.t('localDataSafety.autoBackupDisabled'),
       });
     } catch (error) {
       setFeedback({
@@ -176,7 +177,7 @@ export function useLocalDataSafetySettings() {
         message:
           error instanceof Error
             ? error.message
-            : '자동 백업 설정을 변경하지 못했습니다.',
+            : appI18n.t('localDataSafety.autoBackupDisableError'),
       });
     }
   }

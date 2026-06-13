@@ -2,6 +2,7 @@ import { Group, Progress, Stack, Text, Title } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 import { Link } from 'react-router-dom';
 
+import { useAppTranslation } from '@app/i18n';
 import { ActionRow, AppButton } from '@shared/components/AppPrimitives';
 import { WorkPoster } from './ArchiveComponents';
 import { SerialStatusBadge } from './SerialStatusBadge';
@@ -32,6 +33,8 @@ export function WorkListRowSummary({
   typeLabel,
   work,
 }: WorkListRowSummaryProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Group align="flex-start" gap="md" justify="space-between" wrap="wrap">
       <Group
@@ -47,7 +50,7 @@ export function WorkListRowSummary({
           </span>
         )}
         <Link
-          aria-label={`${work.title} 상세 보기`}
+          aria-label={t('works.list.trashDetailAria', { title: work.title })}
           style={{ flexShrink: 0, display: 'block' }}
           to={`/works/${work.id}`}
         >
@@ -89,18 +92,21 @@ export function WorkListRowSummary({
             style={{ fontVariantNumeric: 'tabular-nums' }}
           >
             {getWorkListMetaLine(work)}
-            {isUpdating ? ' · 저장 중' : ''}
+            {isUpdating ? t('works.list.savingPrefix') : ''}
           </Text>
 
           {progressLabel && (
             <Text c="dimmed" fw={700} lineClamp={1} size="xs">
-              이어보기 {progressLabel}
+              {t('works.list.continueReading', { progress: progressLabel })}
             </Text>
           )}
 
           {progressPercent !== null && (
             <Progress
-              aria-label={`${work.title} 진행도 ${progressPercent}%`}
+              aria-label={t('works.list.listProgressAria', {
+                percent: progressPercent,
+                title: work.title,
+              })}
               color="archive.5"
               radius="xl"
               size="xs"
@@ -123,13 +129,13 @@ export function WorkListRowSummary({
         <ActionRow justify="flex-end">
           <AppButton
             aria-expanded={editOpen}
-            aria-label="빠른 수정 패널 열기"
+            aria-label={t('works.list.openQuickEdit')}
             onClick={onToggleEdit}
             size="compact-sm"
             tone="secondary"
             type="button"
           >
-            {editOpen ? '닫기' : '수정'}
+            {editOpen ? t('works.list.closeEdit') : t('works.list.edit')}
           </AppButton>
         </ActionRow>
       </Stack>

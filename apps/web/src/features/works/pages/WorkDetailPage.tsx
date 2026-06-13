@@ -11,6 +11,7 @@ import {
 } from '@shared/components/AppPrimitives';
 import { DetailPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { useAppTranslation } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { WorkDetailPanel } from '../components/WorkDetailPanel';
 import {
@@ -38,21 +39,25 @@ function getRouteFeedback(state: unknown) {
   return typeof feedback === 'string' ? feedback : null;
 }
 
-function getSavedFeedback(value: string | null) {
-  return value === 'edit' ? '로컬에 저장됨' : null;
+function getSavedFeedback(
+  value: string | null,
+  t: ReturnType<typeof useAppTranslation>['t'],
+) {
+  return value === 'edit' ? t('works.feedback.localSaved') : null;
 }
 
 export function WorkDetailPage() {
+  const { t } = useAppTranslation();
   const { id } = useParams();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { archiveScopeKey, mode } = useAuthSession();
   const { error, isLoading, work } = useWorkDetail(id);
-  usePageTitle(work?.title ?? '작품 상세');
+  usePageTitle(work?.title ?? t('works.detail.pageTitle'));
   const [actionError, setActionError] = useState<string | null>(null);
   const routeFeedback =
     getRouteFeedback(location.state) ??
-    getSavedFeedback(searchParams.get('saved'));
+    getSavedFeedback(searchParams.get('saved'), t);
   const [actionSuccess, setActionSuccess] = useState<string | null>(
     () => routeFeedback,
   );
@@ -121,12 +126,12 @@ export function WorkDetailPage() {
         ...input,
         workId: work.id,
       });
-      handleActionSuccess('타임라인 기록을 추가했습니다.');
+      handleActionSuccess(t('works.detail.timelineCreateSuccess'));
     } catch (timelineError) {
       setActionError(
         timelineError instanceof Error
           ? timelineError.message
-          : '타임라인 기록을 추가하지 못했습니다.',
+          : t('works.detail.timelineCreateError'),
       );
     }
   }
@@ -136,12 +141,12 @@ export function WorkDetailPage() {
       setActionError(null);
       setActionSuccess(null);
       await timelineEntriesService.deleteTimelineEntry(id);
-      handleActionSuccess('타임라인 기록을 삭제했습니다.');
+      handleActionSuccess(t('works.detail.timelineDeleteSuccess'));
     } catch (timelineError) {
       setActionError(
         timelineError instanceof Error
           ? timelineError.message
-          : '타임라인 기록을 삭제하지 못했습니다.',
+          : t('works.detail.timelineDeleteError'),
       );
     }
   }
@@ -150,14 +155,14 @@ export function WorkDetailPage() {
     return (
       <StateMessage
         description={error}
-        title="작품 정보를 불러오지 못했습니다."
+        title={t('works.detail.loadingErrorTitle')}
         tone="error"
       />
     );
   }
 
   if (isLoading) {
-    return <LoadingState rows={3} title="작품 정보를 불러오는 중입니다" />;
+    return <LoadingState rows={3} title={t('works.detail.loadingTitle')} />;
   }
 
   if (!work) {
@@ -165,12 +170,12 @@ export function WorkDetailPage() {
       <StateMessage
         actions={
           <AppLinkButton to="/works" tone="primary">
-            작품으로 돌아가기
+            {t('works.backToWork')}
           </AppLinkButton>
         }
-        description="삭제되었거나 주소가 올바르지 않을 수 있습니다."
-        eyebrow="찾을 수 없음"
-        title="해당 작품을 찾을 수 없습니다."
+        description={t('works.detail.missingDescription')}
+        eyebrow={t('works.detail.missingEyebrow')}
+        title={t('works.detail.missingTitle')}
         tone="info"
       />
     );
@@ -212,18 +217,18 @@ export function WorkDetailPage() {
         actions={
           <>
             <AppLinkButton to="/works" tone="quiet">
-              작품으로 돌아가기
+              {t('works.backToWork')}
             </AppLinkButton>
             <AppLinkButton
               to={`/works/${work.id}/edit?focus=review`}
               tone="primary"
             >
               {work.shortReview.trim() || work.review.trim()
-                ? '리뷰 수정'
-                : '리뷰 쓰기'}
+                ? t('works.detail.editReview')
+                : t('works.detail.writeReview')}
             </AppLinkButton>
             <AppLinkButton to={`/works/${work.id}/edit`} tone="ghost">
-              전체 정보 수정
+              {t('works.detail.editFull')}
             </AppLinkButton>
           </>
         }

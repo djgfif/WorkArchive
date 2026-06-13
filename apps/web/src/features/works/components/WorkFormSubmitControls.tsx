@@ -1,5 +1,6 @@
 import { Affix, Text } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   ActionRow,
   AppBadge,
@@ -24,10 +25,12 @@ export function WorkFormDraftNotice({
   onApplyDraft,
   onClearDraft,
 }: WorkFormDraftNoticeProps) {
+  const { t } = useAppTranslation();
+
   return (
-    <FeedbackMessage title="임시작성 있음" tone="info">
+    <FeedbackMessage title={t('works.form.draftNoticeTitle')} tone="info">
       <ActionRow justify="space-between">
-        <Text c="inherit">이전에 작성하던 내용이 있습니다.</Text>
+        <Text c="inherit">{t('works.form.draftNoticeDescription')}</Text>
         <ActionRow justify="flex-end">
           <AppButton
             onClick={onApplyDraft}
@@ -35,7 +38,7 @@ export function WorkFormDraftNotice({
             tone="secondary"
             type="button"
           >
-            이어서 작성하기
+            {t('works.form.draftApply')}
           </AppButton>
           <AppButton
             onClick={onClearDraft}
@@ -43,7 +46,7 @@ export function WorkFormDraftNotice({
             tone="ghost"
             type="button"
           >
-            임시작성 삭제
+            {t('works.form.draftClear')}
           </AppButton>
         </ActionRow>
       </ActionRow>
@@ -64,6 +67,8 @@ export function WorkFormSubmitActions({
   saveStatus,
   submitButtonLabel,
 }: WorkFormSubmitActionsProps) {
+  const { t } = useAppTranslation();
+
   return (
     <ActionRow>
       <AppButton
@@ -75,12 +80,16 @@ export function WorkFormSubmitActions({
         {submitButtonLabel}
       </AppButton>
       <AppLinkButton to={cancelTo} tone="quiet">
-        취소
+        {t('works.form.cancel')}
       </AppLinkButton>
-      {saveStatus === 'saving' && <AppBadge tone="muted">임시저장 중</AppBadge>}
-      {saveStatus === 'saved' && <AppBadge tone="success">임시저장됨</AppBadge>}
+      {saveStatus === 'saving' && (
+        <AppBadge tone="muted">{t('works.form.draftSaving')}</AppBadge>
+      )}
+      {saveStatus === 'saved' && (
+        <AppBadge tone="success">{t('works.form.draftSaved')}</AppBadge>
+      )}
       {saveStatus === 'restored' && (
-        <AppBadge tone="accent">임시작성 복구됨</AppBadge>
+        <AppBadge tone="accent">{t('works.form.draftRestored')}</AppBadge>
       )}
     </ActionRow>
   );
@@ -103,6 +112,8 @@ export function WorkFormMobileSaveAffix({
   submitButtonLabel,
   submitLabel,
 }: WorkFormMobileSaveAffixProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Affix bottom={12} hiddenFrom="sm" left={12} right={12} zIndex={200}>
       <SectionCard
@@ -116,7 +127,9 @@ export function WorkFormMobileSaveAffix({
         </Text>
         <ActionRow>
           <AppButton
-            aria-label={`${submitLabel} 하단 고정 저장`}
+            aria-label={t('works.form.mobileSubmitAria', {
+              label: submitLabel,
+            })}
             disabled={isSubmitting}
             fullWidth
             loading={isSubmitting}
@@ -126,10 +139,10 @@ export function WorkFormMobileSaveAffix({
             {submitButtonLabel}
           </AppButton>
           <AppLinkButton to={cancelTo} tone="quiet">
-            취소
+            {t('works.form.cancel')}
           </AppLinkButton>
           {saveStatus === 'saved' && (
-            <AppBadge tone="success">임시저장됨</AppBadge>
+            <AppBadge tone="success">{t('works.form.draftSaved')}</AppBadge>
           )}
         </ActionRow>
       </SectionCard>

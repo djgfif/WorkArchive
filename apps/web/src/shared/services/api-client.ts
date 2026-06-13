@@ -8,6 +8,7 @@ import {
   readStoredAuthTokens,
   writeStoredAuthTokens,
 } from './auth-token-store';
+import { appI18n } from '@app/i18n';
 import { localizeApiErrorMessage } from '../utils/localize-message';
 
 const DEFAULT_DEVELOPMENT_API_BASE_URL = '/api';
@@ -15,8 +16,25 @@ const DEFAULT_PRODUCTION_API_BASE_URL = '/api';
 const LOOPBACK_API_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const UNSAFE_METHODS = new Set(['DELETE', 'PATCH', 'POST', 'PUT']);
 const WORK_ARCHIVE_CLIENT_HEADER = 'X-Work-Archive-Client';
+export const AUTH_REFRESH_TIMEOUT_MS = 12_000;
 
 type StoredAuthTokens = NonNullable<ReturnType<typeof readStoredAuthTokens>>;
+type ApiRequestFailureKind = 'network' | 'timeout';
+
+interface ApiRequestInit extends RequestInit {
+  timeoutMs?: number;
+}
+
+interface RequestSignalOptions {
+  signal: AbortSignal | null | undefined;
+  timeoutMs: number | undefined;
+}
+
+interface RequestSignalState {
+  cleanup: () => void;
+  didTimeout: () => boolean;
+  signal: AbortSignal | null;
+}
 
 let refreshStoredTokensPromise: Promise<StoredAuthTokens> | null = null;
 
@@ -26,11 +44,20 @@ interface AuthenticatedRequestOptions {
 
 export class ApiRequestError extends Error {
   readonly status: number;
+  readonly retryAfterMs: number | null;
+  readonly failureKind: ApiRequestFailureKind | null;
 
-  constructor(status: number, message: string) {
+  constructor(
+    status: number,
+    message: string,
+    retryAfterMs: number | null = null,
+    failureKind: ApiRequestFailureKind | null = null,
+  ) {
     super(message);
     this.name = 'ApiRequestError';
     this.status = status;
+    this.retryAfterMs = retryAfterMs;
+    this.failureKind = failureKind;
   }
 }
 
@@ -83,12 +110,79 @@ function isUnsafeMethod(method: string | undefined) {
   return UNSAFE_METHODS.has((method ?? 'GET').toUpperCase());
 }
 
+function parseRetryAfterMs(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const seconds = Number(value);
+
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return Math.ceil(seconds * 1000);
+  }
+
+  const dateMs = Date.parse(value);
+
+  if (!Number.isFinite(dateMs)) {
+    return null;
+  }
+
+  return Math.max(0, dateMs - Date.now());
+}
+
+function readRetryAfterMs(response: Response) {
+  return parseRetryAfterMs(response.headers.get('retry-after'));
+}
+
+function createRequestSignal({
+  signal,
+  timeoutMs,
+}: RequestSignalOptions): RequestSignalState {
+  if (timeoutMs === undefined) {
+    return {
+      didTimeout: () => false,
+      signal: signal ?? null,
+      cleanup: () => {},
+    };
+  }
+
+  const normalizedTimeoutMs = Math.max(1, Math.floor(timeoutMs));
+  const abortController = new AbortController();
+  let didTimeout = false;
+
+  function abortFromCaller() {
+    abortController.abort(signal?.reason);
+  }
+
+  if (signal?.aborted) {
+    abortFromCaller();
+  } else {
+    signal?.addEventListener('abort', abortFromCaller, { once: true });
+  }
+
+  const timeoutId = setTimeout(() => {
+    didTimeout = true;
+    abortController.abort(new DOMException('Request timed out.', 'TimeoutError'));
+  }, normalizedTimeoutMs);
+
+  return {
+    didTimeout: () => didTimeout,
+    signal: abortController.signal,
+    cleanup: () => {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', abortFromCaller);
+    },
+  };
+}
+
 export async function requestApi<TResponse>(
   path: string,
-  init: RequestInit,
+  init: ApiRequestInit,
   accessToken?: string,
 ) {
+  const { timeoutMs, signal, ...fetchInit } = init;
   const headers = new Headers(init.headers);
+  const requestSignal = createRequestSignal({ signal, timeoutMs });
 
   if (shouldSetJsonContentType(init.body) && !headers.has('content-type')) {
     headers.set('content-type', 'application/json');
@@ -106,15 +200,29 @@ export async function requestApi<TResponse>(
 
   try {
     response = await fetch(`${getApiBaseUrl()}${path}`, {
-      ...init,
+      ...fetchInit,
       credentials: 'include',
       headers,
+      signal: requestSignal.signal,
     });
   } catch {
+    if (requestSignal.didTimeout()) {
+      throw new ApiRequestError(
+        0,
+        appI18n.t('api.timeoutError'),
+        null,
+        'timeout',
+      );
+    }
+
     throw new ApiRequestError(
       0,
-      '네트워크 연결을 확인한 뒤 다시 시도해주세요.',
+      appI18n.t('api.networkError'),
+      null,
+      'network',
     );
+  } finally {
+    requestSignal.cleanup();
   }
   const responseBody = await readJsonBody<TResponse & ApiErrorResponse>(
     response,
@@ -124,6 +232,7 @@ export async function requestApi<TResponse>(
     throw new ApiRequestError(
       response.status,
       getApiErrorMessage(response.status, responseBody),
+      readRetryAfterMs(response),
     );
   }
 
@@ -135,7 +244,7 @@ export async function requestApi<TResponse>(
 
 export async function requestApiJson<TResponse>(
   path: string,
-  init: RequestInit,
+  init: ApiRequestInit,
   accessToken?: string,
 ): Promise<TResponse> {
   const { response, responseBody } = await requestApi<TResponse>(
@@ -147,7 +256,7 @@ export async function requestApiJson<TResponse>(
   if (responseBody === null) {
     throw new ApiRequestError(
       response.status,
-      '서버 응답을 확인할 수 없습니다.',
+      appI18n.t('api.emptyJson'),
     );
   }
 
@@ -159,10 +268,11 @@ async function runRefreshStoredTokens() {
     const { response, responseBody: refreshedSession } =
       await requestApi<AuthSessionResponse>('/auth/refresh', {
         method: 'POST',
+        timeoutMs: AUTH_REFRESH_TIMEOUT_MS,
       });
 
     if (response.status === 204 || refreshedSession === null) {
-      throw new ApiRequestError(401, '로그인 후 이용해주세요.');
+      throw new ApiRequestError(401, appI18n.t('api.loginRequired'));
     }
 
     const nextTokens = {
@@ -190,7 +300,7 @@ async function refreshStoredTokens() {
 
 export async function requestAuthenticatedApiJson<TResponse>(
   path: string,
-  init: RequestInit,
+  init: ApiRequestInit,
   options: AuthenticatedRequestOptions = {},
 ): Promise<TResponse> {
   const storedTokens = readStoredAuthTokens();
@@ -198,7 +308,7 @@ export async function requestAuthenticatedApiJson<TResponse>(
   if (!storedTokens) {
     throw new ApiRequestError(
       401,
-      options.missingTokenMessage ?? '로그인 후 이용해주세요.',
+      options.missingTokenMessage ?? appI18n.t('api.loginRequired'),
     );
   }
 
@@ -233,7 +343,7 @@ export async function requestAuthenticatedApiJson<TResponse>(
 
 export async function requestAuthenticatedApi(
   path: string,
-  init: RequestInit,
+  init: ApiRequestInit,
   options: AuthenticatedRequestOptions = {},
 ): Promise<void> {
   const storedTokens = readStoredAuthTokens();
@@ -241,7 +351,7 @@ export async function requestAuthenticatedApi(
   if (!storedTokens) {
     throw new ApiRequestError(
       401,
-      options.missingTokenMessage ?? '로그인 후 이용해주세요.',
+      options.missingTokenMessage ?? appI18n.t('api.loginRequired'),
     );
   }
 

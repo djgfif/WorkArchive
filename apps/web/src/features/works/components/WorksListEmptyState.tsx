@@ -1,7 +1,5 @@
-import {
-  AppButton,
-  AppLinkButton,
-} from '@shared/components/AppPrimitives';
+import { AppButton, AppLinkButton } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 import type { WorksCollectionScope } from '../services/works.service';
 import { ArchiveEmptyState } from './ArchiveComponents';
 
@@ -20,6 +18,7 @@ export function WorksListEmptyState({
   onOpenAddDialog,
   onReturnToActiveCollection,
 }: WorksListEmptyStateProps) {
+  const { t } = useAppTranslation();
   const isTrashScope = collectionScope === 'trash';
 
   return (
@@ -28,31 +27,31 @@ export function WorksListEmptyState({
         <>
           {isTrashScope ? (
             <AppButton onClick={onReturnToActiveCollection} type="button">
-              서재로 돌아가기
+              {t('works.list.returnToLibrary')}
             </AppButton>
           ) : hasActiveFilters ? (
             <>
               <AppButton onClick={onClearFilters} type="button">
-                필터 초기화
+                {t('works.list.resetFilters')}
               </AppButton>
               <AppLinkButton to="/works/new" tone="secondary">
-                직접 추가
+                {t('works.list.directAdd')}
               </AppLinkButton>
             </>
           ) : (
             <>
               <AppLinkButton to="/works/new" tone="primary">
-                직접 추가
+                {t('works.list.directAdd')}
               </AppLinkButton>
               <AppButton
                 onClick={onOpenAddDialog}
                 tone="secondary"
                 type="button"
               >
-                검색으로 추가
+                {t('works.list.searchAdd')}
               </AppButton>
               <AppLinkButton to="/account/settings" tone="quiet">
-                JSON 백업 가져오기
+                {t('works.list.importJsonBackup')}
               </AppLinkButton>
             </>
           )}
@@ -60,20 +59,24 @@ export function WorksListEmptyState({
       }
       description={
         isTrashScope
-          ? '삭제한 작품은 이곳에서 다시 확인하거나 복원할 수 있습니다.'
+          ? t('works.list.emptyTrashDescription')
           : hasActiveFilters
-            ? '검색어나 필터를 바꿔 다시 찾아보세요.'
-            : '제목만 직접 남기거나, 검색으로 기본 정보를 불러오거나, 기존 JSON 백업에서 다시 시작할 수 있습니다.'
+            ? t('works.list.emptyFilterDescription')
+            : t('works.list.emptyActiveDescription')
       }
       eyebrow={
-        isTrashScope ? '휴지통' : hasActiveFilters ? '검색 결과 없음' : '빈 선반'
+        isTrashScope
+          ? t('works.list.emptyTrashEyebrow')
+          : hasActiveFilters
+            ? t('works.list.emptyFilterEyebrow')
+            : t('works.list.emptyActiveEyebrow')
       }
       title={
         isTrashScope
-          ? '휴지통이 비어 있습니다.'
+          ? t('works.list.emptyTrashTitle')
           : hasActiveFilters
-            ? '조건에 맞는 작품이 없습니다.'
-            : '아직 기록한 작품이 없습니다.'
+            ? t('works.list.emptyFilterTitle')
+            : t('works.list.emptyActiveTitle')
       }
     />
   );

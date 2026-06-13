@@ -1,5 +1,6 @@
 import { Grid, Group, Paper, ScrollArea, Stack, Text } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   AppButton,
   FeedbackMessage,
@@ -44,6 +45,8 @@ export function AddWorkSearchResults({
   selectedCandidate,
   shouldSuggestProviderChange,
 }: AddWorkSearchResultsProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Grid.Col span={{ base: 12, md: 5 }}>
       <Paper
@@ -64,7 +67,7 @@ export function AddWorkSearchResults({
                     tone="primary"
                     type="button"
                   >
-                    직접 추가로 계속
+                    {t('works.add.search.resultManualContinue')}
                   </AppButton>
                   {!isManualSearchGroup && (
                     <AppButton
@@ -73,7 +76,7 @@ export function AddWorkSearchResults({
                       tone="secondary"
                       type="button"
                     >
-                      검색 설정 열기
+                      {t('works.add.search.providerSettingsOpen')}
                     </AppButton>
                   )}
                 </Group>
@@ -81,13 +84,13 @@ export function AddWorkSearchResults({
             }
             description={
               hasSearched
-                ? '정확한 후보가 없으면 입력한 제목으로 직접 추가를 이어가세요. 필요하면 검색 설정을 열어 출처를 바꿀 수 있습니다.'
-                : '검색은 선택 사항입니다. 제목을 입력해 후보를 찾거나 직접 추가로 돌아가 바로 저장할 수 있습니다.'
+                ? t('works.add.search.emptyAfterSearchDescription')
+                : t('works.add.search.emptyInitialDescription')
             }
             title={
               hasSearched
-                ? '검색 결과가 없습니다'
-                : '검색어를 입력해 후보를 찾아보세요.'
+                ? t('works.add.search.emptyAfterSearchTitle')
+                : t('works.add.search.emptyInitialTitle')
             }
             tone="info"
           />
@@ -112,18 +115,19 @@ export function AddWorkSearchResults({
 
             {shouldSuggestProviderChange && (
               <FeedbackMessage tone="info">
-                원하는 작품이 보이지 않으면 검색 출처를 바꿔 다시 찾거나, 아래
-                버튼으로 직접 추가를 이어갈 수 있습니다.
+                {t('works.add.search.providerChangeHint')}
               </FeedbackMessage>
             )}
 
             {!isManualSearchGroup && normalizedSearchTerm && (
               <Stack className={cn(css.searchManualFallback)} gap={6}>
                 <Text fw={700} size="sm">
-                  정확한 후보가 없나요?
+                  {t('works.add.search.noExactCandidateTitle')}
                 </Text>
                 <Text c="var(--mantine-color-dimmed)" size="sm">
-                  "{normalizedSearchTerm}"를 제목으로 저장 화면을 이어갑니다.
+                  {t('works.add.search.manualTitleDescription', {
+                    title: normalizedSearchTerm,
+                  })}
                 </Text>
                 <Group gap="xs">
                   <AppButton
@@ -131,7 +135,7 @@ export function AddWorkSearchResults({
                     tone="secondary"
                     type="button"
                   >
-                    직접 추가로 계속
+                    {t('works.add.search.resultManualContinue')}
                   </AppButton>
                   {shouldSuggestProviderChange && (
                     <AppButton
@@ -140,7 +144,7 @@ export function AddWorkSearchResults({
                       tone="quiet"
                       type="button"
                     >
-                      검색 설정 열기
+                      {t('works.add.search.providerSettingsOpen')}
                     </AppButton>
                   )}
                 </Group>

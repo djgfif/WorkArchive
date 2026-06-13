@@ -19,6 +19,7 @@ import type {
   TierLaneRecord,
   WorkRecord,
 } from '@work-archive/shared-types';
+import { useAppTranslation } from '@app/i18n';
 import { worksRepository } from '@features/works';
 import type { TierBoardEditorState } from '../services/tier-board.repository';
 import {
@@ -44,6 +45,7 @@ type FeedbackState = {
 } | null;
 
 export function useTierBoardEditorController(boardId: string | undefined) {
+  const { t } = useAppTranslation();
   const navigate = useNavigate();
   const boardRef = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -197,10 +199,10 @@ export function useTierBoardEditorController(boardId: string | undefined) {
     await tierBoardService.createCustomTextCard(activeBoardId, {
       note: textDraft.note,
       subtitle: textDraft.subtitle,
-      title: textDraft.title || '텍스트 카드',
+      title: textDraft.title || t('tierBoards.source.textCard'),
     });
     setTextDraft({ note: '', subtitle: '', title: '' });
-    await refreshWithSuccess('텍스트 카드를 추가했습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.textCardAdded'));
   }
 
   async function handleCreateUrlCard() {
@@ -209,10 +211,10 @@ export function useTierBoardEditorController(boardId: string | undefined) {
       imageUrl: urlDraft.imageUrl,
       note: urlDraft.note,
       subtitle: urlDraft.subtitle,
-      title: urlDraft.title || '이미지 카드',
+      title: urlDraft.title || t('tierBoards.editor.imageCard'),
     });
     setUrlDraft({ imageUrl: '', note: '', subtitle: '', title: '' });
-    await refreshWithSuccess('이미지 URL 카드를 추가했습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.imageUrlCardAdded'));
   }
 
   function handleUploadFile(file: File | null) {
@@ -225,11 +227,11 @@ export function useTierBoardEditorController(boardId: string | undefined) {
         file.type,
       )
     ) {
-      setUploadError('jpg, jpeg, png, webp 이미지만 업로드할 수 있습니다.');
+      setUploadError(t('tierBoards.editor.invalidImageType'));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setUploadError('이미지 파일은 5MB 이하만 업로드할 수 있습니다.');
+      setUploadError(t('tierBoards.editor.imageTooLarge'));
       return;
     }
     setUploadFile(file);
@@ -245,22 +247,20 @@ export function useTierBoardEditorController(boardId: string | undefined) {
     });
     setUploadDraft({ note: '', subtitle: '', title: '' });
     setUploadFile(null);
-    await refreshWithSuccess('업로드 이미지 카드를 추가했습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.uploadCardAdded'));
   }
 
   async function handleImportWork(workId: string) {
     if (!activeBoardId) return;
     await tierBoardService.createCardFromWorkSnapshot(activeBoardId, workId);
-    await refreshWithSuccess(
-      '작품 카드를 미배치 목록에 추가했습니다. 원하는 행으로 끌어다 놓으세요.',
-    );
+    await refreshWithSuccess(t('tierBoards.editor.workCardAdded'));
   }
 
   async function handleMoveCard(id: string, laneId: string | null) {
     if (!activeBoardId) return;
     if (laneId) await tierBoardService.moveCardToLane(id, laneId);
     else await tierBoardService.removeCardFromLane(id);
-    await refreshWithSuccess('카드 위치를 저장했습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.cardPositionSaved'));
   }
 
   async function handleDeleteCard(id: string) {
@@ -270,23 +270,21 @@ export function useTierBoardEditorController(boardId: string | undefined) {
     if (
       card &&
       (card.cardSourceType === 'image_upload' || card.note.trim()) &&
-      !window.confirm(
-        '이 카드는 이미지 또는 메모가 있습니다. 삭제 후 되돌릴 수 있지만 계속할까요?',
-      )
+      !window.confirm(t('tierBoards.editor.deleteCardConfirm'))
     ) {
       return;
     }
 
     const snapshot = await tierBoardService.deleteCard(id);
     setDeletedCard(snapshot);
-    await refreshWithSuccess('카드를 삭제했습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.cardDeleted'));
   }
 
   async function handleUndoDeleteCard() {
     if (!deletedCard) return;
     await tierBoardService.restoreCardSnapshot(deletedCard);
     setDeletedCard(null);
-    await refreshWithSuccess('카드를 복원했습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.cardRestored'));
   }
 
   async function handleDeleteLane(id: string) {
@@ -295,7 +293,9 @@ export function useTierBoardEditorController(boardId: string | undefined) {
 
     if (
       !window.confirm(
-        `"${lane?.title ?? '선택한 행'}" 행을 삭제할까요? 이 행의 카드는 미배치 카드로 이동됩니다.`,
+        t('tierBoards.editor.deleteLaneConfirm', {
+          title: lane?.title ?? t('tierBoards.editor.selectedLane'),
+        }),
       )
     ) {
       return;
@@ -303,19 +303,19 @@ export function useTierBoardEditorController(boardId: string | undefined) {
 
     const snapshot = await tierBoardService.deleteLane(id);
     setDeletedLane(snapshot);
-    await refreshWithSuccess('행을 삭제하고 카드를 미배치로 옮겼습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.laneDeleted'));
   }
 
   async function handleUndoDeleteLane() {
     if (!deletedLane) return;
     await tierBoardService.restoreLaneDeleteSnapshot(deletedLane);
     setDeletedLane(null);
-    await refreshWithSuccess('행 삭제를 되돌렸습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.laneRestored'));
   }
 
   async function handleDuplicateCard(id: string) {
     await tierBoardService.duplicateCard(id);
-    await refreshWithSuccess('카드를 복제했습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.cardDuplicated'));
   }
 
   async function handleMoveLane(id: string, delta: number) {
@@ -329,7 +329,7 @@ export function useTierBoardEditorController(boardId: string | undefined) {
       activeBoardId,
       arrayMove(laneIds, index, nextIndex),
     );
-    await refreshWithSuccess('행 순서를 저장했습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.laneOrderSaved'));
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -442,7 +442,7 @@ export function useTierBoardEditorController(boardId: string | undefined) {
     await tierBoardService.updateBoard(activeBoardId, {
       visibility: 'exported',
     });
-    await refreshWithSuccess('JSON 파일로 내보냈습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.jsonExported'));
   }
 
   async function handleExportPng() {
@@ -455,11 +455,10 @@ export function useTierBoardEditorController(boardId: string | undefined) {
         pixelRatio: 2,
       });
       downloadDataUrl(`${editorState.board.title}.png`, dataUrl);
-      await refreshWithSuccess('PNG 이미지로 내보냈습니다.');
+      await refreshWithSuccess(t('tierBoards.editor.pngExported'));
     } catch {
       setFeedback({
-        message:
-          'PNG 내보내기에 실패했습니다. 외부 이미지 CORS 때문에 실패했을 수 있습니다.',
+        message: t('tierBoards.editor.pngExportError'),
         tone: 'error',
       });
     } finally {
@@ -488,13 +487,12 @@ export function useTierBoardEditorController(boardId: string | undefined) {
         }),
       ]);
       setFeedback({
-        message: '클립보드에 이미지로 복사했습니다.',
+        message: t('tierBoards.editor.copySuccess'),
         tone: 'success',
       });
     } catch {
       setFeedback({
-        message:
-          '클립보드 복사에 실패했습니다. 외부 이미지 CORS 때문에 실패했을 수 있습니다.',
+        message: t('tierBoards.editor.copyError'),
         tone: 'error',
       });
     }
@@ -522,9 +520,9 @@ export function useTierBoardEditorController(boardId: string | undefined) {
     if (!activeBoardId) return;
     await tierBoardService.createLane(activeBoardId, {
       colorToken: '#64748b',
-      title: '새 행',
+      title: t('tierBoards.editor.newLane'),
     });
-    await refreshWithSuccess('새 행을 추가했습니다.');
+    await refreshWithSuccess(t('tierBoards.editor.newLaneAdded'));
   }
 
   async function saveLaneEditor() {

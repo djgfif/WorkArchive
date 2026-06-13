@@ -17,6 +17,7 @@ import type {
   TierLaneRecord,
 } from '@work-archive/shared-types';
 import { AppButton } from '@shared/components/AppPrimitives';
+import { useAppTranslation, type AppTranslationKey } from '@app/i18n';
 import { TIER_BOARD_TEMPLATES } from '../services/tier-board.service';
 import { LANE_COLORS } from '../utils/tier-board-editor-helpers';
 import styles from '../pages/TierBoardsPage.module.css';
@@ -48,19 +49,21 @@ export function TierBoardSettingsModal({
   setSettingsDraft: Dispatch<SetStateAction<TierBoardSettingsDraft>>;
   settingsDraft: TierBoardSettingsDraft;
 }) {
+  const { t } = useAppTranslation();
+
   return (
-    <Modal onClose={onClose} opened={opened} title="보드 설정">
+    <Modal onClose={onClose} opened={opened} title={t('tierBoards.settings.title')}>
       <Stack gap="md">
         <Paper p="md" radius="md" withBorder>
           <Stack gap="md">
             <Stack gap={2}>
-              <Text fw={800}>보드 정보</Text>
+              <Text fw={800}>{t('tierBoards.settings.boardInfoTitle')}</Text>
               <Text c="dimmed" size="sm">
-                제목, 설명, 보드 표시 방식을 정합니다.
+                {t('tierBoards.settings.boardInfoDescription')}
               </Text>
             </Stack>
             <TextInput
-              label="보드 제목"
+              label={t('tierBoards.settings.boardTitleLabel')}
               onChange={(event) => {
                 const { value } = event.currentTarget;
                 setSettingsDraft((draft) => ({ ...draft, title: value }));
@@ -69,7 +72,7 @@ export function TierBoardSettingsModal({
             />
             <Textarea
               autosize
-              label="보드 설명"
+              label={t('tierBoards.settings.boardDescriptionLabel')}
               minRows={2}
               onChange={(event) => {
                 const { value } = event.currentTarget;
@@ -78,16 +81,16 @@ export function TierBoardSettingsModal({
                   description: value,
                 }));
               }}
-              placeholder="이 보드의 기준이나 용도를 적어두세요."
+              placeholder={t('tierBoards.settings.boardDescriptionPlaceholder')}
               value={settingsDraft.description}
             />
             <Select
               data={[
-                { label: '티어형', value: 'classic_tier' },
-                { label: '순위형', value: 'ranking' },
-                { label: '자유 배치', value: 'freeform' },
+                { label: t('tierBoards.boardType.classic_tier'), value: 'classic_tier' },
+                { label: t('tierBoards.boardType.ranking'), value: 'ranking' },
+                { label: t('tierBoards.boardType.freeform'), value: 'freeform' },
               ]}
-              label="보드 방식"
+              label={t('tierBoards.settings.boardModeLabel')}
               onChange={(value) =>
                 value &&
                 setSettingsDraft((draft) => ({
@@ -99,11 +102,11 @@ export function TierBoardSettingsModal({
             />
             <Select
               data={[
-                { label: '개인용', value: 'private' },
-                { label: '링크 공유', value: 'link_only' },
-                { label: '내보냄', value: 'exported' },
+                { label: t('tierBoards.visibility.private'), value: 'private' },
+                { label: t('tierBoards.visibility.link_only'), value: 'link_only' },
+                { label: t('tierBoards.visibility.exported'), value: 'exported' },
               ]}
-              label="공개 범위"
+              label={t('tierBoards.settings.visibilityLabel')}
               onChange={(value) =>
                 value &&
                 setSettingsDraft((draft) => ({
@@ -119,53 +122,70 @@ export function TierBoardSettingsModal({
         <Paper p="md" radius="md" withBorder>
           <Stack gap="md">
             <Stack gap={2}>
-              <Text fw={800}>행 구성</Text>
+              <Text fw={800}>{t('tierBoards.settings.lanesTitle')}</Text>
               <Text c="dimmed" size="sm">
-                S/A/B 같은 티어 행을 추가하거나 기본 행 템플릿으로 바꿉니다.
+                {t('tierBoards.settings.lanesDescription')}
               </Text>
             </Stack>
             <Group justify="space-between" wrap="wrap">
               <Stack gap={2}>
                 <Text fw={700} size="sm">
-                  새 행 추가
+                  {t('tierBoards.settings.newLaneTitle')}
                 </Text>
                 <Text c="dimmed" size="sm">
-                  추가한 행은 보드에서 이름과 색상을 바로 수정할 수 있습니다.
+                  {t('tierBoards.settings.newLaneDescription')}
                 </Text>
               </Stack>
               <AppButton onClick={onCreateLane} tone="secondary" type="button">
-                행 추가
+                {t('tierBoards.addLane')}
               </AppButton>
             </Group>
             <Select
               data={TIER_BOARD_TEMPLATES.map((template) => ({
-                label: template.title,
-                value: template.title,
+                label: getTemplateLabel(template, t),
+                value: getTemplateValue(template),
               }))}
-              description="선택한 템플릿의 행 구성으로 보드를 다시 만듭니다."
-              label="행 템플릿 적용"
+              description={t('tierBoards.settings.templateDescription')}
+              label={t('tierBoards.settings.templateLabel')}
               onChange={(value) => value && onApplyLaneTemplate(value)}
-              placeholder="예: 기본 S/A/B/C/D"
+              placeholder={t('tierBoards.settings.templatePlaceholder')}
             />
           </Stack>
         </Paper>
 
         <Group justify="space-between">
           <Text c="dimmed" size="sm">
-            행 이름과 색상은 각 행의 ✎ 버튼에서 수정합니다.
+            {t('tierBoards.settings.editLaneHint')}
           </Text>
           <Group gap="xs">
             <AppButton onClick={onClose} tone="quiet" type="button">
-              취소
+              {t('common.cancel')}
             </AppButton>
             <AppButton onClick={onSave} tone="primary" type="button">
-              저장
+              {t('common.save')}
             </AppButton>
           </Group>
         </Group>
       </Stack>
     </Modal>
   );
+}
+
+function getTemplateValue(template: { id?: string; title: string }) {
+  return template.id ?? template.title;
+}
+
+function getTemplateLabel(
+  template: { title: string; titleKey?: AppTranslationKey },
+  t: (key: AppTranslationKey) => string,
+) {
+  return getTemplateText(template.titleKey ?? template.title, t);
+}
+
+function getTemplateText(value: string, t: (key: AppTranslationKey) => string) {
+  return value.startsWith('tierBoards.templates.')
+    ? t(value as AppTranslationKey)
+    : value;
 }
 
 export function TierBoardLaneEditorModal({
@@ -179,12 +199,18 @@ export function TierBoardLaneEditorModal({
   onSave: () => void;
   setLaneEditor: Dispatch<SetStateAction<TierLaneRecord | null>>;
 }) {
+  const { t } = useAppTranslation();
+
   return (
-    <Modal onClose={onClose} opened={laneEditor !== null} title="Lane 수정">
+    <Modal
+      onClose={onClose}
+      opened={laneEditor !== null}
+      title={t('tierBoards.laneEditor.title')}
+    >
       {laneEditor && (
         <Stack gap="md">
           <TextInput
-            label="Label"
+            label={t('tierBoards.laneEditor.label')}
             onChange={(event) => {
               const { value } = event.currentTarget;
               setLaneEditor({ ...laneEditor, title: value });
@@ -193,12 +219,12 @@ export function TierBoardLaneEditorModal({
           />
           <Stack gap="xs">
             <Text fw={700} size="sm">
-              Preset color
+              {t('tierBoards.laneEditor.presetColor')}
             </Text>
             <Group gap="xs">
               {LANE_COLORS.map((color) => (
                 <button
-                  aria-label={`색상 ${color}`}
+                  aria-label={t('tierBoards.laneEditor.colorAria', { color })}
                   className={cn(css.colorChip)}
                   key={color}
                   onClick={() =>
@@ -211,7 +237,7 @@ export function TierBoardLaneEditorModal({
             </Group>
           </Stack>
           <TextInput
-            label="Hex color"
+            label={t('tierBoards.laneEditor.hexColor')}
             onChange={(event) => {
               const { value } = event.currentTarget;
               setLaneEditor({ ...laneEditor, colorToken: value });
@@ -220,7 +246,7 @@ export function TierBoardLaneEditorModal({
           />
           <Textarea
             autosize
-            label="Description"
+            label={t('tierBoards.descriptionLabel')}
             minRows={2}
             onChange={(event) => {
               const { value } = event.currentTarget;
@@ -230,10 +256,10 @@ export function TierBoardLaneEditorModal({
           />
           <Group justify="flex-end">
             <AppButton onClick={onClose} tone="quiet" type="button">
-              취소
+              {t('common.cancel')}
             </AppButton>
             <AppButton onClick={onSave} tone="primary" type="button">
-              저장
+              {t('common.save')}
             </AppButton>
           </Group>
         </Stack>
@@ -253,12 +279,18 @@ export function TierBoardCardEditorModal({
   onSave: () => void;
   setCardEditor: Dispatch<SetStateAction<TierBoardCardRecord | null>>;
 }) {
+  const { t } = useAppTranslation();
+
   return (
-    <Modal onClose={onClose} opened={cardEditor !== null} title="카드 수정">
+    <Modal
+      onClose={onClose}
+      opened={cardEditor !== null}
+      title={t('tierBoards.cardEditor.title')}
+    >
       {cardEditor && (
         <Stack gap="md">
           <TextInput
-            label="Title"
+            label={t('tierBoards.titleLabel')}
             onChange={(event) => {
               const { value } = event.currentTarget;
               setCardEditor({ ...cardEditor, title: value });
@@ -266,7 +298,7 @@ export function TierBoardCardEditorModal({
             value={cardEditor.title}
           />
           <TextInput
-            label="Subtitle"
+            label={t('tierBoards.cardEditor.subtitle')}
             onChange={(event) => {
               const { value } = event.currentTarget;
               setCardEditor({ ...cardEditor, subtitle: value });
@@ -274,7 +306,7 @@ export function TierBoardCardEditorModal({
             value={cardEditor.subtitle}
           />
           <TextInput
-            label="Image URL"
+            label={t('tierBoards.cardEditor.imageUrl')}
             onChange={(event) => {
               const { value } = event.currentTarget;
               setCardEditor({ ...cardEditor, imageUrl: value });
@@ -283,7 +315,7 @@ export function TierBoardCardEditorModal({
           />
           <Textarea
             autosize
-            label="Note"
+            label={t('tierBoards.cardEditor.note')}
             minRows={2}
             onChange={(event) => {
               const { value } = event.currentTarget;
@@ -293,10 +325,10 @@ export function TierBoardCardEditorModal({
           />
           <Group justify="flex-end">
             <AppButton onClick={onClose} tone="quiet" type="button">
-              취소
+              {t('common.cancel')}
             </AppButton>
             <AppButton onClick={onSave} tone="primary" type="button">
-              저장
+              {t('common.save')}
             </AppButton>
           </Group>
         </Stack>

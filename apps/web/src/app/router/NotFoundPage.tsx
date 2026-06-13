@@ -1,23 +1,26 @@
 import { AppLinkButton } from '@shared/components/AppPrimitives';
 import { MinimalPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { useAppTranslation } from '@app/i18n';
 
 export function NotFoundPage() {
-  usePageTitle('페이지를 찾을 수 없습니다');
+  const { t } = useAppTranslation();
+
+  usePageTitle(t('notFound.title'));
 
   return (
     <MinimalPageTemplate
       actions={
         <>
           <AppLinkButton to="/" tone="primary">
-            홈으로 이동
+            {t('notFound.home')}
           </AppLinkButton>
-          <AppLinkButton to="/works">작품 보기</AppLinkButton>
+          <AppLinkButton to="/works">{t('notFound.works')}</AppLinkButton>
         </>
       }
-      description="요청한 주소를 찾을 수 없습니다. 홈이나 작품 화면으로 돌아가 다시 이어갈 수 있습니다."
-      eyebrow="찾을 수 없음"
-      title="페이지를 찾을 수 없습니다."
+      description={t('notFound.description')}
+      eyebrow={t('notFound.eyebrow')}
+      title={t('notFound.title')}
     />
   );
 }

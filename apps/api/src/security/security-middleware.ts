@@ -1,11 +1,17 @@
 import { Logger } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
-import rateLimit, { type Options, type Store } from 'express-rate-limit';
+import rateLimit, {
+  ipKeyGenerator,
+  type Options,
+  type Store,
+} from 'express-rate-limit';
+import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { RedisStore, type RedisReply } from 'rate-limit-redis';
 import { randomUUID } from 'node:crypto';
 
 import { connectRedisClient, type RedisClient } from '../common/redis-client';
 import type { ApiRuntimeConfig } from '../config/api-runtime-config';
+import type { AuthTokenPayload } from '../modules/auth/auth.types';
 import { normalizeRequestId } from './request-id';
 import type { SecurityAuditService } from './security-audit.service';
 import { setRequestId } from './security-audit.service';
@@ -220,6 +226,7 @@ export async function createSecurityRateLimiters(
         config.syncRateLimitMax,
         syncRateLimitStore,
         securityAudit,
+        createSyncRateLimitKeyGenerator(config),
       ),
     ),
     importsGuest: rateLimit({
@@ -255,6 +262,7 @@ function buildRateLimitOptions(
   limit: number,
   store: Store | undefined,
   securityAudit: SecurityAuditService,
+  keyGenerator?: Options['keyGenerator'],
 ): Partial<Options> {
   return {
     handler: (request, response, _next, optionsUsed) => {
@@ -280,9 +288,67 @@ function buildRateLimitOptions(
     limit,
     passOnStoreError: false,
     standardHeaders: true,
+    ...(keyGenerator ? { keyGenerator } : {}),
     ...(store ? { store } : {}),
     windowMs: config.rateLimitWindowMs,
   };
+}
+
+function createSyncRateLimitKeyGenerator(
+  config: ApiRuntimeConfig,
+): NonNullable<Options['keyGenerator']> {
+  return (request) => {
+    const verifiedToken = readVerifiedAccessTokenPayload(request, config);
+
+    if (verifiedToken) {
+      return `user:${verifiedToken.sub}:session:${verifiedToken.sid}`;
+    }
+
+    return `ip:${ipKeyGenerator(request.ip ?? '')}`;
+  };
+}
+
+function readVerifiedAccessTokenPayload(
+  request: Request,
+  config: ApiRuntimeConfig,
+): AuthTokenPayload | null {
+  const authorization = request.header('authorization')?.trim();
+  const match = /^Bearer\s+(\S+)$/i.exec(authorization ?? '');
+
+  if (!match) {
+    return null;
+  }
+
+  const token = match[1] ?? '';
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const decoded = jwt.verify(token, config.jwtAccessSecret) as JwtPayload;
+
+    if (
+      typeof decoded.sub !== 'string' ||
+      typeof decoded.email !== 'string' ||
+      typeof decoded.sid !== 'string' ||
+      decoded.type !== 'access'
+    ) {
+      return null;
+    }
+
+    return {
+      email: decoded.email,
+      sid: decoded.sid,
+      sub: decoded.sub,
+      type: decoded.type,
+      ...(typeof decoded.rememberMe === 'boolean'
+        ? { rememberMe: decoded.rememberMe }
+        : {}),
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function createRateLimitStore(

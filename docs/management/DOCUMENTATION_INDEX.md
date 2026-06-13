@@ -10,6 +10,7 @@ documentation navigation and maintenance rules.
 | [`getting-started/`](../getting-started/) | [`LOCAL_DEVELOPMENT.md`](../getting-started/LOCAL_DEVELOPMENT.md)                                 | setting up the project locally                       |
 | [`architecture/`](../architecture/)       | [`FEATURE_FIRST_STRUCTURE.md`](../architecture/FEATURE_FIRST_STRUCTURE.md)                        | checking web/API/package boundaries                  |
 | [`architecture/`](../architecture/)       | [`API_BOUNDARY_GUIDE.md`](../architecture/API_BOUNDARY_GUIDE.md)                                  | deciding where new API behavior belongs              |
+| [`architecture/`](../architecture/)       | [`I18N_LOCALIZATION.md`](../architecture/I18N_LOCALIZATION.md)                                    | checking web i18n string ownership and locale policy |
 | [`commercial/`](../commercial/)           | [`COMMERCIAL_LAUNCH_READINESS.md`](../commercial/COMMERCIAL_LAUNCH_READINESS.md)                  | checking public beta and launch readiness gates      |
 | [`operations/`](../operations/)           | [`RUNBOOK.md`](../operations/RUNBOOK.md)                                                          | running, deploying, recovering, or releasing the app |
 | [`sync/`](../sync/)                       | [`SYNC_AUTO_MERGE_POLICY.md`](../sync/SYNC_AUTO_MERGE_POLICY.md)                                  | checking sync auto-merge and lease policy            |

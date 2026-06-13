@@ -6,6 +6,7 @@ import type { WorkRecord } from '@work-archive/shared-types';
 
 import { confirmDialogAdapter } from '@shared/runtime/dialog-adapter';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { useAppTranslation } from '@app/i18n';
 import { JsonBackupReminderCard } from '@features/archive';
 import { useJsonArchiveExport } from '@features/archive';
 import { useJsonBackupReminder } from '@features/archive';
@@ -32,7 +33,8 @@ import {
 } from '../utils/works-list-url-state';
 
 export function WorksListPage() {
-  usePageTitle('작품 서재');
+  const { t } = useAppTranslation();
+  usePageTitle(t('works.list.pageTitle'));
   const location = useLocation();
   const navigate = useNavigate();
   const { archiveScopeKey } = useAuthSession();
@@ -98,8 +100,8 @@ export function WorksListPage() {
 
   async function handleDelete(work: WorkRecord) {
     const shouldDelete = await confirmDialogAdapter.confirm({
-      description: '서재에서는 숨겨지고 휴지통에서 다시 복원할 수 있습니다.',
-      title: `"${work.title}"을 휴지통으로 이동할까요?`,
+      description: t('works.list.deleteDescription'),
+      title: t('works.list.deleteTitle', { title: work.title }),
     });
 
     if (!shouldDelete) return;
@@ -113,7 +115,7 @@ export function WorksListPage() {
       setActionError(
         deleteError instanceof Error
           ? deleteError.message
-          : '작품을 삭제하지 못했습니다.',
+          : t('works.list.deleteError'),
       );
     }
   }
@@ -127,12 +129,12 @@ export function WorksListPage() {
       setDeletedNotice((currentNotice) =>
         currentNotice?.id === work.id ? null : currentNotice,
       );
-      setActionSuccess('되돌렸습니다.');
+      setActionSuccess(t('works.list.restored'));
     } catch (restoreError) {
       setActionError(
         restoreError instanceof Error
           ? restoreError.message
-          : '작품을 복원하지 못했습니다.',
+          : t('works.list.restoreError'),
       );
     } finally {
       setRestoringWorkId(null);
@@ -152,7 +154,7 @@ export function WorksListPage() {
       setUpdatingWorkId(work.id);
 
       const latestWork = await worksService.getWorkById(work.id);
-      if (!latestWork) throw new Error('작품을 찾을 수 없습니다.');
+      if (!latestWork) throw new Error(t('works.list.workMissing'));
 
       await worksService.updateWork(work.id, {
         ...createUpsertWorkInputFromRecord(latestWork),
@@ -162,7 +164,7 @@ export function WorksListPage() {
       setActionError(
         updateError instanceof Error
           ? updateError.message
-          : '작품을 바로 수정하지 못했습니다.',
+          : t('works.list.quickEditError'),
       );
     } finally {
       setUpdatingWorkId(null);
@@ -178,7 +180,7 @@ export function WorksListPage() {
       nextValues.progressTotal !== null &&
       nextValues.progressCurrent > nextValues.progressTotal
     ) {
-      setActionError('현재 진행량이 전체 진행량보다 클 수 없습니다.');
+      setActionError(t('works.progress.invalidRange'));
       return;
     }
 
@@ -190,7 +192,7 @@ export function WorksListPage() {
       setActionError(
         updateError instanceof Error
           ? updateError.message
-          : '진행도를 바로 수정하지 못했습니다.',
+          : t('works.progress.quickEditError'),
       );
     } finally {
       setUpdatingWorkId(null);

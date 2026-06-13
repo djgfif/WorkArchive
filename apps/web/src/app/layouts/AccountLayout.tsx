@@ -17,6 +17,7 @@ import {
   LoadingState,
   ThemeToggleControl,
 } from '@shared/components/AppPrimitives';
+import { useAppTranslation } from '@app/i18n';
 import { getUserAvatarProfile, useAuthSession } from '@features/auth';
 
 /* ── 아이콘 ── */
@@ -101,13 +102,22 @@ function IconArchive({ size = 15 }: { size?: number }) {
 }
 
 const accountNavigationItems = [
-  { label: '계정 개요', to: '/account', icon: <IconHome /> },
-  { label: '설정과 백업', to: '/account/settings', icon: <IconSettings /> },
+  {
+    labelKey: 'navigation.accountOverview',
+    to: '/account',
+    icon: <IconHome />,
+  },
+  {
+    labelKey: 'navigation.settingsBackup',
+    to: '/account/settings',
+    icon: <IconSettings />,
+  },
 ] as const;
 
 export function AccountLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useAppTranslation();
   const { isLoading, mode, signOut, user } = useAuthSession();
   const isAuthenticated = mode === 'authenticated';
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
@@ -118,7 +128,9 @@ export function AccountLayout() {
   }
 
   const avatarProfile = getUserAvatarProfile(isAuthenticated ? user : null);
-  const accountLabel = isAuthenticated ? avatarProfile.displayName : '게스트';
+  const accountLabel = isAuthenticated
+    ? avatarProfile.displayName
+    : t('navigation.guest');
   const avatarInitial = isAuthenticated ? avatarProfile.initial : 'G';
   const avatarImageUrl = isAuthenticated ? avatarProfile.imageUrl : '';
 
@@ -157,7 +169,7 @@ export function AccountLayout() {
           {/* 콘텐츠 영역 */}
           <Grid.Col span={{ base: 12, lg: 9 }}>
             {isLoading ? (
-              <LoadingState rows={2} title="계정 설정을 준비하고 있습니다" />
+              <LoadingState rows={2} title={t('settings.loadingTitle')} />
             ) : (
               <Box
                 style={{
@@ -195,6 +207,7 @@ function AccountSidebar({
   variant,
 }: AccountSidebarProps) {
   const isMobile = variant === 'mobile';
+  const { t } = useAppTranslation();
 
   return (
     <Stack gap="sm">
@@ -207,7 +220,10 @@ function AccountSidebar({
             'linear-gradient(180deg, color-mix(in srgb, var(--app-surface-card) 92%, transparent), var(--app-surface-subtle))',
         }}
       >
-        <BrandLink heading="Work Archive" kicker="개인 감상 아카이브" />
+        <BrandLink
+          heading="Work Archive"
+          kicker={t('navigation.accountBrandKicker')}
+        />
       </Box>
 
       <Box
@@ -262,7 +278,9 @@ function AccountSidebar({
                   }}
                 />
                 <Text c="dimmed" size="xs">
-                  {isAuthenticated ? '로그인됨' : '게스트 — 로컬 저장'}
+                  {isAuthenticated
+                    ? t('navigation.signedIn')
+                    : t('navigation.guestLocalStorage')}
                 </Text>
               </Group>
             </Stack>
@@ -272,7 +290,7 @@ function AccountSidebar({
         {/* 네비게이션 */}
         <Box
           component="nav"
-          aria-label="계정 내비게이션"
+          aria-label={t('common.account')}
           style={{ padding: '0.5rem' }}
         >
           <Stack gap={2}>
@@ -281,7 +299,7 @@ function AccountSidebar({
                 end={item.to === '/account'}
                 icon={item.icon}
                 key={item.to}
-                label={item.label}
+                label={t(item.labelKey)}
                 to={item.to}
               />
             ))}
@@ -297,7 +315,7 @@ function AccountSidebar({
             <AccountNavItem
               end={false}
               icon={<IconArchive />}
-              label="작품 목록으로"
+              label={t('navigation.worksList')}
               to="/works"
             />
 
@@ -345,13 +363,13 @@ function AccountSidebar({
                 >
                   <IconLogOut />
                 </Box>
-                로그아웃
+                {t('navigation.logout')}
               </Box>
             ) : (
               <AccountNavItem
                 end={false}
                 icon={<IconLogin />}
-                label="로그인"
+                label={t('navigation.login')}
                 state={{
                   returnTo: loginReturnTo,
                 }}

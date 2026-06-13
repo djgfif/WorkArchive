@@ -10,6 +10,7 @@ import {
 } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
 
+import { useAppTranslation } from '@app/i18n';
 import { ArtworkPoster } from '@shared/components/ArtworkPoster';
 import {
   ActionRow,
@@ -45,9 +46,12 @@ function formatExternalIdentityLabel(
     .join(' · ');
 }
 
-function getTitleSourceLabel(candidate: ImportCandidate) {
+function getTitleSourceLabel(
+  candidate: ImportCandidate,
+  t: ReturnType<typeof useAppTranslation>['t'],
+) {
   if (isPreviewOrManualCandidate(candidate)) {
-    return '입력한 제목';
+    return t('works.add.search.titleSourceManual');
   }
 
   const aliasCount = candidate.titleAliases?.filter(
@@ -55,8 +59,8 @@ function getTitleSourceLabel(candidate: ImportCandidate) {
   ).length;
 
   return aliasCount && aliasCount > 0
-    ? `대표 제목 + 별칭 ${aliasCount}개`
-    : '대표 제목만 확인';
+    ? t('works.add.search.titleSourceAliases', { count: aliasCount })
+    : t('works.add.search.titleSourceOnly');
 }
 
 export function CandidatePreviewPanel({
@@ -64,6 +68,7 @@ export function CandidatePreviewPanel({
   duplicateMatches,
   onApply,
 }: CandidatePreviewPanelProps) {
+  const { t } = useAppTranslation();
   const sourceCoverage = getCandidateSourceCoverage(candidate);
   const isManualCandidate = isPreviewOrManualCandidate(candidate);
   const scoreBreakdown = isManualCandidate
@@ -96,7 +101,9 @@ export function CandidatePreviewPanel({
             <ActionRow>
               <AppBadge>{getWorkTypeLabel(candidate.mediumType)}</AppBadge>
               {isManualCandidate ? (
-                <AppBadge tone="accent">직접 추가 후보</AppBadge>
+                <AppBadge tone="accent">
+                  {t('works.add.search.manualCandidate')}
+                </AppBadge>
               ) : (
                 <>
                   <AppBadge tone="success">
@@ -106,14 +113,16 @@ export function CandidatePreviewPanel({
                   {wikidataIncluded && (
                     <AppBadge tone="accent">
                       {candidate.sourceId === 'wikidata'
-                        ? 'Wikidata 출처 포함'
-                        : 'Wikidata 보강'}
+                        ? t('works.add.search.wikidataIncluded')
+                        : t('works.add.search.wikidataEnhanced')}
                     </AppBadge>
                   )}
                 </>
               )}
               {!isManualCandidate && candidate.catalogMatch && (
-                <AppBadge tone="success">카탈로그 매칭</AppBadge>
+                <AppBadge tone="success">
+                  {t('works.add.search.catalogMatch')}
+                </AppBadge>
               )}
             </ActionRow>
 
@@ -126,22 +135,29 @@ export function CandidatePreviewPanel({
           </Stack>
 
           <Text c="var(--mantine-color-text)" lh={1.7}>
-            {candidate.description || '설명은 아직 없습니다.'}
+            {candidate.description || t('works.add.search.descriptionEmpty')}
           </Text>
 
           <ActionRow>
             <MetricPill
-              label={isManualCandidate ? '입력 방식' : '검색 출처'}
+              label={
+                isManualCandidate
+                  ? t('works.add.search.inputMode')
+                  : t('works.add.search.searchSource')
+              }
               value={
                 isManualCandidate
-                  ? '입력한 제목으로 직접 기록'
+                  ? t('works.add.search.manualRecord')
                   : sourceCoverage.summaryLabel
               }
             />
-            <MetricPill label="형식" value={candidate.formatLabel} />
             <MetricPill
-              label="제목 근거"
-              value={getTitleSourceLabel(candidate)}
+              label={t('works.add.search.format')}
+              value={candidate.formatLabel}
+            />
+            <MetricPill
+              label={t('works.add.search.titleEvidence')}
+              value={getTitleSourceLabel(candidate, t)}
             />
           </ActionRow>
 
@@ -178,11 +194,13 @@ export function CandidatePreviewPanel({
       >
         <Stack gap="sm">
           <Text c="var(--mantine-color-dimmed)" fw={700} size="sm">
-            {isManualCandidate ? '직접 추가 안내' : '검색 근거'}
+            {isManualCandidate
+              ? t('works.add.search.directGuide')
+              : t('works.add.search.searchEvidence')}
           </Text>
           <Text c="var(--mantine-color-text)" lineClamp={3} size="sm">
             {isManualCandidate
-              ? '외부 검색 결과가 아니라 입력한 제목으로 직접 기록합니다.'
+              ? t('works.add.search.directGuideBody')
               : candidate.reason}
           </Text>
           {!isManualCandidate && candidate.note && (
@@ -202,7 +220,9 @@ export function CandidatePreviewPanel({
               </>
             )}
             {candidate.existingRecord && (
-              <AppBadge tone="warning">이미 내 기록에 있음</AppBadge>
+              <AppBadge tone="warning">
+                {t('works.add.search.alreadyInRecord')}
+              </AppBadge>
             )}
           </ActionRow>
           {!isManualCandidate && (
@@ -214,7 +234,9 @@ export function CandidatePreviewPanel({
               ))}
               {hiddenProviderCount > 0 && (
                 <AppBadge tone="muted">
-                  출처 {hiddenProviderCount}개 더 있음
+                  {t('works.add.search.moreSources', {
+                    count: hiddenProviderCount,
+                  })}
                 </AppBadge>
               )}
             </ActionRow>
@@ -225,7 +247,9 @@ export function CandidatePreviewPanel({
               variant="contained"
             >
               <Accordion.Item value="external-identity">
-                <Accordion.Control>외부 식별자 보기</Accordion.Control>
+                <Accordion.Control>
+                  {t('works.add.search.externalIdentityShow')}
+                </Accordion.Control>
                 <Accordion.Panel>
                   <ActionRow>
                     {externalIdentityLabels.map((identityLabel) => (
@@ -254,7 +278,7 @@ export function CandidatePreviewPanel({
                 rel="noreferrer"
                 target="_blank"
               >
-                원본 페이지 열기
+                {t('works.add.search.sourcePageOpen')}
               </Anchor>
             </ActionRow>
           )}
@@ -265,12 +289,11 @@ export function CandidatePreviewPanel({
         <Alert
           color="yellow"
           radius="md"
-          title="후보를 확인하고 직접 추가도 고려하세요"
+          title={t('works.add.search.manualReviewTitle')}
           variant="light"
         >
           <Text c="inherit" size="sm">
-            제목이나 출처 신호가 약한 후보입니다. 맞는 작품인지 확인한 뒤
-            사용하거나, 검색을 닫고 직접 입력으로 계속할 수 있습니다.
+            {t('works.add.search.manualReviewDescription')}
           </Text>
         </Alert>
       )}
@@ -279,13 +302,12 @@ export function CandidatePreviewPanel({
         <Alert
           color="blue"
           radius="md"
-          title="비슷한 기록이 이미 있습니다"
+          title={t('works.add.search.duplicateTitle')}
           variant="light"
         >
           <Stack gap="sm">
             <Text c="inherit" size="sm">
-              같은 작품일 수 있는 기록을 먼저 확인하세요. 다른 작품이라면 그대로
-              입력을 채워도 됩니다.
+              {t('works.add.search.duplicateDescription')}
             </Text>
             {duplicateMatches.map((work) =>
               work.deletedAt === null ? (
@@ -302,7 +324,7 @@ export function CandidatePreviewPanel({
                   to={`/works?scope=trash&q=${encodeURIComponent(work.title)}`}
                   tone="quiet"
                 >
-                  {work.title} 휴지통에서 보기
+                  {t('works.add.search.viewInTrash', { title: work.title })}
                 </AppLinkButton>
               ),
             )}
@@ -312,12 +334,12 @@ export function CandidatePreviewPanel({
 
       <ActionRow justify="space-between">
         <Text c="var(--mantine-color-dimmed)" size="sm">
-          이 후보로 제목과 작품 정보를 채우고, 저장은 메인 폼에서 진행합니다.
+          {t('works.add.search.applyDescription')}
         </Text>
         <AppButton onClick={onApply} tone="primary" type="button">
           {isManualCandidate
-            ? '직접 추가로 입력 채우기'
-            : '이 후보로 입력 채우기'}
+            ? t('works.add.search.applyManual')
+            : t('works.add.search.applyCandidate')}
         </AppButton>
       </ActionRow>
     </Stack>

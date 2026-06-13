@@ -2,12 +2,15 @@ import {
   featureFlags,
   type FeatureFlags,
 } from '@shared/runtime/feature-flags';
+import { appI18n } from '@app/i18n';
 
 export function getPrimaryNavigationItems(flags: FeatureFlags = featureFlags) {
   return [
-    { label: '홈', to: '/' },
-    { label: '작품', to: '/works' },
-    { label: '인사이트', to: '/insights' },
-    ...(flags.tierBoards ? [{ label: '티어보드', to: '/tier-boards' }] : []),
+    { label: appI18n.t('navigation.home'), to: '/' },
+    { label: appI18n.t('navigation.works'), to: '/works' },
+    { label: appI18n.t('navigation.insights'), to: '/insights' },
+    ...(flags.tierBoards
+      ? [{ label: appI18n.t('navigation.tierBoards'), to: '/tier-boards' }]
+      : []),
   ] as const;
 }

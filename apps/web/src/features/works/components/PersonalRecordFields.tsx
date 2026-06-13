@@ -1,5 +1,6 @@
 import { Group, SimpleGrid, Stack, Text, Textarea } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import {
   ActionRow,
   AppBadge,
@@ -24,10 +25,12 @@ interface StatusButtonGroupProps {
 }
 
 function StatusButtonGroup({ onChange, value }: StatusButtonGroupProps) {
+  const { t } = useAppTranslation();
+
   return (
     <Stack gap={6}>
       <Text c="var(--mantine-color-dimmed)" fw={600} size="sm">
-        상태
+        {t('works.form.statusLabel')}
       </Text>
       <Group gap="xs" wrap="wrap">
         {workStatusOptions.map((option) => (
@@ -61,6 +64,7 @@ export function PersonalRecordFields({
   onStatusChange,
   values,
 }: PersonalRecordFieldsProps) {
+  const { t } = useAppTranslation();
   const ratingValue =
     values.rating.trim() === '' ? null : Number.parseFloat(values.rating);
   const normalizedRating =
@@ -69,9 +73,9 @@ export function PersonalRecordFields({
   return (
     <Stack gap="md">
       <ActionRow>
-        <AppBadge tone="accent">내 기록</AppBadge>
+        <AppBadge tone="accent">{t('works.form.recordBadge')}</AppBadge>
         <Text c="var(--mantine-color-dimmed)" size="sm">
-          상태, 별점, 한줄평만 먼저 남겨도 충분합니다.
+          {t('works.form.recordDescription')}
         </Text>
       </ActionRow>
 
@@ -79,7 +83,7 @@ export function PersonalRecordFields({
         <StatusButtonGroup onChange={onStatusChange} value={values.status} />
 
         <StarRatingInput
-          label="별점"
+          label={t('works.form.ratingLabel')}
           onChange={onRatingChange}
           value={normalizedRating}
         />
@@ -87,10 +91,10 @@ export function PersonalRecordFields({
         <div className={cn(css.gridSpanFull)}>
           <Textarea
             id={getFieldId(idPrefix, 'shortReview')}
-            label="한줄평"
+            label={t('works.form.shortReviewLabel')}
             name="shortReview"
             onChange={onInputChange}
-            placeholder="짧게 남길 감상을 적어보세요"
+            placeholder={t('works.form.shortReviewPlaceholder')}
             rows={2}
             value={values.shortReview}
           />
@@ -101,8 +105,7 @@ export function PersonalRecordFields({
           className={cn(css.gridSpanFull)}
           size="sm"
         >
-          긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수
-          있습니다.
+          {t('works.form.recordLongReviewHelp')}
         </Text>
       </SimpleGrid>
     </Stack>

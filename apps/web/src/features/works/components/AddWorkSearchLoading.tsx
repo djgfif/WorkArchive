@@ -1,11 +1,14 @@
 import { Group, Skeleton, Stack, Text } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import styles from './ArchiveComponents.module.css';
 import { cn } from '@shared/utils/class-names';
 
 const css = styles;
 
 export function SearchCandidateLoadingList() {
+  const { t } = useAppTranslation();
+
   return (
     <Stack
       aria-busy="true"
@@ -13,9 +16,9 @@ export function SearchCandidateLoadingList() {
       data-testid="candidate-search-loading"
       gap="sm"
     >
-      <Text fw={700}>검색 후보를 불러오는 중입니다</Text>
+      <Text fw={700}>{t('works.add.search.searchingCandidates')}</Text>
       <Text c="var(--mantine-color-dimmed)" size="sm">
-        출처별 결과, 중복 가능성, 적용할 수 있는 정보를 함께 정리하고 있습니다.
+        {t('works.add.search.searchingCandidatesDescription')}
       </Text>
       {Array.from({ length: 4 }, (_, index) => (
         <Stack

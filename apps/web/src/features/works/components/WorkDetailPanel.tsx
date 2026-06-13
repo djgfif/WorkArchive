@@ -12,6 +12,7 @@ import {
   getWorkStatusLabel,
   getWorkTypeLabel,
 } from '../utils/work-options';
+import { appI18n } from '@app/i18n';
 import {
   getContributorEntries,
   getGraphTagKindLabel,
@@ -35,17 +36,17 @@ import { buildWorkDetailTimelineItems } from '../utils/work-detail-timeline';
 const WORK_CONTRIBUTOR_ROLE_LABELS: Partial<
   Record<WorkContributorRole, string>
 > = {
-  artist: '아티스트',
-  author: '작가',
-  director: '감독',
-  illustrator: '일러스트',
-  original_creator: '원작',
-  platform: '플랫폼',
-  production_company: '제작사',
-  publisher: '출판사',
-  screenwriter: '각본',
-  studio: '스튜디오',
-  translator: '번역',
+  artist: appI18n.t('works.detail.contributorArtist'),
+  author: appI18n.t('works.detail.contributorAuthor'),
+  director: appI18n.t('works.detail.contributorDirector'),
+  illustrator: appI18n.t('works.detail.contributorIllustrator'),
+  original_creator: appI18n.t('works.detail.relationOriginal'),
+  platform: appI18n.t('works.detail.contributorPlatform'),
+  production_company: appI18n.t('works.detail.contributorProductionCompany'),
+  publisher: appI18n.t('works.detail.contributorPublisher'),
+  screenwriter: appI18n.t('works.detail.contributorScreenwriter'),
+  studio: appI18n.t('works.detail.contributorStudio'),
+  translator: appI18n.t('works.detail.contributorTranslator'),
 };
 
 function getWorkContributorRoleLabel(role: WorkContributorRole) {
@@ -148,10 +149,12 @@ function getSeriesTags(
 
 function getSourceIdentityLabel(work: WorkRecord) {
   if (work.catalogTitleId) {
-    return '카탈로그 연결됨';
+    return appI18n.t('works.detail.catalogLinked');
   }
 
-  return work.importDraft ? '외부 검색 초안' : '직접 기록';
+  return work.importDraft
+    ? appI18n.t('works.detail.catalogDraft')
+    : appI18n.t('works.detail.directRecord');
 }
 
 export function WorkDetailPanel({

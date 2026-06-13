@@ -5,6 +5,7 @@ import {
   type WorkType,
 } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import type { ExternalImportEntry } from './anilist-user-list.service';
 
 /**
@@ -248,9 +249,7 @@ export function parseRecordsCsv(text: string): ExternalImportEntry[] {
   const titleIndex = columns.get('title');
 
   if (titleIndex === undefined) {
-    throw new Error(
-      'CSV에서 제목 열을 찾지 못했습니다. 첫 줄 헤더에 "제목" 또는 "title" 열이 필요합니다.',
-    );
+    throw new Error(appI18n.t('imports.csv.missingTitleColumn'));
   }
 
   const read = (cells: string[], field: string) => {
@@ -307,8 +306,8 @@ export function parseRecordsCsv(text: string): ExternalImportEntry[] {
 /** 사용자가 빈 양식으로 시작할 수 있는 CSV 템플릿. */
 export function createCsvImportTemplate() {
   return [
-    '제목,유형,상태,별점,작가,태그,한줄평,표지',
-    '전지적 독자 시점,웹소설,보는 중,4.5,싱숑,회귀; 사이다,메타적 재미가 압도적,',
-    '귀멸의 칼날,애니,완료,4.5,고토게 코요하루,,극장판은 꼭 볼 것,',
+    appI18n.t('imports.csv.templateHeader'),
+    appI18n.t('imports.csv.templateRowNovel'),
+    appI18n.t('imports.csv.templateRowAnime'),
   ].join('\n');
 }
