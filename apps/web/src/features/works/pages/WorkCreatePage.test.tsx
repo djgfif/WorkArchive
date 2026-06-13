@@ -436,8 +436,8 @@ describe('WorkCreatePage', () => {
       await screen.findByText('게스트 직접 추가를 등록했습니다'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: '방금 등록한 작품 보기' }),
-    ).toBeInTheDocument();
+      screen.getByRole('link', { name: '방금 등록한 작품 보기' }),
+    ).toHaveAttribute('href', expect.stringContaining('/works/'));
     expect(queueItems).toEqual([
       expect.objectContaining({
         entityId: savedWork?.id,

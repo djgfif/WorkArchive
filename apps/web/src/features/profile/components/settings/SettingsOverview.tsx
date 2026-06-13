@@ -100,8 +100,8 @@ export function SettingsOverview({
   );
   const backupQueueLabel =
     stats.syncQueueItemCount === 0
-      ? '백업 대기 없음'
-      : `백업 대기 ${stats.syncQueueItemCount}개`;
+      ? '백업 대기 중인 기록 없음'
+      : `백업 대기 중인 기록 ${stats.syncQueueItemCount}개`;
   const hasStorageOriginWarning = stats.isNonStandardLocalOrigin;
   const hasLocalOnlyWarning =
     mode === 'authenticated' && stats.localOnlyWorkCount > 0;
@@ -184,7 +184,7 @@ export function SettingsOverview({
   return (
     <Stack gap="md">
       <SectionIntro
-        description="현재 브라우저에 저장된 기록, 백업 대기 상태, 마지막 JSON 백업 시각을 즉시 확인합니다."
+        description="현재 브라우저에 저장된 기록, 백업 대기 중인 기록, 마지막 JSON 백업 시각을 즉시 확인합니다."
         eyebrow="설정과 백업"
         title="설정 개요"
       />

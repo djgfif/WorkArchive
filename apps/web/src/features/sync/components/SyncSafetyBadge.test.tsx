@@ -92,7 +92,7 @@ describe('SyncSafetyBadge', () => {
         mode: 'authenticated',
         pendingCount: 1,
       }).label,
-    ).toBe('백업 대기 1');
+    ).toBe('백업 대기 중인 기록 1');
   });
 
   it('shows stale remote check state before pending backup state', () => {

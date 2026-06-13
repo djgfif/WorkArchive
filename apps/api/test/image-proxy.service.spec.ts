@@ -170,6 +170,27 @@ describe('ImageProxyService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('allows OpenLibrary cover redirects to archive.org image files', async () => {
+    upstreamFetchMock
+      .mockResolvedValueOnce(
+        new Response(null, {
+          headers: {
+            location:
+              'https://archive.org/download/olcovers1/olcovers1-L.zip/123-L.jpg',
+          },
+          status: 302,
+        }),
+      )
+      .mockResolvedValueOnce(imageResponse('archive-cover'));
+
+    const image = await service.getImage(
+      'https://covers.openlibrary.org/b/id/123-L.jpg',
+    );
+
+    expect(image.body.toString()).toBe('archive-cover');
+    expect(upstreamFetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('validates redirect target DNS against private addresses', async () => {
     lookupMock
       .mockResolvedValueOnce([

@@ -13,6 +13,19 @@
         "export PATH=\"$HOME/.nvm/versions/node/v22.22.3/bin:$PATH\" && cd apps/web && exec ../../node_modules/.bin/vite --host localhost --port 18760 --strictPort"
       ],
       "port": 18760
+    },
+    {
+      "name": "web-preview",
+      "runtimeExecutable": "wsl",
+      "runtimeArgs": [
+        "-d",
+        "ubuntu",
+        "--",
+        "bash",
+        "-lc",
+        "export PATH=\"$HOME/.nvm/versions/node/v22.22.3/bin:$PATH\" && cd apps/web && exec ../../node_modules/.bin/vite preview --host localhost --port 18761 --strictPort"
+      ],
+      "port": 18761
     }
   ]
 }

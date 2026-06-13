@@ -47,7 +47,10 @@ test('keeps guest backup and provider-key safety visible in settings', async ({
   await gotoApp(page, '/account/settings#data-backup');
 
   await expect(
-    page.getByRole('heading', { name: 'Settings Control Center' }),
+    page.getByRole('heading', { name: '설정과 백업' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: '저장소 보호와 자동 폴더 백업' }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: '로컬 백업과 복구' }),
@@ -60,7 +63,7 @@ test('keeps guest backup and provider-key safety visible in settings', async ({
 
   await page.getByRole('tab', { name: '검색 소스와 API 키' }).first().click();
   await expect(
-    page.getByRole('heading', { name: 'Search provider 관리' }),
+    page.getByRole('heading', { name: '검색 소스 관리' }),
   ).toBeVisible();
   await expect(page.getByText('개인 키 관리는 로그인 필요')).toBeVisible();
   await expect(

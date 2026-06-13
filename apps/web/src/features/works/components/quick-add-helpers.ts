@@ -271,6 +271,71 @@ function buildImportExternalRef(ref: {
   };
 }
 
+function getContributorRolePriority(
+  role: string,
+  mediumType: ImportCandidate['mediumType'],
+) {
+  const normalizedRole = role.trim().toLowerCase();
+
+  if (mediumType === 'movie' || mediumType === 'drama') {
+    const screenRolePriorities = [
+      /director|연출|감독/u,
+      /production company|studio|제작사|스튜디오/u,
+      /creator|created by|기획|제작/u,
+      /screenwriter|writer|각본|극본/u,
+      /author|original|원작|저자/u,
+    ];
+    const matchedIndex = screenRolePriorities.findIndex((pattern) =>
+      pattern.test(normalizedRole),
+    );
+
+    return matchedIndex === -1 ? screenRolePriorities.length : matchedIndex;
+  }
+
+  return 0;
+}
+
+function getCandidateContributorNames(candidate: ImportCandidate) {
+  return candidate.contributors
+    .map((contributor, index) => ({
+      index,
+      name: contributor.name.trim(),
+      role: contributor.role,
+    }))
+    .filter((contributor) => contributor.name.length > 0)
+    .sort((left, right) => {
+      const priorityDelta =
+        getContributorRolePriority(left.role, candidate.mediumType) -
+        getContributorRolePriority(right.role, candidate.mediumType);
+
+      return priorityDelta === 0 ? left.index - right.index : priorityDelta;
+    })
+    .map((contributor) => contributor.name);
+}
+
+function getOrderedCandidateContributors(candidate: ImportCandidate) {
+  return candidate.contributors
+    .map((contributor, index) => ({
+      contributor,
+      index,
+    }))
+    .filter(({ contributor }) => contributor.name.trim().length > 0)
+    .sort((left, right) => {
+      const priorityDelta =
+        getContributorRolePriority(
+          left.contributor.role,
+          candidate.mediumType,
+        ) -
+        getContributorRolePriority(
+          right.contributor.role,
+          candidate.mediumType,
+        );
+
+      return priorityDelta === 0 ? left.index - right.index : priorityDelta;
+    })
+    .map(({ contributor }) => contributor);
+}
+
 export function findLikelyMatches(
   candidate: ImportCandidate,
   existingWorks: WorkRecord[],
@@ -321,9 +386,7 @@ export function createValuesFromCandidate(
   createDefaultWorkFormValues: () => WorkFormValues,
 ): WorkFormValues {
   const defaults = createQuickAddDefaults(createDefaultWorkFormValues);
-  const contributorNames = candidate.contributors
-    .map((contributor) => contributor.name.trim())
-    .filter(Boolean);
+  const contributorNames = getCandidateContributorNames(candidate);
   const migratedTags = moveUnknownGenresToPersonalTags(
     parseCommaSeparatedTextList(candidate.genresText),
     parseCommaSeparatedTextList(defaults.personalTagsText),
@@ -418,7 +481,7 @@ export function buildImportIdentity(
 
 export function getCandidateContributorText(candidate: ImportCandidate) {
   if (candidate.contributors.length > 0) {
-    return candidate.contributors
+    return getOrderedCandidateContributors(candidate)
       .map((contributor) => `${contributor.name} · ${contributor.role}`)
       .join(', ');
   }

@@ -51,7 +51,7 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
 
     return {
       'aria-current': isActive ? ('location' as const) : undefined,
-      'aria-controls': `settings-panel-${section.id}`,
+      'aria-controls': section.id,
       'aria-selected': isActive,
       className: cx(css.navLink ?? '', isActive && (css.navLinkActive ?? '')),
       'data-section-id': section.id,
@@ -92,7 +92,7 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
           <section
             aria-label={activeSection.label}
             className={css.sectionPanel ?? ''}
-            id={`settings-panel-${activeSection.id}`}
+            id={activeSection.id}
             key={activeSection.id}
             role="tabpanel"
           >

@@ -62,7 +62,7 @@ export function getSyncSafetyBadgeState({
 
   if (pendingCount > 0) {
     return {
-      label: `백업 대기 ${pendingCount}`,
+      label: `백업 대기 중인 기록 ${pendingCount}`,
       tone: 'secondary' as const,
       to: '/account',
     };

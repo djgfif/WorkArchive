@@ -29,6 +29,16 @@ function AutoSyncProbe() {
   return null;
 }
 
+function AutoSyncBackoffProbe() {
+  useAutoSync({
+    debounceMs: 10,
+    pullFailureBackoffMs: 50,
+    pullMinIntervalMs: 0,
+  });
+
+  return null;
+}
+
 function renderAutoSync() {
   return render(
     <AuthContext.Provider value={authValue}>
@@ -37,7 +47,15 @@ function renderAutoSync() {
   );
 }
 
-function buildPullResult() {
+function renderAutoSyncBackoff() {
+  return render(
+    <AuthContext.Provider value={authValue}>
+      <AutoSyncBackoffProbe />
+    </AuthContext.Provider>,
+  );
+}
+
+function buildPullResult(overrides = {}) {
   return {
     appliedCount: 0,
     messages: ['가져올 변경 사항이 없습니다.'],
@@ -46,6 +64,7 @@ function buildPullResult() {
     pulledCount: 0,
     requestFailed: false,
     skippedCount: 0,
+    ...overrides,
   } satisfies Awaited<ReturnType<typeof syncService.pullRemoteChanges>>;
 }
 
@@ -85,6 +104,35 @@ describe('useAutoSync', () => {
     });
 
     window.dispatchEvent(new Event('focus'));
+
+    await waitFor(() => {
+      expect(pullSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('backs off automatic pull after a failed request before retrying on focus', async () => {
+    const pullSpy = vi
+      .spyOn(syncService, 'pullRemoteChanges')
+      .mockResolvedValueOnce(
+        buildPullResult({
+          messages: ['요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'],
+          requestFailed: true,
+        }),
+      )
+      .mockResolvedValue(buildPullResult());
+    vi.spyOn(syncService, 'pushQueuedChanges').mockResolvedValue(
+      buildPushResult(),
+    );
+
+    renderAutoSyncBackoff();
+
+    await waitFor(() => {
+      expect(pullSpy).toHaveBeenCalledTimes(1);
+    });
+
+    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('focus'));
+    expect(pullSpy).toHaveBeenCalledTimes(1);
 
     await waitFor(() => {
       expect(pullSpy).toHaveBeenCalledTimes(2);

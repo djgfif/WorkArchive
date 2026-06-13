@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MantineProvider } from '@mantine/core';
+import Dexie from 'dexie';
 
 import { App } from './app/App';
 import {
@@ -10,6 +11,8 @@ import {
 } from './app/mantine-theme';
 import '@mantine/core/styles.css';
 import './app/styles/global.css';
+
+Dexie.debug = false;
 
 const container = document.getElementById('root');
 

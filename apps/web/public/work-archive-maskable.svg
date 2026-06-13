@@ -1,0 +1,17 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Work Archive">
+  <defs>
+    <linearGradient id="wam-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#221e1a"/>
+      <stop offset="1" stop-color="#0c0b0a"/>
+    </linearGradient>
+    <linearGradient id="wam-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8c878"/>
+      <stop offset="0.55" stop-color="#c8922e"/>
+      <stop offset="1" stop-color="#8a5315"/>
+    </linearGradient>
+  </defs>
+  <!-- 전면 배경: 마스크가 어떤 모양이어도 가장자리까지 채운다 -->
+  <rect x="0" y="0" width="512" height="512" fill="url(#wam-bg)"/>
+  <!-- 콘텐츠는 중앙 안전 영역(지름 약 80%) 안에 둔다 -->
+  <text x="256" y="262" font-family="Georgia, 'Times New Roman', serif" font-size="190" font-weight="700" fill="url(#wam-gold)" text-anchor="middle" dominant-baseline="central" letter-spacing="-6">WA</text>
+</svg>

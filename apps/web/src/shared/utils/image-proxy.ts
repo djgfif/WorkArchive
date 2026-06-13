@@ -1,7 +1,7 @@
 import { getApiBaseUrl } from '@shared/services/api-client';
 
 const PROXIED_IMAGE_HOST_SUFFIXES = [
-  'anilist.co',
+  'archive.org',
   'books.google.com',
   'covers.openlibrary.org',
   'daumcdn.net',
@@ -10,6 +10,7 @@ const PROXIED_IMAGE_HOST_SUFFIXES = [
   'image.tmdb.org',
   'kakaocdn.net',
   'pstatic.net',
+  's4.anilist.co',
   'static.tvmaze.com',
   'wikimedia.org',
 ] as const;
@@ -35,6 +36,10 @@ export function getDisplayImageUrlCandidates(thumbnailUrl?: string | null) {
     return [];
   }
 
+  if (normalized.startsWith('//')) {
+    return getDisplayImageUrlCandidates(`https:${normalized}`);
+  }
+
   if (
     normalized.startsWith('data:') ||
     normalized.startsWith('blob:') ||
@@ -46,12 +51,23 @@ export function getDisplayImageUrlCandidates(thumbnailUrl?: string | null) {
   try {
     const url = new URL(normalized);
 
-    if (url.protocol === 'https:' && isProxiedImageHost(url.hostname)) {
+    if (
+      (url.protocol === 'http:' || url.protocol === 'https:') &&
+      isProxiedImageHost(url.hostname)
+    ) {
+      url.protocol = 'https:';
+      url.username = '';
+      url.password = '';
+      url.hash = '';
+
+      const proxiedSourceUrl = url.toString();
       const proxiedUrl = `${getApiBaseUrl()}/image-proxy?url=${encodeURIComponent(
-        normalized,
+        proxiedSourceUrl,
       )}`;
 
-      return [proxiedUrl, normalized];
+      return proxiedSourceUrl === normalized
+        ? [proxiedUrl, normalized]
+        : [proxiedUrl, proxiedSourceUrl];
     }
   } catch {
     return [normalized];

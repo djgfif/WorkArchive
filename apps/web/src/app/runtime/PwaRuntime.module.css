@@ -1,0 +1,24 @@
+.notice {
+  position: fixed;
+  right: clamp(1rem, 3vw, 1.5rem);
+  bottom: clamp(1rem, 3vw, 1.5rem);
+  z-index: 400;
+  width: min(28rem, calc(100vw - 2rem));
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-card);
+  box-shadow: var(--app-shadow-elevated);
+  pointer-events: none;
+}
+
+.noticeTitle {
+  color: var(--app-text-primary);
+  font-weight: 850;
+}
+
+.backupNotice {
+  bottom: clamp(8.5rem, 18vw, 10.5rem);
+}
+
+.noticeActions {
+  pointer-events: auto;
+}

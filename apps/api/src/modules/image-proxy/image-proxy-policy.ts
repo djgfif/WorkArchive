@@ -12,7 +12,7 @@ export const STALE_REFRESH_FAILURE_COOLDOWN_MS = 5 * 60 * 1000;
 export const REDIS_KEY_PREFIX = 'work-archive:image-proxy:';
 
 export const ALLOWED_IMAGE_HOST_SUFFIXES = [
-  'anilist.co',
+  'archive.org',
   'books.google.com',
   'covers.openlibrary.org',
   'daumcdn.net',
@@ -21,6 +21,7 @@ export const ALLOWED_IMAGE_HOST_SUFFIXES = [
   'image.tmdb.org',
   'kakaocdn.net',
   'pstatic.net',
+  's4.anilist.co',
   'static.tvmaze.com',
   'wikimedia.org',
 ] as const;

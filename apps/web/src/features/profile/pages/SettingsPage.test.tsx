@@ -1,4 +1,4 @@
-﻿import { screen } from '@testing-library/react';
+﻿import { screen, waitFor } from '@testing-library/react';
 import type { WorkRecord } from '@work-archive/shared-types';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -8,7 +8,10 @@ import { renderWithProviders } from '@test/render-with-providers';
 import { AuthContext } from '@features/auth';
 import { clearStoredAuthTokens, writeStoredAuthTokens } from '@features/auth';
 import { resetWorkArchiveStorage, workArchiveDbManager } from '@features/works';
-import { LAST_JSON_EXPORT_AT_META_KEY } from '@features/archive';
+import {
+  LAST_JSON_EXPORT_AT_META_KEY,
+  resetAutomaticJsonBackupSessionForTest,
+} from '@features/archive';
 import { SettingsPage } from './SettingsPage';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -252,6 +255,9 @@ describe('SettingsPage', () => {
     window.localStorage.clear();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    resetAutomaticJsonBackupSessionForTest();
+    delete (window as typeof window & { showDirectoryPicker?: unknown })
+      .showDirectoryPicker;
     await resetWorkArchiveStorage();
   });
 
@@ -390,7 +396,7 @@ describe('SettingsPage', () => {
         '활성 작품 2개 · 휴지통 1개 · 타임라인 1개 · 릴리스 기록 1개',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('백업 대기 3개')).toBeInTheDocument();
+    expect(screen.getByText('백업 대기 중인 기록 3개')).toBeInTheDocument();
     expect(
       screen.getByText(
         '전체 3개 · 직접 확인 1개 · 실패 1개 · 자동 병합 후 재시도 0개 · 로컬 전용 작품 3개',
@@ -436,6 +442,88 @@ describe('SettingsPage', () => {
     expect(
       screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
     ).toBeInTheDocument();
+  });
+
+  it('shows storage protection and app-open automatic backup controls', async () => {
+    const user = userEvent.setup();
+    let storagePersisted = false;
+    const persist = vi.fn(async () => {
+      storagePersisted = true;
+      return true;
+    });
+    const persisted = vi.fn(async () => storagePersisted);
+    const write = vi.fn(async (_value: string) => undefined);
+    const close = vi.fn(async () => undefined);
+    const getFileHandle = vi.fn(async () => ({
+      createWritable: vi.fn(async () => ({
+        close,
+        write,
+      })),
+    }));
+
+    vi.stubGlobal('navigator', {
+      storage: {
+        estimate: vi.fn(async () => ({
+          quota: 2_000_000,
+          usage: 500_000,
+        })),
+        persist,
+        persisted,
+      },
+    });
+    Object.defineProperty(window, 'showDirectoryPicker', {
+      configurable: true,
+      value: vi.fn(async () => ({
+        getFileHandle,
+        queryPermission: vi.fn(async () => 'granted'),
+        requestPermission: vi.fn(async () => 'granted'),
+      })),
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(jsonResponse([]))),
+    );
+
+    renderAuthenticatedSettings();
+    await openSettingsSection(user, 'data-backup');
+
+    expect(document.getElementById('data-backup')).toBeInTheDocument();
+    expect(
+      await screen.findByText('저장소 보호와 자동 폴더 백업'),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: '저장소 보호 다시 요청' }),
+      ).toBeEnabled();
+    });
+    expect(screen.getByText('꺼짐')).toBeInTheDocument();
+    expect(screen.getByText('아직 선택되지 않음')).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: '저장소 보호 다시 요청' }),
+    );
+
+    expect(persist).toHaveBeenCalled();
+    expect(
+      await screen.findByText('이 브라우저에서 로컬 저장소 보호를 확보했습니다.'),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: '자동 백업 폴더 선택' }),
+    );
+
+    expect(
+      await screen.findByText(
+        '자동 백업 폴더를 연결하고 전체 JSON 백업을 만들었습니다.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('허용됨')).toBeInTheDocument();
+    expect(screen.getByText('이번 세션 연결됨')).toBeInTheDocument();
+    expect(getFileHandle).toHaveBeenCalledWith(
+      expect.stringMatching(/^work-archive-full-backup-\d{4}-\d{2}-\d{2}\.json$/),
+      { create: true },
+    );
+    expect(write).toHaveBeenCalledWith(expect.stringContaining('"scope": "full"'));
   });
 
   it('saves account profile changes and updates the auth user', async () => {

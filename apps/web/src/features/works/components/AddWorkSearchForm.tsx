@@ -86,7 +86,11 @@ export function AddWorkSearchForm({
             </div>
 
             <AppButton loading={isSearching} tone="primary" type="submit">
-              {isSearching ? '검색 중...' : hasSearched ? '다시 검색' : '검색'}
+              {isSearching
+                ? '검색 중...'
+                : hasSearched
+                  ? '후보 다시 검색'
+                  : '후보 검색'}
             </AppButton>
           </Group>
 

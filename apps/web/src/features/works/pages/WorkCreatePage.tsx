@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Group, Stack, Text, Title } from '@mantine/core';
-import { useNavigate } from 'react-router-dom';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
@@ -32,7 +31,6 @@ import {
 
 export function WorkCreatePage() {
   usePageTitle('작품 추가');
-  const navigate = useNavigate();
   const { archiveScopeKey, mode } = useAuthSession();
   const [formVersion, setFormVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,9 +129,9 @@ export function WorkCreatePage() {
             >
               계속 추가
             </AppButton>
-            <AppButton onClick={() => navigate(`/works/${savedWork.id}`)} type="button">
+            <AppLinkButton to={`/works/${savedWork.id}`}>
               방금 등록한 작품 보기
-            </AppButton>
+            </AppLinkButton>
             <AppLinkButton to="/works" tone="quiet">
               작품 목록 보기
             </AppLinkButton>

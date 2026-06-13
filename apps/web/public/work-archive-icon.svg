@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Work Archive">
+  <defs>
+    <linearGradient id="wa-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1f1c19"/>
+      <stop offset="1" stop-color="#0c0b0a"/>
+    </linearGradient>
+    <linearGradient id="wa-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8c878"/>
+      <stop offset="0.55" stop-color="#c8922e"/>
+      <stop offset="1" stop-color="#8a5315"/>
+    </linearGradient>
+  </defs>
+  <rect x="40" y="40" width="432" height="432" rx="104" fill="url(#wa-bg)"/>
+  <rect x="40.5" y="40.5" width="431" height="431" rx="103.5" fill="none" stroke="#c8922e" stroke-opacity="0.32" stroke-width="3"/>
+  <!-- 책등을 연상시키는 좌측 골드 밴드 -->
+  <rect x="96" y="116" width="20" height="280" rx="6" fill="url(#wa-gold)" opacity="0.9"/>
+  <text x="280" y="256" font-family="Georgia, 'Times New Roman', serif" font-size="232" font-weight="700" fill="url(#wa-gold)" text-anchor="middle" dominant-baseline="central" letter-spacing="-8">WA</text>
+</svg>

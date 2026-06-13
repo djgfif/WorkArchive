@@ -32,6 +32,9 @@ describe('image proxy policy', () => {
     expect(url.toString()).toBe(
       'https://covers.openlibrary.org/b/id/123-L.jpg',
     );
+    expect(isAllowedImageHost('archive.org')).toBe(true);
+    expect(isAllowedImageHost('s4.anilist.co')).toBe(true);
+    expect(isAllowedImageHost('graphql.anilist.co')).toBe(false);
     expect(isAllowedImageHost('cdn.covers.openlibrary.org')).toBe(true);
     expect(isAllowedImageHost('covers.openlibrary.org.evil.example')).toBe(false);
   });

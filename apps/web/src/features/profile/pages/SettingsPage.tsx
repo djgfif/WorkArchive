@@ -1,4 +1,4 @@
-import { Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 
 import {
   AppLinkButton,
@@ -14,6 +14,7 @@ import { DangerZoneSection } from '../components/settings/DangerZoneSection';
 import { DataBackupSettingsSection } from '../components/settings/DataBackupSettingsSection';
 import { DuplicateCleanupSettingsSection } from '../components/settings/DuplicateCleanupSettingsSection';
 import { ExternalImportSettingsSection } from '../components/settings/ExternalImportSettingsSection';
+import { LocalDataSafetySettingsSection } from '../components/settings/LocalDataSafetySettingsSection';
 import { NotionSyncSettingsSection } from '../components/settings/NotionSyncSettingsSection';
 import { SearchProviderSettingsSection } from '../components/settings/SearchProviderSettingsSection';
 import { SecuritySettingsSection } from '../components/settings/SecuritySettingsSection';
@@ -22,6 +23,7 @@ import { SettingsOverview } from '../components/settings/SettingsOverview';
 import { useAuthSessionSettings } from '../hooks/useAuthSessionSettings';
 import { useImportProviderSettings } from '../hooks/useImportProviderSettings';
 import { useLocalArchiveSettings } from '../hooks/useLocalArchiveSettings';
+import { useLocalDataSafetySettings } from '../hooks/useLocalDataSafetySettings';
 import { useNotionSettings } from '../hooks/useNotionSettings';
 import { useSettingsOverviewStats } from '../hooks/useSettingsOverviewStats';
 
@@ -48,6 +50,7 @@ export function SettingsPage() {
   const { archiveScopeKey, mode, signOut, updateUser, user } = useAuthSession();
   const importProviderSettings = useImportProviderSettings(mode);
   const localArchiveSettings = useLocalArchiveSettings();
+  const localDataSafetySettings = useLocalDataSafetySettings();
   const notionSettings = useNotionSettings(mode);
   const authSessionSettings = useAuthSessionSettings(mode, signOut);
   const overviewStats = useSettingsOverviewStats(archiveScopeKey);
@@ -83,18 +86,37 @@ export function SettingsPage() {
       id: 'data-backup',
       label: '데이터와 백업',
       content: (
-        <DataBackupSettingsSection
-          archiveFeedback={localArchiveSettings.archiveFeedback}
-          archiveImportPreview={localArchiveSettings.archiveImportPreview}
-          isExportingArchive={localArchiveSettings.isExportingArchive}
-          isImportingArchive={localArchiveSettings.isImportingArchive}
-          onCancelImport={localArchiveSettings.cancelImport}
-          onConfirmImport={localArchiveSettings.confirmImport}
-          onExportCsv={localArchiveSettings.exportCsv}
-          onExportFullJson={localArchiveSettings.exportFullJson}
-          onExportJson={localArchiveSettings.exportJson}
-          onImportFileSelect={localArchiveSettings.previewImportFile}
-        />
+        <Stack gap="md">
+          <LocalDataSafetySettingsSection
+            autoBackupStatus={localDataSafetySettings.autoBackupStatus}
+            feedback={localDataSafetySettings.feedback}
+            isChoosingBackupFolder={
+              localDataSafetySettings.isChoosingBackupFolder
+            }
+            isLoading={localDataSafetySettings.isLoading}
+            isRequestingStorage={localDataSafetySettings.isRequestingStorage}
+            isRunningBackup={localDataSafetySettings.isRunningBackup}
+            onChooseBackupFolder={localDataSafetySettings.chooseBackupFolder}
+            onDisableBackup={localDataSafetySettings.disableBackup}
+            onRequestStorageProtection={
+              localDataSafetySettings.requestStorageProtection
+            }
+            onRunBackupNow={localDataSafetySettings.runBackupNow}
+            storageState={localDataSafetySettings.storageState}
+          />
+          <DataBackupSettingsSection
+            archiveFeedback={localArchiveSettings.archiveFeedback}
+            archiveImportPreview={localArchiveSettings.archiveImportPreview}
+            isExportingArchive={localArchiveSettings.isExportingArchive}
+            isImportingArchive={localArchiveSettings.isImportingArchive}
+            onCancelImport={localArchiveSettings.cancelImport}
+            onConfirmImport={localArchiveSettings.confirmImport}
+            onExportCsv={localArchiveSettings.exportCsv}
+            onExportFullJson={localArchiveSettings.exportFullJson}
+            onExportJson={localArchiveSettings.exportJson}
+            onImportFileSelect={localArchiveSettings.previewImportFile}
+          />
+        </Stack>
       ),
     },
     {

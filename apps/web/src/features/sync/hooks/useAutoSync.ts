@@ -10,6 +10,7 @@ import { syncService, type SyncService } from '../services/sync.service';
 
 const AUTO_SYNC_DEBOUNCE_MS = 1_200;
 const AUTO_PULL_MIN_INTERVAL_MS = 30_000;
+const AUTO_PULL_FAILURE_BACKOFF_MS = 5 * 60 * 1000;
 
 function isBrowserOffline() {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
@@ -21,6 +22,7 @@ function isDocumentHidden() {
 
 interface UseAutoSyncOptions {
   debounceMs?: number;
+  pullFailureBackoffMs?: number;
   pullMinIntervalMs?: number;
   queueRepository?: SyncQueueRepository;
   service?: SyncService;
@@ -28,6 +30,7 @@ interface UseAutoSyncOptions {
 
 export function useAutoSync({
   debounceMs = AUTO_SYNC_DEBOUNCE_MS,
+  pullFailureBackoffMs = AUTO_PULL_FAILURE_BACKOFF_MS,
   pullMinIntervalMs = AUTO_PULL_MIN_INTERVAL_MS,
   queueRepository = syncQueueRepository,
   service = syncService,
@@ -39,6 +42,7 @@ export function useAutoSync({
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pullTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPullAttemptAtRef = useRef(0);
+  const pullFailureBackoffUntilRef = useRef(0);
 
   activeScopeRef.current = archiveScopeKey;
 
@@ -63,7 +67,8 @@ export function useAutoSync({
         activeScopeRef.current !== scopeKey ||
         isPullRunningRef.current ||
         isBrowserOffline() ||
-        isDocumentHidden()
+        isDocumentHidden() ||
+        Date.now() < pullFailureBackoffUntilRef.current
       ) {
         return;
       }
@@ -72,9 +77,14 @@ export function useAutoSync({
       lastPullAttemptAtRef.current = Date.now();
 
       try {
-        await service.pullRemoteChanges();
+        const result = await service.pullRemoteChanges();
+
+        pullFailureBackoffUntilRef.current = result.requestFailed
+          ? Date.now() + pullFailureBackoffMs
+          : 0;
       } catch {
         // Pull failures stay quiet; the next focus or reconnect attempts the background pull again.
+        pullFailureBackoffUntilRef.current = Date.now() + pullFailureBackoffMs;
       } finally {
         isPullRunningRef.current = false;
       }
@@ -84,14 +94,18 @@ export function useAutoSync({
       clearPullTimer();
 
       const elapsedMs = Date.now() - lastPullAttemptAtRef.current;
-      const delayMs =
+      const minIntervalDelayMs =
         elapsedMs >= pullMinIntervalMs
           ? 0
           : pullMinIntervalMs - elapsedMs;
+      const backoffDelayMs = Math.max(
+        0,
+        pullFailureBackoffUntilRef.current - Date.now(),
+      );
 
       pullTimerRef.current = setTimeout(() => {
         void runPull();
-      }, delayMs);
+      }, Math.max(minIntervalDelayMs, backoffDelayMs));
     }
 
     schedulePull();
@@ -117,7 +131,14 @@ export function useAutoSync({
       window.removeEventListener('online', handleReconnectOrFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [archiveScopeKey, isLoading, mode, pullMinIntervalMs, service]);
+  }, [
+    archiveScopeKey,
+    isLoading,
+    mode,
+    pullFailureBackoffMs,
+    pullMinIntervalMs,
+    service,
+  ]);
 
   useEffect(() => {
     if (isLoading || mode !== 'authenticated') {

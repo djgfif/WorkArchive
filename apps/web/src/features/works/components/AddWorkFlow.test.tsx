@@ -560,7 +560,7 @@ describe('AddWorkFlow', () => {
     renderAuthenticatedAddWorkFlow();
     await user.click(screen.getByLabelText('검색으로 채우기'));
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
-    await user.click(screen.getByRole('button', { name: '검색' }));
+    await user.click(screen.getByRole('button', { name: '후보 검색' }));
     await user.click(
       (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
     );
@@ -698,7 +698,7 @@ describe('AddWorkFlow', () => {
     renderAuthenticatedAddWorkFlow();
     await user.click(screen.getByLabelText('검색으로 채우기'));
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
-    await user.click(screen.getByRole('button', { name: '검색' }));
+    await user.click(screen.getByRole('button', { name: '후보 검색' }));
     await user.click(
       (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
     );
@@ -829,7 +829,7 @@ describe('AddWorkFlow', () => {
       getElementById<HTMLInputElement>('quickAddSearch'),
       '슈타인즈 게이트',
     );
-    await user.click(screen.getByRole('button', { name: '검색' }));
+    await user.click(screen.getByRole('button', { name: '후보 검색' }));
     await user.click(
       (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
     );
@@ -867,7 +867,7 @@ describe('AddWorkFlow', () => {
     renderAuthenticatedAddWorkFlow();
     await user.click(screen.getByLabelText('검색으로 채우기'));
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
-    await user.click(screen.getByRole('button', { name: '검색' }));
+    await user.click(screen.getByRole('button', { name: '후보 검색' }));
     await user.click(
       (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
     );
