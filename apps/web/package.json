@@ -46,7 +46,7 @@
     "@work-archive/eslint-config": "0.1.0",
     "@work-archive/tsconfig": "0.1.0",
     "fake-indexeddb": "^6.2.4",
-    "jsdom": "^26.0.0",
+    "jsdom": "^29.1.1",
     "vite": "^6.3.5",
     "vite-plugin-pwa": "^0.21.2",
     "vitest": "^4.1.8"
