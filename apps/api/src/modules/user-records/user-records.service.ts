@@ -118,10 +118,47 @@ export class UserRecordsService {
     });
   }
 
-  findById(id: string) {
-    return this.prisma.userWorkRecord.findUnique({
+  findById(id: string, client: PrismaClientLike = this.prisma) {
+    return client.userWorkRecord.findUnique({
       where: {
         id,
+      },
+      include: WORK_AGGREGATE_INCLUDE,
+    });
+  }
+
+  /**
+   * Applies a scalar update only when the record still has the
+   * {@link expectedServerVersion} we previously read, scoped to its owner.
+   * Returns the refreshed aggregate on success, or `null` when a concurrent
+   * writer advanced the version (i.e. the optimistic-concurrency guard failed).
+   */
+  async updateWithVersionGuard(
+    id: string,
+    userId: string,
+    expectedServerVersion: number,
+    data: Prisma.UserWorkRecordUpdateInput,
+    client: PrismaClientLike = this.prisma,
+  ) {
+    const result = await client.userWorkRecord.updateMany({
+      where: {
+        id,
+        userId,
+        serverVersion: expectedServerVersion,
+      },
+      // The sync work-update builder only emits scalar fields, so this update
+      // payload is safe to apply through updateMany().
+      data: data as Prisma.UserWorkRecordUpdateManyMutationInput,
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return client.userWorkRecord.findFirst({
+      where: {
+        id,
+        userId,
       },
       include: WORK_AGGREGATE_INCLUDE,
     });
@@ -449,32 +486,53 @@ export class UserRecordsService {
       input.personalTags,
     );
 
-    return this.prisma.$transaction(async (tx) => {
-      const catalogWorkId = input.catalogTitleId
-        ? await this.createCompatibilityCatalogWorkFromTitle(
-            recordId,
-            input,
-            taxonomy.genres,
-            tx,
-          )
-        : await this.createDraftCatalogWork(
-            recordId,
-            input,
-            taxonomy.genres,
-            tx,
-          );
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const catalogWorkId = input.catalogTitleId
+          ? await this.createCompatibilityCatalogWorkFromTitle(
+              recordId,
+              input,
+              taxonomy.genres,
+              tx,
+            )
+          : await this.createDraftCatalogWork(
+              recordId,
+              input,
+              taxonomy.genres,
+              tx,
+            );
 
-      return this.create(
-        buildCreateUserRecordData({
-          catalogWorkId,
-          input,
-          personalTags: taxonomy.personalTags,
-          recordId,
-          userId,
-        }),
-        tx,
-      );
-    });
+        return this.create(
+          buildCreateUserRecordData({
+            catalogWorkId,
+            input,
+            personalTags: taxonomy.personalTags,
+            recordId,
+            userId,
+          }),
+          tx,
+        );
+      });
+    } catch (error) {
+      // The pre-check above is not atomic; the active-record partial unique
+      // index is the real guard, so a concurrent create lands here as P2002.
+      if (this.isUniqueConstraintError(error)) {
+        throw new BadRequestException(
+          'A record for this catalog title already exists.',
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'P2002'
+    );
   }
 
   private async createDraftCatalogWork(

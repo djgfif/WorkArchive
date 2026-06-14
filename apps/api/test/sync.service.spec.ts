@@ -353,7 +353,11 @@ describe('SyncService', () => {
   let userRecordsService: jest.Mocked<
     Pick<
       UserRecordsService,
-      'create' | 'findById' | 'findByUserSince' | 'update'
+      | 'create'
+      | 'findById'
+      | 'findByUserSince'
+      | 'update'
+      | 'updateWithVersionGuard'
     >
   >;
   let releaseRecordsService: any;
@@ -462,6 +466,11 @@ describe('SyncService', () => {
       findById: jest.fn(),
       findByUserSince: jest.fn(),
       update: jest.fn(),
+      // The version guard delegates to update() so existing update fixtures and
+      // call assertions keep describing the applied-write path.
+      updateWithVersionGuard: jest.fn((id, _userId, _version, data, client) =>
+        userRecordsService.update(id, data, client),
+      ),
     };
     releaseRecordsService = {
       findById: jest.fn(),

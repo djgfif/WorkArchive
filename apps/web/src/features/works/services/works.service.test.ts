@@ -1,4 +1,4 @@
-﻿import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
@@ -57,6 +57,19 @@ describe('WorksService', () => {
 
   afterEach(async () => {
     await db.delete();
+  });
+
+  it('rolls back the stored work when enqueueing its change fails', async () => {
+    const failingQueue = new SyncQueueRepository(() => db);
+    vi.spyOn(failingQueue, 'enqueueWorkChange').mockRejectedValue(
+      new Error('enqueue failed'),
+    );
+    const failingService = new WorksService(repository, failingQueue);
+
+    await expect(failingService.createWork(buildInput())).rejects.toThrow();
+
+    expect(await db.works.count()).toBe(0);
+    expect(await db.syncQueue.count()).toBe(0);
   });
 
   it('keeps a single create queue item while a local-only work changes', async () => {
@@ -291,6 +304,33 @@ describe('WorksService', () => {
       ]),
     );
     expect(result.tagSuggestions).toHaveLength(4);
+  });
+
+  it('counts soft-deleted records without materializing them for list queries', async () => {
+    await repository.bulkPut([
+      buildWork({ id: 'active-1', deletedAt: null }),
+      buildWork({ id: 'deleted-1', deletedAt: '2026-04-18T00:00:00.000Z' }),
+      buildWork({ id: 'deleted-2', deletedAt: '2026-04-19T00:00:00.000Z' }),
+    ]);
+    const listDeletedSpy = vi.spyOn(repository, 'listDeleted');
+    const countByScopeSpy = vi.spyOn(repository, 'countByScope');
+
+    const result = await service.listWorks(
+      {
+        rating: null,
+        searchTerm: '',
+        sortBy: 'updatedAt',
+        status: 'all',
+        tag: '',
+        type: 'all',
+      },
+      'active',
+    );
+
+    expect(result.totalActiveCount).toBe(1);
+    expect(result.totalDeletedCount).toBe(2);
+    expect(countByScopeSpy).toHaveBeenCalledWith('deleted');
+    expect(listDeletedSpy).not.toHaveBeenCalled();
   });
 
   it('keeps list queries within the large local archive budget', async () => {

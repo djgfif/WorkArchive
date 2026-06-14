@@ -51,6 +51,7 @@ export async function applyWorkChange(
 
   const existing = await dependencies.userRecordsService.findById(
     change.entityId,
+    client,
   );
 
   if (!existing) {
@@ -89,11 +90,27 @@ export async function applyWorkChange(
     client,
   );
 
-  const updated = await dependencies.userRecordsService.update(
+  const updated = await dependencies.userRecordsService.updateWithVersionGuard(
     updatePlan.userRecordId,
+    userId,
+    existing.serverVersion,
     updatePlan.userRecordUpdateData,
     client,
   );
+
+  if (!updated) {
+    // A concurrent writer advanced serverVersion between our read and the
+    // guarded write, so the locally-read base is stale: treat as remote-newer.
+    const latest = await dependencies.userRecordsService.findById(
+      updatePlan.userRecordId,
+      client,
+    );
+
+    return buildWorkRemoteNewerConflict(
+      change,
+      toFlatWorkResponse(latest ?? existing),
+    );
+  }
 
   return buildWorkAppliedResult(change, {
     code: updatePlan.resultCode,

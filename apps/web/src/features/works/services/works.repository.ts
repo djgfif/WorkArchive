@@ -48,6 +48,18 @@ function prepareStoredWorkRecord(work: WorkRecord): StoredWorkRecord {
 export class WorksRepository {
   constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
 
+  /**
+   * Runs `run` inside a single read-write transaction that spans the local
+   * work store and the sync queue, so a work mutation and its enqueued change
+   * commit — or roll back — together. The sync queue lives on the same Dexie
+   * instance, so its own transactions nest into this one.
+   */
+  runWorkMutation<T>(run: () => Promise<T>): Promise<T> {
+    const db = this.getDb();
+
+    return db.transaction('rw', [db.works, db.syncQueue], run);
+  }
+
   async create(work: WorkRecord) {
     const storedWork = prepareStoredWorkRecord(work);
 
@@ -102,6 +114,10 @@ export class WorksRepository {
         .equals('deleted')
         .toArray()
     ).map(normalizeWorkRecord);
+  }
+
+  async countByScope(scope: WorkDeletedAtScope) {
+    return this.getDb().works.where('_deletedAtScope').equals(scope).count();
   }
 
   async listByScopeForQuery(

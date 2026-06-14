@@ -168,9 +168,11 @@ export class WorksService {
     query: WorksListQuery,
     scope: WorksCollectionScope = 'active',
   ) {
-    const [activeWorks, deletedWorks, worksInScope, graph] = await Promise.all([
+    const [activeWorks, deletedCount, worksInScope, graph] = await Promise.all([
       this.repository.listActive(),
-      this.repository.listDeleted(),
+      // Only the count is needed here; materializing every soft-deleted record
+      // (and normalizing it) on each list call is wasted work for large trashes.
+      this.repository.countByScope('deleted'),
       this.repository.listByScopeForQuery(
         scope === 'trash' ? 'deleted' : 'active',
         query,
@@ -242,7 +244,7 @@ export class WorksService {
         )
         .slice(0, 8),
       totalActiveCount: activeWorks.length,
-      totalDeletedCount: deletedWorks.length,
+      totalDeletedCount: deletedCount,
       works: queryWorks(worksInScope, query, graphIndex),
     } satisfies WorksListResult;
   }
@@ -286,12 +288,14 @@ export class WorksService {
       serverVersion: 0,
     };
 
-    await this.repository.create(work);
-    await this.queueRepository.enqueueWorkChange(
-      work,
-      'create',
-      getCreateSource(input),
-    );
+    await this.repository.runWorkMutation(async () => {
+      await this.repository.create(work);
+      await this.queueRepository.enqueueWorkChange(
+        work,
+        'create',
+        getCreateSource(input),
+      );
+    });
     const graphInput =
       input.graph ?? buildGraphInputFromLegacyTags(input.personalTags ?? []);
 
@@ -335,8 +339,10 @@ export class WorksService {
       syncStatus: getNextSyncStatus(existing.serverVersion),
     };
 
-    await this.repository.update(updated);
-    await this.queueRepository.enqueueWorkChange(updated, 'update', 'edit_form');
+    await this.repository.runWorkMutation(async () => {
+      await this.repository.update(updated);
+      await this.queueRepository.enqueueWorkChange(updated, 'update', 'edit_form');
+    });
     const graphInput =
       input.graph ?? buildGraphInputFromLegacyTags(input.personalTags ?? []);
 
@@ -377,12 +383,14 @@ export class WorksService {
       syncStatus: getNextSyncStatus(existing.serverVersion),
     };
 
-    await this.repository.update(updated);
-    await this.queueRepository.enqueueWorkChange(
-      updated,
-      'update',
-      'progress_update',
-    );
+    await this.repository.runWorkMutation(async () => {
+      await this.repository.update(updated);
+      await this.queueRepository.enqueueWorkChange(
+        updated,
+        'update',
+        'progress_update',
+      );
+    });
 
     return updated;
   }
@@ -395,17 +403,21 @@ export class WorksService {
     }
 
     const deletedAt = new Date().toISOString();
-    const deleted = await this.repository.softDelete(id, {
-      deletedAt,
-      updatedAt: deletedAt,
-      syncStatus: getNextSyncStatus(existing.serverVersion),
+    const deleted = await this.repository.runWorkMutation(async () => {
+      const result = await this.repository.softDelete(id, {
+        deletedAt,
+        updatedAt: deletedAt,
+        syncStatus: getNextSyncStatus(existing.serverVersion),
+      });
+
+      if (!result) {
+        throw new Error(appI18n.t('works.errors.workMissing'));
+      }
+
+      await this.queueRepository.enqueueWorkChange(result, 'delete', 'edit_form');
+
+      return result;
     });
-
-    if (!deleted) {
-      throw new Error(appI18n.t('works.errors.workMissing'));
-    }
-
-    await this.queueRepository.enqueueWorkChange(deleted, 'delete', 'edit_form');
 
     return deleted;
   }
@@ -418,17 +430,21 @@ export class WorksService {
     }
 
     const restoredAt = new Date().toISOString();
-    const restored = await this.repository.restore(id, {
-      deletedAt: null,
-      syncStatus: getNextSyncStatus(existing.serverVersion),
-      updatedAt: restoredAt,
+    const restored = await this.repository.runWorkMutation(async () => {
+      const result = await this.repository.restore(id, {
+        deletedAt: null,
+        syncStatus: getNextSyncStatus(existing.serverVersion),
+        updatedAt: restoredAt,
+      });
+
+      if (!result) {
+        throw new Error(appI18n.t('works.errors.restoreWorkMissing'));
+      }
+
+      await this.queueRepository.enqueueWorkChange(result, 'update', 'restore');
+
+      return result;
     });
-
-    if (!restored) {
-      throw new Error(appI18n.t('works.errors.restoreWorkMissing'));
-    }
-
-    await this.queueRepository.enqueueWorkChange(restored, 'update', 'restore');
 
     return restored;
   }

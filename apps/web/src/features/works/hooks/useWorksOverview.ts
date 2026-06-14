@@ -143,9 +143,9 @@ export function useWorksOverview() {
     }));
 
     const subscription = liveQuery(async () => {
-      const [works, deletedWorks, graph] = await Promise.all([
+      const [works, deletedCount, graph] = await Promise.all([
         worksRepository.listActive(),
-        worksRepository.listDeleted(),
+        worksRepository.countByScope('deleted'),
         graphRepository.listActiveGraph(),
       ]);
       const ratedWorks = works.filter((work) => work.rating !== null);
@@ -166,7 +166,7 @@ export function useWorksOverview() {
           graph.workContributors.length > 0
             ? buildContributorCollectionSummariesFromGraph(works, graph)
             : buildContributorCollectionSummaries(works),
-        deletedCount: deletedWorks.length,
+        deletedCount,
         highlyRatedWorks: [...ratedWorks].sort(compareRatingDescending).slice(0, 3),
         inProgressCount: works.filter((work) => work.status === 'in_progress').length,
         droppedCount: works.filter((work) => work.status === 'dropped').length,

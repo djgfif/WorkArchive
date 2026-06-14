@@ -688,6 +688,99 @@ describe('API PostgreSQL integration', () => {
     );
   });
 
+  it('resolves concurrent same-version work updates with one applied and one remote-newer conflict', async () => {
+    const user = await createAuthenticatedUser('sync-race-db@example.com');
+    const workId = 'b2c0c9f4-1b7e-4f4e-9a3a-2d6c5e9f0a11';
+
+    const createResponse = await requestJson(
+      '/api/sync/push',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          schemaVersion: SYNC_SCHEMA_VERSION,
+          changes: [
+            {
+              queueId: '0b3c8b2e-0000-4000-8000-000000000001',
+              entityType: 'work',
+              entityId: workId,
+              operation: 'create',
+              createdAt: '2026-04-18T00:00:00.000Z',
+              payload: buildSyncWorkPayload(workId),
+            },
+          ],
+        }),
+      },
+      user.accessToken,
+    );
+
+    expect(createResponse.status).toBe(200);
+
+    const pushUpdate = (queueId: string, title: string) =>
+      requestJson(
+        '/api/sync/push',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            schemaVersion: SYNC_SCHEMA_VERSION,
+            changes: [
+              {
+                queueId,
+                entityType: 'work',
+                entityId: workId,
+                operation: 'update',
+                createdAt: '2026-04-18T00:05:00.000Z',
+                payload: buildSyncWorkPayload(workId, {
+                  title,
+                  updatedAt: '2026-04-18T00:05:00.000Z',
+                  serverVersion: 1,
+                }),
+              },
+            ],
+          }),
+        },
+        user.accessToken,
+      );
+
+    // Both updates read serverVersion 1 and race to write. The optimistic guard
+    // (updateMany WHERE serverVersion = 1) must let exactly one win.
+    const responses = await Promise.all([
+      pushUpdate('0b3c8b2e-0000-4000-8000-000000000002', 'Winner Title'),
+      pushUpdate('0b3c8b2e-0000-4000-8000-000000000003', 'Loser Title'),
+    ]);
+
+    const results = responses.map((response) => {
+      expect(response.status).toBe(200);
+
+      return (
+        response.body as {
+          results: Array<{
+            status: string;
+            code: string;
+            work: { serverVersion: number } | null;
+          }>;
+        }
+      ).results[0]!;
+    });
+
+    const applied = results.filter((result) => result.status === 'applied');
+    const conflicts = results.filter((result) => result.status === 'conflict');
+
+    expect(applied).toHaveLength(1);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]!.code).toBe('conflict_remote_newer');
+    expect(applied[0]!.work?.serverVersion).toBe(2);
+
+    // The decisive check: without the guard both updates would increment the
+    // version to 3. With it, only the winner advances the record to 2.
+    const storedRecord = await prisma.userWorkRecord.findUniqueOrThrow({
+      where: {
+        id: workId,
+      },
+    });
+
+    expect(storedRecord.serverVersion).toBe(2);
+  });
+
   it('encrypts provider credentials and restores readiness after delete', async () => {
     const user = await createAuthenticatedUser('credential-db@example.com');
 

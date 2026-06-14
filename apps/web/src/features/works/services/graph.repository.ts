@@ -316,12 +316,10 @@ export class GraphRepository {
       const linkKey = `${series.id}:${entry.role}`;
 
       desiredLinks.add(linkKey);
-      const existing = (await db.workSeriesLinks.toArray()).find(
-        (link) =>
-          link.workId === workId &&
-          link.seriesId === series.id &&
-          link.role === entry.role,
-      );
+      const existing = await db.workSeriesLinks
+        .where('[workId+seriesId+role]')
+        .equals([workId, series.id, entry.role])
+        .first();
       const nextLink: WorkSeriesLinkRecord = existing
         ? {
             ...existing,
@@ -355,9 +353,9 @@ export class GraphRepository {
       );
     }
 
-    const existingLinks = (await db.workSeriesLinks.toArray()).filter(
-      (link) => link.workId === workId && isActive(link),
-    );
+    const existingLinks = (
+      await db.workSeriesLinks.where('workId').equals(workId).toArray()
+    ).filter(isActive);
     const linkedSeries = await db.series.bulkGet(
       existingLinks.map((link) => link.seriesId),
     );
@@ -403,10 +401,10 @@ export class GraphRepository {
   ) {
     const db = this.getDb();
     const normalizedTitle = normalizeGraphKey(input.title);
-    const existing = (await db.series.toArray()).find(
-      (series) =>
-        series.kind === input.kind && series.normalizedTitle === normalizedTitle,
-    );
+    const existing = await db.series
+      .where('[kind+normalizedTitle]')
+      .equals([input.kind, normalizedTitle])
+      .first();
 
     if (existing) {
       if (isActive(existing)) {
@@ -488,12 +486,10 @@ export class GraphRepository {
       const linkKey = `${contributor.id}:${entry.role}`;
 
       desiredLinks.add(linkKey);
-      const existing = (await db.workContributors.toArray()).find(
-        (link) =>
-          link.workId === workId &&
-          link.contributorId === contributor.id &&
-          link.role === entry.role,
-      );
+      const existing = await db.workContributors
+        .where('[workId+contributorId+role]')
+        .equals([workId, contributor.id, entry.role])
+        .first();
       const nextLink: WorkContributorRecord = existing
         ? {
             ...existing,
@@ -525,9 +521,9 @@ export class GraphRepository {
       );
     }
 
-    const existingLinks = (await db.workContributors.toArray()).filter(
-      (link) => link.workId === workId && isActive(link),
-    );
+    const existingLinks = (
+      await db.workContributors.where('workId').equals(workId).toArray()
+    ).filter(isActive);
 
     for (const link of existingLinks) {
       if (!MANAGED_CONTRIBUTOR_ROLES.has(link.role)) {
@@ -563,11 +559,10 @@ export class GraphRepository {
   ) {
     const db = this.getDb();
     const normalizedName = normalizeGraphKey(input.name);
-    const existing = (await db.contributors.toArray()).find(
-      (contributor) =>
-        contributor.entityType === input.entityType &&
-        contributor.normalizedName === normalizedName,
-    );
+    const existing = await db.contributors
+      .where('[entityType+normalizedName]')
+      .equals([input.entityType, normalizedName])
+      .first();
 
     if (existing) {
       if (isActive(existing)) {
@@ -633,12 +628,10 @@ export class GraphRepository {
 
     for (const entry of normalizedInput) {
       desiredRelations.add(`${entry.targetWorkId}:${entry.relationType}`);
-      const existing = (await db.workRelations.toArray()).find(
-        (relation) =>
-          relation.sourceWorkId === workId &&
-          relation.targetWorkId === entry.targetWorkId &&
-          relation.relationType === entry.relationType,
-      );
+      const existing = await db.workRelations
+        .where('[sourceWorkId+targetWorkId+relationType]')
+        .equals([workId, entry.targetWorkId, entry.relationType])
+        .first();
       const nextRelation: WorkRelationRecord = existing
         ? {
             ...existing,
@@ -670,9 +663,9 @@ export class GraphRepository {
       );
     }
 
-    const existingRelations = (await db.workRelations.toArray()).filter(
-      (relation) => relation.sourceWorkId === workId && isActive(relation),
-    );
+    const existingRelations = (
+      await db.workRelations.where('sourceWorkId').equals(workId).toArray()
+    ).filter(isActive);
 
     for (const relation of existingRelations) {
       if (desiredRelations.has(`${relation.targetWorkId}:${relation.relationType}`)) {
