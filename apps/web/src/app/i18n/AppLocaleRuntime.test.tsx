@@ -14,10 +14,10 @@ describe('AppLocaleRuntime', () => {
       expect(document.documentElement).toHaveAttribute('lang', 'ko');
     });
 
-    await changeAppLocale('ko');
+    await changeAppLocale('en');
 
     await waitFor(() => {
-      expect(document.documentElement).toHaveAttribute('lang', 'ko');
+      expect(document.documentElement).toHaveAttribute('lang', 'en');
     });
   });
 });

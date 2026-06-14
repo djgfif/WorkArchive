@@ -5,13 +5,12 @@
 | Status                | `active`                                                              |
 | Role                  | `web localization boundary guide`                                     |
 | Source of truth       | `apps/web/src/app/i18n/*` and `scripts/check-web-i18n-hardcoding.mjs` |
-| Last verified against | `2026-06-13` i18n infrastructure and Korean resource migration        |
+| Last verified against | `2026-06-14` reviewed locale resource activation                     |
 | When to update        | Locale contracts, string ownership, or hardcoded-copy exceptions change |
 
-Work Archive's first localization phase builds the structure for multiple UI
-locales while keeping the shipped interface Korean-only. User-generated content,
-catalog titles, tags, reviews, import source text, and provider data are not
-translated automatically.
+Work Archive ships reviewed UI resource bundles for Korean, English, Japanese,
+and Simplified Chinese. User-generated content, catalog titles, tags, reviews,
+import source text, and provider data are not translated automatically.
 
 ## Locale Contract
 
@@ -27,7 +26,7 @@ The client locale contract lives under `apps/web/src/app/i18n`.
   `apps/web/src/app/i18n/resources/index.ts`.
 
 Only reviewed, complete translations may be added to `ENABLED_LOCALES`. Do not
-ship empty or placeholder locale resources for English, Japanese, or Chinese.
+ship empty or placeholder locale resources for new locales.
 
 ## String Ownership
 

@@ -72,9 +72,11 @@ function LanguageSettingsSection() {
         value={locale}
       />
 
-      <Text c="dimmed" size="sm">
-        {t('locale.onlyKoreanReady')}
-      </Text>
+      {enabledLocales.length === 1 && (
+        <Text c="dimmed" size="sm">
+          {t('locale.onlyKoreanReady')}
+        </Text>
+      )}
     </SectionCard>
   );
 }

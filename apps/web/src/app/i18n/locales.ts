@@ -4,7 +4,12 @@ export const SUPPORTED_LOCALES = ['ko', 'en', 'ja', 'zh-CN'] as const;
 
 export type AppLocale = (typeof SUPPORTED_LOCALES)[number];
 
-export const ENABLED_LOCALES = ['ko'] as const satisfies readonly AppLocale[];
+export const ENABLED_LOCALES = [
+  'ko',
+  'en',
+  'ja',
+  'zh-CN',
+] as const satisfies readonly AppLocale[];
 
 export const APP_LOCALE_STORAGE_KEY = 'work-archive.ui.locale';
 

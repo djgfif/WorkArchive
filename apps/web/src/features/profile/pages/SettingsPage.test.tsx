@@ -261,7 +261,7 @@ describe('SettingsPage', () => {
     await resetWorkArchiveStorage();
   });
 
-  it('shows only the reviewed Korean locale in settings', async () => {
+  it('shows reviewed locale options in settings', async () => {
     const user = userEvent.setup();
 
     renderGuestSettings();
@@ -270,10 +270,10 @@ describe('SettingsPage', () => {
     expect(screen.getByText('언어 설정')).toBeInTheDocument();
     expect(screen.getByText('현재 언어')).toBeInTheDocument();
     expect(screen.getByText('한국어')).toBeInTheDocument();
-    expect(screen.getByText('한국어만 사용 가능')).toBeInTheDocument();
-    expect(screen.queryByText('English')).not.toBeInTheDocument();
-    expect(screen.queryByText('日本語')).not.toBeInTheDocument();
-    expect(screen.queryByText('简体中文')).not.toBeInTheDocument();
+    expect(screen.getByText('English')).toBeInTheDocument();
+    expect(screen.getByText('日本語')).toBeInTheDocument();
+    expect(screen.getByText('简体中文')).toBeInTheDocument();
+    expect(screen.queryByText('한국어만 사용 가능')).not.toBeInTheDocument();
   });
 
   it('renders provider readiness cards for public and user-key credential modes', async () => {

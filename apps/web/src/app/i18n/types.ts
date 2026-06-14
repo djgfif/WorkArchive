@@ -16,5 +16,15 @@ type StringLeafPaths<T> = {
           : never;
 }[keyof T & string];
 
-export type AppTranslationResource = typeof ko;
+type LocalizedResource<T> = T extends string
+  ? string
+  : T extends readonly (infer Item)[]
+    ? readonly LocalizedResource<Item>[]
+    : T extends Primitive
+      ? T
+      : T extends object
+        ? { readonly [Key in keyof T]: LocalizedResource<T[Key]> }
+        : T;
+
+export type AppTranslationResource = LocalizedResource<typeof ko>;
 export type AppTranslationKey = StringLeafPaths<AppTranslationResource>;

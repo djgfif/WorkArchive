@@ -8,8 +8,14 @@ describe('app i18n runtime', () => {
     window.localStorage.clear();
   });
 
-  it('normalizes disabled locale changes back to Korean', async () => {
+  it('changes to reviewed app locales and persists the selection', async () => {
     await changeAppLocale('en');
+
+    expect(window.localStorage.getItem(APP_LOCALE_STORAGE_KEY)).toBe('en');
+  });
+
+  it('normalizes unsupported locale changes back to Korean', async () => {
+    await changeAppLocale('fr' as never);
 
     expect(window.localStorage.getItem(APP_LOCALE_STORAGE_KEY)).toBe('ko');
   });
