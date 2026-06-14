@@ -118,10 +118,47 @@ export class UserRecordsService {
     });
   }
 
-  findById(id: string) {
-    return this.prisma.userWorkRecord.findUnique({
+  findById(id: string, client: PrismaClientLike = this.prisma) {
+    return client.userWorkRecord.findUnique({
       where: {
         id,
+      },
+      include: WORK_AGGREGATE_INCLUDE,
+    });
+  }
+
+  /**
+   * Applies a scalar update only when the record still has the
+   * {@link expectedServerVersion} we previously read, scoped to its owner.
+   * Returns the refreshed aggregate on success, or `null` when a concurrent
+   * writer advanced the version (i.e. the optimistic-concurrency guard failed).
+   */
+  async updateWithVersionGuard(
+    id: string,
+    userId: string,
+    expectedServerVersion: number,
+    data: Prisma.UserWorkRecordUpdateInput,
+    client: PrismaClientLike = this.prisma,
+  ) {
+    const result = await client.userWorkRecord.updateMany({
+      where: {
+        id,
+        userId,
+        serverVersion: expectedServerVersion,
+      },
+      // The sync work-update builder only emits scalar fields, so this update
+      // payload is safe to apply through updateMany().
+      data: data as Prisma.UserWorkRecordUpdateManyMutationInput,
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return client.userWorkRecord.findFirst({
+      where: {
+        id,
+        userId,
       },
       include: WORK_AGGREGATE_INCLUDE,
     });

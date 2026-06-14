@@ -493,7 +493,7 @@ model UserSyncAppliedMutation {
 
 model UserWorkRecord {
   id                String              @id @default(uuid())
-  userId            String?
+  userId            String
   catalogWorkId     String
   catalogTitleId    String?
   status            WorkStatus          @default(planned)
@@ -517,7 +517,7 @@ model UserWorkRecord {
   serverVersion     Int                 @default(1)
   catalogWork       CatalogWork         @relation(fields: [catalogWorkId], references: [id], onDelete: Cascade)
   catalogTitle      CatalogTitle?       @relation(fields: [catalogTitleId], references: [id], onDelete: SetNull)
-  user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   releaseRecords    UserReleaseRecord[]
   timelineEntries   UserTimelineEntry[]
   notionSyncMappings NotionSyncMapping[]

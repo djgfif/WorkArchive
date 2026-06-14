@@ -1,0 +1,13 @@
+-- Require every server-side personal record to have an owner. A NULL userId has
+-- no legitimate meaning on the server (records are always created for an
+-- authenticated user), and a nullable owner column weakens authorization: the
+-- invariant should hold at the model level, not only in controllers.
+--
+-- No application code path inserts a NULL userId, so this only tightens the
+-- schema to match reality.
+--
+-- Preflight before deploying to an environment with existing data:
+--   SELECT COUNT(*) FROM user_work_records WHERE "userId" IS NULL;
+-- The statement below fails (without mutating data) if any NULL rows remain;
+-- classify and migrate/remove them first.
+ALTER TABLE "user_work_records" ALTER COLUMN "userId" SET NOT NULL;

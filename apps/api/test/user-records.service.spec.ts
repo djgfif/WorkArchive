@@ -235,4 +235,64 @@ describe('UserRecordsService', () => {
 
     expect(prisma.userWorkRecord.findFirst).not.toHaveBeenCalled();
   });
+
+  it('guards version-scoped updates on the previously read serverVersion', async () => {
+    prisma.userWorkRecord.updateMany.mockImplementation(async () => ({
+      count: 1,
+    }));
+    prisma.userWorkRecord.findFirst.mockResolvedValue({
+      id: 'record-1',
+      serverVersion: 4,
+      userId: 'user-1',
+    } as never);
+
+    await expect(
+      service.updateWithVersionGuard('record-1', 'user-1', 3, {
+        favorite: true,
+        serverVersion: {
+          increment: 1,
+        },
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: 'record-1',
+        serverVersion: 4,
+      }),
+    );
+
+    expect(prisma.userWorkRecord.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'record-1',
+          serverVersion: 3,
+          userId: 'user-1',
+        },
+      }),
+    );
+    expect(prisma.userWorkRecord.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'record-1',
+          userId: 'user-1',
+        },
+      }),
+    );
+  });
+
+  it('returns null without refetching when a concurrent writer advanced the version', async () => {
+    prisma.userWorkRecord.updateMany.mockImplementation(async () => ({
+      count: 0,
+    }));
+
+    await expect(
+      service.updateWithVersionGuard('record-1', 'user-1', 3, {
+        favorite: true,
+        serverVersion: {
+          increment: 1,
+        },
+      }),
+    ).resolves.toBeNull();
+
+    expect(prisma.userWorkRecord.findFirst).not.toHaveBeenCalled();
+  });
 });

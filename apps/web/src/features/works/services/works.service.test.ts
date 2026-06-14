@@ -1,4 +1,4 @@
-﻿import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { WorkRecord } from '@work-archive/shared-types';
 
@@ -57,6 +57,19 @@ describe('WorksService', () => {
 
   afterEach(async () => {
     await db.delete();
+  });
+
+  it('rolls back the stored work when enqueueing its change fails', async () => {
+    const failingQueue = new SyncQueueRepository(() => db);
+    vi.spyOn(failingQueue, 'enqueueWorkChange').mockRejectedValue(
+      new Error('enqueue failed'),
+    );
+    const failingService = new WorksService(repository, failingQueue);
+
+    await expect(failingService.createWork(buildInput())).rejects.toThrow();
+
+    expect(await db.works.count()).toBe(0);
+    expect(await db.syncQueue.count()).toBe(0);
   });
 
   it('keeps a single create queue item while a local-only work changes', async () => {
