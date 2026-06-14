@@ -57,7 +57,7 @@ else
 fi
 
 docs_dirs="$(tracked_existing_files docs | awk -F/ 'NF > 2 {print $2}' | sort -u)"
-allowed_docs_dirs='^(archive|architecture|commercial|design|getting-started|management|operations|project|qa|security|sync)$'
+allowed_docs_dirs='^(archive|architecture|commercial|design|getting-started|i18n|management|operations|project|qa|security|sync)$'
 docs_dir_offenders="$(printf '%s\n' "$docs_dirs" | grep -Ev "$allowed_docs_dirs" || true)"
 if [ -n "$docs_dir_offenders" ]; then
   print_hits "$docs_dir_offenders"

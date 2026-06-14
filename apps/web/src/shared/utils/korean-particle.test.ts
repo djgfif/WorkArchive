@@ -32,6 +32,14 @@ describe('getKoreanParticle', () => {
   it('끝 공백을 무시하고 판별한다', () => {
     expect(getKoreanParticle('시점 ', '을/를')).toBe('을');
   });
+
+  it('등록되지 않은 pair(비한국어 로케일 sentinel)에는 조사를 붙이지 않는다', () => {
+    // 다른 로케일 번역팩이 넘기는 sentinel 값에도 크래시 없이 빈 조사를 반환한다.
+    expect(getKoreanParticle('Demon Slayer', 'none' as never)).toBe('');
+    expect(withKoreanParticle('Demon Slayer', 'none' as never)).toBe(
+      'Demon Slayer',
+    );
+  });
 });
 
 describe('withKoreanParticle', () => {
