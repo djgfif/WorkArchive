@@ -486,32 +486,53 @@ export class UserRecordsService {
       input.personalTags,
     );
 
-    return this.prisma.$transaction(async (tx) => {
-      const catalogWorkId = input.catalogTitleId
-        ? await this.createCompatibilityCatalogWorkFromTitle(
-            recordId,
-            input,
-            taxonomy.genres,
-            tx,
-          )
-        : await this.createDraftCatalogWork(
-            recordId,
-            input,
-            taxonomy.genres,
-            tx,
-          );
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const catalogWorkId = input.catalogTitleId
+          ? await this.createCompatibilityCatalogWorkFromTitle(
+              recordId,
+              input,
+              taxonomy.genres,
+              tx,
+            )
+          : await this.createDraftCatalogWork(
+              recordId,
+              input,
+              taxonomy.genres,
+              tx,
+            );
 
-      return this.create(
-        buildCreateUserRecordData({
-          catalogWorkId,
-          input,
-          personalTags: taxonomy.personalTags,
-          recordId,
-          userId,
-        }),
-        tx,
-      );
-    });
+        return this.create(
+          buildCreateUserRecordData({
+            catalogWorkId,
+            input,
+            personalTags: taxonomy.personalTags,
+            recordId,
+            userId,
+          }),
+          tx,
+        );
+      });
+    } catch (error) {
+      // The pre-check above is not atomic; the active-record partial unique
+      // index is the real guard, so a concurrent create lands here as P2002.
+      if (this.isUniqueConstraintError(error)) {
+        throw new BadRequestException(
+          'A record for this catalog title already exists.',
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'P2002'
+    );
   }
 
   private async createDraftCatalogWork(
