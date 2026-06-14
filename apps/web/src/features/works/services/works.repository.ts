@@ -116,6 +116,10 @@ export class WorksRepository {
     ).map(normalizeWorkRecord);
   }
 
+  async countByScope(scope: WorkDeletedAtScope) {
+    return this.getDb().works.where('_deletedAtScope').equals(scope).count();
+  }
+
   async listByScopeForQuery(
     scope: WorkDeletedAtScope,
     query: Pick<WorksListQuery, 'sortBy' | 'status' | 'type'>,

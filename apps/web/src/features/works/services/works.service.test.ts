@@ -306,6 +306,33 @@ describe('WorksService', () => {
     expect(result.tagSuggestions).toHaveLength(4);
   });
 
+  it('counts soft-deleted records without materializing them for list queries', async () => {
+    await repository.bulkPut([
+      buildWork({ id: 'active-1', deletedAt: null }),
+      buildWork({ id: 'deleted-1', deletedAt: '2026-04-18T00:00:00.000Z' }),
+      buildWork({ id: 'deleted-2', deletedAt: '2026-04-19T00:00:00.000Z' }),
+    ]);
+    const listDeletedSpy = vi.spyOn(repository, 'listDeleted');
+    const countByScopeSpy = vi.spyOn(repository, 'countByScope');
+
+    const result = await service.listWorks(
+      {
+        rating: null,
+        searchTerm: '',
+        sortBy: 'updatedAt',
+        status: 'all',
+        tag: '',
+        type: 'all',
+      },
+      'active',
+    );
+
+    expect(result.totalActiveCount).toBe(1);
+    expect(result.totalDeletedCount).toBe(2);
+    expect(countByScopeSpy).toHaveBeenCalledWith('deleted');
+    expect(listDeletedSpy).not.toHaveBeenCalled();
+  });
+
   it('keeps list queries within the large local archive budget', async () => {
     const statuses = [
       'planned',

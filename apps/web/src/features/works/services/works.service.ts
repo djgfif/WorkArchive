@@ -168,9 +168,11 @@ export class WorksService {
     query: WorksListQuery,
     scope: WorksCollectionScope = 'active',
   ) {
-    const [activeWorks, deletedWorks, worksInScope, graph] = await Promise.all([
+    const [activeWorks, deletedCount, worksInScope, graph] = await Promise.all([
       this.repository.listActive(),
-      this.repository.listDeleted(),
+      // Only the count is needed here; materializing every soft-deleted record
+      // (and normalizing it) on each list call is wasted work for large trashes.
+      this.repository.countByScope('deleted'),
       this.repository.listByScopeForQuery(
         scope === 'trash' ? 'deleted' : 'active',
         query,
@@ -242,7 +244,7 @@ export class WorksService {
         )
         .slice(0, 8),
       totalActiveCount: activeWorks.length,
-      totalDeletedCount: deletedWorks.length,
+      totalDeletedCount: deletedCount,
       works: queryWorks(worksInScope, query, graphIndex),
     } satisfies WorksListResult;
   }
