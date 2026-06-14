@@ -242,7 +242,7 @@ describe('CatalogService submission listing', () => {
   it('allows moderators and admins to list all submissions', async () => {
     const prisma = {
       catalogSubmission: {
-        findMany: jest.fn(async () => []),
+        findMany: jest.fn(async (_args?: unknown) => []),
       },
     };
     const service = new CatalogService(prisma as never, {} as never);
@@ -276,7 +276,7 @@ describe('CatalogService submission listing', () => {
   it('filters self-service submission listing by submitter', async () => {
     const prisma = {
       catalogSubmission: {
-        findMany: jest.fn(async () => []),
+        findMany: jest.fn(async (_args?: unknown) => []),
       },
     };
     const service = new CatalogService(prisma as never, {} as never);

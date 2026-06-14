@@ -856,6 +856,7 @@ describe('WorksListPage', () => {
     );
 
     expect(await screen.findByText('Undo Target')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '빠른 수정 패널 열기' }));
     await user.click(screen.getByLabelText('Undo Target 삭제'));
 
     expect(confirmSpy).toHaveBeenCalled();

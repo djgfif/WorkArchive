@@ -29,7 +29,7 @@ describe('poster image cache', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
-        new Response(new Blob(['poster'], { type: 'image/png' }), {
+        new Response('poster', {
           headers: {
             'content-type': 'image/png',
           },

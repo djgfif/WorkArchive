@@ -97,10 +97,10 @@ function createMigrationPrismaMock() {
 function createMigrationTransactionMock() {
   return {
     catalogWork: {
-      update: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      update: jest.fn<(_args: unknown) => Promise<void>>().mockResolvedValue(undefined),
     },
     userWorkRecord: {
-      update: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      update: jest.fn<(_args: unknown) => Promise<void>>().mockResolvedValue(undefined),
     },
   };
 }

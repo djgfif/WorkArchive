@@ -80,7 +80,13 @@ describe('fetchExternal', () => {
 
   it('passes response byte limits to the external transport', async () => {
     const transport = jest
-      .fn(async () => new Response('{}'))
+      .fn(
+        async (
+          _url: URL,
+          _options: RequestInit,
+          _limits: { maxResponseBytes?: number },
+        ) => new Response('{}'),
+      )
       .mockName('externalFetchTransport');
 
     setExternalFetchTransportForTest(transport);

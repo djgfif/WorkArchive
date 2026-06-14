@@ -88,7 +88,7 @@ describe('auth google oauth helpers', () => {
 
   it('consumes and validates stored Google OAuth flows', async () => {
     const stateHash = await hashSecret('oauth-state');
-    const consumeFlow = jest.fn(async () => ({
+    const consumeFlow = jest.fn(async (_flowId: string) => ({
       expiresAt: Date.now() + 1000,
       nonceHash: 'nonce-hash',
       returnOrigin: 'http://localhost:18730',
@@ -107,7 +107,7 @@ describe('auth google oauth helpers', () => {
   });
 
   it('classifies missing, stale, and invalid OAuth flow state', async () => {
-    const consumeFlow = jest.fn(async () => null);
+    const consumeFlow = jest.fn(async (_flowId: string) => null);
     const validStateHash = await hashSecret('valid-state');
 
     await expect(

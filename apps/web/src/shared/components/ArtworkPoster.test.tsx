@@ -125,7 +125,7 @@ describe('ArtworkPoster', () => {
   it('reuses a locally cached proxy image before trying the external source again', async () => {
     server.use(
       http.get(`${API_BASE_URL}/image-proxy`, () =>
-        new HttpResponse(new Blob(['poster'], { type: 'image/png' }), {
+        HttpResponse.text('poster', {
           headers: {
             'content-type': 'image/png',
           },

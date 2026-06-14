@@ -34,7 +34,9 @@ function credentialStore(
 describe('import provider key management', () => {
   it('normalizes, saves, and returns provider status', async () => {
     const store = credentialStore();
-    const getCircuitStatus = jest.fn(async () => CLOSED_CIRCUIT_STATUS);
+    const getCircuitStatus = jest.fn(
+      async (_provider: string) => CLOSED_CIRCUIT_STATUS,
+    );
 
     await expect(
       saveImportProviderKey({

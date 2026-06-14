@@ -20,7 +20,7 @@ type RecordValidationDependencies = Parameters<
 type RecordValidationClient = Parameters<typeof validateReleaseRecordTarget>[2];
 
 const findById = jest.fn<() => Promise<unknown>>();
-const catalogReleaseFindFirst = jest.fn<() => Promise<unknown>>();
+const catalogReleaseFindFirst = jest.fn<(_args: unknown) => Promise<unknown>>();
 
 const dependencies = {
   userRecordsService: { findById },

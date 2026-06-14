@@ -966,7 +966,7 @@ describe('ImportsService', () => {
         findUnique: jest.fn(async () => null),
       },
       catalogTitle: {
-        findMany: jest.fn(async () => [catalogTitle]),
+        findMany: jest.fn(async (_args?: unknown) => [catalogTitle]),
       },
       userWorkRecord: {
         findFirst: jest.fn(async () => null),
