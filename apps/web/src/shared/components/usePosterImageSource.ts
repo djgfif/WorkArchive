@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   cachePosterImageFromDisplaySource,
@@ -62,6 +62,7 @@ export function usePosterImageSource(
   thumbnailUrl: string | null | undefined,
   variant: PosterImageVariant,
 ) {
+  const imageElementRef = useRef<HTMLImageElement | null>(null);
   const imageUrls = useMemo(
     () => getDisplayImageUrlCandidates(thumbnailUrl),
     [thumbnailUrl],
@@ -90,12 +91,33 @@ export function usePosterImageSource(
     variant === 'detail' || variant === 'form' || variant === 'hero'
       ? 'eager'
       : 'lazy';
+  const markLoadedIfComplete = useCallback((imageElement: HTMLImageElement | null) => {
+    if (!imageElement) {
+      return;
+    }
+
+    if (imageElement.complete && imageElement.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, []);
+  const imageRef = useCallback(
+    (imageElement: HTMLImageElement | null) => {
+      imageElementRef.current = imageElement;
+      markLoadedIfComplete(imageElement);
+    },
+    [markLoadedIfComplete],
+  );
 
   useEffect(() => {
     setImageUrlIndex(0);
     setFailed(false);
     setLoaded(false);
   }, [cachedImageSrc, thumbnailUrl]);
+
+  useEffect(() => {
+    setLoaded(false);
+    markLoadedIfComplete(imageElementRef.current);
+  }, [markLoadedIfComplete, src]);
 
   useEffect(() => {
     if (!cacheKey) {
@@ -138,6 +160,7 @@ export function usePosterImageSource(
   return {
     decoding: 'async' as const,
     failed,
+    imageRef,
     loaded,
     loading,
     onError: () => {

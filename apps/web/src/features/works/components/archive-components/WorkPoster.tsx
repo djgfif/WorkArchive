@@ -71,6 +71,7 @@ export function WorkPoster({
             loading={posterImage.loading}
             onError={posterImage.onError}
             onLoad={posterImage.onLoad}
+            ref={posterImage.imageRef}
             src={posterImage.src}
           />
         </>

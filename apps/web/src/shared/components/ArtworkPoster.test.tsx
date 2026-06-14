@@ -5,6 +5,7 @@ import { renderWithProviders } from '@test/render-with-providers';
 import { API_BASE_URL, http, HttpResponse, server } from '@test/msw';
 import { getCachedPosterImageObjectUrl } from '@shared/services/poster-image-cache';
 import { ArtworkPoster } from './ArtworkPoster';
+import styles from './ArtworkPoster.module.css';
 import { clearPosterImageSourceFailuresForTest } from './usePosterImageSource';
 
 const createObjectUrl = vi.fn(() => 'blob:cached-dune');
@@ -22,6 +23,7 @@ Object.defineProperty(URL, 'revokeObjectURL', {
 
 describe('ArtworkPoster', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     createObjectUrl.mockClear();
     revokeObjectUrl.mockClear();
     clearPosterImageSourceFailuresForTest();
@@ -169,5 +171,65 @@ describe('ArtworkPoster', () => {
       );
     });
     expect(createObjectUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not leave an already-complete cached poster hidden behind the skeleton', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/image-proxy`, () =>
+        HttpResponse.text('poster', {
+          headers: {
+            'content-type': 'image/png',
+          },
+          status: 200,
+        }),
+      ),
+    );
+
+    const { unmount } = renderWithProviders(
+      <ArtworkPoster
+        thumbnailUrl="https://covers.openlibrary.org/b/id/123-L.jpg"
+        title="Dune"
+        variant="row"
+      />,
+    );
+
+    fireEvent.load(screen.getByAltText('Dune 포스터'));
+
+    await waitFor(async () => {
+      await expect(
+        getCachedPosterImageObjectUrl(
+          'https://covers.openlibrary.org/b/id/123-L.jpg',
+        ),
+      ).resolves.toBe('blob:cached-dune');
+    });
+
+    unmount();
+    vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockImplementation(
+      function getComplete(this: HTMLImageElement) {
+        return this.getAttribute('src') === 'blob:cached-dune';
+      },
+    );
+    vi.spyOn(
+      HTMLImageElement.prototype,
+      'naturalWidth',
+      'get',
+    ).mockImplementation(function getNaturalWidth(this: HTMLImageElement) {
+      return this.getAttribute('src') === 'blob:cached-dune' ? 320 : 0;
+    });
+
+    renderWithProviders(
+      <ArtworkPoster
+        thumbnailUrl="https://covers.openlibrary.org/b/id/123-L.jpg"
+        title="Dune"
+        variant="row"
+      />,
+    );
+
+    await waitFor(() => {
+      const image = screen.getByAltText('Dune 포스터');
+
+      expect(image).toHaveAttribute('src', 'blob:cached-dune');
+      expect(image).toHaveClass(styles.posterImageLoaded!);
+    });
   });
 });
