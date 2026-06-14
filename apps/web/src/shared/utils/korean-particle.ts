@@ -39,8 +39,14 @@ function getJongseongIndex(word: string): number | null {
  * "을(를)" 형태의 병기 표기로 폴백한다.
  */
 export function getKoreanParticle(word: string, pair: ParticlePair): string {
-  const jongseong = getJongseongIndex(word);
   const particle = PARTICLES[pair];
+
+  // 등록되지 않은 pair(비한국어 로케일이 넘기는 sentinel 등)에는 조사를 붙이지 않는다.
+  if (!particle) {
+    return '';
+  }
+
+  const jongseong = getJongseongIndex(word);
 
   if (jongseong === null) {
     return particle.fallback;
