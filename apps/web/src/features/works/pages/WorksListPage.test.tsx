@@ -549,7 +549,9 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('Trash Rail Target')).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText('Trash Rail Target')).length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByText('빠른 보기')).not.toBeInTheDocument();
     expect(screen.queryByText('매체 유형')).not.toBeInTheDocument();
     expect(screen.getByText('복구가 기본 작업입니다.')).toBeInTheDocument();
@@ -772,7 +774,7 @@ describe('WorksListPage', () => {
     );
 
     await selectWorksView(user, 'list');
-    await screen.findByText('Frieren');
+    await screen.findAllByText('Frieren');
 
     await user.selectOptions(
       screen.getByLabelText('Frieren 상태'),
@@ -855,7 +857,9 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('Undo Target')).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText('Undo Target')).length,
+    ).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: '빠른 수정 패널 열기' }));
     await user.click(screen.getByLabelText('Undo Target 삭제'));
 
@@ -908,12 +912,14 @@ describe('WorksListPage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('Spice & Wolf')).toBeInTheDocument();
+    expect((await screen.findAllByText('Spice & Wolf')).length).toBeGreaterThan(
+      0,
+    );
 
     await user.click(screen.getByRole('button', { name: '복원' }));
 
     await waitFor(() => {
-      expect(screen.queryByText('Spice & Wolf')).not.toBeInTheDocument();
+      expect(screen.queryAllByText('Spice & Wolf')).toHaveLength(0);
     });
 
     await user.click(screen.getByRole('button', { name: '서재로 돌아가기' }));

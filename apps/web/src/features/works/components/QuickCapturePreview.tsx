@@ -25,6 +25,7 @@ export function QuickCapturePreview({ values }: QuickCapturePreviewProps) {
   return (
     <Paper className={cn(css.quickCapturePreview)} withBorder>
       <WorkPoster
+        className={cn(css.quickCapturePoster)}
         coverSeed={`quick:${values.type}:${previewTitle}`}
         thumbnailUrl={values.thumbnailUrl}
         title={previewTitle}

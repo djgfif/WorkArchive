@@ -1,241 +1,22 @@
 /* ─────────────────────────────────────────────────────────────────────────────
-   Poster shell
+   WorkPoster 치수 오버라이드
+   ───────────────────────────────────────────────────────────────────────────
+   표지 셸·이미지·폴백·cover-tone·폴백 제목 본체는 공용 단일 구현이 보유한다:
+   shared/components/ArtworkPoster(.tsx / .module.css).
+   여기서는 그 위에 works 전용으로만 달라지는 치수를 덮으며, 다른 CSS 모듈의
+   변형 클래스를 확실히 이기도록 클래스 특이도를 한 단계 높인다(`.x.x`).
 ───────────────────────────────────────────────────────────────────────────── */
-.posterShell {
-  position: relative;
-  flex-shrink: 0;
-  width: var(--poster-width);
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--app-border-strong) 72%, transparent);
-  border-radius: 0.85rem;
-  background:
-    linear-gradient(145deg, rgba(255, 220, 150, 0.07), transparent 34%),
-    radial-gradient(circle at 22% 18%, rgba(180, 120, 40, 0.20), transparent 30%),
-    radial-gradient(circle at 80% 72%, rgba(120, 60, 20, 0.14), transparent 34%),
-    linear-gradient(160deg, #201c18, #0c0b0a 74%);
-  box-shadow: var(--app-shadow-poster);
-}
-
-[data-mantine-color-scheme='light'] .posterShell {
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.55), transparent 34%),
-    radial-gradient(circle at 22% 18%, rgba(180, 120, 40, 0.14), transparent 28%),
-    radial-gradient(circle at 80% 72%, rgba(180, 100, 40, 0.08), transparent 34%),
-    linear-gradient(160deg, #e8dfd4, #d4c8bc 74%);
-}
-
-.posterShell::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, transparent 58%, rgba(0, 0, 0, 0.28));
-}
-
-/* ── Poster size variants ───────────────────────────────────────────────── */
-.posterGrid {
-  --poster-width: 100%;
-}
-
-.posterCard {
-  --poster-width: 7rem;
-}
-
-.posterRow {
+/* works 목록·휴지통의 행 표지는 공용 row(5.4rem/md) 대신 4rem·sm 라운드를 쓴다. */
+.posterRowCompact.posterRowCompact {
   --poster-width: 4rem;
   border-radius: var(--mantine-radius-sm);
-  box-shadow: var(--app-shadow-card);
 }
 
-.posterDetail {
-  --poster-width: clamp(13rem, 25vw, 19rem);
-  border-radius: var(--mantine-radius-xl);
+/* 빠른 추가·폼 미리보기 표지는 form 변형(15rem)보다 살짝 좁은 14rem로 중앙 정렬한다. */
+.quickCapturePoster.quickCapturePoster {
+  --poster-width: min(100%, 14rem);
+  margin-inline: auto;
 }
-
-.posterHero {
-  --poster-width: clamp(14rem, 26vw, 20rem);
-  border-radius: var(--mantine-radius-xl);
-}
-
-.posterForm {
-  --poster-width: min(100%, 15rem);
-}
-
-/* ── Poster image / fallback ────────────────────────────────────────────── */
-.posterImage,
-.posterFallback {
-  display: block;
-  width: 100%;
-  aspect-ratio: 3 / 4;
-}
-
-.posterImage {
-  object-fit: cover;
-  opacity: 0;
-  transition:
-    opacity var(--wa-motion-normal, 240ms) ease,
-    transform var(--wa-motion-normal, 240ms) cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
-}
-
-.posterImageLoaded {
-  opacity: 1;
-}
-
-.posterImageSkeleton {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  aspect-ratio: 3 / 4;
-  background:
-    linear-gradient(
-      100deg,
-      rgba(255, 255, 255, 0.04) 0%,
-      rgba(255, 255, 255, 0.13) 46%,
-      rgba(255, 255, 255, 0.04) 90%
-    ),
-    var(--app-surface-subtle);
-  background-size: 220% 100%;
-  animation: posterSkeleton 1.25s ease-in-out infinite;
-  pointer-events: none;
-}
-
-[data-mantine-color-scheme='light'] .posterImageSkeleton {
-  background:
-    linear-gradient(
-      100deg,
-      rgba(255, 255, 255, 0.45) 0%,
-      rgba(255, 255, 255, 0.9) 46%,
-      rgba(255, 255, 255, 0.45) 90%
-    ),
-    var(--app-surface-subtle);
-  background-size: 220% 100%;
-}
-
-@keyframes posterSkeleton {
-  0% { background-position: 120% 0; }
-  100% { background-position: -120% 0; }
-}
-
-.posterFallback {
-  position: relative;
-  display: grid;
-  align-content: space-between;
-  padding: 0.9rem;
-  background:
-    linear-gradient(135deg, rgba(255, 220, 150, 0.06), transparent 34%),
-    radial-gradient(circle at 18% 20%, rgba(180, 120, 40, 0.18), transparent 36%),
-    radial-gradient(circle at 84% 78%, rgba(120, 60, 20, 0.12), transparent 32%),
-    repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.022) 0,
-      rgba(255, 255, 255, 0.022) 1px,
-      transparent 1px,
-      transparent 7px
-    ),
-    linear-gradient(160deg, #201c18, #0c0b0a 76%);
-}
-
-.posterFallback::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.14), transparent 0.55rem, transparent calc(100% - 0.55rem), rgba(0, 0, 0, 0.22)),
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.075), transparent 42%),
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.018) 0,
-      rgba(255, 255, 255, 0.018) 1px,
-      transparent 1px,
-      transparent 5px
-    );
-  mix-blend-mode: screen;
-}
-
-.posterFallback::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 0.38rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.11);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-/* ── Cover tones — 따뜻한 영화 포스터 팔레트 (ArtworkPoster와 통일) ──────── */
-.posterFallback[data-cover-tone='0'] {
-  /* 딥 앰버 — 무협·판타지 */
-  background:
-    radial-gradient(circle at 20% 18%, rgba(212, 140, 40, 0.34), transparent 36%),
-    radial-gradient(circle at 78% 80%, rgba(100, 50, 10, 0.20), transparent 34%),
-    linear-gradient(160deg, #231808, #0c0b0a 80%);
-}
-
-.posterFallback[data-cover-tone='1'] {
-  /* 크림슨 딥 — 로맨스·드라마 */
-  background:
-    radial-gradient(circle at 76% 18%, rgba(180, 60, 60, 0.30), transparent 38%),
-    radial-gradient(circle at 22% 82%, rgba(212, 140, 40, 0.14), transparent 32%),
-    linear-gradient(160deg, #2a1010, #0c0b0a 80%);
-}
-
-.posterFallback[data-cover-tone='2'] {
-  /* 포레스트 다크 — SF·스릴러 */
-  background:
-    radial-gradient(circle at 18% 76%, rgba(40, 130, 90, 0.26), transparent 36%),
-    radial-gradient(circle at 82% 18%, rgba(200, 180, 100, 0.12), transparent 33%),
-    linear-gradient(160deg, #0e2018, #0c0b0a 80%);
-}
-
-.posterFallback[data-cover-tone='3'] {
-  /* 슬레이트 블루 — 미스터리·공포 */
-  background:
-    radial-gradient(circle at 80% 74%, rgba(60, 80, 140, 0.28), transparent 36%),
-    radial-gradient(circle at 24% 20%, rgba(180, 150, 80, 0.12), transparent 33%),
-    linear-gradient(160deg, #101422, #0c0b0a 80%);
-}
-
-.posterFallback[data-cover-tone='4'] {
-  /* 골드 오커 — 역사·에세이 */
-  background:
-    radial-gradient(circle at 26% 18%, rgba(200, 150, 40, 0.28), transparent 36%),
-    radial-gradient(circle at 78% 84%, rgba(100, 60, 10, 0.16), transparent 33%),
-    linear-gradient(160deg, #201a08, #0c0b0a 80%);
-}
-
-.posterFallback[data-cover-tone='5'] {
-  /* 라벤더 다크 — 라이트노벨·만화 */
-  background:
-    radial-gradient(circle at 70% 22%, rgba(130, 90, 180, 0.26), transparent 36%),
-    radial-gradient(circle at 20% 80%, rgba(212, 140, 40, 0.14), transparent 33%),
-    linear-gradient(160deg, #1a1228, #0c0b0a 80%);
-}
-
-.posterFallbackMark {
-  position: relative;
-  z-index: 1;
-  align-self: center;
-  /* 폴백 표지는 라이트 모드에서도 다크 장정을 유지하므로 테마 변수 대신 고정 웜화이트 */
-  color: rgba(245, 240, 232, 0.92);
-  font-size: clamp(2.6rem, 7vw, 5.2rem);
-  font-weight: 850;
-  line-height: 1;
-  text-align: center;
-  text-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
-}
-
-.posterFallbackType {
-  position: relative;
-  z-index: 1;
-  color: rgba(245, 240, 232, 0.58);
-  font-size: var(--app-type-meta);
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
 
 .eyebrow,
 .metaText {
@@ -292,8 +73,10 @@
   transform: scale(1.02) translateY(-2px);
 }
 
-.posterCardLink:hover .posterImage,
-.posterCardLink:focus-visible .posterImage {
+/* 표지 이미지는 공용 ArtworkPoster(다른 CSS 모듈)가 렌더하므로 클래스 대신
+   카드 안의 <img> 요소를 직접 겨냥한다. transition 은 .posterImage 가 보유. */
+.posterCardLink:hover img,
+.posterCardLink:focus-visible img {
   transform: scale(1.04);
 }
 
@@ -376,15 +159,6 @@
   pointer-events: none;
   min-height: 2rem;
   bottom: 0;
-}
-
-/* posterShell 내부에서 statusOverlay가 이미지 하단에 오도록 */
-.posterShell .statusOverlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 3;
 }
 
 /* posterCardSurface 내부에서 statusOverlay 위치 조정 */
@@ -508,6 +282,16 @@
 
 .trashRowSurface:hover {
   border-color: color-mix(in srgb, var(--app-border-default) 70%, rgba(245, 158, 11, 0.34));
+}
+
+.trashRowSurface[data-selected='true'] {
+  border-color: var(--app-accent-primary);
+  background: var(--app-accent-soft);
+}
+
+.trashToolbar {
+  background: var(--app-surface-subtle);
+  border-color: var(--app-border-subtle);
 }
 
 .trashDeletedMeta,
@@ -1307,11 +1091,6 @@
   background: var(--app-surface-subtle);
 }
 
-.quickCapturePreview .posterShell {
-  --poster-width: min(100%, 14rem);
-  margin-inline: auto;
-}
-
 .previewChipRow {
   gap: 0.4rem;
 }
@@ -1620,6 +1399,32 @@
   color: var(--app-accent-primary);
 }
 
+/* ── 툴바 버튼 상호작용 상태 (hover/press/focus) ─────────────────────────── */
+.viewToggleButton:hover:not([data-active='true']) {
+  background: var(--app-surface-subtle);
+  color: var(--app-text-secondary);
+}
+
+.sortDirectionButton:hover,
+.advancedFilterButton:hover:not([data-active='true']) {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-card);
+  color: var(--app-text-primary);
+}
+
+.viewToggleButton:active,
+.sortDirectionButton:active,
+.advancedFilterButton:active {
+  transform: translateY(0.5px);
+}
+
+.viewToggleButton:focus-visible,
+.sortDirectionButton:focus-visible,
+.advancedFilterButton:focus-visible {
+  outline: 2px solid var(--app-accent-primary);
+  outline-offset: 2px;
+}
+
 .advancedFilterCount {
   position: absolute;
   top: -0.34rem;
@@ -1634,6 +1439,59 @@
   border: 1px solid var(--app-bg-base);
   background: var(--app-accent-primary);
   color: #1a120a;
+  font-size: 0.64rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 휴지통 진입 — 서재 컨트롤과 떨어뜨려(끝으로 밀어) 시각적으로 분리한다. */
+.trashScopeButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-subtle);
+  color: var(--app-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background var(--wa-motion-fast, 150ms),
+    border-color var(--wa-motion-fast, 150ms),
+    color var(--wa-motion-fast, 150ms),
+    transform var(--wa-motion-fast, 150ms);
+}
+
+.trashScopeButton:hover {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-card);
+  color: var(--app-text-primary);
+}
+
+.trashScopeButton:active {
+  transform: translateY(0.5px);
+}
+
+.trashScopeButton:focus-visible {
+  outline: 2px solid var(--app-accent-primary);
+  outline-offset: 2px;
+}
+
+.trashScopeCount {
+  display: flex;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding: 0 0.2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--app-surface-overlay);
+  color: var(--app-text-secondary);
   font-size: 0.64rem;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
@@ -2089,7 +1947,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .posterRow {
+  .posterRowCompact.posterRowCompact {
     --poster-width: 4.7rem;
   }
 
@@ -2100,6 +1958,11 @@
 
   .toolbarControls {
     align-items: stretch;
+  }
+
+  /* 모바일은 그리드가 이미 조밀하고 컨트롤 줄이 비좁다 — 밀도 토글은 데스크톱 전용 */
+  .densityToggle {
+    display: none;
   }
 
   .toolbarSearch {
@@ -2177,8 +2040,7 @@
    Reduced motion
 ───────────────────────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .posterImage,
-  .posterImageSkeleton,
+  /* 표지 이미지/스켈레톤의 reduced-motion 은 공용 ArtworkPoster.module.css 가 보유. */
   .posterCardSurface,
   .rowSurface,
   .listRowSurface,

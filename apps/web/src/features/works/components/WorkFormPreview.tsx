@@ -47,6 +47,7 @@ export function WorkFormPreview({ values }: WorkFormValuesProps) {
     >
       <Stack gap="lg">
         <WorkPoster
+          className={cn(css.quickCapturePoster)}
           title={previewTitle}
           typeLabel={getWorkTypeLabel(values.type)}
           variant="form"

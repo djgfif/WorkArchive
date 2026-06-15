@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Group, Stack, Text, Title } from '@mantine/core';
 
 import type { WorkRecord } from '@work-archive/shared-types';
@@ -32,6 +33,9 @@ type KoreanParticlePair = Parameters<typeof withKoreanParticle>[1];
 export function WorkCreatePage() {
   const { t } = useAppTranslation();
   usePageTitle(t('works.add.title'));
+  const [searchParams] = useSearchParams();
+  const initialMode =
+    searchParams.get('mode') === 'search' ? 'search' : 'manual';
   const { archiveScopeKey, mode } = useAuthSession();
   const [formVersion, setFormVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -154,6 +158,7 @@ export function WorkCreatePage() {
       ) : (
         <AddWorkFlow
           draftKey={draftKey}
+          initialMode={initialMode}
           isSubmitting={isSubmitting}
           key={formVersion}
           onSubmit={handleSubmit}

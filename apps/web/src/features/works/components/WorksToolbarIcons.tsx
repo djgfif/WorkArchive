@@ -17,6 +17,24 @@ export function IconGrid({ size = 14 }: { size?: number }) {
   );
 }
 
+export function IconGridComfortable({ size = 14 }: { size?: number }) {
+  // 넓은 밀도 — 큰 포스터 2개. 보기 토글의 2x2 그리드/컴팩트 3x3 와 시각적으로 구분된다.
+  return (
+    <svg
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <rect height="18" width="7.5" x="3" y="3" />
+      <rect height="18" width="7.5" x="13.5" y="3" />
+    </svg>
+  );
+}
+
 export function IconGridCompact({ size = 14 }: { size?: number }) {
   return (
     <svg
@@ -74,6 +92,44 @@ export function IconFilter({ size = 14 }: { size?: number }) {
       width={size}
     >
       <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </svg>
+  );
+}
+
+export function IconTrash({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+export function IconArrowLeft({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <path d="M19 12H5" />
+      <path d="M12 19l-7-7 7-7" />
     </svg>
   );
 }

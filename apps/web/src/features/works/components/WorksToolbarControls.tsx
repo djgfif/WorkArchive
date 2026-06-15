@@ -2,15 +2,18 @@ import type { RefObject } from 'react';
 import { Box, NativeSelect, Tooltip } from '@mantine/core';
 
 import { useAppTranslation } from '@app/i18n';
-import { FilterPillGroup, ArchiveSearchBar } from './ArchiveComponents';
+import { ArchiveSearchBar } from './ArchiveComponents';
 import {
+  IconArrowLeft,
   IconFilter,
   IconGrid,
+  IconGridComfortable,
   IconGridCompact,
   IconList,
   IconSort,
   IconSortAsc,
   IconSortDesc,
+  IconTrash,
 } from './WorksToolbarIcons';
 import styles from './ArchiveComponents.module.css';
 import type { WorksCollectionScope } from '../services/works.service';
@@ -21,7 +24,7 @@ import {
 import { workSortOptions } from '../utils/work-options';
 import type { LibraryDensity } from '../hooks/useLibraryDensity';
 import type { WorksViewMode } from './WorksList';
-import { cn } from '@shared/utils/class-names';
+import { cn, cx } from '@shared/utils/class-names';
 
 const css = styles;
 
@@ -60,7 +63,6 @@ export function WorksToolbarControls({
   query,
   searchRef,
   sortDirection,
-  totalActiveCount,
   totalDeletedCount,
   viewMode,
 }: WorksToolbarControlsProps) {
@@ -68,23 +70,24 @@ export function WorksToolbarControls({
 
   return (
     <Box className={cn(css.toolbarControls)}>
-      <FilterPillGroup
-        aria-label={t('works.list.collectionScope')}
-        onChange={onCollectionScopeChange}
-        options={[
-          {
-            label: t('works.list.library'),
-            value: 'active',
-            count: totalActiveCount,
-          },
-          {
-            label: t('works.list.trash'),
-            value: 'trash',
-            count: totalDeletedCount,
-          },
-        ]}
-        value={collectionScope}
-      />
+      {isTrashScope && (
+        <Tooltip
+          label={t('works.list.returnToLibrary')}
+          position="bottom"
+          withArrow
+        >
+          <Box
+            aria-label={t('works.list.library')}
+            className={cn(css.advancedFilterButton)}
+            component="button"
+            onClick={() => onCollectionScopeChange('active')}
+            type="button"
+          >
+            <IconArrowLeft />
+            {t('works.list.library')}
+          </Box>
+        </Tooltip>
+      )}
 
       <Box className={cn(css.toolbarSearch)}>
         <ArchiveSearchBar
@@ -156,12 +159,12 @@ export function WorksToolbarControls({
       )}
 
       {collectionScope === 'active' && viewMode === 'grid' && (
-        <Box className={cn(css.viewToggle)}>
+        <Box className={cx(cn(css.viewToggle), cn(css.densityToggle))}>
           {(
             [
               {
                 density: 'comfortable',
-                icon: <IconGrid />,
+                icon: <IconGridComfortable />,
                 label: t('works.list.comfortableView'),
               },
               {
@@ -249,6 +252,28 @@ export function WorksToolbarControls({
           )}
         </Box>
       </Tooltip>
+
+      {!isTrashScope && (
+        <Tooltip
+          label={t('works.list.openTrashAria')}
+          position="bottom"
+          withArrow
+        >
+          <Box
+            aria-label={t('works.list.openTrashAria')}
+            className={cn(css.trashScopeButton)}
+            component="button"
+            onClick={() => onCollectionScopeChange('trash')}
+            type="button"
+          >
+            <IconTrash />
+            {t('works.list.trash')}
+            {totalDeletedCount > 0 && (
+              <Box className={cn(css.trashScopeCount)}>{totalDeletedCount}</Box>
+            )}
+          </Box>
+        </Tooltip>
+      )}
     </Box>
   );
 }

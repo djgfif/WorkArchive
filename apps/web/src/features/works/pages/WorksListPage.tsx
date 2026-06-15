@@ -22,10 +22,11 @@ import { SavedWorksViews } from '../components/SavedWorksViews';
 import type { WorkQuickProgressUpdate } from '../components/WorkListRow';
 import { WorksToolbar } from '../components/WorksToolbar';
 import { WorksTrashList } from '../components/WorksTrashList';
+import { WorksTrashToolbar } from '../components/WorksTrashToolbar';
 import { useLibraryDensity } from '../hooks/useLibraryDensity';
 import { useWorksList } from '../hooks/useWorksList';
 import { useWorksListUrlState } from '../hooks/useWorksListUrlState';
-import { worksService } from '../services/works.service';
+import { worksService, WorksService } from '../services/works.service';
 import { createUpsertWorkInputFromRecord } from '../utils/work-form';
 import {
   getDeletedWorkFromRouteState,
@@ -49,11 +50,18 @@ export function WorksListPage() {
   } = useWorksListUrlState();
   const [density, setDensity] = useLibraryDensity();
   const [addDialogOpened, setAddDialogOpened] = useState(false);
+  const [addDialogMode, setAddDialogMode] = useState<'manual' | 'search'>(
+    'manual',
+  );
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [deletedNotice, setDeletedNotice] = useState<WorkRecord | null>(null);
   const [updatingWorkId, setUpdatingWorkId] = useState<string | null>(null);
   const [restoringWorkId, setRestoringWorkId] = useState<string | null>(null);
+  const [deletingWorkId, setDeletingWorkId] = useState<string | null>(null);
+  const [selectedTrashIds, setSelectedTrashIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const {
     error,
     genreSuggestions,
@@ -75,6 +83,52 @@ export function WorksListPage() {
     archiveScopeKey,
   );
   const hasActiveFilters = hasActiveWorksListFilters(query);
+  const retentionDays = WorksService.TRASH_RETENTION_DAYS;
+  const selectedTrashCount = works.reduce(
+    (count, work) => (selectedTrashIds.has(work.id) ? count + 1 : count),
+    0,
+  );
+  const allTrashSelected =
+    works.length > 0 && selectedTrashCount === works.length;
+
+  function openAddDialog(dialogMode: 'manual' | 'search' = 'manual') {
+    setAddDialogMode(dialogMode);
+    setAddDialogOpened(true);
+  }
+
+  // 보존 기간이 지난 휴지통 항목은 진입 시 1회 자동 정리한다(반응형 목록이 갱신).
+  useEffect(() => {
+    void worksService.purgeExpiredTrash().catch(() => {
+      // 자동 정리 실패는 조용히 무시한다. 수동 비우기로 대체 가능.
+    });
+  }, []);
+
+  // 스코프를 벗어나면 선택을 초기화한다.
+  useEffect(() => {
+    if (collectionScope !== 'trash') {
+      setSelectedTrashIds((current) => (current.size > 0 ? new Set() : current));
+    }
+  }, [collectionScope]);
+
+  function toggleTrashSelect(id: string) {
+    setSelectedTrashIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
+  }
+
+  function toggleSelectAllTrash() {
+    setSelectedTrashIds(
+      allTrashSelected ? new Set() : new Set(works.map((work) => work.id)),
+    );
+  }
 
   useEffect(() => {
     const routeDeletedWork = getDeletedWorkFromRouteState(location.state);
@@ -138,6 +192,137 @@ export function WorksListPage() {
       );
     } finally {
       setRestoringWorkId(null);
+    }
+  }
+
+  function removeFromSelection(ids: string[]) {
+    setSelectedTrashIds((current) => {
+      if (current.size === 0) return current;
+      const next = new Set(current);
+      for (const id of ids) next.delete(id);
+      return next;
+    });
+  }
+
+  async function handlePermanentDelete(work: WorkRecord) {
+    const confirmed = await confirmDialogAdapter.confirm({
+      description: t('works.list.permanentDeleteConfirmDescription'),
+      title: t('works.list.permanentDeleteConfirmTitle', { title: work.title }),
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setActionError(null);
+      setActionSuccess(null);
+      setDeletingWorkId(work.id);
+      await worksService.permanentlyDeleteWork(work.id);
+      removeFromSelection([work.id]);
+      setActionSuccess(t('works.list.permanentDeleted'));
+    } catch (deleteError) {
+      setActionError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : t('works.list.permanentDeleteError'),
+      );
+    } finally {
+      setDeletingWorkId(null);
+    }
+  }
+
+  async function handleEmptyTrash() {
+    const confirmed = await confirmDialogAdapter.confirm({
+      description: t('works.list.emptyTrashConfirmDescription', {
+        total: totalDeletedCount,
+      }),
+      title: t('works.list.emptyTrashConfirmTitle'),
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setActionError(null);
+      setActionSuccess(null);
+      await worksService.emptyTrash();
+      setSelectedTrashIds(new Set());
+      setActionSuccess(t('works.list.trashCleared'));
+    } catch (deleteError) {
+      setActionError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : t('works.list.permanentDeleteError'),
+      );
+    }
+  }
+
+  async function handleRestoreAll() {
+    try {
+      setActionError(null);
+      setActionSuccess(null);
+      const restored = await worksService.restoreWorks(
+        works.map((work) => work.id),
+      );
+      setSelectedTrashIds(new Set());
+      setActionSuccess(t('works.list.restoredCount', { total: restored }));
+    } catch (restoreError) {
+      setActionError(
+        restoreError instanceof Error
+          ? restoreError.message
+          : t('works.list.restoreError'),
+      );
+    }
+  }
+
+  async function handleRestoreSelected() {
+    const ids = works
+      .map((work) => work.id)
+      .filter((id) => selectedTrashIds.has(id));
+
+    if (ids.length === 0) return;
+
+    try {
+      setActionError(null);
+      setActionSuccess(null);
+      const restored = await worksService.restoreWorks(ids);
+      setSelectedTrashIds(new Set());
+      setActionSuccess(t('works.list.restoredCount', { total: restored }));
+    } catch (restoreError) {
+      setActionError(
+        restoreError instanceof Error
+          ? restoreError.message
+          : t('works.list.restoreError'),
+      );
+    }
+  }
+
+  async function handlePermanentDeleteSelected() {
+    const ids = works
+      .map((work) => work.id)
+      .filter((id) => selectedTrashIds.has(id));
+
+    if (ids.length === 0) return;
+
+    const confirmed = await confirmDialogAdapter.confirm({
+      description: t('works.list.permanentDeleteConfirmDescription'),
+      title: t('works.list.permanentDeleteSelectedConfirmTitle', {
+        total: ids.length,
+      }),
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setActionError(null);
+      setActionSuccess(null);
+      await worksService.permanentlyDeleteWorks(ids);
+      setSelectedTrashIds(new Set());
+      setActionSuccess(t('works.list.permanentDeleted'));
+    } catch (deleteError) {
+      setActionError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : t('works.list.permanentDeleteError'),
+      );
     }
   }
 
@@ -209,7 +394,7 @@ export function WorksListPage() {
             activeStatus={query.status}
             isLoading={isLoading}
             isTrashScope={isTrashScope}
-            onAddWork={() => setAddDialogOpened(true)}
+            onAddWork={() => openAddDialog('manual')}
             onSelectStatus={(status) => handleQueryChange({ ...query, status })}
             statusCounts={statusCounts}
             totalActiveCount={totalActiveCount}
@@ -243,12 +428,15 @@ export function WorksListPage() {
           viewMode={viewMode}
         />
 
-        <JsonBackupReminderCard
-          feedback={jsonArchiveExport.feedback}
-          isExporting={jsonArchiveExport.isExporting}
-          onExportJson={jsonArchiveExport.exportJson}
-          reminder={backupReminder}
-        />
+        {/* 백업 넛지는 활성 서재에서만 — 휴지통(복구 작업 공간)에서는 숨긴다 */}
+        {!isTrashScope && (
+          <JsonBackupReminderCard
+            feedback={jsonArchiveExport.feedback}
+            isExporting={jsonArchiveExport.isExporting}
+            onExportJson={jsonArchiveExport.exportJson}
+            reminder={backupReminder}
+          />
+        )}
 
         <WorksListFeedback
           actionError={actionError}
@@ -263,7 +451,7 @@ export function WorksListPage() {
         {error && (
           <WorksListErrorState
             error={error}
-            onOpenAddDialog={() => setAddDialogOpened(true)}
+            onOpenAddDialog={() => openAddDialog('manual')}
             onRetry={retry}
           />
         )}
@@ -277,7 +465,7 @@ export function WorksListPage() {
             collectionScope={collectionScope}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={handleClearFilters}
-            onOpenAddDialog={() => setAddDialogOpened(true)}
+            onOpenAddDialog={() => openAddDialog('search')}
             onReturnToActiveCollection={() =>
               handleCollectionScopeChange('active')
             }
@@ -288,11 +476,31 @@ export function WorksListPage() {
           !isLoading &&
           works.length > 0 &&
           (collectionScope === 'trash' ? (
-            <WorksTrashList
-              onRestore={handleRestore}
-              restoringWorkId={restoringWorkId}
-              works={works}
-            />
+            <>
+              <WorksTrashToolbar
+                allSelected={allTrashSelected}
+                onClearSelection={() => setSelectedTrashIds(new Set())}
+                onEmptyTrash={() => void handleEmptyTrash()}
+                onPermanentDeleteSelected={() =>
+                  void handlePermanentDeleteSelected()
+                }
+                onRestoreAll={() => void handleRestoreAll()}
+                onRestoreSelected={() => void handleRestoreSelected()}
+                onToggleSelectAll={toggleSelectAllTrash}
+                retentionDays={retentionDays}
+                selectedCount={selectedTrashCount}
+              />
+              <WorksTrashList
+                deletingWorkId={deletingWorkId}
+                onPermanentDelete={handlePermanentDelete}
+                onRestore={handleRestore}
+                onToggleSelect={toggleTrashSelect}
+                restoringWorkId={restoringWorkId}
+                retentionDays={retentionDays}
+                selectedIds={selectedTrashIds}
+                works={works}
+              />
+            </>
           ) : (
             <WorksList
               density={density}
@@ -307,6 +515,7 @@ export function WorksListPage() {
       </Stack>
 
       <AddWorkDialog
+        initialMode={addDialogMode}
         onClose={() => setAddDialogOpened(false)}
         opened={addDialogOpened}
       />

@@ -117,8 +117,10 @@
 
 .posterFallback {
   position: relative;
+  container-type: inline-size;
   display: grid;
   align-content: space-between;
+  gap: 0.5rem;
   padding: 0.9rem;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 34%),
@@ -212,19 +214,28 @@
     linear-gradient(160deg, #1a1228, #0c0b0a 80%);
 }
 
-.posterFallbackMark {
+.posterFallbackTitle {
   position: relative;
   z-index: 1;
-  align-self: center;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: clamp(2.8rem, 50%, 6rem);
-  font-weight: 820;
-  line-height: 1;
-  text-align: center;
-  letter-spacing: -0.04em;
+  align-self: end;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+  color: rgba(248, 244, 238, 0.95);
+  font-family: var(--app-font-display);
+  /* 표지 폭에 비례해 제목 크기를 키운다(작은 row 표지에서도 읽히도록 하한 유지) */
+  font-size: clamp(0.74rem, 15cqw, 1.7rem);
+  font-weight: 720;
+  line-height: 1.16;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   text-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.5),
-    0 16px 40px rgba(0, 0, 0, 0.35);
+    0 1px 3px rgba(0, 0, 0, 0.55),
+    0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
 .posterFallbackType {
@@ -235,5 +246,14 @@
   font-size: var(--app-type-meta);
   font-weight: 800;
   letter-spacing: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posterImage,
+  .posterImageSkeleton {
+    animation: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
 }
 

@@ -32,6 +32,15 @@
 html {
   background: var(--app-bg-shell, var(--mantine-color-body));
   scroll-behavior: smooth;
+  /* 고정 상단바 높이만큼 앵커 스크롤 여백 확보 — #data-backup 등 인페이지 링크가
+     헤더에 가리지 않게 한다. */
+  scroll-padding-top: calc(var(--topnav-height, 56px) + 0.75rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 /* ── Body — 차분한 단색 surface ──────────────────────────────────────────
@@ -152,6 +161,18 @@ textarea {
 
 .mantine-Button-root:active {
   transform: scale(0.97);
+}
+
+/* 아이콘 버튼도 동일한 press 피드백으로 통일 (가이드 6: 빠른 응답) */
+.mantine-ActionIcon-root:active {
+  transform: scale(0.92);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mantine-Button-root:active,
+  .mantine-ActionIcon-root:active {
+    transform: none;
+  }
 }
 
 .mantine-Paper-root {

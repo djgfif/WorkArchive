@@ -33,6 +33,7 @@ import {
 
 interface AddWorkFlowProps {
   draftKey?: string | null;
+  initialMode?: 'manual' | 'search';
   isSubmitting: boolean;
   onSubmit: (input: UpsertWorkInput) => Promise<void>;
   onCancel?: () => void;
@@ -71,6 +72,7 @@ function getCandidateFieldSummary(
 
 export function AddWorkFlow({
   draftKey = null,
+  initialMode = 'manual',
   isSubmitting,
   onCancel,
   onSubmit,
@@ -80,7 +82,7 @@ export function AddWorkFlow({
   const { t } = useAppTranslation();
   const isDialog = variant === 'dialog';
   const titleInputRef = useRef<HTMLInputElement | null>(null);
-  const [mode, setMode] = useState<'manual' | 'search'>('manual');
+  const [mode, setMode] = useState<'manual' | 'search'>(initialMode);
   const [values, setValues] = useState<WorkFormValues>(() =>
     createFormDefaults(),
   );

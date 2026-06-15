@@ -448,6 +448,83 @@ export class WorksService {
 
     return restored;
   }
+
+  /** 휴지통 보존 기본값(일). 경과한 항목은 앱 진입 시 자동 영구 삭제된다. */
+  static readonly TRASH_RETENTION_DAYS = 30;
+
+  /** 여러 작품을 한 번에 복원한다. 휴지통에 없는 id는 조용히 건너뛴다. */
+  async restoreWorks(ids: string[]) {
+    let restored = 0;
+
+    for (const id of ids) {
+      try {
+        await this.restoreWork(id);
+        restored += 1;
+      } catch {
+        // 이미 복원됐거나 사라진 항목은 건너뛴다.
+      }
+    }
+
+    return restored;
+  }
+
+  /** 휴지통의 한 작품을 영구 삭제한다(되돌릴 수 없음). */
+  async permanentlyDeleteWork(id: string) {
+    const existing = await this.repository.getById(id);
+
+    if (!existing || existing.deletedAt === null) {
+      throw new Error(appI18n.t('works.errors.workMissing'));
+    }
+
+    await this.repository.permanentlyDelete([id]);
+
+    return existing;
+  }
+
+  /** 주어진 id 중 휴지통에 있는 작품만 골라 영구 삭제하고 처리 개수를 반환한다. */
+  async permanentlyDeleteWorks(ids: string[]) {
+    if (ids.length === 0) {
+      return 0;
+    }
+
+    const deletedIds = new Set(
+      (await this.repository.listDeleted()).map((work) => work.id),
+    );
+    const target = ids.filter((id) => deletedIds.has(id));
+
+    return this.repository.permanentlyDelete(target);
+  }
+
+  /** 휴지통을 비운다(전체 영구 삭제). 영구 삭제된 개수를 반환한다. */
+  async emptyTrash() {
+    const ids = (await this.repository.listDeleted()).map((work) => work.id);
+
+    return this.repository.permanentlyDelete(ids);
+  }
+
+  /**
+   * 보존 기간이 지난 휴지통 항목을 영구 삭제한다(자동 정리). 0 이하 보존 기간은
+   * 자동 정리를 끈 것으로 보고 아무것도 지우지 않는다.
+   */
+  async purgeExpiredTrash(
+    retentionDays: number = WorksService.TRASH_RETENTION_DAYS,
+    now: Date = new Date(),
+  ) {
+    if (retentionDays <= 0) {
+      return 0;
+    }
+
+    const cutoff = now.getTime() - retentionDays * 24 * 60 * 60 * 1000;
+    const expiredIds = (await this.repository.listDeleted())
+      .filter((work) => {
+        const deletedTime = Date.parse(work.deletedAt ?? work.updatedAt);
+
+        return Number.isFinite(deletedTime) && deletedTime < cutoff;
+      })
+      .map((work) => work.id);
+
+    return this.repository.permanentlyDelete(expiredIds);
+  }
 }
 
 export const worksService = new WorksService();

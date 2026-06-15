@@ -328,7 +328,8 @@ export const appTheme = createTheme({
       styles: {
         root: {
           color:      'var(--app-text-secondary)',
-          transition: 'color var(--wa-motion-fast), background var(--wa-motion-fast)',
+          transition:
+            'color var(--wa-motion-fast), background var(--wa-motion-fast), transform var(--wa-motion-fast)',
         },
       },
     },

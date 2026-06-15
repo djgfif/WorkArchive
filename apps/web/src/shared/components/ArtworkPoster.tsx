@@ -9,10 +9,30 @@ import styles from './ArtworkPoster.module.css';
 import { useAppTranslation } from '@app/i18n';
 import { cn, cx } from '@shared/utils/class-names';
 
+/**
+ * 표지 접근성 문구. 미지정 시 `shared.*` 키를 쓰며, 다른 i18n 키를 쓰는
+ * 호출부(예: works 의 WorkPoster)는 직접 해석한 문자열을 넘긴다.
+ */
+interface ArtworkPosterLabels {
+  /** <img> 의 alt 텍스트. */
+  alt: string;
+  /** 폴백 표지 컨테이너의 aria-label. */
+  fallbackAria: string;
+  /** typeLabel·제목이 비었을 때 쓰는 기본 표시 문구. */
+  fallbackType: string;
+}
+
 interface ArtworkPosterProps {
   className?: string;
   coverSeed?: string;
+  labels?: ArtworkPosterLabels;
   overlay?: ReactNode;
+  /**
+   * 표지 없는 작품의 폴백에 제목을 표시할지 여부. 인접한 캡션/행 텍스트가
+   * 이미 제목을 보여주는 그리드·목록 카드에서는 false 로 꺼서 중복을 없앤다.
+   * 캡션이 없는 홈 선반·상세 표지에서는 기본값(true)으로 제목을 노출한다.
+   */
+  showFallbackTitle?: boolean;
   thumbnailUrl?: string;
   title: string;
   typeLabel?: string;
@@ -44,7 +64,9 @@ function getCoverTone(seed: string) {
 export function ArtworkPoster({
   className,
   coverSeed,
+  labels,
   overlay,
+  showFallbackTitle = true,
   thumbnailUrl,
   title,
   typeLabel,
@@ -52,6 +74,10 @@ export function ArtworkPoster({
 }: ArtworkPosterProps) {
   const { t } = useAppTranslation();
   const posterImage = usePosterImageSource(thumbnailUrl, variant);
+  const altText = labels?.alt ?? t('shared.posterAlt', { title });
+  const fallbackAriaText =
+    labels?.fallbackAria ?? t('shared.posterFallbackAlt', { title });
+  const fallbackTypeText = labels?.fallbackType ?? t('shared.posterFallbackType');
 
   return (
     <Box
@@ -70,7 +96,7 @@ export function ArtworkPoster({
             />
           )}
           <img
-            alt={t('shared.posterAlt', { title })}
+            alt={altText}
             className={cx(
               cn(styles.posterImage),
               posterImage.loaded && cn(styles.posterImageLoaded),
@@ -85,19 +111,20 @@ export function ArtworkPoster({
         </>
       ) : (
         <Box
-          aria-label={t('shared.posterFallbackAlt', { title })}
+          aria-label={fallbackAriaText}
           className={cn(styles.posterFallback)}
           data-cover-tone={getCoverTone(
             coverSeed ?? `${typeLabel ?? ''}:${title}`,
           )}
         >
           <Text className={cn(styles.posterFallbackType)}>
-            {typeLabel ?? t('shared.posterFallbackType')}
+            {typeLabel ?? fallbackTypeText}
           </Text>
-          <Text className={cn(styles.posterFallbackMark)}>
-            {(title.trim()[0] ?? 'W').toUpperCase()}
-          </Text>
-          <span aria-hidden="true" />
+          {showFallbackTitle && (
+            <Text className={cn(styles.posterFallbackTitle)} title={title}>
+              {title.trim() || fallbackTypeText}
+            </Text>
+          )}
         </Box>
       )}
       {overlay}

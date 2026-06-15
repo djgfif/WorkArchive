@@ -122,6 +122,68 @@ describe('WorksRepository', () => {
     );
   });
 
+  it('permanently deletes works and cascades owned records without touching other works or shared entities', async () => {
+    const target = buildWork({
+      id: 'target',
+      deletedAt: '2026-02-01T00:00:00.000Z',
+      updatedAt: '2026-02-01T00:00:00.000Z',
+    });
+    const other = buildWork({ id: 'other' });
+
+    await repository.bulkPut([target, other]);
+
+    await db.table('releaseRecords').bulkPut([
+      { id: 'r1', userWorkRecordId: 'target' },
+      { id: 'r2', userWorkRecordId: 'other' },
+    ]);
+    await db.table('timelineEntries').bulkPut([
+      { id: 't1', workId: 'target' },
+      { id: 't2', workId: 'other' },
+    ]);
+    await db.table('workSeriesLinks').bulkPut([
+      { id: 'sl1', workId: 'target', seriesId: 's1', role: 'main' },
+      { id: 'sl2', workId: 'other', seriesId: 's1', role: 'main' },
+    ]);
+    await db.table('workContributors').bulkPut([
+      { id: 'wc1', workId: 'target', contributorId: 'c1', role: 'author' },
+      { id: 'wc2', workId: 'other', contributorId: 'c1', role: 'author' },
+    ]);
+    await db.table('workRelations').bulkPut([
+      { id: 'rel1', sourceWorkId: 'target', targetWorkId: 'other' },
+      { id: 'rel2', sourceWorkId: 'other', targetWorkId: 'target' },
+      { id: 'rel3', sourceWorkId: 'other', targetWorkId: 'x' },
+    ]);
+    // 공유 엔티티 — 영구 삭제 캐스케이드가 절대 건드려선 안 된다.
+    await db.table('contributors').put({ id: 'c1', normalizedName: 'a' });
+    await db.table('series').put({ id: 's1', normalizedTitle: 'b' });
+
+    const removed = await repository.permanentlyDelete(['target']);
+
+    expect(removed).toBe(1);
+    expect(await repository.getById('target')).toBeNull();
+    expect(await repository.getById('other')).not.toBeNull();
+
+    const remainingIds = async (table: string) =>
+      (await db.table(table).toArray()).map((row) => row.id).sort();
+
+    expect(await remainingIds('releaseRecords')).toEqual(['r2']);
+    expect(await remainingIds('timelineEntries')).toEqual(['t2']);
+    expect(await remainingIds('workSeriesLinks')).toEqual(['sl2']);
+    expect(await remainingIds('workContributors')).toEqual(['wc2']);
+    // target 을 source 또는 target 으로 가리키는 관계는 모두 제거되고 rel3 만 남는다.
+    expect(await remainingIds('workRelations')).toEqual(['rel3']);
+    // 공유 엔티티는 그대로 유지된다.
+    expect(await db.table('contributors').get('c1')).toBeTruthy();
+    expect(await db.table('series').get('s1')).toBeTruthy();
+  });
+
+  it('treats permanentlyDelete of an empty id list as a no-op', async () => {
+    await repository.create(buildWork({ id: 'keep' }));
+
+    await expect(repository.permanentlyDelete([])).resolves.toBe(0);
+    expect(await repository.getById('keep')).not.toBeNull();
+  });
+
   it('queries works through scope-first indexes before applying list filters', async () => {
     const activeOlder = buildWork({
       id: 'active-older',

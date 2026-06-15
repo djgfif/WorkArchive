@@ -6,10 +6,6 @@ import { Link } from 'react-router-dom';
 import { appI18n, useAppTranslation } from '@app/i18n';
 import { AppBadge, AppLinkButton } from '@shared/components/AppPrimitives';
 import {
-  PosterHoverOverlay,
-  POSTER_CARD_HOVER_CLASS,
-} from '@shared/components/PosterHoverOverlay';
-import {
   formatWorkDate,
   getWorkStatusLabel,
   getWorkTypeLabel,
@@ -17,7 +13,7 @@ import {
 import { getPersonalTags } from '../../utils/graph-tags';
 import { ProgressDisplay } from './ProgressWidgets';
 import { RatingDisplay } from './RatingControls';
-import { cn, css, cx } from './styles';
+import { cn, css } from './styles';
 import { WorkPoster } from './WorkPoster';
 import { SerialStatusBadge } from '../SerialStatusBadge';
 
@@ -96,7 +92,7 @@ export function WorkPosterCard({
   return (
     <Link
       aria-label={t('works.list.trashDetailAria', { title: work.title })}
-      className={cx(cn(css.posterCardLink), POSTER_CARD_HOVER_CLASS)}
+      className={cn(css.posterCardLink)}
       to={`/works/${work.id}`}
     >
       <Paper className={cn(css.posterCardSurface)} withBorder>
@@ -110,17 +106,14 @@ export function WorkPosterCard({
             ★
           </Box>
         )}
+        {/* 표지 폴백 제목은 끈다 — 아래 캡션 제목이 단일 출처. */}
         <WorkPoster
           coverSeed={work.id}
+          showFallbackTitle={false}
           thumbnailUrl={work.thumbnailUrl}
           title={work.title}
           typeLabel={typeLabel}
           variant="grid"
-        />
-        <PosterHoverOverlay
-          rating={work.rating}
-          statusLabel={getWorkStatusLabel(work.status)}
-          title={work.title}
         />
         {needsCuration && (
           <Box
@@ -180,6 +173,7 @@ export function WorkRowCard({ isUpdating = false, work }: WorkRowCardProps) {
         <Group align="center" gap="md" wrap="nowrap">
           <WorkPoster
             coverSeed={work.id}
+            showFallbackTitle={false}
             thumbnailUrl={work.thumbnailUrl}
             title={work.title}
             typeLabel={typeLabel}

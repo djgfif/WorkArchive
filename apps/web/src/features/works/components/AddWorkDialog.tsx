@@ -10,12 +10,14 @@ import type { UpsertWorkInput } from '../utils/work-form';
 import { AddWorkFlow } from './AddWorkFlow';
 
 interface AddWorkDialogProps {
+  initialMode?: 'manual' | 'search';
   onClose: () => void;
   onCreated?: (work: WorkRecord) => void;
   opened: boolean;
 }
 
 export function AddWorkDialog({
+  initialMode = 'manual',
   onClose,
   onCreated,
   opened,
@@ -57,8 +59,9 @@ export function AddWorkDialog({
       title={t('works.add.dialogTitle')}
     >
       <AddWorkFlow
+        initialMode={initialMode}
         isSubmitting={isSubmitting}
-        key={formVersion}
+        key={`${initialMode}-${formVersion}`}
         onCancel={onClose}
         onSubmit={handleSubmit}
         submitError={submitError}

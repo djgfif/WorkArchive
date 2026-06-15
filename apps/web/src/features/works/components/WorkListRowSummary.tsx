@@ -55,6 +55,7 @@ export function WorkListRowSummary({
           to={`/works/${work.id}`}
         >
           <WorkPoster
+            showFallbackTitle={false}
             thumbnailUrl={work.thumbnailUrl}
             title={work.title}
             typeLabel={typeLabel}

@@ -294,7 +294,10 @@ function renderAuthenticatedAddWorkFlow(onSubmit = vi.fn()) {
   );
 }
 
-function renderGuestAddWorkFlow(onSubmit = vi.fn()) {
+function renderGuestAddWorkFlow(
+  onSubmit = vi.fn(),
+  initialMode: 'manual' | 'search' = 'manual',
+) {
   workArchiveDbManager.switchToGuest();
   clearStoredAuthTokens();
 
@@ -310,6 +313,7 @@ function renderGuestAddWorkFlow(onSubmit = vi.fn()) {
         }}
       >
         <AddWorkFlow
+          initialMode={initialMode}
           isSubmitting={false}
           onSubmit={onSubmit}
           submitError={null}
@@ -517,6 +521,18 @@ describe('AddWorkFlow', () => {
       expect(getElementById<HTMLInputElement>('manualPersonalTagsText')).toBeVisible();
     });
     expect(screen.getByLabelText('상세 감상')).toBeInTheDocument();
+  });
+
+  it('opens directly in search mode when initialMode is search', () => {
+    renderGuestAddWorkFlow(vi.fn(), 'search');
+
+    expect(
+      screen.getByRole('button', { name: '후보 검색' }),
+    ).toBeInTheDocument();
+    expect(
+      getElementById<HTMLInputElement>('quickAddSearch'),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^제목$/)).not.toBeInTheDocument();
   });
 
   it('shows the cover preview in the dialog manual flow', () => {

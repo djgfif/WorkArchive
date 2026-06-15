@@ -370,7 +370,7 @@ function EmptyGuide() {
       ),
       title: t('home.empty.searchTitle'),
       description: t('home.empty.searchDescription'),
-      to: '/works/new',
+      to: '/works/new?mode=search',
     },
     {
       icon: (
@@ -432,6 +432,9 @@ export function HomePage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const isAuthenticated = mode === 'authenticated';
+  // 빈 서재에서는 검색·"서재 전체" 같은 빈 결과로 가는 컨트롤을 숨기고
+  // 첫 기록 가이드에 시선을 모은다.
+  const isEmptyArchive = !error && !isLoading && totalCount === 0;
   const jsonArchiveExport = useJsonArchiveExport();
   const backupReminder = useJsonBackupReminder(totalCount, archiveScopeKey);
 
@@ -503,27 +506,31 @@ export function HomePage() {
           <AppLinkButton to="/works/new" tone="primary">
             {t('home.actions.addWork')}
           </AppLinkButton>
-          <AppLinkButton to="/works" tone="secondary">
-            {t('home.actions.allWorks')}
-          </AppLinkButton>
+          {!isEmptyArchive && (
+            <AppLinkButton to="/works" tone="secondary">
+              {t('home.actions.allWorks')}
+            </AppLinkButton>
+          )}
         </div>
       </div>
 
-      {/* ── 검색 ── */}
-      <div className={css.homeSearchRow}>
-        <form className={css.homeSearchForm} onSubmit={handleSearchSubmit}>
-          <ArchiveSearchBar
-            aria-label={t('home.search.aria')}
-            onChange={setSearchTerm}
-            onSubmit={() => handleSearchSubmit()}
-            placeholder={t('home.search.placeholder')}
-            value={searchTerm}
-          />
-          <AppButton tone="primary" type="submit">
-            {t('home.search.submit')}
-          </AppButton>
-        </form>
-      </div>
+      {/* ── 검색 — 빈 서재에서는 검색 대상이 없어 숨긴다 ── */}
+      {!isEmptyArchive && (
+        <div className={css.homeSearchRow}>
+          <form className={css.homeSearchForm} onSubmit={handleSearchSubmit}>
+            <ArchiveSearchBar
+              aria-label={t('home.search.aria')}
+              onChange={setSearchTerm}
+              onSubmit={() => handleSearchSubmit()}
+              placeholder={t('home.search.placeholder')}
+              value={searchTerm}
+            />
+            <AppButton tone="primary" type="submit">
+              {t('home.search.submit')}
+            </AppButton>
+          </form>
+        </div>
+      )}
 
       {/* ── 오류 ── */}
       {error && (
