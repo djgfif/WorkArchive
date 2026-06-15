@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
 import { SectionCard } from '@shared/components/AppPrimitives';
@@ -12,6 +12,7 @@ interface SettingsSectionItem {
   id: string;
   label: string;
   content: ReactNode;
+  group?: string | undefined;
 }
 
 interface SettingsLayoutProps {
@@ -71,11 +72,27 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
       >
         <SectionCard padding="sm" tone="subtle">
           <div className={css.navList ?? ''} role="tablist">
-            {sections.map((section) => (
-              <a key={section.id} {...getNavLinkProps(section)}>
-                <span>{section.label}</span>
-              </a>
-            ))}
+            {sections.map((section, index) => {
+              const showGroupLabel =
+                section.group !== undefined &&
+                section.group !== sections[index - 1]?.group;
+
+              return (
+                <Fragment key={section.id}>
+                  {showGroupLabel && (
+                    <p
+                      className={css.navGroupLabel ?? ''}
+                      role="presentation"
+                    >
+                      {section.group}
+                    </p>
+                  )}
+                  <a {...getNavLinkProps(section)}>
+                    <span>{section.label}</span>
+                  </a>
+                </Fragment>
+              );
+            })}
           </div>
         </SectionCard>
       </nav>

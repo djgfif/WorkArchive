@@ -538,6 +538,12 @@ export const ja = {
       "searchProviders": "検索ソースとAPIキー",
       "security": "セキュリティ",
     },
+    "groups": {
+      "account": "アカウント",
+      "data": "データ",
+      "general": "一般",
+      "integrations": "連携",
+    },
     "dataBackup": {
       "badgeDuplicatePreview": "重複プレビュー",
       "badgeExcludeApiKey": "APIキー除外",

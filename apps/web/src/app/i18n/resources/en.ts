@@ -538,6 +538,12 @@ export const en = {
       "searchProviders": "Search sources & API keys",
       "security": "Security",
     },
+    "groups": {
+      "account": "Account",
+      "data": "Data",
+      "general": "General",
+      "integrations": "Integrations",
+    },
     "dataBackup": {
       "badgeDuplicatePreview": "Duplicate preview",
       "badgeExcludeApiKey": "Excludes API keys",
