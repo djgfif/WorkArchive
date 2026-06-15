@@ -382,9 +382,9 @@ export const ja = {
     "workBackupDescriptionGuest": "ログインするまで記録はこの端末にのみ保存されます。必要なときにアカウント連携とバックアップを有効にできます。",
   },
   "locale": {
-    "currentDescription": "現在はレビュー済みの日本語UIではなく、レビュー済みの韓国語UIのみ利用できます。",
+    "currentDescription": "韓国語のほか、英語・日本語・中国語のUIも選べます。",
     "currentLabel": "現在の言語",
-    "description": "アプリのUI言語を管理します。英語、日本語、中国語は翻訳レビュー後に順次公開されます。",
+    "description": "アプリのUI言語を選びます。英語・日本語・中国語の翻訳は現在も調整中です。",
     "eyebrow": "言語",
     "onlyKoreanReady": "韓国語のみ利用可能",
     "title": "言語設定",

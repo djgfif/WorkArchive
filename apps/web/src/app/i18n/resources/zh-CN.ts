@@ -382,9 +382,9 @@ export const zhCN = {
     "workBackupDescriptionGuest": "登录之前，记录仅保存在本设备。你可以在需要时开启账户连接和备份。",
   },
   "locale": {
-    "currentDescription": "目前只能使用已审核的韩语界面。",
+    "currentDescription": "除韩语外，还可使用英语、日语或简体中文界面。",
     "currentLabel": "当前语言",
-    "description": "管理应用的界面语言。英语、日语和中文将在翻译审核后陆续开放。",
+    "description": "选择应用界面语言。英语、日语和简体中文的翻译仍在完善中。",
     "eyebrow": "语言",
     "onlyKoreanReady": "仅可使用韩语",
     "title": "语言设置",
