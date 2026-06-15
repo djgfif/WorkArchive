@@ -17,9 +17,9 @@
         "settings": "Settings"
       },
       "locale": {
-        "currentDescription": "Only the reviewed Korean UI is available right now.",
+        "currentDescription": "You can use the UI in Korean, English, Japanese, or Chinese.",
         "currentLabel": "Current language",
-        "description": "Manage the app UI language. English, Japanese, and Chinese will open sequentially after translation review.",
+        "description": "Choose the app UI language. The English, Japanese, and Chinese translations are still being refined.",
         "eyebrow": "Language",
         "onlyKoreanReady": "Only Korean is available",
         "title": "Language settings"
@@ -106,9 +106,9 @@
         "settings": "設定"
       },
       "locale": {
-        "currentDescription": "現在はレビュー済みの日本語UIではなく、レビュー済みの韓国語UIのみ利用できます。",
+        "currentDescription": "韓国語のほか、英語・日本語・中国語のUIも選べます。",
         "currentLabel": "現在の言語",
-        "description": "アプリのUI言語を管理します。英語、日本語、中国語は翻訳レビュー後に順次公開されます。",
+        "description": "アプリのUI言語を選びます。英語・日本語・中国語の翻訳は現在も調整中です。",
         "eyebrow": "言語",
         "onlyKoreanReady": "韓国語のみ利用可能",
         "title": "言語設定"
@@ -195,9 +195,9 @@
         "settings": "设置"
       },
       "locale": {
-        "currentDescription": "目前只能使用已审核的韩语界面。",
+        "currentDescription": "除韩语外，还可使用英语、日语或简体中文界面。",
         "currentLabel": "当前语言",
-        "description": "管理应用的界面语言。英语、日语和中文将在翻译审核后陆续开放。",
+        "description": "选择应用界面语言。英语、日语和简体中文的翻译仍在完善中。",
         "eyebrow": "语言",
         "onlyKoreanReady": "仅可使用韩语",
         "title": "语言设置"

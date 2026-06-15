@@ -382,9 +382,9 @@ export const en = {
     "workBackupDescriptionGuest": "Until you sign in, records are stored only on this device. You can turn on account connection and backup whenever you need.",
   },
   "locale": {
-    "currentDescription": "Only the reviewed Korean UI is available right now.",
+    "currentDescription": "You can use the UI in Korean, English, Japanese, or Chinese.",
     "currentLabel": "Current language",
-    "description": "Manage the app UI language. English, Japanese, and Chinese will open sequentially after translation review.",
+    "description": "Choose the app UI language. The English, Japanese, and Chinese translations are still being refined.",
     "eyebrow": "Language",
     "onlyKoreanReady": "Only Korean is available",
     "title": "Language settings",

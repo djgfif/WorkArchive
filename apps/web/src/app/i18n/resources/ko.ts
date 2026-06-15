@@ -439,10 +439,10 @@ export const ko = {
       '로그인 전까지 기록은 이 기기에만 저장됩니다. 필요할 때 계정 연결과 백업을 켤 수 있습니다.',
   },
   locale: {
-    currentDescription: '현재는 검수 완료된 한국어 UI만 사용할 수 있습니다.',
+    currentDescription: '한국어 외에 영어·일본어·중국어 UI도 선택할 수 있습니다.',
     currentLabel: '현재 언어',
     description:
-      '앱 UI 언어를 관리합니다. 영어, 일본어, 중국어는 번역 검수 후 순차적으로 열립니다.',
+      '앱 UI 언어를 선택합니다. 영어·일본어·중국어 번역은 아직 다듬는 중입니다.',
     eyebrow: '언어',
     onlyKoreanReady: '한국어만 사용 가능',
     title: '언어 설정',
