@@ -395,6 +395,12 @@
           "searchProviders": "Search sources & API keys",
           "security": "Security"
         },
+        "groups": {
+          "account": "Account",
+          "data": "Data",
+          "general": "General",
+          "integrations": "Integrations"
+        },
         "security": {
           "active": "Active",
           "activeSessions": "{{count}} active sessions",
@@ -821,6 +827,12 @@
           "searchProviders": "検索ソースとAPIキー",
           "security": "セキュリティ"
         },
+        "groups": {
+          "account": "アカウント",
+          "data": "データ",
+          "general": "一般",
+          "integrations": "連携"
+        },
         "security": {
           "active": "アクティブ",
           "activeSessions": "アクティブセッション {{count}}件",
@@ -1246,6 +1258,12 @@
           "overview": "概览",
           "searchProviders": "搜索来源与 API 密钥",
           "security": "安全"
+        },
+        "groups": {
+          "account": "账户",
+          "data": "数据",
+          "general": "常规",
+          "integrations": "集成"
         },
         "security": {
           "active": "活动",

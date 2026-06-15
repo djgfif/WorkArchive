@@ -600,6 +600,12 @@ export const ko = {
       searchProviders: '검색 소스와 API 키',
       security: '보안',
     },
+    groups: {
+      account: '계정',
+      data: '데이터',
+      general: '일반',
+      integrations: '연동',
+    },
     dataBackup: {
       badgeDuplicatePreview: '중복 미리보기',
       badgeExcludeApiKey: 'API key 제외',

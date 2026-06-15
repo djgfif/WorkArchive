@@ -264,6 +264,32 @@ export function SettingsPage() {
     },
   ];
 
+  const sectionGroupById: Record<string, string> = {
+    account: t('settings.groups.account'),
+    security: t('settings.groups.account'),
+    'danger-zone': t('settings.groups.account'),
+    'data-backup': t('settings.groups.data'),
+    'duplicate-cleanup': t('settings.groups.data'),
+    'external-import': t('settings.groups.integrations'),
+    'search-providers': t('settings.groups.integrations'),
+    'notion-sync': t('settings.groups.integrations'),
+    language: t('settings.groups.general'),
+    display: t('settings.groups.general'),
+  };
+  const groupOrder = [
+    undefined,
+    t('settings.groups.account'),
+    t('settings.groups.data'),
+    t('settings.groups.integrations'),
+    t('settings.groups.general'),
+  ];
+  const groupedSections = sections
+    .map((section) => ({ ...section, group: sectionGroupById[section.id] }))
+    .sort(
+      (first, second) =>
+        groupOrder.indexOf(first.group) - groupOrder.indexOf(second.group),
+    );
+
   return (
     <AccountPageTemplate
       actions={
@@ -275,7 +301,7 @@ export function SettingsPage() {
       eyebrow={t('settings.pageEyebrow')}
       title={t('settings.pageTitle')}
     >
-      <SettingsLayout sections={sections} />
+      <SettingsLayout sections={groupedSections} />
     </AccountPageTemplate>
   );
 }

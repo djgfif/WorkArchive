@@ -276,6 +276,16 @@ describe('SettingsPage', () => {
     expect(screen.queryByText('한국어만 사용 가능')).not.toBeInTheDocument();
   });
 
+  it('groups settings sections under category headers in the side nav', async () => {
+    renderGuestSettings();
+
+    expect(await screen.findByText('데이터')).toBeInTheDocument();
+    expect(screen.getByText('연동')).toBeInTheDocument();
+    expect(screen.getByText('일반')).toBeInTheDocument();
+    // 그룹 헤더 '계정' + 계정 섹션 내비 링크가 함께 존재한다.
+    expect(screen.getAllByText('계정').length).toBeGreaterThan(1);
+  });
+
   it('renders provider readiness cards for public and user-key credential modes', async () => {
     writeStoredAuthTokens({
       accessToken: 'access-token',

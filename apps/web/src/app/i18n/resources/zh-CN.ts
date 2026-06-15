@@ -538,6 +538,12 @@ export const zhCN = {
       "searchProviders": "搜索来源与 API 密钥",
       "security": "安全",
     },
+    "groups": {
+      "account": "账户",
+      "data": "数据",
+      "general": "常规",
+      "integrations": "集成",
+    },
     "dataBackup": {
       "badgeDuplicatePreview": "重复预览",
       "badgeExcludeApiKey": "不含 API 密钥",

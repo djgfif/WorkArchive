@@ -13,6 +13,26 @@
   gap: 0.35rem;
 }
 
+.navGroups {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.navGroup {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.navGroupLabel {
+  margin: 0;
+  padding: 0 0.45rem;
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .navList {
   display: grid;
   gap: 0.35rem;
