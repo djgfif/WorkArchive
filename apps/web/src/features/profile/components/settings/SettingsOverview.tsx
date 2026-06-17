@@ -10,7 +10,11 @@ import {
 import { formatAppDateTime, formatAppNumber, useAppTranslation } from '@app/i18n';
 import { JsonBackupReminderCard } from '@features/archive';
 import { getJsonBackupReminderStatus } from '@features/archive';
-import type { LocalArchiveImportPreview } from '@features/archive';
+import type {
+  LocalArchiveBackupSummary,
+  LocalArchiveImportPreview,
+  LocalArchiveScope,
+} from '@features/archive';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import type { SettingsOverviewStats } from '../../hooks/useSettingsOverviewStats';
 import styles from './SettingsControlCenter.module.css';
@@ -93,6 +97,38 @@ function formatDateTime(value: string | null, t: TranslationFn) {
   });
 }
 
+function formatBytes(value: number) {
+  return formatAppNumber(
+    value / (value >= 1_048_576 ? 1_048_576 : 1024),
+    {
+      maximumFractionDigits: 1,
+      style: 'unit',
+      unit: value >= 1_048_576 ? 'megabyte' : 'kilobyte',
+      unitDisplay: 'short',
+    },
+  );
+}
+
+function getScopeLabel(scope: LocalArchiveScope, t: TranslationFn) {
+  return scope === 'full'
+    ? t('settings.overview.backupScopeFull')
+    : t('settings.overview.backupScopeSimple');
+}
+
+function formatBackupSummary(
+  summary: LocalArchiveBackupSummary,
+  t: TranslationFn,
+) {
+  return t('settings.overview.backupSummary', {
+    scope: getScopeLabel(summary.scope, t),
+    size: formatBytes(summary.byteLength),
+    verification: summary.fileVerifiedAt
+      ? t('settings.overview.backupFileVerified')
+      : t('settings.overview.backupContentVerified'),
+    workCount: formatCount(summary.recordCounts.workCount),
+  });
+}
+
 export function SettingsOverview({
   archiveFeedback,
   archiveImportPreview,
@@ -125,6 +161,15 @@ export function SettingsOverview({
     activeWorkCount: stats.activeWorkCount,
     lastJsonExportAt: stats.lastJsonExportAt,
   });
+  const lastBackupTimestamp =
+    stats.lastJsonBackupSummary?.exportedAt ?? stats.lastJsonExportAt;
+  const lastBackupDescription = archiveImportPreview
+    ? t('settings.overview.importPreviewActive')
+    : archiveFeedback?.tone === 'success'
+      ? archiveFeedback.message
+      : stats.lastJsonBackupSummary
+        ? formatBackupSummary(stats.lastJsonBackupSummary, t)
+        : t('settings.overview.lastBackupDescription');
 
   const cards = [
     {
@@ -208,19 +253,15 @@ export function SettingsOverview({
           : t('settings.overview.localOnly'),
     },
     {
-      description: archiveImportPreview
-        ? t('settings.overview.importPreviewActive')
-        : archiveFeedback?.tone === 'success'
-          ? archiveFeedback.message
-          : t('settings.overview.lastBackupDescription'),
+      description: lastBackupDescription,
       icon: 'security',
       label: t('settings.overview.lastJsonBackupLabel'),
       tone: archiveImportPreview
         ? 'warning'
-        : stats.lastJsonExportAt
+        : lastBackupTimestamp
           ? 'success'
           : 'muted',
-      value: formatDateTime(stats.lastJsonExportAt, t),
+      value: formatDateTime(lastBackupTimestamp, t),
     },
   ] as const;
 

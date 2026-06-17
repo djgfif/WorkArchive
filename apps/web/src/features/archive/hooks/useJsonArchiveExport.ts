@@ -6,7 +6,10 @@ import {
   localArchiveService,
   type LocalArchiveScope,
 } from '../services/local-archive.service';
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../utils/json-backup-reminder';
+import {
+  LAST_JSON_BACKUP_SUMMARY_META_KEY,
+  LAST_JSON_EXPORT_AT_META_KEY,
+} from '../utils/json-backup-reminder';
 
 export interface JsonArchiveExportFeedback {
   message: string;
@@ -29,17 +32,23 @@ function downloadTextFile(filename: string, type: string, content: string) {
 export async function exportJsonArchiveBackup(
   scope: LocalArchiveScope = 'simple',
 ) {
-  const content = await localArchiveService.createJsonExportText(scope);
-  const exportedAt = new Date().toISOString();
+  const artifact = await localArchiveService.createJsonBackupArtifact(scope);
+  const { content, summary } = artifact;
 
   downloadTextFile(
-    `work-archive-${scope}-backup-${exportedAt.slice(0, 10)}.json`,
+    summary.fileName,
     'application/json',
     content,
   );
-  await appMetaRepository.setValue(LAST_JSON_EXPORT_AT_META_KEY, exportedAt);
+  await Promise.all([
+    appMetaRepository.setValue(LAST_JSON_EXPORT_AT_META_KEY, summary.exportedAt),
+    appMetaRepository.setValue(
+      LAST_JSON_BACKUP_SUMMARY_META_KEY,
+      JSON.stringify(summary),
+    ),
+  ]);
 
-  return exportedAt;
+  return summary.exportedAt;
 }
 
 export function useJsonArchiveExport() {

@@ -4,7 +4,10 @@ export { useJsonBackupReminder } from './hooks/useJsonBackupReminder';
 export {
   LocalArchiveService,
   localArchiveService,
+  parseJsonBackupSummary,
+  type LocalArchiveBackupSummary,
   type LocalArchiveImportPreview,
+  type LocalArchiveRecordCounts,
   type LocalArchiveScope,
 } from './services/local-archive.service';
 export {
@@ -27,6 +30,7 @@ export {
   type ExternalImportPreview,
 } from './services/external-records-import.service';
 export {
+  LAST_JSON_BACKUP_SUMMARY_META_KEY,
   LAST_JSON_EXPORT_AT_META_KEY,
   getJsonBackupReminderStatus,
 } from './utils/json-backup-reminder';

@@ -18,6 +18,7 @@ import {
   cloneSyncEntityForImport,
   cloneTimelineEntryForImport,
   cloneWorkForImport,
+  createLocalArchiveRecordCounts,
   createTitleDuplicateKey,
 } from './local-archive-format';
 import type {
@@ -141,6 +142,7 @@ export function createLocalArchiveImportPreview(input: {
       importedTierBoardIds.has(asset.boardId) &&
       (asset.cardId === null || validTierBoardCardIds.has(asset.cardId)),
   ).length;
+  const sourceRecordCounts = createLocalArchiveRecordCounts(archive);
 
   return {
     addContributorCount: archiveContributors.length,
@@ -181,6 +183,10 @@ export function createLocalArchiveImportPreview(input: {
     skippedWorkRelationCount: archiveWorkRelations.length - workRelationCount,
     skippedWorkSeriesLinkCount:
       archiveWorkSeriesLinks.length - workSeriesLinkCount,
+    sourceExportedAt: archive.exportedAt,
+    sourceRecordCounts,
+    sourceSchemaVersion: archive.schemaVersion,
+    sourceScope: archive.scope,
     tierBoardAssetCount,
     tierBoardCardCount,
     tierBoardCount: archiveTierBoards.length,

@@ -7,10 +7,11 @@ import {
   AppBadge,
   AppButton,
   FeedbackMessage,
+  KeyValueGrid,
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
-import { formatAppNumber, useAppTranslation } from '@app/i18n';
+import { formatAppDateTime, formatAppNumber, useAppTranslation } from '@app/i18n';
 import type { LocalArchiveImportPreview } from '@features/archive';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import styles from './SettingsControlCenter.module.css';
@@ -19,6 +20,24 @@ const css = styles;
 
 function formatCount(value: number) {
   return formatAppNumber(value);
+}
+
+type TranslationFn = ReturnType<typeof useAppTranslation>['t'];
+
+function formatDateTime(value: string) {
+  return formatAppDateTime(new Date(value), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+}
+
+function getSourceScopeLabel(
+  preview: LocalArchiveImportPreview,
+  t: TranslationFn,
+) {
+  return preview.sourceScope === 'full'
+    ? t('settings.dataBackup.previewSourceScopeFull')
+    : t('settings.dataBackup.previewSourceScopeSimple');
 }
 
 interface ExportOptionCardProps {
@@ -113,12 +132,13 @@ export function DataBackupSettingsSection({
   }
 
   async function handleImportFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0] ?? null;
+    const input = event.currentTarget;
+    const file = input.files?.[0] ?? null;
 
     try {
       await handleImportFile(file);
     } finally {
-      event.currentTarget.value = '';
+      input.value = '';
     }
   }
 
@@ -231,6 +251,39 @@ export function DataBackupSettingsSection({
             eyebrow={t('settings.dataBackup.previewEyebrow')}
             title={t('settings.dataBackup.previewTitle')}
             titleOrder={3}
+          />
+          <KeyValueGrid
+            columns={2}
+            items={[
+              {
+                label: t('settings.dataBackup.previewSourceScope'),
+                value: getSourceScopeLabel(archiveImportPreview, t),
+              },
+              {
+                label: t('settings.dataBackup.previewSourceExportedAt'),
+                value: formatDateTime(archiveImportPreview.sourceExportedAt),
+              },
+              {
+                label: t('settings.dataBackup.previewSourceSchema'),
+                value: t('settings.dataBackup.previewSourceSchemaVersion', {
+                  version: archiveImportPreview.sourceSchemaVersion,
+                }),
+              },
+              {
+                label: t('settings.dataBackup.previewSourceRecords'),
+                value: t('settings.dataBackup.previewSourceRecordCounts', {
+                  releaseRecordCount: formatCount(
+                    archiveImportPreview.sourceRecordCounts.releaseRecordCount,
+                  ),
+                  timelineEntryCount: formatCount(
+                    archiveImportPreview.sourceRecordCounts.timelineEntryCount,
+                  ),
+                  workCount: formatCount(
+                    archiveImportPreview.sourceRecordCounts.workCount,
+                  ),
+                }),
+              },
+            ]}
           />
           <ActionRow>
             <AppBadge tone="accent">

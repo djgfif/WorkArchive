@@ -1,7 +1,9 @@
 import type { TimelineEntryRecord } from '@work-archive/shared-types';
 
+import { appI18n } from '@app/i18n';
 import { getWorkArchiveDb } from '../../works/storage';
 import {
+  createLocalArchiveRecordCounts,
   createCsvRows,
   createQueueItem,
   normalizeTimelineEntry,
@@ -21,24 +23,118 @@ import {
   ARCHIVE_VERSION,
   BACKUP_EXCLUSIONS,
   type DatabaseResolver,
+  type LocalArchiveBackupArtifact,
+  type LocalArchiveBackupSummary,
   type LocalArchiveExport,
   type LocalArchiveImportPreview,
   type LocalArchiveImportResult,
+  type LocalArchiveRecordCounts,
   type LocalArchiveScope,
 } from './local-archive.types';
 
 export type {
+  LocalArchiveBackupSummary,
   LocalArchiveExport,
   LocalArchiveImportPreview,
   LocalArchiveImportResult,
+  LocalArchiveRecordCounts,
   LocalArchiveScope,
 } from './local-archive.types';
+
+const textEncoder = new TextEncoder();
+
+function createBackupFileName(scope: LocalArchiveScope, exportedAt: string) {
+  return `work-archive-${scope}-backup-${exportedAt.slice(0, 10)}.json`;
+}
+
+function areRecordCountsEqual(
+  first: LocalArchiveRecordCounts,
+  second: LocalArchiveRecordCounts,
+) {
+  return Object.keys(first).every((key) => {
+    const recordCountKey = key as keyof LocalArchiveRecordCounts;
+
+    return first[recordCountKey] === second[recordCountKey];
+  });
+}
+
+async function createSha256Hex(value: string) {
+  if (typeof globalThis.crypto?.subtle?.digest !== 'function') {
+    throw new Error(appI18n.t('archive.backup.hashUnavailable'));
+  }
+
+  const digest = await globalThis.crypto.subtle.digest(
+    'SHA-256',
+    textEncoder.encode(value),
+  );
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function parseJsonBackupSummary(
+  value: string | null,
+): LocalArchiveBackupSummary | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Partial<LocalArchiveBackupSummary>;
+
+    if (
+      typeof parsed.byteLength !== 'number' ||
+      typeof parsed.contentVerifiedAt !== 'string' ||
+      typeof parsed.exportedAt !== 'string' ||
+      typeof parsed.fileName !== 'string' ||
+      typeof parsed.scope !== 'string' ||
+      typeof parsed.sha256 !== 'string' ||
+      !parsed.recordCounts
+    ) {
+      return null;
+    }
+
+    return {
+      byteLength: parsed.byteLength,
+      contentVerifiedAt: parsed.contentVerifiedAt,
+      exportedAt: parsed.exportedAt,
+      fileName: parsed.fileName,
+      fileVerifiedAt:
+        typeof parsed.fileVerifiedAt === 'string'
+          ? parsed.fileVerifiedAt
+          : null,
+      recordCounts: {
+        appMetaCount: parsed.recordCounts.appMetaCount ?? 0,
+        contributorCount: parsed.recordCounts.contributorCount ?? 0,
+        releaseRecordCount: parsed.recordCounts.releaseRecordCount ?? 0,
+        seriesCount: parsed.recordCounts.seriesCount ?? 0,
+        tierBoardAssetCount: parsed.recordCounts.tierBoardAssetCount ?? 0,
+        tierBoardCardCount: parsed.recordCounts.tierBoardCardCount ?? 0,
+        tierBoardCount: parsed.recordCounts.tierBoardCount ?? 0,
+        tierLaneCount: parsed.recordCounts.tierLaneCount ?? 0,
+        timelineEntryCount: parsed.recordCounts.timelineEntryCount ?? 0,
+        workContributorCount: parsed.recordCounts.workContributorCount ?? 0,
+        workCount: parsed.recordCounts.workCount ?? 0,
+        workRelationCount: parsed.recordCounts.workRelationCount ?? 0,
+        workSeriesLinkCount: parsed.recordCounts.workSeriesLinkCount ?? 0,
+      },
+      scope: parsed.scope as LocalArchiveScope,
+      sha256: parsed.sha256,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export { parseJsonBackupSummary };
 
 export class LocalArchiveService {
   constructor(private readonly getDb: DatabaseResolver = getWorkArchiveDb) {}
 
   async createJsonExport(
     scope: LocalArchiveScope = 'simple',
+    now = new Date(),
   ): Promise<LocalArchiveExport> {
     const db = this.getDb();
     const [works, releaseRecords, timelineEntries, appMeta] = await Promise.all(
@@ -92,7 +188,7 @@ export class LocalArchiveService {
             workSeriesLinks: workSeriesLinks ?? [],
           }
         : {}),
-      exportedAt: new Date().toISOString(),
+      exportedAt: now.toISOString(),
       format: ARCHIVE_FORMAT,
       releaseRecords,
       schemaVersion: ARCHIVE_SCHEMA_VERSION,
@@ -106,6 +202,59 @@ export class LocalArchiveService {
 
   async createJsonExportText(scope: LocalArchiveScope = 'simple') {
     return JSON.stringify(await this.createJsonExport(scope), null, 2);
+  }
+
+  async createJsonBackupArtifact(
+    scope: LocalArchiveScope = 'simple',
+    options: {
+      fileName?: string;
+      now?: Date;
+    } = {},
+  ): Promise<LocalArchiveBackupArtifact> {
+    const now = options.now ?? new Date();
+    const exportedAt = now.toISOString();
+    const fileName = options.fileName ?? createBackupFileName(scope, exportedAt);
+    const archive = await this.createJsonExport(scope, now);
+    const content = JSON.stringify(archive, null, 2);
+    const verifiedArchive = parseArchive(content);
+    const recordCounts = createLocalArchiveRecordCounts(verifiedArchive);
+
+    return {
+      content,
+      summary: {
+        byteLength: textEncoder.encode(content).byteLength,
+        contentVerifiedAt: exportedAt,
+        exportedAt,
+        fileName,
+        fileVerifiedAt: null,
+        recordCounts,
+        scope: verifiedArchive.scope,
+        sha256: await createSha256Hex(content),
+      },
+    };
+  }
+
+  async verifyJsonBackupText(
+    rawValue: string,
+    expectedSummary: LocalArchiveBackupSummary,
+    now = new Date(),
+  ): Promise<LocalArchiveBackupSummary> {
+    const archive = parseArchive(rawValue);
+    const recordCounts = createLocalArchiveRecordCounts(archive);
+    const sha256 = await createSha256Hex(rawValue);
+
+    if (
+      sha256 !== expectedSummary.sha256 ||
+      archive.scope !== expectedSummary.scope ||
+      !areRecordCountsEqual(recordCounts, expectedSummary.recordCounts)
+    ) {
+      throw new Error(appI18n.t('archive.backup.fileVerificationMismatch'));
+    }
+
+    return {
+      ...expectedSummary,
+      fileVerifiedAt: now.toISOString(),
+    };
   }
 
   async createCsvExportText() {

@@ -154,14 +154,18 @@ Create a backup:
 
 ```bash
 BACKUP_DIR=backups scripts/deploy/prod-backup.sh
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
+BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
 ```
 
-Move it off-host immediately. A backup kept only on the database server does not satisfy rehearsal.
+Move the `.dump` and `.sha256` files off-host immediately. A backup kept only
+on the database server does not satisfy rehearsal.
 
 Restore drill on a disposable rehearsal database or volume:
 
 ```bash
 BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
+BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
 
 scripts/deploy/prod-down.sh
 docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis

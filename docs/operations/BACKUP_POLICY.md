@@ -13,20 +13,23 @@ Run from an environment that can reach PostgreSQL and has `pg_dump` installed:
 
 ```bash
 pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges --file "backups/work_archive_$(date +%Y%m%d_%H%M%S).dump"
+pg_restore --list "backups/work_archive_YYYYMMDD_HHMMSS.dump" >/dev/null
+cd backups
+sha256sum "work_archive_YYYYMMDD_HHMMSS.dump" > "work_archive_YYYYMMDD_HHMMSS.dump.sha256"
+sha256sum -c "work_archive_YYYYMMDD_HHMMSS.dump.sha256"
 ```
 
 For Docker Compose production operations with the named PostgreSQL volume:
 
 ```bash
-mkdir -p backups
-docker exec work-archive-postgres sh -lc 'pg_dump \
-  -U "$POSTGRES_USER" \
-  -d "$POSTGRES_DB" \
-  --format=custom \
-  --no-owner \
-  --no-privileges' \
-  > "backups/work_archive_$(date -u +%Y%m%dT%H%M%SZ).dump"
+BACKUP_DIR=backups scripts/deploy/prod-backup.sh
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
+BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
 ```
+
+`prod-backup.sh` writes a PostgreSQL custom-format `.dump`, validates it with
+`pg_restore --list`, writes a `.sha256` sidecar, and verifies that checksum
+before reporting success.
 
 ## Restore Command
 
@@ -34,6 +37,13 @@ Restore into an empty or intentionally replaced database:
 
 ```bash
 pg_restore --clean --if-exists --no-owner --no-privileges --dbname "$DATABASE_URL" "backups/work_archive_YYYYMMDD_HHMMSS.dump"
+```
+
+Before restore, verify the selected backup:
+
+```bash
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
+BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
 ```
 
 After restore:

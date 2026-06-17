@@ -5,30 +5,26 @@ Run this drill before beta launch and after any infrastructure change.
 Backups must leave the server. A dump stored only on the same VPS does not
 protect against disk loss, account lockout, or accidental volume removal.
 
-## Create A Gzipped Backup
+## Create And Verify A Custom Backup
 
 On the deployment host:
 
 ```bash
-mkdir -p backups
-BACKUP_FILE="backups/work-archive-$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
-
-docker exec work-archive-postgres sh -lc 'pg_dump \
-  -U "$POSTGRES_USER" \
-  -d "$POSTGRES_DB" \
-  --format=plain \
-  --no-owner \
-  --no-privileges' \
-  | gzip -9 > "$BACKUP_FILE"
-
-ls -lh "$BACKUP_FILE"
+BACKUP_DIR=backups scripts/deploy/prod-backup.sh
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
+BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+ls -lh "$BACKUP_FILE" "$BACKUP_FILE.sha256"
 ```
+
+The production backup script creates a PostgreSQL custom-format `.dump`, checks
+it with `pg_restore --list`, writes a `.sha256` sidecar, and verifies the
+checksum before reporting success.
 
 Move the backup off-host immediately, for example to encrypted object storage or
 a secure workstation:
 
 ```bash
-scp "$BACKUP_FILE" ops@example-backup-host:/secure/work-archive/
+scp "$BACKUP_FILE" "$BACKUP_FILE.sha256" ops@example-backup-host:/secure/work-archive/
 ```
 
 Do not include OAuth secrets, API keys, or `.env.prod` in JSON export/import
@@ -44,8 +40,15 @@ testing restore.
 docker compose -f compose.prod.yml --env-file .env.prod down -v
 docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis
 
-gunzip -c "$BACKUP_FILE" | docker exec -i work-archive-postgres sh -lc \
-  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
+BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+
+docker compose -f compose.prod.yml --env-file .env.prod exec -T postgres sh -lc 'pg_restore \
+  --clean \
+  --if-exists \
+  --no-owner \
+  --no-privileges \
+  --dbname "$POSTGRES_DB"' < "$BACKUP_FILE"
 
 docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
 docker compose -f compose.prod.yml --env-file .env.prod up -d api web

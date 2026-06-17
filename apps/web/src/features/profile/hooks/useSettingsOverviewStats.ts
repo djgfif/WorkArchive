@@ -1,6 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 
-import { LAST_JSON_EXPORT_AT_META_KEY } from '@features/archive';
+import {
+  LAST_JSON_BACKUP_SUMMARY_META_KEY,
+  LAST_JSON_EXPORT_AT_META_KEY,
+  parseJsonBackupSummary,
+  type LocalArchiveBackupSummary,
+} from '@features/archive';
 import { getWorkArchiveDb, workArchiveDbManager } from '../../works/storage';
 
 export interface SettingsOverviewStats {
@@ -13,6 +18,7 @@ export interface SettingsOverviewStats {
   deletedWorkCount: number;
   failedQueueItemCount: number;
   isNonStandardLocalOrigin: boolean;
+  lastJsonBackupSummary: LocalArchiveBackupSummary | null;
   lastJsonExportAt: string | null;
   localOnlyWorkCount: number;
   releaseRecordCount: number;
@@ -50,6 +56,7 @@ const EMPTY_STATS: SettingsOverviewStats = {
   deletedWorkCount: 0,
   failedQueueItemCount: 0,
   isNonStandardLocalOrigin: false,
+  lastJsonBackupSummary: null,
   lastJsonExportAt: null,
   localOnlyWorkCount: 0,
   releaseRecordCount: 0,
@@ -71,6 +78,7 @@ export function useSettingsOverviewStats(archiveScopeKey: string) {
           timelineEntryCount,
           releaseRecordCount,
           lastJsonExportMeta,
+          lastJsonBackupSummaryMeta,
         ] = await Promise.all([
           db.works.filter((work) => work.deletedAt === null).count(),
           db.works.filter((work) => work.deletedAt !== null).count(),
@@ -79,6 +87,7 @@ export function useSettingsOverviewStats(archiveScopeKey: string) {
           db.timelineEntries.count(),
           db.releaseRecords.count(),
           db.appMeta.get(LAST_JSON_EXPORT_AT_META_KEY),
+          db.appMeta.get(LAST_JSON_BACKUP_SUMMARY_META_KEY),
         ]);
 
         const conflictQueueItemCount = syncQueueItems.filter(
@@ -105,6 +114,9 @@ export function useSettingsOverviewStats(archiveScopeKey: string) {
           isNonStandardLocalOrigin:
             isLocalhostOrigin(currentOrigin) &&
             currentOrigin !== STANDARD_LOCAL_WEB_ORIGIN,
+          lastJsonBackupSummary: parseJsonBackupSummary(
+            lastJsonBackupSummaryMeta?.value ?? null,
+          ),
           lastJsonExportAt: lastJsonExportMeta?.value ?? null,
           localOnlyWorkCount,
           releaseRecordCount,

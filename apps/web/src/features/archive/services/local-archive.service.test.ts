@@ -309,6 +309,10 @@ describe('LocalArchiveService', () => {
 
     const jsonExport = await sourceService.createJsonExport();
     const jsonExportText = await sourceService.createJsonExportText();
+    const jsonArtifact = await sourceService.createJsonBackupArtifact('simple', {
+      fileName: 'work-archive-simple-backup-2026-01-04.json',
+      now: new Date('2026-01-04T00:00:00.000Z'),
+    });
     const csvExport = await sourceService.createCsvExportText();
 
     expect(jsonExport).toMatchObject({
@@ -338,6 +342,32 @@ describe('LocalArchiveService', () => {
     expect(jsonExportText).not.toContain('refreshToken');
     expect(jsonExportText).not.toContain('TTBKey');
     expect(jsonExportText).not.toContain('apiKey');
+    expect(jsonArtifact.summary).toMatchObject({
+      byteLength: new TextEncoder().encode(jsonArtifact.content).byteLength,
+      contentVerifiedAt: '2026-01-04T00:00:00.000Z',
+      exportedAt: '2026-01-04T00:00:00.000Z',
+      fileName: 'work-archive-simple-backup-2026-01-04.json',
+      fileVerifiedAt: null,
+      recordCounts: {
+        appMetaCount: 1,
+        releaseRecordCount: 1,
+        timelineEntryCount: 1,
+        workCount: 1,
+      },
+      scope: 'simple',
+      sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
+    expect(jsonArtifact.content).not.toContain('accessToken');
+    expect(jsonArtifact.content).not.toContain('refreshToken');
+    await expect(
+      sourceService.verifyJsonBackupText(
+        jsonArtifact.content,
+        jsonArtifact.summary,
+        new Date('2026-01-04T00:01:00.000Z'),
+      ),
+    ).resolves.toMatchObject({
+      fileVerifiedAt: '2026-01-04T00:01:00.000Z',
+    });
     expect(csvExport).toContain('title,type,status,rating');
     expect(csvExport).toContain('Dune,novel,completed,5,다시 볼 것; 여운 강함');
   });
@@ -557,6 +587,12 @@ describe('LocalArchiveService', () => {
       skippedTimelineEntryCount: 0,
       timelineEntryCount: 1,
       skippedWorkCount: 0,
+      sourceRecordCounts: {
+        releaseRecordCount: 1,
+        timelineEntryCount: 1,
+        workCount: 1,
+      },
+      sourceScope: 'simple',
       updateWorkCount: 0,
       workCount: 1,
     });

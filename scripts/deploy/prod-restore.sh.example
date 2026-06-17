@@ -16,6 +16,10 @@ exit 1
 #
 #      BACKUP_FILE=/secure/work-archive/work-archive-YYYYMMDDTHHMMSSZ.dump
 #
+#    Verify the dump and checksum before planning the restore:
+#
+#      BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+#
 # 2. Stop web/API traffic before restoring production. For a rehearsal restore,
 #    use a disposable host or disposable PostgreSQL volume.
 #

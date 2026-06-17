@@ -9,6 +9,7 @@ import { AuthContext } from '@features/auth';
 import { clearStoredAuthTokens, writeStoredAuthTokens } from '@features/auth';
 import { resetWorkArchiveStorage, workArchiveDbManager } from '@features/works';
 import {
+  LAST_JSON_BACKUP_SUMMARY_META_KEY,
   LAST_JSON_EXPORT_AT_META_KEY,
   resetAutomaticJsonBackupSessionForTest,
 } from '@features/archive';
@@ -169,6 +170,34 @@ async function seedOverviewStats() {
   await db.appMeta.put({
     key: LAST_JSON_EXPORT_AT_META_KEY,
     value: '2026-05-20T12:30:00.000Z',
+  });
+  await db.appMeta.put({
+    key: LAST_JSON_BACKUP_SUMMARY_META_KEY,
+    value: JSON.stringify({
+      byteLength: 2048,
+      contentVerifiedAt: '2026-05-20T12:30:00.000Z',
+      exportedAt: '2026-05-20T12:30:00.000Z',
+      fileName: 'work-archive-full-backup-2026-05-20.json',
+      fileVerifiedAt: '2026-05-20T12:31:00.000Z',
+      recordCounts: {
+        appMetaCount: 1,
+        contributorCount: 0,
+        releaseRecordCount: 1,
+        seriesCount: 0,
+        tierBoardAssetCount: 0,
+        tierBoardCardCount: 0,
+        tierBoardCount: 0,
+        tierLaneCount: 0,
+        timelineEntryCount: 1,
+        workContributorCount: 0,
+        workCount: 2,
+        workRelationCount: 0,
+        workSeriesLinkCount: 0,
+      },
+      scope: 'full',
+      sha256:
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    }),
   });
 }
 
@@ -431,6 +460,8 @@ describe('SettingsPage', () => {
     expect(screen.getByText('백업 전 작품 있음')).toBeInTheDocument();
     expect(screen.getAllByText('work-archive-db-user-user-1')).toHaveLength(2);
     expect(screen.getByText('3개 작품')).toBeInTheDocument();
+    expect(screen.getByText(/전체 JSON · 작품 2개/)).toBeInTheDocument();
+    expect(screen.getByText(/파일 검증됨/)).toBeInTheDocument();
     expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 
@@ -1213,6 +1244,49 @@ describe('SettingsPage', () => {
       screen.getByRole('button', { name: 'CSV 내보내기' }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('JSON 백업 파일 선택')).toBeInTheDocument();
+
+    const backupFile = new File(
+      [
+        JSON.stringify({
+          appMeta: [],
+          backupExclusions: [
+            'syncQueue',
+            'authTokens',
+            'refreshCookie',
+            'providerApiKeys',
+          ],
+          contributors: [],
+          exportedAt: '2026-05-21T12:30:00.000Z',
+          format: 'work-archive.local-archive',
+          releaseRecords: [],
+          schemaVersion: 2,
+          scope: 'full',
+          series: [],
+          source: 'work-archive-web',
+          tierBoardAssets: [],
+          tierBoardCards: [],
+          tierBoards: [],
+          tierLanes: [],
+          timelineEntries: [],
+          version: 1,
+          workContributors: [],
+          workRelations: [],
+          works: [buildWorkRecord('import-work')],
+          workSeriesLinks: [],
+        }),
+      ],
+      'work-archive-full-backup-2026-05-21.json',
+      { type: 'application/json' },
+    );
+
+    await user.upload(screen.getByLabelText('JSON 백업 파일 선택'), backupFile);
+
+    expect(await screen.findByText('백업 범위')).toBeInTheDocument();
+    expect(screen.getByText('전체 JSON')).toBeInTheDocument();
+    expect(screen.getByText('백업 스키마')).toBeInTheDocument();
+    expect(
+      screen.getByText('작품 1개 · 권별 기록 0개 · 타임라인 0개'),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText('TTBKey')).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });

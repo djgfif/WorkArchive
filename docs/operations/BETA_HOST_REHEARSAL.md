@@ -146,15 +146,18 @@ Create a backup:
 
 ```bash
 BACKUP_DIR=backups scripts/deploy/prod-backup.sh
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
+BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
 ```
 
-Move the backup off-host immediately. A backup that only exists on the database
-host does not satisfy the drill.
+Move the `.dump` and `.sha256` files off-host immediately. A backup that only
+exists on the database host does not satisfy the drill.
 
 Non-production restore drill only:
 
 ```bash
 BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
+BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
 
 scripts/deploy/prod-down.sh
 docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis

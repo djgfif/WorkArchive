@@ -665,6 +665,15 @@ export const ko = {
       previewDuplicates: '중복 후보 {{count}}개',
       previewEyebrow: '가져오기 미리보기',
       previewSkipped: '건너뜀 {{count}}개',
+      previewSourceExportedAt: '내보낸 시각',
+      previewSourceRecordCounts:
+        '작품 {{workCount}}개 · 권별 기록 {{releaseRecordCount}}개 · 타임라인 {{timelineEntryCount}}개',
+      previewSourceRecords: '원본 기록',
+      previewSourceSchema: '백업 스키마',
+      previewSourceSchemaVersion: 'v{{version}}',
+      previewSourceScope: '백업 범위',
+      previewSourceScopeFull: '전체 JSON',
+      previewSourceScopeSimple: '기본 JSON',
       previewTitle: '가져올 기록 확인',
       previewUpdateWorks: '수정 작품 {{count}}개',
       selectJson: 'JSON 백업 선택',
@@ -674,8 +683,14 @@ export const ko = {
     overview: {
       activeWorks: '활성 작품 {{count}}개',
       backupGuestDescription: '게스트 모드에서는 서버 백업을 사용하지 않습니다.',
+      backupContentVerified: '내용 검증됨',
+      backupFileVerified: '파일 검증됨',
       backupQueueCount: '백업 대기 중인 기록 {{count}}개',
       backupQueueLabel: '백업 대기 중인 기록',
+      backupScopeFull: '전체 JSON',
+      backupScopeSimple: '기본 JSON',
+      backupSummary:
+        '{{scope}} · 작품 {{workCount}}개 · {{size}} · {{verification}}',
       checking: '확인 중',
       currentDatabase: '현재 DB',
       currentOrigin: '현재 origin',
@@ -1162,8 +1177,12 @@ export const ko = {
       exportFullSuccess: '전체 JSON 백업 파일을 만들었습니다.',
       exportJson: 'JSON 백업 내보내기',
       exportSimpleSuccess: 'JSON 백업 파일을 만들었습니다.',
+      fileVerificationMismatch:
+        '백업 파일을 다시 읽은 결과가 생성한 JSON과 일치하지 않습니다.',
       healthyDescription: '최근 JSON 백업 상태가 양호합니다.',
       healthyTitle: 'JSON 백업 상태 양호',
+      hashUnavailable:
+        '이 브라우저에서는 JSON 백업 해시 검증을 사용할 수 없습니다.',
       missingDescription:
         '작품이 {{count}}개 쌓였습니다. 브라우저 로컬 데이터 보호를 위해 JSON 백업 파일을 만들어 두세요.',
       missingTitle: '첫 JSON 백업을 권장합니다',

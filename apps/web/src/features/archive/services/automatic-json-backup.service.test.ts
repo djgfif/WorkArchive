@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { resetWorkArchiveStorage, workArchiveDbManager } from '@features/works';
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../utils/json-backup-reminder';
+import {
+  LAST_JSON_BACKUP_SUMMARY_META_KEY,
+  LAST_JSON_EXPORT_AT_META_KEY,
+} from '../utils/json-backup-reminder';
 import {
   AUTO_JSON_BACKUP_META_KEY,
   chooseAutomaticJsonBackupDirectory,
@@ -13,15 +16,25 @@ import {
   type FileSystemDirectoryHandleLike,
 } from './automatic-json-backup.service';
 
-function createFakeDirectoryHandle(permission: 'denied' | 'granted' = 'granted') {
-  const write = vi.fn(async (_value: string) => undefined);
+function createFakeDirectoryHandle(
+  permission: 'denied' | 'granted' = 'granted',
+  options: { readback?: (value: string) => string } = {},
+) {
+  let writtenValue = '';
+  const write = vi.fn(async (value: string) => {
+    writtenValue = value;
+  });
   const close = vi.fn(async () => undefined);
   const createWritable = vi.fn(async () => ({
     close,
     write,
   }));
+  const getFile = vi.fn(async () => ({
+    text: vi.fn(async () => options.readback?.(writtenValue) ?? writtenValue),
+  }));
   const getFileHandle = vi.fn(async (_name: string, _options: { create: boolean }) => ({
     createWritable,
+    getFile,
   }));
   const handle: FileSystemDirectoryHandleLike = {
     getFileHandle,
@@ -32,6 +45,7 @@ function createFakeDirectoryHandle(permission: 'denied' | 'granted' = 'granted')
   return {
     close,
     createWritable,
+    getFile,
     getFileHandle,
     handle,
     write,
@@ -89,6 +103,12 @@ describe('automatic JSON backup service', () => {
     await expect(db.appMeta.get(LAST_JSON_EXPORT_AT_META_KEY)).resolves.toMatchObject({
       value: '2026-06-13T10:00:00.000Z',
     });
+    await expect(
+      db.appMeta.get(LAST_JSON_BACKUP_SUMMARY_META_KEY),
+    ).resolves.toMatchObject({
+      value: expect.stringContaining('"fileVerifiedAt"'),
+    });
+    expect(directory.getFile).toHaveBeenCalled();
     await expect(db.appMeta.get(AUTO_JSON_BACKUP_META_KEY)).resolves.toEqual(
       expect.objectContaining({
         value: expect.stringContaining(
@@ -157,6 +177,31 @@ describe('automatic JSON backup service', () => {
     expect(directory.write).toHaveBeenCalledWith(
       expect.stringContaining('"scope": "full"'),
     );
+  });
+
+  it('fails automatic backup when file readback does not match generated content', async () => {
+    const directory = createFakeDirectoryHandle('granted', {
+      readback: (value) => value.replace('"scope": "full"', '"scope": "simple"'),
+    });
+
+    vi.stubGlobal('window', {
+      showDirectoryPicker: vi.fn(async () => directory.handle),
+    });
+
+    await chooseAutomaticJsonBackupDirectory(
+      new Date('2026-06-13T09:00:00.000Z'),
+    );
+    await expect(
+      runAutomaticJsonBackupNow(new Date('2026-06-13T10:00:00.000Z')),
+    ).rejects.toThrow(
+      '백업 파일을 다시 읽은 결과가 생성한 JSON과 일치하지 않습니다',
+    );
+    const db = workArchiveDbManager.getCurrentDb();
+
+    await expect(db.appMeta.get(LAST_JSON_EXPORT_AT_META_KEY)).resolves.toBeUndefined();
+    await expect(
+      db.appMeta.get(LAST_JSON_BACKUP_SUMMARY_META_KEY),
+    ).resolves.toBeUndefined();
   });
 
   it('throttles repeated app-open failures after a missing session folder', async () => {

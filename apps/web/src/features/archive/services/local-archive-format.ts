@@ -27,6 +27,7 @@ import {
   ARCHIVE_VERSION,
   BACKUP_EXCLUSIONS,
   type LocalArchiveExport,
+  type LocalArchiveRecordCounts,
   type LocalArchiveScope,
   type StoredTierBoardAssetRecord,
 } from './local-archive.types';
@@ -48,6 +49,26 @@ export function createTitleDuplicateKey(
   work: Pick<WorkRecord, 'title' | 'type'>,
 ) {
   return `${work.type}:${normalizeTitle(work.title)}`;
+}
+
+export function createLocalArchiveRecordCounts(
+  archive: LocalArchiveExport,
+): LocalArchiveRecordCounts {
+  return {
+    appMetaCount: archive.appMeta.length,
+    contributorCount: archive.contributors?.length ?? 0,
+    releaseRecordCount: archive.releaseRecords.length,
+    seriesCount: archive.series?.length ?? 0,
+    tierBoardAssetCount: archive.tierBoardAssets?.length ?? 0,
+    tierBoardCardCount: archive.tierBoardCards?.length ?? 0,
+    tierBoardCount: archive.tierBoards?.length ?? 0,
+    tierLaneCount: archive.tierLanes?.length ?? 0,
+    timelineEntryCount: archive.timelineEntries.length,
+    workContributorCount: archive.workContributors?.length ?? 0,
+    workCount: archive.works.length,
+    workRelationCount: archive.workRelations?.length ?? 0,
+    workSeriesLinkCount: archive.workSeriesLinks?.length ?? 0,
+  };
 }
 
 function normalizeStringArray(value: unknown) {

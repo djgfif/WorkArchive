@@ -1,6 +1,8 @@
 import { appI18n, formatAppNumber } from '@app/i18n';
 
 export const LAST_JSON_EXPORT_AT_META_KEY = 'archive.lastJsonExportAt';
+export const LAST_JSON_BACKUP_SUMMARY_META_KEY =
+  'archive.lastJsonBackupSummary';
 export const JSON_BACKUP_REMINDER_WORK_THRESHOLD = 20;
 export const JSON_BACKUP_STALE_DAYS = 30;
 

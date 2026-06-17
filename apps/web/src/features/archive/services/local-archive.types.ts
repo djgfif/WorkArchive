@@ -35,6 +35,38 @@ export type StoredTierBoardAssetRecord = TierBoardAssetRecord & {
   dataUrl?: string;
 };
 
+export interface LocalArchiveRecordCounts {
+  appMetaCount: number;
+  contributorCount: number;
+  releaseRecordCount: number;
+  seriesCount: number;
+  tierBoardAssetCount: number;
+  tierBoardCardCount: number;
+  tierBoardCount: number;
+  tierLaneCount: number;
+  timelineEntryCount: number;
+  workContributorCount: number;
+  workCount: number;
+  workRelationCount: number;
+  workSeriesLinkCount: number;
+}
+
+export interface LocalArchiveBackupSummary {
+  byteLength: number;
+  contentVerifiedAt: string;
+  exportedAt: string;
+  fileName: string;
+  fileVerifiedAt: string | null;
+  recordCounts: LocalArchiveRecordCounts;
+  scope: LocalArchiveScope;
+  sha256: string;
+}
+
+export interface LocalArchiveBackupArtifact {
+  content: string;
+  summary: LocalArchiveBackupSummary;
+}
+
 export interface LocalArchiveExport {
   appMeta: AppMetaRecord[];
   backupExclusions: string[];
@@ -91,6 +123,10 @@ export interface LocalArchiveImportPreview {
   skippedWorkCount: number;
   skippedWorkRelationCount: number;
   skippedWorkSeriesLinkCount: number;
+  sourceExportedAt: string;
+  sourceRecordCounts: LocalArchiveRecordCounts;
+  sourceSchemaVersion: typeof ARCHIVE_SCHEMA_VERSION;
+  sourceScope: LocalArchiveScope;
   tierBoardAssetCount: number;
   tierBoardCardCount: number;
   tierBoardCount: number;

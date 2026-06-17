@@ -11,6 +11,11 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+if ! command -v sha256sum >/dev/null 2>&1; then
+  echo "sha256sum is required to create and verify backup checksums." >&2
+  exit 1
+fi
+
 case "$BACKUP_DIR" in
   /*) ;;
   *) BACKUP_DIR="$ROOT_DIR/$BACKUP_DIR" ;;
@@ -21,6 +26,7 @@ mkdir -p "$BACKUP_DIR"
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 backup_file="$BACKUP_DIR/work-archive-${timestamp}.dump"
+checksum_file="${backup_file}.sha256"
 tmp_file="${backup_file}.tmp"
 
 cleanup() {
@@ -35,9 +41,19 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T postgres sh -lc
   --no-owner \
   --no-privileges' > "$tmp_file"
 
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T postgres sh -lc \
+  'pg_restore --list >/dev/null' < "$tmp_file"
+
 mv "$tmp_file" "$backup_file"
 trap - EXIT
 
+(
+  cd "$BACKUP_DIR"
+  sha256sum "$(basename "$backup_file")" > "$(basename "$checksum_file")"
+  sha256sum -c "$(basename "$checksum_file")"
+)
+
 echo "Created backup: $backup_file"
+echo "Created checksum: $checksum_file"
 ls -lh "$backup_file"
 echo "Move this file off-host immediately. Do not keep the only backup on the VPS."

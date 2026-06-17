@@ -39,8 +39,9 @@ Notes:
 - [ ] `scripts/deploy/prod-build.sh` passed.
 - [ ] `scripts/deploy/prod-up.sh` started the stack.
 - [ ] `scripts/deploy/prod-healthcheck.sh` passed for `/health`, `/livez`, and `/readyz`.
-- [ ] `scripts/deploy/prod-backup.sh` created a UTC timestamped `.dump` backup.
-- [ ] Backup was copied off-host.
+- [ ] `scripts/deploy/prod-backup.sh` created a UTC timestamped `.dump` backup and `.sha256` sidecar.
+- [ ] `scripts/deploy/prod-backup-verify.sh` passed for the selected backup.
+- [ ] Backup and checksum were copied off-host.
 - [ ] `scripts/deploy/prod-restore.sh.example` was reviewed and restore was performed only on an approved disposable or incident target.
 - [ ] `scripts/deploy/prod-logs.sh` log review found no secrets.
 - [ ] `scripts/deploy/prod-down.sh` rollback/stop command was rehearsed or explicitly marked not required.
@@ -94,6 +95,7 @@ Script execution notes:
 | Check                                   | Result  | Evidence / Notes           |
 | --------------------------------------- | ------- | -------------------------- |
 | pre-rehearsal backup created            | Pending | Filename only; no secrets. |
+| checksum verified                       | Pending | `.sha256` sidecar only.    |
 | backup copied off-host                  | Pending | Destination class only.    |
 | restore into disposable target succeeds | Pending |                            |
 | `/readyz` passes after restore          | Pending |                            |

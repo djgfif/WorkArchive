@@ -2,7 +2,10 @@ import { appI18n } from '@app/i18n';
 
 import { appMetaRepository } from '../../sync/queue';
 import { localArchiveService } from './local-archive.service';
-import { LAST_JSON_EXPORT_AT_META_KEY } from '../utils/json-backup-reminder';
+import {
+  LAST_JSON_BACKUP_SUMMARY_META_KEY,
+  LAST_JSON_EXPORT_AT_META_KEY,
+} from '../utils/json-backup-reminder';
 
 export const AUTO_JSON_BACKUP_META_KEY = 'archive.autoJsonBackup';
 const ONE_DAY_MS = 86_400_000;
@@ -16,8 +19,13 @@ interface FileSystemWritableFileStreamLike {
   write: (data: string) => Promise<void>;
 }
 
+interface FileSystemFileLike {
+  text: () => Promise<string>;
+}
+
 interface FileSystemFileHandleLike {
   createWritable: () => Promise<FileSystemWritableFileStreamLike>;
+  getFile?: () => Promise<FileSystemFileLike>;
 }
 
 export interface FileSystemDirectoryHandleLike {
@@ -307,16 +315,34 @@ export async function runAutomaticJsonBackupNow(
   }
 
   try {
-    const content = await localArchiveService.createJsonExportText('full');
     const fileName = getBackupFileName(now);
+    const artifact = await localArchiveService.createJsonBackupArtifact('full', {
+      fileName,
+      now,
+    });
     const fileHandle = await sessionDirectoryHandle.getFileHandle(fileName, {
       create: true,
     });
     const writable = await fileHandle.createWritable();
 
-    await writable.write(content);
+    await writable.write(artifact.content);
     await writable.close();
-    await appMetaRepository.setValue(LAST_JSON_EXPORT_AT_META_KEY, attemptedAt);
+    const summary =
+      typeof fileHandle.getFile === 'function'
+        ? await localArchiveService.verifyJsonBackupText(
+            await (await fileHandle.getFile()).text(),
+            artifact.summary,
+            now,
+          )
+        : artifact.summary;
+
+    await Promise.all([
+      appMetaRepository.setValue(LAST_JSON_EXPORT_AT_META_KEY, attemptedAt),
+      appMetaRepository.setValue(
+        LAST_JSON_BACKUP_SUMMARY_META_KEY,
+        JSON.stringify(summary),
+      ),
+    ]);
     await saveSettings({
       ...settings,
       enabled: true,
