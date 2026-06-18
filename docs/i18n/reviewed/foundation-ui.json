@@ -17,11 +17,11 @@
         "settings": "Settings"
       },
       "locale": {
-        "currentDescription": "You can use the UI in Korean, English, Japanese, or Chinese.",
+        "currentDescription": "You can use the UI in Korean, English, Japanese, or Simplified Chinese.",
         "currentLabel": "Current language",
-        "description": "Choose the app UI language. The English, Japanese, and Chinese translations are still being refined.",
+        "description": "Choose the app UI language. Korean, English, Japanese, and Simplified Chinese are available.",
         "eyebrow": "Language",
-        "onlyKoreanReady": "Only Korean is available",
+        "onlySingleLocaleReady": "Only {{locale}} is currently available.",
         "title": "Language settings"
       },
       "navigation": {
@@ -106,11 +106,11 @@
         "settings": "設定"
       },
       "locale": {
-        "currentDescription": "韓国語のほか、英語・日本語・中国語のUIも選べます。",
+        "currentDescription": "韓国語、英語、日本語、簡体中国語のUIを利用できます。",
         "currentLabel": "現在の言語",
-        "description": "アプリのUI言語を選びます。英語・日本語・中国語の翻訳は現在も調整中です。",
+        "description": "アプリのUI言語を選びます。韓国語、英語、日本語、簡体中国語のUIを利用できます。",
         "eyebrow": "言語",
-        "onlyKoreanReady": "韓国語のみ利用可能",
+        "onlySingleLocaleReady": "現在は{{locale}}のUIのみ利用できます。",
         "title": "言語設定"
       },
       "navigation": {
@@ -195,11 +195,11 @@
         "settings": "设置"
       },
       "locale": {
-        "currentDescription": "除韩语外，还可使用英语、日语或简体中文界面。",
+        "currentDescription": "可使用韩语、英语、日语或简体中文界面。",
         "currentLabel": "当前语言",
-        "description": "选择应用界面语言。英语、日语和简体中文的翻译仍在完善中。",
+        "description": "选择应用界面语言。可使用韩语、英语、日语和简体中文界面。",
         "eyebrow": "语言",
-        "onlyKoreanReady": "仅可使用韩语",
+        "onlySingleLocaleReady": "当前仅可使用{{locale}}界面。",
         "title": "语言设置"
       },
       "navigation": {

@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
 import { SectionCard } from '@shared/components/AppPrimitives';
@@ -7,12 +7,18 @@ import styles from './SettingsControlCenter.module.css';
 import { cx } from '@shared/utils/class-names';
 
 const css = styles;
+type SettingsGroupId = 'account' | 'data' | 'integrations' | 'general';
 
 interface SettingsSectionItem {
   id: string;
   label: string;
   content: ReactNode;
-  group?: string | undefined;
+  group?: SettingsGroupId | undefined;
+}
+
+interface SettingsNavGroup {
+  group?: SettingsGroupId | undefined;
+  sections: SettingsSectionItem[];
 }
 
 interface SettingsLayoutProps {
@@ -25,6 +31,24 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
   const [activeSectionId, setActiveSectionId] = useState(defaultSectionId);
   const activeSection =
     sections.find((section) => section.id === activeSectionId) ?? sections[0];
+  const sideNavGroups = sections.reduce<SettingsNavGroup[]>(
+    (groups, section) => {
+      const currentGroup = groups[groups.length - 1];
+
+      if (currentGroup && currentGroup.group === section.group) {
+        currentGroup.sections.push(section);
+        return groups;
+      }
+
+      groups.push({
+        group: section.group,
+        sections: [section],
+      });
+
+      return groups;
+    },
+    [],
+  );
 
   useEffect(() => {
     function syncActiveSectionFromHash() {
@@ -54,13 +78,10 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
 
     return {
       'aria-current': isActive ? ('location' as const) : undefined,
-      'aria-controls': section.id,
-      'aria-selected': isActive,
       className: cx(css.navLink ?? '', isActive && (css.navLinkActive ?? '')),
       'data-section-id': section.id,
       href: `#${section.id}`,
       onClick: () => selectSection(section.id),
-      role: 'tab' as const,
     };
   }
 
@@ -71,26 +92,35 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
         className={css.sideNav ?? ''}
       >
         <SectionCard padding="sm" tone="subtle">
-          <div className={css.navList ?? ''} role="tablist">
-            {sections.map((section, index) => {
-              const showGroupLabel =
-                section.group !== undefined &&
-                section.group !== sections[index - 1]?.group;
+          <div className={css.navGroups ?? ''}>
+            {sideNavGroups.map((navGroup) => {
+              const groupLabel = navGroup.group
+                ? t(`settings.groups.${navGroup.group}`)
+                : undefined;
+              const groupLabelId = groupLabel
+                ? `settings-group-${navGroup.group}`
+                : undefined;
 
               return (
-                <Fragment key={section.id}>
-                  {showGroupLabel && (
-                    <p
-                      className={css.navGroupLabel ?? ''}
-                      role="presentation"
-                    >
-                      {section.group}
-                    </p>
+                <div
+                  aria-labelledby={groupLabelId}
+                  className={css.navGroup ?? ''}
+                  key={navGroup.group ?? 'overview'}
+                  role={groupLabelId ? 'group' : undefined}
+                >
+                  {groupLabel && (
+                    <h2 className={css.navGroupLabel ?? ''} id={groupLabelId}>
+                      {groupLabel}
+                    </h2>
                   )}
-                  <a {...getNavLinkProps(section)}>
-                    <span>{section.label}</span>
-                  </a>
-                </Fragment>
+                  <div className={css.navList ?? ''}>
+                    {navGroup.sections.map((section) => (
+                      <a key={section.id} {...getNavLinkProps(section)}>
+                        <span>{section.label}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -100,7 +130,6 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
       <nav
         aria-label={t('settings.layout.mobileNavAria')}
         className={css.mobileNav ?? ''}
-        role="tablist"
       >
         {sections.map((section) => (
           <a key={section.id} {...getNavLinkProps(section)}>
@@ -116,7 +145,6 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
             className={css.sectionPanel ?? ''}
             id={activeSection.id}
             key={activeSection.id}
-            role="tabpanel"
           >
             {activeSection.content}
           </section>

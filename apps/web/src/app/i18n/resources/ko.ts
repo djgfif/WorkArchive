@@ -39,7 +39,8 @@ export const ko = {
     generic404: '요청한 정보를 찾을 수 없습니다.',
     generic409: '이미 처리된 요청이거나 충돌이 발생했습니다.',
     generic500: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
-    genericRequestFailed: '요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.',
+    genericRequestFailed:
+      '요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.',
     importDraftUnresolved:
       '검색 후보에서 서버 카탈로그 제목을 만들 수 없습니다.',
     invalidCredentials: '이메일 또는 비밀번호를 확인해주세요.',
@@ -58,8 +59,7 @@ export const ko = {
     releaseRecordUpdate: '권별 기록',
     restore: '복원',
     resultMissing: '일부 변경 사항의 처리 결과를 확인하지 못했습니다.',
-    serverMismatch:
-      '서버 상태가 달라 변경 사항을 반영하지 못했습니다.',
+    serverMismatch: '서버 상태가 달라 변경 사항을 반영하지 못했습니다.',
     syncServerUnavailable:
       '동기화 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
     timelineEntryUpdate: '타임라인 기록',
@@ -110,8 +110,7 @@ export const ko = {
       '가져오기 응답의 동기화 계약 버전을 지원하지 않습니다. 앱을 새로고침하거나 업데이트해주세요.',
     schemaPushUnsupported:
       '보내기 응답의 동기화 계약 버전을 지원하지 않습니다. 앱을 새로고침하거나 업데이트해주세요.',
-    stalePullFailed:
-      '최신 원격 변경을 확인하지 못해 자동 백업을 중단했습니다.',
+    stalePullFailed: '최신 원격 변경을 확인하지 못해 자동 백업을 중단했습니다.',
     stalePullNeedsReview:
       '직접 확인이 필요한 항목이 있어 자동 백업을 중단했습니다.',
     loginRequired: '동기화하려면 로그인해주세요.',
@@ -439,12 +438,13 @@ export const ko = {
       '로그인 전까지 기록은 이 기기에만 저장됩니다. 필요할 때 계정 연결과 백업을 켤 수 있습니다.',
   },
   locale: {
-    currentDescription: '한국어 외에 영어·일본어·중국어 UI도 선택할 수 있습니다.',
+    currentDescription:
+      '한국어, 영어, 일본어, 중국어 간체 UI를 사용할 수 있습니다.',
     currentLabel: '현재 언어',
     description:
-      '앱 UI 언어를 선택합니다. 영어·일본어·중국어 번역은 아직 다듬는 중입니다.',
+      '앱 UI 언어를 선택합니다. 한국어, 영어, 일본어, 중국어 간체 UI를 사용할 수 있습니다.',
     eyebrow: '언어',
-    onlyKoreanReady: '한국어만 사용 가능',
+    onlySingleLocaleReady: '현재는 {{locale}} UI만 사용할 수 있습니다.',
     title: '언어 설정',
   },
   navigation: {
@@ -682,7 +682,8 @@ export const ko = {
     },
     overview: {
       activeWorks: '활성 작품 {{count}}개',
-      backupGuestDescription: '게스트 모드에서는 서버 백업을 사용하지 않습니다.',
+      backupGuestDescription:
+        '게스트 모드에서는 서버 백업을 사용하지 않습니다.',
       backupContentVerified: '내용 검증됨',
       backupFileVerified: '파일 검증됨',
       backupQueueCount: '백업 대기 중인 기록 {{count}}개',
@@ -1169,9 +1170,9 @@ export const ko = {
       automatic: {
         createError: '자동 백업 파일을 만들지 못했습니다.',
         folderPermissionRequired: '백업 폴더 쓰기 권한이 필요합니다.',
-        folderReselectRequired: '이번 세션에서 백업 폴더를 다시 선택해야 합니다.',
-        unsupported:
-          '이 브라우저에서는 자동 폴더 백업을 사용할 수 없습니다.',
+        folderReselectRequired:
+          '이번 세션에서 백업 폴더를 다시 선택해야 합니다.',
+        unsupported: '이 브라우저에서는 자동 폴더 백업을 사용할 수 없습니다.',
       },
       exportError: 'JSON 백업 파일을 만들지 못했습니다.',
       exportFullSuccess: '전체 JSON 백업 파일을 만들었습니다.',
@@ -1234,8 +1235,7 @@ export const ko = {
         '전지적 독자 시점,웹소설,보는 중,4.5,싱숑,회귀; 사이다,메타적 재미가 압도적,',
     },
     mal: {
-      anilistMatchError:
-        'AniList 매칭 요청이 실패했습니다 (HTTP {{status}})',
+      anilistMatchError: 'AniList 매칭 요청이 실패했습니다 (HTTP {{status}})',
       invalidXml:
         'MyAnimeList 내보내기 XML 형식이 아닙니다. MAL의 목록 내보내기(.xml) 파일을 선택해 주세요.',
     },
@@ -1499,7 +1499,8 @@ export const ko = {
         '작품 카드를 미배치 목록에 추가했습니다. 원하는 행으로 끌어다 놓으세요.',
     },
     emptyBoard: '빈 보드',
-    emptyDescription: '작품 목록과 별개로 원하는 기준의 티어보드를 만들 수 있습니다.',
+    emptyDescription:
+      '작품 목록과 별개로 원하는 기준의 티어보드를 만들 수 있습니다.',
     emptyTitle: '아직 만든 티어보드가 없습니다.',
     errors: {
       boardNotFound: '티어보드를 찾을 수 없습니다.',
@@ -2304,8 +2305,10 @@ export const ko = {
       selectItemAria: '{{title}} 선택',
       restoreSelected: '선택 복원',
       permanentDeleteSelected: '선택 영구 삭제',
-      permanentDeleteSelectedConfirmTitle: '선택한 {{total}}개를 영구 삭제할까요?',
-      trashRetentionNotice: '삭제한 작품은 {{days}}일 후 자동으로 영구 삭제됩니다.',
+      permanentDeleteSelectedConfirmTitle:
+        '선택한 {{total}}개를 영구 삭제할까요?',
+      trashRetentionNotice:
+        '삭제한 작품은 {{days}}일 후 자동으로 영구 삭제됩니다.',
       trashAutoDeleteIn: '{{days}}일 후 자동 삭제',
       trashAutoDeleteSoon: '곧 자동 삭제',
       openTrashAria: '휴지통 열기',

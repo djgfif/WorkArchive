@@ -382,11 +382,11 @@ export const ja = {
     "workBackupDescriptionGuest": "ログインするまで記録はこの端末にのみ保存されます。必要なときにアカウント連携とバックアップを有効にできます。",
   },
   "locale": {
-    "currentDescription": "韓国語のほか、英語・日本語・中国語のUIも選べます。",
+    "currentDescription": "韓国語、英語、日本語、簡体中国語のUIを利用できます。",
     "currentLabel": "現在の言語",
-    "description": "アプリのUI言語を選びます。英語・日本語・中国語の翻訳は現在も調整中です。",
+    "description": "アプリのUI言語を選びます。韓国語、英語、日本語、簡体中国語のUIを利用できます。",
     "eyebrow": "言語",
-    "onlyKoreanReady": "韓国語のみ利用可能",
+    "onlySingleLocaleReady": "現在は{{locale}}のUIのみ利用できます。",
     "title": "言語設定",
   },
   "navigation": {

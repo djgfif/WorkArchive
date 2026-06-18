@@ -1,4 +1,4 @@
-﻿import { screen, waitFor } from '@testing-library/react';
+﻿import { screen, waitFor, within } from '@testing-library/react';
 import type { WorkRecord } from '@work-archive/shared-types';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -297,22 +297,68 @@ describe('SettingsPage', () => {
     await openSettingsSection(user, 'language');
 
     expect(screen.getByText('언어 설정')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '앱 UI 언어를 선택합니다. 한국어, 영어, 일본어, 중국어 간체 UI를 사용할 수 있습니다.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText('현재 언어')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '한국어, 영어, 일본어, 중국어 간체 UI를 사용할 수 있습니다.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText('한국어')).toBeInTheDocument();
     expect(screen.getByText('English')).toBeInTheDocument();
     expect(screen.getByText('日本語')).toBeInTheDocument();
     expect(screen.getByText('简体中文')).toBeInTheDocument();
     expect(screen.queryByText('한국어만 사용 가능')).not.toBeInTheDocument();
+    expect(screen.queryByText(/아직 다듬는 중/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/순차적으로 열립니다/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/검수 완료된 한국어 UI만/),
+    ).not.toBeInTheDocument();
   });
 
-  it('groups settings sections under category headers in the side nav', async () => {
+  it('groups settings sections under stable category headers in the side nav', async () => {
     renderGuestSettings();
 
-    expect(await screen.findByText('데이터')).toBeInTheDocument();
-    expect(screen.getByText('연동')).toBeInTheDocument();
-    expect(screen.getByText('일반')).toBeInTheDocument();
-    // 그룹 헤더 '계정' + 계정 섹션 내비 링크가 함께 존재한다.
-    expect(screen.getAllByText('계정').length).toBeGreaterThan(1);
+    const sideNav = screen.getByRole('navigation', {
+      name: '설정 사이드 섹션 탐색',
+    });
+
+    expect(
+      within(sideNav)
+        .getAllByRole('heading', { level: 2 })
+        .map((heading) => heading.textContent),
+    ).toEqual(['계정', '데이터', '연동', '일반']);
+    expect(
+      within(sideNav)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([
+      '개요',
+      '계정',
+      '보안',
+      '위험 작업',
+      '데이터와 백업',
+      '중복 정리',
+      '외부 기록 가져오기',
+      '검색 소스와 API 키',
+      'Notion 동기화',
+      '언어',
+      '표시 설정',
+    ]);
+    expect(
+      within(screen.getByRole('group', { name: '계정' }))
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['계정', '보안', '위험 작업']);
+    expect(
+      within(screen.getByRole('navigation', { name: '설정 모바일 섹션 탐색' }))
+        .queryAllByRole('heading', { level: 2 })
+        .map((heading) => heading.textContent),
+    ).toEqual([]);
   });
 
   it('renders provider readiness cards for public and user-key credential modes', async () => {
