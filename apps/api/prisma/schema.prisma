@@ -99,6 +99,11 @@ enum CatalogTitleStatus {
   cancelled
 }
 
+enum CatalogWorkSource {
+  legacy_flat
+  catalog_title_snapshot
+}
+
 enum ContributorEntityType {
   person
   organization
@@ -183,28 +188,29 @@ enum CatalogSubmissionStatus {
 }
 
 model User {
-  id                     String                  @id @default(uuid())
-  email                  String                  @unique
-  handle                 String?                 @unique
-  avatarUrl              String                  @default("") @db.Text
-  nickname               String                  @default("")
-  role                   UserRole                @default(user)
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  authAccounts           UserAuthAccount[]
-  workRecords            UserWorkRecord[]
-  timelineEntries        UserTimelineEntry[]
-  externalApiCredentials ExternalApiCredential[]
-  refreshSessions        UserRefreshSession[]
-  catalogSubmissions     CatalogSubmission[]     @relation("CatalogSubmissionSubmitter")
-  reviewedSubmissions    CatalogSubmission[]     @relation("CatalogSubmissionReviewer")
-  catalogAuditLogs       CatalogAuditLog[]
-  syncAppliedMutations   UserSyncAppliedMutation[]
-  notionSyncMappings     NotionSyncMapping[]
-  series                 UserSeries[]
-  contributors           UserContributor[]
-  workRelations          UserWorkRelation[]
-  tierBoards             UserTierBoard[]
+  id                         String                      @id @default(uuid())
+  email                      String                      @unique
+  handle                     String?                     @unique
+  avatarUrl                  String                      @default("") @db.Text
+  nickname                   String                      @default("")
+  role                       UserRole                    @default(user)
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  authAccounts               UserAuthAccount[]
+  workRecords                UserWorkRecord[]
+  timelineEntries            UserTimelineEntry[]
+  externalApiCredentials     ExternalApiCredential[]
+  refreshSessions            UserRefreshSession[]
+  catalogSubmissions         CatalogSubmission[]         @relation("CatalogSubmissionSubmitter")
+  reviewedSubmissions        CatalogSubmission[]         @relation("CatalogSubmissionReviewer")
+  catalogAuditLogs           CatalogAuditLog[]
+  syncAppliedMutations       UserSyncAppliedMutation[]
+  notionSyncMappings         NotionSyncMapping[]
+  notionPullPreviewSnapshots NotionPullPreviewSnapshot[]
+  series                     UserSeries[]
+  contributors               UserContributor[]
+  workRelations              UserWorkRelation[]
+  tierBoards                 UserTierBoard[]
 
   @@map("users")
 }
@@ -249,15 +255,16 @@ model UserRefreshSession {
 }
 
 model CatalogWork {
-  id           String           @id @default(uuid())
-  type         WorkType         @default(novel)
+  id           String            @id @default(uuid())
+  source       CatalogWorkSource @default(legacy_flat)
+  type         WorkType          @default(novel)
   title        String
-  author       String           @default("")
-  genres       String[]         @default([])
-  description  String           @default("") @db.Text
-  thumbnailUrl String           @default("")
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  author       String            @default("")
+  genres       String[]          @default([])
+  description  String            @default("") @db.Text
+  thumbnailUrl String            @default("")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
   userRecords  UserWorkRecord[]
 
   @@index([type, updatedAt])
@@ -470,7 +477,7 @@ model SecurityEvent {
 }
 
 model UserSyncAppliedMutation {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   userId           String
   clientMutationId String
   queueId          String
@@ -478,10 +485,10 @@ model UserSyncAppliedMutation {
   entityId         String
   payloadHash      String?
   result           Json
-  resultStatus     String   @default("applied")
+  resultStatus     String    @default("applied")
   expiresAt        DateTime?
-  createdAt        DateTime @default(now())
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, clientMutationId])
   @@index([userId, createdAt])
@@ -492,39 +499,39 @@ model UserSyncAppliedMutation {
 }
 
 model UserWorkRecord {
-  id                String              @id @default(uuid())
-  userId            String
-  catalogWorkId     String
-  catalogTitleId    String?
-  status            WorkStatus          @default(planned)
-  rating            Float?
-  shortReview       String              @default("")
-  review            String              @default("") @db.Text
-  personalTags      String[]            @default([])
-  favorite          Boolean             @default(false)
-  progressCurrent   Int?
-  progressTotal     Int?
-  progressUnit      ProgressUnit?
-  lastConsumedLabel String?
-  startedAt         DateTime?
-  completedAt       DateTime?
-  droppedAt         DateTime?
-  lastConsumedAt    DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  deletedAt         DateTime?
-  syncStatus        WorkSyncStatus      @default(synced)
-  serverVersion     Int                 @default(1)
-  catalogWork       CatalogWork         @relation(fields: [catalogWorkId], references: [id], onDelete: Cascade)
-  catalogTitle      CatalogTitle?       @relation(fields: [catalogTitleId], references: [id], onDelete: SetNull)
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  releaseRecords    UserReleaseRecord[]
-  timelineEntries   UserTimelineEntry[]
+  id                 String                @id @default(uuid())
+  userId             String
+  catalogWorkId      String
+  catalogTitleId     String?
+  status             WorkStatus            @default(planned)
+  rating             Float?
+  shortReview        String                @default("")
+  review             String                @default("") @db.Text
+  personalTags       String[]              @default([])
+  favorite           Boolean               @default(false)
+  progressCurrent    Int?
+  progressTotal      Int?
+  progressUnit       ProgressUnit?
+  lastConsumedLabel  String?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  droppedAt          DateTime?
+  lastConsumedAt     DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  deletedAt          DateTime?
+  syncStatus         WorkSyncStatus        @default(synced)
+  serverVersion      Int                   @default(1)
+  catalogWork        CatalogWork           @relation(fields: [catalogWorkId], references: [id], onDelete: Cascade)
+  catalogTitle       CatalogTitle?         @relation(fields: [catalogTitleId], references: [id], onDelete: SetNull)
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  releaseRecords     UserReleaseRecord[]
+  timelineEntries    UserTimelineEntry[]
   notionSyncMappings NotionSyncMapping[]
-  seriesLinks       UserWorkSeriesLink[]
-  contributorLinks  UserWorkContributor[]
-  outgoingRelations UserWorkRelation[]  @relation("UserWorkRelationSource")
-  incomingRelations UserWorkRelation[]  @relation("UserWorkRelationTarget")
+  seriesLinks        UserWorkSeriesLink[]
+  contributorLinks   UserWorkContributor[]
+  outgoingRelations  UserWorkRelation[]    @relation("UserWorkRelationSource")
+  incomingRelations  UserWorkRelation[]    @relation("UserWorkRelationTarget")
 
   @@index([userId, deletedAt])
   @@index([userId, status, updatedAt])
@@ -555,6 +562,21 @@ model NotionSyncMapping {
   @@index([userId, notionDataSourceId])
   @@index([workId])
   @@map("notion_sync_mappings")
+}
+
+model NotionPullPreviewSnapshot {
+  id                 String   @id @default(uuid())
+  userId             String
+  notionDataSourceId String
+  changes            Json
+  previewedAt        DateTime @default(now())
+  expiresAt          DateTime
+  createdAt          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+  @@map("notion_pull_preview_snapshots")
 }
 
 model UserTimelineEntry {
@@ -653,18 +675,18 @@ model UserWorkSeriesLink {
 }
 
 model UserContributor {
-  id             String                    @id @default(uuid())
+  id             String                @id @default(uuid())
   userId         String
   name           String
   normalizedName String
-  aliases        String[]                  @default([])
-  entityType     ContributorEntityType     @default(person)
-  createdAt      DateTime                  @default(now())
-  updatedAt      DateTime                  @updatedAt
+  aliases        String[]              @default([])
+  entityType     ContributorEntityType @default(person)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
   deletedAt      DateTime?
-  syncStatus     WorkSyncStatus            @default(synced)
-  serverVersion  Int                       @default(1)
-  user           User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncStatus     WorkSyncStatus        @default(synced)
+  serverVersion  Int                   @default(1)
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   workLinks      UserWorkContributor[]
 
   @@unique([userId, entityType, normalizedName])
@@ -694,20 +716,20 @@ model UserWorkContributor {
 }
 
 model UserWorkRelation {
-  id             String           @id @default(uuid())
-  userId         String
-  sourceWorkId   String
-  targetWorkId   String
-  relationType   WorkRelationType
-  note           String           @default("") @db.Text
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  deletedAt      DateTime?
-  syncStatus     WorkSyncStatus   @default(synced)
-  serverVersion  Int              @default(1)
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sourceWork     UserWorkRecord   @relation("UserWorkRelationSource", fields: [sourceWorkId], references: [id], onDelete: Cascade)
-  targetWork     UserWorkRecord   @relation("UserWorkRelationTarget", fields: [targetWorkId], references: [id], onDelete: Cascade)
+  id            String           @id @default(uuid())
+  userId        String
+  sourceWorkId  String
+  targetWorkId  String
+  relationType  WorkRelationType
+  note          String           @default("") @db.Text
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  deletedAt     DateTime?
+  syncStatus    WorkSyncStatus   @default(synced)
+  serverVersion Int              @default(1)
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceWork    UserWorkRecord   @relation("UserWorkRelationSource", fields: [sourceWorkId], references: [id], onDelete: Cascade)
+  targetWork    UserWorkRecord   @relation("UserWorkRelationTarget", fields: [targetWorkId], references: [id], onDelete: Cascade)
 
   @@unique([sourceWorkId, targetWorkId, relationType])
   @@index([userId, updatedAt, id])
@@ -716,43 +738,43 @@ model UserWorkRelation {
 }
 
 model UserTierBoard {
-  id            String              @id @default(uuid())
+  id            String               @id @default(uuid())
   userId        String
   slug          String
   title         String
-  description   String              @default("") @db.Text
+  description   String               @default("") @db.Text
   boardType     TierBoardType        @default(classic_tier)
   visibility    TierBoardVisibility  @default(private)
-  coverImageUrl String              @default("") @db.Text
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  coverImageUrl String               @default("") @db.Text
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   deletedAt     DateTime?
   syncStatus    WorkSyncStatus       @default(synced)
-  serverVersion Int                 @default(1)
-  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serverVersion Int                  @default(1)
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   lanes         UserTierLane[]
   cards         UserTierBoardCard[]
   assets        UserTierBoardAsset[]
 
+  @@unique([userId, slug])
   @@index([userId, updatedAt, id])
   @@index([userId, deletedAt])
-  @@unique([userId, slug])
   @@map("user_tier_boards")
 }
 
 model UserTierLane {
-  id            String          @id @default(uuid())
+  id            String              @id @default(uuid())
   boardId       String
   title         String
-  description   String          @default("") @db.Text
-  colorToken    String          @default("#64748b")
-  orderIndex    Int             @default(0)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  description   String              @default("") @db.Text
+  colorToken    String              @default("#64748b")
+  orderIndex    Int                 @default(0)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
   deletedAt     DateTime?
-  syncStatus    WorkSyncStatus   @default(synced)
-  serverVersion Int             @default(1)
-  board         UserTierBoard    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  syncStatus    WorkSyncStatus      @default(synced)
+  serverVersion Int                 @default(1)
+  board         UserTierBoard       @relation(fields: [boardId], references: [id], onDelete: Cascade)
   cards         UserTierBoardCard[]
 
   @@index([boardId, orderIndex])
@@ -788,20 +810,20 @@ model UserTierBoardCard {
 }
 
 model UserTierBoardAsset {
-  id          String                    @id @default(uuid())
-  boardId     String
-  cardId      String?
-  kind        TierBoardAssetKind        @default(image)
-  storageType TierBoardAssetStorageType
-  objectUrl   String                    @db.Text
-  originalName String                   @default("")
-  mimeType    String                    @default("")
-  sizeBytes   Int                       @default(0)
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
-  deletedAt   DateTime?
-  board       UserTierBoard             @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  card        UserTierBoardCard?        @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  id           String                    @id @default(uuid())
+  boardId      String
+  cardId       String?
+  kind         TierBoardAssetKind        @default(image)
+  storageType  TierBoardAssetStorageType
+  objectUrl    String                    @db.Text
+  originalName String                    @default("")
+  mimeType     String                    @default("")
+  sizeBytes    Int                       @default(0)
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  deletedAt    DateTime?
+  board        UserTierBoard             @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  card         UserTierBoardCard?        @relation(fields: [cardId], references: [id], onDelete: SetNull)
 
   @@index([boardId, deletedAt])
   @@index([cardId, deletedAt])

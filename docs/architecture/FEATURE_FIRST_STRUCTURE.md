@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                  |
 | Role                  | `architecture boundary guide`                                                |
 | Source of truth       | Current `apps/web`, `apps/api`, and `packages/*` layout                      |
-| Last verified against | `2026-06-01` auth/import/archive/tier-board service decomposition             |
+| Last verified against | `2026-06-18` catalog work source boundary and compatibility mutation policy   |
 | When to update        | Feature folders, module boundaries, or cross-feature dependency rules change |
 
 Work Archive uses a feature-first monorepo layout. The root keeps operational
@@ -119,6 +119,14 @@ Flat `Works` responses are a deprecation candidate, not an immediate removal
 target. Any deprecation must preserve sync create order
 `catalogTitleId -> importDraft -> legacy fallback` until replacement clients
 and tests are in place.
+
+`CatalogWork` is still the compatibility record behind flat `Work` responses,
+not the canonical shared catalog identity. Its `source` field records whether a
+row is a legacy flat work (`legacy_flat`) or a user-owned snapshot of a
+normalized catalog title (`catalog_title_snapshot`). Catalog metadata mutations
+from `Works` and `Sync` may only update user-owned 1:1 compatibility records;
+shared catalog identity and release metadata belong in `CatalogTitle` and
+related catalog tables.
 
 ## Public Repository Layout
 

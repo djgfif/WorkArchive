@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -33,6 +34,15 @@ export class UpsertNotionConnectionDto {
 export class ApplyNotionPullDto {
   @ApiPropertyOptional({
     description:
+      'Preview snapshot ID returned by the preview endpoint. When omitted, the latest unexpired preview is used.',
+  })
+  @IsOptional()
+  @IsString()
+  @IsUUID()
+  previewId?: string;
+
+  @ApiPropertyOptional({
+    description:
       'Optional subset of user work record IDs to apply. When omitted, all previewed safe field changes are applied.',
     type: [String],
   })
@@ -40,5 +50,6 @@ export class ApplyNotionPullDto {
   @IsArray()
   @ArrayMaxSize(200)
   @IsString({ each: true })
+  @IsUUID(undefined, { each: true })
   workIds?: string[];
 }

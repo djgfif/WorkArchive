@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client';
+
 import type { UserRecordsService } from '../../user-records/user-records.service';
 import type { PushSyncChangeDto } from '../dto/push-sync.dto';
 import type { PushSyncResultDto } from '../dto/push-sync-response.dto';
@@ -96,11 +98,54 @@ export async function applyWorkContributorChange(
     });
   }
 
-  const updated = await client.userWorkContributor.update({
-    where: { id: change.entityId },
-    data: buildWorkContributorUpdateData(payload),
+  const updateResult = await client.userWorkContributor.updateMany({
+    where: {
+      id: change.entityId,
+      serverVersion: existing.serverVersion,
+      userContributor: {
+        userId,
+      },
+      userWork: {
+        userId,
+      },
+    },
+    data: buildWorkContributorUpdateData(
+      payload,
+    ) as Prisma.UserWorkContributorUpdateManyMutationInput,
+  });
+  const updated = await client.userWorkContributor.findFirst({
+    where: {
+      id: change.entityId,
+      userContributor: {
+        userId,
+      },
+      userWork: {
+        userId,
+      },
+    },
     include: USER_WORK_CONTRIBUTOR_INCLUDE,
   });
+
+  if (updateResult.count === 0 || !updated) {
+    const latest = await client.userWorkContributor.findFirst({
+      where: {
+        id: change.entityId,
+        userContributor: {
+          userId,
+        },
+        userWork: {
+          userId,
+        },
+      },
+      include: USER_WORK_CONTRIBUTOR_INCLUDE,
+    });
+
+    return buildGraphRemoteNewerConflict(change, 'workContributor', {
+      workContributor: latest
+        ? toPushSyncWorkContributorPayload(latest)
+        : toPushSyncWorkContributorPayload(existing),
+    });
+  }
 
   return buildGraphAppliedResult(change, 'workContributor', {
     ...getAppliedMutationResult(payload.deletedAt),

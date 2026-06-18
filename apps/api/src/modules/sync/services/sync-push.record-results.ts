@@ -44,6 +44,24 @@ export function buildRecordParentConflict(
   } as PushSyncResultDto;
 }
 
+export function buildRecordRemoteNewerConflict(
+  change: PushSyncChangeDto,
+  key: RecordPayloadKey,
+  message: string,
+  payload: Partial<PushSyncResultDto>,
+): PushSyncResultDto {
+  return {
+    queueId: change.queueId,
+    entityId: change.entityId,
+    entityType: change.entityType,
+    status: 'conflict',
+    code: SYNC_CODES.conflictRemoteNewer,
+    message,
+    ...payload,
+    [key]: payload[key] ?? null,
+  } as PushSyncResultDto;
+}
+
 export function buildRecordValidationFailure(
   change: PushSyncChangeDto,
   key: RecordPayloadKey,

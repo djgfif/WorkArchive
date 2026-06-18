@@ -2,6 +2,8 @@ import {
   BadGatewayException,
   BadRequestException,
   Injectable,
+  HttpException,
+  HttpStatus,
   Logger,
   type OnModuleDestroy,
 } from '@nestjs/common';
@@ -24,9 +26,13 @@ import {
   FETCH_TIMEOUT_MS,
   FETCH_FAILURE_COOLDOWN_MS,
   getAllowedImageContentType,
+  HOST_FETCH_WINDOW_MS,
   imageRedisKey,
   isRedirectStatus,
+  MAX_HOST_CONCURRENT_FETCHES,
+  MAX_HOST_FETCHES_PER_WINDOW,
   MAX_IMAGE_BYTES,
+  MAX_MEMORY_CACHE_BYTES,
   MAX_MEMORY_CACHE_ENTRIES,
   MAX_REDIRECTS,
   parseAllowedImageUrl,
@@ -38,11 +44,19 @@ import {
   type ProxiedImage,
 } from './image-proxy-policy';
 
+interface HostFetchWindow {
+  count: number;
+  startedAt: number;
+}
+
 @Injectable()
 export class ImageProxyService implements OnModuleDestroy {
   private readonly cache = new Map<string, CachedImage>();
+  private memoryCacheBytes = 0;
   private readonly failedFetchUntil = new Map<string, number>();
   private readonly failedStaleRefreshUntil = new Map<string, number>();
+  private readonly hostFetchWindows = new Map<string, HostFetchWindow>();
+  private readonly inFlightFetchesByHost = new Map<string, number>();
   private readonly inFlightFetches = new Map<string, Promise<CachedImage>>();
   private readonly logger = new Logger(ImageProxyService.name);
   private redis: RedisClient | null = null;
@@ -72,7 +86,7 @@ export class ImageProxyService implements OnModuleDestroy {
     }
 
     if (cached && cached.staleUntil <= now) {
-      this.cache.delete(cacheKey);
+      this.deleteMemoryCache(cacheKey);
     }
 
     const retryAfter = this.failedFetchUntil.get(cacheKey);
@@ -160,6 +174,7 @@ export class ImageProxyService implements OnModuleDestroy {
     redirectCount: number,
   ): Promise<Response> {
     await this.assertPublicNetworkTarget(url);
+    this.reserveHostFetch(url);
 
     let response: Response;
 
@@ -178,6 +193,8 @@ export class ImageProxyService implements OnModuleDestroy {
     } catch (error) {
       this.logProxyFailure(url, error);
       throw new BadGatewayException('Image provider is unavailable.');
+    } finally {
+      this.releaseHostFetch(url);
     }
 
     if (isRedirectStatus(response.status)) {
@@ -202,6 +219,59 @@ export class ImageProxyService implements OnModuleDestroy {
     }
 
     return response;
+  }
+
+  private reserveHostFetch(url: URL) {
+    const host = url.hostname.toLowerCase();
+    const inFlightCount = this.inFlightFetchesByHost.get(host) ?? 0;
+
+    if (inFlightCount >= MAX_HOST_CONCURRENT_FETCHES) {
+      throw new HttpException(
+        'Image provider is receiving too many concurrent requests.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    this.assertHostFetchWindow(host, Date.now());
+    this.inFlightFetchesByHost.set(host, inFlightCount + 1);
+  }
+
+  private releaseHostFetch(url: URL) {
+    const host = url.hostname.toLowerCase();
+    const inFlightCount = this.inFlightFetchesByHost.get(host) ?? 0;
+
+    if (inFlightCount <= 1) {
+      this.inFlightFetchesByHost.delete(host);
+
+      return;
+    }
+
+    this.inFlightFetchesByHost.set(host, inFlightCount - 1);
+  }
+
+  private assertHostFetchWindow(host: string, now: number) {
+    const existingWindow = this.hostFetchWindows.get(host);
+
+    if (
+      !existingWindow ||
+      now - existingWindow.startedAt >= HOST_FETCH_WINDOW_MS
+    ) {
+      this.hostFetchWindows.set(host, {
+        count: 1,
+        startedAt: now,
+      });
+
+      return;
+    }
+
+    if (existingWindow.count >= MAX_HOST_FETCHES_PER_WINDOW) {
+      throw new HttpException(
+        'Image provider fetch limit exceeded.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    existingWindow.count += 1;
   }
 
   private async assertPublicNetworkTarget(url: URL) {
@@ -229,7 +299,7 @@ export class ImageProxyService implements OnModuleDestroy {
     }
 
     if (memoryCached && memoryCached.staleUntil <= now) {
-      this.cache.delete(cacheKey);
+      this.deleteMemoryCache(cacheKey);
     }
 
     const redis = await this.getRedis();
@@ -291,15 +361,37 @@ export class ImageProxyService implements OnModuleDestroy {
   }
 
   private writeMemoryCache(cacheKey: string, cachedImage: CachedImage) {
-    if (this.cache.size >= MAX_MEMORY_CACHE_ENTRIES) {
+    this.deleteMemoryCache(cacheKey);
+
+    while (
+      this.cache.size >= MAX_MEMORY_CACHE_ENTRIES ||
+      this.memoryCacheBytes + cachedImage.body.byteLength > MAX_MEMORY_CACHE_BYTES
+    ) {
       const oldestKey = this.cache.keys().next().value as string | undefined;
 
       if (oldestKey) {
-        this.cache.delete(oldestKey);
+        this.deleteMemoryCache(oldestKey);
+      } else {
+        break;
       }
     }
 
     this.cache.set(cacheKey, cachedImage);
+    this.memoryCacheBytes += cachedImage.body.byteLength;
+  }
+
+  private deleteMemoryCache(cacheKey: string) {
+    const cached = this.cache.get(cacheKey);
+
+    if (!cached) {
+      return;
+    }
+
+    this.memoryCacheBytes = Math.max(
+      0,
+      this.memoryCacheBytes - cached.body.byteLength,
+    );
+    this.cache.delete(cacheKey);
   }
 
   private async getRedis() {

@@ -1,4 +1,4 @@
-import { WorkType } from '@prisma/client';
+import { CatalogWorkSource, WorkType } from '@prisma/client';
 import type { Prisma, WorkStatus } from '@prisma/client';
 
 import { normalizeGenres, normalizeString } from '../../works/work-aggregate';
@@ -18,6 +18,7 @@ export function buildCatalogCreateData(
 ): Prisma.CatalogWorkUncheckedCreateInput {
   return {
     id: payload.id,
+    source: CatalogWorkSource.legacy_flat,
     type: payload.type as WorkType,
     title: payload.title.trim(),
     author: normalizeString(payload.author),
@@ -109,6 +110,7 @@ export function buildCompatibilityCatalogWorkCreateData(
 
   return {
     id: payload.id,
+    source: CatalogWorkSource.catalog_title_snapshot,
     type: (payload.type ?? title?.mediumType ?? WorkType.other) as WorkType,
     title:
       payload.title.trim() ||

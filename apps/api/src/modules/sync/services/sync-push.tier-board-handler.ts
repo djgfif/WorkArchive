@@ -75,13 +75,34 @@ export async function applyTierBoardChange(
   }
 
   const record = existing
-    ? await client.userTierBoard.update({
-        where: { id: change.entityId },
-        data: buildTierBoardUpdateData(payload),
-      })
+    ? await updateTierBoardWithVersionGuard(
+        userId,
+        change,
+        payload,
+        client,
+        existing.serverVersion,
+      )
     : await client.userTierBoard.create({
         data: buildTierBoardCreateData(userId, payload),
       });
+
+  if (!record) {
+    const latest = await client.userTierBoard.findFirst({
+      where: {
+        id: change.entityId,
+        userId,
+      },
+    });
+
+    return buildTierBoardRemoteNewerConflict(
+      change,
+      'tierBoard',
+      'Remote tier board is newer than the queued change.',
+      {
+        tierBoard: latest ? toPushSyncTierBoardPayload(latest) : null,
+      },
+    );
+  }
 
   return buildTierBoardAppliedResult(change, {
     code: existing ? SYNC_CODES.appliedChange : SYNC_CODES.created,
@@ -114,14 +135,49 @@ export async function applyTierLaneChange(
     return buildTierBoardOwnershipConflict(change);
   }
 
+  if (existing && existing.serverVersion > payload.serverVersion) {
+    return buildTierBoardRemoteNewerConflict(
+      change,
+      'tierLane',
+      'Remote tier lane is newer than the queued change.',
+      {
+        tierLane: toPushSyncTierLanePayload(existing),
+      },
+    );
+  }
+
   const record = existing
-    ? await client.userTierLane.update({
-        where: { id: change.entityId },
-        data: buildTierLaneUpdateData(payload),
-      })
+    ? await updateTierLaneWithVersionGuard(
+        userId,
+        change,
+        payload,
+        client,
+        existing.serverVersion,
+      )
     : await client.userTierLane.create({
         data: buildTierLaneCreateData(payload),
       });
+
+  if (!record) {
+    const latest = await client.userTierLane.findFirst({
+      where: {
+        board: {
+          userId,
+        },
+        id: change.entityId,
+      },
+      include: { board: true },
+    });
+
+    return buildTierBoardRemoteNewerConflict(
+      change,
+      'tierLane',
+      'Remote tier lane is newer than the queued change.',
+      {
+        tierLane: latest ? toPushSyncTierLanePayload(latest) : null,
+      },
+    );
+  }
 
   return buildTierBoardAppliedResult(change, {
     tierLane: toPushSyncTierLanePayload(record),
@@ -162,14 +218,49 @@ export async function applyTierBoardCardChange(
     return buildTierBoardOwnershipConflict(change);
   }
 
+  if (existing && existing.serverVersion > payload.serverVersion) {
+    return buildTierBoardRemoteNewerConflict(
+      change,
+      'tierBoardCard',
+      'Remote tier board card is newer than the queued change.',
+      {
+        tierBoardCard: toPushSyncTierBoardCardPayload(existing),
+      },
+    );
+  }
+
   const record = existing
-    ? await client.userTierBoardCard.update({
-        where: { id: change.entityId },
-        data: buildTierBoardCardUpdateData(payload),
-      })
+    ? await updateTierBoardCardWithVersionGuard(
+        userId,
+        change,
+        payload,
+        client,
+        existing.serverVersion,
+      )
     : await client.userTierBoardCard.create({
         data: buildTierBoardCardCreateData(payload),
       });
+
+  if (!record) {
+    const latest = await client.userTierBoardCard.findFirst({
+      where: {
+        board: {
+          userId,
+        },
+        id: change.entityId,
+      },
+      include: { board: true },
+    });
+
+    return buildTierBoardRemoteNewerConflict(
+      change,
+      'tierBoardCard',
+      'Remote tier board card is newer than the queued change.',
+      {
+        tierBoardCard: latest ? toPushSyncTierBoardCardPayload(latest) : null,
+      },
+    );
+  }
 
   return buildTierBoardAppliedResult(change, {
     tierBoardCard: toPushSyncTierBoardCardPayload(record),
@@ -223,5 +314,105 @@ export async function applyTierBoardAssetChange(
     tierBoardAsset: toPushSyncTierBoardAssetPayload(record),
     code: existing ? SYNC_CODES.appliedChange : SYNC_CODES.created,
     message: existing ? APPLIED_CHANGE_MESSAGE : CREATED_MESSAGE,
+  });
+}
+
+async function updateTierBoardWithVersionGuard(
+  userId: string,
+  change: PushSyncChangeDto,
+  payload: SyncTierBoardPayloadDto,
+  client: SyncPushClient,
+  expectedServerVersion: number,
+) {
+  const result = await client.userTierBoard.updateMany({
+    where: {
+      id: change.entityId,
+      serverVersion: expectedServerVersion,
+      userId,
+    },
+    data: buildTierBoardUpdateData(
+      payload,
+    ) as Prisma.UserTierBoardUpdateManyMutationInput,
+  });
+
+  if (result.count === 0) {
+    return null;
+  }
+
+  return client.userTierBoard.findFirst({
+    where: {
+      id: change.entityId,
+      userId,
+    },
+  });
+}
+
+async function updateTierLaneWithVersionGuard(
+  userId: string,
+  change: PushSyncChangeDto,
+  payload: SyncTierLanePayloadDto,
+  client: SyncPushClient,
+  expectedServerVersion: number,
+) {
+  const result = await client.userTierLane.updateMany({
+    where: {
+      board: {
+        userId,
+      },
+      id: change.entityId,
+      serverVersion: expectedServerVersion,
+    },
+    data: buildTierLaneUpdateData(
+      payload,
+    ) as Prisma.UserTierLaneUpdateManyMutationInput,
+  });
+
+  if (result.count === 0) {
+    return null;
+  }
+
+  return client.userTierLane.findFirst({
+    where: {
+      board: {
+        userId,
+      },
+      id: change.entityId,
+    },
+    include: { board: true },
+  });
+}
+
+async function updateTierBoardCardWithVersionGuard(
+  userId: string,
+  change: PushSyncChangeDto,
+  payload: SyncTierBoardCardPayloadDto,
+  client: SyncPushClient,
+  expectedServerVersion: number,
+) {
+  const result = await client.userTierBoardCard.updateMany({
+    where: {
+      board: {
+        userId,
+      },
+      id: change.entityId,
+      serverVersion: expectedServerVersion,
+    },
+    data: buildTierBoardCardUpdateData(
+      payload,
+    ) as Prisma.UserTierBoardCardUpdateManyMutationInput,
+  });
+
+  if (result.count === 0) {
+    return null;
+  }
+
+  return client.userTierBoardCard.findFirst({
+    where: {
+      board: {
+        userId,
+      },
+      id: change.entityId,
+    },
+    include: { board: true },
   });
 }

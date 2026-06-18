@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client';
+
 import type { UserRecordsService } from '../../user-records/user-records.service';
 import type { PushSyncChangeDto } from '../dto/push-sync.dto';
 import type { PushSyncResultDto } from '../dto/push-sync-response.dto';
@@ -96,11 +98,54 @@ export async function applyWorkSeriesLinkChange(
     });
   }
 
-  const updated = await client.userWorkSeriesLink.update({
-    where: { id: change.entityId },
-    data: buildWorkSeriesLinkUpdateData(payload),
+  const updateResult = await client.userWorkSeriesLink.updateMany({
+    where: {
+      id: change.entityId,
+      serverVersion: existing.serverVersion,
+      userSeries: {
+        userId,
+      },
+      userWork: {
+        userId,
+      },
+    },
+    data: buildWorkSeriesLinkUpdateData(
+      payload,
+    ) as Prisma.UserWorkSeriesLinkUpdateManyMutationInput,
+  });
+  const updated = await client.userWorkSeriesLink.findFirst({
+    where: {
+      id: change.entityId,
+      userSeries: {
+        userId,
+      },
+      userWork: {
+        userId,
+      },
+    },
     include: USER_WORK_SERIES_LINK_INCLUDE,
   });
+
+  if (updateResult.count === 0 || !updated) {
+    const latest = await client.userWorkSeriesLink.findFirst({
+      where: {
+        id: change.entityId,
+        userSeries: {
+          userId,
+        },
+        userWork: {
+          userId,
+        },
+      },
+      include: USER_WORK_SERIES_LINK_INCLUDE,
+    });
+
+    return buildGraphRemoteNewerConflict(change, 'workSeriesLink', {
+      workSeriesLink: latest
+        ? toPushSyncWorkSeriesLinkPayload(latest)
+        : toPushSyncWorkSeriesLinkPayload(existing),
+    });
+  }
 
   return buildGraphAppliedResult(change, 'workSeriesLink', {
     ...getAppliedMutationResult(payload.deletedAt),

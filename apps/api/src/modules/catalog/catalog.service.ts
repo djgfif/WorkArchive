@@ -7,6 +7,7 @@ import {
 import {
   CatalogSubmissionStatus,
   CatalogVerificationStatus,
+  CatalogWorkSource,
   type Prisma,
   type UserRole,
   type WorkType,
@@ -89,7 +90,9 @@ export class CatalogService {
       data: normalizeCatalogWorkGenres(data),
     });
 
-    await this.ensureTitleForLegacyWork(catalogWork, client);
+    if (catalogWork.source === CatalogWorkSource.legacy_flat) {
+      await this.ensureTitleForLegacyWork(catalogWork, client);
+    }
 
     return catalogWork;
   }
@@ -106,7 +109,9 @@ export class CatalogService {
       data: normalizeCatalogWorkGenres(data),
     });
 
-    await this.ensureTitleForLegacyWork(catalogWork, client);
+    if (catalogWork.source === CatalogWorkSource.legacy_flat) {
+      await this.ensureTitleForLegacyWork(catalogWork, client);
+    }
 
     return catalogWork;
   }

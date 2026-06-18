@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Logger } from '@nestjs/common';
 import {
+  CatalogWorkSource,
   TierBoardCardSourceType,
   TierBoardAssetKind,
   TierBoardAssetStorageType,
@@ -71,6 +72,7 @@ function createWorkAggregateFixture(
     serverVersion: 3,
     catalogWork: {
       id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      source: CatalogWorkSource.catalog_title_snapshot,
       type: WorkType.novel,
       title: 'The Three-Body Problem',
       author: 'Liu Cixin',
@@ -468,8 +470,13 @@ describe('SyncService', () => {
       update: jest.fn(),
       // The version guard delegates to update() so existing update fixtures and
       // call assertions keep describing the applied-write path.
-      updateWithVersionGuard: jest.fn((id, _userId, _version, data, client) =>
-        userRecordsService.update(id, data, client),
+      updateWithVersionGuard: jest.fn(
+        async (id, _userId, _version, data, client) => {
+          const updated = await userRecordsService.update(id, data, client);
+          userRecordsService.findById.mockResolvedValue(updated);
+
+          return updated;
+        },
       ),
     };
     releaseRecordsService = {

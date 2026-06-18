@@ -303,11 +303,13 @@ export interface NotionPreviewResponse {
     notionPageId: string;
     workId: EntityId;
   }>;
+  previewId: EntityId;
   previewedAt: ISODateString;
   total: number;
 }
 
 export interface NotionApplyRequest {
+  previewId?: EntityId;
   workIds?: EntityId[];
 }
 
@@ -318,6 +320,10 @@ export interface NotionApplyResponse {
     workId: EntityId;
   }>;
   previewedCount: number;
+  warnings: Array<{
+    message: string;
+    workId: EntityId;
+  }>;
 }
 
 export type ImportSearchDiagnosticStatus = 'searched' | 'skipped' | 'failed';

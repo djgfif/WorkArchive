@@ -1,5 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
-import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
+import {
+  CatalogWorkSource,
+  WorkStatus,
+  WorkSyncStatus,
+  WorkType,
+} from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 
 import type { CreateWorkDto } from './dto/create-work.dto';
@@ -42,6 +47,7 @@ export function buildCatalogCreateData(
   }
 
   return {
+    source: CatalogWorkSource.legacy_flat,
     type: createWorkDto.type ?? WorkType.novel,
     title,
     author: normalizeString(createWorkDto.author),

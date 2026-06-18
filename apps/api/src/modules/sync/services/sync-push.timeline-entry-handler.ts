@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 
 import type { UserRecordsService } from '../../user-records/user-records.service';
 import {
+  USER_TIMELINE_ENTRY_INCLUDE,
   toUserTimelineEntryResponse,
   type UserTimelineEntriesService,
 } from '../../user-records/user-timeline-entries.service';
@@ -24,6 +25,7 @@ import {
   buildRecordAppliedResult,
   buildRecordOwnershipConflict,
   buildRecordParentConflict,
+  buildRecordRemoteNewerConflict,
   buildRecordValidationFailure,
   getMissingRemoteRecordResult,
 } from './sync-push.record-results';
@@ -101,11 +103,53 @@ export async function applyTimelineEntryChange(
     });
   }
 
-  const updated = await dependencies.timelineEntriesService.update(
-    change.entityId,
-    buildTimelineEntryUpdateData(payload),
-    client,
-  );
+  if (existing.serverVersion > payload.serverVersion) {
+    return buildRecordRemoteNewerConflict(
+      change,
+      'timelineEntry',
+      'Server mismatch: the timeline entry has a newer remote version.',
+      {
+        timelineEntry: toUserTimelineEntryResponse(existing),
+      },
+    );
+  }
+
+  const updateResult = await client.userTimelineEntry.updateMany({
+    where: {
+      id: change.entityId,
+      serverVersion: existing.serverVersion,
+      userId,
+    },
+    data: buildTimelineEntryUpdateData(
+      payload,
+    ) as Prisma.UserTimelineEntryUpdateManyMutationInput,
+  });
+  const updated = await client.userTimelineEntry.findFirst({
+    where: {
+      id: change.entityId,
+      userId,
+    },
+    include: USER_TIMELINE_ENTRY_INCLUDE,
+  });
+
+  if (updateResult.count === 0 || !updated) {
+    const latest = await client.userTimelineEntry.findFirst({
+      where: {
+        id: change.entityId,
+        userId,
+      },
+      include: USER_TIMELINE_ENTRY_INCLUDE,
+    });
+
+    return buildRecordRemoteNewerConflict(
+      change,
+      'timelineEntry',
+      'Server mismatch: the timeline entry has a newer remote version.',
+      {
+        timelineEntry: latest ? toUserTimelineEntryResponse(latest) : null,
+      },
+    );
+  }
 
   return buildRecordAppliedResult(change, 'timelineEntry', {
     ...getAppliedMutationResult(payload.deletedAt),

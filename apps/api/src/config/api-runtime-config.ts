@@ -12,11 +12,13 @@ export interface ApiRuntimeConfig {
   host: string;
   importAuthenticatedRateLimitMax: number;
   importGuestRateLimitMax: number;
+  imageProxyRateLimitMax: number;
   isProduction: boolean;
   jwtAccessSecret: string;
   jwtRefreshSecret: string;
   metricsBearerToken: string | null;
   metricsEnabled: boolean;
+  notionRateLimitMax: number;
   port: number;
   rateLimitPrefix: string;
   rateLimitStore: 'memory' | 'redis';
@@ -82,11 +84,13 @@ const apiEnvironmentSchema = z
     HOST: z.string().optional(),
     IMPORT_AUTH_RATE_LIMIT_MAX: z.string().optional(),
     IMPORT_GUEST_RATE_LIMIT_MAX: z.string().optional(),
+    IMAGE_PROXY_RATE_LIMIT_MAX: z.string().optional(),
     JWT_ACCESS_SECRET: z.string().optional(),
     JWT_REFRESH_SECRET: z.string().optional(),
     METRICS_BEARER_TOKEN: z.string().optional(),
     METRICS_ENABLED: z.string().optional(),
     NODE_ENV: z.string().optional(),
+    NOTION_RATE_LIMIT_MAX: z.string().optional(),
     PORT: z.string().optional(),
     PUBLIC_WEB_BASE_URL: z.string().optional(),
     RATE_LIMIT_PREFIX: z.string().optional(),
@@ -536,11 +540,21 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
       process.env.IMPORT_GUEST_RATE_LIMIT_MAX,
       20,
     ),
+    imageProxyRateLimitMax: readPositiveInteger(
+      'IMAGE_PROXY_RATE_LIMIT_MAX',
+      process.env.IMAGE_PROXY_RATE_LIMIT_MAX,
+      120,
+    ),
     isProduction,
     jwtAccessSecret,
     jwtRefreshSecret,
     metricsBearerToken,
     metricsEnabled,
+    notionRateLimitMax: readPositiveInteger(
+      'NOTION_RATE_LIMIT_MAX',
+      process.env.NOTION_RATE_LIMIT_MAX,
+      20,
+    ),
     port,
     rateLimitPrefix:
       process.env.RATE_LIMIT_PREFIX?.trim() || 'work-archive:rate-limit:',

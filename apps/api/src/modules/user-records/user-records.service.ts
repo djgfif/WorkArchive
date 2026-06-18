@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CatalogWorkSource,
   WorkType,
   type Prisma,
 } from '@prisma/client';
@@ -555,6 +556,7 @@ export class UserRecordsService {
         description: normalizeString(input.description),
         genres,
         id: recordId,
+        source: CatalogWorkSource.legacy_flat,
         thumbnailUrl: normalizeString(input.thumbnailUrl),
         title,
         type: input.type ?? WorkType.other,
@@ -588,6 +590,7 @@ export class UserRecordsService {
         description: input.description?.trim() || title.summary,
         genres,
         id: recordId,
+        source: CatalogWorkSource.catalog_title_snapshot,
         thumbnailUrl: input.thumbnailUrl?.trim() || title.thumbnailUrl,
         title: input.title?.trim() || title.displayTitle,
         type: input.type ?? title.mediumType,

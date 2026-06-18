@@ -88,9 +88,11 @@ export async function configureApp(
     rateLimiters.auth,
   );
   app.use(['/api/sync/push', '/api/sync/pull'], rateLimiters.sync);
+  app.use('/api/image-proxy', rateLimiters.imageProxy);
   app.use('/api/imports/search', rateLimiters.importsGuest);
   app.use('/api/imports/search', rateLimiters.importsAuthenticated);
   app.use('/api/imports/resolve', rateLimiters.importsAuthenticated);
+  app.use('/api/notion', rateLimiters.notion);
 
   app.enableCors({
     origin: config.corsOrigin,

@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client';
+
 import type { PushSyncChangeDto } from '../dto/push-sync.dto';
 import type { PushSyncResultDto } from '../dto/push-sync-response.dto';
 import type { SyncContributorPayloadDto } from '../payloads/sync-contributor-payload.dto';
@@ -71,10 +73,33 @@ export async function applySeriesChange(
     });
   }
 
-  const updated = await client.userSeries.update({
-    where: { id: change.entityId },
-    data: buildSeriesUpdateData(payload),
+  const updateResult = await client.userSeries.updateMany({
+    where: {
+      id: change.entityId,
+      serverVersion: existing.serverVersion,
+      userId,
+    },
+    data: buildSeriesUpdateData(payload) as Prisma.UserSeriesUpdateManyMutationInput,
   });
+  const updated = await client.userSeries.findFirst({
+    where: {
+      id: change.entityId,
+      userId,
+    },
+  });
+
+  if (updateResult.count === 0 || !updated) {
+    const latest = await client.userSeries.findFirst({
+      where: {
+        id: change.entityId,
+        userId,
+      },
+    });
+
+    return buildGraphRemoteNewerConflict(change, 'series', {
+      series: latest ? toPushSyncSeriesPayload(latest) : toPushSyncSeriesPayload(existing),
+    });
+  }
 
   return buildGraphAppliedResult(change, 'series', {
     ...getAppliedMutationResult(payload.deletedAt),
@@ -117,10 +142,37 @@ export async function applyContributorChange(
     });
   }
 
-  const updated = await client.userContributor.update({
-    where: { id: change.entityId },
-    data: buildContributorUpdateData(payload),
+  const updateResult = await client.userContributor.updateMany({
+    where: {
+      id: change.entityId,
+      serverVersion: existing.serverVersion,
+      userId,
+    },
+    data: buildContributorUpdateData(
+      payload,
+    ) as Prisma.UserContributorUpdateManyMutationInput,
   });
+  const updated = await client.userContributor.findFirst({
+    where: {
+      id: change.entityId,
+      userId,
+    },
+  });
+
+  if (updateResult.count === 0 || !updated) {
+    const latest = await client.userContributor.findFirst({
+      where: {
+        id: change.entityId,
+        userId,
+      },
+    });
+
+    return buildGraphRemoteNewerConflict(change, 'contributor', {
+      contributor: latest
+        ? toPushSyncContributorPayload(latest)
+        : toPushSyncContributorPayload(existing),
+    });
+  }
 
   return buildGraphAppliedResult(change, 'contributor', {
     ...getAppliedMutationResult(payload.deletedAt),

@@ -208,6 +208,11 @@ export async function createSecurityRateLimiters(
     config,
     'imports:auth',
   );
+  const imageProxyRateLimitStore = await createRateLimitStore(
+    config,
+    'image-proxy',
+  );
+  const notionRateLimitStore = await createRateLimitStore(config, 'notion');
 
   return {
     auth: rateLimit(
@@ -249,6 +254,25 @@ export async function createSecurityRateLimiters(
       ),
       skip: (request) => !request.header('authorization'),
     }),
+    imageProxy: rateLimit(
+      buildRateLimitOptions(
+        config,
+        'image_proxy',
+        config.imageProxyRateLimitMax,
+        imageProxyRateLimitStore,
+        securityAudit,
+      ),
+    ),
+    notion: rateLimit(
+      buildRateLimitOptions(
+        config,
+        'notion',
+        config.notionRateLimitMax,
+        notionRateLimitStore,
+        securityAudit,
+        createSyncRateLimitKeyGenerator(config),
+      ),
+    ),
   };
 }
 

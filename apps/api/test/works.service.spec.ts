@@ -1,5 +1,10 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
+import {
+  CatalogWorkSource,
+  WorkStatus,
+  WorkSyncStatus,
+  WorkType,
+} from '@prisma/client';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import type { CatalogService } from '../src/modules/catalog/catalog.service';
@@ -32,6 +37,7 @@ function createWorkAggregateFixture(
     serverVersion: 1,
     catalogWork: {
       id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      source: CatalogWorkSource.legacy_flat,
       type: WorkType.novel,
       title: 'The Three-Body Problem',
       author: 'Liu Cixin',

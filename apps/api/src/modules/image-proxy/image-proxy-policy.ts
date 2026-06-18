@@ -5,11 +5,15 @@ export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const FRESH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 export const STALE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const REDIS_CACHE_TTL_MS = FRESH_CACHE_TTL_MS + STALE_CACHE_TTL_MS;
+export const MAX_MEMORY_CACHE_BYTES = 64 * 1024 * 1024;
 export const MAX_MEMORY_CACHE_ENTRIES = 500;
 export const MAX_REDIRECTS = 3;
 export const FETCH_TIMEOUT_MS = 5000;
 export const FETCH_FAILURE_COOLDOWN_MS = 60 * 1000;
 export const STALE_REFRESH_FAILURE_COOLDOWN_MS = 5 * 60 * 1000;
+export const MAX_HOST_CONCURRENT_FETCHES = 8;
+export const HOST_FETCH_WINDOW_MS = 60 * 1000;
+export const MAX_HOST_FETCHES_PER_WINDOW = 120;
 export const REDIS_KEY_PREFIX = 'work-archive:image-proxy:';
 
 export const ALLOWED_IMAGE_HOST_SUFFIXES = [

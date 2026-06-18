@@ -6,6 +6,7 @@ import type {
   WorkAggregate,
 } from '../../user-records/user-records.service';
 import type { PrismaService } from '../../../prisma/prisma.service';
+import { canMutateCatalogWorkForUserRecord } from '../../works/catalog-work-source-policy';
 import { toFlatWorkResponse } from '../../works/work-aggregate';
 import type { PushSyncChangeDto } from '../dto/push-sync.dto';
 import type { PushSyncResultDto } from '../dto/push-sync-response.dto';
@@ -80,16 +81,7 @@ export async function applyWorkChange(
     return buildWorkRemoteNewerConflict(change, toFlatWorkResponse(existing));
   }
 
-  // Keep catalog compatibility metadata and the user record update in the
-  // same sync mutation transaction.
   const updatePlan = buildExistingWorkUpdatePlan(existing, payload);
-
-  await dependencies.catalogService.update(
-    updatePlan.catalogWorkId,
-    updatePlan.catalogUpdateData,
-    client,
-  );
-
   const updated = await dependencies.userRecordsService.updateWithVersionGuard(
     updatePlan.userRecordId,
     userId,
@@ -112,10 +104,23 @@ export async function applyWorkChange(
     );
   }
 
+  if (canMutateCatalogWorkForUserRecord(existing)) {
+    await dependencies.catalogService.update(
+      updatePlan.catalogWorkId,
+      updatePlan.catalogUpdateData,
+      client,
+    );
+  }
+
+  const refreshed = await dependencies.userRecordsService.findById(
+    updatePlan.userRecordId,
+    client,
+  );
+
   return buildWorkAppliedResult(change, {
     code: updatePlan.resultCode,
     message: updatePlan.resultMessage,
-    work: toFlatWorkResponse(updated),
+    work: toFlatWorkResponse(refreshed ?? updated),
   });
 }
 

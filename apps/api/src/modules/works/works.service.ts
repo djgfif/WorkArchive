@@ -10,6 +10,7 @@ import { UserRecordsService } from '../user-records/user-records.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateWorkDto } from './dto/create-work.dto';
 import type { UpdateWorkDto } from './dto/update-work.dto';
+import { canMutateCatalogWorkForUserRecord } from './catalog-work-source-policy';
 import {
   buildWorkCreateCompatibilityPlan,
   buildWorkUpdateCompatibilityPlan,
@@ -97,8 +98,10 @@ export class WorksService {
       }
 
       const work = await this.prisma.$transaction(async (tx) => {
-        if (compatibilityPlan.hasCatalogChanges) {
-          // 현재는 shared catalog가 아니라 user record와 결합된 1:1 catalog 항목을 함께 갱신합니다.
+        if (
+          compatibilityPlan.hasCatalogChanges &&
+          canMutateCatalogWorkForUserRecord(existingWork)
+        ) {
           await this.catalogService.update(
             existingWork.catalogWorkId,
             compatibilityPlan.catalogUpdateData,

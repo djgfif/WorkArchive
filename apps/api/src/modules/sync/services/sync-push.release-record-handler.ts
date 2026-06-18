@@ -25,6 +25,7 @@ import {
   buildRecordAppliedResult,
   buildRecordOwnershipConflict,
   buildRecordParentConflict,
+  buildRecordRemoteNewerConflict,
   buildRecordValidationFailure,
   getMissingRemoteRecordResult,
 } from './sync-push.record-results';
@@ -106,11 +107,59 @@ export async function applyReleaseRecordChange(
     });
   }
 
-  const updated = await dependencies.releaseRecordsService.update(
-    change.entityId,
-    buildReleaseRecordUpdateData(payload),
-    client,
-  );
+  if (existing.serverVersion > payload.serverVersion) {
+    return buildRecordRemoteNewerConflict(
+      change,
+      'releaseRecord',
+      'Server mismatch: the release record has a newer remote version.',
+      {
+        releaseRecord: toUserReleaseRecordResponse(existing),
+      },
+    );
+  }
+
+  const updateResult = await client.userReleaseRecord.updateMany({
+    where: {
+      id: change.entityId,
+      serverVersion: existing.serverVersion,
+      userWorkRecord: {
+        userId,
+      },
+    },
+    data: buildReleaseRecordUpdateData(
+      payload,
+    ) as Prisma.UserReleaseRecordUpdateManyMutationInput,
+  });
+  const updated = await client.userReleaseRecord.findFirst({
+    where: {
+      id: change.entityId,
+      userWorkRecord: {
+        userId,
+      },
+    },
+    include: USER_RELEASE_RECORD_INCLUDE,
+  });
+
+  if (updateResult.count === 0 || !updated) {
+    const latest = await client.userReleaseRecord.findFirst({
+      where: {
+        id: change.entityId,
+        userWorkRecord: {
+          userId,
+        },
+      },
+      include: USER_RELEASE_RECORD_INCLUDE,
+    });
+
+    return buildRecordRemoteNewerConflict(
+      change,
+      'releaseRecord',
+      'Server mismatch: the release record has a newer remote version.',
+      {
+        releaseRecord: latest ? toUserReleaseRecordResponse(latest) : null,
+      },
+    );
+  }
 
   return buildRecordAppliedResult(change, 'releaseRecord', {
     ...getAppliedMutationResult(payload.deletedAt),

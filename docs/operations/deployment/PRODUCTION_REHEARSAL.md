@@ -50,7 +50,9 @@ Required checks:
 - `DATABASE_URL` matches `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`.
 - JWT, external API key encryption, and security event hash secrets are all unique.
 - `CORS_ORIGIN` and `WEB_BASE_URL` use the production HTTPS origin.
-- `RATE_LIMIT_STORE=redis` and `REDIS_URL=redis://redis:6379`.
+- `RATE_LIMIT_STORE=redis` and `REDIS_URL=redis://redis:6379`; confirm
+  `IMAGE_PROXY_RATE_LIMIT_MAX` and `NOTION_RATE_LIMIT_MAX` are set for the
+  expected public traffic profile.
 - `IMPORT_SERVER_SEARCH_GUEST_ENABLED=false`; it is reserved for future server
   credential providers and does not expose Brave/Tavily guest search.
 - No OAuth secret, API key, real DB password, token, or cookie value is copied into the readiness report.

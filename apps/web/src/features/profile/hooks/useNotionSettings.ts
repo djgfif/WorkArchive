@@ -225,9 +225,10 @@ export function useNotionSettings(mode: SettingsAuthMode) {
     try {
       setIsApplyingPull(true);
       const workIds = pullPreview?.changes.map((entry) => entry.workId);
-      const result = await notionService.applyPull(
-        workIds ? { workIds } : {},
-      );
+      const result = await notionService.applyPull({
+        ...(pullPreview ? { previewId: pullPreview.previewId } : {}),
+        ...(workIds ? { workIds } : {}),
+      });
       setPullPreview(null);
       setFeedback({
         tone: result.errors.length > 0 ? 'info' : 'success',

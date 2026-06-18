@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 
 import { setExternalFetchTransportForTest } from '../src/common/external-fetch';
 import { ImageProxyService } from '../src/modules/image-proxy/image-proxy.service';
+import {
+  MAX_HOST_CONCURRENT_FETCHES,
+  MAX_HOST_FETCHES_PER_WINDOW,
+} from '../src/modules/image-proxy/image-proxy-policy';
 
 jest.mock('node:dns/promises', () => ({
   lookup: jest.fn(),
@@ -112,6 +116,58 @@ describe('ImageProxyService', () => {
       service.getImage('https://covers.openlibrary.org/b/id/missing-L.jpg'),
     ).rejects.toThrow('temporarily unavailable');
     expect(upstreamFetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('limits cache-miss fetches per image host without blocking cache hits', async () => {
+    await service.getImage('https://covers.openlibrary.org/b/id/cached-L.jpg');
+
+    for (let index = 0; index < MAX_HOST_FETCHES_PER_WINDOW - 1; index += 1) {
+      const cached = await service.getImage(
+        'https://covers.openlibrary.org/b/id/cached-L.jpg',
+      );
+
+      expect(cached.body.toString()).toBe('image-body');
+    }
+
+    for (let index = 0; index < MAX_HOST_FETCHES_PER_WINDOW - 1; index += 1) {
+      await service.getImage(
+        `https://covers.openlibrary.org/b/id/miss-${index}-L.jpg`,
+      );
+    }
+
+    await expect(
+      service.getImage('https://covers.openlibrary.org/b/id/limited-L.jpg'),
+    ).rejects.toThrow('fetch limit exceeded');
+  });
+
+  it('limits concurrent upstream fetches per image host', async () => {
+    const deferred = createDeferred<void>();
+    upstreamFetchMock.mockImplementation(async () => {
+      await deferred.promise;
+
+      return imageResponse('released-image');
+    });
+
+    const pending = Array.from(
+      { length: MAX_HOST_CONCURRENT_FETCHES },
+      (_, index) =>
+        service.getImage(
+          `https://covers.openlibrary.org/b/id/concurrent-${index}-L.jpg`,
+        ),
+    );
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    await expect(
+      service.getImage('https://covers.openlibrary.org/b/id/overflow-L.jpg'),
+    ).rejects.toThrow('too many concurrent requests');
+
+    deferred.resolve();
+
+    await expect(Promise.all(pending)).resolves.toHaveLength(
+      MAX_HOST_CONCURRENT_FETCHES,
+    );
   });
 
   it('rejects untrusted hosts before fetching', async () => {

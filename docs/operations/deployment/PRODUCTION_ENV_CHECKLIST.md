@@ -79,6 +79,8 @@ public API origin and include the web origin in `CORS_ORIGIN`.
 ```bash
 RATE_LIMIT_STORE=redis
 REDIS_URL=redis://redis:6379
+IMAGE_PROXY_RATE_LIMIT_MAX=120
+NOTION_RATE_LIMIT_MAX=20
 TRUST_PROXY_HOPS=1
 COOKIE_SECURE=true
 SWAGGER_ENABLED=false

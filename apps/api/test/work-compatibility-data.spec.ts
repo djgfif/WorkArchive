@@ -1,5 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
-import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
+import {
+  CatalogWorkSource,
+  WorkStatus,
+  WorkSyncStatus,
+  WorkType,
+} from '@prisma/client';
 import { describe, expect, it } from '@jest/globals';
 
 import {
@@ -38,6 +43,7 @@ describe('work compatibility data builders', () => {
       author: 'Frank Herbert',
       description: 'Summary',
       genres: ['판타지'],
+      source: CatalogWorkSource.legacy_flat,
       thumbnailUrl: 'https://example.com/cover.jpg',
       title: 'Dune',
       type: WorkType.novel,
