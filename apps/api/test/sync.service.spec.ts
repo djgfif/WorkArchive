@@ -2,6 +2,7 @@
 import { Logger } from '@nestjs/common';
 import {
   CatalogWorkSource,
+  ContributorEntityType,
   TierBoardCardSourceType,
   TierBoardAssetKind,
   TierBoardAssetStorageType,
@@ -9,6 +10,8 @@ import {
   TierBoardVisibility,
   TimelineEntryType,
   WorkStatus,
+  WorkContributorRole,
+  WorkRelationType,
   WorkSyncStatus,
   WorkType,
 } from '@prisma/client';
@@ -19,6 +22,7 @@ import { SyncService } from '../src/modules/sync/sync.service';
 import { SyncCursorService } from '../src/modules/sync/services/sync-cursor.service';
 import { SyncPullService } from '../src/modules/sync/services/sync-pull.service';
 import { SyncPushService } from '../src/modules/sync/services/sync-push.service';
+import type { SyncContributorPayloadDto } from '../src/modules/sync/payloads/sync-contributor-payload.dto';
 import type { SyncReleaseRecordPayloadDto } from '../src/modules/sync/payloads/sync-release-record-payload.dto';
 import type { SyncSeriesPayloadDto } from '../src/modules/sync/payloads/sync-series-payload.dto';
 import type { SyncTimelineEntryPayloadDto } from '../src/modules/sync/payloads/sync-timeline-entry-payload.dto';
@@ -29,7 +33,9 @@ import type {
   SyncTierLanePayloadDto,
 } from '../src/modules/sync/payloads/sync-tier-board-payload.dto';
 import type { SyncWorkSeriesLinkPayloadDto } from '../src/modules/sync/payloads/sync-work-series-link-payload.dto';
+import type { SyncWorkContributorPayloadDto } from '../src/modules/sync/payloads/sync-work-contributor-payload.dto';
 import type { SyncWorkPayloadDto } from '../src/modules/sync/payloads/sync-work-payload.dto';
+import type { SyncWorkRelationPayloadDto } from '../src/modules/sync/payloads/sync-work-relation-payload.dto';
 import { type PrismaService } from '../src/prisma/prisma.service';
 import type {
   UserReleaseRecordsService,
@@ -193,6 +199,8 @@ function createTierBoardAssetPayload(
     createdAt: '2026-04-18T00:00:00.000Z',
     updatedAt: '2026-04-18T00:00:00.000Z',
     deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
     ...overrides,
   };
 }
@@ -419,6 +427,7 @@ describe('SyncService', () => {
         findMany: jest.fn(async () => []),
         findUnique: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(async () => ({ count: 1 })),
       },
       userTierLane: {
         create: jest.fn(),
@@ -440,6 +449,7 @@ describe('SyncService', () => {
         findMany: jest.fn(async () => []),
         findUnique: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(async () => ({ count: 1 })),
       },
       userWorkRecord: {
         findMany: jest.fn(async () => []),
@@ -733,6 +743,64 @@ describe('SyncService', () => {
     ]);
   });
 
+  it('returns per-change failures and continues applying the remaining batch', async () => {
+    const warnSpy = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+
+    prisma.$transaction
+      .mockRejectedValueOnce(new Error('database unavailable'))
+      .mockImplementation(
+        async (callback: (client: any) => Promise<any>) => callback(prisma),
+      );
+    prisma.userSeries.findUnique.mockResolvedValue(null);
+    prisma.userSeries.create.mockResolvedValue(createUserSeriesFixture());
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'd06474f0-d6f2-40b0-a4a7-361b6c3f908d',
+          clientMutationId: 'd52de2c9-e2a4-4f83-802d-5b0bc69683b0',
+          entityType: 'work',
+          entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          operation: 'update',
+          createdAt: '2026-04-18T00:00:00.000Z',
+          payload: createSyncPayload(),
+        },
+        {
+          queueId: 'bb1d473b-445e-44b9-b988-322c19fa5b92',
+          clientMutationId: '2c6bca7c-f1c6-43cd-9b11-aa2f63f21329',
+          entityType: 'series',
+          entityId: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+          operation: 'create',
+          createdAt: '2026-04-18T00:01:00.000Z',
+          payload: createSyncSeriesPayload(),
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        code: 'failed_server_error',
+        entityType: 'work',
+        status: 'failed',
+      }),
+      expect.objectContaining({
+        code: 'created',
+        entityType: 'series',
+        status: 'applied',
+      }),
+    ]);
+    expect(prisma.userSeries.create).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Sync change failed userId=2c92b57e-e529-4344-bd62-0cff4de5dfe2 entityType=work entityId=9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      ),
+    );
+
+    warnSpy.mockRestore();
+  });
+
   it('pulls tombstones for the current user and uses updatedAt as the next cursor', async () => {
     prisma.userWorkRecord.findMany.mockResolvedValue([
       createWorkAggregateFixture({
@@ -792,6 +860,28 @@ describe('SyncService', () => {
     expect(result.changes).toHaveLength(500);
     expect(result.hasMore).toBe(true);
     expect(result.nextCursor).toEqual(expect.any(String));
+    expect(result.nextSince).toBe('2026-04-18T00:00:00.000Z');
+  });
+
+  it('does not advance nextSince during an initial full pull page while more records remain', async () => {
+    prisma.userWorkRecord.findMany.mockResolvedValue(
+      Array.from({ length: 501 }, (_, index) =>
+        createWorkAggregateFixture({
+          id: `${String(index).padStart(8, '0')}-0000-4000-8000-000000000000`,
+          catalogWorkId: `${String(index).padStart(8, '0')}-0000-4000-8000-000000000000`,
+          updatedAt: new Date(
+            `2026-04-18T02:${String(index % 60).padStart(2, '0')}:00.000Z`,
+          ),
+        }),
+      ),
+    );
+
+    const result = await service.pull(USER_ID, {});
+
+    expect(result.changes).toHaveLength(500);
+    expect(result.hasMore).toBe(true);
+    expect(result.nextCursor).toEqual(expect.any(String));
+    expect(result.nextSince).toBeNull();
   });
 
   it('paginates pull changes with a stable cursor across same-timestamp entity types', async () => {
@@ -961,6 +1051,72 @@ describe('SyncService', () => {
         work: expect.objectContaining({
           title: 'Dune Messiah',
           serverVersion: 4,
+        }),
+      }),
+    ]);
+  });
+
+  it('does not mutate shared catalog metadata from a sync work update', async () => {
+    const sharedCatalogWorkId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const existing = createWorkAggregateFixture({
+      catalogWorkId: sharedCatalogWorkId,
+      catalogWork: {
+        ...createWorkAggregateFixture().catalogWork,
+        id: sharedCatalogWorkId,
+        source: CatalogWorkSource.catalog_title_snapshot,
+        title: 'Shared Catalog Title',
+      },
+    });
+    const updated = createWorkAggregateFixture({
+      catalogWorkId: sharedCatalogWorkId,
+      catalogWork: existing.catalogWork,
+      favorite: true,
+      serverVersion: 4,
+      updatedAt: new Date('2026-04-18T02:00:00.000Z'),
+    });
+
+    userRecordsService.findById.mockResolvedValue(existing);
+    userRecordsService.update.mockResolvedValue(updated);
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'df70b41c-b87a-4f6f-839d-b43fb8dfd5eb',
+          entityType: 'work',
+          entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          operation: 'update',
+          createdAt: '2026-04-18T02:00:00.000Z',
+          payload: createSyncPayload({
+            title: 'User Device Title Must Not Rewrite Shared Catalog',
+            favorite: true,
+            updatedAt: '2026-04-18T02:00:00.000Z',
+            serverVersion: 3,
+          }),
+        },
+      ],
+    });
+
+    expect(catalogService.update).not.toHaveBeenCalled();
+    expect(userRecordsService.updateWithVersionGuard).toHaveBeenCalledWith(
+      '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      USER_ID,
+      3,
+      expect.objectContaining({
+        favorite: true,
+        serverVersion: {
+          increment: 1,
+        },
+      }),
+      expect.any(Object),
+    );
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        status: 'applied',
+        code: 'applied_change',
+        work: expect.objectContaining({
+          favorite: true,
+          serverVersion: 4,
+          title: 'Shared Catalog Title',
         }),
       }),
     ]);
@@ -1304,6 +1460,49 @@ describe('SyncService', () => {
     expect(idempotencyRecords.size).toBe(1);
   });
 
+  it('refuses to modify a tier board that belongs to another user', async () => {
+    prisma.userTierBoard.findUnique.mockResolvedValue({
+      ...createTierBoardPayload({
+        serverVersion: 2,
+        syncStatus: 'synced',
+      }),
+      userId: OTHER_USER_ID,
+      createdAt: new Date('2026-04-18T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-18T00:30:00.000Z'),
+      deletedAt: null,
+    });
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: '8c815d26-d3d8-43f8-89bc-4e55dc66bc92',
+          clientMutationId: 'e46992dd-3842-4903-b6c8-74336bcba9ea',
+          entityType: 'tier_board',
+          entityId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+          operation: 'update',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: createTierBoardPayload({
+            title: 'Foreign board overwrite',
+            updatedAt: '2026-04-18T00:30:00.000Z',
+            serverVersion: 2,
+          }),
+        },
+      ],
+    });
+
+    expect(prisma.userTierBoard.create).not.toHaveBeenCalled();
+    expect(prisma.userTierBoard.update).not.toHaveBeenCalled();
+    expect(prisma.userTierBoard.updateMany).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'tier_board',
+        status: 'conflict',
+        code: 'conflict_ownership_mismatch',
+        message: expect.stringContaining('belongs to another user'),
+      }),
+    ]);
+  });
+
   it('rolls back sync entity writes when the idempotency record write fails in the transaction', async () => {
     const committed = {
       boards: [] as Record<string, unknown>[],
@@ -1347,25 +1546,29 @@ describe('SyncService', () => {
       },
     );
 
-    await expect(
-      service.push(USER_ID, {
-        changes: [
-          {
-            queueId: '52e614a4-080f-4955-9166-77987bc29942',
-            clientMutationId: 'b8d13e1f-fceb-43ff-a5da-b1d29ed691eb',
-            entityType: 'tier_board',
-            entityId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
-            operation: 'create',
-            createdAt: '2026-04-18T00:00:00.000Z',
-            payload: createTierBoardPayload(),
-          },
-        ],
-      }),
-    ).rejects.toThrow('refresh_token');
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: '52e614a4-080f-4955-9166-77987bc29942',
+          clientMutationId: 'b8d13e1f-fceb-43ff-a5da-b1d29ed691eb',
+          entityType: 'tier_board',
+          entityId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+          operation: 'create',
+          createdAt: '2026-04-18T00:00:00.000Z',
+          payload: createTierBoardPayload(),
+        },
+      ],
+    });
 
     expect(entityCreate).toHaveBeenCalledTimes(1);
     expect(committed.boards).toHaveLength(0);
     expect(committed.idempotencyRecords).toHaveLength(0);
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        code: 'failed_server_error',
+        status: 'failed',
+      }),
+    ]);
   });
 
   it('does not commit an idempotency record when the sync entity write fails in the transaction', async () => {
@@ -1410,28 +1613,32 @@ describe('SyncService', () => {
       },
     );
 
-    await expect(
-      service.push(USER_ID, {
-        changes: [
-          {
-            queueId: 'f022e7f8-a7af-448a-8b01-c3088cc63835',
-            clientMutationId: '884c1bb1-a41f-42de-a028-98a82b98d789',
-            entityType: 'tier_board',
-            entityId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
-            operation: 'create',
-            createdAt: '2026-04-18T00:00:00.000Z',
-            payload: createTierBoardPayload(),
-          },
-        ],
-      }),
-    ).rejects.toThrow('authorization');
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'f022e7f8-a7af-448a-8b01-c3088cc63835',
+          clientMutationId: '884c1bb1-a41f-42de-a028-98a82b98d789',
+          entityType: 'tier_board',
+          entityId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+          operation: 'create',
+          createdAt: '2026-04-18T00:00:00.000Z',
+          payload: createTierBoardPayload(),
+        },
+      ],
+    });
 
     expect(idempotencyCreate).not.toHaveBeenCalled();
     expect(committed.boards).toHaveLength(0);
     expect(committed.idempotencyRecords).toHaveLength(0);
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        code: 'failed_server_error',
+        status: 'failed',
+      }),
+    ]);
   });
 
-  it('logs sync.push.failed without sensitive request or token material', async () => {
+  it('logs sync.change.failed without sensitive request or token material', async () => {
     const logSpy = jest
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
@@ -1462,20 +1669,29 @@ describe('SyncService', () => {
         },
         'req-sync-redaction',
       ),
-    ).rejects.toThrow('authorization');
+    ).resolves.toEqual(
+      expect.objectContaining({
+        results: [
+          expect.objectContaining({
+            code: 'failed_server_error',
+            status: 'failed',
+          }),
+        ],
+      }),
+    );
 
     const failedLog = logSpy.mock.calls
       .map((call: unknown[]) => String(call[0]))
       .find((message: string) =>
-        message.includes('"event":"sync.push.failed"'),
+        message.includes('"event":"sync.change.failed"'),
       );
 
     expect(failedLog).toBeDefined();
     expect(JSON.parse(failedLog!)).toEqual(
       expect.objectContaining({
-        durationMs: expect.any(Number),
+        durationMs: null,
         errorCode: 'Error',
-        event: 'sync.push.failed',
+        event: 'sync.change.failed',
         requestId: 'req-sync-redaction',
         userId: USER_ID,
       }),
@@ -1535,7 +1751,7 @@ describe('SyncService', () => {
     );
   });
 
-  it('syncs tier_board_card source work metadata without requiring active WorkRecord', async () => {
+  it('syncs tier_board_card source work metadata when the source work belongs to the user', async () => {
     prisma.userTierBoard.findUnique.mockResolvedValue({
       id: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
       userId: USER_ID,
@@ -1550,6 +1766,11 @@ describe('SyncService', () => {
         userId: USER_ID,
       },
     });
+    userRecordsService.findById.mockResolvedValue(
+      createWorkAggregateFixture({
+        deletedAt: new Date('2026-04-18T01:00:00.000Z'),
+      }),
+    );
     prisma.userTierBoardCard.create.mockImplementation(
       async ({ data }: any) => ({
         ...data,
@@ -1590,9 +1811,165 @@ describe('SyncService', () => {
         }),
       }),
     );
-    expect(prisma.userWorkRecord.findUnique).not.toHaveBeenCalled();
+    expect(userRecordsService.findById).toHaveBeenCalledWith(
+      '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+      prisma,
+    );
     expect(prisma.userWorkRecord.update).not.toHaveBeenCalled();
     expect(userRecordsService.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects tier_board_card sync when the source work belongs to another user', async () => {
+    prisma.userTierBoard.findUnique.mockResolvedValue({
+      id: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+      userId: USER_ID,
+      deletedAt: null,
+    });
+    prisma.userTierLane.findUnique.mockResolvedValue({
+      id: '877fb270-a90b-445f-bc7e-eec9611b6b1d',
+      boardId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+      deletedAt: null,
+      board: {
+        userId: USER_ID,
+      },
+    });
+    userRecordsService.findById.mockResolvedValue(
+      createWorkAggregateFixture({
+        userId: OTHER_USER_ID,
+      }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d902',
+          clientMutationId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d903',
+          entityType: 'tier_board_card',
+          entityId: '0cb7bbce-0885-468f-ab6b-b66d646b78ec',
+          operation: 'create',
+          createdAt: '2026-04-18T00:00:00.000Z',
+          payload: createTierBoardCardPayload(),
+        },
+      ],
+    });
+
+    expect(result.results[0]).toEqual(
+      expect.objectContaining({
+        code: 'conflict_parent_changed',
+        status: 'conflict',
+      }),
+    );
+    expect(prisma.userTierBoardCard.create).not.toHaveBeenCalled();
+    expect(prisma.userSyncAppliedMutation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          resultStatus: 'conflict',
+        }),
+      }),
+    );
+  });
+
+  it('rejects tier_board_card sync when the parent board belongs to another user or is deleted', async () => {
+    for (const board of [
+      {
+        id: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+        userId: OTHER_USER_ID,
+        deletedAt: null,
+      },
+      {
+        id: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+        userId: USER_ID,
+        deletedAt: new Date('2026-04-18T01:00:00.000Z'),
+      },
+    ]) {
+      prisma.userTierBoard.findUnique.mockResolvedValueOnce(board);
+
+      const result = await service.push(USER_ID, {
+        changes: [
+          {
+            queueId: crypto.randomUUID(),
+            clientMutationId: crypto.randomUUID(),
+            entityType: 'tier_board_card',
+            entityId: '0cb7bbce-0885-468f-ab6b-b66d646b78ec',
+            operation: 'create',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            payload: createTierBoardCardPayload(),
+          },
+        ],
+      });
+
+      expect(result.results[0]).toEqual(
+        expect.objectContaining({
+          code: 'conflict_parent_changed',
+          status: 'conflict',
+        }),
+      );
+    }
+
+    expect(prisma.userTierLane.findUnique).not.toHaveBeenCalled();
+    expect(prisma.userTierBoardCard.create).not.toHaveBeenCalled();
+    expect(prisma.userSyncAppliedMutation.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects tier_board_card sync when the parent lane belongs to another user or is deleted', async () => {
+    prisma.userTierBoard.findUnique.mockResolvedValue({
+      id: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+      userId: USER_ID,
+      deletedAt: null,
+    });
+
+    for (const lane of [
+      {
+        id: '877fb270-a90b-445f-bc7e-eec9611b6b1d',
+        boardId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        deletedAt: null,
+        board: {
+          userId: USER_ID,
+        },
+      },
+      {
+        id: '877fb270-a90b-445f-bc7e-eec9611b6b1d',
+        boardId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+        deletedAt: null,
+        board: {
+          userId: OTHER_USER_ID,
+        },
+      },
+      {
+        id: '877fb270-a90b-445f-bc7e-eec9611b6b1d',
+        boardId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+        deletedAt: new Date('2026-04-18T01:00:00.000Z'),
+        board: {
+          userId: USER_ID,
+        },
+      },
+    ]) {
+      prisma.userTierLane.findUnique.mockResolvedValueOnce(lane);
+
+      const result = await service.push(USER_ID, {
+        changes: [
+          {
+            queueId: crypto.randomUUID(),
+            clientMutationId: crypto.randomUUID(),
+            entityType: 'tier_board_card',
+            entityId: '0cb7bbce-0885-468f-ab6b-b66d646b78ec',
+            operation: 'create',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            payload: createTierBoardCardPayload(),
+          },
+        ],
+      });
+
+      expect(result.results[0]).toEqual(
+        expect.objectContaining({
+          code: 'conflict_parent_changed',
+          status: 'conflict',
+        }),
+      );
+    }
+
+    expect(prisma.userTierBoardCard.create).not.toHaveBeenCalled();
+    expect(prisma.userSyncAppliedMutation.create).toHaveBeenCalledTimes(3);
   });
 
   it('rejects tier_board_asset sync when the parent card belongs to another user or is deleted', async () => {
@@ -1653,6 +2030,101 @@ describe('SyncService', () => {
         }),
       }),
     );
+  });
+
+  it('guards tier_board_asset updates with the expected server version', async () => {
+    prisma.userTierBoard.findUnique.mockResolvedValue({
+      id: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+      userId: USER_ID,
+      deletedAt: null,
+    });
+    prisma.userTierBoardCard.findUnique.mockResolvedValue({
+      id: '0cb7bbce-0885-468f-ab6b-b66d646b78ec',
+      boardId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+      deletedAt: null,
+      board: {
+        userId: USER_ID,
+      },
+    });
+    prisma.userTierBoardAsset.findUnique.mockResolvedValue({
+      id: 'dc42d556-13a5-4b28-897c-5c79d68a7f79',
+      boardId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+      cardId: '0cb7bbce-0885-468f-ab6b-b66d646b78ec',
+      kind: TierBoardAssetKind.image,
+      storageType: TierBoardAssetStorageType.remote_url,
+      objectUrl: 'https://example.com/old.jpg',
+      originalName: 'old.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 900,
+      createdAt: new Date('2026-04-18T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-18T00:10:00.000Z'),
+      deletedAt: null,
+      syncStatus: WorkSyncStatus.synced,
+      serverVersion: 3,
+      board: {
+        userId: USER_ID,
+      },
+    });
+    prisma.userTierBoardAsset.updateMany.mockResolvedValueOnce({ count: 0 });
+    prisma.userTierBoardAsset.findFirst.mockResolvedValue({
+      id: 'dc42d556-13a5-4b28-897c-5c79d68a7f79',
+      boardId: 'b2e7f8a5-0d7a-4874-9fc1-88124c77d901',
+      cardId: '0cb7bbce-0885-468f-ab6b-b66d646b78ec',
+      kind: TierBoardAssetKind.image,
+      storageType: TierBoardAssetStorageType.remote_url,
+      objectUrl: 'https://example.com/newer.jpg',
+      originalName: 'newer.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 1100,
+      createdAt: new Date('2026-04-18T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-18T00:20:00.000Z'),
+      deletedAt: null,
+      syncStatus: WorkSyncStatus.synced,
+      serverVersion: 4,
+      board: {
+        userId: USER_ID,
+      },
+    });
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: '9bed3916-6d5f-427d-86de-3952a015b23d',
+          clientMutationId: 'a808b443-6d81-4f9f-bbe4-af6f48379464',
+          entityType: 'tier_board_asset',
+          entityId: 'dc42d556-13a5-4b28-897c-5c79d68a7f79',
+          operation: 'update',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: createTierBoardAssetPayload({
+            objectUrl: 'https://example.com/local.jpg',
+            serverVersion: 3,
+          }),
+        },
+      ],
+    });
+
+    expect(prisma.userTierBoardAsset.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'dc42d556-13a5-4b28-897c-5c79d68a7f79',
+          serverVersion: 3,
+          board: {
+            userId: USER_ID,
+          },
+        }),
+      }),
+    );
+    expect(prisma.userTierBoardAsset.update).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        code: 'conflict_remote_newer',
+        status: 'conflict',
+        tierBoardAsset: expect.objectContaining({
+          objectUrl: 'https://example.com/newer.jpg',
+          serverVersion: 4,
+        }),
+      }),
+    ]);
   });
 
   it('creates a missing remote record for a local-only payload and assigns the authenticated owner', async () => {
@@ -2310,6 +2782,127 @@ describe('SyncService', () => {
     );
   });
 
+  it('refuses to modify a series graph record that belongs to another user', async () => {
+    prisma.userSeries.findUnique.mockResolvedValue(
+      createUserSeriesFixture({ userId: OTHER_USER_ID }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'graph-series-queue-2',
+          entityType: 'series',
+          entityId: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+          operation: 'update',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: createSyncSeriesPayload({
+            title: 'Fate updated',
+            normalizedTitle: 'fate updated',
+          }),
+        },
+      ],
+    });
+
+    expect(prisma.userSeries.create).not.toHaveBeenCalled();
+    expect(prisma.userSeries.update).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'series',
+        status: 'conflict',
+        code: 'conflict_ownership_mismatch',
+        series: null,
+      }),
+    ]);
+  });
+
+  it('rejects a series graph record when the parent series belongs to another user', async () => {
+    prisma.userSeries.findUnique.mockResolvedValue(null);
+    prisma.userSeries.findFirst.mockResolvedValue(null);
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'graph-series-queue-3',
+          entityType: 'series',
+          entityId: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+          operation: 'create',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: createSyncSeriesPayload({
+            parentId: 'c10def47-fb07-4519-a11a-9d395b27f2c0',
+          }),
+        },
+      ],
+    });
+
+    expect(prisma.userSeries.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'c10def47-fb07-4519-a11a-9d395b27f2c0',
+        userId: USER_ID,
+      },
+    });
+    expect(prisma.userSeries.create).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'series',
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('Series parent'),
+        series: null,
+      }),
+    ]);
+  });
+
+  it('refuses to modify a contributor graph record that belongs to another user', async () => {
+    prisma.userContributor.findUnique.mockResolvedValue({
+      id: 'd3be5cc3-80fb-4ab8-8a54-a6a17d17d7f8',
+      userId: OTHER_USER_ID,
+      name: 'Contributor',
+      normalizedName: 'contributor',
+      aliases: [],
+      entityType: ContributorEntityType.person,
+      createdAt: new Date('2026-04-18T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-18T01:00:00.000Z'),
+      deletedAt: null,
+      syncStatus: WorkSyncStatus.synced,
+      serverVersion: 1,
+    });
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'graph-contributor-queue-1',
+          entityType: 'contributor',
+          entityId: 'd3be5cc3-80fb-4ab8-8a54-a6a17d17d7f8',
+          operation: 'update',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            id: 'd3be5cc3-80fb-4ab8-8a54-a6a17d17d7f8',
+            name: 'Contributor updated',
+            normalizedName: 'contributor updated',
+            aliases: [],
+            entityType: ContributorEntityType.person,
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:30:00.000Z',
+            deletedAt: null,
+            syncStatus: 'local-only',
+            serverVersion: 0,
+          } satisfies SyncContributorPayloadDto,
+        },
+      ],
+    });
+
+    expect(prisma.userContributor.create).not.toHaveBeenCalled();
+    expect(prisma.userContributor.update).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'contributor',
+        status: 'conflict',
+        code: 'conflict_ownership_mismatch',
+        contributor: null,
+      }),
+    ]);
+  });
+
   it('rejects a work-series link when the parent work or series is missing', async () => {
     prisma.userWorkSeriesLink.findUnique.mockResolvedValue(null);
     userRecordsService.findById.mockResolvedValue(null);
@@ -2348,6 +2941,262 @@ describe('SyncService', () => {
         code: 'failed_validation',
         message: expect.stringContaining('parent work is missing'),
         workSeriesLink: null,
+      }),
+    ]);
+  });
+
+  it('rejects a work-series link when the parent work belongs to another user', async () => {
+    prisma.userWorkSeriesLink.findUnique.mockResolvedValue(null);
+    userRecordsService.findById.mockResolvedValue(
+      createWorkAggregateFixture({ userId: OTHER_USER_ID }),
+    );
+    prisma.userSeries.findFirst.mockResolvedValue(createUserSeriesFixture());
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'graph-link-queue-2',
+          entityType: 'work_series_link',
+          entityId: '4a822eea-c1c9-40d3-b18c-b4d35a75b0f3',
+          operation: 'create',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            id: '4a822eea-c1c9-40d3-b18c-b4d35a75b0f3',
+            workId: '33333333-3333-4333-8333-333333333333',
+            seriesId: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+            role: 'main',
+            orderIndex: null,
+            orderLabel: '',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:30:00.000Z',
+            deletedAt: null,
+            syncStatus: 'local-only',
+            serverVersion: 0,
+          } satisfies SyncWorkSeriesLinkPayloadDto,
+        },
+      ],
+    });
+
+    expect(userRecordsService.findById).toHaveBeenCalledWith(
+      '33333333-3333-4333-8333-333333333333',
+      prisma,
+    );
+    expect(prisma.userWorkSeriesLink.create).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'work_series_link',
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('different user'),
+        workSeriesLink: null,
+      }),
+    ]);
+  });
+
+  it('rejects a work-series link when the target series belongs to another user', async () => {
+    prisma.userWorkSeriesLink.findUnique.mockResolvedValue(null);
+    userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
+    prisma.userSeries.findFirst.mockResolvedValue(null);
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'graph-link-queue-3',
+          entityType: 'work_series_link',
+          entityId: '4a822eea-c1c9-40d3-b18c-b4d35a75b0f3',
+          operation: 'create',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            id: '4a822eea-c1c9-40d3-b18c-b4d35a75b0f3',
+            workId: '33333333-3333-4333-8333-333333333333',
+            seriesId: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+            role: 'main',
+            orderIndex: null,
+            orderLabel: '',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:30:00.000Z',
+            deletedAt: null,
+            syncStatus: 'local-only',
+            serverVersion: 0,
+          } satisfies SyncWorkSeriesLinkPayloadDto,
+        },
+      ],
+    });
+
+    expect(prisma.userSeries.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: '9b9632f1-0f52-4fb3-afcf-323d99bde595',
+        userId: USER_ID,
+      },
+    });
+    expect(prisma.userWorkSeriesLink.create).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'work_series_link',
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('target series'),
+        workSeriesLink: null,
+      }),
+    ]);
+  });
+
+  it('rejects a work-contributor link when either parent belongs to another user', async () => {
+    prisma.userWorkContributor.findUnique.mockResolvedValue(null);
+    userRecordsService.findById.mockResolvedValue(
+      createWorkAggregateFixture({ userId: OTHER_USER_ID }),
+    );
+    prisma.userContributor.findFirst.mockResolvedValue({
+      id: 'd3be5cc3-80fb-4ab8-8a54-a6a17d17d7f8',
+      userId: USER_ID,
+    });
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'graph-contributor-link-queue-1',
+          entityType: 'work_contributor',
+          entityId: '427f5863-e18c-4d4c-9511-981fd4f3b450',
+          operation: 'create',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            id: '427f5863-e18c-4d4c-9511-981fd4f3b450',
+            workId: '33333333-3333-4333-8333-333333333333',
+            contributorId: 'd3be5cc3-80fb-4ab8-8a54-a6a17d17d7f8',
+            role: WorkContributorRole.author,
+            displayOrder: 0,
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:30:00.000Z',
+            deletedAt: null,
+            syncStatus: 'local-only',
+            serverVersion: 0,
+          } satisfies SyncWorkContributorPayloadDto,
+        },
+      ],
+    });
+
+    expect(userRecordsService.findById).toHaveBeenCalledWith(
+      '33333333-3333-4333-8333-333333333333',
+      prisma,
+    );
+    expect(prisma.userWorkContributor.create).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'work_contributor',
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('different user'),
+        workContributor: null,
+      }),
+    ]);
+
+    jest.clearAllMocks();
+    prisma.$transaction.mockImplementation(
+      async (callback: (client: any) => Promise<any>) => callback(prisma),
+    );
+    prisma.userSyncAppliedMutation.findUnique.mockResolvedValue(null);
+    prisma.userWorkContributor.findUnique.mockResolvedValue(null);
+    userRecordsService.findById.mockResolvedValue(createWorkAggregateFixture());
+    prisma.userContributor.findFirst.mockResolvedValue(null);
+
+    const foreignContributorResult = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'graph-contributor-link-queue-2',
+          entityType: 'work_contributor',
+          entityId: '427f5863-e18c-4d4c-9511-981fd4f3b450',
+          operation: 'create',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            id: '427f5863-e18c-4d4c-9511-981fd4f3b450',
+            workId: '33333333-3333-4333-8333-333333333333',
+            contributorId: 'd3be5cc3-80fb-4ab8-8a54-a6a17d17d7f8',
+            role: WorkContributorRole.author,
+            displayOrder: 0,
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:30:00.000Z',
+            deletedAt: null,
+            syncStatus: 'local-only',
+            serverVersion: 0,
+          } satisfies SyncWorkContributorPayloadDto,
+        },
+      ],
+    });
+
+    expect(prisma.userContributor.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'd3be5cc3-80fb-4ab8-8a54-a6a17d17d7f8',
+        userId: USER_ID,
+      },
+    });
+    expect(prisma.userWorkContributor.create).not.toHaveBeenCalled();
+    expect(foreignContributorResult.results).toEqual([
+      expect.objectContaining({
+        entityType: 'work_contributor',
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('Contributor link target'),
+        workContributor: null,
+      }),
+    ]);
+  });
+
+  it('rejects a work relation when source or target work belongs to another user', async () => {
+    prisma.userWorkRelation.findUnique.mockResolvedValue(null);
+    userRecordsService.findById
+      .mockResolvedValueOnce(
+        createWorkAggregateFixture({
+          id: '33333333-3333-4333-8333-333333333333',
+          userId: USER_ID,
+        }),
+      )
+      .mockResolvedValueOnce(
+        createWorkAggregateFixture({
+          id: '44444444-4444-4444-8444-444444444444',
+          userId: OTHER_USER_ID,
+        }),
+      );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'graph-relation-queue-1',
+          entityType: 'work_relation',
+          entityId: 'c4d8db19-f023-495f-bc5c-58a3ad5f68bf',
+          operation: 'create',
+          createdAt: '2026-04-18T00:30:00.000Z',
+          payload: {
+            id: 'c4d8db19-f023-495f-bc5c-58a3ad5f68bf',
+            sourceWorkId: '33333333-3333-4333-8333-333333333333',
+            targetWorkId: '44444444-4444-4444-8444-444444444444',
+            relationType: WorkRelationType.sequel,
+            note: '',
+            createdAt: '2026-04-18T00:00:00.000Z',
+            updatedAt: '2026-04-18T00:30:00.000Z',
+            deletedAt: null,
+            syncStatus: 'local-only',
+            serverVersion: 0,
+          } satisfies SyncWorkRelationPayloadDto,
+        },
+      ],
+    });
+
+    expect(userRecordsService.findById).toHaveBeenCalledWith(
+      '33333333-3333-4333-8333-333333333333',
+      prisma,
+    );
+    expect(userRecordsService.findById).toHaveBeenCalledWith(
+      '44444444-4444-4444-8444-444444444444',
+      prisma,
+    );
+    expect(prisma.userWorkRelation.create).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'work_relation',
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('Relation target work'),
+        workRelation: null,
       }),
     ]);
   });
@@ -2442,6 +3291,79 @@ describe('SyncService', () => {
       }),
     ]);
     expect(releaseRecordsService.update).not.toHaveBeenCalled();
+  });
+
+  it('refuses to modify a release record that belongs to another user', async () => {
+    releaseRecordsService.findById.mockResolvedValue(
+      createReleaseRecordAggregateFixture({
+        userWorkRecord: {
+          ...createReleaseRecordAggregateFixture().userWorkRecord,
+          userId: OTHER_USER_ID,
+        },
+      }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'ce8e1f64-3070-4cb9-bdf4-2df15a925828',
+          entityType: 'release_record',
+          entityId: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
+          operation: 'update',
+          createdAt: '2026-04-18T01:00:00.000Z',
+          payload: createReleaseRecordPayload({
+            rating: 5,
+            updatedAt: '2026-04-18T01:30:00.000Z',
+          }),
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'release_record',
+        status: 'conflict',
+        code: 'conflict_ownership_mismatch',
+        message: expect.stringContaining('cannot be modified remotely'),
+        releaseRecord: null,
+      }),
+    ]);
+    expect(userRecordsService.findById).not.toHaveBeenCalled();
+    expect(prisma.userReleaseRecord.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects release-record create when the parent work belongs to another user', async () => {
+    releaseRecordsService.findById.mockResolvedValue(null);
+    userRecordsService.findById.mockResolvedValue(
+      createWorkAggregateFixture({
+        userId: OTHER_USER_ID,
+      }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'ce8e1f64-3070-4cb9-bdf4-2df15a925829',
+          entityType: 'release_record',
+          entityId: '7fb84ae9-6821-4d68-bb89-2f51f0dd9e11',
+          operation: 'create',
+          createdAt: '2026-04-18T01:00:00.000Z',
+          payload: createReleaseRecordPayload(),
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'release_record',
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('different user'),
+        releaseRecord: null,
+      }),
+    ]);
+    expect(prisma.catalogRelease.findFirst).not.toHaveBeenCalled();
+    expect(prisma.userReleaseRecord.create).not.toHaveBeenCalled();
   });
 
   it('rejects release-record sync for progress-only anime titles', async () => {
@@ -2556,6 +3478,79 @@ describe('SyncService', () => {
         timelineEntry: null,
       }),
     ]);
+  });
+
+  it('rejects timeline entry create when the parent work belongs to another user', async () => {
+    timelineEntriesService.findById.mockResolvedValue(null);
+    userRecordsService.findById.mockResolvedValue(
+      createWorkAggregateFixture({
+        userId: OTHER_USER_ID,
+      }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'd8e29511-448f-4d67-bd7a-e2732f8cc9d7',
+          entityType: 'timeline_entry',
+          entityId: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
+          operation: 'create',
+          createdAt: '2026-04-18T02:00:00.000Z',
+          payload: createTimelineEntryPayload(),
+        },
+      ],
+    });
+
+    expect(timelineEntriesService.create).not.toHaveBeenCalled();
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'timeline_entry',
+        status: 'failed',
+        code: 'failed_validation',
+        message: expect.stringContaining('different user'),
+        timelineEntry: null,
+      }),
+    ]);
+  });
+
+  it('refuses to modify a timeline entry that belongs to another user', async () => {
+    timelineEntriesService.findById.mockResolvedValue(
+      createTimelineEntryAggregateFixture({
+        userId: OTHER_USER_ID,
+        userWorkRecord: {
+          id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          userId: OTHER_USER_ID,
+        },
+      }),
+    );
+
+    const result = await service.push(USER_ID, {
+      changes: [
+        {
+          queueId: 'd8e29511-448f-4d67-bd7a-e2732f8cc9d8',
+          entityType: 'timeline_entry',
+          entityId: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
+          operation: 'update',
+          createdAt: '2026-04-18T02:30:00.000Z',
+          payload: createTimelineEntryPayload({
+            note: 'Updated note',
+            updatedAt: '2026-04-18T02:30:00.000Z',
+          }),
+        },
+      ],
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        entityType: 'timeline_entry',
+        status: 'conflict',
+        code: 'conflict_ownership_mismatch',
+        message: expect.stringContaining('cannot be modified remotely'),
+        timelineEntry: null,
+      }),
+    ]);
+    expect(userRecordsService.findById).not.toHaveBeenCalled();
+    expect(timelineEntriesService.create).not.toHaveBeenCalled();
   });
 
   it('pulls timeline entry changes with the other private sync records', async () => {

@@ -2,6 +2,7 @@ import 'reflect-metadata';
 
 import { Logger as BootstrapLogger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger } from 'nestjs-pino';
 
 import {
@@ -16,10 +17,17 @@ async function bootstrap() {
 
   try {
     const config = readApiRuntimeConfig();
-    const app = await NestFactory.create(AppModule, {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
       bufferLogs: true,
+      bodyParser: false,
     });
 
+    app.useBodyParser('json', { limit: config.jsonBodyLimit });
+    app.useBodyParser('urlencoded', {
+      extended: false,
+      limit: config.urlencodedBodyLimit,
+    });
+    app.enableShutdownHooks(['SIGTERM', 'SIGINT']);
     app.useLogger(app.get(Logger));
     await configureApp(app, config);
     await app.listen(config.port, config.host);

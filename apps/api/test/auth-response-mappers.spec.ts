@@ -85,6 +85,8 @@ describe('auth response mappers', () => {
           id: 'session-1',
           ipAddress: '203.0.113.42',
           lastUsedAt: new Date('2026-04-19T00:00:00.000Z'),
+          previousRotatedAt: null,
+          previousTokenHash: null,
           rememberMe: true,
           revokedAt: null,
           rotatedAt: new Date('2026-04-20T00:00:00.000Z'),

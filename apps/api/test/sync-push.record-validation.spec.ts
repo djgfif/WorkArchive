@@ -16,10 +16,10 @@ const CATALOG_RELEASE_ID = '5f7ac03a-0679-4e63-a62d-0d04b5e72a23';
 
 type RecordValidationDependencies = Parameters<
   typeof validateTimelineEntryTarget
->[2];
+>[3];
 type RecordValidationClient = Parameters<typeof validateReleaseRecordTarget>[2];
 
-const findById = jest.fn<() => Promise<unknown>>();
+const findById = jest.fn<(_id: string, _client?: unknown) => Promise<unknown>>();
 const catalogReleaseFindFirst = jest.fn<(_args: unknown) => Promise<unknown>>();
 
 const dependencies = {
@@ -103,6 +103,7 @@ describe('sync push record validation', () => {
           validateTimelineEntryTarget(
             USER_ID,
             buildTimelinePayload(),
+            client,
             dependencies,
           ),
         ).resolves.toBe(
@@ -115,8 +116,15 @@ describe('sync push record validation', () => {
       findById.mockResolvedValue(buildParentRecord());
 
       await expect(
-        validateTimelineEntryTarget(USER_ID, buildTimelinePayload(), dependencies),
+        validateTimelineEntryTarget(
+          USER_ID,
+          buildTimelinePayload(),
+          client,
+          dependencies,
+        ),
       ).resolves.toBeNull();
+
+      expect(findById).toHaveBeenCalledWith(WORK_ID, client);
     });
   });
 
@@ -143,6 +151,7 @@ describe('sync push record validation', () => {
       }
 
       expect(catalogReleaseFindFirst).not.toHaveBeenCalled();
+      expect(findById).toHaveBeenCalledWith(WORK_ID, client);
     });
 
     it('rejects release records for media without release-level records', async () => {

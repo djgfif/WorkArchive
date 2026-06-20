@@ -8,6 +8,7 @@ import type { PrismaService } from '../src/prisma/prisma.service';
 const USER_ID = '2c92b57e-e529-4344-bd62-0cff4de5dfe2';
 const PREVIEW_ID = 'd55d8141-cc47-4586-8116-249f8949b6b2';
 const WORK_ID = '9fcbf92f-6347-4d79-bdf8-9d0d18439c28';
+const MISSING_WORK_ID = '1d01f67d-e245-46ad-9f9a-51e8082cb390';
 const NOTION_PAGE_ID = 'notion-page-1';
 
 interface MockNotionPrisma {
@@ -136,6 +137,8 @@ describe('NotionService', () => {
     expect(result).toEqual({
       applied: 1,
       errors: [],
+      ignoredWorkIds: [],
+      notFoundWorkIds: [],
       previewedCount: 1,
       warnings: [],
     });
@@ -159,8 +162,48 @@ describe('NotionService', () => {
           workId: WORK_ID,
         },
       ],
+      ignoredWorkIds: [],
+      notFoundWorkIds: [],
       previewedCount: 1,
       warnings: [],
+    });
+  });
+
+  it('reports requested work IDs that are not in the preview or user archive', async () => {
+    const result = await service.applyPull(USER_ID, {
+      previewId: PREVIEW_ID,
+      workIds: [WORK_ID, MISSING_WORK_ID],
+    });
+
+    expect(prisma.userWorkRecord.findMany).toHaveBeenCalledWith({
+      where: {
+        id: {
+          in: [WORK_ID, MISSING_WORK_ID],
+        },
+        userId: USER_ID,
+      },
+      select: {
+        id: true,
+      },
+    });
+    expect(result).toEqual({
+      applied: 1,
+      errors: [],
+      ignoredWorkIds: [MISSING_WORK_ID],
+      notFoundWorkIds: [MISSING_WORK_ID],
+      previewedCount: 1,
+      warnings: [
+        {
+          code: 'not_previewed',
+          message: '요청한 작품 ID가 미리보기 스냅샷에 없어 적용하지 않았습니다.',
+          workId: MISSING_WORK_ID,
+        },
+        {
+          code: 'not_found',
+          message: '요청한 작품 ID를 찾을 수 없어 적용하지 않았습니다.',
+          workId: MISSING_WORK_ID,
+        },
+      ],
     });
   });
 });

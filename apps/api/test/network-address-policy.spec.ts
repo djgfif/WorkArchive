@@ -8,6 +8,7 @@ import {
 describe('network address policy', () => {
   it('allows ordinary public IPv4 and IPv6 addresses', () => {
     expect(isPublicIpAddress('8.8.8.8', 4)).toBe(true);
+    expect(isPublicIpAddress('192.0.3.1', 4)).toBe(true);
     expect(isPublicIpAddress('2606:4700:4700::1111', 6)).toBe(true);
   });
 
@@ -19,6 +20,7 @@ describe('network address policy', () => {
       '169.254.169.254',
       '172.16.0.1',
       '192.168.0.1',
+      '192.0.2.10',
       '198.51.100.10',
       '203.0.113.10',
     ]) {

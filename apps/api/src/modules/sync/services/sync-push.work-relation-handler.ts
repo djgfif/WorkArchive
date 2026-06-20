@@ -70,6 +70,7 @@ export async function applyWorkRelationChange(
   const validationError = await validateWorkRelationTarget(
     userId,
     payload,
+    client,
     userRecordsService,
   );
   if (validationError) {
@@ -173,6 +174,7 @@ async function applyMissingRemoteWorkRelationChange(
   const validationError = await validateWorkRelationTarget(
     userId,
     payload,
+    client,
     userRecordsService,
   );
   if (validationError) {

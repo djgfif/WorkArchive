@@ -145,9 +145,9 @@ malformed `payload` and expects the result code to be `failed_validation`.
 Create a backup:
 
 ```bash
-BACKUP_DIR=backups scripts/deploy/prod-backup.sh
+BACKUP_DIR=backups npm run ops:backup
 BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
-BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+BACKUP_FILE="$BACKUP_FILE" npm run ops:backup:verify
 ```
 
 Move the `.dump` and `.sha256` files off-host immediately. A backup that only
@@ -157,21 +157,23 @@ Non-production restore drill only:
 
 ```bash
 BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
-BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+BACKUP_FILE="$BACKUP_FILE" npm run ops:backup:verify
 
-scripts/deploy/prod-down.sh
-docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis
-docker compose -f compose.prod.yml --env-file .env.prod exec -T postgres sh -lc 'pg_restore \
-  --clean \
-  --if-exists \
-  --no-owner \
-  --no-privileges \
-  --dbname "$POSTGRES_DB"' < "$BACKUP_FILE"
-docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
-docker compose -f compose.prod.yml --env-file .env.prod up -d api web
+RESTORE_DRILL_CONFIRM=restore-disposable-target \
+BACKUP_FILE="$BACKUP_FILE" \
+ENV_FILE=.env.restore \
+RESTORE_DRILL_BASE_URL=<restore-host-url> \
+npm run ops:restore-drill
 ```
 
-Post-restore order:
+The restore drill script verifies the backup checksum/listing, starts only the
+target database dependencies first, restores with `pg_restore --clean
+--if-exists`, runs release migrations, starts API/web, optionally runs
+`beta-smoke.sh`, and writes a redacted report to `tmp/restore-drills/`.
+Backup creation and verification reports are written to `tmp/backups/`.
+
+If the scripted drill is unavailable and an operator runs the manual path,
+preserve this post-restore order:
 
 1. Run `docker compose ... --profile release run --rm api-migrate`.
 2. Run `BETA_BASE_URL=<restore-host-url> scripts/deploy/beta-smoke.sh`.

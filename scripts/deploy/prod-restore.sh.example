@@ -18,7 +18,7 @@ exit 1
 #
 #    Verify the dump and checksum before planning the restore:
 #
-#      BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+#      BACKUP_FILE="$BACKUP_FILE" npm run ops:backup:verify
 #
 # 2. Stop web/API traffic before restoring production. For a rehearsal restore,
 #    use a disposable host or disposable PostgreSQL volume.

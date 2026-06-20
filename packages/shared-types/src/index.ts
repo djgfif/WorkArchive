@@ -319,8 +319,11 @@ export interface NotionApplyResponse {
     message: string;
     workId: EntityId;
   }>;
+  ignoredWorkIds: EntityId[];
+  notFoundWorkIds: EntityId[];
   previewedCount: number;
   warnings: Array<{
+    code: 'not_found' | 'not_previewed';
     message: string;
     workId: EntityId;
   }>;
@@ -727,6 +730,8 @@ export interface TierBoardAssetRecord extends AuditFields {
   mimeType: string;
   sizeBytes: number;
   deletedAt: ISODateString | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
 }
 
 export const TIMELINE_ENTRY_TYPES = [
@@ -997,6 +1002,7 @@ export const SYNC_RESULT_CODES = [
   'failed_client_mutation_reused',
   'failed_missing_catalog_title',
   'failed_import_draft_unresolved',
+  'failed_server_error',
   'pull_conflict_local_queue',
   'result_missing',
   'unknown',
@@ -1101,7 +1107,7 @@ export interface PullSyncResponse {
   changes: PullSyncChange[];
   hasMore?: boolean;
   nextCursor?: string | null;
-  nextSince: ISODateString;
+  nextSince: ISODateString | null;
   pulledAt: ISODateString;
   schemaVersion: SyncSchemaVersion;
 }

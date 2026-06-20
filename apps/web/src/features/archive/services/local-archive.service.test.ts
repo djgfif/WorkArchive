@@ -260,6 +260,8 @@ function buildTierBoardAsset(
     originalName: 'cover.png',
     sizeBytes: 12,
     storageType: 'local_blob',
+    syncStatus: 'local-only',
+    serverVersion: 0,
     updatedAt: '2026-01-02T00:00:00.000Z',
     ...overrides,
   };

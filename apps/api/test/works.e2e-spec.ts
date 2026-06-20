@@ -224,6 +224,8 @@ function createPrismaServiceMock() {
         id: data.id ?? crypto.randomUUID(),
         userId: data.userId,
         tokenHash: data.tokenHash,
+        previousTokenHash: data.previousTokenHash ?? null,
+        previousRotatedAt: data.previousRotatedAt ?? null,
         rememberMe: data.rememberMe ?? true,
         userAgent: data.userAgent ?? null,
         ipAddress: data.ipAddress ?? null,

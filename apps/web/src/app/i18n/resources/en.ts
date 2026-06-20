@@ -386,6 +386,10 @@ export const en = {
     "currentLabel": "Current language",
     "description": "Choose the app UI language. Korean, English, Japanese, and Simplified Chinese are available.",
     "eyebrow": "Language",
+    "availability": {
+      "beta": "Beta",
+      "stable": "Stable"
+    },
     "onlySingleLocaleReady": "Only {{locale}} is currently available.",
     "title": "Language settings",
   },

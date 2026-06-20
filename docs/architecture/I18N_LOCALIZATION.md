@@ -19,14 +19,19 @@ The client locale contract lives under `apps/web/src/app/i18n`.
 - `AppLocale` is fixed to `ko`, `en`, `ja`, and `zh-CN`.
 - `SUPPORTED_LOCALES` lists every locale type that the client can represent.
 - `ENABLED_LOCALES` controls which locales are visible in product UI.
+- `APP_LOCALE_OPTIONS[locale].availability` marks visible locales as `stable`,
+  `beta`, or `hidden`; settings UI status labels must derive from this field,
+  not from free-form copy.
 - `DEFAULT_LOCALE` is `ko`.
 - The selected locale is stored in `localStorage` under
   `work-archive.ui.locale`.
 - Runtime resource bundles are registered in
   `apps/web/src/app/i18n/resources/index.ts`.
 
-Only reviewed, complete translations may be added to `ENABLED_LOCALES`. Do not
-ship empty or placeholder locale resources for new locales.
+Only reviewed, complete translations may be added to `ENABLED_LOCALES`. Mark
+newly enabled or still-maturing locales as `beta` until product copy review and
+QA evidence are strong enough to promote them to `stable`. Do not ship empty or
+placeholder locale resources for new locales.
 
 ## String Ownership
 
@@ -98,7 +103,9 @@ Sequential translation workflow:
 5. Add the full locale file under `apps/web/src/app/i18n/resources/`, register
    it in `resources/index.ts`, and run `npm run check:web-i18n-resources`.
 6. Add the locale to `ENABLED_LOCALES` only after product copy has been reviewed
-   and the settings UI has been visually verified.
+   and the settings UI has been visually verified; set
+   `APP_LOCALE_OPTIONS[locale].availability` to `beta` until stable-locale QA is
+   complete.
 
 ## Future Content Localization
 

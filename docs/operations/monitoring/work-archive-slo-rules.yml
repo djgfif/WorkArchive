@@ -1,0 +1,112 @@
+groups:
+  - name: work-archive-slo
+    rules:
+      - record: work_archive:slo_api_availability:ratio_5m
+        expr: 1 - (sum(rate(work_archive_api_request_total{status_class="5xx"}[5m])) / clamp_min(sum(rate(work_archive_api_request_total[5m])), 1))
+        labels:
+          objective: api_availability
+          service: work_archive_api
+          window: 5m
+
+      - record: work_archive:slo_api_availability:ratio_30d
+        expr: 1 - (sum(rate(work_archive_api_request_total{status_class="5xx"}[30d])) / clamp_min(sum(rate(work_archive_api_request_total[30d])), 1))
+        labels:
+          objective: api_availability
+          service: work_archive_api
+          target: "0.995"
+          window: 30d
+
+      - record: work_archive:slo_api_latency:p95_5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(work_archive_api_request_duration_seconds_bucket[5m])))
+        labels:
+          objective: api_latency_p95
+          service: work_archive_api
+          target_seconds: "1"
+          window: 5m
+
+      - record: work_archive:slo_api_latency:p95_30d
+        expr: histogram_quantile(0.95, sum by (le) (rate(work_archive_api_request_duration_seconds_bucket[30d])))
+        labels:
+          objective: api_latency_p95
+          service: work_archive_api
+          target_seconds: "1"
+          window: 30d
+
+      - record: work_archive:slo_auth_refresh_success:ratio_30d
+        expr: sum(rate(work_archive_auth_refresh_total{result="success"}[30d])) / clamp_min(sum(rate(work_archive_auth_refresh_total[30d])), 1)
+        labels:
+          objective: auth_refresh_success
+          service: work_archive_api
+          target: "0.99"
+          window: 30d
+
+      - record: work_archive:slo_sync_success:ratio_30d
+        expr: sum(rate(work_archive_sync_total{result="success"}[30d])) / clamp_min(sum(rate(work_archive_sync_total[30d])), 1)
+        labels:
+          objective: sync_success
+          service: work_archive_api
+          target: "0.99"
+          window: 30d
+
+      - record: work_archive:slo_import_search_success:ratio_30d
+        expr: sum(rate(work_archive_imports_search_total{result="success"}[30d])) / clamp_min(sum(rate(work_archive_imports_search_total[30d])), 1)
+        labels:
+          objective: import_search_success
+          service: work_archive_api
+          target: "0.95"
+          window: 30d
+
+      - alert: WorkArchiveApiAvailabilitySloBurn
+        expr: work_archive:slo_api_availability:ratio_30d < 0.995
+        for: 30m
+        labels:
+          severity: warning
+          service: work_archive_api
+          slo: api_availability
+        annotations:
+          summary: Work Archive API availability SLO is below target
+          description: API availability over the 30 day SLO window is below 99.5%. Check 5xx alerts, release changes, and current incident notes before approving a broader rollout.
+
+      - alert: WorkArchiveApiLatencySloBurn
+        expr: work_archive:slo_api_latency:p95_30d > 1
+        for: 30m
+        labels:
+          severity: warning
+          service: work_archive_api
+          slo: api_latency_p95
+        annotations:
+          summary: Work Archive API latency SLO is above target
+          description: API p95 latency over the 30 day SLO window is above 1 second. Compare route-level logs, performance smoke reports, and sync/import traffic before changing thresholds.
+
+      - alert: WorkArchiveAuthRefreshSloBurn
+        expr: work_archive:slo_auth_refresh_success:ratio_30d < 0.99
+        for: 30m
+        labels:
+          severity: warning
+          service: work_archive_api
+          slo: auth_refresh_success
+        annotations:
+          summary: Work Archive auth refresh success SLO is below target
+          description: Auth refresh success over the 30 day SLO window is below 99%. Check proxy cookie behavior, OAuth changes, and refresh reuse security events.
+
+      - alert: WorkArchiveSyncSloBurn
+        expr: work_archive:slo_sync_success:ratio_30d < 0.99
+        for: 30m
+        labels:
+          severity: warning
+          service: work_archive_api
+          slo: sync_success
+        annotations:
+          summary: Work Archive sync success SLO is below target
+          description: Sync success over the 30 day SLO window is below 99%. Check sync validation failures, conflicts, and recent client schema rollout changes.
+
+      - alert: WorkArchiveImportSearchSloBurn
+        expr: work_archive:slo_import_search_success:ratio_30d < 0.95
+        for: 30m
+        labels:
+          severity: warning
+          service: work_archive_api
+          slo: import_search_success
+        annotations:
+          summary: Work Archive import search success SLO is below target
+          description: Import search success over the 30 day SLO window is below 95%. Check provider health, circuit state, fallback coverage, and live provider QA results.

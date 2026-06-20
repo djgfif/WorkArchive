@@ -1,6 +1,6 @@
 # Gate 1 Validation Runbook
 
-Last updated: 2026-06-04
+Last updated: 2026-06-20
 
 Gate 1 evidence must be copied from commands that actually ran. Leave an item
 `not run`, `blocked`, or `manual` when the required environment is unavailable.
@@ -17,18 +17,38 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
 - Beta host preflight/smoke: run `scripts/deploy/beta-preflight.sh` with real
   `.env.prod`, then `BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh`;
   verify public unauthenticated `/metrics` returns `404`.
+- Metrics/alerts/SLO/dashboard: run `npm run qa:alerts`, `npm run qa:slo`, and
+  `npm run qa:dashboards`, then deploy
+  `docs/operations/monitoring/work-archive-alerts.yml` to the monitoring system
+  along with `docs/operations/monitoring/work-archive-slo-rules.yml`, and
+  import `docs/operations/monitoring/work-archive-grafana-dashboard.json` into
+  Grafana only after `/metrics` access is internally restricted. Then run
+  `npm run qa:monitoring` against the real Prometheus/Grafana endpoints and
+  copy only redacted summary rows into the evidence ledger.
 - Live provider QA: run `IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search`
   against beta/staging with an explicit base URL and disposable test account
   token; do not commit raw provider responses.
 - Live sync load: run `SYNC_LOAD_DRY_RUN=false npm run qa:sync-load` only
   against a disposable authenticated account with
   `SYNC_LOAD_DISPOSABLE_ACCOUNT_ACK=true`; do not commit raw sync payloads.
-- Backup/restore drill: create a production-sized PostgreSQL backup, copy it
+- Smoke performance baseline: run `npm run qa:performance-smoke` against the
+  beta host; authenticated sync timings require a disposable account token and
+  explicit acknowledgement.
+- Prisma migration safety: run `npm run qa:migrations`; any high-risk SQL must
+  have an approved entry in
+  `docs/operations/MIGRATION_RISK_REGISTER.md` before the release candidate is
+  approved.
+- Backup/restore drill: create a production-sized PostgreSQL backup with
+  `npm run ops:backup`, verify it with `npm run ops:backup:verify`, copy it
   off-host, restore once into a non-production target, and record observed
   RPO/RTO plus post-restore `/readyz` and sync smoke.
 - GitHub Settings controls: verify branch protection, required checks, CodeQL,
   Dependabot, secret scanning, push protection, and any waivers in GitHub
   Settings for the release commit.
+- Final evidence validation: after the operator ledger is filled, run
+  `GATE1_EVIDENCE_STRICT=true npm run qa:gate1:evidence`; a public beta approval
+  is blocked while this command reports placeholders, dry-run-only evidence,
+  missing live host checks, or missing approver fields.
 
 ## Execution Order
 
@@ -38,6 +58,12 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
    ```bash
    npm run qa:gate1:local
    ```
+
+   For CI and faster local release-candidate checks, `npm run
+   qa:commercial:repo` validates the repository-verifiable commercial artifacts:
+   deployment script syntax, migration risk registration, alert/SLO/dashboard
+   artifacts, monitoring dry-run report generation, and the non-strict Gate 1
+   evidence placeholder scan.
 
 3. Run focused import/search QA:
 
@@ -65,15 +91,25 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
    failure.
 
 6. On the release runner, run dependency/container security scans.
-7. On the beta host, run production env preflight and beta smoke.
-8. With GitHub Settings access, verify branch protection, required checks,
+7. Validate Prisma migration safety with `npm run qa:migrations`.
+8. Validate alert rules with `npm run qa:alerts`, SLO rules with
+   `npm run qa:slo`, and the Grafana dashboard with `npm run qa:dashboards`.
+9. On the beta host, run production env preflight and beta smoke.
+10. After monitoring deployment, run `npm run qa:monitoring` against the real
+   Prometheus/Grafana endpoints.
+11. With GitHub Settings access, verify branch protection, required checks,
    CodeQL, Dependabot, secret scanning, and push protection.
-9. With backup/restore access, perform the restore drill into a non-production
+12. With backup/restore access, perform the restore drill into a non-production
    target.
-10. With a disposable authenticated test account, run live import/search QA and
-   live sync load validation.
-11. Copy only summary results into
+13. With a disposable authenticated test account, run live import/search QA,
+   live sync load validation, and smoke performance baseline.
+14. Copy only summary results into
     `docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`.
+15. Run the final strict evidence validator:
+
+    ```bash
+    GATE1_EVIDENCE_STRICT=true npm run qa:gate1:evidence
+    ```
 
 ## Local Checks
 
@@ -86,9 +122,15 @@ npm run qa:gate1:local
 
 It runs local/repository-verifiable checks such as `npm ci`,
 `npm run security:public`, docs links, lint, typecheck, tests, e2e, build,
-script syntax checks, and Docker compose config only when Docker and `.env.prod`
-are available. It does not run beta host, GitHub Settings, restore drill, Trivy
-image, or live provider checks.
+script syntax checks, Prisma migration safety, Gate 1 evidence placeholder
+detection in non-strict mode, and Docker compose config only when Docker and
+`.env.prod` are available. It
+does not run beta host, GitHub Settings, restore drill, Trivy image, or live
+provider checks.
+
+The GitHub `validate` workflow runs `npm run qa:commercial:repo`, so
+repository-verifiable commercial artifacts cannot drift silently between manual
+release rehearsals.
 
 Generated reports are written to `tmp/gate1-evidence/` unless
 `GATE1_EVIDENCE_DIR` is set. For a faster rerun that keeps the existing
@@ -101,6 +143,20 @@ GATE1_RUN_NPM_CI=0 npm run qa:gate1:local
 Generated reports are operator artifacts. Do not commit them wholesale; copy
 only curated, redacted summary lines into the evidence ledger when the run is
 part of a real release-candidate validation.
+
+The non-strict evidence check:
+
+```bash
+npm run qa:gate1:evidence
+```
+
+prints missing or placeholder evidence while returning success so local
+repository checks can still complete before the beta host exists. Use strict
+mode only when deciding whether the release candidate can be approved:
+
+```bash
+GATE1_EVIDENCE_STRICT=true npm run qa:gate1:evidence
+```
 
 ## Release Runner Checks
 
@@ -132,6 +188,60 @@ BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 The public unauthenticated `/metrics` result must remain `404`. If metrics are
 enabled for an internal collector, verify the bearer-token path only from the
 reviewed internal network path and never commit the token.
+
+## Metrics, Alerts, SLOs, And Dashboard
+
+Validate the repository alert rules:
+
+```bash
+npm run qa:alerts
+```
+
+Validate the repository SLO recording and burn-alert rules:
+
+```bash
+npm run qa:slo
+```
+
+Validate the repository Grafana dashboard artifact:
+
+```bash
+npm run qa:dashboards
+```
+
+Validate the monitoring evidence collector shape without live calls:
+
+```bash
+MONITORING_EVIDENCE_DRY_RUN=true npm run qa:monitoring
+```
+
+Deploy `docs/operations/monitoring/work-archive-alerts.yml` to the beta
+Prometheus/Alertmanager stack only after `/metrics` is reachable from the
+reviewed internal collector path and hidden from public unauthenticated traffic.
+Deploy `docs/operations/monitoring/work-archive-slo-rules.yml` to the same
+Prometheus rule path so 30 day SLO records are calculated from beta traffic.
+Import `docs/operations/monitoring/work-archive-grafana-dashboard.json` into
+the beta Grafana stack from the same reviewed metrics source. Record the alert
+rule version, SLO rule version, collector target, dashboard UID, Grafana folder,
+notification channel, observed SLO ratios, and any threshold/target/query
+waivers in the evidence ledger.
+
+After deployment, collect live monitoring evidence:
+
+```bash
+MONITORING_PROMETHEUS_URL=https://prometheus.example.com \
+MONITORING_GRAFANA_URL=https://grafana.example.com \
+MONITORING_PUBLIC_BASE_URL=https://beta.example.com \
+MONITORING_INTERNAL_METRICS_URL=https://internal.example.com/metrics \
+npm run qa:monitoring
+```
+
+Set bearer-token environment variables only in the operator shell when the
+monitoring endpoints require them. The script writes redacted reports to
+`tmp/monitoring-evidence/` and verifies expected alert rules, SLO records, SLO
+query samples, the Grafana dashboard UID, public `/metrics` hiding when a
+public base URL is supplied, and internal collector access when supplied.
+Dry-run output is not live monitoring evidence.
 
 ## GitHub Settings Checks
 
@@ -242,12 +352,55 @@ count, and the run ID in the evidence ledger. p50/p95 are release observations
 for Gate 1, not hard pass/fail thresholds until a production latency budget is
 approved.
 
+## Smoke Performance Baseline
+
+Dry-run mode validates report generation without HTTP calls:
+
+```bash
+PERF_SMOKE_DRY_RUN=true npm run qa:performance-smoke
+```
+
+Live beta-host mode records p50/p95 timings for `/readyz`, refresh without a
+cookie, import provider status, `/work-archive-config.js`, and optional small
+sync push/pull:
+
+```bash
+PERF_SMOKE_BASE_URL=https://beta.example.com \
+PERF_SMOKE_ALLOWED_ORIGIN=https://beta.example.com \
+PERF_SMOKE_ACCESS_TOKEN=<disposable-test-account-token> \
+PERF_SMOKE_DISPOSABLE_ACCOUNT_ACK=true \
+npm run qa:performance-smoke
+```
+
+Reports are written to `tmp/performance-smoke/` unless
+`PERF_SMOKE_REPORT_DIR` is set. If the release must block when authenticated
+sync timing is unavailable, add `PERF_SMOKE_REQUIRE_AUTHENTICATED=true`.
+Otherwise the unauthenticated/public scenarios can still produce a partial
+baseline and the sync row should remain `not measured` in the evidence ledger.
+Do not run authenticated sync timing against a real user account.
+
 ## Backup And Restore Drill
 
 Create a PostgreSQL backup, copy it off-host, restore once into a
 non-production target, then smoke `/readyz` and authenticated sync. Record
 observed RPO/RTO and gaps. Do not commit database dumps, backup contents, or raw
 user data.
+
+Preferred command sequence:
+
+```bash
+BACKUP_DIR=backups npm run ops:backup
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump npm run ops:backup:verify
+RESTORE_DRILL_CONFIRM=restore-disposable-target \
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump \
+ENV_FILE=.env.restore \
+RESTORE_DRILL_BASE_URL=https://restore.example.com \
+npm run ops:restore-drill
+```
+
+Copy only the redacted summaries from `tmp/backups/prod-backup-*.md`,
+`tmp/backups/prod-backup-verify-*.md`, and
+`tmp/restore-drills/restore-drill-*.md` into the evidence ledger.
 
 ## What Must Not Be Committed
 

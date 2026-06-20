@@ -37,6 +37,7 @@ when `REDIS_URL` is configured.
    - `curl -fsS http://localhost:18731/health`
    - `curl -fsS http://localhost:18731/livez`
    - `curl -fsS http://localhost:18731/readyz`
+   - `HEALTHCHECK_BASE_URL=http://localhost:18731 npm run ops:healthcheck`
 
 ## Metrics and alerts
 
@@ -44,7 +45,23 @@ when `REDIS_URL` is configured.
 behind an internal network, reverse-proxy allowlist, or trusted monitoring
 collector, and set `METRICS_BEARER_TOKEN` for the collector. Unauthenticated
 public requests should return `404` even when the collector path returns `200`.
-See `docs/operations/OBSERVABILITY.md` for metric names and alert drafts.
+See `docs/operations/OBSERVABILITY.md` for metric names, alert rules, SLO rules,
+dashboard provisioning, and validation commands.
+
+## API 종료와 재시작
+
+The API enables Nest shutdown hooks for `SIGTERM` and `SIGINT`. During normal
+container stop or process interrupt, module shutdown closes Prisma/PostgreSQL
+connections and the Redis-backed rate-limit store clients.
+
+Operational expectations:
+
+- prefer `docker compose stop api` or the orchestrator's normal rolling-restart
+  command over killing the process;
+- inspect shutdown logs if the process exceeds the orchestrator grace period;
+- if Redis `QUIT` fails during shutdown, the API falls back to disconnecting the
+  rate-limit client so the process can continue terminating;
+- after restart, verify `/livez` and `/readyz` before sending traffic.
 
 ## Client header guard audit to enforce
 
@@ -245,20 +262,50 @@ Safety expectations:
 - the command logs matched and deleted counts per table;
 - every delete uses a cutoff predicate on `createdAt`, `revokedAt`, `expiresAt`,
   or `usedAt`;
+- expired Notion pull preview snapshots are deleted by their per-row `expiresAt`
+  timestamp, not by a days-based retention setting;
 - production delete mode refuses to run without the confirmation value above;
 - first run after a release should be dry-run and reviewed before enabling
   deletion.
 
 ## Backup restore 절차
 
+Public beta requires one backup restore into a disposable, non-production target.
+Create and verify the backup first:
+
+```bash
+BACKUP_DIR=backups npm run ops:backup
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump npm run ops:backup:verify
+```
+
+Use the scripted drill when possible so checksum verification, `pg_restore`,
+release migrations, startup, and smoke evidence are recorded in redacted
+reports:
+
+```bash
+RESTORE_DRILL_CONFIRM=restore-disposable-target \
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump \
+ENV_FILE=.env.restore \
+RESTORE_DRILL_BASE_URL=https://restore.example.com \
+npm run ops:restore-drill
+```
+
+For an emergency manual restore:
+
 1. Stop API writes.
 2. Preserve the current broken database state if investigation is needed.
-3. Restore the selected dump into the target database.
-4. Run Prisma migration deploy only if the restored dump is from an older approved schema.
-5. Start the API and check `/health`, `/livez`, and `/readyz`.
-6. Run sync and tier board smoke tests.
+3. Verify the selected dump and checksum with `npm run ops:backup:verify`.
+4. Restore the selected dump into the approved target database.
+5. Run Prisma migration deploy only if the restored dump is from an older approved schema.
+6. Start the API and check `/health`, `/livez`, and `/readyz`.
+7. Run sync and tier board smoke tests.
 
-See `docs/operations/BACKUP_POLICY.md` for exact backup and restore commands.
+The backup scripts write `tmp/backups/prod-backup-*.md` and
+`tmp/backups/prod-backup-verify-*.md`. The scripted drill writes
+`tmp/restore-drills/restore-drill-*.md`. Copy only summary results, timing, and
+non-sensitive identifiers into the public beta evidence ledger. Do not paste
+database dumps, raw backup paths, access tokens, cookies, OAuth codes, or user
+data.
 
 ## Rollback 절차
 

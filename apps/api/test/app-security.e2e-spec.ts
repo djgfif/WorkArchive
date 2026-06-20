@@ -98,6 +98,7 @@ const baseConfig: ApiRuntimeConfig = {
   importGuestRateLimitMax: 20,
   imageProxyRateLimitMax: 120,
   isProduction: false,
+  jsonBodyLimit: '2mb',
   jwtAccessSecret: 'test-access-secret',
   jwtRefreshSecret: 'test-refresh-secret',
   metricsBearerToken: null,
@@ -107,11 +108,13 @@ const baseConfig: ApiRuntimeConfig = {
   rateLimitPrefix: 'work-archive:test:',
   rateLimitStore: 'memory',
   rateLimitWindowMs: 60_000,
+  readinessCheckTimeoutMs: 1500,
   redisUrl: null,
   securityEventHashSecret: 'test-security-event-hash-secret',
   swaggerEnabled: false,
   syncRateLimitMax: 10,
   trustProxyHops: null,
+  urlencodedBodyLimit: '64kb',
   webBaseUrl: 'https://workarchive.example.com',
 };
 

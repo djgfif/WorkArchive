@@ -190,5 +190,7 @@ export function toPullSyncTierBoardAssetPayload(
     createdAt: asset.createdAt.toISOString(),
     updatedAt: asset.updatedAt.toISOString(),
     deletedAt: asset.deletedAt?.toISOString() ?? null,
+    syncStatus: SERVER_SYNC_STATUS,
+    serverVersion: asset.serverVersion,
   };
 }

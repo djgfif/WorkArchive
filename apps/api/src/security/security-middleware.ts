@@ -19,6 +19,7 @@ import { setRequestId } from './security-audit.service';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const WORK_ARCHIVE_CLIENT_HEADER = 'x-work-archive-client';
 const WORK_ARCHIVE_CLIENT_HEADER_VALUE = 'web';
+const RATE_LIMIT_REDIS_SHUTDOWN_TIMEOUT_MS = 3_000;
 const redisClients: RedisClient[] = [];
 
 export function createProductionFetchMetadataGuard(
@@ -277,7 +278,30 @@ export async function createSecurityRateLimiters(
 }
 
 export async function shutdownRedisRateLimitClients() {
-  await Promise.all(redisClients.splice(0).map((client) => client.quit()));
+  await Promise.all(redisClients.splice(0).map(closeRedisRateLimitClient));
+}
+
+async function closeRedisRateLimitClient(client: RedisClient) {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  const timeoutPromise = new Promise<void>((resolve) => {
+    timeout = setTimeout(() => {
+      client.disconnect();
+      resolve();
+    }, RATE_LIMIT_REDIS_SHUTDOWN_TIMEOUT_MS);
+    timeout.unref();
+  });
+  const quitPromise = client.quit().catch(() => {
+    client.disconnect();
+  });
+
+  try {
+    await Promise.race([quitPromise, timeoutPromise]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
 }
 
 function buildRateLimitOptions(

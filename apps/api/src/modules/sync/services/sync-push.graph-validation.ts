@@ -35,7 +35,7 @@ export async function validateWorkSeriesLinkTarget(
   userRecordsService: UserRecordsService,
 ) {
   const [work, series] = await Promise.all([
-    userRecordsService.findById(payload.workId),
+    userRecordsService.findById(payload.workId, client),
     client.userSeries.findFirst({
       where: {
         id: payload.seriesId,
@@ -62,7 +62,7 @@ export async function validateWorkContributorTarget(
   userRecordsService: UserRecordsService,
 ) {
   const [work, contributor] = await Promise.all([
-    userRecordsService.findById(payload.workId),
+    userRecordsService.findById(payload.workId, client),
     client.userContributor.findFirst({
       where: {
         id: payload.contributorId,
@@ -85,6 +85,7 @@ export async function validateWorkContributorTarget(
 export async function validateWorkRelationTarget(
   userId: string,
   payload: SyncWorkRelationPayloadDto,
+  client: SyncPushClient,
   userRecordsService: UserRecordsService,
 ) {
   if (payload.sourceWorkId === payload.targetWorkId) {
@@ -92,8 +93,8 @@ export async function validateWorkRelationTarget(
   }
 
   const [sourceWork, targetWork] = await Promise.all([
-    userRecordsService.findById(payload.sourceWorkId),
-    userRecordsService.findById(payload.targetWorkId),
+    userRecordsService.findById(payload.sourceWorkId, client),
+    userRecordsService.findById(payload.targetWorkId, client),
   ]);
 
   if (!sourceWork || sourceWork.userId !== userId) {

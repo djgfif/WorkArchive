@@ -495,6 +495,12 @@ export class NotionService {
     return {
       applied,
       errors,
+      ignoredWorkIds: warnings
+        .filter((warning) => warning.code === 'not_previewed')
+        .map((warning) => warning.workId),
+      notFoundWorkIds: warnings
+        .filter((warning) => warning.code === 'not_found')
+        .map((warning) => warning.workId),
       previewedCount: snapshot.changes.length,
       warnings,
     };
@@ -855,6 +861,7 @@ export class NotionService {
     return [...requestedWorkIds]
       .filter((workId) => !knownWorkIds.has(workId))
       .map((workId) => ({
+        code: 'not_found' as const,
         message: '요청한 작품 ID를 찾을 수 없어 적용하지 않았습니다.',
         workId,
       }));
@@ -873,6 +880,7 @@ export class NotionService {
     return [...requestedWorkIds]
       .filter((workId) => !previewedWorkIds.has(workId))
       .map((workId) => ({
+        code: 'not_previewed' as const,
         message: '요청한 작품 ID가 미리보기 스냅샷에 없어 적용하지 않았습니다.',
         workId,
       }));

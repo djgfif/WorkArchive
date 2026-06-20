@@ -118,6 +118,8 @@ describe('sync pull change builders', () => {
         createdAt: now,
         updatedAt: deletedAt,
         deletedAt,
+        syncStatus: 'synced',
+        serverVersion: 2,
       },
     ];
 
@@ -141,6 +143,8 @@ describe('sync pull change builders', () => {
           createdAt: now.toISOString(),
           updatedAt: deletedAt.toISOString(),
           deletedAt: deletedAt.toISOString(),
+          syncStatus: 'synced',
+          serverVersion: 2,
         },
       },
     ]);

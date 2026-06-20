@@ -92,6 +92,44 @@ require_https_url() {
   fi
 }
 
+size_limit_bytes() {
+  local value="$1"
+  local amount unit
+
+  if [[ ! "$value" =~ ^([1-9][0-9]*)(b|kb|mb)$ ]]; then
+    return 1
+  fi
+
+  amount="${BASH_REMATCH[1]}"
+  unit="${BASH_REMATCH[2]}"
+  case "$unit" in
+    b) echo "$amount" ;;
+    kb) echo $((amount * 1024)) ;;
+    mb) echo $((amount * 1024 * 1024)) ;;
+  esac
+}
+
+require_size_limit() {
+  local key="$1"
+  local max_bytes="$2"
+  local value bytes
+  value="$(read_env_value "$key" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ -z "$value" ]]; then
+    fail "$key must be set."
+    return
+  fi
+
+  if ! bytes="$(size_limit_bytes "$value")"; then
+    fail "$key must use a positive size ending in b, kb, or mb."
+    return
+  fi
+
+  if ((bytes > max_bytes)); then
+    fail "$key must not exceed ${max_bytes} bytes."
+  fi
+}
+
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing $ENV_FILE. Copy .env.prod.example to .env.prod on the beta host and fill placeholders." >&2
   exit 1
@@ -111,6 +149,9 @@ required_values=(
   REDIS_URL
   TRUST_PROXY_HOPS
   RATE_LIMIT_PREFIX
+  READINESS_CHECK_TIMEOUT_MS
+  API_JSON_BODY_LIMIT
+  API_URLENCODED_BODY_LIMIT
   GOOGLE_OAUTH_CLIENT_ID
   GOOGLE_OAUTH_CLIENT_SECRET
   GOOGLE_OAUTH_REDIRECT_URI
@@ -127,6 +168,14 @@ done
 require_https_url CORS_ORIGIN
 require_https_url WEB_BASE_URL
 require_https_url GOOGLE_OAUTH_REDIRECT_URI
+require_size_limit API_JSON_BODY_LIMIT $((5 * 1024 * 1024))
+require_size_limit API_URLENCODED_BODY_LIMIT $((256 * 1024))
+readiness_timeout_ms="$(read_env_value READINESS_CHECK_TIMEOUT_MS)"
+if [[ ! "$readiness_timeout_ms" =~ ^[1-9][0-9]*$ ]]; then
+  fail "READINESS_CHECK_TIMEOUT_MS must be a positive integer."
+elif ((readiness_timeout_ms > 5000)); then
+  fail "READINESS_CHECK_TIMEOUT_MS must not exceed 5000."
+fi
 require_exact VITE_API_BASE_URL /api
 require_exact RATE_LIMIT_STORE redis
 require_exact REDIS_URL redis://redis:6379

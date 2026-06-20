@@ -16,6 +16,8 @@ function resetEnv(overrides: NodeJS.ProcessEnv = {}) {
           SECURITY_EVENT_HASH_SECRET:
             'production-security-event-hash-secret-minimum-32-chars',
           TRUST_PROXY_HOPS: '1',
+          GOOGLE_OAUTH_CLIENT_ID: 'production-google-client-id',
+          GOOGLE_OAUTH_CLIENT_SECRET: 'production-google-client-secret',
           GOOGLE_OAUTH_REDIRECT_URI:
             'https://workarchive.example.com/api/auth/google/callback',
         }
@@ -95,6 +97,98 @@ describe('api runtime config', () => {
       expect.objectContaining({
         clientHeaderGuardMode: 'off',
       }),
+    );
+  });
+
+  it('reads bounded request body limits and rejects unsafe production values', () => {
+    resetEnv();
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        jsonBodyLimit: '2mb',
+        urlencodedBodyLimit: '64kb',
+      }),
+    );
+
+    resetEnv({
+      API_JSON_BODY_LIMIT: '4mb',
+      API_URLENCODED_BODY_LIMIT: '128kb',
+    });
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        jsonBodyLimit: '4mb',
+        urlencodedBodyLimit: '128kb',
+      }),
+    );
+
+    resetEnv({
+      API_JSON_BODY_LIMIT: 'two-mb',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'API_JSON_BODY_LIMIT must use a positive size ending in b, kb, or mb.',
+    );
+
+    resetEnv({
+      API_JSON_BODY_LIMIT: '6mb',
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'API_JSON_BODY_LIMIT must not exceed 5242880 bytes in production.',
+    );
+
+    resetEnv({
+      API_URLENCODED_BODY_LIMIT: '512kb',
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'API_URLENCODED_BODY_LIMIT must not exceed 262144 bytes in production.',
+    );
+  });
+
+  it('reads bounded readiness check timeouts and rejects unsafe production values', () => {
+    resetEnv();
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        readinessCheckTimeoutMs: 1500,
+      }),
+    );
+
+    resetEnv({
+      READINESS_CHECK_TIMEOUT_MS: '2500',
+    });
+
+    expect(readApiRuntimeConfig()).toEqual(
+      expect.objectContaining({
+        readinessCheckTimeoutMs: 2500,
+      }),
+    );
+
+    resetEnv({
+      READINESS_CHECK_TIMEOUT_MS: '0',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'READINESS_CHECK_TIMEOUT_MS must be a positive integer.',
+    );
+
+    resetEnv({
+      READINESS_CHECK_TIMEOUT_MS: '6000',
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'READINESS_CHECK_TIMEOUT_MS must not exceed 5000 in production.',
     );
   });
 
@@ -275,6 +369,40 @@ describe('api runtime config', () => {
     );
   });
 
+  it('requires Google OAuth credentials in production and keeps partial OAuth config invalid everywhere', () => {
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      GOOGLE_OAUTH_CLIENT_ID: '',
+      GOOGLE_OAUTH_CLIENT_SECRET: '',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be configured in production.',
+    );
+
+    resetEnv({
+      GOOGLE_OAUTH_CLIENT_ID: 'local-google-client-id',
+      GOOGLE_OAUTH_CLIENT_SECRET: '',
+      NODE_ENV: 'development',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be configured together.',
+    );
+
+    resetEnv({
+      GOOGLE_OAUTH_CLIENT_ID: '',
+      GOOGLE_OAUTH_CLIENT_SECRET: 'local-google-client-secret',
+      NODE_ENV: 'development',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be configured together.',
+    );
+  });
+
   it('blocks development database and seed defaults in production', () => {
     resetEnv({
       DATABASE_URL:
@@ -374,6 +502,24 @@ describe('api runtime config', () => {
     );
   });
 
+  it('rejects malformed host and Redis rate-limit prefix values before startup', () => {
+    resetEnv({
+      HOST: 'https://api.workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'HOST must be a host or IP address, not a URL.',
+    );
+
+    resetEnv({
+      RATE_LIMIT_PREFIX: 'work archive:',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'RATE_LIMIT_PREFIX must not contain whitespace.',
+    );
+  });
+
   it('requires a non-default security audit hash secret in production', () => {
     resetEnv({
       NODE_ENV: 'production',
@@ -444,6 +590,18 @@ describe('api runtime config', () => {
 
     expect(() => readApiRuntimeConfig()).toThrow(
       'METRICS_BEARER_TOKEN must be changed from the development default in production.',
+    );
+
+    resetEnv({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      METRICS_BEARER_TOKEN: 'metrics collector token minimum 32 chars',
+      METRICS_ENABLED: 'true',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    });
+
+    expect(() => readApiRuntimeConfig()).toThrow(
+      'METRICS_BEARER_TOKEN must not contain whitespace.',
     );
 
     resetEnv({

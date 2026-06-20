@@ -248,13 +248,15 @@ export class AuthController {
       userId: session.user.id,
     });
 
-    response.cookie(
-      REFRESH_TOKEN_COOKIE_NAME,
-      session.refreshToken,
-      getRefreshTokenCookieOptions({
-        rememberMe: session.rememberMe,
-      }),
-    );
+    if (session.refreshToken) {
+      response.cookie(
+        REFRESH_TOKEN_COOKIE_NAME,
+        session.refreshToken,
+        getRefreshTokenCookieOptions({
+          rememberMe: session.rememberMe,
+        }),
+      );
+    }
     response.redirect(getGoogleLoginSuccessRedirectUrl(returnOrigin));
   }
 
@@ -305,13 +307,15 @@ export class AuthController {
       getAuthSessionMetadata(request),
     );
 
-    response.cookie(
-      REFRESH_TOKEN_COOKIE_NAME,
-      session.refreshToken,
-      getRefreshTokenCookieOptions({
-        rememberMe: session.rememberMe,
-      }),
-    );
+    if (session.refreshToken) {
+      response.cookie(
+        REFRESH_TOKEN_COOKIE_NAME,
+        session.refreshToken,
+        getRefreshTokenCookieOptions({
+          rememberMe: session.rememberMe,
+        }),
+      );
+    }
 
     return this.authService.toSessionResponse(session);
   }

@@ -29,7 +29,7 @@ describe('retention cleanup', () => {
 
     const targets = buildRetentionCleanupTargets(config);
 
-    expect(targets).toHaveLength(3);
+    expect(targets).toHaveLength(4);
     expect(targets).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -67,6 +67,14 @@ describe('retention cleanup', () => {
             },
           },
         }),
+        expect.objectContaining({
+          name: 'notion_pull_preview_snapshots',
+          where: {
+            expiresAt: {
+              lt: new Date('2026-05-22T00:00:00.000Z'),
+            },
+          },
+        }),
       ]),
     );
   });
@@ -100,11 +108,18 @@ describe('retention cleanup', () => {
         matched: 12,
         name: 'user_sync_applied_mutations',
       },
+      {
+        deleted: 0,
+        dryRun: true,
+        matched: 12,
+        name: 'notion_pull_preview_snapshots',
+      },
     ]);
     expect(calls).toEqual([
       'securityEvent.count',
       'userRefreshSession.count',
       'userSyncAppliedMutation.count',
+      'notionPullPreviewSnapshot.count',
     ]);
   });
 
@@ -147,6 +162,11 @@ function createRetentionPrismaMock(
   matched: number,
 ): RetentionPrismaClient {
   return {
+    notionPullPreviewSnapshot: createDelegate(
+      'notionPullPreviewSnapshot',
+      calls,
+      matched,
+    ),
     securityEvent: createDelegate('securityEvent', calls, matched),
     userSyncAppliedMutation: createDelegate(
       'userSyncAppliedMutation',

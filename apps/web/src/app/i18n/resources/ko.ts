@@ -444,6 +444,10 @@ export const ko = {
     description:
       '앱 UI 언어를 선택합니다. 한국어, 영어, 일본어, 중국어 간체 UI를 사용할 수 있습니다.',
     eyebrow: '언어',
+    availability: {
+      beta: '베타',
+      stable: '정식',
+    },
     onlySingleLocaleReady: '현재는 {{locale}} UI만 사용할 수 있습니다.',
     title: '언어 설정',
   },

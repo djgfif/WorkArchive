@@ -52,6 +52,7 @@ import {
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
+const REFRESH_ROTATION_GRACE_MS = 15_000;
 const RESERVED_HANDLES = new Set([
   'admin',
   'api',
@@ -64,7 +65,7 @@ const RESERVED_HANDLES = new Set([
 ]);
 export interface IssuedAuthSession {
   accessToken: string;
-  refreshToken: string;
+  refreshToken: string | null;
   rememberMe: boolean;
   sessionId: string;
   user: AuthUserResponseDto;
@@ -192,7 +193,10 @@ export class AuthService {
       session.tokenHash,
     );
 
-    if (!isRefreshTokenValid) {
+    if (
+      !isRefreshTokenValid &&
+      !(await this.isPreviousRefreshTokenWithinGrace(refreshToken, session))
+    ) {
       await this.revokeAllUserSessions(session.userId);
       this.recordRefreshFailure(
         'refresh_token_reuse_detected',
@@ -210,6 +214,19 @@ export class AuthService {
     );
 
     if (!sessionResponse) {
+      const racedSessionResponse = await this.issueAfterConcurrentRefresh(
+        session.user,
+        session.id,
+        refreshToken,
+        tokenPayload.rememberMe ?? session.rememberMe,
+      );
+
+      if (racedSessionResponse) {
+        this.metricsService?.recordAuthRefresh('success');
+
+        return racedSessionResponse;
+      }
+
       await this.revokeAllUserSessions(session.userId);
       this.recordRefreshFailure(
         'refresh_token_reuse_detected',
@@ -496,6 +513,8 @@ export class AuthService {
       },
       data: {
         lastUsedAt: now,
+        previousRotatedAt: now,
+        previousTokenHash: session.tokenHash,
         rememberMe,
         rotatedAt: now,
         tokenHash: await hashSecret(refreshToken),
@@ -513,6 +532,71 @@ export class AuthService {
       sessionId: session.id,
       user: toAuthUserResponse(user),
     };
+  }
+
+  private async issueAfterConcurrentRefresh(
+    user: UserWithAuthAccounts,
+    sessionId: string,
+    refreshToken: string,
+    rememberMe: boolean,
+  ): Promise<IssuedAuthSession | null> {
+    const latestSession = await this.prisma.userRefreshSession.findUnique({
+      where: {
+        id: sessionId,
+      },
+    });
+
+    if (
+      !latestSession ||
+      latestSession.userId !== user.id ||
+      latestSession.revokedAt ||
+      latestSession.expiresAt.getTime() <= Date.now()
+    ) {
+      return null;
+    }
+
+    if (
+      !(await this.isPreviousRefreshTokenWithinGrace(
+        refreshToken,
+        latestSession,
+      ))
+    ) {
+      return null;
+    }
+
+    return {
+      accessToken: this.signToken(
+        user,
+        latestSession.id,
+        'access',
+        ACCESS_TOKEN_TTL_SECONDS,
+      ),
+      refreshToken: null,
+      rememberMe,
+      sessionId: latestSession.id,
+      user: toAuthUserResponse(user),
+    };
+  }
+
+  private async isPreviousRefreshTokenWithinGrace(
+    refreshToken: string,
+    session: Pick<
+      UserRefreshSession,
+      'previousRotatedAt' | 'previousTokenHash'
+    >,
+  ) {
+    if (!session.previousTokenHash || !session.previousRotatedAt) {
+      return false;
+    }
+
+    if (
+      Date.now() - session.previousRotatedAt.getTime() >
+      REFRESH_ROTATION_GRACE_MS
+    ) {
+      return false;
+    }
+
+    return verifySecret(refreshToken, session.previousTokenHash);
   }
 
   private signToken(

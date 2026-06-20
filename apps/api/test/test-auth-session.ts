@@ -74,6 +74,10 @@ export async function createTestSession({
     }
   ).createSessionForUser(user, rememberMe);
 
+  if (!session.refreshToken) {
+    throw new Error('Expected test auth session to include a refresh token.');
+  }
+
   return {
     accessToken: session.accessToken,
     cookie: `${REFRESH_TOKEN_COOKIE_NAME}=${session.refreshToken}`,

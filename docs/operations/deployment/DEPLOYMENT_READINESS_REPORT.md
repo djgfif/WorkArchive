@@ -39,8 +39,8 @@ Notes:
 - [ ] `scripts/deploy/prod-build.sh` passed.
 - [ ] `scripts/deploy/prod-up.sh` started the stack.
 - [ ] `scripts/deploy/prod-healthcheck.sh` passed for `/health`, `/livez`, and `/readyz`.
-- [ ] `scripts/deploy/prod-backup.sh` created a UTC timestamped `.dump` backup and `.sha256` sidecar.
-- [ ] `scripts/deploy/prod-backup-verify.sh` passed for the selected backup.
+- [ ] `npm run ops:backup` created a UTC timestamped `.dump` backup, `.sha256` sidecar, and redacted `tmp/backups/prod-backup-*.md` report.
+- [ ] `npm run ops:backup:verify` passed for the selected backup and wrote a redacted `tmp/backups/prod-backup-verify-*.md` report.
 - [ ] Backup and checksum were copied off-host.
 - [ ] `scripts/deploy/prod-restore.sh.example` was reviewed and restore was performed only on an approved disposable or incident target.
 - [ ] `scripts/deploy/prod-logs.sh` log review found no secrets.

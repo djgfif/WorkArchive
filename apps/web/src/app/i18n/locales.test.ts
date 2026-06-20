@@ -1,6 +1,7 @@
 import { describe, expect, it, afterEach } from 'vitest';
 
 import {
+  APP_LOCALE_OPTIONS,
   APP_LOCALE_STORAGE_KEY,
   DEFAULT_LOCALE,
   ENABLED_LOCALES,
@@ -19,6 +20,19 @@ describe('app locale contract', () => {
   it('keeps the planned locale type surface with reviewed locales enabled', () => {
     expect(SUPPORTED_LOCALES).toEqual(['ko', 'en', 'ja', 'zh-CN']);
     expect(ENABLED_LOCALES).toEqual(['ko', 'en', 'ja', 'zh-CN']);
+    expect(
+      Object.fromEntries(
+        ENABLED_LOCALES.map((locale) => [
+          locale,
+          APP_LOCALE_OPTIONS[locale].availability,
+        ]),
+      ),
+    ).toEqual({
+      en: 'stable',
+      ja: 'beta',
+      ko: 'stable',
+      'zh-CN': 'beta',
+    });
     expect(DEFAULT_LOCALE).toBe('ko');
   });
 
@@ -47,6 +61,10 @@ describe('app locale contract', () => {
 
   it('describes enabled locale support as reviewed and specific to Simplified Chinese', () => {
     expect(APP_I18N_RESOURCES.ko.translation.locale).toMatchObject({
+      availability: {
+        beta: '베타',
+        stable: '정식',
+      },
       currentDescription:
         '한국어, 영어, 일본어, 중국어 간체 UI를 사용할 수 있습니다.',
       description:
@@ -54,6 +72,10 @@ describe('app locale contract', () => {
       onlySingleLocaleReady: '현재는 {{locale}} UI만 사용할 수 있습니다.',
     });
     expect(APP_I18N_RESOURCES.en.translation.locale).toMatchObject({
+      availability: {
+        beta: 'Beta',
+        stable: 'Stable',
+      },
       currentDescription:
         'You can use the UI in Korean, English, Japanese, or Simplified Chinese.',
       description:
@@ -61,6 +83,10 @@ describe('app locale contract', () => {
       onlySingleLocaleReady: 'Only {{locale}} is currently available.',
     });
     expect(APP_I18N_RESOURCES.ja.translation.locale).toMatchObject({
+      availability: {
+        beta: 'ベータ',
+        stable: '正式版',
+      },
       currentDescription:
         '韓国語、英語、日本語、簡体中国語のUIを利用できます。',
       description:
@@ -68,6 +94,10 @@ describe('app locale contract', () => {
       onlySingleLocaleReady: '現在は{{locale}}のUIのみ利用できます。',
     });
     expect(APP_I18N_RESOURCES['zh-CN'].translation.locale).toMatchObject({
+      availability: {
+        beta: 'Beta',
+        stable: '正式',
+      },
       currentDescription: '可使用韩语、英语、日语或简体中文界面。',
       description: '选择应用界面语言。可使用韩语、英语、日语和简体中文界面。',
       onlySingleLocaleReady: '当前仅可使用{{locale}}界面。',

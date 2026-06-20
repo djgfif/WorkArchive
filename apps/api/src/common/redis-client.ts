@@ -12,17 +12,57 @@ export function createRedisClient(redisUrl: string) {
 
 export type RedisClient = ReturnType<typeof createRedisClient>;
 
-export async function connectRedisClient(redisUrl: string) {
+interface ConnectRedisClientOptions {
+  timeoutMs?: number;
+}
+
+export async function connectRedisClient(
+  redisUrl: string,
+  options: ConnectRedisClientOptions = {},
+) {
   const redis = createRedisClient(redisUrl);
+  let disconnected = false;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  const disconnectOnce = () => {
+    if (!disconnected) {
+      disconnected = true;
+      redis.disconnect();
+    }
+  };
 
   try {
-    await redis.connect();
-    await redis.ping();
+    const connectAndPing = async () => {
+      await redis.connect();
+      await redis.ping();
 
-    return redis;
+      return redis;
+    };
+
+    if (!options.timeoutMs) {
+      return await connectAndPing();
+    }
+
+    return await Promise.race([
+      connectAndPing(),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          disconnectOnce();
+          reject(
+            new Error(
+              `Redis connection timed out after ${options.timeoutMs}ms.`,
+            ),
+          );
+        }, options.timeoutMs);
+      }),
+    ]);
   } catch (error) {
-    redis.disconnect();
+    disconnectOnce();
 
     throw error;
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
   }
 }

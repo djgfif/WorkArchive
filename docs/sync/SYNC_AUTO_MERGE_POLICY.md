@@ -95,6 +95,12 @@ delay uses exponential backoff from 15 seconds up to 5 minutes. Auto-sync skips
 items until `nextRetryAt` has passed. Manual-required conflicts do not use
 backoff; they wait for explicit resolution.
 
+Server-side exceptions while applying an individual push change are returned as
+per-change failures with code `failed_server_error`. They are retryable, do not
+create idempotency replay records, and do not stop later changes in the same
+push batch from being attempted. Validation failures and conflicts keep their
+more specific result codes.
+
 ## Client Mutation ID Rotation
 
 `clientMutationId` is the push idempotency key. A queue item keeps its

@@ -47,6 +47,7 @@ export async function applyReleaseRecordChange(
 ): Promise<PushSyncResultDto> {
   const existing = await dependencies.releaseRecordsService.findById(
     change.entityId,
+    client,
   );
 
   if (!existing) {
@@ -213,7 +214,7 @@ async function applyMissingRemoteReleaseRecordChange(
   const hydrated =
     created.createdAt instanceof Date
       ? created
-      : await dependencies.releaseRecordsService.findById(created.id);
+      : await dependencies.releaseRecordsService.findById(created.id, client);
 
   return buildRecordAppliedResult(change, 'releaseRecord', {
     code: SYNC_CODES.created,

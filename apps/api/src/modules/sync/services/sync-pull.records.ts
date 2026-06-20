@@ -124,6 +124,8 @@ export type TierBoardAssetSyncView = {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  syncStatus: WorkSyncStatus;
+  serverVersion: number;
 };
 
 export type PullChangeRecords = {

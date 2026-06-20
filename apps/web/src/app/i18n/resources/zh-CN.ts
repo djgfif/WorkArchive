@@ -386,6 +386,10 @@ export const zhCN = {
     "currentLabel": "当前语言",
     "description": "选择应用界面语言。可使用韩语、英语、日语和简体中文界面。",
     "eyebrow": "语言",
+    "availability": {
+      "beta": "Beta",
+      "stable": "正式"
+    },
     "onlySingleLocaleReady": "当前仅可使用{{locale}}界面。",
     "title": "语言设置",
   },

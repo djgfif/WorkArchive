@@ -81,7 +81,9 @@ export class SyncPushService {
 
     try {
       for (const change of sortedChanges) {
-        results.push(await this.applyIdempotentChange(userId, change));
+        results.push(
+          await this.applyChangeAsResult(userId, change, requestId),
+        );
       }
 
       const response = {
@@ -140,6 +142,49 @@ export class SyncPushService {
         }
       },
     );
+  }
+
+  private async applyChangeAsResult(
+    userId: string,
+    change: PushSyncChangeDto,
+    requestId?: string,
+  ): Promise<PushSyncResultDto> {
+    try {
+      return await this.applyIdempotentChange(userId, change);
+    } catch (error) {
+      const result = this.buildUnexpectedChangeFailure(change);
+
+      this.metricsService?.recordSyncResult(
+        change.entityType,
+        result.status,
+        result.code ?? 'unknown',
+      );
+      this.logEvent('sync.change.failed', {
+        entityType: change.entityType,
+        errorCode: describeError(error),
+        requestId,
+        userId,
+      });
+      this.logger.warn(
+        `Sync change failed userId=${userId} entityType=${change.entityType} entityId=${change.entityId} queueId=${change.queueId} reason=${describeError(error)}`,
+      );
+
+      return result;
+    }
+  }
+
+  private buildUnexpectedChangeFailure(
+    change: PushSyncChangeDto,
+  ): PushSyncResultDto {
+    return {
+      code: 'failed_server_error',
+      entityId: change.entityId,
+      entityType: change.entityType,
+      message:
+        'Queued change failed while applying on the server. Retry sync after the server is healthy.',
+      queueId: change.queueId,
+      status: 'failed',
+    };
   }
 
   private logEvent(event: string, fields: StructuredLogFields) {

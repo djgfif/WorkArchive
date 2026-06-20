@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 
 import type { PrismaService } from '../../../prisma/prisma.service';
+import type { UserRecordsService } from '../../user-records/user-records.service';
 import type { PushSyncChangeDto } from '../dto/push-sync.dto';
 import type { PushSyncResultDto } from '../dto/push-sync-response.dto';
 import type {
@@ -191,11 +192,13 @@ export async function applyTierBoardCardChange(
   change: PushSyncChangeDto,
   payload: SyncTierBoardCardPayloadDto,
   client: SyncPushClient,
+  userRecordsService: Pick<UserRecordsService, 'findById'>,
 ): Promise<PushSyncResultDto> {
   const validationError = await validateTierBoardCardParents(
     userId,
     payload,
     client,
+    userRecordsService,
   );
   if (validationError) {
     return buildTierBoardParentConflict(
@@ -301,14 +304,49 @@ export async function applyTierBoardAssetChange(
     return buildTierBoardOwnershipConflict(change);
   }
 
+  if (existing && existing.serverVersion > payload.serverVersion) {
+    return buildTierBoardRemoteNewerConflict(
+      change,
+      'tierBoardAsset',
+      'Remote tier board asset is newer than the queued change.',
+      {
+        tierBoardAsset: toPushSyncTierBoardAssetPayload(existing),
+      },
+    );
+  }
+
   const record = existing
-    ? await client.userTierBoardAsset.update({
-        where: { id: change.entityId },
-        data: buildTierBoardAssetUpdateData(payload),
-      })
+    ? await updateTierBoardAssetWithVersionGuard(
+        userId,
+        change,
+        payload,
+        client,
+        existing.serverVersion,
+      )
     : await client.userTierBoardAsset.create({
         data: buildTierBoardAssetCreateData(payload),
       });
+
+  if (!record) {
+    const latest = await client.userTierBoardAsset.findFirst({
+      where: {
+        board: {
+          userId,
+        },
+        id: change.entityId,
+      },
+      include: { board: true },
+    });
+
+    return buildTierBoardRemoteNewerConflict(
+      change,
+      'tierBoardAsset',
+      'Remote tier board asset is newer than the queued change.',
+      {
+        tierBoardAsset: latest ? toPushSyncTierBoardAssetPayload(latest) : null,
+      },
+    );
+  }
 
   return buildTierBoardAppliedResult(change, {
     tierBoardAsset: toPushSyncTierBoardAssetPayload(record),
@@ -407,6 +445,41 @@ async function updateTierBoardCardWithVersionGuard(
   }
 
   return client.userTierBoardCard.findFirst({
+    where: {
+      board: {
+        userId,
+      },
+      id: change.entityId,
+    },
+    include: { board: true },
+  });
+}
+
+async function updateTierBoardAssetWithVersionGuard(
+  userId: string,
+  change: PushSyncChangeDto,
+  payload: SyncTierBoardAssetPayloadDto,
+  client: SyncPushClient,
+  expectedServerVersion: number,
+) {
+  const result = await client.userTierBoardAsset.updateMany({
+    where: {
+      board: {
+        userId,
+      },
+      id: change.entityId,
+      serverVersion: expectedServerVersion,
+    },
+    data: buildTierBoardAssetUpdateData(
+      payload,
+    ) as Prisma.UserTierBoardAssetUpdateManyMutationInput,
+  });
+
+  if (result.count === 0) {
+    return null;
+  }
+
+  return client.userTierBoardAsset.findFirst({
     where: {
       board: {
         userId,

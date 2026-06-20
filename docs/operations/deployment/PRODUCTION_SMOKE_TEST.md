@@ -39,6 +39,16 @@ Expected:
 - `/livez`: HTTP 200 even if DB/Redis are unavailable
 - `/readyz`: HTTP 200 only when config, PostgreSQL, and Redis are ready
 
+For the scripted operator check, run:
+
+```bash
+HEALTHCHECK_BASE_URL="$DOMAIN" npm run ops:healthcheck
+```
+
+The script verifies HTTP 200 and the canonical JSON health body for `/health`,
+`/livez`, and `/readyz`, then prints `docker compose ps` for the production
+compose project.
+
 `compose.prod.yml` intentionally checks API readiness every 30 seconds with a
 45 second start period. `/readyz` opens a short Redis connection for the check,
 so avoid very short intervals on small VPS hosts.

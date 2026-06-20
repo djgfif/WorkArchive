@@ -21,6 +21,8 @@ export function createMetricsMiddleware(
       const route =
         typeof request.route?.path === 'string'
           ? `${request.baseUrl}${request.route.path}`
+          : response.statusCode === 404
+            ? 'not_found'
           : request.originalUrl;
 
       metricsService.recordRequest(

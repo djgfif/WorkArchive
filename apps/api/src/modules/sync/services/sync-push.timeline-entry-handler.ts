@@ -47,6 +47,7 @@ export async function applyTimelineEntryChange(
 ): Promise<PushSyncResultDto> {
   const existing = await dependencies.timelineEntriesService.findById(
     change.entityId,
+    client,
   );
 
   if (!existing) {
@@ -81,6 +82,7 @@ export async function applyTimelineEntryChange(
   const validationError = await validateTimelineEntryTarget(
     userId,
     payload,
+    client,
     dependencies,
   );
 
@@ -183,6 +185,7 @@ async function applyMissingRemoteTimelineEntryChange(
   const validationError = await validateTimelineEntryTarget(
     userId,
     payload,
+    client,
     dependencies,
   );
 

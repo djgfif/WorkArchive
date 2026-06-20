@@ -98,6 +98,15 @@ describe('HealthController', () => {
     );
   });
 
+  it('returns 503 readiness when PostgreSQL exceeds the readiness timeout', async () => {
+    process.env.READINESS_CHECK_TIMEOUT_MS = '1';
+    prisma.$queryRaw.mockImplementation(() => new Promise(() => undefined));
+
+    await expect(controller.getReadiness()).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
   it('returns 503 readiness when Prisma migrations are unavailable or failed', async () => {
     prisma.$queryRaw
       .mockResolvedValueOnce([{ '?column?': 1 }])
@@ -121,6 +130,31 @@ describe('HealthController', () => {
     );
   });
 
+  it('resolves Prisma migrations from the API package and repository root cwd', () => {
+    const originalCwd = process.cwd();
+    const readMigrationsDirectory = () =>
+      (
+        controller as unknown as {
+          resolveMigrationsDirectory(): string;
+        }
+      ).resolveMigrationsDirectory();
+
+    expect(readMigrationsDirectory()).toBe(
+      resolve(originalCwd, 'prisma/migrations'),
+    );
+
+    try {
+      process.chdir(resolve(originalCwd, '../..'));
+      controller = new HealthController(prisma as unknown as PrismaService);
+
+      expect(readMigrationsDirectory()).toBe(
+        resolve(process.cwd(), 'apps/api/prisma/migrations'),
+      );
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+
   it('returns 503 readiness when production Redis rate limit store is unavailable', async () => {
     process.env = {
       ...process.env,
@@ -128,6 +162,8 @@ describe('HealthController', () => {
       CORS_ORIGIN: 'https://workarchive.example.com',
       EXTERNAL_API_KEY_ENCRYPTION_SECRET:
         'production-external-api-key-secret-minimum-32-chars',
+      GOOGLE_OAUTH_CLIENT_ID: 'production-google-client-id',
+      GOOGLE_OAUTH_CLIENT_SECRET: 'production-google-client-secret',
       GOOGLE_OAUTH_REDIRECT_URI:
         'https://workarchive.example.com/api/auth/google/callback',
       JWT_ACCESS_SECRET: 'production-access-secret-minimum-32-chars',
@@ -152,6 +188,39 @@ describe('HealthController', () => {
     expect(mockRedisDisconnect).toHaveBeenCalled();
   });
 
+  it('returns 503 readiness when Redis exceeds the readiness timeout', async () => {
+    process.env = {
+      ...process.env,
+      COOKIE_SECURE: 'true',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      EXTERNAL_API_KEY_ENCRYPTION_SECRET:
+        'production-external-api-key-secret-minimum-32-chars',
+      GOOGLE_OAUTH_CLIENT_ID: 'production-google-client-id',
+      GOOGLE_OAUTH_CLIENT_SECRET: 'production-google-client-secret',
+      GOOGLE_OAUTH_REDIRECT_URI:
+        'https://workarchive.example.com/api/auth/google/callback',
+      JWT_ACCESS_SECRET: 'production-access-secret-minimum-32-chars',
+      JWT_REFRESH_SECRET: 'production-refresh-secret-minimum-32-chars',
+      NODE_ENV: 'production',
+      RATE_LIMIT_STORE: 'redis',
+      READINESS_CHECK_TIMEOUT_MS: '1',
+      REDIS_URL: 'redis://127.0.0.1:6379',
+      SECURITY_EVENT_HASH_SECRET:
+        'production-security-event-secret-minimum-32-chars',
+      SEED_DEMO_PASSWORD: 'not-demo-password',
+      SWAGGER_ENABLED: 'false',
+      TRUST_PROXY_HOPS: '1',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    };
+    mockReadyPostgresAndMigrations();
+    mockRedisConnect.mockImplementation(() => new Promise(() => undefined));
+
+    await expect(controller.getReadiness()).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(mockRedisDisconnect).toHaveBeenCalledTimes(1);
+  });
+
   it('documents that compose.prod.yml healthcheck uses /readyz', () => {
     const compose = readFileSync(
       resolve(process.cwd(), '../../compose.prod.yml'),
@@ -159,6 +228,9 @@ describe('HealthController', () => {
     );
 
     expect(compose).toContain('/readyz');
+    expect(compose).toContain(
+      'READINESS_CHECK_TIMEOUT_MS: ${READINESS_CHECK_TIMEOUT_MS:-1500}',
+    );
     expect(compose).not.toContain('/health');
   });
 
@@ -180,6 +252,9 @@ describe('HealthController', () => {
     expect(compose).toContain('target: release');
     expect(compose).toContain('service_completed_successfully');
     expect(compose).toContain('/readyz');
+    expect(compose).toContain(
+      'READINESS_CHECK_TIMEOUT_MS: ${READINESS_CHECK_TIMEOUT_MS:-1500}',
+    );
     expect(compose).toContain('/work-archive-config.js');
     expect(dockerfile).toContain('apps/api/prisma.config.ts');
     expect(compose).toContain(

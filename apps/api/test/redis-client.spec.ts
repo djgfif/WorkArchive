@@ -65,4 +65,15 @@ describe('redis client helpers', () => {
     expect(mockRedisPing).not.toHaveBeenCalled();
     expect(mockRedisDisconnect).toHaveBeenCalledTimes(1);
   });
+
+  it('disconnects timed out connection attempts before rethrowing', async () => {
+    mockRedisConnect.mockImplementation(() => new Promise(() => undefined));
+
+    await expect(
+      connectRedisClient('redis://redis:6379', { timeoutMs: 1 }),
+    ).rejects.toThrow('Redis connection timed out after 1ms.');
+
+    expect(mockRedisPing).not.toHaveBeenCalled();
+    expect(mockRedisDisconnect).toHaveBeenCalledTimes(1);
+  });
 });

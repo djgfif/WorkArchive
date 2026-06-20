@@ -110,6 +110,7 @@ export function applyValidatedPushChange(
         change,
         payload as SyncTierBoardCardPayloadDto,
         client,
+        dependencies.userRecordsService,
       );
     case 'tier_board_asset':
       return applyTierBoardAssetChange(

@@ -3,6 +3,7 @@ export const DEFAULT_LOCALE = 'ko';
 export const SUPPORTED_LOCALES = ['ko', 'en', 'ja', 'zh-CN'] as const;
 
 export type AppLocale = (typeof SUPPORTED_LOCALES)[number];
+export type LocaleAvailability = 'stable' | 'beta' | 'hidden';
 
 export const ENABLED_LOCALES = [
   'ko',
@@ -14,6 +15,7 @@ export const ENABLED_LOCALES = [
 export const APP_LOCALE_STORAGE_KEY = 'work-archive.ui.locale';
 
 export interface AppLocaleOption {
+  availability: LocaleAvailability;
   label: string;
   locale: AppLocale;
   nativeLabel: string;
@@ -21,21 +23,25 @@ export interface AppLocaleOption {
 
 export const APP_LOCALE_OPTIONS: Record<AppLocale, AppLocaleOption> = {
   ko: {
+    availability: 'stable',
     label: 'Korean',
     locale: 'ko',
     nativeLabel: '한국어',
   },
   en: {
+    availability: 'stable',
     label: 'English',
     locale: 'en',
     nativeLabel: 'English',
   },
   ja: {
+    availability: 'beta',
     label: 'Japanese',
     locale: 'ja',
     nativeLabel: '日本語',
   },
   'zh-CN': {
+    availability: 'beta',
     label: 'Chinese (Simplified)',
     locale: 'zh-CN',
     nativeLabel: '简体中文',

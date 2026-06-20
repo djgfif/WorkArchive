@@ -235,19 +235,21 @@ model UserAuthAccount {
 }
 
 model UserRefreshSession {
-  id         String    @id @default(uuid())
-  userId     String
-  tokenHash  String    @db.Text
-  rememberMe Boolean   @default(true)
-  userAgent  String?   @db.Text
-  ipAddress  String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  lastUsedAt DateTime?
-  rotatedAt  DateTime?
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String    @id @default(uuid())
+  userId              String
+  tokenHash           String    @db.Text
+  previousTokenHash   String?   @db.Text
+  previousRotatedAt   DateTime?
+  rememberMe          Boolean   @default(true)
+  userAgent           String?   @db.Text
+  ipAddress           String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  lastUsedAt          DateTime?
+  rotatedAt           DateTime?
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, revokedAt])
   @@index([expiresAt])
@@ -822,6 +824,8 @@ model UserTierBoardAsset {
   createdAt    DateTime                  @default(now())
   updatedAt    DateTime                  @updatedAt
   deletedAt    DateTime?
+  syncStatus    WorkSyncStatus            @default(synced)
+  serverVersion Int                       @default(1)
   board        UserTierBoard             @relation(fields: [boardId], references: [id], onDelete: Cascade)
   card         UserTierBoardCard?        @relation(fields: [cardId], references: [id], onDelete: SetNull)
 

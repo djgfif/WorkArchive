@@ -26,7 +26,7 @@ test('lets a guest create a local-first work and find it in the library', async 
 
   await expect(page.getByText(`${title}을(를) 등록했습니다`)).toBeVisible();
 
-  await page.getByRole('button', { name: '방금 등록한 작품 보기' }).click();
+  await page.getByRole('link', { name: '방금 등록한 작품 보기' }).click();
   await expect(
     page.getByRole('heading', { exact: true, name: title }),
   ).toBeVisible();
@@ -61,7 +61,7 @@ test('keeps guest backup and provider-key safety visible in settings', async ({
   await expect(page.getByLabel('JSON 백업 파일 선택')).toBeAttached();
   await expect(page.getByText('API key 제외')).toBeVisible();
 
-  await page.getByRole('tab', { name: '검색 소스와 API 키' }).first().click();
+  await page.getByRole('link', { name: '검색 소스와 API 키' }).click();
   await expect(
     page.getByRole('heading', { name: '검색 소스 관리' }),
   ).toBeVisible();

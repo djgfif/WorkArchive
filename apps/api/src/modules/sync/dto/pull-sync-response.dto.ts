@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   PULL_SYNC_OPERATIONS,
   SYNC_ENTITY_TYPES,
@@ -122,10 +122,11 @@ export class PullSyncResponseDto {
   })
   pulledAt!: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: '2026-04-18T00:00:00.000Z',
+    nullable: true,
   })
-  nextSince!: string;
+  nextSince!: string | null;
 
   @ApiProperty({
     nullable: true,

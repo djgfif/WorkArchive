@@ -61,4 +61,41 @@ describe('SecurityAuditService', () => {
       reason: 'invalid_credentials',
     });
   });
+
+  it('sanitizes metadata string values before storing security events', async () => {
+    const creates: Array<{ data: Record<string, unknown> }> = [];
+    const prisma = {
+      securityEvent: {
+        create: async (input: { data: Record<string, unknown> }) => {
+          creates.push(input);
+
+          return {
+            id: 'security-event-1',
+            ...input.data,
+          };
+        },
+      },
+    } as unknown as PrismaService;
+    const service = new SecurityAuditService(prisma);
+
+    await service.record({
+      eventType: 'http.origin_blocked',
+      metadata: {
+        callbackUrl: '/api/auth/google/callback?code=oauth-code#fragment',
+        description: `Bearer raw-token ${'x'.repeat(220)}`,
+        method: 'POST\nX-Leaked: yes',
+        origin: 'https://evil.example/path?token=secret',
+      },
+      requestId: 'request-1',
+      severity: 'warning',
+    });
+
+    expect(creates).toHaveLength(1);
+    expect(creates[0]?.data.metadata).toEqual({
+      callbackUrl: '/api/auth/google/callback',
+      description: `Bearer [redacted] ${'x'.repeat(139)}...`,
+      method: 'POST X-Leaked: yes',
+      origin: 'https://evil.example/path',
+    });
+  });
 });

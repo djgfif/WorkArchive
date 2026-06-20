@@ -14,6 +14,7 @@ export interface ApiRuntimeConfig {
   importGuestRateLimitMax: number;
   imageProxyRateLimitMax: number;
   isProduction: boolean;
+  jsonBodyLimit: string;
   jwtAccessSecret: string;
   jwtRefreshSecret: string;
   metricsBearerToken: string | null;
@@ -23,11 +24,13 @@ export interface ApiRuntimeConfig {
   rateLimitPrefix: string;
   rateLimitStore: 'memory' | 'redis';
   rateLimitWindowMs: number;
+  readinessCheckTimeoutMs: number;
   redisUrl: string | null;
   securityEventHashSecret: string;
   swaggerEnabled: boolean;
   syncRateLimitMax: number;
   trustProxyHops: number | null;
+  urlencodedBodyLimit: string;
   webBaseUrl: string;
 }
 
@@ -67,6 +70,10 @@ const DEFAULT_PRODUCTION_SECRET_VALUES = new Map([
 ]);
 
 const MINIMUM_PRODUCTION_SECRET_LENGTH = 32;
+const MAXIMUM_PRODUCTION_JSON_BODY_BYTES = 5 * 1024 * 1024;
+const MAXIMUM_PRODUCTION_URLENCODED_BODY_BYTES = 256 * 1024;
+const DEFAULT_READINESS_CHECK_TIMEOUT_MS = 1500;
+const MAXIMUM_PRODUCTION_READINESS_CHECK_TIMEOUT_MS = 5000;
 const DEVELOPMENT_SECURITY_EVENT_HASH_SECRET =
   'development-security-event-hash-secret';
 const DEVELOPMENT_WEB_ORIGINS = ['http://localhost:18730'];
@@ -74,6 +81,8 @@ const DEVELOPMENT_WEB_ORIGINS = ['http://localhost:18730'];
 const apiEnvironmentSchema = z
   .object({
     AUTH_RATE_LIMIT_MAX: z.string().optional(),
+    API_JSON_BODY_LIMIT: z.string().optional(),
+    API_URLENCODED_BODY_LIMIT: z.string().optional(),
     COOKIE_SECURE: z.string().optional(),
     CORS_ORIGIN: z.string().optional(),
     DATABASE_URL: z.string().optional(),
@@ -96,6 +105,7 @@ const apiEnvironmentSchema = z
     RATE_LIMIT_PREFIX: z.string().optional(),
     RATE_LIMIT_STORE: z.string().optional(),
     RATE_LIMIT_WINDOW_MS: z.string().optional(),
+    READINESS_CHECK_TIMEOUT_MS: z.string().optional(),
     REDIS_URL: z.string().optional(),
     SECURITY_EVENT_HASH_SECRET: z.string().optional(),
     SEED_DEMO_PASSWORD: z.string().optional(),
@@ -210,6 +220,57 @@ function readPositiveInteger(
   }
 
   return parsedValue;
+}
+
+function readReadinessCheckTimeoutMs(isProduction: boolean) {
+  const timeoutMs = readPositiveInteger(
+    'READINESS_CHECK_TIMEOUT_MS',
+    process.env.READINESS_CHECK_TIMEOUT_MS,
+    DEFAULT_READINESS_CHECK_TIMEOUT_MS,
+  );
+
+  if (
+    isProduction &&
+    timeoutMs > MAXIMUM_PRODUCTION_READINESS_CHECK_TIMEOUT_MS
+  ) {
+    throw new Error(
+      `READINESS_CHECK_TIMEOUT_MS must not exceed ${MAXIMUM_PRODUCTION_READINESS_CHECK_TIMEOUT_MS} in production.`,
+    );
+  }
+
+  return timeoutMs;
+}
+
+function readBodySizeLimit(
+  name: string,
+  value: string | undefined,
+  fallback: string,
+  maxProductionBytes: number,
+  isProduction: boolean,
+) {
+  const normalizedValue = (value?.trim() || fallback).toLowerCase();
+  const match = /^([1-9]\d*)(b|kb|mb)$/.exec(normalizedValue);
+
+  if (!match) {
+    throw new Error(`${name} must use a positive size ending in b, kb, or mb.`);
+  }
+
+  const amount = Number(match[1]);
+  const unit = match[2];
+  const bytes =
+    unit === 'mb'
+      ? amount * 1024 * 1024
+      : unit === 'kb'
+        ? amount * 1024
+        : amount;
+
+  if (isProduction && bytes > maxProductionBytes) {
+    throw new Error(
+      `${name} must not exceed ${maxProductionBytes} bytes in production.`,
+    );
+  }
+
+  return normalizedValue;
 }
 
 function readBoolean(value: string | undefined, fallback: boolean) {
@@ -366,6 +427,33 @@ function readGoogleOAuthRedirectUri(isProduction: boolean, webBaseUrl: string) {
   return `${webBaseUrl.replace(/\/$/, '')}/api/auth/google/callback`;
 }
 
+function readGoogleOAuthCredentials(isProduction: boolean) {
+  const googleOAuthClientId =
+    process.env.GOOGLE_OAUTH_CLIENT_ID?.trim() || null;
+  const googleOAuthClientSecret =
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim() || null;
+
+  if (isProduction && (!googleOAuthClientId || !googleOAuthClientSecret)) {
+    throw new Error(
+      'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be configured in production.',
+    );
+  }
+
+  if (
+    (googleOAuthClientId && !googleOAuthClientSecret) ||
+    (!googleOAuthClientId && googleOAuthClientSecret)
+  ) {
+    throw new Error(
+      'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be configured together.',
+    );
+  }
+
+  return {
+    googleOAuthClientId,
+    googleOAuthClientSecret,
+  };
+}
+
 function readRateLimitStore(isProduction: boolean) {
   const configuredValue = process.env.RATE_LIMIT_STORE?.trim().toLowerCase();
 
@@ -440,6 +528,37 @@ function readTrustProxyHops(isProduction: boolean) {
   return trustProxyHops;
 }
 
+function readHost() {
+  const host = process.env.HOST?.trim() || '0.0.0.0';
+
+  if (/[\s/?#@]/.test(host)) {
+    throw new Error('HOST must be a host or IP address, not a URL.');
+  }
+
+  return host;
+}
+
+function readRateLimitPrefix() {
+  const prefix =
+    process.env.RATE_LIMIT_PREFIX?.trim() || 'work-archive:rate-limit:';
+
+  if (/\s/.test(prefix)) {
+    throw new Error('RATE_LIMIT_PREFIX must not contain whitespace.');
+  }
+
+  return prefix;
+}
+
+function readMetricsBearerToken() {
+  const token = process.env.METRICS_BEARER_TOKEN?.trim() || null;
+
+  if (token && /\s/.test(token)) {
+    throw new Error('METRICS_BEARER_TOKEN must not contain whitespace.');
+  }
+
+  return token;
+}
+
 function rejectUnsafeProductionDatabaseUrl(value: string) {
   if (!isProductionEnvironment()) {
     return;
@@ -477,10 +596,8 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
   );
   const corsOrigin = readCorsOrigin(process.env.CORS_ORIGIN, isProduction);
   const webBaseUrl = readWebBaseUrl(isProduction);
-  const googleOAuthClientId =
-    process.env.GOOGLE_OAUTH_CLIENT_ID?.trim() || null;
-  const googleOAuthClientSecret =
-    process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim() || null;
+  const { googleOAuthClientId, googleOAuthClientSecret } =
+    readGoogleOAuthCredentials(isProduction);
   const googleOAuthRedirectUri = readGoogleOAuthRedirectUri(
     isProduction,
     webBaseUrl,
@@ -488,9 +605,24 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
   const jwtAccessSecret = readProductionSafeSecret('JWT_ACCESS_SECRET');
   const jwtRefreshSecret = readProductionSafeSecret('JWT_REFRESH_SECRET');
   const securityEventHashSecret = readSecurityEventHashSecret(isProduction);
+  const jsonBodyLimit = readBodySizeLimit(
+    'API_JSON_BODY_LIMIT',
+    process.env.API_JSON_BODY_LIMIT,
+    '2mb',
+    MAXIMUM_PRODUCTION_JSON_BODY_BYTES,
+    isProduction,
+  );
+  const urlencodedBodyLimit = readBodySizeLimit(
+    'API_URLENCODED_BODY_LIMIT',
+    process.env.API_URLENCODED_BODY_LIMIT,
+    '64kb',
+    MAXIMUM_PRODUCTION_URLENCODED_BODY_BYTES,
+    isProduction,
+  );
   const rateLimitStore = readRateLimitStore(isProduction);
   const redisUrl = readRedisUrl(rateLimitStore);
   const trustProxyHops = readTrustProxyHops(isProduction);
+  const readinessCheckTimeoutMs = readReadinessCheckTimeoutMs(isProduction);
 
   rejectUnsafeProductionDatabaseUrl(databaseUrl);
   rejectUnsafeProductionSeedDefaults();
@@ -504,7 +636,7 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
   }
 
   const metricsEnabled = readBoolean(process.env.METRICS_ENABLED, false);
-  const metricsBearerToken = process.env.METRICS_BEARER_TOKEN?.trim() || null;
+  const metricsBearerToken = readMetricsBearerToken();
 
   if (isProduction && metricsEnabled && !metricsBearerToken) {
     throw new Error(
@@ -529,7 +661,7 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
     googleOAuthClientId,
     googleOAuthClientSecret,
     googleOAuthRedirectUri,
-    host: process.env.HOST?.trim() || '0.0.0.0',
+    host: readHost(),
     importAuthenticatedRateLimitMax: readPositiveInteger(
       'IMPORT_AUTH_RATE_LIMIT_MAX',
       process.env.IMPORT_AUTH_RATE_LIMIT_MAX,
@@ -546,6 +678,7 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
       120,
     ),
     isProduction,
+    jsonBodyLimit,
     jwtAccessSecret,
     jwtRefreshSecret,
     metricsBearerToken,
@@ -556,14 +689,14 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
       20,
     ),
     port,
-    rateLimitPrefix:
-      process.env.RATE_LIMIT_PREFIX?.trim() || 'work-archive:rate-limit:',
+    rateLimitPrefix: readRateLimitPrefix(),
     rateLimitStore,
     rateLimitWindowMs: readPositiveInteger(
       'RATE_LIMIT_WINDOW_MS',
       process.env.RATE_LIMIT_WINDOW_MS,
       60_000,
     ),
+    readinessCheckTimeoutMs,
     redisUrl,
     securityEventHashSecret,
     swaggerEnabled,
@@ -573,6 +706,7 @@ export function readApiRuntimeConfig(): ApiRuntimeConfig {
       30,
     ),
     trustProxyHops,
+    urlencodedBodyLimit,
     webBaseUrl,
   };
 }

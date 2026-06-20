@@ -212,6 +212,7 @@ export function toPushSyncTierBoardAssetPayload(asset: {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  serverVersion: number;
 }): SyncTierBoardAssetPayloadDto {
   return {
     id: asset.id,
@@ -226,5 +227,7 @@ export function toPushSyncTierBoardAssetPayload(asset: {
     createdAt: asset.createdAt.toISOString(),
     updatedAt: asset.updatedAt.toISOString(),
     deletedAt: asset.deletedAt?.toISOString() ?? null,
+    syncStatus: SERVER_SYNC_STATUS,
+    serverVersion: asset.serverVersion,
   };
 }

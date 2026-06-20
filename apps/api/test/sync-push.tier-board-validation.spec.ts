@@ -30,12 +30,16 @@ type TierBoardValidationClient = Parameters<
 const boardFindUnique = jest.fn<() => Promise<unknown>>();
 const laneFindUnique = jest.fn<() => Promise<unknown>>();
 const cardFindUnique = jest.fn<() => Promise<unknown>>();
+const userWorkFindById = jest.fn<() => Promise<unknown>>();
 
 const client = {
   userTierBoard: { findUnique: boardFindUnique },
   userTierLane: { findUnique: laneFindUnique },
   userTierBoardCard: { findUnique: cardFindUnique },
 } as unknown as TierBoardValidationClient;
+const userRecordsService = {
+  findById: userWorkFindById,
+} as unknown as Parameters<typeof validateTierBoardCardParents>[3];
 
 function buildCardPayload(
   overrides: Partial<SyncTierBoardCardPayloadDto> = {},
@@ -95,6 +99,8 @@ function buildAssetPayload(
     createdAt: '2026-04-18T00:00:00.000Z',
     updatedAt: '2026-04-18T01:00:00.000Z',
     deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
     ...overrides,
   };
 }
@@ -152,16 +158,22 @@ describe('tier board sync parent validation', () => {
         boardFindUnique.mockResolvedValueOnce(board);
 
         await expect(
-          validateTierBoardCardParents(USER_ID, buildCardPayload(), client),
+          validateTierBoardCardParents(
+            USER_ID,
+            buildCardPayload(),
+            client,
+            userRecordsService,
+          ),
         ).resolves.toBe(
           'Parent tier board is missing or belongs to another user.',
         );
       }
 
       expect(laneFindUnique).not.toHaveBeenCalled();
+      expect(userWorkFindById).not.toHaveBeenCalled();
     });
 
-    it('accepts card payloads with a valid board and no lane', async () => {
+    it('accepts custom card payloads with a valid board and no lane', async () => {
       boardFindUnique.mockResolvedValue({
         id: BOARD_ID,
         userId: USER_ID,
@@ -171,12 +183,18 @@ describe('tier board sync parent validation', () => {
       await expect(
         validateTierBoardCardParents(
           USER_ID,
-          buildCardPayload({ laneId: null }),
+          buildCardPayload({
+            cardSourceType: TierBoardCardSourceType.custom,
+            laneId: null,
+            workId: null,
+          }),
           client,
+          userRecordsService,
         ),
       ).resolves.toBeNull();
 
       expect(laneFindUnique).not.toHaveBeenCalled();
+      expect(userWorkFindById).not.toHaveBeenCalled();
     });
 
     it('rejects card payloads when the parent lane is unavailable', async () => {
@@ -210,9 +228,60 @@ describe('tier board sync parent validation', () => {
         laneFindUnique.mockResolvedValueOnce(lane);
 
         await expect(
-          validateTierBoardCardParents(USER_ID, buildCardPayload(), client),
+          validateTierBoardCardParents(
+            USER_ID,
+            buildCardPayload(),
+            client,
+            userRecordsService,
+          ),
         ).resolves.toBe(
           'Parent tier board lane is missing or belongs to another user.',
+        );
+      }
+
+      expect(userWorkFindById).not.toHaveBeenCalled();
+    });
+
+    it('rejects library work cards without an owned source work', async () => {
+      boardFindUnique.mockResolvedValue({
+        id: BOARD_ID,
+        userId: USER_ID,
+        deletedAt: null,
+      });
+      laneFindUnique.mockResolvedValue({
+        id: LANE_ID,
+        boardId: BOARD_ID,
+        deletedAt: null,
+        board: { userId: USER_ID },
+      });
+
+      await expect(
+        validateTierBoardCardParents(
+          USER_ID,
+          buildCardPayload({ workId: null }),
+          client,
+          userRecordsService,
+        ),
+      ).resolves.toBe('Library work tier board cards require a parent work.');
+
+      for (const work of [
+        null,
+        {
+          id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+          userId: OTHER_USER_ID,
+        },
+      ]) {
+        userWorkFindById.mockResolvedValueOnce(work);
+
+        await expect(
+          validateTierBoardCardParents(
+            USER_ID,
+            buildCardPayload(),
+            client,
+            userRecordsService,
+          ),
+        ).resolves.toBe(
+          'Tier board card work is missing or belongs to a different user.',
         );
       }
     });
@@ -229,9 +298,19 @@ describe('tier board sync parent validation', () => {
         deletedAt: null,
         board: { userId: USER_ID },
       });
+      userWorkFindById.mockResolvedValue({
+        id: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+        userId: USER_ID,
+        deletedAt: new Date('2026-04-18T01:00:00.000Z'),
+      });
 
       await expect(
-        validateTierBoardCardParents(USER_ID, buildCardPayload(), client),
+        validateTierBoardCardParents(
+          USER_ID,
+          buildCardPayload(),
+          client,
+          userRecordsService,
+        ),
       ).resolves.toBeNull();
     });
   });

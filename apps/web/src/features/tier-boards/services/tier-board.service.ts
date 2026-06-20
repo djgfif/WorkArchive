@@ -511,6 +511,8 @@ export class TierBoardService {
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
+      syncStatus: 'local-only',
+      serverVersion: 0,
       blob,
       dataUrl,
     };

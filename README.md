@@ -25,10 +25,15 @@ archive through the API.
 ## Start Locally
 
 ```bash
+source ~/.nvm/nvm.sh
+nvm use
 npm install
 cp .env.compose.example .env.compose
 npm run dev:start
 ```
+
+The repository runtime is pinned in [`.nvmrc`](./.nvmrc). Root verification and
+dev scripts check the Node/npm version before running.
 
 Default local endpoints:
 

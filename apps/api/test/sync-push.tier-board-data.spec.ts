@@ -108,6 +108,8 @@ function buildAssetPayload(
     createdAt: '2026-04-18T00:00:00.000Z',
     updatedAt: '2026-04-18T01:00:00.000Z',
     deletedAt: null,
+    syncStatus: 'local-only',
+    serverVersion: 0,
     ...overrides,
   };
 }
@@ -210,7 +212,7 @@ describe('sync push tier board data builders', () => {
     });
   });
 
-  it('builds asset data without adding sync status or version on update', () => {
+  it('builds asset data with sync status and version on update', () => {
     const updateData = buildTierBoardAssetUpdateData(buildAssetPayload());
 
     expect(updateData).toEqual({
@@ -222,9 +224,9 @@ describe('sync push tier board data builders', () => {
       sizeBytes: 1000,
       cardId: CARD_ID,
       deletedAt: null,
+      syncStatus: 'synced',
+      serverVersion: { increment: 1 },
     });
-    expect(updateData).not.toHaveProperty('syncStatus');
-    expect(updateData).not.toHaveProperty('serverVersion');
 
     expect(buildTierBoardAssetCreateData(buildAssetPayload())).toEqual({
       ...updateData,
@@ -232,6 +234,7 @@ describe('sync push tier board data builders', () => {
       boardId: BOARD_ID,
       createdAt: new Date('2026-04-18T00:00:00.000Z'),
       updatedAt: new Date('2026-04-18T01:00:00.000Z'),
+      serverVersion: 1,
     });
   });
 });

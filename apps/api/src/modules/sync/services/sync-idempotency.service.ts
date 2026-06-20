@@ -7,7 +7,8 @@ import type { PushSyncChangeDto } from '../dto/push-sync.dto';
 import type { PushSyncResultDto } from '../dto/push-sync-response.dto';
 import { PrismaService } from '../../../prisma/prisma.service';
 
-export const SYNC_REPLAY_TTL_MS = 24 * 60 * 60 * 1_000;
+export const SYNC_FAILED_REPLAY_TTL_MS = 24 * 60 * 60 * 1_000;
+export const SYNC_APPLIED_REPLAY_TTL_MS = 180 * 24 * 60 * 60 * 1_000;
 
 @Injectable()
 export class SyncIdempotencyService {
@@ -53,17 +54,12 @@ export class SyncIdempotencyService {
       onResult?.(result);
 
       if (this.shouldStoreReplayResult(result)) {
-        const replayExpiresAt =
-          result.status === 'applied'
-            ? null
-            : new Date(Date.now() + SYNC_REPLAY_TTL_MS);
-
         await tx.userSyncAppliedMutation.create({
           data: {
             clientMutationId,
             entityId: change.entityId,
             entityType: change.entityType,
-            expiresAt: replayExpiresAt,
+            expiresAt: this.getReplayExpiresAt(result),
             payloadHash,
             queueId: change.queueId,
             result: this.toJsonValue(result),
@@ -102,6 +98,15 @@ export class SyncIdempotencyService {
       result.status === 'conflict' ||
       result.code === 'failed_validation'
     );
+  }
+
+  private getReplayExpiresAt(result: PushSyncResultDto) {
+    const ttlMs =
+      result.status === 'applied'
+        ? SYNC_APPLIED_REPLAY_TTL_MS
+        : SYNC_FAILED_REPLAY_TTL_MS;
+
+    return new Date(Date.now() + ttlMs);
   }
 
   private buildClientMutationReusedFailure(

@@ -1,0 +1,82 @@
+groups:
+  - name: work-archive-gate1
+    rules:
+      - alert: WorkArchiveReadyzFailure
+        expr: increase(work_archive_readyz_failure_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          service: work_archive_api
+        annotations:
+          summary: Work Archive readiness checks are failing
+          description: /readyz reported one or more dependency failures in the last 5 minutes. Check config, PostgreSQL, migrations, and Redis before sending traffic.
+
+      - alert: WorkArchiveApi5xxSpike
+        expr: sum(increase(work_archive_api_request_total{status_class="5xx"}[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive API 5xx responses increased
+          description: More than 5 API 5xx responses were observed over 5 minutes. Inspect request logs by requestId and route template.
+
+      - alert: WorkArchiveHighRequestLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(work_archive_api_request_duration_seconds_bucket[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive API p95 request latency is high
+          description: API p95 latency has stayed above 1 second for 10 minutes. Compare against the latest Gate 1 performance smoke report before changing thresholds.
+
+      - alert: WorkArchiveAuthRefreshFailureSpike
+        expr: sum(increase(work_archive_auth_refresh_total{result="failure"}[10m])) > 20
+        for: 5m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive refresh failures increased
+          description: Refresh failures exceeded the Gate 1 spike threshold. Check OAuth/session logs, cookie behavior behind the proxy, and refresh token reuse events.
+
+      - alert: WorkArchiveSyncConflictSpike
+        expr: sum(increase(work_archive_sync_conflict_total[15m])) > 50
+        for: 10m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive sync conflicts increased
+          description: Sync conflicts exceeded the Gate 1 threshold. Check release compatibility, sync schema version, and recent client rollout changes.
+
+      - alert: WorkArchiveSyncValidationFailureSpike
+        expr: sum(increase(work_archive_sync_failed_validation_total[15m])) > 20
+        for: 10m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive sync validation failures increased
+          description: Sync validation failures exceeded the Gate 1 threshold. Check client/server schema compatibility and malformed payload logs.
+
+      - alert: WorkArchiveImportProviderFailureSpike
+        expr: sum by (provider) (increase(work_archive_imports_provider_failure_total[15m])) > 20
+        for: 10m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive import provider failures increased
+          description: A provider is failing above the Gate 1 threshold. Check provider status, credential health, circuit state, and fallback provider coverage.
+
+      - alert: WorkArchiveImportProviderCircuitOpen
+        expr: sum by (provider) (increase(work_archive_imports_provider_circuit_open_total[15m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive import provider circuit opened
+          description: An import provider circuit opened recently. Confirm fallback provider behavior and avoid exposing raw provider URLs or credentials in logs.

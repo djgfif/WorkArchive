@@ -18,8 +18,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
+
+      - name: Runtime versions
+        run: node -v && npm -v
 
       - name: Install
         run: npm ci
@@ -35,6 +38,9 @@ jobs:
 
       - name: Documentation links
         run: npm run check:docs-links
+
+      - name: Commercial repository gates
+        run: npm run qa:commercial:repo
 
       - name: Web import cycles
         run: npm run check:web-import-cycles
@@ -62,6 +68,12 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Web E2E
+        run: npm run test:e2e:web
 
       - name: Production compose config
         env:
@@ -117,8 +129,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
+
+      - name: Runtime versions
+        run: node -v && npm -v
 
       - name: Install
         run: npm ci

@@ -22,7 +22,7 @@ Do not add Kafka, Saga orchestration, an API Gateway, Redis general caching, pub
   - `scripts/deploy/prod-down.sh`
   - `scripts/deploy/prod-logs.sh`
   - `scripts/deploy/prod-healthcheck.sh`
-  - `scripts/deploy/prod-backup.sh`
+  - `scripts/deploy/prod-backup.sh` (`npm run ops:backup`)
   - `scripts/deploy/prod-restore.sh.example`
 - Readiness report template: `docs/operations/deployment/DEPLOYMENT_READINESS_REPORT.md`
 - Closed beta host rehearsal runbook:
@@ -155,19 +155,20 @@ Smoke:
 Create a backup:
 
 ```bash
-BACKUP_DIR=backups scripts/deploy/prod-backup.sh
+BACKUP_DIR=backups npm run ops:backup
 BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
-BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+BACKUP_FILE="$BACKUP_FILE" npm run ops:backup:verify
 ```
 
 Move the `.dump` and `.sha256` files off-host immediately. A backup kept only
-on the database server does not satisfy rehearsal.
+on the database server does not satisfy rehearsal. The backup and verification
+commands write redacted operator reports to `tmp/backups/`.
 
 Restore drill on a disposable rehearsal database or volume:
 
 ```bash
 BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
-BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+BACKUP_FILE="$BACKUP_FILE" npm run ops:backup:verify
 
 scripts/deploy/prod-down.sh
 docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis
@@ -272,7 +273,7 @@ Closed beta is ready only when:
 - compose stack boots on the target host;
 - `scripts/deploy/prod-healthcheck.sh` passes for `/health`, `/livez`, and `/readyz`;
 - Google OAuth production login succeeds;
-- `scripts/deploy/prod-backup.sh` creates a backup that is stored off-host;
+- `npm run ops:backup` creates a backup that is stored off-host;
 - restore drill succeeds on a disposable target;
 - tier board smoke passes;
 - sync idempotency smoke passes;

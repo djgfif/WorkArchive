@@ -386,6 +386,10 @@ export const ja = {
     "currentLabel": "現在の言語",
     "description": "アプリのUI言語を選びます。韓国語、英語、日本語、簡体中国語のUIを利用できます。",
     "eyebrow": "言語",
+    "availability": {
+      "beta": "ベータ",
+      "stable": "正式版"
+    },
     "onlySingleLocaleReady": "現在は{{locale}}のUIのみ利用できます。",
     "title": "言語設定",
   },

@@ -62,6 +62,8 @@ GOOGLE_OAUTH_REDIRECT_URI=https://archive.example.com/api/auth/google/callback
 
 `GOOGLE_OAUTH_REDIRECT_URI` must exactly match the Google Console Authorized
 redirect URI, including scheme, host, path, and trailing slash behavior.
+Production API startup fails when either Google OAuth client value is missing;
+Google OAuth is the only supported account login path.
 
 ## Public Origins And URLs
 
@@ -74,11 +76,24 @@ VITE_API_BASE_URL=/api
 If the API is hosted on a separate subdomain, set `VITE_API_BASE_URL` to that
 public API origin and include the web origin in `CORS_ORIGIN`.
 
+Refresh session recovery uses an `HttpOnly` cookie with `SameSite=Strict` in
+production. Web and API may be different origins, but they must remain
+same-site: the same scheme and registrable domain, such as
+`https://archive.example.com` and `https://api.example.com`. A completely
+cross-site API origin will not receive the refresh cookie reliably. Supporting
+that topology requires an explicit `SameSite=None; Secure` and CSRF design
+change, not only a broader `CORS_ORIGIN` value.
+
 ## Production Security Defaults
 
 ```bash
+HOST=0.0.0.0
 RATE_LIMIT_STORE=redis
 REDIS_URL=redis://redis:6379
+RATE_LIMIT_PREFIX=work-archive:rate-limit:
+READINESS_CHECK_TIMEOUT_MS=1500
+API_JSON_BODY_LIMIT=2mb
+API_URLENCODED_BODY_LIMIT=64kb
 IMAGE_PROXY_RATE_LIMIT_MAX=120
 NOTION_RATE_LIMIT_MAX=20
 TRUST_PROXY_HOPS=1
@@ -90,6 +105,13 @@ WORK_ARCHIVE_CLIENT_HEADER_GUARD=audit
 
 `TRUST_PROXY_HOPS=1` assumes the API receives requests through the web/reverse
 proxy layer. Re-evaluate only if the proxy topology changes.
+`HOST` must be a host/IP bind value, not a URL. `RATE_LIMIT_PREFIX` must not
+contain whitespace because it becomes part of Redis rate-limit keys.
+`READINESS_CHECK_TIMEOUT_MS` bounds each `/readyz` dependency check. Production
+startup rejects values above 5000 ms.
+`API_JSON_BODY_LIMIT` and `API_URLENCODED_BODY_LIMIT` must use `b`, `kb`, or
+`mb` units. Production startup rejects JSON body limits above 5 MiB and
+URL-encoded body limits above 256 KiB.
 Keep `WORK_ARCHIVE_CLIENT_HEADER_GUARD=audit` for the first production rollout;
 switch it to `enforce` only after security events show no legitimate
 authenticated unsafe requests are missing `X-Work-Archive-Client: web`.
@@ -158,5 +180,6 @@ GitHub comments.
 
 `METRICS_ENABLED` defaults to `false`. Set it to `true` only when `/metrics` is
 restricted to an internal collector or allowlisted monitoring path and
-`METRICS_BEARER_TOKEN` is configured for that collector. Public unauthenticated
-smoke should still observe `/metrics` as `404`.
+`METRICS_BEARER_TOKEN` is configured for that collector. The token must be a
+single bearer-token value without whitespace. Public unauthenticated smoke
+should still observe `/metrics` as `404`.

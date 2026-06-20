@@ -5,6 +5,7 @@ export {
   ENABLED_LOCALES,
   SUPPORTED_LOCALES,
   type AppLocale,
+  type LocaleAvailability,
 } from './locales';
 export { AppLocaleRuntime } from './AppLocaleRuntime';
 export { appI18n, changeAppLocale, getCurrentAppLocale } from './i18n';

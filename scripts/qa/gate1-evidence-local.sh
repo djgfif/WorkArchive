@@ -80,6 +80,7 @@ append_manual_blockers() {
     echo "| backup/restore drill | BLOCKED | Requires production-sized backup and non-production restore target. |"
     echo "| Trivy filesystem/image scans | BLOCKED | Requires official release runner with Trivy and immutable image refs. |"
     echo "| smoke performance baseline | BLOCKED | Requires beta host and authenticated disposable test account for sync/import/auth timings. |"
+    echo "| monitoring evidence live run | BLOCKED | Requires real Prometheus/Grafana endpoints and reviewed /metrics collector path. |"
     echo
   } >>"$REPORT_FILE"
 }
@@ -160,10 +161,26 @@ run_check "npm run build" npm run build
 
 run_check "bash syntax: beta-preflight" bash -n scripts/deploy/beta-preflight.sh
 run_check "bash syntax: beta-smoke" bash -n scripts/deploy/beta-smoke.sh
+run_check "bash syntax: prod-backup" bash -n scripts/deploy/prod-backup.sh
+run_check "bash syntax: prod-backup-verify" bash -n scripts/deploy/prod-backup-verify.sh
+run_check "bash syntax: prod-restore-drill" bash -n scripts/deploy/prod-restore-drill.sh
 run_check "bash syntax: gate1 evidence helper" bash -n scripts/qa/gate1-evidence-local.sh
 run_check "node syntax: commercial env preflight" node --check scripts/deploy/commercial-env-preflight.mjs
+run_check "node syntax: gate1 evidence validator" node --check scripts/qa/validate-gate1-evidence.mjs
+run_check "node syntax: prisma migration validator" node --check scripts/qa/validate-prisma-migrations.mjs
+run_check "node syntax: prometheus alert validator" node --check scripts/qa/validate-prometheus-alerts.mjs
+run_check "node syntax: prometheus slo validator" node --check scripts/qa/validate-prometheus-slo-rules.mjs
+run_check "node syntax: grafana dashboard validator" node --check scripts/qa/validate-grafana-dashboard.mjs
+run_check "node syntax: monitoring evidence" node --check scripts/qa/monitoring-evidence.mjs
 run_check "node syntax: import search QA" node --check scripts/qa/import-search-qa.mjs
+run_check "node syntax: performance smoke" node --check scripts/qa/performance-smoke.mjs
 run_check "node syntax: sync load smoke" node --check scripts/qa/sync-load-smoke.mjs
+run_check "npm run qa:alerts" npm run qa:alerts
+run_check "npm run qa:gate1:evidence" npm run qa:gate1:evidence
+run_check "npm run qa:migrations" npm run qa:migrations
+run_check "npm run qa:slo" npm run qa:slo
+run_check "npm run qa:dashboards" npm run qa:dashboards
+run_check "npm run qa:monitoring dry-run" env MONITORING_EVIDENCE_DRY_RUN=true npm run qa:monitoring
 
 if [[ -f "$ROOT_DIR/.env.prod" ]]; then
   if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then

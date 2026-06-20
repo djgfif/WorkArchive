@@ -10,15 +10,17 @@ protect against disk loss, account lockout, or accidental volume removal.
 On the deployment host:
 
 ```bash
-BACKUP_DIR=backups scripts/deploy/prod-backup.sh
+BACKUP_DIR=backups npm run ops:backup
 BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
-BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+BACKUP_FILE="$BACKUP_FILE" npm run ops:backup:verify
 ls -lh "$BACKUP_FILE" "$BACKUP_FILE.sha256"
 ```
 
 The production backup script creates a PostgreSQL custom-format `.dump`, checks
 it with `pg_restore --list`, writes a `.sha256` sidecar, and verifies the
-checksum before reporting success.
+checksum before reporting success. It writes a redacted operator report to
+`tmp/backups/prod-backup-*.md`; the verification script writes
+`tmp/backups/prod-backup-verify-*.md`.
 
 Move the backup off-host immediately, for example to encrypted object storage or
 a secure workstation:
@@ -41,7 +43,7 @@ docker compose -f compose.prod.yml --env-file .env.prod down -v
 docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis
 
 BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
-BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+BACKUP_FILE="$BACKUP_FILE" npm run ops:backup:verify
 
 docker compose -f compose.prod.yml --env-file .env.prod exec -T postgres sh -lc 'pg_restore \
   --clean \

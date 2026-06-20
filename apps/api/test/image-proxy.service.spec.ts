@@ -7,6 +7,8 @@ import { ImageProxyService } from '../src/modules/image-proxy/image-proxy.servic
 import {
   MAX_HOST_CONCURRENT_FETCHES,
   MAX_HOST_FETCHES_PER_WINDOW,
+  MAX_IMAGE_BYTES,
+  MAX_MEMORY_CACHE_BYTES,
 } from '../src/modules/image-proxy/image-proxy-policy';
 
 jest.mock('node:dns/promises', () => ({
@@ -100,6 +102,30 @@ describe('ImageProxyService', () => {
     expect((await first).body.toString()).toBe('shared-image');
     expect((await second).body.toString()).toBe('shared-image');
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('evicts cached images by byte budget, not only entry count', async () => {
+    const largeImageBody = 'x'.repeat(MAX_IMAGE_BYTES);
+    const imageCountPastByteBudget =
+      Math.floor(MAX_MEMORY_CACHE_BYTES / MAX_IMAGE_BYTES) + 1;
+
+    upstreamFetchMock.mockImplementation(async () =>
+      imageResponse(largeImageBody),
+    );
+
+    for (let index = 0; index < imageCountPastByteBudget; index += 1) {
+      await service.getImage(
+        `https://covers.openlibrary.org/b/id/large-${index}-L.jpg`,
+      );
+    }
+
+    expect(upstreamFetchMock).toHaveBeenCalledTimes(imageCountPastByteBudget);
+
+    await service.getImage('https://covers.openlibrary.org/b/id/large-0-L.jpg');
+
+    expect(upstreamFetchMock).toHaveBeenCalledTimes(
+      imageCountPastByteBudget + 1,
+    );
   });
 
   it('cools down repeated failed fetches for the same image URL', async () => {

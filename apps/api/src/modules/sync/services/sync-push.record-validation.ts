@@ -20,6 +20,7 @@ export async function validateReleaseRecordTarget(
 ) {
   const parent = await dependencies.userRecordsService.findById(
     payload.userWorkRecordId,
+    client,
   );
 
   if (!parent || parent.userId !== userId) {
@@ -53,9 +54,13 @@ export async function validateReleaseRecordTarget(
 export async function validateTimelineEntryTarget(
   userId: string,
   payload: SyncTimelineEntryPayloadDto,
+  client: SyncPushClient,
   dependencies: SyncPushRecordValidationDependencies,
 ) {
-  const parent = await dependencies.userRecordsService.findById(payload.workId);
+  const parent = await dependencies.userRecordsService.findById(
+    payload.workId,
+    client,
+  );
 
   if (!parent || parent.userId !== userId) {
     return 'Timeline entry parent is missing or belongs to a different user.';

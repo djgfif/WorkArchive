@@ -1,5 +1,6 @@
-import type { Prisma } from '@prisma/client';
+import { TierBoardCardSourceType, type Prisma } from '@prisma/client';
 
+import type { UserRecordsService } from '../../user-records/user-records.service';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import type {
   SyncTierBoardAssetPayloadDto,
@@ -29,6 +30,7 @@ export async function validateTierBoardCardParents(
   userId: string,
   payload: SyncTierBoardCardPayloadDto,
   client: SyncPushClient,
+  userRecordsService: Pick<UserRecordsService, 'findById'>,
 ) {
   const board = await client.userTierBoard.findUnique({
     where: { id: payload.boardId },
@@ -51,6 +53,20 @@ export async function validateTierBoardCardParents(
       lane.deletedAt !== null
     ) {
       return 'Parent tier board lane is missing or belongs to another user.';
+    }
+  }
+
+  if (payload.cardSourceType === TierBoardCardSourceType.library_work) {
+    if (!payload.workId) {
+      return 'Library work tier board cards require a parent work.';
+    }
+  }
+
+  if (payload.workId) {
+    const work = await userRecordsService.findById(payload.workId, client);
+
+    if (!work || work.userId !== userId) {
+      return 'Tier board card work is missing or belongs to a different user.';
     }
   }
 

@@ -37,6 +37,9 @@ expectPresent('REDIS_URL');
 expectExact('TRUST_PROXY_HOPS', '1');
 expectExact('COOKIE_SECURE', 'true');
 expectExact('SWAGGER_ENABLED', 'false');
+expectPositiveIntegerMax('READINESS_CHECK_TIMEOUT_MS', 5000);
+expectBodySizeLimit('API_JSON_BODY_LIMIT', 5 * 1024 * 1024);
+expectBodySizeLimit('API_URLENCODED_BODY_LIMIT', 256 * 1024);
 expectBoolean('METRICS_ENABLED');
 if (env.METRICS_ENABLED === 'true') {
   expectExact('METRICS_INTERNAL_ACCESS_REVIEWED', 'true');
@@ -139,6 +142,55 @@ function expectBoolean(name) {
 
   if (actual && actual !== 'true' && actual !== 'false') {
     errors.push(`${name} must be true or false when set.`);
+  }
+}
+
+function expectPositiveIntegerMax(name, max) {
+  const actual = env[name]?.trim();
+
+  if (!actual) {
+    errors.push(`${name} is required.`);
+    return;
+  }
+
+  const value = Number(actual);
+
+  if (!Number.isInteger(value) || value <= 0) {
+    errors.push(`${name} must be a positive integer.`);
+    return;
+  }
+
+  if (value > max) {
+    errors.push(`${name} must not exceed ${max}.`);
+  }
+}
+
+function expectBodySizeLimit(name, maxBytes) {
+  const normalizedValue = env[name]?.trim().toLowerCase();
+
+  if (!normalizedValue) {
+    errors.push(`${name} is required.`);
+    return;
+  }
+
+  const match = /^([1-9]\d*)(b|kb|mb)$/.exec(normalizedValue);
+
+  if (!match) {
+    errors.push(`${name} must use a positive size ending in b, kb, or mb.`);
+    return;
+  }
+
+  const amount = Number(match[1]);
+  const unit = match[2];
+  const bytes =
+    unit === 'mb'
+      ? amount * 1024 * 1024
+      : unit === 'kb'
+        ? amount * 1024
+        : amount;
+
+  if (bytes > maxBytes) {
+    errors.push(`${name} must not exceed ${maxBytes} bytes.`);
   }
 }
 

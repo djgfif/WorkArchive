@@ -10,7 +10,13 @@
   `docs/commercial/GATE_1_VALIDATION_RUNBOOK.md` and keep generated local QA
   reports separate from the operator evidence ledger until an operator copies
   observed summaries.
+- For public beta approval, run
+  `GATE1_EVIDENCE_STRICT=true npm run qa:gate1:evidence` after the evidence
+  ledger is populated.
 - Review migration notes and confirm rollback compatibility.
+- Run `npm run qa:migrations` and confirm any high-risk Prisma migration has an
+  approved entry in
+  [`MIGRATION_RISK_REGISTER.md`](./MIGRATION_RISK_REGISTER.md).
 - Confirm `.env.prod` values are present and production secrets are not defaults.
 - Confirm Google OAuth redirect URI exactly matches the deployed callback URL.
 - Confirm runtime feature flag overrides are in `/work-archive-config.js`, loaded before the React bundle, and contain no secrets.
@@ -33,6 +39,8 @@ npm run typecheck --workspace @work-archive/web
 npm run test --workspace @work-archive/api
 npm run test --workspace @work-archive/web
 npm run build
+npm run qa:commercial:repo
+npm run qa:migrations
 npm run qa:import-search
 npm run qa:sync-load
 docker compose -f compose.prod.yml --env-file .env.prod build
@@ -63,10 +71,16 @@ BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 ## Migration
 
 - Review Prisma migration SQL.
+- Run `npm run qa:migrations`.
 - Review Dexie version migrations, if any.
 - Review sync `schemaVersion` changes, if any.
-- Confirm destructive migration is not present, or explicit approval exists.
+- Confirm destructive migration is not present, or explicit approval exists in
+  [`MIGRATION_RISK_REGISTER.md`](./MIGRATION_RISK_REGISTER.md).
 - Create a fresh pre-deployment PostgreSQL backup.
+- Prefer `BACKUP_DIR=backups npm run ops:backup` so the dump, checksum sidecar,
+  and redacted `tmp/backups/prod-backup-*.md` report are created together.
+- Verify the selected dump with
+  `BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump npm run ops:backup:verify`.
 - Move the backup off-host before applying migrations.
 - For public beta, restore the backup once into a non-production target and
   record observed RPO/RTO in
@@ -81,6 +95,17 @@ BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 - Confirm public unauthenticated `/metrics` returns `404`.
 - If metrics are enabled, confirm the reviewed internal collector path returns
   `200` only with `SMOKE_METRICS_BEARER_TOKEN`.
+- Run `npm run qa:alerts` and confirm
+  `docs/operations/monitoring/work-archive-alerts.yml` is deployed or explicitly
+  waived for the release.
+- Run `npm run qa:slo` and confirm
+  `docs/operations/monitoring/work-archive-slo-rules.yml` is deployed or
+  explicitly waived for the release.
+- Run `npm run qa:dashboards` and confirm
+  `docs/operations/monitoring/work-archive-grafana-dashboard.json` is imported
+  into Grafana or explicitly waived for the release.
+- Run `npm run qa:monitoring` against the real monitoring endpoints and copy
+  only the redacted summary into the release evidence ledger.
 
 ## Smoke Tests
 
@@ -91,8 +116,9 @@ BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 - Confirm disabled or placeholder-only routes such as `/community` and `/insights` do not appear in the visible navigation.
 - Tier board create, edit, JSON export/import, and PNG export if changed.
 - Import provider diagnostics page or API response.
-- Smoke-level latency baseline for `/readyz`, auth refresh rejection, sync
-  push/pull, import provider status, and `/work-archive-config.js`.
+- Smoke-level latency baseline from `npm run qa:performance-smoke` for
+  `/readyz`, auth refresh rejection, sync push/pull, import provider status,
+  and `/work-archive-config.js`.
 
 ## Rollback
 

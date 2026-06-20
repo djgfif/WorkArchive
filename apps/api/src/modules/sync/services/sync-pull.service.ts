@@ -81,7 +81,7 @@ export class SyncPullService {
         schemaVersion: SYNC_SCHEMA_VERSION,
         pulledAt,
         nextSince: hasMore
-          ? (since ?? pulledAt)
+          ? (since ?? null)
           : this.cursorService.buildNextSince(
               since ?? null,
               pulledAt,

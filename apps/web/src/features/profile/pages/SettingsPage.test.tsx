@@ -310,8 +310,8 @@ describe('SettingsPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('한국어')).toBeInTheDocument();
     expect(screen.getByText('English')).toBeInTheDocument();
-    expect(screen.getByText('日本語')).toBeInTheDocument();
-    expect(screen.getByText('简体中文')).toBeInTheDocument();
+    expect(screen.getByText('日本語 · 베타')).toBeInTheDocument();
+    expect(screen.getByText('简体中文 · 베타')).toBeInTheDocument();
     expect(screen.queryByText('한국어만 사용 가능')).not.toBeInTheDocument();
     expect(screen.queryByText(/아직 다듬는 중/)).not.toBeInTheDocument();
     expect(screen.queryByText(/순차적으로 열립니다/)).not.toBeInTheDocument();

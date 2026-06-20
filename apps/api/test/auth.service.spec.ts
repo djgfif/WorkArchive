@@ -32,6 +32,8 @@ interface MockUserRefreshSession {
   id: string;
   userId: string;
   tokenHash: string;
+  previousTokenHash: string | null;
+  previousRotatedAt: Date | null;
   rememberMe: boolean;
   userAgent: string | null;
   ipAddress: string | null;
@@ -132,7 +134,12 @@ function createPrismaMock() {
           Partial<
             Pick<
               MockUserRefreshSession,
-              'createdAt' | 'revokedAt' | 'rotatedAt' | 'updatedAt'
+              | 'createdAt'
+              | 'previousRotatedAt'
+              | 'previousTokenHash'
+              | 'revokedAt'
+              | 'rotatedAt'
+              | 'updatedAt'
             >
           >;
       }) => {
@@ -140,6 +147,8 @@ function createPrismaMock() {
         const session = {
           ...data,
           createdAt: data.createdAt ?? now,
+          previousRotatedAt: data.previousRotatedAt ?? null,
+          previousTokenHash: data.previousTokenHash ?? null,
           revokedAt: data.revokedAt ?? null,
           rotatedAt: data.rotatedAt ?? null,
           updatedAt: data.updatedAt ?? now,
@@ -398,11 +407,14 @@ describe('AuthService', () => {
     expect(userRefreshSessions).toHaveLength(2);
 
     await expect(
-      authService.refresh(firstSession.refreshToken),
+      authService.refresh(firstSession.refreshToken!),
     ).resolves.toEqual(
       expect.objectContaining({
         sessionId: firstSession.sessionId,
       }),
+    );
+    userRefreshSessions[0]!.previousRotatedAt = new Date(
+      Date.now() - 16_000,
     );
     expect(
       userRefreshSessions.find(
@@ -423,14 +435,14 @@ describe('AuthService', () => {
     ).toBeInstanceOf(Date);
 
     await expect(
-      authService.refresh(firstSession.refreshToken),
+      authService.refresh(firstSession.refreshToken!),
     ).rejects.toThrow('Invalid or expired refresh token.');
     expect(userRefreshSessions.every((session) => session.revokedAt)).toBe(
       true,
     );
   });
 
-  it('treats a lost refresh rotation race as token reuse', async () => {
+  it('allows a lost refresh rotation race without overwriting the newer refresh cookie', async () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
     const user = {
       avatarUrl: '',
@@ -454,6 +466,7 @@ describe('AuthService', () => {
         input.data.tokenHash
       ) {
         blockRotationUpdate = false;
+        await originalUpdateMany(input);
 
         return {
           count: 0,
@@ -463,11 +476,17 @@ describe('AuthService', () => {
       return originalUpdateMany(input);
     };
 
-    await expect(authService.refresh(session.refreshToken)).rejects.toThrow(
-      'Invalid or expired refresh token.',
+    await expect(authService.refresh(session.refreshToken!)).resolves.toEqual(
+      expect.objectContaining({
+        refreshToken: null,
+        sessionId: session.sessionId,
+      }),
     );
     expect(userRefreshSessions.every((candidate) => candidate.revokedAt)).toBe(
-      true,
+      false,
+    );
+    expect(userRefreshSessions[0]?.previousTokenHash).toEqual(
+      expect.any(String),
     );
   });
 
@@ -694,6 +713,8 @@ describe('refresh cookie options', () => {
     process.env.SWAGGER_ENABLED = 'false';
     process.env.JWT_ACCESS_SECRET = 'test-access-secret-minimum-32-chars';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-minimum-32-chars';
+    process.env.GOOGLE_OAUTH_CLIENT_ID = 'production-google-client-id';
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'production-google-client-secret';
     process.env.GOOGLE_OAUTH_REDIRECT_URI =
       'https://workarchive.example.com/api/auth/google/callback';
 

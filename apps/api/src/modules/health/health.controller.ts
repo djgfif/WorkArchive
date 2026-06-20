@@ -32,6 +32,9 @@ interface AppliedMigrationRow {
   migrationName: string;
 }
 
+const MIGRATIONS_RELATIVE_PATH = 'prisma/migrations';
+const FALLBACK_READINESS_CHECK_TIMEOUT_MS = 1500;
+
 @Controller()
 export class HealthController {
   private readonly logger = new Logger(HealthController.name);
@@ -71,8 +74,15 @@ export class HealthController {
       this.logReadyFailure('config', error);
     }
 
+    const timeoutMs =
+      config?.readinessCheckTimeoutMs ?? FALLBACK_READINESS_CHECK_TIMEOUT_MS;
+
     try {
-      await this.prisma.$queryRaw`SELECT 1`;
+      await this.withReadyTimeout(
+        'postgres',
+        this.prisma.$queryRaw`SELECT 1`,
+        timeoutMs,
+      );
       postgresReady = true;
     } catch (error) {
       failures.push('postgres');
@@ -81,7 +91,11 @@ export class HealthController {
 
     if (postgresReady) {
       try {
-        await this.assertMigrationsReady();
+        await this.withReadyTimeout(
+          'migrations',
+          this.assertMigrationsReady(),
+          timeoutMs,
+        );
       } catch (error) {
         failures.push('migrations');
         this.logReadyFailure('migrations', error);
@@ -92,7 +106,7 @@ export class HealthController {
       let redis: RedisClient | null = null;
 
       try {
-        redis = await connectRedisClient(config.redisUrl);
+        redis = await connectRedisClient(config.redisUrl, { timeoutMs });
       } catch (error) {
         failures.push('redis');
         this.logReadyFailure('redis', error);
@@ -151,7 +165,7 @@ export class HealthController {
       return this.localMigrationNames;
     }
 
-    const migrationsDirectory = resolve(__dirname, '../../../prisma/migrations');
+    const migrationsDirectory = this.resolveMigrationsDirectory();
 
     if (!existsSync(migrationsDirectory)) {
       throw new Error('Prisma migrations directory is missing.');
@@ -171,6 +185,42 @@ export class HealthController {
     this.localMigrationNames = migrationNames;
 
     return migrationNames;
+  }
+
+  private resolveMigrationsDirectory() {
+    const defaultDirectory = resolve(process.cwd(), MIGRATIONS_RELATIVE_PATH);
+    const candidates = [
+      defaultDirectory,
+      resolve(process.cwd(), 'apps/api', MIGRATIONS_RELATIVE_PATH),
+      resolve(__dirname, '../../../', MIGRATIONS_RELATIVE_PATH),
+    ];
+
+    return (
+      candidates.find((candidate) => existsSync(candidate)) ?? defaultDirectory
+    );
+  }
+
+  private async withReadyTimeout<T>(
+    check: string,
+    operation: Promise<T>,
+    timeoutMs: number,
+  ) {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => {
+            reject(new Error(`${check} readiness timed out after ${timeoutMs}ms.`));
+          }, timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }
   }
 
   private logReadyFailure(check: string, error: unknown) {

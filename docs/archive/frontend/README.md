@@ -63,7 +63,6 @@ npm run test:e2e:web
 직접 apt 패키지를 고정하기보다 Playwright의 `install-deps` 결과를 기준으로
 환경을 맞춘다.
 
-현재 CI는 web Playwright e2e를 실행하지 않는다. CI에
-`npm run test:e2e:web`를 추가할 때는 그 전에
-`npx playwright install --with-deps chromium` 또는
-`npx playwright install-deps chromium-headless-shell` 단계를 추가한다.
+현재 `validate` CI는 `npx playwright install --with-deps chromium` 후
+`npm run test:e2e:web`를 실행한다. 로컬/별도 CI 환경에서 같은 검사를
+추가할 때도 Playwright 브라우저와 OS 의존성을 먼저 설치한다.

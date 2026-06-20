@@ -22,6 +22,15 @@ describe('production deployment config', () => {
     expect(apiService).toContain('REDIS_URL: ${REDIS_URL:-redis://redis:6379}');
     expect(apiService).toContain('TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}');
     expect(apiService).toContain(
+      'READINESS_CHECK_TIMEOUT_MS: ${READINESS_CHECK_TIMEOUT_MS:-1500}',
+    );
+    expect(apiService).toContain(
+      'API_JSON_BODY_LIMIT: ${API_JSON_BODY_LIMIT:-2mb}',
+    );
+    expect(apiService).toContain(
+      'API_URLENCODED_BODY_LIMIT: ${API_URLENCODED_BODY_LIMIT:-64kb}',
+    );
+    expect(apiService).toContain(
       'SECURITY_EVENT_HASH_SECRET: ${SECURITY_EVENT_HASH_SECRET:?required}',
     );
     expect(apiService).not.toContain('\n    ports:');
@@ -51,6 +60,50 @@ describe('production deployment config', () => {
     expect(webService).not.toContain('VITE_GOOGLE_OAUTH_CLIENT_SECRET');
   });
 
+  it('enables graceful API shutdown hooks and rate-limit Redis cleanup', () => {
+    const main = readFileSync(join(repoRoot, 'apps/api/src/main.ts'), 'utf8');
+    const securityModule = readFileSync(
+      join(repoRoot, 'apps/api/src/security/security.module.ts'),
+      'utf8',
+    );
+    const cleanupService = readFileSync(
+      join(
+        repoRoot,
+        'apps/api/src/security/security-runtime-cleanup.service.ts',
+      ),
+      'utf8',
+    );
+
+    expect(main).toContain("app.enableShutdownHooks(['SIGTERM', 'SIGINT'])");
+    expect(main).toContain('bodyParser: false');
+    expect(main).toContain(
+      "app.useBodyParser('json', { limit: config.jsonBodyLimit })",
+    );
+    expect(main).toContain("app.useBodyParser('urlencoded'");
+    expect(securityModule).toContain('SecurityRuntimeCleanupService');
+    expect(cleanupService).toContain('shutdownRedisRateLimitClients');
+  });
+
+  it('keeps production healthcheck covered by repo gates and validates response bodies', () => {
+    const packageJson = readFileSync(join(repoRoot, 'package.json'), 'utf8');
+    const repoGates = readFileSync(
+      join(repoRoot, 'scripts/qa/commercial-repo-gates.sh'),
+      'utf8',
+    );
+    const healthcheck = readFileSync(
+      join(repoRoot, 'scripts/deploy/prod-healthcheck.sh'),
+      'utf8',
+    );
+
+    expect(packageJson).toContain(
+      '"ops:healthcheck": "scripts/deploy/prod-healthcheck.sh"',
+    );
+    expect(repoGates).toContain('bash -n scripts/deploy/prod-healthcheck.sh');
+    expect(healthcheck).toContain('assert_health_json');
+    expect(healthcheck).toContain('data.service !== "work-archive-api"');
+    expect(healthcheck).toContain('data.status !== "ok"');
+  });
+
   it('keeps the local Docker API aligned with the web reverse proxy', () => {
     const composeDev = readFileSync(join(repoRoot, 'compose.yml'), 'utf8');
     const apiService = composeDev.slice(
@@ -59,6 +112,15 @@ describe('production deployment config', () => {
     );
 
     expect(apiService).toContain('TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}');
+    expect(apiService).toContain(
+      'READINESS_CHECK_TIMEOUT_MS: ${READINESS_CHECK_TIMEOUT_MS:-1500}',
+    );
+    expect(apiService).toContain(
+      'API_JSON_BODY_LIMIT: ${API_JSON_BODY_LIMIT:-2mb}',
+    );
+    expect(apiService).toContain(
+      'API_URLENCODED_BODY_LIMIT: ${API_URLENCODED_BODY_LIMIT:-64kb}',
+    );
     expect(apiService).toContain('AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-120}');
     expect(apiService).toContain('SYNC_RATE_LIMIT_MAX: ${SYNC_RATE_LIMIT_MAX:-120}');
   });

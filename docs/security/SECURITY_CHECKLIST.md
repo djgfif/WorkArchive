@@ -37,4 +37,6 @@ Use this checklist before releases that touch auth, sync, imports, tier boards, 
 
 - Structured logs redact cookie, authorization, token, code, and API key fields.
 - Provider diagnostics report readiness and reason codes without exposing raw credentials.
-- Security events use stable non-secret identifiers.
+- Security events use stable non-secret identifiers; metadata drops sensitive
+  keys, strips URL query/fragment values, redacts inline bearer/basic
+  credentials, removes control characters, and caps stored string length.

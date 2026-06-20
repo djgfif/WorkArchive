@@ -10,11 +10,17 @@ tester data.
 For repeatable collection, follow
 [`GATE_1_VALIDATION_RUNBOOK.md`](./GATE_1_VALIDATION_RUNBOOK.md). Local helper
 reports can be generated with `npm run qa:gate1:local`, import/search QA with
-`npm run qa:import-search`, and sync load dry-run validation with
-`npm run qa:sync-load`. Copy only observed summary results into this ledger;
+`npm run qa:import-search`, migration safety with `npm run qa:migrations`, and
+sync load dry-run validation with `npm run qa:sync-load`. Copy only observed
+summary results into this ledger;
 leave environment-only items blank, `blocked`, or `not run` until they are run
 on the required release runner, beta host, GitHub Settings page, restore target,
 or disposable authenticated test account.
+
+Before approving public beta, run
+`GATE1_EVIDENCE_STRICT=true npm run qa:gate1:evidence`. The non-strict
+`npm run qa:gate1:evidence` mode is useful while filling this ledger, but it is
+not an approval gate because it reports incomplete evidence without failing.
 
 2026-06-04 expert feedback disposition: accepted work is search QA, sync
 reliability evidence, API boundary documentation, and operational Gate 1
@@ -38,6 +44,7 @@ open-source licensing changes are not part of this evidence run.
 - `npm run typecheck`: PASS — no TypeScript errors (2026-06-04)
 - `npm run test`: PASS — API 32 suites / 366 tests, web 43 files / 304 tests, shared-types 1 file / 3 tests (2026-06-04)
 - `npm run build`: PASS — shared-types `tsc`, API `tsc`, web Vite production build (2026-06-04)
+- `npm run qa:migrations`: PASS — Prisma migration safety check passed with registered high-risk historical migrations
 - `npm run qa:import-search`: PASS — report `tmp/import-search-qa/import-search-qa-20260604T120649Z.md`, 28 offline matrix cases + focused import/search tests
 - `npm run qa:sync-load`: PASS — report `tmp/sync-load/sync-load-smoke-20260604T120803Z.md`, dry-run synthetic payload validation
 - `npm run test:e2e:web`: PASS — 10 Playwright tests passed across chromium and mobile-chrome (2026-06-04; ran outside sandbox because local sandbox blocks localhost bind with `EPERM`)
@@ -72,12 +79,38 @@ open-source licensing changes are not part of this evidence run.
 - Sync conflict resolution:
 - Import provider failure fallback:
 
+## Metrics And Alerts
+
+- `npm run qa:alerts`:
+- `npm run qa:slo`:
+- `npm run qa:dashboards`:
+- `npm run qa:monitoring` report:
+- Alert rule file deployed:
+- SLO rule file deployed:
+- Grafana dashboard file deployed:
+- Grafana dashboard UID:
+- Prometheus/collector target for `/metrics`:
+- Alertmanager or notification channel:
+- API availability SLO 30d:
+- API latency p95 SLO 30d:
+- Auth refresh success SLO 30d:
+- Sync success SLO 30d:
+- Import search success SLO 30d:
+- Public unauthenticated `/metrics` result:
+- Internal collector `/metrics` result:
+- Alert/SLO/dashboard waivers or threshold/target/query changes:
+
 ## Backup And Restore Drill
 
-- Backup command:
+- Backup command (`npm run ops:backup`):
+- Backup report (`tmp/backups/prod-backup-*.md` summary only):
 - Backup file identifier:
+- Backup verification report (`tmp/backups/prod-backup-verify-*.md` summary only):
 - Off-host copy location:
-- Restore target:
+- Restore drill command (`npm run ops:restore-drill` with
+  `RESTORE_DRILL_CONFIRM=restore-disposable-target`):
+- Restore target (must be disposable/non-production):
+- Restore drill report (`tmp/restore-drills/restore-drill-*.md` summary only):
 - Restore start/end time:
 - Observed RPO:
 - Observed RTO:
@@ -87,8 +120,13 @@ open-source licensing changes are not part of this evidence run.
 
 ## Smoke-Level Performance Baseline
 
-Record p50/p95 or the closest available timing from the beta host. If a metric
-is not measured, write `not measured` and explain why.
+Run `npm run qa:performance-smoke` against the beta host and copy p50/p95 from
+the generated `tmp/performance-smoke/performance-smoke-*.md` summary. If a
+metric is not measured, write `not measured` and explain why.
+
+- Performance smoke command:
+- Performance smoke report:
+- Authenticated disposable account used for sync timing: yes/no/not available
 
 | Scenario                                | p50 | p95 | Notes |
 | --------------------------------------- | --: | --: | ----- |

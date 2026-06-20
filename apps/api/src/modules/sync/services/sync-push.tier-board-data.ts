@@ -105,6 +105,8 @@ export function buildTierBoardAssetUpdateData(
     sizeBytes: payload.sizeBytes,
     cardId: payload.cardId,
     deletedAt: parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),
+    syncStatus: SERVER_SYNC_STATUS,
+    serverVersion: { increment: 1 },
   };
 }
 
@@ -117,6 +119,7 @@ export function buildTierBoardAssetCreateData(
     boardId: payload.boardId,
     createdAt: parseIsoDate(payload.createdAt, 'payload.createdAt'),
     updatedAt: parseIsoDate(payload.updatedAt, 'payload.updatedAt'),
+    serverVersion: 1,
   };
 }
 

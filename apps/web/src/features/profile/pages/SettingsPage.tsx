@@ -83,7 +83,10 @@ function LanguageSettingsSection() {
 
       <Select
         data={enabledLocales.map((option) => ({
-          label: option.nativeLabel,
+          label:
+            option.availability === 'beta'
+              ? `${option.nativeLabel} · ${t('locale.availability.beta')}`
+              : option.nativeLabel,
           value: option.locale,
         }))}
         description={t('locale.currentDescription')}

@@ -54,6 +54,7 @@ export const SYNC_RESULT_CODES = [
   'failed_client_mutation_reused',
   'failed_missing_catalog_title',
   'failed_import_draft_unresolved',
+  'failed_server_error',
   'pull_conflict_local_queue',
   'result_missing',
   'unknown',

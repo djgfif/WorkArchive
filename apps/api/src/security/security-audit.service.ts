@@ -37,6 +37,8 @@ export interface SecurityAuditEvent extends SecurityAuditContext {
   severity: SecurityEventSeverity;
 }
 
+const MAX_SECURITY_METADATA_STRING_LENGTH = 160;
+
 @Injectable()
 export class SecurityAuditService {
   private readonly logger = new Logger(SecurityAuditService.name);
@@ -100,12 +102,17 @@ export class SecurityAuditService {
   }
 
   private sanitizeMetadata(metadata: Record<string, unknown> = {}) {
-    return Object.fromEntries(
-      Object.entries(metadata).filter(
-        ([key, value]) =>
-          isJsonSafePrimitive(value) && !isSensitiveMetadataKey(key),
-      ),
-    ) as Record<string, JsonPrimitive>;
+    const sanitized: Record<string, JsonPrimitive> = {};
+
+    for (const [key, value] of Object.entries(metadata)) {
+      if (!isJsonSafePrimitive(value) || isSensitiveMetadataKey(key)) {
+        continue;
+      }
+
+      sanitized[key] = sanitizeMetadataValue(value);
+    }
+
+    return sanitized;
   }
 }
 
@@ -129,7 +136,7 @@ export function setRequestId(request: Request, requestId: string) {
   requestWithId.requestId = requestId;
 }
 
-function isJsonSafePrimitive(value: unknown) {
+function isJsonSafePrimitive(value: unknown): value is JsonPrimitive {
   return (
     value === null ||
     typeof value === 'string' ||
@@ -142,4 +149,57 @@ function isSensitiveMetadataKey(key: string) {
   return /authorization|api[-_]?key|cookie|email|password|secret|token/i.test(
     key,
   );
+}
+
+function sanitizeMetadataValue(value: JsonPrimitive): JsonPrimitive {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const withoutControlCharacters = replaceControlCharacters(value);
+  const withoutInlineCredentials = withoutControlCharacters
+    .replace(/\bBearer\s+\S+/gi, 'Bearer [redacted]')
+    .replace(/\bBasic\s+\S+/gi, 'Basic [redacted]')
+    .trim();
+  const withoutUrlSecrets = removeUrlQueryAndFragment(withoutInlineCredentials);
+
+  if (withoutUrlSecrets.length <= MAX_SECURITY_METADATA_STRING_LENGTH) {
+    return withoutUrlSecrets;
+  }
+
+  return `${withoutUrlSecrets.slice(0, MAX_SECURITY_METADATA_STRING_LENGTH - 3)}...`;
+}
+
+function replaceControlCharacters(value: string) {
+  return Array.from(value, (character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+
+    return codePoint < 32 || codePoint === 127 ? ' ' : character;
+  }).join('');
+}
+
+function removeUrlQueryAndFragment(value: string) {
+  if (!value.includes('?') && !value.includes('#')) {
+    return value;
+  }
+
+  try {
+    const url = new URL(value);
+
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    // Continue below for request paths such as /api/auth?code=...
+  }
+
+  if (value.startsWith('/')) {
+    try {
+      const url = new URL(value, 'https://work-archive.local');
+
+      return url.pathname;
+    } catch {
+      return value.split(/[?#]/, 1)[0] || '/';
+    }
+  }
+
+  return value.split(/[?#]/, 1)[0] ?? '';
 }

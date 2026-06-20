@@ -5,9 +5,23 @@ live under [`../operations/`](../operations/).
 
 ## Prerequisites
 
-- Node.js `22+`
-- npm `10+`
+- Node.js `22.22.3` from [`.nvmrc`](../../.nvmrc), or any Node version that
+  satisfies the root `package.json` `engines.node` range.
+- npm `10.9+`
 - Docker Desktop or Docker Engine with Compose
+
+When using `nvm`, load the repository runtime before running npm commands:
+
+```bash
+source ~/.nvm/nvm.sh
+nvm use
+node -v
+npm -v
+```
+
+Root `lint`, `typecheck`, `test`, `build`, and dev server scripts run
+`npm run check:runtime` first. If the shell is still using an older system Node,
+the command fails before starting tools that require Node 22.
 
 ## Environment Files
 
@@ -115,6 +129,18 @@ npm run test:integration
 
 If `DATABASE_URL` is set explicitly, it must include `test` or `integration` in
 the database name. The test reset guard refuses any other target.
+
+## Local Verification Gates
+
+Run the same local gates with the repository Node runtime loaded automatically:
+
+```bash
+scripts/qa/run-local-gates.sh
+```
+
+The script sources `nvm`, switches to [`.nvmrc`](../../.nvmrc), prints
+`node -v` and `npm -v`, then runs `npm run lint`, `npm run typecheck`, and
+`npm run test`.
 
 ## Windows Helpers
 

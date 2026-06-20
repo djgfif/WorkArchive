@@ -11,6 +11,7 @@ interface RetentionModelDelegate {
 }
 
 export interface RetentionPrismaClient {
+  notionPullPreviewSnapshot: RetentionModelDelegate;
   securityEvent: RetentionModelDelegate;
   userSyncAppliedMutation: RetentionModelDelegate;
   userRefreshSession: RetentionModelDelegate;
@@ -77,6 +78,7 @@ export function buildRetentionCleanupTargets(
     buildSecurityEventRetentionTarget(config),
     buildRefreshSessionRetentionTarget(config),
     buildSyncMutationRetentionTarget(config),
+    buildNotionPreviewSnapshotRetentionTarget(config),
   ];
 }
 
@@ -143,6 +145,21 @@ function buildSyncMutationRetentionTarget(
       expiresAt: {
         lt: config.now,
         not: null,
+      },
+    },
+  };
+}
+
+function buildNotionPreviewSnapshotRetentionTarget(
+  config: RetentionCleanupConfig,
+): RetentionCleanupTarget {
+  return {
+    description: `notion_pull_preview_snapshots expired before ${config.now.toISOString()}`,
+    model: 'notionPullPreviewSnapshot',
+    name: 'notion_pull_preview_snapshots',
+    where: {
+      expiresAt: {
+        lt: config.now,
       },
     },
   };

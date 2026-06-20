@@ -12,6 +12,9 @@
 
 - Generate migrations from reviewed Prisma schema changes.
 - Review generated SQL before merge.
+- Run `npm run qa:migrations` before every release candidate. The check fails
+  when high-risk SQL appears without a matching entry in
+  [`MIGRATION_RISK_REGISTER.md`](./MIGRATION_RISK_REGISTER.md).
 - Avoid `DROP COLUMN`, `DROP TABLE`, destructive enum rewrites, and mass updates in the same deploy that changes application behavior.
 - Add nullable columns or defaults first, deploy code that writes both old and new shapes, backfill safely, then contract later.
 - Add indexes concurrently where supported by the deployment path, or schedule maintenance when locks are expected.
@@ -45,6 +48,9 @@ Destructive migrations are forbidden by default. This includes dropping columns/
 
 If a destructive migration is unavoidable:
 
+- Add an `approved-release` entry to
+  [`MIGRATION_RISK_REGISTER.md`](./MIGRATION_RISK_REGISTER.md) before the
+  release candidate is approved.
 - Document the affected data.
 - Take and verify a backup.
 - State why expand/migrate/contract is not sufficient.

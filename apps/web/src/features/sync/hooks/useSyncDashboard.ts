@@ -510,7 +510,7 @@ function buildSyncDashboardItem(
         : null,
       operation: queueItem.operation,
       retryCount: queueItem.retryCount,
-      serverVersion: 0,
+      serverVersion: tierBoardAsset.serverVersion,
       state: getQueueItemState(syncStatus, queueItem),
       syncStatus,
       title: getTierBoardAssetTitle(tierBoardAsset, parentBoard, queueItem),

@@ -467,6 +467,8 @@ function normalizeTierBoardAssetRecord(
     createdAt: asset.createdAt ?? new Date().toISOString(),
     updatedAt: asset.updatedAt ?? new Date().toISOString(),
     deletedAt: asset.deletedAt ?? null,
+    syncStatus: asset.syncStatus ?? 'local-only',
+    serverVersion: asset.serverVersion ?? 0,
     blob: asset.blob ?? null,
   };
 }

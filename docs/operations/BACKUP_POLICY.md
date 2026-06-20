@@ -22,14 +22,15 @@ sha256sum -c "work_archive_YYYYMMDD_HHMMSS.dump.sha256"
 For Docker Compose production operations with the named PostgreSQL volume:
 
 ```bash
-BACKUP_DIR=backups scripts/deploy/prod-backup.sh
+BACKUP_DIR=backups npm run ops:backup
 BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
-BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+BACKUP_FILE="$BACKUP_FILE" npm run ops:backup:verify
 ```
 
 `prod-backup.sh` writes a PostgreSQL custom-format `.dump`, validates it with
 `pg_restore --list`, writes a `.sha256` sidecar, and verifies that checksum
-before reporting success.
+before reporting success. It also writes a redacted operator report to
+`tmp/backups/prod-backup-*.md` unless `BACKUP_REPORT_DIR` is set.
 
 ## Restore Command
 
@@ -43,8 +44,11 @@ Before restore, verify the selected backup:
 
 ```bash
 BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump
-BACKUP_FILE="$BACKUP_FILE" scripts/deploy/prod-backup-verify.sh
+BACKUP_FILE="$BACKUP_FILE" npm run ops:backup:verify
 ```
+
+The verification command writes a redacted report to
+`tmp/backups/prod-backup-verify-*.md` unless `BACKUP_VERIFY_REPORT_DIR` is set.
 
 After restore:
 

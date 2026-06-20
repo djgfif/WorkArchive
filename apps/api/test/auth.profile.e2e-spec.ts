@@ -13,6 +13,7 @@ import {
 
 import { AuthController } from '../src/modules/auth/auth.controller';
 import { AuthService } from '../src/modules/auth/auth.service';
+import { REFRESH_TOKEN_COOKIE_NAME } from '../src/modules/auth/auth.cookies';
 import { GoogleOAuthFlowStoreService } from '../src/modules/auth/google-oauth-flow-store.service';
 import { readApiRuntimeConfig } from '../src/config/api-runtime-config';
 import { configureApp } from '../src/configure-app';
@@ -25,7 +26,9 @@ describe('auth profile API (e2e)', () => {
     loginWithGoogleAuthorizationCode: jest.MockedFunction<
       AuthService['loginWithGoogleAuthorizationCode']
     >;
+    refresh: jest.MockedFunction<AuthService['refresh']>;
     revokeRefreshSession: jest.MockedFunction<AuthService['revokeRefreshSession']>;
+    toSessionResponse: jest.MockedFunction<AuthService['toSessionResponse']>;
     updateProfile: jest.MockedFunction<AuthService['updateProfile']>;
     validateAccessToken: jest.MockedFunction<AuthService['validateAccessToken']>;
   };
@@ -42,11 +45,18 @@ describe('auth profile API (e2e)', () => {
       loginWithGoogleAuthorizationCode: jest.fn<
         AuthService['loginWithGoogleAuthorizationCode']
       >(),
+      refresh: jest.fn<AuthService['refresh']>(),
       revokeRefreshSession: jest
         .fn<AuthService['revokeRefreshSession']>()
         .mockResolvedValue({
           revokedCurrent: false,
         }),
+      toSessionResponse: jest
+        .fn<AuthService['toSessionResponse']>()
+        .mockImplementation((session) => ({
+          accessToken: session.accessToken,
+          user: session.user,
+        })),
       updateProfile: jest.fn<AuthService['updateProfile']>().mockResolvedValue({
         authAccounts: [],
         avatarUrl: 'https://example.com/avatar.jpg',
@@ -177,6 +187,47 @@ describe('auth profile API (e2e)', () => {
           reason: 'missing_oauth_flow_cookie',
         },
         severity: 'warning',
+      }),
+    );
+  });
+
+  it('does not overwrite the refresh cookie for a grace-window refresh race response', async () => {
+    authService.refresh.mockResolvedValue({
+      accessToken: 'race-access-token',
+      refreshToken: null,
+      rememberMe: true,
+      sessionId: 'session-1',
+      user: {
+        authAccounts: [],
+        avatarUrl: '',
+        email: 'frieren@example.com',
+        handle: null,
+        id: 'user-1',
+        nickname: '',
+        role: 'user',
+      },
+    });
+
+    const response = await fetch(`${baseUrl}/api/auth/refresh`, {
+      headers: {
+        cookie: `${REFRESH_TOKEN_COOKIE_NAME}=stale-refresh-token`,
+      },
+      method: 'POST',
+    });
+
+    await expect(response.json()).resolves.toEqual({
+      accessToken: 'race-access-token',
+      user: expect.objectContaining({
+        email: 'frieren@example.com',
+      }),
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('set-cookie')).toBeNull();
+    expect(authService.refresh).toHaveBeenCalledWith(
+      'stale-refresh-token',
+      expect.objectContaining({
+        ipAddress: expect.any(String),
+        userAgent: expect.any(String),
       }),
     );
   });
