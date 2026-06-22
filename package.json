@@ -80,12 +80,12 @@
     "postinstall": "npm run prisma:generate --workspace @work-archive/api"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.0",
     "concurrently": "^10.0.3",
     "eslint": "^10.5.0",
     "fast-check": "^4.8.0",
     "msw": "^2.14.6",
-    "orval": "^8.17.0",
+    "orval": "^8.18.0",
     "prettier": "^3.8.4",
     "typescript": "^6.0.3"
   },
