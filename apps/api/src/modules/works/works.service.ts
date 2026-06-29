@@ -48,7 +48,11 @@ export class WorksService {
     return groupWorksBy(works, by);
   }
 
-  async create(userId: string, createWorkDto: CreateWorkDto) {
+  async create(
+    userId: string,
+    createWorkDto: CreateWorkDto,
+    requestId?: string,
+  ) {
     try {
       // 릴리스 1단계에서는 catalog와 user record를 1:1로 생성해 기존 flat 계약을 유지합니다.
       const workId = crypto.randomUUID();
@@ -77,12 +81,17 @@ export class WorksService {
 
       return toFlatWorkResponse(work);
     } catch (error) {
-      this.logMutationFailure('create', userId, null, error);
+      this.logMutationFailure('create', userId, null, error, requestId);
       throw error;
     }
   }
 
-  async update(userId: string, id: string, updateWorkDto: UpdateWorkDto) {
+  async update(
+    userId: string,
+    id: string,
+    updateWorkDto: UpdateWorkDto,
+    requestId?: string,
+  ) {
     try {
       const existingWork = await this.getActiveWorkOrThrow(userId, id);
       const compatibilityPlan = buildWorkUpdateCompatibilityPlan(
@@ -121,12 +130,12 @@ export class WorksService {
 
       return toFlatWorkResponse(work);
     } catch (error) {
-      this.logMutationFailure('update', userId, id, error);
+      this.logMutationFailure('update', userId, id, error, requestId);
       throw error;
     }
   }
 
-  async remove(userId: string, id: string) {
+  async remove(userId: string, id: string, requestId?: string) {
     try {
       await this.userRecordsService.updateActiveForUser(
         userId,
@@ -140,7 +149,7 @@ export class WorksService {
         },
       );
     } catch (error) {
-      this.logMutationFailure('delete', userId, id, error);
+      this.logMutationFailure('delete', userId, id, error, requestId);
       throw error;
     }
   }
@@ -163,14 +172,23 @@ export class WorksService {
     userId: string,
     workId: string | null,
     error: unknown,
+    requestId: string | undefined,
   ) {
     const errorName = error instanceof Error ? error.name : 'UnknownError';
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
 
     this.logger.warn(
-      `Work ${operation} failed userId=${userId}${workId ? ` workId=${workId}` : ''} reason=${errorName}: ${errorMessage}`,
+      JSON.stringify({
+        count: null,
+        durationMs: null,
+        entityType: 'work',
+        errorCode: errorName,
+        event: 'work.mutation.failed',
+        operation,
+        provider: null,
+        requestId: requestId ?? null,
+        userId,
+        workId,
+      }),
     );
   }
-
 }

@@ -370,6 +370,13 @@ function assertAllowedExternalFetchUrl(
     );
   }
 
+  if (url.port) {
+    throw new ExternalFetchError(
+      'External request URL must use the default HTTPS port.',
+      'forbidden_url',
+    );
+  }
+
   const hostname = url.hostname.toLowerCase();
   const exactHostnames = options.allowedHostnames ?? [];
   const hostnameSuffixes = options.allowedHostnameSuffixes ?? [];

@@ -15,11 +15,11 @@ export function extractOptionalBearerAccessToken(authorizationHeader?: string) {
     return null;
   }
 
-  const [scheme, token] = authorizationHeader.split(' ');
+  const match = /^Bearer ([^\s]+)$/.exec(authorizationHeader);
 
-  if (scheme !== 'Bearer' || !token) {
+  if (!match) {
     throw new UnauthorizedException('Malformed Bearer access token.');
   }
 
-  return token;
+  return match[1];
 }

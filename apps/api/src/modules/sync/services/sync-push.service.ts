@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 
 import { CatalogService } from '../../catalog/catalog.service';
 import { UserReleaseRecordsService } from '../../user-records/user-release-records.service';
@@ -11,7 +17,7 @@ import type {
   PushSyncResponseDto,
   PushSyncResultDto,
 } from '../dto/push-sync-response.dto';
-import { SYNC_SCHEMA_VERSION } from '../sync.constants';
+import { MAX_PUSH_BATCH_SIZE, SYNC_SCHEMA_VERSION } from '../sync.constants';
 import { SyncIdempotencyService } from './sync-idempotency.service';
 import { SyncPayloadValidationService } from './sync-payload-validation.service';
 import {
@@ -69,7 +75,6 @@ export class SyncPushService {
     assertSupportedSyncSchemaVersion(pushSyncDto);
 
     const { changes } = pushSyncDto;
-    const sortedChanges = sortPushChangesByCreatedAt(changes);
     const results: PushSyncResultDto[] = [];
     const startedAt = Date.now();
 
@@ -80,10 +85,16 @@ export class SyncPushService {
     });
 
     try {
-      for (const change of sortedChanges) {
-        results.push(
-          await this.applyChangeAsResult(userId, change, requestId),
+      if (changes.length > MAX_PUSH_BATCH_SIZE) {
+        throw new BadRequestException(
+          `Sync push batches must contain no more than ${MAX_PUSH_BATCH_SIZE} changes.`,
         );
+      }
+
+      const sortedChanges = sortPushChangesByCreatedAt(changes);
+
+      for (const change of sortedChanges) {
+        results.push(await this.applyChangeAsResult(userId, change, requestId));
       }
 
       const response = {
@@ -94,6 +105,10 @@ export class SyncPushService {
 
       this.logPushSummary(userId, changes.length, response);
       this.metricsService?.recordSync('push', 'success');
+      this.metricsService?.recordSyncDuration(
+        { direction: 'push', result: 'success' },
+        (Date.now() - startedAt) / 1000,
+      );
       this.logEvent('sync.push.completed', {
         count: response.results.length,
         durationMs: Date.now() - startedAt,
@@ -104,6 +119,10 @@ export class SyncPushService {
       return response;
     } catch (error) {
       this.metricsService?.recordSync('push', 'failure');
+      this.metricsService?.recordSyncDuration(
+        { direction: 'push', result: 'failure' },
+        (Date.now() - startedAt) / 1000,
+      );
       this.logEvent('sync.push.failed', {
         count: changes.length,
         durationMs: Date.now() - startedAt,
@@ -111,9 +130,6 @@ export class SyncPushService {
         requestId,
         userId,
       });
-      this.logger.warn(
-        `Sync push failed userId=${userId} requested=${changes.length} reason=${describeError(error)}`,
-      );
       throw error;
     }
   }
@@ -160,14 +176,14 @@ export class SyncPushService {
         result.code ?? 'unknown',
       );
       this.logEvent('sync.change.failed', {
+        entityId: change.entityId,
         entityType: change.entityType,
         errorCode: describeError(error),
+        operation: change.operation,
+        queueId: change.queueId,
         requestId,
         userId,
       });
-      this.logger.warn(
-        `Sync change failed userId=${userId} entityType=${change.entityType} entityId=${change.entityId} queueId=${change.queueId} reason=${describeError(error)}`,
-      );
 
       return result;
     }

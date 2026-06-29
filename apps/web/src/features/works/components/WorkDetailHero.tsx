@@ -55,7 +55,7 @@ export function WorkDetailHero({
           />
         </Box>
 
-        <Stack className={cn(css.detailHeroBody)} flex={1} gap="md" miw={0}>
+        <Stack className={cn(css.detailHeroBody)} flex={1} gap="md">
           <Group className={cn(css.detailHeroMeta)} gap="xs" wrap="wrap">
             <Text fw={800} size="sm">
               {typeLabel}

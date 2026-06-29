@@ -43,7 +43,7 @@ export function YearInReviewModal({
     try {
       setExporting(true);
       const dataUrl = await toPng(cardRef.current, {
-        backgroundColor: '#0c0b0a',
+        backgroundColor: '#0a0a0c',
         cacheBust: true,
         pixelRatio: 2,
       });

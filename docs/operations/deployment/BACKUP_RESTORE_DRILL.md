@@ -20,7 +20,11 @@ The production backup script creates a PostgreSQL custom-format `.dump`, checks
 it with `pg_restore --list`, writes a `.sha256` sidecar, and verifies the
 checksum before reporting success. It writes a redacted operator report to
 `tmp/backups/prod-backup-*.md`; the verification script writes
-`tmp/backups/prod-backup-verify-*.md`.
+`tmp/backups/prod-backup-verify-*.md`. These reports and restore-drill reports
+redact URL userinfo, bearer/basic credentials, database/Redis URL userinfo,
+sensitive query parameters, and standalone `key=value` fragments for tokens,
+OAuth codes, state, nonce, credentials, cookies, API keys, passwords, and
+secrets.
 
 Move the backup off-host immediately, for example to encrypted object storage or
 a secure workstation:
@@ -37,6 +41,38 @@ provider credentials and user records are still sensitive.
 
 Use a rehearsal host or disposable volume. Do not overwrite production while
 testing restore.
+
+Prefer the scripted restore drill so backup verification, restore, migrations,
+startup, and optional smoke output are captured in one redacted report:
+
+Before touching a disposable database, generate a non-destructive operator plan
+and review the env file, compose file, target URL, and command sequence:
+
+```bash
+RESTORE_DRILL_PLAN_ONLY=true \
+ENV_FILE=.env.restore \
+RESTORE_DRILL_BASE_URL=http://127.0.0.1:8080 \
+npm run ops:restore-drill
+```
+
+The plan-only command does not require `RESTORE_DRILL_CONFIRM`, Docker, a backup
+file, or a running stack. It writes
+`tmp/restore-drills/restore-drill-plan-*.md` and explicitly records that no
+`pg_restore`, migration, startup, smoke, or destructive restore command ran.
+Use it for pre-review only; it does not satisfy the Gate 1 restore-drill
+approval evidence by itself.
+
+```bash
+RESTORE_DRILL_CONFIRM=restore-disposable-target \
+ENV_FILE=.env.restore \
+RESTORE_DRILL_BASE_URL=http://127.0.0.1:8080 \
+BACKUP_FILE=backups/work-archive-YYYYMMDDTHHMMSSZ.dump \
+npm run ops:restore-drill
+```
+
+The restore drill defaults to `.env.restore` and passes that same env file and
+compose file into the post-restore beta smoke. Set `RESTORE_DRILL_BASE_URL` only
+to the disposable restored web origin; do not point the drill at production.
 
 ```bash
 docker compose -f compose.prod.yml --env-file .env.prod down -v

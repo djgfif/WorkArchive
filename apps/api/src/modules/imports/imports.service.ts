@@ -163,6 +163,7 @@ export class ImportsService {
   async search(
     userId: string | null,
     searchQuery: ImportSearchQueryDto,
+    requestId?: string,
   ): Promise<ImportSearchResponseDto> {
     const context = buildImportSearchContext({
       searchQuery,
@@ -202,6 +203,7 @@ export class ImportsService {
         },
         providers: context.providers,
         query: context.query,
+        ...(requestId ? { requestId } : {}),
         resolvedProviders: context.resolvedProviders,
         userId,
       });
@@ -229,6 +231,7 @@ export class ImportsService {
       logImportSearchSummary(this.logger, {
         provider: context.providers.join(','),
         query: context.query,
+        ...(requestId ? { requestId } : {}),
         resultCount: rankedCandidates.length,
         status: getImportSearchSummaryStatus(providerOutcome.failures),
         userId,

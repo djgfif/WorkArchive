@@ -137,13 +137,14 @@ async function main() {
 
 if (require.main === module) {
   main().catch((error: unknown) => {
-    console.error(
-      JSON.stringify({
-        errorCode: error instanceof Error ? error.name : 'UnknownError',
-        event: 'operations.migrate_legacy_genres_to_tags.failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      }),
-    );
+    console.error(formatLegacyGenreMigrationFailure(error));
     process.exitCode = 1;
+  });
+}
+
+export function formatLegacyGenreMigrationFailure(error: unknown) {
+  return JSON.stringify({
+    errorCode: error instanceof Error ? error.name : 'UnknownError',
+    event: 'operations.migrate_legacy_genres_to_tags.failed',
   });
 }

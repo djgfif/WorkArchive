@@ -2,6 +2,9 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: work-archive-postgres
+    cpus: '1.00'
+    mem_limit: 1g
+    pids_limit: 256
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?required}
@@ -19,6 +22,9 @@ services:
   redis:
     image: redis:7-alpine
     container_name: work-archive-redis
+    cpus: '0.50'
+    mem_limit: 256m
+    pids_limit: 128
     restart: unless-stopped
     command: ['redis-server', '--appendonly', 'yes']
     volumes:
@@ -53,6 +59,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       DATABASE_URL: ${DATABASE_URL:?required}
       HOST: ${HOST:-0.0.0.0}
       PORT: 3000
@@ -64,11 +71,26 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
       RATE_LIMIT_PREFIX: ${RATE_LIMIT_PREFIX:-work-archive:rate-limit:}
+      API_GLOBAL_RATE_LIMIT_MAX: ${API_GLOBAL_RATE_LIMIT_MAX:-600}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-120}
+      AUTH_SENSITIVE_RATE_LIMIT_MAX: ${AUTH_SENSITIVE_RATE_LIMIT_MAX:-20}
+      CATALOG_RATE_LIMIT_MAX: ${CATALOG_RATE_LIMIT_MAX:-20}
+      IMPORT_AUTH_RATE_LIMIT_MAX: ${IMPORT_AUTH_RATE_LIMIT_MAX:-60}
+      IMPORT_GUEST_RATE_LIMIT_MAX: ${IMPORT_GUEST_RATE_LIMIT_MAX:-20}
+      IMAGE_PROXY_RATE_LIMIT_MAX: ${IMAGE_PROXY_RATE_LIMIT_MAX:-120}
+      MUTATION_RATE_LIMIT_MAX: ${MUTATION_RATE_LIMIT_MAX:-120}
+      NOTION_RATE_LIMIT_MAX: ${NOTION_RATE_LIMIT_MAX:-20}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      SYNC_RATE_LIMIT_MAX: ${SYNC_RATE_LIMIT_MAX:-120}
       READINESS_CHECK_TIMEOUT_MS: ${READINESS_CHECK_TIMEOUT_MS:-1500}
+      API_REQUEST_TIMEOUT_MS: ${API_REQUEST_TIMEOUT_MS:-120000}
+      API_HEADERS_TIMEOUT_MS: ${API_HEADERS_TIMEOUT_MS:-15000}
+      API_KEEP_ALIVE_TIMEOUT_MS: ${API_KEEP_ALIVE_TIMEOUT_MS:-5000}
       API_JSON_BODY_LIMIT: ${API_JSON_BODY_LIMIT:-2mb}
       API_URLENCODED_BODY_LIMIT: ${API_URLENCODED_BODY_LIMIT:-64kb}
       COOKIE_SECURE: 'true'
       METRICS_ENABLED: ${METRICS_ENABLED:-false}
+      METRICS_INTERNAL_ACCESS_REVIEWED: ${METRICS_INTERNAL_ACCESS_REVIEWED:-false}
       METRICS_BEARER_TOKEN: ${METRICS_BEARER_TOKEN:-}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?required}
@@ -77,6 +99,14 @@ services:
       GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:?required}
       SECURITY_EVENT_HASH_SECRET: ${SECURITY_EVENT_HASH_SECRET:?required}
       EXTERNAL_API_KEY_ENCRYPTION_SECRET: ${EXTERNAL_API_KEY_ENCRYPTION_SECRET:?required}
+      IMPORT_SERVER_SEARCH_GUEST_ENABLED: ${IMPORT_SERVER_SEARCH_GUEST_ENABLED:-false}
+      IMPORT_SERVER_SEARCH_GUEST_APPROVED: ${IMPORT_SERVER_SEARCH_GUEST_APPROVED:-false}
+      TMDB_API_READ_TOKEN: ${TMDB_API_READ_TOKEN:-}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-}
+      KAKAO_REST_API_KEY: ${KAKAO_REST_API_KEY:-}
+      KOBIS_API_KEY: ${KOBIS_API_KEY:-}
       KOBIS_HTTP_PROVIDER_ENABLED: ${KOBIS_HTTP_PROVIDER_ENABLED:-false}
       WORK_ARCHIVE_CLIENT_HEADER_GUARD: ${WORK_ARCHIVE_CLIENT_HEADER_GUARD:-audit}
     healthcheck:
@@ -96,6 +126,10 @@ services:
       dockerfile: apps/api/Dockerfile
       target: release
     container_name: work-archive-api-migrate
+    cpus: '1.00'
+    mem_limit: 512m
+    pids_limit: 256
+    read_only: true
     profiles: ['release']
     depends_on:
       postgres:
@@ -116,6 +150,9 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: work-archive-retention-cleanup
+    cpus: '0.50'
+    mem_limit: 256m
+    pids_limit: 128
     entrypoint:
       ['node', '/workspace/apps/api/dist/operations/retention-cleanup.js']
     profiles: ['maintenance']

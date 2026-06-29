@@ -25,14 +25,34 @@ settings cannot be guaranteed by files in this repository. Required checks:
 Current policy for Gate 1:
 
 - run `npm audit` during dependency review and release preparation;
-- block release on critical vulnerabilities in production runtime dependencies;
-- review high vulnerabilities case by case, prioritizing reachable server-side
-  paths;
+- run `npm run security:audit:prod:high` on the release runner before public
+  beta or production promotion;
+- block release on high or critical vulnerabilities in production runtime dependencies
+  unless an explicit waiver is recorded in the release evidence;
+- review any waiver against reachable server-side path exposure, exploitability,
+  fixed-version availability, compensating controls, owner, and expiry;
 - moderate/dev-only findings may be tracked without breaking CI when no fix is
   available or the vulnerable path is not shipped.
 
-This avoids noisy CI failure while the project is still below commercial launch
-scale. Revisit once public beta traffic and dependency churn stabilize.
+This keeps ordinary local CI from depending on live npm registry audit
+availability while still making the release decision fail closed on production
+runtime high or critical findings.
+
+## Vulnerability Triage SLA
+
+- Critical production runtime dependency findings: fix, remove the dependency,
+  or approve a time-boxed waiver before release; target same business day.
+- High production runtime dependency findings: fix, remove the dependency, or
+  approve a time-boxed waiver before release; target within 3 business days.
+- Moderate production runtime findings: review reachability and record the next
+  dependency update window; target within 14 calendar days.
+- Dev-only findings: track with the next dependency maintenance batch unless
+  the vulnerable package runs in release, CI secret-handling, or deployment
+  paths.
+
+Every waiver must record the advisory id, affected package, reachable
+server-side path assessment, compensating control, owner, expiry, and the next
+retest command.
 
 ## Trivy Policy
 
@@ -53,7 +73,8 @@ Current policy for release candidates:
 
 - Enable GitHub secret scanning and push protection in repository settings.
 - For public beta, record branch protection, secret scanning, push protection,
-  CodeQL, and Dependabot status in
+  CodeQL, Dependabot, `security:audit:prod:high`, and any vulnerability waiver
+  status in
   `docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`.
 - Do not commit `.env.prod`, provider API keys, Google OAuth secrets, JWT
   secrets, database URLs with real passwords, or backup files.

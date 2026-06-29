@@ -1,6 +1,6 @@
 # Gate 1 Validation Runbook
 
-Last updated: 2026-06-20
+Last updated: 2026-06-28
 
 Gate 1 evidence must be copied from commands that actually ran. Leave an item
 `not run`, `blocked`, or `manual` when the required environment is unavailable.
@@ -14,9 +14,20 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
   `npm run security:audit`, `npm run security:scan:fs`, and
   `npm run security:scan:images` with immutable image refs; record only tool
   versions, timestamps, image refs, status, and summary counts.
-- Beta host preflight/smoke: run `scripts/deploy/beta-preflight.sh` with real
-  `.env.prod`, then `BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh`;
-  verify public unauthenticated `/metrics` returns `404`.
+- Beta host preflight/smoke: prefer
+  `BETA_BASE_URL=<beta-url> scripts/deploy/commercial-beta-rehearsal.sh .env.prod`
+  so the release migration, stack build/up, production healthcheck, beta smoke,
+  and retention dry-run run together. For targeted reruns, run
+  `scripts/deploy/beta-preflight.sh` with real `.env.prod`, then
+  `BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh`; verify public
+  unauthenticated `/metrics` returns `404` and API security headers survive the
+  deployed proxy path. The smoke script redacts URL userinfo, bearer/basic
+  credentials, secret-like env values, and sensitive query parameters from its
+  displayed diagnostics, but operators must still copy only curated summary
+  lines into the evidence ledger.
+- Deploy script gate: run `npm run qa:deploy-scripts` before host rehearsal so
+  every beta/prod deploy script is syntax-checked and the smoke scripts still
+  cover health, auth, metrics, no-store, backup, restore, and compose checks.
 - Metrics/alerts/SLO/dashboard: run `npm run qa:alerts`, `npm run qa:slo`, and
   `npm run qa:dashboards`, then deploy
   `docs/operations/monitoring/work-archive-alerts.yml` to the monitoring system
@@ -59,11 +70,11 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
    npm run qa:gate1:local
    ```
 
-   For CI and faster local release-candidate checks, `npm run
-   qa:commercial:repo` validates the repository-verifiable commercial artifacts:
-   deployment script syntax, migration risk registration, alert/SLO/dashboard
-   artifacts, monitoring dry-run report generation, and the non-strict Gate 1
-   evidence placeholder scan.
+   For CI and faster local release-candidate checks,
+   `npm run qa:commercial:repo` validates the repository-verifiable commercial
+   artifacts: deployment script syntax, migration risk registration,
+   alert/SLO/dashboard artifacts, monitoring dry-run report generation, and the
+   non-strict Gate 1 evidence placeholder scan.
 
 3. Run focused import/search QA:
 
@@ -86,23 +97,24 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
    If browser dependencies are unavailable, record `not run` with the missing
    runtime reason. Do not infer failure of the product from a missing local
    Playwright browser dependency. In Codex sandboxed sessions, Vite may fail
-   before tests start with `listen EPERM: operation not permitted
-   127.0.0.1:18730`; rerun outside the sandbox before recording product
-   failure.
+   before tests start with
+   `listen EPERM: operation not permitted 127.0.0.1:18730`; rerun outside the
+   sandbox before recording product failure.
 
 6. On the release runner, run dependency/container security scans.
 7. Validate Prisma migration safety with `npm run qa:migrations`.
 8. Validate alert rules with `npm run qa:alerts`, SLO rules with
    `npm run qa:slo`, and the Grafana dashboard with `npm run qa:dashboards`.
-9. On the beta host, run production env preflight and beta smoke.
+9. On the beta host, run the commercial beta rehearsal, or run production env
+   preflight and beta smoke as targeted reruns.
 10. After monitoring deployment, run `npm run qa:monitoring` against the real
-   Prometheus/Grafana endpoints.
+    Prometheus/Grafana endpoints.
 11. With GitHub Settings access, verify branch protection, required checks,
-   CodeQL, Dependabot, secret scanning, and push protection.
+    CodeQL, Dependabot, secret scanning, and push protection.
 12. With backup/restore access, perform the restore drill into a non-production
-   target.
+    target.
 13. With a disposable authenticated test account, run live import/search QA,
-   live sync load validation, and smoke performance baseline.
+    live sync load validation, and smoke performance baseline.
 14. Copy only summary results into
     `docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`.
 15. Run the final strict evidence validator:
@@ -114,7 +126,13 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
 ## Local Checks
 
 The local helper records command, exit code, timestamp, git commit, dirty status,
-and a redacted output summary:
+and a redacted output summary. The report redacts workspace paths, hostnames,
+secret-like environment values, bearer/basic credentials, database and Redis URL
+userinfo, HTTP(S) URL userinfo, and sensitive query parameters such as OAuth
+codes, authorization codes, state values, nonce values, access tokens, ID
+tokens, refresh tokens, session values, credentials, cookies, API keys,
+passwords, and secrets. The same names are redacted when they appear as
+standalone `key=value` diagnostic fragments:
 
 ```bash
 npm run qa:gate1:local
@@ -123,14 +141,25 @@ npm run qa:gate1:local
 It runs local/repository-verifiable checks such as `npm ci`,
 `npm run security:public`, docs links, lint, typecheck, tests, e2e, build,
 script syntax checks, Prisma migration safety, Gate 1 evidence placeholder
-detection in non-strict mode, and Docker compose config only when Docker and
-`.env.prod` are available. It
-does not run beta host, GitHub Settings, restore drill, Trivy image, or live
-provider checks.
+detection in non-strict mode, offline import/search QA, sync load dry-run,
+performance smoke dry-run, monitoring evidence dry-run, and Docker compose
+config only when Docker and `.env.prod` are available. It does not run beta
+host, GitHub Settings, restore drill, Trivy image, or live provider checks.
 
 The GitHub `validate` workflow runs `npm run qa:commercial:repo`, so
 repository-verifiable commercial artifacts cannot drift silently between manual
 release rehearsals.
+
+Backup, backup verification, and restore-drill reports use the same sensitive
+URL, credential, and standalone `key=value` redaction rules before their
+summaries are copied into the ledger.
+Backticked local report references in the evidence ledger must point to regular
+`tmp/**/*.md` files inside this workspace, not symlinks, and each referenced
+report must be non-empty and at most 1 MiB. Copy curated summaries into the
+ledger instead of linking or pasting large raw logs. The strict validator also
+scans referenced report contents for raw bearer/basic credentials, URL userinfo,
+database/Redis credential URLs, secret-like environment values, and sensitive
+standalone `key=value` fragments.
 
 Generated reports are written to `tmp/gate1-evidence/` unless
 `GATE1_EVIDENCE_DIR` is set. For a faster rerun that keeps the existing
@@ -158,12 +187,23 @@ mode only when deciding whether the release candidate can be approved:
 GATE1_EVIDENCE_STRICT=true npm run qa:gate1:evidence
 ```
 
+To group the remaining evidence by operating area and next action while the
+ledger is still incomplete, run:
+
+```bash
+npm run qa:gate1:missing
+```
+
+This report is advisory. It does not approve a release candidate and does not
+replace the strict evidence validator.
+
 ## Release Runner Checks
 
 Run these on the approved release runner with network access and Trivy
 installed:
 
 ```bash
+npm run security:audit:prod:high
 npm run security:audit:prod
 npm run security:audit
 npm run security:scan:fs
@@ -175,6 +215,10 @@ npm run security:scan:images
 Record only tool versions, timestamps, image refs, status, and summary counts in
 `docs/security/SECURITY_SCAN_RESULTS.md`. Do not paste raw vulnerability reports
 or scan payloads.
+`security:audit:prod:high` is the high or critical production dependency release
+gate. A public beta release requires a PASS result or a time-boxed vulnerability
+waiver with reachability, compensating control, owner, expiry, and next retest
+command.
 
 ## Beta Host Checks
 
@@ -294,6 +338,54 @@ operator intends to run every matrix case. `IMPORT_SEARCH_QA_PROVIDERS` filters
 the selected matrix to cases whose fixture providers match the comma-separated
 list.
 
+## User Data Rights Smoke
+
+Dry-run mode validates the non-destructive smoke contract without API calls:
+
+```bash
+npm run qa:user-data-rights-smoke
+```
+
+Dry-run and live reports are written to `tmp/user-data-rights-smoke/` unless
+`USER_DATA_RIGHTS_SMOKE_REPORT_DIR` is set.
+
+Live mode requires a disposable authenticated account token:
+
+```bash
+USER_DATA_RIGHTS_SMOKE_LIVE=true \
+USER_DATA_RIGHTS_SMOKE_BASE_URL=https://beta.example.com \
+USER_DATA_RIGHTS_SMOKE_ACCESS_TOKEN=<disposable-test-account-token> \
+npm run qa:user-data-rights-smoke
+```
+
+Live PASS verifies `GET /api/auth/data-export` and
+`GET /api/auth/account/deletion-preview` return the expected JSON contracts,
+`Cache-Control: no-store`, no known secret field names, and no row payload
+contents in the deletion preview. The smoke intentionally never calls
+`DELETE /api/auth/account`; record destructive account deletion rehearsal only
+after a separate disposable-account run:
+
+```bash
+ACCOUNT_DELETION_REHEARSAL_LIVE=true \
+ACCOUNT_DELETION_REHEARSAL_BASE_URL=https://beta.example.com \
+ACCOUNT_DELETION_REHEARSAL_ACCESS_TOKEN=<disposable-test-account-token> \
+ACCOUNT_DELETION_REHEARSAL_CONFIRM_EMAIL=<disposable-account-email> \
+ACCOUNT_DELETION_REHEARSAL_DISPOSABLE_ACCOUNT_ACK=true \
+ACCOUNT_DELETION_REHEARSAL_CONFIRM=delete-disposable-account \
+npm run qa:account-deletion-rehearsal
+```
+
+For local contract validation without a destructive request, run:
+
+```bash
+npm run qa:account-deletion-rehearsal
+```
+
+Live PASS verifies the count-only deletion preview first, sends
+`DELETE /api/auth/account` with `X-Work-Archive-Client: web`, and then verifies
+the same token receives `401` from `GET /api/auth/data-export`. Copy only the
+redacted report summary from `tmp/account-deletion-rehearsal/` into the ledger.
+
 ## Sync Load Validation
 
 Dry-run mode validates synthetic payload generation without API calls:
@@ -326,7 +418,8 @@ The script creates only synthetic records with titles prefixed
 Default Gate 1 dry-run and live parameters:
 
 - `SYNC_LOAD_RECORDS=1000`
-- `SYNC_LOAD_BATCH_SIZE=200` (the script caps batches at 200)
+- `SYNC_LOAD_BATCH_SIZE=200` (the script caps batches at 200, matching the API
+  DTO and service boundary)
 - `SYNC_LOAD_PULL_LIMIT=500`
 
 Dry-run PASS proves only payload generation, report creation, and local script
@@ -345,10 +438,13 @@ Live PASS on a disposable authenticated beta/staging account requires:
 - default pull limit smoke succeeds;
 - `limit=1500` smoke either succeeds with bounded behavior or returns DTO
   validation `400`.
+- oversized `201`-change push batch smoke returns DTO validation `400` before
+  storage writes.
 
 Record observed `requestP50Ms`, `requestP95Ms`, `totalDurationMs`,
-`maxResponseBytes`, push batch count, pull page count, conflict count, failure
-count, and the run ID in the evidence ledger. p50/p95 are release observations
+`maxResponseBytes`, push batch count, pull page count, `limit=1500` status,
+oversized push status, conflict count, failure count, and the run ID in the
+evidence ledger. p50/p95 are release observations
 for Gate 1, not hard pass/fail thresholds until a production latency budget is
 approved.
 
@@ -360,9 +456,19 @@ Dry-run mode validates report generation without HTTP calls:
 PERF_SMOKE_DRY_RUN=true npm run qa:performance-smoke
 ```
 
-Live beta-host mode records p50/p95 timings for `/readyz`, refresh without a
-cookie, import provider status, `/work-archive-config.js`, and optional small
-sync push/pull:
+For repository-only budget-path validation, dry-run can emit synthetic timing
+samples without opening network sockets:
+
+```bash
+PERF_SMOKE_DRY_RUN=true \
+PERF_SMOKE_DRY_RUN_SAMPLE_MS=1200 \
+PERF_SMOKE_MAX_P95_MS=1000 \
+npm run qa:performance-smoke
+```
+
+Live beta-host mode records p50/p95 timings and observed standard rate-limit
+headers for `/readyz`, refresh without a cookie, import provider status,
+`/work-archive-config.js`, and optional small sync push/pull:
 
 ```bash
 PERF_SMOKE_BASE_URL=https://beta.example.com \
@@ -372,12 +478,26 @@ PERF_SMOKE_DISPOSABLE_ACCOUNT_ACK=true \
 npm run qa:performance-smoke
 ```
 
+To enforce an approved release smoke budget, add one or both latency caps:
+
+```bash
+PERF_SMOKE_MAX_P50_MS=500 \
+PERF_SMOKE_MAX_P95_MS=1000 \
+npm run qa:performance-smoke
+```
+
+When a cap is set, any required live scenario that exceeds it marks the report
+`FAIL` and exits non-zero. Leave the caps unset while collecting the first beta
+baseline, then set them only after the release owner approves the budget.
+
 Reports are written to `tmp/performance-smoke/` unless
 `PERF_SMOKE_REPORT_DIR` is set. If the release must block when authenticated
 sync timing is unavailable, add `PERF_SMOKE_REQUIRE_AUTHENTICATED=true`.
 Otherwise the unauthenticated/public scenarios can still produce a partial
 baseline and the sync row should remain `not measured` in the evidence ledger.
-Do not run authenticated sync timing against a real user account.
+Copy p50/p95, budget status, status codes, and
+`RateLimit-*`/`RateLimit`/`Retry-After` header summaries into the evidence
+ledger. Do not run authenticated sync timing against a real user account.
 
 ## Backup And Restore Drill
 
@@ -409,6 +529,11 @@ Copy only the redacted summaries from `tmp/backups/prod-backup-*.md`,
 - Raw provider responses with user/provider data.
 - Full audit or Trivy raw reports when they contain unnecessary dependency
   metadata; commit only summaries when appropriate.
+
+QA evidence scripts redact URL usernames, passwords, and sensitive query parameters
+such as authorization codes, state values, tokens, cookies, API keys, passwords,
+and secrets before writing diagnostics. Review generated evidence before
+committing summaries and never commit raw live responses.
 
 ## Filling The Evidence Ledger
 

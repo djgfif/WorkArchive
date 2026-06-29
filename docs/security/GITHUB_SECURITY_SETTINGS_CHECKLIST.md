@@ -60,11 +60,16 @@ Gate 1 블로커 항목. 아래 설정은 코드가 아닌 **GitHub 웹 UI**에�
 | Dependabot security updates | ✓ 활성화 권장 |
 | Dependabot version updates | `.github/dependabot.yml`이 있으면 자동 |
 
-**확인:** `Security > Dependabot alerts` — 미해결 critical/high alert 없는지 확인
+**확인:** `Security > Dependabot alerts` — 미해결 critical/high alert 없는지 확인.
+릴리스 후보는 별도로 `npm run security:audit:prod:high`가 PASS이거나
+high or critical 프로덕션 런타임 취약점에 대한 만료일 있는 waiver가
+`PUBLIC_BETA_GATE_1_EVIDENCE.md`에 기록되어야 한다.
 
 완료 후 Evidence 기록:
 ```
 - Dependabot enabled: ENABLED — N open alerts (all reviewed)
+- Production npm audit high/critical gate: PASS — 0 high or critical production runtime findings
+- Vulnerability waivers: none
 ```
 
 ---

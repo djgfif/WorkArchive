@@ -23,7 +23,14 @@ describe('bearer token helpers', () => {
     expect(extractOptionalBearerAccessToken()).toBeNull();
   });
 
-  it.each(['Basic access-token', 'Bearer', 'Bearer '])(
+  it.each([
+    'Basic access-token',
+    'Bearer',
+    'Bearer ',
+    'Bearer access-token extra',
+    'Bearer  access-token',
+    'Bearer access-token\nX-Injected: value',
+  ])(
     'rejects malformed bearer access token header %s',
     (authorizationHeader) => {
       expect(() =>

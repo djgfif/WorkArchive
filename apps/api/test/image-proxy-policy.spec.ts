@@ -48,6 +48,9 @@ describe('image proxy policy', () => {
     expect(() =>
       parseAllowedImageUrl('https://internal.example.test/cover.jpg'),
     ).toThrow(BadRequestException);
+    expect(() =>
+      parseAllowedImageUrl('https://covers.openlibrary.org:8443/b/id/123-L.jpg'),
+    ).toThrow(BadRequestException);
   });
 
   it('detects redirect status codes', () => {

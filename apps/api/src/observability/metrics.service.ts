@@ -22,6 +22,27 @@ type ImportSearchLabels = {
   result: string;
 };
 
+type ImportProviderDurationLabels = {
+  provider: string;
+  result: string;
+};
+
+type ClientHeaderGuardLabels = {
+  method: string;
+  mode: string;
+  result: string;
+};
+
+type SyncDurationLabels = {
+  direction: 'push' | 'pull';
+  result: 'success' | 'failure';
+};
+
+type UserDataRightsLabels = {
+  operation: 'delete' | 'deletion_preview' | 'export';
+  result: 'failure' | 'success';
+};
+
 @Injectable()
 export class MetricsService {
   private readonly config = readApiRuntimeConfig();
@@ -30,14 +51,19 @@ export class MetricsService {
   private readonly requestCount: Counter<string>;
   private readonly requestDuration: Histogram<string>;
   private readonly authRefreshCount: Counter<string>;
+  private readonly clientHeaderGuardCount: Counter<string>;
   private readonly syncCount: Counter<string>;
+  private readonly syncDuration: Histogram<string>;
   private readonly syncConflictCount: Counter<string>;
   private readonly syncFailedValidationCount: Counter<string>;
   private readonly importsProviderFailureCount: Counter<string>;
   private readonly importsProviderCircuitOpenCount: Counter<string>;
+  private readonly importsProviderDuration: Histogram<string>;
   private readonly importsSearchCount: Counter<string>;
   private readonly importsSearchDuration: Histogram<string>;
+  private readonly rateLimitExceededCount: Counter<string>;
   private readonly readyzFailureCount: Counter<string>;
+  private readonly userDataRightsCount: Counter<string>;
 
   constructor() {
     this.registry.setDefaultLabels({
@@ -68,10 +94,29 @@ export class MetricsService {
       name: 'work_archive_auth_refresh_total',
       registers: [this.registry],
     });
+    this.userDataRightsCount = new Counter({
+      help: 'User data rights API operations by bounded operation and result.',
+      labelNames: ['operation', 'result'],
+      name: 'work_archive_user_data_rights_total',
+      registers: [this.registry],
+    });
+    this.clientHeaderGuardCount = new Counter({
+      help: 'Production client header guard checks by mode, method, and result.',
+      labelNames: ['mode', 'method', 'result'],
+      name: 'work_archive_client_header_guard_total',
+      registers: [this.registry],
+    });
     this.syncCount = new Counter({
       help: 'Sync push and pull calls by direction and result.',
       labelNames: ['direction', 'result'],
       name: 'work_archive_sync_total',
+      registers: [this.registry],
+    });
+    this.syncDuration = new Histogram({
+      buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 20],
+      help: 'Sync push and pull duration in seconds by direction and result.',
+      labelNames: ['direction', 'result'],
+      name: 'work_archive_sync_duration_seconds',
       registers: [this.registry],
     });
     this.syncConflictCount = new Counter({
@@ -98,6 +143,13 @@ export class MetricsService {
       name: 'work_archive_imports_provider_circuit_open_total',
       registers: [this.registry],
     });
+    this.importsProviderDuration = new Histogram({
+      buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+      help: 'Import provider search duration in seconds by provider and result.',
+      labelNames: ['provider', 'result'],
+      name: 'work_archive_imports_provider_duration_seconds',
+      registers: [this.registry],
+    });
     this.importsSearchCount = new Counter({
       help: 'Import search requests by auth scope, medium, provider count, and result.',
       labelNames: ['auth_scope', 'medium_type', 'provider_count', 'result'],
@@ -109,6 +161,12 @@ export class MetricsService {
       help: 'Import search duration in seconds.',
       labelNames: ['auth_scope', 'medium_type', 'provider_count', 'result'],
       name: 'work_archive_imports_search_duration_seconds',
+      registers: [this.registry],
+    });
+    this.rateLimitExceededCount = new Counter({
+      help: 'Rate-limit rejections by bounded limiter name.',
+      labelNames: ['limiter'],
+      name: 'work_archive_rate_limit_exceeded_total',
       registers: [this.registry],
     });
     this.readyzFailureCount = new Counter({
@@ -132,15 +190,13 @@ export class MetricsService {
       return !this.config.isProduction;
     }
 
-    const prefix = 'Bearer ';
-
-    if (!authorizationHeader?.startsWith(prefix)) {
+    const match = /^Bearer ([^\s]+)$/.exec(authorizationHeader ?? '');
+    if (!match) {
       return false;
     }
 
-    const token = authorizationHeader.slice(prefix.length);
     const expected = Buffer.from(this.config.metricsBearerToken);
-    const actual = Buffer.from(token);
+    const actual = Buffer.from(match[1]!);
 
     return (
       actual.length === expected.length && timingSafeEqual(actual, expected)
@@ -170,10 +226,38 @@ export class MetricsService {
     }
   }
 
+  recordUserDataRights(labels: UserDataRightsLabels) {
+    if (!this.enabled) {
+      return;
+    }
+
+    this.userDataRightsCount.inc(labels);
+  }
+
+  recordClientHeaderGuard(labels: ClientHeaderGuardLabels) {
+    if (!this.enabled) {
+      return;
+    }
+
+    this.clientHeaderGuardCount.inc({
+      method: normalizeLabel(labels.method),
+      mode: normalizeLabel(labels.mode),
+      result: normalizeLabel(labels.result),
+    });
+  }
+
   recordSync(direction: 'push' | 'pull', result: 'success' | 'failure') {
     if (this.enabled) {
       this.syncCount.inc({ direction, result });
     }
+  }
+
+  recordSyncDuration(labels: SyncDurationLabels, durationSeconds: number) {
+    if (!this.enabled) {
+      return;
+    }
+
+    this.syncDuration.observe(labels, durationSeconds);
   }
 
   recordSyncResult(entityType: string, status: string, code: string) {
@@ -213,6 +297,23 @@ export class MetricsService {
     }
   }
 
+  recordImportsProviderDuration(
+    labels: ImportProviderDurationLabels,
+    durationSeconds: number,
+  ) {
+    if (!this.enabled) {
+      return;
+    }
+
+    this.importsProviderDuration.observe(
+      {
+        provider: normalizeLabel(labels.provider),
+        result: normalizeLabel(labels.result),
+      },
+      durationSeconds,
+    );
+  }
+
   recordImportsSearch(labels: ImportSearchLabels, durationSeconds: number) {
     if (!this.enabled) {
       return;
@@ -232,6 +333,12 @@ export class MetricsService {
   recordReadyzFailure(check: string) {
     if (this.enabled) {
       this.readyzFailureCount.inc({ check: normalizeLabel(check) });
+    }
+  }
+
+  recordRateLimitExceeded(limiter: string) {
+    if (this.enabled) {
+      this.rateLimitExceededCount.inc({ limiter: normalizeLabel(limiter) });
     }
   }
 }

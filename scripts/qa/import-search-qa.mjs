@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const rootDir = resolve(dirname(new URL(import.meta.url).pathname), '../..');
-const liveMode = process.env.IMPORT_SEARCH_QA_LIVE === 'true';
+const liveMode = readBooleanEnv('IMPORT_SEARCH_QA_LIVE', false);
 const reportDir = resolve(
   rootDir,
   process.env.IMPORT_SEARCH_QA_REPORT_DIR ?? 'tmp/import-search-qa',
@@ -13,7 +13,7 @@ const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, '
 const reportPath = resolve(reportDir, `import-search-qa-${stamp}.md`);
 const jsonReportPath = resolve(reportDir, `import-search-qa-${stamp}.json`);
 const accessToken = process.env.IMPORT_QA_ACCESS_TOKEN ?? '';
-const fullMatrixLive = process.env.IMPORT_SEARCH_QA_FULL_MATRIX === 'true';
+const fullMatrixLive = readBooleanEnv('IMPORT_SEARCH_QA_FULL_MATRIX', false);
 const liveProviderFilter = parseProviderFilter(
   process.env.IMPORT_SEARCH_QA_PROVIDERS,
 );
@@ -26,6 +26,20 @@ const liveSmokeCaseIds = new Set(
   matrix.filter((item) => item.liveSmoke).map((item) => item.id),
 );
 
+function readBooleanEnv(name, fallback) {
+  const rawValue = process.env[name]?.trim();
+
+  if (!rawValue) {
+    return fallback;
+  }
+
+  if (rawValue !== 'true' && rawValue !== 'false') {
+    throw new Error(`${name} must be true or false when set.`);
+  }
+
+  return rawValue === 'true';
+}
+
 function readIntegerEnv(name, fallback, { min = 0 } = {}) {
   const rawValue = process.env[name];
 
@@ -33,9 +47,13 @@ function readIntegerEnv(name, fallback, { min = 0 } = {}) {
     return fallback;
   }
 
-  const parsed = Number.parseInt(rawValue, 10);
+  if (!/^\d+$/.test(rawValue)) {
+    throw new Error(`${name} must be an integer greater than or equal to ${min}.`);
+  }
 
-  if (!Number.isFinite(parsed) || parsed < min) {
+  const parsed = Number(rawValue);
+
+  if (!Number.isSafeInteger(parsed) || parsed < min) {
     throw new Error(`${name} must be an integer greater than or equal to ${min}.`);
   }
 
@@ -67,6 +85,10 @@ const sensitiveNames = [
   'SECRET',
   'TOKEN',
 ];
+const sensitiveUrlParamPattern =
+  /access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token/i;
+const sensitiveInlineValuePattern =
+  /\b((?:access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token)=)[^\s&;,]+/gi;
 
 function parseProviderFilter(rawValue) {
   if (!rawValue) {
@@ -89,10 +111,37 @@ function redact(value) {
     text = text.replace(new RegExp(`(${name}[A-Z0-9_]*=)[^\\s]+`, 'gi'), '$1[REDACTED]');
   }
   text = text.replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]');
+  text = text.replace(sensitiveInlineValuePattern, '$1[REDACTED]');
   if (accessToken) {
     text = text.split(accessToken).join('[REDACTED]');
   }
-  return text;
+  return redactUrlSecrets(text);
+}
+
+function redactUrlSecrets(value) {
+  return value.replace(/https?:\/\/[^\s<>"')]+/gi, (match) => {
+    try {
+      const url = new URL(match);
+
+      if (url.username) {
+        url.username = 'redacted';
+      }
+
+      if (url.password) {
+        url.password = 'redacted';
+      }
+
+      for (const key of [...url.searchParams.keys()]) {
+        if (sensitiveUrlParamPattern.test(key)) {
+          url.searchParams.set(key, '[REDACTED]');
+        }
+      }
+
+      return url.toString();
+    } catch {
+      return match;
+    }
+  });
 }
 
 function escapeMarkdownTableCell(value) {
@@ -119,6 +168,41 @@ function normalizeBaseUrl(rawBaseUrl) {
   const url = new URL(rawBaseUrl);
   url.pathname = url.pathname.replace(/\/$/, '');
   return url;
+}
+
+function resolveLiveBaseUrl() {
+  const importQaBaseUrl = process.env.IMPORT_QA_BASE_URL?.trim();
+  const viteApiBaseUrl = process.env.VITE_API_BASE_URL?.trim();
+  const rawBaseUrl = importQaBaseUrl || viteApiBaseUrl || '';
+
+  if (!rawBaseUrl) {
+    return {
+      baseUrl: null,
+      blockedSummary:
+        'IMPORT_SEARCH_QA_LIVE=true but IMPORT_QA_BASE_URL is not set.',
+    };
+  }
+
+  if (!/^https?:\/\//i.test(rawBaseUrl)) {
+    return {
+      baseUrl: null,
+      blockedSummary:
+        'IMPORT_SEARCH_QA_LIVE=true requires IMPORT_QA_BASE_URL to be an absolute http(s) beta API/web origin; VITE_API_BASE_URL=/api is only a browser build-time proxy path.',
+    };
+  }
+
+  try {
+    return {
+      baseUrl: normalizeBaseUrl(rawBaseUrl),
+      blockedSummary: null,
+    };
+  } catch {
+    return {
+      baseUrl: null,
+      blockedSummary:
+        'IMPORT_SEARCH_QA_LIVE=true requires IMPORT_QA_BASE_URL to be a valid absolute http(s) URL.',
+    };
+  }
 }
 
 function apiPath(baseUrl, path) {
@@ -373,20 +457,19 @@ function getCaseProviderIds(item) {
 }
 
 async function liveChecks() {
-  const rawBaseUrl = process.env.IMPORT_QA_BASE_URL ?? process.env.VITE_API_BASE_URL;
+  const { baseUrl, blockedSummary } = resolveLiveBaseUrl();
   const checks = [];
   const liveResults = [];
 
-  if (!rawBaseUrl) {
+  if (!baseUrl) {
     checks.push({
       name: 'live import/search base URL',
       status: 'BLOCKED',
-      summary: 'IMPORT_SEARCH_QA_LIVE=true but IMPORT_QA_BASE_URL/VITE_API_BASE_URL is not set.',
+      summary: blockedSummary,
     });
     return { checks, liveResults };
   }
 
-  const baseUrl = normalizeBaseUrl(rawBaseUrl);
   const headers = accessToken
     ? { Authorization: `Bearer ${accessToken}` }
     : {};

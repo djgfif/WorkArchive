@@ -20,20 +20,30 @@ const requiredAlerts = new Set([
   'WorkArchiveApi5xxSpike',
   'WorkArchiveHighRequestLatency',
   'WorkArchiveAuthRefreshFailureSpike',
+  'WorkArchiveUserDataRightsFailureSpike',
+  'WorkArchiveRateLimitRejectionSpike',
+  'WorkArchiveClientHeaderGuardMissingSpike',
   'WorkArchiveSyncConflictSpike',
   'WorkArchiveSyncValidationFailureSpike',
+  'WorkArchiveSyncHighLatency',
   'WorkArchiveImportProviderFailureSpike',
   'WorkArchiveImportProviderCircuitOpen',
+  'WorkArchiveImportProviderHighLatency',
 ]);
 const expectedMetricNames = [
   'work_archive_readyz_failure_total',
   'work_archive_api_request_total',
   'work_archive_api_request_duration_seconds_bucket',
   'work_archive_auth_refresh_total',
+  'work_archive_user_data_rights_total',
+  'work_archive_rate_limit_exceeded_total',
+  'work_archive_client_header_guard_total',
   'work_archive_sync_conflict_total',
   'work_archive_sync_failed_validation_total',
+  'work_archive_sync_duration_seconds_bucket',
   'work_archive_imports_provider_failure_total',
   'work_archive_imports_provider_circuit_open_total',
+  'work_archive_imports_provider_duration_seconds_bucket',
 ];
 
 function lineNumber(index) {
@@ -128,40 +138,62 @@ if (rules.length === 0) {
 const alertNames = new Set();
 for (const rule of rules) {
   if (!rule.alert) {
-    findings.push(`${alertFile}:${rule.line} alert rule is missing alert name.`);
+    findings.push(
+      `${alertFile}:${rule.line} alert rule is missing alert name.`,
+    );
     continue;
   }
 
   alertNames.add(rule.alert);
 
   if (!/^WorkArchive[A-Za-z0-9]+$/.test(rule.alert)) {
-    findings.push(`${alertFile}:${rule.line} alert name must start with WorkArchive and use identifier characters only.`);
+    findings.push(
+      `${alertFile}:${rule.line} alert name must start with WorkArchive and use identifier characters only.`,
+    );
   }
   if (!rule.expr) {
     findings.push(`${alertFile}:${rule.line} ${rule.alert} is missing expr.`);
   }
   if (!rule.for) {
-    findings.push(`${alertFile}:${rule.line} ${rule.alert} is missing for duration.`);
+    findings.push(
+      `${alertFile}:${rule.line} ${rule.alert} is missing for duration.`,
+    );
   }
   if (!['critical', 'warning'].includes(rule.labels.severity)) {
-    findings.push(`${alertFile}:${rule.line} ${rule.alert} must use severity critical or warning.`);
+    findings.push(
+      `${alertFile}:${rule.line} ${rule.alert} must use severity critical or warning.`,
+    );
   }
   if (rule.labels.service !== 'work_archive_api') {
-    findings.push(`${alertFile}:${rule.line} ${rule.alert} must set service=work_archive_api.`);
+    findings.push(
+      `${alertFile}:${rule.line} ${rule.alert} must set service=work_archive_api.`,
+    );
   }
   for (const key of Object.keys(rule.labels)) {
     if (!allowedRuleLabels.has(key)) {
-      findings.push(`${alertFile}:${rule.line} ${rule.alert} has unsupported static label "${key}".`);
+      findings.push(
+        `${alertFile}:${rule.line} ${rule.alert} has unsupported static label "${key}".`,
+      );
     }
   }
   if (!rule.annotations.summary) {
-    findings.push(`${alertFile}:${rule.line} ${rule.alert} is missing annotations.summary.`);
+    findings.push(
+      `${alertFile}:${rule.line} ${rule.alert} is missing annotations.summary.`,
+    );
   }
   if (!rule.annotations.description) {
-    findings.push(`${alertFile}:${rule.line} ${rule.alert} is missing annotations.description.`);
+    findings.push(
+      `${alertFile}:${rule.line} ${rule.alert} is missing annotations.description.`,
+    );
   }
-  if (/[{] *(userId|email|token|cookie|entityId|requestId|path|url) *=/.test(rule.expr ?? '')) {
-    findings.push(`${alertFile}:${rule.line} ${rule.alert} appears to filter on high-cardinality or sensitive labels.`);
+  if (
+    /[{] *(userId|email|token|cookie|entityId|requestId|path|url) *=/.test(
+      rule.expr ?? '',
+    )
+  ) {
+    findings.push(
+      `${alertFile}:${rule.line} ${rule.alert} appears to filter on high-cardinality or sensitive labels.`,
+    );
   }
 }
 
@@ -177,8 +209,24 @@ for (const metricName of expectedMetricNames) {
   }
 }
 
-if (!/sum by \(le\) \(rate\(work_archive_api_request_duration_seconds_bucket\[5m\]\)\)/.test(text)) {
-  findings.push(`${alertFile}: latency alert must aggregate histogram buckets by le.`);
+if (
+  !/sum by \(le\) \(rate\(work_archive_api_request_duration_seconds_bucket\[5m\]\)\)/.test(
+    text,
+  )
+) {
+  findings.push(
+    `${alertFile}: latency alert must aggregate histogram buckets by le.`,
+  );
+}
+
+if (
+  !/sum by \(le, provider\) \(rate\(work_archive_imports_provider_duration_seconds_bucket\{result="success"\}\[5m\]\)\)/.test(
+    text,
+  )
+) {
+  findings.push(
+    `${alertFile}: import provider latency alert must aggregate histogram buckets by le and provider.`,
+  );
 }
 
 if (findings.length > 0) {
@@ -186,4 +234,6 @@ if (findings.length > 0) {
   process.exit(1);
 }
 
-console.log(`Prometheus alert rules passed local validation: ${rules.length} rules`);
+console.log(
+  `Prometheus alert rules passed local validation: ${rules.length} rules`,
+);

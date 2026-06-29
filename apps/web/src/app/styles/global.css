@@ -83,12 +83,12 @@ textarea {
 
 /* ── Selection ───────────────────────────────────────────────────────────── */
 ::selection {
-  background: rgba(200, 146, 46, 0.24);
+  background: rgba(99, 102, 241, 0.30);
   color: var(--app-text-primary, var(--mantine-color-text));
 }
 
 [data-mantine-color-scheme='light'] ::selection {
-  background: rgba(138, 83, 21, 0.18);
+  background: rgba(79, 70, 229, 0.16);
 }
 
 /* ── Focus ───────────────────────────────────────────────────────────────── */
@@ -144,19 +144,19 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--app-border-strong, rgba(200, 146, 46, 0.18));
+  background: var(--app-border-strong, rgba(99, 102, 241, 0.18));
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--app-accent-primary, rgba(200, 146, 46, 0.45));
+  background: var(--app-accent-primary, rgba(99, 102, 241, 0.45));
 }
 
 /* ── Mantine 컴포넌트 오버라이드 ─────────────────────────────────────────── */
 .mantine-Input-input:focus,
 .mantine-Input-input:focus-within {
   border-color: var(--app-accent-primary) !important;
-  box-shadow: 0 0 0 2px var(--app-accent-soft, rgba(200, 146, 46, 0.18)) !important;
+  box-shadow: 0 0 0 2px var(--app-accent-soft, rgba(99, 102, 241, 0.18)) !important;
 }
 
 .mantine-Button-root:active {
@@ -251,17 +251,15 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
-/* ── 에디토리얼 디스플레이 제목 — Vellum Index ──────────────────────────────
-   철학(VELLUM_INDEX_PHILOSOPHY.md): "하나의 기념비적 제목". 기념비급 위계인
-   h1·h2(Mantine <Title order={1|2}>)만 디스플레이 세리프(Gloock / 한글 명조)로
-   세운다. h3 이하 작은 라벨·참조 코드는 본문 고딕을 유지해 위계의 도약을 만든다.
-   ─────────────────────────────────────────────────────────────────────────── */
+/* ── 디스플레이 제목 — Studio (모던 산세리프) ───────────────────────────────
+   v6에서 제목도 본문과 같은 Pretendard 산세리프로 통일한다. 위계는 폰트가 아니라
+   크기·굵기·여백으로 만든다. 기념비급 h1·h2는 또렷한 굵기(720)와 타이트한 자간으로
+   디스플레이감을 준다. */
 h1.mantine-Title-root,
 h2.mantine-Title-root {
   font-family: var(--app-font-display);
-  /* Gloock는 단일 웨이트(400)이라 무시되고, 한글 명조는 500로 렌더된다.
-     테마 기본 heading weight(780)을 덮어 에디토리얼 톤을 맞춘다. */
-  font-weight: 500 !important;
+  font-weight: 720;
+  letter-spacing: -0.025em;
 }
 
 /* ── 페이지 전환 ──────────────────────────────────────────────────────────── */
@@ -298,17 +296,18 @@ h2.mantine-Title-root {
   );
 }
 
-/* ── 별점 — 골드 강조 ────────────────────────────────────────────────────── */
+/* ── 별점 — 평점 전용 앰버 (브랜드 인디고와 구분되는 보편적 평점 골드) ──────── */
 [data-rating-star],
 .rating-star {
-  color: var(--app-accent-primary);
+  color: var(--app-accent-warm);
 }
 
-/* ── 에디토리얼 eyebrow — 골드 */
+/* ── 계측 eyebrow — muted 트래킹 라벨 (브랜드 인디고는 틱·활성에만 절제).
+   라틴 모노는 한글 라벨에서 폴백 충돌이 생기므로 본문 산세리프를 유지한다. */
 .eyebrow-gold {
-  color: var(--app-accent-primary);
+  color: var(--app-text-muted);
   font-size: var(--app-type-meta);
-  font-weight: 750;
-  letter-spacing: 0.1em;
+  font-weight: 600;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }

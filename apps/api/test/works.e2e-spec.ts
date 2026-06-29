@@ -2,7 +2,12 @@ import { type AddressInfo } from 'node:net';
 
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { WorkStatus, WorkSyncStatus, WorkType } from '@prisma/client';
+import {
+  CatalogWorkSource,
+  WorkStatus,
+  WorkSyncStatus,
+  WorkType,
+} from '@prisma/client';
 import {
   afterEach,
   beforeEach,
@@ -376,6 +381,7 @@ function createPrismaServiceMock() {
       const now = new Date();
       const catalogWork = {
         id: data.id ?? crypto.randomUUID(),
+        source: data.source ?? CatalogWorkSource.legacy_flat,
         type: data.type ?? WorkType.novel,
         title: data.title,
         author: data.author ?? '',
@@ -1249,6 +1255,17 @@ describe('Auth, works, and sync API (e2e)', () => {
     return session;
   }
 
+  async function agePreviousRefreshTokenPastGrace(sessionId: string) {
+    await prisma.userRefreshSession.updateMany({
+      where: {
+        id: sessionId,
+      },
+      data: {
+        previousRotatedAt: new Date(Date.now() - 16_000),
+      },
+    });
+  }
+
   function getFetchInputUrl(input: Parameters<typeof fetch>[0]) {
     if (typeof input === 'string') {
       return input;
@@ -1477,6 +1494,8 @@ describe('Auth, works, and sync API (e2e)', () => {
       }),
     );
 
+    await agePreviousRefreshTokenPastGrace(session.sessionId);
+
     const staleRefreshResponse = await requestJson('/api/auth/refresh', {
       method: 'POST',
       ...(staleRefreshCookie
@@ -1624,6 +1643,8 @@ describe('Auth, works, and sync API (e2e)', () => {
     };
 
     expect(refreshResponse.status).toBe(200);
+
+    await agePreviousRefreshTokenPastGrace(secondSession.sessionId);
 
     const staleRefreshResponse = await requestJson('/api/auth/refresh', {
       method: 'POST',

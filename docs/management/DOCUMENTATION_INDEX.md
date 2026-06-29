@@ -15,6 +15,12 @@ documentation navigation and maintenance rules.
 | [`operations/`](../operations/)           | [`RUNBOOK.md`](../operations/RUNBOOK.md)                                                          | running, deploying, recovering, or releasing the app |
 | [`sync/`](../sync/)                       | [`SYNC_AUTO_MERGE_POLICY.md`](../sync/SYNC_AUTO_MERGE_POLICY.md)                                  | checking sync auto-merge and lease policy            |
 | [`security/`](../security/)               | [`PUBLIC_REPOSITORY_READINESS.md`](../security/PUBLIC_REPOSITORY_READINESS.md)                    | preparing for public GitHub visibility               |
+| [`security/`](../security/)               | [`PUBLIC_FEATURE_PERMISSION_BOUNDARY.md`](../security/PUBLIC_FEATURE_PERMISSION_BOUNDARY.md)      | checking default-private public/share feature rules  |
+| [`security/`](../security/)               | [`API_AUTHORIZATION_SURFACE.md`](../security/API_AUTHORIZATION_SURFACE.md)                        | checking API controller authentication boundaries    |
+| [`security/`](../security/)               | [`API_INPUT_CONTRACTS.md`](../security/API_INPUT_CONTRACTS.md)                                    | checking API DTO input-validation boundaries         |
+| [`security/`](../security/)               | [`API_CACHE_POLICY.md`](../security/API_CACHE_POLICY.md)                                          | checking API cache-control boundaries                |
+| [`security/`](../security/)               | [`LOG_REDACTION_POLICY.md`](../security/LOG_REDACTION_POLICY.md)                                  | checking log and security-event redaction boundaries |
+| [`security/`](../security/)               | [`USER_DATA_RIGHTS_POLICY.md`](../security/USER_DATA_RIGHTS_POLICY.md)                            | checking user data export and deletion policy        |
 | [`security/`](../security/)               | [`GITHUB_SECURITY_SETTINGS_CHECKLIST.md`](../security/GITHUB_SECURITY_SETTINGS_CHECKLIST.md)      | enabling GitHub branch protection, CodeQL, Dependabot, secret scanning |
 | [`project/`](../project/README.md)        | [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | checking current implementation state                |
 | [`project/`](../project/README.md)        | [`EXECUTION_ROADMAP.md`](../project/EXECUTION_ROADMAP.md)                                         | checking current execution sequencing                |

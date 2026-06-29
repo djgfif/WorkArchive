@@ -97,6 +97,10 @@ export class SyncPullService {
 
       this.logPullSummary(userId, since ?? null, response);
       this.metricsService?.recordSync('pull', 'success');
+      this.metricsService?.recordSyncDuration(
+        { direction: 'pull', result: 'success' },
+        (Date.now() - startedAt) / 1000,
+      );
       this.logEvent('sync.pull.completed', {
         count: response.changes.length,
         durationMs: Date.now() - startedAt,
@@ -107,15 +111,16 @@ export class SyncPullService {
       return response;
     } catch (error) {
       this.metricsService?.recordSync('pull', 'failure');
+      this.metricsService?.recordSyncDuration(
+        { direction: 'pull', result: 'failure' },
+        (Date.now() - startedAt) / 1000,
+      );
       this.logEvent('sync.pull.failed', {
         durationMs: Date.now() - startedAt,
         errorCode: describeError(error),
         requestId,
         userId,
       });
-      this.logger.warn(
-        `Sync pull failed userId=${userId} since=${since ?? 'null'} reason=${describeError(error)}`,
-      );
       throw error;
     }
   }

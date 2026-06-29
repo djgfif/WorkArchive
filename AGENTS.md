@@ -70,21 +70,24 @@ Dependency direction: `home`/`profile` compose from `auth`, `archive`, `sync`,
 
 When in doubt, prefer an existing boundary over a new top-level folder.
 
-## Design system — "Archive Cinema" / Vellum Index
+## Design system — "Studio"
 
-The visual identity is **warm archival dark + rationed editorial gold** — not
-cold developer-tool navy. Full spec: [`docs/design/`](./docs/design/)
-(`VELLUM_INDEX_PHILOSOPHY.md`, `VELLUM_INDEX.png`).
+The visual identity is **neutral slate + a single rationed indigo accent** — a
+modern, mainstream product look. (Supersedes the earlier *Vellum Index* — warm
+archival dark + editorial gold; kept in git history and `VELLUM_INDEX.png`.)
+Full spec: [`docs/design/`](./docs/design/) (`STUDIO_PHILOSOPHY.md`).
 
 - Tokens live in `apps/web/src/app/mantine-theme.ts` (`--app-*` CSS variables)
   and `apps/web/src/app/styles/global.css`. Change colors there, not inline.
-- Core palette: shell `#0C0B0A`, surface `#201B16`, gold `#D4A843`, gold-hi
-  `#F5C842`, cream `#F5F0E8`.
-- **Gold is rationed** — use it only for ratings, active filters/states, and
+- Core palette: shell `#0A0A0C` (dark) / `#FBFBFD` (light), card `#1C1C22` /
+  `#FFFFFF`, indigo `#6366F1` / `#4F46E5`, text `#F4F4F6` / `#17171C`.
+- **Indigo is rationed** — use it only for active filters/states, selection, and
   primary CTAs. Never as a general accent.
-- Fonts: Pretendard (UI/body Korean), Gloock + Nanum Myeongjo (display serif
-  titles, latin+korean), Lora (editorial serif), JetBrains Mono (codes,
-  numerals). Display titles use `var(--app-font-display)`.
+- **Amber is rating-only** — `--app-accent-warm` (`#FBBF24` / `#D97706`) is the
+  star/rating colour; do not borrow it elsewhere.
+- Fonts: Pretendard for both UI/body **and** display titles
+  (`var(--app-font-display)`), JetBrains Mono for codes and numerals. No
+  editorial serif.
 - Numerals are tabular (`font-variant-numeric: tabular-nums`).
 
 ## Conventions & guardrails

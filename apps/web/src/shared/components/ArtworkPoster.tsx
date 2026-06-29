@@ -51,14 +51,24 @@ const posterVariantClass: Record<
   row: cn(styles.posterRow),
 };
 
-function getCoverTone(seed: string) {
+function getCoverSeedHash(seed: string) {
   let hash = 0;
 
   for (const character of seed) {
-    hash = (hash * 31 + character.charCodeAt(0)) % 997;
+    hash = (hash * 31 + character.charCodeAt(0)) % 99_991;
   }
 
-  return String(hash % 6);
+  return hash;
+}
+
+// 색조 8종 × 색상 변주(hue-rotate) 3종 = 24가지 외형으로 폴백 표지의 동질화를 줄인다.
+// 시드 해시는 카드당 한 번만 계산해 tone·variant를 함께 도출한다.
+function getCoverAppearance(seed: string) {
+  const hash = getCoverSeedHash(seed);
+  return {
+    tone: String(hash % 8),
+    variant: String(Math.floor(hash / 8) % 3),
+  };
 }
 
 export function ArtworkPoster({
@@ -78,6 +88,9 @@ export function ArtworkPoster({
   const fallbackAriaText =
     labels?.fallbackAria ?? t('shared.posterFallbackAlt', { title });
   const fallbackTypeText = labels?.fallbackType ?? t('shared.posterFallbackType');
+  const coverAppearance = getCoverAppearance(
+    coverSeed ?? `${typeLabel ?? ''}:${title}`,
+  );
 
   return (
     <Box
@@ -113,9 +126,8 @@ export function ArtworkPoster({
         <Box
           aria-label={fallbackAriaText}
           className={cn(styles.posterFallback)}
-          data-cover-tone={getCoverTone(
-            coverSeed ?? `${typeLabel ?? ''}:${title}`,
-          )}
+          data-cover-tone={coverAppearance.tone}
+          data-cover-variant={coverAppearance.variant}
         >
           <Text className={cn(styles.posterFallbackType)}>
             {typeLabel ?? fallbackTypeText}

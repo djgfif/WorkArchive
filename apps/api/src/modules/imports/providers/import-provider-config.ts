@@ -116,7 +116,7 @@ export function isKobisHttpProviderEnabled() {
     return true;
   }
 
-  return process.env.KOBIS_HTTP_PROVIDER_ENABLED?.trim().toLowerCase() === 'true';
+  return readBooleanEnvFlag('KOBIS_HTTP_PROVIDER_ENABLED');
 }
 
 export function getKobisDisabledMessage() {
@@ -124,10 +124,15 @@ export function getKobisDisabledMessage() {
 }
 
 export function isServerSearchGuestEnabled() {
-  return (
-    process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED?.trim().toLowerCase() ===
-    'true'
-  );
+  if (!readBooleanEnvFlag('IMPORT_SERVER_SEARCH_GUEST_ENABLED')) {
+    return false;
+  }
+
+  if (process.env.NODE_ENV?.trim() !== 'production') {
+    return true;
+  }
+
+  return readBooleanEnvFlag('IMPORT_SERVER_SEARCH_GUEST_APPROVED');
 }
 
 export function getServerProviderApiKey(provider: string) {
@@ -183,4 +188,22 @@ function readOptionalEnv(name: string) {
   const value = process.env[name]?.trim();
 
   return value ? value : null;
+}
+
+function readBooleanEnvFlag(name: string) {
+  const normalizedValue = process.env[name]?.trim().toLowerCase();
+
+  if (!normalizedValue) {
+    return false;
+  }
+
+  if (normalizedValue === 'true') {
+    return true;
+  }
+
+  if (normalizedValue === 'false') {
+    return false;
+  }
+
+  throw new Error(`${name} must be true or false when set.`);
 }

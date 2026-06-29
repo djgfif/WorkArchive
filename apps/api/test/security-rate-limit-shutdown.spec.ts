@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 const mockRedisConnect = jest.fn<() => Promise<void>>();
@@ -23,8 +24,13 @@ import {
 } from '../src/security/security-middleware';
 import type { SecurityAuditService } from '../src/security/security-audit.service';
 
+const REDIS_RATE_LIMIT_STORE_COUNT = 11;
+
 const redisRateLimitConfig: ApiRuntimeConfig = {
   authRateLimitMax: 10,
+  authSensitiveRateLimitMax: 5,
+  catalogRateLimitMax: 20,
+  globalRateLimitMax: 600,
   clientHeaderGuardMode: 'off',
   cookieSecure: true,
   corsOrigin: ['https://workarchive.example.com'],
@@ -33,6 +39,7 @@ const redisRateLimitConfig: ApiRuntimeConfig = {
   googleOAuthClientSecret: 'google-client-secret',
   googleOAuthRedirectUri:
     'https://workarchive.example.com/api/auth/google/callback',
+  headersTimeoutMs: 15_000,
   host: '0.0.0.0',
   importAuthenticatedRateLimitMax: 60,
   importGuestRateLimitMax: 20,
@@ -41,8 +48,11 @@ const redisRateLimitConfig: ApiRuntimeConfig = {
   jsonBodyLimit: '2mb',
   jwtAccessSecret: 'test-access-secret-minimum-32-chars',
   jwtRefreshSecret: 'test-refresh-secret-minimum-32-chars',
+  keepAliveTimeoutMs: 5_000,
+  logLevel: 'info',
   metricsBearerToken: null,
   metricsEnabled: false,
+  mutationRateLimitMax: 120,
   notionRateLimitMax: 20,
   port: 18731,
   rateLimitPrefix: 'work-archive:test:',
@@ -50,6 +60,7 @@ const redisRateLimitConfig: ApiRuntimeConfig = {
   rateLimitWindowMs: 60_000,
   readinessCheckTimeoutMs: 1500,
   redisUrl: 'redis://redis:6379',
+  requestTimeoutMs: 120_000,
   securityEventHashSecret: 'test-security-event-secret-minimum-32-chars',
   swaggerEnabled: false,
   syncRateLimitMax: 30,
@@ -78,12 +89,14 @@ describe('security rate-limit Redis shutdown', () => {
       securityAudit as unknown as SecurityAuditService,
     );
 
-    expect(mockRedisConnect).toHaveBeenCalledTimes(6);
-    expect(mockRedisPing).toHaveBeenCalledTimes(6);
+    expect(mockRedisConnect).toHaveBeenCalledTimes(
+      REDIS_RATE_LIMIT_STORE_COUNT,
+    );
+    expect(mockRedisPing).toHaveBeenCalledTimes(REDIS_RATE_LIMIT_STORE_COUNT);
 
     await shutdownRedisRateLimitClients();
 
-    expect(mockRedisQuit).toHaveBeenCalledTimes(6);
+    expect(mockRedisQuit).toHaveBeenCalledTimes(REDIS_RATE_LIMIT_STORE_COUNT);
     expect(mockRedisDisconnect).not.toHaveBeenCalled();
   });
 
@@ -96,7 +109,39 @@ describe('security rate-limit Redis shutdown', () => {
     );
     await shutdownRedisRateLimitClients();
 
-    expect(mockRedisQuit).toHaveBeenCalledTimes(6);
+    expect(mockRedisQuit).toHaveBeenCalledTimes(REDIS_RATE_LIMIT_STORE_COUNT);
     expect(mockRedisDisconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs non-production Redis rate-limit fallback without raw Redis errors', async () => {
+    const warnSpy = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    mockRedisConnect.mockRejectedValue(
+      new Error('redis://:secret@localhost:6379 access_token raw payload'),
+    );
+
+    await createSecurityRateLimiters(
+      {
+        ...redisRateLimitConfig,
+        isProduction: false,
+      },
+      securityAudit as unknown as SecurityAuditService,
+    );
+
+    const warning = String(warnSpy.mock.calls[0]?.[0] ?? '');
+
+    expect(JSON.parse(warning)).toEqual(
+      expect.objectContaining({
+        errorCode: 'Error',
+        event: 'rate_limit.redis_store_unavailable',
+        provider: 'redis',
+      }),
+    );
+    expect(warnSpy.mock.calls.flat().join(' ')).not.toMatch(
+      /redis:\/\/:secret|access_token|raw payload/,
+    );
+
+    warnSpy.mockRestore();
   });
 });

@@ -5,6 +5,7 @@ import {
   isImportProviderConfigured,
   type ImportProviderReadinessCredentialStore,
 } from '../src/modules/imports/import-provider-readiness';
+import { isServerSearchGuestEnabled } from '../src/modules/imports/providers/import-provider-config';
 import {
   BRAVE_SEARCH_PROVIDER,
   KOBIS_PROVIDER,
@@ -15,6 +16,8 @@ import {
 } from '../src/modules/imports/imports.constants';
 
 const ENV_KEYS = [
+  'IMPORT_SERVER_SEARCH_GUEST_APPROVED',
+  'IMPORT_SERVER_SEARCH_GUEST_ENABLED',
   'KOBIS_API_KEY',
   'KOBIS_HTTP_PROVIDER_ENABLED',
   'NAVER_CLIENT_ID',
@@ -174,6 +177,90 @@ describe('import provider readiness', () => {
             userId: null,
           }),
         ).resolves.toBe(true);
+      },
+    );
+  });
+
+  it('rejects malformed production provider boolean flags instead of treating them as disabled', async () => {
+    await withEnv(
+      {
+        KOBIS_HTTP_PROVIDER_ENABLED: 'yes',
+        NODE_ENV: 'production',
+      },
+      async () => {
+        const hasCredential = jest.fn<
+          ImportProviderReadinessCredentialStore['hasCredential']
+        >();
+
+        await expect(
+          isImportProviderConfigured({
+            credentialStore: credentialStore(hasCredential),
+            provider: KOBIS_PROVIDER,
+            userId: null,
+          }),
+        ).rejects.toThrow(
+          'KOBIS_HTTP_PROVIDER_ENABLED must be true or false when set.',
+        );
+      },
+    );
+
+    await withEnv(
+      {
+        IMPORT_SERVER_SEARCH_GUEST_APPROVED: '1',
+        IMPORT_SERVER_SEARCH_GUEST_ENABLED: 'true',
+        NODE_ENV: 'production',
+      },
+      () => {
+        expect(() => isServerSearchGuestEnabled()).toThrow(
+          'IMPORT_SERVER_SEARCH_GUEST_APPROVED must be true or false when set.',
+        );
+      },
+    );
+
+    await withEnv(
+      {
+        IMPORT_SERVER_SEARCH_GUEST_ENABLED: 'on',
+        NODE_ENV: 'production',
+      },
+      () => {
+        expect(() => isServerSearchGuestEnabled()).toThrow(
+          'IMPORT_SERVER_SEARCH_GUEST_ENABLED must be true or false when set.',
+        );
+      },
+    );
+  });
+
+  it('requires an explicit production approval flag before enabling guest server search', async () => {
+    await withEnv(
+      {
+        IMPORT_SERVER_SEARCH_GUEST_APPROVED: undefined,
+        IMPORT_SERVER_SEARCH_GUEST_ENABLED: 'true',
+        NODE_ENV: 'production',
+      },
+      () => {
+        expect(isServerSearchGuestEnabled()).toBe(false);
+      },
+    );
+
+    await withEnv(
+      {
+        IMPORT_SERVER_SEARCH_GUEST_APPROVED: 'true',
+        IMPORT_SERVER_SEARCH_GUEST_ENABLED: 'true',
+        NODE_ENV: 'production',
+      },
+      () => {
+        expect(isServerSearchGuestEnabled()).toBe(true);
+      },
+    );
+
+    await withEnv(
+      {
+        IMPORT_SERVER_SEARCH_GUEST_APPROVED: undefined,
+        IMPORT_SERVER_SEARCH_GUEST_ENABLED: 'true',
+        NODE_ENV: 'test',
+      },
+      () => {
+        expect(isServerSearchGuestEnabled()).toBe(true);
       },
     );
   });

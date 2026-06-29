@@ -95,7 +95,7 @@ Prisma migrations are forward-only. If migration fails:
 
 1. Stop the API so no partial writes continue.
 2. Preserve logs:
-   `docker logs work-archive-api --tail=200 > migration-failure-api.log`.
+   `TAIL=200 FOLLOW=false npm run ops:logs -- api > migration-failure-api.log`.
 3. Restore the latest verified PostgreSQL backup into a clean volume.
 4. Re-run `/readyz`.
 5. Re-run Google login, sync, and tier board smoke checks.

@@ -2,7 +2,12 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REPORT_DIR="${GATE1_EVIDENCE_DIR:-$ROOT_DIR/tmp/gate1-evidence}"
+REPORT_DIR_INPUT="${GATE1_EVIDENCE_DIR:-$ROOT_DIR/tmp/gate1-evidence}"
+if [[ "$REPORT_DIR_INPUT" = /* ]]; then
+  REPORT_DIR="$REPORT_DIR_INPUT"
+else
+  REPORT_DIR="$ROOT_DIR/$REPORT_DIR_INPUT"
+fi
 STAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
 REPORT_FILE="$REPORT_DIR/gate1-local-$STAMP.md"
 TMP_DIR="$(mktemp -d)"
@@ -29,9 +34,14 @@ redact() {
   sed -E \
     -e "s#${root_regex}#[workspace]#g" \
     -e "s#${host_regex}#[redacted]#g" \
-    -e 's/([A-Za-z0-9_]*(SECRET|TOKEN|PASSWORD|API_KEY|COOKIE|OAUTH|DATABASE_URL)[A-Za-z0-9_]*=)[^[:space:]]+/\1[REDACTED]/gI' \
+    -e 's/([A-Za-z0-9_]*(SECRET|TOKEN|PASSWORD|API_KEY|COOKIE|OAUTH|DATABASE_URL|REDIS_URL)[A-Za-z0-9_]*=)[^[:space:]&;,]+/\1[REDACTED]/gI' \
     -e 's/(Bearer )[A-Za-z0-9._~+\/=-]+/\1[REDACTED]/gI' \
-    -e 's#(postgresql://)[^[:space:]@]+@#\1[REDACTED]@#gI'
+    -e 's/(Basic )[A-Za-z0-9._~+\/=-]+/\1[REDACTED]/gI' \
+    -e 's#\b(access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token)=([^[:space:]&;,]+)#\1=[REDACTED]#gI' \
+    -e 's#(postgresql://)[^[:space:]@]+@#\1[REDACTED]@#gI' \
+    -e 's#(rediss?://)[^[:space:]@]+@#\1[REDACTED]@#gI' \
+    -e 's#(https?://)[^[:space:]/@]+(:[^[:space:]@]*)?@#\1[REDACTED]@#gI' \
+    -e 's#([?&](access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token)=)[^[:space:]&]+#\1[REDACTED]#gI'
 }
 
 relative_path() {
@@ -161,25 +171,83 @@ run_check "npm run build" npm run build
 
 run_check "bash syntax: beta-preflight" bash -n scripts/deploy/beta-preflight.sh
 run_check "bash syntax: beta-smoke" bash -n scripts/deploy/beta-smoke.sh
+run_check "bash syntax: commercial beta rehearsal" bash -n scripts/deploy/commercial-beta-rehearsal.sh
+run_check "bash syntax: prod-build" bash -n scripts/deploy/prod-build.sh
+run_check "bash syntax: prod-up" bash -n scripts/deploy/prod-up.sh
+run_check "bash syntax: prod-down" bash -n scripts/deploy/prod-down.sh
+run_check "bash syntax: prod-healthcheck" bash -n scripts/deploy/prod-healthcheck.sh
+run_check "bash syntax: prod-logs" bash -n scripts/deploy/prod-logs.sh
 run_check "bash syntax: prod-backup" bash -n scripts/deploy/prod-backup.sh
 run_check "bash syntax: prod-backup-verify" bash -n scripts/deploy/prod-backup-verify.sh
 run_check "bash syntax: prod-restore-drill" bash -n scripts/deploy/prod-restore-drill.sh
 run_check "bash syntax: gate1 evidence helper" bash -n scripts/qa/gate1-evidence-local.sh
 run_check "node syntax: commercial env preflight" node --check scripts/deploy/commercial-env-preflight.mjs
 run_check "node syntax: gate1 evidence validator" node --check scripts/qa/validate-gate1-evidence.mjs
+run_check "node syntax: gate1 missing evidence report" node --check scripts/qa/gate1-missing-evidence-report.mjs
 run_check "node syntax: prisma migration validator" node --check scripts/qa/validate-prisma-migrations.mjs
+run_check "node syntax: BOLA matrix validator" node --check scripts/qa/validate-bola-matrix.mjs
+run_check "node syntax: API auth surface validator" node --check scripts/qa/validate-api-auth-surface.mjs
+run_check "node syntax: API input contract validator" node --check scripts/qa/validate-api-input-contracts.mjs
+run_check "node syntax: API cache policy validator" node --check scripts/qa/validate-api-cache-policy.mjs
+run_check "node syntax: API security headers validator" node --check scripts/qa/validate-api-security-headers.mjs
+run_check "node syntax: API error policy validator" node --check scripts/qa/validate-api-error-policy.mjs
+run_check "node syntax: CSRF policy validator" node --check scripts/qa/validate-csrf-policy.mjs
+run_check "node syntax: image proxy policy validator" node --check scripts/qa/validate-image-proxy-policy.mjs
+run_check "node syntax: deploy script policy validator" node --check scripts/qa/validate-deploy-scripts.mjs
+run_check "node syntax: owner invariants validator" node --check scripts/qa/validate-owner-invariants.mjs
+run_check "node syntax: auth session policy validator" node --check scripts/qa/validate-auth-session-policy.mjs
+run_check "node syntax: OAuth policy validator" node --check scripts/qa/validate-oauth-policy.mjs
+run_check "node syntax: log redaction policy validator" node --check scripts/qa/validate-log-redaction-policy.mjs
+run_check "node syntax: operator safety validator" node --check scripts/qa/validate-operator-safety.mjs
+run_check "node syntax: backup restore policy validator" node --check scripts/qa/validate-backup-restore-policy.mjs
+run_check "node syntax: secure SDLC policy validator" node --check scripts/qa/validate-secure-sdlc-policy.mjs
+run_check "node syntax: compose hardening validator" node --check scripts/qa/validate-compose-hardening.mjs
+run_check "node syntax: public boundary validator" node --check scripts/qa/validate-public-permission-boundary.mjs
+run_check "node syntax: retention policy validator" node --check scripts/qa/validate-retention-policy.mjs
+run_check "node syntax: user data rights policy validator" node --check scripts/qa/validate-user-data-rights-policy.mjs
+run_check "node syntax: user data rights smoke" node --check scripts/qa/user-data-rights-smoke.mjs
+run_check "node syntax: account deletion rehearsal" node --check scripts/qa/account-deletion-rehearsal.mjs
 run_check "node syntax: prometheus alert validator" node --check scripts/qa/validate-prometheus-alerts.mjs
 run_check "node syntax: prometheus slo validator" node --check scripts/qa/validate-prometheus-slo-rules.mjs
 run_check "node syntax: grafana dashboard validator" node --check scripts/qa/validate-grafana-dashboard.mjs
 run_check "node syntax: monitoring evidence" node --check scripts/qa/monitoring-evidence.mjs
 run_check "node syntax: import search QA" node --check scripts/qa/import-search-qa.mjs
 run_check "node syntax: performance smoke" node --check scripts/qa/performance-smoke.mjs
+run_check "node syntax: sync architecture validator" node --check scripts/qa/validate-sync-architecture.mjs
 run_check "node syntax: sync load smoke" node --check scripts/qa/sync-load-smoke.mjs
+run_check "restore drill plan-only" env RESTORE_DRILL_PLAN_ONLY=true npm run ops:restore-drill
 run_check "npm run qa:alerts" npm run qa:alerts
 run_check "npm run qa:gate1:evidence" npm run qa:gate1:evidence
+run_check "npm run qa:gate1:missing" npm run qa:gate1:missing
 run_check "npm run qa:migrations" npm run qa:migrations
+run_check "npm run qa:bola-matrix" npm run qa:bola-matrix
+run_check "npm run qa:api-auth-surface" npm run qa:api-auth-surface
+run_check "npm run qa:api-input-contracts" npm run qa:api-input-contracts
+run_check "npm run qa:api-cache-policy" npm run qa:api-cache-policy
+run_check "npm run qa:api-security-headers" npm run qa:api-security-headers
+run_check "npm run qa:api-error-policy" npm run qa:api-error-policy
+run_check "npm run qa:csrf-policy" npm run qa:csrf-policy
+run_check "npm run qa:image-proxy-policy" npm run qa:image-proxy-policy
+run_check "npm run qa:deploy-scripts" npm run qa:deploy-scripts
+run_check "npm run qa:owner-invariants" npm run qa:owner-invariants
+run_check "npm run qa:auth-session-policy" npm run qa:auth-session-policy
+run_check "npm run qa:oauth-policy" npm run qa:oauth-policy
+run_check "npm run qa:log-redaction-policy" npm run qa:log-redaction-policy
+run_check "npm run qa:operator-safety" npm run qa:operator-safety
+run_check "npm run qa:backup-restore-policy" npm run qa:backup-restore-policy
+run_check "npm run qa:secure-sdlc-policy" npm run qa:secure-sdlc-policy
+run_check "npm run qa:compose-hardening" npm run qa:compose-hardening
+run_check "npm run qa:public-boundary" npm run qa:public-boundary
+run_check "npm run qa:retention-policy" npm run qa:retention-policy
+run_check "npm run qa:user-data-rights-policy" npm run qa:user-data-rights-policy
+run_check "npm run qa:user-data-rights-smoke dry-run" env USER_DATA_RIGHTS_SMOKE_LIVE=false npm run qa:user-data-rights-smoke
+run_check "npm run qa:account-deletion-rehearsal dry-run" env ACCOUNT_DELETION_REHEARSAL_LIVE=false npm run qa:account-deletion-rehearsal
 run_check "npm run qa:slo" npm run qa:slo
 run_check "npm run qa:dashboards" npm run qa:dashboards
+run_check "npm run qa:import-search" npm run qa:import-search
+run_check "npm run qa:sync-architecture" npm run qa:sync-architecture
+run_check "npm run qa:sync-load dry-run" env SYNC_LOAD_DRY_RUN=true npm run qa:sync-load
+run_check "npm run qa:performance-smoke dry-run" env PERF_SMOKE_DRY_RUN=true npm run qa:performance-smoke
 run_check "npm run qa:monitoring dry-run" env MONITORING_EVIDENCE_DRY_RUN=true npm run qa:monitoring
 
 if [[ -f "$ROOT_DIR/.env.prod" ]]; then

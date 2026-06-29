@@ -5,6 +5,7 @@ import { PullSyncDto } from '../src/modules/sync/dto/pull-sync.dto';
 import { PushSyncDto } from '../src/modules/sync/dto/push-sync.dto';
 import { SyncCursorService } from '../src/modules/sync/services/sync-cursor.service';
 import { MAX_PULL_CURSOR_LENGTH } from '../src/modules/sync/sync-internal.types';
+import { MAX_PUSH_BATCH_SIZE } from '../src/modules/sync/sync.constants';
 
 describe('sync schema version DTOs', () => {
   it('accepts omitted schemaVersion as v2 compatibility input', async () => {
@@ -74,6 +75,20 @@ describe('sync schema version DTOs', () => {
       ]),
     );
   });
+
+  it('rejects oversized push batches at the DTO boundary', async () => {
+    const pushDto = Object.assign(new PushSyncDto(), {
+      changes: Array.from({ length: MAX_PUSH_BATCH_SIZE + 1 }, () => ({})),
+    });
+
+    await expect(validate(pushDto)).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          property: 'changes',
+        }),
+      ]),
+    );
+  });
 });
 
 describe('sync pull cursor limits', () => {
@@ -118,7 +133,9 @@ describe('sync pull cursor limits', () => {
     ).toString('base64url');
 
     expect(
-      cursorService.parsePullCursor(cursorService.encodePullCursor(validCursor)),
+      cursorService.parsePullCursor(
+        cursorService.encodePullCursor(validCursor),
+      ),
     ).toEqual(validCursor);
     expect(() => cursorService.parsePullCursor(forgedCursor)).toThrow(
       'cursor must be a valid sync pull cursor.',

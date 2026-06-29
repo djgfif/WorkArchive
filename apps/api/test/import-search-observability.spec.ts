@@ -104,6 +104,28 @@ describe('import search observability helpers', () => {
     });
   });
 
+  it('records request ids on provider failure logs when available', () => {
+    const logger = {
+      log: jest.fn(),
+      warn: jest.fn(),
+    };
+
+    logImportProviderFailure(logger, {
+      durationMs: 12,
+      errorCode: 'BadGatewayException',
+      provider: ALADIN_PROVIDER,
+      requestId: 'req-import-1',
+      userId: 'user-1',
+    });
+
+    expect(JSON.parse(String(logger.warn.mock.calls[0]?.[0] ?? ''))).toEqual(
+      expect.objectContaining({
+        event: 'imports.provider.failed',
+        requestId: 'req-import-1',
+      }),
+    );
+  });
+
   it('logs search summaries with query length instead of raw query content', () => {
     const logger = {
       log: jest.fn(),
@@ -120,6 +142,26 @@ describe('import search observability helpers', () => {
 
     expect(logger.log).toHaveBeenCalledWith(
       'Import search summary userId=guest provider=open_library,manual queryLength=13 resultCount=2 status=ok',
+    );
+  });
+
+  it('adds request ids to search summaries when available', () => {
+    const logger = {
+      log: jest.fn(),
+      warn: jest.fn(),
+    };
+
+    logImportSearchSummary(logger, {
+      provider: 'open_library,manual',
+      query: 'secret search',
+      requestId: 'req-import-2',
+      resultCount: 2,
+      status: 'ok',
+      userId: null,
+    });
+
+    expect(logger.log).toHaveBeenCalledWith(
+      'Import search summary userId=guest provider=open_library,manual queryLength=13 resultCount=2 status=ok requestId=req-import-2',
     );
   });
 

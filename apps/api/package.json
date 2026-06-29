@@ -17,6 +17,7 @@
     "test:integration": "node scripts/run-integration-tests.mjs",
     "ops:migrate-legacy-genres": "tsx src/operations/migrate-legacy-genres-to-tags.ts",
     "ops:retention:cleanup": "tsx src/operations/retention-cleanup.ts",
+    "ops:imports:clear-circuit": "tsx src/operations/import-provider-circuit-clear.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",

@@ -101,6 +101,11 @@ create idempotency replay records, and do not stop later changes in the same
 push batch from being attempted. Validation failures and conflicts keep their
 more specific result codes.
 
+Push batches are capped at 200 changes at both the DTO boundary and the service
+boundary. Oversized batches fail before storage writes instead of producing
+partial per-change results; clients must split larger local queues into
+multiple push requests.
+
 ## Client Mutation ID Rotation
 
 `clientMutationId` is the push idempotency key. A queue item keeps its

@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Inject,
   Logger,
+  Optional,
   Param,
   Patch,
   ParseUUIDPipe,
@@ -21,6 +22,7 @@ import { randomUUID } from 'node:crypto';
 import {
   ApiBody,
   ApiBearerAuth,
+  ApiBadRequestResponse,
   ApiConflictResponse,
   ApiNoContentResponse,
   ApiOkResponse,
@@ -31,6 +33,7 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
+import { MetricsService } from '../../observability/metrics.service';
 import {
   getRequestId,
   SecurityAuditService,
@@ -56,8 +59,12 @@ import {
 } from './auth.cookies';
 import { CurrentUser } from './current-user.decorator';
 import type { AuthenticatedUser } from './auth.types';
+import { AuthAccountDeletionRequestDto } from './dto/auth-account-deletion-request.dto';
+import { AuthAccountDeletionPreviewResponseDto } from './dto/auth-account-deletion-preview-response.dto';
+import { AuthAccountDeletionResponseDto } from './dto/auth-account-deletion-response.dto';
 import { AuthRefreshSessionsResponseDto } from './dto/auth-refresh-session-response.dto';
 import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
+import { AuthUserDataExportResponseDto } from './dto/auth-user-data-export-response.dto';
 import { AuthUserResponseDto } from './dto/auth-user-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -75,6 +82,9 @@ export class AuthController {
     private readonly googleOAuthFlowStore: GoogleOAuthFlowStoreService,
     @Inject(SecurityAuditService)
     private readonly securityAudit: SecurityAuditService,
+    @Inject(MetricsService)
+    @Optional()
+    private readonly metricsService?: MetricsService,
   ) {}
 
   @Post('register')
@@ -108,8 +118,7 @@ export class AuthController {
       return;
     }
 
-    const validatedReturnOrigin =
-      getAllowedOAuthReturnOrigin(returnOrigin);
+    const validatedReturnOrigin = getAllowedOAuthReturnOrigin(returnOrigin);
     const flowId = randomUUID();
     const state = generateOAuthSecret();
     const nonce = generateOAuthSecret();
@@ -204,7 +213,7 @@ export class AuthController {
       const reason =
         typeof code !== 'string'
           ? 'missing_oauth_code'
-          : flowResult.failureReason ?? 'invalid_oauth_state';
+          : (flowResult.failureReason ?? 'invalid_oauth_state');
 
       this.logAuthGoogleFailed(request, reason);
       void this.securityAudit.record({
@@ -302,10 +311,20 @@ export class AuthController {
       return;
     }
 
-    const session = await this.authService.refresh(
-      refreshToken,
-      getAuthSessionMetadata(request),
-    );
+    let session: Awaited<ReturnType<typeof this.authService.refresh>>;
+
+    try {
+      session = await this.authService.refresh(
+        refreshToken,
+        getAuthSessionMetadata(request),
+      );
+    } catch (error) {
+      response.clearCookie(
+        REFRESH_TOKEN_COOKIE_NAME,
+        getRefreshTokenClearCookieOptions(),
+      );
+      throw error;
+    }
 
     if (session.refreshToken) {
       response.cookie(
@@ -382,6 +401,133 @@ export class AuthController {
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
     return this.authService.updateProfile(user.userId, updateProfileDto);
+  }
+
+  @Get('data-export')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description:
+      'Export the current user server-side account data without secrets or token hashes.',
+    type: AuthUserDataExportResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  async exportUserData(
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() request: Request,
+  ) {
+    const exported = await this.authService.exportUserData(user);
+
+    void this.securityAudit.record({
+      eventType: 'auth.user_data.export',
+      request,
+      severity: 'info',
+      userId: user.userId,
+    });
+
+    return exported;
+  }
+
+  @Get('account/deletion-preview')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description:
+      'Preview server-side account deletion impact without returning row contents.',
+    type: AuthAccountDeletionPreviewResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  previewAccountDeletion(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.previewAccountDeletion(user);
+  }
+
+  @Delete('account')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiBody({
+    type: AuthAccountDeletionRequestDto,
+  })
+  @ApiOkResponse({
+    description:
+      'Delete the current server-side account and detach retained operational records.',
+    type: AuthAccountDeletionResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      'The confirmation email or irreversible acknowledgement is invalid.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The access token is missing, invalid, or expired.',
+  })
+  async deleteAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() deletionRequest: AuthAccountDeletionRequestDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    try {
+      this.authService.validateAccountDeletionRequest(user, deletionRequest);
+    } catch (error) {
+      await this.securityAudit.record({
+        eventType: 'auth.account.delete_failed',
+        metadata: {
+          reason: getAccountDeletionFailureReason(error),
+        },
+        request,
+        sessionId: user.sessionId,
+        severity: 'warning',
+        userId: user.userId,
+      });
+      this.metricsService?.recordUserDataRights({
+        operation: 'delete',
+        result: 'failure',
+      });
+
+      throw error;
+    }
+
+    try {
+      await this.securityAudit.record({
+        eventType: 'auth.account.delete',
+        metadata: {
+          result: 'accepted',
+        },
+        request,
+        sessionId: user.sessionId,
+        severity: 'warning',
+        userId: user.userId,
+      });
+
+      const result = await this.authService.deleteAccount(
+        user,
+        deletionRequest,
+      );
+
+      response.clearCookie(
+        REFRESH_TOKEN_COOKIE_NAME,
+        getRefreshTokenClearCookieOptions(),
+      );
+
+      return result;
+    } catch (error) {
+      await this.securityAudit.record({
+        eventType: 'auth.account.delete_failed',
+        metadata: {
+          reason: getAccountDeletionFailureReason(error),
+        },
+        request,
+        sessionId: user.sessionId,
+        severity: 'critical',
+        userId: user.userId,
+      });
+
+      throw error;
+    }
   }
 
   @Get('sessions')
@@ -479,4 +625,12 @@ export class AuthController {
       getGoogleOAuthCookieOptions(),
     );
   }
+}
+
+function getAccountDeletionFailureReason(error: unknown) {
+  if (error instanceof HttpException) {
+    return `http_${error.getStatus()}`;
+  }
+
+  return 'internal_error';
 }

@@ -135,18 +135,16 @@ export class GoogleOAuthClient {
         timeoutMs: GOOGLE_TOKEN_TIMEOUT_MS,
       });
     } catch (error) {
-      this.logger.warn(
-        `Google token exchange failed reason=${
-          error instanceof ExternalFetchError ? error.code : 'unknown'
-        }`,
-      );
+      this.logOAuthProviderWarning('auth.google.token_exchange.failed', {
+        errorCode: describeExternalFetchError(error),
+      });
       throw new UnauthorizedException('Google login could not be completed.');
     }
 
     if (!response.ok) {
-      this.logger.warn(
-        `Google token exchange failed status=${response.status}`,
-      );
+      this.logOAuthProviderWarning('auth.google.token_exchange.failed', {
+        httpStatus: response.status,
+      });
       throw new UnauthorizedException('Google login could not be completed.');
     }
 
@@ -156,11 +154,9 @@ export class GoogleOAuthClient {
         GOOGLE_OAUTH_JSON_MAX_BYTES,
       );
     } catch (error) {
-      this.logger.warn(
-        `Google token exchange returned invalid body reason=${
-          error instanceof ExternalFetchError ? error.code : 'unknown'
-        }`,
-      );
+      this.logOAuthProviderWarning('auth.google.token_exchange.invalid_body', {
+        errorCode: describeExternalFetchError(error),
+      });
       throw new UnauthorizedException('Google login could not be completed.');
     }
   }
@@ -190,11 +186,10 @@ export class GoogleOAuthClient {
       const staleKey = this.getStaleSigningKey(kid);
 
       if (staleKey) {
-        this.logger.warn(
-          `Google signing keys fetch failed; using stale cache reason=${
-            error instanceof ExternalFetchError ? error.code : 'unknown'
-          }`,
-        );
+        this.logOAuthProviderWarning('auth.google.jwks.stale_cache_used', {
+          errorCode: describeExternalFetchError(error),
+          staleCache: true,
+        });
         return staleKey;
       }
 
@@ -205,9 +200,10 @@ export class GoogleOAuthClient {
       const staleKey = this.getStaleSigningKey(kid);
 
       if (staleKey) {
-        this.logger.warn(
-          `Google signing keys returned status=${response.status}; using stale cache`,
-        );
+        this.logOAuthProviderWarning('auth.google.jwks.stale_cache_used', {
+          httpStatus: response.status,
+          staleCache: true,
+        });
         return staleKey;
       }
 
@@ -225,7 +221,10 @@ export class GoogleOAuthClient {
       const staleKey = this.getStaleSigningKey(kid);
 
       if (staleKey) {
-        this.logger.warn('Google signing keys body invalid; using stale cache');
+        this.logOAuthProviderWarning('auth.google.jwks.stale_cache_used', {
+          errorCode: 'invalid_body',
+          staleCache: true,
+        });
         return staleKey;
       }
 
@@ -273,6 +272,30 @@ export class GoogleOAuthClient {
     }
 
     return signingKey;
+  }
+
+  private logOAuthProviderWarning(
+    event: string,
+    fields: {
+      errorCode?: string;
+      httpStatus?: number;
+      staleCache?: boolean;
+    },
+  ) {
+    this.logger.warn(
+      JSON.stringify({
+        count: null,
+        durationMs: null,
+        entityType: null,
+        errorCode: fields.errorCode ?? null,
+        event,
+        httpStatus: fields.httpStatus ?? null,
+        provider: GOOGLE_AUTH_PROVIDER,
+        requestId: null,
+        staleCache: fields.staleCache ?? null,
+        userId: null,
+      }),
+    );
   }
 
   private async verifyIdToken(
@@ -351,4 +374,8 @@ export class GoogleOAuthClient {
   private normalizeEmail(email: string) {
     return email.trim().toLowerCase();
   }
+}
+
+function describeExternalFetchError(error: unknown) {
+  return error instanceof ExternalFetchError ? error.code : 'UnknownError';
 }

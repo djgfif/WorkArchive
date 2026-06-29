@@ -6,10 +6,10 @@
   background:
     radial-gradient(
       130% 80% at 50% -10%,
-      rgba(200, 146, 46, 0.2),
+      rgba(99, 102, 241, 0.28),
       transparent 60%
     ),
-    linear-gradient(180deg, #1a1714, #0c0b0a);
+    linear-gradient(180deg, #18181f, #0a0a0c);
   overflow: hidden;
 }
 

@@ -59,6 +59,20 @@ describe('fetchExternal', () => {
     expect(transport).not.toHaveBeenCalled();
   });
 
+  it('blocks non-default HTTPS ports before fetch', async () => {
+    await expect(
+      fetchExternal('https://api.example.com:8443/data.json', {
+        allowedHostnames: ['api.example.com'],
+        method: 'GET',
+        timeoutMs: 1000,
+      }),
+    ).rejects.toMatchObject({
+      code: 'forbidden_url',
+    });
+
+    expect(transport).not.toHaveBeenCalled();
+  });
+
   it('allows exact and subdomain allowlist matches only', async () => {
     await fetchExternal('https://cdn.example.com/data.json', {
       allowedHostnameSuffixes: ['example.com'],

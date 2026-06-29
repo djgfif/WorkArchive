@@ -13,13 +13,19 @@ export type SecurityEventType =
   | 'auth.login.failure'
   | 'auth.login.success'
   | 'auth.logout'
+  | 'auth.account.delete'
+  | 'auth.account.delete_failed'
   | 'auth.refresh.failure'
   | 'auth.refresh.reuse_detected'
   | 'auth.session.revoke'
   | 'auth.session.revoke_all'
+  | 'auth.user_data.export'
   | 'http.client_header_missing'
   | 'http.fetch_metadata_blocked'
   | 'http.origin_blocked'
+  | 'http.request_body_rejected'
+  | 'http.request_target_too_long'
+  | 'http.unsupported_media_type'
   | 'http.rate_limit_exceeded';
 
 export interface SecurityAuditContext {
@@ -38,6 +44,10 @@ export interface SecurityAuditEvent extends SecurityAuditContext {
 }
 
 const MAX_SECURITY_METADATA_STRING_LENGTH = 160;
+const SENSITIVE_METADATA_KEY_PATTERN =
+  /authorization|api[-_]?key|cookie|email|password|secret|token/i;
+const SENSITIVE_INLINE_VALUE_PATTERN =
+  /\b((?:access[-_]?token|authorization[-_]?code|authorization|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token)=)[^\s&#]+/gi;
 
 @Injectable()
 export class SecurityAuditService {
@@ -65,9 +75,12 @@ export class SecurityAuditService {
       });
     } catch (error) {
       this.logger.warn(
-        `Security audit event was not stored eventType=${event.eventType} reason=${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        JSON.stringify({
+          errorCode: this.describeOperationalError(error),
+          event: 'security_audit.store_failed',
+          eventType: event.eventType,
+          requestId: event.requestId ?? getRequestId(event.request) ?? null,
+        }),
       );
     }
   }
@@ -114,6 +127,10 @@ export class SecurityAuditService {
 
     return sanitized;
   }
+
+  private describeOperationalError(error: unknown) {
+    return error instanceof Error ? error.name : 'UnknownError';
+  }
 }
 
 type JsonPrimitive = string | number | boolean | null;
@@ -146,8 +163,32 @@ function isJsonSafePrimitive(value: unknown): value is JsonPrimitive {
 }
 
 function isSensitiveMetadataKey(key: string) {
-  return /authorization|api[-_]?key|cookie|email|password|secret|token/i.test(
-    key,
+  if (SENSITIVE_METADATA_KEY_PATTERN.test(key)) {
+    return true;
+  }
+
+  const normalized = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase();
+  const segments = normalized.split(/[^a-z0-9]+/).filter(Boolean);
+  const joined = segments.join('_');
+  const segmentSet = new Set(segments);
+
+  if (
+    segmentSet.has('credential') ||
+    segmentSet.has('nonce') ||
+    segmentSet.has('session') ||
+    segmentSet.has('state')
+  ) {
+    return true;
+  }
+
+  return (
+    joined === 'code' ||
+    joined === 'authorization_code' ||
+    joined === 'oauth_code' ||
+    joined === 'provider_account_id' ||
+    joined === 'set_cookie'
   );
 }
 
@@ -160,6 +201,7 @@ function sanitizeMetadataValue(value: JsonPrimitive): JsonPrimitive {
   const withoutInlineCredentials = withoutControlCharacters
     .replace(/\bBearer\s+\S+/gi, 'Bearer [redacted]')
     .replace(/\bBasic\s+\S+/gi, 'Basic [redacted]')
+    .replace(SENSITIVE_INLINE_VALUE_PATTERN, '$1[redacted]')
     .trim();
   const withoutUrlSecrets = removeUrlQueryAndFragment(withoutInlineCredentials);
 

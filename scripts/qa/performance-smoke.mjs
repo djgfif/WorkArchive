@@ -24,33 +24,101 @@ const allowedOrigin = normalizeBaseUrl(
     baseUrl,
 );
 const accessToken = process.env.PERF_SMOKE_ACCESS_TOKEN ?? '';
-const dryRun = process.env.PERF_SMOKE_DRY_RUN === 'true';
+const dryRun = readBooleanEnv('PERF_SMOKE_DRY_RUN', false);
 const requireAuthenticated =
-  process.env.PERF_SMOKE_REQUIRE_AUTHENTICATED === 'true';
+  readBooleanEnv('PERF_SMOKE_REQUIRE_AUTHENTICATED', false);
 const disposableAccountAck =
-  process.env.PERF_SMOKE_DISPOSABLE_ACCOUNT_ACK === 'true';
-const iterations = clampInt(process.env.PERF_SMOKE_ITERATIONS, 5, 1, 30);
-const syncRecordCount = clampInt(process.env.PERF_SMOKE_SYNC_RECORDS, 3, 1, 25);
-const requestTimeoutMs = clampInt(
-  process.env.PERF_SMOKE_TIMEOUT_MS,
-  10000,
-  1000,
-  60000,
-);
+  readBooleanEnv('PERF_SMOKE_DISPOSABLE_ACCOUNT_ACK', false);
+const iterations = readIntegerRangeEnv('PERF_SMOKE_ITERATIONS', 5, {
+  max: 30,
+  min: 1,
+});
+const syncRecordCount = readIntegerRangeEnv('PERF_SMOKE_SYNC_RECORDS', 3, {
+  max: 25,
+  min: 1,
+});
+const requestTimeoutMs = readIntegerRangeEnv('PERF_SMOKE_TIMEOUT_MS', 10000, {
+  max: 60000,
+  min: 1000,
+});
+const maxP50Ms = readOptionalIntegerRangeEnv('PERF_SMOKE_MAX_P50_MS', {
+  max: 60000,
+  min: 1,
+});
+const maxP95Ms = readOptionalIntegerRangeEnv('PERF_SMOKE_MAX_P95_MS', {
+  max: 60000,
+  min: 1,
+});
+const dryRunSampleMs = readOptionalIntegerRangeEnv('PERF_SMOKE_DRY_RUN_SAMPLE_MS', {
+  max: 60000,
+  min: 1,
+});
 const runId = sanitizeRunId(
   process.env.PERF_SMOKE_RUN_ID ?? `${stamp}-${randomUUID().slice(0, 8)}`,
 );
+const rateLimitHeaderNames = [
+  'ratelimit',
+  'ratelimit-policy',
+  'ratelimit-limit',
+  'ratelimit-remaining',
+  'ratelimit-reset',
+  'retry-after',
+];
+const sensitiveUrlParamPattern =
+  /access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token/i;
+const sensitiveInlineValuePattern =
+  /\b((?:access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token)=)[^\s&;,]+/gi;
 
 function normalizeBaseUrl(value) {
   return String(value ?? '').replace(/\/$/, '');
 }
 
-function clampInt(value, fallback, min, max) {
-  const parsed = Number.parseInt(value ?? '', 10);
-  if (!Number.isFinite(parsed)) {
+function readBooleanEnv(name, fallback) {
+  const rawValue = process.env[name]?.trim();
+
+  if (!rawValue) {
     return fallback;
   }
-  return Math.min(max, Math.max(min, parsed));
+
+  if (rawValue !== 'true' && rawValue !== 'false') {
+    throw new Error(`${name} must be true or false when set.`);
+  }
+
+  return rawValue === 'true';
+}
+
+function readIntegerRangeEnv(name, fallback, { min, max }) {
+  const rawValue = process.env[name]?.trim();
+
+  if (!rawValue) {
+    return fallback;
+  }
+
+  if (!/^[1-9]\d*$/.test(rawValue)) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
+
+  const parsed = Number(rawValue);
+
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`${name} must be a safe integer.`);
+  }
+
+  if (parsed < min || parsed > max) {
+    throw new Error(`${name} must be between ${min} and ${max}.`);
+  }
+
+  return parsed;
+}
+
+function readOptionalIntegerRangeEnv(name, { min, max }) {
+  const rawValue = process.env[name]?.trim();
+
+  if (!rawValue) {
+    return null;
+  }
+
+  return readIntegerRangeEnv(name, 0, { max, min });
 }
 
 function sanitizeRunId(value) {
@@ -75,10 +143,37 @@ function redact(value) {
   text = text.replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]');
   text = text.replace(/(TOKEN|SECRET|PASSWORD|API_KEY|COOKIE)=\S+/gi, '$1=[REDACTED]');
   text = text.replace(/(Cookie:\s*)[^\\n]+/gi, '$1[REDACTED]');
+  text = text.replace(sensitiveInlineValuePattern, '$1[REDACTED]');
   if (accessToken) {
     text = text.split(accessToken).join('[REDACTED]');
   }
-  return text;
+  return redactUrlSecrets(text);
+}
+
+function redactUrlSecrets(value) {
+  return value.replace(/https?:\/\/[^\s<>"')]+/gi, (match) => {
+    try {
+      const url = new URL(match);
+
+      if (url.username) {
+        url.username = 'redacted';
+      }
+
+      if (url.password) {
+        url.password = 'redacted';
+      }
+
+      for (const key of [...url.searchParams.keys()]) {
+        if (sensitiveUrlParamPattern.test(key)) {
+          url.searchParams.set(key, '[REDACTED]');
+        }
+      }
+
+      return url.toString();
+    } catch {
+      return match;
+    }
+  });
 }
 
 function urlFor(path) {
@@ -117,8 +212,82 @@ function summarizeMeasurements(measurements) {
     minMs: durations.length ? Math.round(Math.min(...durations)) : null,
     p50Ms: durations.length ? Math.round(percentile(durations, 50)) : null,
     p95Ms: durations.length ? Math.round(percentile(durations, 95)) : null,
+    rateLimitHeaders: summarizeRateLimitHeaders(measurements),
     statuses,
   };
+}
+
+function evaluateLatencyBudget(summary) {
+  const budget = {};
+  const violations = [];
+
+  if (maxP50Ms !== null) {
+    budget.maxP50Ms = maxP50Ms;
+    if (summary.p50Ms === null) {
+      violations.push('p50 not measured');
+    } else if (summary.p50Ms > maxP50Ms) {
+      violations.push(`p50 ${summary.p50Ms}ms > ${maxP50Ms}ms`);
+    }
+  }
+
+  if (maxP95Ms !== null) {
+    budget.maxP95Ms = maxP95Ms;
+    if (summary.p95Ms === null) {
+      violations.push('p95 not measured');
+    } else if (summary.p95Ms > maxP95Ms) {
+      violations.push(`p95 ${summary.p95Ms}ms > ${maxP95Ms}ms`);
+    }
+  }
+
+  const configured = Object.keys(budget).length > 0;
+
+  return {
+    budget,
+    status: configured ? (violations.length > 0 ? 'FAIL' : 'PASS') : 'NOT_CONFIGURED',
+    violations,
+  };
+}
+
+function summarizeRateLimitHeaders(measurements) {
+  const observed = new Map();
+
+  for (const measurement of measurements) {
+    for (const [name, value] of Object.entries(measurement.rateLimitHeaders ?? {})) {
+      observed.set(name, value);
+    }
+  }
+
+  return Object.fromEntries([...observed.entries()].sort(([left], [right]) =>
+    left.localeCompare(right),
+  ));
+}
+
+function collectRateLimitHeaders(response) {
+  if (!response) {
+    return {};
+  }
+
+  const headers = {};
+
+  for (const name of rateLimitHeaderNames) {
+    const value = response.headers.get(name);
+
+    if (value) {
+      headers[name] = redact(value).slice(0, 200);
+    }
+  }
+
+  return headers;
+}
+
+function formatRateLimitHeaders(headers) {
+  const entries = Object.entries(headers ?? {});
+
+  if (entries.length === 0) {
+    return 'n/a';
+  }
+
+  return entries.map(([name, value]) => `${name}=${value}`).join('<br>');
 }
 
 async function request({ body, expectedStatuses, headers = {}, method, name, url }) {
@@ -155,6 +324,7 @@ async function request({ body, expectedStatuses, headers = {}, method, name, url
     error: error ? redact(error) : null,
     name,
     ok,
+    rateLimitHeaders: collectRateLimitHeaders(response),
     responseBytes: Buffer.byteLength(text, 'utf8'),
     status,
     textPreview: redact(text).slice(0, 1000),
@@ -168,11 +338,14 @@ async function measureScenario(definition) {
     measurements.push(await request(definition));
   }
 
+  const summary = summarizeMeasurements(measurements);
+
   return {
+    latencyBudget: evaluateLatencyBudget(summary),
     measurements,
     name: definition.name,
     required: definition.required,
-    summary: summarizeMeasurements(measurements),
+    summary,
   };
 }
 
@@ -222,7 +395,10 @@ function makeWorkPayload(index, nowIso) {
 
 async function runAuthenticatedSyncScenario() {
   if (!accessToken || !disposableAccountAck) {
+    const summary = summarizeMeasurements([]);
+
     return {
+      latencyBudget: evaluateLatencyBudget(summary),
       measurements: [],
       name: 'authenticated sync push/pull small batch',
       required: requireAuthenticated,
@@ -230,7 +406,7 @@ async function runAuthenticatedSyncScenario() {
       skipReason: !accessToken
         ? 'PERF_SMOKE_ACCESS_TOKEN is not set.'
         : 'PERF_SMOKE_DISPOSABLE_ACCOUNT_ACK=true is required for live sync writes.',
-      summary: summarizeMeasurements([]),
+      summary,
     };
   }
 
@@ -274,11 +450,14 @@ async function runAuthenticatedSyncScenario() {
     }),
   );
 
+  const summary = summarizeMeasurements(measurements);
+
   return {
+    latencyBudget: evaluateLatencyBudget(summary),
     measurements,
     name: 'authenticated sync push/pull small batch',
     required: requireAuthenticated,
-    summary: summarizeMeasurements(measurements),
+    summary,
   };
 }
 
@@ -333,14 +512,37 @@ function makeDryRunResults() {
     'GET /api/imports/providers',
     'GET /work-archive-config.js',
     'authenticated sync push/pull small batch',
-  ].map((name) => ({
-    measurements: [],
-    name,
-    required: name !== 'authenticated sync push/pull small batch' || requireAuthenticated,
-    skipped: true,
-    skipReason: 'PERF_SMOKE_DRY_RUN=true generated report structure without HTTP calls.',
-    summary: summarizeMeasurements([]),
-  }));
+  ].map((name) => {
+    const syntheticMeasurement =
+      dryRunSampleMs === null
+        ? []
+        : [
+            {
+              durationMs: dryRunSampleMs,
+              error: null,
+              name,
+              ok: true,
+              rateLimitHeaders: {},
+              responseBytes: 0,
+              status: 200,
+              textPreview: '',
+            },
+          ];
+    const summary = summarizeMeasurements(syntheticMeasurement);
+
+    return {
+      latencyBudget: evaluateLatencyBudget(summary),
+      measurements: syntheticMeasurement,
+      name,
+      required: name !== 'authenticated sync push/pull small batch' || requireAuthenticated,
+      skipped: dryRunSampleMs === null,
+      skipReason:
+        dryRunSampleMs === null
+          ? 'PERF_SMOKE_DRY_RUN=true generated report structure without HTTP calls.'
+          : undefined,
+      summary,
+    };
+  });
 }
 
 function deriveStatus(results) {
@@ -350,11 +552,17 @@ function deriveStatus(results) {
       (!result.skipped || requireAuthenticated) &&
       result.measurements.some((measurement) => !measurement.ok),
   );
+  const failedLatencyBudget = results.some(
+    (result) =>
+      result.required &&
+      !result.skipped &&
+      result.latencyBudget?.status === 'FAIL',
+  );
   const blockedRequired = results.some(
     (result) => result.required && result.skipped && requireAuthenticated,
   );
 
-  if (failedRequired) {
+  if (failedRequired || failedLatencyBudget) {
     return 'FAIL';
   }
   if (blockedRequired) {
@@ -381,12 +589,14 @@ function writeReports(report) {
     `- Base URL: ${report.baseUrl}`,
     `- Iterations: ${report.iterations}`,
     `- Request timeout ms: ${report.requestTimeoutMs}`,
+    `- Max p50 ms: ${report.latencyBudget.maxP50Ms ?? 'not configured'}`,
+    `- Max p95 ms: ${report.latencyBudget.maxP95Ms ?? 'not configured'}`,
     `- Run ID: ${report.runId}`,
     '',
     '## Scenario Timings',
     '',
-    '| Scenario | Status | Count | p50 ms | p95 ms | Status codes | Notes |',
-    '| --- | --- | ---: | ---: | ---: | --- | --- |',
+    '| Scenario | Status | Count | p50 ms | p95 ms | Budget | Status codes | RateLimit headers | Notes |',
+    '| --- | --- | ---: | ---: | ---: | --- | --- | --- | --- |',
   ];
 
   for (const result of report.results) {
@@ -396,10 +606,12 @@ function writeReports(report) {
       ? result.skipReason
       : failed.length > 0
         ? redact(failed.map((failure) => `${failure.status}:${failure.error ?? failure.textPreview}`).join('; '))
+        : result.latencyBudget?.violations?.length
+          ? result.latencyBudget.violations.join('; ')
         : '';
 
     lines.push(
-      `| ${result.name} | ${status} | ${result.summary.count} | ${result.summary.p50Ms ?? 'n/a'} | ${result.summary.p95Ms ?? 'n/a'} | ${result.summary.statuses.join(', ') || 'n/a'} | ${notes || ''} |`,
+      `| ${result.name} | ${status} | ${result.summary.count} | ${result.summary.p50Ms ?? 'n/a'} | ${result.summary.p95Ms ?? 'n/a'} | ${formatLatencyBudget(result.latencyBudget)} | ${result.summary.statuses.join(', ') || 'n/a'} | ${formatRateLimitHeaders(result.summary.rateLimitHeaders)} | ${notes || ''} |`,
     );
   }
 
@@ -409,33 +621,54 @@ function writeReports(report) {
   lines.push('- Authenticated sync writes require `PERF_SMOKE_ACCESS_TOKEN` and `PERF_SMOKE_DISPOSABLE_ACCOUNT_ACK=true`.');
   lines.push('- Use only a disposable authenticated account for sync measurements.');
   lines.push('- Reports do not include bearer tokens, cookies, raw payloads, or response bodies beyond short redacted failure previews.');
-  lines.push('- Gate 1 p50/p95 values are release observations, not hard pass/fail latency thresholds until beta traffic establishes a budget.');
+  lines.push('- Standard `RateLimit-*`, `RateLimit`, and `Retry-After` headers are captured when present so release evidence includes the active limiter budget without storing request payloads.');
+  lines.push('- Gate 1 p50/p95 values are release observations unless `PERF_SMOKE_MAX_P50_MS` or `PERF_SMOKE_MAX_P95_MS` is set for an approved release budget.');
 
   writeFileSync(reportPath, `${lines.join('\n')}\n`);
 }
 
+function formatLatencyBudget(latencyBudget) {
+  if (!latencyBudget || latencyBudget.status === 'NOT_CONFIGURED') {
+    return 'not configured';
+  }
+
+  const limits = [
+    latencyBudget.budget.maxP50Ms ? `p50<=${latencyBudget.budget.maxP50Ms}ms` : null,
+    latencyBudget.budget.maxP95Ms ? `p95<=${latencyBudget.budget.maxP95Ms}ms` : null,
+  ].filter(Boolean);
+
+  return `${latencyBudget.status}: ${limits.join(', ')}`;
+}
+
 function getScenarioStatus(mode, result, failed) {
   if (mode === 'dry-run') {
-    return 'DRY-RUN';
+    return result.latencyBudget?.status === 'FAIL' ? 'FAIL' : 'DRY-RUN';
   }
   if (result.skipped) {
     return result.required ? 'BLOCKED' : 'SKIPPED';
+  }
+  if (result.latencyBudget?.status === 'FAIL') {
+    return 'FAIL';
   }
   return failed.length > 0 ? 'FAIL' : 'PASS';
 }
 
 const results = dryRun ? makeDryRunResults() : await runLive();
 const report = {
-  baseUrl,
+  baseUrl: redact(baseUrl),
   gitCommit: gitValue(['rev-parse', 'HEAD']),
   iterations,
   jsonReportPath: relativePath(jsonReportPath),
+  latencyBudget: {
+    maxP50Ms,
+    maxP95Ms,
+  },
   mode: dryRun ? 'dry-run' : 'live',
   reportPath: relativePath(reportPath),
   requestTimeoutMs,
   results,
   runId,
-  status: dryRun ? 'PASS' : deriveStatus(results),
+  status: dryRun && dryRunSampleMs === null ? 'PASS' : deriveStatus(results),
   timestamp: new Date().toISOString(),
   workingTree: gitValue(['status', '--short']) ? 'dirty' : 'clean',
 };

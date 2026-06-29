@@ -25,6 +25,12 @@ This table separates current docs from archived reference material.
 | [`../operations/RELEASE_CHECKLIST.md`](../operations/RELEASE_CHECKLIST.md)                                   | `active`    | release procedure               |
 | [`../sync/SYNC_AUTO_MERGE_POLICY.md`](../sync/SYNC_AUTO_MERGE_POLICY.md)                                     | `active`    | sync merge policy               |
 | [`../security/PUBLIC_REPOSITORY_READINESS.md`](../security/PUBLIC_REPOSITORY_READINESS.md)                   | `canonical` | public repository readiness     |
+| [`../security/PUBLIC_FEATURE_PERMISSION_BOUNDARY.md`](../security/PUBLIC_FEATURE_PERMISSION_BOUNDARY.md)     | `canonical` | public feature permission boundary |
+| [`../security/API_AUTHORIZATION_SURFACE.md`](../security/API_AUTHORIZATION_SURFACE.md)                       | `canonical` | API controller authentication boundary |
+| [`../security/API_INPUT_CONTRACTS.md`](../security/API_INPUT_CONTRACTS.md)                                   | `canonical` | API input-validation boundary |
+| [`../security/API_CACHE_POLICY.md`](../security/API_CACHE_POLICY.md)                                         | `canonical` | API cache-control boundary |
+| [`../security/LOG_REDACTION_POLICY.md`](../security/LOG_REDACTION_POLICY.md)                                 | `canonical` | log and security-event redaction boundary |
+| [`../security/USER_DATA_RIGHTS_POLICY.md`](../security/USER_DATA_RIGHTS_POLICY.md)                           | `canonical` | user data export and deletion policy |
 | [`../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](../project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md) | `canonical` | current implementation state    |
 | [`../project/EXECUTION_ROADMAP.md`](../project/EXECUTION_ROADMAP.md)                                         | `active`    | current execution sequencing    |
 | [`../project/ROADMAP_FEEDBACK_2026-06.md`](../project/ROADMAP_FEEDBACK_2026-06.md)                           | `active`    | structural debt advisory roadmap |

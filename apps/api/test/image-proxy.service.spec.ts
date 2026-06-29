@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { lookup } from 'node:dns/promises';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
@@ -345,6 +345,29 @@ describe('ImageProxyService', () => {
     await expect(
       service.getImage('https://books.google.com/books/content?id=dune'),
     ).rejects.toThrow('unsupported image type');
+  });
+
+  it('logs only the image provider host and safe error code on upstream failures', async () => {
+    const warnSpy = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    upstreamFetchMock.mockRejectedValue(new Error('provider token leaked'));
+
+    await expect(
+      service.getImage(
+        'https://books.google.com/books/content?id=dune&key=secret-token',
+      ),
+    ).rejects.toThrow('Image provider is unavailable.');
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      JSON.stringify({
+        errorCode: 'ExternalFetchError',
+        event: 'image_proxy.fetch_failed',
+        host: 'books.google.com',
+      }),
+    );
+    expect(JSON.stringify(warnSpy.mock.calls)).not.toContain('secret-token');
+    expect(JSON.stringify(warnSpy.mock.calls)).not.toContain('/books/content');
   });
 
   it('rejects oversized upstream responses by content length', async () => {

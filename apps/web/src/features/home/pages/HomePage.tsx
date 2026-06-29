@@ -318,7 +318,7 @@ function ActivityStrip({ works }: { works: WorkRecord[] }) {
             </span>
             {work.rating !== null && (
               <span className={css.activityRating}>
-                ★ {work.rating.toFixed(1)}
+                <span className={css.statStar}>★</span> {work.rating.toFixed(1)}
               </span>
             )}
           </button>
@@ -482,7 +482,8 @@ export function HomePage() {
                 <span className={css.homeStatDot} />
                 <span>{t('home.hero.averageRating')}</span>
                 <span className={css.homeStatValue}>
-                  ★ {averageRating.toFixed(1)}
+                  <span className={css.statStar}>★</span>{' '}
+                  {averageRating.toFixed(1)}
                 </span>
               </>
             )}

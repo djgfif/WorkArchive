@@ -16,6 +16,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  MAX_PUSH_BATCH_SIZE,
   SYNC_ENTITY_TYPES,
   SYNC_OPERATIONS,
   SYNC_SCHEMA_VERSION,
@@ -130,11 +131,12 @@ export class PushSyncDto {
   schemaVersion?: typeof SYNC_SCHEMA_VERSION;
 
   @ApiProperty({
+    maxItems: MAX_PUSH_BATCH_SIZE,
     type: [PushSyncChangeDto],
   })
   @IsArray()
   @ArrayNotEmpty()
-  @ArrayMaxSize(200)
+  @ArrayMaxSize(MAX_PUSH_BATCH_SIZE)
   @ValidateNested({ each: true })
   @Type(() => PushSyncChangeDto)
   changes!: PushSyncChangeDto[];

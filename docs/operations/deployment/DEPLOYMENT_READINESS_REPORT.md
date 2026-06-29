@@ -43,7 +43,7 @@ Notes:
 - [ ] `npm run ops:backup:verify` passed for the selected backup and wrote a redacted `tmp/backups/prod-backup-verify-*.md` report.
 - [ ] Backup and checksum were copied off-host.
 - [ ] `scripts/deploy/prod-restore.sh.example` was reviewed and restore was performed only on an approved disposable or incident target.
-- [ ] `scripts/deploy/prod-logs.sh` log review found no secrets.
+- [ ] `npm run ops:logs` redacted log review found no secrets; raw logs were not pasted into this report.
 - [ ] `scripts/deploy/prod-down.sh` rollback/stop command was rehearsed or explicitly marked not required.
 
 Script execution notes:

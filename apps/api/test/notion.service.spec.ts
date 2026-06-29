@@ -169,6 +169,27 @@ describe('NotionService', () => {
     });
   });
 
+  it('does not return raw provider or database errors from apply failures', async () => {
+    prisma.$transaction.mockRejectedValue(
+      new Error('DATABASE_URL=postgresql://secret access_token raw notion payload'),
+    );
+
+    const result = await service.applyPull(USER_ID, {
+      previewId: PREVIEW_ID,
+      workIds: [WORK_ID],
+    });
+
+    expect(result.errors).toEqual([
+      {
+        message: 'Notion 변경사항 적용에 실패했습니다.',
+        workId: WORK_ID,
+      },
+    ]);
+    expect(JSON.stringify(result)).not.toMatch(
+      /DATABASE_URL|postgresql:\/\/secret|access_token|raw notion payload/,
+    );
+  });
+
   it('reports requested work IDs that are not in the preview or user archive', async () => {
     const result = await service.applyPull(USER_ID, {
       previewId: PREVIEW_ID,

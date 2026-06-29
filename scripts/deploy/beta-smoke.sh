@@ -11,12 +11,26 @@ SMOKE_METRICS_BEARER_TOKEN="${SMOKE_METRICS_BEARER_TOKEN:-}"
 failures=()
 warnings=()
 
+redact_output() {
+  sed -E \
+    -e 's/(Bearer )[A-Za-z0-9._~+\/=-]+/\1[REDACTED]/gI' \
+    -e 's/(Basic )[A-Za-z0-9._~+\/=-]+/\1[REDACTED]/gI' \
+    -e 's#\b(access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token)=([^[:space:]&;,]+)#\1=[REDACTED]#gI' \
+    -e 's#(https?://)[^[:space:]/@]+(:[^[:space:]@]*)?@#\1[REDACTED]@#gI' \
+    -e 's#([?&](access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token)=)[^[:space:]&]+#\1[REDACTED]#gI' \
+    -e 's/([A-Za-z0-9_]*(SECRET|TOKEN|PASSWORD|API_KEY|COOKIE|OAUTH)[A-Za-z0-9_]*=)[^[:space:]&;,]+/\1[REDACTED]/gI'
+}
+
+redact_text() {
+  printf '%s\n' "$1" | redact_output
+}
+
 fail() {
-  failures+=("$1")
+  failures+=("$(redact_text "$1")")
 }
 
 warn() {
-  warnings+=("$1")
+  warnings+=("$(redact_text "$1")")
 }
 
 read_env_value() {
@@ -99,13 +113,15 @@ request() {
   local path="$2"
   local body_file="$3"
   local header_file="$4"
-  shift 4
+  local error_file="$5"
+  shift 5
 
   curl -sS \
     -X "$method" \
     -D "$header_file" \
     -o "$body_file" \
     -w "%{http_code}" \
+    2>"$error_file" \
     "$@" \
     "$BASE_URL$path"
 }
@@ -116,21 +132,26 @@ expect_status() {
   local expected_status="$3"
   shift 3
   local body_file
+  local error_file
   local header_file
   local status_code
 
   body_file="$(mktemp)"
+  error_file="$(mktemp)"
   header_file="$(mktemp)"
 
   set +e
-  status_code="$(request "$method" "$path" "$body_file" "$header_file" "$@")"
+  status_code="$(request "$method" "$path" "$body_file" "$header_file" "$error_file" "$@")"
   local curl_status=$?
   set -e
 
   if [[ $curl_status -ne 0 || "$status_code" != "$expected_status" ]]; then
+    if [[ -s "$error_file" ]]; then
+      redact_output <"$error_file" >&2
+    fi
     echo "FAIL $method $path HTTP ${status_code:-000}" >&2
     if [[ -s "$body_file" ]]; then
-      sed -n '1,20p' "$body_file" >&2
+      sed -n '1,20p' "$body_file" | redact_output >&2
     fi
     fail "$method $path expected HTTP $expected_status but got ${status_code:-000}."
   else
@@ -144,6 +165,9 @@ expect_status() {
 json_assert() {
   local expression="$1"
   local description="$2"
+  local error_file
+
+  error_file="$(mktemp)"
 
   if node -e '
     const fs = require("node:fs");
@@ -151,7 +175,7 @@ json_assert() {
     const data = JSON.parse(body);
     const ok = Function("data", `return (${process.argv[2]});`)(data);
     process.exit(ok ? 0 : 1);
-  ' "$LAST_BODY_FILE" "$expression"; then
+  ' "$LAST_BODY_FILE" "$expression" 2>"$error_file"; then
     echo "OK $description"
   else
     fail "$description."
@@ -178,6 +202,28 @@ header_contains() {
   else
     fail "$description."
   fi
+}
+
+header_absent() {
+  local pattern="$1"
+  local description="$2"
+
+  if grep -qi "$pattern" "$LAST_HEADER_FILE"; then
+    fail "$description."
+  else
+    echo "OK $description"
+  fi
+}
+
+assert_api_security_headers() {
+  local description="$1"
+
+  header_absent '^x-powered-by:' "$description does not expose x-powered-by"
+  header_contains '^x-content-type-options:[[:space:]]*nosniff' "$description sends nosniff"
+  header_contains '^referrer-policy:[[:space:]]*no-referrer' "$description sends no-referrer"
+  header_contains '^strict-transport-security:' "$description sends HSTS"
+  header_contains "^content-security-policy:.*default-src 'none'" "$description sends API default-src CSP"
+  header_contains "^content-security-policy:.*frame-ancestors 'none'" "$description sends API frame-ancestors CSP"
 }
 
 run_compose_exec() {
@@ -249,6 +295,7 @@ JSON
   expect_status POST /api/sync/push 200 \
     -H "Authorization: Bearer ${SMOKE_ACCESS_TOKEN}" \
     -H "Content-Type: application/json" \
+    -H "X-Work-Archive-Client: web" \
     --data-binary "@${payload_file}"
   json_assert 'data.results && data.results[0] && data.results[0].status === "failed" && data.results[0].code === "failed_validation"' "sync malformed payload returns failed_validation"
 }
@@ -265,21 +312,37 @@ fi
 
 BASE_URL="$(resolve_base_url)"
 ALLOWED_ORIGIN="$(resolve_allowed_origin)"
-echo "Running beta smoke tests against $BASE_URL"
+echo "Running beta smoke tests against $(redact_text "$BASE_URL")"
 
 expect_status GET /health 200
 json_assert 'data.service === "work-archive-api" && data.status === "ok"' "/health reports api ok"
+header_contains '^cache-control:.*no-store' "/health is not cached"
+assert_api_security_headers "/health"
 
 expect_status GET /livez 200
 json_assert 'data.service === "work-archive-api" && data.status === "ok"' "/livez reports api ok"
+header_contains '^cache-control:.*no-store' "/livez is not cached"
+assert_api_security_headers "/livez"
 
 expect_status GET /readyz 200
 json_assert 'data.service === "work-archive-api" && data.status === "ok"' "/readyz reports api ok"
+json_assert 'data.checks && data.checks.config === "ok" && data.checks.postgres === "ok" && data.checks.migrations === "ok"' "/readyz reports dependency checks"
+header_contains '^cache-control:.*no-store' "/readyz is not cached"
+assert_api_security_headers "/readyz"
 
 expect_status GET /api/auth/google/status 200
 json_assert 'typeof data.configured === "boolean"' "Google OAuth status shape is exposed"
+assert_api_security_headers "/api/auth/google/status"
 if [[ "$EXPECT_GOOGLE_OAUTH_CONFIGURED" == "1" || "$EXPECT_GOOGLE_OAUTH_CONFIGURED" == "true" ]]; then
   json_assert 'data.configured === true' "Google OAuth is configured"
+  expect_status GET "/api/auth/google/start?return_origin=${ALLOWED_ORIGIN}" 302
+  header_contains '^set-cookie:.*wa_google_oauth_flow=' "Google OAuth start sets only the flow cookie"
+  header_contains '^set-cookie:.*httponly' "Google OAuth flow cookie is HttpOnly"
+  header_contains '^set-cookie:.*secure' "Google OAuth flow cookie is Secure"
+  header_contains '^set-cookie:.*samesite=lax' "Google OAuth flow cookie is SameSite=Lax"
+  header_contains '^set-cookie:.*path=/api/auth/google' "Google OAuth flow cookie is scoped to /api/auth/google"
+  header_absent '^set-cookie:.*wa_google_oauth_state=' "Google OAuth start does not expose raw state as a cookie"
+  header_absent '^set-cookie:.*wa_google_oauth_nonce=' "Google OAuth start does not expose raw nonce as a cookie"
 fi
 
 expect_status GET / 200
@@ -311,6 +374,7 @@ if [[ -n "$SMOKE_METRICS_BEARER_TOKEN" ]]; then
   expect_status GET /metrics 200 \
     -H "Authorization: Bearer ${SMOKE_METRICS_BEARER_TOKEN}"
   body_contains 'work_archive_api_request_total' "metrics endpoint exposes Work Archive counters to the internal collector token"
+  header_contains '^cache-control:.*no-store' "metrics endpoint is not cached"
 fi
 
 run_operator_sync_smoke

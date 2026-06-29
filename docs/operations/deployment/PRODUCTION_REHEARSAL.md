@@ -50,9 +50,11 @@ Required checks:
 - `DATABASE_URL` matches `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`.
 - JWT, external API key encryption, and security event hash secrets are all unique.
 - `CORS_ORIGIN` and `WEB_BASE_URL` use the production HTTPS origin.
-- `RATE_LIMIT_STORE=redis` and `REDIS_URL=redis://redis:6379`; confirm
-  `IMAGE_PROXY_RATE_LIMIT_MAX` and `NOTION_RATE_LIMIT_MAX` are set for the
-  expected public traffic profile.
+- `RATE_LIMIT_STORE=redis`, `REDIS_URL=redis://redis:6379`, and
+  `API_GLOBAL_RATE_LIMIT_MAX` is set to a bounded value for the expected public
+  traffic profile; confirm `CATALOG_RATE_LIMIT_MAX`,
+  `MUTATION_RATE_LIMIT_MAX`, `IMAGE_PROXY_RATE_LIMIT_MAX`, and
+  `NOTION_RATE_LIMIT_MAX` are also set.
 - `IMPORT_SERVER_SEARCH_GUEST_ENABLED=false`; it is reserved for future server
   credential providers and does not expose Brave/Tavily guest search.
 - No OAuth secret, API key, real DB password, token, or cookie value is copied into the readiness report.
@@ -72,6 +74,14 @@ Build the production images:
 scripts/deploy/prod-build.sh
 ```
 
+`prod-build.sh` runs `scripts/deploy/commercial-env-preflight.mjs` before
+Docker Compose config/build, so duplicated `.env.prod` keys, placeholder public
+URLs, unsafe production flags, and `VITE_API_BASE_URL` drift fail before an
+image is built. Set `ENV_FILE` or `COMPOSE_FILE` to rehearse against a
+non-default production-like target; the script redacts URL credentials, token
+query parameters, database/Redis URL userinfo, and secret-like `key=value`
+fragments from build diagnostics.
+
 Start backing services, run migrations, then start the app:
 
 ```bash
@@ -79,6 +89,11 @@ docker compose -f compose.prod.yml --env-file .env.prod up -d postgres redis
 docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate
 docker compose -f compose.prod.yml --env-file .env.prod up -d api web
 ```
+
+For direct full-stack startup outside the step-by-step rehearsal, use
+`scripts/deploy/prod-up.sh`; it runs the same commercial env preflight before
+starting containers. `prod-up.sh` and `prod-down.sh` accept the same
+`ENV_FILE`/`COMPOSE_FILE` overrides and redact direct Docker Compose output.
 
 Expected:
 
@@ -91,9 +106,9 @@ Expected:
 If the API does not become healthy, check:
 
 ```bash
-TAIL=200 FOLLOW=0 scripts/deploy/prod-logs.sh api
-TAIL=100 FOLLOW=0 scripts/deploy/prod-logs.sh postgres
-TAIL=100 FOLLOW=0 scripts/deploy/prod-logs.sh redis
+TAIL=200 FOLLOW=false npm run ops:logs -- api
+TAIL=100 FOLLOW=false npm run ops:logs -- postgres
+TAIL=100 FOLLOW=false npm run ops:logs -- redis
 ```
 
 ## 3. Health Smoke
@@ -114,7 +129,8 @@ Expected:
 
 - `/health`: HTTP 200 and basic service status.
 - `/livez`: HTTP 200 while the API process is alive.
-- `/readyz`: HTTP 200 only when config, PostgreSQL, and Redis are ready.
+- `/readyz`: HTTP 200 only when config, PostgreSQL, migrations, and Redis are
+  ready; the JSON body includes safe `checks` entries for those dependencies.
 
 Failure routing:
 
@@ -241,9 +257,16 @@ Expected: zero rows.
 Review API and web logs:
 
 ```bash
-TAIL=300 FOLLOW=0 scripts/deploy/prod-logs.sh api
-TAIL=100 FOLLOW=0 scripts/deploy/prod-logs.sh web
+TAIL=300 FOLLOW=false npm run ops:logs -- api
+TAIL=100 FOLLOW=false npm run ops:logs -- web
 ```
+
+`npm run ops:logs` redacts URL credentials, bearer/basic credentials,
+secret-like environment values, database/Redis URL credentials, and sensitive
+query parameters by default. Do not use raw logs for release evidence. If an
+incident requires exact raw container output, set both `PROD_LOGS_RAW=true` and
+`PROD_LOGS_RAW_CONFIRM=show-unredacted-production-logs`, keep the output local,
+and manually redact it before sharing.
 
 Must not appear:
 

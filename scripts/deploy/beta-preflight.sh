@@ -41,6 +41,38 @@ read_env_value() {
   ' "$ENV_FILE"
 }
 
+validate_unique_env_keys() {
+  local duplicates=()
+
+  mapfile -t duplicates < <(
+    awk '
+      /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+      {
+        line = $0
+        sub(/^[[:space:]]*export[[:space:]]+/, "", line)
+        equals_at = index(line, "=")
+        if (equals_at == 0) { next }
+        key = substr(line, 1, equals_at - 1)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+        if (key != "") {
+          count[key] += 1
+        }
+      }
+      END {
+        for (key in count) {
+          if (count[key] > 1) {
+            print key
+          }
+        }
+      }
+    ' "$ENV_FILE"
+  )
+
+  for key in "${duplicates[@]}"; do
+    fail "$key is defined more than once in $ENV_FILE."
+  done
+}
+
 is_placeholder() {
   local value="$1"
   [[ -z "$value" || "$value" == \<*\> || "$value" == *"archive.example.com"* || "$value" == *"localhost"* || "$value" == *"local-compose"* ]]
@@ -69,6 +101,29 @@ require_secret() {
   if [[ ${#value} -lt 32 ]]; then
     fail "$key must be at least 32 characters for the production preflight."
   fi
+}
+
+require_distinct_secret_values() {
+  local names=("$@")
+  local i j left_name right_name left_value right_value
+
+  for ((i = 0; i < ${#names[@]}; i += 1)); do
+    left_name="${names[$i]}"
+    left_value="$(read_env_value "$left_name")"
+
+    if [[ -z "$left_value" ]]; then
+      continue
+    fi
+
+    for ((j = i + 1; j < ${#names[@]}; j += 1)); do
+      right_name="${names[$j]}"
+      right_value="$(read_env_value "$right_name")"
+
+      if [[ -n "$right_value" && "$left_value" == "$right_value" ]]; then
+        fail "$right_name must not reuse the same secret value as $left_name."
+      fi
+    done
+  done
 }
 
 require_exact() {
@@ -130,12 +185,119 @@ require_size_limit() {
   fi
 }
 
+require_positive_integer_max() {
+  local key="$1"
+  local max="$2"
+  local value
+  value="$(read_env_value "$key")"
+
+  if [[ ! "$value" =~ ^[1-9][0-9]*$ ]]; then
+    fail "$key must be a positive integer."
+    return
+  fi
+
+  if ((value > max)); then
+    fail "$key must not exceed $max."
+  fi
+}
+
+require_optional_positive_integer_max() {
+  local key="$1"
+  local max="$2"
+  local value
+  value="$(read_env_value "$key")"
+
+  if [[ -z "$value" ]]; then
+    return
+  fi
+
+  require_positive_integer_max "$key" "$max"
+}
+
+require_optional_port() {
+  local key="$1"
+  local value
+  value="$(read_env_value "$key")"
+
+  if [[ -z "$value" ]]; then
+    return
+  fi
+
+  if [[ ! "$value" =~ ^[1-9][0-9]*$ ]]; then
+    fail "$key must be a positive integer."
+    return
+  fi
+
+  if ((${#value} > 5)) || ((${#value} == 5 && 10#$value > 65535)); then
+    fail "$key must be between 1 and 65535."
+  fi
+}
+
+require_optional_host() {
+  local key="$1"
+  local value
+  value="$(read_env_value "$key")"
+
+  if [[ -z "$value" ]]; then
+    return
+  fi
+
+  if [[ "$value" =~ [[:space:]/\?#@] ]]; then
+    fail "$key must be a host or IP address, not a URL."
+  fi
+}
+
+require_no_whitespace() {
+  local key="$1"
+  local value
+  value="$(read_env_value "$key")"
+
+  if [[ -z "$value" ]]; then
+    return
+  fi
+
+  if [[ "$value" =~ [[:space:]] ]]; then
+    fail "$key must not contain whitespace."
+  fi
+}
+
+require_client_header_guard_mode() {
+  local key="$1"
+  local value
+  value="$(read_env_value "$key" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ -z "$value" ]]; then
+    return
+  fi
+
+  case "$value" in
+    audit|enforce) ;;
+    *) fail "$key must be audit or enforce in production." ;;
+  esac
+}
+
+require_log_level() {
+  local key="$1"
+  local value
+  value="$(read_env_value "$key" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ -z "$value" ]]; then
+    return
+  fi
+
+  case "$value" in
+    trace|debug|info|warn|error|fatal|silent) ;;
+    *) fail "$key must be one of trace, debug, info, warn, error, fatal, or silent." ;;
+  esac
+}
+
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing $ENV_FILE. Copy .env.prod.example to .env.prod on the beta host and fill placeholders." >&2
   exit 1
 fi
 
 echo "Running production environment preflight for $ENV_FILE"
+validate_unique_env_keys
 
 required_values=(
   POSTGRES_DB
@@ -149,7 +311,11 @@ required_values=(
   REDIS_URL
   TRUST_PROXY_HOPS
   RATE_LIMIT_PREFIX
+  API_GLOBAL_RATE_LIMIT_MAX
   READINESS_CHECK_TIMEOUT_MS
+  API_REQUEST_TIMEOUT_MS
+  API_HEADERS_TIMEOUT_MS
+  API_KEEP_ALIVE_TIMEOUT_MS
   API_JSON_BODY_LIMIT
   API_URLENCODED_BODY_LIMIT
   GOOGLE_OAUTH_CLIENT_ID
@@ -168,15 +334,40 @@ done
 require_https_url CORS_ORIGIN
 require_https_url WEB_BASE_URL
 require_https_url GOOGLE_OAUTH_REDIRECT_URI
+require_log_level LOG_LEVEL
+require_optional_port PORT
+require_optional_host HOST
+require_no_whitespace RATE_LIMIT_PREFIX
+require_no_whitespace METRICS_BEARER_TOKEN
+require_client_header_guard_mode WORK_ARCHIVE_CLIENT_HEADER_GUARD
 require_size_limit API_JSON_BODY_LIMIT $((5 * 1024 * 1024))
 require_size_limit API_URLENCODED_BODY_LIMIT $((256 * 1024))
-readiness_timeout_ms="$(read_env_value READINESS_CHECK_TIMEOUT_MS)"
-if [[ ! "$readiness_timeout_ms" =~ ^[1-9][0-9]*$ ]]; then
-  fail "READINESS_CHECK_TIMEOUT_MS must be a positive integer."
-elif ((readiness_timeout_ms > 5000)); then
-  fail "READINESS_CHECK_TIMEOUT_MS must not exceed 5000."
+require_positive_integer_max API_GLOBAL_RATE_LIMIT_MAX 2000
+require_optional_positive_integer_max AUTH_RATE_LIMIT_MAX 300
+require_positive_integer_max AUTH_SENSITIVE_RATE_LIMIT_MAX 60
+require_optional_positive_integer_max CATALOG_RATE_LIMIT_MAX 60
+require_optional_positive_integer_max IMPORT_AUTH_RATE_LIMIT_MAX 300
+require_optional_positive_integer_max IMPORT_GUEST_RATE_LIMIT_MAX 60
+require_optional_positive_integer_max IMAGE_PROXY_RATE_LIMIT_MAX 600
+require_optional_positive_integer_max MUTATION_RATE_LIMIT_MAX 300
+require_optional_positive_integer_max NOTION_RATE_LIMIT_MAX 60
+require_optional_positive_integer_max RATE_LIMIT_WINDOW_MS 300000
+require_optional_positive_integer_max SYNC_RATE_LIMIT_MAX 300
+require_positive_integer_max READINESS_CHECK_TIMEOUT_MS 5000
+require_positive_integer_max API_REQUEST_TIMEOUT_MS 120000
+require_positive_integer_max API_HEADERS_TIMEOUT_MS 30000
+require_positive_integer_max API_KEEP_ALIVE_TIMEOUT_MS 15000
+request_timeout_ms="$(read_env_value API_REQUEST_TIMEOUT_MS)"
+headers_timeout_ms="$(read_env_value API_HEADERS_TIMEOUT_MS)"
+keep_alive_timeout_ms="$(read_env_value API_KEEP_ALIVE_TIMEOUT_MS)"
+if [[ "$request_timeout_ms" =~ ^[1-9][0-9]*$ && "$headers_timeout_ms" =~ ^[1-9][0-9]*$ && "$headers_timeout_ms" -gt "$request_timeout_ms" ]]; then
+  fail "API_HEADERS_TIMEOUT_MS must not exceed API_REQUEST_TIMEOUT_MS."
+fi
+if [[ "$headers_timeout_ms" =~ ^[1-9][0-9]*$ && "$keep_alive_timeout_ms" =~ ^[1-9][0-9]*$ && "$keep_alive_timeout_ms" -ge "$headers_timeout_ms" ]]; then
+  fail "API_KEEP_ALIVE_TIMEOUT_MS must be lower than API_HEADERS_TIMEOUT_MS."
 fi
 require_exact VITE_API_BASE_URL /api
+require_exact PASSWORD_RESET_DEV_LINKS_ENABLED false
 require_exact RATE_LIMIT_STORE redis
 require_exact REDIS_URL redis://redis:6379
 require_exact TRUST_PROXY_HOPS 1
@@ -193,6 +384,10 @@ if [[ "$metrics_enabled" != "false" && "$metrics_enabled" != "true" ]]; then
   fail "METRICS_ENABLED must be true or false when set."
 fi
 
+if [[ -n "$metrics_access_reviewed" && "$metrics_access_reviewed" != "false" && "$metrics_access_reviewed" != "true" ]]; then
+  fail "METRICS_INTERNAL_ACCESS_REVIEWED must be true or false when set."
+fi
+
 if [[ "$metrics_enabled" == "true" && "$metrics_access_reviewed" != "true" ]]; then
   fail "METRICS_INTERNAL_ACCESS_REVIEWED must be true when METRICS_ENABLED=true."
 fi
@@ -200,10 +395,23 @@ fi
 if [[ "$metrics_enabled" == "true" ]]; then
   if [[ -z "$metrics_bearer_token" ]]; then
     fail "METRICS_BEARER_TOKEN must be set when METRICS_ENABLED=true."
+  elif is_placeholder "$metrics_bearer_token"; then
+    fail "METRICS_BEARER_TOKEN must be generated for this host."
   elif [[ ${#metrics_bearer_token} -lt 32 ]]; then
     fail "METRICS_BEARER_TOKEN must be at least 32 characters when metrics are enabled."
   fi
 fi
+
+secret_names=(
+  JWT_ACCESS_SECRET
+  JWT_REFRESH_SECRET
+  EXTERNAL_API_KEY_ENCRYPTION_SECRET
+  SECURITY_EVENT_HASH_SECRET
+)
+if [[ -n "$metrics_bearer_token" ]]; then
+  secret_names+=(METRICS_BEARER_TOKEN)
+fi
+require_distinct_secret_values "${secret_names[@]}"
 
 web_base_url="$(read_env_value WEB_BASE_URL)"
 cors_origin="$(read_env_value CORS_ORIGIN)"
@@ -240,6 +448,14 @@ fi
 
 if [[ "$(read_env_value IMPORT_SERVER_SEARCH_GUEST_ENABLED)" != "false" ]]; then
   fail "IMPORT_SERVER_SEARCH_GUEST_ENABLED must stay false for closed beta."
+fi
+
+if [[ "$(read_env_value IMPORT_SERVER_SEARCH_GUEST_APPROVED)" != "false" ]]; then
+  fail "IMPORT_SERVER_SEARCH_GUEST_APPROVED must stay false for closed beta."
+fi
+
+if [[ "$(read_env_value KOBIS_HTTP_PROVIDER_ENABLED)" != "false" ]]; then
+  fail "KOBIS_HTTP_PROVIDER_ENABLED must stay false for closed beta."
 fi
 
 if ! grep -q "SWAGGER_ENABLED: 'false'" "$COMPOSE_FILE"; then

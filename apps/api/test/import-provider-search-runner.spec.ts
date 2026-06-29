@@ -121,7 +121,13 @@ describe('searchImportProviderForQuery', () => {
   });
 
   it('returns searched results and records circuit success', async () => {
-    const runnerPorts = ports();
+    const runnerPorts = ports({
+      metricsService: {
+        recordImportsProviderCircuitOpen: jest.fn(),
+        recordImportsProviderDuration: jest.fn(),
+        recordImportsProviderFailure: jest.fn(),
+      },
+    });
 
     const result = await searchImportProviderForQuery(
       searchInput(MANUAL_PROVIDER, {
@@ -149,6 +155,15 @@ describe('searchImportProviderForQuery', () => {
     );
     expect(runnerPorts.providerRuntimeState.recordSuccess).toHaveBeenCalledWith(
       MANUAL_PROVIDER,
+    );
+    expect(
+      runnerPorts.metricsService?.recordImportsProviderDuration,
+    ).toHaveBeenCalledWith(
+      {
+        provider: MANUAL_PROVIDER,
+        result: 'success',
+      },
+      expect.any(Number),
     );
   });
 
@@ -186,6 +201,7 @@ describe('searchImportProviderForQuery', () => {
     const runnerPorts = ports({
       metricsService: {
         recordImportsProviderCircuitOpen: jest.fn(),
+        recordImportsProviderDuration: jest.fn(),
         recordImportsProviderFailure: jest.fn(),
       },
       providerRuntimeState: {
@@ -205,6 +221,7 @@ describe('searchImportProviderForQuery', () => {
       searchImportProviderForQuery(
         searchInput(OPEN_LIBRARY_PROVIDER, {
           ports: runnerPorts,
+          requestId: 'req-import-1',
         }),
       ),
     ).resolves.toEqual({
@@ -229,10 +246,20 @@ describe('searchImportProviderForQuery', () => {
     expect(
       runnerPorts.metricsService?.recordImportsProviderCircuitOpen,
     ).toHaveBeenCalledWith(OPEN_LIBRARY_PROVIDER, 'provider_failed');
+    expect(
+      runnerPorts.metricsService?.recordImportsProviderDuration,
+    ).toHaveBeenCalledWith(
+      {
+        provider: OPEN_LIBRARY_PROVIDER,
+        result: 'failure',
+      },
+      expect.any(Number),
+    );
     expect(runnerPorts.logProviderFailure).toHaveBeenCalledWith(
       expect.objectContaining({
         errorCode: 'Error',
         provider: OPEN_LIBRARY_PROVIDER,
+        requestId: 'req-import-1',
         userId: 'user-1',
       }),
     );

@@ -1,0 +1,237 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1754" viewBox="0 0 1240 1754">
+<defs>
+<pattern id="dots" width="31" height="31" patternUnits="userSpaceOnUse"><circle cx="0.6" cy="0.6" r="0.7" fill="#E9E9EE"/></pattern>
+<linearGradient id="ramp" x1="0" y1="0" x2="1" y2="0"><stop offset="0.0%" stop-color="#EEF2FF"/><stop offset="11.1%" stop-color="#E0E7FF"/><stop offset="22.2%" stop-color="#C7D2FE"/><stop offset="33.3%" stop-color="#A5B4FC"/><stop offset="44.4%" stop-color="#818CF8"/><stop offset="55.6%" stop-color="#6366F1"/><stop offset="66.7%" stop-color="#4F46E5"/><stop offset="77.8%" stop-color="#4338CA"/><stop offset="88.9%" stop-color="#3730A3"/><stop offset="100.0%" stop-color="#312E81"/></linearGradient>
+<radialGradient id="amberGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FBBF24" stop-opacity="0.5"/><stop offset="100%" stop-color="#FBBF24" stop-opacity="0"/></radialGradient>
+</defs>
+<rect x="0.00" y="0.00" width="1240.00" height="1754.00" rx="0" fill="#0A0A0C" stroke="none" stroke-width="1" opacity="1"/>
+<g opacity="0.05"><rect x="104" y="104" width="1032" height="1546" fill="url(#dots)"/></g>
+<line x1="95.00" y1="104.00" x2="113.00" y2="104.00" stroke="#9B9BA8" stroke-width="1" opacity="0.8"/>
+<line x1="104.00" y1="95.00" x2="104.00" y2="113.00" stroke="#9B9BA8" stroke-width="1" opacity="0.8"/>
+<line x1="1127.00" y1="104.00" x2="1145.00" y2="104.00" stroke="#9B9BA8" stroke-width="1" opacity="0.8"/>
+<line x1="1136.00" y1="95.00" x2="1136.00" y2="113.00" stroke="#9B9BA8" stroke-width="1" opacity="0.8"/>
+<line x1="95.00" y1="1650.00" x2="113.00" y2="1650.00" stroke="#9B9BA8" stroke-width="1" opacity="0.8"/>
+<line x1="104.00" y1="1641.00" x2="104.00" y2="1659.00" stroke="#9B9BA8" stroke-width="1" opacity="0.8"/>
+<line x1="1127.00" y1="1650.00" x2="1145.00" y2="1650.00" stroke="#9B9BA8" stroke-width="1" opacity="0.8"/>
+<line x1="1136.00" y1="1641.00" x2="1136.00" y2="1659.00" stroke="#9B9BA8" stroke-width="1" opacity="0.8"/>
+<g transform="translate(58,877.0) rotate(-90)">
+<text x="0.00" y="0.00" font-family="Jura Light" font-size="11" font-weight="400" fill="#5C5C68" text-anchor="middle" letter-spacing="1" opacity="1">C A L I B R A T I O N&#160;&#160;&#8212;&#160;&#160;P L A T E&#160;&#160;0 6</text>
+</g>
+<text x="104.00" y="150.00" font-family="Jura Light" font-size="14" font-weight="400" fill="#9B9BA8" text-anchor="start" letter-spacing="3" opacity="1">C A L I B R A T I O N&#160;&#160;S E R I E S</text>
+<text x="1136.00" y="150.00" font-family="Geist Mono" font-size="14" font-weight="400" fill="#9B9BA8" text-anchor="end" opacity="1">PLATE 06 / 09</text>
+<line x1="104.00" y1="170.00" x2="1136.00" y2="170.00" stroke="#26262E" stroke-width="1" opacity="1"/>
+<line x1="104.00" y1="170.00" x2="104.00" y2="179.00" stroke="#26262E" stroke-width="1" opacity="0.9"/>
+<line x1="120.12" y1="170.00" x2="120.12" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="136.25" y1="170.00" x2="136.25" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="152.38" y1="170.00" x2="152.38" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="168.50" y1="170.00" x2="168.50" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="184.62" y1="170.00" x2="184.62" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="200.75" y1="170.00" x2="200.75" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="216.88" y1="170.00" x2="216.88" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="233.00" y1="170.00" x2="233.00" y2="179.00" stroke="#26262E" stroke-width="1" opacity="0.9"/>
+<line x1="249.12" y1="170.00" x2="249.12" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="265.25" y1="170.00" x2="265.25" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="281.38" y1="170.00" x2="281.38" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="297.50" y1="170.00" x2="297.50" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="313.62" y1="170.00" x2="313.62" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="329.75" y1="170.00" x2="329.75" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="345.88" y1="170.00" x2="345.88" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="362.00" y1="170.00" x2="362.00" y2="179.00" stroke="#26262E" stroke-width="1" opacity="0.9"/>
+<line x1="378.12" y1="170.00" x2="378.12" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="394.25" y1="170.00" x2="394.25" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="410.38" y1="170.00" x2="410.38" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="426.50" y1="170.00" x2="426.50" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="442.62" y1="170.00" x2="442.62" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="458.75" y1="170.00" x2="458.75" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="474.88" y1="170.00" x2="474.88" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="491.00" y1="170.00" x2="491.00" y2="179.00" stroke="#26262E" stroke-width="1" opacity="0.9"/>
+<line x1="507.12" y1="170.00" x2="507.12" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="523.25" y1="170.00" x2="523.25" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="539.38" y1="170.00" x2="539.38" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="555.50" y1="170.00" x2="555.50" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="571.62" y1="170.00" x2="571.62" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="587.75" y1="170.00" x2="587.75" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="603.88" y1="170.00" x2="603.88" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="620.00" y1="170.00" x2="620.00" y2="179.00" stroke="#26262E" stroke-width="1" opacity="0.9"/>
+<line x1="636.12" y1="170.00" x2="636.12" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="652.25" y1="170.00" x2="652.25" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="668.38" y1="170.00" x2="668.38" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="684.50" y1="170.00" x2="684.50" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="700.62" y1="170.00" x2="700.62" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="716.75" y1="170.00" x2="716.75" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="732.88" y1="170.00" x2="732.88" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="749.00" y1="170.00" x2="749.00" y2="179.00" stroke="#26262E" stroke-width="1" opacity="0.9"/>
+<line x1="765.12" y1="170.00" x2="765.12" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="781.25" y1="170.00" x2="781.25" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="797.38" y1="170.00" x2="797.38" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="813.50" y1="170.00" x2="813.50" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="829.62" y1="170.00" x2="829.62" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="845.75" y1="170.00" x2="845.75" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="861.88" y1="170.00" x2="861.88" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="878.00" y1="170.00" x2="878.00" y2="179.00" stroke="#26262E" stroke-width="1" opacity="0.9"/>
+<line x1="894.12" y1="170.00" x2="894.12" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="910.25" y1="170.00" x2="910.25" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="926.38" y1="170.00" x2="926.38" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="942.50" y1="170.00" x2="942.50" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="958.62" y1="170.00" x2="958.62" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="974.75" y1="170.00" x2="974.75" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="990.88" y1="170.00" x2="990.88" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="1007.00" y1="170.00" x2="1007.00" y2="179.00" stroke="#26262E" stroke-width="1" opacity="0.9"/>
+<line x1="1023.12" y1="170.00" x2="1023.12" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="1039.25" y1="170.00" x2="1039.25" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="1055.38" y1="170.00" x2="1055.38" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="1071.50" y1="170.00" x2="1071.50" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="1087.62" y1="170.00" x2="1087.62" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="1103.75" y1="170.00" x2="1103.75" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="1119.88" y1="170.00" x2="1119.88" y2="175.00" stroke="#191920" stroke-width="1" opacity="0.7"/>
+<line x1="1136.00" y1="170.00" x2="1136.00" y2="179.00" stroke="#26262E" stroke-width="1" opacity="0.9"/>
+<text x="104.00" y="372.00" font-family="Big Shoulders" font-size="176" font-weight="700" fill="#E9E9EE" text-anchor="start" textLength="1032.00" lengthAdjust="spacing" opacity="1">CALIBRATION</text>
+<line x1="104.00" y1="400.00" x2="1136.00" y2="400.00" stroke="#191920" stroke-width="1" opacity="1"/>
+<text x="104.00" y="432.00" font-family="Jura Light" font-size="15" font-weight="400" fill="#9B9BA8" text-anchor="start" letter-spacing="2" opacity="1">A&#160;&#160;S T U D Y&#160;&#160;I N&#160;&#160;T H E&#160;&#160;P A T I E N T&#160;&#160;T U N I N G&#160;&#160;O F&#160;&#160;A&#160;&#160;S Y S T E M</text>
+<text x="1136.00" y="432.00" font-family="Geist Mono" font-size="14" font-weight="400" fill="#5C5C68" text-anchor="end" opacity="1">297 &#215; 420 MM</text>
+<text x="104.00" y="506.00" font-family="Jura Medium" font-size="12" font-weight="500" fill="#9B9BA8" text-anchor="start" letter-spacing="2" opacity="1">FIG. 1</text>
+<text x="182.00" y="506.00" font-family="Jura Light" font-size="12" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="2" opacity="1">ACCENT RAMP &#183; CONTINUOUS &amp; STEP WEDGE</text>
+<rect x="104.00" y="524.00" width="1032.00" height="40.00" rx="0" fill="url(#ramp)" stroke="none" stroke-width="1" opacity="1"/>
+<text x="1136.00" y="518.00" font-family="Geist Mono" font-size="11" font-weight="400" fill="#5C5C68" text-anchor="end" opacity="1">00 &#8594; 09</text>
+<rect x="104.00" y="580.00" width="97.80" height="150.00" rx="0" fill="#EEF2FF" stroke="none" stroke-width="1" opacity="1"/>
+<text x="152.90" y="752.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">00</text>
+<text x="152.90" y="770.00" font-family="Geist Mono" font-size="10.5" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">#EEF2FF</text>
+<rect x="207.80" y="580.00" width="97.80" height="150.00" rx="0" fill="#E0E7FF" stroke="none" stroke-width="1" opacity="1"/>
+<text x="256.70" y="752.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">01</text>
+<text x="256.70" y="770.00" font-family="Geist Mono" font-size="10.5" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">#E0E7FF</text>
+<rect x="311.60" y="580.00" width="97.80" height="150.00" rx="0" fill="#C7D2FE" stroke="none" stroke-width="1" opacity="1"/>
+<text x="360.50" y="752.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">02</text>
+<text x="360.50" y="770.00" font-family="Geist Mono" font-size="10.5" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">#C7D2FE</text>
+<rect x="415.40" y="580.00" width="97.80" height="150.00" rx="0" fill="#A5B4FC" stroke="none" stroke-width="1" opacity="1"/>
+<text x="464.30" y="752.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">03</text>
+<text x="464.30" y="770.00" font-family="Geist Mono" font-size="10.5" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">#A5B4FC</text>
+<rect x="519.20" y="580.00" width="97.80" height="150.00" rx="0" fill="#818CF8" stroke="none" stroke-width="1" opacity="1"/>
+<text x="568.10" y="752.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">04</text>
+<text x="568.10" y="770.00" font-family="Geist Mono" font-size="10.5" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">#818CF8</text>
+<rect x="623.00" y="580.00" width="97.80" height="150.00" rx="0" fill="#6366F1" stroke="none" stroke-width="1" opacity="1"/>
+<text x="671.90" y="752.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">05</text>
+<text x="671.90" y="770.00" font-family="Geist Mono" font-size="10.5" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">#6366F1</text>
+<rect x="726.80" y="580.00" width="97.80" height="150.00" rx="0" fill="#4F46E5" stroke="none" stroke-width="1" opacity="1"/>
+<text x="775.70" y="752.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">06</text>
+<text x="775.70" y="770.00" font-family="Geist Mono" font-size="10.5" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">#4F46E5</text>
+<rect x="830.60" y="580.00" width="97.80" height="150.00" rx="0" fill="#4338CA" stroke="none" stroke-width="1" opacity="1"/>
+<text x="879.50" y="752.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">07</text>
+<text x="879.50" y="770.00" font-family="Geist Mono" font-size="10.5" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">#4338CA</text>
+<rect x="934.40" y="580.00" width="97.80" height="150.00" rx="0" fill="#3730A3" stroke="none" stroke-width="1" opacity="1"/>
+<text x="983.30" y="752.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">08</text>
+<text x="983.30" y="770.00" font-family="Geist Mono" font-size="10.5" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">#3730A3</text>
+<rect x="1038.20" y="580.00" width="97.80" height="150.00" rx="0" fill="#312E81" stroke="none" stroke-width="1" opacity="1"/>
+<text x="1087.10" y="752.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">09</text>
+<text x="1087.10" y="770.00" font-family="Geist Mono" font-size="10.5" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">#312E81</text>
+<line x1="623.00" y1="782.00" x2="720.80" y2="782.00" stroke="#9B9BA8" stroke-width="1" opacity="1"/>
+<line x1="671.90" y1="782.00" x2="671.90" y2="788.00" stroke="#9B9BA8" stroke-width="1" opacity="1"/>
+<text x="671.90" y="802.00" font-family="Jura Medium" font-size="10" font-weight="500" fill="#9B9BA8" text-anchor="middle" letter-spacing="2" opacity="1">PRIMARY</text>
+<text x="104.00" y="864.00" font-family="Jura Medium" font-size="12" font-weight="500" fill="#9B9BA8" text-anchor="start" letter-spacing="2" opacity="1">FIG. 2</text>
+<text x="182.00" y="864.00" font-family="Jura Light" font-size="12" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="2" opacity="1">RATIONED ACCENT &#183; ONE WARM ANOMALY</text>
+<line x1="104.00" y1="960.00" x2="1136.00" y2="960.00" stroke="#9B9BA8" stroke-width="1" opacity="1"/>
+<line x1="104.00" y1="960.00" x2="104.00" y2="971.00" stroke="#9B9BA8" stroke-width="1" opacity="0.9"/>
+<text x="104.00" y="988.00" font-family="Geist Mono" font-size="10" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">0</text>
+<line x1="129.80" y1="960.00" x2="129.80" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="155.60" y1="960.00" x2="155.60" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="181.40" y1="960.00" x2="181.40" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="207.20" y1="960.00" x2="207.20" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="233.00" y1="960.00" x2="233.00" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="258.80" y1="960.00" x2="258.80" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="284.60" y1="960.00" x2="284.60" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="310.40" y1="960.00" x2="310.40" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="336.20" y1="960.00" x2="336.20" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="362.00" y1="960.00" x2="362.00" y2="971.00" stroke="#9B9BA8" stroke-width="1" opacity="0.9"/>
+<text x="362.00" y="988.00" font-family="Geist Mono" font-size="10" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">25</text>
+<line x1="387.80" y1="960.00" x2="387.80" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="413.60" y1="960.00" x2="413.60" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="439.40" y1="960.00" x2="439.40" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="465.20" y1="960.00" x2="465.20" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="491.00" y1="960.00" x2="491.00" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="516.80" y1="960.00" x2="516.80" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="542.60" y1="960.00" x2="542.60" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="568.40" y1="960.00" x2="568.40" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="594.20" y1="960.00" x2="594.20" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="620.00" y1="960.00" x2="620.00" y2="971.00" stroke="#9B9BA8" stroke-width="1" opacity="0.9"/>
+<text x="620.00" y="988.00" font-family="Geist Mono" font-size="10" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">50</text>
+<line x1="645.80" y1="960.00" x2="645.80" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="671.60" y1="960.00" x2="671.60" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="697.40" y1="960.00" x2="697.40" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="723.20" y1="960.00" x2="723.20" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="749.00" y1="960.00" x2="749.00" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="774.80" y1="960.00" x2="774.80" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="800.60" y1="960.00" x2="800.60" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="826.40" y1="960.00" x2="826.40" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="852.20" y1="960.00" x2="852.20" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="878.00" y1="960.00" x2="878.00" y2="971.00" stroke="#9B9BA8" stroke-width="1" opacity="0.9"/>
+<text x="878.00" y="988.00" font-family="Geist Mono" font-size="10" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">75</text>
+<line x1="903.80" y1="960.00" x2="903.80" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="929.60" y1="960.00" x2="929.60" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="955.40" y1="960.00" x2="955.40" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="981.20" y1="960.00" x2="981.20" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="1007.00" y1="960.00" x2="1007.00" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="1032.80" y1="960.00" x2="1032.80" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="1058.60" y1="960.00" x2="1058.60" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="1084.40" y1="960.00" x2="1084.40" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="1110.20" y1="960.00" x2="1110.20" y2="966.00" stroke="#26262E" stroke-width="1" opacity="0.7"/>
+<line x1="1136.00" y1="960.00" x2="1136.00" y2="971.00" stroke="#9B9BA8" stroke-width="1" opacity="0.9"/>
+<text x="1136.00" y="988.00" font-family="Geist Mono" font-size="10" font-weight="400" fill="#5C5C68" text-anchor="middle" opacity="1">100</text>
+<circle cx="991.5" cy="960.0" r="30" fill="url(#amberGlow)"/>
+<path d="M 695.6 958.0 L 709.6 958.0 L 702.6 945.0 Z" fill="#6366F1"/>
+<line x1="702.56" y1="945.00" x2="702.56" y2="934.00" stroke="#6366F1" stroke-width="1" opacity="1"/>
+<text x="702.56" y="926.00" font-family="Jura Medium" font-size="10" font-weight="500" fill="#6366F1" text-anchor="middle" letter-spacing="2" opacity="1">ACTIVE</text>
+<text x="702.56" y="910.00" font-family="Geist Mono" font-size="11" font-weight="400" fill="#E9E9EE" text-anchor="middle" opacity="1">#6366F1</text>
+<path d="M 984.5 958.0 L 998.5 958.0 L 991.5 945.0 Z" fill="#FBBF24"/>
+<line x1="991.52" y1="945.00" x2="991.52" y2="934.00" stroke="#FBBF24" stroke-width="1" opacity="1"/>
+<text x="991.52" y="926.00" font-family="Jura Medium" font-size="10" font-weight="500" fill="#FBBF24" text-anchor="middle" letter-spacing="2" opacity="1">RATION</text>
+<text x="991.52" y="910.00" font-family="Geist Mono" font-size="11" font-weight="400" fill="#E9E9EE" text-anchor="middle" opacity="1">#FBBF24</text>
+<text x="104.00" y="1066.00" font-family="Jura Medium" font-size="12" font-weight="500" fill="#9B9BA8" text-anchor="start" letter-spacing="2" opacity="1">FIG. 3</text>
+<text x="182.00" y="1066.00" font-family="Jura Light" font-size="12" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="2" opacity="1">SYSTEM REGISTER</text>
+<text x="164.00" y="1100.00" font-family="Jura Medium" font-size="11" font-weight="500" fill="#9B9BA8" text-anchor="start" letter-spacing="2" opacity="1">TOKEN</text>
+<text x="464.00" y="1100.00" font-family="Jura Medium" font-size="11" font-weight="500" fill="#9B9BA8" text-anchor="start" letter-spacing="2" opacity="1">VALUE</text>
+<text x="764.00" y="1100.00" font-family="Jura Medium" font-size="11" font-weight="500" fill="#9B9BA8" text-anchor="start" letter-spacing="2" opacity="1">ROLE</text>
+<line x1="104.00" y1="1112.00" x2="1136.00" y2="1112.00" stroke="#26262E" stroke-width="1" opacity="1"/>
+<rect x="112.00" y="1119.00" width="20.00" height="20.00" rx="0" fill="#0A0A0C" stroke="#26262E" stroke-width="1" opacity="1"/>
+<text x="164.00" y="1134.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#9B9BA8" text-anchor="start" opacity="1">GROUND</text>
+<text x="464.00" y="1134.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#E9E9EE" text-anchor="start" opacity="1">#0A0A0C</text>
+<text x="764.00" y="1134.00" font-family="Jura Light" font-size="14" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="1" opacity="1">field / page</text>
+<line x1="104.00" y1="1149.00" x2="1136.00" y2="1149.00" stroke="#191920" stroke-width="1" opacity="0.6"/>
+<rect x="112.00" y="1165.00" width="20.00" height="20.00" rx="0" fill="#101015" stroke="#26262E" stroke-width="1" opacity="1"/>
+<text x="164.00" y="1180.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#9B9BA8" text-anchor="start" opacity="1">SURFACE</text>
+<text x="464.00" y="1180.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#E9E9EE" text-anchor="start" opacity="1">#1C1C22</text>
+<text x="764.00" y="1180.00" font-family="Jura Light" font-size="14" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="1" opacity="1">card</text>
+<line x1="104.00" y1="1195.00" x2="1136.00" y2="1195.00" stroke="#191920" stroke-width="1" opacity="0.6"/>
+<rect x="112.00" y="1211.00" width="20.00" height="20.00" rx="0" fill="#14141A" stroke="#26262E" stroke-width="1" opacity="1"/>
+<text x="164.00" y="1226.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#9B9BA8" text-anchor="start" opacity="1">BASE</text>
+<text x="464.00" y="1226.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#E9E9EE" text-anchor="start" opacity="1">#14141A</text>
+<text x="764.00" y="1226.00" font-family="Jura Light" font-size="14" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="1" opacity="1">recessed</text>
+<line x1="104.00" y1="1241.00" x2="1136.00" y2="1241.00" stroke="#191920" stroke-width="1" opacity="0.6"/>
+<rect x="112.00" y="1257.00" width="20.00" height="20.00" rx="0" fill="#E9E9EE" stroke="#26262E" stroke-width="1" opacity="1"/>
+<text x="164.00" y="1272.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#9B9BA8" text-anchor="start" opacity="1">INK</text>
+<text x="464.00" y="1272.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#E9E9EE" text-anchor="start" opacity="1">#E9E9EE</text>
+<text x="764.00" y="1272.00" font-family="Jura Light" font-size="14" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="1" opacity="1">text · primary</text>
+<line x1="104.00" y1="1287.00" x2="1136.00" y2="1287.00" stroke="#191920" stroke-width="1" opacity="0.6"/>
+<rect x="112.00" y="1303.00" width="20.00" height="20.00" rx="0" fill="#8A8A99" stroke="#26262E" stroke-width="1" opacity="1"/>
+<text x="164.00" y="1318.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#9B9BA8" text-anchor="start" opacity="1">MUTED</text>
+<text x="464.00" y="1318.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#E9E9EE" text-anchor="start" opacity="1">#8A8A99</text>
+<text x="764.00" y="1318.00" font-family="Jura Light" font-size="14" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="1" opacity="1">text · muted</text>
+<line x1="104.00" y1="1333.00" x2="1136.00" y2="1333.00" stroke="#191920" stroke-width="1" opacity="0.6"/>
+<rect x="112.00" y="1349.00" width="20.00" height="20.00" rx="0" fill="#6366F1" stroke="#26262E" stroke-width="1" opacity="1"/>
+<text x="164.00" y="1364.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#9B9BA8" text-anchor="start" opacity="1">ACCENT</text>
+<text x="464.00" y="1364.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#E9E9EE" text-anchor="start" opacity="1">#6366F1</text>
+<text x="764.00" y="1364.00" font-family="Jura Light" font-size="14" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="1" opacity="1">active · cta</text>
+<line x1="104.00" y1="1379.00" x2="1136.00" y2="1379.00" stroke="#191920" stroke-width="1" opacity="0.6"/>
+<rect x="112.00" y="1395.00" width="20.00" height="20.00" rx="0" fill="#4F46E5" stroke="#26262E" stroke-width="1" opacity="1"/>
+<text x="164.00" y="1410.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#9B9BA8" text-anchor="start" opacity="1">ACCENT&#183;L</text>
+<text x="464.00" y="1410.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#E9E9EE" text-anchor="start" opacity="1">#4F46E5</text>
+<text x="764.00" y="1410.00" font-family="Jura Light" font-size="14" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="1" opacity="1">active (light)</text>
+<line x1="104.00" y1="1425.00" x2="1136.00" y2="1425.00" stroke="#191920" stroke-width="1" opacity="0.6"/>
+<rect x="112.00" y="1441.00" width="20.00" height="20.00" rx="0" fill="#FBBF24" stroke="#26262E" stroke-width="1" opacity="1"/>
+<text x="164.00" y="1456.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#9B9BA8" text-anchor="start" opacity="1">RATION</text>
+<text x="464.00" y="1456.00" font-family="Geist Mono" font-size="15" font-weight="400" fill="#FBBF24" text-anchor="start" opacity="1">#FBBF24</text>
+<text x="764.00" y="1456.00" font-family="Jura Light" font-size="14" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="1" opacity="1">rating</text>
+<text x="104.00" y="1564.00" font-family="Instrument Serif" font-size="30" font-weight="400" fill="#E9E9EE" text-anchor="start" font-style="italic" opacity="1">&#8220;The improvement is the silence between two values.&#8221;</text>
+<line x1="104.00" y1="1606.00" x2="1136.00" y2="1606.00" stroke="#26262E" stroke-width="1" opacity="1"/>
+<text x="104.00" y="1636.00" font-family="Jura Light" font-size="11" font-weight="400" fill="#5C5C68" text-anchor="start" letter-spacing="2" opacity="1">T O L E R A N C E&#160;&#160;&#177; 0</text>
+<text x="620.00" y="1636.00" font-family="Geist Mono" font-size="12" font-weight="400" fill="#9B9BA8" text-anchor="middle" opacity="1">v.5 &#8594; v.6</text>
+<text x="1136.00" y="1636.00" font-family="Geist Mono" font-size="11" font-weight="400" fill="#5C5C68" text-anchor="end" opacity="1">6366F1 &#183; 0A0A0C &#183; FBBF24</text>
+</svg>

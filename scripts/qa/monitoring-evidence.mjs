@@ -19,15 +19,20 @@ const internalMetricsUrl = process.env.MONITORING_INTERNAL_METRICS_URL ?? '';
 const prometheusToken = process.env.MONITORING_PROMETHEUS_BEARER_TOKEN ?? '';
 const grafanaToken = process.env.MONITORING_GRAFANA_BEARER_TOKEN ?? '';
 const internalMetricsToken = process.env.MONITORING_INTERNAL_METRICS_BEARER_TOKEN ?? '';
-const dryRun = process.env.MONITORING_EVIDENCE_DRY_RUN === 'true';
-const requireGrafana = process.env.MONITORING_EVIDENCE_REQUIRE_GRAFANA === 'true';
+const dryRun = readBooleanEnv('MONITORING_EVIDENCE_DRY_RUN', false);
+const requireGrafana = readBooleanEnv(
+  'MONITORING_EVIDENCE_REQUIRE_GRAFANA',
+  false,
+);
 const requireInternalMetrics =
-  process.env.MONITORING_EVIDENCE_REQUIRE_INTERNAL_METRICS === 'true';
-const requestTimeoutMs = clampInt(
-  process.env.MONITORING_EVIDENCE_TIMEOUT_MS,
+  readBooleanEnv('MONITORING_EVIDENCE_REQUIRE_INTERNAL_METRICS', false);
+const requestTimeoutMs = readIntegerRangeEnv(
+  'MONITORING_EVIDENCE_TIMEOUT_MS',
   10000,
-  1000,
-  60000,
+  {
+    max: 60000,
+    min: 1000,
+  },
 );
 
 const requiredAlertRules = [
@@ -57,6 +62,11 @@ const requiredSloAlerts = [
   'WorkArchiveImportSearchSloBurn',
 ];
 
+const sensitiveUrlParamPattern =
+  /access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token/i;
+const sensitiveInlineValuePattern =
+  /\b((?:access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token)=)[^\s&;,]+/gi;
+
 const sloTargets = new Map([
   ['work_archive:slo_api_availability:ratio_30d', '0.995'],
   ['work_archive:slo_api_latency:p95_30d', '1'],
@@ -69,12 +79,42 @@ function normalizeBaseUrl(value) {
   return String(value ?? '').replace(/\/$/, '');
 }
 
-function clampInt(value, fallback, min, max) {
-  const parsed = Number.parseInt(value ?? '', 10);
-  if (!Number.isFinite(parsed)) {
+function readBooleanEnv(name, fallback) {
+  const rawValue = process.env[name]?.trim();
+
+  if (!rawValue) {
     return fallback;
   }
-  return Math.min(max, Math.max(min, parsed));
+
+  if (rawValue !== 'true' && rawValue !== 'false') {
+    throw new Error(`${name} must be true or false when set.`);
+  }
+
+  return rawValue === 'true';
+}
+
+function readIntegerRangeEnv(name, fallback, { min, max }) {
+  const rawValue = process.env[name]?.trim();
+
+  if (!rawValue) {
+    return fallback;
+  }
+
+  if (!/^[1-9]\d*$/.test(rawValue)) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
+
+  const parsed = Number(rawValue);
+
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`${name} must be a safe integer.`);
+  }
+
+  if (parsed < min || parsed > max) {
+    throw new Error(`${name} must be between ${min} and ${max}.`);
+  }
+
+  return parsed;
 }
 
 function relativePath(path) {
@@ -95,12 +135,39 @@ function redact(value) {
   text = text.replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]');
   text = text.replace(/(TOKEN|SECRET|PASSWORD|API_KEY|COOKIE)=\S+/gi, '$1=[REDACTED]');
   text = text.replace(/(Cookie:\s*)[^\n]+/gi, '$1[REDACTED]');
+  text = text.replace(sensitiveInlineValuePattern, '$1[REDACTED]');
   for (const secret of [prometheusToken, grafanaToken, internalMetricsToken]) {
     if (secret) {
       text = text.split(secret).join('[REDACTED]');
     }
   }
-  return text;
+  return redactUrlSecrets(text);
+}
+
+function redactUrlSecrets(value) {
+  return value.replace(/https?:\/\/[^\s<>"')]+/gi, (match) => {
+    try {
+      const url = new URL(match);
+
+      if (url.username) {
+        url.username = 'redacted';
+      }
+
+      if (url.password) {
+        url.password = 'redacted';
+      }
+
+      for (const key of [...url.searchParams.keys()]) {
+        if (sensitiveUrlParamPattern.test(key)) {
+          url.searchParams.set(key, '[REDACTED]');
+        }
+      }
+
+      return url.toString();
+    } catch {
+      return match;
+    }
+  });
 }
 
 function makeUrl(baseUrl, path, searchParams = {}) {
@@ -322,7 +389,7 @@ async function collectLiveEvidence() {
       status: response.status,
       title: response.json?.dashboard?.title ?? null,
       uid: response.json?.dashboard?.uid ?? null,
-      url: response.json?.meta?.url ?? null,
+      url: response.json?.meta?.url ? redact(response.json.meta.url) : null,
     };
     checks.push({
       detail: grafanaDashboard.ok

@@ -1,6 +1,9 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
-import { runLegacyGenreMigration } from '../src/operations/migrate-legacy-genres-to-tags';
+import {
+  formatLegacyGenreMigrationFailure,
+  runLegacyGenreMigration,
+} from '../src/operations/migrate-legacy-genres-to-tags';
 
 describe('legacy genre migration operation', () => {
   it('dry-runs changed catalog and user record counts without writing', async () => {
@@ -48,6 +51,20 @@ describe('legacy genre migration operation', () => {
         personalTags: ['완독', '회귀', '빙의', '액션'],
       },
     });
+  });
+
+  it('formats operation failures without raw database errors', () => {
+    const formatted = formatLegacyGenreMigrationFailure(
+      new Error('DATABASE_URL=postgresql://secret access_token raw payload'),
+    );
+
+    expect(JSON.parse(formatted)).toEqual({
+      errorCode: 'Error',
+      event: 'operations.migrate_legacy_genres_to_tags.failed',
+    });
+    expect(formatted).not.toMatch(
+      /DATABASE_URL|postgresql:\/\/secret|access_token|raw payload/,
+    );
   });
 });
 

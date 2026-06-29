@@ -7,6 +7,7 @@ import {
   it,
   jest,
 } from '@jest/globals';
+import jwt from 'jsonwebtoken';
 
 import { getRefreshTokenCookieOptions } from '../src/modules/auth/auth.cookies';
 import {
@@ -15,6 +16,7 @@ import {
 } from '../src/modules/auth/auth.service';
 import { GoogleOAuthClient } from '../src/modules/auth/google-oauth-client';
 import { setExternalFetchTransportForTest } from '../src/common/external-fetch';
+import type { MetricsService } from '../src/observability/metrics.service';
 import type { PrismaService } from '../src/prisma/prisma.service';
 
 const ORIGINAL_ENV = { ...process.env };
@@ -43,6 +45,12 @@ interface MockUserRefreshSession {
   rotatedAt: Date | null;
   expiresAt: Date;
   revokedAt: Date | null;
+}
+
+function createMetricsMock() {
+  return {
+    recordUserDataRights: jest.fn<MetricsService['recordUserDataRights']>(),
+  };
 }
 
 function createPrismaMock() {
@@ -307,6 +315,236 @@ function createPrismaMock() {
   };
 }
 
+function createUserDataExportPrismaMock() {
+  const now = new Date('2026-06-20T00:00:00.000Z');
+  const findMany = (rows: unknown[]) =>
+    jest
+      .fn<(...args: unknown[]) => Promise<unknown[]>>()
+      .mockResolvedValue(rows);
+  const prisma = {
+    $transaction: async (promises: Promise<unknown>[]) => Promise.all(promises),
+    user: {
+      findUniqueOrThrow: jest
+        .fn<(...args: unknown[]) => Promise<unknown>>()
+        .mockResolvedValue({
+          authAccounts: [
+            {
+              email: 'frieren@example.com',
+              emailVerified: true,
+              name: 'Frieren',
+              pictureUrl: '',
+              provider: 'google',
+            },
+          ],
+          avatarUrl: '',
+          email: 'frieren@example.com',
+          handle: 'mage_frieren',
+          id: 'user-1',
+          nickname: 'Mage Frieren',
+          role: 'user',
+        }),
+    },
+    userRefreshSession: {
+      findMany: findMany([
+        {
+          id: 'session-1',
+          rememberMe: true,
+          userAgent: 'Chrome on Linux',
+          ipAddress: '203.0.113.x',
+          createdAt: now,
+          updatedAt: now,
+          lastUsedAt: now,
+          rotatedAt: now,
+          expiresAt: now,
+          revokedAt: null,
+        },
+      ]),
+    },
+    externalApiCredential: {
+      findMany: findMany([
+        {
+          id: 'credential-1',
+          provider: 'aladin',
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]),
+    },
+    userSyncAppliedMutation: {
+      findMany: findMany([
+        {
+          id: 'mutation-1',
+          clientMutationId: 'client-mutation-1',
+          queueId: 'queue-1',
+          entityType: 'work',
+          entityId: 'work-1',
+          payloadHash: 'hash-1',
+          result: {
+            payload: {
+              title: 'raw sync payload',
+            },
+          },
+          resultStatus: 'applied',
+          expiresAt: now,
+          createdAt: now,
+        },
+      ]),
+    },
+    userWorkRecord: { findMany: findMany([{ id: 'work-1' }]) },
+    userReleaseRecord: { findMany: findMany([]) },
+    userTimelineEntry: { findMany: findMany([]) },
+    notionSyncMapping: { findMany: findMany([]) },
+    notionPullPreviewSnapshot: {
+      findMany: findMany([
+        {
+          id: 'snapshot-1',
+          notionDataSourceId: 'notion-ds-1',
+          changes: [
+            {
+              after: {
+                title: 'raw Notion preview payload',
+              },
+            },
+          ],
+          previewedAt: now,
+          expiresAt: now,
+          createdAt: now,
+        },
+      ]),
+    },
+    userSeries: { findMany: findMany([]) },
+    userWorkSeriesLink: { findMany: findMany([]) },
+    userContributor: { findMany: findMany([]) },
+    userWorkContributor: { findMany: findMany([]) },
+    userWorkRelation: { findMany: findMany([]) },
+    userTierBoard: { findMany: findMany([]) },
+    userTierLane: { findMany: findMany([]) },
+    userTierBoardCard: { findMany: findMany([]) },
+    userTierBoardAsset: { findMany: findMany([]) },
+    catalogSubmission: {
+      findMany: findMany([
+        {
+          id: 'submission-1',
+          status: 'pending',
+          entityType: 'catalog_work',
+          entityId: 'catalog-work-1',
+          action: 'create',
+          payload: {
+            description: 'raw catalog submission payload',
+          },
+          note: 'operator-only note',
+          reviewNote: 'review note',
+          reviewedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]),
+    },
+    securityEvent: { findMany: findMany([{ id: 'event-1' }]) },
+  };
+
+  return prisma;
+}
+
+function createAccountDeletionPrismaMock() {
+  const updateMany = (count: number) =>
+    jest
+      .fn<(...args: unknown[]) => Promise<{ count: number }>>()
+      .mockResolvedValue({ count });
+  const prisma = {
+    $transaction: async (promises: Promise<unknown>[]) => Promise.all(promises),
+    catalogAuditLog: {
+      updateMany: updateMany(3),
+    },
+    catalogSubmission: {
+      updateMany: updateMany(2),
+    },
+    securityEvent: {
+      updateMany: updateMany(4),
+    },
+    user: {
+      delete: jest
+        .fn<(...args: unknown[]) => Promise<{ id: string }>>()
+        .mockResolvedValue({ id: 'user-1' }),
+    },
+  };
+
+  return prisma;
+}
+
+function createAccountDeletionPreviewPrismaMock() {
+  const count = (value: number) =>
+    jest.fn<(...args: unknown[]) => Promise<number>>().mockResolvedValue(value);
+  const prisma = {
+    $transaction: async (promises: Promise<unknown>[]) => Promise.all(promises),
+    catalogAuditLog: {
+      count: count(3),
+    },
+    catalogSubmission: {
+      count: count(2),
+    },
+    externalApiCredential: {
+      count: count(4),
+    },
+    notionPullPreviewSnapshot: {
+      count: count(5),
+    },
+    notionSyncMapping: {
+      count: count(6),
+    },
+    securityEvent: {
+      count: count(7),
+    },
+    userAuthAccount: {
+      count: count(1),
+    },
+    userContributor: {
+      count: count(8),
+    },
+    userRefreshSession: {
+      count: count(9),
+    },
+    userReleaseRecord: {
+      count: count(10),
+    },
+    userSeries: {
+      count: count(11),
+    },
+    userSyncAppliedMutation: {
+      count: count(12),
+    },
+    userTierBoard: {
+      count: count(13),
+    },
+    userTierBoardAsset: {
+      count: count(14),
+    },
+    userTierBoardCard: {
+      count: count(15),
+    },
+    userTierLane: {
+      count: count(16),
+    },
+    userTimelineEntry: {
+      count: count(17),
+    },
+    userWorkContributor: {
+      count: count(18),
+    },
+    userWorkRecord: {
+      count: count(19),
+    },
+    userWorkRelation: {
+      count: count(20),
+    },
+    userWorkSeriesLink: {
+      count: count(21),
+    },
+  };
+
+  return prisma;
+}
+
 async function issueSession(
   authService: AuthService,
   user: MockUser,
@@ -347,7 +585,8 @@ describe('AuthService', () => {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
-      nickname: '',      role: 'user',
+      nickname: '',
+      role: 'user',
     } satisfies MockUser;
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -372,7 +611,8 @@ describe('AuthService', () => {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
-      nickname: '',      role: 'user',
+      nickname: '',
+      role: 'user',
     } satisfies MockUser;
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -389,6 +629,34 @@ describe('AuthService', () => {
     });
   });
 
+  it('logs refresh failures as structured events without raw refresh tokens', async () => {
+    const { prisma } = createPrismaMock();
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const warnSpy = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+
+    await expect(
+      authService.refresh('raw-refresh-token-secret', {
+        requestId: 'req-refresh-1',
+      }),
+    ).rejects.toThrow();
+
+    const logPayload = String(warnSpy.mock.calls.at(-1)?.[0] ?? '');
+
+    expect(JSON.parse(logPayload)).toEqual(
+      expect.objectContaining({
+        entityType: 'refresh_session',
+        errorCode: 'invalid_or_expired_token',
+        event: 'auth.refresh.failed',
+        provider: null,
+        requestId: 'req-refresh-1',
+        userId: null,
+      }),
+    );
+    expect(logPayload).not.toMatch(/raw-refresh-token-secret|refresh_token/i);
+  });
+
   it('keeps multiple refresh sessions independent until token reuse is detected', async () => {
     const { prisma, userRefreshSessions, users } = createPrismaMock();
     const user = {
@@ -396,7 +664,8 @@ describe('AuthService', () => {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
-      nickname: '',      role: 'user',
+      nickname: '',
+      role: 'user',
     } satisfies MockUser;
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -413,9 +682,7 @@ describe('AuthService', () => {
         sessionId: firstSession.sessionId,
       }),
     );
-    userRefreshSessions[0]!.previousRotatedAt = new Date(
-      Date.now() - 16_000,
-    );
+    userRefreshSessions[0]!.previousRotatedAt = new Date(Date.now() - 16_000);
     expect(
       userRefreshSessions.find(
         (session) => session.id === secondSession.sessionId,
@@ -449,7 +716,8 @@ describe('AuthService', () => {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
-      nickname: '',      role: 'user',
+      nickname: '',
+      role: 'user',
     } satisfies MockUser;
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -497,7 +765,8 @@ describe('AuthService', () => {
       email: 'frieren@example.com',
       handle: null,
       id: 'user-1',
-      nickname: '',      role: 'user',
+      nickname: '',
+      role: 'user',
     } satisfies MockUser;
     users.push(user);
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -518,6 +787,416 @@ describe('AuthService', () => {
     ).rejects.toThrow('Session is no longer valid.');
   });
 
+  it('issues HS256 JWTs and rejects access tokens signed with another HMAC algorithm', async () => {
+    const { prisma, users } = createPrismaMock();
+    const user = {
+      avatarUrl: '',
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: '',
+      role: 'user',
+    } satisfies MockUser;
+    users.push(user);
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const session = await issueSession(authService, user);
+
+    const decodedAccessToken = jwt.decode(session.accessToken, {
+      complete: true,
+    });
+
+    expect(decodedAccessToken).toEqual(
+      expect.objectContaining({
+        header: expect.objectContaining({
+          alg: 'HS256',
+        }),
+        payload: expect.objectContaining({
+          aud: 'work-archive-web',
+          iss: 'work-archive-api',
+        }),
+      }),
+    );
+
+    const forgedAccessToken = jwt.sign(
+      {
+        email: user.email,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'access',
+      },
+      process.env.JWT_ACCESS_SECRET!,
+      {
+        algorithm: 'HS384',
+        audience: 'work-archive-web',
+        expiresIn: 60 * 15,
+        issuer: 'work-archive-api',
+        jwtid: 'forged-hs384-token',
+      },
+    );
+
+    await expect(
+      authService.validateAccessToken(forgedAccessToken),
+    ).rejects.toThrow('Invalid or expired token.');
+  });
+
+  it('rejects access tokens with an unexpected issuer or audience', async () => {
+    const { prisma, users } = createPrismaMock();
+    const user = {
+      avatarUrl: '',
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: '',
+      role: 'user',
+    } satisfies MockUser;
+    users.push(user);
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const session = await issueSession(authService, user);
+    const wrongAudienceToken = jwt.sign(
+      {
+        email: user.email,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'access',
+      },
+      process.env.JWT_ACCESS_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'other-client',
+        expiresIn: 60 * 15,
+        issuer: 'work-archive-api',
+        jwtid: 'wrong-audience-token',
+      },
+    );
+    const wrongIssuerToken = jwt.sign(
+      {
+        email: user.email,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'access',
+      },
+      process.env.JWT_ACCESS_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        expiresIn: 60 * 15,
+        issuer: 'other-issuer',
+        jwtid: 'wrong-issuer-token',
+      },
+    );
+
+    await expect(
+      authService.validateAccessToken(wrongAudienceToken),
+    ).rejects.toThrow('Invalid or expired token.');
+    await expect(
+      authService.validateAccessToken(wrongIssuerToken),
+    ).rejects.toThrow('Invalid or expired token.');
+  });
+
+  it('rejects access tokens missing required registered JWT claims', async () => {
+    const { prisma, users } = createPrismaMock();
+    const user = {
+      avatarUrl: '',
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: '',
+      role: 'user',
+    } satisfies MockUser;
+    users.push(user);
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const session = await issueSession(authService, user);
+    const missingJwtIdToken = jwt.sign(
+      {
+        email: user.email,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'access',
+      },
+      process.env.JWT_ACCESS_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        expiresIn: 60 * 15,
+        issuer: 'work-archive-api',
+      },
+    );
+    const missingExpiryToken = jwt.sign(
+      {
+        email: user.email,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'access',
+      },
+      process.env.JWT_ACCESS_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        issuer: 'work-archive-api',
+        jwtid: 'missing-expiry-token',
+        noTimestamp: true,
+      },
+    );
+
+    await expect(
+      authService.validateAccessToken(missingJwtIdToken),
+    ).rejects.toThrow('Invalid or expired token.');
+    await expect(
+      authService.validateAccessToken(missingExpiryToken),
+    ).rejects.toThrow('Invalid or expired token.');
+  });
+
+  it('rejects tokens whose kind-specific claims do not match the issued shape', async () => {
+    const { prisma, users } = createPrismaMock();
+    const user = {
+      avatarUrl: '',
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: '',
+      role: 'user',
+    } satisfies MockUser;
+    users.push(user);
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const session = await issueSession(authService, user);
+    const accessTokenWithRememberMe = jwt.sign(
+      {
+        email: user.email,
+        rememberMe: true,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'access',
+      },
+      process.env.JWT_ACCESS_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        expiresIn: 60 * 15,
+        issuer: 'work-archive-api',
+        jwtid: 'access-token-with-remember-me',
+      },
+    );
+    const refreshTokenWithoutRememberMe = jwt.sign(
+      {
+        email: user.email,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'refresh',
+      },
+      process.env.JWT_REFRESH_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        expiresIn: 60 * 60,
+        issuer: 'work-archive-api',
+        jwtid: 'refresh-token-without-remember-me',
+      },
+    );
+
+    await expect(
+      authService.validateAccessToken(accessTokenWithRememberMe),
+    ).rejects.toThrow('Invalid or expired token.');
+    await expect(
+      authService.refresh(refreshTokenWithoutRememberMe),
+    ).rejects.toThrow('Invalid or expired token.');
+  });
+
+  it('rejects tokens whose identity claims are unsafe', async () => {
+    const { prisma, users } = createPrismaMock();
+    const user = {
+      avatarUrl: '',
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: '',
+      role: 'user',
+    } satisfies MockUser;
+    users.push(user);
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const session = await issueSession(authService, user);
+    const accessTokenWithUnsafeSubject = jwt.sign(
+      {
+        email: user.email,
+        sid: session.sessionId,
+        sub: 'user:1',
+        type: 'access',
+      },
+      process.env.JWT_ACCESS_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        expiresIn: 60 * 15,
+        issuer: 'work-archive-api',
+        jwtid: 'access-token-with-unsafe-subject',
+      },
+    );
+    const refreshTokenWithUnsafeEmail = jwt.sign(
+      {
+        email: 'invalid email',
+        rememberMe: true,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'refresh',
+      },
+      process.env.JWT_REFRESH_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        expiresIn: 60 * 60,
+        issuer: 'work-archive-api',
+        jwtid: 'refresh-token-with-unsafe-email',
+      },
+    );
+
+    await expect(
+      authService.validateAccessToken(accessTokenWithUnsafeSubject),
+    ).rejects.toThrow('Invalid or expired token.');
+    await expect(authService.refresh(refreshTokenWithUnsafeEmail)).rejects.toThrow(
+      'Invalid or expired token.',
+    );
+  });
+
+  it('rejects tokens whose lifetime exceeds the issued policy', async () => {
+    const { prisma, users } = createPrismaMock();
+    const user = {
+      avatarUrl: '',
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: '',
+      role: 'user',
+    } satisfies MockUser;
+    users.push(user);
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const session = await issueSession(authService, user);
+    const longLivedAccessToken = jwt.sign(
+      {
+        email: user.email,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'access',
+      },
+      process.env.JWT_ACCESS_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        expiresIn: 60 * 60,
+        issuer: 'work-archive-api',
+        jwtid: 'long-lived-access-token',
+      },
+    );
+    const longLivedRefreshToken = jwt.sign(
+      {
+        email: user.email,
+        rememberMe: true,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'refresh',
+      },
+      process.env.JWT_REFRESH_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        expiresIn: 60 * 60 * 24 * 60,
+        issuer: 'work-archive-api',
+        jwtid: 'long-lived-refresh-token',
+      },
+    );
+
+    await expect(
+      authService.validateAccessToken(longLivedAccessToken),
+    ).rejects.toThrow('Invalid or expired token.');
+    await expect(authService.refresh(longLivedRefreshToken)).rejects.toThrow(
+      'Invalid or expired token.',
+    );
+  });
+
+  it('rejects tokens whose issued-at time is too far in the future', async () => {
+    const { prisma, users } = createPrismaMock();
+    const user = {
+      avatarUrl: '',
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: '',
+      role: 'user',
+    } satisfies MockUser;
+    users.push(user);
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const session = await issueSession(authService, user);
+    const issuedAt = Math.floor(Date.now() / 1000) + 60 * 10;
+    const futureIssuedAccessToken = jwt.sign(
+      {
+        email: user.email,
+        exp: issuedAt + 60 * 15,
+        iat: issuedAt,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'access',
+      },
+      process.env.JWT_ACCESS_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        issuer: 'work-archive-api',
+        jwtid: 'future-issued-access-token',
+      },
+    );
+    const futureIssuedRefreshToken = jwt.sign(
+      {
+        email: user.email,
+        exp: issuedAt + 60 * 60,
+        iat: issuedAt,
+        rememberMe: true,
+        sid: session.sessionId,
+        sub: user.id,
+        type: 'refresh',
+      },
+      process.env.JWT_REFRESH_SECRET!,
+      {
+        algorithm: 'HS256',
+        audience: 'work-archive-web',
+        issuer: 'work-archive-api',
+        jwtid: 'future-issued-refresh-token',
+      },
+    );
+
+    await expect(
+      authService.validateAccessToken(futureIssuedAccessToken),
+    ).rejects.toThrow('Invalid or expired token.');
+    await expect(authService.refresh(futureIssuedRefreshToken)).rejects.toThrow(
+      'Invalid or expired token.',
+    );
+  });
+
+  it('rejects tokens whose email claim no longer matches the user', async () => {
+    const { prisma, userRefreshSessions, users } = createPrismaMock();
+    const user = {
+      avatarUrl: '',
+      email: 'frieren@example.com',
+      handle: null,
+      id: 'user-1',
+      nickname: '',
+      role: 'user',
+    } satisfies MockUser;
+    users.push(user);
+    const authService = new AuthService(prisma as unknown as PrismaService);
+    const session = await issueSession(authService, user);
+
+    users[0] = {
+      ...users[0]!,
+      email: 'changed@example.com',
+    };
+
+    await expect(
+      authService.validateAccessToken(session.accessToken),
+    ).rejects.toThrow('Session is no longer valid.');
+    await expect(authService.refresh(session.refreshToken!)).rejects.toThrow(
+      'Invalid or expired refresh token.',
+    );
+    expect(userRefreshSessions[0]?.revokedAt).toBeInstanceOf(Date);
+  });
+
   it('updates nickname and handle for the current user', async () => {
     const { prisma, users } = createPrismaMock();
     users.push({
@@ -525,7 +1204,8 @@ describe('AuthService', () => {
       avatarUrl: '',
       handle: 'frieren',
       id: 'user-1',
-      nickname: 'Frieren',      role: 'user',
+      nickname: 'Frieren',
+      role: 'user',
     });
     const authService = new AuthService(prisma as unknown as PrismaService);
 
@@ -557,7 +1237,8 @@ describe('AuthService', () => {
       avatarUrl: '',
       handle: 'frieren',
       id: 'user-1',
-      nickname: 'Frieren',      role: 'user',
+      nickname: 'Frieren',
+      role: 'user',
     });
     const authService = new AuthService(prisma as unknown as PrismaService);
 
@@ -596,14 +1277,16 @@ describe('AuthService', () => {
         avatarUrl: '',
         handle: 'frieren',
         id: 'user-1',
-        nickname: 'Frieren',        role: 'user',
+        nickname: 'Frieren',
+        role: 'user',
       },
       {
         email: 'fern@example.com',
         avatarUrl: '',
         handle: 'fern',
         id: 'user-2',
-        nickname: 'Fern',        role: 'user',
+        nickname: 'Fern',
+        role: 'user',
       },
     );
     const authService = new AuthService(prisma as unknown as PrismaService);
@@ -624,6 +1307,314 @@ describe('AuthService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('exports user-owned server data without selecting provider secrets or token hashes', async () => {
+    const prisma = createUserDataExportPrismaMock();
+    const metrics = createMetricsMock();
+    const authService = new AuthService(
+      prisma as unknown as PrismaService,
+      undefined,
+      metrics as unknown as MetricsService,
+    );
+
+    const exported = await authService.exportUserData({
+      email: 'frieren@example.com',
+      role: 'user',
+      sessionId: 'session-1',
+      userId: 'user-1',
+    });
+
+    expect(exported.user).toEqual(
+      expect.objectContaining({
+        email: 'frieren@example.com',
+        handle: 'mage_frieren',
+      }),
+    );
+    expect(exported.counts).toEqual(
+      expect.objectContaining({
+        catalogSubmissions: 1,
+        externalApiCredentials: 1,
+        notionPullPreviewSnapshots: 1,
+        syncAppliedMutations: 1,
+        refreshSessions: 1,
+        workRecords: 1,
+      }),
+    );
+    expect(exported.data.refreshSessions).toEqual([
+      expect.objectContaining({
+        current: true,
+        id: 'session-1',
+        ipAddress: '203.0.113.x',
+      }),
+    ]);
+    expect(JSON.stringify(exported)).not.toMatch(
+      /"(encryptedKey|authTag|iv|tokenHash|previousTokenHash|ipHash|userAgentHash)"\s*:/i,
+    );
+    expect(JSON.stringify(exported)).not.toMatch(
+      /"(changes|payload|result|note|reviewNote)"\s*:/i,
+    );
+    expect(prisma.externalApiCredential.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.not.objectContaining({
+          encryptedKey: true,
+          authTag: true,
+          iv: true,
+        }),
+        where: {
+          userId: 'user-1',
+        },
+      }),
+    );
+    expect(prisma.userRefreshSession.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.not.objectContaining({
+          tokenHash: true,
+          previousTokenHash: true,
+        }),
+        where: {
+          userId: 'user-1',
+        },
+      }),
+    );
+    expect(prisma.securityEvent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.not.objectContaining({
+          ipHash: true,
+          metadata: true,
+          userAgentHash: true,
+        }),
+        where: {
+          userId: 'user-1',
+        },
+      }),
+    );
+    expect(prisma.userSyncAppliedMutation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.not.objectContaining({
+          result: true,
+        }),
+      }),
+    );
+    expect(prisma.notionPullPreviewSnapshot.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.not.objectContaining({
+          changes: true,
+        }),
+      }),
+    );
+    expect(prisma.catalogSubmission.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.not.objectContaining({
+          note: true,
+          payload: true,
+          reviewNote: true,
+        }),
+      }),
+    );
+    expect(exported.omittedSensitiveFields).toEqual(
+      expect.arrayContaining([
+        'refresh token hashes',
+        'external provider encrypted keys',
+        'security event IP and user-agent hashes',
+      ]),
+    );
+    expect(metrics.recordUserDataRights).toHaveBeenCalledWith({
+      operation: 'export',
+      result: 'success',
+    });
+  });
+
+  it('deletes an account by anonymizing retained operational records before user cascade', async () => {
+    const prisma = createAccountDeletionPrismaMock();
+    const metrics = createMetricsMock();
+    const authService = new AuthService(
+      prisma as unknown as PrismaService,
+      undefined,
+      metrics as unknown as MetricsService,
+    );
+
+    const deleted = await authService.deleteAccount(
+      {
+        email: 'frieren@example.com',
+        role: 'user',
+        sessionId: 'session-1',
+        userId: 'user-1',
+      },
+      {
+        acknowledgeIrreversible: true,
+        confirmEmail: ' frieren@example.com ',
+      },
+    );
+
+    expect(deleted).toEqual(
+      expect.objectContaining({
+        deleted: true,
+        userId: 'user-1',
+        anonymizedRecords: {
+          catalogAuditLogs: 3,
+          catalogSubmissionReviews: 2,
+          securityEvents: 4,
+        },
+      }),
+    );
+    expect(prisma.securityEvent.updateMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+      },
+      data: {
+        sessionId: null,
+        userId: null,
+      },
+    });
+    expect(prisma.catalogSubmission.updateMany).toHaveBeenCalledWith({
+      where: {
+        reviewerId: 'user-1',
+      },
+      data: {
+        reviewerId: null,
+      },
+    });
+    expect(prisma.catalogAuditLog.updateMany).toHaveBeenCalledWith({
+      where: {
+        actorId: 'user-1',
+      },
+      data: {
+        actorId: null,
+      },
+    });
+    expect(prisma.user.delete).toHaveBeenCalledWith({
+      where: {
+        id: 'user-1',
+      },
+    });
+    expect(metrics.recordUserDataRights).toHaveBeenCalledWith({
+      operation: 'delete',
+      result: 'success',
+    });
+  });
+
+  it('rejects account deletion when the confirmation email does not match', async () => {
+    const prisma = createAccountDeletionPrismaMock();
+    const authService = new AuthService(prisma as unknown as PrismaService);
+
+    await expect(
+      authService.deleteAccount(
+        {
+          email: 'frieren@example.com',
+          role: 'user',
+          sessionId: 'session-1',
+          userId: 'user-1',
+        },
+        {
+          acknowledgeIrreversible: true,
+          confirmEmail: 'fern@example.com',
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.user.delete).not.toHaveBeenCalled();
+  });
+
+  it('rejects account deletion before database mutation when irreversible acknowledgement is missing', async () => {
+    const prisma = createAccountDeletionPrismaMock();
+    const authService = new AuthService(prisma as unknown as PrismaService);
+
+    expect(() =>
+      authService.validateAccountDeletionRequest(
+        {
+          email: 'frieren@example.com',
+          role: 'user',
+          sessionId: 'session-1',
+          userId: 'user-1',
+        },
+        {
+          acknowledgeIrreversible: false as true,
+          confirmEmail: 'frieren@example.com',
+        },
+      ),
+    ).toThrow(BadRequestException);
+    expect(prisma.user.delete).not.toHaveBeenCalled();
+  });
+
+  it('previews account deletion impact with owner-scoped counts only', async () => {
+    const prisma = createAccountDeletionPreviewPrismaMock();
+    const metrics = createMetricsMock();
+    const authService = new AuthService(
+      prisma as unknown as PrismaService,
+      undefined,
+      metrics as unknown as MetricsService,
+    );
+
+    const preview = await authService.previewAccountDeletion({
+      email: 'frieren@example.com',
+      role: 'user',
+      sessionId: 'session-1',
+      userId: 'user-1',
+    });
+
+    expect(preview).toEqual(
+      expect.objectContaining({
+        anonymizedRecords: {
+          catalogAuditLogs: 3,
+          catalogSubmissionReviews: 2,
+          securityEvents: 7,
+        },
+        cascadeDeletedRecords: expect.objectContaining({
+          authAccounts: 1,
+          externalApiCredentials: 4,
+          refreshSessions: 9,
+          workRecords: 19,
+          workSeriesLinks: 21,
+        }),
+        omittedSensitiveFields: expect.arrayContaining([
+          'refresh token hashes',
+          'external provider encrypted keys',
+          'row payload contents',
+        ]),
+        userId: 'user-1',
+      }),
+    );
+    expect(JSON.stringify(preview)).not.toMatch(
+      /"(encryptedKey|authTag|iv|tokenHash|previousTokenHash|ipHash|userAgentHash|payload)"\s*:/i,
+    );
+    expect(prisma.userAuthAccount.count).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+      },
+    });
+    expect(metrics.recordUserDataRights).toHaveBeenCalledWith({
+      operation: 'deletion_preview',
+      result: 'success',
+    });
+    expect(prisma.userReleaseRecord.count).toHaveBeenCalledWith({
+      where: {
+        userWorkRecord: {
+          userId: 'user-1',
+        },
+      },
+    });
+    expect(prisma.userWorkSeriesLink.count).toHaveBeenCalledWith({
+      where: {
+        userSeries: {
+          userId: 'user-1',
+        },
+      },
+    });
+    expect(prisma.securityEvent.count).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+      },
+    });
+    expect(prisma.catalogSubmission.count).toHaveBeenCalledWith({
+      where: {
+        submitterId: 'user-1',
+      },
+    });
+    expect(prisma.catalogSubmission.count).toHaveBeenCalledWith({
+      where: {
+        reviewerId: 'user-1',
+      },
+    });
+  });
+
   it('fails Google token exchange quickly when the upstream request aborts', async () => {
     process.env.GOOGLE_OAUTH_CLIENT_ID = 'google-client-id';
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google-client-secret';
@@ -641,9 +1632,19 @@ describe('AuthService', () => {
       googleOAuthClient.exchangeAuthorizationCode('oauth-code-secret'),
     ).rejects.toThrow('Google login could not be completed.');
 
-    expect(warnSpy.mock.calls.flat().join(' ')).not.toContain(
-      'oauth-code-secret',
+    const logPayload = String(warnSpy.mock.calls.at(-1)?.[0] ?? '');
+
+    expect(JSON.parse(logPayload)).toEqual(
+      expect.objectContaining({
+        errorCode: 'timeout',
+        event: 'auth.google.token_exchange.failed',
+        httpStatus: null,
+        provider: 'google',
+        requestId: null,
+        userId: null,
+      }),
     );
+    expect(logPayload).not.toMatch(/oauth-code-secret|client-secret|id_token/i);
   });
 
   it('uses stale Google JWKS cache only when the requested kid is cached', async () => {
@@ -658,14 +1659,27 @@ describe('AuthService', () => {
       fetchedAt: Date.now() - 1_000,
       keysByKid: new Map([['cached-kid', 'cached-pem']]),
     };
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const warnSpy = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
     setExternalFetchTransportForTest(async () => {
       throw new DOMException('aborted', 'AbortError');
     });
 
-    await expect(
-      googleOAuthClient.getSigningKey('cached-kid'),
-    ).resolves.toBe('cached-pem');
+    await expect(googleOAuthClient.getSigningKey('cached-kid')).resolves.toBe(
+      'cached-pem',
+    );
+
+    const logPayload = String(warnSpy.mock.calls.at(-1)?.[0] ?? '');
+
+    expect(JSON.parse(logPayload)).toEqual(
+      expect.objectContaining({
+        errorCode: 'timeout',
+        event: 'auth.google.jwks.stale_cache_used',
+        provider: 'google',
+        staleCache: true,
+      }),
+    );
 
     await expect(
       googleOAuthClient.getSigningKey('missing-kid'),

@@ -5,23 +5,19 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--app-border-strong) 65%, transparent);
   border-radius: 0.85rem;
-  /* 따뜻한 흑갈 + 앰버 광원 — 표지 없는 작품의 폴백 표지.
+  /* 중립 다크 + 미세 광택 — 표지 없는 작품의 폴백 표지.
      global.css 가이드의 "radial 광원 금지"는 의미 없는 UI chrome 장식을 막기 위한 것으로,
-     여기 radial은 콘텐츠(표지) 자체의 머티리얼이므로 의도적 예외다. */
+     여기 표면은 콘텐츠(표지) 자체의 머티리얼이므로 의도적 예외다. */
   background:
-    linear-gradient(145deg, rgba(255, 220, 150, 0.07), transparent 34%),
-    radial-gradient(circle at 22% 18%, rgba(180, 120, 40, 0.20), transparent 30%),
-    radial-gradient(circle at 80% 72%, rgba(120, 60, 20, 0.14), transparent 34%),
-    linear-gradient(160deg, #201c18, #0c0b0a 74%);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 34%),
+    linear-gradient(160deg, #1b1b22, #0c0c0f 74%);
   box-shadow: var(--app-shadow-poster);
 }
 
 [data-mantine-color-scheme='light'] .posterShell {
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.55), transparent 34%),
-    radial-gradient(circle at 22% 18%, rgba(180, 120, 40, 0.14), transparent 28%),
-    radial-gradient(circle at 80% 72%, rgba(180, 100, 40, 0.08), transparent 34%),
-    linear-gradient(160deg, #e8dfd4, #d4c8bc 74%);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.6), transparent 34%),
+    linear-gradient(160deg, #e8e8ee, #d4d4dc 74%);
 }
 
 .posterShell::after {
@@ -124,8 +120,8 @@
   padding: 0.9rem;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 34%),
-    radial-gradient(circle at 18% 20%, rgba(91, 140, 187, 0.2), transparent 36%),
-    radial-gradient(circle at 84% 78%, rgba(239, 181, 70, 0.1), transparent 32%),
+    radial-gradient(circle at 18% 20%, rgba(99, 102, 241, 0.22), transparent 36%),
+    radial-gradient(circle at 84% 78%, rgba(168, 85, 247, 0.12), transparent 32%),
     repeating-linear-gradient(
       135deg,
       rgba(255, 255, 255, 0.025) 0,
@@ -133,7 +129,7 @@
       transparent 1px,
       transparent 7px
     ),
-    linear-gradient(160deg, #1d2232, #07080b 76%);
+    linear-gradient(160deg, #1a1b26, #0a0a0c 76%);
 }
 
 .posterFallback::before {
@@ -165,53 +161,78 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* 폴백 포스터 6가지 톤 — 따뜻한 영화 포스터 팔레트 */
+/* 폴백 포스터 6가지 톤 — 모던 정성(qualitative) 표지 팔레트, 중립 다크 베이스 */
 .posterFallback[data-cover-tone='0'] {
-  /* 딥 앰버 — 무협·판타지 느낌 */
+  /* 인디고 */
   background:
-    radial-gradient(circle at 20% 18%, rgba(212, 140, 40, 0.34), transparent 36%),
-    radial-gradient(circle at 78% 80%, rgba(100, 50, 10, 0.20), transparent 34%),
-    linear-gradient(160deg, #231808, #0c0b0a 80%);
+    radial-gradient(circle at 20% 18%, rgba(99, 102, 241, 0.36), transparent 38%),
+    radial-gradient(circle at 78% 80%, rgba(56, 189, 248, 0.16), transparent 34%),
+    linear-gradient(160deg, #141526, #0a0a0c 80%);
 }
 
 .posterFallback[data-cover-tone='1'] {
-  /* 크림슨 딥 — 로맨스·드라마 */
+  /* 로즈 */
   background:
-    radial-gradient(circle at 76% 18%, rgba(180, 60, 60, 0.30), transparent 38%),
-    radial-gradient(circle at 22% 82%, rgba(212, 140, 40, 0.14), transparent 32%),
-    linear-gradient(160deg, #2a1010, #0c0b0a 80%);
+    radial-gradient(circle at 76% 18%, rgba(244, 63, 94, 0.32), transparent 38%),
+    radial-gradient(circle at 22% 82%, rgba(236, 72, 153, 0.16), transparent 32%),
+    linear-gradient(160deg, #25101a, #0a0a0c 80%);
 }
 
 .posterFallback[data-cover-tone='2'] {
-  /* 포레스트 다크 — SF·스릴러 */
+  /* 에메랄드 */
   background:
-    radial-gradient(circle at 18% 76%, rgba(40, 130, 90, 0.26), transparent 36%),
-    radial-gradient(circle at 82% 18%, rgba(200, 180, 100, 0.12), transparent 33%),
-    linear-gradient(160deg, #0e2018, #0c0b0a 80%);
+    radial-gradient(circle at 18% 76%, rgba(16, 185, 129, 0.30), transparent 38%),
+    radial-gradient(circle at 82% 18%, rgba(45, 212, 191, 0.16), transparent 33%),
+    linear-gradient(160deg, #0c1f1a, #0a0a0c 80%);
 }
 
 .posterFallback[data-cover-tone='3'] {
-  /* 슬레이트 블루 — 미스터리·공포 */
+  /* 스카이 블루 */
   background:
-    radial-gradient(circle at 80% 74%, rgba(60, 80, 140, 0.28), transparent 36%),
-    radial-gradient(circle at 24% 20%, rgba(180, 150, 80, 0.12), transparent 33%),
-    linear-gradient(160deg, #101422, #0c0b0a 80%);
+    radial-gradient(circle at 80% 74%, rgba(14, 165, 233, 0.32), transparent 38%),
+    radial-gradient(circle at 24% 20%, rgba(99, 102, 241, 0.16), transparent 33%),
+    linear-gradient(160deg, #0d1626, #0a0a0c 80%);
 }
 
 .posterFallback[data-cover-tone='4'] {
-  /* 골드 오커 — 역사·에세이 */
+  /* 앰버 */
   background:
-    radial-gradient(circle at 26% 18%, rgba(200, 150, 40, 0.28), transparent 36%),
-    radial-gradient(circle at 78% 84%, rgba(100, 60, 10, 0.16), transparent 33%),
-    linear-gradient(160deg, #201a08, #0c0b0a 80%);
+    radial-gradient(circle at 26% 18%, rgba(245, 158, 11, 0.30), transparent 38%),
+    radial-gradient(circle at 78% 84%, rgba(244, 63, 94, 0.14), transparent 33%),
+    linear-gradient(160deg, #221a0a, #0a0a0c 80%);
 }
 
 .posterFallback[data-cover-tone='5'] {
-  /* 라벤더 다크 — 라이트노벨·만화 */
+  /* 바이올렛 */
   background:
-    radial-gradient(circle at 70% 22%, rgba(130, 90, 180, 0.26), transparent 36%),
-    radial-gradient(circle at 20% 80%, rgba(212, 140, 40, 0.14), transparent 33%),
-    linear-gradient(160deg, #1a1228, #0c0b0a 80%);
+    radial-gradient(circle at 70% 22%, rgba(168, 85, 247, 0.32), transparent 38%),
+    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.16), transparent 33%),
+    linear-gradient(160deg, #1a1228, #0a0a0c 80%);
+}
+
+.posterFallback[data-cover-tone='6'] {
+  /* 틸 */
+  background:
+    radial-gradient(circle at 24% 24%, rgba(20, 184, 166, 0.32), transparent 38%),
+    radial-gradient(circle at 82% 76%, rgba(14, 165, 233, 0.16), transparent 33%),
+    linear-gradient(160deg, #0c1f20, #0a0a0c 80%);
+}
+
+.posterFallback[data-cover-tone='7'] {
+  /* 푸시아 */
+  background:
+    radial-gradient(circle at 74% 26%, rgba(217, 70, 239, 0.30), transparent 38%),
+    radial-gradient(circle at 22% 78%, rgba(168, 85, 247, 0.16), transparent 33%),
+    linear-gradient(160deg, #20122a, #0a0a0c 80%);
+}
+
+/* 색상 변주 — hue-rotate로 같은 색조군도 외형을 다양화(폴백 텍스트는 near-white라 영향 없음) */
+.posterFallback[data-cover-variant='1'] {
+  filter: hue-rotate(22deg) saturate(1.05);
+}
+
+.posterFallback[data-cover-variant='2'] {
+  filter: hue-rotate(-22deg) saturate(0.96);
 }
 
 .posterFallbackTitle {
@@ -223,7 +244,7 @@
   -webkit-line-clamp: 4;
   line-clamp: 4;
   overflow: hidden;
-  color: rgba(248, 244, 238, 0.95);
+  color: rgba(244, 244, 246, 0.96);
   font-family: var(--app-font-display);
   /* 표지 폭에 비례해 제목 크기를 키운다(작은 row 표지에서도 읽히도록 하한 유지) */
   font-size: clamp(0.74rem, 15cqw, 1.7rem);
@@ -241,8 +262,8 @@
 .posterFallbackType {
   position: relative;
   z-index: 1;
-  /* 폴백 표지는 라이트 모드에서도 다크 장정을 유지하므로 테마 변수 대신 고정 웜화이트 */
-  color: rgba(245, 240, 232, 0.58);
+  /* 폴백 표지는 라이트 모드에서도 다크 장정을 유지하므로 테마 변수 대신 고정 화이트 */
+  color: rgba(240, 240, 245, 0.6);
   font-size: var(--app-type-meta);
   font-weight: 800;
   letter-spacing: 0;

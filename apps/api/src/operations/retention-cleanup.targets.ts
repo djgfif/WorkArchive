@@ -172,7 +172,15 @@ function readBoolean(value: string | undefined, defaultValue: boolean) {
     return defaultValue;
   }
 
-  return ['1', 'true', 'yes', 'on'].includes(normalizedValue);
+  if (normalizedValue === 'true') {
+    return true;
+  }
+
+  if (normalizedValue === 'false') {
+    return false;
+  }
+
+  throw new Error('RETENTION_CLEANUP_DRY_RUN must be true or false.');
 }
 
 function readPositiveInteger(value: string | undefined, defaultValue: number) {
@@ -182,7 +190,11 @@ function readPositiveInteger(value: string | undefined, defaultValue: number) {
     return defaultValue;
   }
 
-  const parsedValue = Number.parseInt(normalizedValue, 10);
+  if (!/^[1-9]\d*$/.test(normalizedValue)) {
+    throw new Error(`Retention days must be a positive integer: ${value}`);
+  }
+
+  const parsedValue = Number(normalizedValue);
 
   if (!Number.isInteger(parsedValue) || parsedValue < 1) {
     throw new Error(`Retention days must be a positive integer: ${value}`);

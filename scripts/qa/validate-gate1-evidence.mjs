@@ -1,18 +1,18 @@
 #!/usr/bin/env node
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, lstatSync, readFileSync, statSync } from 'node:fs';
+import { resolve, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const rootDir = resolve(new URL('../..', import.meta.url).pathname);
-const evidenceFile = resolve(
+const MAX_REFERENCED_REPORT_BYTES = 1024 * 1024;
+let evidenceFile = resolve(
   rootDir,
-  process.argv[2] ?? 'docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md',
+  'docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md',
 );
-const strict =
-  process.env.GATE1_EVIDENCE_STRICT === 'true' ||
-  process.argv.includes('--strict');
-const text = readFileSync(evidenceFile, 'utf8');
-const findings = [];
-const warnings = [];
+let strict = false;
+let text = '';
+let findings = [];
+let warnings = [];
 
 const requiredSections = [
   'Release Candidate',
@@ -33,8 +33,32 @@ const requiredPassCommands = [
   'npm run test',
   'npm run build',
   'npm run qa:migrations',
+  'npm run qa:bola-matrix',
+  'npm run qa:api-auth-surface',
+  'npm run qa:api-input-contracts',
+  'npm run qa:api-cache-policy',
+  'npm run qa:api-security-headers',
+  'npm run qa:api-error-policy',
+  'npm run qa:csrf-policy',
+  'npm run qa:deploy-scripts',
+  'npm run qa:owner-invariants',
+  'npm run qa:compose-hardening',
+  'npm run qa:auth-session-policy',
+  'npm run qa:oauth-policy',
+  'npm run qa:log-redaction-policy',
+  'npm run qa:operator-safety',
+  'npm run qa:backup-restore-policy',
+  'npm run qa:secure-sdlc-policy',
+  'npm run qa:public-boundary',
+  'npm run qa:retention-policy',
+  'npm run qa:user-data-rights-policy',
+  'npm run qa:account-deletion-rehearsal',
+  'npm run qa:commercial:repo',
   'npm run qa:import-search',
   'npm run qa:sync-load',
+  'npm run qa:alerts',
+  'npm run qa:slo',
+  'npm run qa:dashboards',
   'npm run test:e2e:web',
   'npm run test:e2e',
   'docker compose -f compose.prod.yml --env-file .env.prod config',
@@ -47,8 +71,10 @@ const requiredNonEmptyFields = [
   'Required checks',
   'CodeQL result',
   'Dependabot enabled',
+  'Production npm audit high/critical gate',
   'Secret scanning enabled',
   'Push protection enabled',
+  'Vulnerability waivers',
   'scripts/deploy/beta-preflight.sh',
   'Migration command',
   'API/web startup',
@@ -64,9 +90,6 @@ const requiredNonEmptyFields = [
   'Authenticated sync push/pull',
   'Sync conflict resolution',
   'Import provider failure fallback',
-  'npm run qa:alerts',
-  'npm run qa:slo',
-  'npm run qa:dashboards',
   '`npm run qa:monitoring` report',
   'Alert rule file deployed',
   'SLO rule file deployed',
@@ -84,8 +107,11 @@ const requiredNonEmptyFields = [
   'Backup command (`npm run ops:backup`)',
   'Backup report (`tmp/backups/prod-backup-*.md` summary only)',
   'Backup file identifier',
+  'Backup checksum sidecar (`.sha256`)',
+  'Backup verification command (`npm run ops:backup:verify`)',
   'Backup verification report (`tmp/backups/prod-backup-verify-*.md` summary only)',
-  'Off-host copy location',
+  'Backup off-host copy location',
+  'Restore drill command (`npm run ops:restore-drill` with `RESTORE_DRILL_CONFIRM=restore-disposable-target`)',
   'Restore target (must be disposable/non-production)',
   'Restore drill report (`tmp/restore-drills/restore-drill-*.md` summary only)',
   'Restore start/end time',
@@ -117,12 +143,44 @@ const placeholderPatterns = [
   /\brequires beta host\b/i,
 ];
 
+const secretSafetyPatterns = [
+  ['bearer token', /\bBearer\s+[A-Za-z0-9._~+/=-]{12,}/i],
+  ['basic credential', /\bBasic\s+[A-Za-z0-9._~+/=-]{12,}/i],
+  [
+    'secret-like environment value',
+    /\b[A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|API_KEY|COOKIE)[A-Z0-9_]*=(?!\[REDACTED\]\b)[^\s`]+/i,
+  ],
+  [
+    'sensitive key-value fragment',
+    /\b(?:access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token)=(?!\[REDACTED\]\b)[^\s&;,`]+/i,
+  ],
+  [
+    'database or Redis URL with credentials',
+    /\b(?:postgres(?:ql)?|rediss?):\/\/[^@\s`]+@/i,
+  ],
+  ['HTTP URL userinfo', /\bhttps?:\/\/[^/\s:@`]+:[^@\s`]*@/i],
+];
+
 function addFinding(message) {
   findings.push(`${evidenceFile}: ${message}`);
 }
 
 function addWarning(message) {
   warnings.push(`${evidenceFile}: ${message}`);
+}
+
+function readBooleanEnv(name, fallback) {
+  const value = process.env[name]?.trim();
+
+  if (!value) {
+    return fallback;
+  }
+
+  if (value !== 'true' && value !== 'false') {
+    throw new Error(`${name} must be true or false when set.`);
+  }
+
+  return value === 'true';
 }
 
 function extractSection(title) {
@@ -160,6 +218,29 @@ function commandLine(command) {
   return match?.[1]?.trim() ?? null;
 }
 
+function resolveWorkspacePath(path) {
+  if (!path.startsWith('tmp/') || path.includes('..')) {
+    return null;
+  }
+
+  const resolved = resolve(rootDir, path);
+  if (resolved !== rootDir && !resolved.startsWith(`${rootDir}${sep}`)) {
+    return null;
+  }
+
+  return resolved;
+}
+
+function markdownReportPaths(value) {
+  return Array.from(value.matchAll(/`(tmp\/[^`]+\.md)`/g), (match) => match[1]);
+}
+
+function findSecretSafetyIssues(content) {
+  return secretSafetyPatterns.flatMap(([description, pattern]) =>
+    pattern.test(content) ? [description] : [],
+  );
+}
+
 function validateSections() {
   for (const section of requiredSections) {
     if (extractSection(section) === null) {
@@ -189,6 +270,92 @@ function validateRepositoryGates() {
     }
     if (!/^PASS\b/.test(value)) {
       addFinding(`repository gate ${command} is not PASS: "${value}".`);
+    }
+  }
+}
+
+function validateReferencedLocalReports() {
+  const reportEvidence = [
+    ['npm run qa:import-search', commandLine('npm run qa:import-search')],
+    ['npm run qa:sync-load', commandLine('npm run qa:sync-load')],
+    [
+      '`npm run qa:monitoring` report',
+      findBulletValue('`npm run qa:monitoring` report'),
+    ],
+    ['Performance smoke report', findBulletValue('Performance smoke report')],
+    [
+      'Backup report (`tmp/backups/prod-backup-*.md` summary only)',
+      findBulletValue('Backup report (`tmp/backups/prod-backup-*.md` summary only)'),
+    ],
+    [
+      'Backup verification report (`tmp/backups/prod-backup-verify-*.md` summary only)',
+      findBulletValue(
+        'Backup verification report (`tmp/backups/prod-backup-verify-*.md` summary only)',
+      ),
+    ],
+    [
+      'Restore drill report (`tmp/restore-drills/restore-drill-*.md` summary only)',
+      findBulletValue(
+        'Restore drill report (`tmp/restore-drills/restore-drill-*.md` summary only)',
+      ),
+    ],
+  ];
+
+  for (const [label, value] of reportEvidence) {
+    if (isBlank(value)) {
+      continue;
+    }
+
+    const paths = markdownReportPaths(value);
+    if (hasPlaceholder(value) && paths.length === 0) {
+      continue;
+    }
+
+    if (paths.length === 0) {
+      addFinding(`required evidence field "${label}" must include a backticked tmp/*.md report path.`);
+      continue;
+    }
+
+    for (const path of paths) {
+      const resolved = resolveWorkspacePath(path);
+      if (!resolved) {
+        addFinding(`required evidence field "${label}" references an unsafe or non-workspace report path: "${path}".`);
+        continue;
+      }
+
+      if (!existsSync(resolved)) {
+        addFinding(`required evidence field "${label}" references missing report ${path}.`);
+        continue;
+      }
+
+      const linkStat = lstatSync(resolved);
+      if (linkStat.isSymbolicLink()) {
+        addFinding(`required evidence field "${label}" references symbolic link report ${path}.`);
+        continue;
+      }
+
+      const stat = statSync(resolved);
+      if (!stat.isFile()) {
+        addFinding(`required evidence field "${label}" references non-file report ${path}.`);
+        continue;
+      }
+
+      if (stat.size === 0) {
+        addFinding(`required evidence field "${label}" references empty report ${path}.`);
+        continue;
+      }
+
+      if (stat.size > MAX_REFERENCED_REPORT_BYTES) {
+        addFinding(
+          `required evidence field "${label}" references oversized report ${path} (${stat.size} bytes; max ${MAX_REFERENCED_REPORT_BYTES}).`,
+        );
+        continue;
+      }
+
+      const reportText = readFileSync(resolved, 'utf8');
+      for (const issue of findSecretSafetyIssues(reportText)) {
+        addFinding(`required evidence field "${label}" references report ${path} that appears to contain a ${issue}.`);
+      }
     }
   }
 }
@@ -247,14 +414,8 @@ function validateDecision() {
 }
 
 function validateSecretSafety() {
-  if (/Bearer\s+[A-Za-z0-9._~+/=-]{12,}/i.test(text)) {
-    addFinding('evidence ledger appears to contain a bearer token.');
-  }
-  if (/(TOKEN|SECRET|PASSWORD|API_KEY|COOKIE)=\S+/i.test(text)) {
-    addFinding('evidence ledger appears to contain secret-like environment values.');
-  }
-  if (/postgres(?:ql)?:\/\/[^@\s]+@/i.test(text)) {
-    addFinding('evidence ledger appears to contain a database URL with credentials.');
+  for (const issue of findSecretSafetyIssues(text)) {
+    addFinding(`evidence ledger appears to contain a ${issue}.`);
   }
 }
 
@@ -265,36 +426,74 @@ function validateNotes() {
   }
 }
 
-validateSections();
-validateStatus();
-validateRepositoryGates();
-validateFields();
-validateMetricsExposure();
-validatePerformanceTable();
-validateDecision();
-validateSecretSafety();
-validateNotes();
+export function runGate1EvidenceValidation({
+  evidencePath = 'docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md',
+  strictMode = readBooleanEnv('GATE1_EVIDENCE_STRICT', false),
+} = {}) {
+  evidenceFile = resolve(rootDir, evidencePath);
+  strict = strictMode;
+  text = readFileSync(evidenceFile, 'utf8');
+  findings = [];
+  warnings = [];
 
-for (const warning of warnings) {
-  console.warn(warning);
+  validateSections();
+  validateStatus();
+  validateRepositoryGates();
+  validateReferencedLocalReports();
+  validateFields();
+  validateMetricsExposure();
+  validatePerformanceTable();
+  validateDecision();
+  validateSecretSafety();
+  validateNotes();
+
+  return {
+    evidenceFile,
+    findings: [...findings],
+    strict,
+    warnings: [...warnings],
+  };
 }
 
-if (findings.length > 0) {
-  const summary = `Gate 1 evidence is incomplete: ${findings.length} required item(s) need attention.`;
-  if (strict) {
-    console.error([summary, ...findings].join('\n'));
-    process.exit(1);
+function printValidationResult(result) {
+  for (const warning of result.warnings) {
+    console.warn(warning);
   }
 
-  console.log(summary);
-  console.log('Run with GATE1_EVIDENCE_STRICT=true or --strict to fail public beta approval on these findings.');
-  for (const finding of findings.slice(0, 40)) {
-    console.log(`- ${finding}`);
+  if (result.findings.length > 0) {
+    const summary = `Gate 1 evidence is incomplete: ${result.findings.length} required item(s) need attention.`;
+    if (result.strict) {
+      console.error([summary, ...result.findings].join('\n'));
+      return 1;
+    }
+
+    console.log(summary);
+    console.log('Run with GATE1_EVIDENCE_STRICT=true or --strict to fail public beta approval on these findings.');
+    for (const finding of result.findings.slice(0, 40)) {
+      console.log(`- ${finding}`);
+    }
+    if (result.findings.length > 40) {
+      console.log(`- [${result.findings.length - 40} additional finding(s) omitted]`);
+    }
+    return 0;
   }
-  if (findings.length > 40) {
-    console.log(`- [${findings.length - 40} additional finding(s) omitted]`);
-  }
-  process.exit(0);
+
+  console.log('Gate 1 evidence completeness validation passed.');
+  return 0;
 }
 
-console.log('Gate 1 evidence completeness validation passed.');
+const entrypointUrl =
+  process.argv[1] === undefined
+    ? null
+    : pathToFileURL(process.argv[1]).href;
+
+if (entrypointUrl === import.meta.url) {
+  const result = runGate1EvidenceValidation({
+    evidencePath: process.argv[2] ?? 'docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md',
+    strictMode:
+      readBooleanEnv('GATE1_EVIDENCE_STRICT', false) ||
+      process.argv.includes('--strict'),
+  });
+
+  process.exit(printValidationResult(result));
+}

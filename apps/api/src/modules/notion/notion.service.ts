@@ -34,6 +34,14 @@ const NOTION_MAX_RESPONSE_BYTES = 1024 * 1024;
 const NOTION_MAX_RETRY_DELAY_MS = 1000;
 const NOTION_REQUEST_TIMEOUT_MS = 8000;
 const NOTION_PREVIEW_SNAPSHOT_TTL_MS = 15 * 60 * 1000;
+const NOTION_CONNECTION_TEST_FAILURE_MESSAGE =
+  'Notion 연결 테스트에 실패했습니다.';
+const NOTION_PAGE_SYNC_FAILURE_MESSAGE =
+  'Notion 페이지 동기화에 실패했습니다.';
+const NOTION_PREVIEW_FAILURE_MESSAGE =
+  'Notion 변경사항 확인에 실패했습니다.';
+const NOTION_APPLY_FAILURE_MESSAGE =
+  'Notion 변경사항 적용에 실패했습니다.';
 
 interface NotionPullSnapshotEntry extends NotionChangePreview {
   localServerVersion: number;
@@ -211,14 +219,11 @@ export class NotionService {
         ok: true,
         reason: null,
       };
-    } catch (error) {
+    } catch {
       return {
         checkedAt: new Date().toISOString(),
         dataSourceId: connection.dataSourceId,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Notion 연결 테스트에 실패했습니다.',
+        message: NOTION_CONNECTION_TEST_FAILURE_MESSAGE,
         ok: false,
         reason: 'provider_unavailable',
       };
@@ -305,13 +310,10 @@ export class NotionService {
         } else {
           created += 1;
         }
-      } catch (error) {
+      } catch {
         skipped += 1;
         errors.push({
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Notion 페이지 동기화에 실패했습니다.',
+          message: NOTION_PAGE_SYNC_FAILURE_MESSAGE,
           workId: work.id,
         });
       }
@@ -373,12 +375,9 @@ export class NotionService {
           ...preview,
           localServerVersion: work.serverVersion,
         });
-      } catch (error) {
+      } catch {
         errors.push({
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Notion 변경사항 확인에 실패했습니다.',
+          message: NOTION_PREVIEW_FAILURE_MESSAGE,
           notionPageId: mapping.notionPageId,
           workId: mapping.workId,
         });
@@ -481,12 +480,9 @@ export class NotionService {
         }
 
         applied += 1;
-      } catch (error) {
+      } catch {
         errors.push({
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Notion 변경사항 적용에 실패했습니다.',
+          message: NOTION_APPLY_FAILURE_MESSAGE,
           workId: entry.workId,
         });
       }

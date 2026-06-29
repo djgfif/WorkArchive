@@ -5,9 +5,12 @@ import { SYNC_SCHEMA_VERSION } from '../sync.constants';
 export type StructuredLogFields = {
   count?: number;
   durationMs?: number;
+  entityId?: string;
   entityType?: string;
   errorCode?: string | undefined;
+  operation?: string;
   provider?: string;
+  queueId?: string;
   requestId?: string | undefined;
   userId?: string;
 };
@@ -61,10 +64,13 @@ export function logStructuredSyncEvent(
     JSON.stringify({
       count: fields.count ?? null,
       durationMs: fields.durationMs ?? null,
+      entityId: fields.entityId ?? null,
       entityType: fields.entityType ?? null,
       errorCode: fields.errorCode ?? null,
       event,
+      operation: fields.operation ?? null,
       provider: fields.provider ?? null,
+      queueId: fields.queueId ?? null,
       requestId: fields.requestId ?? null,
       userId: fields.userId ?? null,
     }),

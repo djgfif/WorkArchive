@@ -32,7 +32,8 @@ The script checks, without printing secret values:
   `${WEB_BASE_URL}/api/auth/google/callback`;
 - `VITE_API_BASE_URL=/api`;
 - `RATE_LIMIT_STORE=redis`, `REDIS_URL=redis://redis:6379`,
-  `TRUST_PROXY_HOPS=1`;
+  `TRUST_PROXY_HOPS=1`, and `API_GLOBAL_RATE_LIMIT_MAX` is bounded for the
+  beta traffic profile;
 - `IMPORT_SERVER_SEARCH_GUEST_ENABLED=false`;
 - production secrets are host-generated and at least 32 characters;
 - `compose.prod.yml` forces `COOKIE_SECURE=true` and
@@ -108,8 +109,12 @@ The default smoke checks:
 
 - `GET /health` returns API status;
 - `GET /livez` returns API liveness;
-- `GET /readyz` returns API readiness after config, PostgreSQL, and Redis;
+- `GET /readyz` returns API readiness after config, PostgreSQL, migrations, and
+  Redis, with safe dependency `checks` in the JSON body;
 - `GET /api/auth/google/status` returns `{ configured: true }` by default;
+- `GET /api/auth/google/start` redirects to Google and preserves the OAuth flow
+  cookie through the deployed proxy with `HttpOnly`, `Secure`, `SameSite=Lax`,
+  and `Path=/api/auth/google`, without exposing raw state or nonce cookies;
 - `GET /` serves the web static app;
 - `GET /work-archive-config.js` is served with `Cache-Control: no-store`;
 - `POST /api/auth/refresh` without a valid Origin returns the production origin
@@ -138,7 +143,9 @@ SMOKE_ACCESS_TOKEN=<access-token> BETA_BASE_URL=<beta-url> scripts/deploy/beta-s
 ```
 
 That extra check sends a structurally valid `/api/sync/push` request with a
-malformed `payload` and expects the result code to be `failed_validation`.
+malformed `payload`, includes `X-Work-Archive-Client: web` so it remains valid
+when the production client-header guard is in `enforce` mode, and expects the
+result code to be `failed_validation`.
 
 ## 4. Backup And Restore Drill
 
@@ -202,7 +209,8 @@ Expected log shape:
 ```json
 {"deleted":0,"description":"security_events created before ...","dryRun":true,"event":"operations.retention_cleanup.target","matched":0,"target":"security_events"}
 {"deleted":0,"description":"user_refresh_sessions revoked or expired beyond retention cutoffs","dryRun":true,"event":"operations.retention_cleanup.target","matched":0,"target":"user_refresh_sessions"}
-{"deleted":0,"description":"password_reset_tokens used or expired beyond retention cutoffs","dryRun":true,"event":"operations.retention_cleanup.target","matched":0,"target":"password_reset_tokens"}
+{"deleted":0,"description":"user_sync_applied_mutations replay rows expired before ...","dryRun":true,"event":"operations.retention_cleanup.target","matched":0,"target":"user_sync_applied_mutations"}
+{"deleted":0,"description":"notion_pull_preview_snapshots expired before ...","dryRun":true,"event":"operations.retention_cleanup.target","matched":0,"target":"notion_pull_preview_snapshots"}
 {"deleted":0,"dryRun":true,"event":"operations.retention_cleanup.completed","matched":0,"target":"all"}
 ```
 

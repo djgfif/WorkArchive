@@ -76,10 +76,11 @@
 
 .metricValue {
   color: var(--app-text-primary);
+  font-family: var(--app-font-figure);
   font-size: clamp(1.35rem, 3vw, 1.9rem);
-  font-weight: 900;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   line-height: 1;
   overflow-wrap: anywhere;
 }

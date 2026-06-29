@@ -43,7 +43,7 @@ export function TierBoardViewPage() {
       setExporting(true);
       setExportError(null);
       const dataUrl = await toPng(canvasRef.current, {
-        backgroundColor: '#0c0b0a',
+        backgroundColor: '#0a0a0c',
         cacheBust: true,
         pixelRatio: 2,
       });

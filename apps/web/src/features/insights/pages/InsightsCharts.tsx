@@ -69,17 +69,17 @@ export function RatingHistogramPanel({
   );
 }
 
-/* ── 매체 비율 도넛 ──────────────────────────────────────────────────────── */
+/* ── 매체 비율 도넛 — 모던 카테고리 팔레트(또렷하게 구분되는 정성 색상) ───── */
 const TYPE_COLORS: Record<WorkType, string> = {
-  web_novel: '#c8922e',
-  webtoon: '#5b9cf6',
-  manga: '#e0b85a',
-  novel: '#b07b3e',
-  light_novel: '#d9a441',
-  anime: '#a78bfa',
-  movie: '#fb7185',
-  drama: '#2dd4bf',
-  other: '#8c7a6e',
+  web_novel: '#6366f1', // indigo
+  webtoon: '#0ea5e9', // sky
+  manga: '#a855f7', // violet
+  novel: '#f59e0b', // amber
+  light_novel: '#10b981', // emerald
+  anime: '#ec4899', // pink
+  movie: '#f43f5e', // rose
+  drama: '#14b8a6', // teal
+  other: '#94a3b8', // slate
 };
 
 export function MediaTypePanel({

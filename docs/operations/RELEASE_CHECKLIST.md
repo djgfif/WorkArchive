@@ -49,6 +49,7 @@ docker compose -f compose.prod.yml --env-file .env.prod build
 Security scan gate, run on the official release CI/runner with Trivy installed:
 
 ```bash
+npm run security:audit:prod:high
 npm run security:audit:prod
 npm run security:audit
 npm run security:scan:fs
@@ -60,6 +61,9 @@ npm run security:scan:images
 Record Trivy version, runner name, image tag/digest, and summary counts in
 `docs/security/SECURITY_SCAN_RESULTS.md`. Do not use `latest` as an image scan
 artifact.
+high or critical production runtime dependency findings block public beta and
+production release unless a vulnerability waiver records advisory id,
+reachability, compensating control, owner, expiry, and the next retest command.
 
 Public beta host checks:
 
@@ -118,7 +122,8 @@ BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 - Import provider diagnostics page or API response.
 - Smoke-level latency baseline from `npm run qa:performance-smoke` for
   `/readyz`, auth refresh rejection, sync push/pull, import provider status,
-  and `/work-archive-config.js`.
+  and `/work-archive-config.js`; record p50, p95, configured budget status, and
+  observed rate-limit headers.
 
 ## Rollback
 

@@ -9,8 +9,14 @@ docs stay here, older plans and raw design material stay in
 1. [`../README.md`](../README.md)
 2. [`getting-started/LOCAL_DEVELOPMENT.md`](./getting-started/LOCAL_DEVELOPMENT.md)
 3. [`security/PUBLIC_REPOSITORY_READINESS.md`](./security/PUBLIC_REPOSITORY_READINESS.md)
-4. [`architecture/FEATURE_FIRST_STRUCTURE.md`](./architecture/FEATURE_FIRST_STRUCTURE.md)
-5. [`operations/RUNBOOK.md`](./operations/RUNBOOK.md)
+4. [`security/PUBLIC_FEATURE_PERMISSION_BOUNDARY.md`](./security/PUBLIC_FEATURE_PERMISSION_BOUNDARY.md)
+5. [`security/API_AUTHORIZATION_SURFACE.md`](./security/API_AUTHORIZATION_SURFACE.md)
+6. [`security/API_INPUT_CONTRACTS.md`](./security/API_INPUT_CONTRACTS.md)
+7. [`security/API_CACHE_POLICY.md`](./security/API_CACHE_POLICY.md)
+8. [`security/LOG_REDACTION_POLICY.md`](./security/LOG_REDACTION_POLICY.md)
+9. [`security/USER_DATA_RIGHTS_POLICY.md`](./security/USER_DATA_RIGHTS_POLICY.md)
+10. [`architecture/FEATURE_FIRST_STRUCTURE.md`](./architecture/FEATURE_FIRST_STRUCTURE.md)
+11. [`operations/RUNBOOK.md`](./operations/RUNBOOK.md)
 
 ## Current Areas
 

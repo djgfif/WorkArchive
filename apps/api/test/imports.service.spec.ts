@@ -262,6 +262,7 @@ describe('ImportsService', () => {
   let service: ImportsService;
 
   beforeEach(() => {
+    delete process.env.IMPORT_SERVER_SEARCH_GUEST_APPROVED;
     delete process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED;
     delete process.env.KAKAO_REST_API_KEY;
     delete process.env.KOBIS_HTTP_PROVIDER_ENABLED;
@@ -283,6 +284,7 @@ describe('ImportsService', () => {
   });
 
   afterEach(() => {
+    delete process.env.IMPORT_SERVER_SEARCH_GUEST_APPROVED;
     delete process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED;
     delete process.env.KAKAO_REST_API_KEY;
     delete process.env.KOBIS_HTTP_PROVIDER_ENABLED;
@@ -1524,6 +1526,10 @@ describe('ImportsService', () => {
   });
 
   it('records skipped diagnostics for guest automatic user-key providers', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new Error('provider unavailable'));
+
     const result = await service.search(null, {
       query: 'Dune',
       type: WorkType.movie,
@@ -2657,6 +2663,23 @@ describe('ImportsService', () => {
     expect(fetchHeaders.get('X-Naver-Client-Secret')).toBe(
       'server-naver-client-secret',
     );
+  });
+
+  it('does not use server Naver credentials for production guest search without approval', async () => {
+    process.env.IMPORT_SERVER_SEARCH_GUEST_ENABLED = 'true';
+    process.env.NAVER_CLIENT_ID = 'server-naver-client-id';
+    process.env.NAVER_CLIENT_SECRET = 'server-naver-client-secret';
+    process.env.NODE_ENV = 'production';
+    const fetch = jest.spyOn(globalThis, 'fetch');
+
+    await expect(
+      service.search(null, {
+        provider: NAVER_BOOK_PROVIDER,
+        query: 'Dune',
+        type: WorkType.novel,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('uses the authenticated user TMDB credential for movie search', async () => {

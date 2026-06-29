@@ -78,13 +78,18 @@ export function logImportSearchSummary(
   input: {
     provider: string;
     query: string;
+    requestId?: string;
     resultCount: number;
     status: string;
     userId: string | null;
   },
 ) {
+  const requestIdSuffix = input.requestId
+    ? ` requestId=${input.requestId}`
+    : '';
+
   logger.log(
-    `Import search summary userId=${input.userId ?? 'guest'} provider=${input.provider} queryLength=${input.query.length} resultCount=${input.resultCount} status=${input.status}`,
+    `Import search summary userId=${input.userId ?? 'guest'} provider=${input.provider} queryLength=${input.query.length} resultCount=${input.resultCount} status=${input.status}${requestIdSuffix}`,
   );
 }
 

@@ -95,6 +95,10 @@ export function assertAllowedImageUrl(url: URL) {
     throw new BadRequestException('Image URL must use HTTPS.');
   }
 
+  if (url.port) {
+    throw new BadRequestException('Image URL must use the default HTTPS port.');
+  }
+
   if (!isAllowedImageHost(url.hostname)) {
     throw new BadRequestException('Image host is not allowed.');
   }

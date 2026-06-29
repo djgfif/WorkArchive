@@ -30,7 +30,11 @@ BACKUP_FILE="$BACKUP_FILE" npm run ops:backup:verify
 `prod-backup.sh` writes a PostgreSQL custom-format `.dump`, validates it with
 `pg_restore --list`, writes a `.sha256` sidecar, and verifies that checksum
 before reporting success. It also writes a redacted operator report to
-`tmp/backups/prod-backup-*.md` unless `BACKUP_REPORT_DIR` is set.
+`tmp/backups/prod-backup-*.md` unless `BACKUP_REPORT_DIR` is set. Backup and
+verification diagnostics redact URL userinfo, bearer/basic credentials,
+database/Redis URL userinfo, sensitive query parameters, and standalone
+`key=value` fragments for tokens, OAuth codes, state, nonce, credentials,
+cookies, API keys, passwords, and secrets.
 
 ## Restore Command
 
@@ -63,6 +67,8 @@ For host-based development, `npm run db:migrate:deploy` remains valid.
 
 - Store backups outside the application server.
 - Do not keep the only backup on the same disk, VM, or container volume as PostgreSQL.
+- Move each backup and its `.sha256` sidecar off-host immediately after
+  `npm run ops:backup` succeeds.
 - Protect backup files as sensitive data because they may contain personal archive data and account identifiers.
 - Keep enough historical backups to recover from delayed discovery of bad migrations or accidental deletion.
 
@@ -87,14 +93,23 @@ Server DB backups and local-first JSON exports are different tools:
 
 Run a restore drill at least once per month:
 
-1. Restore the latest backup into a non-production database.
-2. Run Prisma migration deploy if needed.
-3. Start the API against the restored database.
-4. Check `/health`, `/livez`, and `/readyz`.
-5. Run sync and tier board smoke tests.
-6. Confirm a local-first JSON export from the restored web app still imports
+1. Generate a non-destructive plan with `RESTORE_DRILL_PLAN_ONLY=true
+   ENV_FILE=.env.restore RESTORE_DRILL_BASE_URL=<disposable-origin>
+   npm run ops:restore-drill`, then review the redacted
+   `tmp/restore-drills/restore-drill-plan-*.md` report.
+2. Create and verify a backup with `npm run ops:backup` and
+   `npm run ops:backup:verify`.
+3. Restore the latest backup into a non-production database, preferably through
+   `npm run ops:restore-drill` with
+   `RESTORE_DRILL_CONFIRM=restore-disposable-target`, `ENV_FILE=.env.restore`,
+   and `RESTORE_DRILL_BASE_URL` pointed at the disposable restored web origin.
+4. Run Prisma migration deploy if needed.
+5. Start the API against the restored database.
+6. Check `/health`, `/livez`, and `/readyz`.
+7. Run sync and tier board smoke tests.
+8. Confirm a local-first JSON export from the restored web app still imports
    into a clean browser profile without secrets.
-7. Record date, operator, backup file, duration, RPO/RTO observed, and any gap
+9. Record date, operator, backup file, duration, RPO/RTO observed, and any gap
    found.
 
 For public beta Gate 1, record the drill in

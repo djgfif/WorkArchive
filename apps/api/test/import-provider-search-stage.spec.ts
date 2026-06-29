@@ -2,7 +2,9 @@ import { WorkType } from '@prisma/client';
 import { describe, expect, it, jest } from '@jest/globals';
 
 import {
+  DEFAULT_IMPORT_PROVIDER_SEARCH_CONCURRENCY,
   runImportProviderSearchStage,
+  runImportProviderSearchTasksWithConcurrency,
   type ImportProviderSearchStagePorts,
 } from '../src/modules/imports/import-provider-search-stage';
 import type { ImportProviderSearchResult } from '../src/modules/imports/import-search-stage-cache';
@@ -65,6 +67,41 @@ const cachedProviderResult: ImportProviderSearchResult = {
 };
 
 describe('runImportProviderSearchStage', () => {
+  it('uses a bounded default provider search concurrency', () => {
+    expect(DEFAULT_IMPORT_PROVIDER_SEARCH_CONCURRENCY).toBe(3);
+  });
+
+  it('limits concurrent provider work while preserving result order', async () => {
+    let active = 0;
+    let maxActive = 0;
+    const started: number[] = [];
+    const tasks = [0, 1, 2, 3, 4].map((value) => {
+      return async () => {
+        started.push(value);
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        await new Promise((resolve) => {
+          setTimeout(resolve, 5);
+        });
+        active -= 1;
+
+        return value;
+      };
+    });
+
+    await expect(
+      runImportProviderSearchTasksWithConcurrency(tasks, 2),
+    ).resolves.toEqual([0, 1, 2, 3, 4]);
+    expect(maxActive).toBeLessThanOrEqual(2);
+    expect(started.slice(0, 2)).toEqual([0, 1]);
+  });
+
+  it('rejects invalid provider search concurrency', async () => {
+    await expect(
+      runImportProviderSearchTasksWithConcurrency([async () => 1], 0),
+    ).rejects.toThrow(/positive integer/);
+  });
+
   it('returns cached provider results without searching', async () => {
     const stagePorts = ports({
       providerRuntimeState: {

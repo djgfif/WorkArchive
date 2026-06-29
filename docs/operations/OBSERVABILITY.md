@@ -10,7 +10,8 @@ Production rule:
 - keep `METRICS_ENABLED=false` unless the endpoint is reachable only from an
   internal network, reverse-proxy allowlist, or trusted monitoring collector;
 - set `METRICS_BEARER_TOKEN` to a unique 32+ character collector token before
-  enabling metrics in production;
+  enabling metrics in production; the collector request must send exactly one
+  `Authorization: Bearer <token>` value with no extra segments;
 - never expose `/metrics` publicly; unauthenticated requests should return 404
   even when metrics are enabled;
 - do not put user IDs, emails, tokens, request bodies, raw entity IDs, or raw
@@ -36,11 +37,15 @@ curl -fsS -H "Authorization: Bearer $METRICS_BEARER_TOKEN" \
 - `work_archive_api_request_total`
 - `work_archive_api_request_duration_seconds`
 - `work_archive_auth_refresh_total`
+- `work_archive_user_data_rights_total`
+- `work_archive_client_header_guard_total`
 - `work_archive_sync_total`
+- `work_archive_sync_duration_seconds`
 - `work_archive_sync_conflict_total`
 - `work_archive_sync_failed_validation_total`
 - `work_archive_imports_provider_failure_total`
 - `work_archive_imports_provider_circuit_open_total`
+- `work_archive_imports_provider_duration_seconds`
 - `work_archive_imports_search_total`
 - `work_archive_imports_search_duration_seconds`
 - `work_archive_readyz_failure_total`
@@ -50,6 +55,20 @@ status class, sync direction, entity type, result, code, provider, and reason.
 Matched request routes use route templates such as `/api/works/:id`; unmatched
 404s are bucketed under `not_found` instead of recording raw user-supplied
 paths.
+Sync duration histograms use only `direction` and `result` labels, allowing
+operators to compare push and pull latency without recording user IDs, raw
+entity IDs, payload contents, or archive-specific dimensions.
+Provider latency histograms use bounded `provider` and `result` labels so
+operators can identify slow upstream providers without recording user-specific
+queries or identifiers.
+The client header guard counter uses only `mode`, `method`, and `result`
+labels, allowing operators to compare accepted and missing authenticated unsafe
+requests before promoting `WORK_ARCHIVE_CLIENT_HEADER_GUARD` from audit to
+enforce.
+User data rights operations use only bounded `operation` and `result` labels
+for server-side export, deletion preview, and deletion outcomes; never add
+user IDs, email addresses, request bodies, or deletion confirmation values to
+metric labels.
 
 ## SLO Rules
 
@@ -83,6 +102,11 @@ approved target waivers in `docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`.
 
 Prometheus-compatible Gate 1 alert rules live at
 `docs/operations/monitoring/work-archive-alerts.yml`.
+They include readiness, API 5xx/latency, auth refresh failure, rate-limit
+rejection, user data rights failure, client header guard, sync, and
+import-provider alerts. Rate-limit alerts use the bounded `limiter` label from
+`work_archive_rate_limit_exceeded_total`; do not add IP, path, token, or user
+labels.
 
 Validate the repository copy before a release:
 
@@ -104,8 +128,12 @@ Current alert coverage:
 - API 5xx spike;
 - API p95 latency above the Gate 1 draft threshold;
 - auth refresh failure spike;
+- user data rights failure spike by bounded operation label;
+- rate-limit rejection spike by bounded limiter label;
+- client header guard missing spike;
 - sync conflict spike;
 - sync payload validation failure spike;
+- sync p95 latency above the Gate 1 draft threshold;
 - import provider failure spike;
 - import provider circuit open.
 
@@ -138,9 +166,12 @@ Current dashboard coverage:
 - API request rate by status class;
 - API p50/p95 latency;
 - auth refresh outcomes;
+- user data rights outcomes by bounded operation/result labels;
 - sync push/pull outcomes;
+- sync p95 latency;
 - sync conflicts and validation failures by bounded entity/code labels;
-- import provider failures, circuit opens, and search outcomes.
+- import provider failures, circuit opens, provider p95 latency, and search
+  outcomes.
 
 Import the JSON into the beta Grafana stack only after `/metrics` is reachable
 from the reviewed internal collector path. Record the dashboard UID, deployed

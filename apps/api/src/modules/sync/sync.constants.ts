@@ -1,4 +1,5 @@
 export const SYNC_SCHEMA_VERSION = 5 as const;
+export const MAX_PUSH_BATCH_SIZE = 200 as const;
 
 export const SYNC_ENTITY_TYPES = [
   'work',
@@ -17,26 +18,15 @@ export const SYNC_ENTITY_TYPES = [
 
 export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number];
 
-export const SYNC_OPERATIONS = [
-  'create',
-  'update',
-  'delete',
-] as const;
+export const SYNC_OPERATIONS = ['create', 'update', 'delete'] as const;
 
 export type SyncOperation = (typeof SYNC_OPERATIONS)[number];
 
-export const PUSH_RESULT_STATUSES = [
-  'applied',
-  'conflict',
-  'failed',
-] as const;
+export const PUSH_RESULT_STATUSES = ['applied', 'conflict', 'failed'] as const;
 
 export type PushResultStatus = (typeof PUSH_RESULT_STATUSES)[number];
 
-export const PULL_SYNC_OPERATIONS = [
-  'upsert',
-  'delete',
-] as const;
+export const PULL_SYNC_OPERATIONS = ['upsert', 'delete'] as const;
 
 export type PullSyncOperation = (typeof PULL_SYNC_OPERATIONS)[number];
 

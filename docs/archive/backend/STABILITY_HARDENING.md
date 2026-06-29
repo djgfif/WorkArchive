@@ -49,6 +49,11 @@ can stay healthy during dependency outages while the process is still running.
   image;
 - Redis responds to `PING` when `RATE_LIMIT_STORE=redis`.
 
+Successful `/readyz` responses include a safe `checks` object with only check
+names and `ok` values, such as `config`, `postgres`, `migrations`, and, when
+configured, `redis`. Do not add DSNs, hostnames, migration SQL, or user data to
+this public response.
+
 Readiness failures return HTTP 503. Production compose healthcheck uses
 `/readyz`.
 
@@ -67,6 +72,8 @@ is configured, with memory fallback outside production:
 Provider network controls verified in code:
 
 - provider requests use `AbortController` with a default 5 second timeout;
+- one import search runs at most 3 provider lookups concurrently, preserving
+  response order while limiting upstream fan-out from a single API request;
 - HTTP 429 `Retry-After` is retried once only when a provider call explicitly
   allows a small retry window;
 - provider credentials are sent via provider-required headers or query
@@ -75,10 +82,11 @@ Provider network controls verified in code:
   passed as the `key` query parameter, and must stay behind the production
   egress boundary documented in the runbook.
 
-Current limitation: Redis operations are simple key reads/writes rather than a
-single Lua-backed atomic state transition. This is acceptable for beta fallback
-behavior, but high-concurrency commercial traffic should add an atomic increment
-path and an operator circuit-clear command. 4. add an operator command to clear a provider circuit without process restart.
+Redis-backed provider failures use one Lua script to increment the failure
+counter, refresh its TTL, and write the circuit state. This keeps threshold
+evaluation atomic across multiple API instances. Operators can clear one
+Redis-backed provider circuit without restarting API instances with
+`npm run ops:imports:clear-circuit --workspace @work-archive/api`.
 
 ## Operational Retention
 
@@ -88,9 +96,8 @@ The API has a dedicated retention command for append/accumulation tables:
 - `user_refresh_sessions`: revoked and expired sessions default 30 days by
   `RETENTION_REVOKED_REFRESH_SESSION_DAYS` and
   `RETENTION_EXPIRED_REFRESH_SESSION_DAYS`;
-- `password_reset_tokens`: used and expired tokens default 7 days by
-  `RETENTION_USED_PASSWORD_RESET_TOKEN_DAYS` and
-  `RETENTION_EXPIRED_PASSWORD_RESET_TOKEN_DAYS`.
+- `user_sync_applied_mutations`: deleted by each row's `expiresAt`;
+- `notion_pull_preview_snapshots`: deleted by each row's `expiresAt`.
 
 `npm run ops:retention:cleanup --workspace @work-archive/api` dry-runs by
 default. Production delete mode requires
@@ -98,8 +105,10 @@ default. Production delete mode requires
 
 ## Rate Limits
 
-Rate limiting stays scoped by endpoint family:
+Rate limiting uses a global `/api` bucket plus endpoint-family buckets:
 
+- every `/api` route first passes the global bucket controlled by
+  `API_GLOBAL_RATE_LIMIT_MAX`;
 - auth endpoints use the auth bucket;
 - sync push/pull use the sync bucket;
 - provider search/import endpoints use import buckets;
@@ -107,7 +116,22 @@ Rate limiting stays scoped by endpoint family:
   Authorization header is present.
 
 Every rate limit rejection records a `SecurityAudit` event with
-`eventType: "http.rate_limit_exceeded"` and the limiter name.
+`eventType: "http.rate_limit_exceeded"` and the limiter name. When metrics are
+enabled, the same rejection increments `work_archive_rate_limit_exceeded_total`
+with the bounded `limiter` label.
+
+## HTTP Server Runtime Limits
+
+The API applies Node HTTP server timeouts at bootstrap:
+
+- `API_REQUEST_TIMEOUT_MS`: default 120000 ms, production maximum 120000 ms;
+- `API_HEADERS_TIMEOUT_MS`: default 15000 ms, production maximum 30000 ms;
+- `API_KEEP_ALIVE_TIMEOUT_MS`: default 5000 ms, production maximum 15000 ms.
+
+Startup rejects invalid ordering: header timeout must not exceed request
+timeout, and keep-alive timeout must be lower than header timeout. These limits
+sit below endpoint rate limits and body limits to reduce slow-open request and
+idle socket pressure before application handlers run.
 
 ## Structured Log Redaction
 
@@ -127,9 +151,8 @@ Error details are reduced to safe error codes or error names before logging.
 
 ## Current Limits And TODO
 
-- Provider circuit state is process-local memory. It is safe for single-instance
-  beta deployments; Redis-backed shared state is the next step for multiple API
-  instances.
+- Provider circuit/cache state is Redis-backed when `REDIS_URL` is configured
+  and falls back to process-local memory only when Redis is absent.
 - Sync conflict resolution remains conservative. Idempotency prevents duplicate
   application, but it does not introduce automatic multi-device merge.
 - `/readyz` checks Redis only when Redis is part of the configured production
@@ -143,15 +166,22 @@ Confirmed in this repository:
 
 - API/web Docker runtime definitions use non-root users.
 - API startup no longer runs Prisma migration; `api-migrate` is the release job.
-- Retention cleanup targets only `security_events`, `user_refresh_sessions`, and
-  `password_reset_tokens` with explicit cutoff predicates.
-- Provider requests have timeout handling, limited retry, and process-local
-  circuit state.
+- API bootstrap applies bounded request, header, and keep-alive timeouts to the
+  underlying Node HTTP server.
+- Production compose gives Postgres and Redis explicit CPU, memory, and PID
+  limits while keeping them internal-only with healthchecks.
+- Retention cleanup targets only `security_events`, `user_refresh_sessions`,
+  `user_sync_applied_mutations`, and `notion_pull_preview_snapshots` with
+  explicit cutoff predicates.
+- Provider requests have timeout handling, limited retry, Redis-backed circuit
+  state in production, and process-local fallback outside production.
 
 Environment-dependent before beta:
 
 - Docker resource limits and read-only filesystem behavior must be tested on the
   actual host/runtime.
+- Stateful Postgres and Redis `user:` or `cap_drop` hardening still needs a
+  separate official-image rehearsal before changing production compose.
 - PostgreSQL backup destination, encryption, and restore RTO/RPO depend on the
   selected off-host storage.
 - Provider egress, especially KOBIS HTTP traffic, depends on network topology

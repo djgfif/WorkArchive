@@ -211,7 +211,7 @@ Production hardening baseline: production startup rejects development secrets (`
 - ValidationPipe: `transform + whitelist`
 - `cookie-parser` 적용
 - `helmet` 적용
-- `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh` rate limiting 적용. 단, legacy login/register는 현재 `410 Gone`으로 비활성화. legacy `password-reset/*` 라우트와 rate limiter는 제거됨(이제 `404`)
+- `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/data-export`, `/api/auth/account/deletion-preview`, `/api/auth/account` rate limiting 적용. 단, legacy login/register는 현재 `410 Gone`으로 비활성화. legacy `password-reset/*` 라우트와 rate limiter는 제거됨(이제 `404`)
 - `/api/sync/push`, `/api/sync/pull` rate limiting 적용
 - CORS: `CORS_ORIGIN` 기반 explicit whitelist만 허용
 - Production Docker runtime: API는 `node` user로 실행하고 runtime image는

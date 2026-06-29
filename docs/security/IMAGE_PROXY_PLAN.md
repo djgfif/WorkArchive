@@ -1,6 +1,6 @@
 # Image Proxy / Allowlist Plan
 
-Last reviewed: 2026-05-25.
+Last reviewed: 2026-06-25.
 
 Work Archive already has a first-pass `/api/image-proxy` path for known cover
 providers. This document defines the hardening target before CSP `img-src` is
@@ -31,7 +31,7 @@ Current code evidence:
 Implemented now:
 
 - provider host suffix allowlist;
-- HTTPS-only upstream URLs;
+- HTTPS-only upstream URLs on the default HTTPS port;
 - DNS resolution with localhost, private, reserved, and IPv4-mapped private IPv6
   address rejection before fetch and after redirects;
 - fetch timeout;
@@ -40,11 +40,21 @@ Implemented now:
 - `image/*` allowlist that excludes SVG;
 - ETag and cache-control response headers;
 - in-memory cache and optional Redis cache.
+- regression coverage for full URL logging avoidance on provider failures.
 
 Known hardening gaps before CSP narrowing:
 
 - allowlist changes are code changes rather than runtime-configured operations;
 - report-only telemetry is needed to remove direct HTTPS image fallback safely.
+
+## Release Gate
+
+Run this repository gate after changing image proxy URL parsing, network
+resolution, redirects, content-type checks, cache behavior, or logging:
+
+```bash
+npm run qa:image-proxy-policy
+```
 
 ## Target Requirements
 
@@ -53,6 +63,7 @@ The hardened proxy must enforce all of the following:
 | Requirement | Target behavior |
 | --- | --- |
 | HTTPS only | Accept only `https://` upstream URLs. Any legacy HTTP provider must be normalized by a provider-specific trusted URL builder or rejected. |
+| Default port only | Reject non-default upstream ports even for allowlisted HTTPS hosts. Provider exceptions require a code review and a dedicated allowlist change. |
 | Localhost/private IP block | Reject localhost, loopback, link-local, RFC1918, unique-local IPv6, multicast, and metadata service ranges after DNS resolution and after every redirect. |
 | Provider allowlist | Keep an explicit provider host allowlist. Prefer exact hosts where stable; allow suffixes only for providers that require subdomains. |
 | Timeout | Keep a short fetch timeout, currently 5 seconds, with no unbounded retry loop. |

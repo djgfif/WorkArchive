@@ -6,10 +6,12 @@ import {
   Inject,
   Logger,
   Optional,
+  Req,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import type { Request } from 'express';
 
 import {
   connectRedisClient,
@@ -18,11 +20,25 @@ import {
 import { readApiRuntimeConfig } from '../../config/api-runtime-config';
 import { MetricsService } from '../../observability/metrics.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { getRequestId } from '../../security/security-audit.service';
 
 interface HealthResponse {
   service: string;
   status: 'ok';
 }
+
+type ReadinessCheckName = 'config' | 'migrations' | 'postgres' | 'redis';
+
+type ReadinessResponse = HealthResponse & {
+  checks: Partial<Record<ReadinessCheckName, 'ok'>>;
+};
+
+type ReadinessFailureResponse = {
+  service: string;
+  status: 'unavailable';
+  checks: ReadinessCheckName[];
+  requestId: string | null;
+};
 
 interface FailedMigrationCountRow {
   failedCount: bigint | number | string;
@@ -62,16 +78,19 @@ export class HealthController {
 
   @Get('readyz')
   @HttpCode(HttpStatus.OK)
-  async getReadiness(): Promise<HealthResponse> {
-    const failures: string[] = [];
+  async getReadiness(@Req() request?: Request): Promise<ReadinessResponse> {
+    const failures: ReadinessCheckName[] = [];
+    const checks: ReadinessResponse['checks'] = {};
     let config: ReturnType<typeof readApiRuntimeConfig> | null = null;
     let postgresReady = false;
+    const requestId = getRequestId(request);
 
     try {
       config = readApiRuntimeConfig();
+      checks.config = 'ok';
     } catch (error) {
       failures.push('config');
-      this.logReadyFailure('config', error);
+      this.logReadyFailure('config', error, requestId);
     }
 
     const timeoutMs =
@@ -84,9 +103,10 @@ export class HealthController {
         timeoutMs,
       );
       postgresReady = true;
+      checks.postgres = 'ok';
     } catch (error) {
       failures.push('postgres');
-      this.logReadyFailure('postgres', error);
+      this.logReadyFailure('postgres', error, requestId);
     }
 
     if (postgresReady) {
@@ -96,9 +116,10 @@ export class HealthController {
           this.assertMigrationsReady(),
           timeoutMs,
         );
+        checks.migrations = 'ok';
       } catch (error) {
         failures.push('migrations');
-        this.logReadyFailure('migrations', error);
+        this.logReadyFailure('migrations', error, requestId);
       }
     }
 
@@ -107,23 +128,30 @@ export class HealthController {
 
       try {
         redis = await connectRedisClient(config.redisUrl, { timeoutMs });
+        checks.redis = 'ok';
       } catch (error) {
         failures.push('redis');
-        this.logReadyFailure('redis', error);
+        this.logReadyFailure('redis', error, requestId);
       } finally {
         redis?.disconnect();
       }
     }
 
     if (failures.length > 0) {
-      throw new ServiceUnavailableException({
+      const response: ReadinessFailureResponse = {
         service: 'work-archive-api',
         status: 'unavailable',
         checks: failures,
-      });
+        requestId,
+      };
+
+      throw new ServiceUnavailableException(response);
     }
 
-    return this.getHealth();
+    return {
+      ...this.getHealth(),
+      checks,
+    };
   }
 
   private async assertMigrationsReady() {
@@ -223,7 +251,11 @@ export class HealthController {
     }
   }
 
-  private logReadyFailure(check: string, error: unknown) {
+  private logReadyFailure(
+    check: string,
+    error: unknown,
+    requestId: string | null,
+  ) {
     this.metricsService?.recordReadyzFailure(check);
     this.logger.warn(
       JSON.stringify({
@@ -233,7 +265,7 @@ export class HealthController {
         errorCode: error instanceof Error ? error.name : 'UnknownError',
         event: 'health.ready.failed',
         provider: null,
-        requestId: null,
+        requestId,
         userId: null,
       }),
     );

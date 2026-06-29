@@ -134,9 +134,9 @@
 }
 
 .eyebrow {
-  color: var(--app-accent-primary);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  color: var(--app-text-muted);
+  font-weight: 600;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 

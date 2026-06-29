@@ -24,6 +24,7 @@ describe('imports provider key test API (e2e)', () => {
   let baseUrl: string;
   let importsService: {
     saveProviderKey: jest.MockedFunction<ImportsService['saveProviderKey']>;
+    search: jest.MockedFunction<ImportsService['search']>;
     testProviderKey: jest.MockedFunction<ImportsService['testProviderKey']>;
   };
 
@@ -41,6 +42,15 @@ describe('imports provider key test API (e2e)', () => {
           label: provider,
           provider: provider as ImportProvider,
         })),
+      search: jest.fn<ImportsService['search']>().mockResolvedValue({
+        candidates: [],
+        diagnostics: {
+          providers: [],
+        },
+        provider: 'manual',
+        providers: ['manual'],
+        query: 'Dune',
+      }),
       testProviderKey: jest
         .fn<ImportsService['testProviderKey']>()
         .mockResolvedValue({
@@ -173,6 +183,27 @@ describe('imports provider key test API (e2e)', () => {
       {
         apiKey: 'brave-user-key',
       },
+    );
+  });
+
+  it('passes request ids into import search service logs', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/imports/search?provider=manual&query=Dune&type=novel`,
+      {
+        headers: {
+          'x-request-id': 'req-import-search-1',
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(importsService.search).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({
+        provider: 'manual',
+        query: 'Dune',
+      }),
+      'req-import-search-1',
     );
   });
 });

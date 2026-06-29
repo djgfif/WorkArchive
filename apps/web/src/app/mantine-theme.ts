@@ -1,16 +1,17 @@
 /**
- * Work Archive — Mantine Theme v5.0.0
- * "Vellum Index" — 조용한 개인 기록 보관소(Quiet Archive): 차분하고 밀도 있고 전문적인 다크 UI
- * 디자인 철학: docs/design/VELLUM_INDEX_PHILOSOPHY.md
+ * Work Archive — Mantine Theme v6.0.0
+ * "Studio" — 대중적 모던 SaaS UI: 깔끔하고 중립적이며 친숙한 다크/라이트 인터페이스
  *
- * 설계 원칙
+ * 설계 원칙 (v5 "Vellum Index" 에디토리얼/빈티지 톤에서 전환)
  * ─────────────────────────────────────────────────────────────────────────────
- * 1. 콘텐츠 우선: 표지·기록이 주인공, UI는 카드함의 서랍처럼 물러난다
- * 2. 따뜻한 다크: 차가운 네이비 → 따뜻한 흑갈 (등불 아래 서가·황동 카드함)
- * 3. 골드 정체성: 기술 블루 → 에디토리얼 골드 (책등의 금박, 별점, 품질 감각) — 귀금속처럼 절제
- * 4. 강한 위계: 기념비적 제목 → 작고 정밀한 라벨·참조 코드, 그 사이의 침묵
- * 5. 절제된 깊이: 그림자가 아니라 surface 명도 + hairline 테두리로 깊이를 만든다
+ * 1. 콘텐츠 우선: 표지·기록이 주인공, UI는 중립 표면으로 물러난다
+ * 2. 중립 다크/라이트: 따뜻한 흑갈 → 중립 슬레이트(차분한 회색), 친숙한 제품 톤
+ * 3. 단일 브랜드 액센트: 앤틱 골드 → 모던 인디고/바이올렛 — 활성·강조에만 절제해 사용
+ * 4. 명료한 위계: 산세리프(Pretendard) 일관 사용, 절제된 디스플레이 스케일, 또렷한 굵기 대비
+ * 5. 깔끔한 깊이: border + surface 명도 + 절제된 그림자(오버레이·호버)로 깊이를 만든다
  * 6. 모션: spring 곡선 — 빠른 응답, 자연스러운 감속
+ *
+ * 토큰 이름(--wa-*, --app-*)과 색상 키(archive)는 v5와 호환 유지 — 값만 교체된다.
  */
 
 import {
@@ -20,36 +21,36 @@ import {
   type MantineColorsTuple,
 } from '@mantine/core';
 
-/* ── 폰트 ─────────────────────────────────────────────────────────────────── */
+/* ── 폰트 — Pretendard 산세리프 단일 패밀리 ──────────────────────────────────
+   v5의 에디토리얼 세리프(Gloock/Lora/Noto Serif KR)를 제거하고, 본문·디스플레이를
+   모두 Pretendard 산세리프로 통일한다. 위계는 폰트가 아니라 크기·굵기·여백으로 만든다. */
 const appFontFamily =
-  '"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  '"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
-// Vellum Index — 에디토리얼 디스플레이 세리프(기념비적 제목)와 본문 세리프 악센트.
-// 라틴 글리프는 Gloock/Lora가, 한글 글리프는 Noto Serif KR(명조)이 받는다.
-// 한글이 주 콘텐츠이므로 명조 폴백이 고딕(Pretendard)보다 앞서야 세리프 정체성이 한국어에서도 살아난다.
-const appDisplayFamily =
-  `Gloock, "Noto Serif KR", "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Georgia, serif`;
-const appSerifFamily =
-  `Lora, "Noto Serif KR", "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Georgia, serif`;
+// 디스플레이·세리프 토큰도 동일 산세리프로 매핑해, 토큰을 참조하는 기존 CSS가
+// 자동으로 모던 산세리프로 렌더되게 한다.
+const appDisplayFamily = appFontFamily;
+const appSerifFamily = appFontFamily;
 
-/* ── Archive Gold 팔레트 — 앤틱 브라스 골드, 별점·CTA 강조 ──────────────── */
-const archiveColors: MantineColorsTuple = [
-  '#fff8e7', // 0 — 크림 골드
-  '#f6e5bd', // 1 — 연한 브라스
-  '#e8c878', // 2 — 밝은 앤틱 골드
-  '#ddb35b', // 3 — 라이트 골드
-  '#e0b85a', // 4 — 하이라이트 골드
-  '#c8922e', // 5 — Primary 골드 (다크 모드)
-  '#8a5315', // 6 — Primary 골드 (라이트 모드)
-  '#704112', // 7 — 깊은 브라스
-  '#57310e', // 8 — 진한 브라스
-  '#3f230a', // 9 — 최심 브라스
+/* ── Brand 팔레트 — 모던 인디고/바이올렛 (활성·CTA·강조) ─────────────────────
+   Mantine 색상 키는 호환을 위해 'archive'를 유지하되 값은 인디고로 교체한다. */
+const brandColors: MantineColorsTuple = [
+  '#eef2ff', // 0
+  '#e0e7ff', // 1
+  '#c7d2fe', // 2
+  '#a5b4fc', // 3
+  '#818cf8', // 4
+  '#6366f1', // 5 — Primary (다크 모드)
+  '#4f46e5', // 6 — Primary (라이트 모드)
+  '#4338ca', // 7
+  '#3730a3', // 8
+  '#312e81', // 9
 ];
 
-/* ── Archive Ink 팔레트 — 보조 블루, 싱크·상태 표시 ───────────────────────── */
+/* ── Ink 팔레트 — 보조 스카이/시안, 싱크·정보 상태 표시 ───────────────────── */
 const inkColors: MantineColorsTuple = [
-  '#eff6ff', '#dbeafe', '#bfdbfe', '#93c5fd', '#6fb3f7',
-  '#5b9cf6', '#3b82f6', '#2563eb', '#1d4ed8', '#1e3a8a',
+  '#f0f9ff', '#e0f2fe', '#bae6fd', '#7dd3fc', '#38bdf8',
+  '#0ea5e9', '#0284c7', '#0369a1', '#075985', '#0c4a6e',
 ];
 
 /* ── Color Scheme Manager ─────────────────────────────────────────────────── */
@@ -69,10 +70,10 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--wa-motion-exit':     '180ms cubic-bezier(0.4, 0, 1, 1)',
     '--wa-motion-spring':   '300ms cubic-bezier(0.16, 1, 0.3, 1)',
 
-    /* ── 타이포그래피 스케일 ── */
-    '--wa-type-display': 'clamp(2.6rem, 7.5vw, 5.6rem)',
-    '--wa-type-h1':      'clamp(2rem, 4.8vw, 3.8rem)',
-    '--wa-type-h2':      'clamp(1.4rem, 3vw, 2.1rem)',
+    /* ── 타이포그래피 스케일 — 절제된 모던 SaaS 스케일 ── */
+    '--wa-type-display': 'clamp(2.2rem, 5vw, 3.6rem)',
+    '--wa-type-h1':      'clamp(1.7rem, 3.4vw, 2.6rem)',
+    '--wa-type-h2':      'clamp(1.3rem, 2.4vw, 1.75rem)',
     '--wa-type-h3':      '1.1rem',
     '--wa-type-body':    '1rem',
     '--wa-type-caption': '0.85rem',
@@ -85,10 +86,12 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-type-caption': 'var(--wa-type-caption)',
     '--app-type-meta':    'var(--wa-type-meta)',
 
-    /* ── 폰트 패밀리 — Vellum Index ── */
+    /* ── 폰트 패밀리 — Studio (산세리프 단일) ── */
     '--app-font-display': appDisplayFamily,
     '--app-font-serif':   appSerifFamily,
     '--app-font-mono':    '"JetBrains Mono", "GeistMono", ui-monospace, monospace',
+    // 수치 전용 — 숫자는 모노(로그북 정렬), 한글 단위("개" 등)는 Pretendard로 폴백해 충돌 방지
+    '--app-font-figure':  '"JetBrains Mono", "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", ui-monospace, monospace',
 
     /* ── 여백 스케일 ── */
     '--app-space-page':    'clamp(1.25rem, 3vw, 2.5rem)',
@@ -97,51 +100,50 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-space-control': '0.75rem',
   },
 
-  /* ── 다크 모드 — 따뜻한 서가 다크(등불 아래 원장) ── */
+  /* ── 다크 모드 — 중립 슬레이트 다크 ── */
   dark: {
-    /* 배경 — 따뜻한 흑갈, 차가운 네이비 제거 */
-    '--wa-bg-shell':        '#0c0b0a',
-    '--wa-bg-base':         '#111110',
-    '--wa-bg-elevated':     '#181716',
-    '--wa-surface-subtle':  '#1e1d1c',
-    '--wa-surface-card':    '#242220',
-    '--wa-surface-hero':    '#1a1917',
-    '--wa-surface-overlay': '#2a2826',
+    /* 배경 — 중립 슬레이트(차가운 네이비·따뜻한 흑갈 모두 배제) */
+    '--wa-bg-shell':        '#0a0a0c',
+    '--wa-bg-base':         '#0e0e11',
+    '--wa-bg-elevated':     '#16161a',
+    '--wa-surface-subtle':  '#1a1a1f',
+    '--wa-surface-card':    '#1c1c22',
+    '--wa-surface-hero':    '#161619',
+    '--wa-surface-overlay': '#212128',
 
-    /* 테두리 — 따뜻한 톤 */
-    '--wa-border-subtle':   'rgba(255, 235, 200, 0.06)',
-    '--wa-border-default':  'rgba(255, 235, 200, 0.11)',
-    '--wa-border-strong':   'rgba(255, 235, 200, 0.20)',
+    /* 테두리 — 중립 화이트 알파 */
+    '--wa-border-subtle':   'rgba(255, 255, 255, 0.06)',
+    '--wa-border-default':  'rgba(255, 255, 255, 0.10)',
+    '--wa-border-strong':   'rgba(255, 255, 255, 0.17)',
 
-    /* 텍스트 — 따뜻한 화이트 */
-    '--wa-text-primary':    '#f5f0e8',
-    '--wa-text-secondary':  '#a09080',
-    '--wa-text-muted':      '#8f7d6d', /* 셸 대비 ≈5:1 (이전 #5c5048 ≈2.7:1, AA 미달) */
-    '--wa-text-disabled':   '#302a24',
+    /* 텍스트 — 중립 화이트 */
+    '--wa-text-primary':    '#f4f4f6',
+    '--wa-text-secondary':  '#a7a7b4', /* 셸 대비 ≈8:1 */
+    '--wa-text-muted':      '#8a8a99', /* 셸 대비 ≈5.6:1 (AA) */
+    '--wa-text-disabled':   '#3a3a44',
 
-    /* 악센트 — 골드 주도, 블루 보조 (가이드 5.1 절제된 accent) */
-    '--wa-accent-primary':  '#c8922e',
-    '--wa-accent-strong':   '#e0b85a',
-    '--wa-accent-soft':     'rgba(200, 146, 46, 0.16)',
-    '--wa-accent-ink':      '#5b9cf6',
+    /* 악센트 — 인디고 주도, 스카이 보조 (절제) */
+    '--wa-accent-primary':  '#6366f1',
+    '--wa-accent-strong':   '#818cf8',
+    '--wa-accent-soft':     'rgba(99, 102, 241, 0.16)',
+    '--wa-accent-ink':      '#38bdf8',
     '--wa-accent-teal':     '#2dd4bf',
     '--wa-accent-rose':     '#fb7185',
 
-    /* 그림자 — 절제. depth 는 border + surface 명도로 표현하고
-       그림자는 카드 분리·overlay 에만 가볍게 사용한다 (가이드 5.4) */
-    '--wa-shadow-xs':     '0 1px 2px rgba(0, 0, 0, 0.40)',
-    '--wa-shadow-card':   '0 1px 3px rgba(0, 0, 0, 0.28)',
-    '--wa-shadow-poster': '0 6px 20px rgba(0, 0, 0, 0.38)',
-    '--wa-shadow-hero':   '0 8px 28px rgba(0, 0, 0, 0.34)',
-    '--wa-shadow-overlay':'0 16px 44px rgba(0, 0, 0, 0.48)',
-    '--wa-shadow-glow':   '0 0 0 2px rgba(200, 146, 46, 0.16)',
+    /* 그림자 — 절제. depth 는 border + surface 명도로, 그림자는 오버레이·호버에 */
+    '--wa-shadow-xs':     '0 1px 2px rgba(0, 0, 0, 0.50)',
+    '--wa-shadow-card':   '0 1px 2px rgba(0, 0, 0, 0.30)',
+    '--wa-shadow-poster': '0 10px 30px rgba(0, 0, 0, 0.45)',
+    '--wa-shadow-hero':   '0 12px 34px rgba(0, 0, 0, 0.40)',
+    '--wa-shadow-overlay':'0 18px 50px rgba(0, 0, 0, 0.55)',
+    '--wa-shadow-glow':   '0 0 0 3px rgba(99, 102, 241, 0.28)',
 
-    '--mantine-color-body':           '#0c0b0a',
-    '--mantine-color-text':           '#f5f0e8',
-    '--mantine-color-dimmed':         '#a09080',
-    '--mantine-color-default':        '#242220',
-    '--mantine-color-default-hover':  '#2a2826',
-    '--mantine-color-default-border': 'rgba(255, 235, 200, 0.09)',
+    '--mantine-color-body':           '#0a0a0c',
+    '--mantine-color-text':           '#f4f4f6',
+    '--mantine-color-dimmed':         '#a7a7b4',
+    '--mantine-color-default':        '#1c1c22',
+    '--mantine-color-default-hover':  '#212128',
+    '--mantine-color-default-border': 'rgba(255, 255, 255, 0.09)',
 
     /* app alias */
     '--app-bg-shell':        'var(--wa-bg-shell)',
@@ -163,58 +165,58 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-accent-strong':   'var(--wa-accent-strong)',
     '--app-accent-soft':     'var(--wa-accent-soft)',
     '--app-accent-secondary':'var(--wa-accent-ink)',
-    '--app-accent-warm':     'var(--wa-accent-strong)',
+    '--app-accent-warm':     '#fbbf24', /* 별점 전용 앰버 — 보편적 평점 골드 (다크) */
     '--app-accent-teal':     'var(--wa-accent-teal)',
     '--app-accent-rose':     'var(--wa-accent-rose)',
-    '--app-state-success':   '#2dd4bf',
-    '--app-state-warning':   '#e0b85a',
+    '--app-state-success':   '#34d399',
+    '--app-state-warning':   '#fbbf24',
     '--app-state-danger':    '#f87171',
-    '--app-state-info':      '#5b9cf6',
+    '--app-state-info':      '#60a5fa',
     '--app-shadow-card':     'var(--wa-shadow-card)',
     '--app-shadow-poster':   'var(--wa-shadow-poster)',
     '--app-shadow-overlay':  'var(--wa-shadow-overlay)',
     '--app-shadow-glow':     'var(--wa-shadow-glow)',
   },
 
-  /* ── 라이트 모드 — 따뜻한 크림 */
+  /* ── 라이트 모드 — 깔끔한 중립 화이트/그레이 */
   light: {
-    '--wa-bg-shell':        '#faf7f2',
-    '--wa-bg-base':         '#f2ede6',
-    '--wa-bg-elevated':     '#ece5db',
-    '--wa-surface-subtle':  '#f5f0e8',
+    '--wa-bg-shell':        '#fbfbfd',
+    '--wa-bg-base':         '#f4f4f7',
+    '--wa-bg-elevated':     '#ffffff',
+    '--wa-surface-subtle':  '#f5f5f8',
     '--wa-surface-card':    '#ffffff',
-    '--wa-surface-hero':    '#f8f4ef',
+    '--wa-surface-hero':    '#fafafb',
     '--wa-surface-overlay': '#ffffff',
 
-    '--wa-border-subtle':   'rgba(60, 40, 20, 0.07)',
-    '--wa-border-default':  'rgba(60, 40, 20, 0.12)',
-    '--wa-border-strong':   'rgba(60, 40, 20, 0.22)',
+    '--wa-border-subtle':   'rgba(15, 18, 35, 0.06)',
+    '--wa-border-default':  'rgba(15, 18, 35, 0.10)',
+    '--wa-border-strong':   'rgba(15, 18, 35, 0.16)',
 
-    '--wa-text-primary':    '#1c1512',
-    '--wa-text-secondary':  '#4a3c32',
-    '--wa-text-muted':      '#756354', /* 셸 대비 ≈5.4:1 (이전 #8c7a6e ≈3.9:1, AA 미달) */
-    '--wa-text-disabled':   '#c9bdb5',
+    '--wa-text-primary':    '#17171c',
+    '--wa-text-secondary':  '#52525f',
+    '--wa-text-muted':      '#70707e', /* 셸 대비 ≈4.9:1 (AA) */
+    '--wa-text-disabled':   '#c2c2cc',
 
-    '--wa-accent-primary':  '#8a5315',
-    '--wa-accent-strong':   '#704112',
-    '--wa-accent-soft':     'rgba(138, 83, 21, 0.12)',
-    '--wa-accent-ink':      '#2563eb',
+    '--wa-accent-primary':  '#4f46e5',
+    '--wa-accent-strong':   '#4338ca',
+    '--wa-accent-soft':     'rgba(79, 70, 229, 0.10)',
+    '--wa-accent-ink':      '#0284c7',
     '--wa-accent-teal':     '#0d9488',
     '--wa-accent-rose':     '#e11d48',
 
-    '--wa-shadow-xs':     '0 1px 2px rgba(60, 40, 20, 0.06)',
-    '--wa-shadow-card':   '0 1px 2px rgba(60, 40, 20, 0.06)',
-    '--wa-shadow-poster': '0 4px 14px rgba(60, 40, 20, 0.12)',
-    '--wa-shadow-hero':   '0 6px 22px rgba(60, 40, 20, 0.12)',
-    '--wa-shadow-overlay':'0 14px 40px rgba(60, 40, 20, 0.16)',
-    '--wa-shadow-glow':   '0 0 0 2px rgba(138, 83, 21, 0.16)',
+    '--wa-shadow-xs':     '0 1px 2px rgba(15, 18, 35, 0.05)',
+    '--wa-shadow-card':   '0 1px 2px rgba(15, 18, 35, 0.06)',
+    '--wa-shadow-poster': '0 8px 24px rgba(15, 18, 35, 0.10)',
+    '--wa-shadow-hero':   '0 10px 30px rgba(15, 18, 35, 0.10)',
+    '--wa-shadow-overlay':'0 16px 44px rgba(15, 18, 35, 0.14)',
+    '--wa-shadow-glow':   '0 0 0 3px rgba(79, 70, 229, 0.18)',
 
-    '--mantine-color-body':           '#faf7f2',
-    '--mantine-color-text':           '#1c1512',
-    '--mantine-color-dimmed':         '#8c7a6e',
+    '--mantine-color-body':           '#fbfbfd',
+    '--mantine-color-text':           '#17171c',
+    '--mantine-color-dimmed':         '#70707e',
     '--mantine-color-default':        '#ffffff',
-    '--mantine-color-default-hover':  '#f5f0e8',
-    '--mantine-color-default-border': 'rgba(60, 40, 20, 0.12)',
+    '--mantine-color-default-hover':  '#f5f5f8',
+    '--mantine-color-default-border': 'rgba(15, 18, 35, 0.12)',
 
     '--app-bg-shell':        'var(--wa-bg-shell)',
     '--app-bg-base':         'var(--wa-bg-base)',
@@ -235,11 +237,11 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
     '--app-accent-strong':   'var(--wa-accent-strong)',
     '--app-accent-soft':     'var(--wa-accent-soft)',
     '--app-accent-secondary':'var(--wa-accent-ink)',
-    '--app-accent-warm':     'var(--wa-accent-strong)',
+    '--app-accent-warm':     '#b45309', /* 별점 전용 앰버 — 화이트 대비 ≈4.3:1 (AA), 보편적 평점 골드 (라이트) */
     '--app-accent-teal':     'var(--wa-accent-teal)',
     '--app-accent-rose':     'var(--wa-accent-rose)',
-    '--app-state-success':   '#0f766e',
-    '--app-state-warning':   '#8a5315',
+    '--app-state-success':   '#059669',
+    '--app-state-warning':   '#b45309',
     '--app-state-danger':    '#dc2626',
     '--app-state-info':      '#2563eb',
     '--app-shadow-card':     'var(--wa-shadow-card)',
@@ -251,16 +253,15 @@ export const appCssVariablesResolver: CSSVariablesResolver = (_theme) => ({
 
 /* ── Mantine 테마 ─────────────────────────────────────────────────────────── */
 export const appTheme = createTheme({
-  // 골드(archive)는 명도가 높아 채움 버튼에 흰 텍스트를 쓰면 대비가 부족하다(다크 ≈2.8:1).
-  // autoContrast 로 배경 명도에 따라 텍스트 색을 자동 선택해 골드 위에는 잉크 텍스트가 오게 한다.
+  // 인디고 채움(5/6) 위에는 흰 텍스트가 오도록 autoContrast 로 명도 기반 선택.
   autoContrast: true,
-  black: '#0c0b0a',
+  black: '#0a0a0c',
   colors: {
-    archive: archiveColors,
+    archive: brandColors,
     ink: inkColors,
   },
   cursorType: 'pointer',
-  defaultGradient: { deg: 135, from: 'archive.4', to: 'archive.6' },
+  defaultGradient: { deg: 135, from: 'archive.5', to: 'archive.7' },
   defaultRadius: 'md',
   focusRing: 'auto',
   fontFamily: appFontFamily,
@@ -274,14 +275,14 @@ export const appTheme = createTheme({
   },
   headings: {
     fontFamily: appFontFamily,
-    fontWeight: '780',
+    fontWeight: '700',
     sizes: {
-      h1: { fontSize: 'var(--app-type-h1)', lineHeight: '1.05' },
-      h2: { fontSize: 'var(--app-type-h2)', lineHeight: '1.12' },
-      h3: { fontSize: 'var(--app-type-h3)', lineHeight: '1.22' },
-      h4: { fontSize: '1rem',               lineHeight: '1.28' },
-      h5: { fontSize: '0.9rem',             lineHeight: '1.32' },
-      h6: { fontSize: '0.82rem',            lineHeight: '1.38' },
+      h1: { fontSize: 'var(--app-type-h1)', lineHeight: '1.1' },
+      h2: { fontSize: 'var(--app-type-h2)', lineHeight: '1.18' },
+      h3: { fontSize: 'var(--app-type-h3)', lineHeight: '1.28' },
+      h4: { fontSize: '1rem',               lineHeight: '1.32' },
+      h5: { fontSize: '0.9rem',             lineHeight: '1.4' },
+      h6: { fontSize: '0.82rem',            lineHeight: '1.45' },
     },
     textWrap: 'balance',
   },
@@ -300,11 +301,11 @@ export const appTheme = createTheme({
   primaryColor: 'archive',
   primaryShade: { dark: 5, light: 6 },
   radius: {
-    xs: '0.25rem',
-    sm: '0.45rem',
-    md: '0.7rem',
-    lg: '1.1rem',
-    xl: '1.6rem',
+    xs: '0.25rem',  /* 4px */
+    sm: '0.375rem', /* 6px */
+    md: '0.5rem',   /* 8px  — 기본(버튼·입력) */
+    lg: '0.75rem',  /* 12px — 카드 */
+    xl: '1rem',     /* 16px — 모달 */
   },
   respectReducedMotion: true,
   shadows: {
@@ -340,8 +341,8 @@ export const appTheme = createTheme({
         root: {
           border:        '1px solid transparent',
           fontSize:      'var(--app-type-meta)',
-          fontWeight:    750,
-          letterSpacing: '0.02em',
+          fontWeight:    650,
+          letterSpacing: '0.01em',
           paddingInline: '0.5rem',
           paddingBlock:  '0.16rem',
           textTransform: 'none',
@@ -354,9 +355,9 @@ export const appTheme = createTheme({
       defaultProps: { radius: 'md', size: 'sm' },
       styles: {
         root: {
-          fontWeight:    680,
-          letterSpacing: '-0.008em',
-          paddingInline: '1.1rem',
+          fontWeight:    600,
+          letterSpacing: '-0.006em',
+          paddingInline: '1.05rem',
           transition: [
             'transform var(--wa-motion-fast)',
             'background var(--wa-motion-fast)',
@@ -371,7 +372,7 @@ export const appTheme = createTheme({
     Input: {
       styles: {
         input: {
-          backgroundColor: 'var(--app-bg-elevated)',
+          backgroundColor: 'var(--app-surface-subtle)',
           borderColor:     'var(--app-border-default)',
           color:           'var(--app-text-primary)',
           transition:      'border-color var(--wa-motion-fast), box-shadow var(--wa-motion-fast)',
@@ -387,9 +388,9 @@ export const appTheme = createTheme({
         },
         label: {
           color:         'var(--app-text-secondary)',
-          fontWeight:    680,
+          fontWeight:    600,
           fontSize:      'var(--app-type-caption)',
-          letterSpacing: '0.01em',
+          letterSpacing: '0.005em',
           marginBottom:  '0.35rem',
         },
       },
@@ -415,8 +416,8 @@ export const appTheme = createTheme({
         label: {
           color:         'var(--app-text-muted)',
           fontSize:      'var(--app-type-meta)',
-          fontWeight:    750,
-          letterSpacing: '0.08em',
+          fontWeight:    650,
+          letterSpacing: '0.06em',
           textTransform: 'uppercase',
           padding:       '0.5rem 0.75rem 0.25rem',
         },
@@ -430,7 +431,7 @@ export const appTheme = createTheme({
     Modal: {
       defaultProps: {
         radius: 'xl',
-        overlayProps: { blur: 2, backgroundOpacity: 0.6 },
+        overlayProps: { blur: 2, backgroundOpacity: 0.55 },
       },
       styles: {
         content: {
@@ -443,7 +444,7 @@ export const appTheme = createTheme({
           paddingBottom:   '0.75rem',
         },
         title: {
-          fontWeight: 780,
+          fontWeight: 700,
           fontSize:   'var(--app-type-h3)',
           color:      'var(--app-text-primary)',
         },
@@ -469,7 +470,7 @@ export const appTheme = createTheme({
       defaultProps: { radius: 'md' },
       styles: {
         root: {
-          backgroundColor: 'var(--app-bg-elevated)',
+          backgroundColor: 'var(--app-surface-subtle)',
           border:          '1px solid var(--app-border-subtle)',
           padding:         '3px',
           gap:             '2px',
@@ -481,7 +482,7 @@ export const appTheme = createTheme({
         },
         label: {
           fontSize:     'var(--app-type-caption)',
-          fontWeight:   680,
+          fontWeight:   600,
           color:        'var(--app-text-secondary)',
           transition:   'color var(--wa-motion-fast)',
           paddingBlock: '0.3rem',
@@ -493,15 +494,15 @@ export const appTheme = createTheme({
     TextInput: { defaultProps: { radius: 'md', size: 'md' } },
 
     Textarea: {
-      defaultProps: { autosize: true, minRows: 3, radius: 'md', size: 'md' },
+      // maxRows 상한으로 긴 입력 시 텍스트영역이 무한 확장해 저장 CTA를 밀어내지 않게 한다(상한 후 내부 스크롤).
+      defaultProps: { autosize: true, minRows: 3, maxRows: 12, radius: 'md', size: 'md' },
     },
 
     Title: {
       styles: {
         root: {
-          color:               'var(--app-text-primary)',
-          letterSpacing:       '-0.03em',
-          fontFeatureSettings: '"ss01", "cv01"',
+          color:         'var(--app-text-primary)',
+          letterSpacing: '-0.02em',
         },
       },
     },
@@ -514,7 +515,7 @@ export const appTheme = createTheme({
           border:          '1px solid var(--app-border-default)',
           color:           'var(--app-text-primary)',
           fontSize:        'var(--app-type-caption)',
-          fontWeight:      620,
+          fontWeight:      600,
         },
       },
     },

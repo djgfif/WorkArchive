@@ -17,6 +17,9 @@ Use this checklist before releases that touch auth, sync, imports, tier boards, 
 - Tier board card sync verifies board/lane ownership while treating source work ids as non-authoritative metadata.
 - Import provider credentials are read only for the owning user.
 - Guest/local archive data is not attached to an authenticated account without explicit transfer.
+- Public/share/community routes stay out of Gate 1 unless
+  [`PUBLIC_FEATURE_PERMISSION_BOUNDARY.md`](./PUBLIC_FEATURE_PERMISSION_BOUNDARY.md)
+  is updated first with explicit opt-in semantics, BOLA coverage, and tests.
 
 ## Import and Export
 
@@ -36,7 +39,12 @@ Use this checklist before releases that touch auth, sync, imports, tier boards, 
 ## Observability
 
 - Structured logs redact cookie, authorization, token, code, and API key fields.
+- Production log review uses `npm run ops:logs` redaction by default; raw
+  container logs are not copied into release evidence.
 - Provider diagnostics report readiness and reason codes without exposing raw credentials.
 - Security events use stable non-secret identifiers; metadata drops sensitive
   keys, strips URL query/fragment values, redacts inline bearer/basic
   credentials, removes control characters, and caps stored string length.
+- [`LOG_REDACTION_POLICY.md`](./LOG_REDACTION_POLICY.md) and
+  `npm run qa:log-redaction-policy` stay current when logging, auth, OAuth,
+  import providers, monitoring, or security audit code changes.

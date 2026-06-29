@@ -11,18 +11,24 @@ const DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
 const DEFAULT_LOCAL_DATABASE_URL =
   'postgresql://postgres:postgres@127.0.0.1:18732/work_archive?schema=public';
 
-function readConnectTimeoutMs() {
+export function readPrismaConnectTimeoutMs() {
   const value = process.env.PRISMA_CONNECT_TIMEOUT_MS?.trim();
 
   if (!value) {
     return DEFAULT_CONNECT_TIMEOUT_MS;
   }
 
-  const parsedValue = Number.parseInt(value, 10);
+  if (!/^[1-9]\d*$/.test(value)) {
+    throw new Error('PRISMA_CONNECT_TIMEOUT_MS must be a positive integer.');
+  }
 
-  return Number.isInteger(parsedValue) && parsedValue > 0
-    ? parsedValue
-    : DEFAULT_CONNECT_TIMEOUT_MS;
+  const parsedValue = Number(value);
+
+  if (!Number.isSafeInteger(parsedValue)) {
+    throw new Error('PRISMA_CONNECT_TIMEOUT_MS must be a safe integer.');
+  }
+
+  return parsedValue;
 }
 
 function rejectAfterTimeout(timeoutMs: number) {
@@ -62,12 +68,14 @@ export class PrismaService
     try {
       await Promise.race([
         this.$connect(),
-        rejectAfterTimeout(readConnectTimeoutMs()),
+        rejectAfterTimeout(readPrismaConnectTimeoutMs()),
       ]);
     } catch (error) {
       this.logger.error(
-        'Failed to connect to PostgreSQL. Check DATABASE_URL and ensure the database is reachable before starting the API.',
-        error instanceof Error ? error.stack : undefined,
+        JSON.stringify({
+          errorCode: describePrismaStartupError(error),
+          event: 'postgres.connect.failed',
+        }),
       );
       throw error;
     }
@@ -76,4 +84,8 @@ export class PrismaService
   async onModuleDestroy() {
     await this.$disconnect();
   }
+}
+
+export function describePrismaStartupError(error: unknown) {
+  return error instanceof Error ? error.name : 'UnknownError';
 }

@@ -11,6 +11,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -25,7 +26,9 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import type { Request } from 'express';
 
+import { getRequestId } from '../../security/security-audit.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -106,8 +109,13 @@ export class WorksController {
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() createWorkDto: CreateWorkDto,
+    @Req() request: Request,
   ) {
-    return this.worksService.create(user.userId, createWorkDto);
+    return this.worksService.create(
+      user.userId,
+      createWorkDto,
+      getRequestId(request) ?? undefined,
+    );
   }
 
   @Patch(':id')
@@ -132,8 +140,14 @@ export class WorksController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateWorkDto: UpdateWorkDto,
+    @Req() request: Request,
   ) {
-    return this.worksService.update(user.userId, id, updateWorkDto);
+    return this.worksService.update(
+      user.userId,
+      id,
+      updateWorkDto,
+      getRequestId(request) ?? undefined,
+    );
   }
 
   @Delete(':id')
@@ -154,7 +168,12 @@ export class WorksController {
   async remove(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() request: Request,
   ) {
-    await this.worksService.remove(user.userId, id);
+    await this.worksService.remove(
+      user.userId,
+      id,
+      getRequestId(request) ?? undefined,
+    );
   }
 }

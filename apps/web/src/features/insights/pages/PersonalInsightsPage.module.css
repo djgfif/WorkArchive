@@ -4,7 +4,11 @@
 
 .metricValue {
   color: var(--app-text-primary);
+  font-family: var(--app-font-figure);
   font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 
@@ -74,8 +78,9 @@
 .histCount {
   height: 1.1em;
   line-height: 1;
+  font-family: var(--app-font-figure);
   font-size: var(--app-type-meta);
-  font-weight: 800;
+  font-weight: 700;
   color: var(--app-text-secondary);
   font-variant-numeric: tabular-nums;
 }
@@ -105,6 +110,7 @@
 }
 
 .histLabel {
+  font-family: var(--app-font-figure);
   font-size: var(--app-type-meta);
   color: var(--app-text-muted);
   font-variant-numeric: tabular-nums;
@@ -127,11 +133,13 @@
 }
 
 .donutTotal {
+  font-family: var(--app-font-figure);
   font-size: 1.5rem;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1;
   color: var(--app-text-primary);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .donutTotalLabel {
@@ -169,7 +177,9 @@
 }
 
 .legendValue {
+  font-family: var(--app-font-figure);
   font-size: var(--app-type-meta);
   color: var(--app-text-muted);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }

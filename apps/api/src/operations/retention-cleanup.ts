@@ -114,14 +114,15 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(() => {
-    console.error(
-      JSON.stringify({
-        errorCode: 'RetentionCleanupFailed',
-        event: 'operations.retention_cleanup.failed',
-        message: 'Retention cleanup failed.',
-      }),
-    );
+  main().catch((error: unknown) => {
+    console.error(formatRetentionCleanupFailure(error));
     process.exitCode = 1;
+  });
+}
+
+export function formatRetentionCleanupFailure(error: unknown) {
+  return JSON.stringify({
+    errorCode: error instanceof Error ? error.name : 'UnknownError',
+    event: 'operations.retention_cleanup.failed',
   });
 }

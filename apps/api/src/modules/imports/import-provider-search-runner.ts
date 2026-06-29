@@ -27,11 +27,14 @@ export interface ImportProviderSearchRunnerPorts {
     durationMs: number;
     errorCode: string;
     provider: ImportProvider;
+    requestId?: string;
     userId: string | undefined;
   }): void;
   metricsService?: Pick<
     MetricsService,
-    'recordImportsProviderCircuitOpen' | 'recordImportsProviderFailure'
+    | 'recordImportsProviderCircuitOpen'
+    | 'recordImportsProviderDuration'
+    | 'recordImportsProviderFailure'
   > | undefined;
   providerRuntimeState: Pick<
     ProviderRuntimeStateService,
@@ -48,6 +51,7 @@ export async function searchImportProviderForQuery(input: {
   provider: ImportProvider;
   providers: ImportProvider[];
   query: string;
+  requestId?: string;
   userId: string | null;
 }): Promise<ImportProviderSearchResult> {
   const { ports, provider } = input;
@@ -172,6 +176,13 @@ export async function searchImportProviderForQuery(input: {
     );
 
     await ports.providerRuntimeState.recordSuccess(provider);
+    ports.metricsService?.recordImportsProviderDuration(
+      {
+        provider,
+        result: 'success',
+      },
+      (Date.now() - providerStartedAt) / 1000,
+    );
 
     return {
       candidates: providerCandidates,
@@ -187,6 +198,7 @@ export async function searchImportProviderForQuery(input: {
     };
   } catch (error) {
     const errorCode = describeError(error);
+    const durationSeconds = (Date.now() - providerStartedAt) / 1000;
 
     await ports.providerRuntimeState.recordFailure(
       provider,
@@ -194,6 +206,13 @@ export async function searchImportProviderForQuery(input: {
       PROVIDER_CIRCUIT_OPEN_MS,
     );
     ports.metricsService?.recordImportsProviderFailure(provider, errorCode);
+    ports.metricsService?.recordImportsProviderDuration(
+      {
+        provider,
+        result: 'failure',
+      },
+      durationSeconds,
+    );
 
     if (
       (await ports.providerRuntimeState.getCircuitStatus(provider))
@@ -213,6 +232,7 @@ export async function searchImportProviderForQuery(input: {
       durationMs: Date.now() - providerStartedAt,
       errorCode,
       provider,
+      ...(input.requestId ? { requestId: input.requestId } : {}),
       userId: input.userId ?? undefined,
     });
 

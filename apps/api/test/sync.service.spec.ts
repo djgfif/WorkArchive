@@ -36,6 +36,8 @@ import type { SyncWorkSeriesLinkPayloadDto } from '../src/modules/sync/payloads/
 import type { SyncWorkContributorPayloadDto } from '../src/modules/sync/payloads/sync-work-contributor-payload.dto';
 import type { SyncWorkPayloadDto } from '../src/modules/sync/payloads/sync-work-payload.dto';
 import type { SyncWorkRelationPayloadDto } from '../src/modules/sync/payloads/sync-work-relation-payload.dto';
+import { MAX_PUSH_BATCH_SIZE } from '../src/modules/sync/sync.constants';
+import type { MetricsService } from '../src/observability/metrics.service';
 import { type PrismaService } from '../src/prisma/prisma.service';
 import type {
   UserReleaseRecordsService,
@@ -372,6 +374,12 @@ describe('SyncService', () => {
   >;
   let releaseRecordsService: any;
   let timelineEntriesService: any;
+  let metricsService: jest.Mocked<
+    Pick<
+      MetricsService,
+      'recordSync' | 'recordSyncDuration' | 'recordSyncResult'
+    >
+  >;
 
   beforeEach(() => {
     prisma = {
@@ -500,6 +508,11 @@ describe('SyncService', () => {
       findByUserSince: jest.fn(async () => []),
       update: jest.fn(),
     };
+    metricsService = {
+      recordSync: jest.fn(),
+      recordSyncDuration: jest.fn(),
+      recordSyncResult: jest.fn(),
+    };
 
     const pushService = new SyncPushService(
       prisma as unknown as PrismaService,
@@ -507,10 +520,12 @@ describe('SyncService', () => {
       userRecordsService as unknown as UserRecordsService,
       releaseRecordsService as unknown as UserReleaseRecordsService,
       timelineEntriesService as unknown as UserTimelineEntriesService,
+      metricsService as unknown as MetricsService,
     );
     const pullService = new SyncPullService(
       prisma as unknown as PrismaService,
       new SyncCursorService(),
+      metricsService as unknown as MetricsService,
     );
 
     service = new SyncService(pushService, pullService);
@@ -536,6 +551,59 @@ describe('SyncService', () => {
     ).rejects.toThrow('Unsupported sync schema version "null"');
 
     expect(userRecordsService.findByUserSince).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized push batches at the service boundary before storage writes', async () => {
+    await expect(
+      service.push(USER_ID, {
+        changes: Array.from(
+          { length: MAX_PUSH_BATCH_SIZE + 1 },
+          () => ({}) as any,
+        ),
+      }),
+    ).rejects.toThrow(
+      `Sync push batches must contain no more than ${MAX_PUSH_BATCH_SIZE} changes.`,
+    );
+
+    expect(userRecordsService.findById).not.toHaveBeenCalled();
+    expect(metricsService.recordSync).toHaveBeenCalledWith('push', 'failure');
+    expect(metricsService.recordSyncDuration).toHaveBeenCalledWith(
+      { direction: 'push', result: 'failure' },
+      expect.any(Number),
+    );
+  });
+
+  it('records sync push success duration with bounded labels', async () => {
+    await expect(
+      service.push(USER_ID, {
+        changes: [],
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        results: [],
+        schemaVersion: 5,
+      }),
+    );
+
+    expect(metricsService.recordSync).toHaveBeenCalledWith('push', 'success');
+    expect(metricsService.recordSyncDuration).toHaveBeenCalledWith(
+      { direction: 'push', result: 'success' },
+      expect.any(Number),
+    );
+  });
+
+  it('records sync pull failure duration after request parsing starts', async () => {
+    await expect(
+      service.pull(USER_ID, {
+        since: 'not-a-date',
+      }),
+    ).rejects.toThrow('since must be a valid ISO 8601 date string.');
+
+    expect(metricsService.recordSync).toHaveBeenCalledWith('pull', 'failure');
+    expect(metricsService.recordSyncDuration).toHaveBeenCalledWith(
+      { direction: 'pull', result: 'failure' },
+      expect.any(Number),
+    );
   });
 
   it('returns failed_validation for malformed work payloads before applying storage writes', async () => {
@@ -744,14 +812,14 @@ describe('SyncService', () => {
   });
 
   it('returns per-change failures and continues applying the remaining batch', async () => {
-    const warnSpy = jest
-      .spyOn(Logger.prototype, 'warn')
+    const logSpy = jest
+      .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
 
     prisma.$transaction
       .mockRejectedValueOnce(new Error('database unavailable'))
-      .mockImplementation(
-        async (callback: (client: any) => Promise<any>) => callback(prisma),
+      .mockImplementation(async (callback: (client: any) => Promise<any>) =>
+        callback(prisma),
       );
     prisma.userSeries.findUnique.mockResolvedValue(null);
     prisma.userSeries.create.mockResolvedValue(createUserSeriesFixture());
@@ -792,13 +860,26 @@ describe('SyncService', () => {
       }),
     ]);
     expect(prisma.userSeries.create).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Sync change failed userId=2c92b57e-e529-4344-bd62-0cff4de5dfe2 entityType=work entityId=9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
-      ),
+    const failedLog = logSpy.mock.calls
+      .map((call: unknown[]) => String(call[0]))
+      .find((message: string) =>
+        message.includes('"event":"sync.change.failed"'),
+      );
+
+    expect(failedLog).toBeDefined();
+    expect(JSON.parse(failedLog!)).toEqual(
+      expect.objectContaining({
+        entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+        entityType: 'work',
+        errorCode: 'Error',
+        event: 'sync.change.failed',
+        operation: 'update',
+        queueId: 'd06474f0-d6f2-40b0-a4a7-361b6c3f908d',
+        userId: USER_ID,
+      }),
     );
 
-    warnSpy.mockRestore();
+    logSpy.mockRestore();
   });
 
   it('pulls tombstones for the current user and uses updatedAt as the next cursor', async () => {
@@ -1690,8 +1771,12 @@ describe('SyncService', () => {
     expect(JSON.parse(failedLog!)).toEqual(
       expect.objectContaining({
         durationMs: null,
+        entityId: '9fcbf92f-6347-4d79-bdf8-9d0d18439c28',
+        entityType: 'work',
         errorCode: 'Error',
         event: 'sync.change.failed',
+        operation: 'update',
+        queueId: 'bd0ce1c4-c9f1-4d05-8204-079722e0e53b',
         requestId: 'req-sync-redaction',
         userId: USER_ID,
       }),

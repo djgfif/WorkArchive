@@ -15,21 +15,61 @@ const jsonReportPath = resolve(reportDir, `sync-load-smoke-${stamp}.json`);
 
 const baseUrl = process.env.SYNC_LOAD_BASE_URL ?? 'http://127.0.0.1:8080';
 const accessToken = process.env.SYNC_LOAD_ACCESS_TOKEN ?? '';
-const recordCount = positiveInt(process.env.SYNC_LOAD_RECORDS, 1000);
-const batchSize = Math.min(positiveInt(process.env.SYNC_LOAD_BATCH_SIZE, 200), 200);
-const pullLimit = positiveInt(process.env.SYNC_LOAD_PULL_LIMIT, 500);
+const maxPushBatchSize = 200;
+const oversizedPushBatchSize = maxPushBatchSize + 1;
+const recordCount = readPositiveIntegerEnv('SYNC_LOAD_RECORDS', 1000);
+const batchSize = readPositiveIntegerEnv('SYNC_LOAD_BATCH_SIZE', maxPushBatchSize, {
+  max: maxPushBatchSize,
+});
+const pullLimit = readPositiveIntegerEnv('SYNC_LOAD_PULL_LIMIT', 500);
 const runId = sanitizeRunId(
   process.env.SYNC_LOAD_RUN_ID ?? `${stamp}-${randomUUID().slice(0, 8)}`,
 );
-const dryRun =
-  process.env.SYNC_LOAD_DRY_RUN === 'true' ||
-  (!accessToken && process.env.SYNC_LOAD_DRY_RUN !== 'false');
+const dryRunOverride = readBooleanEnv('SYNC_LOAD_DRY_RUN', null);
+const dryRun = dryRunOverride ?? !accessToken;
 const disposableAccountAck =
-  process.env.SYNC_LOAD_DISPOSABLE_ACCOUNT_ACK === 'true';
+  readBooleanEnv('SYNC_LOAD_DISPOSABLE_ACCOUNT_ACK', false);
+const sensitiveUrlParamPattern =
+  /access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token/i;
+const sensitiveInlineValuePattern =
+  /\b((?:access[-_]?token|authorization|authorization[-_]?code|api[-_]?key|code|cookie|credential|id[-_]?token|nonce|oauth[-_]?code|password|refresh[-_]?token|secret|session|state|token)=)[^\s&;,]+/gi;
 
-function positiveInt(value, fallback) {
-  const parsed = Number.parseInt(value ?? '', 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+function readPositiveIntegerEnv(name, fallback, { max = Number.MAX_SAFE_INTEGER } = {}) {
+  const rawValue = process.env[name]?.trim();
+
+  if (!rawValue) {
+    return fallback;
+  }
+
+  if (!/^[1-9]\d*$/.test(rawValue)) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
+
+  const parsed = Number(rawValue);
+
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`${name} must be a safe integer.`);
+  }
+
+  if (parsed > max) {
+    throw new Error(`${name} must not exceed ${max}.`);
+  }
+
+  return parsed;
+}
+
+function readBooleanEnv(name, fallback) {
+  const rawValue = process.env[name]?.trim();
+
+  if (!rawValue) {
+    return fallback;
+  }
+
+  if (rawValue !== 'true' && rawValue !== 'false') {
+    throw new Error(`${name} must be true or false when set.`);
+  }
+
+  return rawValue === 'true';
 }
 
 function sanitizeRunId(value) {
@@ -40,10 +80,37 @@ function redact(value) {
   let text = String(value ?? '');
   text = text.replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]');
   text = text.replace(/(TOKEN|SECRET|PASSWORD|API_KEY|COOKIE)=\S+/gi, '$1=[REDACTED]');
+  text = text.replace(sensitiveInlineValuePattern, '$1[REDACTED]');
   if (accessToken) {
     text = text.split(accessToken).join('[REDACTED]');
   }
-  return text;
+  return redactUrlSecrets(text);
+}
+
+function redactUrlSecrets(value) {
+  return value.replace(/https?:\/\/[^\s<>"')]+/gi, (match) => {
+    try {
+      const url = new URL(match);
+
+      if (url.username) {
+        url.username = 'redacted';
+      }
+
+      if (url.password) {
+        url.password = 'redacted';
+      }
+
+      for (const key of [...url.searchParams.keys()]) {
+        if (sensitiveUrlParamPattern.test(key)) {
+          url.searchParams.set(key, '[REDACTED]');
+        }
+      }
+
+      return url.toString();
+    } catch {
+      return match;
+    }
+  });
 }
 
 function relativePath(path) {
@@ -299,6 +366,17 @@ async function runLive(fixtures, sinceIso) {
   requestDurations.push(maxLimitSmoke.durationMs);
   responseSizes.push(maxLimitSmoke.responseBytes);
 
+  const oversizedPushFixtures = Array.from(
+    { length: oversizedPushBatchSize },
+    (_, index) => makeWorkPayload(recordCount + index, new Date().toISOString()),
+  );
+  const oversizedPushSmoke = await postJson('/sync/push', {
+    schemaVersion: 5,
+    changes: oversizedPushFixtures.map((fixture) => fixture.change),
+  });
+  requestDurations.push(oversizedPushSmoke.durationMs);
+  responseSizes.push(oversizedPushSmoke.responseBytes);
+
   if (!defaultLimitSmoke.ok) {
     failures.push({
       status: 'default_limit_smoke_failed',
@@ -313,6 +391,12 @@ async function runLive(fixtures, sinceIso) {
       });
     }
   }
+  if (oversizedPushSmoke.status !== 400) {
+    failures.push({
+      status: 'oversized_push_smoke_failed',
+      message: `Expected oversized push batch status 400, received ${oversizedPushSmoke.status}: ${oversizedPushSmoke.text}`,
+    });
+  }
 
   return {
     conflicts,
@@ -326,6 +410,7 @@ async function runLive(fixtures, sinceIso) {
     requestP50Ms: Math.round(percentile(requestDurations, 50) ?? 0),
     requestP95Ms: Math.round(percentile(requestDurations, 95) ?? 0),
     maxLimitSmokeStatus: maxLimitSmoke.status,
+    oversizedPushSmokeStatus: oversizedPushSmoke.status,
     status: failures.length === 0 && conflicts.length === 0 ? 'PASS' : 'FAIL',
     totalDurationMs: Math.round(performance.now() - startedAt),
   };
@@ -360,6 +445,7 @@ function writeReports(report) {
     `- Request p95 ms: ${report.metrics.requestP95Ms}`,
     `- Max response bytes: ${report.metrics.maxResponseBytes}`,
     `- Limit 1500 smoke HTTP status: ${report.metrics.maxLimitSmokeStatus}`,
+    `- Oversized push batch smoke HTTP status: ${report.metrics.oversizedPushSmokeStatus}`,
     `- Conflicts: ${report.metrics.conflicts.length}`,
     `- Failures: ${report.metrics.failures.length}`,
     '',
@@ -384,6 +470,7 @@ function writeReports(report) {
   lines.push('- Reports do not include raw sync payloads or bearer tokens.');
   lines.push('- PASS requires zero failures, zero conflicts, zero missing synthetic records, and zero duplicate synthetic records.');
   lines.push('- Limit > 1000 smoke accepts either bounded HTTP 200 behavior or HTTP 400 DTO validation rejection.');
+  lines.push('- Oversized push batch smoke must return HTTP 400 before storage writes.');
   lines.push('- Use a disposable authenticated test account; do not run this against a real user account.');
 
   writeFileSync(reportPath, `${lines.join('\n')}\n`);
@@ -417,6 +504,7 @@ const report = {
     requestP50Ms: 0,
     requestP95Ms: 0,
     maxLimitSmokeStatus: 0,
+    oversizedPushSmokeStatus: 0,
     totalDurationMs: 0,
   },
 };

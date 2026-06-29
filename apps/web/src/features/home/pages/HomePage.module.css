@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Home Page — Quiet Archive 홈 (Vellum Index)
-   조용한 서가: 이어볼 한 줄(절제된 가로 선반)과 세로 인덱스로 회고하는 레이아웃
+   Home Page — Studio 홈
+   이어볼 한 줄(절제된 가로 선반)과 세로 인덱스로 회고하는 레이아웃
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── 페이지 래퍼 — 풀 와이드 ─────────────────────────────────────────────── */
@@ -29,23 +29,36 @@
   min-width: 0;
 }
 
+/* 계측 라벨 — 임상적 모노 + 단일 인디고 레지스트레이션 틱(액센트 절제) */
 .homeEyebrow {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 100%;
+  overflow: hidden;
   font-size: var(--app-type-meta);
-  font-weight: 750;
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: var(--app-accent-primary);
-  margin-bottom: 0.5rem;
+  color: var(--app-text-muted);
+  margin-bottom: 0.65rem;
+}
+
+.homeEyebrow::before {
+  content: '';
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1px;
+  background: var(--app-accent-primary);
 }
 
 .homeTitle {
   font-family: var(--app-font-display);
-  font-size: clamp(2.4rem, 4.8vw, 3.9rem);
-  font-weight: 400; /* Gloock는 단일 웨이트의 고대비 디스플레이 세리프 */
-  letter-spacing: -0.015em;
+  font-size: clamp(2.1rem, 4.2vw, 3.2rem);
+  font-weight: 720; /* 모던 산세리프 디스플레이 굵기 */
+  letter-spacing: -0.03em;
   color: var(--app-text-primary);
-  line-height: 1.02;
+  line-height: 1.06;
   margin: 0 0 0.7rem;
 }
 
@@ -76,8 +89,15 @@
 }
 
 .homeStatValue {
-  color: var(--app-text-secondary);
-  font-weight: 750;
+  color: var(--app-text-primary);
+  font-family: var(--app-font-figure);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 별점 — 단일 앰버 변칙(평점 전용) */
+.statStar {
+  color: var(--app-accent-warm);
 }
 
 .homeActions {
@@ -127,14 +147,15 @@
   line-height: 1.2;
 }
 
+/* 반복 노이즈 절감 — 선반 라벨은 틱 없이 muted 트래킹만 (틱은 페이지 히어로 전용) */
 .shelfTitleEyebrow {
-  font-size: var(--app-type-meta);
-  font-weight: 750;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--app-accent-primary);
-  margin-bottom: 0.2rem;
   display: block;
+  font-size: var(--app-type-meta);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--app-text-muted);
+  margin-bottom: 0.3rem;
 }
 
 .shelfViewAll {
@@ -325,9 +346,10 @@
 }
 
 .insightValue {
+  font-family: var(--app-font-figure);
   font-size: var(--app-type-meta);
-  font-weight: 750;
-  color: var(--app-accent-primary);
+  font-weight: 700;
+  color: var(--app-text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -422,9 +444,10 @@
 
 .activityRating {
   flex-shrink: 0;
+  font-family: var(--app-font-figure);
   font-size: var(--app-type-caption);
-  font-weight: 800;
-  color: var(--app-accent-primary);
+  font-weight: 700;
+  color: var(--app-text-secondary);
   font-variant-numeric: tabular-nums;
 }
 

@@ -37,7 +37,11 @@ Expected:
 
 - `/health`: HTTP 200, legacy health response
 - `/livez`: HTTP 200 even if DB/Redis are unavailable
-- `/readyz`: HTTP 200 only when config, PostgreSQL, and Redis are ready
+- `/readyz`: HTTP 200 only when config, PostgreSQL, migrations, and Redis are
+  ready; the success JSON body includes safe `checks` entries for those
+  dependencies. A failed `/readyz` response includes safe failed `checks` names
+  and `requestId` so operators can correlate the response with
+  `health.ready.failed` logs without exposing raw dependency errors.
 
 For the scripted operator check, run:
 
@@ -45,9 +49,9 @@ For the scripted operator check, run:
 HEALTHCHECK_BASE_URL="$DOMAIN" npm run ops:healthcheck
 ```
 
-The script verifies HTTP 200 and the canonical JSON health body for `/health`,
-`/livez`, and `/readyz`, then prints `docker compose ps` for the production
-compose project.
+The script verifies HTTP 200, the canonical JSON health body for `/health`,
+`/livez`, `/readyz`, and the `/readyz` dependency check entries, then prints
+`docker compose ps` for the production compose project.
 
 `compose.prod.yml` intentionally checks API readiness every 30 seconds with a
 45 second start period. `/readyz` opens a short Redis connection for the check,
@@ -56,9 +60,16 @@ so avoid very short intervals on small VPS hosts.
 ## Logs
 
 ```bash
-docker logs work-archive-api --tail=100
-docker logs work-archive-web --tail=100
+TAIL=100 FOLLOW=false npm run ops:logs -- api
+TAIL=100 FOLLOW=false npm run ops:logs -- web
 ```
+
+The operator log helper redacts URL credentials, bearer/basic credentials,
+secret-like environment values, database/Redis URL credentials, and sensitive
+query parameters including OAuth codes, state, nonce, ID tokens, refresh
+tokens, and session values by default. The same names are redacted as
+standalone `key=value` diagnostic fragments. Do not paste raw `docker logs`
+output into smoke evidence.
 
 Review:
 
@@ -76,7 +87,9 @@ Checklist:
 - `GOOGLE_OAUTH_REDIRECT_URI` exactly matches that value.
 - Open `/auth/login`.
 - Click `Google로 계속하기`.
-- Confirm `/api/auth/google/start` redirects to Google.
+- Confirm `/api/auth/google/start` redirects to Google and sets only the
+  `wa_google_oauth_flow` cookie with `Secure`, `HttpOnly`, `SameSite=Lax`, and
+  `Path=/api/auth/google`.
 - Complete Google login.
 - Confirm callback returns to `/auth/google/complete`.
 - Confirm refresh cookie is set with `Secure`, `HttpOnly`, and same-site policy.

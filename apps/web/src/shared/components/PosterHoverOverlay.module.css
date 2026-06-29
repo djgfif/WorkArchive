@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Poster hover overlay — 그리드/선반 포스터 카드 공용 (Vellum Index)
+   Poster hover overlay — 그리드/선반 포스터 카드 공용 (Studio)
    부모 카드(Link 등)에 전역 클래스 `.poster-card-hover` 를 부여하면
    hover/focus-visible 시 하단 그라디언트 + 메타가 페이드 인 한다.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -59,8 +59,9 @@
 .rating {
   flex-shrink: 0;
   font-size: 0.7rem;
-  font-weight: 850;
-  color: var(--app-accent-primary);
+  font-weight: 800;
+  color: var(--app-accent-warm);
+  font-family: var(--app-font-figure);
   font-variant-numeric: tabular-nums;
 }
 

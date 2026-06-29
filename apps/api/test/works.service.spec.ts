@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import {
   CatalogWorkSource,
   WorkStatus,
@@ -328,6 +328,41 @@ describe('WorksService', () => {
         title: '   ',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('logs work mutation failures with request ids and without raw error text', async () => {
+    const warnSpy = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    prisma.$transaction.mockImplementationOnce(async () => {
+      throw new Error('DATABASE_URL=postgresql://secret access_token raw payload');
+    });
+
+    await expect(
+      service.create(
+        USER_ID,
+        {
+          title: 'Dune',
+        },
+        'req-work-1',
+      ),
+    ).rejects.toThrow();
+
+    const logPayload = String(warnSpy.mock.calls[0]?.[0] ?? '');
+
+    expect(JSON.parse(logPayload)).toEqual(
+      expect.objectContaining({
+        errorCode: 'Error',
+        event: 'work.mutation.failed',
+        operation: 'create',
+        requestId: 'req-work-1',
+        userId: USER_ID,
+      }),
+    );
+    expect(logPayload).not.toMatch(
+      /DATABASE_URL|postgresql:\/\/secret|access_token|raw payload/i,
+    );
+    warnSpy.mockRestore();
   });
 
   it('updates an active work and increments serverVersion when changes are present', async () => {

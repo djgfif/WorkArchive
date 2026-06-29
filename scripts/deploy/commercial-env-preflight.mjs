@@ -1,13 +1,20 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const envPath = process.argv[2] ?? '.env.prod';
-const resolvedEnvPath = path.resolve(process.cwd(), envPath);
 const DEFAULT_SECRET_PATTERNS = [
   /^change-me/i,
+  /^<.*>$/,
   /^local-compose/i,
   /demo-password/i,
+];
+const PLACEHOLDER_VALUE_PATTERNS = [
+  /^<.*>$/,
+  /archive\.example\.com/i,
+  /localhost/i,
+  /^change-me/i,
+  /^local-compose/i,
 ];
 const SECRET_NAMES = new Set([
   'JWT_ACCESS_SECRET',
@@ -15,83 +22,205 @@ const SECRET_NAMES = new Set([
   'SECURITY_EVENT_HASH_SECRET',
   'EXTERNAL_API_KEY_ENCRYPTION_SECRET',
 ]);
-const errors = [];
-const warnings = [];
+const GOOGLE_OAUTH_CALLBACK_PATH = '/api/auth/google/callback';
+const MAXIMUM_PORT = 65_535;
+let env = {};
+let errors = [];
+let warnings = [];
 
-if (!fs.existsSync(resolvedEnvPath)) {
-  console.error(
-    JSON.stringify({
-      event: 'deploy.env_preflight.failed',
-      message: `${envPath} does not exist.`,
-    }),
-  );
-  process.exit(1);
-}
+export function runCommercialEnvPreflight(
+  envPath = '.env.prod',
+  cwd = process.cwd(),
+) {
+  const resolvedEnvPath = path.resolve(cwd, envPath);
+  const stdout = [];
+  const stderr = [];
 
-const env = parseEnvFile(fs.readFileSync(resolvedEnvPath, 'utf8'));
+  errors = [];
+  warnings = [];
+  env = {};
 
-expectExact('NODE_ENV', 'production');
-expectPresent('DATABASE_URL');
-expectExact('RATE_LIMIT_STORE', 'redis');
-expectPresent('REDIS_URL');
-expectExact('TRUST_PROXY_HOPS', '1');
-expectExact('COOKIE_SECURE', 'true');
-expectExact('SWAGGER_ENABLED', 'false');
-expectPositiveIntegerMax('READINESS_CHECK_TIMEOUT_MS', 5000);
-expectBodySizeLimit('API_JSON_BODY_LIMIT', 5 * 1024 * 1024);
-expectBodySizeLimit('API_URLENCODED_BODY_LIMIT', 256 * 1024);
-expectBoolean('METRICS_ENABLED');
-if (env.METRICS_ENABLED === 'true') {
-  expectExact('METRICS_INTERNAL_ACCESS_REVIEWED', 'true');
-  expectPresent('METRICS_BEARER_TOKEN');
+  if (!fs.existsSync(resolvedEnvPath)) {
+    stderr.push(
+      JSON.stringify({
+        event: 'deploy.env_preflight.failed',
+        message: `${envPath} does not exist.`,
+      }),
+    );
 
-  if ((env.METRICS_BEARER_TOKEN?.trim() ?? '').length < 32) {
-    errors.push('METRICS_BEARER_TOKEN must be at least 32 characters.');
-  }
-}
-expectHttpsUrl('CORS_ORIGIN');
-expectHttpsUrl('WEB_BASE_URL');
-expectHttpsUrl('GOOGLE_OAUTH_REDIRECT_URI');
-
-for (const name of SECRET_NAMES) {
-  const value = env[name]?.trim() ?? '';
-
-  if (!value) {
-    errors.push(`${name} is required.`);
-    continue;
+    return formatPreflightResult(1, stdout, stderr);
   }
 
-  if (value.length < 32) {
-    errors.push(`${name} must be at least 32 characters.`);
+  env = parseEnvFile(fs.readFileSync(resolvedEnvPath, 'utf8'));
+
+  expectExact('NODE_ENV', 'production');
+  expectLogLevel('LOG_LEVEL');
+  expectOptionalPort('PORT');
+  expectOptionalHost('HOST');
+  expectOptionalNoWhitespace('RATE_LIMIT_PREFIX');
+  expectOptionalClientHeaderGuardMode('WORK_ARCHIVE_CLIENT_HEADER_GUARD');
+  expectPresent('DATABASE_URL');
+  expectProductionDatabaseUrl();
+  expectNonPlaceholder('GOOGLE_OAUTH_CLIENT_ID');
+  expectNonPlaceholder('GOOGLE_OAUTH_CLIENT_SECRET');
+  expectExact('RATE_LIMIT_STORE', 'redis');
+  expectPresent('REDIS_URL');
+  expectProductionRedisUrl();
+  expectExact('TRUST_PROXY_HOPS', '1');
+  expectExact('COOKIE_SECURE', 'true');
+  expectExact('SWAGGER_ENABLED', 'false');
+  expectOptionalExact('PASSWORD_RESET_DEV_LINKS_ENABLED', 'false');
+  expectPositiveIntegerMax('API_GLOBAL_RATE_LIMIT_MAX', 2000);
+  expectOptionalPositiveIntegerMax('AUTH_RATE_LIMIT_MAX', 300);
+  expectPositiveIntegerMax('AUTH_SENSITIVE_RATE_LIMIT_MAX', 60);
+  expectOptionalPositiveIntegerMax('CATALOG_RATE_LIMIT_MAX', 60);
+  expectOptionalPositiveIntegerMax('IMPORT_AUTH_RATE_LIMIT_MAX', 300);
+  expectOptionalPositiveIntegerMax('IMPORT_GUEST_RATE_LIMIT_MAX', 60);
+  expectOptionalPositiveIntegerMax('IMAGE_PROXY_RATE_LIMIT_MAX', 600);
+  expectOptionalPositiveIntegerMax('MUTATION_RATE_LIMIT_MAX', 300);
+  expectOptionalPositiveIntegerMax('NOTION_RATE_LIMIT_MAX', 60);
+  expectOptionalPositiveIntegerMax('RATE_LIMIT_WINDOW_MS', 300000);
+  expectOptionalPositiveIntegerMax('SYNC_RATE_LIMIT_MAX', 300);
+  expectPositiveIntegerMax('READINESS_CHECK_TIMEOUT_MS', 5000);
+  expectPositiveIntegerMax('API_REQUEST_TIMEOUT_MS', 120000);
+  expectPositiveIntegerMax('API_HEADERS_TIMEOUT_MS', 30000);
+  expectPositiveIntegerMax('API_KEEP_ALIVE_TIMEOUT_MS', 15000);
+  expectOptionalPositiveInteger('PRISMA_CONNECT_TIMEOUT_MS');
+  expectServerTimeoutOrdering();
+  expectBodySizeLimit('API_JSON_BODY_LIMIT', 5 * 1024 * 1024);
+  expectBodySizeLimit('API_URLENCODED_BODY_LIMIT', 256 * 1024);
+  expectBoolean('METRICS_ENABLED');
+  expectBoolean('METRICS_INTERNAL_ACCESS_REVIEWED');
+  expectOptionalNoWhitespace('METRICS_BEARER_TOKEN');
+  expectBoolean('IMPORT_SERVER_SEARCH_GUEST_ENABLED');
+  expectBoolean('IMPORT_SERVER_SEARCH_GUEST_APPROVED');
+  expectBoolean('KOBIS_HTTP_PROVIDER_ENABLED');
+
+  if (
+    env.IMPORT_SERVER_SEARCH_GUEST_ENABLED === 'true' &&
+    env.IMPORT_SERVER_SEARCH_GUEST_APPROVED !== 'true'
+  ) {
+    errors.push(
+      'IMPORT_SERVER_SEARCH_GUEST_APPROVED must be true when IMPORT_SERVER_SEARCH_GUEST_ENABLED=true.',
+    );
   }
 
-  if (DEFAULT_SECRET_PATTERNS.some((pattern) => pattern.test(value))) {
-    errors.push(`${name} must not use a development/default value.`);
+  if (env.METRICS_ENABLED === 'true') {
+    expectExact('METRICS_INTERNAL_ACCESS_REVIEWED', 'true');
+    expectPresent('METRICS_BEARER_TOKEN');
+
+    if ((env.METRICS_BEARER_TOKEN?.trim() ?? '').length < 32) {
+      errors.push('METRICS_BEARER_TOKEN must be at least 32 characters.');
+    }
+
+    if (
+      DEFAULT_SECRET_PATTERNS.some((pattern) =>
+        pattern.test(env.METRICS_BEARER_TOKEN?.trim() ?? ''),
+      )
+    ) {
+      errors.push(
+        'METRICS_BEARER_TOKEN must not use a development/default value.',
+      );
+    }
+  }
+
+  expectProductionHttpsUrl('CORS_ORIGIN');
+  expectProductionHttpsUrl('WEB_BASE_URL');
+  expectProductionHttpsUrl('GOOGLE_OAUTH_REDIRECT_URI');
+  expectExact('VITE_API_BASE_URL', '/api');
+  expectWebBaseUrlInCorsOrigin();
+  expectGoogleOAuthRedirectUriPath();
+
+  for (const name of SECRET_NAMES) {
+    const value = env[name]?.trim() ?? '';
+
+    if (!value) {
+      errors.push(`${name} is required.`);
+      continue;
+    }
+
+    if (value.length < 32) {
+      errors.push(`${name} must be at least 32 characters.`);
+    }
+
+    if (DEFAULT_SECRET_PATTERNS.some((pattern) => pattern.test(value))) {
+      errors.push(`${name} must not use a development/default value.`);
+    }
+  }
+
+  expectDistinctSecretValues([
+    ...SECRET_NAMES,
+    ...(env.METRICS_BEARER_TOKEN?.trim() ? ['METRICS_BEARER_TOKEN'] : []),
+  ]);
+
+  for (const [name, value] of Object.entries(env).sort()) {
+    const printableValue = isSensitiveEnvName(name) ? mask(value) : value;
+
+    stdout.push(`${name}=${printableValue}`);
+  }
+
+  for (const warning of warnings) {
+    stderr.push(`WARN ${warning}`);
+  }
+
+  if (errors.length > 0) {
+    for (const error of errors) {
+      stderr.push(`ERROR ${error}`);
+    }
+
+    return formatPreflightResult(1, stdout, stderr);
+  }
+
+  stdout.push('commercial env preflight passed');
+
+  return formatPreflightResult(0, stdout, stderr);
+}
+
+function formatPreflightResult(status, stdout, stderr) {
+  return {
+    status,
+    stderr: stderr.length > 0 ? `${stderr.join('\n')}\n` : '',
+    stdout: stdout.length > 0 ? `${stdout.join('\n')}\n` : '',
+  };
+}
+
+function expectDistinctSecretValues(names) {
+  const seen = new Map();
+
+  for (const name of names) {
+    const value = env[name]?.trim() ?? '';
+
+    if (!value) {
+      continue;
+    }
+
+    const previousName = seen.get(value);
+
+    if (previousName) {
+      errors.push(`${name} must not reuse the same secret value as ${previousName}.`);
+      continue;
+    }
+
+    seen.set(value, name);
   }
 }
 
-for (const [name, value] of Object.entries(env).sort()) {
-  const printableValue = isSensitiveEnvName(name) ? mask(value) : value;
+const entrypointUrl =
+  process.argv[1] === undefined
+    ? null
+    : pathToFileURL(process.argv[1]).href;
 
-  console.log(`${name}=${printableValue}`);
+if (entrypointUrl === import.meta.url) {
+  const result = runCommercialEnvPreflight(process.argv[2] ?? '.env.prod');
+
+  process.stdout.write(result.stdout);
+  process.stderr.write(result.stderr);
+  process.exit(result.status);
 }
-
-for (const warning of warnings) {
-  console.warn(`WARN ${warning}`);
-}
-
-if (errors.length > 0) {
-  for (const error of errors) {
-    console.error(`ERROR ${error}`);
-  }
-
-  process.exit(1);
-}
-
-console.log('commercial env preflight passed');
 
 function parseEnvFile(contents) {
   const parsed = {};
+  const seenKeys = new Set();
 
   for (const line of contents.split(/\r?\n/)) {
     const trimmed = line.trim();
@@ -108,7 +237,13 @@ function parseEnvFile(contents) {
     }
 
     const key = trimmed.slice(0, separatorIndex).trim();
+    const normalizedKey = key.replace(/^export\s+/, '').trim();
     let value = trimmed.slice(separatorIndex + 1).trim();
+
+    if (seenKeys.has(normalizedKey)) {
+      errors.push(`${normalizedKey} is defined more than once.`);
+    }
+    seenKeys.add(normalizedKey);
 
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
@@ -117,7 +252,7 @@ function parseEnvFile(contents) {
       value = value.slice(1, -1);
     }
 
-    parsed[key] = value;
+    parsed[normalizedKey] = value;
   }
 
   return parsed;
@@ -129,11 +264,29 @@ function expectPresent(name) {
   }
 }
 
+function expectNonPlaceholder(name) {
+  expectPresent(name);
+
+  const value = env[name]?.trim() ?? '';
+
+  if (isPlaceholderValue(value)) {
+    errors.push(`${name} must be set to a host-specific production value.`);
+  }
+}
+
 function expectExact(name, expected) {
   const actual = env[name]?.trim();
 
   if (actual !== expected) {
     errors.push(`${name} must be ${expected}.`);
+  }
+}
+
+function expectOptionalExact(name, expected) {
+  const actual = env[name]?.trim();
+
+  if (actual && actual !== expected) {
+    errors.push(`${name} must be ${expected} when set.`);
   }
 }
 
@@ -145,6 +298,24 @@ function expectBoolean(name) {
   }
 }
 
+function expectLogLevel(name) {
+  const actual = env[name]?.trim().toLowerCase();
+
+  if (!actual) {
+    return;
+  }
+
+  if (
+    !['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'].includes(
+      actual,
+    )
+  ) {
+    errors.push(
+      `${name} must be one of trace, debug, info, warn, error, fatal, or silent.`,
+    );
+  }
+}
+
 function expectPositiveIntegerMax(name, max) {
   const actual = env[name]?.trim();
 
@@ -153,15 +324,109 @@ function expectPositiveIntegerMax(name, max) {
     return;
   }
 
+  if (!/^[1-9]\d*$/.test(actual)) {
+    errors.push(`${name} must be a positive integer.`);
+    return;
+  }
+
   const value = Number(actual);
 
-  if (!Number.isInteger(value) || value <= 0) {
-    errors.push(`${name} must be a positive integer.`);
+  if (!Number.isSafeInteger(value)) {
+    errors.push(`${name} must be a safe integer.`);
     return;
   }
 
   if (value > max) {
     errors.push(`${name} must not exceed ${max}.`);
+  }
+}
+
+function expectOptionalPositiveInteger(name) {
+  const actual = env[name]?.trim();
+
+  if (!actual) {
+    return;
+  }
+
+  if (!/^[1-9]\d*$/.test(actual)) {
+    errors.push(`${name} must be a positive integer.`);
+    return;
+  }
+
+  const value = Number(actual);
+
+  if (!Number.isSafeInteger(value)) {
+    errors.push(`${name} must be a safe integer.`);
+  }
+}
+
+function expectOptionalPositiveIntegerMax(name, max) {
+  const actual = env[name]?.trim();
+
+  if (!actual) {
+    return;
+  }
+
+  expectPositiveIntegerMax(name, max);
+}
+
+function expectOptionalPort(name) {
+  const actual = env[name]?.trim();
+
+  if (!actual) {
+    return;
+  }
+
+  if (!/^[1-9]\d*$/.test(actual)) {
+    errors.push(`${name} must be a positive integer.`);
+    return;
+  }
+
+  const value = Number(actual);
+
+  if (!Number.isSafeInteger(value)) {
+    errors.push(`${name} must be a safe integer.`);
+    return;
+  }
+
+  if (value > MAXIMUM_PORT) {
+    errors.push(`${name} must be between 1 and ${MAXIMUM_PORT}.`);
+  }
+}
+
+function expectOptionalHost(name) {
+  const actual = env[name]?.trim();
+
+  if (!actual) {
+    return;
+  }
+
+  if (/[\s/?#@]/.test(actual)) {
+    errors.push(`${name} must be a host or IP address, not a URL.`);
+  }
+}
+
+function expectOptionalNoWhitespace(name) {
+  const actual = env[name]?.trim();
+
+  if (!actual) {
+    return;
+  }
+
+  if (/\s/.test(actual)) {
+    errors.push(`${name} must not contain whitespace.`);
+  }
+}
+
+function expectOptionalClientHeaderGuardMode(name) {
+  const actual = env[name]?.trim().toLowerCase();
+
+  if (!actual) {
+    return;
+  }
+
+  if (actual !== 'audit' && actual !== 'enforce') {
+    errors.push(`${name} must be audit or enforce in production.`);
   }
 }
 
@@ -192,6 +457,155 @@ function expectBodySizeLimit(name, maxBytes) {
   if (bytes > maxBytes) {
     errors.push(`${name} must not exceed ${maxBytes} bytes.`);
   }
+}
+
+function expectServerTimeoutOrdering() {
+  const requestTimeoutMs = readPlainInteger(env.API_REQUEST_TIMEOUT_MS);
+  const headersTimeoutMs = readPlainInteger(env.API_HEADERS_TIMEOUT_MS);
+  const keepAliveTimeoutMs = readPlainInteger(env.API_KEEP_ALIVE_TIMEOUT_MS);
+
+  if (
+    requestTimeoutMs !== null &&
+    headersTimeoutMs !== null &&
+    headersTimeoutMs > requestTimeoutMs
+  ) {
+    errors.push(
+      'API_HEADERS_TIMEOUT_MS must not exceed API_REQUEST_TIMEOUT_MS.',
+    );
+  }
+
+  if (
+    headersTimeoutMs !== null &&
+    keepAliveTimeoutMs !== null &&
+    keepAliveTimeoutMs >= headersTimeoutMs
+  ) {
+    errors.push(
+      'API_KEEP_ALIVE_TIMEOUT_MS must be lower than API_HEADERS_TIMEOUT_MS.',
+    );
+  }
+}
+
+function readPlainInteger(value) {
+  const actual = value?.trim();
+
+  if (!actual || !/^[1-9]\d*$/.test(actual)) {
+    return null;
+  }
+
+  const parsedValue = Number(actual);
+
+  return Number.isSafeInteger(parsedValue) ? parsedValue : null;
+}
+
+function expectWebBaseUrlInCorsOrigin() {
+  const webBaseUrl = env.WEB_BASE_URL?.trim() ?? '';
+  const corsOrigins = (env.CORS_ORIGIN ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (!webBaseUrl || corsOrigins.length === 0) {
+    return;
+  }
+
+  try {
+    const webOrigin = new URL(webBaseUrl).origin;
+    const allowedOrigins = new Set(
+      corsOrigins.map((origin) => new URL(origin).origin),
+    );
+
+    if (!allowedOrigins.has(webOrigin)) {
+      errors.push('WEB_BASE_URL origin must be included in CORS_ORIGIN.');
+    }
+  } catch {
+    // URL shape errors are reported by expectProductionHttpsUrl.
+  }
+}
+
+function expectGoogleOAuthRedirectUriPath() {
+  const redirectUri = env.GOOGLE_OAUTH_REDIRECT_URI?.trim() ?? '';
+
+  if (!redirectUri) {
+    return;
+  }
+
+  try {
+    const parsedUrl = new URL(redirectUri);
+
+    if (
+      parsedUrl.pathname !== GOOGLE_OAUTH_CALLBACK_PATH ||
+      parsedUrl.search !== '' ||
+      parsedUrl.hash !== ''
+    ) {
+      errors.push(
+        `GOOGLE_OAUTH_REDIRECT_URI must use ${GOOGLE_OAUTH_CALLBACK_PATH} with no query string or fragment.`,
+      );
+    }
+  } catch {
+    // URL shape errors are reported by expectProductionHttpsUrl.
+  }
+}
+
+function expectProductionDatabaseUrl() {
+  const databaseUrlValue = env.DATABASE_URL?.trim() ?? '';
+
+  if (!databaseUrlValue) {
+    return;
+  }
+
+  try {
+    const databaseUrl = new URL(databaseUrlValue);
+
+    if (
+      databaseUrl.protocol !== 'postgresql:' &&
+      databaseUrl.protocol !== 'postgres:'
+    ) {
+      errors.push(
+        'DATABASE_URL must use the postgresql:// or postgres:// scheme.',
+      );
+    }
+
+    if (
+      decodeURIComponent(databaseUrl.username) === 'postgres' &&
+      decodeURIComponent(databaseUrl.password) === 'postgres'
+    ) {
+      errors.push(
+        'DATABASE_URL must not use the postgres/postgres development credential.',
+      );
+    }
+
+    if (isLocalhostHostname(databaseUrl.hostname)) {
+      errors.push('DATABASE_URL must not use localhost.');
+    }
+  } catch {
+    errors.push('DATABASE_URL must be a valid PostgreSQL URL.');
+  }
+}
+
+function expectProductionRedisUrl() {
+  const redisUrlValue = env.REDIS_URL?.trim() ?? '';
+
+  if (!redisUrlValue) {
+    return;
+  }
+
+  try {
+    const redisUrl = new URL(redisUrlValue);
+
+    if (redisUrl.protocol !== 'redis:' && redisUrl.protocol !== 'rediss:') {
+      errors.push('REDIS_URL must be a valid redis:// or rediss:// URL.');
+    }
+
+    if (isLocalhostHostname(redisUrl.hostname)) {
+      errors.push('REDIS_URL must not use localhost.');
+    }
+  } catch {
+    errors.push('REDIS_URL must be a valid redis:// or rediss:// URL.');
+  }
+}
+
+function isLocalhostHostname(hostname) {
+  return ['localhost', '127.0.0.1', '[::1]', '::1'].includes(hostname);
 }
 
 function isSensitiveEnvName(name) {
@@ -227,6 +641,25 @@ function expectHttpsUrl(name) {
       errors.push(`${name} must be a valid URL.`);
     }
   }
+}
+
+function expectProductionHttpsUrl(name) {
+  expectHttpsUrl(name);
+
+  const values = (env[name] ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  for (const value of values) {
+    if (isPlaceholderValue(value)) {
+      errors.push(`${name} must be set to a host-specific production URL.`);
+    }
+  }
+}
+
+function isPlaceholderValue(value) {
+  return PLACEHOLDER_VALUE_PATTERNS.some((pattern) => pattern.test(value));
 }
 
 function mask(value) {

@@ -11,6 +11,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -22,7 +23,9 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import type { Request } from 'express';
 
+import { getRequestId } from '../../security/security-audit.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
@@ -198,10 +201,15 @@ export class ImportsController {
   async search(
     @Headers('authorization') authorizationHeader: string | undefined,
     @Query() importSearchQueryDto: ImportSearchQueryDto,
+    @Req() request: Request,
   ) {
     const user = await this.getOptionalUser(authorizationHeader);
 
-    return this.importsService.search(user?.userId ?? null, importSearchQueryDto);
+    return this.importsService.search(
+      user?.userId ?? null,
+      importSearchQueryDto,
+      getRequestId(request) ?? undefined,
+    );
   }
 
   @Post('resolve')

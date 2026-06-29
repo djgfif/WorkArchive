@@ -4,9 +4,11 @@ Last reviewed: 2026-05-25.
 
 ## Current State
 
-`UserWorkRecord.userId` is currently nullable in the Prisma schema. Runtime
-service paths still treat user-owned records as owned objects and must scope
-user-facing mutations by both `id` and `userId`.
+`UserWorkRecord.userId` is required in the Prisma schema and enforced by
+`20260614001000_require_user_work_record_user_id`. Runtime service paths still
+treat user-owned records as owned objects and must scope user-facing mutations
+by both `id` and `userId`; the schema constraint complements but does not
+replace object-level authorization.
 
 The current mutation invariant is:
 
@@ -17,22 +19,18 @@ The current mutation invariant is:
 - sync/import compatibility paths must not infer ownership from a user-supplied
   object id alone.
 
-## Migration Plan
+## Drift Guard
 
-Do not change the schema until production data has been checked.
+`npm run qa:owner-invariants` checks that:
 
-1. Add a release check that counts `user_work_records` rows where `userId` is
-   null and confirms whether they are legacy catalog-only compatibility rows.
-2. If nullable rows exist, backfill or delete them through an explicit data
-   repair script with a dry-run mode and a release note.
-3. Update application tests to assume user-owned records always have `userId`.
-4. Add a Prisma migration changing `UserWorkRecord.userId` to required only
-   after the repair check passes in staging and production rehearsal.
-5. Keep owner-scoped mutation tests in place after the schema change; the schema
-   constraint complements but does not replace object-level authorization.
+- `UserWorkRecord.userId` remains required in `schema.prisma`;
+- the required migration still sets `user_work_records."userId"` to `NOT NULL`;
+- this document and ASVS coverage do not regress to describing required owner
+  enforcement as future work.
 
 ## Release Gate
 
-Before making `userId` required, attach the data check output and migration
-dry-run output to the release artifact. If any nullable row cannot be mapped to
-a real user, stop the migration and document the cleanup decision.
+Before releases that touch ownership-sensitive records, run
+`npm run qa:owner-invariants` with the rest of the commercial repository gates.
+Keep owner-scoped mutation tests in place after schema changes; the schema
+constraint complements but does not replace object-level authorization.

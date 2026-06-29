@@ -591,6 +591,37 @@ export function AppNavLink({
   );
 }
 
+/* 계측 라벨 — 임상적 모노 + 단일 인디고 레지스트레이션 틱(액센트 절제) */
+function EyebrowLabel({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: '1.4rem',
+          height: 1,
+          flexShrink: 0,
+          background: 'var(--app-accent-primary)',
+        }}
+      />
+      <Text
+        component="span"
+        fw={600}
+        size="xs"
+        tt="uppercase"
+        style={{
+          letterSpacing: '0.12em',
+          color: 'var(--app-text-muted)',
+        }}
+      >
+        {children}
+      </Text>
+    </div>
+  );
+}
+
 export function SectionIntro({
   description,
   eyebrow,
@@ -599,17 +630,7 @@ export function SectionIntro({
 }: SectionIntroProps) {
   return (
     <Stack gap={6}>
-      {eyebrow && (
-        <Text
-          c="var(--app-accent-primary)"
-          fw={800}
-          size="xs"
-          tt="uppercase"
-          style={{ letterSpacing: '0.08em' }}
-        >
-          {eyebrow}
-        </Text>
-      )}
+      {eyebrow && <EyebrowLabel>{eyebrow}</EyebrowLabel>}
       <Title order={titleOrder}>{title}</Title>
       {description && (
         <Text c="dimmed" maw="64ch">
@@ -655,11 +676,7 @@ export function PageSection({
             />
           ) : (
             <Stack gap={6}>
-              {eyebrow && (
-                <Text c="dimmed" fw={800} size="xs" tt="uppercase">
-                  {eyebrow}
-                </Text>
-              )}
+              {eyebrow && <EyebrowLabel>{eyebrow}</EyebrowLabel>}
               {description && <Text c="dimmed">{description}</Text>}
             </Stack>
           )}
@@ -710,9 +727,14 @@ export function MetricPill({ label, value }: MetricPillProps) {
           {label}
         </Text>
         <Text
-          fw={800}
+          fw={700}
           size="lg"
-          style={{ color: 'var(--app-text-primary)', letterSpacing: '-0.02em' }}
+          style={{
+            color: 'var(--app-text-primary)',
+            fontFamily: 'var(--app-font-figure)',
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: '-0.02em',
+          }}
         >
           {value}
         </Text>

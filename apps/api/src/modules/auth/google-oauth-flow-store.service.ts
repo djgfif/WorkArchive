@@ -159,9 +159,11 @@ export class GoogleOAuthFlowStoreService implements OnModuleDestroy {
           }
 
           this.logger.warn(
-            `Redis OAuth flow store unavailable; using memory store reason=${
-              error instanceof Error ? error.name : 'unknown'
-            }`,
+            JSON.stringify({
+              errorCode: describeOperationalError(error),
+              event: 'auth.google_oauth_flow.redis_unavailable',
+              provider: 'redis',
+            }),
           );
 
           return null;
@@ -174,4 +176,8 @@ export class GoogleOAuthFlowStoreService implements OnModuleDestroy {
   private redisKey(flowId: string) {
     return `${GOOGLE_OAUTH_FLOW_KEY_PREFIX}${flowId}`;
   }
+}
+
+function describeOperationalError(error: unknown) {
+  return error instanceof Error ? error.name : 'UnknownError';
 }

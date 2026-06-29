@@ -1,6 +1,6 @@
 # Security Scan Results
 
-Last local update: 2026-05-25.
+Last local update: 2026-06-24.
 
 This file is the release artifact for dependency and container security scans.
 Update it for every beta or production release candidate.
@@ -37,12 +37,22 @@ release gate.
 
 ## Latest Result
 
-- `npm run security:audit:prod`: not completed locally. The sandboxed run could
-  not resolve `registry.npmjs.org`; run on the approved release runner because
-  npm audit sends dependency graph metadata to the external npm registry.
-- `npm run security:audit`: completed after updating the lockfile-only
-  remediation for `qs` from `6.15.1` to `6.15.2`
-  (`GHSA-q8mj-m7cp-5q26`). Result: 0 vulnerabilities.
+- `npm run security:audit:prod:high`: completed locally on 2026-06-24. Result:
+  PASS for high or critical production runtime findings. `multer` is pinned to
+  `multer@2.2.0` through the root npm override for
+  `@nestjs/platform-express`, removing the previous high upload parser findings
+  while staying on Nest 11. Result summary: found 0 vulnerabilities. public beta release status: high gate passed.
+- `npm run security:audit --audit-level=high`: completed locally on
+  2026-06-24. Result: PASS for high or critical findings after updating the
+  `jsdom` dev/test dependency path to `undici@7.28.0`, pinning `js-yaml@5.1.0`
+  through the root npm override, and keeping `multer@2.2.0` patched. Result
+  summary: found 0 vulnerabilities.
+- `npm run security:audit:prod`: completed locally on 2026-06-24. Result
+  summary: found 0 vulnerabilities. Rerun on the approved release runner before
+  approval because npm audit sends dependency graph metadata to the external npm
+  registry.
+- `npm run security:audit`: completed locally on 2026-06-24. Result: PASS for
+  all audited findings. Result summary: found 0 vulnerabilities.
 - `npm run security:scan:fs`: not run locally by design; run on the official
   release runner where Trivy is installed.
 - `npm run security:scan:images`: not run locally by design; run on the official
@@ -63,6 +73,15 @@ npm run security:audit:prod
 - npm version:
 - summary:
 - action:
+
+npm run security:audit:prod:high
+- status:
+- npm version:
+- high or critical summary:
+- release decision:
+- waiver:
+- owner:
+- expiry:
 
 npm run security:audit
 - status:

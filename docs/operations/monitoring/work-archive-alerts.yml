@@ -41,6 +41,36 @@ groups:
           summary: Work Archive refresh failures increased
           description: Refresh failures exceeded the Gate 1 spike threshold. Check OAuth/session logs, cookie behavior behind the proxy, and refresh token reuse events.
 
+      - alert: WorkArchiveUserDataRightsFailureSpike
+        expr: sum by (operation) (increase(work_archive_user_data_rights_total{result="failure"}[15m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive user data rights failures increased
+          description: Server-side data export, account deletion preview, or account deletion failures exceeded the Gate 1 threshold. Check structured audit events, database health, and deletion/export runbooks without adding user identifiers to alert labels.
+
+      - alert: WorkArchiveRateLimitRejectionSpike
+        expr: sum by (limiter) (increase(work_archive_rate_limit_exceeded_total[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive rate-limit rejections increased
+          description: A global or route-specific limiter rejected more than the Gate 1 threshold. Check beta traffic, reverse-proxy client IP handling, abusive clients, and whether API_GLOBAL_RATE_LIMIT_MAX is too low for legitimate traffic.
+
+      - alert: WorkArchiveClientHeaderGuardMissingSpike
+        expr: sum by (mode) (increase(work_archive_client_header_guard_total{result="missing"}[15m])) > 20
+        for: 10m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive client header guard misses increased
+          description: Authenticated unsafe requests missing the Work Archive client header exceeded the Gate 1 threshold. Compare missing versus accepted results before moving from audit to enforce.
+
       - alert: WorkArchiveSyncConflictSpike
         expr: sum(increase(work_archive_sync_conflict_total[15m])) > 50
         for: 10m
@@ -61,6 +91,16 @@ groups:
           summary: Work Archive sync validation failures increased
           description: Sync validation failures exceeded the Gate 1 threshold. Check client/server schema compatibility and malformed payload logs.
 
+      - alert: WorkArchiveSyncHighLatency
+        expr: histogram_quantile(0.95, sum by (le, direction, result) (rate(work_archive_sync_duration_seconds_bucket[5m]))) > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive sync latency is high
+          description: Sync p95 latency stayed above 5 seconds for 10 minutes. Compare push versus pull direction, recent payload sizes, and the latest Gate 1 performance smoke report.
+
       - alert: WorkArchiveImportProviderFailureSpike
         expr: sum by (provider) (increase(work_archive_imports_provider_failure_total[15m])) > 20
         for: 10m
@@ -80,3 +120,13 @@ groups:
         annotations:
           summary: Work Archive import provider circuit opened
           description: An import provider circuit opened recently. Confirm fallback provider behavior and avoid exposing raw provider URLs or credentials in logs.
+
+      - alert: WorkArchiveImportProviderHighLatency
+        expr: histogram_quantile(0.95, sum by (le, provider) (rate(work_archive_imports_provider_duration_seconds_bucket{result="success"}[5m]))) > 8
+        for: 10m
+        labels:
+          severity: warning
+          service: work_archive_api
+        annotations:
+          summary: Work Archive import provider latency is high
+          description: A provider success p95 latency stayed above 8 seconds for 10 minutes. Check provider status, quota throttling, Redis circuit state, and fallback provider coverage before broadening traffic.

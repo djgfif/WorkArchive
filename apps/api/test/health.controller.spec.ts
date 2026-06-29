@@ -1,4 +1,4 @@
-import { ServiceUnavailableException } from '@nestjs/common';
+import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import {
   afterEach,
   beforeEach,
@@ -9,6 +9,7 @@ import {
 } from '@jest/globals';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import type { Request } from 'express';
 
 const mockRedisConnect = jest.fn<() => Promise<void>>();
 const mockRedisDisconnect = jest.fn<() => void>();
@@ -24,6 +25,7 @@ jest.mock('ioredis', () =>
 
 import { HealthController } from '../src/modules/health/health.controller';
 import type { PrismaService } from '../src/prisma/prisma.service';
+import { setRequestId } from '../src/security/security-audit.service';
 
 describe('HealthController', () => {
   const originalEnv = { ...process.env };
@@ -90,12 +92,53 @@ describe('HealthController', () => {
     expect(mockRedisPing).not.toHaveBeenCalled();
   });
 
+  it('returns successful readiness check names without sensitive details', async () => {
+    mockReadyPostgresAndMigrations();
+
+    await expect(controller.getReadiness()).resolves.toEqual({
+      service: 'work-archive-api',
+      status: 'ok',
+      checks: {
+        config: 'ok',
+        migrations: 'ok',
+        postgres: 'ok',
+      },
+    });
+  });
+
   it('returns 503 readiness when PostgreSQL is unavailable', async () => {
     prisma.$queryRaw.mockRejectedValue(new Error('postgres down'));
 
     await expect(controller.getReadiness()).rejects.toBeInstanceOf(
       ServiceUnavailableException,
     );
+  });
+
+  it('records readiness failure request ids for operator correlation', async () => {
+    const warnSpy = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const request = {} as Request;
+    setRequestId(request, 'req-readyz-1');
+    prisma.$queryRaw.mockRejectedValue(new Error('postgres down'));
+
+    try {
+      await controller.getReadiness(request);
+      throw new Error('Expected readiness to fail.');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ServiceUnavailableException);
+      expect((error as ServiceUnavailableException).getResponse()).toEqual({
+        checks: ['postgres'],
+        requestId: 'req-readyz-1',
+        service: 'work-archive-api',
+        status: 'unavailable',
+      });
+    }
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"requestId":"req-readyz-1"'),
+    );
+    warnSpy.mockRestore();
   });
 
   it('returns 503 readiness when PostgreSQL exceeds the readiness timeout', async () => {
@@ -160,6 +203,8 @@ describe('HealthController', () => {
       ...process.env,
       COOKIE_SECURE: 'true',
       CORS_ORIGIN: 'https://workarchive.example.com',
+      DATABASE_URL:
+        'postgresql://work:archive@postgres:5432/work_archive?schema=public',
       EXTERNAL_API_KEY_ENCRYPTION_SECRET:
         'production-external-api-key-secret-minimum-32-chars',
       GOOGLE_OAUTH_CLIENT_ID: 'production-google-client-id',
@@ -170,7 +215,7 @@ describe('HealthController', () => {
       JWT_REFRESH_SECRET: 'production-refresh-secret-minimum-32-chars',
       NODE_ENV: 'production',
       RATE_LIMIT_STORE: 'redis',
-      REDIS_URL: 'redis://127.0.0.1:6379',
+      REDIS_URL: 'redis://redis:6379',
       SECURITY_EVENT_HASH_SECRET:
         'production-security-event-secret-minimum-32-chars',
       SEED_DEMO_PASSWORD: 'not-demo-password',
@@ -188,11 +233,52 @@ describe('HealthController', () => {
     expect(mockRedisDisconnect).toHaveBeenCalled();
   });
 
+  it('includes Redis in successful readiness when Redis is configured', async () => {
+    process.env = {
+      ...process.env,
+      COOKIE_SECURE: 'true',
+      CORS_ORIGIN: 'https://workarchive.example.com',
+      DATABASE_URL:
+        'postgresql://work:archive@postgres:5432/work_archive?schema=public',
+      EXTERNAL_API_KEY_ENCRYPTION_SECRET:
+        'production-external-api-key-secret-minimum-32-chars',
+      GOOGLE_OAUTH_CLIENT_ID: 'production-google-client-id',
+      GOOGLE_OAUTH_CLIENT_SECRET: 'production-google-client-secret',
+      GOOGLE_OAUTH_REDIRECT_URI:
+        'https://workarchive.example.com/api/auth/google/callback',
+      JWT_ACCESS_SECRET: 'production-access-secret-minimum-32-chars',
+      JWT_REFRESH_SECRET: 'production-refresh-secret-minimum-32-chars',
+      NODE_ENV: 'production',
+      RATE_LIMIT_STORE: 'redis',
+      REDIS_URL: 'redis://redis:6379',
+      SECURITY_EVENT_HASH_SECRET:
+        'production-security-event-secret-minimum-32-chars',
+      SEED_DEMO_PASSWORD: 'not-demo-password',
+      SWAGGER_ENABLED: 'false',
+      TRUST_PROXY_HOPS: '1',
+      WEB_BASE_URL: 'https://workarchive.example.com',
+    };
+    mockReadyPostgresAndMigrations();
+
+    await expect(controller.getReadiness()).resolves.toMatchObject({
+      service: 'work-archive-api',
+      status: 'ok',
+      checks: {
+        config: 'ok',
+        migrations: 'ok',
+        postgres: 'ok',
+        redis: 'ok',
+      },
+    });
+  });
+
   it('returns 503 readiness when Redis exceeds the readiness timeout', async () => {
     process.env = {
       ...process.env,
       COOKIE_SECURE: 'true',
       CORS_ORIGIN: 'https://workarchive.example.com',
+      DATABASE_URL:
+        'postgresql://work:archive@postgres:5432/work_archive?schema=public',
       EXTERNAL_API_KEY_ENCRYPTION_SECRET:
         'production-external-api-key-secret-minimum-32-chars',
       GOOGLE_OAUTH_CLIENT_ID: 'production-google-client-id',
@@ -204,7 +290,7 @@ describe('HealthController', () => {
       NODE_ENV: 'production',
       RATE_LIMIT_STORE: 'redis',
       READINESS_CHECK_TIMEOUT_MS: '1',
-      REDIS_URL: 'redis://127.0.0.1:6379',
+      REDIS_URL: 'redis://redis:6379',
       SECURITY_EVENT_HASH_SECRET:
         'production-security-event-secret-minimum-32-chars',
       SEED_DEMO_PASSWORD: 'not-demo-password',

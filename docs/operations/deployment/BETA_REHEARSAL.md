@@ -12,20 +12,25 @@ scripts/deploy/commercial-beta-rehearsal.sh .env.prod
 
 It performs:
 
+- production beta preflight with the real `.env.prod`
 - `docker compose -f compose.prod.yml --env-file .env.prod config`
 - release-profile API migration
 - stack build/up
-- `/health`, `/livez`, `/readyz`
-- web static health via `/work-archive-config.js`
-- `/api/auth/google/status`
-- `/api/imports/providers`
+- production healthcheck for `/health`, `/livez`, and `/readyz` through the
+  deployed web origin, with displayed diagnostics redacted
+- beta smoke for web static serving, runtime config, Google OAuth status, API
+  security headers through the deployed proxy, OAuth flow cookie attributes,
+  import providers, refresh guard behavior, sync validation, and read-only
+  container filesystems
 - public unauthenticated `/metrics` exposure check, always expecting `404`
 - optional internal collector `/metrics` check with `SMOKE_METRICS_BEARER_TOKEN`,
   expecting `200` and Work Archive metrics content
 - retention cleanup dry-run
 
-The script does not print secret values. Review Docker logs separately if a
-step fails, and redact environment values before sharing output.
+The script redacts URL userinfo, bearer/basic credentials, secret-like
+environment values, and sensitive query parameters from displayed diagnostics.
+Review Docker logs separately if a step fails, and redact environment values
+before sharing output.
 
 ## Operator Env Preflight
 
@@ -37,8 +42,9 @@ scripts/deploy/commercial-env-preflight.mjs .env.prod
 ```
 
 Required checks include production mode, Redis rate limiting, secure cookies,
-Swagger disabled, HTTPS CORS/web/OAuth URLs, and non-default 32+ character JWT,
-security-event, and provider-key encryption secrets.
+Swagger disabled, host-specific HTTPS CORS/web/OAuth URLs, present Google OAuth
+credentials, and non-default 32+ character JWT, security-event, and provider-key
+encryption secrets.
 
 If `METRICS_ENABLED=true`, the preflight requires
 `METRICS_INTERNAL_ACCESS_REVIEWED=true`. That flag is an operator assertion that

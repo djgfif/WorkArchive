@@ -24,6 +24,25 @@ interface ProviderCacheEntry {
   value: unknown;
 }
 
+const RECORD_PROVIDER_FAILURE_SCRIPT = `
+local failures = redis.call("INCR", KEYS[2])
+redis.call("PEXPIRE", KEYS[2], ARGV[2])
+
+local openedUntil = cjson.null
+if failures >= tonumber(ARGV[1]) then
+  openedUntil = tonumber(ARGV[3]) + tonumber(ARGV[2])
+end
+
+local state = cjson.encode({
+  consecutiveFailures = failures,
+  openedUntil = openedUntil,
+  reasonCode = "provider_failed"
+})
+
+redis.call("SET", KEYS[1], state, "PX", ARGV[2])
+return state
+`;
+
 @Injectable()
 export class ProviderRuntimeStateService implements OnModuleDestroy {
   private readonly logger = new Logger(ProviderRuntimeStateService.name);
@@ -106,11 +125,7 @@ export class ProviderRuntimeStateService implements OnModuleDestroy {
       return true;
     }
 
-    await this.writeCircuitState(provider, {
-      consecutiveFailures: 0,
-      openedUntil: null,
-      reasonCode: 'provider_failed',
-    });
+    await this.clearCircuit(provider);
 
     return false;
   }
@@ -134,10 +149,17 @@ export class ProviderRuntimeStateService implements OnModuleDestroy {
   }
 
   async recordSuccess(provider: ImportProvider) {
+    await this.clearCircuit(provider);
+  }
+
+  async clearCircuit(provider: ImportProvider) {
     const redis = await this.getRedis();
 
     if (redis) {
-      await redis.del(this.circuitRedisKey(provider));
+      await redis.del(
+        this.circuitRedisKey(provider),
+        this.circuitFailureCountRedisKey(provider),
+      );
 
       return;
     }
@@ -150,6 +172,22 @@ export class ProviderRuntimeStateService implements OnModuleDestroy {
     threshold: number,
     openMs: number,
   ) {
+    const redis = await this.getRedis();
+
+    if (redis) {
+      await redis.eval(
+        RECORD_PROVIDER_FAILURE_SCRIPT,
+        2,
+        this.circuitRedisKey(provider),
+        this.circuitFailureCountRedisKey(provider),
+        String(threshold),
+        String(openMs),
+        String(Date.now()),
+      );
+
+      return;
+    }
+
     const current = (await this.readCircuitState(provider)) ?? {
       consecutiveFailures: 0,
       openedUntil: null,
@@ -229,9 +267,11 @@ export class ProviderRuntimeStateService implements OnModuleDestroy {
           }
 
           this.logger.warn(
-            `Redis provider state unavailable; using memory state reason=${
-              error instanceof Error ? error.message : String(error)
-            }`,
+            JSON.stringify({
+              errorCode: describeOperationalError(error),
+              event: 'import_provider.redis_state_unavailable',
+              provider: 'redis',
+            }),
           );
 
           return null;
@@ -248,4 +288,12 @@ export class ProviderRuntimeStateService implements OnModuleDestroy {
   private circuitRedisKey(provider: ImportProvider) {
     return `work-archive:imports:circuit:${provider}`;
   }
+
+  private circuitFailureCountRedisKey(provider: ImportProvider) {
+    return `work-archive:imports:circuit-failures:${provider}`;
+  }
+}
+
+function describeOperationalError(error: unknown) {
+  return error instanceof Error ? error.name : 'UnknownError';
 }

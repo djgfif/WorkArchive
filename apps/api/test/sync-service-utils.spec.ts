@@ -57,10 +57,13 @@ describe('sync service utils', () => {
       JSON.stringify({
         count: null,
         durationMs: null,
+        entityId: null,
         entityType: 'work',
         errorCode: null,
         event: 'sync.test',
+        operation: null,
         provider: null,
+        queueId: null,
         requestId: 'request-1',
         userId: null,
       }),

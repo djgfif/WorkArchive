@@ -424,34 +424,46 @@ export class ImageProxyService implements OnModuleDestroy {
   }
 
   private logProxyFailure(url: URL, error: unknown) {
-    this.logger.warn({
-      errorCode: error instanceof Error ? error.name : 'UnknownError',
-      event: 'image_proxy.fetch_failed',
-      host: url.hostname,
-    });
+    this.logger.warn(
+      JSON.stringify({
+        errorCode: this.describeOperationalError(error),
+        event: 'image_proxy.fetch_failed',
+        host: url.hostname,
+      }),
+    );
   }
 
   private logStaleCacheFallback(url: URL, error: unknown) {
-    this.logger.warn({
-      errorCode: error instanceof Error ? error.name : 'UnknownError',
-      event: 'image_proxy.stale_cache_served',
-      host: url.hostname,
-    });
+    this.logger.warn(
+      JSON.stringify({
+        errorCode: this.describeOperationalError(error),
+        event: 'image_proxy.stale_cache_served',
+        host: url.hostname,
+      }),
+    );
   }
 
   private logStaleCacheRefreshFailure(url: URL, error: unknown) {
-    this.logger.warn({
-      errorCode: error instanceof Error ? error.name : 'UnknownError',
-      event: 'image_proxy.stale_cache_refresh_failed',
-      host: url.hostname,
-    });
+    this.logger.warn(
+      JSON.stringify({
+        errorCode: this.describeOperationalError(error),
+        event: 'image_proxy.stale_cache_refresh_failed',
+        host: url.hostname,
+      }),
+    );
   }
 
   private logCacheFailure(operation: 'connect' | 'read' | 'write', error: unknown) {
-    this.logger.warn({
-      errorCode: error instanceof Error ? error.name : 'UnknownError',
-      event: 'image_proxy.cache_failed',
-      operation,
-    });
+    this.logger.warn(
+      JSON.stringify({
+        errorCode: this.describeOperationalError(error),
+        event: 'image_proxy.cache_failed',
+        operation,
+      }),
+    );
+  }
+
+  private describeOperationalError(error: unknown) {
+    return error instanceof Error ? error.name : 'UnknownError';
   }
 }

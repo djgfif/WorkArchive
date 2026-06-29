@@ -39,10 +39,29 @@ const expectedPanels = new Map([
       'sum by (le)',
     ],
   ],
-  ['Auth Refresh Outcomes', ['work_archive_auth_refresh_total', 'sum by (result)']],
+  [
+    'Auth Refresh Outcomes',
+    ['work_archive_auth_refresh_total', 'sum by (result)'],
+  ],
+  [
+    'User Data Rights Outcomes',
+    ['work_archive_user_data_rights_total', 'sum by (operation, result)'],
+  ],
+  [
+    'Client Header Guard Outcomes',
+    ['work_archive_client_header_guard_total', 'sum by (mode, result)'],
+  ],
   [
     'Sync Push And Pull Outcomes',
     ['work_archive_sync_total', 'sum by (direction, result)'],
+  ],
+  [
+    'Sync p95 Latency',
+    [
+      'work_archive_sync_duration_seconds_bucket',
+      'histogram_quantile(0.95',
+      'sum by (le, direction, result)',
+    ],
   ],
   [
     'Sync Conflicts By Entity And Code',
@@ -50,16 +69,21 @@ const expectedPanels = new Map([
   ],
   [
     'Sync Validation Failures By Entity And Code',
-    [
-      'work_archive_sync_failed_validation_total',
-      'sum by (entity_type, code)',
-    ],
+    ['work_archive_sync_failed_validation_total', 'sum by (entity_type, code)'],
   ],
   [
     'Import Provider Failures By Provider And Reason',
     [
       'work_archive_imports_provider_failure_total',
       'sum by (provider, reason)',
+    ],
+  ],
+  [
+    'Import Provider p95 Latency',
+    [
+      'work_archive_imports_provider_duration_seconds_bucket',
+      'histogram_quantile(0.95',
+      'sum by (le, provider, result)',
     ],
   ],
   [
@@ -76,11 +100,15 @@ const expectedMetrics = new Set([
   'work_archive_api_request_total',
   'work_archive_api_request_duration_seconds_bucket',
   'work_archive_auth_refresh_total',
+  'work_archive_user_data_rights_total',
+  'work_archive_client_header_guard_total',
   'work_archive_sync_total',
+  'work_archive_sync_duration_seconds_bucket',
   'work_archive_sync_conflict_total',
   'work_archive_sync_failed_validation_total',
   'work_archive_imports_provider_failure_total',
   'work_archive_imports_provider_circuit_open_total',
+  'work_archive_imports_provider_duration_seconds_bucket',
   'work_archive_imports_search_total',
 ]);
 
@@ -147,7 +175,9 @@ function validateDatasource(panel, target) {
     fail(`${panel.title} must use the dashboard datasource variable.`);
   }
   if (targetDatasourceUid !== '${datasource}') {
-    fail(`${panel.title} target ${target.refId ?? '?'} must use the dashboard datasource variable.`);
+    fail(
+      `${panel.title} target ${target.refId ?? '?'} must use the dashboard datasource variable.`,
+    );
   }
 }
 
@@ -163,13 +193,33 @@ function validatePromql(panel, target) {
     const filterPattern = new RegExp(`[,{]\\s*${labelName}\\s*=`);
     const groupingPattern = new RegExp(`by\\s*\\([^)]*\\b${labelName}\\b`);
     if (filterPattern.test(expr) || groupingPattern.test(expr)) {
-      fail(`${panel.title} target ${target.refId ?? '?'} uses disallowed label "${labelName}".`);
+      fail(
+        `${panel.title} target ${target.refId ?? '?'} uses disallowed label "${labelName}".`,
+      );
     }
   }
 
   if (/work_archive_api_request_duration_seconds_bucket/.test(expr)) {
-    if (!/sum by \(le\) \(rate\(work_archive_api_request_duration_seconds_bucket\[5m\]\)\)/.test(expr)) {
-      fail(`${panel.title} must aggregate request latency histogram buckets by le.`);
+    if (
+      !/sum by \(le\) \(rate\(work_archive_api_request_duration_seconds_bucket\[5m\]\)\)/.test(
+        expr,
+      )
+    ) {
+      fail(
+        `${panel.title} must aggregate request latency histogram buckets by le.`,
+      );
+    }
+  }
+
+  if (/work_archive_imports_provider_duration_seconds_bucket/.test(expr)) {
+    if (
+      !/sum by \(le, provider, result\) \(rate\(work_archive_imports_provider_duration_seconds_bucket\[5m\]\)\)/.test(
+        expr,
+      )
+    ) {
+      fail(
+        `${panel.title} must aggregate provider latency histogram buckets by le, provider, and result.`,
+      );
     }
   }
 }
@@ -189,11 +239,16 @@ if (dashboard) {
   if (dashboard.editable !== false) {
     fail('dashboard must be non-editable in the repository artifact.');
   }
-  if (!Array.isArray(dashboard.tags) || !dashboard.tags.includes('work-archive')) {
+  if (
+    !Array.isArray(dashboard.tags) ||
+    !dashboard.tags.includes('work-archive')
+  ) {
     fail('dashboard tags must include work-archive.');
   }
   if (!hasDatasourceVariable(dashboard)) {
-    fail('dashboard must define a Prometheus datasource variable named datasource.');
+    fail(
+      'dashboard must define a Prometheus datasource variable named datasource.',
+    );
   }
   if (!Array.isArray(dashboard.panels) || dashboard.panels.length === 0) {
     fail('dashboard must define panels.');

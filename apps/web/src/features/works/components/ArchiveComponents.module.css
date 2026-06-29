@@ -241,7 +241,7 @@
   flex: 1 1 32rem;
 }
 
-/* 카탈로그 일련번호 — register처럼 행 앞에 모노스페이스 숫자를 정렬한다(Vellum Index). */
+/* 카탈로그 일련번호 — register처럼 행 앞에 모노스페이스 숫자를 정렬한다(Studio). */
 .listRowIndex {
   flex-shrink: 0;
   align-self: flex-start;
@@ -548,14 +548,16 @@
   gap: 0.25rem;
 }
 .detailHeroRatingValue {
+  font-family: var(--app-font-figure);
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--app-accent-warm, var(--mantine-color-yellow-4));
 }
 .detailHeroRatingMax {
+  font-family: var(--app-font-figure);
   font-size: 0.9rem;
   color: var(--app-text-muted);
   font-weight: 500;
@@ -589,6 +591,7 @@
 
 .starRatingScore {
   color: var(--app-text-muted);
+  font-family: var(--app-font-figure);
   font-size: 0.82rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -717,9 +720,9 @@
 }
 
 .detailTitle {
+  /* h1·h2 굵기·자간은 global.css의 h1·h2.mantine-Title-root 규칙이 일괄 관리한다
+     (element+class 특정도가 모듈 클래스를 이겨, 여기 weight/letter-spacing은 무력화됨) */
   font-size: clamp(1.5rem, 3.5vw, 2.4rem);
-  font-weight: 800;
-  letter-spacing: 0;
   line-height: 1.15;
 }
 
@@ -1251,10 +1254,10 @@
   margin: 0 0 0.4rem;
   font-family: var(--app-font-display);
   font-size: clamp(1.9rem, 3.4vw, 2.8rem);
-  font-weight: 400;
-  letter-spacing: -0.012em;
+  font-weight: 720;
+  letter-spacing: -0.03em;
   color: var(--app-text-primary);
-  line-height: 1.04;
+  line-height: 1.06;
 }
 
 .libraryPageMeta {
@@ -1268,8 +1271,10 @@
 }
 
 .libraryPageMeta strong {
-  color: var(--app-text-secondary);
-  font-weight: 780;
+  color: var(--app-text-primary);
+  font-family: var(--app-font-figure);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 카운트 세그먼트 버튼 — 클릭 시 상태 필터 적용(홈 stat strip과 일관) */
@@ -1438,9 +1443,10 @@
   border-radius: 999px;
   border: 1px solid var(--app-bg-base);
   background: var(--app-accent-primary);
-  color: #1a120a;
+  color: #ffffff;
   font-size: 0.64rem;
-  font-weight: 850;
+  font-weight: 800;
+  font-family: var(--app-font-figure);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1589,6 +1595,7 @@
 }
 
 .numericText {
+  font-family: var(--app-font-figure);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1869,11 +1876,11 @@
   background: var(--app-text-muted);
 }
 
-/* 골드 별 — 별점 칩 */
+/* 골드 별 — 별점 칩 (평점 전용 앰버, 브랜드 인디고와 구분) */
 .filterChipStar {
   display: inline-flex;
   flex-shrink: 0;
-  color: var(--app-accent-strong);
+  color: var(--app-accent-warm);
 }
 
 .filterChipStarMuted {
@@ -1971,6 +1978,27 @@
 
   .toolbarSortSelect {
     flex: 1 1 9rem;
+  }
+
+  /* 터치 타깃 확대 — 모바일 손가락 조작 정확도(≥40px) */
+  .viewToggleButton {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .sortDirectionButton,
+  .advancedFilterButton,
+  .trashScopeButton {
+    height: 2.6rem;
+  }
+
+  .toolbarSortSelect :global(.mantine-NativeSelect-input) {
+    height: 2.6rem;
+    min-height: 2.6rem;
+  }
+
+  .filterChip {
+    height: 2.25rem;
   }
 
   .trashScopeBar {

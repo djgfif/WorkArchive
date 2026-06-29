@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Kbd,
@@ -33,6 +33,7 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const { t } = useAppTranslation();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
+  const listRef = useRef<HTMLDivElement>(null);
 
   function close() {
     setOpened(false);
@@ -168,6 +169,14 @@ export function CommandPalette() {
     setActiveIndex(0);
   }, [queryText]);
 
+  // 키보드(↑/↓)로 옮긴 활성 항목이 스크롤 영역 밖이면 시야로 끌어온다.
+  useEffect(() => {
+    const active = listRef.current?.querySelector<HTMLElement>(
+      '[data-command-active="true"]',
+    );
+    active?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex, filtered.length]);
+
   function execute(command: Command | undefined) {
     if (!command) {
       return;
@@ -214,6 +223,7 @@ export function CommandPalette() {
       </Box>
 
       <Box
+        ref={listRef}
         p="xs"
         style={{
           borderTop: '1px solid var(--app-border-subtle)',
@@ -230,6 +240,7 @@ export function CommandPalette() {
             {filtered.map((command, index) => (
               <Box
                 key={command.id}
+                data-command-active={index === activeIndex ? 'true' : undefined}
                 onClick={() => execute(command)}
                 onMouseEnter={() => setActiveIndex(index)}
                 style={{

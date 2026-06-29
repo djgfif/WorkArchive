@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import {
   assertRetentionCleanupCanRun,
   buildRetentionCleanupTargets,
+  formatRetentionCleanupFailure,
   readRetentionCleanupConfig,
   runRetentionCleanup,
   type RetentionPrismaClient,
@@ -148,12 +149,57 @@ describe('retention cleanup', () => {
     ).not.toThrow();
   });
 
+  it('rejects invalid dry-run boolean values before cleanup can run', () => {
+    expect(() =>
+      readRetentionCleanupConfig({
+        RETENTION_CLEANUP_DRY_RUN: 'flase',
+      }),
+    ).toThrow(/RETENTION_CLEANUP_DRY_RUN must be true or false/);
+
+    for (const value of ['1', '0', 'yes', 'no', 'on', 'off']) {
+      expect(() =>
+        readRetentionCleanupConfig({
+          RETENTION_CLEANUP_DRY_RUN: value,
+        }),
+      ).toThrow(/RETENTION_CLEANUP_DRY_RUN must be true or false/);
+    }
+  });
+
   it('rejects non-positive retention day values', () => {
     expect(() =>
       readRetentionCleanupConfig({
         RETENTION_SECURITY_EVENT_DAYS: '0',
       }),
     ).toThrow(/positive integer/);
+  });
+
+  it('rejects retention day values with suffixes or decimals', () => {
+    expect(() =>
+      readRetentionCleanupConfig({
+        RETENTION_SECURITY_EVENT_DAYS: '180days',
+      }),
+    ).toThrow(/positive integer/);
+
+    expect(() =>
+      readRetentionCleanupConfig({
+        RETENTION_REVOKED_REFRESH_SESSION_DAYS: '30.5',
+      }),
+    ).toThrow(/positive integer/);
+  });
+
+  it('formats operation failures without raw database errors', () => {
+    const formatted = formatRetentionCleanupFailure(
+      new Error('DATABASE_URL=postgresql://secret access_token raw payload'),
+    );
+
+    expect(JSON.parse(formatted)).toEqual({
+      errorCode: 'Error',
+      event: 'operations.retention_cleanup.failed',
+    });
+    expect(formatted).not.toContain('DATABASE_URL');
+    expect(formatted).not.toContain('postgresql://secret');
+    expect(formatted).not.toContain('access_token');
+    expect(formatted).not.toContain('raw payload');
   });
 });
 

@@ -15,7 +15,7 @@
 }
 
 [data-mantine-color-scheme='light'] .topnav {
-  box-shadow: 0 1px 0 rgba(60, 40, 20, 0.06);
+  box-shadow: 0 1px 0 rgba(15, 18, 35, 0.06);
 }
 
 /* ── Inner — max-width 컨테이너 ──────────────────────────────────────────── */
@@ -55,7 +55,7 @@
   height: 28px;
   border-radius: 6px;
   background: var(--app-accent-primary);
-  color: #0c0b0a;
+  color: #ffffff;
   font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: -0.03em;
@@ -109,7 +109,7 @@
 
 .addWorkLink:hover {
   background: var(--app-accent-primary);
-  color: #0c0b0a;
+  color: #ffffff;
 }
 
 .addWorkLink:active {
@@ -117,7 +117,7 @@
 }
 
 [data-mantine-color-scheme='light'] .addWorkLink:hover {
-  color: #1c1512;
+  color: #ffffff;
 }
 
 /* ── Avatar 버튼 ─────────────────────────────────────────────────────────── */
