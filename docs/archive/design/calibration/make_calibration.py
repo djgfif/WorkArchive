@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # Calibration — a single-page specimen plate. Vector SVG -> PNG + PDF.
+from pathlib import Path
+
 import cairosvg
+
+OUTPUT_DIR = Path(__file__).resolve().parent
 
 W, H = 1240, 1754
 M = 104
@@ -192,8 +196,12 @@ text(X1,fyy,"6366F1 &#183; 0A0A0C &#183; FBBF24",11,INK_FAINT,MONO,400,"end")
 add('</svg>')
 svg = "\n".join(s)
 
-with open("CALIBRATION.svg","w",encoding="utf-8") as f:
+svg_path = OUTPUT_DIR / "CALIBRATION.svg"
+png_path = OUTPUT_DIR / "CALIBRATION.png"
+pdf_path = OUTPUT_DIR / "CALIBRATION.pdf"
+
+with svg_path.open("w", encoding="utf-8") as f:
     f.write(svg)
-cairosvg.svg2png(bytestring=svg.encode("utf-8"), write_to="CALIBRATION.png", output_width=2480, output_height=int(2480*H/W))
-cairosvg.svg2pdf(bytestring=svg.encode("utf-8"), write_to="CALIBRATION.pdf")
-print("rendered CALIBRATION.svg / .png / .pdf")
+cairosvg.svg2png(bytestring=svg.encode("utf-8"), write_to=str(png_path), output_width=2480, output_height=int(2480*H/W))
+cairosvg.svg2pdf(bytestring=svg.encode("utf-8"), write_to=str(pdf_path))
+print("rendered docs/archive/design/calibration/CALIBRATION.svg / .png / .pdf")

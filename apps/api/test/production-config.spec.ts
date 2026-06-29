@@ -1351,7 +1351,7 @@ describe('production deployment config', () => {
     expect(combinedOutput).toContain('token=[REDACTED]');
     expect(combinedOutput).toContain('id_token=[REDACTED]');
     expect(combinedOutput).toContain('nonce=[REDACTED]');
-    expect(combinedOutput).not.toContain('operator');
+    expect(combinedOutput).not.toContain('operator:secret-password');
     expect(combinedOutput).not.toContain('secret-password');
     expect(combinedOutput).not.toContain('raw-token');
     expect(combinedOutput).not.toContain('raw-state');

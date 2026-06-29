@@ -9,6 +9,8 @@ implementation direction.
 - [`DESIGN.md`](./DESIGN.md): archived design-system contract snapshot.
 - [`STITCH_TO_PRODUCT_EVOLUTION_PLAN.md`](./STITCH_TO_PRODUCT_EVOLUTION_PLAN.md):
   archived Stitch translation plan.
+- [`calibration/`](./calibration/): raw Calibration visual philosophy and
+  generated specimen plate assets.
 - [`frontend-guide/`](./frontend-guide/): imported visual references and design
   audit material.
 - [`stitch/`](./stitch/): raw Stitch HTML exports and review notes.
