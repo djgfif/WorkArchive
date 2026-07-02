@@ -19,7 +19,7 @@ import {
 import { WorkPoster } from './ArchiveComponents';
 import { IconTrash } from './WorksToolbarIcons';
 import styles from './ArchiveComponents.module.css';
-import { cn } from '@shared/utils/class-names';
+import { cn, cx } from '@shared/utils/class-names';
 
 const css = styles;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -94,11 +94,11 @@ export function WorksTrashList({
 
           return (
             <Paper
-              className={`${cn(css.listRowSurface)} ${cn(css.trashRowSurface)}`}
+              className={cx(css.listRowSurface, css.trashRowSurface)}
+              data-busy={isBusy ? 'true' : 'false'}
               data-selected={isSelected ? 'true' : 'false'}
               key={work.id}
               radius="lg"
-              style={{ opacity: isBusy ? 0.78 : 1 }}
               withBorder
             >
               <Group
@@ -127,7 +127,7 @@ export function WorksTrashList({
                     aria-label={t('works.list.trashDetailAria', {
                       title: work.title,
                     })}
-                    style={{ flexShrink: 0, display: 'block' }}
+                    className={cn(css.rowPosterLink)}
                     to={`/works/${work.id}`}
                   >
                     <WorkPoster
@@ -160,10 +160,7 @@ export function WorksTrashList({
                     </Group>
 
                     <Title lineClamp={1} order={3} size="h4">
-                      <Link
-                        style={{ color: 'inherit', textDecoration: 'none' }}
-                        to={`/works/${work.id}`}
-                      >
+                      <Link className={cn(css.rowTitleLink)} to={`/works/${work.id}`}>
                         {work.title}
                       </Link>
                     </Title>

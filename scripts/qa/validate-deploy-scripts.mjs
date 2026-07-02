@@ -64,7 +64,10 @@ const apiRuntimeConfigPath = 'apps/api/src/config/api-runtime-config.ts';
 const apiRuntimeConfigTestPath = 'apps/api/test/api-runtime-config.spec.ts';
 const composeProdPath = 'compose.prod.yml';
 const productionConfigTestPath = 'apps/api/test/production-config.spec.ts';
+const dockerRuntimePreflightSelfTestPath =
+  'scripts/qa/docker-runtime-preflight.self-test.mjs';
 const qaEvidenceScriptPaths = [
+  'scripts/qa/docker-runtime-preflight.mjs',
   'scripts/qa/import-search-qa.mjs',
   'scripts/qa/monitoring-evidence.mjs',
   'scripts/qa/performance-smoke.mjs',
@@ -86,6 +89,9 @@ const apiRuntimeConfig = readRequired(apiRuntimeConfigPath);
 const apiRuntimeConfigTest = readRequired(apiRuntimeConfigTestPath);
 const composeProd = readRequired(composeProdPath);
 const productionConfigTest = readRequired(productionConfigTestPath);
+const dockerRuntimePreflightSelfTest = readRequired(
+  dockerRuntimePreflightSelfTestPath,
+);
 const qaEvidenceScripts = new Map(
   qaEvidenceScriptPaths.map((path) => [path, readRequired(path)]),
 );
@@ -239,6 +245,18 @@ requirePattern(
 requirePattern(
   packagePath,
   packageJson,
+  /"qa:docker-runtime":\s*"node scripts\/qa\/docker-runtime-preflight\.mjs"/,
+  'package.json must expose qa:docker-runtime.',
+);
+requirePattern(
+  packagePath,
+  packageJson,
+  /"qa:docker-runtime:self-test":\s*"node scripts\/qa\/docker-runtime-preflight\.self-test\.mjs"/,
+  'package.json must expose qa:docker-runtime:self-test.',
+);
+requirePattern(
+  packagePath,
+  packageJson,
   /"ops:logs":\s*"scripts\/deploy\/prod-logs\.sh"/,
   'package.json must expose ops:logs.',
 );
@@ -251,9 +269,13 @@ requirePattern(
 requireIncludes(gatesPath, gates, 'node --check scripts/qa/validate-deploy-scripts.mjs');
 requireIncludes(gatesPath, gates, 'node --check scripts/qa/validate-gate1-evidence.self-test.mjs');
 requireIncludes(gatesPath, gates, 'node --check scripts/qa/gate1-missing-evidence-report.mjs');
+requireIncludes(gatesPath, gates, 'node --check scripts/qa/docker-runtime-preflight.mjs');
+requireIncludes(gatesPath, gates, 'node --check scripts/qa/docker-runtime-preflight.self-test.mjs');
 requireIncludes(gatesPath, gates, 'npm run qa:deploy-scripts');
 requireIncludes(gatesPath, gates, 'npm run qa:gate1:evidence:self-test');
 requireIncludes(gatesPath, gates, 'npm run qa:gate1:missing');
+requireIncludes(gatesPath, gates, 'npm run qa:docker-runtime:self-test');
+requireIncludes(gatesPath, gates, 'npm run qa:docker-runtime');
 requireIncludes(gatesPath, gates, 'npm run qa:import-search');
 requireIncludes(gatesPath, gates, 'SYNC_LOAD_DRY_RUN=true npm run qa:sync-load');
 requireIncludes(
@@ -268,8 +290,12 @@ requireIncludes(
 );
 requireIncludes(localEvidencePath, localEvidence, 'node --check scripts/qa/validate-deploy-scripts.mjs');
 requireIncludes(localEvidencePath, localEvidence, 'node --check scripts/qa/gate1-missing-evidence-report.mjs');
+requireIncludes(localEvidencePath, localEvidence, 'node --check scripts/qa/docker-runtime-preflight.mjs');
+requireIncludes(localEvidencePath, localEvidence, 'node --check scripts/qa/docker-runtime-preflight.self-test.mjs');
 requireIncludes(localEvidencePath, localEvidence, 'npm run qa:deploy-scripts');
 requireIncludes(localEvidencePath, localEvidence, 'npm run qa:gate1:missing');
+requireIncludes(localEvidencePath, localEvidence, 'npm run qa:docker-runtime:self-test');
+requireIncludes(localEvidencePath, localEvidence, 'npm run qa:docker-runtime');
 requireIncludes(localEvidencePath, localEvidence, 'npm run qa:import-search');
 requireIncludes(
   localEvidencePath,
@@ -299,6 +325,30 @@ requireIncludes(
 );
 requireIncludes(localEvidencePath, localEvidence, '([^[:space:]&;,]+)');
 requireIncludes(gate1ValidatorPath, gate1Validator, 'npm run qa:deploy-scripts');
+requireIncludes(gate1ValidatorPath, gate1Validator, 'npm run qa:docker-runtime:self-test');
+requireIncludes(
+  gate1ValidatorPath,
+  gate1Validator,
+  'IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search',
+);
+requireIncludes(
+  gate1ValidatorPath,
+  gate1Validator,
+  'SYNC_LOAD_DRY_RUN=false npm run qa:sync-load',
+);
+requireIncludes(
+  gate1ValidatorPath,
+  gate1Validator,
+  'DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime',
+);
+requireIncludes(gate1ValidatorPath, gate1Validator, 'function validateReportContent');
+requireIncludes(gate1ValidatorPath, gate1Validator, 'overall PASS status');
+requireIncludes(gate1ValidatorPath, gate1Validator, 'config-and-build mode');
+requireIncludes(gate1ValidatorPath, gate1Validator, 'production image build PASS check');
+requireIncludes(gate1ValidatorPath, gate1Validator, 'live provider quality PASS check');
+requireIncludes(gate1ValidatorPath, gate1Validator, 'oversized push batch DTO rejection');
+requireIncludes(gate1ValidatorPath, gate1Validator, 'dry-run mode marker');
+requireIncludes(gate1ValidatorPath, gate1Validator, 'blocked scenario marker');
 requireIncludes(gate1ValidatorPath, gate1Validator, 'function readBooleanEnv');
 requireIncludes(gate1ValidatorPath, gate1Validator, 'must be true or false when set.');
 requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'references missing report');
@@ -306,11 +356,28 @@ requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'references 
 requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'references symbolic link report');
 requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'references oversized report');
 requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'that appears to contain a bearer token');
+requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'blocked docker runtime report');
+requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'offline import search report');
+requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'dry-run sync load report');
+requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'dry-run monitoring report');
+requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'dry-run performance report');
+requireIncludes(
+  gate1ValidatorSelfTestPath,
+  gate1ValidatorSelfTest,
+  'without overall PASS status',
+);
 requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, 'unsafe or non-workspace report path');
 requireIncludes(gate1ValidatorSelfTestPath, gate1ValidatorSelfTest, "process.env.GATE1_EVIDENCE_STRICT = 'treu'");
 requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'runGate1EvidenceValidation');
 requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Release Metadata And Approval');
 requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Beta Host Preflight And Smoke');
+requireIncludes(
+  gate1MissingEvidencePath,
+  gate1MissingEvidence,
+  'Docker Runtime Release-Runner Evidence',
+);
+requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Live Import/Search QA');
+requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Live Sync Load QA');
 requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Backup And Restore Drill');
 requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'Smoke Performance Baseline');
 requireIncludes(gate1MissingEvidencePath, gate1MissingEvidence, 'does not approve a release candidate');
@@ -730,6 +797,43 @@ requireIncludes(
   runbook,
   'QA evidence scripts redact URL usernames, passwords, and sensitive query parameters',
 );
+const dockerRuntimePreflight =
+  qaEvidenceScripts.get('scripts/qa/docker-runtime-preflight.mjs') ?? '';
+for (const needle of [
+  'DOCKER_RUNTIME_BUILD',
+  'Docker CLI is not installed or not on PATH.',
+  'Docker CLI is present, but docker --version failed in this environment.',
+  'Docker Compose is unavailable, so compose config cannot run.',
+  "status === 'BLOCKED'",
+  'This report records an environment blocker, not a product failure.',
+  'Set DOCKER_RUNTIME_BUILD=true on a Docker-enabled release runner to build production images.',
+  "if (report.reportStatus === 'FAIL')",
+]) {
+  requireIncludes('scripts/qa/docker-runtime-preflight.mjs', dockerRuntimePreflight, needle);
+}
+for (const needle of [
+  'FAKE_DOCKER_MODE',
+  "DOCKER_RUNTIME_BUILD: 'true'",
+  "FAKE_DOCKER_MODE: 'version-fail'",
+  "DOCKER_RUNTIME_BUILD: 'treu'",
+  'assertNoRawSecrets',
+  'raw-inline-api-key',
+  "report.json.reportStatus === 'BLOCKED'",
+  "check.name === 'production image build' && check.status === 'PASS'",
+]) {
+  requireIncludes(
+    dockerRuntimePreflightSelfTestPath,
+    dockerRuntimePreflightSelfTest,
+    needle,
+  );
+}
+for (const [path, content] of [
+  [commercialReadinessPath, commercialReadiness],
+  [evidencePath, evidence],
+  [runbookPath, runbook],
+]) {
+  requireIncludes(path, content, 'qa:docker-runtime');
+}
 
 if (failures.length > 0) {
   console.error('Deploy script policy check failed:');

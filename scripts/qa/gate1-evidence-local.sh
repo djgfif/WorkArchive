@@ -211,6 +211,8 @@ run_check "node syntax: prometheus alert validator" node --check scripts/qa/vali
 run_check "node syntax: prometheus slo validator" node --check scripts/qa/validate-prometheus-slo-rules.mjs
 run_check "node syntax: grafana dashboard validator" node --check scripts/qa/validate-grafana-dashboard.mjs
 run_check "node syntax: monitoring evidence" node --check scripts/qa/monitoring-evidence.mjs
+run_check "node syntax: docker runtime preflight" node --check scripts/qa/docker-runtime-preflight.mjs
+run_check "node syntax: docker runtime preflight self-test" node --check scripts/qa/docker-runtime-preflight.self-test.mjs
 run_check "node syntax: import search QA" node --check scripts/qa/import-search-qa.mjs
 run_check "node syntax: performance smoke" node --check scripts/qa/performance-smoke.mjs
 run_check "node syntax: sync architecture validator" node --check scripts/qa/validate-sync-architecture.mjs
@@ -249,6 +251,8 @@ run_check "npm run qa:sync-architecture" npm run qa:sync-architecture
 run_check "npm run qa:sync-load dry-run" env SYNC_LOAD_DRY_RUN=true npm run qa:sync-load
 run_check "npm run qa:performance-smoke dry-run" env PERF_SMOKE_DRY_RUN=true npm run qa:performance-smoke
 run_check "npm run qa:monitoring dry-run" env MONITORING_EVIDENCE_DRY_RUN=true npm run qa:monitoring
+run_check "npm run qa:docker-runtime:self-test" npm run qa:docker-runtime:self-test
+run_check "npm run qa:docker-runtime report" npm run qa:docker-runtime
 
 if [[ -f "$ROOT_DIR/.env.prod" ]]; then
   if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then

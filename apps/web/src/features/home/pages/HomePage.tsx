@@ -1,4 +1,9 @@
-import { type FormEvent, type ReactNode, useState } from 'react';
+import {
+  type CSSProperties,
+  type FormEvent,
+  type ReactNode,
+  useState,
+} from 'react';
 import { Box, Group } from '@mantine/core';
 import type { TFunction } from 'i18next';
 import { Link, useNavigate } from 'react-router-dom';
@@ -81,6 +86,12 @@ function ShelfPosterCard({
   const footerText = continueLabel
     ? `${footerPrefix} · ${continueLabel}`
     : footerPrefix;
+  const progressStyle =
+    progressPercent === null
+      ? undefined
+      : ({
+          '--home-progress-percent': `${progressPercent}%`,
+        } as CSSProperties);
 
   return (
     <div className={css.shelfItem}>
@@ -117,7 +128,7 @@ function ShelfPosterCard({
               <div className={css.shelfProgressTrack} aria-hidden="true">
                 <div
                   className={css.shelfProgressFill}
-                  style={{ width: `${progressPercent}%` }}
+                  style={progressStyle}
                 />
               </div>
             )}
@@ -491,9 +502,8 @@ export function HomePage() {
               <>
                 <span className={css.homeStatDot} />
                 <Link
-                  className={css.shelfViewAll}
+                  className={`${css.shelfViewAll} ${css.homeStatLink}`}
                   to="/works?sort=rating&dir=asc"
-                  style={{ marginBottom: 0 }}
                 >
                   {t('home.hero.unratedWorks', {
                     count: formatCount(unratedCount),

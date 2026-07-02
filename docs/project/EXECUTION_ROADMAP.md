@@ -5,7 +5,7 @@
 | Status                | `active`                                                                                                                                                                                                                                                 |
 | Role                  | `integrated execution roadmap`                                                                                                                                                                                                                           |
 | Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
-| Last verified against | `2026-06-12` documentation alignment plus root `check:docs-links`, `lint`, and `typecheck`, with API/shared tests after API service decomposition, including sync, import resolve, internal catalog import candidate, import search stage cache, import provider readiness, import candidate decoration, import provider search runner, import provider credential runtime, import provider search stage, import search observability, import provider key management, import search context/result extraction, Bearer access token parsing extraction, auth session metadata extraction, auth response mapper extraction, Google OAuth controller helper extraction, image proxy policy/cache helper extraction, user records helper/progress/release payload builder extraction, catalog legacy work helper extraction, catalog ingestion normalization/payload extraction, catalog title matching/submission helper extraction, and Notion sync mapper extraction. Root `npm run test` is currently blocked by dirty frontend `WorksListPage.test.tsx` failures; build, import-search QA, sync-load dry-run, and web E2E remain last verified on `2026-06-04` |
+| Last verified against | `2026-07-01` root `security:public`, `check:docs-links`, `lint`, `typecheck`, `test`, `build`, web feature boundary check, web import cycle check, web Playwright E2E after mobile Add Work footer overlap fix and mobile drawer navigation regression, Settings provider readiness polish, Quick Add source coverage/fallback regressions, auto-sync conflict queue safety regression, guest auto-sync boundary regression, offline import-search QA with live-smoke matrix contract/manifest, sync-load dry-run, Docker runtime preflight self-test, and Docker runtime preflight BLOCKED report. |
 | When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                             |
 
 이 문서는 Work Archive의 **통합 실행 로드맵**이다. current reality 문서를 대체하지 않고, 지금 무엇을 어떤 순서로 고정해야 하는지만 정리한다. 최신 구현 현실은 [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), 개발 진입점은 [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md), 2026-06 구조 부채 보조 로드맵은 [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md)를 따른다.
@@ -17,7 +17,7 @@
 - 공개 프로필, 공개 리뷰, 커뮤니티, 팔로우, 댓글, moderation은 현재 제품 범위 밖이다.
 - 현재 제품 기준은 `direct manual add + optional-auth server-assisted search + local-first save`다.
 - Manual Add, guest no-key provider search, Quick Add identity 저장, duplicate detection, backend sync create 순서는 테스트로 고정돼 있다.
-- 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage, manual fallback 분리와 candidate trust 표시까지 2차 고도화가 진행됐다. 남은 작업은 실제 provider별 검색어 QA와 튜닝이다.
+- 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage, manual fallback 분리, candidate trust 표시, live-smoke manifest까지 2차 고도화가 진행됐다. 남은 작업은 실제 provider별 검색어 QA와 튜닝이다.
 - 수정된 우선순위는 `개인 기록 UX -> export/import -> 개인 기록 깊이 -> optional private sync -> search quality -> personal Insights`다.
 - `Public`, `Community`, `Social`, `Catalog moderation` 계열 작업은 무기한 보류한다.
 
@@ -142,10 +142,13 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 - SyncPage는 pending / failed / conflict queue item 단위 상태를 표시한다.
 - queue item별 원인, 기록 보기, 재시도 CTA를 제공한다.
 - conflict 항목은 원격 스냅샷을 보존해 로컬 유지, 원격 적용, 필드별 병합으로 기본 해결할 수 있다.
+- safe auto-merge는 동일 entity/parent와 동일 scalar 조건에서 taxonomy/alias/server metadata만 병합하고, 병합된 queue item을 재시도 대상으로 돌려보낸다.
+- 자동 push는 conflict queue item을 전송하지 않고 SyncPage 수동 검토 대상으로 유지한다.
+- guest local-first writes는 자동 pull/push를 시작하지 않고 account archive와 분리된다.
 
 근거리 순서:
 
-1. conflict 해결 UX polish와 자동 병합 정책 검토
+1. conflict 해결 UX polish와 safe auto-merge 정책 확장 여부 검토
 2. 로그인/account archive activation 자동 pull 검증과 확장 검토
 3. sync 상태 polish와 실패 복구 UX 개선
 4. guest -> account 선택 import UX 정리
@@ -174,9 +177,9 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 
 우선순위:
 
-1. provider별 실제 검색어 QA와 ranking weight 튜닝
-2. source merge 표시 회귀 확인
-3. 검색 실패 fallback UX 회귀 확인
+1. provider별 live 검색어 QA와 ranking weight 튜닝
+2. source merge 표시 회귀 확인: 기본 브라우저 E2E로 고정됨
+3. 검색 실패 fallback UX 회귀 확인: 기본 브라우저 E2E로 고정됨
 4. 제목 alias / 원제 / 번역제 케이스 추가 수집
 5. catalog identity 연결 보조
 

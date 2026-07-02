@@ -1,0 +1,97 @@
+.stepDotsTrack {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.stepDot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--app-border-default);
+  transition:
+    width 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    background 200ms ease;
+}
+
+.stepDotActive {
+  background: var(--app-accent-primary);
+}
+
+.stepDotCurrent {
+  width: 1.25rem;
+}
+
+.errorIcon {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border: 1px solid
+    color-mix(in srgb, var(--app-state-danger) 22%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--app-state-danger) 10%, transparent);
+  color: var(--app-state-danger);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.panelTitle {
+  letter-spacing: 0;
+}
+
+.panelDetail {
+  line-height: 1.65;
+}
+
+.debugMessage {
+  font-family: var(--app-font-mono);
+  opacity: 0.6;
+}
+
+.completeShell {
+  min-height: 100dvh;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  animation: pageEnter 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.errorShell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation-duration: 280ms;
+}
+
+.loadingShell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.spinner {
+  width: 2.625rem;
+  height: 2.625rem;
+  border: 2.5px solid var(--app-border-default);
+  border-top-color: var(--app-accent-primary);
+  border-radius: 50%;
+  animation: googleAuthSpin 700ms linear infinite;
+}
+
+@keyframes googleAuthSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .completeShell,
+  .spinner {
+    animation: none;
+  }
+
+  .stepDot {
+    transition: none;
+  }
+}

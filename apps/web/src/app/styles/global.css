@@ -259,7 +259,7 @@ h1.mantine-Title-root,
 h2.mantine-Title-root {
   font-family: var(--app-font-display);
   font-weight: 720;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 
 /* ── 페이지 전환 ──────────────────────────────────────────────────────────── */

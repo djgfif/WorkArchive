@@ -356,7 +356,7 @@ export const appTheme = createTheme({
       styles: {
         root: {
           fontWeight:    600,
-          letterSpacing: '-0.006em',
+          letterSpacing: 0,
           paddingInline: '1.05rem',
           transition: [
             'transform var(--wa-motion-fast)',
@@ -502,7 +502,7 @@ export const appTheme = createTheme({
       styles: {
         root: {
           color:         'var(--app-text-primary)',
-          letterSpacing: '-0.02em',
+          letterSpacing: 0,
         },
       },
     },

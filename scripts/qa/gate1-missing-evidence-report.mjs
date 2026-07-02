@@ -103,6 +103,43 @@ const categories = [
     ],
   },
   {
+    key: 'docker-runtime',
+    title: 'Docker Runtime Release-Runner Evidence',
+    nextAction:
+      'Run npm run qa:docker-runtime:self-test, then DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime on a Docker-enabled release runner with .env.prod and copy the redacted PASS report summary.',
+    patterns: [
+      /qa:docker-runtime/i,
+      /DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime/i,
+      /Docker runtime/i,
+      /production image build/i,
+    ],
+  },
+  {
+    key: 'live-import-search',
+    title: 'Live Import/Search QA',
+    nextAction:
+      'Run IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search against the beta host with disposable authenticated credentials and copy the redacted live PASS report summary.',
+    patterns: [
+      /IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search/i,
+      /live import\/search/i,
+      /Import search success/i,
+      /Import provider failure/i,
+    ],
+  },
+  {
+    key: 'live-sync-load',
+    title: 'Live Sync Load QA',
+    nextAction:
+      'Run SYNC_LOAD_DRY_RUN=false npm run qa:sync-load against the beta host with a disposable authenticated account and copy the redacted live PASS report summary.',
+    patterns: [
+      /SYNC_LOAD_DRY_RUN=false npm run qa:sync-load/i,
+      /Live sync load/i,
+      /Sync load/i,
+      /sync timing/i,
+      /Authenticated sync/i,
+    ],
+  },
+  {
     key: 'performance',
     title: 'Smoke Performance Baseline',
     nextAction:

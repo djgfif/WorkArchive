@@ -16,6 +16,7 @@ const css = {
   googleCta: styles.googleCta ?? '',
   googleIcon: styles.googleIcon ?? '',
   guestPanel: styles.guestPanel ?? '',
+  retryButton: styles.retryButton ?? '',
 };
 
 interface AuthFormProps {
@@ -130,9 +131,9 @@ export function AuthForm({
           {submitError}
           {onRetryWithGoogle && (
             <AppButton
+              className={css.retryButton}
               onClick={onRetryWithGoogle}
               size="xs"
-              style={{ marginTop: '0.5rem' }}
               tone="secondary"
               type="button"
             >

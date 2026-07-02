@@ -90,6 +90,8 @@
     "qa:dashboards": "node scripts/qa/validate-grafana-dashboard.mjs",
     "qa:slo": "node scripts/qa/validate-prometheus-slo-rules.mjs",
     "qa:monitoring": "node scripts/qa/monitoring-evidence.mjs",
+    "qa:docker-runtime": "node scripts/qa/docker-runtime-preflight.mjs",
+    "qa:docker-runtime:self-test": "node scripts/qa/docker-runtime-preflight.self-test.mjs",
     "qa:import-search": "node scripts/qa/import-search-qa.mjs",
     "qa:performance-smoke": "node scripts/qa/performance-smoke.mjs",
     "qa:sync-architecture": "node scripts/qa/validate-sync-architecture.mjs",

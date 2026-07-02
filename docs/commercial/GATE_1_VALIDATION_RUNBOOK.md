@@ -28,6 +28,14 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
 - Deploy script gate: run `npm run qa:deploy-scripts` before host rehearsal so
   every beta/prod deploy script is syntax-checked and the smoke scripts still
   cover health, auth, metrics, no-store, backup, restore, and compose checks.
+- Docker runtime preflight: run `npm run qa:docker-runtime` on the local machine
+  or release runner to produce a redacted Docker CLI/Compose/env/config report.
+  Run `npm run qa:docker-runtime:self-test` first to verify PASS, BLOCKED,
+  build-mode, boolean parsing, and redaction behavior with a fake Docker CLI.
+  On the Docker-enabled release runner, rerun with
+  `DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime` to add production image
+  build evidence. A `BLOCKED` report documents an environment blocker, not a
+  product pass.
 - Metrics/alerts/SLO/dashboard: run `npm run qa:alerts`, `npm run qa:slo`, and
   `npm run qa:dashboards`, then deploy
   `docs/operations/monitoring/work-archive-alerts.yml` to the monitoring system
@@ -99,25 +107,38 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
    Playwright browser dependency. In Codex sandboxed sessions, Vite may fail
    before tests start with
    `listen EPERM: operation not permitted 127.0.0.1:18730`; rerun outside the
-   sandbox before recording product failure.
+   sandbox before recording product failure. If a stale local Vite server is
+   already bound to the default port, run the same suite on a free port:
+
+   ```bash
+   WEB_E2E_PORT=19998 npm run test:e2e:web
+   ```
 
 6. On the release runner, run dependency/container security scans.
 7. Validate Prisma migration safety with `npm run qa:migrations`.
 8. Validate alert rules with `npm run qa:alerts`, SLO rules with
    `npm run qa:slo`, and the Grafana dashboard with `npm run qa:dashboards`.
-9. On the beta host, run the commercial beta rehearsal, or run production env
+9. Run Docker runtime preflight self-test, then the runtime preflight. On the
+   release runner, include the production image build:
+
+   ```bash
+   npm run qa:docker-runtime:self-test
+   DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime
+   ```
+
+10. On the beta host, run the commercial beta rehearsal, or run production env
    preflight and beta smoke as targeted reruns.
-10. After monitoring deployment, run `npm run qa:monitoring` against the real
+11. After monitoring deployment, run `npm run qa:monitoring` against the real
     Prometheus/Grafana endpoints.
-11. With GitHub Settings access, verify branch protection, required checks,
+12. With GitHub Settings access, verify branch protection, required checks,
     CodeQL, Dependabot, secret scanning, and push protection.
-12. With backup/restore access, perform the restore drill into a non-production
+13. With backup/restore access, perform the restore drill into a non-production
     target.
-13. With a disposable authenticated test account, run live import/search QA,
+14. With a disposable authenticated test account, run live import/search QA,
     live sync load validation, and smoke performance baseline.
-14. Copy only summary results into
+15. Copy only summary results into
     `docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md`.
-15. Run the final strict evidence validator:
+16. Run the final strict evidence validator:
 
     ```bash
     GATE1_EVIDENCE_STRICT=true npm run qa:gate1:evidence
@@ -142,9 +163,10 @@ It runs local/repository-verifiable checks such as `npm ci`,
 `npm run security:public`, docs links, lint, typecheck, tests, e2e, build,
 script syntax checks, Prisma migration safety, Gate 1 evidence placeholder
 detection in non-strict mode, offline import/search QA, sync load dry-run,
-performance smoke dry-run, monitoring evidence dry-run, and Docker compose
-config only when Docker and `.env.prod` are available. It does not run beta
-host, GitHub Settings, restore drill, Trivy image, or live provider checks.
+performance smoke dry-run, monitoring evidence dry-run, Docker runtime preflight
+report generation, and Docker compose config only when Docker and `.env.prod`
+are available. It does not run beta host, GitHub Settings, restore drill, Trivy
+image, or live provider checks.
 
 The GitHub `validate` workflow runs `npm run qa:commercial:repo`, so
 repository-verifiable commercial artifacts cannot drift silently between manual

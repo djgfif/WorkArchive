@@ -11,6 +11,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import { useAppTranslation } from '@app/i18n';
+import { cn } from '@shared/utils/class-names';
+
+import css from './CommandPalette.module.css';
 
 export const COMMAND_PALETTE_EVENT = 'work-archive:open-command-palette';
 
@@ -223,13 +226,9 @@ export function CommandPalette() {
       </Box>
 
       <Box
+        className={cn(css.commandList)}
         ref={listRef}
         p="xs"
-        style={{
-          borderTop: '1px solid var(--app-border-subtle)',
-          maxHeight: '52vh',
-          overflowY: 'auto',
-        }}
       >
         {filtered.length === 0 ? (
           <Text c="dimmed" p="md" size="sm">
@@ -239,27 +238,11 @@ export function CommandPalette() {
           <Stack gap={2}>
             {filtered.map((command, index) => (
               <Box
+                className={cn(css.commandItem)}
                 key={command.id}
                 data-command-active={index === activeIndex ? 'true' : undefined}
                 onClick={() => execute(command)}
                 onMouseEnter={() => setActiveIndex(index)}
-                style={{
-                  alignItems: 'center',
-                  background:
-                    index === activeIndex
-                      ? 'var(--app-surface-hero)'
-                      : 'transparent',
-                  borderRadius: 'var(--mantine-radius-md)',
-                  color:
-                    index === activeIndex
-                      ? 'var(--app-text-primary)'
-                      : 'var(--app-text-secondary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  gap: '0.5rem',
-                  justifyContent: 'space-between',
-                  padding: '0.55rem 0.75rem',
-                }}
               >
                 <Text fw={650} size="sm">
                   {command.label}
@@ -275,11 +258,7 @@ export function CommandPalette() {
         )}
       </Box>
 
-      <Box
-        px="sm"
-        py={8}
-        style={{ borderTop: '1px solid var(--app-border-subtle)' }}
-      >
+      <Box className={cn(css.commandFooter)} px="sm" py={8}>
         <Text c="dimmed" size="xs">
           <Kbd>↑</Kbd> <Kbd>↓</Kbd> {t('commandPalette.move')} ·{' '}
           <Kbd>Enter</Kbd> {t('commandPalette.execute')} · <Kbd>Esc</Kbd>{' '}

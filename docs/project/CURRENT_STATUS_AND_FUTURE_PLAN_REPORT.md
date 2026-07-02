@@ -5,14 +5,14 @@
 | Status                | `canonical`                                                                                                                                                                                                                                                               |
 | Role                  | `current reality`                                                                                                                                                                                                                                                         |
 | Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-06-12` documentation alignment plus root `check:docs-links`, `lint`, and `typecheck`, with API/shared tests after API service decomposition, including sync, import resolve, internal catalog import candidate, import search stage cache, import provider readiness, import candidate decoration, import provider search runner, import provider credential runtime, import provider search stage, import search observability, import provider key management, import search context/result extraction, Bearer access token parsing extraction, auth session metadata extraction, auth response mapper extraction, Google OAuth controller helper extraction, image proxy policy/cache helper extraction, user records helper/progress/release payload builder extraction, catalog legacy work helper extraction, catalog ingestion normalization/payload extraction, catalog title matching/submission helper extraction, and Notion sync mapper extraction. Root `npm run test` is currently blocked by dirty frontend `WorksListPage.test.tsx` failures; build, import-search QA, sync-load dry-run, and web E2E remain last verified on `2026-06-04` |
+| Last verified against | `2026-07-01` root `security:public`, `check:docs-links`, `lint`, `typecheck`, `test`, `build`, web feature boundary check, web import cycle check, web Playwright E2E after mobile Add Work footer overlap fix and mobile drawer navigation regression, Settings provider readiness polish, Quick Add source coverage/fallback regressions, auto-sync conflict queue safety regression, guest auto-sync boundary regression, offline import-search QA with live-smoke matrix contract/manifest, sync-load dry-run, Docker runtime preflight self-test, and Docker runtime preflight BLOCKED report. |
 | When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
 
 ## 1. Snapshot
 
-Sync policy correction: current code supports the manual Sync page plus limited automatic sync for authenticated users. `useAutoSync` runs pull on account archive activation and browser focus/online events, and runs debounced push after `syncQueue` changes. Conflict auto-merge and advanced multi-device policy are still not implemented.
+Sync policy correction: current code supports the manual Sync page plus limited automatic sync for authenticated users. `useAutoSync` runs pull on account archive activation and browser focus/online events, and runs debounced push after `syncQueue` changes. Narrow safe auto-merge is implemented for same-entity/non-delete collisions where scalar fields still match; overlapping scalar conflict merge and advanced multi-device policy remain unimplemented.
 
 - Work Archive는 작품 감상 기록을 관리하는 local-first 웹 서비스다.
 - 프론트는 IndexedDB를 1차 저장소로 쓰고, 로그인 시 계정별 로컬 아카이브로 전환한다.
@@ -275,10 +275,13 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - Data Ownership 정책: `appMeta`는 export metadata로만 다루고, `syncQueue`, auth token, refresh token, API key, Aladin TTBKey는 백업/복원 대상에서 제외
 - 개인 기록 기반 Insights 기본 집계와 개인 태그 상위 집계
 - 계정 설정의 Aladin 키 저장/삭제
-- `/imports/providers` 기반 provider readiness 조회와 Settings provider readiness 기본 UI/테스트
+- `/imports/providers` 기반 provider readiness 조회와 Settings의 ready / user key required / server setup required / paused 상태 요약 UI/테스트
 - SyncPage pending / failed / conflict queue item 표시, 상태별 설명, 원인 표시, 기록 보기, 재시도 CTA
 - failed sync item의 인증/네트워크/conflict/server validation/server error 원인 분류
 - Sync conflict 원격 스냅샷 보존과 로컬 유지 / 원격 적용 / 필드별 병합 기본 해결 UX
+- Sync safe auto-merge: work taxonomy(`genres`, `personalTags`), contributor/series aliases, release/timeline/graph/tier-board server metadata refresh를 동일 entity/parent와 동일 scalar 조건에서만 병합하고 재시도 queue로 되돌림
+- auto sync push의 conflict queue item 자동 전송 제외
+- guest local-first write의 자동 pull/push 제외
 - `CatalogTitle` related read model과 `UserReleaseRecord` 흐름
 - 홈 허브 화면
 - 계정 센터 라우트 분리
@@ -286,14 +289,15 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - `importDraft.catalogTitle` optional legacy-compatible field와 누락 시 `payload.title` fallback
 - Quick Add 검색 ranking의 제목 exact/alias/token, 제작자, 발매연도, provider/source coverage, catalog match 반영
 - Quick Add 낮은 신뢰도 후보의 직접 추가 fallback 검토 안내
+- Import/search QA report의 live-smoke manifest: smoke case/provider ID, credential mode, manual fallback case, credential-free provider-quality media type 명시
 - Production migration job과 retention cleanup command
 - Backup/restore drill 문서와 PostgreSQL backup vs IndexedDB JSON export/import
   역할 분리 문서
 
 ### Not Yet Implemented
 
-- provider별 실제 검색어 QA와 ranking weight 튜닝
-- Sync conflict 자동 병합 판단과 고급 충돌 정책
+- provider별 live 검색어 QA와 ranking weight 튜닝
+- Sync conflict overlapping scalar 자동 병합, base snapshot 기반 병합, 고급 다기기 충돌 정책
 - guest 기록 자동 병합 정책과 다기기 이관 UX
 - 자동 동기화 고도화. 현재는 account archive activation, focus/online, local
   syncQueue 변경 후 debounced push 중심의 제한적 자동 sync만 있다.
@@ -372,27 +376,37 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 ### Current Verification Status
 
-- `npm run check:docs-links`: `2026-06-12` 통과 확인
-- `npm run lint`: `2026-06-12` 통과 확인
-- `npm run typecheck`: `2026-06-12` 통과 확인
-- `npm run test --workspace @work-archive/api`: `2026-06-12` 기준 API
-  `79` suites / `582` tests 통과 확인
-- `npm run test --workspace @work-archive/shared-types`: `2026-06-12` 기준
-  `1` file / `3` tests 통과 확인
-- `npm run test`: `2026-06-12` 기준 현재 dirty frontend 작업의
-  `apps/web/src/features/works/pages/WorksListPage.test.tsx` 4개 실패로
-  root 전체 통과 미확인. API와 shared-types 구간은 통과했다.
-- `npm run build`: `2026-06-04` 통과 확인
-- `npm run test:e2e:web`: `2026-06-04` 기준 chromium/mobile-chrome
-  Playwright `10` tests 통과 확인. 이 Codex sandbox 안에서는 Vite가
+- `npm run check:docs-links`: `2026-07-01` 통과 확인
+- `npm run lint`: `2026-07-01` 통과 확인
+- `npm run typecheck`: `2026-07-01` 통과 확인
+- `npm run test`: `2026-07-01` 기준 API `92` suites / `770` tests,
+  web `62` files / `402` tests, shared-types `2` files / `6` tests 통과 확인
+- `npm run build --workspace @work-archive/web`: `2026-07-01` 통과 확인
+- `npm run test:e2e:web`: `2026-07-01` 기준 chromium/mobile-chrome
+  Playwright `17` passed / `3` skipped 확인. mobile Add Work footer overlap,
+  mobile drawer navigation, 320px overflow, Settings provider readiness,
+  Quick Add source coverage 표시, 검색 실패 직접 추가 fallback 회귀를 포함한다.
+  stale dev server가 기본
+  포트에 남아 있을 때는 `WEB_E2E_PORT=<free-port> npm run test:e2e:web`로
+  fresh Vite 서버를 띄울 수 있다. 이 Codex sandbox 안에서는 Vite가
   `127.0.0.1:18730` listen 시 `EPERM`으로 실패하므로, 실제 확인은
   sandbox 밖 실행으로 수행했다.
-- `npm run qa:import-search`: `2026-06-04` 기준 offline matrix `28` cases,
-  focused import/search tests, canonical matrix shape, runbook linkage 통과 확인
-- `npm run qa:sync-load`: `2026-06-04` 기준 dry-run synthetic payload
-  validation 통과 확인
+- `npm run qa:import-search`: `2026-07-01` 기준 offline static fixtures,
+  canonical matrix `28` cases, live smoke `6` cases / credential-free
+  provider-quality media types `3`, live-smoke manifest, matrix shape,
+  runbook linkage 통과 확인
+- `npm run qa:sync-load`: `2026-07-01` 기준 dry-run synthetic payload
+  `1000` records / batch size `200` validation 통과 확인
+- `npm run qa:docker-runtime:self-test`: `2026-07-01` 기준 fake Docker CLI로
+  config-only PASS, build-mode PASS, Docker version failure BLOCKED, invalid
+  boolean failure, report redaction behavior 통과 확인
+- `npm run qa:docker-runtime`: `2026-07-01` 기준 report
+  `tmp/docker-runtime/docker-runtime-preflight-20260701T120857Z.md` 생성 확인.
+  현재 WSL 환경에서는 Docker CLI path만 확인되고 `docker --version`이 WSL
+  socket/vsock 오류로 `BLOCKED`다. 이는 제품 실패가 아니라 release runner
+  재실행 필요 증적이다.
 - GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 `.github/workflows/validate.yml`에 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
-- `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서 `docker`가 없고, `docker.exe` client도 `dockerDesktopLinuxEngine` pipe에 연결되지 않았다.
+- `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서는 `npm run qa:docker-runtime`이 Docker runtime `BLOCKED`를 기록했다.
 
 ## 7. Immediate Limitations
 
@@ -400,19 +414,21 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 - Mantine foundation은 도입됐지만 스타일 책임은 아직 `global.css`와 페이지별 클래스 조합에 크게 남아 있다.
 - shared UI primitives가 생기고 있지만 `var(--accent)`류 직접 참조와 커스텀 클래스 조합 의존이 여전히 크다.
-- placeholder 화면과 실제 구현 화면의 성숙도 차이가 크다.
-- 직접 수동 추가, `/works` AddWorkDialog, `/works/new` fallback, guest no-key provider 검색, ranking/search quality 기본 구현/테스트는 들어갔다. 남은 일은 provider별 실제 검색어 QA와 모바일/브라우저 QA 고도화다.
-- Quick Add provider readiness UI, duplicate policy, SearchPickerPanel 기반 inline 검색 흐름의 기본 구현/테스트는 들어갔다.
+- 과거 placeholder 성격이던 Tier Boards는 독립 보드 기능으로 구현됐고, Community는 라우트 호환 redirect만 유지한다. 남은 프론트 부채는 placeholder보다 스타일 책임과 QA 증적 고도화 쪽에 가깝다.
+- 직접 수동 추가, `/works` AddWorkDialog, `/works/new` fallback, guest no-key provider 검색, ranking/search quality 기본 구현/테스트는 들어갔다. 남은 일은 provider별 live 검색어 QA와 모바일/브라우저 QA 고도화다.
+- Quick Add provider readiness UI, Settings provider readiness summary, duplicate policy, SearchPickerPanel 기반 inline 검색 흐름의 기본 구현/테스트는 들어갔다.
 - Quick Add 저장은 현재 제품 기준에서 의도적으로 local-first sync 경로를 유지한다. authenticated direct create path는 기본 생성 경로가 아니다.
 
 ### 7-2. Product UX
 
-Sync UX reality: sync is not manual-only anymore. The manual Sync page remains the explicit user-facing control surface, while authenticated users also get limited automatic pull/push behavior from `useAutoSync`. Automatic conflict merge remains out of scope; conflict items are resolved on SyncPage.
+Sync UX reality: sync is not manual-only anymore. The manual Sync page remains the explicit user-facing control surface, while authenticated users also get limited automatic pull/push behavior from `useAutoSync`. Narrow safe auto-merge can requeue safe taxonomy/alias/metadata-only cases; unsafe conflict items are resolved on SyncPage.
 
 - 게스트와 계정 아카이브는 분리되어 있고, 현재는 로그인 직후 review/import 단계까지만 제공된다.
 - sync는 수동 Sync page를 기본 조작면으로 제공하고, 로그인 상태에서는 제한적 자동 pull/push도 수행한다.
 - SyncPage는 pending / failed / conflict queue item 단위 상태와 원인, 기록 보기, 재시도 CTA를 제공한다.
-- SyncPage는 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지, 원격 적용, 필드별 병합으로 해결할 수 있다. 자동 병합 판단은 후속 작업이다.
+- SyncPage는 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지, 원격 적용, 필드별 병합으로 해결할 수 있다. 좁은 safe auto-merge는 자동 처리되지만, overlapping scalar 편집과 delete/update collision은 후속 수동 검토로 남긴다.
+- auto sync push는 conflict queue item을 자동 전송하지 않고 수동 검토 대상으로 남긴다.
+- guest local-first write는 자동 pull/push를 시작하지 않고 로그인 archive와 분리된다.
 - Profile과 Insights는 개인 기록 요약/통계로 제한한다. Tier Boards는 독립 기능으로 유지한다. Community는 현재 visible surface가 아니며 `/community`는 작품 목록으로 리다이렉트한다.
 
 ### 7-3. Backend / Security

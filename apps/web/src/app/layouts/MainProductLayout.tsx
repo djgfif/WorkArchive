@@ -95,26 +95,13 @@ export function MainProductLayout() {
           <div className={cn(css.topnavActions)}>
             <Box
               aria-label={t('navigation.commandPalette')}
+              className={cn(css.commandButton)}
               component="button"
               onClick={() =>
                 window.dispatchEvent(new Event(COMMAND_PALETTE_EVENT))
               }
               type="button"
               visibleFrom="sm"
-              style={{
-                alignItems: 'center',
-                background: 'transparent',
-                border: '1px solid var(--app-border-default)',
-                borderRadius: 'var(--mantine-radius-md)',
-                color: 'var(--app-text-secondary)',
-                cursor: 'pointer',
-                display: 'flex',
-                fontSize: 'var(--app-type-meta)',
-                fontWeight: 750,
-                gap: '0.3rem',
-                letterSpacing: '0.02em',
-                padding: '0.32rem 0.55rem',
-              }}
             >
               <span aria-hidden="true">⌘K</span>
             </Box>
@@ -279,7 +266,7 @@ export function MainProductLayout() {
             <div className={cn(css.topnavMark)} aria-hidden="true">
               WA
             </div>
-            <Text fw={800} size="sm" style={{ letterSpacing: '-0.02em' }}>
+            <Text className={cn(css.drawerBrandText)} fw={800} size="sm">
               Work Archive
             </Text>
           </Group>

@@ -250,7 +250,7 @@
   font-size: clamp(0.74rem, 15cqw, 1.7rem);
   font-weight: 720;
   line-height: 1.16;
-  letter-spacing: -0.012em;
+  letter-spacing: 0;
   text-wrap: balance;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -277,4 +277,3 @@
     will-change: auto !important;
   }
 }
-

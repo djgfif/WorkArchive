@@ -19,6 +19,9 @@ import {
 } from '@shared/components/AppPrimitives';
 import { useAppTranslation } from '@app/i18n';
 import { getUserAvatarProfile, useAuthSession } from '@features/auth';
+import { cn, cx } from '@shared/utils/class-names';
+
+import styles from './AccountLayout.module.css';
 
 /* ── 아이콘 ── */
 function IconHome({ size = 15 }: { size?: number }) {
@@ -171,11 +174,7 @@ export function AccountLayout() {
             {isLoading ? (
               <LoadingState rows={2} title={t('settings.loadingTitle')} />
             ) : (
-              <Box
-                style={{
-                  animation: 'pageEnter 280ms cubic-bezier(0.16,1,0.3,1) both',
-                }}
-              >
+              <Box className={cn(styles.contentTransition)}>
                 <Outlet />
               </Box>
             )}
@@ -211,71 +210,42 @@ function AccountSidebar({
 
   return (
     <Stack gap="sm">
-      <Box
-        style={{
-          padding: '0.95rem 1rem',
-          border: '1px solid var(--app-border-default)',
-          borderRadius: 'var(--mantine-radius-xl)',
-          background:
-            'linear-gradient(180deg, color-mix(in srgb, var(--app-surface-card) 92%, transparent), var(--app-surface-subtle))',
-        }}
-      >
+      <Box className={cn(styles.brandPanel)}>
         <BrandLink
           heading="Work Archive"
           kicker={t('navigation.accountBrandKicker')}
         />
       </Box>
 
-      <Box
-        style={{
-          background: 'var(--app-surface-card)',
-          border: '1px solid var(--app-border-default)',
-          borderRadius: 'var(--mantine-radius-xl)',
-          overflow: 'hidden',
-        }}
-      >
+      <Box className={cn(styles.sidebarCard)}>
         {/* 계정 헤더 */}
-        <Box
-          style={{
-            padding: '1rem 1.25rem',
-            borderBottom: '1px solid var(--app-border-subtle)',
-            background: 'var(--app-surface-subtle)',
-          }}
-        >
+        <Box className={cn(styles.accountHeader)}>
           <Group gap="sm" wrap="nowrap">
             <Avatar
+              className={cn(styles.avatar)}
               color={isAuthenticated ? 'archive' : 'gray'}
               radius="xl"
               size={44}
               src={avatarImageUrl || null}
               variant="filled"
-              style={{ fontWeight: 800, flexShrink: 0 }}
             >
               {avatarInitial}
             </Avatar>
-            <Stack gap={3} miw={0} style={{ flex: 1 }}>
+            <Stack className={cn(styles.accountDetails)} gap={3} miw={0}>
               <Text
+                className={cn(styles.accountName)}
                 fw={700}
                 size="sm"
                 truncate
-                style={{
-                  color: 'var(--app-text-primary)',
-                  letterSpacing: '-0.01em',
-                }}
               >
                 {accountLabel}
               </Text>
               <Group gap={6} wrap="nowrap">
                 <Box
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    flexShrink: 0,
-                    background: isAuthenticated
-                      ? 'var(--app-accent-teal, #2dd4bf)'
-                      : 'var(--app-text-muted)',
-                  }}
+                  className={cx(
+                    styles.statusDot,
+                    isAuthenticated && styles.statusDotAuthenticated,
+                  )}
                 />
                 <Text c="dimmed" size="xs">
                   {isAuthenticated
@@ -291,7 +261,7 @@ function AccountSidebar({
         <Box
           component="nav"
           aria-label={t('common.account')}
-          style={{ padding: '0.5rem' }}
+          className={cn(styles.navSection)}
         >
           <Stack gap={2}>
             {accountNavigationItems.map((item) => (
@@ -309,7 +279,7 @@ function AccountSidebar({
         <Divider color="var(--app-border-subtle)" mx="sm" />
 
         {/* 하단 액션 */}
-        <Box style={{ padding: '0.5rem' }}>
+        <Box className={cn(styles.footerSection)}>
           <Stack gap={2}>
             {/* 작품 목록으로 */}
             <AccountNavItem
@@ -320,7 +290,7 @@ function AccountSidebar({
             />
 
             {/* 테마 전환 */}
-            <Box style={{ padding: '0.25rem 0.5rem' }}>
+            <Box className={cn(styles.themeWrap)}>
               <ThemeToggleControl fullWidth={isMobile} />
             </Box>
 
@@ -328,39 +298,10 @@ function AccountSidebar({
             {isAuthenticated ? (
               <Box
                 component="button"
+                className={cn(styles.signOutButton)}
                 onClick={onSignOut}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.625rem',
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: 'var(--mantine-radius-md)',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  color: 'var(--mantine-color-red-5)',
-                  fontWeight: 500,
-                  fontSize: '0.875rem',
-                  width: '100%',
-                  textAlign: 'left',
-                  transition: 'background var(--wa-motion-fast, 150ms)',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background =
-                    'color-mix(in srgb, var(--mantine-color-red-5) 10%, transparent)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background =
-                    'transparent';
-                }}
               >
-                <Box
-                  style={{
-                    opacity: 0.8,
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
+                <Box className={cn(styles.navIcon)}>
                   <IconLogOut />
                 </Box>
                 {t('navigation.logout')}
@@ -396,14 +337,7 @@ function AccountNavItem({ end, icon, label, state, to }: AccountNavItemProps) {
   return (
     <AppNavLink end={end} fullWidth state={state} to={to}>
       <Group gap="sm" wrap="nowrap">
-        <Box
-          style={{
-            opacity: 0.7,
-            display: 'flex',
-            alignItems: 'center',
-            flexShrink: 0,
-          }}
-        >
+        <Box className={cn(styles.navIcon)}>
           {icon}
         </Box>
         {label}

@@ -9,8 +9,10 @@ import { mergeImportCandidates } from '../src/modules/imports/candidates/import-
 import { rankImportCandidates } from '../src/modules/imports/candidates/import-candidate-ranking';
 import {
   IMPORT_PROVIDER_VALUES,
+  type ImportProvider,
   MANUAL_PROVIDER,
 } from '../src/modules/imports/imports.constants';
+import { PROVIDERS } from '../src/modules/imports/providers/import-provider-adapter';
 
 interface MatrixCandidateFixture {
   author?: string;
@@ -33,6 +35,7 @@ interface MatrixCaseFixture {
   expectedMergedProviders?: string[];
   expectedTopId: string;
   id: string;
+  liveSmoke?: boolean;
   mediumType: string;
   otherCandidates?: MatrixCandidateFixture[];
   query: string;
@@ -53,6 +56,8 @@ const matrix = JSON.parse(
     'utf8',
   ),
 ) as ImportSearchQaMatrix;
+
+const LIVE_PROVIDER_QUALITY_MINIMUM_DISTINCT_TYPES = 3;
 
 function toWorkType(value: string): WorkType {
   if (!Object.values(WorkType).includes(value as WorkType)) {
@@ -141,6 +146,18 @@ function createManualFallback(
   });
 }
 
+function isKnownProvider(provider: string): provider is ImportProvider {
+  return (IMPORT_PROVIDER_VALUES as readonly string[]).includes(provider);
+}
+
+function isNoCredentialProvider(provider: string) {
+  return (
+    isKnownProvider(provider) &&
+    provider !== MANUAL_PROVIDER &&
+    PROVIDERS[provider].credentialMode === 'none'
+  );
+}
+
 describe('import/search QA canonical matrix', () => {
   it('covers every required medium type, provider, assertion tag, and unique case id', () => {
     const caseIds = matrix.cases.map((testCase) => testCase.id);
@@ -168,6 +185,71 @@ describe('import/search QA canonical matrix', () => {
       ).sort(),
     );
     expect([...tags].sort()).toEqual([...matrix.requiredCoverageTags].sort());
+  });
+
+  it('keeps the live-smoke subset useful without user provider credentials', () => {
+    const liveSmokeCases = matrix.cases.filter(
+      (testCase) => testCase.liveSmoke === true,
+    );
+    const credentialFreeProviderQualityTypes = new Set(
+      liveSmokeCases
+        .filter(
+          (testCase) =>
+            testCase.expectedCandidate &&
+            isNoCredentialProvider(testCase.expectedCandidate.sourceId),
+        )
+        .map((testCase) => testCase.mediumType),
+    );
+    const fallbackSafetyCases = liveSmokeCases.filter((testCase) =>
+      testCase.tags.includes('manual_fallback'),
+    );
+
+    expect(liveSmokeCases.length).toBeGreaterThan(0);
+    expect(fallbackSafetyCases.length).toBeGreaterThan(0);
+    expect(credentialFreeProviderQualityTypes.size).toBeGreaterThanOrEqual(
+      LIVE_PROVIDER_QUALITY_MINIMUM_DISTINCT_TYPES,
+    );
+  });
+
+  it('keeps the live-smoke manifest auditable by provider credential mode', () => {
+    const liveSmokeCases = matrix.cases.filter(
+      (testCase) => testCase.liveSmoke === true,
+    );
+    const liveSmokeProviderIds = liveSmokeCases.map(
+      (testCase) => testCase.expectedCandidate?.sourceId ?? MANUAL_PROVIDER,
+    );
+    const credentialFreeProviderIds = new Set(
+      liveSmokeProviderIds.filter(isNoCredentialProvider),
+    );
+    const credentialRequiredProviderIds = new Set(
+      liveSmokeProviderIds.filter(
+        (provider): provider is ImportProvider =>
+          isKnownProvider(provider) &&
+          provider !== MANUAL_PROVIDER &&
+          !isNoCredentialProvider(provider),
+      ),
+    );
+    const manualFallbackCaseIds = liveSmokeCases
+      .filter((testCase) => testCase.tags.includes('manual_fallback'))
+      .map((testCase) => testCase.id);
+
+    expect(liveSmokeCases.map((testCase) => testCase.id)).toEqual([
+      'novel-ko-title',
+      'novel-en-title',
+      'manga-original-title',
+      'anime-ko-title',
+      'movie-ambiguous',
+      'low-confidence-fallback',
+    ]);
+    expect([...credentialFreeProviderIds].sort()).toEqual([
+      'anilist',
+      'google_books',
+    ]);
+    expect([...credentialRequiredProviderIds].sort()).toEqual([
+      'aladin',
+      'tmdb',
+    ]);
+    expect(manualFallbackCaseIds).toEqual(['low-confidence-fallback']);
   });
 
   it.each(matrix.cases)(

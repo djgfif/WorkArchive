@@ -15,6 +15,7 @@ const aliasRoots = new Map([
 const allowedCrossFeatureEntryFiles = new Set([
   'works/storage.ts',
   'works/data.ts',
+  'works/routes.ts',
   'sync/queue.ts',
   'tier-boards/data.ts',
 ]);

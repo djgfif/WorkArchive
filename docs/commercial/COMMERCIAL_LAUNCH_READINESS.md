@@ -1,6 +1,6 @@
 # Commercial Launch Readiness Gate 1
 
-Last reviewed: 2026-06-26
+Last reviewed: 2026-07-01
 
 Scope: Work Archive public-service candidate readiness after the closed beta
 hardening baseline. This gate does not approve a commercial launch by itself; it
@@ -120,7 +120,14 @@ Corrected or deferred:
   prod-healthcheck, backup, backup verification, and restore drill scripts are
   syntax-checked by commercial and Gate 1 local gates; the same check verifies
   beta/prod smoke scripts cover health, auth, metrics, no-store, compose,
-  backup, and restore operations.
+  backup, restore operations, and `qa:docker-runtime` release-runner wiring.
+- Docker runtime preflight: `npm run qa:docker-runtime` records Docker CLI,
+  Compose, production compose config, and optional production image build
+  evidence. `npm run qa:docker-runtime:self-test` verifies the preflight
+  script's PASS, BLOCKED, build-mode, boolean parsing, and redaction behavior
+  with a fake Docker CLI. A release runner must use
+  `DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime`; a local BLOCKED report
+  documents environment availability only and does not approve release.
 - Log redaction policy: `npm run qa:log-redaction-policy` passes and verifies
   HTTP request URL query/fragment stripping, auth/cookie/set-cookie header
   redaction, security audit metadata key dropping, inline OAuth/token

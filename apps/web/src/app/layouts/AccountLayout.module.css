@@ -1,0 +1,106 @@
+.contentTransition {
+  animation: pageEnter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.brandPanel {
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-xl);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--app-surface-card) 92%, transparent),
+      var(--app-surface-subtle)
+    );
+}
+
+.sidebarCard {
+  overflow: hidden;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-xl);
+  background: var(--app-surface-card);
+}
+
+.accountHeader {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--app-border-subtle);
+  background: var(--app-surface-subtle);
+}
+
+.avatar {
+  flex-shrink: 0;
+  font-weight: 800;
+}
+
+.accountDetails {
+  flex: 1;
+}
+
+.accountName {
+  color: var(--app-text-primary);
+  letter-spacing: 0;
+}
+
+.statusDot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--app-text-muted);
+}
+
+.statusDotAuthenticated {
+  background: var(--app-accent-teal, #2dd4bf);
+}
+
+.navSection,
+.footerSection {
+  padding: 0.5rem;
+}
+
+.themeWrap {
+  padding: 0.25rem 0.5rem;
+}
+
+.navIcon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  opacity: 0.7;
+}
+
+.signOutButton {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: var(--mantine-radius-md);
+  background: transparent;
+  color: var(--mantine-color-red-5);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--wa-motion-fast, 150ms),
+    color var(--wa-motion-fast, 150ms);
+}
+
+.signOutButton:hover,
+.signOutButton:focus-visible {
+  background: color-mix(in srgb, var(--mantine-color-red-5) 10%, transparent);
+}
+
+.signOutButton:focus-visible {
+  outline: 2px solid var(--mantine-color-red-5);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contentTransition {
+    animation: none;
+  }
+}

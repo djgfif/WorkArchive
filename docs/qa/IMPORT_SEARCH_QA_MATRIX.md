@@ -1,6 +1,6 @@
 # Import/Search QA Matrix
 
-Last updated: 2026-06-04
+Last updated: 2026-07-01
 
 The canonical import/search QA matrix is
 [`IMPORT_SEARCH_QA_CASES.json`](./IMPORT_SEARCH_QA_CASES.json). The QA runner
@@ -162,3 +162,15 @@ canonical matrix; set `IMPORT_SEARCH_QA_FULL_MATRIX=true` only when
 intentionally covering every case. `IMPORT_SEARCH_QA_PROVIDERS` accepts a
 comma-separated list of fixture provider IDs and filters either the smoke subset
 or full matrix to matching cases.
+
+The default smoke subset must remain runnable as a useful staging check even
+before a tester has saved personal provider keys. Its static contract includes
+at least one manual-fallback safety case and at least three distinct
+credential-free provider-quality media types. Credentialed providers can still
+improve the live report, but the default smoke gate must not rely on them alone.
+Each QA report includes a Live Smoke Manifest section that lists the exact smoke
+case IDs, expected provider IDs, credential modes, manual fallback cases, and
+credential-free provider-quality media types before any live request results.
+Use that manifest as the operator checklist for deciding whether a staging run
+covered credential-free quality, credentialed provider reach, and fallback
+safety separately.

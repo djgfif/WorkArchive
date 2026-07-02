@@ -48,6 +48,10 @@
   min-height: 2.85rem;
 }
 
+.retryButton {
+  margin-top: 0.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .googleCta {
     transition: none;

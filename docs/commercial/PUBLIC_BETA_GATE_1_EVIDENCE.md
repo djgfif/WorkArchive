@@ -1,6 +1,6 @@
 # Public Beta Gate 1 Evidence
 
-Status: partial — local repository gates passed 2026-06-25; host/beta environment items pending.
+Status: partial — local repository gates passed 2026-07-01; host/beta environment items pending.
 
 Use this file as the operator ledger for the first public beta release
 candidate. Do not paste secrets, cookies, OAuth codes, access tokens, API keys,
@@ -30,7 +30,7 @@ open-source licensing changes are not part of this evidence run.
 
 ## Release Candidate
 
-- Date and timezone: 2026-06-24 KST (local verification run)
+- Date and timezone: 2026-07-01 KST (local verification run)
 - Commit SHA: 00c55e96cbc422ced1437395d4bc57a354cece69 + dirty working tree
 - Host or environment: local development (repository gates only; beta host pending)
 - Operator: gkho0
@@ -39,12 +39,14 @@ open-source licensing changes are not part of this evidence run.
 
 ## Repository Gates
 
-- `npm run security:public`: PASS — public readiness check passed (2026-06-24, dirty working tree)
-- `npm run check:docs-links`: PASS — all markdown local links valid (2026-06-24)
-- `npm run lint`: PASS — no ESLint errors across web/api/shared-types (2026-06-24)
-- `npm run typecheck`: PASS — no TypeScript errors (2026-06-24)
-- `npm run test`: PASS — API 88 suites / 683 tests, web 62 files / 400 tests, shared-types 2 files / 6 tests (2026-06-24)
-- `npm run build`: PASS — shared-types `tsc`, API `tsc`, web Vite production build (2026-06-24)
+- `npm run security:public`: PASS — public readiness check passed (2026-07-01, dirty working tree)
+- `npm run check:docs-links`: PASS — all markdown local links valid (2026-07-01)
+- `npm run lint`: PASS — no ESLint errors across web/api/shared-types (2026-07-01)
+- `npm run typecheck`: PASS — no TypeScript errors (2026-07-01)
+- `npm run test`: PASS — API 92 suites / 770 tests, web 62 files / 402 tests, shared-types 2 files / 6 tests (2026-07-01)
+- `npm run build`: PASS — shared-types `tsc`, API `tsc`, web Vite production build (2026-07-01)
+- `npm run check:web-boundaries`: PASS — no web feature boundary violations found (2026-07-01)
+- `npm run check:web-import-cycles`: PASS — no web import cycles found (2026-07-01)
 - `npm run qa:migrations`: PASS — Prisma migration safety check passed with registered high-risk historical migrations
 - `npm run qa:bola-matrix`: PASS — BOLA matrix covers user-owned REST object families and every sync entity type; no unresolved `gap` or `partial` rows (2026-06-24)
 - `npm run qa:api-auth-surface`: PASS — API authorization surface classifies every controller and verifies guarded, optional bearer, public health, metrics bearer-token, and policy-bounded image proxy boundaries (2026-06-24)
@@ -54,7 +56,10 @@ open-source licensing changes are not part of this evidence run.
 - `npm run qa:api-error-policy`: PASS — global API exception filter wiring, request-id error responses, sanitized unhandled 500 bodies, stack stripping, e2e coverage, and Gate 1 wiring remain aligned (2026-06-25)
 - `npm run qa:csrf-policy`: PASS — production Fetch Metadata and Origin allowlist guards, audit events, focused e2e coverage, and Gate 1 wiring remain aligned (2026-06-25)
 - `npm run qa:image-proxy-policy`: PASS — image proxy HTTPS allowlist, DNS/private-address rejection, redirect revalidation, raster content-type and byte limits, deterministic cache headers, and host-only failure logging remain aligned (2026-06-25)
-- `npm run qa:deploy-scripts`: PASS — beta/prod deploy scripts are syntax-checked, commercial repo gates and Gate 1 local evidence include them, and beta/prod smoke checks cover health, auth, metrics, no-store, backup, restore, and compose operations (2026-06-25)
+- `npm run qa:deploy-scripts`: PASS — beta/prod deploy scripts are syntax-checked, commercial repo gates and Gate 1 local evidence include them, Docker runtime preflight wiring is enforced, and beta/prod smoke checks cover health, auth, metrics, no-store, backup, restore, and compose operations (2026-07-01)
+- `npm run qa:docker-runtime:self-test`: PASS — fake Docker CLI self-test verifies config-only PASS, build-mode PASS, Docker version BLOCKED, invalid boolean failure, and Docker report redaction behavior (2026-07-01)
+- `npm run qa:docker-runtime`: BLOCKED locally — report `tmp/docker-runtime/docker-runtime-preflight-20260701T120857Z.md` records Docker CLI/WSL socket availability as an environment blocker, not a product failure. Release approval still requires `DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime` on a Docker-enabled release runner.
+- `DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime`: not run — requires Docker-enabled release runner with `.env.prod`; copy the redacted `tmp/docker-runtime/docker-runtime-preflight-*.md` PASS summary here before approval.
 - `npm run qa:owner-invariants`: PASS — `UserWorkRecord.userId` is required, cascades from the owning user, and owner-invariant docs/tests/gates remain aligned (2026-06-25)
 - `npm run qa:log-redaction-policy`: PASS — HTTP request URL query/fragment stripping, auth/cookie/set-cookie header redaction, security audit metadata key dropping, inline OAuth/token key-value redaction, and regression tests align (2026-06-26)
 - `npm run qa:operator-safety`: PASS — destructive/operational dry-run flags for retention cleanup and import provider circuit clearing reject invalid boolean values before state is counted, read, deleted, or cleared (2026-06-25)
@@ -67,10 +72,12 @@ open-source licensing changes are not part of this evidence run.
 - `npm run qa:retention-policy`: PASS — retention cleanup targets, operational docs, historical client metadata policy, and backup sensitivity policy align with current code (2026-06-20)
 - `npm run qa:user-data-rights-policy`: PASS — authenticated server-side user data export, count-only account deletion preview, account deletion, rejected-confirmation audit, omitted sensitive fields, retained-record anonymization, and bounded user data rights metrics align with current code (2026-06-21)
 - `npm run qa:account-deletion-rehearsal`: PASS — dry-run verifies the destructive disposable-account rehearsal guard, preview-first order, production client header, and post-delete token invalidation check contract (2026-06-26)
-- `npm run qa:commercial:repo`: PASS — repository-verifiable commercial gates passed in non-strict Gate 1 mode; live evidence placeholders remain (2026-06-24)
-- `npm run qa:import-search`: PASS — report `tmp/import-search-qa/import-search-qa-20260604T120649Z.md`, 28 offline matrix cases + focused import/search tests
-- `npm run qa:sync-load`: PASS — report `tmp/sync-load/sync-load-smoke-20260625T125528Z.md`, dry-run synthetic payload validation
-- `npm run test:e2e:web`: PASS — 10 Playwright tests passed across chromium and mobile-chrome (2026-06-04; ran outside sandbox because local sandbox blocks localhost bind with `EPERM`)
+- `npm run qa:commercial:repo`: PASS — repository-verifiable commercial gates passed in non-strict Gate 1 mode; live evidence placeholders remain (2026-07-01)
+- `npm run qa:import-search`: PASS — report `tmp/import-search-qa/import-search-qa-20260701T123411Z.md`, 28 offline matrix cases plus live-smoke manifest coverage
+- `IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search`: not run — requires beta host base URL and disposable authenticated token; copy the redacted live `tmp/import-search-qa/import-search-qa-*.md` PASS summary here before approval.
+- `npm run qa:sync-load`: PASS — report `tmp/sync-load/sync-load-smoke-20260701T123414Z.md`, dry-run synthetic payload validation
+- `SYNC_LOAD_DRY_RUN=false npm run qa:sync-load`: not run — requires beta host base URL and disposable authenticated token; copy the redacted live `tmp/sync-load/sync-load-smoke-*.md` PASS summary here before approval.
+- `npm run test:e2e:web`: PASS — 17 Playwright tests passed and 3 skipped across chromium and mobile-chrome with `WEB_E2E_PORT=19998` (2026-07-01)
 - `npm run test:e2e`: PASS — API e2e 4 suites / 47 tests passed locally (2026-06-24); beta-host smoke evidence remains separate below
 - `docker compose -f compose.prod.yml --env-file .env.prod config`: not run — requires .env.prod
 
@@ -110,7 +117,7 @@ open-source licensing changes are not part of this evidence run.
 - `npm run qa:alerts`: PASS — 13 Prometheus alert rules validated locally (2026-06-21)
 - `npm run qa:slo`: PASS — 7 SLO recording rules and 5 SLO alerts validated locally (2026-06-20)
 - `npm run qa:dashboards`: PASS — Grafana dashboard validated locally with 16 panels (2026-06-21)
-- `npm run qa:monitoring` report: PASS — dry-run report `tmp/monitoring-evidence/monitoring-evidence-20260625T130144Z.md` generated locally (2026-06-25)
+- `npm run qa:monitoring` report: PASS — dry-run report `tmp/monitoring-evidence/monitoring-evidence-20260701T123415Z.md` generated locally (2026-07-01)
 - Alert rule file deployed:
 - SLO rule file deployed:
 - Grafana dashboard file deployed:
@@ -128,7 +135,7 @@ open-source licensing changes are not part of this evidence run.
 
 ## Backup And Restore Drill
 
-- Restore drill plan-only report (pre-review only; not approval evidence): PASS — `tmp/restore-drills/restore-drill-plan-20260625T130143Z.md` generated locally without Docker, `pg_restore`, migrations, startup, smoke, or destructive restore commands (2026-06-25)
+- Restore drill plan-only report (pre-review only; not approval evidence): PASS — `tmp/restore-drills/restore-drill-plan-20260701T123410Z.md` generated locally without Docker, `pg_restore`, migrations, startup, smoke, or destructive restore commands (2026-07-01)
 - Backup command (`npm run ops:backup`):
 - Backup report (`tmp/backups/prod-backup-*.md` summary only):
 - Backup file identifier:
@@ -167,7 +174,7 @@ measured, write `not measured` and explain why.
 | Import provider status                  | not measured | not measured | not measured  | not measured       | beta host required |
 | Web `/work-archive-config.js`           | not measured | not measured | not measured  | not measured       | beta host required |
 
-Sync load dry-run (local, no API calls): PASS — run ID 20260625T125528Z-5dff2c5a, 1000 synthetic records, 5 batches generated, status PASS. Live run requires beta host + disposable authenticated account.
+Sync load dry-run (local, no API calls): PASS — run ID 20260701T123414Z-dbc2f428, 1000 synthetic records, 5 batches generated, status PASS. Live run requires beta host + disposable authenticated account.
 
 ## Decision
 

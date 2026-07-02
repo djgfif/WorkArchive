@@ -64,6 +64,13 @@ const liveProviderQualityMinimumDistinctTypes = readIntegerEnv(
   'IMPORT_SEARCH_QA_MIN_PROVIDER_TYPES',
   3,
 );
+const noCredentialLiveSmokeProviders = new Set([
+  'anilist',
+  'google_books',
+  'open_library',
+  'tvmaze',
+  'wikidata',
+]);
 const liveProviderQualityTopN = readIntegerEnv('IMPORT_SEARCH_QA_TOP_N', 5, {
   min: 1,
 });
@@ -290,6 +297,22 @@ function writeReports(report) {
         `| ${check.name} | ${check.status} | ${escapeMarkdownTableCell(redact(check.summary))} |`,
     ),
     '',
+    '## Live Smoke Manifest',
+    '',
+    `- Case count: ${report.liveSmokeManifest.caseCount}`,
+    `- Case IDs: ${report.liveSmokeManifest.caseIds.join(', ') || 'none'}`,
+    `- Manual fallback case IDs: ${report.liveSmokeManifest.manualFallbackCaseIds.join(', ') || 'none'}`,
+    `- Credential-free provider quality media types: ${report.liveSmokeManifest.credentialFreeProviderQualityMediumTypes.join(', ') || 'none'}`,
+    `- Credential-free provider IDs: ${report.liveSmokeManifest.credentialFreeProviderIds.join(', ') || 'none'}`,
+    `- Credentialed provider IDs: ${report.liveSmokeManifest.credentialedProviderIds.join(', ') || 'none'}`,
+    '',
+    '| Case | Medium | Expected provider | Credential mode | Tags |',
+    '| --- | --- | --- | --- | --- |',
+    ...report.liveSmokeManifest.cases.map(
+      (item) =>
+        `| ${item.id} | ${item.mediumType} | ${item.expectedProviderId} | ${item.credentialMode} | ${escapeMarkdownTableCell(item.tags.join(', '))} |`,
+    ),
+    '',
   ];
 
   if (report.liveResults.length > 0) {
@@ -408,6 +431,17 @@ function validateMatrixShape() {
   const missingTags = (matrixData.requiredCoverageTags ?? []).filter(
     (tag) => !tags.has(tag),
   );
+  const liveSmokeCases = matrix.filter((item) => item.liveSmoke === true);
+  const liveFallbackCases = liveSmokeCases.filter((item) =>
+    (item.tags ?? []).includes('manual_fallback'),
+  );
+  const liveCredentialFreeProviderTypes = new Set(
+    liveSmokeCases
+      .filter((item) =>
+        noCredentialLiveSmokeProviders.has(item.expectedCandidate?.sourceId),
+      )
+      .map((item) => item.mediumType),
+  );
   const duplicateIds = matrix
     .map((item) => item.id)
     .filter((id, index, ids) => ids.indexOf(id) !== index);
@@ -416,17 +450,21 @@ function validateMatrixShape() {
     missingMedia.length > 0 ||
     missingProviders.length > 0 ||
     missingTags.length > 0 ||
+    liveSmokeCases.length === 0 ||
+    liveFallbackCases.length === 0 ||
+    liveCredentialFreeProviderTypes.size <
+      liveProviderQualityMinimumDistinctTypes ||
     duplicateIds.length > 0
   ) {
     return {
       status: 'FAIL',
-      summary: `Missing media: ${missingMedia.join(', ') || 'none'}; missing providers: ${missingProviders.join(', ') || 'none'}; missing tags: ${missingTags.join(', ') || 'none'}; duplicate IDs: ${duplicateIds.join(', ') || 'none'}.`,
+      summary: `Missing media: ${missingMedia.join(', ') || 'none'}; missing providers: ${missingProviders.join(', ') || 'none'}; missing tags: ${missingTags.join(', ') || 'none'}; live smoke cases: ${liveSmokeCases.length}; live fallback cases: ${liveFallbackCases.length}; credential-free live provider quality types: ${liveCredentialFreeProviderTypes.size}/${liveProviderQualityMinimumDistinctTypes}; duplicate IDs: ${duplicateIds.join(', ') || 'none'}.`,
     };
   }
 
   return {
     status: 'PASS',
-    summary: `${matrix.length} cases cover ${[...mediumTypes].join(', ')}, ${providers.size} providers, and ${tags.size} assertion tags from ${relativePath(matrixPath)}.`,
+    summary: `${matrix.length} cases cover ${[...mediumTypes].join(', ')}, ${providers.size} providers, and ${tags.size} assertion tags from ${relativePath(matrixPath)}; live smoke includes ${liveSmokeCases.length} cases, ${liveFallbackCases.length} fallback-safety case(s), and ${liveCredentialFreeProviderTypes.size} credential-free provider-quality medium types.`,
   };
 }
 
@@ -446,6 +484,68 @@ function validateMatrixDoc() {
   return {
     status: 'PASS',
     summary: `${relativePath(matrixDocPath)} references the canonical matrix and all ${matrix.length} case IDs.`,
+  };
+}
+
+function getLiveSmokeExpectedProviderId(item) {
+  return item.expectedCandidate?.sourceId ?? 'manual';
+}
+
+function getLiveSmokeCredentialMode(providerId) {
+  if (providerId === 'manual') {
+    return 'manual_fallback';
+  }
+
+  return noCredentialLiveSmokeProviders.has(providerId)
+    ? 'none'
+    : 'credential_required';
+}
+
+function buildLiveSmokeManifest() {
+  const liveSmokeCases = matrix.filter((item) => item.liveSmoke === true);
+  const credentialFreeProviderQualityCases = liveSmokeCases.filter((item) => {
+    const providerId = getLiveSmokeExpectedProviderId(item);
+    return providerId !== 'manual' && noCredentialLiveSmokeProviders.has(providerId);
+  });
+  const credentialedProviderIds = new Set(
+    liveSmokeCases
+      .map(getLiveSmokeExpectedProviderId)
+      .filter(
+        (providerId) =>
+          providerId !== 'manual' &&
+          !noCredentialLiveSmokeProviders.has(providerId),
+      ),
+  );
+  const credentialFreeProviderIds = new Set(
+    credentialFreeProviderQualityCases.map(getLiveSmokeExpectedProviderId),
+  );
+  const manualFallbackCaseIds = liveSmokeCases
+    .filter((item) => (item.tags ?? []).includes('manual_fallback'))
+    .map((item) => item.id);
+
+  return {
+    caseCount: liveSmokeCases.length,
+    caseIds: liveSmokeCases.map((item) => item.id),
+    cases: liveSmokeCases.map((item) => {
+      const providerId = getLiveSmokeExpectedProviderId(item);
+
+      return {
+        credentialMode: getLiveSmokeCredentialMode(providerId),
+        expectedProviderId: providerId,
+        id: item.id,
+        mediumType: item.mediumType,
+        query: item.query,
+        tags: item.tags ?? [],
+      };
+    }),
+    credentialedProviderIds: [...credentialedProviderIds].sort(),
+    credentialFreeProviderIds: [...credentialFreeProviderIds].sort(),
+    credentialFreeProviderQualityMediumTypes: [
+      ...new Set(
+        credentialFreeProviderQualityCases.map((item) => item.mediumType),
+      ),
+    ].sort(),
+    manualFallbackCaseIds,
   };
 }
 
@@ -626,6 +726,7 @@ const report = {
     ? 'every case in docs/qa/IMPORT_SEARCH_QA_MATRIX.md'
     : 'a smoke subset of docs/qa/IMPORT_SEARCH_QA_MATRIX.md',
   liveProviderFilter,
+  liveSmokeManifest: buildLiveSmokeManifest(),
   matrixCoverage: liveMode
     ? fullMatrixLive
       ? 'full matrix'

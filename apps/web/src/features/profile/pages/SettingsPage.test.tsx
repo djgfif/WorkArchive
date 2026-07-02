@@ -381,6 +381,23 @@ describe('SettingsPage', () => {
         mediumTypes: ['novel', 'anime', 'movie', 'drama'],
       },
       {
+        provider: 'open_library',
+        label: 'Open Library',
+        credentialMode: 'none',
+        configured: true,
+        circuitOpenedUntil: '2026-05-21T01:00:00.000Z',
+        circuitReasonCode: 'provider_failed',
+        circuitState: 'open',
+        mediumTypes: ['novel', 'light_novel'],
+      },
+      {
+        provider: 'naver_book',
+        label: 'Naver Book',
+        credentialMode: 'server',
+        configured: false,
+        mediumTypes: ['novel', 'light_novel', 'manga'],
+      },
+      {
         provider: 'aladin',
         label: 'Aladin Book',
         credentialMode: 'user',
@@ -438,6 +455,8 @@ describe('SettingsPage', () => {
 
     expect(await screen.findByText('Manual')).toBeInTheDocument();
     expect(screen.getAllByText('Wikidata').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Open Library').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Naver Book').length).toBeGreaterThan(0);
     expect(
       screen.getByText(/공개 Wikidata\/Wikimedia 정보/),
     ).toBeInTheDocument();
@@ -453,6 +472,27 @@ describe('SettingsPage', () => {
     expect(
       screen.getByText(
         /사용자 개인 Tavily API key가 필요합니다\. 서버 운영자 키를 사용하지 않습니다\./,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('현재 검색 준비 상태')).toBeInTheDocument();
+    expect(screen.getByText('확인 필요')).toBeInTheDocument();
+    expect(screen.getAllByText('검색 가능').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/Manual, Wikidata/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Aladin Book, TMDB, Brave Search, Tavily Search/),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/Naver Book/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Open Library/).length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        '서버 환경 변수나 운영자 키가 준비되면 사용할 수 있습니다.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '반복 실패 보호 회로가 열려 있어 잠시 검색에서 제외됩니다.',
       ),
     ).toBeInTheDocument();
     const providerKeyInput = screen.getByLabelText('TTBKey');

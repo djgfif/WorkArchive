@@ -41,6 +41,8 @@ const requiredPassCommands = [
   'npm run qa:api-error-policy',
   'npm run qa:csrf-policy',
   'npm run qa:deploy-scripts',
+  'npm run qa:docker-runtime:self-test',
+  'DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime',
   'npm run qa:owner-invariants',
   'npm run qa:compose-hardening',
   'npm run qa:auth-session-policy',
@@ -55,7 +57,9 @@ const requiredPassCommands = [
   'npm run qa:account-deletion-rehearsal',
   'npm run qa:commercial:repo',
   'npm run qa:import-search',
+  'IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search',
   'npm run qa:sync-load',
+  'SYNC_LOAD_DRY_RUN=false npm run qa:sync-load',
   'npm run qa:alerts',
   'npm run qa:slo',
   'npm run qa:dashboards',
@@ -277,7 +281,19 @@ function validateRepositoryGates() {
 function validateReferencedLocalReports() {
   const reportEvidence = [
     ['npm run qa:import-search', commandLine('npm run qa:import-search')],
+    [
+      'IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search',
+      commandLine('IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search'),
+    ],
     ['npm run qa:sync-load', commandLine('npm run qa:sync-load')],
+    [
+      'SYNC_LOAD_DRY_RUN=false npm run qa:sync-load',
+      commandLine('SYNC_LOAD_DRY_RUN=false npm run qa:sync-load'),
+    ],
+    [
+      'DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime',
+      commandLine('DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime'),
+    ],
     [
       '`npm run qa:monitoring` report',
       findBulletValue('`npm run qa:monitoring` report'),
@@ -356,6 +372,100 @@ function validateReferencedLocalReports() {
       for (const issue of findSecretSafetyIssues(reportText)) {
         addFinding(`required evidence field "${label}" references report ${path} that appears to contain a ${issue}.`);
       }
+      validateReportContent(label, path, reportText);
+    }
+  }
+}
+
+function validateReportContent(label, path, reportText) {
+  const reportExpectations = {
+    'DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime': {
+      forbidden: [],
+      required: [
+        ['overall PASS status', /- Overall status:\s*PASS\b/],
+        ['config-and-build mode', /- Mode:\s*config-and-build\b/],
+        [
+          'production image build PASS check',
+          /\|\s*production image build\s*\|\s*PASS\s*\|/,
+        ],
+      ],
+    },
+    'IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search': {
+      forbidden: [
+        ['offline mode marker', /- Mode:\s*offline\b/i],
+        ['blocked live check marker', /\|\s*live import\/search [^|]+\|\s*BLOCKED\s*\|/i],
+      ],
+      required: [
+        ['live mode', /- Mode:\s*live\b/],
+        ['overall PASS status', /- Overall status:\s*PASS\b/],
+        [
+          'live fallback safety PASS check',
+          /\|\s*live import\/search fallback safety\s*\|\s*PASS\s*\|/i,
+        ],
+        [
+          'live provider quality PASS check',
+          /\|\s*live import\/search provider quality\s*\|\s*PASS\s*\|/i,
+        ],
+      ],
+    },
+    'SYNC_LOAD_DRY_RUN=false npm run qa:sync-load': {
+      forbidden: [
+        ['dry-run mode marker', /- Mode:\s*dry-run\b/i],
+        ['blocked status marker', /- Status:\s*BLOCKED\b/i],
+        ['failure status marker', /- Status:\s*FAIL\b/i],
+      ],
+      required: [
+        ['live mode', /- Mode:\s*live\b/],
+        ['PASS status', /- Status:\s*PASS\b/],
+        ['1000 synthetic records', /- Synthetic records:\s*1000\b/],
+        ['batch size 200', /- Batch size:\s*200\b/],
+        ['pull limit 500', /- Pull limit:\s*500\b/],
+        ['zero failures', /- Failures:\s*0\b/],
+        ['zero conflicts', /- Conflicts:\s*0\b/],
+        ['oversized push batch DTO rejection', /- Oversized push batch smoke HTTP status:\s*400\b/],
+      ],
+    },
+    '`npm run qa:monitoring` report': {
+      forbidden: [
+        ['dry-run status marker', /- Status:\s*DRY_RUN\b/i],
+        ['dry-run mode marker', /- Mode:\s*dry-run\b/i],
+      ],
+      required: [
+        ['live mode', /- Mode:\s*live\b/],
+        ['PASS status', /- Status:\s*PASS\b/],
+      ],
+    },
+    'Performance smoke report': {
+      forbidden: [
+        ['dry-run scenario marker', /\|\s*[^|]+\|\s*DRY-RUN\s*\|/i],
+        ['blocked scenario marker', /\|\s*[^|]+\|\s*BLOCKED\s*\|/i],
+        ['dry-run mode marker', /- Mode:\s*dry-run\b/i],
+      ],
+      required: [
+        ['live mode', /- Mode:\s*live\b/],
+        ['PASS status', /- Status:\s*PASS\b/],
+      ],
+    },
+  };
+
+  const expectation = reportExpectations[label];
+  if (!expectation) {
+    return;
+  }
+
+  for (const [description, pattern] of expectation.required) {
+    if (!pattern.test(reportText)) {
+      addFinding(
+        `required evidence field "${label}" references report ${path} without ${description}.`,
+      );
+    }
+  }
+
+  for (const [description, pattern] of expectation.forbidden) {
+    if (pattern.test(reportText)) {
+      addFinding(
+        `required evidence field "${label}" references report ${path} with ${description}.`,
+      );
     }
   }
 }

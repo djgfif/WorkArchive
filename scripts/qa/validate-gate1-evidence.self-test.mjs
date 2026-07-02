@@ -115,6 +115,131 @@ try {
       name: 'unsafe report path',
       replacement: '`tmp/../outside-report.md`',
     });
+
+    const blockedDockerReportPath = join(
+      rootDir,
+      'tmp/gate1-evidence-validator-self-test/docker-runtime-blocked.md',
+    );
+    writeFileSync(
+      blockedDockerReportPath,
+      [
+        '# Docker Runtime Preflight Report',
+        '',
+        '- Mode: config-only',
+        '- Overall status: BLOCKED',
+        '',
+        '| Check | Status | Command | Summary |',
+        '| --- | --- | --- | --- |',
+        '| docker CLI version | BLOCKED | `docker --version` | unavailable |',
+        '',
+      ].join('\n'),
+    );
+    runDockerReportFixture({
+      expectedMessage:
+        'references report tmp/gate1-evidence-validator-self-test/docker-runtime-blocked.md without overall PASS status',
+      name: 'blocked docker runtime report',
+      reportPath: 'tmp/gate1-evidence-validator-self-test/docker-runtime-blocked.md',
+    });
+
+    const offlineImportSearchReportPath = join(
+      rootDir,
+      'tmp/gate1-evidence-validator-self-test/import-search-offline.md',
+    );
+    writeFileSync(
+      offlineImportSearchReportPath,
+      [
+        '# Import/Search QA Report',
+        '',
+        '- Mode: offline',
+        '- Overall status: PASS',
+        '',
+      ].join('\n'),
+    );
+    runReportContentFixture({
+      expectedMessage:
+        'references report tmp/gate1-evidence-validator-self-test/import-search-offline.md without live mode',
+      label: 'IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search',
+      name: 'offline import search report',
+      reportPath: 'tmp/gate1-evidence-validator-self-test/import-search-offline.md',
+    });
+
+    const dryRunSyncLoadReportPath = join(
+      rootDir,
+      'tmp/gate1-evidence-validator-self-test/sync-load-dry-run.md',
+    );
+    writeFileSync(
+      dryRunSyncLoadReportPath,
+      [
+        '# Sync Load Smoke Report',
+        '',
+        '- Mode: dry-run',
+        '- Status: PASS',
+        '- Synthetic records: 1000',
+        '- Batch size: 200',
+        '- Pull limit: 500',
+        '',
+        '## Result',
+        '',
+        '- Conflicts: 0',
+        '- Failures: 0',
+        '',
+      ].join('\n'),
+    );
+    runReportContentFixture({
+      expectedMessage:
+        'references report tmp/gate1-evidence-validator-self-test/sync-load-dry-run.md without live mode',
+      label: 'SYNC_LOAD_DRY_RUN=false npm run qa:sync-load',
+      name: 'dry-run sync load report',
+      reportPath: 'tmp/gate1-evidence-validator-self-test/sync-load-dry-run.md',
+    });
+
+    const dryRunMonitoringReportPath = join(
+      rootDir,
+      'tmp/gate1-evidence-validator-self-test/monitoring-dry-run.md',
+    );
+    writeFileSync(
+      dryRunMonitoringReportPath,
+      [
+        '# Monitoring Evidence Report',
+        '',
+        '- Mode: dry-run',
+        '- Status: DRY_RUN',
+        '',
+      ].join('\n'),
+    );
+    runReportContentFixture({
+      expectedMessage:
+        'references report tmp/gate1-evidence-validator-self-test/monitoring-dry-run.md without live mode',
+      label: '`npm run qa:monitoring` report',
+      name: 'dry-run monitoring report',
+      reportPath: 'tmp/gate1-evidence-validator-self-test/monitoring-dry-run.md',
+    });
+
+    const dryRunPerformanceReportPath = join(
+      rootDir,
+      'tmp/gate1-evidence-validator-self-test/performance-dry-run.md',
+    );
+    writeFileSync(
+      dryRunPerformanceReportPath,
+      [
+        '# Performance Smoke Baseline',
+        '',
+        '- Mode: dry-run',
+        '- Status: PASS',
+        '',
+        '| Scenario | Status | Count | p50 ms | p95 ms |',
+        '| --- | --- | ---: | ---: | ---: |',
+        '| GET /readyz | DRY-RUN | 0 | n/a | n/a |',
+        '',
+      ].join('\n'),
+    );
+    runReportContentFixture({
+      expectedMessage:
+        'references report tmp/gate1-evidence-validator-self-test/performance-dry-run.md without live mode',
+      label: 'Performance smoke report',
+      name: 'dry-run performance report',
+      reportPath: 'tmp/gate1-evidence-validator-self-test/performance-dry-run.md',
+    });
   }
 } finally {
   rmSync(workspaceTempDir, { force: true, recursive: true });
@@ -150,6 +275,53 @@ function runFixture({ expectedMessage, name, replacement }) {
     failures.push(`${name}: strict validation unexpectedly passed.`);
     return;
   }
+
+  const output = result.findings.join('\n');
+  if (!output.includes(expectedMessage)) {
+    failures.push(`${name}: expected output to include "${expectedMessage}".`);
+  }
+}
+
+function runDockerReportFixture({ expectedMessage, name, reportPath }) {
+  runReportContentFixture({
+    expectedMessage,
+    label: 'DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime',
+    name,
+    reportPath,
+  });
+}
+
+function runReportContentFixture({ expectedMessage, label, name, reportPath }) {
+  const fixturePath = join(workspaceTempDir, `fixture-${slugify(name)}.md`);
+  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const labelPattern = label.startsWith('`')
+    ? escapedLabel
+    : `(?:${escapedLabel}|\`${escapedLabel}\`)`;
+  const sourceLinePattern = new RegExp(`^- ${labelPattern}:[^\\n]*$`, 'm');
+  const shouldRenderAsCommand =
+    label.startsWith('`') || label.includes('npm run') || label.includes('=true');
+  const renderedLabel = label.startsWith('`')
+    ? label
+    : shouldRenderAsCommand
+      ? `\`${label}\``
+      : label;
+  const fixture = sourceEvidence.replace(
+    sourceLinePattern,
+    `- ${renderedLabel}: PASS — report \`${reportPath}\``,
+  );
+
+  if (fixture === sourceEvidence) {
+    failures.push(`${name}: fixture replacement did not modify the evidence.`);
+    return;
+  }
+
+  mkdirSync(dirname(fixturePath), { recursive: true });
+  writeFileSync(fixturePath, fixture);
+
+  const result = runGate1EvidenceValidation({
+    evidencePath: fixturePath,
+    strictMode: true,
+  });
 
   const output = result.findings.join('\n');
   if (!output.includes(expectedMessage)) {

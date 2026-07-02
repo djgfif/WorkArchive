@@ -1,8 +1,9 @@
 ﻿import { render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { WorkRecord } from '@work-archive/shared-types';
 import { AuthContext, type AuthContextValue } from '@features/auth';
-import { workArchiveDbManager } from '@features/works';
+import { getWorkArchiveDb, workArchiveDbManager } from '@features/works';
 import { worksService } from '@features/works';
 import { syncService } from '../services/sync.service';
 import { useAutoSync } from './useAutoSync';
@@ -17,6 +18,14 @@ const authValue: AuthContextValue = {
     id: 'user-1',
     nickname: 'User',
   },
+  signOut: vi.fn(),
+};
+
+const guestAuthValue: AuthContextValue = {
+  archiveScopeKey: 'work-archive-db-guest',
+  isLoading: false,
+  mode: 'guest',
+  user: null,
   signOut: vi.fn(),
 };
 
@@ -42,6 +51,14 @@ function AutoSyncBackoffProbe() {
 function renderAutoSync() {
   return render(
     <AuthContext.Provider value={authValue}>
+      <AutoSyncProbe />
+    </AuthContext.Provider>,
+  );
+}
+
+function renderGuestAutoSync() {
+  return render(
+    <AuthContext.Provider value={guestAuthValue}>
       <AutoSyncProbe />
     </AuthContext.Provider>,
   );
@@ -80,9 +97,56 @@ function buildPushResult() {
   } satisfies Awaited<ReturnType<typeof syncService.pushQueuedChanges>>;
 }
 
+function buildWorkRecord(overrides: Partial<WorkRecord> = {}): WorkRecord {
+  const now = new Date().toISOString();
+
+  return {
+    author: 'Frank Herbert',
+    catalogTitleId: null,
+    completedAt: null,
+    createdAt: now,
+    deletedAt: null,
+    description: '',
+    droppedAt: null,
+    favorite: false,
+    genres: ['Science Fiction'],
+    id: crypto.randomUUID(),
+    importDraft: null,
+    lastConsumedAt: null,
+    lastConsumedLabel: null,
+    personalTags: [],
+    progressCurrent: null,
+    progressTotal: null,
+    progressUnit: null,
+    rating: null,
+    review: '',
+    serialStatus: null,
+    serverVersion: 1,
+    shortReview: '',
+    startedAt: null,
+    status: 'planned',
+    syncStatus: 'pending',
+    thumbnailUrl: '',
+    title: 'Dune',
+    type: 'novel',
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
+async function clearCurrentArchiveDb() {
+  const db = getWorkArchiveDb();
+
+  await db.transaction('rw', [db.works, db.syncQueue], async () => {
+    await db.works.clear();
+    await db.syncQueue.clear();
+  });
+}
+
 describe('useAutoSync', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     workArchiveDbManager.switchToUser('user-1');
+    await clearCurrentArchiveDb();
   });
 
   afterEach(() => {
@@ -173,5 +237,83 @@ describe('useAutoSync', () => {
     await waitFor(() => {
       expect(pushSpy).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('keeps guest local-first writes out of automatic sync', async () => {
+    workArchiveDbManager.switchToGuest();
+    await clearCurrentArchiveDb();
+    const pullSpy = vi
+      .spyOn(syncService, 'pullRemoteChanges')
+      .mockResolvedValue(buildPullResult());
+    const pushSpy = vi
+      .spyOn(syncService, 'pushQueuedChanges')
+      .mockResolvedValue(buildPushResult());
+
+    renderGuestAutoSync();
+
+    await worksService.createWork({
+      author: 'Ursula K. Le Guin',
+      description: '',
+      favorite: false,
+      genres: ['Fantasy'],
+      rating: null,
+      review: '',
+      shortReview: '',
+      status: 'planned',
+      thumbnailUrl: '',
+      title: 'A Wizard of Earthsea',
+      type: 'novel',
+    });
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50);
+    });
+
+    expect(pullSpy).not.toHaveBeenCalled();
+    expect(pushSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not automatically push queue items that require conflict review', async () => {
+    vi.spyOn(syncService, 'pullRemoteChanges').mockResolvedValue(
+      buildPullResult(),
+    );
+    const pushSpy = vi
+      .spyOn(syncService, 'pushQueuedChanges')
+      .mockResolvedValue(buildPushResult());
+    const conflictedWork = buildWorkRecord({
+      syncStatus: 'conflict',
+      title: 'Remote Review Needed',
+    });
+
+    await getWorkArchiveDb().syncQueue.add({
+      autoMerge: null,
+      clientMutationId: crypto.randomUUID(),
+      conflict: {
+        code: 'conflict_remote_newer',
+        detectedAt: new Date().toISOString(),
+        message: 'Remote record is newer.',
+        remote: {
+          ...conflictedWork,
+          title: 'Remote Copy',
+        },
+      },
+      createdAt: new Date().toISOString(),
+      entityId: conflictedWork.id,
+      entityType: 'work',
+      id: crypto.randomUUID(),
+      lastError: 'Remote record is newer.',
+      nextRetryAt: null,
+      operation: 'update',
+      payload: conflictedWork,
+      retryCount: 1,
+      source: 'edit_form',
+    });
+
+    renderAutoSync();
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50);
+    });
+
+    expect(pushSpy).not.toHaveBeenCalled();
   });
 });

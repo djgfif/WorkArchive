@@ -121,7 +121,7 @@ export function WorksList({
           verticalSpacing={{ base: 'md', md: 'lg' }}
         >
           {visibleWorks.map((work) => (
-            <Box key={work.id} style={{ position: 'relative' }}>
+            <Box className={css.gridItemSlot ?? ''} key={work.id}>
               <WorkPosterCard
                 isUpdating={updatingWorkId === work.id}
                 work={work}
@@ -137,7 +137,7 @@ export function WorksList({
   return (
     <section
       aria-label={t('works.list.sectionListAria')}
-      style={{ borderTop: '1px solid var(--app-border-subtle)' }}
+      className={css.listSection ?? ''}
     >
       <Stack gap={0}>
         {visibleWorks.map((work, index) => (

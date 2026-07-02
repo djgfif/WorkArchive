@@ -7,10 +7,6 @@ export {
   WorkPoster,
 } from './components/ArchiveComponents';
 export { AddWorkFlow } from './components/AddWorkFlow';
-export { WorkCreatePage } from './pages/WorkCreatePage';
-export { WorkDetailPage } from './pages/WorkDetailPage';
-export { WorkEditPage } from './pages/WorkEditPage';
-export { WorksListPage } from './pages/WorksListPage';
 export {
   createWorkArchiveDb,
   getWorkArchiveDb,

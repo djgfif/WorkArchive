@@ -4,8 +4,11 @@ import { Box, Stack, Text, Title } from '@mantine/core';
 
 import { useAppTranslation, type AppTranslationKey } from '@app/i18n';
 import { AppButton, AppLinkButton } from '@shared/components/AppPrimitives';
+import { cn, cx } from '@shared/utils/class-names';
 import { useAuthSession } from '../hooks/useAuthSession';
 import { ApiRequestError } from '../services/auth.api';
+
+import styles from './GoogleAuthCompletePage.module.css';
 
 /* ── 에러 유형 ─────────────────────────────────────────────────────────────── */
 
@@ -119,20 +122,15 @@ function StepDots({ step }: { step: LoadingStep }) {
 
   return (
     <Stack gap="xs" align="center">
-      <Box style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+      <Box className={cn(styles.stepDotsTrack)}>
         {steps.map((s, i) => (
           <Box
             key={s}
-            style={{
-              width: i === currentIndex ? 20 : 6,
-              height: 6,
-              borderRadius: 999,
-              background: i <= currentIndex
-                ? 'var(--app-accent-primary)'
-                : 'var(--app-border-default)',
-              transition:
-                'width 300ms cubic-bezier(0.16, 1, 0.3, 1), background 200ms ease',
-            }}
+            className={cx(
+              styles.stepDot,
+              i <= currentIndex && styles.stepDotActive,
+              i === currentIndex && styles.stepDotCurrent,
+            )}
           />
         ))}
       </Box>
@@ -158,35 +156,30 @@ function ErrorPanel({ error, onRetry }: ErrorPanelProps) {
     <Stack gap="xl" align="center" maw={400} mx="auto">
       <Box
         aria-hidden="true"
-        style={{
-          width: 52,
-          height: 52,
-          borderRadius: '50%',
-          background: 'color-mix(in srgb, var(--app-state-danger) 10%, transparent)',
-          border: '1px solid color-mix(in srgb, var(--app-state-danger) 22%, transparent)',
-          display: 'grid',
-          placeItems: 'center',
-          color: 'var(--app-state-danger)',
-          fontSize: '1.35rem',
-          lineHeight: 1,
-        }}
+        className={cn(styles.errorIcon)}
       >
         ✕
       </Box>
 
       <Stack gap={6} ta="center">
-        <Title order={2} size="h3" style={{ letterSpacing: '-0.02em' }}>
+        <Title className={cn(styles.panelTitle)} order={2} size="h3">
           {t(title)}
         </Title>
-        <Text c="dimmed" size="sm" maw="34ch" mx="auto" style={{ lineHeight: 1.65 }}>
+        <Text
+          c="dimmed"
+          className={cn(styles.panelDetail)}
+          size="sm"
+          maw="34ch"
+          mx="auto"
+        >
           {t(detail)}
         </Text>
         {error.kind === 'unknown' && import.meta.env.DEV && (
           <Text
             c="dimmed"
+            className={cn(styles.debugMessage)}
             size="xs"
             mt={4}
-            style={{ fontFamily: 'monospace', opacity: 0.6 }}
           >
             {error.message}
           </Text>
@@ -313,52 +306,24 @@ export function GoogleAuthCompletePage() {
 
   if (error) {
     return (
-      <Box
-        style={{
-          minHeight: '100dvh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 'clamp(1.5rem, 4vw, 3rem)',
-          animation: 'pageEnter 280ms cubic-bezier(0.16, 1, 0.3, 1) both',
-        }}
-      >
+      <Box className={cx(styles.completeShell, styles.errorShell)}>
         <ErrorPanel error={error} onRetry={handleRetry} />
       </Box>
     );
   }
 
   return (
-    <Box
-      style={{
-        minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '2rem',
-        padding: 'clamp(1.5rem, 4vw, 3rem)',
-        animation: 'pageEnter 200ms cubic-bezier(0.16, 1, 0.3, 1) both',
-      }}
-    >
+    <Box className={cx(styles.completeShell, styles.loadingShell)}>
       {/* 스피너 */}
       <Box
-        aria-hidden="true"
         role="status"
         aria-label={t('auth.googleComplete.loadingAria')}
-        style={{
-          width: 42,
-          height: 42,
-          borderRadius: '50%',
-          border: '2.5px solid var(--app-border-default)',
-          borderTopColor: 'var(--app-accent-primary)',
-          animation: 'googleAuthSpin 700ms linear infinite',
-        }}
+        className={cn(styles.spinner)}
       />
 
       <Stack gap="lg" align="center">
         <Stack gap={6} align="center">
-          <Title order={2} size="h3" style={{ letterSpacing: '-0.02em' }}>
+          <Title className={cn(styles.panelTitle)} order={2} size="h3">
             {t('auth.googleComplete.loadingTitle')}
           </Title>
           <Text c="dimmed" size="sm" ta="center">
@@ -368,12 +333,6 @@ export function GoogleAuthCompletePage() {
 
         <StepDots step={loadingStep} />
       </Stack>
-
-      <style>{`
-        @keyframes googleAuthSpin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </Box>
   );
 }

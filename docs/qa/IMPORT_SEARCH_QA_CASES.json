@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-06-04",
+  "lastUpdated": "2026-07-01",
   "requiredMediaTypes": [
     "novel",
     "light_novel",
@@ -96,6 +96,7 @@
       "query": "The Vegetarian Han Kang",
       "expectedAssertion": "English title or alias can match the same novel; manual fallback remains available if providers are weak.",
       "tags": ["english_title", "alias", "creator_boost"],
+      "liveSmoke": true,
       "expectedTopId": "vegetarian-novel-en",
       "expectedCandidate": {
         "id": "vegetarian-novel-en",

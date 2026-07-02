@@ -498,33 +498,25 @@ export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
           className={cn(css.brandMark)}
         >
           <Text
+            className={cn(css.brandMarkText)}
             c="white"
             fw={900}
             size="xs"
-            style={{ letterSpacing: '-0.05em', fontFeatureSettings: '"ss01"' }}
           >
             WA
           </Text>
         </ThemeIcon>
         <Stack gap={0} miw={0}>
           <Text
+            className={cn(css.brandKicker)}
             c="dimmed"
             fw={700}
             size="xs"
             tt="uppercase"
-            style={{ letterSpacing: '0.10em', fontSize: '0.68rem' }}
           >
             {kicker}
           </Text>
-          <Text
-            fw={800}
-            size="md"
-            style={{
-              letterSpacing: '-0.025em',
-              color: 'var(--app-text-primary)',
-              lineHeight: 1.2,
-            }}
-          >
+          <Text className={cn(css.brandHeading)} fw={800} size="md">
             {heading}
           </Text>
         </Stack>
@@ -594,27 +586,14 @@ export function AppNavLink({
 /* 계측 라벨 — 임상적 모노 + 단일 인디고 레지스트레이션 틱(액센트 절제) */
 function EyebrowLabel({ children }: { children: ReactNode }) {
   return (
-    <div
-      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          width: '1.4rem',
-          height: 1,
-          flexShrink: 0,
-          background: 'var(--app-accent-primary)',
-        }}
-      />
+    <div className={cn(css.eyebrow)}>
+      <span aria-hidden="true" className={cn(css.eyebrowTick)} />
       <Text
+        className={cn(css.eyebrowText)}
         component="span"
         fw={600}
         size="xs"
         tt="uppercase"
-        style={{
-          letterSpacing: '0.12em',
-          color: 'var(--app-text-muted)',
-        }}
       >
         {children}
       </Text>
@@ -654,11 +633,9 @@ export function PageSection({
 
   return (
     <Stack
+      className={cx(divider && css.pageSectionDivider)}
       gap="md"
       pt={divider ? 'xl' : 0}
-      {...(divider
-        ? { style: { borderTop: '1px solid var(--app-border-subtle)' } }
-        : {})}
     >
       {(hasIntro || actions) && (
         <Flex
@@ -715,27 +692,14 @@ export function MetricPill({ label, value }: MetricPillProps) {
     >
       <Stack gap={4}>
         <Text
+          className={cn(css.metricLabel)}
           fw={700}
           size="xs"
           tt="uppercase"
-          style={{
-            letterSpacing: '0.08em',
-            color: 'var(--app-text-muted)',
-            fontSize: 'var(--app-type-meta)',
-          }}
         >
           {label}
         </Text>
-        <Text
-          fw={700}
-          size="lg"
-          style={{
-            color: 'var(--app-text-primary)',
-            fontFamily: 'var(--app-font-figure)',
-            fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.02em',
-          }}
-        >
+        <Text className={cn(css.metricValue)} fw={700} size="lg">
           {value}
         </Text>
       </Stack>
@@ -780,25 +744,18 @@ export function StatCard({
   const content = (
     <Stack gap={6}>
       <Text
+        className={cx(css.statLabel, accent && css.statLabelAccent)}
         fw={700}
         size="xs"
         tt="uppercase"
-        style={{
-          letterSpacing: '0.08em',
-          color: accent ? 'var(--app-accent-primary)' : 'var(--app-text-muted)',
-          fontSize: 'var(--app-type-meta)',
-        }}
       >
         {label}
       </Text>
-      <Title
-        order={3}
-        style={{ letterSpacing: '-0.03em', color: 'var(--app-text-primary)' }}
-      >
+      <Title className={cn(css.statValue)} order={3}>
         {value}
       </Title>
       {description && (
-        <Text size="sm" style={{ color: 'var(--app-text-muted)' }}>
+        <Text className={cn(css.statDescription)} size="sm">
           {description}
         </Text>
       )}
@@ -829,10 +786,10 @@ export function KeyValueGrid({ columns = 2, items }: KeyValueGridProps) {
       <SimpleGrid cols={getResponsiveColumns(columns)} spacing="lg">
         {items.map((item, index) => (
           <Stack
+            className={cn(css.keyValueItem)}
             gap={6}
             key={index}
             pb="sm"
-            style={{ borderBottom: '1px solid var(--app-border-subtle)' }}
           >
             <Text c="dimmed" component="dt" fw={700} size="xs">
               {item.label}

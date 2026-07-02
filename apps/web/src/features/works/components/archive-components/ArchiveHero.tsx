@@ -16,14 +16,10 @@ interface ArchiveHeroProps {
 function HeroEyebrow({ children }: { children: ReactNode }) {
   return (
     <Text
+      className={cn(css.heroEyebrow)}
       fw={700}
       size="xs"
       tt="uppercase"
-      style={{
-        color: 'var(--app-accent-primary)',
-        fontSize: 'var(--app-type-meta)',
-        letterSpacing: '0.10em',
-      }}
     >
       {children}
     </Text>
@@ -35,7 +31,6 @@ function HeroTitle({ children }: { children: ReactNode }) {
     <Title
       className={cn(css.heroTitle)}
       order={1}
-      style={{ letterSpacing: '-0.03em', lineHeight: 1.15 }}
     >
       {children}
     </Title>
@@ -45,8 +40,8 @@ function HeroTitle({ children }: { children: ReactNode }) {
 function HeroDescription({ children }: { children: ReactNode }) {
   return (
     <Text
+      className={cn(css.heroDescription)}
       size="lg"
-      style={{ color: 'var(--app-text-secondary)', lineHeight: 1.6 }}
     >
       {children}
     </Text>

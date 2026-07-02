@@ -91,6 +91,19 @@ function getProviderStatusTone(status: ImportProviderStatus) {
     : ('muted' as const);
 }
 
+function isProviderSearchReady(status: ImportProviderStatus) {
+  return (
+    status.circuitState !== 'open' &&
+    (status.credentialMode === 'none' || status.configured)
+  );
+}
+
+function formatProviderStatusNames(statuses: ImportProviderStatus[]) {
+  return statuses
+    .map((status) => status.label ?? status.provider)
+    .join(', ');
+}
+
 function getProviderBenefit(status: ImportProviderStatus) {
   switch (status.provider) {
     case 'aladin':
@@ -155,6 +168,41 @@ function ProviderSummaryCard({
         </Group>
       </Stack>
     </SectionCard>
+  );
+}
+
+function ProviderReadinessLine({
+  description,
+  providers,
+  tone,
+  title,
+}: {
+  description: string;
+  providers: ImportProviderStatus[];
+  tone: 'success' | 'warning' | 'muted';
+  title: string;
+}) {
+  if (providers.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={css.providerReadinessLine ?? ''}>
+      <Group gap="xs" justify="space-between" wrap="nowrap">
+        <AppBadge tone={tone}>{title}</AppBadge>
+        <Text c="dimmed" fw={800} size="xs">
+          {appI18n.t('settings.searchProviders.providerCount', {
+            count: formatAppNumber(providers.length),
+          })}
+        </Text>
+      </Group>
+      <Text className={css.providerReadinessNames ?? ''}>
+        {formatProviderStatusNames(providers)}
+      </Text>
+      <Text className={css.providerReadinessDescription ?? ''}>
+        {description}
+      </Text>
+    </div>
   );
 }
 
@@ -256,15 +304,25 @@ export function SearchProviderSettingsSection({
   const keyProviders = providerStatuses.filter(
     (status) => status.credentialMode === 'user',
   );
-  const noKeyProviders = providerStatuses.filter(
+  const sharedProviders = providerStatuses.filter(
     (status) => status.credentialMode !== 'user',
   );
-  const configuredKeyProviderCount = keyProviders.filter(
-    (status) => status.configured,
-  ).length;
-  const keyRequiredProviderCount = keyProviders.filter(
-    (status) => !status.configured,
-  ).length;
+  const readyProviders = providerStatuses.filter(isProviderSearchReady);
+  const keyRequiredProviders = keyProviders.filter(
+    (status) =>
+      status.circuitState !== 'open' &&
+      status.credentialMode === 'user' &&
+      !status.configured,
+  );
+  const serverSetupRequiredProviders = providerStatuses.filter(
+    (status) =>
+      status.circuitState !== 'open' &&
+      status.credentialMode === 'server' &&
+      !status.configured,
+  );
+  const pausedProviders = providerStatuses.filter(
+    (status) => status.circuitState === 'open',
+  );
   const selectedLabel = selectedProvider?.label ?? selectedProvider?.provider;
   const isSavingSelected =
     selectedProvider !== null && savingProviderId === selectedProvider.provider;
@@ -303,23 +361,94 @@ export function SearchProviderSettingsSection({
         </Text>
       ) : (
         <Stack gap="lg">
-          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
             <ProviderSummaryCard
-              label={t('settings.searchProviders.summaryNoKey')}
+              label={t('settings.searchProviders.summaryReady')}
               tone="success"
-              value={noKeyProviders.length}
+              value={readyProviders.length}
             />
             <ProviderSummaryCard
-              label={t('settings.searchProviders.summaryConnected')}
+              label={t('settings.searchProviders.summaryKeyRequired')}
               tone="accent"
-              value={configuredKeyProviderCount}
+              value={keyRequiredProviders.length}
             />
             <ProviderSummaryCard
-              label={t('settings.searchProviders.summaryAvailable')}
-              tone={keyRequiredProviderCount > 0 ? 'warning' : 'muted'}
-              value={keyRequiredProviderCount}
+              label={t('settings.searchProviders.summaryServerSetup')}
+              tone={
+                serverSetupRequiredProviders.length > 0 ? 'warning' : 'muted'
+              }
+              value={serverSetupRequiredProviders.length}
+            />
+            <ProviderSummaryCard
+              label={t('settings.searchProviders.summaryPaused')}
+              tone={pausedProviders.length > 0 ? 'warning' : 'muted'}
+              value={pausedProviders.length}
             />
           </SimpleGrid>
+
+          <div className={css.providerReadinessPanel ?? ''}>
+            <Group gap="xs" justify="space-between" wrap="nowrap">
+              <Stack gap={3} miw={0}>
+                <Text className={css.providerReadinessTitle ?? ''}>
+                  {t('settings.searchProviders.readinessTitle')}
+                </Text>
+                <Text className={css.providerReadinessDescription ?? ''}>
+                  {t('settings.searchProviders.readinessDescription')}
+                </Text>
+              </Stack>
+              <AppBadge
+                tone={
+                  keyRequiredProviders.length === 0 &&
+                  serverSetupRequiredProviders.length === 0 &&
+                  pausedProviders.length === 0
+                    ? 'success'
+                    : 'warning'
+                }
+              >
+                {keyRequiredProviders.length === 0 &&
+                serverSetupRequiredProviders.length === 0 &&
+                pausedProviders.length === 0
+                  ? t('settings.searchProviders.readinessAllClear')
+                  : t('settings.searchProviders.readinessNeedsAction')}
+              </AppBadge>
+            </Group>
+            <div className={css.providerReadinessList ?? ''}>
+              <ProviderReadinessLine
+                description={t(
+                  'settings.searchProviders.readyProvidersDescription',
+                )}
+                providers={readyProviders}
+                title={t('settings.searchProviders.readyProviders')}
+                tone="success"
+              />
+              <ProviderReadinessLine
+                description={t(
+                  'settings.searchProviders.userKeyRequiredDescription',
+                )}
+                providers={keyRequiredProviders}
+                title={t('settings.searchProviders.userKeyRequiredProviders')}
+                tone="warning"
+              />
+              <ProviderReadinessLine
+                description={t(
+                  'settings.searchProviders.serverSetupRequiredDescription',
+                )}
+                providers={serverSetupRequiredProviders}
+                title={t(
+                  'settings.searchProviders.serverSetupRequiredProviders',
+                )}
+                tone="warning"
+              />
+              <ProviderReadinessLine
+                description={t(
+                  'settings.searchProviders.pausedProvidersDescription',
+                )}
+                providers={pausedProviders}
+                title={t('settings.searchProviders.pausedProviders')}
+                tone="warning"
+              />
+            </div>
+          </div>
 
           <div className={css.providerManagementGrid ?? ''}>
             <Stack gap="md">
@@ -491,7 +620,7 @@ export function SearchProviderSettingsSection({
               <Group gap="xs" wrap="nowrap">
                 <AppBadge tone="success">
                   {t('settings.searchProviders.publicCount', {
-                    count: formatAppNumber(noKeyProviders.length),
+                    count: formatAppNumber(sharedProviders.length),
                   })}
                 </AppBadge>
                 <span className={css.publicProviderChevron ?? ''} aria-hidden>
@@ -500,7 +629,7 @@ export function SearchProviderSettingsSection({
               </Group>
             </summary>
             <div className={css.publicProviderGrid ?? ''}>
-              {noKeyProviders.map((status) => (
+              {sharedProviders.map((status) => (
                 <PublicProviderCard key={status.provider} status={status} />
               ))}
             </div>

@@ -33,7 +33,8 @@ folders, but external feature imports should use the feature `index.ts`
 entrypoint instead of reaching into deep implementation paths.
 Low-level cross-feature runtime dependencies that would otherwise create
 barrel import cycles may expose a narrow public sub-entrypoint, such as
-`works/storage`, `works/data`, `sync/queue`, or `tier-boards/data`.
+`works/storage`, `works/data`, `works/routes`, `sync/queue`, or
+`tier-boards/data`.
 
 Web source imports may use these aliases:
 

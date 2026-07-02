@@ -51,7 +51,7 @@ export function WorkListRowSummary({
         )}
         <Link
           aria-label={t('works.list.trashDetailAria', { title: work.title })}
-          style={{ flexShrink: 0, display: 'block' }}
+          className={cn(css.rowPosterLink)}
           to={`/works/${work.id}`}
         >
           <WorkPoster
@@ -65,10 +65,7 @@ export function WorkListRowSummary({
 
         <Stack flex={1} gap={5} miw={0} pt={2}>
           <Title lineClamp={1} order={3} size="h4">
-            <Link
-              style={{ color: 'inherit', textDecoration: 'none' }}
-              to={`/works/${work.id}`}
-            >
+            <Link className={cn(css.rowTitleLink)} to={`/works/${work.id}`}>
               {work.title}
             </Link>
           </Title>
@@ -86,11 +83,11 @@ export function WorkListRowSummary({
           )}
 
           <Text
+            className={cn(css.listRowMeta)}
             c="dimmed"
             fw={700}
             lineClamp={1}
             size="xs"
-            style={{ fontVariantNumeric: 'tabular-nums' }}
           >
             {getWorkListMetaLine(work)}
             {isUpdating ? t('works.list.savingPrefix') : ''}
@@ -122,11 +119,7 @@ export function WorkListRowSummary({
         </Stack>
       </Group>
 
-      <Stack
-        className={cn(css.listRowControls)}
-        gap="xs"
-        style={{ minWidth: 'min(100%, 10rem)' }}
-      >
+      <Stack className={cn(css.listRowControls)} gap="xs">
         <ActionRow justify="flex-end">
           <AppButton
             aria-expanded={editOpen}

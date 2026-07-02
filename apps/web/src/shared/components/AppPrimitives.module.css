@@ -51,6 +51,22 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14) inset;
 }
 
+.brandMarkText {
+  letter-spacing: 0;
+  font-feature-settings: "ss01";
+}
+
+.brandKicker {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+}
+
+.brandHeading {
+  color: var(--app-text-primary);
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
 .navLink {
   display: inline-flex;
   align-items: center;
@@ -90,6 +106,29 @@
   padding: 0.75rem 0.95rem;
 }
 
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.eyebrowTick {
+  width: 1.4rem;
+  height: 1px;
+  flex-shrink: 0;
+  background: var(--app-accent-primary);
+}
+
+.eyebrowText {
+  color: var(--app-text-muted);
+  letter-spacing: 0.12em;
+}
+
+.pageSectionDivider {
+  border-top: 1px solid var(--app-border-subtle);
+}
+
 .metricPill,
 .statCard {
   border-color: var(--app-border-subtle);
@@ -105,6 +144,37 @@
   border-color: var(--app-border-default);
   box-shadow: none;
   transform: translateY(-1px);
+}
+
+.metricLabel,
+.statLabel {
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+  letter-spacing: 0.08em;
+}
+
+.metricValue {
+  color: var(--app-text-primary);
+  font-family: var(--app-font-figure);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.statLabelAccent {
+  color: var(--app-accent-primary);
+}
+
+.statValue {
+  color: var(--app-text-primary);
+  letter-spacing: 0;
+}
+
+.statDescription {
+  color: var(--app-text-muted);
+}
+
+.keyValueItem {
+  border-bottom: 1px solid var(--app-border-subtle);
 }
 
 .feedback {

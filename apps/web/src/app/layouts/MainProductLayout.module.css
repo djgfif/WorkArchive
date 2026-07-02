@@ -58,14 +58,14 @@
   color: #ffffff;
   font-size: 0.68rem;
   font-weight: 900;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
 }
 
 .topnavName {
   font-size: 0.92rem;
   font-weight: 800;
   color: var(--app-text-primary);
-  letter-spacing: -0.022em;
+  letter-spacing: 0;
   white-space: nowrap;
 }
 
@@ -84,6 +84,32 @@
   align-items: center;
   gap: 0.5rem;
   margin-left: auto;
+}
+
+.commandButton {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.32rem 0.55rem;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-md);
+  background: transparent;
+  color: var(--app-text-secondary);
+  font-size: var(--app-type-meta);
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    background var(--wa-motion-fast),
+    border-color var(--wa-motion-fast),
+    color var(--wa-motion-fast);
+}
+
+.commandButton:hover,
+.commandButton:focus-visible {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-subtle);
+  color: var(--app-text-primary);
 }
 
 /* ── 작품 추가 버튼 — 골드 아웃라인 ─────────────────────────────────────── */
@@ -194,6 +220,10 @@
   background: var(--app-surface-subtle);
 }
 
+.drawerBrandText {
+  letter-spacing: 0;
+}
+
 .themeToggleWrap :global(.mantine-Button-root) {
   min-height: 2.3rem;
   justify-content: flex-start;
@@ -221,6 +251,7 @@
 @media (prefers-reduced-motion: reduce) {
   .topnav,
   .avatarButton,
+  .commandButton,
   .addWorkLink,
   .pageTransition {
     animation: none;

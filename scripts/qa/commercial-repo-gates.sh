@@ -49,6 +49,8 @@ node --check scripts/qa/validate-prometheus-alerts.mjs
 node --check scripts/qa/validate-prometheus-slo-rules.mjs
 node --check scripts/qa/validate-grafana-dashboard.mjs
 node --check scripts/qa/monitoring-evidence.mjs
+node --check scripts/qa/docker-runtime-preflight.mjs
+node --check scripts/qa/docker-runtime-preflight.self-test.mjs
 node --check scripts/qa/import-search-qa.mjs
 node --check scripts/qa/performance-smoke.mjs
 node --check scripts/qa/validate-sync-architecture.mjs
@@ -86,6 +88,8 @@ npm run qa:sync-architecture
 SYNC_LOAD_DRY_RUN=true npm run qa:sync-load
 PERF_SMOKE_DRY_RUN=true npm run qa:performance-smoke
 MONITORING_EVIDENCE_DRY_RUN=true npm run qa:monitoring
+npm run qa:docker-runtime:self-test
+npm run qa:docker-runtime
 npm run qa:gate1:evidence
 npm run qa:gate1:evidence:self-test
 npm run qa:gate1:missing

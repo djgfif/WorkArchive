@@ -5,7 +5,7 @@
 | Status                | `active`                                                                                                                                       |
 | Role                  | `developer execution entrypoint`                                                                                                               |
 | Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, `docs/project/ROADMAP_FEEDBACK_2026-06.md`, current local `master` working tree |
-| Last verified against | `2026-06-12` documentation alignment plus root `check:docs-links`, `lint`, and `typecheck`, with API/shared tests after API service decomposition, including sync, import resolve, internal catalog import candidate, import search stage cache, import provider readiness, import candidate decoration, import provider search runner, import provider credential runtime, import provider search stage, import search observability, import provider key management, import search context/result extraction, Bearer access token parsing extraction, auth session metadata extraction, auth response mapper extraction, Google OAuth controller helper extraction, image proxy policy/cache helper extraction, user records helper/progress/release payload builder extraction, catalog legacy work helper extraction, catalog ingestion normalization/payload extraction, catalog title matching/submission helper extraction, and Notion sync mapper extraction. Root `npm run test` is currently blocked by dirty frontend `WorksListPage.test.tsx` failures; build, import-search QA, sync-load dry-run, and web E2E remain last verified on `2026-06-04` |
+| Last verified against | `2026-07-01` root `security:public`, `check:docs-links`, `lint`, `typecheck`, `test`, `build`, web feature boundary check, web import cycle check, web Playwright E2E after mobile Add Work footer overlap fix and mobile drawer navigation regression, Settings provider readiness polish, Quick Add source coverage/fallback regressions, auto-sync conflict queue safety regression, guest auto-sync boundary regression, offline import-search QA with live-smoke matrix contract/manifest, sync-load dry-run, Docker runtime preflight self-test, and Docker runtime preflight BLOCKED report. |
 | When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                    |
 
 이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`../archive/project/PLAN.md`](../archive/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
@@ -51,9 +51,13 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - duplicate detection은 `catalogTitleId -> externalRefs -> title fallback` 순서다.
 - backend sync create는 `catalogTitleId -> importDraft -> legacy fallback` 순서다.
 - `importDraft.catalogTitle`은 optional legacy-compatible field이며, 없으면 `payload.title`로 fallback한다.
-- Settings provider readiness 기본 UI와 테스트는 들어갔다.
+- Settings provider readiness는 ready / user key required / server setup
+  required / paused 상태를 계정 설정에서 분리 표시하고 테스트로 고정했다.
 - SyncPage는 pending / failed / conflict queue item 상태, 원인, 기록 보기, 재시도 CTA와 conflict 기본 해결 UX를 제공한다.
-- Sync conflict 해결은 로컬 유지, 원격 적용, 필드별 병합을 지원한다. 자동 병합 판단은 현재 제품 기준에서 채택하지 않는다.
+- Sync conflict 해결은 로컬 유지, 원격 적용, 필드별 병합을 지원한다. 좁은 safe auto-merge는 동일 entity/parent, delete-update 충돌 없음, scalar field 동일 조건에서 taxonomy/alias 또는 server metadata만 병합하고 재시도 queue로 되돌린다.
+- overlapping scalar edit, delete/update collision, parent/ownership mismatch, unsupported payload는 자동 병합하지 않고 수동 검토 대상으로 남긴다.
+- auto sync push는 conflict queue item을 자동 전송하지 않고 수동 검토 대상으로 남긴다.
+- guest mode local-first writes는 자동 pull/push를 시작하지 않고 로그인 archive와 분리된다.
 - Works 목록 조회는 Dexie v7 scope index로 active/trash를 먼저 좁힌다. status/type/updatedAt 기본 경로는 IndexedDB query를 먼저 사용하고, 검색어/태그 조합은 scope 축소 후 인메모리 필터링한다.
 - manual timeline entries는 Dexie v9 sync-ready 모델과 backend `UserTimelineEntry` private storage를 통해 optional account sync 대상에 포함된다.
 - JSON export는 schemaVersion, source, backupExclusions metadata와 timeline entries를 포함한다. import preview는 dry-run 결과로 add/update/duplicate/skip/conflict 예상치를 표시한다.
@@ -89,9 +93,8 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 
 ## Current Follow-Up Work
 
-- provider별 실제 검색어 QA와 ranking weight 튜닝
-- Settings provider readiness polish
-- Sync conflict 고급 자동 병합 정책 검토
+- provider별 live 검색어 QA와 ranking weight 튜닝
+- Sync conflict safe auto-merge 정책 확장 여부 검토
 - 로그인 직후 pull 자동화 검토
 - `Works` compatibility layer 축소와 `Catalog` / `Imports` / `UserRecords` 경계 정리
 - 공개 레이어 권한 분리와 production cookie/origin/secret 운영 검증
@@ -134,7 +137,7 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 
 대신 아래 기준으로 쓴다.
 
-- provider readiness, duplicate detection, ranking/search quality의 기본 구현/테스트는 완료, 실제 검색어 QA와 polish는 후속
+- provider readiness, duplicate detection, ranking/search quality의 기본 구현/테스트는 완료, 실제 검색어 QA와 ranking polish는 후속
 - authenticated direct create path는 현재 제품 기준에서 의도적으로 채택하지 않는 경로
 - SyncPage queue item 단위 상태/원인/기록 보기/재시도 CTA와 기본 conflict 해결 UX는 구현
 - Docker Compose는 실제 실행하지 않았다면 미검증

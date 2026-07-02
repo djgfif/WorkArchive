@@ -1,0 +1,25 @@
+.commandList {
+  max-height: 52vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+.commandItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  border-radius: var(--mantine-radius-md);
+}
+
+.commandItem[data-command-active='true'] {
+  color: var(--app-text-primary);
+  background: var(--app-surface-hero);
+}
+
+.commandFooter {
+  border-top: 1px solid var(--app-border-subtle);
+}

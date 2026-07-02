@@ -56,7 +56,7 @@
   font-family: var(--app-font-display);
   font-size: clamp(2.1rem, 4.2vw, 3.2rem);
   font-weight: 720; /* 모던 산세리프 디스플레이 굵기 */
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   color: var(--app-text-primary);
   line-height: 1.06;
   margin: 0 0 0.7rem;
@@ -93,6 +93,10 @@
   font-family: var(--app-font-figure);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.homeStatLink {
+  margin-bottom: 0;
 }
 
 /* 별점 — 단일 앰버 변칙(평점 전용) */
@@ -142,7 +146,7 @@
 .shelfTitle {
   font-size: clamp(1rem, 1.4vw, 1.2rem);
   font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   color: var(--app-text-primary);
   line-height: 1.2;
 }
@@ -256,6 +260,7 @@
 }
 
 .shelfProgressFill {
+  width: var(--home-progress-percent, 0%);
   height: 100%;
   border-radius: inherit;
   background: var(--app-accent-primary);
@@ -376,7 +381,7 @@
 .activityTitle {
   font-size: clamp(1rem, 1.4vw, 1.2rem);
   font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   color: var(--app-text-primary);
 }
 
@@ -461,7 +466,7 @@
 .emptyGuideTitle {
   font-size: clamp(1.5rem, 2.5vw, 2rem);
   font-weight: 820;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   color: var(--app-text-primary);
   margin-bottom: 0.5rem;
 }
