@@ -54,7 +54,7 @@
     "@nestjs/testing": "^11.1.26",
     "@types/cookie-parser": "^1.4.9",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.0.0",
     "@work-archive/eslint-config": "0.1.0",
     "@work-archive/tsconfig": "0.1.0",
     "jest": "^30.4.2",
