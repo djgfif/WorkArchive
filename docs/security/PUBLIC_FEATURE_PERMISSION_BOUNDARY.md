@@ -1,12 +1,13 @@
 # Public Feature Permission Boundary
 
-| Field                 | Value                                                                                                                                    |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Status                | `canonical`                                                                                                                              |
-| Role                  | `default-private public feature boundary`                                                                                                |
-| Source of truth       | current API routes, Prisma visibility enums, BOLA matrix, commercial Gate 1 scope                                                        |
-| Last verified against | `2026-07-03` private-first Tier Board UI and public-boundary gate                                                                        |
-| When to update        | any public/share/community route, tier-board visibility semantic, catalog-publication flow, moderation role, or owner-scope rule changes |
+<!-- prettier-ignore -->
+| Field | Value |
+| --- | --- |
+| Status | `canonical` |
+| Role | `default-private public feature boundary` |
+| Source of truth | current API routes, Prisma visibility enums, BOLA matrix, commercial Gate 1 scope |
+| Last verified against | `2026-07-03` private-first Tier Board UI and public-boundary gate |
+| When to update | any public/share/community route, tier-board visibility semantic, catalog-publication flow, moderation role, or owner-scope rule changes |
 
 Work Archive is a private, local-first personal archive in Gate 1. Public
 profiles, public records, social feeds, comments, follows, recommendations, and
