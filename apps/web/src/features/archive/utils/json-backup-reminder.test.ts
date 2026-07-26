@@ -5,9 +5,9 @@ import { getJsonBackupReminderStatus } from './json-backup-reminder';
 const NOW = new Date('2026-05-22T00:00:00.000Z');
 
 describe('getJsonBackupReminderStatus', () => {
-  it('does not remind before the first-backup work threshold', () => {
+  it('does not require a JSON backup for an empty archive', () => {
     const status = getJsonBackupReminderStatus({
-      activeWorkCount: 19,
+      activeWorkCount: 0,
       lastJsonExportAt: null,
       now: NOW,
     });
@@ -16,9 +16,9 @@ describe('getJsonBackupReminderStatus', () => {
     expect(status.reason).toBe('none');
   });
 
-  it('reminds when there is no JSON backup and at least 20 active works', () => {
+  it('marks JSON backup as missing after the first active record', () => {
     const status = getJsonBackupReminderStatus({
-      activeWorkCount: 20,
+      activeWorkCount: 1,
       lastJsonExportAt: null,
       now: NOW,
     });

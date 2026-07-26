@@ -20,7 +20,6 @@ export function DataSafetySummarySection({
   const toneLabel = {
     info: t('settings.dataSafety.tone.info'),
     muted: t('settings.dataSafety.tone.muted'),
-    success: t('settings.dataSafety.tone.success'),
     warning: t('settings.dataSafety.tone.warning'),
   }[viewModel.tone];
 
@@ -58,6 +57,14 @@ export function DataSafetySummarySection({
             label: t('settings.dataSafety.accountBackupLabel'),
             value: viewModel.accountBackupLabel,
           },
+          {
+            label: t('settings.dataSafety.lastSuccessfulPushLabel'),
+            value: viewModel.lastPushLabel,
+          },
+          {
+            label: t('settings.dataSafety.lastSuccessfulPullLabel'),
+            value: viewModel.lastPullLabel,
+          },
         ]}
       />
 
@@ -73,7 +80,7 @@ export function DataSafetySummarySection({
               </AppBadge>
             ))
           ) : (
-            <AppBadge tone="success">
+            <AppBadge tone="muted">
               {t('settings.dataSafety.noActionRequired')}
             </AppBadge>
           )}

@@ -11,7 +11,7 @@ import { AccountPageTemplate } from '@shared/components/PageTemplates';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAppLocale, useAppTranslation, type AppLocale } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
-import { useSyncDashboard } from '@features/sync';
+import { getArchiveSafetyState, useSyncDashboard } from '@features/sync';
 import { AccountBackupStatusSettingsSection } from '../components/settings/AccountBackupStatusSettingsSection';
 import { AccountSettingsSection } from '../components/settings/AccountSettingsSection';
 import { DangerZoneSection } from '../components/settings/DangerZoneSection';
@@ -119,36 +119,52 @@ export function SettingsPage() {
   const authSessionSettings = useAuthSessionSettings(mode, signOut);
   const overviewStats = useSettingsOverviewStats(archiveScopeKey);
   const syncDashboard = useSyncDashboard();
-  const requeuedSyncCount = syncDashboard.pendingItems.filter(
-    (item) => item.state === 'requeued',
-  ).length;
+  const archiveSafetyState = useMemo(
+    () =>
+      getArchiveSafetyState({
+        activeRecordCount: overviewStats.activeWorkCount,
+        conflictCount: syncDashboard.conflictItems.length,
+        failedCount: syncDashboard.failedItems.length,
+        lastJsonBackupAt:
+          overviewStats.lastJsonBackupSummary?.exportedAt ??
+          overviewStats.lastJsonExportAt ??
+          localDataSafetySettings.autoBackupStatus.lastSucceededAt,
+        lastSuccessfulPullAt: syncDashboard.lastSuccessfulPullAt,
+        lastSuccessfulPushAt: syncDashboard.lastSuccessfulPushAt,
+        mode,
+        pendingCount: syncDashboard.pendingItems.length,
+        requeuedCount: syncDashboard.pendingItems.filter(
+          (item) => item.state === 'requeued',
+        ).length,
+        staleStatusAt: syncDashboard.staleStatusAt,
+        storageState: localDataSafetySettings.storageState,
+      }),
+    [
+      localDataSafetySettings.autoBackupStatus.lastSucceededAt,
+      localDataSafetySettings.storageState,
+      mode,
+      overviewStats.activeWorkCount,
+      overviewStats.lastJsonBackupSummary?.exportedAt,
+      overviewStats.lastJsonExportAt,
+      syncDashboard.conflictItems.length,
+      syncDashboard.failedItems.length,
+      syncDashboard.lastSuccessfulPullAt,
+      syncDashboard.lastSuccessfulPushAt,
+      syncDashboard.pendingItems,
+      syncDashboard.staleStatusAt,
+    ],
+  );
   const dataSafetyViewModel = useMemo(
     () =>
       getDataSafetyViewModel({
         autoBackupStatus: localDataSafetySettings.autoBackupStatus,
         mode,
-        overviewStats,
-        storageState: localDataSafetySettings.storageState,
-        sync: {
-          conflictCount: syncDashboard.conflictItems.length,
-          failedCount: syncDashboard.failedItems.length,
-          lastSuccessfulPullAt: syncDashboard.lastSuccessfulPullAt,
-          pendingCount: syncDashboard.pendingItems.length,
-          requeuedCount: requeuedSyncCount,
-          staleStatusAt: syncDashboard.staleStatusAt,
-        },
+        safetyState: archiveSafetyState,
       }),
     [
+      archiveSafetyState,
       localDataSafetySettings.autoBackupStatus,
-      localDataSafetySettings.storageState,
       mode,
-      overviewStats,
-      requeuedSyncCount,
-      syncDashboard.conflictItems.length,
-      syncDashboard.failedItems.length,
-      syncDashboard.lastSuccessfulPullAt,
-      syncDashboard.pendingItems.length,
-      syncDashboard.staleStatusAt,
     ],
   );
 

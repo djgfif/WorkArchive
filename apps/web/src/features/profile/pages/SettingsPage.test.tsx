@@ -587,9 +587,13 @@ describe('SettingsPage', () => {
     renderGuestSettings();
     await openSettingsSection(user, 'data-backup');
 
-    expect(await screen.findByText('백업 준비됨')).toBeInTheDocument();
+    expect(
+      await screen.findByText('첫 기록 전 안전 설정'),
+    ).toBeInTheDocument();
     expect(screen.getByText('로컬 기록')).toBeInTheDocument();
     expect(screen.getByText('마지막 JSON 백업')).toBeInTheDocument();
+    expect(screen.getByText('마지막 성공 push')).toBeInTheDocument();
+    expect(screen.getByText('마지막 성공 pull')).toBeInTheDocument();
     expect(screen.getByText('자동 폴더 백업')).toBeInTheDocument();
     expect(screen.getAllByText('수동 백업 필요').length).toBeGreaterThan(0);
     expect(screen.getAllByText('계정 백업 선택 사항').length).toBeGreaterThan(
@@ -649,7 +653,9 @@ describe('SettingsPage', () => {
     expect(
       (await screen.findAllByText('동기화 충돌 확인')).length,
     ).toBeGreaterThan(0);
-    expect(await screen.findByText('확인 필요 3개')).toBeInTheDocument();
+    expect(
+      await screen.findByText('실패·충돌 3건 확인 필요'),
+    ).toBeInTheDocument();
     expect(await screen.findByText('동기화 충돌 2개')).toBeInTheDocument();
     expect(await screen.findByText('백업 실패 1개')).toBeInTheDocument();
     expect(

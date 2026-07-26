@@ -28,6 +28,10 @@ import {
 } from '@features/archive';
 import { useAuthSession } from '@features/auth';
 import {
+  useArchiveSafetyState,
+  type ArchiveSafetyPresentation,
+} from '@features/sync';
+import {
   ArchiveSearchBar,
   WorkPoster,
   useWorksOverview,
@@ -509,32 +513,24 @@ function StarterArchivePanel({ works }: { works: WorkRecord[] }) {
 }
 
 function ArchiveSafetyDock({
-  mode,
-  totalCount,
+  presentation,
 }: {
-  mode: 'authenticated' | 'guest';
-  totalCount: number;
+  presentation: ArchiveSafetyPresentation;
 }) {
-  const { t } = useAppTranslation();
-
   return (
     <div className={css.safetyDock}>
       <span className={css.safetyDockStatus}>
         <span className={css.safetyDockCheck} aria-hidden="true">
-          ✓
+          •
         </span>
-        <span>{t('home.safety.title')}</span>
-        <strong>
-          {mode === 'authenticated'
-            ? t('home.safety.accountConnected')
-            : t('home.safety.localHealthy')}
-        </strong>
+        <span>{presentation.title}</span>
+        <strong>{presentation.jsonBackupLabel}</strong>
       </span>
       <span className={css.safetyDockDescription}>
-        {t('home.safety.description', { count: formatCount(totalCount) })}
+        {presentation.description}
       </span>
-      <Link className={css.safetyDockLink} to="/account/settings#data-backup">
-        {t('home.safety.settings')} →
+      <Link className={css.safetyDockLink} to={presentation.badge.to}>
+        {presentation.badge.label} →
       </Link>
     </div>
   );
@@ -549,7 +545,7 @@ function ShelfDivider() {
 export function HomePage() {
   const navigate = useNavigate();
   const { t } = useAppTranslation();
-  const { archiveScopeKey, mode } = useAuthSession();
+  const { archiveScopeKey } = useAuthSession();
   const {
     continueWorks,
     contributorCollections,
@@ -571,6 +567,7 @@ export function HomePage() {
   const isEmptyArchive = !error && !isLoading && totalCount === 0;
   const jsonArchiveExport = useJsonArchiveExport();
   const backupReminder = useJsonBackupReminder(totalCount, archiveScopeKey);
+  const archiveSafety = useArchiveSafetyState();
 
   const insightItems = buildInsightItems({
     contributorCollections,
@@ -747,7 +744,7 @@ export function HomePage() {
             </>
           )}
 
-          <ArchiveSafetyDock mode={mode} totalCount={totalCount} />
+          <ArchiveSafetyDock presentation={archiveSafety.presentation} />
         </>
       )}
     </div>

@@ -101,6 +101,7 @@ export class SyncService {
       this.pullService,
       autoMergeService,
       this.conflictService,
+      metaRepo,
     );
   }
 

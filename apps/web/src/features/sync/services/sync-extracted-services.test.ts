@@ -150,6 +150,7 @@ describe('extracted sync services', () => {
       pullService,
       autoMergeService,
       conflictService,
+      appMetaRepository,
     );
   });
 

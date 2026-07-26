@@ -33,6 +33,11 @@ import {
   type TierBoardRepository,
 } from '@features/tier-boards/data';
 import {
+  appMetaRepository,
+  type AppMetaRepository,
+} from './app-meta.repository';
+import { LAST_SUCCESSFUL_PUSH_AT_KEY } from './sync-metadata';
+import {
   syncQueueRepository,
   type SyncQueueRepository,
 } from './sync-queue.repository';
@@ -141,6 +146,7 @@ export class SyncPushService {
     private readonly pullService: SyncPullService = syncPullService,
     private readonly autoMergeService: SyncAutoMergeService = syncAutoMergeService,
     private readonly conflictService: SyncConflictResolutionService = syncConflictResolutionService,
+    private readonly metaRepo: AppMetaRepository = appMetaRepository,
   ) {}
 
   async pushQueuedChanges(): Promise<PushCycleResult> {
@@ -343,6 +349,18 @@ export class SyncPushService {
       }
 
       await this.queueRepo.removeMany(appliedQueueIds);
+
+      if (appliedCount > 0 && response.processedAt) {
+        try {
+          await this.metaRepo.setValue(
+            LAST_SUCCESSFUL_PUSH_AT_KEY,
+            response.processedAt,
+          );
+        } catch {
+          // The push itself succeeded. Missing status evidence stays conservative
+          // and must not put already-applied records back into the retry path.
+        }
+      }
 
       return {
         attemptedCount: runnableQueueItems.length,

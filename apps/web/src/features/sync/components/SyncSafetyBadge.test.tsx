@@ -3,121 +3,95 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '@test/render-with-providers';
-import { AuthContext, type AuthContextValue } from '@features/auth';
-import { useSyncDashboard } from '../hooks/useSyncDashboard';
-import { getSyncSafetyBadgeState } from '../utils/sync-safety-state';
+import { useArchiveSafetyState } from '../hooks/useArchiveSafetyState';
+import {
+  getArchiveSafetyPresentation,
+  getArchiveSafetyState,
+} from '../utils/sync-safety-state';
 import { SyncSafetyBadge } from './SyncSafetyBadge';
 
-vi.mock('../hooks/useSyncDashboard', () => ({
-  useSyncDashboard: vi.fn(),
+vi.mock('../hooks/useArchiveSafetyState', () => ({
+  useArchiveSafetyState: vi.fn(),
 }));
 
-function mockSyncDashboard(
-  overrides: Partial<ReturnType<typeof useSyncDashboard>> = {},
+function mockArchiveSafety(
+  overrides: Partial<Parameters<typeof getArchiveSafetyState>[0]> = {},
 ) {
-  vi.mocked(useSyncDashboard).mockReturnValue({
-    conflictItems: [],
-    conflictWorks: [],
-    error: null,
-    failedItems: [],
-    isLoading: false,
+  const state = getArchiveSafetyState({
+    activeRecordCount: 1,
+    conflictCount: 0,
+    failedCount: 0,
+    lastJsonBackupAt: '2026-05-24T00:00:00.000Z',
     lastSuccessfulPullAt: null,
-    pendingItems: [],
-    queueItems: [],
+    lastSuccessfulPushAt: null,
+    mode: 'authenticated',
+    now: new Date('2026-05-25T00:00:00.000Z'),
+    pendingCount: 0,
+    requeuedCount: 0,
     staleStatusAt: null,
-    staleStatusReason: null,
+    storageState: {
+      persisted: true,
+      quotaBytes: null,
+      supported: true,
+      usageBytes: null,
+    },
     ...overrides,
+  });
+
+  vi.mocked(useArchiveSafetyState).mockReturnValue({
+    isLoading: false,
+    presentation: getArchiveSafetyPresentation(state),
+    state,
   });
 }
 
-function renderBadge(mode: 'authenticated' | 'guest' = 'authenticated') {
-  const authValue: AuthContextValue = {
-    archiveScopeKey: mode === 'authenticated' ? 'user-1' : 'guest',
-    isLoading: false,
-    mode,
-    sessionStatus: mode === 'authenticated' ? 'authenticated' : 'guest',
-    signOut: vi.fn(async () => undefined),
-    user: null,
-  };
-
+function renderBadge() {
   renderWithProviders(
     <MemoryRouter>
-      <AuthContext.Provider value={authValue}>
-        <SyncSafetyBadge />
-      </AuthContext.Provider>
+      <SyncSafetyBadge />
     </MemoryRouter>,
   );
 }
 
 describe('SyncSafetyBadge', () => {
-  it('shows local-only state for guests', () => {
-    mockSyncDashboard();
-    renderBadge('guest');
+  it('shows a local-only state for guests without calling it a backup', () => {
+    mockArchiveSafety({ mode: 'guest' });
+    renderBadge();
 
-    expect(
-      screen.getByRole('link', { name: /게스트 로컬 전용/ }),
-    ).toHaveAttribute('href', '/account');
+    const link = screen.getByRole('link', { name: /게스트 로컬 전용/ });
+    expect(link).toHaveAttribute('href', '/account/settings#data-backup');
+    expect(link).not.toHaveTextContent('백업됨');
   });
 
-  it('prioritizes conflict and failed items', () => {
-    expect(
-      getSyncSafetyBadgeState({
-        conflictCount: 1,
-        failedCount: 1,
-        lastSuccessfulPullAt: null,
-        mode: 'authenticated',
-        pendingCount: 1,
-      }).label,
-    ).toBe('직접 확인 2');
+  it('links failures and conflicts directly to the recovery section', () => {
+    mockArchiveSafety({ conflictCount: 1, failedCount: 1 });
+    renderBadge();
+
+    expect(screen.getByRole('link', { name: /직접 확인 2/ })).toHaveAttribute(
+      'href',
+      '/account/settings#account-backup-recovery',
+    );
   });
 
-  it('shows requeued state after a safe automatic merge', () => {
-    expect(
-      getSyncSafetyBadgeState({
-        conflictCount: 0,
-        failedCount: 0,
-        lastSuccessfulPullAt: null,
-        mode: 'authenticated',
-        pendingCount: 1,
-        requeuedCount: 1,
-      }).label,
-    ).toBe('자동 병합 후 재시도 1');
+  it('prioritizes queued pushes over an earlier successful push', () => {
+    mockArchiveSafety({
+      lastSuccessfulPushAt: '2026-05-24T00:00:00.000Z',
+      pendingCount: 1,
+    });
+    renderBadge();
+
+    expect(screen.getByRole('link', { name: /push 대기 1건/ }))
+      .toHaveAttribute('href', '/account/settings#data-backup');
   });
 
-  it('shows pending backup state before recent backup state', () => {
-    expect(
-      getSyncSafetyBadgeState({
-        conflictCount: 0,
-        failedCount: 0,
-        lastSuccessfulPullAt: '2026-05-24T00:00:00.000Z',
-        mode: 'authenticated',
-        pendingCount: 1,
-      }).label,
-    ).toBe('백업 대기 중인 기록 1');
-  });
+  it('uses the last successful push as sync evidence', () => {
+    mockArchiveSafety({
+      lastSuccessfulPullAt: '2026-05-24T01:00:00.000Z',
+      lastSuccessfulPushAt: '2026-05-24T00:00:00.000Z',
+    });
+    renderBadge();
 
-  it('shows stale remote check state before pending backup state', () => {
-    expect(
-      getSyncSafetyBadgeState({
-        conflictCount: 0,
-        failedCount: 0,
-        lastSuccessfulPullAt: '2026-05-24T00:00:00.000Z',
-        mode: 'authenticated',
-        pendingCount: 1,
-        staleStatusAt: '2026-05-26T00:00:00.000Z',
-      }).label,
-    ).toBe('원격 확인 필요');
-  });
-
-  it('shows recent backup state when the queue is clean', () => {
-    expect(
-      getSyncSafetyBadgeState({
-        conflictCount: 0,
-        failedCount: 0,
-        lastSuccessfulPullAt: '2026-05-24T00:00:00.000Z',
-        mode: 'authenticated',
-        pendingCount: 0,
-      }).label,
-    ).toMatch(/^최근 백업됨/);
+    const link = screen.getByRole('link', { name: /마지막 push/ });
+    expect(link).not.toHaveTextContent('최근 백업됨');
   });
 });

@@ -17,6 +17,7 @@ import { TimelineEntriesRepository } from '@features/works';
 import { GraphRepository } from '@features/works';
 import { TierBoardRepository } from '@features/tier-boards/data';
 import { AppMetaRepository } from './app-meta.repository';
+import { LAST_SUCCESSFUL_PUSH_AT_KEY } from './sync-metadata';
 import { SyncQueueRepository } from './sync-queue.repository';
 import { SyncService } from './sync.service';
 
@@ -158,6 +159,9 @@ describe('SyncService', () => {
         updatedAt: '2026-04-18T01:00:00.000Z',
       }),
     );
+    await expect(
+      appMetaRepository.getValue(LAST_SUCCESSFUL_PUSH_AT_KEY),
+    ).resolves.toBe('2026-04-18T01:00:00.000Z');
   });
 
   it('removes successful graph queue items and updates local graph records', async () => {

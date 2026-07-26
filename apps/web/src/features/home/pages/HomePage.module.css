@@ -826,17 +826,11 @@
 }
 
 .safetyDockStatus strong {
-  color: var(--app-accent-teal);
+  color: var(--app-text-primary);
 }
 
 .safetyDockCheck {
-  display: grid;
-  width: 1.55rem;
-  height: 1.55rem;
-  place-items: center;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--app-accent-teal) 24%, transparent);
-  color: var(--app-accent-teal);
+  color: var(--app-text-muted);
   font-weight: 900;
 }
 
