@@ -17,10 +17,12 @@ import {
   useAppTranslation,
 } from '@app/i18n';
 import { syncService, type SyncDashboardItem } from '@features/sync';
+import { confirmDialogAdapter } from '@shared/runtime/dialog-adapter';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import {
   buildRecoveryGroups,
   getAccountBackupStatusTone,
+  getConflictFieldDiff,
   getItemRecoveryGroup,
   getMergeGroups,
   type MergeGroupKey,
@@ -30,6 +32,38 @@ import styles from './SettingsControlCenter.module.css';
 
 const css = styles;
 
+const CONFLICT_FIELD_LABEL_KEYS = {
+  author: 'settings.dataSafety.conflictFields.author',
+  completedAt: 'settings.dataSafety.conflictFields.completedAt',
+  deletedAt: 'settings.dataSafety.conflictFields.deletedAt',
+  description: 'settings.dataSafety.conflictFields.description',
+  droppedAt: 'settings.dataSafety.conflictFields.droppedAt',
+  favorite: 'settings.dataSafety.conflictFields.favorite',
+  genres: 'settings.dataSafety.conflictFields.genres',
+  lastConsumedAt: 'settings.dataSafety.conflictFields.lastConsumedAt',
+  lastConsumedLabel: 'settings.dataSafety.conflictFields.lastConsumedLabel',
+  personalTags: 'settings.dataSafety.conflictFields.personalTags',
+  progressCurrent: 'settings.dataSafety.conflictFields.progressCurrent',
+  progressTotal: 'settings.dataSafety.conflictFields.progressTotal',
+  progressUnit: 'settings.dataSafety.conflictFields.progressUnit',
+  rating: 'settings.dataSafety.conflictFields.rating',
+  review: 'settings.dataSafety.conflictFields.review',
+  shortReview: 'settings.dataSafety.conflictFields.shortReview',
+  startedAt: 'settings.dataSafety.conflictFields.startedAt',
+  status: 'settings.dataSafety.conflictFields.status',
+  thumbnailUrl: 'settings.dataSafety.conflictFields.thumbnailUrl',
+  title: 'settings.dataSafety.conflictFields.title',
+} as const;
+
+function getConflictFieldLabel(
+  field: string,
+  t: ReturnType<typeof useAppTranslation>['t'],
+) {
+  const key =
+    CONFLICT_FIELD_LABEL_KEYS[field as keyof typeof CONFLICT_FIELD_LABEL_KEYS];
+
+  return key ? t(key) : field;
+}
 interface AccountBackupStatusSettingsSectionProps {
   conflictItems: SyncDashboardItem[];
   failedItems: SyncDashboardItem[];
@@ -50,6 +84,29 @@ function formatDateTime(value: string | null) {
   });
 }
 
+function formatConflictValue(
+  value: unknown,
+  t: ReturnType<typeof useAppTranslation>['t'],
+) {
+  if (value === null || value === undefined || value === '') {
+    return t('settings.dataSafety.conflictValueEmpty');
+  }
+
+  if (typeof value === 'boolean') {
+    return value
+      ? t('settings.dataSafety.conflictValueYes')
+      : t('settings.dataSafety.conflictValueNo');
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0
+      ? value.join(', ')
+      : t('settings.dataSafety.conflictValueEmpty');
+  }
+
+  return String(value);
+}
+
 export function AccountBackupStatusSettingsSection({
   conflictItems,
   failedItems,
@@ -61,6 +118,7 @@ export function AccountBackupStatusSettingsSection({
   const { t } = useAppTranslation();
   const [feedback, setFeedback] = useState<SettingsFeedback | null>(null);
   const [resolvingItemId, setResolvingItemId] = useState<string | null>(null);
+  const [undoItemId, setUndoItemId] = useState<string | null>(null);
   const [selectedMergeGroups, setSelectedMergeGroups] = useState<
     Record<string, MergeGroupKey[]>
   >({});
@@ -80,7 +138,7 @@ export function AccountBackupStatusSettingsSection({
       ? t('settings.dataSafety.accountStatusNeedsReview')
       : statusTone === 'info'
         ? t('settings.dataSafety.accountStatusPending')
-        : t('settings.dataSafety.accountStatusSafe');
+        : t('settings.dataSafety.accountBackupReady');
   const visibleConflictItems = useMemo(
     () => conflictItems.slice(0, 5),
     [conflictItems],
@@ -108,18 +166,58 @@ export function AccountBackupStatusSettingsSection({
 
   async function runResolution(
     itemId: string,
+    itemTitle: string,
+    actionLabel: string,
     resolve: () => Promise<unknown>,
     successMessage: string,
   ) {
+    const confirmed = await confirmDialogAdapter.confirm({
+      title: t('settings.dataSafety.confirmResolutionTitle'),
+      description: t('settings.dataSafety.confirmResolutionDescription', {
+        action: actionLabel,
+        title: itemTitle,
+      }),
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
       setFeedback(null);
+      setUndoItemId(null);
       setResolvingItemId(itemId);
       await resolve();
+      setUndoItemId(itemId);
       setFeedback({ tone: 'success', message: successMessage });
     } catch {
       setFeedback({
         tone: 'error',
         message: t('settings.dataSafety.resolveError'),
+      });
+    } finally {
+      setResolvingItemId(null);
+    }
+  }
+
+  async function undoResolution() {
+    if (!undoItemId) {
+      return;
+    }
+
+    try {
+      setResolvingItemId(undoItemId);
+      await syncService.undoConflictResolution(undoItemId);
+      setUndoItemId(null);
+      setFeedback({
+        tone: 'success',
+        message: t('settings.dataSafety.undoResolutionSuccess'),
+      });
+    } catch {
+      setUndoItemId(null);
+      setFeedback({
+        tone: 'error',
+        message: t('settings.dataSafety.undoResolutionUnavailable'),
       });
     } finally {
       setResolvingItemId(null);
@@ -196,7 +294,7 @@ export function AccountBackupStatusSettingsSection({
       />
 
       {recoveryGroups.length > 0 && (
-        <SectionCard padding="lg" tone="subtle">
+        <SectionCard id="account-backup-recovery" padding="lg" tone="subtle">
           <SectionIntro
             description={t('settings.dataSafety.recoveryDescription')}
             eyebrow={t('settings.dataSafety.recoveryEyebrow')}
@@ -337,7 +435,13 @@ export function AccountBackupStatusSettingsSection({
           />
           <Stack gap="md" className={css.syncConflictList ?? ''}>
             {visibleConflictItems.map((item) => {
-              const mergeGroups = getMergeGroups(item);
+              const fieldDiffs = getConflictFieldDiff(item);
+              const changedGroups = new Set(
+                fieldDiffs.map((difference) => difference.group),
+              );
+              const mergeGroups = getMergeGroups(item).filter((group) =>
+                changedGroups.has(group.key),
+              );
               const selectedValues = selectedMergeGroups[item.id] ?? [];
               const selectedKeys = new Set(selectedValues);
               const selectedFields = mergeGroups
@@ -362,6 +466,56 @@ export function AccountBackupStatusSettingsSection({
                         {t('settings.dataSafety.conflictBadge')}
                       </AppBadge>
                     </Group>
+
+                    {fieldDiffs.length > 0 && (
+                      <Stack gap="xs">
+                        <Text fw={800} size="sm">
+                          {t('settings.dataSafety.conflictDiffTitle')}
+                        </Text>
+                        <Text c="dimmed" size="xs">
+                          {t('settings.dataSafety.conflictDiffDescription')}
+                        </Text>
+                        <div
+                          aria-label={t(
+                            'settings.dataSafety.conflictDiffTableLabel',
+                          )}
+                          className={css.conflictDiffTable ?? ''}
+                          role="table"
+                        >
+                          <div
+                            className={css.conflictDiffHeader ?? ''}
+                            role="row"
+                          >
+                            <Text fw={800} role="columnheader" size="xs">
+                              {t('settings.dataSafety.conflictFieldLabel')}
+                            </Text>
+                            <Text fw={800} role="columnheader" size="xs">
+                              {t('settings.dataSafety.localRecordLabel')}
+                            </Text>
+                            <Text fw={800} role="columnheader" size="xs">
+                              {t('settings.dataSafety.remoteRecordLabel')}
+                            </Text>
+                          </div>
+                          {fieldDiffs.map((difference) => (
+                            <div
+                              className={css.conflictDiffRow ?? ''}
+                              key={difference.field}
+                              role="row"
+                            >
+                              <Text fw={750} role="cell" size="xs">
+                                {getConflictFieldLabel(difference.field, t)}
+                              </Text>
+                              <Text role="cell" size="xs">
+                                {formatConflictValue(difference.localValue, t)}
+                              </Text>
+                              <Text role="cell" size="xs">
+                                {formatConflictValue(difference.remoteValue, t)}
+                              </Text>
+                            </div>
+                          ))}
+                        </div>
+                      </Stack>
+                    )}
 
                     {mergeGroups.length > 0 && (
                       <Checkbox.Group
@@ -395,6 +549,8 @@ export function AccountBackupStatusSettingsSection({
                         onClick={() =>
                           void runResolution(
                             item.id,
+                            item.title,
+                            t('settings.dataSafety.keepLocalAction'),
                             () => syncService.resolveConflictWithLocal(item.id),
                             t('settings.dataSafety.resolveLocalSuccess'),
                           )
@@ -410,6 +566,8 @@ export function AccountBackupStatusSettingsSection({
                         onClick={() =>
                           void runResolution(
                             item.id,
+                            item.title,
+                            t('settings.dataSafety.applyRemoteAction'),
                             () =>
                               syncService.resolveConflictWithRemote(item.id),
                             t('settings.dataSafety.resolveRemoteSuccess'),
@@ -426,6 +584,8 @@ export function AccountBackupStatusSettingsSection({
                         onClick={() =>
                           void runResolution(
                             item.id,
+                            item.title,
+                            t('settings.dataSafety.mergeSelectedAction'),
                             () =>
                               syncService.resolveConflictWithMergedFields(
                                 item.id,
@@ -449,9 +609,28 @@ export function AccountBackupStatusSettingsSection({
       )}
 
       {feedback && (
-        <FeedbackMessage tone={feedback.tone}>
-          {feedback.message}
-        </FeedbackMessage>
+        <Stack gap="xs">
+          <FeedbackMessage tone={feedback.tone}>
+            {feedback.message}
+          </FeedbackMessage>
+          {undoItemId && (
+            <ActionRow>
+              <Text c="dimmed" size="xs">
+                {t('settings.dataSafety.undoResolutionDescription')}
+              </Text>
+              <AppButton
+                disabled={resolvingItemId !== null}
+                loading={resolvingItemId === undoItemId}
+                onClick={() => void undoResolution()}
+                size="compact-sm"
+                tone="secondary"
+                type="button"
+              >
+                {t('settings.dataSafety.undoResolutionAction')}
+              </AppButton>
+            </ActionRow>
+          )}
+        </Stack>
       )}
     </SectionCard>
   );

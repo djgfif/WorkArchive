@@ -812,6 +812,52 @@ describe('SyncService', () => {
     );
   });
 
+  it('rolls back the record and queue when resolution fails between writes', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Atomic Local Dune',
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote conflict detected',
+      {
+        ...localWork,
+        title: 'Atomic Remote Dune',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+    vi.spyOn(queueRepository, 'resetForRetry').mockRejectedValueOnce(
+      new Error('injected queue mutation failure'),
+    );
+
+    await expect(
+      syncService.resolveConflictWithLocal(queueItem!.id),
+    ).rejects.toThrow('injected queue mutation failure');
+
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        syncStatus: 'conflict',
+        title: 'Atomic Local Dune',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: expect.objectContaining({
+          message: 'Remote conflict detected',
+        }),
+        lastError: 'Remote conflict detected',
+      }),
+    );
+    await expect(db.conflictRecovery.count()).resolves.toBe(0);
+  });
   it('resolves a conflict by applying the remote work snapshot', async () => {
     const localWork = await worksService.createWork(
       buildInput({
@@ -843,6 +889,117 @@ describe('SyncService', () => {
         title: 'Remote Dune',
         syncStatus: 'synced',
         serverVersion: 3,
+      }),
+    );
+    await expect(db.conflictRecovery.get(queueItem!.id)).resolves.toEqual(
+      expect.objectContaining({
+        beforeEntity: expect.objectContaining({ title: 'Local Dune' }),
+        afterEntity: expect.objectContaining({ title: 'Remote Dune' }),
+      }),
+    );
+
+    await syncService.undoConflictResolution(queueItem!.id);
+
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        title: 'Local Dune',
+        syncStatus: 'conflict',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: expect.objectContaining({
+          remote: expect.objectContaining({ title: 'Remote Dune' }),
+        }),
+      }),
+    );
+    await expect(
+      db.conflictRecovery.get(queueItem!.id),
+    ).resolves.toBeUndefined();
+  });
+
+  it('refuses undo when the resolved record changed afterward', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Local Before Undo Guard',
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote conflict detected',
+      {
+        ...localWork,
+        title: 'Remote Before Undo Guard',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+    await syncService.resolveConflictWithRemote(queueItem!.id);
+    const resolved = await worksRepository.getById(localWork.id);
+
+    await worksRepository.update({
+      ...resolved!,
+      review: 'Edited after resolution',
+      updatedAt: '2026-04-18T02:00:00.000Z',
+    });
+
+    await expect(
+      syncService.undoConflictResolution(queueItem!.id),
+    ).rejects.toThrow(
+      '해결 후 기록이 변경되어 안전하게 실행 취소할 수 없습니다.',
+    );
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        review: 'Edited after resolution',
+        title: 'Remote Before Undo Guard',
+      }),
+    );
+    expect(await queueRepository.listAll()).toEqual([]);
+  });
+  it('refuses undo when the resolved queue changed afterward', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({ title: 'Local Queue Undo Guard' }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote conflict detected',
+      {
+        ...localWork,
+        title: 'Remote Queue Undo Guard',
+        syncStatus: 'synced',
+        serverVersion: 3,
+      },
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+    await syncService.resolveConflictWithLocal(queueItem!.id);
+    await queueRepository.markFailed(queueItem!.id, 'Later push failed');
+
+    await expect(
+      syncService.undoConflictResolution(queueItem!.id),
+    ).rejects.toThrow(
+      '해결 후 기록이 변경되어 안전하게 실행 취소할 수 없습니다.',
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        lastError: 'Later push failed',
+        retryCount: 1,
+      }),
+    );
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        syncStatus: 'pending',
+        title: 'Local Queue Undo Guard',
       }),
     );
   });

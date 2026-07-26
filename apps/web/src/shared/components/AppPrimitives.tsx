@@ -47,6 +47,7 @@ interface SectionCardProps {
   children: ReactNode;
   className?: string;
   gap?: string | number;
+  id?: string;
   padding?: string | number;
   tone?: SurfaceTone;
 }
@@ -304,6 +305,7 @@ export function SectionCard({
   children,
   className,
   gap = 'md',
+  id,
   padding = 'lg',
   tone = 'default',
 }: SectionCardProps) {
@@ -315,6 +317,7 @@ export function SectionCard({
         tone === 'subtle' && css.sectionCardSubtle,
         className,
       )}
+      id={id}
       p={padding}
       radius={tone === 'hero' ? 'xl' : 'lg'}
       styles={{
@@ -343,6 +346,7 @@ export function SurfaceLinkCard({
   children,
   className,
   gap = 'md',
+  id,
   padding = 'lg',
   to,
   tone = 'default',
@@ -357,6 +361,7 @@ export function SurfaceLinkCard({
         className,
       )}
       component={Link}
+      id={id}
       p={padding}
       radius="lg"
       styles={{

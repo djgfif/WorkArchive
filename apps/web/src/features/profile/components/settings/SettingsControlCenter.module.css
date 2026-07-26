@@ -622,3 +622,41 @@
   gap: 0.55rem 0.85rem;
   margin-top: 0.55rem;
 }
+.conflictDiffTable {
+  overflow: hidden;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-card);
+}
+
+.conflictDiffHeader,
+.conflictDiffRow {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.75fr) repeat(2, minmax(0, 1fr));
+  gap: var(--mantine-spacing-sm);
+  padding: 0.65rem 0.75rem;
+}
+
+.conflictDiffHeader {
+  background: var(--app-surface-muted);
+  color: var(--app-text-secondary);
+}
+
+.conflictDiffRow + .conflictDiffRow {
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+.conflictDiffRow > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 48rem) {
+  .conflictDiffHeader,
+  .conflictDiffRow {
+    grid-template-columns: minmax(5.5rem, 0.65fr) repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding-inline: 0.55rem;
+  }
+}

@@ -1,13 +1,53 @@
 import { describe, expect, it } from 'vitest';
+import type { WorkRecord } from '@work-archive/shared-types';
+
 import type { SyncDashboardItem } from '@features/sync';
 
 import {
   buildRecoveryGroups,
   classifyFailedItem,
   getAccountBackupStatusTone,
+  getConflictFieldDiff,
   getItemRecoveryGroup,
   getMergeGroups,
 } from './account-backup-status';
+
+const NOW = '2026-07-26T00:00:00.000Z';
+
+function buildWork(
+  title: string,
+  overrides: Partial<WorkRecord> = {},
+): WorkRecord {
+  return {
+    author: '같은 작가',
+    completedAt: null,
+    createdAt: NOW,
+    deletedAt: null,
+    description: '',
+    droppedAt: null,
+    favorite: false,
+    genres: [],
+    id: 'work-1',
+    lastConsumedAt: null,
+    lastConsumedLabel: '',
+    personalTags: [],
+    progressCurrent: null,
+    progressTotal: null,
+    progressUnit: null,
+    rating: null,
+    review: '',
+    serverVersion: 1,
+    shortReview: '',
+    startedAt: null,
+    status: 'completed',
+    syncStatus: 'conflict',
+    thumbnailUrl: '',
+    title,
+    type: 'novel',
+    updatedAt: NOW,
+    ...overrides,
+  };
+}
 
 function buildDashboardItem(
   overrides: Partial<SyncDashboardItem> = {},
@@ -41,6 +81,7 @@ describe('account backup status helpers', () => {
     expect(
       getMergeGroups(buildDashboardItem()).map((group) => group.key),
     ).toEqual([
+      'identity',
       'status',
       'ratingReview',
       'favorite',
@@ -48,15 +89,44 @@ describe('account backup status helpers', () => {
       'dates',
       'tags',
       'metadata',
+      'deletion',
     ]);
     expect(
       getMergeGroups(buildDashboardItem({ entityType: 'release_record' })).map(
         (group) => group.key,
       ),
-    ).toEqual(['status', 'ratingReview', 'favorite']);
+    ).toEqual(['status', 'ratingReview', 'favorite', 'deletion']);
     expect(
       getMergeGroups(buildDashboardItem({ entityType: 'timeline_entry' })),
     ).toEqual([]);
+  });
+
+  it('shows only fields whose local and server values differ', () => {
+    expect(
+      getConflictFieldDiff(
+        buildDashboardItem({
+          conflictRemote: buildWork('서버 제목', {
+            rating: 9,
+            serverVersion: 2,
+            syncStatus: 'synced',
+          }),
+          localSnapshot: buildWork('로컬 제목', { rating: 8 }),
+        }),
+      ),
+    ).toEqual([
+      {
+        field: 'title',
+        group: 'identity',
+        localValue: '로컬 제목',
+        remoteValue: '서버 제목',
+      },
+      {
+        field: 'rating',
+        group: 'ratingReview',
+        localValue: 8,
+        remoteValue: 9,
+      },
+    ]);
   });
 
   it.each([
@@ -113,6 +183,6 @@ describe('account backup status helpers', () => {
         pendingCount: 0,
         staleStatusAt: null,
       }),
-    ).toBe('success');
+    ).toBe('muted');
   });
 });

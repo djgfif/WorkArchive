@@ -70,12 +70,28 @@
           "syncPending": "{{count}} items awaiting push",
           "syncStale": "Pull needs recheck",
           "summary": {
-            "action": { "title": "Review data safety", "description": "Backup, storage protection, failures, or conflicts need attention." },
-            "empty": { "title": "Set up safety before the first record", "description": "JSON backup and browser storage evidence will appear after recording starts." },
-            "pending": { "title": "Changes are being processed", "description": "Local records remain available while push or pull checks are pending." },
-            "steady": { "title": "No currently verified risk", "description": "Based on the evidence timestamps and storage state shown below." }
+            "action": {
+              "title": "Review data safety",
+              "description": "Backup, storage protection, failures, or conflicts need attention."
+            },
+            "empty": {
+              "title": "Set up safety before the first record",
+              "description": "JSON backup and browser storage evidence will appear after recording starts."
+            },
+            "pending": {
+              "title": "Changes are being processed",
+              "description": "Local records remain available while push or pull checks are pending."
+            },
+            "steady": {
+              "title": "No currently verified risk",
+              "description": "Based on the evidence timestamps and storage state shown below."
+            }
           }
-        },        "conflictLocalQueue": "Remote changes and the local queue couldn't be auto-merged, so manual review is needed.",
+        },
+        "conflictLocalQueue": "Remote changes and the local queue couldn't be auto-merged, so manual review is needed.",
+        "conflictRecoveryChanged": "The record changed after resolution, so it cannot be safely undone.",
+        "conflictRecoveryExpired": "The undo window has expired.",
+        "conflictRecoveryMissing": "No conflict recovery snapshot is available to undo.",
         "conflictQueueMissing": "Could not find a sync item to resolve.",
         "dashboardLoadError": "Could not load sync info.",
         "failedApplyAfterSync": "Could not apply changes to the view after sync.",
@@ -195,12 +211,28 @@
           "syncPending": "push待ち{{count}}件",
           "syncStale": "pullの再確認が必要",
           "summary": {
-            "action": { "title": "データ安全性の確認が必要", "description": "バックアップ、保存保護、失敗または競合を確認してください。" },
-            "empty": { "title": "最初の記録前の安全設定", "description": "記録開始後にJSONバックアップとブラウザー保存状態を確認します。" },
-            "pending": { "title": "変更を処理中", "description": "ローカル記録は維持され、pushまたはpullの確認が残っています。" },
-            "steady": { "title": "現在確認されたリスクなし", "description": "表示された根拠時刻と保存状態に基づく判定です。" }
+            "action": {
+              "title": "データ安全性の確認が必要",
+              "description": "バックアップ、保存保護、失敗または競合を確認してください。"
+            },
+            "empty": {
+              "title": "最初の記録前の安全設定",
+              "description": "記録開始後にJSONバックアップとブラウザー保存状態を確認します。"
+            },
+            "pending": {
+              "title": "変更を処理中",
+              "description": "ローカル記録は維持され、pushまたはpullの確認が残っています。"
+            },
+            "steady": {
+              "title": "現在確認されたリスクなし",
+              "description": "表示された根拠時刻と保存状態に基づく判定です。"
+            }
           }
-        },        "conflictLocalQueue": "リモート変更とローカルキューを自動マージできないため、手動確認が必要です。",
+        },
+        "conflictLocalQueue": "リモート変更とローカルキューを自動マージできないため、手動確認が必要です。",
+        "conflictRecoveryChanged": "解決後に記録が変更されたため、安全に元に戻せません。",
+        "conflictRecoveryExpired": "元に戻せる時間を過ぎました。",
+        "conflictRecoveryMissing": "元に戻すための競合復旧スナップショットがありません。",
         "conflictQueueMissing": "解決する同期項目が見つかりませんでした。",
         "dashboardLoadError": "同期情報を読み込めませんでした。",
         "failedApplyAfterSync": "同期後に画面へ反映できませんでした。",
@@ -320,12 +352,28 @@
           "syncPending": "{{count}} 项等待 push",
           "syncStale": "需要重新检查 pull",
           "summary": {
-            "action": { "title": "需要检查数据安全", "description": "请检查备份、存储保护、失败或冲突项。" },
-            "empty": { "title": "首次记录前的安全设置", "description": "开始记录后会同时检查 JSON 备份和浏览器存储状态。" },
-            "pending": { "title": "正在处理更改", "description": "本地记录会保留，同时等待 push 或 pull 检查。" },
-            "steady": { "title": "当前未发现已验证风险", "description": "依据下方显示的证据时间和存储状态判断。" }
+            "action": {
+              "title": "需要检查数据安全",
+              "description": "请检查备份、存储保护、失败或冲突项。"
+            },
+            "empty": {
+              "title": "首次记录前的安全设置",
+              "description": "开始记录后会同时检查 JSON 备份和浏览器存储状态。"
+            },
+            "pending": {
+              "title": "正在处理更改",
+              "description": "本地记录会保留，同时等待 push 或 pull 检查。"
+            },
+            "steady": {
+              "title": "当前未发现已验证风险",
+              "description": "依据下方显示的证据时间和存储状态判断。"
+            }
           }
-        },        "conflictLocalQueue": "无法自动合并远程更改与本地队列，需手动确认。",
+        },
+        "conflictLocalQueue": "无法自动合并远程更改与本地队列，需手动确认。",
+        "conflictRecoveryChanged": "解决后记录已更改，无法安全撤销。",
+        "conflictRecoveryExpired": "可撤销时间已过。",
+        "conflictRecoveryMissing": "没有可用于撤销的冲突恢复快照。",
         "conflictQueueMissing": "找不到需解决的同步项。",
         "dashboardLoadError": "无法加载同步信息。",
         "failedApplyAfterSync": "同步后无法应用到界面。",

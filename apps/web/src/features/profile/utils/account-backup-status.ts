@@ -1,8 +1,10 @@
 import type { SyncDashboardItem } from '@features/sync';
 
 export type MergeGroupKey =
+  | 'deletion'
   | 'dates'
   | 'favorite'
+  | 'identity'
   | 'metadata'
   | 'progress'
   | 'ratingReview'
@@ -40,6 +42,7 @@ const RECOVERY_GROUP_ORDER: RecoveryGroupKey[] = [
 ];
 
 const WORK_MERGE_GROUPS: MergeGroup[] = [
+  { key: 'identity', fields: ['title', 'author'] },
   { key: 'status', fields: ['status'] },
   { key: 'ratingReview', fields: ['rating', 'shortReview', 'review'] },
   { key: 'favorite', fields: ['favorite'] },
@@ -58,12 +61,14 @@ const WORK_MERGE_GROUPS: MergeGroup[] = [
   },
   { key: 'tags', fields: ['genres', 'personalTags'] },
   { key: 'metadata', fields: ['description', 'thumbnailUrl'] },
+  { key: 'deletion', fields: ['deletedAt'] },
 ];
 
 const RELEASE_RECORD_MERGE_GROUPS: MergeGroup[] = [
   { key: 'status', fields: ['status'] },
   { key: 'ratingReview', fields: ['rating', 'shortReview', 'review'] },
   { key: 'favorite', fields: ['favorite'] },
+  { key: 'deletion', fields: ['deletedAt'] },
 ];
 
 const FAILURE_MARKERS = {
@@ -86,6 +91,46 @@ export function getMergeGroups(
   return [];
 }
 
+export interface ConflictFieldDiff {
+  field: string;
+  group: MergeGroupKey;
+  localValue: unknown;
+  remoteValue: unknown;
+}
+
+function haveSameValue(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+export function getConflictFieldDiff(
+  item: Pick<
+    SyncDashboardItem,
+    'conflictRemote' | 'entityType' | 'localSnapshot'
+  >,
+): ConflictFieldDiff[] {
+  if (!item.conflictRemote) {
+    return [];
+  }
+
+  const local = item.localSnapshot as unknown as Record<string, unknown>;
+  const remote = item.conflictRemote as unknown as Record<string, unknown>;
+
+  return getMergeGroups(item).flatMap((group) =>
+    group.fields.flatMap((field) =>
+      haveSameValue(local[field], remote[field])
+        ? []
+        : [
+            {
+              field,
+              group: group.key,
+              localValue: local[field],
+              remoteValue: remote[field],
+            } satisfies ConflictFieldDiff,
+          ],
+    ),
+  );
+}
+
 export function getAccountBackupStatusTone({
   conflictCount,
   failedCount,
@@ -105,7 +150,7 @@ export function getAccountBackupStatusTone({
     return 'info' as const;
   }
 
-  return 'success' as const;
+  return 'muted' as const;
 }
 
 export function classifyFailedItem(

@@ -14,6 +14,7 @@ import {
   resetAutomaticJsonBackupSessionForTest,
 } from '@features/archive';
 import { syncService } from '@features/sync';
+import { confirmDialogAdapter } from '@shared/runtime/dialog-adapter';
 import { SettingsPage } from './SettingsPage';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -661,6 +662,9 @@ describe('SettingsPage', () => {
     expect(
       await screen.findByText('동기화 복구가 필요한 항목'),
     ).toBeInTheDocument();
+    expect(
+      document.getElementById('account-backup-recovery'),
+    ).toBeInTheDocument();
     expect(screen.getAllByText('수동 충돌 검토').length).toBeGreaterThan(0);
     expect(screen.getAllByText('네트워크 재시도').length).toBeGreaterThan(0);
     expect(
@@ -701,6 +705,12 @@ describe('SettingsPage', () => {
         .getAllByRole('button', { name: '선택 병합' })
         .every((button) => button.hasAttribute('disabled')),
     ).toBe(true);
+    const diffTable = screen.getByRole('table', {
+      name: '로컬 기록과 서버 기록 필드 비교',
+    });
+    expect(within(diffTable).getByText('제목')).toBeInTheDocument();
+    expect(within(diffTable).getByText('충돌 작품')).toBeInTheDocument();
+    expect(within(diffTable).getByText('계정 백업 작품')).toBeInTheDocument();
     expect(screen.queryByText('network failed')).not.toBeInTheDocument();
   });
 
@@ -722,6 +732,9 @@ describe('SettingsPage', () => {
     vi.spyOn(syncService, 'resolveConflictWithLocal').mockRejectedValueOnce(
       new Error(rawError),
     );
+    const confirmSpy = vi
+      .spyOn(confirmDialogAdapter, 'confirm')
+      .mockResolvedValueOnce(true);
 
     renderAuthenticatedSettings();
     await db.works.add(conflictWork);
@@ -753,6 +766,12 @@ describe('SettingsPage', () => {
       (await screen.findAllByRole('button', { name: '내 기록 유지' })).at(-1)!,
     );
 
+    expect(confirmSpy).toHaveBeenCalledWith({
+      title: '충돌 해결을 적용할까요?',
+      description: expect.stringContaining(
+        '“내 기록 유지” 작업을 적용합니다. 적용 직후 10분 동안만 실행 취소할 수 있습니다.',
+      ),
+    });
     expect(
       await screen.findByText('충돌을 해결하지 못했습니다.'),
     ).toBeInTheDocument();

@@ -4,6 +4,7 @@ import type {
   AppMetaRecord,
   ContributorRecord,
   SeriesRecord,
+  SyncEntityType,
   SyncQueueItemRecord,
   TierBoardCardRecord,
   TierLaneRecord,
@@ -36,6 +37,19 @@ export type ArchiveScope =
       userId: string;
     };
 
+export interface ConflictRecoverySnapshotRecord {
+  afterEntity: unknown;
+  afterQueue: SyncQueueItemRecord | null;
+  beforeEntity: unknown;
+  beforeQueue: SyncQueueItemRecord;
+  createdAt: string;
+  entityId: string;
+  entityType: SyncEntityType;
+  expiresAt: string;
+  id: string;
+  queueItemId: string;
+}
+
 const knownDatabaseNames = new Set<string>();
 const knownDatabaseInstances = new Set<WorkArchiveDatabase>();
 
@@ -54,6 +68,7 @@ export class WorkArchiveDatabase extends Dexie {
   tierBoardAssets!: Table<StoredTierBoardAssetRecord, string>;
   syncQueue!: Table<SyncQueueItemRecord, string>;
   appMeta!: Table<AppMetaRecord, string>;
+  conflictRecovery!: Table<ConflictRecoverySnapshotRecord, string>;
 
   constructor(name = 'work-archive-db') {
     super(name);
@@ -354,6 +369,10 @@ export class WorkArchiveDatabase extends Dexie {
             item.clientMutationId ??= crypto.randomUUID();
           }),
       );
+
+    this.version(15).stores({
+      conflictRecovery: 'id, queueItemId, entityType, entityId, expiresAt',
+    });
   }
 }
 
@@ -452,6 +471,7 @@ export async function clearWorkArchiveDb(db = getWorkArchiveDb()) {
       db.tierBoardAssets,
       db.syncQueue,
       db.appMeta,
+      db.conflictRecovery,
     ],
     async () => {
       await db.works.clear();
@@ -468,6 +488,7 @@ export async function clearWorkArchiveDb(db = getWorkArchiveDb()) {
       await db.tierBoardAssets.clear();
       await db.syncQueue.clear();
       await db.appMeta.clear();
+      await db.conflictRecovery.clear();
     },
   );
 }
