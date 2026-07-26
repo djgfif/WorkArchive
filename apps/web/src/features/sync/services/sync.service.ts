@@ -8,6 +8,10 @@ import {
   type TimelineEntriesRepository,
   type WorksRepository,
 } from '@features/works/data';
+import {
+  getWorkArchiveDb,
+  type WorkArchiveDatabase,
+} from '@features/works/storage';
 import { appI18n } from '@app/i18n';
 import {
   tierBoardRepository,
@@ -57,6 +61,7 @@ export class SyncService {
     timelineEntriesRepo: TimelineEntriesRepository = timelineEntriesRepository,
     graphRepo: GraphRepository = graphRepository,
     tierBoardRepo: TierBoardRepository = tierBoardRepository,
+    getDb: () => WorkArchiveDatabase = getWorkArchiveDb,
   ) {
     const leaseService = new SyncLeaseService(metaRepo);
     const stalePolicyService = new SyncStalePolicyService(metaRepo);
@@ -82,6 +87,7 @@ export class SyncService {
       stalePolicyService,
       autoMergeService,
       this.conflictService,
+      getDb,
     );
     this.pushService = new SyncPushService(
       worksRepo,

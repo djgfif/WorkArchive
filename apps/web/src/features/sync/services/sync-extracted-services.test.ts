@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SYNC_SCHEMA_VERSION, type WorkRecord } from '@work-archive/shared-types';
+import {
+  SYNC_SCHEMA_VERSION,
+  type WorkRecord,
+} from '@work-archive/shared-types';
 
 import { clearStoredAuthTokens, writeStoredAuthTokens } from '@features/auth';
 import {
@@ -133,6 +136,7 @@ describe('extracted sync services', () => {
       stalePolicyService,
       autoMergeService,
       conflictService,
+      () => db,
     );
     pushService = new SyncPushService(
       worksRepository,
@@ -282,7 +286,11 @@ describe('extracted sync services', () => {
       await queueRepository.removeMany(
         (await queueRepository.listAll()).map((item) => item.id),
       );
-      await queueRepository.enqueueWorkChange(syncedWork, 'update', 'edit_form');
+      await queueRepository.enqueueWorkChange(
+        syncedWork,
+        'update',
+        'edit_form',
+      );
       await appMetaRepository.setValue(
         LAST_SUCCESSFUL_PULL_AT_KEY,
         new Date().toISOString(),
@@ -318,7 +326,11 @@ describe('extracted sync services', () => {
       await queueRepository.removeMany(
         (await queueRepository.listAll()).map((item) => item.id),
       );
-      await queueRepository.enqueueWorkChange(syncedWork, 'update', 'edit_form');
+      await queueRepository.enqueueWorkChange(
+        syncedWork,
+        'update',
+        'edit_form',
+      );
       await appMetaRepository.setValue(
         LAST_SUCCESSFUL_PULL_AT_KEY,
         '2026-04-18T00:00:00.000Z',
@@ -381,7 +393,9 @@ describe('extracted sync services', () => {
 
       await conflictService.resolveConflictWithLocal(queueItem!.id);
 
-      const queuedAfterResolution = await queueRepository.getById(queueItem!.id);
+      const queuedAfterResolution = await queueRepository.getById(
+        queueItem!.id,
+      );
 
       expect(queuedAfterResolution).toEqual(
         expect.objectContaining({
@@ -449,6 +463,49 @@ describe('extracted sync services', () => {
       await expect(
         appMetaRepository.getValue(LAST_SUCCESSFUL_PULL_AT_KEY),
       ).resolves.toBe('2026-04-18T01:00:00.000Z');
+    });
+
+    it('rolls back every local table when applying a pull batch fails', async () => {
+      const remoteWork = buildWork({
+        id: 'remote-work-1',
+        title: 'Remote Work',
+      });
+
+      writeStoredAuthTokens({
+        accessToken: 'access-token',
+      });
+      vi.spyOn(timelineEntriesRepository, 'bulkPut').mockRejectedValueOnce(
+        new Error('simulated pull apply failure'),
+      );
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          jsonResponse({
+            schemaVersion: SYNC_SCHEMA_VERSION,
+            pulledAt: '2026-04-18T02:00:00.000Z',
+            nextSince: '2026-04-18T02:00:00.000Z',
+            changes: [
+              {
+                entityType: 'work',
+                entityId: remoteWork.id,
+                operation: 'upsert',
+                work: remoteWork,
+              },
+            ],
+          }),
+        ),
+      );
+
+      await expect(pullService.pullRemoteChanges()).resolves.toEqual(
+        expect.objectContaining({
+          appliedCount: 0,
+          requestFailed: true,
+        }),
+      );
+      await expect(worksRepository.getById(remoteWork.id)).resolves.toBeNull();
+      await expect(
+        appMetaRepository.getValue(LAST_SUCCESSFUL_PULL_AT_KEY),
+      ).resolves.toBeNull();
     });
   });
 });

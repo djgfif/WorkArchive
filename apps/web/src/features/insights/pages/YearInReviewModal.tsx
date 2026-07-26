@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
-import { Box, Button, Group, Modal, Stack, Text } from '@mantine/core';
+import { Box, Button, Group, Modal, Select, Stack, Text } from '@mantine/core';
 import { toPng } from 'html-to-image';
 
 import { useAppTranslation } from '@app/i18n';
 import { getWorkTypeLabel } from '@features/works';
 import { cn } from '@shared/utils/class-names';
+import { downloadUrl } from '@shared/utils/download-file';
 import { useYearInReview } from '../hooks/useYearInReview';
 import styles from './YearInReviewModal.module.css';
 
@@ -19,6 +20,11 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatSigned(value: number, fractionDigits = 0) {
+  const formatted = value.toFixed(fractionDigits);
+  return value > 0 ? '+' + formatted : formatted;
+}
+
 interface YearInReviewModalProps {
   onClose: () => void;
   opened: boolean;
@@ -28,12 +34,16 @@ interface YearInReviewModalProps {
 export function YearInReviewModal({
   onClose,
   opened,
-  year = new Date().getFullYear(),
+  year: initialYear = new Date().getFullYear(),
 }: YearInReviewModalProps) {
   const { t } = useAppTranslation();
-  const { data, isLoading } = useYearInReview(year);
+  const [selectedYear, setSelectedYear] = useState(initialYear);
+  const { availableYears, comparison, data, isLoading } =
+    useYearInReview(selectedYear);
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const reviewYear = data?.year ?? selectedYear;
+  const monthlyMax = Math.max(1, ...(data?.monthlyCompletedCounts ?? []));
 
   async function handleExport() {
     if (!cardRef.current) {
@@ -47,10 +57,10 @@ export function YearInReviewModal({
         cacheBust: true,
         pixelRatio: 2,
       });
-      const link = document.createElement('a');
-      link.download = t('insights.year.exportFileName', { year });
-      link.href = dataUrl;
-      link.click();
+      downloadUrl(
+        t('insights.year.exportFileName', { year: reviewYear }),
+        dataUrl,
+      );
     } finally {
       setExporting(false);
     }
@@ -62,7 +72,7 @@ export function YearInReviewModal({
       opened={opened}
       radius="lg"
       size="md"
-      title={t('insights.year.modalTitle', { year })}
+      title={t('insights.year.modalTitle', { year: reviewYear })}
     >
       {isLoading || !data ? (
         <Text c="dimmed" p="md" size="sm">
@@ -70,10 +80,27 @@ export function YearInReviewModal({
         </Text>
       ) : data.completedCount === 0 ? (
         <Text c="dimmed" p="md" size="sm">
-          {t('insights.year.empty', { year })}
+          {t('insights.year.empty', { year: reviewYear })}
         </Text>
       ) : (
         <Stack gap="md">
+          {availableYears.length > 1 ? (
+            <Select
+              allowDeselect={false}
+              aria-label={t('insights.year.selectYear')}
+              data={availableYears.map((availableYear) => ({
+                label: String(availableYear),
+                value: String(availableYear),
+              }))}
+              onChange={(value) => {
+                if (value) {
+                  setSelectedYear(Number(value));
+                }
+              }}
+              value={String(reviewYear)}
+            />
+          ) : null}
+
           <Box className={cn(css.card)} ref={cardRef}>
             <Text className={cn(css.eyebrow)}>YEAR IN REVIEW</Text>
             <Text className={cn(css.year)}>{data.year}</Text>
@@ -109,6 +136,59 @@ export function YearInReviewModal({
                 />
               )}
             </Group>
+
+            <Box className={cn(css.monthlySection)}>
+              <Text className={cn(css.sectionTitle)}>
+                {t('insights.year.monthlyActivity')}
+              </Text>
+              <Box className={cn(css.monthlyChart)}>
+                {data.monthlyCompletedCounts.map((count, index) => (
+                  <Box
+                    aria-label={t('insights.year.monthCount', {
+                      count,
+                      month: index + 1,
+                    })}
+                    className={cn(css.monthColumn)}
+                    key={index}
+                  >
+                    <Box className={cn(css.monthBarTrack)}>
+                      <Box
+                        className={cn(css.monthBar)}
+                        data-empty={count === 0}
+                        style={{
+                          height: String((count / monthlyMax) * 100) + '%',
+                        }}
+                      />
+                    </Box>
+                    <Text className={cn(css.monthLabel)}>{index + 1}</Text>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+
+            {comparison ? (
+              <Box className={cn(css.comparison)}>
+                <Text className={cn(css.sectionTitle)}>
+                  {t('insights.year.comparisonTitle')}
+                </Text>
+                <Text className={cn(css.comparisonText)}>
+                  {t('insights.year.comparisonCompleted', {
+                    count: comparison.previous.completedCount,
+                    delta: formatSigned(comparison.completedDelta),
+                    year: comparison.previous.year,
+                  })}
+                </Text>
+                {comparison.averageRatingDelta !== null &&
+                data.averageRating !== null ? (
+                  <Text className={cn(css.comparisonMeta)}>
+                    {t('insights.year.comparisonRating', {
+                      delta: formatSigned(comparison.averageRatingDelta, 1),
+                      rating: data.averageRating.toFixed(1),
+                    })}
+                  </Text>
+                ) : null}
+              </Box>
+            ) : null}
 
             {data.topWorks.length > 0 && (
               <Box className={cn(css.section)}>

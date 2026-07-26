@@ -10,6 +10,85 @@
   padding-bottom: 4rem;
 }
 
+.commandCenter {
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 2.5vw, 2rem) 0;
+}
+
+.quickCaptureForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-xl);
+  background: var(--app-surface-card);
+  box-shadow: var(--wa-shadow-card);
+}
+
+.quickCaptureForm :global(.mantine-Input-input) {
+  min-height: 3.25rem;
+  border-color: transparent;
+  background: transparent;
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+}
+
+.quickCaptureForm :global(.mantine-Input-input:focus) {
+  border-color: var(--app-accent-primary);
+  box-shadow: 0 0 0 1px var(--app-accent-primary);
+}
+
+.archiveHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.2rem clamp(1rem, 2vw, 1.35rem);
+}
+
+.archiveHeadingCopy {
+  display: grid;
+  min-width: 0;
+  gap: 0.4rem;
+}
+
+.archiveHeadingTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+}
+
+.archiveHeadingTitle h1 {
+  margin: 0;
+  color: var(--app-text-primary);
+  font-family: var(--app-font-display);
+  font-size: clamp(1.75rem, 2.8vw, 2.45rem);
+  font-weight: 820;
+  letter-spacing: -0.02em;
+}
+
+.archiveHeadingDescription {
+  max-width: 46rem;
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: var(--app-type-caption);
+  line-height: 1.6;
+}
+
+.archiveHeadingTitle span {
+  min-width: 1.8rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--app-surface-subtle);
+  color: var(--app-text-muted);
+  font-family: var(--app-font-figure);
+  font-size: var(--app-type-caption);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 /* ── Greeting 섹션 ────────────────────────────────────────────────────────
    콘텐츠 직접 노출. Paper 카드 제거 — 배경이 곧 표면
    ─────────────────────────────────────────────────────────────────────────── */
@@ -18,7 +97,8 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: clamp(1.75rem, 3.5vw, 2.8rem) clamp(1rem, 2.5vw, 2rem) clamp(0.75rem, 1.5vw, 1.25rem);
+  padding: clamp(1.75rem, 3.5vw, 2.8rem) clamp(1rem, 2.5vw, 2rem)
+    clamp(0.75rem, 1.5vw, 1.25rem);
   max-width: 1440px;
   margin: 0 auto;
   flex-wrap: wrap;
@@ -403,7 +483,9 @@
   color: inherit;
   cursor: pointer;
   text-align: left;
-  transition: background var(--wa-motion-fast), transform var(--wa-motion-fast);
+  transition:
+    background var(--wa-motion-fast),
+    transform var(--wa-motion-fast);
 }
 
 .activityItem:hover,
@@ -458,9 +540,31 @@
 
 /* ── 빈 상태 가이드 ────────────────────────────────────────────────────────── */
 .emptyGuide {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(24rem, 1.2fr);
+  align-items: start;
+  gap: clamp(2rem, 6vw, 6rem);
   max-width: 1440px;
   margin: 0 auto;
   padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 2.5vw, 2rem);
+}
+
+.emptyGuideIntro {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+  padding-top: 0.85rem;
+}
+
+.emptyGuideIndex,
+.emptyGuideCardIndex {
+  color: var(--app-text-muted);
+  font-family: var(--app-font-figure);
+  font-size: var(--app-type-meta);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .emptyGuideTitle {
@@ -468,65 +572,296 @@
   font-weight: 820;
   letter-spacing: 0;
   color: var(--app-text-primary);
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.55rem;
 }
 
 .emptyGuideDesc {
+  max-width: 34rem;
+  margin: 0;
   color: var(--app-text-muted);
   font-size: var(--app-type-body);
-  margin-bottom: 2rem;
+  line-height: 1.7;
 }
 
-.emptyGuideGrid {
+.emptyGuideList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 0.85rem;
+  border-top: 1px solid var(--app-border-default);
 }
 
 .emptyGuideCard {
-  display: block;
+  display: grid;
+  grid-template-columns: 2rem 2.75rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 5.5rem;
   text-decoration: none;
   color: inherit;
-  padding: 1.5rem;
-  border: 1px solid var(--app-border-default);
-  border-radius: var(--mantine-radius-xl);
-  background: var(--app-surface-card);
+  padding: 1rem 0.8rem;
+  border-bottom: 1px solid var(--app-border-default);
+  background: transparent;
   transition:
-    border-color var(--wa-motion-fast),
-    transform var(--wa-motion-fast),
-    box-shadow var(--wa-motion-fast);
+    background var(--wa-motion-fast),
+    transform var(--wa-motion-fast);
 }
 
-.emptyGuideCard:hover {
-  border-color: var(--app-accent-primary);
-  transform: translateY(-2px);
-  box-shadow: var(--wa-shadow-card);
+.emptyGuideCard:hover,
+.emptyGuideCard:focus-visible {
+  background: var(--app-surface-subtle);
+  outline: none;
+  transform: translateX(3px);
 }
 
 .emptyGuideCardIcon {
-  display: inline-flex;
+  display: grid;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  margin-bottom: 1rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: var(--mantine-radius-md);
-  border: 1px solid color-mix(in srgb, var(--app-accent-primary) 28%, var(--app-border-subtle));
+  border: 1px solid
+    color-mix(in srgb, var(--app-accent-primary) 28%, var(--app-border-subtle));
   background: var(--app-accent-soft);
   color: var(--app-accent-primary);
+}
+
+.emptyGuideCardBody {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
 }
 
 .emptyGuideCardTitle {
   font-size: 1rem;
   font-weight: 800;
   color: var(--app-text-primary);
-  margin-bottom: 0.35rem;
 }
 
 .emptyGuideCardDesc {
   font-size: var(--app-type-caption);
   color: var(--app-text-muted);
   line-height: 1.5;
+}
+
+.starterPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.68fr);
+  width: min(100%, calc(1440px - clamp(2rem, 5vw, 4rem)));
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px dashed var(--app-border-default);
+  border-radius: var(--mantine-radius-xl);
+  background: color-mix(in srgb, var(--app-surface-subtle) 74%, transparent);
+}
+
+.starterArchive,
+.starterActions {
+  min-width: 0;
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.starterArchive {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.starterActions {
+  display: grid;
+  align-content: center;
+  gap: 0.35rem;
+  border-left: 1px solid var(--app-border-subtle);
+}
+
+.starterArchiveIntro {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.starterArchiveIcon {
+  display: grid;
+  width: 3.6rem;
+  height: 3.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-lg);
+  background: var(--app-surface-card);
+  color: var(--app-text-muted);
+}
+
+.starterArchiveTitle,
+.starterArchiveDescription {
+  margin: 0;
+}
+
+.starterArchiveTitle {
+  color: var(--app-text-primary);
+  font-size: clamp(1.15rem, 1.7vw, 1.45rem);
+  font-weight: 820;
+}
+
+.starterArchiveDescription {
+  margin-top: 0.35rem;
+  color: var(--app-text-muted);
+  font-size: var(--app-type-caption);
+  line-height: 1.5;
+}
+
+.starterWorkList {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.starterWorkRow {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid transparent;
+  border-radius: var(--mantine-radius-md);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background var(--wa-motion-fast),
+    border-color var(--wa-motion-fast);
+}
+
+.starterWorkRow:hover,
+.starterWorkRow:focus-visible {
+  border-color: var(--app-border-subtle);
+  background: var(--app-surface-card);
+  outline: none;
+}
+
+.starterWorkRow > :first-child {
+  width: 3rem;
+}
+
+.starterWorkBody {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.starterWorkBody strong {
+  overflow: hidden;
+  color: var(--app-text-primary);
+  font-size: var(--app-type-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.starterWorkBody span,
+.starterWorkMeta {
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+}
+
+.starterWorkMeta {
+  white-space: nowrap;
+}
+
+.starterAction {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0.9rem;
+  border-radius: var(--mantine-radius-md);
+  color: inherit;
+  text-decoration: none;
+  transition: background var(--wa-motion-fast);
+}
+
+.starterAction:hover,
+.starterAction:focus-visible {
+  background: var(--app-surface-card);
+  outline: none;
+}
+
+.starterActionBody {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.starterActionBody strong {
+  color: var(--app-text-primary);
+  font-size: var(--app-type-body);
+}
+
+.starterActionBody span {
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+  line-height: 1.4;
+}
+
+.starterActionArrow {
+  margin-left: auto;
+  color: var(--app-text-muted);
+}
+
+.safetyDock {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.25rem;
+  width: min(100%, calc(1440px - clamp(2rem, 5vw, 4rem)));
+  margin: clamp(1.5rem, 3vw, 2.5rem) auto 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-lg);
+  background: var(--app-surface-card);
+}
+
+.safetyDockStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--app-text-secondary);
+  font-size: var(--app-type-caption);
+  white-space: nowrap;
+}
+
+.safetyDockStatus strong {
+  color: var(--app-accent-teal);
+}
+
+.safetyDockCheck {
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-accent-teal) 24%, transparent);
+  color: var(--app-accent-teal);
+  font-weight: 900;
+}
+
+.safetyDockDescription {
+  overflow: hidden;
+  color: var(--app-text-muted);
+  font-size: var(--app-type-caption);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.safetyDockLink {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  color: var(--app-text-secondary);
+  font-size: var(--app-type-caption);
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.safetyDockLink:hover {
+  color: var(--app-text-primary);
 }
 
 /* ── 백업 알림 슬롯 ──────────────────────────────────────────────────────── */
@@ -538,6 +873,60 @@
 
 /* ── 반응형 ──────────────────────────────────────────────────────────────── */
 @media (max-width: 48rem) {
+  .quickCaptureForm {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .quickCaptureForm :global(.mantine-Button-root),
+  .archiveHeading :global(.mantine-Button-root) {
+    min-height: 44px;
+  }
+
+  .quickCaptureForm > :nth-child(2) {
+    display: none;
+  }
+
+  .starterPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .emptyGuide {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .emptyGuideIntro {
+    padding-top: 0;
+  }
+
+  .emptyGuideCard {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+    min-height: 5rem;
+  }
+
+  .emptyGuideCardIndex {
+    display: none;
+  }
+
+  .starterActions {
+    border-top: 1px solid var(--app-border-subtle);
+    border-left: 0;
+  }
+
+  .safetyDock {
+    grid-template-columns: 1fr auto;
+  }
+
+  .safetyDockDescription {
+    display: none;
+  }
+
+  .safetyDockLink {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
   .homeGreeting {
     flex-direction: column;
     align-items: flex-start;

@@ -25,6 +25,8 @@
           "fieldTitle": "Title",
           "flowDescription": "Start with just a title, and fill in the cover and basic info from search candidates when needed.",
           "flowTitle": "New work record",
+          "optionalFieldsDescription": "A title and type are enough for now. You can complete the rest anytime.",
+          "optionalFieldsTitle": "Add status, rating, and notes",
           "imported": {
             "aliasCount": "{{count}} aliases",
             "backToSearch": "Search again",
@@ -146,7 +148,10 @@
           "showWorksList": "View works list",
           "title": "Add work"
         },
-        "archiveState": { "emptyNote": "No records yet.", "emptyShelf": "Empty shelf" },
+        "archiveState": {
+          "emptyNote": "No records yet.",
+          "emptyShelf": "Empty shelf"
+        },
         "backToWork": "Back to work",
         "dateMissing": "Not recorded",
         "detail": {
@@ -652,6 +657,7 @@
           "trashScopeTitle": "Restoring is the default action.",
           "trashUpdatedDate": " · last updated ",
           "updatedMeta": "Last watched {{date}}",
+          "viewOptions": "View options",
           "viewDetail": "View detail",
           "viewLibrary": "View library",
           "workMissing": "Could not find the work."
@@ -933,6 +939,8 @@
           "fieldTitle": "タイトル",
           "flowDescription": "タイトルだけで始め、必要なときに検索候補で表紙と基本情報を埋めます。",
           "flowTitle": "新しい作品記録",
+          "optionalFieldsDescription": "今はタイトルと種類だけでも保存できます。残りはいつでも追加できます。",
+          "optionalFieldsTitle": "状態・評価・感想を追加",
           "imported": {
             "aliasCount": "別名 {{count}}個",
             "backToSearch": "再検索",
@@ -1054,7 +1062,10 @@
           "showWorksList": "作品一覧を見る",
           "title": "作品を追加"
         },
-        "archiveState": { "emptyNote": "まだ残した記録がありません。", "emptyShelf": "空の棚" },
+        "archiveState": {
+          "emptyNote": "まだ残した記録がありません。",
+          "emptyShelf": "空の棚"
+        },
         "backToWork": "作品へ戻る",
         "dateMissing": "未記録",
         "detail": {
@@ -1560,6 +1571,7 @@
           "trashScopeTitle": "復元が基本の操作です。",
           "trashUpdatedDate": " · 最終更新 ",
           "updatedMeta": "最終鑑賞 {{date}}",
+          "viewOptions": "表示オプション",
           "viewDetail": "詳細を見る",
           "viewLibrary": "ライブラリを見る",
           "workMissing": "作品が見つかりません。"
@@ -1841,6 +1853,8 @@
           "fieldTitle": "标题",
           "flowDescription": "先用标题开始，需要时再用搜索候选补全封面和基本信息。",
           "flowTitle": "新作品记录",
+          "optionalFieldsDescription": "现在只保存标题和类型也可以，其余内容随时都能补充。",
+          "optionalFieldsTitle": "添加状态、评分与感想",
           "imported": {
             "aliasCount": "{{count}} 个别名",
             "backToSearch": "重新搜索",
@@ -1962,7 +1976,10 @@
           "showWorksList": "查看作品列表",
           "title": "添加作品"
         },
-        "archiveState": { "emptyNote": "还没有留下记录。", "emptyShelf": "空书架" },
+        "archiveState": {
+          "emptyNote": "还没有留下记录。",
+          "emptyShelf": "空书架"
+        },
         "backToWork": "返回作品",
         "dateMissing": "未记录",
         "detail": {
@@ -2468,6 +2485,7 @@
           "trashScopeTitle": "恢复是默认操作。",
           "trashUpdatedDate": " · 最近修改 ",
           "updatedMeta": "最后观赏 {{date}}",
+          "viewOptions": "显示选项",
           "viewDetail": "查看详情",
           "viewLibrary": "查看书架",
           "workMissing": "找不到作品。"

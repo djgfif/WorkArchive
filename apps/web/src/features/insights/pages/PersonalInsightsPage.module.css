@@ -50,6 +50,46 @@
   color: var(--app-accent-primary);
 }
 
+.lowDataPanel {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--app-accent-primary) 8%, transparent),
+      transparent 42%
+    ),
+    var(--app-surface-card);
+  border-color: var(--app-border-subtle);
+}
+
+.lowDataCount {
+  color: var(--app-text-primary);
+  font-family: var(--app-font-figure);
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+}
+
+.lowDataCount span {
+  color: var(--app-text-muted);
+  font-size: 0.42em;
+  letter-spacing: 0;
+}
+
+.lowDataProgress {
+  background: var(--app-surface-subtle);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.lowDataProgressFill {
+  background: var(--app-accent-primary);
+  border-radius: inherit;
+  height: 100%;
+}
+
 /* ── 별점 히스토그램 ─────────────────────────────────────────────────────── */
 .histogram {
   display: flex;

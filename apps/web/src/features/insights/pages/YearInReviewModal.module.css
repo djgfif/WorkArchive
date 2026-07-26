@@ -124,3 +124,71 @@
   color: var(--app-text-muted);
   text-align: center;
 }
+
+.monthlySection {
+  margin-top: 1.5rem;
+}
+
+.monthlyChart {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.35rem;
+  height: 5.5rem;
+}
+
+.monthColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.monthBarTrack {
+  display: flex;
+  align-items: flex-end;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 0.3rem;
+  background: var(--app-surface-subtle);
+}
+
+.monthBar {
+  width: 100%;
+  min-height: 3px;
+  border-radius: 0.3rem 0.3rem 0 0;
+  background: var(--app-accent-primary);
+}
+
+.monthBar[data-empty='true'] {
+  min-height: 0;
+}
+
+.monthLabel {
+  color: var(--app-text-muted);
+  font-family: var(--app-font-mono);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.comparison {
+  margin-top: 1.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-surface-subtle) 72%, transparent);
+}
+
+.comparisonText {
+  color: var(--app-text-primary);
+  font-size: 0.85rem;
+  font-weight: 750;
+}
+
+.comparisonMeta {
+  margin-top: 0.2rem;
+  color: var(--app-text-muted);
+  font-size: 0.72rem;
+}

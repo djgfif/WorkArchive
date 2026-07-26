@@ -7,20 +7,8 @@ import {
   type LocalArchiveScope,
 } from '@features/archive';
 import { useJsonArchiveExport } from '@features/archive';
+import { downloadTextFile } from '@shared/utils/download-file';
 import type { SettingsFeedback } from './useImportProviderSettings';
-
-function downloadTextFile(filename: string, type: string, content: string) {
-  const blob = new Blob([content], {
-    type,
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
 
 export function useLocalArchiveSettings() {
   const jsonArchiveExport = useJsonArchiveExport();

@@ -20,11 +20,24 @@ describe('HomePage', () => {
     );
 
     expect(await screen.findByText('첫 작품을 놓는 방법')).toBeInTheDocument();
-    expect(screen.getAllByText('첫 작품 추가').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        '책·애니·만화·영화를 한곳에 기록하세요. 로그인 없이 시작해도 이 브라우저가 먼저 보관합니다.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('로그인 없이 시작').length).toBeGreaterThan(0);
     expect(screen.getAllByText('검색으로 추가').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('백업 가져오기').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('내 기록 백업').length).toBeGreaterThan(0);
     expect(screen.getAllByText('작품').length).toBeGreaterThan(0);
     expect(screen.getAllByText('0개').length).toBeGreaterThan(0);
+
+    expect(
+      screen
+        .getByRole('heading', { level: 1, name: '내 아카이브' })
+        .compareDocumentPosition(
+          screen.getByRole('textbox', { name: '빠른 작품 기록' }),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('keeps the home focused on the personal shelf, continue flow, and search', async () => {
@@ -59,6 +72,23 @@ describe('HomePage', () => {
       lastConsumedAt: new Date().toISOString(),
     });
 
+    for (const title of ['Fate filler one', 'Fate filler two']) {
+      await worksService.createWork({
+        type: 'anime',
+        title,
+        author: '',
+        genres: [],
+        personalTags: [],
+        description: '',
+        thumbnailUrl: '',
+        status: 'planned',
+        rating: null,
+        shortReview: '',
+        review: '',
+        favorite: false,
+      });
+    }
+
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/'],
     });
@@ -71,12 +101,7 @@ describe('HomePage', () => {
 
     expect(await screen.findByText('이어볼 작품')).toBeInTheDocument();
     expect(screen.getAllByText('작품').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('진행 중').length).toBeGreaterThan(0);
-    expect(screen.getByText('평균 별점')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '검색' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: '평가 안 한 작품 1개' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '기록' })).toBeInTheDocument();
     expect(screen.getByText('최근 감상한 작품')).toBeInTheDocument();
     expect(screen.getByText('최근 정리한 감상')).toBeInTheDocument();
     expect(screen.queryByText('시리즈 컬렉션')).not.toBeInTheDocument();
@@ -120,6 +145,23 @@ describe('HomePage', () => {
       review: '',
       favorite: false,
     });
+
+    for (const title of ['Archive filler one', 'Archive filler two']) {
+      await worksService.createWork({
+        type: 'novel',
+        title,
+        author: '',
+        genres: [],
+        personalTags: [],
+        description: '',
+        thumbnailUrl: '',
+        status: 'planned',
+        rating: null,
+        shortReview: '',
+        review: '',
+        favorite: false,
+      });
+    }
 
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/'],

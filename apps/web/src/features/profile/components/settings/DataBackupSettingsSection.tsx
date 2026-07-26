@@ -11,7 +11,11 @@ import {
   SectionCard,
   SectionIntro,
 } from '@shared/components/AppPrimitives';
-import { formatAppDateTime, formatAppNumber, useAppTranslation } from '@app/i18n';
+import {
+  formatAppDateTime,
+  formatAppNumber,
+  useAppTranslation,
+} from '@app/i18n';
 import type { LocalArchiveImportPreview } from '@features/archive';
 import type { SettingsFeedback } from '../../hooks/useImportProviderSettings';
 import styles from './SettingsControlCenter.module.css';
@@ -155,84 +159,22 @@ export function DataBackupSettingsSection({
         title={t('settings.dataBackup.title')}
       />
 
-      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
-        <ExportOptionCard
-          buttonLabel={t('settings.dataBackup.json.button')}
-          description={t('settings.dataBackup.json.description')}
-          details={[
-            t('settings.dataBackup.details.works'),
-            t('settings.dataBackup.details.releaseRecords'),
-            t('settings.dataBackup.details.timeline'),
-          ]}
-          disabled={isExportingArchive}
-          eyebrow={t('settings.dataBackup.json.eyebrow')}
-          onClick={() => void onExportJson()}
-          summary={t('settings.dataBackup.json.summary')}
-          title={t('settings.dataBackup.json.title')}
-          tone="primary"
-        />
-
-        <ExportOptionCard
-          buttonLabel={t('settings.dataBackup.fullJson.button')}
-          description={t('settings.dataBackup.fullJson.description')}
-          details={[
-            t('settings.dataBackup.details.metadata'),
-            t('settings.dataBackup.details.relationGraph'),
-            t('settings.dataBackup.details.tierBoards'),
-          ]}
-          disabled={isExportingArchive}
-          eyebrow={t('settings.dataBackup.fullJson.eyebrow')}
-          onClick={() => void onExportFullJson()}
-          summary={t('settings.dataBackup.fullJson.summary')}
-          title={t('settings.dataBackup.fullJson.title')}
-          tone="secondary"
-        />
-
-        <ExportOptionCard
-          buttonLabel={t('settings.dataBackup.csv.button')}
-          description={t('settings.dataBackup.csv.description')}
-          details={[
-            t('settings.dataBackup.details.listReview'),
-            t('settings.dataBackup.details.spreadsheet'),
-            t('settings.dataBackup.details.reimportable'),
-          ]}
-          disabled={isExportingArchive}
-          eyebrow={t('settings.dataBackup.csv.eyebrow')}
-          onClick={() => void onExportCsv()}
-          summary={t('settings.dataBackup.csv.summary')}
-          title={t('settings.dataBackup.csv.title')}
-          tone="secondary"
-        />
-      </SimpleGrid>
-
-      <div
-        className={css.fileDropzone ?? ''}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={handleDrop}
-      >
-        <Stack gap="xs">
-          <Text fw={800}>{t('settings.dataBackup.importTitle')}</Text>
-          <Text c="dimmed" size="sm">
-            {t('settings.dataBackup.importDescription')}
-          </Text>
-          <ActionRow>
-            <AppBadge tone="muted">
-              {t('settings.dataBackup.badgeKeepExisting')}
-            </AppBadge>
-            <AppBadge tone="muted">
-              {t('settings.dataBackup.badgeDuplicatePreview')}
-            </AppBadge>
-            <AppBadge tone="muted">
-              {t('settings.dataBackup.badgeExcludeApiKey')}
-            </AppBadge>
-          </ActionRow>
-        </Stack>
+      <div className={css.backupPrimaryActions ?? ''}>
         <AppButton
+          disabled={isExportingArchive}
+          onClick={() => void onExportJson()}
+          tone="primary"
+          type="button"
+        >
+          {t('settings.dataBackup.backupNow')}
+        </AppButton>
+        <AppButton
+          disabled={isImportingArchive}
           onClick={() => fileInputRef.current?.click()}
           tone="secondary"
           type="button"
         >
-          {t('settings.dataBackup.selectJson')}
+          {t('settings.dataBackup.restoreBackup')}
         </AppButton>
         <input
           accept="application/json,.json"
@@ -243,6 +185,92 @@ export function DataBackupSettingsSection({
           type="file"
         />
       </div>
+
+      <details className={css.backupOptions ?? ''}>
+        <summary>{t('settings.dataBackup.optionsTitle')}</summary>
+        <Stack gap="md" mt="md">
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+            <ExportOptionCard
+              buttonLabel={t('settings.dataBackup.json.button')}
+              description={t('settings.dataBackup.json.description')}
+              details={[
+                t('settings.dataBackup.details.works'),
+                t('settings.dataBackup.details.releaseRecords'),
+                t('settings.dataBackup.details.timeline'),
+              ]}
+              disabled={isExportingArchive}
+              eyebrow={t('settings.dataBackup.json.eyebrow')}
+              onClick={() => void onExportJson()}
+              summary={t('settings.dataBackup.json.summary')}
+              title={t('settings.dataBackup.json.title')}
+              tone="primary"
+            />
+
+            <ExportOptionCard
+              buttonLabel={t('settings.dataBackup.fullJson.button')}
+              description={t('settings.dataBackup.fullJson.description')}
+              details={[
+                t('settings.dataBackup.details.metadata'),
+                t('settings.dataBackup.details.relationGraph'),
+                t('settings.dataBackup.details.tierBoards'),
+              ]}
+              disabled={isExportingArchive}
+              eyebrow={t('settings.dataBackup.fullJson.eyebrow')}
+              onClick={() => void onExportFullJson()}
+              summary={t('settings.dataBackup.fullJson.summary')}
+              title={t('settings.dataBackup.fullJson.title')}
+              tone="secondary"
+            />
+
+            <ExportOptionCard
+              buttonLabel={t('settings.dataBackup.csv.button')}
+              description={t('settings.dataBackup.csv.description')}
+              details={[
+                t('settings.dataBackup.details.listReview'),
+                t('settings.dataBackup.details.spreadsheet'),
+                t('settings.dataBackup.details.reimportable'),
+              ]}
+              disabled={isExportingArchive}
+              eyebrow={t('settings.dataBackup.csv.eyebrow')}
+              onClick={() => void onExportCsv()}
+              summary={t('settings.dataBackup.csv.summary')}
+              title={t('settings.dataBackup.csv.title')}
+              tone="secondary"
+            />
+          </SimpleGrid>
+
+          <div
+            className={css.fileDropzone ?? ''}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleDrop}
+          >
+            <Stack gap="xs">
+              <Text fw={800}>{t('settings.dataBackup.importTitle')}</Text>
+              <Text c="dimmed" size="sm">
+                {t('settings.dataBackup.importDescription')}
+              </Text>
+              <ActionRow>
+                <AppBadge tone="muted">
+                  {t('settings.dataBackup.badgeKeepExisting')}
+                </AppBadge>
+                <AppBadge tone="muted">
+                  {t('settings.dataBackup.badgeDuplicatePreview')}
+                </AppBadge>
+                <AppBadge tone="muted">
+                  {t('settings.dataBackup.badgeExcludeApiKey')}
+                </AppBadge>
+              </ActionRow>
+            </Stack>
+            <AppButton
+              onClick={() => fileInputRef.current?.click()}
+              tone="secondary"
+              type="button"
+            >
+              {t('settings.dataBackup.selectJson')}
+            </AppButton>
+          </div>
+        </Stack>
+      </details>
 
       {archiveImportPreview && (
         <SectionCard padding="lg" tone="subtle">

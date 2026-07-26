@@ -1,4 +1,4 @@
-﻿import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,7 +37,9 @@ vi.mock('../services/tier-board.service', () => ({
     duplicateCard: vi.fn(),
     duplicateBoard: vi.fn(),
     exportBoardJson: vi.fn(),
-    getBoardEditorState: vi.fn(async (id: string) => tierBoardMocks.states.get(id) ?? null),
+    getBoardEditorState: vi.fn(
+      async (id: string) => tierBoardMocks.states.get(id) ?? null,
+    ),
     moveCardToLane: vi.fn(),
     removeCardFromLane: vi.fn(),
     reorderCard: vi.fn(),
@@ -152,15 +154,23 @@ describe('TierBoardEditorPage', () => {
       await screen.findByRole('heading', { name: '편집기 테스트 보드' }),
     ).toBeInTheDocument();
     expect(screen.getByText('로컬 저장됨')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '카드 추가' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '카드 추가' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '텍스트' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '이미지 URL' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '업로드' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: '작품에서 가져오기' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', { name: '작품에서 가져오기' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('비공개')).toBeInTheDocument();
+    expect(screen.queryByText('private')).not.toBeInTheDocument();
     expect(screen.getByText('미배치 카드')).toBeInTheDocument();
     expect(screen.getByText('미배치 텍스트 카드')).toBeInTheDocument();
     for (const laneTitle of ['S', 'A', 'B', 'C', 'D']) {
-      expect(screen.getByRole('heading', { name: laneTitle })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: laneTitle }),
+      ).toBeInTheDocument();
     }
   });
 
@@ -186,6 +196,8 @@ describe('TierBoardEditorPage', () => {
 
     await user.click(await screen.findByRole('button', { name: '보드 설정' }));
     let dialog = await screen.findByRole('dialog', { name: '보드 설정' });
+    expect(within(dialog).getByLabelText('보관 상태')).toBeInTheDocument();
+    expect(within(dialog).queryByText('링크 공유')).not.toBeInTheDocument();
     await user.clear(within(dialog).getByLabelText('보드 제목'));
     await user.type(within(dialog).getByLabelText('보드 제목'), '취소할 제목');
     await user.click(within(dialog).getByRole('button', { name: '취소' }));
@@ -199,7 +211,10 @@ describe('TierBoardEditorPage', () => {
     await user.click(within(dialog).getByRole('button', { name: '저장' }));
 
     await waitFor(() =>
-      expect(tierBoardService.updateBoard).toHaveBeenCalledWith(state.board.id, expect.objectContaining({ title: '저장할 제목' })),
+      expect(tierBoardService.updateBoard).toHaveBeenCalledWith(
+        state.board.id,
+        expect.objectContaining({ title: '저장할 제목' }),
+      ),
     );
   });
 
@@ -212,10 +227,14 @@ describe('TierBoardEditorPage', () => {
     renderRoute(`/tier-boards/${state.board.id}`);
 
     await user.click(await screen.findByRole('button', { name: '내보내기' }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'PNG 이미지', hidden: true }));
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'PNG 이미지', hidden: true }),
+    );
 
     expect(
-      await screen.findByText('PNG 내보내기에 실패했습니다. 외부 이미지 CORS 때문에 실패했을 수 있습니다.'),
+      await screen.findByText(
+        'PNG 내보내기에 실패했습니다. 외부 이미지 CORS 때문에 실패했을 수 있습니다.',
+      ),
     ).toBeInTheDocument();
   });
 

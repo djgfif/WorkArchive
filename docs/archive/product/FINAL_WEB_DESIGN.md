@@ -1,18 +1,18 @@
 # FINAL_WEB_DESIGN.md
 
-| Field | Value |
-| --- | --- |
-| Status | `active` |
-| Role | `target product vision` |
-| Source of truth | 최종 사용자 경험과 디자인 원칙 |
-| Last verified against | vision document refreshed on `2026-04-24` |
-| When to update | 최종 사용자 경험, 브랜드 톤, 화면 원칙이 달라질 때 |
+| Field                 | Value                                                  |
+| --------------------- | ------------------------------------------------------ |
+| Status                | `active`                                               |
+| Role                  | `target product vision`                                |
+| Source of truth       | 최종 사용자 경험과 디자인 원칙                         |
+| Last verified against | `2026-07-03` public beta personal-only direction audit |
+| When to update        | 최종 사용자 경험, 브랜드 톤, 화면 원칙이 달라질 때     |
 
 이 문서는 Work Archive가 장기적으로 지향하는 **최종 사용자 경험과 디자인 원칙**을 정의한다. 현재 구현 상태나 near-term 실행 순서는 다루지 않는다.
 
 ## 1. Product Promise
 
-Work Archive는 단순한 기록 폼 모음이 아니라, **내 취향을 빠르게 남기고 오래 보관하며 필요하면 공유할 수 있는 개인 미디어 아카이브**처럼 느껴져야 한다.
+Work Archive는 단순한 기록 폼 모음이 아니라, **내 취향을 빠르게 남기고 오래 보관하며 내가 소유할 수 있는 개인 미디어 아카이브**처럼 느껴져야 한다.
 
 ## 2. Experience Principles
 
@@ -20,7 +20,7 @@ Work Archive는 단순한 기록 폼 모음이 아니라, **내 취향을 빠르
 - **Fast Capture**: 기록 시작과 저장까지의 마찰이 낮아야 한다.
 - **Calm Premium**: 차분하고 정돈된 서비스 경험이어야 한다.
 - **Archive, Not Admin**: 관리자 도구처럼 보이면 안 된다.
-- **Expansion Ready**: 공유, 공개 프로필, 티어 보드, 커뮤니티가 붙어도 위계가 무너지지 않아야 한다.
+- **Private-First**: 공개 프로필, 커뮤니티, public ranking 없이도 개인 기록 가치가 완성돼야 한다.
 
 ## 3. Core Product Feel
 
@@ -29,7 +29,7 @@ Work Archive는 단순한 기록 폼 모음이 아니라, **내 취향을 빠르
 - 지금 바로 기록할 수 있다
 - 내 기록이 쌓이고 정리된다
 - 다시 방문했을 때 이어서 보기 쉽다
-- 언젠가 공유해도 부끄럽지 않은 아카이브처럼 보인다
+- 개인적으로 오래 보관해도 신뢰할 수 있는 아카이브처럼 보인다
 
 ## 4. Page-Level Experience
 

@@ -6,6 +6,7 @@ import {
 } from '@dnd-kit/core';
 
 import type { TierBoardCardRecord } from '@work-archive/shared-types';
+import { downloadTextFile, downloadUrl } from '@shared/utils/download-file';
 import type { TierBoardEditorState } from '../services/tier-board.repository';
 
 export const POOL_ID = 'pool';
@@ -22,23 +23,11 @@ export const LANE_COLORS = [
 ];
 
 export function downloadText(filename: string, text: string) {
-  const url = URL.createObjectURL(
-    new Blob([text], { type: 'application/json' }),
-  );
-  const anchor = document.createElement('a');
-
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  downloadTextFile(filename, 'application/json', text);
 }
 
 export function downloadDataUrl(filename: string, dataUrl: string) {
-  const anchor = document.createElement('a');
-
-  anchor.href = dataUrl;
-  anchor.download = filename;
-  anchor.click();
+  downloadUrl(filename, dataUrl);
 }
 
 export function getLaneContainerId(laneId: string) {

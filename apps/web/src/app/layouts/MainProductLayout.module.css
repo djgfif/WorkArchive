@@ -157,7 +157,14 @@
   border-radius: 999px;
   cursor: pointer;
   outline: none;
-  transition: box-shadow var(--wa-motion-fast), transform var(--wa-motion-fast);
+  transition:
+    box-shadow var(--wa-motion-fast),
+    transform var(--wa-motion-fast);
+}
+
+.mobileMenuButton {
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .avatarButton:hover,
@@ -196,7 +203,11 @@
 .accountMenuItem:hover,
 .accountMenuItem[data-hovered] {
   border-color: var(--app-border-subtle);
-  background: color-mix(in srgb, var(--app-accent-primary) 8%, var(--app-surface-card));
+  background: color-mix(
+    in srgb,
+    var(--app-accent-primary) 8%,
+    var(--app-surface-card)
+  );
   color: var(--app-text-primary);
 }
 
@@ -239,7 +250,11 @@
 
 .themeToggleWrap :global(.mantine-Button-root:hover) {
   border-color: var(--app-border-subtle);
-  background: color-mix(in srgb, var(--app-accent-primary) 8%, var(--app-surface-card));
+  background: color-mix(
+    in srgb,
+    var(--app-accent-primary) 8%,
+    var(--app-surface-card)
+  );
   color: var(--app-text-primary);
 }
 
@@ -261,10 +276,19 @@
 
 @media (max-width: 48rem) {
   .topnavBrand {
+    min-height: 44px;
     margin-right: auto;
   }
 
   .addWorkLink {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
     padding: 0.32rem 0.55rem;
+  }
+
+  .avatarButton {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

@@ -24,6 +24,7 @@ docs stay here, older plans and raw design material stay in
 | ---------------------------------------- | ------------------------------------------------------------------------------ |
 | [`getting-started/`](./getting-started/) | local setup and developer onboarding                                           |
 | [`architecture/`](./architecture/)       | ADRs and current codebase structure boundaries                                 |
+| [`design/`](./design/)                   | canonical product experience and Studio visual direction                       |
 | [`commercial/`](./commercial/)           | public beta and commercial launch readiness gates                              |
 | [`operations/`](./operations/)           | runbooks, deployment, release, migration, and backup procedures                |
 | [`sync/`](./sync/)                       | sync correctness and local-first merge policies                                |

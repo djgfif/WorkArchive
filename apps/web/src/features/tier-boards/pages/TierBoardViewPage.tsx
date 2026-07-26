@@ -12,6 +12,7 @@ import {
 } from '@shared/components/AppPrimitives';
 import { useAppTranslation } from '@app/i18n';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { downloadUrl } from '@shared/utils/download-file';
 import type { TierBoardEditorState } from '../services/tier-board.repository';
 import { tierBoardService } from '../services/tier-board.service';
 import styles from './TierBoardsPage.module.css';
@@ -47,16 +48,14 @@ export function TierBoardViewPage() {
         cacheBust: true,
         pixelRatio: 2,
       });
-      const link = document.createElement('a');
-      link.download = t('tierBoards.viewExportFileName', {
-        title: state?.board.title ?? 'tier-board',
-      });
-      link.href = dataUrl;
-      link.click();
-    } catch {
-      setExportError(
-        t('tierBoards.viewExportError'),
+      downloadUrl(
+        t('tierBoards.viewExportFileName', {
+          title: state?.board.title ?? 'tier-board',
+        }),
+        dataUrl,
       );
+    } catch {
+      setExportError(t('tierBoards.viewExportError'));
     } finally {
       setExporting(false);
     }
@@ -94,9 +93,7 @@ export function TierBoardViewPage() {
 
   if (!boardId || !state) {
     return (
-      <FeedbackMessage tone="info">
-        {t('tierBoards.loading')}
-      </FeedbackMessage>
+      <FeedbackMessage tone="info">{t('tierBoards.loading')}</FeedbackMessage>
     );
   }
 

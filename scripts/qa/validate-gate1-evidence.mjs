@@ -28,6 +28,9 @@ const requiredSections = [
 const requiredPassCommands = [
   'npm run security:public',
   'npm run check:docs-links',
+  'npm run check:web-i18n',
+  'npm run check:web-i18n-resources',
+  'npm run check:web-i18n-packs',
   'npm run lint',
   'npm run typecheck',
   'npm run test',
@@ -88,7 +91,12 @@ const requiredNonEmptyFields = [
   '/readyz',
   '`/metrics` public unauthenticated exposure result',
   '`/metrics` internal collector bearer-token result',
+  'Google OAuth start flow cookie attributes',
+  'Auth refresh smoke',
   'Google OAuth login/logout',
+  'No-store header checks',
+  'Provider readiness',
+  'User data rights smoke (`npm run qa:user-data-rights-smoke` live report)',
   'Guest JSON export/import',
   'Guest-to-account transfer review',
   'Authenticated sync push/pull',
@@ -301,7 +309,9 @@ function validateReferencedLocalReports() {
     ['Performance smoke report', findBulletValue('Performance smoke report')],
     [
       'Backup report (`tmp/backups/prod-backup-*.md` summary only)',
-      findBulletValue('Backup report (`tmp/backups/prod-backup-*.md` summary only)'),
+      findBulletValue(
+        'Backup report (`tmp/backups/prod-backup-*.md` summary only)',
+      ),
     ],
     [
       'Backup verification report (`tmp/backups/prod-backup-verify-*.md` summary only)',
@@ -328,36 +338,48 @@ function validateReferencedLocalReports() {
     }
 
     if (paths.length === 0) {
-      addFinding(`required evidence field "${label}" must include a backticked tmp/*.md report path.`);
+      addFinding(
+        `required evidence field "${label}" must include a backticked tmp/*.md report path.`,
+      );
       continue;
     }
 
     for (const path of paths) {
       const resolved = resolveWorkspacePath(path);
       if (!resolved) {
-        addFinding(`required evidence field "${label}" references an unsafe or non-workspace report path: "${path}".`);
+        addFinding(
+          `required evidence field "${label}" references an unsafe or non-workspace report path: "${path}".`,
+        );
         continue;
       }
 
       if (!existsSync(resolved)) {
-        addFinding(`required evidence field "${label}" references missing report ${path}.`);
+        addFinding(
+          `required evidence field "${label}" references missing report ${path}.`,
+        );
         continue;
       }
 
       const linkStat = lstatSync(resolved);
       if (linkStat.isSymbolicLink()) {
-        addFinding(`required evidence field "${label}" references symbolic link report ${path}.`);
+        addFinding(
+          `required evidence field "${label}" references symbolic link report ${path}.`,
+        );
         continue;
       }
 
       const stat = statSync(resolved);
       if (!stat.isFile()) {
-        addFinding(`required evidence field "${label}" references non-file report ${path}.`);
+        addFinding(
+          `required evidence field "${label}" references non-file report ${path}.`,
+        );
         continue;
       }
 
       if (stat.size === 0) {
-        addFinding(`required evidence field "${label}" references empty report ${path}.`);
+        addFinding(
+          `required evidence field "${label}" references empty report ${path}.`,
+        );
         continue;
       }
 
@@ -370,7 +392,9 @@ function validateReferencedLocalReports() {
 
       const reportText = readFileSync(resolved, 'utf8');
       for (const issue of findSecretSafetyIssues(reportText)) {
-        addFinding(`required evidence field "${label}" references report ${path} that appears to contain a ${issue}.`);
+        addFinding(
+          `required evidence field "${label}" references report ${path} that appears to contain a ${issue}.`,
+        );
       }
       validateReportContent(label, path, reportText);
     }
@@ -393,7 +417,10 @@ function validateReportContent(label, path, reportText) {
     'IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search': {
       forbidden: [
         ['offline mode marker', /- Mode:\s*offline\b/i],
-        ['blocked live check marker', /\|\s*live import\/search [^|]+\|\s*BLOCKED\s*\|/i],
+        [
+          'blocked live check marker',
+          /\|\s*live import\/search [^|]+\|\s*BLOCKED\s*\|/i,
+        ],
       ],
       required: [
         ['live mode', /- Mode:\s*live\b/],
@@ -422,7 +449,10 @@ function validateReportContent(label, path, reportText) {
         ['pull limit 500', /- Pull limit:\s*500\b/],
         ['zero failures', /- Failures:\s*0\b/],
         ['zero conflicts', /- Conflicts:\s*0\b/],
-        ['oversized push batch DTO rejection', /- Oversized push batch smoke HTTP status:\s*400\b/],
+        [
+          'oversized push batch DTO rejection',
+          /- Oversized push batch smoke HTTP status:\s*400\b/,
+        ],
       ],
     },
     '`npm run qa:monitoring` report': {
@@ -478,20 +508,30 @@ function validateFields() {
       continue;
     }
     if (hasPlaceholder(value)) {
-      addFinding(`required evidence field "${label}" still looks incomplete: "${value}".`);
+      addFinding(
+        `required evidence field "${label}" still looks incomplete: "${value}".`,
+      );
     }
   }
 }
 
 function validateMetricsExposure() {
-  const publicMetrics = findBulletValue('Public unauthenticated `/metrics` result');
+  const publicMetrics = findBulletValue(
+    'Public unauthenticated `/metrics` result',
+  );
   if (publicMetrics && !/\b404\b/.test(publicMetrics)) {
-    addFinding('public unauthenticated /metrics result must explicitly include 404.');
+    addFinding(
+      'public unauthenticated /metrics result must explicitly include 404.',
+    );
   }
 
-  const internalMetrics = findBulletValue('Internal collector `/metrics` result');
+  const internalMetrics = findBulletValue(
+    'Internal collector `/metrics` result',
+  );
   if (internalMetrics && !/\b200\b/.test(internalMetrics)) {
-    addFinding('internal collector /metrics result must explicitly include 200.');
+    addFinding(
+      'internal collector /metrics result must explicitly include 200.',
+    );
   }
 }
 
@@ -501,9 +541,7 @@ function validatePerformanceTable() {
     return;
   }
 
-  const rows = section
-    .split(/\r?\n/)
-    .filter((line) => /^\| `/.test(line));
+  const rows = section.split(/\r?\n/).filter((line) => /^\| `/.test(line));
   if (rows.length === 0) {
     addFinding('performance baseline table has no measured scenario rows.');
     return;
@@ -578,12 +616,16 @@ function printValidationResult(result) {
     }
 
     console.log(summary);
-    console.log('Run with GATE1_EVIDENCE_STRICT=true or --strict to fail public beta approval on these findings.');
+    console.log(
+      'Run with GATE1_EVIDENCE_STRICT=true or --strict to fail public beta approval on these findings.',
+    );
     for (const finding of result.findings.slice(0, 40)) {
       console.log(`- ${finding}`);
     }
     if (result.findings.length > 40) {
-      console.log(`- [${result.findings.length - 40} additional finding(s) omitted]`);
+      console.log(
+        `- [${result.findings.length - 40} additional finding(s) omitted]`,
+      );
     }
     return 0;
   }
@@ -593,13 +635,12 @@ function printValidationResult(result) {
 }
 
 const entrypointUrl =
-  process.argv[1] === undefined
-    ? null
-    : pathToFileURL(process.argv[1]).href;
+  process.argv[1] === undefined ? null : pathToFileURL(process.argv[1]).href;
 
 if (entrypointUrl === import.meta.url) {
   const result = runGate1EvidenceValidation({
-    evidencePath: process.argv[2] ?? 'docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md',
+    evidencePath:
+      process.argv[2] ?? 'docs/commercial/PUBLIC_BETA_GATE_1_EVIDENCE.md',
     strictMode:
       readBooleanEnv('GATE1_EVIDENCE_STRICT', false) ||
       process.argv.includes('--strict'),

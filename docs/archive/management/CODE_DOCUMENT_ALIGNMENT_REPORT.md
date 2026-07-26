@@ -17,7 +17,7 @@
 - 현재 인증은 memory-only access token + `HttpOnly` refresh cookie 구조다.
 - 현재 백엔드는 `CatalogWork` + `UserWorkRecord` split model 위에 flat `Works` API를 유지하는 과도기 구조다.
 - 현재 상태 문서와 루트 README는 guest/auth archive 분리, manual sync, placeholder 페이지 존재를 기준 현실로 본다.
-- SyncPage는 conflict queue item의 원격 스냅샷을 보존하고 로컬 유지, 원격 적용, 필드별 병합으로 기본 해결할 수 있다.
+- Settings 계정 백업 섹션은 conflict queue item의 원격 스냅샷을 보존하고 로컬 유지, 원격 적용, 필드별 병합으로 기본 해결할 수 있다.
 
 ## 2. Intentional Gaps
 

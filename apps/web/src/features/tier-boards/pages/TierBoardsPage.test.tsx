@@ -1,4 +1,4 @@
-﻿import { screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -50,7 +50,9 @@ vi.mock('../services/tier-board.service', () => ({
     createBoard: vi.fn(),
     deleteBoard: vi.fn(),
     duplicateBoard: vi.fn(),
-    getBoardEditorState: vi.fn(async (id: string) => tierBoardMocks.states.get(id) ?? null),
+    getBoardEditorState: vi.fn(
+      async (id: string) => tierBoardMocks.states.get(id) ?? null,
+    ),
     importBoardJson: vi.fn(),
     listBoards: vi.fn(async () => tierBoardMocks.boards),
     restoreBoardSnapshot: vi.fn(),
@@ -98,15 +100,22 @@ describe('TierBoardsPage', () => {
   beforeEach(() => {
     tierBoardMocks.boards = [];
     tierBoardMocks.states.clear();
-    vi.mocked(tierBoardService.createBoard).mockResolvedValue(buildBoard({ id: 'created-board' }));
+    vi.mocked(tierBoardService.createBoard).mockResolvedValue(
+      buildBoard({ id: 'created-board' }),
+    );
     vi.mocked(tierBoardService.deleteBoard).mockResolvedValue({
       assets: [],
       board: buildBoard(),
       cards: [],
       lanes: [],
     });
-    vi.mocked(tierBoardService.duplicateBoard).mockResolvedValue(buildBoard({ id: 'copy-board' }));
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.mocked(tierBoardService.duplicateBoard).mockResolvedValue(
+      buildBoard({ id: 'copy-board' }),
+    );
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
   });
 
   afterEach(() => {
@@ -173,6 +182,8 @@ describe('TierBoardsPage', () => {
 
     expect(await screen.findByText('상용화 테스트 보드')).toBeInTheDocument();
     expect(screen.getByText('로컬 전용 테스트 보드')).toBeInTheDocument();
+    expect(screen.getByText('비공개')).toBeInTheDocument();
+    expect(screen.queryByText('private')).not.toBeInTheDocument();
     expect(screen.getByText('행 5개')).toBeInTheDocument();
     expect(screen.getByText('카드 1개')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '열기' })).toHaveAttribute(
@@ -190,14 +201,24 @@ describe('TierBoardsPage', () => {
 
     renderRoute();
 
-    await user.click((await screen.findAllByRole('button', { name: '새 티어보드 만들기' }))[0]!);
+    await user.click(
+      (
+        await screen.findAllByRole('button', { name: '새 티어보드 만들기' })
+      )[0]!,
+    );
 
-    expect(await screen.findByRole('dialog', { name: '새 티어보드 만들기' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /SS\/S\/A\/B\/C\/D\/F/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('dialog', { name: '새 티어보드 만들기' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /SS\/S\/A\/B\/C\/D\/F/ }),
+    ).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText('새 티어보드 제목'));
     await user.type(screen.getByLabelText('새 티어보드 제목'), '새 UX 보드');
-    await user.click(screen.getByRole('button', { name: /최애\/좋음\/무난\/아쉬움/ }));
+    await user.click(
+      screen.getByRole('button', { name: /최애\/좋음\/무난\/아쉬움/ }),
+    );
     await user.click(screen.getByRole('button', { name: '만들기' }));
 
     expect(tierBoardService.createBoard).toHaveBeenCalledWith(

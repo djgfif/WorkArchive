@@ -65,7 +65,9 @@
 .posterCardLink:focus-visible .posterCardSurface {
   transform: scale(1.04) translateY(-4px);
   border-color: var(--app-border-default);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.48), 0 4px 10px rgba(0, 0, 0, 0.28);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.48),
+    0 4px 10px rgba(0, 0, 0, 0.28);
   z-index: 2;
 }
 
@@ -150,7 +152,15 @@
   padding: 0.34rem 0.7rem;
   /* 배경: 상태 색상 CSS 변수 기반 반투명 (인라인 style 대체) */
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--status-color, var(--app-text-muted)) 18%, transparent), transparent 52%),
+    linear-gradient(
+      90deg,
+      color-mix(
+        in srgb,
+        var(--status-color, var(--app-text-muted)) 18%,
+        transparent
+      ),
+      transparent 52%
+    ),
     rgba(0, 0, 0, 0.82);
   /* 하단 그라디언트와 자연스럽게 블렌딩 */
   backdrop-filter: blur(10px);
@@ -298,12 +308,24 @@
 }
 
 .trashRowSurface {
-  border-color: color-mix(in srgb, var(--app-border-subtle) 74%, rgba(245, 158, 11, 0.28));
-  background: color-mix(in srgb, rgba(245, 158, 11, 1) 5%, var(--app-surface-card));
+  border-color: color-mix(
+    in srgb,
+    var(--app-border-subtle) 74%,
+    rgba(245, 158, 11, 0.28)
+  );
+  background: color-mix(
+    in srgb,
+    rgba(245, 158, 11, 1) 5%,
+    var(--app-surface-card)
+  );
 }
 
 .trashRowSurface:hover {
-  border-color: color-mix(in srgb, var(--app-border-default) 70%, rgba(245, 158, 11, 0.34));
+  border-color: color-mix(
+    in srgb,
+    var(--app-border-default) 70%,
+    rgba(245, 158, 11, 0.34)
+  );
 }
 
 .trashRowSurface[data-selected='true'] {
@@ -471,7 +493,7 @@
   pointer-events: none;
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.04), transparent 24%),
-    linear-gradient(180deg, transparent 74%, rgba(0, 0, 0, 0.10));
+    linear-gradient(180deg, transparent 74%, rgba(0, 0, 0, 0.1));
 }
 
 [data-mantine-color-scheme='light'] .hero::after {
@@ -526,7 +548,7 @@
 .detailHero {
   position: relative;
   overflow: hidden;
-  padding: clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1.25rem, 3vw, 2rem);
   border: 1px solid var(--app-border-default);
   border-radius: var(--mantine-radius-xl);
   background: var(--app-surface-hero);
@@ -535,27 +557,66 @@
 [data-mantine-color-scheme='light'] .detailHero {
   background: var(--app-surface-hero);
 }
+.detailHeroLayout {
+  display: grid;
+  grid-template-areas:
+    'poster body quick'
+    'poster actions quick';
+  grid-template-columns:
+    clamp(10rem, 17vw, 13rem)
+    minmax(19rem, 1fr)
+    minmax(17rem, 19rem);
+  align-items: start;
+  gap: clamp(1.25rem, 2.5vw, 2rem);
+}
 .detailHeroPoster {
-  flex: 0 0 clamp(11rem, 22vw, 16rem);
+  grid-area: poster;
+  width: 100%;
   max-width: 100%;
-  filter: drop-shadow(0 8px 20px rgba(0,0,0,0.36));
-  transition: filter var(--wa-motion-normal, 240ms cubic-bezier(0.16,1,0.3,1));
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.36));
+  transition: filter
+    var(--wa-motion-normal, 240ms cubic-bezier(0.16, 1, 0.3, 1));
+}
+.detailHeroPosterImage.detailHeroPosterImage {
+  --poster-width: 100%;
+  width: 100%;
 }
 .detailHeroPoster:hover {
-  filter: drop-shadow(0 10px 26px rgba(0,0,0,0.42));
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.42));
 }
 .detailHeroBody {
-  min-width: min(100%, 26rem);
+  grid-area: body;
+  min-width: 0;
 }
 
-.detailSummary {
-  flex: 0 1 22rem;
-  min-width: min(100%, 18rem);
-  padding: clamp(1rem, 2.5vw, 1.35rem);
-  border: 1px solid var(--app-border-default);
-  border-radius: var(--mantine-radius-xl);
-  background: var(--app-surface-card);
-  box-shadow: none;
+.detailHeroActions {
+  grid-area: actions;
+  align-self: end;
+}
+
+.detailQuickRecordRail {
+  grid-area: quick;
+  min-width: 0;
+  padding-left: clamp(1.1rem, 2vw, 1.5rem);
+  border-left: 1px solid var(--app-border-default);
+}
+
+.detailQuickRecord {
+  min-width: 0;
+}
+
+.detailQuickRecordTitle {
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+  line-height: 1.2;
+}
+
+.detailQuickRecordDescription {
+  font-size: var(--app-type-caption);
+  line-height: 1.5;
+}
+
+.detailQuickRecordFields {
+  align-items: flex-end;
 }
 /* 상세 히어로 메타 구분선 */
 .detailHeroMeta {
@@ -620,11 +681,19 @@
 }
 
 .starRatingInput:focus-within {
-  border-color: color-mix(in srgb, var(--app-accent-primary) 64%, var(--app-border-default));
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent-primary) 64%,
+    var(--app-border-default)
+  );
 }
 
 .starRatingInput[data-has-value='true'] {
-  border-color: color-mix(in srgb, var(--app-accent-warm) 30%, var(--app-border-default));
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent-warm) 30%,
+    var(--app-border-default)
+  );
 }
 
 .starRatingScore {
@@ -1030,16 +1099,31 @@
   animation: emptySparkle 2.8s ease-in-out 0.6s infinite;
 }
 @keyframes emptyFloat {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-5px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 @keyframes emptySparkle {
-  0%, 100% { opacity: 0.15; transform: scale(0.85); }
-  50%       { opacity: 0.50; transform: scale(1.15); }
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.15);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .emptyFloat1, .emptyFloat2, .emptyFloat3,
-  .emptySparkle1, .emptySparkle2 {
+  .emptyFloat1,
+  .emptyFloat2,
+  .emptyFloat3,
+  .emptySparkle1,
+  .emptySparkle2 {
     animation: none;
   }
 }
@@ -1361,6 +1445,44 @@
   gap: 0.625rem;
 }
 
+.toolbarOptions {
+  position: relative;
+}
+
+.toolbarOptions > summary {
+  align-items: center;
+  background: var(--app-surface-card);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--app-type-caption);
+  font-weight: 750;
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  white-space: nowrap;
+}
+
+.toolbarOptions > summary::-webkit-details-marker {
+  display: none;
+}
+
+.toolbarOptionsPanel {
+  align-items: center;
+  background: var(--app-surface-card);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  box-shadow: var(--app-shadow-md);
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 20;
+}
+
 .toolbarSearch {
   flex: 1 1 220px;
   min-width: 0;
@@ -1624,7 +1746,9 @@
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   line-height: 1.4;
-  transition: background var(--wa-motion-fast), color var(--wa-motion-fast);
+  transition:
+    background var(--wa-motion-fast),
+    color var(--wa-motion-fast);
 }
 
 .mediaTypeOption[data-active='true'] .mediaTypeOptionCount {
@@ -1640,7 +1764,8 @@
 .quickCollectionRail {
   padding: 0.25rem 0 0.45rem;
   border: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--app-border-subtle) 76%, transparent);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--app-border-subtle) 76%, transparent);
   border-radius: 0;
   background: transparent;
 }
@@ -1824,7 +1949,8 @@
 
 .tagFilterInput:focus {
   border-color: var(--app-accent-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent-primary) 24%, transparent);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--app-accent-primary) 24%, transparent);
 }
 
 .tagSuggestionChip {
@@ -1957,7 +2083,54 @@
 /* ─────────────────────────────────────────────────────────────────────────────
    Responsive
 ───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 70rem) {
+  .detailHeroLayout {
+    grid-template-areas:
+      'poster body'
+      'poster actions'
+      'quick quick';
+    grid-template-columns: clamp(10rem, 20vw, 13rem) minmax(0, 1fr);
+  }
+
+  .detailQuickRecordRail {
+    padding-top: 1.25rem;
+    padding-left: 0;
+    border-top: 1px solid var(--app-border-default);
+    border-left: 0;
+  }
+}
+
 @media (max-width: 48rem) {
+  .detailHero {
+    padding: 1rem;
+  }
+
+  .detailHeroLayout {
+    grid-template-areas:
+      'poster body'
+      'actions actions'
+      'quick quick';
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .detailHeroShortReview {
+    font-size: 0.95rem;
+  }
+
+  .detailHeroActions a,
+  .detailQuickRecord button,
+  .detailQuickRecord :global(.mantine-NativeSelect-input),
+  .detailQuickRecord :global(.mantine-TextInput-input),
+  .detailTab {
+    min-height: 2.75rem;
+  }
+
+  .detailQuickRecordFields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .quickCapturePreview {
     position: static;
   }
@@ -2088,6 +2261,15 @@
 }
 
 @media (max-width: 30rem) {
+  .detailHeroLayout {
+    grid-template-columns: 5.75rem minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+
+  .detailQuickRecordFields {
+    grid-template-columns: 1fr;
+  }
+
   .heroTitle {
     font-size: clamp(2.05rem, 11vw, 2.45rem);
     line-height: 1.05;
@@ -2113,4 +2295,40 @@
     transition: none !important;
     will-change: auto !important;
   }
+}
+.addWorkDisclosure {
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-subtle);
+  padding: 0 var(--mantine-spacing-lg) var(--mantine-spacing-lg);
+}
+
+.addWorkDisclosure > summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  list-style: none;
+  margin: 0 calc(var(--mantine-spacing-lg) * -1);
+  padding: var(--mantine-spacing-lg);
+}
+
+.addWorkDisclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.addWorkDisclosure > summary > span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.addWorkDisclosure > summary::after {
+  color: var(--app-text-muted);
+  content: '+';
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.addWorkDisclosure[open] > summary::after {
+  content: '−';
 }

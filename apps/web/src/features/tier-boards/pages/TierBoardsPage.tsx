@@ -145,9 +145,7 @@ export function TierBoardsPage() {
     } catch (error) {
       setFeedback({
         message:
-          error instanceof Error
-            ? error.message
-            : t('tierBoards.createError'),
+          error instanceof Error ? error.message : t('tierBoards.createError'),
         tone: 'error',
       });
     }
@@ -201,9 +199,7 @@ export function TierBoardsPage() {
     } catch (error) {
       setFeedback({
         message:
-          error instanceof Error
-            ? error.message
-            : t('tierBoards.importError'),
+          error instanceof Error ? error.message : t('tierBoards.importError'),
         tone: 'error',
       });
     } finally {
@@ -314,7 +310,7 @@ export function TierBoardsPage() {
                     <AppBadge
                       tone={board.visibility === 'exported' ? 'info' : 'muted'}
                     >
-                      {board.visibility}
+                      {t(`tierBoards.visibility.${board.visibility}`)}
                     </AppBadge>
                   </Group>
                   <Text c="dimmed" lineClamp={3} size="sm">

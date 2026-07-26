@@ -36,6 +36,7 @@ export function WorkCreatePage() {
   const [searchParams] = useSearchParams();
   const initialMode =
     searchParams.get('mode') === 'search' ? 'search' : 'manual';
+  const initialTitle = searchParams.get('title')?.trim() ?? '';
   const { archiveScopeKey, mode } = useAuthSession();
   const [formVersion, setFormVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,9 +83,8 @@ export function WorkCreatePage() {
         actions={
           <AppLinkButton to="/works">{t('works.backToWork')}</AppLinkButton>
         }
-        description={t('works.add.description')}
-        eyebrow={t('works.add.eyebrow')}
         title={t('works.add.title')}
+        titleAs="h1"
       />
 
       {savedWork ? (
@@ -159,6 +159,7 @@ export function WorkCreatePage() {
         <AddWorkFlow
           draftKey={draftKey}
           initialMode={initialMode}
+          initialTitle={initialTitle}
           isSubmitting={isSubmitting}
           key={formVersion}
           onSubmit={handleSubmit}

@@ -5,7 +5,11 @@
     "en": {
       "tierBoards": {
         "addLane": "Add row",
-        "boardType": { "classic_tier": "Tier style", "freeform": "Freeform", "ranking": "Ranking" },
+        "boardType": {
+          "classic_tier": "Tier style",
+          "freeform": "Freeform",
+          "ranking": "Ranking"
+        },
         "boardTypeLabel": "Board type",
         "canvas": {
           "cardMenuAria": "{{title}} menu",
@@ -24,7 +28,12 @@
           "moveToPool": "Move to unplaced"
         },
         "cardCount": "{{count}} cards",
-        "cardEditor": { "imageUrl": "Image URL", "note": "Note", "subtitle": "Subtitle", "title": "Edit card" },
+        "cardEditor": {
+          "imageUrl": "Image URL",
+          "note": "Note",
+          "subtitle": "Subtitle",
+          "title": "Edit card"
+        },
         "copyTitle": "{{title}} copy",
         "create": "New tier board",
         "createDescriptionAria": "New tier board description",
@@ -149,7 +158,7 @@
           "templateLabel": "Apply row template",
           "templatePlaceholder": "e.g., default S/A/B/C/D",
           "title": "Board settings",
-          "visibilityLabel": "Visibility"
+          "visibilityLabel": "Board storage state"
         },
         "source": {
           "addAsCard": "Add as card",
@@ -175,11 +184,21 @@
           "empty": { "title": "Empty board" },
           "expanded": { "title": "SS/S/A/B/C/D/F" },
           "power": {
-            "lanes": { "high": "High", "low": "Low", "middle": "Middle", "top": "Top" },
+            "lanes": {
+              "high": "High",
+              "low": "Low",
+              "middle": "Middle",
+              "top": "Top"
+            },
             "title": "Top/High/Middle/Low"
           },
           "preference": {
-            "lanes": { "favorite": "Favorite", "good": "Good", "low": "Meh", "neutral": "Okay" },
+            "lanes": {
+              "favorite": "Favorite",
+              "good": "Good",
+              "low": "Meh",
+              "neutral": "Okay"
+            },
             "title": "Favorite/Good/Okay/Meh"
           },
           "standard": { "title": "S/A/B/C/D" }
@@ -190,13 +209,21 @@
         "viewExportError": "Image export failed. If external cover images are included, some may be dropped due to security policy.",
         "viewExportFileName": "{{title}}-tier-list.png",
         "viewPageTitle": "View tier board",
-        "visibility": { "exported": "Exported", "link_only": "Link sharing", "private": "Private" }
+        "visibility": {
+          "exported": "Local export",
+          "link_only": "Reserved share state",
+          "private": "Private"
+        }
       }
     },
     "ja": {
       "tierBoards": {
         "addLane": "行を追加",
-        "boardType": { "classic_tier": "ティア型", "freeform": "自由配置", "ranking": "ランキング型" },
+        "boardType": {
+          "classic_tier": "ティア型",
+          "freeform": "自由配置",
+          "ranking": "ランキング型"
+        },
         "boardTypeLabel": "ボード方式",
         "canvas": {
           "cardMenuAria": "{{title}} メニュー",
@@ -215,7 +242,12 @@
           "moveToPool": "未配置へ移動"
         },
         "cardCount": "カード {{count}}枚",
-        "cardEditor": { "imageUrl": "画像URL", "note": "メモ", "subtitle": "サブタイトル", "title": "カードを編集" },
+        "cardEditor": {
+          "imageUrl": "画像URL",
+          "note": "メモ",
+          "subtitle": "サブタイトル",
+          "title": "カードを編集"
+        },
         "copyTitle": "{{title}} のコピー",
         "create": "新しいティアボードを作成",
         "createDescriptionAria": "新しいティアボードの説明",
@@ -340,7 +372,7 @@
           "templateLabel": "行テンプレートを適用",
           "templatePlaceholder": "例: デフォルト S/A/B/C/D",
           "title": "ボード設定",
-          "visibilityLabel": "公開範囲"
+          "visibilityLabel": "保存状態"
         },
         "source": {
           "addAsCard": "カードとして追加",
@@ -366,11 +398,21 @@
           "empty": { "title": "空のボード" },
           "expanded": { "title": "SS/S/A/B/C/D/F" },
           "power": {
-            "lanes": { "high": "上位", "low": "下位", "middle": "中位", "top": "最強" },
+            "lanes": {
+              "high": "上位",
+              "low": "下位",
+              "middle": "中位",
+              "top": "最強"
+            },
             "title": "最強/上位/中位/下位"
           },
           "preference": {
-            "lanes": { "favorite": "最愛", "good": "良い", "low": "残念", "neutral": "普通" },
+            "lanes": {
+              "favorite": "最愛",
+              "good": "良い",
+              "low": "残念",
+              "neutral": "普通"
+            },
             "title": "最愛/良い/普通/残念"
           },
           "standard": { "title": "S/A/B/C/D" }
@@ -381,13 +423,21 @@
         "viewExportError": "画像の書き出しに失敗しました。外部の表紙画像が含まれる場合、セキュリティポリシーにより一部が欠けることがあります。",
         "viewExportFileName": "{{title}}-ティア表.png",
         "viewPageTitle": "ティアボードを表示",
-        "visibility": { "exported": "書き出し済み", "link_only": "リンク共有", "private": "非公開" }
+        "visibility": {
+          "exported": "ローカル書き出し済み",
+          "link_only": "共有保留",
+          "private": "非公開"
+        }
       }
     },
     "zh-CN": {
       "tierBoards": {
         "addLane": "添加行",
-        "boardType": { "classic_tier": "梯队型", "freeform": "自由排列", "ranking": "排名型" },
+        "boardType": {
+          "classic_tier": "梯队型",
+          "freeform": "自由排列",
+          "ranking": "排名型"
+        },
         "boardTypeLabel": "看板方式",
         "canvas": {
           "cardMenuAria": "{{title}} 菜单",
@@ -406,7 +456,12 @@
           "moveToPool": "移到未放置"
         },
         "cardCount": "{{count}} 张卡片",
-        "cardEditor": { "imageUrl": "图片 URL", "note": "备注", "subtitle": "副标题", "title": "编辑卡片" },
+        "cardEditor": {
+          "imageUrl": "图片 URL",
+          "note": "备注",
+          "subtitle": "副标题",
+          "title": "编辑卡片"
+        },
         "copyTitle": "{{title}} 副本",
         "create": "新建梯队榜",
         "createDescriptionAria": "新梯队榜说明",
@@ -531,7 +586,7 @@
           "templateLabel": "应用行模板",
           "templatePlaceholder": "例如：默认 S/A/B/C/D",
           "title": "看板设置",
-          "visibilityLabel": "公开范围"
+          "visibilityLabel": "保存状态"
         },
         "source": {
           "addAsCard": "添加为卡片",
@@ -557,11 +612,21 @@
           "empty": { "title": "空看板" },
           "expanded": { "title": "SS/S/A/B/C/D/F" },
           "power": {
-            "lanes": { "high": "上位", "low": "下位", "middle": "中位", "top": "最强" },
+            "lanes": {
+              "high": "上位",
+              "low": "下位",
+              "middle": "中位",
+              "top": "最强"
+            },
             "title": "最强/上位/中位/下位"
           },
           "preference": {
-            "lanes": { "favorite": "最爱", "good": "不错", "low": "遗憾", "neutral": "一般" },
+            "lanes": {
+              "favorite": "最爱",
+              "good": "不错",
+              "low": "遗憾",
+              "neutral": "一般"
+            },
             "title": "最爱/不错/一般/遗憾"
           },
           "standard": { "title": "S/A/B/C/D" }
@@ -572,7 +637,11 @@
         "viewExportError": "图片导出失败。如果包含外部封面图片，可能因安全策略而缺失部分内容。",
         "viewExportFileName": "{{title}}-梯队表.png",
         "viewPageTitle": "查看梯队榜",
-        "visibility": { "exported": "已导出", "link_only": "链接共享", "private": "私密" }
+        "visibility": {
+          "exported": "本地已导出",
+          "link_only": "共享保留",
+          "private": "私密"
+        }
       }
     }
   }

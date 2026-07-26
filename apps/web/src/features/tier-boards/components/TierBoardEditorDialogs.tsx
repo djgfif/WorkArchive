@@ -52,7 +52,11 @@ export function TierBoardSettingsModal({
   const { t } = useAppTranslation();
 
   return (
-    <Modal onClose={onClose} opened={opened} title={t('tierBoards.settings.title')}>
+    <Modal
+      onClose={onClose}
+      opened={opened}
+      title={t('tierBoards.settings.title')}
+    >
       <Stack gap="md">
         <Paper p="md" radius="md" withBorder>
           <Stack gap="md">
@@ -86,9 +90,15 @@ export function TierBoardSettingsModal({
             />
             <Select
               data={[
-                { label: t('tierBoards.boardType.classic_tier'), value: 'classic_tier' },
+                {
+                  label: t('tierBoards.boardType.classic_tier'),
+                  value: 'classic_tier',
+                },
                 { label: t('tierBoards.boardType.ranking'), value: 'ranking' },
-                { label: t('tierBoards.boardType.freeform'), value: 'freeform' },
+                {
+                  label: t('tierBoards.boardType.freeform'),
+                  value: 'freeform',
+                },
               ]}
               label={t('tierBoards.settings.boardModeLabel')}
               onChange={(value) =>
@@ -103,8 +113,10 @@ export function TierBoardSettingsModal({
             <Select
               data={[
                 { label: t('tierBoards.visibility.private'), value: 'private' },
-                { label: t('tierBoards.visibility.link_only'), value: 'link_only' },
-                { label: t('tierBoards.visibility.exported'), value: 'exported' },
+                {
+                  label: t('tierBoards.visibility.exported'),
+                  value: 'exported',
+                },
               ]}
               label={t('tierBoards.settings.visibilityLabel')}
               onChange={(value) =>

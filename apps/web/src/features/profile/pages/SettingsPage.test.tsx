@@ -1,4 +1,4 @@
-﻿import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import type { WorkRecord } from '@work-archive/shared-types';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -13,6 +13,7 @@ import {
   LAST_JSON_EXPORT_AT_META_KEY,
   resetAutomaticJsonBackupSessionForTest,
 } from '@features/archive';
+import { syncService } from '@features/sync';
 import { SettingsPage } from './SettingsPage';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -134,6 +135,8 @@ async function seedOverviewStats() {
       payload: buildWorkRecord('work-active-1'),
       source: 'edit_form',
       createdAt: now,
+      clientMutationId: 'mutation-queue-1',
+      nextRetryAt: null,
       retryCount: 0,
       lastError: null,
       conflict: null,
@@ -146,6 +149,8 @@ async function seedOverviewStats() {
       payload: buildWorkRecord('work-active-2'),
       source: 'edit_form',
       createdAt: now,
+      clientMutationId: 'mutation-queue-2',
+      nextRetryAt: null,
       retryCount: 1,
       lastError: 'network failed',
       conflict: null,
@@ -158,6 +163,8 @@ async function seedOverviewStats() {
       payload: buildWorkRecord('work-deleted-1'),
       source: 'edit_form',
       createdAt: now,
+      clientMutationId: 'mutation-queue-3',
+      nextRetryAt: null,
       retryCount: 1,
       lastError: 'conflict',
       conflict: {
@@ -320,45 +327,34 @@ describe('SettingsPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('groups settings sections under stable category headers in the side nav', async () => {
+  it('keeps primary settings visible and progressively reveals advanced tools', async () => {
+    const user = userEvent.setup();
     renderGuestSettings();
 
-    const sideNav = screen.getByRole('navigation', {
-      name: '설정 사이드 섹션 탐색',
+    const primaryNav = screen.getByRole('navigation', {
+      name: '주요 설정 탐색',
     });
 
     expect(
-      within(sideNav)
-        .getAllByRole('heading', { level: 2 })
-        .map((heading) => heading.textContent),
-    ).toEqual(['계정', '데이터', '연동', '일반']);
-    expect(
-      within(sideNav)
+      within(primaryNav)
         .getAllByRole('link')
+        .filter((link) => !link.closest('details'))
         .map((link) => link.textContent),
-    ).toEqual([
-      '개요',
-      '계정',
-      '보안',
-      '위험 작업',
-      '데이터와 백업',
-      '중복 정리',
-      '외부 기록 가져오기',
-      '검색 소스와 API 키',
-      'Notion 동기화',
-      '언어',
-      '표시 설정',
-    ]);
+    ).toEqual(['데이터와 백업', '계정', '외부 기록 가져오기', '표시 설정']);
+
+    expect(screen.getByText('고급 설정 및 진단')).toBeInTheDocument();
     expect(
-      within(screen.getByRole('group', { name: '계정' }))
-        .getAllByRole('link')
-        .map((link) => link.textContent),
-    ).toEqual(['계정', '보안', '위험 작업']);
+      within(primaryNav).getByRole('link', { hidden: true, name: '보안' }),
+    ).not.toBeVisible();
+
+    await user.click(screen.getByText('고급 설정 및 진단'));
+
     expect(
-      within(screen.getByRole('navigation', { name: '설정 모바일 섹션 탐색' }))
-        .queryAllByRole('heading', { level: 2 })
-        .map((heading) => heading.textContent),
-    ).toEqual([]);
+      within(primaryNav).getByRole('link', { name: '보안' }),
+    ).toBeVisible();
+    expect(
+      within(primaryNav).getByRole('link', { name: 'Notion 동기화' }),
+    ).toBeVisible();
   });
 
   it('renders provider readiness cards for public and user-key credential modes', async () => {
@@ -477,9 +473,7 @@ describe('SettingsPage', () => {
     expect(screen.getByText('현재 검색 준비 상태')).toBeInTheDocument();
     expect(screen.getByText('확인 필요')).toBeInTheDocument();
     expect(screen.getAllByText('검색 가능').length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(/Manual, Wikidata/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Manual, Wikidata/)).toBeInTheDocument();
     expect(
       screen.getByText(/Aladin Book, TMDB, Brave Search, Tavily Search/),
     ).toBeInTheDocument();
@@ -524,7 +518,6 @@ describe('SettingsPage', () => {
     const fetchMock = vi.fn(() => new Promise<Response>(() => undefined));
     workArchiveDbManager.switchToUser('user-1');
     await seedOverviewStats();
-
     vi.stubGlobal('fetch', fetchMock);
 
     renderAuthenticatedSettings();
@@ -586,6 +579,180 @@ describe('SettingsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('summarizes guest data safety without requiring account backup', async () => {
+    const user = userEvent.setup();
+
+    renderGuestSettings();
+    await openSettingsSection(user, 'data-backup');
+
+    expect(await screen.findByText('백업 준비됨')).toBeInTheDocument();
+    expect(screen.getByText('로컬 기록')).toBeInTheDocument();
+    expect(screen.getByText('마지막 JSON 백업')).toBeInTheDocument();
+    expect(screen.getByText('자동 폴더 백업')).toBeInTheDocument();
+    expect(screen.getAllByText('수동 백업 필요').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('계정 백업 선택 사항').length).toBeGreaterThan(
+      0,
+    );
+    expect(
+      screen.getByRole('link', { name: 'Google 계정 연결' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('JSON 백업 파일 선택')).toBeInTheDocument();
+  });
+
+  it('summarizes authenticated backup conflicts and manual actions in data safety', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(() => new Promise<Response>(() => undefined));
+    workArchiveDbManager.switchToUser('user-1');
+    await seedOverviewStats();
+    const db = workArchiveDbManager.getCurrentDb();
+    const now = '2026-05-20T00:00:00.000Z';
+    const conflictWork = buildWorkRecord('work-conflict-active', {
+      title: '충돌 작품',
+      syncStatus: 'conflict',
+    });
+    const remoteConflictWork = buildWorkRecord('work-conflict-active', {
+      title: '계정 백업 작품',
+      serverVersion: 2,
+      syncStatus: 'synced',
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderAuthenticatedSettings();
+    await db.works.add(conflictWork);
+    await db.syncQueue.add({
+      id: 'queue-active-conflict',
+      entityType: 'work',
+      entityId: conflictWork.id,
+      operation: 'update',
+      payload: conflictWork,
+      source: 'edit_form',
+      createdAt: now,
+      clientMutationId: 'mutation-active-conflict',
+      nextRetryAt: null,
+      retryCount: 1,
+      lastError: 'conflict',
+      conflict: {
+        detectedAt: now,
+        message: 'manual conflict',
+        remote: remoteConflictWork,
+      },
+    });
+    await openSettingsSection(user, 'data-backup');
+
+    expect((await screen.findAllByText('확인 필요')).length).toBeGreaterThan(0);
+    expect(
+      (await screen.findAllByText('동기화 충돌 확인')).length,
+    ).toBeGreaterThan(0);
+    expect(await screen.findByText('확인 필요 3개')).toBeInTheDocument();
+    expect(await screen.findByText('동기화 충돌 2개')).toBeInTheDocument();
+    expect(await screen.findByText('백업 실패 1개')).toBeInTheDocument();
+    expect(
+      await screen.findByText('동기화 복구가 필요한 항목'),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('수동 충돌 검토').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('네트워크 재시도').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        '각 항목에서 내 기록 유지, 계정 백업 적용, 선택 병합 중 하나를 고르세요.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '네트워크가 안정된 뒤 다시 열거나 다음 자동 재시도를 기다리세요.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '전체 원인' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await user.click(screen.getByRole('button', { name: '네트워크 재시도' }));
+    expect(
+      screen.getByRole('button', { name: '네트워크 재시도' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('선택한 원인에 해당하는 항목')).toBeInTheDocument();
+    expect(screen.getAllByText('수정 · 재시도 1회').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('백업 대기').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('button', { name: '내 기록 유지' }).length,
+    ).toBeGreaterThan(0);
+    const remoteApplyButtons = screen.getAllByRole('button', {
+      name: '계정 백업 기록 적용',
+    });
+    expect(
+      remoteApplyButtons.some((button) => button.hasAttribute('disabled')),
+    ).toBe(true);
+    expect(
+      remoteApplyButtons.some((button) => !button.hasAttribute('disabled')),
+    ).toBe(true);
+    expect(
+      screen
+        .getAllByRole('button', { name: '선택 병합' })
+        .every((button) => button.hasAttribute('disabled')),
+    ).toBe(true);
+    expect(screen.queryByText('network failed')).not.toBeInTheDocument();
+  });
+
+  it('does not expose raw sync conflict resolver errors in data safety feedback', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(() => new Promise<Response>(() => undefined));
+    workArchiveDbManager.switchToUser('user-1');
+    await seedOverviewStats();
+    const db = workArchiveDbManager.getCurrentDb();
+    const now = '2026-05-20T00:00:00.000Z';
+    const conflictWork = buildWorkRecord('work-conflict-redacted', {
+      title: '민감 오류 테스트 작품',
+      syncStatus: 'conflict',
+    });
+    const rawError =
+      'postgres://work:secret@example.test raw access_token cookie payload';
+
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(syncService, 'resolveConflictWithLocal').mockRejectedValueOnce(
+      new Error(rawError),
+    );
+
+    renderAuthenticatedSettings();
+    await db.works.add(conflictWork);
+    await db.syncQueue.add({
+      id: 'queue-redacted-conflict',
+      entityType: 'work',
+      entityId: conflictWork.id,
+      operation: 'update',
+      payload: conflictWork,
+      source: 'edit_form',
+      createdAt: now,
+      clientMutationId: 'mutation-redacted-conflict',
+      nextRetryAt: null,
+      retryCount: 1,
+      lastError: 'conflict',
+      conflict: {
+        detectedAt: now,
+        message: 'manual conflict',
+        remote: buildWorkRecord('work-conflict-redacted', {
+          title: '계정 백업 민감 오류 테스트 작품',
+          serverVersion: 2,
+          syncStatus: 'synced',
+        }),
+      },
+    });
+    await openSettingsSection(user, 'data-backup');
+
+    await user.click(
+      (await screen.findAllByRole('button', { name: '내 기록 유지' })).at(-1)!,
+    );
+
+    expect(
+      await screen.findByText('충돌을 해결하지 못했습니다.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(rawError)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/access_token|cookie|postgres:\/\//),
+    ).not.toBeInTheDocument();
+  });
   it('shows storage protection and app-open automatic backup controls', async () => {
     const user = userEvent.setup();
     let storagePersisted = false;
@@ -638,7 +805,7 @@ describe('SettingsPage', () => {
         screen.getByRole('button', { name: '저장소 보호 다시 요청' }),
       ).toBeEnabled();
     });
-    expect(screen.getByText('꺼짐')).toBeInTheDocument();
+    expect(screen.getAllByText('꺼짐').length).toBeGreaterThan(0);
     expect(screen.getByText('아직 선택되지 않음')).toBeInTheDocument();
 
     await user.click(
@@ -1374,6 +1541,11 @@ describe('SettingsPage', () => {
       screen.getByText('작품 1개 · 권별 기록 0개 · 타임라인 0개'),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('TTBKey')).not.toBeInTheDocument();
+
+    await openSettingsSection(user, 'security');
+
+    expect(screen.getByText('로컬 우선 게스트')).toBeInTheDocument();
+    expect(screen.queryByText('Local-first guest')).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

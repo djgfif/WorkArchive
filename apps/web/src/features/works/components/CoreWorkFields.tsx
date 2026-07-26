@@ -26,6 +26,7 @@ const css = styles;
 
 interface CoreWorkFieldsProps
   extends WorkFormTitleRefProps, WorkFormValuesProps {
+  compact?: boolean;
   error?: string | null;
   idPrefix?: string;
   onChange: WorkFormInputChangeHandler;
@@ -33,6 +34,7 @@ interface CoreWorkFieldsProps
 }
 
 export function CoreWorkFields({
+  compact = false,
   error,
   idPrefix = '',
   onChange,
@@ -41,9 +43,6 @@ export function CoreWorkFields({
   values,
 }: CoreWorkFieldsProps) {
   const { t } = useAppTranslation();
-  const genreValues = normalizeWorkGenres(
-    parseCommaSeparatedTextList(values.genresText),
-  );
 
   return (
     <Stack gap="md">
@@ -68,7 +67,7 @@ export function CoreWorkFields({
           withAsterisk
         />
 
-        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+        <SimpleGrid cols={{ base: 1, md: compact ? 1 : 2 }} spacing="md">
           <NativeSelect
             id={getFieldId(idPrefix, 'type')}
             label={t('works.form.typeLabel')}
@@ -83,25 +82,64 @@ export function CoreWorkFields({
             ))}
           </NativeSelect>
 
-          <Stack className={cn(css.genreTagGuide)} gap={6}>
-            <WorkGenreSelector
-              id={getFieldId(idPrefix, 'genresText')}
-              onChange={(items) => onTextListChange('genresText', items)}
-              value={genreValues}
+          {!compact && (
+            <OptionalCoreWorkFields
+              idPrefix={idPrefix}
+              onChange={onChange}
+              onTextListChange={onTextListChange}
+              values={values}
             />
-          </Stack>
+          )}
         </SimpleGrid>
 
-        <TextInput
-          description={t('works.form.thumbnailDescription')}
-          id={getFieldId(idPrefix, 'thumbnailUrl')}
-          label={t('works.form.thumbnailLabel')}
-          name="thumbnailUrl"
-          onChange={onChange}
-          placeholder="https://example.com/cover.jpg"
-          value={values.thumbnailUrl}
-        />
+        {!compact && (
+          <TextInput
+            description={t('works.form.thumbnailDescription')}
+            id={getFieldId(idPrefix, 'thumbnailUrl')}
+            label={t('works.form.thumbnailLabel')}
+            name="thumbnailUrl"
+            onChange={onChange}
+            placeholder="https://example.com/cover.jpg"
+            value={values.thumbnailUrl}
+          />
+        )}
       </Stack>
     </Stack>
+  );
+}
+
+export function OptionalCoreWorkFields({
+  idPrefix = '',
+  onChange,
+  onTextListChange,
+  values,
+}: Pick<
+  CoreWorkFieldsProps,
+  'idPrefix' | 'onChange' | 'onTextListChange' | 'values'
+>) {
+  const { t } = useAppTranslation();
+  const genreValues = normalizeWorkGenres(
+    parseCommaSeparatedTextList(values.genresText),
+  );
+
+  return (
+    <>
+      <Stack className={cn(css.genreTagGuide)} gap={6}>
+        <WorkGenreSelector
+          id={getFieldId(idPrefix, 'genresText')}
+          onChange={(items) => onTextListChange('genresText', items)}
+          value={genreValues}
+        />
+      </Stack>
+      <TextInput
+        description={t('works.form.thumbnailDescription')}
+        id={getFieldId(idPrefix, 'thumbnailUrl')}
+        label={t('works.form.thumbnailLabel')}
+        name="thumbnailUrl"
+        onChange={onChange}
+        placeholder="https://example.com/cover.jpg"
+        value={values.thumbnailUrl}
+      />
+    </>
   );
 }

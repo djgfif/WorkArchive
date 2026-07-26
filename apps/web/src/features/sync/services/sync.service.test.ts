@@ -15,6 +15,7 @@ import { WorksService } from '@features/works';
 import { ReleaseRecordsRepository } from '@features/works';
 import { TimelineEntriesRepository } from '@features/works';
 import { GraphRepository } from '@features/works';
+import { TierBoardRepository } from '@features/tier-boards/data';
 import { AppMetaRepository } from './app-meta.repository';
 import { SyncQueueRepository } from './sync-queue.repository';
 import { SyncService } from './sync.service';
@@ -72,6 +73,7 @@ describe('SyncService', () => {
   let releaseRecordsRepository: ReleaseRecordsRepository;
   let timelineEntriesRepository: TimelineEntriesRepository;
   let graphRepository: GraphRepository;
+  let tierBoardRepository: TierBoardRepository;
   let queueRepository: SyncQueueRepository;
   let appMetaRepository: AppMetaRepository;
   let worksService: WorksService;
@@ -84,6 +86,7 @@ describe('SyncService', () => {
     timelineEntriesRepository = new TimelineEntriesRepository(() => db);
     queueRepository = new SyncQueueRepository(() => db);
     graphRepository = new GraphRepository(() => db, queueRepository);
+    tierBoardRepository = new TierBoardRepository(() => db);
     appMetaRepository = new AppMetaRepository(() => db);
     worksService = new WorksService(worksRepository, queueRepository);
     syncService = new SyncService(
@@ -93,6 +96,8 @@ describe('SyncService', () => {
       appMetaRepository,
       timelineEntriesRepository,
       graphRepository,
+      tierBoardRepository,
+      () => db,
     );
   });
 

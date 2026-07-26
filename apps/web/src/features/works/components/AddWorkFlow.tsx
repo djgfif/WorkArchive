@@ -34,6 +34,7 @@ import {
 interface AddWorkFlowProps {
   draftKey?: string | null;
   initialMode?: 'manual' | 'search';
+  initialTitle?: string;
   isSubmitting: boolean;
   onSubmit: (input: UpsertWorkInput) => Promise<void>;
   onCancel?: () => void;
@@ -73,6 +74,7 @@ function getCandidateFieldSummary(
 export function AddWorkFlow({
   draftKey = null,
   initialMode = 'manual',
+  initialTitle = '',
   isSubmitting,
   onCancel,
   onSubmit,
@@ -84,7 +86,7 @@ export function AddWorkFlow({
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [mode, setMode] = useState<'manual' | 'search'>(initialMode);
   const [values, setValues] = useState<WorkFormValues>(() =>
-    createFormDefaults(),
+    createFormDefaults(initialTitle),
   );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedImportCandidate, setSelectedImportCandidate] =
@@ -135,7 +137,10 @@ export function AddWorkFlow({
       focusMainTitle();
     },
   });
-  const draftBaselineValues = useMemo(() => createFormDefaults(), []);
+  const draftBaselineValues = useMemo(
+    () => createFormDefaults(initialTitle),
+    [initialTitle],
+  );
   const draft = useWorkFormDraft({
     baselineValues: draftBaselineValues,
     draftKey,

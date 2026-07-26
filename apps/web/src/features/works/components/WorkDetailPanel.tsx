@@ -8,10 +8,7 @@ import type {
   WorkRecord,
 } from '@work-archive/shared-types';
 
-import {
-  getWorkStatusLabel,
-  getWorkTypeLabel,
-} from '../utils/work-options';
+import { getWorkStatusLabel, getWorkTypeLabel } from '../utils/work-options';
 import { appI18n } from '@app/i18n';
 import {
   getContributorEntries,
@@ -80,8 +77,8 @@ interface WorkDetailPanelProps {
     type: TimelineEntryType;
   }) => Promise<void>;
   onDeleteTimelineEntry?: (id: string) => Promise<void>;
-  overviewSections?: ReactNode;
   progressSections?: ReactNode;
+  quickRecordSection?: ReactNode;
   relatedSections?: ReactNode;
   timelineEntries?: TimelineEntryRecord[];
   work: WorkRecord;
@@ -108,9 +105,8 @@ function getGraphContributorEntries(
             }
           : null;
       })
-      .filter(
-        (entry): entry is WorkDetailContributorEntry => entry !== null,
-      ) ?? []
+      .filter((entry): entry is WorkDetailContributorEntry => entry !== null) ??
+    []
   );
 }
 
@@ -162,8 +158,8 @@ export function WorkDetailPanel({
   graph,
   onCreateTimelineEntry,
   onDeleteTimelineEntry,
-  overviewSections,
   progressSections,
+  quickRecordSection,
   relatedSections,
   timelineEntries = [],
   work,
@@ -188,10 +184,9 @@ export function WorkDetailPanel({
     <Stack gap="xl">
       <WorkDetailHero
         actions={actions}
-        latestTimelineItem={latestTimelineItem}
-        personalTags={personalTags}
         progressLabel={progressLabel}
         progressPercent={progressPercent}
+        quickRecordSection={quickRecordSection}
         shortReview={shortReview}
         statusLabel={statusLabel}
         typeLabel={typeLabel}
@@ -202,7 +197,6 @@ export function WorkDetailPanel({
         contributorEntries={contributorEntries}
         contributorValues={contributorValues}
         latestTimelineItem={latestTimelineItem}
-        overviewSections={overviewSections}
         personalTags={personalTags}
         progressLabel={progressLabel}
         progressSections={progressSections}

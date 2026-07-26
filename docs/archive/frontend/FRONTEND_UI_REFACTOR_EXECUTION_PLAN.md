@@ -28,7 +28,7 @@
 - shared UI primitives보다 페이지별 클래스 조합이 많다.
 - `WorkDetailPanel`, `HomePage`, `WorkCard`, `QuickAddWorkForm` 등 핵심 화면에 커스텀 클래스 결합이 넓게 남아 있다.
 - Settings provider readiness 기본 UI와 테스트는 구현돼 있다.
-- SyncPage는 pending / failed / conflict queue item 표시, 원인, 기록 보기, 재시도 CTA를 제공한다.
+- Settings 계정 백업 섹션은 pending / failed / conflict queue item 표시, 원인별 복구 그룹, 기록 보기, 재시도 CTA를 제공한다.
 - `Tier Boards`, `Insights`, `Community`는 placeholder 성격이 강하다.
 
 ## Committed Now

@@ -1,6 +1,6 @@
 # Public Beta Gate 1 Evidence
 
-Status: partial — local repository gates passed 2026-07-01; host/beta environment items pending.
+Status: partial — core local repository gates passed 2026-07-03; host/beta environment items pending; older policy gates remain recorded with their individual run dates.
 
 Use this file as the operator ledger for the first public beta release
 candidate. Do not paste secrets, cookies, OAuth codes, access tokens, API keys,
@@ -28,10 +28,31 @@ reliability evidence, API boundary documentation, and operational Gate 1
 evidence. Public/community/social/recommendation, mobile, Tauri, i18n, and
 open-source licensing changes are not part of this evidence run.
 
+## Open Evidence Classification
+
+Classification key: `A` = code/script can resolve locally, `B` =
+runbook/evidence template needs documentation, `C` = beta host, GitHub Settings,
+release runner, restore target, or disposable account evidence is required.
+
+| Area                          | Open item                                                                                                               | Class | Current handling                                                                                            | Required evidence before approval                                                                                                                                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Docker runtime                | `DOCKER_RUNTIME_BUILD=true npm run qa:docker-runtime`                                                                   | C     | Local self-test passes; local Docker runtime report is BLOCKED by environment and is not approval evidence. | Docker-enabled release runner PASS report with `- Mode: config-and-build`, production image build PASS, and redacted `tmp/docker-runtime/docker-runtime-preflight-*.md` summary.                                             |
+| Production compose config     | `docker compose -f compose.prod.yml --env-file .env.prod config`                                                        | C     | Repository validates compose hardening and script syntax; real `.env.prod` is intentionally absent locally. | Release runner or beta host command result tied to the release commit and production env file.                                                                                                                               |
+| GitHub controls               | Branch protection, required checks, CodeQL, Dependabot, secret scanning, push protection                                | C     | Workflow/config files exist where repository-verifiable; Settings state is not provable from files.         | GitHub Settings/Security tab review for the release commit, including required `validate` check and any explicit waiver owner/expiry.                                                                                        |
+| Beta host preflight and smoke | Health, readiness, auth refresh, OAuth start cookie, no-store headers, metrics exposure, provider readiness, sync smoke | C     | `qa:deploy-scripts` verifies script coverage; no beta URL is assigned in this ledger.                       | `scripts/deploy/commercial-beta-rehearsal.sh .env.prod` or targeted `beta-preflight.sh` plus `BETA_BASE_URL=<beta-url> beta-smoke.sh` PASS summary, including public `/metrics` 404 and internal collector 200 when enabled. |
+| Live import/search QA         | `IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search`                                                                   | C     | Offline matrix passes and live-smoke manifest coverage exists.                                              | Live PASS report against beta/staging with explicit base URL and disposable authenticated token; copy only the redacted `tmp/import-search-qa/import-search-qa-*.md` summary.                                                |
+| Live sync load QA             | `SYNC_LOAD_DRY_RUN=false npm run qa:sync-load`                                                                          | C     | Dry-run synthetic payload validation passes locally.                                                        | Live PASS report against a disposable authenticated account with `SYNC_LOAD_DISPOSABLE_ACCOUNT_ACK=true`, 1000 synthetic records, zero conflicts/failures, and oversized batch DTO rejection.                                |
+| Monitoring deployment         | Alert/SLO/dashboard deployment and live `/metrics` collection                                                           | C     | Alert, SLO, dashboard, and dry-run monitoring artifacts validate locally.                                   | Deployed rule/dashboard identifiers, collector target, public `/metrics` 404, internal collector 200, and live `npm run qa:monitoring` PASS report.                                                                          |
+| Backup/restore drill          | Production-sized backup, off-host copy, disposable restore, post-restore smoke                                          | C     | Plan-only restore report is pre-review only and not approval evidence.                                      | `ops:backup`, `ops:backup:verify`, off-host copy identifier, and `RESTORE_DRILL_CONFIRM=restore-disposable-target npm run ops:restore-drill` PASS report with observed RPO/RTO and post-restore `/readyz`/sync smoke.        |
+| Performance baseline          | Beta-host p50/p95 and rate-limit header observations                                                                    | C     | Dry-run script path exists; all measured rows remain beta-host pending.                                     | Live `npm run qa:performance-smoke` report with p50/p95, budget status, status codes, and rate-limit header summaries for required scenarios.                                                                                |
+| Release metadata and approval | Public beta URL, release notes, decision, approver, blockers                                                            | C     | Ledger remains partial until the operator fills release-specific values.                                    | Final operator approval after `GATE1_EVIDENCE_STRICT=true npm run qa:gate1:evidence` passes.                                                                                                                                 |
+| Runbook/template clarity      | Operator commands, expected results, failure triage, and redaction rules                                                | B     | Maintained in `GATE_1_VALIDATION_RUNBOOK.md`; update it when a required evidence format changes.            | Documentation review plus `npm run check:docs-links` and non-strict `npm run qa:gate1:evidence` after edits.                                                                                                                 |
+| Local repository gates        | Security, docs, lint, typecheck, tests, build, local QA policy checks                                                   | A     | Core local PASS results were refreshed on 2026-07-03; policy-specific QA rows retain their own run dates.   | Fresh release-commit PASS summaries from `npm run qa:gate1:local` or the individual commands listed below.                                                                                                                   |
+
 ## Release Candidate
 
-- Date and timezone: 2026-07-01 KST (local verification run)
-- Commit SHA: 00c55e96cbc422ced1437395d4bc57a354cece69 + dirty working tree
+- Date and timezone: 2026-07-03 KST (core local verification run; policy-specific QA rows retain individual dates)
+- Commit SHA: 688e5d980418127fdc7fed5add095a456c12dff7 + dirty working tree
 - Host or environment: local development (repository gates only; beta host pending)
 - Operator: gkho0
 - Public beta URL: not yet assigned
@@ -39,14 +60,17 @@ open-source licensing changes are not part of this evidence run.
 
 ## Repository Gates
 
-- `npm run security:public`: PASS — public readiness check passed (2026-07-01, dirty working tree)
-- `npm run check:docs-links`: PASS — all markdown local links valid (2026-07-01)
-- `npm run lint`: PASS — no ESLint errors across web/api/shared-types (2026-07-01)
-- `npm run typecheck`: PASS — no TypeScript errors (2026-07-01)
-- `npm run test`: PASS — API 92 suites / 770 tests, web 62 files / 402 tests, shared-types 2 files / 6 tests (2026-07-01)
-- `npm run build`: PASS — shared-types `tsc`, API `tsc`, web Vite production build (2026-07-01)
-- `npm run check:web-boundaries`: PASS — no web feature boundary violations found (2026-07-01)
-- `npm run check:web-import-cycles`: PASS — no web import cycles found (2026-07-01)
+- `npm run security:public`: PASS — public readiness check passed (2026-07-03, dirty working tree)
+- `npm run check:docs-links`: PASS — all markdown local links valid (2026-07-03)
+- `npm run check:web-i18n`: PASS — web i18n hardcoding check passed; Korean UI literals remain confined to approved resource/parser/helper files (2026-07-03)
+- `npm run lint`: PASS — no ESLint errors across web/api/shared-types (2026-07-03)
+- `npm run typecheck`: PASS — no TypeScript errors (2026-07-03)
+- `npm run test`: PASS — API 92 suites / 770 tests, web 63 files / 407 tests, and shared-types 2 files / 6 tests passed (2026-07-03)
+- `npm run build`: PASS — shared-types `tsc`, API `tsc`, web Vite production build (2026-07-03)
+- `npm run check:web-boundaries`: PASS — no web feature boundary violations found (2026-07-03)
+- `npm run check:web-import-cycles`: PASS — no web import cycles found (2026-07-03)
+- `npm run check:web-i18n-resources`: PASS — web i18n resource parity check passed for ko, en, ja, and zh-CN (2026-07-03)
+- `npm run check:web-i18n-packs`: PASS — reviewed translation pack coverage 2222/2222 unique baseline paths (2026-07-03)
 - `npm run qa:migrations`: PASS — Prisma migration safety check passed with registered high-risk historical migrations
 - `npm run qa:bola-matrix`: PASS — BOLA matrix covers user-owned REST object families and every sync entity type; no unresolved `gap` or `partial` rows (2026-06-24)
 - `npm run qa:api-auth-surface`: PASS — API authorization surface classifies every controller and verifies guarded, optional bearer, public health, metrics bearer-token, and policy-bounded image proxy boundaries (2026-06-24)
@@ -68,16 +92,16 @@ open-source licensing changes are not part of this evidence run.
 - `npm run qa:oauth-policy`: PASS — Google-only login, disabled legacy password routes, OAuth return-origin allowlist, flow cookie/state validation, token/code log-safety tests, docs, and commercial gate wiring align (2026-06-25)
 - `npm run qa:backup-restore-policy`: PASS — backup creation, checksum verification, restore drill confirmation, redacted reporting, and evidence docs align (2026-06-20)
 - `npm run qa:secure-sdlc-policy`: PASS — vulnerability triage SLA, high/critical production audit gate, lockfile patch pins, scan ledger, and waiver contract remain aligned (2026-06-25)
-- `npm run qa:public-boundary`: PASS — default-private public/share boundary check passed (2026-06-20)
+- `npm run qa:public-boundary`: PASS — default-private public/share boundary check passed after product-direction doc cleanup and Tier Board private-first UI labeling review (2026-07-03)
 - `npm run qa:retention-policy`: PASS — retention cleanup targets, operational docs, historical client metadata policy, and backup sensitivity policy align with current code (2026-06-20)
 - `npm run qa:user-data-rights-policy`: PASS — authenticated server-side user data export, count-only account deletion preview, account deletion, rejected-confirmation audit, omitted sensitive fields, retained-record anonymization, and bounded user data rights metrics align with current code (2026-06-21)
 - `npm run qa:account-deletion-rehearsal`: PASS — dry-run verifies the destructive disposable-account rehearsal guard, preview-first order, production client header, and post-delete token invalidation check contract (2026-06-26)
-- `npm run qa:commercial:repo`: PASS — repository-verifiable commercial gates passed in non-strict Gate 1 mode; live evidence placeholders remain (2026-07-01)
+- `npm run qa:commercial:repo`: PASS — repository-verifiable commercial gates passed in non-strict Gate 1 mode; live evidence placeholders remain (2026-07-01; not rerun in the 2026-07-03 core local verification pass)
 - `npm run qa:import-search`: PASS — report `tmp/import-search-qa/import-search-qa-20260701T123411Z.md`, 28 offline matrix cases plus live-smoke manifest coverage
 - `IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search`: not run — requires beta host base URL and disposable authenticated token; copy the redacted live `tmp/import-search-qa/import-search-qa-*.md` PASS summary here before approval.
 - `npm run qa:sync-load`: PASS — report `tmp/sync-load/sync-load-smoke-20260701T123414Z.md`, dry-run synthetic payload validation
 - `SYNC_LOAD_DRY_RUN=false npm run qa:sync-load`: not run — requires beta host base URL and disposable authenticated token; copy the redacted live `tmp/sync-load/sync-load-smoke-*.md` PASS summary here before approval.
-- `npm run test:e2e:web`: PASS — 17 Playwright tests passed and 3 skipped across chromium and mobile-chrome with `WEB_E2E_PORT=19998` (2026-07-01)
+- `npm run test:e2e:web`: PASS — 19 Playwright tests passed and 3 skipped across chromium and mobile-chrome with `WEB_E2E_PORT=19999`; Vite reported expected local API proxy warnings while API was not running (2026-07-03)
 - `npm run test:e2e`: PASS — API e2e 4 suites / 47 tests passed locally (2026-06-24); beta-host smoke evidence remains separate below
 - `docker compose -f compose.prod.yml --env-file .env.prod config`: not run — requires .env.prod
 
@@ -94,75 +118,78 @@ open-source licensing changes are not part of this evidence run.
 
 ## Host Preflight And Smoke
 
-- `scripts/deploy/beta-preflight.sh`:
-- Migration command:
-- API/web startup:
-- `scripts/deploy/beta-smoke.sh`:
-- `/health`:
-- `/livez`:
-- `/readyz`:
-- `/metrics` public unauthenticated exposure result:
-- `/metrics` internal collector bearer-token result:
-- Google OAuth start flow cookie attributes:
-- Google OAuth login/logout:
-- User data rights smoke (`npm run qa:user-data-rights-smoke` live report):
-- Guest JSON export/import:
-- Guest-to-account transfer review:
-- Authenticated sync push/pull:
-- Sync conflict resolution:
-- Import provider failure fallback:
+- scripts/deploy/beta-preflight.sh: pending — beta host required. Run `ENV_FILE=.env.prod COMPOSE_FILE=compose.prod.yml scripts/deploy/beta-preflight.sh`; expected evidence is PASS/FAIL, timestamp, release commit, env file name only, and any blocker without secret values.
+- Migration command: pending — run either `BETA_BASE_URL=<beta-url> scripts/deploy/commercial-beta-rehearsal.sh .env.prod` or targeted `docker compose -f compose.prod.yml --env-file .env.prod --profile release run --rm api-migrate`; expected evidence is exit status, migration profile, and rollback/previous-image command if used.
+- API/web startup: pending — from the rehearsal `docker compose ... up -d --build` and `scripts/deploy/prod-healthcheck.sh`; expected evidence is API/web container health, release image refs or digests, and startup PASS/FAIL.
+- scripts/deploy/beta-smoke.sh: pending — run `BETA_BASE_URL=<beta-url> EXPECT_GOOGLE_OAUTH_CONFIGURED=true scripts/deploy/beta-smoke.sh`; expected evidence is redacted PASS/FAIL summary only.
+- /health: pending — beta smoke must record HTTP status and `Cache-Control: no-store`.
+- /livez: pending — beta smoke must record HTTP status and `Cache-Control: no-store`.
+- /readyz: pending — beta smoke must record HTTP status, `Cache-Control: no-store`, and readiness body status without secrets.
+- `/metrics` public unauthenticated exposure result: pending — beta smoke must record public HTTP status, expected `404`.
+- `/metrics` internal collector bearer-token result: pending — record internal collector status, expected `200` only when metrics are enabled and the request comes from the reviewed internal path; do not paste the bearer token.
+- Google OAuth start flow cookie attributes: pending — record whether OAuth start sets `HttpOnly`, `Secure`, `SameSite=Lax`, and `Path=/api/auth/google`; do not paste cookie values.
+- Auth refresh smoke: pending — record `POST /api/auth/refresh` status for the expected unauthenticated/guarded path plus no-store headers; do not paste cookies or tokens.
+- Google OAuth login/logout: pending — run with a disposable account or approved OAuth test flow; record only redirect/status/cookie-attribute summary.
+- No-store header checks: pending — beta smoke must summarize normal `/api/*`, auth, health, livez, readyz, and metrics cache policy.
+- Provider readiness: pending — beta smoke or live import/search QA must record provider readiness status counts and configured credential mode summary.
+- User data rights smoke (`npm run qa:user-data-rights-smoke` live report): pending — run `USER_DATA_RIGHTS_SMOKE_LIVE=true USER_DATA_RIGHTS_SMOKE_BASE_URL=<beta-url> npm run qa:user-data-rights-smoke` after setting `USER_DATA_RIGHTS_SMOKE_ACCESS_TOKEN` in the operator shell; copy only the redacted report summary.
+- Guest JSON export/import: pending — beta smoke/manual browser run must record guest export, import preview, and confirm/cancel behavior without committing backup contents.
+- Guest-to-account transfer review: pending — disposable account run must record that guest records remain intact if transfer is cancelled and that duplicate preview/import summary is visible.
+- Authenticated sync push/pull: pending — disposable account run must record push/pull status, queue counts, and no raw payloads.
+- Sync conflict resolution: pending — disposable account run must record conflict row visibility and local/remote/manual action availability; conflict payloads stay out of the ledger.
+- Import provider failure fallback: pending — beta smoke or manual run must record provider-unavailable handling and visible manual-add fallback.
 
 ## Metrics And Alerts
 
 - `npm run qa:alerts`: PASS — 13 Prometheus alert rules validated locally (2026-06-21)
 - `npm run qa:slo`: PASS — 7 SLO recording rules and 5 SLO alerts validated locally (2026-06-20)
 - `npm run qa:dashboards`: PASS — Grafana dashboard validated locally with 16 panels (2026-06-21)
-- `npm run qa:monitoring` report: PASS — dry-run report `tmp/monitoring-evidence/monitoring-evidence-20260701T123415Z.md` generated locally (2026-07-01)
-- Alert rule file deployed:
-- SLO rule file deployed:
-- Grafana dashboard file deployed:
-- Grafana dashboard UID:
-- Prometheus/collector target for `/metrics`:
-- Alertmanager or notification channel:
-- API availability SLO 30d:
-- API latency p95 SLO 30d:
-- Auth refresh success SLO 30d:
-- Sync success SLO 30d:
-- Import search success SLO 30d:
-- Public unauthenticated `/metrics` result:
-- Internal collector `/metrics` result:
-- Alert/SLO/dashboard waivers or threshold/target/query changes:
+- `npm run qa:monitoring` report: pending live evidence — current report `tmp/monitoring-evidence/monitoring-evidence-20260701T123415Z.md` is dry-run only and does not approve public beta. Run `MONITORING_PROMETHEUS_URL=<url> MONITORING_GRAFANA_URL=<url> MONITORING_PUBLIC_BASE_URL=<beta-url> MONITORING_INTERNAL_METRICS_URL=<internal-metrics-url> npm run qa:monitoring` after rules/dashboard deployment.
+- Alert rule file deployed: pending — record deployed `docs/operations/monitoring/work-archive-alerts.yml` version, target stack, timestamp, and PASS/FAIL import status.
+- SLO rule file deployed: pending — record deployed `docs/operations/monitoring/work-archive-slo-rules.yml` version, target stack, timestamp, and PASS/FAIL import status.
+- Grafana dashboard file deployed: pending — record deployed `docs/operations/monitoring/work-archive-grafana-dashboard.json` version, folder, datasource, and import status.
+- Grafana dashboard UID: pending — copy the UID from Grafana after import; do not use a guessed UID.
+- Prometheus/collector target for `/metrics`: pending — record collector job/target label and internal path only; no bearer token.
+- Alertmanager or notification channel: pending — record channel name, route status, and test notification result without recipient personal data.
+- API availability SLO 30d: pending — copy `work_archive:slo_api_availability:ratio_30d` value from live monitoring report.
+- API latency p95 SLO 30d: pending — copy `work_archive:slo_api_latency:p95_30d` value from live monitoring report.
+- Auth refresh success SLO 30d: pending — copy `work_archive:slo_auth_refresh_success:ratio_30d` value from live monitoring report.
+- Sync success SLO 30d: pending — copy `work_archive:slo_sync_success:ratio_30d` value from live monitoring report.
+- Import search success SLO 30d: pending — copy `work_archive:slo_import_search_success:ratio_30d` value from live monitoring report.
+- Public unauthenticated `/metrics` result: pending — expected `404` from `MONITORING_PUBLIC_BASE_URL`.
+- Internal collector `/metrics` result: pending — expected `200` from `MONITORING_INTERNAL_METRICS_URL` only when collector bearer token is configured in the operator shell.
+- Alert/SLO/dashboard waivers or threshold/target/query changes: pending — record owner, expiry, changed query/threshold, and next retest command for any waiver; write `none` only after review.
 
 ## Backup And Restore Drill
 
 - Restore drill plan-only report (pre-review only; not approval evidence): PASS — `tmp/restore-drills/restore-drill-plan-20260701T123410Z.md` generated locally without Docker, `pg_restore`, migrations, startup, smoke, or destructive restore commands (2026-07-01)
-- Backup command (`npm run ops:backup`):
-- Backup report (`tmp/backups/prod-backup-*.md` summary only):
-- Backup file identifier:
-- Backup checksum sidecar (`.sha256`):
-- Backup verification command (`npm run ops:backup:verify`):
-- Backup verification report (`tmp/backups/prod-backup-verify-*.md` summary only):
-- Backup off-host copy location:
-- Restore drill command (`npm run ops:restore-drill` with `RESTORE_DRILL_CONFIRM=restore-disposable-target`):
-- Restore target (must be disposable/non-production):
-- Restore drill report (`tmp/restore-drills/restore-drill-*.md` summary only):
-- Restore start/end time:
-- Observed RPO:
-- Observed RTO:
-- Post-restore `/readyz`:
-- Post-restore sync smoke:
-- Gaps found:
+- Backup command (`npm run ops:backup`): pending — run `BACKUP_DIR=backups npm run ops:backup` on the approved host; copy command, timestamp, exit status, and redacted summary only.
+- Backup report (`tmp/backups/prod-backup-*.md` summary only): pending — copy the generated report path and status; do not commit or paste dump contents.
+- Backup file identifier: pending — record opaque backup filename/object key and creation timestamp; do not include storage credentials.
+- Backup checksum sidecar (`.sha256`): pending — record checksum sidecar filename and verification status, not raw backup contents.
+- Backup verification command (`npm run ops:backup:verify`): pending — run `BACKUP_FILE=<backup-file> npm run ops:backup:verify` before off-host copy is accepted.
+- Backup verification report (`tmp/backups/prod-backup-verify-*.md` summary only): pending — copy status, pg_restore/list verification summary, and report path.
+- Backup off-host copy location: pending — record approved storage location identifier and copy verification status; no signed URLs or credentials.
+- Restore drill command (`npm run ops:restore-drill` with `RESTORE_DRILL_CONFIRM=restore-disposable-target`): pending — run `RESTORE_DRILL_CONFIRM=restore-disposable-target BACKUP_FILE=<backup-file> ENV_FILE=.env.restore RESTORE_DRILL_BASE_URL=<restore-url> npm run ops:restore-drill`.
+- Restore target (must be disposable/non-production): pending — record target name/URL class and confirmation that it does not share production DATABASE_URL, Redis state, OAuth redirect credentials, or public DNS.
+- Restore drill report (`tmp/restore-drills/restore-drill-*.md` summary only): pending — copy redacted PASS/FAIL summary and report path; plan-only reports do not count.
+- Restore start/end time: pending — record UTC start/end timestamps from the drill.
+- Observed RPO: pending — calculate from backup timestamp to restore source point.
+- Observed RTO: pending — calculate from restore start to post-restore smoke PASS.
+- Post-restore `/readyz`: pending — record HTTP status/body summary from disposable target.
+- Post-restore sync smoke: pending — run beta smoke or sync smoke against the disposable target with a disposable account; no raw payloads.
+- Gaps found: pending — record `none` only after a completed restore drill review, otherwise list failed step, suspected cause, rollback/recreate action, and next retest command.
 
 ## Smoke-Level Performance Baseline
 
 Run `npm run qa:performance-smoke` against the beta host and copy p50/p95,
 budget status, status codes, and rate-limit header summaries from the generated
-`tmp/performance-smoke/performance-smoke-*.md` summary. If a metric is not
+tmp/performance-smoke/performance-smoke-\*.md summary. If a metric is not
 measured, write `not measured` and explain why.
 
-- Performance smoke command:
-- Performance smoke report:
-- Authenticated disposable account used for sync timing: yes/no/not available
+- Performance smoke command: pending — run `PERF_SMOKE_BASE_URL=<beta-url> PERF_SMOKE_ALLOWED_ORIGIN=<beta-url> PERF_SMOKE_DISPOSABLE_ACCOUNT_ACK=true npm run qa:performance-smoke` after setting `PERF_SMOKE_ACCESS_TOKEN` in the operator shell; leave latency caps unset for the first baseline unless a release owner has approved budgets.
+- Performance smoke report: pending — copy redacted tmp/performance-smoke/performance-smoke-\*.md summary with p50/p95, budget status, HTTP status codes, and rate-limit header summaries.
+- Authenticated disposable account used for sync timing: pending — record `yes` only for a disposable account with explicit acknowledgement; otherwise record why sync rows remain not measured.
 
 | Scenario                                |          p50 |          p95 | Budget status | Rate-limit headers | Notes              |
 | --------------------------------------- | -----------: | -----------: | ------------- | ------------------ | ------------------ |

@@ -12,8 +12,14 @@
 /* ── 기본 설정 ────────────────────────────────────────────────────────────── */
 :root {
   color-scheme: light dark;
-  font-family: 'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', -apple-system,
-    BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    'Pretendard Variable',
+    Pretendard,
+    'Apple SD Gothic Neo',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   font-synthesis: none;
   font-weight: 400;
   line-height: 1.58;
@@ -81,9 +87,17 @@ textarea {
   min-width: 0;
 }
 
+/* 브라우저·Mantine 기본 placeholder 회색은 라이트 surface에서 지나치게 옅다.
+   안내 문구도 작은 본문으로 읽을 수 있도록 앱의 AA muted 토큰을 사용한다. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--app-text-muted);
+  opacity: 1;
+}
+
 /* ── Selection ───────────────────────────────────────────────────────────── */
 ::selection {
-  background: rgba(99, 102, 241, 0.30);
+  background: rgba(99, 102, 241, 0.3);
   color: var(--app-text-primary, var(--mantine-color-text));
 }
 
@@ -93,7 +107,8 @@ textarea {
 
 /* ── Focus ───────────────────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--app-accent-primary, var(--mantine-primary-color-filled));
+  outline: 2px solid
+    var(--app-accent-primary, var(--mantine-primary-color-filled));
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -242,13 +257,16 @@ textarea {
 }
 
 body {
-  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  font-feature-settings:
+    'kern' 1,
+    'liga' 1,
+    'calt' 1;
 }
 
-[data-numeric="true"],
+[data-numeric='true'],
 .numeric {
   font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
+  font-feature-settings: 'tnum' 1;
 }
 
 /* ── 디스플레이 제목 — Studio (모던 산세리프) ───────────────────────────────
@@ -276,7 +294,9 @@ h2.mantine-Title-root {
 
 /* ── 포스터 hover — 절제된 표면 반응 (시네마 스케일 대신 차분한 lift) ──── */
 .poster-hover-scale {
-  transition: transform var(--wa-motion-fast), box-shadow var(--wa-motion-fast);
+  transition:
+    transform var(--wa-motion-fast),
+    box-shadow var(--wa-motion-fast);
 }
 
 .poster-hover-scale:hover {

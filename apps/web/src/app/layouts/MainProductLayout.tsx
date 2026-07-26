@@ -228,6 +228,7 @@ export function MainProductLayout() {
             {/* 모바일 버거 */}
             <Burger
               aria-label={t('navigation.openMenu')}
+              className={cn(css.mobileMenuButton)}
               hiddenFrom="md"
               onClick={mobileMenu.open}
               opened={mobileMenuOpened}

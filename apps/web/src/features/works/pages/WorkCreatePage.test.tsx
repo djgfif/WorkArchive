@@ -5,10 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ImportCandidate } from '@features/imports';
 import { AuthContext } from '@features/auth';
-import {
-  clearStoredAuthTokens,
-  writeStoredAuthTokens,
-} from '@features/auth';
+import { clearStoredAuthTokens, writeStoredAuthTokens } from '@features/auth';
 import { syncQueueRepository } from '@features/sync';
 import { renderWithProviders } from '@test/render-with-providers';
 import { workArchiveDbManager } from '../db/work-archive.db';
@@ -182,11 +179,11 @@ function renderAuthenticatedCreatePage() {
   );
 }
 
-function renderGuestCreatePage() {
+function renderGuestCreatePage(initialEntry = '/works/new') {
   workArchiveDbManager.switchToGuest();
 
   return renderWithProviders(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <AuthContext.Provider
         value={{
           archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
@@ -208,9 +205,7 @@ async function searchAndSelectCandidate(
   candidateTitle: string,
   options: { providerGroup?: 'manual' } = {},
 ) {
-  await user.click(
-    screen.getByLabelText('검색으로 채우기'),
-  );
+  await user.click(screen.getByLabelText('검색으로 채우기'));
 
   if (options.providerGroup === 'manual') {
     const manualProviderGroupButton = await waitFor(() => {
@@ -279,6 +274,15 @@ async function submitSelectedCandidate(
 }
 
 describe('WorkCreatePage', () => {
+  it('prefills the title from the home quick-capture query', () => {
+    renderGuestCreatePage('/works/new?title=The%20Left%20Hand%20of%20Darkness');
+
+    expect(screen.getByLabelText(/^제목$/)).toHaveValue(
+      'The Left Hand of Darkness',
+    );
+    expect(screen.getByText('상태 · 별점 · 감상 더하기')).toBeInTheDocument();
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -359,7 +363,8 @@ describe('WorkCreatePage', () => {
     );
     expect(await screen.findByText('임시저장됨')).toBeInTheDocument();
 
-    const backLink = document.querySelector<HTMLAnchorElement>('a[href="/works"]');
+    const backLink =
+      document.querySelector<HTMLAnchorElement>('a[href="/works"]');
 
     expect(backLink).not.toBeNull();
     await user.click(backLink!);

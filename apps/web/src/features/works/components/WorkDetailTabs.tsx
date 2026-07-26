@@ -28,7 +28,6 @@ interface WorkDetailTabsProps {
   contributorEntries: WorkDetailContributorEntry[];
   contributorValues: string[];
   latestTimelineItem: WorkDetailTimelineItem | null;
-  overviewSections?: ReactNode;
   personalTags: string[];
   progressLabel: string | null;
   progressSections?: ReactNode;
@@ -47,7 +46,6 @@ export function WorkDetailTabs({
   contributorEntries,
   contributorValues,
   latestTimelineItem,
-  overviewSections,
   personalTags,
   progressLabel,
   progressSections,
@@ -116,8 +114,6 @@ export function WorkDetailTabs({
               ]}
             />
           </SectionCard>
-
-          {overviewSections}
         </Stack>
       </Tabs.Panel>
 

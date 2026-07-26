@@ -209,7 +209,7 @@ function AccountSidebar({
   const { t } = useAppTranslation();
 
   return (
-    <Stack gap="sm">
+    <Stack className={cx(isMobile && styles.accountSidebarMobile)} gap="sm">
       <Box className={cn(styles.brandPanel)}>
         <BrandLink
           heading="Work Archive"
@@ -263,7 +263,7 @@ function AccountSidebar({
           aria-label={t('common.account')}
           className={cn(styles.navSection)}
         >
-          <Stack gap={2}>
+          <Stack className={cx(isMobile && styles.mobileNavList)} gap={2}>
             {accountNavigationItems.map((item) => (
               <AccountNavItem
                 end={item.to === '/account'}
@@ -276,11 +276,15 @@ function AccountSidebar({
           </Stack>
         </Box>
 
-        <Divider color="var(--app-border-subtle)" mx="sm" />
+        <Divider
+          className={cx(isMobile && styles.mobileSidebarDivider)}
+          color="var(--app-border-subtle)"
+          mx="sm"
+        />
 
         {/* 하단 액션 */}
         <Box className={cn(styles.footerSection)}>
-          <Stack gap={2}>
+          <Stack className={cx(isMobile && styles.mobileFooterList)} gap={2}>
             {/* 작품 목록으로 */}
             <AccountNavItem
               end={false}
@@ -337,9 +341,7 @@ function AccountNavItem({ end, icon, label, state, to }: AccountNavItemProps) {
   return (
     <AppNavLink end={end} fullWidth state={state} to={to}>
       <Group gap="sm" wrap="nowrap">
-        <Box className={cn(styles.navIcon)}>
-          {icon}
-        </Box>
+        <Box className={cn(styles.navIcon)}>{icon}</Box>
         {label}
       </Group>
     </AppNavLink>

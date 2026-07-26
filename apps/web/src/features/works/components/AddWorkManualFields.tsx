@@ -1,8 +1,9 @@
-import type { RefObject } from 'react';
-import { Grid, Stack } from '@mantine/core';
+import type { ReactNode, RefObject } from 'react';
+import { Grid, Stack, Text } from '@mantine/core';
 
+import { useAppTranslation } from '@app/i18n';
 import { AdvancedWorkFields } from './AdvancedWorkFields';
-import { CoreWorkFields } from './CoreWorkFields';
+import { CoreWorkFields, OptionalCoreWorkFields } from './CoreWorkFields';
 import { PersonalRecordFields } from './PersonalRecordFields';
 import { QuickCapturePreview } from './QuickCapturePreview';
 import {
@@ -11,6 +12,9 @@ import {
   type WorkFormListFieldName,
 } from './add-work-form.types';
 import type { WorkFormValues } from '../utils/work-form';
+import styles from './ArchiveComponents.module.css';
+
+const css = styles;
 
 interface ManualFieldControls {
   onInputChange: WorkFormInputChangeHandler;
@@ -27,10 +31,12 @@ interface ManualFieldControls {
 interface AddWorkManualFieldsProps extends ManualFieldControls {
   duplicateCount: number;
   isDialog: boolean;
+  primaryActions?: ReactNode;
   sourceLabel: string | null;
 }
 
 function CoreFields({
+  compact = false,
   onInputChange,
   onTextListChange,
   titleError,
@@ -38,10 +44,15 @@ function CoreFields({
   values,
 }: Pick<
   ManualFieldControls,
-  'onInputChange' | 'onTextListChange' | 'titleError' | 'titleInputRef' | 'values'
->) {
+  | 'onInputChange'
+  | 'onTextListChange'
+  | 'titleError'
+  | 'titleInputRef'
+  | 'values'
+> & { compact?: boolean }) {
   return (
     <CoreWorkFields
+      compact={compact}
       error={titleError}
       idPrefix="manual"
       onChange={onInputChange}
@@ -118,7 +129,10 @@ function CapturePreview({
   duplicateCount,
   sourceLabel,
   values,
-}: Pick<AddWorkManualFieldsProps, 'duplicateCount' | 'sourceLabel' | 'values'>) {
+}: Pick<
+  AddWorkManualFieldsProps,
+  'duplicateCount' | 'sourceLabel' | 'values'
+>) {
   return (
     <QuickCapturePreview
       duplicateCount={duplicateCount}
@@ -131,9 +145,12 @@ function CapturePreview({
 export function AddWorkManualFields({
   duplicateCount,
   isDialog,
+  primaryActions,
   sourceLabel,
   ...fieldControls
 }: AddWorkManualFieldsProps) {
+  const { t } = useAppTranslation();
+
   if (isDialog) {
     return (
       <Grid align="start" gap="md">
@@ -154,10 +171,15 @@ export function AddWorkManualFields({
   return (
     <Stack gap="xl">
       <Grid align="start" gap="xl">
-        <Grid.Col span={{ base: 12, md: 8 }}>
-          <CoreFields {...fieldControls} />
+        <Grid.Col order={{ base: 1, md: 1 }} span={{ base: 12, md: 8 }}>
+          <CoreFields compact {...fieldControls} />
         </Grid.Col>
-        <Grid.Col span={{ base: 12, md: 4 }}>
+        {primaryActions && (
+          <Grid.Col order={{ base: 2, md: 3 }} span={{ base: 12, md: 8 }}>
+            {primaryActions}
+          </Grid.Col>
+        )}
+        <Grid.Col order={{ base: 3, md: 2 }} span={{ base: 12, md: 4 }}>
           <CapturePreview
             duplicateCount={duplicateCount}
             sourceLabel={sourceLabel}
@@ -166,8 +188,28 @@ export function AddWorkManualFields({
         </Grid.Col>
       </Grid>
 
-      <PersonalFields {...fieldControls} />
-      <AdvancedFields {...fieldControls} />
+      <details className={css.addWorkDisclosure ?? ''}>
+        <summary>
+          <span>
+            <Text component="span" fw={800}>
+              {t('works.add.optionalFieldsTitle')}
+            </Text>
+            <Text c="dimmed" component="span" size="sm">
+              {t('works.add.optionalFieldsDescription')}
+            </Text>
+          </span>
+        </summary>
+        <Stack gap="xl" mt="lg">
+          <OptionalCoreWorkFields
+            idPrefix="manual"
+            onChange={fieldControls.onInputChange}
+            onTextListChange={fieldControls.onTextListChange}
+            values={fieldControls.values}
+          />
+          <PersonalFields {...fieldControls} />
+          <AdvancedFields {...fieldControls} />
+        </Stack>
+      </details>
     </Stack>
   );
 }

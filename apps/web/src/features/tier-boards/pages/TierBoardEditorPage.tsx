@@ -66,13 +66,13 @@ export function TierBoardEditorPage() {
   const { t } = useAppTranslation();
   const { boardId } = useParams();
   const controller = useTierBoardEditorController(boardId);
-  usePageTitle(controller.editorState?.board.title ?? t('tierBoards.editor.pageTitle'));
+  usePageTitle(
+    controller.editorState?.board.title ?? t('tierBoards.editor.pageTitle'),
+  );
 
   if (!boardId || !controller.editorState) {
     return (
-      <FeedbackMessage tone="info">
-        {t('tierBoards.loading')}
-      </FeedbackMessage>
+      <FeedbackMessage tone="info">{t('tierBoards.loading')}</FeedbackMessage>
     );
   }
 
@@ -153,7 +153,7 @@ export function TierBoardEditorPage() {
                   editorState.board.visibility === 'exported' ? 'info' : 'muted'
                 }
               >
-                {editorState.board.visibility}
+                {t(`tierBoards.visibility.${editorState.board.visibility}`)}
               </AppBadge>
             </Group>
             <Text c="dimmed" size="sm">
@@ -170,7 +170,10 @@ export function TierBoardEditorPage() {
               aria-label={t('tierBoards.editor.titleDisplayAria')}
               className={cn(css.toolbarSegment)}
               data={[
-                { label: t('tierBoards.editor.titleVisible'), value: 'visible' },
+                {
+                  label: t('tierBoards.editor.titleVisible'),
+                  value: 'visible',
+                },
                 { label: t('tierBoards.editor.titleHidden'), value: 'hidden' },
               ]}
               onChange={(value) =>

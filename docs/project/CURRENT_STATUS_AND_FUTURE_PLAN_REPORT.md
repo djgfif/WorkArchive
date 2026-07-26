@@ -1,18 +1,18 @@
 # CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md
 
-| Field                 | Value                                                                                                                                                                                                                                                                     |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status                | `canonical`                                                                                                                                                                                                                                                               |
-| Role                  | `current reality`                                                                                                                                                                                                                                                         |
-| Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests |
-| Last verified against | `2026-07-01` root `security:public`, `check:docs-links`, `lint`, `typecheck`, `test`, `build`, web feature boundary check, web import cycle check, web Playwright E2E after mobile Add Work footer overlap fix and mobile drawer navigation regression, Settings provider readiness polish, Quick Add source coverage/fallback regressions, auto-sync conflict queue safety regression, guest auto-sync boundary regression, offline import-search QA with live-smoke matrix contract/manifest, sync-load dry-run, Docker runtime preflight self-test, and Docker runtime preflight BLOCKED report. |
-| When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                          |
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `canonical`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Role                  | `current reality`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests                                                                                                                                                                                                                                |
+| Last verified against | `2026-07-03` core local repository gates, Settings data-safety/account-backup polish, Settings sync recovery assistant with cause filters, Home guest onboarding copy, Guest transfer review safeguards, Settings security i18n cleanup, Tier Board private-first UI cleanup, Gate 1 evidence classification, Add Work MSW warning cleanup, and Redis rate-limit test mock cleanup. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
+| When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
 
 ## 1. Snapshot
 
-Sync policy correction: current code supports the manual Sync page plus limited automatic sync for authenticated users. `useAutoSync` runs pull on account archive activation and browser focus/online events, and runs debounced push after `syncQueue` changes. Narrow safe auto-merge is implemented for same-entity/non-delete collisions where scalar fields still match; overlapping scalar conflict merge and advanced multi-device policy remain unimplemented.
+Sync policy correction: current code supports the Settings account backup control surface plus limited automatic sync for authenticated users. `useAutoSync` runs pull on account archive activation and browser focus/online events, and runs debounced push after `syncQueue` changes. Narrow safe auto-merge is implemented for same-entity/non-delete collisions where scalar fields still match; overlapping scalar conflict merge and advanced multi-device policy remain unimplemented.
 
 - Work Archive는 작품 감상 기록을 관리하는 local-first 웹 서비스다.
 - 프론트는 IndexedDB를 1차 저장소로 쓰고, 로그인 시 계정별 로컬 아카이브로 전환한다.
@@ -21,7 +21,8 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 - Quick Add는 현재 `modal-first direct manual add + optional-auth server-assisted search + local-first save` 규칙으로 동작한다.
 - Quick Add matched/unmatched/manual 저장 규칙과 duplicate detection 우선순위는 테스트로 고정돼 있다.
 - Quick Add 검색은 diagnostics, normalization, merge/dedupe, ranking, sourceCoverage를 갖추고 manual fallback을 일반 검색 결과에서 분리한다.
-- 현재 sync는 수동 Sync page와 로그인 상태의 제한적 자동 sync를 함께 지원한다.
+- 현재 sync는 Settings 계정 백업 섹션과 로그인 상태의 제한적 자동 sync를 함께 지원한다.
+- Settings는 로컬 IndexedDB 원본, 자동 JSON 폴더 백업, 계정 백업/sync 상태, 원인별 sync recovery assistant, 서버 데이터 export/delete 계열 작업을 분리해 설명한다.
 - `Tier Boards`는 작품 기록과 분리된 독립 보드 기능이다. `Insights`는 개인 기록 기반의 비공개 통계 화면으로 노출한다. `Community`는 현재 구현/노출 범위 밖이며 `/community`는 호환 redirect만 유지한다.
 
 ## 2. Verified Stack
@@ -62,13 +63,13 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 
 ### 3-2. Current Routes
 
-| Area                    | Routes                                                                                   | Current state                                                       |
-| ----------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Area                    | Routes                                                                                                                                                       | Current state                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
 | Main product            | `/`, `/works`, `/works/new`, `/works/:id`, `/works/:id/edit`, `/insights`, `/tier-boards`, `/tier-boards/:boardId`, `/tier-boards/:boardId/view`, `/profile` | 홈/작품/개인 인사이트 흐름과 독립 티어보드 기능                     |
-| Compatibility redirects | `/community`, `/sync`, `/settings`, `/profile/sync`, `/profile/settings`, `/account/sync` | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트             |
-| Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                        | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
-| Account                 | `/account`, `/account/transfer`, `/account/settings`                                      | 계정 개요, guest review, 설정 흐름 구현                             |
-| Minimal                 | `*`                                                                                      | 404 처리                                                            |
+| Compatibility redirects | `/community`, `/sync`, `/settings`, `/profile/sync`, `/profile/settings`, `/account/sync`                                                                    | 현재 노출하지 않는 경로를 기존 안전 목적지로 리다이렉트             |
+| Auth                    | `/auth/login`, `/auth/register`, `/auth/google/*`                                                                                                            | Google OAuth 중심 인증 구현. legacy 이메일/비밀번호 경로는 비활성화 |
+| Account                 | `/account`, `/account/transfer`, `/account/settings`                                                                                                         | 계정 개요, guest review, 설정/data safety 흐름 구현                 |
+| Minimal                 | `*`                                                                                                                                                          | 404 처리                                                            |
 
 ### 3-3. Current User Flows
 
@@ -77,7 +78,7 @@ Sync policy correction: current code supports the manual Sync page plus limited 
 - Works / Work Create: `/works`에서는 `AddWorkDialog`로 작품 추가를 열고, `/works/new`는 같은 `QuickAddWorkForm` 흐름을 page fallback으로 제공한다. `직접 입력 -> 저장`이 기본 경로이며, `검색 -> 후보 선택 -> 입력 채우기 -> 개인 기록 확인 -> 저장`은 같은 dialog/page 안의 보조 흐름이다.
 - Work Detail / Edit: 감상 기록 확인과 수정
 - Auth: Google OAuth 로그인 / 세션 복구. legacy 회원가입/이메일 로그인은 비활성화
-- Account: sync, 설정, guest 기록 검토/선택 import
+- Account: sync, 설정/data safety, guest 기록 검토/선택 import
 
 ### 3-4. Local Storage Model
 
@@ -269,14 +270,14 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - duplicate detection 우선순위: `catalogTitleId -> externalRefs -> title fallback`
 - 개인 태그 입력/표시/목록 검색·필터/export/import/sync payload 보존
 - Dexie v7 works scope index와 active/trash scope-first 목록 조회
-- Settings의 local archive JSON export/import, dry-run import preview, CSV export
+- Settings의 local archive JSON export/import, dry-run import preview, CSV export, 자동 폴더 백업 상태, 계정 백업/sync 상태 요약과 원인별 recovery assistant
 - JSON export schema/source/exclusion metadata와 CSV export 컬럼 계약
 - Dexie v9 timeline entry 저장 모델, Work Detail manual timeline add/delete, JSON export/import timeline 보존, optional account sync parity
 - Data Ownership 정책: `appMeta`는 export metadata로만 다루고, `syncQueue`, auth token, refresh token, API key, Aladin TTBKey는 백업/복원 대상에서 제외
 - 개인 기록 기반 Insights 기본 집계와 개인 태그 상위 집계
 - 계정 설정의 Aladin 키 저장/삭제
 - `/imports/providers` 기반 provider readiness 조회와 Settings의 ready / user key required / server setup required / paused 상태 요약 UI/테스트
-- SyncPage pending / failed / conflict queue item 표시, 상태별 설명, 원인 표시, 기록 보기, 재시도 CTA
+- Settings 계정 백업 섹션의 pending / failed / conflict queue item 표시, 상태별 설명, 원인별 복구 그룹, 기록 보기, 재시도 CTA
 - failed sync item의 인증/네트워크/conflict/server validation/server error 원인 분류
 - Sync conflict 원격 스냅샷 보존과 로컬 유지 / 원격 적용 / 필드별 병합 기본 해결 UX
 - Sync safe auto-merge: work taxonomy(`genres`, `personalTags`), contributor/series aliases, release/timeline/graph/tier-board server metadata refresh를 동일 entity/parent와 동일 scalar 조건에서만 병합하고 재시도 queue로 되돌림
@@ -376,21 +377,26 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 ### Current Verification Status
 
-- `npm run check:docs-links`: `2026-07-01` 통과 확인
-- `npm run lint`: `2026-07-01` 통과 확인
-- `npm run typecheck`: `2026-07-01` 통과 확인
-- `npm run test`: `2026-07-01` 기준 API `92` suites / `770` tests,
-  web `62` files / `402` tests, shared-types `2` files / `6` tests 통과 확인
-- `npm run build --workspace @work-archive/web`: `2026-07-01` 통과 확인
-- `npm run test:e2e:web`: `2026-07-01` 기준 chromium/mobile-chrome
-  Playwright `17` passed / `3` skipped 확인. mobile Add Work footer overlap,
-  mobile drawer navigation, 320px overflow, Settings provider readiness,
-  Quick Add source coverage 표시, 검색 실패 직접 추가 fallback 회귀를 포함한다.
-  stale dev server가 기본
-  포트에 남아 있을 때는 `WEB_E2E_PORT=<free-port> npm run test:e2e:web`로
-  fresh Vite 서버를 띄울 수 있다. 이 Codex sandbox 안에서는 Vite가
-  `127.0.0.1:18730` listen 시 `EPERM`으로 실패하므로, 실제 확인은
-  sandbox 밖 실행으로 수행했다.
+- `npm run check:docs-links`: `2026-07-03` 문서 링크 갱신 후 통과 확인
+- `npm run lint`: `2026-07-03` 통과 확인
+- `npm run typecheck`: `2026-07-03` 통과 확인
+- `npm run test`: `2026-07-03` 기준 API `92` suites / `770` tests,
+  web `63` files / `407` tests, shared-types `2` files / `6` tests 통과 확인
+- `npm run build`: `2026-07-03` 기준 shared-types `tsc`, API `tsc`, web Vite production build 통과 확인
+- `npm run test:e2e:web`: `2026-07-03` 기준 `WEB_E2E_PORT=19999`로
+  chromium/mobile-chrome Playwright `19` passed / `3` skipped 확인. mobile Add
+  Work footer overlap, mobile drawer navigation, 320px overflow, Settings
+  provider readiness, Quick Add source coverage 표시, 검색 실패 직접 추가
+  fallback 회귀를 포함한다. API가 같이 뜨지 않은 로컬 Vite 단독 실행에서는
+  `/api/auth/refresh` proxy `ECONNREFUSED` 경고가 예상되며 테스트는 guest
+  fallback 경로로 통과한다. stale dev server가 기본 포트에 남아 있을 때는
+  `WEB_E2E_PORT=<free-port> npm run test:e2e:web`로 fresh Vite 서버를 띄울 수
+  있다.
+- Tier Board private-first UI visual check: `2026-07-03` 기준 임시 Playwright
+  chromium 검증으로 설정 모달이 `보관 상태`, `비공개`, `로컬 내보냄`을 표시하고
+  raw `private` enum과 `링크 공유` 선택지를 노출하지 않음을 확인했다. 스크린샷은
+  `output/playwright/tier-board-private-state.png`에 남겼고, 이 경로는 추적하지
+  않는다.
 - `npm run qa:import-search`: `2026-07-01` 기준 offline static fixtures,
   canonical matrix `28` cases, live smoke `6` cases / credential-free
   provider-quality media types `3`, live-smoke manifest, matrix shape,
@@ -416,17 +422,17 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - shared UI primitives가 생기고 있지만 `var(--accent)`류 직접 참조와 커스텀 클래스 조합 의존이 여전히 크다.
 - 과거 placeholder 성격이던 Tier Boards는 독립 보드 기능으로 구현됐고, Community는 라우트 호환 redirect만 유지한다. 남은 프론트 부채는 placeholder보다 스타일 책임과 QA 증적 고도화 쪽에 가깝다.
 - 직접 수동 추가, `/works` AddWorkDialog, `/works/new` fallback, guest no-key provider 검색, ranking/search quality 기본 구현/테스트는 들어갔다. 남은 일은 provider별 live 검색어 QA와 모바일/브라우저 QA 고도화다.
-- Quick Add provider readiness UI, Settings provider readiness summary, duplicate policy, SearchPickerPanel 기반 inline 검색 흐름의 기본 구현/테스트는 들어갔다.
+- Quick Add provider readiness UI, Settings provider readiness/data-safety/account-backup summary, duplicate policy, SearchPickerPanel 기반 inline 검색 흐름의 기본 구현/테스트는 들어갔다.
 - Quick Add 저장은 현재 제품 기준에서 의도적으로 local-first sync 경로를 유지한다. authenticated direct create path는 기본 생성 경로가 아니다.
 
 ### 7-2. Product UX
 
-Sync UX reality: sync is not manual-only anymore. The manual Sync page remains the explicit user-facing control surface, while authenticated users also get limited automatic pull/push behavior from `useAutoSync`. Narrow safe auto-merge can requeue safe taxonomy/alias/metadata-only cases; unsafe conflict items are resolved on SyncPage.
+Sync UX reality: sync is not manual-only anymore. The Settings account backup section is the explicit user-facing control surface, while authenticated users also get limited automatic pull/push behavior from `useAutoSync`. Narrow safe auto-merge can requeue safe taxonomy/alias/metadata-only cases; unsafe conflict items are resolved from Settings.
 
 - 게스트와 계정 아카이브는 분리되어 있고, 현재는 로그인 직후 review/import 단계까지만 제공된다.
-- sync는 수동 Sync page를 기본 조작면으로 제공하고, 로그인 상태에서는 제한적 자동 pull/push도 수행한다.
-- SyncPage는 pending / failed / conflict queue item 단위 상태와 원인, 기록 보기, 재시도 CTA를 제공한다.
-- SyncPage는 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지, 원격 적용, 필드별 병합으로 해결할 수 있다. 좁은 safe auto-merge는 자동 처리되지만, overlapping scalar 편집과 delete/update collision은 후속 수동 검토로 남긴다.
+- sync는 Settings 계정 백업 섹션을 기본 조작면으로 제공하고, 로그인 상태에서는 제한적 자동 pull/push도 수행한다.
+- Settings 계정 백업 섹션은 pending / failed / conflict queue item 단위 상태와 원인별 복구 그룹, 기록 보기, 재시도 CTA를 제공한다.
+- Settings 계정 백업 섹션은 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지, 원격 적용, 필드별 병합으로 해결할 수 있다. 좁은 safe auto-merge는 자동 처리되지만, overlapping scalar 편집과 delete/update collision은 후속 수동 검토로 남긴다.
 - auto sync push는 conflict queue item을 자동 전송하지 않고 수동 검토 대상으로 남긴다.
 - guest local-first write는 자동 pull/push를 시작하지 않고 로그인 archive와 분리된다.
 - Profile과 Insights는 개인 기록 요약/통계로 제한한다. Tier Boards는 독립 기능으로 유지한다. Community는 현재 visible surface가 아니며 `/community`는 작품 목록으로 리다이렉트한다.
@@ -438,7 +444,7 @@ Sync UX reality: sync is not manual-only anymore. The manual Sync page remains t
 - sync create path는 `catalogTitleId -> importDraft -> legacy fallback` 순서로 테스트 고정돼 있다. `importDraft.catalogTitle`은 optional legacy-compatible field이며, 없으면 `payload.title`로 fallback한다.
 - 장기적으로 sync create와 Quick Add import 흐름은 `Works` compatibility layer에서 더 멀어져야 한다.
 - access token은 memory-first로 관리되며 브라우저 `localStorage`/`sessionStorage`에 지속 저장하지 않는다.
-- 공개 레이어, 세션/디바이스 관리, 공개 데이터 권한 분리 같은 확장 전 과제는 아직 남아 있다.
+- public/community/share hosted surface는 Gate 1 범위 밖으로 남아 있다. Tier Board의 link_only enum은 future-reserved 상태로 유지하지만 사용자 설정 UI에서는 선택지로 노출하지 않는다. 남은 운영 과제는 public boundary 비노출 증거, 세션/디바이스 관리 고도화, production cookie/origin/secret 운영 검증이다.
 
 ## 8. Where To Read Next
 

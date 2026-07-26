@@ -386,6 +386,76 @@ function InsightsContent({ insights }: { insights: PersonalInsights }) {
   );
 }
 
+function LowDataInsights({ insights }: { insights: PersonalInsights }) {
+  const { t } = useAppTranslation();
+  const targetCount = 5;
+  const remainingCount = Math.max(0, targetCount - insights.totalWorks);
+  const progress = Math.min(100, (insights.totalWorks / targetCount) * 100);
+
+  return (
+    <Paper className={cn(css.lowDataPanel)} p="xl" radius="md" withBorder>
+      <Stack gap="xl">
+        <Stack gap="sm">
+          <Group align="flex-end" justify="space-between" wrap="wrap">
+            <Stack gap={4}>
+              <Text c="dimmed" fw={800} size="xs">
+                {t('insights.lowData.progress', {
+                  current: formatCount(insights.totalWorks),
+                  target: formatCount(targetCount),
+                })}
+              </Text>
+              <Title order={2}>{t('insights.lowData.title')}</Title>
+              <Text c="dimmed">
+                {t('insights.lowData.description', {
+                  count: formatCount(remainingCount),
+                })}
+              </Text>
+            </Stack>
+            <Text className={cn(css.lowDataCount)}>
+              {formatCount(insights.totalWorks)}
+              <span> / {formatCount(targetCount)}</span>
+            </Text>
+          </Group>
+          <Box
+            aria-label={t('insights.lowData.progressAria', {
+              current: formatCount(insights.totalWorks),
+              target: formatCount(targetCount),
+            })}
+            aria-valuemax={targetCount}
+            aria-valuemin={0}
+            aria-valuenow={insights.totalWorks}
+            className={cn(css.lowDataProgress)}
+            role="progressbar"
+          >
+            <Box
+              className={cn(css.lowDataProgressFill)}
+              style={{ width: `${progress}%` }}
+            />
+          </Box>
+        </Stack>
+
+        <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
+          <AppLinkButton to="/works/new" tone="primary">
+            {t('insights.lowData.addWork')}
+          </AppLinkButton>
+          <AppLinkButton to="/works?rating=unrated" tone="secondary">
+            {t('insights.lowData.addRating')}
+          </AppLinkButton>
+          <AppLinkButton to="/works" tone="quiet">
+            {t('insights.lowData.reviewArchive')}
+          </AppLinkButton>
+        </SimpleGrid>
+
+        <RecentWorksList
+          emptyLabel={t('insights.recentAddedEmpty')}
+          title={t('insights.lowData.recentTitle')}
+          works={insights.recentlyAddedWorks.slice(0, 3)}
+        />
+      </Stack>
+    </Paper>
+  );
+}
+
 export function PersonalInsightsPage() {
   const { t } = useAppTranslation();
   usePageTitle(t('insights.pageTitle'));
@@ -468,17 +538,18 @@ export function PersonalInsightsPage() {
         titleOrder={1}
       />
 
-      <YearInReviewModal
-        onClose={() => setYearOpen(false)}
-        opened={yearOpen}
-      />
+      <YearInReviewModal onClose={() => setYearOpen(false)} opened={yearOpen} />
 
       <PageSection
         description={t('insights.summaryDescription')}
         divider={false}
         title={t('insights.summaryTitle')}
       >
-        <InsightsContent insights={insights} />
+        {insights.totalWorks < 5 ? (
+          <LowDataInsights insights={insights} />
+        ) : (
+          <InsightsContent insights={insights} />
+        )}
       </PageSection>
     </PageShell>
   );

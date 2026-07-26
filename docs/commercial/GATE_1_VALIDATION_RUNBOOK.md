@@ -5,11 +5,30 @@ Last updated: 2026-06-28
 Gate 1 evidence must be copied from commands that actually ran. Leave an item
 `not run`, `blocked`, or `manual` when the required environment is unavailable.
 
+## Evidence Classification
+
+Use the same A/B/C classification as
+[`PUBLIC_BETA_GATE_1_EVIDENCE.md`](./PUBLIC_BETA_GATE_1_EVIDENCE.md):
+
+- `A`: code or script work that can be resolved and re-run locally in this
+  repository.
+- `B`: documentation, runbook, or evidence-template clarity that can be fixed
+  locally but does not prove the external system.
+- `C`: evidence that requires a beta host, GitHub Settings access, release
+  runner, restore target, monitoring stack, or disposable authenticated account.
+
+Do not convert a `C` item to PASS from repository files alone. A local dry-run,
+syntax check, or policy validator can prove that the automation is wired, but
+the ledger must still show the external item as pending until the real command
+or manual setting check ran in the named environment.
+
 ## Operator Checklist
 
 - Expert feedback scope: run the accepted search, sync, API-boundary, and
-  operational evidence gates below. Do not treat mobile, Tauri, i18n, public
-  community, social recommendation, or open-source licensing as Gate 1 blockers.
+  operational evidence gates below. Do not treat mobile, Tauri, new locale
+  expansion, public community, social recommendation, or open-source licensing
+  as Gate 1 blockers. Existing enabled locale integrity remains a local
+  repository gate through the i18n checks below.
 - Release runner security scans: run `npm run security:audit:prod`,
   `npm run security:audit`, `npm run security:scan:fs`, and
   `npm run security:scan:images` with immutable image refs; record only tool
@@ -78,6 +97,11 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
    npm run qa:gate1:local
    ```
 
+   The local helper also runs the enabled-locale i18n gates (`check:web-i18n`,
+   `check:web-i18n-resources`, and `check:web-i18n-packs`). These are required
+   because Korean UI copy and reviewed locale resources are part of the current
+   public beta surface even when new locale expansion is out of scope.
+
    For CI and faster local release-candidate checks,
    `npm run qa:commercial:repo` validates the repository-verifiable commercial
    artifacts: deployment script syntax, migration risk registration,
@@ -127,7 +151,7 @@ Gate 1 evidence must be copied from commands that actually ran. Leave an item
    ```
 
 10. On the beta host, run the commercial beta rehearsal, or run production env
-   preflight and beta smoke as targeted reruns.
+    preflight and beta smoke as targeted reruns.
 11. After monitoring deployment, run `npm run qa:monitoring` against the real
     Prometheus/Grafana endpoints.
 12. With GitHub Settings access, verify branch protection, required checks,
@@ -160,8 +184,9 @@ npm run qa:gate1:local
 ```
 
 It runs local/repository-verifiable checks such as `npm ci`,
-`npm run security:public`, docs links, lint, typecheck, tests, e2e, build,
-script syntax checks, Prisma migration safety, Gate 1 evidence placeholder
+`npm run security:public`, docs links, i18n hardcoding/resource/pack parity,
+lint, typecheck, tests, e2e, build, script syntax checks, Prisma migration
+safety, Gate 1 evidence placeholder
 detection in non-strict mode, offline import/search QA, sync load dry-run,
 performance smoke dry-run, monitoring evidence dry-run, Docker runtime preflight
 report generation, and Docker compose config only when Docker and `.env.prod`
@@ -254,6 +279,39 @@ BETA_BASE_URL=<beta-url> scripts/deploy/beta-smoke.sh
 The public unauthenticated `/metrics` result must remain `404`. If metrics are
 enabled for an internal collector, verify the bearer-token path only from the
 reviewed internal network path and never commit the token.
+
+Preferred full rehearsal:
+
+```bash
+BETA_BASE_URL=<beta-url> \
+EXPECT_GOOGLE_OAUTH_CONFIGURED=true \
+scripts/deploy/commercial-beta-rehearsal.sh .env.prod
+```
+
+Evidence packet to copy into the ledger:
+
+- preflight command, timestamp, release commit, and PASS/FAIL;
+- migration command and status from the `api-migrate` release profile;
+- API/web startup status and any rollback command used;
+- beta smoke command and PASS/FAIL;
+- HTTP status and `Cache-Control` summary for `/health`, `/livez`, `/readyz`,
+  and normal `/api/*` no-store checks;
+- public unauthenticated `/metrics` status, expected `404`;
+- internal collector `/metrics` status, expected `200` only from the reviewed
+  internal path when metrics are enabled;
+- OAuth start cookie attribute summary for `HttpOnly`, `Secure`,
+  `SameSite=Lax`, and `Path=/api/auth/google`;
+- auth refresh/login/logout smoke result without tokens or cookies;
+- provider readiness and import fallback result;
+- authenticated disposable-account sync push/pull and conflict review smoke.
+
+If beta preflight fails, stop before starting or migrating the stack unless the
+release owner explicitly decides otherwise. If migration or startup fails after
+the stack changes, run the documented rollback or previous-image redeploy for
+that host, then record the failed step and rollback command in the ledger. If
+beta smoke fails, keep the deployment out of public beta approval, capture only
+redacted summary lines, and triage by failing family: health/readiness,
+headers/cache, auth/OAuth, metrics exposure, provider readiness, or sync.
 
 ## Metrics, Alerts, SLOs, And Dashboard
 
@@ -544,6 +602,13 @@ Copy only the redacted summaries from `tmp/backups/prod-backup-*.md`,
 `tmp/backups/prod-backup-verify-*.md`, and
 `tmp/restore-drills/restore-drill-*.md` into the evidence ledger.
 
+Approval evidence requires a confirmed restore report, not a plan-only report.
+The restored target must be disposable and must not share production
+`DATABASE_URL`, Redis state, OAuth redirect credentials, or public DNS. If
+restore verification fails, do not retry against production. Recreate or replace
+the disposable target, keep the failed restore report, and record the failing
+step, suspected cause, and next retest command in the ledger.
+
 ## What Must Not Be Committed
 
 - Secrets, access tokens, OAuth codes, cookies, provider keys, or `.env.prod`.
@@ -561,5 +626,6 @@ committing summaries and never commit raw live responses.
 
 Keep `PUBLIC_BETA_GATE_1_EVIDENCE.md` as the human operator ledger. Copy only
 observed command summaries from generated reports and operational runs. Do not
-change `Status: no public beta evidence recorded yet` until a real public beta
-release-candidate evidence run is complete.
+change the top-level `Status: partial` to a release-ready status until
+`GATE1_EVIDENCE_STRICT=true npm run qa:gate1:evidence` passes on the filled
+ledger and the approver records the final decision.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { WorkRecord, WorkType } from '@work-archive/shared-types';
 
 import { worksRepository } from '@features/works';
@@ -9,6 +9,7 @@ export interface YearInReview {
   averageRating: number | null;
   topWorks: WorkRecord[];
   topGenre: { count: number; genre: string } | null;
+  monthlyCompletedCounts: number[];
   typeBreakdown: Array<{ count: number; type: WorkType }>;
   busiestMonth: { count: number; month: number } | null;
 }
@@ -83,6 +84,7 @@ export function computeYearInReview(
             (getCompletionDate(left)?.getTime() ?? 0),
       )
       .slice(0, 3),
+    monthlyCompletedCounts: monthBuckets,
     topGenre: topGenreEntry
       ? { count: topGenreEntry[1], genre: topGenreEntry[0] }
       : null,
@@ -96,37 +98,112 @@ export function computeYearInReview(
   };
 }
 
+export interface YearInReviewComparison {
+  averageRatingDelta: number | null;
+  completedDelta: number;
+  previous: YearInReview;
+}
+
+export function getYearInReviewYears(
+  works: WorkRecord[],
+  fallbackYear: number,
+) {
+  const years = new Set<number>();
+
+  for (const work of works) {
+    if (work.deletedAt !== null || work.status !== 'completed') {
+      continue;
+    }
+
+    const completionDate = getCompletionDate(work);
+
+    if (completionDate) {
+      years.add(completionDate.getFullYear());
+    }
+  }
+
+  if (years.size === 0) {
+    years.add(fallbackYear);
+  }
+
+  return [...years].sort((left, right) => right - left);
+}
+
+export function computeYearInReviewComparison(
+  works: WorkRecord[],
+  year: number,
+  availableYears = getYearInReviewYears(works, year),
+): YearInReviewComparison | null {
+  const previousYear = availableYears.find((candidate) => candidate < year);
+
+  if (previousYear === undefined) {
+    return null;
+  }
+
+  const current = computeYearInReview(works, year);
+  const previous = computeYearInReview(works, previousYear);
+
+  return {
+    averageRatingDelta:
+      current.averageRating !== null && previous.averageRating !== null
+        ? current.averageRating - previous.averageRating
+        : null,
+    completedDelta: current.completedCount - previous.completedCount,
+    previous,
+  };
+}
+
 /**
  * 로컬 아카이브로 계산하는 "올해의 결산" — 외부 호출 없이 IndexedDB 만으로.
  * Letterboxd Year in Review / Spotify Wrapped 패턴.
  */
 export function useYearInReview(year = new Date().getFullYear()) {
-  const [data, setData] = useState<YearInReview | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [works, setWorks] = useState<WorkRecord[] | null>(null);
 
   useEffect(() => {
     let active = true;
-    setIsLoading(true);
 
     worksRepository
       .listActive()
-      .then((works) => {
+      .then((records) => {
         if (active) {
-          setData(computeYearInReview(works, year));
-          setIsLoading(false);
+          setWorks(records);
         }
       })
       .catch(() => {
         if (active) {
-          setData(computeYearInReview([], year));
-          setIsLoading(false);
+          setWorks([]);
         }
       });
 
     return () => {
       active = false;
     };
-  }, [year]);
+  }, []);
 
-  return { data, isLoading };
+  const availableYears = useMemo(
+    () => (works ? getYearInReviewYears(works, year) : [year]),
+    [works, year],
+  );
+  const effectiveYear = availableYears.includes(year)
+    ? year
+    : (availableYears[0] ?? year);
+  const data = useMemo(
+    () => (works ? computeYearInReview(works, effectiveYear) : null),
+    [effectiveYear, works],
+  );
+  const comparison = useMemo(
+    () =>
+      works
+        ? computeYearInReviewComparison(works, effectiveYear, availableYears)
+        : null,
+    [availableYears, effectiveYear, works],
+  );
+
+  return {
+    availableYears,
+    comparison,
+    data,
+    isLoading: works === null,
+  };
 }

@@ -42,7 +42,7 @@ export function SyncSafetyBadge() {
   return (
     <AppLinkButton
       aria-label={t('sync.badgeAria', { label: state.label })}
-      size="compact-xs"
+      size="compact-sm"
       to={state.to}
       tone={state.tone}
     >

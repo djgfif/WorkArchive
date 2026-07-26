@@ -1,12 +1,12 @@
 # Public Feature Permission Boundary
 
-| Field | Value |
-| --- | --- |
-| Status | `canonical` |
-| Role | `default-private public feature boundary` |
-| Source of truth | current API routes, Prisma visibility enums, BOLA matrix, commercial Gate 1 scope |
-| Last verified against | `2026-06-20` working tree |
-| When to update | any public/share/community route, tier-board visibility semantic, catalog-publication flow, moderation role, or owner-scope rule changes |
+| Field                 | Value                                                                                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `canonical`                                                                                                                              |
+| Role                  | `default-private public feature boundary`                                                                                                |
+| Source of truth       | current API routes, Prisma visibility enums, BOLA matrix, commercial Gate 1 scope                                                        |
+| Last verified against | `2026-07-03` private-first Tier Board UI and public-boundary gate                                                                        |
+| When to update        | any public/share/community route, tier-board visibility semantic, catalog-publication flow, moderation role, or owner-scope rule changes |
 
 Work Archive is a private, local-first personal archive in Gate 1. Public
 profiles, public records, social feeds, comments, follows, recommendations, and
@@ -24,8 +24,9 @@ Gate 1 is default-private:
 - Sync payloads are accepted only in the authenticated user's scope.
 - Public/community/social features are out of scope.
 - Tier boards may store `private`, `link_only`, and `exported` visibility
-  values, but there is no public community feed or hosted public browse surface
-  attached to them in Gate 1.
+  values for schema/sync compatibility, but Gate 1 user-facing settings expose
+  only private/local-export wording. There is no public community feed or hosted
+  public browse surface attached to them in Gate 1.
 - `exported` means a local/export artifact or sync-visible state, not a hosted
   public permission.
 
@@ -33,11 +34,11 @@ Gate 1 is default-private:
 
 The only currently implemented tier-board visibility values are:
 
-| Value | Gate 1 meaning | Public access |
-| --- | --- | --- |
-| `private` | Owner-only board state. This is the default. | No public access. |
-| `link_only` | Reserved opt-in share semantics for a future unguessable link flow. | No hosted public route exists in Gate 1. |
-| `exported` | Exportable/non-hosted state used by local-first workflows. | Not a public hosted permission. |
+| Value       | Gate 1 meaning                                                                                                    | Public access                            |
+| ----------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `private`   | Owner-only board state. This is the default.                                                                      | No public access.                        |
+| `link_only` | Reserved opt-in share semantics for a future unguessable link flow. It is not selectable from Gate 1 settings UI. | No hosted public route exists in Gate 1. |
+| `exported`  | Exportable/non-hosted state used by local-first workflows.                                                        | Not a public hosted permission.          |
 
 Do not add a `public` visibility state without a separate public feature design,
 abuse review, BOLA matrix update, owner-scope tests, and release-gate evidence.

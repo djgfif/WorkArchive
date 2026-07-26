@@ -34,12 +34,33 @@
         "actions": { "addWork": "+ Add work", "allWorks": "All works" },
         "activity": { "link": "All works →", "title": "Recently logged" },
         "countValue": "{{count}}",
+        "quickCapture": {
+          "add": "+ Add",
+          "aria": "Quick work capture",
+          "placeholder": "Find a title or start a record",
+          "record": "Record"
+        },
+        "safety": {
+          "accountConnected": "Account backup connected",
+          "description": "{{count}} works are stored in the current archive scope.",
+          "localHealthy": "Local storage healthy",
+          "settings": "Settings",
+          "title": "Backup status"
+        },
+        "starter": {
+          "archiveCount": "{{count}} works",
+          "archiveDescription": "Return to what is next, what you recently enjoyed, and the taste your archive is building.",
+          "archiveEmptyDescription": "Keep books, anime, manga, and films together. You can start without signing in; this browser stores the archive first.",
+          "archiveTitle": "My archive",
+          "startedDescription": "Record works now, then add status and thoughts over time.",
+          "startedTitle": "Your archive has started"
+        },
         "empty": {
-          "backupDescription": "Re-import JSON records you exported before.",
-          "backupTitle": "Import backup",
-          "description": "Add a new work yourself, fill in covers with search, or carry over an existing backup.",
-          "manualDescription": "Fill your first shelf with a title and a short note.",
-          "manualTitle": "Add your first work",
+          "backupDescription": "Manage JSON export and import in one place.",
+          "backupTitle": "Back up my records",
+          "description": "Start recording without signing in, keep direct add available when search fails, and keep a JSON backup of your records.",
+          "manualDescription": "Save a title and short note before connecting an account.",
+          "manualTitle": "Start without sign-in",
           "searchDescription": "Pull covers and info from external search candidates.",
           "searchTitle": "Add via search",
           "title": "How to place your first work"
@@ -125,6 +146,16 @@
         "gapBadge": "Viewing gap {{percent}}",
         "loadErrorTitle": "Could not load insights.",
         "loadingTitle": "Calculating your personal insights",
+        "lowData": {
+          "addRating": "Add one rating",
+          "addWork": "Add another work",
+          "description": "Add {{count}} more works to reveal meaningful status and media patterns.",
+          "progress": "Insights setup {{current}} / {{target}}",
+          "progressAria": "Insights setup progress {{current}} / {{target}}",
+          "recentTitle": "Your archive so far",
+          "reviewArchive": "View my archive",
+          "title": "Building your insights"
+        },
         "metaLocalOnly": "Computed on your device only",
         "noAverageRating": "Unrated",
         "pageDescription": "Personal stats computed only from records on this device, without going through any external server.",
@@ -156,6 +187,9 @@
         "year": {
           "averageRating": "Average rating",
           "busiestMonth": "Busiest month",
+          "comparisonCompleted": "{{year}}: {{count}} completed · {{delta}} year over year",
+          "comparisonRating": "Average {{rating}} · {{delta}} year over year",
+          "comparisonTitle": "Year-over-year",
           "close": "Close",
           "completed": "completed",
           "download": "Save as image",
@@ -164,6 +198,9 @@
           "loading": "Calculating your year in review…",
           "modalTitle": "{{year}} Year in Review",
           "month": "Month {{month}}",
+          "monthCount": "Month {{month}}: {{count}} completed",
+          "monthlyActivity": "Monthly completions",
+          "selectYear": "Select review year",
           "topGenre": "Favorite genre",
           "topWorks": "Works of the year"
         },
@@ -331,12 +368,33 @@
         "actions": { "addWork": "+ 作品を追加", "allWorks": "ライブラリ全体" },
         "activity": { "link": "ライブラリ全体 →", "title": "最近まとめた感想" },
         "countValue": "{{count}}件",
+        "quickCapture": {
+          "add": "+ 追加",
+          "aria": "作品をすばやく記録",
+          "placeholder": "作品を探すか、そのまま記録してください",
+          "record": "記録"
+        },
+        "safety": {
+          "accountConnected": "アカウントバックアップ接続済み",
+          "description": "現在のアーカイブに{{count}}件の作品が保存されています。",
+          "localHealthy": "ローカル保存は正常です",
+          "settings": "設定",
+          "title": "バックアップ状態"
+        },
+        "starter": {
+          "archiveCount": "{{count}}件",
+          "archiveDescription": "次に楽しむ作品、最近の感想、積み重なる好みを一か所で振り返れます。",
+          "archiveEmptyDescription": "本・アニメ・漫画・映画を一か所に記録。ログインせずに始めても、まずこのブラウザに保存されます。",
+          "archiveTitle": "マイアーカイブ",
+          "startedDescription": "作品を記録し、状態や感想を少しずつ追加しましょう。",
+          "startedTitle": "アーカイブが始まりました"
+        },
         "empty": {
-          "backupDescription": "以前書き出したJSON記録を再度読み込みます。",
-          "backupTitle": "バックアップを取り込む",
-          "description": "新しい作品を自分で追加したり、検索で表紙を埋めたり、既存のバックアップを引き継いだりできます。",
-          "manualDescription": "タイトルと短い感想で最初の棚を埋めます。",
-          "manualTitle": "最初の作品を追加",
+          "backupDescription": "JSONの書き出しと取り込みを一か所で管理します。",
+          "backupTitle": "自分の記録をバックアップ",
+          "description": "ログインなしで記録を始め、検索に失敗しても直接追加し、JSONバックアップで記録を保管できます。",
+          "manualDescription": "アカウント連携前にタイトルと短い感想から保存します。",
+          "manualTitle": "ログインせずに開始",
           "searchDescription": "外部検索の候補から表紙や情報を取り込みます。",
           "searchTitle": "検索で追加",
           "title": "最初の作品を置く方法"
@@ -422,6 +480,16 @@
         "gapBadge": "鑑賞の空白 {{percent}}",
         "loadErrorTitle": "インサイトを読み込めませんでした。",
         "loadingTitle": "個人インサイトを計算中です",
+        "lowData": {
+          "addRating": "評価を1件追加",
+          "addWork": "作品を追加",
+          "description": "あと{{count}}件記録すると、状態やメディアの傾向をわかりやすく表示できます。",
+          "progress": "インサイト準備 {{current}} / {{target}}",
+          "progressAria": "インサイト準備の進捗 {{current}} / {{target}}",
+          "recentTitle": "これまでの記録",
+          "reviewArchive": "アーカイブを見る",
+          "title": "インサイトを作成中です"
+        },
         "metaLocalOnly": "この端末のみで計算",
         "noAverageRating": "未評価",
         "pageDescription": "外部サーバーを経由せず、この端末に保存された記録のみで計算した個人統計です。",
@@ -453,6 +521,9 @@
         "year": {
           "averageRating": "平均評価",
           "busiestMonth": "最も忙しかった月",
+          "comparisonCompleted": "{{year}}年 {{count}}作品 · 前年比 {{delta}}",
+          "comparisonRating": "平均評価 {{rating}} · 前年比 {{delta}}",
+          "comparisonTitle": "前年との比較",
           "close": "閉じる",
           "completed": "完了",
           "download": "画像として保存",
@@ -461,6 +532,9 @@
           "loading": "まとめを計算中です…",
           "modalTitle": "{{year}} 年末まとめ",
           "month": "{{month}}月",
+          "monthCount": "{{month}}月 {{count}}作品完了",
+          "monthlyActivity": "月別完了数",
+          "selectYear": "振り返る年を選択",
           "topGenre": "最愛ジャンル",
           "topWorks": "今年の作品"
         },
@@ -628,12 +702,33 @@
         "actions": { "addWork": "+ 添加作品", "allWorks": "全部作品" },
         "activity": { "link": "全部作品 →", "title": "最近整理的感想" },
         "countValue": "{{count}}个",
+        "quickCapture": {
+          "add": "+ 添加",
+          "aria": "快速记录作品",
+          "placeholder": "查找作品或直接开始记录",
+          "record": "记录"
+        },
+        "safety": {
+          "accountConnected": "账户备份已连接",
+          "description": "当前归档范围内已保存 {{count}} 部作品。",
+          "localHealthy": "本地存储正常",
+          "settings": "设置",
+          "title": "备份状态"
+        },
+        "starter": {
+          "archiveCount": "{{count}}部",
+          "archiveDescription": "在一个地方回顾接下来要看的作品、最近的感想和逐渐形成的个人偏好。",
+          "archiveEmptyDescription": "把书籍、动画、漫画和电影记录在一起。无需登录即可开始，归档会先保存在此浏览器中。",
+          "archiveTitle": "我的归档",
+          "startedDescription": "先记录作品，再逐步补充状态和感想。",
+          "startedTitle": "归档已经开始"
+        },
         "empty": {
-          "backupDescription": "重新导入之前导出的 JSON 记录。",
-          "backupTitle": "导入备份",
-          "description": "你可以自己添加新作品、用搜索补全封面，也可以继承已有备份。",
-          "manualDescription": "用标题和简短感想填满第一个书架。",
-          "manualTitle": "添加第一部作品",
+          "backupDescription": "在一个页面管理 JSON 导出和导入。",
+          "backupTitle": "备份我的记录",
+          "description": "无需登录即可开始记录；搜索失败时仍可直接添加，并用 JSON 备份保存记录。",
+          "manualDescription": "连接账户前，先保存标题和简短感想。",
+          "manualTitle": "无需登录开始",
           "searchDescription": "从外部搜索候选中获取封面和信息。",
           "searchTitle": "通过搜索添加",
           "title": "如何放入第一部作品"
@@ -719,6 +814,16 @@
         "gapBadge": "观赏空白 {{percent}}",
         "loadErrorTitle": "无法加载洞察。",
         "loadingTitle": "正在计算个人洞察",
+        "lowData": {
+          "addRating": "添加一个评分",
+          "addWork": "继续添加作品",
+          "description": "再记录 {{count}} 部作品，即可展示更有意义的状态与媒介趋势。",
+          "progress": "洞察准备 {{current}} / {{target}}",
+          "progressAria": "洞察准备进度 {{current}} / {{target}}",
+          "recentTitle": "目前的记录",
+          "reviewArchive": "查看我的档案",
+          "title": "正在生成你的洞察"
+        },
         "metaLocalOnly": "仅在你的设备上计算",
         "noAverageRating": "未评分",
         "pageDescription": "不经过任何外部服务器，仅用本设备上的记录计算的个人统计。",
@@ -750,6 +855,9 @@
         "year": {
           "averageRating": "平均评分",
           "busiestMonth": "最忙的月份",
+          "comparisonCompleted": "{{year}} 年完成 {{count}} 部 · 同比 {{delta}}",
+          "comparisonRating": "平均评分 {{rating}} · 同比 {{delta}}",
+          "comparisonTitle": "年度对比",
           "close": "关闭",
           "completed": "部完成",
           "download": "保存为图片",
@@ -758,6 +866,9 @@
           "loading": "正在计算年度总结…",
           "modalTitle": "{{year}} 年度总结",
           "month": "{{month}}月",
+          "monthCount": "{{month}} 月完成 {{count}} 部",
+          "monthlyActivity": "月度完成趋势",
+          "selectYear": "选择年度回顾年份",
           "topGenre": "最爱类型",
           "topWorks": "年度作品"
         },

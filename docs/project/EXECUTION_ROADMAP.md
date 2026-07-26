@@ -1,12 +1,12 @@
 # EXECUTION_ROADMAP.md
 
-| Field                 | Value                                                                                                                                                                                                                                                    |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status                | `active`                                                                                                                                                                                                                                                 |
-| Role                  | `integrated execution roadmap`                                                                                                                                                                                                                           |
-| Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands |
-| Last verified against | `2026-07-01` root `security:public`, `check:docs-links`, `lint`, `typecheck`, `test`, `build`, web feature boundary check, web import cycle check, web Playwright E2E after mobile Add Work footer overlap fix and mobile drawer navigation regression, Settings provider readiness polish, Quick Add source coverage/fallback regressions, auto-sync conflict queue safety regression, guest auto-sync boundary regression, offline import-search QA with live-smoke matrix contract/manifest, sync-load dry-run, Docker runtime preflight self-test, and Docker runtime preflight BLOCKED report. |
-| When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                             |
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Role                  | `integrated execution roadmap`                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands                                                                                                                                                                                                                                                 |
+| Last verified against | `2026-07-03` core local repository gates, Settings data-safety/account-backup polish, Settings sync recovery assistant with cause filters, Home guest onboarding copy, Guest transfer review safeguards, Settings security i18n cleanup, Tier Board private-first UI cleanup, Gate 1 evidence classification, Add Work MSW warning cleanup, and Redis rate-limit test mock cleanup. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
+| When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                                                                                                                                                                                                                                                                             |
 
 이 문서는 Work Archive의 **통합 실행 로드맵**이다. current reality 문서를 대체하지 않고, 지금 무엇을 어떤 순서로 고정해야 하는지만 정리한다. 최신 구현 현실은 [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), 개발 진입점은 [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md), 2026-06 구조 부채 보조 로드맵은 [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md)를 따른다.
 
@@ -101,15 +101,17 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 1. JSON export
 2. JSON import
 3. CSV export
-4. 로컬 데이터 초기화 / 복구 안내
-5. 휴지통 / 복원 UX polish
-6. 중복 기록 정리 도구
+4. 로컬 데이터 안전 센터와 자동 폴더 백업 상태 안내
+5. 로컬 데이터 초기화 / 복구 안내
+6. 휴지통 / 복원 UX polish
+7. 중복 기록 정리 도구
 
 완료 기준:
 
 - guest도 자신의 기록을 export할 수 있다.
 - export한 기록을 다시 import할 수 있다.
 - 서비스/서버가 없어도 개인 데이터 소유권이 유지된다.
+- Settings에서 로컬 원본, 자동 JSON 백업, 선택형 계정 백업/sync, 서버 데이터 권리 작업이 구분된다.
 
 ## Track 3. Personal Record Depth
 
@@ -139,19 +141,19 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 
 현재 구현:
 
-- SyncPage는 pending / failed / conflict queue item 단위 상태를 표시한다.
+- Settings 계정 백업 섹션은 pending / failed / conflict queue item 단위 상태와 원인별 복구 그룹을 표시한다.
 - queue item별 원인, 기록 보기, 재시도 CTA를 제공한다.
 - conflict 항목은 원격 스냅샷을 보존해 로컬 유지, 원격 적용, 필드별 병합으로 기본 해결할 수 있다.
 - safe auto-merge는 동일 entity/parent와 동일 scalar 조건에서 taxonomy/alias/server metadata만 병합하고, 병합된 queue item을 재시도 대상으로 돌려보낸다.
-- 자동 push는 conflict queue item을 전송하지 않고 SyncPage 수동 검토 대상으로 유지한다.
+- 자동 push는 conflict queue item을 전송하지 않고 Settings 계정 백업 섹션의 수동 검토 대상으로 유지한다.
 - guest local-first writes는 자동 pull/push를 시작하지 않고 account archive와 분리된다.
 
 근거리 순서:
 
 1. conflict 해결 UX polish와 safe auto-merge 정책 확장 여부 검토
 2. 로그인/account archive activation 자동 pull 검증과 확장 검토
-3. sync 상태 polish와 실패 복구 UX 개선
-4. guest -> account 선택 import UX 정리
+3. sync recovery assistant의 실제 계정/브라우저 QA, 실패 원인 분류 확장, 원인별 필터 UX 검증
+4. guest -> account 선택 import UX의 실제 계정/브라우저 QA
 5. 백업/동기화가 꺼져 있어도 로컬 기록이 안전하다는 안내
 
 완료 기준:

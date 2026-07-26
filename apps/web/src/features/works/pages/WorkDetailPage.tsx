@@ -235,10 +235,11 @@ export function WorkDetailPage() {
         onCreateTimelineEntry={handleCreateTimelineEntry}
         onDeleteTimelineEntry={handleDeleteTimelineEntry}
         graph={currentWorkGraph}
-        overviewSections={
+        quickRecordSection={
           <WorkQuickRecordSection
             onError={handleActionError}
             onSuccess={handleActionSuccess}
+            variant="hero"
             work={work}
           />
         }

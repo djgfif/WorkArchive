@@ -1,12 +1,12 @@
 # docs/product/
 
-| Field | Value |
-| --- | --- |
-| Status | `active` |
-| Role | `navigation` |
-| Source of truth | [`PRODUCT_DIRECTION_LOCK.md`](./PRODUCT_DIRECTION_LOCK.md), [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md), [`FINAL_WEB_DESIGN.md`](./FINAL_WEB_DESIGN.md) |
-| Last verified against | `2026-04-25` user direction review |
-| When to update | product 문서 역할, 읽기 순서, 제품 본질, guest/login 정책이 바뀔 때 |
+| Field                 | Value                                                                                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status                | `active`                                                                                                                                                                                                     |
+| Role                  | `navigation`                                                                                                                                                                                                 |
+| Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](./PRODUCT_DIRECTION_LOCK.md), [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md), [`FINAL_WEB_DESIGN.md`](./FINAL_WEB_DESIGN.md) |
+| Last verified against | `2026-07-03` public beta personal-only direction audit                                                                                                                                                       |
+| When to update        | product 문서 역할, 읽기 순서, 제품 본질, guest/login 정책이 바뀔 때                                                                                                                                          |
 
 이 폴더는 **제품 본질, 근거리 우선순위, 디자인 방향, 확장 전략**을 다룬다.
 
@@ -33,23 +33,23 @@
 - 꼭 계정이 필요한 기능이 아니라면 guest도 사용할 수 있어야 한다.
 - 수동 추가는 핵심 기능이다.
 - key가 필요 없는 검색 provider는 비로그인 사용자에게도 제공하는 방향으로 구현한다.
-- 개인 기록 데이터와 서버/catalog/community 데이터는 별도 plane으로 유지한다.
+- 개인 기록 데이터와 서버/catalog 보조 데이터는 별도 plane으로 유지하고, community/public surface는 Gate 1 범위 밖에 둔다.
 - sync는 개인 기록 백업/동기화 문제이고, catalog promotion은 공용 카탈로그 검수 문제다.
-- community는 미래 확장일 뿐 현재 기본 경로가 아니다.
+- community/public/social surface는 현재 기본 경로가 아니며 공개 베타 Gate 1에서 구현하지 않는다.
 
 ## Document Roles
 
-| Document | Role |
-| --- | --- |
-| [`PRODUCT_DIRECTION_LOCK.md`](./PRODUCT_DIRECTION_LOCK.md) | 제품 본질, guest/login 정책, 개인 기록과 서버/catalog/community 경계 고정 |
-| [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md) | 근거리 제품 우선순위 요약 |
-| [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md) | 프론트 5단계 상세 실행 기준 |
-| [`FINAL_WEB_DESIGN.md`](./FINAL_WEB_DESIGN.md) | 최종 사용자 경험과 디자인 원칙 |
-| [`CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](./CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md) | Mantine 기반 target UI system |
-| [`AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](./AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md) | exploratory auth/guest strategy |
-| [`VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](./VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md) | exploratory catalog/public architecture |
-| [`INSIGHTS_IMPLEMENTATION_PLAN.md`](./INSIGHTS_IMPLEMENTATION_PLAN.md) | personal-only Insights v1 implementation plan |
-| [`DUPLICATE_CLEANUP_POLICY.md`](./DUPLICATE_CLEANUP_POLICY.md) | private local duplicate detection and merge safety policy |
+| Document                                                                                                   | Role                                                                      |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [`PRODUCT_DIRECTION_LOCK.md`](./PRODUCT_DIRECTION_LOCK.md)                                                 | 제품 본질, guest/login 정책, 개인 기록과 서버/catalog/community 경계 고정 |
+| [`COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md`](./COMMERCIAL_WEB_DESIGN_IMPLEMENTATION_PLAN.md)           | 근거리 제품 우선순위 요약                                                 |
+| [`../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md`](../frontend/FRONTEND_UI_REFACTOR_EXECUTION_PLAN.md) | 프론트 5단계 상세 실행 기준                                               |
+| [`FINAL_WEB_DESIGN.md`](./FINAL_WEB_DESIGN.md)                                                             | 최종 사용자 경험과 디자인 원칙                                            |
+| [`CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md`](./CLEAN_PROFESSIONAL_WEB_UI_SYSTEM.md)                             | Mantine 기반 target UI system                                             |
+| [`AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md`](./AUTH_AND_GUEST_EXPERIENCE_STRATEGY.md)                         | exploratory auth/guest strategy                                           |
+| [`VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md`](./VERIFIED_CATALOG_PROMOTION_ARCHITECTURE.md)               | exploratory catalog/public architecture                                   |
+| [`INSIGHTS_IMPLEMENTATION_PLAN.md`](./INSIGHTS_IMPLEMENTATION_PLAN.md)                                     | personal-only Insights v1 implementation plan                             |
+| [`DUPLICATE_CLEANUP_POLICY.md`](./DUPLICATE_CLEANUP_POLICY.md)                                             | private local duplicate detection and merge safety policy                 |
 
 ## Exploratory Appendix
 
@@ -59,15 +59,15 @@
 
 #### Positioning
 
-Tier Board는 작품 상세의 보조 필드가 아니라, **가볍고 공유 가능한 별도 보드 기능**으로 다룬다.
+Tier Board는 작품 상세의 보조 필드가 아니라, **개인 기록을 정리하는 별도 보드 기능**으로 다룬다.
 
-단, 이 기능도 개인 아카이브가 안정화된 뒤에 붙인다. 공개/공유 기능은 private archive 저장 경로와 섞지 않는다.
+단, 이 기능도 개인 아카이브가 안정화된 뒤에 붙인다. Gate 1에서는 hosted public sharing을 만들지 않고, private archive 저장 경로와 공개 기능을 섞지 않는다.
 
 #### MVP Principles
 
-- 복잡한 분석 툴이 아니라 빠른 배치와 공유가 핵심이다.
+- 복잡한 분석 툴이 아니라 빠른 배치, 개인 정리, 로컬 export가 핵심이다.
 - 라이브러리 작품 카드와 커스텀 카드 두 종류만 우선 지원한다.
-- 보드 생성, lane 편집, 카드 추가, 드래그 앤 드롭, 공개 링크, 이미지 export가 핵심 범위다.
+- 보드 생성, lane 편집, 카드 추가, 드래그 앤 드롭, 이미지 export가 핵심 범위다. 공개 링크나 public browse surface는 Gate 1 범위 밖이다.
 
 #### What Not To Do First
 
@@ -86,7 +86,7 @@ Tier Board는 작품 상세의 보조 필드가 아니라, **가볍고 공유 �
 
 #### Minimal Model Direction
 
-- `TierBoard`는 소유자, 제목, 설명, 공개 범위, 타입을 가진다.
+- `TierBoard`는 소유자, 제목, 설명, Gate 1 기본 비공개 visibility, 타입을 가진다.
 - `TierLane`은 순서와 제목을 가진다.
 - `TierBoardCard`는 board 안에서 lane 위치, 정렬 순서, source type, 이미지/제목/메모 snapshot을 가진다.
 
