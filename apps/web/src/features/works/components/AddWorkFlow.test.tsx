@@ -275,6 +275,7 @@ function renderAuthenticatedAddWorkFlow(onSubmit = vi.fn()) {
           archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'authenticated',
+          sessionStatus: 'authenticated',
           user: {
             avatarUrl: '',
             id: 'user-1',
@@ -308,6 +309,7 @@ function renderGuestAddWorkFlow(
           archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'guest',
+          sessionStatus: 'guest',
           user: null,
           signOut: vi.fn(),
         }}
@@ -334,6 +336,7 @@ function renderGuestDialogAddWorkFlow(onSubmit = vi.fn()) {
           archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'guest',
+          sessionStatus: 'guest',
           user: null,
           signOut: vi.fn(),
         }}

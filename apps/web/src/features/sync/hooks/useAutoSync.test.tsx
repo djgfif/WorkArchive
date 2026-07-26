@@ -12,6 +12,7 @@ const authValue: AuthContextValue = {
   archiveScopeKey: 'work-archive-db-user-user-1',
   isLoading: false,
   mode: 'authenticated',
+  sessionStatus: 'authenticated',
   user: {
     avatarUrl: '',
     email: 'user@example.com',
@@ -25,6 +26,7 @@ const guestAuthValue: AuthContextValue = {
   archiveScopeKey: 'work-archive-db-guest',
   isLoading: false,
   mode: 'guest',
+  sessionStatus: 'guest',
   user: null,
   signOut: vi.fn(),
 };
@@ -237,6 +239,47 @@ describe('useAutoSync', () => {
     await waitFor(() => {
       expect(pushSpy).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('keeps an offline account queue local until authentication is restored', async () => {
+    const pullSpy = vi
+      .spyOn(syncService, 'pullRemoteChanges')
+      .mockResolvedValue(buildPullResult());
+    const pushSpy = vi
+      .spyOn(syncService, 'pushQueuedChanges')
+      .mockResolvedValue(buildPushResult());
+
+    render(
+      <AuthContext.Provider
+        value={{
+          ...authValue,
+          sessionStatus: 'offline',
+        }}
+      >
+        <AutoSyncProbe />
+      </AuthContext.Provider>,
+    );
+
+    await worksService.createWork({
+      author: 'Octavia Butler',
+      description: '',
+      favorite: false,
+      genres: [],
+      rating: null,
+      review: '',
+      shortReview: '',
+      status: 'planned',
+      thumbnailUrl: '',
+      title: 'Kindred',
+      type: 'novel',
+    });
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50);
+    });
+
+    expect(await getWorkArchiveDb().syncQueue.count()).toBe(1);
+    expect(pullSpy).not.toHaveBeenCalled();
+    expect(pushSpy).not.toHaveBeenCalled();
   });
 
   it('keeps guest local-first writes out of automatic sync', async () => {

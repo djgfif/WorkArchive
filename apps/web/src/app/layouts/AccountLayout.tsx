@@ -18,7 +18,11 @@ import {
   ThemeToggleControl,
 } from '@shared/components/AppPrimitives';
 import { useAppTranslation } from '@app/i18n';
-import { getUserAvatarProfile, useAuthSession } from '@features/auth';
+import {
+  ArchiveScopeIndicator,
+  getUserAvatarProfile,
+  useAuthSession,
+} from '@features/auth';
 import { cn, cx } from '@shared/utils/class-names';
 
 import styles from './AccountLayout.module.css';
@@ -140,7 +144,8 @@ export function AccountLayout() {
   return (
     <main className="layout-shell layout-shell--account">
       <Container px="md" size={1360}>
-        <Grid align="start" gap="xl">
+        <ArchiveScopeIndicator />
+        <Grid align="start" gap="xl" mt="md">
           {/* 모바일 — 상단 수평 nav */}
           <Grid.Col hiddenFrom="lg" span={12}>
             <AccountSidebar

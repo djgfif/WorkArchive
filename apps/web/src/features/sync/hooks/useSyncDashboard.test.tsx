@@ -20,6 +20,7 @@ function renderDashboardHook() {
     archiveScopeKey: 'guest',
     isLoading: false,
     mode: 'guest',
+    sessionStatus: 'guest',
     signOut: vi.fn(async () => undefined),
     user: null,
   };

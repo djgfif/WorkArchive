@@ -1,0 +1,49 @@
+.scope {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 2rem;
+  padding: 0.35rem clamp(1rem, 2.5vw, 2rem);
+  border-bottom: 1px solid var(--app-border-subtle);
+  background: var(--app-surface-subtle);
+  color: var(--app-text-secondary);
+  font-size: var(--app-type-meta);
+}
+
+.dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: none;
+  border-radius: 999px;
+  background: var(--app-text-muted);
+}
+
+.owner {
+  color: var(--app-text-primary);
+  font-weight: 750;
+}
+
+.status {
+  color: var(--app-text-muted);
+}
+
+.scope[data-session-status='expired'] .dot,
+.scope[data-session-status='offline'] .dot {
+  outline: 1px solid var(--app-border-strong);
+  outline-offset: 2px;
+}
+
+@media (max-width: 48rem) {
+  .scope {
+    justify-content: flex-start;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .owner,
+  .status {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

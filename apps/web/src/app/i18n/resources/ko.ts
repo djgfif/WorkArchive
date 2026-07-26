@@ -465,6 +465,18 @@ export const ko = {
     guest: '게스트',
     guestLocalStorage: '게스트 - 로컬 저장',
     guestMode: '게스트 모드',
+    archiveScope: {
+      accountOwner: '{{name}}의 계정 보관함',
+      ariaLabel: '현재 보관함: {{owner}}, {{status}}',
+      guestOwner: '이 브라우저의 게스트 보관함',
+      status: {
+        authenticated: '계정 연결됨',
+        expired: '인증 만료 · 이 계정 보관함에 계속 저장',
+        guest: '이 브라우저에만 저장',
+        offline: '오프라인 · 이 계정 보관함에 계속 저장',
+        restoring: '계정 상태 확인 중',
+      },
+    },
     home: '홈',
     insights: '인사이트',
     login: '로그인',

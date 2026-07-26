@@ -479,6 +479,18 @@ export const en = {
     guest: 'Guest',
     guestLocalStorage: 'Guest - local storage',
     guestMode: 'Guest mode',
+    archiveScope: {
+      accountOwner: "{{name}}'s account archive",
+      ariaLabel: 'Current archive: {{owner}}, {{status}}',
+      guestOwner: "This browser's guest archive",
+      status: {
+        authenticated: 'Account connected',
+        expired: 'Session expired · still saving to this account archive',
+        guest: 'Saved only in this browser',
+        offline: 'Offline · still saving to this account archive',
+        restoring: 'Checking account status',
+      },
+    },
     home: 'Home',
     insights: 'Insights',
     login: 'Log in',

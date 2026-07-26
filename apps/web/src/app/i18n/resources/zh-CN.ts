@@ -429,6 +429,18 @@ export const zhCN = {
     guest: '访客',
     guestLocalStorage: '访客 - 本地存储',
     guestMode: '访客模式',
+    archiveScope: {
+      accountOwner: '{{name}} 的账户归档',
+      ariaLabel: '当前归档：{{owner}}，{{status}}',
+      guestOwner: '此浏览器的访客归档',
+      status: {
+        authenticated: '账户已连接',
+        expired: '认证已过期 · 继续保存到此账户归档',
+        guest: '仅保存在此浏览器',
+        offline: '离线 · 继续保存到此账户归档',
+        restoring: '正在检查账户状态',
+      },
+    },
     home: '首页',
     insights: '洞察',
     login: '登录',

@@ -27,7 +27,8 @@ export function LoginPage() {
   usePageTitle(t('auth.login.pageTitle'));
   const location = useLocation();
   const navigate = useNavigate();
-  const { continueWithGoogle, isLoading, mode } = useAuthSession();
+  const { continueWithGoogle, isLoading, mode, sessionStatus } =
+    useAuthSession();
   const [googleConfigured, setGoogleConfigured] = useState(true);
   const didCleanUrlRef = useRef(false);
 
@@ -75,7 +76,11 @@ export function LoginPage() {
     };
   }, []);
 
-  if (!isLoading && mode === 'authenticated') {
+  if (
+    !isLoading &&
+    mode === 'authenticated' &&
+    sessionStatus === 'authenticated'
+  ) {
     return <Navigate replace to={returnTo ?? '/'} />;
   }
 

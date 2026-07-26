@@ -159,6 +159,7 @@ describe('auth.api', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(restoreStoredSession()).resolves.toEqual({
+      status: 'authenticated',
       tokens: {
         accessToken: 'rotated-access-token',
       },
@@ -221,7 +222,7 @@ describe('auth.api', () => {
     expect(readStoredAuthTokens()).toBeNull();
   });
 
-  it('returns null and clears legacy browser storage when startup refresh fails due to network error', async () => {
+  it('reports network unavailability without treating it as an expired session', async () => {
     writeStoredAuthTokens({
       accessToken: 'stale-memory-token',
     });
@@ -237,28 +238,35 @@ describe('auth.api', () => {
       vi.fn().mockRejectedValue(new TypeError('Network request failed')),
     );
 
-    await expect(restoreStoredSession()).resolves.toBeNull();
+    await expect(restoreStoredSession()).resolves.toEqual({
+      reason: 'network',
+      status: 'unavailable',
+    });
     expect(readStoredAuthTokens()).toEqual({
       accessToken: 'stale-memory-token',
     });
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });
 
-  it('temporarily skips startup refresh after the API reports no guest session', async () => {
+  it('models a missing refresh session as expired on every explicit restore', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(new Response(null, { status: 204 }));
 
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(restoreStoredSession()).resolves.toBeNull();
-    await expect(restoreStoredSession()).resolves.toBeNull();
+    await expect(restoreStoredSession()).resolves.toEqual({
+      status: 'expired',
+    });
+    await expect(restoreStoredSession()).resolves.toEqual({
+      status: 'expired',
+    });
 
     expect(
       fetchMock.mock.calls.filter(([url]) =>
         String(url).includes('/auth/refresh'),
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
 
   it('forces refresh when completing a new Google session after a guest miss', async () => {
@@ -279,8 +287,11 @@ describe('auth.api', () => {
 
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(restoreStoredSession()).resolves.toBeNull();
+    await expect(restoreStoredSession()).resolves.toEqual({
+      status: 'expired',
+    });
     await expect(restoreStoredSession({ force: true })).resolves.toEqual({
+      status: 'authenticated',
       tokens: {
         accessToken: 'google-access-token',
       },

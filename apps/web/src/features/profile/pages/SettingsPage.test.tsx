@@ -228,6 +228,7 @@ function renderAuthenticatedSettings(signOut = vi.fn()) {
           archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'authenticated',
+          sessionStatus: 'authenticated',
           user: {
             avatarUrl: '',
             id: 'user-1',
@@ -261,6 +262,7 @@ function renderGuestSettings() {
           archiveScopeKey: 'guest',
           isLoading: false,
           mode: 'guest',
+          sessionStatus: 'guest',
           user: null,
           signOut: vi.fn(),
           updateUser: vi.fn(),

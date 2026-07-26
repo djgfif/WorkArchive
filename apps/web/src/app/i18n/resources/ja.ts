@@ -479,6 +479,18 @@ export const ja = {
     guest: 'ゲスト',
     guestLocalStorage: 'ゲスト - ローカル保存',
     guestMode: 'ゲストモード',
+    archiveScope: {
+      accountOwner: '{{name}}のアカウントアーカイブ',
+      ariaLabel: '現在のアーカイブ: {{owner}}、{{status}}',
+      guestOwner: 'このブラウザーのゲストアーカイブ',
+      status: {
+        authenticated: 'アカウント接続済み',
+        expired: '認証期限切れ · このアカウントアーカイブに保存を継続',
+        guest: 'このブラウザーにのみ保存',
+        offline: 'オフライン · このアカウントアーカイブに保存を継続',
+        restoring: 'アカウント状態を確認中',
+      },
+    },
     home: 'ホーム',
     insights: 'インサイト',
     login: 'ログイン',

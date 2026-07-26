@@ -9,7 +9,18 @@ import { renderWithProviders } from '@test/render-with-providers';
 import { findLinkByHref, getLinkByHref, openProfileMenu } from '@test/ui-helpers';
 import { AuthProvider } from '../context/AuthProvider';
 import { readStoredAuthTokens } from '../services/auth-storage';
+import {
+  clearStoredArchiveIdentity,
+  readStoredArchiveIdentity,
+  writeStoredArchiveIdentity,
+} from '../services/archive-identity';
+import type { AuthUser } from '../services/auth.api';
 import { guestTransferService } from '../services/guest-transfer.service';
+import {
+  getWorkArchiveDb,
+  worksService,
+  workArchiveDbManager,
+} from '@features/works';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -84,7 +95,10 @@ function authStartupFetchMock({
 describe('Auth flow', () => {
   afterEach(() => {
     window.history.pushState(null, '', '/');
+    window.localStorage.clear();
     window.sessionStorage.clear();
+    clearStoredArchiveIdentity();
+    workArchiveDbManager.switchToGuest();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     vi.useRealTimers();
@@ -473,7 +487,166 @@ describe('Auth flow', () => {
     expect(window.localStorage.getItem('work-archive.auth.tokens')).toBeNull();
   });
 
-  it('falls back to guest mode when startup refresh fails', async () => {
+  it('keeps the account archive selected when startup refresh is offline', async () => {
+    writeStoredArchiveIdentity(sessionBody().user as AuthUser);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValueOnce(new TypeError('Network request failed')),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('status', {
+        name: /Frieren의 계정 보관함, 오프라인 · 이 계정 보관함에 계속 저장/,
+      }),
+    ).toBeInTheDocument();
+    expect(workArchiveDbManager.getCurrentScopeKey()).toBe(
+      'work-archive-db-user-user-1',
+    );
+    expect(screen.queryByRole('button', { name: /계정 메뉴: 게스트/ })).not.toBeInTheDocument();
+
+    const offlineRecord = await worksService.createWork({
+      author: '',
+      description: '',
+      favorite: false,
+      genres: [],
+      rating: null,
+      review: '',
+      shortReview: '',
+      status: 'planned',
+      thumbnailUrl: '',
+      title: 'Offline account record',
+      type: 'novel',
+    });
+
+    expect(await getWorkArchiveDb().works.get(offlineRecord.id)).toBeDefined();
+    workArchiveDbManager.switchToGuest();
+    expect(await getWorkArchiveDb().works.get(offlineRecord.id)).toBeUndefined();
+    workArchiveDbManager.switchToUser('user-1');
+    expect(await getWorkArchiveDb().works.get(offlineRecord.id)).toBeDefined();
+  });
+
+  it('restores the connected session on network recovery without changing archive scope', async () => {
+    writeStoredArchiveIdentity(sessionBody().user as AuthUser);
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Network request failed'))
+      .mockResolvedValueOnce(jsonResponse(sessionBody('recovered-access-token')))
+      .mockResolvedValue(
+        jsonResponse({
+          changes: [],
+          nextSince: null,
+          pulledAt: '2026-07-26T00:00:00.000Z',
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('status', { name: /오프라인/ }),
+    ).toBeInTheDocument();
+
+    window.dispatchEvent(new Event('online'));
+
+    expect(
+      await screen.findByRole('status', { name: /계정 연결됨/ }),
+    ).toBeInTheDocument();
+    expect(workArchiveDbManager.getCurrentScopeKey()).toBe(
+      'work-archive-db-user-user-1',
+    );
+    expect(readStoredAuthTokens()).toEqual({
+      accessToken: 'recovered-access-token',
+    });
+  });
+
+  it('keeps expired authentication distinct from guest mode', async () => {
+    writeStoredArchiveIdentity(sessionBody().user as AuthUser);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(
+        jsonResponse(
+          {
+            message: 'Invalid or expired refresh token.',
+          },
+          401,
+        ),
+      ),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('status', {
+        name: /Frieren의 계정 보관함, 인증 만료 · 이 계정 보관함에 계속 저장/,
+      }),
+    ).toBeInTheDocument();
+    expect(workArchiveDbManager.getCurrentScopeKey()).toBe(
+      'work-archive-db-user-user-1',
+    );
+  });
+
+  it('switches directly from the retained account scope to a newly authenticated account', async () => {
+    writeStoredArchiveIdentity(sessionBody().user as AuthUser);
+    const nextSession = sessionBody('account-two-token');
+    nextSession.user.id = 'user-2';
+    nextSession.user.email = 'fern@example.com';
+    nextSession.user.nickname = 'Fern';
+    nextSession.user.authAccounts[0]!.email = 'fern@example.com';
+    nextSession.user.authAccounts[0]!.name = 'Fern';
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(jsonResponse(nextSession)),
+    );
+
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('status', {
+        name: /Fern의 계정 보관함, 계정 연결됨/,
+      }),
+    ).toBeInTheDocument();
+    expect(workArchiveDbManager.getCurrentScopeKey()).toBe(
+      'work-archive-db-user-user-2',
+    );
+    expect(readStoredArchiveIdentity()?.user.id).toBe('user-2');
+  });
+
+  it('uses guest mode when startup refresh fails without a retained account identity', async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       'fetch',
@@ -542,5 +715,9 @@ describe('Auth flow', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /게스트/ })).toBeInTheDocument();
     });
+    expect(readStoredArchiveIdentity()).toBeNull();
+    expect(workArchiveDbManager.getCurrentScopeKey()).toBe(
+      'work-archive-db-guest',
+    );
   });
 });

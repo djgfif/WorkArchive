@@ -1,6 +1,13 @@
-import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from 'react';
 
 import {
+  ApiRequestError,
   getGoogleLoginStartUrl,
   logoutSession,
   restoreStoredSession,
@@ -12,8 +19,17 @@ import {
   subscribeToStoredAuthTokens,
   writeStoredAuthTokens,
 } from '../services/auth-storage';
+import {
+  clearStoredArchiveIdentity,
+  readStoredArchiveIdentity,
+  writeStoredArchiveIdentity,
+} from '../services/archive-identity';
 import { workArchiveDbManager } from '../../works/storage';
-import { AuthContext, type AuthContextValue } from './AuthContext';
+import {
+  AuthContext,
+  type AuthContextValue,
+  type AuthSessionStatus,
+} from './AuthContext';
 
 const GOOGLE_RETURN_TO_STORAGE_KEY = 'work-archive.auth.googleReturnTo';
 const GOOGLE_AUTH_COMPLETE_PATH = '/auth/google/complete';
@@ -73,27 +89,73 @@ function consumeGoogleReturnTo() {
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const initialIdentityRef = useRef<
+    ReturnType<typeof readStoredArchiveIdentity> | undefined
+  >(undefined);
+
+  if (initialIdentityRef.current === undefined) {
+    initialIdentityRef.current = readStoredArchiveIdentity();
+
+    if (initialIdentityRef.current) {
+      workArchiveDbManager.switchToUser(initialIdentityRef.current.user.id);
+    }
+  }
+
+  const initialUser = initialIdentityRef.current?.user ?? null;
+  const [user, setUser] = useState<AuthUser | null>(initialUser);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionStatus, setSessionStatus] =
+    useState<AuthSessionStatus>('restoring');
   const [archiveScopeKey, setArchiveScopeKey] = useState(
     workArchiveDbManager.getCurrentScopeKey(),
   );
+  const activeUserRef = useRef<AuthUser | null>(initialUser);
+  const explicitGuestTransitionRef = useRef(false);
   const sessionGenerationRef = useRef(0);
   const startupRestoreGenerationRef = useRef<number | null>(null);
 
-  function activateGuestSession() {
+  const activateGuestSession = useCallback(({ clearIdentity = false } = {}) => {
+    activeUserRef.current = null;
+    explicitGuestTransitionRef.current = false;
+
+    if (clearIdentity) {
+      clearStoredArchiveIdentity();
+    }
+
     workArchiveDbManager.switchToGuest();
     setUser(null);
+    setSessionStatus('guest');
     setArchiveScopeKey(workArchiveDbManager.getCurrentScopeKey());
     setIsLoading(false);
-  }
+  }, []);
 
-  function activateAuthenticatedArchive(user: AuthUser) {
+  const activateAuthenticatedArchive = useCallback((user: AuthUser) => {
+    activeUserRef.current = user;
+    explicitGuestTransitionRef.current = false;
+    writeStoredArchiveIdentity(user);
     workArchiveDbManager.switchToUser(user.id);
     setUser(user);
+    setSessionStatus('authenticated');
     setArchiveScopeKey(workArchiveDbManager.getCurrentScopeKey());
     setIsLoading(false);
-  }
+  }, []);
+
+  const retainAccountArchive = useCallback((
+    status: Extract<AuthSessionStatus, 'expired' | 'offline'>,
+  ) => {
+    const retainedUser = activeUserRef.current;
+
+    if (!retainedUser) {
+      activateGuestSession();
+      return;
+    }
+
+    workArchiveDbManager.switchToUser(retainedUser.id);
+    setUser(retainedUser);
+    setSessionStatus(status);
+    setArchiveScopeKey(workArchiveDbManager.getCurrentScopeKey());
+    setIsLoading(false);
+  }, [activateGuestSession]);
 
   async function getPostGoogleSignInLocation(user: AuthUser) {
     const returnTo = consumeGoogleReturnTo();
@@ -119,7 +181,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     startupRestoreGenerationRef.current = restoreGeneration;
     const unsubscribe = subscribeToStoredAuthTokens((tokens) => {
-      if (isCancelled || tokens !== null) {
+      if (
+        isCancelled ||
+        tokens !== null ||
+        explicitGuestTransitionRef.current
+      ) {
         return;
       }
 
@@ -130,11 +196,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      activateGuestSession();
+      retainAccountArchive('expired');
     });
 
     async function initializeSession() {
-      const restoredSession = await restoreStoredSession();
+      const result = await restoreStoredSession();
 
       if (isCancelled) {
         return;
@@ -148,15 +214,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       startupRestoreGenerationRef.current = null;
 
-      if (restoredSession) {
-        writeStoredAuthTokens(restoredSession.tokens);
-        activateAuthenticatedArchive(restoredSession.user);
+      if (result.status === 'authenticated') {
+        writeStoredAuthTokens(result.tokens);
+        activateAuthenticatedArchive(result.user);
 
         return;
       }
 
       clearStoredAuthTokens();
-      activateGuestSession();
+      retainAccountArchive(
+        result.status === 'unavailable' ? 'offline' : 'expired',
+      );
     }
 
     void initializeSession();
@@ -165,7 +233,46 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isCancelled = true;
       unsubscribe();
     };
-  }, []);
+  }, [activateAuthenticatedArchive, retainAccountArchive]);
+
+  useEffect(() => {
+    if (sessionStatus !== 'offline') {
+      return undefined;
+    }
+
+    const restoreGeneration = sessionGenerationRef.current;
+
+    async function handleOnline() {
+      try {
+        const result = await restoreStoredSession({ force: true });
+
+        if (
+          sessionGenerationRef.current !== restoreGeneration ||
+          result.status !== 'authenticated'
+        ) {
+          return;
+        }
+
+        writeStoredAuthTokens(result.tokens);
+        activateAuthenticatedArchive(result.user);
+      } catch (error) {
+        if (
+          sessionGenerationRef.current === restoreGeneration &&
+          error instanceof ApiRequestError &&
+          (error.status === 401 || error.status === 403)
+        ) {
+          clearStoredAuthTokens();
+          retainAccountArchive('expired');
+        }
+      }
+    }
+
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [activateAuthenticatedArchive, retainAccountArchive, sessionStatus]);
 
   async function activateAuthenticatedSession(
     user: AuthUser,
@@ -187,13 +294,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }
 
   async function completeGoogleSignIn() {
-    if (user) {
+    if (user && sessionStatus === 'authenticated') {
       return getPostGoogleSignInLocation(user);
     }
 
     const restoredSession = await restoreStoredSession({ force: true });
 
-    if (!restoredSession) {
+    if (restoredSession.status !== 'authenticated') {
       throw new Error('Google sign-in session could not be restored.');
     }
 
@@ -206,6 +313,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   async function signOut() {
     sessionGenerationRef.current += 1;
     startupRestoreGenerationRef.current = null;
+    explicitGuestTransitionRef.current = true;
 
     try {
       await logoutSession();
@@ -214,10 +322,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     clearStoredAuthTokens();
-    activateGuestSession();
+    activateGuestSession({ clearIdentity: true });
   }
 
   function updateUser(nextUser: AuthUser) {
+    activeUserRef.current = nextUser;
+    writeStoredArchiveIdentity(nextUser);
     setUser(nextUser);
   }
 
@@ -227,6 +337,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     continueWithGoogle,
     isLoading,
     mode: user ? 'authenticated' : 'guest',
+    sessionStatus,
     user,
     signOut,
     updateUser,

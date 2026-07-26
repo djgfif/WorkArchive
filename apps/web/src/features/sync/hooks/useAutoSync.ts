@@ -35,7 +35,7 @@ export function useAutoSync({
   queueRepository = syncQueueRepository,
   service = syncService,
 }: UseAutoSyncOptions = {}) {
-  const { archiveScopeKey, isLoading, mode } = useAuthSession();
+  const { archiveScopeKey, isLoading, mode, sessionStatus } = useAuthSession();
   const activeScopeRef = useRef(archiveScopeKey);
   const isPushRunningRef = useRef(false);
   const isPullRunningRef = useRef(false);
@@ -47,7 +47,11 @@ export function useAutoSync({
   activeScopeRef.current = archiveScopeKey;
 
   useEffect(() => {
-    if (isLoading || mode !== 'authenticated') {
+    if (
+      isLoading ||
+      mode !== 'authenticated' ||
+      sessionStatus !== 'authenticated'
+    ) {
       return undefined;
     }
 
@@ -137,12 +141,17 @@ export function useAutoSync({
     isLoading,
     mode,
     pullFailureBackoffMs,
+    sessionStatus,
     pullMinIntervalMs,
     service,
   ]);
 
   useEffect(() => {
-    if (isLoading || mode !== 'authenticated') {
+    if (
+      isLoading ||
+      mode !== 'authenticated' ||
+      sessionStatus !== 'authenticated'
+    ) {
       return undefined;
     }
 
@@ -222,5 +231,13 @@ export function useAutoSync({
       clearPushTimer();
       subscription.unsubscribe();
     };
-  }, [archiveScopeKey, debounceMs, isLoading, mode, queueRepository, service]);
+  }, [
+    archiveScopeKey,
+    debounceMs,
+    isLoading,
+    mode,
+    queueRepository,
+    service,
+    sessionStatus,
+  ]);
 }

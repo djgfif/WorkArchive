@@ -38,6 +38,18 @@
         "guest": "Guest",
         "guestLocalStorage": "Guest - local storage",
         "guestMode": "Guest mode",
+        "archiveScope": {
+          "accountOwner": "{{name}}'s account archive",
+          "ariaLabel": "Current archive: {{owner}}, {{status}}",
+          "guestOwner": "This browser's guest archive",
+          "status": {
+            "authenticated": "Account connected",
+            "expired": "Session expired · still saving to this account archive",
+            "guest": "Saved only in this browser",
+            "offline": "Offline · still saving to this account archive",
+            "restoring": "Checking account status"
+          }
+        },
         "home": "Home",
         "insights": "Insights",
         "login": "Log in",
@@ -131,6 +143,18 @@
         "guest": "ゲスト",
         "guestLocalStorage": "ゲスト - ローカル保存",
         "guestMode": "ゲストモード",
+        "archiveScope": {
+          "accountOwner": "{{name}}のアカウントアーカイブ",
+          "ariaLabel": "現在のアーカイブ: {{owner}}、{{status}}",
+          "guestOwner": "このブラウザーのゲストアーカイブ",
+          "status": {
+            "authenticated": "アカウント接続済み",
+            "expired": "認証期限切れ · このアカウントアーカイブに保存を継続",
+            "guest": "このブラウザーにのみ保存",
+            "offline": "オフライン · このアカウントアーカイブに保存を継続",
+            "restoring": "アカウント状態を確認中"
+          }
+        },
         "home": "ホーム",
         "insights": "インサイト",
         "login": "ログイン",
@@ -224,6 +248,18 @@
         "guest": "访客",
         "guestLocalStorage": "访客 - 本地存储",
         "guestMode": "访客模式",
+        "archiveScope": {
+          "accountOwner": "{{name}} 的账户归档",
+          "ariaLabel": "当前归档：{{owner}}，{{status}}",
+          "guestOwner": "此浏览器的访客归档",
+          "status": {
+            "authenticated": "账户已连接",
+            "expired": "认证已过期 · 继续保存到此账户归档",
+            "guest": "仅保存在此浏览器",
+            "offline": "离线 · 继续保存到此账户归档",
+            "restoring": "正在检查账户状态"
+          }
+        },
         "home": "首页",
         "insights": "洞察",
         "login": "登录",

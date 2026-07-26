@@ -35,6 +35,7 @@ function renderBadge(mode: 'authenticated' | 'guest' = 'authenticated') {
     archiveScopeKey: mode === 'authenticated' ? 'user-1' : 'guest',
     isLoading: false,
     mode,
+    sessionStatus: mode === 'authenticated' ? 'authenticated' : 'guest',
     signOut: vi.fn(async () => undefined),
     user: null,
   };

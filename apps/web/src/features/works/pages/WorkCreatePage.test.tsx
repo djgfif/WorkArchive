@@ -164,6 +164,7 @@ function renderAuthenticatedCreatePage() {
           archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'authenticated',
+          sessionStatus: 'authenticated',
           user: {
             avatarUrl: '',
             id: 'user-1',
@@ -189,6 +190,7 @@ function renderGuestCreatePage(initialEntry = '/works/new') {
           archiveScopeKey: workArchiveDbManager.getCurrentScopeKey(),
           isLoading: false,
           mode: 'guest',
+          sessionStatus: 'guest',
           user: null,
           signOut: vi.fn(),
         }}

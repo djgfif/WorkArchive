@@ -18,7 +18,11 @@ import {
   StateMessage,
   ThemeToggleControl,
 } from '@shared/components/AppPrimitives';
-import { getUserAvatarProfile, useAuthSession } from '@features/auth';
+import {
+  ArchiveScopeIndicator,
+  getUserAvatarProfile,
+  useAuthSession,
+} from '@features/auth';
 import { SyncSafetyBadge } from '@features/sync';
 import {
   CommandPalette,
@@ -240,6 +244,7 @@ export function MainProductLayout() {
 
       {/* ── 콘텐츠 영역 ── */}
       <main className={`app-content ${css.pageTransition}`}>
+        <ArchiveScopeIndicator />
         {isLoading ? (
           <Box p="xl">
             <StateMessage

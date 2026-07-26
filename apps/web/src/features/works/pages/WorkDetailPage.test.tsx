@@ -17,6 +17,7 @@ const authenticatedContextValue: AuthContextValue = {
   archiveScopeKey: 'user:test-user',
   isLoading: false,
   mode: 'authenticated',
+  sessionStatus: 'authenticated',
   user: {
     avatarUrl: '',
     email: 'user@example.com',

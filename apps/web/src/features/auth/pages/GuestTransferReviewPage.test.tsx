@@ -55,6 +55,7 @@ function renderTransferPage() {
         archiveScopeKey: 'user-user-1',
         isLoading: false,
         mode: 'authenticated',
+        sessionStatus: 'authenticated',
         signOut: vi.fn(),
         user: {
           avatarUrl: '',
