@@ -4,7 +4,10 @@ import { Grid, Stack, Text } from '@mantine/core';
 import { useAppTranslation } from '@app/i18n';
 import { AdvancedWorkFields } from './AdvancedWorkFields';
 import { CoreWorkFields, OptionalCoreWorkFields } from './CoreWorkFields';
-import { PersonalRecordFields } from './PersonalRecordFields';
+import {
+  PersonalRecordOptionalFields,
+  PersonalRecordStatusRatingFields,
+} from './PersonalRecordFields';
 import { QuickCapturePreview } from './QuickCapturePreview';
 import {
   type AddWorkSuggestions,
@@ -30,13 +33,11 @@ interface ManualFieldControls {
 
 interface AddWorkManualFieldsProps extends ManualFieldControls {
   duplicateCount: number;
-  isDialog: boolean;
   primaryActions?: ReactNode;
   sourceLabel: string | null;
 }
 
 function CoreFields({
-  compact = false,
   onInputChange,
   onTextListChange,
   titleError,
@@ -49,35 +50,16 @@ function CoreFields({
   | 'titleError'
   | 'titleInputRef'
   | 'values'
-> & { compact?: boolean }) {
+>) {
   return (
     <CoreWorkFields
-      compact={compact}
+      compact
       error={titleError}
       idPrefix="manual"
       onChange={onInputChange}
       onTextListChange={onTextListChange}
+      showType={false}
       titleInputRef={titleInputRef}
-      values={values}
-    />
-  );
-}
-
-function PersonalFields({
-  onInputChange,
-  onRatingChange,
-  onStatusChange,
-  values,
-}: Pick<
-  ManualFieldControls,
-  'onInputChange' | 'onRatingChange' | 'onStatusChange' | 'values'
->) {
-  return (
-    <PersonalRecordFields
-      idPrefix="manual"
-      onInputChange={onInputChange}
-      onRatingChange={onRatingChange}
-      onStatusChange={onStatusChange}
       values={values}
     />
   );
@@ -115,16 +97,6 @@ function AdvancedFields({
   );
 }
 
-function ManualFieldStack(props: ManualFieldControls) {
-  return (
-    <Stack gap="lg">
-      <CoreFields {...props} />
-      <PersonalFields {...props} />
-      <AdvancedFields {...props} />
-    </Stack>
-  );
-}
-
 function CapturePreview({
   duplicateCount,
   sourceLabel,
@@ -144,35 +116,24 @@ function CapturePreview({
 
 export function AddWorkManualFields({
   duplicateCount,
-  isDialog,
   primaryActions,
   sourceLabel,
   ...fieldControls
 }: AddWorkManualFieldsProps) {
   const { t } = useAppTranslation();
 
-  if (isDialog) {
-    return (
-      <Grid align="start" gap="md">
-        <Grid.Col span={{ base: 12, md: 8 }}>
-          <ManualFieldStack {...fieldControls} />
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, md: 4 }}>
-          <CapturePreview
-            duplicateCount={duplicateCount}
-            sourceLabel={sourceLabel}
-            values={fieldControls.values}
-          />
-        </Grid.Col>
-      </Grid>
-    );
-  }
-
   return (
     <Stack gap="xl">
       <Grid align="start" gap="xl">
         <Grid.Col order={{ base: 1, md: 1 }} span={{ base: 12, md: 8 }}>
-          <CoreFields compact {...fieldControls} />
+          <Stack gap="lg">
+            <CoreFields {...fieldControls} />
+            <PersonalRecordStatusRatingFields
+              onRatingChange={fieldControls.onRatingChange}
+              onStatusChange={fieldControls.onStatusChange}
+              values={fieldControls.values}
+            />
+          </Stack>
         </Grid.Col>
         {primaryActions && (
           <Grid.Col order={{ base: 2, md: 3 }} span={{ base: 12, md: 8 }}>
@@ -202,11 +163,16 @@ export function AddWorkManualFields({
         <Stack gap="xl" mt="lg">
           <OptionalCoreWorkFields
             idPrefix="manual"
+            includeType
             onChange={fieldControls.onInputChange}
             onTextListChange={fieldControls.onTextListChange}
             values={fieldControls.values}
           />
-          <PersonalFields {...fieldControls} />
+          <PersonalRecordOptionalFields
+            idPrefix="manual"
+            onInputChange={fieldControls.onInputChange}
+            values={fieldControls.values}
+          />
           <AdvancedFields {...fieldControls} />
         </Stack>
       </details>

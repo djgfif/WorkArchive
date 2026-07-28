@@ -104,17 +104,35 @@ export const en = {
       syncPending: '{{count}} items awaiting push',
       syncStale: 'Pull needs recheck',
       summary: {
-        action: { title: 'Review data safety', description: 'Backup, storage protection, failures, or conflicts need attention.' },
-        empty: { title: 'Set up safety before the first record', description: 'JSON backup and browser storage evidence will appear after recording starts.' },
-        pending: { title: 'Changes are being processed', description: 'Local records remain available while push or pull checks are pending.' },
-        steady: { title: 'No currently verified risk', description: 'Based on the evidence timestamps and storage state shown below.' },
+        action: {
+          title: 'Review data safety',
+          description:
+            'Backup, storage protection, failures, or conflicts need attention.',
+        },
+        empty: {
+          title: 'Set up safety before the first record',
+          description:
+            'JSON backup and browser storage evidence will appear after recording starts.',
+        },
+        pending: {
+          title: 'Changes are being processed',
+          description:
+            'Local records remain available while push or pull checks are pending.',
+        },
+        steady: {
+          title: 'No currently verified risk',
+          description:
+            'Based on the evidence timestamps and storage state shown below.',
+        },
       },
     },
     conflictLocalQueue:
       "Remote changes and the local queue couldn't be auto-merged, so manual review is needed.",
-    conflictRecoveryChanged: 'The record changed after resolution, so it cannot be safely undone.',
+    conflictRecoveryChanged:
+      'The record changed after resolution, so it cannot be safely undone.',
     conflictRecoveryExpired: 'The undo window has expired.',
-    conflictRecoveryMissing: 'No conflict recovery snapshot is available to undo.',
+    conflictRecoveryMissing:
+      'No conflict recovery snapshot is available to undo.',
     conflictQueueMissing: 'Could not find a sync item to resolve.',
     failedApplyAfterSync: 'Could not apply changes to the view after sync.',
     failedApplyAfterSyncWithReason:
@@ -577,7 +595,7 @@ export const en = {
       add: '+ Add',
       aria: 'Quick work capture',
       placeholder: 'Find a title or start a record',
-      record: 'Record',
+      record: 'Add record',
     },
     safety: {
       accountConnected: 'Account backup connected',
@@ -1247,9 +1265,11 @@ export const en = {
       conflictMessageFallback:
         'The local record and account backup record differ and need review.',
       conflictTitle: '{{count}} sync conflicts',
-      confirmResolutionDescription: 'Apply “{{action}}” to {{title}}. You can undo only for 10 minutes immediately afterward.',
+      confirmResolutionDescription:
+        'Apply “{{action}}” to {{title}}. You can undo only for 10 minutes immediately afterward.',
       confirmResolutionTitle: 'Apply this conflict resolution?',
-      conflictDiffDescription: 'Only differing fields are shown. Selected merge groups take their server values.',
+      conflictDiffDescription:
+        'Only differing fields are shown. Selected merge groups take their server values.',
       conflictDiffTableLabel: 'Local and server record field comparison',
       conflictDiffTitle: 'Field-by-field differences',
       conflictFieldLabel: 'Field',
@@ -1369,9 +1389,12 @@ export const en = {
         'Merged only selected fields and returned the record to awaiting backup.',
       resolveRemoteSuccess: 'Applied the account backup record to this device.',
       undoResolutionAction: 'Undo recent resolution',
-      undoResolutionDescription: 'The recovery snapshot lasts 10 minutes and is not applied if the record changes afterward.',
-      undoResolutionSuccess: 'Restored the record and queue from before conflict resolution.',
-      undoResolutionUnavailable: 'Could not restore because the record changed or the undo window expired.',
+      undoResolutionDescription:
+        'The recovery snapshot lasts 10 minutes and is not applied if the record changes afterward.',
+      undoResolutionSuccess:
+        'Restored the record and queue from before conflict resolution.',
+      undoResolutionUnavailable:
+        'Could not restore because the record changed or the undo window expired.',
       storageActionNeeded: 'Protection available',
       storageManual: 'Manual backup needed',
       storageProtected: 'Protected',
@@ -1995,14 +2018,14 @@ export const en = {
       fieldShortReview: 'One-line review',
       fieldTitle: 'Title',
       flowDescription:
-        'Start with just a title, and fill in the cover and basic info from search candidates when needed.',
+        'Save with a title, status, and rating; use search and metadata enrichment only when useful.',
       flowTitle: 'New work record',
-      optionalFieldsTitle: 'Add status, rating, and notes',
+      optionalFieldsTitle: 'Add type, notes, and details',
       optionalFieldsDescription:
-        'A title and type are enough for now. You can complete the rest anytime.',
+        'A title, status, and rating are enough. You can complete the rest anytime.',
       modeLabel: 'Add method',
       modeManual: 'Manual entry',
-      modeSearch: 'Fill via search',
+      modeSearch: 'Enrich via search (optional)',
       savedDescription:
         'Check the record you just saved, or keep adding the next work in the same flow.',
       savedEyebrow: 'Saved',
@@ -2779,7 +2802,7 @@ export const en = {
     },
     form: {
       basicDescription:
-        'You can save with just a title and type. Add status and notes below whenever you are ready.',
+        'Only the title is required. Set status and rating now, then complete the collapsed details whenever you are ready.',
       basicRequiredBadge: 'Required',
       advancedTitle: 'Detailed info',
       favoriteLabel: 'Mark as favorite',
@@ -2815,7 +2838,7 @@ export const en = {
       previewUntitled: 'Untitled work',
       recordBadge: 'My record',
       recordDescription:
-        "It's enough to leave just status, rating, and a one-line review first.",
+        'Set status and rating now, and change them anytime after saving.',
       recordLongReviewHelp:
         'You can keep organizing a long detailed review and history on the detail screen after saving.',
       relationCheckboxDescription:

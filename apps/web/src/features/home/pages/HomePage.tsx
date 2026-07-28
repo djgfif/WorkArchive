@@ -619,9 +619,6 @@ export function HomePage() {
             placeholder={t('home.quickCapture.placeholder')}
             value={searchTerm}
           />
-          <AppLinkButton to="/works/new" tone="secondary">
-            {t('home.quickCapture.add')}
-          </AppLinkButton>
           <AppButton tone="primary" type="submit">
             {t('home.quickCapture.record')}
           </AppButton>

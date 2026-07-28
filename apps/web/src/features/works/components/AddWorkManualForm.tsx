@@ -94,13 +94,12 @@ export function AddWorkManualForm({
 
         <AddWorkManualFields
           duplicateCount={duplicateCandidates.length}
-          isDialog={isDialog}
           onInputChange={onInputChange}
           onRatingChange={onRatingChange}
           onSeriesFieldsClear={onSeriesFieldsClear}
           onStatusChange={onStatusChange}
           onTextListChange={onTextListChange}
-          primaryActions={isDialog ? undefined : saveFooter}
+          primaryActions={saveFooter}
           sourceLabel={selectedImportCandidate?.sourceLabel ?? null}
           suggestions={suggestions}
           titleError={titleError}
@@ -115,8 +114,6 @@ export function AddWorkManualForm({
             {validationError ?? submitError}
           </FeedbackMessage>
         )}
-
-        {isDialog && saveFooter}
       </Stack>
     </form>
   );

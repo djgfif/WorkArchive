@@ -12,12 +12,8 @@ import {
   type WorkFormInputChangeHandler,
   type WorkFormValuesProps,
 } from './add-work-form.types';
-import styles from './ArchiveComponents.module.css';
 import type { WorkFormValues } from '../utils/work-form';
 import { workStatusOptions } from '../utils/work-options';
-import { cn } from '@shared/utils/class-names';
-
-const css = styles;
 
 interface StatusButtonGroupProps {
   onChange: (status: WorkFormValues['status']) => void;
@@ -57,13 +53,16 @@ interface PersonalRecordFieldsProps extends WorkFormValuesProps {
   onStatusChange: (status: WorkFormValues['status']) => void;
 }
 
-export function PersonalRecordFields({
-  idPrefix = '',
-  onInputChange,
+type PersonalRecordStatusRatingFieldsProps = Pick<
+  PersonalRecordFieldsProps,
+  'onRatingChange' | 'onStatusChange' | 'values'
+>;
+
+export function PersonalRecordStatusRatingFields({
   onRatingChange,
   onStatusChange,
   values,
-}: PersonalRecordFieldsProps) {
+}: PersonalRecordStatusRatingFieldsProps) {
   const { t } = useAppTranslation();
   const ratingValue =
     values.rating.trim() === '' ? null : Number.parseFloat(values.rating);
@@ -81,33 +80,65 @@ export function PersonalRecordFields({
 
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         <StatusButtonGroup onChange={onStatusChange} value={values.status} />
-
         <StarRatingInput
           label={t('works.form.ratingLabel')}
           onChange={onRatingChange}
           value={normalizedRating}
         />
-
-        <div className={cn(css.gridSpanFull)}>
-          <Textarea
-            id={getFieldId(idPrefix, 'shortReview')}
-            label={t('works.form.shortReviewLabel')}
-            name="shortReview"
-            onChange={onInputChange}
-            placeholder={t('works.form.shortReviewPlaceholder')}
-            rows={2}
-            value={values.shortReview}
-          />
-        </div>
-
-        <Text
-          c="var(--mantine-color-dimmed)"
-          className={cn(css.gridSpanFull)}
-          size="sm"
-        >
-          {t('works.form.recordLongReviewHelp')}
-        </Text>
       </SimpleGrid>
+    </Stack>
+  );
+}
+
+type PersonalRecordOptionalFieldsProps = Pick<
+  PersonalRecordFieldsProps,
+  'idPrefix' | 'onInputChange' | 'values'
+>;
+
+export function PersonalRecordOptionalFields({
+  idPrefix = '',
+  onInputChange,
+  values,
+}: PersonalRecordOptionalFieldsProps) {
+  const { t } = useAppTranslation();
+
+  return (
+    <Stack gap="md">
+      <Textarea
+        id={getFieldId(idPrefix, 'shortReview')}
+        label={t('works.form.shortReviewLabel')}
+        name="shortReview"
+        onChange={onInputChange}
+        placeholder={t('works.form.shortReviewPlaceholder')}
+        rows={2}
+        value={values.shortReview}
+      />
+      <Text c="var(--mantine-color-dimmed)" size="sm">
+        {t('works.form.recordLongReviewHelp')}
+      </Text>
+    </Stack>
+  );
+}
+
+export function PersonalRecordFields({
+  idPrefix = '',
+  onInputChange,
+  onRatingChange,
+  onStatusChange,
+  values,
+}: PersonalRecordFieldsProps) {
+  return (
+    <Stack gap="md">
+      <PersonalRecordStatusRatingFields
+        onRatingChange={onRatingChange}
+        onStatusChange={onStatusChange}
+        values={values}
+      />
+      <PersonalRecordOptionalFields
+        idPrefix={idPrefix}
+        onInputChange={onInputChange}
+        values={values}
+      />
     </Stack>
   );
 }

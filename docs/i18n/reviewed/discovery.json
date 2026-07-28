@@ -38,7 +38,7 @@
           "add": "+ Add",
           "aria": "Quick work capture",
           "placeholder": "Find a title or start a record",
-          "record": "Record"
+          "record": "Add record"
         },
         "safety": {
           "accountConnected": "Account backup connected",
@@ -372,7 +372,7 @@
           "add": "+ 追加",
           "aria": "作品をすばやく記録",
           "placeholder": "作品を探すか、そのまま記録してください",
-          "record": "記録"
+          "record": "記録を追加"
         },
         "safety": {
           "accountConnected": "アカウントバックアップ接続済み",
@@ -706,7 +706,7 @@
           "add": "+ 添加",
           "aria": "快速记录作品",
           "placeholder": "查找作品或直接开始记录",
-          "record": "记录"
+          "record": "添加记录"
         },
         "safety": {
           "accountConnected": "账户备份已连接",

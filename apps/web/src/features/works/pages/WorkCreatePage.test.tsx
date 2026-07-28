@@ -1,4 +1,4 @@
-﻿import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -207,7 +207,7 @@ async function searchAndSelectCandidate(
   candidateTitle: string,
   options: { providerGroup?: 'manual' } = {},
 ) {
-  await user.click(screen.getByLabelText('검색으로 채우기'));
+  await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
 
   if (options.providerGroup === 'manual') {
     const manualProviderGroupButton = await waitFor(() => {
@@ -282,7 +282,9 @@ describe('WorkCreatePage', () => {
     expect(screen.getByLabelText(/^제목$/)).toHaveValue(
       'The Left Hand of Darkness',
     );
-    expect(screen.getByText('상태 · 별점 · 감상 더하기')).toBeInTheDocument();
+    expect(
+      screen.getByText('유형 · 감상 · 상세 정보 더하기'),
+    ).toBeInTheDocument();
   });
 
   afterEach(() => {

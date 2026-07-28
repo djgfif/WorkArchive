@@ -90,10 +90,22 @@ export const zhCN = {
       syncPending: '{{count}} 项等待 push',
       syncStale: '需要重新检查 pull',
       summary: {
-        action: { title: '需要检查数据安全', description: '请检查备份、存储保护、失败或冲突项。' },
-        empty: { title: '首次记录前的安全设置', description: '开始记录后会同时检查 JSON 备份和浏览器存储状态。' },
-        pending: { title: '正在处理更改', description: '本地记录会保留，同时等待 push 或 pull 检查。' },
-        steady: { title: '当前未发现已验证风险', description: '依据下方显示的证据时间和存储状态判断。' },
+        action: {
+          title: '需要检查数据安全',
+          description: '请检查备份、存储保护、失败或冲突项。',
+        },
+        empty: {
+          title: '首次记录前的安全设置',
+          description: '开始记录后会同时检查 JSON 备份和浏览器存储状态。',
+        },
+        pending: {
+          title: '正在处理更改',
+          description: '本地记录会保留，同时等待 push 或 pull 检查。',
+        },
+        steady: {
+          title: '当前未发现已验证风险',
+          description: '依据下方显示的证据时间和存储状态判断。',
+        },
       },
     },
     conflictLocalQueue: '无法自动合并远程更改与本地队列，需手动确认。',
@@ -525,7 +537,7 @@ export const zhCN = {
       add: '+ 添加',
       aria: '快速记录作品',
       placeholder: '查找作品或直接开始记录',
-      record: '记录',
+      record: '添加记录',
     },
     safety: {
       accountConnected: '账户备份已连接',
@@ -1171,9 +1183,11 @@ export const zhCN = {
       conflictEyebrow: '手动确认',
       conflictMessageFallback: '本地记录与账户备份记录不同，需要确认。',
       conflictTitle: '{{count}} 个同步冲突',
-      confirmResolutionDescription: '将“{{action}}”应用到 {{title}}。应用后仅可在 10 分钟内撤销。',
+      confirmResolutionDescription:
+        '将“{{action}}”应用到 {{title}}。应用后仅可在 10 分钟内撤销。',
       confirmResolutionTitle: '要应用此冲突解决方案吗？',
-      conflictDiffDescription: '仅显示不同的字段。选择合并会采用已勾选分组的服务器值。',
+      conflictDiffDescription:
+        '仅显示不同的字段。选择合并会采用已勾选分组的服务器值。',
       conflictDiffTableLabel: '本地记录与服务器记录字段比较',
       conflictDiffTitle: '逐字段差异',
       conflictFieldLabel: '字段',
@@ -1283,7 +1297,8 @@ export const zhCN = {
       resolveMergeSuccess: '仅合并所选字段，并恢复为待备份状态。',
       resolveRemoteSuccess: '已将账户备份记录应用到此设备。',
       undoResolutionAction: '撤销刚才的解决操作',
-      undoResolutionDescription: '恢复快照保留 10 分钟；之后记录若已变化则不会撤销。',
+      undoResolutionDescription:
+        '恢复快照保留 10 分钟；之后记录若已变化则不会撤销。',
       undoResolutionSuccess: '已恢复冲突解决前的记录和队列。',
       undoResolutionUnavailable: '记录已变化或撤销时间已过，无法恢复。',
       storageActionNeeded: '可请求保护',
@@ -1860,14 +1875,15 @@ export const zhCN = {
       fieldRating: '评分',
       fieldShortReview: '一句话点评',
       fieldTitle: '标题',
-      flowDescription: '先用标题开始，需要时再用搜索候选补全封面和基本信息。',
+      flowDescription:
+        '可用标题、状态和评分直接保存；搜索与作品信息补全仅在需要时使用。',
       flowTitle: '新作品记录',
-      optionalFieldsTitle: '添加状态、评分与感想',
+      optionalFieldsTitle: '添加类型、感想与详细信息',
       optionalFieldsDescription:
-        '现在只保存标题和类型也可以，其余内容随时都能补充。',
+        '只需标题、状态和评分即可保存，其余内容随时都能补充。',
       modeLabel: '添加方式',
       modeManual: '手动输入',
-      modeSearch: '通过搜索填充',
+      modeSearch: '通过搜索补全信息（可选）',
       savedDescription:
         '可立即查看刚保存的记录，或在同一流程中继续添加下一部作品。',
       savedEyebrow: '已保存',
@@ -1970,7 +1986,7 @@ export const zhCN = {
         missingLabel: '建议自己补充的信息',
         sourceDetails: '搜索来源详情',
         switchToManual: '切换到手动输入',
-        title: '通过搜索填充的信息',
+        title: '通过搜索补全信息（可选）的信息',
       },
       save: {
         duplicateDescription: '请先确认 {{count}} 条相似记录再保存。',
@@ -2617,7 +2633,7 @@ export const zhCN = {
     },
     form: {
       basicDescription:
-        '只需输入标题和类型即可保存。状态和感想可以稍后在下方补充。',
+        '只有标题为必填项。先设置状态和评分，其余内容可在折叠区域补充。',
       basicRequiredBadge: '必填',
       advancedTitle: '详细信息',
       favoriteLabel: '标记为收藏',
@@ -2651,7 +2667,7 @@ export const zhCN = {
       previewReviewLengthShort: '一句话 {{count}} 字',
       previewUntitled: '无标题作品',
       recordBadge: '我的记录',
-      recordDescription: '先只留下状态、评分和一句话点评也足够。',
+      recordDescription: '现在设置状态和评分，保存后也可随时更改。',
       recordLongReviewHelp:
         '长篇详细感想和观赏历史可在保存后于详情页继续整理。',
       relationCheckboxDescription:

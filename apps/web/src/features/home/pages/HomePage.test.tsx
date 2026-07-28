@@ -101,7 +101,12 @@ describe('HomePage', () => {
 
     expect(await screen.findByText('이어볼 작품')).toBeInTheDocument();
     expect(screen.getAllByText('작품').length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: '기록' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '기록 추가' })).toHaveLength(
+      1,
+    );
+    expect(
+      screen.queryByRole('link', { name: '+ 추가' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('최근 감상한 작품')).toBeInTheDocument();
     expect(screen.getByText('최근 정리한 감상')).toBeInTheDocument();
     expect(screen.queryByText('시리즈 컬렉션')).not.toBeInTheDocument();

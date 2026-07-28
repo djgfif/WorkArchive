@@ -222,7 +222,7 @@ test('opens the command palette and runs a library search', async ({
   ).toBeVisible();
 });
 
-test('lets a guest create a local-first work and find it in the library', async ({
+test('completes a first record with core fields on desktop and mobile', async ({
   page,
 }) => {
   const title = `Playwright Beta Work ${Date.now()}`;
@@ -230,7 +230,15 @@ test('lets a guest create a local-first work and find it in the library', async 
   await gotoApp(page, '/works/new');
 
   await expect(page.getByRole('heading', { name: '작품 추가' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '보는 중' })).toBeVisible();
+  const rating = page.getByRole('slider', { name: '별점' });
+  await expect(rating).toBeVisible();
+  await expect(page.getByLabel('유형', { exact: true })).toBeHidden();
+
   await page.getByRole('textbox', { name: '제목' }).fill(title);
+  await page.getByRole('button', { name: '보는 중' }).click();
+  await rating.press('End');
+  await expect(rating).toHaveAttribute('aria-valuenow', '5');
   await page.getByRole('button', { name: '내 아카이브에 저장' }).click();
 
   await expect(page.getByText(`${title}을(를) 등록했습니다`)).toBeVisible();
@@ -259,9 +267,16 @@ test('keeps mobile add-work save actions from covering first fields', async ({
 
   await expect(page.getByRole('heading', { name: '작품 추가' })).toBeVisible();
   await expect(
-    page.getByText('상태 · 별점 · 감상 더하기', { exact: true }),
+    page.getByText('유형 · 감상 · 상세 정보 더하기', { exact: true }),
   ).toBeVisible();
   await expect(page.getByText('장르 선택', { exact: true })).toBeHidden();
+  await expect(page.getByRole('button', { name: '보는 중' })).toBeVisible();
+  await expect(page.getByRole('slider', { name: '별점' })).toBeVisible();
+
+  await page
+    .getByText('유형 · 감상 · 상세 정보 더하기', { exact: true })
+    .click();
+  await expect(page.getByText('장르 선택', { exact: true })).toBeVisible();
 
   const layoutMetrics = await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll('button'));
@@ -594,8 +609,13 @@ test('keeps direct add usable when quick-add search fails', async ({
   await expect(page.getByRole('textbox', { name: '제목' })).toHaveValue(
     '실패한 검색어',
   );
+  const saveButton = page.getByRole('button', {
+    name: '내 아카이브에 저장',
+  });
+  await expect(saveButton).toBeVisible();
+  await saveButton.click();
   await expect(
-    page.getByRole('button', { name: '내 아카이브에 저장' }),
+    page.getByText('실패한 검색어를 등록했습니다'),
   ).toBeVisible();
 });
 

@@ -1,4 +1,4 @@
-﻿import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -130,7 +130,7 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.click(await screen.findByLabelText('검색으로 채우기'));
+    await user.click(await screen.findByLabelText('검색으로 정보 보강(선택)'));
     await user.type(await screen.findByLabelText(/^작품 검색$/), title);
     await user.click(screen.getByRole('button', { name: '후보 검색' }));
     await user.click(
@@ -255,7 +255,7 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.click(await screen.findByLabelText('검색으로 채우기'));
+    await user.click(await screen.findByLabelText('검색으로 정보 보강(선택)'));
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
     await user.click(screen.getByRole('button', { name: '후보 검색' }));
     await user.click(

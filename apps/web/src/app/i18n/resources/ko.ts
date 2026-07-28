@@ -99,15 +99,32 @@ export const ko = {
       syncPending: 'push 대기 {{count}}건',
       syncStale: 'pull 재확인 필요',
       summary: {
-        action: { title: '데이터 안전 확인 필요', description: '백업, 저장소 보호, 실패 또는 충돌 중 확인할 항목이 있습니다.' },
-        empty: { title: '첫 기록 전 안전 설정', description: '기록을 시작하면 JSON 백업과 브라우저 저장소 상태를 함께 확인합니다.' },
-        pending: { title: '변경 사항 처리 중', description: '로컬 기록은 유지되며 push 또는 pull 확인이 남아 있습니다.' },
-        steady: { title: '현재 확인된 위험 없음', description: '표시된 근거 시각과 저장소 상태를 기준으로 확인했습니다.' },
+        action: {
+          title: '데이터 안전 확인 필요',
+          description:
+            '백업, 저장소 보호, 실패 또는 충돌 중 확인할 항목이 있습니다.',
+        },
+        empty: {
+          title: '첫 기록 전 안전 설정',
+          description:
+            '기록을 시작하면 JSON 백업과 브라우저 저장소 상태를 함께 확인합니다.',
+        },
+        pending: {
+          title: '변경 사항 처리 중',
+          description:
+            '로컬 기록은 유지되며 push 또는 pull 확인이 남아 있습니다.',
+        },
+        steady: {
+          title: '현재 확인된 위험 없음',
+          description:
+            '표시된 근거 시각과 저장소 상태를 기준으로 확인했습니다.',
+        },
       },
     },
     conflictLocalQueue:
       '원격 변경과 로컬 대기열을 자동 병합할 수 없어 직접 확인이 필요합니다.',
-    conflictRecoveryChanged: '해결 후 기록이 변경되어 안전하게 실행 취소할 수 없습니다.',
+    conflictRecoveryChanged:
+      '해결 후 기록이 변경되어 안전하게 실행 취소할 수 없습니다.',
     conflictRecoveryExpired: '실행 취소 가능 시간이 지났습니다.',
     conflictRecoveryMissing: '실행 취소할 충돌 복구 스냅샷이 없습니다.',
     conflictQueueMissing: '해결할 동기화 항목을 찾지 못했습니다.',
@@ -561,7 +578,7 @@ export const ko = {
       add: '+ 추가',
       aria: '빠른 작품 기록',
       placeholder: '작품을 찾거나 바로 기록하세요',
-      record: '기록',
+      record: '기록 추가',
     },
     safety: {
       accountConnected: '계정 백업 연결됨',
@@ -1220,9 +1237,11 @@ export const ko = {
       conflictMessageFallback:
         '로컬 기록과 계정 백업 기록이 달라 확인이 필요합니다.',
       conflictTitle: '동기화 충돌 {{count}}개',
-      confirmResolutionDescription: '{{title}}에 “{{action}}” 작업을 적용합니다. 적용 직후 10분 동안만 실행 취소할 수 있습니다.',
+      confirmResolutionDescription:
+        '{{title}}에 “{{action}}” 작업을 적용합니다. 적용 직후 10분 동안만 실행 취소할 수 있습니다.',
       confirmResolutionTitle: '충돌 해결을 적용할까요?',
-      conflictDiffDescription: '값이 다른 필드만 표시합니다. 선택 병합에서는 체크한 그룹의 서버 값을 가져옵니다.',
+      conflictDiffDescription:
+        '값이 다른 필드만 표시합니다. 선택 병합에서는 체크한 그룹의 서버 값을 가져옵니다.',
       conflictDiffTableLabel: '로컬 기록과 서버 기록 필드 비교',
       conflictDiffTitle: '필드별 차이',
       conflictFieldLabel: '필드',
@@ -1340,9 +1359,11 @@ export const ko = {
         '선택한 항목만 병합하고 다시 백업 대기 상태로 돌렸습니다.',
       resolveRemoteSuccess: '계정 백업 기록을 이 기기에 적용했습니다.',
       undoResolutionAction: '방금 해결 실행 취소',
-      undoResolutionDescription: '복구 스냅샷은 10분 동안 유지되며, 이후 기록이 바뀌면 실행 취소하지 않습니다.',
+      undoResolutionDescription:
+        '복구 스냅샷은 10분 동안 유지되며, 이후 기록이 바뀌면 실행 취소하지 않습니다.',
       undoResolutionSuccess: '충돌 해결 전 기록과 대기열을 복원했습니다.',
-      undoResolutionUnavailable: '기록이 바뀌었거나 실행 취소 시간이 지나 복원하지 못했습니다.',
+      undoResolutionUnavailable:
+        '기록이 바뀌었거나 실행 취소 시간이 지나 복원하지 못했습니다.',
       storageActionNeeded: '보호 요청 가능',
       storageManual: '수동 백업 필요',
       storageProtected: '보호됨',
@@ -1958,14 +1979,14 @@ export const ko = {
       fieldShortReview: '한줄평',
       fieldTitle: '제목',
       flowDescription:
-        '제목만으로 시작하고, 필요할 때 검색 후보로 표지와 기본 정보를 채웁니다.',
+        '제목·상태·별점으로 바로 저장하고, 검색과 작품 정보 보강은 필요할 때만 사용합니다.',
       flowTitle: '새 작품 기록',
-      optionalFieldsTitle: '상태 · 별점 · 감상 더하기',
+      optionalFieldsTitle: '유형 · 감상 · 상세 정보 더하기',
       optionalFieldsDescription:
-        '지금은 제목과 유형만 저장해도 됩니다. 나머지는 언제든 보완할 수 있어요.',
+        '제목, 상태, 별점만으로 저장할 수 있습니다. 나머지는 언제든 보완할 수 있어요.',
       modeLabel: '추가 방식',
       modeManual: '직접 입력',
-      modeSearch: '검색으로 채우기',
+      modeSearch: '검색으로 정보 보강(선택)',
       savedDescription:
         '방금 저장한 기록을 바로 확인하거나, 같은 흐름에서 다음 작품을 계속 추가할 수 있습니다.',
       savedEyebrow: '저장 완료',
@@ -2734,7 +2755,7 @@ export const ko = {
     },
     form: {
       basicDescription:
-        '제목과 유형만 입력하면 저장할 수 있습니다. 상태와 감상은 아래에서 나중에 더할 수 있어요.',
+        '제목만 필수입니다. 상태와 별점을 먼저 정하고 나머지는 접힌 영역에서 보완할 수 있어요.',
       basicRequiredBadge: '필수',
       advancedTitle: '상세 정보',
       favoriteLabel: '즐겨찾기로 표시',
@@ -2769,7 +2790,8 @@ export const ko = {
       previewReviewLengthShort: '한줄평 {{count}}자',
       previewUntitled: '제목 없는 작품',
       recordBadge: '내 기록',
-      recordDescription: '상태, 별점, 한줄평만 먼저 남겨도 충분합니다.',
+      recordDescription:
+        '상태와 별점은 지금 정하고 저장 후에도 언제든 바꿀 수 있습니다.',
       recordLongReviewHelp:
         '긴 상세 감상과 감상 이력은 저장 후 상세 화면에서 이어서 정리할 수 있습니다.',
       relationCheckboxDescription:

@@ -105,17 +105,34 @@ export const ja = {
       syncPending: 'push待ち{{count}}件',
       syncStale: 'pullの再確認が必要',
       summary: {
-        action: { title: 'データ安全性の確認が必要', description: 'バックアップ、保存保護、失敗または競合を確認してください。' },
-        empty: { title: '最初の記録前の安全設定', description: '記録開始後にJSONバックアップとブラウザー保存状態を確認します。' },
-        pending: { title: '変更を処理中', description: 'ローカル記録は維持され、pushまたはpullの確認が残っています。' },
-        steady: { title: '現在確認されたリスクなし', description: '表示された根拠時刻と保存状態に基づく判定です。' },
+        action: {
+          title: 'データ安全性の確認が必要',
+          description:
+            'バックアップ、保存保護、失敗または競合を確認してください。',
+        },
+        empty: {
+          title: '最初の記録前の安全設定',
+          description:
+            '記録開始後にJSONバックアップとブラウザー保存状態を確認します。',
+        },
+        pending: {
+          title: '変更を処理中',
+          description:
+            'ローカル記録は維持され、pushまたはpullの確認が残っています。',
+        },
+        steady: {
+          title: '現在確認されたリスクなし',
+          description: '表示された根拠時刻と保存状態に基づく判定です。',
+        },
       },
     },
     conflictLocalQueue:
       'リモート変更とローカルキューを自動マージできないため、手動確認が必要です。',
-    conflictRecoveryChanged: '解決後に記録が変更されたため、安全に元に戻せません。',
+    conflictRecoveryChanged:
+      '解決後に記録が変更されたため、安全に元に戻せません。',
     conflictRecoveryExpired: '元に戻せる時間を過ぎました。',
-    conflictRecoveryMissing: '元に戻すための競合復旧スナップショットがありません。',
+    conflictRecoveryMissing:
+      '元に戻すための競合復旧スナップショットがありません。',
     conflictQueueMissing: '解決する同期項目が見つかりませんでした。',
     failedApplyAfterSync: '同期後に画面へ反映できませんでした。',
     failedApplyAfterSyncWithReason:
@@ -576,7 +593,7 @@ export const ja = {
       add: '+ 追加',
       aria: '作品をすばやく記録',
       placeholder: '作品を探すか、そのまま記録してください',
-      record: '記録',
+      record: '記録を追加',
     },
     safety: {
       accountConnected: 'アカウントバックアップ接続済み',
@@ -1237,9 +1254,11 @@ export const ja = {
       conflictMessageFallback:
         'ローカル記録とアカウントバックアップの記録が異なるため、確認が必要です。',
       conflictTitle: '同期の競合 {{count}}件',
-      confirmResolutionDescription: '{{title}}に「{{action}}」を適用します。直後10分間のみ元に戻せます。',
+      confirmResolutionDescription:
+        '{{title}}に「{{action}}」を適用します。直後10分間のみ元に戻せます。',
       confirmResolutionTitle: '競合解決を適用しますか？',
-      conflictDiffDescription: '異なるフィールドのみ表示します。選択マージではチェックしたグループのサーバー値を使います。',
+      conflictDiffDescription:
+        '異なるフィールドのみ表示します。選択マージではチェックしたグループのサーバー値を使います。',
       conflictDiffTableLabel: 'ローカル記録とサーバー記録のフィールド比較',
       conflictDiffTitle: 'フィールドごとの差分',
       conflictFieldLabel: 'フィールド',
@@ -1360,9 +1379,11 @@ export const ja = {
       resolveRemoteSuccess:
         'アカウントバックアップの記録をこの端末に適用しました。',
       undoResolutionAction: '直前の解決を元に戻す',
-      undoResolutionDescription: '復旧スナップショットは10分間保持され、その後記録が変わった場合は適用しません。',
+      undoResolutionDescription:
+        '復旧スナップショットは10分間保持され、その後記録が変わった場合は適用しません。',
       undoResolutionSuccess: '競合解決前の記録とキューを復元しました。',
-      undoResolutionUnavailable: '記録が変わったか時間切れのため復元できませんでした。',
+      undoResolutionUnavailable:
+        '記録が変わったか時間切れのため復元できませんでした。',
       storageActionNeeded: '保護をリクエストできます',
       storageManual: '手動バックアップが必要',
       storageProtected: '保護済み',
@@ -1983,14 +2004,14 @@ export const ja = {
       fieldShortReview: '一言レビュー',
       fieldTitle: 'タイトル',
       flowDescription:
-        'タイトルだけで始め、必要なときに検索候補で表紙と基本情報を埋めます。',
+        'タイトル・状態・評価ですぐ保存し、検索と作品情報の補完は必要なときだけ使います。',
       flowTitle: '新しい作品記録',
-      optionalFieldsTitle: '状態・評価・感想を追加',
+      optionalFieldsTitle: '種類・感想・詳細情報を追加',
       optionalFieldsDescription:
-        '今はタイトルと種類だけでも保存できます。残りはいつでも追加できます。',
+        'タイトル・状態・評価だけで保存できます。残りはいつでも追加できます。',
       modeLabel: '追加方式',
       modeManual: '手動入力',
-      modeSearch: '検索で埋める',
+      modeSearch: '検索で情報を補完（任意）',
       savedDescription:
         '今保存した記録をすぐ確認したり、同じ流れで次の作品を続けて追加できます。',
       savedEyebrow: '保存完了',
@@ -2764,7 +2785,7 @@ export const ja = {
     },
     form: {
       basicDescription:
-        'タイトルとタイプだけで保存できます。状態や感想は下からいつでも追加できます。',
+        '必須なのはタイトルだけです。状態と評価を先に決め、残りは折りたたみ領域で補完できます。',
       basicRequiredBadge: '必須',
       advancedTitle: '詳細情報',
       favoriteLabel: 'お気に入りに設定',
@@ -2799,7 +2820,7 @@ export const ja = {
       previewReviewLengthShort: '一言 {{count}}文字',
       previewUntitled: '無題の作品',
       recordBadge: 'マイ記録',
-      recordDescription: '状態・評価・一言レビューだけ先に残せば十分です。',
+      recordDescription: '状態と評価は今決め、保存後もいつでも変更できます。',
       recordLongReviewHelp:
         '長い詳細な感想と鑑賞履歴は、保存後に詳細画面で続けて整理できます。',
       relationCheckboxDescription:

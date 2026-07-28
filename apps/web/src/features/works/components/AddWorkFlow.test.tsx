@@ -1,4 +1,4 @@
-﻿import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -404,7 +404,7 @@ async function openSearchPicker(
   user: ReturnType<typeof userEvent.setup>,
   searchTerm: string,
 ) {
-  await user.click(screen.getByLabelText('검색으로 채우기'));
+  await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
 
   const searchInput = await screen.findByLabelText(/^작품 검색$/);
 
@@ -494,20 +494,25 @@ describe('AddWorkFlow', () => {
     window.localStorage.clear();
   });
 
-  it('keeps the direct input screen lightweight and puts metadata in details', async () => {
+  it('keeps title, status, and rating visible while metadata stays optional', async () => {
     const user = userEvent.setup();
 
     renderGuestAddWorkFlow();
 
-    expect(screen.getByLabelText(/^제목$/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^유형$/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^제목$/)).toBeVisible();
+    expect(screen.getByRole('button', { name: '보는 중' })).toBeVisible();
+    expect(screen.getByRole('slider', { name: '별점' })).toBeVisible();
+    expect(screen.getByLabelText(/^유형$/)).not.toBeVisible();
     expect(
       screen.getByRole('button', { hidden: true, name: '장르' }),
     ).not.toBeVisible();
     expect(screen.getByLabelText('표지 이미지 주소')).not.toBeVisible();
     expect(screen.getByLabelText('한줄평')).not.toBeVisible();
-    expect(screen.getByText('상태 · 별점 · 감상 더하기')).toBeInTheDocument();
-    await user.click(screen.getByText('상태 · 별점 · 감상 더하기'));
+    expect(screen.getByText('유형 · 감상 · 상세 정보 더하기')).toBeVisible();
+
+    await user.click(screen.getByText('유형 · 감상 · 상세 정보 더하기'));
+
+    expect(screen.getByLabelText(/^유형$/)).toBeVisible();
     expect(screen.getByRole('button', { name: '장르' })).toBeVisible();
     expect(screen.getByLabelText('표지 이미지 주소')).toBeVisible();
     expect(screen.getByLabelText('한줄평')).toBeVisible();
@@ -550,16 +555,19 @@ describe('AddWorkFlow', () => {
     expect(screen.queryByLabelText(/^제목$/)).not.toBeInTheDocument();
   });
 
-  it('shows the cover preview in the dialog manual flow', () => {
+  it('uses the same field exposure rules in the dialog flow', () => {
     renderGuestDialogAddWorkFlow();
 
+    expect(screen.getByLabelText(/^제목$/)).toBeVisible();
+    expect(screen.getByRole('button', { name: '보는 중' })).toBeVisible();
+    expect(screen.getByRole('slider', { name: '별점' })).toBeVisible();
+    expect(screen.getByLabelText(/^유형$/)).not.toBeVisible();
+    expect(screen.getByLabelText('한줄평')).not.toBeVisible();
+    expect(screen.getByText('유형 · 감상 · 상세 정보 더하기')).toBeVisible();
     expect(
       screen.getByLabelText('제목 없는 작품 포스터 대체 표지'),
     ).toBeInTheDocument();
     expect(screen.queryByText('저장 전 표지')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('한줄평은 나중에 채워도 됩니다.'),
-    ).not.toBeInTheDocument();
   });
 
   it('uses authenticated search candidates to prefill the Add Work form', async () => {
@@ -591,7 +599,7 @@ describe('AddWorkFlow', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedAddWorkFlow();
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '후보 검색' }));
     await user.click(
@@ -729,7 +737,7 @@ describe('AddWorkFlow', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedAddWorkFlow();
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '후보 검색' }));
     await user.click(
@@ -857,7 +865,7 @@ describe('AddWorkFlow', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedAddWorkFlow();
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
     await user.type(
       getElementById<HTMLInputElement>('quickAddSearch'),
       '슈타인즈 게이트',
@@ -898,7 +906,7 @@ describe('AddWorkFlow', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedAddWorkFlow();
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
     await user.type(getElementById<HTMLInputElement>('quickAddSearch'), 'Dune');
     await user.click(screen.getByRole('button', { name: '후보 검색' }));
     await user.click(
@@ -931,7 +939,7 @@ describe('AddWorkFlow', () => {
 
     renderGuestAddWorkFlow();
 
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
 
     expect(await screen.findByLabelText(/^작품 검색$/)).toBeInTheDocument();
     expect(screen.getAllByText('Manual').length).toBeGreaterThan(0);
@@ -957,7 +965,7 @@ describe('AddWorkFlow', () => {
 
     renderGuestAddWorkFlow();
 
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
 
     expect(await screen.findByText('일시 중단')).toBeInTheDocument();
     expect(screen.getByText('Open Library')).toBeInTheDocument();
@@ -1018,7 +1026,7 @@ describe('AddWorkFlow', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
 
     expect(await screen.findByLabelText(/^작품 검색$/)).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -1141,7 +1149,7 @@ describe('AddWorkFlow', () => {
 
     renderAuthenticatedAddWorkFlow();
 
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
     await user.click(
       await screen.findByRole('button', { name: '검색 설정 열기' }),
     );
@@ -1186,7 +1194,7 @@ describe('AddWorkFlow', () => {
 
     renderAuthenticatedAddWorkFlow();
 
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
     await selectManualProviderGroup(user);
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
@@ -1290,7 +1298,7 @@ describe('AddWorkFlow', () => {
     const user = userEvent.setup();
 
     renderAuthenticatedAddWorkFlow();
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
     await selectManualProviderGroup(user);
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
@@ -1320,7 +1328,7 @@ describe('AddWorkFlow', () => {
 
     renderGuestAddWorkFlow(onSubmit);
 
-    await user.click(screen.getByLabelText('검색으로 채우기'));
+    await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
 
     const searchInput = await screen.findByLabelText(/^작품 검색$/);
 
@@ -1527,7 +1535,7 @@ describe('AddWorkFlow', () => {
 
       renderAuthenticatedAddWorkFlow(onSubmit);
       if (sourceId === 'manual' || sourceId === 'preview-manual') {
-        await user.click(screen.getByLabelText('검색으로 채우기'));
+        await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
         await selectManualProviderGroup(user);
         const searchInput = await screen.findByLabelText(/^작품 검색$/);
         await user.type(searchInput, 'Dune');
@@ -1732,7 +1740,7 @@ describe('AddWorkFlow', () => {
 
       renderAuthenticatedAddWorkFlow();
       if (sourceId === 'manual' || sourceId === 'preview-manual') {
-        await user.click(screen.getByLabelText('검색으로 채우기'));
+        await user.click(screen.getByLabelText('검색으로 정보 보강(선택)'));
         await selectManualProviderGroup(user);
         const searchInput = await screen.findByLabelText(/^작품 검색$/);
         await user.type(searchInput, 'Dune');
