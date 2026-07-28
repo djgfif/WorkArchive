@@ -684,7 +684,8 @@ describe('Auth flow', () => {
     );
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/account');
+      expect(router.state.location.pathname).toBe('/account/settings');
+      expect(router.state.location.hash).toBe('#data-backup');
     });
     expect(await findLinkByHref('/auth/login', /로그인/)).toBeInTheDocument();
   });
