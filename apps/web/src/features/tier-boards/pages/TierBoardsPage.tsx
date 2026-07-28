@@ -237,36 +237,38 @@ export function TierBoardsPage() {
     <Stack className={cn(css.page)} gap="xl">
       <ArchiveHero
         actions={
-          <Group gap="sm" wrap="wrap">
-            <AppButton
-              onClick={() => setCreateOpen(true)}
-              tone="primary"
-              type="button"
-            >
-              {t('tierBoards.create')}
-            </AppButton>
-            <AppButton
-              onClick={() => fileInputRef.current?.click()}
-              tone="secondary"
-              type="button"
-            >
-              {t('tierBoards.importJson')}
-            </AppButton>
-            <input
-              accept="application/json,.json"
-              hidden
-              onChange={(event) =>
-                void handleImportFile(event.currentTarget.files?.[0] ?? null)
-              }
-              ref={fileInputRef}
-              type="file"
-            />
-          </Group>
+          boards.length > 0 ? (
+            <Group gap="sm" wrap="wrap">
+              <AppButton
+                onClick={() => setCreateOpen(true)}
+                tone="primary"
+                type="button"
+              >
+                {t('tierBoards.create')}
+              </AppButton>
+              <AppButton
+                onClick={() => fileInputRef.current?.click()}
+                tone="secondary"
+                type="button"
+              >
+                {t('tierBoards.importJson')}
+              </AppButton>
+            </Group>
+          ) : undefined
         }
         description={t('tierBoards.heroDescription')}
         eyebrow="Tier Board Maker"
         title={t('tierBoards.heroTitle')}
         variant="compact"
+      />
+      <input
+        accept="application/json,.json"
+        hidden
+        onChange={(event) =>
+          void handleImportFile(event.currentTarget.files?.[0] ?? null)
+        }
+        ref={fileInputRef}
+        type="file"
       />
 
       {feedback && (

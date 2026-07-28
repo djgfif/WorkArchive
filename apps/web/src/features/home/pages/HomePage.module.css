@@ -40,6 +40,10 @@
   box-shadow: 0 0 0 1px var(--app-accent-primary);
 }
 
+.quickCaptureSubmitIcon {
+  display: none;
+}
+
 .archiveHeading {
   display: flex;
   align-items: flex-end;
@@ -847,6 +851,7 @@
   display: inline-flex;
   min-height: 24px;
   align-items: center;
+  gap: 0.25rem;
   color: var(--app-text-secondary);
   font-size: var(--app-type-caption);
   font-weight: 750;
@@ -871,13 +876,24 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
+  .quickCaptureSubmit {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding-inline: 0;
+  }
+
+  .quickCaptureSubmitLabel {
+    display: none;
+  }
+
+  .quickCaptureSubmitIcon {
+    display: inline;
+  }
+
   .quickCaptureForm :global(.mantine-Button-root),
   .archiveHeading :global(.mantine-Button-root) {
     min-height: 44px;
-  }
-
-  .quickCaptureForm > :nth-child(2) {
-    display: none;
   }
 
   .starterPanel {
@@ -908,17 +924,43 @@
   }
 
   .safetyDock {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
   }
 
   .safetyDockDescription {
     display: none;
   }
 
+  .safetyDockStatus {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.15rem 0.45rem;
+    white-space: normal;
+  }
+
+  .safetyDockStatus > span:nth-child(2),
+  .safetyDockStatus strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .safetyDockStatus strong {
+    grid-column: 2;
+  }
+
   .safetyDockLink {
+    width: 44px;
     min-width: 44px;
     min-height: 44px;
     justify-content: center;
+  }
+
+  .safetyDockLinkLabel {
+    display: none;
   }
 
   .homeGreeting {

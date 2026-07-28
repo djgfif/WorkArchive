@@ -2187,6 +2187,20 @@
     flex: 1 1 9rem;
   }
 
+  .toolbarOptions > summary {
+    width: 2.6rem;
+    min-width: 2.6rem;
+    justify-content: center;
+    padding-inline: 0;
+    font-size: 0;
+  }
+
+  .toolbarOptions > summary::after {
+    content: '•••';
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+  }
+
   /* 터치 타깃 확대 — 모바일 손가락 조작 정확도(≥40px) */
   .viewToggleButton {
     width: 2.5rem;
@@ -2197,6 +2211,15 @@
   .advancedFilterButton,
   .trashScopeButton {
     height: 2.6rem;
+  }
+
+  .trashScopeButton {
+    width: 2.6rem;
+    margin-inline-start: 0;
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+    font-size: 0;
   }
 
   .toolbarSortSelect :global(.mantine-NativeSelect-input) {

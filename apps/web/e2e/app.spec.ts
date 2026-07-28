@@ -381,6 +381,12 @@ test('keeps 320px core routes free of horizontal overflow', async ({
     page.getByRole('heading', { name: `${title} 수정` }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
+
+  await gotoApp(page, '/');
+  await expect(
+    page.getByRole('heading', { name: '내 아카이브' }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page);
 });
 
 test('lets mobile users navigate core routes from the drawer', async ({

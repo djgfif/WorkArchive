@@ -80,9 +80,6 @@ export function WorkCreatePage() {
   return (
     <FlowPageTemplate>
       <PageHero
-        actions={
-          <AppLinkButton to="/works">{t('works.backToWork')}</AppLinkButton>
-        }
         title={t('works.add.title')}
         titleAs="h1"
       />

@@ -529,8 +529,15 @@ function ArchiveSafetyDock({
       <span className={css.safetyDockDescription}>
         {presentation.description}
       </span>
-      <Link className={css.safetyDockLink} to={presentation.badge.to}>
-        {presentation.badge.label} →
+      <Link
+        aria-label={presentation.badge.label}
+        className={css.safetyDockLink}
+        to={presentation.badge.to}
+      >
+        <span className={css.safetyDockLinkLabel}>
+          {presentation.badge.label}
+        </span>
+        <span aria-hidden="true">→</span>
       </Link>
     </div>
   );
@@ -619,8 +626,18 @@ export function HomePage() {
             placeholder={t('home.quickCapture.placeholder')}
             value={searchTerm}
           />
-          <AppButton tone="primary" type="submit">
-            {t('home.quickCapture.record')}
+          <AppButton
+            aria-label={t('home.quickCapture.record')}
+            className={css.quickCaptureSubmit ?? ''}
+            tone="primary"
+            type="submit"
+          >
+            <span className={css.quickCaptureSubmitLabel}>
+              {t('home.quickCapture.record')}
+            </span>
+            <span aria-hidden="true" className={css.quickCaptureSubmitIcon}>
+              →
+            </span>
           </AppButton>
         </form>
       </div>

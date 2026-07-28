@@ -279,16 +279,9 @@ export function AddWorkFlow({
       )}
       <Stack gap="sm">
         <Group align="flex-start" justify="space-between" wrap="wrap">
-          <div>
-            {!isDialog && (
-              <Text c="var(--mantine-color-text)" fw={800} size="xl">
-                {t('works.add.flowTitle')}
-              </Text>
-            )}
-            <Text c="var(--mantine-color-dimmed)" size="sm">
-              {t('works.add.flowDescription')}
-            </Text>
-          </div>
+          <Text c="var(--mantine-color-dimmed)" maw="48rem" size="sm">
+            {t('works.add.flowDescription')}
+          </Text>
 
           <SegmentedControl
             aria-label={t('works.add.modeLabel')}

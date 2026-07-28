@@ -132,8 +132,11 @@ describe('TierBoardsPage', () => {
       screen.getByRole('heading', { name: '아직 만든 티어보드가 없습니다.' }),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('button', { name: '새 티어보드 만들기' }).length,
-    ).toBeGreaterThan(0);
+      screen.getAllByRole('button', { name: '새 티어보드 만들기' }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole('button', { name: 'JSON 보드 가져오기' }),
+    ).toHaveLength(1);
   });
 
   it('lists local boards with counts and editor/view actions', async () => {
@@ -202,9 +205,7 @@ describe('TierBoardsPage', () => {
     renderRoute();
 
     await user.click(
-      (
-        await screen.findAllByRole('button', { name: '새 티어보드 만들기' })
-      )[0]!,
+      await screen.findByRole('button', { name: '새 티어보드 만들기' }),
     );
 
     expect(
