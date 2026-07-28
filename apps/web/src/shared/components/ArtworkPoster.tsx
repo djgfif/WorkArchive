@@ -87,7 +87,8 @@ export function ArtworkPoster({
   const altText = labels?.alt ?? t('shared.posterAlt', { title });
   const fallbackAriaText =
     labels?.fallbackAria ?? t('shared.posterFallbackAlt', { title });
-  const fallbackTypeText = labels?.fallbackType ?? t('shared.posterFallbackType');
+  const fallbackTypeText =
+    labels?.fallbackType ?? t('shared.posterFallbackType');
   const coverAppearance = getCoverAppearance(
     coverSeed ?? `${typeLabel ?? ''}:${title}`,
   );
@@ -119,6 +120,7 @@ export function ArtworkPoster({
             onError={posterImage.onError}
             onLoad={posterImage.onLoad}
             ref={posterImage.imageRef}
+            referrerPolicy="no-referrer"
             src={posterImage.src}
           />
         </>

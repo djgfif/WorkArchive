@@ -1,6 +1,6 @@
 # CSP Hardening Plan
 
-Last reviewed: 2026-05-31.
+Last reviewed: 2026-07-28.
 
 The enforced production CSP in `apps/web/nginx.conf` must not be tightened until
 report-only telemetry and browser coverage show that the UI and imported images
@@ -14,11 +14,11 @@ default-src 'self'; connect-src 'self'; img-src 'self' data: https:; script-src 
 
 ## Current Exceptions
 
-| Directive | Why it remains | Risk |
-| --- | --- | --- |
-| `style-src 'self' 'unsafe-inline'` | The current React/Mantine UI still depends on runtime inline style attributes and injected style blocks. Removing it now can break layouts, modals, and component styling. | If an HTML injection bug appears, inline style execution gives an attacker more presentation control and can assist UI redress or data exfiltration through CSS side channels. |
-| `style-src https://cdn.jsdelivr.net https://fonts.googleapis.com`; `font-src https://cdn.jsdelivr.net https://fonts.gstatic.com` | The production HTML loads Pretendard from jsDelivr and display/mono fonts from Google Fonts. These hosts must match `apps/web/index.html` until fonts are self-hosted. | Third-party font styles and font files reveal page-load metadata to those providers and add external availability dependencies. |
-| `img-src 'self' data: https:` | The app displays imported catalog covers and user-entered poster URLs from multiple external HTTPS providers. Placeholders may use `data:`. | Arbitrary HTTPS image hosts can receive request metadata and can be abused for tracking; SVG or mislabeled images can increase parser attack surface if not proxied and type-checked. |
+| Directive                                                                                                                        | Why it remains                                                                                                                                                             | Risk                                                                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `style-src 'self' 'unsafe-inline'`                                                                                               | The current React/Mantine UI still depends on runtime inline style attributes and injected style blocks. Removing it now can break layouts, modals, and component styling. | If an HTML injection bug appears, inline style execution gives an attacker more presentation control and can assist UI redress or data exfiltration through CSS side channels. |
+| `style-src https://cdn.jsdelivr.net https://fonts.googleapis.com`; `font-src https://cdn.jsdelivr.net https://fonts.gstatic.com` | The production HTML loads Pretendard from jsDelivr and display/mono fonts from Google Fonts. These hosts must match `apps/web/index.html` until fonts are self-hosted.     | Third-party font styles and font files reveal page-load metadata to those providers and add external availability dependencies.                                                |
+| `img-src 'self' data: https:`                                                                                                    | Poster rendering is now same-origin/private-first, but production CSP telemetry and production-mode coverage have not yet justified removing the compatibility allowance.  | The broad directive could permit a future component regression to load an arbitrary HTTPS image even though current shared renderers reject it.                                |
 
 ## Report-Only Rollout
 
@@ -84,12 +84,13 @@ Fallback during staging:
 
 ## Image Proxy / Allowlist Transition
 
-1. Measure how often web rendering uses `/api/image-proxy` versus direct HTTPS
-   fallback.
-2. Harden the proxy plan in `docs/security/IMAGE_PROXY_PLAN.md`, especially
-   HTTPS-only upstreams and private IP rejection.
-3. Move known provider hosts behind the proxy and remove direct HTTPS fallback
-   after coverage is proven.
+1. Keep the implemented browser policy in `docs/security/IMAGE_PROXY_PLAN.md`:
+   known providers use `/api/image-proxy`, arbitrary hosts are rejected, and
+   proxy failures use local placeholders without direct HTTPS fallback.
+2. Run archive and tier-board poster privacy regression tests for every rendering
+   change.
+3. Collect staging report-only telemetry and production-mode browser coverage;
+   do not record CSP narrowing as PASS until these external checks run.
 4. Narrow `img-src` toward:
 
 ```text

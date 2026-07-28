@@ -17,6 +17,7 @@ import type { TierBoardEditorState } from '../services/tier-board.repository';
 import { tierBoardService } from '../services/tier-board.service';
 import styles from './TierBoardsPage.module.css';
 import { cn } from '@shared/utils/class-names';
+import { CardImage } from '../components/TierBoardCanvas';
 
 const css = styles;
 
@@ -164,20 +165,7 @@ export function TierBoardViewPage() {
                       key={card.id}
                       withBorder
                     >
-                      {imageUrl ? (
-                        <img
-                          alt={card.title}
-                          className={cn(css.itemImage)}
-                          crossOrigin="anonymous"
-                          src={imageUrl}
-                        />
-                      ) : (
-                        <Box className={cn(css.itemFallback)}>
-                          <Text fw={800}>
-                            {card.title.slice(0, 1).toUpperCase()}
-                          </Text>
-                        </Box>
-                      )}
+                      <CardImage imageUrl={imageUrl} title={card.title} />
                       <Stack gap={4} p="xs">
                         <Text fw={700} lineClamp={2} size="sm">
                           {card.title}

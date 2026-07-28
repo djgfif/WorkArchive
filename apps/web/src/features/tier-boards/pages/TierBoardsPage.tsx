@@ -32,6 +32,7 @@ import {
   type AppTranslationKey,
 } from '@app/i18n';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
+import { getDisplayImageUrl } from '@shared/utils/image-proxy';
 import { ArchiveEmptyState, ArchiveHero } from '@features/works';
 import {
   TIER_BOARD_TEMPLATES,
@@ -78,6 +79,29 @@ function TemplatePreview({ templateTitle }: { templateTitle: string }) {
         </Box>
       ))}
     </Group>
+  );
+}
+
+function TierBoardCoverPreview({ coverImageUrl }: { coverImageUrl: string }) {
+  const [failed, setFailed] = useState(false);
+  const displayImageUrl = getDisplayImageUrl(coverImageUrl);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [displayImageUrl]);
+
+  if (!displayImageUrl || failed) {
+    return <TemplatePreview templateTitle="S/A/B/C/D" />;
+  }
+
+  return (
+    <img
+      alt=""
+      crossOrigin="anonymous"
+      onError={() => setFailed(true)}
+      referrerPolicy="no-referrer"
+      src={displayImageUrl}
+    />
   );
 }
 
@@ -293,15 +317,9 @@ export function TierBoardsPage() {
               <Stack h="100%" justify="space-between">
                 <Stack gap="sm">
                   <Box className={cn(css.coverPreview)}>
-                    {board.coverImageUrl ? (
-                      <img
-                        alt=""
-                        crossOrigin="anonymous"
-                        src={board.coverImageUrl}
-                      />
-                    ) : (
-                      <TemplatePreview templateTitle="S/A/B/C/D" />
-                    )}
+                    <TierBoardCoverPreview
+                      coverImageUrl={board.coverImageUrl}
+                    />
                   </Box>
                   <Group justify="space-between" wrap="nowrap">
                     <Title lineClamp={2} order={2} size="h3">

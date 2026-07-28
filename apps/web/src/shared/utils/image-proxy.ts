@@ -15,6 +15,9 @@ const PROXIED_IMAGE_HOST_SUFFIXES = [
   'wikimedia.org',
 ] as const;
 
+const SAFE_INLINE_IMAGE_PATTERN =
+  /^data:image\/(?:avif|gif|jpeg|png|webp)(?:;[^,]*)?,/i;
+
 function isProxiedImageHost(hostname: string) {
   const normalizedHostname = hostname.toLowerCase();
 
@@ -41,9 +44,11 @@ export function getDisplayImageUrlCandidates(thumbnailUrl?: string | null) {
   }
 
   if (
-    normalized.startsWith('data:') ||
     normalized.startsWith('blob:') ||
-    normalized.startsWith('/')
+    normalized.startsWith('/') ||
+    normalized.startsWith('./') ||
+    normalized.startsWith('../') ||
+    SAFE_INLINE_IMAGE_PATTERN.test(normalized)
   ) {
     return [normalized];
   }
@@ -65,13 +70,11 @@ export function getDisplayImageUrlCandidates(thumbnailUrl?: string | null) {
         proxiedSourceUrl,
       )}`;
 
-      return proxiedSourceUrl === normalized
-        ? [proxiedUrl, normalized]
-        : [proxiedUrl, proxiedSourceUrl];
+      return [proxiedUrl];
     }
   } catch {
-    return [normalized];
+    return [];
   }
 
-  return [normalized];
+  return [];
 }

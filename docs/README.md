@@ -15,8 +15,9 @@ docs stay here, older plans and raw design material stay in
 7. [`security/API_CACHE_POLICY.md`](./security/API_CACHE_POLICY.md)
 8. [`security/LOG_REDACTION_POLICY.md`](./security/LOG_REDACTION_POLICY.md)
 9. [`security/USER_DATA_RIGHTS_POLICY.md`](./security/USER_DATA_RIGHTS_POLICY.md)
-10. [`architecture/FEATURE_FIRST_STRUCTURE.md`](./architecture/FEATURE_FIRST_STRUCTURE.md)
-11. [`operations/RUNBOOK.md`](./operations/RUNBOOK.md)
+10. [`security/POSTER_PRIVACY_THREAT_MODEL.md`](./security/POSTER_PRIVACY_THREAT_MODEL.md)
+11. [`architecture/FEATURE_FIRST_STRUCTURE.md`](./architecture/FEATURE_FIRST_STRUCTURE.md)
+12. [`operations/RUNBOOK.md`](./operations/RUNBOOK.md)
 
 ## Current Areas
 

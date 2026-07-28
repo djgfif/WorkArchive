@@ -1,111 +1,84 @@
-# Image Proxy / Allowlist Plan
+# Poster Image Proxy and Privacy Policy
 
-Last reviewed: 2026-06-25.
+Last reviewed: 2026-07-28.
 
-Work Archive already has a first-pass `/api/image-proxy` path for known cover
-providers. This document defines the hardening target before CSP `img-src` is
-narrowed. It does not authorize a new implementation in this step.
+Work Archive treats poster URLs as untrusted metadata. The browser must not make
+requests to arbitrary external image origins. Known cover providers are fetched
+only through the same-origin `/api/image-proxy`; a rejected URL or failed proxy
+request ends at a local placeholder and never falls back to the original URL.
 
-## Risk Model
+## Private-First Browser Policy
 
-External cover and poster URLs can create:
+| Input                                                | Browser behavior                                                                                     |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Same-origin path, `blob:` URL                        | Render locally.                                                                                      |
+| Raster `data:` URL (AVIF, GIF, JPEG, PNG, WebP)      | Render locally; SVG data URLs are rejected.                                                          |
+| Allowlisted external provider                        | Render one same-origin proxy candidate. Legacy provider HTTP is normalized to HTTPS before proxying. |
+| Unknown, malformed, credentialed, or unsupported URL | Render the deterministic local placeholder and make no external request.                             |
+| Proxy or image decode failure                        | Render the local placeholder; do not try the upstream URL.                                           |
 
-- browser tracking through arbitrary third-party image hosts;
-- mixed-content or downgrade pressure if HTTP images are rendered directly;
-- SSRF risk if the API fetches user-provided URLs without host, scheme, DNS, and
-  redirect controls;
-- DNS rebinding or redirect-to-private-address attacks;
-- oversized response memory pressure;
-- content-type confusion and SVG script/parser risks;
-- cache poisoning if URL normalization and cache keys are inconsistent;
-- secret leakage if upstream URLs with query credentials are logged.
+All poster `<img>` elements and cache fills use `Referrer-Policy: no-referrer`.
+This policy covers archive posters, tier-board cards, tier-board view/export,
+and tier-board cover previews.
 
-## Current State
+## Proxy Boundary
 
-Current code evidence:
+The API proxy enforces:
 
-- API route: `apps/api/src/modules/image-proxy/image-proxy.controller.ts`.
-- Proxy service: `apps/api/src/modules/image-proxy/image-proxy.service.ts`.
-- Web URL selection: `apps/web/src/shared/utils/image-proxy.ts`.
-
-Implemented now:
-
-- provider host suffix allowlist;
-- HTTPS-only upstream URLs on the default HTTPS port;
+- a provider host suffix allowlist;
+- HTTPS-only upstream URLs on the Default port only;
 - DNS resolution with localhost, private, reserved, and IPv4-mapped private IPv6
   address rejection before fetch and after redirects;
-- fetch timeout;
-- redirect target revalidation;
-- max body size;
-- `image/*` allowlist that excludes SVG;
-- ETag and cache-control response headers;
-- in-memory cache and optional Redis cache.
-- regression coverage for full URL logging avoidance on provider failures.
+- redirect target revalidation with a bounded redirect count;
+- a 5-second timeout and an 8 MiB streamed response limit;
+- an explicit AVIF, GIF, JPEG, PNG, and WebP content-type allowlist; SVG is
+  rejected;
+- per-host concurrency and request-window limits;
+- ETag, deterministic cache-control, and no caching of failed responses;
+- provider-host and safe error-code logging only, with full URL logging avoidance.
 
-Known hardening gaps before CSP narrowing:
+Allowlist changes are code-reviewed policy changes. Each added provider needs a
+focused URL-policy test and a safe sample that proves its hostname and content
+type requirements.
 
-- allowlist changes are code changes rather than runtime-configured operations;
-- report-only telemetry is needed to remove direct HTTPS image fallback safely.
+## Cache Strategy
 
-## Release Gate
+- API memory/optional Redis cache responses advertise one day fresh and seven
+  days stale-while-revalidate.
+- Browser IndexedDB caches only successful same-origin proxy responses.
+- Browser entries accept the same raster types, cap each image at 8 MiB, expire
+  after 30 days, and are trimmed least-recently-used to at most 500 entries and
+  100 MiB total.
+- Clearing local app data removes the poster cache. A cache miss or expired
+  entry never authorizes a direct external request.
 
-Run this repository gate after changing image proxy URL parsing, network
-resolution, redirects, content-type checks, cache behavior, or logging:
+## Failure Placeholder
+
+A blocked URL, proxy error, unsupported content type, decode error, or expired
+cache entry uses the existing deterministic local poster/card placeholder. The
+placeholder contains no remote resource and preserves the surrounding layout.
+
+## Verification
+
+Run the smallest policy and rendering tests first:
 
 ```bash
+npm run test --workspace @work-archive/web -- --run \
+  src/shared/utils/image-proxy.test.ts \
+  src/shared/components/ArtworkPoster.test.tsx \
+  src/shared/services/poster-image-cache.test.ts \
+  src/features/tier-boards/components/TierBoardCanvas.test.tsx
 npm run qa:image-proxy-policy
 ```
 
-## Target Requirements
+Changes to proxy URL parsing, network resolution, redirects, content type,
+cache behavior, or logging must also run the API proxy suites selected by
+`npm run qa:image-proxy-policy` and the repository completion gates.
 
-The hardened proxy must enforce all of the following:
+## CSP Status
 
-| Requirement | Target behavior |
-| --- | --- |
-| HTTPS only | Accept only `https://` upstream URLs. Any legacy HTTP provider must be normalized by a provider-specific trusted URL builder or rejected. |
-| Default port only | Reject non-default upstream ports even for allowlisted HTTPS hosts. Provider exceptions require a code review and a dedicated allowlist change. |
-| Localhost/private IP block | Reject localhost, loopback, link-local, RFC1918, unique-local IPv6, multicast, and metadata service ranges after DNS resolution and after every redirect. |
-| Provider allowlist | Keep an explicit provider host allowlist. Prefer exact hosts where stable; allow suffixes only for providers that require subdomains. |
-| Timeout | Keep a short fetch timeout, currently 5 seconds, with no unbounded retry loop. |
-| Max bytes | Enforce `Content-Length` and streamed byte limits. Current cap is 8 MiB; revisit if thumbnails can be capped lower. |
-| Content type | Require an allowed raster image content type such as AVIF, GIF, JPEG, PNG, or WebP. |
-| SVG | Block SVG by default. Sanitization is a separate design and must not be treated as equivalent to raster image proxying. |
-| Redirects | Limit redirect count and re-apply scheme, host allowlist, DNS, and private IP checks on every hop. |
-| Cache-control | Return deterministic cache headers such as `public, max-age=86400, stale-while-revalidate=604800`; avoid caching failed responses. |
-| Logging | Log provider host and error code only; do not log full image URLs or query strings. |
-
-## Provider Allowlist Candidates
-
-Start from the currently proxied provider suffixes:
-
-- `anilist.co`
-- `books.google.com`
-- `covers.openlibrary.org`
-- `daumcdn.net`
-- `googleusercontent.com`
-- `image.aladin.co.kr`
-- `image.tmdb.org`
-- `kakaocdn.net`
-- `pstatic.net`
-- `static.tvmaze.com`
-- `wikimedia.org`
-
-Each addition must include:
-
-- provider owner;
-- sample URL shape;
-- whether subdomains are required;
-- expected content types;
-- whether direct browser fallback is still needed.
-
-## Implementation Sequence
-
-1. Add DNS resolution and private IP rejection to the existing proxy.
-2. Change proxy validation to HTTPS-only and handle legacy provider HTTP URLs
-   through explicit normalization, not generic `http:` acceptance.
-3. Add focused unit tests for private IP, redirect-to-private-IP, HTTPS-only,
-   SVG rejection, max bytes, and full URL logging avoidance.
-4. Add staging report-only CSP telemetry for direct image loads.
-5. Remove web direct HTTPS fallback for allowlisted providers after telemetry
-   shows no breakage.
-6. Narrow CSP `img-src` in report-only, then enforce in a later release.
+The runtime behavior is private-first now, but the enforced production CSP
+still contains broad `img-src https:` compatibility. Removing it remains an
+operational rollout: staging report-only telemetry and production-mode browser
+coverage must pass before the header is tightened. Until that evidence exists,
+CSP narrowing is pending and must not be reported as PASS.

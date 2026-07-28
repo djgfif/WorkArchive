@@ -29,6 +29,7 @@ import {
 } from '../utils/tier-board-editor-helpers';
 import styles from '../pages/TierBoardsPage.module.css';
 import { cn } from '@shared/utils/class-names';
+import { getDisplayImageUrl } from '@shared/utils/image-proxy';
 import { useAppTranslation } from '@app/i18n';
 
 const css = styles;
@@ -59,12 +60,13 @@ export function CardImage({
   title: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const displayImageUrl = getDisplayImageUrl(imageUrl);
 
   useEffect(() => {
     setFailed(false);
-  }, [imageUrl]);
+  }, [displayImageUrl]);
 
-  if (!imageUrl || failed) {
+  if (!displayImageUrl || failed) {
     return (
       <Box className={cn(css.itemFallback)}>
         <Text fw={800}>{title.slice(0, 1).toUpperCase()}</Text>
@@ -78,7 +80,8 @@ export function CardImage({
       className={cn(css.itemImage)}
       crossOrigin="anonymous"
       onError={() => setFailed(true)}
-      src={imageUrl}
+      referrerPolicy="no-referrer"
+      src={displayImageUrl}
     />
   );
 }
@@ -164,7 +167,9 @@ function CardMenu({
     <Menu position="bottom-end">
       <Menu.Target>
         <ActionIcon
-          aria-label={t('tierBoards.canvas.cardMenuAria', { title: card.title })}
+          aria-label={t('tierBoards.canvas.cardMenuAria', {
+            title: card.title,
+          })}
           className={cn(css.itemMenuButton)}
           size="sm"
           variant="filled"
