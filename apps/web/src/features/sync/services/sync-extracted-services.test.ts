@@ -112,7 +112,12 @@ describe('extracted sync services', () => {
     graphRepository = new GraphRepository(() => db, queueRepository);
     tierBoardRepository = createTierBoardRepositoryTestDouble();
     appMetaRepository = new AppMetaRepository(() => db);
-    worksService = new WorksService(worksRepository, queueRepository);
+    worksService = new WorksService(
+      worksRepository,
+      queueRepository,
+      graphRepository,
+      timelineEntriesRepository,
+    );
     leaseService = new SyncLeaseService(appMetaRepository);
     stalePolicyService = new SyncStalePolicyService(appMetaRepository);
     autoMergeService = new SyncAutoMergeService();

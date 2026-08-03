@@ -50,6 +50,7 @@ import {
   type SyncQueueRepository,
 } from './sync-queue.repository';
 import {
+  SYNC_LEASE_BUSY_RETRY_AFTER_MS,
   syncLeaseService,
   type SyncLeaseService,
   type SyncLeaseContext,
@@ -164,7 +165,8 @@ export class SyncPullService {
       pulledAt: null,
       nextSince: null,
       messages: [appI18n.t('sync.pullLeaseBusy')],
-      requestFailed: false,
+      requestFailed: true,
+      retryAfterMs: SYNC_LEASE_BUSY_RETRY_AFTER_MS,
     };
   }
 

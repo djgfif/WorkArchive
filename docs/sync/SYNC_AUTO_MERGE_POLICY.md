@@ -71,6 +71,28 @@ the active sync lease. Push is stopped when that pull fails or produces a manual
 conflict. This prevents a stale local payload from overwriting newer remote
 state without first observing it.
 
+## Automatic Sync Scheduling
+
+On account archive activation, the initial pull completes before an existing
+queue is pushed in the same tab. This preserves pull-before-push ordering even
+when the queue already contains local changes at sign-in.
+
+Queue changes that arrive while a push is running are coalesced into the same
+drain loop. The loop checks again after each push and continues until no
+additional push request remains.
+
+If the browser is offline or the document is hidden, the pending push request
+remains queued in memory. Focus, online, or visible events resume it when the
+browser becomes available again. Conflict-marked items still require manual
+review and are never included in automatic push.
+
+Pull failures are retried automatically after the larger of the server-provided
+delay and the local failure backoff. When another tab owns the database sync
+lease, pull and push return a retryable incomplete result with a one-second
+delay instead of reporting success. Auto-sync uses that delay to retry without
+requiring another queue mutation or user event. Manual sync also treats the
+busy result as incomplete rather than showing a false success.
+
 ## Client ID And Sync Lease
 
 The client ID is generated per browser database scope and stored in local app

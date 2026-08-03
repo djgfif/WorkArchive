@@ -89,7 +89,12 @@ describe('SyncService', () => {
     graphRepository = new GraphRepository(() => db, queueRepository);
     tierBoardRepository = new TierBoardRepository(() => db);
     appMetaRepository = new AppMetaRepository(() => db);
-    worksService = new WorksService(worksRepository, queueRepository);
+    worksService = new WorksService(
+      worksRepository,
+      queueRepository,
+      graphRepository,
+      timelineEntriesRepository,
+    );
     syncService = new SyncService(
       worksRepository,
       releaseRecordsRepository,
@@ -465,7 +470,7 @@ describe('SyncService', () => {
     );
   });
 
-  it('skips push when another tab holds the scope sync lease', async () => {
+  it('reports manual sync as incomplete when another tab holds the scope sync lease', async () => {
     await worksService.createWork(buildInput());
     await appMetaRepository.setValue(
       'sync.activeLease',
@@ -483,13 +488,51 @@ describe('SyncService', () => {
 
     vi.stubGlobal('fetch', fetchSpy);
 
-    const result = await syncService.pushQueuedChanges();
+    const result = await syncService.runManualSync();
 
     expect(result).toEqual(
       expect.objectContaining({
-        attemptedCount: 0,
-        requestFailed: false,
-        messages: ['다른 탭에서 동기화 중이라 이번 백업을 건너뛰었습니다.'],
+        state: 'failed',
+        push: expect.objectContaining({
+          attemptedCount: 0,
+          requestFailed: true,
+          retryAfterMs: 1_000,
+          messages: ['다른 탭에서 동기화 중이라 이번 백업을 건너뛰었습니다.'],
+        }),
+        pull: expect.objectContaining({
+          requestFailed: true,
+          messages: ['보내기에 실패해 가져오기를 건너뛰었습니다.'],
+        }),
+      }),
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns a retryable pull result when another tab holds the scope sync lease', async () => {
+    await appMetaRepository.setValue(
+      'sync.activeLease',
+      JSON.stringify({
+        acquiredAt: '2026-05-26T00:00:00.000Z',
+        expiresAt: '9999-01-01T00:00:00.000Z',
+        ownerId: 'other-client:other-tab',
+        token: 'pull:other',
+      }),
+    );
+    writeStoredAuthTokens({
+      accessToken: 'access-token',
+    });
+    const fetchSpy = vi.fn();
+
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await syncService.pullRemoteChanges();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        pulledCount: 0,
+        requestFailed: true,
+        retryAfterMs: 1_000,
+        messages: ['다른 탭에서 동기화 중이라 이번 가져오기를 건너뛰었습니다.'],
       }),
     );
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -1293,6 +1336,7 @@ describe('SyncService', () => {
       note: 'Remote note',
       occurredAt: '2026-04-18T02:00:00.000Z',
       serverVersion: 2,
+      source: 'manual',
       syncStatus: 'synced',
       type: 'note',
       updatedAt: '2026-04-18T03:00:00.000Z',

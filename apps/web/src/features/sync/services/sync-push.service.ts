@@ -42,6 +42,7 @@ import {
   type SyncQueueRepository,
 } from './sync-queue.repository';
 import {
+  SYNC_LEASE_BUSY_RETRY_AFTER_MS,
   syncLeaseService,
   type SyncLeaseService,
   type SyncLeaseContext,
@@ -165,7 +166,8 @@ export class SyncPushService {
       failedCount: 0,
       processedAt: null,
       messages: [appI18n.t('sync.pushLeaseBusy')],
-      requestFailed: false,
+      requestFailed: true,
+      retryAfterMs: SYNC_LEASE_BUSY_RETRY_AFTER_MS,
     };
   }
 
@@ -213,11 +215,13 @@ export class SyncPushService {
       };
     }
 
-    const freshnessResult = await this.stalePolicyService.ensureFreshPullBeforePush(
-      runnableQueueItems,
-      identity,
-      (leaseIdentity) => this.pullService.pullRemoteChangesWithLease(leaseIdentity),
-    );
+    const freshnessResult =
+      await this.stalePolicyService.ensureFreshPullBeforePush(
+        runnableQueueItems,
+        identity,
+        (leaseIdentity) =>
+          this.pullService.pullRemoteChangesWithLease(leaseIdentity),
+      );
 
     if (freshnessResult) {
       return this.handleFreshnessResult(
@@ -380,7 +384,11 @@ export class SyncPushService {
           : appI18n.t('sync.failedPush');
 
       try {
-        await this.queueRepo.markManyFailed(queueItemIds, message, retryAfterMs);
+        await this.queueRepo.markManyFailed(
+          queueItemIds,
+          message,
+          retryAfterMs,
+        );
       } catch (markError) {
         if (!isDatabaseClosedError(markError)) {
           throw markError;

@@ -3,6 +3,7 @@ import {
   type AppMetaRepository,
 } from './app-meta.repository';
 
+export const SYNC_LEASE_BUSY_RETRY_AFTER_MS = 1_000;
 const SYNC_CLIENT_ID_KEY = 'sync.clientId';
 const SYNC_LEASE_KEY = 'sync.activeLease';
 const SYNC_LEASE_TTL_MS = 25_000;
@@ -28,7 +29,9 @@ function addMilliseconds(value: string, milliseconds: number) {
 }
 
 export class SyncLeaseService {
-  constructor(private readonly metaRepo: AppMetaRepository = appMetaRepository) {}
+  constructor(
+    private readonly metaRepo: AppMetaRepository = appMetaRepository,
+  ) {}
 
   async getClientIdentity(): Promise<SyncClientIdentity> {
     const clientId = await this.metaRepo.getOrCreateValue(
