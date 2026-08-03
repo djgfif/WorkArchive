@@ -1,10 +1,6 @@
-import type {
-  UserReleaseRecordAggregate,
-} from '../../user-records/user-release-records.service';
+import type { UserReleaseRecordAggregate } from '../../user-records/user-release-records.service';
 import type { WorkAggregate } from '../../user-records/user-records.service';
-import type {
-  UserTimelineEntryAggregate,
-} from '../../user-records/user-timeline-entries.service';
+import type { UserTimelineEntryAggregate } from '../../user-records/user-timeline-entries.service';
 import { normalizeString } from '../../works/work-aggregate';
 import type { SyncContributorPayloadDto } from '../payloads/sync-contributor-payload.dto';
 import type { SyncReleaseRecordPayloadDto } from '../payloads/sync-release-record-payload.dto';
@@ -93,6 +89,7 @@ export function areTimelineEntriesEquivalent(
   return (
     existing.userWorkRecordId === payload.workId &&
     existing.type === payload.type &&
+    existing.source === (payload.source ?? 'manual') &&
     existing.occurredAt.toISOString() === payload.occurredAt &&
     existing.note === normalizeString(payload.note) &&
     existing.deletedAt?.toISOString() ===

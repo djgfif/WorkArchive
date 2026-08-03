@@ -24,6 +24,7 @@ export const en = {
     appliedChange: 'The change has been applied on the server.',
     appliedTombstone: 'The deleted state has been applied on the server.',
     archiveMigration: 'Archive transfer',
+    archiveHealthFix: 'Archive health safe fix',
     conflictGeneric:
       'Some items need review during automatic backup. Please try again shortly.',
     conflictOwnership:
@@ -666,6 +667,12 @@ export const en = {
       continuePrefix: 'Continue',
       openAria: 'Open {{title}}',
       openWithMetaAria: '{{title}} — {{meta}}',
+      quickProgressAria: 'Log {{title}} through {{next}}{{unit}}',
+      quickProgressButton: 'Log {{next}}{{unit}}',
+      quickProgressError: 'Could not log the progress.',
+      quickProgressSaved: 'Logged {{title}} through {{next}}{{unit}}.',
+      quickProgressUnavailable:
+        'The next progress point is not available for this work right now.',
       trackAria: '{{title}} shelf',
       viewAll: 'View all →',
       viewAllAria: 'View all {{title}}',
@@ -696,6 +703,7 @@ export const en = {
     pageTitle: 'Settings and backup',
     sections: {
       account: 'Account',
+      archiveHealth: 'Archive health check',
       dataBackup: 'Data and backup',
       dangerZone: 'Danger zone',
       display: 'Display',
@@ -1119,6 +1127,137 @@ export const en = {
       userKeyRequiredDescription:
         'Saving a personal API key for this account improves search candidate quality.',
       userKeyRequiredProviders: 'Personal key needed',
+    },
+    archiveHealth: {
+      description:
+        'Checks active works locally for progress, date, status consistency, and missing covers. Only fixes with a deterministic result are offered for you to apply.',
+      editRecord: 'Edit record',
+      reviewComplete:
+        'Finished reviewing {{count}} records and scanned the latest state.',
+      reviewDescription:
+        'Review dates and status for {{count}} records that cannot be decided automatically.',
+      reviewSaved: 'Saved the record and scanned the latest state.',
+      reviewStart: 'Start review ({{count}})',
+      reviewStartAria: 'Start reviewing {{count}} records that need attention',
+      reviewTitle: 'Work through the records that need your decision',
+      reviewUnavailable:
+        'Could not start the review session. Scan again and retry.',
+      eyebrow: 'Data quality',
+      filterAria: 'Archive health result filter',
+      filters: {
+        all: 'All {{count}}',
+        attention: 'Needs attention {{count}}',
+        improvement: 'Improvements {{count}}',
+      },
+      fixApplied:
+        'Set the progress unit for “{{title}}” to {{unit}}. You can undo it in the history below.',
+      fixError: 'Could not apply the safe fix.',
+      fixErrors: {
+        alreadyUndone: 'This safe fix has already been undone.',
+        changedAfterFix:
+          'The value changed after the safe fix, so it was not overwritten. Review the record manually.',
+        historyMissing: 'The safe-fix history entry could not be found.',
+        noLongerAvailable:
+          'The record changed and this safe fix is no longer available. Scan again.',
+        workMissing: 'The target record could not be found.',
+      },
+      fixUndone: 'Undid the safe fix for “{{title}}”.',
+      healthy: 'No data issues were found. Your archive is currently healthy.',
+      history: {
+        count: 'Latest {{count}}',
+        description:
+          'Up to 20 recent fixes are kept in local backup metadata. A fix can be undone only while its value remains unchanged.',
+        item: '{{title}} · Progress unit {{unit}}',
+        title: 'Recent safe fixes',
+        undo: 'Undo',
+        undoAria: 'Undo safe fix for {{title}}',
+        undone: 'Undone',
+      },
+      issueCount: '{{count}} items',
+      issues: {
+        completed_and_dropped: {
+          description:
+            'Both completion and dropped dates are present. Review the current consumption state.',
+          title: 'Completion and dropped dates both exist',
+        },
+        completed_without_date: {
+          description:
+            'This work is completed without a completion date, so yearly review and completion statistics may be inaccurate.',
+          title: 'Completion date is missing',
+        },
+        dropped_without_date: {
+          description:
+            'This work is dropped without a dropped date, making the consumption history harder to order.',
+          title: 'Dropped date is missing',
+        },
+        invalid_date: {
+          description:
+            'The stored date “{{value}}” cannot be read. Open the record and select the date again.',
+          title: 'An unreadable date is stored',
+        },
+        missing_thumbnail: {
+          description:
+            'Adding a cover makes this record easier to find in the library and Home shelves.',
+          title: 'Cover is missing',
+        },
+        negative_progress: {
+          description:
+            'Progress values must be zero or greater. Current {{current}} · Total {{total}}',
+          title: 'Progress is negative',
+        },
+        progress_over_total: {
+          description:
+            'Current progress {{current}} is greater than total progress {{total}}.',
+          title: 'Current progress exceeds the total',
+        },
+        progress_unit_missing: {
+          description:
+            'Select episodes, volumes, or chapters so progress displays accurately across the app.',
+          title: 'Progress unit is missing',
+        },
+        started_after_completed: {
+          description:
+            'The start date is later than the completion date. Review both values.',
+          title: 'Start date is after completion',
+        },
+        started_after_dropped: {
+          description:
+            'The start date is later than the dropped date. Review both values.',
+          title: 'Start date is after dropped date',
+        },
+        started_after_last_consumed: {
+          description:
+            'The start date is later than the latest consumption date. Review the timeline order.',
+          title: 'Start date is after latest consumption',
+        },
+      },
+      loadError: 'Could not run the archive health check.',
+      rescan: 'Scan again',
+      safeFix: 'Safe fix',
+      safeFixAria: 'Apply safe fix to {{title}}',
+      safeFixDescription:
+        'Sets the progress unit to “{{unit}}” for this work type without changing any other value.',
+      scanPending: 'Scanning the archive.',
+      scannedAt: 'Last scanned {{date}}',
+      scanSummary: '{{affected}} of {{total}} active works need review',
+      severity: {
+        attention: 'Fix needed',
+        improvement: 'Improvement',
+        review: 'Review recommended',
+      },
+      showMore: 'Show {{count}} more',
+      summary: {
+        attention: 'Value ranges or date ordering need correction.',
+        improvement: 'Optional details that make the archive easier to browse.',
+        review: 'Review status and record dates together.',
+      },
+      title: 'Archive health check',
+      undoError: 'Could not undo the safe fix.',
+      units: {
+        chapter: 'chapters',
+        episode: 'episodes',
+        volume: 'volumes',
+      },
     },
     duplicateCleanup: {
       authorMissing: 'No author',
@@ -1667,6 +1806,25 @@ export const en = {
   insights: {
     addedRecentlyDescription: 'Works added within the last 30 days.',
     addedRecentlyLabel: 'Recently added',
+    activityActiveDays: 'Active days',
+    activityDayAria: '{{date}}, record count {{count}}',
+    activityDayCount: '{{count}} / 28 days',
+    activityDescription:
+      'Days with progress, status changes, or reflection notes.',
+    activityEmpty: 'No timeline records in the last 28 days yet.',
+    activityGridAria: 'Record distribution over the last 28 days',
+    activityGridHint: 'Darker cells mean more records on that day.',
+    activityLatest: 'Latest record',
+    activityNoRecord: 'None yet',
+    activityRange: '{{start}}–{{end}}',
+    activityRecentSevenDays: 'Last 7 days',
+    activityRecordBadge: '28-day total {{count}}',
+    activityRecordCount: '{{count}}',
+    activitySectionDescription:
+      'See when your local progress, status, and reflection records accumulated.',
+    activitySectionTitle: 'Recording rhythm',
+    activityStart: 'Start from a work',
+    activityTitle: 'Days with records',
     archiveModeAuthenticated: 'Signed-in local archive',
     archiveModeGuest: 'Guest local archive',
     averageRatingDescription: 'Only rated works count toward the average.',
@@ -1706,6 +1864,21 @@ export const en = {
     recentAddedTitle: 'Recently added works',
     recentUpdatedEmpty: 'No works modified in the last 30 days.',
     recentUpdatedTitle: 'Recently updated works',
+    repeatDescription:
+      'Based on reread and rewatch records, here are the works you return to most.',
+    repeatEmpty:
+      "No reread or rewatch records yet. Add today's record from the timeline of a completed work.",
+    repeatLastRecorded: 'Last recorded {{date}}',
+    repeatRecordBadge: '{{count}} repeat records',
+    repeatSectionDescription:
+      'Calculated only from local records of works you returned to after finishing them.',
+    repeatSectionTitle: 'Rereads and rewatches',
+    repeatStart: 'Record from completed works',
+    repeatTitle: 'Works you returned to',
+    repeatWorkAria: '{{title}}, {{count}} repeat records',
+    repeatWorkBadge: '{{count}} works',
+    repeatWorkCount: '{{count}} times',
+    repeatYearBadge: '{{count}} this year',
     retry: 'Recalculate',
     statusEmpty: 'No works yet to build status stats.',
     statusOnHoldDescription:
@@ -2248,6 +2421,7 @@ export const en = {
         "Leave a start date or recent record date and it's summarized here.",
       timelineCount: '{{count}}',
       timelineSourceManual: 'Direct record',
+      timelineSourceAutomatic: 'Automatic record',
       timelineSourceSystem: 'Date record',
       timelineDelete: 'Delete',
       timelineAdvancedAdd: 'Advanced record add',
@@ -2265,7 +2439,33 @@ export const en = {
       timelineTypeDropped: 'Dropped',
       timelineTypeRewatch: 'Rewatch',
       timelineTypeProgress: 'Progress',
+      timelineRepeatActionRead: "Record today's reread",
+      timelineRepeatActionWatch: "Record today's rewatch",
+      timelineRepeatActionGeneric: 'Record again today',
+      timelineRepeatAdvancedHint:
+        'Use Advanced record add for a past date or a note.',
+      timelineRepeatCount: '{{count}} repeat records',
+      timelineRepeatDescriptionRead:
+        'Record that you reread it today and build a history of every return.',
+      timelineRepeatDescriptionWatch:
+        'Record that you rewatched it today and build a history of every return.',
+      timelineRepeatDescriptionGeneric:
+        'Record that you experienced it again today and build a repeat history.',
+      timelineRepeatLabelRead: 'Reread',
+      timelineRepeatLabelWatch: 'Rewatch',
+      timelineRepeatLabelGeneric: 'Repeat',
+      timelineRepeatRecordedToday: 'Recorded today',
+      timelineRepeatTitleRead: 'Reread history',
+      timelineRepeatTitleWatch: 'Rewatch history',
+      timelineRepeatTitleGeneric: 'Repeat history',
       timelineStartedDescription: 'The day you started watching it.',
+      timelineAutomaticDescription:
+        'Recorded automatically when you changed status or progress.',
+      timelineAutomaticStatusChange: 'Status changed: {{previous}} → {{next}}',
+      timelineAutomaticProgressChange: 'Progress changed: {{progress}}',
+      timelineAutomaticProgressCleared: 'Progress was cleared.',
+      timelineAutomaticProgressTotal: '{{total}}{{unit}} total',
+      timelineAutomaticProgressUnit: 'Progress unit: {{unit}}',
       timelineLastConsumedDescription: 'The day you last recorded progress.',
       timelineLastConsumedWithLabel: 'Last position recorded: {{label}}',
       timelineCompletedDescription: 'The day you finished it.',
@@ -2369,6 +2569,19 @@ export const en = {
         'Refine the title, status, and review just as much as you need.',
       error: 'Could not edit the work.',
       fullMode: 'Full edit mode',
+      healthBack: 'Back to archive health',
+      healthDescription:
+        'Review the date and status issues found by archive health. Saving continues to the next record.',
+      healthIssueCount: '{{count}} items',
+      healthIssueSummary: 'Check these items in this record',
+      healthMode: 'Archive health mode',
+      healthPreviousSaved: 'Saved the previous record. Review the next item.',
+      healthProgress: '{{current}} / {{total}}',
+      healthProgressLabel: 'Review progress',
+      healthSaveFinish: 'Save and finish review',
+      healthSaveNext: 'Save and review next',
+      healthSaveReturn: 'Save and return to archive health',
+      healthTitle: 'Health check for {{title}}',
       loadingTitle: 'Loading the work info',
       missingDescription:
         'It may have been deleted, or the address may be incorrect.',

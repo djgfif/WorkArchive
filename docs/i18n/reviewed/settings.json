@@ -1,6 +1,8 @@
 {
-  "description": "Reviewed settings copy: account, danger zone, data backup, display, duplicate cleanup, external import, local data safety, Notion sync, overview, search providers, sections, and security.",
-  "scope": ["settings"],
+  "description": "Reviewed settings copy: account, archive health, danger zone, data backup, display, duplicate cleanup, external import, local data safety, Notion sync, overview, search providers, sections, and security.",
+  "scope": [
+    "settings"
+  ],
   "translations": {
     "en": {
       "settings": {
@@ -24,7 +26,8 @@
           "notionSync": "Notion sync",
           "overview": "Overview",
           "searchProviders": "Search sources & API keys",
-          "security": "Security"
+          "security": "Security",
+          "archiveHealth": "Archive health check"
         },
         "groups": {
           "account": "Account",
@@ -637,6 +640,117 @@
           "title": "Notion edit mirror",
           "tokenDescription": "The value won't be shown again after saving. You must share the Notion integration with the data source.",
           "yes": "Yes"
+        },
+        "archiveHealth": {
+          "description": "Checks active works locally for progress, date, status consistency, and missing covers. Only fixes with a deterministic result are offered for you to apply.",
+          "editRecord": "Edit record",
+          "reviewComplete": "Finished reviewing {{count}} records and scanned the latest state.",
+          "reviewDescription": "Review dates and status for {{count}} records that cannot be decided automatically.",
+          "reviewSaved": "Saved the record and scanned the latest state.",
+          "reviewStart": "Start review ({{count}})",
+          "reviewStartAria": "Start reviewing {{count}} records that need attention",
+          "reviewTitle": "Work through the records that need your decision",
+          "reviewUnavailable": "Could not start the review session. Scan again and retry.",
+          "eyebrow": "Data quality",
+          "filterAria": "Archive health result filter",
+          "filters": {
+            "all": "All {{count}}",
+            "attention": "Needs attention {{count}}",
+            "improvement": "Improvements {{count}}"
+          },
+          "fixApplied": "Set the progress unit for “{{title}}” to {{unit}}. You can undo it in the history below.",
+          "fixError": "Could not apply the safe fix.",
+          "fixErrors": {
+            "alreadyUndone": "This safe fix has already been undone.",
+            "changedAfterFix": "The value changed after the safe fix, so it was not overwritten. Review the record manually.",
+            "historyMissing": "The safe-fix history entry could not be found.",
+            "noLongerAvailable": "The record changed and this safe fix is no longer available. Scan again.",
+            "workMissing": "The target record could not be found."
+          },
+          "fixUndone": "Undid the safe fix for “{{title}}”.",
+          "healthy": "No data issues were found. Your archive is currently healthy.",
+          "history": {
+            "count": "Latest {{count}}",
+            "description": "Up to 20 recent fixes are kept in local backup metadata. A fix can be undone only while its value remains unchanged.",
+            "item": "{{title}} · Progress unit {{unit}}",
+            "title": "Recent safe fixes",
+            "undo": "Undo",
+            "undoAria": "Undo safe fix for {{title}}",
+            "undone": "Undone"
+          },
+          "issueCount": "{{count}} items",
+          "issues": {
+            "completed_and_dropped": {
+              "description": "Both completion and dropped dates are present. Review the current consumption state.",
+              "title": "Completion and dropped dates both exist"
+            },
+            "completed_without_date": {
+              "description": "This work is completed without a completion date, so yearly review and completion statistics may be inaccurate.",
+              "title": "Completion date is missing"
+            },
+            "dropped_without_date": {
+              "description": "This work is dropped without a dropped date, making the consumption history harder to order.",
+              "title": "Dropped date is missing"
+            },
+            "invalid_date": {
+              "description": "The stored date “{{value}}” cannot be read. Open the record and select the date again.",
+              "title": "An unreadable date is stored"
+            },
+            "missing_thumbnail": {
+              "description": "Adding a cover makes this record easier to find in the library and Home shelves.",
+              "title": "Cover is missing"
+            },
+            "negative_progress": {
+              "description": "Progress values must be zero or greater. Current {{current}} · Total {{total}}",
+              "title": "Progress is negative"
+            },
+            "progress_over_total": {
+              "description": "Current progress {{current}} is greater than total progress {{total}}.",
+              "title": "Current progress exceeds the total"
+            },
+            "progress_unit_missing": {
+              "description": "Select episodes, volumes, or chapters so progress displays accurately across the app.",
+              "title": "Progress unit is missing"
+            },
+            "started_after_completed": {
+              "description": "The start date is later than the completion date. Review both values.",
+              "title": "Start date is after completion"
+            },
+            "started_after_dropped": {
+              "description": "The start date is later than the dropped date. Review both values.",
+              "title": "Start date is after dropped date"
+            },
+            "started_after_last_consumed": {
+              "description": "The start date is later than the latest consumption date. Review the timeline order.",
+              "title": "Start date is after latest consumption"
+            }
+          },
+          "loadError": "Could not run the archive health check.",
+          "rescan": "Scan again",
+          "safeFix": "Safe fix",
+          "safeFixAria": "Apply safe fix to {{title}}",
+          "safeFixDescription": "Sets the progress unit to “{{unit}}” for this work type without changing any other value.",
+          "scanPending": "Scanning the archive.",
+          "scannedAt": "Last scanned {{date}}",
+          "scanSummary": "{{affected}} of {{total}} active works need review",
+          "severity": {
+            "attention": "Fix needed",
+            "improvement": "Improvement",
+            "review": "Review recommended"
+          },
+          "showMore": "Show {{count}} more",
+          "summary": {
+            "attention": "Value ranges or date ordering need correction.",
+            "improvement": "Optional details that make the archive easier to browse.",
+            "review": "Review status and record dates together."
+          },
+          "title": "Archive health check",
+          "undoError": "Could not undo the safe fix.",
+          "units": {
+            "chapter": "chapters",
+            "episode": "episodes",
+            "volume": "volumes"
+          }
         }
       }
     },
@@ -662,7 +776,8 @@
           "notionSync": "Notion同期",
           "overview": "概要",
           "searchProviders": "検索ソースとAPIキー",
-          "security": "セキュリティ"
+          "security": "セキュリティ",
+          "archiveHealth": "アーカイブ健康診断"
         },
         "groups": {
           "account": "アカウント",
@@ -1275,6 +1390,117 @@
           "title": "Notion編集ミラー",
           "tokenDescription": "保存後は値が再表示されません。Notion integrationをデータソースに共有する必要があります。",
           "yes": "はい"
+        },
+        "archiveHealth": {
+          "description": "有効な作品の進捗・日付・状態の整合性と表紙の不足をローカルで検査します。結果を確実に決められる項目だけ、安全な修正として選択できます。",
+          "editRecord": "記録を編集",
+          "reviewComplete": "{{count}}件の記録確認を完了し、最新状態を再検査しました。",
+          "reviewDescription": "自動では判断できない{{count}}件の記録を、日付と状態から順に確認します。",
+          "reviewSaved": "記録を保存し、最新状態を再検査しました。",
+          "reviewStart": "確認を開始（{{count}}）",
+          "reviewStartAria": "確認が必要な{{count}}件の記録を確認開始",
+          "reviewTitle": "判断が必要な記録を続けて整理しましょう",
+          "reviewUnavailable": "確認セッションを開始できませんでした。再検査してからもう一度お試しください。",
+          "eyebrow": "データ品質",
+          "filterAria": "健康診断結果フィルター",
+          "filters": {
+            "all": "すべて {{count}}",
+            "attention": "要確認 {{count}}",
+            "improvement": "補強候補 {{count}}"
+          },
+          "fixApplied": "「{{title}}」の進捗単位を{{unit}}に設定しました。下の履歴から元に戻せます。",
+          "fixError": "安全な修正を適用できませんでした。",
+          "fixErrors": {
+            "alreadyUndone": "この安全な修正はすでに元に戻されています。",
+            "changedAfterFix": "安全な修正後に値が変更されたため、自動では元に戻しませんでした。記録を直接確認してください。",
+            "historyMissing": "元に戻す安全な修正履歴が見つかりません。",
+            "noLongerAvailable": "記録が変更され、この安全な修正は利用できません。再検査してください。",
+            "workMissing": "対象の記録が見つかりません。"
+          },
+          "fixUndone": "「{{title}}」の安全な修正を元に戻しました。",
+          "healthy": "現在確認されたデータの問題はありません。アーカイブは正常です。",
+          "history": {
+            "count": "直近{{count}}件",
+            "description": "直近の修正はローカルバックアップのメタデータに最大20件保存されます。その後値が変更されていない修正のみ元に戻せます。",
+            "item": "{{title}}・進捗単位 {{unit}}",
+            "title": "最近の安全な修正",
+            "undo": "元に戻す",
+            "undoAria": "{{title}}の安全な修正を元に戻す",
+            "undone": "元に戻しました"
+          },
+          "issueCount": "{{count}}件",
+          "issues": {
+            "completed_and_dropped": {
+              "description": "完了日と中断日が両方残っています。現在の鑑賞状態を確認してください。",
+              "title": "完了日と中断日が両方あります"
+            },
+            "completed_without_date": {
+              "description": "完了状態ですが完了日がないため、年間レビューや完了統計が正確でない可能性があります。",
+              "title": "完了日が未入力です"
+            },
+            "dropped_without_date": {
+              "description": "中断状態ですが中断日がないため、鑑賞履歴を正確に並べにくくなります。",
+              "title": "中断日が未入力です"
+            },
+            "invalid_date": {
+              "description": "保存された日付「{{value}}」を読み取れません。記録を開いて日付を選び直してください。",
+              "title": "読み取れない日付があります"
+            },
+            "missing_thumbnail": {
+              "description": "表紙を追加すると、ライブラリやホームの棚で記録を見つけやすくなります。",
+              "title": "表紙がありません"
+            },
+            "negative_progress": {
+              "description": "進捗には0以上の値を使用してください。現在 {{current}}・全体 {{total}}",
+              "title": "進捗が負の値です"
+            },
+            "progress_over_total": {
+              "description": "現在の進捗 {{current}} が全体 {{total}} を超えています。",
+              "title": "現在の進捗が全体を超えています"
+            },
+            "progress_unit_missing": {
+              "description": "話・巻・章から進捗単位を選ぶと、アプリ全体で進捗を正確に表示できます。",
+              "title": "進捗単位が未入力です"
+            },
+            "started_after_completed": {
+              "description": "開始日が完了日より後です。両方の日付を確認してください。",
+              "title": "開始日が完了日より後です"
+            },
+            "started_after_dropped": {
+              "description": "開始日が中断日より後です。両方の日付を確認してください。",
+              "title": "開始日が中断日より後です"
+            },
+            "started_after_last_consumed": {
+              "description": "開始日が最新の鑑賞日より後です。履歴の日付順を確認してください。",
+              "title": "開始日が最新の鑑賞日より後です"
+            }
+          },
+          "loadError": "アーカイブ健康診断を実行できませんでした。",
+          "rescan": "再検査",
+          "safeFix": "安全に修正",
+          "safeFixAria": "{{title}}を安全に修正",
+          "safeFixDescription": "ほかの値は変更せず、この作品タイプの進捗単位を「{{unit}}」に設定します。",
+          "scanPending": "アーカイブを検査しています。",
+          "scannedAt": "最終検査 {{date}}",
+          "scanSummary": "有効な作品 {{total}}件のうち {{affected}}件を要確認",
+          "severity": {
+            "attention": "修正が必要",
+            "improvement": "補強候補",
+            "review": "確認を推奨"
+          },
+          "showMore": "残り{{count}}件を表示",
+          "summary": {
+            "attention": "値の範囲または日付順を修正する必要があります。",
+            "improvement": "アーカイブを探しやすくする任意項目です。",
+            "review": "状態と記録日を一緒に確認してください。"
+          },
+          "title": "アーカイブ健康診断",
+          "undoError": "安全な修正を元に戻せませんでした。",
+          "units": {
+            "chapter": "章",
+            "episode": "話",
+            "volume": "巻"
+          }
         }
       }
     },
@@ -1300,7 +1526,8 @@
           "notionSync": "Notion 同步",
           "overview": "概览",
           "searchProviders": "搜索来源与 API 密钥",
-          "security": "安全"
+          "security": "安全",
+          "archiveHealth": "存档健康检查"
         },
         "groups": {
           "account": "账户",
@@ -1913,6 +2140,117 @@
           "title": "Notion 编辑镜像",
           "tokenDescription": "保存后将不再显示该值。你需要将 Notion integration 共享给数据源。",
           "yes": "是"
+        },
+        "archiveHealth": {
+          "description": "在本地检查有效作品的进度、日期、状态一致性和缺失封面。仅对结果可明确确定的项目提供由你选择的安全修复。",
+          "editRecord": "编辑记录",
+          "reviewComplete": "已完成{{count}}条记录的检查，并重新检查了最新状态。",
+          "reviewDescription": "依次检查{{count}}条无法自动判断的记录的日期和状态。",
+          "reviewSaved": "已保存记录并重新检查最新状态。",
+          "reviewStart": "开始检查（{{count}}）",
+          "reviewStartAria": "开始检查{{count}}条需要处理的记录",
+          "reviewTitle": "继续整理需要你判断的记录",
+          "reviewUnavailable": "无法开始检查会话。请重新检查后再试。",
+          "eyebrow": "数据质量",
+          "filterAria": "健康检查结果筛选",
+          "filters": {
+            "all": "全部 {{count}}",
+            "attention": "需要处理 {{count}}",
+            "improvement": "补充建议 {{count}}"
+          },
+          "fixApplied": "已将“{{title}}”的进度单位设为{{unit}}。可在下方历史记录中撤销。",
+          "fixError": "无法应用安全修复。",
+          "fixErrors": {
+            "alreadyUndone": "此安全修复已撤销。",
+            "changedAfterFix": "安全修复后的值已经改变，因此未自动覆盖。请手动检查记录。",
+            "historyMissing": "找不到要撤销的安全修复记录。",
+            "noLongerAvailable": "记录已改变，此安全修复不再可用。请重新检查。",
+            "workMissing": "找不到目标记录。"
+          },
+          "fixUndone": "已撤销“{{title}}”的安全修复。",
+          "healthy": "当前未发现数据问题。存档状态良好。",
+          "history": {
+            "count": "最近 {{count}} 条",
+            "description": "最近的修复最多在本地备份元数据中保留20条。仅当修复后的值未改变时才能撤销。",
+            "item": "{{title}} · 进度单位 {{unit}}",
+            "title": "最近的安全修复",
+            "undo": "撤销",
+            "undoAria": "撤销 {{title}} 的安全修复",
+            "undone": "已撤销"
+          },
+          "issueCount": "{{count}}项",
+          "issues": {
+            "completed_and_dropped": {
+              "description": "完成日期和弃坑日期同时存在，请重新确认当前观看状态。",
+              "title": "完成日期和弃坑日期同时存在"
+            },
+            "completed_without_date": {
+              "description": "作品状态为已完成，但没有完成日期，年度回顾和完成统计可能不准确。",
+              "title": "缺少完成日期"
+            },
+            "dropped_without_date": {
+              "description": "作品状态为已弃坑，但没有弃坑日期，难以准确排列观看历史。",
+              "title": "缺少弃坑日期"
+            },
+            "invalid_date": {
+              "description": "无法读取已保存的日期“{{value}}”。请打开记录并重新选择日期。",
+              "title": "存在无法读取的日期"
+            },
+            "missing_thumbnail": {
+              "description": "添加封面后，可在作品库和首页书架中更快找到这条记录。",
+              "title": "缺少封面"
+            },
+            "negative_progress": {
+              "description": "进度值必须大于或等于0。当前 {{current}} · 总计 {{total}}",
+              "title": "进度为负数"
+            },
+            "progress_over_total": {
+              "description": "当前进度 {{current}} 大于总进度 {{total}}。",
+              "title": "当前进度超过总进度"
+            },
+            "progress_unit_missing": {
+              "description": "选择集、卷或章作为进度单位，以便在应用中准确显示进度。",
+              "title": "缺少进度单位"
+            },
+            "started_after_completed": {
+              "description": "开始日期晚于完成日期，请检查这两个日期。",
+              "title": "开始日期晚于完成日期"
+            },
+            "started_after_dropped": {
+              "description": "开始日期晚于弃坑日期，请检查这两个日期。",
+              "title": "开始日期晚于弃坑日期"
+            },
+            "started_after_last_consumed": {
+              "description": "开始日期晚于最近观看日期，请检查观看历史的日期顺序。",
+              "title": "开始日期晚于最近观看日期"
+            }
+          },
+          "loadError": "无法运行存档健康检查。",
+          "rescan": "重新检查",
+          "safeFix": "安全修复",
+          "safeFixAria": "安全修复 {{title}}",
+          "safeFixDescription": "不更改其他值，仅按作品类型将进度单位设为“{{unit}}”。",
+          "scanPending": "正在检查存档。",
+          "scannedAt": "上次检查 {{date}}",
+          "scanSummary": "{{total}}个有效作品中有{{affected}}个需要检查",
+          "severity": {
+            "attention": "需要修正",
+            "improvement": "补充建议",
+            "review": "建议检查"
+          },
+          "showMore": "再显示 {{count}} 个",
+          "summary": {
+            "attention": "需要修正数值范围或日期顺序。",
+            "improvement": "帮助更快浏览存档的可选信息。",
+            "review": "请同时检查状态和记录日期。"
+          },
+          "title": "存档健康检查",
+          "undoError": "无法撤销安全修复。",
+          "units": {
+            "chapter": "章",
+            "episode": "集",
+            "volume": "卷"
+          }
         }
       }
     }

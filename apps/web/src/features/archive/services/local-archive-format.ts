@@ -169,6 +169,7 @@ export function normalizeTimelineEntry(
     ...entry,
     deletedAt: entry.deletedAt ?? null,
     note: typeof entry.note === 'string' ? entry.note : '',
+    source: entry.source === 'automatic' ? 'automatic' : 'manual',
     serverVersion: Number.isInteger(entry.serverVersion)
       ? entry.serverVersion
       : 0,

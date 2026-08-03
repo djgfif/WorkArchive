@@ -79,6 +79,10 @@ export function toUserTimelineEntryResponse(entry: UserTimelineEntryAggregate) {
     id: entry.id,
     workId: entry.userWorkRecordId,
     type: entry.type,
+    source:
+      entry.source === 'automatic'
+        ? ('automatic' as const)
+        : ('manual' as const),
     occurredAt: entry.occurredAt.toISOString(),
     note: entry.note,
     createdAt: entry.createdAt.toISOString(),

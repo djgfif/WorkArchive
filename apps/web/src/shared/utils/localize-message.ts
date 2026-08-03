@@ -55,6 +55,8 @@ export function localizeSyncQueueSource(source: SyncQueueSource | undefined) {
       return appI18n.t('serverMessage.editForm');
     case 'restore':
       return appI18n.t('serverMessage.restore');
+    case 'archive_health_fix':
+      return appI18n.t('serverMessage.archiveHealthFix');
     case 'progress_update':
       return appI18n.t('serverMessage.progressUpdate');
     case 'timeline_entry_update':

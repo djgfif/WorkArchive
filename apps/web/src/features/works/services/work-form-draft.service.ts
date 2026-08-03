@@ -1,4 +1,5 @@
 import type { WorkFormValues } from '../utils/work-form';
+import type { WorkFormFocusArea } from '../components/add-work-form.types';
 
 const DRAFT_STORAGE_PREFIX = 'work-archive:work-form-draft:';
 
@@ -10,7 +11,7 @@ export interface WorkFormDraftRecord {
 
 interface WorkFormDraftKeyInput {
   archiveScopeKey: string;
-  focusArea: 'general' | 'review';
+  focusArea: WorkFormFocusArea;
   mode: 'create' | 'edit';
   workId?: string | null;
 }

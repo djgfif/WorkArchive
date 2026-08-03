@@ -8,6 +8,7 @@ import {
 } from '../db/work-archive.db';
 import { SyncQueueRepository } from '@features/sync';
 import { WORK_GENRES } from '../utils/work-genres';
+import { TimelineEntriesRepository } from './timeline-entries.repository';
 import { WorksRepository } from './works.repository';
 import { WorksService } from './works.service';
 
@@ -46,13 +47,20 @@ describe('WorksService', () => {
   let db: WorkArchiveDatabase;
   let repository: WorksRepository;
   let queueRepository: SyncQueueRepository;
+  let timelineRepository: TimelineEntriesRepository;
   let service: WorksService;
 
   beforeEach(() => {
     db = createWorkArchiveDb(`work-archive-test-${crypto.randomUUID()}`);
     repository = new WorksRepository(() => db);
     queueRepository = new SyncQueueRepository(() => db);
-    service = new WorksService(repository, queueRepository);
+    timelineRepository = new TimelineEntriesRepository(() => db);
+    service = new WorksService(
+      repository,
+      queueRepository,
+      undefined,
+      timelineRepository,
+    );
   });
 
   afterEach(async () => {
@@ -64,7 +72,12 @@ describe('WorksService', () => {
     vi.spyOn(failingQueue, 'enqueueWorkChange').mockRejectedValue(
       new Error('enqueue failed'),
     );
-    const failingService = new WorksService(repository, failingQueue);
+    const failingService = new WorksService(
+      repository,
+      failingQueue,
+      undefined,
+      timelineRepository,
+    );
 
     await expect(failingService.createWork(buildInput())).rejects.toThrow();
 
@@ -243,18 +256,96 @@ describe('WorksService', () => {
       progressUnit: 'chapter',
     });
 
-    expect(await queueRepository.listAll()).toEqual([
-      expect.objectContaining({
-        entityId: existing.id,
-        operation: 'update',
-        source: 'progress_update',
-        payload: expect.objectContaining({
-          progressCurrent: 4,
-          progressTotal: 10,
-          progressUnit: 'chapter',
+    expect(await queueRepository.listAll()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entityId: existing.id,
+          operation: 'update',
+          source: 'progress_update',
+          payload: expect.objectContaining({
+            progressCurrent: 4,
+            progressTotal: 10,
+            progressUnit: 'chapter',
+          }),
         }),
+        expect.objectContaining({
+          entityType: 'timeline_entry',
+          operation: 'create',
+          payload: expect.objectContaining({
+            source: 'automatic',
+            type: 'progress',
+          }),
+        }),
+      ]),
+    );
+    expect(await timelineRepository.listByWorkId(existing.id)).toEqual([
+      expect.objectContaining({
+        note: '진행도 변경: 4/10화',
+        source: 'automatic',
+        type: 'progress',
       }),
     ]);
+  });
+
+  it('records meaningful status changes once and keeps automatic entries deletable', async () => {
+    const existing = buildWork({ status: 'planned' });
+
+    await repository.create(existing);
+
+    await service.updateWork(existing.id, buildInput({ status: 'completed' }));
+    await service.updateWork(existing.id, buildInput({ status: 'completed' }));
+
+    const entries = await timelineRepository.listByWorkId(existing.id);
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toEqual(
+      expect.objectContaining({
+        note: '상태 변경: 볼 예정 → 완료',
+        source: 'automatic',
+        type: 'completed',
+      }),
+    );
+
+    await timelineRepository.softDelete(entries[0]!.id);
+    expect(await timelineRepository.listByWorkId(existing.id)).toEqual([]);
+  });
+
+  it('does not create progress noise when the saved values did not change', async () => {
+    const existing = buildWork({
+      lastConsumedLabel: '4화까지',
+      progressCurrent: 4,
+      progressTotal: 10,
+      progressUnit: 'chapter',
+    });
+
+    await repository.create(existing);
+    await service.updateProgress(existing.id, {
+      lastConsumedLabel: '4화까지',
+      progressCurrent: 4,
+      progressTotal: 10,
+      progressUnit: 'chapter',
+    });
+
+    expect(await timelineRepository.listByWorkId(existing.id)).toEqual([]);
+  });
+
+  it('rolls back the work and automatic entry when timeline enqueueing fails', async () => {
+    const existing = buildWork({ status: 'planned' });
+
+    await repository.create(existing);
+    vi.spyOn(queueRepository, 'enqueueTimelineEntryChange').mockRejectedValue(
+      new Error('timeline enqueue failed'),
+    );
+
+    await expect(
+      service.updateWork(existing.id, buildInput({ status: 'completed' })),
+    ).rejects.toThrow('timeline enqueue failed');
+
+    expect(await repository.getById(existing.id)).toEqual(
+      expect.objectContaining({ status: 'planned' }),
+    );
+    expect(await timelineRepository.listByWorkId(existing.id)).toEqual([]);
+    expect(await queueRepository.listAll()).toEqual([]);
   });
 
   it('separates graph tag suggestions from personal tag suggestions', async () => {
@@ -292,7 +383,10 @@ describe('WorksService', () => {
     );
 
     expect(result.seriesSuggestions).toEqual(['Fate', 'TYPE-MOON']);
-    expect(result.contributorSuggestions).toEqual(['Frank Herbert', 'ufotable']);
+    expect(result.contributorSuggestions).toEqual([
+      'Frank Herbert',
+      'ufotable',
+    ]);
     expect(result.genreSuggestions).toEqual([...WORK_GENRES]);
     expect(result.genreSuggestions).not.toContain('Science Fiction');
     expect(result.tagSuggestions).toEqual(

@@ -50,14 +50,19 @@ export class WorksRepository {
 
   /**
    * Runs `run` inside a single read-write transaction that spans the local
-   * work store and the sync queue, so a work mutation and its enqueued change
-   * commit — or roll back — together. The sync queue lives on the same Dexie
-   * instance, so its own transactions nest into this one.
+   * work store, automatic timeline entries, and the sync queue, so a work
+   * mutation and every derived change commit — or roll back — together. These
+   * stores live on the same Dexie instance, so nested repository operations
+   * join this transaction.
    */
   runWorkMutation<T>(run: () => Promise<T>): Promise<T> {
     const db = this.getDb();
 
-    return db.transaction('rw', [db.works, db.syncQueue], run);
+    return db.transaction(
+      'rw',
+      [db.works, db.timelineEntries, db.syncQueue],
+      run,
+    );
   }
 
   async create(work: WorkRecord) {

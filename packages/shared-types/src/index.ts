@@ -745,10 +745,16 @@ export const TIMELINE_ENTRY_TYPES = [
 
 export type TimelineEntryType = (typeof TIMELINE_ENTRY_TYPES)[number];
 
+export const TIMELINE_ENTRY_SOURCES = ['manual', 'automatic'] as const;
+
+export type TimelineEntrySource = (typeof TIMELINE_ENTRY_SOURCES)[number];
+
 export interface TimelineEntryRecord extends AuditFields {
   id: EntityId;
   workId: EntityId;
   type: TimelineEntryType;
+  /** Missing only on archives and sync payloads created before source tracking. */
+  source?: TimelineEntrySource;
   occurredAt: ISODateString;
   note: string;
   deletedAt: ISODateString | null;
@@ -1015,6 +1021,7 @@ export const SYNC_QUEUE_SOURCES = [
   'manual_create',
   'edit_form',
   'restore',
+  'archive_health_fix',
   'progress_update',
   'timeline_entry_update',
   'release_record_update',

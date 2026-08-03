@@ -24,6 +24,7 @@ export const ja = {
     appliedChange: '変更がサーバーに反映されました。',
     appliedTombstone: '削除状態がサーバーに反映されました。',
     archiveMigration: 'アーカイブ移行',
+    archiveHealthFix: 'アーカイブ健康診断の安全な修正',
     conflictGeneric:
       '自動バックアップ中に確認が必要な項目があります。しばらくしてからもう一度お試しください。',
     conflictOwnership:
@@ -661,6 +662,11 @@ export const ja = {
       continuePrefix: '続きを見る',
       openAria: '{{title}}を開く',
       openWithMetaAria: '{{title}} — {{meta}}',
+      quickProgressAria: '{{title}}を{{next}}{{unit}}まで記録',
+      quickProgressButton: '{{next}}{{unit}}まで記録',
+      quickProgressError: '進捗を記録できませんでした。',
+      quickProgressSaved: '{{title}}を{{next}}{{unit}}まで記録しました。',
+      quickProgressUnavailable: 'この作品は今、次の進捗を記録できません。',
       trackAria: '{{title}}の棚',
       viewAll: 'すべて見る →',
       viewAllAria: '{{title}}をすべて見る',
@@ -691,6 +697,7 @@ export const ja = {
     pageTitle: '設定とバックアップ',
     sections: {
       account: 'アカウント',
+      archiveHealth: 'アーカイブ健康診断',
       dataBackup: 'データとバックアップ',
       dangerZone: '危険な操作',
       display: '表示設定',
@@ -1108,6 +1115,137 @@ export const ja = {
       userKeyRequiredDescription:
         'このアカウントに個人APIキーを保存すると、検索候補の品質が向上します。',
       userKeyRequiredProviders: '個人キーが必要',
+    },
+    archiveHealth: {
+      description:
+        '有効な作品の進捗・日付・状態の整合性と表紙の不足をローカルで検査します。結果を確実に決められる項目だけ、安全な修正として選択できます。',
+      editRecord: '記録を編集',
+      reviewComplete:
+        '{{count}}件の記録確認を完了し、最新状態を再検査しました。',
+      reviewDescription:
+        '自動では判断できない{{count}}件の記録を、日付と状態から順に確認します。',
+      reviewSaved: '記録を保存し、最新状態を再検査しました。',
+      reviewStart: '確認を開始（{{count}}）',
+      reviewStartAria: '確認が必要な{{count}}件の記録を確認開始',
+      reviewTitle: '判断が必要な記録を続けて整理しましょう',
+      reviewUnavailable:
+        '確認セッションを開始できませんでした。再検査してからもう一度お試しください。',
+      eyebrow: 'データ品質',
+      filterAria: '健康診断結果フィルター',
+      filters: {
+        all: 'すべて {{count}}',
+        attention: '要確認 {{count}}',
+        improvement: '補強候補 {{count}}',
+      },
+      fixApplied:
+        '「{{title}}」の進捗単位を{{unit}}に設定しました。下の履歴から元に戻せます。',
+      fixError: '安全な修正を適用できませんでした。',
+      fixErrors: {
+        alreadyUndone: 'この安全な修正はすでに元に戻されています。',
+        changedAfterFix:
+          '安全な修正後に値が変更されたため、自動では元に戻しませんでした。記録を直接確認してください。',
+        historyMissing: '元に戻す安全な修正履歴が見つかりません。',
+        noLongerAvailable:
+          '記録が変更され、この安全な修正は利用できません。再検査してください。',
+        workMissing: '対象の記録が見つかりません。',
+      },
+      fixUndone: '「{{title}}」の安全な修正を元に戻しました。',
+      healthy: '現在確認されたデータの問題はありません。アーカイブは正常です。',
+      history: {
+        count: '直近{{count}}件',
+        description:
+          '直近の修正はローカルバックアップのメタデータに最大20件保存されます。その後値が変更されていない修正のみ元に戻せます。',
+        item: '{{title}}・進捗単位 {{unit}}',
+        title: '最近の安全な修正',
+        undo: '元に戻す',
+        undoAria: '{{title}}の安全な修正を元に戻す',
+        undone: '元に戻しました',
+      },
+      issueCount: '{{count}}件',
+      issues: {
+        completed_and_dropped: {
+          description:
+            '完了日と中断日が両方残っています。現在の鑑賞状態を確認してください。',
+          title: '完了日と中断日が両方あります',
+        },
+        completed_without_date: {
+          description:
+            '完了状態ですが完了日がないため、年間レビューや完了統計が正確でない可能性があります。',
+          title: '完了日が未入力です',
+        },
+        dropped_without_date: {
+          description:
+            '中断状態ですが中断日がないため、鑑賞履歴を正確に並べにくくなります。',
+          title: '中断日が未入力です',
+        },
+        invalid_date: {
+          description:
+            '保存された日付「{{value}}」を読み取れません。記録を開いて日付を選び直してください。',
+          title: '読み取れない日付があります',
+        },
+        missing_thumbnail: {
+          description:
+            '表紙を追加すると、ライブラリやホームの棚で記録を見つけやすくなります。',
+          title: '表紙がありません',
+        },
+        negative_progress: {
+          description:
+            '進捗には0以上の値を使用してください。現在 {{current}}・全体 {{total}}',
+          title: '進捗が負の値です',
+        },
+        progress_over_total: {
+          description:
+            '現在の進捗 {{current}} が全体 {{total}} を超えています。',
+          title: '現在の進捗が全体を超えています',
+        },
+        progress_unit_missing: {
+          description:
+            '話・巻・章から進捗単位を選ぶと、アプリ全体で進捗を正確に表示できます。',
+          title: '進捗単位が未入力です',
+        },
+        started_after_completed: {
+          description:
+            '開始日が完了日より後です。両方の日付を確認してください。',
+          title: '開始日が完了日より後です',
+        },
+        started_after_dropped: {
+          description:
+            '開始日が中断日より後です。両方の日付を確認してください。',
+          title: '開始日が中断日より後です',
+        },
+        started_after_last_consumed: {
+          description:
+            '開始日が最新の鑑賞日より後です。履歴の日付順を確認してください。',
+          title: '開始日が最新の鑑賞日より後です',
+        },
+      },
+      loadError: 'アーカイブ健康診断を実行できませんでした。',
+      rescan: '再検査',
+      safeFix: '安全に修正',
+      safeFixAria: '{{title}}を安全に修正',
+      safeFixDescription:
+        'ほかの値は変更せず、この作品タイプの進捗単位を「{{unit}}」に設定します。',
+      scanPending: 'アーカイブを検査しています。',
+      scannedAt: '最終検査 {{date}}',
+      scanSummary: '有効な作品 {{total}}件のうち {{affected}}件を要確認',
+      severity: {
+        attention: '修正が必要',
+        improvement: '補強候補',
+        review: '確認を推奨',
+      },
+      showMore: '残り{{count}}件を表示',
+      summary: {
+        attention: '値の範囲または日付順を修正する必要があります。',
+        improvement: 'アーカイブを探しやすくする任意項目です。',
+        review: '状態と記録日を一緒に確認してください。',
+      },
+      title: 'アーカイブ健康診断',
+      undoError: '安全な修正を元に戻せませんでした。',
+      units: {
+        chapter: '章',
+        episode: '話',
+        volume: '巻',
+      },
     },
     duplicateCleanup: {
       authorMissing: '作者未入力',
@@ -1657,6 +1795,24 @@ export const ja = {
   insights: {
     addedRecentlyDescription: '直近30日以内に追加した作品です。',
     addedRecentlyLabel: '最近追加',
+    activityActiveDays: '記録した日',
+    activityDayAria: '{{date}}、記録{{count}}件',
+    activityDayCount: '{{count}} / 28日',
+    activityDescription: '進捗・状態変更・感想メモを残した日をまとめました。',
+    activityEmpty: '直近28日間のタイムライン記録はまだありません。',
+    activityGridAria: '直近28日間の記録分布',
+    activityGridHint: '色が濃いほど、その日の記録が多いことを表します。',
+    activityLatest: '最新の記録',
+    activityNoRecord: 'まだありません',
+    activityRange: '{{start}}–{{end}}',
+    activityRecentSevenDays: '直近7日間',
+    activityRecordBadge: '28日間 合計{{count}}件',
+    activityRecordCount: '{{count}}件',
+    activitySectionDescription:
+      '進捗・状態・感想の記録が積み重なった時期をローカルタイムラインで確認します。',
+    activitySectionTitle: '記録のリズム',
+    activityStart: '作品から記録を始める',
+    activityTitle: '記録がある日',
     archiveModeAuthenticated: '認証済みローカルアーカイブ',
     archiveModeGuest: 'ゲストローカルアーカイブ',
     averageRatingDescription: '評価を付けた作品のみ平均に含めます。',
@@ -1695,6 +1851,21 @@ export const ja = {
     recentAddedTitle: '最近追加した作品',
     recentUpdatedEmpty: '直近30日以内に更新された作品はありません。',
     recentUpdatedTitle: '最近更新した作品',
+    repeatDescription:
+      '再読・再視聴の記録をもとに、よく見返している作品をまとめました。',
+    repeatEmpty:
+      '再読・再視聴の記録はまだありません。完了した作品のタイムラインから今日の記録を追加してみましょう。',
+    repeatLastRecorded: '最近の記録 {{date}}',
+    repeatRecordBadge: '再記録 {{count}}回',
+    repeatSectionDescription:
+      '完了後にもう一度手に取った作品と回数を、ローカル記録だけで計算します。',
+    repeatSectionTitle: '再読・再視聴',
+    repeatStart: '完了した作品から記録',
+    repeatTitle: 'もう一度楽しんだ作品',
+    repeatWorkAria: '{{title}}、再記録 {{count}}回',
+    repeatWorkBadge: '{{count}}作品',
+    repeatWorkCount: '{{count}}回',
+    repeatYearBadge: '今年 {{count}}回',
     retry: '再計算',
     statusEmpty: '状態別統計を作る作品がまだありません。',
     statusOnHoldDescription:
@@ -2233,6 +2404,7 @@ export const ja = {
         '開始日や最近の記録日を残すとここに要約されます。',
       timelineCount: '{{count}}個',
       timelineSourceManual: '手動記録',
+      timelineSourceAutomatic: '自動記録',
       timelineSourceSystem: '日付記録',
       timelineDelete: '削除',
       timelineAdvancedAdd: '高度な記録追加',
@@ -2250,7 +2422,33 @@ export const ja = {
       timelineTypeDropped: '視聴中止',
       timelineTypeRewatch: '再鑑賞',
       timelineTypeProgress: '進行',
+      timelineRepeatActionRead: '今日の再読を記録',
+      timelineRepeatActionWatch: '今日の再鑑賞を記録',
+      timelineRepeatActionGeneric: '今日もう一度記録',
+      timelineRepeatAdvancedHint:
+        '過去の日付やメモは高度な記録追加から残せます。',
+      timelineRepeatCount: '再記録 {{count}}回',
+      timelineRepeatDescriptionRead:
+        '今日読み返したことを記録して、再読の履歴を積み重ねましょう。',
+      timelineRepeatDescriptionWatch:
+        '今日もう一度見たことを記録して、再鑑賞の履歴を積み重ねましょう。',
+      timelineRepeatDescriptionGeneric:
+        '今日もう一度体験したことを記録して、繰り返しの履歴を残しましょう。',
+      timelineRepeatLabelRead: '再読',
+      timelineRepeatLabelWatch: '再鑑賞',
+      timelineRepeatLabelGeneric: '再記録',
+      timelineRepeatRecordedToday: '本日記録済み',
+      timelineRepeatTitleRead: '読み返した記録',
+      timelineRepeatTitleWatch: 'もう一度見た記録',
+      timelineRepeatTitleGeneric: 'もう一度体験した記録',
       timelineStartedDescription: '作品を見始めた日です。',
+      timelineAutomaticDescription:
+        '状態や進行度を変更したときに自動で残した記録です。',
+      timelineAutomaticStatusChange: '状態変更: {{previous}} → {{next}}',
+      timelineAutomaticProgressChange: '進行度変更: {{progress}}',
+      timelineAutomaticProgressCleared: '進行度の記録を消去しました。',
+      timelineAutomaticProgressTotal: '全{{total}}{{unit}}',
+      timelineAutomaticProgressUnit: '進行単位: {{unit}}',
       timelineLastConsumedDescription: '最後に進行を記録した日です。',
       timelineLastConsumedWithLabel: '最後に残した位置: {{label}}',
       timelineCompletedDescription: '最後まで見た日です。',
@@ -2354,6 +2552,20 @@ export const ja = {
       description: 'タイトル・状態・感想を必要なだけ整えてください。',
       error: '作品を編集できませんでした。',
       fullMode: '全編集モード',
+      healthBack: '健康診断に戻る',
+      healthDescription:
+        '健康診断で見つかった日付・状態の問題を確認します。保存すると次の記録へ進みます。',
+      healthIssueCount: '{{count}}件',
+      healthIssueSummary: 'この記録で確認する項目',
+      healthMode: '健康診断モード',
+      healthPreviousSaved:
+        '前の記録を保存しました。次の項目を確認してください。',
+      healthProgress: '{{current}} / {{total}}',
+      healthProgressLabel: '確認の進捗',
+      healthSaveFinish: '保存して確認を完了',
+      healthSaveNext: '保存して次の記録へ',
+      healthSaveReturn: '保存して健康診断に戻る',
+      healthTitle: '{{title}} の健康診断',
       loadingTitle: '作品情報を読み込み中です',
       missingDescription:
         '削除されたか、アドレスが正しくない可能性があります。',

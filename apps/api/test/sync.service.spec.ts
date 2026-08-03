@@ -3492,7 +3492,9 @@ describe('SyncService', () => {
 
   it('pushes a timeline entry create when the user owns the parent work', async () => {
     const parent = createWorkAggregateFixture();
-    const created = createTimelineEntryAggregateFixture();
+    const created = createTimelineEntryAggregateFixture({
+      source: 'automatic',
+    });
 
     timelineEntriesService.findById.mockResolvedValue(null);
     userRecordsService.findById.mockResolvedValue(parent);
@@ -3506,7 +3508,9 @@ describe('SyncService', () => {
           entityId: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
           operation: 'create',
           createdAt: '2026-04-18T02:00:00.000Z',
-          payload: createTimelineEntryPayload(),
+          payload: createTimelineEntryPayload({
+            source: 'automatic',
+          }),
         },
       ],
     });
@@ -3517,6 +3521,7 @@ describe('SyncService', () => {
         userId: USER_ID,
         userWorkRecordId: parent.id,
         note: 'Manual note',
+        source: 'automatic',
         serverVersion: 1,
       }),
       prisma,
@@ -3529,6 +3534,7 @@ describe('SyncService', () => {
         timelineEntry: expect.objectContaining({
           id: '169626cc-e8db-4e67-bb21-c1a7609e5ebc',
           workId: parent.id,
+          source: 'automatic',
           syncStatus: 'synced',
           serverVersion: 1,
         }),

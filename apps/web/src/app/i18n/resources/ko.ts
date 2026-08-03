@@ -24,6 +24,7 @@ export const ko = {
     appliedChange: '서버에 변경 사항이 반영되었습니다.',
     appliedTombstone: '서버에 삭제 상태가 반영되었습니다.',
     archiveMigration: '아카이브 이관',
+    archiveHealthFix: '아카이브 건강검진 안전 수정',
     conflictGeneric:
       '자동 백업 중 일부 항목 확인이 필요합니다. 잠시 후 다시 시도해주세요.',
     conflictOwnership:
@@ -646,6 +647,12 @@ export const ko = {
       continuePrefix: '이어보기',
       openAria: '{{title}} 열기',
       openWithMetaAria: '{{title}} — {{meta}}',
+      quickProgressAria: '{{title}} {{next}}{{unit}}까지 기록',
+      quickProgressButton: '{{next}}{{unit}} 기록',
+      quickProgressError: '진행도를 기록하지 못했습니다.',
+      quickProgressSaved: '{{title}} {{next}}{{unit}}까지 기록했습니다.',
+      quickProgressUnavailable:
+        '지금은 이 작품의 다음 진행도를 기록할 수 없습니다.',
       trackAria: '{{title}} 선반',
       viewAll: '전체 보기 →',
       viewAllAria: '{{title}} 전체 보기',
@@ -676,6 +683,7 @@ export const ko = {
     pageTitle: '설정과 백업',
     sections: {
       account: '계정',
+      archiveHealth: '아카이브 건강검진',
       dataBackup: '데이터와 백업',
       dangerZone: '위험 작업',
       display: '표시 설정',
@@ -1091,6 +1099,138 @@ export const ko = {
       userKeyRequiredDescription:
         '이 계정에 개인 API 키를 저장하면 검색 후보 품질이 좋아집니다.',
       userKeyRequiredProviders: '개인 키 필요',
+    },
+    archiveHealth: {
+      description:
+        '활성 작품의 진행도, 날짜, 상태 일관성과 표지 보강 필요를 로컬에서 검사합니다. 확실하게 결정할 수 있는 항목만 사용자가 선택하면 안전하게 수정합니다.',
+      editRecord: '기록 수정',
+      reviewComplete:
+        '{{count}}개 기록 검토를 마쳤습니다. 최신 상태로 다시 검사했습니다.',
+      reviewDescription:
+        '자동으로 판단할 수 없는 {{count}}개 기록을 날짜와 상태부터 차례로 확인합니다.',
+      reviewSaved: '기록을 저장하고 최신 상태로 다시 검사했습니다.',
+      reviewStart: '검토 시작 ({{count}})',
+      reviewStartAria: '확인이 필요한 기록 {{count}}개 검토 시작',
+      reviewTitle: '확인이 필요한 기록을 이어서 정리하세요',
+      reviewUnavailable:
+        '검토 세션을 시작하지 못했습니다. 다시 검사한 뒤 재시도해 주세요.',
+      eyebrow: '데이터 품질',
+      filterAria: '건강검진 결과 필터',
+      filters: {
+        all: '전체 {{count}}',
+        attention: '확인 필요 {{count}}',
+        improvement: '보강 제안 {{count}}',
+      },
+      fixApplied:
+        '“{{title}}”의 진행 단위를 설정했습니다: {{unit}}. 아래 변경 이력에서 되돌릴 수 있습니다.',
+      fixError: '안전 수정을 적용하지 못했습니다.',
+      fixErrors: {
+        alreadyUndone: '이미 되돌린 안전 수정입니다.',
+        changedAfterFix:
+          '안전 수정 이후 값이 달라져 자동으로 되돌리지 않았습니다. 기록을 직접 확인해 주세요.',
+        historyMissing: '되돌릴 안전 수정 이력을 찾지 못했습니다.',
+        noLongerAvailable:
+          '기록이 바뀌어 이 안전 수정을 더 이상 적용할 수 없습니다. 다시 검사해 주세요.',
+        workMissing: '대상 기록을 찾을 수 없습니다.',
+      },
+      fixUndone: '“{{title}}”의 안전 수정을 되돌렸습니다.',
+      healthy:
+        '현재 확인된 데이터 문제가 없습니다. 아카이브 상태가 건강합니다.',
+      history: {
+        count: '최근 {{count}}건',
+        description:
+          '최근 수정은 로컬 백업 메타데이터에 최대 20건 보관됩니다. 이후 값이 바뀌지 않은 수정만 되돌릴 수 있습니다.',
+        item: '{{title}} · 진행 단위 {{unit}}',
+        title: '최근 안전 수정',
+        undo: '되돌리기',
+        undoAria: '{{title}} 안전 수정 되돌리기',
+        undone: '되돌림',
+      },
+      issueCount: '{{count}}개 항목',
+      issues: {
+        completed_and_dropped: {
+          description:
+            '완료일과 중단일이 모두 남아 있어 현재 감상 상태를 다시 확인해야 합니다.',
+          title: '완료일과 중단일이 함께 있습니다',
+        },
+        completed_without_date: {
+          description:
+            '완료 상태이지만 완료일이 없어 연간 회고와 완료 통계가 정확하지 않을 수 있습니다.',
+          title: '완료일이 비어 있습니다',
+        },
+        dropped_without_date: {
+          description:
+            '중단 상태이지만 중단일이 없어 감상 이력을 정확히 정렬하기 어렵습니다.',
+          title: '중단일이 비어 있습니다',
+        },
+        invalid_date: {
+          description:
+            '저장된 날짜 값 “{{value}}”을 읽을 수 없습니다. 기록을 열어 날짜를 다시 선택하세요.',
+          title: '읽을 수 없는 날짜가 있습니다',
+        },
+        missing_thumbnail: {
+          description:
+            '표지를 추가하면 작품 목록과 홈 선반에서 기록을 더 빠르게 찾을 수 있습니다.',
+          title: '표지가 비어 있습니다',
+        },
+        negative_progress: {
+          description:
+            '진행도에는 0 이상의 값을 사용해야 합니다. 현재 {{current}} · 전체 {{total}}',
+          title: '진행도가 음수입니다',
+        },
+        progress_over_total: {
+          description:
+            '현재 진행 {{current}}이 전체 분량 {{total}}보다 큽니다.',
+          title: '현재 진행도가 전체 분량보다 큽니다',
+        },
+        progress_unit_missing: {
+          description:
+            '화·권·장 중 진행 단위를 선택하면 목록과 상세 화면에서 진행도를 정확히 표시할 수 있습니다.',
+          title: '진행 단위가 비어 있습니다',
+        },
+        started_after_completed: {
+          description:
+            '시작일이 완료일보다 늦습니다. 두 날짜 중 잘못 입력된 값을 확인하세요.',
+          title: '시작일이 완료일보다 늦습니다',
+        },
+        started_after_dropped: {
+          description:
+            '시작일이 중단일보다 늦습니다. 두 날짜 중 잘못 입력된 값을 확인하세요.',
+          title: '시작일이 중단일보다 늦습니다',
+        },
+        started_after_last_consumed: {
+          description:
+            '시작일이 최근 감상일보다 늦습니다. 감상 이력의 날짜 순서를 확인하세요.',
+          title: '시작일이 최근 감상일보다 늦습니다',
+        },
+      },
+      loadError: '아카이브 건강검진을 실행하지 못했습니다.',
+      rescan: '다시 검사',
+      safeFix: '안전 수정',
+      safeFixAria: '{{title}} 안전 수정',
+      safeFixDescription:
+        '다른 값은 건드리지 않고 작품 유형에 맞는 진행 단위를 채웁니다: {{unit}}.',
+      scanPending: '아카이브를 검사하고 있습니다.',
+      scannedAt: '마지막 검사 {{date}}',
+      scanSummary: '활성 작품 {{total}}개 중 {{affected}}개 확인 필요',
+      severity: {
+        attention: '수정 필요',
+        improvement: '보강 제안',
+        review: '검토 권장',
+      },
+      showMore: '나머지 {{count}}개 더 보기',
+      summary: {
+        attention: '값의 범위나 날짜 순서를 수정해야 합니다.',
+        improvement: '찾기 쉬운 아카이브를 위한 선택 항목입니다.',
+        review: '상태와 기록 날짜를 함께 확인해 주세요.',
+      },
+      title: '아카이브 건강검진',
+      undoError: '안전 수정을 되돌리지 못했습니다.',
+      units: {
+        chapter: '장',
+        episode: '화',
+        volume: '권',
+      },
     },
     duplicateCleanup: {
       authorMissing: '작가 미입력',
@@ -1633,6 +1773,25 @@ export const ko = {
   insights: {
     addedRecentlyDescription: '최근 30일 안에 추가한 작품입니다.',
     addedRecentlyLabel: '최근 추가',
+    activityActiveDays: '활동한 날',
+    activityDayAria: '{{date}} 기록 {{count}}개',
+    activityDayCount: '{{count}} / 28일',
+    activityDescription:
+      '진행도, 상태 변경, 감상 메모가 기록된 날을 모았습니다.',
+    activityEmpty: '최근 28일에는 아직 타임라인 기록이 없습니다.',
+    activityGridAria: '최근 28일 기록 분포',
+    activityGridHint: '색이 진할수록 같은 날 기록이 많습니다.',
+    activityLatest: '최근 기록',
+    activityNoRecord: '아직 없음',
+    activityRange: '{{start}}–{{end}}',
+    activityRecentSevenDays: '최근 7일',
+    activityRecordBadge: '28일 합계 {{count}}개',
+    activityRecordCount: '{{count}}개',
+    activitySectionDescription:
+      '진행도·상태·감상 기록이 쌓인 시점을 로컬 타임라인으로 확인합니다.',
+    activitySectionTitle: '기록 리듬',
+    activityStart: '작품에서 기록 시작하기',
+    activityTitle: '기록이 남은 날',
     archiveModeAuthenticated: '인증된 로컬 아카이브',
     archiveModeGuest: '게스트 로컬 아카이브',
     averageRatingDescription: '별점을 남긴 작품만 평균에 포함합니다.',
@@ -1671,6 +1830,21 @@ export const ko = {
     recentAddedTitle: '최근 추가한 작품',
     recentUpdatedEmpty: '최근 30일 안에 수정된 작품이 없습니다.',
     recentUpdatedTitle: '최근 수정한 작품',
+    repeatDescription:
+      '재독·재감상 기록을 기준으로 자주 다시 찾은 작품을 모았습니다.',
+    repeatEmpty:
+      '아직 재독·재감상 기록이 없습니다. 완료한 작품의 타임라인에서 오늘 기록을 남겨보세요.',
+    repeatLastRecorded: '최근 {{date}}',
+    repeatRecordBadge: '다시 기록 {{count}}회',
+    repeatSectionDescription:
+      '한 번 끝낸 뒤 다시 찾은 작품과 반복 횟수를 로컬 기록으로만 계산합니다.',
+    repeatSectionTitle: '재독·재감상',
+    repeatStart: '완료한 작품에서 기록하기',
+    repeatTitle: '다시 찾은 작품',
+    repeatWorkAria: '{{title}} 다시 기록 {{count}}회',
+    repeatWorkBadge: '{{count}}개 작품',
+    repeatWorkCount: '{{count}}회',
+    repeatYearBadge: '올해 {{count}}회',
     retry: '다시 계산',
     statusEmpty: '아직 상태별 통계를 만들 작품이 없습니다.',
     statusOnHoldDescription:
@@ -2203,6 +2377,7 @@ export const ko = {
         '시작일이나 최근 기록일을 남기면 이곳에 요약됩니다.',
       timelineCount: '{{count}}개',
       timelineSourceManual: '직접 기록',
+      timelineSourceAutomatic: '자동 기록',
       timelineSourceSystem: '날짜 기록',
       timelineDelete: '삭제',
       timelineAdvancedAdd: '고급 기록 추가',
@@ -2220,7 +2395,33 @@ export const ko = {
       timelineTypeDropped: '하차',
       timelineTypeRewatch: '재감상',
       timelineTypeProgress: '진행',
+      timelineRepeatActionRead: '오늘 재독 기록',
+      timelineRepeatActionWatch: '오늘 재감상 기록',
+      timelineRepeatActionGeneric: '오늘 다시 기록',
+      timelineRepeatAdvancedHint:
+        '과거 날짜나 메모는 고급 기록 추가에서 남길 수 있어요.',
+      timelineRepeatCount: '다시 기록 {{count}}회',
+      timelineRepeatDescriptionRead:
+        '오늘 다시 읽은 기록을 남기고 재독 이력을 차곡차곡 모아보세요.',
+      timelineRepeatDescriptionWatch:
+        '오늘 다시 본 기록을 남기고 재감상 이력을 차곡차곡 모아보세요.',
+      timelineRepeatDescriptionGeneric:
+        '오늘 다시 경험한 기록을 남기고 반복 이력을 모아보세요.',
+      timelineRepeatLabelRead: '재독',
+      timelineRepeatLabelWatch: '재감상',
+      timelineRepeatLabelGeneric: '다시 기록',
+      timelineRepeatRecordedToday: '오늘 기록됨',
+      timelineRepeatTitleRead: '다시 읽은 기록',
+      timelineRepeatTitleWatch: '다시 본 기록',
+      timelineRepeatTitleGeneric: '다시 경험한 기록',
       timelineStartedDescription: '작품을 보기 시작한 날입니다.',
+      timelineAutomaticDescription:
+        '상태나 진행도를 바꿀 때 자동으로 남긴 기록입니다.',
+      timelineAutomaticStatusChange: '상태 변경: {{previous}} → {{next}}',
+      timelineAutomaticProgressChange: '진행도 변경: {{progress}}',
+      timelineAutomaticProgressCleared: '진행도 기록을 비웠습니다.',
+      timelineAutomaticProgressTotal: '전체 {{total}}{{unit}}',
+      timelineAutomaticProgressUnit: '진행 단위: {{unit}}',
       timelineLastConsumedDescription: '마지막으로 진행을 기록한 날입니다.',
       timelineLastConsumedWithLabel: '마지막으로 남긴 위치: {{label}}',
       timelineCompletedDescription: '끝까지 본 날입니다.',
@@ -2324,6 +2525,19 @@ export const ko = {
       description: '제목, 상태, 감상을 필요한 만큼만 다듬어보세요.',
       error: '작품을 수정하지 못했습니다.',
       fullMode: '전체 수정 모드',
+      healthBack: '건강검진으로 돌아가기',
+      healthDescription:
+        '건강검진에서 찾은 날짜·상태 문제를 확인하고 저장하면 다음 기록으로 이어집니다.',
+      healthIssueCount: '{{count}}개',
+      healthIssueSummary: '이번 기록에서 확인할 항목',
+      healthMode: '건강검진 모드',
+      healthPreviousSaved: '이전 기록을 저장했습니다. 다음 항목을 확인하세요.',
+      healthProgress: '{{current}} / {{total}}',
+      healthProgressLabel: '검토 진행',
+      healthSaveFinish: '저장하고 검토 완료',
+      healthSaveNext: '저장하고 다음 기록',
+      healthSaveReturn: '저장하고 건강검진으로',
+      healthTitle: '{{title}} 건강검진',
       loadingTitle: '작품 정보를 불러오는 중입니다',
       missingDescription: '삭제되었거나 주소가 올바르지 않을 수 있습니다.',
       missingTitle: '수정할 작품을 찾을 수 없습니다.',

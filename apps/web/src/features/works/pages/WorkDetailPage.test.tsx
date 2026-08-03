@@ -273,6 +273,7 @@ describe('WorkDetailPage', () => {
     await user.click(screen.getByRole('button', { name: '기록 추가' }));
 
     expect(await screen.findByText('두 번째 감상 시작')).toBeInTheDocument();
+    expect(await screen.findByText('재독')).toBeInTheDocument();
     await expect
       .poll(async () => timelineEntriesRepository.listByWorkId(work.id))
       .toEqual([
@@ -309,6 +310,62 @@ describe('WorkDetailPage', () => {
         ),
       )
       .toEqual([]);
+  });
+
+  it('quickly records one reread per day and restores the action after deletion', async () => {
+    const work = await worksService.createWork({
+      type: 'novel',
+      title: 'Repeat Detail Work',
+      author: 'Author',
+      genres: [],
+      description: '',
+      thumbnailUrl: '',
+      status: 'completed',
+      rating: 4,
+      shortReview: '',
+      review: '',
+      favorite: false,
+    });
+
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [`/works/${work.id}`],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    await screen.findByRole('heading', { name: 'Repeat Detail Work' });
+    await user.click(screen.getByRole('tab', { name: '타임라인' }));
+
+    expect(screen.getByText('다시 읽은 기록')).toBeInTheDocument();
+    expect(screen.getByText('다시 기록 0회')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '오늘 재독 기록' }));
+
+    expect(
+      await screen.findByRole('button', { name: '오늘 기록됨' }),
+    ).toBeDisabled();
+    expect(screen.getByText('다시 기록 1회')).toBeInTheDocument();
+    expect(screen.getByText('재독')).toBeInTheDocument();
+    await expect
+      .poll(async () => timelineEntriesRepository.listByWorkId(work.id))
+      .toEqual([
+        expect.objectContaining({
+          note: '',
+          source: 'manual',
+          type: 'rewatch',
+        }),
+      ]);
+
+    await user.click(screen.getByRole('button', { name: '삭제' }));
+
+    expect(
+      await screen.findByRole('button', { name: '오늘 재독 기록' }),
+    ).toBeEnabled();
+    expect(screen.getByText('다시 기록 0회')).toBeInTheDocument();
   });
 
   it('keeps dense timelines summarized until the user expands them', async () => {
@@ -416,6 +473,13 @@ describe('WorkDetailPage', () => {
           status: 'completed',
         }),
       );
+
+    await user.click(screen.getByRole('tab', { name: '타임라인' }));
+    expect(
+      await screen.findByText('상태 변경: 볼 예정 → 완료'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('자동 기록')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '삭제' })).toBeInTheDocument();
   });
 
   it('shows volume-level records for novels when catalog releases exist', async () => {

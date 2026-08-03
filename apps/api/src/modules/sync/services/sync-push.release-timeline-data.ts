@@ -52,6 +52,7 @@ export function buildTimelineEntryCreateData(
     userId,
     userWorkRecordId: payload.workId,
     type: payload.type as TimelineEntryType,
+    source: payload.source === 'automatic' ? 'automatic' : 'manual',
     occurredAt: parseIsoDate(payload.occurredAt, 'payload.occurredAt'),
     note: normalizeString(payload.note),
     createdAt: parseIsoDate(payload.createdAt, 'payload.createdAt'),
@@ -67,6 +68,7 @@ export function buildTimelineEntryUpdateData(
 ): Prisma.UserTimelineEntryUpdateInput {
   return {
     type: payload.type as TimelineEntryType,
+    source: payload.source === 'automatic' ? 'automatic' : 'manual',
     occurredAt: parseIsoDate(payload.occurredAt, 'payload.occurredAt'),
     note: normalizeString(payload.note),
     deletedAt: parseOptionalIsoDate(payload.deletedAt, 'payload.deletedAt'),

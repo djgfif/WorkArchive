@@ -32,11 +32,20 @@ import {
 } from '../utils/work-genres';
 import type { UpsertWorkInput } from '../utils/work-form';
 import {
+  buildAutomaticProgressTimelineEntry,
+  buildAutomaticStatusTimelineEntry,
+  type AutomaticTimelineEntryDraft,
+} from './automatic-timeline-events';
+import {
   graphRepository,
   type GraphRepository,
   type WorkGraphInput,
   type WorkGraphSnapshot,
 } from './graph.repository';
+import {
+  timelineEntriesRepository,
+  type TimelineEntriesRepository,
+} from './timeline-entries.repository';
 import { worksRepository } from './works.repository';
 
 function getNextSyncStatus(serverVersion: number): WorkSyncStatus {
@@ -162,7 +171,31 @@ export class WorksService {
     private readonly repository: WorksRepository = worksRepository,
     private readonly queueRepository: SyncQueueRepository = syncQueueRepository,
     private readonly graphRepo: GraphRepository = graphRepository,
+    private readonly timelineRepository: TimelineEntriesRepository = timelineEntriesRepository,
   ) {}
+
+  private async enqueueAutomaticTimelineEntry(
+    workId: string,
+    draft: AutomaticTimelineEntryDraft | null,
+  ) {
+    if (!draft) {
+      return null;
+    }
+
+    const entry = await this.timelineRepository.create({
+      ...draft,
+      source: 'automatic',
+      workId,
+    });
+
+    await this.queueRepository.enqueueTimelineEntryChange(
+      entry,
+      'create',
+      'timeline_entry_update',
+    );
+
+    return entry;
+  }
 
   async listWorks(
     query: WorksListQuery,
@@ -300,7 +333,11 @@ export class WorksService {
       input.graph ?? buildGraphInputFromLegacyTags(input.personalTags ?? []);
 
     if (graphInput) {
-      await this.graphRepo.saveWorkGraph(work.id, graphInput, getCreateSource(input));
+      await this.graphRepo.saveWorkGraph(
+        work.id,
+        graphInput,
+        getCreateSource(input),
+      );
     }
 
     return work;
@@ -338,10 +375,20 @@ export class WorksService {
       updatedAt: new Date().toISOString(),
       syncStatus: getNextSyncStatus(existing.serverVersion),
     };
+    const timelineEntry = buildAutomaticStatusTimelineEntry(
+      existing,
+      updated,
+      updated.updatedAt,
+    );
 
     await this.repository.runWorkMutation(async () => {
       await this.repository.update(updated);
-      await this.queueRepository.enqueueWorkChange(updated, 'update', 'edit_form');
+      await this.queueRepository.enqueueWorkChange(
+        updated,
+        'update',
+        'edit_form',
+      );
+      await this.enqueueAutomaticTimelineEntry(updated.id, timelineEntry);
     });
     const graphInput =
       input.graph ?? buildGraphInputFromLegacyTags(input.personalTags ?? []);
@@ -382,6 +429,11 @@ export class WorksService {
       updatedAt: new Date().toISOString(),
       syncStatus: getNextSyncStatus(existing.serverVersion),
     };
+    const timelineEntry = buildAutomaticProgressTimelineEntry(
+      existing,
+      updated,
+      updated.updatedAt,
+    );
 
     await this.repository.runWorkMutation(async () => {
       await this.repository.update(updated);
@@ -390,6 +442,7 @@ export class WorksService {
         'update',
         'progress_update',
       );
+      await this.enqueueAutomaticTimelineEntry(updated.id, timelineEntry);
     });
 
     return updated;
@@ -414,7 +467,11 @@ export class WorksService {
         throw new Error(appI18n.t('works.errors.workMissing'));
       }
 
-      await this.queueRepository.enqueueWorkChange(result, 'delete', 'edit_form');
+      await this.queueRepository.enqueueWorkChange(
+        result,
+        'delete',
+        'edit_form',
+      );
 
       return result;
     });

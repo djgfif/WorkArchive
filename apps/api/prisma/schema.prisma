@@ -586,6 +586,7 @@ model UserTimelineEntry {
   userId           String
   userWorkRecordId String
   type             TimelineEntryType @default(note)
+  source           String            @default("manual")
   occurredAt       DateTime
   note             String            @default("") @db.Text
   createdAt        DateTime          @default(now())
