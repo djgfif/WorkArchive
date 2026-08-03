@@ -426,6 +426,85 @@
   background: color-mix(in srgb, var(--app-accent-teal) 8%, transparent);
 }
 
+.archiveHealthSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--mantine-spacing-sm);
+}
+
+.archiveHealthSummaryCard {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+  padding: 0.9rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-subtle);
+}
+
+.archiveHealthIssueCard {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-bg-elevated) 58%, transparent);
+}
+
+.archiveHealthIssueList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.archiveHealthIssue {
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border-inline-start: 0.2rem solid
+    color-mix(in srgb, var(--app-accent-primary) 42%, var(--app-border-default));
+  border-radius: 0 var(--mantine-radius-sm) var(--mantine-radius-sm) 0;
+  background: var(--app-surface-subtle);
+}
+
+.archiveHealthSafeFixRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+.archiveHealthHistoryPanel {
+  padding: 1rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(
+    in srgb,
+    var(--app-accent-primary) 4%,
+    var(--app-surface-subtle)
+  );
+}
+
+.archiveHealthHistoryItem {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--app-bg-elevated);
+}
+
+@media (max-width: 36em) {
+  .archiveHealthSafeFixRow,
+  .archiveHealthHistoryItem {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .duplicateGroupCard {
   padding: 1rem;
   border: 1px solid var(--app-border-subtle);

@@ -1,11 +1,12 @@
 ﻿import { screen } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import { appRoutes } from '@app/router/routes';
 import { renderWithProviders } from '@test/render-with-providers';
 import { AuthProvider } from '@features/auth';
-import { worksService } from '@features/works';
+import { timelineEntriesRepository, worksService } from '@features/works';
 
 describe('HomePage', () => {
   it('shows onboarding paths when the archive is empty', async () => {
@@ -56,7 +57,7 @@ describe('HomePage', () => {
       favorite: false,
     });
 
-    await worksService.createWork({
+    const continueWork = await worksService.createWork({
       type: 'anime',
       title: 'Fate/Zero',
       author: 'Gen Urobuchi',
@@ -70,6 +71,12 @@ describe('HomePage', () => {
       review: '',
       favorite: false,
       lastConsumedAt: new Date().toISOString(),
+    });
+    await worksService.updateProgress(continueWork.id, {
+      lastConsumedLabel: '2회까지',
+      progressCurrent: 2,
+      progressTotal: 12,
+      progressUnit: 'episode',
     });
 
     for (const title of ['Fate filler one', 'Fate filler two']) {
@@ -99,6 +106,7 @@ describe('HomePage', () => {
       </AuthProvider>,
     );
 
+    const user = userEvent.setup();
     expect(await screen.findByText('이어볼 작품')).toBeInTheDocument();
     expect(screen.getAllByText('작품').length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: '기록 추가' })).toHaveLength(
@@ -111,6 +119,28 @@ describe('HomePage', () => {
     expect(screen.getByText('최근 정리한 감상')).toBeInTheDocument();
     expect(screen.queryByText('시리즈 컬렉션')).not.toBeInTheDocument();
     expect(screen.queryByText('제작진으로 보기')).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Fate/Zero 3회까지 기록' }),
+    );
+
+    expect(
+      await screen.findByText('Fate/Zero 3회까지 기록했습니다.'),
+    ).toBeInTheDocument();
+    await expect(worksService.getWorkById(continueWork.id)).resolves.toEqual(
+      expect.objectContaining({
+        lastConsumedLabel: '3회까지',
+        progressCurrent: 3,
+        progressTotal: 12,
+        progressUnit: 'episode',
+      }),
+    );
+    await expect(
+      timelineEntriesRepository.listByWorkId(continueWork.id),
+    ).resolves.toEqual([
+      expect.objectContaining({ source: 'automatic', type: 'progress' }),
+      expect.objectContaining({ source: 'automatic', type: 'progress' }),
+    ]);
 
     expect(
       screen

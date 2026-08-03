@@ -369,6 +369,18 @@
   color: var(--app-accent-primary);
 }
 
+.shelfQuickProgress {
+  width: 100%;
+  min-height: 2rem;
+  margin-top: 0.45rem;
+  padding-inline: 0.4rem;
+  white-space: nowrap;
+}
+
+.quickProgressFeedback {
+  margin-top: 0.75rem;
+}
+
 /* ── 섹션 구분 ────────────────────────────────────────────────────────────── */
 .shelfDivider {
   height: 1px;

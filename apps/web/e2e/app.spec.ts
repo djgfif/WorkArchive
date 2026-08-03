@@ -677,6 +677,37 @@ test('keeps guest backup and provider-key safety visible in settings', async ({
   ).toBeVisible();
 });
 
+test('checks archive health and opens an affected record for editing', async ({
+  page,
+}) => {
+  const title = `Playwright Health Work ${Date.now()}`;
+
+  await gotoApp(page, '/works/new');
+  await page.getByRole('textbox', { name: '제목' }).fill(title);
+  await page.getByRole('button', { name: '내 아카이브에 저장' }).click();
+  await expect(page.getByText(`${title}을(를) 등록했습니다`)).toBeVisible();
+
+  await gotoApp(page, '/account/settings#archive-health');
+
+  await expect(
+    page.getByRole('heading', { name: '아카이브 건강검진' }),
+  ).toBeVisible();
+  await expect(page.getByText(title)).toBeVisible();
+  await expect(page.getByText('표지가 비어 있습니다')).toBeVisible();
+
+  await page.getByText(/^보강 제안 \d+$/).click();
+  await expect(page.getByText('표지가 비어 있습니다')).toBeVisible();
+
+  await page.getByRole('link', { name: '기록 수정' }).click();
+
+  await expect(page).toHaveURL(
+    /\/works\/[^/]+\/edit\?focus=archive-health&issues=missing_thumbnail$/,
+  );
+  await expect(
+    page.getByRole('heading', { name: `${title} 건강검진` }),
+  ).toBeVisible();
+});
+
 test('shows the empty guest home onboarding path', async ({ page }) => {
   await gotoApp(page, '/');
 

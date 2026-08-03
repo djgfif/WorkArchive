@@ -7,6 +7,10 @@ import { appRoutes } from '@app/router/routes';
 import { renderWithProviders } from '@test/render-with-providers';
 import { AuthProvider } from '@features/auth';
 import type { ImportCandidate } from '@features/imports';
+import {
+  archiveHealthReviewSessionService,
+  buildArchiveHealthEditUrl,
+} from '../services/archive-health-review-session.service';
 import { worksService } from '../services/works.service';
 import { DEFAULT_WORKS_LIST_QUERY } from '../utils/query-works';
 
@@ -203,6 +207,108 @@ describe('Works routed flow', () => {
         { timeout: 10_000 },
       ),
     ).toBeInTheDocument();
+  }, 30_000);
+
+  it('reviews health issues across records and returns to settings', async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const firstWork = await worksService.createWork({
+      author: '',
+      completedAt: null,
+      description: '',
+      favorite: false,
+      genres: [],
+      personalTags: [],
+      rating: null,
+      review: '',
+      shortReview: '',
+      status: 'completed',
+      thumbnailUrl: 'https://example.com/health-completed.jpg',
+      title: `완료일 검토 ${suffix}`,
+      type: 'novel',
+    });
+    const secondWork = await worksService.createWork({
+      author: '',
+      description: '',
+      droppedAt: null,
+      favorite: false,
+      genres: [],
+      personalTags: [],
+      rating: null,
+      review: '',
+      shortReview: '',
+      status: 'dropped',
+      thumbnailUrl: 'https://example.com/health-dropped.jpg',
+      title: `중단일 검토 ${suffix}`,
+      type: 'novel',
+    });
+    const reviewSession = archiveHealthReviewSessionService.create([
+      {
+        issueCodes: ['completed_without_date'],
+        workId: firstWork.id,
+      },
+      {
+        issueCodes: ['dropped_without_date'],
+        workId: secondWork.id,
+      },
+    ]);
+    const user = userEvent.setup();
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [
+        buildArchiveHealthEditUrl(firstWork.id, {
+          issueCodes: ['completed_without_date'],
+          reviewSessionId: reviewSession!.id,
+        }),
+      ],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', {
+        name: `${firstWork.title} 건강검진`,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    expect(screen.getByText(/완료일이 비어 있습니다/)).toBeInTheDocument();
+
+    fireEvent.change(await screen.findByLabelText(/^완료일$/), {
+      target: { value: '2026-07-01' },
+    });
+    await user.click(screen.getByRole('button', { name: '저장하고 다음 기록' }));
+
+    expect(
+      await screen.findByRole('heading', {
+        name: `${secondWork.title} 건강검진`,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+    expect(
+      screen.getByText('이전 기록을 저장했습니다. 다음 항목을 확인하세요.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/중단일이 비어 있습니다/)).toBeInTheDocument();
+
+    fireEvent.change(await screen.findByLabelText(/^하차일$/), {
+      target: { value: '2026-07-02' },
+    });
+    await user.click(screen.getByRole('button', { name: '저장하고 검토 완료' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/account/settings');
+      expect(router.state.location.hash).toBe('#archive-health');
+    });
+    await expect(worksService.getWorkById(firstWork.id)).resolves.toMatchObject(
+      { completedAt: '2026-07-01T00:00:00.000Z' },
+    );
+    await expect(
+      worksService.getWorkById(secondWork.id),
+    ).resolves.toMatchObject({
+      droppedAt: '2026-07-02T00:00:00.000Z',
+      title: secondWork.title,
+    });
   }, 30_000);
 
   it('keeps manual create local and shows field feedback before save', async () => {

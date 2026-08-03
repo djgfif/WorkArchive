@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { appRoutes } from '@app/router/routes';
 import { renderWithProviders } from '@test/render-with-providers';
 import { AuthProvider } from '@features/auth';
-import { worksService } from '@features/works';
+import { timelineEntriesRepository, worksService } from '@features/works';
 
 function renderInsightsPage() {
   const router = createMemoryRouter(appRoutes, {
@@ -41,7 +41,7 @@ describe('PersonalInsightsPage', () => {
   it('guides a small guest archive toward useful insights', async () => {
     const now = new Date().toISOString();
 
-    await worksService.createWork({
+    const work = await worksService.createWork({
       author: 'Frank Herbert',
       completedAt: now,
       description: '',
@@ -55,6 +55,12 @@ describe('PersonalInsightsPage', () => {
       thumbnailUrl: '',
       title: 'Dune',
       type: 'novel',
+    });
+    await timelineEntriesRepository.create({
+      note: '',
+      occurredAt: now,
+      type: 'rewatch',
+      workId: work.id,
     });
 
     renderInsightsPage();
@@ -74,7 +80,38 @@ describe('PersonalInsightsPage', () => {
     expect(
       screen.getByRole('link', { name: '작품 더 추가하기' }),
     ).toHaveAttribute('href', '/works/new');
-    expect(screen.getByText('Dune')).toBeInTheDocument();
+    expect(screen.getAllByText('Dune')).toHaveLength(2);
+    expect(
+      screen.getByRole('heading', { name: '기록이 남은 날' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('28일 합계 1개')).toBeInTheDocument();
+    const activityGrid = screen.getByRole('list', {
+      name: '최근 28일 기록 분포',
+    });
+    expect(within(activityGrid).getAllByRole('listitem')).toHaveLength(28);
+    expect(
+      within(activityGrid).getByRole('listitem', { name: /기록 1개$/ }),
+    ).toBeInTheDocument();
+
+    await timelineEntriesRepository.create({
+      note: '진행 기록',
+      occurredAt: new Date().toISOString(),
+      type: 'progress',
+      workId: work.id,
+    });
+
+    expect(await screen.findByText('28일 합계 2개')).toBeInTheDocument();
+    expect(
+      within(activityGrid).getByRole('listitem', { name: /기록 2개$/ }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('heading', { name: '다시 찾은 작품' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('다시 기록 1회')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Dune 다시 기록 1회' }),
+    ).toHaveAttribute('href', `/works/${work.id}`);
   });
 
   it('opens historical year reviews and shows comparison trends', async () => {
@@ -104,6 +141,15 @@ describe('PersonalInsightsPage', () => {
     }
 
     renderInsightsPage();
+    expect(
+      await screen.findByRole('heading', { name: '기록이 남은 날' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('최근 28일에는 아직 타임라인 기록이 없습니다.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: '작품에서 기록 시작하기' }),
+    ).toHaveAttribute('href', '/works');
 
     await user.click(
       await screen.findByRole('button', { name: '✦ 올해의 결산' }),

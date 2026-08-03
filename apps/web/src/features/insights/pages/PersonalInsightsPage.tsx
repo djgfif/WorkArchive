@@ -22,7 +22,12 @@ import {
   StateMessage,
 } from '@shared/components/AppPrimitives';
 import { usePageTitle } from '@shared/hooks/usePageTitle';
-import { appI18n, formatAppNumber, useAppTranslation } from '@app/i18n';
+import {
+  appI18n,
+  formatAppDate,
+  formatAppNumber,
+  useAppTranslation,
+} from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { getWorkStatusLabel, getWorkTypeLabel } from '@features/works';
 import { usePersonalInsights } from '../hooks/usePersonalInsights';
@@ -30,7 +35,7 @@ import type { PersonalInsights } from '../services/personal-insights.service';
 import styles from './PersonalInsightsPage.module.css';
 import { MediaTypePanel, RatingHistogramPanel } from './InsightsCharts';
 import { YearInReviewModal } from './YearInReviewModal';
-import { cn } from '@shared/utils/class-names';
+import { cn, cx } from '@shared/utils/class-names';
 
 const css = styles;
 
@@ -245,6 +250,219 @@ function RecentWorksList({
           <Text c="dimmed" size="sm">
             {emptyLabel}
           </Text>
+        )}
+      </Stack>
+    </Paper>
+  );
+}
+
+function parseActivityDate(date: string) {
+  const [year, month, day] = date.split('-').map(Number);
+  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1);
+}
+
+function getActivityLevel(count: number) {
+  if (count === 0) return 'none';
+  if (count === 1) return 'low';
+  if (count === 2) return 'medium';
+  return 'high';
+}
+
+function ActivityRhythmPanel({ insights }: { insights: PersonalInsights }) {
+  const { t } = useAppTranslation();
+  const firstDay = insights.activityDays[0];
+  const lastDay = insights.activityDays.at(-1);
+  const latestLabel = insights.activityLastRecordedAt
+    ? formatAppDate(insights.activityLastRecordedAt, { dateStyle: 'medium' })
+    : t('insights.activityNoRecord');
+  const metrics = [
+    {
+      label: t('insights.activityActiveDays'),
+      value: t('insights.activityDayCount', {
+        count: formatCount(insights.activityActiveDayCount),
+      }),
+    },
+    {
+      label: t('insights.activityRecentSevenDays'),
+      value: t('insights.activityRecordCount', {
+        count: formatCount(insights.activityRecentRecordCount),
+      }),
+    },
+    {
+      label: t('insights.activityLatest'),
+      value: latestLabel,
+    },
+  ];
+
+  return (
+    <Paper
+      className={cx(css.chartPanel, css.activityPanel)}
+      p="lg"
+      radius="md"
+      withBorder
+    >
+      <Stack gap="lg">
+        <Group align="flex-start" justify="space-between" wrap="wrap">
+          <Stack gap={4}>
+            <Title order={3}>{t('insights.activityTitle')}</Title>
+            <Text c="dimmed" size="sm">
+              {t('insights.activityDescription')}
+            </Text>
+          </Stack>
+          <AppBadge tone="muted">
+            {t('insights.activityRecordBadge', {
+              count: formatCount(insights.activityRecordCount),
+            })}
+          </AppBadge>
+        </Group>
+
+        <SimpleGrid cols={{ base: 1, xs: 3 }} spacing="sm">
+          {metrics.map((metric) => (
+            <Box className={cn(css.activityMetric)} key={metric.label}>
+              <Text c="dimmed" fw={800} size="xs">
+                {metric.label}
+              </Text>
+              <Text className={cn(css.activityMetricValue)}>
+                {metric.value}
+              </Text>
+            </Box>
+          ))}
+        </SimpleGrid>
+
+        <Stack gap="xs">
+          <Group justify="space-between" wrap="wrap">
+            <Text c="dimmed" fw={700} size="xs">
+              {firstDay && lastDay
+                ? t('insights.activityRange', {
+                    end: formatAppDate(parseActivityDate(lastDay.date), {
+                      month: 'short',
+                      day: 'numeric',
+                    }),
+                    start: formatAppDate(parseActivityDate(firstDay.date), {
+                      month: 'short',
+                      day: 'numeric',
+                    }),
+                  })
+                : null}
+            </Text>
+            <Text c="dimmed" size="xs">
+              {t('insights.activityGridHint')}
+            </Text>
+          </Group>
+          <Box
+            aria-label={t('insights.activityGridAria')}
+            className={cn(css.activityGrid)}
+            role="list"
+          >
+            {insights.activityDays.map((day) => (
+              <span
+                aria-label={t('insights.activityDayAria', {
+                  count: formatCount(day.count),
+                  date: formatAppDate(parseActivityDate(day.date), {
+                    dateStyle: 'medium',
+                  }),
+                })}
+                className={cn(css.activityCell)}
+                data-level={getActivityLevel(day.count)}
+                key={day.date}
+                role="listitem"
+              />
+            ))}
+          </Box>
+        </Stack>
+
+        {insights.activityRecordCount === 0 && (
+          <Group align="center" justify="space-between" wrap="wrap">
+            <Text c="dimmed" size="sm">
+              {t('insights.activityEmpty')}
+            </Text>
+            <AppLinkButton to="/works" tone="secondary">
+              {t('insights.activityStart')}
+            </AppLinkButton>
+          </Group>
+        )}
+      </Stack>
+    </Paper>
+  );
+}
+
+function RepeatHistoryPanel({ insights }: { insights: PersonalInsights }) {
+  const { t } = useAppTranslation();
+
+  return (
+    <Paper className={cn(css.chartPanel)} p="lg" radius="md" withBorder>
+      <Stack gap="md">
+        <Group align="flex-start" justify="space-between" wrap="wrap">
+          <Stack gap={4}>
+            <Title order={3}>{t('insights.repeatTitle')}</Title>
+            <Text c="dimmed" size="sm">
+              {t('insights.repeatDescription')}
+            </Text>
+          </Stack>
+          <Group gap="xs" wrap="wrap">
+            <AppBadge tone="muted">
+              {t('insights.repeatRecordBadge', {
+                count: formatCount(insights.repeatRecordCount),
+              })}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('insights.repeatWorkBadge', {
+                count: formatCount(insights.repeatedWorkCount),
+              })}
+            </AppBadge>
+            <AppBadge tone="muted">
+              {t('insights.repeatYearBadge', {
+                count: formatCount(insights.repeatedThisYearCount),
+              })}
+            </AppBadge>
+          </Group>
+        </Group>
+
+        {insights.topRepeatedWorks.length > 0 ? (
+          <Stack gap="sm">
+            {insights.topRepeatedWorks.map(
+              ({ count, lastRepeatedAt, work }) => (
+                <Link
+                  aria-label={t('insights.repeatWorkAria', {
+                    count: formatCount(count),
+                    title: work.title,
+                  })}
+                  className={cn(css.workLink)}
+                  key={work.id}
+                  to={`/works/${work.id}`}
+                >
+                  <Group justify="space-between" wrap="nowrap">
+                    <Stack gap={2} miw={0}>
+                      <Text fw={700} size="sm" truncate>
+                        {work.title}
+                      </Text>
+                      <Text c="dimmed" size="xs">
+                        {t('insights.repeatLastRecorded', {
+                          date: formatAppDate(lastRepeatedAt, {
+                            dateStyle: 'medium',
+                          }),
+                        })}
+                      </Text>
+                    </Stack>
+                    <AppBadge tone="accent">
+                      {t('insights.repeatWorkCount', {
+                        count: formatCount(count),
+                      })}
+                    </AppBadge>
+                  </Group>
+                </Link>
+              ),
+            )}
+          </Stack>
+        ) : (
+          <Stack align="flex-start" gap="sm">
+            <Text c="dimmed" size="sm">
+              {t('insights.repeatEmpty')}
+            </Text>
+            <AppLinkButton to="/works?status=completed" tone="secondary">
+              {t('insights.repeatStart')}
+            </AppLinkButton>
+          </Stack>
         )}
       </Stack>
     </Paper>
@@ -550,6 +768,20 @@ export function PersonalInsightsPage() {
         ) : (
           <InsightsContent insights={insights} />
         )}
+      </PageSection>
+
+      <PageSection
+        description={t('insights.activitySectionDescription')}
+        title={t('insights.activitySectionTitle')}
+      >
+        <ActivityRhythmPanel insights={insights} />
+      </PageSection>
+
+      <PageSection
+        description={t('insights.repeatSectionDescription')}
+        title={t('insights.repeatSectionTitle')}
+      >
+        <RepeatHistoryPanel insights={insights} />
       </PageSection>
     </PageShell>
   );

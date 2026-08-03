@@ -12,6 +12,7 @@ import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAppLocale, useAppTranslation, type AppLocale } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { getArchiveSafetyState, useSyncDashboard } from '@features/sync';
+import { ArchiveHealthSettingsSection } from '../components/settings/ArchiveHealthSettingsSection';
 import { AccountBackupStatusSettingsSection } from '../components/settings/AccountBackupStatusSettingsSection';
 import { AccountSettingsSection } from '../components/settings/AccountSettingsSection';
 import { DangerZoneSection } from '../components/settings/DangerZoneSection';
@@ -41,6 +42,7 @@ const sectionGroupById: Partial<Record<string, SettingsGroupId>> = {
   security: 'account',
   'danger-zone': 'account',
   'data-backup': 'data',
+  'archive-health': 'data',
   'duplicate-cleanup': 'data',
   'external-import': 'integrations',
   'search-providers': 'integrations',
@@ -239,6 +241,13 @@ export function SettingsPage() {
       id: 'external-import',
       label: t('settings.sections.externalImport'),
       content: <ExternalImportSettingsSection />,
+    },
+    {
+      id: 'archive-health',
+      label: t('settings.sections.archiveHealth'),
+      content: (
+        <ArchiveHealthSettingsSection archiveScopeKey={archiveScopeKey} />
+      ),
     },
     {
       id: 'duplicate-cleanup',

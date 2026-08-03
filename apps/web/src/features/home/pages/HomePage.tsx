@@ -7,13 +7,14 @@ import {
 import { Box, Group } from '@mantine/core';
 import type { TFunction } from 'i18next';
 import { Link, useNavigate } from 'react-router-dom';
-import type { WorkRecord } from '@work-archive/shared-types';
+import type { ProgressUnit, WorkRecord } from '@work-archive/shared-types';
 
 import { formatAppNumber, useAppTranslation } from '@app/i18n';
 import {
   AppBadge,
   AppButton,
   AppLinkButton,
+  FeedbackMessage,
   LoadingRows,
   StateMessage,
 } from '@shared/components/AppPrimitives';
@@ -39,13 +40,23 @@ import {
   getWorkContinueLabel,
   getWorkStatusLabel,
   getWorkTypeLabel,
+  worksService,
 } from '@features/works';
 import styles from './HomePage.module.css';
+import { getHomeQuickProgressAction } from '../utils/home-quick-progress';
 
 const css = styles;
 
 function formatCount(count: number) {
   return formatAppNumber(count);
+}
+
+function getProgressUnitLabel(unit: ProgressUnit, t: TFunction) {
+  return {
+    chapter: t('works.record.progressControl.unitChapter'),
+    episode: t('works.record.progressControl.unitEpisode'),
+    volume: t('works.record.progressControl.unitVolume'),
+  }[unit];
 }
 
 function formatRelativeDate(isoString: string, t: TFunction): string {
@@ -74,13 +85,23 @@ function formatRelativeDate(isoString: string, t: TFunction): string {
 
 /* ── 선반 포스터 카드 ──────────────────────────────────────────────────────── */
 function ShelfPosterCard({
+  isUpdating = false,
+  onQuickProgress,
   showProgress = false,
   work,
 }: {
+  isUpdating?: boolean;
+  onQuickProgress?: ((work: WorkRecord) => Promise<void>) | undefined;
   showProgress?: boolean;
   work: WorkRecord;
 }) {
   const { t } = useAppTranslation();
+  const quickProgressAction = showProgress
+    ? getHomeQuickProgressAction(work)
+    : null;
+  const quickProgressUnitLabel = quickProgressAction
+    ? getProgressUnitLabel(quickProgressAction.progressUnit, t)
+    : null;
   const continueLabel = showProgress ? getWorkContinueLabel(work) : null;
   const progressPercent = showProgress ? getProgressPercent(work) : null;
   const footerPrefix =
@@ -142,6 +163,27 @@ function ShelfPosterCard({
           </div>
         )}
       </Link>
+      {quickProgressAction && quickProgressUnitLabel && onQuickProgress && (
+        <AppButton
+          aria-label={t('home.shelf.quickProgressAria', {
+            next: formatCount(quickProgressAction.nextCurrent),
+            title: work.title,
+            unit: quickProgressUnitLabel,
+          })}
+          className={css.shelfQuickProgress ?? ''}
+          disabled={isUpdating}
+          loading={isUpdating}
+          onClick={() => void onQuickProgress(work)}
+          size="compact-sm"
+          tone="secondary"
+          type="button"
+        >
+          {t('home.shelf.quickProgressButton', {
+            next: formatCount(quickProgressAction.nextCurrent),
+            unit: quickProgressUnitLabel,
+          })}
+        </AppButton>
+      )}
     </div>
   );
 }
@@ -150,16 +192,20 @@ function ShelfPosterCard({
 interface ShelfSectionProps {
   eyebrow?: string;
   href: string;
+  onQuickProgress?: (work: WorkRecord) => Promise<void>;
   showProgress?: boolean;
   title: string;
+  updatingWorkId?: string | null;
   works: WorkRecord[];
 }
 
 function ShelfSection({
   eyebrow,
   href,
+  onQuickProgress,
   showProgress = false,
   title,
+  updatingWorkId = null,
   works,
 }: ShelfSectionProps) {
   const { t } = useAppTranslation();
@@ -187,7 +233,12 @@ function ShelfSection({
       >
         {works.map((work) => (
           <div key={work.id} role="listitem">
-            <ShelfPosterCard showProgress={showProgress} work={work} />
+            <ShelfPosterCard
+              isUpdating={updatingWorkId === work.id}
+              onQuickProgress={onQuickProgress}
+              showProgress={showProgress}
+              work={work}
+            />
           </div>
         ))}
       </div>
@@ -568,7 +619,14 @@ export function HomePage() {
     typeCounts,
   } = useWorksOverview();
 
+  const [progressFeedback, setProgressFeedback] = useState<{
+    message: string;
+    tone: 'error' | 'success';
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [updatingProgressWorkId, setUpdatingProgressWorkId] = useState<
+    string | null
+  >(null);
   // 빈 서재에서는 검색·"서재 전체" 같은 빈 결과로 가는 컨트롤을 숨기고
   // 첫 기록 가이드에 시선을 모은다.
   const isEmptyArchive = !error && !isLoading && totalCount === 0;
@@ -590,6 +648,49 @@ export function HomePage() {
     navigate(
       term ? `/works/new?title=${encodeURIComponent(term)}` : '/works/new',
     );
+  }
+
+  async function handleQuickProgress(work: WorkRecord) {
+    try {
+      setProgressFeedback(null);
+      setUpdatingProgressWorkId(work.id);
+
+      const latestWork = await worksService.getWorkById(work.id);
+      const action = latestWork ? getHomeQuickProgressAction(latestWork) : null;
+
+      if (!latestWork || !action) {
+        throw new Error(t('home.shelf.quickProgressUnavailable'));
+      }
+
+      const unit = getProgressUnitLabel(action.progressUnit, t);
+      await worksService.updateProgress(latestWork.id, {
+        lastConsumedLabel: t('works.list.progressConsumedLabel', {
+          current: action.nextCurrent,
+          unit,
+        }),
+        progressCurrent: action.nextCurrent,
+        progressTotal: action.progressTotal,
+        progressUnit: action.progressUnit,
+      });
+      setProgressFeedback({
+        message: t('home.shelf.quickProgressSaved', {
+          next: formatCount(action.nextCurrent),
+          title: latestWork.title,
+          unit,
+        }),
+        tone: 'success',
+      });
+    } catch (progressError) {
+      setProgressFeedback({
+        message:
+          progressError instanceof Error
+            ? progressError.message
+            : t('home.shelf.quickProgressError'),
+        tone: 'error',
+      });
+    } finally {
+      setUpdatingProgressWorkId(null);
+    }
   }
 
   return (
@@ -640,6 +741,13 @@ export function HomePage() {
             </span>
           </AppButton>
         </form>
+        {progressFeedback && (
+          <div className={css.quickProgressFeedback}>
+            <FeedbackMessage tone={progressFeedback.tone}>
+              {progressFeedback.message}
+            </FeedbackMessage>
+          </div>
+        )}
       </div>
 
       {/* ── 오류 ── */}
@@ -683,8 +791,10 @@ export function HomePage() {
             <ShelfSection
               eyebrow={t('home.shelves.continueEyebrow')}
               href="/works?status=in_progress"
+              onQuickProgress={handleQuickProgress}
               showProgress
               title={t('home.shelves.continueTitle')}
+              updatingWorkId={updatingProgressWorkId}
               works={continueWorks}
             />
           )}
