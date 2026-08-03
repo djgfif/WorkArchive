@@ -8,11 +8,13 @@ import {
 } from '../db/work-archive.db';
 import { SyncQueueRepository } from '@features/sync';
 import { WORK_GENRES } from '../utils/work-genres';
+import type { UpsertWorkInput } from '../utils/work-form';
+import { GraphRepository } from './graph.repository';
 import { TimelineEntriesRepository } from './timeline-entries.repository';
 import { WorksRepository } from './works.repository';
 import { WorksService } from './works.service';
 
-function buildInput(overrides: Partial<WorkRecord> = {}) {
+function buildInput(overrides: Partial<UpsertWorkInput> = {}) {
   return {
     type: 'novel' as const,
     title: 'Dune',
@@ -47,6 +49,7 @@ describe('WorksService', () => {
   let db: WorkArchiveDatabase;
   let repository: WorksRepository;
   let queueRepository: SyncQueueRepository;
+  let graphRepository: GraphRepository;
   let timelineRepository: TimelineEntriesRepository;
   let service: WorksService;
 
@@ -54,11 +57,12 @@ describe('WorksService', () => {
     db = createWorkArchiveDb(`work-archive-test-${crypto.randomUUID()}`);
     repository = new WorksRepository(() => db);
     queueRepository = new SyncQueueRepository(() => db);
+    graphRepository = new GraphRepository(() => db, queueRepository);
     timelineRepository = new TimelineEntriesRepository(() => db);
     service = new WorksService(
       repository,
       queueRepository,
-      undefined,
+      graphRepository,
       timelineRepository,
     );
   });
@@ -83,6 +87,234 @@ describe('WorksService', () => {
 
     expect(await db.works.count()).toBe(0);
     expect(await db.syncQueue.count()).toBe(0);
+  });
+
+  it('rolls back every work and graph table when graph queueing fails during create', async () => {
+    const graphQueue = new SyncQueueRepository(() => db);
+    const enqueueEntityChange =
+      graphQueue.enqueueEntityChange.bind(graphQueue);
+
+    vi.spyOn(graphQueue, 'enqueueEntityChange').mockImplementation(
+      async (entityType, ...args) => {
+        if (entityType === 'work_series_link') {
+          throw new Error('graph queue failed');
+        }
+
+        return enqueueEntityChange(entityType, ...args);
+      },
+    );
+    const failingService = new WorksService(
+      repository,
+      queueRepository,
+      new GraphRepository(() => db, graphQueue),
+      timelineRepository,
+    );
+
+    await expect(
+      failingService.createWork(
+        buildInput({
+          graph: {
+            contributors: [
+              {
+                entityType: 'person',
+                name: 'Frank Herbert',
+                role: 'original_creator',
+              },
+            ],
+            series: [{ kind: 'series', title: 'Dune' }],
+          },
+        }),
+      ),
+    ).rejects.toThrow('graph queue failed');
+
+    await expect(
+      Promise.all([
+        db.works.count(),
+        db.timelineEntries.count(),
+        db.series.count(),
+        db.workSeriesLinks.count(),
+        db.contributors.count(),
+        db.workContributors.count(),
+        db.workRelations.count(),
+        db.syncQueue.count(),
+      ]),
+    ).resolves.toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  it('restores the exact work, graph, timeline, and queue snapshot when graph saving fails during update', async () => {
+    const created = await service.createWork(
+      buildInput({
+        graph: {
+          contributors: [
+            {
+              entityType: 'person',
+              name: 'Frank Herbert',
+              role: 'original_creator',
+            },
+          ],
+          series: [{ kind: 'series', title: 'Dune' }],
+        },
+      }),
+    );
+    const readMutationState = async () => ({
+      contributors: await db.contributors.toArray(),
+      queue: await db.syncQueue.toArray(),
+      series: await db.series.toArray(),
+      timelineEntries: await db.timelineEntries.toArray(),
+      work: await db.works.get(created.id),
+      workContributors: await db.workContributors.toArray(),
+      workRelations: await db.workRelations.toArray(),
+      workSeriesLinks: await db.workSeriesLinks.toArray(),
+    });
+    const before = await readMutationState();
+    const graphQueue = new SyncQueueRepository(() => db);
+    const enqueueEntityChange =
+      graphQueue.enqueueEntityChange.bind(graphQueue);
+
+    vi.spyOn(graphQueue, 'enqueueEntityChange').mockImplementation(
+      async (entityType, ...args) => {
+        if (entityType === 'work_contributor') {
+          throw new Error('graph save failed');
+        }
+
+        return enqueueEntityChange(entityType, ...args);
+      },
+    );
+    const failingService = new WorksService(
+      repository,
+      queueRepository,
+      new GraphRepository(() => db, graphQueue),
+      timelineRepository,
+    );
+
+    await expect(
+      failingService.updateWork(
+        created.id,
+        buildInput({
+          graph: {
+            contributors: [
+              {
+                entityType: 'organization',
+                name: 'Ace Books',
+                role: 'publisher',
+              },
+            ],
+            series: [{ kind: 'universe', title: 'Known Universe' }],
+          },
+          status: 'completed',
+          title: 'Dune (revised)',
+        }),
+      ),
+    ).rejects.toThrow('graph save failed');
+
+    expect(await readMutationState()).toEqual(before);
+  });
+
+  it('preserves explicit graph records and queue metadata on success', async () => {
+    const created = await service.createWork(
+      buildInput({
+        graph: {
+          contributors: [
+            {
+              displayOrder: 0,
+              entityType: 'person',
+              name: 'Frank Herbert',
+              role: 'original_creator',
+            },
+          ],
+          series: [
+            {
+              kind: 'series',
+              orderIndex: 1,
+              orderLabel: 'Book 1',
+              role: 'main',
+              title: 'Dune',
+            },
+          ],
+        },
+      }),
+    );
+    const graph = await graphRepository.getWorkGraph(created.id);
+    const queue = await queueRepository.listAll();
+
+    expect(graph.series).toEqual([
+      expect.objectContaining({ kind: 'series', title: 'Dune' }),
+    ]);
+    expect(graph.contributors).toEqual([
+      expect.objectContaining({
+        entityType: 'person',
+        name: 'Frank Herbert',
+      }),
+    ]);
+    expect(graph.workSeriesLinks).toEqual([
+      expect.objectContaining({ orderIndex: 1, orderLabel: 'Book 1' }),
+    ]);
+    expect(queue).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entityId: created.id,
+          entityType: 'work',
+          operation: 'create',
+          source: 'manual_create',
+        }),
+        expect.objectContaining({
+          entityType: 'series',
+          operation: 'create',
+          source: 'manual_create',
+        }),
+        expect.objectContaining({
+          entityType: 'work_series_link',
+          operation: 'create',
+          source: 'manual_create',
+        }),
+        expect.objectContaining({
+          entityType: 'contributor',
+          operation: 'create',
+          source: 'manual_create',
+        }),
+        expect.objectContaining({
+          entityType: 'work_contributor',
+          operation: 'create',
+          source: 'manual_create',
+        }),
+      ]),
+    );
+  });
+
+  it('preserves legacy graph-prefixed tags and their queue metadata', async () => {
+    const created = await service.createWork(
+      buildInput({
+        personalTags: [
+          'series:Dune',
+          'creator:Frank Herbert',
+          'favorite prose',
+        ],
+      }),
+    );
+    const graph = await graphRepository.getWorkGraph(created.id);
+    const queue = await queueRepository.listAll();
+
+    expect(graph.series).toEqual([
+      expect.objectContaining({ kind: 'series', title: 'Dune' }),
+    ]);
+    expect(graph.contributors).toEqual([
+      expect.objectContaining({
+        entityType: 'person',
+        name: 'Frank Herbert',
+      }),
+    ]);
+    expect(queue).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entityType: 'series',
+          source: 'manual_create',
+        }),
+        expect.objectContaining({
+          entityType: 'work_contributor',
+          source: 'manual_create',
+        }),
+      ]),
+    );
   });
 
   it('keeps a single create queue item while a local-only work changes', async () => {

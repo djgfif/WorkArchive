@@ -65,6 +65,31 @@ export class WorksRepository {
     );
   }
 
+  /**
+   * Runs a work create or edit together with its graph, automatic timeline,
+   * and sync-queue writes. GraphRepository and SyncQueueRepository open
+   * compatible nested Dexie transactions, so their work joins this parent
+   * transaction and any child failure aborts the complete mutation.
+   */
+  runWorkAndGraphMutation<T>(run: () => Promise<T>): Promise<T> {
+    const db = this.getDb();
+
+    return db.transaction(
+      'rw',
+      [
+        db.works,
+        db.timelineEntries,
+        db.series,
+        db.workSeriesLinks,
+        db.contributors,
+        db.workContributors,
+        db.workRelations,
+        db.syncQueue,
+      ],
+      run,
+    );
+  }
+
   async create(work: WorkRecord) {
     const storedWork = prepareStoredWorkRecord(work);
 

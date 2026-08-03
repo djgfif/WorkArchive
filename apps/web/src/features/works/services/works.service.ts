@@ -294,6 +294,9 @@ export class WorksService {
 
   async createWork(input: UpsertWorkInput) {
     const now = new Date().toISOString();
+    const source = getCreateSource(input);
+    const graphInput =
+      input.graph ?? buildGraphInputFromLegacyTags(input.personalTags ?? []);
     const normalizedTaxonomy = moveUnknownGenresToPersonalTags(
       input.genres,
       input.personalTags ?? [],
@@ -321,24 +324,14 @@ export class WorksService {
       serverVersion: 0,
     };
 
-    await this.repository.runWorkMutation(async () => {
+    await this.repository.runWorkAndGraphMutation(async () => {
       await this.repository.create(work);
-      await this.queueRepository.enqueueWorkChange(
-        work,
-        'create',
-        getCreateSource(input),
-      );
-    });
-    const graphInput =
-      input.graph ?? buildGraphInputFromLegacyTags(input.personalTags ?? []);
+      await this.queueRepository.enqueueWorkChange(work, 'create', source);
 
-    if (graphInput) {
-      await this.graphRepo.saveWorkGraph(
-        work.id,
-        graphInput,
-        getCreateSource(input),
-      );
-    }
+      if (graphInput) {
+        await this.graphRepo.saveWorkGraph(work.id, graphInput, source);
+      }
+    });
 
     return work;
   }
@@ -380,8 +373,10 @@ export class WorksService {
       updated,
       updated.updatedAt,
     );
+    const graphInput =
+      input.graph ?? buildGraphInputFromLegacyTags(input.personalTags ?? []);
 
-    await this.repository.runWorkMutation(async () => {
+    await this.repository.runWorkAndGraphMutation(async () => {
       await this.repository.update(updated);
       await this.queueRepository.enqueueWorkChange(
         updated,
@@ -389,13 +384,11 @@ export class WorksService {
         'edit_form',
       );
       await this.enqueueAutomaticTimelineEntry(updated.id, timelineEntry);
-    });
-    const graphInput =
-      input.graph ?? buildGraphInputFromLegacyTags(input.personalTags ?? []);
 
-    if (graphInput) {
-      await this.graphRepo.saveWorkGraph(updated.id, graphInput, 'edit_form');
-    }
+      if (graphInput) {
+        await this.graphRepo.saveWorkGraph(updated.id, graphInput, 'edit_form');
+      }
+    });
 
     return updated;
   }
