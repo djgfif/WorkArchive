@@ -28,43 +28,43 @@ export const WorkEditPage = lazy(() =>
 );
 
 export const PersonalInsightsPage = lazy(() =>
-  import('@features/insights').then((module) => ({
+  import('@features/insights/pages/PersonalInsightsPage').then((module) => ({
     default: module.PersonalInsightsPage,
   })),
 );
 
 export const ProfilePage = lazy(() =>
-  import('@features/profile').then((module) => ({
+  import('@features/profile/pages/ProfilePage').then((module) => ({
     default: module.ProfilePage,
   })),
 );
 
 export const AccountOverviewPage = lazy(() =>
-  import('@features/profile').then((module) => ({
+  import('@features/profile/pages/AccountOverviewPage').then((module) => ({
     default: module.AccountOverviewPage,
   })),
 );
 
 export const SettingsPage = lazy(() =>
-  import('@features/profile').then((module) => ({
+  import('@features/profile/pages/SettingsPage').then((module) => ({
     default: module.SettingsPage,
   })),
 );
 
 export const LoginPage = lazy(() =>
-  import('@features/auth').then((module) => ({
+  import('@features/auth/pages/LoginPage').then((module) => ({
     default: module.LoginPage,
   })),
 );
 
 export const GoogleAuthCompletePage = lazy(() =>
-  import('@features/auth').then((module) => ({
+  import('@features/auth/pages/GoogleAuthCompletePage').then((module) => ({
     default: module.GoogleAuthCompletePage,
   })),
 );
 
 export const GuestTransferReviewPage = lazy(() =>
-  import('@features/auth').then((module) => ({
+  import('@features/auth/pages/GuestTransferReviewPage').then((module) => ({
     default: module.GuestTransferReviewPage,
   })),
 );

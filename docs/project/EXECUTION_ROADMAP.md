@@ -1,12 +1,12 @@
 # EXECUTION_ROADMAP.md
 
-| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| Role                  | `integrated execution roadmap`                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands                                                                                                                                                                                                                                                 |
-| Last verified against | `2026-07-03` core local repository gates, Settings data-safety/account-backup polish, Settings sync recovery assistant with cause filters, Home guest onboarding copy, Guest transfer review safeguards, Settings security i18n cleanup, Tier Board private-first UI cleanup, Gate 1 evidence classification, Add Work MSW warning cleanup, and Redis rate-limit test mock cleanup. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
-| When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                                                                                                                                                                                                                                                                             |
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Role                  | `integrated execution roadmap`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Source of truth       | [`PRODUCT_DIRECTION_LOCK.md`](../archive/product/PRODUCT_DIRECTION_LOCK.md), [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), current `apps/web` / `apps/api` implementation, `README.md` verification commands                                                                                                                                                                                                                                                                                         |
+| Last verified against | `2026-08-03` full local repository gates (`lint`, `typecheck`, 1,259 tests, production build), Archive Health review flow, source-aware automatic timeline, type-aware reread/rewatch quick record, local repeat-history insights, Home one-click progress logging, recent 28-day activity rhythm, route-level lazy loading, hardened automatic sync scheduling, and the enforced 650,000-byte web JavaScript chunk budget. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
+| When to update        | near-term execution order, phase boundaries, guest/login policy, frontend design workflow rule, or verification gates change                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 이 문서는 Work Archive의 **통합 실행 로드맵**이다. current reality 문서를 대체하지 않고, 지금 무엇을 어떤 순서로 고정해야 하는지만 정리한다. 최신 구현 현실은 [`CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`](./CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md), 개발 진입점은 [`CURRENT_EXECUTION_PLAN.md`](./CURRENT_EXECUTION_PLAN.md), 2026-06 구조 부채 보조 로드맵은 [`ROADMAP_FEEDBACK_2026-06.md`](./ROADMAP_FEEDBACK_2026-06.md)를 따른다.
 
@@ -96,6 +96,19 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 
 - 개인용 앱으로서 사용자가 자신의 기록을 잃지 않고 옮길 수 있게 한다.
 
+현재 구현:
+
+- Settings의 아카이브 건강검진은 활성 작품의 진행도, 날짜, 상태 일관성,
+  진행 단위, 표지 보강 필요를 로컬에서 검사하며 해당 기록 수정 화면으로
+  연결한다. 검사는 기록을 변경하지 않는다.
+- 작품 유형에서 결과를 확정할 수 있는 누락 진행 단위만 명시적인 안전 수정으로
+  제공한다. 수정 전후 값은 로컬 백업 메타데이터에 최대 20건 보관하고, 이후
+  값이 달라지지 않은 경우에만 되돌린다.
+- 자동 판단할 수 없는 날짜·상태 문제는 탭 범위의 24시간 검토 세션으로 묶고,
+  첫 기록부터 순서대로 편집·저장한 뒤 다음 기록으로 이동한다. 세션에는 작품
+  ID와 문제 코드만 보관하며, 마지막 기록을 저장하면 Settings 건강검진으로
+  돌아가 최신 로컬 원본을 다시 검사한다.
+
 우선순위:
 
 1. JSON export
@@ -105,6 +118,8 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 5. 로컬 데이터 초기화 / 복구 안내
 6. 휴지통 / 복원 UX polish
 7. 중복 기록 정리 도구
+8. 아카이브 건강검진의 확정 가능한 진행 단위 안전 수정과 변경 이력
+9. 날짜·상태 문제를 사용자가 묶어서 검토하는 건강검진 작업 흐름 (구현 완료)
 
 완료 기준:
 
@@ -119,11 +134,32 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 
 - 단순 작품 목록을 넘어 개인 기록 앱으로서 깊이를 만든다.
 
+현재 구현:
+
+- 상태와 진행도를 실제로 변경할 때 source가 구분된 자동 타임라인 이벤트를 남긴다.
+  작품 변경, 이벤트 생성, 두 sync queue 변경은 하나의 IndexedDB 트랜잭션으로
+  커밋하고, 같은 값 재저장에서는 이벤트를 만들지 않는다. 자동 기록도 삭제 가능하며
+  JSON export/import와 optional account sync에서 보존한다.
+- 완료한 작품은 매체에 맞는 `오늘 재독 기록` 또는 `오늘 재감상 기록`으로
+  타임라인에 바로 남길 수 있다. 같은 날의 빠른 중복 기록은 막고, 과거 날짜와
+  메모는 기존 고급 기록 흐름에서 보완한다.
+- 개인 인사이트는 활성 `rewatch` 타임라인 기록을 작품별로 집계해 전체 반복 기록,
+  다시 찾은 작품 수, 올해 기록 수, 최근 기록일과 상위 작품을 보여준다. 삭제한
+  기록과 삭제한 작품은 집계에서 제외하며, 기록이 없으면 완료 작품으로 연결한다.
+- 개인 인사이트의 기록 리듬은 모든 활성 타임라인 유형을 로컬 달력 기준 최근
+  28일로 집계해 활동일, 최근 7일 기록 수, 최근 기록일과 날짜별 농도를 보여준다.
+  삭제·미래·잘못된 기록과 삭제 작품은 제외하며, 최근 범위와 최신 기록은
+  `occurredAt` 인덱스로 조회해 전체 타임라인을 매번 읽지 않는다.
+- 홈의 `이어볼 작품`은 지원되는 진행형 매체의 다음 회차를 한 번에 기록한다. 기록
+  직전에 최신 로컬 작품을 다시 읽고 매체별 회차 단위와 전체 분량 경계를 검증하며,
+  작품·자동 타임라인·두 sync queue 변경을 묶는 기존 로컬 트랜잭션을 재사용한다.
+  완료·상한 도달·잘못된 진행도·미지원 매체에는 빠른 기록 버튼을 노출하지 않는다.
+
 우선순위:
 
 1. 개인 태그
 2. 감상 timeline
-3. 재감상 / 재독 기록
+3. 재감상 / 재독 기록 (오늘 빠른 기록 구현, 회차별 진행은 후속)
 4. 진행도 고도화
 5. 개인 티어 / 컬렉션
 6. 시작일 / 완료일 / 중단일
@@ -147,11 +183,18 @@ public/community/catalog promotion은 현재 제품 범위 밖이다.
 - safe auto-merge는 동일 entity/parent와 동일 scalar 조건에서 taxonomy/alias/server metadata만 병합하고, 병합된 queue item을 재시도 대상으로 돌려보낸다.
 - 자동 push는 conflict queue item을 전송하지 않고 Settings 계정 백업 섹션의 수동 검토 대상으로 유지한다.
 - guest local-first writes는 자동 pull/push를 시작하지 않고 account archive와 분리된다.
+- account archive activation pull은 같은 탭의 기존 queue push보다 먼저 완료된다.
+- push 실행 중 추가 queue 요청은 drain loop가 보존해 후속 push로 처리한다.
+- 숨김/offline 중 보류된 push는 focus/online/visible 전환 때 자동으로
+  재개한다.
+- 다중 탭 lease busy는 재시도 가능한 미완료 결과로 처리하고 자동 pull/push를
+  다시 예약한다. 로컬 회귀 테스트는 고정됐고 실제 브라우저 증적은 후속이다.
 
 근거리 순서:
 
 1. conflict 해결 UX polish와 safe auto-merge 정책 확장 여부 검토
-2. 로그인/account archive activation 자동 pull 검증과 확장 검토
+2. account activation pull 직렬화와 push drain의 실제 계정/브라우저,
+   다중 탭 lease, 대용량 queue 검증
 3. sync recovery assistant의 실제 계정/브라우저 QA, 실패 원인 분류 확장, 원인별 필터 UX 검증
 4. guest -> account 선택 import UX의 실제 계정/브라우저 QA
 5. 백업/동기화가 꺼져 있어도 로컬 기록이 안전하다는 안내
@@ -250,6 +293,8 @@ Phase 1+ 게이트:
 - `npm run typecheck`
 - `npm run test`
 - `npm run build`
+- `npm run qa:web-bundle-budget:self-test`
+- web build는 JavaScript 청크별 650,000바이트 상한을 자동 검증한다.
 - 검색/ranking 변경 시 `npm run qa:import-search`
 - sync 변경 시 `npm run qa:sync-load`
 - `docker compose up --build`: 현재 문서 기준 미검증이면 미검증으로 유지한다.

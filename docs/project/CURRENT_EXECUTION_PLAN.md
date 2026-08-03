@@ -1,12 +1,12 @@
 # WorkArchive Current Execution Plan
 
-| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| Role                  | `developer execution entrypoint`                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, `docs/project/ROADMAP_FEEDBACK_2026-06.md`, current local `master` working tree                                                                                                                                                                                                                                                                                                               |
-| Last verified against | `2026-07-03` core local repository gates, Settings data-safety/account-backup polish, Settings sync recovery assistant with cause filters, Home guest onboarding copy, Guest transfer review safeguards, Settings security i18n cleanup, Tier Board private-first UI cleanup, Gate 1 evidence classification, Add Work MSW warning cleanup, and Redis rate-limit test mock cleanup. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
-| When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Role                  | `developer execution entrypoint`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, `docs/project/ROADMAP_FEEDBACK_2026-06.md`, current local `master` working tree                                                                                                                                                                                                                                                                                                                                                       |
+| Last verified against | `2026-08-03` full local repository gates (`lint`, `typecheck`, 1,259 tests, production build), Archive Health review flow, source-aware automatic timeline, type-aware reread/rewatch quick record, local repeat-history insights, Home one-click progress logging, recent 28-day activity rhythm, route-level lazy loading, hardened automatic sync scheduling, and the enforced 650,000-byte web JavaScript chunk budget. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
+| When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`../archive/project/PLAN.md`](../archive/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
 
@@ -58,13 +58,25 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - Sync conflict 해결은 로컬 유지, 원격 적용, 필드별 병합을 지원한다. 좁은 safe auto-merge는 동일 entity/parent, delete-update 충돌 없음, scalar field 동일 조건에서 taxonomy/alias 또는 server metadata만 병합하고 재시도 queue로 되돌린다.
 - overlapping scalar edit, delete/update collision, parent/ownership mismatch, unsupported payload는 자동 병합하지 않고 수동 검토 대상으로 남긴다.
 - auto sync push는 conflict queue item을 자동 전송하지 않고 수동 검토 대상으로 남긴다.
+- account archive activation pull은 같은 탭의 기존 queue push보다 먼저 완료된다.
+- push 실행 중 발생한 추가 queue 요청은 drain loop가 합쳐서 후속 push로
+  처리한다.
+- 숨김/offline 중 보류된 push는 focus/online/visible 전환 때 다시 시작한다.
+- 다른 탭이 sync lease를 보유하면 pull/push는 재시도 지연을 반환하고 자동
+  sync는 queue 변경이나 사용자 입력 없이 다시 예약한다.
 - guest mode local-first writes는 자동 pull/push를 시작하지 않고 로그인 archive와 분리된다.
 - Works 목록 조회는 Dexie v7 scope index로 active/trash를 먼저 좁힌다. status/type/updatedAt 기본 경로는 IndexedDB query를 먼저 사용하고, 검색어/태그 조합은 scope 축소 후 인메모리 필터링한다.
-- manual timeline entries는 Dexie v9 sync-ready 모델과 backend `UserTimelineEntry` private storage를 통해 optional account sync 대상에 포함된다.
+- manual timeline entries와 상태·진행도 자동 이벤트는 Dexie v9 sync-ready 모델과
+  backend `UserTimelineEntry` private storage를 통해 optional account sync 대상에
+  포함된다. 자동 이벤트는 source를 보존하고 실제 값 변경에만 생성되며 사용자가
+  삭제할 수 있다.
 - JSON export는 schemaVersion, source, backupExclusions metadata와 timeline entries를 포함한다. import preview는 dry-run 결과로 add/update/duplicate/skip/conflict 예상치를 표시한다.
 - Quick Add 검색 ranking은 제목 exact/alias/token, 제작자, 발매연도, provider/source coverage, catalog match를 반영한다.
 - 낮은 신뢰도 검색 후보는 직접 추가 fallback을 방해하지 않도록 후보 UI에서 검토 안내를 표시한다.
 - access token은 브라우저 storage에 저장하지 않고 메모리에만 둔다. 앱 부팅은 `HttpOnly` refresh cookie로 세션을 복구하며, 실패하면 guest archive로 돌아간다.
+- auth/profile/insights 라우트는 feature barrel 전체가 아니라 각 페이지를 직접
+  동적 import한다. web build는 JavaScript 청크가 650,000바이트를 넘으면
+  실패하며, 검증기 자체의 경계 조건은 root test에서 self-test한다.
 - GitHub Actions `validate` workflow는 이미 존재한다. 이 문서 기준 required checks는 repository setting에서 별도 관리한다.
 - Provider cache/circuit state는 `REDIS_URL`이 구성되면 Redis를 사용한다. Redis가 없는 비프로덕션 환경에서는 process-local memory fallback을 사용한다.
 - API sync orchestration은 push/pull service에서 page loading, payload mapping, change building, entity handler, validation/result helper로 분해되어 있다. 외부 sync API 계약은 그대로 유지한다.
@@ -96,7 +108,8 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 
 - provider별 live 검색어 QA와 ranking weight 튜닝
 - Sync conflict safe auto-merge 정책 확장 여부 검토
-- 로그인 직후 pull 자동화 검토
+- 실제 계정/브라우저에서 account activation pull 직렬화, 다중 탭 lease,
+  대용량 queue 재시도 증적 확보
 - `Works` compatibility layer 축소와 `Catalog` / `Imports` / `UserRecords` 경계 정리
 - public/community/share surface 비노출 경계 유지와 production cookie/origin/secret 운영 검증
 - provider runtime Redis 경로의 beta/production 운영 증적 확보
@@ -123,6 +136,12 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - API 개선은 flat `Works` 응답을 즉시 제거하지 않는다. 신규 기능은 가능한
   한 `Catalog`, `Imports`, `UserRecords`, `Sync` 경계에 두고, `Works`는
   compatibility façade로만 유지한다.
+- 홈 `이어볼 작품`의 다음 회차 빠른 기록은 지원 매체와 진행도 경계를 먼저
+  검증하고 최신 로컬 값을 다시 읽은 뒤, 자동 타임라인과 sync queue를 함께 쓰는
+  기존 진행도 변경 트랜잭션을 사용한다.
+- 개인 인사이트 기록 리듬은 최근 28일의 모든 활성 타임라인 유형을 로컬 달력으로
+  집계하고, 삭제·미래·잘못된 기록과 삭제 작품을 제외한다. 최근 범위와 최신 기록은
+  `occurredAt` 인덱스로 조회해 장기 아카이브의 전체 스캔을 피한다.
 - Gate 1은 로컬 저장소 파일만으로 증명 가능한 항목과 GitHub Settings,
   beta host, restore drill처럼 운영자가 직접 증적을 남겨야 하는 항목을
   분리한다.

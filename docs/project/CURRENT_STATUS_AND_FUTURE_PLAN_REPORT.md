@@ -1,18 +1,21 @@
 # CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md
 
-| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status                | `canonical`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Role                  | `current reality`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests                                                                                                                                                                                                                                |
-| Last verified against | `2026-07-03` core local repository gates, Settings data-safety/account-backup polish, Settings sync recovery assistant with cause filters, Home guest onboarding copy, Guest transfer review safeguards, Settings security i18n cleanup, Tier Board private-first UI cleanup, Gate 1 evidence classification, Add Work MSW warning cleanup, and Redis rate-limit test mock cleanup. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
-| When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status                | `canonical`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Role                  | `current reality`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests                                                                                                                                                                                                                                                                        |
+| Last verified against | `2026-08-03` full local repository gates (`lint`, `typecheck`, 1,259 tests, production build), Archive Health review flow, source-aware automatic timeline, type-aware reread/rewatch quick record, local repeat-history insights, Home one-click progress logging, recent 28-day activity rhythm, route-level lazy loading, hardened automatic sync scheduling, and the enforced 650,000-byte web JavaScript chunk budget. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
+| When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
 
 ## 1. Snapshot
 
-Sync policy correction: current code supports the Settings account backup control surface plus limited automatic sync for authenticated users. `useAutoSync` runs pull on account archive activation and browser focus/online events, and runs debounced push after `syncQueue` changes. Narrow safe auto-merge is implemented for same-entity/non-delete collisions where scalar fields still match; overlapping scalar conflict merge and advanced multi-device policy remain unimplemented.
+Sync policy correction: current code supports the Settings account backup
+control surface plus automatic sync for authenticated users. `useAutoSync`
+serializes account activation pull before queued push, drains push requests
+without losing in-flight updates, and resumes pending work after browser availability returns. Narrow safe auto-merge is implemented for same-entity/non-delete collisions where scalar fields still match; overlapping scalar conflict merge and advanced multi-device policy remain unimplemented.
 
 - Work Archive는 작품 감상 기록을 관리하는 local-first 웹 서비스다.
 - 프론트는 IndexedDB를 1차 저장소로 쓰고, 로그인 시 계정별 로컬 아카이브로 전환한다.
@@ -273,7 +276,30 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - Settings의 local archive JSON export/import, dry-run import preview, CSV export, 자동 폴더 백업 상태, 계정 백업/sync 상태 요약과 원인별 recovery assistant
 - JSON export schema/source/exclusion metadata와 CSV export 컬럼 계약
 - Dexie v9 timeline entry 저장 모델, Work Detail manual timeline add/delete, JSON export/import timeline 보존, optional account sync parity
+- 작품 상태와 진행도가 실제로 바뀌면 자동 타임라인 이벤트를 작품·이벤트·sync queue
+  단일 로컬 트랜잭션에서 기록한다. 같은 값을 다시 저장하면 이벤트를 만들지 않으며,
+  자동 기록도 사용자가 삭제할 수 있고 JSON 백업과 선택형 계정 sync에서 source를 보존한다.
+- 완료한 작품의 타임라인에서 소설·만화 계열은 `오늘 재독 기록`, 영상 계열은
+  `오늘 재감상 기록`으로 바로 남길 수 있다. 같은 날짜의 빠른 중복 기록은 막고,
+  과거 날짜와 메모는 고급 기록 추가를 사용한다.
+- 개인 인사이트의 재독·재감상 섹션은 활성 반복 기록만 작품별로 집계해 전체 횟수,
+  다시 찾은 작품 수, 올해 횟수, 최근 기록일과 상위 작품을 표시한다. 삭제 기록과
+  삭제 작품은 제외하며, 아직 기록이 없으면 완료 작품 목록으로 안내한다.
+- 개인 인사이트의 기록 리듬은 진행도·상태·수동 메모·재독·재감상을 최근 28일
+  로컬 달력으로 집계해 활동일, 최근 7일 기록 수, 최근 기록일과 날짜별 농도를
+  표시한다. 삭제·미래·잘못된 기록과 삭제 작품은 제외하고, `occurredAt`
+  인덱스로 최근 범위와 최신 활성 작품 기록만 읽는다.
+- 홈의 `이어볼 작품`은 진행 중인 애니·드라마·웹소설·웹툰에 매체별 다음 회차
+  원클릭 기록을 제공한다. 저장 직전에 최신 로컬 작품을 다시 읽어 경계를 검증하고,
+  기존 진행도 변경 트랜잭션을 통해 작품·자동 타임라인·두 sync queue 변경을 함께
+  커밋한다. 완료·상한 도달·잘못된 진행도·미지원 매체에는 버튼을 노출하지 않는다.
 - Data Ownership 정책: `appMeta`는 export metadata로만 다루고, `syncQueue`, auth token, refresh token, API key, Aladin TTBKey는 백업/복원 대상에서 제외
+- Settings의 아카이브 건강검진: 활성 작품의 진행도 범위, 날짜 순서, 상태/날짜 일관성, 진행 단위, 표지 보강 필요를 로컬에서 검사하고 기록 수정 화면으로 연결
+- 건강검진 결과의 수정 필요/검토 권장/보강 제안 분리, 필터, 대규모 결과 점진 표시와 아카이브 스코프 전환 시 재검사
+- 작품 유형으로 확정 가능한 누락 진행 단위의 명시적 안전 수정, sync queue 출처 기록, 로컬 백업 메타데이터 기반 최근 수정 이력과 이후 값 미변경 시 되돌리기
+- 자동 판단할 수 없는 건강검진 날짜·상태 문제를 탭 범위 24시간 세션으로 묶어
+  기록별 문제 요약과 진행률을 표시하고, 저장 시 다음 기록으로 이동한 뒤 마지막
+  기록에서 Settings로 복귀해 최신 로컬 원본을 다시 검사하는 연속 검토 흐름
 - 개인 기록 기반 Insights 기본 집계와 개인 태그 상위 집계
 - 계정 설정의 Aladin 키 저장/삭제
 - `/imports/providers` 기반 provider readiness 조회와 Settings의 ready / user key required / server setup required / paused 상태 요약 UI/테스트
@@ -282,6 +308,11 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - Sync conflict 원격 스냅샷 보존과 로컬 유지 / 원격 적용 / 필드별 병합 기본 해결 UX
 - Sync safe auto-merge: work taxonomy(`genres`, `personalTags`), contributor/series aliases, release/timeline/graph/tier-board server metadata refresh를 동일 entity/parent와 동일 scalar 조건에서만 병합하고 재시도 queue로 되돌림
 - auto sync push의 conflict queue item 자동 전송 제외
+- account archive activation pull의 기존 queue push 선행
+- push 실행 중 추가 queue 요청의 coalesced drain
+- 숨김/offline 중 보류된 push의 focus/online/visible 전환 재개
+- 다중 탭 sync lease busy의 retry-after 결과와 자동 pull/push 재예약
+- 수동 sync의 lease busy 거짓 성공 방지
 - guest local-first write의 자동 pull/push 제외
 - `CatalogTitle` related read model과 `UserReleaseRecord` 흐름
 - 홈 허브 화면
@@ -300,12 +331,12 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - provider별 live 검색어 QA와 ranking weight 튜닝
 - Sync conflict overlapping scalar 자동 병합, base snapshot 기반 병합, 고급 다기기 충돌 정책
 - guest 기록 자동 병합 정책과 다기기 이관 UX
-- 자동 동기화 고도화. 현재는 account archive activation, focus/online, local
-  syncQueue 변경 후 debounced push 중심의 제한적 자동 sync만 있다.
+- 자동 동기화의 실제 계정/브라우저, 다중 탭 lease, 대용량 queue 운영 증적.
+  account activation pull 직렬화, in-flight push drain, 숨김/offline 재개,
+  lease busy retry-after 재예약은 로컬 회귀 테스트로 고정돼 있다.
 - 공개 프로필 / 공개 기록 / 작품 집계
 - 실제 티어 보드 기능 고도화
 - 커뮤니티 기능
-- timeline 자동 이벤트 기록
 - Provider cache/circuit state의 Redis 경로 운영 증적과 다중 인스턴스 검증. 현재 코드는 `REDIS_URL` 구성 시 Redis를 사용하고, Redis가 없는 비프로덕션 환경에서는 process-local memory로 fallback한다.
 
 ### 확인한 것
@@ -339,6 +370,8 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - `npm run typecheck`
 - `npm run test`
 - `npm run build`
+- `npm run qa:web-bundle-budget`
+- `npm run qa:web-bundle-budget:self-test`
 
 ### Frontend Scripts
 
@@ -377,12 +410,17 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 ### Current Verification Status
 
-- `npm run check:docs-links`: `2026-07-03` 문서 링크 갱신 후 통과 확인
-- `npm run lint`: `2026-07-03` 통과 확인
-- `npm run typecheck`: `2026-07-03` 통과 확인
-- `npm run test`: `2026-07-03` 기준 API `92` suites / `770` tests,
-  web `63` files / `407` tests, shared-types `2` files / `6` tests 통과 확인
-- `npm run build`: `2026-07-03` 기준 shared-types `tsc`, API `tsc`, web Vite production build 통과 확인
+- `npm run check:docs-links`: `2026-08-03` 문서 링크 갱신 후 통과 확인
+- `npm run lint`: `2026-08-03` 통과 확인
+- `npm run typecheck`: `2026-08-03` 통과 확인
+- `npm run test`: `2026-08-03` 기준 API `92` suites / `770` tests,
+  web `75` files / `483` tests, shared-types `2` files / `6` tests 통과 확인
+- `npm run build`: `2026-08-03` 기준 shared-types `tsc`, API `tsc`, web Vite production build 통과 확인
+- `npm run qa:web-bundle-budget:self-test`: `2026-08-03` 정상·상한 일치·상한
+  초과·빈 산출물·잘못된 예산 fixture 통과 확인
+- web route build는 auth/profile/insights 페이지를 각각의 실제 동적 import로
+  분리한다. 기존 `auth` 671,959바이트 청크를 제거했고, 현재 최대 JavaScript
+  청크는 565,115바이트로 650,000바이트 강제 상한을 통과한다.
 - `npm run test:e2e:web`: `2026-07-03` 기준 `WEB_E2E_PORT=19999`로
   chromium/mobile-chrome Playwright `19` passed / `3` skipped 확인. mobile Add
   Work footer overlap, mobile drawer navigation, 320px overflow, Settings
@@ -427,11 +465,17 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 ### 7-2. Product UX
 
-Sync UX reality: sync is not manual-only anymore. The Settings account backup section is the explicit user-facing control surface, while authenticated users also get limited automatic pull/push behavior from `useAutoSync`. Narrow safe auto-merge can requeue safe taxonomy/alias/metadata-only cases; unsafe conflict items are resolved from Settings.
+Sync UX reality: sync is not manual-only anymore. The Settings account backup
+section is the explicit user-facing control surface, while authenticated users
+also get serialized pull-before-push, coalesced push drain, and availability-based resume from `useAutoSync`. Narrow safe auto-merge can requeue safe taxonomy/alias/metadata-only cases; unsafe conflict items are resolved from Settings.
 
 - 게스트와 계정 아카이브는 분리되어 있고, 현재는 로그인 직후 review/import 단계까지만 제공된다.
-- sync는 Settings 계정 백업 섹션을 기본 조작면으로 제공하고, 로그인 상태에서는 제한적 자동 pull/push도 수행한다.
+- sync는 Settings 계정 백업 섹션을 기본 조작면으로 제공하고, 로그인 상태에서는
+  account activation pull 선행, push drain, 숨김/offline 후 재개가 보장된
+  자동 pull/push도 수행한다.
 - Settings 계정 백업 섹션은 pending / failed / conflict queue item 단위 상태와 원인별 복구 그룹, 기록 보기, 재시도 CTA를 제공한다.
+  다른 탭이 lease를 보유한 경우에는 성공으로 오인하지 않고 지연 후 자동
+  재시도한다.
 - Settings 계정 백업 섹션은 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지, 원격 적용, 필드별 병합으로 해결할 수 있다. 좁은 safe auto-merge는 자동 처리되지만, overlapping scalar 편집과 delete/update collision은 후속 수동 검토로 남긴다.
 - auto sync push는 conflict queue item을 자동 전송하지 않고 수동 검토 대상으로 남긴다.
 - guest local-first write는 자동 pull/push를 시작하지 않고 로그인 archive와 분리된다.
