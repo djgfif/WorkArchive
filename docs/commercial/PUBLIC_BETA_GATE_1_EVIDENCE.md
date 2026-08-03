@@ -1,6 +1,6 @@
 # Public Beta Gate 1 Evidence
 
-Status: partial — core local repository gates passed 2026-07-03; host/beta environment items pending; older policy gates remain recorded with their individual run dates.
+Status: partial — core local repository gates passed 2026-08-03; host/beta environment items pending; older policy gates remain recorded with their individual run dates.
 
 Use this file as the operator ledger for the first public beta release
 candidate. Do not paste secrets, cookies, OAuth codes, access tokens, API keys,
@@ -47,30 +47,32 @@ release runner, restore target, or disposable account evidence is required.
 | Performance baseline          | Beta-host p50/p95 and rate-limit header observations                                                                    | C     | Dry-run script path exists; all measured rows remain beta-host pending.                                     | Live `npm run qa:performance-smoke` report with p50/p95, budget status, status codes, and rate-limit header summaries for required scenarios.                                                                                |
 | Release metadata and approval | Public beta URL, release notes, decision, approver, blockers                                                            | C     | Ledger remains partial until the operator fills release-specific values.                                    | Final operator approval after `GATE1_EVIDENCE_STRICT=true npm run qa:gate1:evidence` passes.                                                                                                                                 |
 | Runbook/template clarity      | Operator commands, expected results, failure triage, and redaction rules                                                | B     | Maintained in `GATE_1_VALIDATION_RUNBOOK.md`; update it when a required evidence format changes.            | Documentation review plus `npm run check:docs-links` and non-strict `npm run qa:gate1:evidence` after edits.                                                                                                                 |
-| Local repository gates        | Security, docs, lint, typecheck, tests, build, local QA policy checks                                                   | A     | Core local PASS results were refreshed on 2026-07-03; policy-specific QA rows retain their own run dates.   | Fresh release-commit PASS summaries from `npm run qa:gate1:local` or the individual commands listed below.                                                                                                                   |
+| Local repository gates        | Security, docs, lint, typecheck, tests, build, local QA policy checks                                                   | A     | Core local PASS results were refreshed on 2026-08-03; policy-specific QA rows retain their own run dates.   | Fresh release-commit PASS summaries from `npm run qa:gate1:local` or the individual commands listed below.                                                                                                                   |
 
 ## Release Candidate
 
-- Date and timezone: 2026-07-03 KST (core local verification run; policy-specific QA rows retain individual dates)
-- Commit SHA: 688e5d980418127fdc7fed5add095a456c12dff7 + dirty working tree
+- Date and timezone: 2026-08-03 KST (core local verification run; policy-specific QA rows retain individual dates)
+- Commit SHA: 00c8a76c628e71c4a6c83c1b3dc7f031194ad81d (clean working tree)
 - Host or environment: local development (repository gates only; beta host pending)
-- Operator: gkho0
+- Operator: gkho0 (Codex-assisted local run)
 - Public beta URL: not yet assigned
 - Release notes or ticket:
 
 ## Repository Gates
 
-- `npm run security:public`: PASS — public readiness check passed (2026-07-03, dirty working tree)
-- `npm run check:docs-links`: PASS — all markdown local links valid (2026-07-03)
-- `npm run check:web-i18n`: PASS — web i18n hardcoding check passed; Korean UI literals remain confined to approved resource/parser/helper files (2026-07-03)
-- `npm run lint`: PASS — no ESLint errors across web/api/shared-types (2026-07-03)
-- `npm run typecheck`: PASS — no TypeScript errors (2026-07-03)
-- `npm run test`: PASS — API 92 suites / 770 tests, web 63 files / 407 tests, and shared-types 2 files / 6 tests passed (2026-07-03)
-- `npm run build`: PASS — shared-types `tsc`, API `tsc`, web Vite production build (2026-07-03)
-- `npm run check:web-boundaries`: PASS — no web feature boundary violations found (2026-07-03)
-- `npm run check:web-import-cycles`: PASS — no web import cycles found (2026-07-03)
-- `npm run check:web-i18n-resources`: PASS — web i18n resource parity check passed for ko, en, ja, and zh-CN (2026-07-03)
-- `npm run check:web-i18n-packs`: PASS — reviewed translation pack coverage 2222/2222 unique baseline paths (2026-07-03)
+- `GATE1_RUN_NPM_CI=0 npm run qa:gate1:local`: PASS — no local check failures; report `tmp/gate1-evidence/gate1-local-20260803T073657Z.md`. Dependency reinstall was intentionally not run, and environment-only evidence remains blocked/manual (2026-08-03).
+- `npm ci`: not run — skipped explicitly with `GATE1_RUN_NPM_CI=0`; existing lockfile-installed Node 22.22.3 / npm 10.9.8 environment was used.
+- `npm run security:public`: PASS — public readiness and secret leak checks passed (2026-08-03, clean working tree)
+- `npm run check:docs-links`: PASS — all markdown local links valid (2026-08-03)
+- `npm run check:web-i18n`: PASS — web i18n hardcoding check passed; Korean UI literals remain confined to approved resource/parser/helper files (2026-08-03)
+- `npm run lint`: PASS — no ESLint errors across web/api/shared-types (2026-08-03)
+- `npm run typecheck`: PASS — no TypeScript errors (2026-08-03)
+- `npm run test`: PASS — API 92 suites / 770 tests, web 75 files / 487 tests, and shared-types 2 files / 6 tests passed; 1,263 tests total (2026-08-03)
+- `npm run build`: PASS — shared-types `tsc`, API `tsc`, web Vite production build; largest JavaScript chunk 565,115 bytes against the 650,000-byte limit (2026-08-03)
+- `npm run check:web-boundaries`: PASS — no web feature boundary violations found (2026-08-03)
+- `npm run check:web-import-cycles`: PASS — no web import cycles found (2026-08-03)
+- `npm run check:web-i18n-resources`: PASS — web i18n resource parity check passed for ko, en, ja, and zh-CN (2026-08-03)
+- `npm run check:web-i18n-packs`: PASS — reviewed translation pack coverage 2482/2482 unique baseline paths (2026-08-03)
 - `npm run qa:migrations`: PASS — Prisma migration safety check passed with registered high-risk historical migrations
 - `npm run qa:bola-matrix`: PASS — BOLA matrix covers user-owned REST object families and every sync entity type; no unresolved `gap` or `partial` rows (2026-06-24)
 - `npm run qa:api-auth-surface`: PASS — API authorization surface classifies every controller and verifies guarded, optional bearer, public health, metrics bearer-token, and policy-bounded image proxy boundaries (2026-06-24)
@@ -99,9 +101,9 @@ release runner, restore target, or disposable account evidence is required.
 - `npm run qa:commercial:repo`: PASS — repository-verifiable commercial gates passed in non-strict Gate 1 mode; live evidence placeholders remain (2026-07-01; not rerun in the 2026-07-03 core local verification pass)
 - `npm run qa:import-search`: PASS — report `tmp/import-search-qa/import-search-qa-20260701T123411Z.md`, 28 offline matrix cases plus live-smoke manifest coverage
 - `IMPORT_SEARCH_QA_LIVE=true npm run qa:import-search`: not run — requires beta host base URL and disposable authenticated token; copy the redacted live `tmp/import-search-qa/import-search-qa-*.md` PASS summary here before approval.
-- `npm run qa:sync-load`: PASS — report `tmp/sync-load/sync-load-smoke-20260701T123414Z.md`, dry-run synthetic payload validation
+- `npm run qa:sync-load`: PASS — run with `SYNC_LOAD_DRY_RUN=true`; report `tmp/sync-load/sync-load-smoke-20260803T073619Z.md`; 1,000 synthetic records and 5 push batches generated without API calls (2026-08-03)
 - `SYNC_LOAD_DRY_RUN=false npm run qa:sync-load`: not run — requires beta host base URL and disposable authenticated token; copy the redacted live `tmp/sync-load/sync-load-smoke-*.md` PASS summary here before approval.
-- `npm run test:e2e:web`: PASS — 19 Playwright tests passed and 3 skipped across chromium and mobile-chrome with `WEB_E2E_PORT=19999`; Vite reported expected local API proxy warnings while API was not running (2026-07-03)
+- `npm run test:e2e:web`: PASS — 23 Playwright tests passed and 3 project-conditional cases skipped across chromium and mobile-chrome (2026-08-03)
 - `npm run test:e2e`: PASS — API e2e 4 suites / 47 tests passed locally (2026-06-24); beta-host smoke evidence remains separate below
 - `docker compose -f compose.prod.yml --env-file .env.prod config`: not run — requires .env.prod
 
@@ -162,7 +164,7 @@ release runner, restore target, or disposable account evidence is required.
 
 ## Backup And Restore Drill
 
-- Restore drill plan-only report (pre-review only; not approval evidence): PASS — `tmp/restore-drills/restore-drill-plan-20260701T123410Z.md` generated locally without Docker, `pg_restore`, migrations, startup, smoke, or destructive restore commands (2026-07-01)
+- `RESTORE_DRILL_PLAN_ONLY=true npm run ops:restore-drill` (pre-review only; not approval evidence): PASS — `tmp/restore-drills/restore-drill-plan-20260803T073637Z.md` generated locally without Docker, `pg_restore`, migrations, startup, smoke, or destructive restore commands (2026-08-03)
 - Backup command (`npm run ops:backup`): pending — run `BACKUP_DIR=backups npm run ops:backup` on the approved host; copy command, timestamp, exit status, and redacted summary only.
 - Backup report (`tmp/backups/prod-backup-*.md` summary only): pending — copy the generated report path and status; do not commit or paste dump contents.
 - Backup file identifier: pending — record opaque backup filename/object key and creation timestamp; do not include storage credentials.
@@ -201,7 +203,7 @@ measured, write `not measured` and explain why.
 | Import provider status                  | not measured | not measured | not measured  | not measured       | beta host required |
 | Web `/work-archive-config.js`           | not measured | not measured | not measured  | not measured       | beta host required |
 
-Sync load dry-run (local, no API calls): PASS — run ID 20260701T123414Z-dbc2f428, 1000 synthetic records, 5 batches generated, status PASS. Live run requires beta host + disposable authenticated account.
+Sync load dry-run (local, no API calls): PASS — run ID 20260803T073619Z-f48f0c30, 1,000 synthetic records, 5 batches generated, status PASS. Live run requires beta host + disposable authenticated account.
 
 ## Decision
 
