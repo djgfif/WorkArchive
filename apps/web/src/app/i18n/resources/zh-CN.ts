@@ -1312,6 +1312,11 @@ export const zhCN = {
       conflictTitle: '{{count}} 个同步冲突',
       confirmResolutionDescription:
         '将“{{action}}”应用到 {{title}}。应用后仅可在 10 分钟内撤销。',
+      confirmApplyRemoteImpact: '这会用账户备份值替换整条本地记录。',
+      confirmKeepLocalImpact:
+        '不会应用账户备份值，并将本地记录重新设为等待备份。',
+      confirmMergeImpact:
+        '仅所选分组（{{fields}}）采用账户备份值，其余分组保留本地值。',
       confirmResolutionTitle: '要应用此冲突解决方案吗？',
       conflictDiffDescription:
         '仅显示不同的字段。选择合并会采用已勾选分组的服务器值。',
@@ -1370,6 +1375,12 @@ export const zhCN = {
         tags: '标签和类型',
       },
       mergeSelectedAction: '合并所选',
+      mergeDeletionWarning:
+        '删除状态会改变作品是否位于回收站。请再次确认应用结果。',
+      mergeSelectionDescription:
+        '所选分组将采用账户备份值，未选分组保留本地值。',
+      mergeSelectionEmpty: '尚未选择要从账户备份采用的分组。',
+      mergeSelectionSummary: '从账户备份采用：{{fields}}',
       noActionRequired: '当前无需操作',
       recoveryCount: '{{count}} 项',
       recoveryDescription:

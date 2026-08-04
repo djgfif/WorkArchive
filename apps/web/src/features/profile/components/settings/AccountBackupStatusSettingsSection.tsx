@@ -170,13 +170,14 @@ export function AccountBackupStatusSettingsSection({
     actionLabel: string,
     resolve: () => Promise<unknown>,
     successMessage: string,
+    impactMessage: string,
   ) {
     const confirmed = await confirmDialogAdapter.confirm({
       title: t('settings.dataSafety.confirmResolutionTitle'),
-      description: t('settings.dataSafety.confirmResolutionDescription', {
+      description: `${t('settings.dataSafety.confirmResolutionDescription', {
         action: actionLabel,
         title: itemTitle,
-      }),
+      })} ${impactMessage}`,
     });
 
     if (!confirmed) {
@@ -447,6 +448,11 @@ export function AccountBackupStatusSettingsSection({
               const selectedFields = mergeGroups
                 .filter((group) => selectedKeys.has(group.key))
                 .flatMap((group) => group.fields);
+              const selectedGroupLabels = mergeGroups
+                .filter((group) => selectedKeys.has(group.key))
+                .map((group) =>
+                  t(`settings.dataSafety.mergeFields.${group.key}`),
+                );
               const canApplyRemote = Boolean(item.conflictRemote);
               const canMergeSelected =
                 canApplyRemote && selectedFields.length > 0;
@@ -518,28 +524,52 @@ export function AccountBackupStatusSettingsSection({
                     )}
 
                     {mergeGroups.length > 0 && (
-                      <Checkbox.Group
-                        label={t('settings.dataSafety.mergeFieldLabel')}
-                        onChange={(values) =>
-                          setSelectedMergeGroups((current) => ({
-                            ...current,
-                            [item.id]: values as MergeGroupKey[],
-                          }))
-                        }
-                        value={selectedValues}
-                      >
-                        <div className={css.mergeFieldGrid ?? ''}>
-                          {mergeGroups.map((group) => (
-                            <Checkbox
-                              key={group.key}
-                              label={t(
-                                `settings.dataSafety.mergeFields.${group.key}`,
-                              )}
-                              value={group.key}
-                            />
-                          ))}
+                      <Stack gap="xs">
+                        <Checkbox.Group
+                          label={t('settings.dataSafety.mergeFieldLabel')}
+                          onChange={(values) =>
+                            setSelectedMergeGroups((current) => ({
+                              ...current,
+                              [item.id]: values as MergeGroupKey[],
+                            }))
+                          }
+                          value={selectedValues}
+                        >
+                          <div className={css.mergeFieldGrid ?? ''}>
+                            {mergeGroups.map((group) => (
+                              <Checkbox
+                                key={group.key}
+                                label={t(
+                                  `settings.dataSafety.mergeFields.${group.key}`,
+                                )}
+                                value={group.key}
+                              />
+                            ))}
+                          </div>
+                        </Checkbox.Group>
+                        <div className={css.mergeSelectionSummary ?? ''}>
+                          <Text c="dimmed" size="xs">
+                            {t('settings.dataSafety.mergeSelectionDescription')}
+                          </Text>
+                          <Text fw={750} size="xs">
+                            {selectedGroupLabels.length > 0
+                              ? t('settings.dataSafety.mergeSelectionSummary', {
+                                  fields: selectedGroupLabels.join(', '),
+                                })
+                              : t('settings.dataSafety.mergeSelectionEmpty')}
+                          </Text>
                         </div>
-                      </Checkbox.Group>
+                        {selectedKeys.has('deletion') && (
+                          <div
+                            className={css.mergeDeletionWarning ?? ''}
+                            role="note"
+                          >
+                            <Text fw={700} size="xs">
+                              {t('settings.dataSafety.mergeDeletionWarning')}
+                            </Text>
+                          </div>
+                        )}
+                      </Stack>
                     )}
 
                     <ActionRow>
@@ -553,6 +583,7 @@ export function AccountBackupStatusSettingsSection({
                             t('settings.dataSafety.keepLocalAction'),
                             () => syncService.resolveConflictWithLocal(item.id),
                             t('settings.dataSafety.resolveLocalSuccess'),
+                            t('settings.dataSafety.confirmKeepLocalImpact'),
                           )
                         }
                         tone="secondary"
@@ -571,6 +602,7 @@ export function AccountBackupStatusSettingsSection({
                             () =>
                               syncService.resolveConflictWithRemote(item.id),
                             t('settings.dataSafety.resolveRemoteSuccess'),
+                            t('settings.dataSafety.confirmApplyRemoteImpact'),
                           )
                         }
                         tone="quiet"
@@ -592,6 +624,9 @@ export function AccountBackupStatusSettingsSection({
                                 selectedFields,
                               ),
                             t('settings.dataSafety.resolveMergeSuccess'),
+                            t('settings.dataSafety.confirmMergeImpact', {
+                              fields: selectedGroupLabels.join(', '),
+                            }),
                           )
                         }
                         tone="quiet"

@@ -701,6 +701,24 @@
   gap: 0.55rem 0.85rem;
   margin-top: 0.55rem;
 }
+
+.mergeSelectionSummary {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--app-surface-muted) 72%, transparent);
+}
+
+.mergeDeletionWarning {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-card);
+  color: var(--app-text-primary);
+}
+
 .conflictDiffTable {
   overflow: hidden;
   border: 1px solid var(--app-border-subtle);

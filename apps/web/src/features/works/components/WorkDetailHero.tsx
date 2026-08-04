@@ -83,7 +83,11 @@ export function WorkDetailHero({
                   className={cn(css.detailHeroMetaDivider)}
                   component="span"
                 />
-                <Text c="var(--app-accent-warm)" fw={800} size="sm">
+                <Text
+                  className={cn(css.detailHeroFavorite)}
+                  fw={800}
+                  size="sm"
+                >
                   {t('works.detail.favoriteBadge')}
                 </Text>
               </>

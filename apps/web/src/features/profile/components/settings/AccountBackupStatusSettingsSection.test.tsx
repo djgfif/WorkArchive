@@ -12,7 +12,10 @@ import { AccountBackupStatusSettingsSection } from './AccountBackupStatusSetting
 
 const NOW = '2026-07-26T00:00:00.000Z';
 
-function buildWork(title: string, overrides: Partial<WorkRecord> = {}): WorkRecord {
+function buildWork(
+  title: string,
+  overrides: Partial<WorkRecord> = {},
+): WorkRecord {
   return {
     author: '',
     completedAt: null,
@@ -108,6 +111,12 @@ describe('AccountBackupStatusSettingsSection', () => {
     );
 
     expect(confirmDialogAdapter.confirm).toHaveBeenCalledTimes(1);
+    expect(confirmDialogAdapter.confirm).toHaveBeenCalledWith({
+      title: '충돌 해결을 적용할까요?',
+      description: expect.stringContaining(
+        '현재 내 기록 전체를 계정 백업 값으로 바꿉니다.',
+      ),
+    });
     expect(resolveSpy).toHaveBeenCalledWith(item.id);
     expect(
       await screen.findByRole('button', { name: '방금 해결 실행 취소' }),
@@ -121,5 +130,66 @@ describe('AccountBackupStatusSettingsSection', () => {
     expect(
       await screen.findByText('충돌 해결 전 기록과 대기열을 복원했습니다.'),
     ).toBeInTheDocument();
+  });
+
+  it('previews selected remote groups and warns before merging deletion state', async () => {
+    const user = userEvent.setup();
+    const item = buildConflictItem();
+    item.conflictRemote = buildWork('서버 제목', {
+      deletedAt: NOW,
+      serverVersion: 2,
+      syncStatus: 'synced',
+    });
+    vi.spyOn(confirmDialogAdapter, 'confirm').mockResolvedValue(true);
+    const resolveSpy = vi
+      .spyOn(syncService, 'resolveConflictWithMergedFields')
+      .mockResolvedValue(item.localSnapshot as WorkRecord);
+
+    renderWithProviders(
+      <MemoryRouter>
+        <AccountBackupStatusSettingsSection
+          conflictItems={[item]}
+          failedItems={[]}
+          lastSuccessfulPullAt={null}
+          mode="authenticated"
+          pendingItems={[]}
+          staleStatusAt={null}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByText('아직 계정 백업에서 가져올 항목을 선택하지 않았습니다.'),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('checkbox', { name: '제목과 작가·제작자' }),
+    );
+    await user.click(screen.getByRole('checkbox', { name: '삭제 상태' }));
+
+    expect(
+      screen.getByText(
+        '계정 백업에서 가져올 항목: 제목과 작가·제작자, 삭제 상태',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '삭제 상태는 작품의 휴지통 여부를 바꿉니다. 적용 결과를 한 번 더 확인하세요.',
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '선택 병합' }));
+
+    expect(resolveSpy).toHaveBeenCalledWith(item.id, [
+      'title',
+      'author',
+      'deletedAt',
+    ]);
+    expect(confirmDialogAdapter.confirm).toHaveBeenCalledWith({
+      title: '충돌 해결을 적용할까요?',
+      description: expect.stringContaining(
+        '선택한 항목(제목과 작가·제작자, 삭제 상태)만 계정 백업 값으로 바꾸고 나머지는 내 기록을 유지합니다.',
+      ),
+    });
   });
 });

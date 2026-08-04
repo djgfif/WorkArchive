@@ -634,6 +634,10 @@
   flex-shrink: 0;
 }
 
+.detailHeroFavorite {
+  color: var(--app-accent-primary);
+}
+
 .detailHeroShortReview {
   max-width: 62ch;
   color: var(--app-text-primary);
@@ -851,7 +855,14 @@
 }
 
 .detailStar[data-half='true'] {
-  opacity: 0.65;
+  color: transparent;
+  background: linear-gradient(
+    90deg,
+    var(--app-accent-warm) 50%,
+    var(--app-border-default) 50%
+  );
+  background-clip: text;
+  opacity: 1;
 }
 
 .detailTabs {

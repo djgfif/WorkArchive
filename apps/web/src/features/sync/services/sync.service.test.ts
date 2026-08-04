@@ -901,6 +901,45 @@ describe('SyncService', () => {
     );
     await expect(db.conflictRecovery.count()).resolves.toBe(0);
   });
+
+  it('keeps a conflict unchanged when the remote snapshot is missing', async () => {
+    const localWork = await worksService.createWork(
+      buildInput({
+        title: 'Local Missing Remote',
+      }),
+    );
+    const [queueItem] = await queueRepository.listAll();
+
+    await queueRepository.markConflict(
+      queueItem!.id,
+      'Remote snapshot unavailable',
+      null,
+      'conflict_remote_missing',
+    );
+    await worksRepository.update({
+      ...localWork,
+      syncStatus: 'conflict',
+    });
+
+    await expect(
+      syncService.resolveConflictWithRemote(queueItem!.id),
+    ).rejects.toThrow();
+
+    expect(await worksRepository.getById(localWork.id)).toEqual(
+      expect.objectContaining({
+        syncStatus: 'conflict',
+        title: 'Local Missing Remote',
+      }),
+    );
+    expect(await queueRepository.getById(queueItem!.id)).toEqual(
+      expect.objectContaining({
+        conflict: expect.objectContaining({
+          code: 'conflict_remote_missing',
+          remote: null,
+        }),
+      }),
+    );
+  });
   it('resolves a conflict by applying the remote work snapshot', async () => {
     const localWork = await worksService.createWork(
       buildInput({

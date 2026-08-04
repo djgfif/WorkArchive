@@ -588,9 +588,7 @@ describe('SettingsPage', () => {
     renderGuestSettings();
     await openSettingsSection(user, 'data-backup');
 
-    expect(
-      await screen.findByText('첫 기록 전 안전 설정'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('첫 기록 전 안전 설정')).toBeInTheDocument();
     expect(screen.getByText('로컬 기록')).toBeInTheDocument();
     expect(screen.getByText('마지막 JSON 백업')).toBeInTheDocument();
     expect(screen.getByText('마지막 성공 push')).toBeInTheDocument();
@@ -769,7 +767,7 @@ describe('SettingsPage', () => {
     expect(confirmSpy).toHaveBeenCalledWith({
       title: '충돌 해결을 적용할까요?',
       description: expect.stringContaining(
-        '“내 기록 유지” 작업을 적용합니다. 적용 직후 10분 동안만 실행 취소할 수 있습니다.',
+        '계정 백업 값은 적용하지 않고 내 기록을 다시 백업 대기 상태로 둡니다.',
       ),
     });
     expect(

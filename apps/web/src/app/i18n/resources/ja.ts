@@ -1394,6 +1394,12 @@ export const ja = {
       conflictTitle: '同期の競合 {{count}}件',
       confirmResolutionDescription:
         '{{title}}に「{{action}}」を適用します。直後10分間のみ元に戻せます。',
+      confirmApplyRemoteImpact:
+        '現在のローカル記録全体をアカウントバックアップの値に置き換えます。',
+      confirmKeepLocalImpact:
+        'アカウントバックアップの値は適用せず、自分の記録を再びバックアップ待ちにします。',
+      confirmMergeImpact:
+        '選択した項目（{{fields}}）だけアカウントバックアップの値を使い、それ以外はローカル記録を保持します。',
       confirmResolutionTitle: '競合解決を適用しますか？',
       conflictDiffDescription:
         '異なるフィールドのみ表示します。選択マージではチェックしたグループのサーバー値を使います。',
@@ -1452,6 +1458,14 @@ export const ja = {
         tags: 'タグとジャンル',
       },
       mergeSelectedAction: '選択してマージ',
+      mergeDeletionWarning:
+        '削除状態を変更すると作品がゴミ箱に入るかどうかが変わります。適用結果をもう一度確認してください。',
+      mergeSelectionDescription:
+        '選択した項目はアカウントバックアップの値に変わり、未選択の項目はローカル記録を保持します。',
+      mergeSelectionEmpty:
+        'アカウントバックアップから取り込む項目はまだ選択されていません。',
+      mergeSelectionSummary:
+        'アカウントバックアップから取り込む項目：{{fields}}',
       noActionRequired: '今必要な操作はありません',
       recoveryCount: '{{count}}件',
       recoveryDescription:

@@ -244,7 +244,7 @@ function getBadgeToneProps(tone: AppBadgeTone) {
     case 'info':
       return { color: 'blue' } as const;
     case 'warning':
-      return { color: 'yellow' } as const;
+      return { color: 'gray', variant: 'outline' } as const;
     case 'success':
       return { color: 'teal' } as const;
     case 'muted':

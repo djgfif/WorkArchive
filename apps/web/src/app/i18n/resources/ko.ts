@@ -1379,6 +1379,12 @@ export const ko = {
       conflictTitle: '동기화 충돌 {{count}}개',
       confirmResolutionDescription:
         '{{title}}에 “{{action}}” 작업을 적용합니다. 적용 직후 10분 동안만 실행 취소할 수 있습니다.',
+      confirmApplyRemoteImpact:
+        '현재 내 기록 전체를 계정 백업 값으로 바꿉니다.',
+      confirmKeepLocalImpact:
+        '계정 백업 값은 적용하지 않고 내 기록을 다시 백업 대기 상태로 둡니다.',
+      confirmMergeImpact:
+        '선택한 항목({{fields}})만 계정 백업 값으로 바꾸고 나머지는 내 기록을 유지합니다.',
       confirmResolutionTitle: '충돌 해결을 적용할까요?',
       conflictDiffDescription:
         '값이 다른 필드만 표시합니다. 선택 병합에서는 체크한 그룹의 서버 값을 가져옵니다.',
@@ -1437,6 +1443,13 @@ export const ko = {
         tags: '태그와 장르',
       },
       mergeSelectedAction: '선택 병합',
+      mergeDeletionWarning:
+        '삭제 상태는 작품의 휴지통 여부를 바꿉니다. 적용 결과를 한 번 더 확인하세요.',
+      mergeSelectionDescription:
+        '선택한 항목은 계정 백업 값으로 바뀌고, 선택하지 않은 항목은 내 기록을 유지합니다.',
+      mergeSelectionEmpty:
+        '아직 계정 백업에서 가져올 항목을 선택하지 않았습니다.',
+      mergeSelectionSummary: '계정 백업에서 가져올 항목: {{fields}}',
       noActionRequired: '지금 필요한 조치 없음',
       recoveryCount: '{{count}}개',
       recoveryDescription:

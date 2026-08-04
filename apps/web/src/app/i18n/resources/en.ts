@@ -1406,6 +1406,12 @@ export const en = {
       conflictTitle: '{{count}} sync conflicts',
       confirmResolutionDescription:
         'Apply “{{action}}” to {{title}}. You can undo only for 10 minutes immediately afterward.',
+      confirmApplyRemoteImpact:
+        'This replaces your entire local record with the account backup values.',
+      confirmKeepLocalImpact:
+        'Account backup values are not applied, and your record returns to awaiting backup.',
+      confirmMergeImpact:
+        'Only the selected groups ({{fields}}) take account backup values; everything else stays local.',
       confirmResolutionTitle: 'Apply this conflict resolution?',
       conflictDiffDescription:
         'Only differing fields are shown. Selected merge groups take their server values.',
@@ -1464,6 +1470,13 @@ export const en = {
         tags: 'Tags and genres',
       },
       mergeSelectedAction: 'Merge selected',
+      mergeDeletionWarning:
+        'The deletion state changes whether this work is in the trash. Review the result once more.',
+      mergeSelectionDescription:
+        'Selected groups take account backup values. Unselected groups keep your local values.',
+      mergeSelectionEmpty:
+        'No groups have been selected from account backup yet.',
+      mergeSelectionSummary: 'Taking from account backup: {{fields}}',
       noActionRequired: 'No action needed now',
       recoveryCount: '{{count}}',
       recoveryDescription:
