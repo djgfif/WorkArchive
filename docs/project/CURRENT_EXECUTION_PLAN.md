@@ -5,7 +5,7 @@
 | Status                | `active`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Role                  | `developer execution entrypoint`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | Source of truth       | `README.md`, `docs/project/CURRENT_STATUS_AND_FUTURE_PLAN_REPORT.md`, `docs/project/EXECUTION_ROADMAP.md`, `docs/project/ROADMAP_FEEDBACK_2026-06.md`, current local `master` working tree                                                                                                                                                                                                                                                                                                                                                       |
-| Last verified against | `2026-08-03` full local repository gates (`lint`, `typecheck`, 1,259 tests, production build), Archive Health review flow, source-aware automatic timeline, type-aware reread/rewatch quick record, local repeat-history insights, Home one-click progress logging, recent 28-day activity rhythm, route-level lazy loading, hardened automatic sync scheduling, and the enforced 650,000-byte web JavaScript chunk budget. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
+| Last verified against | `2026-08-04` full local code-completion gates (`lint`, `typecheck`, 1,265 tests, production build, desktop/mobile Playwright, Docker web image build), conflict impact preview, Studio UI polish, local credential-free Chrome search QA, and the enforced 650,000-byte web JavaScript chunk budget. External beta host, GitHub Settings, production release runner, monitoring, restore target, and disposable-account evidence remain pending. |
 | When to update        | 코드 현실, 실행 명령, 문서 기준점, 검증 정책, near-term 작업 순서가 바뀔 때                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 이 문서는 현재 작업자가 바로 개발을 이어가기 위한 실행 기준이다. 과거 milestone 문맥은 [`../archive/project/PLAN.md`](../archive/project/PLAN.md)에 보존돼 있지만, 현재 작업 기준으로 사용하지 않는다.
@@ -38,7 +38,10 @@ npm run dev
 - API health: http://localhost:18731/health
 - Swagger: http://localhost:18731/docs
 
-Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에서 실제 실행 검증하지 않았다. 실행하지 않은 Compose 검증은 통과로 기록하지 않는다.
+로컬 개발 Docker Compose는 2026-08-04에 web/API/PostgreSQL healthy 상태와
+`/readyz` 200 응답까지 확인했다. 이는 로컬 코드 완성 증적이며, 실제
+`.env.prod`를 사용하는 production compose와 Docker-enabled release runner
+검증을 대신하지 않는다.
 
 ## Current Architecture Facts
 
@@ -58,6 +61,10 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 - Sync conflict 해결은 로컬 유지, 원격 적용, 필드별 병합을 지원한다. 좁은 safe auto-merge는 동일 entity/parent, delete-update 충돌 없음, scalar field 동일 조건에서 taxonomy/alias 또는 server metadata만 병합하고 재시도 queue로 되돌린다.
 - overlapping scalar edit, delete/update collision, parent/ownership mismatch, unsupported payload는 자동 병합하지 않고 수동 검토 대상으로 남긴다.
 - auto sync push는 conflict queue item을 자동 전송하지 않고 수동 검토 대상으로 남긴다.
+- 수동 conflict 해결 화면은 실행 전에 로컬 유지/원격 덮어쓰기 범위와 선택한
+  필드 그룹을 요약하고, 삭제 상태가 포함된 항목은 별도 주의 문구를 표시한다.
+  원격 snapshot 부재, overlapping scalar edit, delete/update collision은 계속
+  자동 해결하지 않는다.
 - account archive activation pull은 같은 탭의 기존 queue push보다 먼저 완료된다.
 - push 실행 중 발생한 추가 queue 요청은 drain loop가 합쳐서 후속 push로
   처리한다.
@@ -106,7 +113,8 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 
 ## Current Follow-Up Work
 
-- provider별 live 검색어 QA와 ranking weight 튜닝
+- credentialed provider와 beta/staging 환경에서 live 검색어 QA 및 재현되는
+  ranking 회귀가 있을 때의 최소 weight/정규화 튜닝
 - Sync conflict safe auto-merge 정책 확장 여부 검토
 - 실제 계정/브라우저에서 account activation pull 직렬화, 다중 탭 lease,
   대용량 queue 재시도 증적 확보
@@ -157,10 +165,14 @@ Docker Compose는 설정 파일이 있지만, 이 문서 기준 최신 세션에
 
 대신 아래 기준으로 쓴다.
 
-- provider readiness, duplicate detection, ranking/search quality의 기본 구현/테스트는 완료, 실제 검색어 QA와 ranking polish는 후속
+- provider readiness, duplicate detection, ranking/search quality의 기본
+  구현/테스트와 로컬 credential-free 실검색 QA는 완료, credentialed
+  beta/staging 검색과 재현 가능한 ranking polish는 후속
 - authenticated direct create path는 현재 제품 기준에서 의도적으로 채택하지 않는 경로
 - Settings 계정 백업 섹션의 queue item 단위 상태/원인/기록 보기/재시도 CTA와 기본 conflict 해결 UX는 구현
-- Docker Compose, beta host, GitHub Settings, release runner, restore target은 실제 실행/확인하지 않았다면 미검증
+- 로컬 개발 Docker Compose 증적과 production compose, beta host, GitHub
+  Settings, release runner, restore target 증적을 구분하며, 실행하지 않은
+  운영 검증은 미검증으로 기록
 
 ## Validation Policy
 

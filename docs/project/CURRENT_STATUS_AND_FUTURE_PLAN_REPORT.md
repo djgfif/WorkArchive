@@ -5,7 +5,7 @@
 | Status                | `canonical`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Role                  | `current reality`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Source of truth       | `README.md`, `apps/web/src/app/router/routes.tsx`, `apps/web/src/features/works/db/work-archive.db.ts`, `apps/api/src/app.module.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/configure-app.ts`, `apps/api/src/modules/auth/auth.controller.ts`, package manifests                                                                                                                                                                                                                                                                        |
-| Last verified against | `2026-08-03` full local repository gates (`lint`, `typecheck`, 1,259 tests, production build), Archive Health review flow, source-aware automatic timeline, type-aware reread/rewatch quick record, local repeat-history insights, Home one-click progress logging, recent 28-day activity rhythm, route-level lazy loading, hardened automatic sync scheduling, and the enforced 650,000-byte web JavaScript chunk budget. External beta host, GitHub Settings, release runner, restore target, and disposable-account evidence remain pending. |
+| Last verified against | `2026-08-04` full local code-completion gates (`lint`, `typecheck`, 1,265 tests, production build, desktop/mobile Playwright, Docker web image build), conflict impact preview, Studio UI polish, local credential-free Chrome search QA, and the enforced 650,000-byte web JavaScript chunk budget. External beta host, GitHub Settings, production release runner, monitoring, restore target, and disposable-account evidence remain pending. |
 | When to update        | 실제 라우트, 저장 구조, API 모듈, 세션 저장 방식, 검증 표면, 현재 한계가 바뀔 때                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 이 문서는 Work Archive의 **현재 코드 기준 상태 보고서**다. 장기 비전과 확장 전략은 별도 로드맵 문서로 분리하고, 여기서는 지금 저장소가 실제로 무엇을 구현하고 있는지에만 집중한다.
@@ -307,6 +307,8 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - failed sync item의 인증/네트워크/conflict/server validation/server error 원인 분류
 - Sync conflict 원격 스냅샷 보존과 로컬 유지 / 원격 적용 / 필드별 병합 기본 해결 UX
 - Sync safe auto-merge: work taxonomy(`genres`, `personalTags`), contributor/series aliases, release/timeline/graph/tier-board server metadata refresh를 동일 entity/parent와 동일 scalar 조건에서만 병합하고 재시도 queue로 되돌림
+- Sync conflict 실행 전 로컬/원격 덮어쓰기 범위, 선택 필드 그룹, 삭제 상태
+  주의 문구를 보여주는 수동 검토 요약
 - auto sync push의 conflict queue item 자동 전송 제외
 - account archive activation pull의 기존 queue push 선행
 - push 실행 중 추가 queue 요청의 coalesced drain
@@ -328,7 +330,10 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 ### Not Yet Implemented
 
-- provider별 live 검색어 QA와 ranking weight 튜닝
+- credentialed provider와 beta/staging 환경의 live 검색어 QA, 실제로 재현되는
+  오순위에 대한 추가 ranking weight/정규화 튜닝. 로컬 credential-free
+  provider 실검색은 2026-08-04에 수행했고 재현 가능한 오순위가 없어 점수를
+  추측으로 변경하지 않았다.
 - Sync conflict overlapping scalar 자동 병합, base snapshot 기반 병합, 고급 다기기 충돌 정책
 - guest 기록 자동 병합 정책과 다기기 이관 UX
 - 자동 동기화의 실제 계정/브라우저, 다중 탭 lease, 대용량 queue 운영 증적.
@@ -410,19 +415,19 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 
 ### Current Verification Status
 
-- `npm run check:docs-links`: `2026-08-03` 문서 링크 갱신 후 통과 확인
-- `npm run lint`: `2026-08-03` 통과 확인
-- `npm run typecheck`: `2026-08-03` 통과 확인
-- `npm run test`: `2026-08-03` 기준 API `92` suites / `770` tests,
-  web `75` files / `483` tests, shared-types `2` files / `6` tests 통과 확인
-- `npm run build`: `2026-08-03` 기준 shared-types `tsc`, API `tsc`, web Vite production build 통과 확인
-- `npm run qa:web-bundle-budget:self-test`: `2026-08-03` 정상·상한 일치·상한
+- `npm run check:docs-links`: `2026-08-04` 문서 링크 갱신 후 통과 확인
+- `npm run lint`: `2026-08-04` 통과 확인
+- `npm run typecheck`: `2026-08-04` 통과 확인
+- `npm run test`: `2026-08-04` 기준 API `92` suites / `770` tests,
+  web `75` files / `489` tests, shared-types `2` files / `6` tests 통과 확인
+- `npm run build`: `2026-08-04` 기준 shared-types `tsc`, API `tsc`, web Vite production build 통과 확인
+- `npm run qa:web-bundle-budget:self-test`: `2026-08-04` 정상·상한 일치·상한
   초과·빈 산출물·잘못된 예산 fixture 통과 확인
 - web route build는 auth/profile/insights 페이지를 각각의 실제 동적 import로
   분리한다. 기존 `auth` 671,959바이트 청크를 제거했고, 현재 최대 JavaScript
-  청크는 565,115바이트로 650,000바이트 강제 상한을 통과한다.
-- `npm run test:e2e:web`: `2026-07-03` 기준 `WEB_E2E_PORT=19999`로
-  chromium/mobile-chrome Playwright `19` passed / `3` skipped 확인. mobile Add
+  청크는 568,218바이트로 650,000바이트 강제 상한을 통과한다.
+- `npm run test:e2e:web`: `2026-08-04` 기준 `WEB_E2E_PORT=19999`로
+  chromium/mobile-chrome Playwright `23` passed / `3` skipped 확인. mobile Add
   Work footer overlap, mobile drawer navigation, 320px overflow, Settings
   provider readiness, Quick Add source coverage 표시, 검색 실패 직접 추가
   fallback 회귀를 포함한다. API가 같이 뜨지 않은 로컬 Vite 단독 실행에서는
@@ -435,22 +440,30 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
   raw `private` enum과 `링크 공유` 선택지를 노출하지 않음을 확인했다. 스크린샷은
   `output/playwright/tier-board-private-state.png`에 남겼고, 이 경로는 추적하지
   않는다.
-- `npm run qa:import-search`: `2026-07-01` 기준 offline static fixtures,
+- `npm run qa:import-search`: `2026-08-04` 기준 offline static fixtures,
   canonical matrix `28` cases, live smoke `6` cases / credential-free
   provider-quality media types `3`, live-smoke manifest, matrix shape,
   runbook linkage 통과 확인
 - `npm run qa:sync-load`: `2026-07-01` 기준 dry-run synthetic payload
+- `IMPORT_SEARCH_QA_LIVE=true IMPORT_QA_BASE_URL=http://127.0.0.1:18730 npm run
+  qa:import-search`: `2026-08-04` 로컬 개발 Compose에서 fallback safety `1/1`,
+  credential-free provider-quality 매체 `4`종, smoke case `6`개 통과. Google
+  Books 실패와 circuit open 중에도 Open Library/Wikidata/AniList 결과와 직접
+  추가 fallback이 유지됐다. 이 로컬 무인증 결과는 beta/staging 인증 QA를
+  대신하지 않는다.
   `1000` records / batch size `200` validation 통과 확인
 - `npm run qa:docker-runtime:self-test`: `2026-07-01` 기준 fake Docker CLI로
   config-only PASS, build-mode PASS, Docker version failure BLOCKED, invalid
   boolean failure, report redaction behavior 통과 확인
-- `npm run qa:docker-runtime`: `2026-07-01` 기준 report
-  `tmp/docker-runtime/docker-runtime-preflight-20260701T120857Z.md` 생성 확인.
-  현재 WSL 환경에서는 Docker CLI path만 확인되고 `docker --version`이 WSL
-  socket/vsock 오류로 `BLOCKED`다. 이는 제품 실패가 아니라 release runner
-  재실행 필요 증적이다.
+- 로컬 개발 Docker Compose는 `2026-08-04` web/API/PostgreSQL healthy 상태와
+  API `/readyz` 200을 확인했다. 이는 개발 번들/런타임 증적이며 `.env.prod`,
+  production compose, release runner 증적은 아니다.
+- `npm run qa:docker-runtime`의 과거 `2026-07-01` release preflight report는
+  WSL socket/vsock 오류로 `BLOCKED`였다. 로컬 개발 Compose가 실행됐더라도
+  `DOCKER_RUNTIME_BUILD=true` production release-runner 증적은 별도로 남아 있다.
 - GitHub Actions `validate` workflow는 PR/push에서 lint/typecheck/test/build를 실행하도록 `.github/workflows/validate.yml`에 존재한다. Required checks 적용은 GitHub repository setting에서 관리한다.
-- `docker compose --env-file .env.example up --build -d`: `2026-04-24` 기준 이 세션에서는 미검증. 현재 WSL distro에서는 `npm run qa:docker-runtime`이 Docker runtime `BLOCKED`를 기록했다.
+- `docker compose --env-file .env.compose up --build -d`: `2026-08-04` 로컬
+  개발 web/API/PostgreSQL 실행 및 health 확인. production compose는 미검증이다.
 
 ## 7. Immediate Limitations
 
@@ -459,7 +472,10 @@ Current session policy: refresh sessions are stored in `UserRefreshSession` / `u
 - Mantine foundation은 도입됐지만 스타일 책임은 아직 `global.css`와 페이지별 클래스 조합에 크게 남아 있다.
 - shared UI primitives가 생기고 있지만 `var(--accent)`류 직접 참조와 커스텀 클래스 조합 의존이 여전히 크다.
 - 과거 placeholder 성격이던 Tier Boards는 독립 보드 기능으로 구현됐고, Community는 라우트 호환 redirect만 유지한다. 남은 프론트 부채는 placeholder보다 스타일 책임과 QA 증적 고도화 쪽에 가깝다.
-- 직접 수동 추가, `/works` AddWorkDialog, `/works/new` fallback, guest no-key provider 검색, ranking/search quality 기본 구현/테스트는 들어갔다. 남은 일은 provider별 live 검색어 QA와 모바일/브라우저 QA 고도화다.
+- 직접 수동 추가, `/works` AddWorkDialog, `/works/new` fallback, guest no-key
+  provider 검색, ranking/search quality 기본 구현/테스트와 로컬
+  credential-free Chrome QA는 완료했다. 남은 일은 credentialed beta/staging
+  검색과 운영 브라우저 증적 고도화다.
 - Quick Add provider readiness UI, Settings provider readiness/data-safety/account-backup summary, duplicate policy, SearchPickerPanel 기반 inline 검색 흐름의 기본 구현/테스트는 들어갔다.
 - Quick Add 저장은 현재 제품 기준에서 의도적으로 local-first sync 경로를 유지한다. authenticated direct create path는 기본 생성 경로가 아니다.
 
@@ -476,7 +492,11 @@ also get serialized pull-before-push, coalesced push drain, and availability-bas
 - Settings 계정 백업 섹션은 pending / failed / conflict queue item 단위 상태와 원인별 복구 그룹, 기록 보기, 재시도 CTA를 제공한다.
   다른 탭이 lease를 보유한 경우에는 성공으로 오인하지 않고 지연 후 자동
   재시도한다.
-- Settings 계정 백업 섹션은 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지, 원격 적용, 필드별 병합으로 해결할 수 있다. 좁은 safe auto-merge는 자동 처리되지만, overlapping scalar 편집과 delete/update collision은 후속 수동 검토로 남긴다.
+- Settings 계정 백업 섹션은 conflict 항목에서 원격 스냅샷을 비교하고 로컬 유지,
+  원격 적용, 필드별 병합으로 해결할 수 있다. 실행 전 덮어쓰기 범위와 선택한
+  필드 그룹을 요약하고 삭제 상태가 포함되면 주의 문구를 표시한다. 좁은 safe
+  auto-merge는 자동 처리되지만, overlapping scalar 편집과 delete/update
+  collision은 후속 수동 검토로 남긴다.
 - auto sync push는 conflict queue item을 자동 전송하지 않고 수동 검토 대상으로 남긴다.
 - guest local-first write는 자동 pull/push를 시작하지 않고 로그인 archive와 분리된다.
 - Profile과 Insights는 개인 기록 요약/통계로 제한한다. Tier Boards는 독립 기능으로 유지한다. Community는 현재 visible surface가 아니며 `/community`는 작품 목록으로 리다이렉트한다.
