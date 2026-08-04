@@ -17,6 +17,7 @@ RUN npm ci --ignore-scripts
 COPY apps/web apps/web
 COPY packages/shared-types packages/shared-types
 COPY packages/tsconfig packages/tsconfig
+COPY scripts/qa/validate-web-bundle-budget.mjs scripts/qa/validate-web-bundle-budget.mjs
 
 RUN npm run build --workspace @work-archive/shared-types
 RUN npm run build --workspace @work-archive/web
