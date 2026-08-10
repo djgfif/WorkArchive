@@ -1,3 +1,5 @@
+import type { DeploymentProfile } from './deployment-profile';
+
 export type FeatureFlagKey =
   | 'diagnostics'
   | 'publicShare'
@@ -11,6 +13,7 @@ type FeatureFlagOverrides = Partial<Record<FeatureFlagKey, boolean | string | nu
 declare global {
   interface Window {
     __WORK_ARCHIVE_CONFIG__?: {
+      deploymentProfile?: DeploymentProfile;
       featureFlags?: FeatureFlagOverrides;
     };
   }
