@@ -10,7 +10,7 @@ function createEnv() {
     ASSETS: {
       async fetch(request) {
         const path = new URL(request.url).pathname;
-        if (path === '/index.html') {
+        if (path === '/') {
           return new Response('<!doctype html><div id="root"></div>', {
             headers: { 'content-type': 'text/html; charset=utf-8' },
           });
@@ -38,7 +38,7 @@ test('returns a deterministic 503 for API routes', async () => {
   assert.equal((await response.json()).code, 'API_NOT_CONFIGURED');
 });
 
-test('serves assets and falls back to index.html for browser routes', async () => {
+test('serves assets and falls back to the root SPA document for browser routes', async () => {
   const env = createEnv();
   const asset = await worker.fetch(
     new Request('https://preview.example/assets/app.js'),

@@ -45,7 +45,7 @@ const worker = {
 
     if (response.status === 404 && request.method === 'GET' && acceptsHtml) {
       response = await env.ASSETS.fetch(
-        new Request(new URL('/index.html', request.url), request),
+        new Request(new URL('/', request.url), request),
       );
     }
 
