@@ -524,6 +524,9 @@ export const ja = {
     guest: 'ゲスト',
     guestLocalStorage: 'ゲスト - ローカル保存',
     guestMode: 'ゲストモード',
+    sitesPocNotice:
+      '非公開検証環境 · データはこのブラウザーにのみ保存されます。ログイン、同期、外部検索は利用できません。',
+    sitesPocNoticeAria: '非公開Sites検証環境のお知らせ',
     archiveScope: {
       accountOwner: '{{name}}のアカウントアーカイブ',
       ariaLabel: '現在のアーカイブ: {{owner}}、{{status}}',
@@ -693,6 +696,8 @@ export const ja = {
     loadingTitle: 'アカウント設定を準備しています',
     pageDescription:
       'アカウント連携・ローカルバックアップ・検索ソース・APIキー・セッションセキュリティを一か所で管理します。',
+    pageDescriptionSitesPoc:
+      'このブラウザーのローカル記録、JSONバックアップ、ファイル取り込み、表示設定を管理します。',
     pageEyebrow: '設定',
     pageTitle: '設定とバックアップ',
     sections: {
@@ -894,6 +899,7 @@ export const ja = {
       advancedTitle: '詳細設定と診断',
       dataSafetyAdvancedTitle:
         '自動バックアップ・ストレージ保護・アカウント同期',
+      dataSafetyAdvancedTitleSitesPoc: '自動バックアップ・ストレージ保護',
       mobileNavAria: '設定モバイルセクションのナビゲーション',
       primaryNavAria: '主要設定のナビゲーション',
       sideNavAria: '設定サイドセクションのナビゲーション',
@@ -2190,6 +2196,8 @@ export const ja = {
       fieldTitle: 'タイトル',
       flowDescription:
         'タイトル・状態・評価ですぐ保存し、検索と作品情報の補完は必要なときだけ使います。',
+      flowDescriptionSitesPoc:
+        'タイトル・状態・評価ですぐ保存します。この環境では作品検索を使わず手動で記録します。',
       flowTitle: '新しい作品記録',
       optionalFieldsTitle: '種類・感想・詳細情報を追加',
       optionalFieldsDescription:
@@ -2743,6 +2751,8 @@ export const ja = {
       emptyActiveDescription:
         'タイトルだけ残す、検索で基本情報を取り込む、既存のJSONバックアップから再開する、のいずれもできます。',
       emptyActiveEyebrow: '空の棚',
+      emptyActiveSitesPocDescription:
+        'タイトルを手動で追加するか、既存のJSONバックアップから再開できます。すべての記録はこのブラウザーにのみ保存されます。',
       emptyActiveTitle: 'まだ記録した作品がありません。',
       emptyFilterDescription: '検索語やフィルターを変えて探し直してください。',
       emptyFilterEyebrow: '検索結果なし',

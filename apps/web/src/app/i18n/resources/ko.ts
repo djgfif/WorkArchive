@@ -510,6 +510,9 @@ export const ko = {
     guest: '게스트',
     guestLocalStorage: '게스트 - 로컬 저장',
     guestMode: '게스트 모드',
+    sitesPocNotice:
+      '비공개 검증 환경 · 이 브라우저에만 저장됩니다. 로그인, 동기화, 외부 검색은 제공되지 않습니다.',
+    sitesPocNoticeAria: '비공개 Sites 검증 환경 안내',
     archiveScope: {
       accountOwner: '{{name}}의 계정 보관함',
       ariaLabel: '현재 보관함: {{owner}}, {{status}}',
@@ -679,6 +682,8 @@ export const ko = {
     loadingTitle: '계정 설정을 준비하고 있습니다',
     pageDescription:
       '계정 연결, 로컬 백업, 검색 소스, API 키, 세션 보안을 한 곳에서 관리합니다.',
+    pageDescriptionSitesPoc:
+      '이 브라우저의 로컬 기록, JSON 백업, 파일 가져오기와 표시 설정을 관리합니다.',
     pageEyebrow: '설정',
     pageTitle: '설정과 백업',
     sections: {
@@ -879,6 +884,7 @@ export const ko = {
     layout: {
       advancedTitle: '고급 설정 및 진단',
       dataSafetyAdvancedTitle: '자동 백업 · 저장소 보호 · 계정 동기화',
+      dataSafetyAdvancedTitleSitesPoc: '자동 백업 · 저장소 보호',
       mobileNavAria: '설정 모바일 섹션 탐색',
       primaryNavAria: '주요 설정 탐색',
       sideNavAria: '설정 사이드 섹션 탐색',
@@ -2167,6 +2173,8 @@ export const ko = {
       fieldTitle: '제목',
       flowDescription:
         '제목·상태·별점으로 바로 저장하고, 검색과 작품 정보 보강은 필요할 때만 사용합니다.',
+      flowDescriptionSitesPoc:
+        '제목·상태·별점으로 바로 저장합니다. 이 환경에서는 작품 검색 없이 직접 기록합니다.',
       flowTitle: '새 작품 기록',
       optionalFieldsTitle: '유형 · 감상 · 상세 정보 더하기',
       optionalFieldsDescription:
@@ -2714,6 +2722,8 @@ export const ko = {
       emptyActiveDescription:
         '제목만 직접 남기거나, 검색으로 기본 정보를 불러오거나, 기존 JSON 백업에서 다시 시작할 수 있습니다.',
       emptyActiveEyebrow: '빈 선반',
+      emptyActiveSitesPocDescription:
+        '제목을 직접 남기거나 기존 JSON 백업에서 다시 시작할 수 있습니다. 모든 기록은 이 브라우저에만 저장됩니다.',
       emptyActiveTitle: '아직 기록한 작품이 없습니다.',
       emptyFilterDescription: '검색어나 필터를 바꿔 다시 찾아보세요.',
       emptyFilterEyebrow: '검색 결과 없음',

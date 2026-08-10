@@ -28,6 +28,8 @@ import {
   CommandPalette,
   COMMAND_PALETTE_EVENT,
 } from '@shared/components/CommandPalette';
+import { SitesPocNotice } from '@shared/components/SitesPocNotice';
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import { useWorkLinkKeyboardNav } from '@shared/components/useWorkLinkKeyboardNav';
 import { getPrimaryNavigationItems } from './navigation';
 import styles from './MainProductLayout.module.css';
@@ -38,6 +40,7 @@ const css = styles;
 
 export function MainProductLayout() {
   const { t } = useAppTranslation();
+  const sitesGuestPoc = isSitesGuestPoc();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpened, mobileMenu] = useDisclosure(false);
@@ -109,9 +112,11 @@ export function MainProductLayout() {
             >
               <span aria-hidden="true">⌘K</span>
             </Box>
-            <Box visibleFrom="sm">
-              <SyncSafetyBadge />
-            </Box>
+            {!sitesGuestPoc && (
+              <Box visibleFrom="sm">
+                <SyncSafetyBadge />
+              </Box>
+            )}
 
             {/* 작품 추가 — 모바일: 아이콘, 데스크탑: 텍스트 포함 */}
             <Link
@@ -183,12 +188,14 @@ export function MainProductLayout() {
                   </Group>
                 </Box>
 
-                <Menu.Item
-                  className={cn(css.accountMenuItem)}
-                  onClick={() => navigate('/account')}
-                >
-                  {t('navigation.accountOverview')}
-                </Menu.Item>
+                {!sitesGuestPoc && (
+                  <Menu.Item
+                    className={cn(css.accountMenuItem)}
+                    onClick={() => navigate('/account')}
+                  >
+                    {t('navigation.accountOverview')}
+                  </Menu.Item>
+                )}
                 <Menu.Item
                   className={cn(css.accountMenuItem)}
                   onClick={() => navigate('/account/settings')}
@@ -214,7 +221,7 @@ export function MainProductLayout() {
                   >
                     {t('navigation.logout')}
                   </Menu.Item>
-                ) : (
+                ) : !sitesGuestPoc ? (
                   <Menu.Item
                     className={cn(css.accountMenuItem)}
                     onClick={() =>
@@ -225,7 +232,7 @@ export function MainProductLayout() {
                   >
                     {t('navigation.login')}
                   </Menu.Item>
-                )}
+                ) : null}
               </Menu.Dropdown>
             </Menu>
 
@@ -244,6 +251,7 @@ export function MainProductLayout() {
 
       {/* ── 콘텐츠 영역 ── */}
       <main className={`app-content ${css.pageTransition}`}>
+        <SitesPocNotice />
         <ArchiveScopeIndicator />
         {isLoading ? (
           <Box p="xl">
@@ -333,7 +341,7 @@ export function MainProductLayout() {
             <ThemeToggleControl fullWidth />
           </Box>
 
-          <SyncSafetyBadge />
+          {!sitesGuestPoc && <SyncSafetyBadge />}
 
           {isAuthenticated ? (
             <Stack gap="xs">
@@ -362,6 +370,15 @@ export function MainProductLayout() {
                 {t('navigation.logout')}
               </AppButton>
             </Stack>
+          ) : sitesGuestPoc ? (
+            <AppLinkButton
+              fullWidth
+              onClick={mobileMenu.close}
+              to="/account/settings"
+              tone="secondary"
+            >
+              {t('navigation.settingsBackup')}
+            </AppLinkButton>
           ) : (
             <AppLinkButton
               fullWidth

@@ -27,6 +27,10 @@ import {
 } from './page-route-components';
 import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
 import { featureFlags, type FeatureFlags } from '@shared/runtime/feature-flags';
+import {
+  deploymentProfile,
+  type DeploymentProfile,
+} from '@shared/runtime/deployment-profile';
 import { HomePage } from '@features/home';
 import { StateMessage } from '@shared/components/AppPrimitives';
 import { appI18n } from '@app/i18n';
@@ -72,7 +76,9 @@ function tierBoardElement(flags: FeatureFlags, element: ReactNode) {
 
 export function createAppRoutes(
   flags: FeatureFlags = featureFlags,
+  profile: DeploymentProfile = deploymentProfile,
 ): RouteObject[] {
+  const sitesGuestPoc = profile === 'sites-guest-poc';
   return [
     {
       element: <MainProductLayout />,
@@ -164,7 +170,9 @@ export function createAppRoutes(
         },
         {
           path: 'profile',
-          element: lazyRoute(<ProfilePage />),
+          element: sitesGuestPoc ? (
+            <Navigate replace to="/" />
+          ) : lazyRoute(<ProfilePage />),
           errorElement: routeError(
             appI18n.t('routes.profileError'),
             '/account',
@@ -179,7 +187,9 @@ export function createAppRoutes(
       children: [
         {
           path: 'login',
-          element: lazyRoute(<LoginPage />),
+          element: sitesGuestPoc ? (
+            <Navigate replace to="/" />
+          ) : lazyRoute(<LoginPage />),
           errorElement: routeError(
             appI18n.t('routes.loginError'),
             '/works',
@@ -192,7 +202,9 @@ export function createAppRoutes(
         },
         {
           path: 'google/complete',
-          element: lazyRoute(<GoogleAuthCompletePage />),
+          element: sitesGuestPoc ? (
+            <Navigate replace to="/" />
+          ) : lazyRoute(<GoogleAuthCompletePage />),
           errorElement: routeError(
             appI18n.t('routes.googleCompleteError'),
             '/auth/login',
@@ -215,7 +227,9 @@ export function createAppRoutes(
       children: [
         {
           index: true,
-          element: lazyRoute(<AccountOverviewPage />),
+          element: sitesGuestPoc ? (
+            <Navigate replace to="/account/settings" />
+          ) : lazyRoute(<AccountOverviewPage />),
           errorElement: routeError(
             appI18n.t('routes.accountOverviewError'),
             '/works',
@@ -224,7 +238,9 @@ export function createAppRoutes(
         },
         {
           path: 'transfer',
-          element: lazyRoute(<GuestTransferReviewPage />),
+          element: sitesGuestPoc ? (
+            <Navigate replace to="/account/settings" />
+          ) : lazyRoute(<GuestTransferReviewPage />),
           errorElement: routeError(
             appI18n.t('routes.transferError'),
             '/account',

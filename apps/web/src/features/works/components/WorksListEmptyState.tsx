@@ -1,4 +1,5 @@
 import { AppButton, AppLinkButton } from '@shared/components/AppPrimitives';
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import { useAppTranslation } from '@app/i18n';
 import type { WorksCollectionScope } from '../services/works.service';
 import { ArchiveEmptyState } from './ArchiveComponents';
@@ -20,6 +21,7 @@ export function WorksListEmptyState({
 }: WorksListEmptyStateProps) {
   const { t } = useAppTranslation();
   const isTrashScope = collectionScope === 'trash';
+  const sitesGuestPoc = isSitesGuestPoc();
 
   return (
     <ArchiveEmptyState
@@ -43,13 +45,15 @@ export function WorksListEmptyState({
               <AppLinkButton to="/works/new" tone="primary">
                 {t('works.list.directAdd')}
               </AppLinkButton>
-              <AppButton
-                onClick={onOpenAddDialog}
-                tone="secondary"
-                type="button"
-              >
-                {t('works.list.searchAdd')}
-              </AppButton>
+              {!sitesGuestPoc && (
+                <AppButton
+                  onClick={onOpenAddDialog}
+                  tone="secondary"
+                  type="button"
+                >
+                  {t('works.list.searchAdd')}
+                </AppButton>
+              )}
               <AppLinkButton to="/account/settings" tone="quiet">
                 {t('works.list.importJsonBackup')}
               </AppLinkButton>
@@ -62,7 +66,9 @@ export function WorksListEmptyState({
           ? t('works.list.emptyTrashDescription')
           : hasActiveFilters
             ? t('works.list.emptyFilterDescription')
-            : t('works.list.emptyActiveDescription')
+            : t(
+                sitesGuestPoc ? 'works.list.emptyActiveSitesPocDescription' : 'works.list.emptyActiveDescription',
+              )
       }
       eyebrow={
         isTrashScope

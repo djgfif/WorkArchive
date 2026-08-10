@@ -6,6 +6,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import {
   ApiRequestError,
   getGoogleLoginStartUrl,
@@ -89,23 +90,29 @@ function consumeGoogleReturnTo() {
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const sitesGuestPoc = isSitesGuestPoc();
   const initialIdentityRef = useRef<
     ReturnType<typeof readStoredArchiveIdentity> | undefined
   >(undefined);
 
   if (initialIdentityRef.current === undefined) {
-    initialIdentityRef.current = readStoredArchiveIdentity();
-
-    if (initialIdentityRef.current) {
-      workArchiveDbManager.switchToUser(initialIdentityRef.current.user.id);
+    if (sitesGuestPoc) {
+      initialIdentityRef.current = null;
+      workArchiveDbManager.switchToGuest();
+    } else {
+      initialIdentityRef.current = readStoredArchiveIdentity();
+      if (initialIdentityRef.current) {
+        workArchiveDbManager.switchToUser(initialIdentityRef.current.user.id);
+      }
     }
   }
 
   const initialUser = initialIdentityRef.current?.user ?? null;
   const [user, setUser] = useState<AuthUser | null>(initialUser);
-  const [isLoading, setIsLoading] = useState(true);
-  const [sessionStatus, setSessionStatus] =
-    useState<AuthSessionStatus>('restoring');
+  const [isLoading, setIsLoading] = useState(!sitesGuestPoc);
+  const [sessionStatus, setSessionStatus] = useState<AuthSessionStatus>(
+    sitesGuestPoc ? 'guest' : 'restoring',
+  );
   const [archiveScopeKey, setArchiveScopeKey] = useState(
     workArchiveDbManager.getCurrentScopeKey(),
   );
@@ -169,6 +176,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let isCancelled = false;
     const restoreGeneration = sessionGenerationRef.current;
+    if (sitesGuestPoc) {
+      return undefined;
+    }
+
 
     if (isGoogleAuthCompletePath()) {
       startupRestoreGenerationRef.current = null;
@@ -233,7 +244,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isCancelled = true;
       unsubscribe();
     };
-  }, [activateAuthenticatedArchive, retainAccountArchive]);
+  }, [activateAuthenticatedArchive, retainAccountArchive, sitesGuestPoc]);
 
   useEffect(() => {
     if (sessionStatus !== 'offline') {

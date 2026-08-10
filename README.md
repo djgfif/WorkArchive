@@ -8,6 +8,7 @@ archive through the API.
 ## Stack
 
 - Web: React, Vite, TypeScript, Mantine, Dexie, React Router
+- Product site: vinext and Codex Sites (apps/site)
 - API: NestJS, Prisma, PostgreSQL
 - Monorepo: npm workspaces with shared TypeScript and ESLint packages
 - Runtime: Docker Compose for local full-stack development
@@ -17,6 +18,7 @@ archive through the API.
 | Path                       | Purpose                                                       |
 | -------------------------- | ------------------------------------------------------------- |
 | [`apps/web`](./apps/web)   | React/Vite client                                             |
+| [apps/site](./apps/site)   | Private product introduction site for Codex Sites             |
 | [`apps/api`](./apps/api)   | NestJS API and Prisma schema                                  |
 | [`packages`](./packages)   | shared types, ESLint config, TypeScript config                |
 | [`scripts`](./scripts)     | development, deployment, and security automation              |
@@ -50,6 +52,26 @@ npm run dev:stop
 Host-based watch mode, Windows helper launchers, and environment file details
 are documented in
 [`docs/getting-started/LOCAL_DEVELOPMENT.md`](./docs/getting-started/LOCAL_DEVELOPMENT.md).
+
+## Private Sites POC
+
+The private Sites proof of concept is separate from the Docker beta and
+production runtime. It consists of a read-only product site and a guest-only
+build of the existing web app:
+
+    npm run dev --workspace @work-archive/site
+    npm run build --workspace @work-archive/site
+    npm run test --workspace @work-archive/site
+    npm run build:sites --workspace @work-archive/web
+
+Set APP_POC_URL only for the product site when its secondary CTA should open
+the private app preview. The app preview uses the sites-guest-poc deployment
+profile and stores disposable records in the current browser's IndexedDB; it
+does not connect to the API, OAuth, account sync, or external search.
+
+Deployment, verification, and rollback are documented in
+[the private Sites POC runbook](./docs/operations/SITES_PRIVATE_POC.md).
+
 
 ## Public Repository Safety
 

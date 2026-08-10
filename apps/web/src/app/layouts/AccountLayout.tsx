@@ -18,11 +18,13 @@ import {
   ThemeToggleControl,
 } from '@shared/components/AppPrimitives';
 import { useAppTranslation } from '@app/i18n';
+import { SitesPocNotice } from '@shared/components/SitesPocNotice';
 import {
   ArchiveScopeIndicator,
   getUserAvatarProfile,
   useAuthSession,
 } from '@features/auth';
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import { cn, cx } from '@shared/utils/class-names';
 
 import styles from './AccountLayout.module.css';
@@ -127,6 +129,7 @@ export function AccountLayout() {
   const { t } = useAppTranslation();
   const { isLoading, mode, signOut, user } = useAuthSession();
   const isAuthenticated = mode === 'authenticated';
+  const sitesGuestPoc = isSitesGuestPoc();
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
 
   async function handleSignOut() {
@@ -143,6 +146,7 @@ export function AccountLayout() {
 
   return (
     <main className="layout-shell layout-shell--account">
+      <SitesPocNotice topOffset="page" />
       <Container px="md" size={1360}>
         <ArchiveScopeIndicator />
         <Grid align="start" gap="xl" mt="md">
@@ -155,6 +159,7 @@ export function AccountLayout() {
               isAuthenticated={isAuthenticated}
               loginReturnTo={loginReturnTo}
               onSignOut={() => void handleSignOut()}
+              sitesGuestPoc={sitesGuestPoc}
               variant="mobile"
             />
           </Grid.Col>
@@ -169,6 +174,7 @@ export function AccountLayout() {
                 isAuthenticated={isAuthenticated}
                 loginReturnTo={loginReturnTo}
                 onSignOut={() => void handleSignOut()}
+                sitesGuestPoc={sitesGuestPoc}
                 variant="desktop"
               />
             </Box>
@@ -198,6 +204,7 @@ interface AccountSidebarProps {
   isAuthenticated: boolean;
   loginReturnTo: string;
   onSignOut: () => void;
+  sitesGuestPoc: boolean;
   variant: 'desktop' | 'mobile';
 }
 
@@ -209,6 +216,7 @@ function AccountSidebar({
   loginReturnTo,
   onSignOut,
   variant,
+  sitesGuestPoc,
 }: AccountSidebarProps) {
   const isMobile = variant === 'mobile';
   const { t } = useAppTranslation();
@@ -269,15 +277,17 @@ function AccountSidebar({
           className={cn(styles.navSection)}
         >
           <Stack className={cx(isMobile && styles.mobileNavList)} gap={2}>
-            {accountNavigationItems.map((item) => (
-              <AccountNavItem
-                end={item.to === '/account'}
-                icon={item.icon}
-                key={item.to}
-                label={t(item.labelKey)}
-                to={item.to}
-              />
-            ))}
+            {accountNavigationItems
+              .filter((item) => !sitesGuestPoc || item.to !== '/account')
+              .map((item) => (
+                <AccountNavItem
+                  end={item.to === '/account'}
+                  icon={item.icon}
+                  key={item.to}
+                  label={t(item.labelKey)}
+                  to={item.to}
+                />
+              ))}
           </Stack>
         </Box>
 
@@ -315,7 +325,7 @@ function AccountSidebar({
                 </Box>
                 {t('navigation.logout')}
               </Box>
-            ) : (
+            ) : sitesGuestPoc ? null : (
               <AccountNavItem
                 end={false}
                 icon={<IconLogin />}

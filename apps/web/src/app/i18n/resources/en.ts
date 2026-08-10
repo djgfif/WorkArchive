@@ -525,6 +525,9 @@ export const en = {
     guest: 'Guest',
     guestLocalStorage: 'Guest - local storage',
     guestMode: 'Guest mode',
+    sitesPocNotice:
+      'Private preview · Saved only in this browser. Sign-in, sync, and external search are unavailable.',
+    sitesPocNoticeAria: 'Private Sites preview notice',
     archiveScope: {
       accountOwner: "{{name}}'s account archive",
       ariaLabel: 'Current archive: {{owner}}, {{status}}',
@@ -699,6 +702,8 @@ export const en = {
     loadingTitle: 'Preparing your account settings',
     pageDescription:
       'Manage account connection, local backup, search sources, API keys, and session security in one place.',
+    pageDescriptionSitesPoc:
+      'Manage this browser’s local archive, JSON backups, file imports, and display settings.',
     pageEyebrow: 'Settings',
     pageTitle: 'Settings and backup',
     sections: {
@@ -899,6 +904,8 @@ export const en = {
       advancedTitle: 'Advanced settings and diagnostics',
       dataSafetyAdvancedTitle:
         'Automatic backup, storage protection, and account sync',
+      dataSafetyAdvancedTitleSitesPoc:
+        'Automatic backup and storage protection',
       mobileNavAria: 'Settings mobile section navigation',
       primaryNavAria: 'Primary settings navigation',
       sideNavAria: 'Settings side section navigation',
@@ -2205,6 +2212,8 @@ export const en = {
       fieldTitle: 'Title',
       flowDescription:
         'Save with a title, status, and rating; use search and metadata enrichment only when useful.',
+      flowDescriptionSitesPoc:
+        'Save with a title, status, and rating. This preview uses manual records without work search.',
       flowTitle: 'New work record',
       optionalFieldsTitle: 'Add type, notes, and details',
       optionalFieldsDescription:
@@ -2760,6 +2769,8 @@ export const en = {
       emptyActiveDescription:
         'You can leave just a title, pull basic info via search, or start again from an existing JSON backup.',
       emptyActiveEyebrow: 'Empty shelf',
+      emptyActiveSitesPocDescription:
+        'Add a title manually or start from an existing JSON backup. Every record stays in this browser.',
       emptyActiveTitle: 'No works recorded yet.',
       emptyFilterDescription: 'Try changing the search term or filters.',
       emptyFilterEyebrow: 'No search results',

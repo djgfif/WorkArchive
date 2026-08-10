@@ -88,16 +88,18 @@ export function SettingsLayout({ sections }: SettingsLayoutProps) {
               </a>
             ))}
           </div>
-          <details className={css.advancedNav ?? ''}>
-            <summary>{t('settings.layout.advancedTitle')}</summary>
-            <div className={css.advancedNavList ?? ''}>
-              {advancedSections.map((section) => (
-                <a key={section.id} {...getNavLinkProps(section)}>
-                  <span>{section.label}</span>
-                </a>
-              ))}
-            </div>
-          </details>
+          {advancedSections.length > 0 && (
+            <details className={css.advancedNav ?? ''}>
+              <summary>{t('settings.layout.advancedTitle')}</summary>
+              <div className={css.advancedNavList ?? ''}>
+                {advancedSections.map((section) => (
+                  <a key={section.id} {...getNavLinkProps(section)}>
+                    <span>{section.label}</span>
+                  </a>
+                ))}
+              </div>
+            </details>
+          )}
         </SectionCard>
       </nav>
 

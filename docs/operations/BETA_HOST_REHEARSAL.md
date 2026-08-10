@@ -4,6 +4,11 @@ This runbook verifies that P0/P1 changes work on the actual beta host without
 changing the application runtime. It assumes `compose.prod.yml`, `.env.prod`,
 and the existing API/web images are used as-is.
 
+> The private Codex Sites POC documented in
+> [SITES_PRIVATE_POC.md](./SITES_PRIVATE_POC.md) is not a beta or production
+> host. Its guest-only IndexedDB data, URL, and verification evidence must not
+> be used as substitutes for this rehearsal.
+
 Do not paste real secrets, cookies, OAuth codes, access tokens, or backup files
 into tickets or reports. Do not assume any command below has already been run on
 the production beta host.

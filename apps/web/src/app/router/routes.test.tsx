@@ -128,4 +128,36 @@ describe('app routes', () => {
       ).toBe(RouteErrorBoundary);
     }
   });
+  it('redirects account and authentication-only routes in the Sites guest POC', () => {
+    const routes = createAppRoutes(
+      flagsWithTierBoardsOff,
+      'sites-guest-poc',
+    );
+    const productRoutes = routes[0]?.children ?? [];
+    const authRoutes =
+      routes.find((route) => route.path === '/auth')?.children ?? [];
+    const accountRoutes =
+      routes.find((route) => route.path === '/account')?.children ?? [];
+    const redirects = [
+      [productRoutes.find((route) => route.path === 'profile'), '/'],
+      [authRoutes.find((route) => route.path === 'login'), '/'],
+      [authRoutes.find((route) => route.path === 'google/complete'), '/'],
+      [accountRoutes.find((route) => route.index), '/account/settings'],
+      [
+        accountRoutes.find((route) => route.path === 'transfer'),
+        '/account/settings',
+      ],
+    ] as const;
+
+    for (const [route, target] of redirects) {
+      expect(isValidElement(route?.element)).toBe(true);
+      expect(isValidElement(route?.element) && route.element.type).toBe(
+        Navigate,
+      );
+      expect(
+        isValidElement(route?.element) && route.element.props,
+      ).toMatchObject({ replace: true, to: target });
+    }
+  });
+
 });

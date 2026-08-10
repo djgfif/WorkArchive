@@ -10,6 +10,8 @@ import { findLinkByHref, getLinkByHref } from '@test/ui-helpers';
 describe('App', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    delete window.__WORK_ARCHIVE_CONFIG__;
+    window.history.pushState({}, '', '/');
   });
 
   it('renders the home entry inside the product layout', async () => {
@@ -40,4 +42,38 @@ describe('App', () => {
     });
     expect(screen.queryByText('IndexedDB 연결 실패')).not.toBeInTheDocument();
   });
+
+  it('starts the Sites POC in local guest mode without server entry points', async () => {
+    window.__WORK_ARCHIVE_CONFIG__ = {
+      deploymentProfile: 'sites-guest-poc',
+    };
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    renderWithProviders(<App />);
+    expect(await screen.findByText('첫 작품을 놓는 방법')).toBeInTheDocument();
+    expect(screen.queryByText('검색으로 추가')).not.toBeInTheDocument();
+
+    await user.click(getLinkByHref('/works/new'));
+
+    expect(
+      await screen.findByRole('heading', { name: '작품 추가' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '제목·상태·별점으로 바로 저장합니다. 이 환경에서는 작품 검색 없이 직접 기록합니다.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '비공개 검증 환경 · 이 브라우저에만 저장됩니다. 로그인, 동기화, 외부 검색은 제공되지 않습니다.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('검색으로 정보 보강(선택)'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '로그인' })).not.toBeInTheDocument();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
 });

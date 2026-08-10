@@ -12,6 +12,7 @@ import { usePageTitle } from '@shared/hooks/usePageTitle';
 import { useAppLocale, useAppTranslation, type AppLocale } from '@app/i18n';
 import { useAuthSession } from '@features/auth';
 import { getArchiveSafetyState, useSyncDashboard } from '@features/sync';
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import { ArchiveHealthSettingsSection } from '../components/settings/ArchiveHealthSettingsSection';
 import { AccountBackupStatusSettingsSection } from '../components/settings/AccountBackupStatusSettingsSection';
 import { AccountSettingsSection } from '../components/settings/AccountSettingsSection';
@@ -111,6 +112,7 @@ function LanguageSettingsSection() {
 
 export function SettingsPage() {
   const { t } = useAppTranslation();
+  const sitesGuestPoc = isSitesGuestPoc();
 
   usePageTitle(t('settings.pageTitle'));
   const { archiveScopeKey, mode, signOut, updateUser, user } = useAuthSession();
@@ -163,11 +165,7 @@ export function SettingsPage() {
         mode,
         safetyState: archiveSafetyState,
       }),
-    [
-      archiveSafetyState,
-      localDataSafetySettings.autoBackupStatus,
-      mode,
-    ],
+    [archiveSafetyState, localDataSafetySettings.autoBackupStatus, mode],
   );
 
   const sections = [
@@ -176,7 +174,9 @@ export function SettingsPage() {
       label: t('settings.sections.dataBackup'),
       content: (
         <Stack gap="md">
-          <DataSafetySummarySection viewModel={dataSafetyViewModel} />
+          {!sitesGuestPoc && (
+            <DataSafetySummarySection viewModel={dataSafetyViewModel} />
+          )}
           <DataBackupSettingsSection
             archiveFeedback={localArchiveSettings.archiveFeedback}
             archiveImportPreview={localArchiveSettings.archiveImportPreview}
@@ -190,7 +190,13 @@ export function SettingsPage() {
             onImportFileSelect={localArchiveSettings.previewImportFile}
           />
           <details className={settingsStyles.advancedDataSafety}>
-            <summary>{t('settings.layout.dataSafetyAdvancedTitle')}</summary>
+            <summary>
+              {t(
+                sitesGuestPoc
+                  ? 'settings.layout.dataSafetyAdvancedTitleSitesPoc'
+                  : 'settings.layout.dataSafetyAdvancedTitle',
+              )}
+            </summary>
             <Stack gap="md" mt="md">
               <LocalDataSafetySettingsSection
                 autoBackupStatus={localDataSafetySettings.autoBackupStatus}
@@ -213,14 +219,16 @@ export function SettingsPage() {
                 onRunBackupNow={localDataSafetySettings.runBackupNow}
                 storageState={localDataSafetySettings.storageState}
               />
-              <AccountBackupStatusSettingsSection
-                conflictItems={syncDashboard.conflictItems}
-                failedItems={syncDashboard.failedItems}
-                lastSuccessfulPullAt={syncDashboard.lastSuccessfulPullAt}
-                mode={mode}
-                pendingItems={syncDashboard.pendingItems}
-                staleStatusAt={syncDashboard.staleStatusAt}
-              />
+              {!sitesGuestPoc && (
+                <AccountBackupStatusSettingsSection
+                  conflictItems={syncDashboard.conflictItems}
+                  failedItems={syncDashboard.failedItems}
+                  lastSuccessfulPullAt={syncDashboard.lastSuccessfulPullAt}
+                  mode={mode}
+                  pendingItems={syncDashboard.pendingItems}
+                  staleStatusAt={syncDashboard.staleStatusAt}
+                />
+              )}
             </Stack>
           </details>
         </Stack>
@@ -366,7 +374,15 @@ export function SettingsPage() {
     },
   ];
 
-  const groupedSections = sections.map((section) => ({
+  const sitesPocSectionIds = new Set([
+    'data-backup',
+    'external-import',
+    'display',
+  ]);
+  const visibleSections = sitesGuestPoc
+    ? sections.filter((section) => sitesPocSectionIds.has(section.id))
+    : sections;
+  const groupedSections = visibleSections.map((section) => ({
     ...section,
     group: sectionGroupById[section.id],
   }));
@@ -374,14 +390,20 @@ export function SettingsPage() {
   return (
     <AccountPageTemplate
       actions={
-        <AppLinkButton
-          className={settingsStyles.pageBackAction ?? ''}
-          to="/account"
-        >
-          {t('settings.backToAccountOverview')}
-        </AppLinkButton>
+        sitesGuestPoc ? undefined : (
+          <AppLinkButton
+            className={settingsStyles.pageBackAction ?? ''}
+            to="/account"
+          >
+            {t('settings.backToAccountOverview')}
+          </AppLinkButton>
+        )
       }
-      description={t('settings.pageDescription')}
+      description={t(
+        sitesGuestPoc
+          ? 'settings.pageDescriptionSitesPoc'
+          : 'settings.pageDescription',
+      )}
       eyebrow={t('settings.pageEyebrow')}
       title={t('settings.pageTitle')}
     >

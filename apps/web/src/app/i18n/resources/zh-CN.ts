@@ -469,6 +469,9 @@ export const zhCN = {
     guest: '访客',
     guestLocalStorage: '访客 - 本地存储',
     guestMode: '访客模式',
+    sitesPocNotice:
+      '私密验证环境 · 数据仅保存在此浏览器中。不提供登录、同步和外部搜索。',
+    sitesPocNoticeAria: '私密 Sites 验证环境提示',
     archiveScope: {
       accountOwner: '{{name}} 的账户归档',
       ariaLabel: '当前归档：{{owner}}，{{status}}',
@@ -636,6 +639,8 @@ export const zhCN = {
     loadingTitle: '正在准备账户设置',
     pageDescription:
       '在一处管理账户连接、本地备份、搜索来源、API 密钥和会话安全。',
+    pageDescriptionSitesPoc:
+      '管理此浏览器中的本地记录、JSON 备份、文件导入与显示设置。',
     pageEyebrow: '设置',
     pageTitle: '设置与备份',
     sections: {
@@ -833,6 +838,7 @@ export const zhCN = {
     layout: {
       advancedTitle: '高级设置与诊断',
       dataSafetyAdvancedTitle: '自动备份、存储保护与账户同步',
+      dataSafetyAdvancedTitleSitesPoc: '自动备份与存储保护',
       mobileNavAria: '设置移动端版块导航',
       primaryNavAria: '主要设置导航',
       sideNavAria: '设置侧边版块导航',
@@ -2047,6 +2053,8 @@ export const zhCN = {
       fieldTitle: '标题',
       flowDescription:
         '可用标题、状态和评分直接保存；搜索与作品信息补全仅在需要时使用。',
+      flowDescriptionSitesPoc:
+        '使用标题、状态和评分直接保存。此环境不提供作品搜索，仅支持手动记录。',
       flowTitle: '新作品记录',
       optionalFieldsTitle: '添加类型、感想与详细信息',
       optionalFieldsDescription:
@@ -2579,6 +2587,8 @@ export const zhCN = {
       emptyActiveDescription:
         '你可以只留标题、用搜索拉取基本信息，或从已有的 JSON 备份重新开始。',
       emptyActiveEyebrow: '空书架',
+      emptyActiveSitesPocDescription:
+        '手动添加标题或从现有 JSON 备份重新开始。所有记录仅保存在此浏览器中。',
       emptyActiveTitle: '还没有记录的作品。',
       emptyFilterDescription: '请更换搜索词或筛选再查找。',
       emptyFilterEyebrow: '没有搜索结果',

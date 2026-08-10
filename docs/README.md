@@ -18,6 +18,7 @@ docs stay here, older plans and raw design material stay in
 10. [`security/POSTER_PRIVACY_THREAT_MODEL.md`](./security/POSTER_PRIVACY_THREAT_MODEL.md)
 11. [`architecture/FEATURE_FIRST_STRUCTURE.md`](./architecture/FEATURE_FIRST_STRUCTURE.md)
 12. [`operations/RUNBOOK.md`](./operations/RUNBOOK.md)
+13. [operations/SITES_PRIVATE_POC.md](./operations/SITES_PRIVATE_POC.md)
 
 ## Current Areas
 

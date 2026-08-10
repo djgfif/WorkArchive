@@ -3,6 +3,7 @@ import { useMemo, useRef, useState, type FormEvent } from 'react';
 
 import type { ImportCandidate } from '@features/imports';
 import { useAppTranslation } from '@app/i18n';
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import { AddWorkManualForm } from './AddWorkManualForm';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
 import { ProviderReadinessSummary } from './ProviderReadinessSummary';
@@ -82,9 +83,12 @@ export function AddWorkFlow({
   variant = 'page',
 }: AddWorkFlowProps) {
   const { t } = useAppTranslation();
+  const searchEnabled = !isSitesGuestPoc();
   const isDialog = variant === 'dialog';
   const titleInputRef = useRef<HTMLInputElement | null>(null);
-  const [mode, setMode] = useState<'manual' | 'search'>(initialMode);
+  const [mode, setMode] = useState<'manual' | 'search'>(
+    searchEnabled ? initialMode : 'manual',
+  );
   const [values, setValues] = useState<WorkFormValues>(() =>
     createFormDefaults(initialTitle),
   );
@@ -114,7 +118,7 @@ export function AddWorkFlow({
     setSelectedSearchCandidate,
     useSearchTermForManualInput,
   } = useAddWorkSearch({
-    enabled: mode === 'search',
+    enabled: searchEnabled && mode === 'search',
     onApplyCandidate: (candidate) => {
       setValues(
         createValuesFromCandidate(candidate, createDefaultWorkFormValues),
@@ -280,10 +284,14 @@ export function AddWorkFlow({
       <Stack gap="sm">
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <Text c="var(--mantine-color-dimmed)" maw="48rem" size="sm">
-            {t('works.add.flowDescription')}
+            {t(
+              searchEnabled
+                ? 'works.add.flowDescription'
+                : 'works.add.flowDescriptionSitesPoc',
+            )}
           </Text>
 
-          <SegmentedControl
+          {searchEnabled && <SegmentedControl
             aria-label={t('works.add.modeLabel')}
             data={[
               { label: t('works.add.modeManual'), value: 'manual' },
@@ -300,7 +308,7 @@ export function AddWorkFlow({
               }
             }}
             value={mode}
-          />
+          />}
         </Group>
       </Stack>
 

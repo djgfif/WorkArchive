@@ -18,6 +18,7 @@ import {
   LoadingRows,
   StateMessage,
 } from '@shared/components/AppPrimitives';
+import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import {
   PosterHoverOverlay,
   POSTER_CARD_HOVER_CLASS,
@@ -446,7 +447,9 @@ function EmptyGuide() {
       description: t('home.empty.backupDescription'),
       to: '/account/settings#data-backup',
     },
-  ];
+  ].filter(
+    (card) => !isSitesGuestPoc() || card.to !== '/works/new?mode=search',
+  );
 
   return (
     <section className={css.emptyGuide}>
@@ -495,7 +498,9 @@ function StarterArchivePanel({ works }: { works: WorkRecord[] }) {
       title: t('home.empty.backupTitle'),
       to: '/account/settings#data-backup',
     },
-  ];
+  ].filter(
+    (action) => !isSitesGuestPoc() || action.to !== '/works/new?mode=search',
+  );
 
   return (
     <section className={css.starterPanel}>
