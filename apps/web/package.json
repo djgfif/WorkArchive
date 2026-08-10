@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node ../../scripts/qa/validate-web-bundle-budget.mjs",
-    "build:sites": "vite build --mode sites && node ../../scripts/qa/validate-web-bundle-budget.mjs && node scripts/prepare-sites-dist.mjs",
+    "build:sites": "node scripts/clean-sites-dist.mjs && vite build --mode sites && node ../../scripts/qa/validate-web-bundle-budget.mjs dist/client/assets && node scripts/prepare-sites-dist.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",

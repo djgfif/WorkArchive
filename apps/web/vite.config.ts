@@ -152,6 +152,9 @@ export default defineConfig(({ mode }) => ({
   },
 
   build: {
+    // Sites 정적 자산 바인딩은 vinext와 동일한 dist/client 레이아웃을 사용한다.
+    // 일반 Vite/Docker 빌드는 기존 dist 루트를 그대로 유지한다.
+    outDir: mode === 'sites' ? 'dist/client' : 'dist',
     // 폰트는 service worker 런타임 CacheFirst 정책으로 다룬다. 작은 woff/woff2도
     // CSS에 data: URL로 인라인하지 않아 precache CSS가 비대해지지 않게 한다.
     assetsInlineLimit: 0,

@@ -86,7 +86,11 @@ const isDirectRun =
 
 if (isDirectRun) {
   try {
-    runWebBundleBudgetValidation();
+    runWebBundleBudgetValidation(
+      process.argv[2]
+        ? { assetsDirectory: resolve(process.argv[2]) }
+        : undefined,
+    );
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

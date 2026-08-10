@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const distRoot = resolve(projectRoot, 'dist');
-const indexOutput = resolve(distRoot, 'index.html');
+const indexOutput = resolve(distRoot, 'client', 'index.html');
 const workerSource = resolve(projectRoot, 'sites', 'worker.mjs');
 const workerOutput = resolve(distRoot, 'server', 'index.js');
 const hostingSource = resolve(projectRoot, '.openai', 'hosting.json');
