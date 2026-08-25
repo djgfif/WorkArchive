@@ -1170,6 +1170,21 @@ export type CommunityReportReason = (typeof COMMUNITY_REPORT_REASONS)[number];
 
 export type CommunityReportResolution = 'resolve' | 'dismiss';
 
+export const COMMUNITY_BOARD_CATEGORIES = [
+  'free',
+  'recommendation',
+  'question',
+  'information',
+  'spoiler',
+] as const;
+export type CommunityBoardCategory =
+  (typeof COMMUNITY_BOARD_CATEGORIES)[number];
+
+export type CommunityProfileVisibility = 'private' | 'public';
+export type CommunityFeedScope = 'all' | 'following';
+export type CommunityFeedKind = 'review' | 'post';
+export type CommunityTargetType = 'comment' | 'post' | 'review';
+
 export interface CommunityPublicAuthor {
   avatarUrl: string;
   displayName: string;
@@ -1177,6 +1192,8 @@ export interface CommunityPublicAuthor {
 }
 
 export interface CommunityWorkSnapshot {
+  catalogTitleId?: EntityId | null;
+  genres?: string[];
   thumbnailUrl: string;
   title: string;
   type: WorkType;
@@ -1185,6 +1202,8 @@ export interface CommunityWorkSnapshot {
 export interface CommunityPostView {
   author: CommunityPublicAuthor;
   body: string;
+  category?: CommunityBoardCategory;
+  commentCount?: number;
   createdAt: ISODateString;
   id: EntityId;
   reactionCount: number;
@@ -1195,6 +1214,112 @@ export interface CommunityPostView {
   work: CommunityWorkSnapshot | null;
 }
 
+export interface CommunityBoardPostView extends CommunityPostView {
+  category: CommunityBoardCategory;
+  commentCount: number;
+}
+
+export interface CommunityReviewView {
+  author: CommunityPublicAuthor;
+  body: string;
+  commentCount: number;
+  createdAt: ISODateString;
+  id: EntityId;
+  rating: number | null;
+  reactionCount: number;
+  spoiler: boolean;
+  updatedAt: ISODateString;
+  viewerCanDelete: boolean;
+  viewerCanEdit: boolean;
+  viewerHasReacted: boolean;
+  work: CommunityWorkSnapshot & { catalogTitleId: EntityId };
+}
+
+export interface CommunityCommentView {
+  author: CommunityPublicAuthor;
+  body: string;
+  createdAt: ISODateString;
+  id: EntityId;
+  parentId: EntityId | null;
+  reactionCount: number;
+  replies: CommunityCommentView[];
+  spoiler: boolean;
+  updatedAt: ISODateString;
+  viewerCanDelete: boolean;
+  viewerCanEdit: boolean;
+  viewerHasReacted: boolean;
+}
+
+export interface CommunityFeedItem {
+  createdAt: ISODateString;
+  id: EntityId;
+  kind: CommunityFeedKind;
+  post: CommunityBoardPostView | null;
+  review: CommunityReviewView | null;
+}
+
+export interface CommunityFeedResponse {
+  items: CommunityFeedItem[];
+  nextCursor: string | null;
+}
+
+export interface CommunityTrendingWorkView {
+  averageRating: number | null;
+  discussionCount: number;
+  reviewCount: number;
+  work: CommunityWorkSnapshot & { catalogTitleId: EntityId };
+}
+
+export interface CommunityProfileSections {
+  showBoardPosts: boolean;
+  showFollowers: boolean;
+  showRatings: boolean;
+  showReviews: boolean;
+  showTasteSummary: boolean;
+}
+
+export interface CommunityNotificationPreferences {
+  browser: boolean;
+  globalBadge: boolean;
+  inCommunity: boolean;
+}
+
+export interface CommunityProfileView {
+  allowFollowers: boolean;
+  author: CommunityPublicAuthor;
+  bio: string;
+  favoriteGenres: string[];
+  favoriteWorks: CommunityWorkSnapshot[];
+  followerCount: number | null;
+  followingCount: number | null;
+  isPrivate: boolean;
+  notifications?: CommunityNotificationPreferences;
+  recentPosts: CommunityBoardPostView[];
+  recentReviews: CommunityReviewView[];
+  sections: CommunityProfileSections;
+  viewerCanEdit: boolean;
+  viewerCanFollow: boolean;
+  viewerIsFollowing: boolean;
+}
+
+export interface CommunityTasteFingerprint {
+  catalogRatings: Record<EntityId, number>;
+  genres: Record<string, number>;
+  tags: Record<string, number>;
+  types: Partial<Record<WorkType, number>>;
+}
+
+export interface CommunityTasteCandidate {
+  author: CommunityPublicAuthor;
+  fingerprint: CommunityTasteFingerprint;
+}
+
+export interface CommunityTasteMatchView {
+  author: CommunityPublicAuthor;
+  reasons: string[];
+  score: number;
+}
+
 export interface CommunityPostListResponse {
   nextCursor: EntityId | null;
   posts: CommunityPostView[];
@@ -1202,10 +1327,41 @@ export interface CommunityPostListResponse {
 
 export interface CreateCommunityPostRequest {
   body: string;
+  category?: CommunityBoardCategory;
+  catalogTitleId?: EntityId;
   spoiler?: boolean;
   workThumbnailUrl?: string;
   workTitle?: string;
   workType?: WorkType;
+}
+
+export interface UpsertCommunityReviewRequest {
+  body?: string;
+  rating?: number | null;
+  spoiler?: boolean;
+}
+
+export interface CreateCommunityCommentRequest {
+  body: string;
+  parentId?: EntityId | null;
+  spoiler?: boolean;
+  targetId: EntityId;
+  targetType: Exclude<CommunityTargetType, 'comment'>;
+}
+
+export interface UpdateCommunityCommentRequest {
+  body: string;
+  spoiler?: boolean;
+}
+
+export interface UpdateCommunityProfileRequest {
+  allowFollowers: boolean;
+  bio: string;
+  favoriteCatalogTitleIds: EntityId[];
+  favoriteGenres: string[];
+  notifications: CommunityNotificationPreferences;
+  sections: CommunityProfileSections;
+  visibility: CommunityProfileVisibility;
 }
 
 export interface CreateCommunityReportRequest {
@@ -1218,16 +1374,25 @@ export interface CommunityMutationResponse {
 }
 
 export interface CommunityModerationReportView {
+  comment: Pick<
+    CommunityCommentView,
+    'body' | 'createdAt' | 'id' | 'spoiler'
+  > | null;
   createdAt: ISODateString;
   detail: string;
   id: EntityId;
   post: Pick<
     CommunityPostView,
     'body' | 'createdAt' | 'id' | 'spoiler' | 'work'
-  >;
+  > | null;
   reason: CommunityReportReason;
   reporter: CommunityPublicAuthor;
+  review: Pick<
+    CommunityReviewView,
+    'body' | 'createdAt' | 'id' | 'rating' | 'spoiler' | 'work'
+  > | null;
   status: 'pending' | 'resolved' | 'dismissed';
+  targetType: 'post' | 'review' | 'comment';
 }
 
 export interface CommunityModerationReportListResponse {

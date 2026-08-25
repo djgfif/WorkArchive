@@ -38,6 +38,7 @@ function createPrismaMock() {
       update: asyncMock(),
       updateMany: asyncMock(),
     },
+    user: { findUnique: asyncMock() },
   };
 }
 
@@ -69,6 +70,11 @@ describe('CommunityService', () => {
 
   beforeEach(() => {
     prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({
+      avatarUrl: 'https://example.com/avatar.jpg',
+      handle: 'reader',
+      nickname: '독자',
+    });
     service = new CommunityService(prisma as unknown as PrismaService);
   });
 
@@ -136,6 +142,8 @@ describe('CommunityService', () => {
         data: {
           authorId: 'user-1',
           body: '새로 쓴 공개 감상',
+          catalogTitleId: null,
+          category: 'free',
           spoiler: true,
           workThumbnailUrl: 'https://s4.anilist.co/file/work.jpg',
           workTitle: '여름의 문장들',
