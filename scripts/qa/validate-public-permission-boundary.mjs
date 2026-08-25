@@ -60,6 +60,8 @@ const communityServicePath =
   'apps/api/src/modules/community/community.service.ts';
 const communityPublishPath =
   'apps/web/src/features/community/services/community-publish.ts';
+const communityPagePath =
+  'apps/web/src/features/community/pages/CommunityPage.tsx';
 
 const boundary = readRequired(boundaryPath);
 const bola = readRequired(bolaPath);
@@ -70,6 +72,7 @@ const packageJson = readRequired(packagePath);
 const communityController = readRequired(communityControllerPath);
 const communityService = readRequired(communityServicePath);
 const communityPublish = readRequired(communityPublishPath);
+const communityPage = readRequired(communityPagePath);
 
 requireIncludes(boundaryPath, boundary, [
   '| Status | `canonical` |',
@@ -140,6 +143,21 @@ requirePattern(
   /@Post\('posts'\)[\s\S]{0,260}@UseGuards\(JwtAuthGuard\)/,
   'Community publication must require authentication.',
 );
+for (const route of [
+  "@Post('posts/:id/reactions')",
+  "@Post('moderation/posts/:id/hide')",
+  "@Post('moderation/posts/:id/restore')",
+  "@Post('moderation/reports/:id/resolve')",
+]) {
+  requirePattern(
+    communityControllerPath,
+    communityController,
+    new RegExp(
+      `${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]{0,100}@HttpCode\\(HttpStatus\\.OK\\)`,
+    ),
+    `${route} must return the documented 200 status instead of the Nest POST default.`,
+  );
+}
 requirePattern(
   communityServicePath,
   communityService,
@@ -151,6 +169,32 @@ requireIncludes(communityPublishPath, communityPublish, [
   'body: body.trim()',
   'workThumbnailUrl',
 ]);
+requireIncludes(communityServicePath, communityService, [
+  'parseAllowedImageUrl',
+  'CommunityPostStatus.published',
+  "{ reactionCount: 'desc' as const }",
+  'reactionCount: { increment: 1 }',
+  'reactionCount: { decrement: 1 }',
+]);
+requirePattern(
+  schemaPath,
+  schema,
+  /@@index\(\[status, reactionCount\(sort: Desc\), createdAt\(sort: Desc\), id\(sort: Desc\)\]\)/,
+  'Popular Community reads must use the scalar reaction count index.',
+);
+requireIncludes(communityPagePath, communityPage, [
+  'getDisplayImageUrl(post.author.avatarUrl)',
+  'getDisplayImageUrl(',
+  'post.work?.thumbnailUrl',
+  'feedRequestId',
+  'publicPreviewDescription',
+]);
+requirePattern(
+  schemaPath,
+  schema,
+  /model\s+CommunityModerationAuditLog\s*\{[\s\S]*?actorId\s+String\?[\s\S]*?actor\s+User\?\s+@relation\([^)]*onDelete:\s*SetNull[^)]*\)/,
+  'Community moderation audit actors must be nullable so account deletion preserves anonymized audit evidence.',
+);
 requirePattern(
   gatesPath,
   gates,

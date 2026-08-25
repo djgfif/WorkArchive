@@ -27,6 +27,7 @@ import type {
 } from '@work-archive/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { parseAllowedImageUrl } from '../image-proxy';
 
 const PUBLIC_AUTHOR_SELECT = {
   avatarUrl: true,
@@ -44,6 +45,7 @@ interface CommunityPostReadModel {
   workTitle: string;
   workType: WorkType | null;
   workThumbnailUrl: string;
+  reactionCount: number;
   createdAt: Date;
   updatedAt: Date;
   author: {
@@ -52,7 +54,6 @@ interface CommunityPostReadModel {
     nickname: string;
   };
   reactions: Array<{ id: string }>;
-  _count: { reactions: number };
 }
 
 interface CommunityReportReadModel {
@@ -160,11 +161,31 @@ export class CommunityService {
     userId: string,
     postId: string,
   ): Promise<CommunityMutationResponse> {
-    await this.findVisiblePostOrThrow(postId);
-    await this.prisma.communityReaction.upsert({
-      where: { postId_userId: { postId, userId } },
-      create: { postId, userId },
-      update: {},
+    await this.prisma.$transaction(async (transaction) => {
+      const post = await transaction.communityPost.findFirst({
+        where: { id: postId, status: CommunityPostStatus.published },
+        select: { id: true },
+      });
+
+      if (!post) {
+        throw new NotFoundException('Community post not found.');
+      }
+
+      const created = await transaction.communityReaction.createMany({
+        data: [{ postId, userId }],
+        skipDuplicates: true,
+      });
+
+      if (created.count === 1) {
+        const updated = await transaction.communityPost.updateMany({
+          where: { id: postId, status: CommunityPostStatus.published },
+          data: { reactionCount: { increment: 1 } },
+        });
+
+        if (updated.count !== 1) {
+          throw new NotFoundException('Community post not found.');
+        }
+      }
     });
 
     return { ok: true };
@@ -174,9 +195,34 @@ export class CommunityService {
     userId: string,
     postId: string,
   ): Promise<CommunityMutationResponse> {
-    await this.findVisiblePostOrThrow(postId);
-    await this.prisma.communityReaction.deleteMany({
-      where: { postId, userId },
+    await this.prisma.$transaction(async (transaction) => {
+      const post = await transaction.communityPost.findFirst({
+        where: { id: postId, status: CommunityPostStatus.published },
+        select: { id: true },
+      });
+
+      if (!post) {
+        throw new NotFoundException('Community post not found.');
+      }
+
+      const deleted = await transaction.communityReaction.deleteMany({
+        where: { postId, userId },
+      });
+
+      if (deleted.count === 1) {
+        const updated = await transaction.communityPost.updateMany({
+          where: {
+            id: postId,
+            reactionCount: { gt: 0 },
+            status: CommunityPostStatus.published,
+          },
+          data: { reactionCount: { decrement: 1 } },
+        });
+
+        if (updated.count !== 1) {
+          throw new NotFoundException('Community post not found.');
+        }
+      }
     });
 
     return { ok: true };
@@ -260,26 +306,30 @@ export class CommunityService {
   ): Promise<CommunityMutationResponse> {
     this.assertModerator(moderator.role);
     await this.prisma.$transaction(async (transaction) => {
-      const post = await transaction.communityPost.findUnique({
-        where: { id: postId },
-        select: { status: true },
-      });
-
-      if (!post || post.status === CommunityPostStatus.deleted) {
-        throw new NotFoundException('Community post not found.');
-      }
-
-      if (post.status === CommunityPostStatus.hidden) {
-        return;
-      }
-
-      await transaction.communityPost.update({
-        where: { id: postId },
+      const result = await transaction.communityPost.updateMany({
+        where: {
+          id: postId,
+          status: CommunityPostStatus.published,
+        },
         data: {
           hiddenAt: new Date(),
           status: CommunityPostStatus.hidden,
         },
       });
+
+      if (result.count !== 1) {
+        const existing = await transaction.communityPost.findUnique({
+          where: { id: postId },
+          select: { status: true },
+        });
+
+        if (existing?.status === CommunityPostStatus.hidden) {
+          return;
+        }
+
+        throw new NotFoundException('Community post not found.');
+      }
+
       await transaction.communityModerationAuditLog.create({
         data: {
           action: CommunityModerationAction.post_hidden,
@@ -300,22 +350,21 @@ export class CommunityService {
   ): Promise<CommunityMutationResponse> {
     this.assertModerator(moderator.role);
     await this.prisma.$transaction(async (transaction) => {
-      const post = await transaction.communityPost.findUnique({
-        where: { id: postId },
-        select: { status: true },
-      });
-
-      if (!post || post.status !== CommunityPostStatus.hidden) {
-        throw new NotFoundException('Hidden community post not found.');
-      }
-
-      await transaction.communityPost.update({
-        where: { id: postId },
+      const result = await transaction.communityPost.updateMany({
+        where: {
+          id: postId,
+          status: CommunityPostStatus.hidden,
+        },
         data: {
           hiddenAt: null,
           status: CommunityPostStatus.published,
         },
       });
+
+      if (result.count !== 1) {
+        throw new NotFoundException('Hidden community post not found.');
+      }
+
       await transaction.communityModerationAuditLog.create({
         data: {
           action: CommunityModerationAction.post_restored,
@@ -346,8 +395,11 @@ export class CommunityService {
         throw new NotFoundException('Pending community report not found.');
       }
 
-      await transaction.communityReport.update({
-        where: { id: reportId },
+      const result = await transaction.communityReport.updateMany({
+        where: {
+          id: reportId,
+          status: CommunityReportStatus.pending,
+        },
         data: {
           moderatorId: moderator.userId,
           moderatorNote: input.note?.trim() ?? '',
@@ -357,6 +409,11 @@ export class CommunityService {
             : CommunityReportStatus.resolved,
         },
       });
+
+      if (result.count !== 1) {
+        throw new NotFoundException('Pending community report not found.');
+      }
+
       await transaction.communityModerationAuditLog.create({
         data: {
           action: dismissed
@@ -375,7 +432,6 @@ export class CommunityService {
 
   private postInclude(viewerUserId: string | null) {
     return {
-      _count: { select: { reactions: true } },
       author: { select: PUBLIC_AUTHOR_SELECT },
       reactions: {
         where: { userId: viewerUserId ?? GUEST_REACTION_USER_ID },
@@ -388,7 +444,7 @@ export class CommunityService {
   private postOrderBy(sort: CommunityListInput['sort']) {
     if (sort === 'popular') {
       return [
-        { reactions: { _count: 'desc' as const } },
+        { reactionCount: 'desc' as const },
         { createdAt: 'desc' as const },
         { id: 'desc' as const },
       ] satisfies Prisma.CommunityPostOrderByWithRelationInput[];
@@ -416,8 +472,12 @@ export class CommunityService {
       );
     }
 
+    const thumbnailUrl = input.workThumbnailUrl?.trim();
+
     return {
-      thumbnailUrl: input.workThumbnailUrl?.trim() ?? '',
+      thumbnailUrl: thumbnailUrl
+        ? parseAllowedImageUrl(thumbnailUrl).toString()
+        : '',
       title,
       type: input.workType as WorkType,
     };
@@ -453,7 +513,7 @@ export class CommunityService {
       body: post.body,
       createdAt: post.createdAt.toISOString(),
       id: post.id,
-      reactionCount: post._count.reactions,
+      reactionCount: post.reactionCount,
       spoiler: post.spoiler,
       updatedAt: post.updatedAt.toISOString(),
       viewerCanDelete: viewerUserId === post.authorId,

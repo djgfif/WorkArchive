@@ -24,7 +24,7 @@
           "laneMoveAria": "Move row {{title}}",
           "laneUpAria": "Move {{title}} up",
           "move": "Move",
-          "moveToLane": "Move to {{title}}",
+          "moveToLane": "Move to {{destination}}",
           "moveToPool": "Move to unplaced"
         },
         "cardCount": "{{count}} cards",
@@ -238,7 +238,7 @@
           "laneMoveAria": "{{title}} 行を移動",
           "laneUpAria": "{{title}} を上へ",
           "move": "移動",
-          "moveToLane": "{{title}} へ移動",
+          "moveToLane": "{{destination}} へ移動",
           "moveToPool": "未配置へ移動"
         },
         "cardCount": "カード {{count}}枚",
@@ -452,7 +452,7 @@
           "laneMoveAria": "移动 {{title}} 行",
           "laneUpAria": "上移 {{title}}",
           "move": "移动",
-          "moveToLane": "移动到 {{title}}",
+          "moveToLane": "移动到 {{destination}}",
           "moveToPool": "移到未放置"
         },
         "cardCount": "{{count}} 张卡片",

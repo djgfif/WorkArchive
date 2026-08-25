@@ -876,6 +876,7 @@ model CommunityPost {
   workTitle        String                        @default("")
   workType         WorkType?
   workThumbnailUrl String                        @default("") @db.Text
+  reactionCount    Int                           @default(0)
   status           CommunityPostStatus           @default(published)
   createdAt        DateTime                      @default(now())
   updatedAt        DateTime                      @updatedAt
@@ -887,6 +888,7 @@ model CommunityPost {
   moderationLogs   CommunityModerationAuditLog[]
 
   @@index([status, createdAt, id])
+  @@index([status, reactionCount(sort: Desc), createdAt(sort: Desc), id(sort: Desc)])
   @@index([authorId, status, createdAt])
   @@map("community_posts")
 }
@@ -929,13 +931,13 @@ model CommunityReport {
 
 model CommunityModerationAuditLog {
   id        String                    @id @default(uuid())
-  actorId   String
+  actorId   String?
   postId    String?
   reportId  String?
   action    CommunityModerationAction
   note      String                    @default("") @db.Text
   createdAt DateTime                  @default(now())
-  actor     User                      @relation("CommunityModerationActor", fields: [actorId], references: [id], onDelete: Restrict)
+  actor     User?                     @relation("CommunityModerationActor", fields: [actorId], references: [id], onDelete: SetNull)
   post      CommunityPost?            @relation(fields: [postId], references: [id], onDelete: SetNull)
   report    CommunityReport?          @relation(fields: [reportId], references: [id], onDelete: SetNull)
 

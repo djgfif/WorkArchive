@@ -51,13 +51,15 @@ WORKDIR /workspace
 ENV NODE_ENV=production
 
 COPY --from=prod-deps --chown=node:node /workspace/node_modules ./node_modules
+COPY --from=prod-deps --chown=node:node /workspace/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build --chown=node:node /workspace/packages/shared-types ./packages/shared-types
 COPY --from=build --chown=node:node /workspace/apps/api/dist ./apps/api/dist
 COPY --from=build --chown=node:node /workspace/apps/api/prisma ./apps/api/prisma
 COPY --from=build --chown=node:node /workspace/apps/api/docker-entrypoint.sh ./apps/api/docker-entrypoint.sh
 
 RUN sed -i 's/\r$//' /workspace/apps/api/docker-entrypoint.sh \
-  && chmod +x /workspace/apps/api/docker-entrypoint.sh
+  && chmod +x /workspace/apps/api/docker-entrypoint.sh \
+  && node -e "require.resolve('@prisma/adapter-pg', { paths: ['/workspace/apps/api/dist'] })"
 
 USER node
 

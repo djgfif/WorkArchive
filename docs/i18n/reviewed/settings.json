@@ -1,8 +1,6 @@
 {
   "description": "Reviewed settings copy: account, archive health, danger zone, data backup, display, duplicate cleanup, external import, local data safety, Notion sync, overview, search providers, sections, and security.",
-  "scope": [
-    "settings"
-  ],
+  "scope": ["settings"],
   "translations": {
     "en": {
       "settings": {
@@ -13,6 +11,7 @@
         "displayTitle": "Light/dark mode",
         "loadingTitle": "Preparing your account settings",
         "pageDescription": "Manage account connection, local backup, search sources, API keys, and session security in one place.",
+        "pageDescriptionSitesPoc": "Manage this browser’s local archive, JSON backups, file imports, and display settings.",
         "pageEyebrow": "Settings",
         "pageTitle": "Settings and backup",
         "sections": {
@@ -148,6 +147,9 @@
           "conflictMessageFallback": "The local record and account backup record differ and need review.",
           "conflictTitle": "{{count}} sync conflicts",
           "confirmResolutionDescription": "Apply “{{action}}” to {{title}}. You can undo only for 10 minutes immediately afterward.",
+          "confirmApplyRemoteImpact": "This replaces your entire local record with the account backup values.",
+          "confirmKeepLocalImpact": "Account backup values are not applied, and your record returns to awaiting backup.",
+          "confirmMergeImpact": "Only the selected groups ({{fields}}) take account backup values; everything else stays local.",
           "confirmResolutionTitle": "Apply this conflict resolution?",
           "conflictDiffDescription": "Only differing fields are shown. Selected merge groups take their server values.",
           "conflictDiffTableLabel": "Local and server record field comparison",
@@ -192,6 +194,10 @@
           "localRecords": "{{count}} active works",
           "localStorageLabel": "Local storage",
           "mergeFieldLabel": "Fields to take from account backup",
+          "mergeDeletionWarning": "The deletion state changes whether this work is in the trash. Review the result once more.",
+          "mergeSelectionDescription": "Selected groups take account backup values. Unselected groups keep your local values.",
+          "mergeSelectionEmpty": "No groups have been selected from account backup yet.",
+          "mergeSelectionSummary": "Taking from account backup: {{fields}}",
           "mergeFields": {
             "deletion": "Deletion state",
             "identity": "Title and author or creator",
@@ -361,6 +367,7 @@
         "layout": {
           "advancedTitle": "Advanced settings and diagnostics",
           "dataSafetyAdvancedTitle": "Automatic backup, storage protection, and account sync",
+          "dataSafetyAdvancedTitleSitesPoc": "Automatic backup and storage protection",
           "mobileNavAria": "Settings mobile section navigation",
           "primaryNavAria": "Primary settings navigation",
           "sideNavAria": "Settings side section navigation"
@@ -763,6 +770,7 @@
         "displayTitle": "ライト/ダークモード",
         "loadingTitle": "アカウント設定を準備しています",
         "pageDescription": "アカウント連携・ローカルバックアップ・検索ソース・APIキー・セッションセキュリティを一か所で管理します。",
+        "pageDescriptionSitesPoc": "このブラウザーのローカル記録、JSONバックアップ、ファイル取り込み、表示設定を管理します。",
         "pageEyebrow": "設定",
         "pageTitle": "設定とバックアップ",
         "sections": {
@@ -898,6 +906,9 @@
           "conflictMessageFallback": "ローカル記録とアカウントバックアップの記録が異なるため、確認が必要です。",
           "conflictTitle": "同期の競合 {{count}}件",
           "confirmResolutionDescription": "{{title}}に「{{action}}」を適用します。直後10分間のみ元に戻せます。",
+          "confirmApplyRemoteImpact": "現在のローカル記録全体をアカウントバックアップの値に置き換えます。",
+          "confirmKeepLocalImpact": "アカウントバックアップの値は適用せず、自分の記録を再びバックアップ待ちにします。",
+          "confirmMergeImpact": "選択した項目（{{fields}}）だけアカウントバックアップの値を使い、それ以外はローカル記録を保持します。",
           "confirmResolutionTitle": "競合解決を適用しますか？",
           "conflictDiffDescription": "異なるフィールドのみ表示します。選択マージではチェックしたグループのサーバー値を使います。",
           "conflictDiffTableLabel": "ローカル記録とサーバー記録のフィールド比較",
@@ -942,6 +953,10 @@
           "localRecords": "有効な作品 {{count}}件",
           "localStorageLabel": "ローカルストレージ",
           "mergeFieldLabel": "アカウントバックアップから取り込む項目",
+          "mergeDeletionWarning": "削除状態を変更すると作品がゴミ箱に入るかどうかが変わります。適用結果をもう一度確認してください。",
+          "mergeSelectionDescription": "選択した項目はアカウントバックアップの値に変わり、未選択の項目はローカル記録を保持します。",
+          "mergeSelectionEmpty": "アカウントバックアップから取り込む項目はまだ選択されていません。",
+          "mergeSelectionSummary": "アカウントバックアップから取り込む項目：{{fields}}",
           "mergeFields": {
             "deletion": "削除状態",
             "identity": "タイトルと作者・制作者",
@@ -1111,6 +1126,7 @@
         "layout": {
           "advancedTitle": "詳細設定と診断",
           "dataSafetyAdvancedTitle": "自動バックアップ・ストレージ保護・アカウント同期",
+          "dataSafetyAdvancedTitleSitesPoc": "自動バックアップ・ストレージ保護",
           "mobileNavAria": "設定モバイルセクションのナビゲーション",
           "primaryNavAria": "主要設定のナビゲーション",
           "sideNavAria": "設定サイドセクションのナビゲーション"
@@ -1513,6 +1529,7 @@
         "displayTitle": "浅色/深色模式",
         "loadingTitle": "正在准备账户设置",
         "pageDescription": "在一处管理账户连接、本地备份、搜索来源、API 密钥和会话安全。",
+        "pageDescriptionSitesPoc": "管理此浏览器中的本地记录、JSON 备份、文件导入与显示设置。",
         "pageEyebrow": "设置",
         "pageTitle": "设置与备份",
         "sections": {
@@ -1648,6 +1665,9 @@
           "conflictMessageFallback": "本地记录与账户备份记录不同，需要确认。",
           "conflictTitle": "{{count}} 个同步冲突",
           "confirmResolutionDescription": "将“{{action}}”应用到 {{title}}。应用后仅可在 10 分钟内撤销。",
+          "confirmApplyRemoteImpact": "这会用账户备份值替换整条本地记录。",
+          "confirmKeepLocalImpact": "不会应用账户备份值，并将本地记录重新设为等待备份。",
+          "confirmMergeImpact": "仅所选分组（{{fields}}）采用账户备份值，其余分组保留本地值。",
           "confirmResolutionTitle": "要应用此冲突解决方案吗？",
           "conflictDiffDescription": "仅显示不同的字段。选择合并会采用已勾选分组的服务器值。",
           "conflictDiffTableLabel": "本地记录与服务器记录字段比较",
@@ -1692,6 +1712,10 @@
           "localRecords": "{{count}} 部活动作品",
           "localStorageLabel": "本地存储",
           "mergeFieldLabel": "从账户备份中采用的字段",
+          "mergeDeletionWarning": "删除状态会改变作品是否位于回收站。请再次确认应用结果。",
+          "mergeSelectionDescription": "所选分组将采用账户备份值，未选分组保留本地值。",
+          "mergeSelectionEmpty": "尚未选择要从账户备份采用的分组。",
+          "mergeSelectionSummary": "从账户备份采用：{{fields}}",
           "mergeFields": {
             "deletion": "删除状态",
             "identity": "标题与作者或创作者",
@@ -1861,6 +1885,7 @@
         "layout": {
           "advancedTitle": "高级设置与诊断",
           "dataSafetyAdvancedTitle": "自动备份、存储保护与账户同步",
+          "dataSafetyAdvancedTitleSitesPoc": "自动备份与存储保护",
           "mobileNavAria": "设置移动端版块导航",
           "primaryNavAria": "主要设置导航",
           "sideNavAria": "设置侧边版块导航"

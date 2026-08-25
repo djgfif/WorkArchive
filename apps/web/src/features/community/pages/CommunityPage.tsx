@@ -10,7 +10,7 @@ import {
   Text,
   Textarea,
 } from '@mantine/core';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CommunityPostSort,
   CommunityPostView,
@@ -47,6 +47,7 @@ import {
 import { buildCommunityPostInput } from '../services/community-publish';
 import styles from './CommunityPage.module.css';
 import { cn } from '@shared/utils/class-names';
+import { getDisplayImageUrl } from '@shared/utils/image-proxy';
 
 const css = styles;
 const REPORT_REASONS: CommunityReportReason[] = [
@@ -78,30 +79,34 @@ export function CommunityPage() {
   const [body, setBody] = useState('');
   const [spoiler, setSpoiler] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [busyPostId, setBusyPostId] = useState<string | null>(null);
+  const [busyPostIds, setBusyPostIds] = useState<Set<string>>(() => new Set());
   const [revealedSpoilers, setRevealedSpoilers] = useState<Set<string>>(
     () => new Set(),
   );
   const [reportedPostIds, setReportedPostIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const feedRequestId = useRef(0);
 
   usePageTitle(t('community.pageTitle'));
 
   const loadFeed = useCallback(async () => {
+    const requestId = ++feedRequestId.current;
     setIsLoading(true);
     setFeedError(null);
 
     try {
       const response = await fetchCommunityPosts(sort);
+      if (requestId !== feedRequestId.current) return;
       setPosts(response.posts);
       setNextCursor(response.nextCursor);
     } catch (error) {
+      if (requestId !== feedRequestId.current) return;
       setFeedError(
         error instanceof Error ? error.message : t('community.errorLoad'),
       );
     } finally {
-      setIsLoading(false);
+      if (requestId === feedRequestId.current) setIsLoading(false);
     }
   }, [sort, t]);
 
@@ -133,6 +138,10 @@ export function CommunityPage() {
     () => works.find((work) => work.id === selectedWorkId) ?? null,
     [selectedWorkId, works],
   );
+  const selectedWorkThumbnailUrl = useMemo(
+    () => getDisplayImageUrl(selectedWork?.thumbnailUrl),
+    [selectedWork],
+  );
   const workOptions = useMemo(
     () =>
       works.map((work) => ({
@@ -158,6 +167,7 @@ export function CommunityPage() {
         buildCommunityPostInput(trimmedBody, spoiler, selectedWork),
       );
 
+      feedRequestId.current += 1;
       setPosts((current) => [published, ...current]);
       setBody('');
       setSelectedWorkId(null);
@@ -177,11 +187,13 @@ export function CommunityPage() {
   async function handleLoadMore() {
     if (!nextCursor) return;
 
+    const requestId = feedRequestId.current;
     setIsLoadingMore(true);
     setFeedback(null);
 
     try {
       const response = await fetchCommunityPosts(sort, nextCursor);
+      if (requestId !== feedRequestId.current) return;
       setPosts((current) => {
         const ids = new Set(current.map((post) => post.id));
         return [
@@ -191,18 +203,28 @@ export function CommunityPage() {
       });
       setNextCursor(response.nextCursor);
     } catch (error) {
+      if (requestId !== feedRequestId.current) return;
       setFeedback({
         message:
           error instanceof Error ? error.message : t('community.errorLoadMore'),
         tone: 'error',
       });
     } finally {
-      setIsLoadingMore(false);
+      if (requestId === feedRequestId.current) setIsLoadingMore(false);
     }
   }
 
+  function setPostBusy(postId: string, busy: boolean) {
+    setBusyPostIds((current) => {
+      const next = new Set(current);
+      if (busy) next.add(postId);
+      else next.delete(postId);
+      return next;
+    });
+  }
+
   async function handleReaction(post: CommunityPostView) {
-    setBusyPostId(post.id);
+    setPostBusy(post.id, true);
     setFeedback(null);
 
     try {
@@ -228,14 +250,14 @@ export function CommunityPage() {
         tone: 'error',
       });
     } finally {
-      setBusyPostId(null);
+      setPostBusy(post.id, false);
     }
   }
 
   async function handleDelete(postId: string) {
     if (!window.confirm(t('community.deleteConfirm'))) return;
 
-    setBusyPostId(postId);
+    setPostBusy(postId, true);
     setFeedback(null);
 
     try {
@@ -249,12 +271,12 @@ export function CommunityPage() {
         tone: 'error',
       });
     } finally {
-      setBusyPostId(null);
+      setPostBusy(postId, false);
     }
   }
 
   async function handleReport(postId: string, reason: CommunityReportReason) {
-    setBusyPostId(postId);
+    setPostBusy(postId, true);
     setFeedback(null);
 
     try {
@@ -268,7 +290,7 @@ export function CommunityPage() {
         tone: 'error',
       });
     } finally {
-      setBusyPostId(null);
+      setPostBusy(postId, false);
     }
   }
 
@@ -302,9 +324,6 @@ export function CommunityPage() {
             <SectionCard className={cn(css.composer)} padding="lg">
               <Stack gap="md">
                 <Group align="center" gap="sm" wrap="nowrap">
-                  <span aria-hidden="true" className={cn(css.composerIcon)}>
-                    ✦
-                  </span>
                   <Stack gap={2} miw={0}>
                     <Text fw={800}>{t('community.composerTitle')}</Text>
                     <Text c="dimmed" size="sm">
@@ -322,6 +341,31 @@ export function CommunityPage() {
                   searchable
                   value={selectedWorkId}
                 />
+                {selectedWork && (
+                  <div className={cn(css.publicPreview)}>
+                    <Group align="center" gap="sm" wrap="nowrap">
+                      {selectedWorkThumbnailUrl && (
+                        <img
+                          alt=""
+                          className={cn(css.workThumbnail)}
+                          src={selectedWorkThumbnailUrl}
+                        />
+                      )}
+                      <Stack gap={3} miw={0}>
+                        <Text className={cn(css.workLabel)} size="xs">
+                          {t('community.publicPreviewEyebrow')}
+                        </Text>
+                        <Text fw={750} size="sm">
+                          {selectedWork.title} ·{' '}
+                          {getWorkTypeLabel(selectedWork.type)}
+                        </Text>
+                        <Text c="dimmed" size="xs">
+                          {t('community.publicPreviewDescription')}
+                        </Text>
+                      </Stack>
+                    </Group>
+                  </div>
+                )}
                 <Textarea
                   autosize
                   label={t('community.bodyLabel')}
@@ -423,7 +467,11 @@ export function CommunityPage() {
             />
           ) : posts.length === 0 ? (
             <StateMessage
-              description={t('community.emptyDescription')}
+              description={t(
+                authenticated
+                  ? 'community.emptyMemberDescription'
+                  : 'community.emptyGuestDescription',
+              )}
               title={t('community.emptyTitle')}
             />
           ) : (
@@ -431,6 +479,10 @@ export function CommunityPage() {
               {posts.map((post) => {
                 const spoilerRevealed = revealedSpoilers.has(post.id);
                 const reported = reportedPostIds.has(post.id);
+                const avatarUrl = getDisplayImageUrl(post.author.avatarUrl);
+                const workThumbnailUrl = getDisplayImageUrl(
+                  post.work?.thumbnailUrl,
+                );
 
                 return (
                   <Paper
@@ -447,11 +499,7 @@ export function CommunityPage() {
                         wrap="nowrap"
                       >
                         <Group align="center" gap="sm" miw={0} wrap="nowrap">
-                          <Avatar
-                            radius="xl"
-                            size={40}
-                            src={post.author.avatarUrl || null}
-                          >
+                          <Avatar radius="xl" size={40} src={avatarUrl || null}>
                             {post.author.displayName.slice(0, 1)}
                           </Avatar>
                           <Stack gap={1} miw={0}>
@@ -477,10 +525,10 @@ export function CommunityPage() {
                               <button
                                 aria-label={t('community.postMenu')}
                                 className={cn(css.menuButton)}
-                                disabled={busyPostId === post.id}
+                                disabled={busyPostIds.has(post.id)}
                                 type="button"
                               >
-                                ···
+                                {t('community.postMenuShort')}
                               </button>
                             </Menu.Target>
                             <Menu.Dropdown>
@@ -519,19 +567,12 @@ export function CommunityPage() {
 
                       {post.work && (
                         <div className={cn(css.workSnapshot)}>
-                          {post.work.thumbnailUrl ? (
+                          {workThumbnailUrl && (
                             <img
                               alt=""
                               className={cn(css.workThumbnail)}
-                              src={post.work.thumbnailUrl}
+                              src={workThumbnailUrl}
                             />
-                          ) : (
-                            <div
-                              aria-hidden="true"
-                              className={cn(css.workThumbnailPlaceholder)}
-                            >
-                              WA
-                            </div>
                           )}
                           <Stack gap={2} miw={0}>
                             <Text className={cn(css.workLabel)} size="xs">
@@ -580,16 +621,16 @@ export function CommunityPage() {
                             })}
                             aria-pressed={post.viewerHasReacted}
                             className={`${cn(css.reactionButton)} ${post.viewerHasReacted ? cn(css.reactionButtonActive) : ''}`}
-                            disabled={busyPostId === post.id}
+                            disabled={busyPostIds.has(post.id)}
                             onClick={() => void handleReaction(post)}
                             type="button"
                           >
-                            <span aria-hidden="true">♡</span>
+                            <span>{t('community.reactionLabel')}</span>
                             {formatAppNumber(post.reactionCount)}
                           </button>
                         ) : (
                           <span className={cn(css.reactionCount)}>
-                            <span aria-hidden="true">♡</span>
+                            <span>{t('community.reactionLabel')}</span>
                             {formatAppNumber(post.reactionCount)}
                           </span>
                         )}

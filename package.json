@@ -112,7 +112,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
-    "concurrently": "^10.0.3",
+    "body-parser": "^2.3.0",
+    "concurrently": "^10.0.5",
     "eslint": "^10.5.0",
     "fast-check": "^4.8.0",
     "msw": "^2.14.6",
@@ -121,10 +122,14 @@
     "typescript": "^6.0.3"
   },
   "overrides": {
-    "@hono/node-server": "1.19.13",
+    "@hono/node-server": "1.19.15",
     "@nestjs/platform-express": {
       "multer": "2.2.0"
     },
-    "js-yaml": "5.1.0"
+    "brace-expansion": "5.0.9",
+    "deepmerge-ts": "8.0.2",
+    "fast-uri": "3.1.6",
+    "ip-address": "10.5.0",
+    "js-yaml": "5.4.0"
   }
 }

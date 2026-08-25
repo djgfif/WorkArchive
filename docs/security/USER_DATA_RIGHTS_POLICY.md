@@ -33,6 +33,8 @@ The export includes server-owned user data such as:
 - Notion mapping rows and preview snapshot metadata without preview change
   payloads;
 - catalog submission metadata without submission payloads or notes;
+- community posts authored by the user, reactions made by the user, and reports
+  submitted by the user without moderator assignment or moderator notes;
 - security event summaries tied to the user.
 
 The export intentionally omits:
@@ -110,6 +112,12 @@ for account-owned records:
   mutations, work records, timeline entries, Notion mappings and preview
   snapshots, user series, user contributors, user work relations, tier boards,
   and catalog submissions made by the user are deleted by cascade.
+- Community posts authored by the user, reactions made by the user, and reports
+  submitted by the user are deleted by cascade.
+- Community reports assigned to the deleted moderator keep the report but set
+  `moderatorId` to `null`.
+- Community moderation audit logs keep the action record but set `actorId` to
+  `null`.
 - Catalog submissions reviewed by the deleted user keep their moderation record
   but set `reviewerId` to `null`.
 - Catalog audit logs keep the moderation audit record but set `actorId` to

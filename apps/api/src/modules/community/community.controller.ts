@@ -4,6 +4,8 @@ import {
   Delete,
   Get,
   Headers,
+  HttpCode,
+  HttpStatus,
   Inject,
   Param,
   ParseUUIDPipe,
@@ -81,6 +83,7 @@ export class CommunityController {
   }
 
   @Post('posts/:id/reactions')
+  @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOkResponse({ description: 'Add the current user reaction.' })
@@ -124,6 +127,7 @@ export class CommunityController {
   }
 
   @Post('moderation/posts/:id/hide')
+  @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiBody({ type: CommunityModerationActionDto })
@@ -137,6 +141,7 @@ export class CommunityController {
   }
 
   @Post('moderation/posts/:id/restore')
+  @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiBody({ type: CommunityModerationActionDto })
@@ -150,6 +155,7 @@ export class CommunityController {
   }
 
   @Post('moderation/reports/:id/resolve')
+  @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiBody({ type: ResolveCommunityReportDto })

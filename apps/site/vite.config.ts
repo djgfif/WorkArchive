@@ -1,15 +1,15 @@
-import vinext from "vinext";
-import { defineConfig } from "vite";
-import { sites } from "./scripts/sites-vite-plugin";
+import vinext from 'vinext';
+import { defineConfig } from 'vite';
+import { sites } from './scripts/sites-vite-plugin.ts';
 
-const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
+const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 
 export default defineConfig(async () => {
-  process.env.WRANGLER_WRITE_LOGS ??= "false";
-  process.env.WRANGLER_LOG_PATH ??= ".wrangler/logs";
-  process.env.MINIFLARE_REGISTRY_PATH ??= ".wrangler/registry";
+  process.env.WRANGLER_WRITE_LOGS ??= 'false';
+  process.env.WRANGLER_LOG_PATH ??= '.wrangler/logs';
+  process.env.MINIFLARE_REGISTRY_PATH ??= '.wrangler/registry';
 
-  const { cloudflare } = await import("@cloudflare/vite-plugin");
+  const { cloudflare } = await import('@cloudflare/vite-plugin');
 
   return {
     server: isCodexSeatbeltSandbox
@@ -19,10 +19,10 @@ export default defineConfig(async () => {
       vinext(),
       sites(),
       cloudflare({
-        viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
+        viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] },
         config: {
-          main: "./worker/index.ts",
-          compatibility_flags: ["nodejs_compat"],
+          main: './worker/index.ts',
+          compatibility_flags: ['nodejs_compat'],
         },
       }),
     ],

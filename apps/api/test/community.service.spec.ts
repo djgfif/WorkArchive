@@ -28,21 +28,21 @@ function createPrismaMock() {
       updateMany: asyncMock(),
     },
     communityReaction: {
+      createMany: asyncMock(),
       deleteMany: asyncMock(),
-      upsert: asyncMock(),
     },
     communityReport: {
       create: asyncMock(),
       findMany: asyncMock(),
       findUnique: asyncMock(),
       update: asyncMock(),
+      updateMany: asyncMock(),
     },
   };
 }
 
 function createPostRow(overrides: Record<string, unknown> = {}) {
   return {
-    _count: { reactions: 2 },
     author: {
       avatarUrl: 'https://example.com/avatar.jpg',
       handle: 'reader',
@@ -52,6 +52,7 @@ function createPostRow(overrides: Record<string, unknown> = {}) {
     body: '좋았던 장면을 오래 생각하게 됐어요.',
     createdAt: new Date('2026-08-25T01:00:00.000Z'),
     id: 'post-1',
+    reactionCount: 2,
     reactions: [{ id: 'reaction-1' }],
     spoiler: false,
     updatedAt: new Date('2026-08-25T01:00:00.000Z'),
@@ -100,15 +101,32 @@ describe('CommunityService', () => {
     expect(result.posts[0]?.author).not.toHaveProperty('email');
   });
 
+  it('uses the indexed scalar reaction count for deterministic popular ordering', async () => {
+    prisma.communityPost.findMany.mockResolvedValue([createPostRow()]);
+
+    await service.listPosts({ limit: 20, sort: 'popular' }, null);
+
+    expect(prisma.communityPost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [
+          { reactionCount: 'desc' },
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+      }),
+    );
+  });
+
   it('publishes only the explicit body and bounded work snapshot', async () => {
     prisma.communityPost.create.mockResolvedValue(
-      createPostRow({ reactions: [], _count: { reactions: 0 } }),
+      createPostRow({ reactionCount: 0, reactions: [] }),
     );
 
     await service.createPost('user-1', {
       body: '  새로 쓴 공개 감상  ',
       spoiler: true,
-      workThumbnailUrl: 'https://example.com/work.jpg',
+      workThumbnailUrl:
+        'https://reader:secret@s4.anilist.co/file/work.jpg#private-fragment',
       workTitle: '  여름의 문장들  ',
       workType: 'novel',
     });
@@ -119,12 +137,24 @@ describe('CommunityService', () => {
           authorId: 'user-1',
           body: '새로 쓴 공개 감상',
           spoiler: true,
-          workThumbnailUrl: 'https://example.com/work.jpg',
+          workThumbnailUrl: 'https://s4.anilist.co/file/work.jpg',
           workTitle: '여름의 문장들',
           workType: 'novel',
         },
       }),
     );
+  });
+
+  it('rejects an author-controlled thumbnail host before writing a public post', async () => {
+    await expect(
+      service.createPost('user-1', {
+        body: '공개 감상',
+        workThumbnailUrl: 'https://tracker.example.test/pixel.gif',
+        workTitle: '추적 표지',
+        workType: 'novel',
+      }),
+    ).rejects.toThrow('Image host is not allowed.');
+    expect(prisma.communityPost.create).not.toHaveBeenCalled();
   });
 
   it('rejects partial work snapshots instead of accepting ambiguous publication data', async () => {
@@ -155,22 +185,63 @@ describe('CommunityService', () => {
   });
 
   it('keeps reactions idempotent and scoped to the current user', async () => {
-    prisma.communityPost.findFirst.mockResolvedValue({
-      authorId: 'user-1',
-      id: 'post-1',
-    });
+    const transaction = {
+      communityPost: {
+        findFirst: jest.fn(async (_input: unknown) => ({ id: 'post-1' })),
+        updateMany: jest.fn(async (_input: unknown) => ({ count: 1 })),
+      },
+      communityReaction: {
+        createMany: jest.fn(async (_input: unknown) => ({ count: 1 })),
+        deleteMany: jest.fn(async (_input: unknown) => ({ count: 1 })),
+      },
+    };
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback(transaction),
+    );
 
     await service.addReaction('user-2', 'post-1');
     await service.removeReaction('user-2', 'post-1');
 
-    expect(prisma.communityReaction.upsert).toHaveBeenCalledWith({
-      where: { postId_userId: { postId: 'post-1', userId: 'user-2' } },
-      create: { postId: 'post-1', userId: 'user-2' },
-      update: {},
+    expect(transaction.communityReaction.createMany).toHaveBeenCalledWith({
+      data: [{ postId: 'post-1', userId: 'user-2' }],
+      skipDuplicates: true,
     });
-    expect(prisma.communityReaction.deleteMany).toHaveBeenCalledWith({
+    expect(transaction.communityReaction.deleteMany).toHaveBeenCalledWith({
       where: { postId: 'post-1', userId: 'user-2' },
     });
+    expect(transaction.communityPost.updateMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: { reactionCount: { increment: 1 } },
+      }),
+    );
+    expect(transaction.communityPost.updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: { reactionCount: { decrement: 1 } },
+      }),
+    );
+  });
+
+  it('does not change the denormalized count for duplicate adds or missing removes', async () => {
+    const transaction = {
+      communityPost: {
+        findFirst: jest.fn(async (_input: unknown) => ({ id: 'post-1' })),
+        updateMany: jest.fn(async (_input: unknown) => ({ count: 1 })),
+      },
+      communityReaction: {
+        createMany: jest.fn(async (_input: unknown) => ({ count: 0 })),
+        deleteMany: jest.fn(async (_input: unknown) => ({ count: 0 })),
+      },
+    };
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback(transaction),
+    );
+
+    await service.addReaction('user-2', 'post-1');
+    await service.removeReaction('user-2', 'post-1');
+
+    expect(transaction.communityPost.updateMany).not.toHaveBeenCalled();
   });
 
   it('rejects self-reports and duplicate reports', async () => {
@@ -211,7 +282,7 @@ describe('CommunityService', () => {
         findUnique: jest.fn(async () => ({
           status: CommunityPostStatus.published,
         })),
-        update: jest.fn(async (_input: unknown) => ({})),
+        updateMany: jest.fn(async (_input: unknown) => ({ count: 1 })),
       },
     };
     prisma.$transaction.mockImplementation(async (callback) =>
@@ -224,8 +295,12 @@ describe('CommunityService', () => {
       '신고 검토',
     );
 
-    expect(transaction.communityPost.update).toHaveBeenCalledWith(
+    expect(transaction.communityPost.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'post-1',
+          status: CommunityPostStatus.published,
+        }),
         data: expect.objectContaining({ status: CommunityPostStatus.hidden }),
       }),
     );
@@ -240,6 +315,71 @@ describe('CommunityService', () => {
     );
   });
 
+  it('does not append a second hide audit when another moderator already won the transition', async () => {
+    const transaction = {
+      communityModerationAuditLog: {
+        create: jest.fn(async (_input: unknown) => ({})),
+      },
+      communityPost: {
+        findUnique: jest.fn(async () => ({
+          status: CommunityPostStatus.hidden,
+        })),
+        updateMany: jest.fn(async (_input: unknown) => ({ count: 0 })),
+      },
+    };
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback(transaction),
+    );
+
+    await expect(
+      service.hidePost(
+        { role: 'moderator', userId: 'moderator-2' },
+        'post-1',
+        '동시 처리',
+      ),
+    ).resolves.toEqual({ ok: true });
+
+    expect(
+      transaction.communityModerationAuditLog.create,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('restores only a hidden post and records one audit entry', async () => {
+    const transaction = {
+      communityModerationAuditLog: {
+        create: jest.fn(async (_input: unknown) => ({})),
+      },
+      communityPost: {
+        updateMany: jest.fn(async (_input: unknown) => ({ count: 1 })),
+      },
+    };
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback(transaction),
+    );
+
+    await service.restorePost(
+      { role: 'moderator', userId: 'moderator-1' },
+      'post-1',
+      '재검토 완료',
+    );
+
+    expect(transaction.communityPost.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'post-1',
+          status: CommunityPostStatus.hidden,
+        },
+        data: expect.objectContaining({
+          hiddenAt: null,
+          status: CommunityPostStatus.published,
+        }),
+      }),
+    );
+    expect(
+      transaction.communityModerationAuditLog.create,
+    ).toHaveBeenCalledTimes(1);
+  });
+
   it('resolves a pending report and records the audit target atomically', async () => {
     const transaction = {
       communityModerationAuditLog: {
@@ -250,7 +390,7 @@ describe('CommunityService', () => {
           postId: 'post-1',
           status: CommunityReportStatus.pending,
         })),
-        update: jest.fn(async (_input: unknown) => ({})),
+        updateMany: jest.fn(async (_input: unknown) => ({ count: 1 })),
       },
     };
     prisma.$transaction.mockImplementation(async (callback) =>
@@ -263,8 +403,12 @@ describe('CommunityService', () => {
       { note: '처리 완료', resolution: 'resolve' },
     );
 
-    expect(transaction.communityReport.update).toHaveBeenCalledWith(
+    expect(transaction.communityReport.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: {
+          id: 'report-1',
+          status: CommunityReportStatus.pending,
+        },
         data: expect.objectContaining({
           moderatorId: 'admin-1',
           status: CommunityReportStatus.resolved,
@@ -280,5 +424,34 @@ describe('CommunityService', () => {
         }),
       }),
     );
+  });
+
+  it('rejects a concurrent report-resolution loser without adding an audit', async () => {
+    const transaction = {
+      communityModerationAuditLog: {
+        create: jest.fn(async (_input: unknown) => ({})),
+      },
+      communityReport: {
+        findUnique: jest.fn(async () => ({
+          postId: 'post-1',
+          status: CommunityReportStatus.pending,
+        })),
+        updateMany: jest.fn(async (_input: unknown) => ({ count: 0 })),
+      },
+    };
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback(transaction),
+    );
+
+    await expect(
+      service.resolveReport(
+        { role: 'moderator', userId: 'moderator-2' },
+        'report-1',
+        { resolution: 'dismiss' },
+      ),
+    ).rejects.toThrow('Pending community report not found');
+    expect(
+      transaction.communityModerationAuditLog.create,
+    ).not.toHaveBeenCalled();
   });
 });

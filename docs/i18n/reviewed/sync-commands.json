@@ -25,12 +25,14 @@
         "newRecordHint": "New record",
         "noRating": "Unrated works",
         "placeholder": "Command or search…",
+        "resultsLabel": "Command results",
         "searchHint": "Title · author",
         "searchLabel": "Search \"{{query}}\"",
         "showCompletedSerial": "Show completed only",
         "showFavorites": "Favorites",
         "showInProgress": "Continue watching",
-        "showInProgressHint": "In progress"
+        "showInProgressHint": "In progress",
+        "title": "Quick commands"
       },
       "localArchive": {
         "csvCreated": "Created the CSV export file.",
@@ -166,12 +168,14 @@
         "newRecordHint": "新規記録",
         "noRating": "未評価の作品",
         "placeholder": "コマンドまたは検索…",
+        "resultsLabel": "コマンド結果",
         "searchHint": "タイトル・作者",
         "searchLabel": "「{{query}}」を検索",
         "showCompletedSerial": "完結作のみ表示",
         "showFavorites": "お気に入り",
         "showInProgress": "続きを見る作品",
-        "showInProgressHint": "進行中"
+        "showInProgressHint": "進行中",
+        "title": "クイックコマンド"
       },
       "localArchive": {
         "csvCreated": "CSVエクスポートファイルを作成しました。",
@@ -307,12 +311,14 @@
         "newRecordHint": "新建记录",
         "noRating": "未评分的作品",
         "placeholder": "命令或搜索…",
+        "resultsLabel": "命令结果",
         "searchHint": "标题 · 作者",
         "searchLabel": "搜索 \"{{query}}\"",
         "showCompletedSerial": "仅显示完结作品",
         "showFavorites": "收藏",
         "showInProgress": "继续观看的作品",
-        "showInProgressHint": "进行中"
+        "showInProgressHint": "进行中",
+        "title": "快捷命令"
       },
       "localArchive": {
         "csvCreated": "已创建 CSV 导出文件。",
