@@ -37,6 +37,21 @@ export const CommunityPage = lazy(() =>
     default: module.CommunityPage,
   })),
 );
+export const CommunityBoardsPage = lazy(() =>
+  import('@features/community').then((module) => ({ default: module.CommunityBoardsPage })),
+);
+export const CommunityPostDetailPage = lazy(() =>
+  import('@features/community').then((module) => ({ default: module.CommunityPostDetailPage })),
+);
+export const CommunityReviewDetailPage = lazy(() =>
+  import('@features/community').then((module) => ({ default: module.CommunityReviewDetailPage })),
+);
+export const CommunityProfilePage = lazy(() =>
+  import('@features/community').then((module) => ({ default: module.CommunityProfilePage })),
+);
+export const CommunityTastePage = lazy(() =>
+  import('@features/community').then((module) => ({ default: module.CommunityTastePage })),
+);
 
 export const ProfilePage = lazy(() =>
   import('@features/profile/pages/ProfilePage').then((module) => ({

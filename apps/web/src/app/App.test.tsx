@@ -105,8 +105,19 @@ describe('App', () => {
       within(mobileNavigation).getByRole('link', { name: '작품 서재' }),
     ).toHaveAttribute('href', '/works');
     expect(
+      within(mobileNavigation).queryByRole('link', { name: '커뮤니티' }),
+    ).not.toBeInTheDocument();
+    expect(
       screen.queryByRole('button', { name: '메뉴 열기' }),
     ).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole('button', { name: /계정 메뉴 · 모바일 탐색/ }),
+    );
+    expect(
+      await screen.findByRole('menuitem', { name: '커뮤니티' }),
+    ).toBeInTheDocument();
   });
 
   it('starts the Sites POC in local guest mode without server entry points', async () => {

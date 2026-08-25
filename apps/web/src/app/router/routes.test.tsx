@@ -74,6 +74,19 @@ describe('app routes', () => {
     ).toBe(false);
   });
 
+  it('registers the board, detail, taste, and public profile routes', () => {
+    const paths = createAppRoutes()[0]?.children?.map((route) => route.path);
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        'community/boards',
+        'community/posts/:id',
+        'community/reviews/:id',
+        'community/taste',
+        'u/:handle',
+      ]),
+    );
+  });
+
   it('keeps /insights in the product layout instead of redirecting to /works', () => {
     const routes = createAppRoutes();
     const productRoutes = routes[0]?.children ?? [];

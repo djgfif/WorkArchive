@@ -14,6 +14,11 @@ import {
 } from './tier-board-route-components';
 import {
   CommunityPage,
+  CommunityBoardsPage,
+  CommunityPostDetailPage,
+  CommunityProfilePage,
+  CommunityReviewDetailPage,
+  CommunityTastePage,
   AccountOverviewPage,
   GoogleAuthCompletePage,
   GuestTransferReviewPage,
@@ -114,6 +119,26 @@ export function createAppRoutes(
             '/works',
             appI18n.t('routes.fallbackWorks'),
           ),
+        },
+        {
+          path: 'community/boards',
+          element: lazyRoute(<CommunityBoardsPage />),
+        },
+        {
+          path: 'community/posts/:id',
+          element: lazyRoute(<CommunityPostDetailPage />),
+        },
+        {
+          path: 'community/reviews/:id',
+          element: lazyRoute(<CommunityReviewDetailPage />),
+        },
+        {
+          path: 'community/taste',
+          element: lazyRoute(<CommunityTastePage />),
+        },
+        {
+          path: 'u/:handle',
+          element: lazyRoute(<CommunityProfilePage />),
         },
         {
           path: 'works/new',
