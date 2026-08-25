@@ -39,6 +39,14 @@ type NavIconName =
   | 'tier'
   | 'works';
 
+const NAV_ICON_BY_ROUTE: Record<string, NavIconName> = {
+  '/': 'home',
+  '/community': 'community',
+  '/insights': 'insights',
+  '/tier-boards': 'tier',
+  '/works': 'works',
+};
+
 function NavIcon({ name }: { name: NavIconName }) {
   return (
     <svg
@@ -111,8 +119,6 @@ export function MainProductLayout() {
     ? `${t('navigation.accountMenu')}: ${accountLabel}, ${profile.email}`
     : `${t('navigation.accountMenu')}: ${accountLabel}`;
   const items = getPrimaryNavigationItems();
-  const coreItems = items.slice(0, 3);
-  const secondaryItems = items.slice(3);
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
 
   async function handleSignOut() {
@@ -120,46 +126,29 @@ export function MainProductLayout() {
     navigate('/');
   }
 
-  function accountMenu(compact: boolean) {
+  function accountMenu(mobile = false) {
     return (
-      <Menu
-        position={compact ? 'bottom-end' : 'top-end'}
-        shadow="xl"
-        width={260}
-      >
+      <Menu position="bottom-end" shadow="xl" width={260}>
         <Menu.Target>
           <button
             aria-label={
-              compact
+              mobile
                 ? `${t('navigation.accountMenu')} · ${t('navigation.mobileNavigation')}`
                 : accountMenuLabel
             }
-            className={cn(compact ? css.mobileAvatarButton : css.accountButton)}
+            className={cn(
+              mobile ? css.mobileAvatarButton : css.desktopAvatarButton,
+            )}
             type="button"
           >
             <Avatar
               color={authenticated ? 'archive' : 'gray'}
               radius="xl"
-              size={compact ? 34 : 36}
+              size={34}
               src={authenticated && profile.imageUrl ? profile.imageUrl : null}
             >
               {avatarInitial}
             </Avatar>
-            {!compact && (
-              <span className={cn(css.accountButtonCopy)}>
-                <strong>{accountLabel}</strong>
-                <span>
-                  {authenticated
-                    ? t('navigation.signedIn')
-                    : t('navigation.guestMode')}
-                </span>
-              </span>
-            )}
-            {!compact && (
-              <span aria-hidden="true" className={cn(css.accountChevron)}>
-                ···
-              </span>
-            )}
           </button>
         </Menu.Target>
         <Menu.Dropdown className={cn(css.accountMenuDropdown)}>
@@ -192,16 +181,6 @@ export function MainProductLayout() {
               </Stack>
             </Group>
           </Box>
-          {secondaryItems.map((item, index) => (
-            <Menu.Item
-              className={cn(css.accountMenuItem)}
-              key={item.to}
-              leftSection={<NavIcon name={index === 0 ? 'insights' : 'tier'} />}
-              onClick={() => navigate(item.to)}
-            >
-              {item.label}
-            </Menu.Item>
-          ))}
           {!sitesGuestPoc && (
             <Menu.Item
               className={cn(css.accountMenuItem)}
@@ -242,82 +221,68 @@ export function MainProductLayout() {
 
   return (
     <div className="app-frame">
-      <aside className={cn(css.sidebar)}>
-        <Link
-          aria-label={t('navigation.workArchiveHome')}
-          className={cn(css.brand)}
-          to="/"
-        >
-          <span aria-hidden="true" className={cn(css.brandMark)}>
-            WA
-          </span>
-          <span className={cn(css.brandName)}>Work Archive</span>
-        </Link>
-        <nav
-          aria-label={t('navigation.primaryNavigation')}
-          className={cn(css.primaryNav)}
-        >
-          {coreItems.map((item, index) => (
-            <NavLink
-              className={({ isActive }) =>
-                `${cn(css.sidebarNavLink)} ${isActive ? cn(css.sidebarNavLinkActive) : ''}`
-              }
-              end={item.to === '/'}
-              key={item.to}
-              to={item.to}
-            >
-              <NavIcon
-                name={
-                  index === 0 ? 'home' : index === 1 ? 'works' : 'community'
-                }
-              />
-              <span>
-                {index === 1 ? t('navigation.worksLibrary') : item.label}
-              </span>
-            </NavLink>
-          ))}
-        </nav>
-        <Link
-          aria-label={`${t('navigation.addNewWork')} · ${t('navigation.primaryNavigation')}`}
-          className={cn(css.sidebarAddWork)}
-          to="/works/new"
-        >
-          <NavIcon name="add" />
-          <span>{t('navigation.addWork')}</span>
-        </Link>
-        <nav
-          aria-label={t('navigation.secondaryNavigation')}
-          className={cn(css.secondaryNav)}
-        >
-          {secondaryItems.map((item, index) => (
-            <NavLink
-              className={({ isActive }) =>
-                `${cn(css.sidebarNavLink)} ${cn(css.secondaryNavLink)} ${isActive ? cn(css.sidebarNavLinkActive) : ''}`
-              }
-              key={item.to}
-              to={item.to}
-            >
-              <NavIcon name={index === 0 ? 'insights' : 'tier'} />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-        <div className={cn(css.sidebarFooter)}>
-          {!sitesGuestPoc && <SyncSafetyBadge />}
-          <button
-            aria-label={t('navigation.commandPalette')}
-            className={cn(css.commandButton)}
-            onClick={() =>
-              window.dispatchEvent(new Event(COMMAND_PALETTE_EVENT))
-            }
-            type="button"
+      <header className={cn(css.desktopHeader)} role="banner">
+        <div className={cn(css.desktopHeaderInner)}>
+          <Link
+            aria-label={t('navigation.workArchiveHome')}
+            className={cn(css.brand)}
+            to="/"
           >
-            <span>{t('navigation.commandPalette')}</span>
-            <kbd>⌘K</kbd>
-          </button>
-          {accountMenu(false)}
+            <span aria-hidden="true" className={cn(css.brandMark)}>
+              WA
+            </span>
+            <span className={cn(css.brandName)}>Work Archive</span>
+          </Link>
+          <nav
+            aria-label={t('navigation.primaryNavigation')}
+            className={cn(css.desktopNav)}
+          >
+            {items.map((item) => (
+              <NavLink
+                className={({ isActive }) =>
+                  `${cn(css.desktopNavLink)} ${isActive ? cn(css.desktopNavLinkActive) : ''}`
+                }
+                end={item.to === '/'}
+                key={item.to}
+                to={item.to}
+              >
+                <NavIcon name={NAV_ICON_BY_ROUTE[item.to] ?? 'home'} />
+                <span>
+                  {item.to === '/works'
+                    ? t('navigation.worksLibrary')
+                    : item.label}
+                </span>
+              </NavLink>
+            ))}
+          </nav>
+          <div className={cn(css.desktopUtilities)}>
+            {!sitesGuestPoc && (
+              <div className={cn(css.desktopSyncBadge)}>
+                <SyncSafetyBadge />
+              </div>
+            )}
+            <button
+              aria-label={t('navigation.commandPalette')}
+              className={cn(css.desktopCommandButton)}
+              onClick={() =>
+                window.dispatchEvent(new Event(COMMAND_PALETTE_EVENT))
+              }
+              type="button"
+            >
+              <kbd>⌘K</kbd>
+            </button>
+            <Link
+              aria-label={`${t('navigation.addNewWork')} · ${t('navigation.primaryNavigation')}`}
+              className={cn(css.desktopAddWork)}
+              to="/works/new"
+            >
+              <NavIcon name="add" />
+              <span>{t('navigation.addWork')}</span>
+            </Link>
+            {accountMenu()}
+          </div>
         </div>
-      </aside>
+      </header>
 
       <header className={cn(css.mobileHeader)} role="banner">
         <Link

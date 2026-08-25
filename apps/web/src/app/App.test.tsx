@@ -27,6 +27,48 @@ describe('App', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('exposes every enabled product destination in the desktop header', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<App />);
+
+    const primaryNavigation = await screen.findByRole('navigation', {
+      name: '주요 탐색',
+    });
+    expect(
+      within(primaryNavigation).getByRole('link', { name: '홈' }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(
+      within(primaryNavigation).getByRole('link', { name: '작품 서재' }),
+    ).toHaveAttribute('href', '/works');
+    expect(
+      within(primaryNavigation).getByRole('link', { name: '커뮤니티' }),
+    ).toHaveAttribute('href', '/community');
+    expect(
+      within(primaryNavigation).getByRole('link', { name: '인사이트' }),
+    ).toHaveAttribute('href', '/insights');
+    expect(
+      within(primaryNavigation).getByRole('link', { name: '티어보드' }),
+    ).toHaveAttribute('href', '/tier-boards');
+    expect(
+      screen.getByRole('link', { name: /새 작품 추가 · 주요 탐색/ }),
+    ).toHaveAttribute('href', '/works/new');
+
+    await user.click(
+      screen.getByRole('button', { name: '계정 메뉴: 게스트' }),
+    );
+
+    expect(
+      await screen.findByRole('menuitem', { name: '계정 개요' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryAllByRole('menuitem', { hidden: true, name: '인사이트' }),
+    ).toHaveLength(0);
+    expect(
+      screen.queryAllByRole('menuitem', { hidden: true, name: '티어보드' }),
+    ).toHaveLength(0);
+  });
+
   it('offers recovery actions when the home recent records cannot load', async () => {
     const user = userEvent.setup();
     const listActiveSpy = vi

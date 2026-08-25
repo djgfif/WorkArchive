@@ -40,7 +40,7 @@ html {
   scroll-behavior: smooth;
   /* 고정 상단바 높이만큼 앵커 스크롤 여백 확보 — #data-backup 등 인페이지 링크가
      헤더에 가리지 않게 한다. */
-  scroll-padding-top: calc(var(--topnav-height, 56px) + 0.75rem);
+  scroll-padding-top: calc(var(--topnav-height, 64px) + 0.75rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -115,8 +115,7 @@ textarea::placeholder {
 
 /* ── Root ────────────────────────────────────────────────────────────────── */
 :root {
-  --topnav-height: 56px;
-  --app-sidebar-width: 224px;
+  --topnav-height: 64px;
   --mobile-header-height: 64px;
   --mobile-nav-height: 76px;
 }

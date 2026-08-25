@@ -1,13 +1,23 @@
-.sidebar {
+.desktopHeader {
   position: fixed;
-  inset: 0 auto 0 0;
+  inset: 0 0 auto;
   z-index: 210;
+  height: var(--topnav-height, 64px);
+  border-bottom: 1px solid var(--app-border-subtle);
+  background: color-mix(in srgb, var(--app-bg-base) 94%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.desktopHeaderInner {
   display: flex;
-  width: var(--app-sidebar-width, 224px);
-  flex-direction: column;
-  padding: 1.25rem 0.9rem 1rem;
-  border-right: 1px solid var(--app-border-subtle);
-  background: var(--app-bg-base);
+  width: 100%;
+  max-width: 1440px;
+  height: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: clamp(0.8rem, 1.4vw, 1.4rem);
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 2vw, 2rem);
 }
 
 .brand,
@@ -21,7 +31,7 @@
 }
 
 .brand {
-  margin: 0 0.35rem 1.9rem;
+  flex: 0 0 auto;
 }
 
 .brandMark {
@@ -47,56 +57,43 @@
   white-space: nowrap;
 }
 
-.primaryNav,
-.secondaryNav {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.primaryNav {
-  margin-top: 2.4rem;
-}
-
-.secondaryNav {
-  margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid var(--app-border-subtle);
-}
-
-.sidebarNavLink {
+.desktopNav {
   display: flex;
-  min-height: 42px;
+  min-width: 0;
+  flex: 1 1 auto;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0 0.8rem;
+  gap: clamp(0.15rem, 0.45vw, 0.4rem);
+}
+
+.desktopNavLink {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 clamp(0.55rem, 0.8vw, 0.8rem);
   border-radius: 8px;
   color: var(--app-text-secondary);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 700;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     background var(--wa-motion-fast),
     color var(--wa-motion-fast);
 }
 
-.sidebarNavLink:hover {
+.desktopNavLink:hover {
   background: var(--app-surface-subtle);
   color: var(--app-text-primary);
 }
 
-.sidebarNavLinkActive {
+.desktopNavLinkActive {
   background: var(--app-accent-soft);
   color: var(--app-text-primary);
 }
 
-.sidebarNavLinkActive .navIcon {
+.desktopNavLinkActive .navIcon {
   color: var(--app-accent-primary);
-}
-
-.secondaryNavLink {
-  min-height: 38px;
-  color: var(--app-text-muted);
-  font-size: 0.82rem;
 }
 
 .navIcon {
@@ -104,40 +101,49 @@
   flex: 0 0 20px;
 }
 
-.sidebarAddWork {
+.desktopUtilities {
   display: flex;
-  min-height: 42px;
+  min-width: 0;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.desktopSyncBadge {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.desktopAddWork {
+  display: flex;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
-  gap: 0.55rem;
-  margin-top: 1.2rem;
+  gap: 0.45rem;
+  padding: 0 0.85rem;
   border-radius: 8px;
   background: var(--app-accent-primary);
   color: #fff;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   font-weight: 780;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     background var(--wa-motion-fast),
     transform var(--wa-motion-fast);
 }
 
-.sidebarAddWork:hover {
+.desktopAddWork:hover {
   background: var(--app-accent-strong);
 }
 
-.sidebarAddWork:active {
+.desktopAddWork:active {
   transform: scale(0.985);
 }
 
-.sidebarFooter {
-  display: grid;
-  gap: 0.55rem;
-  padding-top: 0.8rem;
-}
-
-.commandButton,
-.accountButton,
+.desktopAvatarButton,
+.desktopCommandButton,
 .mobileAvatarButton {
   border: 0;
   background: transparent;
@@ -145,76 +151,48 @@
   cursor: pointer;
 }
 
-.commandButton {
+.desktopCommandButton {
   display: flex;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 0.75rem;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0 0.55rem;
   border-radius: 8px;
   color: var(--app-text-muted);
-  font-size: 0.76rem;
-  font-weight: 650;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
-.commandButton:hover {
+.desktopCommandButton:hover,
+.desktopCommandButton:focus-visible {
   background: var(--app-surface-subtle);
   color: var(--app-text-primary);
 }
 
-.commandButton kbd {
-  padding: 0.12rem 0.35rem;
+.desktopCommandButton kbd {
+  padding: 0.16rem 0.4rem;
   border: 1px solid var(--app-border-default);
   border-radius: 5px;
-  color: var(--app-text-muted);
+  color: currentColor;
   font-family: var(--app-font-figure);
-  font-size: 0.65rem;
+  font-size: 0.66rem;
 }
 
-.accountButton {
-  display: flex;
-  width: 100%;
-  min-height: 52px;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.45rem 0.55rem;
-  border-radius: 10px;
-  text-align: left;
-}
-
-.accountButton:hover,
-.accountButton:focus-visible {
-  background: var(--app-surface-subtle);
-}
-
-.accountButtonCopy {
+.desktopAvatarButton,
+.mobileAvatarButton {
   display: grid;
-  min-width: 0;
-  flex: 1;
-  gap: 1px;
+  min-width: 44px;
+  min-height: 44px;
+  place-items: center;
+  padding: 0;
+  border-radius: 999px;
 }
 
-.accountButtonCopy strong,
-.accountButtonCopy span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.accountButtonCopy strong {
-  color: var(--app-text-primary);
-  font-size: 0.8rem;
-}
-
-.accountButtonCopy span {
-  color: var(--app-text-muted);
-  font-size: 0.68rem;
-}
-
-.accountChevron {
-  color: var(--app-text-muted);
-  font-weight: 800;
-  letter-spacing: 0.04em;
+.desktopAvatarButton:hover,
+.desktopAvatarButton:focus-visible {
+  background: var(--app-surface-subtle);
 }
 
 .accountMenuDropdown {
@@ -236,10 +214,10 @@
   font-weight: 650;
 }
 
-.pageTransition {
+main.pageTransition {
   min-width: 0;
-  margin-left: var(--app-sidebar-width, 224px);
-  padding-top: 0;
+  margin-left: 0;
+  padding-top: var(--topnav-height, 64px);
   animation: pageEnter var(--wa-motion-enter) both;
 }
 
@@ -261,11 +239,11 @@
 }
 
 @media (max-width: 61.99rem) {
-  .sidebar {
+  .desktopHeader {
     display: none;
   }
 
-  .pageTransition {
+  main.pageTransition {
     margin-left: 0;
     padding-top: 64px;
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
@@ -290,11 +268,6 @@
   }
   .mobileAvatarButton {
     display: grid;
-    min-width: 44px;
-    min-height: 44px;
-    place-items: center;
-    padding: 0;
-    border-radius: 999px;
   }
 
   .mobileSafetyNotice {
@@ -359,6 +332,23 @@
   }
 }
 
+@media (min-width: 62rem) and (max-width: 73.99rem) {
+  .desktopHeaderInner {
+    gap: 0.65rem;
+    padding-inline: 0.75rem;
+  }
+
+  .desktopNavLink {
+    gap: 0.3rem;
+    padding-inline: 0.5rem;
+  }
+
+  .desktopNavLink .navIcon {
+    display: none;
+  }
+
+}
+
 @media (max-width: 23rem) {
   .mobileHeader {
     padding-inline: 0.75rem;
@@ -369,7 +359,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pageTransition {
+  main.pageTransition {
     animation: none;
   }
 }
