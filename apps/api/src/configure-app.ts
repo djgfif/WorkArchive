@@ -129,7 +129,12 @@ export async function configureApp(
   app.use(['/api/sync/push', '/api/sync/pull'], rateLimiters.sync);
   app.use('/api/image-proxy', rateLimiters.imageProxy);
   app.use(
-    ['/api/works', '/api/user-records', '/api/user-release-records'],
+    [
+      '/api/community',
+      '/api/works',
+      '/api/user-records',
+      '/api/user-release-records',
+    ],
     rateLimiters.mutations,
   );
   app.use('/api/imports/search', rateLimiters.importsGuest);

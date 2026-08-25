@@ -1,0 +1,258 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 780px) minmax(240px, 300px);
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  align-items: start;
+  justify-content: space-between;
+}
+
+.composer,
+.guestComposer,
+.postCard {
+  background: var(--app-surface-card);
+  border-color: var(--app-border-subtle);
+}
+
+.composer {
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--app-shell) 30%, transparent);
+}
+
+.composerIcon {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid
+    color-mix(in srgb, var(--app-accent-primary) 28%, var(--app-border-subtle));
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(
+    in srgb,
+    var(--app-accent-primary) 10%,
+    var(--app-surface-card)
+  );
+  color: var(--app-accent-primary);
+}
+
+.feedToolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.15rem 0.7rem;
+  border-bottom: 1px solid var(--app-border-subtle);
+}
+
+.sortTabs {
+  flex: 0 0 auto;
+}
+
+.principles {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.principlesCard {
+  overflow: hidden;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--app-surface-raised) 72%, transparent),
+    var(--app-surface-card) 42%
+  );
+}
+
+.railEyebrow,
+.workLabel {
+  color: var(--app-text-muted);
+  font-family: var(--app-font-figure);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.menuButton {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: var(--mantine-radius-sm);
+  background: transparent;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+}
+
+.menuButton:hover,
+.menuButton:focus-visible {
+  background: var(--app-surface-subtle);
+  color: var(--app-text-primary);
+}
+
+.menuButton:disabled {
+  cursor: progress;
+  opacity: 0.5;
+}
+
+.workSnapshot {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: linear-gradient(
+    120deg,
+    var(--app-surface-subtle),
+    color-mix(in srgb, var(--app-surface-raised) 70%, transparent)
+  );
+}
+
+.workThumbnail,
+.workThumbnailPlaceholder {
+  width: 42px;
+  height: 54px;
+  flex: 0 0 auto;
+  border-radius: var(--mantine-radius-sm);
+  object-fit: cover;
+}
+
+.workThumbnailPlaceholder {
+  display: grid;
+  place-items: center;
+  background: var(--app-surface-raised);
+  color: var(--app-text-muted);
+  font-family: var(--app-font-figure);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.postBody {
+  color: var(--app-text-primary);
+  font-size: 0.96rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.postCard {
+  transition:
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.postCard:hover {
+  border-color: var(--app-border-default);
+  transform: translateY(-1px);
+}
+
+.actionRow {
+  min-height: 2.35rem;
+  margin-top: 0.1rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+.spoilerButton,
+.spoilerHideButton {
+  width: fit-content;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--app-surface-subtle);
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.spoilerButton {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  text-align: left;
+}
+
+.spoilerHideButton {
+  padding: 0.35rem 0.55rem;
+}
+
+.spoilerButton:hover,
+.spoilerButton:focus-visible,
+.spoilerHideButton:hover,
+.spoilerHideButton:focus-visible {
+  border-color: var(--app-border-strong);
+  color: var(--app-text-primary);
+}
+
+.reactionButton,
+.reactionCount {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--mantine-radius-sm);
+  color: var(--app-text-muted);
+  font-family: var(--app-font-figure);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.reactionButton {
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
+.reactionButton:hover,
+.reactionButton:focus-visible {
+  border-color: var(--app-border-default);
+  color: var(--app-text-primary);
+}
+
+.reactionButtonActive {
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent-primary) 45%,
+    var(--app-border-default)
+  );
+  color: var(--app-accent-primary);
+}
+
+.reactionButton:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+@media (max-width: 64em) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .principles {
+    position: static;
+  }
+}
+
+@media (max-width: 36em) {
+  .feedToolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sortTabs :global(.mantine-Tabs-list) {
+    width: 100%;
+  }
+
+  .sortTabs :global(.mantine-Tabs-tab) {
+    flex: 1;
+  }
+
+  .postCard {
+    padding: 1rem;
+  }
+
+  .workSnapshot {
+    width: 100%;
+  }
+}

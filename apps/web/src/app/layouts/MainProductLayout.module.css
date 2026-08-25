@@ -313,7 +313,7 @@
     z-index: 130;
     display: grid;
     min-height: calc(68px + env(safe-area-inset-bottom));
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: end;
     padding: 0.35rem max(1rem, env(safe-area-inset-right))
       env(safe-area-inset-bottom) max(1rem, env(safe-area-inset-left));

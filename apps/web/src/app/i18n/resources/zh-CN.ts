@@ -1,3 +1,5 @@
+import { communityTranslations } from './community';
+
 export const zhCN = {
   common: {
     account: '账户',
@@ -461,6 +463,7 @@ export const zhCN = {
     onlySingleLocaleReady: '当前仅可使用{{locale}}界面。',
     title: '语言设置',
   },
+  community: communityTranslations.zhCN,
   navigation: {
     accountOverview: '账户概览',
     accountBrandKicker: '个人观影阅读档案',
@@ -468,6 +471,7 @@ export const zhCN = {
     addWork: '添加作品',
     addNewWork: '添加新作品',
     commandPalette: '打开命令面板 (Ctrl+K)',
+    community: '社区',
     guest: '访客',
     guestLocalStorage: '访客 - 本地存储',
     guestMode: '访客模式',
@@ -515,6 +519,7 @@ export const zhCN = {
     workDetailError: '无法恢复作品详情页面',
     workEditError: '无法恢复编辑作品页面',
     insightsError: '无法恢复个人洞察页面',
+    communityError: '无法恢复社区页面',
     tierBoardsError: '无法恢复分级榜列表',
     tierBoardEditorError: '无法恢复分级榜编辑页面',
     tierBoardViewError: '无法恢复分级榜查看页面',
@@ -1840,7 +1845,7 @@ export const zhCN = {
       laneMoveAria: '移动 {{title}} 行',
       laneUpAria: '上移 {{title}}',
       move: '移动',
-      moveToLane: '移动到 {{title}}',
+      moveToLane: '移动到 {{destination}}',
       moveToPool: '移到未放置',
     },
     create: '新建梯队榜',

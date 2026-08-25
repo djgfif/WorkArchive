@@ -24,6 +24,7 @@ describe('app routes', () => {
     expect(getPrimaryNavigationItems(flagsWithTierBoardsOff)).toEqual([
       { label: '홈', to: '/' },
       { label: '작품', to: '/works' },
+      { label: '커뮤니티', to: '/community' },
       { label: '인사이트', to: '/insights' },
     ]);
 
@@ -50,6 +51,27 @@ describe('app routes', () => {
         to: '/works',
       });
     }
+  });
+  it('keeps /community in the product layout instead of redirecting to works', () => {
+    const routes = createAppRoutes();
+    const productRoutes = routes[0]?.children ?? [];
+    const communityRoute = productRoutes.find(
+      (route) => route.path === 'community',
+    );
+
+    expect(communityRoute).toBeDefined();
+    expect(isValidElement(communityRoute?.element)).toBe(true);
+    expect(
+      isValidElement(communityRoute?.element) && communityRoute.element.type,
+    ).toBe(Suspense);
+    expect(
+      routes.some(
+        (route) =>
+          route.path === '/community' &&
+          isValidElement(route.element) &&
+          route.element.type === Navigate,
+      ),
+    ).toBe(false);
   });
 
   it('keeps /insights in the product layout instead of redirecting to /works', () => {
@@ -112,6 +134,7 @@ describe('app routes', () => {
       productRoutes.find((route) => route.path === 'works/:id'),
       productRoutes.find((route) => route.path === 'works/:id/edit'),
       productRoutes.find((route) => route.path === 'insights'),
+      productRoutes.find((route) => route.path === 'community'),
       productRoutes.find((route) => route.path === 'tier-boards/:boardId/view'),
       productRoutes.find((route) => route.path === 'profile'),
       authRoutes.find((route) => route.path === 'login'),
@@ -129,10 +152,7 @@ describe('app routes', () => {
     }
   });
   it('redirects account and authentication-only routes in the Sites guest POC', () => {
-    const routes = createAppRoutes(
-      flagsWithTierBoardsOff,
-      'sites-guest-poc',
-    );
+    const routes = createAppRoutes(flagsWithTierBoardsOff, 'sites-guest-poc');
     const productRoutes = routes[0]?.children ?? [];
     const authRoutes =
       routes.find((route) => route.path === '/auth')?.children ?? [];
@@ -159,5 +179,4 @@ describe('app routes', () => {
       ).toMatchObject({ replace: true, to: target });
     }
   });
-
 });

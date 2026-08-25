@@ -1,3 +1,5 @@
+import { communityTranslations } from './community';
+
 export const en = {
   common: {
     account: 'Account',
@@ -517,6 +519,7 @@ export const en = {
     onlySingleLocaleReady: 'Only {{locale}} is currently available.',
     title: 'Language settings',
   },
+  community: communityTranslations.en,
   navigation: {
     accountOverview: 'Account overview',
     accountBrandKicker: 'Personal media archive',
@@ -524,6 +527,7 @@ export const en = {
     addWork: 'Add work',
     addNewWork: 'Add new work',
     commandPalette: 'Open command palette (Ctrl+K)',
+    community: 'Community',
     guest: 'Guest',
     guestLocalStorage: 'Guest - local storage',
     guestMode: 'Guest mode',
@@ -568,6 +572,7 @@ export const en = {
     loadingTitle: 'Loading the screen',
     homeError: 'Could not recover the home screen',
     worksError: 'Could not recover the works list',
+    communityError: 'Could not recover the Community screen',
     workCreateError: 'Could not recover the add work screen',
     workDetailError: 'Could not recover the work detail screen',
     workEditError: 'Could not recover the edit work screen',
@@ -1986,7 +1991,7 @@ export const en = {
       laneMoveAria: 'Move row {{title}}',
       laneUpAria: 'Move {{title}} up',
       move: 'Move',
-      moveToLane: 'Move to {{title}}',
+      moveToLane: 'Move to {{destination}}',
       moveToPool: 'Move to unplaced',
     },
     create: 'New tier board',

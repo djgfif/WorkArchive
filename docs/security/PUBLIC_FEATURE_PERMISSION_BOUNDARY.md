@@ -6,7 +6,7 @@
 | Status | `canonical` |
 | Role | `default-private public feature boundary` |
 | Source of truth | current API routes, Prisma visibility enums, BOLA matrix, commercial Gate 1 scope |
-| Last verified against | `2026-08-25` Community alpha permission and moderation design |
+| Last verified against | `2026-08-25` Community alpha API, schema, web route, and focused authorization tests |
 | When to update | any public/share/community route, tier-board visibility semantic, catalog-publication flow, moderation role, or owner-scope rule changes |
 
 Work Archive's personal archive remains private and local-first. Community alpha
@@ -27,8 +27,8 @@ Gate 1 is default-private:
   cannot read or publish private server records or sync payloads.
 - Tier boards may store `private`, `link_only`, and `exported` visibility
   values for schema/sync compatibility, but Gate 1 user-facing settings expose
-  only private/local-export wording. There is no public community feed or hosted
-  public browse surface attached to tier boards in Gate 1.
+  only private/local-export wording. Community does not create a hosted public
+  browse surface for tier boards.
 - `exported` means a local/export artifact or sync-visible state, not a hosted
   public permission.
 
@@ -65,16 +65,16 @@ contributor's private archive state.
 
 ## Community Alpha Permission Semantics
 
-| Operation | Access | Required scope |
-| --- | --- | --- |
-| list published posts | public | published and not deleted/hidden only |
-| create post | authenticated | author is the current user; allowlisted publication fields only |
-| delete post | authenticated | owner only; soft delete |
-| add/remove reaction | authenticated | current user's own reaction only |
-| report post | authenticated | current reporter only; authors cannot self-report |
-| list reports | moderator/admin | community reports only |
-| hide/restore post | moderator/admin | explicit action plus immutable audit row |
-| resolve/dismiss report | moderator/admin | explicit action plus immutable audit row |
+| Operation              | Access          | Required scope                                                  |
+| ---------------------- | --------------- | --------------------------------------------------------------- |
+| list published posts   | public          | published and not deleted/hidden only                           |
+| create post            | authenticated   | author is the current user; allowlisted publication fields only |
+| delete post            | authenticated   | owner only; soft delete                                         |
+| add/remove reaction    | authenticated   | current user's own reaction only                                |
+| report post            | authenticated   | current reporter only; authors cannot self-report               |
+| list reports           | moderator/admin | community reports only                                          |
+| hide/restore post      | moderator/admin | explicit action plus immutable audit row                        |
+| resolve/dismiss report | moderator/admin | explicit action plus immutable audit row                        |
 
 Public author views contain display name, optional handle, and avatar URL. They
 never contain email or raw user ID. Public post views contain only the newly
@@ -96,7 +96,7 @@ normal post mutations. Moderator authority applies only to Community rows and
 does not grant access to private archive, sync, credentials, sessions, or
 diagnostics.
 
-Production exposure is not approved by repository implementation alone. The
+Repository implementation does not approve production exposure by itself. The
 release commit still needs migration, host smoke, rate-limit, moderator operator,
 retention, abuse/takedown, and rollback evidence in the applicable release gate.
 

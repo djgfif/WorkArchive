@@ -54,6 +54,12 @@ const schemaPath = 'apps/api/prisma/schema.prisma';
 const gatesPath = 'scripts/qa/commercial-repo-gates.sh';
 const localEvidencePath = 'scripts/qa/gate1-evidence-local.sh';
 const packagePath = 'package.json';
+const communityControllerPath =
+  'apps/api/src/modules/community/community.controller.ts';
+const communityServicePath =
+  'apps/api/src/modules/community/community.service.ts';
+const communityPublishPath =
+  'apps/web/src/features/community/services/community-publish.ts';
 
 const boundary = readRequired(boundaryPath);
 const bola = readRequired(bolaPath);
@@ -61,6 +67,9 @@ const schema = readRequired(schemaPath);
 const gates = readRequired(gatesPath);
 const localEvidence = readRequired(localEvidencePath);
 const packageJson = readRequired(packagePath);
+const communityController = readRequired(communityControllerPath);
+const communityService = readRequired(communityServicePath);
+const communityPublish = readRequired(communityPublishPath);
 
 requireIncludes(boundaryPath, boundary, [
   '| Status | `canonical` |',
@@ -70,6 +79,8 @@ requireIncludes(boundaryPath, boundary, [
   '`exported`',
   'Do not add a `public` visibility state',
   'Data That Must Never Become Public By Accident',
+  'Community Alpha Permission Semantics',
+  'Repository implementation does not approve production exposure by itself',
   'Required Review Before Public Expansion',
   'npm run qa:public-boundary',
 ]);
@@ -98,6 +109,48 @@ requirePattern(
   /\|\s*`tier_board`\s*\|\s*not_exposed\s*\|\s*not_exposed\s*\|\s*not_exposed\s*\|\s*satisfied\s*\|\s*satisfied\s*\|/,
   'BOLA matrix must keep tier boards non-exposed outside sync for Gate 1.',
 );
+requirePattern(
+  bolaPath,
+  bola,
+  /\|\s*`community_post`\s*\|\s*satisfied\s*\|\s*not_exposed\s*\|\s*satisfied\s*\|/,
+  'BOLA matrix must record implemented Community post read and owner-delete coverage.',
+);
+for (const model of [
+  'CommunityPost',
+  'CommunityReaction',
+  'CommunityReport',
+  'CommunityModerationAuditLog',
+]) {
+  requirePattern(
+    schemaPath,
+    schema,
+    new RegExp(`model\\s+${model}\\s*\\{`),
+    `Prisma must define ${model} for the approved Community boundary.`,
+  );
+}
+requirePattern(
+  communityControllerPath,
+  communityController,
+  /@Get\('posts'\)[\s\S]{0,520}getOptionalUser\(authorizationHeader\)/,
+  'Community feed reads must stay public with optional bearer viewer flags.',
+);
+requirePattern(
+  communityControllerPath,
+  communityController,
+  /@Post\('posts'\)[\s\S]{0,260}@UseGuards\(JwtAuthGuard\)/,
+  'Community publication must require authentication.',
+);
+requirePattern(
+  communityServicePath,
+  communityService,
+  /const PUBLIC_AUTHOR_SELECT = \{(?:(?!\b(?:email|id|oauthAccounts)\s*:)[^}])*\}/s,
+  'Community public author selection must exclude raw ids, email, and OAuth data.',
+);
+requireIncludes(communityPublishPath, communityPublish, [
+  "'thumbnailUrl' | 'title' | 'type'",
+  'body: body.trim()',
+  'workThumbnailUrl',
+]);
 requirePattern(
   gatesPath,
   gates,

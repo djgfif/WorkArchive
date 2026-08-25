@@ -187,22 +187,49 @@ enum CatalogSubmissionStatus {
   rejected
 }
 
+enum CommunityPostStatus {
+  published
+  hidden
+  deleted
+}
+
+enum CommunityReportStatus {
+  pending
+  resolved
+  dismissed
+}
+
+enum CommunityReportReason {
+  spoiler
+  harassment
+  hate
+  spam
+  other
+}
+
+enum CommunityModerationAction {
+  post_hidden
+  post_restored
+  report_resolved
+  report_dismissed
+}
+
 model User {
-  id                         String                      @id @default(uuid())
-  email                      String                      @unique
-  handle                     String?                     @unique
-  avatarUrl                  String                      @default("") @db.Text
-  nickname                   String                      @default("")
-  role                       UserRole                    @default(user)
-  createdAt                  DateTime                    @default(now())
-  updatedAt                  DateTime                    @updatedAt
+  id                         String                        @id @default(uuid())
+  email                      String                        @unique
+  handle                     String?                       @unique
+  avatarUrl                  String                        @default("") @db.Text
+  nickname                   String                        @default("")
+  role                       UserRole                      @default(user)
+  createdAt                  DateTime                      @default(now())
+  updatedAt                  DateTime                      @updatedAt
   authAccounts               UserAuthAccount[]
   workRecords                UserWorkRecord[]
   timelineEntries            UserTimelineEntry[]
   externalApiCredentials     ExternalApiCredential[]
   refreshSessions            UserRefreshSession[]
-  catalogSubmissions         CatalogSubmission[]         @relation("CatalogSubmissionSubmitter")
-  reviewedSubmissions        CatalogSubmission[]         @relation("CatalogSubmissionReviewer")
+  catalogSubmissions         CatalogSubmission[]           @relation("CatalogSubmissionSubmitter")
+  reviewedSubmissions        CatalogSubmission[]           @relation("CatalogSubmissionReviewer")
   catalogAuditLogs           CatalogAuditLog[]
   syncAppliedMutations       UserSyncAppliedMutation[]
   notionSyncMappings         NotionSyncMapping[]
@@ -211,6 +238,11 @@ model User {
   contributors               UserContributor[]
   workRelations              UserWorkRelation[]
   tierBoards                 UserTierBoard[]
+  communityPosts             CommunityPost[]               @relation("CommunityPostAuthor")
+  communityReactions         CommunityReaction[]
+  communityReports           CommunityReport[]             @relation("CommunityReportReporter")
+  moderatedCommunityReports  CommunityReport[]             @relation("CommunityReportModerator")
+  communityModerationActions CommunityModerationAuditLog[] @relation("CommunityModerationActor")
 
   @@map("users")
 }
@@ -235,21 +267,21 @@ model UserAuthAccount {
 }
 
 model UserRefreshSession {
-  id                  String    @id @default(uuid())
-  userId              String
-  tokenHash           String    @db.Text
-  previousTokenHash   String?   @db.Text
-  previousRotatedAt   DateTime?
-  rememberMe          Boolean   @default(true)
-  userAgent           String?   @db.Text
-  ipAddress           String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  lastUsedAt          DateTime?
-  rotatedAt           DateTime?
-  expiresAt           DateTime
-  revokedAt           DateTime?
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String    @id @default(uuid())
+  userId            String
+  tokenHash         String    @db.Text
+  previousTokenHash String?   @db.Text
+  previousRotatedAt DateTime?
+  rememberMe        Boolean   @default(true)
+  userAgent         String?   @db.Text
+  ipAddress         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastUsedAt        DateTime?
+  rotatedAt         DateTime?
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, revokedAt])
   @@index([expiresAt])
@@ -813,27 +845,104 @@ model UserTierBoardCard {
 }
 
 model UserTierBoardAsset {
-  id           String                    @id @default(uuid())
-  boardId      String
-  cardId       String?
-  kind         TierBoardAssetKind        @default(image)
-  storageType  TierBoardAssetStorageType
-  objectUrl    String                    @db.Text
-  originalName String                    @default("")
-  mimeType     String                    @default("")
-  sizeBytes    Int                       @default(0)
-  createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
-  deletedAt    DateTime?
+  id            String                    @id @default(uuid())
+  boardId       String
+  cardId        String?
+  kind          TierBoardAssetKind        @default(image)
+  storageType   TierBoardAssetStorageType
+  objectUrl     String                    @db.Text
+  originalName  String                    @default("")
+  mimeType      String                    @default("")
+  sizeBytes     Int                       @default(0)
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  deletedAt     DateTime?
   syncStatus    WorkSyncStatus            @default(synced)
   serverVersion Int                       @default(1)
-  board        UserTierBoard             @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  card         UserTierBoardCard?        @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  board         UserTierBoard             @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  card          UserTierBoardCard?        @relation(fields: [cardId], references: [id], onDelete: SetNull)
 
   @@index([boardId, deletedAt])
   @@index([cardId, deletedAt])
   @@index([updatedAt, id])
   @@map("user_tier_board_assets")
+}
+
+model CommunityPost {
+  id               String                        @id @default(uuid())
+  authorId         String
+  body             String                        @db.Text
+  spoiler          Boolean                       @default(false)
+  workTitle        String                        @default("")
+  workType         WorkType?
+  workThumbnailUrl String                        @default("") @db.Text
+  status           CommunityPostStatus           @default(published)
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+  deletedAt        DateTime?
+  hiddenAt         DateTime?
+  author           User                          @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  reactions        CommunityReaction[]
+  reports          CommunityReport[]
+  moderationLogs   CommunityModerationAuditLog[]
+
+  @@index([status, createdAt, id])
+  @@index([authorId, status, createdAt])
+  @@map("community_posts")
+}
+
+model CommunityReaction {
+  id        String        @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime      @default(now())
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, createdAt])
+  @@map("community_reactions")
+}
+
+model CommunityReport {
+  id             String                        @id @default(uuid())
+  postId         String
+  reporterId     String
+  moderatorId    String?
+  reason         CommunityReportReason
+  detail         String                        @default("") @db.Text
+  status         CommunityReportStatus         @default(pending)
+  moderatorNote  String                        @default("") @db.Text
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+  resolvedAt     DateTime?
+  post           CommunityPost                 @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter       User                          @relation("CommunityReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  moderator      User?                         @relation("CommunityReportModerator", fields: [moderatorId], references: [id], onDelete: SetNull)
+  moderationLogs CommunityModerationAuditLog[]
+
+  @@unique([postId, reporterId])
+  @@index([status, createdAt])
+  @@index([moderatorId, resolvedAt])
+  @@map("community_reports")
+}
+
+model CommunityModerationAuditLog {
+  id        String                    @id @default(uuid())
+  actorId   String
+  postId    String?
+  reportId  String?
+  action    CommunityModerationAction
+  note      String                    @default("") @db.Text
+  createdAt DateTime                  @default(now())
+  actor     User                      @relation("CommunityModerationActor", fields: [actorId], references: [id], onDelete: Restrict)
+  post      CommunityPost?            @relation(fields: [postId], references: [id], onDelete: SetNull)
+  report    CommunityReport?          @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([postId, createdAt])
+  @@index([reportId, createdAt])
+  @@map("community_moderation_audit_logs")
 }
 
 model ExternalApiCredential {

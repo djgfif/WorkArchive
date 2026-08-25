@@ -30,7 +30,14 @@ import { getPrimaryNavigationItems } from './navigation';
 import styles from './MainProductLayout.module.css';
 
 const css = styles;
-type NavIconName = 'add' | 'home' | 'insights' | 'settings' | 'tier' | 'works';
+type NavIconName =
+  | 'add'
+  | 'community'
+  | 'home'
+  | 'insights'
+  | 'settings'
+  | 'tier'
+  | 'works';
 
 function NavIcon({ name }: { name: NavIconName }) {
   return (
@@ -56,6 +63,13 @@ function NavIcon({ name }: { name: NavIconName }) {
         <>
           <path d="M4 4.5c2.7-.7 5.3-.2 8 1.5v14c-2.7-1.7-5.3-2.2-8-1.5z" />
           <path d="M20 4.5c-2.7-.7-5.3-.2-8 1.5v14c2.7-1.7 5.3-2.2 8-1.5z" />
+        </>
+      )}
+      {name === 'community' && (
+        <>
+          <circle cx="8" cy="9" r="3" />
+          <circle cx="16.5" cy="8" r="2.5" />
+          <path d="M2.5 20c.4-4 2.3-6 5.5-6s5.1 2 5.5 6M13 14c3.2-.5 5.8 1.4 6.5 5" />
         </>
       )}
       {name === 'insights' && (
@@ -97,8 +111,8 @@ export function MainProductLayout() {
     ? `${t('navigation.accountMenu')}: ${accountLabel}, ${profile.email}`
     : `${t('navigation.accountMenu')}: ${accountLabel}`;
   const items = getPrimaryNavigationItems();
-  const coreItems = items.slice(0, 2);
-  const secondaryItems = items.slice(2);
+  const coreItems = items.slice(0, 3);
+  const secondaryItems = items.slice(3);
   const loginReturnTo = `${location.pathname}${location.search}${location.hash}`;
 
   async function handleSignOut() {
@@ -252,7 +266,11 @@ export function MainProductLayout() {
               key={item.to}
               to={item.to}
             >
-              <NavIcon name={index === 0 ? 'home' : 'works'} />
+              <NavIcon
+                name={
+                  index === 0 ? 'home' : index === 1 ? 'works' : 'community'
+                }
+              />
               <span>
                 {index === 1 ? t('navigation.worksLibrary') : item.label}
               </span>
@@ -366,6 +384,15 @@ export function MainProductLayout() {
         >
           <NavIcon name="works" />
           <span>{t('navigation.worksLibrary')}</span>
+        </NavLink>
+        <NavLink
+          className={({ isActive }) =>
+            `${cn(css.mobileNavLink)} ${isActive ? cn(css.mobileNavLinkActive) : ''}`
+          }
+          to="/community"
+        >
+          <NavIcon name="community" />
+          <span>{t('navigation.community')}</span>
         </NavLink>
       </nav>
       <CommandPalette />

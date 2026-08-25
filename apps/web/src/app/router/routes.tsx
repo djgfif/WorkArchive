@@ -13,6 +13,7 @@ import {
   TierBoardViewPage,
 } from './tier-board-route-components';
 import {
+  CommunityPage,
   AccountOverviewPage,
   GoogleAuthCompletePage,
   GuestTransferReviewPage,
@@ -106,6 +107,15 @@ export function createAppRoutes(
           ),
         },
         {
+          path: 'community',
+          element: lazyRoute(<CommunityPage />),
+          errorElement: routeError(
+            appI18n.t('routes.communityError'),
+            '/works',
+            appI18n.t('routes.fallbackWorks'),
+          ),
+        },
+        {
           path: 'works/new',
           element: lazyRoute(<WorkCreatePage />),
           errorElement: routeError(
@@ -172,7 +182,9 @@ export function createAppRoutes(
           path: 'profile',
           element: sitesGuestPoc ? (
             <Navigate replace to="/" />
-          ) : lazyRoute(<ProfilePage />),
+          ) : (
+            lazyRoute(<ProfilePage />)
+          ),
           errorElement: routeError(
             appI18n.t('routes.profileError'),
             '/account',
@@ -189,7 +201,9 @@ export function createAppRoutes(
           path: 'login',
           element: sitesGuestPoc ? (
             <Navigate replace to="/" />
-          ) : lazyRoute(<LoginPage />),
+          ) : (
+            lazyRoute(<LoginPage />)
+          ),
           errorElement: routeError(
             appI18n.t('routes.loginError'),
             '/works',
@@ -204,7 +218,9 @@ export function createAppRoutes(
           path: 'google/complete',
           element: sitesGuestPoc ? (
             <Navigate replace to="/" />
-          ) : lazyRoute(<GoogleAuthCompletePage />),
+          ) : (
+            lazyRoute(<GoogleAuthCompletePage />)
+          ),
           errorElement: routeError(
             appI18n.t('routes.googleCompleteError'),
             '/auth/login',
@@ -229,7 +245,9 @@ export function createAppRoutes(
           index: true,
           element: sitesGuestPoc ? (
             <Navigate replace to="/account/settings" />
-          ) : lazyRoute(<AccountOverviewPage />),
+          ) : (
+            lazyRoute(<AccountOverviewPage />)
+          ),
           errorElement: routeError(
             appI18n.t('routes.accountOverviewError'),
             '/works',
@@ -240,7 +258,9 @@ export function createAppRoutes(
           path: 'transfer',
           element: sitesGuestPoc ? (
             <Navigate replace to="/account/settings" />
-          ) : lazyRoute(<GuestTransferReviewPage />),
+          ) : (
+            lazyRoute(<GuestTransferReviewPage />)
+          ),
           errorElement: routeError(
             appI18n.t('routes.transferError'),
             '/account',
@@ -257,10 +277,6 @@ export function createAppRoutes(
           ),
         },
       ],
-    },
-    {
-      path: '/community',
-      element: <Navigate replace to="/works" />,
     },
     {
       path: '/account/sync',

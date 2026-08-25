@@ -32,6 +32,11 @@ export const PersonalInsightsPage = lazy(() =>
     default: module.PersonalInsightsPage,
   })),
 );
+export const CommunityPage = lazy(() =>
+  import('@features/community').then((module) => ({
+    default: module.CommunityPage,
+  })),
+);
 
 export const ProfilePage = lazy(() =>
   import('@features/profile/pages/ProfilePage').then((module) => ({

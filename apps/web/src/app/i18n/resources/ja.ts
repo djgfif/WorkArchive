@@ -1,3 +1,5 @@
+import { communityTranslations } from './community';
+
 export const ja = {
   common: {
     account: 'アカウント',
@@ -516,6 +518,7 @@ export const ja = {
     onlySingleLocaleReady: '現在は{{locale}}のUIのみ利用できます。',
     title: '言語設定',
   },
+  community: communityTranslations.ja,
   navigation: {
     accountOverview: 'アカウント概要',
     accountBrandKicker: '個人鑑賞アーカイブ',
@@ -523,6 +526,7 @@ export const ja = {
     addWork: '作品を追加',
     addNewWork: '新しい作品を追加',
     commandPalette: 'コマンドパレットを開く (Ctrl+K)',
+    community: 'コミュニティ',
     guest: 'ゲスト',
     guestLocalStorage: 'ゲスト - ローカル保存',
     guestMode: 'ゲストモード',
@@ -571,6 +575,7 @@ export const ja = {
     workDetailError: '作品詳細画面を復旧できません',
     workEditError: '作品編集画面を復旧できません',
     insightsError: '個人インサイト画面を復旧できません',
+    communityError: 'コミュニティ画面を復旧できません',
     tierBoardsError: 'ティアボード一覧を復旧できません',
     tierBoardEditorError: 'ティアボード編集画面を復旧できません',
     tierBoardViewError: 'ティアボード表示画面を復旧できません',
@@ -1971,7 +1976,7 @@ export const ja = {
       laneMoveAria: '{{title}} 行を移動',
       laneUpAria: '{{title}} を上へ',
       move: '移動',
-      moveToLane: '{{title}} へ移動',
+      moveToLane: '{{destination}} へ移動',
       moveToPool: '未配置へ移動',
     },
     create: '新しいティアボードを作成',

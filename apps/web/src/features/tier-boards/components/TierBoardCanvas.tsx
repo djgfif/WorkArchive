@@ -30,7 +30,10 @@ import {
 import styles from '../pages/TierBoardsPage.module.css';
 import { cn } from '@shared/utils/class-names';
 import { getDisplayImageUrl } from '@shared/utils/image-proxy';
-import { getKoreanParticle } from '@shared/utils/korean-particle';
+import {
+  getKoreanParticle,
+  KOREAN_PARTICLE_DIRECTION,
+} from '@shared/utils/korean-particle';
 import { useAppTranslation } from '@app/i18n';
 
 const css = styles;
@@ -162,7 +165,7 @@ function CardMenu({
   onEdit: (card: TierBoardCardRecord) => void;
   onMove: (id: string, laneId: string | null) => void;
 }) {
-  const { t } = useAppTranslation();
+  const { i18n, t } = useAppTranslation();
 
   return (
     <Menu position="bottom-end">
@@ -186,8 +189,10 @@ function CardMenu({
         {lanes.map((lane) => (
           <Menu.Item key={lane.id} onClick={() => onMove(card.id, lane.id)}>
             {t('tierBoards.canvas.moveToLane', {
-              particle: getKoreanParticle(lane.title, '으로/로'),
-              title: lane.title,
+              destination:
+                i18n.resolvedLanguage === 'ko'
+                  ? `${lane.title}${getKoreanParticle(lane.title, KOREAN_PARTICLE_DIRECTION)}`
+                  : lane.title,
             })}
           </Menu.Item>
         ))}

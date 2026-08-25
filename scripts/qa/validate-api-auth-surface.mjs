@@ -109,6 +109,7 @@ const controllerFiles = walkFiles(join(root, 'apps/api/src'))
 const expectedControllers = [
   'apps/api/src/modules/auth/auth.controller.ts',
   'apps/api/src/modules/catalog/catalog.controller.ts',
+  'apps/api/src/modules/community/community.controller.ts',
   'apps/api/src/modules/health/health.controller.ts',
   'apps/api/src/modules/image-proxy/image-proxy.controller.ts',
   'apps/api/src/modules/imports/imports.controller.ts',
@@ -137,6 +138,30 @@ if (missingControllers.length > 0) {
     `API authorization surface expects missing controller(s): ${missingControllers.join(', ')}`,
   );
 }
+
+const communityPath = 'apps/api/src/modules/community/community.controller.ts';
+const community = readRequired(communityPath);
+for (const [decorator, route] of [
+  ['Post', 'posts'],
+  ['Delete', 'posts/:id'],
+  ['Post', 'posts/:id/reactions'],
+  ['Delete', 'posts/:id/reactions'],
+  ['Post', 'posts/:id/reports'],
+  ['Get', 'moderation/reports'],
+  ['Post', 'moderation/posts/:id/hide'],
+  ['Post', 'moderation/posts/:id/restore'],
+  ['Post', 'moderation/reports/:id/resolve'],
+]) {
+  requireRouteGuard(communityPath, community, decorator, route);
+}
+requireIncludes(communityPath, community, 'extractOptionalBearerAccessToken');
+requireIncludes(communityPath, community, 'private async getOptionalUser');
+requirePattern(
+  communityPath,
+  community,
+  /@Get\('posts'\)[\s\S]{0,520}getOptionalUser\(authorizationHeader\)/,
+  'GET community/posts must use optional bearer parsing for viewer flags.',
+);
 
 const classGuardedControllers = [
   'apps/api/src/modules/catalog/catalog.controller.ts',
@@ -173,13 +198,13 @@ requirePattern(
   importsPath,
   imports,
   /@Get\('providers'\)[\s\S]{0,520}getOptionalUser\(authorizationHeader\)/,
-  "GET imports/providers must use optional bearer parsing rather than stored credentials for guests.",
+  'GET imports/providers must use optional bearer parsing rather than stored credentials for guests.',
 );
 requirePattern(
   importsPath,
   imports,
   /@Get\('search'\)[\s\S]{0,620}getOptionalUser\(authorizationHeader\)/,
-  "GET imports/search must use optional bearer parsing rather than stored credentials for guests.",
+  'GET imports/search must use optional bearer parsing rather than stored credentials for guests.',
 );
 
 requireIncludes(bearerTokenPath, bearerToken, '^Bearer ([^\\s]+)$');
@@ -209,17 +234,57 @@ requireIncludes(
   metricsServiceTest,
   'Bearer collector-token-minimum-32-characters\\nX-Injected: value',
 );
-requireIncludes(securityMiddlewarePath, securityMiddleware, '^Bearer ([^\\s]+)$');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'AUTH_JWT_ALGORITHM');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'AUTH_JWT_AUDIENCE');
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  '^Bearer ([^\\s]+)$',
+);
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'AUTH_JWT_ALGORITHM',
+);
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'AUTH_JWT_AUDIENCE',
+);
 requireIncludes(securityMiddlewarePath, securityMiddleware, 'AUTH_JWT_ISSUER');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'hasRequiredAuthJwtClaims');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'hasExpectedAuthIdentityClaims');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'hasExpectedAuthTemporalClaims');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'hasExpectedAuthTokenKindClaims');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'algorithms: [AUTH_JWT_ALGORITHM]');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'audience: AUTH_JWT_AUDIENCE');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'issuer: AUTH_JWT_ISSUER');
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'hasRequiredAuthJwtClaims',
+);
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'hasExpectedAuthIdentityClaims',
+);
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'hasExpectedAuthTemporalClaims',
+);
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'hasExpectedAuthTokenKindClaims',
+);
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'algorithms: [AUTH_JWT_ALGORITHM]',
+);
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'audience: AUTH_JWT_AUDIENCE',
+);
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'issuer: AUTH_JWT_ISSUER',
+);
 requireIncludes(
   securityMiddlewarePath,
   securityMiddleware,
@@ -231,15 +296,39 @@ requireIncludes(
   'getVerifiedAccessTokenPayload(request, config) === null',
 );
 requireIncludes(securityMiddlewarePath, securityMiddleware, 'importsProtected');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'imports_protected');
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'catalogRateLimitStore');
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'imports_protected',
+);
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'catalogRateLimitStore',
+);
 requireIncludes(securityMiddlewarePath, securityMiddleware, "'catalog'");
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'mutationRateLimitStore');
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'mutationRateLimitStore',
+);
 requireIncludes(securityMiddlewarePath, securityMiddleware, "'mutations'");
-requireIncludes(securityMiddlewarePath, securityMiddleware, 'skip: (request) => SAFE_METHODS.has(request.method)');
+requireIncludes(
+  securityMiddlewarePath,
+  securityMiddleware,
+  'skip: (request) => SAFE_METHODS.has(request.method)',
+);
 requireIncludes(configureAppPath, configureApp, "'/api/imports/resolve'");
-requireIncludes(configureAppPath, configureApp, 'rateLimiters.importsProtected');
-requireIncludes(configureAppPath, configureApp, "app.use('/api/catalog', rateLimiters.catalog)");
+requireIncludes(
+  configureAppPath,
+  configureApp,
+  'rateLimiters.importsProtected',
+);
+requireIncludes(
+  configureAppPath,
+  configureApp,
+  "app.use('/api/catalog', rateLimiters.catalog)",
+);
 requireIncludes(configureAppPath, configureApp, "'/api/works'");
 requireIncludes(configureAppPath, configureApp, "'/api/user-records'");
 requireIncludes(configureAppPath, configureApp, "'/api/user-release-records'");
@@ -250,7 +339,11 @@ requireIncludes(
   'does not treat malformed bearer headers as authenticated for the client header guard',
 );
 requireIncludes(appSecurityTestPath, appSecurityTest, 'Bearer  test-token');
-requireIncludes(appSecurityTestPath, appSecurityTest, '`Bearer  ${firstUserToken}`');
+requireIncludes(
+  appSecurityTestPath,
+  appSecurityTest,
+  '`Bearer  ${firstUserToken}`',
+);
 requireIncludes(
   appSecurityTestPath,
   appSecurityTest,
@@ -271,6 +364,7 @@ requireIncludes(
   appSecurityTest,
   'does not trust access tokens missing required registered claims for authenticated rate-limit keys',
 );
+requireIncludes(configureAppPath, configureApp, "'/api/community'");
 requireIncludes(
   appSecurityTestPath,
   appSecurityTest,
@@ -291,7 +385,11 @@ requireIncludes(
   appSecurityTest,
   'does not trust future-issued access tokens for authenticated rate-limit keys',
 );
-requireIncludes(appSecurityTestPath, appSecurityTest, 'Bearer test-token extra');
+requireIncludes(
+  appSecurityTestPath,
+  appSecurityTest,
+  'Bearer test-token extra',
+);
 requireIncludes(
   appSecurityTestPath,
   appSecurityTest,
@@ -324,7 +422,9 @@ for (const route of ['register', 'login']) {
   requirePattern(
     authPath,
     auth,
-    new RegExp(`@Post\\('${route}'\\)[\\s\\S]{0,360}createLegacyAuthDisabledException`),
+    new RegExp(
+      `@Post\\('${route}'\\)[\\s\\S]{0,360}createLegacyAuthDisabledException`,
+    ),
     `legacy ${route} route must remain disabled with 410 Gone.`,
   );
 }
@@ -352,13 +452,16 @@ if (health.includes('JwtAuthGuard') || health.includes('@UseGuards')) {
   failures.push(`${healthPath} must remain public for platform health checks.`);
 }
 
-const imageProxyPath = 'apps/api/src/modules/image-proxy/image-proxy.controller.ts';
+const imageProxyPath =
+  'apps/api/src/modules/image-proxy/image-proxy.controller.ts';
 const imageProxy = readRequired(imageProxyPath);
 requireIncludes(imageProxyPath, imageProxy, "@Controller('image-proxy')");
 requireIncludes(imageProxyPath, imageProxy, '@Get()');
 requireIncludes(imageProxyPath, imageProxy, 'imageProxyService.getImage(url)');
 if (imageProxy.includes('JwtAuthGuard') || imageProxy.includes('@UseGuards')) {
-  failures.push(`${imageProxyPath} must remain public and policy-bounded for cached cover images.`);
+  failures.push(
+    `${imageProxyPath} must remain public and policy-bounded for cached cover images.`,
+  );
 }
 
 for (const path of expectedControllers) {
@@ -393,7 +496,11 @@ requirePattern(
   /npm run qa:api-auth-surface/,
   'commercial repository gates must run qa:api-auth-surface.',
 );
-requireIncludes(localEvidencePath, localEvidence, 'npm run qa:api-auth-surface');
+requireIncludes(
+  localEvidencePath,
+  localEvidence,
+  'npm run qa:api-auth-surface',
+);
 
 for (const [path, content] of [
   [asvsPath, asvs],

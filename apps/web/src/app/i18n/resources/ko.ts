@@ -1,3 +1,5 @@
+import { communityTranslations } from './community';
+
 export const ko = {
   common: {
     account: '계정',
@@ -502,6 +504,7 @@ export const ko = {
     onlySingleLocaleReady: '현재는 {{locale}} UI만 사용할 수 있습니다.',
     title: '언어 설정',
   },
+  community: communityTranslations.ko,
   navigation: {
     accountOverview: '계정 개요',
     accountBrandKicker: '개인 감상 아카이브',
@@ -509,6 +512,7 @@ export const ko = {
     addWork: '작품 추가',
     addNewWork: '새 작품 추가',
     commandPalette: '명령 팔레트 열기 (Ctrl+K)',
+    community: '커뮤니티',
     guest: '게스트',
     guestLocalStorage: '게스트 - 로컬 저장',
     guestMode: '게스트 모드',
@@ -553,6 +557,7 @@ export const ko = {
     homeError: '홈 화면을 복구할 수 없습니다',
     worksError: '작품 목록을 복구할 수 없습니다',
     workCreateError: '작품 추가 화면을 복구할 수 없습니다',
+    communityError: '커뮤니티 화면을 복구할 수 없습니다',
     workDetailError: '작품 상세 화면을 복구할 수 없습니다',
     workEditError: '작품 편집 화면을 복구할 수 없습니다',
     insightsError: '개인 인사이트 화면을 복구할 수 없습니다',
@@ -1948,7 +1953,7 @@ export const ko = {
       laneMoveAria: '{{title}} 행 이동',
       laneUpAria: '{{title}} 위로',
       move: '이동',
-      moveToLane: '{{title}}{{particle}} 이동',
+      moveToLane: '{{destination}} 이동',
       moveToPool: '미배치로 이동',
     },
     create: '새 티어보드 만들기',

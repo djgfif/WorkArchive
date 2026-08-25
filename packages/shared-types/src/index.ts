@@ -1155,3 +1155,86 @@ export interface AppMetaRecord {
   key: string;
   value: string;
 }
+
+export const COMMUNITY_POST_SORTS = ['latest', 'popular'] as const;
+export type CommunityPostSort = (typeof COMMUNITY_POST_SORTS)[number];
+
+export const COMMUNITY_REPORT_REASONS = [
+  'spoiler',
+  'harassment',
+  'hate',
+  'spam',
+  'other',
+] as const;
+export type CommunityReportReason = (typeof COMMUNITY_REPORT_REASONS)[number];
+
+export type CommunityReportResolution = 'resolve' | 'dismiss';
+
+export interface CommunityPublicAuthor {
+  avatarUrl: string;
+  displayName: string;
+  handle: string | null;
+}
+
+export interface CommunityWorkSnapshot {
+  thumbnailUrl: string;
+  title: string;
+  type: WorkType;
+}
+
+export interface CommunityPostView {
+  author: CommunityPublicAuthor;
+  body: string;
+  createdAt: ISODateString;
+  id: EntityId;
+  reactionCount: number;
+  spoiler: boolean;
+  updatedAt: ISODateString;
+  viewerCanDelete: boolean;
+  viewerHasReacted: boolean;
+  work: CommunityWorkSnapshot | null;
+}
+
+export interface CommunityPostListResponse {
+  nextCursor: EntityId | null;
+  posts: CommunityPostView[];
+}
+
+export interface CreateCommunityPostRequest {
+  body: string;
+  spoiler?: boolean;
+  workThumbnailUrl?: string;
+  workTitle?: string;
+  workType?: WorkType;
+}
+
+export interface CreateCommunityReportRequest {
+  detail?: string;
+  reason: CommunityReportReason;
+}
+
+export interface CommunityMutationResponse {
+  ok: true;
+}
+
+export interface CommunityModerationReportView {
+  createdAt: ISODateString;
+  detail: string;
+  id: EntityId;
+  post: Pick<
+    CommunityPostView,
+    'body' | 'createdAt' | 'id' | 'spoiler' | 'work'
+  >;
+  reason: CommunityReportReason;
+  reporter: CommunityPublicAuthor;
+  status: 'pending' | 'resolved' | 'dismissed';
+}
+
+export interface CommunityModerationReportListResponse {
+  reports: CommunityModerationReportView[];
+}
+
+export interface ResolveCommunityReportRequest {
+  note?: string;
+  resolution: CommunityReportResolution;
+}

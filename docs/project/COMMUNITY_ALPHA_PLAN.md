@@ -3,7 +3,7 @@
 <!-- prettier-ignore -->
 | Field | Value |
 | --- | --- |
-| Status | `approved for implementation` |
+| Status | `implemented in repository; production exposure pending evidence` |
 | Role | `community alpha product, privacy, and moderation contract` |
 | Source of truth | explicit user request on 2026-08-25, local-first product direction, public permission boundary |
 | When to update | community visibility, author identity, moderation, API, or private-record publication semantics change |
@@ -77,6 +77,24 @@ Production exposure remains pending until host smoke, database migration,
 moderation-operator, retention, and takedown evidence are recorded for the
 release commit.
 
+## UI Benchmark Notes
+
+The 2026-08-25 browser pass used live public surfaces rather than screenshots:
+
+- [Reddit r/books](https://www.reddit.com/r/books/) informed the visible create
+  action, feed-first sort control, author/time hierarchy, and consistent card
+  action row.
+- [GitHub Community Discussions](https://github.com/orgs/community/discussions)
+  informed the distinct feed heading, restrained secondary rail, and separation
+  between primary browsing controls and community guidance.
+- [Goodreads](https://www.goodreads.com/) informed the pre-auth value statement:
+  explain what a guest can do and what remains private before asking them to
+  sign in.
+
+The alpha intentionally does not copy Reddit voting, GitHub categories/search,
+or Goodreads recommendations. Those patterns exceed the approved single-feed,
+single-reaction, privacy-first scope.
+
 ## UI States
 
 - Guests can read the feed and see a clear sign-in action for publishing.
@@ -98,13 +116,19 @@ release commit.
 - rich HTML, link previews, attachments, or editing posts;
 - automatically publishing any IndexedDB or sync payload.
 
-## Verification Required Before Merge Or Release
+## Verification Status And Release Requirements
 
-- service tests for public filtering, author deletion, idempotent reactions,
-  duplicate reports, moderator authorization, hiding/restoring, and audit rows;
-- controller or e2e tests for guest read plus guarded writes;
-- web tests for guest/authenticated composer states, explicit snapshot payload,
-  spoiler reveal, reaction, report, delete, empty, and error states;
+Repository implementation now includes the Prisma migration, public-read and
+authenticated-write API, owner/reaction/report/moderation authorization,
+immutable moderation audit writes, responsive web route, four locale resources,
+and focused service/publication tests.
+
+Before production exposure, the release still requires:
+
+- controller or e2e evidence for guest read plus guarded writes against the
+  migrated runtime;
+- browser evidence for guest/authenticated composer states, spoiler reveal,
+  reaction, report, delete, empty, and error states;
 - `npm run lint`, `npm run typecheck`, `npm run test`, architecture checks,
   documentation links, public repository safety, and relevant security gates;
-- desktop and mobile browser QA against a real development runtime.
+- desktop and mobile browser QA against a real migrated runtime.
