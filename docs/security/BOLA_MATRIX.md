@@ -1,6 +1,6 @@
 # BOLA Matrix
 
-Last reviewed: 2026-06-24.
+Last reviewed: 2026-08-25 Community alpha design approval.
 
 This matrix tracks broken object level authorization coverage for user-owned
 objects. It separates current owner-scoped implementation from tests that still
@@ -13,6 +13,8 @@ Status values:
 - `gap`: missing or not yet proven.
 - `not_exposed`: no standalone backend route accepts that object family outside
   sync.
+- `planned`: the route contract is approved but must be changed to `satisfied`
+  only after focused authorization tests pass and before release.
 
 ## Object Ownership Matrix
 
@@ -30,6 +32,10 @@ Status values:
 | `import_provider_credential` | satisfied | satisfied | satisfied | not_exposed | not_exposed | Provider credential status, save, delete, and test routes require `JwtAuthGuard` and pass only the authenticated `userId`; guest import search never receives stored credential values. | `apps/api/test/imports.provider-key.e2e-spec.ts` and `apps/api/test/imports.service.spec.ts` cover user-scoped provider credential save, status, test, and delete behavior. |
 | `notion_connection` | satisfied | satisfied | satisfied | not_exposed | not_exposed | Notion connection status, save, delete, test, push, preview, and apply routes require `JwtAuthGuard` and pass only the authenticated `userId`; preview snapshots are user-owned and retained by policy. | `apps/api/test/notion.service.spec.ts` covers user-scoped connection and preview/apply behavior; `npm run qa:retention-policy` verifies preview retention policy drift. |
 | `catalog_submission` | satisfied | satisfied | not_exposed | not_exposed | not_exposed | Submission creation stores the authenticated submitter; `listMySubmissions` is submitter-scoped; moderator list/review paths pass `{ role, userId }` and are authorized in `CatalogService`. Catalog title reads are shared catalog metadata, not user-owned objects. | `apps/api/test/catalog.controller.spec.ts` covers current-user submission listing and moderator-only review paths. |
+| `community_post` | planned | not_exposed | planned | not_exposed | not_exposed | Public reads will return published rows only; create will assign the authenticated author; delete will use both post ID and author ID; moderator hide/restore will require role authorization and an audit row. | Must become `satisfied` after focused public-filter, owner-delete, foreign-delete, and moderator authorization/audit tests pass. |
+| `community_reaction` | planned | planned | planned | not_exposed | not_exposed | Reactions will be addressed only through the authenticated user's unique `(postId, userId)` row. | Must become `satisfied` after idempotent create, own delete, and cross-user isolation tests pass. |
+| `community_report` | planned | planned | not_exposed | not_exposed | not_exposed | Create will assign the current reporter; list and resolution will require moderator/admin; normal public responses will not expose report data. | Must become `satisfied` after duplicate/self-report, role, visibility, and audit tests pass. |
+| `community_moderation_audit` | not_exposed | not_exposed | not_exposed | not_exposed | not_exposed | Immutable audit rows will be write-only from authorized moderation service operations and have no public route. | Must retain no standalone mutation or public read route; moderation tests assert an audit row for every action. |
 
 ## Current Owner-Scoped Mutations
 
