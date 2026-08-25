@@ -364,13 +364,11 @@ describe('WorkCreatePage', () => {
         /^\/works\/[^/]+$/,
       );
     });
-    await waitFor(() => {
-      expect(
-        Object.keys(window.localStorage).filter((key) =>
-          key.includes('work-form-draft'),
-        ),
-      ).toEqual([]);
-    });
+    expect(
+      Object.keys(window.localStorage).filter((key) =>
+        key.includes('work-form-draft'),
+      ),
+    ).toEqual([]);
   });
 
   it('warns before internal navigation when a create form has unsaved changes', async () => {

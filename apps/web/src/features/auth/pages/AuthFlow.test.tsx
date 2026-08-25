@@ -6,7 +6,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appRoutes } from '@app/router/routes';
 import { renderWithProviders } from '@test/render-with-providers';
-import { findLinkByHref, getLinkByHref, openProfileMenu } from '@test/ui-helpers';
+import {
+  findLinkByHref,
+  getLinkByHref,
+  openProfileMenu,
+} from '@test/ui-helpers';
 import { AuthProvider } from '../context/AuthProvider';
 import { readStoredAuthTokens } from '../services/auth-storage';
 import {
@@ -118,18 +122,24 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    const googleButton = await screen.findByRole('button', { name: 'Google로 백업 연결' });
+    const googleButton = await screen.findByRole('button', {
+      name: 'Google로 백업 연결',
+    });
     expect(getLinkByHref('/')).toBeInTheDocument();
     expect(googleButton).toBeInTheDocument();
     expect(googleButton).not.toBeDisabled();
-    expect(screen.getByText('비공개 백업 · 여러 기기 동기화 · 검색 키 안전 보관')).toBeInTheDocument();
+    expect(
+      screen.getByText('비공개 백업 · 여러 기기 동기화 · 검색 키 안전 보관'),
+    ).toBeInTheDocument();
     expect(screen.getByText('로그인 전 기록 가능')).toBeInTheDocument();
     expect(screen.getByText('백업은 선택 사항')).toBeInTheDocument();
     expect(screen.queryByText('Local-first')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/이메일/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/비밀번호/)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '로그인 없이 시작하기' }));
+    await user.click(
+      screen.getByRole('button', { name: '로그인 없이 시작하기' }),
+    );
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/works');
@@ -155,11 +165,19 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('Google OAuth 설정 필요')).toBeInTheDocument();
-    expect(screen.getByText(/현재 이 환경에서는 Google 로그인을 사용할 수 없습니다/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Google로 백업 연결' })).toBeDisabled();
+    expect(
+      await screen.findByText('Google OAuth 설정 필요'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/현재 이 환경에서는 Google 로그인을 사용할 수 없습니다/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Google로 백업 연결' }),
+    ).toBeDisabled();
 
-    await user.click(screen.getByRole('button', { name: '로그인 없이 시작하기' }));
+    await user.click(
+      screen.getByRole('button', { name: '로그인 없이 시작하기' }),
+    );
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/works');
@@ -180,10 +198,16 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('Google 로그인을 완료하지 못했습니다.')).toBeInTheDocument();
-    expect(screen.getByText('다시 시도하거나 로그인 없이 계속할 수 있습니다.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Google 로그인을 완료하지 못했습니다.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('다시 시도하거나 로그인 없이 계속할 수 있습니다.'),
+    ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '로그인 없이 시작하기' }));
+    await user.click(
+      screen.getByRole('button', { name: '로그인 없이 시작하기' }),
+    );
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/works');
@@ -203,7 +227,9 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByRole('button', { name: 'Google로 백업 연결' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Google로 백업 연결' }),
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/auth/login');
@@ -246,7 +272,9 @@ describe('Auth flow', () => {
       accessToken: 'startup-access-token',
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(window.sessionStorage.getItem('work-archive.auth.googleReturnTo')).toBeNull();
+    expect(
+      window.sessionStorage.getItem('work-archive.auth.googleReturnTo'),
+    ).toBeNull();
   });
 
   it('returns to the saved pre-login route after Google login completes', async () => {
@@ -277,7 +305,9 @@ describe('Auth flow', () => {
       expect(router.state.location.search).toBe('?view=list');
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(window.sessionStorage.getItem('work-archive.auth.googleReturnTo')).toBeNull();
+    expect(
+      window.sessionStorage.getItem('work-archive.auth.googleReturnTo'),
+    ).toBeNull();
   });
 
   it('completes Google login under StrictMode without starting a duplicate refresh', async () => {
@@ -289,7 +319,9 @@ describe('Auth flow', () => {
 
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(jsonResponse(sessionBody('strict-mode-access-token')));
+      .mockResolvedValueOnce(
+        jsonResponse(sessionBody('strict-mode-access-token')),
+      );
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -342,7 +374,11 @@ describe('Auth flow', () => {
   });
 
   it('shows configuration guidance when Google callback reports an OAuth setup issue', async () => {
-    window.history.pushState(null, '', '/auth/google/complete?google=unconfigured');
+    window.history.pushState(
+      null,
+      '',
+      '/auth/google/complete?google=unconfigured',
+    );
 
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
@@ -357,8 +393,12 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('Google OAuth 설정이 필요합니다')).toBeInTheDocument();
-    expect(screen.getByText(/현재 이 환경에서는 Google 로그인을 사용할 수 없습니다/)).toBeInTheDocument();
+    expect(
+      await screen.findByText('Google OAuth 설정이 필요합니다'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/현재 이 환경에서는 Google 로그인을 사용할 수 없습니다/),
+    ).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -380,8 +420,12 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('네트워크에 연결할 수 없습니다')).toBeInTheDocument();
-    expect(screen.getByText('인터넷 연결을 확인한 뒤 다시 시도해 주세요.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('네트워크에 연결할 수 없습니다'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('인터넷 연결을 확인한 뒤 다시 시도해 주세요.'),
+    ).toBeInTheDocument();
   });
 
   it('shows a timeout error when Google completion refresh stalls', async () => {
@@ -416,7 +460,9 @@ describe('Auth flow', () => {
 
     expect(screen.getByText('응답 시간이 초과됐습니다')).toBeInTheDocument();
     expect(
-      screen.getByText('서버가 응답하지 않습니다. 잠시 후 다시 시도하거나 게스트로 계속하세요.'),
+      screen.getByText(
+        '서버가 응답하지 않습니다. 잠시 후 다시 시도하거나 게스트로 계속하세요.',
+      ),
     ).toBeInTheDocument();
   });
 
@@ -425,33 +471,44 @@ describe('Auth flow', () => {
     '/auth?google=failed',
     'https://example.com/works',
     '//example.com/works',
-  ])('falls back to home when the saved Google return route is not app-safe: %s', async (returnTo) => {
-    vi.spyOn(guestTransferService, 'getPendingReview').mockResolvedValue(null);
-    window.sessionStorage.setItem(
-      'work-archive.auth.googleReturnTo',
-      returnTo,
-    );
+  ])(
+    'falls back to home when the saved Google return route is not app-safe: %s',
+    async (returnTo) => {
+      vi.spyOn(guestTransferService, 'getPendingReview').mockResolvedValue(
+        null,
+      );
+      window.sessionStorage.setItem(
+        'work-archive.auth.googleReturnTo',
+        returnTo,
+      );
 
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValueOnce(jsonResponse(sessionBody('startup-access-token'))),
-    );
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockResolvedValueOnce(
+            jsonResponse(sessionBody('startup-access-token')),
+          ),
+      );
 
-    const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/auth/google/complete'],
-    });
+      const router = createMemoryRouter(appRoutes, {
+        initialEntries: ['/auth/google/complete'],
+      });
 
-    renderWithProviders(
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>,
-    );
+      renderWithProviders(
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>,
+      );
 
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/');
-    });
-    expect(window.sessionStorage.getItem('work-archive.auth.googleReturnTo')).toBeNull();
-  });
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe('/');
+      });
+      expect(
+        window.sessionStorage.getItem('work-archive.auth.googleReturnTo'),
+      ).toBeNull();
+    },
+  );
 
   it('restores a session by calling /auth/refresh on startup', async () => {
     window.localStorage.setItem(
@@ -461,9 +518,11 @@ describe('Auth flow', () => {
       }),
     );
 
-    const fetchMock = vi.fn().mockResolvedValueOnce(
-      jsonResponse(sessionBody('refreshed-access-token')),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(sessionBody('refreshed-access-token')),
+      );
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -477,7 +536,9 @@ describe('Auth flow', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByRole('button', { name: /frieren@example.com/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /frieren@example.com/ }),
+    ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/auth/refresh'),
       expect.objectContaining({
@@ -512,7 +573,9 @@ describe('Auth flow', () => {
     expect(workArchiveDbManager.getCurrentScopeKey()).toBe(
       'work-archive-db-user-user-1',
     );
-    expect(screen.queryByRole('button', { name: /계정 메뉴: 게스트/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /계정 메뉴: 게스트/ }),
+    ).not.toBeInTheDocument();
 
     const offlineRecord = await worksService.createWork({
       author: '',
@@ -530,7 +593,9 @@ describe('Auth flow', () => {
 
     expect(await getWorkArchiveDb().works.get(offlineRecord.id)).toBeDefined();
     workArchiveDbManager.switchToGuest();
-    expect(await getWorkArchiveDb().works.get(offlineRecord.id)).toBeUndefined();
+    expect(
+      await getWorkArchiveDb().works.get(offlineRecord.id),
+    ).toBeUndefined();
     workArchiveDbManager.switchToUser('user-1');
     expect(await getWorkArchiveDb().works.get(offlineRecord.id)).toBeDefined();
   });
@@ -540,7 +605,9 @@ describe('Auth flow', () => {
     const fetchMock = vi
       .fn()
       .mockRejectedValueOnce(new TypeError('Network request failed'))
-      .mockResolvedValueOnce(jsonResponse(sessionBody('recovered-access-token')))
+      .mockResolvedValueOnce(
+        jsonResponse(sessionBody('recovered-access-token')),
+      )
       .mockResolvedValue(
         jsonResponse({
           changes: [],
@@ -566,8 +633,13 @@ describe('Auth flow', () => {
 
     window.dispatchEvent(new Event('online'));
 
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', { name: /오프라인/ }),
+      ).not.toBeInTheDocument();
+    });
     expect(
-      await screen.findByRole('status', { name: /계정 연결됨/ }),
+      await screen.findByRole('button', { name: /frieren@example.com/ }),
     ).toBeInTheDocument();
     expect(workArchiveDbManager.getCurrentScopeKey()).toBe(
       'work-archive-db-user-user-1',
@@ -636,10 +708,9 @@ describe('Auth flow', () => {
     );
 
     expect(
-      await screen.findByRole('status', {
-        name: /Fern의 계정 보관함, 계정 연결됨/,
-      }),
+      await screen.findByRole('button', { name: /fern@example.com/ }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(workArchiveDbManager.getCurrentScopeKey()).toBe(
       'work-archive-db-user-user-2',
     );
@@ -671,21 +742,26 @@ describe('Auth flow', () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByText('Work Archive를 준비하고 있습니다')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Work Archive를 준비하고 있습니다'),
+      ).not.toBeInTheDocument();
     });
     expect(
       await screen.findByRole('button', { name: /계정 메뉴: 게스트/ }),
     ).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('link', {
+    expect(
+      screen.queryByRole('link', {
         name: /동기화 상태: 게스트 로컬 전용/,
       }),
-    );
+    ).not.toBeInTheDocument();
+
+    await openProfileMenu(user, /계정 메뉴: 게스트/);
+    await user.click(await screen.findByText('설정과 백업'));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/account/settings');
-      expect(router.state.location.hash).toBe('#data-backup');
+      expect(router.state.location.hash).toBe('');
     });
     expect(await findLinkByHref('/auth/login', /로그인/)).toBeInTheDocument();
   });
@@ -696,7 +772,9 @@ describe('Auth flow', () => {
       'fetch',
       vi
         .fn()
-        .mockResolvedValueOnce(jsonResponse(sessionBody('refreshed-access-token')))
+        .mockResolvedValueOnce(
+          jsonResponse(sessionBody('refreshed-access-token')),
+        )
         .mockResolvedValueOnce(new Response(null, { status: 204 })),
     );
 
@@ -714,7 +792,9 @@ describe('Auth flow', () => {
     await user.click(await screen.findByText('로그아웃'));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /게스트/ })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /게스트/ }),
+      ).toBeInTheDocument();
     });
     expect(readStoredArchiveIdentity()).toBeNull();
     expect(workArchiveDbManager.getCurrentScopeKey()).toBe(

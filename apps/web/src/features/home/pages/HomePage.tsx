@@ -413,68 +413,28 @@ function GuideIcon({ children }: { children: ReactNode }) {
 
 function EmptyGuide() {
   const { t } = useAppTranslation();
-  const cards = [
-    {
-      icon: (
-        <GuideIcon>
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-        </GuideIcon>
-      ),
-      title: t('home.empty.manualTitle'),
-      description: t('home.empty.manualDescription'),
-      to: '/works/new',
-    },
-    {
-      icon: (
-        <GuideIcon>
-          <circle cx="11" cy="11" r="7" />
-          <path d="M21 21l-4.3-4.3" />
-        </GuideIcon>
-      ),
-      title: t('home.empty.searchTitle'),
-      description: t('home.empty.searchDescription'),
-      to: '/works/new?mode=search',
-    },
-    {
-      icon: (
-        <GuideIcon>
-          <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z" />
-          <path d="M3 7.5 12 12l9-4.5M12 12v9" />
-        </GuideIcon>
-      ),
-      title: t('home.empty.backupTitle'),
-      description: t('home.empty.backupDescription'),
-      to: '/account/settings#data-backup',
-    },
-  ].filter(
-    (card) => !isSitesGuestPoc() || card.to !== '/works/new?mode=search',
-  );
 
   return (
     <section className={css.emptyGuide}>
       <div className={css.emptyGuideIntro}>
-        <span className={css.emptyGuideIndex} aria-hidden="true">
-          01
+        <span className={css.emptyGuideIcon} aria-hidden="true">
+          <GuideIcon>
+            <path d="M4 4.5c2.7-.7 5.3-.2 8 1.5v14c-2.7-1.7-5.3-2.2-8-1.5z" />
+            <path d="M20 4.5c-2.7-.7-5.3-.2-8 1.5v14c2.7-1.7 5.3-2.2 8-1.5z" />
+          </GuideIcon>
         </span>
-        <div>
+        <div className={css.emptyGuideCopy}>
           <h2 className={css.emptyGuideTitle}>{t('home.empty.title')}</h2>
           <p className={css.emptyGuideDesc}>{t('home.empty.description')}</p>
         </div>
       </div>
-      <div className={css.emptyGuideList}>
-        {cards.map((card, index) => (
-          <Link className={css.emptyGuideCard} key={card.title} to={card.to}>
-            <span className={css.emptyGuideCardIndex} aria-hidden="true">
-              {String(index + 1).padStart(2, '0')}
-            </span>
-            <span className={css.emptyGuideCardIcon}>{card.icon}</span>
-            <span className={css.emptyGuideCardBody}>
-              <strong className={css.emptyGuideCardTitle}>{card.title}</strong>
-              <span className={css.emptyGuideCardDesc}>{card.description}</span>
-            </span>
-          </Link>
-        ))}
+      <div className={css.emptyGuideActions}>
+        <AppLinkButton to="/works/new?mode=manual" tone="primary">
+          {t('works.list.directAdd')}
+        </AppLinkButton>
+        <AppLinkButton to="/account/settings#data-backup" tone="quiet">
+          {t('works.list.importJsonBackup')}
+        </AppLinkButton>
       </div>
     </section>
   );
@@ -486,7 +446,7 @@ function StarterArchivePanel({ works }: { works: WorkRecord[] }) {
     {
       description: t('home.empty.manualDescription'),
       title: t('home.empty.manualTitle'),
-      to: '/works/new',
+      to: '/works/new?mode=manual',
     },
     {
       description: t('home.empty.searchDescription'),
@@ -873,7 +833,10 @@ export function HomePage() {
             </>
           )}
 
-          <ArchiveSafetyDock presentation={archiveSafety.presentation} />
+          {(archiveSafety.state.level === 'action' ||
+            archiveSafety.state.level === 'pending') && (
+            <ArchiveSafetyDock presentation={archiveSafety.presentation} />
+          )}
         </>
       )}
     </div>

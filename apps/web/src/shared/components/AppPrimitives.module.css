@@ -38,7 +38,9 @@
   min-width: 0;
   color: inherit;
   text-decoration: none;
-  transition: opacity var(--wa-motion-fast), transform var(--wa-motion-fast);
+  transition:
+    opacity var(--wa-motion-fast),
+    transform var(--wa-motion-fast);
 }
 
 .brandLink:hover,
@@ -53,7 +55,7 @@
 
 .brandMarkText {
   letter-spacing: 0;
-  font-feature-settings: "ss01";
+  font-feature-settings: 'ss01';
 }
 
 .brandKicker {
@@ -96,7 +98,11 @@
 .navLinkActive {
   color: var(--app-text-primary);
   background: color-mix(in srgb, var(--app-accent-primary) 14%, transparent);
-  border-color: color-mix(in srgb, var(--app-accent-primary) 50%, var(--app-border-default));
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent-primary) 50%,
+    var(--app-border-default)
+  );
 }
 
 .navLinkFull {
@@ -192,8 +198,15 @@
 }
 
 .pageHeader {
-  padding-bottom: var(--mantine-spacing-lg);
+  padding-top: clamp(1rem, 2vw, 1.5rem);
+  padding-bottom: var(--mantine-spacing-md);
   border-bottom: 1px solid var(--app-border-subtle);
+}
+
+.pageHeader :global(.mantine-Title-root) {
+  font-size: clamp(1.65rem, 2.5vw, 2.15rem);
+  font-weight: 760;
+  line-height: 1.15;
 }
 
 @media (prefers-reduced-motion: reduce) {

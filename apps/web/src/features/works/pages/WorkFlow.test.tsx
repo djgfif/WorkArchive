@@ -134,9 +134,8 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.click(await screen.findByLabelText('검색으로 정보 보강(선택)'));
     await user.type(await screen.findByLabelText(/^작품 검색$/), title);
-    await user.click(screen.getByRole('button', { name: '후보 검색' }));
+    await user.click(screen.getByRole('button', { name: '검색' }));
     await user.click(
       (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
     );
@@ -158,14 +157,16 @@ describe('Works routed flow', () => {
     await user.click(screen.getByRole('button', { name: '완료' }));
 
     await user.click(
-      screen.getByRole('button', { name: '내 아카이브에 저장' }),
+      screen.getByRole('button', { name: '내 서재에 추가' }),
+    );
+    await waitFor(
+      () => {
+        expect(router.state.location.pathname).toMatch(/^\/works\/[^/]+$/);
+      },
+      { timeout: 10_000 },
     );
     expect(
-      await screen.findByText(
-        `${title}을(를) 등록했습니다`,
-        {},
-        { timeout: 10_000 },
-      ),
+      await screen.findByRole('heading', { name: title }),
     ).toBeInTheDocument();
     const createdWork = (
       await worksService.listWorks(DEFAULT_WORKS_LIST_QUERY, 'active')
@@ -314,7 +315,7 @@ describe('Works routed flow', () => {
   it('keeps manual create local and shows field feedback before save', async () => {
     const user = userEvent.setup();
     const router = createMemoryRouter(appRoutes, {
-      initialEntries: ['/works/new'],
+      initialEntries: ['/works/new?mode=manual'],
     });
 
     renderWithProviders(
@@ -324,7 +325,7 @@ describe('Works routed flow', () => {
     );
 
     await user.click(
-      await screen.findByRole('button', { name: '내 아카이브에 저장' }),
+      await screen.findByRole('button', { name: '내 서재에 추가' }),
     );
 
     expect(await screen.findAllByText('제목을 입력해주세요.')).not.toHaveLength(
@@ -361,9 +362,8 @@ describe('Works routed flow', () => {
       </AuthProvider>,
     );
 
-    await user.click(await screen.findByLabelText('검색으로 정보 보강(선택)'));
     await user.type(await screen.findByLabelText(/^작품 검색$/), 'Dune');
-    await user.click(screen.getByRole('button', { name: '후보 검색' }));
+    await user.click(screen.getByRole('button', { name: '검색' }));
     await user.click(
       (await screen.findAllByRole('button', { name: /후보 선택$/ }))[0]!,
     );

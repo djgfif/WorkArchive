@@ -14,6 +14,7 @@ import { useAuthSession } from '@features/auth';
 import { ArchiveSkeleton } from '../components/ArchiveComponents';
 import { AddWorkDialog } from '../components/AddWorkDialog';
 import { WorksList } from '../components/WorksList';
+import { WorksContinueShelf } from '../components/WorksContinueShelf';
 import { WorksListEmptyState } from '../components/WorksListEmptyState';
 import { WorksListErrorState } from '../components/WorksListErrorState';
 import { WorksListFeedback } from '../components/WorksListFeedback';
@@ -106,7 +107,9 @@ export function WorksListPage() {
   // 스코프를 벗어나면 선택을 초기화한다.
   useEffect(() => {
     if (collectionScope !== 'trash') {
-      setSelectedTrashIds((current) => (current.size > 0 ? new Set() : current));
+      setSelectedTrashIds((current) =>
+        current.size > 0 ? new Set() : current,
+      );
     }
   }, [collectionScope]);
 
@@ -385,16 +388,20 @@ export function WorksListPage() {
   }
 
   const isTrashScope = collectionScope === 'trash';
+  const continueWorks =
+    !isTrashScope && !hasActiveFilters
+      ? works.filter((work) => work.status === 'in_progress').slice(0, 6)
+      : [];
 
   return (
-    <Box maw={1440} mx="auto" px={{ base: 'md', sm: 'xl', lg: '2rem' }} pb="xl">
+    <Box maw={1520} mx="auto" px={{ base: 'md', sm: 'xl', lg: '2rem' }} pb="xl">
       <Stack gap="md">
         {!error && (
           <WorksListPageHeader
             activeStatus={query.status}
             isLoading={isLoading}
             isTrashScope={isTrashScope}
-            onAddWork={() => openAddDialog('manual')}
+            onAddWork={() => openAddDialog('search')}
             onSelectStatus={(status) => handleQueryChange({ ...query, status })}
             statusCounts={statusCounts}
             totalActiveCount={totalActiveCount}
@@ -428,6 +435,8 @@ export function WorksListPage() {
           viewMode={viewMode}
         />
 
+        {!error && !isLoading && <WorksContinueShelf works={continueWorks} />}
+
         {/* 백업 넛지는 활성 서재에서만 — 휴지통(복구 작업 공간)에서는 숨긴다 */}
         {!isTrashScope && (
           <JsonBackupReminderCard
@@ -451,7 +460,7 @@ export function WorksListPage() {
         {error && (
           <WorksListErrorState
             error={error}
-            onOpenAddDialog={() => openAddDialog('manual')}
+            onOpenAddDialog={() => openAddDialog('search')}
             onRetry={retry}
           />
         )}

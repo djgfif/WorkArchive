@@ -36,24 +36,27 @@ export function WorksListEmptyState({
               <AppButton onClick={onClearFilters} type="button">
                 {t('works.list.resetFilters')}
               </AppButton>
-              <AppLinkButton to="/works/new" tone="secondary">
+              <AppLinkButton to="/works/new?mode=manual" tone="secondary">
                 {t('works.list.directAdd')}
               </AppLinkButton>
             </>
           ) : (
             <>
-              <AppLinkButton to="/works/new" tone="primary">
-                {t('works.list.directAdd')}
-              </AppLinkButton>
               {!sitesGuestPoc && (
                 <AppButton
                   onClick={onOpenAddDialog}
-                  tone="secondary"
+                  tone="primary"
                   type="button"
                 >
                   {t('works.list.searchAdd')}
                 </AppButton>
               )}
+              <AppLinkButton
+                to="/works/new?mode=manual"
+                tone={sitesGuestPoc ? 'primary' : 'secondary'}
+              >
+                {t('works.list.directAdd')}
+              </AppLinkButton>
               <AppLinkButton to="/account/settings" tone="quiet">
                 {t('works.list.importJsonBackup')}
               </AppLinkButton>
@@ -67,7 +70,9 @@ export function WorksListEmptyState({
           : hasActiveFilters
             ? t('works.list.emptyFilterDescription')
             : t(
-                sitesGuestPoc ? 'works.list.emptyActiveSitesPocDescription' : 'works.list.emptyActiveDescription',
+                sitesGuestPoc
+                  ? 'works.list.emptyActiveSitesPocDescription'
+                  : 'works.list.emptyActiveDescription',
               )
       }
       eyebrow={

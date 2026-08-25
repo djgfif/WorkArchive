@@ -156,7 +156,7 @@ export function getArchiveSafetyState({
     syncStatus === 'needs-review' ||
     jsonBackup.status === 'missing' ||
     jsonBackup.status === 'stale' ||
-    storageStatus === 'best-effort';
+    (activeRecordCount > 0 && storageStatus === 'best-effort');
   const level: ArchiveSafetyLevel = needsAction
     ? 'action'
     : syncStatus === 'pending' || syncStatus === 'stale'
@@ -242,7 +242,9 @@ export function getArchiveSafetyPresentation(
   );
   let badgeLabel: string;
 
-  if (state.sync.status === 'needs-review') {
+  if (state.sync.status === 'guest') {
+    badgeLabel = appI18n.t('sync.badgeGuest');
+  } else if (state.sync.status === 'needs-review') {
     badgeLabel = appI18n.t('sync.badgeConflictReview', {
       count: formatAppNumber(
         state.sync.conflictCount + state.sync.failedCount,
@@ -258,8 +260,6 @@ export function getArchiveSafetyPresentation(
     badgeLabel = appI18n.t('sync.badgePending', {
       count: formatAppNumber(state.sync.pendingCount),
     });
-  } else if (state.sync.status === 'guest') {
-    badgeLabel = appI18n.t('sync.badgeGuest');
   } else if (state.sync.lastSuccessfulPushAt) {
     badgeLabel = appI18n.t('sync.archiveSafety.badgeLastPush', {
       date: formatDateTime(state.sync.lastSuccessfulPushAt),

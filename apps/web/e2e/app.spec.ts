@@ -168,7 +168,7 @@ test('restores the authenticated archive and performs the startup pull', async (
 
   await expect(
     page.getByRole('button', {
-      name: '계정 메뉴: 아카이브 사용자, archive@example.com',
+      name: /계정 메뉴(?:: 아카이브 사용자, archive@example.com| · 모바일 탐색)/,
     }),
   ).toBeVisible();
   await expect
@@ -205,7 +205,7 @@ test('opens the command palette and runs a library search', async ({
 
   await page.keyboard.press('Control+k');
 
-  const commandInput = page.getByRole('textbox', { name: '명령 검색' });
+  const commandInput = page.getByRole('combobox', { name: '명령 검색' });
 
   await expect(commandInput).toBeVisible();
   await commandInput.fill('은하철도');
@@ -384,12 +384,12 @@ test('keeps 320px core routes free of horizontal overflow', async ({
 
   await gotoApp(page, '/');
   await expect(
-    page.getByRole('heading', { name: '내 아카이브' }),
+    page.getByRole('heading', { name: '오늘의 기록' }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 
-test('lets mobile users navigate core routes from the drawer', async ({
+test('lets mobile users navigate core routes from the bottom bar and account menu', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -401,9 +401,8 @@ test('lets mobile users navigate core routes from the drawer', async ({
   await gotoApp(page, '/');
 
   await expect(
-    page.getByRole('heading', { name: '내 아카이브' }),
+    page.getByRole('heading', { name: '오늘의 기록' }),
   ).toBeVisible();
-  await page.getByRole('button', { name: '메뉴 열기' }).click();
 
   const mobileNavigation = page.getByRole('navigation', {
     name: '모바일 탐색',
@@ -411,20 +410,46 @@ test('lets mobile users navigate core routes from the drawer', async ({
 
   await expect(mobileNavigation).toBeVisible();
   await expect(
-    mobileNavigation.getByRole('link', { name: '작품' }),
+    mobileNavigation.getByRole('link', { name: '홈' }),
   ).toBeVisible();
   await expect(
-    mobileNavigation.getByRole('link', { name: '인사이트' }),
+    mobileNavigation.getByRole('link', { name: /새 작품 추가/ }),
   ).toBeVisible();
   await expect(
-    mobileNavigation.getByRole('link', { name: '티어보드' }),
+    mobileNavigation.getByRole('link', { name: '작품 서재' }),
   ).toBeVisible();
+  await expect(page.getByRole('button', { name: '메뉴 열기' })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 
-  await mobileNavigation.getByRole('link', { name: '인사이트' }).click();
+  await mobileNavigation.getByRole('link', { name: '작품 서재' }).click();
+
+  await expect(page).toHaveURL(/\/works$/);
+  await expect(page.getByRole('heading', { name: '작품 서재' })).toBeVisible();
+  await expect(mobileNavigation).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await mobileNavigation.getByRole('link', { name: /새 작품 추가/ }).click();
+
+  await expect(page).toHaveURL(/\/works\/new$/);
+  const addWorkHeading = page.getByRole('heading', { name: '작품 추가' });
+  await expect(addWorkHeading).toBeVisible();
+
+  const [mobileHeaderBox, addWorkHeadingBox] = await Promise.all([
+    page.getByRole('banner').boundingBox(),
+    addWorkHeading.boundingBox(),
+  ]);
+
+  expect(mobileHeaderBox).not.toBeNull();
+  expect(addWorkHeadingBox).not.toBeNull();
+  expect(addWorkHeadingBox!.y).toBeGreaterThanOrEqual(
+    mobileHeaderBox!.y + mobileHeaderBox!.height,
+  );
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole('button', { name: '계정 메뉴 · 모바일 탐색' }).click();
+  await page.getByRole('menuitem', { name: '인사이트' }).click();
 
   await expect(page).toHaveURL(/\/insights$/);
-  await expect(mobileNavigation).toBeHidden();
   await expect(
     page.getByRole('heading', {
       name: /개인 인사이트|아직 인사이트를 만들 기록이 없습니다\./,
@@ -432,12 +457,10 @@ test('lets mobile users navigate core routes from the drawer', async ({
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await page.getByRole('button', { name: '메뉴 열기' }).click();
-  await expect(mobileNavigation).toBeVisible();
-  await mobileNavigation.getByRole('link', { name: '티어보드' }).click();
+  await page.getByRole('button', { name: '계정 메뉴 · 모바일 탐색' }).click();
+  await page.getByRole('menuitem', { name: '티어보드' }).click();
 
   await expect(page).toHaveURL(/\/tier-boards$/);
-  await expect(mobileNavigation).toBeHidden();
   await expect(
     page.getByRole('heading', { name: '자유형 티어보드' }),
   ).toBeVisible();
@@ -620,9 +643,7 @@ test('keeps direct add usable when quick-add search fails', async ({
   });
   await expect(saveButton).toBeVisible();
   await saveButton.click();
-  await expect(
-    page.getByText('실패한 검색어를 등록했습니다'),
-  ).toBeVisible();
+  await expect(page.getByText('실패한 검색어를 등록했습니다')).toBeVisible();
 });
 
 test('keeps guest backup and provider-key safety visible in settings', async ({
@@ -714,15 +735,15 @@ test('shows the empty guest home onboarding path', async ({ page }) => {
   await gotoApp(page, '/');
 
   await expect(
-    page.getByRole('heading', { name: '내 아카이브' }),
+    page.getByRole('heading', { name: '오늘의 기록' }),
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: '첫 작품을 놓는 방법' }),
+    page.getByRole('heading', { name: '아직 기록한 작품이 없습니다' }),
   ).toBeVisible();
+  await expect(page.getByRole('link', { name: '직접 추가' })).toBeVisible();
   await expect(
-    page.getByRole('link', { name: /로그인 없이 시작/ }),
+    page.getByRole('link', { name: 'JSON 백업 가져오기' }),
   ).toBeVisible();
-  await expect(page.getByRole('link', { name: /내 기록 백업/ })).toBeVisible();
 });
 
 test('lets a guest create a local-first tier board and open the editor', async ({

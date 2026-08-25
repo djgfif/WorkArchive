@@ -148,7 +148,7 @@ export function AccountLayout() {
     <main className="layout-shell layout-shell--account">
       <SitesPocNotice topOffset="page" />
       <Container px="md" size={1360}>
-        <ArchiveScopeIndicator />
+        <ArchiveScopeIndicator attentionOnly />
         <Grid align="start" gap="xl" mt="md">
           {/* 모바일 — 상단 수평 nav */}
           <Grid.Col hiddenFrom="lg" span={12}>
@@ -354,7 +354,7 @@ interface AccountNavItemProps {
 
 function AccountNavItem({ end, icon, label, state, to }: AccountNavItemProps) {
   return (
-    <AppNavLink end={end} fullWidth state={state} to={to}>
+    <AppNavLink aria-label={label} end={end} fullWidth state={state} to={to}>
       <Group gap="sm" wrap="nowrap">
         <Box className={cn(styles.navIcon)}>{icon}</Box>
         {label}

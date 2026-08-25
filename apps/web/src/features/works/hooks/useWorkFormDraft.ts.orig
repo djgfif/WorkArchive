@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   workFormDraftService,
@@ -50,7 +50,7 @@ export function useWorkFormDraft({
     autosaveTimeoutRef.current = null;
   }
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (draftKey) {
       workFormDraftService.beginDraftSession(draftKey);
     }

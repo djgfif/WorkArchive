@@ -7,7 +7,7 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 
 import { useAppTranslation } from '@app/i18n';
 import { AppButton } from '@shared/components/AppPrimitives';
@@ -28,6 +28,7 @@ interface AddWorkSearchFormProps {
   onSearchTypeChange: (value: string) => void;
   providerGroup: ProviderGroup;
   providerOptionsOpen: boolean;
+  providerReadinessSummary: ReactNode;
   searchTerm: string;
   searchType: string;
   shouldSuggestProviderChange: boolean;
@@ -43,6 +44,7 @@ export function AddWorkSearchForm({
   onSearchTypeChange,
   providerGroup,
   providerOptionsOpen,
+  providerReadinessSummary,
   searchTerm,
   searchType,
   shouldSuggestProviderChange,
@@ -54,14 +56,14 @@ export function AddWorkSearchForm({
     defaultProviderGroupOption;
 
   return (
-    <Paper className={cn(css.quickSearchSticky)} p="md" radius="lg" withBorder>
+    <Paper className={cn(css.quickSearchSticky)} p="md" radius="md" withBorder>
       <form onSubmit={onSearchSubmit}>
         <Stack gap="sm">
           <Group align="flex-end" gap="sm" wrap="wrap">
             <div className={cn(css.quickSearchField)}>
               <TextInput
+                aria-label={t('works.add.search.searchLabel')}
                 id="quickAddSearch"
-                label={t('works.add.search.searchLabel')}
                 onChange={(event) =>
                   onSearchTermChange(event.currentTarget.value)
                 }
@@ -72,8 +74,8 @@ export function AddWorkSearchForm({
 
             <div className={cn(css.quickSearchType)}>
               <NativeSelect
+                aria-label={t('works.add.search.typeLabel')}
                 id="quickAddType"
-                label={t('works.add.search.typeLabel')}
                 onChange={(event) =>
                   onSearchTypeChange(event.currentTarget.value)
                 }
@@ -96,12 +98,7 @@ export function AddWorkSearchForm({
             </AppButton>
           </Group>
 
-          <Paper
-            className={cn(css.quickSearchOptionsPanel)}
-            p="xs"
-            radius="md"
-            withBorder
-          >
+          <div className={cn(css.quickSearchOptionsPanel)}>
             <Group align="center" justify="space-between" wrap="wrap">
               <Stack gap={1}>
                 <Text fw={750} size="sm">
@@ -134,6 +131,7 @@ export function AddWorkSearchForm({
 
             <Collapse expanded={providerOptionsOpen}>
               <Stack gap={6} pt="sm">
+                {providerReadinessSummary}
                 <Text c="var(--mantine-color-dimmed)" fw={700} size="xs">
                   {t('works.add.search.providerSelectionLabel')}
                 </Text>
@@ -163,7 +161,7 @@ export function AddWorkSearchForm({
                 </Text>
               </Stack>
             </Collapse>
-          </Paper>
+          </div>
         </Stack>
       </form>
     </Paper>

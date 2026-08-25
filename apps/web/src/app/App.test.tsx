@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,7 +20,11 @@ describe('App', () => {
     expect(await findLinkByHref('/')).toBeInTheDocument();
     expect(getLinkByHref('/works')).toBeInTheDocument();
     expect(getLinkByHref('/works/new')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Tier|Board|Community|Insight|Sync/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {
+        name: /Tier|Board|Community|Insight|Sync/i,
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it('offers recovery actions when the home recent records cannot load', async () => {
@@ -43,6 +47,26 @@ describe('App', () => {
     expect(screen.queryByText('IndexedDB 연결 실패')).not.toBeInTheDocument();
   });
 
+  it('exposes the primary mobile destinations without a drawer', async () => {
+    renderWithProviders(<App />);
+
+    const mobileNavigation = await screen.findByRole('navigation', {
+      name: '모바일 탐색',
+    });
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '홈' }),
+    ).toHaveAttribute('href', '/');
+    expect(
+      within(mobileNavigation).getByRole('link', { name: /새 작품 추가/ }),
+    ).toHaveAttribute('href', '/works/new');
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '작품 서재' }),
+    ).toHaveAttribute('href', '/works');
+    expect(
+      screen.queryByRole('button', { name: '메뉴 열기' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('starts the Sites POC in local guest mode without server entry points', async () => {
     window.__WORK_ARCHIVE_CONFIG__ = {
       deploymentProfile: 'sites-guest-poc',
@@ -51,7 +75,9 @@ describe('App', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
     renderWithProviders(<App />);
-    expect(await screen.findByText('첫 작품을 놓는 방법')).toBeInTheDocument();
+    expect(
+      await screen.findByText('아직 기록한 작품이 없습니다'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('검색으로 추가')).not.toBeInTheDocument();
 
     await user.click(getLinkByHref('/works/new'));
@@ -72,8 +98,9 @@ describe('App', () => {
     expect(
       screen.queryByText('검색으로 정보 보강(선택)'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '로그인' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: '로그인' }),
+    ).not.toBeInTheDocument();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
-
 });

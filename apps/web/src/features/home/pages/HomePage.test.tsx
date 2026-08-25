@@ -20,21 +20,24 @@ describe('HomePage', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText('첫 작품을 놓는 방법')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        '책·애니·만화·영화를 한곳에 기록하세요. 로그인 없이 시작해도 이 브라우저가 먼저 보관합니다.',
-      ),
+      await screen.findByText('아직 기록한 작품이 없습니다'),
     ).toBeInTheDocument();
-    expect(screen.getAllByText('로그인 없이 시작').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('검색으로 추가').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('내 기록 백업').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('작품').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText('작품 하나를 추가하면 오늘의 기록이 시작됩니다.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '직접 추가' })).toHaveAttribute(
+      'href',
+      '/works/new?mode=manual',
+    );
+    expect(
+      screen.getByRole('link', { name: 'JSON 백업 가져오기' }),
+    ).toHaveAttribute('href', '/account/settings#data-backup');
     expect(screen.getAllByText('0개').length).toBeGreaterThan(0);
 
     expect(
       screen
-        .getByRole('heading', { level: 1, name: '내 아카이브' })
+        .getByRole('heading', { level: 1, name: '오늘의 기록' })
         .compareDocumentPosition(
           screen.getByRole('textbox', { name: '빠른 작품 기록' }),
         ) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -107,8 +110,7 @@ describe('HomePage', () => {
     );
 
     const user = userEvent.setup();
-    expect(await screen.findByText('이어볼 작품')).toBeInTheDocument();
-    expect(screen.getAllByText('작품').length).toBeGreaterThan(0);
+    expect(await screen.findByText('이어서 기록')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '기록 추가' })).toHaveLength(
       1,
     );
@@ -144,7 +146,7 @@ describe('HomePage', () => {
 
     expect(
       screen
-        .getByText('이어볼 작품')
+        .getByText('이어서 기록')
         .compareDocumentPosition(screen.getByText('최근 정리한 감상')) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();

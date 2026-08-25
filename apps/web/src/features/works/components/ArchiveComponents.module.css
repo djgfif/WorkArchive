@@ -1078,13 +1078,13 @@
 }
 
 .emptyState {
-  padding: clamp(1.5rem, 4vw, 2.8rem);
+  max-width: 48rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border-radius: var(--mantine-radius-lg);
 }
 /* 빈 상태 일러스트 */
 .emptyIllustration {
-  color: var(--app-text-primary);
-  opacity: 0.7;
-  margin-bottom: 0.25rem;
+  display: none;
 }
 /* 부유 애니메이션 — 메인 포스터 */
 .emptyFloat1 {
@@ -1250,8 +1250,8 @@
    Quick search fields
 ───────────────────────────────────────────────────────────────────────────── */
 .quickSearchField {
-  flex: 1 1 20rem;
-  min-width: min(100%, 20rem);
+  flex: 1 1 24rem;
+  min-width: min(100%, 22rem);
 }
 
 .quickSearchType {
@@ -1261,16 +1261,31 @@
 
 .quickSearchSticky {
   position: sticky;
-  top: 0.75rem;
-  z-index: 5;
+  top: 0.5rem;
+  z-index: 20;
   border-color: var(--app-border-default);
   background: var(--app-surface-card);
-  box-shadow: var(--app-shadow-card);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+}
+
+.quickSearchSticky :global(.mantine-TextInput-input),
+.quickSearchSticky :global(.mantine-NativeSelect-input) {
+  min-height: 3.2rem;
+  border-color: var(--app-border-default);
+  background: var(--app-bg-elevated);
+  font-size: 0.95rem;
+}
+
+.quickSearchSticky :global(.mantine-TextInput-input):focus,
+.quickSearchSticky :global(.mantine-NativeSelect-input):focus {
+  border-color: var(--app-accent-primary);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--app-accent-primary) 20%, transparent);
 }
 
 .quickSearchOptionsPanel {
-  border-color: var(--app-border-subtle);
-  background: var(--app-surface-subtle);
+  padding-top: 0.15rem;
+  border-top: 1px solid var(--app-border-subtle);
 }
 
 [data-mantine-color-scheme='light'] .quickSearchSticky {
@@ -1290,14 +1305,17 @@
 }
 
 .searchResultPanel {
-  border-color: var(--mantine-color-default-border);
-  background: var(--app-surface-subtle);
+  border-color: transparent;
+  background: transparent;
 }
 
 .searchPreviewPanel {
-  min-height: 34rem;
-  border-color: var(--mantine-color-default-border);
+  position: sticky;
+  top: 7.25rem;
+  min-height: 31rem;
+  border-color: var(--app-border-default);
   background: var(--app-surface-card);
+  box-shadow: var(--app-shadow-card);
 }
 
 .searchManualFallback {
@@ -1323,10 +1341,10 @@
 
 .candidateRow {
   width: 100%;
-  padding: 0.875rem;
+  padding: 0.75rem;
   border: 1px solid var(--app-border-subtle);
-  border-radius: var(--mantine-radius-lg);
-  background: var(--app-surface-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: transparent;
   color: var(--app-text-primary);
   cursor: pointer;
   text-align: left;
@@ -1341,13 +1359,14 @@
 .candidateRow:focus-visible {
   border-color: var(--app-border-default);
   background: var(--app-surface-card);
-  transform: translateY(-1px);
+  transform: translateX(2px);
 }
 
 .candidateRow[data-active='true'] {
   border-color: var(--app-accent-primary);
   background: var(--app-surface-card);
-  box-shadow: var(--wa-shadow-glow);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--app-accent-primary) 22%, transparent);
 }
 
 .candidateRowTitle {
@@ -1365,6 +1384,69 @@
   color: var(--mantine-color-yellow-text);
 }
 
+.candidateSelectionMark {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  place-items: center;
+  border: 1px solid var(--app-border-default);
+  border-radius: 999px;
+  color: var(--app-text-muted);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.candidateRow[data-active='true'] .candidateSelectionMark {
+  border-color: var(--app-accent-primary);
+  background: var(--app-accent-primary);
+  color: #fff;
+}
+
+.selectedCandidateForm {
+  min-width: 0;
+}
+
+.selectedCandidateLabel {
+  color: var(--app-text-secondary);
+  font-size: var(--app-type-caption);
+  font-weight: 800;
+}
+
+.selectedCandidateIdentity {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.selectedCandidatePoster {
+  width: 7rem;
+  max-width: 100%;
+}
+
+.selectedCandidateTitle {
+  margin: 0;
+  font-family: var(--app-font-display);
+  font-size: 1.25rem;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.selectedCandidateRecord {
+  padding-top: 1rem;
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+.selectedCandidateRecord > div > div:first-child {
+  display: none;
+}
+
+.selectedCandidateRecord :global(.mantine-SimpleGrid-root) {
+  grid-template-columns: 1fr;
+}
+
 .candidateRowAlias {
   color: var(--app-text-muted);
   font-style: italic;
@@ -1378,7 +1460,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  padding: clamp(1.5rem, 3vw, 2.5rem) 0 clamp(1rem, 2vw, 1.5rem);
+  padding: clamp(1.25rem, 2.4vw, 2rem) 0 0.9rem;
   border-bottom: 1px solid var(--app-border-subtle);
   flex-wrap: wrap;
 }
@@ -1386,8 +1468,8 @@
 .libraryPageTitle {
   margin: 0 0 0.4rem;
   font-family: var(--app-font-display);
-  font-size: clamp(1.9rem, 3.4vw, 2.8rem);
-  font-weight: 720;
+  font-size: clamp(1.65rem, 2.5vw, 2.15rem);
+  font-weight: 760;
   letter-spacing: 0;
   color: var(--app-text-primary);
   line-height: 1.06;
@@ -2112,6 +2194,66 @@
 }
 
 @media (max-width: 48rem) {
+  .quickSearchSticky {
+    position: static;
+    padding: 0.75rem !important;
+    box-shadow: none;
+  }
+
+  .quickSearchField,
+  .quickSearchType {
+    min-width: 100%;
+    flex-basis: 100%;
+  }
+
+  .quickSearchSticky :global(.mantine-TextInput-input),
+  .quickSearchSticky :global(.mantine-NativeSelect-input) {
+    min-height: 3rem;
+  }
+
+  .searchResultPanel {
+    padding: 0 !important;
+  }
+
+  .searchPreviewPanel {
+    position: static;
+    min-height: 0;
+    padding: 1rem !important;
+  }
+
+  .candidateRow {
+    min-height: 5.75rem;
+    padding: 0.65rem;
+  }
+
+  .candidateRow:hover,
+  .candidateRow:focus-visible {
+    transform: none;
+  }
+
+  .candidateSelectionMark {
+    width: 1.85rem;
+    height: 1.85rem;
+    flex-basis: 1.85rem;
+  }
+
+  .selectedCandidateIdentity {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+
+  .selectedCandidatePoster {
+    width: 5.5rem;
+  }
+
+  .selectedCandidateTitle {
+    font-size: 1.1rem;
+  }
+
+  .selectedCandidateForm button[type='submit'] {
+    min-height: 3rem;
+  }
+
   .detailHero {
     padding: 1rem;
   }
@@ -2365,4 +2507,129 @@
 
 .addWorkDisclosure[open] > summary::after {
   content: '−';
+}
+
+/* 서재 상단의 진행 중 선반. 전체 그리드보다 짧고 낮은 밀도로 유지한다. */
+.libraryContinueSection {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.95rem 0 1.05rem;
+  border-bottom: 1px solid var(--app-border-subtle);
+}
+
+.libraryContinueHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.libraryContinueHeader h2 {
+  margin: 0;
+  color: var(--app-text-primary);
+  font-size: 1.05rem;
+  font-weight: 780;
+}
+
+.libraryContinueHeader a {
+  color: var(--app-text-muted);
+  font-size: var(--app-type-caption);
+  font-weight: 700;
+}
+
+.libraryContinueHeader a:hover,
+.libraryContinueHeader a:focus-visible {
+  color: var(--app-text-primary);
+}
+
+.libraryContinueTrack {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.libraryContinueItem {
+  display: grid;
+  grid-template-columns: 3.3rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.55rem;
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-card);
+  transition:
+    border-color var(--wa-motion-fast),
+    background var(--wa-motion-fast);
+}
+
+.libraryContinueItem:hover,
+.libraryContinueItem:focus-visible {
+  border-color: var(--app-border-default);
+  background: var(--app-surface-subtle);
+}
+
+.libraryContinuePoster {
+  width: 3.3rem;
+  aspect-ratio: 2 / 3;
+  border-radius: calc(var(--mantine-radius-sm) + 1px);
+}
+
+.libraryContinueBody {
+  display: grid;
+  min-width: 0;
+  gap: 0.3rem;
+}
+
+.libraryContinueBody strong,
+.libraryContinueBody > span:not(.libraryContinueProgress) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.libraryContinueBody strong {
+  color: var(--app-text-primary);
+  font-size: 0.82rem;
+}
+
+.libraryContinueBody > span:not(.libraryContinueProgress) {
+  color: var(--app-text-muted);
+  font-size: var(--app-type-meta);
+}
+
+.libraryContinueProgress {
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--app-border-subtle);
+}
+
+.libraryContinueProgress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--app-accent-primary);
+}
+
+@media (max-width: 80rem) {
+  .libraryContinueTrack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 48rem) {
+  .libraryContinueTrack {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .libraryContinueItem {
+    width: min(72vw, 16rem);
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
 }

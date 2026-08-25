@@ -48,7 +48,7 @@ export function AddWorkSearchResults({
   const { t } = useAppTranslation();
 
   return (
-    <Grid.Col span={{ base: 12, md: 5 }}>
+    <Grid.Col span={{ base: 12, md: 7 }}>
       <Paper
         className={cn(css.searchResultPanel)}
         p="sm"

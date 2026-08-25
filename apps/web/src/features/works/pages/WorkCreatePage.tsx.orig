@@ -45,7 +45,7 @@ export function WorkCreatePage() {
         ? t('works.feedback.localSavedSyncPending')
         : t('works.feedback.localSaved');
 
-      workFormDraftService.completeDraft(draftKey);
+      workFormDraftService.deleteDraft(draftKey);
       navigate(`/works/${work.id}`, { replace: true, state: { feedback } });
     } catch (error) {
       setSubmitError(

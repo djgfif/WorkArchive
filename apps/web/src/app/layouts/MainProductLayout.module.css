@@ -1,182 +1,222 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Main Product Layout — TopNav v4.0
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* ── TopNav 바 ───────────────────────────────────────────────────────────── */
-.topnav {
+.sidebar {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 200;
-  height: var(--topnav-height, 56px);
+  inset: 0 auto 0 0;
+  z-index: 210;
+  display: flex;
+  width: var(--app-sidebar-width, 224px);
+  flex-direction: column;
+  padding: 1.25rem 0.9rem 1rem;
+  border-right: 1px solid var(--app-border-subtle);
   background: var(--app-bg-base);
-  border-bottom: 1px solid var(--app-border-subtle);
 }
 
-[data-mantine-color-scheme='light'] .topnav {
-  box-shadow: 0 1px 0 rgba(15, 18, 35, 0.06);
-}
-
-/* ── Inner — max-width 컨테이너 ──────────────────────────────────────────── */
-.topnavInner {
+.brand,
+.mobileBrand {
   display: flex;
+  min-width: 0;
   align-items: center;
-  height: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 0 clamp(1rem, 2.5vw, 2rem);
-  gap: 0;
-}
-
-/* ── Brand ───────────────────────────────────────────────────────────────── */
-.topnavBrand {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin-right: 1.75rem;
-  text-decoration: none;
-  color: inherit;
-  border-radius: var(--mantine-radius-md);
-  padding: 0.3rem 0.4rem;
-  transition: opacity var(--wa-motion-fast);
-}
-
-.topnavBrand:hover {
-  opacity: 0.82;
-}
-
-.topnavMark {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: var(--app-accent-primary);
-  color: #ffffff;
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0;
-}
-
-.topnavName {
-  font-size: 0.92rem;
-  font-weight: 800;
+  gap: 0.65rem;
   color: var(--app-text-primary);
-  letter-spacing: 0;
+  text-decoration: none;
+}
+
+.brand {
+  margin: 0 0.35rem 1.9rem;
+}
+
+.brandMark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--app-accent-primary);
+  color: #fff;
+  font-family: var(--app-font-figure);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.brandName {
+  overflow: hidden;
+  font-size: 0.93rem;
+  font-weight: 820;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ── Nav links ───────────────────────────────────────────────────────────── */
-.topnavLinks {
-  display: flex;
-  align-items: center;
-  gap: 0.1rem;
-  flex: 1;
+.primaryNav,
+.secondaryNav {
+  display: grid;
+  gap: 0.25rem;
 }
 
-/* ── Right actions ───────────────────────────────────────────────────────── */
-.topnavActions {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
+.primaryNav {
+  margin-top: 2.4rem;
 }
 
-.commandButton {
+.secondaryNav {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+.sidebarNavLink {
   display: flex;
+  min-height: 42px;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.32rem 0.55rem;
-  border: 1px solid var(--app-border-default);
-  border-radius: var(--mantine-radius-md);
-  background: transparent;
+  gap: 0.75rem;
+  padding: 0 0.8rem;
+  border-radius: 8px;
   color: var(--app-text-secondary);
-  font-size: var(--app-type-meta);
-  font-weight: 750;
-  letter-spacing: 0.02em;
-  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
   transition:
     background var(--wa-motion-fast),
-    border-color var(--wa-motion-fast),
     color var(--wa-motion-fast);
 }
 
-.commandButton:hover,
-.commandButton:focus-visible {
-  border-color: var(--app-border-strong);
+.sidebarNavLink:hover {
   background: var(--app-surface-subtle);
   color: var(--app-text-primary);
 }
 
-/* ── 작품 추가 버튼 — 골드 아웃라인 ─────────────────────────────────────── */
-.addWorkLink {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.32rem 0.8rem;
-  border: 1px solid var(--app-accent-primary);
-  border-radius: var(--mantine-radius-md);
-  background: transparent;
+.sidebarNavLinkActive {
+  background: var(--app-accent-soft);
+  color: var(--app-text-primary);
+}
+
+.sidebarNavLinkActive .navIcon {
   color: var(--app-accent-primary);
-  font-size: var(--app-type-caption);
-  font-weight: 750;
-  letter-spacing: 0.01em;
-  text-decoration: none;
-  white-space: nowrap;
-  transition:
-    background var(--wa-motion-fast),
-    color var(--wa-motion-fast),
-    transform var(--wa-motion-fast);
 }
 
-.addWorkLink:hover {
-  background: var(--app-accent-primary);
-  color: #ffffff;
+.secondaryNavLink {
+  min-height: 38px;
+  color: var(--app-text-muted);
+  font-size: 0.82rem;
 }
 
-.addWorkLink:active {
-  transform: scale(0.97);
+.navIcon {
+  display: block;
+  flex: 0 0 20px;
 }
 
-[data-mantine-color-scheme='light'] .addWorkLink:hover {
-  color: #ffffff;
-}
-
-/* ── Avatar 버튼 ─────────────────────────────────────────────────────────── */
-.avatarButton {
+.sidebarAddWork {
   display: flex;
+  min-height: 42px;
   align-items: center;
   justify-content: center;
-  padding: 2px;
-  border: none;
-  background: transparent;
-  border-radius: 999px;
-  cursor: pointer;
-  outline: none;
+  gap: 0.55rem;
+  margin-top: 1.2rem;
+  border-radius: 8px;
+  background: var(--app-accent-primary);
+  color: #fff;
+  font-size: 0.86rem;
+  font-weight: 780;
+  text-decoration: none;
   transition:
-    box-shadow var(--wa-motion-fast),
+    background var(--wa-motion-fast),
     transform var(--wa-motion-fast);
 }
 
-.mobileMenuButton {
-  min-width: 44px;
-  min-height: 44px;
+.sidebarAddWork:hover {
+  background: var(--app-accent-strong);
 }
 
-.avatarButton:hover,
-.avatarButton:focus-visible {
-  box-shadow: 0 0 0 2.5px var(--app-accent-primary);
+.sidebarAddWork:active {
+  transform: scale(0.985);
 }
 
-.avatarButton:active {
-  transform: scale(0.96);
+.sidebarFooter {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.8rem;
 }
 
-/* ── Avatar 드롭다운 ─────────────────────────────────────────────────────── */
+.commandButton,
+.accountButton,
+.mobileAvatarButton {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.commandButton {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.75rem;
+  border-radius: 8px;
+  color: var(--app-text-muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.commandButton:hover {
+  background: var(--app-surface-subtle);
+  color: var(--app-text-primary);
+}
+
+.commandButton kbd {
+  padding: 0.12rem 0.35rem;
+  border: 1px solid var(--app-border-default);
+  border-radius: 5px;
+  color: var(--app-text-muted);
+  font-family: var(--app-font-figure);
+  font-size: 0.65rem;
+}
+
+.accountButton {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.accountButton:hover,
+.accountButton:focus-visible {
+  background: var(--app-surface-subtle);
+}
+
+.accountButtonCopy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 1px;
+}
+
+.accountButtonCopy strong,
+.accountButtonCopy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountButtonCopy strong {
+  color: var(--app-text-primary);
+  font-size: 0.8rem;
+}
+
+.accountButtonCopy span {
+  color: var(--app-text-muted);
+  font-size: 0.68rem;
+}
+
+.accountChevron {
+  color: var(--app-text-muted);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
 .accountMenuDropdown {
   overflow: hidden;
   border: 1px solid var(--app-border-default);
@@ -186,109 +226,150 @@
 
 .menuHeader {
   margin-bottom: 0.35rem;
-  padding: 0.75rem;
-  border: 1px solid var(--app-border-subtle);
-  border-radius: var(--mantine-radius-md);
-  background: var(--app-surface-subtle);
+  padding: 0.7rem;
+  border-bottom: 1px solid var(--app-border-subtle);
 }
 
 .accountMenuItem {
-  min-height: 2.3rem;
-  margin-block: 2px;
-  border: 1px solid transparent;
-  color: var(--app-text-secondary);
+  border-radius: 7px;
+  font-size: var(--app-type-caption);
   font-weight: 650;
 }
 
-.accountMenuItem:hover,
-.accountMenuItem[data-hovered] {
-  border-color: var(--app-border-subtle);
-  background: color-mix(
-    in srgb,
-    var(--app-accent-primary) 8%,
-    var(--app-surface-card)
-  );
-  color: var(--app-text-primary);
-}
-
-.statusDot {
-  width: 7px;
-  height: 7px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: var(--app-text-muted);
-}
-
-.statusDotAuthenticated {
-  background: var(--app-accent-teal);
-}
-
-/* ── 모바일 드로어 내부 ───────────────────────────────────────────────────── */
-.mobileAccountCard {
-  padding: 0.75rem;
-  border: 1px solid var(--app-border-subtle);
-  border-radius: var(--mantine-radius-lg);
-  background: var(--app-surface-subtle);
-}
-
-.drawerBrandText {
-  letter-spacing: 0;
-}
-
-.themeToggleWrap :global(.mantine-Button-root) {
-  min-height: 2.3rem;
-  justify-content: flex-start;
-  border: 1px solid transparent;
-  border-radius: var(--mantine-radius-md);
-  color: var(--app-text-secondary);
-  font-weight: 650;
-  transition:
-    background var(--wa-motion-fast),
-    border-color var(--wa-motion-fast),
-    color var(--wa-motion-fast);
-}
-
-.themeToggleWrap :global(.mantine-Button-root:hover) {
-  border-color: var(--app-border-subtle);
-  background: color-mix(
-    in srgb,
-    var(--app-accent-primary) 8%,
-    var(--app-surface-card)
-  );
-  color: var(--app-text-primary);
-}
-
-/* ── 페이지 전환 ─────────────────────────────────────────────────────────── */
 .pageTransition {
-  animation: pageEnter 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  min-width: 0;
+  margin-left: var(--app-sidebar-width, 224px);
+  padding-top: 0;
+  animation: pageEnter var(--wa-motion-enter) both;
+}
+
+.mobileHeader,
+.mobileBottomNav,
+.mobileSafetyNotice {
+  display: none;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 61.99rem) {
+  .sidebar {
+    display: none;
+  }
+
+  .pageTransition {
+    margin-left: 0;
+    padding-top: 64px;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .mobileHeader {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 120;
+    display: flex;
+    height: 64px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    border-bottom: 1px solid var(--app-border-subtle);
+    background: color-mix(in srgb, var(--app-bg-base) 94%, transparent);
+    backdrop-filter: blur(16px);
+  }
+
+  .mobileBrand {
+    gap: 0.55rem;
+  }
+  .mobileAvatarButton {
+    display: grid;
+    min-width: 44px;
+    min-height: 44px;
+    place-items: center;
+    padding: 0;
+    border-radius: 999px;
+  }
+
+  .mobileSafetyNotice {
+    display: flex;
+    justify-content: center;
+    padding: 0.5rem 1rem 0;
+  }
+
+  .mobileSafetyNotice:empty {
+    display: none;
+  }
+
+  .mobileBottomNav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 130;
+    display: grid;
+    min-height: calc(68px + env(safe-area-inset-bottom));
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: end;
+    padding: 0.35rem max(1rem, env(safe-area-inset-right))
+      env(safe-area-inset-bottom) max(1rem, env(safe-area-inset-left));
+    border-top: 1px solid var(--app-border-default);
+    background: color-mix(in srgb, var(--app-bg-base) 96%, transparent);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobileNavLink,
+  .mobileAddLink {
+    display: flex;
+    min-height: 58px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.18rem;
+    color: var(--app-text-muted);
+    font-size: 0.7rem;
+    font-weight: 750;
+    text-decoration: none;
+  }
+
+  .mobileNavLinkActive {
+    color: var(--app-accent-primary);
+  }
+
+  .mobileAddLink {
+    color: var(--app-text-secondary);
+    transform: translateY(-10px);
+  }
+
+  .mobileAddIcon {
+    display: grid;
+    width: 50px;
+    height: 50px;
+    place-items: center;
+    border: 5px solid var(--app-bg-base);
+    border-radius: 999px;
+    background: var(--app-accent-primary);
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(79, 70, 229, 0.32);
+  }
+}
+
+@media (max-width: 23rem) {
+  .mobileHeader {
+    padding-inline: 0.75rem;
+  }
+  .brandName {
+    font-size: 0.86rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .topnav,
-  .avatarButton,
-  .commandButton,
-  .addWorkLink,
   .pageTransition {
     animation: none;
-    transition: none;
-  }
-}
-
-@media (max-width: 48rem) {
-  .topnavBrand {
-    min-height: 44px;
-    margin-right: auto;
-  }
-
-  .addWorkLink {
-    min-width: 44px;
-    min-height: 44px;
-    justify-content: center;
-    padding: 0.32rem 0.55rem;
-  }
-
-  .avatarButton {
-    min-width: 44px;
-    min-height: 44px;
   }
 }

@@ -1,8 +1,9 @@
-import { Group, SegmentedControl, Stack, Text } from '@mantine/core';
-import { useMemo, useRef, useState, type FormEvent } from 'react';
+import { Group, Stack, Text } from '@mantine/core';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
 import type { ImportCandidate } from '@features/imports';
 import { useAppTranslation } from '@app/i18n';
+import { AppButton } from '@shared/components/AppPrimitives';
 import { isSitesGuestPoc } from '@shared/runtime/deployment-profile';
 import { AddWorkManualForm } from './AddWorkManualForm';
 import { AddWorkSearchPanel } from './AddWorkSearchPanel';
@@ -119,6 +120,7 @@ export function AddWorkFlow({
     useSearchTermForManualInput,
   } = useAddWorkSearch({
     enabled: searchEnabled && mode === 'search',
+    initialSearchTerm: initialTitle,
     onApplyCandidate: (candidate) => {
       setValues(
         createValuesFromCandidate(candidate, createDefaultWorkFormValues),
@@ -141,6 +143,27 @@ export function AddWorkFlow({
       focusMainTitle();
     },
   });
+
+  useEffect(() => {
+    if (mode !== 'search') {
+      return;
+    }
+
+    if (!selectedSearchCandidate) {
+      setSelectedImportCandidate(null);
+      return;
+    }
+
+    setValues(
+      createValuesFromCandidate(
+        selectedSearchCandidate,
+        createDefaultWorkFormValues,
+      ),
+    );
+    setSelectedImportCandidate(selectedSearchCandidate);
+    setValidationError(null);
+    setTitleError(null);
+  }, [mode, selectedSearchCandidate]);
   const draftBaselineValues = useMemo(
     () => createFormDefaults(initialTitle),
     [initialTitle],
@@ -148,7 +171,7 @@ export function AddWorkFlow({
   const draft = useWorkFormDraft({
     baselineValues: draftBaselineValues,
     draftKey,
-    enabled: Boolean(draftKey),
+    enabled: Boolean(draftKey) && !isSubmitting,
     onRestore: (draftValues) => {
       resetImportedCandidate();
       setMode('manual');
@@ -256,6 +279,7 @@ export function AddWorkFlow({
 
       const input = parseWorkFormValues(values);
 
+      draft.suspendAutosave();
       await onSubmit({
         ...input,
         ...(selectedImportCandidate
@@ -265,8 +289,9 @@ export function AddWorkFlow({
               importDraft: null,
             }),
       });
-      draft.clearDraft();
+      draft.completeDraft();
     } catch (error) {
+      draft.resumeAutosave();
       setValidationError(
         error instanceof Error ? error.message : t('works.form.saveError'),
       );
@@ -282,7 +307,7 @@ export function AddWorkFlow({
         />
       )}
       <Stack gap="sm">
-        <Group align="flex-start" justify="space-between" wrap="wrap">
+        <Group align="center" justify="space-between" wrap="wrap">
           <Text c="var(--mantine-color-dimmed)" maw="48rem" size="sm">
             {t(
               searchEnabled
@@ -291,24 +316,31 @@ export function AddWorkFlow({
             )}
           </Text>
 
-          {searchEnabled && <SegmentedControl
-            aria-label={t('works.add.modeLabel')}
-            data={[
-              { label: t('works.add.modeManual'), value: 'manual' },
-              { label: t('works.add.modeSearch'), value: 'search' },
-            ]}
-            onChange={(value) => {
-              const nextMode = value as 'manual' | 'search';
-
-              setMode(nextMode);
-              if (nextMode === 'manual') {
-                focusMainTitle();
-              } else {
-                clearSearchError();
+          {searchEnabled && (
+            <AppButton
+              aria-label={
+                mode === 'search'
+                  ? t('works.add.modeManual')
+                  : t('works.add.modeSearch')
               }
-            }}
-            value={mode}
-          />}
+              onClick={() => {
+                if (mode === 'search') {
+                  setMode('manual');
+                  focusMainTitle();
+                } else {
+                  setMode('search');
+                  clearSearchError();
+                }
+              }}
+              size="compact-sm"
+              tone="quiet"
+              type="button"
+            >
+              {mode === 'search'
+                ? t('works.add.search.manualSecondaryAction')
+                : t('works.add.search.backToResults')}
+            </AppButton>
+          )}
         </Group>
       </Stack>
 
@@ -320,12 +352,16 @@ export function AddWorkFlow({
           fullHeight={variant === 'dialog'}
           hasSearched={hasSearched}
           isSearching={isSearching}
+          isSubmitting={isSubmitting}
           onApplyCandidate={applyCandidateToForm}
           onProviderGroupChange={handleProviderGroupChange}
           onSearchSubmit={handleSearchSubmit}
           onSearchTermChange={setSearchTerm}
           onSearchTypeChange={handleSearchTypeChange}
           onSelectCandidate={setSelectedSearchCandidate}
+          onRatingChange={handleRatingChange}
+          onStatusChange={handleStatusChange}
+          onSubmit={handleSubmit}
           onUseManualTitle={useSearchTermForManualInput}
           providerGroup={providerGroup}
           providerReadinessSummary={
@@ -340,6 +376,9 @@ export function AddWorkFlow({
           searchTerm={searchTerm}
           searchType={searchType}
           selectedCandidate={selectedSearchCandidate}
+          submitError={submitError}
+          validationError={validationError}
+          values={values}
         />
       ) : (
         <AddWorkManualForm

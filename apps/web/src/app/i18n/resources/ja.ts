@@ -205,12 +205,14 @@ export const ja = {
     newRecordHint: '新規記録',
     noRating: '未評価の作品',
     placeholder: 'コマンドまたは検索…',
+    resultsLabel: 'コマンド結果',
     searchLabel: '「{{query}}」を検索',
     searchHint: 'タイトル・作者',
     showCompletedSerial: '完結作のみ表示',
     showFavorites: 'お気に入り',
     showInProgress: '続きを見る作品',
     showInProgressHint: '進行中',
+    title: 'クイックコマンド',
     keywords: {
       add: '追加 新規 登録 記録 add new',
       completedSerial: '完結 連載 completed serial',
@@ -543,9 +545,11 @@ export const ja = {
     insights: 'インサイト',
     login: 'ログイン',
     logout: 'ログアウト',
+    closeMenu: 'メニューを閉じる',
     mobileNavigation: 'モバイルナビゲーション',
     openMenu: 'メニューを開く',
     primaryNavigation: 'メインナビゲーション',
+    secondaryNavigation: '補助ツール',
     settingsBackup: '設定とバックアップ',
     signedIn: 'ログイン済み',
     syncPreparingDescription:
@@ -2195,7 +2199,7 @@ export const ja = {
       fieldShortReview: '一言レビュー',
       fieldTitle: 'タイトル',
       flowDescription:
-        'タイトル・状態・評価ですぐ保存し、検索と作品情報の補完は必要なときだけ使います。',
+        '作品を検索して表紙と情報を選び、ステータスと評価を決めてライブラリに追加します。',
       flowDescriptionSitesPoc:
         'タイトル・状態・評価ですぐ保存します。この環境では作品検索を使わず手動で記録します。',
       flowTitle: '新しい作品記録',
@@ -2204,7 +2208,7 @@ export const ja = {
         'タイトル・状態・評価だけで保存できます。残りはいつでも追加できます。',
       modeLabel: '追加方式',
       modeManual: '手動入力',
-      modeSearch: '検索で情報を補完（任意）',
+      modeSearch: '検索結果から選ぶ',
       savedDescription:
         '今保存した記録をすぐ確認したり、同じ流れで次の作品を続けて追加できます。',
       savedEyebrow: '保存完了',
@@ -2214,6 +2218,7 @@ export const ja = {
         aliasPrefix: '別名 {{aliases}}',
         alreadyInRecord: 'すでにマイ記録にあります',
         applyCandidate: 'この候補で入力を埋める',
+        backToResults: '検索結果から選ぶ',
         applyDescription:
           'この候補でタイトルと作品情報を埋め、保存はメインフォームで行います。',
         applyManual: '手動追加で入力を埋める',
@@ -2235,6 +2240,7 @@ export const ja = {
         emptyInitialDescription:
           '検索は任意です。タイトルを入力して候補を探すか、手動追加に戻ってすぐ保存できます。',
         emptyInitialTitle: '検索語を入力して候補を探しましょう。',
+        editDetails: '詳細情報を編集',
         externalIdentityShow: '外部識別子を表示',
         format: '形式',
         helperApplyNote:
@@ -2245,6 +2251,7 @@ export const ja = {
         helperTitle: '検索は手動入力を助ける補助ツールです',
         inputMode: '入力方式',
         manualCandidate: '手動追加候補',
+        manualSecondaryAction: '見つかりませんか？手動で入力',
         manualRecord: '入力したタイトルで手動記録',
         manualReviewDescription:
           'タイトルやソースの信号が弱い候補です。正しい作品か確認してから使うか、検索を閉じて手動入力で続けられます。',
@@ -2281,11 +2288,13 @@ export const ja = {
         searchingCandidatesDescription:
           'ソース別の結果、重複可能性、適用できる情報をまとめています。',
         searchMissingInput: 'まず作品タイトルか作者を検索してください。',
-        searchPlaceholder: 'タイトル・作者・スタジオを入力してください',
+        searchPlaceholder: '作品タイトルを検索',
         searchSource: '検索ソース',
-        searchSubmit: '候補を検索',
+        searchSubmit: '検索',
         searching: '検索中…',
         selectCandidateFirst: '検索結果からまず作品を選んでください。',
+        saveHint: '保存後、作品詳細画面で記録を続けられます。',
+        selectedWork: '選択した作品',
         similarRecordsCount: '似た記録 {{count}}個',
         sourcePageOpen: '元ページを開く',
         titleEvidence: 'タイトル根拠',
@@ -2320,7 +2329,7 @@ export const ja = {
         duplicateDescription:
           '似た記録 {{count}}個を確認してから保存してください。',
         duplicateTitle: '既存記録の確認が必要',
-        submit: 'マイアーカイブに保存',
+        submit: 'ライブラリに追加',
       },
       quickAdd: {
         typeAll: '自動選択',

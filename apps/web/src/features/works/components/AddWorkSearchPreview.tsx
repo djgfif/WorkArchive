@@ -1,13 +1,15 @@
 import { Grid, Paper } from '@mantine/core';
 import type { WorkRecord } from '@work-archive/shared-types';
+import type { FormEvent } from 'react';
 
 import { useAppTranslation } from '@app/i18n';
 import { StateMessage } from '@shared/components/AppPrimitives';
 import type { ImportCandidate } from '@features/imports';
-import { CandidatePreviewPanel } from './CandidatePreviewPanel';
+import { AddWorkSelectedCandidatePanel } from './AddWorkSelectedCandidatePanel';
 import { SearchPreviewLoading } from './AddWorkSearchLoading';
 import styles from './ArchiveComponents.module.css';
 import { cn } from '@shared/utils/class-names';
+import type { WorkFormValues } from '../utils/work-form';
 
 const css = styles;
 
@@ -17,8 +19,15 @@ interface AddWorkSearchPreviewProps {
   hasSearched: boolean;
   isManualSearchGroup: boolean;
   isSearching: boolean;
+  isSubmitting: boolean;
   onApplyCandidate: () => void;
+  onRatingChange: (rating: number | null) => void;
+  onStatusChange: (status: WorkFormValues['status']) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   selectedCandidate: ImportCandidate | null;
+  submitError: string | null;
+  validationError: string | null;
+  values: WorkFormValues;
 }
 
 export function AddWorkSearchPreview({
@@ -27,16 +36,23 @@ export function AddWorkSearchPreview({
   hasSearched,
   isManualSearchGroup,
   isSearching,
+  isSubmitting,
   onApplyCandidate,
+  onRatingChange,
+  onStatusChange,
+  onSubmit,
   selectedCandidate,
+  submitError,
+  validationError,
+  values,
 }: AddWorkSearchPreviewProps) {
   const { t } = useAppTranslation();
 
   return (
-    <Grid.Col span={{ base: 12, md: 7 }}>
+    <Grid.Col span={{ base: 12, md: 5 }}>
       <Paper
         className={cn(css.searchPreviewPanel)}
-        p="lg"
+        p="md"
         radius="md"
         {...(fullHeight ? { mih: undefined } : {})}
         withBorder
@@ -44,10 +60,17 @@ export function AddWorkSearchPreview({
         {isSearching ? (
           <SearchPreviewLoading />
         ) : selectedCandidate ? (
-          <CandidatePreviewPanel
+          <AddWorkSelectedCandidatePanel
             candidate={selectedCandidate}
             duplicateMatches={duplicateMatches}
-            onApply={onApplyCandidate}
+            isSubmitting={isSubmitting}
+            onEditDetails={onApplyCandidate}
+            onRatingChange={onRatingChange}
+            onStatusChange={onStatusChange}
+            onSubmit={onSubmit}
+            submitError={submitError}
+            validationError={validationError}
+            values={values}
           />
         ) : (
           <StateMessage

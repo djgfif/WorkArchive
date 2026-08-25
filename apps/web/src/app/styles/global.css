@@ -116,6 +116,9 @@ textarea::placeholder {
 /* ── Root ────────────────────────────────────────────────────────────────── */
 :root {
   --topnav-height: 56px;
+  --app-sidebar-width: 224px;
+  --mobile-header-height: 64px;
+  --mobile-nav-height: 76px;
 }
 
 #root {
@@ -131,7 +134,17 @@ textarea::placeholder {
 
 .app-content {
   flex: 1;
-  padding-top: var(--topnav-height);
+  padding-top: 0;
+}
+
+@media (max-width: 61.99rem) {
+  html {
+    scroll-padding-top: calc(var(--mobile-header-height) + 0.75rem);
+  }
+
+  .app-content {
+    padding-top: var(--mobile-header-height);
+  }
 }
 
 /* ── Legacy layout shell (auth, account, minimal 레이아웃용) ─────────────── */

@@ -30,6 +30,7 @@ import {
 import styles from '../pages/TierBoardsPage.module.css';
 import { cn } from '@shared/utils/class-names';
 import { getDisplayImageUrl } from '@shared/utils/image-proxy';
+import { getKoreanParticle } from '@shared/utils/korean-particle';
 import { useAppTranslation } from '@app/i18n';
 
 const css = styles;
@@ -184,7 +185,10 @@ function CardMenu({
         </Menu.Item>
         {lanes.map((lane) => (
           <Menu.Item key={lane.id} onClick={() => onMove(card.id, lane.id)}>
-            {t('tierBoards.canvas.moveToLane', { title: lane.title })}
+            {t('tierBoards.canvas.moveToLane', {
+              particle: getKoreanParticle(lane.title, '으로/로'),
+              title: lane.title,
+            })}
           </Menu.Item>
         ))}
         <Menu.Divider />
@@ -295,15 +299,10 @@ export function SortableLane({
   const { setNodeRef: setDropNodeRef } = useDroppable({
     id: getLaneContainerId(lane.id),
   });
-  const setLaneNodeRef = (node: HTMLDivElement | null) => {
-    setSortableNodeRef(node);
-    setDropNodeRef(node);
-  };
-
   return (
     <div
       className={`${cn(css.lane)} ${isDragging ? cn(css.dragging) : ''}`}
-      ref={setLaneNodeRef}
+      ref={setSortableNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -389,7 +388,7 @@ export function SortableLane({
           </ActionIcon>
         </Group>
       </Stack>
-      <div className={cn(css.laneDropZone)}>
+      <div className={cn(css.laneDropZone)} ref={setDropNodeRef}>
         <Box p="md">
           <SortableContext
             items={cards.map((card) => getCardSortableId(card.id))}

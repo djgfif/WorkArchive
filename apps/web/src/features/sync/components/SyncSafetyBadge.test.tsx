@@ -54,13 +54,11 @@ function renderBadge() {
 }
 
 describe('SyncSafetyBadge', () => {
-  it('shows a local-only state for guests without calling it a backup', () => {
-    mockArchiveSafety({ mode: 'guest' });
+  it('hides steady guest storage from persistent product chrome', () => {
+    mockArchiveSafety({ mode: 'guest', pendingCount: 7 });
     renderBadge();
 
-    const link = screen.getByRole('link', { name: /게스트 로컬 전용/ });
-    expect(link).toHaveAttribute('href', '/account/settings#data-backup');
-    expect(link).not.toHaveTextContent('백업됨');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
   it('links failures and conflicts directly to the recovery section', () => {
@@ -80,18 +78,19 @@ describe('SyncSafetyBadge', () => {
     });
     renderBadge();
 
-    expect(screen.getByRole('link', { name: /push 대기 1건/ }))
-      .toHaveAttribute('href', '/account/settings#data-backup');
+    expect(screen.getByRole('link', { name: /push 대기 1건/ })).toHaveAttribute(
+      'href',
+      '/account/settings#data-backup',
+    );
   });
 
-  it('uses the last successful push as sync evidence', () => {
+  it('hides healthy sync evidence from persistent product chrome', () => {
     mockArchiveSafety({
       lastSuccessfulPullAt: '2026-05-24T01:00:00.000Z',
       lastSuccessfulPushAt: '2026-05-24T00:00:00.000Z',
     });
     renderBadge();
 
-    const link = screen.getByRole('link', { name: /마지막 push/ });
-    expect(link).not.toHaveTextContent('최근 백업됨');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

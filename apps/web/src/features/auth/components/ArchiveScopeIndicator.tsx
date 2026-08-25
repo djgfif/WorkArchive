@@ -4,16 +4,26 @@ import { getUserAvatarProfile } from '../utils/user-profile';
 import styles from './ArchiveScopeIndicator.module.css';
 
 interface ArchiveScopeIndicatorProps {
+  attentionOnly?: boolean;
   className?: string;
 }
 
 export function ArchiveScopeIndicator({
+  attentionOnly = false,
   className,
 }: ArchiveScopeIndicatorProps) {
   const { t } = useAppTranslation();
   const { isLoading, mode, sessionStatus, user } = useAuthSession();
 
   if (isLoading || sessionStatus === 'restoring') {
+    return null;
+  }
+
+  if (
+    attentionOnly &&
+    sessionStatus !== 'offline' &&
+    sessionStatus !== 'expired'
+  ) {
     return null;
   }
 

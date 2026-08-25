@@ -2,7 +2,6 @@ import type { WorkFormValues } from '../utils/work-form';
 import type { WorkFormFocusArea } from '../components/add-work-form.types';
 
 const DRAFT_STORAGE_PREFIX = 'work-archive:work-form-draft:';
-const completedDraftKeys = new Set<string>();
 const draftWriteVersions = new Map<string, number>();
 
 export interface WorkFormDraftRecord {
@@ -41,16 +40,6 @@ export function buildWorkFormDraftKey({
 }
 
 export const workFormDraftService = {
-  beginDraftSession(key: string) {
-    completedDraftKeys.delete(key);
-  },
-
-  completeDraft(key: string) {
-    completedDraftKeys.add(key);
-    draftWriteVersions.set(key, (draftWriteVersions.get(key) ?? 0) + 1);
-    getStorage()?.removeItem(getStorageKey(key));
-  },
-
   captureWriteVersion(key: string) {
     return draftWriteVersions.get(key) ?? 0;
   },
@@ -89,10 +78,6 @@ export const workFormDraftService = {
     values: WorkFormValues,
     expectedWriteVersion?: number,
   ) {
-    if (completedDraftKeys.has(key)) {
-      return null;
-    }
-
     if (
       expectedWriteVersion !== undefined &&
       expectedWriteVersion !== (draftWriteVersions.get(key) ?? 0)

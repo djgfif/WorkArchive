@@ -16,6 +16,11 @@ import { cn } from '@shared/utils/class-names';
 import css from './CommandPalette.module.css';
 
 export const COMMAND_PALETTE_EVENT = 'work-archive:open-command-palette';
+const COMMAND_LIST_ID = 'command-palette-list';
+
+function getCommandOptionId(commandId: string) {
+  return `command-palette-option-${commandId}`;
+}
 
 interface Command {
   id: string;
@@ -142,7 +147,7 @@ export function CommandPalette() {
     ];
 
     if (trimmed) {
-      list.unshift({
+      list.push({
         id: 'search',
         label: t('commandPalette.searchLabel', { query: trimmed }),
         hint: t('commandPalette.searchHint'),
@@ -177,7 +182,9 @@ export function CommandPalette() {
     const active = listRef.current?.querySelector<HTMLElement>(
       '[data-command-active="true"]',
     );
-    active?.scrollIntoView({ block: 'nearest' });
+    if (typeof active?.scrollIntoView === 'function') {
+      active.scrollIntoView({ block: 'nearest' });
+    }
   }, [activeIndex, filtered.length]);
 
   function execute(command: Command | undefined) {
@@ -191,6 +198,7 @@ export function CommandPalette() {
 
   return (
     <Modal
+      aria-label={t('commandPalette.title')}
       onClose={close}
       opened={opened}
       padding={0}
@@ -201,6 +209,13 @@ export function CommandPalette() {
     >
       <Box p="sm">
         <TextInput
+          aria-activedescendant={
+            filtered[activeIndex]
+              ? getCommandOptionId(filtered[activeIndex].id)
+              : undefined
+          }
+          aria-controls={COMMAND_LIST_ID}
+          aria-expanded={opened}
           aria-label={t('commandPalette.inputLabel')}
           data-autofocus
           onChange={(event) => setQueryText(event.currentTarget.value)}
@@ -219,6 +234,7 @@ export function CommandPalette() {
             }
           }}
           placeholder={t('commandPalette.placeholder')}
+          role="combobox"
           size="md"
           value={queryText}
           variant="unstyled"
@@ -226,9 +242,12 @@ export function CommandPalette() {
       </Box>
 
       <Box
+        aria-label={t('commandPalette.resultsLabel')}
         className={cn(css.commandList)}
+        id={COMMAND_LIST_ID}
         ref={listRef}
         p="xs"
+        role="listbox"
       >
         {filtered.length === 0 ? (
           <Text c="dimmed" p="md" size="sm">
@@ -238,11 +257,14 @@ export function CommandPalette() {
           <Stack gap={2}>
             {filtered.map((command, index) => (
               <Box
+                aria-selected={index === activeIndex}
                 className={cn(css.commandItem)}
                 key={command.id}
                 data-command-active={index === activeIndex ? 'true' : undefined}
+                id={getCommandOptionId(command.id)}
                 onClick={() => execute(command)}
                 onMouseEnter={() => setActiveIndex(index)}
+                role="option"
               >
                 <Text fw={650} size="sm">
                   {command.label}

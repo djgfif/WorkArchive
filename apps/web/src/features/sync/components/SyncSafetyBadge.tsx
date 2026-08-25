@@ -4,7 +4,11 @@ import { useArchiveSafetyState } from '../hooks/useArchiveSafetyState';
 
 export function SyncSafetyBadge() {
   const { t } = useAppTranslation();
-  const { presentation } = useArchiveSafetyState();
+  const { isLoading, presentation, state } = useArchiveSafetyState();
+
+  if (isLoading || (state.level !== 'action' && state.level !== 'pending')) {
+    return null;
+  }
 
   return (
     <AppLinkButton

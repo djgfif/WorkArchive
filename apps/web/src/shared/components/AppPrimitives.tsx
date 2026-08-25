@@ -194,6 +194,7 @@ interface ThemeToggleControlProps {
 }
 
 interface AppNavLinkProps {
+  'aria-label'?: string;
   badge?: ReactNode;
   children: ReactNode;
   end?: boolean;
@@ -488,6 +489,7 @@ export function AppBadge({ children, tone = 'default' }: AppBadgeProps) {
 export function BrandLink({ heading, kicker, to = '/' }: BrandLinkProps) {
   return (
     <Box
+      aria-label={heading}
       className={cn(css.brandLink)}
       component={Link}
       miw={0}
@@ -556,6 +558,7 @@ export function ThemeToggleControl({
 }
 
 export function AppNavLink({
+  'aria-label': ariaLabel,
   badge,
   children,
   end = false,
@@ -566,6 +569,7 @@ export function AppNavLink({
 }: AppNavLinkProps) {
   return (
     <NavLink
+      aria-label={ariaLabel}
       className={({ isActive }) =>
         cx(
           css.navLink,
@@ -579,7 +583,7 @@ export function AppNavLink({
       to={to}
     >
       <Group gap="xs" justify="space-between" wrap="nowrap" w="100%">
-        <Text component="span" fw="inherit" size="sm">
+        <Text component="div" fw="inherit" size="sm">
           {children}
         </Text>
         {badge}

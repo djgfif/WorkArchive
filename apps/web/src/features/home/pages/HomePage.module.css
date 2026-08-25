@@ -663,10 +663,7 @@
 .starterPanel {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(17rem, 0.72fr);
-  width: min(
-    100%,
-    calc(var(--home-content-max) - clamp(2rem, 5vw, 4rem))
-  );
+  width: min(100%, calc(var(--home-content-max) - clamp(2rem, 5vw, 4rem)));
   margin: 0 auto;
   overflow: hidden;
   border: 1px solid var(--app-border-default);
@@ -834,10 +831,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 1.25rem;
-  width: min(
-    100%,
-    calc(var(--home-content-max) - clamp(2rem, 5vw, 4rem))
-  );
+  width: min(100%, calc(var(--home-content-max) - clamp(2rem, 5vw, 4rem)));
   margin: clamp(1.5rem, 3vw, 2.5rem) auto 0;
   padding: 0.9rem 1.1rem;
   border: 1px solid var(--app-border-default);
@@ -1051,5 +1045,113 @@
   .emptyGuideCard {
     transform: none !important;
     transition: none !important;
+  }
+}
+
+/* 콘텐츠 중심 홈: 첫 화면의 제목과 기록 입력을 조밀하게 유지한다. */
+.homePage {
+  min-height: 100vh;
+  padding-bottom: clamp(2rem, 5vw, 4rem);
+}
+
+.commandCenter {
+  padding-top: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+.archiveHeading {
+  align-items: center;
+  padding-block: 0 0.9rem;
+}
+
+.archiveHeadingTitle h1 {
+  font-size: clamp(1.65rem, 2.3vw, 2.1rem);
+  font-weight: 780;
+}
+
+.archiveHeadingDescription {
+  max-width: 38rem;
+}
+
+.quickCaptureForm {
+  gap: 0.5rem;
+  padding: 0.55rem;
+  border-radius: var(--mantine-radius-md);
+  box-shadow: none;
+}
+
+.quickCaptureForm :global(.mantine-Input-input) {
+  min-height: 2.75rem;
+  font-size: 1rem;
+}
+
+.emptyGuide {
+  display: flex;
+  max-width: calc(var(--home-content-max) - 4rem);
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-top: clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1.2rem, 2.5vw, 1.75rem);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--mantine-radius-lg);
+  background: var(--app-surface-card);
+}
+
+.emptyGuideIntro {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 0;
+}
+
+.emptyGuideIcon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--app-border-default);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface-subtle);
+  color: var(--app-text-secondary);
+}
+
+.emptyGuideCopy {
+  min-width: 0;
+}
+
+.emptyGuideTitle {
+  margin-bottom: 0.35rem;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+}
+
+.emptyGuideDesc {
+  max-width: 38rem;
+  font-size: var(--app-type-caption);
+  line-height: 1.55;
+}
+
+.emptyGuideActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 48rem) {
+  .commandCenter {
+    padding-top: 1rem;
+  }
+
+  .emptyGuide {
+    display: grid;
+    max-width: none;
+    margin: 1.25rem 1rem 0;
+    padding: 1rem;
+  }
+
+  .emptyGuideActions {
+    width: 100%;
+    flex-wrap: wrap;
   }
 }

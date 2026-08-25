@@ -204,12 +204,14 @@ export const en = {
     newRecordHint: 'New record',
     noRating: 'Unrated works',
     placeholder: 'Command or search…',
+    resultsLabel: 'Command results',
     searchLabel: 'Search "{{query}}"',
     searchHint: 'Title · author',
     showCompletedSerial: 'Show completed only',
     showFavorites: 'Favorites',
     showInProgress: 'Continue watching',
     showInProgressHint: 'In progress',
+    title: 'Quick commands',
     keywords: {
       add: 'add new create record',
       completedSerial: 'completed serial finished',
@@ -544,9 +546,11 @@ export const en = {
     insights: 'Insights',
     login: 'Log in',
     logout: 'Log out',
+    closeMenu: 'Close menu',
     mobileNavigation: 'Mobile navigation',
     openMenu: 'Open menu',
     primaryNavigation: 'Primary navigation',
+    secondaryNavigation: 'Secondary tools',
     settingsBackup: 'Settings and backup',
     signedIn: 'Signed in',
     syncPreparingDescription:
@@ -2211,7 +2215,7 @@ export const en = {
       fieldShortReview: 'One-line review',
       fieldTitle: 'Title',
       flowDescription:
-        'Save with a title, status, and rating; use search and metadata enrichment only when useful.',
+        'Search for a work, choose its cover and details, then set your status and rating before adding it.',
       flowDescriptionSitesPoc:
         'Save with a title, status, and rating. This preview uses manual records without work search.',
       flowTitle: 'New work record',
@@ -2220,7 +2224,7 @@ export const en = {
         'A title, status, and rating are enough. You can complete the rest anytime.',
       modeLabel: 'Add method',
       modeManual: 'Manual entry',
-      modeSearch: 'Enrich via search (optional)',
+      modeSearch: 'Choose from search',
       savedDescription:
         'Check the record you just saved, or keep adding the next work in the same flow.',
       savedEyebrow: 'Saved',
@@ -2230,6 +2234,7 @@ export const en = {
         aliasPrefix: 'Aliases {{aliases}}',
         alreadyInRecord: 'Already in my records',
         applyCandidate: 'Fill fields with this candidate',
+        backToResults: 'Choose from search',
         applyDescription:
           'Fill the title and work info with this candidate; save from the main form.',
         applyManual: 'Fill fields by manual add',
@@ -2251,6 +2256,7 @@ export const en = {
         emptyInitialDescription:
           'Search is optional. Enter a title to find candidates, or go back to manual add and save right away.',
         emptyInitialTitle: 'Enter a search term to find candidates.',
+        editDetails: 'Edit details',
         externalIdentityShow: 'Show external identifiers',
         format: 'Format',
         helperApplyNote:
@@ -2261,6 +2267,7 @@ export const en = {
         helperTitle: 'Search is a helper for manual entry',
         inputMode: 'Input method',
         manualCandidate: 'Manual add candidate',
+        manualSecondaryAction: 'No matching result? Enter it manually',
         manualRecord: 'Record directly with the entered title',
         manualReviewDescription:
           "This candidate has weak title or source signals. Confirm it's the right work before using, or close search and continue with manual entry.",
@@ -2297,12 +2304,14 @@ export const en = {
         searchingCandidatesDescription:
           'Organizing results by source, duplicate likelihood, and applicable info together.',
         searchMissingInput: 'Please search a work title or author first.',
-        searchPlaceholder: 'Enter a title, author, or studio',
+        searchPlaceholder: 'Search by work title',
         searchSource: 'Search source',
-        searchSubmit: 'Search candidates',
+        searchSubmit: 'Search',
         searching: 'Searching…',
         selectCandidateFirst:
           'Please select a work from the search results first.',
+        saveHint: 'Continue recording from the work detail page after saving.',
+        selectedWork: 'Selected work',
         similarRecordsCount: '{{count}} similar records',
         sourcePageOpen: 'Open source page',
         titleEvidence: 'Title evidence',
@@ -2336,7 +2345,7 @@ export const en = {
       save: {
         duplicateDescription: 'Review {{count}} similar records before saving.',
         duplicateTitle: 'Existing record check needed',
-        submit: 'Save to my archive',
+        submit: 'Add to my library',
       },
       quickAdd: {
         typeAll: 'Auto select',

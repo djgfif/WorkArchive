@@ -57,6 +57,18 @@ describe('AccountLayout', () => {
     expect(getLinkByHref('/works')).toBeInTheDocument();
     expect(getLinkByHref('/auth/login')).toBeInTheDocument();
     expect(getLinkByHref('/')).toHaveTextContent('Work Archive');
+    expect(
+      screen.getAllByRole('link', { name: '계정 개요' }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('link', { name: '설정과 백업' }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('link', { name: '작품 목록으로' }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('link', { name: '로그인' }).length,
+    ).toBeGreaterThan(0);
     expect(screen.getAllByRole('navigation').length).toBeGreaterThan(0);
     expect(getLinkByHref('/account')).toBeInTheDocument();
   });

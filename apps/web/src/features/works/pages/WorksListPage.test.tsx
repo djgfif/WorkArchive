@@ -80,7 +80,8 @@ describe('WorksListPage', () => {
     const dialog = await screen.findByRole('dialog');
 
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('직접 입력')).toBeChecked();
+    expect(within(dialog).getByLabelText(/^작품 검색$/)).toBeInTheDocument();
+    await user.click(within(dialog).getByLabelText('직접 입력'));
 
     await user.type(
       within(dialog).getByLabelText(/^제목$/),
@@ -88,7 +89,7 @@ describe('WorksListPage', () => {
     );
     await user.selectOptions(within(dialog).getByLabelText(/^유형$/), 'movie');
     await user.click(
-      within(dialog).getByRole('button', { name: '내 아카이브에 저장' }),
+      within(dialog).getByRole('button', { name: '내 서재에 추가' }),
     );
 
     await waitFor(
@@ -120,7 +121,7 @@ describe('WorksListPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '직접 추가' })).toHaveAttribute(
       'href',
-      '/works/new',
+      '/works/new?mode=manual',
     );
     expect(
       screen.getByRole('button', { name: '검색으로 추가' }),
@@ -191,6 +192,43 @@ describe('WorksListPage', () => {
     expect(
       screen.getByRole('button', { name: 'JSON 백업 내보내기' }),
     ).toBeInTheDocument();
+  });
+
+  it('shows an unfiltered continue shelf before the full library', async () => {
+    const work = await worksService.createWork({
+      type: 'novel',
+      title: 'Dune Messiah',
+      author: 'Frank Herbert',
+      genres: ['Science Fiction'],
+      description: '',
+      thumbnailUrl: '',
+      status: 'in_progress',
+      rating: null,
+      shortReview: '',
+      review: '',
+      favorite: false,
+    });
+    await worksService.updateProgress(work.id, {
+      progressCurrent: 2,
+      progressTotal: 4,
+      progressUnit: 'volume',
+      lastConsumedLabel: '2권까지',
+    });
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/works'],
+    });
+
+    renderWithProviders(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
+
+    const shelf = await screen.findByRole('region', { name: '이어서 기록' });
+    expect(
+      within(shelf).getByRole('link', { name: /Dune Messiah/ }),
+    ).toHaveAttribute('href', `/works/${work.id}`);
+    expect(within(shelf).getByLabelText('50%')).toBeInTheDocument();
   });
 
   it('keeps recent shortcut shelves out of the library page', async () => {

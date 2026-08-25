@@ -195,12 +195,14 @@ export const ko = {
     newRecordHint: '새 기록',
     noRating: '평가 안 한 작품',
     placeholder: '명령 또는 검색...',
+    resultsLabel: '명령 결과',
     searchLabel: '"{{query}}" 검색',
     searchHint: '제목·작가',
     showCompletedSerial: '완결작만 보기',
     showFavorites: '즐겨찾기',
     showInProgress: '이어볼 작품',
     showInProgressHint: '진행 중',
+    title: '빠른 명령',
     keywords: {
       add: 'add new 추가 등록 기록',
       completedSerial: '완결 completed serial 연재',
@@ -529,9 +531,11 @@ export const ko = {
     insights: '인사이트',
     login: '로그인',
     logout: '로그아웃',
+    closeMenu: '메뉴 닫기',
     mobileNavigation: '모바일 탐색',
     openMenu: '메뉴 열기',
     primaryNavigation: '주요 탐색',
+    secondaryNavigation: '보조 도구',
     settingsBackup: '설정과 백업',
     signedIn: '로그인됨',
     syncPreparingDescription: '개인 기록을 불러오는 동안 잠시만 기다려 주세요.',
@@ -593,24 +597,22 @@ export const ko = {
     },
     starter: {
       archiveCount: '{{count}}개',
-      archiveDescription:
-        '이어볼 작품과 최근 감상, 쌓여 가는 취향을 한곳에서 다시 만납니다.',
-      archiveEmptyDescription:
-        '책·애니·만화·영화를 한곳에 기록하세요. 로그인 없이 시작해도 이 브라우저가 먼저 보관합니다.',
-      archiveTitle: '내 아카이브',
+      archiveDescription: '이어볼 작품과 최근 변경 기록을 바로 확인하세요.',
+      archiveEmptyDescription: '작품 하나를 추가하면 오늘의 기록이 시작됩니다.',
+      archiveTitle: '오늘의 기록',
       startedDescription: '작품을 기록하고 상태와 감상을 천천히 채워 보세요.',
       startedTitle: '아카이브가 시작되었습니다',
     },
     empty: {
       backupDescription: 'JSON 내보내기와 가져오기를 한 화면에서 관리합니다.',
-      backupTitle: '내 기록 백업',
+      backupTitle: '백업에서 시작',
       description:
-        '로그인 없이 바로 기록하고, 검색이 실패해도 직접 추가하며, JSON 백업으로 기록을 보관할 수 있습니다.',
+        '제목과 상태만으로 시작할 수 있습니다. 표지와 상세 정보는 나중에 채워도 됩니다.',
       manualDescription: '계정 연결 없이 제목과 짧은 감상부터 저장합니다.',
-      manualTitle: '로그인 없이 시작',
+      manualTitle: '첫 작품 추가',
       searchDescription: '외부 검색 후보에서 표지와 정보를 가져옵니다.',
       searchTitle: '검색으로 추가',
-      title: '첫 작품을 놓는 방법',
+      title: '아직 기록한 작품이 없습니다',
     },
     error: {
       retry: '다시 불러오기',
@@ -661,11 +663,11 @@ export const ko = {
       viewAllAria: '{{title}} 전체 보기',
     },
     shelves: {
-      continueEyebrow: '이어보기',
-      continueTitle: '이어볼 작품',
+      continueEyebrow: '',
+      continueTitle: '이어서 기록',
       highlyRatedTitle: '높게 평가한 작품',
-      recentAddedEyebrow: '최근 추가',
-      recentAddedTitle: '최근 추가한 작품',
+      recentAddedEyebrow: '',
+      recentAddedTitle: '최근 업데이트',
       recentConsumedEyebrow: '최근 감상',
       recentConsumedTitle: '최근 감상한 작품',
       recommendedEyebrow: '추천 선반',
@@ -1946,7 +1948,7 @@ export const ko = {
       laneMoveAria: '{{title}} 행 이동',
       laneUpAria: '{{title}} 위로',
       move: '이동',
-      moveToLane: '{{title}}로 이동',
+      moveToLane: '{{title}}{{particle}} 이동',
       moveToPool: '미배치로 이동',
     },
     create: '새 티어보드 만들기',
@@ -2172,7 +2174,7 @@ export const ko = {
       fieldShortReview: '한줄평',
       fieldTitle: '제목',
       flowDescription:
-        '제목·상태·별점으로 바로 저장하고, 검색과 작품 정보 보강은 필요할 때만 사용합니다.',
+        '작품을 검색해 표지와 정보를 고른 뒤 상태와 별점을 정해 서재에 추가합니다.',
       flowDescriptionSitesPoc:
         '제목·상태·별점으로 바로 저장합니다. 이 환경에서는 작품 검색 없이 직접 기록합니다.',
       flowTitle: '새 작품 기록',
@@ -2181,7 +2183,7 @@ export const ko = {
         '제목, 상태, 별점만으로 저장할 수 있습니다. 나머지는 언제든 보완할 수 있어요.',
       modeLabel: '추가 방식',
       modeManual: '직접 입력',
-      modeSearch: '검색으로 정보 보강(선택)',
+      modeSearch: '검색에서 작품 선택',
       savedDescription:
         '방금 저장한 기록을 바로 확인하거나, 같은 흐름에서 다음 작품을 계속 추가할 수 있습니다.',
       savedEyebrow: '저장 완료',
@@ -2191,6 +2193,7 @@ export const ko = {
         aliasPrefix: '별칭 {{aliases}}',
         alreadyInRecord: '이미 내 기록에 있음',
         applyCandidate: '이 후보로 입력 채우기',
+        backToResults: '검색에서 작품 선택',
         applyDescription:
           '이 후보로 제목과 작품 정보를 채우고, 저장은 메인 폼에서 진행합니다.',
         applyManual: '직접 추가로 입력 채우기',
@@ -2212,6 +2215,7 @@ export const ko = {
         emptyInitialDescription:
           '검색은 선택 사항입니다. 제목을 입력해 후보를 찾거나 직접 추가로 돌아가 바로 저장할 수 있습니다.',
         emptyInitialTitle: '검색어를 입력해 후보를 찾아보세요.',
+        editDetails: '상세 정보 편집',
         externalIdentityShow: '외부 식별자 보기',
         format: '형식',
         helperApplyNote:
@@ -2221,6 +2225,7 @@ export const ko = {
         helperTitle: '검색은 직접 입력을 돕는 보조 도구입니다',
         inputMode: '입력 방식',
         manualCandidate: '직접 추가 후보',
+        manualSecondaryAction: '검색 결과가 없나요? 직접 입력',
         manualRecord: '입력한 제목으로 직접 기록',
         manualReviewDescription:
           '제목이나 출처 신호가 약한 후보입니다. 맞는 작품인지 확인한 뒤 사용하거나, 검색을 닫고 직접 입력으로 계속할 수 있습니다.',
@@ -2257,11 +2262,13 @@ export const ko = {
         searchingCandidatesDescription:
           '출처별 결과, 중복 가능성, 적용할 수 있는 정보를 함께 정리하고 있습니다.',
         searchMissingInput: '먼저 작품 제목이나 작가를 검색해주세요.',
-        searchPlaceholder: '제목, 작가, 스튜디오를 입력하세요',
+        searchPlaceholder: '작품 제목을 검색하세요',
         searchSource: '검색 출처',
-        searchSubmit: '후보 검색',
+        searchSubmit: '검색',
         searching: '검색 중...',
         selectCandidateFirst: '검색 결과에서 먼저 작품을 선택해주세요.',
+        saveHint: '저장 후 작품 상세 화면에서 기록을 이어갈 수 있습니다.',
+        selectedWork: '선택한 작품',
         similarRecordsCount: '비슷한 기록 {{count}}개',
         sourcePageOpen: '원본 페이지 열기',
         titleEvidence: '제목 근거',
@@ -2295,7 +2302,7 @@ export const ko = {
       save: {
         duplicateDescription: '비슷한 기록 {{count}}개를 확인한 뒤 저장하세요.',
         duplicateTitle: '기존 기록 확인 필요',
-        submit: '내 아카이브에 저장',
+        submit: '내 서재에 추가',
       },
       quickAdd: {
         typeAll: '자동 선택',

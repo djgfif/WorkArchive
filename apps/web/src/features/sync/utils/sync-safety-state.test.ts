@@ -72,4 +72,22 @@ describe('getArchiveSafetyState', () => {
     expect(state.level).toBe('action');
     expect(state.sync.status).toBe('needs-review');
   });
+
+  it('keeps an empty archive calm before persistent storage is granted', () => {
+    const state = buildState({
+      activeRecordCount: 0,
+      lastJsonBackupAt: null,
+      mode: 'guest',
+      storageState: {
+        persisted: false,
+        quotaBytes: null,
+        supported: true,
+        usageBytes: null,
+      },
+    });
+
+    expect(state.level).toBe('empty');
+    expect(state.jsonBackup.status).toBe('empty');
+    expect(state.storage.status).toBe('best-effort');
+  });
 });
